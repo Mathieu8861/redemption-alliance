@@ -9097,6 +9097,57 @@ body.app-has-sidebar {
     white-space: nowrap;
 }
 
+/* ============================================ */
+/* GUIDE D'UTILISATION PAR PAGE                 */
+/* ============================================ */
+.btn--guide {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--color-accent-light);
+    background: rgba(var(--color-accent-rgb), 0.10);
+    border: 1px solid var(--color-border-accent);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn--guide:hover {
+    background: rgba(var(--color-accent-rgb), 0.18);
+    border-color: var(--color-accent);
+}
+
+.modal--guide {
+    max-width: 620px;
+    max-height: 84vh;
+    overflow-y: auto;
+}
+
+.guide-steps {
+    margin: 0;
+    padding-left: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+}
+
+.guide-steps li::marker {
+    color: var(--color-accent-light);
+    font-weight: 700;
+}
+
+.guide-steps strong {
+    color: var(--color-text-primary);
+}
+
 .board-resa {
     display: flex;
     align-items: center;

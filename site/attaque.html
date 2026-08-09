@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260806">
+    <link rel="stylesheet" href="style.css?v=20260809">
 </head>
 <body>
 
@@ -57,6 +57,10 @@
                 <h1 class="combat-page-header__title">Declarer une Attaque</h1>
                 <p class="combat-page-header__sub">Enregistrez le resultat d'une attaque PvP</p>
             </div>
+            <button type="button" class="btn--guide js-guide-open" style="margin-left:auto;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Guide d'utilisation
+            </button>
         </div>
 
         <div class="combat-form combat-form--attaque" id="combat-form">
@@ -177,11 +181,30 @@
 
             <button class="combat-form__submit combat-form__submit--attaque" id="btn-submit-combat">Enregistrer l'attaque</button>
         </div>
+        <!-- Modale guide d'utilisation -->
+        <div class="modal-overlay" id="guide-modal">
+            <div class="modal modal--guide">
+                <div class="modal__header">
+                    <h2 class="modal__title">📖 Guide : déclarer une attaque</h2>
+                    <button class="modal__close" id="guide-modal-close">&times;</button>
+                </div>
+                <ol class="guide-steps">
+                    <li><strong>Les effectifs.</strong> « Vos Forces » = ton équipe (toi compris), « Forces Ennemies » = les adversaires. Le format du combat (5v4, 3v1...) sert au calcul des points.</li>
+                    <li><strong>Ton équipe.</strong> Tape le pseudo de chaque allié. Un joueur pas encore inscrit sur le site ? Ajoute-le comme « invité hors site ». Les mules apparaissent avec une flèche ↳ : un joueur présent avec ses mules ne compte qu'une seule fois, et les points vont à son personnage principal.</li>
+                    <li><strong>Reprendre l'équipe.</strong> Après un combat déclaré, un bandeau te propose de reprendre la même équipe en un clic (valable 12h).</li>
+                    <li><strong>L'alliance ennemie.</strong> La plus affrontée est présélectionnée. Introuvable dans la liste ? Choisis « Autre » et tape son nom.</li>
+                    <li><strong>Résultat, zone et butin.</strong> Victoire ou défaite, la zone du combat (facultatif, avec autocomplétion) et le butin en kamas si victoire.</li>
+                    <li><strong>Les 2 screenshots.</strong> Obligatoires, ils servent de preuve : colle-les avec <kbd>Ctrl</kbd>+<kbd>V</kbd> ou clique pour parcourir.</li>
+                    <li><strong>Enregistrer.</strong> Les points sont calculés automatiquement selon le barème (bouton « Système de points » sur l'accueil) et attribués à tous les participants inscrits.</li>
+                    <li><strong>Une erreur ?</strong> Tu peux corriger ta déclaration pendant 3h depuis l'Historique (crayon sur la carte). Au-delà, demande à un admin.</li>
+                </ol>
+            </div>
+        </div>
     </main>
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20260808"></script>
+    <script src="script.js?v=20260809"></script>
     <script src="js/combat-preuves.js?v=20260727"></script>
     <script src="js/attaque.js?v=20260806"></script>
 </body>

@@ -989,6 +989,21 @@
         if (lang !== 'fr') bootGoogleTranslate(lang);
     }
 
+    /* === GUIDE D'UTILISATION PAR PAGE === */
+    /* Bouton .js-guide-open (haut de page) -> modale statique #guide-modal */
+    function initPageGuide() {
+        var modal = document.getElementById('guide-modal');
+        if (!modal) return;
+        document.querySelectorAll('.js-guide-open').forEach(function (btn) {
+            btn.addEventListener('click', function () { modal.classList.add('active'); });
+        });
+        var close = document.getElementById('guide-modal-close');
+        if (close) close.addEventListener('click', function () { modal.classList.remove('active'); });
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+    }
+
     /* === INIT === */
     function init() {
         injectSidebar();
@@ -1005,6 +1020,7 @@
         checkAuth();
         showUpdateNotif();
         initChangelog();
+        initPageGuide();
     }
 
     if (document.readyState === 'loading') {

@@ -55,6 +55,10 @@
                 <p class="text-muted" id="board-period" style="font-size: 0.8125rem;">Chargement...</p>
             </div>
             <div class="board-header__controls">
+                <button type="button" class="btn--guide js-guide-open">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    Guide d'utilisation
+                </button>
                 <button class="btn btn--bda" id="btn-zones-bda" title="Zones réservées par la Banque d'Alliance">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     Zones BDA
@@ -114,11 +118,27 @@
                 </div>
             </div>
         </div>
+        <!-- Modale guide d'utilisation -->
+        <div class="modal-overlay" id="guide-modal">
+            <div class="modal modal--guide">
+                <div class="modal__header">
+                    <h2 class="modal__title">📖 Guide : les droits percepteurs</h2>
+                    <button class="modal__close" id="guide-modal-close">&times;</button>
+                </div>
+                <ol class="guide-steps">
+                    <li><strong>Le barème.</strong> Tes points PvP de la quinzaine déterminent ton palier, et chaque palier donne un nombre de percos à poser.</li>
+                    <li><strong>La quinzaine.</strong> Le classement repart de zéro tous les 14 jours (le lundi). Les droits affichés valent pour la période en cours, calculés sur les points de la quinzaine précédente.</li>
+                    <li><strong>La résa de zone.</strong> Certains paliers incluent une réservation de zone : si c'est ton cas, un encart violet apparaît au-dessus du tableau. Indique ta zone et elle devient visible par toute l'alliance dans la colonne « Zone réservée » : personne d'autre ne pose dessus.</li>
+                    <li><strong>Le total.</strong> « 4 percos (dont 1 résa) » = 3 poses libres + 1 pose protégée dans ta zone réservée.</li>
+                    <li><strong>Zones BDA.</strong> Le bouton en haut liste les zones réservées à la Banque d'Alliance : leurs récoltes financent les récompenses, on ne pose pas dessus.</li>
+                </ol>
+            </div>
+        </div>
     </main>
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20260808"></script>
+    <script src="script.js?v=20260809"></script>
     <script src="js/board.js?v=20260809"></script>
 </body>
 </html>

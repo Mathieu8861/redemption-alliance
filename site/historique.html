@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260808">
+    <link rel="stylesheet" href="style.css?v=20260809">
 </head>
 <body>
 
@@ -49,9 +49,15 @@
     <aside id="app-sidebar" class="app-sidebar" aria-label="Navigation principale"></aside>
 
     <main class="main">
-        <div class="mb-lg">
-            <h1 style="font-family: var(--font-title); font-size: 1.5rem; font-weight: 700; margin-bottom: var(--spacing-xs);">Historique</h1>
-            <p class="text-muted" style="font-size: 0.8125rem;">Historique de tous les combats</p>
+        <div class="mb-lg" style="display:flex; align-items:flex-start; justify-content:space-between; gap:var(--spacing-md); flex-wrap:wrap;">
+            <div>
+                <h1 style="font-family: var(--font-title); font-size: 1.5rem; font-weight: 700; margin-bottom: var(--spacing-xs);">Historique</h1>
+                <p class="text-muted" style="font-size: 0.8125rem;">Historique de tous les combats</p>
+            </div>
+            <button type="button" class="btn--guide js-guide-open">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Guide d'utilisation
+            </button>
         </div>
 
         <div class="history-filter">
@@ -72,11 +78,27 @@
         <div class="history-grid" id="history-grid">
             <div class="loading"><div class="spinner"></div> Chargement...</div>
         </div>
+        <!-- Modale guide d'utilisation -->
+        <div class="modal-overlay" id="guide-modal">
+            <div class="modal modal--guide">
+                <div class="modal__header">
+                    <h2 class="modal__title">📖 Guide : l'historique des combats</h2>
+                    <button class="modal__close" id="guide-modal-close">&times;</button>
+                </div>
+                <ol class="guide-steps">
+                    <li><strong>Toutes les déclarations</strong> de l'alliance, des plus récentes aux plus anciennes.</li>
+                    <li><strong>Filtrer.</strong> Les onglets (Attaques, Défenses, Victoires, Défaites) se combinent avec les trois recherches : par joueur (auteur, participants et invités hors site), par alliance et par zone.</li>
+                    <li><strong>Les screenshots.</strong> Clique sur les vignettes 📷 d'une carte pour voir les preuves en grand, directement sur le site.</li>
+                    <li><strong>Le crayon (modifier).</strong> Si tu as déclaré un combat, tu peux le corriger pendant 3h : joueurs, résultat, effectifs, butin, alliance... Les admins peuvent modifier à tout moment.</li>
+                    <li><strong>La croix (supprimer).</strong> Réservée aux admins. Un doublon ou une erreur après le délai de 3h ? Signale-le à un admin.</li>
+                </ol>
+            </div>
+        </div>
     </main>
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20260808"></script>
+    <script src="script.js?v=20260809"></script>
     <script src="js/historique.js?v=20260806"></script>
 </body>
 </html>
