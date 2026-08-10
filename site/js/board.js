@@ -27,6 +27,7 @@
         if (!window.REN.supabase || !window.REN.currentProfile) return;
 
         await loadPercoMode();
+        bindExportImage();
 
         /* Mode simple : paliers par points, sans reservations de zones */
         if (percoMode === 'points') {
@@ -299,6 +300,215 @@
 
         html += '</tbody></table>';
         container.innerHTML = html;
+    }
+
+    /* === EXPORT IMAGE DU CLASSEMENT (partage Discord) === */
+    function bindExportImage() {
+        var btn = document.getElementById('btn-export-ladder');
+        if (btn) btn.addEventListener('click', exportLadderImage);
+    }
+
+    function truncateTxt(s, n) {
+        return s.length > n ? s.slice(0, n - 1) + '…' : s;
+    }
+
+    function drawRoundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    /* Droits d'un joueur en texte plat (meme logique que le tableau) */
+    function rewardTextPoints(p) {
+        var r = rewardForPoints(p.points);
+        if (!r) return '—';
+        var pref = prefRecompenseMap[p.user_id] || 'percos';
+        if (pref === 'pepites' && r.pepites > 0) return formatNumber(r.pepites) + ' pépites';
+        if (pref === 'jetons' && (r.jetons_reward || 0) > 0) return '+' + r.jetons_reward + ' jetons';
+        var total = r.percepteurs_bonus + (r.resa || 0);
+        if (total > 0) return total + ' perco' + (total > 1 ? 's' : '') + ((r.resa || 0) > 0 ? ' (dont ' + r.resa + ' résa)' : '');
+        if (r.pepites > 0) return formatNumber(r.pepites) + ' pépites';
+        return '—';
+    }
+
+    function exportLadderImage() {
+        if (!ladder.length) {
+            window.REN.toast('Aucun classement à exporter.', 'error');
+            return;
+        }
+
+        var isPoints = percoMode === 'points';
+        var bareme = isPoints ? pointsConfig : paliers;
+
+        /* Reservations par joueur (mode rang) */
+        var resaByUser = {};
+        if (!isPoints) {
+            reservations.forEach(function (r) {
+                if (!resaByUser[r.user_id]) resaByUser[r.user_id] = [];
+                resaByUser[r.user_id].push(r.zone ? r.zone.nom : '?');
+            });
+        }
+
+        var W = 1000;
+        var pad = 40;
+        var rowH = 34;
+        var baremeLineH = 25;
+        var headerH = 118;
+        var baremeH = bareme.length * baremeLineH + 26;
+        var thH = 42;
+        var footerH = 46;
+        var H = headerH + baremeH + thH + ladder.length * rowH + footerH;
+
+        var canvas = document.createElement('canvas');
+        var scale = 2; /* export net (retina) */
+        canvas.width = W * scale;
+        canvas.height = H * scale;
+        var ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.textBaseline = 'middle';
+
+        /* Fond + lisere violet */
+        ctx.fillStyle = '#17181c';
+        ctx.fillRect(0, 0, W, H);
+        var grad = ctx.createLinearGradient(0, 0, W, 0);
+        grad.addColorStop(0, '#7d5ff7');
+        grad.addColorStop(1, '#251a4d');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, 6);
+
+        /* En-tete */
+        ctx.fillStyle = '#e8eaed';
+        ctx.font = '700 30px Rajdhani, Inter, sans-serif';
+        ctx.fillText('DAMOCLÈS [DMO]', pad, 44);
+        ctx.fillStyle = '#9678ff';
+        ctx.font = '700 19px Rajdhani, Inter, sans-serif';
+        ctx.fillText('DROITS PERCEPTEURS', pad, 74);
+        ctx.fillStyle = '#a1a5ad';
+        ctx.font = '400 13px Inter, sans-serif';
+        var periodeEl = document.getElementById('board-period');
+        ctx.fillText(periodeEl ? periodeEl.textContent : '', pad, 98);
+
+        /* Bareme */
+        var y = headerH + 8;
+        bareme.forEach(function (b) {
+            var txt;
+            if (isPoints) {
+                var range = b.seuil_max !== null ? b.seuil_min + '-' + b.seuil_max + ' pts' : b.seuil_min + '+ pts';
+                var parts = [];
+                if (b.percepteurs_bonus > 0) parts.push(b.percepteurs_bonus + ' perco' + (b.percepteurs_bonus > 1 ? 's' : ''));
+                if ((b.resa || 0) > 0) parts.push(b.resa + ' résa de zone');
+                if (b.pepites > 0) parts.push(formatNumber(b.pepites) + ' pépites');
+                if ((b.jetons_reward || 0) > 0) parts.push(b.jetons_reward + ' jetons');
+                txt = (b.emoji ? b.emoji + ' ' : '') + b.label + ' (' + range + ') : ' + (parts.join(' + ') || '—');
+                if ((b.resa || 0) > 0 && b.percepteurs_bonus > 0) {
+                    txt += '  =  ' + (b.percepteurs_bonus + b.resa) + ' percos au total';
+                }
+            } else {
+                var lbl = b.rang_min === b.rang_max ? 'Top ' + b.rang_min : 'Top ' + b.rang_min + '-' + b.rang_max;
+                var dts = [];
+                if (b.percos > 0) dts.push(b.percos + ' perco' + (b.percos > 1 ? 's' : ''));
+                if (b.percos_150 > 0) dts.push(b.percos_150 + ' perco' + (b.percos_150 > 1 ? 's' : '') + ' niv 150-');
+                txt = (b.emoji ? b.emoji + ' ' : '') + lbl + ' : ' + (dts.join(' + ') || '—');
+            }
+            ctx.fillStyle = '#c6c9cf';
+            ctx.font = '400 13.5px Inter, sans-serif';
+            ctx.fillText(txt, pad, y);
+            y += baremeLineH;
+        });
+
+        /* Tableau : en-tete */
+        y += 8;
+        ctx.fillStyle = '#232430';
+        drawRoundRect(ctx, pad - 12, y, W - 2 * pad + 24, thH, 8);
+        ctx.fill();
+        var cols = isPoints
+            ? [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'PALIER' }, { x: 655, t: 'DROITS' }, { x: 815, t: 'ZONE RÉSERVÉE' }]
+            : [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'DROITS' }, { x: 705, t: 'ZONE RÉSERVÉE' }];
+        ctx.font = '700 11.5px Inter, sans-serif';
+        ctx.fillStyle = '#8b8f98';
+        cols.forEach(function (c) {
+            ctx.textAlign = c.right ? 'right' : 'left';
+            ctx.fillText(c.t, c.x, y + thH / 2);
+        });
+        ctx.textAlign = 'left';
+        y += thH;
+
+        /* Lignes du classement */
+        var rankColors = { 1: '#f4c430', 2: '#c0c4cc', 3: '#cd8032' };
+        ladder.forEach(function (p, i) {
+            var top = y + i * rowH;
+            var cy = top + rowH / 2;
+            if (i % 2 === 0) {
+                ctx.fillStyle = 'rgba(255,255,255,0.025)';
+                ctx.fillRect(pad - 12, top, W - 2 * pad + 24, rowH);
+            }
+            ctx.fillStyle = rankColors[p.rang] || '#6c7077';
+            ctx.font = '700 14px Inter, sans-serif';
+            ctx.fillText(String(p.rang), pad, cy);
+
+            ctx.fillStyle = '#e8eaed';
+            ctx.font = '600 14px Inter, sans-serif';
+            ctx.fillText(truncateTxt(p.username, 26), pad + 50, cy);
+
+            ctx.fillStyle = '#f0a63c';
+            ctx.font = '700 14px Inter, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(String(p.points), 470, cy);
+            ctx.textAlign = 'left';
+
+            if (isPoints) {
+                var r = rewardForPoints(p.points);
+                ctx.fillStyle = '#c6c9cf';
+                ctx.font = '400 13px Inter, sans-serif';
+                ctx.fillText(r ? ((r.emoji ? r.emoji + ' ' : '') + r.label) : '—', 500, cy);
+                ctx.fillText(rewardTextPoints(p), 655, cy);
+                var z = (zoneReserveeMap[p.user_id] && canResaPoints(p.user_id)) ? zoneReserveeMap[p.user_id] : '—';
+                ctx.fillStyle = z === '—' ? '#6c7077' : '#9678ff';
+                ctx.fillText(truncateTxt(z, 22), 815, cy);
+            } else {
+                var pal = palierFor(p.rang);
+                var dtxt = '—';
+                if (pal) {
+                    var pp = [];
+                    if (pal.percos > 0) pp.push(pal.percos + ' perco' + (pal.percos > 1 ? 's' : ''));
+                    if (pal.percos_150 > 0) pp.push(pal.percos_150 + ' niv 150-');
+                    dtxt = (pal.emoji ? pal.emoji + ' ' : '') + (pp.join(' + ') || '—');
+                }
+                ctx.fillStyle = '#c6c9cf';
+                ctx.font = '400 13px Inter, sans-serif';
+                ctx.fillText(dtxt, 500, cy);
+                var zr = (resaByUser[p.user_id] || []).join(' · ') || '—';
+                ctx.fillStyle = zr === '—' ? '#6c7077' : '#9678ff';
+                ctx.fillText(truncateTxt(zr, 30), 705, cy);
+            }
+        });
+
+        /* Pied de page */
+        var fy = y + ladder.length * rowH + footerH / 2;
+        var mois = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+        var now = new Date();
+        ctx.fillStyle = '#6c7077';
+        ctx.font = '400 12px Inter, sans-serif';
+        ctx.fillText('damocles-alliance.vercel.app', pad, fy);
+        ctx.textAlign = 'right';
+        ctx.fillText('généré le ' + now.getDate() + ' ' + mois[now.getMonth()] + ' ' + now.getFullYear(), W - pad, fy);
+        ctx.textAlign = 'left';
+
+        canvas.toBlob(function (blob) {
+            if (!blob) { window.REN.toast('Erreur lors de la génération.', 'error'); return; }
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'droits-percos-' + new Date().toISOString().slice(0, 10) + '.png';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+            window.REN.toast('Image téléchargée ! Glisse-la dans Discord.', 'success');
+        }, 'image/png');
     }
 
     /* === QUINZAINE (miroir de debut_periode_pvp() en SQL) === */
