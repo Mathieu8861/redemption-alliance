@@ -9187,3 +9187,15 @@ body.app-has-sidebar {
         width: auto;
     }
 }
+
+/* Bandeau archive DMO (page historique, lecture seule) */
+.dmo-archive-banner {
+    background: rgba(224, 124, 10, 0.12);
+    border-left: 3px solid var(--color-accent);
+    color: var(--color-text-secondary);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-md);
+    font-size: 0.85rem;
+    grid-column: 1 / -1;
+}

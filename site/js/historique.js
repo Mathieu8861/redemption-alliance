@@ -10,6 +10,8 @@
     var searchZone = '';
     var searchJoueur = '';
     var allCombats = [];
+    var archiveMode = false;      /* true = on consulte l'archive DMO (lecture seule) */
+    var archiveCombats = null;    /* combats DMO charges a la demande */
 
     document.addEventListener('ren:ready', init);
 
@@ -17,7 +19,51 @@
         if (!window.REN.supabase || !window.REN.currentProfile) return;
         setupTabs();
         setupSearchFilters();
+        setupArchiveToggle();
         await loadCombats();
+    }
+
+    /* === BASCULE ARCHIVE DMO (lecture seule) === */
+    function setupArchiveToggle() {
+        var btn = document.getElementById('btn-dmo-archive');
+        if (btn) btn.addEventListener('click', toggleArchive);
+    }
+
+    async function toggleArchive() {
+        var btn = document.getElementById('btn-dmo-archive');
+        if (!archiveMode) {
+            if (!archiveCombats) {
+                if (btn) { btn.disabled = true; btn.innerHTML = 'Chargement...'; }
+                try {
+                    var { data, error } = await window.REN.supabase
+                        .from('combats_dmo')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    if (error) throw error;
+                    /* On remet les combats archives (denormalises) au meme format que l'historique courant */
+                    archiveCombats = (data || []).map(function (r) {
+                        return Object.assign({}, r, {
+                            auteur: { username: r.auteur_username },
+                            alliance: null,
+                            alliance_ennemie_nom: r.alliance_display,
+                            participants: (r.participants || []).map(function (u) { return { user: { username: u } }; })
+                        });
+                    });
+                } catch (err) {
+                    console.error('[REN] Erreur archive DMO:', err);
+                    window.REN.toast('Erreur chargement archive : ' + err.message, 'error');
+                    if (btn) { btn.disabled = false; btn.innerHTML = '📜 Historique DMO'; }
+                    return;
+                }
+                if (btn) btn.disabled = false;
+            }
+            archiveMode = true;
+            if (btn) { btn.innerHTML = '← Retour à Redemption'; btn.classList.remove('btn--secondary'); btn.classList.add('btn--primary'); }
+        } else {
+            archiveMode = false;
+            if (btn) { btn.innerHTML = '📜 Historique DMO'; btn.classList.remove('btn--primary'); btn.classList.add('btn--secondary'); }
+        }
+        renderCombats();
     }
 
     function setupTabs() {
@@ -81,8 +127,10 @@
         if (!grid) return;
 
         var isAdmin = window.REN.currentProfile && window.REN.currentProfile.is_admin;
+        var readOnly = archiveMode;
+        var dataset = archiveMode ? (archiveCombats || []) : allCombats;
 
-        var filtered = allCombats.filter(function (c) {
+        var filtered = dataset.filter(function (c) {
             /* Filtre type/resultat */
             switch (currentFilter) {
                 case 'attaques': if (c.type !== 'attaque') return false; break;
@@ -117,12 +165,16 @@
             return true;
         });
 
+        var banner = archiveMode
+            ? '<div class="dmo-archive-banner">📜 Archive de l\'alliance Damoclès [DMO], en lecture seule. Ces combats ne comptent pas dans les stats de Redemption.</div>'
+            : '';
+
         if (!filtered.length) {
-            grid.innerHTML = '<p class="text-muted" style="padding:1rem;">Aucun combat trouve.</p>';
+            grid.innerHTML = banner + '<p class="text-muted" style="padding:1rem;">Aucun combat trouve.</p>';
             return;
         }
 
-        var html = '';
+        var html = banner;
         var esc = window.REN.escapeHtml;
         filtered.forEach(function (c) {
             var safeType = esc(c.type);
@@ -140,14 +192,16 @@
             }
 
             html += '<div class="history-card">';
-            /* Edition : admin sans limite ; l'auteur pendant 3h apres la declaration */
-            var me = window.REN.currentProfile;
-            var canEdit = isAdmin || (me && c.auteur_id === me.id && (Date.now() - new Date(c.created_at).getTime()) < 3 * 3600 * 1000);
-            if (isAdmin) {
-                html += '<button class="history-card__delete" data-id="' + c.id + '" title="Supprimer ce combat">&times;</button>';
-            }
-            if (canEdit) {
-                html += '<button class="history-card__edit" data-id="' + c.id + '"' + (isAdmin ? '' : ' style="right:8px;"') + ' title="Modifier ce combat">&#9998;</button>';
+            if (!readOnly) {
+                /* Edition : admin sans limite ; l'auteur pendant 3h apres la declaration */
+                var me = window.REN.currentProfile;
+                var canEdit = isAdmin || (me && c.auteur_id === me.id && (Date.now() - new Date(c.created_at).getTime()) < 3 * 3600 * 1000);
+                if (isAdmin) {
+                    html += '<button class="history-card__delete" data-id="' + c.id + '" title="Supprimer ce combat">&times;</button>';
+                }
+                if (canEdit) {
+                    html += '<button class="history-card__edit" data-id="' + c.id + '"' + (isAdmin ? '' : ' style="right:8px;"') + ' title="Modifier ce combat">&#9998;</button>';
+                }
             }
             html += '<div class="history-card__header">' + badgeType + ' ' + badgeResult + '</div>';
             html += '<div class="history-card__body">';
@@ -181,6 +235,9 @@
         });
 
         grid.innerHTML = html;
+
+        /* Pas d'actions d'edition/suppression sur l'archive DMO (lecture seule) */
+        if (readOnly) return;
 
         /* Listeners : suppression (admin) + modification (admin ou auteur < 3h) */
         if (isAdmin) {
