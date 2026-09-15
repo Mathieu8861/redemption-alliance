@@ -7,7 +7,8 @@ L'alliance Damoclès [DMO] est terminée (nouvelle alliance montée avec d'autre
 - **Rebrand texte** Damoclès [DMO] -> Redemption [RDM] : nom, tag, tagline (« l'épée est suspendue » -> « l'heure de la rédemption »), meta, titres, canvas export board. 278 remplacements, commit `716c779`, poussé.
 - **Repo GitHub renommé** : `damocles-alliance` -> **`redemption-alliance`** (GitHub redirige l'ancienne URL, remote local à jour). Le nom du repo est indépendant de l'URL Vercel.
 - **PRESERVE volontairement** : l'email d'auth synthétique `pseudo.swrd@damocles-alliance.vercel.app` (le changer = lockout des 18 membres), les fichiers logo, l'URL Vercel.
-- **RESTE À FAIRE (voir [redemption.md](../REDEMPTION/redemption.md))** : passe visuelle (nouvel emblème Redemption + couleurs, en attente de l'image de Mathieu ; le violet et le logo/artwork Damoclès sont encore en ligne) et décision sur le renommage de l'URL Vercel (casse le lien Discord actuel des membres, à coordonner avec une annonce).
+- **URL Vercel renommée le 15/09** : le site est désormais sur **https://redemption-alliance.vercel.app** (l'ancienne damocles-alliance.vercel.app reste active en parallèle, aucune coupure).
+- **RESTE À FAIRE (voir [redemption.md](../REDEMPTION/redemption.md))** : le logo (Mathieu s'en occupe lui-même) et la passe couleurs (violet Damoclès -> palette du nouveau logo). Le reste de la bascule est terminé.
 
 **La suite de la vie du projet se documente désormais dans [redemption.md](../REDEMPTION/redemption.md).** Ce fichier reste l'historique de la période Damoclès (23/07 au 15/09/2026).
 
