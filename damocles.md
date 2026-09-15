@@ -1,5 +1,16 @@
 # Alliance Damoclès [DMO] - Mémoire
 
+## 🔴 FIN DE PROJET (15/09/2026) : Damoclès devient Redemption
+L'alliance Damoclès [DMO] est terminée (nouvelle alliance montée avec d'autres personnes). **On n'a PAS recréé un site : on a réutilisé celui-ci** (la prod Supabase avait divergé des fichiers SQL, une recreation a l'identique etait impossible). Ce qui a ete fait le 15/09 :
+- **Backup complet** de la base avant tout : `backups/2026-09-15-fin-dmo/` (toutes les tables public en JSON, auth.users sans hash, schema colonnes + fonctions + triggers + policies). Gitignore (`backups/`), jamais poussé.
+- **Purge des comptes bloqués** (is_validated=false) demandée par Mathieu, membres actifs conservés : 36 profils bloqués + 5 comptes de test orphelins supprimés (auth + profils), avec 97 combats dont ils étaient auteurs et leurs participations. Testée en transaction ROLLBACK puis COMMIT. **Restants : 18 membres actifs** (Rorschach admin intact), 311 combats, 904 participations. Script : `scratchpad/db/purge.js`.
+- **Rebrand texte** Damoclès [DMO] -> Redemption [RDM] : nom, tag, tagline (« l'épée est suspendue » -> « l'heure de la rédemption »), meta, titres, canvas export board. 278 remplacements, commit `716c779`, poussé.
+- **Repo GitHub renommé** : `damocles-alliance` -> **`redemption-alliance`** (GitHub redirige l'ancienne URL, remote local à jour). Le nom du repo est indépendant de l'URL Vercel.
+- **PRESERVE volontairement** : l'email d'auth synthétique `pseudo.swrd@damocles-alliance.vercel.app` (le changer = lockout des 18 membres), les fichiers logo, l'URL Vercel.
+- **RESTE À FAIRE (voir [redemption.md](../REDEMPTION/redemption.md))** : passe visuelle (nouvel emblème Redemption + couleurs, en attente de l'image de Mathieu ; le violet et le logo/artwork Damoclès sont encore en ligne) et décision sur le renommage de l'URL Vercel (casse le lien Discord actuel des membres, à coordonner avec une annonce).
+
+**La suite de la vie du projet se documente désormais dans [redemption.md](../REDEMPTION/redemption.md).** Ce fichier reste l'historique de la période Damoclès (23/07 au 15/09/2026).
+
 ## Infos
 - **Client :** Alliance Damoclès (projet communautaire Dofus, pas de facturation)
 - **Contact principal :** Mathieu (pseudo IG : Rorschach)
