@@ -21,3 +21,4 @@ node_modules/
 
 # Videos sources (lourdes, jamais commit : seuls les exports optimises partent)
 site/assets/images/video_goultard*.mp4
+backups/

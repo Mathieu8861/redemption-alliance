@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Machine a Sous 2D            */
+/* Redemption     - Machine a Sous 2D            */
 /* Theme : Dieu Enutrof                        */
 /* Symboles depuis DB + GSAP animations        */
 /* ============================================ */

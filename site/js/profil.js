@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Profil                       */
+/* Redemption     - Profil                       */
 /* Edition profil, stats perso, mot de passe   */
 /* ============================================ */
 (function () {

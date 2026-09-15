@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Jeu de Cartes                */
+/* Redemption     - Jeu de Cartes                */
 /* Tirage avec jetons, lots configurables      */
 /* Flow : bouton -> melange -> choix -> reveal */
 /*        -> quitte ou double (si gain)        */

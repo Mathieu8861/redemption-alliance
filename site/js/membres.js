@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Membres                      */
+/* Redemption     - Membres                      */
 /* Liste des membres avec stats                */
 /* ============================================ */
 (function () {

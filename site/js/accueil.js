@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Accueil (Dashboard)          */
+/* Redemption     - Accueil (Dashboard)          */
 /* Stats, activite recente, systeme de points  */
 /* ============================================ */
 (function () {

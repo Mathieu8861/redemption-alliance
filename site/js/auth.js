@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Auth (Login / Register)       */
+/* Redemption     - Auth (Login / Register)       */
 /* Login par pseudo (pas d'email demande)       */
 /* Email genere auto: pseudo.swrd@damocles-alliance.vercel.app */
 /* ============================================ */

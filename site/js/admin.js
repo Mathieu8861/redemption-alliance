@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Admin Panel                  */
+/* Redemption     - Admin Panel                  */
 /* Gestion complete de l'alliance              */
 /* ============================================ */
 (function () {

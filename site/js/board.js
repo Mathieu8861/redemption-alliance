@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès - Droits Percepteurs                */
+/* Redemption - Droits Percepteurs                */
 /* Paliers par RANG + réservations automatiques */
 /* de zones par ordre de préférence             */
 /* ============================================ */
@@ -383,7 +383,7 @@
         /* En-tete */
         ctx.fillStyle = '#e8eaed';
         ctx.font = '700 30px Rajdhani, Inter, sans-serif';
-        ctx.fillText('DAMOCLÈS [DMO]', pad, 44);
+        ctx.fillText('REDEMPTION [RDM]', pad, 44);
         ctx.fillStyle = '#9678ff';
         ctx.font = '700 19px Rajdhani, Inter, sans-serif';
         ctx.fillText('DROITS PERCEPTEURS', pad, 74);

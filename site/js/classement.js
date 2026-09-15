@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Classement                   */
+/* Redemption     - Classement                   */
 /* Rankings PvP : semaine, definitif, kamas    */
 /* ============================================ */
 (function () {

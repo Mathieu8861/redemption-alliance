@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Preuves combat (2 screens)    */
+/* Redemption     - Preuves combat (2 screens)    */
 /* Module partagé attaque.html / defense.html   */
 /* 2 screenshots OBLIGATOIRES par combat.       */
 /* Colle (Ctrl+V) : remplit le 1er slot vide.   */

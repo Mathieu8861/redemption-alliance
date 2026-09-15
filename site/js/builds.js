@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Builds                       */
+/* Redemption     - Builds                       */
 /* Builds recommandes par l'alliance           */
 /* ============================================ */
 (function () {

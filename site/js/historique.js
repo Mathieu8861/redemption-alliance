@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Historique                   */
+/* Redemption     - Historique                   */
 /* Historique de tous les combats              */
 /* ============================================ */
 (function () {

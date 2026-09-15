@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Damoclès     - Defense                      */
+/* Redemption     - Defense                      */
 /* Formulaire de declaration de defense PvP    */
 /* ============================================ */
 (function () {
