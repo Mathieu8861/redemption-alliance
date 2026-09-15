@@ -375,7 +375,7 @@
         ctx.fillStyle = '#17181c';
         ctx.fillRect(0, 0, W, H);
         var grad = ctx.createLinearGradient(0, 0, W, 0);
-        grad.addColorStop(0, '#7d5ff7');
+        grad.addColorStop(0, '#e07c0a');
         grad.addColorStop(1, '#251a4d');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, 6);
@@ -384,7 +384,7 @@
         ctx.fillStyle = '#e8eaed';
         ctx.font = '700 30px Rajdhani, Inter, sans-serif';
         ctx.fillText('REDEMPTION [RDM]', pad, 44);
-        ctx.fillStyle = '#9678ff';
+        ctx.fillStyle = '#ffb238';
         ctx.font = '700 19px Rajdhani, Inter, sans-serif';
         ctx.fillText('DROITS PERCEPTEURS', pad, 74);
         ctx.fillStyle = '#a1a5ad';
@@ -467,7 +467,7 @@
                 ctx.fillText(r ? ((r.emoji ? r.emoji + ' ' : '') + r.label) : '—', 500, cy);
                 ctx.fillText(rewardTextPoints(p), 655, cy);
                 var z = (zoneReserveeMap[p.user_id] && canResaPoints(p.user_id)) ? zoneReserveeMap[p.user_id] : '—';
-                ctx.fillStyle = z === '—' ? '#6c7077' : '#9678ff';
+                ctx.fillStyle = z === '—' ? '#6c7077' : '#ffb238';
                 ctx.fillText(truncateTxt(z, 22), 815, cy);
             } else {
                 var pal = palierFor(p.rang);
@@ -482,7 +482,7 @@
                 ctx.font = '400 13px Inter, sans-serif';
                 ctx.fillText(dtxt, 500, cy);
                 var zr = (resaByUser[p.user_id] || []).join(' · ') || '—';
-                ctx.fillStyle = zr === '—' ? '#6c7077' : '#9678ff';
+                ctx.fillStyle = zr === '—' ? '#6c7077' : '#ffb238';
                 ctx.fillText(truncateTxt(zr, 30), 705, cy);
             }
         });

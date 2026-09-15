@@ -673,7 +673,7 @@
 
         /* Bloc brand : logo + nom alliance en haut de la sidebar (desktop only) */
         html += '<div class="app-sidebar__brand">'
-            + '<img src="assets/images/logo-damocles.png" alt="Logo Redemption">'
+            + '<img src="assets/images/logo-damocles.png?v=20260916" alt="Logo Redemption">'
             + '<span class="app-sidebar__brand-name notranslate">Redemption</span>'
             + '</div>';
 
