@@ -237,21 +237,45 @@
             <div class="pending-validation">\
                 <div class="pending-validation__icon">&#128100;</div>\
                 <h1 class="pending-validation__title">Bienvenue sur Redemption</h1>\
-                <p class="pending-validation__text">Tu es connecte via Discord. Indique ton pseudo Dofus (en jeu) pour finaliser ton compte.</p>\
-                <div id="onboard-msg" class="auth-message" style="max-width:380px;margin:0 auto 12px;"></div>\
-                <div style="max-width:380px;margin:0 auto;text-align:left;">\
-                    <div class="form-group"><label class="form-label" for="onboard-pseudo">Pseudo en jeu *</label><input type="text" id="onboard-pseudo" class="form-input" placeholder="Ton pseudo Dofus" maxlength="30" autocomplete="off"></div>\
+                <p class="pending-validation__text">Tu es connecte via Discord. Indique ton personnage principal et tes mules pour finaliser ton compte.</p>\
+                <div id="onboard-msg" class="auth-message" style="max-width:420px;margin:0 auto 12px;"></div>\
+                <div style="max-width:420px;margin:0 auto;text-align:left;">\
+                    <div class="form-group"><label class="form-label" for="onboard-pseudo">Pseudo du personnage principal *</label><input type="text" id="onboard-pseudo" class="form-input" placeholder="Ton pseudo Dofus" maxlength="30" autocomplete="off"></div>\
                     <div class="form-row">\
                         <div class="form-group"><label class="form-label" for="onboard-classe">Classe</label><select id="onboard-classe" class="form-select">' + opt(classes) + '</select></div>\
                         <div class="form-group"><label class="form-label" for="onboard-element">Element</label><select id="onboard-element" class="form-select">' + opt(elements) + '</select></div>\
                     </div>\
                     <div class="form-group"><label class="form-label" for="onboard-dofusbook">Lien Dofusbook (optionnel)</label><input type="url" id="onboard-dofusbook" class="form-input" placeholder="https://www.dofusbook.net/..."></div>\
-                    <button class="btn btn--primary" id="onboard-submit" style="width:100%;">Valider mon pseudo</button>\
+                    <div class="form-group">\
+                        <label class="form-label">Mules (optionnel)</label>\
+                        <div id="onboard-mules"></div>\
+                        <button type="button" class="btn btn--secondary btn--small" id="onboard-add-mule">+ Ajouter une mule</button>\
+                    </div>\
+                    <button class="btn btn--primary" id="onboard-submit" style="width:100%;">Valider mon compte</button>\
                     <button class="btn btn--secondary mt-lg" id="onboard-logout" style="width:100%;">Se deconnecter</button>\
                 </div>\
             </div>';
 
         var msg = document.getElementById('onboard-msg');
+        var mulesWrap = document.getElementById('onboard-mules');
+
+        function addMuleRow() {
+            var row = document.createElement('div');
+            row.className = 'onboard-mule-row';
+            row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px;';
+            row.innerHTML = '\
+                <input type="text" class="form-input mule-name" placeholder="Nom de la mule" maxlength="30" autocomplete="off" style="flex:2;">\
+                <select class="form-select mule-classe" style="flex:1.3;">' + opt(classes) + '</select>\
+                <select class="form-select mule-element" style="flex:1;">' + opt(elements) + '</select>\
+                <button type="button" class="btn btn--small mule-remove" title="Retirer" style="background:var(--color-danger);color:#fff;flex-shrink:0;">&times;</button>';
+            mulesWrap.appendChild(row);
+        }
+        document.getElementById('onboard-add-mule').addEventListener('click', addMuleRow);
+        mulesWrap.addEventListener('click', function (e) {
+            var rm = e.target.closest('.mule-remove');
+            if (rm) rm.closest('.onboard-mule-row').remove();
+        });
+
         document.getElementById('onboard-logout').addEventListener('click', async function () {
             try { await window.REN.supabase.auth.signOut(); } catch (e) { /* ignore */ }
             window.location.href = 'connexion.html';
@@ -265,6 +289,20 @@
             if (pseudo.length < 2 || pseudo.length > 30) {
                 msg.className = 'auth-message auth-message--error'; msg.textContent = 'Le pseudo doit faire entre 2 et 30 caracteres.'; return;
             }
+            /* Collecte des mules */
+            var mules = [];
+            var mulesInfos = {};
+            var rows = mulesWrap.querySelectorAll('.onboard-mule-row');
+            for (var i = 0; i < rows.length; i++) {
+                var nm = rows[i].querySelector('.mule-name').value.trim();
+                if (!nm) continue;
+                if (nm.length > 30) { msg.className = 'auth-message auth-message--error'; msg.textContent = 'Nom de mule trop long (max 30).'; return; }
+                var mc = rows[i].querySelector('.mule-classe').value || null;
+                var me = rows[i].querySelector('.mule-element').value || null;
+                mules.push(nm);
+                mulesInfos[nm] = { classe: mc, elements: me ? [me] : [] };
+            }
+
             btn.disabled = true; btn.textContent = 'Validation...';
             try {
                 var res = await window.REN.supabase.rpc('claim_pseudo', { p_username: pseudo, p_classe: classe, p_element: element, p_dofusbook: dofusbook });
@@ -272,18 +310,25 @@
                 var data = res.data || {};
                 if (!data.ok) {
                     var m = 'Erreur.';
-                    if (data.error === 'taken') m = 'Ce pseudo est deja pris. Si c\'est le tien, deconnecte-toi et connecte-toi avec ton pseudo + mot de passe.';
+                    if (data.error === 'taken') m = 'Ce pseudo est deja pris. Choisis-en un autre, ou contacte un admin si c\'est bien le tien.';
                     else if (data.error === 'bad_length') m = 'Le pseudo doit faire entre 2 et 30 caracteres.';
                     else if (data.error === 'bad_chars') m = 'Le pseudo contient des caracteres non autorises.';
                     else if (data.error === 'already_claimed') { window.location.reload(); return; }
                     msg.className = 'auth-message auth-message--error'; msg.textContent = m;
-                    btn.disabled = false; btn.textContent = 'Valider mon pseudo';
+                    btn.disabled = false; btn.textContent = 'Valider mon compte';
                     return;
+                }
+                /* Enregistrement des mules (non bloquant : modifiable ensuite dans le profil) */
+                if (mules.length) {
+                    var uid = (window.REN.currentProfile && window.REN.currentProfile.id) || (window.REN.currentUser && window.REN.currentUser.id);
+                    if (uid) {
+                        try { await window.REN.supabase.from('profiles').update({ mules: mules, mules_infos: mulesInfos }).eq('id', uid); } catch (e) { /* non bloquant */ }
+                    }
                 }
                 window.location.reload();
             } catch (e) {
                 msg.className = 'auth-message auth-message--error'; msg.textContent = 'Erreur : ' + (e.message || e);
-                btn.disabled = false; btn.textContent = 'Valider mon pseudo';
+                btn.disabled = false; btn.textContent = 'Valider mon compte';
             }
         });
     }
