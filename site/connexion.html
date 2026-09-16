@@ -33,23 +33,10 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.6 12.6 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106a13.1 13.1 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.3 12.3 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.84 19.84 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.028M8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418m7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418"/></svg>
                 Se connecter avec Discord
             </button>
-            <div class="auth-sep"><span>ou avec ton pseudo</span></div>
+            <div id="login-message" class="auth-message" style="margin-top:12px;"></div>
+            <p style="margin-top:14px;font-size:0.8rem;color:var(--color-text-muted);text-align:center;line-height:1.5;">Connexion reservee aux membres de l'alliance via Discord.<br>Ton pseudo Dofus te sera demande a la premiere connexion.</p>
 
-            <!-- LOGIN FORM -->
-            <form id="login-form">
-                <div id="login-message" class="auth-message"></div>
-                <div class="form-group">
-                    <label class="form-label" for="login-username">Pseudo</label>
-                    <input type="text" id="login-username" class="form-input" placeholder="Votre pseudo Dofus" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="login-password">Mot de passe</label>
-                    <input type="password" id="login-password" class="form-input" placeholder="Mot de passe" required>
-                </div>
-                <button type="submit" class="btn btn--primary">Connexion</button>
-            </form>
-
-            <!-- REGISTER FORM -->
+            <!-- REGISTER FORM (masque : inscription desactivee, connexion via Discord uniquement) -->
             <form id="register-form" class="hidden">
                 <div id="register-message" class="auth-message"></div>
 
@@ -126,11 +113,6 @@
                 <button type="submit" class="btn btn--primary">S'inscrire</button>
             </form>
 
-            <!-- TOGGLE -->
-            <div class="auth-toggle">
-                <span id="toggle-to-register">Pas encore de compte ? <a href="#">S'inscrire</a></span>
-                <span id="toggle-to-login" class="hidden">Deja un compte ? <a href="#">Se connecter</a></span>
-            </div>
         </div>
     </div>
 
