@@ -91,8 +91,10 @@ async function processT5(body) {
     const users = resolved.users || {};
     const attachments = resolved.attachments || {};
 
-    const type = opt(options, 'type');
-    const resultat = opt(options, 'resultat');
+    /* Minuscules imposees : c'est ce qu'attendent bareme_points.type et les
+       contraintes CHECK de combats (les libelles Discord sont capitalises). */
+    const type = String(opt(options, 'type') || '').toLowerCase();
+    const resultat = String(opt(options, 'resultat') || '').toLowerCase();
     const nbAllies = parseInt(opt(options, 'allies'), 10);
     const nbEnnemis = parseInt(opt(options, 'ennemis'), 10);
     const allianceInput = (opt(options, 'alliance') || '').trim();
@@ -141,8 +143,17 @@ async function processT5(body) {
         else { allianceNom = allianceInput; }
     }
 
-    /* Points */
-    const points = await sbRpc('calculer_points', { p_nb_allies: nbAllies, p_nb_ennemis: nbEnnemis, p_resultat: resultat, p_alliance_id: allianceId });
+    /* Points : meme RPC et donc meme bareme que le site (table bareme_points,
+       reglee depuis l'admin). p_type est obligatoire, le bareme attaque et le
+       bareme defense sont distincts, et sans lui PostgREST ne sait pas choisir
+       entre les deux surcharges de la fonction (PGRST203). */
+    const points = await sbRpc('calculer_points', {
+        p_nb_allies: nbAllies,
+        p_nb_ennemis: nbEnnemis,
+        p_resultat: resultat,
+        p_alliance_id: allianceId,
+        p_type: type
+    });
     const butin = resultat === 'victoire' ? (parseInt(butinIn, 10) || 0) : 0;
 
     /* Upload des 2 screens */
