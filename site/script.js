@@ -245,12 +245,12 @@
                         <div class="form-group"><label class="form-label" for="onboard-classe">Classe</label><select id="onboard-classe" class="form-select">' + opt(classes) + '</select></div>\
                         <div class="form-group"><label class="form-label" for="onboard-element">Element</label><select id="onboard-element" class="form-select">' + opt(elements) + '</select></div>\
                     </div>\
-                    <div class="form-group"><label class="form-label" for="onboard-dofusbook">Lien Dofusbook (optionnel)</label><input type="url" id="onboard-dofusbook" class="form-input" placeholder="https://www.dofusbook.net/..."></div>\
                     <div class="form-group">\
                         <label class="form-label">Mules (optionnel)</label>\
                         <div id="onboard-mules"></div>\
                         <button type="button" class="btn btn--secondary btn--small" id="onboard-add-mule">+ Ajouter une mule</button>\
                     </div>\
+                    <div class="form-group"><label class="form-label" for="onboard-dofusbook">Lien Dofusbook (optionnel)</label><input type="url" id="onboard-dofusbook" class="form-input" placeholder="https://www.dofusbook.net/..."></div>\
                     <button class="btn btn--primary" id="onboard-submit" style="width:100%;">Valider mon compte</button>\
                     <button class="btn btn--secondary mt-lg" id="onboard-logout" style="width:100%;">Se deconnecter</button>\
                 </div>\
