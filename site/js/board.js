@@ -493,7 +493,7 @@
         var now = new Date();
         ctx.fillStyle = '#6c7077';
         ctx.font = '400 12px Inter, sans-serif';
-        ctx.fillText('damocles-alliance.vercel.app', pad, fy);
+        ctx.fillText('redemption-alliance.vercel.app', pad, fy);
         ctx.textAlign = 'right';
         ctx.fillText('généré le ' + now.getDate() + ' ' + mois[now.getMonth()] + ' ' + now.getFullYear(), W - pad, fy);
         ctx.textAlign = 'left';

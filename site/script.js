@@ -6,7 +6,7 @@
     'use strict';
 
     /* === CONFIG SUPABASE === */
-    /* TODO DAMOCLES : remplacer par l'URL et la cle anon du   */
+    /* TODO : remplacer par l'URL et la cle anon du            */
     /* nouveau projet Supabase (Dashboard > Settings > API)    */
     /* Tant que c'est un placeholder, le site affiche une page */
     /* vide : c'est voulu, voir INSTALLATION.md                */
@@ -788,7 +788,7 @@
 
         /* Bloc brand : logo + nom alliance en haut de la sidebar (desktop only) */
         html += '<div class="app-sidebar__brand">'
-            + '<img src="assets/images/logo-damocles.png?v=20260916" alt="Logo Redemption">'
+            + '<img src="assets/images/logo-redemption.png?v=20260921" alt="Logo Redemption">'
             + '<span class="app-sidebar__brand-name notranslate">Redemption</span>'
             + '</div>';
 
@@ -1001,7 +1001,7 @@
     /* Preference memorisee en localStorage, les     */
     /* elements .notranslate (pseudos, noms de       */
     /* runes) restent intacts.                       */
-    const LANG_KEY = 'damocles_lang';
+    const LANG_KEY = 'ren_lang';
     const LANGS = {
         fr: { label: 'Français', flag: '<svg class="lang-flag" viewBox="0 0 60 40"><rect width="20" height="40" fill="#002395"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#ED2939"/></svg>' },
         en: { label: 'English', flag: '<svg class="lang-flag" viewBox="0 0 60 40"><rect width="60" height="40" fill="#012169"/><path d="M0,0 60,40 M60,0 0,40" stroke="#fff" stroke-width="8"/><path d="M0,0 60,40 M60,0 0,40" stroke="#C8102E" stroke-width="4"/><path d="M30,0 V40 M0,20 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="7"/></svg>' },

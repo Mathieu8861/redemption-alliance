@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redemption - Connexion</title>
-    <link rel="icon" type="image/png" href="assets/images/logo-damocles.png?v=20260920">
+    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20260921">
     <meta name="description" content="Site de l'alliance Redemption [RDM] : combats PvP, percepteurs, recyclages, forgemagie. L'heure de la rédemption.">
     <meta name="theme-color" content="#e07c0a">
     <meta property="og:type" content="website">
@@ -12,20 +12,20 @@
     <meta property="og:title" content="Redemption [RDM] - Alliance PvP Dofus">
     <meta property="og:description" content="L'heure de la rédemption. Combats, percepteurs, recyclages, forgemagie : le QG de l'alliance Redemption.">
     <meta property="og:url" content="https://redemption-alliance.vercel.app/">
-    <meta property="og:image" content="https://redemption-alliance.vercel.app/assets/images/og-damocles.png">
+    <meta property="og:image" content="https://redemption-alliance.vercel.app/assets/images/og-redemption.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://redemption-alliance.vercel.app/assets/images/og-damocles.png">
+    <meta name="twitter:image" content="https://redemption-alliance.vercel.app/assets/images/og-redemption.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260920">
+    <link rel="stylesheet" href="style.css?v=20260921">
 </head>
 <body>
     <div class="auth-page">
         <video class="auth-page__bg" src="assets/images/fond-connexion.mp4" poster="assets/images/fond-connexion-poster.jpg" autoplay muted loop playsinline aria-hidden="true"></video>
-        <img class="auth-page__logo" src="assets/images/logo-damocles-512.png?v=20260920" alt="Redemption [RDM]">
+        <img class="auth-page__logo" src="assets/images/logo-redemption-512.png?v=20260921" alt="Redemption [RDM]">
         <div class="auth-card">
 
             <!-- CONNEXION DISCORD -->
@@ -36,88 +36,11 @@
             <div id="login-message" class="auth-message" style="margin-top:12px;"></div>
             <p style="margin-top:14px;font-size:0.8rem;color:var(--color-text-muted);text-align:center;line-height:1.5;">Connexion reservee aux membres de l'alliance via Discord.<br>Ton pseudo Dofus te sera demande a la premiere connexion.</p>
 
-            <!-- REGISTER FORM (masque : inscription desactivee, connexion via Discord uniquement) -->
-            <form id="register-form" class="hidden">
-                <div id="register-message" class="auth-message"></div>
-
-                <!-- Avatar upload -->
-                <div class="form-group" style="text-align:center;">
-                    <div class="avatar-upload" id="avatar-upload">
-                        <div class="avatar-upload__preview" id="avatar-preview">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </div>
-                        <span class="avatar-upload__hint">Photo de profil</span>
-                        <input type="file" id="register-avatar" accept="image/*" hidden>
-                    </div>
-                </div>
-
-                <!-- Pseudo + Mot de passe sur la meme ligne -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="register-username">Pseudo (en jeu)</label>
-                        <input type="text" id="register-username" class="form-input" placeholder="Votre pseudo Dofus" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="register-password">Mot de passe</label>
-                        <input type="password" id="register-password" class="form-input" placeholder="Min. 6 caracteres" required minlength="6">
-                    </div>
-                </div>
-
-                <!-- Classe + Element sur la meme ligne -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="register-classe">Classe</label>
-                        <select id="register-classe" class="form-select">
-                            <option value="">Choisir...</option>
-                            <option value="Cra">Cra</option>
-                            <option value="Ecaflip">Ecaflip</option>
-                            <option value="Eliotrope">Eliotrope</option>
-                            <option value="Eniripsa">Eniripsa</option>
-                            <option value="Enutrof">Enutrof</option>
-                            <option value="Feca">Feca</option>
-                            <option value="Forge">Forge</option>
-                            <option value="Huppermage">Huppermage</option>
-                            <option value="Iop">Iop</option>
-                            <option value="Osamodas">Osamodas</option>
-                            <option value="Ouginak">Ouginak</option>
-                            <option value="Pandawa">Pandawa</option>
-                            <option value="Roublard">Roublard</option>
-                            <option value="Sacrieur">Sacrieur</option>
-                            <option value="Sadida">Sadida</option>
-                            <option value="Sram">Sram</option>
-                            <option value="Steamer">Steamer</option>
-                            <option value="Xelor">Xelor</option>
-                            <option value="Zobal">Zobal</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="register-element">Element</label>
-                        <select id="register-element" class="form-select">
-                            <option value="">Choisir...</option>
-                            <option value="Terre">Terre</option>
-                            <option value="Feu">Feu</option>
-                            <option value="Eau">Eau</option>
-                            <option value="Air">Air</option>
-                            <option value="Multi">Multi</option>
-                            <option value="Do Pou">Do Pou</option>
-                            <option value="Do Cri">Do Cri</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Dofusbook pleine largeur -->
-                <div class="form-group">
-                    <label class="form-label" for="register-dofusbook">Lien Dofusbook (optionnel)</label>
-                    <input type="url" id="register-dofusbook" class="form-input" placeholder="https://www.dofusbook.net/...">
-                </div>
-                <button type="submit" class="btn btn--primary">S'inscrire</button>
-            </form>
-
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20260920"></script>
-    <script src="js/auth.js?v=20260920"></script>
+    <script src="script.js?v=20260921"></script>
+    <script src="js/auth.js?v=20260921"></script>
 </body>
 </html>
