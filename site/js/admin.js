@@ -2513,31 +2513,49 @@
     }
 
     /* ============================================ */
-    /* ONGLET RECYCLAGES HEBDO                      */
+    /* ONGLET RECYCLAGES + DISTRIBUTION             */
     /* ============================================ */
     async function tabRecyclagesHebdo(content) {
         var esc = window.REN.escapeHtml;
         var fmt = window.REN.formatNumber;
 
-        /* Charge global + par user + détails */
-        var [globalRes, parUserRes, detailsRes] = await Promise.all([
-            window.REN.supabase.from('v_recyclages_semaine_global').select('*').maybeSingle(),
-            window.REN.supabase.from('v_recyclages_semaine_par_user').select('*').order('total_alliance', { ascending: false }),
+        /* Periode en cours = recyclages pas encore distribues */
+        var [globalRes, parUserRes, detailsRes, distribRes] = await Promise.all([
+            window.REN.supabase.from('v_recyclages_periode_global').select('*').maybeSingle(),
+            window.REN.supabase.from('v_recyclages_periode_par_user').select('*').order('total_alliance', { ascending: false }),
             window.REN.supabase
                 .from('recyclages')
                 .select('id, user_id, pepites_perso, pepites_alliance, cout_pose, plus_value, note, preuve_url, created_at, profiles:user_id(username, avatar_url), zones_perco:zone_id(nom, niveau_zone, type)')
-                .gte('created_at', startOfIsoWeek())
-                .order('created_at', { ascending: false })
+                .is('distribution_id', null)
+                .order('created_at', { ascending: false }),
+            window.REN.supabase
+                .from('recyclages_distributions')
+                .select('*, profiles:distribue_par(username)')
+                .order('distribue_le', { ascending: false })
+                .limit(12)
         ]);
 
-        var g = globalRes.data || { nb_recyclages: 0, nb_recycleurs: 0, total_alliance: 0, total_perso: 0, total_plus_value: 0, nb_avec_preuve: 0, debut_semaine: null };
+        var g = globalRes.data || { nb_recyclages: 0, nb_recycleurs: 0, total_alliance: 0, total_perso: 0, total_plus_value: 0, nb_avec_preuve: 0, debut_periode: null, derniere_distribution: null };
         var membres = parUserRes.data || [];
         var details = detailsRes.data || [];
+        var distributions = distribRes.data || [];
 
-        var startStr = g.debut_semaine ? new Date(g.debut_semaine).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '—';
+        function jour(d) {
+            return d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '—';
+        }
 
-        var html = '<div class="admin-panel__title">Recyclages — Semaine en cours</div>';
-        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Depuis le ' + startStr + ' (lundi). Bilan des pépites générées pour l\'alliance par chaque membre cette semaine.</p>';
+        /* En-tete : titre + action Distribuer */
+        var html = '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--spacing-md);flex-wrap:wrap;">';
+        html += '<div><div class="admin-panel__title">Recyclages — Période en cours</div>';
+        if (g.derniere_distribution) {
+            html += '<p class="text-muted" style="font-size:0.8125rem;">Depuis la dernière distribution du ' + jour(g.derniere_distribution) + '. Bilan des pépites générées pour l\'alliance par chaque membre.</p>';
+        } else {
+            html += '<p class="text-muted" style="font-size:0.8125rem;">Aucune distribution effectuée pour l\'instant. Bilan de tous les recyclages depuis le ' + jour(g.debut_periode) + '.</p>';
+        }
+        html += '</div>';
+        html += '<button class="btn btn--primary" id="btn-distribuer-recyclages"' + (g.nb_recyclages ? '' : ' disabled') + '>Distribuer</button>';
+        html += '</div>';
+        html += '<p class="text-muted" style="font-size:0.75rem;margin:var(--spacing-xs) 0 var(--spacing-lg) 0;">« Distribuer » remet les compteurs à zéro et ouvre une nouvelle période. Les recyclages ne sont pas supprimés, ils sont rattachés à la distribution.</p>';
 
         /* KPI banner */
         html += '<div class="recyc-kpi-grid mb-lg">';
@@ -2551,7 +2569,7 @@
         html += '<h3 style="font-family:var(--font-title);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:0 0 var(--spacing-md) 0;">Classement membres (par pépites alliance générées)</h3>';
 
         if (!membres.length) {
-            html += '<p class="text-muted" style="padding:var(--spacing-md);">Aucun recyclage cette semaine.</p>';
+            html += '<p class="text-muted" style="padding:var(--spacing-md);">Aucun recyclage sur cette période.</p>';
         } else {
             html += '<div class="recyc-table-wrap mb-lg"><table class="recyc-table"><thead><tr>';
             html += '<th>#</th>'
@@ -2579,7 +2597,7 @@
             html += '</tbody></table></div>';
         }
 
-        /* Détail des recyclages */
+        /* Detail des recyclages */
         html += '<h3 style="font-family:var(--font-title);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:var(--spacing-lg) 0 var(--spacing-md) 0;">Détails (' + details.length + ' recyclages)</h3>';
 
         if (!details.length) {
@@ -2592,7 +2610,7 @@
                 var pv = r.plus_value || 0;
                 var pvCls = pv > 0 ? 'recyc-pv--positive' : (pv < 0 ? 'recyc-pv--negative' : 'recyc-pv--neutral');
                 var preuveBadge = r.preuve_url
-                    ? '<a class="recyc-history__preuve js-lightbox" href="' + esc(r.preuve_url) + '" target="_blank" rel="noopener" title="Voir la preuve">'
+                    ? '<a class="recyc-history__preuve" href="' + esc(r.preuve_url) + '" target="_blank" rel="noopener" title="Voir la preuve">'
                         + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Vérifié'
                       + '</a>'
                     : '<span class="recyc-pill" style="opacity:0.6;font-size:0.65rem;">sans preuve</span>';
@@ -2620,17 +2638,76 @@
             html += '</div>';
         }
 
-        content.innerHTML = html;
-    }
+        /* Distributions passees */
+        html += '<h3 style="font-family:var(--font-title);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin:var(--spacing-lg) 0 var(--spacing-md) 0;">Distributions passées</h3>';
+        if (!distributions.length) {
+            html += '<p class="text-muted" style="padding:var(--spacing-md);">Aucune distribution pour le moment.</p>';
+        } else {
+            html += '<div class="recyc-table-wrap"><table class="recyc-table"><thead><tr>'
+                + '<th>Distribué le</th><th>Par</th><th>Période</th>'
+                + '<th class="recyc-num">Recyclages</th><th class="recyc-num">Membres</th>'
+                + '<th class="recyc-num">Pépites alliance</th>'
+                + '</tr></thead><tbody>';
+            distributions.forEach(function (d) {
+                var par = d.profiles || {};
+                html += '<tr>'
+                    + '<td>' + window.REN.formatDate(d.distribue_le) + '</td>'
+                    + '<td>' + esc(par.username || '—') + '</td>'
+                    + '<td class="text-muted">depuis le ' + jour(d.debut_periode) + '</td>'
+                    + '<td class="recyc-num">' + fmt(d.nb_recyclages) + '</td>'
+                    + '<td class="recyc-num">' + fmt(d.nb_recycleurs) + '</td>'
+                    + '<td class="recyc-num" style="color:var(--color-warning);font-weight:700;">' + fmt(d.total_alliance) + '</td>'
+                    + '</tr>';
+                if (d.note) {
+                    html += '<tr><td colspan="6" class="text-muted" style="font-size:0.75rem;padding-top:0;">' + esc(d.note) + '</td></tr>';
+                }
+            });
+            html += '</tbody></table></div>';
+        }
 
-    /* Helper : date ISO du lundi 00:00 (semaine en cours, fuseau local) */
-    function startOfIsoWeek() {
-        var d = new Date();
-        var day = d.getDay(); /* 0 = dim, 1 = lun, ... */
-        var diff = (day === 0 ? -6 : 1 - day);
-        d.setDate(d.getDate() + diff);
-        d.setHours(0, 0, 0, 0);
-        return d.toISOString();
+        content.innerHTML = html;
+
+        /* === ACTION : DISTRIBUER === */
+        var distBtn = document.getElementById('btn-distribuer-recyclages');
+        if (distBtn && g.nb_recyclages) {
+            distBtn.addEventListener('click', async function () {
+                var recap = membres.map(function (m) {
+                    return '  ' + (m.username || '?') + ' : ' + (m.total_alliance || 0).toLocaleString('fr-FR');
+                }).join('\n');
+                var msg = 'Distribuer les pépites d\'alliance de la période ?\n\n'
+                    + recap + '\n\n'
+                    + 'Total : ' + (g.total_alliance || 0).toLocaleString('fr-FR') + ' pépites'
+                    + ' sur ' + g.nb_recyclages + ' recyclage' + (g.nb_recyclages > 1 ? 's' : '') + '\n\n'
+                    + 'Les compteurs repartent de zéro. Les recyclages sont conservés et rattachés à cette distribution.';
+                if (!confirm(msg)) return;
+
+                var note = prompt('Note sur cette distribution (facultatif) :', '');
+                if (note === null) return;
+
+                distBtn.disabled = true;
+                distBtn.textContent = 'Distribution...';
+                try {
+                    var { data, error } = await window.REN.supabase.rpc('distribuer_recyclages', { p_note: note });
+                    if (error) throw error;
+                    if (!data || !data.ok) {
+                        var raison = data && data.erreur === 'not_admin'
+                            ? 'Réservé aux admins.'
+                            : 'Rien à distribuer sur cette période.';
+                        window.REN.toast(raison, 'error');
+                        distBtn.disabled = false;
+                        distBtn.textContent = 'Distribuer';
+                        return;
+                    }
+                    window.REN.toast('Distribution enregistrée : ' + Number(data.total_alliance).toLocaleString('fr-FR') + ' pépites sur ' + data.nb_recycleurs + ' membre' + (data.nb_recycleurs > 1 ? 's' : '') + '.', 'success');
+                    loadTab('recyclages-hebdo');
+                } catch (err) {
+                    console.error('[REN-ADMIN] Erreur distribution:', err);
+                    window.REN.toast('Erreur : ' + err.message, 'error');
+                    distBtn.disabled = false;
+                    distBtn.textContent = 'Distribuer';
+                }
+            });
+        }
     }
 
     /* ============================================ */
