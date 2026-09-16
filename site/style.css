@@ -9199,3 +9199,41 @@ body.app-has-sidebar {
     font-size: 0.85rem;
     grid-column: 1 / -1;
 }
+
+/* Bouton Se connecter avec Discord (page connexion) */
+.btn--discord {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #5865F2;
+    color: #fff;
+    border: none;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+.btn--discord:hover { background: #4752c4; transform: translateY(-1px); }
+.btn--discord:disabled { opacity: 0.6; cursor: default; transform: none; }
+.btn--discord svg { flex-shrink: 0; }
+
+.auth-sep {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    margin: 16px 0;
+}
+.auth-sep::before, .auth-sep::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+.auth-sep span { padding: 0 12px; }

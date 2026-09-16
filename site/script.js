@@ -78,6 +78,12 @@
 
                 window.REN.currentProfile = profile;
 
+                /* Arrivee via Discord : pseudo encore placeholder -> demander le pseudo IG */
+                if (profile && isPlaceholderUsername(profile) && !isAuthPage) {
+                    showPseudoOnboarding();
+                    return;
+                }
+
                 if (profile && !profile.is_validated && !isAuthPage) {
                     showPendingValidation();
                     return;
@@ -215,6 +221,70 @@
                 await window.REN.supabase.auth.signOut();
             }
             window.location.href = AUTH_PAGE;
+        });
+    }
+
+    /* === ONBOARDING PSEUDO (arrivee via Discord) === */
+    function isPlaceholderUsername(profile) {
+        return !!(profile && profile.username === 'user_' + String(profile.id).slice(0, 8));
+    }
+
+    function showPseudoOnboarding() {
+        var classes = ['Cra', 'Ecaflip', 'Eliotrope', 'Eniripsa', 'Enutrof', 'Feca', 'Forge', 'Huppermage', 'Iop', 'Osamodas', 'Ouginak', 'Pandawa', 'Roublard', 'Sacrieur', 'Sadida', 'Sram', 'Steamer', 'Xelor', 'Zobal'];
+        var elements = ['Terre', 'Feu', 'Eau', 'Air', 'Multi', 'Do Pou', 'Do Cri'];
+        var opt = function (arr) { return '<option value="">Choisir...</option>' + arr.map(function (x) { return '<option value="' + x + '">' + x + '</option>'; }).join(''); };
+        document.body.innerHTML = '\
+            <div class="pending-validation">\
+                <div class="pending-validation__icon">&#128100;</div>\
+                <h1 class="pending-validation__title">Bienvenue sur Redemption</h1>\
+                <p class="pending-validation__text">Tu es connecte via Discord. Indique ton pseudo Dofus (en jeu) pour finaliser ton compte.</p>\
+                <div id="onboard-msg" class="auth-message" style="max-width:380px;margin:0 auto 12px;"></div>\
+                <div style="max-width:380px;margin:0 auto;text-align:left;">\
+                    <div class="form-group"><label class="form-label" for="onboard-pseudo">Pseudo en jeu *</label><input type="text" id="onboard-pseudo" class="form-input" placeholder="Ton pseudo Dofus" maxlength="30" autocomplete="off"></div>\
+                    <div class="form-row">\
+                        <div class="form-group"><label class="form-label" for="onboard-classe">Classe</label><select id="onboard-classe" class="form-select">' + opt(classes) + '</select></div>\
+                        <div class="form-group"><label class="form-label" for="onboard-element">Element</label><select id="onboard-element" class="form-select">' + opt(elements) + '</select></div>\
+                    </div>\
+                    <div class="form-group"><label class="form-label" for="onboard-dofusbook">Lien Dofusbook (optionnel)</label><input type="url" id="onboard-dofusbook" class="form-input" placeholder="https://www.dofusbook.net/..."></div>\
+                    <button class="btn btn--primary" id="onboard-submit" style="width:100%;">Valider mon pseudo</button>\
+                    <button class="btn btn--secondary mt-lg" id="onboard-logout" style="width:100%;">Se deconnecter</button>\
+                </div>\
+            </div>';
+
+        var msg = document.getElementById('onboard-msg');
+        document.getElementById('onboard-logout').addEventListener('click', async function () {
+            try { await window.REN.supabase.auth.signOut(); } catch (e) { /* ignore */ }
+            window.location.href = 'connexion.html';
+        });
+        document.getElementById('onboard-submit').addEventListener('click', async function () {
+            var btn = this;
+            var pseudo = document.getElementById('onboard-pseudo').value.trim();
+            var classe = document.getElementById('onboard-classe').value || null;
+            var element = document.getElementById('onboard-element').value || null;
+            var dofusbook = document.getElementById('onboard-dofusbook').value.trim() || null;
+            if (pseudo.length < 2 || pseudo.length > 30) {
+                msg.className = 'auth-message auth-message--error'; msg.textContent = 'Le pseudo doit faire entre 2 et 30 caracteres.'; return;
+            }
+            btn.disabled = true; btn.textContent = 'Validation...';
+            try {
+                var res = await window.REN.supabase.rpc('claim_pseudo', { p_username: pseudo, p_classe: classe, p_element: element, p_dofusbook: dofusbook });
+                if (res.error) throw res.error;
+                var data = res.data || {};
+                if (!data.ok) {
+                    var m = 'Erreur.';
+                    if (data.error === 'taken') m = 'Ce pseudo est deja pris. Si c\'est le tien, deconnecte-toi et connecte-toi avec ton pseudo + mot de passe.';
+                    else if (data.error === 'bad_length') m = 'Le pseudo doit faire entre 2 et 30 caracteres.';
+                    else if (data.error === 'bad_chars') m = 'Le pseudo contient des caracteres non autorises.';
+                    else if (data.error === 'already_claimed') { window.location.reload(); return; }
+                    msg.className = 'auth-message auth-message--error'; msg.textContent = m;
+                    btn.disabled = false; btn.textContent = 'Valider mon pseudo';
+                    return;
+                }
+                window.location.reload();
+            } catch (e) {
+                msg.className = 'auth-message auth-message--error'; msg.textContent = 'Erreur : ' + (e.message || e);
+                btn.disabled = false; btn.textContent = 'Valider mon pseudo';
+            }
         });
     }
 

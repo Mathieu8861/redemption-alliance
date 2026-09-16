@@ -250,6 +250,36 @@
         });
     }
 
+    /* === CONNEXION DISCORD (OAuth) === */
+    var discordBtn = document.getElementById('btn-discord-login');
+    if (discordBtn) {
+        discordBtn.addEventListener('click', async function () {
+            if (!window.REN.supabase) {
+                showMessage(loginMessage, 'Supabase non configure.', 'error');
+                return;
+            }
+            discordBtn.disabled = true;
+            var original = discordBtn.innerHTML;
+            discordBtn.textContent = 'Redirection vers Discord...';
+            try {
+                var { error } = await window.REN.supabase.auth.signInWithOAuth({
+                    provider: 'discord',
+                    options: { redirectTo: window.location.origin }
+                });
+                if (error) {
+                    showMessage(loginMessage, 'Erreur Discord : ' + error.message, 'error');
+                    discordBtn.disabled = false;
+                    discordBtn.innerHTML = original;
+                }
+                /* si pas d'erreur, le navigateur part vers Discord */
+            } catch (err) {
+                showMessage(loginMessage, 'Erreur inattendue.', 'error');
+                discordBtn.disabled = false;
+                discordBtn.innerHTML = original;
+            }
+        });
+    }
+
     /* === AVATAR UPLOAD === */
     async function uploadAvatar(userId, file) {
         try {
