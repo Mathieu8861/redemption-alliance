@@ -414,6 +414,19 @@
         if (isNaN(alliance) || alliance < 0) { window.REN.toast('Pépites alliance invalides', 'error'); return; }
         if (isNaN(cout) || cout < 0) { window.REN.toast('Coût pose invalide', 'error'); return; }
 
+        /* Preuve obligatoire : les pepites d'alliance sont redistribuees,
+           chaque declaration doit etre verifiable. Distingue l'upload en
+           cours de l'absence de screen, sinon le refus est incomprehensible. */
+        if (!preuveUrl) {
+            var st = document.getElementById('recyc-preuve-status');
+            var enCours = st && st.className.indexOf('--loading') !== -1
+                       && document.getElementById('recyc-preuve-preview-wrap').style.display !== 'none';
+            window.REN.toast(enCours
+                ? 'Attends la fin de l\'envoi du screenshot'
+                : 'Le screenshot est obligatoire (Ctrl+V pour le coller)', 'error');
+            return;
+        }
+
         var btn = document.getElementById('recyc-submit');
         btn.disabled = true;
         btn.textContent = 'Enregistrement…';
@@ -428,7 +441,7 @@
                     pepites_alliance: alliance,
                     cout_pose: cout,
                     message_brut: brut || null,
-                    preuve_url: preuveUrl || null
+                    preuve_url: preuveUrl
                 });
             if (error) throw error;
 
