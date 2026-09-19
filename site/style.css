@@ -7265,6 +7265,16 @@ table {
 .recyc-kpi__value--gold { color: var(--color-warning); }
 .recyc-kpi__value--negative { color: var(--color-danger); }
 
+
+/* Cases a cocher de la distribution des pepites : sans accent-color elles
+   restent en gris systeme, tres visible sur le fond sombre. */
+.recyc-table input[type="checkbox"] {
+    accent-color: var(--color-accent);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    vertical-align: middle;
+}
 .recyc-table-wrap {
     overflow-x: auto;
     background: var(--color-bg-secondary);

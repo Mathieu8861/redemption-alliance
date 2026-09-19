@@ -2553,7 +2553,7 @@
             html += '<p class="text-muted" style="font-size:0.8125rem;">Aucune distribution effectuée pour l\'instant. Bilan de tous les recyclages depuis le ' + jour(g.debut_periode) + '.</p>';
         }
         html += '</div>';
-        html += '<button class="btn btn--primary" id="btn-distribuer-recyclages"' + (g.nb_recyclages ? '' : ' disabled') + '>Distribuer</button>';
+        html += '<button class="btn btn--primary" id="btn-distribuer-recyclages"' + (g.nb_recyclages ? '' : ' disabled') + '>Distribuer<span id="distrib-count"></span></button>';
         html += '</div>';
         html += '<p class="text-muted" style="font-size:0.75rem;margin:var(--spacing-xs) 0 var(--spacing-lg) 0;">« Distribuer » remet les compteurs à zéro et ouvre une nouvelle période. Les recyclages ne sont pas supprimés, ils sont rattachés à la distribution.</p>';
 
@@ -2571,8 +2571,10 @@
         if (!membres.length) {
             html += '<p class="text-muted" style="padding:var(--spacing-md);">Aucun recyclage sur cette période.</p>';
         } else {
+            html += '<p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--spacing-sm) 0;">Décoche un membre pour ne pas le distribuer cette fois : ses pépites restent en cours et partiront à la prochaine distribution.</p>';
             html += '<div class="recyc-table-wrap mb-lg"><table class="recyc-table"><thead><tr>';
-            html += '<th>#</th>'
+            html += '<th style="width:34px;"><input type="checkbox" id="distrib-all" checked title="Tout sélectionner"></th>'
+                + '<th>#</th>'
                 + '<th>Membre</th>'
                 + '<th class="recyc-num">Recyclages</th>'
                 + '<th class="recyc-num">Pépites alliance</th>'
@@ -2585,6 +2587,7 @@
                 var pv = m.total_plus_value || 0;
                 var pvCls = pv > 0 ? 'recyc-pv--positive' : (pv < 0 ? 'recyc-pv--negative' : 'recyc-pv--neutral');
                 html += '<tr>'
+                    + '<td><input type="checkbox" class="distrib-pick" checked data-id="' + esc(m.user_id) + '"></td>'
                     + '<td><strong>' + rank + '</strong></td>'
                     + '<td><strong>' + esc(m.username || '?') + '</strong></td>'
                     + '<td class="recyc-num">' + fmt(m.nb_recyclages) + '</td>'
@@ -2665,46 +2668,153 @@
             html += '</tbody></table></div>';
         }
 
+        /* Modale de confirmation : remplace le confirm() du navigateur, qui
+           tronquait la liste des membres et ne permettait pas de choisir. */
+        html += '<div class="modal-overlay" id="distrib-modal">'
+              +   '<div class="modal" style="max-width:520px;">'
+              +     '<div class="modal__header">'
+              +       '<h2 class="modal__title">Distribuer les pépites</h2>'
+              +       '<button class="modal__close" id="distrib-modal-close">&times;</button>'
+              +     '</div>'
+              +     '<div id="distrib-modal-body"></div>'
+              +     '<div class="form-group" style="margin-top:var(--spacing-lg);">'
+              +       '<label class="form-label" for="distrib-note">Note (facultatif)</label>'
+              +       '<input type="text" id="distrib-note" class="form-input" maxlength="120" placeholder="Ex : versé en jeu le ' + new Date().toLocaleDateString('fr-FR') + '">'
+              +     '</div>'
+              +     '<div style="display:flex;gap:var(--spacing-sm);justify-content:flex-end;margin-top:var(--spacing-lg);">'
+              +       '<button class="btn btn--secondary" id="distrib-cancel">Annuler</button>'
+              +       '<button class="btn btn--primary" id="distrib-confirm">Confirmer la distribution</button>'
+              +     '</div>'
+              +   '</div>'
+              + '</div>';
+
         content.innerHTML = html;
 
         /* === ACTION : DISTRIBUER === */
         var distBtn = document.getElementById('btn-distribuer-recyclages');
-        if (distBtn && g.nb_recyclages) {
-            distBtn.addEventListener('click', async function () {
-                var recap = membres.map(function (m) {
-                    return '  ' + (m.username || '?') + ' : ' + (m.total_alliance || 0).toLocaleString('fr-FR');
-                }).join('\n');
-                var msg = 'Distribuer les pépites d\'alliance de la période ?\n\n'
-                    + recap + '\n\n'
-                    + 'Total : ' + (g.total_alliance || 0).toLocaleString('fr-FR') + ' pépites'
-                    + ' sur ' + g.nb_recyclages + ' recyclage' + (g.nb_recyclages > 1 ? 's' : '') + '\n\n'
-                    + 'Les compteurs repartent de zéro. Les recyclages sont conservés et rattachés à cette distribution.';
-                if (!confirm(msg)) return;
+        var modal = document.getElementById('distrib-modal');
 
-                var note = prompt('Note sur cette distribution (facultatif) :', '');
-                if (note === null) return;
+        function selection() {
+            return Array.prototype.slice.call(content.querySelectorAll('.distrib-pick:checked'))
+                        .map(function (cb) { return cb.dataset.id; });
+        }
 
-                distBtn.disabled = true;
-                distBtn.textContent = 'Distribution...';
+        /* Le libelle du bouton suit la selection, pour qu'on voie tout de suite
+           combien de membres partent sans avoir a ouvrir la modale. */
+        function refreshCount() {
+            var ids = selection();
+            var span = document.getElementById('distrib-count');
+            if (span) span.textContent = ids.length ? ' (' + ids.length + ')' : '';
+            if (distBtn) distBtn.disabled = !ids.length;
+        }
+
+        var allBox = document.getElementById('distrib-all');
+        if (allBox) {
+            allBox.addEventListener('change', function () {
+                content.querySelectorAll('.distrib-pick').forEach(function (cb) { cb.checked = allBox.checked; });
+                refreshCount();
+            });
+        }
+        content.querySelectorAll('.distrib-pick').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                if (allBox) allBox.checked = content.querySelectorAll('.distrib-pick:not(:checked)').length === 0;
+                refreshCount();
+            });
+        });
+        refreshCount();
+
+        function fermerModale() { if (modal) modal.classList.remove('active'); }
+        ['distrib-modal-close', 'distrib-cancel'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('click', fermerModale);
+        });
+        if (modal) {
+            modal.addEventListener('click', function (e) { if (e.target === modal) fermerModale(); });
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal && modal.classList.contains('active')) fermerModale();
+        });
+
+        if (distBtn) {
+            distBtn.addEventListener('click', function () {
+                var ids = selection();
+                if (!ids.length) { window.REN.toast('Sélectionne au moins un membre', 'error'); return; }
+
+                var choisis = membres.filter(function (m) { return ids.indexOf(String(m.user_id)) !== -1; });
+                var totalSel = choisis.reduce(function (s, m) { return s + (Number(m.total_alliance) || 0); }, 0);
+                var recycSel = choisis.reduce(function (s, m) { return s + (Number(m.nb_recyclages) || 0); }, 0);
+                var restants = membres.length - choisis.length;
+
+                var body = '<div class="recyc-table-wrap"><table class="recyc-table"><thead><tr>'
+                         + '<th>Membre</th><th class="recyc-num">Recyclages</th><th class="recyc-num">Pépites alliance</th>'
+                         + '</tr></thead><tbody>';
+                choisis.forEach(function (m) {
+                    body += '<tr><td><strong>' + esc(m.username || '?') + '</strong></td>'
+                          + '<td class="recyc-num">' + fmt(m.nb_recyclages) + '</td>'
+                          + '<td class="recyc-num" style="color:var(--color-warning);font-weight:700;">' + fmt(m.total_alliance) + '</td></tr>';
+                });
+                body += '</tbody></table></div>';
+                body += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:var(--spacing-md);padding-top:var(--spacing-md);border-top:1px solid var(--color-border);">'
+                      +   '<span style="font-weight:600;">Total</span>'
+                      +   '<span style="font-family:var(--font-title);font-size:1.5rem;font-weight:700;color:var(--color-warning);">' + fmt(totalSel) + ' pépites</span>'
+                      + '</div>';
+                body += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-xs);">'
+                      + choisis.length + ' membre' + (choisis.length > 1 ? 's' : '') + ', ' + fmt(recycSel) + ' recyclage' + (recycSel > 1 ? 's' : '') + '.</p>';
+                if (restants > 0) {
+                    body += '<p style="font-size:0.8125rem;margin-top:var(--spacing-sm);color:var(--color-warning);">'
+                          + restants + ' membre' + (restants > 1 ? 's ne sont pas' : ' n\'est pas') + ' dans cette distribution. '
+                          + (restants > 1 ? 'Leurs pépites restent' : 'Ses pépites restent') + ' en cours.</p>';
+                }
+                body += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-sm);">Les recyclages ne sont pas supprimés : ils restent consultables et sont rattachés à cette distribution.</p>';
+
+                document.getElementById('distrib-modal-body').innerHTML = body;
+                document.getElementById('distrib-note').value = '';
+                modal.classList.add('active');
+                document.getElementById('distrib-note').focus();
+            });
+        }
+
+        var confirmBtn = document.getElementById('distrib-confirm');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', async function () {
+                var ids = selection();
+                if (!ids.length) { window.REN.toast('Sélectionne au moins un membre', 'error'); return; }
+                var note = (document.getElementById('distrib-note').value || '').trim();
+
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Distribution...';
                 try {
-                    var { data, error } = await window.REN.supabase.rpc('distribuer_recyclages', { p_note: note });
+                    /* On transmet toujours la liste explicite : seuls les membres
+                       affiches dans le recap sont soldes, meme si un recyclage
+                       arrive entre l'affichage et la confirmation. */
+                    var { data, error } = await window.REN.supabase.rpc('distribuer_recyclages', {
+                        p_note: note, p_user_ids: ids
+                    });
                     if (error) throw error;
                     if (!data || !data.ok) {
-                        var raison = data && data.erreur === 'not_admin'
-                            ? 'Réservé aux admins.'
-                            : 'Rien à distribuer sur cette période.';
-                        window.REN.toast(raison, 'error');
-                        distBtn.disabled = false;
-                        distBtn.textContent = 'Distribuer';
+                        var raisons = {
+                            not_admin: 'Réservé aux admins.',
+                            aucun_membre: 'Aucun membre sélectionné.',
+                            rien_a_distribuer: 'Rien à distribuer pour cette sélection.'
+                        };
+                        window.REN.toast(raisons[data && data.erreur] || 'Distribution impossible.', 'error');
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = 'Confirmer la distribution';
                         return;
                     }
-                    window.REN.toast('Distribution enregistrée : ' + Number(data.total_alliance).toLocaleString('fr-FR') + ' pépites sur ' + data.nb_recycleurs + ' membre' + (data.nb_recycleurs > 1 ? 's' : '') + '.', 'success');
+                    var msg = Number(data.total_alliance).toLocaleString('fr-FR') + ' pépites distribuées à '
+                            + data.nb_recycleurs + ' membre' + (data.nb_recycleurs > 1 ? 's' : '') + '.';
+                    if (data.reste_en_cours > 0) {
+                        msg += ' ' + data.reste_en_cours + ' recyclage' + (data.reste_en_cours > 1 ? 's restent' : ' reste') + ' en cours.';
+                    }
+                    window.REN.toast(msg, 'success');
+                    fermerModale();
                     loadTab('recyclages-hebdo');
                 } catch (err) {
                     console.error('[REN-ADMIN] Erreur distribution:', err);
                     window.REN.toast('Erreur : ' + err.message, 'error');
-                    distBtn.disabled = false;
-                    distBtn.textContent = 'Distribuer';
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Confirmer la distribution';
                 }
             });
         }
