@@ -7,12 +7,14 @@
 
     var currentTab = 'semaine';
     var pointsMap = {};
+    var periodeInfos = null; /* reglage admin : hebdo, quinzaine, mois, sans remise a zero... */
 
     document.addEventListener('ren:ready', init);
 
     async function init() {
         if (!window.REN.supabase || !window.REN.currentProfile) return;
         await loadPointsMap();
+        await loadPeriodeInfos();
         setupTabs();
         loadTab(currentTab);
     }
@@ -64,11 +66,39 @@
         }
     }
 
-    /* === PVP SEMAINE === */
+    /* Periode du classement PvP, definie par l'admin (site_config) */
+    async function loadPeriodeInfos() {
+        try {
+            var { data } = await window.REN.supabase.rpc('periode_pvp_infos');
+            periodeInfos = data || null;
+            var btn = document.getElementById('tab-pvp-periode');
+            if (btn && periodeInfos) {
+                btn.textContent = periodeInfos.fin ? 'PvP ' + periodeInfos.libelle : 'PvP';
+            }
+        } catch (err) {
+            console.warn('[REN] Periode PvP non chargee:', err);
+        }
+    }
+
+    function periodeHeader() {
+        if (!periodeInfos) return '';
+        var f = function (iso) { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }); };
+        var txt;
+        if (!periodeInfos.fin) {
+            txt = "Tous les combats depuis le début. Pas de remise à zéro pour le moment.";
+        } else {
+            var veille = new Date(new Date(periodeInfos.fin).getTime() - 86400000).toISOString();
+            txt = periodeInfos.libelle + " en cours : du " + f(periodeInfos.debut) + " au " + f(veille) + ". Remise à zéro le " + f(periodeInfos.fin) + ".";
+        }
+        return '<p class="text-muted" style="font-size:0.8125rem;margin:0 0 var(--spacing-md) 0;">' + txt + '</p>';
+    }
+
+    /* === PVP PERIODE (ex « semaine ») === */
     async function loadSemaine(container) {
         var { data, error } = await window.REN.supabase.from('classement_pvp_semaine').select('*');
         if (error) throw error;
-        renderRanking(container, data || [], 'points', 'pts', 'Classement PvP - Quinzaine');
+        renderRanking(container, data || [], 'points', 'pts', 'Classement PvP');
+        container.insertAdjacentHTML('afterbegin', periodeHeader());
     }
 
     /* === PVP DEFINITIF === */

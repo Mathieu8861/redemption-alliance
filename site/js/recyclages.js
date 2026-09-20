@@ -470,15 +470,23 @@
     /* === MINI BANDEAU PERSO (panel Saisir) === */
     async function loadMiniPerso() {
         try {
-            var { data, error } = await window.REN.supabase
-                .from('v_recyclages_par_user')
-                .select('nb_recyclages, total_perso')
-                .eq('user_id', userId)
-                .maybeSingle();
-            if (error && error.code !== 'PGRST116') throw error;
-            var s = data || { nb_recyclages: 0, total_perso: 0 };
+            var [tot, per, der] = await Promise.all([
+                window.REN.supabase.from('v_recyclages_par_user').select('nb_recyclages, total_perso').eq('user_id', userId).maybeSingle(),
+                window.REN.supabase.from('v_recyclages_periode_par_user').select('total_alliance').eq('user_id', userId).maybeSingle(),
+                window.REN.supabase.from('v_recyclages_derniere_distribution_par_user').select('distribue_le').eq('user_id', userId).maybeSingle()
+            ]);
+            if (tot.error && tot.error.code !== 'PGRST116') throw tot.error;
+            var s = tot.data || { nb_recyclages: 0, total_perso: 0 };
             setText('mini-perso-pepites', window.REN.formatNumber(s.total_perso || 0));
             setText('mini-perso-nb', window.REN.formatNumber(s.nb_recyclages || 0));
+            /* Ligne « depuis ta derniere distribution » : seulement si le membre a
+               deja ete distribue, sinon c'est le meme chiffre que le total. */
+            var wrap = document.getElementById('mini-perso-periode-wrap');
+            if (wrap && der.data && der.data.distribue_le) {
+                setText('mini-perso-periode-date', new Date(der.data.distribue_le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }));
+                setText('mini-perso-periode-alliance', window.REN.formatNumber((per.data && per.data.total_alliance) || 0));
+                wrap.removeAttribute('hidden');
+            }
         } catch (err) {
             console.error('[REN-RECYC] Erreur mini perso:', err);
         }
@@ -499,6 +507,19 @@
             setKpi('kpi-mes-alliance', s.total_alliance);
             setKpiSigned('kpi-mes-pv', s.total_plus_value);
             setKpi('kpi-mes-moy', s.moy_perso_par_tir);
+
+            /* Depuis la derniere distribution (distribution_id IS NULL) + derniere distribution recue */
+            var [per, der] = await Promise.all([
+                window.REN.supabase.from('v_recyclages_periode_par_user').select('total_alliance, nb_recyclages').eq('user_id', userId).maybeSingle(),
+                window.REN.supabase.from('v_recyclages_derniere_distribution_par_user').select('distribue_le, total_alliance_distribue').eq('user_id', userId).maybeSingle()
+            ]);
+            setKpi('kpi-mes-periode', (per.data && per.data.total_alliance) || 0);
+            if (der.data && der.data.distribue_le) {
+                var dd = new Date(der.data.distribue_le);
+                setText('kpi-mes-derniere', dd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }));
+                setText('kpi-mes-derniere-sub', window.REN.formatNumber(der.data.total_alliance_distribue || 0) + " pépites alliance soldées");
+                setText('kpi-mes-periode-sub', "pépites alliance depuis le " + dd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }));
+            }
         } catch (err) {
             console.error('[REN-RECYC] Erreur stats perso:', err);
         }
@@ -528,16 +549,21 @@
         var tbody = document.getElementById('classement-tbody');
         if (!tbody) return;
         try {
-            var { data, error } = await window.REN.supabase
-                .from('v_recyclages_par_user')
-                .select('*');
-            if (error) throw error;
-            tableState.classement.data = data || [];
+            var [allRes, perRes] = await Promise.all([
+                window.REN.supabase.from('v_recyclages_par_user').select('*'),
+                window.REN.supabase.from('v_recyclages_periode_par_user').select('user_id, total_alliance')
+            ]);
+            if (allRes.error) throw allRes.error;
+            var enCours = {};
+            (perRes.data || []).forEach(function (r) { enCours[r.user_id] = r.total_alliance || 0; });
+            tableState.classement.data = (allRes.data || []).map(function (m) {
+                return Object.assign({}, m, { periode_alliance: enCours[m.user_id] || 0 });
+            });
             bindTableSort('classement-table', 'classement', renderClassement);
             renderClassement();
         } catch (err) {
             console.error('[REN-RECYC] Erreur classement membres:', err);
-            tbody.innerHTML = '<tr><td colspan="7" class="text-muted text-center">Erreur chargement.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-muted text-center">Erreur chargement.</td></tr>';
         }
     }
 
@@ -547,7 +573,7 @@
         var data = sortRows(tableState.classement.data, tableState.classement.sort);
 
         if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-muted text-center" style="padding:var(--spacing-lg);">Aucun recyclage enregistré pour le moment.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-muted text-center" style="padding:var(--spacing-lg);">Aucun recyclage enregistré pour le moment.</td></tr>';
             updateSortIndicators('classement-table', tableState.classement.sort);
             return;
         }
@@ -566,6 +592,7 @@
                 + '<td><strong>' + esc(m.username || '?') + '</strong>' + (isMe ? ' <span class="text-muted" style="font-size:0.7rem;">(vous)</span>' : '') + '</td>'
                 + '<td class="recyc-num">' + fmt(m.nb_recyclages || 0) + '</td>'
                 + '<td class="recyc-num" style="color:var(--color-warning);font-weight:700;">' + fmt(m.total_alliance || 0) + '</td>'
+                + '<td class="recyc-num" style="color:var(--color-warning);">' + fmt(m.periode_alliance || 0) + '</td>'
                 + '<td class="recyc-num" style="color:var(--color-success);">' + fmt(m.total_perso || 0) + '</td>'
                 + '<td class="recyc-num ' + pvCls + '">' + pvText + '</td>'
                 + '<td class="recyc-num">' + fmt(m.moy_perso_par_tir || 0) + '</td>'

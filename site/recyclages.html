@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redemption - Recyclages</title>
-    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20260926">
+    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20260927">
     <meta name="description" content="Site de l'alliance Redemption [RDM] : combats PvP, percepteurs, recyclages, forgemagie. L'heure de la rédemption.">
     <meta name="theme-color" content="#e07c0a">
     <meta property="og:type" content="website">
@@ -20,14 +20,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260926">
+    <link rel="stylesheet" href="style.css?v=20260927">
 </head>
 <body>
 
     <header class="header">
         <div class="header__inner">
             <div class="header__brand">
-                <img class="header__logo" src="assets/images/logo-redemption.png?v=20260926" alt="Logo Redemption">
+                <img class="header__logo" src="assets/images/logo-redemption.png?v=20260927" alt="Logo Redemption">
             </div>
 
             <div class="header__user">
@@ -70,6 +70,7 @@
                     <span>
                         Tu as gagné <strong class="recyc-mini-perso__strong" id="mini-perso-pepites">0</strong> pépites
                         en <strong class="recyc-mini-perso__strong" id="mini-perso-nb">0</strong> recyclage(s).
+                        <span id="mini-perso-periode-wrap" hidden><br>Depuis ta dernière distribution du <span id="mini-perso-periode-date"></span> : <strong class="recyc-mini-perso__strong" id="mini-perso-periode-alliance">0</strong> pépites alliance.</span>
                     </span>
                 </div>
                 <button type="button" class="recyc-mini-perso__link" data-goto-panel="mes-stats">Voir détails →</button>
@@ -197,6 +198,16 @@
                         <span class="recyc-kpi__label">Moy. perso / tir</span>
                         <span class="recyc-kpi__value" id="kpi-mes-moy">0</span>
                     </div>
+                    <div class="recyc-kpi">
+                        <span class="recyc-kpi__label">Depuis la dernière distribution</span>
+                        <span class="recyc-kpi__value recyc-kpi__value--gold" id="kpi-mes-periode">0</span>
+                        <span class="text-muted" style="display:block;font-size:0.7rem;margin-top:2px;" id="kpi-mes-periode-sub">pépites alliance en cours</span>
+                    </div>
+                    <div class="recyc-kpi">
+                        <span class="recyc-kpi__label">Dernière distribution</span>
+                        <span class="recyc-kpi__value" id="kpi-mes-derniere">aucune</span>
+                        <span class="text-muted" style="display:block;font-size:0.7rem;margin-top:2px;" id="kpi-mes-derniere-sub">tout est encore en cours</span>
+                    </div>
                 </div>
             </section>
 
@@ -267,13 +278,14 @@
                                 <th class="recyc-th-sort" data-sort="username">Membre</th>
                                 <th class="recyc-num recyc-th-sort" data-sort="nb_recyclages">Recyclages</th>
                                 <th class="recyc-num recyc-th-sort" data-sort="total_alliance">Pépites alliance</th>
+                                <th class="recyc-num recyc-th-sort" data-sort="periode_alliance" title="Pépites alliance générées depuis la dernière distribution de ce membre">Depuis dernière distrib.</th>
                                 <th class="recyc-num recyc-th-sort" data-sort="total_perso">Pépites perso</th>
                                 <th class="recyc-num recyc-th-sort" data-sort="total_plus_value">Plus-value</th>
                                 <th class="recyc-num recyc-th-sort" data-sort="moy_perso_par_tir">Moy/tir</th>
                             </tr>
                         </thead>
                         <tbody id="classement-tbody">
-                            <tr><td colspan="7" class="text-muted text-center">Chargement…</td></tr>
+                            <tr><td colspan="8" class="text-muted text-center">Chargement…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -334,7 +346,7 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20260926"></script>
-    <script src="js/recyclages.js?v=20260926"></script>
+    <script src="script.js?v=20260927"></script>
+    <script src="js/recyclages.js?v=20260927"></script>
 </body>
 </html>

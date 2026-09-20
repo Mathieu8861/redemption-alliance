@@ -105,6 +105,7 @@
                 case 'modules': await tabModules(content); break;
                 case 'bareme': await tabBareme(content); break;
                 case 'winrate': await tabWinrate(content); break;
+                case 'periode-pvp': await tabPeriodePvp(content); break;
                 case 'builds': await tabBuilds(content); break;
                 case 'jeu-config': await tabJeuConfig(content); break;
                 case 'jeu-lots': await tabJeuLots(content); break;
@@ -2970,6 +2971,95 @@
                 }
             });
         }
+    }
+
+    /* ============================================ */
+    /* ONGLET PERIODE DU CLASSEMENT PVP             */
+    /* ============================================ */
+    var PVP_MODES = [
+        { key: 'illimite',     label: "Sans remise à zéro", desc: "Le classement cumule tous les combats depuis le début. Aucune période, rien ne repart à zéro." },
+        { key: 'hebdo',        label: "Hebdomadaire",        desc: "Du lundi 00h au dimanche soir. Repart à zéro chaque lundi." },
+        { key: 'quinzaine',    label: "Quinzaine",           desc: "Blocs de 14 jours enchaînés à partir de la date de départ." },
+        { key: 'mensuel',      label: "Mensuel",             desc: "Du 1er au dernier jour du mois civil." },
+        { key: 'personnalise', label: "Personnalisé",        desc: "Blocs de N jours enchaînés à partir de la date de départ." }
+    ];
+
+    async function tabPeriodePvp(content) {
+        var esc = window.REN.escapeHtml;
+        var [cfgRes, infosRes] = await Promise.all([
+            window.REN.supabase.from('site_config').select('cle, valeur').in('cle', ['pvp_periode_mode', 'pvp_periode_jours', 'pvp_periode_ancre']),
+            window.REN.supabase.rpc('periode_pvp_infos')
+        ]);
+        var cfg = {};
+        (cfgRes.data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
+        var mode = cfg.pvp_periode_mode || 'illimite';
+        var jours = parseInt(cfg.pvp_periode_jours, 10) || 14;
+        var ancre = /^\d{4}-\d{2}-\d{2}$/.test(cfg.pvp_periode_ancre || '') ? cfg.pvp_periode_ancre : '2026-07-27';
+        var infos = infosRes.data || {};
+
+        function dateLongue(iso) {
+            return iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+        }
+        var periodeTxt;
+        if (!infos.fin) {
+            periodeTxt = "Période en cours : tous les combats depuis le début, sans remise à zéro.";
+        } else {
+            /* fin = debut de la periode suivante : on affiche la veille */
+            var veille = new Date(new Date(infos.fin).getTime() - 24 * 3600 * 1000).toISOString();
+            periodeTxt = "Période en cours : du " + dateLongue(infos.debut) + " au " + dateLongue(veille) + " inclus. Remise à zéro le " + dateLongue(infos.fin) + ".";
+        }
+
+        var html = '<div class="admin-panel__title">Période du classement PvP</div>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">' + "Définit la fenêtre de l'onglet « PvP » de la page Classement, celui qui repart à zéro. Le classement « Définitif » n'est pas concerné, il cumule toujours tout." + '</p>';
+        html += '<div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--spacing-md);margin-bottom:var(--spacing-lg);font-size:0.875rem;">' + esc(periodeTxt) + '</div>';
+
+        html += '<div class="form-group"><label class="form-label" for="pvp-mode">Rythme</label><select id="pvp-mode" class="form-select">';
+        PVP_MODES.forEach(function (m) {
+            html += '<option value="' + m.key + '"' + (m.key === mode ? ' selected' : '') + '>' + esc(m.label) + '</option>';
+        });
+        html += '</select><p class="text-muted" id="pvp-mode-desc" style="font-size:0.75rem;margin-top:4px;"></p></div>';
+
+        html += '<div class="form-row">';
+        html += '<div class="form-group" id="pvp-jours-wrap"><label class="form-label" for="pvp-jours">Durée (jours)</label><input type="number" id="pvp-jours" class="form-input" min="1" max="365" value="' + jours + '"></div>';
+        html += '<div class="form-group" id="pvp-ancre-wrap"><label class="form-label" for="pvp-ancre">Date de départ des blocs</label><input type="date" id="pvp-ancre" class="form-input" value="' + esc(ancre) + '"><p class="text-muted" style="font-size:0.75rem;margin-top:4px;">' + "Les périodes s'enchaînent à partir de cette date. Un lundi de préférence." + '</p></div>';
+        html += '</div>';
+
+        html += '<button class="btn btn--primary" id="pvp-save">Enregistrer</button>';
+        html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-lg);">' + "Le cron du lundi qui attribue les zones de percepteurs lit cette même période, mais uniquement en mode « classement + réservations » (onglet Barème Perco). En mode « paliers de points », il ne fait rien." + '</p>';
+
+        content.innerHTML = html;
+
+        var sel = document.getElementById('pvp-mode');
+        function refreshVisibility() {
+            var m = sel.value;
+            var meta = PVP_MODES.filter(function (x) { return x.key === m; })[0];
+            document.getElementById('pvp-mode-desc').textContent = meta ? meta.desc : '';
+            document.getElementById('pvp-jours-wrap').style.display = (m === 'personnalise') ? '' : 'none';
+            document.getElementById('pvp-ancre-wrap').style.display = (m === 'quinzaine' || m === 'personnalise') ? '' : 'none';
+        }
+        sel.addEventListener('change', refreshVisibility);
+        refreshVisibility();
+
+        document.getElementById('pvp-save').addEventListener('click', async function () {
+            var btn = this;
+            var m = sel.value;
+            var j = Math.max(1, Math.min(365, parseInt(document.getElementById('pvp-jours').value, 10) || 14));
+            var a = document.getElementById('pvp-ancre').value;
+            if ((m === 'quinzaine' || m === 'personnalise') && !/^\d{4}-\d{2}-\d{2}$/.test(a)) {
+                window.REN.toast("Indique une date de départ.", 'error');
+                return;
+            }
+            btn.disabled = true;
+            var { error } = await window.REN.supabase.from('site_config').upsert([
+                { cle: 'pvp_periode_mode', valeur: m },
+                { cle: 'pvp_periode_jours', valeur: String(j) },
+                { cle: 'pvp_periode_ancre', valeur: a || '2026-07-27' }
+            ], { onConflict: 'cle' });
+            btn.disabled = false;
+            if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+            window.REN.toast("Période enregistrée. Le classement se recalcule tout seul.", 'success');
+            tabPeriodePvp(content);
+        });
     }
 
     /* ============================================ */
