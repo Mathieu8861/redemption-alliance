@@ -2649,10 +2649,15 @@
             html += '<div class="recyc-table-wrap"><table class="recyc-table"><thead><tr>'
                 + '<th>Distribué le</th><th>Par</th><th>Période</th>'
                 + '<th class="recyc-num">Recyclages</th><th class="recyc-num">Membres</th>'
-                + '<th class="recyc-num">Pépites alliance</th>'
+                + '<th class="recyc-num">Pépites alliance</th><th>Échange</th>'
                 + '</tr></thead><tbody>';
             distributions.forEach(function (d) {
                 var par = d.profiles || {};
+                var preuve = d.preuve_url
+                    ? '<a class="recyc-history__preuve" href="' + esc(d.preuve_url) + '" target="_blank" rel="noopener" title="Voir la capture de l\'échange">'
+                        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Capture'
+                      + '</a>'
+                    : '<span class="text-muted" style="font-size:0.75rem;">—</span>';
                 html += '<tr>'
                     + '<td>' + window.REN.formatDate(d.distribue_le) + '</td>'
                     + '<td>' + esc(par.username || '—') + '</td>'
@@ -2660,9 +2665,10 @@
                     + '<td class="recyc-num">' + fmt(d.nb_recyclages) + '</td>'
                     + '<td class="recyc-num">' + fmt(d.nb_recycleurs) + '</td>'
                     + '<td class="recyc-num" style="color:var(--color-warning);font-weight:700;">' + fmt(d.total_alliance) + '</td>'
+                    + '<td>' + preuve + '</td>'
                     + '</tr>';
                 if (d.note) {
-                    html += '<tr><td colspan="6" class="text-muted" style="font-size:0.75rem;padding-top:0;">' + esc(d.note) + '</td></tr>';
+                    html += '<tr><td colspan="7" class="text-muted" style="font-size:0.75rem;padding-top:0;">' + esc(d.note) + '</td></tr>';
                 }
             });
             html += '</tbody></table></div>';
@@ -2671,16 +2677,43 @@
         /* Modale de confirmation : remplace le confirm() du navigateur, qui
            tronquait la liste des membres et ne permettait pas de choisir. */
         html += '<div class="modal-overlay" id="distrib-modal">'
-              +   '<div class="modal" style="max-width:520px;">'
+              +   '<div class="modal" style="max-width:560px;">'
               +     '<div class="modal__header">'
               +       '<h2 class="modal__title">Distribuer les pépites</h2>'
               +       '<button class="modal__close" id="distrib-modal-close">&times;</button>'
               +     '</div>'
               +     '<div id="distrib-modal-body"></div>'
+
+              +     '<label style="display:flex;align-items:center;gap:8px;margin-top:var(--spacing-lg);cursor:pointer;">'
+              +       '<input type="checkbox" id="distrib-taxe">'
+              +       '<span>Taxe de 10 % BDA</span>'
+              +     '</label>'
+              +     '<p class="text-muted" style="font-size:0.75rem;margin-top:4px;">Le tableau affiche alors ce qui revient à chaque joueur et ce que tu gardes.</p>'
+
               +     '<div class="form-group" style="margin-top:var(--spacing-lg);">'
-              +       '<label class="form-label" for="distrib-note">Note (facultatif)</label>'
-              +       '<input type="text" id="distrib-note" class="form-input" maxlength="120" placeholder="Ex : versé en jeu le ' + new Date().toLocaleDateString('fr-FR') + '">'
+              +       '<label class="form-label">Capture de l\'échange (facultatif)</label>'
+              +       '<div class="recyc-preuve">'
+              +         '<div class="recyc-preuve__drop" id="distrib-preuve-drop">'
+              +           '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+              +           '<span>Colle un screenshot (<kbd>Ctrl</kbd>+<kbd>V</kbd>) ou clique pour parcourir</span>'
+              +           '<input type="file" id="distrib-preuve-file" accept="image/*" style="display:none;">'
+              +         '</div>'
+              +         '<div class="recyc-preuve__preview" id="distrib-preuve-wrap" style="display:none;">'
+              +           '<img id="distrib-preuve-img" src="" alt="Aperçu de l\'échange">'
+              +           '<div class="recyc-preuve__status" id="distrib-preuve-status">Envoi…</div>'
+              +           '<button type="button" class="recyc-preuve__remove" id="distrib-preuve-remove" title="Retirer">'
+              +             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+              +           '</button>'
+              +         '</div>'
+              +       '</div>'
               +     '</div>'
+
+              +     '<div class="form-group">'
+              +       '<label class="form-label" for="distrib-note">Note (facultatif)</label>'
+              +       '<input type="text" id="distrib-note" class="form-input" maxlength="120" placeholder="Ex : versé en jeu">'
+              +     '</div>'
+              +     '<p class="text-muted" style="font-size:0.75rem;" id="distrib-date-line"></p>'
+
               +     '<div style="display:flex;gap:var(--spacing-sm);justify-content:flex-end;margin-top:var(--spacing-lg);">'
               +       '<button class="btn btn--secondary" id="distrib-cancel">Annuler</button>'
               +       '<button class="btn btn--primary" id="distrib-confirm">Confirmer la distribution</button>'
@@ -2693,14 +2726,15 @@
         /* === ACTION : DISTRIBUER === */
         var distBtn = document.getElementById('btn-distribuer-recyclages');
         var modal = document.getElementById('distrib-modal');
+        var taxeBox = document.getElementById('distrib-taxe');
+        var TAUX_TAXE = 0.10;
+        var preuveUrl = '';
 
         function selection() {
             return Array.prototype.slice.call(content.querySelectorAll('.distrib-pick:checked'))
                         .map(function (cb) { return cb.dataset.id; });
         }
 
-        /* Le libelle du bouton suit la selection, pour qu'on voie tout de suite
-           combien de membres partent sans avoir a ouvrir la modale. */
         function refreshCount() {
             var ids = selection();
             var span = document.getElementById('distrib-count');
@@ -2723,54 +2757,165 @@
         });
         refreshCount();
 
+        /* Recap, redessine a chaque changement de selection ou de taxe */
+        function renderRecap() {
+            var ids = selection();
+            var choisis = membres.filter(function (m) { return ids.indexOf(String(m.user_id)) !== -1; });
+            var avecTaxe = taxeBox && taxeBox.checked;
+            var totalBrut = 0, totalTaxe = 0, recycSel = 0;
+
+            var head = '<th>Membre</th><th class="recyc-num">Recyclages</th><th class="recyc-num">Pépites alliance</th>';
+            if (avecTaxe) head += '<th class="recyc-num">Taxe 10 %</th><th class="recyc-num">À verser</th>';
+
+            var body = '<div class="recyc-table-wrap"><table class="recyc-table"><thead><tr>' + head + '</tr></thead><tbody>';
+            choisis.forEach(function (m) {
+                var brut = Number(m.total_alliance) || 0;
+                /* La taxe est arrondie, le joueur recoit le reste : les deux
+                   montants retombent toujours exactement sur le brut. */
+                var taxe = avecTaxe ? Math.round(brut * TAUX_TAXE) : 0;
+                totalBrut += brut; totalTaxe += taxe;
+                recycSel += Number(m.nb_recyclages) || 0;
+                body += '<tr><td><strong>' + esc(m.username || '?') + '</strong></td>'
+                      + '<td class="recyc-num">' + fmt(m.nb_recyclages) + '</td>'
+                      + '<td class="recyc-num"' + (avecTaxe ? ' style="color:var(--color-text-muted);"' : ' style="color:var(--color-warning);font-weight:700;"') + '>' + fmt(brut) + '</td>';
+                if (avecTaxe) {
+                    body += '<td class="recyc-num" style="color:var(--color-text-muted);">' + fmt(taxe) + '</td>'
+                          + '<td class="recyc-num" style="color:var(--color-warning);font-weight:700;">' + fmt(brut - taxe) + '</td>';
+                }
+                body += '</tr>';
+            });
+            body += '</tbody></table></div>';
+
+            body += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:var(--spacing-md);padding-top:var(--spacing-md);border-top:1px solid var(--color-border);">'
+                  +   '<span style="font-weight:600;">' + (avecTaxe ? 'À verser' : 'Total') + '</span>'
+                  +   '<span style="font-family:var(--font-title);font-size:1.5rem;font-weight:700;color:var(--color-warning);">' + fmt(totalBrut - totalTaxe) + ' pépites</span>'
+                  + '</div>';
+            if (avecTaxe) {
+                body += '<div style="display:flex;justify-content:space-between;font-size:0.8125rem;margin-top:4px;" class="text-muted">'
+                      +   '<span>Taxe BDA que tu gardes</span><span>' + fmt(totalTaxe) + ' pépites</span>'
+                      + '</div>'
+                      + '<div style="display:flex;justify-content:space-between;font-size:0.8125rem;" class="text-muted">'
+                      +   '<span>Total généré</span><span>' + fmt(totalBrut) + ' pépites</span>'
+                      + '</div>';
+            }
+            body += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-xs);">'
+                  + choisis.length + ' membre' + (choisis.length > 1 ? 's' : '') + ', ' + fmt(recycSel) + ' recyclage' + (recycSel > 1 ? 's' : '') + '.</p>';
+
+            var restants = membres.length - choisis.length;
+            if (restants > 0) {
+                body += '<p style="font-size:0.8125rem;margin-top:var(--spacing-sm);color:var(--color-warning);">'
+                      + restants + ' membre' + (restants > 1 ? 's ne sont pas' : ' n\'est pas') + ' dans cette distribution. '
+                      + (restants > 1 ? 'Leurs pépites restent' : 'Ses pépites restent') + ' en cours.</p>';
+            }
+            body += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-sm);">Les recyclages ne sont pas supprimés : ils restent consultables et sont rattachés à cette distribution.</p>';
+            document.getElementById('distrib-modal-body').innerHTML = body;
+        }
+
+        if (taxeBox) {
+            taxeBox.addEventListener('change', function () {
+                renderRecap();
+                /* Proposition de trace ecrite, que l'admin reste libre d'effacer :
+                   la taxe n'est pas stockee en base (choix assume). */
+                var note = document.getElementById('distrib-note');
+                if (taxeBox.checked && !note.value.trim()) note.value = 'Taxe BDA 10 % appliquée';
+                else if (!taxeBox.checked && note.value.trim() === 'Taxe BDA 10 % appliquée') note.value = '';
+            });
+        }
+
+        /* --- Capture de l'echange --- */
+        function resetPreuve() {
+            preuveUrl = '';
+            var w = document.getElementById('distrib-preuve-wrap');
+            var d = document.getElementById('distrib-preuve-drop');
+            var f = document.getElementById('distrib-preuve-file');
+            if (w) w.style.display = 'none';
+            if (d) d.style.display = '';
+            if (f) f.value = '';
+        }
+
+        async function envoyerPreuve(file) {
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { window.REN.toast('Image trop lourde (>5 Mo)', 'error'); return; }
+            if (file.type.indexOf('image/') !== 0) { window.REN.toast('Le fichier doit être une image', 'error'); return; }
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('distrib-preuve-img').src = e.target.result;
+                document.getElementById('distrib-preuve-wrap').style.display = 'block';
+                document.getElementById('distrib-preuve-drop').style.display = 'none';
+                var st = document.getElementById('distrib-preuve-status');
+                st.textContent = 'Envoi…';
+                st.className = 'recyc-preuve__status recyc-preuve__status--loading';
+            };
+            reader.readAsDataURL(file);
+
+            try {
+                var ext = (file.name && file.name.split('.').pop()) || 'png';
+                var path = 'distributions/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+                var up = await window.REN.supabase.storage.from('preuves-recyclages')
+                            .upload(path, file, { contentType: file.type, upsert: false });
+                if (up.error) throw up.error;
+                var { data: urlData } = window.REN.supabase.storage.from('preuves-recyclages').getPublicUrl(path);
+                preuveUrl = urlData.publicUrl;
+                var st = document.getElementById('distrib-preuve-status');
+                st.textContent = 'Prêt ✓';
+                st.className = 'recyc-preuve__status recyc-preuve__status--ok';
+            } catch (err) {
+                console.error('[REN-ADMIN] Erreur upload preuve distribution:', err);
+                window.REN.toast('Erreur envoi de la capture : ' + (err.message || ''), 'error');
+                resetPreuve();
+            }
+        }
+
+        var dropZone = document.getElementById('distrib-preuve-drop');
+        var fileInput = document.getElementById('distrib-preuve-file');
+        if (dropZone && fileInput) {
+            dropZone.addEventListener('click', function () { fileInput.click(); });
+            fileInput.addEventListener('change', function () {
+                if (fileInput.files && fileInput.files[0]) envoyerPreuve(fileInput.files[0]);
+            });
+        }
+        var removeBtn = document.getElementById('distrib-preuve-remove');
+        if (removeBtn) removeBtn.addEventListener('click', resetPreuve);
+
+        /* Ctrl+V, uniquement quand la modale est ouverte */
+        document.addEventListener('paste', function (e) {
+            if (!modal || !modal.classList.contains('active')) return;
+            var items = (e.clipboardData || window.clipboardData).items;
+            if (!items) return;
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type && items[i].type.indexOf('image') === 0) {
+                    var f = items[i].getAsFile();
+                    if (f) envoyerPreuve(f);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        });
+
+        /* --- Ouverture / fermeture --- */
         function fermerModale() { if (modal) modal.classList.remove('active'); }
         ['distrib-modal-close', 'distrib-cancel'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.addEventListener('click', fermerModale);
         });
-        if (modal) {
-            modal.addEventListener('click', function (e) { if (e.target === modal) fermerModale(); });
-        }
+        if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) fermerModale(); });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && modal && modal.classList.contains('active')) fermerModale();
         });
 
         if (distBtn) {
             distBtn.addEventListener('click', function () {
-                var ids = selection();
-                if (!ids.length) { window.REN.toast('Sélectionne au moins un membre', 'error'); return; }
-
-                var choisis = membres.filter(function (m) { return ids.indexOf(String(m.user_id)) !== -1; });
-                var totalSel = choisis.reduce(function (s, m) { return s + (Number(m.total_alliance) || 0); }, 0);
-                var recycSel = choisis.reduce(function (s, m) { return s + (Number(m.nb_recyclages) || 0); }, 0);
-                var restants = membres.length - choisis.length;
-
-                var body = '<div class="recyc-table-wrap"><table class="recyc-table"><thead><tr>'
-                         + '<th>Membre</th><th class="recyc-num">Recyclages</th><th class="recyc-num">Pépites alliance</th>'
-                         + '</tr></thead><tbody>';
-                choisis.forEach(function (m) {
-                    body += '<tr><td><strong>' + esc(m.username || '?') + '</strong></td>'
-                          + '<td class="recyc-num">' + fmt(m.nb_recyclages) + '</td>'
-                          + '<td class="recyc-num" style="color:var(--color-warning);font-weight:700;">' + fmt(m.total_alliance) + '</td></tr>';
-                });
-                body += '</tbody></table></div>';
-                body += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:var(--spacing-md);padding-top:var(--spacing-md);border-top:1px solid var(--color-border);">'
-                      +   '<span style="font-weight:600;">Total</span>'
-                      +   '<span style="font-family:var(--font-title);font-size:1.5rem;font-weight:700;color:var(--color-warning);">' + fmt(totalSel) + ' pépites</span>'
-                      + '</div>';
-                body += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-xs);">'
-                      + choisis.length + ' membre' + (choisis.length > 1 ? 's' : '') + ', ' + fmt(recycSel) + ' recyclage' + (recycSel > 1 ? 's' : '') + '.</p>';
-                if (restants > 0) {
-                    body += '<p style="font-size:0.8125rem;margin-top:var(--spacing-sm);color:var(--color-warning);">'
-                          + restants + ' membre' + (restants > 1 ? 's ne sont pas' : ' n\'est pas') + ' dans cette distribution. '
-                          + (restants > 1 ? 'Leurs pépites restent' : 'Ses pépites restent') + ' en cours.</p>';
-                }
-                body += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-sm);">Les recyclages ne sont pas supprimés : ils restent consultables et sont rattachés à cette distribution.</p>';
-
-                document.getElementById('distrib-modal-body').innerHTML = body;
+                if (!selection().length) { window.REN.toast('Sélectionne au moins un membre', 'error'); return; }
+                resetPreuve();
+                if (taxeBox) taxeBox.checked = false;
                 document.getElementById('distrib-note').value = '';
+                renderRecap();
+                var d = new Date();
+                document.getElementById('distrib-date-line').textContent =
+                    'Sera enregistrée à la date du ' + d.toLocaleDateString('fr-FR')
+                    + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '.';
                 modal.classList.add('active');
-                document.getElementById('distrib-note').focus();
             });
         }
 
@@ -2784,11 +2929,10 @@
                 confirmBtn.disabled = true;
                 confirmBtn.textContent = 'Distribution...';
                 try {
-                    /* On transmet toujours la liste explicite : seuls les membres
-                       affiches dans le recap sont soldes, meme si un recyclage
-                       arrive entre l'affichage et la confirmation. */
+                    /* Liste explicite : seuls les membres affiches dans le recap
+                       sont soldes, meme si un recyclage arrive entre-temps. */
                     var { data, error } = await window.REN.supabase.rpc('distribuer_recyclages', {
-                        p_note: note, p_user_ids: ids
+                        p_note: note, p_user_ids: ids, p_preuve_url: preuveUrl || null
                     });
                     if (error) throw error;
                     if (!data || !data.ok) {

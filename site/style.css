@@ -7268,7 +7268,8 @@ table {
 
 /* Cases a cocher de la distribution des pepites : sans accent-color elles
    restent en gris systeme, tres visible sur le fond sombre. */
-.recyc-table input[type="checkbox"] {
+.recyc-table input[type="checkbox"],
+#distrib-taxe {
     accent-color: var(--color-accent);
     width: 16px;
     height: 16px;
