@@ -256,15 +256,22 @@
         });
         if (error) {
             /* Tenter de récupérer le détail renvoyé par la fonction (FunctionsHttpError) */
-            var detail = '';
+            var detail = '', brut = '', status = 0;
             try {
-                if (error.context && typeof error.context.json === 'function') {
-                    var j = await error.context.json();
-                    detail = j.error || '';
-                    if (j.raw) console.warn('[REN-FM] Réponse vision brute:', j.raw);
+                if (error.context) {
+                    status = error.context.status || 0;
+                    if (typeof error.context.json === 'function') {
+                        var j = await error.context.json();
+                        detail = j.error || '';
+                        brut = j.detail || '';
+                        if (j.raw) console.warn('[REN-FM] Réponse vision brute:', j.raw);
+                    }
                 }
             } catch (e) { /* ignore */ }
-            throw new Error(detail || error.message || 'Erreur edge function');
+            var err = new Error(detail || error.message || 'Erreur edge function');
+            err.status = status;
+            err.detail = brut;
+            throw err;
         }
         if (data && data.error) throw new Error(data.error);
         return data; /* {runes:[{nom, qty}], non_identifiees: n} */
@@ -424,8 +431,9 @@
                     setStatus('Analysé ✓', 'recyc-preuve__status--ok');
                 } catch (err) {
                     console.error('[REN-FM] Extraction avant:', err);
-                    setStatus('Échec analyse', '');
-                    window.REN.toast('Extraction impossible — saisis les runes manuellement', 'error');
+                    var ev = window.REN.expliquerErreurVision(err);
+                    setStatus(ev.statut, '');
+                    window.REN.toast(ev.message + ' Saisis les runes manuellement.', 'error');
                     gridAvant = [];
                     document.getElementById('fm-grid-avant-wrap').removeAttribute('hidden');
                     renderGridAvant();
@@ -1286,8 +1294,9 @@
                     setStatus('Analysé ✓', 'recyc-preuve__status--ok');
                 } catch (err) {
                     console.error('[REN-FM] Extraction apres:', err);
-                    setStatus('Échec analyse', '');
-                    window.REN.toast('Extraction impossible — saisis les quantités manuellement', 'error');
+                    var ev = window.REN.expliquerErreurVision(err);
+                    setStatus(ev.statut, '');
+                    window.REN.toast(ev.message + ' Saisis les quantités manuellement.', 'error');
                     gridApres = {};
                     document.getElementById('fm-grid-apres-wrap').removeAttribute('hidden');
                     renderGridApres();

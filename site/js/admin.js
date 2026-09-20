@@ -2308,14 +2308,21 @@
                         body: { image: img.base64, media_type: img.mediaType, mode: 'hdv_prices' }
                     });
                     if (res.error) {
-                        var detail = '';
+                        var detail = '', brut = '', st = 0;
                         try {
-                            if (res.error.context && typeof res.error.context.json === 'function') {
-                                var j = await res.error.context.json();
-                                detail = j.error || '';
+                            if (res.error.context) {
+                                st = res.error.context.status || 0;
+                                if (typeof res.error.context.json === 'function') {
+                                    var j = await res.error.context.json();
+                                    detail = j.error || '';
+                                    brut = j.detail || '';
+                                }
                             }
                         } catch (e) { /* ignore */ }
-                        throw new Error(detail || res.error.message || 'Erreur edge function');
+                        var e2 = new Error(detail || res.error.message || 'Erreur edge function');
+                        e2.status = st;
+                        e2.detail = brut;
+                        throw e2;
                     }
                     var found = (res.data && res.data.runes) || [];
                     var matched = 0;
@@ -2337,8 +2344,9 @@
                     status.textContent = msg;
                 } catch (err) {
                     console.error('[REN-ADMIN] Erreur analyse HDV:', err);
-                    if (status) status.textContent = '';
-                    window.REN.toast('Analyse échouée : ' + (err.message || ''), 'error');
+                    var ev = window.REN.expliquerErreurVision(err);
+                    if (status) status.textContent = ev.statut;
+                    window.REN.toast(ev.message, 'error');
                 }
             }
         }

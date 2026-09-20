@@ -349,6 +349,38 @@
     }
 
     /* === TOAST SYSTEM === */
+    /* Traduit un echec de l'analyse par vision (edge function extract-runes)
+       en message comprehensible. Avant, credits API epuises, session expiree
+       et capture illisible affichaient tous le meme « Echec analyse ». */
+    window.REN.expliquerErreurVision = function (err) {
+        var msg = String((err && err.message) || '');
+        var detail = String((err && err.detail) || '');
+        var status = (err && err.status) || 0;
+        var tout = (msg + ' ' + detail).toLowerCase();
+        if (tout.indexOf('credit balance') !== -1 || tout.indexOf('billing') !== -1) {
+            return { code: 'credits', statut: 'Analyse indisponible',
+                     message: "Analyse automatique indisponible : les crédits de l'API vision sont épuisés. Préviens un admin." };
+        }
+        if (status === 401 || tout.indexOf('authentification requise') !== -1) {
+            return { code: 'session', statut: 'Session expirée',
+                     message: "Ta session a expiré, reconnecte-toi puis réessaie." };
+        }
+        if (status === 403 || tout.indexOf('compte non valid') !== -1) {
+            return { code: 'validation', statut: 'Compte non validé',
+                     message: "Ton compte doit être validé par un admin pour utiliser l'analyse." };
+        }
+        if (tout.indexOf('illisible') !== -1) {
+            return { code: 'illisible', statut: 'Capture illisible',
+                     message: "L'analyse n'a pas réussi à lire cette capture. Réessaie avec une image plus nette." };
+        }
+        if (status === 429 || tout.indexOf('rate limit') !== -1 || tout.indexOf('overloaded') !== -1) {
+            return { code: 'surcharge', statut: 'Réessaie dans un instant',
+                     message: "Le service d'analyse est saturé, réessaie dans quelques secondes." };
+        }
+        return { code: 'inconnu', statut: 'Échec analyse',
+                 message: 'Extraction impossible' + (msg ? ' (' + msg + ')' : '') + '.' };
+    };
+
     window.REN.toast = function (message, type) {
         type = type || 'info';
         var container = document.querySelector('.toast-container');
