@@ -302,7 +302,7 @@
             /* Legende */
             html += '<div class="bareme-legend">'
                   + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--gain"></span>Points gagnés en victoire, plus la case est claire plus ça rapporte</span>'
-                  + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--perte">-1</span>Points perdus en défaite, seulement quand il y en a</span>'
+                  + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--def">+1</span>Points obtenus malgré la défaite, sur quelques combats difficiles</span>'
                   + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--eq"></span>Combat équilibré (autant d\'alliés que d\'ennemis)</span>'
                   + '</div>';
 
@@ -338,8 +338,10 @@
     var ICON_SHIELD = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
 
     /* Grille chauffee : le gain en gros, colore selon son intensite (relative au
-       maximum du bareme), la perte seulement quand elle existe, la diagonale
-       (combats equilibres) encadree. Remplace l'ancien tableau « +X / 0 ». */
+       maximum du bareme), la diagonale (combats equilibres) encadree.
+       points_defaite n'est PAS une perte : calculer_points l'AJOUTE au joueur
+       quand le combat est perdu (lot de consolation sur quelques cases). On
+       l'affiche donc en pastille « +1 », jamais en negatif. */
     function buildBaremeHeatmap(bareme, type, label, icon) {
         var filtered = (bareme || []).filter(function (b) { return b.type === type; });
         var max = 0;
@@ -367,9 +369,9 @@
                 var pd = cell ? cell.points_defaite : 0;
                 var ratio = pv / max;
                 var cls = 'bareme-heat__cell' + (a === ee ? ' bareme-heat__cell--eq' : '') + (pv === 0 ? ' bareme-heat__cell--zero' : '');
-                html += '<div class="' + cls + '" style="--heat:' + ratio.toFixed(2) + ';" title="' + a + ' contre ' + ee + ' : +' + pv + ' en victoire' + (pd ? ', -' + pd + ' en défaite' : '') + '">'
+                html += '<div class="' + cls + '" style="--heat:' + ratio.toFixed(2) + ';" title="' + a + ' contre ' + ee + ' : +' + pv + ' en victoire' + (pd ? ', +' + pd + ' en défaite' : '') + '">'
                       + '<span class="bareme-heat__gain">' + (pv > 0 ? '+' + pv : '0') + '</span>'
-                      + (pd ? '<span class="bareme-heat__perte">-' + pd + '</span>' : '')
+                      + (pd ? '<span class="bareme-heat__def" title="+' + pd + ' même en cas de défaite">+' + pd + '</span>' : '')
                       + '</div>';
             }
         }

@@ -440,7 +440,7 @@
             .from('bareme_points').select('*').order('nb_allies').order('nb_ennemis');
 
         var html = '<div class="admin-panel__title">Bareme de Points</div>';
-        html += '<div class="admin-panel__desc">Configurez les points gagnes/perdus en fonction du nombre d\'allies et d\'ennemis.<br>Chaque cellule : <span style="color:var(--color-success);">victoire</span> / <span style="color:var(--color-danger);">defaite</span></div>';
+        html += '<div class="admin-panel__desc">Configurez les points obtenus en fonction du nombre d\'allies et d\'ennemis.<br>Chaque cellule : <span style="color:var(--color-success);">points en victoire</span> / <span style="color:var(--color-info);">points obtenus malgre la defaite</span> (toujours ajoutes au joueur, jamais retires).</div>';
 
         /* Sous-tabs attaque / defense */
         html += '<div style="display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-lg);">';

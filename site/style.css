@@ -3312,7 +3312,7 @@ table {
 .bareme-legend__swatch--gain {
     background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(46, 204, 113, 0.85));
 }
-.bareme-legend__swatch--perte {
+.bareme-legend__swatch--def {
     width: auto;
     height: auto;
     padding: 0 5px;
@@ -3320,7 +3320,7 @@ table {
     font-weight: 700;
     line-height: 16px;
     color: #fff;
-    background: var(--color-danger);
+    background: var(--color-info);
 }
 .bareme-legend__swatch--eq {
     background: transparent;
@@ -3443,7 +3443,7 @@ table {
     text-shadow: none;
     font-weight: 600;
 }
-.bareme-heat__perte {
+.bareme-heat__def {
     position: absolute;
     right: 4px;
     bottom: 4px;
@@ -3453,7 +3453,7 @@ table {
     font-weight: 700;
     line-height: 15px;
     color: #fff;
-    background: var(--color-danger);
+    background: var(--color-info);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 .bareme-multis {
