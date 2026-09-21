@@ -159,7 +159,7 @@
         /* Un role deja reclame via une classe obligatoire n est pas redemande */
         ['tank', 'support', 'dps'].forEach(function (r) {
             var manque = (rules.quota[r] || 0) - best.roles[r] - couvertParObligatoire[r];
-            if (manque > 0) missing.push({ type: 'role', role: r, label: manque + ' ' + ROLE_LABEL[r].toLowerCase() + (manque > 1 && r !== 'dps' ? 's' : '') });
+            if (manque > 0) missing.push({ type: 'role', role: r, count: manque, label: manque + ' ' + ROLE_LABEL[r].toLowerCase() + (manque > 1 && r !== 'dps' ? 's' : '') });
         });
         return { team: best.team, missing: missing, roles: best.roles, mand: best.mand, mandatoryTotal: mandatory.length };
     }
@@ -206,6 +206,12 @@
         html += '<div class="mm-compo__meta text-muted">' + n + ' joueur' + (n > 1 ? 's' : '') + ' disponible' + (n > 1 ? 's' : '') + '</div>';
         html += '</div>';
 
+        /* Une case vide par joueur manquant : « 2 dps » devient deux cases « DPS » */
+        var needs = [];
+        res.missing.forEach(function (m) {
+            if (m.type === 'role') { for (var k = 0; k < (m.count || 1); k++) needs.push({ type: 'role', role: m.role, label: ROLE_LABEL[m.role] }); }
+            else needs.push(m);
+        });
         html += '<div class="mm-slots' + (full ? ' mm-slots--full' : '') + '">';
         for (var i = 0; i < 5; i++) {
             var m = res.team[i];
@@ -217,7 +223,7 @@
                       + '<span class="mm-slot__name">' + esc(m.username) + '</span>'
                       + '</div>';
             } else {
-                var need = res.missing[i - res.team.length];
+                var need = needs[i - res.team.length];
                 html += '<div class="mm-slot mm-slot--empty">'
                       + '<span class="mm-slot__icon">' + (need && need.type === 'role' ? ROLE_ICON[need.role] : '<span class="mm-slot__q">?</span>') + '</span>'
                       + '<span class="mm-slot__classe">' + (need ? esc(need.label) : 'Libre') + '</span>'
