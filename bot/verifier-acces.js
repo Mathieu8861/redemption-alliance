@@ -78,7 +78,7 @@ async function api(p) {
     console.log('Bot        : ' + moi.username + ' (' + moi.id + ')');
     console.log('Salon      : #' + salon.name + ' (' + salon.id + ')' + (salon.type === 0 ? '' : ' [type ' + salon.type + ']'));
     console.log('Roles      : ' + mesRoles.filter(function (r) { return r.id !== GUILD; }).map(function (r) { return r.name; }).join(', ') || '(aucun)');
-    console.log('Admin      : ' + (admin ? 'OUI (a retirer, voir la discussion du 21/09)' : 'non, bien'));
+    console.log('Admin      : ' + (admin ? 'oui (choix de Mathieu le 21/09 : le role [Bot-RDM] reste administrateur)' : 'non, bien'));
     console.log('');
     [['Voir le salon', P.VIEW_CHANNEL], ['Envoyer des messages', P.SEND_MESSAGES], ['Integrer des liens', P.EMBED_LINKS],
      ['Joindre des fichiers', P.ATTACH_FILES], ['Lire l historique', P.READ_MESSAGE_HISTORY], ['Mentionner @everyone', P.MENTION_EVERYONE]]
