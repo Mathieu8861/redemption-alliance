@@ -28,7 +28,7 @@
 
     /* === CONSTANTES === */
     const MOBILE_BREAKPOINT = 768;
-    const PAGES = ['accueil', 'attaque', 'defense', 'classement', 'historique', 'membres', 'builds', 'jeux', 'recyclages', 'fm'];
+    const PAGES = ['accueil', 'attaque', 'defense', 'classement', 'historique', 'membres', 'builds', 'jeux', 'recyclages', 'fm', 'matchmaking'];
     const AUTH_PAGE = 'connexion.html';
     const ADMIN_PAGE = 'admin.html';
 
@@ -96,6 +96,7 @@
 
                 updateNavUser(profile);
                 updateMemberCount();
+                initMatchmakingWatch();
             }
         } catch (err) {
             console.error('[REN] Erreur auth:', err);
@@ -641,6 +642,65 @@
         };
     };
 
+    /* === MATCHMAKING : badge dans le menu + bandeau si je suis dans la file === */
+    /* Sur toutes les pages sauf la page matchmaking elle-meme (qui a sa propre
+       vue) : nombre de joueurs disponibles en pastille sur « Trouver une T5 »,
+       et un bandeau « Matchmaking en cours » pour celui qui s'est signale. */
+    var mmWatchQueue = [];
+    var mmWatchTimer = null;
+    async function initMatchmakingWatch() {
+        if (!window.REN.supabase || !window.REN.currentProfile) return;
+        if (!isModuleActif('matchmaking')) return;
+        if (getCurrentPage() === 'matchmaking') return;
+        await mmWatchRefresh();
+        try {
+            window.REN.supabase.channel('mm-watch')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'mm_queue' }, mmWatchRefresh)
+                .subscribe();
+        } catch (e) { /* le rafraichissement periodique prend le relais */ }
+        mmWatchTimer = setInterval(mmWatchRefresh, 60000);
+    }
+    async function mmWatchRefresh() {
+        try {
+            var { data } = await window.REN.supabase.from('v_mm_queue').select('user_id, username, created_at, expire_at');
+            var now = Date.now();
+            mmWatchQueue = (data || []).filter(function (q) { return new Date(q.expire_at).getTime() > now; });
+        } catch (e) { return; }
+        mmWatchRender();
+    }
+    function mmWatchRender() {
+        var n = mmWatchQueue.length;
+        var me = mmWatchQueue.filter(function (q) { return q.user_id === window.REN.currentProfile.id; })[0];
+        /* Pastille sur le lien du menu */
+        var link = document.querySelector('.app-sidebar__link[data-page="matchmaking"]');
+        if (link) {
+            var old = link.querySelector('.mm-badge');
+            if (old) old.remove();
+            if (n > 0) {
+                var b = document.createElement('span');
+                b.className = 'mm-badge' + (me ? ' mm-badge--me' : '');
+                b.textContent = n + '/5';
+                b.title = n + ' joueur' + (n > 1 ? 's' : '') + ' disponible' + (n > 1 ? 's' : '') + ' pour une T5';
+                link.appendChild(b);
+            }
+        }
+        /* Bandeau pour celui qui est dans la file */
+        var bar = document.getElementById('mm-bar');
+        if (!me) { if (bar) bar.remove(); return; }
+        var mins = Math.max(0, Math.round((Date.now() - new Date(me.created_at).getTime()) / 60000));
+        if (!bar) {
+            bar = document.createElement('a');
+            bar.id = 'mm-bar';
+            bar.className = 'mm-bar';
+            bar.href = 'matchmaking.html';
+            document.body.appendChild(bar);
+        }
+        bar.innerHTML = '<span class="mm-pulse"></span>'
+            + '<span class="mm-bar__title">Matchmaking T5 en cours</span>'
+            + '<span class="mm-bar__meta">' + mins + ' min · ' + Math.min(n, 5) + '/5 joueur' + (n > 1 ? 's' : '') + '</span>'
+            + '<span class="mm-bar__cta">Voir la compo</span>';
+    }
+
     /* === UPDATE NOTIFICATION === */
     var REN_UPDATE_VERSION = '2026-09-20';
 
@@ -715,7 +775,8 @@
                 { page: 'attaque', label: 'Attaque', href: 'attaque.html', icon: 'sword', module: 'attaque' },
                 { page: 'defense', label: 'Défense', href: 'defense.html', icon: 'shield', module: 'defense' },
                 { page: 'historique', label: 'Historique', href: 'historique.html', icon: 'clock', module: 'historique' },
-                { page: 'classement', label: 'Classement', href: 'classement.html', icon: 'trophy', module: 'classement' }
+                { page: 'classement', label: 'Classement', href: 'classement.html', icon: 'trophy', module: 'classement' },
+                { page: 'matchmaking', label: 'Trouver une T5', href: 'matchmaking.html', icon: 'users', module: 'matchmaking' }
             ]
         },
         {
@@ -749,7 +810,8 @@
         attaque: 'attaque', defense: 'defense', historique: 'historique',
         classement: 'classement', membres: 'membres', builds: 'builds',
         board: 'board', liens: 'liens', boutique: 'boutique',
-        recyclages: 'recyclages', fm: 'fm', jeux: 'jeux', slot: 'jeux'
+        recyclages: 'recyclages', fm: 'fm', jeux: 'jeux', slot: 'jeux',
+        matchmaking: 'matchmaking'
     };
     let modulesActifs = null; /* null = config pas chargée => tout actif */
 

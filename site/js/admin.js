@@ -3080,16 +3080,51 @@
         }
         var classes = rows || [];
 
+        var { data: cfgRows } = await window.REN.supabase.from('site_config').select('cle, valeur').like('cle', 'mm_%');
+        var cfg = {};
+        (cfgRows || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
+
         var html = '<div class="admin-panel__title">Classes T5</div>';
         html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">'
               + "Le rôle et le rang de chaque classe pour le matchmaking T5. L'ordre de haut en bas départage deux classes de même rang : attrape une ligne par sa poignée et glisse-la, ou utilise les flèches. Chaque modification est enregistrée aussitôt."
               + '</p>';
+
+        /* Regles de composition (site_config mm_*) */
+        html += '<div class="mm-rules">'
+              + '<div class="mm-rules__title">Règles de composition</div>'
+              + '<div class="mm-rules__grid">'
+              + '<label>Doublons<select class="form-select" id="mm-r-doublons"><option value="false"' + (cfg.mm_doublons === 'true' ? '' : ' selected') + '>Interdits</option><option value="true"' + (cfg.mm_doublons === 'true' ? ' selected' : '') + '>Autorisés</option></select></label>'
+              + '<label>Tanks min.<input type="number" class="form-input" id="mm-r-tank" min="0" max="5" value="' + esc(cfg.mm_quota_tank || '1') + '"></label>'
+              + '<label>Supports min.<input type="number" class="form-input" id="mm-r-support" min="0" max="5" value="' + esc(cfg.mm_quota_support || '1') + '"></label>'
+              + '<label>DPS min.<input type="number" class="form-input" id="mm-r-dps" min="0" max="5" value="' + esc(cfg.mm_quota_dps || '2') + '"></label>'
+              + '<label>Dispo par défaut<select class="form-select" id="mm-r-duree">' + [30, 60, 120, 180].map(function (m) { return '<option value="' + m + '"' + (String(m) === (cfg.mm_duree_defaut || '60') ? ' selected' : '') + '>' + (m >= 60 ? (m / 60) + ' h' : m + ' min') + '</option>'; }).join('') + '</select></label>'
+              + '<button class="btn btn--primary btn--small" id="mm-r-save">Enregistrer les règles</button>'
+              + '</div>'
+              + '<p class="text-muted" style="font-size:0.75rem;margin-top:6px;">' + "Les classes obligatoires sont celles au rang « Obligatoire » ci-dessous : l'équipe doit les contenir si quelqu'un peut les jouer. Les minimums par rôle guident le choix des classes." + '</p>'
+              + '</div>';
         html += '<div class="cls-list" id="cls-list">';
         html += '<div class="cls-row cls-row--head"><span></span><span>#</span><span>Classe</span><span>Rôle</span><span>Rang</span><span>Note</span><span></span></div>';
         classes.forEach(function (c) { html += clsRow(c); });
         html += '</div>';
         html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-md);">Obligatoire : la classe doit être dans l\'équipe si quelqu\'un peut la jouer. S est le rang le plus fort, C le plus faible.</p>';
         content.innerHTML = html;
+
+        document.getElementById('mm-r-save').addEventListener('click', async function () {
+            var btn = this;
+            var val = function (id) { return document.getElementById(id).value; };
+            var clamp = function (v) { return String(Math.max(0, Math.min(5, parseInt(v, 10) || 0))); };
+            btn.disabled = true;
+            var { error } = await window.REN.supabase.from('site_config').upsert([
+                { cle: 'mm_doublons', valeur: val('mm-r-doublons') },
+                { cle: 'mm_quota_tank', valeur: clamp(val('mm-r-tank')) },
+                { cle: 'mm_quota_support', valeur: clamp(val('mm-r-support')) },
+                { cle: 'mm_quota_dps', valeur: clamp(val('mm-r-dps')) },
+                { cle: 'mm_duree_defaut', valeur: val('mm-r-duree') }
+            ], { onConflict: 'cle' });
+            btn.disabled = false;
+            if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+            window.REN.toast('Règles enregistrées.', 'success');
+        });
 
         var list = document.getElementById('cls-list');
 
