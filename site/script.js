@@ -142,6 +142,24 @@
         if (appUsername && profile) {
             appUsername.textContent = profile.username;
         }
+        if (navUsername) navUsername.title = 'Mon profil';
+        /* Avatar : photo Discord si le profil en a une, sinon l'initiale.
+           L'image est creee par le DOM (pas de innerHTML) : l'URL est une
+           donnee saisie par le membre. */
+        const appAvatar = document.getElementById('app-avatar');
+        if (appAvatar && profile) {
+            appAvatar.textContent = '';
+            if (profile.avatar_url) {
+                const img = document.createElement('img');
+                img.alt = '';
+                img.loading = 'lazy';
+                img.onerror = function () { appAvatar.textContent = (profile.username || '?').charAt(0).toUpperCase(); };
+                img.src = profile.avatar_url;
+                appAvatar.appendChild(img);
+            } else {
+                appAvatar.textContent = (profile.username || '?').charAt(0).toUpperCase();
+            }
+        }
         const appAdminLink = document.getElementById('app-admin-link');
         if (appAdminLink) {
             appAdminLink.style.display = (profile && profile.is_admin) ? '' : 'none';
@@ -850,12 +868,23 @@
             + '<span class="app-sidebar__meta-dev">Développé par <strong class="notranslate">Rorschach</strong></span>'
             + '</div>';
 
-        /* Bloc user en bas de la sidebar (sticky) */
+        /* Bloc user en bas de la sidebar (sticky).
+           Avant : le pseudo seul, cliquable sans que rien ne l'indique. La
+           plupart des membres ne savaient pas que leur profil etait la. */
         html += '<div class="app-sidebar__user">'
-            + '<button class="app-sidebar__user-icon" id="app-lang-toggle" title="English version"></button>'
-            + '<a href="admin.html" class="app-sidebar__user-icon" id="app-admin-link" title="Admin" style="display:none;">' + ADMIN_ICON_SVG + '</a>'
-            + '<span class="app-sidebar__username notranslate" id="app-username" title="Voir mon profil"></span>'
-            + '<button class="app-sidebar__user-icon" id="app-btn-logout" title="Déconnexion">' + LOGOUT_ICON_SVG + '</button>'
+            + '<a href="profil.html" class="app-sidebar__profile" id="app-profile-link" title="Voir et modifier mon profil">'
+            +   '<span class="app-sidebar__avatar notranslate" id="app-avatar"></span>'
+            +   '<span class="app-sidebar__profile-text">'
+            +     '<span class="app-sidebar__profile-label">Mon profil</span>'
+            +     '<span class="app-sidebar__username notranslate" id="app-username"></span>'
+            +   '</span>'
+            +   '<svg class="app-sidebar__profile-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+            + '</a>'
+            + '<div class="app-sidebar__actions">'
+            +   '<button class="app-sidebar__user-icon" id="app-lang-toggle" title="English version"></button>'
+            +   '<a href="admin.html" class="app-sidebar__user-icon" id="app-admin-link" title="Administration" style="display:none;">' + ADMIN_ICON_SVG + '</a>'
+            +   '<button class="app-sidebar__logout" id="app-btn-logout" title="Se déconnecter du site">' + LOGOUT_ICON_SVG + '<span>Déconnexion</span></button>'
+            + '</div>'
             + '</div>';
 
         slot.innerHTML = html;

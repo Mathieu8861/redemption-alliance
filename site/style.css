@@ -7623,6 +7623,109 @@ table {
     height: 16px;
 }
 
+/* Pied de sidebar : carte « Mon profil » explicite + rangee d'actions.
+   Le pseudo seul etait cliquable sans que rien ne le montre. */
+.app-sidebar__user {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+.app-sidebar__profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+.app-sidebar__profile:hover {
+    border-color: var(--color-border-accent);
+    background: rgba(var(--color-accent-rgb), 0.10);
+}
+.app-sidebar__profile:hover .app-sidebar__profile-chevron {
+    color: var(--color-accent-light);
+    transform: translateX(2px);
+}
+.app-sidebar__avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-light);
+    color: var(--color-accent-light);
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.app-sidebar__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.app-sidebar__profile-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    line-height: 1.15;
+}
+.app-sidebar__profile-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent-light);
+}
+.app-sidebar__profile .app-sidebar__username {
+    display: block;
+    flex: none;
+    cursor: inherit;
+}
+.app-sidebar__profile-chevron {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    transition: all var(--transition-fast);
+}
+.app-sidebar__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+.app-sidebar__logout {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.app-sidebar__logout:hover {
+    color: var(--color-danger);
+    background: rgba(232, 68, 68, 0.10);
+}
+.app-sidebar__logout svg {
+    width: 15px;
+    height: 15px;
+}
+
 /* La sidebar devient flex column pour pousser le user en bas */
 .app-sidebar {
     display: flex;
