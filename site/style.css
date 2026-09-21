@@ -3327,26 +3327,37 @@ table {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 12px 6px;
-    border-radius: 10px;
+    gap: 6px;
+    padding: 14px 6px 12px;
+    border-radius: 12px;
     background: var(--color-bg-tertiary);
     border: 1px solid var(--color-border);
-    border-top-width: 3px;
     text-align: center;
     min-width: 0;
 }
-.mm-slot--tank    { border-top-color: var(--color-info); }
-.mm-slot--dps     { border-top-color: var(--color-danger); }
-.mm-slot--support { border-top-color: var(--color-success); }
-.mm-slot--me      { box-shadow: inset 0 0 0 1px var(--color-accent); }
+/* Une seule bordure, fine : le role se lit au fond teinte et a la pastille */
+.mm-slot--tank    { background: rgba(52, 152, 219, 0.10);  border-color: rgba(52, 152, 219, 0.35); }
+.mm-slot--dps     { background: rgba(232, 68, 68, 0.10);   border-color: rgba(232, 68, 68, 0.35); }
+.mm-slot--support { background: rgba(46, 204, 113, 0.10);  border-color: rgba(46, 204, 113, 0.35); }
 .mm-slot--empty   { border-style: dashed; opacity: 0.7; }
-.mm-slots--full .mm-slot { box-shadow: 0 0 0 1px rgba(46, 204, 113, 0.5), 0 0 18px rgba(46, 204, 113, 0.18); }
-.mm-slot__icon { width: 26px; height: 26px; color: var(--color-text-secondary); }
-.mm-slot__icon svg { width: 100%; height: 100%; }
-.mm-slot--tank .mm-slot__icon    { color: var(--color-info); }
-.mm-slot--dps .mm-slot__icon     { color: var(--color-danger); }
-.mm-slot--support .mm-slot__icon { color: var(--color-success); }
+.mm-slots--full .mm-slot { box-shadow: 0 0 18px rgba(46, 204, 113, 0.18); }
+.mm-slot__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-secondary);
+}
+.mm-slot__icon svg { width: 19px; height: 19px; }
+.mm-slot--tank .mm-slot__icon    { background: rgba(52, 152, 219, 0.2);  color: var(--color-info); }
+.mm-slot--dps .mm-slot__icon     { background: rgba(232, 68, 68, 0.2);   color: var(--color-danger); }
+.mm-slot--support .mm-slot__icon { background: rgba(46, 204, 113, 0.2);  color: var(--color-success); }
+/* Ma case : pas de second cadre, juste le pseudo en orange avec « (toi) » */
+.mm-slot--me .mm-slot__name { color: var(--color-accent-light); font-weight: 700; }
+.mm-slot--me .mm-slot__name::after { content: " (toi)"; font-weight: 500; }
 .mm-slot__q { font-family: var(--font-title); font-size: 1.3rem; font-weight: 700; color: var(--color-text-muted); }
 .mm-slot__classe { font-family: var(--font-title); font-weight: 700; font-size: 0.95rem; }
 .mm-slot__name {
