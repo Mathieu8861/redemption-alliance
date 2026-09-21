@@ -106,6 +106,7 @@
                 case 'bareme': await tabBareme(content); break;
                 case 'winrate': await tabWinrate(content); break;
                 case 'periode-pvp': await tabPeriodePvp(content); break;
+                case 'classes-t5': await tabClassesT5(content); break;
                 case 'builds': await tabBuilds(content); break;
                 case 'jeu-config': await tabJeuConfig(content); break;
                 case 'jeu-lots': await tabJeuLots(content); break;
@@ -3060,6 +3061,139 @@
             window.REN.toast("Période enregistrée. Le classement se recalcule tout seul.", 'success');
             tabPeriodePvp(content);
         });
+    }
+
+    /* ============================================ */
+    /* ONGLET CLASSES T5 (referentiel matchmaking)  */
+    /* ============================================ */
+    var CLS_LABELS = { Forge: 'Forgelance' };
+    var CLS_ROLES = [['tank', 'Tank'], ['dps', 'DPS'], ['support', 'Support']];
+    var CLS_RANGS = [['obligatoire', 'Obligatoire'], ['S', 'S'], ['A', 'A'], ['B', 'B'], ['C', 'C']];
+
+    async function tabClassesT5(content) {
+        var esc = window.REN.escapeHtml;
+        var { data: rows, error } = await window.REN.supabase
+            .from('classes_ref').select('*').order('ordre', { ascending: true });
+        if (error) {
+            content.innerHTML = '<p class="text-muted">' + esc(error.message) + '</p>';
+            return;
+        }
+        var classes = rows || [];
+
+        var html = '<div class="admin-panel__title">Classes T5</div>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">'
+              + "Le rôle et le rang de chaque classe pour le matchmaking T5. L'ordre de haut en bas départage deux classes de même rang : attrape une ligne par sa poignée et glisse-la, ou utilise les flèches. Chaque modification est enregistrée aussitôt."
+              + '</p>';
+        html += '<div class="cls-list" id="cls-list">';
+        html += '<div class="cls-row cls-row--head"><span></span><span>#</span><span>Classe</span><span>Rôle</span><span>Rang</span><span>Note</span><span></span></div>';
+        classes.forEach(function (c) { html += clsRow(c); });
+        html += '</div>';
+        html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-md);">Obligatoire : la classe doit être dans l\'équipe si quelqu\'un peut la jouer. S est le rang le plus fort, C le plus faible.</p>';
+        content.innerHTML = html;
+
+        var list = document.getElementById('cls-list');
+
+        function clsRow(c) {
+            var name = CLS_LABELS[c.classe] || c.classe;
+            var h = '<div class="cls-row cls-row--' + esc(c.role) + '" draggable="true" data-classe="' + esc(c.classe) + '">';
+            h += '<span class="cls-handle" title="Glisser pour déplacer">&#8942;&#8942;</span>';
+            h += '<span class="cls-pos"></span>';
+            h += '<span class="cls-name">' + esc(name) + '</span>';
+            h += '<select class="form-select cls-field" data-field="role">';
+            CLS_ROLES.forEach(function (r) { h += '<option value="' + r[0] + '"' + (r[0] === c.role ? ' selected' : '') + '>' + r[1] + '</option>'; });
+            h += '</select>';
+            h += '<select class="form-select cls-field" data-field="rang">';
+            CLS_RANGS.forEach(function (r) { h += '<option value="' + r[0] + '"' + (r[0] === c.rang ? ' selected' : '') + '>' + r[1] + '</option>'; });
+            h += '</select>';
+            h += '<input type="text" class="form-input cls-field" data-field="notes" maxlength="80" placeholder="Note" value="' + esc(c.notes || '') + '">';
+            h += '<span class="cls-moves"><button type="button" class="cls-move" data-dir="-1" title="Monter">&#9650;</button><button type="button" class="cls-move" data-dir="1" title="Descendre">&#9660;</button></span>';
+            h += '</div>';
+            return h;
+        }
+
+        function rowsOf() { return Array.prototype.slice.call(list.querySelectorAll('.cls-row:not(.cls-row--head)')); }
+
+        function renumber() {
+            rowsOf().forEach(function (r, i) {
+                r.querySelector('.cls-pos').textContent = i + 1;
+                r.classList.toggle('cls-row--first', i === 0);
+                r.classList.toggle('cls-row--last', i === rowsOf().length - 1);
+            });
+        }
+
+        /* Enregistre l'ordre tel qu'il est a l'ecran, en un seul appel */
+        var saveTimer = null;
+        function saveOrder() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(async function () {
+                var ordre = rowsOf().map(function (r) { return r.dataset.classe; });
+                var { data, error } = await window.REN.supabase.rpc('classes_ref_reordonner', { p_classes: ordre });
+                if (error || !data || !data.ok) {
+                    window.REN.toast('Ordre non enregistré : ' + ((error && error.message) || (data && data.erreur) || '?'), 'error');
+                    return;
+                }
+                window.REN.toast('Ordre enregistré.', 'success');
+            }, 400);
+        }
+
+        /* Champs : sauvegarde immediate, ligne par ligne */
+        list.querySelectorAll('.cls-field').forEach(function (el) {
+            el.addEventListener('change', async function () {
+                var row = el.closest('.cls-row');
+                var payload = {};
+                payload[el.dataset.field] = el.dataset.field === 'notes' ? (el.value.trim() || null) : el.value;
+                var { error } = await window.REN.supabase.from('classes_ref').update(payload).eq('classe', row.dataset.classe);
+                if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+                if (el.dataset.field === 'role') {
+                    row.className = row.className.replace(/cls-row--(tank|dps|support)/, 'cls-row--' + el.value);
+                }
+                window.REN.toast((CLS_LABELS[row.dataset.classe] || row.dataset.classe) + ' enregistré.', 'success');
+            });
+        });
+
+        /* Fleches (mobile et clavier) */
+        list.querySelectorAll('.cls-move').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var row = btn.closest('.cls-row');
+                var dir = parseInt(btn.dataset.dir, 10);
+                var sib = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
+                if (!sib || sib.classList.contains('cls-row--head')) return;
+                if (dir < 0) list.insertBefore(row, sib); else list.insertBefore(sib, row);
+                renumber();
+                saveOrder();
+            });
+        });
+
+        /* Glisser-deposer natif : on deplace la ligne au passage de la souris,
+           l'ordre est enregistre au relachement. */
+        var dragged = null;
+        list.addEventListener('dragstart', function (e) {
+            var row = e.target.closest('.cls-row');
+            if (!row || row.classList.contains('cls-row--head')) { e.preventDefault(); return; }
+            dragged = row;
+            row.classList.add('cls-row--dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            try { e.dataTransfer.setData('text/plain', row.dataset.classe); } catch (err) { /* IE */ }
+        });
+        list.addEventListener('dragover', function (e) {
+            if (!dragged) return;
+            e.preventDefault();
+            var over = e.target.closest('.cls-row');
+            if (!over || over === dragged || over.classList.contains('cls-row--head')) return;
+            var rect = over.getBoundingClientRect();
+            var after = (e.clientY - rect.top) > rect.height / 2;
+            list.insertBefore(dragged, after ? over.nextSibling : over);
+        });
+        list.addEventListener('drop', function (e) { e.preventDefault(); });
+        list.addEventListener('dragend', function () {
+            if (!dragged) return;
+            dragged.classList.remove('cls-row--dragging');
+            dragged = null;
+            renumber();
+            saveOrder();
+        });
+
+        renumber();
     }
 
     /* ============================================ */

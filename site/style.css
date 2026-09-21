@@ -3289,6 +3289,104 @@ table {
     border-color: rgba(232, 68, 68, 0.3);
 }
 
+/* === CLASSES T5 : liste reordonnable (admin) === */
+.cls-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.cls-row {
+    display: grid;
+    grid-template-columns: 28px 32px 1.2fr 130px 140px 2fr 56px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-left-width: 4px;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.cls-row--tank    { border-left-color: var(--color-info); }
+.cls-row--dps     { border-left-color: var(--color-danger); }
+.cls-row--support { border-left-color: var(--color-success); }
+.cls-row--head {
+    background: transparent;
+    border-color: transparent;
+    padding-top: 0;
+    padding-bottom: 2px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+}
+.cls-row--dragging {
+    opacity: 0.45;
+    border-style: dashed;
+}
+.cls-handle {
+    cursor: grab;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    text-align: center;
+    user-select: none;
+    letter-spacing: -3px;
+}
+.cls-row:active .cls-handle { cursor: grabbing; }
+.cls-row:hover .cls-handle { color: var(--color-text-primary); }
+.cls-pos {
+    font-family: var(--font-title);
+    font-weight: 700;
+    color: var(--color-accent-light);
+    text-align: center;
+}
+.cls-name {
+    font-weight: 700;
+}
+.cls-row .form-select,
+.cls-row .form-input {
+    padding: 5px 8px;
+    font-size: 0.8125rem;
+    min-width: 0;
+}
+.cls-moves {
+    display: flex;
+    gap: 2px;
+    justify-content: flex-end;
+}
+.cls-move {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.55rem;
+    cursor: pointer;
+}
+.cls-move:hover { color: var(--color-text-primary); background: var(--color-bg-elevated); }
+.cls-row--first .cls-move[data-dir="-1"],
+.cls-row--last  .cls-move[data-dir="1"] { opacity: 0.25; pointer-events: none; }
+@media (max-width: 720px) {
+    .cls-row {
+        grid-template-columns: 24px 26px 1fr 56px;
+        grid-template-areas:
+            "handle pos name moves"
+            ". . role rang"
+            ". . notes notes";
+    }
+    .cls-row--head { display: none; }
+    .cls-handle { grid-area: handle; }
+    .cls-pos { grid-area: pos; }
+    .cls-name { grid-area: name; }
+    .cls-moves { grid-area: moves; }
+    .cls-row .form-select[data-field="role"] { grid-area: role; }
+    .cls-row .form-select[data-field="rang"] { grid-area: rang; }
+    .cls-row .form-input { grid-area: notes; }
+}
+
 /* === BAREME : GRILLE CHAUFFEE (modale Systeme de points) === */
 .bareme-legend {
     display: flex;
