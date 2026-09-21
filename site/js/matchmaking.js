@@ -153,7 +153,7 @@
         var couvertParObligatoire = { tank: 0, support: 0, dps: 0 };
         mandatory.forEach(function (c) {
             if (usedNow[c]) return;
-            missing.push({ type: 'classe', label: label(c) });
+            missing.push({ type: 'classe', label: label(c), role: refBy[c].role });
             couvertParObligatoire[refBy[c].role] += 1;
         });
         /* Un role deja reclame via une classe obligatoire n est pas redemande */
@@ -224,8 +224,9 @@
                       + '</div>';
             } else {
                 var need = needs[i - res.team.length];
-                html += '<div class="mm-slot mm-slot--empty">'
-                      + '<span class="mm-slot__icon">' + (need && need.type === 'role' ? ROLE_ICON[need.role] : '<span class="mm-slot__q">?</span>') + '</span>'
+                var needRole = need && need.role ? need.role : null;
+                html += '<div class="mm-slot mm-slot--empty' + (needRole ? ' mm-slot--' + needRole : '') + '">'
+                      + '<span class="mm-slot__icon">' + (needRole ? ROLE_ICON[needRole] : '<span class="mm-slot__q">?</span>') + '</span>'
                       + '<span class="mm-slot__classe">' + (need ? esc(need.label) : 'Libre') + '</span>'
                       + '<span class="mm-slot__name">en attente</span>'
                       + '</div>';
