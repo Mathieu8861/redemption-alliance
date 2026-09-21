@@ -297,24 +297,31 @@
 
             if (error) throw error;
 
-            var html = '<p class="text-muted mb-lg" style="font-size:0.8125rem;">Points gagnés (vert) / perdus (rouge) selon le nombre d\'alliés et d\'ennemis. Les multiplicateurs d\'alliance s\'appliquent en victoire.</p>';
+            var html = '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Chaque participant touche les points de la case correspondant au nombre d\'alliés et d\'ennemis du combat.</p>';
 
-            /* Tableau Attaque */
-            html += buildBaremeTable(bareme, 'attaque', 'Attaque');
+            /* Legende */
+            html += '<div class="bareme-legend">'
+                  + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--gain"></span>Points gagnés en victoire, plus la case est claire plus ça rapporte</span>'
+                  + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--perte">-1</span>Points perdus en défaite, seulement quand il y en a</span>'
+                  + '<span class="bareme-legend__item"><span class="bareme-legend__swatch bareme-legend__swatch--eq"></span>Combat équilibré (autant d\'alliés que d\'ennemis)</span>'
+                  + '</div>';
 
-            /* Tableau Défense */
-            html += buildBaremeTable(bareme, 'defense', 'Défense');
+            html += buildBaremeHeatmap(bareme, 'attaque', 'Attaque', ICON_SWORD);
+            html += buildBaremeHeatmap(bareme, 'defense', 'Défense', ICON_SHIELD);
 
-            /* Alliances + multiplicateurs */
-            var { data: alliances } = await window.REN.supabase.from('alliances').select('*').order('nom');
-            if (alliances && alliances.length) {
-                html += '<h3 style="font-family:var(--font-title);font-size:1rem;margin-top:var(--spacing-xl);margin-bottom:var(--spacing-md);">Multiplicateurs d\'alliance</h3>';
-                html += '<div class="ranking-list">';
-                alliances.forEach(function (a) {
-                    html += '<div class="ranking-item">';
-                    html += '<div class="ranking-item__left"><span class="ranking-item__name">' + a.nom + (a.tag ? ' [' + a.tag + ']' : '') + '</span></div>';
-                    html += '<span class="ranking-item__value text-accent">x' + a.multiplicateur + '</span>';
-                    html += '</div>';
+            /* Multiplicateurs d'alliance : on ne liste que ceux qui changent quelque chose */
+            var { data: alliances } = await window.REN.supabase.from('alliances').select('nom, tag, multiplicateur').order('nom');
+            var bonus = (alliances || []).filter(function (a) { return Number(a.multiplicateur) !== 1; });
+            html += '<div class="bareme-section__head" style="margin-top:var(--spacing-xl);">'
+                  + '<h3 class="bareme-section__title">Multiplicateurs d\'alliance</h3>'
+                  + '<span class="text-muted bareme-section__sub">S\'appliquent aux points gagnés en victoire</span>'
+                  + '</div>';
+            if (!bonus.length) {
+                html += '<p class="text-muted" style="font-size:0.8125rem;">Aucun multiplicateur actif pour le moment : toutes les alliances sont à x1.</p>';
+            } else {
+                html += '<div class="bareme-multis">';
+                bonus.forEach(function (a) {
+                    html += '<span class="bareme-multi"><span class="bareme-multi__nom">' + window.REN.escapeHtml(a.nom) + (a.tag ? ' [' + window.REN.escapeHtml(a.tag) + ']' : '') + '</span><span class="bareme-multi__val">x' + a.multiplicateur + '</span></span>';
                 });
                 html += '</div>';
             }
@@ -327,31 +334,48 @@
         }
     }
 
-    function buildBaremeTable(bareme, type, label) {
-        var filtered = (bareme || []).filter(function (b) { return b.type === type; });
+    var ICON_SWORD = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>';
+    var ICON_SHIELD = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
 
-        var html = '<h3 style="font-family:var(--font-title);font-size:1rem;margin-top:var(--spacing-lg);margin-bottom:var(--spacing-sm);">' + label + '</h3>';
-        html += '<div class="bareme-grid"><table class="table">';
-        html += '<thead><tr><th>Alliés \\ Ennemis</th>';
-        for (var e = 1; e <= 5; e++) html += '<th>' + e + ' enn.</th>';
-        html += '</tr></thead><tbody>';
+    /* Grille chauffee : le gain en gros, colore selon son intensite (relative au
+       maximum du bareme), la perte seulement quand elle existe, la diagonale
+       (combats equilibres) encadree. Remplace l'ancien tableau « +X / 0 ». */
+    function buildBaremeHeatmap(bareme, type, label, icon) {
+        var filtered = (bareme || []).filter(function (b) { return b.type === type; });
+        var max = 0;
+        filtered.forEach(function (b) { if (b.points_victoire > max) max = b.points_victoire; });
+        if (!max) max = 1;
+
+        var html = '<div class="bareme-section">';
+        html += '<div class="bareme-section__head">'
+              + '<h3 class="bareme-section__title">' + icon + label + '</h3>'
+              + '<span class="text-muted bareme-section__sub">Alliés en lignes, ennemis en colonnes</span>'
+              + '</div>';
+        html += '<div class="bareme-heat-wrap"><div class="bareme-heat">';
+
+        /* En-tete : coin + colonnes ennemis */
+        html += '<div class="bareme-heat__corner"><span>Alliés</span><span>Ennemis</span></div>';
+        for (var e = 1; e <= 5; e++) {
+            html += '<div class="bareme-heat__col">' + e + '<small>enn.</small></div>';
+        }
 
         for (var a = 1; a <= 5; a++) {
-            html += '<tr><th>' + a + ' allié' + (a > 1 ? 's' : '') + '</th>';
+            html += '<div class="bareme-heat__row">' + a + '<small>alli' + (a > 1 ? 'és' : 'é') + '</small></div>';
             for (var ee = 1; ee <= 5; ee++) {
                 var cell = filtered.find(function (b) { return b.nb_allies === a && b.nb_ennemis === ee; });
                 var pv = cell ? cell.points_victoire : 0;
                 var pd = cell ? cell.points_defaite : 0;
-                html += '<td>';
-                html += '<span class="text-success">' + (pv > 0 ? '+' : '') + pv + '</span>';
-                html += ' / ';
-                html += '<span class="text-danger">' + pd + '</span>';
-                html += '</td>';
+                var ratio = pv / max;
+                var cls = 'bareme-heat__cell' + (a === ee ? ' bareme-heat__cell--eq' : '') + (pv === 0 ? ' bareme-heat__cell--zero' : '');
+                html += '<div class="' + cls + '" style="--heat:' + ratio.toFixed(2) + ';" title="' + a + ' contre ' + ee + ' : +' + pv + ' en victoire' + (pd ? ', -' + pd + ' en défaite' : '') + '">'
+                      + '<span class="bareme-heat__gain">' + (pv > 0 ? '+' + pv : '0') + '</span>'
+                      + (pd ? '<span class="bareme-heat__perte">-' + pd + '</span>' : '')
+                      + '</div>';
             }
-            html += '</tr>';
         }
 
-        html += '</tbody></table></div>';
+        html += '</div></div></div>';
         return html;
     }
+    window.REN.buildBaremeHeatmap = buildBaremeHeatmap;
 })();

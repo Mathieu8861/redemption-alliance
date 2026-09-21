@@ -3289,6 +3289,208 @@ table {
     border-color: rgba(232, 68, 68, 0.3);
 }
 
+/* === BAREME : GRILLE CHAUFFEE (modale Systeme de points) === */
+.bareme-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-bottom: var(--spacing-lg);
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+}
+.bareme-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.bareme-legend__swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.bareme-legend__swatch--gain {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(46, 204, 113, 0.85));
+}
+.bareme-legend__swatch--perte {
+    width: auto;
+    height: auto;
+    padding: 0 5px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 16px;
+    color: #fff;
+    background: var(--color-danger);
+}
+.bareme-legend__swatch--eq {
+    background: transparent;
+    border: 2px solid var(--color-accent);
+}
+.bareme-section + .bareme-section {
+    margin-top: var(--spacing-xl);
+}
+.bareme-section__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-sm);
+}
+.bareme-section__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-title);
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+}
+.bareme-section__title svg {
+    color: var(--color-accent-light);
+}
+.bareme-section__sub {
+    font-size: 0.75rem;
+}
+.bareme-heat-wrap {
+    overflow-x: auto;
+}
+.bareme-heat {
+    display: grid;
+    grid-template-columns: 76px repeat(5, minmax(56px, 1fr));
+    grid-auto-rows: 52px;
+    gap: 4px;
+    min-width: 360px;
+}
+.bareme-heat__corner {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.56rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    color: var(--color-text-muted);
+    padding-left: 6px;
+}
+.bareme-heat__corner span:first-child::after {
+    content: ' \2193';
+}
+.bareme-heat__corner span:last-child::after {
+    content: ' \2192';
+}
+.bareme-heat__col,
+.bareme-heat__row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: var(--font-title);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-primary);
+    border-radius: 6px;
+}
+.bareme-heat__col small,
+.bareme-heat__row small {
+    font-family: var(--font-body);
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+}
+.bareme-heat__row {
+    justify-content: flex-start;
+    padding-left: 10px;
+}
+.bareme-heat__cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    /* --heat va de 0 (rien) a 1 (maximum du bareme) */
+    background: rgba(46, 204, 113, calc(0.10 + var(--heat, 0) * 0.65));
+    border: 1px solid rgba(46, 204, 113, calc(0.15 + var(--heat, 0) * 0.5));
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    cursor: default;
+}
+.bareme-heat__cell:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.bareme-heat__cell--zero {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border);
+}
+.bareme-heat__cell--eq {
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+.bareme-heat__gain {
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.bareme-heat__cell--zero .bareme-heat__gain {
+    color: var(--color-text-muted);
+    text-shadow: none;
+    font-weight: 600;
+}
+.bareme-heat__perte {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 15px;
+    color: #fff;
+    background: var(--color-danger);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.bareme-multis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.bareme-multi {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    font-size: 0.8rem;
+}
+.bareme-multi__val {
+    font-family: var(--font-title);
+    font-weight: 700;
+    color: var(--color-accent-light);
+}
+@media (max-width: 480px) {
+    .bareme-heat {
+        grid-template-columns: 52px repeat(5, minmax(44px, 1fr));
+        grid-auto-rows: 46px;
+        gap: 3px;
+    }
+    .bareme-heat__gain {
+        font-size: 1.05rem;
+    }
+    .bareme-heat__col small,
+    .bareme-heat__row small {
+        display: none;
+    }
+}
+
 /* === TOAST NOTIFICATIONS === */
 .toast-container {
     position: fixed;
