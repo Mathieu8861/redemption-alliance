@@ -8108,6 +8108,37 @@ table {
     color: var(--color-text-primary);
     white-space: nowrap;
 }
+/* Mode compact : sur les ecrans bas (portables 768 px), le menu doit tenir
+   sans defilement. Les grands ecrans gardent l aeration normale. */
+@media (min-width: 769px) and (max-height: 900px) {
+    .app-sidebar { padding-top: var(--spacing-sm); }
+    .app-sidebar__brand { padding: 4px var(--spacing-md) var(--spacing-sm); margin-bottom: 0; }
+    .app-sidebar__brand img { width: 36px; height: 36px; }
+    .app-sidebar__brand-name { font-size: 1.1rem; }
+    .app-sidebar__group { gap: 0; margin-bottom: 0.3rem; }
+    .app-sidebar__group-title { margin-top: 0; padding: 0.05rem var(--spacing-sm) 0.1rem; }
+    .app-sidebar__link { padding: 0.3rem var(--spacing-sm); font-size: 0.8rem; }
+    .app-sidebar__link svg { width: 15px; height: 15px; }
+    /* Compteur et credit sur une seule ligne */
+    .app-sidebar__meta { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding-top: 0.25rem; padding-bottom: 0.25rem; font-size: 0.62rem; line-height: 1.2; }
+    .app-sidebar__meta-count, .app-sidebar__meta-dev { margin: 0; white-space: nowrap; }
+    .app-sidebar__user { padding-top: 5px; padding-bottom: 5px; gap: 3px; }
+    .app-sidebar__profile { padding: 3px 8px; gap: 8px; }
+    .app-sidebar__avatar { width: 24px; height: 24px; font-size: 0.8rem; }
+    .app-sidebar__profile-label { font-size: 0.55rem; }
+    .app-sidebar__actions .app-sidebar__user-icon, .app-sidebar__logout { height: 26px; }
+}
+
+/* Le bloc de marque est le lien Accueil */
+.app-sidebar__brand--link {
+    text-decoration: none;
+    border-radius: 8px 8px 0 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+.app-sidebar__brand--link:hover { background: var(--color-bg-tertiary); }
+.app-sidebar__brand--link:hover .app-sidebar__brand-name { color: var(--color-accent-light); }
+.app-sidebar__brand--link.active .app-sidebar__brand-name { color: var(--color-accent-light); }
+.app-sidebar__brand--link.active img { filter: drop-shadow(0 0 6px rgba(224, 124, 10, 0.55)); }
 
 /* === USER BLOCK (actions user en bas de la sidebar) === */
 .app-sidebar__user {

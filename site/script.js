@@ -765,11 +765,6 @@
     /* Maj du menu = modifier SIDEBAR_GROUPS ci-dessous, rien d'autre. */
     const SIDEBAR_GROUPS = [
         {
-            items: [
-                { page: 'accueil', label: 'Accueil', href: 'index.html', icon: 'home' }
-            ]
-        },
-        {
             title: 'PvP',
             items: [
                 { page: 'attaque', label: 'Attaque', href: 'attaque.html', icon: 'sword', module: 'attaque' },
@@ -898,11 +893,12 @@
         const currentPage = getCurrentPage();
         let html = '';
 
-        /* Bloc brand : logo + nom alliance en haut de la sidebar (desktop only) */
-        html += '<div class="app-sidebar__brand">'
+        /* Bloc brand : le logo sert de lien Accueil (l entree « Accueil » du menu
+           faisait doublon juste en dessous et coutait une ligne de defilement). */
+        html += '<a href="index.html" class="app-sidebar__brand app-sidebar__brand--link' + (currentPage === 'accueil' ? ' active' : '') + '" data-page="accueil" title="Redemption, retour a l accueil">'
             + '<img src="assets/images/logo-redemption.png?v=20260921" alt="Logo Redemption">'
-            + '<span class="app-sidebar__brand-name notranslate">Redemption</span>'
-            + '</div>';
+            + '<span class="app-sidebar__brand-name">Accueil</span>'
+            + '</a>';
 
         /* Groupes de nav */
         SIDEBAR_GROUPS.forEach(function (group) {
