@@ -391,7 +391,12 @@
         var baremeH = bareme.length * baremeLineH + 26;
         var thH = 42;
         var footerH = 46;
-        var H = headerH + baremeH + thH + ladder.length * rowH + footerH;
+        /* Sans colonne de zone, le classement tient sur deux colonnes : image deux fois moins haute */
+        var deuxCol = !isPoints && !percoResa;
+        var parCol = deuxCol ? Math.ceil(ladder.length / 2) : ladder.length;
+        var colW = (W - 2 * pad - 24) / 2;      /* largeur utile d'une colonne */
+        var colX = [pad, pad + colW + 24];       /* abscisse de depart de chaque colonne */
+        var H = headerH + baremeH + thH + parCol * rowH + footerH;
 
         var canvas = document.createElement('canvas');
         var scale = 2; /* export net (retina) */
@@ -455,9 +460,17 @@
         ctx.fillStyle = '#232430';
         drawRoundRect(ctx, pad - 12, y, W - 2 * pad + 24, thH, 8);
         ctx.fill();
-        var cols = isPoints
-            ? [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'PALIER' }, { x: 655, t: 'DROITS' }, { x: 815, t: 'ZONE RÉSERVÉE' }]
-            : [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'DROITS' }].concat(percoResa ? [{ x: 705, t: 'ZONE RÉSERVÉE' }] : []);
+        var cols;
+        if (isPoints) {
+            cols = [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'PALIER' }, { x: 655, t: 'DROITS' }, { x: 815, t: 'ZONE RÉSERVÉE' }];
+        } else if (deuxCol) {
+            cols = [];
+            colX.forEach(function (x0) {
+                cols.push({ x: x0, t: '#' }, { x: x0 + 40, t: 'JOUEUR' }, { x: x0 + 300, t: 'PTS', right: true }, { x: x0 + 322, t: 'DROITS' });
+            });
+        } else {
+            cols = [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'DROITS' }, { x: 705, t: 'ZONE RÉSERVÉE' }];
+        }
         ctx.font = '700 11.5px Inter, sans-serif';
         ctx.fillStyle = '#8b8f98';
         cols.forEach(function (c) {
@@ -470,24 +483,31 @@
         /* Lignes du classement */
         var rankColors = { 1: '#f4c430', 2: '#c0c4cc', 3: '#cd8032' };
         ladder.forEach(function (p, i) {
-            var top = y + i * rowH;
+            var col = deuxCol ? Math.floor(i / parCol) : 0;
+            var r = deuxCol ? i % parCol : i;
+            var top = y + r * rowH;
             var cy = top + rowH / 2;
-            if (i % 2 === 0) {
+            var x0 = deuxCol ? colX[col] : pad;
+            var xNom = deuxCol ? x0 + 40 : pad + 50;
+            var xPts = deuxCol ? x0 + 300 : 470;
+            var xDroits = deuxCol ? x0 + 322 : 500;
+            if (r % 2 === 0) {
                 ctx.fillStyle = 'rgba(255,255,255,0.025)';
-                ctx.fillRect(pad - 12, top, W - 2 * pad + 24, rowH);
+                if (deuxCol) ctx.fillRect(x0 - 12, top, colW + 24, rowH);
+                else ctx.fillRect(pad - 12, top, W - 2 * pad + 24, rowH);
             }
             ctx.fillStyle = rankColors[p.rang] || '#6c7077';
             ctx.font = '700 14px Inter, sans-serif';
-            ctx.fillText(String(p.rang), pad, cy);
+            ctx.fillText(String(p.rang), x0, cy);
 
             ctx.fillStyle = '#e8eaed';
             ctx.font = '600 14px Inter, sans-serif';
-            ctx.fillText(truncateTxt(p.username, 26), pad + 50, cy);
+            ctx.fillText(truncateTxt(p.username, deuxCol ? 20 : 26), xNom, cy);
 
             ctx.fillStyle = '#f0a63c';
             ctx.font = '700 14px Inter, sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText(String(p.points), 470, cy);
+            ctx.fillText(String(p.points), xPts, cy);
             ctx.textAlign = 'left';
 
             if (isPoints) {
@@ -510,7 +530,7 @@
                 }
                 ctx.fillStyle = '#c6c9cf';
                 ctx.font = '400 13px Inter, sans-serif';
-                ctx.fillText(dtxt, 500, cy);
+                ctx.fillText(dtxt, xDroits, cy);
                 if (percoResa) {
                     var zr = (resaByUser[p.user_id] || []).join(' · ') || '—';
                     ctx.fillStyle = zr === '—' ? '#6c7077' : '#ffb238';
@@ -519,8 +539,14 @@
             }
         });
 
+        /* Separateur vertical entre les deux colonnes */
+        if (deuxCol && ladder.length > 1) {
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillRect(W / 2 - 0.5, y, 1, parCol * rowH);
+        }
+
         /* Pied de page */
-        var fy = y + ladder.length * rowH + footerH / 2;
+        var fy = y + parCol * rowH + footerH / 2;
         var mois = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
         var now = new Date();
         ctx.fillStyle = '#6c7077';
