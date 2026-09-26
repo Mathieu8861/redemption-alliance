@@ -1308,11 +1308,11 @@
         html += '<div class="perco-mode-switch">';
         html += '<button type="button" class="perco-mode-card' + (active === 'points' ? ' perco-mode-card--active' : '') + '" data-perco-mode="points">';
         html += '<strong>Paliers de points</strong>';
-        html += '<span>Simple : les points PvP de la quinzaine donnent droit à des percos. Pas de réservation de zones.</span>';
+        html += '<span>Simple : les points PvP de la période donnent droit à des percos. Pas de réservation de zones.</span>';
         html += '</button>';
         html += '<button type="button" class="perco-mode-card' + (active === 'rang' ? ' perco-mode-card--active' : '') + '" data-perco-mode="rang">';
-        html += '<strong>Classement + réservations</strong>';
-        html += '<span>Avancé : droits selon le rang au classement + attribution automatique des zones par préférences.</span>';
+        html += '<strong>Classement (ladder)</strong>';
+        html += '<span>Droits selon le rang au classement. Réservations de zones activables en option, plus bas.</span>';
         html += '</button>';
         html += '</div>';
         return html;
@@ -1328,7 +1328,7 @@
                 if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
                 window.REN.toast(mode === 'points'
                     ? 'Modèle « paliers de points » activé.'
-                    : 'Modèle « classement + réservations » activé.', 'success');
+                    : 'Modèle « classement » activé.', 'success');
                 tabBaremePerco(content);
             });
         });
@@ -1415,17 +1415,22 @@
             return;
         }
 
-        var [paliersRes, toursRes] = await Promise.all([
+        var [paliersRes, cfgRes, infosRes] = await Promise.all([
             window.REN.supabase.from('paliers_percos').select('*').order('rang_min'),
-            window.REN.supabase.from('site_config').select('valeur').eq('cle', 'perco_resa_tours').maybeSingle()
+            window.REN.supabase.from('site_config').select('cle, valeur').in('cle', ['perco_resa_tours', 'perco_reservations']),
+            window.REN.supabase.rpc('periode_pvp_infos')
         ]);
         var paliers = paliersRes.data || [];
-        var tours = toursRes.data ? (parseInt(toursRes.data.valeur, 10) || 1) : 1;
+        var cfg = {};
+        (cfgRes.data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
+        var tours = parseInt(cfg.perco_resa_tours, 10) || 1;
+        var resaActives = cfg.perco_reservations !== 'false'; /* cle absente = actives */
+        var infos = infosRes.data || {};
         var esc = window.REN.escapeHtml;
 
         var html = percoModeSelectorHtml('rang');
         html += '<div class="admin-panel__title">Droits Percos par rang</div>';
-        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Paliers selon la position au classement de la quinzaine écoulée. « Percos » = poses classiques, « Percos 150- » = poses en zones de niveau 150 maximum.</p>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Paliers selon la position au ladder : classement de la période écoulée, ou classement en cours quand il n\'y a pas de remise à zéro. « Percos » = poses classiques, « Percos 150- » = poses en zones de niveau 150 maximum.</p>';
 
         html += '<div class="table-wrapper"><table class="table">';
         html += '<thead><tr><th>Emoji</th><th>Rang min</th><th>Rang max</th><th>Percos</th><th>Percos 150-</th><th>Actions</th></tr></thead><tbody>';
@@ -1444,13 +1449,69 @@
 
         html += '<button class="btn btn--primary btn--small" id="btn-add-palier" style="margin-top:var(--spacing-md);">+ Ajouter un palier</button>';
 
-        html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Attribution des zones</div>';
-        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Réservations par joueur : <strong>' + tours + '</strong> tour(s) (site_config.perco_resa_tours). L\'attribution se calcule automatiquement au passage de quinzaine ; le recalcul écrase celle de la période courante avec les préférences actuelles.</p>';
-        html += '<button class="btn btn--secondary" id="btn-recalc-attribution">Recalculer l\'attribution de la période</button>';
-        html += '<span id="recalc-result" class="text-muted" style="margin-left:var(--spacing-md);font-size:0.8125rem;"></span>';
+        /* Periode du ladder : celle du classement PvP (onglet Periode classement) */
+        var dateLongue = function (iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
+        var periodeTxt;
+        if (!infos.fin) {
+            periodeTxt = 'Sans remise à zéro : le ladder suit le classement depuis le début, les droits bougent en direct.';
+        } else {
+            var veille = new Date(new Date(infos.fin).getTime() - 24 * 3600 * 1000).toISOString();
+            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateLongue(infos.debut) + ' au ' + dateLongue(veille) + ' inclus, remise à zéro le ' + dateLongue(infos.fin) + '. Les droits de la période se calculent sur le classement de la précédente.';
+        }
+        html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Période du ladder</div>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-sm);">Le ladder perco n\'a pas de durée propre : il suit la période du classement PvP (semaine, quinzaine, mois, sans remise à zéro ou nombre de jours au choix).</p>';
+        html += '<div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--spacing-md);margin-bottom:var(--spacing-sm);font-size:0.875rem;">' + esc(periodeTxt) + '</div>';
+        html += '<button class="btn btn--secondary btn--small" id="btn-go-periode">Modifier la période (onglet Période classement)</button>';
+
+        /* Reservations de zones : interrupteur (site_config.perco_reservations) */
+        html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Réservations de zones</div>';
+        html += '<div style="display:flex;align-items:center;gap:var(--spacing-md);margin-bottom:var(--spacing-sm);">';
+        html += '<label class="toggle-switch"><input type="checkbox" id="toggle-perco-resa"' + (resaActives ? ' checked' : '') + '><span class="toggle-switch__slider"></span></label>';
+        html += '<strong>' + (resaActives ? 'Activées' : 'Désactivées') + '</strong>';
+        html += '</div>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Activées : les membres classent leurs zones préférées et, à chaque période, chacun reçoit dans l\'ordre du classement sa zone la mieux placée encore libre. Désactivées : le ladder seul décide du nombre de percos, aucune zone n\'est réservée, l\'onglet « Mes préférences » et la colonne « Zone réservée » disparaissent côté membres. Les préférences déjà saisies sont conservées.</p>';
+
+        if (resaActives) {
+            html += '<div class="admin-panel__title" style="margin-top:var(--spacing-xl);">Attribution des zones</div>';
+            html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Réservations par joueur : <strong>' + tours + '</strong> tour(s) (site_config.perco_resa_tours). L\'attribution se calcule automatiquement au changement de période ; le recalcul écrase celle de la période courante avec les préférences actuelles.</p>';
+            html += '<button class="btn btn--secondary" id="btn-recalc-attribution">Recalculer l\'attribution de la période</button>';
+            html += '<span id="recalc-result" class="text-muted" style="margin-left:var(--spacing-md);font-size:0.8125rem;"></span>';
+        }
 
         content.innerHTML = html;
         bindPercoModeSelector(content);
+
+        var goPeriode = document.getElementById('btn-go-periode');
+        if (goPeriode) goPeriode.addEventListener('click', function () {
+            var b = document.querySelector('.admin-sidebar__btn[data-tab="periode-pvp"]');
+            if (b) b.click(); else loadTab('periode-pvp');
+        });
+
+        var toggleResa = document.getElementById('toggle-perco-resa');
+        if (toggleResa) toggleResa.addEventListener('change', async function () {
+            var on = toggleResa.checked;
+            if (on && !confirm('Activer les réservations de zones ? L\'attribution de la période en cours sera calculée tout de suite avec les préférences actuelles des membres.')) {
+                toggleResa.checked = false;
+                return;
+            }
+            toggleResa.disabled = true;
+            var { error } = await window.REN.supabase.from('site_config')
+                .upsert({ cle: 'perco_reservations', valeur: on ? 'true' : 'false' }, { onConflict: 'cle' });
+            if (error) {
+                toggleResa.disabled = false;
+                toggleResa.checked = !on;
+                window.REN.toast('Erreur : ' + error.message, 'error');
+                return;
+            }
+            if (on) {
+                var calc = await window.REN.supabase.rpc('attribuer_percos_periode', { p_force: true });
+                if (calc.error) window.REN.toast('Réservations activées, mais recalcul en erreur : ' + calc.error.message, 'error');
+                else window.REN.toast('Réservations activées : ' + ((calc.data && calc.data.nouvelles) || 0) + ' zone(s) attribuée(s).', 'success');
+            } else {
+                window.REN.toast('Réservations désactivées : le ladder seul donne les droits.', 'success');
+            }
+            tabBaremePerco(content);
+        });
 
         content.querySelectorAll('[data-action="save-palier"]').forEach(function (btn) {
             btn.addEventListener('click', async function () {
@@ -3026,7 +3087,7 @@
         html += '</div>';
 
         html += '<button class="btn btn--primary" id="pvp-save">Enregistrer</button>';
-        html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-lg);">' + "Le cron du lundi qui attribue les zones de percepteurs lit cette même période, mais uniquement en mode « classement + réservations » (onglet Barème Perco). En mode « paliers de points », il ne fait rien." + '</p>';
+        html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-lg);">' + "Le ladder des droits perco (onglet Barème Perco) suit cette même période. Le cron du lundi qui attribue les zones ne tourne qu'en mode « classement » avec les réservations de zones activées." + '</p>';
 
         content.innerHTML = html;
 

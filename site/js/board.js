@@ -20,13 +20,15 @@
     var zoneReserveeMap = {};   /* user_id -> zone_reservee (saisie libre au profil, modele points) */
     var pointsQuinzaines = {};  /* user_id -> {passee, courante} pour l'eligibilite resa */
     var myList = [];            /* liste complete des zones dans MON ordre (drag & drop) */
+    var percoResa = true;       /* reservations de zones actives (site_config.perco_reservations), mode rang */
+    var periodeInfos = null;    /* periode_pvp_infos() : mode, debut, fin, libelle */
 
     document.addEventListener('ren:ready', init);
 
     async function init() {
         if (!window.REN.supabase || !window.REN.currentProfile) return;
 
-        await loadPercoMode();
+        await Promise.all([loadPercoMode(), loadPeriodeInfos()]);
         bindExportImage();
 
         /* Mode simple : paliers par points, sans reservations de zones */
@@ -48,6 +50,23 @@
             return;
         }
 
+        /* Reservations de zones coupees (Admin > Bareme Perco) : le ladder seul,
+           sans onglet Mes preferences ni colonne Zone reservee */
+        if (!percoResa) {
+            var tabsRang = document.getElementById('board-tabs');
+            if (tabsRang) tabsRang.style.display = 'none';
+            var tabPrefsRang = document.getElementById('board-tab-preferences');
+            if (tabPrefsRang) tabPrefsRang.hidden = true;
+            reservations = [];
+            await Promise.all([loadPaliers(), loadLadder(), loadZonesBda()]);
+            renderPeriode();
+            renderBareme();
+            renderTable();
+            renderGuideRang();
+            setupBdaModal();
+            return;
+        }
+
         /* Secours : si l'attribution de la période n'existe pas encore, la calculer */
         try { await window.REN.supabase.rpc('attribuer_percos_periode'); } catch (e) { /* silencieux */ }
 
@@ -62,6 +81,7 @@
         renderBareme();
         renderTable();
         renderPrefs();
+        renderGuideRang();
         setupBdaModal();
         setupTabs();
     }
@@ -86,9 +106,21 @@
     async function loadPercoMode() {
         try {
             var { data } = await window.REN.supabase
-                .from('site_config').select('valeur').eq('cle', 'perco_mode').maybeSingle();
-            percoMode = data && data.valeur === 'rang' ? 'rang' : 'points';
-        } catch (e) { percoMode = 'points'; }
+                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations']);
+            var cfg = {};
+            (data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
+            percoMode = cfg.perco_mode === 'rang' ? 'rang' : 'points';
+            /* cle absente = reservations actives (comportement d'avant la migration 053) */
+            percoResa = cfg.perco_reservations !== 'false';
+        } catch (e) { percoMode = 'points'; percoResa = true; }
+    }
+
+    /* Periode du classement PvP, reglee dans Admin > Periode classement */
+    async function loadPeriodeInfos() {
+        try {
+            var { data } = await window.REN.supabase.rpc('periode_pvp_infos');
+            periodeInfos = data || null;
+        } catch (e) { periodeInfos = null; }
     }
 
     async function loadPointsConfig() {
@@ -158,13 +190,11 @@
     function renderPeriodePoints() {
         var el = document.getElementById('board-period');
         if (!el) return;
-        var debut = debutPeriodePvp();
-        var fin = addDays(debut, 13);
-        var txt = 'Droits du ' + formatDate(debut) + ' au ' + formatDate(fin);
-        txt += ladderSource === 'courante'
-            ? ' — période de lancement : points de la quinzaine en cours'
-            : ' — selon les points de la quinzaine précédente';
-        el.textContent = txt;
+        el.textContent = periodeTexte(
+            ladderSource === 'courante'
+                ? 'période de lancement, droits selon les points de la période en cours'
+                : 'droits selon les points de la période précédente',
+            'Sans remise à zéro : les droits suivent tes points depuis le début du classement, mis à jour en direct.');
     }
 
     function formatNumber(n) {
@@ -427,7 +457,7 @@
         ctx.fill();
         var cols = isPoints
             ? [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'PALIER' }, { x: 655, t: 'DROITS' }, { x: 815, t: 'ZONE RÉSERVÉE' }]
-            : [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'DROITS' }, { x: 705, t: 'ZONE RÉSERVÉE' }];
+            : [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'DROITS' }].concat(percoResa ? [{ x: 705, t: 'ZONE RÉSERVÉE' }] : []);
         ctx.font = '700 11.5px Inter, sans-serif';
         ctx.fillStyle = '#8b8f98';
         cols.forEach(function (c) {
@@ -481,9 +511,11 @@
                 ctx.fillStyle = '#c6c9cf';
                 ctx.font = '400 13px Inter, sans-serif';
                 ctx.fillText(dtxt, 500, cy);
-                var zr = (resaByUser[p.user_id] || []).join(' · ') || '—';
-                ctx.fillStyle = zr === '—' ? '#6c7077' : '#ffb238';
-                ctx.fillText(truncateTxt(zr, 30), 705, cy);
+                if (percoResa) {
+                    var zr = (resaByUser[p.user_id] || []).join(' · ') || '—';
+                    ctx.fillStyle = zr === '—' ? '#6c7077' : '#ffb238';
+                    ctx.fillText(truncateTxt(zr, 30), 705, cy);
+                }
             }
         });
 
@@ -511,20 +543,15 @@
         }, 'image/png');
     }
 
-    /* === QUINZAINE (miroir de debut_periode_pvp() en SQL) === */
-    function debutPeriodePvp() {
-        var anchor = new Date(2026, 6, 27);
-        anchor.setHours(0, 0, 0, 0);
-        var days = Math.floor((Date.now() - anchor.getTime()) / 86400000);
-        var start = new Date(anchor.getTime());
-        start.setDate(anchor.getDate() + Math.floor(days / 14) * 14);
-        return start;
-    }
-
-    function addDays(d, n) {
-        var r = new Date(d.getTime());
-        r.setDate(r.getDate() + n);
-        return r;
+    /* === PERIODE (periode_pvp_infos() en SQL, reglee par les admins) === */
+    /* Sans remise a zero (pas de fin), les droits suivent le classement en
+       direct ; sinon ils valent pour la periode en cours. */
+    function periodeTexte(phrasePeriodique, phraseIllimite) {
+        if (!periodeInfos) return 'Chargement de la période...';
+        if (!periodeInfos.fin) return phraseIllimite;
+        var debut = new Date(periodeInfos.debut);
+        var veille = new Date(new Date(periodeInfos.fin).getTime() - 24 * 3600 * 1000);
+        return (periodeInfos.libelle || 'Période') + ' du ' + formatDate(debut) + ' au ' + formatDate(veille) + ' : ' + phrasePeriodique + '.';
     }
 
     function formatDate(date) {
@@ -648,13 +675,28 @@
     function renderPeriode() {
         var el = document.getElementById('board-period');
         if (!el) return;
-        var debut = debutPeriodePvp();
-        var fin = addDays(debut, 13);
-        var txt = 'Droits du ' + formatDate(debut) + ' au ' + formatDate(fin);
-        txt += ladderSource === 'courante'
-            ? ' — période de lancement : classement en cours'
-            : ' — attribution calculée sur le classement de la quinzaine précédente';
-        el.textContent = txt;
+        var quoi = percoResa ? 'droits et zones' : 'droits';
+        el.textContent = periodeTexte(
+            ladderSource === 'courante'
+                ? 'période de lancement, ' + quoi + ' selon le classement en cours'
+                : quoi + ' selon le classement de la période précédente',
+            'Sans remise à zéro : les ' + quoi + ' suivent le classement depuis le début, mis à jour en direct.');
+    }
+
+    /* Guide d'utilisation : le texte de board.html decrit le modele par
+       points, on le remplace en mode classement */
+    function renderGuideRang() {
+        var ol = document.querySelector('#guide-modal .guide-steps');
+        if (!ol) return;
+        var html = '<li><strong>Le ladder.</strong> Ta place au classement PvP détermine ton palier, et chaque palier donne un nombre de percos à poser.</li>';
+        html += '<li><strong>La période.</strong> ' + (periodeInfos && periodeInfos.fin
+            ? 'Le classement repart de zéro à chaque ' + String(periodeInfos.libelle || 'période').toLowerCase() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente.'
+            : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.') + '</li>';
+        if (percoResa) {
+            html += '<li><strong>Les zones.</strong> Dans « Mes préférences », classe les zones dans ton ordre. À chaque période, dans l\'ordre du classement, chacun reçoit sa zone la mieux placée encore libre : elle apparaît dans la colonne « Zone réservée », personne d\'autre ne pose dessus.</li>';
+        }
+        html += '<li><strong>Zones BDA.</strong> Le bouton en haut liste les zones réservées à la Banque d\'Alliance : leurs récoltes financent les récompenses, on ne pose pas dessus.</li>';
+        ol.innerHTML = html;
     }
 
     /* === BARÈME (paliers par rang) === */
@@ -713,7 +755,7 @@
         html += '<th class="board-table__th board-table__th--name">Joueur</th>';
         html += '<th class="board-table__th board-table__th--points">Points</th>';
         html += '<th class="board-table__th board-table__th--tier">Droits percos</th>';
-        html += '<th class="board-table__th board-table__th--zone">Zone réservée</th>';
+        if (percoResa) html += '<th class="board-table__th board-table__th--zone">Zone réservée</th>';
         html += '</tr></thead><tbody>';
 
         ladder.forEach(function (p) {
@@ -740,7 +782,7 @@
             html += '<td class="board-table__td board-table__td--name notranslate">' + esc(p.username) + '</td>';
             html += '<td class="board-table__td board-table__td--points">' + p.points + '</td>';
             html += '<td class="board-table__td board-table__td--tier">' + droits + '</td>';
-            html += '<td class="board-table__td board-table__td--zone">' + zoneTxt + '</td>';
+            if (percoResa) html += '<td class="board-table__td board-table__td--zone">' + zoneTxt + '</td>';
             html += '</tr>';
         });
 

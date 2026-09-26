@@ -674,13 +674,15 @@
                     .eq('id', userId),
                 window.REN.supabase
                     .from('site_config')
-                    .select('valeur')
-                    .eq('cle', 'perco_mode')
-                    .maybeSingle()
+                    .select('cle, valeur')
+                    .in('cle', ['perco_mode', 'perco_reservations'])
             ]);
 
             var recompensesConfig = results[0].data || [];
-            var percoMode = results[5] && results[5].data && results[5].data.valeur === 'rang' ? 'rang' : 'points';
+            var siteCfg = {};
+            ((results[5] && results[5].data) || []).forEach(function (r) { siteCfg[r.cle] = r.valeur; });
+            var percoMode = siteCfg.perco_mode === 'rang' ? 'rang' : 'points';
+            var percoResa = siteCfg.perco_reservations !== 'false'; /* cle absente = reservations actives */
 
             /* Semaine passee */
             var pvpLast = (results[1].data && results[1].data[0]) ? results[1].data[0] : null;
@@ -737,9 +739,11 @@
             /* Zone réservée : selon le modèle actif (Admin > Barème Perco) */
             html += '<div class="profil-droits__separator"></div>';
             if (percoMode === 'rang') {
-                /* Modèle avancé : zones attribuées automatiquement via les préférences (board) */
+                /* Modèle classement : droits par rang (board) ; zones attribuées automatiquement seulement si les réservations sont actives */
                 html += '<div class="profil-droits__zone">';
-                html += '<span class="text-muted" style="font-size:0.8125rem;">Les zones réservées sont attribuées automatiquement à chaque quinzaine selon le classement. <a href="board.html" style="color:var(--color-accent-light);">Définis tes préférences de zones ici</a>.</span>';
+                html += percoResa
+                    ? '<span class="text-muted" style="font-size:0.8125rem;">Les zones réservées sont attribuées automatiquement à chaque période selon le classement. <a href="board.html" style="color:var(--color-accent-light);">Définis tes préférences de zones ici</a>.</span>'
+                    : '<span class="text-muted" style="font-size:0.8125rem;">Tes droits percos suivent ta place au classement, sans réservation de zone pour le moment. <a href="board.html" style="color:var(--color-accent-light);">Voir le ladder et les paliers</a>.</span>';
                 html += '</div>';
             } else if (canResa) {
                 /* Modèle simple : le palier de points atteint inclut un droit de résa */
