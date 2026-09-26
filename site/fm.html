@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redemption - Forgemagie</title>
-    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261008">
+    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261009">
     <meta name="description" content="Site de l'alliance Redemption [RDM] : combats PvP, percepteurs, recyclages, forgemagie. L'heure de la rédemption.">
     <meta name="theme-color" content="#e07c0a">
     <meta property="og:type" content="website">
@@ -20,14 +20,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261008">
+    <link rel="stylesheet" href="style.css?v=20261009">
 </head>
 <body>
 
     <header class="header">
         <div class="header__inner">
             <div class="header__brand">
-                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261008" alt="Logo Redemption">
+                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261009" alt="Logo Redemption">
             </div>
 
             <div class="header__user">
@@ -75,6 +75,7 @@
                         <li><strong>Screen de départ</strong> — ouvre ton atelier (Costumager) ou ton inventaire filtré sur les runes, prends un screen (<kbd>Win</kbd>+<kbd>Maj</kbd>+<kbd>S</kbd>) et colle-le ici (<kbd>Ctrl</kbd>+<kbd>V</kbd>). L'IA compte tes runes automatiquement — vérifie la grille et corrige si besoin.</li>
                         <li><strong>Runes invisibles</strong> — si tu comptes passer une rune qui n'apparaît pas sur le screen (exo Do Per So, Ga Pa…), ajoute-la avec « + Ajouter une rune » et ta quantité possédée.</li>
                         <li><strong>Pendant la session</strong> — chaque achat HDV : colle la ligne du chat. Chaque concassage : déclare-le. Tout est sauvegardé automatiquement, tu peux fermer le site et revenir plus tard.</li>
+                        <li><strong>Tentatives</strong> : à chaque essai pour passer un jet sur un gros pui (PA, PM, PO), clique sur le + du compteur 🎯 dans le bandeau de session. Le nombre est gardé avec la session et visible dans l'historique.</li>
                         <li><strong>Plusieurs items en même temps</strong> — « ⏸ Changer d'item » met la session de côté ; reprends-la quand tu veux depuis « Mes sessions ».</li>
                         <li><strong>Clôture</strong> — colle le screen de fin : le site calcule les runes consommées et le coût total en kamas. C'est le prix réel de ton FM 💸</li>
                     </ol>
@@ -135,12 +136,18 @@
                             <span class="text-muted" style="font-size:0.8rem;" id="fm-current-date"></span>
                         </span>
                     </div>
-                    <div style="display:flex;gap:var(--spacing-sm);">
+                    <div style="display:flex;gap:var(--spacing-sm);align-items:center;flex-wrap:wrap;">
+                        <div class="fm-tenta" id="fm-tenta" title="Une tentative = un essai pour passer un jet de l'item sur un gros pui (PA, PM, PO). Compte-les ici, c'est sauvegardé avec la session.">
+                            <span class="fm-tenta__label">🎯 Tentatives</span>
+                            <button type="button" class="fm-tenta__btn" id="fm-tenta-moins" aria-label="Retirer une tentative">&minus;</button>
+                            <span class="fm-tenta__count" id="fm-tenta-count">0</span>
+                            <button type="button" class="fm-tenta__btn fm-tenta__btn--plus" id="fm-tenta-plus" aria-label="Ajouter une tentative">+</button>
+                        </div>
                         <button type="button" class="btn btn--secondary btn--small" id="fm-switch-session" title="Mettre cette session de côté et travailler un autre item">⏸ Changer d'item</button>
                         <button type="button" class="btn btn--danger btn--small" id="fm-abandon-session" title="Abandonner la session sans la comptabiliser">Abandonner ✕</button>
                     </div>
                     <div class="text-muted" style="flex-basis:100%;font-size:0.72rem;margin-top:2px;padding-left:28px;">
-                        💾 Sauvegarde automatique — stock, achats et concassages sont conservés. Tu peux quitter, changer d'item ou reprendre n'importe quelle session depuis « Mes sessions » : colle le screen de fin seulement au moment de clôturer.
+                        💾 Sauvegarde automatique : stock, achats, concassages et tentatives sont conservés. Tu peux quitter, changer d'item ou reprendre n'importe quelle session depuis « Mes sessions » : colle le screen de fin seulement au moment de clôturer.
                     </div>
                 </div>
 
@@ -289,6 +296,10 @@
                         <span class="recyc-kpi__label">Pui de l'item</span>
                         <span class="recyc-kpi__value" id="fm-summary-pui">—</span>
                     </div>
+                    <div class="recyc-kpi" id="fm-summary-tenta-wrap" hidden>
+                        <span class="recyc-kpi__label">Tentatives sur gros pui</span>
+                        <span class="recyc-kpi__value" id="fm-summary-tenta">0</span>
+                    </div>
                 </div>
                 <div class="recyc-table-wrap" id="fm-summary-detail"></div>
                 <div class="recyc-form__actions">
@@ -417,7 +428,7 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20261008"></script>
-    <script src="js/fm.js?v=20261008"></script>
+    <script src="script.js?v=20261009"></script>
+    <script src="js/fm.js?v=20261009"></script>
 </body>
 </html>

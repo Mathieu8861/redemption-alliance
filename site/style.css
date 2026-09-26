@@ -9918,3 +9918,50 @@ body.app-has-sidebar {
     background: var(--color-border);
 }
 .auth-sep span { padding: 0 12px; }
+
+/* === FM : compteur de tentatives (bandeau de session) === */
+.fm-tenta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 4px 6px 4px 12px;
+    background: rgba(243, 156, 18, 0.08);
+    border: 1px solid rgba(243, 156, 18, 0.35);
+    border-radius: 999px;
+    cursor: help;
+}
+.fm-tenta__label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin-right: 4px;
+    white-space: nowrap;
+}
+.fm-tenta__btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast), filter var(--transition-fast);
+}
+.fm-tenta__btn:hover { border-color: var(--color-accent); color: var(--color-accent-light); }
+.fm-tenta__btn:disabled { opacity: 0.35; cursor: default; }
+.fm-tenta__btn:disabled:hover { border-color: var(--color-border); color: var(--color-text-primary); }
+.fm-tenta__btn--plus { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+.fm-tenta__btn--plus:hover { color: #fff; filter: brightness(1.12); }
+.fm-tenta__count {
+    min-width: 30px;
+    text-align: center;
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--color-warning);
+}

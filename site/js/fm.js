@@ -716,6 +716,7 @@
                 }
             }
             document.getElementById('fm-current-date').textContent = dateTxt;
+            renderTentatives();
             renderStock();
             renderAchats();
             renderConcassages();
@@ -798,6 +799,48 @@
             });
         tbody.innerHTML = html;
     }
+
+    /* === TENTATIVES (essais pour passer un jet sur un gros pui PA / PM / PO) === */
+    function renderTentatives() {
+        var count = document.getElementById('fm-tenta-count');
+        var moins = document.getElementById('fm-tenta-moins');
+        if (!count) return;
+        var n = currentSession ? (currentSession.tentatives || 0) : 0;
+        count.textContent = n;
+        if (moins) moins.disabled = n <= 0;
+    }
+
+    var tentaEnCours = false;
+    async function changerTentatives(delta) {
+        if (!currentSession || tentaEnCours) return;
+        var avant = currentSession.tentatives || 0;
+        var apres = Math.max(0, avant + delta);
+        if (apres === avant) return;
+        tentaEnCours = true;
+        currentSession.tentatives = apres;
+        renderTentatives();
+        try {
+            var { error } = await window.REN.supabase
+                .from('fm_sessions')
+                .update({ tentatives: apres, last_active_at: new Date().toISOString() })
+                .eq('id', currentSession.id);
+            if (error) throw error;
+            invalidateSessionLists();
+        } catch (err) {
+            console.error('[REN-FM] Erreur tentatives:', err);
+            currentSession.tentatives = avant;
+            renderTentatives();
+            window.REN.toast('Tentative non enregistrée : ' + err.message, 'error');
+        } finally {
+            tentaEnCours = false;
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest) return;
+        if (e.target.closest('#fm-tenta-plus')) changerTentatives(1);
+        else if (e.target.closest('#fm-tenta-moins')) changerTentatives(-1);
+    });
 
     /* === ABANDON === */
     document.addEventListener('click', function (e) {
@@ -1559,6 +1602,14 @@
         var totalAchats = achats.reduce(function (acc, a) { return acc + (a.prix_total || 0); }, 0);
         document.getElementById('fm-summary-achats').textContent = fmt(totalAchats) + ' K';
 
+        /* Tentatives sur gros pui, si le joueur en a compté */
+        var tentaWrap = document.getElementById('fm-summary-tenta-wrap');
+        if (tentaWrap) {
+            var nTenta = currentSession ? (currentSession.tentatives || 0) : 0;
+            document.getElementById('fm-summary-tenta').textContent = fmt(nTenta);
+            if (nTenta > 0) tentaWrap.removeAttribute('hidden'); else tentaWrap.setAttribute('hidden', '');
+        }
+
         /* Évolution du pui de l'item (si mesuré au départ et/ou à la fin) */
         var puiWrap = document.getElementById('fm-summary-pui-wrap');
         var depart = currentSession ? currentSession.item_pui_depart : null;
@@ -1710,11 +1761,12 @@
             var puiVal = s.item_pui_final !== null && s.item_pui_final !== undefined ? s.item_pui_final : s.item_pui_depart;
             var puiPill = (puiVal !== null && puiVal !== undefined)
                 ? '<span class="recyc-pill" title="Poids de l\'item">⚖ ' + fmt(puiVal) + ' pui</span>' : '';
+            var tentaPill = (s.tentatives || 0) > 0 ? '<span class="recyc-pill" title="Tentatives sur un gros pui">🎯 ' + fmt(s.tentatives) + '</span>' : '';
             var statsHtml = isOngoing
-                ? '<span class="recyc-pill recyc-pill--green">▶ Reprendre</span>' + puiPill
+                ? '<span class="recyc-pill recyc-pill--green">▶ Reprendre</span>' + puiPill + tentaPill
                 : '<span class="recyc-pill">' + fmt(s.nb_runes_consommees || 0) + ' runes</span>'
                     + '<span class="recyc-pill recyc-pill--gold">' + fmt(s.cout_total_kamas || 0) + ' K</span>'
-                    + puiPill;
+                    + puiPill + tentaPill;
 
             html += '<div class="fm-session-card' + (isOngoing ? ' fm-session-card--ongoing' : '') + '" data-id="' + s.id + '" data-statut="' + s.statut + '">'
                 + badge
@@ -1862,6 +1914,7 @@
             + '<div class="recyc-kpi"><span class="recyc-kpi__label">Coût total</span><span class="recyc-kpi__value recyc-kpi__value--gold">' + fmt(s.cout_total_kamas || 0) + ' K</span></div>'
             + '<div class="recyc-kpi"><span class="recyc-kpi__label">Dont achats en session</span><span class="recyc-kpi__value">' + fmt(totalAchats) + ' K</span></div>'
             + puiKpi
+            + ((s.tentatives || 0) > 0 ? '<div class="recyc-kpi"><span class="recyc-kpi__label">Tentatives sur gros pui</span><span class="recyc-kpi__value">' + fmt(s.tentatives) + '</span></div>' : '')
             + '</div>';
 
         /* Tableau détail triable */
@@ -2008,11 +2061,12 @@
             var puiVal = s.item_pui_final !== null && s.item_pui_final !== undefined ? s.item_pui_final : s.item_pui_depart;
             var puiPill = (puiVal !== null && puiVal !== undefined)
                 ? '<span class="recyc-pill" title="Poids de l\'item">⚖ ' + fmt(puiVal) + ' pui</span>' : '';
+            var tentaPill = (s.tentatives || 0) > 0 ? '<span class="recyc-pill" title="Tentatives sur un gros pui">🎯 ' + fmt(s.tentatives) + '</span>' : '';
             var statsHtml = isOngoing
-                ? (isMine ? '<span class="recyc-pill recyc-pill--green">▶ Reprendre</span>' : '<span class="recyc-pill">⚒️ en plein FM…</span>') + puiPill
+                ? (isMine ? '<span class="recyc-pill recyc-pill--green">▶ Reprendre</span>' : '<span class="recyc-pill">⚒️ en plein FM…</span>') + puiPill + tentaPill
                 : '<span class="recyc-pill">' + fmt(s.nb_runes_consommees || 0) + ' runes</span>'
                     + '<span class="recyc-pill recyc-pill--gold">' + fmt(s.cout_total_kamas || 0) + ' K</span>'
-                    + puiPill;
+                    + puiPill + tentaPill;
 
             var clickable = !isOngoing || isMine;
             html += '<div class="fm-session-card' + (isOngoing ? ' fm-session-card--ongoing' : '') + '"'
