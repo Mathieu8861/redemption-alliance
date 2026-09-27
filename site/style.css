@@ -10019,6 +10019,67 @@ body.app-has-sidebar {
 .fm-grid__row--doute .fm-grid__qty { border-color: var(--color-danger); }
 .fm-grid__row--doute .fm-grid__qty::placeholder { color: var(--color-danger); opacity: 0.9; font-weight: 600; }
 
+/* Grille de depart par famille : une ligne = basique | Pa | Ra, comme la
+   fenetre Costumager, dans l'ordre de lecture du screen (retour Mathieu 27/09) */
+.fm-grid--familles { display: block; }
+.fm-grid--familles .fm-grid__row { grid-template-columns: minmax(0, 1fr) 112px 30px; }
+.fm-grid--familles .fm-grid__qty::placeholder { font-size: 0.78rem; letter-spacing: -0.01em; }
+.fm-grid__fam {
+    display: grid;
+    grid-template-columns: 96px repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-xs) var(--spacing-md);
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.fm-grid__fam:last-child { border-bottom: 0; }
+.fm-grid__fam--head {
+    padding-bottom: 2px;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
+.fm-grid__fam--head span { padding-left: 6px; }
+.fm-grid__fam-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fm-grid__fam--ta .fm-grid__fam-label { font-weight: 400; }
+.fm-grid__fam--ta .fm-grid__fam-label small { font-size: 0.68rem; opacity: 0.7; }
+.fm-grid__ghost {
+    min-height: 34px;
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-sm, 6px);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.74rem;
+    text-align: left;
+    padding: 0 10px;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+.fm-grid__ghost:hover { opacity: 1; border-color: var(--color-primary); color: var(--color-text); }
+.fm-grid__libres {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--spacing-xs) var(--spacing-md);
+    margin-top: var(--spacing-sm);
+}
+@media (max-width: 900px) {
+    .fm-grid--familles .fm-grid__row { grid-template-columns: minmax(0, 1fr) 84px 34px; }
+    .fm-grid__fam { grid-template-columns: 1fr; gap: var(--spacing-xs); padding: 6px 0; }
+    .fm-grid__fam--head { display: none; }
+    .fm-grid__fam-label { padding-top: 2px; }
+    .fm-grid__ghost { min-height: 30px; }
+    .fm-grid__vide { display: none; }
+}
+
 /* === FM : carte de cloture en pleine largeur (sous les deux colonnes) === */
 #fm-cloture .recyc-preuve__preview img {
     width: auto;

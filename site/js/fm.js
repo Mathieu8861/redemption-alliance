@@ -710,30 +710,121 @@
         });
     }
 
+    /* Famille d'une rune du catalogue : nom sans "Rune " ni le prefixe de tier
+       ("Rune Pa Ré Cri" -> "Ré Cri"). Sert a regrouper la grille de depart. */
+    var TIER_PREFIXE = { pata: 'Pata ', rata: 'Rata ', pa: 'Pa ', ra: 'Ra ', ta: 'Ta ' };
+    /* Tier d'une rune : deduit du nom (seules les runes de ce tier commencent
+       par "Pa ", "Ra ", "Ta ", "Pata ", "Rata "), sinon celui du catalogue. */
+    function tierDe(rune) {
+        var n = String(rune.nom || '').replace(/^Rune\s+/i, '');
+        var t = '';
+        Object.keys(TIER_PREFIXE).some(function (k) { if (n.indexOf(TIER_PREFIXE[k]) === 0) { t = k; return true; } return false; });
+        return t || rune.tier || 'basique';
+    }
+    function familleDe(rune) {
+        var n = String(rune.nom || '').replace(/^Rune\s+/i, '');
+        var p = TIER_PREFIXE[tierDe(rune)];
+        if (p && n.indexOf(p) === 0) n = n.slice(p.length);
+        return n;
+    }
+
+    /* Catalogue indexe par famille puis tier, pour proposer les cases manquantes */
+    var famillesCatalogue = null;
+    function catalogueParFamille() {
+        if (famillesCatalogue) return famillesCatalogue;
+        famillesCatalogue = {};
+        Object.keys(runesById).forEach(function (id) {
+            var r = runesById[id];
+            if (!r || !r.nom) return;
+            var f = familleDe(r);
+            if (!famillesCatalogue[f]) famillesCatalogue[f] = {};
+            famillesCatalogue[f][tierDe(r)] = r;
+        });
+        return famillesCatalogue;
+    }
+
+    function focusQtyAvant(runeId) {
+        var idx = -1;
+        gridAvant.forEach(function (r, i) { if (String(r.runeId) === String(runeId)) idx = i; });
+        if (idx < 0) return;
+        var el = document.querySelector('#fm-grid-avant .fm-grid__row[data-index="' + idx + '"] .fm-grid__qty');
+        if (el) el.focus();
+    }
+
+    /* Grille de depart regroupee par famille, une ligne = basique | Pa | Ra,
+       dans l'ordre ou le screen a ete lu (retour Mathieu 27/09 : pouvoir
+       comparer avec la fenetre Costumager de haut en bas). */
     function renderGridAvant() {
         var grid = document.getElementById('fm-grid-avant');
-        var html = '';
-        gridAvant.forEach(function (row, i) {
+        var esc = window.REN.escapeHtml;
+        grid.classList.add('fm-grid--familles');
+        var cellule = function (row, i) {
             var vide = row.qty === null || row.qty === undefined;
             var doute = (row.runeId && avantDoutes[row.runeId]) || vide;
-            html += '<div class="fm-grid__row' + (doute ? ' fm-grid__row--doute' : '') + '" data-index="' + i + '"' + (doute ? ' title="Lecture incertaine : vérifie cette quantité sur ton screen"' : '') + '>'
+            return '<div class="fm-grid__row' + (doute ? ' fm-grid__row--doute' : '') + '" data-index="' + i + '"' + (doute ? ' title="Lecture incertaine : vérifie cette quantité sur ton screen"' : '') + '>'
                 + runeAutocompleteHtml(row.runeId)
-                + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (vide ? '' : (row.qty || 0)) + '" placeholder="' + (doute ? 'à compléter' : 'Qté') + '">'
+                + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (vide ? '' : (row.qty || 0)) + '" placeholder="' + (doute ? 'à vérifier' : 'Qté') + '">'
                 + '<button type="button" class="recyc-history__del fm-grid__del" title="Retirer">'
                     + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
                 + '</button>'
                 + '</div>';
+        };
+
+        var familles = [], parFamille = {}, libres = [];
+        gridAvant.forEach(function (row, i) {
+            var rune = row.runeId ? runesById[row.runeId] : null;
+            if (!rune) { libres.push(i); return; }
+            var f = familleDe(rune);
+            if (!parFamille[f]) { parFamille[f] = {}; familles.push(f); }
+            var tier = tierDe(rune);
+            if (parFamille[f][tier] === undefined) parFamille[f][tier] = i;
+            else libres.push(i); /* doublon : reste en ligne libre, fusionne au demarrage */
         });
+        var cat = catalogueParFamille();
+        var html = '';
+        if (familles.length) {
+            html += '<div class="fm-grid__fam fm-grid__fam--head"><span></span><span>Basique</span><span>Pa</span><span>Ra</span></div>';
+            familles.forEach(function (f) {
+                var slots = parFamille[f];
+                html += '<div class="fm-grid__fam"><div class="fm-grid__fam-label notranslate">' + esc(f) + '</div>';
+                ['basique', 'pa', 'ra'].forEach(function (tier) {
+                    if (slots[tier] !== undefined) html += cellule(gridAvant[slots[tier]], slots[tier]);
+                    else if (cat[f] && cat[f][tier]) html += '<button type="button" class="fm-grid__ghost" data-rune="' + cat[f][tier].id + '" title="Cette case est vide sur la lecture : clique pour l\'ajouter">+ ' + esc(String(cat[f][tier].nom).replace(/^Rune\s+/i, '')) + '</button>';
+                    else html += '<span class="fm-grid__vide"></span>';
+                });
+                html += '</div>';
+                var tas = ['ta', 'pata', 'rata'].filter(function (t) { return slots[t] !== undefined; });
+                if (tas.length) {
+                    html += '<div class="fm-grid__fam fm-grid__fam--ta"><div class="fm-grid__fam-label notranslate">' + esc(f) + ' <small>transcendance</small></div>';
+                    ['ta', 'pata', 'rata'].forEach(function (t) { html += slots[t] !== undefined ? cellule(gridAvant[slots[t]], slots[t]) : '<span class="fm-grid__vide"></span>'; });
+                    html += '</div>';
+                }
+            });
+        }
+        if (libres.length) {
+            html += '<div class="fm-grid__libres">' + libres.map(function (i) { return cellule(gridAvant[i], i); }).join('') + '</div>';
+        }
         if (!gridAvant.length) {
-            html = '<p class="text-muted" style="font-size:0.8rem;padding:var(--spacing-sm);">Aucune rune — ajoute des lignes manuellement.</p>';
+            html = '<p class="text-muted" style="font-size:0.8rem;padding:var(--spacing-sm);">Aucune rune, ajoute des lignes manuellement.</p>';
         }
         grid.innerHTML = html;
 
+        grid.querySelectorAll('.fm-grid__ghost').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var id = btn.getAttribute('data-rune');
+                gridAvant.push({ runeId: id, qty: null });
+                renderGridAvant();
+                updateStartButton();
+                focusQtyAvant(id);
+            });
+        });
         grid.querySelectorAll('.fm-grid__row').forEach(function (rowEl) {
             var idx = parseInt(rowEl.getAttribute('data-index'), 10);
             bindRuneAutocomplete(rowEl.querySelector('.fm-rune-ac'), function (runeId) {
                 gridAvant[idx].runeId = runeId || '';
                 updateStartButton();
+                /* la ligne rejoint sa famille, le curseur passe dans la quantite */
+                if (runeId) { renderGridAvant(); focusQtyAvant(runeId); }
             });
             rowEl.querySelector('.fm-grid__qty').addEventListener('input', function () {
                 gridAvant[idx].qty = this.value.trim() === '' ? null : (parseInt(this.value, 10) || 0);

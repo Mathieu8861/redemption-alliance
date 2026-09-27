@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Edge Function : extract-runes (v2, 27/09/26) */
+/* Edge Function : extract-runes (v2.2, 27/09/26)*/
 /* Recoit un screenshot Dofus (Costumager,      */
 /* inventaire runes ou HDV), appelle Claude     */
 /* vision, retourne les runes et quantites.     */
@@ -13,6 +13,12 @@
 /* mode "zoom" (relecture de decoupes agrandies */
 /* des cellules douteuses), repere = stock de   */
 /* fin de la session precedente au depart.      */
+/* v2.2 : reponse JSON compacte (tableaux) et   */
+/* reflexion interne du modele coupee pour les  */
+/* lectures de screens : sortie facturee de     */
+/* ~2 000 a ~650 tokens par lecture, 3x plus    */
+/* rapide, 74/74 sur les screens de test. La    */
+/* relecture zoomee garde la reflexion.         */
 /*                                              */
 /* Deploiement (au choix) :                     */
 /*   npx supabase functions deploy extract-runes*/
@@ -128,18 +134,18 @@ MÉTHODE OBLIGATOIRE (les deux formats) :
 
 STATS DE L'ITEM (FORMAT A uniquement) :
 Le tableau du Costumager affiche aussi, pour chaque ligne de stat, les colonnes « Min » et « Max » (jet d'origine) à gauche, et la VALEUR ACTUELLE dans le libellé central (ex: "351 | 400 | ❤ 384 Vitalité" → min 351, max 400, actuel 384).
-Extrais CHAQUE ligne de stat de l'item dans "item_stats" :
-- "stat" : le libellé exact tel qu'affiché (ex: "Vitalité", "Agilité", "PA", "Portée", "Dommages Air", "Initiative", "8% Résistance Eau" → écris "% Résistance Eau", "Retrait PM", "Résistances Critiques", "Fuite", "1% Dommages aux sorts" → écris "% Dommages aux sorts")
-- "actuel" : la valeur actuelle (le nombre dans le libellé central, peut être négatif)
-- "min" et "max" : les colonnes Min/Max (peuvent être négatives ou absentes → null)
+Extrais CHAQUE ligne de stat de l'item dans "item_stats", une entrée [stat, actuel, min, max] par ligne :
+- stat : le libellé exact tel qu'affiché (ex: "Vitalité", "Agilité", "PA", "Portée", "Dommages Air", "Initiative", "8% Résistance Eau" → écris "% Résistance Eau", "Retrait PM", "Résistances Critiques", "Fuite", "1% Dommages aux sorts" → écris "% Dommages aux sorts")
+- actuel : la valeur actuelle (le nombre dans le libellé central, peut être négatif)
+- min et max : les colonnes Min/Max (peuvent être négatives ou absentes → null)
 Pour le FORMAT B (inventaire), "item_stats" est un tableau vide.
 
-Réponds UNIQUEMENT avec un JSON valide de cette forme, sans markdown :
-{"format": "A", "runes": [{"nom": "Rune Fo", "qty": 184, "x": 812, "y": 143}, ...], "item_stats": [{"stat": "Vitalité", "actuel": 384, "min": 351, "max": 400}, ...], "non_identifiees": 2, "douteuses": ["Rune Ra Vi"], "absentes": []}
+Réponds UNIQUEMENT avec un JSON valide de cette forme, COMPACT (sur une seule ligne, sans espaces ni retours à la ligne, sans markdown, sans aucun texte avant ou après) :
+{"format":"A","runes":[["Rune Fo",184,812,143],["Rune Pa Fo",null,867,143]],"item_stats":[["Vitalité",384,351,400]],"non_identifiees":2,"douteuses":["Rune Pa Fo"],"absentes":[]}
 
 - "format" : "A" pour la fenêtre Costumager, "B" pour l'inventaire.
-- "qty" est le nombre affiché en haut à gauche de la cellule, ou null si illisible.
-- "x" et "y" : centre de la cellule de quantité de cette rune, en pixels dans l'image telle que tu la reçois (origine en haut à gauche, dimensions données dans le message). Donne-les pour TOUTES les runes, au mieux de ta précision : ils servent à relire en zoom les cellules douteuses.
+- Chaque entrée de "runes" est un tableau [nom, qty, x, y] : le nom officiel, le nombre affiché en haut à gauche de la cellule (null si illisible), puis le centre de la cellule de quantité en pixels dans l'image telle que tu la reçois (origine en haut à gauche, dimensions données dans le message). Donne x et y pour TOUTES les runes, au mieux de ta précision : ils servent à relire en zoom les cellules douteuses.
+- Chaque entrée de "item_stats" est un tableau [stat, actuel, min, max].
 - "douteuses" : noms des runes dont la quantité est incertaine (badge coupé, hésitation).
 - "absentes" : uniquement quand une liste de runes attendues t'est fournie, les runes attendues que tu ne trouves nulle part sur ce screen.
 - Si tu vois une cellule de rune mais ne peux pas l'identifier avec certitude, incrémente "non_identifiees" au lieu de deviner.
@@ -312,6 +318,19 @@ function fusionnerZoom(a: any, b: any, n: number) {
   return { lectures, lectures_effectuees: 2 };
 }
 
+/* Remet la reponse compacte (tableaux) sous la forme d'objets attendue par le
+   reste du code ; accepte aussi l'ancienne forme (objets) telle quelle. */
+function normaliser(r: any) {
+  if (!r || typeof r !== "object" || !Array.isArray(r.runes)) return r;
+  const runes = r.runes.map((e: any) => Array.isArray(e)
+    ? { nom: e[0], qty: e[1] ?? null, x: e[2] ?? null, y: e[3] ?? null }
+    : e).filter((e: any) => e && e.nom);
+  const stats = Array.isArray(r.item_stats) ? r.item_stats.map((e: any) => Array.isArray(e)
+    ? { stat: e[0], actuel: e[1] ?? null, min: e[2] ?? null, max: e[3] ?? null }
+    : e).filter((e: any) => e && e.stat) : [];
+  return { ...r, runes, item_stats: stats };
+}
+
 /* Extrait le JSON de la reponse du modele, meme entoure de texte ou de markdown */
 function parseReponse(text: string) {
   const cleaned = text.replace(/```json|```/g, "").trim();
@@ -320,7 +339,12 @@ function parseReponse(text: string) {
 }
 /* ====== FIN DES CONSTANTES PARTAGEES ====== */
 
-async function lireContenu(system: string, content: Array<any>) {
+/* reflexion = true : laisse le modele reflechir avant de repondre (relecture
+   zoomee, validee ainsi, sortie minuscule). Pour les lectures de screens la
+   reflexion est coupee : elle coutait les deux tiers de la sortie facturee
+   sans ameliorer la lecture (27/09, 3 screens : 74/74 sans, 72/74 avec), et
+   Sonnet 5 epuisait meme les 4096 tokens en reflexion sans rien repondre. */
+async function lireContenu(system: string, content: Array<any>, reflexion = false) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -331,6 +355,7 @@ async function lireContenu(system: string, content: Array<any>) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 4096,
+      ...(reflexion ? {} : { thinking: { type: "disabled" } }),
       system,
       messages: [{ role: "user", content }],
     }),
@@ -346,7 +371,7 @@ async function lireContenu(system: string, content: Array<any>) {
   const bloc = (data?.content || []).find((b: any) => b && b.type === "text");
   const text = bloc?.text ?? "";
   try {
-    return parseReponse(text);
+    return normaliser(parseReponse(text));
   } catch (_e) {
     console.error("[extract-runes] JSON parse fail:", text);
     const e: any = new Error("Réponse vision illisible");
@@ -390,7 +415,7 @@ Deno.serve(async (req: Request) => {
       const liste = Array.isArray(crops) ? crops.filter((c: any) => c && c.image && c.nom).slice(0, 12) : [];
       if (!liste.length) return json({ error: "Aucune découpe fournie" }, 400);
       const content = contenuZoom(liste);
-      const [za, zb] = await Promise.allSettled([lireContenu(ZOOM_PROMPT, content), lireContenu(ZOOM_PROMPT, content)]);
+      const [za, zb] = await Promise.allSettled([lireContenu(ZOOM_PROMPT, content, true), lireContenu(ZOOM_PROMPT, content, true)]);
       if (za.status === "fulfilled" && zb.status === "fulfilled") return json(fusionnerZoom(za.value, zb.value, liste.length));
       const ok = za.status === "fulfilled" ? za.value : (zb.status === "fulfilled" ? zb.value : null);
       if (ok) return json({ ...fusionnerZoom(ok, ok, liste.length), lectures_effectuees: 1 });
