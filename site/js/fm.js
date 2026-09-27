@@ -597,7 +597,7 @@
             var doute = (row.runeId && avantDoutes[row.runeId]) || vide;
             html += '<div class="fm-grid__row' + (doute ? ' fm-grid__row--doute' : '') + '" data-index="' + i + '"' + (doute ? ' title="Lecture incertaine : vérifie cette quantité sur ton screen"' : '') + '>'
                 + runeAutocompleteHtml(row.runeId)
-                + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (vide ? '' : (row.qty || 0)) + '" placeholder="' + (doute ? 'à lire' : 'Qté') + '">'
+                + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (vide ? '' : (row.qty || 0)) + '" placeholder="' + (doute ? 'à compléter' : 'Qté') + '">'
                 + '<button type="button" class="recyc-history__del fm-grid__del" title="Retirer">'
                     + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
                 + '</button>'
