@@ -10008,3 +10008,17 @@ body.app-has-sidebar {
 .fm-apres-hors__title { font-size: 0.78rem; color: var(--color-text-secondary); margin-bottom: 6px; }
 .fm-apres-hors__row { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; font-size: 0.85rem; padding: 4px 0; }
 .fm-grid__row--doute { border-left: 3px solid #f1c40f; padding-left: 6px; border-radius: 3px; }
+
+/* === FM : carte de cloture en pleine largeur (sous les deux colonnes) === */
+#fm-cloture .recyc-preuve__preview img {
+    width: auto;
+    max-width: 480px;
+    max-height: 320px;
+    object-fit: contain;
+}
+#fm-cloture .fm-apres-dispo,
+#fm-cloture .fm-apres-qty { width: 115px; }
+#fm-cloture .recyc-preuve__preview {
+    width: fit-content;
+    max-width: 100%;
+}

@@ -1537,9 +1537,9 @@
                 var fin = lue ? gridApres[sr.rune_id] : '';
                 html += '<tr data-rune="' + sr.rune_id + '">'
                     + '<td>' + runeIconHtml(rune) + '<strong class="notranslate">' + esc(rune.nom) + '</strong></td>'
-                    + '<td class="recyc-num"><input type="number" class="form-input fm-grid__qty fm-apres-dispo" min="0" value="' + dispo + '" style="width:90px;" title="Départ + achats + concassages : corrigeable si le screen de départ était faux"></td>'
+                    + '<td class="recyc-num"><input type="number" class="form-input fm-grid__qty fm-apres-dispo" min="0" value="' + dispo + '" style="width:115px;" title="Départ + achats + concassages : corrigeable si le screen de départ était faux"></td>'
                     + '<td class="recyc-num fm-apres-fin-cell">'
-                        + '<input type="number" class="form-input fm-grid__qty fm-apres-qty" min="0" value="' + fin + '" placeholder="non lue" style="width:90px;">'
+                        + '<input type="number" class="form-input fm-grid__qty fm-apres-qty" min="0" value="' + fin + '" placeholder="non lue" style="width:115px;">'
                         + '<span class="fm-apres-quick">'
                             + '<button type="button" class="fm-apres-quick__btn" data-quick="stock" title="Rien de consommé : quantité de fin = stock connu (' + dispo + ')">= stock</button>'
                             + '<button type="button" class="fm-apres-quick__btn" data-quick="zero" title="Tout consommé : quantité de fin = 0">0</button>'
