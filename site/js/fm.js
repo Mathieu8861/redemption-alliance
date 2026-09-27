@@ -249,11 +249,15 @@
     /* ============================================ */
     /* EXTRACTION SCREEN (edge function vision)     */
     /* ============================================ */
-    async function extractRunesFromImage(file) {
+    /* options : { mode: 'inventory' | 'closing', attendues: [{nom, qty}] }
+       A la cloture, les runes de la session et leur stock connu sont envoyes
+       au modele : il relit les badges incoherents et signale ce qu'il ne voit pas. */
+    async function extractRunesFromImage(file, options) {
         var img = await fileToCompressedBase64(file);
-        var { data, error } = await window.REN.supabase.functions.invoke('extract-runes', {
-            body: { image: img.base64, media_type: img.mediaType }
-        });
+        var body = { image: img.base64, media_type: img.mediaType };
+        if (options && options.mode) body.mode = options.mode;
+        if (options && options.attendues && options.attendues.length) body.attendues = options.attendues;
+        var { data, error } = await window.REN.supabase.functions.invoke('extract-runes', { body: body });
         if (error) {
             /* Tenter de récupérer le détail renvoyé par la fonction (FunctionsHttpError) */
             var detail = '', brut = '', status = 0;
@@ -274,31 +278,42 @@
             throw err;
         }
         if (data && data.error) throw new Error(data.error);
-        return data; /* {runes:[{nom, qty}], non_identifiees: n} */
+        return data; /* {runes:[{nom, qty|null}], item_stats, non_identifiees, douteuses:[noms], absentes:[noms], lectures, desaccords} */
     }
 
-    /* Redimensionne (max 1920px de large) et compresse en JPEG avant envoi : */
-    /* - reste sous la limite de taille de l'API vision (~5 Mo)               */
-    /* - accélère l'upload et l'analyse                                       */
+    /* Prepare l'image pour la lecture. L'API vision ramene le grand cote a
+       1568 px : on vise cette taille. Un petit screen (fenetre Costumager
+       d'environ 900 px) est AGRANDI jusqu'a x2 pour que les chiffres des
+       badges restent nets, un grand screen est reduit. PNG sans perte tant
+       que ca tient sous ~3,5 Mo en base64, sinon JPEG de haute qualite. */
     function fileToCompressedBase64(file) {
         return new Promise(function (resolve, reject) {
             var url = URL.createObjectURL(file);
             var img = new Image();
             img.onload = function () {
                 try {
-                    var MAX_W = 1920;
-                    var scale = img.width > MAX_W ? MAX_W / img.width : 1;
+                    var CIBLE = 1568;
+                    var grand = Math.max(img.width, img.height);
+                    var scale = grand < CIBLE ? Math.min(2, CIBLE / grand) : CIBLE / grand;
                     var w = Math.round(img.width * scale);
                     var h = Math.round(img.height * scale);
                     var canvas = document.createElement('canvas');
                     canvas.width = w;
                     canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    var ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, w, h);
+                    var dataUrl = canvas.toDataURL('image/png');
+                    var mediaType = 'image/png';
+                    if (dataUrl.length > 3500000) {
+                        dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                        mediaType = 'image/jpeg';
+                    }
                     URL.revokeObjectURL(url);
                     resolve({
                         base64: dataUrl.substring(dataUrl.indexOf(',') + 1),
-                        mediaType: 'image/jpeg'
+                        mediaType: mediaType
                     });
                 } catch (e) {
                     URL.revokeObjectURL(url);
@@ -421,7 +436,7 @@
             'fm-screen-avant-status', 'fm-screen-avant-remove',
             async function (file, setStatus) {
                 try {
-                    var result = await extractRunesFromImage(file);
+                    var result = await extractRunesFromImage(file, { mode: 'inventory' });
                     pendingAvantFile = file;
                     /* Poids de l'item depuis les stats du Costumager (si présentes) */
                     var pui = computeItemPui(result.item_stats);
@@ -445,6 +460,7 @@
                 pendingItemPui = null;
                 renderPuiBanner('fm-pui-avant', null);
                 gridAvant = [];
+                avantDoutes = {};
                 document.getElementById('fm-grid-avant-wrap').setAttribute('hidden', '');
                 updateStartButton();
             }
@@ -466,23 +482,32 @@
     /* - rune deja presente -> sa qty est remplacee (le screen fait foi)  */
     /* - rune nouvelle -> ajoutee                                         */
     /* Permet de coller plusieurs screens si l'inventaire scroll.         */
+    var avantDoutes = {};      /* runeId -> true : quantite de depart a verifier (lecture incertaine) */
     function fillGridAvant(result) {
         var unmatched = 0;
+        var doutesNoms = {};
+        (result.douteuses || []).forEach(function (n) { doutesNoms[norm(n)] = true; });
         (result.runes || []).forEach(function (r) {
             var rune = matchRune(r.nom);
             if (rune) {
-                var qty = parseInt(r.qty, 10) || 0;
+                var illisible = r.qty === null || r.qty === undefined || r.qty === '';
+                var qty = illisible ? 0 : (parseInt(r.qty, 10) || 0);
                 var existing = gridAvant.find(function (g) { return g.runeId === rune.id; });
                 if (existing) existing.qty = qty;
                 else gridAvant.push({ runeId: rune.id, qty: qty });
+                if (illisible || doutesNoms[norm(r.nom)]) avantDoutes[rune.id] = true;
+                else delete avantDoutes[rune.id];
             } else {
                 unmatched++;
             }
         });
         var info = document.getElementById('fm-grid-avant-info');
         var bits = [];
+        if (result.lectures === 2) bits.push(result.desaccords ? '2 lectures, ' + result.desaccords + ' désaccord(s)' : '2 lectures concordantes');
         if (result.non_identifiees) bits.push(result.non_identifiees + ' cellule(s) non identifiée(s) par l\'IA');
         if (unmatched) bits.push(unmatched + ' rune(s) hors catalogue ignorée(s)');
+        var aVerifier = Object.keys(avantDoutes).map(function (id) { return (runesById[id] || {}).nom; }).filter(Boolean);
+        if (aVerifier.length) bits.push('à vérifier sur ton screen : ' + aVerifier.join(', '));
         info.textContent = bits.length ? '(' + bits.join(' · ') + ')' : '';
 
         document.getElementById('fm-grid-avant-wrap').removeAttribute('hidden');
@@ -494,7 +519,7 @@
         if (drop) {
             drop.style.display = '';
             var label = drop.querySelector('span');
-            if (label) label.innerHTML = 'Inventaire sur plusieurs pages ? Colle le screen suivant (<kbd>Ctrl</kbd>+<kbd>V</kbd>) — les résultats fusionnent';
+            if (label) label.innerHTML = 'Inventaire sur plusieurs pages ? Colle le screen suivant (<kbd>Ctrl</kbd>+<kbd>V</kbd>), les résultats fusionnent';
         }
     }
 
@@ -568,7 +593,8 @@
         var grid = document.getElementById('fm-grid-avant');
         var html = '';
         gridAvant.forEach(function (row, i) {
-            html += '<div class="fm-grid__row" data-index="' + i + '">'
+            var doute = row.runeId && avantDoutes[row.runeId];
+            html += '<div class="fm-grid__row' + (doute ? ' fm-grid__row--doute' : '') + '" data-index="' + i + '"' + (doute ? ' title="Lecture incertaine : vérifie cette quantité sur ton screen"' : '') + '>'
                 + runeAutocompleteHtml(row.runeId)
                 + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (row.qty || 0) + '" placeholder="Qté">'
                 + '<button type="button" class="recyc-history__del fm-grid__del" title="Retirer">'
@@ -589,6 +615,12 @@
             });
             rowEl.querySelector('.fm-grid__qty').addEventListener('input', function () {
                 gridAvant[idx].qty = parseInt(this.value, 10) || 0;
+                /* corrigee a la main : plus de doute */
+                if (avantDoutes[gridAvant[idx].runeId]) {
+                    delete avantDoutes[gridAvant[idx].runeId];
+                    rowEl.classList.remove('fm-grid__row--doute');
+                    rowEl.removeAttribute('title');
+                }
             });
             rowEl.querySelector('.fm-grid__del').addEventListener('click', function () {
                 gridAvant.splice(idx, 1);
@@ -648,6 +680,7 @@
             /* Reset du form pour la prochaine fois */
             document.getElementById('fm-titre').value = '';
             gridAvant = [];
+            avantDoutes = {};
             pendingAvantFile = null;
             document.getElementById('fm-grid-avant-wrap').setAttribute('hidden', '');
             await loadCurrentSession();
@@ -1328,7 +1361,11 @@
             'fm-screen-apres-status', 'fm-screen-apres-remove',
             async function (file, setStatus) {
                 try {
-                    var result = await extractRunesFromImage(file);
+                    var attendues = sessionRunes.map(function (sr) {
+                        var rune = runesById[sr.rune_id];
+                        return rune ? { nom: rune.nom, qty: dispoOf(sr) } : null;
+                    }).filter(Boolean);
+                    var result = await extractRunesFromImage(file, { mode: 'closing', attendues: attendues });
                     pendingApresFile = file;
                     var pui = computeItemPui(result.item_stats);
                     if (pui) pendingApresPui = pui;
@@ -1339,11 +1376,12 @@
                     console.error('[REN-FM] Extraction apres:', err);
                     var ev = window.REN.expliquerErreurVision(err);
                     setStatus(ev.statut, '');
-                    window.REN.toast(ev.message + ' Saisis les quantités manuellement.', 'error');
+                    window.REN.toast(ev.message + ' Saisis les quantités de fin à la main (boutons « = stock » et « 0 »).', 'error');
                     gridApres = {};
+                    apresDoutes = {};
+                    apresHorsSession = {};
                     document.getElementById('fm-grid-apres-wrap').removeAttribute('hidden');
                     renderGridApres();
-                    document.getElementById('fm-close-session').disabled = false;
                 }
             },
             function () {
@@ -1351,6 +1389,8 @@
                 pendingApresPui = null;
                 renderPuiBanner('fm-pui-apres', null);
                 gridApres = {};
+                apresDoutes = {};
+                apresHorsSession = {};
                 document.getElementById('fm-grid-apres-wrap').setAttribute('hidden', '');
                 document.getElementById('fm-close-session').disabled = true;
             }
@@ -1431,31 +1471,56 @@
         });
     }
 
-    /* Merge (multi-screens supportes, comme la grille avant) */
+    var apresDoutes = {};       /* runeId -> true : quantite de fin a verifier (lecture incertaine ou desaccord) */
+    var apresHorsSession = {};  /* runeId -> qty : runes lues sur le screen de fin mais absentes de la session */
+
+    /* Merge (multi-screens supportes, comme la grille avant). Une rune de la
+       session qui n'est lue sur aucun screen reste NON LUE : jamais 0 par
+       defaut, c'est ce qui comptait une rune non lue comme entierement
+       consommee (Ré Cri de la ceinture de Kongoku, 27/09). */
     function fillGridApres(result) {
+        var doutesNoms = {};
+        (result.douteuses || []).forEach(function (n) { doutesNoms[norm(n)] = true; });
+        var horsCatalogue = 0;
         (result.runes || []).forEach(function (r) {
             var rune = matchRune(r.nom);
-            if (rune) gridApres[rune.id] = parseInt(r.qty, 10) || 0;
+            if (!rune) { horsCatalogue++; return; }
+            var illisible = r.qty === null || r.qty === undefined || r.qty === '';
+            var enSession = sessionRunes.some(function (sr) { return sr.rune_id === rune.id; });
+            if (!enSession) {
+                if (!illisible) apresHorsSession[rune.id] = parseInt(r.qty, 10) || 0;
+                return;
+            }
+            if (illisible) {
+                /* vue mais illisible : la ligne reste a saisir, signalee */
+                apresDoutes[rune.id] = true;
+                return;
+            }
+            gridApres[rune.id] = parseInt(r.qty, 10) || 0;
+            if (doutesNoms[norm(r.nom)]) apresDoutes[rune.id] = true;
+            else delete apresDoutes[rune.id];
         });
+        var bits = [];
+        if (result.lectures === 2) bits.push(result.desaccords ? '2 lectures, ' + result.desaccords + ' désaccord(s) signalé(s)' : '2 lectures concordantes');
+        if (result.non_identifiees) bits.push(result.non_identifiees + ' cellule(s) non identifiée(s)');
+        if (horsCatalogue) bits.push(horsCatalogue + ' rune(s) hors catalogue ignorée(s)');
         var info = document.getElementById('fm-grid-apres-info');
-        info.textContent = result.non_identifiees ? '(' + result.non_identifiees + ' cellule(s) non identifiée(s))' : '';
+        if (info) info.textContent = bits.length ? '(' + bits.join(' · ') + ')' : '';
 
         document.getElementById('fm-grid-apres-wrap').removeAttribute('hidden');
         renderGridApres();
-        document.getElementById('fm-close-session').disabled = false;
 
         /* Re-afficher la drop zone pour un screen supplementaire */
         var drop = document.getElementById('fm-screen-apres-drop');
         if (drop) {
             drop.style.display = '';
             var label = drop.querySelector('span');
-            if (label) label.innerHTML = 'Inventaire sur plusieurs pages ? Colle le screen suivant (<kbd>Ctrl</kbd>+<kbd>V</kbd>) — les résultats fusionnent';
+            if (label) label.innerHTML = 'Liste sur plusieurs écrans ? Colle le screen suivant (<kbd>Ctrl</kbd>+<kbd>V</kbd>), les résultats fusionnent';
         }
     }
 
     function renderGridApres() {
         var tbody = document.getElementById('fm-grid-apres');
-        var fmt = window.REN.formatNumber;
         var esc = window.REN.escapeHtml;
         var html = '';
 
@@ -1468,11 +1533,18 @@
             .forEach(function (sr) {
                 var rune = runesById[sr.rune_id] || { nom: '?', prix_kamas: 0 };
                 var dispo = dispoOf(sr);
-                var fin = gridApres[sr.rune_id] !== undefined ? gridApres[sr.rune_id] : 0;
+                var lue = gridApres[sr.rune_id] !== undefined && gridApres[sr.rune_id] !== null;
+                var fin = lue ? gridApres[sr.rune_id] : '';
                 html += '<tr data-rune="' + sr.rune_id + '">'
                     + '<td>' + runeIconHtml(rune) + '<strong class="notranslate">' + esc(rune.nom) + '</strong></td>'
-                    + '<td class="recyc-num"><input type="number" class="form-input fm-grid__qty fm-apres-dispo" min="0" value="' + dispo + '" style="width:90px;" title="Départ + achats + concassages — corrigeable si le screen de départ était faux"></td>'
-                    + '<td class="recyc-num"><input type="number" class="form-input fm-grid__qty fm-apres-qty" min="0" value="' + fin + '" style="width:90px;"></td>'
+                    + '<td class="recyc-num"><input type="number" class="form-input fm-grid__qty fm-apres-dispo" min="0" value="' + dispo + '" style="width:90px;" title="Départ + achats + concassages : corrigeable si le screen de départ était faux"></td>'
+                    + '<td class="recyc-num fm-apres-fin-cell">'
+                        + '<input type="number" class="form-input fm-grid__qty fm-apres-qty" min="0" value="' + fin + '" placeholder="non lue" style="width:90px;">'
+                        + '<span class="fm-apres-quick">'
+                            + '<button type="button" class="fm-apres-quick__btn" data-quick="stock" title="Rien de consommé : quantité de fin = stock connu (' + dispo + ')">= stock</button>'
+                            + '<button type="button" class="fm-apres-quick__btn" data-quick="zero" title="Tout consommé : quantité de fin = 0">0</button>'
+                        + '</span>'
+                    + '</td>'
                     + '<td class="recyc-num fm-apres-conso">—</td>'
                     + '<td class="recyc-num fm-apres-cout">—</td>'
                     + '</tr>';
@@ -1481,9 +1553,23 @@
 
         tbody.querySelectorAll('tr').forEach(function (tr) {
             var runeId = parseInt(tr.getAttribute('data-rune'), 10);
-            tr.querySelector('.fm-apres-qty').addEventListener('input', function () {
-                gridApres[runeId] = parseInt(this.value, 10) || 0;
+            var finInput = tr.querySelector('.fm-apres-qty');
+            finInput.addEventListener('input', function () {
+                if (this.value.trim() === '') delete gridApres[runeId];
+                else gridApres[runeId] = Math.max(0, parseInt(this.value, 10) || 0);
+                delete apresDoutes[runeId]; /* corrigee a la main : plus de doute */
                 updateClotureTotals();
+            });
+            tr.querySelectorAll('.fm-apres-quick__btn').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var sr = sessionRunes.find(function (s) { return s.rune_id === runeId; });
+                    if (!sr) return;
+                    var v = b.getAttribute('data-quick') === 'zero' ? 0 : dispoOf(sr);
+                    gridApres[runeId] = v;
+                    finInput.value = v;
+                    delete apresDoutes[runeId];
+                    updateClotureTotals();
+                });
             });
             /* Correction du dispo : ajuste qty_avant (persiste en BDD au blur) */
             tr.querySelector('.fm-apres-dispo').addEventListener('change', async function () {
@@ -1505,41 +1591,147 @@
                 }
             });
         });
+        renderApresHorsSession();
         updateClotureTotals();
     }
 
+    /* Runes lues sur le screen de fin mais absentes de la session (oubliees
+       au depart) : proposees a l'ajout, jamais comptees en silence */
+    function renderApresHorsSession() {
+        var box = document.getElementById('fm-apres-hors');
+        if (!box) return;
+        var ids = Object.keys(apresHorsSession).filter(function (id) {
+            return !sessionRunes.some(function (sr) { return sr.rune_id === parseInt(id, 10); });
+        });
+        if (!ids.length) { box.setAttribute('hidden', ''); box.innerHTML = ''; return; }
+        var esc = window.REN.escapeHtml;
+        var html = '<div class="fm-apres-hors__title">Lues sur le screen de fin mais absentes de la session (oubliées au départ ?)</div>';
+        ids.forEach(function (id) {
+            var rune = runesById[id];
+            if (!rune) return;
+            html += '<div class="fm-apres-hors__row">' + runeIconHtml(rune) + '<strong class="notranslate">' + esc(rune.nom) + '</strong>'
+                + '<span class="text-muted">fin lue : ' + apresHorsSession[id] + '</span>'
+                + '<button type="button" class="btn btn--secondary btn--small" data-add="' + id + '">Ajouter à la session (départ = fin, rien de consommé)</button>'
+                + '</div>';
+        });
+        box.innerHTML = html;
+        box.removeAttribute('hidden');
+        box.querySelectorAll('[data-add]').forEach(function (b) {
+            b.addEventListener('click', async function () {
+                if (!currentSession) return;
+                var id = parseInt(b.getAttribute('data-add'), 10);
+                var fin = apresHorsSession[id] || 0;
+                b.disabled = true;
+                try {
+                    var { error } = await window.REN.supabase.from('fm_session_runes')
+                        .insert({ session_id: currentSession.id, rune_id: id, qty_avant: fin, qty_achetee: 0 });
+                    if (error) throw error;
+                    gridApres[id] = fin;
+                    delete apresHorsSession[id];
+                    await loadCurrentSession();
+                    renderStock();
+                    renderGridApres();
+                    window.REN.toast('Rune ajoutée : corrige son stock de départ dans la colonne Dispo si besoin', 'success');
+                } catch (err) {
+                    console.error('[REN-FM] Erreur ajout rune lue hors session:', err);
+                    window.REN.toast('Erreur ajout rune', 'error');
+                    b.disabled = false;
+                }
+            });
+        });
+    }
+
+    /* Totaux + etat de chaque ligne. Bloque la cloture tant qu'une rune de la
+       session est non lue ou que son stock final depasse le stock connu. */
     function updateClotureTotals() {
         var tbody = document.getElementById('fm-grid-apres');
         var fmt = window.REN.formatNumber;
+        var esc = window.REN.escapeHtml;
         var totalConso = 0, totalCout = 0;
+        var nonLues = [], depassees = [], doutes = [], grossesBaisses = [];
 
         tbody.querySelectorAll('tr').forEach(function (tr) {
             var runeId = parseInt(tr.getAttribute('data-rune'), 10);
             var sr = sessionRunes.find(function (s) { return s.rune_id === runeId; });
-            var rune = runesById[runeId] || { prix_kamas: 0 };
+            var rune = runesById[runeId] || { nom: '?', prix_kamas: 0 };
             if (!sr) return;
             var dispo = dispoOf(sr);
-            var fin = gridApres[runeId] !== undefined ? gridApres[runeId] : 0;
-            var conso = dispo - fin;
-            var cout = conso > 0 ? conso * (rune.prix_kamas || 0) : 0;
-
+            var lue = gridApres[runeId] !== undefined && gridApres[runeId] !== null;
             var consoEl = tr.querySelector('.fm-apres-conso');
-            consoEl.textContent = (conso >= 0 ? fmt(conso) : '⚠ ' + fmt(conso));
-            consoEl.style.color = conso < 0 ? 'var(--color-warning)' : '';
-            consoEl.title = conso < 0
-                ? 'Stock final supérieur au stock connu — achat non déclaré ou concassage (fusion de runes) non déclaré ?'
-                : '';
-            tr.querySelector('.fm-apres-cout').textContent = fmt(cout);
+            var coutEl = tr.querySelector('.fm-apres-cout');
+            tr.classList.remove('fm-apres-row--nonlue', 'fm-apres-row--depasse', 'fm-apres-row--doute', 'fm-apres-row--baisse');
+            consoEl.style.color = '';
+            consoEl.title = '';
 
-            if (conso > 0) { totalConso += conso; totalCout += cout; }
+            if (!lue) {
+                nonLues.push(rune.nom);
+                tr.classList.add('fm-apres-row--nonlue');
+                consoEl.textContent = 'non lue';
+                consoEl.title = 'Cette rune n\'a été lue sur aucun screen : colle le screen suivant, ou saisis la quantité de fin (= stock si rien de consommé)';
+                coutEl.textContent = '—';
+                return;
+            }
+            var fin = gridApres[runeId];
+            var conso = dispo - fin;
+            if (conso < 0) {
+                depassees.push(rune.nom);
+                tr.classList.add('fm-apres-row--depasse');
+                consoEl.textContent = '⚠ ' + fmt(conso);
+                consoEl.style.color = 'var(--color-danger)';
+                consoEl.title = 'Stock final supérieur au stock connu : chiffre mal lu, achat ou concassage non déclaré. Corrige la quantité de fin ou le dispo avant de clôturer.';
+                coutEl.textContent = '—';
+                return;
+            }
+            var cout = conso * (rune.prix_kamas || 0);
+            consoEl.textContent = fmt(conso);
+            coutEl.textContent = fmt(cout);
+            if (apresDoutes[runeId]) {
+                doutes.push(rune.nom);
+                tr.classList.add('fm-apres-row--doute');
+                consoEl.title = 'Lecture incertaine (badge coupé ou deux lectures différentes) : vérifie la quantité de fin sur ton screen';
+            } else if (conso >= 20 && conso >= 0.7 * dispo) {
+                grossesBaisses.push(rune.nom);
+                tr.classList.add('fm-apres-row--baisse');
+                consoEl.title = 'Plus de 70 % du stock consommé : vérifie qu\'il ne manque pas un chiffre';
+            }
+            totalConso += conso;
+            totalCout += cout;
         });
 
         document.getElementById('fm-total-conso').textContent = fmt(totalConso);
         document.getElementById('fm-total-cout').textContent = fmt(totalCout) + ' K';
+
+        /* Etat de la grille : ce qui bloque, ce qui merite un coup d'oeil */
+        var etat = document.getElementById('fm-apres-etat');
+        var btn = document.getElementById('fm-close-session');
+        var lignes = [];
+        if (nonLues.length) lignes.push('<div class="fm-apres-etat__ligne fm-apres-etat__ligne--bloque">🟠 ' + nonLues.length + ' rune' + (nonLues.length > 1 ? 's' : '') + ' de la session non lue' + (nonLues.length > 1 ? 's' : '') + ' : <strong class="notranslate">' + esc(nonLues.join(', ')) + '</strong>. Colle le screen suivant si la liste dépasse l\'écran, ou saisis la quantité de fin.</div>');
+        if (depassees.length) lignes.push('<div class="fm-apres-etat__ligne fm-apres-etat__ligne--bloque">🔴 Stock final supérieur au stock connu : <strong class="notranslate">' + esc(depassees.join(', ')) + '</strong>. Corrige la quantité de fin ou le dispo avant de clôturer.</div>');
+        if (doutes.length) lignes.push('<div class="fm-apres-etat__ligne fm-apres-etat__ligne--doute">🟡 Lecture incertaine, à vérifier sur ton screen : <strong class="notranslate">' + esc(doutes.join(', ')) + '</strong></div>');
+        if (grossesBaisses.length) lignes.push('<div class="fm-apres-etat__ligne fm-apres-etat__ligne--doute">🟡 Grosse consommation, à confirmer : <strong class="notranslate">' + esc(grossesBaisses.join(', ')) + '</strong></div>');
+        if (!lignes.length && tbody.querySelectorAll('tr').length) lignes.push('<div class="fm-apres-etat__ligne fm-apres-etat__ligne--ok">🟢 Toutes les runes de la session sont lues et cohérentes.</div>');
+        if (etat) etat.innerHTML = lignes.join('');
+
+        var bloque = nonLues.length > 0 || depassees.length > 0;
+        if (btn) {
+            btn.disabled = bloque;
+            btn.title = bloque ? 'Règle d\'abord les lignes signalées en orange et en rouge' : '';
+        }
     }
 
     async function closeSession() {
         if (!currentSession) return;
+
+        /* Verification finale : rien ne part avec une ligne non lue ou incoherente */
+        var bloquantes = sessionRunes.filter(function (sr) {
+            var v = gridApres[sr.rune_id];
+            return v === undefined || v === null || v > dispoOf(sr);
+        });
+        if (bloquantes.length) {
+            updateClotureTotals();
+            window.REN.toast('Clôture impossible : ' + bloquantes.length + ' ligne(s) non lue(s) ou incohérente(s) à régler dans le tableau', 'error');
+            return;
+        }
 
         var btn = document.getElementById('fm-close-session');
         btn.disabled = true;
@@ -1551,7 +1743,9 @@
             var totalConso = 0, totalCout = 0;
             var updates = sessionRunes.map(function (sr) {
                 var rune = runesById[sr.rune_id] || { prix_kamas: 0 };
-                var fin = gridApres[sr.rune_id] !== undefined ? gridApres[sr.rune_id] : 0;
+                /* Garde-fou : une rune sans quantite de fin n'est jamais comptee comme consommee */
+                var lue = gridApres[sr.rune_id] !== undefined && gridApres[sr.rune_id] !== null;
+                var fin = lue ? gridApres[sr.rune_id] : dispoOf(sr);
                 var conso = Math.max(0, dispoOf(sr) - fin);
                 var cout = conso * (rune.prix_kamas || 0);
                 totalConso += conso;
@@ -1635,13 +1829,14 @@
         sessionRunes
             .slice()
             .sort(function (a, b) {
-                var ca = (gridApres[a.rune_id] !== undefined) ? (dispoOf(a) - gridApres[a.rune_id]) : 0;
-                var cb = (gridApres[b.rune_id] !== undefined) ? (dispoOf(b) - gridApres[b.rune_id]) : 0;
+                var ca = (gridApres[a.rune_id] !== undefined && gridApres[a.rune_id] !== null) ? (dispoOf(a) - gridApres[a.rune_id]) : 0;
+                var cb = (gridApres[b.rune_id] !== undefined && gridApres[b.rune_id] !== null) ? (dispoOf(b) - gridApres[b.rune_id]) : 0;
                 return cb - ca;
             })
             .forEach(function (sr) {
                 var rune = runesById[sr.rune_id] || { nom: '?', prix_kamas: 0 };
-                var fin = gridApres[sr.rune_id] !== undefined ? gridApres[sr.rune_id] : 0;
+                var lue = gridApres[sr.rune_id] !== undefined && gridApres[sr.rune_id] !== null;
+                var fin = lue ? gridApres[sr.rune_id] : dispoOf(sr);
                 var conso = Math.max(0, dispoOf(sr) - fin);
                 if (!conso) return;
                 html += '<tr>'
@@ -2122,7 +2317,7 @@
                     : fmt(r.prix_kamas || 0);
                 html += '<tr>'
                     + '<td>' + runeIconHtml(r) + '<strong class="notranslate">' + esc(r.nom) + '</strong></td>'
-                    + '<td>' + esc(r.categorie) + (r.tier !== 'basique' ? ' <span class="recyc-pill" style="font-size:0.6rem;">' + r.tier.toUpperCase() + '</span>' : '') + '</td>'
+                    + '<td>' + esc(r.categorie) + (r.tier !== 'basique' ? ' <span class="recyc-pill" style="font-size:0.6rem;"' + (/^(ta|pata|rata)$/.test(r.tier) ? ' title="Rune de transcendance : exo garanti, l\'item devient inforgeable"' : '') + '>' + r.tier.toUpperCase() + '</span>' : '') + '</td>'
                     + '<td class="recyc-num">+' + r.bonus + '</td>'
                     + '<td class="recyc-num">' + r.poids + '</td>'
                     + '<td class="recyc-num">' + prixCell + '</td>'

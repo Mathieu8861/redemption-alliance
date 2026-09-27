@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redemption - Forgemagie</title>
-    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261009">
+    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261010">
     <meta name="description" content="Site de l'alliance Redemption [RDM] : combats PvP, percepteurs, recyclages, forgemagie. L'heure de la rédemption.">
     <meta name="theme-color" content="#e07c0a">
     <meta property="og:type" content="website">
@@ -20,14 +20,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261009">
+    <link rel="stylesheet" href="style.css?v=20261010">
 </head>
 <body>
 
     <header class="header">
         <div class="header__inner">
             <div class="header__brand">
-                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261009" alt="Logo Redemption">
+                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261010" alt="Logo Redemption">
             </div>
 
             <div class="header__user">
@@ -77,7 +77,7 @@
                         <li><strong>Pendant la session</strong> — chaque achat HDV : colle la ligne du chat. Chaque concassage : déclare-le. Tout est sauvegardé automatiquement, tu peux fermer le site et revenir plus tard.</li>
                         <li><strong>Tentatives</strong> : à chaque essai pour passer un jet sur un gros pui (PA, PM, PO), clique sur le + du compteur 🎯 dans le bandeau de session. Le nombre est gardé avec la session et visible dans l'historique.</li>
                         <li><strong>Plusieurs items en même temps</strong> — « ⏸ Changer d'item » met la session de côté ; reprends-la quand tu veux depuis « Mes sessions ».</li>
-                        <li><strong>Clôture</strong> — colle le screen de fin : le site calcule les runes consommées et le coût total en kamas. C'est le prix réel de ton FM 💸</li>
+                        <li><strong>Clôture</strong> : colle le screen de fin, plusieurs si la liste dépasse l'écran. Chaque rune de la session doit être lue ou saisie : une lecture douteuse est signalée en jaune, une ligne manquante ou incohérente bloque la clôture. Le site calcule ensuite les runes consommées et le coût total en kamas, le prix réel de ton FM 💸</li>
                     </ol>
                 </details>
 
@@ -243,7 +243,7 @@
                                     <tr>
                                         <th>Rune</th>
                                         <th class="recyc-num">Dispo (départ + achats)</th>
-                                        <th class="recyc-num">Fin</th>
+                                        <th class="recyc-num">Fin (lue sur le screen)</th>
                                         <th class="recyc-num">Consommé</th>
                                         <th class="recyc-num">Coût (kamas)</th>
                                     </tr>
@@ -258,6 +258,8 @@
                                 </tfoot>
                             </table>
                         </div>
+                        <div class="fm-apres-etat" id="fm-apres-etat"></div>
+                        <div class="fm-apres-hors" id="fm-apres-hors" hidden></div>
 
                         <div class="fm-pui-banner mt-sm" id="fm-pui-apres" hidden></div>
 
@@ -428,7 +430,7 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20261009"></script>
-    <script src="js/fm.js?v=20261009"></script>
+    <script src="script.js?v=20261010"></script>
+    <script src="js/fm.js?v=20261010"></script>
 </body>
 </html>

@@ -9965,3 +9965,46 @@ body.app-has-sidebar {
     font-size: 1.2rem;
     color: var(--color-warning);
 }
+
+/* === FM : etats de la grille de cloture === */
+.fm-apres-fin-cell { white-space: nowrap; }
+.fm-apres-quick { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.fm-apres-quick__btn {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.fm-apres-quick__btn:hover { border-color: var(--color-accent); color: var(--color-accent-light); }
+.fm-apres-row--nonlue td { background: rgba(243, 156, 18, 0.10); }
+.fm-apres-row--nonlue .fm-apres-qty { border-color: var(--color-warning); }
+.fm-apres-row--nonlue .fm-apres-conso { color: var(--color-warning); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.fm-apres-row--depasse td { background: rgba(231, 76, 60, 0.12); }
+.fm-apres-row--depasse .fm-apres-qty { border-color: var(--color-danger); }
+.fm-apres-row--doute td { background: rgba(241, 196, 15, 0.08); }
+.fm-apres-row--doute .fm-apres-qty { border-color: #f1c40f; }
+.fm-apres-row--baisse .fm-apres-conso { color: #f1c40f; font-weight: 700; }
+.fm-apres-etat { display: flex; flex-direction: column; gap: 6px; margin-top: var(--spacing-sm); }
+.fm-apres-etat__ligne {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+}
+.fm-apres-etat__ligne--bloque { border-color: rgba(231, 76, 60, 0.5); }
+.fm-apres-etat__ligne--doute { border-color: rgba(241, 196, 15, 0.5); }
+.fm-apres-etat__ligne--ok { border-color: rgba(46, 204, 113, 0.5); }
+.fm-apres-hors {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+}
+.fm-apres-hors__title { font-size: 0.78rem; color: var(--color-text-secondary); margin-bottom: 6px; }
+.fm-apres-hors__row { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; font-size: 0.85rem; padding: 4px 0; }
+.fm-grid__row--doute { border-left: 3px solid #f1c40f; padding-left: 6px; border-radius: 3px; }

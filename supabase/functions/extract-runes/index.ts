@@ -1,16 +1,21 @@
 /* ============================================ */
-/* Edge Function : extract-runes                */
-/* Recoit un screenshot d'inventaire Dofus,     */
-/* appelle Claude vision, retourne les runes    */
-/* detectees avec leurs quantites.              */
+/* Edge Function : extract-runes (v2, 27/09/26) */
+/* Recoit un screenshot Dofus (Costumager,      */
+/* inventaire runes ou HDV), appelle Claude     */
+/* vision, retourne les runes et quantites.     */
 /*                                              */
-/* Deploiement :                                */
-/*   Dashboard Supabase > Edge Functions >      */
-/*   New function "extract-runes" > coller ce   */
-/*   code > Deploy.                             */
-/* Secret requis :                              */
-/*   Dashboard > Edge Functions > extract-runes */
-/*   > Secrets > ANTHROPIC_API_KEY              */
+/* v2 : modele Opus 5, double lecture comparee, */
+/* runes attendues + stocks envoyes en contexte */
+/* a la cloture, cellules douteuses signalees   */
+/* au lieu d'etre devinees, runes de            */
+/* transcendance (Ta / Pata / Rata).            */
+/*                                              */
+/* Deploiement (au choix) :                     */
+/*   npx supabase functions deploy extract-runes*/
+/*       --project-ref yebfbdgxikbnqdkbycam     */
+/*   ou Dashboard > Edge Functions >            */
+/*   extract-runes > coller ce fichier > Deploy */
+/* Secret requis : ANTHROPIC_API_KEY            */
 /* ============================================ */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -21,6 +26,8 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
+const MODEL = "claude-opus-5";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -28,6 +35,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+/* ====== DEBUT DES CONSTANTES PARTAGEES (testees hors Deno par scratchpad/vision-test) ====== */
 const RUNE_NAMES = `Rune Fo, Rune Pa Fo, Rune Ra Fo (Force)
 Rune Ine, Rune Pa Ine, Rune Ra Ine (Intelligence)
 Rune Cha, Rune Pa Cha, Rune Ra Cha (Chance)
@@ -54,13 +62,18 @@ Rune Ré Feu, Rune Pa Ré Feu, Rune Ra Ré Feu (et idem Eau / Air / Terre / Neut
 Rune Ré Per Feu, Rune Ré Per Eau, Rune Ré Per Air, Rune Ré Per Terre, Rune Ré Per Neutre (% résistances élémentaires)
 Rune Ré Per Mé (% résistance mêlée), Rune Ré Per Di (% résistance distance)
 Rune Ga Pa (PA), Rune Ga Pme (PM), Rune Po (Portée), Rune Invo (Invocation)
-Rune de chasse, Rune de Signature`;
+Rune de chasse, Rune de Signature
+
+RUNES DE TRANSCENDANCE (exo garanti, l'item devient inforgeable ; icône blanche argentée ; visibles dans l'inventaire et à l'HDV, JAMAIS comme cellule du Costumager) :
+Rune Ta + famille, pour : Age, Cha, Cri, Do Air, Do Cri, Do Eau, Do Feu, Do Neutre, Do Per Ar, Do Per Di, Do Per Mé, Do Per So, Do Pou, Do Terre, Fo, Fui, Ine, Ini, Pod, Pui, Ré Cri, Ré Pa, Ré Per Air, Ré Per Di, Ré Per Eau, Ré Per Feu, Ré Per Mé, Ré Per Neutre, Ré Per Terre, Ré Pme, Ré Pou, Ret Pa, Ret Pme, So, Tac, Vi (ex: "Rune Ta Ré Per Air")
+Rune Pata + famille, pour : Age, Cha, Cri, Do Air, Do Cri, Do Eau, Do Feu, Do Neutre, Do Pou, Do Terre, Fo, Fui, Ine, Ini, Pod, Pui, Ré Cri, Ré Pa, Ré Pme, Ré Pou, Ret Pa, Ret Pme, So, Tac, Vi
+Rune Rata + famille, pour : Age, Cha, Do Air, Do Eau, Do Feu, Do Neutre, Do Terre, Fo, Fui, Ine, Ini, Pod, Pui, Ré Pa, Ré Pme, Ret Pa, Ret Pme, So, Tac, Vi`;
 
 const SYSTEM_PROMPT = `Tu es un extracteur de données pour le jeu Dofus.
-On te donne un screenshot d'inventaire filtré sur les runes de forgemagie.
-Chaque cellule de la grille affiche une icône de rune avec sa quantité en haut à gauche.
+On te donne un screenshot d'inventaire filtré sur les runes de forgemagie, ou de la fenêtre Costumager.
+Chaque cellule affiche une icône de rune avec sa quantité en haut à gauche.
 
-Tu dois identifier chaque rune visible et sa quantité.
+Tu dois identifier chaque rune visible et sa quantité, chiffre par chiffre, sans jamais deviner.
 
 Les noms officiels des runes Dofus sont :
 ${RUNE_NAMES}
@@ -74,6 +87,8 @@ Sur CHAQUE LIGNE de stat, à droite, se trouvent jusqu'à 3 petites cellules con
 - cellule sous l'en-tête « Pa » = rune Pa
 - cellule sous l'en-tête « Ra » = rune Ra
 ALIGNEMENT CRITIQUE : repère la position horizontale de chaque cellule par rapport aux en-têtes de colonnes « Pa » et « Ra » en haut du tableau. Une ligne peut n'avoir que 1 ou 2 cellules — ne décale JAMAIS les attributions. En cas de doute sur la colonne d'une cellule, mets la famille dans "non_identifiees" plutôt que de deviner.
+Une ligne dont les colonnes Min et Max affichent « - » est une ligne d'exo (posée avec une rune de transcendance) : ses cellules sont des runes classiques de la famille, à lire normalement.
+La liste peut dépasser la fenêtre : le joueur envoie alors plusieurs screens, ne signale pas comme absentes les lignes qui ne sont simplement pas dans le cadre.
 
 Table de correspondance stat → famille de rune :
 - Vitalité → Vi · Force → Fo · Intelligence → Ine · Chance → Cha · Agilité → Age
@@ -94,6 +109,12 @@ Grille d'items organisée en 3 COLONNES par tier :
 - Colonne GAUCHE = runes basiques · colonne MILIEU = runes Pa · colonne DROITE = runes Ra
 Chaque LIGNE = une même famille (même icône de base). Cellule vide = pas de rune de ce tier.
 Certaines familles n'existent qu'en basique (Do, Cri, Ga Pa, Ga Pme, Po, Invo...) : colonne de gauche uniquement.
+Les runes de transcendance (icône blanche argentée) peuvent apparaître dans un inventaire non filtré : ne les confonds pas avec les runes classiques ; sans certitude sur leur nom exact, compte-les dans "non_identifiees".
+
+LECTURE DES QUANTITÉS (règle la plus importante) :
+- Un badge de quantité affiche un entier de 1 à 6 chiffres, sans espace. Lis-le chiffre par chiffre.
+- Si le badge est coupé par le bord de la cellule, masqué par l'icône, tronqué par le cadre du screen, flou, ou si tu hésites entre deux lectures (ex: 16 ou 161), NE DEVINE PAS : mets "qty": null pour cette rune et ajoute son nom dans "douteuses".
+- Ne complète jamais un nombre à partir de ce que tu attends : recopie ce qui est écrit.
 
 MÉTHODE OBLIGATOIRE (les deux formats) :
 1. Balaye ligne par ligne, de haut en bas.
@@ -110,16 +131,18 @@ Extrais CHAQUE ligne de stat de l'item dans "item_stats" :
 Pour le FORMAT B (inventaire), "item_stats" est un tableau vide.
 
 Réponds UNIQUEMENT avec un JSON valide de cette forme, sans markdown :
-{"runes": [{"nom": "Rune Fo", "qty": 184}, ...], "item_stats": [{"stat": "Vitalité", "actuel": 384, "min": 351, "max": 400}, ...], "non_identifiees": 2}
+{"runes": [{"nom": "Rune Fo", "qty": 184}, ...], "item_stats": [{"stat": "Vitalité", "actuel": 384, "min": 351, "max": 400}, ...], "non_identifiees": 2, "douteuses": ["Rune Ra Vi"], "absentes": []}
 
-- "qty" est le nombre affiché en haut à gauche de la cellule.
+- "qty" est le nombre affiché en haut à gauche de la cellule, ou null si illisible.
+- "douteuses" : noms des runes dont la quantité est incertaine (badge coupé, hésitation).
+- "absentes" : uniquement quand une liste de runes attendues t'est fournie, les runes attendues que tu ne trouves nulle part sur ce screen.
 - Si tu vois une cellule de rune mais ne peux pas l'identifier avec certitude, incrémente "non_identifiees" au lieu de deviner.
 - N'inclus PAS les items qui ne sont pas des runes de forgemagie (potions, ressources, équipements).`;
 
 const HDV_PROMPT = `Tu es un extracteur de prix pour le jeu Dofus.
-On te donne un screenshot de l'Hôtel de Vente (HDV) affichant des runes de forgemagie avec leurs prix en kamas.
+On te donne un screenshot de l'Hôtel de Vente (HDV) affichant des runes de forgemagie ou de transcendance avec leurs prix en kamas.
 
-Chaque ligne visible affiche : l'icône de la rune, son nom (ex: "Rune Ine"), et un ou plusieurs prix en kamas.
+Chaque ligne visible affiche : l'icône de la rune, son nom (ex: "Rune Ine", "Rune Ta Ré Per Air"), et un ou plusieurs prix en kamas.
 - Si plusieurs prix sont affichés pour une même rune (lots x1 / x10 / x100), prends le prix UNITAIRE (lot x1).
 - Si un seul "prix moyen" est visible, prends celui-là.
 - Les prix peuvent contenir des espaces comme séparateurs de milliers (ex: "1 592") : renvoie un entier sans espaces.
@@ -130,7 +153,7 @@ ${RUNE_NAMES}
 MÉTHODE :
 1. Balaye chaque ligne visible de haut en bas.
 2. Associe chaque nom lu au nom officiel EXACT de la liste ci-dessus (avec ses accents).
-3. Ignore tout ce qui n'est pas une rune de forgemagie (potions, ressources, équipements).
+3. Ignore tout ce qui n'est pas une rune de forgemagie ou de transcendance (potions, ressources, équipements).
 4. Ne devine JAMAIS un prix illisible ou partiellement masqué.
 
 Réponds UNIQUEMENT avec un JSON valide de cette forme, sans markdown :
@@ -138,130 +161,186 @@ Réponds UNIQUEMENT avec un JSON valide de cette forme, sans markdown :
 - "prix" : entier en kamas.
 - Si une ligne est illisible ou douteuse, incrémente "non_identifiees" au lieu de deviner.`;
 
+/* Message utilisateur : consigne + runes attendues (cloture) */
+function messageUtilisateur(mode: string, attendues: Array<{ nom: string; qty: number }>): string {
+  if (mode === "hdv_prices") return "Extrais les noms et prix des runes de ce screenshot d'HDV.";
+  let txt = "Extrais les runes et quantités de ce screenshot.";
+  if (attendues && attendues.length) {
+    txt += "\n\nRUNES DE LA SESSION À RETROUVER, avec le stock connu avant ce screen (départ + achats) :\n"
+      + attendues.map((a) => "- " + a.nom + " : stock connu " + a.qty).join("\n")
+      + "\n\nRègles : le stock lu sur le screen est presque toujours inférieur ou égal au stock connu (des runes ont été consommées). "
+      + "Si tu lis un nombre nettement supérieur au stock connu (ex: 161 alors que le stock connu est 37), relis le badge chiffre par chiffre : un chiffre est probablement coupé. "
+      + "Si tu ne peux pas trancher, mets qty à null et le nom dans \"douteuses\". "
+      + "Ne recopie JAMAIS le stock connu à la place de ce que tu lis. "
+      + "Liste dans \"absentes\" les runes attendues que tu ne vois nulle part sur ce screen.";
+  }
+  return txt;
+}
+
+/* Fusion de deux lectures independantes du meme screen.
+   - qty identique dans les deux : retenue
+   - une seule lecture a une valeur : retenue, rune douteuse
+   - valeurs differentes : celle qui respecte le stock connu si une seule le fait,
+     sinon la plus grande (la moins pénalisante en coût), rune douteuse */
+function fusionnerLectures(a: any, b: any, attendues: Array<{ nom: string; qty: number }>) {
+  const stock: Record<string, number> = {};
+  (attendues || []).forEach((x) => { stock[x.nom.toLowerCase()] = x.qty; });
+  const parNom = (r: any) => {
+    const m: Record<string, { nom: string; qty: number | null }> = {};
+    (r?.runes || []).forEach((x: any) => {
+      if (!x || !x.nom) return;
+      const q = (x.qty === null || x.qty === undefined || x.qty === "") ? null : Number(x.qty);
+      m[String(x.nom).toLowerCase()] = { nom: String(x.nom), qty: Number.isFinite(q as number) ? (q as number) : null };
+    });
+    return m;
+  };
+  const ma = parNom(a), mb = parNom(b);
+  const douteuses = new Set<string>([...(a?.douteuses || []), ...(b?.douteuses || [])].map((s) => String(s)));
+  const runes: Array<{ nom: string; qty: number | null }> = [];
+  let desaccords = 0;
+  const noms = new Set<string>([...Object.keys(ma), ...Object.keys(mb)]);
+  noms.forEach((k) => {
+    const x = ma[k], y = mb[k];
+    if (x && y) {
+      if (x.qty === y.qty) { runes.push({ nom: x.nom, qty: x.qty }); return; }
+      desaccords++;
+      douteuses.add(x.nom);
+      if (x.qty === null) { runes.push({ nom: x.nom, qty: y.qty }); return; }
+      if (y.qty === null) { runes.push({ nom: x.nom, qty: x.qty }); return; }
+      const s = stock[k];
+      let choix = Math.max(x.qty, y.qty);
+      if (s !== undefined) {
+        const okX = x.qty <= s, okY = y.qty <= s;
+        if (okX && !okY) choix = x.qty;
+        else if (okY && !okX) choix = y.qty;
+      }
+      runes.push({ nom: x.nom, qty: choix });
+    } else {
+      const seul = x || y;
+      desaccords++;
+      douteuses.add(seul.nom);
+      runes.push({ nom: seul.nom, qty: seul.qty });
+    }
+  });
+  const statsA = a?.item_stats || [], statsB = b?.item_stats || [];
+  const absentes = new Set<string>([...(a?.absentes || []), ...(b?.absentes || [])].map((s) => String(s)));
+  /* une rune lue par une des deux lectures n'est pas absente */
+  runes.forEach((r) => { absentes.forEach((n) => { if (n.toLowerCase() === r.nom.toLowerCase()) absentes.delete(n); }); });
+  return {
+    runes,
+    item_stats: statsA.length >= statsB.length ? statsA : statsB,
+    non_identifiees: Math.max(Number(a?.non_identifiees) || 0, Number(b?.non_identifiees) || 0),
+    douteuses: Array.from(douteuses),
+    absentes: Array.from(absentes),
+    lectures: 2,
+    desaccords,
+  };
+}
+
+/* Extrait le JSON de la reponse du modele, meme entoure de texte ou de markdown */
+function parseReponse(text: string) {
+  const cleaned = text.replace(/```json|```/g, "").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  return JSON.parse(match ? match[0] : cleaned);
+}
+/* ====== FIN DES CONSTANTES PARTAGEES ====== */
+
+async function lireImage(image: string, media_type: string, system: string, texte: string) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY as string,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 4096,
+      system,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: media_type || "image/png", data: image } },
+          { type: "text", text: texte },
+        ],
+      }],
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    const e: any = new Error("Erreur API vision");
+    e.detail = errText;
+    throw e;
+  }
+  const data = await res.json();
+  /* premier bloc texte de la reponse (jamais supposer que c'est le bloc 0) */
+  const bloc = (data?.content || []).find((b: any) => b && b.type === "text");
+  const text = bloc?.text ?? "";
+  try {
+    return parseReponse(text);
+  } catch (_e) {
+    console.error("[extract-runes] JSON parse fail:", text);
+    const e: any = new Error("Réponse vision illisible");
+    e.raw = text;
+    throw e;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY non configurée" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    if (!ANTHROPIC_API_KEY) return json({ error: "ANTHROPIC_API_KEY non configurée" }, 500);
 
     /* ====== SÉCURITÉ : réservé aux membres validés ====== */
-    /* L'anon key seule ne suffit pas : il faut le JWT d'un  */
-    /* utilisateur connecté ET validé par un admin.          */
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Authentification requise" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_validated")
-      .eq("id", user.id)
-      .single();
-    if (!profile || !profile.is_validated) {
-      return new Response(
-        JSON.stringify({ error: "Compte non validé" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    if (authError || !user) return json({ error: "Authentification requise" }, 401);
+    const { data: profile } = await supabase.from("profiles").select("is_validated").eq("id", user.id).single();
+    if (!profile || !profile.is_validated) return json({ error: "Compte non validé" }, 403);
     /* ===================================================== */
 
-    const { image, media_type, mode } = await req.json();
-    if (!image) {
-      return new Response(
-        JSON.stringify({ error: "Champ 'image' (base64) requis" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const { image, media_type, mode, attendues, double } = await req.json();
+    if (!image) return json({ error: "Champ 'image' (base64) requis" }, 400);
 
-    /* Deux modes : "inventory" (defaut, quantites) ou "hdv_prices" (prix HDV) */
     const isHdv = mode === "hdv_prices";
+    const system = isHdv ? HDV_PROMPT : SYSTEM_PROMPT;
+    const liste = Array.isArray(attendues)
+      ? attendues.filter((a: any) => a && a.nom).map((a: any) => ({ nom: String(a.nom), qty: Number(a.qty) || 0 })).slice(0, 200)
+      : [];
+    const texte = messageUtilisateur(isHdv ? "hdv_prices" : "inventory", liste);
 
-    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4096,
-        system: isHdv ? HDV_PROMPT : SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: media_type || "image/png",
-                  data: image,
-                },
-              },
-              {
-                type: "text",
-                text: isHdv
-                  ? "Extrais les noms et prix des runes de ce screenshot d'HDV."
-                  : "Extrais les runes et quantités de cet inventaire.",
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicRes.ok) {
-      const errText = await anthropicRes.text();
-      console.error("[extract-runes] Anthropic error:", errText);
-      return new Response(
-        JSON.stringify({ error: "Erreur API vision", detail: errText }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    /* Double lecture comparee pour les quantites (pas pour l'HDV) */
+    const deuxLectures = !isHdv && double !== false;
+    if (!deuxLectures) {
+      const r = await lireImage(image, media_type, system, texte);
+      return json({ ...r, lectures: 1, desaccords: 0, douteuses: r.douteuses || [], absentes: r.absentes || [] });
     }
 
-    const data = await anthropicRes.json();
-    const text = data?.content?.[0]?.text ?? "";
-
-    /* Parse le JSON renvoyé par le modèle.                              */
-    /* Robuste : extrait le bloc {...} même si le modèle ajoute du texte */
-    /* explicatif avant/après ou un wrapping markdown.                   */
-    let parsed;
-    try {
-      const cleaned = text.replace(/```json|```/g, "").trim();
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(match ? match[0] : cleaned);
-    } catch (_e) {
-      console.error("[extract-runes] JSON parse fail:", text);
-      return new Response(
-        JSON.stringify({ error: "Réponse vision illisible", raw: text }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const [ra, rb] = await Promise.allSettled([
+      lireImage(image, media_type, system, texte),
+      lireImage(image, media_type, system, texte),
+    ]);
+    if (ra.status === "fulfilled" && rb.status === "fulfilled") {
+      return json(fusionnerLectures(ra.value, rb.value, liste));
     }
-
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const ok = ra.status === "fulfilled" ? ra.value : (rb.status === "fulfilled" ? rb.value : null);
+    if (ok) {
+      console.warn("[extract-runes] une des deux lectures a échoué, résultat simple");
+      return json({ ...ok, lectures: 1, desaccords: 0, douteuses: ok.douteuses || [], absentes: ok.absentes || [] });
+    }
+    const err: any = ra.status === "rejected" ? ra.reason : (rb as PromiseRejectedResult).reason;
+    console.error("[extract-runes] vision:", err?.detail || err?.raw || err?.message);
+    return json({ error: err?.message || "Erreur API vision", detail: err?.detail, raw: err?.raw }, 502);
   } catch (err) {
     console.error("[extract-runes] Fatal:", err);
-    return new Response(
-      JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json({ error: String(err) }, 500);
   }
 });
