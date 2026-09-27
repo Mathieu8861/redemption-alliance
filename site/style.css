@@ -8482,15 +8482,18 @@ table {
 
 /* Grille de saisie rune + qty (extraction corrigeable) */
 .fm-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
+    /* Stock de depart en colonnes : le chiffre reste colle au nom de la rune,
+       moins de vide et moins de defilement (retour Mathieu 27/09) */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--spacing-xs) var(--spacing-md);
 }
 .fm-grid__row {
     display: grid;
-    grid-template-columns: 1fr 110px 34px;
-    gap: var(--spacing-sm);
+    grid-template-columns: minmax(0, 1fr) 100px 30px;
+    gap: var(--spacing-xs);
     align-items: center;
+    min-width: 0;
 }
 .fm-grid__qty,
 .fm-grid__prix {
