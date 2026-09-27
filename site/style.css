@@ -10007,7 +10007,14 @@ body.app-has-sidebar {
 }
 .fm-apres-hors__title { font-size: 0.78rem; color: var(--color-text-secondary); margin-bottom: 6px; }
 .fm-apres-hors__row { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; font-size: 0.85rem; padding: 4px 0; }
-.fm-grid__row--doute { border-left: 3px solid #f1c40f; padding-left: 6px; border-radius: 3px; }
+.fm-grid__row--doute {
+    border-left: 3px solid var(--color-danger);
+    background: rgba(231, 76, 60, 0.10);
+    padding-left: 6px;
+    border-radius: 3px;
+}
+.fm-grid__row--doute .fm-grid__qty { border-color: var(--color-danger); }
+.fm-grid__row--doute .fm-grid__qty::placeholder { color: var(--color-danger); opacity: 0.9; font-weight: 600; }
 
 /* === FM : carte de cloture en pleine largeur (sous les deux colonnes) === */
 #fm-cloture .recyc-preuve__preview img {

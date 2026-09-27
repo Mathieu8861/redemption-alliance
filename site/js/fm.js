@@ -491,7 +491,7 @@
             var rune = matchRune(r.nom);
             if (rune) {
                 var illisible = r.qty === null || r.qty === undefined || r.qty === '';
-                var qty = illisible ? 0 : (parseInt(r.qty, 10) || 0);
+                var qty = illisible ? null : (parseInt(r.qty, 10) || 0);
                 var existing = gridAvant.find(function (g) { return g.runeId === rune.id; });
                 if (existing) existing.qty = qty;
                 else gridAvant.push({ runeId: rune.id, qty: qty });
@@ -593,10 +593,11 @@
         var grid = document.getElementById('fm-grid-avant');
         var html = '';
         gridAvant.forEach(function (row, i) {
-            var doute = row.runeId && avantDoutes[row.runeId];
+            var vide = row.qty === null || row.qty === undefined;
+            var doute = (row.runeId && avantDoutes[row.runeId]) || vide;
             html += '<div class="fm-grid__row' + (doute ? ' fm-grid__row--doute' : '') + '" data-index="' + i + '"' + (doute ? ' title="Lecture incertaine : vérifie cette quantité sur ton screen"' : '') + '>'
                 + runeAutocompleteHtml(row.runeId)
-                + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (row.qty || 0) + '" placeholder="Qté">'
+                + '<input type="number" class="form-input fm-grid__qty" min="0" value="' + (vide ? '' : (row.qty || 0)) + '" placeholder="' + (doute ? 'à lire' : 'Qté') + '">'
                 + '<button type="button" class="recyc-history__del fm-grid__del" title="Retirer">'
                     + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
                 + '</button>'
@@ -614,13 +615,15 @@
                 updateStartButton();
             });
             rowEl.querySelector('.fm-grid__qty').addEventListener('input', function () {
-                gridAvant[idx].qty = parseInt(this.value, 10) || 0;
+                gridAvant[idx].qty = this.value.trim() === '' ? null : (parseInt(this.value, 10) || 0);
                 /* corrigee a la main : plus de doute */
-                if (avantDoutes[gridAvant[idx].runeId]) {
-                    delete avantDoutes[gridAvant[idx].runeId];
+                if (avantDoutes[gridAvant[idx].runeId]) delete avantDoutes[gridAvant[idx].runeId];
+                if (gridAvant[idx].qty !== null) {
                     rowEl.classList.remove('fm-grid__row--doute');
                     rowEl.removeAttribute('title');
+                    this.placeholder = 'Qté';
                 }
+                renderAvantEtat();
             });
             rowEl.querySelector('.fm-grid__del').addEventListener('click', function () {
                 gridAvant.splice(idx, 1);
@@ -628,6 +631,22 @@
                 updateStartButton();
             });
         });
+        renderAvantEtat();
+    }
+
+    /* Lignes du stock de depart a verifier : lecture incertaine ou case vide */
+    function lignesAvantAVerifier() {
+        return gridAvant.filter(function (r) { return r.runeId && (avantDoutes[r.runeId] || r.qty === null || r.qty === undefined); })
+            .map(function (r) { return (runesById[r.runeId] || {}).nom || '?'; });
+    }
+
+    function renderAvantEtat() {
+        var etat = document.getElementById('fm-grid-avant-etat');
+        if (!etat) return;
+        var noms = lignesAvantAVerifier();
+        etat.innerHTML = noms.length
+            ? '<div class="fm-apres-etat__ligne fm-apres-etat__ligne--bloque">🔴 ' + noms.length + ' ligne' + (noms.length > 1 ? 's' : '') + ' à vérifier sur ton screen : <strong class="notranslate">' + window.REN.escapeHtml(noms.join(', ')) + '</strong>. Corrige la quantité avant de démarrer, une case vide vaut 0.</div>'
+            : '';
     }
 
     function updateStartButton() {
@@ -641,6 +660,17 @@
 
         var rows = gridAvant.filter(function (r) { return r.runeId; });
         if (!rows.length) { window.REN.toast('Aucune rune dans le stock de départ', 'error'); return; }
+
+        /* Lignes encore a verifier : on previent avant de figer le stock de depart */
+        var aVerifier = lignesAvantAVerifier();
+        if (aVerifier.length) {
+            var ok = confirm(aVerifier.length + ' ligne' + (aVerifier.length > 1 ? 's' : '') + ' du stock de départ reste' + (aVerifier.length > 1 ? 'nt' : '') + ' à vérifier sur ton screen :\n\n' + aVerifier.join('\n') + '\n\nUne case vide sera enregistrée à 0. Démarrer quand même ?');
+            if (!ok) {
+                var premiere = document.querySelector('#fm-grid-avant .fm-grid__row--doute .fm-grid__qty');
+                if (premiere) { premiere.scrollIntoView({ block: 'center', behavior: 'smooth' }); premiere.focus(); }
+                return;
+            }
+        }
 
         /* dedup par rune (somme des qty si doublon) */
         var byRune = {};
