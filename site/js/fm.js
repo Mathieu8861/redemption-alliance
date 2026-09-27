@@ -254,9 +254,10 @@
        au modele : il relit les badges incoherents et signale ce qu'il ne voit pas. */
     async function extractRunesFromImage(file, options) {
         var img = await fileToCompressedBase64(file);
-        var body = { image: img.base64, media_type: img.mediaType };
+        var body = { image: img.base64, media_type: img.mediaType, largeur: img.w, hauteur: img.h };
         if (options && options.mode) body.mode = options.mode;
         if (options && options.attendues && options.attendues.length) body.attendues = options.attendues;
+        if (options && options.reference) body.reference = options.reference;
         var { data, error } = await window.REN.supabase.functions.invoke('extract-runes', { body: body });
         if (error) {
             /* Tenter de récupérer le détail renvoyé par la fonction (FunctionsHttpError) */
@@ -286,6 +287,8 @@
        d'environ 900 px) est AGRANDI jusqu'a x2 pour que les chiffres des
        badges restent nets, un grand screen est reduit. PNG sans perte tant
        que ca tient sous ~3,5 Mo en base64, sinon JPEG de haute qualite. */
+    var lastPrepared = null; /* { canvas, w, h } : derniere image telle qu'envoyee, pour les decoupes du zoom */
+
     function fileToCompressedBase64(file) {
         return new Promise(function (resolve, reject) {
             var url = URL.createObjectURL(file);
@@ -311,9 +314,12 @@
                         mediaType = 'image/jpeg';
                     }
                     URL.revokeObjectURL(url);
+                    lastPrepared = { canvas: canvas, w: w, h: h };
                     resolve({
                         base64: dataUrl.substring(dataUrl.indexOf(',') + 1),
-                        mediaType: mediaType
+                        mediaType: mediaType,
+                        w: w,
+                        h: h
                     });
                 } catch (e) {
                     URL.revokeObjectURL(url);
@@ -326,6 +332,82 @@
             };
             img.src = url;
         });
+    }
+
+    /* ============================================ */
+    /* RELECTURE ZOOMEE DES CELLULES DOUTEUSES       */
+    /* ============================================ */
+    /* Le lecteur renvoie le centre (x, y) de chaque cellule dans l'image
+       envoyee. Pour chaque rune douteuse on decoupe une fenetre 320 x 80
+       autour, agrandie x4, avec un cadre rouge sur la cellule visee, et on
+       fait relire ces decoupes seules (deux lectures comparees cote serveur). */
+    var TIER_LABEL = { basique: 'basique (1re cellule)', pa: 'Pa (2e cellule)', ra: 'Ra (3e cellule)', ta: 'transcendance', pata: 'transcendance Pa', rata: 'transcendance Ra' };
+
+    function decouperCellule(x, y) {
+        var p = lastPrepared;
+        if (!p || !p.canvas) return null;
+        var W = 320, H = 80, S = 4;
+        var sx = Math.max(0, Math.min(p.w - W, Math.round(x - W / 2)));
+        var sy = Math.max(0, Math.min(p.h - H, Math.round(y - H / 2)));
+        var cw = Math.min(W, p.w - sx), ch = Math.min(H, p.h - sy);
+        if (cw < 20 || ch < 20) return null;
+        var c = document.createElement('canvas');
+        c.width = cw * S;
+        c.height = ch * S;
+        var ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(p.canvas, sx, sy, cw, ch, 0, 0, cw * S, ch * S);
+        ctx.strokeStyle = '#ff3b3b';
+        ctx.lineWidth = 3;
+        ctx.strokeRect((x - sx - 46) * S, (y - sy - 28) * S, 92 * S, 56 * S);
+        var url = c.toDataURL('image/png');
+        return { image: url.substring(url.indexOf(',') + 1), media_type: 'image/png' };
+    }
+
+    /* Cibles : runes de la lecture jugees douteuses (ou lues vides) qui ont des
+       coordonnees et qu'on sait rattacher au catalogue. */
+    function ciblesZoom(result, estDouteuse, stockDe) {
+        var doutes = {};
+        (result.douteuses || []).forEach(function (n) { doutes[norm(n)] = true; });
+        var cibles = [];
+        (result.runes || []).forEach(function (r) {
+            var rune = matchRune(r.nom);
+            if (!rune) return;
+            var vide = r.qty === null || r.qty === undefined || r.qty === '';
+            if (!(vide || doutes[norm(r.nom)] || estDouteuse(rune.id))) return;
+            if (!(Number(r.x) > 0 && Number(r.y) > 0)) return;
+            var crop = decouperCellule(Number(r.x), Number(r.y));
+            if (!crop) return;
+            var stock = stockDe ? stockDe(rune.id) : null;
+            cibles.push({
+                runeId: rune.id, nom: rune.nom, cellule: TIER_LABEL[rune.tier] || rune.tier,
+                stock: stock, candidats: (r.candidats || (vide ? [] : [r.qty])).filter(function (v) { return v !== null && v !== undefined; }),
+                image: crop.image, media_type: crop.media_type
+            });
+        });
+        return cibles.slice(0, 12);
+    }
+
+    /* Appelle la fonction en mode zoom, renvoie { runeId: qty|null } */
+    async function relireZoom(cibles) {
+        var body = { mode: 'zoom', crops: cibles.map(function (c) { return { nom: c.nom, cellule: c.cellule, stock: c.stock, candidats: c.candidats, image: c.image, media_type: c.media_type }; }) };
+        var { data, error } = await window.REN.supabase.functions.invoke('extract-runes', { body: body });
+        if (error || !data || data.error) throw new Error((data && data.error) || (error && error.message) || 'Relecture zoomée impossible');
+        var out = {};
+        (data.lectures || []).forEach(function (l) {
+            var c = cibles[Number(l.i) - 1];
+            if (!c) return;
+            out[c.runeId] = (l.qty === null || l.qty === undefined) ? null : Number(l.qty);
+        });
+        return out;
+    }
+
+    function ajouterInfo(infoId, texte) {
+        var info = document.getElementById(infoId);
+        if (!info) return;
+        var cur = info.textContent.replace(/^\(|\)$/g, '');
+        info.textContent = '(' + (cur ? cur + ' · ' : '') + texte + ')';
     }
 
     async function uploadScreen(file, suffix) {
@@ -436,13 +518,15 @@
             'fm-screen-avant-status', 'fm-screen-avant-remove',
             async function (file, setStatus) {
                 try {
-                    var result = await extractRunesFromImage(file, { mode: 'inventory' });
+                    var repere = await stockDerniereSession();
+                    var result = await extractRunesFromImage(file, { mode: 'inventory', attendues: repere, reference: 'precedente' });
                     pendingAvantFile = file;
                     /* Poids de l'item depuis les stats du Costumager (si présentes) */
                     var pui = computeItemPui(result.item_stats);
                     if (pui) pendingItemPui = pui;
                     renderPuiBanner('fm-pui-avant', pendingItemPui);
                     fillGridAvant(result);
+                    await zoomAvant(result, setStatus);
                     setStatus('Analysé ✓', 'recyc-preuve__status--ok');
                 } catch (err) {
                     console.error('[REN-FM] Extraction avant:', err);
@@ -483,6 +567,44 @@
     /* - rune nouvelle -> ajoutee                                         */
     /* Permet de coller plusieurs screens si l'inventaire scroll.         */
     var avantDoutes = {};      /* runeId -> true : quantite de depart a verifier (lecture incertaine) */
+
+    /* Stock de fin de la derniere session terminee du joueur : simple repere
+       envoye au lecteur pour le screen de depart (pas une verite). */
+    var repereCache = null;
+    async function stockDerniereSession() {
+        if (repereCache) return repereCache;
+        try {
+            var { data: s } = await window.REN.supabase.from('fm_sessions').select('id')
+                .eq('user_id', userId).eq('statut', 'terminee').order('ended_at', { ascending: false }).limit(1).maybeSingle();
+            if (!s) { repereCache = []; return repereCache; }
+            var { data: rows } = await window.REN.supabase.from('fm_session_runes').select('rune_id, qty_apres').eq('session_id', s.id);
+            repereCache = (rows || []).filter(function (r) { return r.qty_apres !== null && r.qty_apres !== undefined && runesById[r.rune_id]; })
+                .map(function (r) { return { nom: runesById[r.rune_id].nom, qty: r.qty_apres }; });
+        } catch (e) { repereCache = []; }
+        return repereCache;
+    }
+
+    /* Relecture zoomee des lignes douteuses du stock de depart */
+    async function zoomAvant(result, setStatus) {
+        var cibles = ciblesZoom(result, function (id) { return !!avantDoutes[id]; }, null);
+        if (!cibles.length) return;
+        try {
+            setStatus('Relecture zoomée de ' + cibles.length + ' case' + (cibles.length > 1 ? 's' : '') + '…', 'recyc-preuve__status--loading');
+            var lus = await relireZoom(cibles);
+            var confirmees = 0, restantes = 0;
+            cibles.forEach(function (c) {
+                var q = lus[c.runeId];
+                var row = gridAvant.find(function (g) { return g.runeId === c.runeId; });
+                if (q !== null && q !== undefined && row) { row.qty = q; delete avantDoutes[c.runeId]; confirmees++; }
+                else restantes++;
+            });
+            renderGridAvant();
+            ajouterInfo('fm-grid-avant-info', 'relecture zoomée : ' + confirmees + ' confirmée' + (confirmees > 1 ? 's' : '') + (restantes ? ', ' + restantes + ' toujours à vérifier' : ''));
+        } catch (err) {
+            console.warn('[REN-FM] Relecture zoomée (départ) :', err);
+            ajouterInfo('fm-grid-avant-info', 'relecture zoomée indisponible');
+        }
+    }
     function fillGridAvant(result) {
         var unmatched = 0;
         var doutesNoms = {};
@@ -506,8 +628,7 @@
         if (result.lectures === 2) bits.push(result.desaccords ? '2 lectures, ' + result.desaccords + ' désaccord(s)' : '2 lectures concordantes');
         if (result.non_identifiees) bits.push(result.non_identifiees + ' cellule(s) non identifiée(s) par l\'IA');
         if (unmatched) bits.push(unmatched + ' rune(s) hors catalogue ignorée(s)');
-        var aVerifier = Object.keys(avantDoutes).map(function (id) { return (runesById[id] || {}).nom; }).filter(Boolean);
-        if (aVerifier.length) bits.push('à vérifier sur ton screen : ' + aVerifier.join(', '));
+        /* la liste des lignes a verifier est dans le bloc rouge sous la grille */
         info.textContent = bits.length ? '(' + bits.join(' · ') + ')' : '';
 
         document.getElementById('fm-grid-avant-wrap').removeAttribute('hidden');
@@ -1401,6 +1522,7 @@
                     if (pui) pendingApresPui = pui;
                     renderPuiBanner('fm-pui-apres', pendingApresPui);
                     fillGridApres(result);
+                    await zoomApres(result, setStatus);
                     setStatus('Analysé ✓', 'recyc-preuve__status--ok');
                 } catch (err) {
                     console.error('[REN-FM] Extraction apres:', err);
@@ -1503,6 +1625,32 @@
 
     var apresDoutes = {};       /* runeId -> true : quantite de fin a verifier (lecture incertaine ou desaccord) */
     var apresHorsSession = {};  /* runeId -> qty : runes lues sur le screen de fin mais absentes de la session */
+
+    /* Relecture zoomee des lignes douteuses de la cloture */
+    async function zoomApres(result, setStatus) {
+        var stockDe = function (id) {
+            var sr = sessionRunes.find(function (s) { return s.rune_id === id; });
+            return sr ? dispoOf(sr) : null;
+        };
+        var cibles = ciblesZoom(result, function (id) { return !!apresDoutes[id]; }, stockDe)
+            .filter(function (c) { return sessionRunes.some(function (s) { return s.rune_id === c.runeId; }); });
+        if (!cibles.length) return;
+        try {
+            setStatus('Relecture zoomée de ' + cibles.length + ' case' + (cibles.length > 1 ? 's' : '') + '…', 'recyc-preuve__status--loading');
+            var lus = await relireZoom(cibles);
+            var confirmees = 0, restantes = 0;
+            cibles.forEach(function (c) {
+                var q = lus[c.runeId];
+                if (q !== null && q !== undefined) { gridApres[c.runeId] = q; delete apresDoutes[c.runeId]; confirmees++; }
+                else restantes++;
+            });
+            renderGridApres();
+            ajouterInfo('fm-grid-apres-info', 'relecture zoomée : ' + confirmees + ' confirmée' + (confirmees > 1 ? 's' : '') + (restantes ? ', ' + restantes + ' toujours à vérifier' : ''));
+        } catch (err) {
+            console.warn('[REN-FM] Relecture zoomée (clôture) :', err);
+            ajouterInfo('fm-grid-apres-info', 'relecture zoomée indisponible');
+        }
+    }
 
     /* Merge (multi-screens supportes, comme la grille avant). Une rune de la
        session qui n'est lue sur aucun screen reste NON LUE : jamais 0 par

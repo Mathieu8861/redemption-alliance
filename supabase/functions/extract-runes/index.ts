@@ -9,6 +9,10 @@
 /* a la cloture, cellules douteuses signalees   */
 /* au lieu d'etre devinees, runes de            */
 /* transcendance (Ta / Pata / Rata).            */
+/* v2.1 : position (x, y) de chaque cellule,    */
+/* mode "zoom" (relecture de decoupes agrandies */
+/* des cellules douteuses), repere = stock de   */
+/* fin de la session precedente au depart.      */
 /*                                              */
 /* Deploiement (au choix) :                     */
 /*   npx supabase functions deploy extract-runes*/
@@ -131,9 +135,11 @@ Extrais CHAQUE ligne de stat de l'item dans "item_stats" :
 Pour le FORMAT B (inventaire), "item_stats" est un tableau vide.
 
 Réponds UNIQUEMENT avec un JSON valide de cette forme, sans markdown :
-{"runes": [{"nom": "Rune Fo", "qty": 184}, ...], "item_stats": [{"stat": "Vitalité", "actuel": 384, "min": 351, "max": 400}, ...], "non_identifiees": 2, "douteuses": ["Rune Ra Vi"], "absentes": []}
+{"format": "A", "runes": [{"nom": "Rune Fo", "qty": 184, "x": 812, "y": 143}, ...], "item_stats": [{"stat": "Vitalité", "actuel": 384, "min": 351, "max": 400}, ...], "non_identifiees": 2, "douteuses": ["Rune Ra Vi"], "absentes": []}
 
+- "format" : "A" pour la fenêtre Costumager, "B" pour l'inventaire.
 - "qty" est le nombre affiché en haut à gauche de la cellule, ou null si illisible.
+- "x" et "y" : centre de la cellule de quantité de cette rune, en pixels dans l'image telle que tu la reçois (origine en haut à gauche, dimensions données dans le message). Donne-les pour TOUTES les runes, au mieux de ta précision : ils servent à relire en zoom les cellules douteuses.
 - "douteuses" : noms des runes dont la quantité est incertaine (badge coupé, hésitation).
 - "absentes" : uniquement quand une liste de runes attendues t'est fournie, les runes attendues que tu ne trouves nulle part sur ce screen.
 - Si tu vois une cellule de rune mais ne peux pas l'identifier avec certitude, incrémente "non_identifiees" au lieu de deviner.
@@ -161,18 +167,27 @@ Réponds UNIQUEMENT avec un JSON valide de cette forme, sans markdown :
 - "prix" : entier en kamas.
 - Si une ligne est illisible ou douteuse, incrémente "non_identifiees" au lieu de deviner.`;
 
-/* Message utilisateur : consigne + runes attendues (cloture) */
-function messageUtilisateur(mode: string, attendues: Array<{ nom: string; qty: number }>): string {
+/* Message utilisateur : consigne, dimensions de l'image, runes attendues.
+   reference = "precedente" : les quantites sont le stock de fin de la derniere
+   session (simple repere), sinon c'est le stock connu de la session en cours. */
+function messageUtilisateur(mode: string, attendues: Array<{ nom: string; qty: number }>, dims?: { w: number; h: number } | null, reference?: string): string {
   if (mode === "hdv_prices") return "Extrais les noms et prix des runes de ce screenshot d'HDV.";
   let txt = "Extrais les runes et quantités de ce screenshot.";
+  if (dims && dims.w && dims.h) txt += " L'image fait " + dims.w + " × " + dims.h + " pixels : les coordonnées x et y se donnent dans ce repère.";
   if (attendues && attendues.length) {
-    txt += "\n\nRUNES DE LA SESSION À RETROUVER, avec le stock connu avant ce screen (départ + achats) :\n"
-      + attendues.map((a) => "- " + a.nom + " : stock connu " + a.qty).join("\n")
-      + "\n\nRègles : le stock lu sur le screen est presque toujours inférieur ou égal au stock connu (des runes ont été consommées). "
-      + "Si tu lis un nombre nettement supérieur au stock connu (ex: 161 alors que le stock connu est 37), relis le badge chiffre par chiffre : un chiffre est probablement coupé. "
-      + "Si tu ne peux pas trancher, mets qty à null et le nom dans \"douteuses\". "
-      + "Ne recopie JAMAIS le stock connu à la place de ce que tu lis. "
-      + "Liste dans \"absentes\" les runes attendues que tu ne vois nulle part sur ce screen.";
+    if (reference === "precedente") {
+      txt += "\n\nREPÈRE : stock de ces runes à la FIN de la dernière session du joueur (il a pu changer depuis : achats, concassages, autres forgemagies) :\n"
+        + attendues.map((a) => "- " + a.nom + " : " + a.qty).join("\n")
+        + "\n\nCe repère sert seulement à détecter une lecture aberrante (un chiffre en trop ou en moins). Recopie toujours ce que tu lis ; en cas d'écart énorme avec le repère, relis le badge chiffre par chiffre, et si tu ne peux pas trancher, mets qty à null et le nom dans \"douteuses\". Ne remplis pas \"absentes\".";
+    } else {
+      txt += "\n\nRUNES DE LA SESSION À RETROUVER, avec le stock connu avant ce screen (départ + achats) :\n"
+        + attendues.map((a) => "- " + a.nom + " : stock connu " + a.qty).join("\n")
+        + "\n\nRègles : le stock lu sur le screen est presque toujours inférieur ou égal au stock connu (des runes ont été consommées). "
+        + "Si tu lis un nombre nettement supérieur au stock connu (ex: 161 alors que le stock connu est 37), relis le badge chiffre par chiffre : un chiffre est probablement coupé. "
+        + "Si tu ne peux pas trancher, mets qty à null et le nom dans \"douteuses\". "
+        + "Ne recopie JAMAIS le stock connu à la place de ce que tu lis. "
+        + "Liste dans \"absentes\" les runes attendues que tu ne vois nulle part sur ce screen.";
+    }
   }
   return txt;
 }
@@ -181,32 +196,44 @@ function messageUtilisateur(mode: string, attendues: Array<{ nom: string; qty: n
    - qty identique dans les deux : retenue
    - une seule lecture a une valeur : retenue, rune douteuse
    - valeurs differentes : celle qui respecte le stock connu si une seule le fait,
-     sinon la plus grande (la moins pénalisante en coût), rune douteuse */
+     sinon la plus grande (la moins pénalisante en coût), rune douteuse, les deux
+     valeurs dans "candidats" pour la relecture zoomee
+   - x, y : moyenne des deux lectures quand les deux en donnent */
 function fusionnerLectures(a: any, b: any, attendues: Array<{ nom: string; qty: number }>) {
   const stock: Record<string, number> = {};
   (attendues || []).forEach((x) => { stock[x.nom.toLowerCase()] = x.qty; });
+  const num = (v: any) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
   const parNom = (r: any) => {
-    const m: Record<string, { nom: string; qty: number | null }> = {};
+    const m: Record<string, { nom: string; qty: number | null; x: number | null; y: number | null }> = {};
     (r?.runes || []).forEach((x: any) => {
       if (!x || !x.nom) return;
-      const q = (x.qty === null || x.qty === undefined || x.qty === "") ? null : Number(x.qty);
-      m[String(x.nom).toLowerCase()] = { nom: String(x.nom), qty: Number.isFinite(q as number) ? (q as number) : null };
+      const q = (x.qty === null || x.qty === undefined || x.qty === "") ? null : num(x.qty);
+      m[String(x.nom).toLowerCase()] = { nom: String(x.nom), qty: q, x: num(x.x), y: num(x.y) };
     });
     return m;
   };
   const ma = parNom(a), mb = parNom(b);
   const douteuses = new Set<string>([...(a?.douteuses || []), ...(b?.douteuses || [])].map((s) => String(s)));
-  const runes: Array<{ nom: string; qty: number | null }> = [];
+  const runes: Array<any> = [];
   let desaccords = 0;
+  const coord = (x: any, y: any) => {
+    const out: any = {};
+    const cx = x && x.x !== null ? x.x : (y && y.x !== null ? y.x : null);
+    const cy = x && x.y !== null ? x.y : (y && y.y !== null ? y.y : null);
+    if (x && y && x.x !== null && y.x !== null) out.x = Math.round((x.x + y.x) / 2); else if (cx !== null) out.x = Math.round(cx);
+    if (x && y && x.y !== null && y.y !== null) out.y = Math.round((x.y + y.y) / 2); else if (cy !== null) out.y = Math.round(cy);
+    return out;
+  };
   const noms = new Set<string>([...Object.keys(ma), ...Object.keys(mb)]);
   noms.forEach((k) => {
     const x = ma[k], y = mb[k];
     if (x && y) {
-      if (x.qty === y.qty) { runes.push({ nom: x.nom, qty: x.qty }); return; }
+      if (x.qty === y.qty) { runes.push({ nom: x.nom, qty: x.qty, ...coord(x, y) }); return; }
       desaccords++;
       douteuses.add(x.nom);
-      if (x.qty === null) { runes.push({ nom: x.nom, qty: y.qty }); return; }
-      if (y.qty === null) { runes.push({ nom: x.nom, qty: x.qty }); return; }
+      const candidats = [x.qty, y.qty].filter((v) => v !== null);
+      if (x.qty === null) { runes.push({ nom: x.nom, qty: y.qty, candidats, ...coord(x, y) }); return; }
+      if (y.qty === null) { runes.push({ nom: x.nom, qty: x.qty, candidats, ...coord(x, y) }); return; }
       const s = stock[k];
       let choix = Math.max(x.qty, y.qty);
       if (s !== undefined) {
@@ -214,19 +241,21 @@ function fusionnerLectures(a: any, b: any, attendues: Array<{ nom: string; qty: 
         if (okX && !okY) choix = x.qty;
         else if (okY && !okX) choix = y.qty;
       }
-      runes.push({ nom: x.nom, qty: choix });
+      runes.push({ nom: x.nom, qty: choix, candidats, ...coord(x, y) });
     } else {
       const seul = x || y;
       desaccords++;
       douteuses.add(seul.nom);
-      runes.push({ nom: seul.nom, qty: seul.qty });
+      runes.push({ nom: seul.nom, qty: seul.qty, candidats: seul.qty === null ? [] : [seul.qty], ...coord(seul, null) });
     }
   });
   const statsA = a?.item_stats || [], statsB = b?.item_stats || [];
   const absentes = new Set<string>([...(a?.absentes || []), ...(b?.absentes || [])].map((s) => String(s)));
   /* une rune lue par une des deux lectures n'est pas absente */
   runes.forEach((r) => { absentes.forEach((n) => { if (n.toLowerCase() === r.nom.toLowerCase()) absentes.delete(n); }); });
+  const format = (a?.format === "A" || a?.format === "B") ? a.format : ((b?.format === "A" || b?.format === "B") ? b.format : null);
   return {
+    format,
     runes,
     item_stats: statsA.length >= statsB.length ? statsA : statsB,
     non_identifiees: Math.max(Number(a?.non_identifiees) || 0, Number(b?.non_identifiees) || 0),
@@ -237,6 +266,52 @@ function fusionnerLectures(a: any, b: any, attendues: Array<{ nom: string; qty: 
   };
 }
 
+/* ====== MODE ZOOM : relecture de decoupes agrandies des cellules douteuses ====== */
+const ZOOM_PROMPT = `Tu reçois des découpes agrandies (x4) d'un screenshot Dofus : une découpe par cellule de rune à relire. Chaque découpe est précédée d'un texte qui donne son numéro, la rune visée, la position de sa cellule et les lectures précédentes.
+Le cadre rouge entoure la cellule visée. D'autres badges peuvent être visibles autour : ignore-les.
+Lis le nombre du badge de quantité de la cellule visée, chiffre par chiffre.
+Réponds UNIQUEMENT avec un JSON valide, sans markdown : {"lectures": [{"i": 1, "qty": 140}, {"i": 2, "qty": null}]}
+- "qty" : null si le badge est coupé, hors du cadre ou illisible. Ne devine pas, ne recopie ni les lectures précédentes ni le stock connu.`;
+
+/* Blocs du message utilisateur pour le zoom : texte + image par decoupe */
+function contenuZoom(crops: Array<any>) {
+  const content: Array<any> = [];
+  crops.forEach((c, idx) => {
+    const i = idx + 1;
+    let txt = "Découpe " + i + " : " + c.nom;
+    if (c.cellule) txt += ", cellule " + c.cellule;
+    if (c.stock !== undefined && c.stock !== null) txt += ", stock connu " + c.stock;
+    if (c.candidats && c.candidats.length) txt += ", lectures précédentes " + c.candidats.join(" / ");
+    content.push({ type: "text", text: txt });
+    content.push({ type: "image", source: { type: "base64", media_type: c.media_type || "image/png", data: c.image } });
+  });
+  content.push({ type: "text", text: "Réponds pour les " + crops.length + " découpe(s), dans l'ordre." });
+  return content;
+}
+
+/* Fusion des deux relectures zoomees : accord -> valeur ; une seule valeur -> valeur, partielle ; desaccord -> null */
+function fusionnerZoom(a: any, b: any, n: number) {
+  const lire = (r: any) => {
+    const m: Record<number, number | null> = {};
+    (r?.lectures || []).forEach((l: any) => {
+      const i = Number(l?.i);
+      if (!Number.isFinite(i)) return;
+      const q = (l.qty === null || l.qty === undefined || l.qty === "") ? null : Number(l.qty);
+      m[i] = Number.isFinite(q as number) ? (q as number) : null;
+    });
+    return m;
+  };
+  const ma = lire(a), mb = lire(b);
+  const lectures: Array<{ i: number; qty: number | null; accord: string }> = [];
+  for (let i = 1; i <= n; i++) {
+    const x = ma[i] === undefined ? null : ma[i], y = mb[i] === undefined ? null : mb[i];
+    if (x !== null && y !== null) lectures.push({ i, qty: x === y ? x : null, accord: x === y ? "accord" : "desaccord" });
+    else if (x !== null || y !== null) lectures.push({ i, qty: x !== null ? x : y, accord: "partiel" });
+    else lectures.push({ i, qty: null, accord: "aucune" });
+  }
+  return { lectures, lectures_effectuees: 2 };
+}
+
 /* Extrait le JSON de la reponse du modele, meme entoure de texte ou de markdown */
 function parseReponse(text: string) {
   const cleaned = text.replace(/```json|```/g, "").trim();
@@ -245,7 +320,7 @@ function parseReponse(text: string) {
 }
 /* ====== FIN DES CONSTANTES PARTAGEES ====== */
 
-async function lireImage(image: string, media_type: string, system: string, texte: string) {
+async function lireContenu(system: string, content: Array<any>) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -257,13 +332,7 @@ async function lireImage(image: string, media_type: string, system: string, text
       model: MODEL,
       max_tokens: 4096,
       system,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: media_type || "image/png", data: image } },
-          { type: "text", text: texte },
-        ],
-      }],
+      messages: [{ role: "user", content }],
     }),
   });
   if (!res.ok) {
@@ -284,6 +353,13 @@ async function lireImage(image: string, media_type: string, system: string, text
     e.raw = text;
     throw e;
   }
+}
+
+function lireImage(image: string, media_type: string, system: string, texte: string) {
+  return lireContenu(system, [
+    { type: "image", source: { type: "base64", media_type: media_type || "image/png", data: image } },
+    { type: "text", text: texte },
+  ]);
 }
 
 Deno.serve(async (req: Request) => {
@@ -307,7 +383,22 @@ Deno.serve(async (req: Request) => {
     if (!profile || !profile.is_validated) return json({ error: "Compte non validé" }, 403);
     /* ===================================================== */
 
-    const { image, media_type, mode, attendues, double } = await req.json();
+    const { image, media_type, mode, attendues, double, largeur, hauteur, reference, crops } = await req.json();
+
+    /* ====== MODE ZOOM : decoupes agrandies des cellules douteuses ====== */
+    if (mode === "zoom") {
+      const liste = Array.isArray(crops) ? crops.filter((c: any) => c && c.image && c.nom).slice(0, 12) : [];
+      if (!liste.length) return json({ error: "Aucune découpe fournie" }, 400);
+      const content = contenuZoom(liste);
+      const [za, zb] = await Promise.allSettled([lireContenu(ZOOM_PROMPT, content), lireContenu(ZOOM_PROMPT, content)]);
+      if (za.status === "fulfilled" && zb.status === "fulfilled") return json(fusionnerZoom(za.value, zb.value, liste.length));
+      const ok = za.status === "fulfilled" ? za.value : (zb.status === "fulfilled" ? zb.value : null);
+      if (ok) return json({ ...fusionnerZoom(ok, ok, liste.length), lectures_effectuees: 1 });
+      const err: any = za.status === "rejected" ? za.reason : (zb as PromiseRejectedResult).reason;
+      console.error("[extract-runes] zoom:", err?.detail || err?.raw || err?.message);
+      return json({ error: err?.message || "Erreur API vision", detail: err?.detail, raw: err?.raw }, 502);
+    }
+
     if (!image) return json({ error: "Champ 'image' (base64) requis" }, 400);
 
     const isHdv = mode === "hdv_prices";
@@ -315,7 +406,8 @@ Deno.serve(async (req: Request) => {
     const liste = Array.isArray(attendues)
       ? attendues.filter((a: any) => a && a.nom).map((a: any) => ({ nom: String(a.nom), qty: Number(a.qty) || 0 })).slice(0, 200)
       : [];
-    const texte = messageUtilisateur(isHdv ? "hdv_prices" : "inventory", liste);
+    const dims = (Number(largeur) > 0 && Number(hauteur) > 0) ? { w: Math.round(Number(largeur)), h: Math.round(Number(hauteur)) } : null;
+    const texte = messageUtilisateur(isHdv ? "hdv_prices" : "inventory", liste, dims, reference === "precedente" ? "precedente" : undefined);
 
     /* Double lecture comparee pour les quantites (pas pour l'HDV) */
     const deuxLectures = !isHdv && double !== false;
