@@ -3,6 +3,8 @@
 Format : `NOM AFFICHÉ • zone` (tel qu'envoyé, fautes conservées volontairement, corrigeables en admin).
 Catégorie : **principale**. Les zones **secondaires** arrivent dans un second envoi.
 
+> Liste d'origine du 03/08, gardée telle quelle. Les changements depuis (migrations 060 et 061) sont en fin de fichier ; l'ordre en vigueur est celui de la table `zones_reservation`.
+
 1. KORRI • Forêt pétrifiée
 2. NIDAS • Enutrosor
 3. MANSOT • Lac gelé
@@ -124,6 +126,27 @@ Un membre a signalé l'absence de la zone de Missiz Frizz. Le catalogue a été 
 
 Volontairement absents : le Comte Harebourg (non réservable, annonce de MAsdov du 07/10), les donjons d'événement (Nowel, Halouine, île de Pwâk), Incarnam et Astrub.
 
-Questions posées à Mathieu le 07/10 :
+Questions posées à Mathieu le 07/10 (réponses dans la section suivante) :
 - « Quatre cavalier » est une seule entrée, alors que le jeu a quatre dimensions distinctes (Galère de Servitude, Désert de Misère, Blessures de Guerre, Royaume Corrompu), chacune avec son donjon. Faut-il la scinder en quatre ?
 - Ajouter en secondaires trois donjons absents de plus bas niveau : Fabrique de Malléfisk (100, Enutrosor), Cale de l'Arche d'Otomaï (Gourlo le Terrible, 70) et Temple maudit d'Araknas (186, Landes de Sidimote, aucun boss répertorié) ?
+
+## Modifications du 07/10/2026, soir (migration `sql/061`)
+Réponses de Mathieu : scinder « Quatre cavalier » en quatre, « vers le milieu haut » de la liste ; ajouter Malléfisk et Gourlo « vers le bas clairement ».
+
+Les quatre cavaliers, en principales juste après Horologium XLII :
+
+32. CAVALIER CORRUPTION • Royaume Corrompu (Eliocalypse) : Arbre de Mort
+33. CAVALIER SERVITUDE • Galère de Servitude (Eliocalypse) : Fers de la Tyrannie
+34. CAVALIER MISÈRE • Désert de Misère (Eliocalypse) : Sentence de la Balance
+35. CAVALIER GUERRE • Blessures de Guerre (Eliocalypse) : Trône de Sang
+
+L'ancienne entrée « Quatre cavalier • Eliocalypse » (n° 23) est désactivée, pas supprimée : personne ne l'avait dans son top et aucune réservation ne la portait.
+
+Les deux nouvelles secondaires, tout en bas de la liste :
+
+67. MALLÉFISK • Fabrique de Malléfisk (Enutrosor) : niveau 100
+68. GOURLO • Arche d'Otomaï : Cale de l'Arche d'Otomaï, Gourlo le Terrible, niveau 70
+
+Le Temple maudit d'Araknas n'est pas ajouté : seuls Malléfisk et Gourlo ont été validés.
+
+Numérotation des principales après la 061 : 1 à 106, sans trou, ordre relatif inchangé. Les n° 1 à 22 ne bougent pas, ZONE BWORKS à Horologium XLII remontent d'un cran (23 à 31), VOLKORNE et toutes les suivantes descendent de trois (36 à 103), MISSIZ, VORTEX et PROTOZORREUR passent en 104 à 106. Catalogue actif : 106 principales et 68 secondaires. Tirage du top 10 vérifié identique avant et après.
