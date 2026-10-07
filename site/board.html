@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redemption - Board Hebdomadaire</title>
-    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261016">
+    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261017">
     <meta name="description" content="Site de l'alliance Redemption [RDM] : combats PvP, percepteurs, recyclages, forgemagie. L'heure de la rédemption.">
     <meta name="theme-color" content="#e07c0a">
     <meta property="og:type" content="website">
@@ -20,14 +20,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261016">
+    <link rel="stylesheet" href="style.css?v=20261017">
 </head>
 <body>
 
     <header class="header">
         <div class="header__inner">
             <div class="header__brand">
-                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261016" alt="Logo Redemption">
+                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261017" alt="Logo Redemption">
                 
             </div>
 
@@ -90,21 +90,28 @@
             </div>
         </div>
 
-        <!-- Onglet 2 : mes préférences de zones -->
+        <!-- Onglet 2 : mes préférences de zones (top N choisi dans la liste) -->
         <div id="board-tab-preferences" hidden>
             <div class="board-prefs" id="board-prefs">
                 <div class="board-prefs__header">
                     <h2 class="board-prefs__title">Mes préférences de zones</h2>
-                    <p class="text-muted board-prefs__hint">Toute la liste des zones est déjà là, dans l'ordre conseillé par l'alliance. Fais glisser une zone (ou utilise les flèches) pour la monter ou la descendre dans ton ordre de préférence. Au reset de la quinzaine, chacun reçoit, dans l'ordre du classement, sa zone la mieux classée encore libre. Pense à enregistrer sous la liste.</p>
+                    <p class="text-muted board-prefs__hint" id="board-prefs-hint">Chargement...</p>
                 </div>
                 <div id="board-prefs-mine"></div>
-                <div class="board-prefs__search">
-                    <input type="text" id="board-prefs-filter" class="form-input" placeholder="Rechercher une zone dans la liste...">
-                </div>
-                <div id="board-prefs-list" class="board-prefs__list"></div>
-                <div class="board-prefs__footer">
-                    <button type="button" class="btn btn--secondary" id="board-prefs-reset">Rétablir l'ordre par défaut</button>
-                    <button type="button" class="btn btn--primary" id="board-prefs-save" hidden>Enregistrer mes préférences</button>
+                <div class="board-prefs__body">
+                    <div class="board-prefs__col board-prefs__col--top">
+                        <div id="board-prefs-top" class="board-top"></div>
+                        <div class="board-prefs__actions">
+                            <button type="button" class="btn btn--primary" id="board-prefs-save" hidden>Enregistrer mon top</button>
+                            <button type="button" class="btn btn--secondary" id="board-prefs-reset">Vider mon top</button>
+                        </div>
+                    </div>
+                    <div class="board-prefs__col">
+                        <div class="board-prefs__search">
+                            <input type="text" id="board-prefs-filter" class="form-input" placeholder="Rechercher une zone ou un donjon...">
+                        </div>
+                        <div id="board-prefs-list" class="board-prefs__list"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,7 +149,7 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=20261016"></script>
-    <script src="js/board.js?v=20261016"></script>
+    <script src="script.js?v=20261017"></script>
+    <script src="js/board.js?v=20261017"></script>
 </body>
 </html>

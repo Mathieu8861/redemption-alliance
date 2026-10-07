@@ -675,7 +675,11 @@
                 window.REN.supabase
                     .from('site_config')
                     .select('cle, valeur')
-                    .in('cle', ['perco_mode', 'perco_reservations'])
+                    .in('cle', ['perco_mode', 'perco_reservations', 'perco_pref_max']),
+                window.REN.supabase
+                    .from('paliers_percos')
+                    .select('rang_min, rang_max, resa')
+                    .order('rang_min')
             ]);
 
             var recompensesConfig = results[0].data || [];
@@ -683,6 +687,17 @@
             ((results[5] && results[5].data) || []).forEach(function (r) { siteCfg[r.cle] = r.valeur; });
             var percoMode = siteCfg.perco_mode === 'rang' ? 'rang' : 'points';
             var percoResa = siteCfg.perco_reservations !== 'false'; /* cle absente = reservations actives */
+            /* Rangs qui ont une zone reservee (colonne Reservations des paliers, sql/056) */
+            var plagesResa = [];
+            (((results[6] && results[6].data) || [])).forEach(function (pl) {
+                if ((pl.resa || 0) <= 0) return;
+                var last = plagesResa[plagesResa.length - 1];
+                if (last && pl.rang_min <= last[1] + 1) last[1] = Math.max(last[1], pl.rang_max);
+                else plagesResa.push([pl.rang_min, pl.rang_max]);
+            });
+            if (percoMode === 'rang' && !plagesResa.length) percoResa = false;
+            var rangsResaTxt = plagesResa.map(function (x) { return x[0] === x[1] ? String(x[0]) : x[0] + ' à ' + x[1]; }).join(' et ');
+            var prefMaxProfil = Math.min(20, Math.max(1, parseInt(siteCfg.perco_pref_max, 10) || 5));
 
             /* Semaine passee */
             var pvpLast = (results[1].data && results[1].data[0]) ? results[1].data[0] : null;
@@ -742,7 +757,7 @@
                 /* Modèle classement : droits par rang (board) ; zones attribuées automatiquement seulement si les réservations sont actives */
                 html += '<div class="profil-droits__zone">';
                 html += percoResa
-                    ? '<span class="text-muted" style="font-size:0.8125rem;">Les zones réservées sont attribuées automatiquement à chaque période selon le classement. <a href="board.html" style="color:var(--color-accent-light);">Définis tes préférences de zones ici</a>.</span>'
+                    ? '<span class="text-muted" style="font-size:0.8125rem;">Les rangs ' + rangsResaTxt + ' du classement ont une zone réservée, tirée selon le top de préférences de chacun. <a href="board.html" style="color:var(--color-accent-light);">Choisis ton top ' + prefMaxProfil + ' de zones ici</a>.</span>'
                     : '<span class="text-muted" style="font-size:0.8125rem;">Tes droits percos suivent ta place au classement, sans réservation de zone pour le moment. <a href="board.html" style="color:var(--color-accent-light);">Voir le ladder et les paliers</a>.</span>';
                 html += '</div>';
             } else if (canResa) {

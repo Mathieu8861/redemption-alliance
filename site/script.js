@@ -702,7 +702,7 @@
     }
 
     /* === UPDATE NOTIFICATION === */
-    var REN_UPDATE_VERSION = '2026-09-27b';
+    var REN_UPDATE_VERSION = '2026-10-07';
 
     function showUpdateNotif() {
         var seen = localStorage.getItem('ren_update_seen');

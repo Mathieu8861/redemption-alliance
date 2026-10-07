@@ -1417,69 +1417,297 @@
 
         var [paliersRes, cfgRes, infosRes] = await Promise.all([
             window.REN.supabase.from('paliers_percos').select('*').order('rang_min'),
-            window.REN.supabase.from('site_config').select('cle, valeur').in('cle', ['perco_resa_tours', 'perco_reservations']),
+            window.REN.supabase.from('site_config').select('cle, valeur').in('cle', ['perco_reservations', 'perco_pref_max']),
             window.REN.supabase.rpc('periode_pvp_infos')
         ]);
-        var paliers = paliersRes.data || [];
         var cfg = {};
         (cfgRes.data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
-        var tours = parseInt(cfg.perco_resa_tours, 10) || 1;
         var resaActives = cfg.perco_reservations !== 'false'; /* cle absente = actives */
+        var prefMax = Math.min(20, Math.max(1, parseInt(cfg.perco_pref_max, 10) || 5));
         var infos = infosRes.data || {};
+        var enDirect = infos.en_direct !== undefined ? !!infos.en_direct : !infos.fin;
         var esc = window.REN.escapeHtml;
+
+        /* Formulaire : copie modifiable des paliers. Les paliers ajoutes ou
+           issus d'une decoupe n'ont pas encore d'id. */
+        var champs = ['emoji', 'rang_min', 'rang_max', 'percos', 'percos_150', 'resa'];
+        var signature = function (l) { return JSON.stringify(champs.map(function (c) { return l[c]; })); };
+        var originaux = {};
+        var lignes = (paliersRes.data || []).map(function (p) {
+            var l = { id: p.id, emoji: p.emoji || '', rang_min: p.rang_min, rang_max: p.rang_max, percos: p.percos || 0, percos_150: p.percos_150 || 0, resa: p.resa || 0 };
+            originaux[p.id] = signature(l);
+            return l;
+        });
+        var resaSignature = function () { return JSON.stringify(lignes.map(function (l) { return [l.id, l.rang_min, l.rang_max, l.resa]; })); };
+        var resaOrigine = resaSignature();
+        var estModifiee = function (l) { return !l.id || originaux[l.id] !== signature(l); };
+        var trier = function () { lignes.sort(function (a, b) { return a.rang_min - b.rang_min || a.rang_max - b.rang_max; }); };
+
+        /* Plages de rangs avec reservation, fusionnees : [[1, 10], [21, 30]] */
+        function plagesResa() {
+            var plages = [];
+            lignes.slice().sort(function (a, b) { return a.rang_min - b.rang_min; }).forEach(function (l) {
+                if ((l.resa || 0) <= 0) return;
+                var last = plages[plages.length - 1];
+                if (last && l.rang_min <= last[1] + 1) last[1] = Math.max(last[1], l.rang_max);
+                else plages.push([l.rang_min, l.rang_max]);
+            });
+            return plages;
+        }
+        function texteRangs(plages) {
+            var parts = plages.map(function (pl) { return pl[0] === pl[1] ? String(pl[0]) : pl[0] + ' à ' + pl[1]; });
+            var unSeul = plages.length === 1 && plages[0][0] === plages[0][1];
+            return (unSeul ? 'rang ' : 'rangs ') + (parts.length > 1 ? parts.slice(0, -1).join(', ') + ' et ' + parts[parts.length - 1] : parts[0]);
+        }
+        function totalHtml(l) {
+            var total = (l.percos || 0) + (l.resa || 0);
+            var h = '<strong>' + total + '</strong>' + ((l.resa || 0) > 0 ? ' <span class="text-muted">dont ' + l.resa + ' en zone réservée</span>' : '');
+            if ((l.percos_150 || 0) > 0) h += ' <span class="text-muted">+ ' + l.percos_150 + ' niv 150-</span>';
+            return h;
+        }
+        function champNum(l, f, min, max) {
+            return '<td><input type="number" class="form-input" style="width:76px;" data-f="' + f + '" min="' + min + '"' + (max ? ' max="' + max + '"' : '') + ' value="' + l[f] + '"></td>';
+        }
 
         var html = percoModeSelectorHtml('rang');
         html += '<div class="admin-panel__title">Droits Percos par rang</div>';
-        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Paliers selon la position au ladder : classement de la période écoulée, ou classement en cours quand il n\'y a pas de remise à zéro. « Percos » = poses classiques, « Percos 150- » = poses en zones de niveau 150 maximum.</p>';
-
-        html += '<div class="table-wrapper"><table class="table">';
-        html += '<thead><tr><th>Emoji</th><th>Rang min</th><th>Rang max</th><th>Percos</th><th>Percos 150-</th><th>Actions</th></tr></thead><tbody>';
-        paliers.forEach(function (p) {
-            html += '<tr data-id="' + p.id + '">';
-            html += '<td><input class="form-input" style="width:70px;" data-field="emoji" value="' + esc(p.emoji || '') + '"></td>';
-            html += '<td><input type="number" class="form-input" style="width:80px;" data-field="rang_min" min="1" value="' + p.rang_min + '"></td>';
-            html += '<td><input type="number" class="form-input" style="width:80px;" data-field="rang_max" min="1" value="' + p.rang_max + '"></td>';
-            html += '<td><input type="number" class="form-input" style="width:80px;" data-field="percos" min="0" value="' + p.percos + '"></td>';
-            html += '<td><input type="number" class="form-input" style="width:80px;" data-field="percos_150" min="0" value="' + p.percos_150 + '"></td>';
-            html += '<td><button class="btn btn--secondary btn--small" data-action="save-palier">Enregistrer</button> ';
-            html += '<button class="btn btn--danger btn--small" data-action="del-palier">Suppr.</button></td>';
-            html += '</tr>';
-        });
-        html += '</tbody></table></div>';
-
-        html += '<button class="btn btn--primary btn--small" id="btn-add-palier" style="margin-top:var(--spacing-md);">+ Ajouter un palier</button>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Paliers selon la position au ladder : classement de la période écoulée, ou classement en cours quand il n\'y a pas de remise à zéro. « Percos » = poses libres, « Percos 150- » = poses en zones de niveau 150 maximum, « Réservations » = percos posés dans une zone réservée au joueur, en plus des poses libres (0 = pas de zone pour ce palier). Le total est ce que voient les membres, par exemple « 4 percos dont 1 en zone réservée ».</p>';
+        html += '<div class="table-wrapper"><table class="table admin-paliers">';
+        html += '<thead><tr><th>Emoji</th><th>Rang min</th><th>Rang max</th><th>Percos</th><th>Percos 150-</th><th>Réservations</th><th>Total</th><th></th></tr></thead>';
+        html += '<tbody id="paliers-body"></tbody></table></div>';
+        html += '<div class="admin-paliers__bar">';
+        html += '<button class="btn btn--secondary btn--small" id="btn-add-palier">+ Ajouter un palier</button>';
+        html += '<button class="btn btn--primary btn--small" id="btn-save-paliers" disabled>Enregistrer les paliers</button>';
+        html += '<span class="admin-paliers__etat" id="paliers-etat"></span>';
+        html += '</div>';
+        html += '<div class="admin-paliers__alerte" id="paliers-alerte" hidden></div>';
 
         /* Periode du ladder : celle du classement PvP (onglet Periode classement) */
-        var dateLongue = function (iso) { return iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
+        var dateParis = function (iso, jourSemaine) {
+            var o = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' };
+            if (jourSemaine) o.weekday = 'long';
+            return iso ? new Date(iso).toLocaleDateString('fr-FR', o) : '';
+        };
         var periodeTxt;
-        if (!infos.fin) {
-            periodeTxt = 'Sans remise à zéro : le ladder suit le classement depuis le début, les droits bougent en direct.';
+        if (enDirect) {
+            periodeTxt = infos.programme && infos.fin
+                ? 'Sans remise à zéro jusqu\'au ' + dateParis(infos.fin, true) + ' à minuit : le ladder suit encore le classement depuis le début. Ensuite, remise à zéro chaque ' + String(infos.libelle || 'période').toLowerCase() + ' et droits calculés sur la période précédente.'
+                : 'Sans remise à zéro : le ladder suit le classement depuis le début, les droits bougent en direct.';
         } else {
-            var veille = new Date(new Date(infos.fin).getTime() - 24 * 3600 * 1000).toISOString();
-            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateLongue(infos.debut) + ' au ' + dateLongue(veille) + ' inclus, remise à zéro le ' + dateLongue(infos.fin) + '. Les droits de la période se calculent sur le classement de la précédente.';
+            var veille = new Date(new Date(infos.fin).getTime() - 12 * 3600 * 1000).toISOString();
+            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateParis(infos.debut, true) + ' au ' + dateParis(veille, true) + ' inclus, remise à zéro le ' + dateParis(infos.fin, true) + ' à minuit. Les droits de la période se calculent sur le classement de la précédente.';
         }
         html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Période du ladder</div>';
         html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-sm);">Le ladder perco n\'a pas de durée propre : il suit la période du classement PvP (semaine, quinzaine, mois, sans remise à zéro ou nombre de jours au choix).</p>';
         html += '<div style="background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--spacing-md);margin-bottom:var(--spacing-sm);font-size:0.875rem;">' + esc(periodeTxt) + '</div>';
         html += '<button class="btn btn--secondary btn--small" id="btn-go-periode">Modifier la période (onglet Période classement)</button>';
 
-        /* Reservations de zones : interrupteur (site_config.perco_reservations) */
+        /* Reservations de zones */
         html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Réservations de zones</div>';
         html += '<div style="display:flex;align-items:center;gap:var(--spacing-md);margin-bottom:var(--spacing-sm);">';
         html += '<label class="toggle-switch"><input type="checkbox" id="toggle-perco-resa"' + (resaActives ? ' checked' : '') + '><span class="toggle-switch__slider"></span></label>';
         html += '<strong>' + (resaActives ? 'Activées' : 'Désactivées') + '</strong>';
         html += '</div>';
-        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Activées : les membres classent leurs zones préférées et, à chaque période, chacun reçoit dans l\'ordre du classement sa zone la mieux placée encore libre. Désactivées : le ladder seul décide du nombre de percos, aucune zone n\'est réservée, l\'onglet « Mes préférences » et la colonne « Zone réservée » disparaissent côté membres. Les préférences déjà saisies sont conservées.</p>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Activées : les rangs dont le palier a une réservation reçoivent une zone, tirée dans l\'ordre du classement d\'après le top de préférences de chacun. Les autres rangs n\'ont rien dans la colonne « Zone réservée ». Désactivées : aucune zone, l\'onglet « Mes préférences » et la colonne disparaissent côté membres, les préférences déjà saisies sont conservées.</p>';
 
         if (resaActives) {
+            html += '<div class="admin-resa__resume" id="resa-resume"></div>';
+            html += '<div class="admin-resa__boite">'
+                + '<div class="admin-resa__titre">Raccourci : jusqu\'à quel rang les réservations vont</div>'
+                + '<div class="admin-resa__ligne">'
+                    + '<label>Du rang 1 au rang <input type="number" class="form-input" id="resa-jusqua" min="0" max="500" style="width:80px;"></label>'
+                    + '<label><input type="number" class="form-input" id="resa-nb" min="1" max="5" style="width:64px;"> zone(s) par joueur</label>'
+                    + '<button class="btn btn--secondary btn--small" id="btn-resa-appliquer">Appliquer au tableau</button>'
+                + '</div>'
+                + '<label class="admin-resa__check"><input type="checkbox" id="resa-garder" checked> Garder le total de percos de chaque palier : la zone réservée remplace une pose libre</label>'
+                + '<p class="text-muted" style="font-size:0.75rem;margin:6px 0 0;">Le tableau est modifié sans être enregistré : vérifie la colonne Total, puis « Enregistrer les paliers ». Un palier à cheval sur le rang choisi est coupé en deux (par exemple 11-20 devient 11-15 et 16-20 pour aller jusqu\'au rang 15).</p>'
+                + '</div>';
+            html += '<div class="admin-resa__boite admin-resa__ligne">'
+                + '<label>Top de préférences des membres : <input type="number" class="form-input" id="pref-max" min="1" max="20" value="' + prefMax + '" style="width:70px;"> zones</label>'
+                + '<button class="btn btn--secondary btn--small" id="btn-pref-max">Enregistrer</button>'
+                + '<span class="text-muted" style="font-size:0.75rem;">Chaque membre choisit jusqu\'à ce nombre de zones, dans son ordre. Seuls ces choix comptent au tirage.</span>'
+                + '</div>';
+
             html += '<div class="admin-panel__title" style="margin-top:var(--spacing-xl);">Attribution des zones</div>';
-            html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Réservations par joueur : <strong>' + tours + '</strong> tour(s) (site_config.perco_resa_tours). L\'attribution se calcule automatiquement au changement de période ; le recalcul écrase celle de la période courante avec les préférences actuelles.</p>';
-            html += '<button class="btn btn--secondary" id="btn-recalc-attribution">Recalculer l\'attribution de la période</button>';
-            html += '<span id="recalc-result" class="text-muted" style="margin-left:var(--spacing-md);font-size:0.8125rem;"></span>';
+            if (enDirect) {
+                html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Pas de remise à zéro en ce moment : le tirage se calcule en direct à chaque affichage du board, sur le classement et les préférences du moment. Rien à recalculer.' + (infos.programme ? ' Dès la première remise à zéro, il sera figé pour chaque période.' : '') + ' Dans l\'ordre du classement, chacun reçoit son premier choix encore libre ; ceux qui n\'ont rien choisi passent après et reçoivent une zone dans l\'ordre de l\'alliance.</p>';
+            } else {
+                html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Le tirage se fait tout seul dans l\'heure qui suit chaque remise à zéro, sur le classement de la période précédente, puis reste figé jusqu\'à la suivante. Le recalcul refait le tirage de la période en cours avec les paliers et les préférences actuels, par exemple quand le top 10 vient de remplir ses préférences.</p>';
+                html += '<button class="btn btn--secondary" id="btn-recalc-attribution">Recalculer l\'attribution de la période</button>';
+                html += '<span id="recalc-result" class="text-muted" style="margin-left:var(--spacing-md);font-size:0.8125rem;"></span>';
+            }
         }
 
         content.innerHTML = html;
         bindPercoModeSelector(content);
+
+        var body = document.getElementById('paliers-body');
+
+        function majEtat() {
+            var n = lignes.filter(estModifiee).length;
+            var save = document.getElementById('btn-save-paliers');
+            var etat = document.getElementById('paliers-etat');
+            if (save) save.disabled = n === 0;
+            if (etat) etat.textContent = n ? n + ' palier' + (n > 1 ? 's' : '') + ' à enregistrer' : '';
+
+            var tri = lignes.slice().sort(function (a, b) { return a.rang_min - b.rang_min; });
+            var alertes = [];
+            tri.forEach(function (l, i) {
+                if (l.rang_min < 1 || l.rang_max < l.rang_min) alertes.push('Palier ' + l.rang_min + '-' + l.rang_max + ' : le rang max doit être au moins égal au rang min.');
+                if (i > 0 && l.rang_min <= tri[i - 1].rang_max) alertes.push('Les paliers ' + tri[i - 1].rang_min + '-' + tri[i - 1].rang_max + ' et ' + l.rang_min + '-' + l.rang_max + ' se chevauchent : le premier l\'emporte.');
+                if (i > 0 && l.rang_min > tri[i - 1].rang_max + 1) alertes.push('Rangs ' + (tri[i - 1].rang_max + 1) + ' à ' + (l.rang_min - 1) + ' : aucun palier, ces joueurs n\'ont aucun droit.');
+            });
+            var alerte = document.getElementById('paliers-alerte');
+            if (alerte) {
+                alerte.hidden = !alertes.length;
+                alerte.innerHTML = alertes.map(function (a) { return '<div>' + esc(a) + '</div>'; }).join('');
+            }
+
+            var resume = document.getElementById('resa-resume');
+            if (resume) {
+                var pl = plagesResa();
+                if (!pl.length) {
+                    resume.innerHTML = '<span class="admin-resa__vide">Aucun palier n\'a de réservation : personne ne reçoit de zone. Mets 1 dans la colonne « Réservations » d\'un palier, ou utilise le raccourci ci-dessous.</span>';
+                } else {
+                    var nbJoueurs = pl.reduce(function (s, x) { return s + x[1] - x[0] + 1; }, 0);
+                    var valeurs = {};
+                    lignes.forEach(function (l) { if ((l.resa || 0) > 0) valeurs[l.resa] = true; });
+                    var vs = Object.keys(valeurs);
+                    resume.innerHTML = 'Réservations proposées aux <strong>' + texteRangs(pl) + '</strong>, soit <strong>' + nbJoueurs + ' joueur' + (nbJoueurs > 1 ? 's' : '') + '</strong> au plus, '
+                        + (vs.length === 1 ? vs[0] + ' zone chacun' : vs.join(' ou ') + ' zones selon le palier') + '.'
+                        + (n ? ' <em class="text-muted">(d\'après le tableau, pas encore enregistré)</em>' : '');
+                }
+            }
+        }
+
+        function rendreLignes() {
+            trier();
+            var h = '';
+            lignes.forEach(function (l, i) {
+                h += '<tr data-i="' + i + '"' + (estModifiee(l) ? ' class="admin-paliers__ligne--modifiee"' : '') + '>'
+                    + '<td><input class="form-input" style="width:64px;" data-f="emoji" value="' + esc(l.emoji) + '"></td>'
+                    + champNum(l, 'rang_min', 1) + champNum(l, 'rang_max', 1) + champNum(l, 'percos', 0) + champNum(l, 'percos_150', 0) + champNum(l, 'resa', 0, 5)
+                    + '<td class="admin-paliers__total">' + totalHtml(l) + '</td>'
+                    + '<td><button class="btn btn--danger btn--small" data-action="del-palier">Suppr.</button></td>'
+                    + '</tr>';
+            });
+            body.innerHTML = h || '<tr><td colspan="8" class="text-muted">Aucun palier.</td></tr>';
+            majEtat();
+        }
+
+        /* Saisie : la ligne se met a jour sans re-rendre le tableau (le curseur reste) */
+        body.addEventListener('input', function (e) {
+            var inp = e.target.closest('input[data-f]');
+            if (!inp) return;
+            var tr = inp.closest('tr');
+            var l = lignes[parseInt(tr.dataset.i, 10)];
+            if (!l) return;
+            var fld = inp.dataset.f;
+            if (fld === 'emoji') l.emoji = inp.value;
+            else {
+                var v = Math.max(0, parseInt(inp.value, 10) || 0);
+                l[fld] = fld === 'resa' ? Math.min(5, v) : v;
+            }
+            tr.className = estModifiee(l) ? 'admin-paliers__ligne--modifiee' : '';
+            tr.querySelector('.admin-paliers__total').innerHTML = totalHtml(l);
+            majEtat();
+        });
+
+        body.addEventListener('click', async function (e) {
+            var btn = e.target.closest('[data-action="del-palier"]');
+            if (!btn) return;
+            var l = lignes[parseInt(btn.closest('tr').dataset.i, 10)];
+            if (!l) return;
+            if (!l.id) { lignes.splice(lignes.indexOf(l), 1); rendreLignes(); return; }
+            var autres = lignes.filter(function (x) { return x !== l && estModifiee(x); }).length;
+            if (!confirm('Supprimer le palier ' + l.rang_min + '-' + l.rang_max + ' ?' + (autres ? ' Les autres modifications non enregistrées seront perdues.' : ''))) return;
+            var { error } = await window.REN.supabase.from('paliers_percos').delete().eq('id', l.id);
+            if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+            window.REN.toast('Palier supprimé.', 'success');
+            tabBaremePerco(content);
+        });
+
+        document.getElementById('btn-add-palier').addEventListener('click', function () {
+            var maxRang = lignes.length ? Math.max.apply(null, lignes.map(function (l) { return l.rang_max; })) : 0;
+            lignes.push({ id: null, emoji: '', rang_min: maxRang + 1, rang_max: maxRang + 10, percos: 0, percos_150: 0, resa: 0 });
+            rendreLignes();
+        });
+
+        document.getElementById('btn-save-paliers').addEventListener('click', async function () {
+            var btn = this;
+            var aFaire = lignes.filter(estModifiee);
+            if (!aFaire.length) return;
+            var invalide = aFaire.filter(function (l) { return l.rang_min < 1 || l.rang_max < l.rang_min; })[0];
+            if (invalide) { window.REN.toast('Palier ' + invalide.rang_min + '-' + invalide.rang_max + ' : rang max inférieur au rang min.', 'error'); return; }
+            btn.disabled = true;
+            btn.textContent = 'Enregistrement...';
+            var erreurs = 0;
+            for (var i = 0; i < aFaire.length; i++) {
+                var l = aFaire[i];
+                var payload = { emoji: l.emoji, rang_min: l.rang_min, rang_max: l.rang_max, percos: l.percos, percos_150: l.percos_150, resa: l.resa };
+                var res = l.id
+                    ? await window.REN.supabase.from('paliers_percos').update(payload).eq('id', l.id)
+                    : await window.REN.supabase.from('paliers_percos').insert(payload);
+                if (res.error) { erreurs++; console.error('[REN-ADMIN] Palier', l, res.error); }
+            }
+            if (erreurs) window.REN.toast('Erreur sur ' + erreurs + ' palier(s), voir la console.', 'error');
+            else window.REN.toast(aFaire.length + ' palier' + (aFaire.length > 1 ? 's' : '') + ' enregistré' + (aFaire.length > 1 ? 's' : '') + '.', 'success');
+
+            /* Periode en cours figee : proposer de refaire le tirage */
+            if (!erreurs && resaActives && !enDirect && resaSignature() !== resaOrigine
+                && confirm('Les réservations ont changé. Refaire le tirage des zones de la période en cours maintenant ?')) {
+                var calc = await window.REN.supabase.rpc('attribuer_percos_periode', { p_force: true });
+                if (calc.error) window.REN.toast('Recalcul en erreur : ' + calc.error.message, 'error');
+                else window.REN.toast('Tirage refait : ' + ((calc.data && calc.data.nouvelles) || 0) + ' zone(s) attribuée(s).', 'success');
+            }
+            tabBaremePerco(content);
+        });
+
+        /* Raccourci : reservations du rang 1 au rang N */
+        var jusqua = document.getElementById('resa-jusqua');
+        var nbEl = document.getElementById('resa-nb');
+        if (jusqua && nbEl) {
+            var pl0 = plagesResa();
+            jusqua.value = pl0.length && pl0[0][0] === 1 ? pl0[0][1] : 0;
+            var avecResa = lignes.filter(function (l) { return (l.resa || 0) > 0; })[0];
+            nbEl.value = avecResa ? avecResa.resa : 1;
+            document.getElementById('btn-resa-appliquer').addEventListener('click', function () {
+                var N = Math.max(0, parseInt(jusqua.value, 10) || 0);
+                var nb = Math.min(5, Math.max(1, parseInt(nbEl.value, 10) || 1));
+                var garder = document.getElementById('resa-garder').checked;
+                var ajuster = function (l, cible) {
+                    if (garder) l.percos = Math.max(0, (l.percos || 0) + (l.resa || 0) - cible);
+                    l.resa = cible;
+                };
+                trier();
+                var nouvelles = [];
+                var coupes = [];
+                lignes.forEach(function (l) {
+                    if (l.rang_max <= N) { ajuster(l, nb); nouvelles.push(l); return; }
+                    if (l.rang_min > N) { ajuster(l, 0); nouvelles.push(l); return; }
+                    var bas = { id: null, emoji: l.emoji, rang_min: N + 1, rang_max: l.rang_max, percos: l.percos, percos_150: l.percos_150, resa: l.resa };
+                    coupes.push(l.rang_min + '-' + l.rang_max + ' coupé en ' + l.rang_min + '-' + N + ' et ' + (N + 1) + '-' + l.rang_max);
+                    l.rang_max = N;
+                    ajuster(l, nb);
+                    ajuster(bas, 0);
+                    nouvelles.push(l, bas);
+                });
+                lignes = nouvelles;
+                rendreLignes();
+                var couvert = lignes.length ? Math.max.apply(null, lignes.map(function (l) { return l.rang_max; })) : 0;
+                var msg = 'Tableau mis à jour, pas encore enregistré.' + (coupes.length ? ' Palier ' + coupes.join(', ') + '.' : '');
+                if (N > couvert) msg += ' Aucun palier ne couvre les rangs ' + (couvert + 1) + ' à ' + N + ' : ajoute un palier pour eux.';
+                window.REN.toast(msg, 'info');
+            });
+        }
+
+        var prefBtn = document.getElementById('btn-pref-max');
+        if (prefBtn) prefBtn.addEventListener('click', async function () {
+            var v = Math.min(20, Math.max(1, parseInt(document.getElementById('pref-max').value, 10) || 5));
+            var { error } = await window.REN.supabase.from('site_config').upsert({ cle: 'perco_pref_max', valeur: String(v) }, { onConflict: 'cle' });
+            if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+            window.REN.toast('Top de préférences : ' + v + ' zone' + (v > 1 ? 's' : '') + '.', 'success');
+        });
 
         var goPeriode = document.getElementById('btn-go-periode');
         if (goPeriode) goPeriode.addEventListener('click', function () {
@@ -1490,7 +1718,9 @@
         var toggleResa = document.getElementById('toggle-perco-resa');
         if (toggleResa) toggleResa.addEventListener('change', async function () {
             var on = toggleResa.checked;
-            if (on && !confirm('Activer les réservations de zones ? L\'attribution de la période en cours sera calculée tout de suite avec les préférences actuelles des membres.')) {
+            if (on && !confirm('Activer les réservations de zones ? ' + (enDirect
+                ? 'Le tirage se fera en direct sur le classement actuel.'
+                : 'Le tirage de la période en cours sera calculé tout de suite avec les préférences actuelles des membres.'))) {
                 toggleResa.checked = false;
                 return;
             }
@@ -1503,45 +1733,13 @@
                 window.REN.toast('Erreur : ' + error.message, 'error');
                 return;
             }
-            if (on) {
+            if (on && !enDirect) {
                 var calc = await window.REN.supabase.rpc('attribuer_percos_periode', { p_force: true });
                 if (calc.error) window.REN.toast('Réservations activées, mais recalcul en erreur : ' + calc.error.message, 'error');
                 else window.REN.toast('Réservations activées : ' + ((calc.data && calc.data.nouvelles) || 0) + ' zone(s) attribuée(s).', 'success');
             } else {
-                window.REN.toast('Réservations désactivées : le ladder seul donne les droits.', 'success');
+                window.REN.toast(on ? 'Réservations activées : tirage en direct.' : 'Réservations désactivées : le ladder seul donne les droits.', 'success');
             }
-            tabBaremePerco(content);
-        });
-
-        content.querySelectorAll('[data-action="save-palier"]').forEach(function (btn) {
-            btn.addEventListener('click', async function () {
-                var tr = btn.closest('tr');
-                var payload = {};
-                tr.querySelectorAll('input[data-field]').forEach(function (inp) {
-                    payload[inp.dataset.field] = inp.dataset.field === 'emoji' ? inp.value : (parseInt(inp.value, 10) || 0);
-                });
-                var { error } = await window.REN.supabase.from('paliers_percos').update(payload).eq('id', parseInt(tr.dataset.id, 10));
-                if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
-                window.REN.toast('Palier enregistré.', 'success');
-            });
-        });
-
-        content.querySelectorAll('[data-action="del-palier"]').forEach(function (btn) {
-            btn.addEventListener('click', async function () {
-                if (!confirm('Supprimer ce palier ?')) return;
-                var tr = btn.closest('tr');
-                var { error } = await window.REN.supabase.from('paliers_percos').delete().eq('id', parseInt(tr.dataset.id, 10));
-                if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
-                window.REN.toast('Palier supprimé.', 'success');
-                tabBaremePerco(content);
-            });
-        });
-
-        var addBtn = document.getElementById('btn-add-palier');
-        if (addBtn) addBtn.addEventListener('click', async function () {
-            var maxRang = paliers.length ? Math.max.apply(null, paliers.map(function (p) { return p.rang_max; })) : 0;
-            var { error } = await window.REN.supabase.from('paliers_percos').insert({ rang_min: maxRang + 1, rang_max: maxRang + 10, percos: 0, percos_150: 0, emoji: '' });
-            if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
             tabBaremePerco(content);
         });
 
@@ -1553,9 +1751,11 @@
             recalcBtn.disabled = false;
             var out = document.getElementById('recalc-result');
             if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
-            if (out && data) out.textContent = (data.message || '') + ' (' + (data.nouvelles || 0) + ' réservation(s), source : ' + (data.source || '?') + ')';
+            if (out && data) out.textContent = (data.message || '') + ' (' + (data.nouvelles || 0) + ' réservation(s))';
             window.REN.toast('Attribution recalculée.', 'success');
         });
+
+        rendreLignes();
     }
 
     async function tabBoutique(container) {
@@ -3040,9 +3240,9 @@
     /* ============================================ */
     var PVP_MODES = [
         { key: 'illimite',     label: "Sans remise à zéro", desc: "Le classement cumule tous les combats depuis le début. Aucune période, rien ne repart à zéro." },
-        { key: 'hebdo',        label: "Hebdomadaire",        desc: "Du lundi 00h au dimanche soir. Repart à zéro chaque lundi." },
+        { key: 'hebdo',        label: "Hebdomadaire",        desc: "Blocs de 7 jours : le jour de la semaine de la date de départ fixe celui de la remise à zéro (un jeudi pour aller du jeudi au jeudi)." },
         { key: 'quinzaine',    label: "Quinzaine",           desc: "Blocs de 14 jours enchaînés à partir de la date de départ." },
-        { key: 'mensuel',      label: "Mensuel",             desc: "Du 1er au dernier jour du mois civil." },
+        { key: 'mensuel',      label: "Mensuel",             desc: "Du 1er au dernier jour du mois civil, à partir de la date de départ." },
         { key: 'personnalise', label: "Personnalisé",        desc: "Blocs de N jours enchaînés à partir de la date de départ." }
     ];
 
@@ -3062,13 +3262,19 @@
         function dateLongue(iso) {
             return iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
         }
+        var dateParis = function (iso) {
+            return iso ? new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }) : '';
+        };
         var periodeTxt;
-        if (!infos.fin) {
+        var enDirect = infos.en_direct !== undefined ? !!infos.en_direct : !infos.fin;
+        if (enDirect && infos.programme && infos.fin) {
+            periodeTxt = "En ce moment : tous les combats depuis le début, sans remise à zéro. Première remise à zéro programmée le " + dateParis(infos.fin) + " à minuit (heure de Paris), puis chaque " + String(infos.libelle || 'période').toLowerCase() + ".";
+        } else if (enDirect) {
             periodeTxt = "Période en cours : tous les combats depuis le début, sans remise à zéro.";
         } else {
             /* fin = debut de la periode suivante : on affiche la veille */
-            var veille = new Date(new Date(infos.fin).getTime() - 24 * 3600 * 1000).toISOString();
-            periodeTxt = "Période en cours : du " + dateLongue(infos.debut) + " au " + dateLongue(veille) + " inclus. Remise à zéro le " + dateLongue(infos.fin) + ".";
+            var veille = new Date(new Date(infos.fin).getTime() - 12 * 3600 * 1000).toISOString();
+            periodeTxt = "Période en cours : du " + dateParis(infos.debut) + " au " + dateParis(veille) + " inclus. Remise à zéro le " + dateParis(infos.fin) + " à minuit (heure de Paris).";
         }
 
         var html = '<div class="admin-panel__title">Période du classement PvP</div>';
@@ -3083,11 +3289,11 @@
 
         html += '<div class="form-row">';
         html += '<div class="form-group" id="pvp-jours-wrap"><label class="form-label" for="pvp-jours">Durée (jours)</label><input type="number" id="pvp-jours" class="form-input" min="1" max="365" value="' + jours + '"></div>';
-        html += '<div class="form-group" id="pvp-ancre-wrap"><label class="form-label" for="pvp-ancre">Date de départ des blocs</label><input type="date" id="pvp-ancre" class="form-input" value="' + esc(ancre) + '"><p class="text-muted" style="font-size:0.75rem;margin-top:4px;">' + "Les périodes s'enchaînent à partir de cette date. Un lundi de préférence." + '</p></div>';
+        html += '<div class="form-group" id="pvp-ancre-wrap"><label class="form-label" for="pvp-ancre">Date de départ</label><input type="date" id="pvp-ancre" class="form-input" value="' + esc(ancre) + '"><p class="text-muted" style="font-size:0.75rem;margin-top:4px;" id="pvp-ancre-aide"></p></div>';
         html += '</div>';
 
         html += '<button class="btn btn--primary" id="pvp-save">Enregistrer</button>';
-        html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-lg);">' + "Le ladder des droits perco (onglet Barème Perco) suit cette même période. Le cron du lundi qui attribue les zones ne tourne qu'en mode « classement » avec les réservations de zones activées." + '</p>';
+        html += '<p class="text-muted" style="font-size:0.75rem;margin-top:var(--spacing-lg);">' + "Seul le classement « PvP » repart à zéro : le PvP définitif, les kamas volés, les pépites et les recyclages ne sont pas concernés. Le ladder des droits perco (onglet Barème Perco) suit cette même période : à chaque remise à zéro, les droits de la nouvelle période se calculent sur le classement de la précédente, et le tirage des zones réservées est figé dans l'heure." + '</p>';
 
         content.innerHTML = html;
 
@@ -3097,9 +3303,17 @@
             var meta = PVP_MODES.filter(function (x) { return x.key === m; })[0];
             document.getElementById('pvp-mode-desc').textContent = meta ? meta.desc : '';
             document.getElementById('pvp-jours-wrap').style.display = (m === 'personnalise') ? '' : 'none';
-            document.getElementById('pvp-ancre-wrap').style.display = (m === 'quinzaine' || m === 'personnalise') ? '' : 'none';
+            document.getElementById('pvp-ancre-wrap').style.display = (m === 'illimite') ? 'none' : '';
+            var aide = document.getElementById('pvp-ancre-aide');
+            var a = document.getElementById('pvp-ancre').value;
+            if (aide) {
+                var jour = /^\d{4}-\d{2}-\d{2}$/.test(a) ? new Date(a + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long' }) : '';
+                aide.textContent = "Première remise à zéro ce jour-là à minuit (heure de Paris), puis les périodes s'enchaînent"
+                    + (m === 'hebdo' && jour ? ', chaque ' + jour : '') + ". Une date à venir programme le changement : d'ici là, le classement reste comme il est.";
+            }
         }
         sel.addEventListener('change', refreshVisibility);
+        document.getElementById('pvp-ancre').addEventListener('change', refreshVisibility);
         refreshVisibility();
 
         document.getElementById('pvp-save').addEventListener('click', async function () {
@@ -3107,7 +3321,7 @@
             var m = sel.value;
             var j = Math.max(1, Math.min(365, parseInt(document.getElementById('pvp-jours').value, 10) || 14));
             var a = document.getElementById('pvp-ancre').value;
-            if ((m === 'quinzaine' || m === 'personnalise') && !/^\d{4}-\d{2}-\d{2}$/.test(a)) {
+            if (m !== 'illimite' && !/^\d{4}-\d{2}-\d{2}$/.test(a)) {
                 window.REN.toast("Indique une date de départ.", 'error');
                 return;
             }

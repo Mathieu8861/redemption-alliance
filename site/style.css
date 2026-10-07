@@ -10093,3 +10093,60 @@ body.app-has-sidebar {
     width: fit-content;
     max-width: 100%;
 }
+
+/* === Bareme Perco (admin) : paliers modifiables, reservations par palier (07/10/2026) === */
+.admin-paliers__ligne--modifiee td { background: rgba(var(--color-accent-rgb), 0.08); }
+.admin-paliers__total { white-space: nowrap; font-size: 0.8125rem; }
+.admin-paliers__bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-sm); margin-top: var(--spacing-md); }
+.admin-paliers__etat { font-size: 0.75rem; font-weight: 600; color: var(--color-warning); }
+.admin-paliers__alerte { margin-top: var(--spacing-sm); padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid rgba(232, 68, 68, 0.4); background: rgba(232, 68, 68, 0.08); font-size: 0.8125rem; }
+.admin-resa__resume { margin: var(--spacing-sm) 0 var(--spacing-md); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-border-accent); background: rgba(var(--color-accent-rgb), 0.08); font-size: 0.875rem; }
+.admin-resa__vide { color: var(--color-warning); }
+.admin-resa__boite { padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-tertiary); margin-bottom: var(--spacing-md); }
+.admin-resa__titre { font-weight: 700; font-size: 0.8125rem; margin-bottom: 8px; }
+.admin-resa__ligne { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-sm) var(--spacing-md); font-size: 0.8125rem; }
+.admin-resa__ligne label { display: inline-flex; align-items: center; gap: 6px; }
+.admin-resa__check { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.75rem; color: var(--color-text-secondary); }
+
+/* === Board : top de preferences de zones (07/10/2026) === */
+.board-prefs__body { display: grid; grid-template-columns: minmax(280px, 420px) minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.board-prefs__col { min-width: 0; }
+.board-prefs__col--top { position: sticky; top: 80px; }
+.board-prefs__actions { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; margin-top: var(--spacing-md); }
+.board-prefs__note { margin-top: 4px; font-size: 0.75rem; color: var(--color-text-muted); }
+.board-top { border: 1px solid var(--color-border-accent); border-radius: var(--radius-lg); background: rgba(10, 8, 22, 0.35); padding: var(--spacing-md); }
+.board-top__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--spacing-sm); font-family: var(--font-title); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.9rem; }
+.board-top__slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.top-slot { display: flex; align-items: center; gap: var(--spacing-sm); padding: 8px 10px; border: 1px solid rgba(var(--color-accent-rgb), 0.35); border-radius: var(--radius-md); background: rgba(var(--color-accent-rgb), 0.07); }
+.top-slot--vide { border-style: dashed; border-color: rgba(255, 255, 255, 0.14); background: transparent; color: var(--color-text-muted); font-size: 0.8125rem; }
+.top-slot--mienne { border-color: var(--color-success); background: rgba(46, 204, 113, 0.08); }
+.top-slot__num { flex-shrink: 0; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--color-accent); color: #fff; font-weight: 700; font-size: 0.75rem; }
+.top-slot--vide .top-slot__num { background: var(--color-bg-tertiary); color: var(--color-text-muted); }
+.top-slot__nom { flex: 1; min-width: 0; font-size: 0.875rem; font-weight: 600; }
+.top-slot--vide .top-slot__nom { font-weight: 400; }
+.top-slot__tag { display: inline-block; margin-left: 4px; font-size: 0.68rem; font-weight: 600; color: var(--color-warning); }
+.top-slot__tag--ok { color: var(--color-success); }
+.top-slot__actions { display: flex; gap: 4px; flex-shrink: 0; }
+.pref-row--choisie { border-color: var(--color-accent); background: rgba(var(--color-accent-rgb), 0.10); }
+.pref-row__nom { min-width: 0; }
+.pref-row__pos { flex-shrink: 0; font-weight: 700; font-size: 0.75rem; color: var(--color-accent-light); white-space: nowrap; }
+.pref-row__occ { flex-shrink: 0; font-size: 0.68rem; color: var(--color-warning); white-space: nowrap; }
+.pref-row__add { flex-shrink: 0; }
+@media (max-width: 900px) {
+    .board-prefs__body { grid-template-columns: 1fr; }
+    .board-prefs__col--top { position: static; }
+    .pref-row { flex-wrap: wrap; }
+    .pref-row__occ { white-space: normal; }
+}
+/* .btn impose display:inline-flex, qui ecrase l'attribut hidden */
+.board-prefs__actions .btn[hidden] { display: none; }
+.admin-paliers__bar .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+/* Board, en-tete : les trois boutons passent a la ligne sur telephone au lieu de deborder */
+@media (max-width: 600px) {
+    .board-header__controls { flex-wrap: wrap; }
+}
+/* Board : sur telephone la colonne Zone reservee est masquee, la zone passe sous le pseudo */
+.board-table__zone-mobile { display: none; }
+@media (max-width: 768px) {
+    .board-table__zone-mobile { display: block; margin-top: 2px; font-size: 0.75rem; font-weight: 400; color: var(--color-accent-light); }
+}

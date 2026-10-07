@@ -73,21 +73,31 @@
             periodeInfos = data || null;
             var btn = document.getElementById('tab-pvp-periode');
             if (btn && periodeInfos) {
-                btn.textContent = periodeInfos.fin ? 'PvP ' + periodeInfos.libelle : 'PvP';
+                btn.textContent = periodeEnDirect() ? 'PvP' : 'PvP ' + periodeInfos.libelle;
             }
         } catch (err) {
             console.warn('[REN] Periode PvP non chargee:', err);
         }
     }
 
+    /* Pas de remise a zero en ce moment : illimite, ou depart programme pas
+       encore atteint (periode_pvp_infos().en_direct, sql/057) */
+    function periodeEnDirect() {
+        if (!periodeInfos) return true;
+        return periodeInfos.en_direct !== undefined ? !!periodeInfos.en_direct : !periodeInfos.fin;
+    }
+
     function periodeHeader() {
         if (!periodeInfos) return '';
-        var f = function (iso) { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }); };
+        var f = function (iso) { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }); };
         var txt;
-        if (!periodeInfos.fin) {
+        if (periodeEnDirect() && periodeInfos.programme && periodeInfos.fin) {
+            var jour = new Date(periodeInfos.fin).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+            txt = "Tous les combats depuis le début. Première remise à zéro le " + jour + " à minuit, puis chaque " + String(periodeInfos.libelle || 'période').toLowerCase() + ".";
+        } else if (periodeEnDirect()) {
             txt = "Tous les combats depuis le début. Pas de remise à zéro pour le moment.";
         } else {
-            var veille = new Date(new Date(periodeInfos.fin).getTime() - 86400000).toISOString();
+            var veille = new Date(new Date(periodeInfos.fin).getTime() - 12 * 3600 * 1000).toISOString();
             txt = periodeInfos.libelle + " en cours : du " + f(periodeInfos.debut) + " au " + f(veille) + ". Remise à zéro le " + f(periodeInfos.fin) + ".";
         }
         return '<p class="text-muted" style="font-size:0.8125rem;margin:0 0 var(--spacing-md) 0;">' + txt + '</p>';

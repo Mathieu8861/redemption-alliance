@@ -19,9 +19,10 @@
     var prefRecompenseMap = {}; /* user_id -> preference (percos / pepites / jetons) */
     var zoneReserveeMap = {};   /* user_id -> zone_reservee (saisie libre au profil, modele points) */
     var pointsQuinzaines = {};  /* user_id -> {passee, courante} pour l'eligibilite resa */
-    var myList = [];            /* liste complete des zones dans MON ordre (drag & drop) */
     var percoResa = true;       /* reservations de zones actives (site_config.perco_reservations), mode rang */
     var periodeInfos = null;    /* periode_pvp_infos() : mode, debut, fin, libelle */
+    var prefMax = 5;            /* taille du top de preferences (site_config.perco_pref_max) */
+    var myTop = [];             /* mon top : zones choisies, dans mon ordre */
 
     document.addEventListener('ren:ready', init);
 
@@ -50,15 +51,19 @@
             return;
         }
 
-        /* Reservations de zones coupees (Admin > Bareme Perco) : le ladder seul,
-           sans onglet Mes preferences ni colonne Zone reservee */
+        /* Paliers, classement et zones BDA d'abord : les reservations ne
+           comptent que si un palier en donne (colonne Reservations, sql/056) */
+        await Promise.all([loadPaliers(), loadLadder(), loadZonesBda()]);
+        percoResa = percoResa && paliers.some(function (p) { return (p.resa || 0) > 0; });
+
+        /* Pas de reservation : le ladder seul, sans onglet Mes preferences ni
+           colonne Zone reservee */
         if (!percoResa) {
             var tabsRang = document.getElementById('board-tabs');
             if (tabsRang) tabsRang.style.display = 'none';
             var tabPrefsRang = document.getElementById('board-tab-preferences');
             if (tabPrefsRang) tabPrefsRang.hidden = true;
             reservations = [];
-            await Promise.all([loadPaliers(), loadLadder(), loadZonesBda()]);
             renderPeriode();
             renderBareme();
             renderTable();
@@ -67,15 +72,10 @@
             return;
         }
 
-        /* Secours : si l'attribution de la période n'existe pas encore, la calculer */
-        try { await window.REN.supabase.rpc('attribuer_percos_periode'); } catch (e) { /* silencieux */ }
-
-        await Promise.all([
-            loadPaliers(), loadLadder(), loadReservations(),
-            loadZonesBda(), loadMyPrefs()
-        ]);
-        await loadZones(); /* apres les BDA : elles sont exclues du catalogue */
-        buildMyList();
+        /* Le tirage (en direct sans remise a zero, fige sinon) vient de
+           attribution_percos_courante() */
+        await Promise.all([loadReservations(), loadMyPrefs(), loadZones()]);
+        buildMyTop();
 
         renderPeriode();
         renderBareme();
@@ -106,12 +106,13 @@
     async function loadPercoMode() {
         try {
             var { data } = await window.REN.supabase
-                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations']);
+                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations', 'perco_pref_max']);
             var cfg = {};
             (data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
             percoMode = cfg.perco_mode === 'rang' ? 'rang' : 'points';
             /* cle absente = reservations actives (comportement d'avant la migration 053) */
             percoResa = cfg.perco_reservations !== 'false';
+            prefMax = Math.min(20, Math.max(1, parseInt(cfg.perco_pref_max, 10) || 5));
         } catch (e) { percoMode = 'points'; percoResa = true; }
     }
 
@@ -388,15 +389,40 @@
         var rowH = 34;
         var baremeLineH = 25;
         var headerH = 118;
+        /* Phrase de periode : sur plusieurs lignes si elle depasse la largeur */
+        var periodeEl = document.getElementById('board-period');
+        var lignesPeriode = (function () {
+            var txt = periodeEl ? periodeEl.textContent : '';
+            var m = document.createElement('canvas').getContext('2d');
+            m.font = '400 13px Inter, sans-serif';
+            var max = W - 2 * pad, out = [], cur = '';
+            txt.split(' ').forEach(function (mot) {
+                var essai = cur ? cur + ' ' + mot : mot;
+                if (cur && m.measureText(essai).width > max) { out.push(cur); cur = mot; } else { cur = essai; }
+            });
+            if (cur) out.push(cur);
+            return out.length ? out : [''];
+        })();
+        headerH += (lignesPeriode.length - 1) * 18;
         var baremeH = bareme.length * baremeLineH + 26;
         var thH = 42;
         var footerH = 46;
-        /* Sans colonne de zone, le classement tient sur deux colonnes : image deux fois moins haute */
-        var deuxCol = !isPoints && !percoResa;
+        /* Mode classement : le classement tient sur deux colonnes, et les zones
+           reservees (quelques rangs seulement) ont leur bloc a part au-dessus */
+        var deuxCol = !isPoints;
         var parCol = deuxCol ? Math.ceil(ladder.length / 2) : ladder.length;
         var colW = (W - 2 * pad - 24) / 2;      /* largeur utile d'une colonne */
         var colX = [pad, pad + colW + 24];       /* abscisse de depart de chaque colonne */
-        var H = headerH + baremeH + thH + parCol * rowH + footerH;
+        var zonesExport = [];
+        if (!isPoints && percoResa) {
+            ladder.forEach(function (p) {
+                if (resaDe(p.rang) > 0 && resaByUser[p.user_id]) zonesExport.push({ rang: p.rang, username: p.username, zones: resaByUser[p.user_id] });
+            });
+        }
+        var zoneLineH = 24;
+        var parColZ = Math.ceil(zonesExport.length / 2);
+        var zonesH = zonesExport.length ? 44 + parColZ * zoneLineH : 0;
+        var H = headerH + baremeH + zonesH + thH + parCol * rowH + footerH;
 
         var canvas = document.createElement('canvas');
         var scale = 2; /* export net (retina) */
@@ -424,8 +450,7 @@
         ctx.fillText('DROITS PERCEPTEURS', pad, 74);
         ctx.fillStyle = '#a1a5ad';
         ctx.font = '400 13px Inter, sans-serif';
-        var periodeEl = document.getElementById('board-period');
-        ctx.fillText(periodeEl ? periodeEl.textContent : '', pad, 98);
+        lignesPeriode.forEach(function (l, i) { ctx.fillText(l, pad, 98 + i * 18); });
 
         /* Bareme */
         var y = headerH + 8;
@@ -444,16 +469,35 @@
                 }
             } else {
                 var lbl = b.rang_min === b.rang_max ? 'Top ' + b.rang_min : 'Top ' + b.rang_min + '-' + b.rang_max;
-                var dts = [];
-                if (b.percos > 0) dts.push(b.percos + ' perco' + (b.percos > 1 ? 's' : ''));
-                if (b.percos_150 > 0) dts.push(b.percos_150 + ' perco' + (b.percos_150 > 1 ? 's' : '') + ' niv 150-');
-                txt = (b.emoji ? b.emoji + ' ' : '') + lbl + ' : ' + (dts.join(' + ') || '—');
+                txt = (b.emoji ? b.emoji + ' ' : '') + lbl + ' : ' + droitsTexte(b, false);
             }
             ctx.fillStyle = '#c6c9cf';
             ctx.font = '400 13.5px Inter, sans-serif';
             ctx.fillText(txt, pad, y);
             y += baremeLineH;
         });
+
+        /* Zones reservees : bloc a part, sur deux colonnes */
+        if (zonesExport.length) {
+            y += 6;
+            ctx.fillStyle = '#ffb238';
+            ctx.font = '700 14px Rajdhani, Inter, sans-serif';
+            ctx.fillText('ZONES RÉSERVÉES (' + texteRangs(plagesResa()).toUpperCase() + ')', pad, y + 8);
+            y += 28;
+            zonesExport.forEach(function (zx, i) {
+                var cz = Math.floor(i / parColZ), rz = i % parColZ;
+                var zx0 = colX[cz], zy = y + rz * zoneLineH + zoneLineH / 2;
+                ctx.fillStyle = '#8b8f98';
+                ctx.font = '700 13px Inter, sans-serif';
+                ctx.fillText(String(zx.rang), zx0, zy);
+                ctx.fillStyle = '#e8eaed';
+                ctx.font = '600 13px Inter, sans-serif';
+                ctx.fillText(truncateTxt(zx.username, 16), zx0 + 34, zy);
+                ctx.fillStyle = '#ffb238';
+                ctx.fillText(truncateTxt(zx.zones.join(' · '), 28), zx0 + 190, zy);
+            });
+            y += parColZ * zoneLineH + 10;
+        }
 
         /* Tableau : en-tete */
         y += 8;
@@ -463,13 +507,11 @@
         var cols;
         if (isPoints) {
             cols = [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'PALIER' }, { x: 655, t: 'DROITS' }, { x: 815, t: 'ZONE RÉSERVÉE' }];
-        } else if (deuxCol) {
+        } else {
             cols = [];
             colX.forEach(function (x0) {
-                cols.push({ x: x0, t: '#' }, { x: x0 + 40, t: 'JOUEUR' }, { x: x0 + 300, t: 'PTS', right: true }, { x: x0 + 322, t: 'DROITS' });
+                cols.push({ x: x0, t: '#' }, { x: x0 + 40, t: 'JOUEUR' }, { x: x0 + 252, t: 'PTS', right: true }, { x: x0 + 272, t: 'DROITS' });
             });
-        } else {
-            cols = [{ x: pad, t: '#' }, { x: pad + 50, t: 'JOUEUR' }, { x: 470, t: 'PTS', right: true }, { x: 500, t: 'DROITS' }, { x: 705, t: 'ZONE RÉSERVÉE' }];
         }
         ctx.font = '700 11.5px Inter, sans-serif';
         ctx.fillStyle = '#8b8f98';
@@ -489,8 +531,8 @@
             var cy = top + rowH / 2;
             var x0 = deuxCol ? colX[col] : pad;
             var xNom = deuxCol ? x0 + 40 : pad + 50;
-            var xPts = deuxCol ? x0 + 300 : 470;
-            var xDroits = deuxCol ? x0 + 322 : 500;
+            var xPts = deuxCol ? x0 + 252 : 470;
+            var xDroits = deuxCol ? x0 + 272 : 500;
             if (r % 2 === 0) {
                 ctx.fillStyle = 'rgba(255,255,255,0.025)';
                 if (deuxCol) ctx.fillRect(x0 - 12, top, colW + 24, rowH);
@@ -502,7 +544,7 @@
 
             ctx.fillStyle = '#e8eaed';
             ctx.font = '600 14px Inter, sans-serif';
-            ctx.fillText(truncateTxt(p.username, deuxCol ? 20 : 26), xNom, cy);
+            ctx.fillText(truncateTxt(p.username, deuxCol ? 18 : 26), xNom, cy);
 
             ctx.fillStyle = '#f0a63c';
             ctx.font = '700 14px Inter, sans-serif';
@@ -521,21 +563,10 @@
                 ctx.fillText(truncateTxt(z, 22), 815, cy);
             } else {
                 var pal = palierFor(p.rang);
-                var dtxt = '—';
-                if (pal) {
-                    var pp = [];
-                    if (pal.percos > 0) pp.push(pal.percos + ' perco' + (pal.percos > 1 ? 's' : ''));
-                    if (pal.percos_150 > 0) pp.push(pal.percos_150 + ' niv 150-');
-                    dtxt = (pal.emoji ? pal.emoji + ' ' : '') + (pp.join(' + ') || '—');
-                }
+                var dtxt = pal ? (pal.emoji ? pal.emoji + ' ' : '') + droitsTexte(pal, true) : 'aucun';
                 ctx.fillStyle = '#c6c9cf';
                 ctx.font = '400 13px Inter, sans-serif';
                 ctx.fillText(dtxt, xDroits, cy);
-                if (percoResa) {
-                    var zr = (resaByUser[p.user_id] || []).join(' · ') || '—';
-                    ctx.fillStyle = zr === '—' ? '#6c7077' : '#ffb238';
-                    ctx.fillText(truncateTxt(zr, 30), 705, cy);
-                }
             }
         });
 
@@ -572,11 +603,31 @@
     /* === PERIODE (periode_pvp_infos() en SQL, reglee par les admins) === */
     /* Sans remise a zero (pas de fin), les droits suivent le classement en
        direct ; sinon ils valent pour la periode en cours. */
+    /* Pas de remise a zero en ce moment : illimite, ou depart programme pas
+       encore atteint (periode_pvp_infos().en_direct, sql/057) */
+    function periodeEnDirect() {
+        if (!periodeInfos) return true;
+        return periodeInfos.en_direct !== undefined ? !!periodeInfos.en_direct : !periodeInfos.fin;
+    }
+
+    function jourParis(iso) {
+        return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+    }
+
+    function rythmeTxt() {
+        return 'chaque ' + String((periodeInfos && periodeInfos.libelle) || 'période').toLowerCase();
+    }
+
     function periodeTexte(phrasePeriodique, phraseIllimite) {
         if (!periodeInfos) return 'Chargement de la période...';
-        if (!periodeInfos.fin) return phraseIllimite;
+        if (periodeEnDirect()) {
+            if (periodeInfos.programme && periodeInfos.fin) {
+                return phraseIllimite + ' Première remise à zéro le ' + jourParis(periodeInfos.fin) + ' à minuit, puis ' + rythmeTxt() + '.';
+            }
+            return phraseIllimite;
+        }
         var debut = new Date(periodeInfos.debut);
-        var veille = new Date(new Date(periodeInfos.fin).getTime() - 24 * 3600 * 1000);
+        var veille = new Date(new Date(periodeInfos.fin).getTime() - 12 * 3600 * 1000);
         return (periodeInfos.libelle || 'Période') + ' du ' + formatDate(debut) + ' au ' + formatDate(veille) + ' : ' + phrasePeriodique + '.';
     }
 
@@ -617,18 +668,14 @@
 
     async function loadReservations() {
         try {
-            var { data } = await window.REN.supabase
-                .from('perco_reservations')
-                .select('*, zone:zones_reservation!zone_id(nom, sous_titre)')
-                .order('periode_debut', { ascending: false })
-                .order('tour', { ascending: true })
-                .order('rang', { ascending: true });
-            var rows = data || [];
-            if (!rows.length) { reservations = []; return; }
-            /* Ne garder que la période la plus récente (comparaison timezone-proof) */
-            var latest = rows[0].periode_debut;
-            reservations = rows.filter(function (r) { return r.periode_debut === latest; });
+            var { data, error } = await window.REN.supabase.rpc('attribution_percos_courante');
+            if (error) throw error;
+            reservations = (data || []).map(function (r) {
+                return { tour: r.tour, rang: r.rang, user_id: r.user_id, zone_id: r.zone_id, choix: r.choix,
+                    zone: { nom: r.nom, sous_titre: r.sous_titre } };
+            });
         } catch (err) {
+            reservations = [];
             console.error('[REN-BOARD] Erreur réservations:', err);
         }
     }
@@ -662,19 +709,15 @@
         }
     }
 
-    /* Construit MA liste complete : mes preferences sauvegardees d'abord
-       (dans leur ordre), puis le reste du catalogue dans l'ordre par defaut */
-    function buildMyList() {
+    /* Mon top : mes preferences enregistrees, dans leur ordre, limitees a la
+       taille du top (seuls ces choix comptent au tirage) */
+    function buildMyTop() {
         var byId = {};
         allZones.forEach(function (z) { byId[z.id] = z; });
-        var seen = {};
-        myList = [];
+        myTop = [];
         myPrefs.forEach(function (p) {
             var z = byId[p.zone_id];
-            if (z && !seen[z.id]) { myList.push(z); seen[z.id] = true; }
-        });
-        allZones.forEach(function (z) {
-            if (!seen[z.id]) { myList.push(z); seen[z.id] = true; }
+            if (z && myTop.length < prefMax && myTop.indexOf(z) === -1) myTop.push(z);
         });
     }
 
@@ -715,11 +758,20 @@
         var ol = document.querySelector('#guide-modal .guide-steps');
         if (!ol) return;
         var html = '<li><strong>Le ladder.</strong> Ta place au classement PvP détermine ton palier, et chaque palier donne un nombre de percos à poser.</li>';
-        html += '<li><strong>La période.</strong> ' + (periodeInfos && periodeInfos.fin
-            ? 'Le classement repart de zéro à chaque ' + String(periodeInfos.libelle || 'période').toLowerCase() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente.'
-            : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.') + '</li>';
+        var programme = periodeInfos && periodeInfos.programme && periodeInfos.fin;
+        html += '<li><strong>La période.</strong> ' + (!periodeEnDirect()
+            ? 'Le classement PvP repart de zéro ' + rythmeTxt() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente.'
+            : (programme
+                ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' à minuit : d\'ici là, les droits suivent le classement depuis le début. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
+                : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.')) + '</li>';
         if (percoResa) {
-            html += '<li><strong>Les zones.</strong> Dans « Mes préférences », classe les zones dans ton ordre. À chaque période, dans l\'ordre du classement, chacun reçoit sa zone la mieux placée encore libre : elle apparaît dans la colonne « Zone réservée », personne d\'autre ne pose dessus.</li>';
+            html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. La colonne « Droits percos » l\'indique, par exemple « 4 percos dont 1 en zone réservée ».</li>';
+            html += '<li><strong>Ton top ' + prefMax + '.</strong> Dans « Mes préférences », choisis jusqu\'à ' + prefMax + ' zones dans ton ordre. Dans l\'ordre du classement, chacun reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Ceux qui n\'ont rien choisi passent après et reçoivent une zone dans l\'ordre conseillé par l\'alliance.</li>';
+            html += '<li><strong>Quand ça bouge.</strong> ' + (!periodeEnDirect()
+                ? 'Le tirage se fait au début de chaque période, sur le classement de la précédente, et reste figé jusqu\'à la suivante.'
+                : (programme
+                    ? 'Jusqu\'au ' + jourParis(periodeInfos.fin) + ', le tirage suit le classement en direct. Ensuite il se fait au début de chaque période, sur le classement de la précédente, et reste figé jusqu\'à la suivante.'
+                    : 'Sans remise à zéro, le tirage suit le classement en direct : si tu entres dans ces rangs tu reçois une zone, si tu en sors elle passe au suivant.')) + '</li>';
         }
         html += '<li><strong>Zones BDA.</strong> Le bouton en haut liste les zones réservées à la Banque d\'Alliance : leurs récoltes financent les récompenses, on ne pose pas dessus.</li>';
         ol.innerHTML = html;
@@ -733,16 +785,18 @@
         var html = '';
         paliers.forEach(function (p) {
             var label = p.rang_min === p.rang_max ? 'Top ' + p.rang_min : 'Top ' + p.rang_min + '-' + p.rang_max;
-            var droits = [];
-            if (p.percos > 0) droits.push(p.percos + ' perco' + (p.percos > 1 ? 's' : ''));
-            if (p.percos_150 > 0) droits.push(p.percos_150 + ' perco' + (p.percos_150 > 1 ? 's' : '') + ' niv 150-');
+            var d = droitsPalier(p);
+            var rewards = '';
+            if (d.total > 0) rewards += '<span class="board-bareme__perco">' + d.total + ' perco' + (d.total > 1 ? 's' : '') + '</span>';
+            if (d.resa > 0) rewards += '<span class="board-bareme__resa">dont ' + d.resa + ' en zone réservée</span>';
+            if (d.p150 > 0) rewards += '<span class="board-bareme__resa">+ ' + d.p150 + ' perco' + (d.p150 > 1 ? 's' : '') + ' niv 150-</span>';
             html += '<div class="board-bareme__item">'
                 + '<span class="board-bareme__emoji">' + esc(p.emoji || '') + '</span>'
                 + '<div class="board-bareme__info">'
                     + '<span class="board-bareme__label">' + esc(label) + '</span>'
                 + '</div>'
                 + '<div class="board-bareme__rewards">'
-                    + '<span class="board-bareme__perco">' + esc(droits.join(' + ') || '—') + '</span>'
+                    + (rewards || '<span class="text-muted">aucun</span>')
                 + '</div>'
                 + '</div>';
         });
@@ -754,6 +808,49 @@
             if (rang >= paliers[i].rang_min && rang <= paliers[i].rang_max) return paliers[i];
         }
         return null;
+    }
+
+    /* Droits d'un palier : total = percos libres + percos en zone reservee ;
+       les percos niveau 150 restent a part */
+    function droitsPalier(p) {
+        var resa = p ? (p.resa || 0) : 0;
+        return { total: p ? (p.percos || 0) + resa : 0, resa: resa, p150: p ? (p.percos_150 || 0) : 0 };
+    }
+
+    function droitsTexte(p, court) {
+        var d = droitsPalier(p);
+        var parts = [];
+        if (d.total > 0) parts.push(d.total + ' perco' + (d.total > 1 ? 's' : '') + (d.resa > 0 ? (court ? ' dont ' + d.resa + ' rés.' : ' dont ' + d.resa + ' en zone réservée') : ''));
+        if (d.p150 > 0) parts.push(d.p150 + (court ? '' : ' perco' + (d.p150 > 1 ? 's' : '')) + ' niv 150-');
+        return parts.join(' + ') || 'aucun';
+    }
+
+    /* Nombre de zones reservees au rang donne (0 = pas de zone) */
+    function resaDe(rang) {
+        return droitsPalier(palierFor(rang)).resa;
+    }
+
+    /* Plages de rangs qui ont une reservation, fusionnees : [[1, 10], [21, 30]] */
+    function plagesResa() {
+        var plages = [];
+        paliers.slice().sort(function (a, b) { return a.rang_min - b.rang_min; }).forEach(function (p) {
+            if ((p.resa || 0) <= 0) return;
+            var last = plages[plages.length - 1];
+            if (last && p.rang_min <= last[1] + 1) last[1] = Math.max(last[1], p.rang_max);
+            else plages.push([p.rang_min, p.rang_max]);
+        });
+        return plages;
+    }
+
+    function texteRangs(plages) {
+        if (!plages.length) return 'aucun rang';
+        var parts = plages.map(function (pl) { return pl[0] === pl[1] ? String(pl[0]) : pl[0] + ' à ' + pl[1]; });
+        var unSeul = plages.length === 1 && plages[0][0] === plages[0][1];
+        return (unSeul ? 'rang ' : 'rangs ') + (parts.length > 1 ? parts.slice(0, -1).join(', ') + ' et ' + parts[parts.length - 1] : parts[0]);
+    }
+
+    function ordinal(n) {
+        return n + (n === 1 ? 'er' : 'e');
     }
 
     /* === TABLEAU === */
@@ -784,28 +881,32 @@
         if (percoResa) html += '<th class="board-table__th board-table__th--zone">Zone réservée</th>';
         html += '</tr></thead><tbody>';
 
+        var enDirect = periodeEnDirect();
+        var icone = ' <img class="icon-inline icon-inline--perco" src="assets/images/percepteur.png" alt="perco">';
         ladder.forEach(function (p) {
             var palier = palierFor(p.rang);
-            var droits = '—';
-            if (palier) {
-                var parts = [];
-                if (palier.percos > 0) parts.push('<strong>' + palier.percos + '</strong> <img class="icon-inline icon-inline--perco" src="assets/images/percepteur.png" alt="perco">');
-                if (palier.percos_150 > 0) parts.push('<strong>' + palier.percos_150 + '</strong> <img class="icon-inline icon-inline--perco" src="assets/images/percepteur.png" alt="perco"> <span class="board-table__lvl">niv 150-</span>');
-                droits = (palier.emoji ? esc(palier.emoji) + ' ' : '') + (parts.join(' + ') || '—');
-            }
+            var d = droitsPalier(palier);
+            var parts = [];
+            if (d.total > 0) parts.push('<strong>' + d.total + '</strong>' + icone + (d.resa > 0 ? ' <span class="board-table__lvl">dont ' + d.resa + ' en zone réservée</span>' : ''));
+            if (d.p150 > 0) parts.push('<strong>' + d.p150 + '</strong>' + icone + ' <span class="board-table__lvl">niv 150-</span>');
+            var droits = (palier && palier.emoji ? esc(palier.emoji) + ' ' : '') + (parts.join(' + ') || '<span class="text-muted">aucun</span>');
 
-            var resas = resaByUser[p.user_id] || [];
-            var zoneTxt = resas.length
-                ? resas.map(function (r) {
-                    var nom = r.zone ? r.zone.nom : '?';
-                    var sub = r.zone && r.zone.sous_titre ? ' <span class="board-table__lvl">' + esc(r.zone.sous_titre) + '</span>' : '';
-                    return '<strong>' + esc(nom) + '</strong>' + sub;
-                }).join(' <span class="text-muted">·</span> ')
-                : '—';
+            /* Zone reservee : rien du tout pour les rangs dont le palier n'en donne pas */
+            var zoneTxt = '';
+            if (d.resa > 0) {
+                var resas = resaByUser[p.user_id] || [];
+                zoneTxt = resas.length
+                    ? resas.map(function (r) {
+                        var nom = r.zone ? r.zone.nom : '?';
+                        var sub = r.zone && r.zone.sous_titre ? ' <span class="board-table__lvl">' + esc(r.zone.sous_titre) + '</span>' : '';
+                        return '<strong>' + esc(nom) + '</strong>' + sub;
+                    }).join(' <span class="text-muted">·</span> ')
+                    : '<span class="text-muted">' + (enDirect ? 'aucune zone libre' : 'au prochain tirage') + '</span>';
+            }
 
             html += '<tr class="board-table__row' + (p.user_id === myId ? ' board-table__row--me' : '') + '">';
             html += '<td class="board-table__td board-table__td--rank">' + p.rang + '</td>';
-            html += '<td class="board-table__td board-table__td--name notranslate">' + esc(p.username) + '</td>';
+            html += '<td class="board-table__td board-table__td--name notranslate">' + esc(p.username) + (percoResa && zoneTxt ? '<div class="board-table__zone-mobile">' + zoneTxt + '</div>' : '') + '</td>';
             html += '<td class="board-table__td board-table__td--points">' + p.points + '</td>';
             html += '<td class="board-table__td board-table__td--tier">' + droits + '</td>';
             if (percoResa) html += '<td class="board-table__td board-table__td--zone">' + zoneTxt + '</td>';
@@ -816,54 +917,125 @@
         container.innerHTML = html;
     }
 
-    /* === MES PRÉFÉRENCES === */
-    /* === MES PRÉFÉRENCES (liste complète, réordonnable par drag & drop) === */
+    /* === MES PRÉFÉRENCES : un top de N zones choisies dans la liste === */
+    function normTxt(s) {
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function ligneDe(userId) {
+        for (var i = 0; i < ladder.length; i++) if (ladder[i].user_id === userId) return ladder[i];
+        return null;
+    }
+
+    /* Joueur qui a explicitement choisi cette zone et la tient en ce moment */
+    function choisiePar(zoneId) {
+        var me = window.REN.currentProfile.id;
+        for (var i = 0; i < reservations.length; i++) {
+            var r = reservations[i];
+            if (r.zone_id === zoneId && r.user_id !== me && (r.choix || 0) > 0) {
+                var l = ligneDe(r.user_id);
+                return l ? l.username + ' (' + ordinal(l.rang) + ')' : 'un autre joueur';
+            }
+        }
+        return '';
+    }
+
     function renderPrefs() {
         var listEl = document.getElementById('board-prefs-list');
+        var topEl = document.getElementById('board-prefs-top');
         var mineEl = document.getElementById('board-prefs-mine');
+        var hintEl = document.getElementById('board-prefs-hint');
         var saveBtn = document.getElementById('board-prefs-save');
-        if (!listEl) return;
+        var resetBtn = document.getElementById('board-prefs-reset');
+        if (!listEl || !topEl) return;
 
         var esc = window.REN.escapeHtml;
+        var me = window.REN.currentProfile.id;
+        var enDirect = periodeEnDirect();
+        var rangsTxt = texteRangs(plagesResa());
 
-        /* Position de chaque zone dans l'ordre de base de l'alliance (repere fixe) */
-        var baseOrderMap = {};
-        allZones.forEach(function (z, i) { baseOrderMap[z.id] = i + 1; });
+        if (hintEl) hintEl.textContent = 'Choisis jusqu\'à ' + prefMax + ' zones dans la liste, dans ton ordre de préférence. Dans l\'ordre du classement, chaque joueur qui a droit à une zone reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Ceux qui n\'ont rien choisi passent après tout le monde.';
 
-        /* Encart : ma zone attribuée pour la quinzaine en cours */
-        var myResas = reservations.filter(function (r) { return r.user_id === window.REN.currentProfile.id; });
-        var mineHtml;
-        if (myResas.length) {
-            mineHtml = '<div class="board-prefs__mine">Ta zone attribuée pour cette quinzaine : '
-                + myResas.map(function (r) {
-                    var nom = r.zone ? r.zone.nom : '?';
-                    var sub = r.zone && r.zone.sous_titre ? ' <span class="pref-row__lvl">' + esc(r.zone.sous_titre) + '</span>' : '';
-                    return '<strong>' + esc(nom) + '</strong>' + sub;
-                }).join(' <span class="text-muted">&middot;</span> ') + '</div>';
+        /* Encart : ma situation */
+        var moi = ligneDe(me);
+        var mesResas = reservations.filter(function (r) { return r.user_id === me; });
+        var mine;
+        if (!moi) {
+            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu n\'es pas encore classé. Les zones réservées vont aux ' + esc(rangsTxt) + ' du classement : prépare ton top, il servira dès que tu y entres.</div>';
+        } else if (resaDe(moi.rang) <= 0) {
+            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu es <strong>' + ordinal(moi.rang) + '</strong>. Les zones réservées vont aux ' + esc(rangsTxt) + ' : prépare ton top, il servira dès que tu y entres.</div>';
+        } else if (mesResas.length) {
+            var detail = mesResas.map(function (r) {
+                var nom = r.zone ? r.zone.nom : '?';
+                var sub = r.zone && r.zone.sous_titre ? ' <span class="pref-row__lvl">' + esc(r.zone.sous_titre) + '</span>' : '';
+                var pourquoi = (r.choix || 0) > 0
+                    ? 'ton choix n°' + r.choix
+                    : (myPrefs.length ? 'zone par défaut, tes choix sont pris par des joueurs mieux classés' : 'zone par défaut, tu n\'as pas encore choisi ton top');
+                return '<strong>' + esc(nom) + '</strong>' + sub + ' <span class="text-muted">(' + pourquoi + ')</span>';
+            }).join(' <span class="text-muted">·</span> ');
+            mine = '<div class="board-prefs__mine">Tu es <strong>' + ordinal(moi.rang) + '</strong>. ' + (enDirect ? 'Ta zone réservée en ce moment' : 'Ta zone réservée pour cette période') + ' : ' + detail
+                + '<div class="board-prefs__note">' + (enDirect
+                    ? 'Le tirage suit le classement en direct : si tu sors des ' + esc(rangsTxt) + ', ta zone passe au suivant.'
+                    : 'Ton top sert au tirage de la prochaine période.') + '</div></div>';
         } else {
-            mineHtml = '<div class="board-prefs__mine board-prefs__mine--none">Aucune zone attribuée pour l\'instant sur cette quinzaine. Le tirage se fait automatiquement au reset (un admin peut le recalculer).</div>';
+            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu es <strong>' + ordinal(moi.rang) + '</strong> : ' + (enDirect
+                ? 'plus aucune zone libre pour toi en ce moment.'
+                : 'pas de zone sur cette période, ton top servira au prochain tirage.') + '</div>';
         }
-        if (mineEl) mineEl.innerHTML = mineHtml;
+        if (mineEl) mineEl.innerHTML = mine;
 
+        /* Mon top : N cases */
+        var slots = '';
+        for (var i = 0; i < prefMax; i++) {
+            var z = myTop[i];
+            if (!z) {
+                slots += '<li class="top-slot top-slot--vide"><span class="top-slot__num">' + (i + 1) + '</span><span class="top-slot__nom">Ajoute une zone depuis la liste</span></li>';
+                continue;
+            }
+            var mienne = mesResas.some(function (r) { return r.zone_id === z.id; });
+            var par = mienne ? '' : choisiePar(z.id);
+            slots += '<li class="top-slot' + (mienne ? ' top-slot--mienne' : '') + '">'
+                + '<span class="top-slot__num">' + (i + 1) + '</span>'
+                + '<span class="top-slot__nom notranslate">' + esc(z.nom)
+                    + (z.sous_titre ? ' <span class="pref-row__lvl">' + esc(z.sous_titre) + '</span>' : '')
+                    + (mienne ? ' <span class="top-slot__tag top-slot__tag--ok">ta zone</span>' : '')
+                    + (par ? ' <span class="top-slot__tag">choisie par ' + esc(par) + '</span>' : '')
+                + '</span>'
+                + '<span class="top-slot__actions">'
+                    + '<button type="button" class="pref-row__btn" data-action="up" data-i="' + i + '" title="Monter"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>'
+                    + '<button type="button" class="pref-row__btn" data-action="down" data-i="' + i + '" title="Descendre"' + (i === myTop.length - 1 ? ' disabled' : '') + '>&#9660;</button>'
+                    + '<button type="button" class="pref-row__btn pref-row__btn--del" data-action="retirer" data-i="' + i + '" title="Retirer de mon top">&#10005;</button>'
+                + '</span>'
+                + '</li>';
+        }
+        topEl.innerHTML = '<div class="board-top__head"><strong>Mon top ' + prefMax + '</strong><span class="text-muted">' + myTop.length + ' / ' + prefMax + '</span></div>'
+            + '<ol class="board-top__slots">' + slots + '</ol>';
+
+        /* La liste des zones, filtree par la recherche */
+        var filterEl = document.getElementById('board-prefs-filter');
+        var q = normTxt(filterEl ? filterEl.value.trim() : '');
+        var plein = myTop.length >= prefMax;
         var html = '';
-        myList.forEach(function (z, i) {
-            html += '<div class="pref-row pref-row--drag" draggable="true" data-zone-id="' + z.id + '">';
-            html += '<span class="pref-row__grip" title="Glisser pour déplacer"><svg width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.8"/><circle cx="15" cy="5" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="9" cy="19" r="1.8"/><circle cx="15" cy="19" r="1.8"/></svg></span>';
-            html += '<span class="pref-row__ordre">' + (i + 1) + '</span>';
-            html += '<span class="pref-row__nom notranslate">' + esc(z.nom)
-                + (z.sous_titre ? ' <span class="pref-row__lvl">' + esc(z.sous_titre) + '</span>' : '')
-                + (z.categorie === 'secondaire' ? ' <span class="pref-row__cat">2nd</span>' : '')
-                + '</span>';
-            html += '<span class="pref-row__base" title="Position dans l\'ordre de base de l\'alliance">base n°' + (baseOrderMap[z.id] || '?') + '</span>';
-            html += '<span class="pref-row__actions">';
-            html += '<button class="pref-row__btn" data-action="up" data-i="' + i + '" title="Monter"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>';
-            html += '<button class="pref-row__btn" data-action="down" data-i="' + i + '" title="Descendre"' + (i === myList.length - 1 ? ' disabled' : '') + '>&#9660;</button>';
-            html += '</span>';
-            html += '</div>';
+        allZones.forEach(function (zz) {
+            if (q && normTxt(zz.nom + ' ' + (zz.sous_titre || '')).indexOf(q) === -1) return;
+            var pos = myTop.indexOf(zz);
+            var parZ = pos >= 0 ? '' : choisiePar(zz.id);
+            html += '<div class="pref-row' + (pos >= 0 ? ' pref-row--choisie' : '') + '">'
+                + '<span class="pref-row__nom notranslate">' + esc(zz.nom)
+                    + (zz.sous_titre ? ' <span class="pref-row__lvl">' + esc(zz.sous_titre) + '</span>' : '')
+                    + (zz.categorie === 'secondaire' ? ' <span class="pref-row__cat">2nd</span>' : '')
+                + '</span>'
+                + (parZ ? '<span class="pref-row__occ">choisie par ' + esc(parZ) + '</span>' : '')
+                + (pos >= 0
+                    ? '<span class="pref-row__pos">n°' + (pos + 1) + ' de ton top</span>'
+                    : '<button type="button" class="btn btn--secondary btn--small pref-row__add" data-action="ajouter" data-zone="' + zz.id + '"'
+                        + (plein ? ' disabled title="Ton top est complet : retire une zone d\'abord"' : '') + '>+ Ajouter</button>')
+                + '</div>';
         });
-        listEl.innerHTML = html;
+        listEl.innerHTML = html || '<p class="text-muted" style="padding:var(--spacing-sm);">Aucune zone ne correspond à ta recherche.</p>';
 
         if (saveBtn) saveBtn.hidden = !prefsDirty;
+        if (resetBtn) resetBtn.disabled = !myTop.length;
         bindPrefsControls();
     }
 
@@ -873,97 +1045,51 @@
         prefsControlsBound = true;
 
         var listEl = document.getElementById('board-prefs-list');
+        var topEl = document.getElementById('board-prefs-top');
         var filterInput = document.getElementById('board-prefs-filter');
         var saveBtn = document.getElementById('board-prefs-save');
         var resetBtn = document.getElementById('board-prefs-reset');
 
         if (saveBtn) saveBtn.addEventListener('click', savePrefs);
-        if (resetBtn) resetBtn.addEventListener('click', resetPrefs);
+        if (resetBtn) resetBtn.addEventListener('click', function () {
+            if (!myTop.length) return;
+            myTop = [];
+            prefsDirty = true;
+            renderPrefs();
+        });
+        if (filterInput) filterInput.addEventListener('input', renderPrefs);
 
-        /* Recherche : scrolle jusqu'à la première zone qui matche et la surligne */
-        if (filterInput && listEl) {
-            filterInput.addEventListener('input', function () {
-                var q = filterInput.value.trim().toLowerCase();
-                listEl.querySelectorAll('.pref-row--hit').forEach(function (r) { r.classList.remove('pref-row--hit'); });
-                if (q.length < 2) return;
-                var rows = listEl.querySelectorAll('.pref-row');
-                for (var i = 0; i < rows.length; i++) {
-                    if (rows[i].textContent.toLowerCase().indexOf(q) !== -1) {
-                        rows[i].classList.add('pref-row--hit');
-                        rows[i].scrollIntoView({ block: 'center', behavior: 'smooth' });
-                        break;
-                    }
-                }
-            });
-        }
+        /* + Ajouter : la zone prend la premiere case libre du top */
+        if (listEl) listEl.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-action="ajouter"]');
+            if (!btn || btn.disabled) return;
+            var id = parseInt(btn.dataset.zone, 10);
+            var z = null;
+            allZones.forEach(function (x) { if (x.id === id) z = x; });
+            if (!z || myTop.indexOf(z) !== -1 || myTop.length >= prefMax) return;
+            myTop.push(z);
+            prefsDirty = true;
+            renderPrefs();
+        });
 
-        if (!listEl) return;
-
-        /* Flèches monter/descendre (délégation, la liste est re-rendue à chaque fois) */
-        listEl.addEventListener('click', function (e) {
+        /* Monter, descendre, retirer dans le top */
+        if (topEl) topEl.addEventListener('click', function (e) {
             var btn = e.target.closest('.pref-row__btn');
             if (!btn || btn.disabled) return;
             var i = parseInt(btn.dataset.i, 10);
             var action = btn.dataset.action;
             if (action === 'up' && i > 0) {
-                var tmp = myList[i - 1]; myList[i - 1] = myList[i]; myList[i] = tmp;
-            } else if (action === 'down' && i < myList.length - 1) {
-                var tmp2 = myList[i + 1]; myList[i + 1] = myList[i]; myList[i] = tmp2;
+                var tmp = myTop[i - 1]; myTop[i - 1] = myTop[i]; myTop[i] = tmp;
+            } else if (action === 'down' && i < myTop.length - 1) {
+                var tmp2 = myTop[i + 1]; myTop[i + 1] = myTop[i]; myTop[i] = tmp2;
+            } else if (action === 'retirer') {
+                myTop.splice(i, 1);
             } else {
                 return;
             }
             prefsDirty = true;
             renderPrefs();
         });
-
-        /* Drag & drop : on déplace la ligne dans le DOM pendant le survol,
-           puis on relit l'ordre du DOM au lâcher */
-        listEl.addEventListener('dragstart', function (e) {
-            var row = e.target.closest('.pref-row');
-            if (!row) return;
-            row.classList.add('pref-row--dragging');
-            try { e.dataTransfer.setData('text/plain', row.dataset.zoneId); } catch (err) { /* vieux navigateurs */ }
-            e.dataTransfer.effectAllowed = 'move';
-        });
-
-        listEl.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            var dragging = listEl.querySelector('.pref-row--dragging');
-            var target = e.target.closest('.pref-row');
-            if (!dragging || !target || target === dragging) return;
-            var rect = target.getBoundingClientRect();
-            var after = (e.clientY - rect.top) > rect.height / 2;
-            listEl.insertBefore(dragging, after ? target.nextSibling : target);
-        });
-
-        listEl.addEventListener('drop', function (e) { e.preventDefault(); });
-
-        listEl.addEventListener('dragend', function () {
-            var dragging = listEl.querySelector('.pref-row--dragging');
-            if (dragging) dragging.classList.remove('pref-row--dragging');
-            syncListFromDom(listEl);
-        });
-    }
-
-    /* Relit l'ordre du DOM après un drag et met à jour la liste */
-    function syncListFromDom(listEl) {
-        var byId = {};
-        myList.forEach(function (z) { byId[z.id] = z; });
-        var newList = [];
-        listEl.querySelectorAll('.pref-row').forEach(function (row) {
-            var z = byId[parseInt(row.dataset.zoneId, 10)];
-            if (z) newList.push(z);
-        });
-        if (newList.length !== myList.length) return;
-        var changed = false;
-        for (var i = 0; i < myList.length; i++) {
-            if (myList[i].id !== newList[i].id) { changed = true; break; }
-        }
-        if (!changed) return;
-        myList = newList;
-        prefsDirty = true;
-        renderPrefs();
     }
 
     async function savePrefs() {
@@ -973,40 +1099,29 @@
             var me = window.REN.currentProfile.id;
             var del = await window.REN.supabase.from('perco_preferences').delete().eq('user_id', me);
             if (del.error) throw del.error;
-
-            /* Ordre identique au catalogue : rien à stocker, l'ordre par défaut s'applique */
-            var isDefault = myList.length === allZones.length && myList.every(function (z, i) { return allZones[i] && z.id === allZones[i].id; });
-            if (!isDefault && myList.length) {
-                var rows = myList.map(function (z, i) {
-                    return { user_id: me, zone_id: z.id, ordre: i + 1 };
-                });
+            if (myTop.length) {
+                var rows = myTop.map(function (z, i) { return { user_id: me, zone_id: z.id, ordre: i + 1 }; });
                 var ins = await window.REN.supabase.from('perco_preferences').insert(rows);
                 if (ins.error) throw ins.error;
             }
-
+            myPrefs = myTop.map(function (z) { return { zone_id: z.id, nom: z.nom, sous_titre: z.sous_titre || '' }; });
             prefsDirty = false;
+
+            var enDirect = periodeEnDirect();
+            if (enDirect) {
+                /* Tirage en direct : on recharge pour montrer tout de suite l'effet */
+                await loadReservations();
+                renderTable();
+            }
             renderPrefs();
-            window.REN.toast('Ton ordre de préférence est enregistré. Il sera utilisé au prochain calcul d\'attribution.', 'success');
+            window.REN.toast(myTop.length
+                ? (enDirect ? 'Ton top est enregistré, le tirage en tient compte tout de suite.' : 'Ton top est enregistré, il servira au prochain tirage.')
+                : 'Ton top est vidé : si tu as droit à une zone, tu en recevras une par défaut.', 'success');
         } catch (err) {
             console.error('[REN-BOARD] Erreur sauvegarde préférences:', err);
             window.REN.toast('Erreur : ' + err.message, 'error');
         } finally {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Enregistrer mes préférences'; }
-        }
-    }
-
-    async function resetPrefs() {
-        if (!confirm('Revenir à l\'ordre par défaut de l\'alliance ? Ton classement personnalisé sera supprimé.')) return;
-        try {
-            var del = await window.REN.supabase.from('perco_preferences').delete().eq('user_id', window.REN.currentProfile.id);
-            if (del.error) throw del.error;
-            myPrefs = [];
-            myList = allZones.slice();
-            prefsDirty = false;
-            renderPrefs();
-            window.REN.toast('Ordre par défaut rétabli.', 'success');
-        } catch (err) {
-            window.REN.toast('Erreur : ' + err.message, 'error');
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Enregistrer mon top'; }
         }
     }
 
