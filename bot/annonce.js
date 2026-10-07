@@ -9,6 +9,7 @@
    chacune) : png, jpg, gif, webp, mp4, webm.
 
    --a-blanc affiche ce qui serait envoye et s'arrete, sans rien poster.
+   --utilisateurs fait sonner les mentions de joueurs <@id> du texte (muettes sinon).
    Les mentions @everyone / @here sont bloquees par defaut, meme si le texte
    en contient : il faut passer --everyone pour qu'elles sonnent vraiment.
    Le salon par defaut est #site-alliance (DISCORD_SITE_ALLIANCE_CHANNEL_ID).
@@ -31,6 +32,7 @@ chargerEnv();
 function arg(nom) { const i = process.argv.indexOf(nom); return i !== -1 ? process.argv[i + 1] : null; }
 const A_BLANC = process.argv.indexOf('--a-blanc') !== -1;
 const EVERYONE = process.argv.indexOf('--everyone') !== -1;
+const UTILISATEURS = process.argv.indexOf('--utilisateurs') !== -1; /* les mentions <@id> du texte sonnent */
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const SALON = arg('--salon') || process.env.DISCORD_SITE_ALLIANCE_CHANNEL_ID;
 const FICHIER = arg('--message');
@@ -52,14 +54,14 @@ for (const pj of FICHIERS) {
     if (fs.statSync(pj).size > 10 * 1024 * 1024) { console.error('Fichier trop lourd pour Discord (plus de 10 Mo) : ' + pj); process.exit(1); }
 }
 
-console.log('Salon : ' + SALON + ' | @everyone : ' + (EVERYONE ? 'autorise' : 'bloque') + (FICHIERS.length
+console.log('Salon : ' + SALON + ' | @everyone : ' + (EVERYONE ? 'autorise' : 'bloque') + ' | mentions de joueurs : ' + (UTILISATEURS ? 'autorisees' : 'muettes') + (FICHIERS.length
     ? ' | pieces jointes : ' + FICHIERS.map(function (pj) { return path.basename(pj) + ' (' + Math.round(fs.statSync(pj).size / 1024) + ' Ko)'; }).join(', ')
     : ' | sans piece jointe'));
 console.log('----- message (' + texte.length + ' caracteres) -----\n' + texte + '\n----- fin -----');
 if (A_BLANC) { console.log('\nMode a blanc : rien n a ete envoye.'); process.exit(0); }
 
 (async () => {
-    const payload = { content: texte, allowed_mentions: { parse: EVERYONE ? ['everyone'] : [] } };
+    const payload = { content: texte, allowed_mentions: { parse: [].concat(EVERYONE ? ['everyone'] : [], UTILISATEURS ? ['users'] : []) } };
     let body, headers = { Authorization: 'Bot ' + TOKEN };
     if (FICHIERS.length) {
         body = new FormData();
