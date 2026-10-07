@@ -114,3 +114,16 @@ KOUTOU ZONE 3 (Abîme R'lyugluglu) · DANTI ZONE 3 (Tréfonds des trithons) · R
 - ✅ Sélecteur de préférences : groupes « Zones principales » (dans l'ordre) puis « Zones secondaires », filtre texte
 - ✅ Attribution re-testée sur ce catalogue (transaction annulée) : cascade OK
 - Corrections de noms possibles à tout moment directement en base (table zones_reservation) ou via une future UI admin
+
+## Ajouts du 07/10/2026 (migration `sql/060`)
+Un membre a signalé l'absence de la zone de Missiz Frizz. Le catalogue a été comparé à la liste complète des donjons du jeu (DofusDB, recoupée avec JeuxOnLine) : trois donjons de niveau 200 n'avaient aucune entrée. Ajoutés en principales, à la suite des 100 : l'ordre alliance et la zone donnée par défaut ne bougent pas (tirage du top 10 vérifié identique avant et après).
+
+101. MISSIZ • Bastion des froides légions : Forgefroide de Missiz Frizz, Frigost
+102. VORTEX • Lendemains incertains (Xélorium) : Œil de Vortex
+103. PROTOZORREUR • Roc des Salbatroces : Ventre de la Baleine, Frigost
+
+Volontairement absents : le Comte Harebourg (non réservable, annonce de MAsdov du 07/10), les donjons d'événement (Nowel, Halouine, île de Pwâk), Incarnam et Astrub.
+
+Questions posées à Mathieu le 07/10 :
+- « Quatre cavalier » est une seule entrée, alors que le jeu a quatre dimensions distinctes (Galère de Servitude, Désert de Misère, Blessures de Guerre, Royaume Corrompu), chacune avec son donjon. Faut-il la scinder en quatre ?
+- Ajouter en secondaires trois donjons absents de plus bas niveau : Fabrique de Malléfisk (100, Enutrosor), Cale de l'Arche d'Otomaï (Gourlo le Terrible, 70) et Temple maudit d'Araknas (186, Landes de Sidimote, aucun boss répertorié) ?
