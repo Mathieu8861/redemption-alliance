@@ -631,7 +631,7 @@
         if (!periodeInfos) return 'Chargement de la période...';
         if (periodeEnDirect()) {
             if (periodeInfos.programme && periodeInfos.fin) {
-                return phraseIllimite + ' Première remise à zéro le ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ', puis ' + rythmeTxt() + '.';
+                return phraseIllimite + ' Première remise à zéro le ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ' : ce classement, arrêté à ce moment-là, donne les droits et les zones de la première ' + String(periodeInfos.libelle || 'période').toLowerCase() + ', puis chaque ' + String(periodeInfos.libelle || 'période').toLowerCase() + ' compte pour la suivante.';
             }
             return phraseIllimite;
         }
@@ -757,7 +757,9 @@
         el.textContent = periodeTexte(
             ladderSource === 'courante'
                 ? 'période de lancement, ' + quoi + ' selon le classement en cours'
-                : quoi + ' selon le classement de la période précédente',
+                : (periodeInfos && periodeInfos.precedente_cumulee
+                    ? quoi + ' selon le classement cumulé depuis le début, arrêté à la remise à zéro'
+                    : quoi + ' selon le classement de la période précédente'),
             'Sans remise à zéro : les ' + quoi + ' suivent le classement depuis le début, mis à jour en direct.');
     }
 
@@ -769,9 +771,9 @@
         var html = '<li><strong>Le ladder.</strong> Ta place au classement PvP détermine ton palier, et chaque palier donne un nombre de percos à poser.</li>';
         var programme = periodeInfos && periodeInfos.programme && periodeInfos.fin;
         html += '<li><strong>La période.</strong> ' + (!periodeEnDirect()
-            ? 'Le classement PvP repart de zéro ' + rythmeTxt() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente.'
+            ? 'Le classement PvP repart de zéro ' + rythmeTxt() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente' + (periodeInfos.precedente_cumulee ? ' : pour cette première période, le classement cumulé depuis le début, arrêté à la remise à zéro.' : '.')
             : (programme
-                ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ' : d\'ici là, les droits suivent le classement depuis le début. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
+                ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ' : d\'ici là, les droits suivent le classement depuis le début, et c\'est ce classement, arrêté à ce moment-là, qui donne les droits de la première période. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
                 : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.')) + '</li>';
         if (percoResa) {
             html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. La colonne « Droits percos » l\'indique, par exemple « 4 percos dont 1 en zone réservée ».</li>';

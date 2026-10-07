@@ -1491,11 +1491,11 @@
         var periodeTxt;
         if (enDirect) {
             periodeTxt = infos.programme && infos.fin
-                ? 'Sans remise à zéro jusqu\'au ' + dateParis(infos.fin, true) + ' ' + heureRemise(infos.fin) + ' : le ladder suit encore le classement depuis le début. Ensuite, remise à zéro chaque ' + String(infos.libelle || 'période').toLowerCase() + ' et droits calculés sur la période précédente.'
+                ? 'Sans remise à zéro jusqu\'au ' + dateParis(infos.fin, true) + ' ' + heureRemise(infos.fin) + ' : le ladder suit encore le classement depuis le début, et c\'est ce classement, arrêté à ce moment-là, qui donne les droits de la première période. Ensuite, remise à zéro chaque ' + String(infos.libelle || 'période').toLowerCase() + ' et droits calculés sur la période précédente.'
                 : 'Sans remise à zéro : le ladder suit le classement depuis le début, les droits bougent en direct.';
         } else {
             var veille = new Date(new Date(infos.fin).getTime() - 12 * 3600 * 1000).toISOString();
-            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateParis(infos.debut, true) + ' au ' + dateParis(veille, true) + ' inclus, remise à zéro le ' + dateParis(infos.fin, true) + ' ' + heureRemise(infos.fin) + '. Les droits de la période se calculent sur le classement de la précédente.';
+            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateParis(infos.debut, true) + ' au ' + dateParis(veille, true) + ' inclus, remise à zéro le ' + dateParis(infos.fin, true) + ' ' + heureRemise(infos.fin) + '. Les droits de la période se calculent sur le classement de la précédente' + (infos.precedente_cumulee ? ' : pour cette première période, le classement cumulé depuis le début, arrêté à la remise à zéro.' : '.');
         }
         html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Période du ladder</div>';
         html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-sm);">Le ladder perco n\'a pas de durée propre : il suit la période du classement PvP (semaine, quinzaine, mois, sans remise à zéro ou nombre de jours au choix).</p>';
@@ -3278,7 +3278,7 @@
         var periodeTxt;
         var enDirect = infos.en_direct !== undefined ? !!infos.en_direct : !infos.fin;
         if (enDirect && infos.programme && infos.fin) {
-            periodeTxt = "En ce moment : tous les combats depuis le début, sans remise à zéro. Première remise à zéro programmée le " + dateParis(infos.fin) + " " + heureRemise(infos.fin) + " (heure de Paris), puis chaque " + String(infos.libelle || 'période').toLowerCase() + ".";
+            periodeTxt = "En ce moment : tous les combats depuis le début, sans remise à zéro. Première remise à zéro programmée le " + dateParis(infos.fin) + " " + heureRemise(infos.fin) + " (heure de Paris), puis chaque " + String(infos.libelle || 'période').toLowerCase() + ". Le classement arrêté à ce moment-là donne les droits percos de la première période.";
         } else if (enDirect) {
             periodeTxt = "Période en cours : tous les combats depuis le début, sans remise à zéro.";
         } else {
