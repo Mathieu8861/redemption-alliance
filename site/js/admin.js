@@ -1491,11 +1491,11 @@
         var periodeTxt;
         if (enDirect) {
             periodeTxt = infos.programme && infos.fin
-                ? 'Sans remise à zéro jusqu\'au ' + dateParis(infos.fin, true) + ' à minuit : le ladder suit encore le classement depuis le début. Ensuite, remise à zéro chaque ' + String(infos.libelle || 'période').toLowerCase() + ' et droits calculés sur la période précédente.'
+                ? 'Sans remise à zéro jusqu\'au ' + dateParis(infos.fin, true) + ' ' + heureRemise(infos.fin) + ' : le ladder suit encore le classement depuis le début. Ensuite, remise à zéro chaque ' + String(infos.libelle || 'période').toLowerCase() + ' et droits calculés sur la période précédente.'
                 : 'Sans remise à zéro : le ladder suit le classement depuis le début, les droits bougent en direct.';
         } else {
             var veille = new Date(new Date(infos.fin).getTime() - 12 * 3600 * 1000).toISOString();
-            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateParis(infos.debut, true) + ' au ' + dateParis(veille, true) + ' inclus, remise à zéro le ' + dateParis(infos.fin, true) + ' à minuit. Les droits de la période se calculent sur le classement de la précédente.';
+            periodeTxt = (infos.libelle || 'Période') + ' en cours du ' + dateParis(infos.debut, true) + ' au ' + dateParis(veille, true) + ' inclus, remise à zéro le ' + dateParis(infos.fin, true) + ' ' + heureRemise(infos.fin) + '. Les droits de la période se calculent sur le classement de la précédente.';
         }
         html += '<div class="admin-panel__title" style="margin-top:var(--spacing-2xl);">Période du ladder</div>';
         html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-sm);">Le ladder perco n\'a pas de durée propre : il suit la période du classement PvP (semaine, quinzaine, mois, sans remise à zéro ou nombre de jours au choix).</p>';
@@ -3238,6 +3238,16 @@
     /* ============================================ */
     /* ONGLET PERIODE DU CLASSEMENT PVP             */
     /* ============================================ */
+
+    /* Heure de remise a zero du classement PvP (sql/058) : 00:00:01 heure de
+       Paris, dite avec la nuit pour lever l'ambiguite de « jeudi minuit » */
+    function heureRemise(iso) {
+        var d = new Date(iso);
+        var jour = d.toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'Europe/Paris' });
+        var veille = new Date(d.getTime() - 12 * 3600 * 1000).toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'Europe/Paris' });
+        return 'à 00:00:01, dans la nuit de ' + veille + ' à ' + jour;
+    }
+
     var PVP_MODES = [
         { key: 'illimite',     label: "Sans remise à zéro", desc: "Le classement cumule tous les combats depuis le début. Aucune période, rien ne repart à zéro." },
         { key: 'hebdo',        label: "Hebdomadaire",        desc: "Blocs de 7 jours : le jour de la semaine de la date de départ fixe celui de la remise à zéro (un jeudi pour aller du jeudi au jeudi)." },
@@ -3268,13 +3278,13 @@
         var periodeTxt;
         var enDirect = infos.en_direct !== undefined ? !!infos.en_direct : !infos.fin;
         if (enDirect && infos.programme && infos.fin) {
-            periodeTxt = "En ce moment : tous les combats depuis le début, sans remise à zéro. Première remise à zéro programmée le " + dateParis(infos.fin) + " à minuit (heure de Paris), puis chaque " + String(infos.libelle || 'période').toLowerCase() + ".";
+            periodeTxt = "En ce moment : tous les combats depuis le début, sans remise à zéro. Première remise à zéro programmée le " + dateParis(infos.fin) + " " + heureRemise(infos.fin) + " (heure de Paris), puis chaque " + String(infos.libelle || 'période').toLowerCase() + ".";
         } else if (enDirect) {
             periodeTxt = "Période en cours : tous les combats depuis le début, sans remise à zéro.";
         } else {
             /* fin = debut de la periode suivante : on affiche la veille */
             var veille = new Date(new Date(infos.fin).getTime() - 12 * 3600 * 1000).toISOString();
-            periodeTxt = "Période en cours : du " + dateParis(infos.debut) + " au " + dateParis(veille) + " inclus. Remise à zéro le " + dateParis(infos.fin) + " à minuit (heure de Paris).";
+            periodeTxt = "Période en cours : du " + dateParis(infos.debut) + " au " + dateParis(veille) + " inclus. Remise à zéro le " + dateParis(infos.fin) + " " + heureRemise(infos.fin) + " (heure de Paris).";
         }
 
         var html = '<div class="admin-panel__title">Période du classement PvP</div>';
@@ -3307,8 +3317,10 @@
             var aide = document.getElementById('pvp-ancre-aide');
             var a = document.getElementById('pvp-ancre').value;
             if (aide) {
-                var jour = /^\d{4}-\d{2}-\d{2}$/.test(a) ? new Date(a + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long' }) : '';
-                aide.textContent = "Première remise à zéro ce jour-là à minuit (heure de Paris), puis les périodes s'enchaînent"
+                var dateOk = /^\d{4}-\d{2}-\d{2}$/.test(a);
+                var jour = dateOk ? new Date(a + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long' }) : '';
+                var veilleJ = dateOk ? new Date(new Date(a + 'T12:00:00').getTime() - 86400000).toLocaleDateString('fr-FR', { weekday: 'long' }) : '';
+                aide.textContent = "Première remise à zéro ce jour-là à 00:00:01, heure de Paris" + (dateOk ? " (dans la nuit de " + veilleJ + " à " + jour + ")" : "") + ", puis les périodes s'enchaînent"
                     + (m === 'hebdo' && jour ? ', chaque ' + jour : '') + ". Une date à venir programme le changement : d'ici là, le classement reste comme il est.";
             }
         }

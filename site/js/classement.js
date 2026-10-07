@@ -87,13 +87,22 @@
         return periodeInfos.en_direct !== undefined ? !!periodeInfos.en_direct : !periodeInfos.fin;
     }
 
+    /* Heure de remise a zero du classement PvP (sql/058) : 00:00:01 heure de
+       Paris, dite avec la nuit pour lever l'ambiguite de « jeudi minuit » */
+    function heureRemise(iso) {
+        var d = new Date(iso);
+        var jour = d.toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'Europe/Paris' });
+        var veille = new Date(d.getTime() - 12 * 3600 * 1000).toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'Europe/Paris' });
+        return 'à 00:00:01, dans la nuit de ' + veille + ' à ' + jour;
+    }
+
     function periodeHeader() {
         if (!periodeInfos) return '';
         var f = function (iso) { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }); };
         var txt;
         if (periodeEnDirect() && periodeInfos.programme && periodeInfos.fin) {
             var jour = new Date(periodeInfos.fin).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
-            txt = "Tous les combats depuis le début. Première remise à zéro le " + jour + " à minuit, puis chaque " + String(periodeInfos.libelle || 'période').toLowerCase() + ".";
+            txt = "Tous les combats depuis le début. Première remise à zéro le " + jour + " " + heureRemise(periodeInfos.fin) + ", puis chaque " + String(periodeInfos.libelle || 'période').toLowerCase() + ".";
         } else if (periodeEnDirect()) {
             txt = "Tous les combats depuis le début. Pas de remise à zéro pour le moment.";
         } else {

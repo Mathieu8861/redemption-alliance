@@ -610,6 +610,15 @@
         return periodeInfos.en_direct !== undefined ? !!periodeInfos.en_direct : !periodeInfos.fin;
     }
 
+    /* Heure de remise a zero du classement PvP (sql/058) : 00:00:01 heure de
+       Paris, dite avec la nuit pour lever l'ambiguite de « jeudi minuit » */
+    function heureRemise(iso) {
+        var d = new Date(iso);
+        var jour = d.toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'Europe/Paris' });
+        var veille = new Date(d.getTime() - 12 * 3600 * 1000).toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'Europe/Paris' });
+        return 'à 00:00:01, dans la nuit de ' + veille + ' à ' + jour;
+    }
+
     function jourParis(iso) {
         return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
     }
@@ -622,7 +631,7 @@
         if (!periodeInfos) return 'Chargement de la période...';
         if (periodeEnDirect()) {
             if (periodeInfos.programme && periodeInfos.fin) {
-                return phraseIllimite + ' Première remise à zéro le ' + jourParis(periodeInfos.fin) + ' à minuit, puis ' + rythmeTxt() + '.';
+                return phraseIllimite + ' Première remise à zéro le ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ', puis ' + rythmeTxt() + '.';
             }
             return phraseIllimite;
         }
@@ -762,7 +771,7 @@
         html += '<li><strong>La période.</strong> ' + (!periodeEnDirect()
             ? 'Le classement PvP repart de zéro ' + rythmeTxt() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente.'
             : (programme
-                ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' à minuit : d\'ici là, les droits suivent le classement depuis le début. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
+                ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ' : d\'ici là, les droits suivent le classement depuis le début. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
                 : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.')) + '</li>';
         if (percoResa) {
             html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. La colonne « Droits percos » l\'indique, par exemple « 4 percos dont 1 en zone réservée ».</li>';
