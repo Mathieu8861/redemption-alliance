@@ -10,6 +10,8 @@
 
    --a-blanc affiche ce qui serait envoye et s'arrete, sans rien poster.
    --utilisateurs fait sonner les mentions de joueurs <@id> du texte (muettes sinon).
+   --modifier <idMessage> remplace le texte d'un message deja publie par le bot
+   (et ses pieces jointes si on en passe). Une modification ne notifie personne.
    Les mentions @everyone / @here sont bloquees par defaut, meme si le texte
    en contient : il faut passer --everyone pour qu'elles sonnent vraiment.
    Le salon par defaut est #site-alliance (DISCORD_SITE_ALLIANCE_CHANNEL_ID).
@@ -36,6 +38,7 @@ const UTILISATEURS = process.argv.indexOf('--utilisateurs') !== -1; /* les menti
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const SALON = arg('--salon') || process.env.DISCORD_SITE_ALLIANCE_CHANNEL_ID;
 const FICHIER = arg('--message');
+const MODIFIER = arg('--modifier');
 const FICHIERS = [];
 process.argv.forEach(function (a, i) { if ((a === '--image' || a === '--fichier') && process.argv[i + 1]) FICHIERS.push(process.argv[i + 1]); });
 const TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.mp4': 'video/mp4', '.webm': 'video/webm' };
@@ -58,6 +61,7 @@ console.log('Salon : ' + SALON + ' | @everyone : ' + (EVERYONE ? 'autorise' : 'b
     ? ' | pieces jointes : ' + FICHIERS.map(function (pj) { return path.basename(pj) + ' (' + Math.round(fs.statSync(pj).size / 1024) + ' Ko)'; }).join(', ')
     : ' | sans piece jointe'));
 console.log('----- message (' + texte.length + ' caracteres) -----\n' + texte + '\n----- fin -----');
+if (MODIFIER) console.log('Modification du message ' + MODIFIER + (FICHIERS.length ? ' (pieces jointes remplacees)' : ' (pieces jointes conservees)'));
 if (A_BLANC) { console.log('\nMode a blanc : rien n a ete envoye.'); process.exit(0); }
 
 (async () => {
@@ -65,6 +69,7 @@ if (A_BLANC) { console.log('\nMode a blanc : rien n a ete envoye.'); process.exi
     let body, headers = { Authorization: 'Bot ' + TOKEN };
     if (FICHIERS.length) {
         body = new FormData();
+        if (MODIFIER) payload.attachments = FICHIERS.map(function (pj, i) { return { id: i, filename: path.basename(pj) }; });
         body.append('payload_json', JSON.stringify(payload));
         FICHIERS.forEach(function (pj, i) {
             body.append('files[' + i + ']', new Blob([fs.readFileSync(pj)], { type: TYPES[path.extname(pj).toLowerCase()] }), path.basename(pj));
@@ -73,10 +78,10 @@ if (A_BLANC) { console.log('\nMode a blanc : rien n a ete envoye.'); process.exi
         body = JSON.stringify(payload);
         headers['Content-Type'] = 'application/json';
     }
-    const r = await fetch('https://discord.com/api/v10/channels/' + SALON + '/messages', { method: 'POST', headers: headers, body: body });
+    const r = await fetch('https://discord.com/api/v10/channels/' + SALON + '/messages' + (MODIFIER ? '/' + MODIFIER : ''), { method: MODIFIER ? 'PATCH' : 'POST', headers: headers, body: body });
     const t = await r.text();
     if (!r.ok) { console.error('ECHEC HTTP ' + r.status + ' : ' + t.slice(0, 300)); process.exit(1); }
     const m = JSON.parse(t);
-    console.log('\nPublie : message ' + m.id + (m.attachments && m.attachments.length ? ' avec ' + m.attachments.length + ' piece(s) jointe(s)' : ''));
+    console.log('\n' + (MODIFIER ? 'Modifie' : 'Publie') + ' : message ' + m.id + (m.attachments && m.attachments.length ? ' avec ' + m.attachments.length + ' piece(s) jointe(s)' : ''));
     console.log('Lien    : https://discord.com/channels/' + (process.env.DISCORD_GUILD_ID || '@me') + '/' + SALON + '/' + m.id);
 })().catch(function (e) { console.error('ERREUR : ' + e.message); process.exit(1); });
