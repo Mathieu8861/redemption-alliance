@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redemption - Compo de simu</title>
+    <link rel="icon" type="image/png" href="assets/images/logo-redemption.png?v=20261022">
+    <meta name="description" content="Site de l'alliance Redemption [RDM] : combats PvP, percepteurs, recyclages, forgemagie. L'heure de la rédemption.">
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#e07c0a">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=20261022">
+</head>
+<body>
+
+    <header class="header">
+        <div class="header__inner">
+            <div class="header__brand">
+                <img class="header__logo" src="assets/images/logo-redemption.png?v=20261022" alt="Logo Redemption">
+            </div>
+
+            <div class="header__user">
+                <a href="admin.html" class="header__icon" id="nav-admin-link" title="Admin" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/></svg>
+                </a>
+                <span class="header__username" id="nav-username"></span>
+                <button class="header__icon" id="btn-logout" title="Deconnexion">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+                <button class="nav__toggle" id="nav-toggle">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <aside id="app-sidebar" class="app-sidebar" aria-label="Navigation principale"></aside>
+
+    <main class="main">
+        <div class="simu-tete mb-lg">
+            <div>
+                <h1 style="font-family: var(--font-title); font-size: 1.5rem; font-weight: 700; margin-bottom: var(--spacing-xs);"><span id="simu-titre">Compo de simu</span> <span class="simu-badge-test" id="simu-badge-test" hidden>Mode test : rien n'est publié</span></h1>
+                <p class="text-muted" id="simu-intro" style="font-size: 0.8125rem;">Le site lit les ✅ de l'annonce dans #event à l'heure réglée, propose les équipes avec la classe de chacun, tu ajustes en glissant les joueurs, puis tu publies les équipes dans #event en taguant chaque joueur.</p>
+            </div>
+        </div>
+
+        <div id="simu-refus" class="simu-refus" hidden>Cette page est réservée aux organisateurs des simu et aux admins.</div>
+
+        <!-- Vue des joueurs : la prochaine simu, leur place, les équipes (lecture seule) -->
+        <div id="simu-vue" class="simu-vue" hidden></div>
+
+        <div id="simu-contenu" hidden>
+            <!-- 1. L'annonce et l'heure de lecture -->
+            <section class="simu-carte simu-annonce mb-lg">
+                <div class="simu-annonce__ligne">
+                    <label class="simu-champ simu-champ--large">
+                        <span>Annonce dans #event</span>
+                        <select id="simu-annonces" class="form-input"></select>
+                    </label>
+                    <label class="simu-champ">
+                        <span>Lancement</span>
+                        <input type="time" id="simu-lancement" class="form-input">
+                    </label>
+                    <label class="simu-champ">
+                        <span>Lecture des ✅</span>
+                        <span class="simu-champ__unite"><input type="number" id="simu-avant" class="form-input" min="0" max="720" step="5"> min avant</span>
+                    </label>
+                    <button type="button" class="btn btn--secondary" id="simu-relire">Relire les ✅</button>
+                </div>
+                <div class="simu-annonce__texte" id="simu-texte"></div>
+                <div class="simu-annonce__etat" id="simu-etat"></div>
+            </section>
+
+            <!-- 2. Les équipes -->
+            <section class="mb-lg">
+                <div class="simu-barre">
+                    <h2 class="recyc-section-title" style="margin:0;">Équipes</h2>
+                    <div class="simu-barre__actions">
+                        <button type="button" class="btn btn--primary btn--small" id="simu-composer">Composer automatiquement</button>
+                        <button type="button" class="btn btn--secondary btn--small" id="simu-ajouter-joueur">+ Joueur</button>
+                        <button type="button" class="btn btn--secondary btn--small" id="simu-ajouter">+ Équipe</button>
+                    </div>
+                </div>
+                <div class="simu-carte simu-ajout" id="simu-ajout" hidden>
+                    <div class="simu-ajout__ligne">
+                        <label class="simu-champ simu-champ--large">
+                            <span>Ajouter un joueur qui a confirmé sa présence sans cocher ✅</span>
+                            <input type="search" id="simu-ajout-recherche" class="form-input" placeholder="Pseudo Discord ou du site" autocomplete="off">
+                        </label>
+                        <button type="button" class="btn btn--secondary btn--small" id="simu-ajout-fermer">Fermer</button>
+                    </div>
+                    <div class="simu-ajout__resultats" id="simu-ajout-resultats"></div>
+                </div>
+                <p class="text-muted simu-aide">Glisse un joueur vers une place, une autre équipe ou un banc ; sur une place occupée, les deux joueurs s'échangent. Sur téléphone : touche un joueur, puis l'endroit où le mettre. Le menu à côté du pseudo change sa classe, parmi celles de son profil. « + Joueur » ajoute quelqu'un qui a confirmé sans cocher ✅.</p>
+                <div class="simu-equipes" id="simu-equipes"></div>
+                <div class="simu-bancs">
+                    <div class="simu-banc" data-banc="remplacants">
+                        <h3 class="simu-banc__titre">Remplaçants <span id="simu-n-remplacants"></span></h3>
+                        <div class="simu-banc__liste" id="simu-remplacants"></div>
+                    </div>
+                    <div class="simu-banc simu-banc--retard" data-banc="retardataires">
+                        <h3 class="simu-banc__titre">Retardataires <span id="simu-n-retardataires"></span></h3>
+                        <div class="simu-banc__liste" id="simu-retardataires"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Publication -->
+            <section class="simu-carte mb-lg">
+                <h2 class="recyc-section-title" style="margin-top:0;">Publier dans #event</h2>
+                <label class="simu-champ simu-champ--plein">
+                    <span>Fin du message</span>
+                    <input type="text" id="simu-fin" class="form-input" maxlength="300">
+                </label>
+                <div class="simu-apercu" id="simu-apercu"></div>
+                <div class="simu-publier">
+                    <button type="button" class="btn btn--primary" id="simu-publier">Publier dans #event</button>
+                    <span class="text-muted simu-publier__info" id="simu-publie-info"></span>
+                </div>
+            </section>
+        </div>
+
+        <div id="simu-chargement" class="loading"><div class="spinner"></div> Chargement...</div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js?v=20261022"></script>
+    <script src="js/simu.js?v=20261022"></script>
+</body>
+</html>

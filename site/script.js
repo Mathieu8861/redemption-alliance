@@ -702,7 +702,7 @@
     }
 
     /* === UPDATE NOTIFICATION === */
-    var REN_UPDATE_VERSION = '2026-10-08';
+    var REN_UPDATE_VERSION = '2026-10-08b';
 
     function showUpdateNotif() {
         var seen = localStorage.getItem('ren_update_seen');
@@ -771,7 +771,8 @@
                 { page: 'defense', label: 'Défense', href: 'defense.html', icon: 'shield', module: 'defense' },
                 { page: 'historique', label: 'Historique', href: 'historique.html', icon: 'clock', module: 'historique' },
                 { page: 'classement', label: 'Classement', href: 'classement.html', icon: 'trophy', module: 'classement' },
-                { page: 'matchmaking', label: 'Trouver une T5', href: 'matchmaking.html', icon: 'users', module: 'matchmaking' }
+                { page: 'matchmaking', label: 'Trouver une T5', href: 'matchmaking.html', icon: 'users', module: 'matchmaking' },
+                { page: 'simu', label: 'Simu', href: 'simu.html', icon: 'clipboard', module: 'simu' }
             ]
         },
         {
@@ -806,7 +807,7 @@
         classement: 'classement', membres: 'membres', builds: 'builds',
         board: 'board', liens: 'liens', boutique: 'boutique',
         recyclages: 'recyclages', fm: 'fm', jeux: 'jeux', slot: 'jeux',
-        matchmaking: 'matchmaking'
+        matchmaking: 'matchmaking', simu: 'simu'
     };
     let modulesActifs = null; /* null = config pas chargée => tout actif */
 
@@ -874,6 +875,7 @@
         clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
         tool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
         users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>',
         chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
         link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
         cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',

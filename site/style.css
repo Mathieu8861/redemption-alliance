@@ -9227,6 +9227,8 @@ body.app-has-sidebar {
 .board-bareme__item.board-bareme__item,
 .board-table-wrap.board-table-wrap,
 .board-palier.board-palier,
+.simu-carte.simu-carte,
+.simu-equipe.simu-equipe,
 .boutique-card.boutique-card,
 .boutique-kamas.boutique-kamas,
 .boutique-solde.boutique-solde,
@@ -10368,4 +10370,593 @@ body.app-has-sidebar {
         border-left: 0;
         border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
+}
+
+/* ================================================================== */
+/* COMPO DE SIMU (simu.html, sql/063) : equipes a glisser, bancs,     */
+/* apercu du message publie dans #event                               */
+/* ================================================================== */
+.simu-badge-test {
+    display: inline-block;
+    margin-left: 0.6rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(224, 124, 10, 0.18);
+    border: 1px solid rgba(224, 124, 10, 0.5);
+    color: var(--color-accent-light);
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 600;
+    vertical-align: 4px;
+}
+
+.simu-badge-test[hidden] { display: none; }
+
+.simu-refus {
+    padding: var(--spacing-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-secondary);
+}
+
+.simu-refus[hidden] { display: none; }
+
+.simu-carte {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.simu-annonce__ligne {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--spacing-md);
+}
+
+.simu-champ {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.simu-champ--large { flex: 1 1 320px; min-width: 0; }
+.simu-champ--plein { width: 100%; margin-bottom: var(--spacing-sm); }
+.simu-champ .form-input { min-width: 0; }
+.simu-champ input[type="number"] { width: 5rem; }
+
+.simu-champ__unite {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--color-text-secondary);
+}
+
+.simu-annonce__texte {
+    margin-top: var(--spacing-md);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.simu-annonce__auteur {
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.simu-annonce__texte a { color: var(--color-accent-light); white-space: nowrap; }
+
+.simu-annonce__etat {
+    margin-top: var(--spacing-sm);
+    padding: 0.55rem 0.8rem;
+    border-radius: var(--radius-md);
+    background: rgba(224, 124, 10, 0.08);
+    border: 1px solid rgba(224, 124, 10, 0.3);
+    font-size: 0.85rem;
+    color: var(--color-text-primary);
+}
+
+.simu-barre {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+.simu-barre__actions { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
+
+.simu-aide {
+    margin: 0.4rem 0 var(--spacing-md);
+    font-size: 0.8rem;
+}
+
+/* Ajout a la main d'un joueur qui n'a pas coche */
+.simu-ajout { margin-top: var(--spacing-sm); }
+.simu-ajout[hidden] { display: none; }
+
+.simu-ajout__ligne {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--spacing-sm);
+}
+
+.simu-ajout__resultats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.4rem;
+    margin-top: var(--spacing-sm);
+}
+
+.simu-ajout__info {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.simu-ajout__libre { justify-self: start; }
+
+.simu-ajout__choix {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.simu-ajout__choix:hover:not(:disabled) { background: rgba(224, 124, 10, 0.12); }
+
+.simu-ajout__choix:disabled {
+    border-left-color: var(--color-text-muted);
+    opacity: 0.55;
+    cursor: default;
+}
+
+.simu-ajout__nom,
+.simu-ajout__infos {
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.simu-ajout__nom { font-size: 0.9rem; font-weight: 600; }
+.simu-ajout__infos { font-size: 0.72rem; color: var(--color-text-muted); }
+
+.simu-equipes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.simu-vide { padding: var(--spacing-md) 0; }
+
+.simu-equipe {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.simu-equipe__tete {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(224, 124, 10, 0.08);
+}
+
+.simu-equipe__titre {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.simu-equipe__tete strong {
+    font-family: var(--font-title);
+    font-size: 1.2rem;
+    color: var(--color-text-primary);
+}
+
+.simu-equipe__voc {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+.simu-equipe__modele {
+    width: 100%;
+    padding: 3px 4px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-input);
+    color: var(--color-text-secondary);
+    font-size: 0.7rem;
+}
+
+.simu-equipe__suppr {
+    margin-left: auto;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.simu-equipe__suppr:hover { color: var(--color-danger); }
+
+.simu-place {
+    display: grid;
+    grid-template-columns: 3.2rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 3.1rem;
+    padding: 0.3rem 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.simu-place__poste {
+    font-family: var(--font-title);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--poste-c);
+}
+
+.simu-place__libre {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+.simu-equipe__pied {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    text-align: right;
+}
+
+.simu-cible {
+    outline: 2px dashed var(--color-accent);
+    outline-offset: -2px;
+    background: rgba(224, 124, 10, 0.08);
+}
+
+.simu-joueur {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--color-success);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: grab;
+    user-select: none;
+}
+
+.simu-joueur__ligne {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.simu-joueur__nom {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.simu-joueur__classe {
+    flex: none;
+    width: 4.9rem;
+    padding: 1px 2px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-input);
+    color: var(--color-accent-light);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.simu-joueur__note {
+    width: 100%;
+    font-size: 0.68rem;
+    color: var(--color-warning);
+}
+
+.simu-joueur__ajoute { color: var(--color-accent-light); }
+
+.simu-joueur__retirer {
+    flex: none;
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.simu-joueur__retirer:hover { color: var(--color-danger); }
+
+/* Du moins au plus important : la derniere regle gagne */
+.simu-joueur--sans-compte { border-left-color: var(--color-text-muted); }
+.simu-joueur--ajoute { border-left-color: var(--color-accent); }
+.simu-joueur--hors-poste { border-left-color: var(--color-warning); }
+.simu-joueur--doublon { border-left-color: var(--color-danger); }
+.simu-joueur--desinscrit .simu-joueur__nom { text-decoration: line-through; color: var(--color-text-muted); }
+.simu-joueur--desinscrit { border-left-color: var(--color-danger); }
+.simu-joueur--selection { box-shadow: 0 0 0 2px var(--color-accent); }
+.simu-joueur--glisse { opacity: 0.45; }
+
+.simu-bancs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.simu-banc {
+    padding: 0.6rem 0.75rem 0.75rem;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius-lg);
+    min-height: 5rem;
+}
+
+.simu-banc--retard { border-color: rgba(232, 68, 68, 0.35); }
+
+.simu-banc__titre {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-title);
+    font-size: 1.05rem;
+    color: var(--color-text-primary);
+}
+
+.simu-banc__titre span { font-size: 0.85rem; color: var(--color-text-muted); }
+
+.simu-banc__liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 0.4rem;
+}
+
+.simu-banc__vide { font-size: 0.8rem; }
+
+.simu-apercu {
+    max-height: 22rem;
+    overflow: auto;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-md);
+    background: #313338;
+    color: #dbdee1;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.simu-publier {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.simu-publier__info { font-size: 0.8rem; }
+.simu-publier__info a { color: var(--color-accent-light); }
+
+/* Fenetre de confirmation (recomposer, publier) a la place du confirm() du navigateur */
+.simu-confirm {
+    backdrop-filter: blur(3px);
+    /* Visible des l'ouverture (le bouton peut prendre le focus tout de suite),
+       cache seulement a la fin du fondu de fermeture */
+    transition: opacity var(--transition-normal), visibility 0s linear var(--transition-normal);
+}
+
+.simu-confirm.active { transition: opacity var(--transition-normal), visibility 0s; }
+
+.simu-confirm__boite {
+    max-width: 440px;
+    max-height: none;
+    overflow: visible; /* fenetre courte : pas de barres de defilement */
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
+    text-align: center;
+    border-color: var(--color-border-accent);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(var(--color-accent-rgb), 0.08);
+}
+
+.simu-confirm__icone {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(var(--color-accent-rgb), 0.14);
+    box-shadow: inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.35);
+    color: var(--color-accent-light);
+}
+
+.simu-confirm__icone svg { width: 24px; height: 24px; }
+
+.simu-confirm__boite .modal__title { margin-bottom: var(--spacing-sm); }
+
+.simu-confirm__texte {
+    margin: 0 0 var(--spacing-lg);
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.simu-confirm__actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.simu-confirm__actions .btn {
+    flex: 1 1 0;
+    /* .btn anime « all », visibilite comprise : le bouton resterait masque, donc
+       sans focus possible, pendant l'ouverture */
+    transition-property: background-color, border-color, box-shadow, color;
+}
+
+.simu-confirm__actions .btn:focus-visible {
+    outline: 2px solid var(--color-accent-light);
+    outline-offset: 2px;
+}
+
+/* Vue des joueurs (lecture seule) : la prochaine simu, sa place, les equipes */
+.simu-vue { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.simu-vue[hidden] { display: none; }
+
+.simu-vue__tete { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.simu-vue__titre {
+    font-family: var(--font-title);
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.simu-vue__pastilles { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.simu-vue__pastille {
+    padding: 2px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.simu-vue__pastille--publie {
+    border-color: rgba(46, 204, 113, 0.5);
+    background: rgba(46, 204, 113, 0.12);
+    color: var(--color-success);
+}
+
+.simu-vue__pastille--proposition {
+    border-color: rgba(var(--color-accent-rgb), 0.5);
+    background: rgba(var(--color-accent-rgb), 0.12);
+    color: var(--color-accent-light);
+}
+
+.simu-vue__annonce {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.simu-vue__annonce strong { color: var(--color-text-primary); }
+.simu-vue__annonce a { color: var(--color-accent-light); white-space: nowrap; }
+
+.simu-vue__place {
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(var(--color-accent-rgb), 0.45);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.18), rgba(var(--color-accent-rgb), 0.05));
+}
+
+.simu-vue__place-titre {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent-light);
+}
+
+.simu-vue__place-texte {
+    margin: 0.2rem 0 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.simu-vue__place-texte strong { color: var(--color-accent-light); }
+.simu-vue__place-texte a { color: var(--color-accent-light); }
+.simu-vue__provisoire { font-size: 0.8rem; color: var(--color-text-muted); }
+.simu-vue__vide { color: var(--color-text-secondary); }
+
+.simu-equipe__formule { font-size: 0.7rem; color: var(--color-text-muted); }
+
+.simu-equipe--moi {
+    border-color: rgba(var(--color-accent-rgb), 0.6);
+    box-shadow: 0 0 0 1px rgba(var(--color-accent-rgb), 0.3), 0 8px 24px rgba(var(--color-accent-rgb), 0.12);
+}
+
+.simu-joueur--lecture { cursor: default; }
+.simu-joueur--lecture .simu-joueur__nom { flex: 0 1 auto; }
+
+.simu-joueur--moi {
+    border-color: rgba(var(--color-accent-rgb), 0.55);
+    border-left-color: var(--color-accent);
+    background: rgba(var(--color-accent-rgb), 0.14);
+}
+
+.simu-joueur__toi {
+    flex: none;
+    padding: 0 6px;
+    border-radius: var(--radius-full);
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.simu-joueur__classe-lue {
+    flex: none;
+    margin-left: auto;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-accent-light);
+}
+
+.simu-vue__inscrits { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+.simu-vue__inscrit {
+    padding: 3px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.8rem;
+    color: var(--color-text-primary);
+}
+
+.simu-vue__inscrit--moi { border-color: var(--color-accent); color: var(--color-accent-light); }
+
+@media (max-width: 640px) {
+    .simu-carte { padding: var(--spacing-md); }
+    .simu-equipes { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+    .simu-confirm__boite { padding: var(--spacing-lg); }
+    .simu-confirm__actions { flex-direction: column-reverse; }
 }

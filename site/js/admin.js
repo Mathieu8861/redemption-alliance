@@ -244,7 +244,7 @@
         /* Membres actifs */
         html += '<h3 style="font-family:var(--font-title);font-size:1rem;color:var(--color-success);margin-bottom:var(--spacing-sm);">Membres actifs (' + activeUsers.length + ')</h3>';
         html += '<div class="table-wrapper"><table class="table">';
-        html += '<thead><tr><th>Pseudo</th><th>Classe</th><th>Element</th><th>Jetons</th><th>Admin</th><th>Actions</th></tr></thead><tbody>';
+        html += '<thead><tr><th>Pseudo</th><th>Classe</th><th>Element</th><th>Jetons</th><th>Admin</th><th title="Peut composer les équipes des simu et les publier dans #event (page Simu)">Orga simu</th><th>Actions</th></tr></thead><tbody>';
 
         var esc = window.REN.escapeHtml;
         activeUsers.forEach(function (u) {
@@ -254,6 +254,8 @@
             html += '<td>' + esc(u.element || '-') + '</td>';
             html += '<td>' + (u.jetons || 0) + '</td>';
             html += '<td>' + (u.is_admin ? '<span class="text-accent">OUI</span>' : 'Non') + '</td>';
+            html += '<td style="text-align:center;"><input type="checkbox" class="admin-toggle-orga" data-id="' + u.id + '" data-username="' + esc(u.username) + '"'
+                + (u.organisateur_event ? ' checked' : '') + ' aria-label="Organisateur des simu : ' + esc(u.username) + '"></td>';
             html += '<td>';
             html += '<button class="btn btn--secondary btn--small admin-toggle-admin" data-id="' + u.id + '" data-admin="' + u.is_admin + '">' + (u.is_admin ? 'Retirer admin' : 'Rendre admin') + '</button> ';
             html += '<input type="number" class="bareme-grid__input admin-jetons-input" data-id="' + u.id + '" value="' + (u.jetons || 0) + '" style="width:70px;"> ';
@@ -291,6 +293,19 @@
                 await window.REN.supabase.from('profiles').update({ is_admin: newAdmin }).eq('id', btn.dataset.id);
                 window.REN.toast('Role admin mis a jour.', 'success');
                 loadTab('utilisateurs');
+            });
+        });
+
+        /* Organisateur des simu : compose et publie les equipes (page Simu) */
+        container.querySelectorAll('.admin-toggle-orga').forEach(function (cb) {
+            cb.addEventListener('change', async function () {
+                var { error } = await window.REN.supabase.from('profiles').update({ organisateur_event: cb.checked }).eq('id', cb.dataset.id);
+                if (error) {
+                    cb.checked = !cb.checked;
+                    window.REN.toast('Erreur : ' + error.message, 'error');
+                    return;
+                }
+                window.REN.toast(cb.dataset.username + (cb.checked ? ' peut maintenant composer les simu.' : ' ne compose plus les simu.'), 'success');
             });
         });
 
@@ -2437,7 +2452,8 @@
         { key: 'boutique',   label: 'Boutique',       desc: 'Boutique jetons / kamas interne' },
         { key: 'recyclages', label: 'Recyclages',     desc: 'Suivi des recyclages percepteurs (pépites)' },
         { key: 'fm',         label: 'Forgemagie',     desc: 'Tracker de sessions FM (runes, coûts, pui)' },
-        { key: 'jeux',       label: 'Jeux',           desc: 'Jeux de cartes + slot machine (inclut la page Slot)' }
+        { key: 'jeux',       label: 'Jeux',           desc: 'Jeux de cartes + slot machine (inclut la page Slot)' },
+        { key: 'simu',       label: 'Simu',           desc: 'Équipes des simu : composées par les organisateurs, visibles par tous en lecture seule' }
     ];
 
     /* ============================================ */
