@@ -776,7 +776,7 @@
                 ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ' : d\'ici là, les droits suivent le classement depuis le début, et c\'est ce classement, arrêté à ce moment-là, qui donne les droits de la première période. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
                 : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.')) + '</li>';
         if (percoResa) {
-            html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. La colonne « Droits percos » l\'indique, par exemple « 4 percos dont 1 en zone réservée ».</li>';
+            html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. L\'en-tête de leur palier l\'indique, par exemple « 3 percos dont 1 en zone réservée », et la zone s\'affiche sous le pseudo.</li>';
             html += '<li><strong>Ton top ' + prefMax + '.</strong> Dans « Mes préférences », choisis jusqu\'à ' + prefMax + ' zones dans ton ordre. Dans l\'ordre du classement, chacun reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Ceux qui n\'ont rien choisi passent après et reçoivent une zone dans l\'ordre conseillé par l\'alliance.</li>';
             html += '<li><strong>Quand ça bouge.</strong> ' + (!periodeEnDirect()
                 ? 'Le tirage se fait au début de chaque période, sur le classement de la précédente, et reste figé jusqu\'à la suivante.'
@@ -864,15 +864,36 @@
         return n + (n === 1 ? 'er' : 'e');
     }
 
-    /* === TABLEAU === */
+    /* === TABLEAU : une colonne par palier (maquette retenue le 08/10) ===
+       Les droits sont ecrits une fois en tete de colonne, plus a chaque ligne.
+       Un palier de plus de 10 joueurs se coupe en sous-colonnes de 10 au
+       plus, pour que tout le classement tienne sur un ecran. */
+    var COULEURS_PALIERS = [
+        ['#ffb238', 'rgba(255, 178, 56, 0.12)'],
+        ['#ff7a45', 'rgba(255, 122, 69, 0.11)'],
+        ['#a68bff', 'rgba(166, 139, 255, 0.12)'],
+        ['#5cc4d6', 'rgba(92, 196, 214, 0.11)'],
+        ['#5fd08a', 'rgba(95, 208, 138, 0.11)'],
+        ['#ff8fb8', 'rgba(255, 143, 184, 0.11)']
+    ];
+    var COULEUR_HORS_PALIER = ['#8b9099', 'rgba(139, 144, 153, 0.10)'];
+    var LIGNES_PAR_SOUS_COLONNE = 10;
+
     function renderTable() {
         var container = document.getElementById('board-table-wrap');
         if (!container) return;
+        var bareme = document.getElementById('board-bareme');
 
         if (!ladder.length) {
+            /* Sans joueur classe, le bareme reste le seul endroit qui donne les droits */
+            if (bareme) bareme.style.display = '';
+            container.classList.remove('board-table-wrap--paliers');
             container.innerHTML = '<p class="text-muted text-center" style="padding:2rem;">Aucun combat sur la période de référence.</p>';
             return;
         }
+        /* Les droits sont en tete de chaque colonne : le bareme ferait doublon */
+        if (bareme) bareme.style.display = 'none';
+        container.classList.add('board-table-wrap--paliers');
 
         /* Réservations par joueur (tours dans l'ordre) */
         var resaByUser = {};
@@ -881,51 +902,93 @@
             resaByUser[r.user_id].push(r);
         });
 
-        var esc = window.REN.escapeHtml;
-        var myId = window.REN.currentProfile.id;
-        var html = '<table class="board-table">';
-        html += '<thead><tr>';
-        html += '<th class="board-table__th board-table__th--rank">#</th>';
-        html += '<th class="board-table__th board-table__th--name">Joueur</th>';
-        html += '<th class="board-table__th board-table__th--points">Points</th>';
-        html += '<th class="board-table__th board-table__th--tier">Droits percos</th>';
-        if (percoResa) html += '<th class="board-table__th board-table__th--zone">Zone réservée</th>';
-        html += '</tr></thead><tbody>';
-
-        var enDirect = periodeEnDirect();
-        var icone = ' <img class="icon-inline icon-inline--perco" src="assets/images/percepteur.png" alt="perco">';
+        /* Joueurs consecutifs d'un meme palier ; palier null = au-dela du dernier */
+        var groupes = [];
         ladder.forEach(function (p) {
             var palier = palierFor(p.rang);
-            var d = droitsPalier(palier);
-            var parts = [];
-            if (d.total > 0) parts.push('<strong>' + d.total + '</strong>' + icone + (d.resa > 0 ? ' <span class="board-table__lvl">dont ' + d.resa + ' en zone réservée</span>' : ''));
-            if (d.p150 > 0) parts.push('<strong>' + d.p150 + '</strong>' + icone + ' <span class="board-table__lvl">niv 150-</span>');
-            var droits = (palier && palier.emoji ? esc(palier.emoji) + ' ' : '') + (parts.join(' + ') || '<span class="text-muted">aucun</span>');
-
-            /* Zone reservee : rien du tout pour les rangs dont le palier n'en donne pas */
-            var zoneTxt = '';
-            if (d.resa > 0) {
-                var resas = resaByUser[p.user_id] || [];
-                zoneTxt = resas.length
-                    ? resas.map(function (r) {
-                        var nom = r.zone ? r.zone.nom : '?';
-                        var sub = r.zone && r.zone.sous_titre ? ' <span class="board-table__lvl">' + esc(r.zone.sous_titre) + '</span>' : '';
-                        return '<strong>' + esc(nom) + '</strong>' + sub;
-                    }).join(' <span class="text-muted">·</span> ')
-                    : '<span class="text-muted">' + (enDirect ? 'aucune zone libre' : 'au prochain tirage') + '</span>';
+            var g = groupes[groupes.length - 1];
+            if (!g || g.palier !== palier) {
+                g = { palier: palier, joueurs: [] };
+                groupes.push(g);
             }
-
-            html += '<tr class="board-table__row' + (p.user_id === myId ? ' board-table__row--me' : '') + '">';
-            html += '<td class="board-table__td board-table__td--rank">' + p.rang + '</td>';
-            html += '<td class="board-table__td board-table__td--name notranslate">' + esc(p.username) + (percoResa && zoneTxt ? '<div class="board-table__zone-mobile">' + zoneTxt + '</div>' : '') + '</td>';
-            html += '<td class="board-table__td board-table__td--points">' + p.points + '</td>';
-            html += '<td class="board-table__td board-table__td--tier">' + droits + '</td>';
-            if (percoResa) html += '<td class="board-table__td board-table__td--zone">' + zoneTxt + '</td>';
-            html += '</tr>';
+            g.joueurs.push(p);
         });
 
-        html += '</tbody></table>';
-        container.innerHTML = html;
+        var esc = window.REN.escapeHtml;
+        var myId = window.REN.currentProfile.id;
+        var enDirect = periodeEnDirect();
+        var avecZones = percoResa && groupes.some(function (g) { return droitsPalier(g.palier).resa > 0; });
+
+        function ligne(p, zones) {
+            var moi = p.user_id === myId;
+            var zoneHtml = '', zoneTitre = '';
+            /* Zone reservee : rien du tout pour les rangs dont le palier n'en donne pas */
+            if (zones) {
+                var resas = resaByUser[p.user_id] || [];
+                if (resas.length) {
+                    zoneHtml = resas.map(function (r) {
+                        var nom = r.zone ? r.zone.nom : '?';
+                        var sub = r.zone && r.zone.sous_titre ? ' ' + esc(r.zone.sous_titre) : '';
+                        return '<strong>' + esc(nom) + '</strong>' + sub;
+                    }).join(' · ');
+                    zoneTitre = resas.map(function (r) {
+                        return r.zone ? r.zone.nom + (r.zone.sous_titre ? ' (' + r.zone.sous_titre + ')' : '') : '?';
+                    }).join(', ');
+                } else {
+                    zoneHtml = '<span class="board-palier__vide">' + (enDirect ? 'aucune zone libre' : 'au prochain tirage') + '</span>';
+                }
+            }
+            return '<div class="board-palier__ligne' + (moi ? ' board-palier__ligne--moi' : '') + '">'
+                + '<span class="board-palier__rang">' + p.rang + '</span>'
+                + '<div class="board-palier__joueur">'
+                    + '<div class="board-palier__nom notranslate" title="' + esc(p.username) + '">' + esc(p.username)
+                        + (moi ? '<span class="board-palier__toi">toi</span>' : '') + '</div>'
+                    + (zoneHtml ? '<div class="board-palier__zone notranslate"' + (zoneTitre ? ' title="' + esc(zoneTitre) + '"' : '') + '>' + zoneHtml + '</div>' : '')
+                + '</div>'
+                + '<span class="board-palier__pts">' + p.points + (zones ? '<small>pts</small>' : '') + '</span>'
+                + '</div>';
+        }
+
+        var html = '';
+        groupes.forEach(function (g) {
+            var d = droitsPalier(g.palier);
+            var zones = percoResa && d.resa > 0;
+            var idx = g.palier ? paliers.indexOf(g.palier) : -1;
+            var couleur = idx >= 0 ? COULEURS_PALIERS[idx % COULEURS_PALIERS.length] : COULEUR_HORS_PALIER;
+            var premier = g.joueurs[0].rang;
+            var dernier = g.joueurs[g.joueurs.length - 1].rang;
+            var titre = (g.palier ? 'Top ' : 'Rangs ') + (premier === dernier ? premier : premier + '-' + dernier);
+
+            var droits = [];
+            if (d.total > 0) droits.push('<strong>' + d.total + ' perco' + (d.total > 1 ? 's' : '') + '</strong>'
+                + (zones ? ' dont ' + d.resa + ' en zone réservée' : (d.p150 > 0 ? '' : ' chacun')));
+            if (d.p150 > 0) droits.push('<strong>' + d.p150 + ' perco' + (d.p150 > 1 ? 's' : '') + '</strong> niv 150-');
+
+            var nbSous = Math.ceil(g.joueurs.length / LIGNES_PAR_SOUS_COLONNE);
+            var parSous = Math.ceil(g.joueurs.length / nbSous);
+            var sous = '';
+            for (var i = 0; i < g.joueurs.length; i += parSous) {
+                sous += '<div class="board-palier__sous">'
+                    + g.joueurs.slice(i, i + parSous).map(function (p) { return ligne(p, zones); }).join('')
+                    + '</div>';
+            }
+
+            /* Largeur : une colonne avec zones est plus large, chaque sous-colonne
+               compte ; le plafond evite qu'une colonne passee a la ligne s'etire
+               sur toute la largeur */
+            var base = (zones ? 260 : 200) * nbSous;
+            var poids = (zones ? 1.3 : 1) * nbSous;
+            html += '<section class="board-palier' + (zones ? ' board-palier--zones' : '') + (nbSous > 1 ? ' board-palier--multi' : '') + '"'
+                + ' style="--palier-c:' + couleur[0] + ';--palier-f:' + couleur[1] + ';flex:' + poids + ' 1 ' + base + 'px;max-width:' + Math.round(base * 1.7) + 'px;">'
+                + '<header class="board-palier__tete">'
+                    + '<div class="board-palier__titre">' + (g.palier && g.palier.emoji ? '<span>' + esc(g.palier.emoji) + '</span>' : '') + esc(titre) + '</div>'
+                    + '<div class="board-palier__droits">' + (droits.join(' + ') || '<strong>aucun perco</strong>') + '</div>'
+                + '</header>'
+                + '<div class="board-palier__corps" style="grid-template-columns:repeat(' + nbSous + ', minmax(0, 1fr));">' + sous + '</div>'
+                + '</section>';
+        });
+
+        container.innerHTML = '<div class="board-paliers' + (avecZones ? ' board-paliers--zones' : '') + '">' + html + '</div>';
     }
 
     /* === MES PRÉFÉRENCES : un top de N zones choisies dans la liste === */

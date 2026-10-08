@@ -9226,6 +9226,7 @@ body.app-has-sidebar {
 .admin-panel.admin-panel,
 .board-bareme__item.board-bareme__item,
 .board-table-wrap.board-table-wrap,
+.board-palier.board-palier,
 .boutique-card.boutique-card,
 .boutique-kamas.boutique-kamas,
 .boutique-solde.boutique-solde,
@@ -10149,4 +10150,207 @@ body.app-has-sidebar {
 .board-table__zone-mobile { display: none; }
 @media (max-width: 768px) {
     .board-table__zone-mobile { display: block; margin-top: 2px; font-size: 0.75rem; font-weight: 400; color: var(--color-accent-light); }
+}
+
+/* ================================================================== */
+/* DROITS PERCO : une colonne par palier (maquette retenue le 08/10)  */
+/* Les droits en tete de colonne, la zone reservee sous le pseudo.    */
+/* ================================================================== */
+.board-table-wrap.board-table-wrap.board-table-wrap--paliers {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.board-paliers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+}
+
+.board-palier {
+    min-width: 0;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.board-palier__tete {
+    padding: 0.85rem 1rem 0.75rem;
+    border-top: 3px solid var(--palier-c);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--palier-f);
+}
+
+.board-palier__titre {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-title);
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--color-text-primary);
+}
+
+.board-palier__droits {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    /* Sur une ligne : des en-tetes de meme hauteur gardent les lignes alignees */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-palier__droits strong {
+    font-size: 1.05rem;
+    color: var(--palier-c);
+}
+
+.board-palier__corps {
+    display: grid;
+}
+
+.board-palier__sous + .board-palier__sous {
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.board-palier__ligne {
+    display: grid;
+    grid-template-columns: 1.7rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.4rem;
+    height: 3rem;
+    padding: 0 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.board-paliers--zones .board-palier__ligne {
+    height: 3.25rem;
+}
+
+.board-palier__ligne:last-child {
+    border-bottom: 0;
+}
+
+.board-palier--multi .board-palier__ligne {
+    gap: 0.4rem;
+}
+
+.board-palier__ligne--moi {
+    background: rgba(224, 124, 10, 0.14);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.board-palier__rang {
+    font-family: var(--font-title);
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--palier-c);
+}
+
+.board-palier__joueur {
+    min-width: 0;
+}
+
+.board-palier__nom {
+    font-size: 0.97rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-palier--multi .board-palier__nom {
+    font-size: 0.93rem;
+}
+
+/* Grand ecran : la place permet des pseudos un peu plus grands */
+@media (min-width: 1600px) {
+    .board-palier__nom { font-size: 1.03rem; }
+    .board-palier--multi .board-palier__nom { font-size: 0.97rem; }
+}
+
+/* Ecran moyen : sans le « pts », la zone reservee garde plus de place */
+@media (max-width: 1599px) {
+    .board-palier__pts small { display: none; }
+    .board-palier__droits { font-size: 0.82rem; }
+    .board-palier__droits strong { font-size: 0.97rem; }
+}
+
+.board-palier__toi {
+    margin-left: 0.4rem;
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+    background: var(--color-accent);
+    color: var(--color-bg-header);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: 2px;
+}
+
+.board-palier__zone {
+    margin-top: 2px;
+    font-size: 0.84rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-palier__zone strong {
+    font-weight: 700;
+    color: var(--color-accent-light);
+}
+
+.board-palier__vide {
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+.board-palier__pts {
+    font-family: var(--font-title);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-accent-light);
+    white-space: nowrap;
+}
+
+.board-palier__pts small {
+    margin-left: 3px;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+/* Telephone : un palier par ligne, ses sous-colonnes les unes sous les autres */
+@media (max-width: 640px) {
+    .board-palier {
+        flex-basis: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Colonnes empilees : plus besoin d'aligner les lignes sur celles du top 10 */
+    .board-paliers--zones .board-palier:not(.board-palier--zones) .board-palier__ligne {
+        height: 2.75rem;
+    }
+
+    .board-palier__corps {
+        grid-template-columns: 1fr !important;
+    }
+
+    .board-palier__sous + .board-palier__sous {
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
 }
