@@ -3,7 +3,7 @@
    REGLE : ne s'utilise que sur demande explicite de Mathieu, ou apres son
    accord sur le texte exact. Jamais de publication de test.
 
-     node bot/annonce.js --message chemin/vers/message.txt [--image chemin.png] [--fichier video.mp4] [--salon <id>] [--everyone] [--a-blanc]
+     node bot/annonce.js --message chemin/vers/message.txt [--image chemin.png] [--fichier video.mp4] [--salon <id> | --mp <idDiscord>] [--everyone] [--a-blanc]
 
    --image et --fichier se repetent (10 pieces jointes au plus, 10 Mo
    chacune) : png, jpg, gif, webp, mp4, webm.
@@ -12,6 +12,9 @@
    --utilisateurs fait sonner les mentions de joueurs <@id> du texte (muettes sinon).
    --modifier <idMessage> remplace le texte d'un message deja publie par le bot
    (et ses pieces jointes si on en passe). Une modification ne notifie personne.
+   --mp <idDiscord> envoie le message en prive a ce joueur au lieu d'un salon.
+   Discord refuse si le joueur a ferme ses MP aux membres du serveur ; le
+   joueur ne peut pas repondre utilement (personne ne lit les MP du bot).
    Les mentions @everyone / @here sont bloquees par defaut, meme si le texte
    en contient : il faut passer --everyone pour qu'elles sonnent vraiment.
    Le salon par defaut est #site-alliance (DISCORD_SITE_ALLIANCE_CHANNEL_ID).
@@ -39,6 +42,7 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const SALON = arg('--salon') || process.env.DISCORD_SITE_ALLIANCE_CHANNEL_ID;
 const FICHIER = arg('--message');
 const MODIFIER = arg('--modifier');
+const MP = arg('--mp'); /* identifiant Discord d'un joueur : message prive */
 const FICHIERS = [];
 process.argv.forEach(function (a, i) { if ((a === '--image' || a === '--fichier') && process.argv[i + 1]) FICHIERS.push(process.argv[i + 1]); });
 const TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.mp4': 'video/mp4', '.webm': 'video/webm' };
@@ -57,7 +61,7 @@ for (const pj of FICHIERS) {
     if (fs.statSync(pj).size > 10 * 1024 * 1024) { console.error('Fichier trop lourd pour Discord (plus de 10 Mo) : ' + pj); process.exit(1); }
 }
 
-console.log('Salon : ' + SALON + ' | @everyone : ' + (EVERYONE ? 'autorise' : 'bloque') + ' | mentions de joueurs : ' + (UTILISATEURS ? 'autorisees' : 'muettes') + (FICHIERS.length
+console.log((MP ? 'Message prive au joueur Discord ' + MP : 'Salon : ' + SALON) + ' | @everyone : ' + (EVERYONE ? 'autorise' : 'bloque') + ' | mentions de joueurs : ' + (UTILISATEURS ? 'autorisees' : 'muettes') + (FICHIERS.length
     ? ' | pieces jointes : ' + FICHIERS.map(function (pj) { return path.basename(pj) + ' (' + Math.round(fs.statSync(pj).size / 1024) + ' Ko)'; }).join(', ')
     : ' | sans piece jointe'));
 console.log('----- message (' + texte.length + ' caracteres) -----\n' + texte + '\n----- fin -----');
@@ -78,10 +82,18 @@ if (A_BLANC) { console.log('\nMode a blanc : rien n a ete envoye.'); process.exi
         body = JSON.stringify(payload);
         headers['Content-Type'] = 'application/json';
     }
-    const r = await fetch('https://discord.com/api/v10/channels/' + SALON + '/messages' + (MODIFIER ? '/' + MODIFIER : ''), { method: MODIFIER ? 'PATCH' : 'POST', headers: headers, body: body });
+    /* Message prive : le salon est la conversation privee du bot avec le joueur */
+    let cible = SALON;
+    if (MP) {
+        const o = await fetch('https://discord.com/api/v10/users/@me/channels', { method: 'POST', headers: { Authorization: 'Bot ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ recipient_id: MP }) });
+        const to = await o.text();
+        if (!o.ok) { console.error('ECHEC ouverture du MP, HTTP ' + o.status + ' : ' + to.slice(0, 300)); process.exit(1); }
+        cible = JSON.parse(to).id;
+    }
+    const r = await fetch('https://discord.com/api/v10/channels/' + cible + '/messages' + (MODIFIER ? '/' + MODIFIER : ''), { method: MODIFIER ? 'PATCH' : 'POST', headers: headers, body: body });
     const t = await r.text();
     if (!r.ok) { console.error('ECHEC HTTP ' + r.status + ' : ' + t.slice(0, 300)); process.exit(1); }
     const m = JSON.parse(t);
-    console.log('\n' + (MODIFIER ? 'Modifie' : 'Publie') + ' : message ' + m.id + (m.attachments && m.attachments.length ? ' avec ' + m.attachments.length + ' piece(s) jointe(s)' : ''));
-    console.log('Lien    : https://discord.com/channels/' + (process.env.DISCORD_GUILD_ID || '@me') + '/' + SALON + '/' + m.id);
+    console.log('\n' + (MODIFIER ? 'Modifie' : (MP ? 'Envoye en MP' : 'Publie')) + ' : message ' + m.id + (m.attachments && m.attachments.length ? ' avec ' + m.attachments.length + ' piece(s) jointe(s)' : ''));
+    console.log('Lien    : https://discord.com/channels/' + (MP ? '@me' : (process.env.DISCORD_GUILD_ID || '@me')) + '/' + cible + '/' + m.id);
 })().catch(function (e) { console.error('ERREUR : ' + e.message); process.exit(1); });
