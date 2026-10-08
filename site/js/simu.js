@@ -100,6 +100,7 @@
         if (window.REN.demoLocale) document.getElementById('simu-badge-test').hidden = false;
         try {
             await Promise.all([chargerReglages(), chargerAnnuaire()]);
+            classerParForce();
             await chargerAnnonces();
         } catch (e) {
             chargement.style.display = 'none';
@@ -162,6 +163,21 @@
                 if (c && cl.indexOf(c) === -1) cl.push(c);
             });
             annuaire[p.discord_id] = { cle: p.discord_id, nom: p.username, site: true, classes: cl, principale: p.classe || null, points: points[p.id] || 0 };
+        });
+    }
+
+    /* Classes de chaque joueur de la plus forte a la moins forte, dans l'ordre
+       du referentiel (Admin > Classes T5) : la premiere sert par defaut, et
+       c'est elle que « principale » designe ensuite (ex. l'Eni de balikan
+       avant son Sacri). Appele une fois classes_ref et l'annuaire charges. */
+    function classerParForce() {
+        var rang = {};
+        classes.forEach(function (c, i) { rang[c] = i; });
+        var force = function (c) { return Object.prototype.hasOwnProperty.call(rang, c) ? rang[c] : classes.length; };
+        Object.keys(annuaire).forEach(function (cle) {
+            var j = annuaire[cle];
+            j.classes.sort(function (a, b) { return force(a) - force(b); });
+            j.principale = j.classes[0] || null;
         });
     }
 
@@ -926,6 +942,7 @@
         }
         try {
             await Promise.all([chargerReglages(), chargerAnnuaire()]);
+            classerParForce();
             simu = await prochaineSimu();
         } catch (e) {
             chargement.style.display = 'none';
