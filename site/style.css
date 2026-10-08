@@ -10171,6 +10171,21 @@ body.app-has-sidebar {
     gap: var(--spacing-md);
 }
 
+/* Tirage des zones ouvert (sql/062) : avis au-dessus des colonnes */
+.board-ouvert {
+    margin-bottom: var(--spacing-md);
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(224, 124, 10, 0.45);
+    border-radius: var(--radius-md);
+    background: rgba(224, 124, 10, 0.10);
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.board-ouvert strong {
+    color: var(--color-accent-light);
+}
+
 .board-palier {
     min-width: 0;
     background: var(--color-bg-secondary);

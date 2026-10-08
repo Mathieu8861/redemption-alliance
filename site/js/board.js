@@ -23,6 +23,7 @@
     var periodeInfos = null;    /* periode_pvp_infos() : mode, debut, fin, libelle */
     var prefMax = 5;            /* taille du top de preferences (site_config.perco_pref_max) */
     var myTop = [];             /* mon top : zones choisies, dans mon ordre */
+    var tirageOuvertJusqua = null; /* site_config.perco_tirage_ouvert_jusqua (sql/062) */
 
     document.addEventListener('ren:ready', init);
 
@@ -106,14 +107,29 @@
     async function loadPercoMode() {
         try {
             var { data } = await window.REN.supabase
-                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations', 'perco_pref_max']);
+                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations', 'perco_pref_max', 'perco_tirage_ouvert_jusqua']);
             var cfg = {};
             (data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
             percoMode = cfg.perco_mode === 'rang' ? 'rang' : 'points';
             /* cle absente = reservations actives (comportement d'avant la migration 053) */
             percoResa = cfg.perco_reservations !== 'false';
             prefMax = Math.min(20, Math.max(1, parseInt(cfg.perco_pref_max, 10) || 5));
+            /* Format Postgres « 2026-10-14 22:00:01+00 » rendu lisible par tous les navigateurs */
+            var ouvert = cfg.perco_tirage_ouvert_jusqua
+                ? new Date(String(cfg.perco_tirage_ouvert_jusqua).trim().replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00'))
+                : null;
+            tirageOuvertJusqua = ouvert && !isNaN(ouvert.getTime()) ? ouvert : null;
         } catch (e) { percoMode = 'points'; percoResa = true; }
+    }
+
+    /* Tirage ouvert (sql/062) : jusqu'a cette date, un top enregistre refait
+       tout de suite le tirage de la periode en cours */
+    function tirageOuvert() {
+        return !!tirageOuvertJusqua && Date.now() < tirageOuvertJusqua.getTime() && !periodeEnDirect();
+    }
+
+    function finTirageOuvert() {
+        return jourParis(tirageOuvertJusqua.toISOString()) + ' à 00:00:01';
     }
 
     /* Periode du classement PvP, reglee dans Admin > Periode classement */
@@ -988,7 +1004,11 @@
                 + '</section>';
         });
 
-        container.innerHTML = '<div class="board-paliers' + (avecZones ? ' board-paliers--zones' : '') + '">' + html + '</div>';
+        /* Tirage ouvert (sql/062) : le dire au-dessus des colonnes */
+        var avis = percoResa && tirageOuvert()
+            ? '<div class="board-ouvert">⏳ <strong>Tirage des zones ouvert jusqu\'au ' + esc(finTirageOuvert()) + '</strong> : un top modifié dans « Mes préférences » compte tout de suite, toujours dans l\'ordre du classement.</div>'
+            : '';
+        container.innerHTML = avis + '<div class="board-paliers' + (avecZones ? ' board-paliers--zones' : '') + '">' + html + '</div>';
     }
 
     /* === MES PRÉFÉRENCES : un top de N zones choisies dans la liste === */
@@ -1026,6 +1046,7 @@
         var esc = window.REN.escapeHtml;
         var me = window.REN.currentProfile.id;
         var enDirect = periodeEnDirect();
+        var ouvert = tirageOuvert();
         var rangsTxt = texteRangs(plagesResa());
 
         if (hintEl) hintEl.textContent = 'Choisis jusqu\'à ' + prefMax + ' zones dans la liste, dans ton ordre de préférence. Dans l\'ordre du classement, chaque joueur qui a droit à une zone reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Ceux qui n\'ont rien choisi passent après tout le monde.';
@@ -1047,12 +1068,14 @@
                     : (myPrefs.length ? 'zone par défaut, tes choix sont pris par des joueurs mieux classés' : 'zone par défaut, tu n\'as pas encore choisi ton top');
                 return '<strong>' + esc(nom) + '</strong>' + sub + ' <span class="text-muted">(' + pourquoi + ')</span>';
             }).join(' <span class="text-muted">·</span> ');
-            mine = '<div class="board-prefs__mine">Tu es <strong>' + ordinal(moi.rang) + '</strong>. ' + (enDirect ? 'Ta zone réservée en ce moment' : 'Ta zone réservée pour cette période') + ' : ' + detail
+            mine = '<div class="board-prefs__mine">Tu es <strong>' + ordinal(moi.rang) + '</strong>. ' + (enDirect || ouvert ? 'Ta zone réservée en ce moment' : 'Ta zone réservée pour cette période') + ' : ' + detail
                 + '<div class="board-prefs__note">' + (enDirect
                     ? 'Le tirage suit le classement en direct : si tu sors des ' + esc(rangsTxt) + ', ta zone passe au suivant.'
-                    : 'Ton top sert au tirage de la prochaine période.') + '</div></div>';
+                    : (ouvert
+                        ? 'Cette semaine, le tirage reste ouvert jusqu\'au ' + esc(finTirageOuvert()) + ' : si tu changes ton top, ta zone suit tout de suite.'
+                        : 'Ton top sert au tirage de la prochaine période.')) + '</div></div>';
         } else {
-            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu es <strong>' + ordinal(moi.rang) + '</strong> : ' + (enDirect
+            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu es <strong>' + ordinal(moi.rang) + '</strong> : ' + (enDirect || ouvert
                 ? 'plus aucune zone libre pour toi en ce moment.'
                 : 'pas de zone sur cette période, ton top servira au prochain tirage.') + '</div>';
         }
@@ -1181,15 +1204,16 @@
             myPrefs = myTop.map(function (z) { return { zone_id: z.id, nom: z.nom, sous_titre: z.sous_titre || '' }; });
             prefsDirty = false;
 
-            var enDirect = periodeEnDirect();
-            if (enDirect) {
-                /* Tirage en direct : on recharge pour montrer tout de suite l'effet */
+            /* Tirage en direct, ou ouvert (sql/062) : l'enregistrement a deja
+               refait le tirage, on recharge pour montrer tout de suite l'effet */
+            var immediat = periodeEnDirect() || tirageOuvert();
+            if (immediat) {
                 await loadReservations();
                 renderTable();
             }
             renderPrefs();
             window.REN.toast(myTop.length
-                ? (enDirect ? 'Ton top est enregistré, le tirage en tient compte tout de suite.' : 'Ton top est enregistré, il servira au prochain tirage.')
+                ? (immediat ? 'Ton top est enregistré, le tirage en tient compte tout de suite.' : 'Ton top est enregistré, il servira au prochain tirage.')
                 : 'Ton top est vidé : si tu as droit à une zone, tu en recevras une par défaut.', 'success');
         } catch (err) {
             console.error('[REN-BOARD] Erreur sauvegarde préférences:', err);
