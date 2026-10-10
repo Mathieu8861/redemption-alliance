@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Ferme d'Amakna</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Premiere version jouable en 3D : ile de 40 cases, regle des 70 % d'occupation, temps reel, sauvegarde locale. Pas encore de combat. */
+:root {
+  --ciel-haut: #7cc8ef; --ciel-bas: #fbe6c2; --encre: #24311c; --papier: #fffaf0; --bord: #3b2a1a;
+  --or: #f2b630; --kamas: #e07c0a; --rouge: #d9443a; --eau: #3a95d1; --vert: #5aa02c; --fantome: #e9eef2;
+  --f-titre: "Lilita One", "Arial Black", system-ui, sans-serif; --f-texte: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; color: var(--encre); font: 800 14px/1.3 var(--f-texte); touch-action: none;
+  background: linear-gradient(180deg, var(--ciel-haut) 0%, #b9e1f2 45%, var(--ciel-bas) 100%); }
+canvas { display: block; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.hud { position: fixed; inset: 0; pointer-events: none; }
+.haut { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.titre { font: 400 clamp(1.3rem, 3.2vw, 2.1rem)/1 var(--f-titre); color: var(--papier); -webkit-text-stroke: 2px var(--bord); paint-order: stroke fill; text-shadow: 0 4px 0 var(--bord); flex: 1 1 auto; }
+.pastille { display: inline-flex; align-items: center; gap: 7px; background: var(--papier); border: 3px solid var(--bord); border-radius: 999px; padding: 4px 12px; box-shadow: 0 4px 0 var(--bord); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.piece { width: 20px; height: 20px; border-radius: 50%; background: var(--kamas); color: #fff; display: grid; place-items: center; font: 400 .75rem/1 var(--f-titre); border: 2px solid var(--bord); }
+.xp { width: 70px; height: 9px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
+.xp i { display: block; width: 0; height: 100%; background: var(--or); transition: width .3s; }
+.actions { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: min(100% - 20px, 720px); }
+.action { pointer-events: auto; display: grid; justify-items: center; gap: 2px; width: 78px; padding: 7px 4px 6px; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 5px 0 var(--bord); font: 800 .76rem/1.1 var(--f-texte); }
+.action:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--bord); }
+.action .ico { font-size: 1.5rem; line-height: 1; }
+.action.actif { background: var(--or); }
+.action small { font-weight: 600; font-size: .62rem; color: #5b5240; }
+.bulle { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; background: var(--papier); border: 3px solid var(--bord); border-radius: 12px; padding: 3px 9px; box-shadow: 0 3px 0 var(--bord); font-size: .78rem; pointer-events: none; }
+.bulle::after { content: ""; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--bord); }
+.bulle.or { background: var(--or); } .bulle.rouge { background: var(--rouge); color: #fff; } .bulle.eau { background: var(--eau); color: #fff; }
+.bulle.lieu { background: var(--bord); color: var(--papier); font-family: var(--f-titre); font-weight: 400; letter-spacing: .02em; }
+.bulle.vente { background: var(--fantome); border-style: dashed; display: grid; justify-items: center; line-height: 1.15; padding: 4px 10px; pointer-events: auto; cursor: pointer; }
+.bulle.vente b { font: 400 .95rem/1 var(--f-titre); color: var(--kamas); }
+.bulle.vente small { font-weight: 600; font-size: .66rem; }
+#ciel { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+#scene { position: relative; z-index: 1; }
+.hud { z-index: 2; }
+/* bulles d'action : une simple icone ronde au-dessus de la case, qu'on touche pour agir sur cette case */
+.bulle.ico { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 50%; font-size: 1.05rem; line-height: 1; pointer-events: auto; cursor: pointer; }
+.bulle.ico::after { bottom: -8px; border-width: 5px; }
+.bulle.ico small { position: absolute; right: -10px; top: -8px; background: var(--papier); color: var(--encre); border: 2px solid var(--bord); border-radius: 99px; font: 800 .6rem/1 var(--f-texte); padding: 2px 4px; }
+.bulle.lieu { font-size: .68rem; padding: 2px 7px; border-width: 2px; box-shadow: 0 2px 0 var(--bord); }
+.bulle.lieu::after { display: none; }
+.chargement { position: fixed; inset: 0; z-index: 8; display: grid; place-content: center; gap: 6px; text-align: center; background: linear-gradient(180deg, var(--ciel-haut), var(--ciel-bas)); }
+.chargement b { font: 400 2.4rem/1 var(--f-titre); color: var(--kamas); -webkit-text-stroke: 1.5px var(--bord); paint-order: stroke fill; text-shadow: 0 3px 0 var(--bord); }
+.chargement span { font-weight: 800; }
+.chargement[hidden] { display: none; }
+@media (max-width: 720px) { .bulle.ico { width: 30px; height: 30px; font-size: .95rem; } }
+.panneau { position: absolute; right: 12px; top: calc(64px + env(safe-area-inset-top, 0px)); width: 220px; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 5px 0 var(--bord); padding: 9px 11px; display: grid; gap: 5px; font-variant-numeric: tabular-nums; }
+.panneau h2 { margin: 0; font: 400 1rem/1 var(--f-titre); }
+.panneau .l { display: flex; justify-content: space-between; gap: 8px; }
+.panneau .crise { background: #fde3df; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #8a1e16; }
+.commis { position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
+.commis b { font-family: var(--f-titre); font-weight: 400; color: var(--kamas); }
+.toasts { position: absolute; left: 50%; transform: translateX(-50%); top: calc(64px + env(safe-area-inset-top, 0px)); display: grid; gap: 6px; width: min(100% - 24px, 420px); }
+.toast { background: var(--papier); border: 3px solid var(--bord); border-radius: 12px; padding: 6px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .8rem; animation: pop .25s ease-out; }
+.toast.alerte { background: #fde3df; } .toast.or { background: var(--or); }
+@keyframes pop { from { transform: scale(.8); opacity: 0; } }
+.modale { position: fixed; inset: 0; background: rgba(36, 49, 28, .45); display: none; place-items: center; padding: 14px; pointer-events: auto; z-index: 5; }
+.modale.ouverte { display: grid; }
+.carte { width: min(100%, 460px); max-height: 86vh; overflow: auto; background: var(--papier); border: 3px solid var(--bord); border-radius: 18px; box-shadow: 0 6px 0 var(--bord); padding: 14px; }
+.carte h2 { margin: 0 0 8px; font: 400 1.4rem/1 var(--f-titre); display: flex; justify-content: space-between; align-items: center; }
+.carte h2 button { background: none; border: 0; font-size: 1.4rem; }
+.ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 2px solid #eadfc8; }
+.ligne:first-of-type { border-top: 0; }
+.ligne b { display: block; } .ligne small { font-weight: 600; color: #5b5240; }
+.btn { background: var(--or); border: 3px solid var(--bord); border-radius: 10px; padding: 5px 10px; box-shadow: 0 3px 0 var(--bord); font-size: .78rem; white-space: nowrap; }
+.btn.kamas { background: var(--kamas); color: #fff; } .btn.eau { background: var(--eau); color: #fff; } .btn.discret { background: #fff; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.btn[aria-pressed="true"] { background: var(--vert); color: #fff; }
+.grille-graines { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.graine { text-align: left; background: #fff; border: 3px solid var(--bord); border-radius: 12px; padding: 7px 9px; box-shadow: 0 3px 0 var(--bord); }
+.graine[aria-pressed="true"] { background: var(--or); } .graine[disabled] { opacity: .45; }
+.graine b { display: block; } .graine span { font-weight: 600; font-size: .72rem; }
+.tendance-haut { color: var(--vert); } .tendance-bas { color: var(--rouge); }
+.aide { position: absolute; left: 12px; top: calc(64px + env(safe-area-inset-top, 0px)); background: rgba(255, 250, 240, .9); border: 3px solid var(--bord); border-radius: 12px; padding: 6px 10px; font-size: .74rem; font-weight: 600; max-width: 250px; }
+.hud.cache > *:not(#bulles) { display: none !important; }
+.hud.cache #bulles { display: none; }
+.accueil { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; pointer-events: auto; z-index: 6; background: radial-gradient(ellipse at 50% 40%, rgba(255, 250, 240, 0) 30%, rgba(36, 49, 28, .35) 100%); }
+.accueil[hidden] { display: none; }
+.accueil .carte { width: min(100%, 520px); text-align: center; }
+.accueil h1 { margin: 0 0 4px; font: 400 clamp(2rem, 6vw, 3rem)/1 var(--f-titre); color: var(--kamas); -webkit-text-stroke: 1.5px var(--bord); paint-order: stroke fill; text-shadow: 0 3px 0 var(--bord); }
+.accueil p { margin: 0 0 12px; font-size: .84rem; font-weight: 600; }
+.accueil input { width: 100%; font: 800 1rem var(--f-texte); padding: 9px 12px; border: 3px solid var(--bord); border-radius: 12px; background: #fff; color: var(--encre); margin-bottom: 12px; text-align: center; }
+.classes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.classe { background: #fff; border: 3px solid var(--bord); border-radius: 14px; padding: 10px 6px 8px; box-shadow: 0 4px 0 var(--bord); display: grid; justify-items: center; gap: 4px; }
+.classe .ico { font-size: 2rem; line-height: 1; }
+.classe b { font: 400 1.05rem/1 var(--f-titre); }
+.classe span { font-size: .68rem; font-weight: 600; color: #5b5240; line-height: 1.2; }
+.classe[aria-pressed="true"] { background: var(--or); transform: translateY(2px); box-shadow: 0 2px 0 var(--bord); }
+.btn.grand { font: 400 1.2rem/1 var(--f-titre); padding: 10px 22px; border-radius: 14px; }
+.reprise { margin-top: 10px; font-size: .76rem; font-weight: 600; }
+.reprise button { background: none; border: 0; text-decoration: underline; font: inherit; color: var(--rouge); }
+@media (max-width: 720px) { .panneau, .commis { display: none; } .action { width: 62px; font-size: .66rem; } .action .ico { font-size: 1.25rem; } .bulle { font-size: .68rem; padding: 2px 6px; } .aide { display: none; } .titre { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="ciel" aria-hidden="true"></canvas>
+<canvas id="scene" aria-label="La Ferme d'Amakna en 3D : une île de 40 cases"></canvas>
+<div class="hud cache" id="hud">
+  <div class="haut">
+    <div class="titre" id="titre">Ferme d'Amakna</div>
+    <span class="pastille"><span class="piece">K</span><span id="kamas">0</span>&nbsp;kamas</span>
+    <span class="pastille" id="cases">40 cases</span>
+    <span class="pastille" id="eau" title="Arrosoir">💧 10/10</span>
+    <span class="pastille">Paysan niv.&nbsp;<span id="niv">1</span> <span class="xp"><i id="xp"></i></span></span>
+    <span class="pastille" id="mode-test" hidden style="background:var(--rouge);color:#fff">Mode test ×60</span>
+  </div>
+  <div class="aide" id="aide">Touche une case : une parcelle libre se plante, une culture à sec s'arrose, une culture mûre se récolte, un Tofu se chasse. Touche un Bouftou pour le nourrir ou le tondre. Touche une case d'herbe pour y construire. Les petites icônes au-dessus des cases se touchent aussi. Les graines et les Bouftous s'achètent à l'HDV. L'arrosoir se remplit au puits (10 arrosages).</div>
+  <aside class="panneau" aria-label="Grange" id="panneau-grange"></aside>
+  <div class="toasts" id="toasts"></div>
+  <div class="commis" id="commis"></div>
+  <div class="actions">
+    <button class="action" id="b-graine"><span class="ico">🌱</span>Graine<small id="graine-nom">Blé</small></button>
+    <button class="action" id="b-hdv"><span class="ico">⚖️</span>HDV</button>
+    <button class="action" id="b-amelio"><span class="ico">🔨</span>Améliorer</button>
+    <button class="action" id="b-grange"><span class="ico">🏠</span>Grange</button>
+    <button class="action" id="b-reset"><span class="ico">🔄</span>Recommencer</button>
+  </div>
+  <div id="bulles"></div>
+</div>
+<div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
+<div class="modale" id="modale"><div class="carte" id="carte"></div></div>
+<div class="chargement" id="chargement"><b>Ferme d'Amakna</b><span id="chargement-texte">Chargement de l'île...</span></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="vent.js"></script>
+<script src="bouftou.js"></script>
+<script src="tofu.js"></script>
+<script>
+'use strict';
+/* ===================== DONNEES DU JEU ===================== */
+const CULTURES = [
+  { id: 'ble', nom: 'Blé', niv: 1, graine: 2, temps: 15, rendement: 3, prix: 2, xp: 3, couleur: '#f3c03c', tige: '#d6a63c' },
+  { id: 'orge', nom: 'Orge', niv: 3, graine: 5, temps: 45, rendement: 3, prix: 5, xp: 6, couleur: '#e8d48c', tige: '#cdb46a' },
+  { id: 'avoine', nom: 'Avoine', niv: 5, graine: 10, temps: 120, rendement: 4, prix: 6, xp: 10, couleur: '#f6e4a0', tige: '#d9c070' },
+  { id: 'houblon', nom: 'Houblon', niv: 8, graine: 20, temps: 300, rendement: 4, prix: 11, xp: 16, couleur: '#6fae3b', tige: '#8b6a42' },
+  { id: 'lin', nom: 'Lin', niv: 11, graine: 35, temps: 600, rendement: 5, prix: 13, xp: 24, couleur: '#8cb8ff', tige: '#7fa84a' },
+  { id: 'seigle', nom: 'Seigle', niv: 14, graine: 60, temps: 1440, rendement: 5, prix: 22, xp: 35, couleur: '#c9a35a', tige: '#a88a4a' }
+];
+const LAINE = { id: 'laine', nom: 'Laine de Bouftou', prix: 12, xp: 4 };
+const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 9, xp: 3 };
+const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, PLUME]).map((c) => [c.id, c]));
+const VENDABLES = CULTURES.concat([LAINE, PLUME]);
+const NOMS = ['Bêêrnard', 'Toison d\'Or', 'Biquette', 'Gros Bouffi', 'Laineur', 'Cotonnade', 'Pépito Junior', 'Rambouftou', 'Moumoute', 'Frisette'];
+const AMELIOS = [
+  { id: 'enclos', nom: 'Enclos agrandi', desc: 'Deux places de plus pour tes Bouftous (jusqu\'à 6).', couts: [200, 650], niv: 2 },
+  { id: 'engrais', nom: 'Engrais d\'Amakna', desc: 'Tes cultures poussent 15 % plus vite.', couts: [150, 480, 1300], niv: 3 },
+  { id: 'arrosoir', nom: 'Arrosoir automatique', desc: 'Chaque semis est arrosé tout seul.', couts: [320], niv: 4 },
+  { id: 'charrette', nom: 'Charrette pour l\'HDV', desc: 'Tu vends 10 % plus cher.', couts: [420], niv: 5 },
+  { id: 'epouvantail', nom: 'Épouvantail renforcé', desc: 'Deux fois moins de Tofus dans les champs.', couts: [260], niv: 6 },
+  { id: 'mangeoire', nom: 'Mangeoire', desc: 'Tes Bouftous se servent seuls dans la grange.', couts: [520], niv: 7 }
+];
+const PRIX_PARCELLE = [40, 80, 150, 260, 420, 650, 950, 1400, 2000, 2800, 3900, 5200];
+/* Temps reel : les durees sont en minutes. Avec ?test=1 dans l'adresse, tout va 60 fois plus vite (une minute devient une seconde). */
+const TEST = /[?&]test=1/.test(location.search);
+const MIN = TEST ? 1000 : 60000;
+const CAPACITE_EAU = 10; /* l'arrosoir : 10 arrosages, puis il faut retourner au puits */
+const PRIX_FILET = 25, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
+const CADENCE_PLUME = 90 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 20 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
+const PRIX_BOUFTOU = 40, REPAS = 2, DUREE_REPAS = 240 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 120 * MIN;
+const DELAI_TOFU = 120 * MIN, DUREE_PICORAGE = 60 * MIN, CADENCE_COURS = 10 * MIN, CADENCE_CRISE = 30 * MIN, DUREE_CRISE = 60000;
+const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
+const PEPITO = [
+  'un Tofu dans le blé, c\'est comme VSA à l\'HDV : faut le chasser vite.',
+  'arrose tes semis. un champ sec pousse aussi vite qu\'une maj d\'Ankama.',
+  'je bosse pour des pépites, toi pour des kamas. on sait qui négocie le mieux.',
+  'un Bouftou qui a faim ne donne rien. comme un perco à 1 pod.',
+  'vends ta laine quand les bots de VSA dorment, le cours remonte toujours.',
+  'laisse respirer ta ferme : une case vide, c\'est une case où les Tofus ne picorent rien.',
+  'l\'Engrais d\'Amakna, c\'est le seul boost que personne ne nerfe.'
+];
+const CLASSES = [
+  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, gros dégâts.', sort: 'Charge', tunique: '#c0392b' },
+  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin. Touche avant d\'être touché, fragile.', sort: 'Flèche perçante', tunique: '#2e8b57' },
+  { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées. Elles combattent pour lui.', sort: 'Invocation', tunique: '#6f42c1' }
+];
+const CLE = /[?&]test=1/.test(location.search) ? 'ferme-amakna-3d-v2-test' : 'ferme-amakna-3d-v2'; /* v2 : le plan a change pour coller a l'ile */
+
+/* L'ile de depart : 8 x 5, calee sur le modele de l'ile (assets/modeles/ile-jeu.glb, iles.py version 7). Les deux rangees du fond sont en terrasse,
+   l'escalier descend dans la colonne 3. G grange, V voliere, H HDV, W puits, E epouvantail, B foin, e enclos, c champ, p chemin (pied de l'escalier), . herbe libre */
+const COLS = 8, ROWS = 5, S = 2, HAUT_TERRASSE = 0.7, COL_ESCALIER = 3;
+const PLAN = ['G G V . H H . W', 'G G . . . . . .', 'c c c p . e e e', 'c c c c . e e e', 'E . . . . . . B'].map((l) => l.split(' '));
+/* Terrains a vendre : ils ajoutent des cases d'herbe libre et relevent le plafond de construction */
+const TERRAINS = [
+  { id: 't0', cols: 3, rows: 3, ox: -(COLS * S) / 2 - 7.0, oz: 1.0, y: -0.9, prix: 2500 },
+  { id: 't1', cols: 4, rows: 2, ox: 1.0, oz: (ROWS * S) / 2 + 6.6, y: -1.3, prix: 4000 },
+  { id: 't2', cols: 3, rows: 4, ox: (COLS * S) / 2 + 7.0, oz: -1.0, y: -0.6, prix: 6500 }
+];
+
+/* ===================== ETAT ===================== */
+let S_ = null;
+const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
+const dureeLisible = (ms) => { const s = Math.max(1, Math.round(ms / 1000)); if (TEST || s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r : ''); };
+const borne = (v, a, b) => Math.min(b, Math.max(a, v));
+const hasard = (t) => t[Math.floor(Math.random() * t.length)];
+const de = (nom) => (/^[AEIOUYÉH]/i.test(nom) ? 'de l\'' : 'du ') + nom;
+const niv = (id) => (S_.amelio[id] || 0);
+const seuil = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7)));
+const niveau = (xp) => { let n = 1; while (xp >= seuil(n + 1)) n++; return n; };
+const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais'));
+const capacite = () => Math.min(6, 2 + 2 * niv('enclos'));
+const debloquee = (c) => niveau(S_.xp) >= c.niv;
+const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, picore: false });
+const prixGraine = (c) => Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5))); /* le prix des graines suit un peu le cours */
+function prix(id) {
+  const v = PAR_ID[id];
+  let p = v.prix * (S_.cours[id] || 1) * (niv('charrette') ? 1.1 : 1);
+  if (S_.crise && S_.crise.id === id) p *= 0.6;
+  return Math.max(1, Math.round(p));
+}
+function casesInitiales() {
+  const cases = [];
+  PLAN.forEach((ligne, j) => ligne.forEach((code, i) => {
+    const type = { G: 'grange', V: 'voliere', H: 'hdv', W: 'puits', E: 'epouvantail', B: 'foin', e: 'enclos', c: 'champ', p: 'chemin', '.': 'libre' }[code];
+    const cell = { id: 'm' + i + '_' + j, i, j, terrain: 'main', type };
+    if (type === 'champ') Object.assign(cell, champVide());
+    cases.push(cell);
+  }));
+  return cases;
+}
+function etatInitial() {
+  const t = Date.now();
+  const cours = {}; VENDABLES.forEach((v) => { cours[v.id] = 1; });
+  const cases = casesInitiales();
+  const champs = cases.filter((c) => c.type === 'champ');
+  Object.assign(champs[0], { c: 'ble', pousse: 13 * MIN, arrose: true });
+  Object.assign(champs[1], { c: 'ble', pousse: 3 * MIN, arrose: false });
+  return {
+    kamas: 30, xp: 0, graine: 'ble', vu: t, cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null,
+    grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
+    amelio: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0
+  };
+}
+function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; return e; } } catch (err) { /* rien */ } return null; }
+function sauver() { try { localStorage.setItem(CLE, JSON.stringify(S_)); } catch (err) { /* rien */ } }
+const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin').length;
+const plafond = () => Math.floor(S_.cases.length * PART_CONSTRUCTIBLE);
+
+/* ===================== LOGIQUE TEMPS REEL ===================== */
+function avancer(maintenant, enDirect) {
+  const dt = borne(maintenant - S_.vu, 0, 10 * 3600e3); /* la ferme vit 10 h sans toi, puis s'arrete */
+  S_.vu = maintenant;
+  const ch = new Set();
+  S_.cases.forEach((p) => {
+    if (p.type !== 'champ' || !p.c) return;
+    const c = PAR_ID[p.c], d = duree(c);
+    if (p.pousse < d) {
+      const avant = etape(p);
+      p.pousse = Math.min(d, p.pousse + dt * (p.arrose ? 1 : 0.4));
+      if (p.pousse >= d) p.pretDepuis = maintenant;
+      if (etape(p) !== avant) ch.add(p.id);
+    } else if (enDirect && dt < 5000) {
+      if (!p.tofu && !p.picore && maintenant - p.pretDepuis > DELAI_TOFU) {
+        if (Math.random() < (dt / MIN) * 0.3 * (niv('epouvantail') ? 0.5 : 1)) { p.tofu = maintenant; ch.add(p.id); toast('Un Tofu atterrit sur ton ' + c.nom + ' ! Chasse-le vite.', 'alerte'); }
+      } else if (p.tofu && maintenant - p.tofu > DUREE_PICORAGE) { p.tofu = 0; p.picore = true; ch.add(p.id); toast('Trop tard : le Tofu a picoré la moitié de ton ' + c.nom + '.', 'alerte'); }
+    }
+  });
+  let encl = false, hdv = false;
+  S_.bouftous.forEach((b) => {
+    if (niv('mangeoire') && maintenant >= b.rassasie && (S_.grange.ble || 0) >= REPAS) { S_.grange.ble -= REPAS; b.rassasie = maintenant + DUREE_REPAS; encl = true; hdv = true; }
+    if (b.laine < LAINE_MAX) {
+      const nourri = Math.max(0, Math.min(maintenant, b.rassasie) - (maintenant - dt));
+      if (nourri > 0) { b.accu += nourri; while (b.accu >= CADENCE_LAINE && b.laine < LAINE_MAX) { b.laine++; b.accu -= CADENCE_LAINE; encl = true; } if (b.laine >= LAINE_MAX) b.accu = 0; }
+    }
+    const affame = maintenant >= b.rassasie;
+    if (affame !== !!b.affame) { b.affame = affame; encl = true; }
+  });
+  let sauv = false;
+  if (S_.tofus > 0) { /* la voliere : chaque Tofu donne une plume toutes les 90 min, deux en attente au plus par Tofu */
+    const max = S_.tofus * PLUMES_PAR_TOFU, v = S_.voliere;
+    if (v.plumes < max) { v.accu += dt; while (v.accu >= CADENCE_PLUME && v.plumes < max) { v.plumes++; v.accu -= CADENCE_PLUME; sauv = true; } if (v.plumes >= max) v.accu = 0; }
+  }
+  if (enDirect && dt < 5000) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
+    if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
+    else if (!S_.sauvage && Math.random() < (dt / MIN) / 45) {
+      const libres = S_.cases.filter((c) => c.type === 'libre');
+      if (libres.length) { S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE }; sauv = true; toast('Un Tofu sauvage se pose dans l\'herbe.' + (S_.filets ? ' Sors ton filet !' : ' Avec un filet de capture, tu pourrais l\'attraper.'), 'or'); }
+    }
+  }
+  if (maintenant >= S_.prochainCours) {
+    S_.coursAvant = Object.assign({}, S_.cours);
+    VENDABLES.forEach((v) => { S_.cours[v.id] = borne((S_.cours[v.id] || 1) + (Math.random() - 0.5) * 0.14, 0.8, 1.2); });
+    S_.prochainCours = maintenant + CADENCE_COURS; hdv = true;
+  }
+  if (S_.crise && maintenant >= S_.crise.fin) { S_.crise = null; hdv = true; }
+  if (enDirect && dt < 5000 && !S_.crise && maintenant >= S_.prochaineCrise) {
+    S_.prochaineCrise = maintenant + CADENCE_CRISE;
+    const visibles = VENDABLES.filter((v) => v.id === 'laine' ? S_.bouftous.length : v.id === 'plume' ? S_.tofus : debloquee(v));
+    if (Math.random() < 0.3 && visibles.length) { const v = hasard(visibles); S_.crise = { id: v.id, fin: maintenant + DUREE_CRISE }; toast('Les bots de VSA inondent l\'HDV : le prix ' + de(v.nom) + ' chute pendant une minute.', 'alerte'); hdv = true; }
+  }
+  return { cases: ch, enclos: encl, hdv, sauvage: sauv };
+}
+function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
+function gagnerXp(n) {
+  const avant = niveau(S_.xp); S_.xp += n; const apres = niveau(S_.xp);
+  if (apres > avant) { const neuves = CULTURES.filter((c) => c.niv > avant && c.niv <= apres).map((c) => c.nom); toast('Niveau ' + apres + ' de Paysan !' + (neuves.length ? ' ' + neuves.join(', ') + ' à planter.' : ''), 'or'); }
+  rendreHaut();
+}
+
+/* ===================== ACTIONS ===================== */
+const ACTIONS = {
+  toucherCase(id) {
+    const p = S_.cases.find((c) => c.id === id); if (!p) return;
+    if (p.type === 'libre') { if (S_.sauvage && S_.sauvage.id === p.id) { allerPuis(p, () => ACTIONS.tofuSauvage(p)); return; } ouvrirConstruire(p); return; }
+    allerPuis(p, () => ACTIONS.agirSurCase(p));
+  },
+  agirSurCase(p) {
+    if (p.type === 'enclos') { ouvrirEnclos(); return; }
+    if (p.type === 'hdv') { ouvrirHdv(); return; }
+    if (p.type === 'grange') { ouvrirGrange(); return; }
+    if (p.type === 'puits') { ACTIONS.remplir(); return; }
+    if (p.type === 'voliere') { ouvrirVoliere(); return; }
+    if (p.type === 'chemin') return;
+    if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.' })[p.type] || ''); return; }
+    if (!p.c) { ACTIONS.planter(p); return; }
+    if (p.tofu) { if (S_.filets > 0) ouvrirTofu(p); else ACTIONS.chasser(p); return; }
+    const d = duree(PAR_ID[p.c]);
+    if (p.pousse >= d) { ACTIONS.recolter(p); return; }
+    if (!p.arrose) { ACTIONS.arroser(p); return; }
+    toast(PAR_ID[p.c].nom + ' : encore ' + dureeLisible((d - p.pousse) / (p.arrose ? 1 : 0.4)) + (p.arrose ? '.' : ' à sec, arrose pour aller plus vite.'));
+  },
+  arroser(p) {
+    if (S_.eau <= 0) {
+      const puits = S_.cases.find((c) => c.type === 'puits');
+      toast('Arrosoir vide : ' + (S_.perso ? S_.perso.nom : 'le paysan') + ' file au puits.', 'alerte');
+      if (puits) allerPuis(puits, () => { ACTIONS.remplir(); allerPuis(p, () => ACTIONS.arroser(p)); });
+      return;
+    }
+    S_.eau--; p.arrose = true; toast('Arrosé (' + S_.eau + '/' + CAPACITE_EAU + ' dans l\'arrosoir). Ça pousse deux fois et demie plus vite.'); rendreCase(p.id); rendreHaut();
+  },
+  remplir() {
+    if (S_.eau >= CAPACITE_EAU) { toast('L\'arrosoir est déjà plein.'); return; }
+    S_.eau = CAPACITE_EAU; toast('Arrosoir rempli au puits : ' + CAPACITE_EAU + ' arrosages.'); rendreHaut();
+  },
+  planter(p) {
+    const c = PAR_ID[S_.graine]; if (!c || !debloquee(c)) return;
+    if (!(S_.graines[c.id] > 0)) { toast('Plus de graines ' + de(c.nom) + ' dans la grange : achète-en à l\'HDV.', 'alerte'); ouvrirHdv('acheter'); return; }
+    S_.graines[c.id]--; Object.assign(p, champVide(), { c: c.id, arrose: !!niv('arrosoir') });
+    rendreCase(p.id); rendreHaut();
+  },
+  acheterGraines(id, n) {
+    const c = PAR_ID[id]; if (!c || !debloquee(c)) return;
+    const cout = prixGraine(c) * n;
+    if (S_.kamas < cout) { toast('Il te manque ' + fmt(cout - S_.kamas) + ' kamas.'); return; }
+    S_.kamas -= cout; S_.graines[id] = (S_.graines[id] || 0) + n; S_.graine = id;
+    toast('+' + n + ' graine' + (n > 1 ? 's' : '') + ' ' + de(c.nom) + ' dans la grange.'); rendreHaut(); ouvrirHdv('acheter');
+  },
+  recolter(p) {
+    const c = PAR_ID[p.c]; const qte = p.picore ? Math.max(1, Math.floor(c.rendement / 2)) : c.rendement;
+    S_.grange[c.id] = (S_.grange[c.id] || 0) + qte; Object.assign(p, champVide());
+    toast('+' + qte + ' ' + c.nom + ' à la grange.'); gagnerXp(c.xp); rendreCase(p.id); rendreGrange();
+  },
+  capturer(p) {
+    if (!p.tofu || S_.filets <= 0) return; S_.filets--; fermerModale();
+    if (Math.random() < CHANCE_CAPTURE) { S_.tofus++; p.tofu = 0; p.pretDepuis = Date.now(); toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
+    else { p.tofu = 0; p.pretDepuis = Date.now(); toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte'); }
+    rendreCase(p.id); rendreHaut(); rendreGrange();
+  },
+  acheterFilets(n) {
+    const cout = PRIX_FILET * n; if (S_.kamas < cout) { toast('Il te manque ' + fmt(cout - S_.kamas) + ' kamas.'); return; }
+    S_.kamas -= cout; S_.filets += n; toast('+' + n + ' filet' + (n > 1 ? 's' : '') + ' de capture.'); rendreHaut(); rendreGrange(); ouvrirHdv('acheter');
+  },
+  tofuSauvage(p) {
+    if (!S_.sauvage || S_.sauvage.id !== p.id) return;
+    if (S_.filets > 0) { ouvrirTofu(p, true); return; }
+    S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole. Avec un filet de capture (HDV, onglet Acheter), tu l\'aurais attrapé.');
+  },
+  capturerSauvage() {
+    if (!S_.sauvage || S_.filets <= 0) return; S_.filets--; fermerModale(); S_.sauvage = null;
+    if (Math.random() < CHANCE_SAUVAGE) { S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
+    else toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte');
+    rendreSauvage(); rendreHaut(); rendreGrange();
+  },
+  chasserSauvage() { S_.sauvage = null; fermerModale(); rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole.'); },
+  ramasserPlumes() {
+    const n = S_.voliere.plumes; if (!n) { toast('Pas encore de plume à ramasser.'); return; }
+    S_.grange.plume = (S_.grange.plume || 0) + n; S_.voliere.plumes = 0; gagnerXp(PLUME.xp * n);
+    toast('+' + n + ' Plume' + (n > 1 ? 's' : '') + ' de Tofu à la grange. Elles se vendent à l\'HDV.', 'or'); rendreGrange(); ouvrirVoliere();
+  },
+  chasser(p) { p.tofu = 0; p.pretDepuis = Date.now(); toast('Tofu chassé ! Il ira picorer chez VSA.'); gagnerXp(1); rendreCase(p.id); },
+  nourrir(j) {
+    const b = S_.bouftous[j]; if (!b) return;
+    if ((S_.grange.ble || 0) < REPAS) { toast('Il faut ' + REPAS + ' Blé dans la grange pour nourrir ' + b.nom + '.'); return; }
+    const t = Date.now(); S_.grange.ble -= REPAS; b.rassasie = Math.min(Math.max(t, b.rassasie) + DUREE_REPAS, t + 3 * DUREE_REPAS); b.affame = false;
+    toast(b.nom + ' mange. Il donnera de la laine tant qu\'il est repu.'); rendreBouftous(); rendreGrange();
+  },
+  tondre(j) {
+    const b = S_.bouftous[j]; if (!b || !b.laine) return;
+    S_.grange.laine = (S_.grange.laine || 0) + b.laine; toast('+' + b.laine + ' Laine de Bouftou grâce à ' + b.nom + '.'); gagnerXp(LAINE.xp * b.laine); b.laine = 0;
+    rendreBouftous(); rendreGrange();
+  },
+  acheterBouftou() {
+    if (S_.bouftous.length >= capacite()) { toast('L\'enclos est plein. Agrandis-le dans Améliorer.'); return; }
+    if (S_.kamas < PRIX_BOUFTOU) { toast('Un Bouftou coûte ' + PRIX_BOUFTOU + ' kamas.'); return; }
+    S_.kamas -= PRIX_BOUFTOU; const libres = NOMS.filter((n) => !S_.bouftous.some((b) => b.nom === n));
+    S_.bouftous.push({ nom: hasard(libres.length ? libres : NOMS), rassasie: Date.now(), laine: 0, accu: 0, affame: true });
+    toast('Bienvenue à ' + S_.bouftous[S_.bouftous.length - 1].nom + ' ! Il a déjà faim.'); rendreBouftous(); rendreHaut();
+  },
+  vendre(id, tout) {
+    const stock = S_.grange[id] || 0; if (!stock) return;
+    const n = tout ? stock : 1, gain = n * prix(id); S_.grange[id] = stock - n; S_.kamas += gain;
+    if (tout) toast(n + ' ' + PAR_ID[id].nom + ' vendus pour ' + fmt(gain) + ' kamas.');
+    rendreGrange(); rendreHaut(); if (modaleOuverte === 'hdv') ouvrirHdv('vendre');
+  },
+  amelio(id) {
+    const a = AMELIOS.find((x) => x.id === id), n = niv(id);
+    if (!a || n >= a.couts.length || niveau(S_.xp) < a.niv || S_.kamas < a.couts[n]) return;
+    S_.kamas -= a.couts[n]; S_.amelio[id] = n + 1;
+    toast(a.nom + (a.couts.length > 1 ? ' (niveau ' + (n + 1) + ')' : '') + ' : c\'est fait.', 'or');
+    rendreHaut(); rendreBouftous(); ouvrirAmelio();
+  },
+  construireParcelle(id) {
+    const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'libre') return;
+    if (occupees() >= plafond()) { toast('Ta ferme est pleine : ' + occupees() + ' cases occupées sur ' + plafond() + ' autorisées. Achète un terrain pour construire plus.', 'alerte'); return; }
+    const cout = PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)];
+    if (S_.kamas < cout) { toast('Une parcelle coûte ' + fmt(cout) + ' kamas ici.'); return; }
+    S_.kamas -= cout; S_.parcellesAchetees++; Object.assign(p, { type: 'champ' }, champVide());
+    toast('Nouvelle parcelle labourée.', 'or'); fermerModale(); rendreCase(p.id); rendreHaut();
+  },
+  acheterTerrain(k) {
+    const t = TERRAINS[k]; if (!t || S_.terrains[t.id]) return;
+    if (S_.kamas < t.prix) { toast('Ce terrain coûte ' + fmt(t.prix) + ' kamas.'); return; }
+    S_.kamas -= t.prix; S_.terrains[t.id] = true;
+    for (let i = 0; i < t.cols; i++) for (let j = 0; j < t.rows; j++) S_.cases.push({ id: t.id + '_' + i + '_' + j, i, j, terrain: t.id, type: 'libre' });
+    toast('Terrain acheté : ' + (t.cols * t.rows) + ' cases de plus, ' + plafond() + ' emplacements au total.', 'or');
+    construireTerrain(k); rendreHaut(); placerBulles();
+  }
+};
+
+/* ===================== SCENE 3D ===================== */
+const T = THREE;
+const canvas = document.getElementById('scene');
+const rendu = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+rendu.setClearColor(0x000000, 0); rendu.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+rendu.shadowMap.enabled = true; rendu.shadowMap.type = T.PCFSoftShadowMap;
+const scene = new T.Scene();
+const camera = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
+const VISEE = new T.Vector3(0.6, 0.6, 0.6);
+camera.position.set(VISEE.x + 30, VISEE.y + 27, VISEE.z + 30); camera.lookAt(VISEE);
+let zoom = 1, angleCam = Math.PI / 4, enAccueil = true, departAngle = performance.now();
+function placerCamera() { const r = 42.4; camera.position.set(VISEE.x + Math.cos(angleCam) * r, VISEE.y + 27, VISEE.z + Math.sin(angleCam) * r); camera.lookAt(VISEE); }
+function cadrer() {
+  const w = innerWidth, h = innerHeight, a = w / h;
+  const d = (a < 1 ? 9.6 / a : 11.2) / zoom; /* en portrait l'ile deborde un peu, on glisse et on pince pour zoomer */
+  camera.left = -d * a; camera.right = d * a; camera.top = d; camera.bottom = -d; camera.updateProjectionMatrix();
+  rendu.setSize(w, h, false); canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+scene.add(new T.HemisphereLight('#fff6e0', '#8aa6c0', 0.5));
+const soleil = new T.DirectionalLight('#ffe9c4', 0.75); soleil.position.set(-16, 28, 12); soleil.castShadow = true;
+soleil.shadow.mapSize.set(2048, 2048); Object.assign(soleil.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 100 }); soleil.shadow.bias = -0.0008; scene.add(soleil);
+const contre = new T.DirectionalLight('#bfe2ff', 0.22); contre.position.set(18, 10, -20); scene.add(contre);
+
+const grad = new T.DataTexture(new Uint8Array([120, 120, 120, 180, 180, 180, 235, 235, 235]), 3, 1, T.RGBFormat);
+grad.minFilter = grad.magFilter = T.NearestFilter; grad.needsUpdate = true;
+const CONTOUR = new T.MeshBasicMaterial({ color: '#3a2b1f', side: T.BackSide });
+const mat = (c, o) => new T.MeshToonMaterial(Object.assign({ color: c, gradientMap: grad }, o || {}));
+function maille(geo, couleur, o) {
+  const materiau = typeof couleur === 'string' ? mat(couleur, typeof o === 'object' ? o : undefined) : couleur;
+  const m = new T.Mesh(geo, materiau); m.castShadow = true; m.receiveShadow = true;
+  if (materiau.transparent) return m;
+  const g = new T.Group(); g.add(m); const c = new T.Mesh(geo, CONTOUR); c.scale.setScalar(1 + (typeof o === 'number' ? o : 0.04)); g.add(c); return g;
+}
+const boite = (w, h, d, c, o) => maille(new T.BoxGeometry(w, h, d), c, o);
+const cyl = (rh, rb, h, c, s) => maille(new T.CylinderGeometry(rh, rb, h, s || 7), c);
+const sphere = (r, c, d) => maille(new T.IcosahedronGeometry(r, d || 1), c);
+const cone = (r, h, c, s) => maille(new T.ConeGeometry(r, h, s || 6), c);
+function poser(o, x, y, z, ry, parent) { o.position.set(x, y, z); if (ry) o.rotation.y = ry; (parent || scene).add(o); return o; }
+
+/* ===================== MODELES BLENDER (rendu toon, contour, vent) ===================== */
+const vent = creerVent(T, { sol: 0, plafond: 1.3 });
+const toon = (c, sp) => { const m = new T.MeshToonMaterial({ color: c, gradientMap: grad }); return sp != null ? vent.materiau(m, sp) : m; };
+/* le contour : la face arriere, soit agrandie depuis le centre de l'objet (pieces separees), soit poussee le long des normales (pieces assemblees) */
+const contours = {};
+function contourMat(ep, sp) {
+  const k = ep + '|' + sp; if (contours[k]) return contours[k];
+  const m = new T.MeshBasicMaterial({ color: '#3a2b1f', side: T.BackSide });
+  const pousser = (sh) => { if (ep) sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(normal) * ' + ep.toFixed(4) + ';'); };
+  if (sp != null) { vent.materiau(m, sp); const f = m.onBeforeCompile; m.onBeforeCompile = (sh) => { f(sh); pousser(sh); }; } else m.onBeforeCompile = pousser;
+  m.customProgramCacheKey = () => 'contour' + k; return (contours[k] = m);
+}
+/* l'eau de l'ile : des bandes claires descendent la cascade, des rides s'ecartent sur la mare (periodique sur 6 s) */
+const MARE = [9.1, 6.1];
+function eauAnimee(m) {
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTemps = vent.temps;
+    sh.vertexShader = 'varying vec3 vEauWp; varying vec3 vEauN;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nvEauWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vEauN = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = 'uniform float uTemps; varying vec3 vEauWp; varying vec3 vEauN;\n' + sh.fragmentShader.replace('#include <dithering_fragment>', [
+      '#include <dithering_fragment>',
+      'float vertical = 1.0 - abs(vEauN.y);',
+      'float chute = smoothstep(0.55, 1.0, sin(vEauWp.y * 4.0 + uTemps * 8.37758 + sin(vEauWp.x * 3.0) * 1.5));',
+      'float rides = smoothstep(0.82, 1.0, sin(length(vEauWp.xz - vec2(' + MARE[0].toFixed(2) + ', ' + MARE[1].toFixed(2) + ')) * 9.0 - uTemps * 4.18879));',
+      'gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.93, 0.98, 1.0), vertical > 0.5 ? chute * 0.5 : rides * 0.3);'
+    ].join('\n'));
+  };
+  m.customProgramCacheKey = () => 'eau';
+}
+const SOUPLE_ILE = { herbe: 1, tige: 1, feuille: 1, brin: 1, pousse: 1, fleur: 1, fleurs: 0.15, tronc: 0.12, branche: 0.12, noeud: 0.12, feuillage: 0.12, feuillageClair: 0.12, feuillageSombre: 0.12, etage: 0.12, cime: 0.12, pomme: 0.12, pommeReflet: 0.12 };
+const SOUPLE_CULTURES = { tige: 1, epi: 1, barbe: 1, feuille: 1, brin: 1, pousse: 1, grain: 1, fleur: 1, capsule: 1, liane: 0.1, feuille_houblon: 0.1, cone: 0.1 };
+const SC_ILE = new Set(['feuillageClair', 'feuillageSombre', 'pommeReflet', 'ecume_filet', 'nenuphar', 'galet', 'barbe', 'pousse', 'herbe', 'caillou', 'reflet', 'joint', 'fleur', 'tige', 'champi_point', 'petale', 'ecume']);
+const SC_PERSO = new Set(['reflet', 'pupille', 'iris', 'joue', 'sourcil', 'bouche', 'croix_v', 'croix_h', 'boucle_trou', 'paille_nervure', 'paille_brin', 'gorge', 'clou']);
+const SC_BATI = new Set(['craie', 'graine', 'fil', 'carreau', 'grillage', 'feu', 'flamme', 'lueur', 'etincelle', 'visage', 'joue', 'plume', 'tache', 'oeil', 'tige', 'epi', 'maille', 'tressage', 'clou', 'caisse_fond', 'chaume_rang', 'ligature', 'brin', 'fleur', 'vitre', 'lanterne', 'buche_bout', 'botte_bout', 'tonneau_dessus',
+  'corde_tour', 'douelle', 'lierre', 'grain_ble', 'trou', 'paille', 'barbe', 'kama_cran', 'couture', 'pousse', 'trou_serrure', 'rivet', 'reflet', 'eau']);
+const SC_CULT = new Set(['barbe', 'pousse', 'ficelle', 'brin']);
+const SC_MONSTRES = new Set(['pupille', 'reflet', 'iris', 'point_front', 'aile_coeur', 'fissure', 'dent', 'gueule', 'narine', 'orbite', 'gravure', 'lame_fil', 'bouche', 'sourcil', 'flamme_coeur', 'couronne_rouge', 'gemme', 'phalange']);
+const SANS_OMBRE = new Set(['cone', 'cone_bord', 'paille_nervure', 'paille_brin', 'eau', 'ecume', 'fumee', 'ecume_filet']);
+const BRILLE = new Set(['feu', 'flamme', 'lueur', 'etincelle', 'lanterne']);
+/* o : { normales: epaisseur du contour pousse, echelle: epaisseur du contour agrandi, souple: souplesses au vent, sansContour, eauIle } */
+function versToon(g, o) {
+  const ajouts = [], retirer = [];
+  g.traverse((m) => {
+    if (!m.isMesh) return;
+    const nom = m.name.replace(/\.?\d+$/, '').replace(/_\d+$/, '');
+    if (nom === 'terre_battue') { retirer.push(m); return; }
+    const sp = o.souple ? o.souple[nom] : undefined;
+    const c = m.material.color ? m.material.color.clone().convertLinearToSRGB() : new T.Color('#ffffff');
+    if (nom.startsWith('lumiere') || BRILLE.has(nom)) { m.material = new T.MeshBasicMaterial({ color: nom === 'lanterne' ? '#ffe08a' : c }); m.castShadow = false; return; }
+    if (nom === 'eau' && !o.eauIle) { m.material = new T.MeshBasicMaterial({ color: '#86ecbd' }); m.castShadow = false; return; }
+    if (nom === 'reflet' && !o.eauIle && o.sansContour === SC_BATI) { m.material = new T.MeshBasicMaterial({ color: '#dcfff0' }); return; }
+    m.material = toon(c, sp); m.castShadow = !SANS_OMBRE.has(nom); m.receiveShadow = true;
+    if (sp != null) m.customDepthMaterial = vent.ombre(sp);
+    if (nom === 'eau') { m.material.transparent = true; m.material.opacity = 0.85; eauAnimee(m.material); return; }
+    if (!(o.sansContour && o.sansContour.has(nom))) { const k = new T.Mesh(m.geometry, contourMat(o.normales || 0, sp)); if (o.echelle) k.scale.setScalar(1 + o.echelle); ajouts.push([m, k]); }
+  });
+  retirer.forEach((m) => m.parent.remove(m));
+  ajouts.forEach(([m, k]) => m.add(k)); return g;
+}
+const chargeur = new T.GLTFLoader();
+/* les modeles du jeu sont compresses (Draco, blender/compresser.py) dans assets/modeles/jeu/ */
+const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
+const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
+const MODELES = {};
+/* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
+function gabarit(racine, nom, taille, axe) {
+  const n = racine.getObjectByName(nom); if (!n) { console.warn('modele introuvable', nom); return new T.Group(); }
+  const g = n.clone(true); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1); g.updateMatrixWorld(true);
+  const b = new T.Box3().setFromObject(g), d = new T.Vector3(); b.getSize(d);
+  const k = taille / (axe === 'y' ? d.y : Math.max(d.x, d.z)); g.scale.setScalar(k);
+  const c = new T.Vector3(); b.getCenter(c); g.position.set(-c.x * k, -b.min.y * k, -c.z * k);
+  const enveloppe = new T.Group(); enveloppe.add(g); enveloppe.userData.hauteur = d.y * k; return enveloppe;
+}
+function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); return g; }
+function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
+async function chargerModeles() {
+  const texte = document.getElementById('chargement-texte');
+  const fichiers = ['ile-jeu', 'granges', 'puits2', 'batiments', 'objets', 'ble-planche', 'cultures', 'monstres', 'iop3', 'osa', 'cra'];
+  let faits = 0;
+  const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb').then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; return sc; })));
+  const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
+  MODELES.ile = versToon(G['ile-jeu'], { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, eauIle: true });
+  const BATI = { normales: 0.012, sansContour: SC_BATI };
+  versToon(G.granges, BATI); versToon(G.puits2, BATI); versToon(G.batiments, BATI); versToon(G.objets, BATI);
+  MODELES.grange = gabarit(G.granges, 'grangeC', 3.9);
+  MODELES.puits = gabarit(G.puits2, 'puitsFace', 1.75);
+  MODELES.hdv = gabarit(G.batiments, 'etal', 3.9);
+  MODELES.voliere = gabarit(G.batiments, 'voliere', 1.85);
+  MODELES.epouvantail = gabarit(G.batiments, 'epouvantail', 2.6, 'y');
+  MODELES.botte = gabarit(G.objets, 'botte', 1.0);
+  MODELES.auge = gabarit(G.objets, 'auge', 1.5);
+  MODELES.cloture = gabarit(G.objets, 'clotureDroite', 2.0);
+  MODELES.portillon = gabarit(G.objets, 'portillon', 2.0);
+  versToon(G['ble-planche'], { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
+  versToon(G.cultures, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
+  CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { const n = c.id === 'ble' ? 'parcelle_A' + k : 'parcelle_' + c.id + '_' + k; const src = (c.id === 'ble' ? G['ble-planche'] : G.cultures).getObjectByName(n); const g = src.clone(true); g.position.set(0, 0.02, 0); g.rotation.set(0, 0, 0); MODELES[c.id + k] = g; }));
+  const nu = MODELES.ble0.clone(true); const enlever = []; nu.children.forEach((o) => { const nom = o.name.replace(/\.?\d+$/, ''); if (nom !== 'terre' && nom !== 'sillon') enlever.push(o); }); enlever.forEach((o) => nu.remove(o)); MODELES.nu = nu;
+  versToon(G.monstres, { normales: 0.01, sansContour: SC_MONSTRES });
+  MODELES.tofu = gabarit(G.monstres, 'Tofu', 0.85, 'y');
+  ['iop3', 'osa', 'cra'].forEach((f) => { MODELES[f] = versToon(G[f], { echelle: 0.025, sansContour: SC_PERSO }); MODELES[f].scale.setScalar(0.5); });
+}
+/* terre plus sombre quand le champ est arrose */
+const MOUILLE = new Map();
+function terreMouillee(m) { if (!MOUILLE.has(m.uuid)) { const n = m.clone(); n.color.multiplyScalar(0.62); MOUILLE.set(m.uuid, n); } return MOUILLE.get(m.uuid); }
+
+/* ---------- le ciel peint : degrade, lueur du soleil, iles lointaines dans la brume, mer de nuages, oiseaux ---------- */
+const cielCanvas = document.getElementById('ciel'), cx2 = cielCanvas.getContext('2d');
+let gC = 11; const aC = () => { gC = (gC * 16807) % 2147483647; return (gC - 1) / 2147483646; };
+const banc = (y, n, rmin, rmax) => Array.from({ length: n }, (_, k) => ({ x: -0.1 + 1.2 * (k + aC() * 0.8) / n, y: y + (aC() - 0.5) * 0.05, r: rmin + aC() * (rmax - rmin), p: aC() * 6.28 }));
+const BANCS = [banc(0.6, 22, 0.025, 0.05), banc(0.83, 18, 0.05, 0.1), banc(0.94, 16, 0.07, 0.12)];
+const ILES = [[0.1, 0.4, 1.0], [0.88, 0.28, 0.75], [0.72, 0.52, 0.5], [0.33, 0.62, 0.42]];
+const OISEAUX = [[0.25, 0.18, 0.0], [0.29, 0.2, 1.3], [0.27, 0.23, 2.1], [0.62, 0.12, 3.4]];
+const TEINTE = { haut: ['#3f9fe0', '#86c9ef', '#cfe9f3', '#fbe6c4', '#f6cfa6'], soleil: 'rgba(255,248,220,', nuage: '#fffaf2', ombre: '#e9d6c8', ile: 'rgba(120,165,190,', oiseau: 'rgba(40,60,80,0.45)' };
+function dessinerCiel(s) {
+  const w = innerWidth, h = innerHeight, d = TEINTE;
+  if (cielCanvas.width !== w || cielCanvas.height !== h) { cielCanvas.width = w; cielCanvas.height = h; }
+  const g = cx2.createLinearGradient(0, 0, 0, h); d.haut.forEach((c, k) => g.addColorStop(k / (d.haut.length - 1), c)); cx2.fillStyle = g; cx2.fillRect(0, 0, w, h);
+  const sx = 0.2 * w, sy = 0.13 * h, sr = 0.5 * h; const gs = cx2.createRadialGradient(sx, sy, 0, sx, sy, sr);
+  gs.addColorStop(0, d.soleil + '0.9)'); gs.addColorStop(0.25, d.soleil + '0.35)'); gs.addColorStop(1, d.soleil + '0)'); cx2.fillStyle = gs; cx2.fillRect(0, 0, w, h);
+  const dec = Math.sin(s * 2 * Math.PI / 6) * 0.004 * w;
+  ILES.forEach(([x, y, t]) => {
+    const X = x * w + dec * 0.5, Y = y * h, L = 120 * t * (w / 1440), H = 22 * t * (w / 1440);
+    cx2.fillStyle = d.ile + '0.45)'; cx2.beginPath(); cx2.moveTo(X - L, Y); cx2.lineTo(X + L, Y); cx2.lineTo(X + L * 0.55, Y + H * 2.2); cx2.lineTo(X + L * 0.1, Y + H * 4.5); cx2.lineTo(X - L * 0.4, Y + H * 2.6); cx2.closePath(); cx2.fill();
+    cx2.fillStyle = d.ile + '0.6)'; cx2.beginPath(); cx2.ellipse(X, Y, L * 1.02, H * 0.6, 0, 0, Math.PI * 2); cx2.fill();
+    for (let a = 0; a < 3; a++) { cx2.beginPath(); cx2.arc(X - L * 0.5 + a * L * 0.4, Y - H * (1.2 + (a % 2) * 0.5), H * (1.1 + (a % 2) * 0.4), 0, Math.PI * 2); cx2.fill(); }
+  });
+  BANCS.forEach((b, k) => {
+    cx2.globalAlpha = k === 0 ? 0.7 : 1; cx2.fillStyle = d.ombre;
+    b.forEach((c) => { cx2.beginPath(); cx2.arc(c.x * w + dec * (k + 1), c.y * h + c.r * w * 0.28, c.r * w, 0, Math.PI * 2); cx2.fill(); });
+    cx2.fillStyle = d.nuage;
+    b.forEach((c) => { cx2.beginPath(); cx2.arc(c.x * w + dec * (k + 1), c.y * h + Math.sin(s * 2 * Math.PI / 6 + c.p) * 2, c.r * w * 0.94, 0, Math.PI * 2); cx2.fill(); });
+    cx2.globalAlpha = 1;
+  });
+  cx2.strokeStyle = d.oiseau; cx2.lineWidth = 2; cx2.lineCap = 'round';
+  OISEAUX.forEach(([x, y, p]) => {
+    const X = (x + 0.03 * Math.sin(s * 2 * Math.PI / 6 + p)) * w, Y = (y + 0.01 * Math.cos(s * 2 * Math.PI / 3 + p)) * h, e = 7 + 3 * Math.sin(s * 2 * Math.PI * 4 / 3 + p);
+    cx2.beginPath(); cx2.moveTo(X - 9, Y - e * 0.6); cx2.quadraticCurveTo(X - 4, Y - 2, X, Y); cx2.quadraticCurveTo(X + 4, Y - 2, X + 9, Y - e * 0.6); cx2.stroke();
+  });
+}
+let graine = 11; const alea = () => { graine = (graine * 16807) % 2147483647; return (graine - 1) / 2147483646; };
+const cx = (i) => (i - (COLS - 1) / 2) * S, cz = (j) => (j - (ROWS - 1) / 2) * S;
+const TERRE = { libre: '#8fd45c', labour: '#6e4226', sec: '#b0844f', mouille: '#4b2f1b', enclos: '#7ccb52' };
+function vider(g) { while (g.children.length) g.remove(g.children[0]); }
+
+/* position monde d'une case */
+function posCase(p) {
+  if (p.terrain === 'main') return { x: cx(p.i), y: p.j <= 1 ? HAUT_TERRASSE : 0, z: cz(p.j) };
+  const t = TERRAINS.find((t) => t.id === p.terrain);
+  return { x: t.ox + (p.i - (t.cols - 1) / 2) * S, y: t.y, z: t.oz + (p.j - (t.rows - 1) / 2) * S };
+}
+function socle(ox, oz, cols, rows, fantome, marge) {
+  const g = new T.Group(); const w = cols * S + 2 * (marge || 0), d = rows * S + 2 * (marge || 0);
+  const terre = fantome ? mat('#b9c8d6', { transparent: true, opacity: 0.32 }) : mat('#8a5634');
+  const roche = fantome ? mat('#c6d3de', { transparent: true, opacity: 0.25 }) : mat('#8e8a85');
+  const corps = maille(new T.BoxGeometry(w + 0.12, 1.3, d + 0.12), terre); corps.position.y = -0.95; g.add(corps);
+  const bande = maille(new T.BoxGeometry(w + 0.2, 0.18, d + 0.2), fantome ? mat('#d5e0ea', { transparent: true, opacity: 0.35 }) : mat('#5f9b3a')); bande.position.y = -0.36; g.add(bande);
+  for (let k = 0; k < Math.round(cols * rows / (fantome ? 5 : 3)); k++) {
+    const r = 0.8 + alea() * 1.3; const b = maille(new T.DodecahedronGeometry(r, 0), roche);
+    const fx = (alea() - 0.5) * (w - 1.5), fz = (alea() - 0.5) * (d - 1.5); const prof = 1 - Math.max(Math.abs(fx) / (w / 2), Math.abs(fz) / (d / 2));
+    b.position.set(fx, -1.7 - prof * 2.6 - alea() * 0.6, fz); b.rotation.set(alea() * 3, alea() * 3, alea() * 3); g.add(b);
+  }
+  g.position.set(ox, 0, oz); scene.add(g); return g;
+}
+/* un modele pose sur une ou plusieurs cases, cliquable comme ces cases */
+function batiment(nom, x, y, z, cellule, ry) { const g = marquer(cloner(nom), cellule); poser(g, x, y, z, ry); return g; }
+function cloture(e) {
+  /* des modules de cloture d'une case de long, le portillon au milieu du devant */
+  const x0 = e.x - e.w / 2, x1 = e.x + e.w / 2, z0 = e.z - e.d / 2, z1 = e.z + e.d / 2, n = Math.round(e.w / S), m = Math.round(e.d / S);
+  for (let k = 0; k < n; k++) { const x = x0 + (k + 0.5) * S; batiment('cloture', x, 0, z0, e.cellule); batiment(k === Math.floor(n / 2) ? 'portillon' : 'cloture', x, 0, z1, e.cellule); }
+  for (let k = 0; k < m; k++) { const z = z0 + (k + 0.5) * S; batiment('cloture', x0, 0, z, e.cellule, Math.PI / 2); batiment('cloture', x1, 0, z, e.cellule, Math.PI / 2); }
+  batiment('auge', x1 - 0.95, 0, z0 + 0.75, e.cellule, 0.15);
+}
+function paysan(x, y, z, classe) {
+  const g = cloner({ iop: 'iop3', osa: 'osa', cra: 'cra' }[classe] || 'iop3');
+  g.rotation.y = -2.3; poser(g, x, y, z); g.userData.y = y; return g;
+}
+function nuage(x, y, z, t) { const g = new T.Group(); const blanc = new T.MeshToonMaterial({ color: '#ffffff', gradientMap: grad, transparent: true, opacity: 0.92 }); [[0, 0, 0, 1.4], [1.3, -0.2, 0.3, 1.0], [-1.3, -0.25, -0.2, 1.05], [0.5, 0.45, -0.4, 0.9], [-0.6, 0.35, 0.5, 0.8]].forEach(([a, b, c, r]) => { const m = new T.Mesh(new T.IcosahedronGeometry(r * t, 1), blanc); m.position.set(a * t, b * t, c * t); g.add(m); }); poser(g, x, y, z); return g; }
+
+/* ----- construction de la scene ----- */
+const ancres = {};
+const casesMesh = {};      /* id -> boite cliquable */
+const casesDyn = {};       /* id -> groupe dynamique (cultures, tofu) */
+const terrainsMesh = {};   /* id terrain -> groupe fantome */
+const enclosDef = { x: cx(6), z: (cz(2) + cz(3)) / 2, w: 3 * S, d: 2 * S, cellule: 'm5_2' };
+const SLOTS_BOUFTOUS = [[-1.7, 0.3, 0.5], [0.6, 1.0, 1.3], [1.2, -0.6, -0.2], [-0.4, -0.9, 0.9], [0.1, 0.2, 2.2], [-1.5, -1.1, 1.8]];
+let bouftousMesh = [], tofusMesh = {};
+let paysanMesh = null, chemin = [], arrivee = null;
+let nuages = [];
+
+let sauvageMesh = null;
+function construireStatique() {
+  scene.add(MODELES.ile);
+  const HT = HAUT_TERRASSE;
+  const gr = batiment('grange', (cx(0) + cx(1)) / 2, HT, (cz(0) + cz(1)) / 2 - 0.1, 'm0_0'); ancres.grange = new T.Vector3((cx(0) + cx(1)) / 2, HT + gr.userData.hauteur + 0.3, (cz(0) + cz(1)) / 2);
+  const hv = batiment('hdv', (cx(4) + cx(5)) / 2, HT, cz(0) - 0.15, 'm4_0'); ancres.hdv = new T.Vector3((cx(4) + cx(5)) / 2, HT + hv.userData.hauteur + 0.3, cz(0));
+  const vo = batiment('voliere', cx(2), HT, cz(0) - 0.1, 'm2_0'); ancres.voliere = new T.Vector3(cx(2), HT + vo.userData.hauteur + 0.25, cz(0));
+  batiment('puits', cx(7), HT, cz(0), 'm7_0', -0.3);
+  batiment('epouvantail', cx(0), 0, cz(4), 'm0_4', 0.4);
+  batiment('botte', cx(7) - 0.35, 0, cz(4) - 0.2, 'm7_4', 0.3); batiment('botte', cx(7) + 0.45, 0, cz(4) + 0.35, 'm7_4', -0.5); const b3 = batiment('botte', cx(7) + 0.05, 0, cz(4) + 0.05, 'm7_4', 1.2); b3.position.y = 0.55;
+  cloture(enclosDef);
+  const dep = S_.cases.find((c) => c.terrain === 'main' && c.i === 4 && c.j === 3);
+  paysanMesh = paysan(cx(4), 0, cz(3), S_.perso && S_.perso.classe); paysanMesh.userData.cellule = dep;
+  nuages = [nuage(-15, -6.5, 10, 0.95), nuage(13, -7.5, 12, 0.85), nuage(17, -5.5, -13, 1.0), nuage(-19, -8, -9, 0.9), nuage(-2, -10, 6, 1.2), nuage(-6, -8.5, 17, 0.8), nuage(9.6, -5.8, 8.6, 1.15)];
+  TERRAINS.forEach((t, k) => { if (!S_.terrains[t.id]) construireFantome(k); });
+}
+function construireFantome(k) {
+  const t = TERRAINS[k]; const g = socle(t.ox, t.oz, t.cols, t.rows, true); g.position.y = t.y;
+  for (let i = 0; i < t.cols; i++) for (let j = 0; j < t.rows; j++) { const m = maille(new T.BoxGeometry(S - 0.14, 0.3, S - 0.14), mat('#dfe9f1', { transparent: true, opacity: 0.38 })); m.position.set((i - (t.cols - 1) / 2) * S, -0.15, (j - (t.rows - 1) / 2) * S); m.userData.terrain = k; g.add(m); }
+  const pied = cyl(0.07, 0.07, 1.4, '#8b6a42'); pied.position.y = 0.7; g.add(pied); const planche = boite(1.3, 0.7, 0.1, '#c48a4f'); planche.position.y = 1.35; g.add(planche);
+  terrainsMesh[t.id] = g; ancres['v' + k] = new T.Vector3(t.ox, t.y + 2.6, t.oz);
+}
+function construireTerrain(k) {
+  const t = TERRAINS[k];
+  if (terrainsMesh[t.id]) { scene.remove(terrainsMesh[t.id]); delete terrainsMesh[t.id]; }
+  const bulle = document.querySelector('[data-vente="' + k + '"]'); if (bulle) bulle.remove(); delete ancres['v' + k];
+  const g = socle(t.ox, t.oz, t.cols, t.rows, false, 0.6); g.position.y = t.y;
+  S_.cases.filter((c) => c.terrain === t.id).forEach((p) => construireCase(p));
+}
+const CIBLE = new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+function construireCase(p) {
+  const pos = posCase(p), ile = p.terrain === 'main';
+  /* sur l'ile, la case est une cible invisible juste au-dessus du sol ; sur un terrain achete, une dalle coloree */
+  const m = new T.Mesh(new T.BoxGeometry(S - 0.1, ile ? 0.1 : 0.3, S - 0.1), ile ? CIBLE : mat(couleurCase(p)));
+  if (!ile) { m.castShadow = true; m.receiveShadow = true; }
+  m.position.set(pos.x, pos.y + (ile ? 0.06 : -0.15), pos.z); m.userData.cellule = p.id; scene.add(m); casesMesh[p.id] = m;
+  const dyn = new T.Group(); dyn.position.set(pos.x, pos.y, pos.z); dyn.userData.cellule = p.id; scene.add(dyn); casesDyn[p.id] = dyn;
+  rendreCase(p.id);
+}
+function couleurCase(p) {
+  if (p.type === 'champ') return !p.c ? TERRE.labour : p.arrose ? TERRE.mouille : (etape(p) === 'mur' ? TERRE.labour : TERRE.sec);
+  if (p.type === 'enclos') return TERRE.enclos;
+  if (p.type === 'libre') return TERRE.libre;
+  return '#7ccb52';
+}
+function rendreCase(id) {
+  const p = S_.cases.find((c) => c.id === id); const g = casesDyn[id]; if (!p || !g) return;
+  vider(g); if (casesMesh[id].material !== CIBLE) casesMesh[id].material.color.set(couleurCase(p));
+  if (p.type !== 'champ') return;
+  /* la parcelle : nue, ou la culture a son stade (semis, en croissance, mure), la terre plus sombre si elle est arrosee */
+  const st = etape(p), k = { graine: 0, pousse: 1, mur: 2 }[st];
+  const parc = (p.c ? MODELES[p.c + k] : MODELES.nu).clone(true); marquer(parc, p.id);
+  const mouille = p.arrose && p.c && st !== 'mur';
+  if (mouille) parc.traverse((o) => { const n = o.name.replace(/\.?\d+$/, ''); if (o.isMesh && (n === 'terre' || n === 'sillon')) o.material = terreMouillee(o.material); });
+  g.add(parc);
+  if (p.tofu) { const t = marquer(cloner('tofu'), p.id); t.userData.tofu = true; poser(t, 0.15, st === 'mur' ? 0.75 : 0.25, 0.2, 0.7, g); }
+}
+function rendreSauvage() {
+  if (sauvageMesh) { scene.remove(sauvageMesh); sauvageMesh = null; }
+  const p = S_.sauvage && S_.cases.find((c) => c.id === S_.sauvage.id);
+  if (p) { const q = posCase(p); sauvageMesh = marquer(cloner('tofu'), p.id); sauvageMesh.userData.base = q.y; poser(sauvageMesh, q.x, q.y, q.z, 0.7); }
+  rendreCasesBulles();
+}
+function rendreBouftous() {
+  bouftousMesh.forEach((b) => scene.remove(b)); bouftousMesh = [];
+  S_.bouftous.forEach((b, k) => {
+    const [dx, dz, ry] = SLOTS_BOUFTOUS[k % SLOTS_BOUFTOUS.length];
+    const m = creerBouftou(T, maille); m.scale.setScalar(0.62); poser(m, enclosDef.x + dx * 0.9, 0, enclosDef.z + dz * 0.8, ry);
+    m.traverse((o) => { o.userData.bouftou = k; }); m.userData.base = enclosDef.z + dz; bouftousMesh.push(m);
+  });
+  rendreEnclosBulles();
+}
+
+
+/* ----- le paysan marche jusqu'a la case touchee, puis agit ----- */
+const PASSABLE = { libre: true, champ: true, foin: true, epouvantail: true, chemin: true };
+function voisins(p) {
+  const q = posCase(p);
+  return S_.cases.filter((c) => {
+    if (c === p || c.terrain !== p.terrain || Math.abs(Math.hypot(posCase(c).x - q.x, posCase(c).z - q.z) - S) >= 0.2) return false;
+    if (p.terrain === 'main' && Math.min(p.j, c.j) === 1 && Math.max(p.j, c.j) === 2) return p.i === COL_ESCALIER && c.i === COL_ESCALIER; /* le muret de la terrasse */
+    return true;
+  });
+}
+function trajet(depart, cible) {
+  /* BFS sur les cases, on s'arrete sur la cible si on peut y marcher, sinon sur une case voisine */
+  const but = PASSABLE[cible.type] ? cible : null;
+  const file = [depart], vu = new Map([[depart.id, null]]);
+  while (file.length) {
+    const c = file.shift();
+    if (c === but || (!but && voisins(c).includes(cible) && PASSABLE[c.type])) { const ch = []; let k = c; while (k) { ch.unshift(k); k = vu.get(k.id); } return ch; }
+    voisins(c).forEach((v) => { if (!vu.has(v.id) && PASSABLE[v.type]) { vu.set(v.id, c); file.push(v); } });
+  }
+  return null;
+}
+function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule; return c && (c === cible || voisins(c).includes(cible)); }
+function allerPuis(cible, fn) {
+  const depart = paysanMesh.userData.cellule || S_.cases[0];
+  if (depart === cible || (!PASSABLE[cible.type] && voisins(depart).includes(cible))) { chemin = []; arrivee = null; regarder(posCase(cible)); fn(); return; }
+  const ch = trajet(depart, cible);
+  chemin = ch ? ch.slice(1).map((c) => ({ c, p: posCase(c) })) : [{ c: cible, p: posCase(cible) }]; /* sans chemin : a vol d'oiseau */
+  arrivee = { cible, fn };
+}
+function regarder(pt) { const dx = pt.x - paysanMesh.position.x, dz = pt.z - paysanMesh.position.z; if (Math.hypot(dx, dz) > 0.05) paysanMesh.rotation.y = Math.atan2(dx, dz); }
+function marcher(dt, s) {
+  if (!paysanMesh) return;
+  const base = paysanMesh.userData.y || 0;
+  if (!chemin.length) { paysanMesh.position.y = base; if (arrivee) { const a = arrivee; arrivee = null; regarder(posCase(a.cible)); a.fn(); sauver(); } return; }
+  const e = chemin[0], v = 5.5 * dt; const dx = e.p.x - paysanMesh.position.x, dz = e.p.z - paysanMesh.position.z, d = Math.hypot(dx, dz);
+  regarder(e.p);
+  if (d <= v) { paysanMesh.position.set(e.p.x, e.p.y, e.p.z); paysanMesh.userData.y = e.p.y; paysanMesh.userData.cellule = e.c; chemin.shift(); }
+  else { const k = v / d; paysanMesh.position.x += dx * k; paysanMesh.position.z += dz * k; paysanMesh.userData.y = base + (e.p.y - base) * k; paysanMesh.position.y = paysanMesh.userData.y + Math.abs(Math.sin(s * 12)) * 0.1; }
+}
+
+/* ----- bulles HTML accrochees a la scene ----- */
+const zoneBulles = document.getElementById('bulles');
+const bullesDyn = new Map();
+/* une bulle d'action : une icone (et un petit nombre) au-dessus d'une case ; la toucher agit sur cette case */
+function bulle(cle, icone, genre, point, cible, nombre, titre) {
+  let e = bullesDyn.get(cle);
+  if (!e) { e = document.createElement('div'); zoneBulles.appendChild(e); bullesDyn.set(cle, e); }
+  e.className = 'bulle ico ' + (genre || ''); e.innerHTML = icone + (nombre ? '<small>' + nombre + '</small>' : ''); e.title = titre || ''; e.setAttribute('aria-label', titre || '');
+  e.dataset.point = JSON.stringify(point); e.dataset.cible = cible || ''; e.hidden = false;
+}
+function retirerBulle(cle) { const e = bullesDyn.get(cle); if (e) { e.remove(); bullesDyn.delete(cle); } }
+zoneBulles.addEventListener('click', (ev) => {
+  const e = ev.target.closest('.bulle.ico'); if (!e || !e.dataset.cible || enAccueil) return;
+  const [genre, val] = e.dataset.cible.split(':');
+  if (genre === 'case') ACTIONS.toucherCase(val); else if (genre === 'bouftou') toucherBouftou(parseInt(val, 10));
+  sauver();
+});
+function rendreEnclosBulles() {
+  S_.bouftous.forEach((b, k) => {
+    const [dx, dz] = SLOTS_BOUFTOUS[k % SLOTS_BOUFTOUS.length]; const pt = [enclosDef.x + dx * 0.9, 1.9, enclosDef.z + dz * 0.8];
+    if (Date.now() >= b.rassasie) bulle('b' + k, '🌾', 'rouge', pt, 'bouftou:' + k, '', b.nom + ' a faim : touche pour le nourrir');
+    else if (b.laine >= LAINE_MAX) bulle('b' + k, '🧶', 'or', pt, 'bouftou:' + k, b.laine, 'Laine prête : touche pour tondre ' + b.nom);
+    else retirerBulle('b' + k);
+  });
+  for (let k = S_.bouftous.length; k < 6; k++) retirerBulle('b' + k);
+}
+function rendreCasesBulles() {
+  S_.cases.forEach((p) => {
+    const cle = 'c' + p.id, pos = posCase(p);
+    if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, S_.filets ? '🥅' : '🐤', 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, S_.filets ? S_.filets : '', S_.filets ? 'Un Tofu sauvage : touche pour le capturer au filet' : 'Un Tofu sauvage : touche pour le chasser'); return; }
+    if (p.type === 'voliere') { if (S_.voliere.plumes) bulle(cle, '🪶', 'or', [pos.x, pos.y + 2.3, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }
+    if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
+    const st = etape(p), haut = pos.y + (st === 'mur' ? 1.9 : st === 'pousse' ? 1.4 : 0.9);
+    if (p.tofu) bulle(cle, S_.filets ? '🥅' : '🐤', 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, S_.filets ? S_.filets : '', 'Un Tofu picore : touche pour le chasser ou le capturer');
+    else if (st === 'mur') bulle(cle, '🧺', 'or', [pos.x, haut, pos.z], 'case:' + p.id, '×' + (p.picore ? Math.max(1, Math.floor(PAR_ID[p.c].rendement / 2)) : PAR_ID[p.c].rendement), PAR_ID[p.c].nom + ' prêt : touche pour récolter');
+    else if (!p.arrose) bulle(cle, '💧', 'eau', [pos.x, haut, pos.z], 'case:' + p.id, '', 'À sec : touche pour arroser');
+    else retirerBulle(cle);
+  });
+}
+const vec = new T.Vector3();
+function placerBulles() {
+  const w = innerWidth, h = innerHeight;
+  bullesDyn.forEach((e) => { const p = JSON.parse(e.dataset.point); vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * w).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * h).toFixed(1) + 'px'; });
+  document.querySelectorAll('[data-ancre]').forEach((e) => { const a = ancres[e.dataset.ancre]; if (!a) { e.hidden = true; return; } e.hidden = false; vec.copy(a).project(camera); e.style.left = ((vec.x + 1) / 2 * w).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * h).toFixed(1) + 'px'; });
+}
+function bullesFixes() {
+  [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
+  TERRAINS.forEach((t, k) => { if (S_.terrains[t.id]) return; const e = document.createElement('div'); e.className = 'bulle vente'; e.dataset.ancre = 'v' + k; e.dataset.vente = k; e.innerHTML = 'Terrain à vendre, ' + (t.cols * t.rows) + ' cases<small>+' + Math.round(t.cols * t.rows * PART_CONSTRUCTIBLE) + ' emplacements</small><b>' + fmt(t.prix) + ' K</b>'; e.addEventListener('click', () => ACTIONS.acheterTerrain(k)); zoneBulles.appendChild(e); });
+}
+
+/* ----- interaction : toucher une case, un bouftou, un terrain ----- */
+const ray = new T.Raycaster(); const souris = new T.Vector2();
+let pDown = null;
+canvas.addEventListener('pointerdown', (e) => { pDown = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!pDown) return; const dx = e.clientX - pDown.x, dy = e.clientY - pDown.y; const bouge = Math.hypot(dx, dy) > 8; pDown = null;
+  if (bouge) return;
+  souris.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(souris, camera);
+  const hits = ray.intersectObjects(scene.children, true);
+  for (const h of hits) {
+    let o = h.object; let bouftou = null, cellule = null, terrain = null;
+    while (o) { if (o.userData.bouftou !== undefined && bouftou === null) bouftou = o.userData.bouftou; if (o.userData.cellule && !cellule) cellule = o.userData.cellule; if (o.userData.terrain !== undefined && terrain === null) terrain = o.userData.terrain; o = o.parent; }
+    if (bouftou !== null) { toucherBouftou(bouftou); return; }
+    if (terrain !== null) { ACTIONS.acheterTerrain(terrain); return; }
+    if (cellule) { ACTIONS.toucherCase(cellule); sauver(); return; }
+    if (h.object.material && h.object.material.transparent) continue;
+    /* un objet de decor (grange, HDV...) : on cherche la case sous lui */
+    const sous = S_.cases.find((p) => { const q = posCase(p); return Math.abs(q.x - h.point.x) < S / 2 && Math.abs(q.z - h.point.z) < S / 2; });
+    if (sous) { ACTIONS.toucherCase(sous.id); sauver(); return; }
+    return;
+  }
+});
+/* glisser pour deplacer la vue, molette et pincement pour zoomer */
+let drag = null, pince = null;
+canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointermove', (e) => { if (!drag || !e.isPrimary || e.buttons === 0) return; const k = (camera.right - camera.left) / innerWidth; const dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k; drag = { x: e.clientX, y: e.clientY }; const droite = new T.Vector3(1, 0, -1).normalize(), avant = new T.Vector3(-1, 0, -1).normalize(); const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(-dy * 1.4)); camera.position.add(dep); VISEE.add(dep); });
+canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
+canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), 0.6, 2.2); cadrer(); }, { passive: true });
+canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
+canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, 0.6, 2.2); pince = d; cadrer(); drag = null; } }, { passive: true });
+canvas.addEventListener('touchend', () => { pince = null; }, { passive: true });
+function toucherBouftou(k) {
+  const b = S_.bouftous[k]; if (!b) return;
+  const encl = S_.cases.find((c) => c.type === 'enclos');
+  if (encl && !paysanAdjacent(encl)) { allerPuis(encl, () => toucherBouftou(k)); return; }
+  if (Date.now() >= b.rassasie) ACTIONS.nourrir(k);
+  else if (b.laine > 0) ACTIONS.tondre(k);
+  else toast(b.nom + ' est repu, laine dans ' + dureeLisible(CADENCE_LAINE - b.accu) + '.');
+  sauver();
+}
+
+/* ===================== INTERFACE ===================== */
+const $ = (id) => document.getElementById(id);
+function rendreHaut() {
+  const n = niveau(S_.xp), a = seuil(n), b = seuil(n + 1);
+  $('kamas').textContent = fmt(S_.kamas); $('niv').textContent = n; $('xp').style.width = (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%';
+  $('cases').innerHTML = S_.cases.length + ' cases, <b style="color:var(--kamas)">' + occupees() + ' occupées</b>, ' + plafond() + ' max';
+  $('graine-nom').textContent = PAR_ID[S_.graine].nom + ' ×' + (S_.graines[S_.graine] || 0);
+  $('eau').textContent = '💧 ' + S_.eau + '/' + CAPACITE_EAU; $('eau').style.background = S_.eau ? '' : '#fde3df';
+  $('mode-test').hidden = !TEST;
+  if (S_.perso) $('titre').textContent = 'Ferme de ' + S_.perso.nom;
+}
+function rendreGrange() {
+  const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
+  $('panneau-grange').innerHTML = '<h2>Grange</h2>' + (lignes.length ? lignes.map((v) => '<div class="l"><span>' + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span>Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span>Filets</span><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="l"><span>Tofus capturés</span><span>' + S_.tofus + '</span></div>' : '') +
+    (S_.crise ? '<div class="crise">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' à l\'HDV : -40 %</div>' : '');
+}
+function toast(msg, genre) { const el = document.createElement('div'); el.className = 'toast' + (genre ? ' ' + genre : ''); el.textContent = msg; const z = $('toasts'); z.appendChild(el); while (z.children.length > 3) z.removeChild(z.firstChild); setTimeout(() => el.remove(), 4200); }
+
+/* modales */
+let modaleOuverte = null;
+function ouvrirModale(nom, html) { modaleOuverte = nom; $('carte').innerHTML = html; $('modale').classList.add('ouverte'); }
+function fermerModale() { modaleOuverte = null; $('modale').classList.remove('ouverte'); }
+$('modale').addEventListener('click', (e) => { if (e.target === $('modale')) fermerModale(); });
+const entete = (titre) => '<h2>' + titre + '<button data-fermer aria-label="Fermer">✕</button></h2>';
+function ouvrirGraines() {
+  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Les graines s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => { const ok = debloquee(c); return '<button class="graine" data-graine="' + c.id + '" aria-pressed="' + (S_.graine === c.id) + '"' + (ok ? '' : ' disabled') + '><b>' + c.nom + '</b><span>' + (ok ? (S_.graines[c.id] || 0) + ' en grange, ' + dureeLisible(duree(c)) + ', ×' + c.rendement : 'niveau ' + c.niv) + '</span></button>'; }).join('') + '</div>');
+}
+function ouvrirHdv(onglet) {
+  onglet = onglet || ouvrirHdv.dernier || 'vendre'; ouvrirHdv.dernier = onglet;
+  const onglets = '<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn" data-hdv-onglet="acheter" aria-pressed="' + (onglet === 'acheter') + '">Acheter</button><button class="btn" data-hdv-onglet="vendre" aria-pressed="' + (onglet === 'vendre') + '">Vendre</button><span style="margin-left:auto;font-size:.74rem;font-weight:600;align-self:center">' + fmt(S_.kamas) + ' kamas</span></div>';
+  if (onglet === 'acheter') {
+    const cap = capacite();
+    ouvrirModale('hdv', entete('Hôtel de vente') + onglets +
+      CULTURES.map((c) => { const ok = debloquee(c), p = prixGraine(c), st = S_.graines[c.id] || 0;
+        return '<div class="ligne"><div><b>Graines ' + de(c.nom) + '</b><small>' + (ok ? p + ' K la graine, ' + dureeLisible(duree(c)) + ', ×' + c.rendement + ' à la récolte, ' + st + ' en grange' : 'niveau ' + c.niv + ' de Paysan') + '</small></div><div style="display:flex;gap:6px"><button class="btn discret" data-graines="' + c.id + '" data-n="1"' + (ok && S_.kamas >= p ? '' : ' disabled') + '>1</button><button class="btn kamas" data-graines="' + c.id + '" data-n="10"' + (ok && S_.kamas >= 10 * p ? '' : ' disabled') + '>10, ' + fmt(10 * p) + ' K</button></div></div>'; }).join('') +
+      '<div class="ligne"><div><b>Bouftou</b><small>' + S_.bouftous.length + '/' + cap + ' dans l\'enclos, mange ' + REPAS + ' Blé par repas, donne de la laine</small></div><button class="btn kamas" data-bouftou' + (S_.bouftous.length >= cap || S_.kamas < PRIX_BOUFTOU ? ' disabled' : '') + '>' + PRIX_BOUFTOU + ' K</button></div>' +
+      '<div class="ligne"><div><b>Filet de capture</b><small>Attrape un Tofu qui picore un champ (' + Math.round(CHANCE_CAPTURE * 100) + ' %) ou qui se pose dans l\'herbe (' + Math.round(CHANCE_SAUVAGE * 100) + ' %). À la volière, il donne des plumes. ' + S_.filets + ' en grange</small></div><div style="display:flex;gap:6px"><button class="btn discret" data-filets="1"' + (S_.kamas >= PRIX_FILET ? '' : ' disabled') + '>1, ' + PRIX_FILET + ' K</button><button class="btn kamas" data-filets="5"' + (S_.kamas >= 5 * PRIX_FILET ? '' : ' disabled') + '>5, ' + (5 * PRIX_FILET) + ' K</button></div></div>');
+    return;
+  }
+  const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0 || (v.id === 'laine' ? S_.bouftous.length : v.id === 'plume' ? S_.tofus : debloquee(v)));
+  ouvrirModale('hdv', entete('Hôtel de vente') + onglets + (S_.crise ? '<div class="crise" style="background:#fde3df;border:2px solid var(--rouge);border-radius:10px;padding:5px 8px;font-size:.75rem;margin-bottom:8px">🤖 Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' : -40 % jusqu\'à ce qu\'ils s\'en aillent.</div>' : '') +
+    lignes.map((v) => { const st = S_.grange[v.id] || 0, p = prix(v.id), avant = (S_.coursAvant && S_.coursAvant[v.id]) || 1, mtn = S_.cours[v.id] || 1; const tend = mtn > avant + 0.005 ? ' <span class="tendance-haut">▲</span>' : mtn < avant - 0.005 ? ' <span class="tendance-bas">▼</span>' : '';
+      return '<div class="ligne"><div><b>' + v.nom + '</b><small>stock ' + fmt(st) + ', ' + p + ' K l\'unité' + tend + '</small></div><div style="display:flex;gap:6px"><button class="btn discret" data-vendre="' + v.id + '"' + (st ? '' : ' disabled') + '>1</button><button class="btn kamas" data-vendre="' + v.id + '" data-tout="1"' + (st ? '' : ' disabled') + '>Tout, ' + fmt(st * p) + ' K</button></div></div>'; }).join(''));
+}
+function ouvrirAmelio() {
+  const nv = niveau(S_.xp);
+  ouvrirModale('amelio', entete('Améliorer la ferme') + AMELIOS.map((a) => { const n = niv(a.id), fini = n >= a.couts.length, cout = fini ? 0 : a.couts[n], bloque = nv < a.niv; const lib = fini ? 'Acquis' : bloque ? 'Niveau ' + a.niv : fmt(cout) + ' K';
+    return '<div class="ligne"><div><b>' + a.nom + (a.couts.length > 1 ? ' ' + n + '/' + a.couts.length : '') + '</b><small>' + a.desc + '</small></div><button class="btn kamas" data-amelio="' + a.id + '"' + (fini || bloque || S_.kamas < cout ? ' disabled' : '') + '>' + lib + '</button></div>'; }).join(''));
+}
+function ouvrirEnclos() {
+  const cap = capacite();
+  ouvrirModale('enclos', entete('Enclos à Bouftous') + S_.bouftous.map((b, j) => { const faim = Date.now() >= b.rassasie; return '<div class="ligne"><div><b>' + b.nom + '</b><small>' + (faim ? 'a faim, ne produit plus' : 'repu, laine ' + b.laine + '/' + LAINE_MAX) + '</small></div><div style="display:flex;gap:6px"><button class="btn discret" data-nourrir="' + j + '">Nourrir (' + REPAS + ' Blé)</button><button class="btn" data-tondre="' + j + '"' + (b.laine ? '' : ' disabled') + '>Tondre</button></div></div>'; }).join('') +
+    '<div class="ligne"><div><b>Place libre</b><small>' + S_.bouftous.length + '/' + cap + ' Bouftous</small></div><button class="btn kamas" data-bouftou' + (S_.bouftous.length >= cap ? ' disabled' : '') + '>Acheter, ' + PRIX_BOUFTOU + ' K</button></div>');
+}
+function ouvrirGrange() {
+  const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
+  const graines = CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0);
+  const divers = (S_.filets ? '<div class="ligne"><b>Filets de capture</b><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="ligne"><b>Tofus capturés (volière)</b><span>' + S_.tofus + '</span></div>' : '');
+  ouvrirModale('grange', entete('Grange') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
+}
+function ouvrirTofu(p, sauvage) {
+  const titre = sauvage ? 'Un Tofu sauvage dans l\'herbe' : 'Un Tofu picore ton ' + PAR_ID[p.c].nom, chance = sauvage ? CHANCE_SAUVAGE : CHANCE_CAPTURE;
+  ouvrirModale('tofu', entete(titre) + '<div class="ligne"><div><b>Le chasser</b><small>Gratuit, il s\'envole.</small></div><button class="btn discret" ' + (sauvage ? 'data-chasser-sauvage="1"' : 'data-chasser="' + p.id + '"') + '>Chasser</button></div>' +
+    '<div class="ligne"><div><b>Le capturer au filet</b><small>' + Math.round(chance * 100) + ' % de chance, le filet est perdu dans tous les cas (' + S_.filets + ' en grange). Capturé, il va à la volière et donne des plumes.</small></div><button class="btn kamas" ' + (sauvage ? 'data-capturer-sauvage="1"' : 'data-capturer="' + p.id + '"') + '>Capturer</button></div>');
+}
+function ouvrirVoliere() {
+  const max = S_.tofus * PLUMES_PAR_TOFU, v = S_.voliere;
+  ouvrirModale('voliere', entete('Volière à Tofus') + (S_.tofus ?
+    '<div class="ligne"><div><b>' + S_.tofus + ' Tofu' + (S_.tofus > 1 ? 's capturés' : ' capturé') + '</b><small>Chacun donne une Plume de Tofu toutes les ' + dureeLisible(CADENCE_PLUME) + ', ' + PLUMES_PAR_TOFU + ' en attente au plus.</small></div></div>' +
+    '<div class="ligne"><div><b>Plumes prêtes</b><small>' + v.plumes + '/' + max + (v.plumes < max ? ', la prochaine dans ' + dureeLisible(CADENCE_PLUME - v.accu) : ', la volière est pleine') + '. Elles se vendent à l\'HDV.</small></div><button class="btn kamas" data-plumes' + (v.plumes ? '' : ' disabled') + '>Ramasser</button></div>' :
+    '<p style="font-size:.8rem;font-weight:600">La volière est vide. Achète des filets de capture à l\'HDV : quand un Tofu picore un champ ou se pose dans l\'herbe, touche-le pour l\'attraper.</p>') +
+    '<p style="font-size:.74rem;font-weight:600;margin:8px 0 0;color:#5b5240">Plus tard, l\'Osamodas pourra invoquer ses Tofus en combat.</p>');
+}
+function ouvrirConstruire(p) {
+  const cout = PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)]; const plein = occupees() >= plafond();
+  ouvrirModale('construire', entete('Case d\'herbe libre') + '<p style="font-size:.8rem;font-weight:600">' + occupees() + ' cases occupées sur ' + plafond() + ' autorisées (' + S_.cases.length + ' cases en tout). ' + (plein ? 'Ta ferme est pleine : achète un terrain pour construire plus.' : 'Une partie de la ferme doit rester libre, c\'est la règle.') + '</p>' +
+    '<div class="ligne"><div><b>Labourer une parcelle</b><small>Pour planter une culture de plus.</small></div><button class="btn kamas" data-parcelle="' + p.id + '"' + (plein || S_.kamas < cout ? ' disabled' : '') + '>' + fmt(cout) + ' K</button></div>');
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirAmelio(); else if (b.id === 'b-grange') ouvrirGrange();
+  else if (b.id === 'b-reset') { if (confirm('Recommencer une ferme toute neuve ? La sauvegarde locale sera effacée.')) { localStorage.removeItem(CLE); location.reload(); } return; }
+  else if (b.hasAttribute('data-fermer')) fermerModale();
+  else if (b.dataset.graine) { S_.graine = b.dataset.graine; rendreHaut(); fermerModale(); }
+  else if (b.dataset.vendre) ACTIONS.vendre(b.dataset.vendre, !!b.dataset.tout);
+  else if (b.dataset.amelio) ACTIONS.amelio(b.dataset.amelio);
+  else if (b.dataset.nourrir) { ACTIONS.nourrir(parseInt(b.dataset.nourrir, 10)); ouvrirEnclos(); }
+  else if (b.dataset.tondre) { ACTIONS.tondre(parseInt(b.dataset.tondre, 10)); ouvrirEnclos(); }
+  else if (b.hasAttribute('data-bouftou')) { ACTIONS.acheterBouftou(); if (modaleOuverte === 'hdv') ouvrirHdv('acheter'); else ouvrirEnclos(); }
+  else if (b.dataset.hdvOnglet) ouvrirHdv(b.dataset.hdvOnglet);
+  else if (b.dataset.graines) ACTIONS.acheterGraines(b.dataset.graines, parseInt(b.dataset.n, 10));
+  else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));
+  else if (b.dataset.capturer) { const p = S_.cases.find((c) => c.id === b.dataset.capturer); if (p) ACTIONS.capturer(p); }
+  else if (b.dataset.chasser) { const p = S_.cases.find((c) => c.id === b.dataset.chasser); if (p) { ACTIONS.chasser(p); fermerModale(); } }
+  else if (b.dataset.parcelle) ACTIONS.construireParcelle(b.dataset.parcelle);
+  else if (b.hasAttribute('data-plumes')) ACTIONS.ramasserPlumes();
+  else if (b.dataset.capturerSauvage) ACTIONS.capturerSauvage();
+  else if (b.dataset.chasserSauvage) ACTIONS.chasserSauvage();
+  else return;
+  sauver();
+});
+
+/* ===================== BOUCLE ===================== */
+const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let tours = 0; const t0 = performance.now();
+function tick() {
+  if (enAccueil) return;
+  const ch = avancer(Date.now(), true);
+  ch.cases.forEach((id) => rendreCase(id));
+  if (ch.enclos) rendreEnclosBulles();
+  if (ch.sauvage) rendreSauvage();
+  if (ch.hdv) { rendreGrange(); if (modaleOuverte === 'hdv') ouvrirHdv(); }
+  rendreCasesBulles(); rendreEnclosBulles();
+  if (++tours % 10 === 0) { rendreHaut(); sauver(); }
+  if (tours % 60 === 1) $('commis').innerHTML = '<b>Pépito :</b> « ' + hasard(PEPITO) + ' »';
+}
+function boucle(t) {
+  const s = (t - t0) / 1000;
+  if (enAccueil && !reduit) { angleCam = Math.PI / 4 + (t - departAngle) / 1000 * 0.12; placerCamera(); }
+  if (!reduit) {
+    bouftousMesh.forEach((b, k) => { b.position.y = Math.abs(Math.sin(s * 1.6 + k)) * 0.04; });
+    nuages.forEach((n, k) => { n.position.x += Math.sin(s * 0.2 + k) * 0.002; });
+    Object.values(casesDyn).forEach((g) => g.children.forEach((o) => { if (o.userData && o.userData.tofu) o.rotation.z = Math.sin(s * 6) * 0.18; }));
+    if (sauvageMesh) { sauvageMesh.position.y = sauvageMesh.userData.base + Math.abs(Math.sin(s * 5)) * 0.18; sauvageMesh.rotation.y = 0.7 + Math.sin(s * 1.3) * 0.6; }
+  }
+  marcher(Math.min(0.05, (t - (boucle.t1 || t)) / 1000), s); boucle.t1 = t;
+  vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
+  rendu.render(scene, camera); placerBulles(); requestAnimationFrame(boucle);
+}
+function ouvrirAccueil() {
+  const sauve = charger();
+  let classe = (sauve && sauve.perso && sauve.perso.classe) || 'iop';
+  const carte = document.getElementById('accueil-carte');
+  const rendre = () => {
+    carte.innerHTML = '<h1>Ferme d\'Amakna</h1><p>Une île de 40 cases dans le ciel d\'Amakna. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>' +
+      (sauve && sauve.perso ? '<button class="btn grand kamas" data-reprendre>Reprendre la ferme de ' + sauve.perso.nom + '</button><p class="reprise">' + CLASSES.find((c) => c.id === sauve.perso.classe).nom + ', Paysan niveau ' + niveauDe(sauve.xp) + ', ' + fmt(sauve.kamas) + ' kamas. <button data-nouvelle>Nouvelle ferme</button></p>' :
+      '<input id="perso-nom" maxlength="16" placeholder="Ton nom de fermier" value="' + ((sauve && sauve.perso && sauve.perso.nom) || '') + '"><div class="classes">' + CLASSES.map((c) => '<button class="classe" data-classe="' + c.id + '" aria-pressed="' + (classe === c.id) + '"><span class="ico">' + c.ico + '</span><b>' + c.nom + '</b><span>' + c.desc + '</span><span>Sort : ' + c.sort + '</span></button>').join('') + '</div><button class="btn grand" data-commencer>Commencer</button>');
+  };
+  rendre();
+  carte.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.classe) { classe = b.dataset.classe; const nom = document.getElementById('perso-nom').value; rendre(); document.getElementById('perso-nom').value = nom; }
+    else if (b.hasAttribute('data-reprendre')) lancer(sauve);
+    else if (b.hasAttribute('data-nouvelle')) { if (confirm('Effacer la ferme de ' + sauve.perso.nom + ' et recommencer ?')) { localStorage.removeItem(CLE); location.reload(); } }
+    else if (b.hasAttribute('data-commencer')) {
+      const nom = (document.getElementById('perso-nom').value || '').trim();
+      if (nom.length < 2) { document.getElementById('perso-nom').focus(); document.getElementById('perso-nom').placeholder = 'Il faut un nom (2 lettres au moins)'; return; }
+      const e0 = sauve || etatInitial(); e0.perso = { nom, classe, niveau: 1, xp: 0 }; lancer(e0);
+    }
+  };
+}
+const niveauDe = (xp) => { let n = 1; while (xp >= seuil(n + 1)) n++; return n; };
+function lancer(etat) {
+  S_ = etat; sauver();
+  document.getElementById('accueil').hidden = true; document.getElementById('hud').classList.remove('cache');
+  enAccueil = false; angleCam = Math.PI / 4; placerCamera();
+  if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
+  toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
+  rendreHaut();
+}
+async function demarrer() {
+  S_ = charger() || etatInitial();
+  try { await chargerModeles(); } catch (err) { document.getElementById('chargement-texte').textContent = 'Le chargement de l\'île a échoué, recharge la page.'; window.__erreur = String(err); throw err; }
+  document.getElementById('chargement').hidden = true;
+  construireStatique();
+  S_.cases.forEach((p) => { if (p.terrain === 'main') construireCase(p); });
+  TERRAINS.forEach((t, k) => { if (S_.terrains[t.id]) { const g = socle(t.ox, t.oz, t.cols, t.rows, false, 0.6); g.position.y = t.y; S_.cases.filter((c) => c.terrain === t.id).forEach((p) => construireCase(p)); } });
+  bullesFixes();
+  avancer(Date.now(), false);
+  rendreHaut(); rendreGrange(); rendreBouftous(); rendreSauvage(); rendreCasesBulles();
+  $('commis').innerHTML = '<b>Pépito :</b> « ' + PEPITO[0] + ' »';
+  setInterval(tick, 500);
+  addEventListener('resize', () => { cadrer(); placerBulles(); });
+  cadrer(); rendu.render(scene, camera); placerBulles();
+  placerCamera();
+  ouvrirAccueil();
+  window.__pret = true; requestAnimationFrame(boucle);
+}
+window.addEventListener('error', (e) => { window.__erreur = e.message; });
+demarrer();
+</script>
+</body>
+</html>
