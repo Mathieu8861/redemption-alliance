@@ -22,7 +22,7 @@
     const GLSL = [
       'uniform float uVentTemps; uniform float uVentForce; uniform float uVentSol; uniform float uVentPlafond; uniform vec2 uVentDir; uniform float uVentSouplesse;',
       'vec4 ventDeplacer(vec4 wp) {',
-      '  vec3 org = modelMatrix[3].xyz;',
+      '  vec3 org = VENT_ORG;',
       '  float h = clamp(wp.y - uVentSol, 0.0, uVentPlafond);',
       '  float flex = h * h;',
       '  float phase = uVentTemps * ' + W1 + ' + org.x * 1.3 + org.z * 0.9;',
@@ -41,22 +41,24 @@
       'vec4 mvPosition = viewMatrix * ventWp;',
       'gl_Position = projectionMatrix * mvPosition;'
     ].join('\n');
-    function brancheur(souplesse) {
+    /* origine : le rythme est pris sur l'origine de l'objet ; pour des objets fusionnes en un seul, sur l'attribut aOrigine (l'origine de chaque morceau) */
+    function brancheur(souplesse, origine) {
       const s = { value: souplesse };
       return function (shader) {
         shader.uniforms.uVentTemps = temps; shader.uniforms.uVentForce = reglages.force; shader.uniforms.uVentSol = reglages.sol;
         shader.uniforms.uVentPlafond = reglages.plafond; shader.uniforms.uVentDir = reglages.direction; shader.uniforms.uVentSouplesse = s;
-        shader.vertexShader = GLSL + '\n' + shader.vertexShader.replace('#include <project_vertex>', PROJECTION);
+        shader.vertexShader = (origine ? 'attribute vec3 aOrigine;\n#define VENT_ORG aOrigine\n' : '#define VENT_ORG modelMatrix[3].xyz\n') + GLSL + '\n' + shader.vertexShader.replace('#include <project_vertex>', PROJECTION);
       };
     }
     const ombres = {};
     return {
       temps, reglages,
-      materiau(m, souplesse) { m.onBeforeCompile = brancheur(souplesse != null ? souplesse : 1); m.customProgramCacheKey = () => 'vent'; return m; },
-      ombre(souplesse) {
+      materiau(m, souplesse, origine) { m.onBeforeCompile = brancheur(souplesse != null ? souplesse : 1, origine); m.customProgramCacheKey = () => origine ? 'vent-o' : 'vent'; return m; },
+      ombre(souplesse, origine) {
         const k = String(souplesse != null ? souplesse : 1);
-        if (!ombres[k]) { const d = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking }); d.onBeforeCompile = brancheur(parseFloat(k)); d.customProgramCacheKey = () => 'vent-ombre'; ombres[k] = d; }
-        return ombres[k];
+        const kk = k + (origine ? 'o' : '');
+        if (!ombres[kk]) { const d = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking }); d.onBeforeCompile = brancheur(parseFloat(k), origine); d.customProgramCacheKey = () => origine ? 'vent-ombre-o' : 'vent-ombre'; ombres[kk] = d; }
+        return ombres[kk];
       },
       mettreAJour(s) { temps.value = s; }
     };
