@@ -171,6 +171,30 @@ button { font: inherit; color: inherit; cursor: pointer; }
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; } /* au doigt : ni selection ni loupe sur un appui long */
 input, textarea { -webkit-user-select: text; user-select: text; }
 /* l'appui long au doigt : un anneau se remplit sous le doigt, et grossit quand l'action est prete (450 ms) */
+#tuto { position: fixed; inset: 0; z-index: 7; pointer-events: none; font-family: var(--f-texte); color: var(--encre); }
+#tuto .tuto-voile { position: absolute; inset: 0; background: rgba(36, 49, 28, .35); pointer-events: auto; }
+#tuto svg.tuto-sol { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#tuto svg.tuto-sol polygon { fill: rgba(242, 182, 48, .3); stroke: #f2b630; stroke-width: 4; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(242, 182, 48, .9)); animation: tuto-pulse 1s ease-in-out infinite alternate; }
+#tuto .tuto-carte { position: absolute; left: 50%; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(calc(100% - 24px), 470px); box-sizing: border-box; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 5px 0 var(--bord), 0 10px 24px rgba(36, 49, 28, .25); padding: 10px 14px 12px; pointer-events: auto; transition: opacity .15s; }
+#tuto .tuto-carte.cachee { opacity: 0; pointer-events: none; }
+#tuto .tuto-carte.centre { bottom: auto; top: 50%; transform: translate(-50%, -50%); width: min(calc(100% - 24px), 430px); text-align: center; padding: 18px 20px 16px; }
+#tuto .tuto-carte h2 { font: 400 1.6rem/1 var(--f-titre); color: var(--kamas); margin: 4px 0 8px; }
+#tuto .tuto-carte p { margin: 0; font-size: .92rem; font-weight: 700; line-height: 1.3; } #tuto .tuto-carte.centre p { margin: 0 0 14px; font-size: 1rem; }
+#tuto em { font-style: normal; color: var(--kamas); }
+#tuto .tuto-tete { display: flex; align-items: center; gap: 8px; font-size: .72rem; font-weight: 800; color: #8a7a68; }
+#tuto .tuto-tete b { font: 400 1.05rem/1 var(--f-titre); color: var(--kamas); }
+#tuto .tuto-points { display: flex; gap: 4px; margin-left: auto; } #tuto .tuto-points i { width: 8px; height: 8px; border-radius: 50%; background: #e3d6bf; border: 1.5px solid var(--bord); } #tuto .tuto-points i.ok { background: var(--vert); } #tuto .tuto-points i.ici { background: var(--or); }
+#tuto .tuto-passer { background: none; border: 0; padding: 0; margin-left: 8px; font: 800 .7rem var(--f-texte); color: #8a7a68; text-decoration: underline; cursor: pointer; }
+#tuto .tuto-corps { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+#tuto .tuto-souris { flex: none; width: 40px; height: 54px; }
+#tuto .tuto-boutons { display: flex; gap: 10px; justify-content: center; } #tuto .tuto-boutons.droite { justify-content: flex-end; margin-top: 8px; }
+#tuto .tuto-fleche { position: absolute; transform: translate(-50%, -100%); display: grid; justify-items: center; animation: tuto-rebond .8s ease-in-out infinite; }
+#tuto .tuto-fleche span { background: var(--bord); color: var(--papier); font: 400 .9rem/1 var(--f-titre); padding: 5px 9px; border-radius: 9px; white-space: nowrap; }
+#tuto .tuto-fleche i { width: 0; height: 0; border: 11px solid transparent; border-bottom: 0; border-top: 16px solid var(--or); filter: drop-shadow(0 2px 0 var(--bord)); margin-top: 3px; }
+#tuto .tuto-anneau { position: absolute; border-radius: 16px; box-shadow: 0 0 0 4px var(--or), 0 0 0 9px rgba(242, 182, 48, .35), 0 0 22px 8px rgba(242, 182, 48, .55); animation: tuto-pulse 1s ease-in-out infinite alternate; }
+@keyframes tuto-pulse { from { opacity: .6; } to { opacity: 1; } }
+@keyframes tuto-rebond { 0%, 100% { margin-top: 0; } 50% { margin-top: -9px; } }
+.hud.en-tuto .commis { display: none; } .hud.en-tuto .toasts { bottom: calc(270px + env(safe-area-inset-bottom, 0px)); } /* pendant le tuto : la carte de Pepito en bas, les messages au-dessus */
 #appui { position: fixed; left: 0; top: 0; z-index: 8; width: 58px; height: 58px; margin: -29px 0 0 -29px; pointer-events: none; opacity: 0; transition: opacity .1s, transform .12s; }
 #appui svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 #appui circle { fill: none; stroke: rgba(255, 250, 240, .6); stroke-width: 5; }
@@ -212,6 +236,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .classe .ico { font-size: 2rem; line-height: 1; }
 .classe b { font: 400 1.05rem/1 var(--f-titre); }
 .classe span { font-size: .68rem; font-weight: 600; color: #5b5240; line-height: 1.2; }
+.choix-classe { margin: 2px 0 10px !important; font-size: .8rem !important; }
+.classe .etiquettes { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin-bottom: 2px; }
+.classe .etiquettes i { font-style: normal; font-size: .62rem; font-weight: 800; padding: 1px 6px; border-radius: 99px; background: #f3ead8; color: #5b5240; }
+.classe .etiquettes i.facile { background: #dff1d3; color: #2d6a1e; } .classe .etiquettes i.moyen { background: #fff1c2; color: #7a5a10; } .classe .etiquettes i.avance { background: #efe0fb; color: #5b2a8c; }
+.classe .sort { margin-top: 3px; padding: 4px 5px; background: #fbf4e4; border-radius: 8px; } .classe .sort em { font-style: normal; font-weight: 800; color: var(--encre); }
+.classe[aria-pressed="true"] .sort { background: rgba(255, 250, 240, .6); }
 .classe[aria-pressed="true"] { background: var(--or); transform: translateY(2px); box-shadow: 0 2px 0 var(--bord); }
 .btn.grand { font: 400 1.2rem/1 var(--f-titre); padding: 10px 22px; border-radius: 14px; }
 .accueil .beta { display: inline-block; font: 400 .8rem/1 var(--f-titre); background: var(--or); border: 2px solid var(--bord); border-radius: 8px; padding: 3px 7px; margin: 0 0 10px; }
@@ -305,11 +335,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .objectif .txt { font-size: .8rem; font-weight: 800; line-height: 1.2; }
 .objectif .barre { height: 9px; border: 2px solid var(--bord); border-radius: 99px; background: #eadfc8; overflow: hidden; margin: 5px 0 3px; } .objectif .barre i { display: block; height: 100%; background: var(--vert); transition: width .3s; }
 .objectif small { font-size: .66rem; font-weight: 700; color: #6b5a3a; display: flex; justify-content: space-between; gap: 6px; }
-.objectif .btn { width: 100%; margin-top: 6px; animation: pouls .7s ease-in-out infinite alternate; }
+.objectif .btn { width: 100%; margin-top: 6px; animation: pouls-btn .7s ease-in-out infinite alternate; } /* (« pouls » est fait pour l'annonce de raid, centree : il decalait ce bouton de moitie vers la gauche) */
 .objectif.fini { background: #fff6d8; box-shadow: 0 4px 0 var(--bord), 0 0 0 4px rgba(242, 182, 48, .45); }
 .objectif .defis { margin-top: 7px; padding-top: 6px; border-top: 2px dashed #eadfc8; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: .72rem; font-weight: 800; }
 .objectif .defis .btn { width: auto; margin: 0; animation: none; padding: 3px 8px; font-size: .7rem; }
-.objectif .defis .btn.pret { animation: pouls .7s ease-in-out infinite alternate; }
+.objectif .defis .btn.pret { animation: pouls-btn .7s ease-in-out infinite alternate; }
+@keyframes pouls-btn { to { transform: scale(1.04); } }
 .hud.en-combat .objectif { display: none !important; }
 @media (max-width: 720px) { .objectif { width: 210px; padding: 6px 8px; } .objectif .txt { font-size: .72rem; } .objectif .defis { display: none; } }
 .defi { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 8px 0; border-top: 2px solid #eadfc8; }
@@ -346,6 +377,16 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .slot img { width: 46px; height: 46px; object-fit: contain; } .slot .vide { width: 46px; height: 46px; border: 2px dashed #cdbb95; border-radius: 12px; display: grid; place-items: center; font: 400 1.4rem/1 var(--f-titre); color: #cdbb95; }
 .slot b { font-size: .68rem; line-height: 1.1; } .slot small { font-size: .6rem; font-weight: 700; color: #6b5a3a; }
 .slot .nb { position: absolute; }
+.slot { position: relative; } .slot.a-voir { box-shadow: 0 3px 0 var(--bord), 0 0 0 3px #4fae3a; }
+.slot .compte { position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--papier); border: 2px solid var(--bord); font: 800 .7rem/18px var(--f-texte); color: var(--encre); }
+.slot .compte.neuf { background: var(--or); } .slot .compte.mieux { background: #2d8a1e; color: #fff; }
+.slot small.reserve { color: #8a6a3a; } .slot.a-voir small.reserve { color: #2d6a1e; }
+.aide-slots { margin: 6px 0 0; font-size: .7rem; font-weight: 700; color: #8a7a68; }
+.neufs { margin: 10px 0 4px; padding: 2px 10px 2px; background: #fff7dc; border: 2.5px solid var(--or); border-radius: 14px; }
+.neufs .hdv-section { color: var(--kamas); margin-top: 8px; } .neufs .hdv-section + .art { border-top: 0; }
+.art .puce.neuf { background: var(--or); color: var(--encre); vertical-align: 2px; } .art .puce.mieux { background: #2d8a1e; color: #fff; vertical-align: 2px; }
+.art.objet .act.mini { flex-direction: column; align-items: stretch; max-width: 112px; } .art.objet .act .btn.mini { white-space: normal; } /* les boutons l'un sur l'autre : la place va aux caracteristiques */
+.art .compare { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; } .art .compare small { font-size: .66rem; font-weight: 700; color: #8a7a68; }
 .pano-bonus { font-size: .72rem; font-weight: 700; background: #eef6e6; border: 2px solid #cfe3bf; border-radius: 10px; padding: 5px 8px; margin-top: 8px; color: #2d6a1e; }
 .action .tuile b.nouveau { background: var(--rouge); }
 /* ---- les batiments ont des PV : une petite barre au-dessus de ceux qui ont ete touches (on la touche pour reparer) ---- */
@@ -388,7 +429,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <button class="pastille options" id="b-options">Options</button>
   </div>
   <div class="objectif" id="objectif" hidden></div>
-  <div class="aide" id="aide" hidden>Clic gauche : ton perso se déplace, ou cible un monstre. Clic droit (appui long au doigt) : il agit sur la case. Une parcelle libre se plante, une culture à sec s'arrose, une culture mûre se récolte, un Tofu se chasse, un Bouftou se nourrit ou se tond, une case d'herbe se laboure ou se construit. Les petites icônes au-dessus des cases se touchent aussi. Les graines et les Bouftous s'achètent à l'HDV. L'arrosoir se remplit au puits (10 arrosages).</div>
+  <div class="aide" id="aide" hidden>Sur ordinateur, clic gauche : ton perso se déplace, ou cible un monstre ; clic droit : il agit sur la case. Au doigt, touche une case pour agir, reste appuyé pour seulement t'y déplacer. Une parcelle libre se plante, une culture à sec s'arrose, une culture mûre se récolte, un Tofu se chasse, un Bouftou se nourrit ou se tond, une case d'herbe se laboure ou se construit. Les petites icônes au-dessus des cases se touchent aussi. Les graines et les Bouftous s'achètent à l'HDV. L'arrosoir se remplit au puits (10 arrosages).</div>
   <aside class="panneau" aria-label="Grange" id="panneau-grange"></aside>
   <div class="toasts" id="toasts"></div>
   <div class="commis" id="commis"></div>
@@ -532,9 +573,12 @@ const PEPITO = [
   'l\'Engrais d\'Amakna, c\'est le seul boost que personne ne nerfe.'
 ];
 const CLASSES = [
-  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et sa Charge le soigne.', sort: 'Charge', tunique: '#c0392b' },
-  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin, une flèche de feu toutes les 10. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57' },
-  { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées : il vise où poser son Bouftou, qui retombe sur les monstres et se bat pour lui.', sort: 'Invocation', tunique: '#6f42c1' }
+  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et sa Charge le soigne.', sort: 'Charge', tunique: '#c0392b',
+    role: 'Corps à corps', niveau: ['Facile', 'facile'], lignes: ['Va au contact et frappe fort.', 'Le plus solide : idéal pour débuter.'], sortTxt: 'il bondit sur un monstre et frappe trois fois plus fort.' },
+  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin, une flèche de feu toutes les 10. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57',
+    role: 'À distance', niveau: ['Moyen', 'moyen'], lignes: ['Tire de loin, à l\'abri.', 'Plus fragile : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
+  { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées : il vise où poser son Bouftou, qui retombe sur les monstres et se bat pour lui.', sort: 'Invocation', tunique: '#6f42c1',
+    role: 'Invocateur', niveau: ['Avancé', 'avance'], lignes: ['Fait combattre des Bouftous à sa place.', 'Plus technique : tu choisis où les poser.'], sortTxt: 'un Bouftou tombe sur les monstres puis se bat pour toi.' }
 ];
 /* ===================== EQUIPEMENTS =====================
    Six emplacements, une panoplie par palier : Bouftou, Chafer, Bwork, Craqueleur, Dragoeuf. Les monstres des vagues en lachent parfois
@@ -572,6 +616,15 @@ function caracs() {
   return t;
 }
 const reventeObjet = (id) => 40 * OBJETS[id].niv;
+function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
+/* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
+function comparer(id) {
+  const o = OBJETS[id], porte = S_.equip[o.emp], q = porte ? OBJETS[porte] : null, ok = niveau(S_.xp) >= o.niv;
+  if (!q) return { html: '<span class="puce bonne">emplacement vide</span>', mieux: ok, ok };
+  const cles = [...new Set([...Object.keys(o.stats), ...Object.keys(q.stats)])], ecarts = cles.map((k) => [k, (o.stats[k] || 0) - (q.stats[k] || 0)]).filter(([, d]) => d);
+  const mieux = ok && ecarts.length > 0 && ecarts.every(([, d]) => d > 0) && (!q.pouvoir || o.pouvoir), pareil = !ecarts.length;
+  return { mieux, ok, html: (pareil ? '<span class="puce">comme ta pièce actuelle</span>' : ecarts.map(([k, d]) => '<span class="puce ' + (d > 0 ? 'bonne' : 'mauvaise') + '">' + CARACS[k][2] + ' ' + (d > 0 ? '+' : '') + d + CARACS[k][1] + '</span>').join('')) + (q.pouvoir && !o.pouvoir ? '<span class="puce mauvaise">perd : ' + q.pouvoir + '</span>' : '') };
+}
 const possede = (id) => (S_.sac[id] || 0) > 0 || Object.values(S_.equip).includes(id);
 const statsTexte = (st) => Object.entries(st).map(([c, v]) => '<span class="puce">' + CARACS[c][2] + ' +' + v + CARACS[c][1] + '</span>').join('');
 const CLE = TEST ? 'ferme-amakna-3d-v2-test' : 'ferme-amakna-3d-v2'; /* v2 : le plan a change pour coller a l'ile */
@@ -1293,7 +1346,7 @@ const ACTIONS = {
 const T = THREE;
 const canvas = document.getElementById('scene');
 const rendu = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
-rendu.setClearColor(0x000000, 0); rendu.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+rendu.setClearColor(0x000000, 0); rendu.setPixelRatio(Math.min(matchMedia('(pointer: coarse)').matches ? 1.5 : 2, window.devicePixelRatio || 1));
 rendu.shadowMap.enabled = true; rendu.shadowMap.type = T.PCFSoftShadowMap;
 rendu.shadowMap.autoUpdate = false; /* la carte des ombres (le tiers du temps de chaque image) n'est redessinee qu'une image sur deux, voir la boucle */
 const scene = new T.Scene();
@@ -1310,13 +1363,14 @@ function cadrer() {
 }
 scene.add(new T.HemisphereLight('#fff6e0', '#8aa6c0', 0.5));
 const soleil = new T.DirectionalLight('#ffe9c4', 0.75); soleil.position.set(-16, 28, 12); soleil.castShadow = true;
-soleil.shadow.mapSize.set(2048, 2048); Object.assign(soleil.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 100 }); soleil.shadow.bias = -0.0008; scene.add(soleil);
+soleil.shadow.mapSize.set(...(matchMedia('(pointer: coarse)').matches ? [1024, 1024] : [2048, 2048])); /* (tablette : moitie moins de calcul d'ombres) */ Object.assign(soleil.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 100 }); soleil.shadow.bias = -0.0008; scene.add(soleil);
 const contre = new T.DirectionalLight('#bfe2ff', 0.22); contre.position.set(18, 10, -20); scene.add(contre);
 /* les graphismes : complets, ou legers pour les petits appareils (sans ombres, sans contours, resolution normale) */
+const DOIGT = matchMedia('(pointer: coarse)').matches; /* tablette, telephone */
 const graphismes = () => { try { return localStorage.getItem('ferme-graphismes') || ''; } catch (e) { return ''; } };
 function appliquerGraphismes() {
   const leger = graphismes() === 'leger';
-  rendu.setPixelRatio(leger ? 1 : Math.min(2, window.devicePixelRatio || 1)); soleil.castShadow = !leger;
+  rendu.setPixelRatio(leger ? 1 : Math.min(DOIGT ? 1.5 : 2, window.devicePixelRatio || 1)); soleil.castShadow = !leger; /* au doigt : 1,5 au plus, presque pareil a l'oeil et bien plus leger */
   Object.values(contours).forEach((m) => { m.visible = !leger; }); /* les contours doublent presque tout le dessin */
   CONTOUR.visible = !leger; /* et ceux des pieces faites dans la page (Bouftous, arbaletes...), oublies jusque-la */
   if (typeof cadrer === 'function') cadrer();
@@ -1542,7 +1596,7 @@ function articuler(racine) {
 }
 /* une ombre douce sous les pieds : sans elle, l'ombre du soleil tombe de biais et on croit que le personnage flotte */
 const OMBRE_PIEDS = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(40,30,20,0.55)'); g.addColorStop(0.6, 'rgba(40,30,20,0.25)'); g.addColorStop(1, 'rgba(40,30,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false }); })();
-function ombrePieds(g, taille) { const o = new T.Mesh(new T.PlaneGeometry(1, 1), OMBRE_PIEDS); o.rotation.x = -Math.PI / 2; o.position.y = 0.03; o.scale.setScalar(taille); o.renderOrder = 1; g.add(o); return o; }
+function ombrePieds(g, taille) { g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } }); /* une seule ombre, ronde, sous les pieds ; et plus d'ombre recue : sur tablette, les ombres moins precises noircissaient la tete des Bouftous (photo de Mathieu, 11/10/2026) */ const o = new T.Mesh(new T.PlaneGeometry(1, 1), OMBRE_PIEDS); o.rotation.x = -Math.PI / 2; o.position.y = 0.03; o.scale.setScalar(taille); o.renderOrder = 1; g.add(o); return o; }
 function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); return g; }
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 async function chargerModeles() {
@@ -2547,7 +2601,12 @@ function majEpouvantail(dt, s) {
    qui apprend le jeu, recompense a chaque etape), trois defis par jour, un cadeau de connexion en serie, la file d'actions
    (on touche plusieurs taches, le paysan les enchaine) et le resume de ce qui s'est passe pendant l'absence. */
 /* ---------- les sons ---------- */
-let audio = null; const sonActif = () => { try { return localStorage.getItem('ferme-son') !== 'non'; } catch (e) { return true; } };
+let audio = null;
+function deverrouillerSon() { /* au premier geste (et apres une interruption), on allume le son avec un son vide : c'est ce qu'exigent iPad et Android */
+  try { if (audio && audio.state === 'running') return; if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); const b = audio.createBuffer(1, 1, 22050), src = audio.createBufferSource(); src.buffer = b; src.connect(audio.destination); src.start(0); } catch (e) { /* rien */ }
+}
+['pointerdown', 'touchend', 'keydown'].forEach((t) => addEventListener(t, deverrouillerSon, { capture: true, passive: true }));
+const sonActif = () => { try { return localStorage.getItem('ferme-son') !== 'non'; } catch (e) { return true; } };
 function son(nom) {
   if (window.silence || !sonActif()) return;
   const t = performance.now(); son.der = son.der || {}; if (t - (son.der[nom] || 0) < 120) return; son.der[nom] = t; /* jamais le meme son en rafale */
@@ -2628,7 +2687,7 @@ function jourCourant() {
   }
   return S_.jour;
 }
-const CADEAUX = [[100, 'des graines de Blé', () => { S_.graines.ble = (S_.graines.ble || 0) + 5; }], [150, '20 flèches', () => { S_.fleches += 20; }], [200, '3 filets de capture', () => { S_.filets += 3; }], [300, 'des graines de la meilleure culture que tu puisses planter', () => { const c = CULTURES.filter(debloquee).pop(); S_.graines[c.id] = (S_.graines[c.id] || 0) + 5; }], [400, '40 flèches', () => { S_.fleches += 40; }], [500, '5 filets de capture', () => { S_.filets += 5; }], [800, 'une pièce d\'équipement de ton palier', () => { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; }]];
+const CADEAUX = [[100, 'des graines de Blé', () => { S_.graines.ble = (S_.graines.ble || 0) + 5; }], [150, '20 flèches', () => { S_.fleches += 20; }], [200, '3 filets de capture', () => { S_.filets += 3; }], [300, 'des graines de la meilleure culture que tu puisses planter', () => { const c = CULTURES.filter(debloquee).pop(); S_.graines[c.id] = (S_.graines[c.id] || 0) + 5; }], [400, '40 flèches', () => { S_.fleches += 40; }], [500, '5 filets de capture', () => { S_.filets += 5; }], [800, 'une pièce d\'équipement de ton palier', () => { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); }]];
 function cadeauDuJour() {
   if (!S_ || !S_.perso || combat) return; const auj = jourDe(Date.now()), hier = jourDe(Date.now() - 86400000); S_.serie = S_.serie || { n: 0, date: null };
   if (S_.serie.date === auj) return;
@@ -2637,15 +2696,17 @@ function cadeauDuJour() {
   const montrer = () => { if (modaleOuverte || document.querySelector('.fete')) { setTimeout(montrer, 1500); return; } son('quete'); confettis(30); ouvrirModale('cadeau', entete('Cadeau du jour') + '<p style="text-align:center;font-size:.86rem;font-weight:700;margin:0">Jour ' + S_.serie.n + ' de ta série. Reviens demain pour un cadeau plus gros !</p><div class="serie">' + CADEAUX.map((c, j) => '<i class="' + (j < k ? 'fait' : j === k ? 'ici' : '') + '">J' + (j + 1) + '<br>' + (j === 6 ? '★' : c[0]) + '</i>').join('') + '</div><div class="art">' + ico('coffre') + '<div><b>+' + fmt(kamas) + ' ' + KAMA + ' et ' + quoi + '</b><div class="desc">Une série qui se casse repart au jour 1. Au jour 7 : une pièce d\'équipement.</div></div><div></div></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn kamas" data-fermer>Merci Pépito !</button></div>'); }; setTimeout(montrer, 900); /* (il attend qu'aucune autre fenetre ne soit ouverte) */
 }
 /* ---------- le panneau ---------- */
+const texteDoigt = (t) => t.replace('clic droit sur lui', 'touche-le').replace('(clic droit dessus)', '(touche-les)').replace(/clic droit sur /g, 'touche ').replace(/clic droit/g, 'toucher'); /* au doigt, on touche */
 function rendreObjectif() {
   const e = $('objectif'); if (!e || !S_ || enAccueil) return;
+  if (tuto.actif && ETAPES_TUTO[tuto.etape].id !== 'fin') { e.hidden = true; return; } /* pendant le tuto, Pepito parle dans sa carte */
   const o = objectifCourant(), J = jourCourant(), prets = J ? J.defis.filter((d) => d.fait >= d.but && !d.reclame).length : 0, faits = J ? J.defis.filter((d) => d.reclame).length : 0;
   if (S_.objCache && !prets) { e.hidden = true; return; }
   e.hidden = false;
   let h = '';
   if (o && !S_.objCache) { const v = Math.min(o[1], valeurCompteur(o[0])), fini = v >= o[1];
     e.classList.toggle('fini', fini);
-    h = '<div class="tete">Objectif de Pépito<button data-cacher-obj>masquer</button></div><div class="txt">' + (matchMedia('(pointer: coarse)').matches ? o[2].replace(/clic droit/g, 'appui long') : o[2]) + '</div><div class="barre"><i style="width:' + (100 * v / o[1]).toFixed(0) + '%"></i></div><small><span>' + fmt(v) + ' / ' + fmt(o[1]) + '</span><span>+' + fmt(o[3]) + ' kamas' + (o[4] ? ', +' + o[4] + ' XP' : '') + '</span></small>' + (fini ? '<button class="btn kamas" data-reclamer-obj>Réclamer la récompense</button>' : ''); }
+    h = '<div class="tete">Objectif de Pépito<button data-cacher-obj>masquer</button></div><div class="txt">' + (matchMedia('(pointer: coarse)').matches ? texteDoigt(o[2]) : o[2]) + '</div><div class="barre"><i style="width:' + (100 * v / o[1]).toFixed(0) + '%"></i></div><small><span>' + fmt(v) + ' / ' + fmt(o[1]) + '</span><span>+' + fmt(o[3]) + ' kamas' + (o[4] ? ', +' + o[4] + ' XP' : '') + '</span></small>' + (fini ? '<button class="btn kamas" data-reclamer-obj>Réclamer la récompense</button>' : ''); }
   else { e.classList.remove('fini'); h = '<div class="tete">Défis du jour' + (S_.objCache ? '' : '') + '</div>'; }
   if (J) h += '<div class="defis"><span>Défis du jour : ' + faits + '/3' + (prets ? ', ' + prets + ' à réclamer' : '') + '</span><button class="btn' + (prets ? ' kamas pret' : ' discret') + '" data-voir-defis>Voir</button></div>';
   e.innerHTML = h; placerPanneaux();
@@ -2671,7 +2732,7 @@ function reclamerDefi(k) {
 function ouvrirCoffre() {
   const J = jourCourant(); if (!J || J.coffre || !J.defis.every((d) => d.reclame)) return;
   J.coffre = true; const kamas = 150 + 40 * niveau(S_.xp); S_.kamas += kamas; let objet = '';
-  if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; objet = ' et ' + OBJETS[id].nom; }
+  if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); objet = ' et ' + OBJETS[id].nom; }
   son('niveau'); confettis(50); toast('Coffre du jour : +' + fmt(kamas) + ' kamas' + objet + ' !', 'or'); rendreHaut(); rendreObjectif(); ouvrirDefis(); sauver();
 }
 /* ---------- la file d'actions : on touche plusieurs bulles, le paysan les enchaine ---------- */
@@ -3004,12 +3065,12 @@ function butin(mo) {
   const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros;
   if (Math.random() < chance) {
     const P = PANOS[palierDe(combat.n)], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids);
-    S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; L.objets.push(id);
+    S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id);
     chiffre('★ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast('Butin : ' + OBJETS[id].nom + ' ! Équipe-le dans la fiche du perso.', 'or'); rendreHaut();
   }
   const leg = mo.d.boss && LEGENDAIRES.find((x) => x.boss === mo.type);
   if (leg && Math.random() < CHANCE_LEG * pros) { /* la coiffe legendaire du boss */
-    const id = 'leg-' + leg.cle; S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; L.objets.unshift(id); compter('legendaires');
+    const id = 'leg-' + leg.cle; S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.unshift(id); compter('legendaires');
     chiffre('✦ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.6, mo.z), 'butin'); pouf(mo.x, mo.m.position.y, mo.z, 4, '#b57cf0'); son('niveau');
     toast('✦ LÉGENDAIRE : ' + OBJETS[id].nom + ' ! ' + OBJETS[id].pouvoir, 'or'); rendreHaut();
   }
@@ -3027,7 +3088,7 @@ function butinVoleur(monte, L) {
   L = L || { res: {}, objets: [], kamas: 0 };
   if (Math.random() < 0.5 * pros) { const n = (monte ? 2 : 1) * (1 + Math.floor(Math.random() * 2)); S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   const bourse = Math.round((5 + 2 * forceVoleur()) * (monte ? 2 : 1) * (0.6 + Math.random() * 0.8)); S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
-  if (Math.random() < (monte ? 0.08 : 0.04) * pros) { const P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; L.objets.push(id); toast('Sur le voleur : ' + OBJETS[id].nom + ' !', 'or'); }
+  if (Math.random() < (monte ? 0.08 : 0.04) * pros) { const P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id); toast('Sur le voleur : ' + OBJETS[id].nom + ' !', 'or'); }
   rendreGrange(); rendreHaut(); return L;
 }
 const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => '★ ' + OBJETS[id].nom)).filter(Boolean).join(', ');
@@ -3574,7 +3635,8 @@ const bullesDyn = new Map();
 function bulle(cle, icone, genre, point, cible, nombre, titre) {
   let e = bullesDyn.get(cle);
   if (!e) { e = document.createElement('div'); zoneBulles.appendChild(e); bullesDyn.set(cle, e); }
-  e.className = 'bulle ico ' + (genre || ''); e.innerHTML = icone + (nombre ? '<small>' + nombre + '</small>' : ''); e.dataset.info = titre || ''; e.setAttribute('aria-label', titre || '');
+  const cls = 'bulle ico ' + (genre || ''), html = icone + (nombre ? '<small>' + nombre + '</small>' : ''); /* rien n'est refait si rien ne change : sur tablette, l'image refaite clignotait */
+  if (e.className !== cls) e.className = cls; if (e._html !== html) { e.innerHTML = html; e._html = html; } if (e.dataset.info !== (titre || '')) { e.dataset.info = titre || ''; e.setAttribute('aria-label', titre || ''); }
   e.dataset.point = JSON.stringify(point); e.dataset.cible = cible || ''; e.hidden = false;
 }
 function retirerBulle(cle) { const e = bullesDyn.get(cle); if (e) { e.remove(); bullesDyn.delete(cle); } }
@@ -3654,23 +3716,26 @@ function bulleVente(t, k) {
 const ray = new T.Raycaster(); const souris = new T.Vector2();
 let pDown = null;
 canvas.addEventListener('pointerdown', (e) => { if (!e.isPrimary) { pDown = null; cacherAppui(); return; } /* deux doigts : on pince, on n'agit pas */
-  pDown = { x: e.clientX, y: e.clientY, t: Date.now() }; if (e.pointerType === 'touch') montrerAppui(e); });
+  pDown = { x: e.clientX, y: e.clientY, t: performance.now() }; /* (le vrai temps : Date.now suit la vitesse du jeu) */ if (e.pointerType === 'touch') montrerAppui(e); });
 const TOLERANCE = (e) => e.pointerType === 'touch' ? 14 : 8; /* un doigt bouge toujours un peu pendant un appui long */
 const appui = document.createElement('div'); appui.id = 'appui'; appui.innerHTML = '<svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="22"/><circle class="arc" cx="29" cy="29" r="22"/></svg>'; document.body.appendChild(appui);
 function montrerAppui(e) { appui.style.left = e.clientX + 'px'; appui.style.top = e.clientY + 'px'; appui.classList.remove('actif', 'pret'); void appui.offsetWidth; appui.classList.add('actif'); clearTimeout(montrerAppui.t); montrerAppui.t = setTimeout(() => appui.classList.add('pret'), APPUI_LONG); }
 function cacherAppui() { clearTimeout(montrerAppui.t); appui.classList.remove('actif', 'pret'); }
 canvas.addEventListener('pointermove', (e) => { if (pDown && e.pointerType === 'touch' && Math.hypot(e.clientX - pDown.x, e.clientY - pDown.y) > TOLERANCE(e)) cacherAppui(); });
 canvas.addEventListener('pointercancel', cacherAppui);
-/* « clic gauche pour se deplacer et cibler, clic droit pour realiser une action » (Mathieu, 11/10/2026) ; au doigt, l'appui long remplace le clic droit */
+/* « clic gauche pour se deplacer et cibler, clic droit pour realiser une action » (Mathieu, 11/10/2026) ; au doigt, toucher = agir et l'appui long deplace seulement */
 const APPUI_LONG = 450;
 /* pas de menu du navigateur : le clic droit sert a agir. Sur toute la page et pas seulement sur l'ile (« ca m'ouvre mon truc de pc assez souvent »,
    Mathieu, 11/10/2026) : sous Windows le menu part au relacher, donc apres que le clic droit a ouvert une fenetre, et il tombait sur elle */
 document.addEventListener('contextmenu', (e) => { if (!(e.target.closest && e.target.closest('input, textarea'))) e.preventDefault(); });
-function astuceClics() { if (S_ && !S_.astuceClics) { S_.astuceClics = true; toast(matchMedia('(pointer: coarse)').matches ? 'Touche pour te déplacer et cibler. Appui long sur une case pour agir : labourer, planter, récolter, construire.' : 'Clic gauche : te déplacer et cibler. Clic droit : agir sur la case (labourer, planter, récolter, construire, ouvrir un bâtiment).', 'or'); sauver(); } }
+function astuceClics() {
+  const doigt = matchMedia('(pointer: coarse)').matches, cle = doigt ? 'astuceDoigt' : 'astuceClics'; if (!S_ || S_[cle]) return; S_[cle] = true; S_.astuceClics = true;
+  toast(doigt ? 'Touche une case pour agir : labourer, planter, arroser, récolter, construire. Reste appuyé pour seulement t\'y déplacer.' : 'Clic gauche : te déplacer et cibler. Clic droit : agir sur la case (labourer, planter, récolter, construire, ouvrir un bâtiment).', 'or'); sauver();
+}
 function allerVers(id) { /* le clic gauche : il y va, sans rien faire (un nuisible, lui, se cible : on le chasse) */
   const p = typeof id === 'string' ? S_.cases.find((c) => c.id === id) : id; if (!p || !paysanMesh) return;
   if ((p.type === 'champ' && p.tofu) || (S_.sauvage && S_.sauvage.id === p.id)) { ACTIONS.toucherCase(p.id); return; }
-  allerPuis(p, () => {}); if (!S_.astuceClics) astuceClics(); else rappelClicDroit(p);
+  allerPuis(p, () => {}); if (!S_[matchMedia('(pointer: coarse)').matches ? 'astuceDoigt' : 'astuceClics']) astuceClics(); else rappelClicDroit(p);
 }
 /* « je peux plus planter, ah c'est parce que je dois clic droit » (Mathieu, 11/10/2026) : l'astuce du lancement ne suffit pas, alors un clic gauche
    sur une case ou il y a quelque chose a faire le rappelle, tant que le joueur n'a pas pris l'habitude du clic droit (S_.clicsDroits) */
@@ -3681,15 +3746,16 @@ function verbeDroit(p) {
   return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', tour: 'ouvrir la tour', voliere: 'ouvrir la volière' })[p.type] || '';
 }
 function rappelClicDroit(p) {
-  if ((S_.clicsDroits || 0) >= 6 || Date.now() - (rappelClicDroit.t || 0) < 4000) return; const v = verbeDroit(p); if (!v) return;
-  rappelClicDroit.t = Date.now(); toast((matchMedia('(pointer: coarse)').matches ? 'Appui long' : 'Clic droit') + ' pour ' + v + '.');
+  if (tuto.actif || (S_.clicsDroits || 0) >= 6 || performance.now() - (rappelClicDroit.t || 0) < 4000) return; /* (pendant le tuto, Pepito explique deja) */ const v = verbeDroit(p); if (!v) return;
+  rappelClicDroit.t = performance.now(); toast((matchMedia('(pointer: coarse)').matches ? 'Touche simplement la case' : 'Clic droit') + ' pour ' + v + '.'); /* (au doigt, apres un appui long qui n'a fait que deplacer) */
 }
 canvas.addEventListener('pointerup', (e) => {
   if (performance.now() - (lancer.t || 0) < 700) { pDown = null; return; } /* le clic qui a lance la partie ne touche pas l'ile */
   if (visee && e.button === 2) { annulerVisee(); pDown = null; return; } /* le clic droit annule une visee en cours */
   cacherAppui(); if (!pDown) return; const dx = e.clientX - pDown.x, dy = e.clientY - pDown.y; const bouge = Math.hypot(dx, dy) > TOLERANCE(e);
-  const agir = e.button === 2 || (e.pointerType === 'touch' && Date.now() - pDown.t >= APPUI_LONG); pDown = null;
-  if (agir && e.pointerType === 'touch' && navigator.vibrate) navigator.vibrate(15);
+  const doigt = e.pointerType === 'touch' || e.pointerType === 'pen', long = doigt && performance.now() - pDown.t >= APPUI_LONG;
+  const agir = e.button === 2 || (doigt && !long); pDown = null; /* au doigt : toucher = agir, appui long = seulement se deplacer */
+  if (long && navigator.vibrate) navigator.vibrate(15);
   if (bouge) return;
   if (visee) { const pt = pointSol(e); if (pt) tirerVisee(pt); return; }
   souris.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -3900,8 +3966,17 @@ const SORTS = {
   cra: [['Flèche', 'À distance (7 cases). Une flèche sur ' + TIR_FEU + ' est une flèche de feu : double dégâts, et la cible brûle 3 s.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Elle se charge en abattant ' + KILLS_PERCANTE + ' monstres.']],
   osa: [['Coup de fouet', 'À portée de fouet (3 cases), il frappe le monstre ciblé.'], ['Invocation', 'Tu vises où poser un Bouftou (jusqu\'à ' + PORTEE_INVOC + ' cases) : il retombe en frappant tout autour (2 fois tes dégâts), puis se bat ' + DUREE_INVOC + ' s. Recharge ' + RECHARGE_INVOC + ' s.']]
 };
+let persoNeufs = {}; /* les nouveautes montrees pendant cette ouverture de la fiche (elles restent affichees tant qu'elle est ouverte) */
 function ouvrirPerso(slot) {
+  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; }
   const st = statsPerso(), c = st.c, cl = CLASSES.find((x) => x.id === classeDe()), l = st.niveau, a = seuil(l), b = seuil(l + 1); S_.nouveaux = 0; rendreHaut();
+  const ligneObjet = (k, neuf) => { const o = OBJETS[k], cmp = comparer(k), porte = S_.equip[o.emp];
+    return '<div class="art objet' + (cmp.ok ? '' : ' verrou') + '">' + ico('obj-' + k) + '<div><b>' + o.nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + (neuf ? ' <span class="puce neuf">nouveau</span>' : '') + (cmp.mieux ? ' <span class="puce mieux">mieux</span>' : '') + '</b>' +
+      '<div class="puces">' + statsObjet(o) + (cmp.ok ? '' : '<span class="puce mauvaise">niveau ' + o.niv + '</span>') + '</div>' +
+      '<div class="compare"><small>' + (porte ? 'Face à ta pièce : ' + OBJETS[porte].nom : EMPLACEMENTS.find(([e]) => e === o.emp)[1] + ' :') + '</small>' + cmp.html + '</div></div>' +
+      '<div class="act mini"><button class="btn kamas mini" data-equiper="' + k + '"' + (cmp.ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>'; };
+  const neufsIci = Object.keys(persoNeufs).filter((k) => S_.sac[k] > 0 && OBJETS[k]).sort((x, y) => (comparer(y).mieux - comparer(x).mieux) || OBJETS[y].niv - OBJETS[x].niv);
+  const nouveautes = neufsIci.length ? '<div class="neufs"><div class="hdv-section">Nouveau dans ton sac</div>' + neufsIci.map((k) => ligneObjet(k, true)).join('') + '</div>' : '';
   const stat = (v, nom, bonus) => '<div class="stat"><b>' + v + '</b><span>' + nom + '</span>' + (bonus ? '<small>' + bonus + '</small>' : '') + '</div>';
   const stats = '<div class="stats-grille">' + stat(fmt(st.pvMax), 'PV', c.vita ? '+' + c.vita + ' équipement' : '') + stat(st.deg, 'dégâts', c.puissance ? '+' + c.puissance + ' %' : '') + stat(String(st.cadence).replace('.', ',') + ' s', 'entre 2 attaques', c.agilite ? '-' + c.agilite + ' %' : '') + stat(String(st.portee).replace('.', ',') + ' c.', 'portée') +
     stat('+' + c.puissance + ' %', 'Puissance') + stat('+' + c.agilite + ' %', 'Agilité') + stat('+' + c.sagesse + ' %', 'Sagesse', c.sagesse ? 'XP en plus' : '') + stat('+' + c.prospection + ' %', 'Prospection', c.prospection ? 'butin en plus' : '') + '</div>';
@@ -3909,17 +3984,19 @@ function ouvrirPerso(slot) {
   const sorts = '<div class="art">' + ico(classeDe()) + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">⚔ ' + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
     '<div class="art">' + ico(classeDe()) + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div></div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""></span>' : ico('ulti-zone')) + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc + ' Recharge ' + RECHARGE_ULTI + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button></div></div>';
-  const slots = '<div class="slots">' + EMPLACEMENTS.map(([e, nom]) => { const id = S_.equip[e], o = OBJETS[id], dispo = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === e).length;
-    return '<button class="slot" data-slot="' + e + '" aria-pressed="' + (slot === e) + '">' + (o ? '<img src="assets/icones/obj-' + id + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span class="vide">+</span>') + '<b>' + (o ? o.nom : nom) + '</b><small>' + (o ? Object.entries(o.stats).map(([k, v]) => CARACS[k][2] + '+' + v).join(' ') : dispo ? dispo + ' dans le sac' : 'vide') + '</small></button>'; }).join('') + '</div>';
+  const slots = '<div class="slots">' + EMPLACEMENTS.map(([e, nom]) => { const id = S_.equip[e], o = OBJETS[id], ici = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === e), dispo = ici.reduce((t, k) => t + S_.sac[k], 0);
+    const mieux = ici.some((k) => comparer(k).mieux), neuf = ici.some((k) => persoNeufs[k]);
+    return '<button class="slot' + (mieux ? ' a-voir' : '') + '" data-slot="' + e + '" aria-pressed="' + (slot === e) + '">' + (dispo ? '<span class="compte' + (mieux ? ' mieux' : neuf ? ' neuf' : '') + '">' + (mieux ? '↑ ' : '') + dispo + '</span>' : '') + (o ? '<img src="assets/icones/obj-' + id + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span class="vide">+</span>') + '<b>' + (o ? o.nom : nom) + '</b><small>' + (o ? Object.entries(o.stats).map(([k, v]) => CARACS[k][2] + '+' + v).join(' ') : dispo ? 'à équiper' : 'vide') + '</small>' + (dispo ? '<small class="reserve">' + (mieux ? 'mieux dans le sac' : dispo + ' dans le sac') + '</small>' : '') + '</button>'; }).join('') + '</div>' +
+    '<p class="aide-slots">Touche un emplacement pour voir les pièces de ton sac et les comparer à celle que tu portes.</p>';
   const cp = comptePanos(), bonus = Object.entries(cp).filter(([, n]) => n >= 2).map(([k, n]) => { const P = PANOS[k], bo = bonusPano(+k, n); return '<div class="pano-bonus">Panoplie ' + P.de + ' : ' + n + '/6 pièces. ' + (Object.keys(bo).length ? 'Bonus actif : ' + Object.entries(bo).map(([c2, v]) => '+' + v + CARACS[c2][1]).join(', ') + '.' : 'À 3 pièces : +' + VALEURS.vita[k] + ' PV.') + (n < 6 ? ' Les 6 : +' + VALEURS.puissance[k] + ' % de dégâts et +10 % de butin en plus.' : '') + '</div>'; }).join('');
   let choix = '';
   if (slot) {
     const nomS = EMPLACEMENTS.find(([e]) => e === slot)[1], porte = S_.equip[slot], L = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === slot).sort((x, y) => OBJETS[y].niv - OBJETS[x].niv);
     choix = '<div class="hdv-section">' + nomS + ' : dans ton sac</div>' + (porte ? '<div class="art">' + ico('obj-' + porte) + '<div><b>' + OBJETS[porte].nom + ' (portée)</b><div class="puces">' + statsObjet(OBJETS[porte]) + '</div></div><div class="act"><button class="btn discret" data-retirer="' + slot + '">Retirer</button></div></div>' : '') +
-      (L.length ? L.map((k) => { const o = OBJETS[k], ok = l >= o.niv; return '<div class="art' + (ok ? '' : ' verrou') + '">' + ico('obj-' + k) + '<div><b>' + o.nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsObjet(o) + '<span class="puce ' + (ok ? 'bonne' : 'mauvaise') + '">niveau ' + o.niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-equiper="' + k + '"' + (ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>'; }).join('') : '<p style="font-size:.78rem;font-weight:600;margin:6px 0">Aucune autre pièce pour cet emplacement. Les monstres des vagues en lâchent parfois, et chaque boss en lâche une.</p>');
+      (L.length ? L.map((k) => ligneObjet(k, !!persoNeufs[k])).join('') : '<p style="font-size:.78rem;font-weight:600;margin:6px 0">Aucune autre pièce pour cet emplacement. Les monstres des vagues en lâchent parfois, et chaque boss en lâche une.</p>');
   }
   ouvrirModale('perso', entete('Fiche du personnage') + '<div class="fiche-tete"><img src="assets/icones/' + classeDe() + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + S_.perso.nom + '</b><span>' + cl.nom + ' niveau ' + l + '</span><div class="fiche-xp"><i style="width:' + (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%"></i></div><small>' + fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' points d\'expérience vers le niveau ' + (l + 1) + '</small></div></div>' +
-    '<div class="hdv-section">Caractéristiques</div>' + stats + '<div class="hdv-section">Équipement</div>' + slots + bonus + choix + '<div class="hdv-section">Sorts</div>' + sorts);
+    nouveautes + '<div class="hdv-section">Caractéristiques</div>' + stats + '<div class="hdv-section">Équipement</div>' + slots + bonus + choix + '<div class="hdv-section">Sorts</div>' + sorts);
 }
 function ouvrirTofu(p, sauvage) {
   const titre = sauvage ? 'Un Tofu sauvage dans l\'herbe' : 'Un Tofu picore ton ' + PAR_ID[p.c].nom, chance = sauvage ? CHANCE_SAUVAGE : CHANCE_CAPTURE;
@@ -3955,12 +4032,13 @@ function ouvrirConstruire(p) {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
-  else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
+  else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Le tuto du début</b><div class="desc">Pépito te remontre les bases en ' + ETAPES_TUTO.length + ' étapes.</div></div><div class="act"><button class="btn discret" id="b-tuto">Revoir le tuto</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
   else if (b.id === 'b-reset') { ouvrirModale('options', entete('Recommencer ?') + '<div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p>Une ferme toute neuve : ' + (ENLIGNE && enLigneSv.compte ? 'celle-ci sera effacée, ici et en ligne, pour de bon.' : 'la sauvegarde de ce navigateur sera effacée, pour de bon.') + '</p><div class="boutons"><button class="btn discret" data-fermer>Garder ma ferme</button><button class="btn" id="b-reset-ok" style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>'); return; }
   else if (b.id === 'b-reset-ok') { enLigneSv.ecraser = !!enLigneSv.compte; enLigneSv.sale = false; sauverMeta(); localStorage.removeItem(CLE); location.reload(); return; }
   else if (b.id === 'b-nuage-recharger') { enLigneSv.version = 0; enLigneSv.sale = false; sauverMeta(); location.reload(); return; } /* au rechargement, la version en ligne gagne */
   else if (b.id === 'b-nuage-garder') { enLigneSv.bloque = false; enLigneSv.ecraser = true; enLigneSv.sale = true; fermerModale(); nuageEnvoyer(); toast('Cette version de ta ferme remplace l\u2019autre.'); return; }
   else if (b.id === 'b-deconnexion') { fermerModale(); deconnecter(); return; }
+  else if (b.id === 'b-tuto') { fermerModale(); if (!combat) demarrerTuto(1, true); else toast('Pendant une vague, on se bat : le tuto attendra.'); return; }
   else if (b.hasAttribute('data-fermer')) fermerModale();
   else if (b.dataset.graine) { S_.graine = b.dataset.graine; rendreHaut(); fermerModale(); }
   else if (b.dataset.vendre) ACTIONS.vendre(b.dataset.vendre, parseInt(b.dataset.n, 10));
@@ -4343,8 +4421,18 @@ function actionCasino(b) {
 /* ===================== BOUCLE ===================== */
 const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let tours = 0; const t0 = performance.now();
+/* LA PAUSE : au retour (accueil quitte, onglet de nouveau visible, jeu rouvert, sur ce navigateur ou un autre), toutes les dates de la ferme
+   (repas et croissance des Bouftous, pousses, voleurs, raids, cours de l'HDV, vague en preparation, Casino...) sont decalees de la duree de
+   la pause : rien n'a bouge entre-temps. Les defis du jour et la reprise des boss suivent le calendrier, eux. Le decalage marche dans les deux
+   sens : une ferme jouee en temps accelere sur un autre appareil (horlogeJeu) se recale sur l'horloge d'ici au lieu d'arriver « dans le futur ». */
+function reprendreTemps(maintenant) {
+  const d = maintenant - S_.vu; if (!d) return;
+  const decaler = (o) => { for (const k in o) { const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + d; } else if (v && typeof v === 'object') decaler(v); } };
+  decaler(S_); S_.vu = maintenant; if (raidAnnonce) raidAnnonce.fin += d;
+}
 function tick() {
-  if (enAccueil) return;
+  if (enAccueil || document.hidden) return; /* en pause */
+  { const m = Date.now(); if (Math.abs(m - S_.vu) > 4000 * horlogeJeu.vitesse()) reprendreTemps(m); } /* (une boucle toutes les 500 ms : un trou plus long, c'est une pause) */
   const ch = avancer(Date.now(), !combat); /* pendant une vague : pas de Tofu nuisible ni de voleur en plus */
   ch.cases.forEach((id) => rendreCase(id));
   if (ch.enclos) rendreEnclosBulles();
@@ -4385,7 +4473,7 @@ function ouvrirAccueil() {
   const rendre = () => {
     carte.innerHTML = '<h1>Ferme d\'Amakna</h1>' + bandeauCompte() + '<p>Une île de 40 cases dans le ciel d\'Amakna. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>' +
       (sauve && sauve.perso ? '<button class="btn grand kamas" data-reprendre>Reprendre la ferme de ' + sauve.perso.nom + '</button><p class="reprise">' + CLASSES.find((c) => c.id === sauve.perso.classe).nom + ', Paysan niveau ' + niveauDe(sauve.xp) + ', ' + fmt(sauve.kamas) + ' kamas. <button data-nouvelle>Nouvelle ferme</button></p>' :
-      '<input id="perso-nom" maxlength="16" placeholder="Ton nom de fermier" value="' + echapper((sauve && sauve.perso && sauve.perso.nom) || (enLigneSv.pseudo || '').slice(0, 16)) + '"><div class="classes">' + CLASSES.map((c) => '<button class="classe" data-classe="' + c.id + '" aria-pressed="' + (classe === c.id) + '"><span class="ico"><img src="assets/icones/' + c.id + '.png?v=' + VERSION_MODELES + '" alt=""></span><b>' + c.nom + '</b><span>' + c.desc + '</span><span>Sort : ' + c.sort + '</span></button>').join('') + '</div><button class="btn grand" data-commencer>Commencer</button>');
+      '<input id="perso-nom" maxlength="16" placeholder="Ton nom de fermier" value="' + echapper((sauve && sauve.perso && sauve.perso.nom) || (enLigneSv.pseudo || '').slice(0, 16)) + '"><p class="choix-classe">Choisis ton personnage. À la ferme, ils font tous pareil : la classe change seulement ta façon de te battre quand les monstres attaquent.</p><div class="classes">' + CLASSES.map((c) => '<button class="classe" data-classe="' + c.id + '" aria-pressed="' + (classe === c.id) + '"><span class="ico"><img src="assets/icones/' + c.id + '.png?v=' + VERSION_MODELES + '" alt=""></span><b>' + c.nom + '</b><span class="etiquettes"><i>' + c.role + '</i><i class="' + c.niveau[1] + '">' + c.niveau[0] + '</i></span>' + c.lignes.map((t) => '<span>' + t + '</span>').join('') + '<span class="sort"><em>Son sort, ' + c.sort + ' :</em> ' + c.sortTxt + '</span></button>').join('') + '</div><button class="btn grand" data-commencer>Commencer</button>');
   };
   rendre();
   carte.onclick = (e) => {
@@ -4406,6 +4494,100 @@ const niveauDe = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) 
 function casesBordure() { const L = []; for (let i = -1; i <= COLS; i++) for (let j = -1; j <= ROWS; j++) { if (i >= 0 && i < COLS && j >= 0 && j < ROWS) continue; if (i === COLS && j === ROWS) continue; L.push({ id: 'm' + i + '_' + j, i, j, terrain: 'main', type: 'libre' }); } return L; }
 function completerTerrains() {
   casesBordure().forEach((c) => { if (!S_.cases.some((x) => x.id === c.id)) S_.cases.push(c); }); /* (anciennes sauvegardes) */ TERRAINS.forEach((t) => { if (!S_.terrains[t.id]) return; for (let i = 0; i < t.cols; i++) for (let j = 0; j < t.rows; j++) { const id = t.id + '_' + i + '_' + j; if (!S_.cases.some((c) => c.id === id)) S_.cases.push({ id, i, j, terrain: t.id, type: 'libre' }); } }); }
+/* ===================== LE TUTO DU DEBUT (11/10/2026) =====================
+   « faudrait creer un petit tuto du debut, les trucs de base », puis « y'a pas eu le tuto de depart » (Mathieu, retours de la beta sur tablette).
+   Pepito guide 9 etapes (maquette maquettes/ferme-amakna-tuto.png) : la case a toucher brille avec une fleche, la carte en bas dit quoi faire,
+   l'etape passe toute seule quand c'est fait. Il se lance pour un debutant (niveau < 5) qui ne l'a jamais vu ; « Revoir le tuto » dans Options. */
+const tuto = { actif: false, etape: 0, base: {}, el: null, depart: null, vue: null, revoir: false, h: '', s: '' };
+const tutoDoigt = () => matchMedia('(pointer: coarse)').matches;
+const SOURIS_SVG = (bouton) => '<svg class="tuto-souris" viewBox="0 0 46 62" aria-hidden="true"><rect x="3" y="3" width="40" height="56" rx="20" fill="#fffdf6" stroke="#3b2a1a" stroke-width="3"/><path d="M23 3 V26 M3 26 H43" stroke="#3b2a1a" stroke-width="3"/>' +
+  (bouton === 'droit' ? '<path d="M24.5 4.6 A18.5 18.5 0 0 1 41.5 23 V24.5 H24.5 Z" fill="#f2b630"/>' : bouton === 'gauche' ? '<path d="M21.5 4.6 A18.5 18.5 0 0 0 4.5 23 V24.5 H21.5 Z" fill="#f2b630"/>' : '') + '</svg>';
+const DOIGT_SVG = (long) => '<svg class="tuto-souris" viewBox="0 0 46 62" aria-hidden="true"><circle cx="23" cy="24" r="18" fill="none" stroke="#f2b630" stroke-width="4"' + (long ? '' : ' stroke-dasharray="8 6"') + '/><circle cx="23" cy="24" r="8" fill="#f2b630" stroke="#3b2a1a" stroke-width="3"/><text x="23" y="56" text-anchor="middle" font-size="10" font-weight="800" fill="#3b2a1a">' + (long ? 'appui' : 'tap') + '</text></svg>';
+const champTuto = () => S_.cases.find((c) => c.id === tuto.champ) || S_.cases.find((c) => c.type === 'champ');
+const ETAPES_TUTO = [
+  { id: 'accueil' },
+  { id: 'deplacer', avant() { const ici = paysanMesh && (paysanMesh.userData.cellule || caseIci(paysanMesh.position.x, paysanMesh.position.z)); tuto.depart = ici ? ici.id : null;
+      const L = S_.cases.filter((c) => c.type === 'libre' && c.terrain === 'main' && ici && Math.abs(c.i - ici.i) + Math.abs(c.j - ici.j) >= 2 && Math.abs(c.i - ici.i) + Math.abs(c.j - ici.j) <= 3);
+      tuto.cible = (L.sort((a, b) => Math.abs(a.j - ici.j) - Math.abs(b.j - ici.j))[0] || null); },
+    cases: () => tuto.cible ? [tuto.cible] : [], etiq: () => tutoDoigt() ? 'Reste appuyé' : 'Clic gauche', picto: () => tutoDoigt() ? DOIGT_SVG(true) : SOURIS_SVG('gauche'),
+    texte: () => tutoDoigt() ? 'Pour te déplacer, <em>reste appuyé</em> sur la case qui brille : ton perso y va, sans rien faire d\'autre.' : 'Pour te déplacer, fais un <em>clic gauche</em> sur la case qui brille : ton perso y va.',
+    fait: () => { const c = paysanMesh && paysanMesh.userData.cellule; return !!c && c.id !== tuto.depart; } },
+  { id: 'vue', avant() { tuto.vue = { x: VISEE.x, z: VISEE.z, zoom }; }, picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG(''), suivant: 'Suivant',
+    texte: () => tutoDoigt() ? 'Fais <em>glisser un doigt</em> pour bouger la vue, et <em>pince à deux doigts</em> pour zoomer.' : 'Maintiens le clic et <em>fais glisser</em> pour bouger la vue. La <em>molette</em> zoome.',
+    fait: () => Math.hypot(VISEE.x - tuto.vue.x, VISEE.z - tuto.vue.z) > 1.5 || Math.abs(zoom - tuto.vue.zoom) > 0.15 },
+  { id: 'recolter', avant() { let p = S_.cases.find((c) => c.type === 'champ' && c.c && !c.tofu && c.pousse >= duree(PAR_ID[c.c])) || S_.cases.find((c) => c.type === 'champ' && c.c && !c.tofu) || S_.cases.find((c) => c.type === 'champ');
+      if (p) tuto.champ = p.id; if (p && !tuto.revoir) { if (!p.c) Object.assign(p, { c: 'ble', arrose: true }); p.pousse = duree(PAR_ID[p.c]); rendreCase(p.id); rendreCasesBulles(); } }, /* (en le revoyant : rien d'offert) */
+    cases: () => [champTuto()].filter(Boolean), etiq: () => tutoDoigt() ? 'Touche' : 'Clic droit', haut: 1.9, picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG('droit'),
+    texte: () => 'Ton <em>' + (PAR_ID[(champTuto() || {}).c] || PAR_ID.ble).nom + '</em> est mûr ! ' + (tutoDoigt() ? '<em>Touche-le</em>' : 'Fais un <em>clic droit</em> dessus') + ' pour le récolter. Ton perso y va tout seul.',
+    compteur: 'recoltes' },
+  { id: 'planter', avant() { if (!tuto.revoir && !(S_.graines.ble > 0) && !CULTURES.some((c) => debloquee(c) && S_.graines[c.id] > 0)) S_.graines.ble = 1; },
+    cases: () => [champTuto()].filter(Boolean), etiq: () => tutoDoigt() ? 'Touche' : 'Clic droit', picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG('droit'),
+    texte: () => 'La parcelle est vide : ' + (tutoDoigt() ? '<em>touche-la</em>' : 'un <em>clic droit</em> dessus') + ' pour planter une graine.', compteur: 'plantes' },
+  { id: 'arroser', cases: () => [champTuto()].filter(Boolean), etiq: () => tutoDoigt() ? 'Touche' : 'Clic droit', picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG('droit'),
+    texte: () => 'Arrose ton semis : ' + (tutoDoigt() ? '<em>touche-le</em> encore' : 'encore un <em>clic droit</em>') + '. Arrosé, il pousse deux fois et demie plus vite. L\'arrosoir se remplit au puits.',
+    compteur: 'arrosages', saute: () => { const p = champTuto(); return !tuto.revoir && (!p || !p.c || p.arrose); } },
+  { id: 'nourrir', avant() { if (!tuto.revoir && (S_.grange.ble || 0) < REPAS) { S_.grange.ble = (S_.grange.ble || 0) + REPAS; rendreGrange(); } },
+    cases: () => S_.cases.filter((c) => c.type === 'enclos'), etiq: () => tutoDoigt() ? 'Touche' : 'Clic droit', haut: 1.6, picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG('droit'),
+    texte: () => '<em>' + ((S_.bouftous[0] || {}).nom || 'Ton Bouftou') + '</em> a faim : ' + (tutoDoigt() ? '<em>touche-le</em>' : 'un <em>clic droit</em> sur lui') + ' pour le nourrir avec du Blé. Nourri, il fait de la laine que tu revends.',
+    compteur: 'repas', saute: () => !tuto.revoir && !S_.bouftous.some((b) => Date.now() >= b.rassasie) },
+  { id: 'vendre', anneaux: () => modaleOuverte === 'hdv' ? [document.querySelector('[data-hdv-onglet="vendre"][aria-pressed="false"]') || document.querySelector('#carte [data-vendre]')] : [$('b-hdv')],
+    etiq: () => modaleOuverte === 'hdv' ? (document.querySelector('[data-hdv-onglet="vendre"][aria-pressed="false"]') ? 'Vendre' : 'Ici') : 'HDV',
+    texte: () => 'Ta récolte est à la grange. Vends-la à l\'<em>HDV</em> : le bouton en bas, onglet <em>Vendre</em>. Tu y rachètes aussi tes graines.', compteur: 'ventes' },
+  { id: 'fin', anneaux: () => [$('objectif'), $('b-vagues')], suivant: 'À toi de jouer !',
+    texte: () => 'C\'est tout pour les bases ! Mes <em>objectifs</em>, en haut à gauche, te guident pour la suite. Et quand tu te sens prêt, le bouton <em>Vagues</em> : des monstres attaquent, défends la ferme pour gagner kamas et équipement.' }
+];
+function demarrerTuto(depuis, revoir) {
+  if (!S_ || !S_.perso || combat) return; tuto.revoir = !!revoir;
+  S_.astuceClics = true; S_.astuceDoigt = true; /* le tuto montre les clics : pas besoin de l'astuce en plus */
+  if (!tuto.el) {
+    tuto.el = document.createElement('div'); tuto.el.id = 'tuto'; document.body.appendChild(tuto.el);
+    tuto.el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+      if (b.hasAttribute('data-tuto-passer')) finirTuto('passe'); else if (b.hasAttribute('data-tuto-go')) allerEtapeTuto(1); else if (b.hasAttribute('data-tuto-suivant')) { if (ETAPES_TUTO[tuto.etape].id === 'fin') finirTuto('fini'); else allerEtapeTuto(tuto.etape + 1); } });
+  }
+  tuto.actif = true; $('hud').classList.add('en-tuto'); rendreObjectif(); allerEtapeTuto(depuis || 0); requestAnimationFrame(majTuto);
+}
+function allerEtapeTuto(n) {
+  while (n < ETAPES_TUTO.length && ETAPES_TUTO[n].saute && ETAPES_TUTO[n].saute()) n++; /* (deja fait : par exemple la citerne a arrose le semis) */
+  if (n >= ETAPES_TUTO.length) { finirTuto('fini'); return; }
+  const E = ETAPES_TUTO[n]; tuto.etape = n; S_.tutoEtape = n;
+  if (E.avant) E.avant();
+  if (E.compteur) tuto.base[E.id] = valeurCompteur(E.compteur);
+  if (E.id === 'fin') rendreObjectif(); /* les objectifs reapparaissent pour la derniere etape */
+  dessinerTuto(); sauver();
+}
+function etapeFaite(E) { return E.compteur ? valeurCompteur(E.compteur) > (tuto.base[E.id] || 0) : E.fait ? E.fait() : false; }
+function finirTuto(comment) {
+  tuto.actif = false; S_.tuto = comment; delete S_.tutoEtape; if (tuto.el) tuto.el.innerHTML = ''; $('hud').classList.remove('en-tuto'); rendreObjectif(); sauver();
+  if (comment === 'fini') { son('quete'); toast('Bravo, tu connais les bases ! Suis les objectifs de Pépito pour la suite.', 'or'); }
+  setTimeout(cadeauDuJour, 900); /* (le cadeau du jour attendait la fin du tuto) */
+}
+function dessinerTuto() {
+  if (!tuto.actif || !tuto.el) return;
+  const n = tuto.etape, E = ETAPES_TUTO[n], points = '<span class="tuto-points">' + ETAPES_TUTO.map((_, k) => '<i class="' + (k < n ? 'ok' : k === n ? 'ici' : '') + '"></i>').join('') + '</span>';
+  if (E.id === 'accueil') {
+    tuto.el.innerHTML = '<div class="tuto-voile"></div><div class="tuto-carte centre"><h2>Bienvenue à la ferme !</h2><p>Salut, moi c\'est <em>Pépito</em>, le commis. Je te montre les bases ? Deux minutes, promis.</p><div class="tuto-boutons"><button class="btn discret" data-tuto-passer>Je connais déjà</button><button class="btn kamas grand" data-tuto-go>C\'est parti !</button></div></div>';
+    return;
+  }
+  tuto.el.innerHTML = '<svg class="tuto-sol"></svg><div class="tuto-reperes"></div><div class="tuto-carte"><div class="tuto-tete"><b>Pépito</b> Étape ' + (n + 1) + ' sur ' + ETAPES_TUTO.length + points + '<button class="tuto-passer" data-tuto-passer>Passer le tuto</button></div>' +
+    '<div class="tuto-corps">' + (E.picto ? E.picto() : '') + '<p>' + E.texte() + '</p></div>' + (E.suivant || tuto.revoir ? '<div class="tuto-boutons droite"><button class="btn kamas" data-tuto-suivant>' + (E.suivant || 'Suivant') + '</button></div>' : '') + '</div>';
+  tuto.texte = E.texte(); tuto.h = ''; tuto.s = '';
+}
+const projeterTuto = (x, y, z) => { const v = new T.Vector3(x, y, z).project(camera); return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight]; };
+function majTuto() { /* chaque image : les reperes suivent la camera, et l'etape passe des qu'elle est faite */
+  if (!tuto.actif) return; requestAnimationFrame(majTuto);
+  const E = ETAPES_TUTO[tuto.etape]; if (!E || E.id === 'accueil') return;
+  if (etapeFaite(E)) { son('piece'); if (E.id === 'fin') return; allerEtapeTuto(tuto.etape + 1); return; }
+  const carte = tuto.el.querySelector('.tuto-carte'); if (carte) carte.classList.toggle('cachee', !!modaleOuverte); /* une fenetre ouverte : la carte s'efface, les reperes restent */
+  const svg = tuto.el.querySelector('.tuto-sol'), rep = tuto.el.querySelector('.tuto-reperes'); if (!svg || !rep) return;
+  let s = '', h = '';
+  const cases = E.cases && !modaleOuverte ? E.cases() : [];
+  cases.forEach((p) => { const q = posCase(p), d = S / 2 - 0.05, y = q.y + 0.1; s += '<polygon points="' + [[-d, -d], [d, -d], [d, d], [-d, d]].map(([a, b]) => projeterTuto(q.x + a, y, q.z + b).map((v) => v.toFixed(1)).join(',')).join(' ') + '"/>'; });
+  if (cases.length && E.etiq) { const q = posCase(cases[0]), [x, y] = projeterTuto(q.x, q.y + (E.haut || 1.2), q.z); h += '<div class="tuto-fleche" style="left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px"><span>' + E.etiq() + '</span><i></i></div>'; }
+  (E.anneaux ? E.anneaux() : []).filter((el) => el && !el.hidden && el.offsetParent !== null).forEach((el, k) => { const r = el.getBoundingClientRect();
+    h += '<div class="tuto-anneau" style="left:' + (r.left - 5) + 'px;top:' + (r.top - 5) + 'px;width:' + (r.width + 10) + 'px;height:' + (r.height + 10) + 'px"></div>';
+    if (k === 0 && E.etiq) h += '<div class="tuto-fleche" style="left:' + (r.left + r.width / 2) + 'px;top:' + (r.top - 6) + 'px"><span>' + E.etiq() + '</span><i></i></div>'; });
+  if (s !== tuto.s) { svg.innerHTML = s; tuto.s = s; } if (h !== tuto.h) { rep.innerHTML = h; tuto.h = h; } /* (rien n'est refait si rien ne bouge : la fleche garde son rebond) */
+}
 function lancer(etat) {
   lancer.t = performance.now(); pDown = null;
   S_ = etat; completerTerrains(); arbresSurCases(); sauver();
@@ -4414,8 +4596,9 @@ function lancer(etat) {
   construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
   if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
   toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
-  rendreHaut(); rendreObjectif(); setTimeout(placerPanneaux, 50); setTimeout(astuceClics, 4000); setTimeout(nuageEnvoyer, 1500);
-  if (absence) setTimeout(montrerAbsence, 400); setTimeout(cadeauDuJour, absence ? 2500 : 600);
+  const tutoAuto = !S_.tuto && niveau(S_.xp) < 5; /* un debutant qui ne l'a jamais vu (ou pas fini) */
+  rendreHaut(); rendreObjectif(); setTimeout(placerPanneaux, 50); if (!tutoAuto) setTimeout(astuceClics, 4000); setTimeout(nuageEnvoyer, 1500);
+  if (tutoAuto) setTimeout(() => demarrerTuto(S_.tutoEtape || 0), 700); else { if (absence) setTimeout(montrerAbsence, 400); setTimeout(cadeauDuJour, absence ? 2500 : 600); }
 }
 async function demarrer() {
   { const a = document.getElementById('chargement-astuce'); if (a) a.textContent = 'Pépito : « ' + hasard(PEPITO) + ' »'; }
@@ -4428,8 +4611,7 @@ async function demarrer() {
   S_.cases.forEach((p) => { if (p.terrain === 'main') construireCase(p); });
   TERRAINS.forEach((t, k) => { if (S_.terrains[t.id]) construireTerrain(k); });
   bullesFixes();
-  { const avant = S_.perso ? photoFerme() : null; avancer(Date.now(), false);
-    if (avant && avant.vu && Date.now() - avant.vu > 5 * MIN) { const apres = photoFerme(); absence = { duree: Date.now() - avant.vu, murs: Math.max(0, apres.murs - avant.murs), laine: Math.max(0, apres.laine - avant.laine), plumes: Math.max(0, apres.plumes - avant.plumes) }; } }
+  /* la pause : plus de rattrapage du temps passe dehors, la ferme reprend ou elle en etait (voir reprendreTemps) */
   rendreHaut(); rendreGrange(); rendreBouftous(); rendreSauvage(); rendreCasesBulles();
   $('commis').innerHTML = '<b>Pépito :</b> « ' + PEPITO[0] + ' »';
   setInterval(tick, 500);
