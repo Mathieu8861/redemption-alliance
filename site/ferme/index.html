@@ -914,6 +914,9 @@ const plafond = () => Math.floor(S_.cases.length * PART_CONSTRUCTIBLE);
 /* ===================== LOGIQUE TEMPS REEL ===================== */
 function avancer(maintenant, enDirect) {
   const dt = borne(maintenant - S_.vu, 0, 10 * 3600e3); /* la ferme vit 10 h sans toi, puis s'arrete */
+  /* « y'a plus de Tofu qui apparaissent, meme en x40 » (Mathieu, 11/10/2026) : ce qui arrive en direct (Tofus, voleurs, raids, crises) exigeait
+     moins de 5 s de jeu depuis le dernier passage ; avec le temps accelere, chaque passage en fait bien plus (x40 : 20 s), donc plus rien ne venait */
+  const direct = enDirect && dt < 5000 * horlogeJeu.vitesse();
   S_.vu = maintenant;
   const ch = new Set();
   S_.cases.forEach((p) => {
@@ -925,7 +928,7 @@ function avancer(maintenant, enDirect) {
       if (p.pousse >= d) p.pretDepuis = maintenant;
       if (etape(p) !== avant) ch.add(p.id);
     }
-    if (enDirect && dt < 5000) { /* les Tofus nuisibles */
+    if (direct) { /* les Tofus nuisibles */
       if (!p.tofu) {
         const phase2 = S_.vague.num > 5 * VAGUES_PALIER, gout = phase2 ? (p.c === 'cawotte' ? 3 : p.c === 'fraise' ? 2 : 1) : 1; /* les Wabbits raffolent des Cawottes, puis des Fraises */
         if (recolte(p) > 1 && S_.cases.filter((x) => x.tofu).length < TOFUS_MAX && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU && Math.random() < (dt / RYTHME_TOFU) * gout * [1, 0.5, 0.33, 0.33, 0.33, 0.33][Math.min(5, niv('epouvantail'))] * (enRuine('epouvantail') ? 1.8 : 1)) {
@@ -952,7 +955,7 @@ function avancer(maintenant, enDirect) {
     const max = S_.tofus * plumesParTofu(), v = S_.voliere;
     if (v.plumes < max) { v.accu += dt; while (v.accu >= CADENCE_PLUME && v.plumes < max) { v.plumes++; v.accu -= CADENCE_PLUME; sauv = true; } if (v.plumes >= max) v.accu = 0; }
   }
-  if (enDirect && dt < 5000) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
+  if (direct) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
     if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
     else if (!S_.sauvage && Math.random() < (dt / MIN) / 45) {
       const libres = S_.cases.filter((c) => c.type === 'libre');
@@ -965,19 +968,19 @@ function avancer(maintenant, enDirect) {
     S_.prochainCours = maintenant + CADENCE_COURS; hdv = true;
   }
   if (S_.crise && maintenant >= S_.crise.fin) { S_.crise = null; hdv = true; }
-  if (enDirect && dt < 5000 && !S_.crise && maintenant >= S_.prochaineCrise) {
+  if (direct && !S_.crise && maintenant >= S_.prochaineCrise) {
     S_.prochaineCrise = maintenant + CADENCE_CRISE;
     const visibles = VENDABLES.filter((v) => v.id === 'laine' ? S_.bouftous.length : v.id === 'plume' ? S_.tofus : debloquee(v));
     if (Math.random() < 0.3 && visibles.length) { const v = hasard(visibles); S_.crise = { id: v.id, fin: maintenant + DUREE_CRISE }; toast('Les bots de VSA inondent l\'HDV : le prix ' + de(v.nom) + ' chute pendant une minute.', 'alerte'); hdv = true; }
   }
   let voleur = false;
-  if (enDirect && dt < 5000 && maintenant >= S_.prochainVoleur) {
+  if (direct && maintenant >= S_.prochainVoleur) {
     S_.prochainVoleur = maintenant + CADENCE_VOLEUR * (0.6 + Math.random() * 0.8);
     if (valeurGrange() >= 100 && joueurPresent()) voleur = true;
   }
   let raid = false; /* le Raid VSA : un groupe de voleurs, annonce 30 s avant (seulement apres la vague 3) */
   if (enDirect) verifierRecouvreurs(maintenant); /* l'ardoise du Casino (meme en temps accelere) */
-  if (enDirect && dt < 5000 && !raidAnnonce && S_.vague.num > 3 && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
+  if (direct && !raidAnnonce && S_.vague.num > 3 && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
     S_.prochainRaid = maintenant + CADENCE_RAID * (0.7 + Math.random() * 0.6);
     if (valeurGrange() >= 150) raid = true;
   }
