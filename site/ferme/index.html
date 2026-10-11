@@ -26,8 +26,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .titre { font: 400 clamp(1.3rem, 3.2vw, 2.1rem)/1 var(--f-titre); color: var(--papier); -webkit-text-stroke: 2px var(--bord); paint-order: stroke fill; text-shadow: 0 4px 0 var(--bord); flex: 1 1 auto; }
 .pastille { display: inline-flex; align-items: center; gap: 7px; background: var(--papier); border: 3px solid var(--bord); border-radius: 999px; padding: 4px 12px; box-shadow: 0 4px 0 var(--bord); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .piece { width: 20px; height: 20px; border-radius: 50%; background: var(--kamas); color: #fff; display: grid; place-items: center; font: 400 .75rem/1 var(--f-titre); border: 2px solid var(--bord); }
-.xp { width: 70px; height: 9px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
-.xp i { display: block; width: 0; height: 100%; background: var(--or); transition: width .3s; }
+.xp { position: relative; width: 132px; height: 17px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
+.xp i { display: block; width: 0; height: 100%; background: linear-gradient(180deg, #ffd86b, var(--or)); transition: width .4s; }
+.xp em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .62rem/1 var(--f-texte); font-style: normal; color: var(--encre); text-shadow: 0 0 2px #fffaf0, 0 0 2px #fffaf0; white-space: nowrap; }
+.xp.gagne { animation: xpEclat .6s ease-out; } /* un petit eclat a chaque gain d'experience */
+@keyframes xpEclat { 30% { box-shadow: 0 0 0 4px rgba(242, 182, 48, .7); transform: scale(1.06); } }
+@media (max-width: 720px) { .xp { width: 96px; } .xp em { font-size: .56rem; } }
 /* la barre du bas : un panneau de bois clair, une tuile par action avec l'icone de nos modeles */
 .actions { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; padding: 6px 8px; background: rgba(255, 250, 240, .94); border: 3px solid var(--bord); border-radius: 20px; box-shadow: 0 5px 0 var(--bord); pointer-events: auto; }
 .action { display: grid; justify-items: center; gap: 7px; width: 74px; padding: 3px 2px 2px; background: none; border: 0; border-radius: 14px; font: 800 .72rem/1.1 var(--f-texte); color: var(--encre); }
@@ -163,7 +167,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .vg-piste i.fait { background: var(--vert); color: #fff; } .vg-piste i.ici { background: var(--or); transform: scale(1.18); }
 .vg-piste img { width: 40px; height: 40px; border: 2px solid var(--bord); border-radius: 50%; background: #fde3df; object-fit: contain; }
 .vg-piste img.ici { background: var(--or); } .vg-piste img.fait { background: #dff1d3; }
-.vg-monstres { display: flex; gap: 8px; }
+.vg-monstres { display: grid; grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); gap: 6px; }
 .vg-monstre { flex: 1; display: grid; justify-items: center; gap: 2px; background: #fff7e6; border: 2px solid var(--bord); border-radius: 14px; padding: 8px 4px; text-align: center; }
 .vg-monstre img { width: 58px; height: 58px; object-fit: contain; } .vg-monstre b { font: 400 1.1rem var(--f-titre); } .vg-monstre small { font-size: .68rem; font-weight: 700; color: #6b5a3a; }
 .vg-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin-top: 4px; }
@@ -208,13 +212,44 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pv-monstre.cible { box-shadow: 0 0 0 3px var(--or); }
 .degat { position: absolute; transform: translate(-50%, -100%); font: 400 1.3rem/1 var(--f-titre); color: #fff; -webkit-text-stroke: 2px var(--bord); paint-order: stroke fill; white-space: nowrap; }
 .degat.perso { color: #ff9a8a; } .degat.gros { font-size: 1.7rem; color: var(--or); }
+.degat.soin { color: #7ff0c0; }
+.degat.bat { color: #ffb36b; font-size: 1.1rem; }
+.degat.butin { color: #ffe27a; font-size: 1.05rem; }
+/* ---- la fiche du perso ---- */
+.fiche-tete { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: center; margin-bottom: 6px; }
+.fiche-tete img { width: 74px; height: 74px; object-fit: contain; border: 3px solid var(--bord); border-radius: 18px; background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); box-shadow: 0 3px 0 var(--bord); }
+.fiche-tete b { font: 400 1.35rem/1.05 var(--f-titre); display: block; } .fiche-tete span { font-size: .8rem; font-weight: 700; color: #6b5a3a; }
+.fiche-xp { height: 10px; border: 2px solid var(--bord); border-radius: 99px; background: #e8dcc2; overflow: hidden; margin: 5px 0 2px; } .fiche-xp i { display: block; height: 100%; background: var(--or); }
+.fiche-tete small { font-size: .68rem; font-weight: 700; color: #6b5a3a; }
+.stats-grille { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat { background: #fff7e6; border: 2px solid #eadfc8; border-radius: 12px; padding: 6px 4px; text-align: center; }
+.stat b { display: block; font: 400 1.05rem/1 var(--f-titre); } .stat span { display: block; font-size: .62rem; font-weight: 700; color: #6b5a3a; margin-top: 2px; }
+.stat small { display: block; font-size: .6rem; font-weight: 800; color: #2d6a1e; }
+.slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.slot { display: grid; justify-items: center; gap: 2px; background: #fff; border: 2px solid var(--bord); border-radius: 14px; padding: 7px 4px 6px; box-shadow: 0 3px 0 var(--bord); text-align: center; }
+.slot[aria-pressed="true"] { background: #fff1c2; }
+.slot img { width: 46px; height: 46px; object-fit: contain; } .slot .vide { width: 46px; height: 46px; border: 2px dashed #cdbb95; border-radius: 12px; display: grid; place-items: center; font: 400 1.4rem/1 var(--f-titre); color: #cdbb95; }
+.slot b { font-size: .68rem; line-height: 1.1; } .slot small { font-size: .6rem; font-weight: 700; color: #6b5a3a; }
+.slot .nb { position: absolute; }
+.pano-bonus { font-size: .72rem; font-weight: 700; background: #eef6e6; border: 2px solid #cfe3bf; border-radius: 10px; padding: 5px 8px; margin-top: 8px; color: #2d6a1e; }
+.action .tuile b.nouveau { background: var(--rouge); }
+/* ---- les batiments ont des PV : une petite barre au-dessus de ceux qui ont ete touches (on la touche pour reparer) ---- */
+#bats-pv { position: absolute; inset: 0; pointer-events: none; }
+.pv-bat { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 5px; background: var(--papier); border: 2px solid var(--bord); border-radius: 99px; padding: 2px 8px 2px 3px; box-shadow: 0 2px 0 var(--bord); font: 800 .64rem/1 var(--f-texte); white-space: nowrap; pointer-events: auto; cursor: pointer; }
+.pv-bat img { width: 18px; height: 18px; object-fit: contain; }
+.pv-bat .b { display: block; width: 52px; height: 8px; border: 1.5px solid var(--bord); border-radius: 99px; background: #eadfc8; overflow: hidden; }
+.pv-bat .b i { display: block; height: 100%; transition: width .2s; }
+.pv-bat.ruine { background: var(--rouge); color: #fff; }
+.hud.en-combat .pv-bat { pointer-events: none; }
+.pv-grand { height: 12px; border: 2px solid var(--bord); border-radius: 99px; background: #eadfc8; overflow: hidden; margin: 4px 0 2px; } .pv-grand i { display: block; height: 100%; }
+.art.alerte-bat { background: #fff1ea; border-radius: 12px; padding: 8px; border: 2px solid #f0b9a8; margin-bottom: 6px; }
 .raid-annonce { position: absolute; left: 50%; top: calc(112px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--rouge); color: #fff; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 7px 16px; font: 400 1.05rem/1.2 var(--f-titre); text-align: center; pointer-events: none; animation: pouls .8s ease-in-out infinite alternate; max-width: calc(100% - 24px); }
 .raid-annonce small { display: block; font: 700 .74rem/1.2 var(--f-texte); }
 .raid-annonce[hidden] { display: none; }
 @keyframes pouls { to { transform: translateX(-50%) scale(1.05); } }
 .hud.en-combat .actions, .hud.en-combat .commis, .hud.en-combat .aide, .hud.en-combat #bulles, .hud.en-combat .bandeau { display: none !important; }
 @media (max-width: 720px) { .combat-perso .pvb { width: 100px; } .combat-sort .rond { width: 70px; height: 70px; font-size: .78rem; } .hud.en-combat .toasts { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
-@media (max-width: 720px) { .panneau, .commis { display: none; } .action { width: 58px; font-size: .62rem; } .action .tuile { width: 44px; height: 44px; } .action .tuile img { width: 38px; height: 38px; } .bulle { font-size: .68rem; padding: 2px 6px; } .aide { display: none; } .titre { display: none; } }
+@media (max-width: 720px) { .panneau, .commis { display: none; } .actions { gap: 2px; padding: 5px 4px; max-width: calc(100% - 12px); } .action { width: 48px; font-size: .58rem; gap: 5px; } .action .tuile { width: 40px; height: 40px; border-radius: 12px; } .action .tuile img { width: 34px; height: 34px; } .stats-grille { grid-template-columns: repeat(2, 1fr); } .bulle { font-size: .68rem; padding: 2px 6px; } .aide { display: none; } .titre { display: none; } }
 </style>
 </head>
 <body>
@@ -226,7 +261,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     <span class="pastille"><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span>&nbsp;kamas</span>
     <span class="pastille" id="cases">40 cases</span>
     <span class="pastille" id="eau" title="Arrosoir">10/10</span>
-    <span class="pastille">Paysan niv.&nbsp;<span id="niv">1</span> <span class="xp"><i id="xp"></i></span></span>
+    <span class="pastille">Paysan niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
     <span class="pastille" id="mode-test" hidden style="background:var(--rouge);color:#fff">Mode test ×60</span>
     <button class="pastille options" id="b-options">Options</button>
   </div>
@@ -240,6 +275,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     <button class="action" id="b-amelio"><span class="tuile"><img src="assets/icones/marteau.png" alt=""></span>Améliorer</button>
     <button class="action" id="b-grange"><span class="tuile"><img src="assets/icones/grange.png" alt=""></span>Grange</button>
     <button class="action" id="b-amenager"><span class="tuile"><img src="assets/icones/pelle.png" alt=""></span>Aménager</button>
+    <button class="action" id="b-perso"><span class="tuile"><img id="perso-ico" src="assets/icones/iop.png" alt=""><b id="perso-nb" class="nouveau" hidden>0</b></span>Perso</button>
     <button class="action" id="b-vagues"><span class="tuile"><img src="assets/icones/chafer.png" alt=""><b id="vague-nb">1</b></span>Vagues</button>
   </nav>
   <div class="raid-annonce" id="raid-annonce" hidden></div>
@@ -252,6 +288,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   </div>
   <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn" id="b-terminer">Terminer</button></div>
   <div id="bulles"></div>
+  <div id="bats-pv"></div>
 </div>
 <div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
 <div class="modale" id="modale"><div class="carte" id="carte"></div></div>
@@ -278,8 +315,10 @@ const KAMA = '<img class="kama" src="assets/icones/kama.png" alt="kamas">';
 const LAINE = { id: 'laine', nom: 'Laine de Bouftou', prix: 40, xp: 4 };
 const LAINE_NOIRE = { id: 'laine_noire', nom: 'Laine de Bouftou noir', prix: 300, xp: 25 }; /* le Bouftou noir, tres rare, donne celle-ci */
 const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 30, xp: 3 };
-const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME]).map((c) => [c.id, c]));
-const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME]);
+/* ce que lachent les monstres des vagues (a la grange, ca se vend a l'HDV) */
+const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }];
+const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES).map((c) => [c.id, c]));
+const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES);
 /* l'elevage : un bebe grandit en 4 h, puis devient adulte (lui seul fait de la laine) ; deux adultes repus peuvent faire un petit
    (4 Ble, puis 8 h de repos chacun). Une fois sur 50 il nait noir : laine noire, tres chere. Plus probable si un parent est noir. */
 const NOMS_NOIRS = ['Ébène', 'Réglisse', 'Charbon', 'Minuit', 'Corbeau', 'Encre'];
@@ -292,9 +331,9 @@ const AMELIOS = [
   { id: 'engrais', nom: 'Engrais d\'Amakna', desc: 'Tes cultures poussent 15 % plus vite, à chaque niveau.', couts: [300, 900, 2500, 6000], niv: 3 },
   { id: 'reservoir', nom: 'Arrosoir plus grand', desc: 'Plus de doses avant de retourner au puits : 15, 20, 30, puis 45.', couts: [150, 500, 1500, 4000], niv: 1 },
   { id: 'poulie', nom: 'Poulie du puits', desc: 'Le paysan remplit l\'arrosoir à distance dès qu\'il passe à deux cases du puits.', couts: [500], niv: 3 },
-  { id: 'arrosoir', nom: 'Arrosoir automatique', desc: 'Chaque semis est arrosé tout seul.', couts: [700], niv: 4 },
+  { id: 'arrosoir', nom: 'Citerne d\'arrosage', desc: 'Une citerne arrose toute seule chaque nouveau semis, tant qu\'il lui reste de l\'eau : 6, puis 12, 20 et 32 arrosages. Elle se remplit au puits, en même temps que l\'arrosoir.', couts: [700, 1800, 4000, 8000], niv: 4 },
   { id: 'charrette', nom: 'Charrette pour l\'HDV', desc: 'Tu vends 10 % plus cher.', couts: [900], niv: 5 },
-  { id: 'epouvantail', nom: 'Épouvantail renforcé', desc: 'Deux fois moins de Tofus dans les champs.', couts: [500], niv: 6 },
+  { id: 'epouvantail', nom: 'Épouvantail', desc: 'Niveau 1 : deux fois moins de Tofus. Niveau 2 : trois fois moins. Niveau 3 : une arbalète, il tire seul sur les Tofus qui picorent (portée 8 cases, 1 flèche par tir). Niveau 4 : il réagit bien plus vite et couvre toute l\'île. Niveau 5 : le PÉPITO-TRON, laser sur toute la ferme et sur les Tofus des vagues (15 kamas par tir, Pépito facture tout).', couts: [500, 1500, 4000, 9000, 20000], niv: 6 },
   { id: 'abreuvoir', nom: 'Abreuvoir', desc: 'Les Bouftous restent repus moitié plus longtemps (6 h au lieu de 4).', couts: [700], niv: 4 },
   { id: 'cisailles', nom: "Cisailles d'or", desc: "Chaque Bouftou garde jusqu'à 5 laines, puis 7, puis 9, avant qu'il faille le tondre.", couts: [800, 2000, 4500], niv: 5 },
   { id: 'voliere', nom: 'Volière agrandie', desc: 'Deux places de plus pour tes Tofus capturés, à chaque niveau (4, 6, 8, puis 10). Au niveau 1 un deuxième module se pose sur une case libre à côté, au niveau 3 ils prennent un étage.', couts: [500, 1500, 3500, 7000], niv: 3 },
@@ -311,7 +350,9 @@ const AMELIOS = [
   { id: 'arbPortee', nom: 'Arbalète : lunette', desc: 'Elle tire plus loin : 8,5, puis 10, puis 12 cases de portée (7 au départ).', couts: [800, 2000, 4500], niv: 4, requiert: 'arbalete' },
   { id: 'tours', nom: 'Carreaux de tour renforcés', desc: 'Tes tours de défense frappent plus fort : 40, puis 60 dégâts par tir (25 au départ).', couts: [1500, 4000], niv: 5 },
   { id: 'toursPortee', nom: 'Longue-vue des tours', desc: 'Tes tours de défense tirent plus loin : 8, puis 9,5 cases (6,5 au départ).', couts: [1200, 3000], niv: 5 },
-  { id: 'mangeoire', nom: 'Mangeoire', desc: 'Tes Bouftous se servent seuls dans la grange.', couts: [1000], niv: 7 }
+  { id: 'mangeoire', nom: 'Mangeoire', desc: 'Tes Bouftous se servent seuls dans la grange.', couts: [1000], niv: 7 },
+  { id: 'murs', nom: 'Murs de pierre de la grange', desc: 'Ta grange, ton QG, encaisse plus de coups : 900, 1 500, 2 400, puis 3 600 PV (500 au départ).', couts: [800, 2500, 6000, 12000], niv: 4 },
+  { id: 'toursPv', nom: 'Tours cerclées de fer', desc: 'Tes tours de défense encaissent plus de coups : 550, 900, puis 1 400 PV (300 au départ).', couts: [1000, 3000, 7000], niv: 5 }
 ];
 const PRIX_PARCELLE = [50, 80, 120, 180, 260, 360, 500, 700, 950, 1300, 1800, 2500];
 /* Temps reel : les durees sont en minutes. Avec ?test=1 dans l'adresse, tout va 60 fois plus vite (une minute devient une seconde). */
@@ -319,6 +360,8 @@ const TEST = /[?&]test=1/.test(location.search);
 const MIN = TEST ? 1000 : 60000;
 const DUREE_CROISSANCE = 240 * MIN, REPOS_REPRO = 480 * MIN, COUT_REPRO = 4, CHANCE_NOIR = [0.02, 0.15, 0.4]; /* l'elevage (voir plus haut) */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
+const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
+const citernePleine = () => !niv('arrosoir') || (S_.citerne || 0) >= capaciteCiterne();
 const capaciteEau = () => [10, 15, 20, 30, 45][niv('reservoir')] || CAPACITE_EAU;
 const PRIX_FILET = 40, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
 const CADENCE_PLUME = 90 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 20 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
@@ -336,7 +379,7 @@ const degatsArbalete = () => niv('arbalete') ? [30, 50, 80, 120][niv('arbDegats'
 const TOURS_MAX = 4, PRIX_TOUR = [600, 1200, 2000, 3000], NIV_TOUR = 4, CADENCE_TOUR = 1.5;
 const porteeTour = () => [6.5, 8, 9.5][niv('toursPortee')] || 6.5;
 const degatsTour = () => [25, 40, 60][niv('tours')] || 25, nbTours = () => S_.cases.filter((c) => c.type === 'tour').length;
-const forceVoleur = () => Math.max(0, Math.min(10, S_.vague.num - 1)), pvVoleur = () => 20 + 12 * forceVoleur();
+const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
 const RYTHME_TOFU = 180 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 30 * MIN, ACCALMIE_TOFU = 20 * MIN, CADENCE_COURS = 10 * MIN, CADENCE_CRISE = 30 * MIN, DUREE_CRISE = 60000;
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
 const PEPITO = [
@@ -353,6 +396,28 @@ const CLASSES = [
   { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin, une flèche de feu toutes les 10. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57' },
   { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées. Elles combattent pour lui.', sort: 'Invocation', tunique: '#6f42c1' }
 ];
+/* ===================== EQUIPEMENTS =====================
+   Six emplacements, une panoplie par palier : Bouftou, Chafer, Bwork, Craqueleur, Dragoeuf. Les monstres des vagues en lachent parfois
+   (plus souvent avec de la Prospection), le boss toujours la premiere fois. Chaque piece donne deux caracteristiques ;
+   3 pieces d'une meme panoplie : un bonus de Vitalite, les 6 : en plus de la Puissance et de la Prospection. On equipe depuis la fiche du perso. */
+const EMPLACEMENTS = [['coiffe', 'Coiffe'], ['cape', 'Cape'], ['amulette', 'Amulette'], ['anneau', 'Anneau'], ['ceinture', 'Ceinture'], ['bottes', 'Bottes']];
+const CARACS = { vita: ['Vitalité', ' PV', '❤'], puissance: ['Puissance', ' % de dégâts', '⚔'], agilite: ['Agilité', ' % de vitesse d\'attaque', '💨'], sagesse: ['Sagesse', ' % d\'expérience', '📖'], prospection: ['Prospection', ' % de butin', '🍀'] };
+const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }];
+const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
+const VALEURS = { vita: [20, 45, 80, 125, 180], puissance: [4, 7, 10, 14, 18], agilite: [3, 5, 7, 9, 12], sagesse: [5, 8, 11, 15, 20], prospection: [8, 12, 16, 20, 25] };
+const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
+const OBJETS = {};
+PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, VALEURS[c][k]])) }; }));
+const bonusPano = (k, n) => Object.assign({}, n >= 3 ? { vita: VALEURS.vita[k] } : {}, n >= 6 ? { puissance: VALEURS.puissance[k], prospection: 10 } : {});
+const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = OBJETS[id]; if (o) c[o.pano] = (c[o.pano] || 0) + 1; }); return c; };
+function caracs() {
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0 };
+  Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = OBJETS[id]; if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
+  Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; })); return t;
+}
+const reventeObjet = (id) => 40 * OBJETS[id].niv;
+const possede = (id) => (S_.sac[id] || 0) > 0 || Object.values(S_.equip).includes(id);
+const statsTexte = (st) => Object.entries(st).map(([c, v]) => '<span class="puce">' + CARACS[c][2] + ' +' + v + CARACS[c][1] + '</span>').join('');
 const CLE = /[?&]test=1/.test(location.search) ? 'ferme-amakna-3d-v2-test' : 'ferme-amakna-3d-v2'; /* v2 : le plan a change pour coller a l'ile */
 
 /* L'ile de depart : 8 x 5, calee sur le modele de l'ile (assets/modeles/ile-jeu.glb, iles.py version 7). Les deux rangees du fond sont en terrasse,
@@ -413,10 +478,10 @@ function etatInitial() {
   return {
     kamas: 100, xp: 0, graine: 'ble', vu: t, cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
-    amelio: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0
+    amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0
   };
 }
-function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if ((e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; return e; } } catch (err) { /* rien */ } return null; }
+function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if ((e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; return e; } } catch (err) { /* rien */ } return null; }
 function sauver() { try { localStorage.setItem(CLE, JSON.stringify(S_)); } catch (err) { /* rien */ } }
 /* plus de champ fixe : l'ile est en herbe, toute parcelle (y compris celles du depart) se deplace ou se remet en herbe */
 const parcelleAjoutee = (p) => p.type === 'champ';
@@ -499,7 +564,7 @@ function avancer(maintenant, enDirect) {
     }
     if (enDirect && dt < 5000) { /* les Tofus nuisibles */
       if (!p.tofu) {
-        if (recolte(p) > 1 && S_.cases.filter((x) => x.tofu).length < TOFUS_MAX && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU && Math.random() < (dt / RYTHME_TOFU) * (niv('epouvantail') ? 0.5 : 1)) {
+        if (recolte(p) > 1 && S_.cases.filter((x) => x.tofu).length < TOFUS_MAX && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU && Math.random() < (dt / RYTHME_TOFU) * [1, 0.5, 0.33, 0.33, 0.33, 0.33][Math.min(5, niv('epouvantail'))] * (enRuine('epouvantail') ? 1.8 : 1)) {
           p.tofu = maintenant; ch.add(p.id); toast('Un Tofu picore ton ' + c.nom + ' ! Chasse-le dans les ' + dureeLisible(DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) + ', sinon il te vole une récolte.', 'alerte');
         }
       } else if (maintenant - p.tofu > DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) {
@@ -519,7 +584,7 @@ function avancer(maintenant, enDirect) {
     if (affame !== !!b.affame) { b.affame = affame; encl = true; }
   });
   let sauv = false;
-  if (S_.tofus > 0) { /* la voliere : chaque Tofu donne une plume toutes les 90 min, deux en attente au plus par Tofu */
+  if (S_.tofus > 0 && !enRuine('voliere')) { /* la voliere : chaque Tofu donne une plume toutes les 90 min, deux en attente au plus par Tofu */
     const max = S_.tofus * plumesParTofu(), v = S_.voliere;
     if (v.plumes < max) { v.accu += dt; while (v.accu >= CADENCE_PLUME && v.plumes < max) { v.plumes++; v.accu -= CADENCE_PLUME; sauv = true; } if (v.plumes >= max) v.accu = 0; }
   }
@@ -544,10 +609,10 @@ function avancer(maintenant, enDirect) {
   let voleur = false;
   if (enDirect && dt < 5000 && maintenant >= S_.prochainVoleur) {
     S_.prochainVoleur = maintenant + CADENCE_VOLEUR * (0.6 + Math.random() * 0.8);
-    if (valeurGrange() >= 100) voleur = true;
+    if (valeurGrange() >= 100 && joueurPresent()) voleur = true;
   }
   let raid = false; /* le Raid VSA : un groupe de voleurs, annonce 30 s avant (seulement apres la vague 3) */
-  if (enDirect && dt < 5000 && !raidAnnonce && S_.vague.num > 3 && maintenant >= S_.prochainRaid) {
+  if (enDirect && dt < 5000 && !raidAnnonce && S_.vague.num > 3 && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
     S_.prochainRaid = maintenant + CADENCE_RAID * (0.7 + Math.random() * 0.6);
     if (valeurGrange() >= 150) raid = true;
   }
@@ -556,6 +621,7 @@ function avancer(maintenant, enDirect) {
 const valeurGrange = () => VENDABLES.reduce((t, v) => t + (S_.grange[v.id] || 0) * prix(v.id), 0);
 function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
 function gagnerXp(n) {
+  if (n > 0) n = Math.max(1, Math.round(n * (1 + caracs().sagesse / 100))); /* la Sagesse des equipements */
   const avant = niveau(S_.xp); S_.xp += n; const apres = niveau(S_.xp);
   if (apres > avant) { const neuves = CULTURES.filter((c) => c.niv > avant && c.niv <= apres).map((c) => c.nom); toast('Niveau ' + apres + ' de Paysan !' + (neuves.length ? ' ' + neuves.join(', ') + ' à planter.' : ''), 'or'); }
   if (avant < NIV_ULTI && apres >= NIV_ULTI && !S_.ulti) { toast('Niveau ' + NIV_ULTI + ' : ton ulti se débloque ! Choisis-le dans la fiche des vagues.', 'or'); if (!combat && !modaleOuverte) ouvrirUlti(); }
@@ -584,10 +650,11 @@ const ACTIONS = {
     allerPuis(p, () => ACTIONS.agirSurCase(p));
   },
   agirSurCase(p) {
+    { const k = cleDeCase(p); if (k && enRuine(k)) { ouvrirBatPv(k); return; } } /* en ruine : il faut d'abord le reconstruire */
     if (p.type === 'enclos') { ouvrirEnclos(); return; }
     if (p.type === 'hdv') { ouvrirHdv(); return; }
     if (p.type === 'grange') { ouvrirGrange(); return; }
-    if (p.type === 'puits') { if (S_.eau >= capaciteEau()) ouvrirPuits(); else ACTIONS.remplir(); return; }
+    if (p.type === 'puits') { if ((S_.eau >= capaciteEau() && citernePleine()) || degatsBat('puits')) ouvrirPuits(); else ACTIONS.remplir(); return; }
     if (p.type === 'epouvantail') { ouvrirEpouvantail(); return; }
     if (p.type === 'tour') { ouvrirTour(p); return; }
     if (p.type === 'voliere') { ouvrirVoliere(); return; }
@@ -601,9 +668,10 @@ const ACTIONS = {
     toast(PAR_ID[p.c].nom + ' : encore ' + dureeLisible((d - p.pousse) / (p.arrose ? 1 : 0.4)) + (p.arrose ? '.' : ' à sec, arrose pour aller plus vite.'));
   },
   arroser(p) {
+    if (S_.eau <= 0 && enRuine('puits')) { toast('Arrosoir vide, et le puits est en ruine : reconstruis-le d\'abord.', 'alerte'); return; }
     if (S_.eau <= 0 && niv('poulie')) {
       const puits = S_.cases.find((c) => c.type === 'puits'), ici = paysanMesh && paysanMesh.userData.cellule;
-      if (puits && ici && ici.terrain === 'main' && Math.max(Math.abs(ici.i - puits.i), Math.abs(ici.j - puits.j)) <= 2) { S_.eau = capaciteEau(); toast('La poulie remonte un seau : arrosoir plein.'); }
+      if (puits && ici && ici.terrain === 'main' && Math.max(Math.abs(ici.i - puits.i), Math.abs(ici.j - puits.j)) <= 2) { S_.eau = capaciteEau(); if (niv('arrosoir')) S_.citerne = capaciteCiterne(); toast('La poulie remonte un seau : arrosoir plein' + (niv('arrosoir') ? ', citerne aussi.' : '.')); }
     }
     if (S_.eau <= 0) {
       const puits = S_.cases.find((c) => c.type === 'puits');
@@ -614,8 +682,10 @@ const ACTIONS = {
     S_.eau--; p.arrose = true; toast('Arrosé (' + S_.eau + '/' + capaciteEau() + ' dans l\'arrosoir). Ça pousse deux fois et demie plus vite.'); rendreCase(p.id); rendreHaut();
   },
   remplir() {
-    if (S_.eau >= capaciteEau()) { toast('L\'arrosoir est déjà plein.'); return; }
-    S_.eau = capaciteEau(); toast('Arrosoir rempli au puits : ' + capaciteEau() + ' arrosages.'); rendreHaut();
+    if (enRuine('puits')) { toast('Le puits est en ruine : reconstruis-le pour remplir l\'arrosoir.', 'alerte'); return; }
+    if (S_.eau >= capaciteEau() && citernePleine()) { toast(niv('arrosoir') ? 'L\'arrosoir et la citerne sont déjà pleins.' : 'L\'arrosoir est déjà plein.'); return; }
+    S_.eau = capaciteEau(); if (niv('arrosoir')) S_.citerne = capaciteCiterne();
+    toast('Rempli au puits : arrosoir ' + capaciteEau() + '/' + capaciteEau() + (niv('arrosoir') ? ', citerne ' + capaciteCiterne() + '/' + capaciteCiterne() : '') + '.'); rendreHaut(); rendreCasesBulles();
   },
   planter(p, id) {
     /* plusieurs sortes de graines en grange : on demande laquelle planter ; une seule : on la plante ; aucune : direction l'HDV */
@@ -626,7 +696,8 @@ const ACTIONS = {
       id = dispo[0].id;
     }
     const c = PAR_ID[id]; if (!c || !debloquee(c) || !(S_.graines[c.id] > 0) || p.c) return;
-    S_.graines[c.id]--; S_.graine = c.id; Object.assign(p, champVide(), { c: c.id, arrose: !!niv('arrosoir') });
+    S_.graines[c.id]--; S_.graine = c.id; const auto = niv('arrosoir') && (S_.citerne || 0) > 0; if (auto) { S_.citerne--; if (!S_.citerne) toast('La citerne est vide : passe au puits pour la remplir.', 'alerte'); }
+    Object.assign(p, champVide(), { c: c.id, arrose: !!auto });
     rendreCase(p.id); rendreHaut();
   },
   acheterGraines(id, n) {
@@ -731,6 +802,8 @@ const ACTIONS = {
     toast(a.nom + (a.couts.length > 1 ? ' (niveau ' + (n + 1) + ')' : '') + ' : c\'est fait.', 'or');
     if (id === 'enclos') { fermerModale(); mode = 'enclos'; aDeplacer = null; majBandeau(); toast('Place les nouvelles cases de l\'enclos où tu veux : touche des cases d\'herbe collées à l\'enclos, puis Terminer.', 'or'); rendreHaut(); return; }
     if (id === 'voliere') { appliquerVoliere(); rendreCasesBulles(); }
+    if (id === 'epouvantail') { equiperEpouvantail(); if (n + 1 === 3) toast('L\'épouvantail porte une arbalète : il tire seul sur les Tofus qui picorent, avec les flèches de ta réserve.', 'or'); if (n + 1 === 5) toast('PÉPITO-TRON en ligne. Les Tofus de ta ferme ont été prévenus.', 'or'); }
+    if (id === 'arrosoir') { S_.citerne = capaciteCiterne(); toast('Citerne d\'arrosage : ' + capaciteCiterne() + ' arrosages, livrée pleine. Elle se remplit au puits.', 'or'); }
     if (id === 'arbalete') { if (n === 0) { S_.carreaux = capaciteArbalete(); toast('L\'arbalète est montée sur le toit de la grange, armée de ' + S_.carreaux + ' carreaux.', 'or'); } construireArbalete(); rendreArbaleteBulle(); }
     if (/^arb[A-Z]/.test(id)) toast('Arbalète : ' + degatsArbalete() + ' dégâts, ' + capaciteArbalete() + ' carreaux chargés au plus, un tir toutes les ' + String(cadenceArbalete()).replace('.', ',') + ' s.', 'or');
     rendreHaut(); rendreBouftous();
@@ -767,6 +840,7 @@ const ACTIONS = {
       const src = aDeplacer.tour; if (cible === src) { toast('Choisis une autre case.'); return; }
       if (cible.type !== 'libre' || (S_.sauvage && S_.sauvage.id === cible.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
       const deja = inaccessibles(); src.type = 'libre'; cible.type = 'tour'; avertirAcces(deja);
+      if (S_.bats && S_.bats['tour:' + src.id]) { S_.bats['tour:' + cible.id] = S_.bats['tour:' + src.id]; delete S_.bats['tour:' + src.id]; } /* ses degats le suivent */
       cible.prixPaye = src.prixPaye; delete src.prixPaye; rendreCase(src.id); rendreCase(cible.id); construireTours(); toast('La tour a déménagé.', 'or'); aDeplacer = { tour: cible }; majBandeau(); sauver(); return;
     }
     const type = aDeplacer && aDeplacer.bat; if (!type) return;
@@ -813,7 +887,7 @@ const ACTIONS = {
   },
   demonterTour(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'tour') return;
-    const rendu = Math.round((p.prixPaye || PRIX_TOUR[0]) / 2); p.type = 'libre'; delete p.prixPaye; S_.kamas += rendu;
+    const rendu = Math.round((p.prixPaye || PRIX_TOUR[0]) / 2); p.type = 'libre'; delete p.prixPaye; S_.kamas += rendu; if (S_.bats) delete S_.bats['tour:' + p.id];
     fermerModale(); rendreCase(p.id); construireTours(); rendreHaut(); toast('Tour démontée : ' + fmt(rendu) + ' kamas rendus.', 'or'); sauver();
   },
   remettreEnHerbe(id) {
@@ -822,6 +896,31 @@ const ACTIONS = {
     ['c', 'pousse', 'arrose', 'pretDepuis', 'tofu', 'vole', 'tofuParti', 'picore', 'prixPaye'].forEach((k) => delete p[k]);
     p.type = 'libre'; S_.kamas += rendu; if (rendu) S_.parcellesAchetees = Math.max(0, S_.parcellesAchetees - 1);
     fermerModale(); rendreCase(p.id); rendreCasesBulles(); rendreHaut(); toast('La case redevient de l\'herbe' + (rendu ? ' : ' + fmt(rendu) + ' kamas rendus.' : '. Tu peux labourer ailleurs.'), 'or'); sauver();
+  },
+  equiper(id) {
+    const o = OBJETS[id]; if (!o || !(S_.sac[id] > 0)) return;
+    if (niveau(S_.xp) < o.niv) { toast(o.nom + ' : il faut le niveau ' + o.niv + '.'); return; }
+    const avant = S_.equip[o.emp]; S_.sac[id]--; if (!S_.sac[id]) delete S_.sac[id]; if (avant) S_.sac[avant] = (S_.sac[avant] || 0) + 1; S_.equip[o.emp] = id;
+    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver();
+  },
+  retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); },
+  revendreObjet(id) {
+    if (!(S_.sac[id] > 0)) return; const gain = reventeObjet(id); S_.sac[id]--; if (!S_.sac[id]) delete S_.sac[id]; S_.kamas += gain;
+    toast(OBJETS[id].nom + ' revendu : +' + fmt(gain) + ' kamas.'); rendreHaut(); if (modaleOuverte === 'perso') ouvrirPerso(OBJETS[id].emp); else ouvrirGrange(); sauver();
+  },
+  reparer(cle) {
+    if (combat || !degatsBat(cle) || enRuine(cle)) return; const cout = coutReparer(cle);
+    if (S_.kamas < cout) { toast('La réparation coûte ' + fmt(cout) + ' kamas.'); return; }
+    const z = zoneBat(cle); fermerModale();
+    const fini = () => { if (!degatsBat(cle) || S_.kamas < cout) return; S_.kamas -= cout; S_.bats[cle].deg = 0; majFeu(cle); majBarresBat(); if (z) { pouf(z.x, z.y, z.z, 3, '#fff3c4'); } toast(Maj(nomBat(cle)) + ' est réparé' + (typeCle(cle) === 'grange' || typeCle(cle) === 'tour' ? 'e' : '') + ' : ' + fmt(pvMaxBat(cle)) + ' PV.', 'or'); rendreHaut(); sauver(); };
+    if (z) allerPuis(z.cell, fini); else fini();
+  },
+  reconstruire(cle) {
+    if (combat || !enRuine(cle)) return; const cout = coutReconstruire(cle);
+    if (S_.kamas < cout) { toast('La reconstruction coûte ' + fmt(cout) + ' kamas.'); return; }
+    const z = zoneBat(cle); fermerModale();
+    const fini = () => { if (!enRuine(cle) || S_.kamas < cout) return; S_.kamas -= cout; delete S_.bats[cle]; majFeu(cle, true); majBarresBat(); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); if (z) { pouf(z.x, z.y, z.z, 4, '#fff3c4'); pouf(z.x, z.y, z.z, 2, '#f2b630'); } toast(Maj(nomBat(cle)) + ' est reconstruit' + (typeCle(cle) === 'grange' || typeCle(cle) === 'tour' ? 'e' : '') + ', tout neuf !', 'or'); gagnerXp(10); rendreHaut(); sauver(); };
+    if (z) allerPuis(z.cell, fini); else fini();
   },
   acheterTerrain(k) {
     const t = TERRAINS[k]; if (!t || S_.terrains[t.id]) return;
@@ -988,7 +1087,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261011b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261011g'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 function gabarit(racine, nom, taille, axe) {
   const n = racine.getObjectByName(nom); if (!n) { console.warn('modele introuvable', nom); return new T.Group(); }
@@ -1033,7 +1132,7 @@ function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.a
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['terrains', 'ile-jeu', 'granges', 'puits2', 'batiments', 'objets', 'ble-planche', 'cultures', 'monstres', 'chafers', 'monture', 'iop3', 'osa', 'cra'];
+  const fichiers = ['terrains', 'ile-jeu', 'granges', 'puits2', 'batiments', 'objets', 'ble-planche', 'cultures', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -1070,6 +1169,11 @@ async function chargerModeles() {
   versToon(G.chafers, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 2 (blender/chafers.py) */
   versToon(G.monture, { normales: 0.01, sansContour: SC_MONSTRES }); MODELES.monture = gabarit(G.monture, 'Monture', 2.0, 'y'); /* la Dragodinde des raids (blender/monture.py) */
   MODELES.fantassin = gabarit(G.chafers, 'ChaferFantassin', 1.75, 'y'); MODELES.gardien = gabarit(G.chafers, 'ChaferGardien', 2.1, 'y'); MODELES.archer = gabarit(G.chafers, 'ChaferArcher', 1.75, 'y'); MODELES.cuirasse = gabarit(G.chafers, 'ChaferCuirasse', 3.0, 'y');
+  versToon(G.bworks, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 3 : la Horde des Bworks (blender/bworks.py) */
+  MODELES.bwork = gabarit(G.bworks, 'Bwork', 1.9, 'y'); MODELES.bworkArcher = gabarit(G.bworks, 'BworkArcher', 2.0, 'y'); MODELES.bworkMage = gabarit(G.bworks, 'BworkMage', 2.0, 'y'); MODELES.bworkette = gabarit(G.bworks, 'Bworkette', 1.65, 'y'); MODELES.bworker = gabarit(G.bworks, 'Bworker', 3.3, 'y');
+  versToon(G.craqueleurs, { normales: 0.01, sansContour: SC_MONSTRES }); versToon(G.dragoeufs, { normales: 0.01, sansContour: SC_MONSTRES }); /* paliers 4 et 5 (blender/craqueleurs.py, dragoeufs.py) */
+  [['craqueleur', 'Craqueleur', 2.1], ['craqueboule', 'Craqueboule', 1.25], ['craqLanceur', 'CraqLanceur', 2.5], ['craqCristal', 'CraqCristal', 2.2], ['craqLegendaire', 'CraqLegendaire', 3.7]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.craqueleurs, n, h, 'y'); });
+  [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
   for (const f of ['voleur', 'marchand']) { try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); } catch (err) { /* pas encore de modele */ } }
   if (MODELES.voleur && MODELES.monture) { /* le voleur en selle sur sa Dragodinde */
     const g = new T.Group(), mt = cloner('monture'), v = cloner('voleur'); g.add(mt); v.scale.multiplyScalar(0.72); v.position.set(0, 0.84, 0.02); v.rotation.x = 0.1; /* assis sur la selle (a 1,28 du sol), plus petit que sa monture */ g.add(v); g.userData.hauteur = 2.4; MODELES.voleurMonte = g;
@@ -1221,7 +1325,7 @@ function appliquerVoliere() {
   const B = S_.cases.filter((c) => c.type === 'voliere').sort((a, b) => a.i - b.i || a.j - b.j), k = niv('voliere') >= 3 ? 1.2 : 1;
   const a = rotDe('voliere'), [vx, vz] = tourne(0, -0.1, a); B.forEach((c) => { const q = posCase(c), v = batiment('voliere', q.x + vx, q.y, q.z + vz, c.id, a); v.scale.multiplyScalar(k); volieresMesh.push(v); });
   if (B.length) { const P = B.map(posCase); ancres.voliere = new T.Vector3(P.reduce((t, q) => t + q.x, 0) / P.length, P[0].y + (volieresMesh[0].userData.hauteur || 1.8) * k + 0.25, P.reduce((t, q) => t + q.z, 0) / P.length); }
-  rendreTofusVoliere();
+  rendreTofusVoliere(); if (S_.bats) majFeu('voliere', true);
 }
 /* les Tofus captures sautillent dans la cage (sur son plancher surelevee, bien a l'interieur) : on voit tout de suite si elle est pleine */
 const PLACES_CAGE = [[-0.3, -0.28], [0.3, -0.28], [0, -0.05], [-0.3, 0.12], [0.3, 0.12]];
@@ -1275,6 +1379,7 @@ function construireBatiments() {
   o = blocBati('epouvantail'); if (o) pose('epouvantail', o.x, o.y, o.z, o.c0.id, 0.4 + rotDe('epouvantail'));
   o = blocBati('foin'); if (o) { const a = rotDe('foin'); [[-0.35, 0, -0.2, 0.3], [0.45, 0, 0.35, -0.5], [0.05, 0.55, 0.05, 1.2]].forEach(([dx, dy, dz, r]) => { const [x, z] = tourne(dx, dz, a); pose('botte', o.x + x, o.y + dy, o.z + z, o.c0.id, r + a); }); }
   if (arbalete) { scene.remove(arbalete); arbalete = null; } construireArbalete(); construireTours();
+  majFeux(true); equiperEpouvantail();
 }
 /* poser un batiment de w x h cases de facon que la case touchee soit dessous : cases d'herbe libres (ou les siennes), au meme niveau */
 function essaiPose(type, cible, W, H) {
@@ -1465,6 +1570,7 @@ function modeleTour() {
 function construireTours() {
   toursMesh.forEach((t) => scene.remove(t)); toursMesh = [];
   S_.cases.filter((c) => c.type === 'tour').forEach((c) => { const q = posCase(c), g = modeleTour(); poser(g, q.x, q.y, q.z); marquer(g, c.id); g.userData.cd = Math.random() * CADENCE_TOUR; toursMesh.push(g); });
+  if (S_.bats) majFeux(true);
 }
 /* chaque tour vise le voleur ou le monstre le plus proche a sa portee, et tire une fleche de la reserve */
 const PORTEE_VUE = new T.Group(); PORTEE_VUE.visible = false; scene.add(PORTEE_VUE);
@@ -1489,9 +1595,10 @@ canvas.addEventListener('pointermove', (ev) => {
 canvas.addEventListener('pointerleave', () => { PORTEE_VUE.visible = false; });
 function majTours(dt, s) {
   toursMesh.forEach((g, k) => {
+    if (enRuine('tour:' + g.userData.cellule)) return;
     const t = g.userData.tete, pos = g.position;
     g.userData.cd = Math.max(0, g.userData.cd - dt);
-    const v = voleur && (voleur.etat === 'approche' || voleur.etat === 'arrive') && Math.hypot(voleur.m.position.x - pos.x, voleur.m.position.z - pos.z) < porteeTour() ? voleur : null;
+    const v = voleurCiblable() && Math.hypot(voleur.m.position.x - pos.x, voleur.m.position.z - pos.z) < porteeTour() ? voleur : null;
     const mo = !v && combat ? plusProcheMonstre(pos, porteeTour()) : null, cible = v ? v.m.position : mo ? mo.m.position : null;
     let ang = Math.sin(s * 0.5 + k * 2) * 1.4; if (cible) ang = Math.atan2(cible.x - pos.x, cible.z - pos.z);
     let d = ang - t.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); t.rotation.y += d * Math.min(1, dt * (cible ? 7 : 1.2));
@@ -1509,19 +1616,20 @@ function artTour() {
   return '<div class="art' + (bloque ? ' verrou' : '') + '">' + ico('tour') + '<div><b>Tour de défense</b><div class="puces"><span class="puce">' + n + '/' + TOURS_MAX + ' construites</span><span class="puce">⚔ ' + degatsTour() + ' dégâts</span><span class="puce">1 flèche par tir</span></div><div class="desc">Une tour sans archer : son arbalète tire seule sur les voleurs et les monstres. Tu choisis la case où la construire.</div></div><div class="act">' + act + '</div></div>';
 }
 function ouvrirTour(p) {
-  ouvrirModale('tour', entete('Tour de défense') + '<div class="art">' + ico('tour') + '<div><b>Elle tire toute seule</b><div class="puces"><span class="puce">⚔ ' + degatsTour() + ' dégâts</span><span class="puce">portée ' + String(porteeTour()).replace('.', ',') + ' cases</span><span class="puce">un tir toutes les ' + String(CADENCE_TOUR).replace('.', ',') + ' s</span><span class="puce ' + (S_.fleches ? 'bonne' : 'mauvaise') + '">' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + ' en réserve</span></div><div class="desc">Sans archer : son arbalète vise les voleurs de VSA et les monstres des vagues, et prend une flèche de ta réserve à chaque tir (HDV, onglet Acheter).</div></div><div></div></div>' +
-    '<div class="art">' + ico('pelle') + '<div><b>Démonter la tour</b><div class="desc">La case redevient de l\'herbe, la moitié du prix t\'est rendue. Pour la déplacer, passe plutôt par Aménager.</div></div><div class="act"><button class="btn" data-demonter-tour="' + p.id + '">Démonter</button></div></div>' + lignesAmelio(['tours', 'toursPortee'], 'Améliorer les tours'));
+  ouvrirModale('tour', entete('Tour de défense') + artPv('tour:' + p.id) + '<div class="art">' + ico('tour') + '<div><b>Elle tire toute seule</b><div class="puces"><span class="puce">⚔ ' + degatsTour() + ' dégâts</span><span class="puce">portée ' + String(porteeTour()).replace('.', ',') + ' cases</span><span class="puce">un tir toutes les ' + String(CADENCE_TOUR).replace('.', ',') + ' s</span><span class="puce ' + (S_.fleches ? 'bonne' : 'mauvaise') + '">' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + ' en réserve</span></div><div class="desc">Sans archer : son arbalète vise les voleurs de VSA et les monstres des vagues, et prend une flèche de ta réserve à chaque tir (HDV, onglet Acheter).</div></div><div></div></div>' +
+    '<div class="art">' + ico('pelle') + '<div><b>Démonter la tour</b><div class="desc">La case redevient de l\'herbe, la moitié du prix t\'est rendue. Pour la déplacer, passe plutôt par Aménager.</div></div><div class="act"><button class="btn" data-demonter-tour="' + p.id + '">Démonter</button></div></div>' + lignesAmelio(['tours', 'toursPortee', 'toursPv'], 'Améliorer les tours'));
 }
 function rendreArbaleteBulle() {
   if (!arbalete) return;
+  if (enRuine('grange')) { retirerBulle('arbalete'); return; }
   arbalete.userData.fleche.visible = arbalete.userData.pointe.visible = S_.carreaux > 0;
   if (S_.carreaux > 0) retirerBulle('arbalete');
   else bulle('arbalete', icoB('fleches'), 'eau', [arbalete.position.x, arbalete.position.y + 1.1, arbalete.position.z], 'arbalete:1', S_.fleches || '0', 'Arbalète à recharger : touche pour y envoyer le paysan');
 }
 function viserArbalete(dt, s) {
-  if (!arbalete) return;
-  const t = arbalete.userData.tete, mo = !(voleur && (voleur.etat === 'approche' || voleur.etat === 'arrive')) && combat ? plusProcheMonstre(arbalete.position, porteeArbalete()) : null;
-  const cible = voleur && (voleur.etat === 'approche' || voleur.etat === 'arrive') ? voleur.m.position : mo ? mo.m.position : null;
+  if (!arbalete || enRuine('grange')) return;
+  const t = arbalete.userData.tete, mo = !voleurCiblable() && combat ? plusProcheMonstre(arbalete.position, porteeArbalete()) : null;
+  const cible = voleurCiblable() ? voleur.m.position : mo ? mo.m.position : null;
   let ang = Math.sin(s * 0.4) * 1.2; /* elle guette */
   if (cible) ang = Math.atan2(cible.x - arbalete.position.x, cible.z - arbalete.position.z);
   let d = ang - t.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); t.rotation.y += d * Math.min(1, dt * (cible ? 6 : 1.5));
@@ -1545,7 +1653,7 @@ const effets = [];
 function majEffets(dt) { for (let i = effets.length - 1; i >= 0; i--) if (effets[i](dt)) effets.splice(i, 1); }
 const PORTEE_CLASSE = { cra: 9, osa: 3.2, iop: 1.7 };
 function attaquerVoleur() {
-  if (!voleur || voleur.etat === 'fuite' || voleur.etat === 'parti' || !paysanMesh || paysanMesh.userData.attaque) return;
+  if (!voleurCiblable() || !paysanMesh || paysanMesh.userData.attaque) return;
   const classe = (S_.perso && S_.perso.classe) || 'iop', pv = voleur.m.position, pp = paysanMesh.position;
   if (Math.hypot(pv.x - pp.x, pv.z - pp.z) > PORTEE_CLASSE[classe]) { /* trop loin : il court vers le voleur, puis reessaie */
     const c = caseSous(pv.x, pv.z);
@@ -1557,7 +1665,7 @@ function attaquerVoleur() {
 }
 function animerAttaque(dt) {
   const u = paysanMesh && paysanMesh.userData, a = u && u.attaque;
-  if (!a) { if (u && u.reprise > 0) { u.reprise -= dt; if (u.reprise <= 0 && voleur && (voleur.etat === 'approche' || voleur.etat === 'arrive') && !combat && !chemin.length) attaquerVoleur(); } return; }
+  if (!a) { if (u && u.reprise > 0) { u.reprise -= dt; if (u.reprise <= 0 && voleurCiblable() && !combat && !chemin.length) attaquerVoleur(); } return; }
   a.t += dt; const k = Math.min(1, a.t / 0.5), m = u.membres || [], bras = m[3] || m[2];
   if (a.classe === 'iop') { if (a.tour !== false) paysanMesh.rotation.y = a.base + Math.PI * 2 * Math.min(1, a.t / 0.4); if (bras) bras.rotation.x = -2.2 * Math.sin(k * Math.PI); } /* il tournoie (contre le voleur), epee en avant */
   else if (a.classe === 'osa') { if (bras) bras.rotation.x = -2.8 * Math.sin(Math.min(1, k * 1.4) * Math.PI); } /* le bras monte puis claque */
@@ -1597,9 +1705,16 @@ function frapper(classe) {
 }
 /* un coup sur le voleur : il ne detale qu'a 0 PV */
 function blesserVoleur(n, msg, sonne) {
-  if (!voleur || voleur.etat === 'fuite' || voleur.etat === 'parti') return;
+  if (!voleurCiblable()) return;
   voleur.pv -= n; voleur.etourdi = sonne || 0.6; const p = voleur.m.position.clone(); p.y += 1.7; chiffre('-' + n, p);
-  if (voleur.pv <= 0) chasserVoleur(msg);
+  if (voleur.pv > 0) return;
+  const L = butinVoleur(false), t = texteButin(L);
+  if (voleur.porte) { /* rattrape avec son butin : tout revient a la grange, et il disparait */
+    const r = voleur.porte; S_.grange[r.id] = (S_.grange[r.id] || 0) + r.n; voleur.porte = null; chiffre('+' + r.n + ' ' + r.nom, p, 'butin');
+    toast('Voleur abattu avant de quitter ta ferme : ' + r.n + ' ' + r.nom + ' récupérés' + (t ? ', et sur lui : ' + t : '') + ' !', 'or');
+    if (voleur.barre) { voleur.barre.remove(); voleur.barre = null; } retirerBulle('voleur'); pouf(voleur.m.position.x, voleur.m.position.y, voleur.m.position.z, 2.5); voleur.etat = 'parti'; voleur.t = 0; gagnerXp(5); rendreGrange(); sauver(); return;
+  }
+  chasserVoleur(t && typeof msg === 'string' ? msg.replace(/ !$/, '') + ' Sur lui : ' + t + '.' : msg);
 }
 /* chasser un Tofu de loin : le perso vise depuis la ou il est (Cra : 9 cases a l'arc, Osamodas : 3 au fouet, Iop : il s'approche pour l'epee) */
 function chasserDeLoin(p, fin, approche) {
@@ -1614,17 +1729,20 @@ function chasserDeLoin(p, fin, approche) {
   u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => effetFrappe(classe, cible, fin) };
 }
 function chasserVoleur(parArbalete) {
-  if (!voleur || voleur.etat === 'fuite' || voleur.etat === 'parti') return;
+  if (!voleur || voleur.etat === 'fuite' || voleur.etat === 'parti') return; /* (un voleur qui a deja vole se rattrape par blesserVoleur) */
   if (voleur.barre) { voleur.barre.remove(); voleur.barre = null; }
   voleur.etat = 'fuite'; voleur.pts = voleur.pts.slice(0, voleur.k + 1).reverse().concat([voleur.depart]); voleur.k = 0;
   gagnerXp(3); toast(typeof parArbalete === 'string' ? parArbalete : parArbalete ? 'Tchac ! L\'arbalète de la grange fait fuir le voleur de VSA. Pense à la recharger.' : 'Tu as chassé le voleur de VSA, il repart bredouille !', 'or'); retirerBulle('voleur'); sauver();
 }
+const voleurCiblable = () => voleur && (voleur.etat === 'approche' || voleur.etat === 'arrive' || (voleur.etat === 'fuite' && !!voleur.porte));
 function voler() {
   const stocks = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0).sort((a, b) => S_.grange[b.id] * prix(b.id) - S_.grange[a.id] * prix(a.id));
   if (stocks.length) {
-    const v = stocks[0], f = forceVoleur(), n = Math.min(S_.grange[v.id], 12 + 4 * f, Math.max(1, Math.round(S_.grange[v.id] * ((niv('cadenas') ? 0.15 : 0.3) + 0.02 * f))));
-    S_.grange[v.id] -= n; toast('Le voleur de VSA a filé avec ' + n + ' ' + v.nom + ' de ta grange !', 'alerte'); rendreGrange(); sauver();
+    const v = stocks[0], f = forceVoleur(), n = Math.min(S_.grange[v.id], 12 + 4 * f, Math.max(1, Math.round(S_.grange[v.id] * Math.min(0.6, ((niv('cadenas') ? 0.15 : 0.3) + 0.004 * f) * (enRuine('grange') ? 2 : 1)))));
+    S_.grange[v.id] -= n; toast('Le voleur de VSA a pris ' + n + ' ' + v.nom + ' dans ta grange : rattrape-le avant qu\'il quitte ta ferme !', 'alerte'); rendreGrange(); sauver();
+    return { n, nom: v.nom, id: v.id };
   }
+  return null;
 }
 function deplacerVoleur(dt, s) {
   if (!voleur) return;
@@ -1636,10 +1754,10 @@ function deplacerVoleur(dt, s) {
   } else {
     const cible = v.pts[v.k];
     if (!cible) {
-      if (v.etat === 'approche') { voler(); retirerBulle('voleur'); if (v.barre) { v.barre.remove(); v.barre = null; } v.etat = 'fuite'; v.pts = v.pts.slice().reverse().concat([v.depart]); v.k = 0; }
-      else { v.etat = 'parti'; v.t = 0; }
+      if (v.etat === 'approche') { v.porte = voler(); if (v.porte) m.add(sacVole()); else { retirerBulle('voleur'); if (v.barre) { v.barre.remove(); v.barre = null; } } v.etat = 'fuite'; v.pts = v.pts.slice().reverse().concat([v.depart]); v.k = 0; }
+      else { if (v.porte) { toast('Le voleur de VSA a quitté ta ferme avec ' + v.porte.n + ' ' + v.porte.nom + '.', 'alerte'); v.porte = null; } retirerBulle('voleur'); if (v.barre) { v.barre.remove(); v.barre = null; } v.etat = 'parti'; v.t = 0; }
     } else {
-      const dx = cible.x - m.position.x, dz = cible.z - m.position.z, d = Math.hypot(dx, dz), vit = (v.etourdi > 0 && v.etat !== 'fuite' ? 0 : 1) * (v.etat === 'fuite' ? 2.2 : 1) * VITESSE_VOLEUR * (1 + 0.04 * forceVoleur()) * dt; v.etourdi = Math.max(0, (v.etourdi || 0) - dt); /* sonne une demi-seconde a chaque coup */
+      const dx = cible.x - m.position.x, dz = cible.z - m.position.z, d = Math.hypot(dx, dz), vit = (v.etourdi > 0 && (v.etat !== 'fuite' || v.porte) ? 0 : 1) * (v.etat === 'fuite' ? (v.porte ? 1.1 : 2.2) : 1) * VITESSE_VOLEUR * (1 + 0.04 * Math.min(15, forceVoleur())) * dt; v.etourdi = Math.max(0, (v.etourdi || 0) - dt); /* sonne une demi-seconde a chaque coup */
       if (d <= vit) { m.position.x = cible.x; m.position.z = cible.z; v.k++; }
       else { m.position.x += dx / d * vit; m.position.z += dz / d * vit; let a = Math.atan2(dx, dz) - m.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); m.rotation.y += a * Math.min(1, dt * 8); }
       v.pas += vit * 4.6;
@@ -1651,7 +1769,7 @@ function deplacerVoleur(dt, s) {
   m.rotation.x = v.etat === 'approche' ? 0.22 : 0.1; /* courbe, l'air louche */
   m.position.y = hauteurSol(m.position.x, m.position.z) + (1 - Math.cos(v.pas * 2)) * 0.01;
   if (v.barre) { v.barre.firstChild.style.width = (100 * Math.max(0, v.pv) / v.pvMax).toFixed(0) + '%'; versEcran(new T.Vector3(m.position.x, m.position.y + 2.05, m.position.z), v.barre); }
-  if (v.etat === 'approche' || v.etat === 'arrive') bulle('voleur', icoB('voleur'), 'rouge', [m.position.x, m.position.y + 1.6, m.position.z], 'voleur:1', '', 'Un voleur de VSA : touche-le pour le chasser');
+  if (voleurCiblable()) bulle('voleur', icoB('voleur'), 'rouge', [m.position.x, m.position.y + 1.6, m.position.z], 'voleur:1', v.porte ? v.porte.n : '', v.porte ? 'Le voleur file avec ' + v.porte.n + ' ' + v.porte.nom + ' : touche-le pour le rattraper' : 'Un voleur de VSA : touche-le pour le chasser');
 }
 function rendreSauvage() {
   if (sauvageMesh) { scene.remove(sauvageMesh); sauvageMesh = null; }
@@ -1708,6 +1826,267 @@ function rendreBouftous() {
   rendreEnclosBulles();
 }
 
+/* ===================== LES BATIMENTS ONT DES PV =====================
+   La grange (ton QG) et les tours : leurs PV montent avec leurs ameliorations (Murs de pierre, Tours cerclees de fer).
+   L'HDV, la voliere, le puits et l'epouvantail : des PV de base qui montent avec ton niveau.
+   Pendant une vague, une partie des monstres (les « casseurs ») s'en prend aux batiments au lieu du perso, jusqu'a ce que le perso vienne les frapper.
+   Un batiment touche brule : flammes legeres, puis un vrai brasier sous 35 % de ses PV. A 0 PV il tombe en ruine et ne sert plus a rien
+   tant qu'il n'est pas reconstruit. On repare (ou reconstruit) contre des kamas, en le touchant ou en touchant sa barre de vie. */
+const BATS_PV = ['grange', 'hdv', 'voliere', 'puits', 'epouvantail'];
+const NOM_BAT = { grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', puits: 'le puits', epouvantail: 'l\'épouvantail', tour: 'la tour de défense' };
+const ICO_BAT = { grange: 'grange', hdv: 'etal', voliere: 'voliere', puits: 'puits', epouvantail: 'epouvantail', tour: 'tour' };
+const PERTE_RUINE = { grange: 'L\'arbalète du toit ne tire plus, et les voleurs de VSA emportent deux fois plus.', hdv: 'Plus d\'achats ni de ventes à l\'HDV.', voliere: 'Tes Tofus ne donnent plus de plumes.', puits: 'Impossible de remplir l\'arrosoir.', epouvantail: 'Les Tofus viennent picorer bien plus souvent.', tour: 'Elle ne tire plus.' };
+const typeCle = (cle) => cle.split(':')[0];
+const nomBat = (cle) => NOM_BAT[typeCle(cle)];
+const Maj = (t) => t[0].toUpperCase() + t.slice(1);
+const pvMaxBat = (cle) => { const t = typeCle(cle); if (t === 'grange') return [500, 900, 1500, 2400, 3600][niv('murs')]; if (t === 'tour') return [300, 550, 900, 1400][niv('toursPv')]; return 150 + 25 * niveau(S_.xp); };
+const etatBat = (cle) => (S_.bats && S_.bats[cle]) || null;
+const degatsBat = (cle) => { const b = etatBat(cle); return b ? Math.min(b.deg || 0, pvMaxBat(cle)) : 0; };
+const enRuine = (cle) => { const b = etatBat(cle); return !!(b && b.ruine); };
+const pvBat = (cle) => enRuine(cle) ? 0 : Math.max(0, pvMaxBat(cle) - degatsBat(cle));
+const prixPv = () => 0.5 + 0.03 * niveau(S_.xp); /* le kama par PV a reparer : il monte un peu avec le niveau */
+const coutReparer = (cle) => Math.max(1, Math.ceil(degatsBat(cle) * prixPv()));
+const coutReconstruire = (cle) => Math.ceil(pvMaxBat(cle) * prixPv() * 1.5);
+const clesBats = () => BATS_PV.filter((t) => S_.cases.some((c) => c.type === t)).concat(S_.cases.filter((c) => c.type === 'tour').map((c) => 'tour:' + c.id));
+const cleDeCase = (c) => !c ? null : c.type === 'tour' ? 'tour:' + c.id : BATS_PV.includes(c.type) ? c.type : null;
+/* le rectangle au sol du batiment (les monstres frappent son bord) et ses maillages */
+function zoneBat(cle) {
+  const t = typeCle(cle);
+  if (t === 'tour') { const c = S_.cases.find((x) => x.id === cle.slice(5) && x.type === 'tour'); if (!c) return null; const q = posCase(c); return { x: q.x, y: q.y, z: q.z, hw: 0.55, hd: 0.55, meshes: toursMesh.filter((g) => g.userData.cellule === c.id), cell: c }; }
+  const o = blocBati(t); if (!o) return null;
+  const meshes = t === 'voliere' ? volieresMesh.slice() : batisMesh.filter((m) => { const c = S_.cases.find((x) => x.id === m.userData.cellule); return c && c.type === t; });
+  if (t === 'grange' && arbalete) meshes.push(arbalete);
+  if (t === 'epouvantail' && epou && epou.remplace) meshes.push(epou.g); /* le Pepito-Tron brule a sa place */
+  return { x: o.x, y: o.y, z: o.z, hw: Math.max(0.5, o.w * S / 2 - 0.3), hd: Math.max(0.5, o.h * S / 2 - 0.3), meshes, cell: o.c0 };
+}
+function boiteBat(z) { const b = new T.Box3(); z.meshes.forEach((m) => b.expandByObject(m)); if (b.isEmpty()) b.set(new T.Vector3(z.x - z.hw, z.y, z.z - z.hd), new T.Vector3(z.x + z.hw, z.y + 1.5, z.z + z.hd)); return b; }
+
+/* ---------- le feu : des flammes dessinees par un petit shader (bandes rouge, orange, jaune et coeur clair, qui ondulent et se tordent),
+   un halo au sol, des braises qui montent, de la fumee (noire quand ca brule fort) ---------- */
+const FEU_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const FEU_FS = `varying vec2 vUv; uniform float uT; uniform float uS;
+  float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
+  float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int k = 0; k < 5; k++) { v += a * n(p); p = p * 2.07 + vec2(1.7, 9.2); a *= 0.5; } return v; }
+  void main(){
+    float y = vUv.y, t = uT * 1.6 + uS * 13.0;
+    float tord = (fbm(vec2(y * 2.2 - t * 1.1, uS * 3.0)) - 0.5) * 0.55 * y;
+    float x = (vUv.x - 0.5 - tord) * 2.0;
+    float corps = 0.92 * pow(max(0.0, 1.0 - y), 0.55) * smoothstep(-0.05, 0.22, y);
+    float langues = (fbm(vec2(vUv.x * 4.0 + uS * 7.0, y * 3.2 - t * 2.4)) - 0.48) * (0.25 + 0.95 * y);
+    float f = corps - abs(x) * (0.85 + 0.6 * y) + langues;
+    if (f <= 0.0) { float a = f > -0.2 ? (f + 0.2) / 0.2 * 0.3 * (1.0 - y) : 0.0; if (a <= 0.01) discard; gl_FragColor = vec4(1.0, 0.45, 0.1, a); return; }
+    float k = f + 0.06 * (1.0 - y); vec3 c;
+    if (k > 0.55) c = vec3(1.0, 0.97, 0.82); else if (k > 0.36) c = vec3(1.0, 0.84, 0.3); else if (k > 0.19) c = vec3(1.0, 0.56, 0.12); else if (k > 0.07) c = vec3(0.92, 0.26, 0.07); else c = vec3(0.6, 0.13, 0.05);
+    gl_FragColor = vec4(c, 1.0);
+  }`;
+const texDouce = (stops) => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(cv); };
+const LUEUR_TEX = texDouce([[0, 'rgba(255,170,60,0.9)'], [0.5, 'rgba(255,110,30,0.35)'], [1, 'rgba(255,90,20,0)']]);
+const FUMEE_TEX = texDouce([[0, 'rgba(255,255,255,1)'], [0.6, 'rgba(255,255,255,0.6)'], [1, 'rgba(255,255,255,0)']]);
+const GEO_PLAN = new T.PlaneGeometry(1, 1);
+/* un foyer : des flammes aux points donnes [x, y, z, hauteur], plus halo, braises et fumee. fort : fumee noire, plus de braises */
+function foyer(pts, fort) {
+  const grp = new T.Group(); scene.add(grp);
+  const fl = pts.map(([x, y, z, hh]) => { const m = new T.Mesh(GEO_PLAN, new T.ShaderMaterial({ uniforms: { uT: { value: 0 }, uS: { value: Math.random() * 10 } }, vertexShader: FEU_VS, fragmentShader: FEU_FS, transparent: true, depthWrite: false, side: T.DoubleSide }));
+    m.scale.set(hh * 0.85, hh, 1); m.position.set(x, y + hh * 0.42, z); m.renderOrder = 6; grp.add(m); return m; });
+  const lueurs = pts.filter((p, k) => k < 4).map(([x, y, z, hh]) => { const l = new T.Mesh(GEO_PLAN, new T.MeshBasicMaterial({ map: LUEUR_TEX, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); l.position.set(x, y + hh * 0.3, z); l.scale.setScalar(hh * (fort ? 2.6 : 2)); l.renderOrder = 5; grp.add(l); return l; });
+  const braises = []; for (let i = 0; i < (fort ? 18 : 7); i++) { const b = new T.Mesh(GEO_PLAN, new T.MeshBasicMaterial({ color: i % 2 ? '#ffd04a' : '#ff7a1e', transparent: true, depthWrite: false, blending: T.AdditiveBlending })); b.scale.setScalar(0.055); b.userData = { t: Math.random(), a: Math.random() * 6.28, r: Math.random() * 0.4, p: pts[i % pts.length] }; grp.add(b); braises.push(b); }
+  const fumees = []; for (let i = 0; i < (fort ? 12 : 5); i++) { const m = new T.Mesh(GEO_PLAN, new T.MeshBasicMaterial({ map: FUMEE_TEX, color: fort ? '#2e2826' : '#b9b2aa', transparent: true, depthWrite: false })); m.userData = { t: i / (fort ? 12 : 5), o: Math.random() * 6, p: pts[i % pts.length] }; m.renderOrder = 4; grp.add(m); fumees.push(m); }
+  let s = 0;
+  grp.userData.maj = (dt) => {
+    s += dt; const q = camera.quaternion;
+    fl.forEach((m) => { m.material.uniforms.uT.value = s; m.quaternion.copy(q); });
+    lueurs.forEach((l, k) => { l.quaternion.copy(q); l.material.opacity = 0.55 + Math.sin(s * 9 + k) * 0.12 + Math.sin(s * 23 + k * 2) * 0.08; });
+    braises.forEach((b) => { const u = b.userData; u.t += dt * 0.55; if (u.t > 1) { u.t = 0; u.a = Math.random() * 6.28; } const [x, y, z, hh] = u.p; b.position.set(x + Math.cos(u.a) * u.r + Math.sin(u.t * 9 + u.a) * 0.08, y + hh * 0.5 + u.t * (fort ? 2.6 : 1.6), z + Math.sin(u.a) * u.r); b.quaternion.copy(q); b.material.opacity = 1 - u.t; });
+    fumees.forEach((m) => { const u = m.userData; u.t = (u.t + dt * 0.25) % 1; const t = u.t, [x, y, z, hh] = u.p; m.position.set(x + Math.sin(t * 4 + u.o) * 0.2 + t * 0.6, y + hh * 0.85 + t * (fort ? 3.4 : 2.0), z + Math.cos(t * 3 + u.o) * 0.2); m.quaternion.copy(q); m.scale.setScalar((fort ? 1.5 : 0.9) * (0.4 + t * 1.8)); m.material.opacity = (fort ? 0.75 : 0.42) * Math.sin(t * Math.PI); });
+  };
+  return grp;
+}
+/* des points sur le toit (et les murs) d'un batiment : on lache des rayons du ciel sur ses maillages */
+function pointsSur(z, b, n) {
+  const rc = new T.Raycaster(), pts = [], objs = z.meshes.filter((m) => m.visible), bas = new T.Vector3(0, -1, 0);
+  for (let e = 0; e < n * 14 && pts.length < n; e++) {
+    const x = b.min.x + (0.18 + Math.random() * 0.64) * (b.max.x - b.min.x), zz = b.min.z + (0.18 + Math.random() * 0.64) * (b.max.z - b.min.z);
+    rc.set(new T.Vector3(x, b.max.y + 2, zz), bas);
+    const h = rc.intersectObjects(objs, true).find((i) => i.object.isMesh && i.object.visible && !(i.object.material && (i.object.material.side === T.BackSide || i.object.material.transparent)));
+    if (h && h.point.y > b.min.y + 0.25 && pts.every((p) => Math.hypot(p.x - h.point.x, p.z - h.point.z) > 0.45)) pts.push(h.point.clone());
+  }
+  return pts;
+}
+/* les ruines : gravats, poutres calcinees, braises */
+function ruines(z) {
+  const g = new T.Group(), n = Math.round(8 + (z.hw + z.hd) * 4), cols = ['#77706a', '#5f5852', '#8e8a85', '#4a3a2e'];
+  for (let i = 0; i < n; i++) { const p = new T.Mesh(new T.BoxGeometry(0.3 + Math.random() * 0.35, 0.2 + Math.random() * 0.2, 0.25 + Math.random() * 0.3), mat(hasard(cols))); p.position.set((Math.random() - 0.5) * 2 * z.hw, 0.12 + Math.random() * 0.15, (Math.random() - 0.5) * 2 * z.hd); p.rotation.set(Math.random() * 0.7, Math.random() * 3, Math.random() * 0.6); p.castShadow = true; g.add(p); }
+  for (let i = 0; i < 4 + Math.round(z.hw + z.hd); i++) { const p = new T.Mesh(new T.BoxGeometry(0.1, 0.1, 0.9 + Math.random() * 0.8), mat('#2b211b')); p.position.set((Math.random() - 0.5) * 1.6 * z.hw, 0.28 + Math.random() * 0.2, (Math.random() - 0.5) * 1.6 * z.hd); p.rotation.set(Math.random() - 0.5, Math.random() * 3, (Math.random() - 0.5) * 0.8); p.castShadow = true; g.add(p); }
+  g.position.set(z.x, z.y, z.z); scene.add(g); return g;
+}
+const feux = {}; /* cle -> { etat, grp, ruine, x, z } */
+function etatFeu(cle) { if (enRuine(cle)) return 3; if (!degatsBat(cle)) return 0; return pvBat(cle) / pvMaxBat(cle) <= 0.35 ? 2 : 1; }
+function eteindre(cle) { const f = feux[cle]; if (!f) return; if (f.grp) scene.remove(f.grp); if (f.ruine) scene.remove(f.ruine); delete feux[cle]; }
+function majFeu(cle, force) {
+  const z = zoneBat(cle); if (!z) { eteindre(cle); return; }
+  const e = etatFeu(cle), f = feux[cle];
+  z.meshes.forEach((m) => { m.visible = e !== 3; });
+  if (typeCle(cle) === 'hdv' && marchandMesh) marchandMesh.visible = e !== 3; /* le marchand s'est mis a l'abri */
+  if (f && f.etat === e && !force && f.x === z.x && f.z === z.z) return;
+  eteindre(cle); if (!e) return;
+  const b = boiteBat(z), H = b.max.y - b.min.y, hh = borne(0.45 + H * 0.13, 0.5, 0.95), F = { etat: e, x: z.x, z: z.z };
+  if (e === 3) { F.ruine = ruines(z); F.grp = foyer([[z.x + 0.2, z.y + 0.25, z.z + 0.1, 0.5], [z.x - 0.35, z.y + 0.3, z.z - 0.2, 0.4]], true); }
+  else {
+    const toit = pointsSur(z, b, e === 2 ? 5 : 2).map((p) => [p.x, p.y - 0.05, p.z, hh * (e === 2 ? 1.25 : 0.85) * (0.8 + Math.random() * 0.4)]);
+    if (!toit.length) toit.push([z.x, b.max.y - 0.3, z.z, hh]);
+    if (e === 2) [[1, 1], [-1, 1]].forEach(([a, c]) => toit.push([z.x + a * z.hw * 0.8, z.y + 0.02, z.z + c * z.hd * 0.8, hh * 1.1])); /* le pied des murs prend aussi */
+    F.grp = foyer(toit, e === 2);
+  }
+  feux[cle] = F;
+}
+function majFeux(force) { const C = clesBats(); C.forEach((k) => majFeu(k, force)); Object.keys(feux).forEach((k) => { if (!C.includes(k)) eteindre(k); }); majBarresBat(); }
+function animerFeux(dt) { Object.values(feux).forEach((f) => { if (f.grp && f.grp.userData.maj) f.grp.userData.maj(dt); }); }
+/* les barres de vie au-dessus des batiments touches */
+const barresBat = new Map();
+function majBarresBat() {
+  const C = clesBats(), zone = $('bats-pv');
+  barresBat.forEach((e, k) => { if (!C.includes(k) || (!degatsBat(k) && !enRuine(k))) { e.remove(); barresBat.delete(k); } });
+  C.forEach((k) => {
+    if (!degatsBat(k) && !enRuine(k)) return;
+    let e = barresBat.get(k); if (!e) { e = document.createElement('div'); e.className = 'pv-bat'; e.dataset.bat = k; zone.appendChild(e); barresBat.set(k, e); e.addEventListener('click', () => { if (!combat && !enAccueil) ouvrirBatPv(k); }); }
+    const r = pvBat(k) / pvMaxBat(k), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)';
+    e.classList.toggle('ruine', enRuine(k)); e.title = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
+    e.innerHTML = '<img src="assets/icones/marteau.png?v=' + VERSION_MODELES + '" alt="">' + (enRuine(k) ? 'En ruine' : '<span class="b"><i style="width:' + (100 * r).toFixed(0) + '%;background:' + col + '"></i></span>' + fmt(pvBat(k)));
+    const z = zoneBat(k); if (z) { const b = boiteBat(z); e.dataset.point = JSON.stringify([z.x, enRuine(k) ? z.y + 1.1 : b.max.y + 0.3, z.z]); }
+  });
+}
+function placerBarresBat() { barresBat.forEach((e) => { if (!e.dataset.point) return; const p = JSON.parse(e.dataset.point); vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
+/* un coup sur un batiment */
+function blesserBat(cle, n) {
+  if (!S_ || enRuine(cle)) return; S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
+  const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
+  if (z) { const bx = boiteBat(z); chiffre('-' + n, new T.Vector3(z.x, bx.max.y + 0.2, z.z), 'bat'); }
+  if (combat) { combat.bats = combat.bats || {}; combat.bats[cle] = (combat.bats[cle] || 0) + n; if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); } }
+  if (b.deg >= max) { b.ruine = true; if (z) { pouf(z.x, z.y, z.z, 4, '#8e8a85'); pouf(z.x, z.y, z.z, 2.5, '#ff7a1e'); } toast(Maj(nomBat(cle)) + ' s\'effondre en ruine ! ' + PERTE_RUINE[typeCle(cle)] + ' Reconstruis-le après la vague.', 'alerte'); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); }
+  majFeu(cle); majBarresBat();
+}
+/* le casseur : il choisit le batiment debout le plus proche, et y retourne tant que le perso ne vient pas le chercher */
+function batLePlusProche(mo) {
+  let best = null, bd = 1e9; clesBats().forEach((k) => { if (enRuine(k)) return; const z = zoneBat(k); if (!z) return; const d = Math.hypot(z.x - mo.x, z.z - mo.z); if (d < bd) { bd = d; best = k; } }); return best;
+}
+function cibleBatiment(mo, dt) {
+  if (mo.casseur === undefined) mo.casseur = !mo.d.boss && Math.random() < (mo.d.casse || 0);
+  if (!mo.casseur || mo.aggro) return null;
+  const pp = paysanMesh.position; if (Math.hypot(pp.x - mo.x, pp.z - mo.z) < 2.2) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend */
+  mo.batT = (mo.batT || 0) - dt;
+  if (!mo.bat || enRuine(mo.bat) || mo.batT <= 0) { mo.batT = 1.5; mo.bat = batLePlusProche(mo); }
+  if (!mo.bat) return null;
+  const z = zoneBat(mo.bat); if (!z) { mo.bat = null; return null; }
+  return { cle: mo.bat, x: borne(mo.x, z.x - z.hw, z.x + z.hw), z: borne(mo.z, z.z - z.hd, z.z + z.hd), y: z.y };
+}
+/* la fenetre : reparer ou reconstruire */
+function artPv(cle) {
+  const max = pvMaxBat(cle), pv = pvBat(cle), r = pv / max, ruine = enRuine(cle), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)', cout = ruine ? coutReconstruire(cle) : coutReparer(cle);
+  const act = combat ? '<span class="cadenas">Après la vague</span>' : ruine ? '<button class="btn kamas" data-reconstruire="' + cle + '"' + (S_.kamas < cout ? ' disabled' : '') + '>Reconstruire ' + fmt(cout) + ' ' + KAMA + '</button>' + manque(cout) : degatsBat(cle) ? '<button class="btn kamas" data-reparer="' + cle + '"' + (S_.kamas < cout ? ' disabled' : '') + '>Réparer ' + fmt(cout) + ' ' + KAMA + '</button>' + manque(cout) : '<span class="cadenas">✓ Intact</span>';
+  return '<div class="art' + (ruine || degatsBat(cle) ? ' alerte-bat' : '') + '">' + ico(ICO_BAT[typeCle(cle)]) + '<div><b>' + (ruine ? Maj(nomBat(cle)) + ' est en ruine' : 'Solidité : ' + fmt(pv) + ' / ' + fmt(max) + ' PV') + '</b>' + (ruine ? '' : '<div class="pv-grand"><i style="width:' + (100 * r).toFixed(1) + '%;background:' + col + '"></i></div>') + '<div class="desc">' + (ruine ? PERTE_RUINE[typeCle(cle)] + ' Reconstruit, il repart avec tous ses PV.' : degatsBat(cle) ? 'Il brûle encore par endroits. Réparé, il retrouve tous ses PV.' : (typeCle(cle) === 'grange' || typeCle(cle) === 'tour' ? 'Ses PV montent avec ses améliorations.' : 'Ses PV montent avec ton niveau de Paysan.') + ' Pendant les vagues, certains monstres viennent le frapper.') + '</div></div><div class="act">' + act + '</div></div>';
+}
+function ouvrirBatPv(cle) {
+  const t = typeCle(cle);
+  ouvrirModale('batpv', entete(Maj(nomBat(cle))) + artPv(cle) + (t === 'grange' ? lignesAmelio(['murs'], 'Renforcer la grange') : t === 'tour' ? lignesAmelio(['toursPv'], 'Renforcer les tours') : ''));
+  ouvrirBatPv.cle = cle;
+}
+
+/* ===================== L'EPOUVANTAIL CHASSEUR =====================
+   Niveau 3 : une arbalete sur l'epaule, il tire sur un Tofu qui picore depuis un moment (portee 8 cases, une fleche de la reserve par tir).
+   Niveau 4 : il reagit vite et couvre toute l'ile. Niveau 5 : le PEPITO-TRON, le mini terminator du bot de Redemption : armure doree,
+   visiere rouge, canon laser, pepites en orbite ; il couvre toute la ferme, abat aussi les Tofus des vagues, et facture 15 kamas par tir.
+   Il ne s'occupe que des Tofus. */
+const EPOU = [null, null, null, { portee: 8, delai: 6 * MIN, cadence: 3.5, deg: 40 }, { portee: 14, delai: 1 * MIN, cadence: 2.2, deg: 60 }, { portee: 99, delai: 0.15 * MIN, cadence: 1.0, deg: 150 }];
+const PRIX_LASER = 15;
+const PEPITO_TRON = ['PÉPITO-TRON en ligne. Les Tofus ont été prévenus. Ils n\'ont pas aimé.', 'chaque tir de laser : 15 kamas. la sécurité, ça se paie. en pépites.', 'un Tofu abattu, c\'est une récolte sauvée. ma marge : 100 %.', 'mode terminator activé. je reviendrai... pour la facture.', 'j\'ai scanné ta ferme : 0 Tofu, 100 % de pépites. de rien.'];
+let epou = null; /* { g: arme et armure posees sur l'epouvantail, tete, canon, pepites, cd, base } */
+const epouvantailMesh = () => batisMesh.find((m) => { const c = S_.cases.find((x) => x.id === m.userData.cellule); return c && c.type === 'epouvantail'; });
+function equiperEpouvantail() {
+  if (epou) { scene.remove(epou.g); if (epou.remplace) epou.remplace.visible = !enRuine('epouvantail'); epou = null; } delete ancres.epouvantail;
+  const n = niv('epouvantail'), m = epouvantailMesh(); if (!m || n < 3) return;
+  const b = new T.Box3().setFromObject(m), H = b.max.y - b.min.y, g = new T.Group(); g.position.set(m.position.x, m.position.y, m.position.z); scene.add(g);
+  const tete = new T.Group(); tete.position.y = H * 0.62; g.add(tete); /* la tourelle qui vise, a hauteur d'epaule */
+  let canon;
+  if (n >= 5) { /* le PEPITO-TRON : un vrai petit robot a la place de l'epouvantail (il garde son chapeau de paille) */
+    const or = '#e8b84a', acier = '#9aa6ad', fonce = '#3d434a', rouge = new T.MeshBasicMaterial({ color: '#ff2a2a' });
+    tete.position.y = 0; /* tout le haut du corps pivote vers la cible */
+    const socle = cyl(0.42, 0.48, 0.1, or, 16); socle.position.y = 0.05; g.add(socle);
+    [-1, 1].forEach((sg) => { /* deux jambes d'acier */
+      const cuisse = cyl(0.09, 0.08, 0.45, acier, 10); cuisse.position.set(sg * 0.16, 0.78, 0); g.add(cuisse);
+      const genou = sphere(0.1, or, 1); genou.position.set(sg * 0.16, 0.55, 0.02); g.add(genou);
+      const tibia = cyl(0.08, 0.09, 0.42, acier, 10); tibia.position.set(sg * 0.16, 0.33, 0); g.add(tibia);
+      const pied = boite(0.18, 0.1, 0.3, fonce); pied.position.set(sg * 0.16, 0.12, 0.05); g.add(pied);
+    });
+    const bassin = boite(0.46, 0.16, 0.3, fonce); bassin.position.y = 1.02; g.add(bassin);
+    const torse = sphere(0.36, acier, 2); torse.scale.set(1, 1.05, 0.8); torse.position.y = 1.42; tete.add(torse);
+    const plastron = boite(0.42, 0.34, 0.08, or); plastron.position.set(0, 1.45, 0.26); tete.add(plastron);
+    const coeurR = new T.Mesh(new T.CircleGeometry(0.09, 20), rouge); coeurR.position.set(0, 1.47, 0.305); tete.add(coeurR); /* le coeur du reacteur */
+    const P = cyl(0.06, 0.06, 0.03, '#fff3c4', 12); P.rotation.x = Math.PI / 2; P.position.set(0, 1.3, 0.3); tete.add(P);
+    const cou = cyl(0.08, 0.1, 0.12, fonce, 10); cou.position.y = 1.82; tete.add(cou);
+    const crane = sphere(0.24, acier, 2); crane.scale.set(1.05, 0.9, 1); crane.position.y = 2.0; tete.add(crane);
+    const visiere = new T.Mesh(new T.BoxGeometry(0.42, 0.08, 0.1), rouge.clone()); visiere.position.set(0, 2.02, 0.19); tete.add(visiere);
+    const bord = cyl(0.42, 0.44, 0.04, '#d9b24a', 20); bord.position.y = 2.17; bord.rotation.z = 0.12; tete.add(bord); /* le chapeau de paille de l'epouvantail */
+    const calotte = cone(0.24, 0.32, '#e8c35a', 14); calotte.position.set(0.02, 2.34, 0); calotte.rotation.z = 0.12; tete.add(calotte);
+    const ruban = cyl(0.2, 0.22, 0.05, '#c83a22', 14); ruban.position.set(0.01, 2.22, 0); ruban.rotation.z = 0.12; tete.add(ruban);
+    const antenne = cyl(0.015, 0.015, 0.32, fonce, 6); antenne.position.set(-0.16, 2.3, -0.05); tete.add(antenne);
+    const voyant = new T.Mesh(new T.SphereGeometry(0.05, 10, 8), new T.MeshBasicMaterial({ color: '#ff4040' })); voyant.position.set(-0.16, 2.48, -0.05); tete.add(voyant);
+    [-1, 1].forEach((sg) => { const ep = sphere(0.15, or, 1); ep.position.set(sg * 0.42, 1.62, 0); tete.add(ep); });
+    /* bras gauche : un sac de pepites */
+    const brasG = cyl(0.06, 0.06, 0.45, acier, 8); brasG.position.set(-0.48, 1.36, 0.06); brasG.rotation.z = -0.25; tete.add(brasG);
+    const sac = sphere(0.18, '#a8743f', 1); sac.scale.set(1, 1.1, 1); sac.position.set(-0.56, 1.05, 0.12); tete.add(sac);
+    [[-0.5, 1.22, 0.2], [-0.62, 1.2, 0.16], [-0.56, 1.25, 0.08]].forEach(([x, y, z]) => { const pp = maille(new T.DodecahedronGeometry(0.06, 0), or); pp.position.set(x, y, z); tete.add(pp); });
+    /* bras droit : le canon laser, pointe vers l'avant */
+    canon = new T.Group(); canon.position.set(0.5, 1.45, 0.05); tete.add(canon);
+    const tube = cyl(0.08, 0.1, 0.7, fonce, 12); tube.rotation.x = Math.PI / 2; tube.position.z = 0.25; canon.add(tube);
+    [0.02, 0.28, 0.48].forEach((z) => { const a = cyl(0.11, 0.11, 0.05, or, 14); a.rotation.x = Math.PI / 2; a.position.z = z; canon.add(a); });
+    const bout = new T.Mesh(new T.SphereGeometry(0.07, 10, 8), rouge.clone()); bout.position.z = 0.62; canon.add(bout); canon.userData.bout = bout;
+    const pepites = new T.Group(); pepites.position.y = 1.5; g.add(pepites);
+    for (let k = 0; k < 5; k++) { const pp = maille(new T.DodecahedronGeometry(0.08, 0), or); const a = k / 5 * Math.PI * 2; pp.position.set(Math.cos(a) * 0.75, Math.sin(a * 2) * 0.12, Math.sin(a) * 0.75); pepites.add(pp); }
+    g.scale.setScalar(H / 2.6); /* a la taille de l'epouvantail qu'il remplace */
+    epou = { g, tete, canon, pepites, voyant, visiere, coeur: coeurR, cd: 1, n, remplace: m }; ancres.epouvantail = new T.Vector3(m.position.x, m.position.y + H + 0.35, m.position.z);
+  } else { /* l'arbalete du niveau 3 et 4, sur un petit support d'epaule */
+    const a = modeleArbalete(); a.scale.setScalar(n >= 4 ? 1.25 : 1.05); a.position.set(0.32, -0.1, 0.05); tete.add(a);
+    canon = a; canon.userData.bout = a.userData.pointe; epou = { g, tete, canon, cd: 1, n };
+  }
+  epou.g.visible = !enRuine('epouvantail');
+}
+/* chaque image : il guette, pivote vers sa cible, tire */
+function majEpouvantail(dt, s) {
+  if (!epou || !S_) return;
+  const n = niv('epouvantail'), E = EPOU[Math.min(5, n)], pos = epou.g.position; epou.g.visible = !enRuine('epouvantail');
+  if (epou.remplace) epou.remplace.visible = false;
+  if (epou.pepites) { epou.pepites.rotation.y += dt * 1.6; epou.coeur.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 5) * 0.12); epou.voyant.visible = Math.sin(s * 6) > -0.3; epou.visiere.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 4) * 0.08); }
+  if (!E || enRuine('epouvantail')) return;
+  epou.cd = Math.max(0, epou.cd - dt);
+  /* la cible : un Tofu des vagues (Pepito-Tron) ou un Tofu qui picore un champ depuis assez longtemps */
+  let cible = null, x = 0, z = 0, y = 0;
+  if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.type === 'tofu' && o.etat === 'actif').sort((a, b) => Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t }; x = t.x; z = t.z; y = t.m.position.y + 0.4; } }
+  if (!cible && !combat) { const now = Date.now(); const p = S_.cases.filter((c) => c.type === 'champ' && c.tofu && now - c.tofu >= E.delai).map((c) => [c, posCase(c)]).filter(([, q]) => Math.hypot(q.x - pos.x, q.z - pos.z) <= E.portee).sort((a, b) => a[0].tofu - b[0].tofu)[0]; if (p) { cible = { champ: p[0] }; x = p[1].x; z = p[1].z; y = p[1].y + 0.7; } }
+  let ang = Math.sin(s * (n >= 5 ? 1.3 : 0.5)) * (n >= 5 ? 2.2 : 1.1); if (cible) ang = Math.atan2(x - pos.x, z - pos.z); /* il scanne, puis se fige sur sa cible */
+  let d = ang - epou.tete.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); epou.tete.rotation.y += d * Math.min(1, dt * (cible ? 8 : 1.5));
+  if (!cible || epou.cd > 0 || Math.abs(d) > 0.2) return;
+  if (n >= 5) { if (S_.kamas < PRIX_LASER) { if (!majEpouvantail.fauche) { majEpouvantail.fauche = true; toast('PÉPITO-TRON : fonds insuffisants. Pas de pépites, pas de laser.', 'alerte'); } return; } S_.kamas -= PRIX_LASER; majEpouvantail.fauche = false; rendreHaut(); }
+  else { if (S_.fleches <= 0) { if (!majEpouvantail.vide) { majEpouvantail.vide = true; toast('L\'épouvantail n\'a plus de flèches : achète-en à l\'HDV.', 'alerte'); } return; } S_.fleches--; majEpouvantail.vide = false; }
+  epou.cd = E.cadence;
+  const de = new T.Vector3(); (epou.canon.userData.bout || epou.canon).getWorldPosition(de); const vers = new T.Vector3(x, y, z);
+  const touche = () => {
+    if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, E.deg, true); return; }
+    const p = cible.champ; if (!p.tofu) return; p.tofu = 0; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1);
+    toast(n >= 5 ? 'PÉPITO-TRON : Tofu neutralisé sur ton ' + PAR_ID[p.c].nom + '. Facture : ' + PRIX_LASER + ' kamas.' : 'L\'épouvantail a chassé un Tofu de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
+  };
+  if (n >= 5) { /* le laser : un trait rouge instantane qui s'eteint */
+    const L = de.distanceTo(vers), rayon = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, L, 6, 1, true), new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.95, depthWrite: false }));
+    const coeur = new T.Mesh(new T.CylinderGeometry(0.018, 0.018, L, 6, 1, true), new T.MeshBasicMaterial({ color: '#fff0f0', transparent: true, depthWrite: false })); rayon.add(coeur);
+    rayon.position.copy(de).lerp(vers, 0.5); rayon.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), vers.clone().sub(de).normalize()); scene.add(rayon);
+    pouf(x, y - 0.6, z, 2, '#ff3a3a'); pouf(x, y - 0.6, z, 1.2, '#f2b630'); touche();
+    let t = 0; effets.push((dt2) => { t += dt2 / 0.25; rayon.material.opacity = 0.95 * (1 - t); coeur.material.opacity = 1 - t; rayon.scale.x = rayon.scale.z = 1 + t; if (t >= 1) { scene.remove(rayon); return true; } });
+    return;
+  }
+  const fl = boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0;
+  effets.push((dt2) => { t += dt2 / 0.32; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.4; if (t >= 1) { scene.remove(fl); touche(); return true; } });
+}
+
 
 /* ===================== LES VAGUES DE MONSTRES =====================
    C'est le joueur qui lance la vague, quand il est pret (la fiche dit qui arrive, le niveau conseille et les gains).
@@ -1716,11 +2095,14 @@ function rendreBouftous() {
    une case pour se deplacer), son sort de classe se recharge, l'arbalete de la grange tire aussi.
    Gagne : kamas et experience, la vague suivante s'ouvre. Perdu : une culture saccagee et 1 h de repos avant de relancer. */
 const VAGUES_PALIER = 10, REPOS_VAGUE = 60 * MIN, RECHARGE_SORT = 8;
-const CADENCE_RAID = 300 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 5 h environ, annonce 30 vraies secondes avant */
+const CADENCE_RAID = 480 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 8 h environ (de 5 h 30 a 10 h 30), annonce 30 vraies secondes avant */
+/* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
+let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
+const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hidden;
 let raidAnnonce = null;
 function annoncerRaid() {
   if (raidAnnonce || combat || enAccueil) return;
-  const f = forceVoleur(), nb = 3 + Math.floor(f / 3), montes = f >= 3 ? Math.min(nb - 1, 1 + Math.floor((f - 3) / 3)) : 0; /* plus VSA se renforce, plus ils sont nombreux et montes */
+  const f = forceVoleur(), nb = 3 + Math.floor(Math.min(f, 30) / 5), montes = f >= 3 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 3) / 6)) : 0; /* plus VSA se renforce, plus ils sont nombreux (9 au plus) et montes (la moitie au plus) */
   const B = bordsFerme(), cotes = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => B.some((b) => b.di === di && b.dj === dj)), cote = hasard(cotes.length ? cotes : [[0, 1]]);
   const marques = new T.Group(); /* le bord par ou ils arriveront, en rouge */
   B.filter((b) => b.di === cote[0] && b.dj === cote[1]).forEach((b) => { const q = posCase(b.c), r = new T.Mesh(new T.PlaneGeometry(S * 0.9, S * 0.9), new T.MeshBasicMaterial({ color: '#d9443a', transparent: true, opacity: 0.4, depthWrite: false, depthTest: false })); r.rotation.x = -Math.PI / 2; r.position.set(q.x + b.di * 0.45, q.y + 0.1, q.z + b.dj * 0.45); r.renderOrder = 3; marques.add(r); });
@@ -1750,8 +2132,8 @@ function lancerRaid() {
 function volerRaid(mult) {
   const stocks = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0).sort((a, b) => S_.grange[b.id] * prix(b.id) - S_.grange[a.id] * prix(a.id));
   if (!stocks.length) return null;
-  const v = stocks[0], f = forceVoleur(), st = S_.grange[v.id], n = Math.min(st, Math.max(1, Math.round(Math.min(st * 0.15, 3 + f) * mult * (niv('cadenas') ? 0.5 : 1)))); /* chacun prend une part du stock, pas tout */
-  S_.grange[v.id] -= n; rendreGrange(); return { n, nom: v.nom };
+  const v = stocks[0], f = forceVoleur(), st = S_.grange[v.id], nb = Math.min(st, Math.max(1, Math.round(Math.min(st * 0.15, 3 + f) * mult * (niv('cadenas') ? 0.5 : 1) * (enRuine('grange') ? 2 : 1)))); /* chacun prend une part du stock, pas tout */
+  S_.grange[v.id] -= nb; rendreGrange(); return { n: nb, nom: v.nom, id: v.id };
 }
 function cibleGrange(mo) {
   if (mo.cg) return mo.cg;
@@ -1764,12 +2146,13 @@ function majVoleurRaid(mo, dt, s) {
   const but = mo.fuite ? mo.sortie : cibleGrange(mo), d = Math.hypot(but.x - mo.x, but.z - mo.z); let v = 0;
   if (d > (mo.fuite ? 0.35 : 0.8)) {
     const w = prochainPas(mo, but.x, but.z, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = mo.d.vitesse * (lent ? 0.4 : 1) * (mo.fuite ? 1.2 : 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
+    v = mo.d.vitesse * (lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1); /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
   } else if (!mo.fuite) {
     const r = volerRaid(mo.d.vole); mo.fuite = true; mo.cg = null;
-    if (r) { combat.butin.push(r); toast('Un voleur de VSA file avec ' + r.n + ' ' + r.nom + ' !', 'alerte'); }
+    if (r) { mo.porte = r; m.add(sacVole()); toast('Un voleur de VSA a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il quitte ta ferme !', 'alerte'); }
   } else { /* il a file avec son butin */
-    mo.etat = 'mort'; mo.t = 0; mo.fui = true; mo.barre.remove(); combat.fuis++; if (combat.cible === mo) combat.cible = null; return;
+    mo.etat = 'mort'; mo.t = 0; mo.fui = true; mo.barre.remove(); combat.fuis++; if (combat.cible === mo) combat.cible = null;
+    if (mo.porte) { combat.butin.push(mo.porte); toast('Un voleur de VSA a quitté ta ferme avec ' + mo.porte.n + ' ' + mo.porte.nom + '.', 'alerte'); mo.porte = null; } return;
   }
   mo.pas += v * dt * 5; const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   m.position.set(mo.x, y + (1 - Math.cos(mo.pas * 2)) * (mo.type === 'monture' ? 0.08 : 0.03), mo.z); m.rotation.y = mo.ry; m.rotation.z = Math.sin(mo.pas) * 0.06; m.rotation.x = mo.type === 'monture' ? 0 : 0.2;
@@ -1778,21 +2161,39 @@ function majVoleurRaid(mo, dt, s) {
 }
 const KILLS_PERCANTE = 30, TIR_FEU = 10; /* Cra : la Fleche percante se charge en abattant 30 monstres ; une attaque sur 10 est une fleche de feu */
 const percantePrete = () => (S_.chargeSort || 0) >= KILLS_PERCANTE;
-/* les paliers : 10 vagues chacun, un boss a la 10e. Battre le Bouftou Royal ouvre la Vague de Chafers (vagues 11 a 20). */
-const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }];
+/* les paliers : 10 vagues chacun, un boss a la 10e. Battre le Bouftou Royal ouvre la Vague de Chafers (vagues 11 a 20), battre le Chafer Cuirasse ouvre la Horde des Bworks (21 a 30). */
+const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }, { nom: 'la Horde des Bworks', boss: 'bworker', icone: 'bworker' }, { nom: 'le Massif des Craqueleurs', boss: 'craqLegendaire', icone: 'craq-legendaire' }, { nom: 'le Nid des Dragoeufs', boss: 'crocabulia', icone: 'crocabulia' }];
 const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length;
 const palierDe = (n) => Math.min(PALIERS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, VAGUES_TOTAL);
 const MONSTRES = {
   tofu: { nom: 'Tofu', modele: 'tofu', icone: 'tofu', desc: 'rapide, picore tes cultures', pv: (n) => 12 + 5 * n, deg: (n) => 1 + Math.floor(n / 4), cadence: 1.2, vitesse: 2.4, portee: 0.95, ombre: 0.9 },
-  chafer: { nom: 'Chafer', modele: 'chafer', icone: 'chafer', desc: 'frappe fort, vise ton perso', pv: (n) => 30 + 10 * n, deg: (n) => 3 + Math.floor(n * 0.7), cadence: 1.4, vitesse: 1.5, portee: 1.15, ombre: 1.4 },
-  voleurRaid: { nom: 'Voleur de VSA', modele: 'voleur', icone: 'voleur', desc: 'file vers ta grange', pv: () => 30 + 10 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 2.1, portee: 1, ombre: 1.2, vole: 1 },
-  monture: { nom: 'Voleur à dos de Dragodinde', modele: 'voleurMonte', icone: 'voleur', desc: 'rapide et coriace, emporte deux fois plus', pv: () => 70 + 20 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 3.3, portee: 1.2, ombre: 2.0, vole: 2 },
+  chafer: { nom: 'Chafer', modele: 'chafer', icone: 'chafer', desc: 'frappe fort, s\'en prend aussi aux bâtiments', casse: 0.4, pv: (n) => 30 + 10 * n, deg: (n) => 3 + Math.floor(n * 0.7), cadence: 1.4, vitesse: 1.5, portee: 1.15, ombre: 1.4 },
+  voleurRaid: { nom: 'Voleur de VSA', modele: 'voleur', icone: 'voleur', desc: 'file vers ta grange', pv: () => 30 + 6 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 2.1, portee: 1, ombre: 1.2, vole: 1 },
+  monture: { nom: 'Voleur à dos de Dragodinde', modele: 'voleurMonte', icone: 'voleur', desc: 'rapide et coriace, emporte deux fois plus', pv: () => 60 + 12 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 3.3, portee: 1.2, ombre: 2.0, vole: 2 },
   royal: { nom: 'Bouftou Royal', modele: 'royal', icone: 'bouftou-royal', desc: 'le chef du troupeau, très coriace', pv: () => 450, deg: () => 12, cadence: 1.6, vitesse: 1.2, portee: 1.8, ombre: 2.6, boss: true },
   /* palier 2 : la Vague de Chafers (k = numero de la vague dans le palier, 1 a 10) */
-  fantassin: { nom: 'Chafer Fantassin', modele: 'fantassin', icone: 'chafer-fantassin', desc: 'le soldat, en nombre', pv: (n) => 70 + 8 * (n - 10), deg: (n) => 4 + Math.round(0.6 * (n - 10)), cadence: 1.4, vitesse: 1.8, portee: 1.15, ombre: 1.4 },
-  gardien: { nom: 'Chafer Gardien', modele: 'gardien', icone: 'chafer-gardien', desc: 'lent, encaisse et frappe fort', pv: (n) => 120 + 10 * (n - 10), deg: (n) => 7 + (n - 10), cadence: 1.9, vitesse: 1.1, portee: 1.3, ombre: 1.5 },
-  archer: { nom: 'Chafer Archer', modele: 'archer', icone: 'chafer-archer', desc: 'tire de loin : va le chercher', pv: (n) => 55 + 6 * (n - 10), deg: (n) => 4 + Math.round(0.5 * (n - 10)), cadence: 1.8, vitesse: 1.7, portee: 6, distance: true, ombre: 1.4 },
-  cuirasse: { nom: 'Chafer Cuirassé', modele: 'cuirasse', icone: 'chafer-cuirasse', desc: 'armure (-25 % de dégâts), appelle des renforts à mi-vie', pv: () => 1100, deg: () => 14, cadence: 1.8, vitesse: 1.0, portee: 2.0, ombre: 2.8, armure: 0.25, renforts: true, boss: true }
+  fantassin: { nom: 'Chafer Fantassin', modele: 'fantassin', icone: 'chafer-fantassin', desc: 'le soldat, en nombre', casse: 0.4, pv: (n) => 70 + 8 * (n - 10), deg: (n) => 4 + Math.round(0.6 * (n - 10)), cadence: 1.4, vitesse: 1.8, portee: 1.15, ombre: 1.4 },
+  gardien: { nom: 'Chafer Gardien', modele: 'gardien', icone: 'chafer-gardien', desc: 'lent, encaisse et cogne les bâtiments', casse: 0.6, pv: (n) => 120 + 10 * (n - 10), deg: (n) => 7 + (n - 10), cadence: 1.9, vitesse: 1.1, portee: 1.3, ombre: 1.5 },
+  archer: { nom: 'Chafer Archer', modele: 'archer', icone: 'chafer-archer', desc: 'tire de loin, va le chercher', pv: (n) => 55 + 6 * (n - 10), deg: (n) => 4 + Math.round(0.5 * (n - 10)), cadence: 1.8, vitesse: 1.7, portee: 6, distance: true, ombre: 1.4 },
+  cuirasse: { nom: 'Chafer Cuirassé', modele: 'cuirasse', icone: 'chafer-cuirasse', desc: 'armure (-25 % de dégâts), appelle des renforts à mi-vie', pv: () => 1100, deg: () => 14, cadence: 1.8, vitesse: 1.0, portee: 2.0, ombre: 2.8, armure: 0.25, renforts: ['fantassin', 'Fantassins'], boss: true },
+  /* palier 3 : la Horde des Bworks (k = n - 20) */
+  bwork: { nom: 'Bwork', modele: 'bwork', icone: 'bwork', desc: 'la brute à massue, démolit les bâtiments', casse: 0.7, pv: (n) => 150 + 12 * (n - 20), deg: (n) => 9 + Math.round(1.2 * (n - 20)), cadence: 1.7, vitesse: 1.4, portee: 1.4, ombre: 1.6 },
+  bworkArcher: { nom: 'Bwork Archer', modele: 'bworkArcher', icone: 'bwork-archer', desc: 'tire de loin, va le chercher', pv: (n) => 90 + 8 * (n - 20), deg: (n) => 7 + Math.round(0.7 * (n - 20)), cadence: 1.8, vitesse: 1.6, portee: 6, distance: true, ombre: 1.5 },
+  bworkMage: { nom: 'Bwork Mage', modele: 'bworkMage', icone: 'bwork-mage', desc: 'soigne la horde, abats-le en premier', pv: (n) => 100 + 8 * (n - 20), deg: (n) => 6 + Math.round(0.5 * (n - 20)), cadence: 2.0, vitesse: 1.3, portee: 5, distance: true, magie: true, soigne: 3.5, ombre: 1.5 },
+  bworkette: { nom: 'Bworkette', modele: 'bworkette', icone: 'bworkette', desc: 'rapide, pique sans arrêt', casse: 0.5, pv: (n) => 80 + 7 * (n - 20), deg: (n) => 5 + Math.round(0.6 * (n - 20)), cadence: 0.9, vitesse: 2.7, portee: 1.3, ombre: 1.3 },
+  bworker: { nom: 'Bworker', modele: 'bworker', icone: 'bworker', desc: 'armure (-30 %), appelle des Bworks à mi-vie, enragé sous 30 % de vie', pv: () => 2300, deg: () => 22, cadence: 2.0, vitesse: 1.0, portee: 2.3, ombre: 3.2, armure: 0.3, renforts: ['bwork', 'Bworks'], rage: true, boss: true },
+  /* palier 4 : le Massif des Craqueleurs (h = n - 30) */
+  craqueleur: { nom: 'Craqueleur', modele: 'craqueleur', icone: 'craqueleur', desc: 'golem de pierre, coriace, démolit les bâtiments', res: 'eclat_craq', pv: (n) => 240 + 16 * (n - 30), deg: (n) => 12 + Math.round(1.1 * (n - 30)), cadence: 1.9, vitesse: 1.1, portee: 1.5, ombre: 1.8, armure: 0.15, casse: 0.8 },
+  craqueboule: { nom: 'Craqueboule', modele: 'craqueboule', icone: 'craqueboule', desc: 'un rocher qui roule vite et mord', res: 'eclat_craq', pv: (n) => 140 + 10 * (n - 30), deg: (n) => 8 + Math.round(0.7 * (n - 30)), cadence: 1.0, vitesse: 2.8, portee: 1.2, ombre: 1.4, casse: 0.5, roule: true },
+  craqLanceur: { nom: 'Craqueleur Lanceur', modele: 'craqLanceur', icone: 'craq-lanceur', desc: 'lance des rochers de loin, même sur tes bâtiments', res: 'eclat_craq', pv: (n) => 150 + 9 * (n - 30), deg: (n) => 10 + Math.round(0.8 * (n - 30)), cadence: 2.2, vitesse: 1.3, portee: 6.5, distance: true, projectile: 'rocher', ombre: 1.6, casse: 0.4 },
+  craqCristal: { nom: 'Craqueleur de Cristal', modele: 'craqCristal', icone: 'craq-cristal', desc: 'protège la horde, bouclier de cristal (-40 % de dégâts)', res: 'eclat_craq', pv: (n) => 180 + 11 * (n - 30), deg: (n) => 7 + Math.round(0.5 * (n - 30)), cadence: 2.0, vitesse: 1.2, portee: 1.4, ombre: 1.6, protege: 5 },
+  craqLegendaire: { nom: 'Craqueleur Légendaire', modele: 'craqLegendaire', icone: 'craq-legendaire', desc: 'armure (-35 %), séisme toutes les 7 s, appelle des Craqueboules', res: 'eclat_craq', pv: () => 3600, deg: () => 26, cadence: 2.1, vitesse: 0.9, portee: 2.6, ombre: 3.4, armure: 0.35, renforts: ['craqueboule', 'Craqueboules'], seisme: 7, rage: true, boss: true },
+  /* palier 5 : le Nid des Dragoeufs (h = n - 40) */
+  dragBlanc: { nom: 'Dragoeuf Blanc', modele: 'dragBlanc', icone: 'drag-blanc', desc: 'très rapide, mord sans arrêt', res: 'ecaille_drag', pv: (n) => 200 + 12 * (n - 40), deg: (n) => 10 + (n - 40), cadence: 0.9, vitesse: 3.0, portee: 1.3, ombre: 1.4, casse: 0.4 },
+  dragNoir: { nom: 'Dragoeuf Noir', modele: 'dragNoir', icone: 'drag-noir', desc: 'la brute à piques, démolit les bâtiments', res: 'ecaille_drag', pv: (n) => 380 + 20 * (n - 40), deg: (n) => 17 + Math.round(1.4 * (n - 40)), cadence: 1.8, vitesse: 1.5, portee: 1.6, ombre: 1.9, armure: 0.1, casse: 0.85 },
+  dragArdoise: { nom: 'Dragoeuf Ardoise', modele: 'dragArdoise', icone: 'drag-ardoise', desc: 'vole, crache du feu de loin, incendie tes bâtiments', vol: 1.2, res: 'ecaille_drag', pv: (n) => 220 + 12 * (n - 40), deg: (n) => 12 + (n - 40), cadence: 2.0, vitesse: 1.5, portee: 6, distance: true, projectile: 'feu', ombre: 1.6, casse: 0.6 },
+  dragDore: { nom: 'Dragoeuf Doré', modele: 'dragDore', icone: 'drag-dore', desc: 'vole au-dessus de la horde et la galvanise, ils frappent et courent plus vite', vol: 1.5, res: 'ecaille_drag', pv: (n) => 260 + 14 * (n - 40), deg: (n) => 10 + Math.round(0.8 * (n - 40)), cadence: 1.9, vitesse: 1.6, portee: 1.4, ombre: 1.7, galvanise: 5 },
+  crocabulia: { nom: 'Crocabulia', propre: true, fem: true, modele: 'crocabulia', icone: 'crocabulia', desc: 'la mère des Dragoeufs, armure (-35 %), souffle de feu, appelle ses petits', res: 'ecaille_drag', pv: () => 4600, deg: () => 30, cadence: 2.2, vitesse: 1.0, portee: 2.8, ombre: 4.0, armure: 0.35, renforts: ['dragBlanc', 'Dragoeufs Blancs'], souffle: 6, rage: true, boss: true }
 };
 const STATS_CLASSE = {
   iop: { pv: (l) => 70 + 15 * l, deg: (l) => 8 + 2 * l, cadence: 0.9, portee: 1.5 },
@@ -1802,18 +2203,39 @@ const STATS_CLASSE = {
 const compoVague = (n) => {
   if (n === VAGUES_PALIER) return [['royal', 1], ['chafer', 1], ['tofu', 4]];
   if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['chafer', Math.ceil(n / 3)]] : []);
+  if (n > 4 * VAGUES_PALIER) { /* le Nid des Dragoeufs */
+    const h = n - 4 * VAGUES_PALIER;
+    if (h >= VAGUES_PALIER) return [['crocabulia', 1], ['dragDore', 1], ['dragArdoise', 1], ['dragNoir', 2]];
+    return [['dragNoir', Math.min(3, 1 + Math.ceil(h * 0.22))], ['dragBlanc', 1 + Math.floor(h / 4)]].concat(h >= 3 ? [['dragArdoise', Math.ceil(h / 6)]] : []).concat(h >= 5 ? [['dragDore', 1]] : []);
+  }
+  if (n > 3 * VAGUES_PALIER) { /* le Massif des Craqueleurs */
+    const h = n - 3 * VAGUES_PALIER;
+    if (h >= VAGUES_PALIER) return [['craqLegendaire', 1], ['craqCristal', 1], ['craqLanceur', 1], ['craqueleur', 2]];
+    return [['craqueleur', Math.min(3, 1 + Math.ceil(h * 0.25))], ['craqueboule', 1 + Math.floor(h / 4)]].concat(h >= 3 ? [['craqLanceur', Math.ceil(h / 6)]] : []).concat(h >= 5 ? [['craqCristal', 1]] : []);
+  }
+  if (n > 2 * VAGUES_PALIER) { /* la Horde des Bworks */
+    const h = n - 2 * VAGUES_PALIER;
+    if (h >= VAGUES_PALIER) return [['bworker', 1], ['bworkMage', 1], ['bworkArcher', 1], ['bwork', 2]];
+    return [['bwork', Math.min(4, 2 + Math.ceil(h * 0.2))]].concat(h >= 2 ? [['bworkette', Math.ceil(h / 4)]] : []).concat(h >= 3 ? [['bworkArcher', Math.ceil(h / 5)]] : []).concat(h >= 5 ? [['bworkMage', h >= 8 ? 2 : 1]] : []);
+  }
   const k = n - VAGUES_PALIER; /* la Vague de Chafers */
   if (k >= VAGUES_PALIER) return [['cuirasse', 1], ['gardien', 1], ['archer', 1], ['fantassin', 2]];
   return [['fantassin', Math.min(4, 2 + Math.ceil(k * 0.25))]].concat(k >= 3 ? [['gardien', Math.floor(k / 4) || 1]] : []).concat([['archer', Math.ceil(k / 5)]]);
 };
 const gainsVague = (n, rejoue) => {
-  const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER;
+  const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER;
+  if (r > 0) return { kamas: Math.round((r === VAGUES_PALIER ? 35000 : 1800 + 350 * r) * k), xp: Math.round((r === VAGUES_PALIER ? 900 : 120 + 22 * r) * k) }; /* le Nid des Dragoeufs */
+  if (q > 0) return { kamas: Math.round((q === VAGUES_PALIER ? 20000 : 1200 + 250 * q) * k), xp: Math.round((q === VAGUES_PALIER ? 800 : 100 + 18 * q) * k) }; /* le Massif des Craqueleurs */
+  if (h > 0) return { kamas: Math.round((h === VAGUES_PALIER ? 12000 : 800 + 200 * h) * k), xp: Math.round((h === VAGUES_PALIER ? 1200 : 140 + 30 * h) * k) }; /* la Horde des Bworks */
   const kamas = n <= VAGUES_PALIER ? (n === VAGUES_PALIER ? 1500 : 60 * n) : (j === VAGUES_PALIER ? 5000 : 300 + 120 * j);
   const xp = n <= VAGUES_PALIER ? (n === VAGUES_PALIER ? 200 : 10 + 10 * n) : (j === VAGUES_PALIER ? 600 : 60 + 20 * j);
   return { kamas: Math.round(kamas * k), xp: Math.round(xp * k) };
 };
+/* le pluriel d'un nom de monstre : chaque mot jusqu'au premier « de » ou « à » (Craqueleurs Lanceurs, Craqueleurs de Cristal) */
+const leNom = (d, min) => d.propre ? d.nom : (min ? 'le ' : 'Le ') + d.nom, ac = (d) => d.fem ? 'e' : ''; /* « Le Bworker est tombé », « Crocabulia est tombée » */
+const pluriel = (nom) => { let stop = false; return nom.split(' ').map((w) => { if (stop || /^(de|du|à|d')$/i.test(w)) { stop = true; return w; } return /[sx]$/.test(w) ? w : w + 's'; }).join(' '); };
 const classeDe = () => (S_.perso && S_.perso.classe) || 'iop';
-const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp); return { pvMax: st.pv(l), deg: st.deg(l), cadence: st.cadence, portee: st.portee, niveau: l }; };
+const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100)), cadence: +(st.cadence * (1 - c.agilite / 100)).toFixed(2), portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
 const caseIci = (x, z) => S_.cases.find((c) => { const q = posCase(c); return Math.abs(q.x - x) <= S / 2 && Math.abs(q.z - z) <= S / 2; });
 /* le prochain point vers lequel marcher : en ligne droite si la cible est sur la meme case ou une voisine, sinon par les cases (muret, batiments) */
@@ -1859,11 +2281,11 @@ function ouvrirVagues() {
   const perso = '<div class="art">' + ico(classeDe()) + '<div><b>' + cl.nom + ' niveau ' + st.niveau + '</b><div class="puces"><span class="puce">❤ ' + st.pvMax + ' PV</span><span class="puce">⚔ ' + st.deg + ' toutes les ' + String(st.cadence).replace('.', ',') + ' s</span><span class="puce">Sort : ' + cl.sort + (classeDe() === 'cra' ? ' (' + Math.min(KILLS_PERCANTE, S_.chargeSort || 0) + '/' + KILLS_PERCANTE + ' monstres)' : '') + '</span>' + (classeDe() === 'cra' ? '<span class="puce">🔥 1 tir sur ' + TIR_FEU + ' en feu</span>' : '') + '<span class="puce ' + (ok ? 'bonne' : 'mauvaise') + '">Niveau conseillé ' + n + '</span></div><div class="desc">Ton niveau de Paysan est aussi ton niveau de combat.</div></div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""></span>' : '<span class="pic img trio">' + ['gel', 'zone', 'mono'].map((u) => '<img src="assets/icones/ulti-' + u + '.png?v=' + VERSION_MODELES + '" alt="">').join('') + '</span>') + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc : st.niveau >= NIV_ULTI ? 'Débloqué : gel, zone ou coup fatal, à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + ' : gel, zone ou coup fatal, à choisir une fois pour toutes.') + '</div></div><div class="act"><button class="btn' + (S_.ulti || st.niveau < NIV_ULTI ? ' discret' : ' kamas') + '" data-voir-ulti>' + (S_.ulti ? 'Voir' : st.niveau >= NIV_ULTI ? 'Choisir' : 'Voir') + '</button></div></div>';
   const arb = niv('arbalete') ? '<div class="art">' + ico('arbalete') + '<div><b>Arbalète de la grange</b><div class="puces"><span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'à recharger') + ', ' + degatsArbalete() + ' dégâts, ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + '</span></div><div class="desc">Elle tire aussi sur les monstres qui approchent de la grange.</div></div><div></div></div>' : '';
-  const gains = '<div class="art">' + ico('kama') + '<div><b>' + fmt(g.kamas) + ' ' + KAMA + ' et ' + g.xp + ' points d\'expérience</b>' + (fini ? '<div class="desc">Vague déjà gagnée : gains divisés par deux.</div>' : n === base + VAGUES_PALIER ? '<div class="desc">Battre le ' + B.nom + ' termine le palier ' + PALIERS[P].nom + (P + 1 < PALIERS.length ? ' et ouvre le suivant : ' + PALIERS[P + 1].nom + '.' : '.') + '</div>' : '') + '</div><div></div></div>';
+  const gains = '<div class="art">' + ico('kama') + '<div><b>' + fmt(g.kamas) + ' ' + KAMA + ' et ' + g.xp + ' points d\'expérience</b>' + (fini ? '<div class="desc">Vague déjà gagnée : gains divisés par deux.</div>' : n === base + VAGUES_PALIER ? '<div class="desc">Battre ' + leNom(B, true) + ' termine le palier ' + PALIERS[P].nom + (P + 1 < PALIERS.length ? ' et ouvre le suivant : ' + PALIERS[P + 1].nom + '.' : '.') + '</div>' : '') + '</div><div></div></div>';
   const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : '<button class="btn kamas vg-lancer" data-lancer-vague>' + (fini ? 'Rejouer la vague ' + n : 'Lancer la vague ' + n) + '</button>';
-  ouvrirModale('vagues', entete(fini ? 'Tous les paliers terminés' : 'Vague ' + n + ' (' + (n - base) + ' sur ' + VAGUES_PALIER + ')') + '<div class="vg-sous">Palier ' + (P + 1) + ' : ' + PALIERS[P].nom + '. ' + (fini ? 'Le ' + B.nom + ' est tombé, la suite arrive bientôt.' : 'Le ' + B.nom + ' attend à la vague ' + (base + VAGUES_PALIER) + '.') + '</div><div class="vg-piste">' + piste + '</div>' +
+  ouvrirModale('vagues', entete(fini ? 'Tous les paliers terminés' : 'Vague ' + n + ' (' + (n - base) + ' sur ' + VAGUES_PALIER + ')') + '<div class="vg-sous">Palier ' + (P + 1) + ' : ' + PALIERS[P].nom + '. ' + (fini ? leNom(B) + ' est tombé' + ac(B) + ', la suite arrive bientôt.' : leNom(B) + ' attend à la vague ' + (base + VAGUES_PALIER) + '.') + '</div><div class="vg-piste">' + piste + '</div>' +
     '<div class="hdv-section">Ils arrivent</div><div class="vg-monstres">' + monstres + '</div><div class="hdv-section">Ton perso</div>' + perso + arb + '<div class="hdv-section">À gagner</div>' + gains + bouton +
-    '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>');
+    '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Certains monstres vont frapper tes bâtiments : va les chasser, sinon il faudra réparer. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>');
 }
 function lancerVague() {
   if (combat || enAccueil || !paysanMesh) return;
@@ -1886,7 +2308,7 @@ function apparaitre(type, pres) {
   const d = MONSTRES[type];
   const L = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), b = L.length ? hasard(L) : null;
   const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
-  const m = cloner(d.modele); ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
+  const m = cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
   const zone = new T.Mesh(new T.SphereGeometry(Math.max(0.6, d.ombre * 0.5), 8, 6), CIBLE); zone.position.y = d.ombre * 0.4; zone.userData.monstre = id; m.add(zone); /* plus facile a toucher */
   let x, z, ry, dep;
   if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case */
@@ -1897,15 +2319,47 @@ function apparaitre(type, pres) {
   }
   poser(m, dep.x, dep.y, dep.z, ry);
   const barre = document.createElement('div'); barre.className = 'pv-monstre'; barre.innerHTML = '<i></i>'; barre.hidden = true; $('combat-zone').appendChild(barre);
-  combat.monstres.push({ id, type, d, m, barre, pv: d.pv(combat.n), pvMax: d.pv(combat.n), deg: d.deg(combat.n), x, z, y: q.y, ry, dep, sortie: { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 });
+  combat.monstres.push({ id, type, d, m, barre, pv: d.pv(combat.n), pvMax: d.pv(combat.n), deg: d.deg(combat.n), x, z, y: q.y, ry, dep, sortie: { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 + (d.vol || 0), ombreM });
 }
 function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === id && x.etat === 'actif'); if (o) { combat.cible = o; combat.ordre = false; } }
 function blesser(mo, n, gros) {
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
-  if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* le boss Cuirasse encaisse moins */
+  if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
+  if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
+  if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   mo.pv -= n; mo.coup = 0.18; chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
-  if (mo.pv <= 0) { S_.chargeSort = Math.min(KILLS_PERCANTE, (S_.chargeSort || 0) + 1); if (combat.raid) combat.tues++; mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
+  if (mo.pv <= 0) { S_.chargeSort = Math.min(KILLS_PERCANTE, (S_.chargeSort || 0) + 1); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.type === 'monture', combat.lootV); } else butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
 }
+/* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
+const RES_MONSTRE = { bwork: 'dent_bwork', bworkArcher: 'dent_bwork', bworkMage: 'dent_bwork', bworkette: 'dent_bwork', bworker: 'dent_bwork', tofu: 'plume', chafer: 'os_chafer', fantassin: 'os_chafer', gardien: 'os_chafer', archer: 'os_chafer', cuirasse: 'os_chafer', royal: 'laine' };
+function butin(mo) {
+  const L = combat.loot || (combat.loot = { res: {}, objets: [] }), pros = 1 + caracs().prospection / 100, r = mo.d.res || RES_MONSTRE[mo.type];
+  if (r && Math.random() < (mo.d.boss ? 1 : 0.35) * pros) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
+  const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros;
+  if (Math.random() < chance) {
+    const P = PANOS[palierDe(combat.n)], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids);
+    S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; L.objets.push(id);
+    chiffre('★ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast('Butin : ' + OBJETS[id].nom + ' ! Équipe-le dans la fiche du perso.', 'or'); rendreHaut();
+  }
+}
+/* le souffle de Crocabulia : des flammes qui filent en cone devant elle */
+function souffleFeu(mo, a) {
+  const y = mo.m.position.y + 1.4, L = [];
+  for (let i = 0; i < 9; i++) { const e = (Math.random() - 0.5) * 0.9, m = new T.Mesh(new T.IcosahedronGeometry(0.25, 1), new T.MeshBasicMaterial({ color: i % 3 ? '#ff7a1e' : '#ffd04a', transparent: true })); scene.add(m); L.push({ m, a: a + e, v: 6 + Math.random() * 2, t: -i * 0.04 }); }
+  effets.push((dt) => { let fini = true; L.forEach((f) => { f.t += dt; if (f.t < 0) { f.m.visible = false; fini = false; return; } const d = f.t * f.v; if (d < 7) fini = false; f.m.visible = d < 7; f.m.position.set(mo.x + Math.sin(f.a) * d, y - d * 0.12, mo.z + Math.cos(f.a) * d); f.m.scale.setScalar(1 + d * 0.35); f.m.material.opacity = Math.max(0, 1 - d / 7); }); if (fini) { L.forEach((f) => scene.remove(f.m)); return true; } });
+}
+/* ce qu'un voleur de VSA abattu a sur lui : des ressources volees ailleurs (celles du palier en cours), parfois une piece d'equipement */
+const RES_PALIER = ['plume', 'os_chafer', 'dent_bwork', 'eclat_craq', 'ecaille_drag'];
+function butinVoleur(monte, L) {
+  const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), pros = 1 + caracs().prospection / 100, r = RES_PALIER[k];
+  L = L || { res: {}, objets: [], kamas: 0 };
+  if (Math.random() < 0.5 * pros) { const n = (monte ? 2 : 1) * (1 + Math.floor(Math.random() * 2)); S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
+  const bourse = Math.round((5 + 2 * forceVoleur()) * (monte ? 2 : 1) * (0.6 + Math.random() * 0.8)); S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
+  if (Math.random() < (monte ? 0.08 : 0.04) * pros) { const P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; S_.nouveaux = (S_.nouveaux || 0) + 1; L.objets.push(id); toast('Sur le voleur : ' + OBJETS[id].nom + ' !', 'or'); }
+  rendreGrange(); rendreHaut(); return L;
+}
+const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => '★ ' + OBJETS[id].nom)).filter(Boolean).join(', ');
+const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); return sac; }; /* le sac de butin sur son dos */
 function blesserPerso(n) {
   if (!combat || combat.fin) return;
   combat.pv = Math.max(0, combat.pv - n); const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
@@ -1922,7 +2376,7 @@ function majMonstre(mo, dt, s) {
   }
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) scene.remove(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
-  const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1); /* gele : il frappe deux fois moins vite */
+  const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1); /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
   /* sa cible : un Tofu va picorer une culture tant qu'il en reste a voler, sinon (et pour les autres) c'est le perso */
   let tx, tz, versPerso = true;
   if (mo.type === 'tofu') {
@@ -1933,20 +2387,24 @@ function majMonstre(mo, dt, s) {
     }
     if (mo.champ) { const q = posCase(mo.champ); tx = q.x; tz = q.z; versPerso = false; }
   }
-  const pp = paysanMesh.position; if (versPerso) { tx = pp.x; tz = pp.z; }
-  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = versPerso ? mo.d.portee : 0.3;
+  const pp = paysanMesh.position; let bat = null;
+  if (mo.type !== 'tofu') { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
+  if (versPerso) { tx = pp.x; tz = pp.z; }
+  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = versPerso || bat ? mo.d.portee : 0.3;
   let v = 0;
   if (d > portee) {
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = mo.d.vitesse * (lent ? 0.4 : 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
-  } else if (versPerso) {
+    v = mo.d.vitesse * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+  } else if (versPerso || bat) {
     tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
       mo.cd = mo.d.cadence; mo.frappe = 0.25;
-      if (mo.d.distance) { /* l'archer tire de loin : une fleche vole jusqu'au perso */
-        const de = new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = paysanMesh.position.clone(); vers.y += 0.9; const deg = mo.deg;
-        const fl = boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0;
-        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { scene.remove(fl); blesserPerso(deg); return true; } });
+      if (bat && !mo.d.distance) blesserBat(bat.cle, mo.deg); /* il cogne le batiment */
+      else if (mo.d.distance) { /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) */
+        const de = new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle;
+        const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: '#5fe0e8' })) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
+        if (mo.d.projectile === 'feu') { const c = new T.Mesh(new T.IcosahedronGeometry(0.12, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); fl.add(c); }
+        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { scene.remove(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : '#9a948c'); if (cleB) blesserBat(cleB, deg); else blesserPerso(deg); return true; } });
       } else blesserPerso(mo.deg);
     }
   } else { /* il picore : une recolte volee toutes les 5 s */
@@ -1954,19 +2412,60 @@ function majMonstre(mo, dt, s) {
     if (mo.picore >= 5) { mo.picore = 0.01; const p = mo.champ; p.vole = (p.vole || 0) + 1; rendreCase(p.id); toast('Un Tofu picore ton ' + PAR_ID[p.c].nom + ' : 1 récolte de moins !', 'alerte'); }
   }
   if (!combat || combat.fin) return; /* le coup qui vient d'achever le perso a clos la vague */
-  if (mo.d.renforts && !mo.renfort && mo.pv < mo.pvMax / 2) { /* a mi-vie, le boss appelle trois Fantassins */
-    mo.renfort = true; toast('Le ' + mo.d.nom + ' appelle deux Fantassins en renfort !', 'alerte');
-    for (let k = 0; k < 2; k++) { const a = k * 2.6 + 0.4; apparaitre('fantassin', { x: mo.x + Math.cos(a) * 1.6, z: mo.z + Math.sin(a) * 1.6 }); combat.total++; }
+  if (mo.d.renforts && !mo.renfort && mo.pv < mo.pvMax / 2) { /* a mi-vie, le boss appelle deux renforts */
+    mo.renfort = true; toast(leNom(mo.d) + ' appelle deux ' + mo.d.renforts[1] + ' en renfort !', 'alerte');
+    for (let k = 0; k < 2; k++) { const a = k * 2.6 + 0.4; apparaitre(mo.d.renforts[0], { x: mo.x + Math.cos(a) * 1.6, z: mo.z + Math.sin(a) * 1.6 }); combat.total++; }
+  }
+  if (mo.d.rage && !mo.enrage && mo.pv < mo.pvMax * 0.3) { mo.enrage = true; toast(leNom(mo.d) + ' entre en rage : ' + (mo.d.fem ? 'elle' : 'il') + ' frappe bien plus vite !', 'alerte'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a'); }
+  if (mo.d.protege) { /* le Craqueleur de Cristal : un bouclier de cristal sur trois monstres autour de lui (-40 % de degats, 4 s) */
+    mo.protT = (mo.protT || 0) + dt;
+    if (mo.protT >= mo.d.protege) { mo.protT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax).slice(0, 3).forEach((o) => { o.bouclier = 4; pouf(o.x, o.m.position.y, o.z, 1.4, '#6fe0e8'); }); }
+  }
+  if (mo.d.galvanise) { /* le Dragoeuf Dore : la horde autour de lui frappe et court plus vite pendant 4 s */
+    mo.galvT = (mo.galvT || 0) + dt;
+    if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, '#f2b630'); }
+  }
+  if (mo.d.seisme) { /* le Craqueleur Legendaire frappe le sol : onde de choc sur le perso et les batiments proches */
+    mo.seismeT = (mo.seismeT || 0) + dt;
+    if (mo.seismeT >= mo.d.seisme) {
+      mo.seismeT = 0; pouf(mo.x, mo.m.position.y, mo.z, 9, '#8e7a5e'); pouf(mo.x, mo.m.position.y, mo.z, 5, '#c9b28a'); mo.frappe = 0.4;
+      if (!combat.seismeVu) { combat.seismeVu = true; toast('Séisme ! Le Craqueleur Légendaire fait trembler le sol : éloigne-toi de lui.', 'alerte'); }
+      if (Math.hypot(pp.x - mo.x, pp.z - mo.z) < 4.5) blesserPerso(Math.round(mo.deg * 1.5));
+      clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - mo.x, z.z - mo.z) < 4.5 + Math.max(z.hw, z.hd)) blesserBat(k, mo.deg * 2); });
+      if (!combat || combat.fin) return;
+    }
+  }
+  if (mo.d.souffle) { /* Crocabulia crache un cone de feu vers le perso */
+    mo.souffleT = (mo.souffleT || 0) + dt;
+    if (mo.souffleT >= mo.d.souffle) {
+      mo.souffleT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a; souffleFeu(mo, a);
+      if (!combat.souffleVu) { combat.souffleVu = true; toast('Crocabulia crache du feu devant elle : ne reste pas dans le cône !', 'alerte'); }
+      const dans = (x, z) => { const d = Math.hypot(x - mo.x, z - mo.z); let e = Math.atan2(x - mo.x, z - mo.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e)); return d < 7 && Math.abs(e) < 0.5; };
+      if (dans(pp.x, pp.z)) blesserPerso(Math.round(mo.deg * 1.6));
+      clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && dans(z.x, z.z)) blesserBat(k, mo.deg * 2); });
+      if (!combat || combat.fin) return;
+    }
+  }
+  if (mo.bouclier > 0) { mo.bouclier -= dt; if (!mo.bulleB) { mo.bulleB = new T.Mesh(new T.SphereGeometry(1, 16, 12), new T.MeshBasicMaterial({ color: '#6fe0e8', transparent: true, opacity: 0.25, depthWrite: false })); m.add(mo.bulleB); } mo.bulleB.visible = true; mo.bulleB.scale.setScalar(mo.haut * 0.62); mo.bulleB.position.y = mo.haut * 0.45; } else if (mo.bulleB) mo.bulleB.visible = false;
+  if (mo.galva > 0) { mo.galva -= dt; if (!mo.anneauG) { mo.anneauG = new T.Mesh(new T.RingGeometry(0.45, 0.62, 24), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false })); mo.anneauG.rotation.x = -Math.PI / 2; mo.anneauG.position.y = 0.07; mo.anneauG.scale.setScalar(Math.max(1, mo.d.ombre * 0.8)); m.add(mo.anneauG); } mo.anneauG.visible = true; } else if (mo.anneauG) mo.anneauG.visible = false;
+  if (mo.d.soigne) { /* le Mage soigne le Bwork le plus blesse autour de lui */
+    mo.soinT = (mo.soinT || 0) + dt;
+    if (mo.soinT >= mo.d.soigne) {
+      mo.soinT = 0;
+      const b = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax)[0];
+      if (b) { const h = Math.max(1, Math.round(b.pvMax * 0.12)); b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.6, '#5fe0e8'); }
+    }
   }
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
   mo.pas += v * dt * 5;
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
-  const saut = mo.type === 'tofu' ? Math.abs(Math.sin(mo.pas)) * 0.28 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
+  const saut = mo.type === 'tofu' ? Math.abs(Math.sin(mo.pas)) * 0.28 * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
   let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; }
   const pique = mo.picore > 0 ? Math.abs(Math.sin(s * 9)) : 0;
-  m.position.set(mo.x + Math.sin(mo.ry) * elan, y + saut + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
+  const vol = mo.d.vol ? mo.d.vol + Math.sin(s * 2.4 + mo.id) * 0.14 : 0; if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
+  m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
   m.rotation.y = mo.ry; m.rotation.z = Math.sin(mo.pas) * 0.07; m.rotation.x = pique * 0.35;
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
@@ -2161,7 +2660,7 @@ function majCombat(dt, s) {
   const c = combat;
   if (c.fin) return;
   c.attente -= dt;
-  if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast('Le ' + MONSTRES[boss].nom + ' en personne débarque avec sa troupe !', 'alerte'); }
+  if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   c.monstres = c.monstres.filter((o) => !(o.etat === 'mort' && !o.m.parent));
   majInvoc(dt); majPerso(dt); majVisee(s);
@@ -2178,19 +2677,21 @@ function finVague(gagne, fuite) {
   combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; paysanMesh.userData.attaque = null;
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = '';
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
-    if (fuite) c.monstres.forEach((o) => { if (o.etat !== 'mort' && !o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } });
-    const f = forceVoleur(), prime = c.tues * (40 + 10 * f); S_.kamas += prime; if (c.tues) gagnerXp(c.tues * 8);
+    if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
+    const f = forceVoleur(), prime = c.tues * (20 + 6 * f); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 8);
     const tot = {}; c.butin.forEach((r) => { tot[r.nom] = (tot[r.nom] || 0) + r.n; });
     const butin = c.butin.length ? 'Ils ont emporté : ' + Object.entries(tot).map(([nom, n]) => n + ' ' + nom).join(', ') + '.' : 'Ils n\'ont rien emporté de ta grange.';
-    ouvrirModale('vague-fin', entete(c.butin.length ? 'Raid VSA terminé' : 'Raid VSA repoussé !') + '<div class="art">' + ico('voleur') + '<div><b>' + c.tues + ' voleur' + (c.tues > 1 ? 's' : '') + ' abattu' + (c.tues > 1 ? 's' : '') + ' : +' + fmt(prime) + ' ' + KAMA + ' de prime</b><div class="desc">' + butin + ' Les prochains raids seront plus fournis : VSA se renforce à chaque vague gagnée.</div></div><div></div></div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
+    const rec = {}; (c.recup || []).forEach((r) => { rec[r.nom] = (rec[r.nom] || 0) + r.n; });
+    const lignesR = (Object.keys(rec).length ? '<div class="art">' + ico('grange') + '<div><b>Récupéré sur les voleurs abattus</b><div class="desc">' + Object.entries(rec).map(([nom, n]) => n + ' ' + nom).join(', ') + ' : retour à la grange.</div></div><div></div></div>' : '') + (c.lootV && texteButin(c.lootV) ? '<div class="art">' + ico(c.lootV.objets.length ? 'obj-' + c.lootV.objets[0] : 'voleur') + '<div><b>Trouvé sur eux</b><div class="desc">' + texteButin(c.lootV) + '.</div></div><div></div></div>' : '');
+    ouvrirModale('vague-fin', entete(c.butin.length ? 'Raid VSA terminé' : 'Raid VSA repoussé !') + '<div class="art">' + ico('voleur') + '<div><b>' + c.tues + ' voleur' + (c.tues > 1 ? 's' : '') + ' abattu' + (c.tues > 1 ? 's' : '') + ' : +' + fmt(prime) + ' ' + KAMA + ' de prime</b><div class="desc">' + butin + ' Ce qu\'un voleur emporte n\'est perdu que s\'il quitte ta ferme vivant. VSA se renforce à chaque vague gagnée.</div></div><div></div></div>' + lignesR + '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   let corps;
   if (gagne) {
     const g = gainsVague(n, rejoue); S_.kamas += g.kamas; if (!rejoue) S_.vague.num = n + 1; gagnerXp(g.xp);
     const P = palierDe(n), finPalier = !rejoue && n % VAGUES_PALIER === 0;
-    const suite = S_.vague.num > VAGUES_TOTAL ? '<p style="font-size:.82rem;font-weight:600">Le ' + MONSTRES[PALIERS[P].boss].nom + ' est tombé : tous les paliers sont terminés. La suite arrive bientôt.</p>'
-      : '<p style="font-size:.82rem;font-weight:600">' + (finPalier ? 'Le ' + MONSTRES[PALIERS[P].boss].nom + ' est tombé ! Place au palier ' + (P + 2) + ' : ' + PALIERS[P + 1].nom + '. ' : '') + 'La vague ' + S_.vague.num + ' t\'attend : ' + compoVague(S_.vague.num).map(([t, k]) => k + ' ' + MONSTRES[t].nom + (k > 1 && !MONSTRES[t].boss ? 's' : '')).join(', ') + '.</p>';
+    const suite = S_.vague.num > VAGUES_TOTAL ? '<p style="font-size:.82rem;font-weight:600">' + leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' : tous les paliers sont terminés. La suite arrive bientôt.</p>'
+      : '<p style="font-size:.82rem;font-weight:600">' + (finPalier ? leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' ! Place au palier ' + (P + 2) + ' : ' + PALIERS[P + 1].nom + '. ' : '') + 'La vague ' + S_.vague.num + ' t\'attend : ' + compoVague(S_.vague.num).map(([t, k]) => k + ' ' + (k > 1 ? pluriel(MONSTRES[t].nom) : MONSTRES[t].nom)).join(', ') + '.</p>';
     corps = entete('Vague ' + n + ' gagnée !') + '<div class="art">' + ico('kama') + '<div><b>+' + fmt(g.kamas) + ' ' + KAMA + ' et +' + g.xp + ' points d\'expérience</b><div class="desc">Il te restait ' + Math.ceil(c.pv) + ' PV sur ' + c.pvMax + '.</div></div><div></div></div>' + suite;
   } else {
     const champs = S_.cases.filter((x) => x.type === 'champ' && x.c).sort((a, b) => recolte(b) * prix(b.c) - recolte(a) * prix(a.c));
@@ -2199,6 +2700,8 @@ function finVague(gagne, fuite) {
     if (!fuite) S_.vague.repos = Date.now() + REPOS_VAGUE;
     corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Ton perso n\'a pas besoin de repos : tu peux relancer quand tu veux.' : 'Ton perso se repose ' + dureeLisible(REPOS_VAGUE) + ' avant de pouvoir relancer. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
   }
+  if (c.loot && (Object.keys(c.loot.res).length || c.loot.objets.length)) corps += '<div class="hdv-section">Butin</div><div class="art">' + ico(c.loot.objets.length ? 'obj-' + c.loot.objets[0] : Object.keys(c.loot.res)[0]) + '<div><b>' + Object.entries(c.loot.res).map(([r, n]) => n + ' ' + PAR_ID[r].nom).concat(c.loot.objets.map((id) => '★ ' + OBJETS[id].nom)).join(', ') + '</b><div class="desc">Les ressources sont à la grange (elles se vendent à l\'HDV)' + (c.loot.objets.length ? ', l\'équipement t\'attend dans la fiche du perso.' : '.') + '</div></div>' + (c.loot.objets.length ? '<div class="act"><button class="btn kamas" data-perso-slot="' + OBJETS[c.loot.objets[0]].emp + '">Équiper</button></div>' : '<div></div>') + '</div>';
+  if (c.bats) { const L = Object.entries(c.bats); if (L.length) corps += '<div class="hdv-section">Bâtiments touchés</div>' + L.map(([k, n]) => '<div class="art">' + ico(ICO_BAT[typeCle(k)]) + '<div><b>' + Maj(nomBat(k)) + (enRuine(k) ? ' : en ruine' : ' : -' + fmt(n) + ' PV') + '</b><div class="desc">' + (enRuine(k) ? PERTE_RUINE[typeCle(k)] : 'Il lui reste ' + fmt(pvBat(k)) + ' PV sur ' + fmt(pvMaxBat(k)) + '.') + '</div></div><div class="act"><button class="btn kamas" ' + (enRuine(k) ? 'data-reconstruire="' + k + '">Reconstruire ' + fmt(coutReconstruire(k)) : 'data-reparer="' + k + '">Réparer ' + fmt(coutReparer(k))) + ' ' + KAMA + '</button></div></div>').join(''); }
   ouvrirModale('vague-fin', corps + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn discret" data-fermer>Retour à la ferme</button>' + (gagne && !S_.ulti && niveau(S_.xp) >= NIV_ULTI ? '<button class="btn kamas" data-voir-ulti>Choisir mon ulti</button>' : '') + '<button class="btn kamas" data-voir-vagues>Voir les vagues</button></div>');
   rendreHaut(); rendreGrange(); rendreCasesBulles(); sauver();
 }
@@ -2330,6 +2833,7 @@ function rendreCasesBulles() {
   S_.cases.forEach((p) => {
     const cle = 'c' + p.id, pos = posCase(p);
     if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, S_.filets ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', S_.filets ? 'Un Tofu sauvage : touche pour le capturer au filet' : 'Un Tofu sauvage : touche pour le chasser'); return; }
+    if (p.type === 'puits') { if (niv('arrosoir') && !(S_.citerne > 0) && !enRuine('puits') && !combat) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, pos.y + 2.4, pos.z], 'case:' + p.id, '0', 'Citerne vide : touche le puits pour la remplir'); else retirerBulle(cle); return; }
     if (p.type === 'voliere') { if (S_.voliere.plumes && p === S_.cases.find((c) => c.type === 'voliere')) bulle(cle, icoB('plume'), 'or', [pos.x, pos.y + 2.3, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }
     if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
     const st = etape(p), haut = pos.y + (st === 'mur' ? 1.9 : st === 'pousse' ? 1.4 : 0.9);
@@ -2346,7 +2850,7 @@ function placerBulles() {
   document.querySelectorAll('[data-ancre]').forEach((e) => { const a = ancres[e.dataset.ancre]; if (!a) { e.hidden = true; return; } e.hidden = false; vec.copy(a); if (e.classList.contains('lieu')) vec.y += 1.2; /* le nom au-dessus du toit, il ne cache plus rien */ vec.project(camera); e.style.left = ((vec.x + 1) / 2 * w).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * h).toFixed(1) + 'px'; });
 }
 function bullesFixes() {
-  [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
+  [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière'], ['epouvantail', 'PÉPITO-TRON']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
   TERRAINS.forEach((t, k) => { if (!aVendre(t)) return; bulleVente(t, k); });
 }
 function bulleVente(t, k) {
@@ -2415,14 +2919,18 @@ const $ = (id) => document.getElementById(id);
 function rendreHaut() {
   const n = niveau(S_.xp), a = seuil(n), b = seuil(n + 1);
   $('kamas').textContent = fmt(S_.kamas); $('niv').textContent = n; $('xp').style.width = (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%';
+  $('xp-txt').textContent = fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' XP'; $('xp-barre').parentNode.title = 'Niveau ' + n + ' : encore ' + fmt(b - S_.xp) + ' points d\'expérience pour passer niveau ' + (n + 1) + ' (' + Math.floor(100 * (S_.xp - a) / (b - a)) + ' %)';
+  if (rendreHaut.xp !== undefined && S_.xp > rendreHaut.xp) { const e = $('xp-barre'); e.classList.remove('gagne'); void e.offsetWidth; e.classList.add('gagne'); } rendreHaut.xp = S_.xp;
   $('cases').innerHTML = 'Parcelles <b style="color:var(--kamas)">' + parcelles() + '/' + quotaParcelles() + '</b>'; $('cases').title = 'Parcelles labourées sur ton quota. Toutes les cases d\'herbe peuvent être labourées.';
   $('graine-ico').src = 'assets/icones/' + S_.graine + '.png'; $('graine-nb').textContent = S_.graines[S_.graine] || 0; $('b-graine').title = 'Graine choisie : ' + PAR_ID[S_.graine].nom;
   $('b-amenager').setAttribute('aria-pressed', !!mode);
-  $('eau').innerHTML = '<img class="ico-haut" src="assets/icones/arrosoir.png" alt=""> ' + S_.eau + '/' + capaciteEau(); $('eau').style.background = S_.eau ? '' : '#fde3df';
+  $('eau').innerHTML = '<img class="ico-haut" src="assets/icones/arrosoir.png" alt=""> ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ' <small style="font-weight:700;color:#3a95d1" title="Citerne d\'arrosage">· citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() + '</small>' : ''); $('eau').style.background = S_.eau ? '' : '#fde3df';
+  $('eau').title = niv('arrosoir') ? 'Arrosoir, et citerne qui arrose seule les nouveaux semis : les deux se remplissent au puits' : 'Arrosoir';
   const repos = S_.vague.repos - Date.now(), fini = S_.vague.num > VAGUES_TOTAL;
   $('vague-nb').textContent = repos > 0 ? dureeLisible(repos).replace(' min', 'm').replace(' s', 's') : fini ? '✓' : S_.vague.num; $('b-vagues').classList.toggle('repos', repos > 0);
   $('b-vagues').title = repos > 0 ? 'Ton perso se repose encore ' + dureeLisible(repos) : fini ? 'Tous les paliers terminés' : 'La vague ' + S_.vague.num + ' (palier ' + (palierDe(S_.vague.num) + 1) + ') attend que tu la lances';
   $('mode-test').hidden = !TEST;
+  $('perso-ico').src = 'assets/icones/' + classeDe() + '.png'; $('perso-nb').hidden = !S_.nouveaux; $('perso-nb').textContent = S_.nouveaux || 0;
   if (S_.perso) $('titre').textContent = 'Ferme de ' + S_.perso.nom;
 }
 function rendreGrange() {
@@ -2452,7 +2960,7 @@ function ouvrirGraines() {
   ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Les graines s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => { const ok = debloquee(c); return '<button class="graine" data-graine="' + c.id + '" aria-pressed="' + (S_.graine === c.id) + '"' + (ok ? '' : ' disabled') + '><b>' + c.nom + '</b><span>' + (ok ? (S_.graines[c.id] || 0) + ' en grange, ' + dureeLisible(duree(c)) + ', ×' + c.rendement : 'niveau ' + c.niv) + '</span></button>'; }).join('') + '</div>');
 }
 /* les icones : rendues depuis nos modeles 3D (generer-icones.html + exporter-icones.mjs -> assets/icones/) */
-const ICONES = { arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete' };
+const ICONES = { arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
 const ico = (nom) => '<span class="pic img"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt=""></span>';
 const pastille = (c) => '<span class="pic" style="background:' + c.couleur + '">' + c.nom[0] + '</span>'; /* une graine : sa couleur et son initiale */
 const pic = (e) => '<span class="pic emoji">' + e + '</span>';
@@ -2470,6 +2978,8 @@ function ouvrirHdv(onglet) {
   onglet = onglet || ouvrirHdv.dernier || 'vendre'; ouvrirHdv.dernier = onglet;
   const tete = '<div class="hdv-tete">' + [['acheter', 'Acheter'], ['vendre', 'Vendre'], ['ameliorer', 'Améliorations']].map(([k, t]) => '<button class="btn" data-hdv-onglet="' + k + '" aria-pressed="' + (onglet === k) + '">' + t + '</button>').join('') + '<span class="solde">' + fmt(S_.kamas) + ' ' + KAMA + '</span></div>';
   const choixQte = (options) => { const q = ouvrirHdv.qte = options.some(([v]) => v === ouvrirHdv.qte) ? ouvrirHdv.qte : 1; return '<div class="hdv-qte">Quantité <span class="seg">' + options.map(([v, t]) => '<button data-hdv-qte="' + v + '" aria-pressed="' + (q === v) + '">' + t + '</button>').join('') + '</span></div>'; };
+  const etatHdv = S_.cases.some((c) => c.type === 'hdv') && (degatsBat('hdv') || enRuine('hdv')) ? artPv('hdv') : '';
+  if (onglet !== 'ameliorer' && enRuine('hdv')) { ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv); return; }
   if (onglet === 'ameliorer') { ouvrirModale('hdv', entete('Hôtel de vente') + tete + AMELIOS.map((a) => artAmelio(a) + (a.id === 'tours' ? artTour() : '')).join('')); return; }
   if (onglet === 'acheter') {
     const qte = choixQte([[1, '×1'], [10, '×10']]); const n = ouvrirHdv.qte, cap = capacite();
@@ -2486,12 +2996,12 @@ function ouvrirHdv(onglet) {
       '<div class="act"><small>' + PRIX_FILET + ' ' + KAMA + ' le filet</small><button class="btn kamas" data-filets="' + n + '"' + (S_.kamas >= n * PRIX_FILET ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * PRIX_FILET) + ' ' + KAMA + '</button></div></div>';
     const fleches = '<div class="art">' + ico('fleches') + '<div><b>Flèches d\'arbalète</b><div class="puces"><span class="puce">🏠 ' + S_.fleches + ' en réserve</span>' + (niv('arbalete') ? '<span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? 'arbalète : ' + S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'arbalète à recharger') + '</span>' : '<span class="puce">arbalète dans Améliorations</span>') + '</div><div class="desc">Une flèche par tir, pour l\'arbalète de la grange et les tours de défense.</div></div>' +
       '<div class="act"><small>' + PRIX_FLECHE + ' ' + KAMA + ' la flèche</small><button class="btn kamas" data-fleches="' + n + '"' + (S_.kamas >= n * PRIX_FLECHE ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * PRIX_FLECHE) + ' ' + KAMA + '</button></div></div>';
-    ouvrirModale('hdv', entete('Hôtel de vente') + tete + qte + '<div class="hdv-section">Graines</div>' + graines + '<div class="hdv-section">Animaux</div>' + animaux + '<div class="hdv-section">Matériel</div>' + materiel + fleches);
+    ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + qte + '<div class="hdv-section">Graines</div>' + graines + '<div class="hdv-section">Animaux</div>' + animaux + '<div class="hdv-section">Matériel</div>' + materiel + fleches);
     return;
   }
   const qte = choixQte([[1, '×1'], [10, '×10'], [0, 'Tout']]); const q = ouvrirHdv.qte;
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0 || (v.id === 'laine' ? S_.bouftous.length : v.id === 'laine_noire' ? S_.bouftous.some((b) => b.noir) : v.id === 'plume' ? S_.tofus : debloquee(v)));
-  ouvrirModale('hdv', entete('Hôtel de vente') + tete + (S_.crise ? '<div class="crise" style="background:#fde3df;border:2px solid var(--rouge);border-radius:10px;padding:5px 8px;font-size:.75rem;margin-bottom:8px">🤖 Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' : -40 % jusqu\'à ce qu\'ils s\'en aillent.</div>' : '') + qte +
+  ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + (S_.crise ? '<div class="crise" style="background:#fde3df;border:2px solid var(--rouge);border-radius:10px;padding:5px 8px;font-size:.75rem;margin-bottom:8px">🤖 Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' : -40 % jusqu\'à ce qu\'ils s\'en aillent.</div>' : '') + qte +
     (lignes.length ? lignes.map((v) => {
       const st = S_.grange[v.id] || 0, p = prix(v.id), avant = (S_.coursAvant && S_.coursAvant[v.id]) || 1, mtn = S_.cours[v.id] || 1, n = q === 0 ? st : Math.min(q, st);
       const tend = mtn > avant + 0.005 ? '<span class="puce bonne">▲ en hausse</span>' : mtn < avant - 0.005 ? '<span class="puce mauvaise">▼ en baisse</span>' : '';
@@ -2520,10 +3030,12 @@ function ouvrirEnclos() {
   ouvrirModale('enclos', entete('Enclos à Bouftous') + amenager + betes + repro + achat + lignesAmelio(['enclos', 'abreuvoir', 'cisailles', 'mangeoire'], 'Améliorer l\'enclos'));
 }
 function ouvrirEpouvantail() {
-  ouvrirModale('epouvantail', entete('L\'épouvantail') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Il fait fuir une partie des Tofus qui viennent picorer tes champs.</p>' + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
+  ouvrirModale('epouvantail', entete('L\'épouvantail') + (degatsBat('epouvantail') ? artPv('epouvantail') : '') + (() => { const n = niv('epouvantail'), E = EPOU[Math.min(5, n)];
+    const etat = n >= 5 ? 'PÉPITO-TRON : laser sur toute la ferme, il abat aussi les Tofus des vagues. ' + PRIX_LASER + ' kamas par tir.' : n >= 3 ? 'Il tire à l\'arbalète sur les Tofus qui picorent, à ' + E.portee + ' cases, ' + (n >= 4 ? 'presque tout de suite' : 'après quelques minutes') + '. Une flèche par tir (' + S_.fleches + ' en réserve).' : n === 2 ? 'Les Tofus viennent trois fois moins souvent.' : n === 1 ? 'Les Tofus viennent deux fois moins souvent.' : 'Il fait fuir une partie des Tofus qui viennent picorer tes champs.';
+    return '<div class="art">' + ico('epouvantail') + '<div><b>' + (n >= 5 ? 'PÉPITO-TRON' : 'Épouvantail niveau ' + n) + '</b><div class="desc">' + etat + ' Il ne s\'occupe que des Tofus.</div></div><div></div></div>'; })() + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
 }
 function ouvrirPuits() {
-  ouvrirModale('puits', entete('Le puits') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Arrosoir : ' + S_.eau + '/' + capaciteEau() + '. Touche le puits quand il est vide pour le remplir.</p>' + lignesAmelio(['reservoir', 'poulie', 'arrosoir'], 'Améliorer l\'arrosage'));
+  ouvrirModale('puits', entete('Le puits') + (degatsBat('puits') ? artPv('puits') + (S_.eau < capaciteEau() || !citernePleine() ? '<div class="ligne"><div><b>Remplir</b><small>Arrosoir ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ', citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() : '') + '.</small></div><button class="btn eau" data-remplir>Remplir</button></div>' : '') : '') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Arrosoir : ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? '. Citerne : ' + (S_.citerne || 0) + '/' + capaciteCiterne() + ' (elle arrose seule les nouveaux semis)' : '') + '. Touche le puits pour remplir ' + (niv('arrosoir') ? 'les deux' : 'l\'arrosoir') + '.</p>' + lignesAmelio(['reservoir', 'poulie', 'arrosoir'], 'Améliorer l\'arrosage'));
 }
 function ouvrirGrange() {
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
@@ -2531,7 +3043,36 @@ function ouvrirGrange() {
   const arb = niv('arbalete') ? '<div class="ligne"><div><b>Arbalète du toit, niveau ' + niv('arbalete') + '</b><small>' + S_.carreaux + '/' + capaciteArbalete() + ' carreau' + (capaciteArbalete() > 1 ? 'x' : '') + ' chargé' + (S_.carreaux > 1 ? 's' : '') + ', ' + degatsArbalete() + ' dégâts, portée ' + porteeArbalete() + '. ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + ' en réserve.</small></div>' + (S_.carreaux >= capaciteArbalete() ? '' : '<button class="btn kamas" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div>' : '';
   const menace = '<p style="font-size:.78rem;font-weight:600">Les voleurs de VSA ont maintenant <b>' + pvVoleur() + ' PV</b> : ils se renforcent à chaque vague gagnée.</p>';
   const divers = arb + (S_.filets ? '<div class="ligne"><b>Filets de capture</b><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="ligne"><b>Tofus capturés (volière)</b><span>' + S_.tofus + '</span></div>' : '');
-  ouvrirModale('grange', entete('Grange') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>' + lignesAmelio(['cadenas', 'arbalete', 'arbChargeur', 'arbCadence', 'arbDegats', 'arbPortee'], 'Protéger la grange') + artTour() + lignesAmelio(['tours', 'toursPortee'], ''));
+  const sac = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0).sort((x, y) => OBJETS[y].niv - OBJETS[x].niv), portes = Object.values(S_.equip).filter(Boolean);
+  const butinH = '<div class="hdv-section">Butin des vagues</div>' + (sac.length ? sac.map((k) => '<div class="art">' + ico('obj-' + k) + '<div><b>' + OBJETS[k].nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsTexte(OBJETS[k].stats) + '<span class="puce">niveau ' + OBJETS[k].niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-perso-slot="' + OBJETS[k].emp + '">Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>').join('') : '<p style="font-size:.78rem;font-weight:600;margin:4px 0">Rien pour l\'instant : les monstres des vagues lâchent parfois une pièce d\'équipement, chaque boss en lâche une.</p>') +
+    (portes.length ? '<p style="font-size:.74rem;font-weight:700;margin:6px 0 0">Porté : ' + portes.map((k) => OBJETS[k].nom).join(', ') + '. <button class="btn discret mini" data-perso-slot="">Fiche du perso</button></p>' : '');
+  ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>' + lignesAmelio(['murs', 'cadenas', 'arbalete', 'arbChargeur', 'arbCadence', 'arbDegats', 'arbPortee'], 'Protéger la grange') + artTour() + lignesAmelio(['tours', 'toursPortee', 'toursPv'], ''));
+}
+const SORTS = {
+  iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Charge', 'Il bondit sur le monstre ciblé : 3 fois ses dégâts sur lui, 1,5 fois tout autour. Recharge ' + RECHARGE_SORT + ' s.']],
+  cra: [['Flèche', 'À distance (7 cases). Une flèche sur ' + TIR_FEU + ' est une flèche de feu : double dégâts, et la cible brûle 3 s.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Elle se charge en abattant ' + KILLS_PERCANTE + ' monstres.']],
+  osa: [['Coup de fouet', 'À portée de fouet (3 cases), il frappe le monstre ciblé.'], ['Invocation', 'Un Bouftou combat à ses côtés pendant 14 s. Recharge ' + RECHARGE_SORT + ' s.']]
+};
+function ouvrirPerso(slot) {
+  const st = statsPerso(), c = st.c, cl = CLASSES.find((x) => x.id === classeDe()), l = st.niveau, a = seuil(l), b = seuil(l + 1); S_.nouveaux = 0; rendreHaut();
+  const stat = (v, nom, bonus) => '<div class="stat"><b>' + v + '</b><span>' + nom + '</span>' + (bonus ? '<small>' + bonus + '</small>' : '') + '</div>';
+  const stats = '<div class="stats-grille">' + stat(fmt(st.pvMax), 'PV', c.vita ? '+' + c.vita + ' équipement' : '') + stat(st.deg, 'dégâts', c.puissance ? '+' + c.puissance + ' %' : '') + stat(String(st.cadence).replace('.', ',') + ' s', 'entre 2 attaques', c.agilite ? '-' + c.agilite + ' %' : '') + stat(String(st.portee).replace('.', ',') + ' c.', 'portée') +
+    stat('+' + c.puissance + ' %', 'Puissance') + stat('+' + c.agilite + ' %', 'Agilité') + stat('+' + c.sagesse + ' %', 'Sagesse', c.sagesse ? 'XP en plus' : '') + stat('+' + c.prospection + ' %', 'Prospection', c.prospection ? 'butin en plus' : '') + '</div>';
+  const [att, sort] = SORTS[classeDe()];
+  const sorts = '<div class="art">' + ico(classeDe()) + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">⚔ ' + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
+    '<div class="art">' + ico(classeDe()) + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div></div><div></div></div>' +
+    '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""></span>' : ico('ulti-zone')) + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc + ' Recharge ' + RECHARGE_ULTI + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button></div></div>';
+  const slots = '<div class="slots">' + EMPLACEMENTS.map(([e, nom]) => { const id = S_.equip[e], o = OBJETS[id], dispo = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === e).length;
+    return '<button class="slot" data-slot="' + e + '" aria-pressed="' + (slot === e) + '">' + (o ? '<img src="assets/icones/obj-' + id + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span class="vide">+</span>') + '<b>' + (o ? o.nom : nom) + '</b><small>' + (o ? Object.entries(o.stats).map(([k, v]) => CARACS[k][2] + '+' + v).join(' ') : dispo ? dispo + ' dans le sac' : 'vide') + '</small></button>'; }).join('') + '</div>';
+  const cp = comptePanos(), bonus = Object.entries(cp).filter(([, n]) => n >= 2).map(([k, n]) => { const P = PANOS[k], bo = bonusPano(+k, n); return '<div class="pano-bonus">Panoplie ' + P.de + ' : ' + n + '/6 pièces. ' + (Object.keys(bo).length ? 'Bonus actif : ' + Object.entries(bo).map(([c2, v]) => '+' + v + CARACS[c2][1]).join(', ') + '.' : 'À 3 pièces : +' + VALEURS.vita[k] + ' PV.') + (n < 6 ? ' Les 6 : +' + VALEURS.puissance[k] + ' % de dégâts et +10 % de butin en plus.' : '') + '</div>'; }).join('');
+  let choix = '';
+  if (slot) {
+    const nomS = EMPLACEMENTS.find(([e]) => e === slot)[1], porte = S_.equip[slot], L = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === slot).sort((x, y) => OBJETS[y].niv - OBJETS[x].niv);
+    choix = '<div class="hdv-section">' + nomS + ' : dans ton sac</div>' + (porte ? '<div class="art">' + ico('obj-' + porte) + '<div><b>' + OBJETS[porte].nom + ' (portée)</b><div class="puces">' + statsTexte(OBJETS[porte].stats) + '</div></div><div class="act"><button class="btn discret" data-retirer="' + slot + '">Retirer</button></div></div>' : '') +
+      (L.length ? L.map((k) => { const o = OBJETS[k], ok = l >= o.niv; return '<div class="art' + (ok ? '' : ' verrou') + '">' + ico('obj-' + k) + '<div><b>' + o.nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsTexte(o.stats) + '<span class="puce ' + (ok ? 'bonne' : 'mauvaise') + '">niveau ' + o.niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-equiper="' + k + '"' + (ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>'; }).join('') : '<p style="font-size:.78rem;font-weight:600;margin:6px 0">Aucune autre pièce pour cet emplacement. Les monstres des vagues en lâchent parfois, et chaque boss en lâche une.</p>');
+  }
+  ouvrirModale('perso', entete('Fiche du personnage') + '<div class="fiche-tete"><img src="assets/icones/' + classeDe() + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + S_.perso.nom + '</b><span>' + cl.nom + ' niveau ' + l + '</span><div class="fiche-xp"><i style="width:' + (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%"></i></div><small>' + fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' points d\'expérience vers le niveau ' + (l + 1) + '</small></div></div>' +
+    '<div class="hdv-section">Caractéristiques</div>' + stats + '<div class="hdv-section">Équipement</div>' + slots + bonus + choix + '<div class="hdv-section">Sorts</div>' + sorts);
 }
 function ouvrirTofu(p, sauvage) {
   const titre = sauvage ? 'Un Tofu sauvage dans l\'herbe' : 'Un Tofu picore ton ' + PAR_ID[p.c].nom, chance = sauvage ? CHANCE_SAUVAGE : CHANCE_CAPTURE;
@@ -2545,7 +3086,7 @@ function ouvrirPlanter(p, dispo) {
 function ouvrirVoliere() {
   const ameliorer = lignesAmelio(['voliere'], 'Agrandir la volière');
   const max = S_.tofus * plumesParTofu(), v = S_.voliere;
-  ouvrirModale('voliere', entete('Volière à Tofus') + (S_.tofus ?
+  ouvrirModale('voliere', entete('Volière à Tofus') + (degatsBat('voliere') ? artPv('voliere') : '') + (S_.tofus ?
     '<div class="ligne"><div><b>' + S_.tofus + ' Tofu' + (S_.tofus > 1 ? 's' : '') + ' sur ' + capaciteVoliere() + ' places</b><small>Chacun donne une Plume de Tofu toutes les ' + dureeLisible(CADENCE_PLUME) + ', ' + plumesParTofu() + ' en attente au plus.</small></div></div>' +
     '<div class="ligne"><div><b>Plumes prêtes</b><small>' + v.plumes + '/' + max + (v.plumes < max ? ', la prochaine dans ' + dureeLisible(CADENCE_PLUME - v.accu) : ', la volière est pleine') + '. Elles se vendent à l\'HDV.</small></div><button class="btn kamas" data-plumes' + (v.plumes ? '' : ' disabled') + '>Ramasser</button></div>' :
     '<p style="font-size:.8rem;font-weight:600">La volière est vide. Achète des filets de capture à l\'HDV : quand un Tofu picore un champ ou se pose dans l\'herbe, touche-le pour l\'attraper.</p>') +
@@ -2585,6 +3126,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));
   else if (b.dataset.fleches) ACTIONS.acheterFleches(parseInt(b.dataset.fleches, 10));
   else if (b.hasAttribute('data-recharger')) ACTIONS.recharger();
+  else if (b.hasAttribute('data-remplir')) { ACTIONS.remplir(); ouvrirPuits(); }
   else if (b.dataset.capturer) { const p = S_.cases.find((c) => c.id === b.dataset.capturer); fermerModale(); if (p) allerPuis(p, () => ACTIONS.capturer(p)); } /* le filet, lui, se lance de pres */
   else if (b.dataset.chasser) { const p = S_.cases.find((c) => c.id === b.dataset.chasser); fermerModale(); if (p) chasserDeLoin(p, () => { if (p.tofu) ACTIONS.chasser(p); }); }
   else if (b.dataset.parcelle) ACTIONS.construireParcelle(b.dataset.parcelle);
@@ -2595,6 +3137,14 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-plumes')) ACTIONS.ramasserPlumes();
   else if (b.dataset.deplacer) { aDeplacer = S_.cases.find((c) => c.id === b.dataset.deplacer); mode = 'deplacer'; fermerModale(); majBandeau(); }
   else if (b.dataset.herbe) ACTIONS.remettreEnHerbe(b.dataset.herbe);
+  else if (b.dataset.reparer) ACTIONS.reparer(b.dataset.reparer);
+  else if (b.id === 'b-perso') ouvrirPerso();
+  else if (b.dataset.slot) ouvrirPerso(b.getAttribute('aria-pressed') === 'true' ? null : b.dataset.slot);
+  else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);
+  else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
+  else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
+  else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
+  else if (b.dataset.reconstruire) ACTIONS.reconstruire(b.dataset.reconstruire);
   else if (b.id === 'b-amenager') { mode = mode ? null : 'choisir'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.hasAttribute('data-amenager-enclos')) { fermerModale(); mode = 'enclos'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.id === 'b-tourner') ACTIONS.tournerBatiment();
@@ -2629,7 +3179,7 @@ function tick() {
   rendreCasesBulles(); rendreEnclosBulles();
   if (tofusVoliere.length !== S_.tofus) rendreTofusVoliere();
   if (++tours % 10 === 0) { rendreHaut(); sauver(); }
-  if (tours % 60 === 1) $('commis').innerHTML = '<b>Pépito :</b> « ' + hasard(PEPITO) + ' »';
+  if (tours % 60 === 1) $('commis').innerHTML = '<b>Pépito :</b> « ' + hasard(niv('epouvantail') >= 5 && Math.random() < 0.5 ? PEPITO_TRON : PEPITO) + ' »';
 }
 function boucle(t) {
   const s = (t - t0) / 1000;
@@ -2643,10 +3193,10 @@ function boucle(t) {
     if (sauvageMesh) { sauvageMesh.position.y = sauvageMesh.userData.base + Math.abs(Math.sin(s * 5)) * 0.18; sauvageMesh.rotation.y = 0.7 + Math.sin(s * 1.3) * 0.6; }
   }
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
-  deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s);
-  majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); boucle.t1 = t;
+  deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s);
+  majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); boucle.t1 = t;
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
-  rendu.render(scene, camera); placerBulles(); requestAnimationFrame(boucle);
+  rendu.render(scene, camera); placerBulles(); placerBarresBat(); requestAnimationFrame(boucle);
 }
 function ouvrirAccueil() {
   const sauve = charger();
@@ -2679,7 +3229,7 @@ function lancer(etat) {
   S_ = etat; completerTerrains(); arbresSurCases(); sauver();
   document.getElementById('accueil').hidden = true; document.getElementById('hud').classList.remove('cache');
   enAccueil = false; angleCam = Math.PI / 4; placerCamera();
-  construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous();
+  construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
   if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
   toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
   rendreHaut();
