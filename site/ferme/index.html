@@ -508,9 +508,17 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .fp-mieux, .fp-n { position: absolute; top: -9px; right: -9px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bord); color: #fff; font: 800 .7rem/18px var(--f-texte); font-style: normal; text-align: center; background: var(--vert); }
 .fp-mieux { font-size: .62rem; } /* (le ▲ : « mieux que ta piece » ; la fleche ↑ se lisait comme un T) */
 .fp-n { background: #e0402e; }
-.fp-carac { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 18px; }
-.fp-carac div { display: flex; align-items: center; gap: 5px; background: #fff; border: 2px solid #efe4cc; border-radius: 10px; padding: 3px 7px; font-size: .72rem; }
-.fp-carac span { flex: 1; color: #6b5a3a; font-weight: 700; } .fp-carac b { font-size: .84rem; } .fp-carac i { font-style: normal; font-size: .6rem; color: #2d6a1e; font-weight: 800; }
+svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentColor; flex: none; }
+.fp-carac { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 14px; }
+.fp-cr { display: flex; align-items: center; gap: 8px; padding: 6px 6px; border: 0; border-bottom: 1px solid #ecdfc4; border-radius: 8px; background: none; font: 700 .88rem/1.1 var(--f-texte); color: var(--encre); text-align: left; cursor: pointer; }
+.fp-cr:hover, .fp-cr.choisi { background: #fff1cf; }
+.fp-cr .rond { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18); }
+.fp-cr .rond svg.pc { width: 16px; height: 16px; vertical-align: 0; }
+.fp-cr .nom { flex: 1; min-width: 0; color: #5b4a2e; } .fp-cr b { font-size: .98rem; font-weight: 900; white-space: nowrap; } .fp-cr i { font-style: normal; font-size: .72rem; color: #2d6a1e; font-weight: 800; }
+.fp-explique { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #fff1cf; font-size: .86rem; line-height: 1.4; }
+.fp-explique > b { font: 400 1.05rem/1.1 var(--f-titre); } .fp-explique p { margin: 4px 0 6px; font-weight: 700; color: #3f3524; }
+.fp-src { font-size: .8rem; font-weight: 800; color: #6b5a3a; } .fp-src ul { margin: 3px 0 0; padding-left: 18px; font-weight: 700; }
+.fp-astuce { margin: 8px 0 0; font-size: .78rem; font-weight: 700; color: #8a7a5a; }
 .fp-entete { display: grid; grid-template-columns: 80px 1fr; gap: 12px; align-items: center; }
 .fp-grosse { width: 80px; height: 80px; border: 3px solid var(--bord); border-radius: 16px; background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); display: grid; place-items: center; } .fp-grosse img { width: 70px; height: 70px; object-fit: contain; }
 .fp-grosse.rare { box-shadow: 0 0 0 3px var(--or), 0 0 12px rgba(242, 182, 48, .9); } .fp-grosse.leg { box-shadow: 0 0 0 3px #9b6cff, 0 0 12px rgba(155, 108, 255, .8); }
@@ -763,7 +771,19 @@ const CLASSES = [
    (plus souvent avec de la Prospection), le boss toujours la premiere fois. Chaque piece donne deux caracteristiques ;
    3 pieces d'une meme panoplie : un bonus de Vitalite, les 6 : en plus de la Puissance et de la Prospection. On equipe depuis la fiche du perso. */
 const EMPLACEMENTS = [['coiffe', 'Coiffe'], ['cape', 'Cape'], ['amulette', 'Amulette'], ['anneau', 'Anneau'], ['ceinture', 'Ceinture'], ['bottes', 'Bottes']];
-const CARACS = { vita: ['Vitalité', ' PV', '❤'], puissance: ['Puissance', ' % de dégâts', '⚔'], agilite: ['Agilité', ' % de vitesse d\'attaque', '💨'], sagesse: ['Sagesse', ' % d\'expérience', '📖'], prospection: ['Prospection', ' % de butin', '🍀'] };
+/* les pictos des caracteristiques (12/10/2026, « les emojis on ronfle ») : dessins pleins, de la couleur de la caracteristique */
+const PICTOS = {
+  vita: ['#d9443a', '<path d="M12 20.5s-7.5-4.6-7.5-10.4A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.7c0 5.8-7.5 10.4-7.5 10.4z"/>'],
+  puissance: ['#e07c0a', '<path d="M13.5 2 4.5 13.5h6.2L9.5 22l9-11.6h-6.3z"/>'],
+  agilite: ['#2f9a8a', '<path d="M20.6 3.4C13.4 3.6 7.6 8 6.2 14.6L3.6 20.4l5.9-2.7c6.6-1.4 10.9-7.2 11.1-14.3z"/><path d="M8.2 15.8 15 9" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>'],
+  sagesse: ['#7a4fc9', '<path d="M3.5 5.2c3.2-1.6 6.3-1.5 8.5.6 2.2-2.1 5.3-2.2 8.5-.6v14.3c-3.2-1.5-6.3-1.4-8.5.6-2.2-2-5.3-2.1-8.5-.6z"/><path d="M12 5.8v14.3" stroke="#fff" stroke-width="1.4" opacity=".7"/>'],
+  prospection: ['#3f8a22', '<circle cx="8.8" cy="8.8" r="3.7"/><circle cx="15.2" cy="8.8" r="3.7"/><circle cx="8.8" cy="15.2" r="3.7"/><circle cx="15.2" cy="15.2" r="3.7"/><path d="M14.6 15.6 20 21.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'],
+  degats: ['#8a5634', '<path d="M20.5 2.5 21.5 3l-.4 1.6L10.3 15.4l-1.7-1.7z"/><path d="M5.6 12.6l5.8 5.8M8 16l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'],
+  cadence: ['#3a7fc1', '<circle cx="12" cy="13.5" r="7.8" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M12 9.5v4.4l2.9 1.9M9.4 2.8h5.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'],
+  portee: ['#c0392b', '<circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4.6" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="1.7"/>']
+};
+const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
+const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')] };
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }];
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
 const VALEURS = { vita: [20, 45, 80, 125, 180, 245], puissance: [4, 7, 10, 14, 18, 23], agilite: [3, 5, 7, 9, 12, 15], sagesse: [5, 8, 11, 15, 20, 25], prospection: [8, 12, 16, 20, 25, 31] };
@@ -1659,7 +1679,7 @@ const SOUPLE_CULTURES = { tige: 1, epi: 1, barbe: 1, feuille: 1, brin: 1, pousse
 const SC_ILE = new Set(['feuillageClair', 'feuillageSombre', 'pommeReflet', 'ecume_filet', 'nenuphar', 'galet', 'barbe', 'pousse', 'herbe', 'caillou', 'reflet', 'joint', 'fleur', 'tige', 'champi_point', 'petale', 'ecume']);
 const SC_PERSO = new Set(['peinture', 'muscle', 'cicatrice', 'paupiere', 'croc', 'anneau_barbe', 'reflet', 'pupille', 'iris', 'joue', 'sourcil', 'bouche', 'croix_v', 'croix_h', 'boucle_trou', 'paille_nervure', 'paille_brin', 'gorge', 'clou']);
 const SC_BATI = new Set(['craie', 'graine', 'fil', 'carreau', 'grillage', 'feu', 'flamme', 'lueur', 'etincelle', 'visage', 'joue', 'plume', 'tache', 'oeil', 'tige', 'epi', 'maille', 'tressage', 'clou', 'caisse_fond', 'chaume_rang', 'ligature', 'brin', 'fleur', 'vitre', 'lanterne', 'buche_bout', 'botte_bout', 'tonneau_dessus',
-  'corde_tour', 'douelle', 'lierre', 'grain_ble', 'trou', 'paille', 'barbe', 'kama_cran', 'couture', 'pousse', 'trou_serrure', 'rivet', 'reflet', 'eau']);
+  'corde_tour', 'douelle', 'lierre', 'grain_ble', 'trou', 'paille', 'barbe', 'kama_cran', 'kama_motif', 'couture', 'pousse', 'trou_serrure', 'rivet', 'reflet', 'eau']);
 const SC_CULT = new Set(['barbe', 'pousse', 'ficelle', 'brin']);
 const SC_MONSTRES = new Set(['pupille', 'reflet', 'iris', 'point_front', 'aile_coeur', 'fissure', 'dent', 'gueule', 'narine', 'orbite', 'gravure', 'lame_fil', 'bouche', 'sourcil', 'flamme_coeur', 'couronne_rouge', 'gemme', 'phalange']);
 const SANS_OMBRE = new Set(['cone', 'cone_bord', 'paille_nervure', 'paille_brin', 'eau', 'ecume', 'fumee', 'ecume_filet']);
@@ -1744,7 +1764,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261012f'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261012g'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -4522,6 +4542,27 @@ const SORTS = {
   cra: [['Flèche', 'À distance (7 cases). Une flèche sur ' + TIR_FEU + ' est une flèche de feu : double dégâts, et la cible brûle 3 s.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Elle se charge en abattant ' + KILLS_PERCANTE + ' monstres.']],
   osa: [['Coup de fouet', 'À portée de fouet (3 cases), il frappe le monstre ciblé.'], ['Invocation', 'Tu vises où poser un Bouftou (jusqu\'à ' + PORTEE_INVOC + ' cases) : il retombe en frappant tout autour (2 fois tes dégâts), puis se bat ' + DUREE_INVOC + ' s. Recharge ' + RECHARGE_INVOC + ' s.']]
 };
+let persoCarac = null; /* la caracteristique dont on lit l'explication */
+/* « il faudrait qu'on puisse cliquer dessus pour savoir a quoi ca correspond, meme moi l'agilite je sais pas a quoi elle sert » (Mathieu, 12/10/2026) */
+function expliquerCarac(k, st) {
+  const c = st.c, virg = (x) => String(x).replace('.', ','), cle = { vita: 'vita', degats: 'puissance', cadence: 'agilite' }[k] || k, cl = CLASSES.find((x) => x.id === classeDe());
+  const TXT = {
+    vita: ['Points de vie', 'Ta vie pendant les vagues et les raids : à 0, la vague est perdue. Ils montent avec ton niveau (' + fmt(st.base.pv) + ' au niveau ' + st.niveau + '), et la Vitalité de tes équipements en ajoute.'],
+    degats: ['Dégâts', 'Ce que fait chacun de tes coups, et la base de tes sorts. Ils montent avec ton niveau (' + st.base.deg + ' au niveau ' + st.niveau + '), puis ta Puissance les augmente de ' + c.puissance + ' %.'],
+    cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité le raccourcit de ' + c.agilite + ' %.'],
+    portee: ['Portée', 'La distance à laquelle tu touches un monstre, en cases : 1,5 pour le Iop au corps à corps, 3,2 pour le fouet de l\'Osamodas, 7 pour l\'arc du Cra. Elle dépend de ta classe, pas de ton équipement.'],
+    puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
+    agilite: ['Agilité', 'Te fait attaquer plus vite : le temps entre deux coups baisse de ' + c.agilite + ' % (' + virg(st.base.cadence) + ' s sans elle, ' + virg(st.cadence) + ' s avec).'],
+    sagesse: ['Sagesse', 'Te fait gagner plus d\'expérience : +' + c.sagesse + ' % sur tout ce qui en rapporte (récoltes, vagues gagnées, défis, Tofus).'],
+    prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %.']
+  }[k];
+  const src = [];
+  if (['vita', 'puissance', 'agilite', 'sagesse', 'prospection'].includes(cle)) {
+    Object.values(S_.equip || {}).forEach((id) => { const o = obj(id); if (o && o.stats[cle]) src.push(o.nom + ' : +' + o.stats[cle] + CARACS[cle][1]); });
+    Object.entries(comptePanos()).forEach(([p, n]) => { const v = bonusPano(+p, n)[cle]; if (v) src.push('Panoplie ' + PANOS[p].de + ' (' + n + ' pièces) : +' + v + CARACS[cle][1]); });
+  }
+  return '<div class="fp-explique"><b>' + picto(k) + ' ' + TXT[0] + '</b><p>' + TXT[1] + '</p>' + (src.length ? '<div class="fp-src">D\'où vient ta ' + CARACS[cle][0] + ' :<ul>' + src.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>' : (['vita', 'puissance', 'agilite', 'sagesse', 'prospection'].includes(cle) ? '<div class="fp-src">Aucune pièce portée ne t\'en donne pour l\'instant.</div>' : '')) + '</div>';
+}
 let persoNeufs = {}, persoSel = null, persoFiltre = 'tout', persoOnglet = 'equip'; /* les nouveautes de cette ouverture, la piece choisie, le filtre du sac, l'onglet */
 const NOMS_EMP = Object.fromEntries(EMPLACEMENTS_PERSO), PLURIELS_EMP = { coiffe: 'Coiffes', cape: 'Capes', amulette: 'Amulettes', anneau: 'Anneaux', ceinture: 'Ceintures', bottes: 'Bottes', arme: 'Armes' };
 const accordE = (emp) => emp === 'coiffe' || emp === 'cape' || emp === 'amulette' || emp === 'ceinture' || emp === 'arme' ? 'e' : emp === 'bottes' ? 'es' : '';
@@ -4540,7 +4581,7 @@ function portraitPerso() {
   return portraits[cle];
 }
 function ouvrirPerso(sel) {
-  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; }
+  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; }
   const dansSac = (k) => S_.sac[k] > 0 && obj(k), sacL = Object.keys(S_.sac).filter(dansSac), equipe = (k) => Object.values(S_.equip).includes(k);
   if (sel && NOMS_EMP[sel]) { persoFiltre = sel; persoSel = S_.equip[sel] || sacL.filter((k) => obj(k).emp === sel).sort((x, y) => qualiteJet(y) - qualiteJet(x))[0] || null; } /* un emplacement */
   else if (sel) persoSel = sel; /* une piece */
@@ -4563,14 +4604,16 @@ function ouvrirPerso(sel) {
   const slot = (e) => { const id = S_.equip[e], o = id && obj(id), mieux = sacL.some((k) => obj(k).emp === e && comparer(k).mieux), neuf = sacL.some((k) => obj(k).emp === e && persoNeufs[k]);
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
       (mieux ? '<i class="fp-mieux">▲</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
-  const carac = [['❤️', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['⚔️', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['⏱️', 'Attaque', String(st.cadence).replace('.', ',') + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['🎯', 'Portée', String(st.portee).replace('.', ',') + ' c.', ''],
-    ['💪', 'Puissance', '+' + c.puissance + ' %', ''], ['💨', 'Agilité', '+' + c.agilite + ' %', ''], ['📖', 'Sagesse', '+' + c.sagesse + ' %', ''], ['🍀', 'Prospection', '+' + c.prospection + ' %', '']];
+  const virg = (x) => String(x).replace('.', ',');
+  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['portee', 'Portée', virg(st.portee) + ' cases', ''],
+    ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite + ' %', ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
   const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case</small></h3><div class="fp-poupee">' +
     ['coiffe', 'cape', 'amulette'].map((e, k) => '<div style="grid-column:1;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
     '<div class="fp-perso"><img src="' + portraitPerso() + '" alt=""></div>' +
     ['anneau', 'ceinture', 'bottes'].map((e, k) => '<div style="grid-column:3;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
     '<div class="fp-arme">' + slot('arme') + '</div></div>' +
-    '<div class="fp-carac">' + carac.map(([e, n, v, bo]) => '<div>' + e + '<span>' + n + '</span><b>' + v + '</b>' + (bo ? '<i>' + bo + '</i>' : '') + '</div>').join('') + '</div></div>';
+    '<div class="fp-carac">' + carac.map(([k, n, v, bo]) => '<button class="fp-cr' + (persoCarac === k ? ' choisi' : '') + '" data-fp-carac="' + k + '"><span class="rond" style="background:' + PICTOS[k][0] + '">' + picto(k, '#fff') + '</span><span class="nom">' + n + '</span><b>' + v + '</b></button>').join('') + '</div>' + /* (le detail des bonus est dans l'explication, au toucher) */
+    (persoCarac ? expliquerCarac(persoCarac, st) : '<p class="fp-astuce">Touche une caractéristique pour savoir à quoi elle sert.</p>') + '</div>';
   /* au milieu : la piece choisie, comparee a celle qui est portee */
   let milieu;
   if (!persoSel) milieu = '<div class="fp-bloc fp-detail"><h3>Aucune pièce</h3><p class="fp-aide">Les monstres des vagues lâchent des pièces d\'équipement, chaque boss en lâche une à coup sûr la première fois. Elles arrivent ici.</p><div class="fp-actions"><button class="btn discret" data-bestiaire="panoplies">📖 Voir le butin possible</button></div></div>';
@@ -4695,6 +4738,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.fpSlot) { const k = S_.equip[b.dataset.fpSlot]; persoFiltre = b.dataset.fpSlot; ouvrirPerso(k || b.dataset.fpSlot); }
   else if (b.dataset.fpFiltre) { persoFiltre = b.dataset.fpFiltre; ouvrirPerso(); }
   else if (b.dataset.fpOnglet) { persoOnglet = b.dataset.fpOnglet; ouvrirPerso(); }
+  else if (b.dataset.fpCarac) { persoCarac = persoCarac === b.dataset.fpCarac ? null : b.dataset.fpCarac; ouvrirPerso(); }
   else if (b.dataset.persoSel) ouvrirPerso(b.dataset.persoSel);
   else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
