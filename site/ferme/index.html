@@ -87,7 +87,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .action:active .tuile { transform: translateY(3px); box-shadow: 0 0 0 var(--bord); }
 .action[aria-pressed="true"] .tuile { background: radial-gradient(circle at 50% 40%, #fff6d0, var(--or)); }
 .pastille.options { pointer-events: auto; font: 800 .78rem var(--f-texte); cursor: pointer; }
-#eau { background: #e2f2fc; color: #1f5f8b; } #eau.vide { background: #fde3df; color: #8a1e16; } #eau svg.goutte { width: 17px; height: 17px; flex: none; } /* l'eau en bleu, avec une vraie goutte */
+/* les stocks au bout de la barre d'actions (12/10/2026) : l'eau et les fleches */
+.stocks { display: grid; align-content: center; gap: 5px; padding-left: 8px; margin-left: 2px; border-left: 2px dashed #d9c7a0; }
+.stock { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 2px solid var(--bord); border-radius: 999px; padding: 2px 9px 2px 6px; box-shadow: 0 2px 0 var(--bord); font: 800 .8rem/1.2 var(--f-texte); color: var(--encre); white-space: nowrap; pointer-events: auto; }
+button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img { width: 18px; height: 18px; object-fit: contain; }
+#eau { background: #e2f2fc; color: #1f5f8b; } #eau.vide, .stock.vide { background: #fde3df; color: #8a1e16; } #eau svg.goutte { width: 17px; height: 17px; flex: none; } #eau small { display: none; }
+@media (max-width: 720px) { .stocks { position: absolute; right: -3px; bottom: calc(100% + 6px); display: flex; gap: 5px; padding: 0; margin: 0; border: 0; } } /* (au telephone, la barre est pleine : juste au-dessus, a droite) */
+@media (orientation: landscape) and (max-height: 520px) { .stock { font-size: .72rem; padding: 1px 7px 1px 5px; } .stock img, #eau svg.goutte { width: 14px; height: 14px; } } /* l'eau en bleu, avec une vraie goutte */
 @media (min-width: 721px) and (max-width: 1220px) { .haut .pastille .lib { display: none; } } /* (ecrans moyens : la place pour la pause et les options sur une ligne) */
 .pastille.pause { pointer-events: auto; cursor: pointer; padding: 4px 9px; color: var(--encre); } .pastille.pause svg { width: 15px; height: 15px; } /* (juste l'icone : la place manque en haut) */
 /* l'ecran de pause (12/10/2026) */
@@ -683,7 +689,6 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <div class="titre" id="titre">Ferme d'Incarnam</div>
     <span class="pastille"><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span><span class="lib">&nbsp;kamas</span></span>
     <span class="pastille" id="cases">40 cases</span>
-    <span class="pastille" id="eau" data-info="Arrosoir">10/10</span>
     <span class="pastille"><span class="lib">Paysan&nbsp;</span>niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
     <span class="pastille" id="mode-test" hidden style="background:var(--rouge);color:#fff">Mode test ×60</span>
     <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps (bêta)"><span class="lib">Temps </span>x1</button>
@@ -709,6 +714,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <button class="action" id="b-amenager"><span class="tuile"><img src="assets/icones/pelle.png" alt=""></span>Aménager</button>
     <button class="action" id="b-perso"><span class="tuile"><img id="perso-ico" src="assets/icones/iop.png" alt=""><b id="perso-nb" class="nouveau" hidden>0</b></span>Perso</button>
     <button class="action" id="b-vagues"><span class="tuile"><img src="assets/icones/chafer.png" alt=""><b id="vague-nb">1</b></span>Vagues</button>
+    <div class="stocks"><span class="stock" id="eau" data-info="Arrosoir">10/10</span><button class="stock" id="fleches-stock" hidden data-info="Flèches en réserve">0</button></div>
   </nav>
   <div class="raid-annonce" id="raid-annonce" hidden></div>
   <div class="combat-hud" id="combat" hidden>
@@ -4712,7 +4718,10 @@ function rendreHaut() {
   $('graine-ico').src = 'assets/icones/' + S_.graine + '.png'; $('graine-nb').textContent = S_.graines[S_.graine] || 0; $('b-graine').dataset.info = 'Graine choisie : ' + PAR_ID[S_.graine].nom;
   $('b-amenager').setAttribute('aria-pressed', !!mode);
   $('eau').innerHTML = '<svg class="goutte" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5C9 7 5.5 10.6 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.6 15 7 12 2.5z" fill="#3a95d1" stroke="#1f5f8b" stroke-width="1.6"/><path d="M9.2 14.2a3 3 0 0 0 2.6 3" fill="none" stroke="#dff1fb" stroke-width="1.6" stroke-linecap="round"/></svg> ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ' <small style="font-weight:700;color:#3a95d1" data-info="Citerne d\'arrosage">· citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() + '</small>' : ''); $('eau').classList.toggle('vide', !S_.eau);
-  $('eau').dataset.info = niv('arrosoir') ? 'Arrosoir, et citerne qui arrose seule les nouveaux semis : les deux se remplissent au puits' : 'Arrosoir';
+  $('eau').dataset.info = niv('arrosoir') ? 'Arrosoir, et citerne qui arrose seule les nouveaux semis : les deux se remplissent au puits' : 'Arrosoir : il se remplit au puits';
+  { const f = $('fleches-stock'), defense = niv('arbalete') || nbTours() || niv('epouvantail') >= 3; f.hidden = !defense && !S_.fleches; /* les fleches, des qu'une defense en tire (arbalete, tour, epouvantail arme) */
+    f.innerHTML = '<img src="assets/icones/fleches.png?v=' + VERSION_MODELES + '" alt="">' + fmt(S_.fleches); f.classList.toggle('vide', !!defense && !S_.fleches);
+    f.dataset.info = S_.fleches ? 'Flèches en réserve : l\'arbalète, les tours et l\'épouvantail en tirent une par tir. Touche pour en acheter' : 'Plus de flèches : ta défense ne tire plus. Touche pour en acheter à l\'HDV'; }
   const repos = S_.vague.repos - Date.now(), fini = S_.vague.num > VAGUES_TOTAL;
   const prepaV = fini ? 0 : (S_.vague.prepa || 0) - Date.now(), attenteV = Math.max(repos, prepaV);
   $('vague-nb').textContent = attenteV > 0 ? dureeLisible(attenteV).replace(' min', 'm').replace(' s', 's') : fini ? '✓' : S_.vague.num; $('b-vagues').classList.toggle('repos', attenteV > 0);
@@ -5113,6 +5122,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.graine) { S_.graine = b.dataset.graine; rendreHaut(); fermerModale(); }
   else if (b.dataset.vendre) ACTIONS.vendre(b.dataset.vendre, parseInt(b.dataset.n, 10));
   else if (b.dataset.hdvQte !== undefined) { ouvrirHdv.qte = parseInt(b.dataset.hdvQte, 10); ouvrirHdv(); }
+  else if (b.id === 'fleches-stock') { ouvrirHdv.cat = 'materiel'; ouvrirHdv('acheter'); }
   else if (b.dataset.qteItem) { ouvrirHdv.qtes = ouvrirHdv.qtes || {}; ouvrirHdv.qtes[b.dataset.qteItem] = parseInt(b.dataset.qteV, 10); ouvrirHdv(); }
   else if (b.dataset.hdvCat) { ouvrirHdv.cat = b.dataset.hdvCat; ouvrirHdv('acheter'); $('carte').scrollTop = 0; }
   else if (b.dataset.amelio) ACTIONS.amelio(b.dataset.amelio);
@@ -5607,7 +5617,7 @@ const SORT_LECON = {
 };
 const LECONS = [
   { id: 'eau', titre: 'L\'eau', ico: 'arrosoir', resume: 'Le puits, l\'arrosoir, la citerne.', quand: () => S_.eau <= 0,
-    pages: [() => `Ton <em>arrosoir</em> est vide (le compteur bleu, en haut). Pour le remplir, ${toucherQ('le <em>puits</em>')} : ton perso y va et fait le plein.`,
+    pages: [() => `Ton <em>arrosoir</em> est vide (la goutte bleue, en bas à droite). Pour le remplir, ${toucherQ('le <em>puits</em>')} : ton perso y va et fait le plein.`,
       () => `Arroser n'est pas obligatoire, mais un semis arrosé pousse <em>deux fois et demie plus vite</em>. Améliore <em>le puits</em> (bouton Améliorer) : la poulie remplit l'arrosoir dès que tu passes à côté, puis une citerne arrose seule tes nouveaux semis.`] },
   { id: 'tofus', titre: 'Les Tofus', ico: 'tofu', resume: 'Les chasser, l\'épouvantail, les filets et la volière.', quand: () => S_.cases.some((c) => c.type === 'champ' && c.tofu),
     pages: [() => `Un <em>Tofu</em> picore ton champ ! Tant qu'il reste, il te vole des récoltes. ${toucherQ('lui').replace(/^./, (x) => x.toUpperCase())} pour le chasser.`,
