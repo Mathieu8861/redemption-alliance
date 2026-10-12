@@ -556,15 +556,24 @@ const horlogeJeu = (() => {
 })();
 /* ===================== DONNEES DU JEU ===================== */
 const CULTURES = [
-  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 15, rendement: 3, prix: 10, xp: 3, couleur: '#f3c03c', tige: '#d6a63c' },
-  { id: 'orge', nom: 'Orge', niv: 3, graine: 15, temps: 45, rendement: 3, prix: 25, xp: 6, couleur: '#e8d48c', tige: '#cdb46a' },
-  { id: 'avoine', nom: 'Avoine', niv: 5, graine: 30, temps: 120, rendement: 4, prix: 35, xp: 10, couleur: '#f6e4a0', tige: '#d9c070' },
-  { id: 'houblon', nom: 'Houblon', niv: 8, graine: 60, temps: 300, rendement: 4, prix: 55, xp: 16, couleur: '#6fae3b', tige: '#8b6a42' },
+  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 15, rendement: 3, prix: 9, xp: 3, couleur: '#f3c03c', tige: '#d6a63c' },
+  { id: 'orge', nom: 'Orge', niv: 5, graine: 15, temps: 45, rendement: 3, prix: 23, xp: 6, couleur: '#e8d48c', tige: '#cdb46a' },
   { id: 'cawotte', nom: 'Cawotte', niv: 9, graine: 600, temps: 240, rendement: 4, prix: 40, xp: 20, couleur: '#f08a24', tige: '#4fae3a', glb: 'cultures3', mange: { deg: 0.2, txt: '+20 % de dégâts' } },
-  { id: 'lin', nom: 'Lin', niv: 11, graine: 100, temps: 600, rendement: 5, prix: 65, xp: 24, couleur: '#8cb8ff', tige: '#7fa84a' },
+  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 30, temps: 120, rendement: 4, prix: 32, xp: 10, couleur: '#f6e4a0', tige: '#d9c070' },
   { id: 'fraise', nom: 'Fraise', niv: 12, graine: 900, temps: 480, rendement: 5, prix: 55, xp: 28, couleur: '#e8323a', tige: '#3f9a35', glb: 'cultures3', mange: { pros: 30, txt: '+30 % de prospection' } },
-  { id: 'seigle', nom: 'Seigle', niv: 14, graine: 180, temps: 1440, rendement: 5, prix: 110, xp: 35, couleur: '#c9a35a', tige: '#a88a4a' }
+  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 60, temps: 300, rendement: 4, prix: 51, xp: 16, couleur: '#6fae3b', tige: '#8b6a42' },
+  { id: 'lin', nom: 'Lin', niv: 20, graine: 100, temps: 600, rendement: 5, prix: 61, xp: 24, couleur: '#8cb8ff', tige: '#7fa84a' },
+  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 180, temps: 1440, rendement: 5, prix: 103, xp: 35, couleur: '#c9a35a', tige: '#a88a4a' },
+  /* les cultures de haut niveau (blender/cultures2.py) ; le Quisnoa du meme fichier attend le niveau 70 */
+  { id: 'riz', nom: 'Riz', niv: 30, graine: 220, temps: 600, rendement: 6, prix: 85, xp: 45, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
+  { id: 'malt', nom: 'Malt', niv: 35, graine: 300, temps: 900, rendement: 6, prix: 122, xp: 60, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
+  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 420, temps: 1200, rendement: 6, prix: 169, xp: 80, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
+  { id: 'mais', nom: 'Maïs', niv: 45, graine: 550, temps: 1440, rendement: 7, prix: 188, xp: 100, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
+  { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 1440, rendement: 7, prix: 244, xp: 125, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
+  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 1800, rendement: 8, prix: 283, xp: 160, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
 ];
+/* les niveaux d'avant le 12/10/2026 : une culture deja debloquee le reste (on ne retire rien aux joueurs) */
+const ANCIEN_NIV = { ble: 1, orge: 3, avoine: 5, houblon: 8, cawotte: 9, lin: 11, fraise: 12, seigle: 14 };
 /* la monnaie : une piece de kama dessinee (notre propre motif, pas le logo officiel) a la place du K, qui veut dire mille dans Dofus */
 const KAMA = '<img class="kama" src="assets/icones/kama.png" alt="kamas">';
 const LAINE = { id: 'laine', nom: 'Laine de Bouftou', prix: 40, xp: 4 };
@@ -737,7 +746,7 @@ const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 const dureeLisible = (ms) => { const s = Math.max(1, Math.round(ms / 1000)); if (TEST || s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r : ''); };
 const borne = (v, a, b) => Math.min(b, Math.max(a, v));
 const hasard = (t) => t[Math.floor(Math.random() * t.length)];
-const de = (nom) => (/^[AEIOUYÉH]/i.test(nom) ? 'de l\'' : 'du ') + nom;
+const de = (nom) => (/^(Cawotte|Fraise)/.test(nom) ? 'de la ' : /^Houblon/.test(nom) ? 'du ' : /^[AEIOUYÉH]/i.test(nom) ? 'de l\'' : 'du ') + nom;
 const NIVBAT = { qg: 'qg', nivPuits: 'nivPuits', enclos: 'enclos', voliere: 'voliere', nivEtal: 'nivEtal' };
 const nivBat = (id) => 1 + (S_.amelio[id] || 0); /* le niveau d'un batiment, de 1 a 5 */
 const DERIVE = { /* les reglages d'avant le 11/10, deduits du niveau du batiment : le code des effets n'a pas bouge */
@@ -757,7 +766,7 @@ function xpFerme(n) {
 }
 const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais'));
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
-const debloquee = (c) => niveau(S_.xp) >= c.niv;
+const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
 const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + niv('faux') - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes */
 const prixGraine = (c) => Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5) * [1, 1, 0.85, 0.85, 0.8][nivBat('nivEtal') - 1])); /* le prix des graines suit un peu le cours */
@@ -1608,7 +1617,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261011t'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261012a'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -1695,7 +1704,7 @@ function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.a
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['terrains', 'ile-jeu', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
+  const fichiers = ['terrains', 'ile-jeu', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -1725,6 +1734,7 @@ async function chargerModeles() {
   MODELES.portillon = gabarit(G.objets, 'portillonFerme', 2.0); /* ferme : l'enclos ne reste pas ouvert */
   versToon(G['ble-planche'], { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
   versToon(G.cultures, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
+  versToon(G.cultures2, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* les cultures de haut niveau (12/10/2026) */
   versToon(G.cultures3, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* la Cawotte et la Fraise : oubliees jusqu'au 11/10/2026, leurs couleurs
     restaient brutes (terre #280d03 au lieu de #6e3f20), d'ou des sillons presque noirs (« ca fait un truc bizarre nan ? », Mathieu) */
   CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { const n = c.id === 'ble' ? 'parcelle_A' + k : 'parcelle_' + c.id + '_' + k; const src = (c.id === 'ble' ? G['ble-planche'] : G[c.glb || 'cultures']).getObjectByName(n); const g = src.clone(true); g.position.set(0, 0.02, 0); g.rotation.set(0, 0, 0); MODELES[c.id + k] = g; }));
@@ -2737,7 +2747,7 @@ function feterNiveau(n, nouveautes) {
   document.body.appendChild(f); const fin = () => f.remove(); f.querySelector('.btn').addEventListener('click', fin); setTimeout(fin, 6500);
 }
 function nouveautesNiveau(avant, apres) {
-  const L = CULTURES.filter((c) => c.niv > avant && c.niv <= apres).map((c) => 'Nouvelle culture : ' + c.nom);
+  const L = CULTURES.filter((c) => c.niv > avant && c.niv <= apres && !(S_.cultAcquises || []).includes(c.id)).map((c) => 'Nouvelle culture : ' + c.nom); /* (pas celles deja acquises avant le 12/10) */
   AMELIOS.filter((a) => nivRequis(a, 0) > avant && nivRequis(a, 0) <= apres).forEach((a) => L.push('Amélioration débloquée : ' + a.nom));
   if (avant < NIV_TOUR && apres >= NIV_TOUR) L.push('Tours de défense débloquées');
   if (avant < NIV_ULTI && apres >= NIV_ULTI) L.push('Ton ulti est à choisir !');
@@ -2764,7 +2774,7 @@ const OBJECTIFS = [
   ['tofusChasses', 1, 'Chasse un Tofu qui picore tes champs.', 40, 8],
   ['vagues', 1, 'Lance et gagne ta première vague (bouton Vagues).', 100, 15],
   ['amelios', 1, 'Achète ta première amélioration (bouton Améliorer).', 80, 10],
-  ['recolte_orge', 1, 'Récolte de l\'Orge (niveau 3).', 100, 10],
+  ['recolte_orge', 1, 'Récolte de l\'Orge (niveau 5).', 100, 10],
   ['vagueMax', 5, 'Gagne la vague 5.', 200, 20],
   ['terrainsAchetes', 1, 'Achète un terrain pour agrandir ta ferme.', 250, 20],
   ['vagueMax', 10, 'Bats le Bouftou Royal à la vague 10.', 500, 40],
