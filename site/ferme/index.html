@@ -2165,8 +2165,14 @@ function attaquerVoleur() {
   if (!voleurCiblable() || !paysanMesh || paysanMesh.userData.attaque) return;
   const classe = (S_.perso && S_.perso.classe) || 'iop', pv = voleur.m.position, pp = paysanMesh.position;
   if (Math.hypot(pv.x - pp.x, pv.z - pp.z) > PORTEE_CLASSE[classe]) { /* trop loin : il court vers le voleur, puis reessaie */
-    const c = caseSous(pv.x, pv.z);
+    /* « je viens de tuer le voleur a distance avec le Iop, bizarre nan ? » (Mathieu, 11/10/2026) : caseSous ne connait que l'ile de depart ;
+       sur un terrain achete (ou une case ou l'on ne marche pas), il ne courait pas et frappait de loin. Maintenant : la case du voleur,
+       sinon la case libre la plus proche de lui, et jamais de coup hors de portee */
+    const c = caseIci(pv.x, pv.z);
     if (c && PASSABLE[c.type]) { allerPuis(c, () => attaquerVoleur()); return; }
+    const pres = S_.cases.filter((x) => PASSABLE[x.type]).map((x) => [x, posCase(x)]).sort((a, b) => Math.hypot(a[1].x - pv.x, a[1].z - pv.z) - Math.hypot(b[1].x - pv.x, b[1].z - pv.z))[0];
+    if (pres && Math.hypot(pres[1].x - pp.x, pres[1].z - pp.z) > 0.5) { allerPuis(pres[0], () => attaquerVoleur()); return; }
+    toast(classe === 'cra' ? 'Trop loin, même pour une flèche.' : 'Le voleur est hors de portée : attends qu\'il approche.'); return;
   }
   chemin = []; arrivee = null;
   const u = paysanMesh.userData; u.angle = Math.atan2(pv.x - pp.x, pv.z - pp.z); paysanMesh.rotation.y = u.angle;
@@ -2210,7 +2216,8 @@ function frapper(classe) {
   if (!voleur) return;
   const pv = voleur.m.position.clone(); pv.y += 0.8;
   const msg = { cra: 'Ta flèche siffle : le voleur de VSA détale, bredouille !', iop: 'Un grand coup d\'épée du Iop : le voleur de VSA détale, bredouille !', osa: 'Clac ! Un coup de fouet de l\'Osamodas : le voleur de VSA détale, bredouille !' }[classe];
-  effetFrappe(classe, pv, () => blesserVoleur(statsPerso().deg, msg, classe === 'iop' ? 1.2 : 0.6)); /* le coup d'epee du Iop le sonne plus longtemps */
+  const portee = () => Math.hypot(voleur.m.position.x - paysanMesh.position.x, voleur.m.position.z - paysanMesh.position.z) <= PORTEE_CLASSE[classe] + 0.6; /* (au moment du coup : il a pu s'eloigner) */
+  effetFrappe(classe, pv, () => { if (voleur && (classe === 'cra' || portee())) blesserVoleur(statsPerso().deg, msg, classe === 'iop' ? 1.2 : 0.6); }); /* le coup d'epee du Iop le sonne plus longtemps */
 }
 /* un coup sur le voleur : il ne detale qu'a 0 PV */
 function blesserVoleur(n, msg, sonne) {
@@ -2800,7 +2807,7 @@ function lancerRaid() {
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
   $('combat-ico').src = 'assets/icones/' + classeDe() + '.png'; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').textContent = cl.sort;
-  $('ulti-rond').innerHTML = S_.ulti ? '<img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
   toast('Raid VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils repartent.', 'alerte'); majCombatHud();
 }
 /* un voleur du raid : il va a la grange, prend sa part, et repart par ou il est venu */
@@ -2974,7 +2981,7 @@ function ouvrirVagues() {
     return '<div class="vg-monstre"><img src="assets/icones/' + M.icone + '.png" alt=""><b>× ' + k + '</b><small>' + M.nom + ' : ' + M.desc + '</small><div class="vg-stats"><span class="puce">❤ ' + pv + ' PV</span><span class="puce">⚔ ' + degMonstre(t, n) + ' toutes les ' + String(M.cadence).replace('.', ',') + ' s</span><span class="puce ' + (coups <= 1 ? 'bonne' : coups >= 6 ? 'mauvaise' : '') + '">' + coups + ' coup' + (coups > 1 ? 's' : '') + ' pour toi</span></div></div>'; }).join('');
   const ok = st.niveau >= n;
   const perso = '<div class="art">' + ico(classeDe()) + '<div><b>' + cl.nom + ' niveau ' + st.niveau + '</b><div class="puces"><span class="puce">❤ ' + st.pvMax + ' PV</span><span class="puce">⚔ ' + st.deg + ' toutes les ' + String(st.cadence).replace('.', ',') + ' s</span><span class="puce">Sort : ' + cl.sort + (classeDe() === 'cra' ? ' (' + Math.min(KILLS_PERCANTE, S_.chargeSort || 0) + '/' + KILLS_PERCANTE + ' monstres)' : '') + '</span>' + (classeDe() === 'cra' ? '<span class="puce">🔥 1 tir sur ' + TIR_FEU + ' en feu</span>' : '') + '<span class="puce ' + (st.niveau >= niveauRequis(n) ? 'bonne' : 'mauvaise') + '">Niveau requis ' + niveauRequis(n) + '</span></div><div class="desc">Ton niveau de Paysan est aussi ton niveau de combat.</div></div><div></div></div>' +
-    '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""></span>' : '<span class="pic img trio">' + ['gel', 'zone', 'mono'].map((u) => '<img src="assets/icones/ulti-' + u + '.png?v=' + VERSION_MODELES + '" alt="">').join('') + '</span>') + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc : st.niveau >= NIV_ULTI ? 'Débloqué : gel, zone ou coup fatal, à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + ' : gel, zone ou coup fatal, à choisir une fois pour toutes.') + '</div></div><div class="act"><button class="btn' + (S_.ulti || st.niveau < NIV_ULTI ? ' discret' : ' kamas') + '" data-voir-ulti>' + (S_.ulti ? 'Voir' : st.niveau >= NIV_ULTI ? 'Choisir' : 'Voir') + '</button></div></div>';
+    '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : '<span class="pic img trio">' + ['gel', 'zone', 'mono'].map((u) => '<img src="' + srcUlti(u) + '" alt="">').join('') + '</span>') + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc : st.niveau >= NIV_ULTI ? 'Débloqué : gel, zone ou coup fatal, à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + ' : gel, zone ou coup fatal, à choisir une fois pour toutes.') + '</div></div><div class="act"><button class="btn' + (S_.ulti || st.niveau < NIV_ULTI ? ' discret' : ' kamas') + '" data-voir-ulti>' + (S_.ulti ? 'Voir' : st.niveau >= NIV_ULTI ? 'Choisir' : 'Voir') + '</button></div></div>';
   const arb = niv('arbalete') ? '<div class="art">' + ico('arbalete') + '<div><b>Arbalète de la grange</b><div class="puces"><span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'à recharger') + ', ' + degatsArbalete() + ' dégâts, ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + '</span></div><div class="desc">Elle tire aussi sur les monstres qui approchent de la grange.</div></div><div></div></div>' : '';
   const gains = '<div class="art">' + ico('kama') + '<div><b>' + fmt(g.kamas) + ' ' + KAMA + ' et ' + g.xp + ' points d\'expérience</b>' + (fini ? '<div class="desc">Vague déjà gagnée : gains divisés par deux.</div>' : n === base + VAGUES_PALIER ? '<div class="desc">Battre ' + leNom(B, true) + ' termine le palier ' + PALIERS[P].nom + (P + 1 < PALIERS.length ? ' et ouvre le suivant : ' + PALIERS[P + 1].nom + '.' : '.') + '</div>' : '') + '</div><div></div></div>';
   const prepa = fini ? 0 : (S_.vague.prepa || 0) - Date.now(), requis = niveauRequis(n), tropBas = !fini && st.niveau < requis;
@@ -3023,7 +3030,7 @@ function lancerVague(pBoss) {
   if (repas.length) { if (legPorte('wa') && !S_.mangeDeux) S_.mangeDeux = true; else { S_.mange = {}; S_.mangeDeux = false; } sauver(); /* la Couronne du Wa Wabbit : le repas vaut 2 vagues */ setTimeout(() => toast('Repas avant la bataille : ' + repas.map((id) => PAR_ID[id].nom + ' ' + PAR_ID[id].mange.txt).join(', ') + ' pendant cette vague.', 'or'), 1200); }
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
-  $('combat-ico').src = 'assets/icones/' + classeDe() + '.png'; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').textContent = cl.sort; $('ulti-rond').innerHTML = S_.ulti ? '<img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  $('combat-ico').src = 'assets/icones/' + classeDe() + '.png'; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').textContent = cl.sort; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
   toast(rejoueB ? leNom(MONSTRES[PALIERS[pBoss].boss]) + ' revient pour la revanche, remis à ton niveau !' : 'Vague ' + n + ' : ' + file.length + ' monstres grimpent par les bords de ta ferme !', 'alerte'); majCombatHud();
 }
 /* les bords de la ferme : une case praticable dont un cote donne sur le vide */
@@ -3280,16 +3287,20 @@ const ULTIS = {
   mono: { nom: { iop: 'Colère de Iop', cra: 'Flèche fatale', osa: 'Morsure du Dragoeuf' }, genre: 'Coup fatal', teinte: '#d9443a', desc: 'Un seul monstre, mais cinq fois ton attaque : de quoi entamer sérieusement un boss.', chiffres: (d) => [5 * d + ' dégâts', 'une seule cible'] }
 };
 const nomUlti = (id) => ULTIS[id].nom[classeDe()];
+/* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
+   (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
+const sufUlti = () => classeDe() === 'cra' ? '' : '-' + classeDe();
+const srcUlti = (id) => 'assets/icones/ulti-' + id + sufUlti() + '.png?v=' + VERSION_MODELES;
 function ouvrirUlti() {
   const l = niveau(S_.xp), d = statsPerso().deg, cl = CLASSES.find((c) => c.id === classeDe());
   const carte = (id) => { const U = ULTIS[id], pris = S_.ulti === id;
-    return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="assets/icones/ulti-' + id + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + RECHARGE_ULTI + ' s</span></div></div><div class="desc">' + U.desc + '</div></div>' +
+    return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + RECHARGE_ULTI + ' s</span></div></div><div class="desc">' + U.desc + '</div></div>' +
       (S_.ulti ? (pris ? '<span class="cadenas">✓ Ton ulti</span>' : '<span></span>') : '<button class="btn kamas" data-choisir-ulti="' + id + '"' + (l < NIV_ULTI ? ' disabled' : '') + '>Choisir</button>') + '</div>'; };
   ouvrirModale('ulti', entete('L\'ulti du ' + cl.nom) + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">' + (S_.ulti ? 'Ton choix est fait, il est définitif.' : l < NIV_ULTI ? 'Il se débloque au niveau ' + NIV_ULTI + ' de Paysan (tu es niveau ' + l + ').' : 'Il s\'ajoute à ton attaque et à ton sort. <b>Tu le choisis une seule fois : impossible d\'en changer ensuite.</b>') + ' Les dégâts indiqués sont ceux de ton niveau actuel, ils montent avec toi.</p>' + ['gel', 'zone', 'mono'].map(carte).join(''));
 }
 function choisirUlti(id, confirme) {
   if (S_.ulti || !ULTIS[id] || niveau(S_.xp) < NIV_ULTI) return;
-  if (!confirme) { const U = ULTIS[id]; ouvrirModale('ulti', entete('Prendre ' + nomUlti(id) + ' ?') + '<div class="confirme"><div class="gros" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="assets/icones/ulti-' + id + '.png?v=' + VERSION_MODELES + '" alt=""></div><b>' + U.genre + '</b><p>' + U.desc + '<br><b>C\'est pour de bon : tu ne pourras plus changer d\'ulti.</b></p><div class="boutons"><button class="btn discret" data-voir-ulti>Revoir les trois</button><button class="btn kamas" data-confirmer-ulti="' + id + '">Oui, je le prends</button></div></div>'); return; }
+  if (!confirme) { const U = ULTIS[id]; ouvrirModale('ulti', entete('Prendre ' + nomUlti(id) + ' ?') + '<div class="confirme"><div class="gros" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></div><b>' + U.genre + '</b><p>' + U.desc + '<br><b>C\'est pour de bon : tu ne pourras plus changer d\'ulti.</b></p><div class="boutons"><button class="btn discret" data-voir-ulti>Revoir les trois</button><button class="btn kamas" data-confirmer-ulti="' + id + '">Oui, je le prends</button></div></div>'); return; }
   S_.ulti = id; sauver(); toast(nomUlti(id) + ' est ton ulti. Il t\'attend pendant les vagues, à côté de ton sort.', 'or'); ouvrirUlti();
 }
 /* ---------- viser soi-meme : un cercle sur le sol pour les ultis de zone, la cible sous la souris pour le coup fatal,
@@ -3986,7 +3997,7 @@ function ouvrirPerso(slot) {
   const [att, sort] = SORTS[classeDe()];
   const sorts = '<div class="art">' + ico(classeDe()) + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">⚔ ' + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
     '<div class="art">' + ico(classeDe()) + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div></div><div></div></div>' +
-    '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="assets/icones/ulti-' + S_.ulti + '.png?v=' + VERSION_MODELES + '" alt=""></span>' : ico('ulti-zone')) + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc + ' Recharge ' + RECHARGE_ULTI + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button></div></div>';
+    '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : ico('ulti-zone' + sufUlti())) + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc + ' Recharge ' + RECHARGE_ULTI + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button></div></div>';
   const slots = '<div class="slots">' + EMPLACEMENTS.map(([e, nom]) => { const id = S_.equip[e], o = OBJETS[id], ici = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === e), dispo = ici.reduce((t, k) => t + S_.sac[k], 0);
     const mieux = ici.some((k) => comparer(k).mieux), neuf = ici.some((k) => persoNeufs[k]);
     return '<button class="slot' + (mieux ? ' a-voir' : '') + '" data-slot="' + e + '" aria-pressed="' + (slot === e) + '">' + (dispo ? '<span class="compte' + (mieux ? ' mieux' : neuf ? ' neuf' : '') + '">' + (mieux ? '↑ ' : '') + dispo + '</span>' : '') + (o ? '<img src="assets/icones/obj-' + id + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span class="vide">+</span>') + '<b>' + (o ? o.nom : nom) + '</b><small>' + (o ? Object.entries(o.stats).map(([k, v]) => CARACS[k][2] + '+' + v).join(' ') : dispo ? 'à équiper' : 'vide') + '</small>' + (dispo ? '<small class="reserve">' + (mieux ? 'mieux dans le sac' : dispo + ' dans le sac') + '</small>' : '') + '</button>'; }).join('') + '</div>' +
@@ -4484,7 +4495,12 @@ function ouvrirAccueil() {
     if (b.hasAttribute('data-deconnexion')) { deconnecter(); return; }
     if (b.dataset.classe) { classe = b.dataset.classe; const nom = document.getElementById('perso-nom').value; rendre(); document.getElementById('perso-nom').value = nom; }
     else if (b.hasAttribute('data-reprendre')) lancer(sauve);
-    else if (b.hasAttribute('data-nouvelle')) { if (confirm('Effacer la ferme de ' + sauve.perso.nom + ' et recommencer ?')) { enLigneSv.ecraser = !!enLigneSv.compte; enLigneSv.sale = false; sauverMeta(); localStorage.removeItem(CLE); location.reload(); } }
+    else if (b.hasAttribute('data-nouvelle')) { /* plus la fenetre grise du navigateur (capture de Mathieu, 11/10/2026) : la confirmation aux couleurs du jeu, dans la carte */
+      const cl = CLASSES.find((c) => c.id === sauve.perso.classe);
+      carte.innerHTML = '<h1>Ferme d\'Amakna</h1><div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p><b>Recommencer une ferme ?</b><br>La ferme de ' + echapper(sauve.perso.nom) + ' (' + (cl ? cl.nom + ', ' : '') + 'Paysan niveau ' + niveauDe(sauve.xp) + ', ' + fmt(sauve.kamas) + ' kamas) sera effacée' + (ENLIGNE && enLigneSv.compte ? ', ici et en ligne' : '') + ', pour de bon.</p><div class="boutons"><button class="btn discret" data-garder>Garder ma ferme</button><button class="btn" data-effacer style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>';
+    }
+    else if (b.hasAttribute('data-garder')) rendre();
+    else if (b.hasAttribute('data-effacer')) { enLigneSv.ecraser = !!enLigneSv.compte; enLigneSv.sale = false; sauverMeta(); localStorage.removeItem(CLE); location.reload(); }
     else if (b.hasAttribute('data-commencer')) {
       const nom = (document.getElementById('perso-nom').value || '').trim();
       if (nom.length < 2) { document.getElementById('perso-nom').focus(); document.getElementById('perso-nom').placeholder = 'Il faut un nom (2 lettres au moins)'; return; }
