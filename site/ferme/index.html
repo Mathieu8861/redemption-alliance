@@ -691,11 +691,11 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <span class="pastille" id="cases">40 cases</span>
     <span class="pastille"><span class="lib">Paysan&nbsp;</span>niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
     <span class="pastille" id="mode-test" hidden style="background:var(--rouge);color:#fff">Mode test ×60</span>
-    <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps (bêta)"><span class="lib">Temps </span>x1</button>
+    <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps : normal, x1,5 ou x2"><span class="lib">Temps </span>normal</button>
     <div class="vitesse-panneau" id="vitesse-panneau" hidden>
       <b>Vitesse du temps</b> <span class="vitesse-beta">bêta</span>
-      <div class="vitesse-ligne"><input type="range" min="1" max="10" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
-      <small>Pour les tests : en plus du rythme normal, les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
+      <div class="vitesse-ligne"><input type="range" min="1" max="2" step="0.5" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">normal</output></div>
+      <small>En x1,5 ou x2, les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
     </div>
     <button class="pastille pause" id="b-pause" aria-label="Pause" data-info="Pause (touche P)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg></button>
     <button class="pastille options" id="b-options">Options</button>
@@ -728,7 +728,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn" id="b-terminer">Terminer</button></div>
   <div id="bulles"></div>
   <div class="info-survol" id="info-survol" hidden></div>
-  <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Rien n'attaque : monstres, voleurs et raids t'attendent. Ta ferme, elle, continue de pousser.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
+  <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Rien n'attaque : monstres, voleurs et raids t'attendent. Ta ferme, elle, continue de pousser, doucement.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
   <div id="bats-pv"></div>
 </div>
 <div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
@@ -746,18 +746,21 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 /* BETA : la vitesse du temps, de x1 a x30 (le curseur du bandeau ; x50 avant le 12/10/2026 au soir, « mets max x30, retire le x50 », Mathieu). Une horloge de jeu remplace Date.now : tout ce qui se compte en temps
    (pousse, repas, preparation des vagues, raids, Tofus) va plus vite ; les combats, rythmes par l'affichage, gardent leur vitesse.
    L'avance prise est gardee d'une visite a l'autre, sinon les cultures rajeuniraient au rechargement. */
-/* LE RYTHME FIXE (13/10/2026, apres l'etude du rythme : « ok alors commence a coder de cette maniere », Mathieu) : le jeu tourne tout seul au rythme
-   du x20 d'avant (RYTHME, plus bas : une minute de jeu dure 3 vraies secondes), le meme pour tout le monde. Le curseur ne sert plus qu'aux tests,
-   avec ?test=1 (en local) ou ?curseur=1 dans l'adresse, et il va jusqu'a x10 en plus du rythme normal. Sans lui, l'avance prise s'efface : les dates
+/* LE RYTHME (13/10/2026, apres l'etude du rythme : « ok alors commence a coder de cette maniere », Mathieu) : le x20 d'avant est la vitesse normale
+   (RYTHME, plus bas : une minute de jeu dure 3 vraies secondes). Puis, par Discord : « laisse le curseur, juste si le mode normal est en x20. Met le x20
+   = normal, le x30 = x1,5, x40 = x2, et basta ». Le curseur va donc de x1 a x2 par pas de 0,5 ; jusqu'a x10 pour les tests (?test=1 en local, ?curseur=1).
+   Une seule fois, au passage au rythme, l'avance et la vitesse de l'ancien curseur s'effacent (elles etaient comptees a l'ancienne minute) : les dates
    de la ferme se recalent toutes seules sur l'heure vraie (reprendreTemps). */
-const VITESSE_MAX = 10, CURSEUR_LIBRE = /[?&](test|curseur)=1/.test(location.search) && !/[?&]curseur=0/.test(location.search); /* (curseur=0 : un test qui joue comme tout le monde) */
+const CURSEUR_LIBRE = /[?&](test|curseur)=1/.test(location.search) && !/[?&]curseur=0/.test(location.search), VITESSE_MAX = CURSEUR_LIBRE ? 10 : 2; /* (curseur=0 : un test qui joue comme tout le monde) */
+const pasVitesse = (v) => Math.min(VITESSE_MAX, Math.max(1, Math.round(v * 2) / 2));
 const horlogeJeu = (() => {
   const vrai = Date.now.bind(Date); let avance = 0, vitesse = 1, ancre = vrai();
-  try { if (CURSEUR_LIBRE) { avance = +localStorage.getItem('ferme-avance') || 0; vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(+localStorage.getItem('ferme-vitesse') || 1))); } else { localStorage.removeItem('ferme-avance'); localStorage.removeItem('ferme-vitesse'); } } catch (e) { /* rien */ }
+  try { if (localStorage.getItem('ferme-horloge') !== 'rythme') { localStorage.removeItem('ferme-avance'); localStorage.removeItem('ferme-vitesse'); localStorage.setItem('ferme-horloge', 'rythme'); }
+    avance = +localStorage.getItem('ferme-avance') || 0; vitesse = pasVitesse(+localStorage.getItem('ferme-vitesse') || 1); } catch (e) { /* rien */ }
   const jeu = () => { const t = vrai(); return t + avance + (t - ancre) * (vitesse - 1); };
   const fixer = () => { avance = jeu() - vrai(); ancre = vrai(); try { localStorage.setItem('ferme-avance', String(Math.round(avance))); } catch (e) { /* rien */ } };
   Date.now = jeu; setInterval(fixer, 2000); addEventListener('pagehide', fixer);
-  return { vitesse: () => vitesse, regler(v) { if (!CURSEUR_LIBRE) return; fixer(); vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(v))); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
+  return { vitesse: () => vitesse, regler(v) { fixer(); vitesse = pasVitesse(v); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
 })();
 /* ===================== DONNEES DU JEU ===================== */
 const CULTURES = [
@@ -4710,7 +4713,7 @@ function toucherBouftou(k) {
 /* ===================== INTERFACE ===================== */
 const $ = (id) => document.getElementById(id);
 /* BETA : le curseur de vitesse du temps (voir horlogeJeu tout en haut) */
-function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'); b.hidden = !CURSEUR_LIBRE; /* (le curseur : tests seulement, depuis le rythme fixe) */ b.innerHTML = '<span class="lib">Temps </span>x' + v; b.classList.toggle('rapide', v > 1); $('vitesse').value = v; $('vitesse-val').textContent = 'x' + v; }
+function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'), t = v === 1 ? 'normal' : 'x' + String(v).replace('.', ','); /* (virgule() n'est pas encore definie ici) */ b.innerHTML = '<span class="lib">Temps </span>' + t; b.classList.toggle('rapide', v > 1); $('vitesse').max = VITESSE_MAX; $('vitesse').value = v; $('vitesse-val').textContent = t; }
 $('b-vitesse').addEventListener('click', (e) => { e.stopPropagation(); $('vitesse-panneau').hidden = !$('vitesse-panneau').hidden; majVitesse(); });
 $('vitesse').addEventListener('input', (e) => { horlogeJeu.regler(+e.target.value); majVitesse(); });
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#vitesse-panneau, #b-vitesse')) $('vitesse-panneau').hidden = true; });
@@ -5546,16 +5549,18 @@ function reprendreTemps(maintenant) {
    les bebes et la preparation de la vague continuent, 10 h au plus. Rien de dangereux en revanche : Tofus nuisibles, voleurs, raids, crises de l'HDV et
    recouvreurs du Casino attendent ton retour (leurs dates sont decalees, comme pendant l'ancienne pause). Le temps avance par petits pas, pour que la
    mangeoire serve ses repas un par un. Au retour, Pepito resume ce qui a pousse (montrerAbsence). */
-const ABSENCE_MAX = 10 * 3600e3;
+/* Puis (« on va se connecter, on va faire 50000 kamas lol », Mathieu) : sans toi, la ferme pousse au rythme d'avant le x20, 20 fois moins vite qu'en jeu
+   (VITESSE_ABSENCE) : une nuit de 8 h vaut 24 min de jeu, une Fraise plantee le soir est mure le matin, un Millet a pousse d'un tiers. 10 h comptent au plus. */
+const ABSENCE_MAX = 10 * 3600e3, VITESSE_ABSENCE = 1 / RYTHME;
 function fermeSansToi(maintenant, d) {
-  const avant = photoFerme(), garde = Math.min(d, ABSENCE_MAX);
-  if (d > garde) { const x = d - garde; const decaler = (o) => { for (const k in o) { const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + x; } else if (v && typeof v === 'object') decaler(v); } }; decaler(S_); if (raidAnnonce) raidAnnonce.fin += x; } /* (au-dela de 10 h, la ferme s'arrete : comme une pause) */
+  const avant = photoFerme(), garde = Math.round(Math.min(d, ABSENCE_MAX) * VITESSE_ABSENCE); /* (le temps qui compte pour la ferme ; le reste est une pause) */
+  if (d > garde) { const x = d - garde; const decaler = (o) => { for (const k in o) { const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + x; } else if (v && typeof v === 'object') decaler(v); } }; decaler(S_); if (raidAnnonce) raidAnnonce.fin += x; } /* (ce qui ne compte pas : comme une pause, toutes les dates avancent d'autant) */
   ['prochainRaid', 'prochainVoleur', 'prochaineCrise'].forEach((k) => { if (S_[k]) S_[k] += garde; });
   if (S_.ardoise && S_.ardoise.prochaine) S_.ardoise.prochaine += garde;
   if (S_.sauvage && S_.sauvage.fin) S_.sauvage.fin += garde;
   S_.cases.forEach((p) => { if (p.tofu) p.tofu += garde; if (p.tofuParti) p.tofuParti += garde; });
   if (raidAnnonce) raidAnnonce.fin += garde;
-  const de = S_.vu, pas = Math.max(5000, garde / 300);
+  const de = S_.vu, pas = Math.max(1000, garde / 300);
   for (let t = de + pas; ; t += pas) { const tt = Math.min(t, maintenant); avancer(tt, false); if (tt >= maintenant) break; }
   S_.vu = maintenant;
   S_.cases.forEach((p) => rendreCase(p.id)); rendreEnclosBulles(); rendreHaut(); sauver();
@@ -5666,7 +5671,7 @@ const LECONS = [
   { id: 'cultures', titre: 'Quoi planter ?', ico: 'orge', resume: 'Les cultures, leur temps de pousse, leur prix.', quand: () => niveau(S_.xp) >= 5,
     pages: [() => `Tu débloques de nouvelles cultures en montant de niveau : l'<em>Orge</em> au niveau 5, puis la Cawotte, l'Avoine, la Fraise, le Houblon... Leurs graines s'achètent à l'<em>HDV</em>, onglet Acheter.`,
       () => `Chaque culture a son <em>temps de pousse</em>, son prix et son XP : le Blé pousse en ${dureeLisible(PAR_ID.ble.temps * MIN)}, l'Orge en ${dureeLisible(PAR_ID.orge.temps * MIN)}, l'Avoine en ${dureeLisible(PAR_ID.avoine.temps * MIN)}. Les longues rapportent plus par récolte, les courtes s'enchaînent.`,
-      () => `Quand tu fermes le jeu ou que tu le mets <em>en pause</em>, ta ferme continue sans toi, 10 h au plus : les cultures poussent, les Bouftous font leur laine, la vague se prépare. Les monstres, les voleurs et les raids, eux, attendent ton retour. Avant de partir, plante une culture longue.`] },
+      () => `Quand tu fermes le jeu ou que tu le mets <em>en pause</em>, ta ferme continue sans toi, à son rythme de vraie ferme : vingt fois plus lentement que quand tu joues, 10 h au plus. Les cultures poussent, les Bouftous font leur laine, la vague se prépare. Les monstres, les voleurs et les raids, eux, attendent ton retour. Une Fraise plantée le soir est mûre au réveil.`] },
   { id: 'agrandir', titre: 'Agrandir la ferme', ico: 'pelle', resume: 'Labourer, acheter des terrains, Aménager.', quand: () => niveau(S_.xp) >= 3,
     pages: [() => `Pour planter plus, ${toucherQ('une case d\'herbe libre')} et <em>laboure</em> une parcelle. Tu as un quota de parcelles : il grandit avec les terrains.`,
       () => `Les <em>pancartes</em> au bord de l'île montrent les terrains à vendre : chacun ajoute des cases et des parcelles à labourer.`,
