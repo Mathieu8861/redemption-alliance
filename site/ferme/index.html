@@ -87,6 +87,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .action:active .tuile { transform: translateY(3px); box-shadow: 0 0 0 var(--bord); }
 .action[aria-pressed="true"] .tuile { background: radial-gradient(circle at 50% 40%, #fff6d0, var(--or)); }
 .pastille.options { pointer-events: auto; font: 800 .78rem var(--f-texte); cursor: pointer; }
+@media (min-width: 721px) and (max-width: 1220px) { .haut .pastille .lib { display: none; } } /* (ecrans moyens : la place pour la pause et les options sur une ligne) */
+.pastille.pause { pointer-events: auto; cursor: pointer; padding: 4px 9px; color: var(--encre); } .pastille.pause svg { width: 15px; height: 15px; } /* (juste l'icone : la place manque en haut) */
+/* l'ecran de pause (12/10/2026) */
+.ecran-pause { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(28, 38, 52, .42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.ecran-pause[hidden] { display: none; }
+.carte-pause { text-align: center; background: var(--papier); border: 4px solid var(--bord); border-radius: 22px; box-shadow: 0 7px 0 var(--bord); padding: 18px 28px 20px; width: min(340px, calc(100% - 32px)); }
+.carte-pause svg { width: 44px; height: 44px; color: var(--bord); } .carte-pause h2 { font: 400 1.9rem/1 var(--f-titre); margin: 6px 0 8px; } .carte-pause p { font-weight: 600; font-size: .9rem; line-height: 1.35; margin: 0 0 16px; }
 .bulle { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; background: var(--papier); border: 3px solid var(--bord); border-radius: 12px; padding: 3px 9px; box-shadow: 0 3px 0 var(--bord); font-size: .78rem; pointer-events: none; }
 .bulle::after { content: ""; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--bord); }
 .bulle.or { background: var(--or); } .bulle.rouge { background: var(--rouge); color: #fff; } .bulle.eau { background: var(--eau); color: #fff; }
@@ -634,17 +641,18 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 <div class="hud cache" id="hud">
   <div class="haut">
     <div class="titre" id="titre">Ferme d'Incarnam</div>
-    <span class="pastille"><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span>&nbsp;kamas</span>
+    <span class="pastille"><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span><span class="lib">&nbsp;kamas</span></span>
     <span class="pastille" id="cases">40 cases</span>
     <span class="pastille" id="eau" data-info="Arrosoir">10/10</span>
-    <span class="pastille">Paysan niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
+    <span class="pastille"><span class="lib">Paysan&nbsp;</span>niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
     <span class="pastille" id="mode-test" hidden style="background:var(--rouge);color:#fff">Mode test ×60</span>
-    <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps (bêta)">Temps x1</button>
+    <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps (bêta)"><span class="lib">Temps </span>x1</button>
     <div class="vitesse-panneau" id="vitesse-panneau" hidden>
       <b>Vitesse du temps</b> <span class="vitesse-beta">bêta</span>
       <div class="vitesse-ligne"><input type="range" min="1" max="50" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
       <small>Les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
     </div>
+    <button class="pastille pause" id="b-pause" aria-label="Pause" data-info="Pause (touche P)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg></button>
     <button class="pastille options" id="b-options">Options</button>
     <button class="pastille plein" id="b-plein" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Plein écran</button>
   </div>
@@ -673,6 +681,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div class="casino-barre" id="casino-barre" hidden><span id="casino-info"></span><button class="btn kamas" id="b-rentrer">Rentrer à la ferme</button></div>
   <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn" id="b-terminer">Terminer</button></div>
   <div id="bulles"></div>
+  <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Tout est arrêté : rien ne pousse, rien n'attaque. Ta ferme t'attend.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
   <div id="bats-pv"></div>
 </div>
 <div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
@@ -4533,7 +4542,7 @@ function toucherBouftou(k) {
 /* ===================== INTERFACE ===================== */
 const $ = (id) => document.getElementById(id);
 /* BETA : le curseur de vitesse du temps (voir horlogeJeu tout en haut) */
-function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'); b.textContent = 'Temps x' + v; b.classList.toggle('rapide', v > 1); $('vitesse').value = v; $('vitesse-val').textContent = 'x' + v; }
+function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'); b.innerHTML = '<span class="lib">Temps </span>x' + v; b.classList.toggle('rapide', v > 1); $('vitesse').value = v; $('vitesse-val').textContent = 'x' + v; }
 $('b-vitesse').addEventListener('click', (e) => { e.stopPropagation(); $('vitesse-panneau').hidden = !$('vitesse-panneau').hidden; majVitesse(); });
 $('vitesse').addEventListener('input', (e) => { horlogeJeu.regler(+e.target.value); majVitesse(); });
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#vitesse-panneau, #b-vitesse')) $('vitesse-panneau').hidden = true; });
@@ -5334,7 +5343,7 @@ function reprendreTemps(maintenant) {
   decaler(S_); S_.vu = maintenant; if (raidAnnonce) raidAnnonce.fin += d;
 }
 function tick() {
-  if (enAccueil || document.hidden) return; /* en pause */
+  if (enAccueil || enPause || document.hidden) return; /* en pause */
   { const m = Date.now(); if (Math.abs(m - S_.vu) > 4000 * horlogeJeu.vitesse()) reprendreTemps(m); } /* (une boucle toutes les 500 ms : un trou plus long, c'est une pause) */
   const ch = avancer(Date.now(), !combat); /* pendant une vague : pas de Tofu nuisible ni de voleur en plus */
   ch.cases.forEach((id) => rendreCase(id));
@@ -5350,10 +5359,18 @@ function tick() {
   if (++tours % 10 === 0) { rendreHaut(); rendreObjectif(); sauver(); }
   if (tours % 60 === 1) $('commis').innerHTML = '<b>Pépito :</b> « ' + hasard(niv('epouvantail') >= 5 && Math.random() < 0.5 ? PEPITO_TRON : PEPITO) + ' »';
 }
+/* LE BOUTON PAUSE (« il faudrait un bouton pause aussi », Mathieu, 12/10/2026) : tout s'arrete, combats compris, comme sur l'accueil ou onglet cache ;
+   a la reprise, les dates de la ferme sont decalees de la duree de la pause (reprendreTemps) */
+let enPause = false;
+function mettrePause(oui) {
+  oui = !!oui; if (oui === enPause || (oui && (!S_ || !S_.perso || enAccueil))) return;
+  enPause = oui; $('ecran-pause').hidden = !oui;
+  if (oui) { if (visee) annulerVisee(); sauver(); } else if (S_) reprendreTemps(Date.now());
+}
 function boucle(t) {
   const s = (t - t0) / 1000;
   if (enAccueil && !reduit) { angleCam = Math.PI / 4 + (t - departAngle) / 1000 * 0.12; placerCamera(); }
-  if (!reduit) {
+  if (!reduit && !enPause) {
     errer(Math.min(0.05, (t - (boucle.t1 || t)) / 1000), s);
     nuages.forEach((n, k) => { n.position.x += Math.sin(s * 0.2 + k) * 0.002; });
     Object.values(casesDyn).forEach((g) => g.children.forEach((o) => { if (o.userData && o.userData.tofu) o.rotation.z = Math.sin(s * 6) * 0.18; }));
@@ -5363,8 +5380,8 @@ function boucle(t) {
   }
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
-  deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s);
-  majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); boucle.t1 = t;
+  if (!enPause) { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s);
+    majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   rendu.render(scene, camera); placerBulles(); placerBarresBat(); requestAnimationFrame(boucle);
@@ -5545,6 +5562,12 @@ async function demarrer() {
 window.addEventListener('error', (e) => { window.__erreur = e.message; });
 
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && visee) annulerVisee(); });
+$('b-pause').addEventListener('click', (e) => { e.stopPropagation(); mettrePause(true); });
+$('b-reprendre').addEventListener('click', (e) => { e.stopPropagation(); mettrePause(false); });
+addEventListener('keydown', (e) => { /* P : pause et reprise ; Echap reprend aussi (pas quand on ecrit dans un champ) */
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);
+});
 demarrer();
 </script>
 </body>
