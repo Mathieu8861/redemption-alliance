@@ -3503,7 +3503,8 @@ const STATS_CLASSE = {
   osa: { pv: (l) => 60 + 13 * l, deg: (l) => 7 + 2 * l, cadence: 0.9, portee: 3.2 }
 };
 /* la durete des monstres ordinaires, par palier (les boss gardent leurs propres stats) : reglee par simulation le 11/10/2026 */
-const DURETE = [{ pv: 1, deg: 1 }, { pv: 1.1, deg: 1.15 }, { pv: 1.3, deg: 1.45 }, { pv: 1.4, deg: 1.55 }, { pv: 1.45, deg: 1.6 }, { pv: 1.4, deg: 1.5 }];
+/* (13/10/2026, « augmente un chouille la difficulte du 1 a 50, +10 % de degats des monstres », Mathieu : les degats des paliers 1 a 5 x1,1, le palier 6 et les boss inchanges) */
+const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.1, deg: 1.27 }, { pv: 1.3, deg: 1.6 }, { pv: 1.4, deg: 1.71 }, { pv: 1.45, deg: 1.76 }, { pv: 1.4, deg: 1.5 }];
 const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? { pv: 1, deg: 1 } : DURETE[palierDe(n)]; /* les voleurs des raids VSA ont leur propre equilibrage */
 /* « quand on reprend une nouvelle phase, les mobs sont nuls sur les premiers niveaux : la vague 19 est plus dure que la 22 » (Mathieu, 12/10/2026) :
    chaque palier repartait avec 3 ou 4 monstres, une force divisee par 5 d'une vague a l'autre. La force d'une vague = PV totaux x degats par seconde ;
