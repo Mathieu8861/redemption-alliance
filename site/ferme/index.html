@@ -150,6 +150,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .art .act.mini { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 176px; }
 .art .act .btn.mini { min-width: 0; padding: 4px 9px; font-size: .74rem; box-shadow: 0 2px 0 var(--bord); }
 .art .desc b { display: inline; }
+.art.perte > div > b { color: #b8322a; } /* (le bilan d'un raid : ce qui est perdu pour de bon) */
 /* les cartes d'amelioration (12/10/2026) : le bouton sous la carte, une ligne par chiffre qui change */
 .art.amelio { grid-template-columns: 50px 1fr; align-items: start; padding: 10px 0; }
 .art.amelio > .act { grid-column: 2; justify-items: end; }
@@ -3953,11 +3954,19 @@ function finVague(gagne, fuite) {
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
     if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
     const f = forceVoleur(), prime = c.tues * (15 + 5 * f); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 10);
-    const tot = {}; c.butin.forEach((r) => { tot[r.nom] = (tot[r.nom] || 0) + r.n; });
-    const butin = c.butin.length ? 'Ils ont emporté : ' + Object.entries(tot).map(([nom, n]) => n + ' ' + nom).join(', ') + '.' : 'Ils n\'ont rien emporté de ta grange.';
-    const rec = {}; (c.recup || []).forEach((r) => { rec[r.nom] = (rec[r.nom] || 0) + r.n; });
-    const lignesR = (Object.keys(rec).length ? '<div class="art">' + ico('grange') + '<div><b>Récupéré sur les voleurs abattus</b><div class="desc">' + Object.entries(rec).map(([nom, n]) => n + ' ' + nom).join(', ') + ' : retour à la grange.</div></div><div></div></div>' : '') + (c.lootV && texteButin(c.lootV) ? '<div class="art">' + ico(c.lootV.objets.length ? 'obj-' + c.lootV.objets[0] : 'voleur') + '<div><b>Trouvé sur eux</b><div class="desc">' + texteButin(c.lootV) + '.</div></div><div></div></div>' : '');
-    ouvrirModale('vague-fin', entete(c.butin.length ? 'Raid VSA terminé' : 'Raid VSA repoussé !') + '<div class="art">' + ico('voleur') + '<div><b>' + c.tues + ' voleur' + (c.tues > 1 ? 's' : '') + ' abattu' + (c.tues > 1 ? 's' : '') + ' : +' + fmt(prime) + ' ' + KAMA + ' de prime</b><div class="desc">' + butin + ' Ce qu\'un voleur emporte n\'est perdu que s\'il quitte ta ferme vivant. VSA se renforce à chaque vague gagnée.</div></div><div></div></div>' + lignesR + '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
+    /* « c'est pas tres clair, on sait pas si y'a vraiment des voleurs qui ont reussi a s'echapper et avec combien de butin » (Mathieu, 12/10/2026) :
+       le bilan dit maintenant combien se sont enfuis, ce qui est perdu pour de bon (et ce que ca vaut), et ce qui a ete repris sur les voleurs abattus */
+    const somme = (L) => { const t = {}; L.forEach((r) => { (t[r.id] = t[r.id] || { nom: r.nom, n: 0 }).n += r.n; }); return Object.entries(t); };
+    const liste = (E) => E.map(([, r]) => r.n + ' ' + r.nom).join(', '), valeur = (E) => E.reduce((v, [id, r]) => v + r.n * prix(id), 0);
+    const perdu = somme(c.butin), repris = somme(c.recup || []), enfuis = Math.max(0, (c.total || c.tues) - c.tues), vPerdu = valeur(perdu);
+    const ligne = (icone, titre, texte, cls) => '<div class="art' + (cls ? ' ' + cls : '') + '">' + ico(icone) + '<div><b>' + titre + '</b><div class="desc">' + texte + '</div></div><div></div></div>';
+    const bilan = ligne('voleur', c.tues + ' voleur' + (c.tues > 1 ? 's' : '') + ' abattu' + (c.tues > 1 ? 's' : '') + (enfuis ? ', ' + enfuis + ' enfui' + (enfuis > 1 ? 's' : '') : ', aucun ne s\'est enfui') + ' : +' + fmt(prime) + ' ' + KAMA + ' de prime',
+      'Sur ' + (c.tues + enfuis) + ' voleurs de VSA. Un voleur abattu rend ce qu\'il avait pris ; seul celui qui quitte ta ferme vivant garde son butin. VSA se renforce à chaque vague gagnée.');
+    const lPerdu = perdu.length ? ligne('grange', 'Perdu pour de bon : ' + liste(perdu), 'Emporté par ' + (enfuis > 1 ? 'les ' + enfuis + ' voleurs qui se sont enfuis' : 'le voleur qui s\'est enfui') + (vPerdu ? ', soit environ ' + fmt(vPerdu) + ' ' + KAMA + ' à l\'HDV' : '') + '.', 'perte')
+      : ligne('grange', 'Rien de perdu', enfuis ? 'Ceux qui se sont enfuis repartent les mains vides.' : 'Aucun voleur n\'est reparti avec ton stock.');
+    const lRepris = repris.length ? ligne('grange', 'Récupéré : ' + liste(repris), 'Repris sur les voleurs abattus avant leur fuite : de retour dans ta grange.') : '';
+    const lTrouve = c.lootV && texteButin(c.lootV) ? ligne(c.lootV.objets.length ? iconeObjet(c.lootV.objets[0]) : 'voleur', 'Trouvé sur eux', texteButin(c.lootV) + '.') : '';
+    ouvrirModale('vague-fin', entete(perdu.length ? 'Raid VSA terminé' : 'Raid VSA repoussé !') + bilan + lPerdu + lRepris + lTrouve + '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   let corps;
