@@ -3040,8 +3040,21 @@ const STATS_CLASSE = {
 /* la durete des monstres ordinaires, par palier (les boss gardent leurs propres stats) : reglee par simulation le 11/10/2026 */
 const DURETE = [{ pv: 1, deg: 1 }, { pv: 1.1, deg: 1.15 }, { pv: 1.3, deg: 1.45 }, { pv: 1.4, deg: 1.55 }, { pv: 1.45, deg: 1.6 }, { pv: 1.4, deg: 1.5 }];
 const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? { pv: 1, deg: 1 } : DURETE[palierDe(n)]; /* les voleurs des raids VSA ont leur propre equilibrage */
-const pvMonstre = (t, n) => Math.round(MONSTRES[t].pv(n) * durete(t, n).pv), degMonstre = (t, n) => Math.round(MONSTRES[t].deg(n) * durete(t, n).deg);
-const compoVague = (n) => {
+/* « quand on reprend une nouvelle phase, les mobs sont nuls sur les premiers niveaux : la vague 19 est plus dure que la 22 » (Mathieu, 12/10/2026) :
+   chaque palier repartait avec 3 ou 4 monstres, une force divisee par 5 d'une vague a l'autre. La force d'une vague = PV totaux x degats par seconde ;
+   les premieres vagues d'un palier ont plus de monstres (compoVague), puis des PV et des degats en plus (x1,8 au plus) pour monter regulierement depuis la 9e vague du palier precedent jusqu'a la 9e du
+   sien. Le premier palier, les 9es vagues et les boss ne changent pas. */
+/* les premieres vagues d'un palier ont au moins 60 % de l'effectif de la fin du palier precedent (des monstres de base en plus) */
+const effectif = (L) => L.reduce((t, [, k]) => t + k, 0);
+const compoVague = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER + 1; if (n <= VAGUES_PALIER || n > VAGUES_TOTAL || h >= VAGUES_PALIER - 1) return L;
+  const manque = Math.ceil(effectif(compoBase(n - h - 1)) * 0.6) - effectif(L); return manque > 0 ? L.map(([t, k], i) => [t, i ? k : k + manque]) : L; };
+const forceBrute = (n) => { let pv = 0, dps = 0; compoVague(n).forEach(([t, k]) => { const d = durete(t, n); pv += k * MONSTRES[t].pv(n) * d.pv; dps += k * MONSTRES[t].deg(n) * d.deg * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
+const RENFORTS = {};
+const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1) % VAGUES_PALIER + 1; let f = 1;
+  if (n > VAGUES_PALIER && n <= VAGUES_TOTAL && h < VAGUES_PALIER - 1) { const a = forceBrute(n - h - 1), b = forceBrute(n - h + VAGUES_PALIER - 1), cible = a * Math.pow(b / a, h / (VAGUES_PALIER - 1)); f = Math.min(1.8, Math.max(1, Math.sqrt(cible / forceBrute(n)))); } /* (plafonne : au-dela, des coups trop gros) */
+  return (RENFORTS[n] = Math.round(f * 100) / 100); };
+const pvMonstre = (t, n) => Math.round(MONSTRES[t].pv(n) * durete(t, n).pv * renfort(n)), degMonstre = (t, n) => Math.round(MONSTRES[t].deg(n) * durete(t, n).deg * renfort(n));
+const compoBase = (n) => {
   if (n === VAGUES_PALIER) return [['royal', 1], ['chafer', 1], ['tofu', 4]];
   if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['chafer', Math.ceil(n / 3)]] : []);
   if (n > 5 * VAGUES_PALIER) { /* Phase 2 : l'ile des Wabbits */
