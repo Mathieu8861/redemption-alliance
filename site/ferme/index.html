@@ -625,7 +625,9 @@ const nivRequis = (a, n) => a.nivs ? a.nivs[Math.min(n, a.nivs.length - 1)] : a.
 const PRIX_PARCELLE = [150, 200, 300, 400, 500, 650, 800, 1000, 1300, 1600, 1900, 2200, 2500, 2800, 3000, 3200, 3400, 3600, 3800, 4000, 4200, 4400, 4600, 4800, 5000, 5200, 5400, 5600, 5800, 6000];
 /* Temps reel : les durees sont en minutes. Avec ?test=1 dans l'adresse, tout va 60 fois plus vite (une minute devient une seconde). */
 const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)$/.test(location.hostname); /* le mode test (temps x60) : sur le PC et le reseau local seulement ; en ligne, la beta demande un compte */
-const MIN = TEST ? 1000 : 60000;
+/* « en mode test local, retire le x60, laisse-moi comme tout le monde choisir de x1 a x50 » (Mathieu, 12/10/2026) : ?test=1 garde sa sauvegarde a part,
+   mais le temps est celui de tout le monde (le curseur) ; le x60 ne sert plus qu'aux tests automatiques, avec &rapide=1 en plus */
+const RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 1000 : 60000;
 const DUREE_CROISSANCE = 240 * MIN, REPOS_REPRO = 480 * MIN, COUT_REPRO = 10, CHANCE_NOIR = [0.1, 0.25, 0.5], REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
 const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
@@ -744,7 +746,7 @@ const TERRAINS = [ /* colles a l'ile, alignes sur sa grille, une case de bordure
 /* ===================== ETAT ===================== */
 let S_ = null;
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
-const dureeLisible = (ms) => { const s = Math.max(1, Math.round(ms / 1000)); if (TEST || s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r : ''); };
+const dureeLisible = (ms) => { const s = Math.max(1, Math.round(ms / 1000)); if (RAPIDE || s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r : ''); };
 const borne = (v, a, b) => Math.min(b, Math.max(a, v));
 const hasard = (t) => t[Math.floor(Math.random() * t.length)];
 const de = (nom) => (/^(Cawotte|Fraise)/.test(nom) ? 'de la ' : /^Houblon/.test(nom) ? 'du ' : /^[AEIOUYÉH]/i.test(nom) ? 'de l\'' : 'du ') + nom;
@@ -3992,7 +3994,7 @@ function rendreHaut() {
   const prepaV = fini ? 0 : (S_.vague.prepa || 0) - Date.now(), attenteV = Math.max(repos, prepaV);
   $('vague-nb').textContent = attenteV > 0 ? dureeLisible(attenteV).replace(' min', 'm').replace(' s', 's') : fini ? '✓' : S_.vague.num; $('b-vagues').classList.toggle('repos', attenteV > 0);
   $('b-vagues').dataset.info = repos > 0 ? 'Ton perso se repose encore ' + dureeLisible(repos) : prepaV > 0 ? 'La vague ' + S_.vague.num + ' se prépare : ' + dureeLisible(prepaV) : fini ? 'Tous les paliers terminés' : 'La vague ' + S_.vague.num + ' (palier ' + (palierDe(S_.vague.num) + 1) + ') attend que tu la lances';
-  $('mode-test').hidden = !TEST;
+  $('mode-test').hidden = !RAPIDE;
   $('perso-ico').src = 'assets/icones/' + classeDe() + '.png'; $('perso-nb').hidden = !S_.nouveaux; $('perso-nb').textContent = S_.nouveaux || 0;
   if (S_.perso) $('titre').textContent = 'Ferme de ' + S_.perso.nom;
 }
