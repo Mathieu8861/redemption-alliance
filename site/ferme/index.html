@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Ferme d'Amakna</title>
+<title>Ferme d'Incarnam</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -572,11 +572,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 </head>
 <body>
 <canvas id="ciel" aria-hidden="true"></canvas>
-<canvas id="scene" aria-label="La Ferme d'Amakna en 3D : une île de 40 cases"></canvas>
+<canvas id="scene" aria-label="La Ferme d'Incarnam en 3D : une île de 40 cases"></canvas>
 <div class="voile" id="voile"></div>
 <div class="hud cache" id="hud">
   <div class="haut">
-    <div class="titre" id="titre">Ferme d'Amakna</div>
+    <div class="titre" id="titre">Ferme d'Incarnam</div>
     <span class="pastille"><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span>&nbsp;kamas</span>
     <span class="pastille" id="cases">40 cases</span>
     <span class="pastille" id="eau" data-info="Arrosoir">10/10</span>
@@ -619,7 +619,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 </div>
 <div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
 <div class="modale" id="modale"><div class="carte" id="carte"></div></div>
-<div class="chargement" id="chargement"><b>Ferme d'Amakna</b><span id="chargement-texte">Chargement de l'île...</span><div class="barre-ch"><i id="chargement-barre"></i></div><div class="astuce" id="chargement-astuce"></div></div>
+<div class="chargement" id="chargement"><b>Ferme d'Incarnam</b><span id="chargement-texte">Chargement de l'île...</span><div class="barre-ch"><i id="chargement-barre"></i></div><div class="astuce" id="chargement-astuce"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> <!-- le meme client que le site : un membre connecte sur le site l'est aussi dans la ferme -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -1025,7 +1025,7 @@ async function deconnecter() {
   location.reload();
 }
 function ecranConnexion(carte) {
-  const tete = '<h1>Ferme d\'Amakna</h1><span class="beta">BÊTA</span>';
+  const tete = '<h1>Ferme d\'Incarnam</h1><span class="beta">BÊTA</span>';
   if (enLigneSv.refus === 'pas_testeur') { carte.innerHTML = tete + '<div class="bloc"><h3>Bonjour' + (enLigneSv.pseudoRefus ? ' ' + echapper(enLigneSv.pseudoRefus) : '') + ' !</h3><p>La bêta de la ferme est réservée à quelques testeurs pour l\'instant. Elle ouvrira à toute l\'alliance ensuite.</p></div><button class="lien" data-deconnexion>Se connecter avec un autre compte</button>'; return; }
   const formulaire = (msg) => { carte.innerHTML = tete + '<div class="bloc"><h3>Pas de Discord ?</h3><p>Connecte-toi avec le pseudo qu\'on t\'a donné. La première fois, le mot de passe que tu tapes devient le tien.</p><label for="cx-pseudo">Ton pseudo</label><input id="cx-pseudo" autocomplete="username" maxlength="30"><label for="cx-mdp">Ton mot de passe <small>(6 caractères au moins)</small></label><input id="cx-mdp" type="password" autocomplete="current-password" maxlength="72">' + (msg ? '<p class="erreur">' + msg + '</p>' : '') + '<button class="btn grand kamas" data-cx-entrer>Entrer dans la ferme</button></div><button class="lien" data-cx-retour>Retour : se connecter avec Discord</button>'; };
   const accueilCx = () => { carte.innerHTML = tete + '<div class="bloc"><h3>Connecte-toi avec Discord</h3><p>Le même compte que sur le site de Redemption : ta ferme est liée à ton profil, tu la retrouves sur tous tes appareils.</p><button class="discord" data-cx-discord>Se connecter avec Discord</button></div><button class="lien" data-cx-mdp>Pas de Discord ? Connexion avec un mot de passe</button>'; };
@@ -1208,8 +1208,8 @@ function avancer(maintenant, enDirect) {
 }
 const valeurGrange = () => VENDABLES.reduce((t, v) => t + (S_.grange[v.id] || 0) * prix(v.id), 0);
 function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
-function gagnerXp(n) {
-  if (n > 0) n = Math.max(1, Math.round(n * freinXp() * (1 + caracs().sagesse / 100))); /* le frein d'avance sur les vagues, puis la Sagesse des equipements */
+function gagnerXp(n, sansFrein) {
+  if (n > 0) n = Math.max(1, Math.round(n * (sansFrein ? 1 : freinXp()) * (1 + caracs().sagesse / 100))); /* le frein d'avance sur les vagues (pas sur une vague gagnee : c'est elle qui rattrape l'avance), puis la Sagesse des equipements */
   const avant = niveau(S_.xp), x0 = S_.xp; S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(NIV_MAX))); const apres = niveau(S_.xp); gagnerXp.dernier = S_.xp - x0; /* plus rien a gagner au niveau maximum */
   if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres)); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
   avertirFrein();
@@ -2156,6 +2156,7 @@ function elargirPerso(g, classe) {
     if (!m.isMesh || (tete && dans(m, tete)) || (m.material && m.material.side === T.BackSide && m.parent && m.parent.isMesh)) return;
     const old = m.geometry, A = avant.get(m); let W;
     if (centreBloc.has(m)) { const c = centreBloc.get(m); W = new T.Matrix4().makeTranslation(c.x * (sx - 1), 0, c.z * (sz - 1)).multiply(A); }
+    else if (nomP(m) === 'botte') W = new T.Matrix4().makeScale(sx, 1, 0.92).multiply(A); /* « les pieds sont pas un peu longs ? » (Mathieu, 12/10/2026) : la botte s'elargit, mais ne s'allonge plus vers l'avant (un peu plus courte que le modele, meme) */
     else W = S.clone().multiply(A);
     const geo = old.clone().applyMatrix4(new T.Matrix4().copy(m.matrixWorld).invert().multiply(W));
     m.children.forEach((k) => { if (k.isMesh && k.geometry === old) k.geometry = geo; }); m.geometry = geo;
@@ -2715,7 +2716,7 @@ const etatBat = (cle) => (S_.bats && S_.bats[cle]) || null;
 const degatsBat = (cle) => { const b = etatBat(cle); return b ? Math.min(b.deg || 0, pvMaxBat(cle)) : 0; };
 const enRuine = (cle) => { const b = etatBat(cle); return !!(b && b.ruine); };
 const pvBat = (cle) => enRuine(cle) ? 0 : Math.max(0, pvMaxBat(cle) - degatsBat(cle));
-const prixPv = () => 0.5 + 0.03 * niveau(S_.xp); /* le kama par PV a reparer : il monte un peu avec le niveau */
+const prixPv = () => 0.4 + 0.015 * niveau(S_.xp); /* le kama par PV a reparer : il monte un peu avec le niveau (deux fois moins vite depuis le 12/10/2026) */
 const coutReparer = (cle) => Math.max(1, Math.ceil(degatsBat(cle) * prixPv()));
 const coutReconstruire = (cle) => Math.ceil(pvMaxBat(cle) * prixPv() * 1.5);
 const clesBats = () => BATS_PV.filter((t) => S_.cases.some((c) => c.type === t)).concat(S_.cases.filter((c) => c.type === 'tour').map((c) => 'tour:' + c.id));
@@ -2829,7 +2830,7 @@ function majBarresBat() {
 }
 function placerBarresBat() { barresBat.forEach((e) => { if (!e.dataset.point) return; const p = JSON.parse(e.dataset.point); vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
 /* un coup sur un batiment */
-const DEGATS_BATIMENTS = 4; /* les monstres cognent les batiments 4 fois plus fort que le perso (avant : pareil, une grange tenait une centaine de coups) */
+const DEGATS_BATIMENTS = 3; /* les monstres cognent les batiments 3 fois plus fort que le perso (avant : pareil, une grange tenait une centaine de coups ; 4 jusqu'au 12/10/2026 : en milieu de partie, les reparations coutaient plus que la vague ne rapportait) */
 function blesserBat(cle, n) {
   if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n * DEGATS_BATIMENTS)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
   const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
@@ -3038,7 +3039,7 @@ const OBJECTIFS = [
   ['equipes', 6, 'Porte 6 pièces d\'équipement.', 2000, 100],
   ['vagueMax', 30, 'Bats le Bworker à la vague 30.', 5000, 150],
   ['vagueMax', 40, 'Bats le Craqueleur Légendaire à la vague 40.', 10000, 250],
-  ['vagueMax', 50, 'Bats Crocabulia à la vague 50 : tu es le meilleur fermier d\'Amakna.', 25000, 400]
+  ['vagueMax', 50, 'Bats Crocabulia à la vague 50 : tu es le meilleur fermier d\'Incarnam.', 25000, 400]
 ];
 const objectifCourant = () => OBJECTIFS[(S_.obj || 0)] || null;
 /* ---------- trois defis par jour, et le cadeau de connexion en serie ---------- */
@@ -3972,7 +3973,7 @@ function finVague(gagne, fuite) {
   }
   let corps;
   if (gagne) {
-    const g = c.rejoueBoss != null ? gainsBoss(c.rejoueBoss) : gainsVague(n, rejoue); if (c.rejoueBoss != null) { S_.bossFois = S_.bossFois || {}; S_.bossFois[c.rejoueBoss] = (S_.bossFois[c.rejoueBoss] || 0) + 1; } S_.kamas += g.kamas; compter('vagues'); son('niveau'); if (!rejoue) { S_.vague.num = n + 1; if (n < VAGUES_TOTAL) S_.vague.prepa = Date.now() + PREPA_VAGUE[palierDe(n + 1)] * MIN; } const fr = freinXp(); gagnerXp(g.xp); g.xpVrai = gagnerXp.dernier; g.freine = fr < 1;
+    const g = c.rejoueBoss != null ? gainsBoss(c.rejoueBoss) : gainsVague(n, rejoue); if (c.rejoueBoss != null) { S_.bossFois = S_.bossFois || {}; S_.bossFois[c.rejoueBoss] = (S_.bossFois[c.rejoueBoss] || 0) + 1; } S_.kamas += g.kamas; compter('vagues'); son('niveau'); if (!rejoue) { S_.vague.num = n + 1; if (n < VAGUES_TOTAL) S_.vague.prepa = Date.now() + PREPA_VAGUE[palierDe(n + 1)] * MIN; } gagnerXp(g.xp, true); g.xpVrai = gagnerXp.dernier; g.freine = false; /* « 12 xp a la vague 33, mouais » (Mathieu, 12/10/2026) : le frein ne touche plus les vagues gagnees */
     const P = palierDe(n), finPalier = !rejoue && n % VAGUES_PALIER === 0;
     const suite = S_.vague.num > VAGUES_TOTAL ? '<p style="font-size:.82rem;font-weight:600">' + leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' : tous les paliers sont terminés. La suite arrive bientôt.</p>'
       : '<p style="font-size:.82rem;font-weight:600">' + (finPalier ? leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' ! ' + (P === 4 ? '<b>Phase 1 terminée.</b> Place à la <b>Phase 2</b> : ' + PALIERS[P + 1].nom + ', et ton niveau maximum passe à 60. ' : 'Place au ' + nomPalier(P + 1).toLowerCase() + ' : ' + PALIERS[P + 1].nom + '. ') : '') + 'La vague ' + S_.vague.num + ' t\'attend : ' + compoVague(S_.vague.num).map(([t, k]) => k + ' ' + (k > 1 ? pluriel(MONSTRES[t].nom) : MONSTRES[t].nom)).join(', ') + '.</p>';
@@ -5088,7 +5089,7 @@ function ouvrirAccueil() {
   const carte = document.getElementById('accueil-carte');
   if (ENLIGNE && !enLigneSv.compte && enLigneSv.refus !== 'hors ligne') { ecranConnexion(carte); return; } /* beta fermee : il faut un compte */
   const rendre = () => {
-    carte.innerHTML = '<h1>Ferme d\'Amakna</h1>' + bandeauCompte() + '<p>Une île de 40 cases dans le ciel d\'Amakna. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>' +
+    carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + '<p>Une île de 40 cases dans le ciel d\'Incarnam. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>' +
       (sauve && sauve.perso ? '<button class="btn grand kamas" data-reprendre>Reprendre la ferme de ' + sauve.perso.nom + '</button><p class="reprise">' + CLASSES.find((c) => c.id === sauve.perso.classe).nom + ', Paysan niveau ' + niveauDe(sauve.xp) + ', ' + fmt(sauve.kamas) + ' kamas. <button data-nouvelle>Nouvelle ferme</button></p>' :
       '<input id="perso-nom" maxlength="16" placeholder="Ton nom de fermier" value="' + echapper((sauve && sauve.perso && sauve.perso.nom) || (enLigneSv.pseudo || '').slice(0, 16)) + '"><p class="choix-classe">Choisis ton personnage. À la ferme, ils font tous pareil : la classe change seulement ta façon de te battre quand les monstres attaquent.</p><div class="classes">' + CLASSES.map((c) => '<button class="classe" data-classe="' + c.id + '" aria-pressed="' + (classe === c.id) + '"><span class="ico"><img src="assets/icones/' + c.id + '.png?v=' + VERSION_MODELES + '" alt=""></span><b>' + c.nom + '</b><span class="etiquettes"><i>' + c.role + '</i><i class="' + c.niveau[1] + '">' + c.niveau[0] + '</i></span>' + c.lignes.map((t) => '<span>' + t + '</span>').join('') + '<span class="sort"><em>Son sort, ' + c.sort + ' :</em> ' + c.sortTxt + '</span></button>').join('') + '</div>' +
       (classe === 'iop' ? '<div class="looks"><p>Ton Iop : choisis son apparence</p><div class="looks-grille">' + LOOKS_IOP.map(([id, nom]) => '<button class="look" data-look="' + id + '" aria-pressed="' + (look === id) + '"><img src="assets/icones/iop-look-' + id + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + nom + '</b></button>').join('') + '</div></div>' : '') +
@@ -5102,7 +5103,7 @@ function ouvrirAccueil() {
     else if (b.hasAttribute('data-reprendre')) lancer(sauve);
     else if (b.hasAttribute('data-nouvelle')) { /* plus la fenetre grise du navigateur (capture de Mathieu, 11/10/2026) : la confirmation aux couleurs du jeu, dans la carte */
       const cl = CLASSES.find((c) => c.id === sauve.perso.classe);
-      carte.innerHTML = '<h1>Ferme d\'Amakna</h1><div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p><b>Recommencer une ferme ?</b><br>La ferme de ' + echapper(sauve.perso.nom) + ' (' + (cl ? cl.nom + ', ' : '') + 'Paysan niveau ' + niveauDe(sauve.xp) + ', ' + fmt(sauve.kamas) + ' kamas) sera effacée' + (ENLIGNE && enLigneSv.compte ? ', ici et en ligne' : '') + ', pour de bon.</p><div class="boutons"><button class="btn discret" data-garder>Garder ma ferme</button><button class="btn" data-effacer style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>';
+      carte.innerHTML = '<h1>Ferme d\'Incarnam</h1><div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p><b>Recommencer une ferme ?</b><br>La ferme de ' + echapper(sauve.perso.nom) + ' (' + (cl ? cl.nom + ', ' : '') + 'Paysan niveau ' + niveauDe(sauve.xp) + ', ' + fmt(sauve.kamas) + ' kamas) sera effacée' + (ENLIGNE && enLigneSv.compte ? ', ici et en ligne' : '') + ', pour de bon.</p><div class="boutons"><button class="btn discret" data-garder>Garder ma ferme</button><button class="btn" data-effacer style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>';
     }
     else if (b.hasAttribute('data-garder')) rendre();
     else if (b.hasAttribute('data-effacer')) { enLigneSv.ecraser = !!enLigneSv.compte; enLigneSv.sale = false; sauverMeta(); localStorage.removeItem(CLE); location.reload(); }
