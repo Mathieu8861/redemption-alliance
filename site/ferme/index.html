@@ -1421,9 +1421,9 @@ const ACTIONS = {
     if (niveau(S_.xp) < o.niv) { toast(o.nom + ' : il faut le niveau ' + o.niv + '.'); return; }
     if (o.classe && o.classe !== classeDe()) { toast(o.nom + ' : arme du ' + nomClasse(o.classe) + ', tu peux la revendre.'); return; }
     const avant = S_.equip[o.emp]; setTimeout(() => compter('equipes', 0), 0); S_.sac[id]--; if (!S_.sac[id]) delete S_.sac[id]; if (avant) S_.sac[avant] = (S_.sac[avant] || 0) + 1; S_.equip[o.emp] = id;
-    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver();
+    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver(); if (o.emp === 'coiffe' || o.emp === 'cape') rafraichirTenue();
   },
-  retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); },
+  retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); if (emp === 'coiffe' || emp === 'cape') rafraichirTenue(); },
   revendreObjet(id) {
     if (!(S_.sac[id] > 0)) return; const gain = reventeObjet(id); S_.sac[id]--; if (!S_.sac[id]) delete S_.sac[id]; S_.kamas += gain;
     toast(OBJETS[id].nom + ' revendu : +' + fmt(gain) + ' kamas.'); rendreHaut(); if (modaleOuverte === 'perso') ouvrirPerso(OBJETS[id].emp); else ouvrirGrange(); sauver();
@@ -1617,7 +1617,7 @@ function fusionner(racine, o) {
     if (!m.isMesh) return;
     const contour = m.material.side === T.BackSide, porteur = contour && m.parent && m.parent.isMesh ? m.parent : m; /* un contour de maille() (frere de sa piece) se fusionne seul */
     const M = m.material, sp = porteur.userData.souple; /* meme apparence = meme paquet (chaque morceau avait son propre exemplaire de materiau) */
-    let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp].join('|'), cas = null;
+    let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp, M.side].join('|'), cas = null; /* (le cote dessine compte : la cape portee est visible des deux cotes, 12/10/2026) */
     if (o.parNom) cle += '|' + base(porteur);
     if (o.caseDe) { let h = porteur; while (h && h !== racine && base(h) !== 'herbe') h = h.parent; if (h && h !== racine) { cas = o.caseDe(h); if (cas) cle += '|' + cas; } }
     if (!paquets.has(cle)) paquets.set(cle, { liste: [], contour, cas, ex: m, porteur });
@@ -1644,7 +1644,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261012a'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261012b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -2024,8 +2024,115 @@ function inaccessibles() {
   if (S_.cases.some((c) => c.type === 'champ' && !vu.has(c))) manque.push('une de tes parcelles');
   return manque;
 }
+/* ---------- le perso elargi et habille (12/10/2026, valide sur design-perso-equipe.html) ----------
+   « est-ce qu'on peut elargir un peu les personnages ? », « le Iop un peu plus baraque » : le corps s'elargit (la tete garde sa forme), cuit dans
+   la geometrie des pieces (une echelle de groupe aurait deforme les bras et les jambes qui tournent) ; l'epee, l'arc, le carquois et la queue
+   sont deplaces sans etre epaissis. Puis la coiffe et la cape portees : la coiffe calee sur le crane (le chapeau de paille et les cornes de
+   l'Osamodas s'effacent), la cape enroulee autour du dos, l'arme portee par-dessus. */
+const LARGEUR_PERSO = { iop: [1.55, 1.28], cra: [1.25, 1.12], osa: [1.25, 1.12] };
+const P_CHAPEAU = /^(cone|paille|chapeau)/, P_RIGIDE = /^(lame|gorge|garde|poignee|pommeau|pointe|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|fleche_queue)/,
+  P_ARME_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|carquois|fleche|empennage)/, P_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|baudrier|cape|col)/,
+  P_SAILLIE = /^(corne|anneau_corne|queue|crin|cristal|lueur|plume|feuille|museau|couvre_nuque|garde_joue|crete|dent|oreille|cawotte|cercle|noeud|embleme|gemme|clou|orbite|arcade|fente|visiere|touffe|couronne_pointe|couronne_boule|sillon|couture|roc)/, EP_CAPE = 0.16;
+const nomP = (o) => ((o && o.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, '');
+const boiteDe = (o) => new T.Box3().setFromObject(o), unionDe = (L) => { const b = new T.Box3(); L.forEach((o) => b.union(boiteDe(o))); return b; };
+function elargirPerso(g, classe) {
+  const [sx, sz] = LARGEUR_PERSO[classe] || [1, 1]; if (sx === 1 && sz === 1) return;
+  g.updateMatrixWorld(true);
+  const tete = g.getObjectByName('tete'), dans = (o, r) => { for (let x = o; x; x = x.parent) if (x === r) return true; return false; };
+  const avant = new Map(); g.traverse((m) => { if (m.isMesh) avant.set(m, m.matrixWorld.clone()); });
+  const pivots = []; g.traverse((o) => { if (/^pivot_/.test(o.name)) pivots.push(o); }); /* les bras et les jambes s'ecartent */
+  const cibles = pivots.map((o) => { const w = o.getWorldPosition(new T.Vector3()); return new T.Vector3(w.x * sx, w.y, w.z * sz); });
+  pivots.forEach((o, i) => { o.parent.updateMatrixWorld(true); o.position.copy(o.parent.worldToLocal(cibles[i].clone())); o.updateMatrixWorld(true); });
+  g.updateMatrixWorld(true);
+  const S = new T.Matrix4().makeScale(sx, 1, sz);
+  g.traverse((m) => {
+    if (!m.isMesh || (tete && dans(m, tete)) || (m.material && m.material.side === T.BackSide && m.parent && m.parent.isMesh)) return;
+    const old = m.geometry, A = avant.get(m); let W;
+    if (P_RIGIDE.test(nomP(m))) { const c = new T.Box3().setFromBufferAttribute(old.attributes.position).getCenter(new T.Vector3()).applyMatrix4(A); W = new T.Matrix4().makeTranslation(c.x * (sx - 1), 0, c.z * (sz - 1)).multiply(A); }
+    else W = S.clone().multiply(A);
+    const geo = old.clone().applyMatrix4(new T.Matrix4().copy(m.matrixWorld).invert().multiply(W));
+    m.children.forEach((k) => { if (k.isMesh && k.geometry === old) k.geometry = geo; }); m.geometry = geo;
+  });
+}
+/* les modeles des pieces portees (charges seulement quand une coiffe ou une cape est portee) */
+const VISUELS = {}; let visuelsPromesse = null;
+const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
+  .then(() => true).catch(() => { visuelsPromesse = null; return false; }));
+const visuelsPrets = () => !!VISUELS.equipements;
+const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit' };
+function noeudVisuel(id) {
+  const o0 = OBJETS[id]; if (!o0 || !visuelsPrets()) return null; const o = o0.base ? OBJETS[o0.base] : o0;
+  if (o.leg) return VISUELS[o.leg === 'wa' ? 'equipements-wabbit' : 'coiffes-legendaires'].getObjectByName(NOEUD_LEG[o.leg]) || null;
+  const P = PANOS[o.pano] && PANOS[o.pano].id; if (!P) return null;
+  return VISUELS[P === 'wabbit' ? 'equipements-wabbit' : 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
+}
+function porterCapeSur(eq, cape, o) { /* la cape du modele (nappe autour de l'axe vertical, rayon 0,3 a 0,62, angle -1,25 a 1,25) enroulee autour du torse, relief garde */
+  const r = cape.clone(true); r.position.set(0, 0, 0); r.rotation.set(0, 0, 0); r.scale.set(1, 1, 1); r.updateMatrixWorld(true);
+  const inv = new T.Matrix4().copy(r.matrixWorld).invert(), pieces = []; r.traverse((m) => { if (m.isMesh && !(m.material && m.material.side === T.BackSide)) pieces.push(m); });
+  const geos = pieces.map((m) => m.geometry.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv, m.matrixWorld)));
+  let sz = 0; geos.forEach((g) => { const P = g.attributes.position; for (let i = 0; i < P.count; i++) sz += P.getZ(i); }); const sgn = sz < 0 ? -1 : 1;
+  geos.forEach((g, n) => { const P = g.attributes.position;
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i) * sgn, t = Math.min(1, Math.max(0, (1.45 - y) / 1.35)), a = Math.atan2(x, z) * (0.62 + 0.18 * t), off = (Math.hypot(x, z) - (0.3 + 0.32 * t)) * o.k;
+      P.setXYZ(i, o.cx + Math.sin(a) * (o.rx + o.fl * t + off), o.haut0 - (1.45 - y) * o.k, o.cz - o.avant * Math.cos(a) * (o.rz + o.fl * 0.6 * t + off)); }
+    P.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
+    const m = pieces[n]; m.children.forEach((k) => { if (k.isMesh && k.material && k.material.side === T.BackSide) k.geometry = g; });
+    m.geometry = g; if (m.material && m.material.isMeshToonMaterial) { m.material = m.material.clone(); m.material.side = T.DoubleSide; }
+    m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1); eq.add(m); });
+}
+function habillerPerso(g) {
+  const idC = S_ && S_.equip && S_.equip.coiffe, idK = S_ && S_.equip && S_.equip.cape, coiffe = idC && noeudVisuel(idC), cape = idK && noeudVisuel(idK);
+  if (!coiffe && !cape) return;
+  g.updateMatrixWorld(true);
+  const pieces = []; g.traverse((o) => { if (o.isMesh && !(o.parent && o.parent.isMesh)) pieces.push(o); });
+  const chapeau = pieces.filter((o) => P_CHAPEAU.test(nomP(o))), corpsP = pieces.filter((o) => !P_CHAPEAU.test(nomP(o)));
+  const teteN = g.getObjectByName('tete'); if (!teteN) return;
+  const sousTete = []; teteN.traverse((o) => { if (o.isMesh && !(o.parent && o.parent.isMesh) && !P_CHAPEAU.test(nomP(o))) sousTete.push(o); }); const craneP = sousTete.filter((o) => /^(crane|cheveux|meches)/.test(nomP(o)));
+  const bt = unionDe(craneP.length ? craneP : sousTete.length ? sousTete : [teteN]), ct = bt.getCenter(new T.Vector3()), st = bt.getSize(new T.Vector3());
+  const corps = unionDe(corpsP), sc = corps.getSize(new T.Vector3());
+  const bouche = g.getObjectByName('bouche'), avant = bouche ? Math.sign(boiteDe(bouche).getCenter(new T.Vector3()).z - ct.z) || 1 : 1;
+  const torse = corpsP.filter((o) => { if (P_DOS.test(nomP(o))) return false; const c = boiteDe(o).getCenter(new T.Vector3()); return c.y < bt.min.y && c.y > bt.min.y - sc.y * 0.3 && Math.abs(c.x - ct.x) < sc.x * 0.22; });
+  const bTorse = unionDe(torse.length ? torse : corpsP), dos = avant > 0 ? bTorse.min.z : bTorse.max.z;
+  const eq = new T.Group(); eq.name = 'equipement_porte'; g.add(eq);
+  if (coiffe) {
+    chapeau.concat(corpsP.filter((o) => /^(corne|anneau_corne)/.test(nomP(o)))).forEach((o) => { o.visible = false; });
+    const c = coiffe.clone(true); c.position.set(0, 0, 0); c.rotation.set(0, 0, 0); c.scale.set(1, 1, 1); c.updateMatrixWorld(true);
+    const pc = []; c.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh)) pc.push(m); }); const B0 = boiteDe(c), h0 = B0.max.y - B0.min.y || 1;
+    const corpsC = pc.filter((m) => !P_SAILLIE.test(nomP(m))), bas = corpsC.filter((m) => (boiteDe(m).min.y - B0.min.y) / h0 <= 0.35);
+    const pied = (m) => { const z = boiteDe(m).getSize(new T.Vector3()); return z.x * z.z; }, rebord = bas.sort((a, b) => pied(b) - pied(a))[0];
+    const r0 = rebord ? boiteDe(rebord).getSize(new T.Vector3()) : B0.getSize(new T.Vector3()), t0 = B0.getSize(new T.Vector3()), k = Math.max(st.x * 0.85 / Math.max(r0.x, r0.z), st.x * 1.12 / Math.max(t0.x, t0.z));
+    c.scale.multiplyScalar(k); if (t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
+    const b1 = unionDe(corpsC.length ? corpsC : [c]), c1 = b1.getCenter(new T.Vector3()), bas0 = Math.max(bt.min.y + st.y * 0.52, bt.max.y + 0.04 - (b1.max.y - b1.min.y));
+    c.position.add(new T.Vector3(ct.x - c1.x, bas0 - b1.min.y, ct.z - c1.z)); eq.add(c);
+    if (pc.some((m) => /^(calotte|bonnet|coussin|casque|os|crane)$/.test(nomP(m)))) { /* sous une coiffe fermee, la chevelure se tasse un peu */
+      const f = 0.86, piv = new T.Vector3(ct.x, bt.min.y + st.y * 0.3, ct.z);
+      corpsP.filter((o) => /^cheveux/.test(nomP(o))).forEach((o) => { const P = o.parent.worldToLocal(piv.clone()); o.position.sub(P).multiplyScalar(f).add(P); o.scale.multiplyScalar(f); });
+    }
+  }
+  if (cape) {
+    corpsP.filter((o) => /^(cape|col)$/.test(nomP(o))).forEach((o) => { o.visible = false; }); /* la petite cape du Cra disparait sous celle de la panoplie */
+    const haut0 = bt.min.y + st.y * 0.04, haut = (haut0 - corps.min.y) * 0.72, LT = bTorse.getSize(new T.Vector3()).x, cz = (bTorse.min.z + bTorse.max.z) / 2;
+    porterCapeSur(eq, cape, { cx: ct.x, cz, avant, haut0, k: haut / 1.35, rx: LT * 0.54, rz: (cz - dos) * avant + 0.03, fl: LT * 0.12 });
+    const recul = corpsP.filter((o) => P_ARME_DOS.test(nomP(o))), bR = recul.length ? unionDe(recul) : null; /* l'arme collee au dos passe par-dessus la cape */
+    if (bR && (avant > 0 ? bR.min.z > dos - EP_CAPE - 0.05 : bR.max.z < dos + EP_CAPE + 0.05)) recul.forEach((o) => { const a = o.parent.worldToLocal(new T.Vector3(0, 0, 0)), b = o.parent.worldToLocal(new T.Vector3(0, 0, -avant * (EP_CAPE + 0.04))); o.position.add(b.sub(a)); });
+  }
+  fusionner(eq); /* (une coiffe et une cape : quelques centaines de petites pieces, fusionnees par materiau pour la tablette) */
+  eq.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+}
+/* refaire le perso a sa place (apres un changement d'equipement, ou quand les modeles des pieces arrivent) */
+function rhabiller() {
+  if (!paysanMesh || !S_ || !S_.perso) return;
+  const v = paysanMesh, n = paysan(v.position.x, v.position.y, v.position.z, S_.perso.classe);
+  n.rotation.copy(v.rotation); n.position.copy(v.position); const membres = n.userData.membres; Object.assign(n.userData, v.userData, { membres });
+  scene.remove(v); paysanMesh = n;
+}
+function rafraichirTenue() { /* une coiffe ou une cape portee : on charge leurs modeles si besoin, puis on rhabille */
+  const porte = S_ && S_.equip && (S_.equip.coiffe || S_.equip.cape);
+  if (porte && !visuelsPrets()) { assurerVisuels().then((ok) => { if (ok) rhabiller(); }); return; }
+  rhabiller();
+}
 function paysan(x, y, z, classe) {
   const g = cloner({ iop: 'iop3', osa: 'osa', cra: 'cra' }[classe] || 'iop3');
+  { const e0 = g.scale.x; g.scale.setScalar(1); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); elargirPerso(g, classe); try { habillerPerso(g); } catch (err) { console.warn('tenue', err); } g.scale.setScalar(e0); }
   g.rotation.order = 'YXZ'; g.rotation.y = -2.3; poser(g, x, y, z); g.userData.y = y; g.userData.angle = -2.3; ombrePieds(g, 1.4);
   g.userData.membres = ['pivot_jambeG', 'pivot_jambeD', 'pivot_brasG', 'pivot_brasD'].map((n) => g.getObjectByName(n)); return g;
 }
@@ -4908,6 +5015,7 @@ function lancer(etat) {
   enAccueil = false; angleCam = Math.PI / 4; placerCamera();
   construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
   if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
+  if (S_.equip && (S_.equip.coiffe || S_.equip.cape)) rafraichirTenue(); /* (les modeles des pieces portees arrivent apres) */
   toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
   const tutoAuto = !S_.tuto && niveau(S_.xp) < 5; /* un debutant qui ne l'a jamais vu (ou pas fini) */
   rendreHaut(); rendreObjectif(); setTimeout(placerPanneaux, 50); if (!tutoAuto) setTimeout(astuceClics, 4000); setTimeout(nuageEnvoyer, 1500);
