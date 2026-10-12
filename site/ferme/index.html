@@ -554,11 +554,14 @@ const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 30, xp: 3 };
 const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }];
 const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES).map((c) => [c.id, c]));
 const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES);
-/* l'elevage : un bebe grandit en 4 h, puis devient adulte (lui seul fait de la laine) ; deux adultes repus peuvent faire un petit
-   (4 Ble, puis 8 h de repos chacun). Une fois sur 50 il nait noir : laine noire, tres chere. Plus probable si un parent est noir. */
+/* l'elevage (revu le 12/10/2026) : deux adultes repus font un petit contre 10 Houblon, puis 8 h de repos chacun. Le bebe nait affame,
+   mange trois fois plus qu'un adulte (6 Ble, repu deux fois moins longtemps) et ne grandit que repu : 4 h repu pour devenir adulte (lui seul
+   fait de la laine). Il nait noir 1 fois sur 10 (laine noire, tres chere), 1 sur 4 avec un parent noir, 1 sur 2 avec deux. */
 const NOMS_NOIRS = ['Ébène', 'Réglisse', 'Charbon', 'Minuit', 'Corbeau', 'Encre'];
-const adulte = (b) => !b.ne || Date.now() - b.ne >= DUREE_CROISSANCE;
-const croissance = (b) => b.ne ? Math.min(1, (Date.now() - b.ne) / DUREE_CROISSANCE) : 1;
+const ageBebe = (b) => b.grandi != null ? b.grandi : Date.now() - b.ne; /* le temps passe repu (les bebes d'avant le 12/10 grandissaient a l'horloge) */
+const adulte = (b) => !b.ne || ageBebe(b) >= DUREE_CROISSANCE;
+const croissance = (b) => b.ne ? Math.min(1, ageBebe(b) / DUREE_CROISSANCE) : 1;
+const repasDe = (b) => adulte(b) ? REPAS : REPAS_BEBE, dureeRepasDe = (b) => dureeRepas() / (adulte(b) ? 1 : 2);
 const peutReproduire = (b) => adulte(b) && Date.now() < b.rassasie && Date.now() >= (b.repro || 0);
 const NOMS = ['Bêêrnard', 'Pompon', 'Flocon', 'Câlinou', 'Bouclette', 'Toison d\'Or', 'Biquette', 'Gros Bouffi', 'Laineur', 'Cotonnade', 'Pépito Junior', 'Rambouftou', 'Moumoute', 'Frisette'];
 const AMELIOS = [
@@ -593,14 +596,14 @@ const PRIX_PARCELLE = [150, 200, 300, 400, 500, 650, 800, 1000, 1300, 1600, 1900
 /* Temps reel : les durees sont en minutes. Avec ?test=1 dans l'adresse, tout va 60 fois plus vite (une minute devient une seconde). */
 const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)$/.test(location.hostname); /* le mode test (temps x60) : sur le PC et le reseau local seulement ; en ligne, la beta demande un compte */
 const MIN = TEST ? 1000 : 60000;
-const DUREE_CROISSANCE = 240 * MIN, REPOS_REPRO = 480 * MIN, COUT_REPRO = 4, CHANCE_NOIR = [0.02, 0.15, 0.4]; /* l'elevage (voir plus haut) */
+const DUREE_CROISSANCE = 240 * MIN, REPOS_REPRO = 480 * MIN, COUT_REPRO = 10, CHANCE_NOIR = [0.1, 0.25, 0.5], REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
 const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
 const citernePleine = () => !niv('arrosoir') || (S_.citerne || 0) >= capaciteCiterne();
 const capaciteEau = () => [10, 15, 20, 30, 45][niv('reservoir')] || CAPACITE_EAU;
 const PRIX_FILET = 40, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
 const CADENCE_PLUME = 90 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 20 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
-const PRIX_BOUFTOU = 150, REPAS = 2, DUREE_REPAS = 240 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 120 * MIN;
+const PRIX_BOUFTOU = 500, REPAS = 2, DUREE_REPAS = 240 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 120 * MIN;
 /* les ameliorations de l'elevage : abreuvoir (repus plus longtemps), cisailles d'or (plus de laine en attente), voliere agrandie (plus de plumes) */
 const dureeRepas = () => DUREE_REPAS * (niv('abreuvoir') ? 1.5 : 1), laineMax = () => LAINE_MAX + 2 * niv('cisailles'), plumesParTofu = () => PLUMES_PAR_TOFU, capaciteVoliere = () => 2 + 2 * niv('voliere'); /* la voliere : 2 places, puis 4, 6, 8 et 10 */
 /* les Tofus nuisibles : ils se posent sur une culture plantee (a tout stade), environ une fois toutes les 3 h par parcelle, 2 au plus en meme temps ;
@@ -1000,7 +1003,12 @@ function avancer(maintenant, enDirect) {
   });
   let encl = false, hdv = false;
   S_.bouftous.forEach((b) => {
-    if (niv('mangeoire') && maintenant >= b.rassasie && (S_.grange.ble || 0) >= REPAS) { S_.grange.ble -= REPAS; b.rassasie = maintenant + dureeRepas(); encl = true; hdv = true; }
+    if (niv('mangeoire') && maintenant >= b.rassasie && (S_.grange.ble || 0) >= repasDe(b)) { S_.grange.ble -= repasDe(b); b.rassasie = maintenant + dureeRepasDe(b); encl = true; hdv = true; }
+    if (b.ne && !adulte(b)) {
+      if (b.grandi == null) b.grandi = Math.max(0, maintenant - dt - b.ne);
+      b.grandi += Math.max(0, Math.min(maintenant, b.rassasie) - (maintenant - dt));
+      if (adulte(b)) { encl = true; toast(b.nom + ' est devenu adulte : il fera de la laine.', 'or'); }
+    }
     if (b.laine < laineMax() && adulte(b)) {
       const nourri = Math.max(0, Math.min(maintenant, b.rassasie) - (maintenant - dt));
       if (nourri > 0) { b.accu += nourri * (legPorte('royal') ? 1.25 : 1); /* Couronne du Bouftou Royal : 25 % de laine en plus */ while (b.accu >= CADENCE_LAINE && b.laine < laineMax()) { b.laine++; b.accu -= CADENCE_LAINE; encl = true; } if (b.laine >= laineMax()) b.accu = 0; }
@@ -1183,27 +1191,28 @@ const ACTIONS = {
   chasser(p) { compter('tofusChasses'); const w = p.nuisible === 'wabbit'; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); toast(w ? 'Wabbit chassé ! Il retourne sur son île.' : 'Tofu chassé ! Il ira picorer chez VSA.'); gagnerXp(1); rendreCase(p.id); },
   nourrir(j) {
     const b = S_.bouftous[j]; if (!b) return;
-    if ((S_.grange.ble || 0) < REPAS) { toast('Il faut ' + REPAS + ' Blé dans la grange pour nourrir ' + b.nom + '.'); return; }
-    const t = Date.now(); S_.grange.ble -= REPAS; compter('repas'); b.rassasie = Math.min(Math.max(t, b.rassasie) + dureeRepas(), t + 3 * dureeRepas()); b.affame = false;
-    toast(b.nom + ' mange. Il donnera de la laine tant qu\'il est repu.'); rendreBouftous(); rendreGrange();
+    const r = repasDe(b), d = dureeRepasDe(b), bebe = !adulte(b);
+    if ((S_.grange.ble || 0) < r) { toast('Il faut ' + r + ' Blé dans la grange pour nourrir ' + b.nom + (bebe ? ' (un bébé mange trois fois plus)' : '') + '.'); return; }
+    const t = Date.now(); S_.grange.ble -= r; compter('repas'); b.rassasie = Math.min(Math.max(t, b.rassasie) + d, t + 3 * d); b.affame = false;
+    toast(bebe ? b.nom + ' mange : il grandit tant qu\'il est repu.' : b.nom + ' mange. Il donnera de la laine tant qu\'il est repu.'); rendreBouftous(); rendreGrange();
   },
   reproduire() {
     if (S_.bouftous.length >= capacite()) { toast('Plus de place pour un petit : il faut 2 cases d\'enclos par Bouftou. Aménage ou agrandis l\'enclos.', 'alerte'); return; }
     const prets = S_.bouftous.filter(peutReproduire).sort((a, b) => (b.noir ? 1 : 0) - (a.noir ? 1 : 0)); /* les noirs d'abord : plus de chances */
     if (prets.length < 2) { toast('Il faut deux Bouftous adultes, repus et reposés.', 'alerte'); return; }
-    if ((S_.grange.ble || 0) < COUT_REPRO) { toast('Il faut ' + COUT_REPRO + ' Blé dans la grange.', 'alerte'); return; }
-    const [pa, ma] = prets, t = Date.now(); S_.grange.ble -= COUT_REPRO; pa.repro = ma.repro = t + REPOS_REPRO;
+    if ((S_.grange.houblon || 0) < COUT_REPRO) { toast('Il faut ' + COUT_REPRO + ' Houblon dans la grange (tu en as ' + (S_.grange.houblon || 0) + ').' + (debloquee(PAR_ID.houblon) ? '' : ' Le Houblon se cultive au niveau ' + PAR_ID.houblon.niv + '.'), 'alerte'); return; }
+    const [pa, ma] = prets, t = Date.now(); S_.grange.houblon -= COUT_REPRO; pa.repro = ma.repro = t + REPOS_REPRO;
     const noir = Math.random() < CHANCE_NOIR[(pa.noir ? 1 : 0) + (ma.noir ? 1 : 0)];
     const pris = S_.bouftous.map((b) => b.nom), libres = (noir ? NOMS_NOIRS : NOMS).filter((n) => !pris.includes(n));
-    const bebe = { nom: hasard(libres.length ? libres : (noir ? NOMS_NOIRS : NOMS)) + (libres.length ? '' : ' ' + (S_.bouftous.length + 1)), rassasie: t + dureeRepas(), laine: 0, accu: 0, ne: t, noir };
+    const bebe = { nom: hasard(libres.length ? libres : (noir ? NOMS_NOIRS : NOMS)) + (libres.length ? '' : ' ' + (S_.bouftous.length + 1)), rassasie: t, laine: 0, accu: 0, ne: t, grandi: 0, noir }; /* il nait affame */
     S_.bouftous.push(bebe); compter('naissances'); gagnerXp(noir ? 40 : 8);
-    toast(noir ? 'Incroyable : ' + bebe.nom + ' est un Bouftou NOIR ! Garde-le précieusement, sa laine noire vaut une fortune.' : pa.nom + ' et ' + ma.nom + ' ont un petit : ' + bebe.nom + '. Adulte dans ' + dureeLisible(DUREE_CROISSANCE) + '.', 'or');
+    toast((noir ? 'Incroyable : ' + bebe.nom + ' est un Bouftou NOIR ! Sa laine noire vaut une fortune.' : pa.nom + ' et ' + ma.nom + ' ont un petit : ' + bebe.nom + '.') + ' Il a faim : nourris-le (' + REPAS_BEBE + ' Blé), il ne grandit que repu.', 'or');
     rendreBouftous(); rendreGrange(); rendreHaut();
   },
   vendreBouftou(j) {
     const b = S_.bouftous[j]; if (!b) return;
     if (b.noir) { toast(b.nom + ' est un Bouftou noir : trop précieux pour être vendu.', 'alerte'); return; }
-    const gain = adulte(b) ? 90 : 40; S_.bouftous.splice(j, 1); erre.splice(j, 1); S_.kamas += gain;
+    const gain = adulte(b) ? 200 : 80; /* (achete 500) */ S_.bouftous.splice(j, 1); erre.splice(j, 1); S_.kamas += gain;
     toast(b.nom + ' part chez un autre éleveur : +' + gain + ' kamas.'); rendreBouftous(); rendreHaut();
   },
   tondre(j) {
@@ -2740,7 +2749,7 @@ const OBJECTIFS = [
   ['terrainsAchetes', 1, 'Achète un terrain pour agrandir ta ferme.', 250, 20],
   ['vagueMax', 10, 'Bats le Bouftou Royal à la vague 10.', 500, 40],
   ['equipes', 1, 'Équipe une pièce d\'équipement (bouton Perso).', 200, 20],
-  ['naissances', 1, 'Fais naître un petit Bouftou (dans l\'enclos).', 300, 25],
+  ['naissances', 1, 'Fais naître un petit Bouftou (10 Houblon, dans l\'enclos).', 600, 40],
   ['vagueMax', 20, 'Bats le Chafer Cuirassé à la vague 20.', 1500, 80],
   ['equipes', 6, 'Porte 6 pièces d\'équipement.', 2000, 100],
   ['vagueMax', 30, 'Bats le Bworker à la vague 30.', 5000, 150],
@@ -2857,29 +2866,31 @@ const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hi
 let raidAnnonce = null;
 function annoncerRaid() {
   if (raidAnnonce || combat || enAccueil) return;
-  const f = forceVoleur(), nb = 3 + Math.floor(Math.min(f, 30) / 5), montes = f >= 3 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 3) / 6)) : 0; /* plus VSA se renforce, plus ils sont nombreux (9 au plus) et montes (la moitie au plus) */
+  const f = forceVoleur(), nb = 4 + Math.floor(Math.min(f, 40) / 5), montes = f >= 2 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 2) / 5)) : 0; /* plus VSA se renforce, plus ils sont nombreux (12 au plus) et montes (la moitie au plus) */
   const B = bordsFerme(), cotes = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => B.some((b) => b.di === di && b.dj === dj)), cote = hasard(cotes.length ? cotes : [[0, 1]]);
+  const autres = cotes.filter((c) => c !== cote), cote2 = f >= 8 && autres.length ? hasard(autres) : null; /* a partir de la vague 9 : par deux bords a la fois */
   const marques = new T.Group(); /* le bord par ou ils arriveront, en rouge */
   /* « les cases rouges sont pas alignees avec les cases en dessous » (Mathieu, 11/10/2026) : elles etaient poussees de 0,45 vers le vide et dessinees
      par-dessus tout (on les voyait a travers la grange). Maintenant : pile sur la case, cachees par les batiments, et une bande plus foncee cote vide */
-  B.filter((b) => b.di === cote[0] && b.dj === cote[1]).forEach((b) => { const q = posCase(b.c);
+  B.filter((b) => surCote(b, cote, cote2)).forEach((b) => { const q = posCase(b.c);
     const r = new T.Mesh(new T.PlaneGeometry(S - 0.15, S - 0.15), new T.MeshBasicMaterial({ color: '#d9443a', transparent: true, opacity: 0.4, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(q.x, q.y + 0.08, q.z); r.renderOrder = 3; marques.add(r);
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, marques }; son('alerte');
-  toast('Raid VSA dans 30 s : ' + nb + ' voleurs' + (montes ? ', dont ' + montes + ' à dos de Dragodinde' : '') + ' ! Ils arriveront par le bord marqué en rouge.', 'alerte');
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, cote2, marques }; son('alerte');
+  toast('Raid VSA dans 30 s : ' + nb + ' voleurs' + (montes ? ', dont ' + montes + ' à dos de Dragodinde' : '') + ' ! Ils arriveront par ' + (cote2 ? 'les deux bords marqués' : 'le bord marqué') + ' en rouge.', 'alerte');
   majRaidAnnonce();
 }
+const surCote = (b, c1, c2) => (b.di === c1[0] && b.dj === c1[1]) || (!!c2 && b.di === c2[0] && b.dj === c2[1]);
 function majRaidAnnonce() {
   const R = raidAnnonce, e = $('raid-annonce'); if (!R) { e.hidden = true; return; }
-  e.hidden = false; e.innerHTML = 'Raid VSA dans ' + Math.max(0, Math.ceil((R.fin - Date.now()) / 1000)) + ' s !<small>' + R.nb + ' voleurs' + (R.montes ? ', dont ' + R.montes + ' à dos de Dragodinde' : '') + ', par le bord en rouge. Recharge l\'arbalète !</small>';
+  e.hidden = false; e.innerHTML = 'Raid VSA dans ' + Math.max(0, Math.ceil((R.fin - Date.now()) / 1000)) + ' s !<small>' + R.nb + ' voleurs' + (R.montes ? ', dont ' + R.montes + ' à dos de Dragodinde' : '') + (R.cote2 ? ', par les deux bords en rouge' : ', par le bord en rouge') + '. Recharge l\'arbalète !</small>';
   R.marques.children.forEach((m, k) => { m.material.opacity = (k % 2 ? 0.8 : 0.5) * (0.5 + 0.5 * Math.abs(Math.sin(Date.now() / 300))); }); /* la case, puis sa bande cote vide */
 }
 function lancerRaid() {
   const R = raidAnnonce; raidAnnonce = null; if (R) scene.remove(R.marques); $('raid-annonce').hidden = true;
   if (!R || combat || enAccueil || !paysanMesh) return;
   const file = []; for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture');
-  const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe()), B = bordsFerme().filter((b) => b.di === R.cote[0] && b.dj === R.cote[1]);
+  const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe()), B = bordsFerme().filter((b) => surCote(b, R.cote, R.cote2));
   combat = { n: 0, raid: true, file, total: file.length, attente: 0.3, monstres: [], cible: null, pv: st.pvMax, pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, butin: [], tues: 0, fuis: 0, bords: B.length ? B : null };
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
@@ -2928,8 +2939,8 @@ const palierDe = (n) => Math.min(PALIERS.length - 1, Math.floor((n - 1) / VAGUES
 const MONSTRES = {
   tofu: { nom: 'Tofu', modele: 'tofu', icone: 'tofu', desc: 'très rapide, file picorer tes cultures', grignote: true, pv: (n) => 12 + 5 * n, deg: (n) => 1 + Math.floor(n / 4), cadence: 1.2, vitesse: 4.6, portee: 0.95, ombre: 0.9 },
   chafer: { nom: 'Chafer', modele: 'chafer', icone: 'chafer', desc: 'frappe fort, s\'en prend aussi aux bâtiments', casse: 0.4, pv: (n) => 30 + 10 * n, deg: (n) => 3 + Math.floor(n * 0.7), cadence: 1.4, vitesse: 1.5, portee: 1.15, ombre: 1.4 },
-  voleurRaid: { nom: 'Voleur de VSA', modele: 'voleur', icone: 'voleur', desc: 'file vers ta grange', pv: () => 30 + 6 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 2.1, portee: 1, ombre: 1.2, vole: 1 },
-  monture: { nom: 'Voleur à dos de Dragodinde', modele: 'voleurMonte', icone: 'voleur', desc: 'rapide et coriace, emporte deux fois plus', pv: () => 60 + 12 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 3.3, portee: 1.2, ombre: 2.0, vole: 2 },
+  voleurRaid: { nom: 'Voleur de VSA', modele: 'voleur', icone: 'voleur', desc: 'file vers ta grange', pv: () => 45 + 9 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 2.5, portee: 1, ombre: 1.2, vole: 1 },
+  monture: { nom: 'Voleur à dos de Dragodinde', modele: 'voleurMonte', icone: 'voleur', desc: 'rapide et coriace, emporte deux fois plus', pv: () => 90 + 18 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 3.8, portee: 1.2, ombre: 2.0, vole: 2 },
   royal: { nom: 'Bouftou Royal', modele: 'royal', icone: 'bouftou-royal', desc: 'le chef du troupeau, très coriace', pv: () => 450, deg: () => 12, cadence: 1.6, vitesse: 1.2, portee: 1.8, ombre: 2.6, boss: true },
   /* palier 2 : la Vague de Chafers (k = numero de la vague dans le palier, 1 a 10) */
   fantassin: { nom: 'Chafer Fantassin', modele: 'fantassin', icone: 'chafer-fantassin', desc: 'le soldat, en nombre', casse: 0.4, pv: (n) => 70 + 8 * (n - 10), deg: (n) => 4 + Math.round(0.6 * (n - 10)), cadence: 1.4, vitesse: 1.8, portee: 1.15, ombre: 1.4 },
@@ -3578,7 +3589,7 @@ function finVague(gagne, fuite) {
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = '';
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
     if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
-    const f = forceVoleur(), prime = c.tues * (20 + 6 * f); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 8);
+    const f = forceVoleur(), prime = c.tues * (25 + 8 * f); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 10);
     const tot = {}; c.butin.forEach((r) => { tot[r.nom] = (tot[r.nom] || 0) + r.n; });
     const butin = c.butin.length ? 'Ils ont emporté : ' + Object.entries(tot).map(([nom, n]) => n + ' ' + nom).join(', ') + '.' : 'Ils n\'ont rien emporté de ta grange.';
     const rec = {}; (c.recup || []).forEach((r) => { rec[r.nom] = (rec[r.nom] || 0) + r.n; });
@@ -4043,14 +4054,14 @@ function ouvrirEnclos() {
   const betes = S_.bouftous.map((b, j) => {
     const faim = Date.now() >= b.rassasie;
     const bebe = !adulte(b), repos = Math.max(0, (b.repro || 0) - Date.now());
-    return '<div class="art">' + ico('bouftou').replace('<img', '<img style="' + (b.noir ? 'filter:brightness(.35) sepia(.3)' : '') + (bebe ? ';transform:scale(.7)' : '') + '"') + '<div><b>' + b.nom + (b.noir ? ' <span style="color:var(--or)">★ noir</span>' : '') + '</b><div class="puces">' + (bebe ? '<span class="puce">bébé, adulte dans ' + dureeLisible(DUREE_CROISSANCE - (Date.now() - b.ne)) + '</span>' : '') + '<span class="puce ' + (faim ? 'mauvaise' : 'bonne') + '">' + (faim ? 'a faim' + (bebe ? '' : ', ne produit plus') : 'repu') + '</span>' + (bebe ? '' : '<span class="puce">🧶 ' + b.laine + '/' + laineMax() + '</span>') + (repos ? '<span class="puce">se repose ' + dureeLisible(repos) + '</span>' : '') + '</div></div>' +
-      '<div class="act mini"><button class="btn discret mini" data-nourrir="' + j + '">Nourrir 🌾' + REPAS + '</button><button class="btn mini" data-tondre="' + j + '"' + (b.laine ? '' : ' disabled') + '>Tondre</button>' + (b.noir ? '' : '<button class="btn discret mini" data-vendre-bouftou="' + j + '" data-info="Le vendre à un autre éleveur">Vendre</button>') + '</div></div>';
+    return '<div class="art">' + ico('bouftou').replace('<img', '<img style="' + (b.noir ? 'filter:brightness(.35) sepia(.3)' : '') + (bebe ? ';transform:scale(.7)' : '') + '"') + '<div><b>' + b.nom + (b.noir ? ' <span style="color:var(--or)">★ noir</span>' : '') + '</b><div class="puces">' + (bebe ? '<span class="puce">bébé, grandi à ' + Math.floor(100 * croissance(b)) + ' %</span>' : '') + '<span class="puce ' + (faim ? 'mauvaise' : 'bonne') + '">' + (faim ? 'a faim' + (bebe ? ', ne grandit plus' : ', ne produit plus') : 'repu') + '</span>' + (bebe ? '' : '<span class="puce">🧶 ' + b.laine + '/' + laineMax() + '</span>') + (repos ? '<span class="puce">se repose ' + dureeLisible(repos) + '</span>' : '') + '</div></div>' +
+      '<div class="act mini"><button class="btn discret mini" data-nourrir="' + j + '">Nourrir 🌾' + repasDe(b) + '</button><button class="btn mini" data-tondre="' + j + '"' + (b.laine ? '' : ' disabled') + '>Tondre</button>' + (b.noir ? '' : '<button class="btn discret mini" data-vendre-bouftou="' + j + '" data-info="Le vendre à un autre éleveur">Vendre</button>') + '</div></div>';
   }).join('');
   const achat = '<div class="art">' + ico('bouftou') + '<div><b>Un Bouftou de plus</b><div class="puces"><span class="puce' + (plein ? ' mauvaise' : '') + '">🐑 ' + S_.bouftous.length + '/' + cap + ' places</span></div>' + (plein ? '<div class="desc">L\'enclos est plein : agrandis-le juste en dessous.</div>' : '') + '</div>' +
     '<div class="act"><button class="btn kamas" data-bouftou' + (plein || S_.kamas < PRIX_BOUFTOU ? ' disabled' : '') + '>Acheter ' + PRIX_BOUFTOU + ' ' + KAMA + '</button>' + (plein ? '' : manque(PRIX_BOUFTOU)) + '</div></div>';
   const amenager = '<div class="art">' + ico('cloture') + '<div><b>Aménager l\'enclos</b><div class="puces"><span class="puce">' + casesEnclos().length + '/' + maxCasesEnclos() + ' cases</span><span class="puce">2 cases par Bouftou</span></div><div class="desc">Déplace les barrières : ajoute des cases d\'herbe collées à l\'enclos, rends celles qui gênent.</div></div><div class="act"><button class="btn kamas" data-amenager-enclos>Aménager</button></div></div>';
-  const prets = S_.bouftous.filter(peutReproduire).length, noirs = S_.bouftous.filter((b) => b.noir).length;
-  const repro = '<div class="art">' + ico('bouftou') + '<div><b>Faire un petit</b><div class="puces"><span class="puce ' + (prets >= 2 ? 'bonne' : 'mauvaise') + '">' + prets + ' adulte' + (prets > 1 ? 's' : '') + ' prêt' + (prets > 1 ? 's' : '') + '</span><span class="puce">🌾 ' + COUT_REPRO + ' Blé</span><span class="puce">' + (noirs ? noirs + ' noir' + (noirs > 1 ? 's' : '') + ' ★' : '1 chance sur 50 : noir') + '</span></div><div class="desc">Deux adultes repus font un bébé (adulte en ' + dureeLisible(DUREE_CROISSANCE) + '), puis se reposent ' + dureeLisible(REPOS_REPRO) + '. Rarement, il naît <b>noir</b> : sa laine vaut ' + LAINE_NOIRE.prix + ' kamas. Avec un parent noir, c\'est bien plus probable.</div></div><div class="act"><button class="btn kamas" data-reproduire' + (prets < 2 || plein || (S_.grange.ble || 0) < COUT_REPRO ? ' disabled' : '') + '>Faire un petit</button>' + (plein ? '<small class="manque">Plus de place</small>' : '') + '</div></div>';
+  const prets = S_.bouftous.filter(peutReproduire).length, noirs = S_.bouftous.filter((b) => b.noir).length, houblon = S_.grange.houblon || 0;
+  const repro = '<div class="art">' + ico('bouftou') + '<div><b>Faire un petit</b><div class="puces"><span class="puce ' + (prets >= 2 ? 'bonne' : 'mauvaise') + '">' + prets + ' adulte' + (prets > 1 ? 's' : '') + ' prêt' + (prets > 1 ? 's' : '') + '</span><span class="puce ' + (houblon >= COUT_REPRO ? 'bonne' : 'mauvaise') + '">🌿 ' + COUT_REPRO + ' Houblon (' + houblon + ' en grange)</span><span class="puce">' + (noirs ? noirs + ' noir' + (noirs > 1 ? 's' : '') + ' ★' : '1 chance sur 10 : noir') + '</span></div><div class="desc">Deux adultes repus et ' + COUT_REPRO + ' Houblon' + (debloquee(PAR_ID.houblon) ? '' : ' (il se cultive au niveau ' + PAR_ID.houblon.niv + ')') + ' font un bébé, puis se reposent ' + dureeLisible(REPOS_REPRO) + '. Le bébé naît affamé : il mange ' + REPAS_BEBE + ' Blé par repas et ne grandit que repu (' + dureeLisible(DUREE_CROISSANCE) + '). Il naît <b>noir</b> 1 fois sur 10 : sa laine vaut ' + LAINE_NOIRE.prix + ' kamas. Avec un parent noir, 1 fois sur 4 ; avec deux, 1 fois sur 2.</div></div><div class="act"><button class="btn kamas" data-reproduire' + (prets < 2 || plein || houblon < COUT_REPRO ? ' disabled' : '') + '>Faire un petit</button>' + (plein ? '<small class="manque">Plus de place</small>' : '') + '</div></div>';
   ouvrirModale('enclos', entete('Enclos à Bouftous') + amenager + betes + repro + achat + lignesAmelio(['enclos'], 'Améliorer l\'enclos'));
 }
 function ouvrirEpouvantail() {
