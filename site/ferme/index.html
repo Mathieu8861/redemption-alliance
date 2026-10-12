@@ -492,6 +492,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .fp-onglets em { font-style: normal; background: #e0402e; color: #fff; border-radius: 99px; font-size: .62rem; padding: 0 6px; margin-left: 5px; }
 .fp-corps { display: grid; grid-template-columns: 320px 1fr 320px; gap: 12px; padding: 12px 14px 14px; align-items: start; }
 .fp-sorts { padding: 8px 16px 14px; }
+.fp-sorts .art, .fp-sorts .art:has(.pic.img) { grid-template-columns: 84px 1fr auto; } .fp-sorts .art .pic.img { width: 80px; height: 80px; border-radius: 18px; } .fp-sorts .art .pic.img img { width: 78px; height: 78px; } /* (les visuels des sorts : le perso en action, assez grand pour se lire) */
 .fp-bloc { background: #f6ecd6; border: 2px solid #e4d2ad; border-radius: 14px; padding: 10px; }
 .fp-bloc h3 { margin: 0 0 8px; font: 400 1rem/1 var(--f-titre); } .fp-bloc h3 small { font: 700 .68rem var(--f-texte); color: #8a7a5a; } .fp-bloc h4 { margin: 12px 0 0; font: 400 .9rem var(--f-titre); }
 .fp-poupee { display: grid; grid-template-columns: 70px 1fr 70px; grid-template-rows: repeat(3, 80px) 82px; gap: 2px 6px; align-items: start; justify-items: center; }
@@ -750,7 +751,7 @@ const PEPITO = [
   'l\'Engrais d\'Amakna, c\'est le seul boost que personne ne nerfe.'
 ];
 const CLASSES = [
-  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et sa Charge le soigne.', sort: 'Charge', tunique: '#c0392b',
+  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et son Bond du Iop le soigne.', sort: 'Bond du Iop', tunique: '#c0392b',
     role: 'Corps à corps', niveau: ['Facile', 'facile'], lignes: ['Va au contact et frappe fort.', 'Le plus solide : idéal pour débuter.'], sortTxt: 'il bondit sur un monstre et frappe trois fois plus fort.' },
   { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin, une flèche de feu toutes les 10. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57',
     role: 'À distance', niveau: ['Moyen', 'moyen'], lignes: ['Tire de loin, à l\'abri.', 'Plus fragile : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
@@ -4516,7 +4517,7 @@ function ouvrirGrange() {
   ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
 }
 const SORTS = {
-  iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Charge', 'Il bondit sur le monstre ciblé : 3 fois ses dégâts sur lui, 1,5 fois tout autour, et chaque monstre touché lui rend 3 % de sa vie. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins.']],
+  iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Bond du Iop', 'Il bondit sur le monstre ciblé : 3 fois ses dégâts sur lui, 1,5 fois tout autour, et chaque monstre touché lui rend 3 % de sa vie. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins.']],
   cra: [['Flèche', 'À distance (7 cases). Une flèche sur ' + TIR_FEU + ' est une flèche de feu : double dégâts, et la cible brûle 3 s.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Elle se charge en abattant ' + KILLS_PERCANTE + ' monstres.']],
   osa: [['Coup de fouet', 'À portée de fouet (3 cases), il frappe le monstre ciblé.'], ['Invocation', 'Tu vises où poser un Bouftou (jusqu\'à ' + PORTEE_INVOC + ' cases) : il retombe en frappant tout autour (2 fois tes dégâts), puis se bat ' + DUREE_INVOC + ' s. Recharge ' + RECHARGE_INVOC + ' s.']]
 };
@@ -4552,8 +4553,9 @@ function ouvrirPerso(sel) {
     '<span class="fp-kamas">' + fmt(S_.kamas) + ' ' + KAMA + '</span><button class="fp-fermer" data-fermer aria-label="Fermer">✕</button></div>' +
     '<div class="fp-onglets"><button data-fp-onglet="equip" aria-pressed="' + (persoOnglet === 'equip') + '">Équipement' + (nbNeufs ? '<em>' + nbNeufs + '</em>' : '') + '</button><button data-fp-onglet="sorts" aria-pressed="' + (persoOnglet === 'sorts') + '">Sorts</button><button data-bestiaire="panoplies">Bestiaire</button></div>';
   const [att, sort] = SORTS[classeDe()];
-  const sorts = '<div class="art">' + ico(classeDe()) + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">⚔ ' + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
-    '<div class="art">' + ico(classeDe()) + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div></div><div></div></div>' +
+  const icoSort = (q) => ico('sort-' + modeleDe(classeDe(), S_.perso.look) + '-' + q); /* (le perso en train d'attaquer ou de lancer son sort, selon sa classe et son apparence) */
+  const sorts = '<div class="art">' + icoSort('attaque') + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">⚔ ' + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
+    '<div class="art">' + icoSort('sort') + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div></div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : ico('ulti-zone' + sufUlti())) + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc + ' Recharge ' + RECHARGE_ULTI + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button></div></div>';
   if (persoOnglet === 'sorts') { ouvrirModale('perso', tete + '<div class="fp-sorts">' + sorts + '</div>'); return; }
   /* a gauche : le perso au milieu de ses 7 emplacements, et ses caracteristiques */
