@@ -382,6 +382,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .degat.soin { color: #7ff0c0; }
 .degat.bat { color: #ffb36b; font-size: 1.1rem; }
 .degat.butin { color: #ffe27a; font-size: 1.05rem; }
+.degat.vol { color: #ff6b5e; font-size: 1.1rem; }
 /* ---- les gains qui s'envolent (recolte, vente, XP) ---- */
 .gain { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 3px; font: 400 1.05rem/1 var(--f-titre); color: #fff; -webkit-text-stroke: 1.6px var(--bord); paint-order: stroke fill; white-space: nowrap; pointer-events: none; }
 .gain img { width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 1px 0 rgba(59, 42, 26, .6)); }
@@ -759,10 +760,10 @@ const seuil = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7)));
 const NIV_MAX = 60; /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
 const niveau = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) n++; return n; };
 /* l'XP de la ferme (recoltes, laine, plumes) est freinee quand on a trop d'avance sur les vagues : on progresse surtout en se battant */
-const freinXp = () => { if (!S_.vague || S_.vague.num > VAGUES_TOTAL) return 1; const av = niveau(S_.xp) - niveauRequis(S_.vague.num); return av <= 4 ? 1 : av <= 8 ? 0.5 : 0.25; };
+const XP_FERME = 0.6, freinXp = () => { if (!S_.vague || S_.vague.num > VAGUES_TOTAL) return 1; const av = niveau(S_.xp) - niveauRequis(S_.vague.num); return av <= 2 ? 1 : av <= 4 ? 0.5 : av <= 6 ? 0.25 : 0.1; };
 function xpFerme(n) {
-  const f = freinXp(); if (f < 1 && (S_.freinVu || 1) > f && !combat) toast('Tu as beaucoup d\'avance sur tes vagues : la ferme rapporte ' + (f === 0.5 ? 'deux' : 'quatre') + ' fois moins d\'expérience. Les vagues, elles, rapportent toujours autant !', 'or');
-  S_.freinVu = f; gagnerXp(Math.max(1, Math.round(n * f)));
+  const f = freinXp(); if (f < 1 && (S_.freinVu || 1) > f && !combat) toast('Tu as beaucoup d\'avance sur tes vagues : la ferme rapporte ' + ({ 0.5: 'deux', 0.25: 'quatre' }[f] || 'dix') + ' fois moins d\'expérience. Les vagues, elles, rapportent toujours autant !', 'or');
+  S_.freinVu = f; gagnerXp(Math.max(1, Math.round(n * f * XP_FERME)));
 }
 const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais'));
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
@@ -2790,8 +2791,9 @@ const objectifCourant = () => OBJECTIFS[(S_.obj || 0)] || null;
 /* ---------- trois defis par jour, et le cadeau de connexion en serie ---------- */
 const POOL_DEFIS = [['recoltes', 6, 'Récolte {n} cultures'], ['ventes', 3, 'Vends {n} fois à l\'HDV'], ['arrosages', 8, 'Arrose {n} semis'], ['laines', 4, 'Tonds {n} laines'], ['repas', 3, 'Nourris tes Bouftous {n} fois'], ['tofusChasses', 2, 'Chasse {n} Tofus'], ['monstres', 12, 'Abats {n} monstres'], ['vagues', 1, 'Gagne {n} vague'], ['plantes', 6, 'Plante {n} graines'], ['plumes', 2, 'Ramasse des plumes {n} fois']];
 const jourDe = (t) => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+const tempsReel = () => new Date().getTime(); /* l'heure vraie : Date.now est l'horloge du jeu, qui peut aller x50 */
 function jourCourant() {
-  if (!S_ || !S_.perso) return null; const auj = jourDe(Date.now());
+  if (!S_ || !S_.perso) return null; const auj = jourDe(tempsReel());
   if (!S_.jour || S_.jour.date !== auj) {
     const L = niveau(S_.xp), pool = POOL_DEFIS.filter(([c]) => !(c === 'laines' || c === 'repas') || S_.bouftous.length).filter(([c]) => !(c === 'plumes') || S_.tofus).filter(([c]) => !(c === 'monstres' || c === 'vagues') || S_.vague.num > 1);
     const choix = pool.slice().sort(() => Math.random() - 0.5).slice(0, 3);
@@ -2801,7 +2803,7 @@ function jourCourant() {
 }
 const CADEAUX = [[100, 'des graines de Blé', () => { S_.graines.ble = (S_.graines.ble || 0) + 5; }], [150, '20 flèches', () => { S_.fleches += 20; }], [200, '3 filets de capture', () => { S_.filets += 3; }], [300, 'des graines de la meilleure culture que tu puisses planter', () => { const c = CULTURES.filter(debloquee).pop(); S_.graines[c.id] = (S_.graines[c.id] || 0) + 5; }], [400, '40 flèches', () => { S_.fleches += 40; }], [500, '5 filets de capture', () => { S_.filets += 5; }], [800, 'une pièce d\'équipement de ton palier', () => { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); }]];
 function cadeauDuJour() {
-  if (!S_ || !S_.perso || combat) return; const auj = jourDe(Date.now()), hier = jourDe(Date.now() - 86400000); S_.serie = S_.serie || { n: 0, date: null };
+  if (!S_ || !S_.perso || combat) return; const auj = jourDe(tempsReel()), hier = jourDe(tempsReel() - 86400000); S_.serie = S_.serie || { n: 0, date: null };
   if (S_.serie.date === auj) return;
   S_.serie.n = S_.serie.date === hier ? S_.serie.n + 1 : 1; S_.serie.date = auj; const k = (S_.serie.n - 1) % 7, [kamas, quoi, donner] = CADEAUX[k];
   S_.kamas += kamas; donner(); sauver(); rendreHaut(); rendreGrange();
@@ -3078,8 +3080,8 @@ function versEcran(p, el) { vecC.copy(p).project(camera); el.style.left = ((vecC
 /* un nombre qui monte et s'efface : degats sur un monstre, ou sur le perso (en rouge) */
 function chiffre(txt, pos, genre) {
   const e = document.createElement('div'); e.className = 'degat ' + (genre || ''); e.textContent = txt; (combat ? $('combat-zone') : zoneBulles).appendChild(e);
-  const p = pos.clone(); p.x += (Math.random() - 0.5) * 0.4; let t = 0;
-  effets.push((dt) => { t += dt; const q = p.clone(); q.y += t * 1.3; versEcran(q, e); e.style.opacity = String(Math.max(0, 1 - Math.max(0, t - 0.5) / 0.4)); if (t >= 0.9) { e.remove(); return true; } });
+  const p = pos.clone(); p.x += (Math.random() - 0.5) * 0.4; let t = 0; const vie = genre === 'vol' ? 1.6 : 0.9; /* une recolte volee reste lisible un peu plus longtemps */
+  effets.push((dt) => { t += dt; const q = p.clone(); q.y += t * (genre === 'vol' ? 0.7 : 1.3); versEcran(q, e); e.style.opacity = String(Math.max(0, 1 - Math.max(0, t - (vie - 0.4)) / 0.4)); if (t >= vie) { e.remove(); return true; } });
 }
 /* un petit nuage de poussiere : un anneau qui s'ecarte au sol */
 function pouf(x, y, z, r, couleur) {
@@ -3096,7 +3098,7 @@ function ouvrirVagues() {
   const piste = Array.from({ length: VAGUES_PALIER - 1 }, (_, k) => { const v = base + k + 1; return '<i class="' + (v < S_.vague.num ? 'fait' : v === n ? 'ici' : '') + '">' + v + '</i>'; }).join('') + '<img class="' + (fini || S_.vague.num > base + VAGUES_PALIER ? 'fait' : n === base + VAGUES_PALIER ? 'ici' : '') + '" src="assets/icones/' + PALIERS[P].icone + '.png" alt="' + B.nom + '" data-info="' + B.nom + '">';
   /* chaque monstre : ses PV, ses degats, et combien de coups il te faut pour l'abattre */
   const monstres = compoVague(n).map(([t, k]) => { const M = MONSTRES[t], pv = pvMonstre(t, n), coups = Math.ceil(pv / st.deg);
-    return '<div class="vg-monstre"><img src="assets/icones/' + M.icone + '.png" alt=""><b>× ' + k + '</b><small>' + M.nom + ' : ' + M.desc + '</small><div class="vg-stats"><span class="puce">❤ ' + pv + ' PV</span><span class="puce">⚔ ' + degMonstre(t, n) + ' toutes les ' + String(M.cadence).replace('.', ',') + ' s</span><span class="puce ' + (coups <= 1 ? 'bonne' : coups >= 6 ? 'mauvaise' : '') + '">' + coups + ' coup' + (coups > 1 ? 's' : '') + ' pour toi</span></div></div>'; }).join('');
+    return '<div class="vg-monstre"><img src="assets/icones/' + M.icone + '.png" alt=""><b>× ' + k + '</b><small>' + M.nom + ' : ' + M.desc + '</small><div class="vg-stats"><span class="puce">❤ ' + pv + ' PV</span><span class="puce">⚔ ' + Math.round(degMonstre(t, n) * multDegats(n)) + ' toutes les ' + String(M.cadence).replace('.', ',') + ' s</span><span class="puce ' + (coups <= 1 ? 'bonne' : coups >= 6 ? 'mauvaise' : '') + '">' + coups + ' coup' + (coups > 1 ? 's' : '') + ' pour toi</span></div></div>'; }).join('');
   const ok = st.niveau >= n;
   const perso = '<div class="art">' + ico(classeDe()) + '<div><b>' + cl.nom + ' niveau ' + st.niveau + '</b><div class="puces"><span class="puce">❤ ' + st.pvMax + ' PV</span><span class="puce">⚔ ' + st.deg + ' toutes les ' + String(st.cadence).replace('.', ',') + ' s</span><span class="puce">Sort : ' + cl.sort + (classeDe() === 'cra' ? ' (' + Math.min(KILLS_PERCANTE, S_.chargeSort || 0) + '/' + KILLS_PERCANTE + ' monstres)' : '') + '</span>' + (classeDe() === 'cra' ? '<span class="puce">🔥 1 tir sur ' + TIR_FEU + ' en feu</span>' : '') + '<span class="puce ' + (st.niveau >= niveauRequis(n) ? 'bonne' : 'mauvaise') + '">Niveau requis ' + niveauRequis(n) + '</span></div><div class="desc">Ton niveau de Paysan est aussi ton niveau de combat.</div></div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : '<span class="pic img trio">' + ['gel', 'zone', 'mono'].map((u) => '<img src="' + srcUlti(u) + '" alt="">').join('') + '</span>') + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc : st.niveau >= NIV_ULTI ? 'Débloqué : gel, zone ou coup fatal, à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + ' : gel, zone ou coup fatal, à choisir une fois pour toutes.') + '</div></div><div class="act"><button class="btn' + (S_.ulti || st.niveau < NIV_ULTI ? ' discret' : ' kamas') + '" data-voir-ulti>' + (S_.ulti ? 'Voir' : st.niveau >= NIV_ULTI ? 'Choisir' : 'Voir') + '</button></div></div>';
@@ -3109,7 +3111,7 @@ function ouvrirVagues() {
     '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Certains monstres vont frapper tes bâtiments : va les chasser, sinon il faudra réparer. Après chaque victoire, la vague suivante se prépare un moment (de quelques minutes au début à quelques heures à la fin) : le temps de faire tourner ta ferme. Chaque vague demande un niveau minimum. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>');
 }
 /* rejouer un boss deja battu : une fois par jour et par boss, remis a ton niveau, la moitie des kamas et de l'XP, son butin et sa coiffe legendaire (2 %) */
-const jourJeu = () => new Date(Date.now()).toDateString();
+const jourJeu = () => new Date(tempsReel()).toDateString();
 const bossRejouable = (P) => S_.vague.num > (P + 1) * VAGUES_PALIER && ((S_.bossRejoue || {})[P] !== jourJeu());
 /* « a chaque fois que tu le rejoues ca divise les recompenses, en dehors du drop d'item » (Mathieu, 11/10/2026) : kamas et XP divises par deux a chaque victoire de plus (5 % au minimum) */
 const partRejoue = (P) => Math.max(0.05, Math.pow(0.5, ((S_.bossFois || {})[P] || 0) + 1));
@@ -3235,8 +3237,10 @@ function butinVoleur(monte, L) {
 }
 const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => '★ ' + OBJETS[id].nom)).filter(Boolean).join(', ');
 const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); return sac; }; /* le sac de butin sur son dos */
+const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MONSTRES[Math.max(0, palierDe(Math.max(1, n || 1)))] || 1;
 function blesserPerso(n, mo) {
   if (!combat || combat.fin) return;
+  if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (classeDe() === 'iop') n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); /* Peau de Iop : 15 % de degats en moins */
   combat.pv = Math.max(0, combat.pv - n); const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
@@ -3288,7 +3292,7 @@ function majMonstre(mo, dt, s) {
     }
   } else { /* il picore : une recolte volee toutes les 5 s */
     mo.picore += dt;
-    if (mo.picore >= 5) { mo.picore = 0.01; const p = mo.champ; p.vole = (p.vole || 0) + 1; rendreCase(p.id); toast('Un ' + mo.d.nom + ' ' + (mo.type === 'tofu' ? 'picore' : 'grignote') + ' ton ' + PAR_ID[p.c].nom + ' : 1 récolte de moins !', 'alerte'); }
+    if (mo.picore >= 5) { mo.picore = 0.01; const p = mo.champ; p.vole = (p.vole || 0) + 1; rendreCase(p.id); { const q = posCase(p), C = PAR_ID[p.c]; chiffre('-1 ' + C.nom, new T.Vector3(q.x, q.y + 0.9, q.z), 'vol'); pouf(q.x, q.y + 0.2, q.z, 1.1, C.couleur); } toast('Un ' + mo.d.nom + ' ' + (mo.type === 'tofu' ? 'picore' : 'grignote') + ' ton ' + PAR_ID[p.c].nom + ' : 1 récolte de moins !', 'alerte'); }
   }
   if (!combat || combat.fin) return; /* le coup qui vient d'achever le perso a clos la vague */
   if (mo.d.renforts && !mo.renfort && mo.pv < mo.pvMax / 2) { /* a mi-vie, le boss appelle deux renforts */
