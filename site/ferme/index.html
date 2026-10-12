@@ -689,7 +689,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps (bêta)"><span class="lib">Temps </span>x1</button>
     <div class="vitesse-panneau" id="vitesse-panneau" hidden>
       <b>Vitesse du temps</b> <span class="vitesse-beta">bêta</span>
-      <div class="vitesse-ligne"><input type="range" min="1" max="50" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
+      <div class="vitesse-ligne"><input type="range" min="1" max="30" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
       <small>Les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
     </div>
     <button class="pastille pause" id="b-pause" aria-label="Pause" data-info="Pause (touche P)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg></button>
@@ -737,16 +737,17 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 <script src="tofu.js"></script>
 <script>
 'use strict';
-/* BETA : la vitesse du temps, de x1 a x50 (le curseur du bandeau). Une horloge de jeu remplace Date.now : tout ce qui se compte en temps
+/* BETA : la vitesse du temps, de x1 a x30 (le curseur du bandeau ; x50 avant le 12/10/2026 au soir, « mets max x30, retire le x50 », Mathieu). Une horloge de jeu remplace Date.now : tout ce qui se compte en temps
    (pousse, repas, preparation des vagues, raids, Tofus) va plus vite ; les combats, rythmes par l'affichage, gardent leur vitesse.
    L'avance prise est gardee d'une visite a l'autre, sinon les cultures rajeuniraient au rechargement. */
+const VITESSE_MAX = 30;
 const horlogeJeu = (() => {
   const vrai = Date.now.bind(Date); let avance = 0, vitesse = 1, ancre = vrai();
-  try { avance = +localStorage.getItem('ferme-avance') || 0; vitesse = Math.min(50, Math.max(1, Math.round(+localStorage.getItem('ferme-vitesse') || 1))); } catch (e) { /* rien */ }
+  try { avance = +localStorage.getItem('ferme-avance') || 0; vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(+localStorage.getItem('ferme-vitesse') || 1))); /* (une ferme reglee plus haut retombe a x30) */ } catch (e) { /* rien */ }
   const jeu = () => { const t = vrai(); return t + avance + (t - ancre) * (vitesse - 1); };
   const fixer = () => { avance = jeu() - vrai(); ancre = vrai(); try { localStorage.setItem('ferme-avance', String(Math.round(avance))); } catch (e) { /* rien */ } };
   Date.now = jeu; setInterval(fixer, 2000); addEventListener('pagehide', fixer);
-  return { vitesse: () => vitesse, regler(v) { fixer(); vitesse = Math.min(50, Math.max(1, Math.round(v))); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
+  return { vitesse: () => vitesse, regler(v) { fixer(); vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(v))); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
 })();
 /* ===================== DONNEES DU JEU ===================== */
 const CULTURES = [
