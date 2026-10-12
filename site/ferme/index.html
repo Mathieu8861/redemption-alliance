@@ -531,7 +531,9 @@ const PALIERS_BAT = {
   nivEtal: ['L\'étal.', 'La charrette : tu vends 10 % plus cher.', 'Graines et balance : les graines coûtent 15 % moins cher.', 'Le comptoir couvert : ventes +15 %.', 'Le comptoir de Redemption : ventes +20 %, graines 20 % moins chères.']
 };
 const nivRequis = (a, n) => a.nivs ? a.nivs[Math.min(n, a.nivs.length - 1)] : a.niv;
-const PRIX_PARCELLE = [50, 80, 120, 180, 260, 360, 500, 700, 950, 1300, 1800, 2500];
+/* « les parcelles ca coute pas tres cher, surtout a partir de la 2 » (Mathieu, 12/10/2026) : 150, puis par paliers qui suivent les terrains
+   (6 parcelles par terrain), et 6 000 a partir de la 30e jusqu'a la fin (avant : 50, puis bloque a 2 500 des la 12e) */
+const PRIX_PARCELLE = [150, 200, 300, 400, 500, 650, 800, 1000, 1300, 1600, 1900, 2200, 2500, 2800, 3000, 3200, 3400, 3600, 3800, 4000, 4200, 4400, 4600, 4800, 5000, 5200, 5400, 5600, 5800, 6000];
 /* Temps reel : les durees sont en minutes. Avec ?test=1 dans l'adresse, tout va 60 fois plus vite (une minute devient une seconde). */
 const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)$/.test(location.hostname); /* le mode test (temps x60) : sur le PC et le reseau local seulement ; en ligne, la beta demande un compte */
 const MIN = TEST ? 1000 : 60000;
@@ -1477,7 +1479,11 @@ function fusionGeo(liste, inv, avecOrigine) {
       if (N) { v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[q] = v.x; nor[q + 1] = v.y; nor[q + 2] = v.z; }
       if (org) { org[q] = o.x; org[q + 1] = o.y; org[q + 2] = o.z; }
     }
-    if (g.index) for (let i = 0; i < g.index.count; i++) idx[oi + i] = g.index.getX(i) + ov; else for (let i = 0; i < P.count; i++) idx[oi + i] = ov + i;
+    /* « pourquoi une partie de la tete du Bouftou est toute noire ? » (Mathieu, 12/10/2026) : une piece faite en miroir (echelle negative, l'oreille
+       ou la meche de l'autre cote) a ses triangles a l'envers une fois « cuite » dans la fusion ; Three les retournait tout seul sur la piece
+       d'origine, pas ici, donc la piece ne s'affichait plus et son contour noir passait devant. On les retourne. */
+    const miroir = mt.determinant() < 0, nb = g.index ? g.index.count : P.count, id = (i) => (g.index ? g.index.getX(i) : i) + ov;
+    for (let i = 0; i < nb; i += 3) { idx[oi + i] = id(i); idx[oi + i + 1] = id(miroir ? i + 2 : i + 1); idx[oi + i + 2] = id(miroir ? i + 1 : i + 2); }
     ov += P.count; oi += g.index ? g.index.count : P.count;
   });
   const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
@@ -4031,7 +4037,7 @@ function ouvrirVoliere() {
     '<p style="font-size:.74rem;font-weight:600;margin:8px 0 0;color:#5b5240">Plus tard, l\'Osamodas pourra invoquer ses Tofus en combat.</p>' + ameliorer);
 }
 function ouvrirParcelle(p) {
-  const rendu = Math.round((p.prixPaye || PRIX_PARCELLE[0]) / 2), culture = p.c ? PAR_ID[p.c].nom : null;
+  const rendu = Math.round((p.prixPaye || 50) / 2), culture = p.c ? PAR_ID[p.c].nom : null;
   ouvrirModale('parcelle', entete('Parcelle labourée') +
     '<div class="art">' + ico(p.c || 'ble') + '<div><b>Déplacer</b><div class="desc">Elle part sur une case d\'herbe libre' + (culture ? ', avec ton ' + culture + ' et son arrosage' : '') + '. Gratuit.</div></div><div class="act"><button class="btn kamas" data-deplacer="' + p.id + '">Déplacer</button></div></div>' +
     '<div class="art">' + ico('cloture') + '<div><b>Remettre en herbe</b><div class="desc">La moitié du prix payé t\'est rendue' + (culture ? ', la culture est perdue' : '') + '.</div></div><div class="act"><small>+' + fmt(rendu) + ' ' + KAMA + '</small><button class="btn" data-herbe="' + p.id + '">Remettre en herbe</button></div></div>');
