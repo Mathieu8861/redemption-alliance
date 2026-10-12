@@ -708,7 +708,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 <script src="vent.js"></script>
-<script src="bouftou.js"></script>
+<script src="bouftou.js?v=20261012i"></script>
 <script src="tofu.js"></script>
 <script>
 'use strict';
@@ -1827,11 +1827,46 @@ function fusionGeo(liste, inv, avecOrigine) {
   const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
   if (org) geo.setAttribute('aOrigine', new T.BufferAttribute(org, 3)); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.computeBoundingSphere(); geo.computeBoundingBox(); return geo;
 }
+/* un Bouftou fusionne, pattes comprises : ses 4 pattes deviennent un seul maillage anime par 8 os (une hanche et un genou chacune), une couleur
+   par maillage (pattes, sabots, contour), soit 3 dessins au lieu de 24 ; le corps se fusionne comme avant */
+function fusionnerBouftou(g) { souderPattes(g); return fusionner(g); }
+function souderPattes(g) {
+  const P = g.userData.pattes; if (!P || !P.length || P[0].hanche.isBone) return;
+  g.updateMatrixWorld(true); const inv = new T.Matrix4().copy(g.matrixWorld).invert();
+  const boite = new T.Group(); boite.name = 'pattes'; boite.userData.articule = true; g.add(boite);
+  const os = [], paquets = new Map();
+  P.forEach((p, i) => {
+    const h = new T.Bone(), k = new T.Bone(); h.position.copy(p.hanche.position); k.position.copy(p.genou.position); h.add(k); boite.add(h); os.push(h, k);
+    [[p.hanche, 2 * i], [p.genou, 2 * i + 1]].forEach(([grp, b]) => grp.traverse((m) => {
+      if (!m.isMesh) return; for (let x = m.parent; x && x !== grp; x = x.parent) if (x.userData.articule) return; /* (les pieces du genou se comptent avec le genou) */
+      const cle = m.material === CONTOUR ? 'contour' : m.material.color.getHexString(); if (!paquets.has(cle)) paquets.set(cle, { M: m.material, pieces: [] }); paquets.get(cle).pieces.push({ m, b });
+    }));
+  });
+  g.updateMatrixWorld(true); const squelette = new T.Skeleton(os), mt = new T.Matrix4(), nm = new T.Matrix3(), v = new T.Vector3();
+  paquets.forEach(({ M, pieces }) => {
+    let nv = 0, ni = 0; pieces.forEach(({ m }) => { const G = m.geometry; nv += G.attributes.position.count; ni += G.index ? G.index.count : G.attributes.position.count; });
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4), idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    let ov = 0, oi = 0;
+    pieces.forEach(({ m, b }) => {
+      mt.multiplyMatrices(inv, m.matrixWorld); nm.getNormalMatrix(mt); const G = m.geometry, Pp = G.attributes.position, N = G.attributes.normal;
+      for (let i = 0; i < Pp.count; i++) { const q = (ov + i) * 3; v.fromBufferAttribute(Pp, i).applyMatrix4(mt); pos[q] = v.x; pos[q + 1] = v.y; pos[q + 2] = v.z; v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[q] = v.x; nor[q + 1] = v.y; nor[q + 2] = v.z; si[(ov + i) * 4] = b; sw[(ov + i) * 4] = 1; }
+      const nb = G.index ? G.index.count : Pp.count; for (let i = 0; i < nb; i++) idx[oi + i] = (G.index ? G.index.getX(i) : i) + ov;
+      ov += Pp.count; oi += nb;
+    });
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
+    geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4)); geo.setIndex(new T.BufferAttribute(idx, 1));
+    const M2 = M.clone(); M2.skinning = true; const sm = new T.SkinnedMesh(geo, M2); sm.name = 'patte'; sm.castShadow = M !== CONTOUR; sm.receiveShadow = M !== CONTOUR; boite.add(sm);
+    sm.updateMatrixWorld(true); sm.bind(squelette, sm.matrixWorld);
+  });
+  P.forEach((p) => { if (p.hanche.parent) p.hanche.parent.remove(p.hanche); });
+  g.userData.pattes = P.map((_, i) => ({ hanche: os[2 * i], genou: os[2 * i + 1] }));
+}
 function fusionner(racine, o) {
   o = o || {}; racine.updateMatrixWorld(true); const inv = new T.Matrix4().copy(racine.matrixWorld).invert();
   const base = (x) => ((x && x.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, ''), paquets = new Map(), porteurs = new Set();
+  const articule = (m) => { for (let x = m.parent; x && x !== racine; x = x.parent) if (x.userData && x.userData.articule) return true; return false; }; /* (une patte de Bouftou : elle bouge, on ne la soude pas au corps) */
   racine.traverse((m) => {
-    if (!m.isMesh) return;
+    if (!m.isMesh || articule(m)) return;
     const contour = m.material.side === T.BackSide, porteur = contour && m.parent && m.parent.isMesh ? m.parent : m; /* un contour de maille() (frere de sa piece) se fusionne seul */
     const M = m.material, sp = porteur.userData.souple; /* meme apparence = meme paquet (chaque morceau avait son propre exemplaire de materiau) */
     let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp, M.side].join('|'), cas = null; /* (le cote dessine compte : la cape portee est visible des deux cotes, 12/10/2026) */
@@ -1853,7 +1888,7 @@ function fusionner(racine, o) {
   });
   porteurs.forEach((m) => { if (m.parent) m.parent.remove(m); });
   /* les groupes vides restants (touffes, morceaux) ne servent plus */
-  const vides = []; racine.traverse((x) => { if (x !== racine && !x.isMesh && x.children.length === 0) vides.push(x); }); vides.forEach((x) => x.parent && x.parent.remove(x));
+  const vides = []; racine.traverse((x) => { if (x !== racine && !x.isMesh && !x.isBone && x.children.length === 0) vides.push(x); }); vides.forEach((x) => x.parent && x.parent.remove(x));
   return racine;
 }
 const chargeur = new T.GLTFLoader();
@@ -2788,6 +2823,15 @@ function cibleEnclos(k) {
   }
   return c;
 }
+/* la marche des Bouftous (12/10/2026) : un pas a quatre temps, comme un mouton (arriere gauche, avant gauche, arriere droite, avant droite).
+   La hanche balance d'avant en arriere (un angle positif ramene le sabot vers l'arriere : la patte pousse au sol) ; quand la patte revient
+   vers l'avant, en l'air, le genou plie et le sabot se leve. L'amplitude suit la vitesse : a l'arret, les pattes sont droites. A la vitesse
+   de marche, le sabot recule au sol d'a peu pres ce que le corps avance : il ne glisse pas */
+const DEC_PATTES = [Math.PI / 2, Math.PI * 1.5, 0, Math.PI]; /* avant gauche, avant droite, arriere gauche, arriere droite */
+function animerPattes(m, pas, f) {
+  const P = m.userData.pattes; if (!P) return;
+  P.forEach((p, i) => { const ph = pas + DEC_PATTES[i]; p.hanche.rotation.x = Math.sin(ph) * 0.6 * f; p.genou.rotation.x = Math.max(0, -Math.cos(ph)) * 1.05 * f; });
+}
 function errer(dt, s) {
   bouftousMesh.forEach((m, k) => {
     const e = m.userData.erre; if (!e) return;
@@ -2809,7 +2853,8 @@ function errer(dt, s) {
     e.v += (voulue - e.v) * Math.min(1, dt * 3); /* vitesse lissee : pas d'a-coups */
     if (e.v > 0.001) { const nx = e.x + Math.sin(e.ry) * e.v * dt, nz = e.z + Math.cos(e.ry) * e.v * dt; if (dansEnclos(nx, nz) || !dansEnclos(e.x, e.z)) { e.x = nx; e.z = nz; } else { e.v = 0; e.cible = null; } } /* jamais a travers la cloture */
     e.pas += e.v * dt * 9;
-    m.rotation.y = e.ry; m.rotation.z = Math.sin(e.pas) * 0.045 * Math.min(1, e.v * 1.5); /* un balancement de cote a cote, pas de sauts */
+    m.rotation.y = e.ry; m.rotation.z = Math.sin(e.pas) * 0.03 * Math.min(1, e.v * 1.5); /* un leger balancement de cote a cote, pas de sauts */
+    animerPattes(m, e.pas, Math.min(1, e.v * 1.6));
     if (S_.bouftous[k] && S_.bouftous[k].ne) { const t = 0.5 * (0.55 + 0.45 * croissance(S_.bouftous[k])); if (Math.abs(t - m.userData.taille) > 0.002) { m.userData.taille = t; m.scale.setScalar(t); } }
     const sol = caseIci(e.x, e.z); m.position.set(e.x, (sol ? posCase(sol).y : 0) + (1 - Math.cos(e.pas * 2)) * 0.012 * Math.min(1, e.v * 1.5), e.z);
     const b = bullesDyn.get('b' + k); if (b) b.dataset.point = JSON.stringify([e.x, 1.6, e.z]);
@@ -2820,7 +2865,7 @@ function rendreBouftous() {
   S_.bouftous.forEach((b, k) => {
     const [dx, dz, ry] = SLOTS_BOUFTOUS[k % SLOTS_BOUFTOUS.length];
     const e = erre[k] || (erre[k] = Object.assign(pointEnclos(), { ry, cible: null, pause: Math.random() * 3 })); /* on garde sa place quand on le redessine */
-    const m = fusionner(creerBouftou(T, maille, b.noir ? { laine: '#3a3440', peau: '#4d4436', cornes: '#c9a34a', corneTip: '#f2d27a' } : {})); ombrePieds(m, 2.4); /* fusionne : 108 pieces -> une douzaine */ m.userData.taille = 0.5 * (0.55 + 0.45 * croissance(b)); m.scale.setScalar(m.userData.taille); poser(m, e.x, 0, e.z, e.ry); m.userData.erre = e;
+    const m = fusionnerBouftou(creerBouftou(T, maille, b.noir ? { laine: '#3a3440', peau: '#4d4436', cornes: '#c9a34a', corneTip: '#f2d27a' } : {})); ombrePieds(m, 2.4); /* fusionne : 108 pieces -> une douzaine */ m.userData.taille = 0.5 * (0.55 + 0.45 * croissance(b)); m.scale.setScalar(m.userData.taille); poser(m, e.x, 0, e.z, e.ry); m.userData.erre = e;
     m.traverse((o) => { o.userData.bouftou = k; }); m.userData.base = enclosDef.z + dz; bouftousMesh.push(m);
   });
   rendreEnclosBulles();
@@ -4112,7 +4157,7 @@ function invoquer(pt) {
   const ok = (a, b) => { const c = caseIci(a, b); return c && PASSABLE[c.type]; }; /* pas de Bouftou dans le vide ni dans un mur : il retombe au point valide le plus proche sur la ligne visee */
   if (!ok(x, z)) { const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; if (k > 0) { x = pp.x + (x0 - pp.x) * k; z = pp.z + (z0 - pp.z) * k; } else { x = pp.x + 0.9; z = pp.z + 0.3; } }
   const y = hauteurSol(x, z, caseIci(x, z)); u.angle = Math.atan2(x - pp.x, z - pp.z); paysanMesh.rotation.y = u.angle;
-  const m = fusionner(creerBouftou(T, maille)); ombrePieds(m, 2.4); m.scale.setScalar(0.45); poser(m, x, y, z, 0);
+  const m = fusionnerBouftou(creerBouftou(T, maille)); ombrePieds(m, 2.4); m.scale.setScalar(0.45); poser(m, x, y, z, 0);
   combat.invoc = { m, x, z, ry: u.angle, vie: DUREE_INVOC, cd: 0.4, pas: 0, frappe: 0 }; pouf(x, y, z, 3.2, '#d9c2ff');
   combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < RAYON_INVOC) blesser(o, Math.round(st.deg * 2), true); }); /* il retombe en frappant tout autour */
   toast('Un Bouftou retombe sur les monstres et se bat pendant ' + DUREE_INVOC + ' s.', 'or');

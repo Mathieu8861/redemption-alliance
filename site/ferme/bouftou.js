@@ -61,10 +61,18 @@
     pose(sph(0.28, L, 0.07), 0.05, 2.95, -1.3, 1, 1, 1, g);
     pose(sph(0.15, L, 0.08), 0.2, 3.15, -1.35, 1, 1, 1, g);
 
-    /* pattes olive, sabots bleu nuit */
+    /* pattes olive, sabots bleu nuit. Articulees depuis le 12/10/2026 (« on dirait qu'ils ont pas de genoux, des jambes de bois », Mathieu) :
+       la hanche (cachee sous la laine) porte la cuisse, le genou porte le canon et le sabot ; le jeu les anime en marchant (userData.pattes).
+       Au repos, la meme silhouette qu'avant (sabot pose a y = 0). Ordre : avant gauche, avant droite, arriere gauche, arriere droite */
+    g.userData.pattes = [];
     [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([a, b]) => {
-      pose(cyl(0.16, 0.19, 0.45, PAT, 0.08), a * 0.55, 0.325, b * 0.48, 1, 1, 1, g);
-      pose(sph(0.24, SAB, 0.07), a * 0.55, 0.17, b * 0.48, 1, 0.7, 1.05, g);
+      const hanche = new T.Group(); hanche.name = 'hanche'; hanche.userData.articule = true; hanche.position.set(a * 0.55, 0.62, b * 0.48); g.add(hanche);
+      pose(cyl(0.18, 0.16, 0.42, PAT, 0.08), 0, -0.08, 0, 1, 1, 1, hanche); /* la cuisse, son haut rentre dans la laine */
+      const genou = new T.Group(); genou.name = 'genou'; genou.userData.articule = true; genou.position.set(0, -0.27, 0); hanche.add(genou);
+      pose(sph(0.165, PAT, 0.08), 0, 0, 0, 1, 1, 1, genou); /* le genou, un peu renfle */
+      pose(cyl(0.15, 0.17, 0.2, PAT, 0.08), 0, -0.08, 0, 1, 1, 1, genou); /* le canon */
+      pose(sph(0.24, SAB, 0.07), 0, -0.18, 0, 1, 0.7, 1.05, genou); /* le sabot */
+      g.userData.pattes.push({ hanche, genou });
     });
     g.userData.tete = tete;
     return g;
