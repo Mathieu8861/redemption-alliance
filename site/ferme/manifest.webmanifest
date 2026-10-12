@@ -1,0 +1,16 @@
+{
+  "name": "Ferme d'Incarnam",
+  "short_name": "Ferme",
+  "description": "Le jeu de ferme de l'alliance Redemption : cultive, élève, défends ta ferme.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#8fd3f4",
+  "theme_color": "#8fd3f4",
+  "icons": [
+    { "src": "assets/icones/app-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icones/app-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icones/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
