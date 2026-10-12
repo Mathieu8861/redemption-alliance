@@ -163,6 +163,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* les messages : en colonne sur le cote gauche, au-dessus de Pepito, le plus recent en bas ; ils ne cachent plus l'ile */
 .toasts { position: absolute; left: 12px; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; width: min(100% - 24px, 300px); align-content: end; }
 .toast { position: relative; background: var(--papier); border: 3px solid var(--bord); border-radius: 12px; padding: 5px 9px; box-shadow: 0 3px 0 var(--bord); font-size: .74rem; line-height: 1.25; animation: pop .25s ease-out; }
+.toasts .pile { display: grid; gap: 6px; }
+.b-journal { justify-self: start; pointer-events: auto; cursor: pointer; background: var(--papier); color: var(--encre); border: 2.5px solid var(--bord); border-radius: 99px; padding: 3px 11px; box-shadow: 0 2px 0 var(--bord); font: 800 .7rem var(--f-texte); }
+.b-journal:hover { background: #fff1c9; }
+.journal { list-style: none; margin: 0 0 8px; padding: 0 4px 0 0; max-height: min(60vh, 460px); overflow-y: auto; display: grid; gap: 5px; }
+.journal li { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: baseline; background: #fff; border: 2px solid #e6d9bd; border-radius: 10px; padding: 5px 9px; font-size: .8rem; font-weight: 600; line-height: 1.3; }
+.journal li.or { background: #fff1c9; border-color: var(--or); }
+.journal li.alerte { background: #fde3df; border-color: #e7a59b; }
+.journal time { font-size: .68rem; font-weight: 800; color: #8a7a5a; }
+.journal .fois { background: var(--rouge); color: #fff; border-radius: 99px; font-size: .62rem; padding: 1px 5px; }
+.note-journal { font-size: .72rem; font-weight: 600; color: #6b5a3a; margin: 0; }
 .toast b.fois { position: absolute; right: -8px; top: -9px; background: var(--rouge); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 800 .62rem/1 var(--f-texte); padding: 2px 5px; }
 @media (max-width: 720px) { .toasts { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: min(100% - 24px, 260px); } .toast { font-size: .68rem; } }
 /* l'infobulle maison, a la place de celle du navigateur (« quand on laisse sa souris sur les pop-up ca affiche ces messages la, c'est pas tres beau », Mathieu, 11/10/2026) */
@@ -319,6 +329,34 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .pv-monstre { position: absolute; width: 46px; height: 8px; transform: translate(-50%, -100%); border: 2px solid var(--bord); border-radius: 99px; background: #fff; overflow: hidden; }
 .pv-monstre i { display: block; height: 100%; background: var(--rouge); }
 .pv-monstre.cible { box-shadow: 0 0 0 3px var(--or); }
+.ouverture-coffre { text-align: center; }
+.scene-coffre { position: relative; width: 230px; height: 210px; margin: 0 auto 8px; }
+.scene-coffre img { position: absolute; left: 50%; top: 50%; width: 200px; height: 200px; transform: translate(-50%, -50%); }
+.scene-coffre .c-ferme { animation: coffre-arrive .4s cubic-bezier(.2, 1.5, .4, 1) both; }
+.scene-coffre .c-ouvert { opacity: 0; }
+.scene-coffre.tremble .c-ferme { animation: coffre-tremble .13s linear infinite; }
+.scene-coffre.ouvert .c-ferme { opacity: 0; animation: none; }
+.scene-coffre.ouvert .c-ouvert { opacity: 1; animation: coffre-jaillit .55s cubic-bezier(.2, 1.7, .4, 1) both; }
+.scene-coffre .rayons { position: absolute; left: 50%; top: 50%; width: 290px; height: 290px; margin: -145px 0 0 -145px; border-radius: 50%; opacity: 0; transition: opacity .4s;
+  background: repeating-conic-gradient(rgba(255, 207, 92, .6) 0 9deg, rgba(255, 207, 92, 0) 9deg 22deg); -webkit-mask: radial-gradient(circle closest-side, #000 30%, transparent 100%); mask: radial-gradient(circle closest-side, #000 30%, transparent 100%); }
+.scene-coffre.ouvert .rayons { opacity: 1; animation: rayons-tournent 9s linear infinite; }
+.scene-coffre .eclair { position: absolute; left: 50%; top: 50%; width: 280px; height: 280px; margin: -140px 0 0 -140px; border-radius: 50%; pointer-events: none; opacity: 0; background: radial-gradient(circle, #fff 0, rgba(255, 255, 255, .95) 30%, rgba(255, 255, 255, 0) 70%); }
+.scene-coffre.flash .eclair { animation: coffre-eclair .5s ease-out both; }
+@keyframes coffre-arrive { from { transform: translate(-50%, -35%) scale(.4); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes coffre-tremble { 0%, 100% { transform: translate(-50%, -50%) rotate(0); } 25% { transform: translate(-52%, -51%) rotate(-5deg); } 75% { transform: translate(-48%, -51%) rotate(5deg); } }
+@keyframes coffre-jaillit { from { transform: translate(-50%, -50%) scale(.6); } to { transform: translate(-50%, -50%) scale(1); } }
+@keyframes rayons-tournent { to { transform: rotate(360deg); } }
+@keyframes coffre-eclair { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+.gains-coffre { display: grid; gap: 8px; margin: 0 0 12px; }
+.gain-coffre { display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff7dc; border: 2.5px solid var(--or); border-radius: 14px; padding: 8px 12px; opacity: 0; transform: translateY(10px) scale(.9); transition: opacity .25s, transform .4s cubic-bezier(.2, 1.6, .4, 1); }
+.gain-coffre.vu { opacity: 1; transform: none; }
+.gain-coffre img { width: 46px; height: 46px; object-fit: contain; flex: none; }
+.gain-coffre > b { font: 400 1.35rem/1 var(--f-titre); color: var(--kamas); }
+.gain-coffre .desc { text-align: left; } .gain-coffre .desc b { font-size: .95rem; }
+.gain-coffre .puces { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.gain-coffre .puce { background: #f3ead8; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 700; color: #5b5240; white-space: nowrap; } .gain-coffre .puce.neuf { background: var(--or); color: var(--encre); }
+.ouverture-coffre .boutons { display: flex; gap: 8px; justify-content: center; opacity: 0; transition: opacity .3s; } .ouverture-coffre.fini .boutons { opacity: 1; }
+.pv-monstre.pv-perso { width: 60px; height: 10px; } .pv-perso i { background: var(--vert); } .pv-perso.bas i { background: var(--rouge); } /* la barre du perso : plus large, verte, rouge sous 30 % */
 .degat { position: absolute; transform: translate(-50%, -100%); font: 400 1.3rem/1 var(--f-titre); color: #fff; -webkit-text-stroke: 2px var(--bord); paint-order: stroke fill; white-space: nowrap; }
 .degat.perso { color: #ff9a8a; } .degat.gros { font-size: 1.7rem; color: var(--or); }
 .degat.soin { color: #7ff0c0; }
@@ -359,7 +397,25 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes chute { to { transform: translateY(105vh) rotate(720deg); } }
 .chargement .barre-ch { width: min(70vw, 320px); height: 14px; border: 3px solid var(--bord); border-radius: 99px; background: #fffaf0; overflow: hidden; margin: 6px auto 0; } .chargement .barre-ch i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--or), var(--kamas)); transition: width .25s; }
 .chargement .astuce { max-width: min(86vw, 420px); margin: 10px auto 0; font-size: .8rem; font-weight: 700; color: #5b5240; }
-.classe .ico img { width: 46px; height: 46px; object-fit: contain; }
+.classe .ico img { width: 104px; height: 104px; object-fit: contain; transform: scale(1.3) translateY(4%); } /* (l'image a des marges vides : on zoome sur le perso) */
+/* le choix de la classe, plus lisible (12/10/2026) : carte plus large, le perso dans un medaillon, textes plus gros */
+.accueil .carte:has(.classes) { width: min(100%, 700px); max-height: calc(100vh - 24px); overflow-y: auto; }
+.classes { gap: 12px; }
+.classe { padding: 12px 10px 10px; gap: 6px; cursor: pointer; }
+.classe .ico { width: 116px; height: 116px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, #fffaf0, #f0dfbd); border: 2.5px solid var(--bord); box-shadow: inset 0 -4px 0 rgba(59, 42, 26, .08); }
+.classe[aria-pressed="true"] .ico { background: radial-gradient(circle at 50% 40%, #fffaf0, #ffe08a); }
+.classe b { font-size: 1.45rem; }
+.classe span { font-size: .84rem; line-height: 1.25; }
+.classe .etiquettes i { font-size: .74rem; padding: 2px 8px; }
+.classe .sort { font-size: .8rem; padding: 6px 7px; }
+.choix-classe { font-size: .88rem !important; }
+@media (max-width: 640px) { /* au telephone : les cartes l'une sous l'autre, le perso a gauche */
+  .classes { grid-template-columns: 1fr; gap: 8px; }
+  .classe { grid-template-columns: 84px 1fr; justify-items: start; text-align: left; column-gap: 12px; row-gap: 3px; padding: 10px; }
+  .classe .ico { grid-column: 1; grid-row: 1 / span 5; width: 80px; height: 80px; align-self: center; } .classe .ico img { width: 72px; height: 72px; }
+  .classe > :not(.ico) { grid-column: 2; } .classe .etiquettes { justify-content: flex-start; }
+  .classe b { font-size: 1.25rem; } .classe span { font-size: .8rem; }
+}
 .bulle.ico.file { box-shadow: 0 0 0 4px rgba(90, 160, 44, .55), 0 3px 8px rgba(36, 49, 28, .3); }
 /* ---- la fiche du perso ---- */
 .fiche-tete { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: center; margin-bottom: 6px; }
@@ -431,7 +487,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   <div class="objectif" id="objectif" hidden></div>
   <div class="aide" id="aide" hidden>Sur ordinateur, clic gauche : ton perso se déplace, ou cible un monstre ; clic droit : il agit sur la case. Au doigt, touche une case pour agir, reste appuyé pour seulement t'y déplacer. Une parcelle libre se plante, une culture à sec s'arrose, une culture mûre se récolte, un Tofu se chasse, un Bouftou se nourrit ou se tond, une case d'herbe se laboure ou se construit. Les petites icônes au-dessus des cases se touchent aussi. Les graines et les Bouftous s'achètent à l'HDV. L'arrosoir se remplit au puits (10 arrosages).</div>
   <aside class="panneau" aria-label="Grange" id="panneau-grange"></aside>
-  <div class="toasts" id="toasts"></div>
+  <div class="toasts"><div class="pile" id="toasts"></div><button class="b-journal" id="b-journal" hidden>💬 Messages</button></div>
   <div class="commis" id="commis"></div>
   <nav class="actions" aria-label="Actions">
     <button class="action" id="b-graine"><span class="tuile"><img id="graine-ico" src="assets/icones/ble.png" alt=""><b id="graine-nb">0</b></span>Graines</button>
@@ -2480,8 +2536,9 @@ function majBarresBat() {
 }
 function placerBarresBat() { barresBat.forEach((e) => { if (!e.dataset.point) return; const p = JSON.parse(e.dataset.point); vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
 /* un coup sur un batiment */
+const DEGATS_BATIMENTS = 4; /* les monstres cognent les batiments 4 fois plus fort que le perso (avant : pareil, une grange tenait une centaine de coups) */
 function blesserBat(cle, n) {
-  if (!S_ || enRuine(cle)) return; S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
+  if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n * DEGATS_BATIMENTS)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
   const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
   if (z) { const bx = boiteBat(z); chiffre('-' + n, new T.Vector3(z.x, bx.max.y + 0.2, z.z), 'bat'); }
   if (combat) { combat.bats = combat.bats || {}; combat.bats[cle] = (combat.bats[cle] || 0) + n; if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); } }
@@ -2748,8 +2805,22 @@ function reclamerDefi(k) {
 function ouvrirCoffre() {
   const J = jourCourant(); if (!J || J.coffre || !J.defis.every((d) => d.reclame)) return;
   J.coffre = true; const kamas = 150 + 40 * niveau(S_.xp); S_.kamas += kamas; let objet = '';
-  if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); objet = ' et ' + OBJETS[id].nom; }
-  son('niveau'); confettis(50); toast('Coffre du jour : +' + fmt(kamas) + ' kamas' + objet + ' !', 'or'); rendreHaut(); rendreObjectif(); ouvrirDefis(); sauver();
+  if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); objet = id; } /* (l'identifiant : l'animation montre la piece) */
+  rendreHaut(); rendreObjectif(); sauver(); animerCoffre(kamas, objet);
+}
+/* le coffre arrive ferme, tremble, s'ouvre dans un eclair (images coffre-ferme / coffre-ouvert, generer-coffre.html), puis les gains sortent un par un */
+function animerCoffre(kamas, id) {
+  const o = id && OBJETS[id], v = '?v=' + VERSION_MODELES;
+  ouvrirModale('coffre', entete('Le coffre du jour') + '<div class="ouverture-coffre"><div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><div class="eclair"></div></div>' +
+    '<div class="gains-coffre"><div class="gain-coffre"><img src="assets/icones/kama.png' + v + '" alt=""><b>+' + fmt(kamas) + ' kamas</b></div>' +
+    (o ? '<div class="gain-coffre objet"><img src="assets/icones/obj-' + id + '.png' + v + '" alt=""><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
+    '<div class="boutons">' + (o ? '<button class="btn discret" data-coffre-fiche>Voir dans ma fiche</button>' : '') + '<button class="btn kamas" data-coffre-ok>Super !</button></div></div>');
+  const sc = document.querySelector('.scene-coffre'), z = document.querySelector('.ouverture-coffre'), plus = (f, ms) => setTimeout(() => { if (modaleOuverte === 'coffre') f(); }, ms);
+  const gains = [...z.querySelectorAll('.gain-coffre')];
+  plus(() => sc.classList.add('tremble'), 450);
+  plus(() => { sc.classList.remove('tremble'); sc.classList.add('flash', 'ouvert'); son('niveau'); confettis(50); }, 1450);
+  gains.forEach((g, k) => plus(() => { g.classList.add('vu'); son('piece'); }, 1850 + k * 450));
+  plus(() => z.classList.add('fini'), 1850 + gains.length * 450);
 }
 /* ---------- la file d'actions : on touche plusieurs bulles, le paysan les enchaine ---------- */
 let fileActions = [];
@@ -2855,7 +2926,7 @@ const nomPalier = (P) => P < 5 ? 'Palier ' + (P + 1) : 'Phase 2, palier ' + (P -
 const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length;
 const palierDe = (n) => Math.min(PALIERS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, VAGUES_TOTAL);
 const MONSTRES = {
-  tofu: { nom: 'Tofu', modele: 'tofu', icone: 'tofu', desc: 'rapide, picore tes cultures', grignote: true, pv: (n) => 12 + 5 * n, deg: (n) => 1 + Math.floor(n / 4), cadence: 1.2, vitesse: 2.4, portee: 0.95, ombre: 0.9 },
+  tofu: { nom: 'Tofu', modele: 'tofu', icone: 'tofu', desc: 'très rapide, file picorer tes cultures', grignote: true, pv: (n) => 12 + 5 * n, deg: (n) => 1 + Math.floor(n / 4), cadence: 1.2, vitesse: 4.6, portee: 0.95, ombre: 0.9 },
   chafer: { nom: 'Chafer', modele: 'chafer', icone: 'chafer', desc: 'frappe fort, s\'en prend aussi aux bâtiments', casse: 0.4, pv: (n) => 30 + 10 * n, deg: (n) => 3 + Math.floor(n * 0.7), cadence: 1.4, vitesse: 1.5, portee: 1.15, ombre: 1.4 },
   voleurRaid: { nom: 'Voleur de VSA', modele: 'voleur', icone: 'voleur', desc: 'file vers ta grange', pv: () => 30 + 6 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 2.1, portee: 1, ombre: 1.2, vole: 1 },
   monture: { nom: 'Voleur à dos de Dragodinde', modele: 'voleurMonte', icone: 'voleur', desc: 'rapide et coriace, emporte deux fois plus', pv: () => 60 + 12 * forceVoleur(), deg: () => 0, cadence: 9, vitesse: 3.3, portee: 1.2, ombre: 2.0, vole: 2 },
@@ -3133,11 +3204,12 @@ function majMonstre(mo, dt, s) {
   if (mo.d.grignote && !mo.aggro) {
     if (mo.champ && !(mo.champ.type === 'champ' && mo.champ.c && recolte(mo.champ) > 1)) mo.champ = null;
     if (!mo.champ) {
-      const libres = S_.cases.filter((c) => c.type === 'champ' && c.c && recolte(c) > 1 && !combat.monstres.some((o) => o !== mo && o.champ === c && o.etat === 'actif'));
+      const libres = S_.cases.filter((c) => c.type === 'champ' && c.c && recolte(c) > 1);
       const gout = (c) => (mo.d.gourmand ? (c.c === 'cawotte' ? 0 : c.c === 'fraise' ? 1 : 2) * 100 : 0); /* le Wabbit : les Cawottes d'abord, puis les Fraises */
-      mo.champ = libres.sort((a, b) => gout(a) - gout(b) || Math.hypot(posCase(a).x - mo.x, posCase(a).z - mo.z) - Math.hypot(posCase(b).x - mo.x, posCase(b).z - mo.z))[0] || null;
+      const note = (c) => Math.hypot(posCase(c).x - mo.x, posCase(c).z - mo.z) + 5 * combat.monstres.filter((o) => o !== mo && o.champ === c && o.etat === 'actif').length; /* proche, et peu de monde dessus */
+      mo.champ = libres.sort((a, b) => gout(a) - gout(b) || note(a) - note(b))[0] || null;
     }
-    if (mo.champ) { const q = posCase(mo.champ); tx = q.x; tz = q.z; versPerso = false; }
+    if (mo.champ) { const q = posCase(mo.champ), [ox, oz] = [[0, 0], [0.45, 0.25], [-0.4, 0.3], [0.15, -0.45], [-0.35, -0.35]][mo.id % 5]; tx = q.x + ox; tz = q.z + oz; versPerso = false; }
   }
   const pp = paysanMesh.position; let bat = null;
   if (!mo.d.grignote) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
@@ -3239,7 +3311,7 @@ function majMonstre(mo, dt, s) {
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
   mo.pas += v * dt * 5;
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
-  const saut = mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * 0.28 * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
+  const saut = mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
   let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; }
   const pique = mo.picore > 0 ? Math.abs(Math.sin(s * 9)) : 0;
   const vol = mo.d.vol ? mo.d.vol + Math.sin(s * 2.4 + mo.id) * 0.14 : 0; if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
@@ -3473,6 +3545,10 @@ function majCombatHud() {
   else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / RECHARGE_ULTI).toFixed(1) + '%'); $('ulti-etat').textContent = c.cdUlti > 0 ? 'prêt dans ' + Math.ceil(c.cdUlti) + ' s' : 'prêt'; }
   if (classeDe() === 'cra') { const k = S_.chargeSort || 0; $('sort-rond').style.setProperty('--cd', (100 * (1 - k / KILLS_PERCANTE)).toFixed(1) + '%'); $('sort-etat').textContent = k >= KILLS_PERCANTE ? 'prête' : k + '/' + KILLS_PERCANTE + ' monstres'; }
   else { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / rechargeSort()).toFixed(1) + '%'); $('sort-etat').textContent = c.cdSort > 0 ? 'prêt dans ' + Math.ceil(c.cdSort) + ' s' : 'prêt'; }
+  { let b = majCombatHud.barrePerso; /* la barre de vie au-dessus de la tete du perso, comme celles des monstres */
+    if (!b || !b.isConnected) { b = majCombatHud.barrePerso = document.createElement('div'); b.className = 'pv-monstre pv-perso'; b.innerHTML = '<i></i>'; $('combat-zone').appendChild(b); }
+    b.firstChild.style.width = (100 * Math.max(0, f)).toFixed(1) + '%'; b.classList.toggle('bas', f < 0.3);
+    if (paysanMesh) versEcran(new T.Vector3(paysanMesh.position.x, paysanMesh.position.y + 2.1, paysanMesh.position.z), b); }
   c.monstres.forEach((o) => {
     if (o.etat !== 'actif') { o.barre.hidden = true; return; }
     o.barre.hidden = false; o.barre.classList.toggle('cible', o === c.cible); o.barre.firstChild.style.width = (100 * Math.max(0, o.pv) / o.pvMax).toFixed(0) + '%';
@@ -3525,7 +3601,7 @@ function finVague(gagne, fuite) {
     corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Ton perso n\'a pas besoin de repos : tu peux relancer quand tu veux.' : 'Ton perso se repose ' + dureeLisible(REPOS_VAGUE) + ' avant de pouvoir relancer. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
   }
   if (c.loot && (Object.keys(c.loot.res).length || c.loot.objets.length)) corps += '<div class="hdv-section">Butin</div>' + /* une ligne par objet et par ressource, chacun avec son icone (demande de Mathieu, 11/10/2026) */
-    [...new Set(c.loot.objets)].map((id) => { const o = OBJETS[id], nb = c.loot.objets.filter((x) => x === id).length; return '<div class="art">' + ico('obj-' + id) + '<div><b>' + (o.leg ? '✦ ' : '★ ') + o.nom + (nb > 1 ? ' ×' + nb : '') + '</b><div class="puces">' + statsObjet(o) + '</div></div><div class="act"><button class="btn kamas" data-perso-slot="' + o.emp + '">Équiper</button></div></div>'; }).join('') +
+    [...new Set(c.loot.objets)].map((id) => { const o = OBJETS[id], nb = c.loot.objets.filter((x) => x === id).length; return '<div class="art">' + ico('obj-' + id) + '<div><b>' + (o.leg ? '✦ ' : '★ ') + o.nom + (nb > 1 ? ' ×' + nb : '') + '</b><div class="puces">' + statsTexte(o.stats) + '</div></div><div class="act"><button class="btn kamas" data-perso-slot="' + o.emp + '">Équiper</button></div></div>'; }).join('') +
     Object.entries(c.loot.res).map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>' + n + ' ' + PAR_ID[r].nom + '</b><div class="desc">À la grange, se vend à l’HDV (' + fmt(PAR_ID[r].prix) + ' ' + KAMA + ' pièce).</div></div><div></div></div>').join('');
   if (c.bats) { const L = Object.entries(c.bats); if (L.length) corps += '<div class="hdv-section">Bâtiments touchés</div>' + L.map(([k, n]) => '<div class="art">' + ico(ICO_BAT[typeCle(k)]) + '<div><b>' + Maj(nomBat(k)) + (enRuine(k) ? ' : en ruine' : ' : -' + fmt(n) + ' PV') + '</b><div class="desc">' + (enRuine(k) ? PERTE_RUINE[typeCle(k)] : 'Il lui reste ' + fmt(pvBat(k)) + ' PV sur ' + fmt(pvMaxBat(k)) + '.') + '</div></div><div class="act"><button class="btn kamas" ' + (enRuine(k) ? 'data-reconstruire="' + k + '">Reconstruire ' + fmt(coutReconstruire(k)) : 'data-reparer="' + k + '">Réparer ' + fmt(coutReparer(k))) + ' ' + KAMA + '</button></div></div>').join('');
     const aFaire = L.map(([k]) => k).filter((k) => degatsBat(k) || enRuine(k)), total = aFaire.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0);
@@ -3867,14 +3943,29 @@ function rendreGrange() {
 }
 function toast(msg, genre) {
   if (genre === 'alerte' && mode && /^Pas /.test(msg)) { const b = document.getElementById('bandeau-texte'); b.textContent = msg; clearTimeout(toast.t); toast.t = setTimeout(majBandeau, 3500); }
+  noterJournal(msg, genre);
   const z = $('toasts'), deja = [...z.children].find((e) => e.dataset.msg === msg);
   if (deja) { /* le meme message deja affiche : un compteur au lieu d'un doublon, et il reste un peu plus */
     const n = (parseInt(deja.dataset.n, 10) || 1) + 1; deja.dataset.n = n; let b = deja.querySelector('b.fois'); if (!b) { b = document.createElement('b'); b.className = 'fois'; deja.appendChild(b); } b.textContent = '×' + n;
-    clearTimeout(deja._t); deja._t = setTimeout(() => deja.remove(), 4200); z.appendChild(deja); return;
+    clearTimeout(deja._t); deja._t = setTimeout(() => deja.remove(), dureeToast(genre)); z.appendChild(deja); return;
   }
   const el = document.createElement('div'); el.className = 'toast' + (genre ? ' ' + genre : ''); el.textContent = msg; el.dataset.msg = msg; z.appendChild(el);
-  while (z.children.length > 3) z.removeChild(z.firstChild);
-  el._t = setTimeout(() => el.remove(), 4200);
+  while (z.children.length > 4) { const vieux = [...z.children].find((e) => e !== el && !e.classList.contains('or')) || z.firstChild; clearTimeout(vieux._t); vieux.remove(); } /* les orange ne sont pas chasses par les petits messages */
+  el._t = setTimeout(() => el.remove(), dureeToast(genre));
+}
+/* combien de temps un message reste : les orange (raids, defis, coffre...) le plus longtemps, puis les alertes */
+const dureeToast = (genre) => genre === 'or' ? 12000 : genre === 'alerte' ? 8000 : 6000;
+/* l'historique : les 60 derniers messages, relus avec le bouton Messages (heure reelle, pas celle du jeu, qui peut aller x50) */
+const JOURNAL = [];
+function noterJournal(msg, genre) {
+  const d = JOURNAL[JOURNAL.length - 1], h = new Date(performance.timeOrigin + performance.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (d && d.msg === msg) { d.n++; d.h = h; } else { JOURNAL.push({ msg, genre: genre || '', h, n: 1 }); if (JOURNAL.length > 60) JOURNAL.shift(); }
+  $('b-journal').hidden = false; try { if (modaleOuverte === 'journal') ouvrirJournal(); } catch (e) { /* (message parti avant la declaration des modales) */ }
+}
+function ouvrirJournal() {
+  ouvrirModale('journal', entete('Messages récents') + '<ol class="journal">' + JOURNAL.map((m) => '<li class="' + m.genre + '"><time>' + m.h + '</time><span>' + echapper(m.msg) + (m.n > 1 ? ' <b class="fois">×' + m.n + '</b>' : '') + '</span></li>').join('') + '</ol>' +
+    '<p class="note-journal">Les plus récents en bas. En orange, les messages importants.</p>');
+  const l = document.querySelector('.journal'); if (l) l.scrollTop = l.scrollHeight;
 }
 
 /* modales */
@@ -3992,7 +4083,7 @@ function ouvrirPerso(slot) {
   const st = statsPerso(), c = st.c, cl = CLASSES.find((x) => x.id === classeDe()), l = st.niveau, a = seuil(l), b = seuil(l + 1); S_.nouveaux = 0; rendreHaut();
   const ligneObjet = (k, neuf) => { const o = OBJETS[k], cmp = comparer(k), porte = S_.equip[o.emp];
     return '<div class="art objet' + (cmp.ok ? '' : ' verrou') + '">' + ico('obj-' + k) + '<div><b>' + o.nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + (neuf ? ' <span class="puce neuf">nouveau</span>' : '') + (cmp.mieux ? ' <span class="puce mieux">mieux</span>' : '') + '</b>' +
-      '<div class="puces">' + statsObjet(o) + (cmp.ok ? '' : '<span class="puce mauvaise">niveau ' + o.niv + '</span>') + '</div>' +
+      '<div class="puces">' + statsTexte(o.stats) + (cmp.ok ? '' : '<span class="puce mauvaise">niveau ' + o.niv + '</span>') + '</div>' +
       '<div class="compare"><small>' + (porte ? 'Face à ta pièce : ' + OBJETS[porte].nom : EMPLACEMENTS.find(([e]) => e === o.emp)[1] + ' :') + '</small>' + cmp.html + '</div></div>' +
       '<div class="act mini"><button class="btn kamas mini" data-equiper="' + k + '"' + (cmp.ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>'; };
   const neufsIci = Object.keys(persoNeufs).filter((k) => S_.sac[k] > 0 && OBJETS[k]).sort((x, y) => (comparer(y).mieux - comparer(x).mieux) || OBJETS[y].niv - OBJETS[x].niv);
@@ -4051,6 +4142,7 @@ function ouvrirConstruire(p) {
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.id === 'b-journal') { ouvrirJournal(); return; }
   if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
   else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Le tuto du début</b><div class="desc">Pépito te remontre les bases en ' + ETAPES_TUTO.length + ' étapes.</div></div><div class="act"><button class="btn discret" id="b-tuto">Revoir le tuto</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
   else if (b.id === 'b-reset') { ouvrirModale('options', entete('Recommencer ?') + '<div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p>Une ferme toute neuve : ' + (ENLIGNE && enLigneSv.compte ? 'celle-ci sera effacée, ici et en ligne, pour de bon.' : 'la sauvegarde de ce navigateur sera effacée, pour de bon.') + '</p><div class="boutons"><button class="btn discret" data-fermer>Garder ma ferme</button><button class="btn" id="b-reset-ok" style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>'); return; }
@@ -4093,6 +4185,8 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-voir-defis')) ouvrirDefis();
   else if (b.dataset.reclamerDefi) reclamerDefi(parseInt(b.dataset.reclamerDefi, 10));
   else if (b.hasAttribute('data-coffre')) ouvrirCoffre();
+  else if (b.hasAttribute('data-coffre-ok')) { fermerModale(); ouvrirDefis(); }
+  else if (b.hasAttribute('data-coffre-fiche')) { fermerModale(); ouvrirPerso(); }
   else if (b.id === 'b-son') { try { localStorage.setItem('ferme-son', sonActif() ? 'non' : 'oui'); } catch (err) { /* rien */ } son('quete'); b.textContent = sonActif() ? 'Couper le son' : 'Remettre le son'; return; }
   else if (b.id === 'b-graphismes') { try { localStorage.setItem('ferme-graphismes', graphismes() === 'leger' ? 'complet' : 'leger'); } catch (err) { /* rien */ } appliquerGraphismes(); b.textContent = graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers'; const d = b.closest('.art').querySelector('.desc'); if (d) d.textContent = (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.'; return; }
   else if (b.id === 'b-objectifs') { S_.objCache = !S_.objCache; rendreObjectif(); fermerModale(); }
