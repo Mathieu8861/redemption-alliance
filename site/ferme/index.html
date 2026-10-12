@@ -786,9 +786,11 @@ const NIV_MAX = 60; /* le niveau maximum de Paysan (la vague 60 demande le nivea
 const niveau = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) n++; return n; };
 /* l'XP de la ferme (recoltes, laine, plumes) est freinee quand on a trop d'avance sur les vagues : on progresse surtout en se battant */
 const XP_FERME = 0.6, freinXp = () => { if (!S_.vague || S_.vague.num > VAGUES_TOTAL) return 1; const av = niveau(S_.xp) - niveauRequis(S_.vague.num); return av <= 2 ? 1 : av <= 4 ? 0.5 : av <= 6 ? 0.25 : 0.1; };
-function xpFerme(n) {
-  const f = freinXp(); if (f < 1 && (S_.freinVu || 1) > f && !combat) toast('Tu as beaucoup d\'avance sur tes vagues : la ferme rapporte ' + ({ 0.5: 'deux', 0.25: 'quatre' }[f] || 'dix') + ' fois moins d\'expérience. Les vagues, elles, rapportent toujours autant !', 'or');
-  S_.freinVu = f; gagnerXp(Math.max(1, Math.round(n * f * XP_FERME)));
+function xpFerme(n) { return gagnerXp(Math.max(1, Math.round(n * XP_FERME))); }
+/* une fois par palier de frein : prevenir que l'experience est reduite, et pourquoi */
+function avertirFrein() {
+  const f = freinXp(); if (f < 1 && (S_.freinVu || 1) > f && !combat) toast('Tu as beaucoup d\'avance sur tes vagues : tu gagnes ' + ({ 0.5: 'deux', 0.25: 'quatre' }[f] || 'dix') + ' fois moins d\'expérience. Gagne des vagues pour la retrouver.', 'or');
+  S_.freinVu = f;
 }
 const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais'));
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
@@ -1110,9 +1112,10 @@ function avancer(maintenant, enDirect) {
 const valeurGrange = () => VENDABLES.reduce((t, v) => t + (S_.grange[v.id] || 0) * prix(v.id), 0);
 function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
 function gagnerXp(n) {
-  if (n > 0) n = Math.max(1, Math.round(n * (1 + caracs().sagesse / 100))); /* la Sagesse des equipements */
-  const avant = niveau(S_.xp); S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(NIV_MAX))); const apres = niveau(S_.xp); /* plus rien a gagner au niveau maximum */
+  if (n > 0) n = Math.max(1, Math.round(n * freinXp() * (1 + caracs().sagesse / 100))); /* le frein d'avance sur les vagues, puis la Sagesse des equipements */
+  const avant = niveau(S_.xp), x0 = S_.xp; S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(NIV_MAX))); const apres = niveau(S_.xp); gagnerXp.dernier = S_.xp - x0; /* plus rien a gagner au niveau maximum */
   if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres)); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
+  avertirFrein();
   TERRAINS.forEach((t, k) => { if (!t.niv || avant >= t.niv || apres < t.niv || !aVendre(t)) return; const b = document.querySelector('[data-vente="' + k + '"]'); if (b) b.remove(); bulleVente(t, k); toast('Un terrain de la Phase 2 est à vendre !', 'or'); });
   if (avant < NIV_ULTI && apres >= NIV_ULTI && !S_.ulti) { toast('Niveau ' + NIV_ULTI + ' : ton ulti se débloque ! Choisis-le dans la fiche des vagues.', 'or'); if (!combat && !modaleOuverte) ouvrirUlti(); }
   rendreHaut();
@@ -3839,11 +3842,11 @@ function finVague(gagne, fuite) {
   }
   let corps;
   if (gagne) {
-    const g = c.rejoueBoss != null ? gainsBoss(c.rejoueBoss) : gainsVague(n, rejoue); if (c.rejoueBoss != null) { S_.bossFois = S_.bossFois || {}; S_.bossFois[c.rejoueBoss] = (S_.bossFois[c.rejoueBoss] || 0) + 1; } S_.kamas += g.kamas; compter('vagues'); son('niveau'); if (!rejoue) { S_.vague.num = n + 1; if (n < VAGUES_TOTAL) S_.vague.prepa = Date.now() + PREPA_VAGUE[palierDe(n + 1)] * MIN; } gagnerXp(g.xp);
+    const g = c.rejoueBoss != null ? gainsBoss(c.rejoueBoss) : gainsVague(n, rejoue); if (c.rejoueBoss != null) { S_.bossFois = S_.bossFois || {}; S_.bossFois[c.rejoueBoss] = (S_.bossFois[c.rejoueBoss] || 0) + 1; } S_.kamas += g.kamas; compter('vagues'); son('niveau'); if (!rejoue) { S_.vague.num = n + 1; if (n < VAGUES_TOTAL) S_.vague.prepa = Date.now() + PREPA_VAGUE[palierDe(n + 1)] * MIN; } const fr = freinXp(); gagnerXp(g.xp); g.xpVrai = gagnerXp.dernier; g.freine = fr < 1;
     const P = palierDe(n), finPalier = !rejoue && n % VAGUES_PALIER === 0;
     const suite = S_.vague.num > VAGUES_TOTAL ? '<p style="font-size:.82rem;font-weight:600">' + leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' : tous les paliers sont terminés. La suite arrive bientôt.</p>'
       : '<p style="font-size:.82rem;font-weight:600">' + (finPalier ? leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' ! ' + (P === 4 ? '<b>Phase 1 terminée.</b> Place à la <b>Phase 2</b> : ' + PALIERS[P + 1].nom + ', et ton niveau maximum passe à 60. ' : 'Place au ' + nomPalier(P + 1).toLowerCase() + ' : ' + PALIERS[P + 1].nom + '. ') : '') + 'La vague ' + S_.vague.num + ' t\'attend : ' + compoVague(S_.vague.num).map(([t, k]) => k + ' ' + (k > 1 ? pluriel(MONSTRES[t].nom) : MONSTRES[t].nom)).join(', ') + '.</p>';
-    corps = entete(c.rejoueBoss != null ? 'Revanche gagnée : ' + MONSTRES[PALIERS[c.rejoueBoss].boss].nom + ' !' : 'Vague ' + n + ' gagnée !') + '<div class="art">' + ico('kama') + '<div><b>+' + fmt(g.kamas) + ' ' + KAMA + ' et +' + g.xp + ' points d\'expérience</b><div class="desc">Il te restait ' + Math.ceil(c.pv) + ' PV sur ' + c.pvMax + '.</div></div><div></div></div>' + suite;
+    corps = entete(c.rejoueBoss != null ? 'Revanche gagnée : ' + MONSTRES[PALIERS[c.rejoueBoss].boss].nom + ' !' : 'Vague ' + n + ' gagnée !') + '<div class="art">' + ico('kama') + '<div><b>+' + fmt(g.kamas) + ' ' + KAMA + ' et +' + fmt(g.xpVrai != null ? g.xpVrai : g.xp) + ' points d\'expérience</b><div class="desc">Il te restait ' + Math.ceil(c.pv) + ' PV sur ' + c.pvMax + '.' + (g.freine ? ' Expérience réduite : tu as beaucoup d\'avance sur tes vagues.' : '') + '</div></div><div></div></div>' + suite;
   } else {
     const champs = S_.cases.filter((x) => x.type === 'champ' && x.c).sort((a, b) => recolte(b) * prix(b.c) - recolte(a) * prix(a.c));
     let perte = 'Ils n\'ont trouvé aucune culture à saccager.';
