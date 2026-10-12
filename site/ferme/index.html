@@ -225,6 +225,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; } /* au doigt : ni selection ni loupe sur un appui long */
 input, textarea { -webkit-user-select: text; user-select: text; }
 /* l'appui long au doigt : un anneau se remplit sous le doigt, et grossit quand l'action est prete (450 ms) */
+/* les lecons de Pepito (12/10/2026) : la carte du tuto, au centre, le jeu en pause derriere */
+#lecon { position: fixed; inset: 0; z-index: 35; display: grid; place-items: center; padding: 14px; background: rgba(36, 49, 28, .4); font-family: var(--f-texte); color: var(--encre); }
+#lecon[hidden] { display: none; }
+#lecon .carte-lecon { width: min(100%, 470px); box-sizing: border-box; max-height: 100%; overflow: auto; background: var(--papier); border: 3px solid var(--bord); border-radius: 18px; box-shadow: 0 6px 0 var(--bord); padding: 14px 18px 14px; }
+#lecon .tete { display: flex; align-items: center; gap: 8px; font-size: .72rem; font-weight: 800; color: #8a7a68; }
+#lecon .tete b { font: 400 1.05rem/1 var(--f-titre); color: var(--kamas); }
+#lecon .points { display: flex; gap: 4px; margin-left: auto; } #lecon .points i { width: 8px; height: 8px; border-radius: 50%; background: #e3d6bf; border: 1.5px solid var(--bord); } #lecon .points i.ok { background: var(--vert); } #lecon .points i.ici { background: var(--or); }
+#lecon h2 { font: 400 1.45rem/1.05 var(--f-titre); margin: 8px 0 10px; }
+#lecon .corps { display: flex; gap: 14px; align-items: center; }
+#lecon .corps img { flex: none; width: 68px; height: 68px; object-fit: contain; }
+#lecon .corps p { margin: 0; font-size: .95rem; font-weight: 700; line-height: 1.38; }
+#lecon em { font-style: normal; color: var(--kamas); }
+#lecon .boutons { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 14px; }
+#lecon .passer { margin-right: auto; background: none; border: 0; padding: 0; font: 800 .74rem var(--f-texte); color: #8a7a68; text-decoration: underline; cursor: pointer; }
+@media (orientation: landscape) and (max-height: 520px) { #lecon .carte-lecon { padding: 10px 14px; } #lecon h2 { font-size: 1.2rem; margin: 4px 0 6px; } #lecon .corps img { width: 52px; height: 52px; } #lecon .corps p { font-size: .86rem; } #lecon .boutons { margin-top: 8px; } }
+.art.grise { opacity: .55; }
 #tuto { position: fixed; inset: 0; z-index: 7; pointer-events: none; font-family: var(--f-texte); color: var(--encre); }
 #tuto .tuto-voile { position: absolute; inset: 0; background: rgba(36, 49, 28, .35); pointer-events: auto; }
 #tuto svg.tuto-sol { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -4930,11 +4946,14 @@ document.addEventListener('click', (e) => {
   if (b.dataset.bestiaire) { ouvrirBestiaire(b.dataset.bestiaire); return; }
   if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
   if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
+  else if (b.hasAttribute('data-carnet')) ouvrirCarnet();
+  else if (b.dataset.relire) { fermerModale(); ouvrirLecon(b.dataset.relire, true); }
+  else if (b.hasAttribute('data-lecons-bascule')) { if (S_.leconsOff) delete S_.leconsOff; else S_.leconsOff = true; sauver(); ouvrirCarnet(); }
   else if (b.dataset.sexeOpt) { if (b.dataset.sexeOpt === 'f') S_.perso.sexe = 'f'; else delete S_.perso.sexe; sauver(); const m = modeleDe(classeDe(), S_.perso.look); assurerLook(m).then(() => { rhabiller(); rendreHaut(); }); $('b-options').click(); }
   else if (b.dataset.lookOpt) { S_.perso.look = b.dataset.lookOpt; sauver(); const m = modeleDe('iop', S_.perso.look); assurerLook(m).then(() => rhabiller()); $('b-options').click(); }
   else if (b.id === 'b-plein') { pleinEcran(); return; }
   else if (b.id === 'b-plein-opt') { pleinEcran(enPleinEcran()); setTimeout(() => $('b-options').click(), 400); return; }
-  else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + (DOIGT ? '<div class="art">' + ico('apercu') + '<div><b>Plein écran</b><div class="desc">Cache les barres du navigateur. Couché, le téléphone reste à l\'horizontale.</div></div><div class="act"><button class="btn discret" id="b-plein-opt">' + (enPleinEcran() ? 'Quitter le plein écran' : 'Passer en plein écran') + '</button></div></div>' : '') + '<div class="hdv-section">Ton personnage</div><div class="sexes">' + [['m', 'Masculin'], ['f', 'Féminin']].map(([v, t]) => '<button class="sexe" data-sexe-opt="' + v + '" aria-pressed="' + (sexeDe() === v) + '">' + t + '</button>').join('') + '</div>' + (classeDe() === 'iop' && sexeDe() === 'm' ? '<div class="hdv-section">L\'apparence de ton Iop</div><div class="looks-grille">' + LOOKS_IOP.map(([id, nom]) => '<button class="look" data-look-opt="' + id + '" aria-pressed="' + ((S_.perso.look || 'classique') === id) + '"><img src="assets/icones/iop-look-' + id + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + nom + '</b></button>').join('') + '</div>' : '') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Le tuto du début</b><div class="desc">Pépito te remontre les bases en ' + ETAPES_TUTO.length + ' étapes.</div></div><div class="act"><button class="btn discret" id="b-tuto">Revoir le tuto</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
+  else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + (DOIGT ? '<div class="art">' + ico('apercu') + '<div><b>Plein écran</b><div class="desc">Cache les barres du navigateur. Couché, le téléphone reste à l\'horizontale.</div></div><div class="act"><button class="btn discret" id="b-plein-opt">' + (enPleinEcran() ? 'Quitter le plein écran' : 'Passer en plein écran') + '</button></div></div>' : '') + '<div class="hdv-section">Ton personnage</div><div class="sexes">' + [['m', 'Masculin'], ['f', 'Féminin']].map(([v, t]) => '<button class="sexe" data-sexe-opt="' + v + '" aria-pressed="' + (sexeDe() === v) + '">' + t + '</button>').join('') + '</div>' + (classeDe() === 'iop' && sexeDe() === 'm' ? '<div class="hdv-section">L\'apparence de ton Iop</div><div class="looks-grille">' + LOOKS_IOP.map(([id, nom]) => '<button class="look" data-look-opt="' + id + '" aria-pressed="' + ((S_.perso.look || 'classique') === id) + '"><img src="assets/icones/iop-look-' + id + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + nom + '</b></button>').join('') + '</div>' : '') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Le tuto du début</b><div class="desc">Pépito te remontre les bases en ' + ETAPES_TUTO.length + ' étapes.</div></div><div class="act"><button class="btn discret" id="b-tuto">Revoir le tuto</button></div></div><div class="art">' + ico('coffre') + '<div><b>Le carnet de Pépito</b><div class="desc">Ses leçons sur les vagues, les boss, l\'équipement, l\'élevage... à relire quand tu veux.</div></div><div class="act"><button class="btn discret" data-carnet>Ouvrir</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
   else if (b.id === 'b-reset') { ouvrirModale('options', entete('Recommencer ?') + '<div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p>Une ferme toute neuve : ' + (ENLIGNE && enLigneSv.compte ? 'celle-ci sera effacée, ici et en ligne, pour de bon.' : 'la sauvegarde de ce navigateur sera effacée, pour de bon.') + '</p><div class="boutons"><button class="btn discret" data-fermer>Garder ma ferme</button><button class="btn" id="b-reset-ok" style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>'); return; }
   else if (b.id === 'b-reset-ok') { enLigneSv.ecraser = !!enLigneSv.compte; enLigneSv.sale = false; sauverMeta(); localStorage.removeItem(CLE); location.reload(); return; }
   else if (b.id === 'b-nuage-recharger') { enLigneSv.version = 0; enLigneSv.sale = false; sauverMeta(); location.reload(); return; } /* au rechargement, la version en ligne gagne */
@@ -5358,13 +5377,14 @@ function tick() {
   if (tofusVoliere.length !== S_.tofus) rendreTofusVoliere();
   if (++tours % 10 === 0) { rendreHaut(); rendreObjectif(); sauver(); }
   if (tours % 60 === 1) $('commis').innerHTML = '<b>Pépito :</b> « ' + hasard(niv('epouvantail') >= 5 && Math.random() < 0.5 ? PEPITO_TRON : PEPITO) + ' »';
+  surveillerLecons(); /* les lecons de Pepito, au bon moment */
 }
 /* LE BOUTON PAUSE (« il faudrait un bouton pause aussi », Mathieu, 12/10/2026) : tout s'arrete, combats compris, comme sur l'accueil ou onglet cache ;
    a la reprise, les dates de la ferme sont decalees de la duree de la pause (reprendreTemps) */
 let enPause = false;
-function mettrePause(oui) {
+function mettrePause(oui, sansEcran) { /* (sansEcran : une lecon de Pepito fige le jeu sans afficher l'ecran de pause) */
   oui = !!oui; if (oui === enPause || (oui && (!S_ || !S_.perso || enAccueil))) return;
-  enPause = oui; $('ecran-pause').hidden = !oui;
+  enPause = oui; $('ecran-pause').hidden = !oui || !!sansEcran;
   if (oui) { if (visee) annulerVisee(); sauver(); } else if (S_) reprendreTemps(Date.now());
 }
 function boucle(t) {
@@ -5422,6 +5442,125 @@ const niveauDe = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) 
 function casesBordure() { const L = []; for (let i = -1; i <= COLS; i++) for (let j = -1; j <= ROWS; j++) { if (i >= 0 && i < COLS && j >= 0 && j < ROWS) continue; if (i === COLS && j === ROWS) continue; L.push({ id: 'm' + i + '_' + j, i, j, terrain: 'main', type: 'libre' }); } return L; }
 function completerTerrains() {
   casesBordure().forEach((c) => { if (!S_.cases.some((x) => x.id === c.id)) S_.cases.push(c); }); /* (anciennes sauvegardes) */ TERRAINS.forEach((t) => { if (!S_.terrains[t.id]) return; for (let i = 0; i < t.cols; i++) for (let j = 0; j < t.rows; j++) { const id = t.id + '_' + i + '_' + j; if (!S_.cases.some((c) => c.id === id)) S_.cases.push({ id, i, j, terrain: t.id, type: 'libre' }); } }); }
+/* ===================== LES LECONS DE PEPITO (12/10/2026) =====================
+   « le tuto il est pas un peu leger ? faudrait expliquer plus de trucs, y'a beaucoup de choses a savoir, la on donne juste les bases » (Mathieu).
+   Apres le tuto du debut, Pepito explique chaque systeme au moment ou il devient utile : 2 a 4 cartes, le jeu en pause pendant la lecture,
+   une seule fois. Certaines s'ouvrent par-dessus une fenetre (fenetre : 'vagues'). Le Carnet de Pepito (Options) les garde a relire.
+   Une ferme deja avancee a l'arrivee des lecons ne recoit pas celles dont le moment est deja passe : elles sont rangees dans le carnet. */
+const toucherQ = (quoi) => (tutoDoigt() ? 'touche ' : 'clic droit sur ') + quoi;
+const cliquerQ = (quoi) => (tutoDoigt() ? 'touche ' : 'clic gauche sur ') + quoi;
+const SORT_LECON = {
+  iop: () => `le <em>Bond du Iop</em> : tu vises où il saute, il frappe trois fois plus fort en retombant et se soigne un peu à chaque monstre touché.`,
+  cra: () => `la <em>Flèche perçante</em> : elle traverse toute une ligne de monstres. Elle se charge en abattant 30 monstres.`,
+  osa: () => `l'<em>Invocation</em> : tu vises où poser un Bouftou, qui retombe sur les monstres puis se bat pour toi.`
+};
+const LECONS = [
+  { id: 'eau', titre: 'L\'eau', ico: 'arrosoir', resume: 'Le puits, l\'arrosoir, la citerne.', quand: () => S_.eau <= 0,
+    pages: [() => `Ton <em>arrosoir</em> est vide (le compteur bleu, en haut). Pour le remplir, ${toucherQ('le <em>puits</em>')} : ton perso y va et fait le plein.`,
+      () => `Arroser n'est pas obligatoire, mais un semis arrosé pousse <em>deux fois et demie plus vite</em>. Améliore <em>le puits</em> (bouton Améliorer) : la poulie remplit l'arrosoir dès que tu passes à côté, puis une citerne arrose seule tes nouveaux semis.`] },
+  { id: 'tofus', titre: 'Les Tofus', ico: 'tofu', resume: 'Les chasser, l\'épouvantail, les filets et la volière.', quand: () => S_.cases.some((c) => c.type === 'champ' && c.tofu),
+    pages: [() => `Un <em>Tofu</em> picore ton champ ! Tant qu'il reste, il te vole des récoltes. ${toucherQ('lui').replace(/^./, (x) => x.toUpperCase())} pour le chasser.`,
+      () => `L'<em>épouvantail</em> les éloigne : deux fois moins de Tofus au niveau 1, trois fois moins au niveau 2, et au niveau 3 il leur tire dessus tout seul avec tes flèches (bouton Améliorer).`,
+      () => `Avec un <em>filet</em> (${PRIX_FILET} kamas à l'HDV), tu peux les capturer au lieu de les chasser : ils vont dans ta <em>volière</em> et donnent des plumes à vendre. Un Tofu sauvage posé dans l'herbe se capture plus facilement qu'un Tofu sur un champ.`] },
+  { id: 'cultures', titre: 'Quoi planter ?', ico: 'orge', resume: 'Les cultures, leur temps de pousse, leur prix.', quand: () => niveau(S_.xp) >= 5,
+    pages: [() => `Tu débloques de nouvelles cultures en montant de niveau : l'<em>Orge</em> au niveau 5, puis la Cawotte, l'Avoine, la Fraise, le Houblon... Leurs graines s'achètent à l'<em>HDV</em>, onglet Acheter.`,
+      () => `Chaque culture a son <em>temps de pousse</em>, son prix et son XP : le Blé pousse en 15 min, l'Orge en 45 min, l'Avoine en 2 h. Les longues rapportent plus par récolte, les courtes s'enchaînent.`,
+      () => `Le jeu se met <em>en pause</em> quand tu le fermes : rien ne pousse pendant ton absence. Plante ce que tu auras le temps de récolter pendant que tu joues.`] },
+  { id: 'agrandir', titre: 'Agrandir la ferme', ico: 'pelle', resume: 'Labourer, acheter des terrains, Aménager.', quand: () => niveau(S_.xp) >= 3,
+    pages: [() => `Pour planter plus, ${toucherQ('une case d\'herbe libre')} et <em>laboure</em> une parcelle. Tu as un quota de parcelles : il grandit avec les terrains.`,
+      () => `Les <em>pancartes</em> au bord de l'île montrent les terrains à vendre : chacun ajoute des cases et des parcelles à labourer.`,
+      () => `Le bouton <em>Aménager</em> déplace tes parcelles et tes bâtiments : organise la ferme comme tu veux.`] },
+  { id: 'ameliorer', titre: 'Améliorer', ico: 'marteau', resume: 'Monter les bâtiments et les outils.', quand: () => niveau(S_.xp) >= 4,
+    pages: [() => `Le bouton <em>Améliorer</em> monte tes bâtiments et tes outils : la grange, le puits, l'enclos, l'épouvantail, l'arbalète, l'engrais... Chaque niveau dit ce qu'il change avant que tu paies.`,
+      () => `Commence par ce qui te gêne : le puits si tu cours chercher de l'eau, l'enclos pour plus de Bouftous, l'épouvantail contre les Tofus, l'<em>arbalète</em> de la grange avant les vagues.`] },
+  { id: 'combat', titre: 'Ta première vague', ico: 'chafer', resume: 'Cibler, se déplacer, ton sort, perdre ou fuir.', fenetre: 'vagues', quand: () => S_.vague.num === 1,
+    pages: [() => `Une <em>vague</em>, ce sont des monstres qui grimpent par les bords de l'île. Ils s'en prennent à toi, et certains à tes bâtiments. Gagne-la pour des kamas, de l'XP et parfois de l'équipement. Elle n'arrive que quand tu la lances.`,
+      () => `Pendant la vague, ${cliquerQ('un monstre')} pour le <em>cibler</em> : ton perso y va et frappe tout seul. ${cliquerQ('une case').replace(/^./, (x) => x.toUpperCase())} pour te déplacer.`,
+      () => `En bas à droite, ton <em>sort</em> : ${(SORT_LECON[classeDe()] || SORT_LECON.iop)()}`,
+      () => `Si tes PV tombent à zéro, la vague est perdue : les monstres saccagent ton plus beau champ et ton perso se repose 1 h. Le bouton <em>Fuir</em> arrête la vague sans repos, mais ils saccagent quand même un champ.`] },
+  { id: 'victoire', titre: 'Après la victoire', ico: 'kama', resume: 'La préparation, le niveau requis, les réparations.', quand: () => S_.vague.num >= 2,
+    pages: [() => `Bravo ! La vague suivante <em>se prépare</em> : quelques minutes au début, plus longtemps aux paliers suivants. Il faut aussi le <em>niveau</em> qu'elle demande : le numéro de la vague moins 2.`,
+      () => `Les bâtiments frappés gardent leurs dégâts : ${toucherQ('un bâtiment abîmé')} pour le réparer, ou le bouton <em>Tout réparer</em> en fin de vague. Un bâtiment en ruine ne sert plus à rien tant que tu ne l'as pas reconstruit.`,
+      () => `Toutes les 10 vagues, un <em>boss</em> t'attend. Je t'expliquerai le moment venu.`] },
+  { id: 'ulti', titre: 'Ton ulti', ico: 'ulti-zone', resume: 'Gel, Zone ou Coup fatal, pour de bon.', quand: () => niveau(S_.xp) >= NIV_ULTI && !S_.ulti,
+    pages: [() => `Niveau ${NIV_ULTI} : tu peux choisir ton <em>ulti</em>, un coup spécial en plus de ton attaque et de ton sort. Le choix est <em>définitif</em> : on le fait dans la fenêtre Vagues, ou au bouton Ulti pendant un combat.`,
+      () => `<em>Gel</em> : petits dégâts autour de la cible, et les monstres touchés sont ralentis 5 s. <em>Zone</em> : 3 fois tes dégâts à tous les monstres autour. <em>Coup fatal</em> : 5 fois tes dégâts sur un seul, parfait contre les boss. Il se recharge en ${RECHARGE_ULTI} s.`] },
+  { id: 'equipement', titre: 'L\'équipement', ico: 'sac', resume: 'La fiche Perso, comparer, les panoplies.', quand: () => Object.keys(S_.sac || {}).length > 0,
+    pages: [() => `Un monstre t'a laissé une <em>pièce d'équipement</em> ! Ouvre <em>Perso</em> (en bas) : touche une case, puis une pièce du sac pour la comparer. Une flèche verte, c'est mieux que ce que tu portes.`,
+      () => `Chaque pièce donne des <em>caractéristiques</em> : Vitalité, Puissance, Agilité... Touche-en une dans la fiche pour savoir à quoi elle sert. Les pièces d'une même <em>panoplie</em> donnent un bonus à 2, 4 et 6 pièces portées.`,
+      () => `Chaque boss lâche une pièce à coup sûr la première fois, et parfois son arme. Les pièces en trop se revendent.`] },
+  { id: 'repas', titre: 'Les repas', ico: 'cawotte', resume: 'Manger avant une vague.', quand: () => CULTURES.some((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)),
+    pages: [() => `Avant une vague, ton perso peut <em>manger</em> une récolte de ta grange : la <em>Cawotte</em> donne +20 % de dégâts, la <em>Fraise</em> +30 % de prospection (plus de butin), pendant la vague suivante.`,
+      () => `Ça se passe dans la fenêtre <em>Vagues</em>, partie « Avant la bataille : manger ». Pense-y avant un boss !`] },
+  { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les raids sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
+    pages: [() => `Des <em>voleurs de VSA</em> arrivent ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par le bord.`,
+      () => `Abats-les avant qu'ils quittent la ferme : ce qu'ils portent revient à ta grange, et ils ont quelques kamas sur eux. L'<em>arbalète</em> de la grange et tes <em>tours</em> tirent seules, avec les flèches de ta réserve (HDV).`,
+      () => `Un raid arrive toutes les 8 h de jeu environ, annoncé 30 s avant. Une grange en ruine les laisse emporter deux fois plus.`] },
+  { id: 'tours', titre: 'Les tours de défense', ico: 'tour', resume: 'Les construire, les placer, les monter.', quand: () => niveau(S_.xp) >= NIV_TOUR && !nbTours(),
+    pages: [() => `Niveau ${NIV_TOUR} : tu peux construire des <em>tours de défense</em>. ${toucherQ('une case d\'herbe libre').replace(/^./, (x) => x.toUpperCase())}, puis Tour de défense. Jusqu'à ${TOURS_MAX} tours.`,
+      () => `Elles tirent seules sur les monstres et les voleurs, avec les <em>flèches</em> de ta réserve. Place-les près de la grange et des champs, là où passent les monstres. Chaque tour se monte de niveau à part (bouton Améliorer).`] },
+  { id: 'boss', titre: 'Les boss', ico: () => PALIERS[palierDe(vagueCourante())].icone, resume: 'Les zones rouges, sa troupe, la rage.', fenetre: 'vagues', quand: () => vagueBoss(vagueCourante()),
+    pages: [() => `La prochaine vague est celle d'un <em>boss</em> : beaucoup de PV, et un <em>sort spécial</em> annoncé par une zone rouge au sol. Quand elle apparaît, sors-en vite !`,
+      () => `Sa <em>troupe le protège</em> : chaque monstre près de lui retire 12 % de tes dégâts, jusqu'à 60 %. Et il en rappelle deux toutes les ${RAPPEL_TROUPE} s. Dégage la troupe, puis frappe le boss avant qu'elle revienne.`,
+      () => `Sous 30 % de vie, il entre en <em>rage</em> : il frappe et lance son sort plus souvent. Garde ton ulti pour la fin. Bien préparé, ça passe : tours, arbalète, équipement, un bon repas.`] },
+  { id: 'elevage', titre: 'L\'élevage', ico: 'bouftou', resume: 'Faire un petit, le Bouftou noir.', quand: () => S_.bouftous.filter(adulte).length >= 2,
+    pages: [() => `Tu as deux Bouftous adultes : ils peuvent faire un <em>petit</em> ! Ouvre l'<em>enclos</em> : il faut ${COUT_REPRO} Houblon (une culture du niveau 15) et deux adultes reposés.`,
+      () => `Le bébé grandit en 4 h s'il est bien nourri, et les parents se reposent 8 h avant le suivant. Un Bouftou nourri fait de la <em>laine</em>, qui se vend ${LAINE.prix} kamas pièce.`,
+      () => `Parfois naît un <em>Bouftou noir</em> : sa laine vaut ${LAINE_NOIRE.prix} kamas. Plus il y a de noirs parmi les parents, plus les chances montent : 10 %, 25 %, puis 50 %.`] },
+  { id: 'defis', titre: 'Défis du jour', ico: 'coffre', resume: 'Trois défis par jour, le cadeau de connexion.', quand: () => niveau(S_.xp) >= 2,
+    pages: [() => `Chaque jour, <em>3 défis</em> t'attendent (en haut à gauche, bouton Voir) : récolter, vendre, arroser... Chacun rapporte des kamas et de l'XP.`,
+      () => `Et chaque jour où tu reviens, un <em>cadeau</em>, un peu plus gros si tu viens tous les jours d'affilée.`] },
+  { id: 'revanche', titre: 'La revanche', ico: 'bouftou-royal', resume: 'Rejouer un boss, sa coiffe légendaire.', quand: () => S_.vague.num > VAGUES_PALIER,
+    pages: [() => `Un boss battu se <em>rejoue une fois par jour</em>, remis à ton niveau : en bas de la fenêtre Vagues. Ses kamas et son XP baissent à chaque victoire, mais son butin reste le même.`,
+      () => `Chaque boss a 2 % de chance de lâcher sa <em>coiffe légendaire</em>, avec un pouvoir unique. La Prospection augmente tes chances.`] }
+];
+const lecon = { ouverte: null, page: 0, el: null, derniere: 0, relire: false };
+const icoLecon = (L) => (typeof L.ico === 'function' ? L.ico() : L.ico);
+function leconsVues() { /* une ferme deja avancee a l'arrivee des lecons : celles dont le moment est passe vont directement au carnet */
+  if (!S_.lecons) { S_.lecons = {}; if (niveau(S_.xp) >= 3) LECONS.forEach((L) => { try { if (!L.fenetre && L.quand()) S_.lecons[L.id] = true; } catch (e) { /* rien */ } }); }
+  return S_.lecons;
+}
+function surveillerLecons() { /* dans tick (toutes les 500 ms) : la premiere lecon dont le moment est venu */
+  if (!S_ || !S_.perso || S_.leconsOff || lecon.ouverte || tuto.actif || enPause || enAccueil) return;
+  const vues = leconsVues();
+  for (const L of LECONS.filter((x) => x.urgent).concat(LECONS.filter((x) => !x.urgent))) { /* (le raid d'abord : il n'attend que 30 s) */
+    if (vues[L.id]) continue; let ok = false; try { ok = L.quand(); } catch (e) { ok = false; } if (!ok) continue;
+    if (L.fenetre ? modaleOuverte !== L.fenetre : !!modaleOuverte) continue;
+    if (combat) continue;
+    if (!L.fenetre && !L.urgent && tempsReel() - lecon.derniere < 40000) return; /* (pas deux lecons a la suite : 40 vraies secondes entre deux) */
+    ouvrirLecon(L.id); return;
+  }
+}
+function ouvrirLecon(id, relire) {
+  const L = LECONS.find((x) => x.id === id); if (!L) return;
+  if (!lecon.el) {
+    lecon.el = document.createElement('div'); lecon.el.id = 'lecon'; lecon.el.hidden = true; document.body.appendChild(lecon.el);
+    lecon.el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+      if (b.hasAttribute('data-lecon-passer')) fermerLecon();
+      else if (b.hasAttribute('data-lecon-retour')) { lecon.page = Math.max(0, lecon.page - 1); dessinerLecon(); }
+      else if (b.hasAttribute('data-lecon-suivant')) { if (lecon.page + 1 >= lecon.ouverte.pages.length) fermerLecon(); else { lecon.page++; dessinerLecon(); } } });
+  }
+  lecon.ouverte = L; lecon.page = 0; lecon.relire = !!relire;
+  if (!relire) { leconsVues()[id] = true; sauver(); }
+  mettrePause(true, true); son('quete'); dessinerLecon();
+}
+function dessinerLecon() {
+  const L = lecon.ouverte; if (!L || !lecon.el) return; const n = lecon.page, N = L.pages.length, der = n + 1 >= N;
+  lecon.el.innerHTML = '<div class="carte-lecon" role="dialog" aria-label="Leçon de Pépito : ' + L.titre + '"><div class="tete"><b>Pépito</b> Leçon' + (N > 1 ? ' ' + (n + 1) + ' sur ' + N : '') + '<span class="points">' + L.pages.map((_, k) => '<i class="' + (k < n ? 'ok' : k === n ? 'ici' : '') + '"></i>').join('') + '</span></div>' +
+    '<h2>' + L.titre + '</h2><div class="corps"><img src="assets/icones/' + icoLecon(L) + '.png?v=' + VERSION_MODELES + '" alt=""><p>' + L.pages[n]() + '</p></div>' +
+    '<div class="boutons">' + (der ? '' : '<button class="passer" data-lecon-passer>' + (lecon.relire ? 'Fermer' : 'Passer') + '</button>') + (n > 0 ? '<button class="btn discret" data-lecon-retour>Retour</button>' : '') + '<button class="btn kamas" data-lecon-suivant>' + (der ? 'Compris !' : 'Suivant') + '</button></div></div>';
+  lecon.el.hidden = false;
+}
+function fermerLecon() {
+  lecon.ouverte = null; lecon.derniere = tempsReel(); if (lecon.el) { lecon.el.innerHTML = ''; lecon.el.hidden = true; } mettrePause(false);
+}
+function ouvrirCarnet() {
+  const vues = leconsVues(), nb = LECONS.filter((L) => vues[L.id]).length;
+  ouvrirModale('carnet', entete('Le carnet de Pépito') + '<p style="font-size:.82rem;font-weight:600;margin:0 0 8px">Les leçons de Pépito arrivent au moment où tu en as besoin. Celles que tu as déjà vues se relisent ici : ' + nb + ' sur ' + LECONS.length + '.</p>' +
+    LECONS.map((L) => { const vue = !!vues[L.id]; let ic = 'cadenas'; try { ic = icoLecon(L); } catch (e) { /* rien */ }
+      return '<div class="art' + (vue ? '' : ' grise') + '">' + ico(vue ? ic : 'cadenas') + '<div><b>' + L.titre + '</b><div class="desc">' + L.resume + '</div></div><div class="act">' + (vue ? '<button class="btn discret" data-relire="' + L.id + '">Relire</button>' : '<span class="cadenas">Plus tard</span>') + '</div></div>'; }).join('') +
+    '<div class="art">' + ico('cloche') + '<div><b>Les leçons</b><div class="desc">' + (S_.leconsOff ? 'Coupées : Pépito ne t\'en propose plus de nouvelles.' : 'Pépito t\'en propose une quand un nouveau sujet arrive.') + '</div></div><div class="act"><button class="btn discret" data-lecons-bascule>' + (S_.leconsOff ? 'Les remettre' : 'Les couper') + '</button></div></div>');
+}
 /* ===================== LE TUTO DU DEBUT (11/10/2026) =====================
    « faudrait creer un petit tuto du debut, les trucs de base », puis « y'a pas eu le tuto de depart » (Mathieu, retours de la beta sur tablette).
    Pepito guide 9 etapes (maquette maquettes/ferme-amakna-tuto.png) : la case a toucher brille avec une fleche, la carte en bas dit quoi faire,
@@ -5566,6 +5705,7 @@ $('b-pause').addEventListener('click', (e) => { e.stopPropagation(); mettrePause
 $('b-reprendre').addEventListener('click', (e) => { e.stopPropagation(); mettrePause(false); });
 addEventListener('keydown', (e) => { /* P : pause et reprise ; Echap reprend aussi (pas quand on ecrit dans un champ) */
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (lecon.ouverte) return; /* (pendant une lecon, c'est elle qui tient la pause) */
   if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);
 });
 demarrer();
