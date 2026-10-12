@@ -2103,9 +2103,12 @@ function habillerPerso(g) {
     c.scale.multiplyScalar(k); if (t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
     const b1 = unionDe(corpsC.length ? corpsC : [c]), c1 = b1.getCenter(new T.Vector3()), bas0 = Math.max(bt.min.y + st.y * 0.52, bt.max.y + 0.04 - (b1.max.y - b1.min.y));
     c.position.add(new T.Vector3(ct.x - c1.x, bas0 - b1.min.y, ct.z - c1.z)); eq.add(c);
-    if (pc.some((m) => /^(calotte|bonnet|coussin|casque|os|crane)$/.test(nomP(m)))) { /* sous une coiffe fermee, la chevelure se tasse un peu */
-      const f = 0.86, piv = new T.Vector3(ct.x, bt.min.y + st.y * 0.3, ct.z);
-      corpsP.filter((o) => /^cheveux/.test(nomP(o))).forEach((o) => { const P = o.parent.worldToLocal(piv.clone()); o.position.sub(P).multiplyScalar(f).add(P); o.scale.multiplyScalar(f); });
+    if (pc.some((m) => /^(calotte|bonnet|coussin|casque|os|crane)$/.test(nomP(m)))) { /* sous une coiffe fermee, le dessus de la chevelure s'aplatit (elle traversait) ;
+      « on dirait qu'il a des trous dans les cheveux » (Mathieu, 12/10/2026) : avant, toute la chevelure retrecissait et decouvrait le crane entre les meches */
+      const yp = bt.min.y + st.y * 0.5, fy = 0.78;
+      corpsP.filter((o) => /^cheveux/.test(nomP(o))).forEach((o) => { const g0 = o.geometry, M = o.matrixWorld.clone(), Mi = M.clone().invert(), P = g0.attributes.position, v = new T.Vector3(), geo = g0.clone(), Q = geo.attributes.position;
+        for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(M); if (v.y > yp) v.y = yp + (v.y - yp) * fy; v.applyMatrix4(Mi); Q.setXYZ(i, v.x, v.y, v.z); }
+        Q.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere(); o.children.forEach((k) => { if (k.isMesh && k.geometry === g0) k.geometry = geo; }); o.geometry = geo; });
     }
   }
   if (cape) {
