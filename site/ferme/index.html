@@ -3477,6 +3477,13 @@ function apparaitre(type, pres) {
   combat.monstres.push({ id, type, d, m, echelle: m.scale.x, barre, pv: Math.round(pvMonstre(type, combat.n) * facteurRejoue()), pvMax: Math.round(pvMonstre(type, combat.n) * facteurRejoue()), deg: Math.round(degMonstre(type, combat.n) * facteurRejoue()), x, z, y: q.y, ry, dep, sortie: { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 + (d.vol || 0), ombreM });
 }
 /* le monstre (ou le voleur) le plus proche du clic a l'ecran : sa silhouette des pieds a la tete, elargie d'une marge (plus grande au doigt) */
+function bouftouEcran(e) { /* le Bouftou le plus proche du clic a l'ecran (trouve en jouant le tuto au PC le 12/10/2026 : un Bouftou colle a la cloture, le clic droit tombait sur la cloture et ouvrait l'enclos au lieu de le nourrir) */
+  const r = rendu.domElement.getBoundingClientRect(), marge = e.pointerType === 'touch' || e.pointerType === 'pen' ? 22 : 8, ecran = (v) => { v.project(camera); return [(v.x + 1) / 2 * r.width + r.left, (1 - v.y) / 2 * r.height + r.top]; };
+  let best = null, bd = Infinity;
+  bouftousMesh.forEach((m, k) => { if (!m.visible || !S_.bouftous[k]) return; const b = new T.Box3().setFromObject(m), c = b.getCenter(new T.Vector3()), [x, y] = ecran(c.clone()), [, yh] = ecran(c.clone().setY(b.max.y)), d = Math.hypot(e.clientX - x, e.clientY - y);
+    if (d < Math.abs(y - yh) * 1.15 + marge && d < bd) { bd = d; best = k; } });
+  return best;
+}
 function cibleEcran(e) {
   const L = [], marge = e.pointerType === 'touch' || e.pointerType === 'pen' ? 30 : 16, r = rendu.domElement.getBoundingClientRect();
   if (combat) combat.monstres.forEach((mo) => { if (mo.etat === 'actif' && mo.m) L.push([mo.m.position, mo.haut || 1.6, mo.id]); });
@@ -4247,6 +4254,7 @@ canvas.addEventListener('pointerup', (e) => {
     const action = agir || mode; /* en amenageant, le clic garde son role de selection */
     if (bouftou !== null && mode !== 'enclos') { if (action) toucherBouftou(bouftou); else allerVers(S_.cases.find((c) => c.type === 'enclos')); return; }
     if (terrain !== null) { ACTIONS.acheterTerrain(terrain); return; }
+    if (cellule && action && !mode) { const ce = S_.cases.find((c) => c.id === cellule); if (ce && ce.type === 'enclos') { const k = bouftouEcran(e); if (k !== null) { toucherBouftou(k); return; } } } /* un Bouftou contre la cloture : c'est lui qu'on vise, pas l'enclos */
     if (cellule) { if (action) ACTIONS.toucherCase(cellule); else allerVers(cellule); sauver(); return; }
     if (h.object.material && h.object.material.transparent) continue;
     /* un objet de decor (grange, HDV...) : on cherche la case sous lui */
