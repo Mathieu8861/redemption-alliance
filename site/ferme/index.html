@@ -464,7 +464,14 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .art .puce.neuf { background: var(--or); color: var(--encre); vertical-align: 2px; } .art .puce.mieux { background: #2d8a1e; color: #fff; vertical-align: 2px; }
 .art.objet .act.mini { flex-direction: column; align-items: stretch; max-width: 112px; } .art.objet .act .btn.mini { white-space: normal; } /* les boutons l'un sur l'autre : la place va aux caracteristiques */
 .art .compare { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; } .art .compare small { font-size: .66rem; font-weight: 700; color: #8a7a68; }
-.pano-bonus { font-size: .72rem; font-weight: 700; background: #eef6e6; border: 2px solid #cfe3bf; border-radius: 10px; padding: 5px 8px; margin-top: 8px; color: #2d6a1e; }
+.pano-bonus { font-size: .72rem; font-weight: 700; background: #f6f1e4; border: 2px solid #e4d6b4; border-radius: 10px; padding: 6px 8px; margin-top: 8px; color: #5b5240; }
+.pano-bonus > b { display: block; font: 400 .9rem/1.1 var(--f-titre); color: var(--encre); margin-bottom: 4px; }
+.pano-bonus .paliers { display: grid; gap: 3px; } .pano-bonus .paliers span { background: #fff; border: 1.5px solid #e6d9bd; border-radius: 8px; padding: 2px 7px; color: #8a7a5a; }
+.pano-bonus .paliers span.actif { background: #dff1d3; border-color: #a9d38f; color: #2d6a1e; }
+.pic.img.rare, .slot.rare, .gain-coffre img.rare { box-shadow: 0 0 0 2.5px var(--or), 0 0 10px rgba(242, 182, 48, .8); }
+.btn-bestiaire { display: flex; justify-content: center; margin-top: 10px; }
+.best-note { font-size: .72rem; font-weight: 700; color: #6b5a3a; margin: 6px 0 0; } .best-verrou { font-size: .76rem; font-weight: 700; color: #8a7a5a; margin: 4px 0 2px; }
+.best-drops { margin-top: 4px; } .art.pas-eu .pic.img img { filter: grayscale(.85) opacity(.6); }
 .action .tuile b.nouveau { background: var(--rouge); }
 /* ---- les batiments ont des PV : une petite barre au-dessus de ceux qui ont ete touches (on la touche pour reparer) ---- */
 #bats-pv { position: absolute; inset: 0; pointer-events: none; }
@@ -697,10 +704,26 @@ const LEGENDAIRES = [
   { cle: 'croc', boss: 'crocabulia', nom: 'Heaume de Crocabulia', pouvoir: 'Tu craches un cône de feu toutes les 8 s, pendant les vagues : 3 fois tes dégâts, et les monstres touchés brûlent.' }
 ];
 LEGENDAIRES.forEach((L, i) => { const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
+/* les armes : l'epee du Iop, l'arc du Cra, le fouet de l'Osamodas, aux couleurs de chaque panoplie (icones arme-<type>-<panoplie>, equipements.glb).
+   Elles ne tombent que sur les boss, pour ta classe, et ne comptent dans aucune panoplie */
+const ARMES = { iop: ['epee', 'Épée'], cra: ['arc', 'Arc'], osa: ['fouet', 'Fouet'] };
+const EMPLACEMENTS_PERSO = EMPLACEMENTS.concat([['arme', 'Arme']]);
+PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { const id = 'arme-' + t + '-' + P.id; OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats: { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] } }; }));
+/* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
+const CHANCE_RARE = 0.01;
+Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
+const tirerRare = (id, pros) => (OBJETS[id + '-rare'] && Math.random() < CHANCE_RARE * (pros || 1) ? id + '-rare' : id);
+const iconeObjet = (k) => { const o = OBJETS[k]; return o ? o.icone || 'obj-' + (o.base || k) : 'obj-' + k; };
+const icoObjet = (k) => { const h = ico(iconeObjet(k)); return OBJETS[k] && OBJETS[k].rare ? h.replace('class="pic img', 'class="pic img rare') : h; };
+const nomClasse = (id) => (CLASSES.find((c) => c.id === id) || {}).nom || id;
 const legPorte = (cle) => !!(S_ && S_.equip && S_.equip.coiffe === 'leg-' + cle);
 const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
-const bonusPano = (k, n) => Object.assign({}, n >= 3 ? { vita: VALEURS.vita[k] } : {}, n >= 6 ? { puissance: VALEURS.puissance[k], prospection: 10 } : {});
-const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = OBJETS[id]; if (o && !o.leg) c[o.pano] = (c[o.pano] || 0) + 1; }); return c; };
+/* les bonus de panoplie, renforces et par paliers : 2, 4 puis 6 pieces (avant : 3 et 6), chaque palier s'ajoute au precedent */
+const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];
+const bonusPano = (k, n) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(f(k)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
+const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = OBJETS[id]; if (o && !o.leg && !o.arme) c[o.pano] = (c[o.pano] || 0) + 1; }); return c; };
+const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
+const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(f(k)) + '</span>').join('') + '</div></div>';
 function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = OBJETS[id]; if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
@@ -708,11 +731,11 @@ function caracs() {
   try { if (combat && combat.boostPros) t.prospection += combat.boostPros; } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague */
   return t;
 }
-const reventeObjet = (id) => 40 * OBJETS[id].niv;
+const reventeObjet = (id) => 40 * OBJETS[id].niv * (OBJETS[id].rare ? 3 : 1);
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {
-  const o = OBJETS[id], porte = S_.equip[o.emp], q = porte ? OBJETS[porte] : null, ok = niveau(S_.xp) >= o.niv;
+  const o = OBJETS[id], porte = S_.equip[o.emp], q = porte ? OBJETS[porte] : null, ok = niveau(S_.xp) >= o.niv && (!o.classe || o.classe === classeDe());
   if (!q) return { html: '<span class="puce bonne">emplacement vide</span>', mieux: ok, ok };
   const cles = [...new Set([...Object.keys(o.stats), ...Object.keys(q.stats)])], ecarts = cles.map((k) => [k, (o.stats[k] || 0) - (q.stats[k] || 0)]).filter(([, d]) => d);
   const mieux = ok && ecarts.length > 0 && ecarts.every(([, d]) => d > 0) && (!q.pouvoir || o.pouvoir), pareil = !ecarts.length;
@@ -1396,8 +1419,9 @@ const ACTIONS = {
   equiper(id) {
     const o = OBJETS[id]; if (!o || !(S_.sac[id] > 0)) return;
     if (niveau(S_.xp) < o.niv) { toast(o.nom + ' : il faut le niveau ' + o.niv + '.'); return; }
+    if (o.classe && o.classe !== classeDe()) { toast(o.nom + ' : arme du ' + nomClasse(o.classe) + ', tu peux la revendre.'); return; }
     const avant = S_.equip[o.emp]; setTimeout(() => compter('equipes', 0), 0); S_.sac[id]--; if (!S_.sac[id]) delete S_.sac[id]; if (avant) S_.sac[avant] = (S_.sac[avant] || 0) + 1; S_.equip[o.emp] = id;
-    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver();
+    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver();
   },
   retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); },
   revendreObjet(id) {
@@ -2848,7 +2872,7 @@ function reclamerDefi(k) {
 function ouvrirCoffre() {
   const J = jourCourant(); if (!J || J.coffre || !J.defis.every((d) => d.reclame)) return;
   J.coffre = true; const kamas = 150 + 40 * niveau(S_.xp); S_.kamas += kamas; let objet = '';
-  if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); objet = id; } /* (l'identifiant : l'animation montre la piece) */
+  if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = tirerRare(hasard(neufs.length ? neufs : ids)); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); objet = id; } /* (l'identifiant : l'animation montre la piece) */
   rendreHaut(); rendreObjectif(); sauver(); animerCoffre(kamas, objet);
 }
 /* le coffre arrive ferme, tremble, s'ouvre dans un eclair (images coffre-ferme / coffre-ouvert, generer-coffre.html), puis les gains sortent un par un */
@@ -2856,7 +2880,7 @@ function animerCoffre(kamas, id) {
   const o = id && OBJETS[id], v = '?v=' + VERSION_MODELES;
   ouvrirModale('coffre', entete('Le coffre du jour') + '<div class="ouverture-coffre"><div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><div class="eclair"></div></div>' +
     '<div class="gains-coffre"><div class="gain-coffre"><img src="assets/icones/kama.png' + v + '" alt=""><b>+' + fmt(kamas) + ' kamas</b></div>' +
-    (o ? '<div class="gain-coffre objet"><img src="assets/icones/obj-' + id + '.png' + v + '" alt=""><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
+    (o ? '<div class="gain-coffre objet"><img src="assets/icones/' + iconeObjet(id) + '.png' + v + '" alt=""' + (o.rare ? ' class="rare"' : '') + '><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
     '<div class="boutons">' + (o ? '<button class="btn discret" data-coffre-fiche>Voir dans ma fiche</button>' : '') + '<button class="btn kamas" data-coffre-ok>Super !</button></div></div>');
   const sc = document.querySelector('.scene-coffre'), z = document.querySelector('.ouverture-coffre'), plus = (f, ms) => setTimeout(() => { if (modaleOuverte === 'coffre') f(); }, ms);
   const gains = [...z.querySelectorAll('.gain-coffre')];
@@ -3110,7 +3134,41 @@ function ouvrirVagues() {
   const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : prepa > 0 ? '<button class="btn vg-lancer" disabled>La vague ' + n + ' se prépare : ' + dureeLisible(prepa) + '</button>' : tropBas ? '<button class="btn vg-lancer" disabled>Niveau ' + requis + ' requis (tu es niveau ' + st.niveau + ')</button>' : '<button class="btn kamas vg-lancer" data-lancer-vague>' + (fini ? 'Rejouer la vague ' + n : 'Lancer la vague ' + n) + '</button>';
   ouvrirModale('vagues', entete(fini ? 'Tous les paliers terminés' : 'Vague ' + n + ' (' + (n - base) + ' sur ' + VAGUES_PALIER + ')') + '<div class="vg-sous">' + nomPalier(P) + ' : ' + PALIERS[P].nom + '. ' + (fini ? leNom(B) + ' est tombé' + ac(B) + ', la suite arrive bientôt.' : leNom(B) + ' attend à la vague ' + (base + VAGUES_PALIER) + '.') + '</div><div class="vg-piste">' + piste + '</div>' +
     '<div class="hdv-section">Ils arrivent</div><div class="vg-monstres">' + monstres + '</div><div class="hdv-section">Ton perso</div>' + perso + arb + '<div class="hdv-section">À gagner</div>' + gains + sectionRepas() + bouton + sectionRejouerBoss() +
-    '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Certains monstres vont frapper tes bâtiments : va les chasser, sinon il faudra réparer. Après chaque victoire, la vague suivante se prépare un moment (de quelques minutes au début à quelques heures à la fin) : le temps de faire tourner ta ferme. Chaque vague demande un niveau minimum. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>');
+    '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Certains monstres vont frapper tes bâtiments : va les chasser, sinon il faudra réparer. Après chaque victoire, la vague suivante se prépare un moment (de quelques minutes au début à quelques heures à la fin) : le temps de faire tourner ta ferme. Chaque vague demande un niveau minimum. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>' +
+    '<div class="btn-bestiaire"><button class="btn discret" data-bestiaire="monstres">📖 Bestiaire et butin</button></div>');
+}
+/* le Bestiaire et butin (valide le 11/10/2026) : chaque monstre avec ses PV, ses degats et ce qu'il lache (avec ta Prospection),
+   chaque panoplie avec ses pieces, son arme, ses bonus et ou la trouver. Les paliers pas encore atteints restent a decouvrir. */
+function ouvrirBestiaire(onglet) {
+  onglet = onglet || ouvrirBestiaire.dernier || 'monstres'; ouvrirBestiaire.dernier = onglet;
+  const c = caracs(), pros = 1 + c.prospection / 100, ar = ARMES[classeDe()];
+  const pc = (x) => { const v = Math.min(1, x) * 100; return (v < 10 ? (Math.round(v * 10) / 10) : Math.round(v)).toString().replace('.', ',') + ' %'; };
+  const atteint = (P) => S_.vague.num > P * VAGUES_PALIER;
+  const leN = (M) => { const n = leNom(M); return n.charAt(0).toLowerCase() + n.slice(1); }; /* « sur le Bouftou Royal » */
+  const tete = '<div class="hdv-tete">' + [['monstres', 'Monstres'], ['panoplies', 'Panoplies']].map(([k, t]) => '<button class="btn" data-bestiaire="' + k + '" aria-pressed="' + (onglet === k) + '">' + t + '</button>').join('') + '</div>' +
+    '<p class="best-note">Les chances tiennent compte de ta Prospection (+' + c.prospection + ' %). Une pièce sur 100 sort <b>rare ★</b> : stats +50 %.</p>';
+  const corps = PALIERS.map((Pa, P) => {
+    const base = P * VAGUES_PALIER, titre = '<div class="hdv-section">' + nomPalier(P) + ' : ' + Pa.nom + ' (vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ')</div>';
+    if (!atteint(P)) return titre + '<p class="best-verrou">🔒 À découvrir en atteignant la vague ' + (base + 1) + '.</p>';
+    const Pn = PANOS[Math.min(P, PANOS.length - 1)], B = MONSTRES[Pa.boss], leg = LEGENDAIRES.find((x) => x.boss === Pa.boss);
+    if (onglet === 'monstres') {
+      const types = {}; for (let n = base + 1; n <= base + VAGUES_PALIER; n++) compoVague(n).forEach(([t]) => { (types[t] = types[t] || []).push(n); });
+      return titre + Object.entries(types).map(([t, ns]) => { const M = MONSTRES[t], n0 = ns[0], n1 = ns[ns.length - 1], r = M.res || RES_MONSTRE[t], ecart = (f) => { const a = f(n0), b = f(n1); return a === b ? fmt(a) : fmt(a) + ' à ' + fmt(b); };
+        const drops = [r ? (M.boss ? '5 ' + PAR_ID[r].nom + ' (100 %)' : PAR_ID[r].nom + ' ' + pc(0.35 * pros)) : '',
+          M.boss ? 'une pièce ' + Pn.de + ' (100 % la 1re fois, puis 40 %)' : 'une pièce ' + Pn.de + ' ' + pc((t === 'tofu' ? 0.02 : 0.07) * pros),
+          M.boss && ar ? ar[1] + ' ' + Pn.de + ' (100 % la 1re fois, puis ' + pc(0.25 * pros) + ')' : '',
+          M.boss && LEGENDAIRES.find((x) => x.boss === t) ? '✦ ' + OBJETS['leg-' + LEGENDAIRES.find((x) => x.boss === t).cle].nom + ' ' + pc(CHANCE_LEG * pros) : ''].filter(Boolean);
+        return '<div class="art">' + ico(M.icone) + '<div><b>' + M.nom + (M.boss ? ' <span class="puce leg">boss</span>' : '') + '</b><div class="desc">' + M.desc + '</div>' +
+          '<div class="puces"><span class="puce">❤ ' + ecart((n) => pvMonstre(t, n)) + ' PV</span><span class="puce">⚔ ' + ecart((n) => Math.round(degMonstre(t, n) * multDegats(n))) + '</span><span class="puce">vagues ' + n0 + (n1 > n0 ? ' à ' + n1 : '') + '</span></div>' +
+          '<div class="puces best-drops">' + drops.map((d) => '<span class="puce bonne">🎁 ' + d + '</span>').join('') + '</div></div><div></div></div>'; }).join('');
+    }
+    const pieces = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e).concat(ar ? ['arme-' + ar[0] + '-' + Pn.id] : []);
+    return titre + pieces.map((id) => { const o = OBJETS[id], eu = possede(id) || possede(id + '-rare');
+      return '<div class="art' + (eu ? '' : ' pas-eu') + '">' + icoObjet(id) + '<div><b>' + o.nom + (eu ? ' <span class="puce bonne">✓ obtenue</span>' : '') + '</b><div class="puces">' + statsObjet(o) + '<span class="puce">niveau ' + o.niv + '</span></div>' +
+        '<div class="desc">' + (o.arme ? 'Sur ' + leN(B) + ' seulement, pour ta classe.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
+      blocPano(P, comptePanos()[P] || 0) + (leg ? '<div class="art">' + icoObjet('leg-' + leg.cle) + '<div><b>✦ ' + OBJETS['leg-' + leg.cle].nom + '</b><div class="puces">' + statsObjet(OBJETS['leg-' + leg.cle]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
+  }).join('');
+  ouvrirModale('bestiaire', entete('Bestiaire et butin') + tete + corps);
 }
 /* rejouer un boss deja battu : une fois par jour et par boss, remis a ton niveau, la moitie des kamas et de l'XP, son butin et sa coiffe legendaire (2 %) */
 const jourJeu = () => new Date(tempsReel()).toDateString();
@@ -3210,9 +3268,14 @@ function butin(mo) {
   if (r && Math.random() < (mo.d.boss ? 1 : 0.35) * pros) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros;
   if (Math.random() < chance) {
-    const P = PANOS[palierDe(combat.n)], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids);
-    S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id);
-    chiffre('★ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast('Butin : ' + OBJETS[id].nom + ' ! Équipe-le dans la fiche du perso.', 'or'); rendreHaut();
+    const P = PANOS[palierDe(combat.n)], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = tirerRare(hasard(neufs.length ? neufs : ids), pros);
+    S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id); if (OBJETS[id].rare) { son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630'); }
+    chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
+  }
+  const ar = mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + PANOS[palierDe(combat.n)].id;
+  if (arme && OBJETS[arme] && Math.random() < (deja ? 0.25 * pros : 1)) { /* l'arme de ta classe : a coup sur la premiere fois, puis une fois sur 4 */
+    const id = tirerRare(arme, pros); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id);
+    chiffre('⚔ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.9, mo.z), 'butin'); toast('Arme : ' + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }
   const leg = mo.d.boss && LEGENDAIRES.find((x) => x.boss === mo.type);
   if (leg && Math.random() < CHANCE_LEG * pros) { /* la coiffe legendaire du boss */
@@ -3234,10 +3297,10 @@ function butinVoleur(monte, L) {
   L = L || { res: {}, objets: [], kamas: 0 };
   if (Math.random() < 0.5 * pros) { const n = (monte ? 2 : 1) * (1 + Math.floor(Math.random() * 2)); S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   const bourse = Math.round((5 + 2 * forceVoleur()) * (monte ? 2 : 1) * (0.6 + Math.random() * 0.8)); S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
-  if (Math.random() < (monte ? 0.08 : 0.04) * pros) { const P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id); toast('Sur le voleur : ' + OBJETS[id].nom + ' !', 'or'); }
+  if (Math.random() < (monte ? 0.08 : 0.04) * pros) { const P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = tirerRare(hasard(neufs.length ? neufs : ids), pros); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); L.objets.push(id); toast('Sur le voleur : ' + OBJETS[id].nom + ' !', 'or'); }
   rendreGrange(); rendreHaut(); return L;
 }
-const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => '★ ' + OBJETS[id].nom)).filter(Boolean).join(', ');
+const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => OBJETS[id].nom)).filter(Boolean).join(', ');
 const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); return sac; }; /* le sac de butin sur son dos */
 const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MONSTRES[Math.max(0, palierDe(Math.max(1, n || 1)))] || 1;
 function blesserPerso(n, mo) {
@@ -3662,7 +3725,7 @@ function finVague(gagne, fuite) {
     corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Ton perso n\'a pas besoin de repos : tu peux relancer quand tu veux.' : 'Ton perso se repose ' + dureeLisible(REPOS_VAGUE) + ' avant de pouvoir relancer. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
   }
   if (c.loot && (Object.keys(c.loot.res).length || c.loot.objets.length)) corps += '<div class="hdv-section">Butin</div>' + /* une ligne par objet et par ressource, chacun avec son icone (demande de Mathieu, 11/10/2026) */
-    [...new Set(c.loot.objets)].map((id) => { const o = OBJETS[id], nb = c.loot.objets.filter((x) => x === id).length; return '<div class="art">' + ico('obj-' + id) + '<div><b>' + (o.leg ? '✦ ' : '★ ') + o.nom + (nb > 1 ? ' ×' + nb : '') + '</b><div class="puces">' + statsTexte(o.stats) + '</div></div><div class="act"><button class="btn kamas" data-perso-slot="' + o.emp + '">Équiper</button></div></div>'; }).join('') +
+    [...new Set(c.loot.objets)].map((id) => { const o = OBJETS[id], nb = c.loot.objets.filter((x) => x === id).length; return '<div class="art">' + icoObjet(id) + '<div><b>' + (o.leg ? '✦ ' : '★ ') + o.nom + (nb > 1 ? ' ×' + nb : '') + '</b><div class="puces">' + statsTexte(o.stats) + '</div></div><div class="act"><button class="btn kamas" data-perso-slot="' + o.emp + '">Équiper</button></div></div>'; }).join('') +
     Object.entries(c.loot.res).map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>' + n + ' ' + PAR_ID[r].nom + '</b><div class="desc">À la grange, se vend à l’HDV (' + fmt(PAR_ID[r].prix) + ' ' + KAMA + ' pièce).</div></div><div></div></div>').join('');
   if (c.bats) { const L = Object.entries(c.bats); if (L.length) corps += '<div class="hdv-section">Bâtiments touchés</div>' + L.map(([k, n]) => '<div class="art">' + ico(ICO_BAT[typeCle(k)]) + '<div><b>' + Maj(nomBat(k)) + (enRuine(k) ? ' : en ruine' : ' : -' + fmt(n) + ' PV') + '</b><div class="desc">' + (enRuine(k) ? PERTE_RUINE[typeCle(k)] : 'Il lui reste ' + fmt(pvBat(k)) + ' PV sur ' + fmt(pvMaxBat(k)) + '.') + '</div></div><div class="act"><button class="btn kamas" ' + (enRuine(k) ? 'data-reconstruire="' + k + '">Reconstruire ' + fmt(coutReconstruire(k)) : 'data-reparer="' + k + '">Réparer ' + fmt(coutReparer(k))) + ' ' + KAMA + '</button></div></div>').join('');
     const aFaire = L.map(([k]) => k).filter((k) => degatsBat(k) || enRuine(k)), total = aFaire.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0);
@@ -4180,7 +4243,7 @@ function ouvrirGrange() {
   const menace = '<p style="font-size:.78rem;font-weight:600">Les voleurs de VSA ont maintenant <b>' + pvVoleur() + ' PV</b> : ils se renforcent à chaque vague gagnée.</p>';
   const divers = arb + (S_.filets ? '<div class="ligne"><b>Filets de capture</b><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="ligne"><b>Tofus capturés (volière)</b><span>' + S_.tofus + '</span></div>' : '');
   const sac = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0).sort((x, y) => OBJETS[y].niv - OBJETS[x].niv), portes = Object.values(S_.equip).filter(Boolean);
-  const butinH = '<div class="hdv-section">Butin des vagues</div>' + (sac.length ? sac.map((k) => '<div class="art">' + ico('obj-' + k) + '<div><b>' + OBJETS[k].nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsObjet(OBJETS[k]) + '<span class="puce">niveau ' + OBJETS[k].niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-perso-slot="' + OBJETS[k].emp + '">Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>').join('') : '<p style="font-size:.78rem;font-weight:600;margin:4px 0">Rien pour l\'instant : les monstres des vagues lâchent parfois une pièce d\'équipement, chaque boss en lâche une.</p>') +
+  const butinH = '<div class="hdv-section">Butin des vagues</div>' + (sac.length ? sac.map((k) => '<div class="art">' + icoObjet(k) + '<div><b>' + OBJETS[k].nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsObjet(OBJETS[k]) + '<span class="puce">niveau ' + OBJETS[k].niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-perso-slot="' + OBJETS[k].emp + '">Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>').join('') : '<p style="font-size:.78rem;font-weight:600;margin:4px 0">Rien pour l\'instant : les monstres des vagues lâchent parfois une pièce d\'équipement, chaque boss en lâche une.</p>') +
     (portes.length ? '<p style="font-size:.74rem;font-weight:700;margin:6px 0 0">Porté : ' + portes.map((k) => OBJETS[k].nom).join(', ') + '. <button class="btn discret mini" data-perso-slot="">Fiche du perso</button></p>' : '');
   ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
 }
@@ -4194,9 +4257,9 @@ function ouvrirPerso(slot) {
   if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; }
   const st = statsPerso(), c = st.c, cl = CLASSES.find((x) => x.id === classeDe()), l = st.niveau, a = seuil(l), b = seuil(l + 1); S_.nouveaux = 0; rendreHaut();
   const ligneObjet = (k, neuf) => { const o = OBJETS[k], cmp = comparer(k), porte = S_.equip[o.emp];
-    return '<div class="art objet' + (cmp.ok ? '' : ' verrou') + '">' + ico('obj-' + k) + '<div><b>' + o.nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + (neuf ? ' <span class="puce neuf">nouveau</span>' : '') + (cmp.mieux ? ' <span class="puce mieux">mieux</span>' : '') + '</b>' +
-      '<div class="puces">' + statsTexte(o.stats) + (cmp.ok ? '' : '<span class="puce mauvaise">niveau ' + o.niv + '</span>') + '</div>' +
-      '<div class="compare"><small>' + (porte ? 'Face à ta pièce : ' + OBJETS[porte].nom : EMPLACEMENTS.find(([e]) => e === o.emp)[1] + ' :') + '</small>' + cmp.html + '</div></div>' +
+    return '<div class="art objet' + (cmp.ok ? '' : ' verrou') + '">' + icoObjet(k) + '<div><b>' + o.nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + (neuf ? ' <span class="puce neuf">nouveau</span>' : '') + (cmp.mieux ? ' <span class="puce mieux">mieux</span>' : '') + '</b>' +
+      '<div class="puces">' + statsTexte(o.stats) + (cmp.ok ? '' : o.classe && o.classe !== classeDe() ? '<span class="puce mauvaise">arme du ' + nomClasse(o.classe) + '</span>' : '<span class="puce mauvaise">niveau ' + o.niv + '</span>') + '</div>' +
+      '<div class="compare"><small>' + (porte ? 'Face à ta pièce : ' + OBJETS[porte].nom : EMPLACEMENTS_PERSO.find(([e]) => e === o.emp)[1] + ' :') + '</small>' + cmp.html + '</div></div>' +
       '<div class="act mini"><button class="btn kamas mini" data-equiper="' + k + '"' + (cmp.ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>'; };
   const neufsIci = Object.keys(persoNeufs).filter((k) => S_.sac[k] > 0 && OBJETS[k]).sort((x, y) => (comparer(y).mieux - comparer(x).mieux) || OBJETS[y].niv - OBJETS[x].niv);
   const nouveautes = neufsIci.length ? '<div class="neufs"><div class="hdv-section">Nouveau dans ton sac</div>' + neufsIci.map((k) => ligneObjet(k, true)).join('') + '</div>' : '';
@@ -4207,15 +4270,15 @@ function ouvrirPerso(slot) {
   const sorts = '<div class="art">' + ico(classeDe()) + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">⚔ ' + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
     '<div class="art">' + ico(classeDe()) + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div></div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : ico('ulti-zone' + sufUlti())) + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc + ' Recharge ' + RECHARGE_ULTI + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button></div></div>';
-  const slots = '<div class="slots">' + EMPLACEMENTS.map(([e, nom]) => { const id = S_.equip[e], o = OBJETS[id], ici = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === e), dispo = ici.reduce((t, k) => t + S_.sac[k], 0);
+  const slots = '<div class="slots">' + EMPLACEMENTS_PERSO.map(([e, nom]) => { const id = S_.equip[e], o = OBJETS[id], ici = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === e), dispo = ici.reduce((t, k) => t + S_.sac[k], 0);
     const mieux = ici.some((k) => comparer(k).mieux), neuf = ici.some((k) => persoNeufs[k]);
-    return '<button class="slot' + (mieux ? ' a-voir' : '') + '" data-slot="' + e + '" aria-pressed="' + (slot === e) + '">' + (dispo ? '<span class="compte' + (mieux ? ' mieux' : neuf ? ' neuf' : '') + '">' + (mieux ? '↑ ' : '') + dispo + '</span>' : '') + (o ? '<img src="assets/icones/obj-' + id + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span class="vide">+</span>') + '<b>' + (o ? o.nom : nom) + '</b><small>' + (o ? Object.entries(o.stats).map(([k, v]) => CARACS[k][2] + '+' + v).join(' ') : dispo ? 'à équiper' : 'vide') + '</small>' + (dispo ? '<small class="reserve">' + (mieux ? 'mieux dans le sac' : dispo + ' dans le sac') + '</small>' : '') + '</button>'; }).join('') + '</div>' +
+    return '<button class="slot' + (mieux ? ' a-voir' : '') + (o && o.rare ? ' rare' : '') + '" data-slot="' + e + '" aria-pressed="' + (slot === e) + '">' + (dispo ? '<span class="compte' + (mieux ? ' mieux' : neuf ? ' neuf' : '') + '">' + (mieux ? '↑ ' : '') + dispo + '</span>' : '') + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span class="vide">+</span>') + '<b>' + (o ? o.nom : nom) + '</b><small>' + (o ? Object.entries(o.stats).map(([k, v]) => CARACS[k][2] + '+' + v).join(' ') : dispo ? 'à équiper' : 'vide') + '</small>' + (dispo ? '<small class="reserve">' + (mieux ? 'mieux dans le sac' : dispo + ' dans le sac') + '</small>' : '') + '</button>'; }).join('') + '</div>' +
     '<p class="aide-slots">Touche un emplacement pour voir les pièces de ton sac et les comparer à celle que tu portes.</p>';
-  const cp = comptePanos(), bonus = Object.entries(cp).filter(([, n]) => n >= 2).map(([k, n]) => { const P = PANOS[k], bo = bonusPano(+k, n); return '<div class="pano-bonus">Panoplie ' + P.de + ' : ' + n + '/6 pièces. ' + (Object.keys(bo).length ? 'Bonus actif : ' + Object.entries(bo).map(([c2, v]) => '+' + v + CARACS[c2][1]).join(', ') + '.' : 'À 3 pièces : +' + VALEURS.vita[k] + ' PV.') + (n < 6 ? ' Les 6 : +' + VALEURS.puissance[k] + ' % de dégâts et +10 % de butin en plus.' : '') + '</div>'; }).join('');
+  const cp = comptePanos(), bonus = Object.entries(cp).map(([k, n]) => blocPano(+k, n)).join('') + '<div class="btn-bestiaire"><button class="btn discret" data-bestiaire="panoplies">📖 Bestiaire et butin</button></div>';
   let choix = '';
   if (slot) {
-    const nomS = EMPLACEMENTS.find(([e]) => e === slot)[1], porte = S_.equip[slot], L = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === slot).sort((x, y) => OBJETS[y].niv - OBJETS[x].niv);
-    choix = '<div class="hdv-section">' + nomS + ' : dans ton sac</div>' + (porte ? '<div class="art">' + ico('obj-' + porte) + '<div><b>' + OBJETS[porte].nom + ' (portée)</b><div class="puces">' + statsObjet(OBJETS[porte]) + '</div></div><div class="act"><button class="btn discret" data-retirer="' + slot + '">Retirer</button></div></div>' : '') +
+    const nomS = EMPLACEMENTS_PERSO.find(([e]) => e === slot)[1], porte = S_.equip[slot], L = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && OBJETS[k].emp === slot).sort((x, y) => OBJETS[y].niv - OBJETS[x].niv);
+    choix = '<div class="hdv-section">' + nomS + ' : dans ton sac</div>' + (porte ? '<div class="art">' + icoObjet(porte) + '<div><b>' + OBJETS[porte].nom + ' (portée)</b><div class="puces">' + statsObjet(OBJETS[porte]) + '</div></div><div class="act"><button class="btn discret" data-retirer="' + slot + '">Retirer</button></div></div>' : '') +
       (L.length ? L.map((k) => ligneObjet(k, !!persoNeufs[k])).join('') : '<p style="font-size:.78rem;font-weight:600;margin:6px 0">Aucune autre pièce pour cet emplacement. Les monstres des vagues en lâchent parfois, et chaque boss en lâche une.</p>');
   }
   ouvrirModale('perso', entete('Fiche du personnage') + '<div class="fiche-tete"><img src="assets/icones/' + classeDe() + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + S_.perso.nom + '</b><span>' + cl.nom + ' niveau ' + l + '</span><div class="fiche-xp"><i style="width:' + (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%"></i></div><small>' + fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' points d\'expérience vers le niveau ' + (l + 1) + '</small></div></div>' +
@@ -4255,6 +4318,7 @@ function ouvrirConstruire(p) {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.id === 'b-journal') { basculerChat(); return; }
+  if (b.dataset.bestiaire) { ouvrirBestiaire(b.dataset.bestiaire); return; }
   if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
   if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
   else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Le tuto du début</b><div class="desc">Pépito te remontre les bases en ' + ETAPES_TUTO.length + ' étapes.</div></div><div class="act"><button class="btn discret" id="b-tuto">Revoir le tuto</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
