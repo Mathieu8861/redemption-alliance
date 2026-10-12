@@ -694,8 +694,8 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps (bêta)"><span class="lib">Temps </span>x1</button>
     <div class="vitesse-panneau" id="vitesse-panneau" hidden>
       <b>Vitesse du temps</b> <span class="vitesse-beta">bêta</span>
-      <div class="vitesse-ligne"><input type="range" min="1" max="30" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
-      <small>Les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
+      <div class="vitesse-ligne"><input type="range" min="1" max="10" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
+      <small>Pour les tests : en plus du rythme normal, les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
     </div>
     <button class="pastille pause" id="b-pause" aria-label="Pause" data-info="Pause (touche P)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg></button>
     <button class="pastille options" id="b-options">Options</button>
@@ -728,7 +728,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn" id="b-terminer">Terminer</button></div>
   <div id="bulles"></div>
   <div class="info-survol" id="info-survol" hidden></div>
-  <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Tout est arrêté : rien ne pousse, rien n'attaque. Ta ferme t'attend.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
+  <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Rien n'attaque : monstres, voleurs et raids t'attendent. Ta ferme, elle, continue de pousser.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
   <div id="bats-pv"></div>
 </div>
 <div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
@@ -746,14 +746,18 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 /* BETA : la vitesse du temps, de x1 a x30 (le curseur du bandeau ; x50 avant le 12/10/2026 au soir, « mets max x30, retire le x50 », Mathieu). Une horloge de jeu remplace Date.now : tout ce qui se compte en temps
    (pousse, repas, preparation des vagues, raids, Tofus) va plus vite ; les combats, rythmes par l'affichage, gardent leur vitesse.
    L'avance prise est gardee d'une visite a l'autre, sinon les cultures rajeuniraient au rechargement. */
-const VITESSE_MAX = 30;
+/* LE RYTHME FIXE (13/10/2026, apres l'etude du rythme : « ok alors commence a coder de cette maniere », Mathieu) : le jeu tourne tout seul au rythme
+   du x20 d'avant (RYTHME, plus bas : une minute de jeu dure 3 vraies secondes), le meme pour tout le monde. Le curseur ne sert plus qu'aux tests,
+   avec ?test=1 (en local) ou ?curseur=1 dans l'adresse, et il va jusqu'a x10 en plus du rythme normal. Sans lui, l'avance prise s'efface : les dates
+   de la ferme se recalent toutes seules sur l'heure vraie (reprendreTemps). */
+const VITESSE_MAX = 10, CURSEUR_LIBRE = /[?&](test|curseur)=1/.test(location.search) && !/[?&]curseur=0/.test(location.search); /* (curseur=0 : un test qui joue comme tout le monde) */
 const horlogeJeu = (() => {
   const vrai = Date.now.bind(Date); let avance = 0, vitesse = 1, ancre = vrai();
-  try { avance = +localStorage.getItem('ferme-avance') || 0; vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(+localStorage.getItem('ferme-vitesse') || 1))); /* (une ferme reglee plus haut retombe a x30) */ } catch (e) { /* rien */ }
+  try { if (CURSEUR_LIBRE) { avance = +localStorage.getItem('ferme-avance') || 0; vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(+localStorage.getItem('ferme-vitesse') || 1))); } else { localStorage.removeItem('ferme-avance'); localStorage.removeItem('ferme-vitesse'); } } catch (e) { /* rien */ }
   const jeu = () => { const t = vrai(); return t + avance + (t - ancre) * (vitesse - 1); };
   const fixer = () => { avance = jeu() - vrai(); ancre = vrai(); try { localStorage.setItem('ferme-avance', String(Math.round(avance))); } catch (e) { /* rien */ } };
   Date.now = jeu; setInterval(fixer, 2000); addEventListener('pagehide', fixer);
-  return { vitesse: () => vitesse, regler(v) { fixer(); vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(v))); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
+  return { vitesse: () => vitesse, regler(v) { if (!CURSEUR_LIBRE) return; fixer(); vitesse = Math.min(VITESSE_MAX, Math.max(1, Math.round(v))); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
 })();
 /* ===================== DONNEES DU JEU ===================== */
 const CULTURES = [
@@ -800,13 +804,13 @@ const AMELIOS = [
   { id: 'qg', nom: 'La grange (le QG)', desc: 'Niveau 2 : cheminée et hangar à foin, 900 PV, les voleurs de VSA emportent deux fois moins. Niveau 3 : la grange monte sur un soubassement de pierre, 1 500 PV. Niveau 4 : la tourelle de guet, 2 400 PV. Niveau 5 : le QG de Redemption, 3 600 PV.', couts: [1000, 3000, 7000, 12000], nivs: [3, 4, 5, 7] },
   { id: 'arbalete', nom: 'L\'arbalète de la grange', desc: 'Elle tire seule sur les voleurs de VSA et les monstres. Niveau 1 : 30 dégâts, 3 carreaux, un tir toutes les 1,1 s, 3,5 cases de portée. Chaque niveau monte tout d\'un coup, jusqu\'à la baliste du niveau 5 : 90 dégâts, 15 carreaux, un tir toutes les 0,65 s, 12 cases.', couts: [900, 1500, 4000, 9000, 15000], nivs: [4, 4, 5, 6, 7] },
   { id: 'nivPuits', nom: 'Le puits', desc: 'Niveau 2 : la poulie (il remplit dès que ton perso passe à deux cases) et un arrosoir de 15 doses. Niveau 3 : la citerne d\'arrosage, 12 arrosages tout seuls, arrosoir de 20. Niveau 4 : dallage et abreuvoir, citerne de 20, arrosoir de 30. Niveau 5 : le château d\'eau, citerne de 32, arrosoir de 45.', couts: [700, 2000, 6000, 12000], nivs: [1, 3, 4, 6] },
-  { id: 'enclos', nom: 'L\'enclos des Bouftous', desc: 'Niveau 2 : portique et abreuvoir (repus 6 h au lieu de 4), 8 cases, 3 Bouftous. Niveau 3 : clôture peinte et mangeoire (ils se servent seuls dans la grange), 10 cases, 4 Bouftous, 5 laines avant la tonte. Niveau 4 : la bergerie et les cisailles, 12 cases, 5 Bouftous, 7 laines. Niveau 5 : le ranch, 14 cases, 6 Bouftous, 9 laines. Il faut 2 cases par Bouftou.', couts: [400, 1200, 3000, 5000], nivs: [2, 4, 5, 6] },
+  { id: 'enclos', nom: 'L\'enclos des Bouftous', desc: 'Niveau 2 : portique et abreuvoir (repus 50 % plus longtemps), 8 cases, 3 Bouftous. Niveau 3 : clôture peinte et mangeoire (ils se servent seuls dans la grange), 10 cases, 4 Bouftous, 5 laines avant la tonte. Niveau 4 : la bergerie et les cisailles, 12 cases, 5 Bouftous, 7 laines. Niveau 5 : le ranch, 14 cases, 6 Bouftous, 9 laines. Il faut 2 cases par Bouftou.', couts: [400, 1200, 3000, 5000], nivs: [2, 4, 5, 6] },
   { id: 'voliere', nom: 'La volière à Tofus', desc: 'Deux places de plus à chaque niveau : 4, 6, 8 puis 10 Tofus. Elle grandit avec : grande volière à lattes, chalet de bois, piliers de pierre, puis la halle de Redemption. Dès le niveau 2 elle prend une case de plus, à côté.', couts: [500, 1500, 3500, 7000], nivs: [3, 4, 5, 6] },
   { id: 'nivEtal', nom: 'L\'étal de l\'HDV', desc: 'Niveau 2 : la charrette, tu vends 10 % plus cher. Niveau 3 : graines et balance, les graines coûtent 15 % moins cher. Niveau 4 : le comptoir couvert, ventes +15 %. Niveau 5 : le comptoir de Redemption, ventes +20 % et graines 20 % moins chères.', couts: [900, 1800, 3500, 6000], nivs: [4, 5, 6, 7] },
   { id: 'engrais', nom: 'Engrais d\'Amakna', desc: 'Tes cultures poussent 15 % plus vite, à chaque niveau.', couts: [300, 900, 2500, 6000], niv: 3 },
-  { id: 'epouvantail', nom: 'Épouvantail', desc: 'Niveau 1 : deux fois moins de Tofus. Niveau 2 : trois fois moins. Niveau 3 : une arbalète, il tire seul sur les Tofus qui picorent, une minute après leur arrivée (portée 8 cases, 1 flèche par tir). Niveau 4 : il tire au bout de 20 s et couvre toute l\'île. Niveau 5 : le PÉPITO-TRON, laser sur toute la ferme et sur les Tofus des vagues (15 kamas par tir, Pépito facture tout).', couts: [500, 1500, 4000, 9000, 20000], niv: 6 },
+  { id: 'epouvantail', nom: 'Épouvantail', desc: 'Niveau 1 : deux fois moins de Tofus. Niveau 2 : trois fois moins. Niveau 3 : une arbalète, il tire seul sur les Tofus qui picorent, peu après leur arrivée (portée 8 cases, 1 flèche par tir). Niveau 4 : il tire trois fois plus vite et couvre toute l\'île. Niveau 5 : le PÉPITO-TRON, laser sur toute la ferme et sur les Tofus des vagues (15 kamas par tir, Pépito facture tout).', couts: [500, 1500, 4000, 9000, 20000], niv: 6 },
   { id: 'bottes', nom: 'Bottes de cuir de Bouftou', desc: 'Le paysan marche 30 % plus vite : moins de temps perdu en allers-retours.', couts: [300], niv: 2 },
-  { id: 'cloche', nom: 'Cloche d\'alarme', desc: 'Un Tofu met deux fois plus longtemps à voler une récolte (1 h au lieu de 30 min) : le temps de venir le chasser.', couts: [400], niv: 3 },
+  { id: 'cloche', nom: 'Cloche d\'alarme', desc: 'Un Tofu met deux fois plus longtemps à voler une récolte : le temps de venir le chasser.', couts: [400], niv: 3 },
   { id: 'semences', nom: 'Semences sélectionnées', desc: 'Une chance sur quatre de récupérer la graine à la récolte.', couts: [1200], niv: 6 },
   { id: 'faux', nom: 'Faux affûtée', desc: 'Une récolte de plus sur chaque parcelle (3 Blé deviennent 4).', couts: [5000], niv: 9 },
 ];
@@ -815,7 +819,7 @@ const PALIERS_BAT = {
   qg: ['La grange à colombages, 500 PV.', 'Cheminée et hangar à foin, 900 PV, et les voleurs de VSA emportent deux fois moins.', 'Toute la grange monte sur un soubassement de pierre : 1 500 PV.', 'La tourelle de guet : 2 400 PV.', 'Le QG de Redemption : 3 600 PV.'],
   arbalete: ['Pas encore construite.', 'De bois : 30 dégâts, 3 carreaux, un tir toutes les 1,1 s, 3,5 cases de portée.', 'Cerclée de fer : 45 dégâts, 6 carreaux, un tir toutes les 1 s, 4 cases.', 'Double, avec lunette : 60 dégâts, 9 carreaux, un tir toutes les 0,9 s, 4,8 cases, et elle se recharge toute seule avec ta réserve de flèches.', 'À répétition : 75 dégâts, 12 carreaux, un tir toutes les 0,8 s, 5,3 cases.', 'La baliste de Redemption : 90 dégâts, 15 carreaux, un tir toutes les 0,65 s, 6 cases.'],
   nivPuits: ['Un arrosoir de 10 doses.', 'La poulie : il remplit l\'arrosoir dès que ton perso passe à deux cases. Arrosoir de 15 doses.', 'La citerne d\'arrosage : elle arrose seule 12 nouveaux semis. Arrosoir de 20.', 'Dallage et abreuvoir : citerne de 20, arrosoir de 30.', 'Le château d\'eau : citerne de 32, arrosoir de 45.'],
-  enclos: ['6 cases, 2 Bouftous, 3 laines avant la tonte.', 'Portique et abreuvoir : repus 6 h au lieu de 4. 8 cases, 3 Bouftous.', 'Clôture peinte et mangeoire : ils se servent seuls dans la grange. 10 cases, 4 Bouftous, 5 laines.', 'La bergerie et les cisailles : 12 cases, 5 Bouftous, 7 laines.', 'Le ranch de Redemption : 14 cases, 6 Bouftous, 9 laines.'],
+  enclos: ['6 cases, 2 Bouftous, 3 laines avant la tonte.', 'Portique et abreuvoir : repus 50 % plus longtemps. 8 cases, 3 Bouftous.', 'Clôture peinte et mangeoire : ils se servent seuls dans la grange. 10 cases, 4 Bouftous, 5 laines.', 'La bergerie et les cisailles : 12 cases, 5 Bouftous, 7 laines.', 'Le ranch de Redemption : 14 cases, 6 Bouftous, 9 laines.'],
   voliere: ['Le petit module : 2 Tofus.', 'La grande volière à lattes : 4 Tofus. Elle prend une case de plus, à côté.', 'Le chalet-volière : 6 Tofus.', 'Piliers de pierre et treillis : 8 Tofus.', 'La halle de Redemption : 10 Tofus.'],
   nivEtal: ['L\'étal.', 'La charrette : tu vends 10 % plus cher.', 'Graines et balance : les graines coûtent 15 % moins cher.', 'Le comptoir couvert : ventes +15 %.', 'Le comptoir de Redemption : ventes +20 %, graines 20 % moins chères.']
 };
@@ -827,7 +831,9 @@ const PRIX_PARCELLE = [150, 200, 300, 400, 500, 650, 800, 1000, 1300, 1600, 1900
 const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)$/.test(location.hostname); /* le mode test (temps x60) : sur le PC et le reseau local seulement ; en ligne, la beta demande un compte */
 /* « en mode test local, retire le x60, laisse-moi comme tout le monde choisir de x1 a x50 » (Mathieu, 12/10/2026) : ?test=1 garde sa sauvegarde a part,
    mais le temps est celui de tout le monde (le curseur) ; le x60 ne sert plus qu'aux tests automatiques, avec &rapide=1 en plus */
-const RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 1000 : 60000;
+/* LE RYTHME (13/10/2026) : toutes les durees du jeu sont en minutes de jeu, et une minute de jeu dure 60000 / RYTHME ms, soit 3 vraies secondes.
+   C'est le x20 d'avant, devenu la vitesse normale : le Ble pousse en 45 s, le Seigle en 1 h 12, la laine vient toutes les 6 min. */
+const RYTHME = 20, RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 1000 : 60000 / RYTHME;
 const DUREE_CROISSANCE = 240 * MIN, REPOS_REPRO = 480 * MIN, COUT_REPRO = 10, CHANCE_NOIR = [0.1, 0.25, 0.5], REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
 const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
@@ -856,7 +862,7 @@ const caseTour = (id) => S_.cases.find((c) => c.id === id && c.type === 'tour');
 const porteeTour = (c) => NIV_TOURS.portee[nivTour(c)], cadenceTour = (c) => NIV_TOURS.cadence[nivTour(c)];
 const degatsTour = (c) => NIV_TOURS.deg[nivTour(c)], nbTours = () => S_.cases.filter((c) => c.type === 'tour').length;
 const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
-const RYTHME_TOFU = 180 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 30 * MIN, ACCALMIE_TOFU = 20 * MIN, CADENCE_COURS = 10 * MIN, CADENCE_CRISE = 30 * MIN, DUREE_CRISE = 60000;
+const RYTHME_TOFU = 180 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 30 * MIN, ACCALMIE_TOFU = 20 * MIN, CADENCE_COURS = 40 * MIN, CADENCE_CRISE = 100 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
 const PEPITO = [
   'un Tofu dans le blé, c\'est comme VSA à l\'HDV : faut le chasser vite.',
@@ -1065,7 +1071,7 @@ function etatInitial() {
   Object.assign(champs[0], { c: 'ble', pousse: 13 * MIN, arrose: true });
   Object.assign(champs[1], { c: 'ble', pousse: 3 * MIN, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: 60000 / MIN, cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0
   };
@@ -1083,7 +1089,19 @@ function convertirNiveaux(e) {
   ['murs', 'cadenas', 'arbDegats', 'arbCadence', 'arbChargeur', 'arbPortee', 'reservoir', 'poulie', 'arrosoir', 'abreuvoir', 'mangeoire', 'cisailles', 'charrette', 'remise', 'tours', 'toursPortee', 'toursPv'].forEach((id) => { delete a[id]; });
   e.niveauxBat = 1;
 }
-function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if (!e.niveauxBat && (e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; convertirNiveaux(e); return e; } } catch (err) { /* rien */ } return null; }
+function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if (!e.niveauxBat && (e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; convertirNiveaux(e); convertirRythme(e); return e; } } catch (err) { /* rien */ } return null; }
+/* les parties d'avant le rythme fixe (13/10/2026) : leurs durees en cours etaient comptees a l'ancienne minute de 60 s. On les ramene au nouveau rythme :
+   chaque date, passee ou a venir, se rapproche d'autant de l'instant de la sauvegarde, et les compteurs (pousse, laine, croissance, plumes) rapetissent
+   pareil. Une Fraise a moitie poussee reste a moitie poussee, une vague qui se preparait encore 3 h attend 9 min. */
+function convertirRythme(e) {
+  const r = 60000 / MIN, k = r / (e.rythme || 1); if (Math.abs(k - 1) < 1e-9) return; const ref = e.vu || Date.now();
+  const dates = (o) => { for (const c in o) { const v = o[c]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[c] = Math.round(ref + (v - ref) / k); } else if (v && typeof v === 'object') dates(v); } };
+  dates(e);
+  (e.cases || []).forEach((p) => { if (typeof p.pousse === 'number') p.pousse /= k; });
+  (e.bouftous || []).forEach((b) => { if (typeof b.accu === 'number') b.accu /= k; if (typeof b.grandi === 'number') b.grandi /= k; });
+  if (e.voliere && typeof e.voliere.accu === 'number') e.voliere.accu /= k;
+  e.rythme = r;
+}
 function sauver() { try { localStorage.setItem(CLE, JSON.stringify(S_)); } catch (err) { /* rien */ } nuageMarquer(); }
 /* ===================== LES COMPTES ET LA SAUVEGARDE EN LIGNE (beta, 11/10/2026) =====================
    Decisions de Mathieu : beta fermee a 4 ou 5 testeurs (« pour toute l'alli j'ouvrirai quand on aura passe les phases de beta test ») ;
@@ -3339,10 +3357,11 @@ function enchainer() { while (fileActions.length && !arrivee && !chemin.length &
 function photoFerme() { return { murs: S_.cases.filter((c) => c.type === 'champ' && c.c && etape(c) === 'mur').length, laine: S_.bouftous.reduce((t, b) => t + (b.laine || 0), 0), plumes: S_.voliere ? S_.voliere.plumes : 0, vu: S_.vu }; }
 let absence = null;
 function montrerAbsence() {
-  const a = absence; absence = null; if (!a) return;
+  if (!absence) return; if (modaleOuverte || tuto.actif || combat || enPause || lecon.ouverte) { setTimeout(montrerAbsence, 1500); return; } /* (pas par-dessus une autre fenetre) */
+  const a = absence; absence = null;
   const L = []; if (a.murs) L.push(['ble', a.murs + ' culture' + (a.murs > 1 ? 's' : '') + ' prête' + (a.murs > 1 ? 's' : '') + ' à récolter']); if (a.laine) L.push(['laine', a.laine + ' laine' + (a.laine > 1 ? 's' : '') + ' à tondre']); if (a.plumes) L.push(['plume', a.plumes + ' plume' + (a.plumes > 1 ? 's' : '') + ' à la volière']);
   if (!L.length) return;
-  ouvrirModale('absence', entete('Pendant ton absence') + '<p style="font-size:.84rem;font-weight:700;margin:0 0 6px">Tu es parti ' + dureeLisible(a.duree) + '. Pépito a gardé la ferme, et ça a poussé :</p>' + L.map(([i, t]) => '<div class="art">' + ico(i) + '<div><b>' + t + '</b></div><div></div></div>').join('') + '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn kamas" data-fermer>Au travail !</button></div>');
+  ouvrirModale('absence', entete('Pendant ton absence') + '<p style="font-size:.84rem;font-weight:700;margin:0 0 6px">Tu es parti ' + dureeLisible(a.duree) + '. Pépito a gardé la ferme : les monstres t\'ont attendu, mais ça a poussé.</p>' + L.map(([i, t]) => '<div class="art">' + ico(i) + '<div><b>' + t + '</b></div><div></div></div>').join('') + '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn kamas" data-fermer>Au travail !</button></div>');
 }
 
 
@@ -3359,7 +3378,7 @@ const PEAU_IOP = 0.15, SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC = 12
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
    minimum pour la lancer. Sans ca, l'experience des vagues suffisait a tout enchainer en moins d'une heure (bot de test). */
-const PREPA_VAGUE = [3, 15, 45, 120, 240, 300], niveauRequis = (n) => Math.max(1, n - 2);
+const PREPA_VAGUE = [10, 15, 45, 120, 240, 300], /* (en minutes de jeu : de 30 s au palier 1 a 15 min au dernier ; 3 au palier 1 avant le rythme fixe, soit 9 s) */ niveauRequis = (n) => Math.max(1, n - 2);
 const CADENCE_RAID = 480 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 8 h environ (de 5 h 30 a 10 h 30), annonce 30 vraies secondes avant */
 /* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
@@ -3608,7 +3627,7 @@ function ouvrirVagues() {
   const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : prepa > 0 ? '<button class="btn vg-lancer" disabled>La vague ' + n + ' se prépare : ' + dureeLisible(prepa) + '</button>' : tropBas ? '<button class="btn vg-lancer" disabled>Niveau ' + requis + ' requis (tu es niveau ' + st.niveau + ')</button>' : '<button class="btn kamas vg-lancer" data-lancer-vague>' + (fini ? 'Rejouer la vague ' + n : 'Lancer la vague ' + n) + '</button>';
   ouvrirModale('vagues', entete(fini ? 'Tous les paliers terminés' : 'Vague ' + n + ' (' + (n - base) + ' sur ' + VAGUES_PALIER + ')') + '<div class="vg-sous">' + nomPalier(P) + ' : ' + PALIERS[P].nom + '. ' + (fini ? leNom(B) + ' est tombé' + ac(B) + ', la suite arrive bientôt.' : leNom(B) + ' attend à la vague ' + (base + VAGUES_PALIER) + '.') + '</div><div class="vg-piste">' + piste + '</div>' +
     '<div class="hdv-section">Ils arrivent</div><div class="vg-monstres">' + monstres + '</div>' + (vagueBoss(n) ? '<p class="vg-boss">Sa troupe protège le boss : chaque monstre près de lui lui retire 12 % de tes dégâts (jusqu\'à 60 %), et il en rappelle deux toutes les ' + RAPPEL_TROUPE + ' s. Dégage sa troupe, puis frappe-le avant qu\'elle revienne.</p>' : '') + '<div class="hdv-section">Ton perso</div>' + perso + arb + '<div class="hdv-section">À gagner</div>' + gains + sectionRepas() + bouton + sectionRejouerBoss() +
-    '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Certains monstres vont frapper tes bâtiments : va les chasser, sinon il faudra réparer. Après chaque victoire, la vague suivante se prépare un moment (de quelques minutes au début à quelques heures à la fin) : le temps de faire tourner ta ferme. Chaque vague demande un niveau minimum. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>' +
+    '<p class="vg-note">Les vagues n\'arrivent que quand tu les lances. Pendant la vague, touche un monstre pour le cibler : ton perso y va et frappe tout seul. Touche une case pour te déplacer. Certains monstres vont frapper tes bâtiments : va les chasser, sinon il faudra réparer. Après chaque victoire, la vague suivante se prépare un moment (de quelques secondes au début à un quart d\'heure à la fin) : le temps de faire tourner ta ferme. Chaque vague demande un niveau minimum. Perdu : ils saccagent une culture et ton perso se repose ' + dureeLisible(REPOS_VAGUE) + '.</p>' +
     '<div class="btn-bestiaire"><button class="btn discret" data-bestiaire="monstres">📖 Bestiaire et butin</button></div>');
 }
 /* le Bestiaire et butin (valide le 11/10/2026) : chaque monstre avec ses PV, ses degats et ce qu'il lache (avec ta Prospection),
@@ -4691,7 +4710,7 @@ function toucherBouftou(k) {
 /* ===================== INTERFACE ===================== */
 const $ = (id) => document.getElementById(id);
 /* BETA : le curseur de vitesse du temps (voir horlogeJeu tout en haut) */
-function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'); b.innerHTML = '<span class="lib">Temps </span>x' + v; b.classList.toggle('rapide', v > 1); $('vitesse').value = v; $('vitesse-val').textContent = 'x' + v; }
+function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'); b.hidden = !CURSEUR_LIBRE; /* (le curseur : tests seulement, depuis le rythme fixe) */ b.innerHTML = '<span class="lib">Temps </span>x' + v; b.classList.toggle('rapide', v > 1); $('vitesse').value = v; $('vitesse-val').textContent = 'x' + v; }
 $('b-vitesse').addEventListener('click', (e) => { e.stopPropagation(); $('vitesse-panneau').hidden = !$('vitesse-panneau').hidden; majVitesse(); });
 $('vitesse').addEventListener('input', (e) => { horlogeJeu.regler(+e.target.value); majVitesse(); });
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#vitesse-panneau, #b-vitesse')) $('vitesse-panneau').hidden = true; });
@@ -4811,7 +4830,7 @@ const GAINS = {
   epouvantail: { role: 'Il éloigne les Tofus de tes champs.', looks: [null, null, null, 'il prend une arbalète', null, 'le PÉPITO-TRON'],
     stats: [['tofu', 'Tofus qui viennent picorer', ['', '2 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins'], (x) => x],
       ['degats', 'Il tire sur les Tofus : dégâts', [0, 0, 0, 40, 60, 150]], ['portee', 'Portée', ['', '', '', '8 cases', 'toute l\'île', 'toute la ferme'], (x) => x],
-      ['cadence', 'Il tire au bout de', ['', '', '', '1 min', '20 s', '9 s'], (x) => x], ['cadence', 'Un tir toutes les', [0, 0, 0, 3.5, 2.2, 1], (x) => virgule(x) + ' s']],
+      ['cadence', 'Il tire au bout de', ['', '', '', dureeLisible(EPOU[3].delai), dureeLisible(EPOU[4].delai), dureeLisible(EPOU[5].delai)], (x) => x], ['cadence', 'Un tir toutes les', [0, 0, 0, 3.5, 2.2, 1], (x) => virgule(x) + ' s']],
     neufs: { 3: [['carreaux', 'Une flèche par tir, prise dans ta réserve']], 5: [['auto', 'Il tire aussi sur les Tofus des vagues'], ['kama', '15 kamas par tir : Pépito facture tout']] } },
   bottes: { stats: [['vitesse', 'Ton perso marche plus vite', [0, 30], (x) => '+' + x + ' %']] },
   cloche: { stats: [['cadence', 'Temps pour chasser un Tofu avant qu\'il vole', [1, 2], (x) => dureeLisible(x * DUREE_PICORAGE)]] },
@@ -4939,7 +4958,7 @@ function ouvrirEnclos() {
 }
 function ouvrirEpouvantail() {
   ouvrirModale('epouvantail', entete('L\'épouvantail') + (degatsBat('epouvantail') ? artPv('epouvantail') : '') + (() => { const n = niv('epouvantail'), E = EPOU[Math.min(5, n)];
-    const etat = n >= 5 ? 'PÉPITO-TRON : laser sur toute la ferme, il abat aussi les Tofus des vagues. ' + PRIX_LASER + ' kamas par tir.' : n >= 3 ? 'Il tire à l\'arbalète sur les Tofus qui picorent, ' + (n >= 4 ? 'sur toute l\'île' : 'à ' + enCases(E.portee) + ' cases') + ', ' + (n >= 4 ? '20 s après leur arrivée' : 'une minute après leur arrivée') + '. Une flèche par tir (' + S_.fleches + ' en réserve).' : n === 2 ? 'Les Tofus viennent trois fois moins souvent.' : n === 1 ? 'Les Tofus viennent deux fois moins souvent.' : 'Il fait fuir une partie des Tofus qui viennent picorer tes champs.';
+    const etat = n >= 5 ? 'PÉPITO-TRON : laser sur toute la ferme, il abat aussi les Tofus des vagues. ' + PRIX_LASER + ' kamas par tir.' : n >= 3 ? 'Il tire à l\'arbalète sur les Tofus qui picorent, ' + (n >= 4 ? 'sur toute l\'île' : 'à ' + enCases(E.portee) + ' cases') + ', ' + dureeLisible(E.delai) + ' après leur arrivée' + '. Une flèche par tir (' + S_.fleches + ' en réserve).' : n === 2 ? 'Les Tofus viennent trois fois moins souvent.' : n === 1 ? 'Les Tofus viennent deux fois moins souvent.' : 'Il fait fuir une partie des Tofus qui viennent picorer tes champs.';
     return '<div class="art">' + ico('epouvantail') + '<div><b>' + (n >= 5 ? 'PÉPITO-TRON' : 'Épouvantail niveau ' + n) + '</b><div class="desc">' + etat + ' Il ne s\'occupe que des Tofus.</div></div><div></div></div>'; })() + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
 }
 function ouvrirPuits() {
@@ -5519,8 +5538,29 @@ let tours = 0; const t0 = performance.now();
    sens : une ferme jouee en temps accelere sur un autre appareil (horlogeJeu) se recale sur l'horloge d'ici au lieu d'arriver « dans le futur ». */
 function reprendreTemps(maintenant) {
   const d = maintenant - S_.vu; if (!d) return;
+  if (d > 0 && !combat && S_.perso) { fermeSansToi(maintenant, d); return; } /* (13/10/2026 : une pause ou une absence, la ferme continue de pousser) */
   const decaler = (o) => { for (const k in o) { const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + d; } else if (v && typeof v === 'object') decaler(v); } };
   decaler(S_); S_.vu = maintenant; if (raidAnnonce) raidAnnonce.fin += d;
+}
+/* LA FERME VIT SANS TOI (13/10/2026, la « recompense du retour » de l'etude du rythme) : pendant une pause ou une absence, les cultures, la laine, les plumes,
+   les bebes et la preparation de la vague continuent, 10 h au plus. Rien de dangereux en revanche : Tofus nuisibles, voleurs, raids, crises de l'HDV et
+   recouvreurs du Casino attendent ton retour (leurs dates sont decalees, comme pendant l'ancienne pause). Le temps avance par petits pas, pour que la
+   mangeoire serve ses repas un par un. Au retour, Pepito resume ce qui a pousse (montrerAbsence). */
+const ABSENCE_MAX = 10 * 3600e3;
+function fermeSansToi(maintenant, d) {
+  const avant = photoFerme(), garde = Math.min(d, ABSENCE_MAX);
+  if (d > garde) { const x = d - garde; const decaler = (o) => { for (const k in o) { const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + x; } else if (v && typeof v === 'object') decaler(v); } }; decaler(S_); if (raidAnnonce) raidAnnonce.fin += x; } /* (au-dela de 10 h, la ferme s'arrete : comme une pause) */
+  ['prochainRaid', 'prochainVoleur', 'prochaineCrise'].forEach((k) => { if (S_[k]) S_[k] += garde; });
+  if (S_.ardoise && S_.ardoise.prochaine) S_.ardoise.prochaine += garde;
+  if (S_.sauvage && S_.sauvage.fin) S_.sauvage.fin += garde;
+  S_.cases.forEach((p) => { if (p.tofu) p.tofu += garde; if (p.tofuParti) p.tofuParti += garde; });
+  if (raidAnnonce) raidAnnonce.fin += garde;
+  const de = S_.vu, pas = Math.max(5000, garde / 300);
+  for (let t = de + pas; ; t += pas) { const tt = Math.min(t, maintenant); avancer(tt, false); if (tt >= maintenant) break; }
+  S_.vu = maintenant;
+  S_.cases.forEach((p) => rendreCase(p.id)); rendreEnclosBulles(); rendreHaut(); sauver();
+  const apres = photoFerme(), a = { duree: d, murs: Math.max(0, apres.murs - avant.murs), laine: Math.max(0, apres.laine - avant.laine), plumes: Math.max(0, apres.plumes - avant.plumes) };
+  if (d >= 2 * 60000 && (a.murs || a.laine || a.plumes)) { absence = a; setTimeout(montrerAbsence, 600); }
 }
 function tick() {
   if (enAccueil || enPause || document.hidden) return; /* en pause */
@@ -5625,8 +5665,8 @@ const LECONS = [
       () => `Avec un <em>filet</em> (${PRIX_FILET} kamas à l'HDV), tu peux les capturer au lieu de les chasser : ils vont dans ta <em>volière</em> et donnent des plumes à vendre. Un Tofu sauvage posé dans l'herbe se capture plus facilement qu'un Tofu sur un champ.`] },
   { id: 'cultures', titre: 'Quoi planter ?', ico: 'orge', resume: 'Les cultures, leur temps de pousse, leur prix.', quand: () => niveau(S_.xp) >= 5,
     pages: [() => `Tu débloques de nouvelles cultures en montant de niveau : l'<em>Orge</em> au niveau 5, puis la Cawotte, l'Avoine, la Fraise, le Houblon... Leurs graines s'achètent à l'<em>HDV</em>, onglet Acheter.`,
-      () => `Chaque culture a son <em>temps de pousse</em>, son prix et son XP : le Blé pousse en 15 min, l'Orge en 45 min, l'Avoine en 2 h. Les longues rapportent plus par récolte, les courtes s'enchaînent.`,
-      () => `Le jeu se met <em>en pause</em> quand tu le fermes : rien ne pousse pendant ton absence. Plante ce que tu auras le temps de récolter pendant que tu joues.`] },
+      () => `Chaque culture a son <em>temps de pousse</em>, son prix et son XP : le Blé pousse en ${dureeLisible(PAR_ID.ble.temps * MIN)}, l'Orge en ${dureeLisible(PAR_ID.orge.temps * MIN)}, l'Avoine en ${dureeLisible(PAR_ID.avoine.temps * MIN)}. Les longues rapportent plus par récolte, les courtes s'enchaînent.`,
+      () => `Quand tu fermes le jeu ou que tu le mets <em>en pause</em>, ta ferme continue sans toi, 10 h au plus : les cultures poussent, les Bouftous font leur laine, la vague se prépare. Les monstres, les voleurs et les raids, eux, attendent ton retour. Avant de partir, plante une culture longue.`] },
   { id: 'agrandir', titre: 'Agrandir la ferme', ico: 'pelle', resume: 'Labourer, acheter des terrains, Aménager.', quand: () => niveau(S_.xp) >= 3,
     pages: [() => `Pour planter plus, ${toucherQ('une case d\'herbe libre')} et <em>laboure</em> une parcelle. Tu as un quota de parcelles : il grandit avec les terrains.`,
       () => `Les <em>pancartes</em> au bord de l'île montrent les terrains à vendre : chacun ajoute des cases et des parcelles à labourer.`,
@@ -5637,7 +5677,7 @@ const LECONS = [
       () => `Une graine grisée n'est pas encore débloquée : elle arrive avec ton niveau de Paysan. Les graines s'achètent à l'<em>HDV</em>, onglet Acheter.`] },
   { id: 'hdv', titre: 'L\'Hôtel de vente', ico: 'etal', resume: 'Acheter, vendre, les prix qui bougent, les crises.', fenetre: 'hdv', quand: () => ouvrirHdv.dernier !== 'ameliorer',
     pages: [() => `L'<em>Hôtel de vente</em> a trois onglets : <em>Acheter</em> (graines, animaux, et du matériel comme les filets et les flèches), <em>Vendre</em> (tes récoltes, la laine, les plumes, le butin des monstres) et <em>Améliorations</em>.`,
-      () => `Les prix bougent : toutes les 10 min, chaque produit monte ou descend un peu, jusqu'à 20 % au-dessus ou en dessous de son prix normal. L'onglet Vendre te dit s'il est <em>en hausse</em> ou <em>en baisse</em> : vends plutôt quand c'est haut.`,
+      () => `Les prix bougent : toutes les ${dureeLisible(CADENCE_COURS)}, chaque produit monte ou descend un peu, jusqu'à 20 % au-dessus ou en dessous de son prix normal. L'onglet Vendre te dit s'il est <em>en hausse</em> ou <em>en baisse</em> : vends plutôt quand c'est haut.`,
       () => `De temps en temps, une <em>crise</em> fait chuter un produit de 40 % pendant une minute : attends qu'elle passe pour le vendre. Améliorer l'étal fait vendre plus cher et acheter les graines moins cher.`] },
   { id: 'amelio2', titre: 'Améliorer', ico: 'marteau', resume: 'Productivité et Défense, lire une carte, par où commencer.', fenetre: 'hdv', quand: () => ouvrirHdv.dernier === 'ameliorer',
     pages: [() => `Les améliorations sont rangées en deux parties : <em>Productivité</em> (l'eau, les Bouftous, les Tofus, les ventes, les cultures) et <em>Défense</em> (la grange, l'arbalète, les tours, l'épouvantail, la cloche).`,
@@ -5677,7 +5717,7 @@ const LECONS = [
   { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les raids sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
     pages: [() => `Des <em>voleurs de VSA</em> arrivent ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par le bord.`,
       () => `Abats-les avant qu'ils quittent la ferme : ce qu'ils portent revient à ta grange, et ils ont quelques kamas sur eux. L'<em>arbalète</em> de la grange et tes <em>tours</em> tirent seules, avec les flèches de ta réserve (HDV).`,
-      () => `Un raid arrive toutes les 8 h de jeu environ, annoncé 30 s avant. Une grange en ruine les laisse emporter deux fois plus.`] },
+      () => `Un raid arrive toutes les ${dureeLisible(CADENCE_RAID)} environ quand tu joues, annoncé 30 s avant. Une grange en ruine les laisse emporter deux fois plus.`] },
   { id: 'tours', titre: 'Les tours de défense', ico: 'tour', resume: 'Les construire, les placer, les monter.', quand: () => niveau(S_.xp) >= NIV_TOUR && !nbTours(),
     pages: [() => `Niveau ${NIV_TOUR} : tu peux construire des <em>tours de défense</em>. ${toucherQ('une case d\'herbe libre').replace(/^./, (x) => x.toUpperCase())}, puis Tour de défense. Jusqu'à ${TOURS_MAX} tours.`,
       () => `Elles tirent seules sur les monstres et les voleurs, avec les <em>flèches</em> de ta réserve. Place-les près de la grange et des champs, là où passent les monstres. Chaque tour se monte de niveau à part (bouton Améliorer).`] },
@@ -5687,7 +5727,7 @@ const LECONS = [
       () => `Sous 30 % de vie, il entre en <em>rage</em> : il frappe et lance son sort plus souvent. Garde ton ulti pour la fin. Bien préparé, ça passe : tours, arbalète, équipement, un bon repas.`] },
   { id: 'elevage', titre: 'L\'élevage', ico: 'bouftou', resume: 'Faire un petit, le Bouftou noir.', quand: () => S_.bouftous.filter(adulte).length >= 2,
     pages: [() => `Tu as deux Bouftous adultes : ils peuvent faire un <em>petit</em> ! Ouvre l'<em>enclos</em> : il faut ${COUT_REPRO} Houblon (une culture du niveau 15) et deux adultes reposés.`,
-      () => `Le bébé grandit en 4 h s'il est bien nourri, et les parents se reposent 8 h avant le suivant. Un Bouftou nourri fait de la <em>laine</em>, qui se vend ${LAINE.prix} kamas pièce.`,
+      () => `Le bébé grandit en ${dureeLisible(DUREE_CROISSANCE)} s'il est bien nourri, et les parents se reposent ${dureeLisible(REPOS_REPRO)} avant le suivant. Un Bouftou nourri fait de la <em>laine</em>, qui se vend ${LAINE.prix} kamas pièce.`,
       () => `Parfois naît un <em>Bouftou noir</em> : sa laine vaut ${LAINE_NOIRE.prix} kamas. Plus il y a de noirs parmi les parents, plus les chances montent : 10 %, 25 %, puis 50 %.`] },
   { id: 'defis', titre: 'Défis du jour', ico: 'coffre', resume: 'Trois défis par jour, le cadeau de connexion.', quand: () => niveau(S_.xp) >= 2,
     pages: [() => `Chaque jour, <em>3 défis</em> t'attendent (en haut à gauche, bouton Voir) : récolter, vendre, arroser... Chacun rapporte des kamas et de l'XP.`,
