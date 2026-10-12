@@ -90,7 +90,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (min-width: 721px) and (max-width: 1220px) { .haut .pastille .lib { display: none; } } /* (ecrans moyens : la place pour la pause et les options sur une ligne) */
 .pastille.pause { pointer-events: auto; cursor: pointer; padding: 4px 9px; color: var(--encre); } .pastille.pause svg { width: 15px; height: 15px; } /* (juste l'icone : la place manque en haut) */
 /* l'ecran de pause (12/10/2026) */
-.ecran-pause { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(28, 38, 52, .42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.ecran-pause { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; pointer-events: auto; /* (il est dans le HUD, qui laisse passer les clics : sans ca, Reprendre ne repondait pas, retour de Mathieu le 12/10/2026) */ background: rgba(28, 38, 52, .42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
 .ecran-pause[hidden] { display: none; }
 .carte-pause { text-align: center; background: var(--papier); border: 4px solid var(--bord); border-radius: 22px; box-shadow: 0 7px 0 var(--bord); padding: 18px 28px 20px; width: min(340px, calc(100% - 32px)); }
 .carte-pause svg { width: 44px; height: 44px; color: var(--bord); } .carte-pause h2 { font: 400 1.9rem/1 var(--f-titre); margin: 6px 0 8px; } .carte-pause p { font-weight: 600; font-size: .9rem; line-height: 1.35; margin: 0 0 16px; }
@@ -1861,7 +1861,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261012g'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261012h'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
