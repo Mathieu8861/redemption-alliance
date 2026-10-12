@@ -3048,7 +3048,7 @@ function batLePlusProche(mo) {
 function cibleBatiment(mo, dt) {
   if (mo.casseur === undefined) mo.casseur = !mo.d.boss && Math.random() < (mo.d.casse || 0);
   if (!mo.casseur || mo.aggro) return null;
-  const pp = paysanMesh.position; if (Math.hypot(pp.x - mo.x, pp.z - mo.z) < 2.2) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend */
+  const pp = paysanMesh.position; if (combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) < 2.2) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend (pas quand il est a terre) */
   mo.batT = (mo.batT || 0) - dt;
   if (!mo.bat || enRuine(mo.bat) || mo.batT <= 0) { mo.batT = 1.5; mo.bat = batLePlusProche(mo); }
   if (!mo.bat) return null;
@@ -3642,7 +3642,7 @@ const facteurRejoue = () => (combat && combat.rejoueBoss != null) ? Math.min(1.5
 function sectionRepas() {
   const L = CULTURES.filter((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)); if (!L.length) return '';
   S_.mange = S_.mange || {};
-  return '<div class="hdv-section">Avant la bataille : manger</div>' + L.map((c) => { const n = S_.grange[c.id] || 0, pris = !!S_.mange[c.id];
+  return '<div class="hdv-section">Avant la bataille : manger</div><p class="hdv-aide">Un repas se prend ici, juste avant de lancer : une récolte de ta grange, et son bonus dure toute la vague qui suit. La Cawotte et la Fraise se cumulent. Elles se plantent comme les autres cultures (graines à l\'HDV).</p>' + L.map((c) => { const n = S_.grange[c.id] || 0, pris = !!S_.mange[c.id];
     return '<div class="art">' + ico(c.id) + '<div><b>' + c.nom + (pris ? ' : mangée !' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + c.mange.txt + ' pendant la prochaine vague</span><span class="puce">' + n + ' en grange</span></div></div><div class="act">' +
       (pris ? '<span class="cadenas">✓ Prête</span>' : '<button class="btn mini" data-manger="' + c.id + '"' + (n > 0 ? '' : ' disabled') + '>' + (n > 0 ? 'Manger' : 'Aucune') + '</button>') + '</div></div>'; }).join('');
 }
@@ -3790,12 +3790,12 @@ const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object
 const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); return sac; }; /* le sac de butin sur son dos */
 const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MONSTRES[Math.max(0, palierDe(Math.max(1, n || 1)))] || 1;
 function blesserPerso(n, mo) {
-  if (!combat || combat.fin) return;
+  if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (classeDe() === 'iop') n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); /* Peau de Iop : 15 % de degats en moins */
   if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
-  if (combat.pv <= 0) finVague(false);
+  if (combat.pv <= 0) { if (combat.raid) finVague(false); else commencerDeroute(); } /* a terre : les monstres saccagent la ferme avant de repartir */
 }
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
@@ -3860,7 +3860,7 @@ function majMonstre(mo, dt, s) {
     if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, '#f2b630'); }
   }
   const vSort = dt * (mo.enrage ? 1.3 : 1); /* enrage, il lance ses sorts plus souvent */
-  const sortPret = (cle, periode) => { if (mo[cle] == null) mo[cle] = periode - 3; if (bloque) return false; mo[cle] += vSort; return mo[cle] >= periode; }; /* le premier, 3 s apres son arrivee */
+  const sortPret = (cle, periode) => { if (mo[cle] == null) mo[cle] = periode - 3; if (bloque || combat.deroute != null) return false; mo[cle] += vSort; return mo[cle] >= periode; }; /* le premier, 3 s apres son arrivee */
   if (mo.d.boss) { /* sa troupe : il la rappelle toutes les 16 s (deux monstres, s'il n'en a pas deja 6 debout), et elle le protege tant qu'elle est pres de lui */
     if (mo.renfortT == null) mo.renfortT = 4; /* (le premier rappel 12 s apres son arrivee) */
     if (mo.d.renforts && sortPret('renfortT', RAPPEL_TROUPE)) {
@@ -3923,7 +3923,7 @@ function majMonstre(mo, dt, s) {
       } });
     }
   }
-  if (mo.d.souffle) { /* Crocabulia crache un cone de feu vers le perso */
+  if (mo.d.souffle && combat.deroute == null) { /* Crocabulia crache un cone de feu vers le perso */
     if (mo.souffleT == null) mo.souffleT = mo.d.souffle - 3; if (!mo.vise && !(mo.bloqueT > 0)) mo.souffleT += vSort;
     if (mo.souffleT >= mo.d.souffle && !mo.vise) { /* elle prend son souffle : le cone s'affiche au sol, on a une seconde pour en sortir */
       const a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a;
@@ -3942,7 +3942,7 @@ function majMonstre(mo, dt, s) {
       if (!combat || combat.fin) return;
     }
   }
-  if (mo.d.pluie) { /* le Wa Wabbit fait pleuvoir des cawottes explosives : des cercles au sol, une seconde pour en sortir */
+  if (mo.d.pluie && combat.deroute == null) { /* le Wa Wabbit fait pleuvoir des cawottes explosives : des cercles au sol, une seconde pour en sortir */
     if (mo.pluieT == null) mo.pluieT = mo.d.pluie - 3; mo.pluieT += vSort;
     if (mo.pluieT >= mo.d.pluie) {
       mo.pluieT = 0; mo.frappe = 0.4;
@@ -4102,7 +4102,7 @@ function tirerVisee(pt) {
   if (v.quoi === 'ulti') executerUlti(v.id, null, pt); else if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt);
 }
 function lancerUlti() {
-  if (!combat || combat.fin) return;
+  if (!combat || combat.fin || combat.deroute != null) return; /* (a terre : plus de sort) */
   if (visee && visee.quoi === 'ulti') { annulerVisee(); return; } /* retoucher le bouton annule */
   if (!S_.ulti) { toast(niveau(S_.xp) >= NIV_ULTI ? 'Choisis ton ulti dans la fiche des vagues, après ce combat.' : 'L\'ulti se débloque au niveau ' + NIV_ULTI + ' de Paysan.'); return; }
   if (combat.cdUlti > 0) return;
@@ -4146,7 +4146,7 @@ function executerUlti(id, c, pt) {
   }) };
 }
 function lancerSort() {
-  if (!combat || combat.fin || (combat.cdSort > 0 && classeDe() !== 'cra' && !(visee && visee.quoi === 'sort'))) return;
+  if (!combat || combat.fin || combat.deroute != null || (combat.cdSort > 0 && classeDe() !== 'cra' && !(visee && visee.quoi === 'sort'))) return;
   const classe = classeDe(), st = statsPerso(), pp = paysanMesh.position, u = paysanMesh.userData;
   if (classe === 'cra' && !percantePrete() && !(visee && visee.quoi === 'sort')) { toast('Flèche perçante : encore ' + (KILLS_PERCANTE - (S_.chargeSort || 0)) + ' monstres à abattre pour la charger.'); return; }
   if (classe === 'osa') { if (visee && visee.quoi === 'sort') { annulerVisee(); return; } if (!combat.monstres.some((o) => o.etat === 'actif')) { toast('Aucun monstre à viser pour l\'instant.'); return; } viser({ quoi: 'sort', id: 'invoc', rayon: RAYON_INVOC, teinte: '#b48cff', portee: PORTEE_INVOC }); return; }
@@ -4262,8 +4262,8 @@ function majBarreBoss(mo) {
 function majCombatHud() {
   const c = combat; if (!c) return;
   const rest = c.file.length + c.monstres.filter((o) => o.etat !== 'mort').length;
-  $('combat-titre').textContent = c.raid ? 'Raid VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
-  $('combat-barre').style.width = (100 * rest / c.total).toFixed(0) + '%';
+  $('combat-titre').textContent = c.deroute != null ? 'À terre : ils saccagent ta ferme, ' + Math.max(0, Math.ceil(c.deroute)) + ' s' : c.raid ? 'Raid VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
+  $('combat-barre').style.width = (100 * rest / c.total).toFixed(0) + '%'; $('b-fuir').hidden = c.deroute != null; /* (a terre, on ne fuit plus) */
   const f = c.pv / c.pvMax; $('combat-pv').style.width = (100 * f).toFixed(1) + '%'; $('combat-pv').style.background = f < 0.3 ? 'var(--rouge)' : '';
   $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV';
   if (!S_.ulti) { $('ulti-rond').style.setProperty('--cd', '100%'); $('ulti-etat').textContent = niveau(S_.xp) >= NIV_ULTI ? 'à choisir' : 'niveau ' + NIV_ULTI; }
@@ -4280,15 +4280,35 @@ function majCombatHud() {
     versEcran(new T.Vector3(o.x, o.m.position.y + o.haut, o.z), o.barre);
   });
 }
+/* LA DEROUTE (12/10/2026, « que la mort soit plus punitive : les monstres ont 10/15 secondes pour attaquer tes batiments, ils repartent et tu dois
+   reconstruire », Mathieu) : a 0 PV, le perso tombe ; pendant 12 s, tous les monstres s'en prennent aux batiments (le boss aussi, sans ses sorts), les
+   tours et l'arbalete tirent toujours ; puis ils repartent, la vague est perdue (champ saccage et 1 h de repos, comme avant) et il faut reparer */
+const DUREE_DEROUTE = 12;
+function commencerDeroute() {
+  const c = combat; if (!c || c.fin || c.deroute != null) return;
+  c.deroute = DUREE_DEROUTE; c.pv = 0; chemin = []; arrivee = null; annulerVisee();
+  if (c.invoc) { scene.remove(c.invoc.m); if (c.invoc.barre) c.invoc.barre.remove(); c.invoc = null; }
+  const u = paysanMesh.userData; u.attaque = null; u.charge = true; paysanMesh.rotation.x = -1.3; /* il tombe a la renverse */
+  c.monstres.forEach((o) => { o.casseur = true; o.aggro = false; o.bat = null; o.batT = 0; });
+  pouf(paysanMesh.position.x, paysanMesh.position.y, paysanMesh.position.z, 2.4, '#e2413a'); son('coup');
+  toast('Ton perso est à terre ! Les monstres saccagent ta ferme pendant ' + DUREE_DEROUTE + ' s, puis ils repartent. Tes tours et ton arbalète tirent toujours.', 'alerte');
+}
 function majCombat(dt, s) {
   if (!combat) { ANNEAU.visible = false; return; }
   const c = combat;
   if (c.fin) return;
+  if (c.deroute != null) { /* a terre : le compte a rebours du saccage */
+    c.deroute -= dt;
+    if (c.deroute <= 0 || (!c.file.length && !c.monstres.some((o) => o.etat === 'actif' || o.etat === 'grimpe'))) {
+      c.monstres.forEach((o) => { if (o.etat === 'actif' || o.etat === 'grimpe') { pouf(o.x, o.m.position.y, o.z, 1.6, '#d8c8a8'); o.etat = 'mort'; o.t = 0; } }); /* ils repartent */
+      finVague(false); return;
+    }
+  }
   c.attente -= dt; c.duree = (c.duree || 0) + dt;
   if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   c.monstres = c.monstres.filter((o) => !(o.etat === 'mort' && !o.m.parent));
-  majInvoc(dt); majLegendaire(dt); if (combat !== c || c.fin) return; majPerso(dt); if (combat !== c || c.fin) return; majVisee(s);
+  if (c.deroute == null) { majInvoc(dt); majLegendaire(dt); } if (combat !== c || c.fin) return; if (c.deroute == null) majPerso(dt); if (combat !== c || c.fin) return; majVisee(s);
   const cb = c.cible && c.cible.etat === 'actif' ? c.cible : null; ANNEAU.visible = !!cb;
   if (cb) { ANNEAU.position.set(cb.x, cb.m.position.y + 0.04, cb.z); ANNEAU.scale.setScalar(Math.max(1, cb.d.ombre * 0.75) * (1 + Math.sin(s * 6) * 0.06)); }
   majCombatHud();
@@ -4307,7 +4327,7 @@ function finVague(gagne, fuite) {
   const c = combat; c.fin = true; const n = c.n, rejoue = S_.vague.num > VAGUES_TOTAL || c.rejoueBoss != null;
   c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); scene.remove(o.m); } o.barre.remove(); });
   if (c.invoc) scene.remove(c.invoc.m);
-  combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; paysanMesh.userData.attaque = null;
+  combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; paysanMesh.userData.attaque = null; $('b-fuir').hidden = false; if (c.deroute != null) { paysanMesh.rotation.x = 0; paysanMesh.userData.charge = false; } /* (il se releve) */
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null;
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
     if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
@@ -4339,6 +4359,7 @@ function finVague(gagne, fuite) {
     let perte = 'Ils n\'ont trouvé aucune culture à saccager.';
     if (champs.length) { const p = champs[0], nom = PAR_ID[p.c].nom; Object.assign(p, champVide()); rendreCase(p.id); perte = 'Ils ont saccagé ton champ ' + de(nom) + ' en repartant.'; }
     if (!fuite) S_.vague.repos = Date.now() + REPOS_VAGUE;
+    if (c.deroute != null) { const touches = Object.keys(c.bats || {}).filter((k) => c.bats[k] > 0); perte += touches.length ? ' Pendant que tu étais à terre, ils ont frappé ' + touches.map((k) => nomBat(k) + (enRuine(k) ? ' (en ruine)' : '')).join(', ') + ' : répare avant la prochaine vague.' : ' Pendant que tu étais à terre, ta défense les a tenus loin de tes bâtiments.'; }
     corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Ton perso n\'a pas besoin de repos : tu peux relancer quand tu veux.' : 'Ton perso se repose ' + dureeLisible(REPOS_VAGUE) + ' avant de pouvoir relancer. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
   }
   corps += recapCombat(c); /* « recap fin de combat » (testeurs, 12/10/2026) */
@@ -4443,6 +4464,7 @@ function animerPas(u, dt, cible) {
   paysanMesh.rotation.z = Math.sin(ph) * 0.03 * a; paysanMesh.rotation.x = 0.08 * a; /* leger balancement, penche un peu en avant en marchant */
 }
 function marcher(dt, s) {
+  if (combat && combat.deroute != null) return; /* a terre, il ne marche plus */
   if (!paysanMesh) return;
   if (auCasino) { majCasino(dt); return; }
   const u = paysanMesh.userData;
@@ -4847,7 +4869,8 @@ function ouvrirHdv0(onglet) {
       const ouvertes = CULTURES.filter(debloquee), fermees = CULTURES.filter((c) => !debloquee(c));
       corps = '<p class="hdv-aide">Une graine plantée sur une parcelle donne une récolte à revendre. Les plus longues à pousser rapportent plus.</p>' + ouvertes.map((c) => {
         const p = prixGraine(c), st = S_.graines[c.id] || 0, opts = [[1, '×1'], [10, '×10']], n = qteDe('g:' + c.id, opts);
-        return '<div class="art">' + ico(c.id) + '<div><b>Graines ' + de(c.nom) + '</b><div class="puces">' + pc('vitesse', dureeLisible(duree(c))) + pc('epi', '×' + c.rendement + ' à la récolte') + '<span class="puce">' + st + ' en grange</span></div></div>' +
+        return '<div class="art">' + ico(c.id) + '<div><b>Graines ' + de(c.nom) + '</b><div class="puces">' + pc('vitesse', dureeLisible(duree(c))) + pc('epi', '×' + c.rendement + ' à la récolte') + '<span class="puce">' + st + ' en grange</span>' + (c.mange ? '<span class="puce bonne">repas : ' + c.mange.txt + '</span>' : '') + '</div>' +
+          (c.mange ? '<div class="desc">Une culture à manger : avant une vague, dans la fenêtre Vagues, ton perso en mange une récolte et gagne ' + c.mange.txt + ' pendant toute la vague. Elle se vend aussi.</div>' : '') + '</div>' +
           '<div class="act"><small>' + p + ' ' + KAMA + ' la graine</small>' + segQte('g:' + c.id, opts) + '<button class="btn kamas" data-graines="' + c.id + '" data-n="' + n + '"' + (S_.kamas >= n * p ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * p) + ' ' + KAMA + '</button>' + manque(n * p) + '</div></div>';
       }).join('') + (fermees.length ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + fermees.map((c) => '<div class="art verrou">' + ico(c.id) + '<div><b>Graines ' + de(c.nom) + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + c.niv + '</span></div></div>').join('') : '');
     } else if (cat === 'animaux') {
@@ -5150,7 +5173,7 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-voir-ulti')) ouvrirUlti();
   else if (b.dataset.choisirUlti) choisirUlti(b.dataset.choisirUlti);
   else if (b.dataset.confirmerUlti) choisirUlti(b.dataset.confirmerUlti, true);
-  else if (b.id === 'b-fuir') finVague(false, true);
+  else if (b.id === 'b-fuir') { if (!(combat && combat.deroute != null)) finVague(false, true); } /* (a terre, on ne fuit plus) */
   else if (b.dataset.capturerSauvage) { const p = S_.sauvage && S_.cases.find((c) => c.id === S_.sauvage.id); fermerModale(); if (p) allerPuis(p, () => ACTIONS.capturerSauvage()); }
   else if (b.dataset.chasserSauvage) { const p = S_.sauvage && S_.cases.find((c) => c.id === S_.sauvage.id); fermerModale(); if (p) chasserDeLoin(p, () => { if (S_.sauvage) ACTIONS.chasserSauvage(); }); }
   else return;
@@ -5617,7 +5640,7 @@ const LECONS = [
     pages: [() => `Une <em>vague</em>, ce sont des monstres qui grimpent par les bords de l'île. Ils s'en prennent à toi, et certains à tes bâtiments. Gagne-la pour des kamas, de l'XP et parfois de l'équipement. Elle n'arrive que quand tu la lances.`,
       () => `Pendant la vague, ${cliquerQ('un monstre')} pour le <em>cibler</em> : ton perso y va et frappe tout seul. ${cliquerQ('une case').replace(/^./, (x) => x.toUpperCase())} pour te déplacer.`,
       () => `En bas à droite, ton <em>sort</em> : ${(SORT_LECON[classeDe()] || SORT_LECON.iop)()}`,
-      () => `Si tes PV tombent à zéro, la vague est perdue : les monstres saccagent ton plus beau champ et ton perso se repose 1 h. Le bouton <em>Fuir</em> arrête la vague sans repos, mais ils saccagent quand même un champ.`] },
+      () => `Si tes PV tombent à zéro, ton perso tombe : pendant 12 s, les monstres saccagent tes bâtiments (tes tours et ton arbalète tirent toujours), puis ils repartent avec ton plus beau champ, et ton perso se repose 1 h. Le bouton <em>Fuir</em> arrête la vague sans repos, mais ils saccagent quand même un champ.`] },
   { id: 'victoire', titre: 'Après la victoire', ico: 'kama', resume: 'La préparation, le niveau requis, les réparations.', quand: () => S_.vague.num >= 2,
     pages: [() => `Bravo ! La vague suivante <em>se prépare</em> : quelques minutes au début, plus longtemps aux paliers suivants. Il faut aussi le <em>niveau</em> qu'elle demande : le numéro de la vague moins 2.`,
       () => `Les bâtiments frappés gardent leurs dégâts : ${toucherQ('un bâtiment abîmé')} pour le réparer, ou le bouton <em>Tout réparer</em> en fin de vague. Un bâtiment en ruine ne sert plus à rien tant que tu ne l'as pas reconstruit.`,
