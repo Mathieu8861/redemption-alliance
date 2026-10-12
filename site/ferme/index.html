@@ -2114,8 +2114,8 @@ function inaccessibles() {
    sont deplaces sans etre epaissis. Puis la coiffe et la cape portees : la coiffe calee sur le crane (le chapeau de paille et les cornes de
    l'Osamodas s'effacent), la cape enroulee autour du dos, l'arme portee par-dessus. */
 const LARGEUR_PERSO = { iop: [1.55, 1.28], cra: [1.25, 1.12], osa: [1.25, 1.12] };
-const P_CHAPEAU = /^(cone|paille|chapeau)/, P_RIGIDE = /^(lame|gorge|garde|poignee|pommeau|pointe|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|fleche_queue)/,
-  P_ARME_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|carquois|fleche|empennage)/, P_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|baudrier|cape|col)/,
+const P_CHAPEAU = /^(cone|paille|chapeau)/, P_RIGIDE = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|fleche_queue)/, /* (la sangle tient l'epee : elle bouge avec elle, sans s'etirer) */
+  P_ARME_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage)/, P_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|baudrier|cape|col)/,
   P_SAILLIE = /^(corne|anneau_corne|queue|crin|cristal|lueur|plume|feuille|museau|couvre_nuque|garde_joue|crete|dent|oreille|cawotte|cercle|noeud|embleme|gemme|clou|orbite|arcade|fente|visiere|touffe|couronne_pointe|couronne_boule|sillon|couture|roc)/, EP_CAPE = 0.16;
 const nomP = (o) => ((o && o.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, '');
 const boiteDe = (o) => new T.Box3().setFromObject(o), unionDe = (L) => { const b = new T.Box3(); L.forEach((o) => b.union(boiteDe(o))); return b; };
@@ -2129,10 +2129,17 @@ function elargirPerso(g, classe) {
   pivots.forEach((o, i) => { o.parent.updateMatrixWorld(true); o.position.copy(o.parent.worldToLocal(cibles[i].clone())); o.updateMatrixWorld(true); });
   g.updateMatrixWorld(true);
   const S = new T.Matrix4().makeScale(sx, 1, sz);
+  /* « le manche de l'epee, il y a un souci » (Mathieu, 12/10/2026) : chaque morceau etait deplace selon son propre centre, la lame et la garde se
+     separaient. Les morceaux qui se touchent (l'epee, le carquois et ses fleches, l'arc, la queue) forment un seul objet, deplace d'un bloc */
+  const rig = []; g.traverse((m) => { if (m.isMesh && P_RIGIDE.test(nomP(m)) && !(tete && dans(m, tete)) && !(m.material && m.material.side === T.BackSide && m.parent && m.parent.isMesh)) rig.push({ m, b: new T.Box3().setFromBufferAttribute(m.geometry.attributes.position).applyMatrix4(avant.get(m)) }); });
+  const grp = rig.map((_, i) => i), chef = (i) => (grp[i] === i ? i : (grp[i] = chef(grp[i])));
+  for (let i = 0; i < rig.length; i++) for (let j = i + 1; j < rig.length; j++) if (rig[i].b.clone().expandByScalar(0.06).intersectsBox(rig[j].b)) grp[chef(i)] = chef(j);
+  const blocs = {}; rig.forEach((r, i) => { const k = chef(i); (blocs[k] = blocs[k] || new T.Box3()).union(r.b); });
+  const centreBloc = new Map(rig.map((r, i) => [r.m, blocs[chef(i)].getCenter(new T.Vector3())]));
   g.traverse((m) => {
     if (!m.isMesh || (tete && dans(m, tete)) || (m.material && m.material.side === T.BackSide && m.parent && m.parent.isMesh)) return;
     const old = m.geometry, A = avant.get(m); let W;
-    if (P_RIGIDE.test(nomP(m))) { const c = new T.Box3().setFromBufferAttribute(old.attributes.position).getCenter(new T.Vector3()).applyMatrix4(A); W = new T.Matrix4().makeTranslation(c.x * (sx - 1), 0, c.z * (sz - 1)).multiply(A); }
+    if (centreBloc.has(m)) { const c = centreBloc.get(m); W = new T.Matrix4().makeTranslation(c.x * (sx - 1), 0, c.z * (sz - 1)).multiply(A); }
     else W = S.clone().multiply(A);
     const geo = old.clone().applyMatrix4(new T.Matrix4().copy(m.matrixWorld).invert().multiply(W));
     m.children.forEach((k) => { if (k.isMesh && k.geometry === old) k.geometry = geo; }); m.geometry = geo;
