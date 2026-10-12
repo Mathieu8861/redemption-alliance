@@ -179,14 +179,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .toasts { position: absolute; left: 12px; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; width: min(100% - 24px, 300px); align-content: end; }
 .toast { position: relative; background: var(--papier); border: 3px solid var(--bord); border-radius: 12px; padding: 5px 9px; box-shadow: 0 3px 0 var(--bord); font-size: .74rem; line-height: 1.25; animation: pop .25s ease-out; }
 .toasts .pile { display: grid; gap: 6px; }
-@media (max-width: 720px) { .txt-journal { display: none; } } /* au telephone, la bulle seule dans la barre du haut */
+.toasts.ouvert .pile { display: none; } /* chat deplie : l'historique remplace la pile */
+.b-journal { justify-self: start; pointer-events: auto; cursor: pointer; background: rgba(255, 250, 240, .92); color: var(--encre); border: 2.5px solid var(--bord); border-radius: 99px; padding: 2px 10px; box-shadow: 0 2px 0 var(--bord); font: 800 .68rem var(--f-texte); }
+.b-journal:hover, .toasts.ouvert .b-journal { background: #fff1c9; }
+.chat { pointer-events: auto; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 3px 0 var(--bord); padding: 6px 6px 6px 8px; }
+.chat-tete { display: flex; align-items: baseline; gap: 8px; margin: 0 0 5px; } .chat-tete b { font: 400 .95rem/1 var(--f-titre); } .chat-tete small { flex: 1; font-size: .64rem; font-weight: 700; color: #8a7a5a; }
+.chat-tete button { background: none; border: 0; font-size: 1rem; line-height: 1; cursor: pointer; color: var(--encre); padding: 0 2px; }
+.chat .journal { margin: 0; max-height: min(42vh, 340px); }
+.chat .journal li { font-size: .72rem; padding: 4px 7px; grid-template-columns: 34px 1fr; gap: 6px; }
 .journal { list-style: none; margin: 0 0 8px; padding: 0 4px 0 0; max-height: min(60vh, 460px); overflow-y: auto; display: grid; gap: 5px; }
 .journal li { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: baseline; background: #fff; border: 2px solid #e6d9bd; border-radius: 10px; padding: 5px 9px; font-size: .8rem; font-weight: 600; line-height: 1.3; }
 .journal li.or { background: #fff1c9; border-color: var(--or); }
 .journal li.alerte { background: #fde3df; border-color: #e7a59b; }
 .journal time { font-size: .68rem; font-weight: 800; color: #8a7a5a; }
 .journal .fois { background: var(--rouge); color: #fff; border-radius: 99px; font-size: .62rem; padding: 1px 5px; }
-.note-journal { font-size: .72rem; font-weight: 600; color: #6b5a3a; margin: 0; }
 .toast b.fois { position: absolute; right: -8px; top: -9px; background: var(--rouge); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 800 .62rem/1 var(--f-texte); padding: 2px 5px; }
 @media (max-width: 720px) { .toasts { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: min(100% - 24px, 260px); } .toast { font-size: .68rem; } }
 /* l'infobulle maison, a la place de celle du navigateur (« quand on laisse sa souris sur les pop-up ca affiche ces messages la, c'est pas tres beau », Mathieu, 11/10/2026) */
@@ -496,13 +502,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
       <div class="vitesse-ligne"><input type="range" min="1" max="50" step="1" value="1" id="vitesse" aria-label="Vitesse du temps"><output id="vitesse-val">x1</output></div>
       <small>Les cultures, les Bouftous, la préparation des vagues et les raids vont plus vite. Les combats gardent leur vitesse.</small>
     </div>
-    <button class="pastille options" id="b-journal" aria-label="Relire les messages">💬<span class="txt-journal"> Messages</span></button>
     <button class="pastille options" id="b-options">Options</button>
   </div>
   <div class="objectif" id="objectif" hidden></div>
   <div class="aide" id="aide" hidden>Sur ordinateur, clic gauche : ton perso se déplace, ou cible un monstre ; clic droit : il agit sur la case. Au doigt, touche une case pour agir, reste appuyé pour seulement t'y déplacer. Une parcelle libre se plante, une culture à sec s'arrose, une culture mûre se récolte, un Tofu se chasse, un Bouftou se nourrit ou se tond, une case d'herbe se laboure ou se construit. Les petites icônes au-dessus des cases se touchent aussi. Les graines et les Bouftous s'achètent à l'HDV. L'arrosoir se remplit au puits (10 arrosages).</div>
   <aside class="panneau" aria-label="Grange" id="panneau-grange"></aside>
-  <div class="toasts"><div class="pile" id="toasts"></div></div>
+  <div class="toasts" id="fil"><div class="chat" id="chat" hidden><div class="chat-tete"><b>💬 Messages</b><small>les plus récents en bas</small><button id="b-chat-fermer" aria-label="Refermer">✕</button></div><ol class="journal" id="chat-liste"></ol></div><div class="pile" id="toasts"></div><button class="b-journal" id="b-journal" aria-expanded="false">💬 Messages</button></div>
   <div class="commis" id="commis"></div>
   <nav class="actions" aria-label="Actions">
     <button class="action" id="b-graine"><span class="tuile"><img id="graine-ico" src="assets/icones/ble.png" alt=""><b id="graine-nb">0</b></span>Graines</button>
@@ -4001,12 +4006,17 @@ const JOURNAL = [];
 function noterJournal(msg, genre) {
   const d = JOURNAL[JOURNAL.length - 1], h = new Date(performance.timeOrigin + performance.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   if (d && d.msg === msg) { d.n++; d.h = h; } else { JOURNAL.push({ msg, genre: genre || '', h, n: 1 }); if (JOURNAL.length > 60) JOURNAL.shift(); }
-  try { if (modaleOuverte === 'journal') ouvrirJournal(); } catch (e) { /* (message parti avant la declaration des modales) */ }
+  if (!$('chat').hidden) remplirChat();
 }
-function ouvrirJournal() {
-  ouvrirModale('journal', entete('Messages récents') + '<ol class="journal">' + JOURNAL.map((m) => '<li class="' + m.genre + '"><time>' + m.h + '</time><span>' + echapper(m.msg) + (m.n > 1 ? ' <b class="fois">×' + m.n + '</b>' : '') + '</span></li>').join('') + '</ol>' +
-    '<p class="note-journal">Les plus récents en bas. En orange, les messages importants.</p>');
-  const l = document.querySelector('.journal'); if (l) l.scrollTop = l.scrollHeight;
+/* le chat deplie : l'historique a la place de la pile de messages ; s'il etait en bas, il y reste quand un message arrive */
+function remplirChat() {
+  const l = $('chat-liste'), enBas = l.scrollHeight - l.scrollTop - l.clientHeight < 30;
+  l.innerHTML = JOURNAL.length ? JOURNAL.map((m) => '<li class="' + m.genre + '"><time>' + m.h + '</time><span>' + echapper(m.msg) + (m.n > 1 ? ' <b class="fois">×' + m.n + '</b>' : '') + '</span></li>').join('') : '<li><time></time><span>Aucun message pour l\'instant.</span></li>';
+  if (enBas || !l._vu) { l.scrollTop = l.scrollHeight; l._vu = true; }
+}
+function basculerChat(ouvrir) {
+  const c = $('chat'), o = ouvrir === undefined ? c.hidden : ouvrir; c.hidden = !o; $('fil').classList.toggle('ouvert', o); $('b-journal').setAttribute('aria-expanded', String(o)); $('b-journal').textContent = o ? '💬 Refermer' : '💬 Messages';
+  if (o) { $('chat-liste')._vu = false; remplirChat(); }
 }
 
 /* modales */
@@ -4228,7 +4238,8 @@ function ouvrirConstruire(p) {
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
-  if (b.id === 'b-journal') { ouvrirJournal(); return; }
+  if (b.id === 'b-journal') { basculerChat(); return; }
+  if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
   if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
   else if (b.id === 'b-options') { ouvrirModale('options', entete('Options') + '<div class="art">' + ico('cloche') + '<div><b>Le son</b><div class="desc">De petits sons quand tu récoltes, vends, frappes ou passes un niveau.</div></div><div class="act"><button class="btn discret" id="b-son">' + (sonActif() ? 'Couper le son' : 'Remettre le son') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Les objectifs de Pépito</b><div class="desc">Le petit panneau en haut à gauche.</div></div><div class="act"><button class="btn discret" id="b-objectifs">' + (S_.objCache ? 'Les afficher' : 'Les masquer') + '</button></div></div><div class="art">' + ico('apercu') + '<div><b>Graphismes</b><div class="desc">' + (graphismes() === 'leger' ? 'Légers : sans ombres ni contours, pour les petits appareils.' : 'Complets : ombres et détails.') + ' Si le jeu rame, passe en légers.</div></div><div class="act"><button class="btn discret" id="b-graphismes">' + (graphismes() === 'leger' ? 'Passer en complets' : 'Passer en légers') + '</button></div></div><div class="art">' + ico('etal') + '<div><b>Le tuto du début</b><div class="desc">Pépito te remontre les bases en ' + ETAPES_TUTO.length + ' étapes.</div></div><div class="act"><button class="btn discret" id="b-tuto">Revoir le tuto</button></div></div><div class="art">' + ico('pelle') + '<div><b>Comment jouer</b><div class="desc">' + $('aide').textContent + ' Touche plusieurs bulles d\'affilée : ton paysan enchaîne les tâches. Glisse pour déplacer la vue, molette pour zoomer.</div></div><div></div></div><div class="art">' + ico('coffre') + '<div><b>Ton compte</b><div class="desc">' + infoCompte() + '</div></div><div class="act">' + (ENLIGNE && (enLigneSv.compte || jetonInvite()) ? '<button class="btn discret" id="b-deconnexion">Se déconnecter</button>' : '') + '</div></div><div class="art">' + ico('grange') + '<div><b>Recommencer une ferme</b><div class="desc">' + (ENLIGNE && enLigneSv.compte ? 'Repart de zéro : la nouvelle ferme remplace celle-ci, ici et en ligne.' : 'Efface la sauvegarde de ce navigateur et repart de zéro.') + '</div></div><div class="act"><button class="btn" id="b-reset" style="background:var(--rouge);color:#fff">Recommencer</button></div></div>'); return; }
   else if (b.id === 'b-reset') { ouvrirModale('options', entete('Recommencer ?') + '<div class="confirme"><div class="gros" style="background:#fde3df"><img src="assets/icones/grange.png" alt=""></div><p>Une ferme toute neuve : ' + (ENLIGNE && enLigneSv.compte ? 'celle-ci sera effacée, ici et en ligne, pour de bon.' : 'la sauvegarde de ce navigateur sera effacée, pour de bon.') + '</p><div class="boutons"><button class="btn discret" data-fermer>Garder ma ferme</button><button class="btn" id="b-reset-ok" style="background:var(--rouge);color:#fff">Tout effacer</button></div></div>'); return; }
