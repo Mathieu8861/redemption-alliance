@@ -686,7 +686,7 @@ const CLASSES = [
    3 pieces d'une meme panoplie : un bonus de Vitalite, les 6 : en plus de la Puissance et de la Prospection. On equipe depuis la fiche du perso. */
 const EMPLACEMENTS = [['coiffe', 'Coiffe'], ['cape', 'Cape'], ['amulette', 'Amulette'], ['anneau', 'Anneau'], ['ceinture', 'Ceinture'], ['bottes', 'Bottes']];
 const CARACS = { vita: ['Vitalité', ' PV', '❤'], puissance: ['Puissance', ' % de dégâts', '⚔'], agilite: ['Agilité', ' % de vitesse d\'attaque', '💨'], sagesse: ['Sagesse', ' % d\'expérience', '📖'], prospection: ['Prospection', ' % de butin', '🍀'] };
-const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'Wabbit', niv: 51 }];
+const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }];
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
 const VALEURS = { vita: [20, 45, 80, 125, 180, 245], puissance: [4, 7, 10, 14, 18, 23], agilite: [3, 5, 7, 9, 12, 15], sagesse: [5, 8, 11, 15, 20, 25], prospection: [8, 12, 16, 20, 25, 31] };
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
@@ -701,7 +701,7 @@ const LEGENDAIRES = [
   { cle: 'bworker', boss: 'bworker', nom: 'Casque du Bworker', pouvoir: 'Sous 30 % de vie, tu entres en rage : tu frappes 30 % plus vite.' },
   { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Un séisme autour de toi toutes les 10 s, pendant les vagues : 2 fois tes dégâts.' },
   { cle: 'wa', boss: 'waWabbit', nom: 'Couronne du Wa Wabbit', pouvoir: 'Une pluie de cawottes toutes les 9 s autour de toi, pendant les vagues : 2 fois tes dégâts. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.', rang: 5 },
-  { cle: 'croc', boss: 'crocabulia', nom: 'Heaume de Crocabulia', pouvoir: 'Tu craches un cône de feu toutes les 8 s, pendant les vagues : 3 fois tes dégâts, et les monstres touchés brûlent.' }
+  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Tu craches un cône de feu toutes les 8 s, pendant les vagues : 3 fois tes dégâts, et les monstres touchés brûlent.' }
 ];
 LEGENDAIRES.forEach((L, i) => { const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
 /* les armes : l'epee du Iop, l'arc du Cra, le fouet de l'Osamodas, aux couleurs de chaque panoplie (icones arme-<type>-<panoplie>, equipements.glb).
