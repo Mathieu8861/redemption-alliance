@@ -731,7 +731,7 @@ function caracs() {
   try { if (combat && combat.boostPros) t.prospection += combat.boostPros; } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague */
   return t;
 }
-const reventeObjet = (id) => 40 * OBJETS[id].niv * (OBJETS[id].rare ? 3 : 1);
+const reventeObjet = (id) => 15 * OBJETS[id].niv * (OBJETS[id].rare ? 3 : 1); /* « la revente devrait moins rapporter » (Mathieu, 12/10/2026) : 40 par niveau, soit les deux tiers d'une vague du meme niveau ; maintenant environ un quart */
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {
