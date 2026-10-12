@@ -247,10 +247,17 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .btn.kamas { background: var(--kamas); color: #fff; } .btn.eau { background: var(--eau); color: #fff; } .btn.discret { background: #fff; }
 .btn[disabled] { opacity: .45; cursor: default; }
 .btn[aria-pressed="true"] { background: var(--vert); color: #fff; }
-.grille-graines { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
-.graine { text-align: left; background: #fff; border: 3px solid var(--bord); border-radius: 12px; padding: 7px 9px; box-shadow: 0 3px 0 var(--bord); }
-.graine[aria-pressed="true"] { background: var(--or); } .graine[disabled] { opacity: .45; }
-.graine b { display: block; } .graine span { font-weight: 600; font-size: .72rem; }
+.grille-graines { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.graine { display: grid; justify-items: center; gap: 3px; text-align: center; background: #fff; border: 3px solid var(--bord); border-radius: 14px; padding: 8px 6px 9px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; }
+.graine[aria-pressed="true"] { background: #fff4d0; border-color: var(--bord); box-shadow: 0 0 0 3px var(--or), 0 3px 0 var(--bord); } .graine[disabled] { opacity: .5; cursor: default; }
+.graine .g-ico { position: relative; width: 62px; height: 62px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); border: 2px solid #e4d2ad; display: grid; place-items: center; }
+.graine .g-ico img { width: 54px; height: 54px; object-fit: contain; }
+.graine .g-nb { position: absolute; right: -8px; bottom: -4px; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 99px; background: var(--vert); color: #fff; border: 2.5px solid var(--bord); font: 400 .95rem/21px var(--f-titre); font-style: normal; }
+.graine.vide .g-nb { background: #c9b48a; } .graine.vide .g-ico img { filter: grayscale(.6) opacity(.75); }
+.graine .g-cad { position: absolute; right: -6px; bottom: -4px; font-style: normal; font-size: 1rem; }
+.graine b { display: block; font: 400 1rem/1.1 var(--f-titre); margin-top: 2px; }
+.graine .g-info { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; } .graine .g-info span { background: #f3ead8; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 800; color: #5b5240; white-space: nowrap; }
+.graine .g-mange { font-size: .62rem; font-weight: 800; color: #8a1e16; }
 .tendance-haut { color: var(--vert); } .tendance-bas { color: var(--rouge); }
 .aide { position: absolute; left: 12px; top: calc(64px + env(safe-area-inset-top, 0px)); background: rgba(255, 250, 240, .9); border: 3px solid var(--bord); border-radius: 12px; padding: 6px 10px; font-size: .74rem; font-weight: 600; max-width: 250px; }
 .hud.cache > *:not(#bulles) { display: none !important; }
@@ -490,7 +497,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .fp-slot small { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); font-size: .56rem; color: #8a7a5a; white-space: nowrap; font-weight: 800; }
 .fp-slot.choisi, .fp-case.choisi { box-shadow: 0 0 0 3px var(--or), 0 3px 0 var(--bord); }
 .fp-slot.rare, .fp-case.rare { box-shadow: 0 0 0 2px var(--or), 0 0 9px rgba(242, 182, 48, .9); } .fp-slot.leg, .fp-case.leg { box-shadow: 0 0 0 2px #9b6cff, 0 0 9px rgba(155, 108, 255, .8); }
-.fp-mieux, .fp-n { position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--bord); color: #fff; font: 800 .68rem/16px var(--f-texte); font-style: normal; text-align: center; background: var(--vert); }
+.fp-mieux, .fp-n { position: absolute; top: -9px; right: -9px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bord); color: #fff; font: 800 .7rem/18px var(--f-texte); font-style: normal; text-align: center; background: var(--vert); }
+.fp-mieux { font-size: .62rem; } /* (le ▲ : « mieux que ta piece » ; la fleche ↑ se lisait comme un T) */
 .fp-n { background: #e0402e; }
 .fp-carac { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 18px; }
 .fp-carac div { display: flex; align-items: center; gap: 5px; background: #fff; border: 2px solid #efe4cc; border-radius: 10px; padding: 3px 7px; font-size: .72rem; }
@@ -4323,8 +4331,15 @@ function ouvrirModale(nom, html) { modaleOuverte = nom; $('carte').innerHTML = h
 function fermerModale() { modaleOuverte = null; $('modale').classList.remove('ouverte'); }
 $('modale').addEventListener('click', (e) => { if (e.target === $('modale')) fermerModale(); });
 const entete = (titre) => '<h2>' + titre + '<button data-fermer aria-label="Fermer">✕</button></h2>';
+/* une carte de graine : l'icone de la culture et le nombre en grange en pastille, le temps de pousse et ce que rapporte la recolte */
+function carteGraine(c, attrs, ok) {
+  const n = S_.graines[c.id] || 0, vide = ok && !n;
+  return '<button class="graine' + (vide ? ' vide' : '') + '" ' + attrs + ' aria-pressed="' + (S_.graine === c.id) + '"' + (ok ? '' : ' disabled') + '>' +
+    '<span class="g-ico"><img src="assets/icones/' + c.id + '.png?v=' + VERSION_MODELES + '" alt="">' + (ok ? '<i class="g-nb">' + n + '</i>' : '<i class="g-cad">🔒</i>') + '</span>' +
+    '<b>' + c.nom + '</b>' + (ok ? '<span class="g-info"><span>⏱ ' + dureeLisible(duree(c)) + '</span><span>🌾 ×' + c.rendement + '</span></span>' + (c.mange ? '<span class="g-mange">' + c.mange.txt + '</span>' : '') : '<span class="g-info"><span>niveau ' + c.niv + '</span></span>') + '</button>';
+}
 function ouvrirGraines() {
-  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Les graines s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => { const ok = debloquee(c); return '<button class="graine" data-graine="' + c.id + '" aria-pressed="' + (S_.graine === c.id) + '"' + (ok ? '' : ' disabled') + '><b>' + c.nom + '</b><span>' + (ok ? (S_.graines[c.id] || 0) + ' en grange, ' + dureeLisible(duree(c)) + ', ×' + c.rendement : 'niveau ' + c.niv) + '</span></button>'; }).join('') + '</div>');
+  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Le nombre sur l\'icône : tes graines en grange. Elles s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>');
 }
 /* les icones : rendues depuis nos modeles 3D (generer-icones.html + exporter-icones.mjs -> assets/icones/) */
 const ICONES = { qg: 'grange', nivPuits: 'puits', nivEtal: 'etal', voliere: 'voliere', arbalete: 'arbalete', enclos: 'cloture', arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
@@ -4510,7 +4525,7 @@ function ouvrirPerso(sel) {
   /* a gauche : le perso au milieu de ses 7 emplacements, et ses caracteristiques */
   const slot = (e) => { const id = S_.equip[e], o = id && obj(id), mieux = sacL.some((k) => obj(k).emp === e && comparer(k).mieux), neuf = sacL.some((k) => obj(k).emp === e && persoNeufs[k]);
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
-      (mieux ? '<i class="fp-mieux">↑</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
+      (mieux ? '<i class="fp-mieux">▲</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
   const carac = [['❤️', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['⚔️', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['⏱️', 'Attaque', String(st.cadence).replace('.', ',') + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['🎯', 'Portée', String(st.portee).replace('.', ',') + ' c.', ''],
     ['💪', 'Puissance', '+' + c.puissance + ' %', ''], ['💨', 'Agilité', '+' + c.agilite + ' %', ''], ['📖', 'Sagesse', '+' + c.sagesse + ' %', ''], ['🍀', 'Prospection', '+' + c.prospection + ' %', '']];
   const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case</small></h3><div class="fp-poupee">' +
@@ -4524,7 +4539,7 @@ function ouvrirPerso(sel) {
   if (!persoSel) milieu = '<div class="fp-bloc fp-detail"><h3>Aucune pièce</h3><p class="fp-aide">Les monstres des vagues lâchent des pièces d\'équipement, chaque boss en lâche une à coup sûr la première fois. Elles arrivent ici.</p><div class="fp-actions"><button class="btn discret" data-bestiaire="panoplies">📖 Voir le butin possible</button></div></div>';
   else {
     const k = persoSel, o = obj(k), porte = S_.equip[o.emp], porteeIci = porte === k, q = porte && !porteeIci ? obj(porte) : null, cmp = comparer(k), qj = qualiteJet(k), B = OBJETS[baseObjet(k)];
-    const pils = (persoNeufs[k] ? '<span class="fp-pil neuf">nouveau</span>' : '') + (porteeIci ? '<span class="fp-pil porte">portée</span>' : cmp.mieux ? '<span class="fp-pil mieux">↑ mieux que la tienne</span>' : '') +
+    const pils = (persoNeufs[k] ? '<span class="fp-pil neuf">nouveau</span>' : '') + (porteeIci ? '<span class="fp-pil porte">portée</span>' : cmp.mieux ? '<span class="fp-pil mieux">▲ mieux que la tienne</span>' : '') +
       '<span class="fp-pil' + (niveau(S_.xp) < o.niv ? ' rouge' : '') + '">niveau ' + o.niv + '</span>' + (o.rare ? '<span class="fp-pil rare">★ rare</span>' : '') + (o.leg ? '<span class="fp-pil leg">✦ légendaire</span>' : '') + (o.arme ? '<span class="fp-pil">arme du ' + nomClasse(o.classe) + '</span>' : !o.leg ? '<span class="fp-pil">panoplie ' + PANOS[o.pano].de + '</span>' : '') +
       (S_.sac[k] > 1 ? '<span class="fp-pil">×' + S_.sac[k] + '</span>' : '');
     const cles = [...new Set(Object.keys(o.stats).concat(q ? Object.keys(q.stats) : []))];
@@ -4546,10 +4561,10 @@ function ouvrirPerso(sel) {
   if (persoFiltre !== 'tout' && !presents.includes(persoFiltre) && !NOMS_EMP[persoFiltre]) persoFiltre = 'tout';
   const vus = sacL.filter((k) => persoFiltre === 'tout' || obj(k).emp === persoFiltre).sort(ordre), nCases = Math.max(20, Math.ceil((vus.length + 1) / 5) * 5);
   const cases = vus.map((k) => { const o = obj(k); return '<button class="fp-case plein' + (k === persoSel ? ' choisi' : '') + (o.rare ? ' rare' : '') + (o.leg ? ' leg' : '') + (persoNeufs[k] ? ' nouveau' : '') + (comparer(k).ok ? '' : ' verrou') + '" data-fp-sel="' + k + '" data-info="' + echapper(o.nom) + '"><img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt="">' +
-    (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">↑</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length }, () => '<span class="fp-case"></span>').join('');
+    (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">▲</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length }, () => '<span class="fp-case"></span>').join('');
   const panos = Object.entries(comptePanos()); const droite = '<div class="fp-bloc"><h3>Sac <small>' + sacL.length + ' pièce' + (sacL.length > 1 ? 's' : '') + '</small></h3>' +
     '<div class="fp-filtres">' + [['tout', 'Tout']].concat(presents.map((e) => [e, PLURIELS_EMP[e]])).map(([f, t]) => '<button data-fp-filtre="' + f + '" aria-pressed="' + (persoFiltre === f) + '">' + t + '</button>').join('') + '</div>' +
-    '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouveau</span><span><i class="fp-mieux">↑</i> mieux que ta pièce</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
+    '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">▲</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
     (panos.length ? '<h4>Panoplies portées</h4>' + panos.map(([kk, n]) => blocPano(+kk, n)).join('') : '') + '</div>';
   ouvrirModale('perso', tete + '<div class="fp-corps">' + gauche + milieu + droite + '</div>');
 }
@@ -4560,7 +4575,7 @@ function ouvrirTofu(p, sauvage) {
     '<div class="ligne"><div><b>Le capturer au filet</b><small>' + Math.round(chance * 100) + ' % de chance, le filet est perdu dans tous les cas (' + S_.filets + ' en grange). Capturé, il va à la volière (' + S_.tofus + '/' + capaciteVoliere() + ' places) et donne des plumes.</small></div><button class="btn kamas" ' + (sauvage ? 'data-capturer-sauvage="1"' : 'data-capturer="' + p.id + '"') + '>Capturer</button></div>'));
 }
 function ouvrirPlanter(p, dispo) {
-  ouvrirModale('planter', entete('Que planter ?') + '<div class="grille-graines">' + dispo.map((c) => '<button class="graine" data-planter="' + c.id + '" data-case="' + p.id + '" aria-pressed="' + (S_.graine === c.id) + '"><b>' + c.nom + '</b><span>' + S_.graines[c.id] + ' en grange, ' + dureeLisible(duree(c)) + ', ×' + c.rendement + '</span></button>').join('') + '</div>');
+  ouvrirModale('planter', entete('Que planter ?') + '<div class="grille-graines">' + dispo.map((c) => carteGraine(c, 'data-planter="' + c.id + '" data-case="' + p.id + '"', true)).join('') + '</div>');
 }
 function ouvrirVoliere() {
   const ameliorer = lignesAmelio(['voliere'], 'Agrandir la volière');
