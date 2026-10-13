@@ -920,7 +920,7 @@ const PEPITO = [
 const CLASSES = [
   { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et son Bond du Iop le soigne.', sort: 'Bond du Iop', tunique: '#c0392b',
     role: 'Corps à corps', niveau: ['Facile', 'facile'], lignes: ['Va au contact et frappe fort.', 'Le plus solide : idéal pour débuter.'], sortTxt: 'tu choisis où il saute ; en retombant, il frappe trois fois plus fort.' },
-  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin, une flèche de feu toutes les 10. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57',
+  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin (5 cases), une flèche de feu toutes les 10. Plus léger, il court 15 % plus vite : recule pour garder tes distances. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57',
     role: 'À distance', niveau: ['Moyen', 'moyen'], lignes: ['Tire de loin, à l\'abri.', 'Plus fragile : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
   { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées : il vise où poser son Bouftou, qui retombe sur les monstres et se bat pour lui.', sort: 'Invocation', tunique: '#6f42c1',
     role: 'Invocateur', niveau: ['Avancé', 'avance'], lignes: ['Fait combattre des Bouftous à sa place.', 'Plus technique : tu choisis où les poser.'], sortTxt: 'un Bouftou tombe sur les monstres puis se bat pour toi.' }
@@ -2853,7 +2853,7 @@ const effets = [];
 function majEffets(dt) { for (let i = effets.length - 1; i >= 0; i--) if (effets[i](dt)) effets.splice(i, 1); }
 /* LA PORTEE DES ATTAQUES, LA MEME PARTOUT (13/10/2026 : « des fois je peux taper de loin, des fois au corps a corps, que ce soit un Tofu, un boss ou un mec VSA ;
    si mon perso court au cac alors que je me suis eloigne pour le taper de loin (Osa, Cra), c'est bizarre », Mathieu) : une seule portee par classe, celle des vagues
-   (Iop 1,5, Cra 7, Osamodas 3,2), pour les vagues, le voleur et les Tofus des champs (avant, le voleur : Cra 9, Iop 1,7). Trop loin, le perso s'approche juste
+   (Iop 1 case, Cra 5, Osamodas 3 : STATS_CLASSE), pour les vagues, le voleur et les Tofus des champs (avant, le voleur : Cra 9, Iop 1,7). Trop loin, le perso s'approche juste
    assez pour toucher, jamais jusqu'au corps a corps pour le Cra et l'Osamodas ; et au PC, se deplacer pendant une vague le fait tenir sa position. */
 const porteeClasse = (classe) => (STATS_CLASSE[classe] || STATS_CLASSE.iop).portee;
 function caseAPortee(x, z, portee) { /* la case praticable la plus proche du perso d'ou il touche le point (x, z) ; aucune : null */
@@ -4087,9 +4087,12 @@ const MONSTRES = {
   waWabbit: { nom: 'Wa Wabbit', modele: 'waWabbit', icone: 'wa-wabbit', desc: 'le roi des Wabbits, armure (-35 %), pluie de cawottes explosives (sors des cercles orange), appelle des Wabbits toutes les 16 s (ils filent vers tes Cawottes), enragé sous 30 % de vie', res: 'poil_wabbit', pv: () => 4400, deg: () => 27, cadence: 2.2, vitesse: 1.0, portee: 2.6, ombre: 3.0, armure: 0.35, renforts: ['wabbit', 'Wabbits'], pluie: 7, degSort: 11.6, rage: true, boss: true }
 };
 const STATS_CLASSE = {
-  iop: { pv: (l) => 80 + 17 * l, deg: (l) => 8 + 2 * l, cadence: 0.9, portee: 1.5 },
-  cra: { pv: (l) => 60 + 13 * l, deg: (l) => 8 + 2 * l, cadence: 0.85, portee: 7 },
-  osa: { pv: (l) => 60 + 13 * l, deg: (l) => 7 + 2 * l, cadence: 0.9, portee: 3.2 }
+  /* (13/10/2026, Mathieu : portees en cases rondes, Iop 1, Osamodas 3, Cra 5 (une case = S = 2 unites) ; degats de base 10, 6 et 8, puis la pente par niveau
+     reglee par simulation : le Iop, expose au corps a corps, monte le plus ; le Cra, a distance, un peu moins ; l'Osamodas le moins, son invocation tapant fort.
+     Avant : portees 1,5, 7 et 3,2 unites, degats 8, 8 et 7 + 2 par niveau) */
+  iop: { pv: (l) => 80 + 17 * l, deg: (l) => Math.round(10 + 2 * l), cadence: 0.9, portee: 1 * S },
+  cra: { pv: (l) => 60 + 13 * l, deg: (l) => Math.round(8 + 2.2 * l), cadence: 0.85, portee: 5 * S },
+  osa: { pv: (l) => 60 + 13 * l, deg: (l) => Math.round(6 + 1.8 * l), cadence: 0.9, portee: 3 * S }
 };
 /* la durete des monstres ordinaires, par palier (les boss gardent leurs propres stats) : reglee par simulation le 11/10/2026 */
 /* (13/10/2026, « augmente un chouille la difficulte du 1 a 50, +10 % de degats des monstres », Mathieu : les degats des paliers 1 a 5 x1,1, le palier 6 et les boss inchanges) */
@@ -5047,7 +5050,7 @@ function trajetCoupe(depart, cible, but, bloc) {
 }
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
-const VITESSE = 5.6, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1);
+const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1); /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
 function hauteurSol(x, z, c) {
   if (c && c.terrain !== 'main') return posCase(c).y;
   if (Math.abs(x - cx(COL_ESCALIER)) < 0.95 && z < 0.05 && z > -1.55) return HAUT_TERRASSE * borne((-z + 0.25) / 1.5, 0, 1); /* les marches */
@@ -5628,7 +5631,7 @@ function expliquerCarac(k, st) {
     vita: ['Points de vie', 'Ta vie pendant les vagues et les simus VSA : à 0, la vague est perdue. Ils montent avec ton niveau (' + fmt(st.base.pv) + ' au niveau ' + st.niveau + '), et la Vitalité de tes équipements en ajoute.'],
     degats: ['Dégâts', 'Ce que fait chacun de tes coups, et la base de tes sorts. Ils montent avec ton niveau (' + st.base.deg + ' au niveau ' + st.niveau + '), puis ta Puissance les augmente de ' + c.puissance + ' %.'],
     cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité le raccourcit de ' + c.agilite + ' %.'],
-    portee: ['Portée', 'La distance à laquelle tu touches un monstre, en cases : 1,5 pour le Iop au corps à corps, 3,2 pour le fouet de l\'Osamodas, 7 pour l\'arc du Cra. Elle dépend de ta classe, pas de ton équipement.'],
+    portee: ['Portée', 'La distance à laquelle tu touches un monstre : 1 case pour le Iop au corps à corps, 3 cases pour le fouet de l\'Osamodas, 5 cases pour l\'arc du Cra. Elle dépend de ta classe, pas de ton équipement.'],
     puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
     agilite: ['Agilité', 'Te fait attaquer plus vite : le temps entre deux coups baisse de ' + c.agilite + ' % (' + virg(st.base.cadence) + ' s sans elle, ' + virg(st.cadence) + ' s avec).'],
     sagesse: ['Sagesse', 'Te fait gagner plus d\'expérience : +' + c.sagesse + ' % sur tout ce qui en rapporte (récoltes, vagues gagnées, défis, Tofus).'],
@@ -5683,7 +5686,7 @@ function ouvrirPerso(sel) {
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
       (mieux ? '<i class="fp-mieux">Up</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
   const virg = (x) => String(x).replace('.', ',');
-  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['portee', 'Portée', virg(st.portee) + ' cases', ''],
+  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
     ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite + ' %', ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
   const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case</small></h3><div class="fp-poupee">' +
     ['coiffe', 'cape', 'amulette'].map((e, k) => '<div style="grid-column:1;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
