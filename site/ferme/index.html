@@ -951,6 +951,8 @@ const caseTour = (id) => S_.cases.find((c) => c.id === id && c.type === 'tour');
 const porteeTour = (c) => NIV_TOURS.portee[nivTour(c)], cadenceTour = (c) => NIV_TOURS.cadence[nivTour(c)];
 const degatsTour = (c) => NIV_TOURS.deg[nivTour(c)], nbTours = () => S_.cases.filter((c) => c.type === 'tour').length;
 const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
+/* « quand ta voliere a Tofus est pleine, reduis de 40 % le taux d'apparition des Tofus » (Mathieu, 13/10/2026) : les Tofus des champs et les sauvages */
+const freinTofus = () => (S_.tofus >= capaciteVoliere() ? 0.6 : 1);
 const RYTHME_TOFU = 180 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 30 * MIN, ACCALMIE_TOFU = 20 * MIN, CADENCE_COURS = 40 * MIN, CADENCE_CRISE = 100 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
 const PEPITO = [
@@ -1430,7 +1432,7 @@ function avancer(maintenant, enDirect) {
     if (direct) { /* les Tofus nuisibles */
       if (!p.tofu) {
         const phase2 = S_.vague.num > 5 * VAGUES_PALIER, gout = phase2 ? (p.c === 'cawotte' ? 3 : p.c === 'fraise' ? 2 : 1) : 1; /* les Wabbits raffolent des Cawottes, puis des Fraises */
-        if (recolte(p) > 1 && S_.cases.filter((x) => x.tofu).length < TOFUS_MAX && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU && Math.random() < (dt / RYTHME_TOFU) * gout * [1, 0.5, 0.33, 0.33, 0.33, 0.33][Math.min(5, niv('epouvantail'))] * (enRuine('epouvantail') ? 1.8 : 1)) {
+        if (recolte(p) > 1 && S_.cases.filter((x) => x.tofu).length < TOFUS_MAX && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU && Math.random() < (dt / RYTHME_TOFU) * gout * [1, 0.5, 0.33, 0.33, 0.33, 0.33][Math.min(5, niv('epouvantail'))] * (enRuine('epouvantail') ? 1.8 : 1) * freinTofus()) {
           p.tofu = maintenant; p.nuisible = phase2 && (gout > 1 || Math.random() < 0.5) ? 'wabbit' : 'tofu'; ch.add(p.id); toast((p.nuisible === 'wabbit' ? 'Un Wabbit grignote ta ' : 'Un Tofu picore ton ') + c.nom + ' ! Chasse-le dans les ' + dureeLisible(DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) + ', sinon il te vole une récolte.', 'alerte');
         }
       } else if (maintenant - p.tofu > DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) {
@@ -1461,7 +1463,7 @@ function avancer(maintenant, enDirect) {
   }
   if (direct) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
     if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
-    else if (!S_.sauvage && Math.random() < (dt / MIN) / 45) {
+    else if (!S_.sauvage && Math.random() < (dt / MIN) / 45 * freinTofus()) {
       const libres = S_.cases.filter((c) => c.type === 'libre');
       if (libres.length) { S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE }; sauv = true; toast('Un Tofu sauvage se pose dans l\'herbe.' + (S_.filets ? ' Sors ton filet !' : ' Avec un filet de capture, tu pourrais l\'attraper.'), 'or'); }
     }
