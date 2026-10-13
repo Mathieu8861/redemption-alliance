@@ -253,8 +253,9 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .panneau h2 { margin: 0; font: 400 1rem/1 var(--f-titre); }
 .panneau .l { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .panneau .l .n { display: flex; align-items: center; gap: 7px; min-width: 0; } /* (l'icone de ce que c'est, devant : 13/10/2026) */
-.panneau .gi { position: relative; flex: none; width: 24px; height: 24px; } .panneau .gi img { display: block; width: 24px; height: 24px; object-fit: contain; }
-.panneau .gi i { position: absolute; right: -4px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1.5px solid var(--bord); display: grid; place-items: center; } .panneau .gi i svg { width: 10px; height: 10px; }
+.gi { position: relative; flex: none; width: 24px; height: 24px; } .gi img { display: block; width: 24px; height: 24px; object-fit: contain; }
+.ligne .gl { display: flex; align-items: center; gap: 9px; min-width: 0; } .ligne .gi, .ligne .gi img { width: 30px; height: 30px; } /* (la fenetre de la grange, 13/10/2026) */
+.gi i { position: absolute; right: -4px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1.5px solid var(--bord); display: grid; place-items: center; } .gi i svg { width: 10px; height: 10px; }
 .panneau .crise { background: #fde3df; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #8a1e16; }
 .commis { position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
 .commis b { font-family: var(--f-titre); font-weight: 400; color: var(--kamas); }
@@ -274,6 +275,8 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .journal li { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: baseline; background: #fff; border: 2px solid #e6d9bd; border-radius: 10px; padding: 5px 9px; font-size: .8rem; font-weight: 600; line-height: 1.3; }
 .journal li.or { background: #fff1c9; border-color: var(--or); }
 .journal li.alerte { background: #fde3df; border-color: #e7a59b; }
+.journal li.combat { background: #e3f0fb; border-color: #9cc4e6; } .journal li.combat button { background: none; border: 0; padding: 0; font: inherit; font-weight: 800; color: #1f5f96; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; } /* l'historique de combat, a rouvrir */
+.hist-note { margin: -4px 0 8px; font: 700 .74rem/1.3 var(--f-texte); color: #1f5f96; background: #e3f0fb; border: 2px solid #9cc4e6; border-radius: 10px; padding: 4px 9px; }
 .journal time { font-size: .68rem; font-weight: 800; color: #8a7a5a; }
 .journal .fois { background: var(--rouge); color: #fff; border-radius: 99px; font-size: .62rem; padding: 1px 5px; }
 .toast b.fois { position: absolute; right: -8px; top: -9px; background: var(--rouge); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 800 .62rem/1 var(--f-texte); padding: 2px 5px; }
@@ -5246,7 +5249,7 @@ function finVague(gagne, fuite) {
        des recoltes volees au prix de l'HDV (les recoltes reprises reviennent dans la grange : elles ne comptent pas) */
     const bilan = prime + ((c.lootV && c.lootV.kamas) || 0) - vPerdu;
     const pied = '<div class="bv-pied"><div class="bv-bilan ' + (bilan >= 0 ? 'plus' : 'moins') + '"><img src="assets/icones/kama.png?v=' + VERSION_MODELES + '" alt=""><div><span>Bilan de l\'attaque</span><b>' + (bilan >= 0 ? '+' : '−') + fmt(Math.abs(bilan)) + ' kamas</b>' + (vPerdu ? '<small>récoltes volées au prix de l\'HDV</small>' : '') + '</div></div><button class="btn kamas" data-fermer>Retour à la ferme</button></div>';
-    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + pied);
+    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + pied); memoriserCombat();
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); } /* la vie qui reste ; perdu : il revient a 30 % au moins */
@@ -5272,7 +5275,7 @@ function finVague(gagne, fuite) {
   if (c.bats) { const L = Object.entries(c.bats); if (L.length) corps += '<div class="hdv-section">Bâtiments touchés</div>' + L.map(([k, n]) => '<div class="art">' + ico(ICO_BAT[typeCle(k)]) + '<div><b>' + Maj(nomBat(k)) + (enRuine(k) ? ' : en ruine' : ' : -' + fmt(n) + ' PV') + '</b><div class="desc">' + (enRuine(k) ? PERTE_RUINE[typeCle(k)] : 'Il lui reste ' + fmt(pvBat(k)) + ' PV sur ' + fmt(pvMaxBat(k)) + '.') + '</div></div><div class="act"><button class="btn kamas" ' + (enRuine(k) ? 'data-reconstruire="' + k + '">Reconstruire ' + fmt(coutReconstruire(k)) : 'data-reparer="' + k + '">Réparer ' + fmt(coutReparer(k))) + ' ' + KAMA + '</button></div></div>').join('');
     const aFaire = L.map(([k]) => k).filter((k) => degatsBat(k) || enRuine(k)), total = aFaire.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0);
     if (aFaire.length >= 2) corps += '<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn kamas" data-tout-reparer="' + aFaire.join(',') + '">Tout réparer ' + fmt(total) + ' ' + KAMA + '</button></div>'; }
-  ouvrirModale('vague-fin', corps + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn discret" data-fermer>Retour à la ferme</button>' + (gagne && !S_.ulti && niveau(S_.xp) >= NIV_ULTI ? '<button class="btn kamas" data-voir-ulti>Choisir mon ulti</button>' : '') + '<button class="btn kamas" data-voir-vagues>Voir les vagues</button></div>');
+  ouvrirModale('vague-fin', corps + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn discret" data-fermer>Retour à la ferme</button>' + (gagne && !S_.ulti && niveau(S_.xp) >= NIV_ULTI ? '<button class="btn kamas" data-voir-ulti>Choisir mon ulti</button>' : '') + '<button class="btn kamas" data-voir-vagues>Voir les vagues</button></div>'); memoriserCombat();
   rendreHaut(); rendreGrange(); rendreCasesBulles(); sauver();
 }
 
@@ -5648,15 +5651,28 @@ function toast(msg, genre) {
 const dureeToast = (genre) => genre === 'or' ? 12000 : genre === 'alerte' ? 8000 : 6000;
 /* l'historique : les 60 derniers messages, relus avec le bouton Messages (heure reelle, pas celle du jeu, qui peut aller x50) */
 const JOURNAL = [];
+/* L'HISTORIQUE DE COMBAT (13/10/2026) : chaque fenetre de fin de vague ou de simu VSA est gardee (les 10 dernieres), et le journal des messages a une
+   ligne cliquable « Historique de combat » qui la rouvre telle qu'elle etait (Reparer ou Voir les vagues la fermaient, on ne pouvait plus la revoir) */
+function memoriserCombat() {
+  const t = $('carte').querySelector('h2'), titre = t ? t.firstChild.textContent.trim() : 'Fin du combat', h = new Date(performance.timeOrigin + performance.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  JOURNAL.push({ msg: titre, genre: 'combat', h, n: 1, combat: $('carte').innerHTML }); if (JOURNAL.length > 60) JOURNAL.shift();
+  let k = 0; for (let i = JOURNAL.length - 1; i >= 0; i--) if (JOURNAL[i].combat && ++k > 10) delete JOURNAL[i].combat; /* (les 10 dernieres seulement) */
+  if (!$('chat').hidden) remplirChat();
+}
+function revoirCombat(i) {
+  const m = JOURNAL[i]; if (!m || !m.combat) { toast('Ce combat est trop ancien pour être revu.'); return; }
+  ouvrirModale('vague-fin', m.combat.replace('</h2>', '</h2><p class="hist-note">Historique de combat : ' + m.h + '</p>'));
+}
 function noterJournal(msg, genre) {
   const d = JOURNAL[JOURNAL.length - 1], h = new Date(performance.timeOrigin + performance.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  if (d && d.msg === msg) { d.n++; d.h = h; } else { JOURNAL.push({ msg, genre: genre || '', h, n: 1 }); if (JOURNAL.length > 60) JOURNAL.shift(); }
+  if (d && d.msg === msg && !d.combat) { d.n++; d.h = h; } else { JOURNAL.push({ msg, genre: genre || '', h, n: 1 }); if (JOURNAL.length > 60) JOURNAL.shift(); }
   if (!$('chat').hidden) remplirChat();
 }
 /* le chat deplie : l'historique a la place de la pile de messages ; s'il etait en bas, il y reste quand un message arrive */
 function remplirChat() {
   const l = $('chat-liste'), enBas = l.scrollHeight - l.scrollTop - l.clientHeight < 30;
-  l.innerHTML = JOURNAL.length ? JOURNAL.map((m) => '<li class="' + m.genre + '"><time>' + m.h + '</time><span>' + echapper(m.msg) + (m.n > 1 ? ' <b class="fois">×' + m.n + '</b>' : '') + '</span></li>').join('') : '<li><time></time><span>Aucun message pour l\'instant.</span></li>';
+  l.innerHTML = JOURNAL.length ? JOURNAL.map((m, i) => m.genre === 'combat' ? '<li class="combat"><time>' + m.h + '</time><span><button data-revoir-combat="' + i + '">Historique de combat : ' + echapper(m.msg) + '</button></span></li>'
+    : '<li class="' + m.genre + '"><time>' + m.h + '</time><span>' + echapper(m.msg) + (m.n > 1 ? ' <b class="fois">×' + m.n + '</b>' : '') + '</span></li>').join('') : '<li><time></time><span>Aucun message pour l\'instant.</span></li>';
   if (enBas || !l._vu) { l.scrollTop = l.scrollHeight; l._vu = true; }
 }
 function basculerChat(ouvrir) {
@@ -5879,13 +5895,14 @@ function ouvrirPuits() {
 function ouvrirGrange() {
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
   const graines = CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0);
-  const arb = niv('arbalete') ? '<div class="ligne"><div><b>Arbalète du toit, niveau ' + niv('arbalete') + '/5</b><small>' + S_.carreaux + '/' + capaciteArbalete() + ' carreau' + (capaciteArbalete() > 1 ? 'x' : '') + ' chargé' + (S_.carreaux > 1 ? 's' : '') + ', ' + degatsArbalete() + ' dégâts, portée ' + enCases(porteeArbalete()) + ' cases. ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + ' en réserve.</small></div>' + (rechargeAuto() ? '<small style="font-weight:800;color:' + (S_.fleches ? '#3f8a22' : 'var(--rouge)') + '">' + (S_.fleches ? 'Se recharge toute seule' : 'Réserve vide : achète des flèches à l\'HDV') + '</small>' : S_.carreaux >= capaciteArbalete() ? '' : '<button class="btn kamas" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div>' : '';
+  const arb = niv('arbalete') ? '<div class="ligne"><div class="gl">' + icoGrange('arbalete') + '<div><b>Arbalète du toit, niveau ' + niv('arbalete') + '/5</b><small>' + S_.carreaux + '/' + capaciteArbalete() + ' carreau' + (capaciteArbalete() > 1 ? 'x' : '') + ' chargé' + (S_.carreaux > 1 ? 's' : '') + ', ' + degatsArbalete() + ' dégâts, portée ' + enCases(porteeArbalete()) + ' cases. ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + ' en réserve.</small></div></div>' + (rechargeAuto() ? '<small style="font-weight:800;color:' + (S_.fleches ? '#3f8a22' : 'var(--rouge)') + '">' + (S_.fleches ? 'Se recharge toute seule' : 'Réserve vide : achète des flèches à l\'HDV') + '</small>' : S_.carreaux >= capaciteArbalete() ? '' : '<button class="btn kamas" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div>' : '';
   const menace = '<p style="font-size:.78rem;font-weight:600">Les voleurs de VSA ont maintenant <b>' + pvVoleur() + ' PV</b> : ils se renforcent à chaque vague gagnée.</p>';
-  const divers = arb + (S_.filets ? '<div class="ligne"><b>Filets de capture</b><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="ligne"><b>Tofus capturés (volière)</b><span>' + S_.tofus + '</span></div>' : '');
+  const divers = arb + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="ligne"><b class="gl">' + icoGrange('pot-' + t) + POTS[t].nom + '</b><span>' + S_.pots[t] + '</span></div>').join('') +
+    (S_.filets ? '<div class="ligne"><b class="gl">' + icoGrange('filet') + 'Filets de capture</b><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="ligne"><b class="gl">' + icoGrange('tofu') + 'Tofus capturés (volière)</b><span>' + S_.tofus + '</span></div>' : '');
   const sac = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && obj(k)).sort((x, y) => obj(y).niv - obj(x).niv), portes = Object.values(S_.equip).filter((k) => obj(k));
   const butinH = '<div class="hdv-section">Butin des vagues</div>' + (sac.length ? sac.map((k) => '<div class="art">' + icoObjet(k) + '<div><b>' + obj(k).nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsObjet(obj(k)) + '<span class="puce">niveau ' + obj(k).niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-perso-slot="' + obj(k).emp + '">Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>').join('') : '<p style="font-size:.78rem;font-weight:600;margin:4px 0">Rien pour l\'instant : les monstres des vagues lâchent parfois une pièce d\'équipement, chaque boss en lâche une.</p>') +
     (portes.length ? '<p style="font-size:.74rem;font-weight:700;margin:6px 0 0">Porté : ' + portes.map((k) => obj(k).nom).join(', ') + '. <button class="btn discret mini" data-perso-slot="">Fiche du perso</button></p>' : '');
-  ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
+  ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b class="gl">' + icoGrange(v.id) + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b class="gl">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
 }
 const SORTS = {
   iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Bond du Iop', 'Tu vises où il saute (jusqu\'à ' + PORTEE_BOND + ' cases) : en retombant, 3 fois ses dégâts sur le monstre le plus proche, 1,5 fois tout autour, et chaque monstre touché lui rend 3 % de sa vie. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins.']],
@@ -6034,6 +6051,7 @@ document.addEventListener('click', (e) => {
   if (b.id === 'b-journal') { basculerChat(); return; }
   if (b.dataset.bestiaire) { ouvrirBestiaire(b.dataset.bestiaire); return; }
   if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
+  if (b.dataset.revoirCombat) { revoirCombat(+b.dataset.revoirCombat); return; }
   if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
   else if (b.hasAttribute('data-carnet')) ouvrirCarnet();
   else if (b.dataset.relire) { fermerModale(); ouvrirLecon(b.dataset.relire, true); }
