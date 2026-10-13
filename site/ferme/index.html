@@ -3421,11 +3421,12 @@ const VAGUES_PALIER = 10, REPOS_VAGUE = 60 * MIN, RECHARGE_SORT = 8;
 /* LES POTS DE GELEE (13/10/2026, idee de Mathieu) : la vie ne remonte plus toute seule entre les vagues (S_.pv garde ce qui reste de la precedente ; absent :
    vie pleine). On se soigne avec des pots, achetes a l'HDV (categorie Gelees) et ranges dans la grange, bus depuis la grange ou depuis la fenetre des vagues,
    jamais en combat. Le filet de securite : 3 petits pots au depart, et apres une defaite le perso revient a 30 % de vie. Les pots de la Geliere viendront ensuite.
-   Prix : un multiple du niveau, autour de 10 a 20 % de ce que rapporte une vague (8 par niveau pour le petit pot). Icones : la fiole carree (assets/icones/pot-*.png) */
+   Prix : un multiple du niveau (24 par niveau pour le petit pot). Triples le 13/10/2026 : « il faut encore augmenter, c'est trop facile de faire des sous ; au pire ca
+   les ralentit, ils doivent farmer des kamas avec les recoltes pour repartir en vague, c'est ca l'idee » (Mathieu) : soigner une vague coute environ la moitie de ce qu'elle rapporte. Icones : la fiole carree (assets/icones/pot-*.png) */
 const POTS = {
-  petit: { nom: 'Petit pot de gelée Bleue', court: 'Petits pots', soin: 0.25, prix: 8, effet: '+25 % de vie', desc: 'Le soin de base, entre deux vagues.' },
-  grand: { nom: 'Grand pot de gelée Bleue', court: 'Grands pots', soin: 0.6, prix: 18, effet: '+60 % de vie', desc: 'Pour repartir presque neuf après une vague difficile.' },
-  menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 14, menthe: true, effet: '+25 % de vie, puis 1 % par seconde pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' }
+  petit: { nom: 'Petit pot de gelée Bleue', court: 'Petits pots', soin: 0.25, prix: 24, effet: '+25 % de vie', desc: 'Le soin de base, entre deux vagues.' },
+  grand: { nom: 'Grand pot de gelée Bleue', court: 'Grands pots', soin: 0.6, prix: 54, effet: '+60 % de vie', desc: 'Pour repartir presque neuf après une vague difficile.' },
+  menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % par seconde pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' }
 };
 const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01;
 const prixPot = (t) => Math.max(10, POTS[t].prix * niveau(S_.xp));
