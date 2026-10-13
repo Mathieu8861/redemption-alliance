@@ -149,6 +149,7 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .bulle.lieu::after { display: none; }
 .bandeau { position: absolute; left: 50%; transform: translateX(-50%); top: calc(62px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 10px; background: var(--or); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 6px 8px 6px 12px; font-size: .8rem; pointer-events: auto; max-width: calc(100% - 24px); }
 .bandeau[hidden] { display: none; }
+@media (max-width: 720px) { .bandeau { top: calc(var(--haut-hud, 140px) + 6px); z-index: 5; width: calc(100% - 24px); flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 6px 8px; font-size: .74rem; } #bandeau-texte { flex: 1 1 100%; } .bandeau .btn { padding: 5px 12px; font-size: .76rem; } } /* (13/10/2026, au telephone : sous la barre du haut, le texte sur toute la largeur et les boutons dessous ; avant, la barre le recouvrait) */
 .chargement { position: fixed; inset: 0; z-index: 8; display: grid; place-content: center; gap: 6px; text-align: center; background: linear-gradient(180deg, var(--ciel-haut), var(--ciel-bas)); }
 .chargement b { font: 400 2.4rem/1 var(--f-titre); color: var(--kamas); -webkit-text-stroke: 1.5px var(--bord); paint-order: stroke fill; text-shadow: 0 3px 0 var(--bord); }
 .chargement span { font-weight: 800; }
@@ -178,6 +179,13 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .hdv-cats button img { width: 28px; height: 28px; object-fit: contain; } .hdv-cats button[aria-pressed="true"] { background: #fff4d0; box-shadow: 0 0 0 2px var(--or), 0 2px 0 var(--bord); }
 .hdv-aide { font-size: .76rem; font-weight: 600; color: #6b5a48; margin: 0 0 4px; }
 .hdv-cats.q4 { grid-template-columns: repeat(4, 1fr); } @media (max-width: 520px) { .hdv-cats.q4 { grid-template-columns: repeat(2, 1fr); } }
+/* les decorations (13/10/2026) : cinq categories a l'HDV, l'icone au-dessus du nom pour tenir sur une ligne, meme au telephone ; l'inventaire en vignettes */
+.hdv-cats.q5 { grid-template-columns: repeat(5, 1fr); } .hdv-cats.q5 button { flex-direction: column; gap: 1px; padding: 4px 2px; font-size: .76rem; min-width: 0; } .hdv-cats.q5 button img { width: 26px; height: 26px; }
+.deco-grille { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } @media (max-width: 520px) { .deco-grille { grid-template-columns: repeat(2, 1fr); } }
+.deco-carte { display: flex; flex-direction: column; align-items: center; border: 3px solid var(--bord); border-radius: 14px; background: #fff; padding: 6px 4px 8px; text-align: center; box-shadow: 0 3px 0 var(--bord); }
+.deco-carte img { width: 84px; height: 84px; object-fit: contain; } .deco-carte b { display: flex; align-items: center; justify-content: center; font-size: .8rem; line-height: 1.15; min-height: 2.3em; }
+.deco-carte .n { font: 800 .72rem/1 var(--f-texte); color: #6b5a3a; margin: 2px 0 6px; } .deco-carte .btn { padding: 5px 14px; font-size: .78rem; }
+.deco-pied { display: flex; justify-content: flex-end; margin-top: 12px; } .deco-pied.deco-tete { margin: 0 0 8px; } .deco-vide { font-size: .82rem; font-weight: 600; margin: 6px 0; }
 .vie-alerte { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: #fff4e0; border: 2px solid var(--or); border-radius: 12px; padding: 8px 10px; margin: 0 0 8px; }
 .vie-alerte.bas { background: #fde3df; border-color: var(--rouge); } .vie-alerte b { display: block; font-size: .92rem; } .vie-alerte small { font-size: .74rem; font-weight: 700; }
 .vie-alerte .pvb { height: 10px; border: 2px solid var(--bord); border-radius: 99px; background: #eadfc8; overflow: hidden; margin: 4px 0 2px; } .vie-alerte .pvb i { display: block; height: 100%; background: var(--or); } .vie-alerte.bas .pvb i { background: var(--rouge); }
@@ -764,7 +772,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <button class="combat-sort ulti" id="b-ulti"><span class="rond" id="ulti-rond">Ulti</span><small id="ulti-etat">niveau 5</small></button>
   </div>
   <div class="casino-barre" id="casino-barre" hidden><span id="casino-info"></span><button class="btn kamas" id="b-rentrer">Rentrer à la ferme</button></div>
-  <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn" id="b-terminer">Terminer</button></div>
+  <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn discret" id="b-ranger" hidden>Ranger</button><button class="btn discret" id="b-mes-decos" hidden>Décorations</button><button class="btn" id="b-terminer">Terminer</button></div>
   <div id="bulles"></div>
   <div class="info-survol" id="info-survol" hidden></div>
   <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Rien n'attaque : monstres, voleurs et simus VSA t'attendent. Ta ferme, elle, continue de pousser, doucement.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
@@ -1287,13 +1295,14 @@ const parcelleAjoutee = (p) => p.type === 'champ';
 const QUOTA_ILE = 8;
 const quotaParcelles = () => QUOTA_ILE + TERRAINS.filter((t) => S_.terrains[t.id]).reduce((n, t) => n + (t.parcelles || Math.round(t.cols * t.rows * 0.4)), 0); /* chaque terrain : beaucoup de cases, quelques parcelles */
 const parcelles = () => S_.cases.filter((c) => c.type === 'champ').length;
-let mode = null, aDeplacer = null; /* mode amenagement : 'choisir' une parcelle, puis 'deplacer' vers une case d'herbe */
+let mode = null, aDeplacer = null, aPoser = null; /* (aPoser : la decoration a poser, en mode 'poserDeco') mode amenagement : 'choisir' une parcelle, puis 'deplacer' vers une case d'herbe */
 /* choisir un element a deplacer : une parcelle, un batiment, une tour, ou l'enclos (qu'on amenage) */
 function selectionner(p) {
   if (p.type === 'champ') { aDeplacer = p; mode = 'deplacer'; }
   else if (BATIS[p.type]) { aDeplacer = { bat: p.type }; mode = 'deplacerBat'; }
   else if (p.type === 'tour') { aDeplacer = { tour: p }; mode = 'deplacerBat'; }
   else if (p.type === 'arbre') { aDeplacer = { arbre: p.arbre }; mode = 'deplacerBat'; }
+  else if (p.type === 'deco') { aDeplacer = { deco: p }; mode = 'deplacerBat'; }
   else if (p.type === 'enclos') { aDeplacer = null; mode = 'enclos'; }
   else return false;
   majBandeau(); return true;
@@ -1302,10 +1311,10 @@ let selectionMesh = null;
 /* les cases ou l'element choisi peut aller (en vert) : herbe libre, la place pour son emprise, et rien ne devient inaccessible */
 function destinationsValides() {
   const libres = S_.cases.filter((c) => c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id));
-  if (mode === 'deplacer' || mode === 'poserTour') return libres;
+  if (mode === 'deplacer' || mode === 'poserTour' || mode === 'poserDeco') return libres;
   const coupe = () => false; /* plus de refus pour un acces coupe */
-  if (aDeplacer.tour || aDeplacer.arbre) {
-    const src = aDeplacer.tour || S_.cases.find((c) => c.type === 'arbre' && c.arbre === aDeplacer.arbre), t0 = src && src.type;
+  if (aDeplacer.tour || aDeplacer.arbre || aDeplacer.deco) {
+    const src = aDeplacer.tour || aDeplacer.deco || S_.cases.find((c) => c.type === 'arbre' && c.arbre === aDeplacer.arbre), t0 = src && src.type;
     return libres.filter((c) => { if (src) src.type = 'libre'; c.type = 'tour'; const ok = !coupe(); c.type = 'libre'; if (src) src.type = t0; return ok; });
   }
   const type = aDeplacer.bat, o = blocBati(type); if (!o) return [];
@@ -1317,7 +1326,7 @@ function destinationsValides() {
 }
 function majSelection() { /* l'element choisi : ses cases en jaune */
   if (selectionMesh) { scene.remove(selectionMesh); selectionMesh = null; }
-  if (mode === 'poserTour') return; /* (retour de Mathieu : pas de cases vertes, on pose ou l'on veut) */
+  if (mode === 'poserTour' || mode === 'poserDeco') return; /* (retour de Mathieu : pas de cases vertes, on pose ou l'on veut) */
   if (!aDeplacer || !(mode === 'deplacer' || mode === 'deplacerBat')) return;
   const vert = new T.Group(); scene.add(vert);
   /* (plus de cases vertes) */
@@ -1325,22 +1334,25 @@ function majSelection() { /* l'element choisi : ses cases en jaune */
     const m = arbresMesh[aDeplacer.arbre]; if (!m) return; const r = new T.Mesh(new T.RingGeometry(0.6, 0.85, 32), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.8, depthWrite: false, depthTest: false, side: T.DoubleSide }));
     r.rotation.x = -Math.PI / 2; r.position.set(m.position.x, m.position.y + 0.1, m.position.z); r.renderOrder = 3; vert.add(r); selectionMesh = vert; return;
   }
-  const cells = mode === 'deplacer' ? [aDeplacer] : aDeplacer.tour ? [aDeplacer.tour] : S_.cases.filter((c) => c.type === aDeplacer.bat);
+  const cells = mode === 'deplacer' ? [aDeplacer] : aDeplacer.tour ? [aDeplacer.tour] : aDeplacer.deco ? [aDeplacer.deco] : S_.cases.filter((c) => c.type === aDeplacer.bat);
   const g = new T.Group(), m = new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.4, depthWrite: false, depthTest: false });
   cells.forEach((c) => { const q = posCase(c), pl = new T.Mesh(new T.PlaneGeometry(S - 0.15, S - 0.15), m); pl.rotation.x = -Math.PI / 2; pl.position.set(q.x, q.y + 0.1, q.z); pl.renderOrder = 3; g.add(pl); });
   vert.add(g); selectionMesh = vert;
 }
 function majBandeau() {
   const b = document.getElementById('bandeau'); b.hidden = !mode;
-  document.getElementById('b-tourner').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.bat || aDeplacer.arbre)); majSelection();
+  document.getElementById('b-tourner').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.bat || aDeplacer.arbre || aDeplacer.deco));
+  document.getElementById('b-ranger').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.arbre || aDeplacer.deco)); document.getElementById('b-mes-decos').hidden = mode !== 'choisir'; majSelection();
   const o = mode === 'deplacerBat' && aDeplacer && blocBati(aDeplacer.bat);
   document.getElementById('bandeau-texte').textContent = mode === 'deplacer' ? 'Parcelle choisie : touche une case d\'herbe libre pour la déplacer, autant de fois que tu veux, puis Terminer.'
-    : mode === 'deplacerBat' && aDeplacer && aDeplacer.arbre ? 'Arbre choisi : touche une case d\'herbe libre pour le replanter, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer.'
+    : mode === 'deplacerBat' && aDeplacer && aDeplacer.deco ? texteDeco(aDeplacer.deco.deco)
+    : mode === 'deplacerBat' && aDeplacer && aDeplacer.arbre ? 'Arbre choisi : touche une case d\'herbe libre pour le replanter, Tourner pour le pivoter, Ranger pour le mettre dans tes décorations, puis Terminer.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.tour ? 'Tour choisie : touche une case d\'herbe libre pour la poser, autant de fois que tu veux, puis Terminer.'
     : mode === 'deplacerBat' ? BATIS[aDeplacer.bat][0].toUpperCase() + BATIS[aDeplacer.bat].slice(1) + ' : touche où le poser, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer' + (o ? ' (' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ')' : '') + '.'
+    : mode === 'poserDeco' && DECOS[aPoser] ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche une case d\'herbe libre pour ' + DECOS[aPoser].pr + ' poser.'
     : mode === 'poserTour' ? 'Tour de défense (' + fmt(PRIX_TOUR[Math.min(nbTours(), PRIX_TOUR.length - 1)]) + ' kamas) : touche une case d\'herbe pour la construire.'
     : mode === 'enclos' ? 'Enclos : ' + casesEnclos().length + '/' + maxCasesEnclos() + ' cases. Touche une case collée à l\'enclos pour l\'agrandir, une case de l\'enclos pour la rendre, ou une case plus loin pour y déplacer tout l\'enclos.'
-    : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre ou l\'enclos pour le déplacer.';
+    : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer.';
   marquerEnclos();
 }
 const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin').length;
@@ -1445,15 +1457,16 @@ const ACTIONS = {
   toucherCase(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p) return;
     if (mode === 'deplacer' || mode === 'deplacerBat') {
-      const lui = mode === 'deplacer' ? p === aDeplacer : aDeplacer && (aDeplacer.tour ? aDeplacer.tour === p : aDeplacer.arbre ? p.arbre === aDeplacer.arbre : p.type === aDeplacer.bat);
+      const lui = mode === 'deplacer' ? p === aDeplacer : aDeplacer && (aDeplacer.tour ? aDeplacer.tour === p : aDeplacer.deco ? aDeplacer.deco === p : aDeplacer.arbre ? p.arbre === aDeplacer.arbre : p.type === aDeplacer.bat);
       if (!lui && p.type !== 'libre' && selectionner(p)) return; /* un autre element : on le prend a la place */
       if (mode === 'deplacer') ACTIONS.deplacerVers(p); else ACTIONS.deplacerBatiment(p); return;
     }
     if (mode === 'enclos') { ACTIONS.caseEnclos(p); return; }
+    if (mode === 'poserDeco') { ACTIONS.poserDeco(p); return; }
     if (mode === 'poserTour') { if (p.type !== 'libre') { toast('Il faut une case d\'herbe libre.'); return; } ACTIONS.construireTour(p.id); return; }
     if (mode === 'choisir') {
       if (parcelleAjoutee(p)) ouvrirParcelle(p);
-      else if (!selectionner(p)) toast('Touche une parcelle, un bâtiment, une tour ou l\'enclos.');
+      else if (!selectionner(p)) toast('Touche une parcelle, un bâtiment, une tour, une décoration ou l\'enclos.');
       return;
     }
     if (combat) { if (PASSABLE[p.type]) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); } else toast('Pendant la vague : touche un monstre pour le cibler, ou une case libre pour t\'y déplacer.'); return; }
@@ -1475,7 +1488,7 @@ const ACTIONS = {
     if (p.type === 'voliere') { ouvrirVoliere(); return; }
     if (p.type === 'geliere') { if (potsPretsGeliere()) ACTIONS.ramasserPots(); ouvrirGeliere(); return; }
     if (p.type === 'chemin') return;
-    if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.' })[p.type] || ''); return; }
+    if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
     if (!p.c) { ACTIONS.planter(p); return; }
     if (p.tofu) { if (S_.filets > 0) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
     const d = duree(PAR_ID[p.c]);
@@ -1699,6 +1712,13 @@ const ACTIONS = {
     aDeplacer = dest; majBandeau(); sauver(); /* il reste choisi : on peut le redeplacer jusqu'a Terminer */
   },
   deplacerBatiment(cible) {
+    if (aDeplacer && aDeplacer.deco) { /* une decoration : une seule case, elle emporte son genre et son orientation */
+      const src = aDeplacer.deco; if (cible === src) { toast('Choisis une autre case.'); return; }
+      if (cible.type !== 'libre' || (S_.sauvage && S_.sauvage.id === cible.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
+      const deja = inaccessibles(), avant = avantCases([src, cible]); src.type = 'libre'; cible.type = 'deco'; if (refuserSiBloque(deja, avant)) return;
+      ['deco', 'rotD', 'ile'].forEach((x) => { if (src[x] !== undefined) cible[x] = src[x]; delete src[x]; }); delete src.orig;
+      rendreCase(src.id); rendreCase(cible.id); construireDecos(); son('planter'); aDeplacer = { deco: cible }; majBandeau(); sauver(); return;
+    }
     if (aDeplacer && aDeplacer.arbre) { /* replanter un arbre sur une case d'herbe libre */
       const nom = aDeplacer.arbre; S_.arbres = S_.arbres || {}; const st = S_.arbres[nom] || (S_.arbres[nom] = {});
       if (cible.type !== 'libre' || (S_.sauvage && S_.sauvage.id === cible.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
@@ -1724,7 +1744,36 @@ const ACTIONS = {
     construireBatiments(); if (type === 'voliere') appliquerVoliere(); rendreCasesBulles();
     toast(BATIS[type][0].toUpperCase() + BATIS[type].slice(1) + ' a déménagé.', 'or'); majBandeau(); sauver();
   },
+  rangerDeco() { /* Ranger : la decoration (ou l'arbre) choisie part dans « Mes décorations », sa case redevient de l'herbe */
+    S_.decos = S_.decos || {};
+    if (aDeplacer && aDeplacer.deco) { const c = aDeplacer.deco, k = c.deco; if (c.type !== 'deco' || !DECOS[k]) return;
+      S_.decos[k] = nbDecos(k) + 1; c.type = 'libre'; ['deco', 'rotD', 'ile', 'orig'].forEach((x) => { delete c[x]; });
+      rendreCase(c.id); construireDecos(); toast(DECOS[k].nom + ' ' + accordDeco(k, 'rangé') + ' dans tes décorations.', 'or'); }
+    else if (aDeplacer && aDeplacer.arbre) { /* un arbre de l'ile revient comme l'arbre du meme genre (Pommier, Sapin, Arbre rond) */
+      const nom = aDeplacer.arbre, A = (MODELES.arbres || []).find((x) => x.nom === nom), k = (A && A.genre) || 'arbre_rond'; S_.arbres = S_.arbres || {}; const st = S_.arbres[nom] || (S_.arbres[nom] = {});
+      const c = st.cell ? S_.cases.find((x) => x.id === st.cell && x.type === 'arbre') : null; if (c) { c.type = 'libre'; delete c.arbre; rendreCase(c.id); }
+      delete st.cell; delete st.orig; st.range = true; S_.decos[k] = nbDecos(k) + 1; construireArbres(); toast(DECOS[k].nom + ' ' + accordDeco(k, 'rangé') + ' dans tes décorations.', 'or'); }
+    else return;
+    son('planter'); aDeplacer = null; mode = 'choisir'; majBandeau(); rendreHaut(); sauver();
+  },
+  poserDeco(p) { /* depuis « Mes décorations » : sur une case d'herbe libre, puis elle reste choisie pour l'ajuster */
+    const k = aPoser; if (!DECOS[k]) return;
+    if (!nbDecos(k)) { toast('Plus de ' + DECOS[k].nom + ' dans tes décorations.'); mode = null; majBandeau(); rendreHaut(); return; }
+    if (p.type !== 'libre' || (S_.sauvage && S_.sauvage.id === p.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
+    const deja = inaccessibles(), avant = avantCases([p]); p.type = 'deco'; if (refuserSiBloque(deja, avant)) return;
+    p.deco = k; p.rotD = 0; S_.decos[k]--; son('planter'); rendreCase(p.id); construireDecos();
+    toast('Décoration posée. Touche une autre case pour ' + DECOS[k].pr + ' déplacer, ou Terminer.', 'or');
+    aDeplacer = { deco: p }; mode = 'deplacerBat'; majBandeau(); rendreHaut(); sauver();
+  },
+  acheterDeco(k) {
+    const D = DECOS[k]; if (!D) return;
+    if (niveau(S_.xp) < D.niv) { toast(D.nom + ' : niveau ' + D.niv + '.'); return; }
+    if (S_.kamas < D.prix) { toast('Il te manque ' + fmt(D.prix - S_.kamas) + ' kamas.'); return; }
+    S_.kamas -= D.prix; S_.decos = S_.decos || {}; S_.decos[k] = nbDecos(k) + 1; son('kamas'); assurerDecos();
+    toast(D.nom + ' : dans tes décorations, pose-' + D.pr + ' où tu veux.', 'or'); rendreHaut(); ouvrirHdv('acheter'); sauver();
+  },
   tournerBatiment() { /* un quart de tour ; un batiment pas carre change d'emprise, il faut la place */
+    if (aDeplacer && aDeplacer.deco) { const c = aDeplacer.deco; c.rotD = ((c.rotD || 0) + 1) % 4; construireDecos(); sauver(); return; }
     if (aDeplacer && aDeplacer.arbre) { S_.arbres = S_.arbres || {}; const st = S_.arbres[aDeplacer.arbre] || (S_.arbres[aDeplacer.arbre] = {}); st.rot = ((st.rot || 0) + 1) % 4; construireArbres(); sauver(); return; }
     const type = aDeplacer && aDeplacer.bat; if (!type) return; const o = blocBati(type); if (!o) return;
     const cells = o.w === o.h ? o.B.slice() : essaiPose(type, o.c0, o.h, o.w);
@@ -2153,8 +2202,16 @@ async function chargerModeles() {
     const b = new T.Box3(); g.traverse((o) => { if (o.isMesh && /^tronc/.test(o.name)) b.expandByObject(o); }); if (b.isEmpty()) b.setFromObject(g);
     const base = new T.Vector3((b.min.x + b.max.x) / 2, b.min.y, (b.min.z + b.max.z) / 2), pivot = new T.Group(); pivot.position.copy(base); pivot.updateMatrixWorld(true);
     g.children.slice().forEach((c) => pivot.attach(c)); g.parent.remove(g); pivot.name = g.name;
-    MODELES.arbres.push({ nom: g.name, g: fusionner(pivot), base });
+    let genre = 'arbre_rond'; pivot.traverse((o) => { if (/^pomme/.test(o.name)) genre = 'pommier'; else if (/^etage/.test(o.name) && genre !== 'pommier') genre = 'sapin'; }); /* (range, il revient comme ce genre de decoration) */
+    MODELES.arbres.push({ nom: g.name, g: fusionner(pivot), base, genre });
   });
+  MODELES.rochersIle = []; { /* les rochers moussus (blender/iles.py) : un objet a part, pivot a leur pied, comme les arbres */
+    const rochers = [], mousses = []; ileT.traverse((o) => { if (!o.isMesh) return; if (/^rocher/.test(o.name)) rochers.push(o); else if (/^mousse/.test(o.name)) mousses.push(o); });
+    const centre = (o) => new T.Box3().setFromObject(o).getCenter(new T.Vector3());
+    rochers.forEach((r) => { const b = new T.Box3().setFromObject(r), c = b.getCenter(new T.Vector3()), base = new T.Vector3(c.x, b.min.y, c.z), pivot = new T.Group(); pivot.position.copy(base); pivot.updateMatrixWorld(true);
+      const sa = mousses.filter((m) => { const q = centre(m); return Math.hypot(q.x - c.x, q.z - c.z) < 0.35 && q.y > c.y; }); pivot.attach(r); sa.forEach((m) => pivot.attach(m));
+      MODELES.rochersIle.push({ g: fusionner(pivot), base }); });
+  }
   MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe(null) });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
   versToon(G.granges, BATI); versToon(G.puits2, BATI); versToon(G.batiments, BATI); versToon(G.objets, BATI);
@@ -2380,16 +2437,83 @@ function blocBati(type) {
 let arbresMesh = {};
 function arbresSurCases() {
   S_.arbres = S_.arbres || {};
-  (MODELES.arbres || []).forEach((A) => { const st = S_.arbres[A.nom] || (S_.arbres[A.nom] = {}); if (st.cell) return; const c = caseIci(A.base.x, A.base.z); if (c && c.type === 'libre') { c.type = 'arbre'; c.arbre = A.nom; st.cell = c.id; st.orig = true; } });
+  (MODELES.arbres || []).forEach((A) => { const st = S_.arbres[A.nom] || (S_.arbres[A.nom] = {}); if (st.cell || st.range) return; const c = caseIci(A.base.x, A.base.z); if (c && c.type === 'libre') { c.type = 'arbre'; c.arbre = A.nom; st.cell = c.id; st.orig = true; } });
+  decosSurCases();
 }
 function construireArbres() {
   Object.values(arbresMesh).forEach((m) => scene.remove(m)); arbresMesh = {};
   (MODELES.arbres || []).forEach((A) => {
+    if (S_.arbres && S_.arbres[A.nom] && S_.arbres[A.nom].range) return; /* (range dans les decorations) */
     const m = A.g.clone(true), st = S_.arbres && S_.arbres[A.nom], c = st && st.cell ? S_.cases.find((x) => x.id === st.cell) : null;
     if (c && c.type === 'arbre' && !st.orig) { const q = posCase(c); m.position.set(q.x, q.y, q.z); } else m.position.copy(A.base); /* tant qu'il n'a pas bouge, il garde sa place exacte */
     m.rotation.y = ((st && st.rot) || 0) * Math.PI / 2; m.traverse((o) => { o.userData.arbre = A.nom; });
     scene.add(m); arbresMesh[A.nom] = m;
   });
+  construireDecos();
+}
+/* LES DECORATIONS (13/10/2026) : « les cailloux comme ca, fais en sorte que ce soit des elements de decor aussi. J'aimerais qu'on puisse ranger les elements
+   de decoration si on veut, on peut les mettre sur la map ou dans un inventaire dedie a la deco, et qu'on puisse acheter des choses aussi » (Mathieu, maquette
+   validee). Une decoration occupe sa case (on ne la traverse pas, comme un arbre), sans aucun effet, hors quota de parcelles. Avec Amenager : la deplacer,
+   la tourner, ou la ranger dans S_.decos (le stock, « Mes décorations »), d'ou on la repose. Les deux rochers moussus de l'ile en deviennent (une fois,
+   S_.rochersIle) et gardent leur modele tant qu'ils sont poses (c.ile) ; un arbre de l'ile range revient comme l'arbre du meme genre. Les 12 modeles
+   (blender/deco.py, 0,6 Mo) arrivent au premier besoin. pr : le pronom (pour LE deplacer, LA, LES). */
+const DECOS = {
+  rocher: { nom: 'Rocher moussu', prix: 800, niv: 1, pr: 'le' }, gros_rocher: { nom: 'Gros rochers', prix: 1800, niv: 1, pr: 'les' },
+  champignons: { nom: 'Champignons', prix: 1200, niv: 1, pr: 'les' }, fleurs: { nom: 'Massif de fleurs', prix: 1500, niv: 1, pr: 'le' },
+  lanterne: { nom: 'Lanterne de pierre', prix: 2500, niv: 10, pr: 'la' }, banc: { nom: 'Banc de bois', prix: 2000, niv: 10, pr: 'le' },
+  arbre_rond: { nom: 'Arbre rond', prix: 2000, niv: 15, pr: 'le' }, sapin: { nom: 'Sapin', prix: 2500, niv: 15, pr: 'le' },
+  pommier: { nom: 'Pommier', prix: 3000, niv: 20, pr: 'le' }, statue_gelee: { nom: 'Statue de Gelée', prix: 8000, niv: 25, pr: 'la' },
+  fontaine: { nom: 'Fontaine', prix: 12000, niv: 30, pr: 'la' }, banniere: { nom: 'Bannière de Redemption', prix: 20000, niv: 40, pr: 'la' },
+};
+const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
+const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
+const texteDeco = (k) => { const D = DECOS[k] || { nom: 'Décoration', pr: 'la' }; return D.nom + ' : touche une case d\'herbe libre pour ' + D.pr + ' déplacer, Tourner pour ' + D.pr + ' pivoter, Ranger pour ' + D.pr + ' mettre dans tes décorations.'; };
+let decosMesh = [], decosCharge = null;
+function assurerDecos() {
+  if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
+  decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
+    versToon(G, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true }); /* (au style de l'ile, faites avec les memes outils) */
+    Object.keys(DECOS).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); });
+    if (S_ && S_.perso) construireDecos();
+  }).catch((e) => { console.warn('Décorations', e); decosCharge = null; });
+  return decosCharge;
+}
+function decosSurCases() { /* les rochers moussus de l'ile deviennent des decorations, une seule fois ; si leur case est prise, ils attendent dans tes decorations */
+  S_.rochersIle = S_.rochersIle || [];
+  (MODELES.rochersIle || []).forEach((R, k) => {
+    if (S_.rochersIle[k]) return; S_.rochersIle[k] = 1; const c = caseIci(R.base.x, R.base.z);
+    if (c && c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id)) Object.assign(c, { type: 'deco', deco: 'rocher', ile: k, orig: true });
+    else { S_.decos = S_.decos || {}; S_.decos.rocher = nbDecos('rocher') + 1; }
+  });
+}
+function construireDecos() {
+  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; let manque = false;
+  S_.cases.forEach((c) => {
+    if (c.type !== 'deco') return;
+    const R = c.ile != null && MODELES.rochersIle && MODELES.rochersIle[c.ile], M = R ? R.g : MODELES['deco_' + c.deco]; if (!M) { manque = true; return; }
+    const m = marquer(M.clone(true), c.id), q = posCase(c);
+    if (R && c.orig) m.position.copy(R.base); else m.position.set(q.x, q.y, q.z); /* (un rocher de l'ile garde sa place exacte tant qu'il n'a pas bouge) */
+    m.rotation.y = (c.rotD || 0) * Math.PI / 2; scene.add(m); decosMesh.push(m);
+  });
+  if (manque) assurerDecos();
+}
+/* « Mes décorations » : ce qui est range ou achete, a poser */
+function ouvrirDecos() {
+  const L = Object.keys(DECOS).filter((k) => nbDecos(k) > 0);
+  ouvrirModale('decos', entete('Mes décorations') + '<p class="hdv-aide">Ce que tu as rangé ou acheté : pose-les où tu veux sur ta ferme. Pour ranger une décoration ou un arbre, passe par Aménager et touche-le.</p>' +
+    (L.length ? '<div class="deco-grille">' + L.map((k) => '<div class="deco-carte"><img src="assets/icones/deco-' + k + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + DECOS[k].nom + '</b><span class="n">×' + nbDecos(k) + '</span><button class="btn kamas" data-poser-deco="' + k + '">Poser</button></div>').join('') + '</div>'
+      : '<p class="deco-vide">Rien de rangé pour l\'instant. Achète des décorations à l\'HDV, ou range celles de ta ferme avec Aménager.</p>') +
+    '<div class="deco-pied"><button class="btn discret" data-hdv-cat="deco">Acheter des décorations à l\'HDV</button></div>');
+}
+/* la categorie Deco de l'HDV : ce qui s'achete a ton niveau, puis ce qui se debloque */
+function corpsDecoHdv() {
+  const nv = niveau(S_.xp), ks = Object.keys(DECOS), stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => S_.cases.filter((c) => c.type === 'deco' && c.deco === k).length;
+  return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux.</p>' +
+    '<div class="deco-pied deco-tete"><button class="btn discret" data-mes-decos>Mes décorations' + (stock ? ' (' + stock + ')' : '') + '</button></div>' +
+    ks.filter((k) => nv >= DECOS[k].niv).map((k) => { const D = DECOS[k], n = nbDecos(k), po = posees(k);
+      return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + '</div></div>' +
+        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (n ? '<button class="btn discret mini" data-poser-deco="' + k + '">Poser</button>' : '') + '</div></div>'; }).join('') +
+    (ks.some((k) => nv < DECOS[k].niv) ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + ks.filter((k) => nv < DECOS[k].niv).map((k) => '<div class="art verrou">' + ico('deco-' + k) + '<div><b>' + DECOS[k].nom + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + DECOS[k].niv + '</span></div></div>').join('') : '');
 }
 let batisMesh = [];
 const rotDe = (type) => ((S_.rot && S_.rot[type]) || 0) * Math.PI / 2;
@@ -2655,7 +2779,7 @@ function couleurCase(p) {
 function rendreCase(id) {
   const p = S_.cases.find((c) => c.id === id); const g = casesDyn[id]; if (!p || !g) return;
   vider(g); if (casesMesh[id].material !== CIBLE) casesMesh[id].material.color.set(couleurCase(p));
-  if (p.type !== 'champ') { const sousBati = !!BATIS[p.type] || p.type === 'tour' || p.type === 'arbre'; (TOUFFES.get(p.id) || []).forEach((o) => { o.visible = !sousBati; }); return; }
+  if (p.type !== 'champ') { const sousBati = !!BATIS[p.type] || p.type === 'tour' || p.type === 'arbre' || (p.type === 'deco' && !p.orig); (TOUFFES.get(p.id) || []).forEach((o) => { o.visible = !sousBati; }); return; }
   /* la parcelle : nue, ou la culture a son stade (semis, en croissance, mure), la terre plus sombre si elle est arrosee */
   const st = etape(p), k = { graine: 0, pousse: 1, mur: 2 }[st];
   const parc = (p.c ? MODELES[p.c + k] : MODELES.nu).clone(true); marquer(parc, p.id);
@@ -5531,7 +5655,7 @@ function ouvrirHdv0(onglet) {
        qu'il y a les Bouftous, les filets et les fleches ; et expliquer a quoi ils servent, les rendre plus visibles avant ce qui n'est pas debloque »
        (Mathieu, 12/10/2026) : trois categories visibles en haut, la quantite a cote de chaque bouton, une phrase sur l'usage, les graines a debloquer en dernier */
     const cat = ouvrirHdv.cat || 'graines', cap = capacite(), pc = (e, t) => '<span class="puce">' + picto(e, '#8a7a5c') + t + '</span>';
-    const cats = '<div class="hdv-cats q4">' + [['graines', 'Graines', 'ble'], ['animaux', 'Animaux', 'bouftou'], ['materiel', 'Matériel', 'fleches'], ['gelees', 'Gelées', 'pot-petit']].map(([k, t, i]) => '<button data-hdv-cat="' + k + '" aria-pressed="' + (cat === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + '</button>').join('') + '</div>';
+    const cats = '<div class="hdv-cats q5">' + [['graines', 'Graines', 'ble'], ['animaux', 'Animaux', 'bouftou'], ['materiel', 'Matériel', 'fleches'], ['gelees', 'Gelées', 'pot-petit'], ['deco', 'Déco', 'deco-lanterne']].map(([k, t, i]) => '<button data-hdv-cat="' + k + '" aria-pressed="' + (cat === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + '</button>').join('') + '</div>';
     let corps = '';
     if (cat === 'graines') {
       const ouvertes = CULTURES.filter(debloquee), fermees = CULTURES.filter((c) => !debloquee(c));
@@ -5557,6 +5681,7 @@ function ouvrirHdv0(onglet) {
           return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + '</b><div class="puces"><span class="puce bonne">' + P.effet + '</span><span class="puce">' + (S_.pots[t] || 0) + ' en réserve</span></div><div class="desc">' + P.desc + '</div></div>' +
             '<div class="act"><small>' + fmt(pr) + ' ' + KAMA + ' le pot</small>' + segQte('pot:' + t, o) + '<button class="btn kamas" data-pot-achat="' + t + '" data-n="' + n + '"' + (S_.kamas >= n * pr ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * pr) + ' ' + KAMA + '</button>' + manque(n * pr) + '</div></div>'; }).join('') +
         '<p class="hdv-aide">Les Gelées elles-mêmes, qui font ces pots à ta Gelière, sont dans la catégorie Animaux.</p>';
+    } else if (cat === 'deco') { corps = corpsDecoHdv();
     } else {
       const oF = [[1, '×1'], [5, '×5']], nF = qteDe('filets', oF), oA = [[10, '×10'], [50, '×50']], nA = qteDe('fleches', oA);
       corps = '<div class="art">' + ico('fleches') + '<div><b>Flèches</b><div class="puces"><span class="puce">' + fmt(S_.fleches) + ' en réserve</span>' + (niv('arbalete') ? '<span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? 'arbalète : ' + S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'arbalète à recharger') + '</span>' : '') + '</div>' +
@@ -5852,6 +5977,10 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-amenager') { mode = mode ? null : 'choisir'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.hasAttribute('data-amenager-enclos')) { fermerModale(); mode = 'enclos'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.id === 'b-tourner') ACTIONS.tournerBatiment();
+  else if (b.id === 'b-ranger') ACTIONS.rangerDeco();
+  else if (b.id === 'b-mes-decos' || b.hasAttribute('data-mes-decos')) ouvrirDecos();
+  else if (b.dataset.poserDeco) { fermerModale(); if (nbDecos(b.dataset.poserDeco)) { aPoser = b.dataset.poserDeco; aDeplacer = null; mode = 'poserDeco'; assurerDecos(); majBandeau(); rendreHaut(); } }
+  else if (b.dataset.decoAchat) ACTIONS.acheterDeco(b.dataset.decoAchat);
   else if (b.id === 'b-terminer') { mode = null; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.id === 'b-vagues' || b.hasAttribute('data-voir-vagues')) ouvrirVagues();
   else if (b.hasAttribute('data-lancer-vague')) lancerVague();
