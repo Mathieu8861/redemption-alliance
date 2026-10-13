@@ -148,7 +148,7 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .bulle.lieu { font-size: .68rem; padding: 2px 7px; border-width: 2px; box-shadow: 0 2px 0 var(--bord); }
 .bulle.lieu::after { display: none; }
 .bandeau { position: absolute; left: 50%; transform: translateX(-50%); top: calc(62px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 10px; background: var(--or); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 6px 8px 6px 12px; font-size: .8rem; pointer-events: auto; max-width: calc(100% - 24px); }
-.bandeau[hidden] { display: none; }
+.bandeau[hidden] { display: none; } .bandeau { z-index: 5; } /* (au-dessus des etiquettes des batiments) */
 @media (max-width: 720px) { .bandeau { top: calc(var(--haut-hud, 140px) + 6px); z-index: 5; width: calc(100% - 24px); flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 6px 8px; font-size: .74rem; } #bandeau-texte { flex: 1 1 100%; } .bandeau .btn { padding: 5px 12px; font-size: .76rem; } } /* (13/10/2026, au telephone : sous la barre du haut, le texte sur toute la largeur et les boutons dessous ; avant, la barre le recouvrait) */
 .chargement { position: fixed; inset: 0; z-index: 8; display: grid; place-content: center; gap: 6px; text-align: center; background: linear-gradient(180deg, var(--ciel-haut), var(--ciel-bas)); }
 .chargement b { font: 400 2.4rem/1 var(--f-titre); color: var(--kamas); -webkit-text-stroke: 1.5px var(--bord); paint-order: stroke fill; text-shadow: 0 3px 0 var(--bord); }
@@ -772,7 +772,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <button class="combat-sort ulti" id="b-ulti"><span class="rond" id="ulti-rond">Ulti</span><small id="ulti-etat">niveau 5</small></button>
   </div>
   <div class="casino-barre" id="casino-barre" hidden><span id="casino-info"></span><button class="btn kamas" id="b-rentrer">Rentrer à la ferme</button></div>
-  <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn discret" id="b-ranger" hidden>Ranger</button><button class="btn discret" id="b-mes-decos" hidden>Décorations</button><button class="btn" id="b-terminer">Terminer</button></div>
+  <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn discret" id="b-ranger" hidden>Ranger</button><button class="btn discret" id="b-mes-decos" hidden>Décorations</button><button class="btn discret" id="b-enclos-bouger" hidden>Déplacer tout l'enclos</button><button class="btn" id="b-terminer">Terminer</button></div>
   <div id="bulles"></div>
   <div class="info-survol" id="info-survol" hidden></div>
   <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Rien n'attaque : monstres, voleurs et simus VSA t'attendent. Ta ferme, elle, continue de pousser, doucement.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
@@ -1341,8 +1341,10 @@ function majSelection() { /* l'element choisi : ses cases en jaune */
 }
 function majBandeau() {
   const b = document.getElementById('bandeau'); b.hidden = !mode;
-  document.getElementById('b-tourner').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.bat || aDeplacer.arbre || aDeplacer.deco));
-  document.getElementById('b-ranger').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.arbre || aDeplacer.deco)); document.getElementById('b-mes-decos').hidden = mode !== 'choisir'; majSelection();
+  document.getElementById('b-tourner').hidden = !((mode === 'deplacerBat' && aDeplacer && (aDeplacer.bat || aDeplacer.arbre || aDeplacer.deco)) || mode === 'enclosDeplacer');
+  document.getElementById('b-ranger').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.arbre || aDeplacer.deco)); document.getElementById('b-mes-decos').hidden = mode !== 'choisir';
+  { const be = document.getElementById('b-enclos-bouger'); be.hidden = !(mode === 'enclos' || mode === 'enclosDeplacer'); be.textContent = mode === 'enclosDeplacer' ? 'Ajouter ou rendre des cases' : 'Déplacer tout l\'enclos'; }
+  majSelection();
   const o = mode === 'deplacerBat' && aDeplacer && blocBati(aDeplacer.bat);
   document.getElementById('bandeau-texte').textContent = mode === 'deplacer' ? 'Parcelle choisie : touche une case d\'herbe libre pour la déplacer, autant de fois que tu veux, puis Terminer.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.deco ? texteDeco(aDeplacer.deco.deco)
@@ -1351,7 +1353,8 @@ function majBandeau() {
     : mode === 'deplacerBat' ? BATIS[aDeplacer.bat][0].toUpperCase() + BATIS[aDeplacer.bat].slice(1) + ' : touche où le poser, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer' + (o ? ' (' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ')' : '') + '.'
     : mode === 'poserDeco' && DECOS[aPoser] ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche une case d\'herbe libre pour ' + DECOS[aPoser].pr + ' poser.'
     : mode === 'poserTour' ? 'Tour de défense (' + fmt(PRIX_TOUR[Math.min(nbTours(), PRIX_TOUR.length - 1)]) + ' kamas) : touche une case d\'herbe pour la construire.'
-    : mode === 'enclos' ? 'Enclos : ' + casesEnclos().length + '/' + maxCasesEnclos() + ' cases. Touche une case collée à l\'enclos pour l\'agrandir, une case de l\'enclos pour la rendre, ou une case plus loin pour y déplacer tout l\'enclos.'
+    : mode === 'enclos' ? texteEnclos()
+    : mode === 'enclosDeplacer' ? 'Déplacer l\'enclos : touche une case d\'herbe, il s\'y installe autour, Bouftous compris' + (DOIGT ? '.' : ' (en vert : il rentre, en rouge : pas la place).')
     : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer.';
   marquerEnclos();
 }
@@ -1462,6 +1465,7 @@ const ACTIONS = {
       if (mode === 'deplacer') ACTIONS.deplacerVers(p); else ACTIONS.deplacerBatiment(p); return;
     }
     if (mode === 'enclos') { ACTIONS.caseEnclos(p); return; }
+    if (mode === 'enclosDeplacer') { if (p.type === 'libre') ACTIONS.deplacerEnclos(p); else if (p.type !== 'enclos') toast('Touche une case d\'herbe libre.'); return; }
     if (mode === 'poserDeco') { ACTIONS.poserDeco(p); return; }
     if (mode === 'poserTour') { if (p.type !== 'libre') { toast('Il faut une case d\'herbe libre.'); return; } ACTIONS.construireTour(p.id); return; }
     if (mode === 'choisir') {
@@ -1675,8 +1679,12 @@ const ACTIONS = {
     const blocGel = id === 'geliere' && n === 0 ? blocLibreGeliere() : null;
     if (id === 'geliere' && n === 0 && !blocGel) { toast('Pas la place : la Gelière prend 6 cases d\'herbe libres d\'un seul tenant (3 sur 2), au même niveau. Libère-les avec Aménager, ou achète un terrain.', 'alerte'); return; }
     S_.kamas -= a.couts[n]; S_.amelio[id] = n + 1; compter('amelios'); son('quete');
-    toast(a.nom + (a.couts.length > 1 ? ' (niveau ' + (n + 1) + ')' : '') + ' : c\'est fait.', 'or');
-    if (id === 'enclos') { fermerModale(); mode = 'enclos'; aDeplacer = null; majBandeau(); toast('Place les nouvelles cases de l\'enclos où tu veux : touche des cases d\'herbe collées à l\'enclos, puis Terminer.', 'or'); rendreHaut(); return; }
+    toast(a.nom + (a.couts.length > 1 ? ' (niveau ' + (NIVBAT[id] ? nivBat(id) : n + 1) + ')' : '') + ' : c\'est fait.', 'or'); /* (un batiment : son vrai niveau, l'enclos ameliore une fois est au niveau 2) */
+    if (id === 'enclos') { /* « quand on l'agrandit et qu'on doit ajouter des places, c'est un enfer » : elles se posent toutes seules, collees a lui, le plus compact possible */
+      const k = agrandirEnclosAuto(), reste = maxCasesEnclos() - casesEnclos().length; appliquerEnclos(); rendreEnclosBulles();
+      if (reste > 0) { sauver(); fermerModale(); mode = 'enclos'; aDeplacer = null; majBandeau(); rendreHaut(); rendreBouftous(); toast((k ? '+' + k + ' case' + (k > 1 ? 's' : '') + ' posée' + (k > 1 ? 's' : '') + '. ' : '') + 'Il manque la place pour ' + reste + ' case' + (reste > 1 ? 's' : '') + ' : libère de l\'herbe à côté de l\'enclos, puis touche les +.', 'alerte'); return; }
+      toast('L\'enclos s\'agrandit : +' + k + ' case' + (k > 1 ? 's' : '') + ', posée' + (k > 1 ? 's' : '') + ' toute' + (k > 1 ? 's' : '') + ' seule' + (k > 1 ? 's' : '') + ' à côté de lui. Pour changer sa forme : Aménager l\'enclos.', 'or');
+    }
     if (id === 'voliere') { appliquerVoliere(); rendreCasesBulles(); }
     if (id === 'geliere') { /* construite : ses 6 cases ; puis a chaque niveau, son nouveau modele */
       if (blocGel) { S_.rot = S_.rot || {}; S_.rot.geliere = blocGel.tourne ? 1 : 0; blocGel.cells.forEach((c) => { c.type = 'geliere'; }); S_.gelees = S_.gelees || [];
@@ -1773,6 +1781,7 @@ const ACTIONS = {
     toast(D.nom + ' : dans tes décorations, pose-' + D.pr + ' où tu veux.', 'or'); rendreHaut(); ouvrirHdv('acheter'); sauver();
   },
   tournerBatiment() { /* un quart de tour ; un batiment pas carre change d'emprise, il faut la place */
+    if (mode === 'enclosDeplacer') { ACTIONS.tournerEnclos(); return; }
     if (aDeplacer && aDeplacer.deco) { const c = aDeplacer.deco; c.rotD = ((c.rotD || 0) + 1) % 4; construireDecos(); sauver(); return; }
     if (aDeplacer && aDeplacer.arbre) { S_.arbres = S_.arbres || {}; const st = S_.arbres[aDeplacer.arbre] || (S_.arbres[aDeplacer.arbre] = {}); st.rot = ((st.rot || 0) + 1) % 4; construireArbres(); sauver(); return; }
     const type = aDeplacer && aDeplacer.bat; if (!type) return; const o = blocBati(type); if (!o) return;
@@ -1786,32 +1795,32 @@ const ACTIONS = {
   caseEnclos(p) {
     const E = casesEnclos();
     if (p.type === 'enclos') {
-      if (E.length - 1 < Math.max(2, 2 * S_.bouftous.length)) { toast('Il faut au moins 2 cases par Bouftou : tes ' + S_.bouftous.length + ' Bouftous ont besoin de ' + Math.max(2, 2 * S_.bouftous.length) + ' cases.', 'alerte'); return; }
+      if (E.length - 1 < minCasesEnclos()) { toast('Il faut au moins 2 cases par Bouftou : tes ' + S_.bouftous.length + ' Bouftous ont besoin de ' + minCasesEnclos() + ' cases.', 'alerte'); return; }
       if (!connexe(E.filter((c) => c !== p))) { toast('L\'enclos doit rester d\'un seul tenant.', 'alerte'); return; }
       p.type = 'libre';
     } else if (p.type === 'libre') {
-      if (!ajoutablesEnclos().includes(p) || E.length >= maxCasesEnclos()) { ACTIONS.deplacerEnclos(p); return; } /* une case loin de l'enclos (ou l'enclos plein) : tout l'enclos y demenage */
-      const deja = inaccessibles(), avant = avantCases([p]); p.type = 'enclos'; if (refuserSiBloque(deja, avant)) return;
+      if (!ajoutablesEnclos().includes(p)) { toast('Touche un + : une case d\'herbe collée à l\'enclos. Pour l\'emmener ailleurs : Déplacer tout l\'enclos.'); return; } /* (avant : une case loin de l'enclos le faisait demenager par surprise) */
+      if (E.length >= maxCasesEnclos()) { toast('L\'enclos est plein (' + E.length + '/' + maxCasesEnclos() + ' cases) : rends d\'abord une case (−), ou améliore l\'enclos pour en avoir plus.', 'alerte'); return; }
+      const deja = inaccessibles(), avant = avantCases([p]); p.type = 'enclos'; if (refuserSiBloque(deja, avant)) return; ecarterPerso([p]);
     } else { toast('Il faut une case d\'herbe libre.'); return; }
-    rendreCase(p.id); appliquerEnclos(); majBandeau(); rendreHaut(); rendreEnclosBulles(); sauver();
+    rendreCase(p.id); appliquerEnclos(); majBandeau(); rendreHaut(); rendreEnclosBulles(); son('planter'); sauver();
   },
-  deplacerEnclos(p) { /* tout l'enclos demenage, avec sa forme, son coin du fond pose sur la case touchee ; tourne tout seul s'il ne rentre pas */
-    const E = casesEnclos(); if (!E.length || p.type !== 'libre') return;
+  enclosAuto() { /* le bouton « Placer toutes seules » de la fenetre de l'enclos */
+    const k = agrandirEnclosAuto(); appliquerEnclos(); rendreEnclosBulles(); rendreHaut(); sauver();
+    toast(k ? k + ' case' + (k > 1 ? 's' : '') + ' ajoutée' + (k > 1 ? 's' : '') + ' à l\'enclos, collée' + (k > 1 ? 's' : '') + ' à lui.' : 'Pas de place autour de l\'enclos : libère de l\'herbe à côté de lui (Aménager).', k ? 'or' : 'alerte'); ouvrirEnclos();
+  },
+  deplacerEnclos(p, ordre) { /* tout l'enclos demenage avec sa forme, sa case du milieu sur la case touchee ; tourne tout seul s'il ne rentre pas (ordre : Tourner) */
+    const E = casesEnclos(); if (!E.length || (p.type !== 'libre' && !ordre)) return;
     if (S_.sauvage && S_.sauvage.id === p.id) { toast('Un Tofu sauvage est posé là, chasse-le d\'abord.'); return; }
-    const a = E.slice().sort((x, y) => x.j - y.j || x.i - y.i)[0], forme = E.map((c) => [c.i - a.i, c.j - a.j]);
-    let cells = null;
-    for (let r = 0; r < 4 && !cells; r++) {
-      const f = forme.map(([di, dj]) => [[di, dj], [-dj, di], [-di, -dj], [dj, -di]][r]);
-      const L = f.map(([di, dj]) => caseGrille(p, di, dj));
-      if (L.every((c) => c && (c.type === 'libre' || c.type === 'enclos') && memeNiveau(c, p) && !(S_.sauvage && S_.sauvage.id === c.id))) cells = L;
-    }
-    if (!cells) { toast('Pas la place ici pour l\'enclos : il lui faut ' + E.length + ' cases d\'herbe libres dans sa forme, au même niveau. Pour l\'agrandir, touche une case collée à lui.', 'alerte'); return; }
+    const cells = placeEnclos(p, ordre);
+    if (!cells) { toast(ordre ? 'Pas la place pour le tourner ici : déplace-le d\'abord.' : 'Pas la place ici : il faut ' + E.length + ' cases d\'herbe libres autour, dans la forme de l\'enclos, au même niveau. Essaie plus au large.', 'alerte'); return; }
     const deja = inaccessibles(), avant = avantCases(E.concat(cells)); E.forEach((c) => { c.type = 'libre'; }); cells.forEach((c) => { c.type = 'enclos'; }); if (refuserSiBloque(deja, avant)) return;
-    const u = paysanMesh.userData; if (cells.includes(u.cellule) || cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } } /* il s'ecarte */
+    ecarterPerso(cells);
     E.concat(cells).forEach((c) => rendreCase(c.id));
     erre.forEach((e) => { if (e) Object.assign(e, pointEnclos(), { cible: null }); }); /* les Bouftous suivent leur enclos */
-    appliquerEnclos(); majBandeau(); rendreHaut(); rendreEnclosBulles(); toast('L\'enclos a déménagé, Bouftous compris.', 'or'); sauver();
+    appliquerEnclos(); majBandeau(); rendreHaut(); rendreEnclosBulles(); son('planter'); toast(ordre ? 'L\'enclos a tourné.' : 'L\'enclos a déménagé, Bouftous compris.', 'or'); sauver();
   },
+  tournerEnclos() { const E = casesEnclos(); if (E.length) ACTIONS.deplacerEnclos(milieuEnclos(E), [1, 2, 3]); },
   construireTour(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'libre') return;
     if (niveau(S_.xp) < NIV_TOUR) { toast('Les tours de défense se débloquent au niveau ' + NIV_TOUR + ' de Paysan.'); return; }
@@ -2385,13 +2394,75 @@ function pointEnclos(pres) {
   if (c0 && c0.type === 'enclos') choix = E.filter((c) => c === c0 || COTES.some(([di, dj]) => caseGrille(c0, di, dj) === c && memeNiveau(c, c0))); /* une case voisine : le chemin reste dans l'enclos */
   const q = posCase(hasard(choix)); return { x: q.x + (Math.random() - 0.5) * 0.9, z: q.z + (Math.random() - 0.5) * 0.9 };
 }
+/* AMENAGER L'ENCLOS (refait le 13/10/2026, « zero visibilite, zero indication, un enfer », Mathieu) : un + sur chaque case qu'on peut ajouter (herbe libre
+   collee a l'enclos, qui ne coupe aucun acces), un - sur chaque case qu'on peut rendre (il reste 2 cases par Bouftou, d'un seul tenant), le compteur dans
+   le bandeau ; « Déplacer tout l'enclos » est un mode a part (les cases de l'enclos en jaune), et toucher une case loin ne le fait plus demenager. */
+const minCasesEnclos = () => Math.max(2, 2 * S_.bouftous.length);
+const rendablesEnclos = () => { const E = casesEnclos(); return E.length - 1 < minCasesEnclos() ? [] : E.filter((c) => connexe(E.filter((x) => x !== c))); };
+function ajoutablesSurs() { /* les cases qu'on peut vraiment ajouter : sans couper d'acces */
+  if (!paysanMesh) return ajoutablesEnclos(); const deja = inaccessibles();
+  return ajoutablesEnclos().filter((c) => { c.type = 'enclos'; const ok = !inaccessibles().some((x) => !deja.includes(x)); c.type = 'libre'; return ok; });
+}
+function texteEnclos() {
+  const n = casesEnclos().length, max = maxCasesEnclos(), b = S_.bouftous.length, plus = n < max && ajoutablesSurs().length, moins = rendablesEnclos().length;
+  return 'Enclos : ' + n + ' / ' + max + ' cases' + (b ? ' (' + b + ' Bouftou' + (b > 1 ? 's' : '') + ' : ' + minCasesEnclos() + ' au moins)' : '') + '. ' +
+    (n >= max ? 'Il est plein : rends une case (−) pour la poser ailleurs (+), ou améliore l\'enclos pour en avoir plus.'
+      : plus ? 'Touche un + pour ajouter une case' + (moins ? ', un − pour en rendre une.' : '.') : 'Pas de place autour de lui : libère de l\'herbe à côté, ou déplace tout l\'enclos.');
+}
+function agrandirEnclosAuto() { /* ajoute les cases qui manquent : collees a l'enclos, celles qui touchent le plus de cases de l'enclos d'abord (forme compacte) */
+  let k = 0; const ajoutees = [];
+  while (casesEnclos().length < maxCasesEnclos()) {
+    const E = casesEnclos(), mi = E.reduce((t, c) => t + c.i, 0) / E.length, mj = E.reduce((t, c) => t + c.j, 0) / E.length;
+    const L = ajoutablesSurs().map((c) => [c, COTES.filter(([di, dj]) => enclosVoisin(c, di, dj)).length, (c.i - mi) ** 2 + (c.j - mj) ** 2]).sort((a, b) => b[1] - a[1] || a[2] - b[2]);
+    if (!L.length) break; L[0][0].type = 'enclos'; ajoutees.push(L[0][0]); rendreCase(L[0][0].id); k++;
+  }
+  if (ajoutees.length) ecarterPerso(ajoutees);
+  return k;
+}
+const milieuEnclos = (E) => { const mi = E.reduce((t, c) => t + c.i, 0) / E.length, mj = E.reduce((t, c) => t + c.j, 0) / E.length; return E.slice().sort((x, y) => (x.i - mi) ** 2 + (x.j - mj) ** 2 - (y.i - mi) ** 2 - (y.j - mj) ** 2)[0]; };
+function placeEnclos(p, ordre) { /* les cases ou irait l'enclos, sa case du milieu sur p, dans le premier sens qui rentre (null : pas la place) */
+  const E = casesEnclos(); if (!E.length || !p) return null; const a = milieuEnclos(E), forme = E.map((c) => [c.i - a.i, c.j - a.j]);
+  for (const r of ordre || [0, 1, 2, 3]) {
+    const L = forme.map(([di, dj]) => [[di, dj], [-dj, di], [-di, -dj], [dj, -di]][r]).map(([di, dj]) => caseGrille(p, di, dj));
+    if (L.every((c) => c && (c.type === 'libre' || c.type === 'enclos') && memeNiveau(c, p) && !(S_.sauvage && S_.sauvage.id === c.id))) return L;
+  }
+  return null;
+}
+/* l'apercu, a la souris : la ou l'enclos irait (vert), ou la case seule en rouge s'il n'y a pas la place */
+let apercuEnclos = null, apercuCase = null;
+function majApercuEnclos(c) {
+  if (apercuEnclos) { scene.remove(apercuEnclos); apercuEnclos = null; } apercuCase = c;
+  if (mode !== 'enclosDeplacer' || !c || c.type === 'enclos') return;
+  const cells = c.type === 'libre' ? placeEnclos(c) : null, g = new T.Group();
+  (cells || [c]).forEach((x) => { const q = posCase(x), m = new T.Mesh(new T.PlaneGeometry(S - 0.1, S - 0.1), cells ? MARQUE_OK : MARQUE_NON); m.rotation.x = -Math.PI / 2; m.position.set(q.x, q.y + 0.11, q.z); m.renderOrder = 4; g.add(m); });
+  scene.add(g); apercuEnclos = g;
+}
+canvas.addEventListener('pointermove', (e) => { if (mode !== 'enclosDeplacer' || e.pointerType !== 'mouse') { if (apercuEnclos) majApercuEnclos(null); return; } const pt = pointSol(e), c = pt && caseIci(pt.x, pt.z); if (c !== apercuCase) majApercuEnclos(c); });
+function ecarterPerso(cells) { /* le perso se trouve sur une case qui devient l'enclos (ou un batiment) : il s'ecarte sur la case libre la plus proche */
+  if (!paysanMesh) return; const u = paysanMesh.userData;
+  if (cells.includes(u.cellule) || cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } }
+}
+/* les reperes dessines : une case au bord pointille (verte : on peut l'ajouter), et au-dessus une pastille + ou - qui fait toujours face a la camera
+   (posees a plat, vues de biais, le + avait l'air d'un x et le - s'ecrasait) ; pour deplacer l'enclos, ses cases en jaune et l'apercu en vert ou rouge */
+const texMarque = (dessin) => { const c = document.createElement('canvas'); c.width = c.height = 128; dessin(c.getContext('2d')); const t = new T.CanvasTexture(c); t.anisotropy = 4; return t; };
+const tuilePointillee = (fond) => new T.MeshBasicMaterial({ transparent: true, depthWrite: false, map: texMarque((x) => {
+  x.beginPath(); const r = 18, a = 8, b = 120; x.moveTo(a + r, a); x.arcTo(b, a, b, b, r); x.arcTo(b, b, a, b, r); x.arcTo(a, b, a, a, r); x.arcTo(a, a, b, a, r); x.closePath();
+  x.fillStyle = fond; x.fill(); x.lineWidth = 7; x.setLineDash([16, 10]); x.strokeStyle = 'rgba(255, 255, 255, .95)'; x.stroke(); }) });
+const pastilleSigne = (fond, plus) => new T.SpriteMaterial({ depthTest: false, depthWrite: false, map: texMarque((x) => {
+  x.beginPath(); x.arc(64, 64, 52, 0, Math.PI * 2); x.fillStyle = fond; x.fill(); x.lineWidth = 9; x.strokeStyle = '#3a2b1f'; x.stroke();
+  x.fillStyle = '#fff'; x.fillRect(36, 56, 56, 16); if (plus) x.fillRect(56, 36, 16, 56); }) });
+const MARQUE_PLUS = tuilePointillee('rgba(160, 235, 100, .5)'), SIGNE_PLUS = pastilleSigne('#4caf3a', true), SIGNE_MOINS = pastilleSigne('#e8742a', false), MARQUE_MOINS = SIGNE_MOINS;
+const MARQUE_JAUNE = tuilePointillee('rgba(242, 182, 48, .5)'), MARQUE_OK = tuilePointillee('rgba(110, 215, 70, .75)'), MARQUE_NON = tuilePointillee('rgba(224, 83, 58, .6)');
 let marquesEnclos = null;
-const MARQUE_VERTE = new T.MeshBasicMaterial({ color: '#b6f08a', transparent: true, opacity: 0.45, depthWrite: false }), MARQUE_GRISE = new T.MeshBasicMaterial({ color: '#e9eef2', transparent: true, opacity: 0.35, depthWrite: false });
-function marquerEnclos() { /* (plus de cases vertes : on enleve seulement d'anciennes marques) */
+function marquerEnclos() {
   if (marquesEnclos) { scene.remove(marquesEnclos); marquesEnclos = null; }
-  return;
-  const g = new T.Group(), plein = casesEnclos().length >= maxCasesEnclos();
-  ajoutablesEnclos().forEach((c) => { const q = posCase(c), m = new T.Mesh(new T.PlaneGeometry(S - 0.3, S - 0.3), plein ? MARQUE_GRISE : MARQUE_VERTE); m.rotation.x = -Math.PI / 2; m.position.set(q.x, q.y + 0.08, q.z); m.userData.cellule = c.id; g.add(m); });
+  if (apercuEnclos) { const c = apercuCase; majApercuEnclos(null); if (mode === 'enclosDeplacer') majApercuEnclos(c); } /* (l'apercu suit l'enclos qui vient de bouger) */
+  if (mode !== 'enclos' && mode !== 'enclosDeplacer') return;
+  const g = new T.Group(), E = casesEnclos();
+  const tuile = (c, mat) => { const q = posCase(c), m = new T.Mesh(new T.PlaneGeometry(S - 0.1, S - 0.1), mat); m.rotation.x = -Math.PI / 2; m.position.set(q.x, q.y + 0.09, q.z); m.renderOrder = 3; m.userData.cellule = c.id; g.add(m); };
+  const signe = (c, mat) => { const q = posCase(c), sp = new T.Sprite(mat), k = innerWidth < 720 ? 1.1 : 0.78; sp.scale.set(k, k, 1); /* (plus grosses au telephone) */ sp.position.set(q.x, q.y + 0.55, q.z); sp.renderOrder = 6; sp.userData.cellule = c.id; g.add(sp); };
+  if (mode === 'enclosDeplacer') E.forEach((c) => tuile(c, MARQUE_JAUNE));
+  else { if (E.length < maxCasesEnclos()) ajoutablesSurs().forEach((c) => { tuile(c, MARQUE_PLUS); signe(c, SIGNE_PLUS); }); rendablesEnclos().forEach((c) => signe(c, SIGNE_MOINS)); }
   scene.add(g); marquesEnclos = g;
 }
 
@@ -5406,7 +5477,7 @@ canvas.addEventListener('pointerup', (e) => {
     let o = h.object; let bouftou = null, cellule = null, terrain = null;
     while (o) { if (o.userData.bouftou !== undefined && bouftou === null) bouftou = o.userData.bouftou; if (o.userData.cellule && !cellule) cellule = o.userData.cellule; if (o.userData.terrain !== undefined && terrain === null) terrain = o.userData.terrain; o = o.parent; }
     const action = agir || mode; /* en amenageant, le clic garde son role de selection */
-    if (bouftou !== null && mode !== 'enclos') { if (action) toucherBouftou(bouftou); else allerVers(S_.cases.find((c) => c.type === 'enclos')); return; }
+    if (bouftou !== null && mode !== 'enclos' && mode !== 'enclosDeplacer') { if (action) toucherBouftou(bouftou); else allerVers(S_.cases.find((c) => c.type === 'enclos')); return; }
     if (terrain !== null) { ACTIONS.acheterTerrain(terrain); return; }
     if (cellule && action && !mode) { const ce = S_.cases.find((c) => c.id === cellule); if (ce && ce.type === 'enclos') { const k = bouftouEcran(e); if (k !== null) { toucherBouftou(k); return; } } } /* un Bouftou contre la cloture : c'est lui qu'on vise, pas l'enclos */
     if (cellule) { if (action) ACTIONS.toucherCase(cellule); else allerVers(cellule); sauver(); return; }
@@ -5720,7 +5791,8 @@ function ouvrirEnclos() {
   }).join('');
   const achat = '<div class="art">' + ico('bouftou') + '<div><b>Un Bouftou de plus</b><div class="puces"><span class="puce' + (plein ? ' mauvaise' : '') + '">' + picto('bouftou', '#8a7a5c') + S_.bouftous.length + '/' + cap + ' places</span></div>' + (plein ? '<div class="desc">L\'enclos est plein : agrandis-le juste en dessous.</div>' : '') + '</div>' +
     '<div class="act"><button class="btn kamas" data-bouftou' + (plein || S_.kamas < prixBouftou() ? ' disabled' : '') + '>Acheter ' + fmt(prixBouftou()) + ' ' + KAMA + '</button>' + (plein ? '' : manque(prixBouftou())) + '</div></div>';
-  const amenager = '<div class="art">' + ico('cloture') + '<div><b>Aménager l\'enclos</b><div class="puces"><span class="puce">' + casesEnclos().length + '/' + maxCasesEnclos() + ' cases</span><span class="puce">2 cases par Bouftou</span></div><div class="desc">Déplace les barrières : ajoute des cases d\'herbe collées à l\'enclos, rends celles qui gênent.</div></div><div class="act"><button class="btn kamas" data-amenager-enclos>Aménager</button></div></div>';
+  const aPlacer = maxCasesEnclos() - casesEnclos().length;
+  const amenager = '<div class="art">' + ico('cloture') + '<div><b>Aménager l\'enclos</b><div class="puces"><span class="puce">' + casesEnclos().length + '/' + maxCasesEnclos() + ' cases</span>' + (aPlacer > 0 ? '<span class="puce bonne">' + aPlacer + ' case' + (aPlacer > 1 ? 's' : '') + ' à placer</span>' : '') + '<span class="puce">2 cases par Bouftou</span></div><div class="desc">Change sa forme (+ pour ajouter une case, − pour en rendre une) ou emmène-le ailleurs, Bouftous compris.</div></div><div class="act">' + (aPlacer > 0 ? '<button class="btn kamas" data-enclos-auto>Placer toute' + (aPlacer > 1 ? 's' : '') + ' seule' + (aPlacer > 1 ? 's' : '') + '</button>' : '') + '<button class="btn ' + (aPlacer > 0 ? 'discret' : 'kamas') + '" data-amenager-enclos>Aménager</button></div></div>';
   const prets = S_.bouftous.filter(peutReproduire).length, noirs = S_.bouftous.filter((b) => b.noir).length, houblon = S_.grange.houblon || 0;
   const repro = '<div class="art">' + ico('bouftou') + '<div><b>Faire un petit</b><div class="puces"><span class="puce ' + (prets >= 2 ? 'bonne' : 'mauvaise') + '">' + prets + ' adulte' + (prets > 1 ? 's' : '') + ' prêt' + (prets > 1 ? 's' : '') + '</span><span class="puce ' + (houblon >= COUT_REPRO ? 'bonne' : 'mauvaise') + '">' + picto('pousse', '#8a7a5c') + COUT_REPRO + ' Houblon (' + houblon + ' en grange)</span><span class="puce">' + (noirs ? noirs + ' noir' + (noirs > 1 ? 's' : '') + ' ★' : '1 chance sur 10 : noir') + '</span></div><div class="desc">Deux adultes repus et ' + COUT_REPRO + ' Houblon' + (debloquee(PAR_ID.houblon) ? '' : ' (il se cultive au niveau ' + PAR_ID.houblon.niv + ')') + ' font un bébé, puis se reposent ' + dureeLisible(REPOS_REPRO) + '. Le bébé naît affamé : il mange ' + REPAS_BEBE + ' Blé par repas et ne grandit que repu (' + dureeLisible(DUREE_CROISSANCE) + '). Il naît <b>noir</b> 1 fois sur 10 : sa laine vaut ' + LAINE_NOIRE.prix + ' kamas. Avec un parent noir, 1 fois sur 4 ; avec deux, 1 fois sur 2.</div></div><div class="act"><button class="btn kamas" data-reproduire' + (prets < 2 || plein || houblon < COUT_REPRO ? ' disabled' : '') + '>Faire un petit</button>' + (plein ? '<small class="manque">Plus de place</small>' : '') + '</div></div>';
   ouvrirModale('enclos', entete('Enclos à Bouftous') + amenager + betes + repro + achat + lignesAmelio(['enclos'], 'Améliorer l\'enclos'));
@@ -5975,6 +6047,8 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
   else if (b.dataset.reconstruire) ACTIONS.reconstruire(b.dataset.reconstruire);
   else if (b.id === 'b-amenager') { mode = mode ? null : 'choisir'; aDeplacer = null; majBandeau(); rendreHaut(); }
+  else if (b.hasAttribute('data-enclos-auto')) ACTIONS.enclosAuto();
+  else if (b.id === 'b-enclos-bouger') { mode = mode === 'enclosDeplacer' ? 'enclos' : 'enclosDeplacer'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.hasAttribute('data-amenager-enclos')) { fermerModale(); mode = 'enclos'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.id === 'b-tourner') ACTIONS.tournerBatiment();
   else if (b.id === 'b-ranger') ACTIONS.rangerDeco();
