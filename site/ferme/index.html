@@ -854,7 +854,7 @@ const AMELIOS = [
   /* les batiments, du niveau 1 au niveau 5 (decision de Mathieu du 11/10/2026) : chaque niveau monte toutes les stats et change l'apparence.
      couts[k] : le prix pour passer au niveau k + 2 (l'arbalete, elle, s'achete d'abord : couts[0] = la construire) ; nivs[k] : le niveau de Paysan demande */
   { id: 'qg', nom: 'La grange (le QG)', desc: 'Niveau 2 : cheminée et hangar à foin, 900 PV, les voleurs de VSA emportent deux fois moins. Niveau 3 : la grange monte sur un soubassement de pierre, 1 500 PV. Niveau 4 : la tourelle de guet, 2 400 PV. Niveau 5 : le QG de Redemption, 3 600 PV.', couts: [1000, 3000, 7000, 12000], nivs: [3, 4, 5, 7] },
-  { id: 'arbalete', nom: 'L\'arbalète de la grange', desc: 'Elle tire seule sur les voleurs de VSA et les monstres. Niveau 1 : 30 dégâts, 3 carreaux, un tir toutes les 1,1 s, 3,5 cases de portée. Chaque niveau monte tout d\'un coup, jusqu\'à la baliste du niveau 5 : 90 dégâts, 15 carreaux, un tir toutes les 0,65 s, 12 cases.', couts: [900, 1500, 4000, 9000, 15000], nivs: [4, 4, 5, 6, 7] },
+  { id: 'arbalete', nom: 'L\'arbalète de la grange', desc: 'Elle tire seule sur les voleurs de VSA et les monstres, d\'abord ceux qui attaquent tes bâtiments. Niveau 1 : 18 dégâts, 3 carreaux, un tir toutes les 1,1 s, 3,5 cases de portée. Chaque niveau monte tout d\'un coup, jusqu\'à la baliste du niveau 5 : 54 dégâts, 15 carreaux, un tir toutes les 0,65 s, 12 cases.', couts: [900, 1500, 4000, 9000, 15000], nivs: [4, 4, 5, 6, 7] },
   { id: 'nivPuits', nom: 'Le puits', desc: 'Niveau 2 : la poulie (il remplit dès que ton perso passe à deux cases) et un arrosoir de 15 doses. Niveau 3 : la citerne d\'arrosage, 12 arrosages tout seuls, arrosoir de 20. Niveau 4 : dallage et abreuvoir, citerne de 20, arrosoir de 30. Niveau 5 : le château d\'eau, citerne de 32, arrosoir de 45.', couts: [700, 2000, 6000, 12000], nivs: [1, 3, 4, 6] },
   { id: 'enclos', nom: 'L\'enclos des Bouftous', desc: 'Niveau 2 : portique et abreuvoir (repus 50 % plus longtemps), 8 cases, 3 Bouftous. Niveau 3 : clôture peinte et mangeoire (ils se servent seuls dans la grange), 10 cases, 4 Bouftous, 5 laines avant la tonte. Niveau 4 : la bergerie et les cisailles, 12 cases, 5 Bouftous, 7 laines. Niveau 5 : le ranch, 14 cases, 6 Bouftous, 9 laines. Il faut 2 cases par Bouftou.', couts: [400, 1200, 3000, 5000], nivs: [2, 4, 5, 6] },
   { id: 'voliere', nom: 'La volière à Tofus', desc: 'Deux places de plus à chaque niveau : 4, 6, 8 puis 10 Tofus. Elle grandit avec : grande volière à lattes, chalet de bois, piliers de pierre, puis la halle de Redemption. Dès le niveau 2 elle prend une case de plus, à côté.', couts: [500, 1500, 3500, 7000], nivs: [3, 4, 5, 6] },
@@ -870,7 +870,7 @@ const AMELIOS = [
 /* ce que donne chaque niveau d'un batiment (index = niveau - 1 ; l'arbalete : index = niveau, 0 = pas construite) */
 const PALIERS_BAT = {
   qg: ['La grange à colombages, 500 PV.', 'Cheminée et hangar à foin, 900 PV, et les voleurs de VSA emportent deux fois moins.', 'Toute la grange monte sur un soubassement de pierre : 1 500 PV.', 'La tourelle de guet : 2 400 PV.', 'Le QG de Redemption : 3 600 PV.'],
-  arbalete: ['Pas encore construite.', 'De bois : 30 dégâts, 3 carreaux, un tir toutes les 1,1 s, 3,5 cases de portée.', 'Cerclée de fer : 45 dégâts, 6 carreaux, un tir toutes les 1 s, 4 cases.', 'Double, avec lunette : 60 dégâts, 9 carreaux, un tir toutes les 0,9 s, 4,8 cases, et elle se recharge toute seule avec ta réserve de flèches.', 'À répétition : 75 dégâts, 12 carreaux, un tir toutes les 0,8 s, 5,3 cases.', 'La baliste de Redemption : 90 dégâts, 15 carreaux, un tir toutes les 0,65 s, 6 cases.'],
+  arbalete: ['Pas encore construite.', 'De bois : 18 dégâts, 3 carreaux, un tir toutes les 1,1 s, 3,5 cases de portée.', 'Cerclée de fer : 27 dégâts, 6 carreaux, un tir toutes les 1 s, 4 cases.', 'Double, avec lunette : 36 dégâts, 9 carreaux, un tir toutes les 0,9 s, 4,8 cases, et elle se recharge toute seule avec ta réserve de flèches.', 'À répétition : 45 dégâts, 12 carreaux, un tir toutes les 0,8 s, 5,3 cases.', 'La baliste de Redemption : 54 dégâts, 15 carreaux, un tir toutes les 0,65 s, 6 cases.'],
   nivPuits: ['Un arrosoir de 10 doses.', 'La poulie : il remplit l\'arrosoir dès que ton perso passe à deux cases. Arrosoir de 15 doses.', 'La citerne d\'arrosage : elle arrose seule 12 nouveaux semis. Arrosoir de 20.', 'Dallage et abreuvoir : citerne de 20, arrosoir de 30.', 'Le château d\'eau : citerne de 32, arrosoir de 45.'],
   enclos: ['6 cases, 2 Bouftous, 3 laines avant la tonte.', 'Portique et abreuvoir : repus 50 % plus longtemps. 8 cases, 3 Bouftous.', 'Clôture peinte et mangeoire : ils se servent seuls dans la grange. 10 cases, 4 Bouftous, 5 laines.', 'La bergerie et les cisailles : 12 cases, 5 Bouftous, 7 laines.', 'Le ranch de Redemption : 14 cases, 6 Bouftous, 9 laines.'],
   voliere: ['Le petit module : 2 Tofus.', 'La grande volière à lattes : 4 Tofus. Elle prend une case de plus, à côté.', 'Le chalet-volière : 6 Tofus.', 'Piliers de pierre et treillis : 8 Tofus.', 'La halle de Redemption : 10 Tofus.'],
@@ -905,14 +905,15 @@ const dureeRepas = () => DUREE_REPAS * (niv('abreuvoir') ? 1.5 : 1), laineMax = 
 const CADENCE_VOLEUR = 150 * MIN, VITESSE_VOLEUR = 1.7;
 const PRIX_FLECHE = 10; /* l'arbalete du toit de la grange : un carreau par tir, a recharger avec les fleches achetees */
 const nivArb = () => Math.max(1, Math.min(5, niv('arbalete'))) - 1; /* (une arbalete pas encore construite se lit comme le niveau 1) */
-const degatsArbalete = () => niv('arbalete') ? [30, 45, 60, 75, 90][nivArb()] : 0, porteeArbalete = () => [7, 8, 9.5, 10.5, 12][nivArb()], capaciteArbalete = () => [3, 6, 9, 12, 15][nivArb()], cadenceArbalete = () => [1.1, 1.0, 0.9, 0.8, 0.65][nivArb()];
+const degatsArbalete = () => niv('arbalete') ? [18, 27, 36, 45, 54][nivArb()] : 0, /* (-40 % le 13/10/2026 : 30, 45, 60, 75, 90 avant) */ porteeArbalete = () => [7, 8, 9.5, 10.5, 12][nivArb()], capaciteArbalete = () => [3, 6, 9, 12, 15][nivArb()], cadenceArbalete = () => [1.1, 1.0, 0.9, 0.8, 0.65][nivArb()];
 /* les voleurs de VSA se renforcent a chaque vague gagnee : plus de PV, un peu plus rapides, plus gourmands */
 /* les tours de defense : sans archer, une arbalete tournante qui tire seule sur les voleurs et les monstres, en puisant dans la reserve de fleches */
 const TOURS_MAX = 4, PRIX_TOUR = [600, 1200, 2000, 3000], NIV_TOUR = 4, CADENCE_TOUR = 1.5;
-/* « on peut pas juste les nerfer de 30 % de degats et ensuite on voit ? » (Mathieu, 13/10/2026) : 25, 40, 60, 80, 100 avant. Simule (scratchpad/simtours) :
-   avec 4 tours niveau 5, vagues 30 a 60, 77 % de vie restante en moyenne avant, environ 70 % apres ; piste suivante si ca reste facile : +1 % de PV et de
-   degats des monstres par niveau de tour (environ 53 % simule a +25 %, sans toucher aux joueurs sans tours) */
-const NIV_TOURS = { deg: [18, 28, 42, 56, 70], portee: [6.5, 7.5, 8.5, 9.5, 10.5], cadence: [1.5, 1.4, 1.3, 1.2, 1.1], pv: [300, 550, 900, 1400, 2000], prix: [600, 1500, 3000, 5000], nivs: [5, 6, 7, 8] };
+/* LES TOURS ET L'ARBALETE A -40 % (13/10/2026, Mathieu : « applique un -40 % de degats des tours, peu importe le niveau ou le nombre pose ; pareil pour
+   l'arbalete ») : 25, 40, 60, 80, 100 avant (puis 18, 28, 42, 56, 70 quelques minutes). Simule (scratchpad/simtours), 4 tours niveau 5, vagues 30 a 60 :
+   77 % de vie restante en moyenne avant, environ 70 % a -40 % ; elles visent d'abord les monstres qui attaquent un batiment (monstreAViser).
+   Piste suivante si ca reste facile : +1 % de PV et de degats des monstres par niveau de tour (environ 53 % simule a +25 %, sans toucher aux joueurs sans tours) */
+const NIV_TOURS = { deg: [15, 24, 36, 48, 60], portee: [6.5, 7.5, 8.5, 9.5, 10.5], cadence: [1.5, 1.4, 1.3, 1.2, 1.1], pv: [300, 550, 900, 1400, 2000], prix: [600, 1500, 3000, 5000], nivs: [5, 6, 7, 8] };
 const nivTour = (c) => Math.max(1, Math.min(5, (c && c.niv) || 1)) - 1; /* une tour, de 1 a 5 (sa case la porte) */
 const caseTour = (id) => S_.cases.find((c) => c.id === id && c.type === 'tour');
 const porteeTour = (c) => NIV_TOURS.portee[nivTour(c)], cadenceTour = (c) => NIV_TOURS.cadence[nivTour(c)];
@@ -3002,7 +3003,7 @@ function majTours(dt, s) {
     const t = g.userData.tete, pos = g.position, ct = caseTour(g.userData.cellule);
     g.userData.cd = Math.max(0, g.userData.cd - dt);
     const v = voleurCiblable() && Math.hypot(voleur.m.position.x - pos.x, voleur.m.position.z - pos.z) < porteeTour(ct) ? voleur : null;
-    const mo = !v && combat ? plusProcheMonstre(pos, porteeTour(ct)) : null, cible = v ? v.m.position : mo ? mo.m.position : null;
+    const mo = !v && combat ? monstreAViser(pos, porteeTour(ct)) : null, cible = v ? v.m.position : mo ? mo.m.position : null;
     let ang = Math.sin(s * 0.5 + k * 2) * 1.4; if (cible) ang = Math.atan2(cible.x - pos.x, cible.z - pos.z);
     let d = ang - t.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); t.rotation.y += d * Math.min(1, dt * (cible ? 7 : 1.2));
     if (!cible || g.userData.cd > 0 || Math.abs(d) > 0.2) return;
@@ -3017,7 +3018,7 @@ function artTour() {
   const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)], bloque = niveau(S_.xp) < NIV_TOUR, max = n >= TOURS_MAX;
   const achat = bloque ? '<span class="a-etat">' + picto('cadenas', GRIS_PICTO) + 'Paysan niveau ' + NIV_TOUR + '</span>' : max ? '<span class="a-etat">Les ' + TOURS_MAX + ' tours sont construites</span>' : ilManque(ct) + '<button class="btn kamas" data-poser-tour' + (S_.kamas < ct ? ' disabled' : '') + '>Construire · ' + fmt(ct) + ' ' + KAMA + '</button>';
   return '<div class="amel' + (bloque ? ' verrou' : '') + '"><img class="a-ico" src="assets/icones/tour.png?v=' + VERSION_MODELES + '" alt=""><h3>Tour de défense</h3>' + crans(n, TOURS_MAX, n + ' sur ' + TOURS_MAX + ' construites') +
-    '<p class="a-desc">Elle tire seule sur les voleurs et les monstres. Tu choisis sa case, et chaque tour s\'améliore à part.</p>' + (max ? '' : '<div class="a-prochain">Une tour de plus</div><dl class="a-gains">' + ligneGain('degats', 'Dégâts', '<b>' + degatsTour() + '</b>') + ligneGain('carreaux', 'Une flèche par tir, prise dans ta réserve', '') + '</dl>') + '<div class="a-achat">' + achat + '</div></div>';
+    '<p class="a-desc">Elle tire seule sur les voleurs et les monstres, d\'abord ceux qui attaquent tes bâtiments. Tu choisis sa case, et chaque tour s\'améliore à part.</p>' + (max ? '' : '<div class="a-prochain">Une tour de plus</div><dl class="a-gains">' + ligneGain('degats', 'Dégâts', '<b>' + degatsTour() + '</b>') + ligneGain('carreaux', 'Une flèche par tir, prise dans ta réserve', '') + '</dl>') + '<div class="a-achat">' + achat + '</div></div>';
 }
 function ouvrirTour(p) {
   const n = nivTour(p), fini = n >= 4, prix = fini ? 0 : NIV_TOURS.prix[n], req = fini ? 0 : NIV_TOURS.nivs[n], bloque = !fini && niveau(S_.xp) < req;
@@ -3046,7 +3047,7 @@ function rendreArbaleteBulle() {
 }
 function viserArbalete(dt, s) {
   if (!arbalete || enRuine('grange')) return;
-  const t = arbalete.userData.tete, mo = !voleurCiblable() && combat ? plusProcheMonstre(arbalete.position, porteeArbalete()) : null;
+  const t = arbalete.userData.tete, mo = !voleurCiblable() && combat ? monstreAViser(arbalete.position, porteeArbalete()) : null;
   const cible = voleurCiblable() ? voleur.m.position : mo ? mo.m.position : null;
   let ang = Math.sin(s * 0.4) * 1.2; /* elle guette */
   if (cible) ang = Math.atan2(cible.x - arbalete.position.x, cible.z - arbalete.position.z);
@@ -4404,6 +4405,11 @@ function prochainPas(e, x, z, dt) {
   if (!e.route || e.routeT <= 0 || e.routeB !== b.id) { e.route = trajet(a, b); /* une cible sur un batiment : le trajet s'arrete a cote */ e.routeB = b.id; e.routeT = 0.5; }
   if (e.route) { const k = e.route.indexOf(a), nx = e.route[k >= 0 ? k + 1 : 1]; if (nx) { const q = posCase(nx); return { x: q.x, z: q.z }; } }
   return { x, z };
+}
+function monstreAViser(p, max) { /* les tours et l'arbalete : d'abord un monstre qui s'en prend a un batiment (un casseur que le perso n'est pas venu chercher), sinon le plus proche */
+  let best = null, bd = max || Infinity, cas = null, bc = max || Infinity;
+  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } if (o.casseur && !o.aggro && o.bat && d < bc) { bc = d; cas = o; } });
+  return cas || best;
 }
 function plusProcheMonstre(p, max) {
   let best = null, bd = max || Infinity;
