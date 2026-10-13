@@ -4117,7 +4117,7 @@ const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
    de PV (BOSS_PV, regle par simulation pour un long combat), des coups moderes (BOSS_DEG), et un sort special annonce au sol qu'on peut esquiver */
 const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7], vagueBoss = (n) => n >= 1 && n <= VAGUES_TOTAL && n % VAGUES_PALIER === 0;
-const BOSS_PV = [2.6, 1.6, 1.2, 1.45, 1.7, 1.9], BOSS_DEG = [0.3, 0.27, 0.3, 0.42, 0.5, 0.5];
+const BOSS_PV = [2.6, 1.6, 1.2, 1.45, 1.7, 3.2], BOSS_DEG = [0.3, 0.27, 0.3, 0.42, 0.5, 0.8]; /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
 /* « il faut obliger le joueur a prendre une decision entre focus les mobs et le boss » (Mathieu, 12/10/2026) : sa troupe le protege (chaque monstre a moins
    de 6 cases lui retire 12 % des degats recus, jusqu'a -60 %), et il la rappelle toutes les 16 s tant qu'il est debout. Taper le boss au milieu de ses gardes
    ne sert presque a rien, nettoyer la troupe sans fin non plus : on degage, puis on tape le boss avant le retour des renforts */
