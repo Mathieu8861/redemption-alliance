@@ -216,9 +216,12 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .art.verrou { opacity: .55; }
 .art .cadenas { font-size: .74rem; font-weight: 800; color: #6b5a3a; white-space: nowrap; }
 @media (max-width: 720px) { .bulle.ico { width: 30px; height: 30px; font-size: .95rem; } }
-.panneau { z-index: 3; position: absolute; right: 12px; top: calc(64px + env(safe-area-inset-top, 0px)); width: 220px; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 5px 0 var(--bord); padding: 9px 11px; display: grid; gap: 5px; font-variant-numeric: tabular-nums; }
+.panneau { z-index: 3; position: absolute; right: 12px; top: calc(64px + env(safe-area-inset-top, 0px)); width: 236px; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 5px 0 var(--bord); padding: 9px 11px; display: grid; gap: 5px; font-variant-numeric: tabular-nums; }
 .panneau h2 { margin: 0; font: 400 1rem/1 var(--f-titre); }
-.panneau .l { display: flex; justify-content: space-between; gap: 8px; }
+.panneau .l { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.panneau .l .n { display: flex; align-items: center; gap: 7px; min-width: 0; } /* (l'icone de ce que c'est, devant : 13/10/2026) */
+.panneau .gi { position: relative; flex: none; width: 24px; height: 24px; } .panneau .gi img { display: block; width: 24px; height: 24px; object-fit: contain; }
+.panneau .gi i { position: absolute; right: -4px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1.5px solid var(--bord); display: grid; place-items: center; } .panneau .gi i svg { width: 10px; height: 10px; }
 .panneau .crise { background: #fde3df; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #8a1e16; }
 .commis { position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
 .commis b { font-family: var(--f-titre); font-weight: 400; color: var(--kamas); }
@@ -4777,9 +4780,11 @@ function rendreHaut() {
   $('perso-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('perso-nb').hidden = !S_.nouveaux; $('perso-nb').textContent = S_.nouveaux || 0;
   if (S_.perso) $('titre').textContent = 'Ferme de ' + S_.perso.nom;
 }
+/* le panneau Grange, une icone devant chaque ligne (13/10/2026) : le produit, ou la culture avec une pousse pour ses graines */
+const icoGrange = (nom, graine) => '<span class="gi"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt="">' + (graine ? '<i>' + picto('pousse', '#3f8a2e') + '</i>' : '') + '</span>';
 function rendreGrange() {
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
-  $('panneau-grange').innerHTML = '<h2>Grange</h2>' + (lignes.length ? lignes.map((v) => '<div class="l"><span>' + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span>Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span>Filets</span><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="l"><span>Tofus capturés</span><span>' + S_.tofus + '</span></div>' : '') +
+  $('panneau-grange').innerHTML = '<h2>Grange</h2>' + (lignes.length ? lignes.map((v) => '<div class="l"><span class="n">' + icoGrange(v.id) + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span class="n">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span class="n">' + icoGrange('filet') + 'Filets</span><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="l"><span class="n">' + icoGrange('tofu') + 'Tofus capturés</span><span>' + S_.tofus + '</span></div>' : '') +
     (S_.crise ? '<div class="crise">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' à l\'HDV : -40 %</div>' : '');
 }
 function toast(msg, genre) {
