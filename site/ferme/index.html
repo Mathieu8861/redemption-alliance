@@ -1313,7 +1313,7 @@ function destinationsValides() {
   const libres = S_.cases.filter((c) => c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id));
   if (mode === 'deplacer' || mode === 'poserTour' || mode === 'poserDeco') return libres;
   const coupe = () => false; /* plus de refus pour un acces coupe */
-  if (aDeplacer.tour || aDeplacer.arbre || aDeplacer.deco) {
+  if (aDeplacer.tour || aDeplacer.arbre || aDeplacer.deco || aDeplacer.piece !== undefined) {
     const src = aDeplacer.tour || aDeplacer.deco || S_.cases.find((c) => c.type === 'arbre' && c.arbre === aDeplacer.arbre), t0 = src && src.type;
     return libres.filter((c) => { if (src) src.type = 'libre'; c.type = 'tour'; const ok = !coupe(); c.type = 'libre'; if (src) src.type = t0; return ok; });
   }
@@ -1330,8 +1330,8 @@ function majSelection() { /* l'element choisi : ses cases en jaune */
   if (!aDeplacer || !(mode === 'deplacer' || mode === 'deplacerBat')) return;
   const vert = new T.Group(); scene.add(vert);
   /* (plus de cases vertes) */
-  if (aDeplacer.arbre && mode === 'deplacerBat') { /* un arbre : un rond jaune a son pied */
-    const m = arbresMesh[aDeplacer.arbre]; if (!m) return; const r = new T.Mesh(new T.RingGeometry(0.6, 0.85, 32), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.8, depthWrite: false, depthTest: false, side: T.DoubleSide }));
+  if ((aDeplacer.arbre || aDeplacer.piece !== undefined) && mode === 'deplacerBat') { /* un arbre, ou une lanterne a sa place : un rond jaune a son pied */
+    const m = aDeplacer.arbre ? arbresMesh[aDeplacer.arbre] : { position: MODELES.piecesIle[aDeplacer.piece].base }; if (!m) return; const r = new T.Mesh(new T.RingGeometry(0.6, 0.85, 32), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.8, depthWrite: false, depthTest: false, side: T.DoubleSide }));
     r.rotation.x = -Math.PI / 2; r.position.set(m.position.x, m.position.y + 0.1, m.position.z); r.renderOrder = 3; vert.add(r); selectionMesh = vert; return;
   }
   const cells = mode === 'deplacer' ? [aDeplacer] : aDeplacer.tour ? [aDeplacer.tour] : aDeplacer.deco ? [aDeplacer.deco] : S_.cases.filter((c) => c.type === aDeplacer.bat);
@@ -1342,12 +1342,13 @@ function majSelection() { /* l'element choisi : ses cases en jaune */
 function majBandeau() {
   const b = document.getElementById('bandeau'); b.hidden = !mode;
   document.getElementById('b-tourner').hidden = !((mode === 'deplacerBat' && aDeplacer && (aDeplacer.bat || aDeplacer.arbre || aDeplacer.deco)) || mode === 'enclosDeplacer');
-  document.getElementById('b-ranger').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.arbre || aDeplacer.deco)); document.getElementById('b-mes-decos').hidden = mode !== 'choisir';
+  document.getElementById('b-ranger').hidden = !(mode === 'deplacerBat' && aDeplacer && (aDeplacer.arbre || aDeplacer.deco || aDeplacer.piece !== undefined)); document.getElementById('b-mes-decos').hidden = mode !== 'choisir';
   { const be = document.getElementById('b-enclos-bouger'); be.hidden = !(mode === 'enclos' || mode === 'enclosDeplacer'); be.textContent = mode === 'enclosDeplacer' ? 'Ajouter ou rendre des cases' : 'Déplacer tout l\'enclos'; }
   majSelection();
   const o = mode === 'deplacerBat' && aDeplacer && blocBati(aDeplacer.bat);
   document.getElementById('bandeau-texte').textContent = mode === 'deplacer' ? 'Parcelle choisie : touche une case d\'herbe libre pour la déplacer, autant de fois que tu veux, puis Terminer.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.deco ? texteDeco(aDeplacer.deco.deco)
+    : mode === 'deplacerBat' && aDeplacer && aDeplacer.piece !== undefined ? DECOS[MODELES.piecesIle[aDeplacer.piece].genre].nom + ' : touche une case d\'herbe libre pour la poser ailleurs, ou Ranger pour la mettre dans tes décorations.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.arbre ? 'Arbre choisi : touche une case d\'herbe libre pour le replanter, Tourner pour le pivoter, Ranger pour le mettre dans tes décorations, puis Terminer.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.tour ? 'Tour choisie : touche une case d\'herbe libre pour la poser, autant de fois que tu veux, puis Terminer.'
     : mode === 'deplacerBat' ? BATIS[aDeplacer.bat][0].toUpperCase() + BATIS[aDeplacer.bat].slice(1) + ' : touche où le poser, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer' + (o ? ' (' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ')' : '') + '.'
@@ -1460,7 +1461,7 @@ const ACTIONS = {
   toucherCase(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p) return;
     if (mode === 'deplacer' || mode === 'deplacerBat') {
-      const lui = mode === 'deplacer' ? p === aDeplacer : aDeplacer && (aDeplacer.tour ? aDeplacer.tour === p : aDeplacer.deco ? aDeplacer.deco === p : aDeplacer.arbre ? p.arbre === aDeplacer.arbre : p.type === aDeplacer.bat);
+      const lui = mode === 'deplacer' ? p === aDeplacer : aDeplacer && (aDeplacer.piece !== undefined ? false : aDeplacer.tour ? aDeplacer.tour === p : aDeplacer.deco ? aDeplacer.deco === p : aDeplacer.arbre ? p.arbre === aDeplacer.arbre : p.type === aDeplacer.bat);
       if (!lui && p.type !== 'libre' && selectionner(p)) return; /* un autre element : on le prend a la place */
       if (mode === 'deplacer') ACTIONS.deplacerVers(p); else ACTIONS.deplacerBatiment(p); return;
     }
@@ -1720,6 +1721,12 @@ const ACTIONS = {
     aDeplacer = dest; majBandeau(); sauver(); /* il reste choisi : on peut le redeplacer jusqu'a Terminer */
   },
   deplacerBatiment(cible) {
+    if (aDeplacer && aDeplacer.piece !== undefined) { /* une lanterne quitte sa place d'origine : elle devient une decoration sur une case */
+      const k = aDeplacer.piece, R = MODELES.piecesIle[k];
+      if (cible.type !== 'libre' || (S_.sauvage && S_.sauvage.id === cible.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
+      const deja = inaccessibles(), avant = avantCases([cible]); cible.type = 'deco'; if (refuserSiBloque(deja, avant)) return;
+      Object.assign(cible, { deco: R.genre, ile: k, rotD: 0 }); delete S_.ileLibre[k]; rendreCase(cible.id); construireDecos(); son('planter'); aDeplacer = { deco: cible }; majBandeau(); sauver(); return;
+    }
     if (aDeplacer && aDeplacer.deco) { /* une decoration : une seule case, elle emporte son genre et son orientation */
       const src = aDeplacer.deco; if (cible === src) { toast('Choisis une autre case.'); return; }
       if (cible.type !== 'libre' || (S_.sauvage && S_.sauvage.id === cible.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
@@ -1757,6 +1764,7 @@ const ACTIONS = {
     if (aDeplacer && aDeplacer.deco) { const c = aDeplacer.deco, k = c.deco; if (c.type !== 'deco' || !DECOS[k]) return;
       S_.decos[k] = nbDecos(k) + 1; c.type = 'libre'; ['deco', 'rotD', 'ile', 'orig'].forEach((x) => { delete c[x]; });
       rendreCase(c.id); construireDecos(); toast(DECOS[k].nom + ' ' + accordDeco(k, 'rangé') + ' dans tes décorations.', 'or'); }
+    else if (aDeplacer && aDeplacer.piece !== undefined) { const k = MODELES.piecesIle[aDeplacer.piece].genre; delete S_.ileLibre[aDeplacer.piece]; S_.decos[k] = nbDecos(k) + 1; construireDecos(); toast(DECOS[k].nom + ' ' + accordDeco(k, 'rangé') + ' dans tes décorations.', 'or'); }
     else if (aDeplacer && aDeplacer.arbre) { /* un arbre de l'ile revient comme l'arbre du meme genre (Pommier, Sapin, Arbre rond) */
       const nom = aDeplacer.arbre, A = (MODELES.arbres || []).find((x) => x.nom === nom), k = (A && A.genre) || 'arbre_rond'; S_.arbres = S_.arbres || {}; const st = S_.arbres[nom] || (S_.arbres[nom] = {});
       const c = st.cell ? S_.cases.find((x) => x.id === st.cell && x.type === 'arbre') : null; if (c) { c.type = 'libre'; delete c.arbre; rendreCase(c.id); }
@@ -2214,12 +2222,15 @@ async function chargerModeles() {
     let genre = 'arbre_rond'; pivot.traverse((o) => { if (/^pomme/.test(o.name)) genre = 'pommier'; else if (/^etage/.test(o.name) && genre !== 'pommier') genre = 'sapin'; }); /* (range, il revient comme ce genre de decoration) */
     MODELES.arbres.push({ nom: g.name, g: fusionner(pivot), base, genre });
   });
-  MODELES.rochersIle = []; { /* les rochers moussus (blender/iles.py) : un objet a part, pivot a leur pied, comme les arbres */
-    const rochers = [], mousses = []; ileT.traverse((o) => { if (!o.isMesh) return; if (/^rocher/.test(o.name)) rochers.push(o); else if (/^mousse/.test(o.name)) mousses.push(o); });
+  MODELES.piecesIle = []; { /* les pieces de l'ile (blender/iles.py) qui deviennent des decorations : un objet a part, pivot a leur pied, comme les arbres.
+    D'abord les rochers moussus avec leur mousse (indices 0 et 1, deja dans les sauvegardes), puis les lanternes de pierre de l'escalier (13/10/2026) */
+    const rochers = [], mousses = [], lant = []; ileT.traverse((o) => { if (!o.isMesh) return; if (/^rocher/.test(o.name)) rochers.push(o); else if (/^mousse/.test(o.name)) mousses.push(o); else if (/^(lanterne|joint)/.test(o.name)) lant.push(o); });
     const centre = (o) => new T.Box3().setFromObject(o).getCenter(new T.Vector3());
-    rochers.forEach((r) => { const b = new T.Box3().setFromObject(r), c = b.getCenter(new T.Vector3()), base = new T.Vector3(c.x, b.min.y, c.z), pivot = new T.Group(); pivot.position.copy(base); pivot.updateMatrixWorld(true);
-      const sa = mousses.filter((m) => { const q = centre(m); return Math.hypot(q.x - c.x, q.z - c.z) < 0.35 && q.y > c.y; }); pivot.attach(r); sa.forEach((m) => pivot.attach(m));
-      MODELES.rochersIle.push({ g: fusionner(pivot), base }); });
+    const extraire = (pieces, ref, genre) => { const b = new T.Box3(); ref.forEach((o) => b.expandByObject(o)); const c = b.getCenter(new T.Vector3()), base = new T.Vector3(c.x, b.min.y, c.z), pivot = new T.Group(); pivot.position.copy(base); pivot.updateMatrixWorld(true);
+      pieces.forEach((o) => pivot.attach(o)); MODELES.piecesIle.push({ g: fusionner(pivot), base, genre }); };
+    rochers.forEach((r) => { const c = centre(r); extraire([r].concat(mousses.filter((m) => { const q = centre(m); return Math.hypot(q.x - c.x, q.z - c.z) < 0.35 && q.y > c.y; })), [r], 'rocher'); });
+    const axes = []; lant.filter((o) => /^lanterne/.test(o.name)).forEach((o) => { const q = centre(o), A = axes.find((x) => Math.hypot(x.x - q.x, x.z - q.z) < 0.3); if (A) A.L.push(o); else axes.push({ x: q.x, z: q.z, L: [o] }); }); /* une lanterne : ses pierres empilees sur un meme axe, et ses joints autour */
+    axes.sort((a, b) => a.x - b.x || a.z - b.z).forEach((A) => extraire(A.L.concat(lant.filter((o) => /^joint/.test(o.name) && (() => { const q = centre(o); return Math.hypot(q.x - A.x, q.z - A.z) < 0.3; })())), A.L, 'lanterne'));
   }
   MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe(null) });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
@@ -2526,7 +2537,7 @@ function construireArbres() {
    de decoration si on veut, on peut les mettre sur la map ou dans un inventaire dedie a la deco, et qu'on puisse acheter des choses aussi » (Mathieu, maquette
    validee). Une decoration occupe sa case (on ne la traverse pas, comme un arbre), sans aucun effet, hors quota de parcelles. Avec Amenager : la deplacer,
    la tourner, ou la ranger dans S_.decos (le stock, « Mes décorations »), d'ou on la repose. Les deux rochers moussus de l'ile en deviennent (une fois,
-   S_.rochersIle) et gardent leur modele tant qu'ils sont poses (c.ile) ; un arbre de l'ile range revient comme l'arbre du meme genre. Les 12 modeles
+   S_.rochersIle), puis les lanternes de l'escalier, et gardent leur modele tant qu'ils sont poses (c.ile) ; un arbre de l'ile range revient comme l'arbre du meme genre. Les 12 modeles
    (blender/deco.py, 0,6 Mo) arrivent au premier besoin. pr : le pronom (pour LE deplacer, LA, LES). */
 const DECOS = {
   rocher: { nom: 'Rocher moussu', prix: 800, niv: 1, pr: 'le' }, gros_rocher: { nom: 'Gros rochers', prix: 1800, niv: 1, pr: 'les' },
@@ -2549,23 +2560,31 @@ function assurerDecos() {
   }).catch((e) => { console.warn('Décorations', e); decosCharge = null; });
   return decosCharge;
 }
-function decosSurCases() { /* les rochers moussus de l'ile deviennent des decorations, une seule fois ; si leur case est prise, ils attendent dans tes decorations */
-  S_.rochersIle = S_.rochersIle || [];
-  (MODELES.rochersIle || []).forEach((R, k) => {
-    if (S_.rochersIle[k]) return; S_.rochersIle[k] = 1; const c = caseIci(R.base.x, R.base.z);
-    if (c && c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id)) Object.assign(c, { type: 'deco', deco: 'rocher', ile: k, orig: true });
-    else { S_.decos = S_.decos || {}; S_.decos.rocher = nbDecos('rocher') + 1; }
+function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennent des decorations, une seule fois (S_.rochersIle, le nom est reste) ;
+  si leur case est prise, ou si elles couperaient un passage, elles attendent dans tes decorations */
+  S_.rochersIle = S_.rochersIle || []; const ranges = [];
+  (MODELES.piecesIle || []).forEach((R, k) => {
+    if (S_.rochersIle[k]) return; S_.rochersIle[k] = 1;
+    if (R.genre === 'lanterne') { S_.ileLibre = S_.ileLibre || {}; S_.ileLibre[k] = 1; return; } /* (a sa place, contre le muret : elle ne prend pas de case) */
+    const c = caseIci(R.base.x, R.base.z);
+    let ok = c && c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id);
+    if (ok) { const deja = inaccessibles(); c.type = 'deco'; ok = !inaccessibles().some((x) => !deja.includes(x)); c.type = 'libre'; }
+    if (ok) Object.assign(c, { type: 'deco', deco: R.genre, ile: k, orig: true });
+    else { S_.decos = S_.decos || {}; S_.decos[R.genre] = nbDecos(R.genre) + 1; ranges.push(R.genre); }
   });
+  if (ranges.length) setTimeout(() => toast('Les rochers et les lanternes de l\'île sont maintenant des décorations. ' + ranges.length + ' gênai' + (ranges.length > 1 ? 'ent' : 't') + ' un passage : ' + (ranges.length > 1 ? 'elles t\'attendent' : 'elle t\'attend') + ' dans tes décorations (Aménager, puis Décorations).', 'or'), 5000);
 }
 function construireDecos() {
   decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; let manque = false;
   S_.cases.forEach((c) => {
     if (c.type !== 'deco') return;
-    const R = c.ile != null && MODELES.rochersIle && MODELES.rochersIle[c.ile], M = R ? R.g : MODELES['deco_' + c.deco]; if (!M) { manque = true; return; }
+    const R = c.ile != null && MODELES.piecesIle && MODELES.piecesIle[c.ile], M = R ? R.g : MODELES['deco_' + c.deco]; if (!M) { manque = true; return; }
     const m = marquer(M.clone(true), c.id), q = posCase(c);
     if (R && c.orig) m.position.copy(R.base); else m.position.set(q.x, q.y, q.z); /* (un rocher de l'ile garde sa place exacte tant qu'il n'a pas bouge) */
     m.rotation.y = (c.rotD || 0) * Math.PI / 2; scene.add(m); decosMesh.push(m);
   });
+  Object.keys(S_.ileLibre || {}).forEach((k) => { const R = MODELES.piecesIle && MODELES.piecesIle[k]; if (!R || !S_.ileLibre[k]) return;
+    const m = R.g.clone(true); m.position.copy(R.base); m.traverse((o) => { o.userData.piece = +k; }); scene.add(m); decosMesh.push(m); });
   if (manque) assurerDecos();
 }
 /* « Mes décorations » : ce qui est range ou achete, a poser */
@@ -2632,7 +2651,7 @@ function refuserSiBloque(deja, avant) {
 }
 function avertirAcces(deja) { const n = inaccessibles().filter((x) => !deja.includes(x)); if (n.length) toast('Attention : ton perso devra couper à travers pour aller jusqu\'à ' + n[0] + '.'); }
 function inaccessibles() {
-  const ici = caseIci(paysanMesh.position.x, paysanMesh.position.z), dep = ici && PASSABLE[ici.type] ? ici : S_.cases.find((c) => c.id === 'm3_2' && PASSABLE[c.type]) || S_.cases.find((c) => PASSABLE[c.type]);
+  const ici = paysanMesh && caseIci(paysanMesh.position.x, paysanMesh.position.z), dep = ici && PASSABLE[ici.type] ? ici : S_.cases.find((c) => c.id === 'm3_2' && PASSABLE[c.type]) || S_.cases.find((c) => PASSABLE[c.type]);
   const vu = new Set([dep]), file = [dep];
   while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (PASSABLE[v.type] && !vu.has(v)) { vu.add(v); file.push(v); } }); }
   const manque = [];
@@ -5469,6 +5488,7 @@ canvas.addEventListener('pointerup', (e) => {
       if (h.object.material && h.object.material.transparent) continue;
       const sous = caseIci(h.point.x, h.point.z); if (sous) ACTIONS.toucherCase(sous.id); return;
     }
+    if (mode === 'choisir' && h.object.userData.piece !== undefined) { aDeplacer = { piece: h.object.userData.piece }; mode = 'deplacerBat'; majBandeau(); return; } /* une lanterne de l'escalier, a sa place */
     if (mode && mode !== 'enclos' && h.object.userData.arbre) { /* en amenageant : toucher un arbre le choisit (le meme : on vise la case dessous) */
       if (mode === 'choisir') { aDeplacer = { arbre: h.object.userData.arbre }; mode = 'deplacerBat'; majBandeau(); return; } /* deja un objet choisi : on vise la case sous le feuillage */
       continue;
