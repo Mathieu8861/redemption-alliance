@@ -4324,13 +4324,18 @@ const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? {
    sien. Le premier palier, les 9es vagues et les boss ne changent pas. */
 /* les premieres vagues d'un palier ont au moins 60 % de l'effectif de la fin du palier precedent (des monstres de base en plus) */
 const effectif = (L) => L.reduce((t, [, k]) => t + k, 0);
-const compoVague = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER + 1; if (n <= VAGUES_PALIER || n > VAGUES_TOTAL || h >= VAGUES_PALIER - 1) return L;
+const compoVague0 = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER + 1; if (n <= VAGUES_PALIER || n > VAGUES_TOTAL || h >= VAGUES_PALIER - 1) return L;
   const manque = Math.ceil(effectif(compoBase(n - h - 1)) * 0.6) - effectif(L); return manque > 0 ? L.map(([t, k], i) => [t, i ? k : k + manque]) : L; };
+/* « je rajouterais bien 1 mob par vague, sauf sur le premier palier : on laisse le debutant se faire au jeu » (Mathieu, 13/10/2026) : des la vague 11, un monstre
+   de base de plus (le plus nombreux de la vague, jamais un boss). Il ne compte pas dans le lissage des renforts (forceBrute) : sinon ses PV seraient repris aux autres */
+const MOBS_EN_PLUS = 1;
+const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_TOTAL) return L;
+  let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS; return L; };
 /* « durcis encore » (Mathieu, 12/10/2026) : les monstres des vagues normales prennent des PV et des degats en plus, davantage dans les paliers du haut
    (simulations : on finissait les vagues avec 65 a 95 % de PV, maintenant 30 a 70 %). Les vagues de boss et les voleurs des raids ne changent pas. */
 const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
 const durci = (t, n, c) => (MONSTRES[t].boss || !(n >= 1) || n % VAGUES_PALIER === 0 ? 1 : DURCI[c][palierDe(n)] || 1);
-const forceBrute = (n) => { let pv = 0, dps = 0; compoVague(n).forEach(([t, k]) => { const d = durete(t, n); pv += k * MONSTRES[t].pv(n) * d.pv * durci(t, n, 'pv'); dps += k * MONSTRES[t].deg(n) * d.deg * durci(t, n, 'deg') * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
+const forceBrute = (n) => { let pv = 0, dps = 0; compoVague0(n).forEach(([t, k]) => { const d = durete(t, n); pv += k * MONSTRES[t].pv(n) * d.pv * durci(t, n, 'pv'); dps += k * MONSTRES[t].deg(n) * d.deg * durci(t, n, 'deg') * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
 const RENFORTS = {};
 const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1) % VAGUES_PALIER + 1; let f = 1;
   if (n > VAGUES_PALIER && n <= VAGUES_TOTAL && h < VAGUES_PALIER - 1) { const a = forceBrute(n - h - 1), b = forceBrute(n - h + VAGUES_PALIER - 1), cible = a * Math.pow(b / a, h / (VAGUES_PALIER - 1)); f = Math.min(1.8, Math.max(1, Math.sqrt(cible / forceBrute(n)))); } /* (plafonne : au-dela, des coups trop gros) */
@@ -4378,7 +4383,8 @@ const compoBase = (n) => {
   return [['fantassin', Math.min(4, 2 + Math.ceil(k * 0.25))]].concat(k >= 3 ? [['gardien', Math.floor(k / 4) || 1]] : []).concat([['archer', Math.ceil(k / 5)]]);
 };
 /* « reduis de 15 % l'xp gagnee sur toutes les vagues du jeu » (Mathieu, 13/10/2026) : toutes les vagues, boss et vagues rejouees compris (gainsBoss en derive) */
-const XP_VAGUES = 0.85, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES) }); };
+/* « un nerf de -20 % sur les kamas gagnes sur les vagues » (Mathieu, 13/10/2026) : toutes les vagues, boss et revanches compris */
+const XP_VAGUES = 0.85, KAMAS_VAGUES = 0.8, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES), kamas: Math.round(g.kamas * KAMAS_VAGUES) }); };
 const gainsVagueBrut = (n, rejoue) => {
   const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER, w = n - 5 * VAGUES_PALIER;
   if (w > 0) return { kamas: Math.round((w === VAGUES_PALIER ? 50000 : 2600 + 450 * w) * k), xp: Math.round((w === VAGUES_PALIER ? 700 : 85 + 16 * w) * k) }; /* l'ile des Wabbits */
@@ -4394,7 +4400,7 @@ const leNom = (d, min) => d.propre ? d.nom : (min ? 'le ' : 'Le ') + d.nom, ac =
 const pluriel = (nom) => { let stop = false; return nom.split(' ').map((w) => { if (stop || /^(de|du|à|d')$/i.test(w)) { stop = true; return w; } return /[sx]$/.test(w) ? w : w + 's'; }).join(' '); };
 const classeDe = () => (S_.perso && S_.perso.classe) || 'iop';
 function boostDegats() { try { return combat && combat.boostDeg ? 1 + combat.boostDeg : 1; } catch (e) { return 1; } } /* la Cawotte mangee avant la vague */
-const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats()), cadence: +(st.cadence * (1 - c.agilite / 100)).toFixed(2), portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
+const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats()), cadence: +(st.cadence / (1 + c.agilite / 100)).toFixed(2), /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
 const caseIci = (x, z) => S_.cases.find((c) => { const q = posCase(c); return Math.abs(q.x - x) <= S / 2 && Math.abs(q.z - z) <= S / 2; });
 /* le prochain point vers lequel marcher : en ligne droite si la cible est sur la meme case ou une voisine, sinon par les cases (muret, batiments) */
@@ -5858,10 +5864,10 @@ function expliquerCarac(k, st) {
   const TXT = {
     vita: ['Points de vie', 'Ta vie pendant les vagues et les simus VSA : à 0, la vague est perdue. Ils montent avec ton niveau (' + fmt(st.base.pv) + ' au niveau ' + st.niveau + '), et la Vitalité de tes équipements en ajoute.'],
     degats: ['Dégâts', 'Ce que fait chacun de tes coups, et la base de tes sorts. Ils montent avec ton niveau (' + st.base.deg + ' au niveau ' + st.niveau + '), puis ta Puissance les augmente de ' + c.puissance + ' %.'],
-    cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité le raccourcit de ' + c.agilite + ' %.'],
+    cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité te fait frapper ' + c.agilite + ' % plus souvent.'],
     portee: ['Portée', 'La distance à laquelle tu touches un monstre : 1 case pour le Iop au corps à corps, 3 cases pour le fouet de l\'Osamodas, 5 cases pour l\'arc du Cra. Elle dépend de ta classe, pas de ton équipement.'],
     puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
-    agilite: ['Agilité', 'Te fait attaquer plus vite : le temps entre deux coups baisse de ' + c.agilite + ' % (' + virg(st.base.cadence) + ' s sans elle, ' + virg(st.cadence) + ' s avec).'],
+    agilite: ['Agilité', 'Te fait attaquer plus vite : ' + c.agilite + ' % de coups en plus (' + virg(st.base.cadence) + ' s entre deux coups sans elle, ' + virg(st.cadence) + ' s avec).'],
     sagesse: ['Sagesse', 'Te fait gagner plus d\'expérience : +' + c.sagesse + ' % sur tout ce qui en rapporte (récoltes, vagues gagnées, défis, Tofus).'],
     prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %.']
   }[k];
@@ -5914,7 +5920,7 @@ function ouvrirPerso(sel) {
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
       (mieux ? '<i class="fp-mieux">Up</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
   const virg = (x) => String(x).replace('.', ',');
-  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
+  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + Math.round(100 - 100 / (1 + c.agilite / 100)) + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
     ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite + ' %', ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
   const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case</small></h3><div class="fp-poupee">' +
     ['coiffe', 'cape', 'amulette'].map((e, k) => '<div style="grid-column:1;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
