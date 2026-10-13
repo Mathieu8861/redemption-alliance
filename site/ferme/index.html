@@ -861,6 +861,10 @@ const CULTURES = [
   { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 1440, rendement: 7, prix: 244, xp: 125, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
   { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 1800, rendement: 8, prix: 283, xp: 160, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
 ];
+/* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
+   Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */
+const RENTA_RECOLTES = 0.9;
+CULTURES.forEach((c) => { c.prix = +(c.prix * RENTA_RECOLTES).toFixed(2); });
 /* les niveaux d'avant le 12/10/2026 : une culture deja debloquee le reste (on ne retire rien aux joueurs) */
 const ANCIEN_NIV = { ble: 1, orge: 3, avoine: 5, houblon: 8, cawotte: 9, lin: 11, fraise: 12, seigle: 14 };
 /* la monnaie : une piece de kama dessinee (notre propre motif, pas le logo officiel) a la place du K, qui veut dire mille dans Dofus */
@@ -5301,7 +5305,7 @@ function finVague(gagne, fuite) {
   corps += recapCombat(c); /* « recap fin de combat » (testeurs, 12/10/2026) */
   if (c.loot && (Object.keys(c.loot.res).length || c.loot.objets.length)) corps += '<div class="hdv-section">Butin</div>' + /* une ligne par objet et par ressource, chacun avec son icone (demande de Mathieu, 11/10/2026) */
     [...new Set(c.loot.objets)].map((id) => { const o = obj(id), nb = c.loot.objets.filter((x) => x === id).length; return '<div class="art">' + icoObjet(id) + '<div><b>' + (o.leg ? '✦ ' : '★ ') + o.nom + (nb > 1 ? ' ×' + nb : '') + '</b><div class="puces">' + statsTexte(o.stats) + '</div></div><div class="act"><button class="btn kamas" data-perso-sel="' + id + '">Voir</button></div></div>'; }).join('') +
-    Object.entries(c.loot.res).map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>' + n + ' ' + PAR_ID[r].nom + '</b><div class="desc">À la grange, se vend à l’HDV (' + fmt(PAR_ID[r].prix) + ' ' + KAMA + ' pièce).</div></div><div></div></div>').join('');
+    Object.entries(c.loot.res).map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>' + n + ' ' + PAR_ID[r].nom + '</b><div class="desc">À la grange, se vend à l’HDV (' + fmt(Math.round(PAR_ID[r].prix)) + ' ' + KAMA + ' pièce).</div></div><div></div></div>').join('');
   if (c.bats) { const L = Object.entries(c.bats); if (L.length) corps += '<div class="hdv-section">Bâtiments touchés</div>' + L.map(([k, n]) => '<div class="art">' + ico(ICO_BAT[typeCle(k)]) + '<div><b>' + Maj(nomBat(k)) + (enRuine(k) ? ' : en ruine' : ' : -' + fmt(n) + ' PV') + '</b><div class="desc">' + (enRuine(k) ? PERTE_RUINE[typeCle(k)] : 'Il lui reste ' + fmt(pvBat(k)) + ' PV sur ' + fmt(pvMaxBat(k)) + '.') + '</div></div><div class="act"><button class="btn kamas" ' + (enRuine(k) ? 'data-reconstruire="' + k + '">Reconstruire ' + fmt(coutReconstruire(k)) : 'data-reparer="' + k + '">Réparer ' + fmt(coutReparer(k))) + ' ' + KAMA + '</button></div></div>').join('');
     const aFaire = L.map(([k]) => k).filter((k) => degatsBat(k) || enRuine(k)), total = aFaire.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0);
     if (aFaire.length >= 2) corps += '<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn kamas" data-tout-reparer="' + aFaire.join(',') + '">Tout réparer ' + fmt(total) + ' ' + KAMA + '</button></div>'; }
@@ -6297,7 +6301,7 @@ function actionArdoise(a) {
     let reste = Math.ceil(ar.dette / 2); const pris = [];
     Object.keys(S_.grange).filter((id) => S_.grange[id] > 0 && PAR_ID[id] && PAR_ID[id].prix).sort((x, y) => PAR_ID[y].prix - PAR_ID[x].prix).forEach((id) => {
       if (reste <= 0) return; const prix = PAR_ID[id].prix, n = Math.min(S_.grange[id], Math.ceil(reste / prix)); if (!n) return;
-      S_.grange[id] -= n; reste -= n * prix; ar.dette = Math.max(0, ar.dette - n * prix); pris.push(n + ' ' + PAR_ID[id].nom); });
+      S_.grange[id] -= n; reste -= n * prix; ar.dette = Math.max(0, Math.round(ar.dette - n * prix)); pris.push(n + ' ' + PAR_ID[id].nom); });
     rendreGrange(); rendreHaut(); sauver(); son('alerte');
     partirGrosBras(pris.length ? 'Bouboule se sert dans ta grange : ' + pris.join(', ') + '. ' + (ar.dette ? '« Il en manque encore ' + fmt(ar.dette) + '. On repassera. »' : '« On est quittes. »') : 'Ta grange est vide... Filou note tout dans son carnet. « On repassera. »');
     return;
