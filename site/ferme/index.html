@@ -952,6 +952,7 @@ const porteeTour = (c) => NIV_TOURS.portee[nivTour(c)], cadenceTour = (c) => NIV
 const degatsTour = (c) => NIV_TOURS.deg[nivTour(c)], nbTours = () => S_.cases.filter((c) => c.type === 'tour').length;
 const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
 /* « quand ta voliere a Tofus est pleine, reduis de 40 % le taux d'apparition des Tofus » (Mathieu, 13/10/2026) : les Tofus des champs et les sauvages */
+const peutCapturer = () => S_.filets > 0 && S_.tofus < capaciteVoliere(); /* (voliere pleine : on chasse, sans fenetre) */
 const freinTofus = () => (S_.tofus >= capaciteVoliere() ? 0.6 : 1);
 const RYTHME_TOFU = 180 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 30 * MIN, ACCALMIE_TOFU = 20 * MIN, CADENCE_COURS = 40 * MIN, CADENCE_CRISE = 100 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
@@ -1526,10 +1527,10 @@ const ACTIONS = {
     }
     if (combat) { if (PASSABLE[p.type]) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); } else toast('Pendant la vague : touche un monstre pour le cibler, ou une case libre pour t\'y déplacer.'); return; }
     if (p.type === 'libre') {
-      if (S_.sauvage && S_.sauvage.id === p.id) { if (S_.filets > 0) ouvrirTofu(p, true); else chasserDeLoin(p, () => ACTIONS.chasserSauvage()); return; }
+      if (S_.sauvage && S_.sauvage.id === p.id) { if (peutCapturer()) ouvrirTofu(p, true); else chasserDeLoin(p, () => ACTIONS.chasserSauvage()); return; }
       allerPuis(p, () => ouvrirConstruire(p)); return; /* (le clic gauche, lui, deplace seulement : voir allerVers) */
     }
-    if (p.type === 'champ' && p.tofu) { if (S_.filets > 0) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
+    if (p.type === 'champ' && p.tofu) { if (peutCapturer()) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
     allerPuis(p, () => ACTIONS.agirSurCase(p));
   },
   agirSurCase(p) {
@@ -1545,7 +1546,7 @@ const ACTIONS = {
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
     if (!p.c) { ACTIONS.planter(p); return; }
-    if (p.tofu) { if (S_.filets > 0) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
+    if (p.tofu) { if (peutCapturer()) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
     const d = duree(PAR_ID[p.c]);
     if (p.pousse >= d) { ACTIONS.recolter(p); return; }
     if (!p.arrose) { ACTIONS.arroser(p); return; }
@@ -1662,7 +1663,8 @@ const ACTIONS = {
   },
   tofuSauvage(p) {
     if (!S_.sauvage || S_.sauvage.id !== p.id) return;
-    if (S_.filets > 0) { ouvrirTofu(p, true); return; }
+    if (peutCapturer()) { ouvrirTofu(p, true); return; }
+    if (S_.filets > 0) { chasserDeLoin(p, () => { if (S_.sauvage) ACTIONS.chasserSauvage(); }); return; } /* (des filets mais la voliere pleine : il le chasse) */
     S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole. Avec un filet de capture (HDV, onglet Acheter), tu l\'aurais attrapé.');
   },
   capturerSauvage() {
@@ -4951,7 +4953,7 @@ function majPerso(dt) {
 const NIV_ULTI = 5, RECHARGE_ULTI = 20;
 const ULTIS = {
   gel: { nom: { iop: 'Épée de givre', cra: 'Flèche glacée', osa: 'Fouet de givre' }, genre: 'Gel', teinte: '#5fb4ef', desc: 'Petits dégâts autour de la cible, et tous les monstres touchés sont ralentis pendant 5 s : ils marchent bien plus lentement et frappent deux fois moins vite.', chiffres: (d) => [d + ' dégâts en zone', 'ralentit 5 s'] },
-  zone: { nom: { iop: 'Tempête de lames', cra: 'Pluie de flèches', osa: 'Ruée du troupeau' }, genre: 'Zone', teinte: '#ee8a34', desc: 'Frappe tous les monstres autour de la cible, trois fois plus fort que ton attaque.', chiffres: (d) => [3 * d + ' dégâts à chacun', 'tout autour de la cible'] },
+  zone: { nom: { iop: 'Tempête de lames', cra: 'Flèches enflammées', osa: 'Ruée du troupeau' }, genre: 'Zone', teinte: '#ee8a34', desc: 'Frappe tous les monstres autour de la cible, trois fois plus fort que ton attaque.', chiffres: (d) => [3 * d + ' dégâts à chacun', 'tout autour de la cible'] },
   mono: { nom: { iop: 'Colère de Iop', cra: 'Flèche fatale', osa: 'Morsure du Dragoeuf' }, genre: 'Coup fatal', teinte: '#d9443a', desc: 'Un seul monstre, mais cinq fois ton attaque : de quoi entamer sérieusement un boss.', chiffres: (d) => [5 * d + ' dégâts', 'une seule cible'] }
 };
 const nomUlti = (id) => ULTIS[id].nom[classeDe()];
@@ -5476,13 +5478,13 @@ function rendreEnclosBulles() {
 function rendreCasesBulles() {
   S_.cases.forEach((p) => {
     const cle = 'c' + p.id, pos = posCase(p);
-    if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, S_.filets ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', S_.filets ? 'Un Tofu sauvage : touche pour le capturer au filet' : 'Un Tofu sauvage : touche pour le chasser'); return; }
+    if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, peutCapturer() ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', peutCapturer() ? 'Un Tofu sauvage : touche pour le capturer au filet' : S_.filets ? 'Un Tofu sauvage : ta volière est pleine, touche pour le chasser' : 'Un Tofu sauvage : touche pour le chasser'); return; }
     if (p.type === 'puits') { if (niv('arrosoir') && !(S_.citerne > 0) && !enRuine('puits') && !combat) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, pos.y + 2.4, pos.z], 'case:' + p.id, '0', 'Citerne vide : touche le puits pour la remplir'); else retirerBulle(cle); return; }
     if (p.type === 'voliere') { if (S_.voliere.plumes && p === S_.cases.find((c) => c.type === 'voliere')) bulle(cle, icoB('plume'), 'or', [pos.x, pos.y + 2.3, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }
     if (p.type === 'geliere') { const o = blocBati('geliere'), n = potsPretsGeliere(), faim = (S_.gelees || []).some((g) => etatGelee(g) === 'faim' && !manqueRecette(GELEES[g.c].recette).length); if (o && p === o.c0 && !combat && (n || faim)) bulle(cle, icoB(n ? 'pot-petit' : 'gelee-bleue'), n ? 'or' : 'eau', [o.x, o.y + 2.2, o.z], 'case:' + p.id, n ? '×' + n : '', n ? 'Pots de gelée prêts : touche pour les ramasser' : 'Tes Gelées ont faim : touche pour les nourrir'); else retirerBulle(cle); return; }
     if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
     const st = etape(p), haut = pos.y + (st === 'mur' ? 1.9 : st === 'pousse' ? 1.4 : 0.9);
-    if (p.tofu) bulle(cle, S_.filets ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, '', 'Un Tofu picore : touche pour le chasser ou le capturer');
+    if (p.tofu) bulle(cle, peutCapturer() ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, '', peutCapturer() ? 'Un Tofu picore : touche pour le chasser ou le capturer' : 'Un Tofu picore : touche pour le chasser');
     else if (st === 'mur') bulle(cle, icoB(p.c), 'or', [pos.x, haut, pos.z], 'case:' + p.id, '×' + recolte(p), PAR_ID[p.c].nom + ' prêt : touche pour récolter');
     else if (!p.arrose) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, haut, pos.z], 'case:' + p.id, '', 'À sec : touche pour arroser');
     else retirerBulle(cle);
