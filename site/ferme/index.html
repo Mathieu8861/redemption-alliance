@@ -700,10 +700,29 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .hud.en-combat .pv-bat { pointer-events: none; }
 .pv-grand { height: 12px; border: 2px solid var(--bord); border-radius: 99px; background: #eadfc8; overflow: hidden; margin: 4px 0 2px; } .pv-grand i { display: block; height: 100%; }
 .art.alerte-bat { background: #fff1ea; border-radius: 12px; padding: 8px; border: 2px solid #f0b9a8; margin-bottom: 6px; }
-.raid-annonce { position: absolute; left: 50%; top: calc(112px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--rouge); color: #fff; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 7px 16px; font: 400 1.05rem/1.2 var(--f-titre); text-align: center; pointer-events: none; animation: pouls .8s ease-in-out infinite alternate; max-width: calc(100% - 24px); }
-.raid-annonce small { display: block; font: 700 .74rem/1.2 var(--f-texte); }
+/* l'annonce de la simu VSA (refaite le 13/10/2026, « plus jolie et plus lisible, et un bouton pour la lancer tout de suite ») : une carte au style des fenetres,
+   un en-tete rouge, le compte a rebours dans un anneau qui se vide, les voleurs en pastilles, l'arbalete, et « Lancer maintenant » */
+.raid-annonce { position: absolute; left: 50%; top: calc(112px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 5; width: min(440px, calc(100% - 24px)); background: var(--papier); color: var(--encre); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 5px 0 var(--bord), 0 12px 26px rgba(40, 20, 10, .25); overflow: hidden; pointer-events: auto; text-align: left; }
+.ra-tete { display: flex; align-items: center; gap: 10px; background: var(--rouge); color: #fff; padding: 7px 10px 7px 12px; border-bottom: 3px solid var(--bord); }
+.ra-tete img { width: 42px; height: 42px; object-fit: contain; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .25)); }
+.ra-tete b { display: block; font: 400 1.3rem/1 var(--f-titre); text-shadow: 0 2px 0 rgba(0, 0, 0, .2); } .ra-tete span { font: 700 .78rem/1.3 var(--f-texte); opacity: .95; }
+.ra-rebours { margin-left: auto; position: relative; width: 54px; height: 54px; flex: none; } .ra-rebours svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ra-rebours circle { fill: none; stroke-width: 5; } .ra-rebours .fond { stroke: rgba(255, 255, 255, .28); } .ra-rebours .arc { stroke: #fff; stroke-linecap: round; stroke-dasharray: 119.4; transition: stroke-dashoffset .5s linear; }
+.ra-rebours em { position: absolute; inset: 0; display: grid; place-items: center; font: 400 1.15rem/1 var(--f-titre); font-style: normal; }
+.ra-rebours.presse { animation: ra-pouls .5s ease-in-out infinite alternate; } @keyframes ra-pouls { to { transform: scale(1.1); } }
+.ra-puces { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+.ra-puces span { display: inline-flex; align-items: center; gap: 5px; background: #f3ead8; border: 2px solid #e2d3b4; border-radius: 99px; padding: 2px 10px; font: 800 .8rem/1.3 var(--f-texte); }
+.ra-puces img { width: 20px; height: 20px; object-fit: contain; } .ra-puces .rouge { background: #fde3df; border-color: #f0a99f; color: #9c2a20; } .ra-puces .rouge i { width: 12px; height: 12px; border-radius: 3px; background: var(--rouge); }
+.ra-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px 11px; }
+.ra-arb { display: inline-flex; align-items: center; gap: 5px; margin-right: auto; font: 800 .8rem/1.2 var(--f-texte); } .ra-arb img { width: 26px; height: 26px; object-fit: contain; } .ra-arb.vide { color: #b0352b; }
+.ra-actions .btn { padding: 6px 13px; font-size: .84rem; }
+@media (max-width: 720px) { .raid-annonce { top: calc(var(--haut-hud, 140px) + 8px); } }
 .raid-annonce[hidden] { display: none; }
-@keyframes pouls { to { transform: translateX(-50%) scale(1.05); } }
+.bv-pied { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.bv-bilan { display: flex; align-items: center; gap: 8px; border: 3px solid var(--bord); border-radius: 12px; padding: 5px 12px 5px 8px; box-shadow: 0 3px 0 var(--bord); }
+.bv-bilan img { width: 34px; height: 34px; object-fit: contain; } .bv-bilan span, .bv-bilan small { display: block; font: 700 .72rem/1.2 var(--f-texte); color: #6b5a48; }
+.bv-bilan b { display: block; font: 400 1.35rem/1.1 var(--f-titre); } .bv-bilan.plus { background: #e9f6dc; } .bv-bilan.plus b { color: #3f8a22; } .bv-bilan.moins { background: #fde3df; } .bv-bilan.moins b { color: #c0392b; }
+@keyframes pouls { to { transform: translateX(-50%) scale(1.05); } } /* (l'ancienne annonce de la simu : la carte ne pulse plus en entier, seul le compte a rebours) */
 .hud.en-combat .actions, .hud.en-combat .commis, .hud.en-combat .aide, .hud.en-combat #bulles, .hud.en-combat .bandeau { display: none !important; }
 @media (max-width: 720px) { .combat-perso .pvb { width: 100px; } .combat-sort .rond { width: 70px; height: 70px; font-size: .78rem; } .hud.en-combat .toasts { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
 /* le plein ecran (12/10/2026) */
@@ -4188,7 +4207,7 @@ let simuEnAttente = false;
 function proposerSimu() {
   if (simuEnAttente || raidAnnonce || combat || enAccueil || enPause) return;
   const { nb, montes } = tailleSimu(); simuEnAttente = true;
-  $('simu-txt').textContent = nb + ' voleurs de VSA' + (montes ? ', dont ' + montes + ' à dos de Dragodinde,' : '') + ' veulent piller ta grange. Le jeu attend ton accord : quand tu acceptes, ils arrivent 30 s plus tard. Recharge ton arbalète !';
+  $('simu-txt').textContent = nb + ' voleurs de VSA' + (montes ? ', dont ' + montes + ' à dos de Dragodinde,' : '') + ' veulent piller ta grange. Le jeu attend ton accord : quand tu acceptes, ils arrivent 30 s plus tard, ou tout de suite avec « Lancer maintenant ». Recharge ton arbalète !';
   if (visee) annulerVisee(); fermerModale(); mettrePause(true, true); $('simu-pop').hidden = false; son.der = {}; son('raid');
 }
 function accepterSimu() { if (!simuEnAttente) return; simuEnAttente = false; $('simu-pop').hidden = true; mettrePause(false); annoncerRaid(true); }
@@ -4206,17 +4225,29 @@ function annoncerRaid(muet) {
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
   raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, cote2, marques }; if (!muet) son('raid');
-  toast('Simu VSA dans 30 s : ' + nb + ' voleurs' + (montes ? ', dont ' + montes + ' à dos de Dragodinde' : '') + ' ! Ils arriveront par ' + (cote2 ? 'les deux bords marqués' : 'le bord marqué') + ' en rouge.', 'alerte');
-  majRaidAnnonce();
+  construireRaidAnnonce(); majRaidAnnonce(); /* (plus de message en plus : la carte dit tout) */
 }
 const surCote = (b, c1, c2) => (b.di === c1[0] && b.dj === c1[1]) || (!!c2 && b.di === c2[0] && b.dj === c2[1]);
+function construireRaidAnnonce() {
+  const R = raidAnnonce; if (!R) return; const v = '?v=' + VERSION_MODELES;
+  $('raid-annonce').innerHTML = '<div class="ra-tete"><img src="assets/icones/voleur.png' + v + '" alt=""><div><b>Simu VSA</b><span>Les voleurs de VSA arrivent sur ta grange</span></div>' +
+    '<div class="ra-rebours"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="19"/><circle class="arc" id="ra-arc" cx="22" cy="22" r="19"/></svg><em id="ra-s">30</em></div></div>' +
+    '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') +
+    '<span class="rouge"><i></i>' + (R.cote2 ? 'par les 2 bords en rouge' : 'par le bord en rouge') + '</span></div>' +
+    '<div class="ra-actions"><span class="ra-arb" id="ra-arb"></span><button class="btn discret" data-recharger id="ra-recharger">Recharger</button><button class="btn kamas" data-raid-go>Lancer maintenant</button></div>';
+}
 function majRaidAnnonce() {
   const R = raidAnnonce, e = $('raid-annonce'); if (!R) { e.hidden = true; return; }
-  e.hidden = false; e.innerHTML = 'Simu VSA dans ' + Math.max(0, Math.ceil((R.fin - Date.now()) / 1000)) + ' s !<small>' + R.nb + ' voleurs' + (R.montes ? ', dont ' + R.montes + ' à dos de Dragodinde' : '') + (R.cote2 ? ', par les deux bords en rouge' : ', par le bord en rouge') + '. Recharge l\'arbalète !</small>';
+  if (!$('ra-s')) construireRaidAnnonce(); e.hidden = false;
+  const reste = Math.max(0, Math.ceil((R.fin - Date.now()) / 1000)); $('ra-s').textContent = reste; $('ra-arc').style.strokeDashoffset = (119.4 * (1 - Math.min(1, (R.fin - Date.now()) / ANNONCE_RAID))).toFixed(1);
+  e.querySelector('.ra-rebours').classList.toggle('presse', reste <= 10);
+  { const a = $('ra-arb'), arb = niv('arbalete'), cap = arb ? capaciteArbalete() : 0, plein = !arb || S_.carreaux >= cap;
+    a.className = 'ra-arb' + (arb && !S_.carreaux ? ' vide' : ''); a.innerHTML = arb ? '<img src="assets/icones/arbalete.png?v=' + VERSION_MODELES + '" alt="">Arbalète ' + S_.carreaux + '/' + cap + (S_.carreaux ? '' : ' : vide !') : (nbTours() ? 'Tes tours sont prêtes' : 'Pas d\'arbalète ni de tour : à toi de jouer');
+    $('ra-recharger').hidden = plein || S_.fleches <= 0; }
   R.marques.children.forEach((m, k) => { m.material.opacity = (k % 2 ? 0.8 : 0.5) * (0.5 + 0.5 * Math.abs(Math.sin(Date.now() / 300))); }); /* la case, puis sa bande cote vide */
 }
 function lancerRaid() {
-  const R = raidAnnonce; raidAnnonce = null; if (R) scene.remove(R.marques); $('raid-annonce').hidden = true;
+  const R = raidAnnonce; raidAnnonce = null; if (R) scene.remove(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
   if (!R || combat || enAccueil || !paysanMesh) return; son('vague');
   const file = []; for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture');
   const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe()), B = bordsFerme().filter((b) => surCote(b, R.cote, R.cote2));
@@ -5211,7 +5242,11 @@ function finVague(gagne, fuite) {
     repris.forEach(([id, r]) => V.push(vignette('n', id, fmt(r.n), r.nom + ' repris')));
     perdu.forEach(([id, r]) => V.push(vignette('p', id, '−' + fmt(r.n), r.nom + ' volé' + (r.n > 1 ? 's' : '') + (prix(id) ? '<small>≈ ' + fmt(r.n * prix(id)) + ' kamas</small>' : ''))));
     if (!perdu.length) V.push(vignette('g', 'grange', '0', 'rien de volé'));
-    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
+    /* « il faudrait aussi indiquer combien on a gagne / perdu au total sur cette attaque » (Mathieu, 13/10/2026) : la prime et les kamas trouves, moins la valeur
+       des recoltes volees au prix de l'HDV (les recoltes reprises reviennent dans la grange : elles ne comptent pas) */
+    const bilan = prime + ((c.lootV && c.lootV.kamas) || 0) - vPerdu;
+    const pied = '<div class="bv-pied"><div class="bv-bilan ' + (bilan >= 0 ? 'plus' : 'moins') + '"><img src="assets/icones/kama.png?v=' + VERSION_MODELES + '" alt=""><div><span>Bilan de l\'attaque</span><b>' + (bilan >= 0 ? '+' : '−') + fmt(Math.abs(bilan)) + ' kamas</b>' + (vPerdu ? '<small>récoltes volées au prix de l\'HDV</small>' : '') + '</div></div><button class="btn kamas" data-fermer>Retour à la ferme</button></div>';
+    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + pied);
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); } /* la vie qui reste ; perdu : il revient a 30 % au moins */
@@ -6043,7 +6078,8 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-vie' || b.id === 'b-pots') { if (combat) toast('Les pots de gelée se boivent entre les vagues.'); else ouvrirPots(); }
   else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));
   else if (b.dataset.fleches) ACTIONS.acheterFleches(parseInt(b.dataset.fleches, 10));
-  else if (b.hasAttribute('data-recharger')) ACTIONS.recharger();
+  else if (b.hasAttribute('data-recharger')) { ACTIONS.recharger(); if (raidAnnonce) majRaidAnnonce(); }
+  else if (b.hasAttribute('data-raid-go')) { if (raidAnnonce && !combat) lancerRaid(); } /* (la simu VSA tout de suite, sans attendre les 30 s) */
   else if (b.hasAttribute('data-remplir')) { ACTIONS.remplir(); ouvrirPuits(); }
   else if (b.dataset.capturer) { const p = S_.cases.find((c) => c.id === b.dataset.capturer); fermerModale(); if (p) allerPuis(p, () => ACTIONS.capturer(p)); } /* le filet, lui, se lance de pres */
   else if (b.dataset.chasser) { const p = S_.cases.find((c) => c.id === b.dataset.chasser); fermerModale(); if (p) chasserDeLoin(p, () => { if (p.tofu) ACTIONS.chasser(p); }); }
