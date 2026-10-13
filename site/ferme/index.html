@@ -608,8 +608,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .fp-case.plein.meme { border-color: #e2a21a; border-width: 3px; background: radial-gradient(circle at 50% 40%, #fffaf0, #f9df9c); } .fp-filtres button small { opacity: .7; font-weight: 800; } /* (les pieces de l'emplacement touche, en tete du sac) */
 .fp-slot.rare, .fp-case.rare { box-shadow: 0 0 0 2px var(--or), 0 0 9px rgba(242, 182, 48, .9); } .fp-slot.leg, .fp-case.leg { box-shadow: 0 0 0 2px #9b6cff, 0 0 9px rgba(155, 108, 255, .8); }
 .fp-mieux, .fp-n { position: absolute; top: -9px; right: -9px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bord); color: #fff; font: 800 .7rem/18px var(--f-texte); font-style: normal; text-align: center; background: var(--vert); }
-.fp-mieux { font-size: .62rem; } /* (le ▲ : « mieux que ta piece » ; la fleche ↑ se lisait comme un T) */
-.fp-n { background: #e0402e; }
+.fp-mieux { width: auto; min-width: 22px; padding: 0 4px; border-radius: 99px; font-size: .62rem; letter-spacing: .02em; } /* (« Up » : mieux que ta piece, 13/10/2026 ; avant un ▲) */
+.fp-n { background: var(--or); color: var(--encre); } /* (dore et plus rouge : le rouge se lit « attention », Mathieu, 13/10/2026) */
 svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentColor; flex: none; }
 .fp-carac { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 8px; margin-top: 14px; } /* (minmax : une ligne trop large ne pousse plus la colonne de droite hors du cadre) */
 .fp-cr { display: flex; align-items: center; gap: 5px; min-width: 0; width: 100%; padding: 6px 2px; border: 0; border-bottom: 1px solid #ecdfc4; border-radius: 8px; background: none; font: 700 .82rem/1.1 var(--f-texte); color: var(--encre); text-align: left; cursor: pointer; }
@@ -5172,7 +5172,7 @@ function ouvrirPerso(sel) {
   /* a gauche : le perso au milieu de ses 7 emplacements, et ses caracteristiques */
   const slot = (e) => { const id = S_.equip[e], o = id && obj(id), mieux = sacL.some((k) => obj(k).emp === e && comparer(k).mieux), neuf = sacL.some((k) => obj(k).emp === e && persoNeufs[k]);
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
-      (mieux ? '<i class="fp-mieux">▲</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
+      (mieux ? '<i class="fp-mieux">Up</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
   const virg = (x) => String(x).replace('.', ',');
   const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + c.agilite + ' %' : ''], ['portee', 'Portée', virg(st.portee) + ' cases', ''],
     ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite + ' %', ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
@@ -5188,7 +5188,7 @@ function ouvrirPerso(sel) {
   if (!persoSel) milieu = '<div class="fp-bloc fp-detail"><h3>Aucune pièce</h3><p class="fp-aide">Les monstres des vagues lâchent des pièces d\'équipement, chaque boss en lâche une à coup sûr la première fois. Elles arrivent ici.</p><div class="fp-actions"><button class="btn discret" data-bestiaire="panoplies">📖 Voir le butin possible</button></div></div>';
   else {
     const k = persoSel, o = obj(k), porte = S_.equip[o.emp], porteeIci = porte === k, q = porte && !porteeIci ? obj(porte) : null, cmp = comparer(k), qj = qualiteJet(k), B = OBJETS[baseObjet(k)];
-    const pils = (persoNeufs[k] ? '<span class="fp-pil neuf">nouveau</span>' : '') + (porteeIci ? '<span class="fp-pil porte">portée</span>' : cmp.mieux ? '<span class="fp-pil mieux">▲ mieux que la tienne</span>' : '') +
+    const pils = (persoNeufs[k] ? '<span class="fp-pil neuf">nouveau</span>' : '') + (porteeIci ? '<span class="fp-pil porte">portée</span>' : cmp.mieux ? '<span class="fp-pil mieux"><b>Up</b> mieux que la tienne</span>' : '') +
       '<span class="fp-pil' + (niveau(S_.xp) < o.niv ? ' rouge' : '') + '">niveau ' + o.niv + '</span>' + (o.rare ? '<span class="fp-pil rare">★ rare</span>' : '') + (o.leg ? '<span class="fp-pil leg">✦ légendaire</span>' : '') + (o.arme ? '<span class="fp-pil">arme du ' + nomClasse(o.classe) + '</span>' : !o.leg ? '<span class="fp-pil">panoplie ' + PANOS[o.pano].de + '</span>' : '') +
       (S_.sac[k] > 1 ? '<span class="fp-pil">×' + S_.sac[k] + '</span>' : '');
     const cles = [...new Set(Object.keys(o.stats).concat(q ? Object.keys(q.stats) : []))];
@@ -5210,10 +5210,10 @@ function ouvrirPerso(sel) {
   if (persoFiltre !== 'tout' && !presents.includes(persoFiltre) && !NOMS_EMP[persoFiltre]) persoFiltre = 'tout';
   const vus = sacL.filter((k) => persoFiltre === 'tout' || obj(k).emp === persoFiltre).sort((x, y) => (persoEmp ? (obj(y).emp === persoEmp) - (obj(x).emp === persoEmp) : 0) || ordre(x, y)), nCases = Math.max(20, Math.ceil((vus.length + 1) / 5) * 5);
   const cases = vus.map((k) => { const o = obj(k); return '<button class="fp-case plein' + (k === persoSel ? ' choisi' : '') + (persoEmp && o.emp === persoEmp ? ' meme' : '') + (o.rare ? ' rare' : '') + (o.leg ? ' leg' : '') + (persoNeufs[k] ? ' nouveau' : '') + (comparer(k).ok ? '' : ' verrou') + '" data-fp-sel="' + k + '" data-info="' + echapper(o.nom) + '"><img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt="">' +
-    (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">▲</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length }, () => '<span class="fp-case"></span>').join('');
+    (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">Up</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length }, () => '<span class="fp-case"></span>').join('');
   const panos = Object.entries(comptePanos()); const droite = '<div class="fp-bloc"><h3>Sac <small>' + sacL.length + ' pièce' + (sacL.length > 1 ? 's' : '') + '</small></h3>' +
     '<div class="fp-filtres">' + [['tout', 'Tout', sacL.length]].concat(presents.map((e) => [e, PLURIELS_EMP[e], sacL.filter((k) => obj(k).emp === e).length])).map(([f, t, n]) => '<button data-fp-filtre="' + f + '" aria-pressed="' + (persoFiltre === f) + '">' + t + ' <small>' + n + '</small></button>').join('') + '</div>' +
-    '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">▲</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
+    '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">Up</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
     (panos.length ? '<h4>Panoplies portées</h4>' + panos.map(([kk, n]) => blocPano(+kk, n)).join('') : '') + '</div>';
   ouvrirModale('perso', tete + '<div class="fp-corps">' + gauche + milieu + droite + '</div>');
 }
