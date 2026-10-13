@@ -74,7 +74,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .xp { position: relative; width: 132px; height: 17px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
 .xp i { display: block; width: 0; height: 100%; background: linear-gradient(180deg, #ffd86b, var(--or)); transition: width .4s; }
 .xp em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .62rem/1 var(--f-texte); font-style: normal; color: var(--encre); text-shadow: 0 0 2px #fffaf0, 0 0 2px #fffaf0; white-space: nowrap; }
-.xp.gagne { animation: xpEclat .6s ease-out; } /* un petit eclat a chaque gain d'experience */
+.xp.gagne { animation: xpEclat .6s ease-out; }
+.vie-bas { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); width: min(380px, 62%); display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 7px; background: var(--papier); border: 3px solid var(--bord); border-radius: 999px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; pointer-events: auto; font: inherit; color: inherit; } /* (la vie, toujours visible, juste au-dessus de la barre d'actions : 13/10/2026) */
+.vie-bas .coeur svg { width: 18px; height: 18px; display: block; }
+.vie-barre { position: relative; flex: 1; height: 16px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
+.vie-barre i { display: block; height: 100%; width: 100%; background: linear-gradient(180deg, #8fe07a, var(--vert)); transition: width .4s; }
+.vie-barre em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .66rem/1 var(--f-texte); font-style: normal; color: var(--encre); text-shadow: 0 0 2px #fffaf0, 0 0 2px #fffaf0; white-space: nowrap; }
+.vie-bas.moyen .vie-barre i { background: linear-gradient(180deg, #ffd86b, var(--or)); } .vie-bas.bas .vie-barre i { background: linear-gradient(180deg, #ff9a8a, var(--rouge)); }
+.vie-bas.bas { animation: vieBasse 1.6s ease-in-out infinite; } @keyframes vieBasse { 50% { box-shadow: 0 3px 0 var(--bord), 0 0 0 3px rgba(217, 68, 58, .35); } }
+@media (max-width: 720px) { .vie-bas { left: 0; transform: none; width: calc(100% - 132px); bottom: calc(100% + 6px); padding: 2px 8px 2px 5px; } .vie-barre { height: 14px; } } /* (au telephone, les stocks d'eau et de fleches sont deja au-dessus, a droite) */ /* un petit eclat a chaque gain d'experience */
 @keyframes xpEclat { 30% { box-shadow: 0 0 0 4px rgba(242, 182, 48, .7); transform: scale(1.06); } }
 @media (max-width: 720px) { .xp { width: 96px; } .xp em { font-size: .56rem; } }
 /* la barre du bas : un panneau de bois clair, une tuile par action avec l'icone de nos modeles */
@@ -718,6 +726,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div class="toasts" id="fil"><div class="chat" id="chat" hidden><div class="chat-tete"><b>💬 Messages</b><small>les plus récents en bas</small><button id="b-chat-fermer" aria-label="Refermer">✕</button></div><ol class="journal" id="chat-liste"></ol></div><div class="pile" id="toasts"></div><button class="b-journal" id="b-journal" aria-expanded="false">💬 Messages</button></div>
   <div class="commis" id="commis"></div>
   <nav class="actions" aria-label="Actions">
+    <button class="vie-bas" id="b-vie" data-info="Ta vie : elle ne remonte plus seule entre les vagues. Touche pour ouvrir la grange et boire un pot de gelée"><span class="coeur"></span><span class="vie-barre"><i id="vie"></i><em id="vie-txt"></em></span></button>
     <button class="action" id="b-graine"><span class="tuile"><img id="graine-ico" src="assets/icones/ble.png" alt=""><b id="graine-nb">0</b></span>Graines</button>
     <button class="action" id="b-hdv"><span class="tuile"><img src="assets/icones/etal.png" alt=""></span>HDV</button>
     <button class="action" id="b-amelio"><span class="tuile"><img src="assets/icones/marteau.png" alt=""></span>Améliorer</button>
@@ -3433,6 +3442,14 @@ function boirePot(t) {
   if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'grange') ouvrirGrange(); else if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
 }
 /* l'alerte de la fenetre des vagues (« ok », Mathieu) : avec combien de vie tu pars, et les pots de ta grange */
+/* la pastille de vie du haut, toujours visible (« il faudrait la voir en tout temps », Mathieu, 13/10/2026) ; en combat, elle suit la vie du combat */
+function majVieHaut() {
+  const b = $('b-vie'); if (!b || !S_ || !S_.perso) return; const max = combat ? combat.pvMax : statsPerso().pvMax, pv = combat ? Math.max(0, combat.pv) : vieActuelle(), pc = Math.round(100 * pv / max);
+  if (!b._pret) { b.querySelector('.coeur').innerHTML = picto('vita'); b._pret = true; }
+  const w = pc + '%'; if (b._w !== w) { b._w = w; $('vie').style.width = w; }
+  const t = Math.ceil(pv) + ' / ' + max + ' PV'; if (b._t !== t) { b._t = t; $('vie-txt').textContent = t; }
+  b.classList.toggle('moyen', pc < 60 && pc >= 40); b.classList.toggle('bas', pc < 40);
+}
 function blocVie() {
   const max = statsPerso().pvMax, pv = vieActuelle(); S_.pots = S_.pots || {}; if (pv >= max && !S_.menthe) return '';
   const pc = Math.round(100 * pv / max), dispo = POTS_HDV.filter((t) => S_.pots[t] > 0);
@@ -4379,7 +4396,7 @@ function majCombatHud() {
   $('combat-titre').textContent = c.deroute != null ? 'À terre : ils saccagent ta ferme, ' + Math.max(0, Math.ceil(c.deroute)) + ' s' : c.raid ? 'Raid VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
   $('combat-barre').style.width = (100 * rest / c.total).toFixed(0) + '%'; $('b-fuir').hidden = c.deroute != null; /* (a terre, on ne fuit plus) */
   const f = c.pv / c.pvMax; $('combat-pv').style.width = (100 * f).toFixed(1) + '%'; $('combat-pv').style.background = f < 0.3 ? 'var(--rouge)' : '';
-  $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV';
+  $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV'; majVieHaut();
   if (!S_.ulti) { $('ulti-rond').style.setProperty('--cd', '100%'); $('ulti-etat').textContent = niveau(S_.xp) >= NIV_ULTI ? 'à choisir' : 'niveau ' + NIV_ULTI; }
   else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / RECHARGE_ULTI).toFixed(1) + '%'); $('ulti-etat').textContent = c.cdUlti > 0 ? 'prêt dans ' + Math.ceil(c.cdUlti) + ' s' : 'prêt'; }
   if (classeDe() === 'cra') { const k = S_.chargeSort || 0; $('sort-rond').style.setProperty('--cd', (100 * (1 - k / KILLS_PERCANTE)).toFixed(1) + '%'); $('sort-etat').textContent = k >= KILLS_PERCANTE ? 'prête' : k + '/' + KILLS_PERCANTE + ' monstres'; }
@@ -4813,6 +4830,7 @@ function majPleinEcran() { const b = $('b-plein'); if (b) b.hidden = !(DOIGT && 
 function rendreHaut() {
   { const h = document.querySelector('.haut'); if (h) document.documentElement.style.setProperty('--haut-hud', Math.round(h.getBoundingClientRect().bottom) + 'px'); } /* (la hauteur du bandeau du haut : la barre de combat se place dessous au telephone) */
   const n = niveau(S_.xp), a = seuil(n), b = seuil(n + 1), max = n >= capNiveau();
+  majVieHaut();
   $('kamas').textContent = fmt(S_.kamas); $('niv').textContent = n; $('xp').style.width = max ? '100%' : (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%';
   $('xp-txt').textContent = max ? 'Niveau max' : fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' XP';
   $('xp-barre').parentNode.dataset.info = max ? (capNiveau() < NIV_MAX ? 'Niveau ' + capNiveau() + ' : le maximum de la Phase 1. Bats Crocabulia (vague 50) pour monter jusqu\'au niveau ' + NIV_MAX + '.' : 'Niveau ' + NIV_MAX + ' : le niveau maximum de Paysan.') :'Niveau ' + n + ' : encore ' + fmt(b - S_.xp) + ' points d\'expérience pour passer niveau ' + (n + 1) + ' (' + Math.floor(100 * (S_.xp - a) / (b - a)) + ' %)' + (freinXp() < 1 ? '. Tu as beaucoup d\'avance sur tes vagues : la ferme rapporte moins d\'expérience.' : '');
@@ -5270,6 +5288,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.graines) ACTIONS.acheterGraines(b.dataset.graines, parseInt(b.dataset.n, 10));
   else if (b.dataset.potAchat) ACTIONS.acheterPots(b.dataset.potAchat, parseInt(b.dataset.n, 10));
   else if (b.dataset.boire) boirePot(b.dataset.boire);
+  else if (b.id === 'b-vie') { if (combat) toast('Les pots de gelée se boivent entre les vagues.'); else ouvrirGrange(); }
   else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));
   else if (b.dataset.fleches) ACTIONS.acheterFleches(parseInt(b.dataset.fleches, 10));
   else if (b.hasAttribute('data-recharger')) ACTIONS.recharger();
