@@ -160,6 +160,7 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .hdv-cats button { display: flex; align-items: center; justify-content: center; gap: 6px; background: #fff; border: 2px solid var(--bord); border-radius: 12px; padding: 5px 4px; font: 800 .84rem var(--f-texte); color: inherit; box-shadow: 0 2px 0 var(--bord); cursor: pointer; }
 .hdv-cats button img { width: 28px; height: 28px; object-fit: contain; } .hdv-cats button[aria-pressed="true"] { background: #fff4d0; box-shadow: 0 0 0 2px var(--or), 0 2px 0 var(--bord); }
 .hdv-aide { font-size: .76rem; font-weight: 600; color: #6b5a48; margin: 0 0 4px; }
+.hdv-cats button { position: relative; } .hdv-pret { position: absolute; top: -8px; right: -6px; min-width: 22px; background: var(--kamas); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 400 .74rem/1 var(--f-titre); padding: 3px 6px; } /* (combien d'ameliorations a acheter tout de suite) */
 .seg.mini { display: inline-flex; border: 2px solid var(--bord); border-radius: 8px; overflow: hidden; margin: 1px 0 2px; }
 .seg.mini button { background: #fff; border: 0; border-left: 2px solid var(--bord); padding: 2px 9px; font: 800 .74rem var(--f-texte); color: inherit; cursor: pointer; }
 .seg.mini button:first-child { border-left: 0; } .seg.mini button[aria-pressed="true"] { background: var(--vert); color: #fff; }
@@ -3585,7 +3586,9 @@ const compoBase = (n) => {
   if (k >= VAGUES_PALIER) return [['cuirasse', 1], ['gardien', 1], ['archer', 1], ['fantassin', 2]];
   return [['fantassin', Math.min(4, 2 + Math.ceil(k * 0.25))]].concat(k >= 3 ? [['gardien', Math.floor(k / 4) || 1]] : []).concat([['archer', Math.ceil(k / 5)]]);
 };
-const gainsVague = (n, rejoue) => {
+/* « reduis de 15 % l'xp gagnee sur toutes les vagues du jeu » (Mathieu, 13/10/2026) : toutes les vagues, boss et vagues rejouees compris (gainsBoss en derive) */
+const XP_VAGUES = 0.85, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES) }); };
+const gainsVagueBrut = (n, rejoue) => {
   const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER, w = n - 5 * VAGUES_PALIER;
   if (w > 0) return { kamas: Math.round((w === VAGUES_PALIER ? 50000 : 2600 + 450 * w) * k), xp: Math.round((w === VAGUES_PALIER ? 700 : 85 + 16 * w) * k) }; /* l'ile des Wabbits */
   if (r > 0) return { kamas: Math.round((r === VAGUES_PALIER ? 35000 : 1800 + 350 * r) * k), xp: Math.round((r === VAGUES_PALIER ? 600 : 70 + 14 * r) * k) }; /* le Nid des Dragoeufs */
@@ -4863,6 +4866,19 @@ const GAINS = {
   faux: { stats: [['epi', 'Récolte de chaque parcelle', ['', '+1 (Blé : 3 → 4)'], (x) => x]] }
 };
 /* les deux parties de l'onglet Ameliorations */
+/* « le systeme qu'on a fait a l'HDV dans Achat est super, on pourrait faire le meme principe pour les ameliorations ? » (Mathieu, 13/10/2026) : trois categories
+   en haut, chacune avec le nombre d'ameliorations que tu peux acheter tout de suite ; dedans, une phrase sur leur role, ce qui s'achete d'abord, puis ce qui attend
+   un niveau, puis ce qui est au maximum */
+const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal']],
+  ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous et tes Tofus : plus de laine et plus de plumes.', ['enclos', 'voliere']],
+  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche']]];
+/* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
+function etatAmelio(id) {
+  if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
+  const a = AMELIOS.find((x) => x.id === id), n = niv(id); if (n >= a.couts.length) return { e: 'fini' };
+  if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n)) return { e: 'bloque' };
+  return { e: 'dispo', ok: S_.kamas >= a.couts[n] };
+}
 const PARTIES_AMELIO = [['', 'Productivité', 'Produire plus et plus vite : eau, Bouftous, Tofus, ventes, cultures.', ['nivPuits', 'enclos', 'voliere', 'nivEtal', 'engrais', 'bottes', 'semences', 'faux']],
   ['', 'Défense', 'Protéger ta ferme des voleurs de VSA, des monstres des vagues et des Tofus.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche']]];
 /* les cellules d'amelioration, style A (« la A pour arbalete, niquel », Mathieu, 12/10/2026, sur design-amelio-cellules.html) : l'icone, le nom en grand,
@@ -4916,8 +4932,15 @@ function ouvrirHdv0(onglet) {
   const choixQte = (options) => { const q = ouvrirHdv.qte = options.some(([v]) => v === ouvrirHdv.qte) ? ouvrirHdv.qte : 1; return '<div class="hdv-qte">Quantité <span class="seg">' + options.map(([v, t]) => '<button data-hdv-qte="' + v + '" aria-pressed="' + (q === v) + '">' + t + '</button>').join('') + '</span></div>'; };
   const etatHdv = S_.cases.some((c) => c.type === 'hdv') && (degatsBat('hdv') || enRuine('hdv')) ? artPv('hdv') : '';
   if (onglet !== 'ameliorer' && enRuine('hdv')) { ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv); return; }
-  if (onglet === 'ameliorer') { ouvrirModale('hdv', entete('Hôtel de vente') + tete + PARTIES_AMELIO.map(([e, t, d, ids]) => '<div class="partie"><b>' + t + '</b><small>' + d + '</small></div>' +
-    ids.map((id) => id === 'tours' ? artTour() : artAmelio(AMELIOS.find((a) => a.id === id))).join('')).join('')); return; }
+  if (onglet === 'ameliorer') {
+    const carte = (id) => id === 'tours' ? artTour() : artAmelio(AMELIOS.find((a) => a.id === id)), pretes = (L) => L.filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
+    if (!ouvrirHdv.catA) ouvrirHdv.catA = (CATS_AMELIO.find((C) => pretes(C[4])) || CATS_AMELIO[0])[0]; /* (la premiere fois : la ou il y a quelque chose a acheter) */
+    const C = CATS_AMELIO.find(([k]) => k === ouvrirHdv.catA) || CATS_AMELIO[0], par = (e) => C[4].filter((id) => etatAmelio(id).e === e);
+    const cats = '<div class="hdv-cats">' + CATS_AMELIO.map(([k, t, i, , L]) => { const n = pretes(L); return '<button data-hdv-cat-a="' + k + '" aria-pressed="' + (C[0] === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + (n ? '<span class="hdv-pret" title="' + n + ' à acheter tout de suite">' + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
+    const bloque = par('bloque'), fini = par('fini');
+    ouvrirModale('hdv', entete('Hôtel de vente') + tete + cats + '<p class="hdv-aide">' + C[3] + '</p>' + par('dispo').map(carte).join('') +
+      (bloque.length ? '<div class="hdv-section">À débloquer</div>' + bloque.map(carte).join('') : '') + (fini.length ? '<div class="hdv-section">Déjà au maximum</div>' + fini.map(carte).join('') : '')); return;
+  }
   if (onglet === 'acheter') {
     /* « le x1 ou x10, faudrait le mettre partout au meme endroit que le bouton d'achat ; pour les nouveaux joueurs, c'est pas intuitif de scroller pour voir
        qu'il y a les Bouftous, les filets et les fleches ; et expliquer a quoi ils servent, les rendre plus visibles avant ce qui n'est pas debloque »
@@ -5169,6 +5192,7 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'fleches-stock') { ouvrirHdv.cat = 'materiel'; ouvrirHdv('acheter'); }
   else if (b.dataset.qteItem) { ouvrirHdv.qtes = ouvrirHdv.qtes || {}; ouvrirHdv.qtes[b.dataset.qteItem] = parseInt(b.dataset.qteV, 10); ouvrirHdv(); }
   else if (b.dataset.hdvCat) { ouvrirHdv.cat = b.dataset.hdvCat; ouvrirHdv('acheter'); $('carte').scrollTop = 0; }
+  else if (b.dataset.hdvCatA) { ouvrirHdv.catA = b.dataset.hdvCatA; ouvrirHdv('ameliorer'); $('carte').scrollTop = 0; }
   else if (b.dataset.amelio) ACTIONS.amelio(b.dataset.amelio);
   else if (b.dataset.nourrir) { ACTIONS.nourrir(parseInt(b.dataset.nourrir, 10)); ouvrirEnclos(); }
   else if (b.hasAttribute('data-reproduire')) { ACTIONS.reproduire(); ouvrirEnclos(); }
@@ -5706,8 +5730,8 @@ const LECONS = [
     pages: [() => `L'<em>Hôtel de vente</em> a trois onglets : <em>Acheter</em> (graines, animaux, et du matériel comme les filets et les flèches), <em>Vendre</em> (tes récoltes, la laine, les plumes, le butin des monstres) et <em>Améliorations</em>.`,
       () => `Les prix bougent : toutes les ${dureeLisible(CADENCE_COURS)}, chaque produit monte ou descend un peu, jusqu'à 20 % au-dessus ou en dessous de son prix normal. L'onglet Vendre te dit s'il est <em>en hausse</em> ou <em>en baisse</em> : vends plutôt quand c'est haut.`,
       () => `De temps en temps, une <em>crise</em> fait chuter un produit de 40 % pendant une minute : attends qu'elle passe pour le vendre. Améliorer l'étal fait vendre plus cher et acheter les graines moins cher.`] },
-  { id: 'amelio2', titre: 'Améliorer', ico: 'marteau', resume: 'Productivité et Défense, lire une carte, par où commencer.', fenetre: 'hdv', quand: () => ouvrirHdv.dernier === 'ameliorer',
-    pages: [() => `Les améliorations sont rangées en deux parties : <em>Productivité</em> (l'eau, les Bouftous, les Tofus, les ventes, les cultures) et <em>Défense</em> (la grange, l'arbalète, les tours, l'épouvantail, la cloche).`,
+  { id: 'amelio2', titre: 'Améliorer', ico: 'marteau', resume: 'Ferme, Animaux, Défense, lire une carte, par où commencer.', fenetre: 'hdv', quand: () => ouvrirHdv.dernier === 'ameliorer',
+    pages: [() => `Les améliorations sont rangées en trois catégories, en haut : <em>Ferme</em> (le puits, l'engrais, les semences, la faux, les bottes, l'étal), <em>Animaux</em> (l'enclos, la volière) et <em>Défense</em> (la grange, l'arbalète, les tours, l'épouvantail, la cloche). Le chiffre orange sur une catégorie, c'est ce que tu peux acheter tout de suite.`,
       () => `Chaque carte montre son <em>niveau</em> en crans, ce que fait le bâtiment, puis ce que change le prochain achat : la valeur d'avant, une flèche, celle d'après. S'il te manque des kamas, elle te dit combien.`,
       () => `Par où commencer ? Par ce qui te gêne : le puits si tu cours chercher de l'eau, l'enclos pour plus de Bouftous, l'épouvantail contre les Tofus, l'arbalète et les tours avant les vagues.`] },
   { id: 'grange', titre: 'La grange', ico: 'grange', resume: 'Ton stock, le butin, l\'arbalète du toit.', fenetre: 'grange', quand: () => true,
