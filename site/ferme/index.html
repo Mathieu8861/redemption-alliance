@@ -4960,7 +4960,7 @@ const nomUlti = (id) => ULTIS[id].nom[classeDe()];
 /* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
    (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
 const sufUlti = () => classeDe() === 'cra' ? '' : '-' + classeDe();
-const srcUlti = (id) => 'assets/icones/ulti-' + id + sufUlti() + '.png?v=' + VERSION_MODELES;
+const srcUlti = (id) => 'assets/icones/ulti-' + id + sufUlti() + '.png?v=' + VERSION_MODELES + 'u2'; /* (u2 : les icones du Cra redessinees le 14/10/2026, sans recharger tous les modeles) */
 function ouvrirUlti() {
   const l = niveau(S_.xp), d = statsPerso().deg, cl = CLASSES.find((c) => c.id === classeDe());
   const carte = (id) => { const U = ULTIS[id], pris = S_.ulti === id;
