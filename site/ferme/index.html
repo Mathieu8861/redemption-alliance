@@ -71,6 +71,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .haut { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .titre { font: 400 clamp(1.3rem, 3.2vw, 2.1rem)/1 var(--f-titre); color: var(--papier); -webkit-text-stroke: 2px var(--bord); paint-order: stroke fill; text-shadow: 0 4px 0 var(--bord); flex: 1 1 auto; }
 .pastille { display: inline-flex; align-items: center; gap: 7px; background: var(--papier); border: 3px solid var(--bord); border-radius: 999px; padding: 4px 12px; box-shadow: 0 4px 0 var(--bord); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.haut .pastille[data-info] { pointer-events: auto; cursor: help; } /* (l'interface laisse passer la souris vers la scene : sans ca, pas d'infobulle sur les pastilles du haut) */
 .piece { width: 20px; height: 20px; border-radius: 50%; background: var(--kamas); color: #fff; display: grid; place-items: center; font: 400 .75rem/1 var(--f-titre); border: 2px solid var(--bord); }
 .xp { position: relative; width: 132px; height: 17px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
 .xp i { display: block; width: 0; height: 100%; background: linear-gradient(180deg, #ffd86b, var(--or)); transition: width .4s; }
@@ -733,9 +734,9 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 <div class="hud cache" id="hud">
   <div class="haut">
     <div class="titre" id="titre">Ferme d'Incarnam</div>
-    <span class="pastille"><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span><span class="lib">&nbsp;kamas</span></span>
+    <span class="pastille" data-info="Tes kamas, la monnaie de la ferme. Tu en gagnes en vendant tes récoltes, ta laine et tes plumes à l'HDV, et en gagnant les vagues. Ils servent à acheter graines, animaux, bâtiments et améliorations."><img class="kama gros" src="assets/icones/kama.png" alt=""><span id="kamas">0</span><span class="lib">&nbsp;kamas</span></span>
     <span class="pastille" id="cases">40 cases</span>
-    <span class="pastille"><span class="lib">Paysan&nbsp;</span>niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
+    <span class="pastille" data-info="Ton niveau de Paysan. Il monte avec l'expérience (récoltes, tonte, vagues, objectifs) et débloque de nouvelles graines, des bâtiments et des améliorations."><span class="lib">Paysan&nbsp;</span>niv.&nbsp;<span id="niv">1</span> <span class="xp" id="xp-barre"><i id="xp"></i><em id="xp-txt"></em></span></span>
     <span class="pastille" id="mode-test" hidden style="background:var(--rouge);color:#fff">Mode test ×60</span>
     <button class="pastille vitesse" id="b-vitesse" data-info="Vitesse du temps : normal, x1,5 ou x2"><span class="lib">Temps </span>normal</button>
     <div class="vitesse-panneau" id="vitesse-panneau" hidden>
@@ -5557,7 +5558,7 @@ function rendreHaut() {
   $('xp-txt').textContent = max ? 'Niveau max' : fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' XP';
   $('xp-barre').parentNode.dataset.info = max ? (capNiveau() < NIV_MAX ? 'Niveau ' + capNiveau() + ' : le maximum de la Phase 1. Bats Crocabulia (vague 50) pour monter jusqu\'au niveau ' + NIV_MAX + '.' : 'Niveau ' + NIV_MAX + ' : le niveau maximum de Paysan.') :'Niveau ' + n + ' : encore ' + fmt(b - S_.xp) + ' points d\'expérience pour passer niveau ' + (n + 1) + ' (' + Math.floor(100 * (S_.xp - a) / (b - a)) + ' %)' + (freinXp() < 1 ? '. Tu as beaucoup d\'avance sur tes vagues : la ferme rapporte moins d\'expérience.' : '');
   if (rendreHaut.xp !== undefined && S_.xp > rendreHaut.xp) { const e = $('xp-barre'); e.classList.remove('gagne'); void e.offsetWidth; e.classList.add('gagne'); } rendreHaut.xp = S_.xp;
-  $('cases').innerHTML = 'Parcelles <b style="color:var(--kamas)">' + parcelles() + '/' + quotaParcelles() + '</b>'; $('cases').dataset.info = 'Parcelles labourées sur ton quota. Toutes les cases d\'herbe peuvent être labourées.';
+  $('cases').innerHTML = 'Parcelles <b style="color:var(--kamas)">' + parcelles() + '/' + quotaParcelles() + '</b>'; { const n = parcelles(), q = quotaParcelles(); $('cases').dataset.info = 'Tes parcelles : ' + n + ' labourée' + (n > 1 ? 's' : '') + ' sur ' + q + ' possibles. Une parcelle, c\'est une case de terre où tu sèmes tes graines. Ton île en permet ' + QUOTA_ILE + ', chaque terrain acheté en ajoute. Pour en labourer une : touche une case d\'herbe libre.' + (n >= q ? ' Quota atteint : achète un terrain pour en avoir plus, ou déplace tes parcelles avec Aménager.' : ''); }
   $('graine-ico').src = 'assets/icones/' + S_.graine + '.png'; $('graine-nb').textContent = S_.graines[S_.graine] || 0; $('b-graine').dataset.info = 'Graine choisie : ' + PAR_ID[S_.graine].nom;
   $('b-amenager').setAttribute('aria-pressed', !!mode);
   $('eau').innerHTML = '<svg class="goutte" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5C9 7 5.5 10.6 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.6 15 7 12 2.5z" fill="#3a95d1" stroke="#1f5f8b" stroke-width="1.6"/><path d="M9.2 14.2a3 3 0 0 0 2.6 3" fill="none" stroke="#dff1fb" stroke-width="1.6" stroke-linecap="round"/></svg> ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ' <small style="font-weight:700;color:#3a95d1" data-info="Citerne d\'arrosage">· citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() + '</small>' : ''); $('eau').classList.toggle('vide', !S_.eau);
