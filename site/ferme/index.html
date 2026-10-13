@@ -368,6 +368,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .sexe { font: 400 .95rem/1 var(--f-titre); background: #fff; border: 3px solid var(--bord); border-radius: 99px; padding: 8px 18px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; color: inherit; }
 .sexe[aria-pressed="true"] { background: var(--or); transform: translateY(2px); box-shadow: 0 1px 0 var(--bord); }
 .gel-note { font-size: .76rem; font-weight: 700; color: #8a7a5a; }
+.bv-vol { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 2px 0 4px; } .bv-vol span { position: relative; width: 42px; height: 42px; border-radius: 50%; background: #fff; border: 3px solid var(--bord); display: grid; place-items: center; }
+.bv-vol img { width: 32px; height: 32px; object-fit: contain; } .bv-vol .abattu img { filter: grayscale(1) opacity(.45); } .bv-vol .abattu::after { content: ''; position: absolute; inset: 5px; background: linear-gradient(45deg, transparent 44%, var(--rouge) 44% 56%, transparent 56%), linear-gradient(-45deg, transparent 44%, var(--rouge) 44% 56%, transparent 56%); }
+.bv-vol .enfui { border-color: var(--rouge); background: #fde3df; } .bv-vol .enfui::after { content: '➜'; position: absolute; right: -10px; top: -8px; font: 800 .9rem/1 var(--f-texte); color: var(--rouge); }
+.bv-leg { text-align: center; font: 800 .82rem/1.2 var(--f-texte); color: #6b5a3a; margin-bottom: 10px; }
+.bv-grille { display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 8px; } @media (max-width: 520px) { .bv-grille { grid-template-columns: repeat(2, 1fr); } } /* (une seule rangee, jusqu'a 4 vignettes ; plus, elles passent a la ligne) */ .bv-t { border: 3px solid var(--bord); border-radius: 14px; padding: 8px 4px 6px; text-align: center; background: #fff; box-shadow: 0 3px 0 var(--bord); }
+.bv-t img { width: 50px; height: 50px; object-fit: contain; display: block; margin: 0 auto 2px; } .bv-t b { display: block; font: 400 1.55rem/1 var(--f-titre); } .bv-t span { font: 700 .7rem/1.15 var(--f-texte); color: #6b5a3a; } .bv-t small { display: block; font-size: .64rem; }
+.bv-t.g { background: #eaf6df; } .bv-t.g b { color: #3f8a22; } .bv-t.p { background: #fde3df; border-color: #a8231b; } .bv-t.p b { color: var(--rouge); } .bv-t.n b { color: var(--encre); } /* (la fin de simu VSA en vignettes, proposition C) */
 .musiques-opt { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; } .musiques-opt .sexe { font-size: .78rem; padding: 6px 11px; }
 .curseur-son { display: flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 800; margin-top: 6px; } .curseur-son input { flex: 1; max-width: 220px; accent-color: var(--kamas); }
 .looks { margin: -4px 0 12px; } .looks > p { margin: 0 0 6px; font: 400 .95rem/1.1 var(--f-titre); text-align: center; }
@@ -2844,11 +2851,21 @@ function tirer(mo) {
    l'Osamodas s'approche a portee de fouet. A l'impact, le voleur detale. */
 const effets = [];
 function majEffets(dt) { for (let i = effets.length - 1; i >= 0; i--) if (effets[i](dt)) effets.splice(i, 1); }
-const PORTEE_CLASSE = { cra: 9, osa: 3.2, iop: 1.7 };
+/* LA PORTEE DES ATTAQUES, LA MEME PARTOUT (13/10/2026 : « des fois je peux taper de loin, des fois au corps a corps, que ce soit un Tofu, un boss ou un mec VSA ;
+   si mon perso court au cac alors que je me suis eloigne pour le taper de loin (Osa, Cra), c'est bizarre », Mathieu) : une seule portee par classe, celle des vagues
+   (Iop 1,5, Cra 7, Osamodas 3,2), pour les vagues, le voleur et les Tofus des champs (avant, le voleur : Cra 9, Iop 1,7). Trop loin, le perso s'approche juste
+   assez pour toucher, jamais jusqu'au corps a corps pour le Cra et l'Osamodas ; et au PC, se deplacer pendant une vague le fait tenir sa position. */
+const porteeClasse = (classe) => (STATS_CLASSE[classe] || STATS_CLASSE.iop).portee;
+function caseAPortee(x, z, portee) { /* la case praticable la plus proche du perso d'ou il touche le point (x, z) ; aucune : null */
+  const pp = paysanMesh.position; let best = null, bd = Infinity;
+  S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; const q = posCase(c); if (Math.hypot(q.x - x, q.z - z) > portee - 0.25) return; const d = Math.hypot(q.x - pp.x, q.z - pp.z); if (d < bd) { bd = d; best = c; } });
+  return best;
+}
 function attaquerVoleur() {
   if (!voleurCiblable() || !paysanMesh || paysanMesh.userData.attaque) return;
   const classe = (S_.perso && S_.perso.classe) || 'iop', pv = voleur.m.position, pp = paysanMesh.position;
-  if (Math.hypot(pv.x - pp.x, pv.z - pp.z) > PORTEE_CLASSE[classe]) { /* trop loin : il court vers le voleur, puis reessaie */
+  if (Math.hypot(pv.x - pp.x, pv.z - pp.z) > porteeClasse(classe) + 0.3) { /* trop loin : il s'approche juste assez (la case la plus proche d'ou il touche), puis reessaie */
+    const aPortee = classe !== 'iop' && caseAPortee(pv.x, pv.z, porteeClasse(classe)); if (aPortee && aPortee !== caseIci(pp.x, pp.z)) { allerPuis(aPortee, () => attaquerVoleur()); return; }
     /* « je viens de tuer le voleur a distance avec le Iop, bizarre nan ? » (Mathieu, 11/10/2026) : caseSous ne connait que l'ile de depart ;
        sur un terrain achete (ou une case ou l'on ne marche pas), il ne courait pas et frappait de loin. Maintenant : la case du voleur,
        sinon la case libre la plus proche de lui, et jamais de coup hors de portee */
@@ -2900,7 +2917,7 @@ function frapper(classe) {
   if (!voleur) return;
   const pv = voleur.m.position.clone(); pv.y += 0.8;
   const msg = { cra: 'Ta flèche siffle : le voleur de VSA détale, bredouille !', iop: 'Un grand coup d\'épée du Iop : le voleur de VSA détale, bredouille !', osa: 'Clac ! Un coup de fouet de l\'Osamodas : le voleur de VSA détale, bredouille !' }[classe];
-  const portee = () => Math.hypot(voleur.m.position.x - paysanMesh.position.x, voleur.m.position.z - paysanMesh.position.z) <= PORTEE_CLASSE[classe] + 0.6; /* (au moment du coup : il a pu s'eloigner) */
+  const portee = () => Math.hypot(voleur.m.position.x - paysanMesh.position.x, voleur.m.position.z - paysanMesh.position.z) <= porteeClasse(classe) + 0.6; /* (au moment du coup : il a pu s'eloigner) */
   effetFrappe(classe, pv, () => { if (voleur && (classe === 'cra' || portee())) blesserVoleur(statsPerso().deg, msg, classe === 'iop' ? 1.2 : 0.6); }); /* le coup d'epee du Iop le sonne plus longtemps */
 }
 /* un coup sur le voleur : il ne detale qu'a 0 PV */
@@ -2920,7 +2937,8 @@ function blesserVoleur(n, msg, sonne) {
 function chasserDeLoin(p, fin, approche) {
   const u = paysanMesh.userData; if (u.attaque) return;
   const classe = classeDe(), q = posCase(p), pp = paysanMesh.position;
-  if (!approche && Math.hypot(q.x - pp.x, q.z - pp.z) > Math.max(PORTEE_CLASSE[classe], 2.4)) { /* depuis une case voisine, tout le monde l'atteint */
+  if (!approche && Math.hypot(q.x - pp.x, q.z - pp.z) > Math.max(porteeClasse(classe), 2.4)) { /* depuis une case voisine, tout le monde l'atteint ; le Cra, lui, s'arrete des qu'il est a portee */
+    const loin = classe === 'cra' && caseAPortee(q.x, q.z, porteeClasse(classe)); if (loin) { allerPuis(loin, () => chasserDeLoin(p, fin, true)); return; }
     const pres = voisins(p).filter((c) => PASSABLE[c.type]).sort((a, b) => Math.hypot(posCase(a).x - pp.x, posCase(a).z - pp.z) - Math.hypot(posCase(b).x - pp.x, posCase(b).z - pp.z))[0];
     allerPuis(pres || p, () => chasserDeLoin(p, fin, true)); return; /* une fois approche, il frappe d'ou il est */
   }
@@ -4947,14 +4965,18 @@ function finVague(gagne, fuite) {
     const somme = (L) => { const t = {}; L.forEach((r) => { (t[r.id] = t[r.id] || { nom: r.nom, n: 0 }).n += r.n; }); return Object.entries(t); };
     const liste = (E) => E.map(([, r]) => r.n + ' ' + r.nom).join(', '), valeur = (E) => E.reduce((v, [id, r]) => v + r.n * prix(id), 0);
     const perdu = somme(c.butin), repris = somme(c.recup || []), enfuis = Math.max(0, (c.total || c.tues) - c.tues), vPerdu = valeur(perdu);
-    const ligne = (icone, titre, texte, cls) => '<div class="art' + (cls ? ' ' + cls : '') + '">' + ico(icone) + '<div><b>' + titre + '</b><div class="desc">' + texte + '</div></div><div></div></div>';
-    const bilan = ligne('voleur', c.tues + ' voleur' + (c.tues > 1 ? 's' : '') + ' abattu' + (c.tues > 1 ? 's' : '') + (enfuis ? ', ' + enfuis + ' enfui' + (enfuis > 1 ? 's' : '') : ', aucun ne s\'est enfui') + ' : +' + fmt(prime) + ' ' + KAMA + ' de prime',
-      'Sur ' + (c.tues + enfuis) + ' voleurs de VSA. Un voleur abattu rend ce qu\'il avait pris ; seul celui qui quitte ta ferme vivant garde son butin. VSA se renforce à chaque vague gagnée.');
-    const lPerdu = perdu.length ? ligne('grange', 'Perdu pour de bon : ' + liste(perdu), 'Emporté par ' + (enfuis > 1 ? 'les ' + enfuis + ' voleurs qui se sont enfuis' : 'le voleur qui s\'est enfui') + (vPerdu ? ', soit environ ' + fmt(vPerdu) + ' ' + KAMA + ' à l\'HDV' : '') + '.', 'perte')
-      : ligne('grange', 'Rien de perdu', enfuis ? 'Ceux qui se sont enfuis repartent les mains vides.' : 'Aucun voleur n\'est reparti avec ton stock.');
-    const lRepris = repris.length ? ligne('grange', 'Récupéré : ' + liste(repris), 'Repris sur les voleurs abattus avant leur fuite : de retour dans ta grange.') : '';
-    const lTrouve = c.lootV && texteButin(c.lootV) ? ligne(c.lootV.objets.length ? iconeObjet(c.lootV.objets[0]) : 'voleur', 'Trouvé sur eux', texteButin(c.lootV) + '.') : '';
-    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + bilan + lPerdu + lRepris + lTrouve + '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
+    /* « faut trop lire pour voir ce que l'on a gagne / perdu » (Mathieu, 13/10/2026) : la proposition C, en vignettes. Les tetes des voleurs (barrees : abattus,
+       fleche : enfuis), puis une vignette par gain (vert), par recolte reprise (blanc) et par recolte volee (rouge), gros chiffres et presque pas de texte */
+    const tetes = Math.min(c.tues + enfuis, 14), abattus = Math.min(c.tues, tetes);
+    const vol = '<div class="bv-vol">' + Array.from({ length: tetes }, (_, k) => '<span class="' + (k < abattus ? 'abattu' : 'enfui') + '"><img src="assets/icones/voleur.png?v=' + VERSION_MODELES + '" alt=""></span>').join('') + '</div><div class="bv-leg">' + c.tues + ' abattu' + (c.tues > 1 ? 's' : '') + ', ' + (enfuis ? enfuis + ' enfui' + (enfuis > 1 ? 's' : '') : 'aucun enfui') + '</div>';
+    const vignette = (cls, icone, chiffre, texte) => '<div class="bv-t ' + cls + '"><img src="assets/icones/' + icone + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + chiffre + '</b><span>' + texte + '</span></div>';
+    const V = [];
+    if (prime) V.push(vignette('g', 'kama', '+' + fmt(prime), 'prime'));
+    if (c.lootV && c.lootV.kamas) V.push(vignette('g', 'kama', '+' + fmt(c.lootV.kamas), 'trouvés sur eux'));
+    repris.forEach(([id, r]) => V.push(vignette('n', id, fmt(r.n), r.nom + ' repris')));
+    perdu.forEach(([id, r]) => V.push(vignette('p', id, '−' + fmt(r.n), r.nom + ' volé' + (r.n > 1 ? 's' : '') + (prix(id) ? '<small>≈ ' + fmt(r.n * prix(id)) + ' kamas</small>' : ''))));
+    if (!perdu.length) V.push(vignette('g', 'grange', '0', 'rien de volé'));
+    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div><div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-fermer>Retour à la ferme</button></div>');
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); } /* la vie qui reste ; perdu : il revient a 30 % au moins */
@@ -5207,6 +5229,7 @@ function astuceClics() {
 function allerVers(id) { /* le clic gauche : il y va, sans rien faire (un nuisible, lui, se cible : on le chasse) */
   const p = typeof id === 'string' ? S_.cases.find((c) => c.id === id) : id; if (!p || !paysanMesh) return;
   if ((p.type === 'champ' && p.tofu) || (S_.sauvage && S_.sauvage.id === p.id)) { ACTIONS.toucherCase(p.id); return; }
+  if (combat) { if (PASSABLE[p.type]) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); } return; } /* (pendant une vague : il va ou on le pose et y tient sa position, sans repartir vers un monstre) */
   allerPuis(p, () => {}); if (!S_[matchMedia('(pointer: coarse)').matches ? 'astuceDoigt' : 'astuceClics']) astuceClics(); else rappelClicDroit(p);
 }
 /* « je peux plus planter, ah c'est parce que je dois clic droit » (Mathieu, 11/10/2026) : l'astuce du lancement ne suffit pas, alors un clic gauche
@@ -5517,18 +5540,18 @@ function ouvrirHdv0(onglet) {
       const plein = S_.bouftous.length >= cap;
       corps = '<div class="art">' + ico('bouftou') + '<div><b>Bouftou</b><div class="puces"><span class="puce' + (plein ? ' mauvaise' : '') + '">' + picto('bouftou', '#8a7a5c') + S_.bouftous.length + '/' + cap + ' dans l\'enclos</span>' + pc('repas', 'mange ' + REPAS + ' Blé') + pc('laine', 'sa laine : ' + LAINE.prix + ' ' + KAMA) + '</div>' +
         '<div class="desc">Il vit dans l\'enclos. Nourri, il fait de la laine que tu revends. Deux adultes peuvent faire un petit (' + COUT_REPRO + ' Houblon). Pour plus de place, améliore l\'enclos.</div></div>' +
-        '<div class="act"><small>' + (plein ? 'Enclos plein' : S_.bouftousAchetes ? 'à l\'unité' : 'le premier à prix doux') + '</small><button class="btn kamas" data-bouftou' + (plein || S_.kamas < prixBouftou() ? ' disabled' : '') + '>Acheter ' + fmt(prixBouftou()) + ' ' + KAMA + '</button>' + (plein ? '' : manque(prixBouftou())) + '</div></div>';
+        '<div class="act"><small>' + (plein ? 'Enclos plein' : S_.bouftousAchetes ? 'à l\'unité' : 'le premier à prix doux') + '</small><button class="btn kamas" data-bouftou' + (plein || S_.kamas < prixBouftou() ? ' disabled' : '') + '>Acheter ' + fmt(prixBouftou()) + ' ' + KAMA + '</button>' + (plein ? '' : manque(prixBouftou())) + '</div></div>' +
+        (niv('geliere') ? '<div class="hdv-section">Les Gelées, pour ta Gelière : ' + (S_.gelees || []).length + ' sur ' + placesGeliere() + ' places</div>' + GELEES_HDV.map((c) => { const G = GELEES[c], pl = (S_.gelees || []).length < placesGeliere(), ok = pl && S_.kamas >= G.prix;
+          return '<div class="art">' + ico('gelee-' + c) + '<div><b>' + G.nom + '</b><div class="puces"><span class="puce bonne">son pot : ' + BREF_POT[G.pot] + '</span><span class="puce">mange ' + recetteTxt(G.recette) + ' par pot</span></div><div class="desc">Elle vit au bord de l\'eau, dans ta Gelière, et te fait un pot de sa couleur en ' + dureeLisible(PROD_GELEE) + ' quand tu la nourris.</div></div>' +
+            '<div class="act"><small>' + (pl ? 'à l\'unité' : 'Gelière pleine') + '</small><button class="btn kamas" data-gelee-achat="' + c + '"' + (ok ? '' : ' disabled') + '>Acheter ' + fmt(G.prix) + ' ' + KAMA + '</button>' + (pl ? manque(G.prix) : '') + '</div></div>'; }).join('')
+        : '<div class="hdv-section">À débloquer : les Gelées</div>' + GELEES_HDV.map((c) => '<div class="art verrou">' + ico('gelee-' + c) + '<div><b>' + GELEES[c].nom + '</b><div class="puces"><span class="puce">son pot : ' + BREF_POT[GELEES[c].pot] + '</span></div></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + (niveau(S_.xp) < NIV_GELIERE ? 'Niveau ' + NIV_GELIERE : 'Construis la Gelière') + '</span></div></div>').join(''));
     } else if (cat === 'gelees') {
       S_.pots = S_.pots || {}; const pv = vieActuelle(), max = statsPerso().pvMax;
       corps = '<p class="hdv-aide">Ta vie remonte doucement toute seule, un pot de gelée la remonte d\'un coup. Tu les bois avec le bouton potion, à côté de ta vie, ou depuis la fenêtre des vagues. Ta vie : ' + Math.round(100 * pv / max) + ' %.</p>' +
         POTS_HDV.map((t) => { const P = POTS[t], o = [[1, '×1'], [5, '×5']], n = qteDe('pot:' + t, o), pr = prixPot(t);
           return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + '</b><div class="puces"><span class="puce bonne">' + P.effet + '</span><span class="puce">' + (S_.pots[t] || 0) + ' en réserve</span></div><div class="desc">' + P.desc + '</div></div>' +
             '<div class="act"><small>' + fmt(pr) + ' ' + KAMA + ' le pot</small>' + segQte('pot:' + t, o) + '<button class="btn kamas" data-pot-achat="' + t + '" data-n="' + n + '"' + (S_.kamas >= n * pr ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * pr) + ' ' + KAMA + '</button>' + manque(n * pr) + '</div></div>'; }).join('') +
-        '<div class="hdv-section">Les Gelées, pour ta Gelière</div>' + (niv('geliere') ? '' : '<p class="hdv-aide">' + (niveau(S_.xp) >= NIV_GELIERE ? 'Construis d\'abord la Gelière (Améliorer, catégorie Animaux) : tes Gelées y feront tes pots avec tes fruits.' : 'La Gelière se construit au niveau ' + NIV_GELIERE + ' : tes Gelées y feront tes pots avec tes fruits.') + '</p>') +
-        GELEES_HDV.map((c) => { const G = GELEES[c], pl = (S_.gelees || []).length < placesGeliere(), ok = niv('geliere') && pl && S_.kamas >= G.prix;
-          return '<div class="art">' + ico('gelee-' + c) + '<div><b>' + G.nom + '</b><div class="puces"><span class="puce bonne">son pot : ' + BREF_POT[G.pot] + '</span><span class="puce">mange ' + recetteTxt(G.recette) + ' par pot</span></div></div>' +
-            '<div class="act"><small>' + fmt(G.prix) + ' ' + KAMA + '</small><button class="btn kamas" data-gelee-achat="' + c + '"' + (ok ? '' : ' disabled') + '>' + (niv('geliere') && !pl ? 'Gelière pleine' : 'Acheter') + '</button>' + (niv('geliere') && pl ? manque(G.prix) : '') + '</div></div>'; }).join('');
-
+        '<p class="hdv-aide">Les Gelées elles-mêmes, qui font ces pots à ta Gelière, sont dans la catégorie Animaux.</p>';
     } else {
       const oF = [[1, '×1'], [5, '×5']], nF = qteDe('filets', oF), oA = [[10, '×10'], [50, '×50']], nA = qteDe('fleches', oA);
       corps = '<div class="art">' + ico('fleches') + '<div><b>Flèches</b><div class="puces"><span class="puce">' + fmt(S_.fleches) + ' en réserve</span>' + (niv('arbalete') ? '<span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? 'arbalète : ' + S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'arbalète à recharger') + '</span>' : '') + '</div>' +
