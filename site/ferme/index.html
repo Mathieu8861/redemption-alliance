@@ -412,7 +412,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .accueil .lien { display: block; margin: 2px auto 0; background: none; border: 0; font: 800 .78rem var(--f-texte); color: #8a6a3a; text-decoration: underline; cursor: pointer; }
 .accueil .connecte { display: flex; align-items: center; gap: 10px; text-align: left; background: #eef7e6; border: 2.5px solid var(--vert); border-radius: 14px; padding: 8px 12px; margin: 6px 0 12px; }
 .accueil .connecte.hors { background: #fff4e0; border-color: var(--or); }
-.accueil .connecte .av { width: 34px; height: 34px; border-radius: 50%; background: #5865f2; border: 2.5px solid var(--bord); flex: none; display: grid; place-items: center; color: #fff; font: 400 1rem/1 var(--f-titre); }
+.accueil .connecte .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; } /* (la photo du profil, par-dessus l'initiale) */
+.accueil .connecte .av { position: relative; overflow: hidden; width: 34px; height: 34px; border-radius: 50%; background: #5865f2; border: 2.5px solid var(--bord); flex: none; display: grid; place-items: center; color: #fff; font: 400 1rem/1 var(--f-titre); }
 .accueil .connecte b { display: block; font-size: .9rem; } .accueil .connecte span { font-size: .72rem; font-weight: 700; color: #4d6b35; }
 .accueil .connecte button { margin-left: auto; background: none; border: 0; font: 800 .72rem var(--f-texte); color: #8a7a68; text-decoration: underline; cursor: pointer; }
 .accueil .reprise { margin: 18px 0 0; font-size: .76rem; font-weight: 600; } /* de l'air sous le bouton (son ombre le fait paraitre plus bas) */
@@ -1230,7 +1231,7 @@ async function identifier() { /* au demarrage, en meme temps que les modeles : q
     if (!jeton && !jwt) { enLigneSv.refus = 'deconnecte'; return null; }
     const r = await rpc('ferme_moi', { p_jeton: jeton }, jwt);
     if (!r.ok) { enLigneSv.refus = r.erreur === 'jeton' ? 'deconnecte' : r.erreur; enLigneSv.pseudoRefus = r.pseudo || ''; if (r.erreur === 'jeton') try { localStorage.removeItem(JETON); } catch (err) { /* rien */ } return null; }
-    Object.assign(enLigneSv, { compte: r.id, pseudo: r.pseudo || '', invite: !!r.invite, refus: '' }); return r;
+    Object.assign(enLigneSv, { compte: r.id, pseudo: r.pseudo || '', invite: !!r.invite, refus: '' }); if (jwt && !r.invite) chargerAvatar(); return r;
   } catch (err) { enLigneSv.refus = 'hors ligne'; return null; }
 }
 function choisirVersion(n) { /* la ferme de ce navigateur ou celle du compte : la plus recente, et jamais la ferme d'un compte donnee a un autre */
@@ -1301,10 +1302,21 @@ function ecranConnexion(carte) {
   };
   carte.onkeydown = (e) => { if (e.key === 'Enter') { const b = carte.querySelector('[data-cx-entrer]'); if (b) b.click(); } };
 }
+/* la photo du profil du site (13/10/2026, « on peut pas voir notre PP Discord ? ») : profiles.avatar_url, la photo Discord reprise a la connexion ou celle
+   choisie sur la page Profil, sinon celle de la connexion Discord ; seulement pour un membre connecte au site (pas un compte de jeu) */
+const imgAvatar = () => (enLigneSv.avatar ? '<img src="' + echapper(enLigneSv.avatar) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' : '');
+async function chargerAvatar() {
+  try {
+    if (!sb) return; const { data } = await sb.auth.getSession(), u = data && data.session && data.session.user; if (!u) return;
+    const { data: p } = await sb.from('profiles').select('avatar_url').eq('id', u.id).maybeSingle(), m = u.user_metadata || {};
+    const url = (p && p.avatar_url) || m.avatar_url || m.picture; if (!url || !/^https:\/\//.test(url)) return;
+    enLigneSv.avatar = url; const av = document.querySelector('.connecte .av'); if (av && !av.querySelector('img')) av.insertAdjacentHTML('beforeend', imgAvatar());
+  } catch (err) { /* l'initiale reste */ }
+}
 function bandeauCompte() { /* en haut de l'accueil : qui est connecte */
   if (!ENLIGNE) return '';
   if (!enLigneSv.compte) return '<div class="connecte hors"><div><b>Pas de connexion</b><span>Ta ferme se charge depuis ce navigateur et partira en ligne dès que possible.</span></div></div>';
-  return '<div class="connecte"><span class="av">' + echapper((enLigneSv.pseudo || '?').charAt(0).toUpperCase()) + '</span><div><b>' + echapper(enLigneSv.pseudo) + '</b><span>' + (enLigneSv.invite ? 'Compte de jeu' : 'Membre de Redemption, connecté avec Discord') + '</span></div><button data-deconnexion>Changer</button></div>';
+  return '<div class="connecte"><span class="av">' + echapper((enLigneSv.pseudo || '?').charAt(0).toUpperCase()) + imgAvatar() + '</span><div><b>' + echapper(enLigneSv.pseudo) + '</b><span>' + (enLigneSv.invite ? 'Compte de jeu' : 'Membre de Redemption, connecté avec Discord') + '</span></div><button data-deconnexion>Changer</button></div>';
 }
 function infoCompte() {
   if (!ENLIGNE) return 'Mode test : la ferme reste dans ce navigateur.';
