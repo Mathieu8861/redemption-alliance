@@ -115,6 +115,7 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 /* l'ecran de pause (12/10/2026) */
 .ecran-pause { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; pointer-events: auto; /* (il est dans le HUD, qui laisse passer les clics : sans ca, Reprendre ne repondait pas, retour de Mathieu le 12/10/2026) */ background: rgba(28, 38, 52, .42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
 .ecran-pause[hidden] { display: none; }
+.simu-pop { z-index: 31; background: rgba(110, 24, 18, .42); } .simu-pop h2 { color: var(--rouge); } .simu-ico { width: 76px; height: 76px; object-fit: contain; display: block; margin: 0 auto; } /* (la simu VSA qui attend ton accord) */
 .carte-pause { text-align: center; background: var(--papier); border: 4px solid var(--bord); border-radius: 22px; box-shadow: 0 7px 0 var(--bord); padding: 18px 28px 20px; width: min(340px, calc(100% - 32px)); }
 .carte-pause svg { width: 44px; height: 44px; color: var(--bord); } .carte-pause h2 { font: 400 1.9rem/1 var(--f-titre); margin: 6px 0 8px; } .carte-pause p { font-weight: 600; font-size: .9rem; line-height: 1.35; margin: 0 0 16px; }
 .bulle { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; background: var(--papier); border: 3px solid var(--bord); border-radius: 12px; padding: 3px 9px; box-shadow: 0 3px 0 var(--bord); font-size: .78rem; pointer-events: none; }
@@ -760,6 +761,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div id="bulles"></div>
   <div class="info-survol" id="info-survol" hidden></div>
   <div class="ecran-pause" id="ecran-pause" hidden><div class="carte-pause"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" rx="1.4" fill="currentColor"/></svg><h2>Pause</h2><p>Rien n'attaque : monstres, voleurs et simus VSA t'attendent. Ta ferme, elle, continue de pousser, doucement.</p><button class="btn kamas grand" id="b-reprendre">Reprendre</button></div></div>
+  <div class="ecran-pause simu-pop" id="simu-pop" hidden><div class="carte-pause"><img class="simu-ico" src="assets/icones/voleur.png" alt=""><h2>Simu VSA !</h2><p id="simu-txt"></p><button class="btn kamas grand" id="b-simu">Défendre la ferme</button></div></div>
   <div id="bats-pv"></div>
 </div>
 <div class="accueil" id="accueil"><div class="carte" id="accueil-carte"></div></div>
@@ -3316,7 +3318,7 @@ function majEpouvantail(dt, s) {
 /* ---- le moteur (scratchpad/sons/moteur.js, la page d'ecoute), enferme dans SON ---- */
 const SON = (() => {
 let ac = null, maitre = null, busSons = null, busMusique = null, BRUIT = null, REVERB = null;
-const BASE_SONS = 0.42, BASE_MUSIQUE = 0.07; /* (les volumes de depart, a 50 % et 35 % des curseurs : doux pour qui arrive sans rien regler) */
+const BASE_SONS = 0.037, BASE_MUSIQUE = 0.0194; /* (le volume de depart, au milieu des curseurs : le reglage de Mathieu du 13/10/2026, « je l'ai regle comme sur mon screen, mets-le comme ca par defaut » ; mesure sur sa capture, environ 9 % puis 28 % des anciens niveaux de depart) */
 function init(ctx) {
   if (ac === ctx) return; ac = ctx; maitre = ac.createGain(); maitre.gain.value = 1;
   const comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.2;
@@ -3328,7 +3330,7 @@ function init(ctx) {
   for (let c = 0; c < 2; c++) { const x = ir.getChannelData(c); for (let i = 0; i < m; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / m, 2.6); }
   REVERB = ac.createConvolver(); REVERB.buffer = ir; const retour = ac.createGain(); retour.gain.value = 0.35; REVERB.connect(retour); retour.connect(busMusique);
 }
-function volumes(vs, vm) { if (!ac) return; busSons.gain.setTargetAtTime(BASE_SONS * vs / 50, ac.currentTime, 0.05); busMusique.gain.setTargetAtTime(BASE_MUSIQUE * vm / 35, ac.currentTime, 0.05); }
+function volumes(vs, vm) { if (!ac) return; busSons.gain.setTargetAtTime(BASE_SONS * Math.pow(vs / 50, 3), ac.currentTime, 0.05); busMusique.gain.setTargetAtTime(BASE_MUSIQUE * Math.pow(vm / 50, 3), ac.currentTime, 0.05); } /* (en cube : le curseur est fin vers le bas, et va jusqu'a 8 fois plus fort a 100 %) */
 /* ---------- les briques ---------- */
 const G = (v, dest) => { const g = ac.createGain(); g.gain.value = v; if (dest) g.connect(dest); return g; };
 const F = (type, f, q, dest) => { const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q != null) b.Q.value = q; if (dest) b.connect(dest); return b; };
@@ -3573,7 +3575,7 @@ let audio = null;
 const lireReglage = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } };
 const ecrireReglage = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* rien */ } };
 const sonActif = () => lireReglage('ferme-son', 'oui') !== 'non';
-const volSons = () => borne(+lireReglage('ferme-vol-sons', 50) || 0, 0, 100), volMusique = () => borne(+lireReglage('ferme-vol-musique', 35) || 0, 0, 100), musiqueChoisie = () => lireReglage('ferme-musique', 'pre');
+const volSons = () => borne(+lireReglage('ferme-vol-sons2', 50) || 0, 0, 100), volMusique = () => borne(+lireReglage('ferme-vol-musique2', 50) || 0, 0, 100), /* (cles neuves : les anciens reglages ne valent plus avec la nouvelle echelle) */ musiqueChoisie = () => lireReglage('ferme-musique', 'pre');
 const MUSIQUES_JEU = [['pre', 'Matin au pré', 'Guitare pincée et nappe lointaine'], ['boite', 'La boîte à musique', 'Une berceuse à trois temps'], ['lofi', 'Le lofi d\'Incarnam', 'Piano électrique, balais et vinyle'], ['brise', 'Brise de la ferme', 'Le vent et les oiseaux, sans musique'], ['aucune', 'Pas de musique', 'Seulement les sons']];
 function allumerAudio() { if (window.silence) return false; try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); SON.init(audio); SON.volumes(volSons(), volMusique()); return true; } catch (e) { return false; } }
 function majMusique() { /* la musique choisie, si le son est actif (jamais avant le premier geste du joueur : les navigateurs l'interdisent) */
@@ -3581,15 +3583,16 @@ function majMusique() { /* la musique choisie, si le son est actif (jamais avant
   if (!sonActif() || m === 'aucune' || !SON.SONS) { SON.arreter(); return; }
   if (SON.enCours() !== m) SON.musique(m);
 }
+const pauseEcran = () => enPause && !$('ecran-pause').hidden; /* (« quand on met pause, ca coupe la musique etc », Mathieu, 13/10/2026 : l'ecran de pause, pas les lecons de Pepito) */
 function deverrouillerSon() { /* au premier geste (et apres une interruption), on allume le son avec un son vide : c'est ce qu'exigent iPad et Android ; puis la musique */
-  try { if (!allumerAudio()) return; if (audio.state !== 'running') { audio.resume(); const b = audio.createBuffer(1, 1, 22050), src = audio.createBufferSource(); src.buffer = b; src.connect(audio.destination); src.start(0); } majMusique(); } catch (e) { /* rien */ }
+  try { if (pauseEcran() || !allumerAudio()) return; if (audio.state !== 'running') { audio.resume(); const b = audio.createBuffer(1, 1, 22050), src = audio.createBufferSource(); src.buffer = b; src.connect(audio.destination); src.start(0); } majMusique(); } catch (e) { /* rien */ }
 }
 ['pointerdown', 'touchend', 'keydown'].forEach((t) => addEventListener(t, deverrouillerSon, { capture: true, passive: true }));
-document.addEventListener('input', (e) => { const id = e.target && e.target.id; if (id !== 'vol-sons' && id !== 'vol-musique') return; ecrireReglage(id === 'vol-sons' ? 'ferme-vol-sons' : 'ferme-vol-musique', e.target.value); if (allumerAudio()) SON.volumes(volSons(), volMusique()); });
+document.addEventListener('input', (e) => { const id = e.target && e.target.id; if (id !== 'vol-sons' && id !== 'vol-musique') return; ecrireReglage(id === 'vol-sons' ? 'ferme-vol-sons2' : 'ferme-vol-musique2', e.target.value); if (allumerAudio()) SON.volumes(volSons(), volMusique()); });
 document.addEventListener('change', (e) => { if (e.target && e.target.id === 'vol-sons') { son.der = {}; son('kamas'); } }); /* (un son pour entendre le nouveau volume) */
-document.addEventListener('visibilitychange', () => { if (!audio) return; try { if (document.hidden) audio.suspend(); else if (sonActif()) audio.resume(); } catch (e) { /* rien */ } });
+document.addEventListener('visibilitychange', () => { if (!audio) return; try { if (document.hidden) audio.suspend(); else if (sonActif() && !pauseEcran()) audio.resume(); } catch (e) { /* rien */ } });
 function son(nom, variante, db) {
-  if (window.silence || !sonActif()) return;
+  if (window.silence || !sonActif() || pauseEcran()) return;
   const t = performance.now(); son.der = son.der || {}; if (t - (son.der[nom] || 0) < 120) return; son.der[nom] = t; /* jamais le meme son en rafale */
   if (!allumerAudio()) return; if (audio.state === 'suspended') audio.resume(); SON.jouer(nom, variante, db);
 }
@@ -3805,7 +3808,7 @@ function ouvrirPots() {
   const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
   const types = POTS_HDV.concat(Object.keys(POTS).filter((t) => POTS[t].geliere && ((S_.pots[t] || 0) > 0 || niv('geliere'))));
   const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron) || (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron);
-    return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + POTS[t].effet + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +
+    return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +
       (n ? '<button class="btn kamas" data-boire="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button>' : POTS[t].geliere ? '<button class="btn discret" data-geliere>Gelière</button>' : '<button class="btn discret" data-hdv-cat="gelees">Acheter</button>') + '</div></div>'; }).join('');
   ouvrirModale('pots', entete('Pots de gelée') + tete + lignes + '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:10px">' + (niv('geliere') ? '<button class="btn discret" data-geliere>Ta Gelière</button>' : '') + '<button class="btn kamas" data-hdv-cat="gelees">Acheter des pots à l\'HDV</button></div>');
 }
@@ -3939,9 +3942,22 @@ const CADENCE_RAID = 480 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 8 h 
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
 const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hidden && !auCasino; /* au Casino : pas de raid */
 let raidAnnonce = null;
-function annoncerRaid() {
+const tailleSimu = () => { const f = forceVoleur(), nb = 4 + Math.floor(Math.min(f, 40) / 5) + (f >= 25 ? 1 : 0) + (f >= 40 ? 1 : 0), montes = f >= 2 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 2) / 5)) : 0; return { f, nb, montes }; }; /* plus VSA se renforce, plus ils sont nombreux (14 au plus) et montes (la moitie au plus) ; « les raids VSA, ameliore un peu » (Mathieu, 12/10/2026) : en fin de partie l'arbalete et les tours les arretaient presque tous, ils se renforcent a partir de la vague 26 */
+/* LA SIMU VSA ACCEPTEE (13/10/2026, idee de Moonsbir, approuvee par UnMortVivant, notee par Mathieu : « mets juste un pop-up qui te bloque le jeu tant que tu
+   as pas accepte, et faut l'accepter pour declencher l'attaque ») : la simu ne tombe plus d'elle-meme ; le jeu se fige sur une fenetre, et c'est le joueur qui
+   lance les 30 s de preparation. Il ne se fait jamais piller sans le savoir (et toujours rien s'il n'a pas touche au jeu depuis 3 min). */
+let simuEnAttente = false;
+function proposerSimu() {
+  if (simuEnAttente || raidAnnonce || combat || enAccueil || enPause) return;
+  const { nb, montes } = tailleSimu(); simuEnAttente = true;
+  $('simu-txt').textContent = nb + ' voleurs de VSA' + (montes ? ', dont ' + montes + ' à dos de Dragodinde,' : '') + ' veulent piller ta grange. Le jeu attend ton accord : quand tu acceptes, ils arrivent 30 s plus tard. Recharge ton arbalète !';
+  if (visee) annulerVisee(); fermerModale(); mettrePause(true, true); $('simu-pop').hidden = false; son.der = {}; son('raid');
+}
+function accepterSimu() { if (!simuEnAttente) return; simuEnAttente = false; $('simu-pop').hidden = true; mettrePause(false); annoncerRaid(true); }
+function annoncerRaid(muet) {
   if (raidAnnonce || combat || enAccueil) return;
-  const f = forceVoleur(), nb = 4 + Math.floor(Math.min(f, 40) / 5) + (f >= 25 ? 1 : 0) + (f >= 40 ? 1 : 0), montes = f >= 2 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 2) / 5)) : 0; /* plus VSA se renforce, plus ils sont nombreux (14 au plus) et montes (la moitie au plus) ; « les raids VSA, ameliore un peu » (Mathieu, 12/10/2026) : en fin de partie l'arbalete et les tours les arretaient presque tous, ils se renforcent a partir de la vague 26 */
+  const { f, nb, montes } = tailleSimu();
+  /* (la taille : tailleSimu, plus haut) */
   const B = bordsFerme(), cotes = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => B.some((b) => b.di === di && b.dj === dj)), cote = hasard(cotes.length ? cotes : [[0, 1]]);
   const autres = cotes.filter((c) => c !== cote), cote2 = f >= 8 && autres.length ? hasard(autres) : null; /* a partir de la vague 9 : par deux bords a la fois */
   const marques = new T.Group(); /* le bord par ou ils arriveront, en rouge */
@@ -3951,7 +3967,7 @@ function annoncerRaid() {
     const r = new T.Mesh(new T.PlaneGeometry(S - 0.15, S - 0.15), new T.MeshBasicMaterial({ color: '#d9443a', transparent: true, opacity: 0.4, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(q.x, q.y + 0.08, q.z); r.renderOrder = 3; marques.add(r);
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, cote2, marques }; son('raid');
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, cote2, marques }; if (!muet) son('raid');
   toast('Simu VSA dans 30 s : ' + nb + ' voleurs' + (montes ? ', dont ' + montes + ' à dos de Dragodinde' : '') + ' ! Ils arriveront par ' + (cote2 ? 'les deux bords marqués' : 'le bord marqué') + ' en rouge.', 'alerte');
   majRaidAnnonce();
 }
@@ -6184,7 +6200,7 @@ function tick() {
   if (ch.enclos) rendreEnclosBulles();
   if (ch.sauvage) rendreSauvage();
   if (ch.voleur) lancerVoleur();
-  if (ch.raid && !combat) annoncerRaid();
+  if (ch.raid && !combat) proposerSimu(); /* (une fenetre d'abord : la simu attend l'accord du joueur) */
   if (rechargerSeule()) { rendreGrange(); if (modaleOuverte === 'grange') ouvrirGrange(); } /* l'arbalete se recharge seule a partir du niveau 3 */
   if (raidAnnonce) { if (Date.now() >= raidAnnonce.fin) { if (combat) raidAnnonce.fin = Date.now() + 10000; else lancerRaid(); } else majRaidAnnonce(); }
   if (ch.hdv) { rendreGrange(); if (modaleOuverte === 'hdv') ouvrirHdv(); }
@@ -6198,8 +6214,9 @@ function tick() {
    a la reprise, les dates de la ferme sont decalees de la duree de la pause (reprendreTemps) */
 let enPause = false;
 function mettrePause(oui, sansEcran) { /* (sansEcran : une lecon de Pepito fige le jeu sans afficher l'ecran de pause) */
-  oui = !!oui; if (oui === enPause || (oui && (!S_ || !S_.perso || enAccueil))) return;
+  oui = !!oui; if (oui === enPause || (oui && (!S_ || !S_.perso || enAccueil)) || (!oui && simuEnAttente)) return; /* (la simu en attente : seul son bouton relance le jeu) */
   enPause = oui; $('ecran-pause').hidden = !oui || !!sansEcran;
+  if (audio) { try { if (pauseEcran()) audio.suspend(); else if (sonActif() && !document.hidden) audio.resume(); } catch (e) { /* rien */ } } /* (en pause : plus aucun son, la musique reprend ou elle en etait) */
   if (oui) { if (visee) annulerVisee(); sauver(); } else if (S_) reprendreTemps(Date.now());
 }
 function boucle(t) {
@@ -6549,6 +6566,7 @@ window.addEventListener('error', (e) => { window.__erreur = e.message; });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && visee) annulerVisee(); });
 $('b-pause').addEventListener('click', (e) => { e.stopPropagation(); mettrePause(true); });
 $('b-reprendre').addEventListener('click', (e) => { e.stopPropagation(); mettrePause(false); });
+$('b-simu').addEventListener('click', (e) => { e.stopPropagation(); accepterSimu(); });
 addEventListener('keydown', (e) => { /* 1 et 2 : le sort et l'ulti pendant un combat (touches du haut du clavier, AZERTY comme QWERTY) */
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; if (!combat || combat.fin || enPause || e.repeat) return;
   if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); lancerSort(); } else if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); lancerUlti(); }
