@@ -721,10 +721,11 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .ra-actions .btn { padding: 6px 13px; font-size: .84rem; }
 @media (max-width: 720px) { .raid-annonce { top: calc(var(--haut-hud, 140px) + 8px); } }
 .raid-annonce[hidden] { display: none; }
-.bv-pied { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-.bv-bilan { display: flex; align-items: center; gap: 8px; border: 3px solid var(--bord); border-radius: 12px; padding: 5px 12px 5px 8px; box-shadow: 0 3px 0 var(--bord); }
-.bv-bilan img { width: 34px; height: 34px; object-fit: contain; } .bv-bilan span, .bv-bilan small { display: block; font: 700 .72rem/1.2 var(--f-texte); color: #6b5a48; }
-.bv-bilan b { display: block; font: 400 1.35rem/1.1 var(--f-titre); } .bv-bilan.plus { background: #e9f6dc; } .bv-bilan.plus b { color: #3f8a22; } .bv-bilan.moins { background: #fde3df; } .bv-bilan.moins b { color: #c0392b; }
+.bv-pied { display: flex; align-items: center; gap: 12px; margin-top: 12px; } /* (le bilan prend toute la largeur jusqu'au bouton, fin en hauteur) */
+.bv-bilan { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; border: 3px solid var(--bord); border-radius: 12px; padding: 3px 14px 3px 8px; box-shadow: 0 3px 0 var(--bord); }
+.bv-bilan img { width: 28px; height: 28px; object-fit: contain; flex: none; } .bv-bilan .bv-txt { flex: 1; min-width: 0; } .bv-bilan span { display: block; font: 800 .8rem/1.15 var(--f-texte); color: #4a3d2e; } .bv-bilan small { display: block; font: 700 .68rem/1.15 var(--f-texte); color: #6b5a48; }
+.bv-bilan b { flex: none; white-space: nowrap; font: 400 1.35rem/1 var(--f-titre); }
+@media (max-width: 520px) { .bv-pied { flex-wrap: wrap; } .bv-bilan { flex-basis: 100%; } .bv-pied .btn { margin-left: auto; } } .bv-bilan.plus { background: #e9f6dc; } .bv-bilan.plus b { color: #3f8a22; } .bv-bilan.moins { background: #fde3df; } .bv-bilan.moins b { color: #c0392b; }
 @keyframes pouls { to { transform: translateX(-50%) scale(1.05); } } /* (l'ancienne annonce de la simu : la carte ne pulse plus en entier, seul le compte a rebours) */
 .hud.en-combat .actions, .hud.en-combat .commis, .hud.en-combat .aide, .hud.en-combat #bulles, .hud.en-combat .bandeau { display: none !important; }
 @media (max-width: 720px) { .combat-perso .pvb { width: 100px; } .combat-sort .rond { width: 70px; height: 70px; font-size: .78rem; } .hud.en-combat .toasts { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
@@ -5248,7 +5249,7 @@ function finVague(gagne, fuite) {
     /* « il faudrait aussi indiquer combien on a gagne / perdu au total sur cette attaque » (Mathieu, 13/10/2026) : la prime et les kamas trouves, moins la valeur
        des recoltes volees au prix de l'HDV (les recoltes reprises reviennent dans la grange : elles ne comptent pas) */
     const bilan = prime + ((c.lootV && c.lootV.kamas) || 0) - vPerdu;
-    const pied = '<div class="bv-pied"><div class="bv-bilan ' + (bilan >= 0 ? 'plus' : 'moins') + '"><img src="assets/icones/kama.png?v=' + VERSION_MODELES + '" alt=""><div><span>Bilan de l\'attaque</span><b>' + (bilan >= 0 ? '+' : '−') + fmt(Math.abs(bilan)) + ' kamas</b>' + (vPerdu ? '<small>récoltes volées au prix de l\'HDV</small>' : '') + '</div></div><button class="btn kamas" data-fermer>Retour à la ferme</button></div>';
+    const pied = '<div class="bv-pied"><div class="bv-bilan ' + (bilan >= 0 ? 'plus' : 'moins') + '"><img src="assets/icones/kama.png?v=' + VERSION_MODELES + '" alt=""><div class="bv-txt"><span>Bilan de l\'attaque</span>' + (vPerdu ? '<small>vols au prix de l\'HDV</small>' : '') + '</div><b>' + (bilan >= 0 ? '+' : '−') + fmt(Math.abs(bilan)) + ' kamas</b></div><button class="btn kamas" data-fermer>Retour à la ferme</button></div>';
     ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + pied); memoriserCombat();
     rendreHaut(); rendreGrange(); sauver(); return;
   }
