@@ -75,14 +75,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .xp i { display: block; width: 0; height: 100%; background: linear-gradient(180deg, #ffd86b, var(--or)); transition: width .4s; }
 .xp em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .62rem/1 var(--f-texte); font-style: normal; color: var(--encre); text-shadow: 0 0 2px #fffaf0, 0 0 2px #fffaf0; white-space: nowrap; }
 .xp.gagne { animation: xpEclat .6s ease-out; }
-.vie-bas { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); width: min(380px, 62%); display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 7px; background: var(--papier); border: 3px solid var(--bord); border-radius: 999px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; pointer-events: auto; font: inherit; color: inherit; } /* (la vie, toujours visible, juste au-dessus de la barre d'actions : 13/10/2026) */
+.vie-ligne { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); width: min(430px, 70%); display: flex; align-items: stretch; gap: 6px; pointer-events: none; } /* (la vie et, juste a droite, le bouton des pots : « a cote de la barre de vie un bouton potion », Mathieu, 13/10/2026) */
+.vie-ligne > * { pointer-events: auto; }
+.vie-bas { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 7px; background: var(--papier); border: 3px solid var(--bord); border-radius: 999px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; pointer-events: auto; font: inherit; color: inherit; } /* (la vie, toujours visible, juste au-dessus de la barre d'actions : 13/10/2026) */
 .vie-bas .coeur svg { width: 18px; height: 18px; display: block; }
 .vie-barre { position: relative; flex: 1; height: 16px; border-radius: 99px; background: #e8dcc2; border: 2px solid var(--bord); overflow: hidden; }
 .vie-barre i { display: block; height: 100%; width: 100%; background: linear-gradient(180deg, #8fe07a, var(--vert)); transition: width .4s; }
 .vie-barre em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .66rem/1 var(--f-texte); font-style: normal; color: var(--encre); text-shadow: 0 0 2px #fffaf0, 0 0 2px #fffaf0; white-space: nowrap; }
 .vie-bas.moyen .vie-barre i { background: linear-gradient(180deg, #ffd86b, var(--or)); } .vie-bas.bas .vie-barre i { background: linear-gradient(180deg, #ff9a8a, var(--rouge)); }
 .vie-bas.bas { animation: vieBasse 1.6s ease-in-out infinite; } @keyframes vieBasse { 50% { box-shadow: 0 3px 0 var(--bord), 0 0 0 3px rgba(217, 68, 58, .35); } }
-@media (max-width: 720px) { .vie-bas { left: 0; transform: none; width: calc(100% - 132px); bottom: calc(100% + 6px); padding: 2px 8px 2px 5px; } .vie-barre { height: 14px; } } /* (au telephone, les stocks d'eau et de fleches sont deja au-dessus, a droite) */ /* un petit eclat a chaque gain d'experience */
+.b-pots { position: relative; flex: none; width: 46px; display: grid; place-items: center; padding: 0; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; }
+.b-pots img { width: 30px; height: 30px; object-fit: contain; display: block; }
+.b-pots b { position: absolute; right: -8px; top: -9px; min-width: 19px; padding: 2px 5px; background: var(--kamas); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 800 .62rem/1 var(--f-texte); }
+.b-pots.vide img { filter: grayscale(.85) opacity(.55); } .b-pots.vide b { background: #a99a7a; }
+.b-pots.appel { animation: vieBasse 1.6s ease-in-out infinite; } /* (vie basse et des pots en reserve : le bouton appelle) */
+@media (max-width: 720px) { .vie-ligne { left: 0; transform: none; width: calc(100% - 132px); bottom: calc(100% + 6px); } .vie-bas { padding: 2px 8px 2px 5px; } .vie-barre { height: 14px; } .b-pots { width: 40px; } .b-pots img { width: 26px; height: 26px; } } /* (au telephone, les stocks d'eau et de fleches sont deja au-dessus, a droite) */ /* un petit eclat a chaque gain d'experience */
 @keyframes xpEclat { 30% { box-shadow: 0 0 0 4px rgba(242, 182, 48, .7); transform: scale(1.06); } }
 @media (max-width: 720px) { .xp { width: 96px; } .xp em { font-size: .56rem; } }
 /* la barre du bas : un panneau de bois clair, une tuile par action avec l'icone de nos modeles */
@@ -590,7 +597,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .fp-onglets { display: flex; gap: 6px; padding: 10px 14px 0; border-bottom: 3px solid var(--bord); }
 .fp-onglets button { padding: 6px 15px 5px; border: 3px solid var(--bord); border-bottom: 0; border-radius: 12px 12px 0 0; background: #efe3c6; font: 800 .84rem var(--f-texte); color: #6b5a3a; margin-bottom: -3px; cursor: pointer; }
 .fp-onglets button[aria-pressed="true"] { background: var(--papier); color: var(--encre); padding-bottom: 8px; }
-.fp-onglets em { font-style: normal; background: #e0402e; color: #fff; border-radius: 99px; font-size: .62rem; padding: 0 6px; margin-left: 5px; }
+.fp-onglets em { font-style: normal; background: var(--or); color: var(--encre); border-radius: 99px; font-size: .62rem; padding: 0 6px; margin-left: 5px; }
 .fp-corps { display: grid; grid-template-columns: 320px 1fr 320px; gap: 12px; padding: 12px 14px 14px; align-items: start; }
 .fp-sorts { padding: 8px 16px 14px; }
 .fp-sorts .art, .fp-sorts .art:has(.pic.img) { grid-template-columns: 84px 1fr auto; } .fp-sorts .art .pic.img { width: 80px; height: 80px; border-radius: 18px; } .fp-sorts .art .pic.img img { width: 78px; height: 78px; } /* (les visuels des sorts : le perso en action, assez grand pour se lire) */
@@ -648,7 +655,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .fp-case { position: relative; aspect-ratio: 1; border: 2px solid #d9c7a0; border-radius: 12px; background: #fbf5e7; display: grid; place-items: center; padding: 0; }
 .fp-case.plein { background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); border: 2.5px solid var(--bord); cursor: pointer; } .fp-case img { width: 80%; height: 80%; object-fit: contain; }
 .fp-case.verrou img { filter: grayscale(.7) opacity(.7); } .fp-case .fp-nb { position: absolute; bottom: 1px; right: 4px; font-size: .6rem; font-weight: 800; color: #6b5a3a; }
-.fp-case.nouveau::after { content: 'N'; position: absolute; top: -7px; left: -7px; width: 18px; height: 18px; border-radius: 50%; background: #e0402e; color: #fff; font: 800 .6rem/14px var(--f-texte); text-align: center; border: 2px solid var(--bord); }
+.fp-case.nouveau::after { content: 'N'; position: absolute; top: -7px; left: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--or); color: var(--encre); font: 800 .6rem/14px var(--f-texte); text-align: center; border: 2px solid var(--bord); } /* (dore, comme la legende : « le fond rouge du N j'aime pas », Mathieu, 13/10/2026) */
 .fp-legende { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 10px; font-size: .62rem; font-weight: 700; color: #8a7a5a; align-items: center; }
 .fp-legende i { position: static; display: inline-block; width: 15px; height: 15px; font-size: .55rem; line-height: 11px; margin-right: 2px; } .fp-legende .r { color: #8a5a00; } .fp-legende .l { color: #4a2f7a; }
 @media (max-width: 860px) { .fp-corps { grid-template-columns: 1fr; padding: 10px; } .fp-corps > .fp-detail { order: -1; } .fp-sac { grid-template-columns: repeat(6, 1fr); } .fp-poupee { max-width: 330px; margin: 0 auto; } .fp-xp { order: 3; flex-basis: 100%; max-width: none; } }
@@ -660,7 +667,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .btn-bestiaire { display: flex; justify-content: center; margin-top: 10px; }
 .best-note { font-size: .72rem; font-weight: 700; color: #6b5a3a; margin: 6px 0 0; } .best-verrou { font-size: .76rem; font-weight: 700; color: #8a7a5a; margin: 4px 0 2px; }
 .best-drops { margin-top: 4px; } .art.pas-eu .pic.img img { filter: grayscale(.85) opacity(.6); }
-.action .tuile b.nouveau { background: var(--rouge); }
+.action .tuile b.nouveau { background: var(--or); color: var(--encre); } /* (les nouveautes en dore, le rouge reste pour les alertes) */
 /* ---- les batiments ont des PV : une petite barre au-dessus de ceux qui ont ete touches (on la touche pour reparer) ---- */
 #bats-pv { position: absolute; inset: 0; pointer-events: none; }
 .combat-haut { z-index: 2; } /* (la barre du boss passe devant les barres de vie des batiments, 12/10/2026) */
@@ -726,7 +733,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div class="toasts" id="fil"><div class="chat" id="chat" hidden><div class="chat-tete"><b>💬 Messages</b><small>les plus récents en bas</small><button id="b-chat-fermer" aria-label="Refermer">✕</button></div><ol class="journal" id="chat-liste"></ol></div><div class="pile" id="toasts"></div><button class="b-journal" id="b-journal" aria-expanded="false">💬 Messages</button></div>
   <div class="commis" id="commis"></div>
   <nav class="actions" aria-label="Actions">
-    <button class="vie-bas" id="b-vie" data-info="Ta vie : elle ne remonte plus seule entre les vagues. Touche pour ouvrir la grange et boire un pot de gelée"><span class="coeur"></span><span class="vie-barre"><i id="vie"></i><em id="vie-txt"></em></span></button>
+    <div class="vie-ligne"><button class="vie-bas" id="b-vie" data-info="Ta vie : elle remonte doucement toute seule. Touche pour ouvrir tes pots de gelée"><span class="coeur"></span><span class="vie-barre"><i id="vie"></i><em id="vie-txt"></em></span></button><button class="b-pots" id="b-pots" data-info="Tes pots de gelée : touche pour en boire un"><img src="assets/icones/pot-petit.png" alt="Pots de gelée"><b id="pots-nb">0</b></button></div>
     <button class="action" id="b-graine"><span class="tuile"><img id="graine-ico" src="assets/icones/ble.png" alt=""><b id="graine-nb">0</b></span>Graines</button>
     <button class="action" id="b-hdv"><span class="tuile"><img src="assets/icones/etal.png" alt=""></span>HDV</button>
     <button class="action" id="b-amelio"><span class="tuile"><img src="assets/icones/marteau.png" alt=""></span>Améliorer</button>
@@ -1331,7 +1338,7 @@ function avancer(maintenant, enDirect) {
   /* « y'a plus de Tofu qui apparaissent, meme en x40 » (Mathieu, 11/10/2026) : ce qui arrive en direct (Tofus, voleurs, raids, crises) exigeait
      moins de 5 s de jeu depuis le dernier passage ; avec le temps accelere, chaque passage en fait bien plus (x40 : 20 s), donc plus rien ne venait */
   const direct = enDirect && dt < 5000 * horlogeJeu.vitesse();
-  S_.vu = maintenant;
+  S_.vu = maintenant; if (!combat) regenVie(dt);
   const ch = new Set();
   S_.cases.forEach((p) => {
     if (p.type !== 'champ' || !p.c) return;
@@ -3418,9 +3425,9 @@ function montrerAbsence() {
    une case pour se deplacer), son sort de classe se recharge, l'arbalete de la grange tire aussi.
    Gagne : kamas et experience, la vague suivante s'ouvre. Perdu : une culture saccagee et 1 h de repos avant de relancer. */
 const VAGUES_PALIER = 10, REPOS_VAGUE = 60 * MIN, RECHARGE_SORT = 8;
-/* LES POTS DE GELEE (13/10/2026, idee de Mathieu) : la vie ne remonte plus toute seule entre les vagues (S_.pv garde ce qui reste de la precedente ; absent :
-   vie pleine). On se soigne avec des pots, achetes a l'HDV (categorie Gelees) et ranges dans la grange, bus depuis la grange ou depuis la fenetre des vagues,
-   jamais en combat. Le filet de securite : 3 petits pots au depart, et apres une defaite le perso revient a 30 % de vie. Les pots de la Geliere viendront ensuite.
+/* LES POTS DE GELEE (13/10/2026, idee de Mathieu) : la vie ne remonte plus d'un coup entre les vagues (S_.pv garde ce qui reste de la precedente ; absent :
+   vie pleine). On se soigne avec des pots, achetes a l'HDV (categorie Gelees), bus depuis leur fenetre (le bouton potion a cote de la vie, ou en touchant la vie :
+   « j'aime pas que ce soit associe a la grange », Mathieu) ou depuis la fenetre des vagues, jamais en combat. Sans pot, on attend : la vie remonte doucement (REGEN_VIE). Le filet de securite : 3 petits pots au depart, et apres une defaite le perso revient a 30 % de vie. Les pots de la Geliere viendront ensuite.
    Prix : un multiple du niveau (24 par niveau pour le petit pot). Triples le 13/10/2026 : « il faut encore augmenter, c'est trop facile de faire des sous ; au pire ca
    les ralentit, ils doivent farmer des kamas avec les recoltes pour repartir en vague, c'est ca l'idee » (Mathieu) : soigner une vague coute environ la moitie de ce qu'elle rapporte. Icones : la fiole carree (assets/icones/pot-*.png) */
 const POTS = {
@@ -3429,6 +3436,12 @@ const POTS = {
   menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % par seconde pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' }
 };
 const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01;
+/* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
+   1 % de la vie max toutes les 5 min de jeu (15 s au temps normal), soit environ 17 min pour repartir de 30 % a plein ; un petit pot fait gagner 6 min.
+   Hors combat seulement. Sans toi (pause, absence), elle remonte au meme rythme, pas ralentie comme les cultures : attendre reste attendre. */
+const REGEN_VIE = 0.01, REGEN_PAS = 5 * MIN;
+function regenVie(dt) { if (!S_ || S_.pv == null || combat || !S_.perso || !(dt > 0)) return; const max = statsPerso().pvMax; S_.pv = Math.min(max, S_.pv + max * REGEN_VIE * dt / REGEN_PAS); if (S_.pv >= max) S_.pv = null; }
+const totalPots = () => POTS_HDV.reduce((t, k) => t + ((S_.pots && S_.pots[k]) || 0), 0);
 const prixPot = (t) => Math.max(10, POTS[t].prix * niveau(S_.xp));
 const vieActuelle = () => { const max = statsPerso().pvMax; return S_.pv == null ? max : Math.max(0, Math.min(max, S_.pv)); };
 const menthePrete = () => { const r = S_.menthe ? REGEN_MENTHE : 0; S_.menthe = false; return r; }; /* (la Menthe bue avant la vague : elle soigne pendant celle-ci) */
@@ -3440,9 +3453,9 @@ function boirePot(t) {
   S_.pots[t]--; S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; compter('pots');
   toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant la vague.' : '.'), 'or');
   rendreGrange(); rendreHaut(); sauver();
-  if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'grange') ouvrirGrange(); else if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
+  if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'pots') ouvrirPots(); else if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
 }
-/* l'alerte de la fenetre des vagues (« ok », Mathieu) : avec combien de vie tu pars, et les pots de ta grange */
+/* l'alerte de la fenetre des vagues (« ok », Mathieu) : avec combien de vie tu pars, et tes pots */
 /* la pastille de vie du haut, toujours visible (« il faudrait la voir en tout temps », Mathieu, 13/10/2026) ; en combat, elle suit la vie du combat */
 function majVieHaut() {
   const b = $('b-vie'); if (!b || !S_ || !S_.perso) return; const max = combat ? combat.pvMax : statsPerso().pvMax, pv = combat ? Math.max(0, combat.pv) : vieActuelle(), pc = Math.round(100 * pv / max);
@@ -3450,21 +3463,25 @@ function majVieHaut() {
   const w = pc + '%'; if (b._w !== w) { b._w = w; $('vie').style.width = w; }
   const t = Math.ceil(pv) + ' / ' + max + ' PV'; if (b._t !== t) { b._t = t; $('vie-txt').textContent = t; }
   b.classList.toggle('moyen', pc < 60 && pc >= 40); b.classList.toggle('bas', pc < 40);
+  const bp = $('b-pots'), np = totalPots(), cle = np + '|' + (pc < 40 && !combat); if (bp && bp._c !== cle) { bp._c = cle; $('pots-nb').textContent = np; bp.classList.toggle('vide', !np); bp.classList.toggle('appel', np > 0 && pc < 40 && !combat); }
 }
 function blocVie() {
   const max = statsPerso().pvMax, pv = vieActuelle(); S_.pots = S_.pots || {}; if (pv >= max && !S_.menthe) return '';
   const pc = Math.round(100 * pv / max), dispo = POTS_HDV.filter((t) => S_.pots[t] > 0);
   const boutons = dispo.length ? dispo.map((t) => '<button class="btn mini-pot" data-boire="' + t + '" data-info="' + POTS[t].nom + ' : ' + POTS[t].effet + '"><img src="assets/icones/pot-' + t + '.png?v=' + VERSION_MODELES + '" alt="' + POTS[t].nom + '"><span>' + S_.pots[t] + '</span></button>').join('')
     : '<button class="btn kamas" data-hdv-cat="gelees">Acheter des pots</button>';
-  return '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (pv >= max ? 'Ta vie est pleine' : 'Tu pars avec ' + pc + ' % de vie') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.round(pv) + ' / ' + max + ' PV. Ta vie ne remonte plus seule entre les vagues. ' +
-    (S_.menthe ? 'La Menthe te soignera pendant la vague.' : dispo.length ? 'Bois un pot de ta grange :' : 'Tu n\'as plus de pot.') + '</small></div><div class="va-pots">' + boutons + '</div></div>';
+  return '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (pv >= max ? 'Ta vie est pleine' : 'Tu pars avec ' + pc + ' % de vie') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.round(pv) + ' / ' + max + ' PV. Elle remonte doucement toute seule, un pot va plus vite. ' +
+    (S_.menthe ? 'La Menthe te soignera pendant la vague.' : dispo.length ? 'Bois un pot :' : 'Tu n\'as plus de pot.') + '</small></div><div class="va-pots">' + boutons + '</div></div>';
 }
-/* la grange : la section des pots, avec la vie pour savoir lequel boire */
-function sectionPots() {
-  const max = statsPerso().pvMax, pv = vieActuelle(); S_.pots = S_.pots || {}; const types = Object.keys(POTS).filter((t) => S_.pots[t] > 0);
-  return '<div class="hdv-section">Pots de gelée</div><p class="pots-vie">Ta vie : <b>' + Math.round(pv) + ' / ' + max + ' PV</b> (' + Math.round(100 * pv / max) + ' %). Elle ne remonte plus seule entre les vagues.' + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + '</p>' +
-    (types.length ? types.map((t) => '<div class="art">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + S_.pots[t] + '</b><div class="puces"><span class="puce bonne">' + POTS[t].effet + '</span></div></div><div class="act"><button class="btn kamas" data-boire="' + t + '"' + ((pv >= max && !POTS[t].menthe) || (POTS[t].menthe && S_.menthe) ? ' disabled' : '') + '>Boire</button></div></div>').join('')
-      : '<p class="pots-vie">Plus aucun pot. <button class="btn discret mini" data-hdv-cat="gelees">En acheter à l\'HDV</button></p>');
+/* LA FENETRE DES POTS : la vie, le temps qu'il faut pour qu'elle remonte seule, et chaque pot (a boire, ou a acheter s'il n'y en a plus) */
+function ouvrirPots() {
+  const max = statsPerso().pvMax, pv = vieActuelle(), pc = Math.round(100 * pv / max), plein = pv >= max; S_.pots = S_.pots || {};
+  const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : 1 % toutes les ' + dureeLisible(REGEN_PAS) + ', pleine dans ' + dureeLisible((max - pv) / (max * REGEN_VIE) * REGEN_PAS) + '. Un pot fait gagner ce temps.';
+  const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + '</small></div></div>';
+  const lignes = POTS_HDV.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe) || (POTS[t].menthe && S_.menthe);
+    return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + POTS[t].effet + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +
+      (n ? '<button class="btn kamas" data-boire="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button>' : '<button class="btn discret" data-hdv-cat="gelees">Acheter</button>') + '</div></div>'; }).join('');
+  ouvrirModale('pots', entete('Pots de gelée') + tete + lignes + '<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn kamas" data-hdv-cat="gelees">Acheter des pots à l\'HDV</button></div>');
 }
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;
    l'Osamodas vise ou poser son Bouftou, qui retombe en frappant autour de lui, au lieu d'un Bouftou qui sortait tout seul et restait en permanence */
@@ -5041,7 +5058,7 @@ function ouvrirHdv0(onglet) {
         '<div class="act"><small>' + (plein ? 'Enclos plein' : S_.bouftousAchetes ? 'à l\'unité' : 'le premier à prix doux') + '</small><button class="btn kamas" data-bouftou' + (plein || S_.kamas < prixBouftou() ? ' disabled' : '') + '>Acheter ' + fmt(prixBouftou()) + ' ' + KAMA + '</button>' + (plein ? '' : manque(prixBouftou())) + '</div></div>';
     } else if (cat === 'gelees') {
       S_.pots = S_.pots || {}; const pv = vieActuelle(), max = statsPerso().pvMax;
-      corps = '<p class="hdv-aide">Ta vie ne remonte plus seule entre les vagues : un pot de gelée te soigne. Ils se rangent dans ta grange, d\'où tu les bois, ou depuis la fenêtre des vagues. Ta vie : ' + Math.round(100 * pv / max) + ' %.</p>' +
+      corps = '<p class="hdv-aide">Ta vie remonte doucement toute seule, un pot de gelée la remonte d\'un coup. Tu les bois avec le bouton potion, à côté de ta vie, ou depuis la fenêtre des vagues. Ta vie : ' + Math.round(100 * pv / max) + ' %.</p>' +
         POTS_HDV.map((t) => { const P = POTS[t], o = [[1, '×1'], [5, '×5']], n = qteDe('pot:' + t, o), pr = prixPot(t);
           return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + '</b><div class="puces"><span class="puce bonne">' + P.effet + '</span><span class="puce">' + (S_.pots[t] || 0) + ' en grange</span></div><div class="desc">' + P.desc + '</div></div>' +
             '<div class="act"><small>' + fmt(pr) + ' ' + KAMA + ' le pot</small>' + segQte('pot:' + t, o) + '<button class="btn kamas" data-pot-achat="' + t + '" data-n="' + n + '"' + (S_.kamas >= n * pr ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * pr) + ' ' + KAMA + '</button>' + manque(n * pr) + '</div></div>'; }).join('');
@@ -5105,7 +5122,7 @@ function ouvrirGrange() {
   const sac = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && obj(k)).sort((x, y) => obj(y).niv - obj(x).niv), portes = Object.values(S_.equip).filter((k) => obj(k));
   const butinH = '<div class="hdv-section">Butin des vagues</div>' + (sac.length ? sac.map((k) => '<div class="art">' + icoObjet(k) + '<div><b>' + obj(k).nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsObjet(obj(k)) + '<span class="puce">niveau ' + obj(k).niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-perso-slot="' + obj(k).emp + '">Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>').join('') : '<p style="font-size:.78rem;font-weight:600;margin:4px 0">Rien pour l\'instant : les monstres des vagues lâchent parfois une pièce d\'équipement, chaque boss en lâche une.</p>') +
     (portes.length ? '<p style="font-size:.74rem;font-weight:700;margin:6px 0 0">Porté : ' + portes.map((k) => obj(k).nom).join(', ') + '. <button class="btn discret mini" data-perso-slot="">Fiche du perso</button></p>' : '');
-  ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + sectionPots() + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
+  ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b>' + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b>Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
 }
 const SORTS = {
   iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Bond du Iop', 'Tu vises où il saute (jusqu\'à ' + PORTEE_BOND + ' cases) : en retombant, 3 fois ses dégâts sur le monstre le plus proche, 1,5 fois tout autour, et chaque monstre touché lui rend 3 % de sa vie. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins.']],
@@ -5289,7 +5306,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.graines) ACTIONS.acheterGraines(b.dataset.graines, parseInt(b.dataset.n, 10));
   else if (b.dataset.potAchat) ACTIONS.acheterPots(b.dataset.potAchat, parseInt(b.dataset.n, 10));
   else if (b.dataset.boire) boirePot(b.dataset.boire);
-  else if (b.id === 'b-vie') { if (combat) toast('Les pots de gelée se boivent entre les vagues.'); else ouvrirGrange(); }
+  else if (b.id === 'b-vie' || b.id === 'b-pots') { if (combat) toast('Les pots de gelée se boivent entre les vagues.'); else ouvrirPots(); }
   else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));
   else if (b.dataset.fleches) ACTIONS.acheterFleches(parseInt(b.dataset.fleches, 10));
   else if (b.hasAttribute('data-recharger')) ACTIONS.recharger();
@@ -5695,7 +5712,7 @@ function fermeSansToi(maintenant, d) {
   if (raidAnnonce) raidAnnonce.fin += garde;
   const de = S_.vu, pas = Math.max(1000, garde / 300);
   for (let t = de + pas; ; t += pas) { const tt = Math.min(t, maintenant); avancer(tt, false); if (tt >= maintenant) break; }
-  S_.vu = maintenant;
+  S_.vu = maintenant; regenVie(Math.min(d, ABSENCE_MAX) - garde); /* (la vie remonte au rythme normal, pas ralentie : le reste des 10 h) */
   S_.cases.forEach((p) => rendreCase(p.id)); rendreEnclosBulles(); rendreHaut(); sauver();
   const apres = photoFerme(), a = { duree: d, murs: Math.max(0, apres.murs - avant.murs), laine: Math.max(0, apres.laine - avant.laine), plumes: Math.max(0, apres.plumes - avant.plumes) };
   if (d >= 2 * 60000 && (a.murs || a.laine || a.plumes)) { absence = a; setTimeout(montrerAbsence, 600); }
@@ -5704,6 +5721,7 @@ function tick() {
   if (enAccueil || enPause || document.hidden) return; /* en pause */
   { const m = Date.now(); if (Math.abs(m - S_.vu) > 4000 * horlogeJeu.vitesse()) reprendreTemps(m); } /* (une boucle toutes les 500 ms : un trou plus long, c'est une pause) */
   const ch = avancer(Date.now(), !combat); /* pendant une vague : pas de Tofu nuisible ni de voleur en plus */
+  if (!combat) majVieHaut(); /* (la vie qui remonte doucement, a vue d'oeil) */
   ch.cases.forEach((id) => rendreCase(id));
   if (ch.enclos) rendreEnclosBulles();
   if (ch.sauvage) rendreSauvage();
@@ -5853,9 +5871,9 @@ const LECONS = [
   { id: 'repas', titre: 'Les repas', ico: 'cawotte', resume: 'Manger avant une vague.', quand: () => CULTURES.some((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)),
     pages: [() => `Avant une vague, ton perso peut <em>manger</em> une récolte de ta grange : la <em>Cawotte</em> donne +20 % de dégâts, la <em>Fraise</em> +30 % de prospection (plus de butin), pendant la vague suivante.`,
       () => `Ça se passe dans la fenêtre <em>Vagues</em>, partie « Avant la bataille : manger ». Pense-y avant un boss !`] },
-  { id: 'vie', titre: 'Ta vie et les pots', ico: 'pot-petit', resume: 'La vie ne remonte plus seule : les pots de gelée.', fenetre: 'vagues', quand: () => S_.pv != null && S_.pv < statsPerso().pvMax,
-    pages: [() => `Ta <em>vie</em> ne remonte plus toute seule entre les vagues : tu repars avec ce qui te reste de la précédente. Pour te soigner, bois un <em>pot de gelée</em>.`,
-      () => `Les pots s'achètent à l'HDV (catégorie <em>Gelées</em>) et se rangent dans ta grange. Tu les bois depuis la grange, ou juste avant de lancer une vague. Le pot de <em>Menthe</em> continue de te soigner pendant la vague.`,
+  { id: 'vie', titre: 'Ta vie et les pots', ico: 'pot-petit', resume: 'La vie remonte doucement : les pots de gelée vont plus vite.', fenetre: 'vagues', quand: () => S_.pv != null && S_.pv < statsPerso().pvMax,
+    pages: [() => `Ta <em>vie</em> ne remonte plus d'un coup entre les vagues : tu repars avec ce qui te reste de la précédente. Elle remonte doucement toute seule (1 % toutes les ${dureeLisible(REGEN_PAS)}), ou d'un coup avec un <em>pot de gelée</em>.`,
+      () => `Les pots s'achètent à l'HDV (catégorie <em>Gelées</em>). Tu les bois avec le <em>bouton potion</em>, juste à côté de ta vie (ou en touchant ta vie), ou depuis la fenêtre des vagues. Le pot de <em>Menthe</em> continue de te soigner pendant la vague.`,
       () => `Après une défaite, ton perso se repose et revient à ${Math.round(VIE_APRES_DEFAITE * 100)} % de vie au moins. Pépito t'a laissé ${POTS_DEPART} petits pots pour commencer.`] },
   { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les raids sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
     pages: [() => `Des <em>voleurs de VSA</em> arrivent ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par le bord.`,
