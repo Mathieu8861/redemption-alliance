@@ -3781,9 +3781,10 @@ const POTS = {
 const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 %, puis soin en vague', fraise: '+40 % de vie', citron: '+25 %, et tu cours plus vite', royale: 'toute ta vie' };
 const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01;
 /* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
-   1 % de la vie max toutes les 5 min de jeu (15 s au temps normal), soit environ 17 min pour repartir de 30 % a plein ; un petit pot fait gagner 6 min.
+   1 % de la vie max par vraie minute au temps normal (« une minute en x20, pas une minute /20 », Mathieu, 13/10/2026 : c'etait 15 s, trop rapide),
+   soit 70 min pour repartir de 30 % a plein ; un petit pot fait gagner 25 min.
    Hors combat seulement. Sans toi (pause, absence), elle remonte au meme rythme, pas ralentie comme les cultures : attendre reste attendre. */
-const REGEN_VIE = 0.01, REGEN_PAS = 5 * MIN;
+const REGEN_VIE = 0.01, REGEN_PAS = RYTHME * MIN;
 function regenVie(dt) { if (!S_ || S_.pv == null || combat || !S_.perso || !(dt > 0)) return; const max = statsPerso().pvMax; S_.pv = Math.min(max, S_.pv + max * REGEN_VIE * dt / REGEN_PAS); if (S_.pv >= max) S_.pv = null; }
 const totalPots = () => Object.keys(POTS).reduce((t, k) => t + ((S_.pots && S_.pots[k]) || 0), 0);
 const citronPret = () => { const r = !!S_.citron; S_.citron = false; return r; }; /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
@@ -3822,7 +3823,7 @@ function blocVie() {
 /* LA FENETRE DES POTS : la vie, le temps qu'il faut pour qu'elle remonte seule, et chaque pot (a boire, ou a acheter s'il n'y en a plus) */
 function ouvrirPots() {
   const max = statsPerso().pvMax, pv = vieActuelle(), pc = Math.round(100 * pv / max), plein = pv >= max; S_.pots = S_.pots || {};
-  const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : 1 % toutes les ' + dureeLisible(REGEN_PAS) + ', pleine dans ' + dureeLisible((max - pv) / (max * REGEN_VIE) * REGEN_PAS) + '. Un pot fait gagner ce temps.';
+  const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : 1 % ' + (dureeLisible(REGEN_PAS) === '1 min' ? 'par minute' : 'toutes les ' + dureeLisible(REGEN_PAS)) + ', pleine dans ' + dureeLisible((max - pv) / (max * REGEN_VIE) * REGEN_PAS) + '. Un pot fait gagner ce temps.';
   const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
   const types = POTS_HDV.concat(Object.keys(POTS).filter((t) => POTS[t].geliere && ((S_.pots[t] || 0) > 0 || niv('geliere'))));
   const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron) || (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron);
