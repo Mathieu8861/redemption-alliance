@@ -5834,9 +5834,10 @@ const LECONS = [
       () => `Déplacer ne coûte rien : essaie ! Par exemple la grange près des champs, et les tours là où les monstres arrivent.`] },
   { id: 'combat', titre: 'Ta première vague', ico: 'bouftou', resume: 'Cibler, se déplacer, ton sort, perdre ou fuir.', fenetre: 'vagues', quand: () => S_.vague.num === 1,
     pages: [() => `Une <em>vague</em>, ce sont des monstres qui grimpent par les bords de l'île. Ils s'en prennent à toi, et certains à tes bâtiments. Gagne-la pour des kamas, de l'XP et parfois de l'équipement. Elle n'arrive que quand tu la lances.`,
+      () => `Les monstres apparaissent <em>au hasard</em> : chacun sort d'un endroit du bord tiré au sort, différent à chaque vague. Tu ne sais jamais d'où ils viendront, alors garde un œil sur tout le tour de ta ferme, et place tes tours pour couvrir plusieurs côtés.`,
       () => `Pendant la vague, ${cliquerQ('un monstre')} pour le <em>cibler</em> : ton perso y va et frappe tout seul. ${cliquerQ('une case').replace(/^./, (x) => x.toUpperCase())} pour te déplacer.`,
       () => `En bas à droite, ton <em>sort</em> : ${(SORT_LECON[classeDe()] || SORT_LECON.iop)()}`,
-      () => `Si tes PV tombent à zéro, ton perso tombe : pendant 12 s, les monstres saccagent tes bâtiments (tes tours et ton arbalète tirent toujours), puis ils repartent avec ton plus beau champ, et ton perso se repose 1 h. Le bouton <em>Fuir</em> arrête la vague sans repos, mais ils saccagent quand même un champ.`] },
+      () => `Si tes PV tombent à zéro, ton perso tombe : pendant 12 s, les monstres saccagent tes bâtiments (tes tours et ton arbalète tirent toujours), puis ils repartent avec ton plus beau champ, et ton perso se repose ${dureeLisible(REPOS_VAGUE)} et revient à ${Math.round(VIE_APRES_DEFAITE * 100)} % de vie. Le bouton <em>Fuir</em> arrête la vague sans repos, mais ils saccagent quand même un champ.`] },
   { id: 'victoire', titre: 'Après la victoire', ico: 'kama', resume: 'La préparation, le niveau requis, les réparations.', quand: () => S_.vague.num >= 2,
     pages: [() => `Bravo ! La vague suivante <em>se prépare</em> : quelques minutes au début, plus longtemps aux paliers suivants. Il faut aussi le <em>niveau</em> qu'elle demande : le numéro de la vague moins 2.`,
       () => `Les bâtiments frappés gardent leurs dégâts : ${toucherQ('un bâtiment abîmé')} pour le réparer, ou le bouton <em>Tout réparer</em> en fin de vague. Un bâtiment en ruine ne sert plus à rien tant que tu ne l'as pas reconstruit.`,
@@ -5967,7 +5968,7 @@ const ETAPES_TUTO = [
     etiq: () => modaleOuverte === 'hdv' ? (document.querySelector('[data-hdv-onglet="vendre"][aria-pressed="false"]') ? 'Vendre' : 'Ici') : 'HDV',
     texte: () => 'Ta récolte est à la grange. Vends-la à l\'<em>HDV</em> : le bouton en bas, onglet <em>Vendre</em>. Tu y rachètes aussi tes graines.', compteur: 'ventes' },
   { id: 'fin', anneaux: () => [$('objectif'), $('b-vagues')], suivant: 'À toi de jouer !',
-    texte: () => 'C\'est tout pour les bases ! Mes <em>objectifs</em>, en haut à gauche, te guident pour la suite. Et quand tu te sens prêt, le bouton <em>Vagues</em> : des monstres attaquent, défends la ferme pour gagner kamas et équipement.' }
+    texte: () => 'C\'est tout pour les bases ! Mes <em>objectifs</em>, en haut à gauche, te guident pour la suite. Et quand tu te sens prêt, le bouton <em>Vagues</em> : des monstres grimpent par les bords de l\'île, à des endroits tirés au hasard. Défends la ferme pour gagner kamas et équipement.' }
 ];
 function demarrerTuto(depuis, revoir) {
   if (!S_ || !S_.perso || combat) return; tuto.revoir = !!revoir;
