@@ -713,7 +713,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <button class="action" id="b-grange"><span class="tuile"><img src="assets/icones/grange.png" alt=""></span>Grange</button>
     <button class="action" id="b-amenager"><span class="tuile"><img src="assets/icones/pelle.png" alt=""></span>Aménager</button>
     <button class="action" id="b-perso"><span class="tuile"><img id="perso-ico" src="assets/icones/iop.png" alt=""><b id="perso-nb" class="nouveau" hidden>0</b></span>Perso</button>
-    <button class="action" id="b-vagues"><span class="tuile"><img src="assets/icones/chafer.png" alt=""><b id="vague-nb">1</b></span>Vagues</button>
+    <button class="action" id="b-vagues"><span class="tuile"><img src="assets/icones/bouftou-royal.png" alt=""><b id="vague-nb">1</b></span>Vagues</button>
     <div class="stocks"><span class="stock" id="eau" data-info="Arrosoir">10/10</span><button class="stock" id="fleches-stock" hidden data-info="Flèches en réserve">0</button></div>
   </nav>
   <div class="raid-annonce" id="raid-annonce" hidden></div>
@@ -1032,7 +1032,13 @@ const DERIVE = { /* les reglages d'avant le 11/10, deduits du niveau du batiment
   abreuvoir: () => (nivBat('enclos') >= 2 ? 1 : 0), mangeoire: () => (nivBat('enclos') >= 3 ? 1 : 0), cisailles: () => [0, 0, 1, 2, 3][nivBat('enclos') - 1]
 };
 const niv = (id) => (DERIVE[id] ? DERIVE[id]() : (S_.amelio[id] || 0));
-const seuil = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7)));
+/* « l'xp est pas progressif au-dessus du niveau 50, enfin trop easy » (Moon, 13/10/2026 ; verifie en base : du niveau 50 au 56 en deux vagues apres Crocabulia,
+   l'XP de la ferme et du boss arrivant d'un coup quand le plafond du 50 saute, pour des niveaux qui ne coutaient guere plus qu'au 45). La Phase 2 coute plus cher :
+   chaque niveau au-dela du 50 coute la marche de l'ancienne courbe, multipliee par 1 + 0,3 par niveau au-dessus de 50 (x1,3 au 51, x2,5 au 55, x4 au 60).
+   Rien ne change jusqu'au 50. Les parties deja au-dessus gardent leur niveau (convertirXp). */
+const seuilAncien = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7)));
+const SEUILS = (() => { const t = []; for (let n = 0; n <= 101; n++) t[n] = n <= 50 ? seuilAncien(n) : t[n - 1] + Math.round((seuilAncien(n) - seuilAncien(n - 1)) * (1 + 0.3 * (n - 50))); return t; })();
+const seuil = (n) => (n <= 1 ? 0 : SEUILS[Math.min(n, 101)]);
 const NIV_MAX = 60; /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
 const niveau = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) n++; return n; };
 const capNiveau = () => (S_ && S_.vague && S_.vague.num > 50 ? NIV_MAX : 50); /* Phase 1 : niveau 50 au plus tant que Crocabulia (vague 50) n'est pas battue ; puis le palier des Wabbits ouvre jusqu'au 60 (plus tard, un palier de 10 niveaux a la fois jusqu'au 100) */
@@ -1074,7 +1080,7 @@ function etatInitial() {
   Object.assign(champs[0], { c: 'ble', pousse: 13 * MIN, arrose: true });
   Object.assign(champs[1], { c: 'ble', pousse: 3 * MIN, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: 60000 / MIN, cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: 60000 / MIN, courbeXp: 2, cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0
   };
@@ -1092,10 +1098,16 @@ function convertirNiveaux(e) {
   ['murs', 'cadenas', 'arbDegats', 'arbCadence', 'arbChargeur', 'arbPortee', 'reservoir', 'poulie', 'arrosoir', 'abreuvoir', 'mangeoire', 'cisailles', 'charrette', 'remise', 'tours', 'toursPortee', 'toursPv'].forEach((id) => { delete a[id]; });
   e.niveauxBat = 1;
 }
-function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if (!e.niveauxBat && (e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; convertirNiveaux(e); convertirRythme(e); return e; } } catch (err) { /* rien */ } return null; }
+function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if (!e.niveauxBat && (e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; convertirNiveaux(e); convertirRythme(e); convertirXp(e); return e; } } catch (err) { /* rien */ } return null; }
 /* les parties d'avant le rythme fixe (13/10/2026) : leurs durees en cours etaient comptees a l'ancienne minute de 60 s. On les ramene au nouveau rythme :
    chaque date, passee ou a venir, se rapproche d'autant de l'instant de la sauvegarde, et les compteurs (pousse, laine, croissance, plumes) rapetissent
    pareil. Une Fraise a moitie poussee reste a moitie poussee, une vague qui se preparait encore 3 h attend 9 min. */
+/* la nouvelle courbe d'XP (13/10/2026) : un joueur deja au-dessus du niveau 50 garde son niveau, et sa progression dans ce niveau */
+function convertirXp(e) {
+  if (e.courbeXp >= 2 || typeof e.xp !== 'number') return; e.courbeXp = 2; if (e.xp < seuilAncien(51)) return;
+  let L = 1; while (L < 100 && e.xp >= seuilAncien(L + 1)) L++;
+  const f = (e.xp - seuilAncien(L)) / Math.max(1, seuilAncien(L + 1) - seuilAncien(L)); e.xp = Math.round(seuil(L) + f * (seuil(L + 1) - seuil(L)));
+}
 function convertirRythme(e) {
   const r = 60000 / MIN, k = r / (e.rythme || 1); if (Math.abs(k - 1) < 1e-9) return; const ref = e.vu || Date.now();
   const dates = (o) => { for (const c in o) { const v = o[c]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[c] = Math.round(ref + (v - ref) / k); } else if (v && typeof v === 'object') dates(v); } };
@@ -2923,6 +2935,11 @@ function errer(dt, s) {
     const b = bullesDyn.get('b' + k); if (b) b.dataset.point = JSON.stringify([e.x, 1.6, e.z]);
   });
 }
+/* un Bouftou des vagues : le modele de la ferme, dans un groupe (le combat reecrit l'echelle du monstre a chaque image : celle du Bouftou reste dedans) */
+function fabriquerBouftou() {
+  const b = fusionnerBouftou(creerBouftou(T, maille, {})); b.scale.setScalar(0.55); const g = new T.Group(); g.add(b); g.updateMatrixWorld(true);
+  const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; return g;
+}
 function rendreBouftous() {
   bouftousMesh.forEach((b) => scene.remove(b)); bouftousMesh = [];
   S_.bouftous.forEach((b, k) => {
@@ -3461,6 +3478,9 @@ const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length;
 const palierDe = (n) => Math.min(PALIERS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, VAGUES_TOTAL);
 const MONSTRES = {
   tofu: { nom: 'Tofu', modele: 'tofu', icone: 'tofu', desc: 'très rapide, file picorer tes cultures', grignote: true, pv: (n) => 12 + 5 * n, deg: (n) => 1 + Math.floor(n / 4), cadence: 1.2, vitesse: 4.6, portee: 0.95, ombre: 0.9 },
+  /* « les vagues 1 a 10, des Tofus et des Chafers, le boss un Bouftou Royal ? » (Mathieu, 13/10/2026) : le palier d'Amakna, ce sont les Bouftous du Royal.
+     Le Bouftou des vagues est celui de la ferme (bouftou.js, pattes articulees), fabrique neuf a chaque apparition ; ses chiffres sont ceux du Chafer d'avant */
+  bouftou: { nom: 'Bouftou', modele: 'chafer', fabrique: () => fabriquerBouftou(), icone: 'bouftou', desc: 'fonce tête baissée, s\'en prend aussi aux bâtiments', casse: 0.4, pv: (n) => 30 + 10 * n, deg: (n) => 3 + Math.floor(n * 0.7), cadence: 1.4, vitesse: 1.5, portee: 1.15, ombre: 1.4 },
   chafer: { nom: 'Chafer', modele: 'chafer', icone: 'chafer', desc: 'frappe fort, s\'en prend aussi aux bâtiments', casse: 0.4, pv: (n) => 30 + 10 * n, deg: (n) => 3 + Math.floor(n * 0.7), cadence: 1.4, vitesse: 1.5, portee: 1.15, ombre: 1.4 },
   voleurRaid: { nom: 'Voleur de VSA', modele: 'voleur', icone: 'voleur', desc: 'file vers ta grange', pv: () => Math.round(45 + 9 * forceVoleur() + 0.12 * Math.max(0, forceVoleur() - 20) ** 2 + Math.max(0, forceVoleur() - 35) ** 2), deg: () => 0, cadence: 9, vitesse: 2.5, portee: 1, ombre: 1.2, vole: 1 },
   monture: { nom: 'Voleur à dos de Dragodinde', modele: 'voleurMonte', icone: 'voleur', desc: 'rapide et coriace, emporte deux fois plus', pv: () => Math.round(90 + 18 * forceVoleur() + 0.24 * Math.max(0, forceVoleur() - 20) ** 2 + 2 * Math.max(0, forceVoleur() - 35) ** 2), deg: () => 0, cadence: 9, vitesse: 3.8, portee: 1.2, ombre: 2.0, vole: 2 },
@@ -3539,8 +3559,8 @@ const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOS
 const pvMonstre = (t, n) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(pvMonstre(t, n - 1) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t].pv(n) * durete(t, n).pv * durci(t, n, 'pv') * renfort(n) * forceBoss(t, n, 0))),
   degMonstre = (t, n) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(degMonstre(t, n - 1) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t].deg(n) * durete(t, n).deg * durci(t, n, 'deg') * renfort(n) * forceBoss(t, n, 1)));
 const compoBase = (n) => {
-  if (n === VAGUES_PALIER) return [['royal', 1], ['chafer', 2], ['tofu', 3]];
-  if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['chafer', Math.ceil(n / 3)]] : []);
+  if (n === VAGUES_PALIER) return [['royal', 1], ['bouftou', 2], ['tofu', 3]];
+  if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['bouftou', Math.ceil(n / 3)]] : []);
   if (n > 5 * VAGUES_PALIER) { /* Phase 2 : l'ile des Wabbits */
     const h = n - 5 * VAGUES_PALIER;
     if (h >= VAGUES_PALIER) return [['waWabbit', 1], ['woWabbit', 1], ['wabbitSorciere', 1], ['wabbitNoir', 1], ['wabbit', 2]];
@@ -3718,7 +3738,7 @@ function apparaitre(type, pres) {
   const d = MONSTRES[type];
   const L = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), b = L.length ? hasard(L) : null;
   const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
-  const m = cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
+  const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
   const zone = new T.Mesh(new T.SphereGeometry(Math.max(0.6, d.ombre * 0.5), 8, 6), CIBLE); zone.position.y = d.ombre * 0.4; zone.userData.monstre = id; m.add(zone); /* plus facile a toucher */
   let x, z, ry, dep;
   if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case */
@@ -4009,7 +4029,7 @@ function majMonstre(mo, dt, s) {
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
-  mo.pas += v * dt * 5;
+  mo.pas += v * dt * 5; if (m.userData.pattes) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   const saut = mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
   let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; }
@@ -4747,6 +4767,7 @@ function rendreHaut() {
     f.dataset.info = S_.fleches ? 'Flèches en réserve : l\'arbalète, les tours et l\'épouvantail en tirent une par tir. Touche pour en acheter' : 'Plus de flèches : ta défense ne tire plus. Touche pour en acheter à l\'HDV'; }
   const repos = S_.vague.repos - Date.now(), fini = S_.vague.num > VAGUES_TOTAL;
   const prepaV = fini ? 0 : (S_.vague.prepa || 0) - Date.now(), attenteV = Math.max(repos, prepaV);
+  { const ic = 'assets/icones/' + PALIERS[palierDe(Math.min(S_.vague.num, VAGUES_TOTAL))].icone + '.png?v=' + VERSION_MODELES, im = $('b-vagues').querySelector('img'); if (im && im.getAttribute('src') !== ic) im.src = ic; } /* « adapte le bouton aux vagues, tous les 10 » (Mathieu, 13/10/2026) : l'embleme du palier en cours */
   $('vague-nb').textContent = attenteV > 0 ? dureeLisible(attenteV).replace(' min', 'm').replace(' s', 's') : fini ? '✓' : S_.vague.num; $('b-vagues').classList.toggle('repos', attenteV > 0);
   $('b-vagues').dataset.info = repos > 0 ? 'Ton perso se repose encore ' + dureeLisible(repos) : prepaV > 0 ? 'La vague ' + S_.vague.num + ' se prépare : ' + dureeLisible(prepaV) : fini ? 'Tous les paliers terminés' : 'La vague ' + S_.vague.num + ' (palier ' + (palierDe(S_.vague.num) + 1) + ') attend que tu la lances';
   $('mode-test').hidden = !RAPIDE;
@@ -5701,7 +5722,7 @@ const LECONS = [
     pages: [() => `Mode <em>Aménager</em> : touche une parcelle, un bâtiment, une tour, un arbre ou l'enclos pour le choisir, puis une case d'herbe libre pour l'y poser. Autant de fois que tu veux, puis <em>Terminer</em>.`,
       () => `Un bâtiment ou un arbre se pivote avec <em>Tourner</em>. Pour l'<em>enclos</em> : touche une case collée pour l'agrandir, une case de l'enclos pour la rendre, ou une case plus loin pour le déplacer en entier.`,
       () => `Déplacer ne coûte rien : essaie ! Par exemple la grange près des champs, et les tours là où les monstres arrivent.`] },
-  { id: 'combat', titre: 'Ta première vague', ico: 'chafer', resume: 'Cibler, se déplacer, ton sort, perdre ou fuir.', fenetre: 'vagues', quand: () => S_.vague.num === 1,
+  { id: 'combat', titre: 'Ta première vague', ico: 'bouftou', resume: 'Cibler, se déplacer, ton sort, perdre ou fuir.', fenetre: 'vagues', quand: () => S_.vague.num === 1,
     pages: [() => `Une <em>vague</em>, ce sont des monstres qui grimpent par les bords de l'île. Ils s'en prennent à toi, et certains à tes bâtiments. Gagne-la pour des kamas, de l'XP et parfois de l'équipement. Elle n'arrive que quand tu la lances.`,
       () => `Pendant la vague, ${cliquerQ('un monstre')} pour le <em>cibler</em> : ton perso y va et frappe tout seul. ${cliquerQ('une case').replace(/^./, (x) => x.toUpperCase())} pour te déplacer.`,
       () => `En bas à droite, ton <em>sort</em> : ${(SORT_LECON[classeDe()] || SORT_LECON.iop)()}`,
