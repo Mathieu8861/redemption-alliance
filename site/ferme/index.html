@@ -123,9 +123,9 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .bulle::after { content: ""; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--bord); }
 .bulle.or { background: var(--or); } .bulle.rouge { background: var(--rouge); color: #fff; } .bulle.eau { background: var(--eau); color: #fff; }
 .bulle.lieu { background: var(--bord); color: var(--papier); font-family: var(--f-titre); font-weight: 400; letter-spacing: .02em; }
-.bulle.vente { background: rgba(233, 238, 242, .62); border-style: dashed; border-color: rgba(59, 42, 26, .75); box-shadow: 0 3px 0 rgba(59, 42, 26, .55); backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); display: grid; justify-items: center; line-height: 1.15; padding: 4px 10px; pointer-events: none; } /* (« le texte pour l'achat des terrains cache les cases en dessous, on peut pas cliquer », Mathieu, 13/10/2026 : l'etiquette laisse passer les clics ; toucher le terrain l'achete) */
-.bulle.vente b { font: 400 .95rem/1 var(--f-titre); color: var(--kamas); }
-.bulle.vente small { font-weight: 600; font-size: .66rem; }
+.bulle.vente { background: rgba(233, 238, 242, .7); border: 2px dashed rgba(59, 42, 26, .75); border-radius: 9px; box-shadow: 0 2px 0 rgba(59, 42, 26, .5); backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); display: flex; align-items: center; gap: 5px; line-height: 1; padding: 2px 7px; pointer-events: none; } /* (une seule ligne depuis le 14/10/2026 : « terrain a vendre 17 cases, ca prend tellement de place, c'est presque l'equivalent de 6 cases », Mathieu) */ /* (« le texte pour l'achat des terrains cache les cases en dessous, on peut pas cliquer », Mathieu, 13/10/2026 : l'etiquette laisse passer les clics ; toucher le terrain l'achete) */
+.bulle.vente b { font: 400 .82rem/1 var(--f-titre); color: var(--kamas); display: flex; align-items: center; gap: 3px; } .bulle.vente b img { width: 13px; height: 13px; }
+.bulle.vente small { font-weight: 700; font-size: .62rem; }
 .bulle.vente.verrou { opacity: .8; } .bulle.vente.verrou b { color: #8a7a68; }
 #ciel { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
 #scene { position: relative; z-index: 1; }
@@ -1230,7 +1230,7 @@ function etatInitial() {
   return {
     kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: 60000 / MIN, courbeXp: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
-    amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0
+    amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1 /* (nee sur l'ile ronde : rien a convertir) */
   };
 }
 /* 11/10/2026 : les ameliorations deja achetees deviennent le niveau equivalent du batiment (on ne perd rien) */
@@ -2015,7 +2015,7 @@ const ACTIONS = {
     const t = TERRAINS[k]; if (!t || S_.terrains[t.id]) return;
     if (!aVendre(t)) { const u = prochainTerrain(); toast('Les terrains s\u2019achètent dans l\u2019ordre : d\u2019abord celui du niveau ' + u.niv + '.'); return; }
     if (!nivTerrainOk(t)) { toast('Ce terrain s\u2019achète à partir du niveau ' + t.niv + ' de Paysan.'); return; }
-    if (S_.kamas < t.prix) { toast('Ce terrain coûte ' + fmt(t.prix) + ' kamas.'); return; }
+    if (S_.kamas < t.prix) { toast('Ce terrain (' + t.cases.length + ' cases, +' + t.parcelles + ' parcelles) coûte ' + fmt(t.prix) + ' kamas.'); return; }
     S_.kamas -= t.prix; S_.terrains[t.id] = true; compter('terrains');
     t.cases.forEach(([i, j]) => { if (!caseAt(i, j)) S_.cases.push({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' }); });
     toast('Terrain défriché : ' + t.cases.length + ' cases de plus, ' + quotaParcelles() + ' parcelles possibles au total.', 'or');
@@ -2236,7 +2236,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261016b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016c'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -2256,12 +2256,35 @@ function retirerPieces(racine, nom, noms) {
   return L.length ? b.min.y : null;
 }
 const ARME_TOUR = new Set(['socle', 'pivot', 'fut', 'crosse', 'arc', 'corde', 'carreau', 'treuil']), TOFUS_DECOR = new Set(['tofu', 'aile', 'bec']);
+/* LA FUMEE DE LA CHEMINEE (14/10/2026, « on peut faire en sorte que la fumee de la cheminee ait des mouvements, comme l'eau ? que ca fasse plus naturel », Mathieu) :
+   les trois boules figees du modele sont remplacees par des bouffees qui sortent de la cheminee, montent en grossissant, partent avec le vent et s'effacent, en boucle */
+const FUMEE_FIGEE = new Set(['fumee']), FUMEE_GRANGE = [], N_BOUFFEES = 6;
+let fumeesCheminee = [];
+function fumerCheminee(bat, n) {
+  const p = FUMEE_GRANGE[n]; if (!p) return;
+  const g = new T.Group(); g.position.copy(p); bat.add(g);
+  for (let k = 0; k < N_BOUFFEES; k++) { const m = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshToonMaterial({ color: '#f4f1ea', gradientMap: grad, transparent: true, depthWrite: false })); m.castShadow = false; m.userData.k = k; g.add(m); }
+  fumeesCheminee.push(g);
+}
+function animerFumees(s) {
+  fumeesCheminee.forEach((g) => g.children.forEach((m) => {
+    const t = (s * 0.32 + m.userData.k / N_BOUFFEES) % 1, e = 1 - Math.pow(1 - t, 1.6); /* (vite a la sortie, puis elle ralentit en montant) */
+    const v = (m.userData.k * 0.618) % 1; /* (chaque bouffee a sa taille et sa derive : pas une colonne de boules toutes pareilles) */
+    m.position.set(e * (0.45 + 0.3 * v) + Math.sin(s * 1.3 + m.userData.k * 2.1) * 0.08 * t, e * (1.6 + 0.4 * v), -e * 0.18 + Math.cos(s * 1.1 + m.userData.k) * 0.07 * t);
+    m.scale.setScalar((0.11 + 0.3 * e) * (0.8 + 0.4 * v)); m.rotation.y = m.userData.k + t * 1.5;
+    m.material.opacity = Math.min(1, t / 0.06) * (1 - Math.max(0, (t - 0.45) / 0.55)) * 0.92;
+  }));
+}
 const BAS_TOUR = [0, 0, 0, 0, 0], ECH_TOUR = 0.72;
 function modelesNiveaux(G) {
   [G.tours, G['granges-niveaux'], G['puits-niveaux'], G['voliere-niveaux'], G['etal-niveaux'], G.arbaletes, G['enclos-modules']].forEach((sc) => versToon(sc, { normales: 0.01, sansContour: SC_BATI }));
   const kDe = (sc, nom, taille) => { const o = sc.getObjectByName(nom).clone(true); o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrixWorld(true); const b = new T.Box3().setFromObject(o), d = new T.Vector3(); b.getSize(d); return [taille / Math.max(d.x, d.z), b.getCenter(new T.Vector3())]; }; /* (mesure a l'origine, comme gabaritEchelle) */
   const [kg, cg] = kDe(G['granges-niveaux'], 'Grange1', 3.9), [kp, cp] = kDe(G['puits-niveaux'], 'Puits1', 1.75), [ke, ce] = kDe(G['etal-niveaux'], 'Etal1', 3.0), [kv, cv] = kDe(G['voliere-niveaux'], 'Voliere1', 1.85);
   for (let n = 1; n <= 5; n++) {
+    { const o = G['granges-niveaux'].getObjectByName('Grange' + n).clone(true); o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrixWorld(true);
+      const b = new T.Box3().setFromObject(o), pts = []; o.traverse((m) => { if (m.isMesh && nomBase(m) === 'fumee') pts.push(new T.Box3().setFromObject(m).getCenter(new T.Vector3())); });
+      pts.sort((p, q) => p.y - q.y); FUMEE_GRANGE[n] = pts.length ? new T.Vector3((pts[0].x - cg.x) * kg, (pts[0].y - b.min.y) * kg - 0.38, (pts[0].z - cg.z) * kg) : null;
+      retirerPieces(G['granges-niveaux'], 'Grange' + n, FUMEE_FIGEE); }
     MODELES['grange' + n] = gabaritEchelle(G['granges-niveaux'], 'Grange' + n, kg, cg);
     MODELES['puits' + n] = gabaritEchelle(G['puits-niveaux'], 'Puits' + n, kp, cp);
     MODELES['hdv' + n] = gabaritEchelle(G['etal-niveaux'], 'Etal' + n, ke, ce);
@@ -2341,7 +2364,7 @@ async function chargerModeles() {
   MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe() });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
   versToon(G.granges, BATI); versToon(G.puits2, BATI); versToon(G.batiments, BATI); versToon(G.objets, BATI);
-  versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('Montgolfiere'); MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
+  versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
   MODELES.grange = gabarit(G.granges, 'grangeC', 3.9);
   MODELES.puits = gabarit(G.puits2, 'puitsFace', 1.75);
   MODELES.hdv = gabarit(G.batiments, 'etal', 3.0); /* plus petit que la grange (retour de Mathieu) */
@@ -2720,10 +2743,10 @@ let batisMesh = [];
 const rotDe = (type) => ((S_.rot && S_.rot[type]) || 0) * Math.PI / 2;
 const tourne = (dx, dz, a) => [dx * Math.cos(a) + dz * Math.sin(a), -dx * Math.sin(a) + dz * Math.cos(a)]; /* un decalage, tourne avec le batiment */
 function construireBatiments() {
-  batisMesh.forEach((m) => scene.remove(m)); batisMesh = [];
+  batisMesh.forEach((m) => scene.remove(m)); batisMesh = []; fumeesCheminee = [];
   const pose = (...a) => { const m = batiment(...a); batisMesh.push(m); return m; };
   if (!S_.cases.some((c) => c.type === 'foin')) { const c = S_.cases.find((x) => x.id === 'm7_4'); if (c && c.type === 'enclos') c.type = 'foin'; } /* (anciennes sauvegardes : le foin etait passe dans l'enclos) */
-  let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg'); pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); /* au faitage, pas en haut de la tourelle */ }
+  let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg'); fumerCheminee(pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a), ng); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); /* au faitage, pas en haut de la tourelle */ }
   o = blocBati('hdv'); if (o) {
     const a = rotDe('hdv'), [hx, hz] = tourne(0, -0.15, a), [mx, mz] = tourne(1.75, 0.45, a); const h = pose('hdv' + nivBat('nivEtal'), o.x + hx, o.y, o.z + hz, o.c0.id, a); ancres.hdv = new T.Vector3(o.x, o.y + h.userData.hauteur + 0.3, o.z);
     if (MODELES.marchand && !MODELES.marchand.userData.ombre) { ombrePieds(MODELES.marchand, 1.4); MODELES.marchand.userData.ombre = true; }
@@ -2976,10 +2999,11 @@ function resynchroniserIle() {
   S_.cases.forEach((p) => { if (!casesMesh[p.id]) construireCase(p); else rendreCase(p.id); });
   majTerrains(); document.querySelectorAll('.bulle.vente').forEach((e) => e.remove()); const t = prochainTerrain(); if (t) bulleVente(t, TERRAINS.indexOf(t));
 }
-/* toucher la friche : ce terrain-la, quand il s'achete et combien */
+/* toucher la friche : le prochain terrain s'achete (s'il est a ton niveau) ; les autres disent quand ils se vendront */
 function infoFriche(k) {
   const t = TERRAINS[k], u = prochainTerrain(); if (!t) return;
-  if (t === u) toast(nivTerrainOk(t) ? 'Terrain en friche : ' + t.cases.length + ' cases pour ' + fmt(t.prix) + ' kamas. Touche son panneau pour le défricher.' : 'Le prochain terrain : ' + t.cases.length + ' cases, à vendre au niveau ' + t.niv + ' pour ' + fmt(t.prix) + ' kamas.');
+  if (t === u && nivTerrainOk(t)) { ACTIONS.acheterTerrain(k); return; } /* (comme le terrain fantome d'avant : le toucher l'achete) */
+  if (t === u) toast('Le prochain terrain : ' + t.cases.length + ' cases et +' + t.parcelles + ' parcelles, à vendre au niveau ' + t.niv + ' pour ' + fmt(t.prix) + ' kamas.');
   else toast('Terrain en friche (' + t.cases.length + ' cases) : il se vendra au niveau ' + t.niv + '. Les terrains s\u2019achètent dans l\u2019ordre, en faisant le tour de l\u2019île.');
 }
 /* un terrain qui vient d'etre achete : l'herbe a la place de la friche, ses cases, le panneau et la bulle passent au suivant */
@@ -5610,7 +5634,7 @@ function bullesFixes() {
 }
 function bulleVente(t, k) {
   { if (document.querySelector('[data-vente="' + k + '"]')) return; const e = document.createElement('div'); e.className = 'bulle vente'; e.dataset.ancre = 'v' + k; e.dataset.vente = k; const ok = nivTerrainOk(t); e.classList.toggle('verrou', !ok);
-    e.innerHTML = (ok ? 'Terrain à vendre, ' : 'Prochain terrain, ') + t.cases.length + ' cases<small>' + (ok ? '+' + t.parcelles + ' parcelles à labourer' : 'à vendre au niveau ' + t.niv) + '</small><b>' + fmt(t.prix) + ' ' + KAMA + '</b>'; e.addEventListener('click', () => ACTIONS.acheterTerrain(k)); zoneBulles.appendChild(e); }
+    e.innerHTML = '<small>' + (ok ? t.cases.length + ' cases' : 'niv. ' + t.niv) + '</small><b>' + fmt(t.prix) + ' ' + KAMA + '</b>'; /* (le detail : en touchant la friche, et a l'achat) */ e.addEventListener('click', () => ACTIONS.acheterTerrain(k)); zoneBulles.appendChild(e); }
 }
 
 /* ----- interaction : toucher une case, un bouftou, un terrain ----- */
@@ -5705,9 +5729,9 @@ canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol
   const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = 27 / Math.hypot(27, 42.4);
   const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(dy / incl)); camera.position.add(dep); VISEE.add(dep); });
 canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
-canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
+canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), auCasino ? 0.6 : ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
 canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
-canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; } }, { passive: true });
+canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, auCasino ? 0.6 : ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; } }, { passive: true });
 canvas.addEventListener('touchend', () => { pince = null; }, { passive: true });
 function toucherBouftou(k) {
   const b = S_.bouftous[k]; if (!b) return;
@@ -6444,7 +6468,8 @@ async function partirCasino() {
   try { await Promise.all([chargerCasino(), attendreMs(750)]); } catch (e) { $('voile').classList.remove('on'); toast('Le ballon n\'a pas pu décoller (chargement de l\'île), réessaie.', 'alerte'); return; }
   auCasino = true; const u = paysanMesh.userData;
   paysanMesh.position.set(CASINO.x - 9.6, CASINO.y, CASINO.z + 2.0); u.y = CASINO.y; u.angle = Math.PI / 2; paysanMesh.rotation.y = u.angle; casinoMarche = null;
-  VISEE.set(CASINO.x + 0.6, 0.6, CASINO.z + 0.6); placerCamera(); cadrer(); soleilVers(CASINO);
+  zoom = Math.max(zoom, 0.6); VISEE.set(CASINO.x + 0.6, 0.6, CASINO.z + 0.6); placerCamera(); cadrer(); soleilVers(CASINO);
+  Object.assign(soleil.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, far: 100 }); soleil.shadow.camera.updateProjectionMatrix(); suivreOmbres.r = null; rendu.shadowMap.needsUpdate = true; /* (le Casino garde ses ombres d'avant l'ile ronde : la boite fixe de 32) */
   etatCasino(); majBarreCasino(); $('casino-barre').hidden = false; $('hud').classList.add('au-casino'); compter('casinoVisites');
   setTimeout(() => $('voile').classList.remove('on'), 120);
   toast('Bienvenue sur l\'île du Casino ! Touche un jeu pour y aller.', 'or'); sauver();
@@ -6703,7 +6728,7 @@ function boucle(t) {
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
   if (!enPause) { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s);
-    majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
+    majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   if (!auCasino) suivreOmbres();
@@ -6826,7 +6851,7 @@ function migrerIleRonde(e) {
   });
   perdus.forEach((L) => { if (L[0].type === 'deco') stock(L[0].deco); }); /* (ne devrait pas arriver : l'ile ronde a toujours plus de place) */
   if (e.sauvage && !e.cases.some((c) => c.id === e.sauvage.id)) e.sauvage = null;
-  e.migreIleRonde = { terrains: n, replaces: groupes.length - perdus.length, perdus: perdus.length }; /* (pour le message d'accueil) */
+  if (e.perso) e.migreIleRonde = { terrains: n, replaces: groupes.length - perdus.length, perdus: perdus.length }; /* (pour le message d'accueil, seulement a une vraie ferme d'avant) */
 }
 /* ===================== LES LECONS DE PEPITO (12/10/2026) =====================
    « le tuto il est pas un peu leger ? faudrait expliquer plus de trucs, y'a beaucoup de choses a savoir, la on donne juste les bases » (Mathieu).
