@@ -901,7 +901,7 @@ const AMELIOS = [
   { id: 'voliere', nom: 'La volière à Tofus', desc: 'Deux places de plus à chaque niveau : 4, 6, 8 puis 10 Tofus. Elle grandit avec : grande volière à lattes, chalet de bois, piliers de pierre, puis la halle de Redemption. Dès le niveau 2 elle prend une case de plus, à côté.', couts: [500, 1500, 3500, 7000], nivs: [3, 4, 5, 6] },
   { id: 'nivEtal', nom: 'L\'étal de l\'HDV', desc: 'Niveau 2 : la charrette, tu vends 10 % plus cher. Niveau 3 : graines et balance, les graines coûtent 15 % moins cher. Niveau 4 : le comptoir couvert, ventes +15 %. Niveau 5 : le comptoir de Redemption, ventes +20 % et graines 20 % moins chères.', couts: [900, 1800, 3500, 6000], nivs: [4, 5, 6, 7] },
   { id: 'engrais', nom: 'Engrais d\'Amakna', desc: 'Tes cultures poussent 15 % plus vite, à chaque niveau.', couts: [300, 900, 2500, 6000], niv: 3 },
-  { id: 'epouvantail', nom: 'Épouvantail', desc: 'Niveau 1 : deux fois moins de Tofus. Niveau 2 : trois fois moins. Niveau 3 : une arbalète, il tire seul sur les Tofus qui picorent, peu après leur arrivée (portée 8 cases, 1 flèche par tir). Niveau 4 : il tire trois fois plus vite et couvre toute l\'île. Niveau 5 : le PÉPITO-TRON, laser sur toute la ferme et sur les Tofus des vagues (15 kamas par tir, Pépito facture tout).', couts: [500, 1500, 4000, 9000, 20000], niv: 6 },
+  { id: 'epouvantail', nom: 'Épouvantail', desc: 'Niveau 1 : deux fois moins de Tofus. Niveau 2 : trois fois moins. Niveau 3 : une arbalète, il tire seul sur les Tofus qui picorent, peu après leur arrivée (portée 8 cases, 1 flèche par tir). Niveau 4 : il tire trois fois plus vite et couvre toute l\'île. Niveau 5 : le PÉPITO-TRON, laser sur toute la ferme et sur les Tofus des vagues (15 kamas par tir, Pépito facture tout). Niveau 6 : il tire aussi sur les voleurs de VSA, ceux des raids compris (90 dégâts par tir).', couts: [500, 1500, 4000, 9000, 20000, 200000], niv: 6 },
   { id: 'bottes', nom: 'Bottes de cuir de Bouftou', desc: 'Le paysan marche 30 % plus vite : moins de temps perdu en allers-retours.', couts: [300], niv: 2 },
   { id: 'cloche', nom: 'Cloche d\'alarme', desc: 'Un Tofu met deux fois plus longtemps à voler une récolte : le temps de venir le chasser.', couts: [400], niv: 3 },
   { id: 'semences', nom: 'Semences sélectionnées', desc: 'Une chance sur quatre de récupérer la graine à la récolte.', couts: [1200], niv: 6 },
@@ -3671,6 +3671,7 @@ function ouvrirBatPv(cle) {
    Niveau 4 : il reagit vite et couvre toute l'ile. Niveau 5 : le PEPITO-TRON, le mini terminator du bot de Redemption : armure doree,
    visiere rouge, canon laser, pepites en orbite ; il couvre toute la ferme, abat aussi les Tofus des vagues, et facture 15 kamas par tir.
    Il ne s'occupe que des Tofus. */
+const DEG_PEPITO_VSA = 90; /* le niveau 6 : son laser sur les voleurs de VSA (14/10/2026) */
 const EPOU = [null, null, null, { portee: 8 * S, delai: 1 * MIN, cadence: 3.5, deg: 40 }, { portee: 99, delai: MIN / 3, cadence: 2.2, deg: 60 }, /* (« l'epouvantail tape pas les Tofus » : portee 8 en unites du jeu, soit 4 cases, pour « 8 cases » promises ; le niveau 4 couvre toute l'ile, comme annonce) */ { portee: 99, delai: 0.15 * MIN, cadence: 1.0, deg: 150 }];
 const PRIX_LASER = 15;
 const PEPITO_TRON = ['PÉPITO-TRON en ligne. Les Tofus ont été prévenus. Ils n\'ont pas aimé.', 'chaque tir de laser : 15 kamas. la sécurité, ça se paie. en pépites.', 'un Tofu abattu, c\'est une récolte sauvée. ma marge : 100 %.', 'mode terminator activé. je reviendrai... pour la facture.', 'j\'ai scanné ta ferme : 0 Tofu, 100 % de pépites. de rien.'];
@@ -3730,7 +3731,7 @@ function equiperEpouvantail() {
 /* chaque image : il guette, pivote vers sa cible, tire */
 function majEpouvantail(dt, s) {
   if (!epou || !S_) return;
-  const n = niv('epouvantail'), E = EPOU[Math.min(5, n)], pos = epou.g.position; epou.g.visible = !enRuine('epouvantail');
+  const n = niv('epouvantail'), E = EPOU[Math.min(5, n)], pos = epou.g.position; epou.g.visible = !enRuine('epouvantail'); /* (le niveau 6 garde les reglages du 5, plus les voleurs) */
   if (epou.remplace) epou.remplace.visible = false;
   if (epou.pepites) { epou.pepites.rotation.y += dt * 1.6; epou.coeur.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 5) * 0.12); epou.voyant.visible = Math.sin(s * 6) > -0.3; epou.visiere.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 4) * 0.08); }
   if (!E || enRuine('epouvantail')) return;
@@ -3739,7 +3740,8 @@ function majEpouvantail(dt, s) {
      jamais sur les autres monstres (« il faut qu'il tire que sur les tofus, pas les monstres, juste il tapait pas ceux sur le terrain, que ceux dans les champs »,
      Mathieu, 14/10/2026) ; hors vague, un Tofu (ou un Wabbit) qui picore un champ depuis assez longtemps */
   let cible = null, x = 0, z = 0, y = 0;
-  if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.etat === 'actif' && o.m && o.d.grignote).sort((a, b) => Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t }; x = t.x; z = t.z; y = t.m.position.y + 0.4; } }
+  if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.etat === 'actif' && o.m && (o.d.grignote || (n >= 6 && o.d.vole))).sort((a, b) => (a.d.vole ? 0 : 1) - (b.d.vole ? 0 : 1) || Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t, vsa: !!t.d.vole }; x = t.x; z = t.z; y = t.m.position.y + (t.d.vole ? 1.0 : 0.4); } } /* (niveau 6 : les voleurs des raids d'abord) */
+  if (!cible && !combat && n >= 6 && voleurCiblable()) { const q = voleur.m.position; cible = { voleur: true }; x = q.x; z = q.z; y = q.y + 1.0; } /* niveau 6 : le voleur de VSA qui file a ta grange */
   if (!cible && !combat) { const now = Date.now(); const p = S_.cases.filter((c) => c.type === 'champ' && c.tofu && now - c.tofu >= E.delai).map((c) => [c, posCase(c)]).filter(([, q]) => Math.hypot(q.x - pos.x, q.z - pos.z) <= E.portee).sort((a, b) => a[0].tofu - b[0].tofu)[0]; if (p) { cible = { champ: p[0] }; x = p[1].x; z = p[1].z; y = p[1].y + 0.7; } }
   let ang = (epou.ry0 || 0) + Math.sin(s * (n >= 5 ? 1.3 : 0.5)) * (n >= 5 ? 2.2 : 0.8); if (cible) ang = Math.atan2(x - pos.x, z - pos.z); /* il scanne, puis se fige sur sa cible */
   let d = ang - epou.tete.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); epou.tete.rotation.y += d * Math.min(1, dt * (cible ? 8 : 1.5));
@@ -3750,7 +3752,8 @@ function majEpouvantail(dt, s) {
   epou.cd = E.cadence;
   const de = new T.Vector3(); (epou.canon.userData.bout || epou.canon).getWorldPosition(de); const vers = new T.Vector3(x, y, z);
   const touche = () => {
-    if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, E.deg, true); return; }
+    if (cible.voleur) { blesserVoleur(DEG_PEPITO_VSA, 'PÉPITO-TRON : voleur de VSA neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 0.5); return; }
+    if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, cible.vsa ? DEG_PEPITO_VSA : E.deg, true); return; }
     const p = cible.champ; if (!p.tofu) return; const nuisible = p.nuisible; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1); p.nuisible = nuisible; /* (le nom du toast, puis on l'oublie) */
     const bete = p.nuisible === 'wabbit' ? 'Wabbit' : 'Tofu'; p.nuisible = null; toast(n >= 5 ? 'PÉPITO-TRON : ' + bete + ' neutralisé sur ton ' + PAR_ID[p.c].nom + '. Facture : ' + PRIX_LASER + ' kamas.' : 'L\'épouvantail a chassé un ' + bete + ' de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
   };
@@ -5937,11 +5940,11 @@ const GAINS = {
   nivEtal: { role: 'Tu y vends tes récoltes et y achètes tes graines.', looks: ['l\'étal', 'la charrette', 'graines et balance', 'le comptoir couvert', 'le comptoir de Redemption'],
     stats: [['kama', 'Tes ventes', [0, 10, 10, 15, 20], (x) => '+' + x + ' %'], ['pousse', 'Prix des graines', [0, 0, 15, 15, 20], (x) => '-' + x + ' %']] },
   engrais: { stats: [['pousse', 'Temps de pousse de tes cultures', [0, 15, 28, 39, 48], (x) => '-' + x + ' %']] }, /* (0,85 a la puissance du niveau) */
-  epouvantail: { role: 'Il éloigne les Tofus de tes champs.', looks: [null, null, null, 'il prend une arbalète', null, 'le PÉPITO-TRON'],
-    stats: [['tofu', 'Tofus qui viennent picorer', ['', '2 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins'], (x) => x],
-      ['degats', 'Il tire sur les Tofus : dégâts', [0, 0, 0, 40, 60, 150]], ['portee', 'Portée', ['', '', '', '8 cases', 'toute l\'île', 'toute la ferme'], (x) => x],
-      ['cadence', 'Il tire au bout de', ['', '', '', dureeLisible(EPOU[3].delai), dureeLisible(EPOU[4].delai), dureeLisible(EPOU[5].delai)], (x) => x], ['cadence', 'Un tir toutes les', [0, 0, 0, 3.5, 2.2, 1], (x) => virgule(x) + ' s']],
-    neufs: { 3: [['carreaux', 'Une flèche par tir, prise dans ta réserve']], 5: [['auto', 'Il tire aussi sur les Tofus des vagues'], ['kama', '15 kamas par tir : Pépito facture tout']] } },
+  epouvantail: { role: 'Il éloigne les Tofus de tes champs.', looks: [null, null, null, 'il prend une arbalète', null, 'le PÉPITO-TRON', null],
+    stats: [['tofu', 'Tofus qui viennent picorer', ['', '2 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins'], (x) => x],
+      ['degats', 'Il tire sur les Tofus : dégâts', [0, 0, 0, 40, 60, 150, 150]], ['portee', 'Portée', ['', '', '', '8 cases', 'toute l\'île', 'toute la ferme', 'toute la ferme'], (x) => x],
+      ['cadence', 'Il tire au bout de', ['', '', '', dureeLisible(EPOU[3].delai), dureeLisible(EPOU[4].delai), dureeLisible(EPOU[5].delai), dureeLisible(EPOU[5].delai)], (x) => x], ['cadence', 'Un tir toutes les', [0, 0, 0, 3.5, 2.2, 1, 1], (x) => virgule(x) + ' s']],
+    neufs: { 3: [['carreaux', 'Une flèche par tir, prise dans ta réserve']], 5: [['auto', 'Il tire aussi sur les Tofus des vagues'], ['kama', '15 kamas par tir : Pépito facture tout']], 6: [['degats', 'Il tire aussi sur les voleurs de VSA, ceux des raids compris : ' + DEG_PEPITO_VSA + ' dégâts par tir']] } },
   bottes: { stats: [['vitesse', 'Ton perso marche plus vite', [0, 30], (x) => '+' + x + ' %']] },
   cloche: { stats: [['cadence', 'Temps pour chasser un Tofu avant qu\'il vole', [1, 2], (x) => dureeLisible(x * DUREE_PICORAGE)]] },
   semences: { stats: [['pousse', 'Graine rendue à la récolte', ['', '1 fois sur 4'], (x) => x]] },
@@ -6103,8 +6106,8 @@ function ouvrirEnclos() {
 }
 function ouvrirEpouvantail() {
   ouvrirModale('epouvantail', entete('L\'épouvantail') + (degatsBat('epouvantail') ? artPv('epouvantail') : '') + (() => { const n = niv('epouvantail'), E = EPOU[Math.min(5, n)];
-    const etat = n >= 5 ? 'PÉPITO-TRON : laser sur toute la ferme, il abat aussi les Tofus des vagues. ' + PRIX_LASER + ' kamas par tir.' : n >= 3 ? 'Il tire à l\'arbalète sur les Tofus qui picorent, ' + (n >= 4 ? 'sur toute l\'île' : 'à ' + enCases(E.portee) + ' cases') + ', ' + dureeLisible(E.delai) + ' après leur arrivée' + '. Une flèche par tir (' + S_.fleches + ' en réserve).' : n === 2 ? 'Les Tofus viennent trois fois moins souvent.' : n === 1 ? 'Les Tofus viennent deux fois moins souvent.' : 'Il fait fuir une partie des Tofus qui viennent picorer tes champs.';
-    return '<div class="art">' + ico('epouvantail') + '<div><b>' + (n >= 5 ? 'PÉPITO-TRON' : 'Épouvantail niveau ' + n) + '</b><div class="desc">' + etat + ' Il ne s\'occupe que des Tofus.</div></div><div></div></div>'; })() + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
+    const etat = n >= 6 ? 'PÉPITO-TRON blindé : laser sur toute la ferme, sur les Tofus des vagues et sur les voleurs de VSA (' + DEG_PEPITO_VSA + ' dégâts par tir). ' + PRIX_LASER + ' kamas par tir.' : n >= 5 ? 'PÉPITO-TRON : laser sur toute la ferme, il abat aussi les Tofus des vagues. ' + PRIX_LASER + ' kamas par tir.' : n >= 3 ? 'Il tire à l\'arbalète sur les Tofus qui picorent, ' + (n >= 4 ? 'sur toute l\'île' : 'à ' + enCases(E.portee) + ' cases') + ', ' + dureeLisible(E.delai) + ' après leur arrivée' + '. Une flèche par tir (' + S_.fleches + ' en réserve).' : n === 2 ? 'Les Tofus viennent trois fois moins souvent.' : n === 1 ? 'Les Tofus viennent deux fois moins souvent.' : 'Il fait fuir une partie des Tofus qui viennent picorer tes champs.';
+    return '<div class="art">' + ico('epouvantail') + '<div><b>' + (n >= 5 ? 'PÉPITO-TRON' : 'Épouvantail niveau ' + n) + '</b><div class="desc">' + etat + (n >= 6 ? ' Il ne s\'occupe que des Tofus et des voleurs.' : ' Il ne s\'occupe que des Tofus.') + '</div></div><div></div></div>'; })() + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
 }
 function ouvrirPuits() {
   ouvrirModale('puits', entete('Le puits') + (degatsBat('puits') ? artPv('puits') + (S_.eau < capaciteEau() || !citernePleine() ? '<div class="ligne"><div><b>Remplir</b><small>Arrosoir ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ', citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() : '') + '.</small></div><button class="btn eau" data-remplir>Remplir</button></div>' : '') : '') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Arrosoir : ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? '. Citerne : ' + (S_.citerne || 0) + '/' + capaciteCiterne() + ' (elle arrose seule les nouveaux semis)' : '') + '. Touche le puits pour remplir ' + (niv('arrosoir') ? 'les deux' : 'l\'arrosoir') + '.</p>' + lignesAmelio(['nivPuits'], 'Améliorer le puits'));
