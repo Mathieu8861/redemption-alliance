@@ -256,6 +256,10 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .gi { position: relative; flex: none; width: 24px; height: 24px; } .gi img { display: block; width: 24px; height: 24px; object-fit: contain; }
 .ligne .gl { display: flex; align-items: center; gap: 9px; min-width: 0; } .ligne .gi, .ligne .gi img { width: 30px; height: 30px; } /* (la fenetre de la grange, 13/10/2026) */
 .gi i { position: absolute; right: -4px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1.5px solid var(--bord); display: grid; place-items: center; } .gi i svg { width: 10px; height: 10px; }
+/* « Tes betes », sous la grange (15/10/2026) : la pastille du compte, verte tant qu'il reste de la place, orange quand c'est plein */
+.elevage .l .n small { font-weight: 600; color: #6b5a44; font-size: .72rem; }
+.elevage .cpt { flex: none; font-weight: 800; font-size: .76rem; padding: 0 7px; border-radius: 999px; background: #dff3d2; border: 2px solid #4f9a2e; color: #2f6a1a; }
+.elevage .cpt.plein { background: #fde7c8; border-color: #d8861e; color: #8a4f0e; }
 .panneau .crise { background: #fde3df; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #8a1e16; }
 .commis { position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
 .commis b { font-family: var(--f-titre); font-weight: 400; color: var(--kamas); }
@@ -783,6 +787,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   <div class="objectif" id="objectif" hidden></div>
   <div class="aide" id="aide" hidden>Sur ordinateur, clic gauche : ton perso se déplace, ou cible un monstre ; clic droit : il agit sur la case. Au doigt, touche une case pour agir, reste appuyé pour seulement t'y déplacer. Une parcelle libre se plante, une culture à sec s'arrose, une culture mûre se récolte, un Tofu se chasse, un Bouftou se nourrit ou se tond, une case d'herbe se laboure ou se construit. Les petites icônes au-dessus des cases se touchent aussi. Les graines et les Bouftous s'achètent à l'HDV. L'arrosoir se remplit au puits (10 arrosages).</div>
   <aside class="panneau" aria-label="Grange" id="panneau-grange"></aside>
+  <aside class="panneau elevage" aria-label="Tes bêtes" id="panneau-elevage" hidden></aside>
   <div class="toasts" id="fil"><div class="chat" id="chat" hidden><div class="chat-tete"><b>💬 Messages</b><small>les plus récents en bas</small><button id="b-chat-fermer" aria-label="Refermer">✕</button></div><ol class="journal" id="chat-liste"></ol></div><div class="pile" id="toasts"></div><button class="b-journal" id="b-journal" aria-expanded="false">💬 Messages</button></div>
   <div class="commis" id="commis"></div>
   <nav class="actions" aria-label="Actions">
@@ -3988,7 +3993,16 @@ function rendreObjectif() {
   if (J) h += '<div class="defis"><span>Défis du jour : ' + faits + '/3' + (prets ? ', ' + prets + ' à réclamer' : '') + '</span><button class="btn' + (prets ? ' kamas pret' : ' discret') + '" data-voir-defis>Voir</button></div>';
   e.innerHTML = h; placerPanneaux();
 }
-function placerPanneaux() { const h = document.querySelector('.haut'); if (!h) return; const b = h.getBoundingClientRect().bottom + 8; ['objectif', 'panneau-grange'].forEach((id) => { const e = $(id); if (e) e.style.top = b + 'px'; }); }
+function placerPanneaux() { const h = document.querySelector('.haut'); if (!h) return; const b = h.getBoundingClientRect().bottom + 8; ['objectif', 'panneau-grange'].forEach((id) => { const e = $(id); if (e) e.style.top = b + 'px'; }); placerElevage(); }
+/* « Tes betes », juste sous le panneau de la grange : les Tofus de la voliere, les Bouftous de l'enclos, les Gelees de la geliere, chacun sur sa capacite */
+function placerElevage() { const g = $('panneau-grange'), e = $('panneau-elevage'); if (g && e && !e.hidden) e.style.top = (g.getBoundingClientRect().bottom + 10) + 'px'; }
+function rendreElevage() {
+  const e = $('panneau-elevage'); if (!e || !S_) return;
+  const L = [['tofu', 'Tofus', 'volière', S_.tofus || 0, capaciteVoliere()], ['bouftou', 'Bouftous', 'enclos', S_.bouftous.length, capacite()]]
+    .concat(niv('geliere') ? [['gelee-fraise', 'Gelées', 'gelière', (S_.gelees || []).length, placesGeliere()]] : []);
+  const h = '<h2>Tes bêtes</h2>' + L.map(([ic, nom, ou, n, max]) => '<div class="l"><span class="n">' + icoGrange(ic) + nom + ' <small>(' + ou + ')</small></span><span class="cpt' + (n >= max ? ' plein' : '') + '">' + n + '/' + max + '</span></div>').join('');
+  if (h !== rendreElevage.dernier) { rendreElevage.dernier = h; e.innerHTML = h; } e.hidden = false; placerElevage();
+}
 function reclamerObjectif() {
   const o = objectifCourant(); if (!o || valeurCompteur(o[0]) < o[1]) return;
   S_.kamas += o[3]; const xpObj = o[4] ? xpReel(o[4]) : 0; if (o[4]) gagnerXp(o[4]); S_.obj = (S_.obj || 0) + 1; son('quete'); confettis(18);
@@ -5677,8 +5691,9 @@ function rendreHaut() {
 const icoGrange = (nom, graine) => '<span class="gi"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt="">' + (graine ? '<i>' + picto('pousse', '#3f8a2e') + '</i>' : '') + '</span>';
 function rendreGrange() {
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
-  $('panneau-grange').innerHTML = '<h2>Grange</h2>' + (lignes.length ? lignes.map((v) => '<div class="l"><span class="n">' + icoGrange(v.id) + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span class="n">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="l"><span class="n">' + icoGrange('pot-' + t) + POTS[t].court + '</span><span>' + S_.pots[t] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span class="n">' + icoGrange('filet') + 'Filets</span><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="l"><span class="n">' + icoGrange('tofu') + 'Tofus capturés</span><span>' + S_.tofus + '</span></div>' : '') +
+  $('panneau-grange').innerHTML = '<h2>Grange</h2>' + (lignes.length ? lignes.map((v) => '<div class="l"><span class="n">' + icoGrange(v.id) + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span class="n">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="l"><span class="n">' + icoGrange('pot-' + t) + POTS[t].court + '</span><span>' + S_.pots[t] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span class="n">' + icoGrange('filet') + 'Filets</span><span>' + S_.filets + '</span></div>' : '') +
     (S_.crise ? '<div class="crise">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' à l\'HDV : -40 %</div>' : '');
+  rendreElevage();
 }
 function toast(msg, genre) {
   if (genre === 'alerte' && mode && /^Pas /.test(msg)) { const b = document.getElementById('bandeau-texte'); b.textContent = msg; clearTimeout(toast.t); toast.t = setTimeout(majBandeau, 3500); }
@@ -6566,6 +6581,7 @@ function tick() {
   { const m = Date.now(); if (Math.abs(m - S_.vu) > 4000 * horlogeJeu.vitesse()) reprendreTemps(m); } /* (une boucle toutes les 500 ms : un trou plus long, c'est une pause) */
   const ch = avancer(Date.now(), !combat); /* pendant une vague : pas de Tofu nuisible ni de voleur en plus */
   if (!combat) majVieHaut(); /* (la vie qui remonte doucement, a vue d'oeil) */
+  rendreElevage();
   ch.cases.forEach((id) => rendreCase(id));
   if (ch.enclos) rendreEnclosBulles();
   if (ch.sauvage) rendreSauvage();
