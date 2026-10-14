@@ -1030,14 +1030,22 @@ const LEGENDAIRES = [
   { cle: 'chafer', boss: 'cuirasse', nom: 'Heaume du Chafer Cuirassé', pouvoir: 'Tu prends 10 % de dégâts en moins et tu renvoies 10 % des coups reçus au corps à corps.' },
   { cle: 'bworker', boss: 'bworker', nom: 'Casque du Bworker', pouvoir: 'Sous 30 % de vie, tu entres en rage : tu frappes 30 % plus vite.' },
   { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Un séisme autour de toi toutes les 10 s, pendant les vagues : 2 fois tes dégâts.' },
-  { cle: 'wa', boss: 'waWabbit', nom: 'Couronne du Wa Wabbit', pouvoir: 'Une pluie de cawottes toutes les 9 s autour de toi, pendant les vagues : 2 fois tes dégâts. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.', rang: 5 },
+  { cle: 'wa', boss: 'waWabbit', arme: true, rang: 5, /* (14/10/2026 : « les items legendaires du niveau 60 a 100, des corps a corps », Mathieu ; variantes choisies : epee B, arc A, fouet A) */
+    noms: { epee: 'Épée du Wa Wabbit', arc: 'Arc du Wa Wabbit', fouet: 'Fouet du Wa Wabbit' }, icone: 'wawabbit', noeuds: { epee: 'Arme_epee_wawabbitB', arc: 'Arme_arc_wawabbit', fouet: 'Arme_fouet_wawabbit' },
+    pouvoir: 'Une pluie de cawottes toutes les 9 s autour de toi, pendant les vagues : 2 fois tes dégâts. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.' },
   { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Tu craches un cône de feu toutes les 8 s, pendant les vagues : 3 fois tes dégâts, et les monstres touchés brûlent.' }
 ];
-LEGENDAIRES.forEach((L, i) => { const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
+LEGENDAIRES.forEach((L, i) => { if (L.arme) return; const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
 /* les armes : l'epee du Iop, l'arc du Cra, le fouet de l'Osamodas, aux couleurs de chaque panoplie (icones arme-<type>-<panoplie>, equipements.glb).
    Elles ne tombent que sur les boss, pour ta classe, et ne comptent dans aucune panoplie */
 const ARMES = { iop: ['epee', 'Épée'], cra: ['arc', 'Arc'], osa: ['fouet', 'Fouet'] };
 const EMPLACEMENTS_PERSO = EMPLACEMENTS.concat([['arme', 'Arme']]);
+/* LES ARMES LEGENDAIRES (Phase 2, niveaux 60 a 100 : « une coiffe et un cac legendaire par la suite », Mathieu) : le boss donne celle de ta classe, avec le pouvoir
+   du boss ; plus forte qu'une arme de panoplie (Puissance x3,5 au lieu de x2,5, Agilite x1,5, et de la Vitalite). La premiere : le Wa Wabbit (14/10/2026) */
+LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entries(ARMES).forEach(([cl, [t]]) => { const id = 'leg-' + L.cle + '-' + t;
+  OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], nom: L.noms[t], niv: PANOS[k].niv + 9, pouvoir: L.pouvoir,
+    stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5), agilite: Math.round(VALEURS.agilite[k] * 1.5), vita: VALEURS.vita[k] } }; }); });
+const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || classeDe()][0] : 'leg-' + L.cle); /* la piece legendaire d'un boss, pour ta classe */
 PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { const id = 'arme-' + t + '-' + P.id; OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats: { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] } }; }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
@@ -1046,7 +1054,7 @@ const tirerRare = (id, pros) => (OBJETS[id + '-rare'] && Math.random() < CHANCE_
 const iconeObjet = (k) => { const o = obj(k); return o ? o.icone || 'obj-' + (o.base || baseObjet(k)) : 'obj-' + baseObjet(k); };
 const icoObjet = (k) => { const h = ico(iconeObjet(k)), o = obj(k); return o && o.rare ? h.replace('class="pic img', 'class="pic img rare') : h; };
 const nomClasse = (id) => (CLASSES.find((c) => c.id === id) || {}).nom || id;
-const legPorte = (cle) => !!(S_ && S_.equip && baseObjet(S_.equip.coiffe) === 'leg-' + cle);
+const legPorte = (cle) => !!(S_ && S_.equip && [S_.equip.coiffe, S_.equip.arme].some((k) => { const o = k && obj(k); return !!o && o.leg === cle; })); /* (la coiffe ou l'arme legendaire) */
 const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* les bonus de panoplie, renforces et par paliers : 2, 4 puis 6 pieces (avant : 3 et 6), chaque palier s'ajoute au precedent */
 const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];
@@ -1977,9 +1985,9 @@ const ACTIONS = {
     if (niveau(S_.xp) < o.niv) { toast(o.nom + ' : il faut le niveau ' + o.niv + '.'); return; }
     if (o.classe && o.classe !== classeDe()) { toast(o.nom + ' : arme du ' + nomClasse(o.classe) + ', tu peux la revendre.'); return; }
     const avant = S_.equip[o.emp]; setTimeout(() => compter('equipes', 0), 0); S_.sac[id]--; if (!S_.sac[id]) delete S_.sac[id]; if (avant) S_.sac[avant] = (S_.sac[avant] || 0) + 1; S_.equip[o.emp] = id;
-    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver(); if (o.emp === 'coiffe' || o.emp === 'cape') rafraichirTenue();
+    toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver(); if (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'arme') rafraichirTenue();
   },
-  retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); if (emp === 'coiffe' || emp === 'cape') rafraichirTenue(); },
+  retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); if (emp === 'coiffe' || emp === 'cape' || emp === 'arme') rafraichirTenue(); },
   revendreObjet(id) {
     if (!(S_.sac[id] > 0)) return; const o = obj(id), gain = reventeObjet(id); S_.sac[id]--; if (!S_.sac[id]) { delete S_.sac[id]; if (S_.jets) delete S_.jets[id]; } S_.kamas += gain;
     toast(o.nom + ' revendu' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + ' : +' + fmt(gain) + ' kamas.'); rendreHaut(); if (modaleOuverte === 'perso') ouvrirPerso(o.emp); else ouvrirGrange(); sauver();
@@ -2236,7 +2244,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261016c'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016d'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -2840,7 +2848,7 @@ const visuelsPrets = () => !!VISUELS.equipements;
 const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit' };
 function noeudVisuel(id) {
   const o0 = obj(id); if (!o0 || !visuelsPrets()) return null; const o = o0.base ? OBJETS[o0.base] : o0;
-  if (o.leg) return VISUELS[o.leg === 'wa' ? 'equipements-wabbit' : 'coiffes-legendaires'].getObjectByName(NOEUD_LEG[o.leg]) || null;
+  if (o.leg) return o.emp === 'coiffe' ? VISUELS['coiffes-legendaires'].getObjectByName(NOEUD_LEG[o.leg]) || null : null;
   const P = PANOS[o.pano] && PANOS[o.pano].id; if (!P) return null;
   return VISUELS[P === 'wabbit' ? 'equipements-wabbit' : 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
 }
@@ -2857,7 +2865,49 @@ function porterCapeSur(eq, cape, o) { /* la cape du modele (nappe autour de l'ax
     m.geometry = g; if (m.material && m.material.isMeshToonMaterial) { m.material = m.material.clone(); m.material.side = T.DoubleSide; }
     m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1); eq.add(m); });
 }
-function habillerPerso(g) {
+function habillerPerso(g) { habillerTenue(g); try { armerPerso(g); } catch (err) { console.warn('arme', err); } }
+/* L'ARME LEGENDAIRE PORTEE (14/10/2026, « check comment elles apparaissent sur le joueur », Mathieu) : elle prend la place exacte de l'arme du modele, qu'on cache.
+   Iop : l'epee dans le dos, du pommeau a la pointe ; Cra : l'arc le long du flanc, d'un bout a l'autre, le ventre du meme cote ; Osamodas : le manche legendaire
+   a la place du manche, et le fouet enroule a la hanche repeint aux couleurs de sa laniere (deroulee, elle depasserait de partout) */
+function armerPerso(g) {
+  const o = S_ && S_.equip && obj(S_.equip.arme), V = o && o.visuel && VISUELS['equipements-wabbit'] && VISUELS['equipements-wabbit'].getObjectByName(o.visuel); if (!V) return;
+  g.updateMatrixWorld(true);
+  const pieces = []; g.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh)) pieces.push(m); });
+  const de = (re) => pieces.filter((m) => re.test(nomP(m))), centre = (L) => unionDe(L).getCenter(new T.Vector3());
+  const modele = V.clone(true); modele.position.set(0, 0, 0); modele.rotation.set(0, 0, 0); modele.scale.set(1, 1, 1);
+  /* le point m0 du modele va en p0 ; son axe a0 suit a1, son axe b0 suit b1 (rendus perpendiculaires) ; a l'echelle k */
+  const caler = (m0, a0, b0, p0, a1, b1, k) => {
+    const base = (a, b) => { const A = a.clone().normalize(), B = b.clone().sub(A.clone().multiplyScalar(b.dot(A))).normalize(); return new T.Matrix4().makeBasis(A, B, new T.Vector3().crossVectors(A, B)); };
+    const M = new T.Matrix4().makeTranslation(p0.x, p0.y, p0.z).multiply(base(a1, b1)).multiply(base(a0, b0).transpose()).multiply(new T.Matrix4().makeScale(k, k, k)).multiply(new T.Matrix4().makeTranslation(-m0.x, -m0.y, -m0.z));
+    const e = new T.Group(); e.name = 'arme_legendaire'; e.add(modele); M.decompose(e.position, e.quaternion, e.scale); return e;
+  };
+  let e = null, caches = [];
+  if (o.type === 'epee') { /* le modele : pommeau en y 0,06, pointe en y 1,57, lame a plat dans le plan xy */
+    const L = de(/^(lame|gorge|garde|garde_g|garde_d|poignee|pommeau)$/), pom = L.find((m) => nomP(m) === 'pommeau'); if (!pom) return;
+    const p0 = centre([pom]), tip = p0.clone(), v = new T.Vector3(); let dmax = 0;
+    L.filter((m) => nomP(m) === 'lame').forEach((m) => { const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); const d = v.distanceTo(p0); if (d > dmax) { dmax = d; tip.copy(v); } } });
+    const a1 = tip.clone().sub(p0); e = caler(new T.Vector3(0, 0.06, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, a1, new T.Vector3(a1.y, -a1.x, 0), dmax / 1.51); caches = L;
+  } else if (o.type === 'arc') { /* le modele : la corde de y 0,05 a 1,65, le ventre de l'arc vers +x */
+    const L = de(/^(arc|corde_arc|bout_arc|poignee_arc)$/), bouts = L.filter((m) => nomP(m) === 'bout_arc').map((m) => centre([m])).sort((p, q) => p.y - q.y), pg = L.find((m) => nomP(m) === 'poignee_arc');
+    if (bouts.length < 2 || !pg) return;
+    const mil = bouts[0].clone().add(bouts[1]).multiplyScalar(0.5);
+    e = caler(new T.Vector3(0, 0.85, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), mil, bouts[1].clone().sub(bouts[0]), centre([pg]).sub(mil), bouts[0].distanceTo(bouts[1]) / 1.6); caches = L;
+  } else if (o.type === 'fouet') { /* le modele : pommeau en y 0,05, le haut du manche (coussin) en y 0,62 ; on garde le manche, sans laniere */
+    const manche = de(/^manche_fouet$/), pom = de(/^pommeau_fouet$/); if (!manche.length || !pom.length) return;
+    const cols = []; V.traverse((m) => { if (m.isMesh && nomP(m) === 'laniere' && m.material && m.material.color && !cols.some((c) => c.equals(m.material.color))) cols.push(m.material.color.clone()); });
+    let or = null; V.traverse((m) => { if (!or && m.isMesh && nomP(m) === 'manche' && m.material && m.material.color) or = m.material.color.clone(); });
+    const ret = []; modele.traverse((m) => { if (m.isMesh && /^(laniere|cawotte|sillon|fane)$/.test(nomP(m))) ret.push(m); }); ret.forEach((m) => m.parent && m.parent.remove(m));
+    const p0 = centre(pom), axe = centre(manche).sub(p0);
+    e = caler(new T.Vector3(0, 0.05, 0), new T.Vector3(0, 1, 0), new T.Vector3(0, 0, 1), p0, axe, new T.Vector3(0, 0, 1), axe.length() * 2 / 0.57); caches = manche.concat(pom);
+    de(/^fouet$/).forEach((m, n) => { if (!cols.length) return; m.material = m.material.clone(); m.material.color.copy(cols[n % cols.length]); });
+    de(/^meche_fouet$/).forEach((m) => { if (!or) return; m.material = m.material.clone(); m.material.color.copy(or); });
+  }
+  if (!e) return;
+  caches.forEach((m) => { m.visible = false; });
+  e.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+  g.add(e);
+}
+function habillerTenue(g) {
   const idC = S_ && S_.equip && S_.equip.coiffe, idK = S_ && S_.equip && S_.equip.cape, coiffe = idC && noeudVisuel(idC), cape = idK && noeudVisuel(idK);
   if (!coiffe && !cape) return;
   g.updateMatrixWorld(true);
@@ -2936,7 +2986,7 @@ function rhabiller() {
   scene.remove(v); paysanMesh = n; if (modaleOuverte === 'perso') ouvrirPerso();
 }
 function rafraichirTenue() { /* une coiffe ou une cape portee : on charge leurs modeles si besoin, puis on rhabille */
-  const porte = S_ && S_.equip && (S_.equip.coiffe || S_.equip.cape);
+  const porte = S_ && S_.equip && (S_.equip.coiffe || S_.equip.cape || (obj(S_.equip.arme) || {}).visuel);
   if (porte && !visuelsPrets()) { assurerVisuels().then((ok) => { if (ok) rhabiller(); }); return; }
   rhabiller();
 }
@@ -3682,9 +3732,10 @@ function majEpouvantail(dt, s) {
   if (epou.pepites) { epou.pepites.rotation.y += dt * 1.6; epou.coeur.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 5) * 0.12); epou.voyant.visible = Math.sin(s * 6) > -0.3; epou.visiere.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 4) * 0.08); }
   if (!E || enRuine('epouvantail')) return;
   epou.cd = Math.max(0, epou.cd - dt);
-  /* la cible : un Tofu des vagues (Pepito-Tron) ou un Tofu qui picore un champ depuis assez longtemps */
+  /* la cible : pendant une vague, le Pepito-Tron tire sur les Tofus d'abord, puis sur le monstre le plus proche (« il tue que les Tofus, fais en sorte qu'il puisse
+     tuer les autres aussi », Mathieu, 14/10/2026) ; hors vague, un Tofu (ou un Wabbit) qui picore un champ depuis assez longtemps */
   let cible = null, x = 0, z = 0, y = 0;
-  if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.type === 'tofu' && o.etat === 'actif').sort((a, b) => Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t }; x = t.x; z = t.z; y = t.m.position.y + 0.4; } }
+  if (combat && n >= 5) { const L = combat.monstres.filter((o) => o.etat === 'actif' && o.m).sort((a, b) => (a.type === 'tofu' ? 0 : 1) - (b.type === 'tofu' ? 0 : 1) || Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z)), t = L[0]; if (t) { cible = { mo: t }; x = t.x; z = t.z; y = t.m.position.y + Math.min(1.2, (t.haut || 1) * 0.45); } }
   if (!cible && !combat) { const now = Date.now(); const p = S_.cases.filter((c) => c.type === 'champ' && c.tofu && now - c.tofu >= E.delai).map((c) => [c, posCase(c)]).filter(([, q]) => Math.hypot(q.x - pos.x, q.z - pos.z) <= E.portee).sort((a, b) => a[0].tofu - b[0].tofu)[0]; if (p) { cible = { champ: p[0] }; x = p[1].x; z = p[1].z; y = p[1].y + 0.7; } }
   let ang = (epou.ry0 || 0) + Math.sin(s * (n >= 5 ? 1.3 : 0.5)) * (n >= 5 ? 2.2 : 0.8); if (cible) ang = Math.atan2(x - pos.x, z - pos.z); /* il scanne, puis se fige sur sa cible */
   let d = ang - epou.tete.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); epou.tete.rotation.y += d * Math.min(1, dt * (cible ? 8 : 1.5));
@@ -3696,8 +3747,8 @@ function majEpouvantail(dt, s) {
   const de = new T.Vector3(); (epou.canon.userData.bout || epou.canon).getWorldPosition(de); const vers = new T.Vector3(x, y, z);
   const touche = () => {
     if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, E.deg, true); return; }
-    const p = cible.champ; if (!p.tofu) return; p.tofu = 0; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1);
-    toast(n >= 5 ? 'PÉPITO-TRON : Tofu neutralisé sur ton ' + PAR_ID[p.c].nom + '. Facture : ' + PRIX_LASER + ' kamas.' : 'L\'épouvantail a chassé un Tofu de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
+    const p = cible.champ; if (!p.tofu) return; const nuisible = p.nuisible; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1); p.nuisible = nuisible; /* (le nom du toast, puis on l'oublie) */
+    const bete = p.nuisible === 'wabbit' ? 'Wabbit' : 'Tofu'; p.nuisible = null; toast(n >= 5 ? 'PÉPITO-TRON : ' + bete + ' neutralisé sur ton ' + PAR_ID[p.c].nom + '. Facture : ' + PRIX_LASER + ' kamas.' : 'L\'épouvantail a chassé un ' + bete + ' de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
   };
   if (n >= 5) { /* le laser : un trait rouge instantane qui s'eteint */
     const L = de.distanceTo(vers), rayon = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, L, 6, 1, true), new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.95, depthWrite: false }));
@@ -4671,7 +4722,7 @@ function ouvrirBestiaire(onglet) {
         const drops = [r ? (M.boss ? '5 ' + PAR_ID[r].nom + ' (100 %)' : PAR_ID[r].nom + ' ' + pc(0.35 * pros)) : '',
           M.boss ? 'une pièce ' + Pn.de + ' (100 % la 1re fois, puis 40 %)' : 'une pièce ' + Pn.de + ' ' + pc((t === 'tofu' ? 0.02 : 0.07) * pros),
           M.boss && ar ? ar[1] + ' ' + Pn.de + ' (100 % la 1re fois, puis ' + pc(0.25 * pros) + ')' : '',
-          M.boss && LEGENDAIRES.find((x) => x.boss === t) ? '✦ ' + OBJETS['leg-' + LEGENDAIRES.find((x) => x.boss === t).cle].nom + ' ' + pc(CHANCE_LEG * pros) : ''].filter(Boolean);
+          M.boss && LEGENDAIRES.find((x) => x.boss === t) ? '✦ ' + OBJETS[idLeg(LEGENDAIRES.find((x) => x.boss === t))].nom + ' ' + pc(CHANCE_LEG * pros) : ''].filter(Boolean);
         return '<div class="art">' + ico(M.icone) + '<div><b>' + M.nom + (M.boss ? ' <span class="puce leg">boss</span>' : '') + '</b><div class="desc">' + M.desc + '</div>' +
           '<div class="puces"><span class="puce">❤ ' + ecart((n) => pvMonstre(t, n)) + ' PV</span><span class="puce">⚔ ' + ecart((n) => Math.round(degMonstre(t, n) * multDegats(n))) + '</span><span class="puce">vagues ' + n0 + (n1 > n0 ? ' à ' + n1 : '') + '</span></div>' +
           '<div class="puces best-drops">' + drops.map((d) => '<span class="puce bonne">🎁 ' + d + '</span>').join('') + '</div></div><div></div></div>'; }).join('');
@@ -4680,7 +4731,7 @@ function ouvrirBestiaire(onglet) {
     return titre + pieces.map((id) => { const o = OBJETS[id], eu = possede(id) || possede(id + '-rare'); /* (les stats : la fourchette des jets) */
       return '<div class="art' + (eu ? '' : ' pas-eu') + '">' + icoObjet(id) + '<div><b>' + o.nom + (eu ? ' <span class="puce bonne">✓ obtenue</span>' : '') + '</b><div class="puces">' + statsFourchette(o) + '<span class="puce">niveau ' + o.niv + '</span></div>' +
         '<div class="desc">' + (o.arme ? 'Sur ' + leN(B) + ' seulement, pour ta classe.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
-      blocPano(P, comptePanos()[P] || 0) + (leg ? '<div class="art">' + icoObjet('leg-' + leg.cle) + '<div><b>✦ ' + OBJETS['leg-' + leg.cle].nom + '</b><div class="puces">' + statsFourchette(OBJETS['leg-' + leg.cle]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
+      blocPano(P, comptePanos()[P] || 0) + (leg ? '<div class="art">' + icoObjet(idLeg(leg)) + '<div><b>✦ ' + OBJETS[idLeg(leg)].nom + '</b><div class="puces">' + statsFourchette(OBJETS[idLeg(leg)]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + (leg.arme ? ', l\'arme de ta classe' : '') + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
   }).join('');
   ouvrirModale('bestiaire', entete('Bestiaire et butin') + tete + corps);
 }
@@ -4722,7 +4773,7 @@ function lancerVague(pBoss) {
   if (rejoueB) { S_.bossRejoue = S_.bossRejoue || {}; S_.bossRejoue[pBoss] = jourJeu(); sauver(); }
   const repas = Object.keys(S_.mange || {}).filter((id) => S_.mange[id] && PAR_ID[id] && PAR_ID[id].mange); /* ce que le perso a mange avant la vague : valable pour cette vague seulement */
   repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; });
-  if (repas.length) { if (legPorte('wa') && !S_.mangeDeux) S_.mangeDeux = true; else { S_.mange = {}; S_.mangeDeux = false; } sauver(); /* la Couronne du Wa Wabbit : le repas vaut 2 vagues */ setTimeout(() => toast('Repas avant la bataille : ' + repas.map((id) => PAR_ID[id].nom + ' ' + PAR_ID[id].mange.txt).join(', ') + ' pendant cette vague.', 'or'), 1200); }
+  if (repas.length) { if (legPorte('wa') && !S_.mangeDeux) S_.mangeDeux = true; else { S_.mange = {}; S_.mangeDeux = false; } sauver(); /* l'arme du Wa Wabbit (avant le 14/10/2026, sa Couronne) : le repas vaut 2 vagues */ setTimeout(() => toast('Repas avant la bataille : ' + repas.map((id) => PAR_ID[id].nom + ' ' + PAR_ID[id].mange.txt).join(', ') + ' pendant cette vague.', 'or'), 1200); }
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
   $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
@@ -4814,8 +4865,8 @@ function butin(mo) {
     chiffre('⚔ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.9, mo.z), 'butin'); toast('Arme : ' + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }
   const leg = mo.d.boss && LEGENDAIRES.find((x) => x.boss === mo.type);
-  if (leg && Math.random() < CHANCE_LEG * pros) { /* la coiffe legendaire du boss */
-    const id = 'leg-' + leg.cle; L.objets.unshift(donnerObjet(id)); compter('legendaires');
+  if (leg && Math.random() < CHANCE_LEG * pros) { /* la piece legendaire du boss (coiffe, ou l'arme de ta classe) */
+    const id = idLeg(leg); L.objets.unshift(donnerObjet(id)); compter('legendaires');
     chiffre('✦ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.6, mo.z), 'butin'); pouf(mo.x, mo.m.position.y, mo.z, 4, '#b57cf0'); son('niveau');
     toast('✦ LÉGENDAIRE : ' + OBJETS[id].nom + ' ! ' + OBJETS[id].pouvoir, 'or'); rendreHaut();
   }
@@ -5280,7 +5331,7 @@ function majLegendaire(dt) {
       actifs.forEach((o) => { if (Math.hypot(o.x - pp.x, o.z - pp.z) < 3) blesser(o, Math.round(st.deg * 2), true); });
     }
   }
-  if (legPorte('wa')) { /* Couronne du Wa Wabbit : des cawottes tombent autour du perso */
+  if (legPorte('wa')) { /* l'arme du Wa Wabbit (avant le 14/10/2026, sa Couronne) : des cawottes tombent autour du perso */
     c.pluieLeg = (c.pluieLeg == null ? 3 : c.pluieLeg) - dt;
     if (c.pluieLeg <= 0 && actifs.some((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 5)) {
       c.pluieLeg = 9;
@@ -6098,7 +6149,7 @@ const accordE = (emp) => emp === 'coiffe' || emp === 'cape' || emp === 'amulette
 /* le portrait du perso habille, rendu a part (une petite scene) et garde tant que sa tenue ne change pas */
 let portraitR = null; const portraits = {};
 function portraitPerso() {
-  const cle = classeDe() + '|' + sexeDe() + '|' + (S_.perso.look || '') + '|' + !!MODELES[modeleDe(classeDe(), S_.perso.look)] + '|' + (S_.equip.coiffe || '') + '|' + (S_.equip.cape || '') + '|' + visuelsPrets(); if (portraits[cle]) return portraits[cle];
+  const cle = classeDe() + '|' + sexeDe() + '|' + (S_.perso.look || '') + '|' + !!MODELES[modeleDe(classeDe(), S_.perso.look)] + '|' + (S_.equip.coiffe || '') + '|' + (S_.equip.cape || '') + '|' + (S_.equip.arme || '') + '|' + visuelsPrets(); if (portraits[cle]) return portraits[cle];
   try {
     if (!portraitR) { portraitR = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); portraitR.setPixelRatio(1); portraitR.setSize(300, 360); portraitR.setClearColor(0x000000, 0); portraitR.outputEncoding = rendu.outputEncoding; }
     const sc = new T.Scene(); sc.add(new T.HemisphereLight('#fff8ec', '#9db7cf', 0.75)); const d = new T.DirectionalLight('#fff3dc', 0.85); d.position.set(3, 6, 8); sc.add(d);
@@ -6810,6 +6861,9 @@ const niveauDe = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) 
 function casesDepart() { return ILE.depart.map(([i, j]) => ({ id: idCase(i, j), i, j, terrain: 'main', type: i === MONTGOLFIERE_CASE[0] && j === MONTGOLFIERE_CASE[1] ? 'montgolfiere' : 'libre' })); }
 function completerTerrains() {
   migrerIleRonde(S_); invaliderIndex();
+  { const L = LEGENDAIRES.find((x) => x.cle === 'wa'), nv = L && idLeg(L, (S_.perso && S_.perso.classe) || 'iop'); /* (la Couronne du Wa Wabbit est devenue une arme, 14/10/2026) */
+    if (nv && S_.sac && S_.sac['leg-wa']) { S_.sac[nv] = (S_.sac[nv] || 0) + S_.sac['leg-wa']; delete S_.sac['leg-wa']; }
+    if (nv && S_.equip && S_.equip.coiffe === 'leg-wa') { delete S_.equip.coiffe; S_.sac = S_.sac || {}; S_.sac[nv] = (S_.sac[nv] || 0) + 1; } }
   const ids = new Set(S_.cases.map((c) => c.id)), ajouter = (c) => { if (!ids.has(c.id)) { S_.cases.push(c); ids.add(c.id); } };
   casesDepart().forEach(ajouter);
   TERRAINS.forEach((t) => { if (S_.terrains[t.id]) t.cases.forEach(([i, j]) => ajouter({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' })); });
@@ -7118,7 +7172,7 @@ function lancer(etat) {
   enAccueil = false; angleCam = Math.PI / 4; placerCamera();
   resynchroniserIle(); construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
   if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
-  if (S_.equip && (S_.equip.coiffe || S_.equip.cape)) rafraichirTenue(); /* (les modeles des pieces portees arrivent apres) */
+  if (S_.equip && (S_.equip.coiffe || S_.equip.cape || S_.equip.arme)) rafraichirTenue(); /* (les modeles des pieces portees arrivent apres) */
   toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
   if (S_.migreIleRonde && !S_.migreIleRonde.vu) { const m = S_.migreIleRonde; m.vu = 1; sauver(); /* (une seule fois, apres la conversion d'une ancienne ferme) */
     setTimeout(() => toast('Ta ferme a déménagé sur l\'île ronde ! Le départ fait maintenant 92 cases' + (m.terrains ? ', et tes ' + m.terrains + ' terrain' + (m.terrains > 1 ? 's sont devenus les ' + m.terrains + ' premiers' : ' est devenu le premier') + ' terrain' + (m.terrains > 1 ? 's' : '') + ' de l\'île, plus grand' + (m.terrains > 1 ? 's' : '') : '') + (m.replaces ? '. Ce qui était posé dessus a été replacé sur ta ferme' : '') + '. Les suivants se débloquent avec ton niveau, en faisant le tour de l\'île.', 'or'), 3500); }
