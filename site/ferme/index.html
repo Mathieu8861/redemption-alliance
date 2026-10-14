@@ -1075,7 +1075,7 @@ function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
-  try { if (combat && combat.boostPros) t.prospection += combat.boostPros; } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague */
+  try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
   return t;
 }
 const reventeObjet = (id) => 15 * obj(id).niv * (obj(id).rare ? 3 : 1); /* « la revente devrait moins rapporter » (Mathieu, 12/10/2026) : 40 par niveau, soit les deux tiers d'une vague du meme niveau ; maintenant environ un quart */
@@ -1680,14 +1680,14 @@ const ACTIONS = {
   nourrirGelee(k, muet) {
     const g = (S_.gelees || [])[k]; if (!g || etatGelee(g) !== 'faim') return false; const r = GELEES[g.c].recette, m = manqueRecette(r);
     if (m.length) { if (!muet) toast('Il manque ' + m.join(' et ') + ' pour nourrir ' + g.nom + '.', 'alerte'); return false; }
-    Object.entries(r).forEach(([id, n]) => { S_.grange[id] -= n; }); g.fin = Date.now() + PROD_GELEE; compter('repasGelees');
-    if (!muet) { son('gelee'); toast(g.nom + ' mange : son pot sera prêt dans ' + dureeLisible(PROD_GELEE) + '.'); rendreGrange(); rendreCasesBulles(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere(); }
+    Object.entries(r).forEach(([id, n]) => { S_.grange[id] -= n; }); g.fin = Date.now() + prodGelee(g); compter('repasGelees');
+    if (!muet) { son('gelee'); toast(g.nom + ' mange : son pot sera prêt dans ' + dureeLisible(prodGelee(g)) + '.'); rendreGrange(); rendreCasesBulles(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere(); }
     return true;
   },
   nourrirGelees() {
-    let n = 0; (S_.gelees || []).forEach((g, k) => { if (ACTIONS.nourrirGelee(k, true)) n++; });
+    let n = 0, roy = 0; (S_.gelees || []).forEach((g, k) => { if (ACTIONS.nourrirGelee(k, true)) { n++; if (g.c === 'royale') roy++; } });
     if (!n) { toast('Pas assez de fruits pour tes Gelées qui ont faim.', 'alerte'); return; }
-    son('gelee'); toast(n + ' Gelée' + (n > 1 ? 's mangent' : ' mange') + ' : pot' + (n > 1 ? 's' : '') + ' prêt' + (n > 1 ? 's' : '') + ' dans ' + dureeLisible(PROD_GELEE) + '.');
+    son('gelee'); toast(n + ' Gelée' + (n > 1 ? 's mangent' : ' mange') + ' : pot' + (n > 1 ? 's' : '') + ' prêt' + (n > 1 ? 's' : '') + ' dans ' + dureeLisible(roy === n ? PROD_ROYALE : PROD_GELEE) + (roy && roy < n ? ' (' + dureeLisible(PROD_ROYALE) + ' pour la Royale)' : '') + '.');
     rendreGrange(); rendreCasesBulles(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere();
   },
   ramasserPots() {
@@ -1702,7 +1702,7 @@ const ACTIONS = {
     Object.entries(CROISEMENT).forEach(([id, n]) => { S_.grange[id] -= n; }); const [a, b] = L; a.repos = b.repos = Date.now() + REPOS_CROISEMENT;
     const royale = Math.random() < CHANCE_ROYALE, c = royale ? 'royale' : hasard([a.c, b.c]), g = { c, nom: nouveauNomGelee(), fin: 0 }; S_.gelees.push(g); compter('croisements');
     son(royale ? 'niveau' : 'gelee'); if (royale) { compter('royales'); confettis(40); }
-    toast(royale ? 'Incroyable : ' + a.nom + ' et ' + b.nom + ' donnent naissance à ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie.' : a.nom + ' et ' + b.nom + ' ont un petit : ' + g.nom + ', ' + GELEES[c].nom.toLowerCase() + '.', 'or');
+    toast(royale ? 'Incroyable : ' + a.nom + ' et ' + b.nom + ' donnent naissance à ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 Agilité pour la vague.' : a.nom + ' et ' + b.nom + ' ont un petit : ' + g.nom + ', ' + GELEES[c].nom.toLowerCase() + '.', 'or');
     rendreGrange(); rendreGelees(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere();
   },
   acheterGraines(id, n) {
@@ -4261,9 +4261,9 @@ const POTS = {
   menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % par seconde pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' },
   fraise: { nom: 'Pot de gelée Fraise', court: 'Pots de Fraise', soin: 0.4, effet: '+40 % de vie', desc: 'Fait à ta Gelière par tes Gelées Fraise.', geliere: true },
   citron: { nom: 'Pot de gelée Citron', court: 'Pots de Citron', soin: 0.25, citron: true, effet: '+25 % de vie, et ton perso court 30 % plus vite pendant la vague', desc: 'Fait à ta Gelière. À boire juste avant de lancer la vague.', geliere: true },
-  royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, effet: 'Toute ta vie', desc: 'Le plus rare : seule la Gelée Royale le fait.', geliere: true }
+  royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 20, effet: 'Toute ta vie, et +20 Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +20 Agilité (des coups plus rapides) pendant la prochaine vague.', geliere: true }
 };
-const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 %, puis soin en vague', fraise: '+40 % de vie', citron: '+25 %, et tu cours plus vite', royale: 'toute ta vie' };
+const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 %, puis soin en vague', fraise: '+40 % de vie', citron: '+25 %, et tu cours plus vite', royale: 'toute ta vie, et +20 Agilité en vague' };
 const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01;
 /* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
    « met pas 1 %, mais 1 PV par minute ; et une vraie minute, sinon les gelees perdent tout leur interet » (Mathieu, 13/10/2026) : 1 PV par VRAIE minute,
@@ -4272,7 +4272,8 @@ const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEP
 const REGEN_PV = 1, REGEN_PAS = 60000;
 function regenVie(dtReel) { if (!S_ || S_.pv == null || combat || !S_.perso || !(dtReel > 0)) return; const max = statsPerso().pvMax; S_.pv = Math.min(max, S_.pv + REGEN_PV * dtReel / REGEN_PAS); if (S_.pv >= max) S_.pv = null; }
 const totalPots = () => Object.keys(POTS).reduce((t, k) => t + ((S_.pots && S_.pots[k]) || 0), 0);
-const citronPret = () => { const r = !!S_.citron; S_.citron = false; return r; }; /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
+const citronPret = () => { const r = !!S_.citron; S_.citron = false; return r; };
+const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }; /* (la Royale bue avant la vague : +20 Agilite pendant celle-ci) */ /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
 const prixPot = (t) => Math.max(10, POTS[t].prix * niveau(S_.xp));
 const vieActuelle = () => { const max = statsPerso().pvMax; return S_.pv == null ? max : Math.max(0, Math.min(max, S_.pv)); };
 const menthePrete = () => { const r = S_.menthe ? REGEN_MENTHE : 0; S_.menthe = false; return r; }; /* (la Menthe bue avant la vague : elle soigne pendant celle-ci) */
@@ -4281,9 +4282,10 @@ function boirePot(t) {
   const max = statsPerso().pvMax, avant = vieActuelle();
   if (P.menthe && S_.menthe) { toast('Tu as déjà bu un pot de Menthe pour la prochaine vague.'); return; }
   if (P.citron && S_.citron) { toast('Tu as déjà bu un pot de Citron pour la prochaine vague.'); return; }
-  if (avant >= max && !P.menthe && !P.citron) { toast('Ta vie est déjà pleine.'); return; }
-  S_.pots[t]--; son('boire'); S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; if (P.citron) S_.citron = true; compter('pots');
-  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant la vague.' : P.citron ? '. Le Citron te fera courir plus vite pendant la vague.' : '.'), 'or');
+  if (P.agi && S_.royale) { toast('Tu as déjà bu un pot de Royale pour la prochaine vague.'); return; }
+  if (avant >= max && !P.menthe && !P.citron && !P.agi) { toast('Ta vie est déjà pleine.'); return; }
+  S_.pots[t]--; son('boire'); S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; if (P.citron) S_.citron = true; if (P.agi) S_.royale = P.agi; compter('pots');
+  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant la vague.' : P.citron ? '. Le Citron te fera courir plus vite pendant la vague.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant la vague.' : '.'), 'or');
   rendreGrange(); rendreHaut(); sauver();
   if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'pots') ouvrirPots(); else if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
 }
@@ -4309,9 +4311,9 @@ function blocVie() {
 function ouvrirPots() {
   const max = statsPerso().pvMax, pv = vieActuelle(), pc = Math.round(100 * pv / max), plein = pv >= max; S_.pots = S_.pots || {};
   const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : ' + REGEN_PV + ' PV par minute, pleine dans ' + dureeLisible((max - pv) / REGEN_PV * REGEN_PAS) + '. Un pot fait gagner ce temps.';
-  const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
+  const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.royale ? ' La Royale est bue : +' + S_.royale + ' Agilité pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
   const types = POTS_HDV.concat(Object.keys(POTS).filter((t) => POTS[t].geliere && ((S_.pots[t] || 0) > 0 || niv('geliere'))));
-  const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron) || (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron);
+  const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron && !POTS[t].agi) || (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron) || (POTS[t].agi && S_.royale);
     return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +
       (n ? '<button class="btn kamas" data-boire="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button>' : POTS[t].geliere ? '<button class="btn discret" data-geliere>Gelière</button>' : '<button class="btn discret" data-hdv-cat="gelees">Acheter</button>') + '</div></div>'; }).join('');
   ouvrirModale('pots', entete('Pots de gelée') + tete + lignes + '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:10px">' + (niv('geliere') ? '<button class="btn discret" data-geliere>Ta Gelière</button>' : '') + '<button class="btn kamas" data-hdv-cat="gelees">Acheter des pots à l\'HDV</button></div>');
@@ -4323,7 +4325,7 @@ function ouvrirPots() {
    20 min ; recette validee par Mathieu (« on valide comme ca, on ajustera par la suite ») : Bleue 4 Cawottes, Fraise 4 Fraises, Citron 3 Fraises et 3 Cawottes,
    Royale 6 Fraises et 4 Cawottes (Menthe 3 Cawottes et 2 Fraises, par defaut). Croiser deux couleurs fait parfois naitre une Gelee Royale. Effets des pots :
    la maquette du plan (Bleue +25 %, Menthe soigne pendant la vague, Citron +25 % et le perso court plus vite, Fraise +40 %, Royale toute la vie). */
-const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 1 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, VITESSE_CITRON = 1.3;
+const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 30 * MIN, PROD_ROYALE = 4 * 60 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, VITESSE_CITRON = 1.3;
 const GELEES = {
   bleue: { nom: 'Gelée Bleue', pot: 'petit', recette: { cawotte: 4 }, prix: 2000 },
   menthe: { nom: 'Gelée Menthe', pot: 'menthe', recette: { cawotte: 3, fraise: 2 }, prix: 3500 },
@@ -4338,6 +4340,7 @@ const placesGeliere = () => PLACES_GELIERE[niv('geliere')] || 0;
 const nomFruit = (id, n) => PAR_ID[id].nom + (n > 1 ? 's' : '');
 const recetteTxt = (r) => Object.entries(r).map(([id, n]) => n + ' ' + nomFruit(id, n)).join(' et ');
 const manqueRecette = (r) => Object.entries(r).filter(([id, n]) => (S_.grange[id] || 0) < n).map(([id, n]) => (n - (S_.grange[id] || 0)) + ' ' + nomFruit(id, n - (S_.grange[id] || 0)));
+const prodGelee = (g) => g.c === 'royale' ? PROD_ROYALE : PROD_GELEE; /* (14/10/2026 : 30 min par pot, 4 h pour la Royale ; 1 min avant, « n'importe quoi ») */
 const etatGelee = (g) => g.fin ? (Date.now() >= g.fin ? 'pret' : 'prod') : 'faim';
 const potsPretsGeliere = () => (S_.gelees || []).filter((g) => etatGelee(g) === 'pret').length;
 function nouveauNomGelee() { const pris = (S_.gelees || []).map((g) => g.nom), L = NOMS_GELEES.filter((n) => !pris.includes(n)); return L.length ? hasard(L) : hasard(NOMS_GELEES) + ' ' + ((S_.gelees || []).length + 1); }
@@ -4424,12 +4427,12 @@ function ouvrirGeliere() {
     return '<div class="art">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small><div class="puces">' + etat + '<span class="puce">' + BREF_POT[G.pot] + '</span>' + repos + '</div></div><div class="act">' + act + '</div></div>';
   };
   const parents = parentsCroisement(), mc = manqueRecette(CROISEMENT);
-  ouvrirModale('geliere', entete('La Gelière') + '<p class="hdv-aide">' + look[0].toUpperCase() + look.slice(1) + ', niveau ' + nv + '. Tes Gelées vivent au bord de l\'eau. Nourris-les de fruits : chacune te fait un pot de sa couleur en ' + dureeLisible(PROD_GELEE) + '.</p>' +
+  ouvrirModale('geliere', entete('La Gelière') + '<p class="hdv-aide">' + look[0].toUpperCase() + look.slice(1) + ', niveau ' + nv + '. Tes Gelées vivent au bord de l\'eau. Nourris-les de fruits : chacune te fait un pot de sa couleur en ' + dureeLisible(PROD_GELEE) + ' (la Royale en ' + dureeLisible(PROD_ROYALE) + ').</p>' +
     (prets ? '<div class="vie-alerte"><div><b>' + prets + ' pot' + (prets > 1 ? 's' : '') + ' de gelée prêt' + (prets > 1 ? 's' : '') + '</b><small>Ils iront avec tes autres pots : bouton potion, à côté de ta vie.</small></div><div class="va-pots"><button class="btn kamas" data-gelee-ramasser>Ramasser</button></div></div>' : '') +
     (faim.length > 1 ? '<div style="display:flex;justify-content:flex-end;margin:0 0 6px"><button class="btn kamas" data-gelee-nourrir="tout">Nourrir toutes celles qui ont faim</button></div>' : '') +
     '<div class="hdv-section">Tes Gelées : ' + L.length + ' sur ' + places + ' place' + (places > 1 ? 's' : '') + '</div>' +
     (L.length ? L.map(ligne).join('') : '<p class="hdv-aide">Aucune Gelée pour l\'instant : achète ta première à l\'HDV, catégorie Gelées.</p>') +
-    '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie. Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
+    '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
     '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (!parents ? '<small class="gel-note">' + (L.length >= places ? 'La Gelière est pleine.' : 'Il faut deux Gelées de couleurs différentes, reposées.') + '</small>' : mc.length ? '<small class="gel-note">Il manque ' + mc.join(' et ') + '.</small>' : '') +
     '<button class="btn discret" data-hdv-cat="gelees">Acheter une Gelée</button><button class="btn kamas" data-gelee-croiser' + (parents && !mc.length ? '' : ' disabled') + '>' + (parents ? 'Croiser ' + parents[0].nom + ' et ' + parents[1].nom : 'Croiser') + '</button></div>' +
     lignesAmelio(['geliere'], 'Agrandir la Gelière'));
@@ -4846,7 +4849,7 @@ function lancerVague(pBoss) {
   compoVague(n).forEach(([t, k]) => { for (let i = 0; i < k; i++) file.push(t); });
   file.sort(() => Math.random() - 0.5); file.sort((a, b) => (MONSTRES[a].boss ? 1 : 0) - (MONSTRES[b].boss ? 1 : 0)); /* le boss arrive en dernier */
   const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe());
-  combat = { n, file, total: file.length, attente: 0.8, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: vieActuelle(), regen: menthePrete(), citron: citronPret(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, rejoueBoss: rejoueB ? pBoss : null };
+  combat = { n, file, total: file.length, attente: 0.8, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: vieActuelle(), regen: menthePrete(), citron: citronPret(), agi: royalePrete(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, rejoueBoss: rejoueB ? pBoss : null };
   combat.phases = (PHASES_BOSS[n] || []).map((p) => { const f = []; p.L.forEach(([t, k]) => { for (let i = 0; i < k; i++) f.push(t); }); f.sort(() => Math.random() - 0.5); return { nom: p.nom, f }; }); /* (la vague 70 : ses temps suivants) */
   if (rejoueB) { S_.bossRejoue = S_.bossRejoue || {}; S_.bossRejoue[pBoss] = jourJeu(); sauver(); }
   const repas = Object.keys(S_.mange || {}).filter((id) => S_.mange[id] && PAR_ID[id] && PAR_ID[id].mange); /* ce que le perso a mange avant la vague : valable pour cette vague seulement */
@@ -4975,8 +4978,8 @@ function zoneDanger(o) {
 /* LE PALIER DES KOALAKS (14/10/2026) : ce que certains coups font en plus, la fumee du Koulosse, son appel, le Fossoyeur, le bandit */
 function ouvrirEntracte() {
   const c = combat; if (!c || !c.entracte || !c.phases.length) return; const pc = Math.round(100 * c.pv / c.pvMax), p = c.phases[0]; S_.pots = S_.pots || {};
-  const pots = Object.keys(POTS).filter((t) => (S_.pots[t] || 0) > 0).map((t) => { const P = POTS[t], non = (c.pv >= c.pvMax && !P.menthe && !P.citron) || (P.menthe && c.regen) || (P.citron && c.citron);
-    return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + ' ×' + S_.pots[t] + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + (P.menthe ? ' (jusqu\'à la fin de la vague)' : P.citron ? ' (jusqu\'à la fin de la vague)' : '') + '</span></div></div><div class="act"><button class="btn kamas" data-entracte-pot="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button></div></div>'; }).join('');
+  const pots = Object.keys(POTS).filter((t) => (S_.pots[t] || 0) > 0).map((t) => { const P = POTS[t], non = (c.pv >= c.pvMax && !P.menthe && !P.citron && !P.agi) || (P.menthe && c.regen) || (P.citron && c.citron) || (P.agi && c.agi);
+    return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + ' ×' + S_.pots[t] + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + (P.menthe || P.citron || P.agi ? ' (jusqu\'à la fin de la vague)' : '') + '</span></div></div><div class="act"><button class="btn kamas" data-entracte-pot="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button></div></div>'; }).join('');
   const repas = CULTURES.filter((cu) => cu.mange && ((S_.grange[cu.id] || 0) > 0 || c.repasEntracte[cu.id])).map((cu) => { const pris = !!c.repasEntracte[cu.id];
     return '<div class="art">' + ico(cu.id) + '<div><b>' + cu.nom + (pris ? ' : mangée !' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + cu.mange.txt + ' jusqu\'à la fin de la vague</span><span class="puce">' + (S_.grange[cu.id] || 0) + ' en grange</span></div></div><div class="act">' +
       (pris ? '<span class="cadenas">✓ Mangée</span>' : '<button class="btn mini" data-entracte-manger="' + cu.id + '">Manger</button>') + '</div></div>'; }).join('');
@@ -4987,8 +4990,8 @@ function ouvrirEntracte() {
 }
 function boireEntracte(t) {
   const c = combat, P = POTS[t]; S_.pots = S_.pots || {}; if (!c || !c.entracte || !P || !(S_.pots[t] > 0)) return;
-  const avant = c.pv; S_.pots[t]--; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * P.soin); if (P.menthe) c.regen = REGEN_MENTHE; if (P.citron) c.citron = true; son('boire'); compter('pots');
-  toast('Glou glou : ' + Math.round(100 * avant / c.pvMax) + ' % de vie, puis ' + Math.round(100 * c.pv / c.pvMax) + ' %' + (P.menthe ? ', et la Menthe te soigne jusqu\'à la fin.' : P.citron ? ', et tu cours plus vite jusqu\'à la fin.' : '.'), 'or'); rendreHaut(); sauver(); ouvrirEntracte();
+  const avant = c.pv; S_.pots[t]--; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * P.soin); if (P.menthe) c.regen = REGEN_MENTHE; if (P.citron) c.citron = true; if (P.agi) c.agi = P.agi; son('boire'); compter('pots');
+  toast('Glou glou : ' + Math.round(100 * avant / c.pvMax) + ' % de vie, puis ' + Math.round(100 * c.pv / c.pvMax) + ' %' + (P.menthe ? ', et la Menthe te soigne jusqu\'à la fin.' : P.citron ? ', et tu cours plus vite jusqu\'à la fin.' : P.agi ? ', et +' + P.agi + ' Agilité jusqu\'à la fin.' : '.'), 'or'); rendreHaut(); sauver(); ouvrirEntracte();
 }
 function mangerEntracte(id) {
   const c = combat, cu = PAR_ID[id]; if (!c || !c.entracte || !cu || !cu.mange || c.repasEntracte[id] || !((S_.grange[id] || 0) > 0)) return;
@@ -6254,7 +6257,7 @@ function ouvrirHdv0(onglet) {
         '<div class="desc">Il vit dans l\'enclos. Nourri, il fait de la laine que tu revends. Deux adultes peuvent faire un petit (' + COUT_REPRO + ' Houblon). Pour plus de place, améliore l\'enclos.</div></div>' +
         '<div class="act"><small>' + (plein ? 'Enclos plein' : S_.bouftousAchetes ? 'à l\'unité' : 'le premier à prix doux') + '</small><button class="btn kamas" data-bouftou' + (plein || S_.kamas < prixBouftou() ? ' disabled' : '') + '>Acheter ' + fmt(prixBouftou()) + ' ' + KAMA + '</button>' + (plein ? '' : manque(prixBouftou())) + '</div></div>' +
         (niv('geliere') ? '<div class="hdv-section">Les Gelées, pour ta Gelière : ' + (S_.gelees || []).length + ' sur ' + placesGeliere() + ' places</div>' + GELEES_HDV.map((c) => { const G = GELEES[c], pl = (S_.gelees || []).length < placesGeliere(), ok = pl && S_.kamas >= G.prix;
-          return '<div class="art">' + ico('gelee-' + c) + '<div><b>' + G.nom + '</b><div class="puces"><span class="puce bonne">son pot : ' + BREF_POT[G.pot] + '</span><span class="puce">mange ' + recetteTxt(G.recette) + ' par pot</span></div><div class="desc">Elle vit au bord de l\'eau, dans ta Gelière, et te fait un pot de sa couleur en ' + dureeLisible(PROD_GELEE) + ' quand tu la nourris.</div></div>' +
+          return '<div class="art">' + ico('gelee-' + c) + '<div><b>' + G.nom + '</b><div class="puces"><span class="puce bonne">son pot : ' + BREF_POT[G.pot] + '</span><span class="puce">mange ' + recetteTxt(G.recette) + ' par pot</span></div><div class="desc">Elle vit au bord de l\'eau, dans ta Gelière, et te fait un pot de sa couleur en ' + dureeLisible(c === 'royale' ? PROD_ROYALE : PROD_GELEE) + ' quand tu la nourris.</div></div>' +
             '<div class="act"><small>' + (pl ? 'à l\'unité' : 'Gelière pleine') + '</small><button class="btn kamas" data-gelee-achat="' + c + '"' + (ok ? '' : ' disabled') + '>Acheter ' + fmt(G.prix) + ' ' + KAMA + '</button>' + (pl ? manque(G.prix) : '') + '</div></div>'; }).join('')
         : '<div class="hdv-section">À débloquer : les Gelées</div>' + GELEES_HDV.map((c) => '<div class="art verrou">' + ico('gelee-' + c) + '<div><b>' + GELEES[c].nom + '</b><div class="puces"><span class="puce">son pot : ' + BREF_POT[GELEES[c].pot] + '</span></div></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + (niveau(S_.xp) < NIV_GELIERE ? 'Niveau ' + NIV_GELIERE : 'Construis la Gelière') + '</span></div></div>').join(''));
     } else if (cat === 'gelees') {
@@ -7211,7 +7214,7 @@ const LECONS = [
   { id: 'geliere', titre: 'La Gelière', ico: 'geliere', resume: 'Tes Gelées font tes pots de gelée avec tes fruits.', quand: () => niveau(S_.xp) >= NIV_GELIERE && !niv('geliere'),
     pages: [() => `Niveau ${NIV_GELIERE} : tu peux construire la <em>Gelière</em> (Améliorer, catégorie Animaux). Elle prend 6 cases d'herbe libres d'un seul tenant (3 sur 2) : fais-lui de la place avec Aménager si besoin.`,
       () => `Achète des <em>Gelées</em> à l'HDV (catégorie Gelées) et nourris-les de tes fruits : chacune te fait un pot de sa couleur en ${dureeLisible(PROD_GELEE)}. Bleue : 4 Cawottes. Fraise : 4 Fraises (+40 % de vie). Citron : 3 Fraises et 3 Cawottes (tu cours plus vite).`,
-      () => `Croise deux Gelées de couleurs différentes : parfois naît une <em>Gelée Royale</em>, dont le pot rend toute ta vie. Les Gelées aiment l'eau : elles sautillent au bord des mares.`] },
+      () => `Croise deux Gelées de couleurs différentes : parfois naît une <em>Gelée Royale</em>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague. Les Gelées aiment l'eau : elles sautillent au bord des mares.`] },
   { id: 'vie', titre: 'Ta vie et les pots', ico: 'pot-petit', resume: 'La vie remonte doucement : les pots de gelée vont plus vite.', fenetre: 'vagues', quand: () => S_.pv != null && S_.pv < statsPerso().pvMax,
     pages: [() => `Ta <em>vie</em> ne remonte plus d'un coup entre les vagues : tu repars avec ce qui te reste de la précédente. Elle remonte doucement toute seule (1 % toutes les ${dureeLisible(REGEN_PAS)}), ou d'un coup avec un <em>pot de gelée</em>.`,
       () => `Les pots s'achètent à l'HDV (catégorie <em>Gelées</em>). Tu les bois avec le <em>bouton potion</em>, juste à côté de ta vie (ou en touchant ta vie), ou depuis la fenêtre des vagues. Le pot de <em>Menthe</em> continue de te soigner pendant la vague.`,
