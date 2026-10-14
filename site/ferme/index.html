@@ -864,21 +864,21 @@ const horlogeJeu = (() => {
 })();
 /* ===================== DONNEES DU JEU ===================== */
 const CULTURES = [
-  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 0.75, rendement: 3, prix: 9, xp: 3, couleur: '#f3c03c', tige: '#d6a63c' },
-  { id: 'orge', nom: 'Orge', niv: 5, graine: 15, temps: 2.25, rendement: 3, prix: 23, xp: 6, couleur: '#e8d48c', tige: '#cdb46a' },
-  { id: 'cawotte', nom: 'Cawotte', niv: 9, graine: 600, temps: 12, rendement: 4, prix: 40, xp: 20, couleur: '#f08a24', tige: '#4fae3a', glb: 'cultures3', mange: { deg: 0.2, txt: '+20 % de dégâts' } },
-  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 30, temps: 6, rendement: 4, prix: 32, xp: 10, couleur: '#f6e4a0', tige: '#d9c070' },
-  { id: 'fraise', nom: 'Fraise', niv: 12, graine: 900, temps: 24, rendement: 5, prix: 55, xp: 28, couleur: '#e8323a', tige: '#3f9a35', glb: 'cultures3', mange: { pros: 30, txt: '+30 % de prospection' } },
-  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 60, temps: 15, rendement: 4, prix: 51, xp: 16, couleur: '#6fae3b', tige: '#8b6a42' },
-  { id: 'lin', nom: 'Lin', niv: 20, graine: 100, temps: 30, rendement: 5, prix: 61, xp: 24, couleur: '#8cb8ff', tige: '#7fa84a' },
-  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 180, temps: 72, rendement: 5, prix: 103, xp: 35, couleur: '#c9a35a', tige: '#a88a4a' },
+  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 0.75, rendement: 3, prix: 9, xp: 1, couleur: '#f3c03c', tige: '#d6a63c' },
+  { id: 'orge', nom: 'Orge', niv: 5, graine: 15, temps: 2.25, rendement: 3, prix: 23, xp: 2, couleur: '#e8d48c', tige: '#cdb46a' },
+  { id: 'cawotte', nom: 'Cawotte', niv: 9, graine: 600, temps: 12, rendement: 4, prix: 40, xp: 7, couleur: '#f08a24', tige: '#4fae3a', glb: 'cultures3', mange: { deg: 0.2, txt: '+20 % de dégâts' } },
+  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 30, temps: 6, rendement: 4, prix: 32, xp: 3, couleur: '#f6e4a0', tige: '#d9c070' },
+  { id: 'fraise', nom: 'Fraise', niv: 12, graine: 900, temps: 24, rendement: 5, prix: 55, xp: 12, couleur: '#e8323a', tige: '#3f9a35', glb: 'cultures3', mange: { pros: 30, txt: '+30 % de prospection' } },
+  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 60, temps: 15, rendement: 4, prix: 51, xp: 7, couleur: '#6fae3b', tige: '#8b6a42' },
+  { id: 'lin', nom: 'Lin', niv: 20, graine: 100, temps: 30, rendement: 5, prix: 61, xp: 11, couleur: '#8cb8ff', tige: '#7fa84a' },
+  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 180, temps: 72, rendement: 5, prix: 103, xp: 23, couleur: '#c9a35a', tige: '#a88a4a' },
   /* les cultures de haut niveau (blender/cultures2.py) ; le Quisnoa du meme fichier attend le niveau 70 */
-  { id: 'riz', nom: 'Riz', niv: 30, graine: 220, temps: 30, rendement: 6, prix: 85, xp: 45, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
-  { id: 'malt', nom: 'Malt', niv: 35, graine: 300, temps: 45, rendement: 6, prix: 122, xp: 60, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
-  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 420, temps: 60, rendement: 6, prix: 169, xp: 80, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
-  { id: 'mais', nom: 'Maïs', niv: 45, graine: 550, temps: 72, rendement: 7, prix: 188, xp: 100, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
-  { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 72, rendement: 7, prix: 244, xp: 125, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
-  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 90, rendement: 8, prix: 283, xp: 160, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
+  { id: 'riz', nom: 'Riz', niv: 30, graine: 220, temps: 30, rendement: 6, prix: 85, xp: 8, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
+  { id: 'malt', nom: 'Malt', niv: 35, graine: 300, temps: 45, rendement: 6, prix: 122, xp: 11, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
+  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 420, temps: 60, rendement: 6, prix: 169, xp: 13, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
+  { id: 'mais', nom: 'Maïs', niv: 45, graine: 550, temps: 72, rendement: 7, prix: 188, xp: 14, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
+  { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 72, rendement: 7, prix: 244, xp: 17, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
+  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 90, rendement: 8, prix: 283, xp: 56, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
    Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */
@@ -1629,7 +1629,8 @@ function avancer(maintenant, enDirect) {
 const valeurGrange = () => VENDABLES.reduce((t, v) => t + (S_.grange[v.id] || 0) * prix(v.id), 0);
 function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
 const xpReel = (n, sansFrein) => n > 0 ? Math.max(1, Math.round(n * (sansFrein ? 1 : freinXp()) * (1 + caracs().sagesse / 100))) : n; /* ce que rapporte vraiment n points (le chiffre a afficher) */
-const xpFermeReel = (n) => xpReel(Math.max(1, Math.round(n * XP_FERME))); /* une recolte, une tonte, des plumes */
+const xpFermeReel = (n) => xpReel(Math.max(1, Math.round(n * XP_FERME))); /* une tonte, des plumes */
+const xpRecolteReel = (c) => xpReel(c.xp); /* une recolte : l'XP de la culture telle quelle (14/10/2026) */
 function gagnerXp(n, sansFrein) {
   if (n > 0) n = xpReel(n, sansFrein); /* le frein d'avance sur les vagues (pas sur une vague gagnee : c'est elle qui rattrape l'avance), puis la Sagesse des equipements */
   const avant = niveau(S_.xp), x0 = S_.xp; S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(capNiveau()))); const apres = niveau(S_.xp); gagnerXp.dernier = S_.xp - x0; /* plus rien a gagner au niveau maximum (de la phase) */
@@ -1772,9 +1773,9 @@ const ACTIONS = {
   },
   recolter(p) {
     const c = PAR_ID[p.c]; const qte = recolte(p);
-    S_.grange[c.id] = (S_.grange[c.id] || 0) + qte; const xpRecolte = xpFermeReel(c.xp); { const q = posCase(p); if (niveau(S_.xp) < capNiveau()) gainFlottant('+' + xpRecolte + ' XP', q.x, q.y + 1.1, q.z, null, 'gain-xp'); } /* seulement l'XP (la bulle affichait deja la recolte) : celle vraiment gagnee */ son(c.glb === 'cultures3' ? 'cueillette' : 'fauchage'); compter('recoltes'); compter('recolte_' + c.id); Object.assign(p, champVide());
+    S_.grange[c.id] = (S_.grange[c.id] || 0) + qte; const xpRecolte = xpRecolteReel(c); { const q = posCase(p); if (niveau(S_.xp) < capNiveau()) gainFlottant('+' + xpRecolte + ' XP', q.x, q.y + 1.1, q.z, null, 'gain-xp'); } /* seulement l'XP (la bulle affichait deja la recolte) : celle vraiment gagnee */ son(c.glb === 'cultures3' ? 'cueillette' : 'fauchage'); compter('recoltes'); compter('recolte_' + c.id); Object.assign(p, champVide());
     const rendue = niv('semences') && Math.random() < 0.25; if (rendue) S_.graines[c.id] = (S_.graines[c.id] || 0) + 1;
-    toast('+' + qte + ' ' + c.nom + ' à la grange.' + (rendue ? ' Et une graine récupérée !' : '')); xpFerme(c.xp); rendreCase(p.id); rendreGrange();
+    toast('+' + qte + ' ' + c.nom + ' à la grange.' + (rendue ? ' Et une graine récupérée !' : '')); gagnerXp(c.xp); rendreCase(p.id); rendreGrange();
   },
   capturer(p) {
     if (!p.tofu || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorations.', 'alerte'); return; } S_.filets--; fermerModale();
