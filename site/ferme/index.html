@@ -2887,11 +2887,14 @@ function armerPerso(g) {
     const p0 = centre([pom]), tip = p0.clone(), v = new T.Vector3(); let dmax = 0;
     L.filter((m) => nomP(m) === 'lame').forEach((m) => { const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); const d = v.distanceTo(p0); if (d > dmax) { dmax = d; tip.copy(v); } } });
     const a1 = tip.clone().sub(p0); e = caler(new T.Vector3(0, 0.06, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, a1, new T.Vector3(a1.y, -a1.x, 0), dmax / 1.51); caches = L;
-  } else if (o.type === 'arc') { /* le modele : la corde de y 0,05 a 1,65, le ventre de l'arc vers +x */
-    const L = de(/^(arc|corde_arc|bout_arc|poignee_arc)$/), bouts = L.filter((m) => nomP(m) === 'bout_arc').map((m) => centre([m])).sort((p, q) => p.y - q.y), pg = L.find((m) => nomP(m) === 'poignee_arc');
-    if (bouts.length < 2 || !pg) return;
-    const mil = bouts[0].clone().add(bouts[1]).multiplyScalar(0.5);
-    e = caler(new T.Vector3(0, 0.85, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), mil, bouts[1].clone().sub(bouts[0]), centre([pg]).sub(mil), bouts[0].distanceTo(bouts[1]) / 1.6); caches = L;
+  } else if (o.type === 'arc') { /* le modele : la corde de y 0,05 a 1,65, le ventre de l'arc vers +x. Porte dans le dos, en travers du carquois (« l'arc est pas tres
+       bien mis pour le Cra, place-le dans son dos », Mathieu, 14/10/2026) : la corde contre le dos, le ventre vers l'arriere */
+    const L = de(/^(arc|corde_arc|bout_arc|poignee_arc)$/), bouts = L.filter((m) => nomP(m) === 'bout_arc').map((m) => centre([m])).sort((p, q) => p.y - q.y), carq = de(/^(carquois|carquois_bord|carquois_fond)$/);
+    if (bouts.length < 2 || !carq.length) return;
+    const bq = unionDe(carq), cq = bq.getCenter(new T.Vector3()), dos = Math.sign(cq.z) || -1, haut = de(/^carquois_bord$/), bas = de(/^carquois_fond$/);
+    const axeQ = haut.length && bas.length ? centre(haut).sub(centre(bas)) : new T.Vector3(1, 1, 0), axe = new T.Vector3(-axeQ.x, axeQ.y, 0); /* en croix avec le carquois */
+    const p0 = new T.Vector3(cq.x * 0.4, cq.y + 0.05, (dos < 0 ? bq.min.z : bq.max.z) + dos * 0.06);
+    e = caler(new T.Vector3(0, 0.85, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, axe, new T.Vector3(0, 0, dos), bouts[0].distanceTo(bouts[1]) * 1.15 / 1.6); caches = L;
   } else if (o.type === 'fouet') { /* le modele : pommeau en y 0,05, le haut du manche (coussin) en y 0,62 ; on garde le manche, sans laniere */
     const manche = de(/^manche_fouet$/), pom = de(/^pommeau_fouet$/); if (!manche.length || !pom.length) return;
     const cols = []; V.traverse((m) => { if (m.isMesh && nomP(m) === 'laniere' && m.material && m.material.color && !cols.some((c) => c.equals(m.material.color))) cols.push(m.material.color.clone()); });
@@ -3732,10 +3735,11 @@ function majEpouvantail(dt, s) {
   if (epou.pepites) { epou.pepites.rotation.y += dt * 1.6; epou.coeur.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 5) * 0.12); epou.voyant.visible = Math.sin(s * 6) > -0.3; epou.visiere.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 4) * 0.08); }
   if (!E || enRuine('epouvantail')) return;
   epou.cd = Math.max(0, epou.cd - dt);
-  /* la cible : pendant une vague, le Pepito-Tron tire sur les Tofus d'abord, puis sur le monstre le plus proche (« il tue que les Tofus, fais en sorte qu'il puisse
-     tuer les autres aussi », Mathieu, 14/10/2026) ; hors vague, un Tofu (ou un Wabbit) qui picore un champ depuis assez longtemps */
+  /* la cible : pendant une vague, le Pepito-Tron tire sur les grignoteurs, ou qu'ils soient (les Tofus, et les petits Wabbits qui foncent vers tes champs),
+     jamais sur les autres monstres (« il faut qu'il tire que sur les tofus, pas les monstres, juste il tapait pas ceux sur le terrain, que ceux dans les champs »,
+     Mathieu, 14/10/2026) ; hors vague, un Tofu (ou un Wabbit) qui picore un champ depuis assez longtemps */
   let cible = null, x = 0, z = 0, y = 0;
-  if (combat && n >= 5) { const L = combat.monstres.filter((o) => o.etat === 'actif' && o.m).sort((a, b) => (a.type === 'tofu' ? 0 : 1) - (b.type === 'tofu' ? 0 : 1) || Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z)), t = L[0]; if (t) { cible = { mo: t }; x = t.x; z = t.z; y = t.m.position.y + Math.min(1.2, (t.haut || 1) * 0.45); } }
+  if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.etat === 'actif' && o.m && o.d.grignote).sort((a, b) => Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t }; x = t.x; z = t.z; y = t.m.position.y + 0.4; } }
   if (!cible && !combat) { const now = Date.now(); const p = S_.cases.filter((c) => c.type === 'champ' && c.tofu && now - c.tofu >= E.delai).map((c) => [c, posCase(c)]).filter(([, q]) => Math.hypot(q.x - pos.x, q.z - pos.z) <= E.portee).sort((a, b) => a[0].tofu - b[0].tofu)[0]; if (p) { cible = { champ: p[0] }; x = p[1].x; z = p[1].z; y = p[1].y + 0.7; } }
   let ang = (epou.ry0 || 0) + Math.sin(s * (n >= 5 ? 1.3 : 0.5)) * (n >= 5 ? 2.2 : 0.8); if (cible) ang = Math.atan2(x - pos.x, z - pos.z); /* il scanne, puis se fige sur sa cible */
   let d = ang - epou.tete.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); epou.tete.rotation.y += d * Math.min(1, dt * (cible ? 8 : 1.5));
