@@ -2800,7 +2800,12 @@ function habillerPerso(g) {
     const pc = []; c.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh)) pc.push(m); }); const B0 = boiteDe(c), h0 = B0.max.y - B0.min.y || 1;
     const corpsC = pc.filter((m) => !P_SAILLIE.test(nomP(m))), bas = corpsC.filter((m) => (boiteDe(m).min.y - B0.min.y) / h0 <= 0.35);
     const pied = (m) => { const z = boiteDe(m).getSize(new T.Vector3()); return z.x * z.z; }, rebord = bas.sort((a, b) => pied(b) - pied(a))[0];
-    const r0 = rebord ? boiteDe(rebord).getSize(new T.Vector3()) : B0.getSize(new T.Vector3()), t0 = B0.getSize(new T.Vector3()), k = Math.max(st.x * 0.85 / Math.max(r0.x, r0.z), st.x * 1.12 / Math.max(t0.x, t0.z));
+    const r0 = rebord ? boiteDe(rebord).getSize(new T.Vector3()) : B0.getSize(new T.Vector3()), t0 = B0.getSize(new T.Vector3());
+    let k = Math.max(st.x * 0.85 / Math.max(r0.x, r0.z), st.x * 1.12 / Math.max(t0.x, t0.z));
+    /* « on dirait que j'ai une kippa » (Mathieu, 15/10/2026, Cra en coiffe Bouftou) : un bonnet rond (calotte, bonnet) se calait sur son bord, son dome ne
+       couvrait que 80 % de la chevelure et se posait dessus comme une calotte de pretre. Le dome couvre maintenant toute la largeur du crane */
+    const dome = corpsC.find((m) => /^(calotte|bonnet)$/.test(nomP(m)));
+    if (dome) { const d0 = boiteDe(dome).getSize(new T.Vector3()); k = Math.max(k, st.x * 1.04 / Math.max(d0.x, d0.z)); }
     c.scale.multiplyScalar(k); if (t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
     const b1 = unionDe(corpsC.length ? corpsC : [c]), c1 = b1.getCenter(new T.Vector3()), bas0 = Math.max(bt.min.y + st.y * 0.52, bt.max.y + 0.04 - (b1.max.y - b1.min.y));
     c.position.add(new T.Vector3(ct.x - c1.x, bas0 - b1.min.y, ct.z - c1.z)); eq.add(c);
