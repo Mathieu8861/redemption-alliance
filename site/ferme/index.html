@@ -6908,8 +6908,22 @@ function appliquerVagueArene(c, p) {
   c.arene.k = p.k; c.n = p.n; c.file = p.f.slice(); c.total = p.f.length; c.attente = 2.2; c.victoire = 0; son('vague');
   const b = p.f.find((t) => MONSTRES[t].boss); toast('Arène, vague ' + p.k + ' : ' + p.f.length + ' monstres' + (b ? ', dont ' + leNom(MONSTRES[b], true) : '') + ' !', 'alerte'); majCombatHud();
 }
+function humainPublic(classe, sexe, equip) { /* un spectateur fait comme le perso : sa classe, son sexe, une coiffe, une cape, parfois une arme legendaire */
+  const nom = modeleDe(classe, null, sexe), mUse = MODELES[nom] ? nom : ({ iop: 'iop3', osa: 'osa', cra: 'cra' }[classe] || 'iop3'); if (!MODELES[mUse]) return null;
+  const g = cloner(mUse), e0 = g.scale.x; g.scale.setScalar(1); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0);
+  const sv = { equip: S_.equip, perso: S_.perso }; /* (l'habillage lit l'equipement et la classe du perso : on les lui prete le temps de l'habiller) */
+  try { S_.equip = equip; S_.perso = Object.assign({}, S_.perso || {}, { classe, sexe }); elargirPerso(g, LARGEUR_PERSO[mUse] ? mUse : classe); habillerPerso(g); }
+  catch (e) { /* tant pis pour la tenue */ } finally { S_.equip = sv.equip; S_.perso = sv.perso; }
+  g.scale.setScalar(e0); return g;
+}
+function tenueAuHasard(classe) {
+  const de = (emp) => Object.keys(OBJETS).filter((id) => { const o = OBJETS[id]; return o.emp === emp && !o.rare && !o.leg && !/~/.test(id) && PANOS[o.pano] && PANOS[o.pano].id !== 'boufcoul'; }); /* (sans la panoplie Boufcoul ni les armes legendaires : mal calees sur le public, enormes) */
+  const e = {}; if (Math.random() < 0.8) e.coiffe = hasard(de('coiffe')); if (Math.random() < 0.6) e.cape = hasard(de('cape'));
+  return e;
+}
 async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), faite avec les outils de la ferme et rendue comme elle ; le fond est deja tourne loin de la camera */
   if (ileArene) return;
+  await Promise.all([assurerVisuels(), assurerLook('feminin-iop'), assurerLook('feminin-cra'), assurerLook('feminin-osa')].map((p) => p.catch(() => false))); /* (les tenues et les versions feminines, pour les humains du public) */
   const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
   if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(13, 0, 3.2); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
@@ -6920,7 +6934,7 @@ async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), fait
       const a0 = 150 * Math.PI / 180, a1 = 300 * Math.PI / 180, n = Math.floor((a1 - a0) * rr / pas);
       for (let q = 0; q < n; q++) {
         const a = a0 + (a1 - a0) * (q + (ri % 2 ? 0.9 : 0.4)) / n; if (Math.abs(Math.atan2(Math.sin(a - fond), Math.cos(a - fond))) < 0.33) continue;
-        const m = cloner(hasard(types)), x = Math.cos(a) * rr, z = Math.sin(a) * rr; m.position.set(x, y + 0.03, z); m.rotation.y = Math.atan2(-x, -z) + (Math.random() - 0.5) * 0.4; pub.add(m);
+        const cl = hasard(['iop', 'cra', 'osa']), m = (Math.random() < 0.42 && humainPublic(cl, Math.random() < 0.5 ? 'f' : 'm', tenueAuHasard(cl))) || cloner(hasard(types)), x = Math.cos(a) * rr, z = Math.sin(a) * rr; m.position.set(x, y + 0.03, z); m.rotation.y = Math.atan2(-x, -z) + (Math.random() - 0.5) * 0.4; pub.add(m);
       }
     });
     g.add(pub); }
