@@ -2643,7 +2643,7 @@ function rendreTofusVoliere() {
 }
 
 /* ---------- les batiments sont poses d'apres leurs cases : on les deplace avec Amenager ---------- */
-const BATIS = { grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', foin: 'le foin' };
+const BATIS = { grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
 function blocBati(type) {
   const B = S_.cases.filter((c) => c.type === type); if (!B.length) return null;
   const i0 = Math.min(...B.map((c) => c.i)), j0 = Math.min(...B.map((c) => c.j)), P = B.map(posCase);
@@ -2745,6 +2745,7 @@ const tourne = (dx, dz, a) => [dx * Math.cos(a) + dz * Math.sin(a), -dx * Math.s
 function construireBatiments() {
   batisMesh.forEach((m) => scene.remove(m)); batisMesh = []; fumeesCheminee = [];
   const pose = (...a) => { const m = batiment(...a); batisMesh.push(m); return m; };
+  if (montgolfiereMesh) poserMontgolfiere(); /* (deplacee ou tournee dans Amenager, ou une autre partie) */
   if (!S_.cases.some((c) => c.type === 'foin')) { const c = S_.cases.find((x) => x.id === 'm7_4'); if (c && c.type === 'enclos') c.type = 'foin'; } /* (anciennes sauvegardes : le foin etait passe dans l'enclos) */
   let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg'); fumerCheminee(pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a), ng); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); /* au faitage, pas en haut de la tourelle */ }
   o = blocBati('hdv'); if (o) {
@@ -5692,7 +5693,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (agir && !mode && !combat) S_.clicsDroits = (S_.clicsDroits || 0) + 1; /* l'habitude du clic droit se prend : voir rappelClicDroit */
   for (const h of hits) {
     { let o = h.object; while (o && o !== paysanMesh) o = o.parent; if (o) continue; } /* le perso ne bloque pas le clic sur la case ou il se tient */
-    if (h.object.userData.montgolfiere) { ouvrirMontgolfiere(); return; }
+    if (h.object.userData.montgolfiere && !mode) { ouvrirMontgolfiere(); return; }
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }
       if (mid !== undefined) { cibler(mid); return; }
@@ -6364,9 +6365,12 @@ function payer(g) {
 function majBarreCasino() { if (!S_) return; const c = etatCasino(); $('casino-info').innerHTML = '<b>Île du Casino</b> · pertes du jour ' + fmt(perteJour()) + ' / ' + fmt(plafondPertes()) + ' ' + KAMA + ' · jackpot ' + fmt(c.jackpot) + ' ' + KAMA + (dette() ? ' · <span style="color:var(--rouge)">ardoise ' + fmt(dette()) + '</span>' : ''); }
 
 /* ---------- la montgolfiere de la ferme ---------- */
-function poserMontgolfiere() {
-  if (!MODELES.montgolfiere || montgolfiereMesh) return;
-  const g = MODELES.montgolfiere; g.position.copy(POS_MONTGOLFIERE); g.rotation.set(0, Math.PI, 0); g.traverse((o) => { o.userData.montgolfiere = true; }); scene.add(g); montgolfiereMesh = g;
+function poserMontgolfiere() { /* sur sa case (type montgolfiere), tournee comme on l'a choisi dans Amenager ; POS_MONTGOLFIERE suit (retour du Casino, gros bras) */
+  if (!MODELES.montgolfiere) return;
+  const c = S_ && S_.cases.find((x) => x.type === 'montgolfiere'); if (!c) { if (montgolfiereMesh) montgolfiereMesh.visible = false; return; }
+  const q = posCase(c); POS_MONTGOLFIERE.set(q.x, 0, q.z);
+  const g = montgolfiereMesh || MODELES.montgolfiere; g.visible = true; g.position.copy(POS_MONTGOLFIERE); g.rotation.set(0, Math.PI + rotDe('montgolfiere'), 0);
+  g.traverse((o) => { o.userData.montgolfiere = true; o.userData.cellule = c.id; }); if (!montgolfiereMesh) { scene.add(g); montgolfiereMesh = g; }
 }
 function ouvrirMontgolfiere() {
   const l = niveau(S_.xp), ok = S_.montgolfiere;
@@ -6810,6 +6814,8 @@ function completerTerrains() {
   casesDepart().forEach(ajouter);
   TERRAINS.forEach((t) => { if (S_.terrains[t.id]) t.cases.forEach(([i, j]) => ajouter({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' })); });
   if (S_.sauvage && !ids.has(S_.sauvage.id)) S_.sauvage = null;
+  if (!S_.cases.some((c) => c.type === 'montgolfiere')) { const x0 = (MONTGOLFIERE_CASE[0] - (COLS - 1) / 2) * S, z0 = (MONTGOLFIERE_CASE[1] - (ROWS - 1) / 2) * S;
+    const c = S_.cases.filter((c) => c.type === 'libre' && codeIle(c.i, c.j) === '.' && !(S_.sauvage && S_.sauvage.id === c.id)).sort((a, b) => Math.hypot(cx(a.i) - x0, cz(a.j) - z0) - Math.hypot(cx(b.i) - x0, cz(b.j) - z0))[0]; if (c) c.type = 'montgolfiere'; }
   invaliderIndex();
 }
 /* L'ILE RONDE, les anciennes sauvegardes (14/10/2026) : la ferme 8 x 5 et sa bordure restent ou elles sont (elles font partie du depart) ; les N terrains achetes
