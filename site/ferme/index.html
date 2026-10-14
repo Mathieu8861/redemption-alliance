@@ -728,7 +728,8 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .ra-rebours.presse { animation: ra-pouls .5s ease-in-out infinite alternate; } @keyframes ra-pouls { to { transform: scale(1.1); } }
 .ra-puces { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
 .ra-puces span { display: inline-flex; align-items: center; gap: 5px; background: #f3ead8; border: 2px solid #e2d3b4; border-radius: 99px; padding: 2px 10px; font: 800 .8rem/1.3 var(--f-texte); }
-.ra-puces img { width: 20px; height: 20px; object-fit: contain; } .ra-puces .rouge { background: #fde3df; border-color: #f0a99f; color: #9c2a20; } .ra-puces .rouge i { width: 12px; height: 12px; border-radius: 3px; background: var(--rouge); }
+.ra-puces img { width: 20px; height: 20px; object-fit: contain; } .ra-puces .violet { background: #efe6ff; border-color: #c4a8f0; color: #4a2a86; } .ra-puces .violet i { width: 12px; height: 12px; border-radius: 3px; background: #7b4fc9; }
+.bulle.omeho { background: #4a2a86; border-color: #2a1650; box-shadow: 0 3px 0 #2a1650; color: #fff; font-family: var(--f-titre); font-weight: 400; letter-spacing: .02em; text-align: center; line-height: 1.15; } .bulle.omeho::after { border-top-color: #2a1650; } .bulle.omeho small { display: block; font: 800 .66rem/1.2 var(--f-texte); opacity: .85; letter-spacing: 0; } .ra-puces .rouge { background: #fde3df; border-color: #f0a99f; color: #9c2a20; } .ra-puces .rouge i { width: 12px; height: 12px; border-radius: 3px; background: var(--rouge); }
 .ra-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px 11px; }
 .ra-arb { display: inline-flex; align-items: center; gap: 5px; margin-right: auto; font: 800 .8rem/1.2 var(--f-texte); } .ra-arb img { width: 26px; height: 26px; object-fit: contain; } .ra-arb.vide { color: #b0352b; }
 .ra-actions .btn { padding: 6px 13px; font-size: .84rem; }
@@ -740,7 +741,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .bv-bilan b { flex: none; white-space: nowrap; font: 400 1.35rem/1 var(--f-titre); }
 @media (max-width: 520px) { .bv-pied { flex-wrap: wrap; } .bv-bilan { flex-basis: 100%; } .bv-pied .btn { margin-left: auto; } } .bv-bilan.plus { background: #e9f6dc; } .bv-bilan.plus b { color: #3f8a22; } .bv-bilan.moins { background: #fde3df; } .bv-bilan.moins b { color: #c0392b; }
 @keyframes pouls { to { transform: translateX(-50%) scale(1.05); } } /* (l'ancienne annonce de la simu : la carte ne pulse plus en entier, seul le compte a rebours) */
-.hud.en-combat .actions, .hud.en-combat .commis, .hud.en-combat .aide, .hud.en-combat #bulles, .hud.en-combat .bandeau { display: none !important; }
+.hud.en-combat .actions, .hud.en-combat .commis, .hud.en-combat .aide, .hud.en-combat #bulles > :not(.omeho), .hud.en-combat .bandeau { display: none !important; } /* (en combat, seule l'etiquette d'Omeho reste : c'est la sortie des voleurs) */
 @media (max-width: 720px) { .combat-perso .pvb { width: 100px; } .combat-sort .rond { width: 70px; height: 70px; font-size: .78rem; } .hud.en-combat .toasts { bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
 /* le plein ecran (12/10/2026) */
 .pastille.plein { pointer-events: auto; cursor: pointer; font: 800 .78rem var(--f-texte); background: var(--or); color: var(--encre); gap: 5px; }
@@ -2253,7 +2254,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261016e'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016f'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -2419,6 +2420,7 @@ async function chargerModeles() {
     ['koalakIndigo', 'KoalakIndigo', 1.6], ['koalakCoco', 'KoalakCoco', 1.6], ['drakoalak', 'Drakoalak', 2.6], ['chevaucheurKoalak', 'ChevaucheurKoalak', 2.6]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.koalaks, n, h, 'y'); });
   MODELES.koulosse = gabarit(G.koulosse, 'Koulosse', 4.2, 'y');
   [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
+  try { const sc = await chargerGlb('assets/modeles/jeu/omeho.glb?v=' + VERSION_MODELES); MODELES.omeho = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); MODELES.omeho.scale.setScalar(0.6); MODELES.omeho.userData.hauteur = 1.75; /* (un peu plus grand que le voleur : c'est un repere) */ } catch (err) { /* pas encore de modele */ }
   for (const f of ['voleur', 'marchand']) { try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); MODELES[f].userData.hauteur = 1.7; } catch (err) { /* pas encore de modele */ } }
   if (MODELES.voleur && MODELES.monture) { /* le voleur en selle sur sa Dragodinde */
     const g = new T.Group(), mt = cloner('monture'), v = cloner('voleur'); g.add(mt); v.scale.multiplyScalar(0.72); v.position.set(0, 0.84, 0.02); v.rotation.x = 0.1; /* assis sur la selle (a 1,28 du sol), plus petit que sa monture */ g.add(v); g.userData.hauteur = 2.4; MODELES.voleurMonte = g;
@@ -4475,8 +4477,43 @@ function annoncerRaid(muet) {
     const r = new T.Mesh(new T.PlaneGeometry(S - 0.15, S - 0.15), new T.MeshBasicMaterial({ color: '#d9443a', transparent: true, opacity: 0.4, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(q.x, q.y + 0.08, q.z); r.renderOrder = 3; marques.add(r);
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, cote2, marques }; if (!muet) son('raid');
+  const sortie = sortieVSA(); poserOmeho(sortie);
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, cote, cote2, marques, sortie }; if (!muet) son('raid');
   construireRaidAnnonce(); majRaidAnnonce(); /* (plus de message en plus : la carte dit tout) */
+}
+/* LA SORTIE DES VOLEURS, ET OMEHO QUI LES ATTEND (14/10/2026, Mathieu : « ils peuvent apparaitre de n'importe ou, mais pour repartir, ils doivent repartir vers
+   la case la plus loin par rapport a la grange, et faut une indication » ; puis « il faut absolument Omeho : imagine un Enutrof, un vieux papi, avec des habits
+   de pouilleux, des pattes de poulet bleu a la place des pieds, et un trouillard de fou ; il a juste une couronne en or », modele blender/omeho.py).
+   A l'annonce, la simu choisit sa sortie : la case de bord la plus loin de la grange, une case ou l'on passe (libre de preference). Omeho, le chef de VSA, y
+   attend ses voleurs en tremblant, sur une case violette ; chaque voleur qui repart court vers lui et disparait a ses pieds. Il s'en va a la fin de la simu. */
+function sortieVSA() {
+  const G = S_.cases.filter((c) => c.type === 'grange'); if (!G.length) return null;
+  const gx = G.reduce((t, c) => t + posCase(c).x, 0) / G.length, gz = G.reduce((t, c) => t + posCase(c).z, 0) / G.length;
+  const B = bordsFerme().filter((b) => PASSABLE[b.c.type]); if (!B.length) return null;
+  const score = (b) => { const q = posCase(b.c); return Math.hypot(q.x - gx, q.z - gz) - (b.c.type === 'libre' ? 0 : S); }; /* (une case occupee compte une case plus pres) */
+  const b = B.reduce((m, x) => (score(x) > score(m) ? x : m)), q = posCase(b.c);
+  return { id: b.c.id, di: b.di, dj: b.dj, x: q.x + b.di * 0.25, z: q.z + b.dj * 0.25, cx: q.x, cz: q.z, y: q.y, gx, gz };
+}
+let omeho = null; /* { m, marque, bulle, so, saut } */
+function poserOmeho(so) {
+  retirerOmeho(); if (!so) return;
+  const marque = new T.Group(); /* la case de sortie, en violet (comme les cases rouges de l'arrivee) */
+  const r = new T.Mesh(new T.PlaneGeometry(S - 0.15, S - 0.15), new T.MeshBasicMaterial({ color: '#9b5cf0', transparent: true, opacity: 0.55, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(so.cx, so.y + 0.08, so.cz); r.renderOrder = 3; marque.add(r);
+  const l = new T.Mesh(new T.PlaneGeometry(so.di ? 0.3 : S - 0.15, so.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#5a2aa8', transparent: true, opacity: 0.8, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(so.cx + so.di * (S / 2 - 0.23), so.y + 0.09, so.cz + so.dj * (S / 2 - 0.23)); l.renderOrder = 3; marque.add(l);
+  scene.add(marque);
+  let m = null; if (MODELES.omeho) { m = cloner('omeho'); ombrePieds(m, 1.1); const x = so.cx + so.di * 0.55, z = so.cz + so.dj * 0.55; m.position.set(x, so.y, z); m.rotation.y = Math.atan2(so.gx - x, so.gz - z); m.userData.x0 = x; m.userData.z0 = z; m.userData.ry0 = m.rotation.y; scene.add(m); }
+  ancres.omeho = new T.Vector3(so.cx + so.di * 0.55, so.y + 2.3, so.cz + so.dj * 0.55);
+  const bulle = document.createElement('div'); bulle.className = 'bulle omeho'; bulle.dataset.ancre = 'omeho'; bulle.innerHTML = 'Omeho<small>la sortie des voleurs</small>'; zoneBulles.appendChild(bulle);
+  omeho = { m, marque, bulle, so, saut: 0 };
+}
+function retirerOmeho() { if (!omeho) return; if (omeho.m) scene.remove(omeho.m); scene.remove(omeho.marque); omeho.bulle.remove(); delete ancres.omeho; omeho = null; }
+function animerOmeho(dt, s) { /* il tremble de peur ; plus fort quand tu approches ; il sautille quand un voleur le rejoint */
+  if (!omeho) return; const m = omeho.m; omeho.marque.children.forEach((o, k) => { o.material.opacity = (k ? 0.85 : 0.6) * (0.65 + 0.35 * Math.abs(Math.sin(s * 3))); }); if (!m) return;
+  const pp = paysanMesh && paysanMesh.position, d = pp ? Math.hypot(pp.x - m.userData.x0, pp.z - m.userData.z0) : 99, peur = d < 3 ? 2.6 : 1;
+  omeho.saut = Math.max(0, omeho.saut - dt * 2.2); const h = Math.sin(omeho.saut * Math.PI) * 0.35;
+  m.position.set(m.userData.x0 + Math.sin(s * 47) * 0.012 * peur, omeho.so.y + h + Math.abs(Math.sin(s * 31)) * 0.008 * peur, m.userData.z0 + Math.cos(s * 41) * 0.01 * peur);
+  if (pp) { const vise = Math.atan2(pp.x - m.userData.x0, pp.z - m.userData.z0); let e = vise - m.userData.ry0; e = Math.atan2(Math.sin(e), Math.cos(e)); m.userData.ry0 += e * Math.min(1, dt * 3); } /* il ne te quitte pas des yeux */
+  m.rotation.y = m.userData.ry0; m.rotation.z = Math.sin(s * 38) * 0.025 * peur; m.rotation.x = d < 3 ? -0.12 : 0; /* (tout pres de lui, il recule la tete) */
 }
 const surCote = (b, c1, c2) => (b.di === c1[0] && b.dj === c1[1]) || (!!c2 && b.di === c2[0] && b.dj === c2[1]);
 function construireRaidAnnonce() {
@@ -4484,7 +4521,7 @@ function construireRaidAnnonce() {
   $('raid-annonce').innerHTML = '<div class="ra-tete"><img src="assets/icones/voleur.png' + v + '" alt=""><div><b>Simu VSA</b><span>Les voleurs de VSA arrivent sur ta grange</span></div>' +
     '<div class="ra-rebours"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="19"/><circle class="arc" id="ra-arc" cx="22" cy="22" r="19"/></svg><em id="ra-s">30</em></div></div>' +
     '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') +
-    '<span class="rouge"><i></i>' + (R.cote2 ? 'par les 2 bords en rouge' : 'par le bord en rouge') + '</span></div>' +
+    '<span class="rouge"><i></i>' + (R.cote2 ? 'par les 2 bords en rouge' : 'par le bord en rouge') + '</span>' + (R.sortie ? '<span class="violet"><i></i>ils repartent par Omeho, en violet</span>' : '') + '</div>' +
     '<div class="ra-actions"><span class="ra-arb" id="ra-arb"></span><button class="btn discret" data-recharger id="ra-recharger">Recharger</button><button class="btn kamas" data-raid-go>Lancer maintenant</button></div>';
 }
 function majRaidAnnonce() {
@@ -4499,15 +4536,15 @@ function majRaidAnnonce() {
 }
 function lancerRaid() {
   const R = raidAnnonce; raidAnnonce = null; if (R) scene.remove(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
-  if (!R || combat || enAccueil || !paysanMesh) return; son('vague');
+  if (!R || combat || enAccueil || !paysanMesh) { retirerOmeho(); return; } son('vague');
   const file = []; for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture');
   const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe()), B = bordsFerme().filter((b) => surCote(b, R.cote, R.cote2));
-  combat = { n: 0, raid: true, file, total: file.length, attente: 0.3, monstres: [], cible: null, pv: st.pvMax, pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, butin: [], tues: 0, fuis: 0, bords: B.length ? B : null };
+  combat = { n: 0, raid: true, file, total: file.length, attente: 0.3, monstres: [], cible: null, pv: st.pvMax, pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, butin: [], tues: 0, fuis: 0, bords: B.length ? B : null, sortie: R.sortie || null };
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
   $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>';
   $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
-  toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils repartent.', 'alerte'); majCombatHud();
+  toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils rejoignent Omeho, sur la case violette.', 'alerte'); majCombatHud();
 }
 /* un voleur du raid : il va a la grange, prend sa part, et repart par ou il est venu */
 function volerRaid(mult) {
@@ -4530,10 +4567,10 @@ function majVoleurRaid(mo, dt, s) {
     v = mo.d.vitesse * (lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1); /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
   } else if (!mo.fuite) {
     const r = volerRaid(mo.d.vole); mo.fuite = true; mo.cg = null;
-    if (r) { mo.porte = r; m.add(sacVole()); toast('Un voleur de VSA a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il quitte ta ferme !', 'alerte'); }
+    if (r) { mo.porte = r; m.add(sacVole()); toast('Un voleur de VSA a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il rejoigne Omeho !', 'alerte'); }
   } else { /* il a file avec son butin */
-    mo.etat = 'mort'; mo.t = 0; mo.fui = true; mo.barre.remove(); combat.fuis++; if (combat.cible === mo) combat.cible = null;
-    if (mo.porte) { combat.butin.push(mo.porte); toast('Un voleur de VSA a quitté ta ferme avec ' + mo.porte.n + ' ' + mo.porte.nom + '.', 'alerte'); mo.porte = null; } return;
+    mo.etat = 'mort'; mo.t = 0; mo.fui = true; mo.barre.remove(); combat.fuis++; if (combat.cible === mo) combat.cible = null; if (omeho) { omeho.saut = 1; pouf(mo.x, mo.m.position.y, mo.z, 1.2); }
+    if (mo.porte) { combat.butin.push(mo.porte); toast('Un voleur de VSA a rejoint Omeho avec ' + mo.porte.n + ' ' + mo.porte.nom + '.', 'alerte'); mo.porte = null; } return;
   }
   mo.pas += v * dt * 5; const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   m.position.set(mo.x, y + (1 - Math.cos(mo.pas * 2)) * (mo.type === 'monture' ? 0.08 : 0.03), mo.z); m.rotation.y = mo.ry; m.rotation.z = Math.sin(mo.pas) * 0.06; m.rotation.x = mo.type === 'monture' ? 0 : 0.2;
@@ -4892,7 +4929,7 @@ function apparaitre(type, pres) {
   }
   poser(m, dep.x, dep.y, dep.z, ry); if (d.boss) son(type === 'royal' ? 'royal' : 'vague', null, type === 'royal' ? 0 : 2); /* (le boss arrive : le Royal bele, les autres ont le cor) */
   const barre = document.createElement('div'); barre.className = 'pv-monstre'; barre.innerHTML = '<i></i>'; barre.hidden = true; $('combat-zone').appendChild(barre);
-  combat.monstres.push({ id, type, d, m, echelle: m.scale.x, barre, pv: Math.round(pvMonstre(type, combat.n) * facteurRejoue()), pvMax: Math.round(pvMonstre(type, combat.n) * facteurRejoue()), deg: Math.round(degMonstre(type, combat.n) * facteurRejoue()), x, z, y: q.y, ry, dep, sortie: { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 + (d.vol || 0), ombreM });
+  combat.monstres.push({ id, type, d, m, echelle: m.scale.x, barre, pv: Math.round(pvMonstre(type, combat.n) * facteurRejoue()), pvMax: Math.round(pvMonstre(type, combat.n) * facteurRejoue()), deg: Math.round(degMonstre(type, combat.n) * facteurRejoue()), x, z, y: q.y, ry, dep, sortie: combat.raid && combat.sortie ? { x: combat.sortie.x, z: combat.sortie.z } : { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 + (d.vol || 0), ombreM });
 }
 /* le monstre (ou le voleur) le plus proche du clic a l'ecran : sa silhouette des pieds a la tete, elargie d'une marge (plus grande au doigt) */
 function bouftouEcran(e) { /* le Bouftou le plus proche du clic a l'ecran (trouve en jouant le tuto au PC le 12/10/2026 : un Bouftou colle a la cloture, le clic droit tombait sur la cloture et ouvrait l'enclos au lieu de le nourrir) */
@@ -5663,6 +5700,7 @@ function finVague(gagne, fuite) {
   if (c.invoc) scene.remove(c.invoc.m);
   combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; paysanMesh.userData.attaque = null; $('b-fuir').hidden = false; if (c.deroute != null) { paysanMesh.rotation.x = 0; paysanMesh.userData.charge = false; } /* (il se releve) */
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null;
+  if (c.raid) retirerOmeho(); /* (Omeho s'en va avec sa troupe) */
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
     if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
     const f = forceVoleur(), prime = c.tues * (15 + 5 * f); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 10);
@@ -6311,7 +6349,9 @@ function ouvrirEnclos() {
   const aPlacer = maxCasesEnclos() - casesEnclos().length;
   const amenager = '<div class="art">' + ico('cloture') + '<div><b>Aménager l\'enclos</b><div class="puces"><span class="puce">' + casesEnclos().length + '/' + maxCasesEnclos() + ' cases</span>' + (aPlacer > 0 ? '<span class="puce bonne">' + aPlacer + ' case' + (aPlacer > 1 ? 's' : '') + ' à placer</span>' : '') + '<span class="puce">2 cases par Bouftou</span></div><div class="desc">Change sa forme (+ pour ajouter une case, − pour en rendre une) ou emmène-le ailleurs, Bouftous compris.</div></div><div class="act">' + (aPlacer > 0 ? '<button class="btn kamas" data-enclos-auto>Placer toute' + (aPlacer > 1 ? 's' : '') + ' seule' + (aPlacer > 1 ? 's' : '') + '</button>' : '') + '<button class="btn ' + (aPlacer > 0 ? 'discret' : 'kamas') + '" data-amenager-enclos>Aménager</button></div></div>';
   const prets = S_.bouftous.filter(peutReproduire).length, noirs = S_.bouftous.filter((b) => b.noir).length, houblon = S_.grange.houblon || 0;
-  const repro = '<div class="art">' + ico('bouftou') + '<div><b>Faire un petit</b><div class="puces"><span class="puce ' + (prets >= 2 ? 'bonne' : 'mauvaise') + '">' + prets + ' adulte' + (prets > 1 ? 's' : '') + ' prêt' + (prets > 1 ? 's' : '') + '</span><span class="puce ' + (houblon >= COUT_REPRO ? 'bonne' : 'mauvaise') + '">' + picto('pousse', '#8a7a5c') + COUT_REPRO + ' Houblon (' + houblon + ' en grange)</span><span class="puce">' + (noirs ? noirs + ' noir' + (noirs > 1 ? 's' : '') + ' ★' : '1 chance sur 20 : noir') + '</span></div><div class="desc">Deux adultes repus et ' + COUT_REPRO + ' Houblon' + (debloquee(PAR_ID.houblon) ? '' : ' (il se cultive au niveau ' + PAR_ID.houblon.niv + ')') + ' font un bébé, puis se reposent ' + dureeLisible(REPOS_REPRO) + '. Le bébé naît affamé : il mange ' + REPAS_BEBE + ' Blé par repas et ne grandit que repu (' + dureeLisible(DUREE_CROISSANCE) + '). Il naît <b>noir</b> 1 fois sur 20 : sa laine vaut ' + LAINE_NOIRE.prix + ' kamas. Dès que tu as un noir, le suivant naît 1 fois sur 40 ; deux parents noirs ensemble, 1 fois sur 2.</div></div><div class="act"><button class="btn kamas" data-reproduire' + (prets < 2 || plein || houblon < COUT_REPRO ? ' disabled' : '') + '>Faire un petit</button>' + (plein ? '<small class="manque">Plus de place</small>' : '') + '</div></div>';
+  const repro = '<div class="art">' + ico('bouftou') + '<div><b>Faire un petit</b><div class="puces"><span class="puce ' + (prets >= 2 ? 'bonne' : 'mauvaise') + '">' + prets + ' adulte' + (prets > 1 ? 's' : '') + ' prêt' + (prets > 1 ? 's' : '') + '</span><span class="puce ' + (houblon >= COUT_REPRO ? 'bonne' : 'mauvaise') + '">' + picto('pousse', '#8a7a5c') + COUT_REPRO + ' Houblon (' + houblon + ' en grange)</span><span class="puce">' + (noirs ? 'Noir : 1 chance sur 40 (tu en as ' + noirs + ' ★)' : 'Noir : 1 chance sur 20') + '</span></div><div class="desc"><b>Il faut</b> 2 adultes qui ont mangé et ' + COUT_REPRO + ' Houblon' + (debloquee(PAR_ID.houblon) ? '' : ' (il se cultive au niveau ' + PAR_ID.houblon.niv + ')') + '. Ensuite, les parents se reposent ' + dureeLisible(REPOS_REPRO) + '.<br>' +
+      '<b>Le bébé</b> ne grandit que le ventre plein : ' + REPAS_BEBE + ' Blé par repas, un repas le nourrit ' + dureeLisible(dureeRepas() / 2) + '. Il devient adulte après ' + dureeLisible(DUREE_CROISSANCE) + ' le ventre plein (' + Math.ceil(DUREE_CROISSANCE / (dureeRepas() / 2) - 1e-9) + ' repas).<br>' +
+      '<b>Le Bouftou noir</b> (sa laine vaut ' + LAINE_NOIRE.prix + ' kamas) : 1 chance sur 20, 1 sur 40 si tu as déjà un noir, 1 sur 2 si les deux parents sont noirs.</div></div><div class="act"><button class="btn kamas" data-reproduire' + (prets < 2 || plein || houblon < COUT_REPRO ? ' disabled' : '') + '>Faire un petit</button>' + (plein ? '<small class="manque">Plus de place</small>' : '') + '</div></div>';
   ouvrirModale('enclos', entete('Enclos à Bouftous') + amenager + betes + repro + achat + lignesAmelio(['enclos'], 'Améliorer l\'enclos'));
 }
 function reglagesPepito() {
@@ -7010,7 +7050,7 @@ function boucle(t) {
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
   if (!enPause) { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s);
-    majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
+    majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   if (!auCasino) suivreOmbres();
@@ -7223,7 +7263,7 @@ const LECONS = [
   { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les simus VSA sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
     pages: [() => `Une <em>simu VSA</em> : des <em>voleurs de VSA</em> attaquent à plusieurs ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par le bord.`,
       () => `Abats-les avant qu'ils quittent la ferme : ce qu'ils portent revient à ta grange, et ils ont quelques kamas sur eux. L'<em>arbalète</em> de la grange et tes <em>tours</em> tirent seules, avec les flèches de ta réserve (HDV).`,
-      () => `Une simu VSA arrive toutes les ${dureeLisible(CADENCE_RAID)} environ quand tu joues, annoncé 30 s avant. Une grange en ruine les laisse emporter deux fois plus.`] },
+      () => `Une simu VSA arrive toutes les ${dureeLisible(CADENCE_RAID)} environ quand tu joues, annoncé 30 s avant. Ils repartent tous par la même sortie, la case de bord la plus loin de ta grange, marquée en violet : Omeho, leur chef, les y attend en tremblant. Une grange en ruine les laisse emporter deux fois plus.`] },
   { id: 'tours', titre: 'Les tours de défense', ico: 'tour', resume: 'Les construire, les placer, les monter.', quand: () => niveau(S_.xp) >= NIV_TOUR && !nbTours(),
     pages: [() => `Niveau ${NIV_TOUR} : tu peux construire des <em>tours de défense</em>. ${toucherQ('une case d\'herbe libre').replace(/^./, (x) => x.toUpperCase())}, puis Tour de défense. Jusqu'à ${TOURS_MAX} tours.`,
       () => `Elles tirent seules sur les monstres et les voleurs, avec les <em>flèches</em> de ta réserve. Place-les près de la grange et des champs, là où passent les monstres. Chaque tour se monte de niveau à part (bouton Améliorer).`] },
