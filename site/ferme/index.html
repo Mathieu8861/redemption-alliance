@@ -733,6 +733,9 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .art .pic.brume { background: radial-gradient(circle at 50% 45%, #ffffff, #dfe8ee); color: #9aa7b2; font: 400 1.6rem/1 var(--f-titre); }
 .arene-tete { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; margin: 4px 0 8px; } .arene-tete img { width: 150px; } .arene-tete b { font: 400 1.25rem/1.1 var(--f-titre); } .arene-tete p { margin: 4px 0 0; font-size: .84rem; font-weight: 600; color: #6b5a48; }
 .arene-regles { margin: 6px 0 10px; padding-left: 18px; font-size: .84rem; font-weight: 600; } .arene-regles li { margin: 3px 0; } .arene-regles b { font-weight: 800; }
+.forge-stock { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; } .forge-stock .puce { display: inline-flex; align-items: center; gap: 6px; background: #f3ead8; border: 2px solid #e2d3b4; border-radius: 99px; padding: 2px 12px 2px 4px; font: 700 .82rem/1.3 var(--f-texte); } .forge-stock img { width: 28px; height: 28px; object-fit: contain; }
+.forge-jet { display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: .74rem; font-weight: 700; color: #6b5a48; } .forge-jet .barre { flex: 1; max-width: 160px; height: 8px; background: #eadfc8; border-radius: 99px; overflow: hidden; } .forge-jet .barre i { display: block; height: 100%; background: linear-gradient(90deg, #7ff3ff, #5f7fa8); }
+.forge-act { display: flex; flex-direction: column; gap: 4px; align-items: stretch; } .forge-act .btn.mini { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 4px; font-size: .72rem; } .forge-act .btn.mini img { width: 22px; height: 22px; object-fit: contain; }
 .fp-forge { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; } .fp-forge-t { font: 400 .95rem/1 var(--f-titre); margin-right: 2px; } .fp-forge small { font-size: .74rem; font-weight: 700; color: #6b5a48; }
 .fp-forge .btn.mini { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 4px; font-size: .74rem; } .fp-forge .btn.mini img { width: 24px; height: 24px; object-fit: contain; }
 .arene-puces { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; } .arene-puces .puce { background: #f3ead8; border-radius: 99px; padding: 2px 9px; font-size: .74rem; font-weight: 700; color: #5b5240; white-space: nowrap; } .arene-puces .puce.bonne { background: #dff1d3; color: #2d6a1e; } .arene-puces .puce.mauvaise { background: #fde3df; color: #8a1e16; }
@@ -918,6 +921,7 @@ const AMELIOS = [
   { id: 'cloche', nom: 'Cloche d\'alarme', desc: 'Un Tofu met deux fois plus longtemps à voler une récolte : le temps de venir le chasser.', couts: [400], niv: 3 },
   { id: 'semences', nom: 'Semences sélectionnées', desc: 'Une chance sur quatre de récupérer la graine à la récolte.', couts: [1200], niv: 6 },
   { id: 'geliere', nom: 'La Gelière', desc: 'L\'élevage des Gelées, sur 6 cases d\'herbe (3 sur 2) avec de l\'eau : elles mangent tes fruits et font tes pots de gelée. Niveau 1 : 2 Gelées. Niveau 2 : 4. Niveau 3 : 6. Niveau 4 : la confiserie de Redemption, 8 Gelées.', couts: [4500, 9000, 15000, 25000], nivs: [25, 32, 40, 50] }, /* (couts[0] : la construire, comme l'arbalete ; baisses le 13/10/2026, « un poil trop chere, surtout vers la fin », Mathieu : avant 5 000, 12 000, 25 000, 45 000) */
+  { id: 'forge', nom: 'L\'atelier de forgemagie', desc: 'Pour forger tes pièces avec les runes gagnées dans l\'Arène : une rune de forgemagie ajoute 20 % de jet à chaque caractéristique d\'une pièce, une rune parfaite la met au jet maximum. Il prend une case d\'herbe libre, près de la grange.', couts: [100000], niv: 50 },
   { id: 'faux', nom: 'Faux affûtée', desc: 'Une récolte de plus sur chaque parcelle (3 Blé deviennent 4).', couts: [5000], niv: 9 },
 ];
 /* ce que donne chaque niveau d'un batiment (index = niveau - 1 ; l'arbalete : index = niveau, 0 = pas construite) */
@@ -1108,7 +1112,27 @@ function donnerObjet(id) { const k = creerObjet(id); S_.sac[k] = 1; marquerNeuf(
    la rune parfaite met la piece au jet maximum. Elles se gagnent dans l'Arene (blender/runes.py pour les icones). */
 const RUNES = { forge: { nom: 'Rune de forgemagie', court: 'Runes de forgemagie', gain: 0.2, bref: '+20 % de jet' }, parfaite: { nom: 'Rune parfaite', court: 'Runes parfaites', gain: 1, bref: 'jet maximum' } };
 const runes = () => (S_.runes = S_.runes || { forge: 0, parfaite: 0 });
+function caseLibreForge() { /* une case d'herbe libre, la plus proche de la grange, qui ne coupe aucun acces */
+  const deja = inaccessibles(), G = blocBati('grange'), d = (c) => (G ? Math.hypot(posCase(c).x - G.x, posCase(c).z - G.z) : 0);
+  const L = S_.cases.filter((c) => c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id)).sort((a, b) => d(a) - d(b));
+  for (const c of L.slice(0, 80)) { c.type = 'forge'; const bloque = inaccessibles().some((x) => !deja.includes(x)); c.type = 'libre'; if (!bloque) return c; }
+  return null;
+}
+function ouvrirForge() {
+  if (!niv('forge')) { ouvrirHdv('ameliorer'); return; }
+  const nr = runes(), eq = Object.values(S_.equip).filter(Boolean), cles = [...new Set(eq.concat(Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && obj(k) && obj(k).emp)))].filter((k) => obj(k) && OBJETS[baseObjet(k)]);
+  cles.sort((a, b) => (eq.includes(b) ? 1 : 0) - (eq.includes(a) ? 1 : 0) || obj(b).niv - obj(a).niv || qualiteJet(b) - qualiteJet(a));
+  const img = (t) => '<img src="assets/icones/rune-' + t + '.png?v=' + VERSION_MODELES + '" alt="">';
+  const ligne = (k) => { const o = obj(k), q = qualiteJet(k), maxi = q >= 0.999;
+    return '<div class="art">' + icoObjet(k) + '<div><b>' + (o.leg ? '✦ ' : o.rare ? '★ ' : '') + o.nom + (eq.includes(k) ? ' <span class="puce bonne">portée</span>' : '') + (S_.sac[k] > 1 ? ' <span class="puce">×' + S_.sac[k] + '</span>' : '') + '</b>' +
+      '<div class="forge-jet"><span>Jet ' + nomJet(q) + '</span><div class="barre"><i style="width:' + Math.round(q * 100) + '%"></i></div><small>' + Math.round(q * 100) + ' %</small></div></div><div class="act forge-act">' +
+      (maxi ? '<span class="cadenas">✓ jet max</span>' : Object.keys(RUNES).map((t) => '<button class="btn mini ' + (nr[t] ? 'kamas' : 'discret') + '" data-forger="' + t + '|' + k + '"' + (nr[t] ? '' : ' disabled') + ' data-info="' + RUNES[t].nom + ' : ' + RUNES[t].bref + '">' + img(t) + RUNES[t].bref + '</button>').join('')) + '</div></div>'; };
+  ouvrirModale('forge', entete('L\'atelier de forgemagie') + '<p class="hdv-aide">Une <b>rune de forgemagie</b> ajoute 20 % de jet à chaque caractéristique d\'une pièce, jusqu\'au maximum. Une <b>rune parfaite</b> la met d\'un coup au jet maximum. Les runes se gagnent dans l\'Arène (la montgolfière).</p>' +
+    '<div class="forge-stock">' + Object.keys(RUNES).map((t) => '<span class="puce">' + img(t) + '<b>' + (nr[t] || 0) + '</b> ' + ((nr[t] || 0) > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</span>').join('') + '</div>' +
+    (cles.length ? '<div class="hdv-section">Tes pièces</div>' + cles.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce d\'équipement pour l\'instant : les monstres des vagues en lâchent.</p>'));
+}
 function forgerObjet(k, t) {
+  if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (Améliorer, catégorie Défense, niveau ' + NIV_ARENE + ').'); return null; }
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
   if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
   if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }
@@ -1652,6 +1676,7 @@ const ACTIONS = {
     if (p.type === 'tour') { ouvrirTour(p); return; }
     if (p.type === 'voliere') { ouvrirVoliere(); return; }
     if (p.type === 'geliere') { if (potsPretsGeliere()) ACTIONS.ramasserPots(); ouvrirGeliere(); return; }
+    if (p.type === 'forge') { ouvrirForge(); return; }
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
     if (!p.c) { ACTIONS.planter(p); return; }
@@ -1840,6 +1865,8 @@ const ACTIONS = {
     const a = AMELIOS.find((x) => x.id === id), n = niv(id);
     if (!a || n >= a.couts.length || niveau(S_.xp) < nivRequis(a, n) || S_.kamas < a.couts[n] || (a.requiert && !niv(a.requiert))) return;
     if (id === 'voliere' && n === 0 && bloqueursVoliere().length) { toast('Pas la place : libère une case à côté de la volière (une parcelle se déplace avec Aménager).', 'alerte'); return; }
+    const caseForge = id === 'forge' && n === 0 ? caseLibreForge() : null;
+    if (id === 'forge' && n === 0 && !caseForge) { toast('Pas la place : l\'atelier prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
     const blocGel = id === 'geliere' && n === 0 ? blocLibreGeliere() : null;
     if (id === 'geliere' && n === 0 && !blocGel) { toast('Pas la place : la Gelière prend 6 cases d\'herbe libres d\'un seul tenant (3 sur 2). Libère-les avec Aménager, ou achète un terrain.', 'alerte'); return; }
     S_.kamas -= a.couts[n]; S_.amelio[id] = n + 1; compter('amelios'); son('quete');
@@ -1850,6 +1877,9 @@ const ACTIONS = {
       toast('L\'enclos s\'agrandit : +' + k + ' case' + (k > 1 ? 's' : '') + ', posée' + (k > 1 ? 's' : '') + ' toute' + (k > 1 ? 's' : '') + ' seule' + (k > 1 ? 's' : '') + ' à côté de lui. Pour changer sa forme : Aménager l\'enclos.', 'or');
     }
     if (id === 'voliere') { appliquerVoliere(); rendreCasesBulles(); }
+    if (id === 'forge' && caseForge) { /* construit : sur sa case, pres de la grange */
+      caseForge.type = 'forge'; const u = paysanMesh.userData; if (u.cellule === caseForge || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseForge) { const v = voisins(caseForge).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } }
+      rendreCase(caseForge.id); construireBatiments(); sauver(); fermerModale(); rendreHaut(); toast('L\'atelier de forgemagie est construit, près de ta grange : touche-le pour forger tes pièces avec tes runes.', 'or'); ouvrirForge(); return; }
     if (id === 'geliere') { /* construite : ses 6 cases ; puis a chaque niveau, son nouveau modele */
       if (blocGel) { S_.rot = S_.rot || {}; S_.rot.geliere = blocGel.tourne ? 1 : 0; blocGel.cells.forEach((c) => { c.type = 'geliere'; }); S_.gelees = S_.gelees || [];
         const u = paysanMesh.userData; if (blocGel.cells.includes(u.cellule) || blocGel.cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => blocGel.cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } }
@@ -2395,7 +2425,7 @@ function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.a
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -2413,6 +2443,7 @@ async function chargerModeles() {
   MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe() });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
   versToon(G.granges, BATI); versToon(G.puits2, BATI); versToon(G.batiments, BATI); versToon(G.objets, BATI);
+  if (G['atelier-forge']) { versToon(G['atelier-forge'], BATI); MODELES.forge = gabaritEchelle(G['atelier-forge'], 'AtelierForge', 1, new T.Vector3(0, 0, 0)); } /* l'atelier de forgemagie (blender/atelier-forge.py), d'une case */
   versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
   MODELES.grange = gabarit(G.granges, 'grangeC', 3.9);
   MODELES.puits = gabarit(G.puits2, 'puitsFace', 1.75);
@@ -2699,7 +2730,7 @@ function rendreTofusVoliere() {
 }
 
 /* ---------- les batiments sont poses d'apres leurs cases : on les deplace avec Amenager ---------- */
-const BATIS = { grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
+const BATIS = { forge: 'l\'atelier de forgemagie', grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
 function blocBati(type) {
   const B = S_.cases.filter((c) => c.type === type); if (!B.length) return null;
   const i0 = Math.min(...B.map((c) => c.i)), j0 = Math.min(...B.map((c) => c.j)), P = B.map(posCase);
@@ -2809,6 +2840,7 @@ function construireBatiments() {
     if (MODELES.marchand && !MODELES.marchand.userData.ombre) { ombrePieds(MODELES.marchand, 1.4); MODELES.marchand.userData.ombre = true; }
     if (MODELES.marchand) { marchandMesh = pose('marchand', o.x + mx, o.y, o.z + mz, o.c0.id, -0.5 + a); marchandMesh.userData.y0 = o.y; marchandMesh.userData.ry0 = -0.5 + a; } /* le marchand a cote de son etal */
   }
+  o = blocBati('forge'); if (o && MODELES.forge) { pose('forge', o.x, o.y, o.z, o.c0.id, rotDe('forge')); ancres.forge = new T.Vector3(o.x, o.y + 3.2, o.z); } else delete ancres.forge;
   o = blocBati('puits'); if (o) pose('puits' + nivBat('nivPuits'), o.x, o.y, o.z, o.c0.id, -0.3 + rotDe('puits'));
   o = blocBati('epouvantail'); if (o) pose('epouvantail', o.x, o.y, o.z, o.c0.id, 0.4 + rotDe('epouvantail'));
   o = blocBati('foin'); if (o) { const a = rotDe('foin'); [[-0.35, 0, -0.2, 0.3], [0.45, 0, 0.35, -0.5], [0.05, 0.55, 0.05, 1.2]].forEach(([dx, dy, dz, r]) => { const [x, z] = tourne(dx, dz, a); pose('botte', o.x + x, o.y + dy, o.z + z, o.c0.id, r + a); }); }
@@ -5998,7 +6030,7 @@ function placerBulles() {
   document.querySelectorAll('.bulle.lieu').forEach((e) => { if (e.hidden) return; for (let k = 0; k < 3; k++) { const r = e.getBoundingClientRect(), b = icones.find((i) => r.left < i.right + 2 && r.right > i.left - 2 && r.top < i.bottom + 2 && r.bottom > i.top - 2); if (!b) break; e.style.top = (b.top - 6).toFixed(1) + 'px'; } });
 }
 function bullesFixes() {
-  [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière'], ['epouvantail', 'PÉPITO-TRON']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
+  [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière'], ['epouvantail', 'PÉPITO-TRON'], ['forge', 'Forgemagie']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
   { const t = prochainTerrain(); if (t) bulleVente(t, TERRAINS.indexOf(t)); }
 }
 function bulleVente(t, k) {
@@ -6227,7 +6259,7 @@ function ouvrirGraines() {
   ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Le nombre sur l\'icône : tes graines en grange. Elles s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>');
 }
 /* les icones : rendues depuis nos modeles 3D (generer-icones.html + exporter-icones.mjs -> assets/icones/) */
-const ICONES = { geliere: 'geliere', qg: 'grange', nivPuits: 'puits', nivEtal: 'etal', voliere: 'voliere', arbalete: 'arbalete', enclos: 'cloture', arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
+const ICONES = { forge: 'atelier-forge', geliere: 'geliere', qg: 'grange', nivPuits: 'puits', nivEtal: 'etal', voliere: 'voliere', arbalete: 'arbalete', enclos: 'cloture', arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
 const ico = (nom) => '<span class="pic img' + (/^obj-leg-/.test(nom) ? ' leg' : '') + '"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt=""></span>';
 const pastille = (c) => '<span class="pic" style="background:' + c.couleur + '">' + c.nom[0] + '</span>'; /* une graine : sa couleur et son initiale */
 const pic = (e) => '<span class="pic emoji">' + e + '</span>';
@@ -6259,6 +6291,7 @@ const GAINS = {
   bottes: { stats: [['vitesse', 'Ton perso marche plus vite', [0, 30], (x) => '+' + x + ' %']] },
   cloche: { stats: [['cadence', 'Temps pour chasser un Tofu avant qu\'il vole', [1, 2], (x) => dureeLisible(x * DUREE_PICORAGE)]] },
   semences: { stats: [['pousse', 'Graine rendue à la récolte', ['', '1 fois sur 4'], (x) => x]] },
+  forge: { stats: [['etoile', 'Forgemagie de tes pièces', ['', '+20 % de jet par rune'], (x) => x]] },
   faux: { stats: [['epi', 'Récolte de chaque parcelle', ['', '+1 (Blé : 3 → 4)'], (x) => x]] },
   geliere: { role: 'Tes Gelées y vivent au bord de l\'eau et font tes pots de gelée avec tes fruits.', looks: [null, 'le pré aux gelées', 'le parc à gelées', 'l\'atelier de confiture', 'la confiserie de Redemption'], stats: [['cases', 'Places pour tes Gelées', [0, 2, 4, 6, 8]]], neufs: { 1: [['cases', 'Elle prend 6 cases d\'herbe (3 sur 2)']] } }
 };
@@ -6268,7 +6301,7 @@ const GAINS = {
    un niveau, puis ce qui est au maximum */
 const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal']],
   ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous, tes Tofus et tes Gelées : plus de laine, de plumes et de pots de gelée.', ['enclos', 'voliere', 'geliere']],
-  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche']]];
+  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus. Et l\'atelier de forgemagie, pour monter le jet de tes pièces.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'forge']]];
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
   if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
@@ -6296,7 +6329,7 @@ function lignesGain(G, n, fini) {
 }
 function artAmelio(a) {
   const nv = niveau(S_.xp), n = niv(a.id), fini = n >= a.couts.length, cout = fini ? 0 : a.couts[n], bloque = !fini && nv < nivRequis(a, n), manqueReq = a.requiert && !niv(a.requiert), bat = NIVBAT[a.id] || a.id === 'arbalete';
-  const place = fini ? '' : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : '';
+  const place = fini ? '' : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : a.id === 'forge' && n === 0 && !bloque && !caseLibreForge() ? 'Libère une case d\'herbe' : '';
   const plusieurs = a.couts.length > 1, numSuiv = NIVBAT[a.id] ? n + 2 : n + 1, G = GAINS[a.id];
   const total = bat ? 5 : plusieurs ? a.couts.length : 0, actuel = bat ? (a.id === 'arbalete' ? n : n + 1) : n;
   const look = !fini && G && G.looks && G.looks[n + 1];
@@ -6533,8 +6566,8 @@ function ouvrirPerso(sel) {
       return '<div class="fp-ligne"><span>' + CARACS[cc][2] + ' ' + CARACS[cc][0] + '<small>' + (B.stats[cc] ? 'de ' + fa + ' à ' + fb + u : '') + '</small></span><span><b>+' + v + u + '</b></span>' + (q ? '<span>+' + w + u + '</span><span class="' + (v > w ? 'fp-gain' : v < w ? 'fp-perte' : '') + '">' + (v > w ? '▲ +' + (v - w) : v < w ? '▼ ' + (v - w) : '=') + u + '</span>' : '') + '</div>'; };
     const table = '<div class="fp-compare' + (q ? '' : ' seule') + '"><div class="fp-ligne th"><span>Caractéristique</span><span>' + (porteeIci ? 'Portée' : 'Elle') + '</span>' + (q ? '<span>Ta pièce</span><span>Écart</span>' : '') + '</div>' + cles.map(ligne).join('') + '</div>';
     const jet = '<div class="fp-jet"><span>Jet <b>' + nomJet(qj) + '</b></span><div class="barre"><i style="width:' + Math.round(qj * 100) + '%"></i></div><small>' + Math.round(qj * 100) + ' %</small></div>';
-    const nr = runes(), maxi = qj >= 0.999, aRunes = nr.forge > 0 || nr.parfaite > 0; /* la forgemagie : une rune sur cette piece */
-    const forge = (aRunes || maxi || niveau(S_.xp) >= NIV_ARENE) ? '<div class="fp-forge"><span class="fp-forge-t">Forgemagie</span>' + (maxi ? '<small>Jet maximum : rien à améliorer.</small>' : Object.keys(RUNES).map((t) => '<button class="btn mini ' + (nr[t] ? 'kamas' : 'discret') + '" data-forger="' + t + '|' + k + '"' + (nr[t] ? '' : ' disabled') + ' data-info="' + RUNES[t].nom + ' : ' + RUNES[t].bref + '"><img src="assets/icones/rune-' + t + '.png?v=' + VERSION_MODELES + '" alt="">' + RUNES[t].bref + ' <b>×' + (nr[t] || 0) + '</b></button>').join('') + (aRunes ? '' : '<small>Les runes se gagnent dans l\'Arène.</small>')) + '</div>' : '';
+    const nr = runes(), maxi = qj >= 0.999, aRunes = nr.forge > 0 || nr.parfaite > 0; /* la forgemagie : elle se fait a l'atelier (le lien est ici) */
+    const forge = (niv('forge') || aRunes || niveau(S_.xp) >= NIV_ARENE) ? '<div class="fp-forge"><span class="fp-forge-t">Forgemagie</span><small>' + (maxi ? 'Jet maximum.' : niv('forge') ? 'Tes runes : ' + (nr.forge || 0) + ' de forgemagie, ' + (nr.parfaite || 0) + ' parfaite' + ((nr.parfaite || 0) > 1 ? 's' : '') + '.' : 'Construis l\'atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas) pour utiliser tes runes.') + '</small>' + (niv('forge') && !maxi ? '<button class="btn mini kamas" data-ouvrir-forge>À l\'atelier</button>' : '') + '</div>' : '';
     const pano = !o.leg && !o.arme ? (() => { const n0 = comptePanos()[o.pano] || 0, n1 = porteeIci ? n0 : n0 + (q && q.pano === o.pano && !q.leg ? 0 : 1);
       return '<div class="fp-pano">Panoplie ' + PANOS[o.pano].de + ' : ' + (porteeIci ? n0 + '/6 pièces portées.' : 'tu passes à ' + Math.min(6, n1) + '/6 pièces.') + (PALIERS_PANO.find(([m]) => m > n1) ? ' À ' + PALIERS_PANO.find(([m]) => m > n1)[0] + ' : ' + texteBonus(PALIERS_PANO.find(([m]) => m > n1)[1](o.pano)) + '.' : ' Panoplie complète !') + '</div>'; })() : '';
     const raison = !cmp.ok ? (o.classe && o.classe !== classeDe() ? 'Arme du ' + nomClasse(o.classe) + ' : tu peux seulement la revendre.' : 'Il faut le niveau ' + o.niv + ' pour la porter.') : '';
@@ -6680,7 +6713,8 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.fpCarac) { persoCarac = persoCarac === b.dataset.fpCarac ? null : b.dataset.fpCarac; ouvrirPerso(); }
   else if (b.dataset.persoSel) ouvrirPerso(b.dataset.persoSel);
   else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);
-  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); const cle = forgerObjet(k, t); ouvrirPerso(cle || k); }
+  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); const cle = forgerObjet(k, t); if (modaleOuverte === 'forge') ouvrirForge(); else ouvrirPerso(cle || k); }
+  else if (b.hasAttribute('data-ouvrir-forge')) ouvrirForge();
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
   else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
@@ -6879,6 +6913,17 @@ async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), fait
   const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
   if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(13, 0, 3.2); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
+  { /* le public : les monstres du jeu a leur taille de combat, assis sur les trois gradins du fond (blender/arene-ile.py), tournes vers le sable */
+    const types = [...new Set(Object.values(MONSTRES).filter((d) => !d.boss && !d.vole && !d.fabrique && MODELES[d.modele]).map((d) => d.modele))].filter((nom) => (MODELES[nom].userData.hauteur || 1.8) <= 2.7).concat(MODELES.voleur ? ['voleur', 'voleur'] : []);
+    const pub = new T.Group(), fond = 225 * Math.PI / 180;
+    if (types.length) [[11.3, 1.4, 1.7], [12.15, 2.2, 2.0], [13.0, 3.0, 1.75]].forEach(([rr, y, pas], ri) => {
+      const a0 = 150 * Math.PI / 180, a1 = 300 * Math.PI / 180, n = Math.floor((a1 - a0) * rr / pas);
+      for (let q = 0; q < n; q++) {
+        const a = a0 + (a1 - a0) * (q + (ri % 2 ? 0.9 : 0.4)) / n; if (Math.abs(Math.atan2(Math.sin(a - fond), Math.cos(a - fond))) < 0.33) continue;
+        const m = cloner(hasard(types)), x = Math.cos(a) * rr, z = Math.sin(a) * rr; m.position.set(x, y + 0.03, z); m.rotation.y = Math.atan2(-x, -z) + (Math.random() - 0.5) * 0.4; pub.add(m);
+      }
+    });
+    g.add(pub); }
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); scene.add(g); ileArene = g; if (!soleil.target.parent) scene.add(soleil.target);
 }
 async function classementArene(sem) { /* le classement de l'alliance pour une semaine (il faut etre connecte ; DAMOCLES/sql/068) */
@@ -6985,7 +7030,7 @@ function finArene(abandon) {
     '<div class="recap-combat"><div class="rc-l">' + picto('kama', GRIS_PICTO) + '<span>Kamas gagnés</span><b>' + fmt(A.kamas) + '</b></div><div class="rc-l">' + picto('etoile', GRIS_PICTO) + '<span>Expérience</span><b>' + fmt(A.xp) + '</b></div>' +
     '<div class="rc-l">' + picto('tofu', GRIS_PICTO) + '<span>Monstres abattus</span><b>' + c.st.tues + '</b></div><div class="rc-l">' + picto('degats', GRIS_PICTO) + '<span>Dégâts infligés</span><b>' + fmt(Math.round(c.st.inflige)) + '</b></div></div>' +
     (objets ? '<div class="hdv-section">Les coffres</div>' + objets : '') +
-    (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce : dans la fiche du perso, touche la pièce puis la rune.</div></div><div class="act"></div></div>').join('') : '') +
+    (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce, à ton atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</div></div><div class="act"></div></div>').join('') : '') +
     '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
     '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
   rendreHaut(); sauver();
@@ -7491,7 +7536,7 @@ const LECONS = [
   { id: 'arene', titre: 'L\'Arène', ico: 'kama', resume: 'Les vagues sans fin, le ticket, le classement.', quand: () => enArene,
     pages: [() => `Bienvenue dans l'<em>Arène</em> ! Des vagues sans fin, de plus en plus dures, avec les monstres de tes paliers déjà battus. Ils sortent des trois herses et foncent tous sur toi : ici, ni culture ni bâtiment à défendre.`,
       () => `Un <em>boss</em> toutes les 5 vagues, avec son <em>coffre</em> (une pièce de ta panoplie et des runes), puis un souffle pour boire tes pots et manger. Chaque vague tenue rapporte des kamas et de l'expérience.`,
-      () => `Les <em>runes de forgemagie</em> améliorent tes pièces : +20 % de jet sur chaque caractéristique, jusqu'au maximum. La <em>rune parfaite</em> met une pièce au jet maximum. Dans la fiche du perso, touche une pièce, puis la rune.`,
+      () => `Les <em>runes de forgemagie</em> améliorent tes pièces : +20 % de jet sur chaque caractéristique, jusqu'au maximum. La <em>rune parfaite</em> met une pièce au jet maximum. Elles s'utilisent à ton <em>atelier de forgemagie</em> (Améliorer, catégorie Défense, ${fmt(100000)} kamas).`,
       () => `Ton <em>record de la semaine</em> compte au classement de l'alliance, et le podium touche sa prime la semaine suivante. ${ENTREES_ARENE} entrées par jour, un ticket de ${fmt(TICKET_ARENE)} kamas chacune.`] },
   { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les simus VSA sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
     pages: [() => `Une <em>simu VSA</em> : des <em>voleurs de VSA</em> attaquent à plusieurs ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par la case violette, où Omeho, leur chef, les attend sur sa calèche.`,
