@@ -2078,6 +2078,25 @@ const ACTIONS = {
     const fini = () => { if (!enRuine(cle) || S_.kamas < cout) return; S_.kamas -= cout; delete S_.bats[cle]; majFeu(cle, true); majBarresBat(); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); if (z) { pouf(z.x, z.y, z.z, 4, '#fff3c4'); pouf(z.x, z.y, z.z, 2, '#f2b630'); } toast(Maj(nomBat(cle)) + ' est reconstruit' + (typeCle(cle) === 'grange' || typeCle(cle) === 'tour' ? 'e' : '') + ', tout neuf !', 'or'); gagnerXp(10); rendreHaut(); sauver(); };
     if (z) allerPuis(z.cell, fini); else fini();
   },
+  reparerDansBilan(cles) { /* depuis le bilan (vague, simu) : tout de suite, sur place, et la fenetre reste ouverte (le moins cher d'abord si les kamas manquent) */
+    if (combat) return;
+    const L = cles.filter((k) => degatsBat(k) || enRuine(k)).map((k) => ({ k, ruine: enRuine(k), cout: enRuine(k) ? coutReconstruire(k) : coutReparer(k) })).sort((a, b) => a.cout - b.cout);
+    let faits = 0, paye = 0;
+    L.forEach((x) => {
+      if (S_.kamas < x.cout) return; S_.kamas -= x.cout; paye += x.cout; faits++;
+      if (x.ruine) { delete S_.bats[x.k]; majFeu(x.k, true); gagnerXp(10); if (typeCle(x.k) === 'grange') rendreArbaleteBulle(); } else { S_.bats[x.k].deg = 0; majFeu(x.k); }
+      const z = zoneBat(x.k); if (z) pouf(z.x, z.y, z.z, 3, '#fff3c4');
+      document.querySelectorAll('.modale [data-reparer="' + x.k + '"], .modale [data-reconstruire="' + x.k + '"]').forEach((e) => {
+        const ligne = e.closest('.art'), d = ligne && ligne.querySelector('.desc'); if (d) d.textContent = (x.ruine ? 'Reconstruit : ' : 'Réparé : ') + fmt(pvMaxBat(x.k)) + ' PV sur ' + fmt(pvMaxBat(x.k)) + '.';
+        e.outerHTML = '<span class="cadenas">✓ ' + (x.ruine ? 'Reconstruit' : 'Réparé') + '</span>'; });
+    });
+    majBarresBat(); rendreHaut(); sauver();
+    const tb = document.querySelector('.modale [data-tout-reparer]');
+    if (tb) { const reste = tb.dataset.toutReparer.split(',').filter((k) => degatsBat(k) || enRuine(k)), total = reste.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0);
+      if (reste.length < 2) tb.parentNode.remove(); else { tb.dataset.toutReparer = reste.join(','); tb.innerHTML = 'Tout réparer ' + fmt(total) + ' ' + KAMA; } }
+    if (!faits) { toast('Il faut ' + fmt(L.length ? L[0].cout : 0) + ' kamas pour cette réparation.'); return; }
+    son('kamas'); toast(faits === L.length ? (faits > 1 ? 'Tout est réparé : ' : Maj(nomBat(L[0].k)) + (L[0].ruine ? ' est reconstruit : ' : ' est réparé : ')) + fmt(paye) + ' kamas.' : faits + ' bâtiment' + (faits > 1 ? 's' : '') + ' réparé' + (faits > 1 ? 's' : '') + ' pour ' + fmt(paye) + ' kamas. Il en reste ' + (L.length - faits) + ', faute de kamas.', 'or');
+  },
   toutReparer(cles) { /* le bouton « Tout réparer » : tout d'un coup, sans aller jusqu'a chaque batiment ; le moins cher d'abord si les kamas manquent */
     if (combat) return;
     const L = cles.filter((k) => degatsBat(k) || enRuine(k)).map((k) => ({ k, ruine: enRuine(k), cout: enRuine(k) ? coutReconstruire(k) : coutReparer(k) })).sort((a, b) => a.cout - b.cout);
@@ -6692,8 +6711,8 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-plumes')) ACTIONS.ramasserPlumes();
   else if (b.dataset.deplacer) { aDeplacer = S_.cases.find((c) => c.id === b.dataset.deplacer); mode = 'deplacer'; fermerModale(); majBandeau(); }
   else if (b.dataset.herbe) ACTIONS.remettreEnHerbe(b.dataset.herbe);
-  else if (b.dataset.toutReparer) ACTIONS.toutReparer(b.dataset.toutReparer.split(','));
-  else if (b.dataset.reparer) ACTIONS.reparer(b.dataset.reparer);
+  else if (b.dataset.toutReparer) { if (modaleOuverte === 'vague-fin') ACTIONS.reparerDansBilan(b.dataset.toutReparer.split(',')); else ACTIONS.toutReparer(b.dataset.toutReparer.split(',')); }
+  else if (b.dataset.reparer) { if (modaleOuverte === 'vague-fin') ACTIONS.reparerDansBilan([b.dataset.reparer]); else ACTIONS.reparer(b.dataset.reparer); } /* (depuis le bilan : sur place, la fenetre reste ouverte) */
   else if (b.hasAttribute('data-reclamer-obj')) reclamerObjectif();
   else if (b.hasAttribute('data-cacher-obj')) { S_.objCache = true; rendreObjectif(); toast('Objectifs masqués : tu les retrouves dans Options.'); }
   else if (b.hasAttribute('data-voir-defis')) ouvrirDefis();
@@ -6719,7 +6738,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
   else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
-  else if (b.dataset.reconstruire) ACTIONS.reconstruire(b.dataset.reconstruire);
+  else if (b.dataset.reconstruire) { if (modaleOuverte === 'vague-fin') ACTIONS.reparerDansBilan([b.dataset.reconstruire]); else ACTIONS.reconstruire(b.dataset.reconstruire); }
   else if (b.id === 'b-amenager') { mode = mode ? null : 'choisir'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.hasAttribute('data-enclos-auto')) ACTIONS.enclosAuto();
   else if (b.id === 'b-enclos-bouger') { mode = mode === 'enclosDeplacer' ? 'enclos' : 'enclosDeplacer'; aDeplacer = null; majBandeau(); rendreHaut(); }
