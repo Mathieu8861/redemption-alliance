@@ -4509,12 +4509,14 @@ function poserOmeho(so) {
   const l = new T.Mesh(new T.PlaneGeometry(so.di ? 0.3 : S - 0.15, so.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#5a2aa8', transparent: true, opacity: 0.8, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(so.cx + so.di * (S / 2 - 0.23), so.y + 0.09, so.cz + so.dj * (S / 2 - 0.23)); l.renderOrder = 3; marque.add(l);
   scene.add(marque);
   const tx = -so.dj, tz = so.di, c0 = S_.cases.find((c) => c.id === so.id), libre = (c) => !!c && c.type === 'libre'; /* (tx, tz) : le long du bord */
-  const cote = [1, -1].find((k) => { const v = voisinLe(c0, tx * k, tz * k); return libre(v) && libre(voisinLe(v, tx * k, tz * k)); }) || 0;
+  const vers = (k) => Math.sign(tx * k * Math.cos(angleCam) + tz * k * Math.sin(angleCam)) || 1; /* (+1 : en partant du cote k, la caleche roule vers la camera) */
+  const cotes = [1, -1].filter((k) => { const v = voisinLe(c0, tx * k, tz * k); return libre(v) && libre(voisinLe(v, tx * k, tz * k)); }).sort((a, b) => vers(b) - vers(a));
+  const cote = cotes[0] || 0, sens = cote ? vers(cote) : 1; /* sens -1 : garee a l'envers, la Dragodinde vers la case violette, pour qu'Omeho nous fasse face */
   const decor = new T.Group(); scene.add(decor); const ox = so.cx + so.di * 0.35, oz = so.cz + so.dj * 0.35;
   let g = null; if (cote && MODELES.caleche) { /* garee le long du bord, l'arriere de la caisse au ras de la case violette, la Dragodinde tournee vers le large */
     g = MODELES.caleche.clone(true); g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-    g.position.set(so.cx + tx * cote * 2.7 + so.di * 0.2, so.y, so.cz + tz * cote * 2.7 + so.dj * 0.2); g.rotation.y = Math.atan2(tx * cote, tz * cote); decor.add(g);
-    so.x = so.cx + tx * cote * 0.55 + so.di * 0.2; so.z = so.cz + tz * cote * 0.55 + so.dj * 0.2; } /* (les voleurs filent a l'arriere de la caleche, toujours sur la case violette) */
+    const d = sens > 0 ? 2.7 : 3.15; g.position.set(so.cx + tx * cote * d + so.di * 0.2, so.y, so.cz + tz * cote * d + so.dj * 0.2); g.rotation.y = Math.atan2(tx * cote * sens, tz * cote * sens); decor.add(g);
+    if (sens > 0) { so.x = so.cx + tx * cote * 0.55 + so.di * 0.2; so.z = so.cz + tz * cote * 0.55 + so.dj * 0.2; } } /* (les voleurs filent a l'arriere de la caleche quand elle le touche, toujours sur la case violette) */
   const siege = g ? new T.Vector3(0, 1.33, 0.15).applyAxisAngle(new T.Vector3(0, 1, 0), g.rotation.y).add(g.position) : new T.Vector3(ox, so.y, oz); /* debout sur le siege du cocher, ou sur la case */
   let m = null; if (MODELES.omeho) { m = cloner('omeho'); ombrePieds(m, 1.1); m.position.copy(siege); m.rotation.y = g ? g.rotation.y : Math.atan2(so.gx - ox, so.gz - oz); m.userData.x0 = siege.x; m.userData.y0 = siege.y; m.userData.z0 = siege.z; m.userData.ry0 = m.rotation.y; m.userData.fixe = !!g; scene.add(m); }
   const gardes = [], k1 = cote || 1, loin = libre(voisinLe(c0, -tx * k1, -tz * k1)) ? 1.15 : 0.75; /* (le garde du cote sans caleche deborde sur la case voisine si elle est libre) */
