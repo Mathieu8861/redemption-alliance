@@ -878,7 +878,7 @@ const LAINE = { id: 'laine', nom: 'Laine de Bouftou', prix: 80, xp: 4 }; /* (80 
 const LAINE_NOIRE = { id: 'laine_noire', nom: 'Laine de Bouftou noir', prix: 300, xp: 25 }; /* le Bouftou noir, tres rare, donne celle-ci */
 const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 30, xp: 3 };
 /* ce que lachent les monstres des vagues (a la grange, ca se vend a l'HDV) */
-const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }];
+const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }, { id: 'kaliptus', nom: 'Branche de Kaliptus', prix: 240, xp: 0 }];
 const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES).map((c) => [c.id, c]));
 const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES);
 /* l'elevage (revu le 12/10/2026) : deux adultes repus font un petit contre 10 Houblon, puis 8 h de repos chacun. Le bebe nait affame,
@@ -1016,9 +1016,9 @@ const PICTOS = {
 };
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
 const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')] };
-const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }];
+const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }];
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
-const VALEURS = { vita: [20, 45, 80, 125, 180, 245], puissance: [4, 7, 10, 14, 18, 23], agilite: [3, 5, 7, 9, 12, 15], sagesse: [5, 8, 11, 15, 20, 25], prospection: [8, 12, 16, 20, 25, 31] };
+const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320], puissance: [4, 7, 10, 14, 18, 23, 29], agilite: [3, 5, 7, 9, 12, 15, 19], sagesse: [5, 8, 11, 15, 20, 25, 31], prospection: [8, 12, 16, 20, 25, 31, 38] };
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, VALEURS[c][k]])) }; }));
@@ -1032,7 +1032,12 @@ const LEGENDAIRES = [
   { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Un séisme autour de toi toutes les 10 s, pendant les vagues : 2 fois tes dégâts.' },
   { cle: 'wa', boss: 'waWabbit', arme: true, rang: 5, /* (14/10/2026 : « les items legendaires du niveau 60 a 100, des corps a corps », Mathieu ; variantes choisies : epee B, arc A, fouet A) */
     noms: { epee: 'Épée du Wa Wabbit', arc: 'Arc du Wa Wabbit', fouet: 'Fouet du Wa Wabbit' }, icone: 'wawabbit', noeuds: { epee: 'Arme_epee_wawabbitB', arc: 'Arme_arc_wawabbit', fouet: 'Arme_fouet_wawabbit' },
+    cales: { epee: { y0: 0.06, L: 1.51 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.05, L: 0.57, laniere: 'laniere', retirer: /^(laniere|cawotte|sillon|fane)$/ } }, /* (le modele : pommeau, pointe, corde, laniere) */
     pouvoir: 'Une pluie de cawottes toutes les 9 s autour de toi, pendant les vagues : 2 fois tes dégâts. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.' },
+  { cle: 'koulosse', boss: 'koulosse', arme: true, rang: 6, fichier: 'equipements-boufcoul', /* (le palier 7, 14/10/2026 ; variantes choisies par Mathieu : lame A, arc B, fouet B) */
+    noms: { epee: 'Lame du Koulosse', arc: 'Arc du Koulosse', fouet: 'Fouet du Koulosse' }, icone: 'koulosse', noeuds: { epee: 'Arme_epee_koulosse', arc: 'Arme_arc_koulosseB', fouet: 'Arme_fouet_koulosseB' },
+    cales: { epee: { y0: 0.02, L: 1.62 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.03, L: 0.65, laniere: 'fumee', retirer: /^fumee$/ } },
+    pouvoir: 'Toutes les 10 s, un nuage de fumée enveloppe ta cible : les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss).' },
   { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Tu craches un cône de feu toutes les 8 s, pendant les vagues : 3 fois tes dégâts, et les monstres touchés brûlent.' }
 ];
 LEGENDAIRES.forEach((L, i) => { if (L.arme) return; const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
@@ -1043,7 +1048,7 @@ const EMPLACEMENTS_PERSO = EMPLACEMENTS.concat([['arme', 'Arme']]);
 /* LES ARMES LEGENDAIRES (Phase 2, niveaux 60 a 100 : « une coiffe et un cac legendaire par la suite », Mathieu) : le boss donne celle de ta classe, avec le pouvoir
    du boss ; plus forte qu'une arme de panoplie (Puissance x3,5 au lieu de x2,5, Agilite x1,5, et de la Vitalite). La premiere : le Wa Wabbit (14/10/2026) */
 LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entries(ARMES).forEach(([cl, [t]]) => { const id = 'leg-' + L.cle + '-' + t;
-  OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], nom: L.noms[t], niv: PANOS[k].niv + 9, pouvoir: L.pouvoir,
+  OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], fichier: L.fichier || 'equipements-wabbit', cale: L.cales[t], nom: L.noms[t], niv: PANOS[k].niv + 9, pouvoir: L.pouvoir,
     stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5), agilite: Math.round(VALEURS.agilite[k] * 1.5), vita: VALEURS.vita[k] } }; }); });
 const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || classeDe()][0] : 'leg-' + L.cle); /* la piece legendaire d'un boss, pour ta classe */
 PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { const id = 'arme-' + t + '-' + P.id; OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats: { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] } }; }));
@@ -1197,9 +1202,9 @@ const niv = (id) => (DERIVE[id] ? DERIVE[id]() : (S_.amelio[id] || 0));
 const seuilAncien = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7)));
 const SEUILS = (() => { const t = []; for (let n = 0; n <= 101; n++) t[n] = n <= 50 ? seuilAncien(n) : t[n - 1] + Math.round((seuilAncien(n) - seuilAncien(n - 1)) * (1 + 0.3 * (n - 50))); return t; })();
 const seuil = (n) => (n <= 1 ? 0 : SEUILS[Math.min(n, 101)]);
-const NIV_MAX = 60; /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
+const NIV_MAX = 70; /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
 const niveau = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) n++; return n; };
-const capNiveau = () => (S_ && S_.vague && S_.vague.num > 50 ? NIV_MAX : 50); /* Phase 1 : niveau 50 au plus tant que Crocabulia (vague 50) n'est pas battue ; puis le palier des Wabbits ouvre jusqu'au 60 (plus tard, un palier de 10 niveaux a la fois jusqu'au 100) */
+const capNiveau = () => (S_ && S_.vague ? Math.min(NIV_MAX, 50 + 10 * Math.max(0, Math.floor((S_.vague.num - 41) / 10))) : 50); /* (14/10/2026 : 50, puis 60 apres Crocabulia, 70 apres le Wa Wabbit) */ /* Phase 1 : niveau 50 au plus tant que Crocabulia (vague 50) n'est pas battue ; puis le palier des Wabbits ouvre jusqu'au 60 (plus tard, un palier de 10 niveaux a la fois jusqu'au 100) */
 /* l'XP de la ferme (recoltes, laine, plumes) est freinee quand on a trop d'avance sur les vagues : on progresse surtout en se battant */
 const XP_FERME = 0.6, freinXp = () => { if (!S_.vague || S_.vague.num > VAGUES_TOTAL) return 1; const av = niveau(S_.xp) - niveauRequis(S_.vague.num); return av <= 2 ? 1 : av <= 4 ? 0.5 : av <= 6 ? 0.25 : 0.1; };
 function xpFerme(n) { return gagnerXp(Math.max(1, Math.round(n * XP_FERME))); }
@@ -2244,7 +2249,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261016d'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016e'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -2354,7 +2359,7 @@ function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.a
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -2404,6 +2409,11 @@ async function chargerModeles() {
   [['craqueleur', 'Craqueleur', 2.1], ['craqueboule', 'Craqueboule', 1.25], ['craqLanceur', 'CraqLanceur', 2.5], ['craqCristal', 'CraqCristal', 2.2], ['craqLegendaire', 'CraqLegendaire', 3.7]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.craqueleurs, n, h, 'y'); });
   versToon(G.wabbits, { normales: 0.01, sansContour: SC_MONSTRES }); /* Phase 2, palier 1 (blender/wabbits.py) */
   [['wabbit', 'Wabbit', 1.35], ['wabbitNoir', 'WabbitNoir', 1.45], ['wabbitSquelette', 'WabbitSquelette', 1.45], ['woWabbit', 'WoWabbit', 1.8], ['wabbitSorciere', 'WabbitSorciere', 1.75], ['gwandWabbit', 'GwandWabbit', 2.3], ['waWabbit', 'WaWabbit', 2.7]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.wabbits, n, h, 'y'); });
+  versToon(G.koalaks, { normales: 0.01, sansContour: SC_MONSTRES }); versToon(G.koulosse, { normales: 0.01, sansContour: SC_MONSTRES }); /* Phase 2, palier 2 (blender/koalaks.py, koulosse.py) */
+  [['koalakImmature', 'KoalakImmature', 1.25], ['koalakForestier', 'KoalakForestier', 1.7], ['koalakFossoyeur', 'KoalakFossoyeur', 1.6], ['guerrierKoalak', 'GuerrierKoalak', 2.0], ['koalakFarouche', 'KoalakFarouche', 1.6],
+    ['mamaKoalak', 'MamaKoalak', 1.75], ['maitreKoalak', 'MaitreKoalak', 1.7], ['dokAlako', 'DokAlako', 1.75], ['momieKoalak', 'MomieKoalak', 1.65], ['koalakGriotte', 'KoalakGriotte', 1.6], ['koalakReinette', 'KoalakReinette', 1.6],
+    ['koalakIndigo', 'KoalakIndigo', 1.6], ['koalakCoco', 'KoalakCoco', 1.6], ['drakoalak', 'Drakoalak', 2.6], ['chevaucheurKoalak', 'ChevaucheurKoalak', 2.6]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.koalaks, n, h, 'y'); });
+  MODELES.koulosse = gabarit(G.koulosse, 'Koulosse', 4.2, 'y');
   [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
   for (const f of ['voleur', 'marchand']) { try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); MODELES[f].userData.hauteur = 1.7; } catch (err) { /* pas encore de modele */ } }
   if (MODELES.voleur && MODELES.monture) { /* le voleur en selle sur sa Dragodinde */
@@ -2842,7 +2852,7 @@ function elargirPerso(g, classe) {
 }
 /* les modeles des pieces portees (charges seulement quand une coiffe ou une cape est portee) */
 const VISUELS = {}; let visuelsPromesse = null;
-const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
+const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
   .then(() => true).catch(() => { visuelsPromesse = null; return false; }));
 const visuelsPrets = () => !!VISUELS.equipements;
 const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit' };
@@ -2850,7 +2860,7 @@ function noeudVisuel(id) {
   const o0 = obj(id); if (!o0 || !visuelsPrets()) return null; const o = o0.base ? OBJETS[o0.base] : o0;
   if (o.leg) return o.emp === 'coiffe' ? VISUELS['coiffes-legendaires'].getObjectByName(NOEUD_LEG[o.leg]) || null : null;
   const P = PANOS[o.pano] && PANOS[o.pano].id; if (!P) return null;
-  return VISUELS[P === 'wabbit' ? 'equipements-wabbit' : 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
+  return VISUELS[P === 'wabbit' ? 'equipements-wabbit' : P === 'boufcoul' ? 'equipements-boufcoul' : 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
 }
 function porterCapeSur(eq, cape, o) { /* la cape du modele (nappe autour de l'axe vertical, rayon 0,3 a 0,62, angle -1,25 a 1,25) enroulee autour du torse, relief garde */
   const r = cape.clone(true); r.position.set(0, 0, 0); r.rotation.set(0, 0, 0); r.scale.set(1, 1, 1); r.updateMatrixWorld(true);
@@ -2870,7 +2880,7 @@ function habillerPerso(g) { habillerTenue(g); try { armerPerso(g); } catch (err)
    Iop : l'epee dans le dos, du pommeau a la pointe ; Cra : l'arc le long du flanc, d'un bout a l'autre, le ventre du meme cote ; Osamodas : le manche legendaire
    a la place du manche, et le fouet enroule a la hanche repeint aux couleurs de sa laniere (deroulee, elle depasserait de partout) */
 function armerPerso(g) {
-  const o = S_ && S_.equip && obj(S_.equip.arme), V = o && o.visuel && VISUELS['equipements-wabbit'] && VISUELS['equipements-wabbit'].getObjectByName(o.visuel); if (!V) return;
+  const o = S_ && S_.equip && obj(S_.equip.arme), F = o && VISUELS[o.fichier || 'equipements-wabbit'], V = o && o.visuel && F && F.getObjectByName(o.visuel), K = (o && o.cale) || {}; if (!V) return;
   g.updateMatrixWorld(true);
   const pieces = []; g.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh)) pieces.push(m); });
   const de = (re) => pieces.filter((m) => re.test(nomP(m))), centre = (L) => unionDe(L).getCenter(new T.Vector3());
@@ -2886,7 +2896,7 @@ function armerPerso(g) {
     const L = de(/^(lame|gorge|garde|garde_g|garde_d|poignee|pommeau)$/), pom = L.find((m) => nomP(m) === 'pommeau'); if (!pom) return;
     const p0 = centre([pom]), tip = p0.clone(), v = new T.Vector3(); let dmax = 0;
     L.filter((m) => nomP(m) === 'lame').forEach((m) => { const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); const d = v.distanceTo(p0); if (d > dmax) { dmax = d; tip.copy(v); } } });
-    const a1 = tip.clone().sub(p0); e = caler(new T.Vector3(0, 0.06, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, a1, new T.Vector3(a1.y, -a1.x, 0), dmax / 1.51); caches = L;
+    const a1 = tip.clone().sub(p0); e = caler(new T.Vector3(0, K.y0 || 0.06, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, a1, new T.Vector3(a1.y, -a1.x, 0), dmax / (K.L || 1.51)); caches = L;
   } else if (o.type === 'arc') { /* le modele : la corde de y 0,05 a 1,65, le ventre de l'arc vers +x. Porte dans le dos, en travers du carquois (« l'arc est pas tres
        bien mis pour le Cra, place-le dans son dos », Mathieu, 14/10/2026) : la corde contre le dos, le ventre vers l'arriere */
     const L = de(/^(arc|corde_arc|bout_arc|poignee_arc)$/), bouts = L.filter((m) => nomP(m) === 'bout_arc').map((m) => centre([m])).sort((p, q) => p.y - q.y), carq = de(/^(carquois|carquois_bord|carquois_fond)$/);
@@ -2894,14 +2904,14 @@ function armerPerso(g) {
     const bq = unionDe(carq), cq = bq.getCenter(new T.Vector3()), dos = Math.sign(cq.z) || -1, haut = de(/^carquois_bord$/), bas = de(/^carquois_fond$/);
     const axeQ = haut.length && bas.length ? centre(haut).sub(centre(bas)) : new T.Vector3(1, 1, 0), axe = new T.Vector3(-axeQ.x, axeQ.y, 0); /* en croix avec le carquois */
     const p0 = new T.Vector3(cq.x * 0.4, cq.y + 0.05, (dos < 0 ? bq.min.z : bq.max.z) + dos * 0.06);
-    e = caler(new T.Vector3(0, 0.85, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, axe, new T.Vector3(0, 0, dos), bouts[0].distanceTo(bouts[1]) * 1.15 / 1.6); caches = L;
+    e = caler(new T.Vector3(0, K.mil || 0.85, 0), new T.Vector3(0, 1, 0), new T.Vector3(1, 0, 0), p0, axe, new T.Vector3(0, 0, dos), bouts[0].distanceTo(bouts[1]) * 1.15 / (K.L || 1.6)); caches = L;
   } else if (o.type === 'fouet') { /* le modele : pommeau en y 0,05, le haut du manche (coussin) en y 0,62 ; on garde le manche, sans laniere */
     const manche = de(/^manche_fouet$/), pom = de(/^pommeau_fouet$/); if (!manche.length || !pom.length) return;
-    const cols = []; V.traverse((m) => { if (m.isMesh && nomP(m) === 'laniere' && m.material && m.material.color && !cols.some((c) => c.equals(m.material.color))) cols.push(m.material.color.clone()); });
+    const cols = []; V.traverse((m) => { if (m.isMesh && nomP(m) === (K.laniere || 'laniere') && m.material && m.material.color && !cols.some((c) => c.equals(m.material.color))) cols.push(m.material.color.clone()); });
     let or = null; V.traverse((m) => { if (!or && m.isMesh && nomP(m) === 'manche' && m.material && m.material.color) or = m.material.color.clone(); });
-    const ret = []; modele.traverse((m) => { if (m.isMesh && /^(laniere|cawotte|sillon|fane)$/.test(nomP(m))) ret.push(m); }); ret.forEach((m) => m.parent && m.parent.remove(m));
+    const ret = []; modele.traverse((m) => { if (m.isMesh && (K.retirer || /^(laniere|cawotte|sillon|fane)$/).test(nomP(m))) ret.push(m); }); ret.forEach((m) => m.parent && m.parent.remove(m));
     const p0 = centre(pom), axe = centre(manche).sub(p0);
-    e = caler(new T.Vector3(0, 0.05, 0), new T.Vector3(0, 1, 0), new T.Vector3(0, 0, 1), p0, axe, new T.Vector3(0, 0, 1), axe.length() * 2 / 0.57); caches = manche.concat(pom);
+    e = caler(new T.Vector3(0, K.y0 || 0.05, 0), new T.Vector3(0, 1, 0), new T.Vector3(0, 0, 1), p0, axe, new T.Vector3(0, 0, 1), axe.length() * 2 / (K.L || 0.57)); caches = manche.concat(pom);
     de(/^fouet$/).forEach((m, n) => { if (!cols.length) return; m.material = m.material.clone(); m.material.color.copy(cols[n % cols.length]); });
     de(/^meche_fouet$/).forEach((m) => { if (!or) return; m.material = m.material.clone(); m.material.color.copy(or); });
   }
@@ -3484,6 +3494,17 @@ function errer(dt, s) {
   });
 }
 /* un Bouftou des vagues : le modele de la ferme, dans un groupe (le combat reecrit l'echelle du monstre a chaque image : celle du Bouftou reste dedans) */
+/* le Boufcoul, l'invocation du Koulosse (choisi par Mathieu le 15/10/2026) : notre Bouftou, la laine en trois bandes de l'arriere vers l'avant (rouge, jaune,
+   vert sur la tete), cornes brunes, pattes et sabots prune sombre, visage clair */
+const TEINTES_BOUFCOUL = { '34506a': '#3e2a36', '7a6e45': '#5c4049', '746538': '#c49a72', '5f5233': '#a87e5a' }; /* sabots, pattes, museau, paupieres */
+function fabriquerBoufcoul() {
+  const b0 = creerBouftou(T, maille, { laine: '#ff00ff', cornes: '#9a6a3a', corneTip: '#c8955a', peau: '#dcb890' }); b0.updateMatrixWorld(true); const v = new T.Vector3();
+  b0.traverse((o) => { if (!o.isMesh || !o.material || !o.material.color || o.material.side === T.BackSide) return; const hex = o.material.color.getHexString();
+    if (hex === 'ff00ff') { o.getWorldPosition(v); o.material = o.material.clone(); o.material.color.set(v.z > 0.05 ? '#8fd34a' : v.z > -0.6 ? '#f6c62e' : '#e0322c'); }
+    else if (TEINTES_BOUFCOUL[hex]) { o.material = o.material.clone(); o.material.color.set(TEINTES_BOUFCOUL[hex]); } });
+  const b = fusionnerBouftou(b0); b.scale.setScalar(0.55); const g = new T.Group(); g.add(b); g.updateMatrixWorld(true);
+  const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; return g;
+}
 function fabriquerBouftou() {
   const b = fusionnerBouftou(creerBouftou(T, maille, {})); b.scale.setScalar(0.55); const g = new T.Group(); g.add(b); g.updateMatrixWorld(true);
   const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; return g;
@@ -3649,7 +3670,8 @@ function cibleBatiment(mo, dt) {
   if (!mo.casseur || mo.aggro) return null;
   const pp = paysanMesh.position; if (combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) < 2.2) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend (pas quand il est a terre) */
   mo.batT = (mo.batT || 0) - dt;
-  if (!mo.bat || enRuine(mo.bat) || mo.batT <= 0) { mo.batT = 1.5; mo.bat = batLePlusProche(mo); }
+  if (!mo.bat || enRuine(mo.bat) || mo.batT <= 0) { mo.batT = 1.5; mo.bat = batLePlusProche(mo);
+    if (mo.d.bucheron) { const T0 = clesBats().filter((k) => /^tour:/.test(k) && !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z).sort((a, b) => Math.hypot(a[1].x - mo.x, a[1].z - mo.z) - Math.hypot(b[1].x - mo.x, b[1].z - mo.z))[0]; if (T0) mo.bat = T0[0]; } } /* (le Forestier : les tours d'abord) */
   if (!mo.bat) return null;
   const z = zoneBat(mo.bat); if (!z) { mo.bat = null; return null; }
   return { cle: mo.bat, x: borne(mo.x, z.x - z.hw, z.x + z.hw), z: borne(mo.z, z.z - z.hd, z.z + z.hd), y: z.y };
@@ -3672,6 +3694,7 @@ function ouvrirBatPv(cle) {
    visiere rouge, canon laser, pepites en orbite ; il couvre toute la ferme, abat aussi les Tofus des vagues, et facture 15 kamas par tir.
    Il ne s'occupe que des Tofus. */
 const DEG_PEPITO_VSA = 90; /* le niveau 6 : son laser sur les voleurs de VSA (14/10/2026) */
+const pepitoTire = (k) => !(S_ && S_.pepito && S_.pepito[k] === false); /* les reglages du Pepito-Tron : 'champs' (les Tofus qui picorent), 'sauvage' (le Tofu sauvage) */
 const EPOU = [null, null, null, { portee: 8 * S, delai: 1 * MIN, cadence: 3.5, deg: 40 }, { portee: 99, delai: MIN / 3, cadence: 2.2, deg: 60 }, /* (« l'epouvantail tape pas les Tofus » : portee 8 en unites du jeu, soit 4 cases, pour « 8 cases » promises ; le niveau 4 couvre toute l'ile, comme annonce) */ { portee: 99, delai: 0.15 * MIN, cadence: 1.0, deg: 150 }];
 const PRIX_LASER = 15;
 const PEPITO_TRON = ['PÉPITO-TRON en ligne. Les Tofus ont été prévenus. Ils n\'ont pas aimé.', 'chaque tir de laser : 15 kamas. la sécurité, ça se paie. en pépites.', 'un Tofu abattu, c\'est une récolte sauvée. ma marge : 100 %.', 'mode terminator activé. je reviendrai... pour la facture.', 'j\'ai scanné ta ferme : 0 Tofu, 100 % de pépites. de rien.'];
@@ -3741,8 +3764,10 @@ function majEpouvantail(dt, s) {
      Mathieu, 14/10/2026) ; hors vague, un Tofu (ou un Wabbit) qui picore un champ depuis assez longtemps */
   let cible = null, x = 0, z = 0, y = 0;
   if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.etat === 'actif' && o.m && (o.d.grignote || (n >= 6 && o.d.vole))).sort((a, b) => (a.d.vole ? 0 : 1) - (b.d.vole ? 0 : 1) || Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t, vsa: !!t.d.vole }; x = t.x; z = t.z; y = t.m.position.y + (t.d.vole ? 1.0 : 0.4); } } /* (niveau 6 : les voleurs des raids d'abord) */
+  if (!cible && !combat && n >= 5 && S_.sauvage && pepitoTire('sauvage')) { /* le Tofu sauvage pose dans l'herbe (« pepito tire pas sur le tofu », Mathieu, 14/10/2026), a vue, sauf si on le lui interdit (reglage) */
+    const c = S_.cases.find((x) => x.id === S_.sauvage.id); if (c) { const q = posCase(c); cible = { sauvage: true }; x = q.x; z = q.z; y = q.y + 0.6; } }
   if (!cible && !combat && n >= 6 && voleurCiblable()) { const q = voleur.m.position; cible = { voleur: true }; x = q.x; z = q.z; y = q.y + 1.0; } /* niveau 6 : le voleur de VSA qui file a ta grange */
-  if (!cible && !combat) { const now = Date.now(); const p = S_.cases.filter((c) => c.type === 'champ' && c.tofu && now - c.tofu >= E.delai).map((c) => [c, posCase(c)]).filter(([, q]) => Math.hypot(q.x - pos.x, q.z - pos.z) <= E.portee).sort((a, b) => a[0].tofu - b[0].tofu)[0]; if (p) { cible = { champ: p[0] }; x = p[1].x; z = p[1].z; y = p[1].y + 0.7; } }
+  if (!cible && !combat && (n < 5 || pepitoTire('champs'))) { const now = Date.now(); const p = S_.cases.filter((c) => c.type === 'champ' && c.tofu && now - c.tofu >= E.delai).map((c) => [c, posCase(c)]).filter(([, q]) => Math.hypot(q.x - pos.x, q.z - pos.z) <= E.portee).sort((a, b) => a[0].tofu - b[0].tofu)[0]; if (p) { cible = { champ: p[0] }; x = p[1].x; z = p[1].z; y = p[1].y + 0.7; } }
   let ang = (epou.ry0 || 0) + Math.sin(s * (n >= 5 ? 1.3 : 0.5)) * (n >= 5 ? 2.2 : 0.8); if (cible) ang = Math.atan2(x - pos.x, z - pos.z); /* il scanne, puis se fige sur sa cible */
   let d = ang - epou.tete.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); epou.tete.rotation.y += d * Math.min(1, dt * (cible ? 8 : 1.5));
   if (epou.corps) epou.corps.rotation.y = epou.tete.rotation.y; /* l'epouvantail entier pivote sur son piquet */
@@ -3752,6 +3777,7 @@ function majEpouvantail(dt, s) {
   epou.cd = E.cadence;
   const de = new T.Vector3(); (epou.canon.userData.bout || epou.canon).getWorldPosition(de); const vers = new T.Vector3(x, y, z);
   const touche = () => {
+    if (cible.sauvage) { if (!S_.sauvage) return; compter('tofusChasses'); S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('PÉPITO-TRON : Tofu sauvage neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 'or'); sauver(); return; }
     if (cible.voleur) { blesserVoleur(DEG_PEPITO_VSA, 'PÉPITO-TRON : voleur de VSA neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 0.5); return; }
     if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, cible.vsa ? DEG_PEPITO_VSA : E.deg, true); return; }
     const p = cible.champ; if (!p.tofu) return; const nuisible = p.nuisible; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1); p.nuisible = nuisible; /* (le nom du toast, puis on l'oublie) */
@@ -4410,7 +4436,7 @@ const PEAU_IOP = 0.15, SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC = 12
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
    minimum pour la lancer. Sans ca, l'experience des vagues suffisait a tout enchainer en moins d'une heure (bot de test). */
-const PREPA_VAGUE = [10, 15, 45, 120, 240, 300], /* (en minutes de jeu : de 30 s au palier 1 a 15 min au dernier ; 3 au palier 1 avant le rythme fixe, soit 9 s) */ niveauRequis = (n) => Math.max(1, n - 2);
+const PREPA_VAGUE = [10, 15, 45, 120, 240, 300, 330], /* (en minutes de jeu : de 30 s au palier 1 a 15 min au dernier ; 3 au palier 1 avant le rythme fixe, soit 9 s) */ niveauRequis = (n) => Math.max(1, n - 2);
 const CADENCE_RAID = 480 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 8 h environ (de 5 h 30 a 10 h 30), annonce 30 vraies secondes avant */
 /* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
@@ -4509,7 +4535,7 @@ function majVoleurRaid(mo, dt, s) {
 const KILLS_PERCANTE = 30, TIR_FEU = 10; /* Cra : la Fleche percante se charge en abattant 30 monstres ; une attaque sur 10 est une fleche de feu */
 const percantePrete = () => (S_.chargeSort || 0) >= KILLS_PERCANTE;
 /* les paliers : 10 vagues chacun, un boss a la 10e. Battre le Bouftou Royal ouvre la Vague de Chafers (vagues 11 a 20), battre le Chafer Cuirasse ouvre la Horde des Bworks (21 a 30). */
-const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }, { nom: 'la Horde des Bworks', boss: 'bworker', icone: 'bworker' }, { nom: 'le Massif des Craqueleurs', boss: 'craqLegendaire', icone: 'craq-legendaire' }, { nom: 'le Nid des Dragoeufs', boss: 'crocabulia', icone: 'crocabulia' }, { nom: 'l\'île des Wabbits', boss: 'waWabbit', icone: 'wa-wabbit', phase: 2 }];
+const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }, { nom: 'la Horde des Bworks', boss: 'bworker', icone: 'bworker' }, { nom: 'le Massif des Craqueleurs', boss: 'craqLegendaire', icone: 'craq-legendaire' }, { nom: 'le Nid des Dragoeufs', boss: 'crocabulia', icone: 'crocabulia' }, { nom: 'l\'île des Wabbits', boss: 'waWabbit', icone: 'wa-wabbit', phase: 2 }, { nom: 'la Montagne des Koalaks', boss: 'koulosse', icone: 'koulosse', phase: 2 }];
 const nomPalier = (P) => P < 5 ? 'Palier ' + (P + 1) : 'Phase 2, palier ' + (P - 4); /* la Phase 2 commence apres Crocabulia (« le niveau 1 a 50 c'est la phase 1 », Mathieu) */
 const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length;
 const palierDe = (n) => Math.min(PALIERS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, VAGUES_TOTAL);
@@ -4552,7 +4578,27 @@ const MONSTRES = {
   woWabbit: { nom: 'Wo Wabbit', modele: 'woWabbit', icone: 'wo-wabbit', desc: 'le gros, encaisse et soigne les Wabbits autour de lui', res: 'poil_wabbit', pv: (n) => 560 + 26 * (n - 50), deg: (n) => 13 + (n - 50), cadence: 2.0, vitesse: 1.2, portee: 1.5, ombre: 1.6, soigne: 4 },
   wabbitSorciere: { nom: 'Wabbit Sorcière', fem: true, modele: 'wabbitSorciere', icone: 'wabbit-sorciere', desc: 'la mage, lance des sorts violets de loin', res: 'poil_wabbit', pv: (n) => 250 + 12 * (n - 50), deg: (n) => 17 + Math.round(1.2 * (n - 50)), cadence: 2.0, vitesse: 1.5, portee: 6, distance: true, magie: true, couleurMagie: '#b48cff', ombre: 1.3 },
   gwandWabbit: { nom: 'Gwand Wabbit', modele: 'gwandWabbit', icone: 'gwand-wabbit', desc: 'le costaud à la cawotte-massue, démolit les bâtiments', res: 'poil_wabbit', pv: (n) => 720 + 30 * (n - 50), deg: (n) => 24 + 2 * (n - 50), cadence: 2.1, vitesse: 1.2, portee: 1.7, ombre: 1.9, armure: 0.15, casse: 0.9 },
-  waWabbit: { nom: 'Wa Wabbit', modele: 'waWabbit', icone: 'wa-wabbit', desc: 'le roi des Wabbits, armure (-35 %), pluie de cawottes explosives (sors des cercles orange), appelle des Wabbits toutes les 16 s (ils filent vers tes Cawottes), enragé sous 30 % de vie', res: 'poil_wabbit', pv: () => 4400, deg: () => 27, cadence: 2.2, vitesse: 1.0, portee: 2.6, ombre: 3.0, armure: 0.35, renforts: ['wabbit', 'Wabbits'], pluie: 7, degSort: 11.6, rage: true, boss: true }
+  waWabbit: { nom: 'Wa Wabbit', modele: 'waWabbit', icone: 'wa-wabbit', desc: 'le roi des Wabbits, armure (-35 %), pluie de cawottes explosives (sors des cercles orange), appelle des Wabbits toutes les 16 s (ils filent vers tes Cawottes), enragé sous 30 % de vie', res: 'poil_wabbit', pv: () => 4400, deg: () => 27, cadence: 2.2, vitesse: 1.0, portee: 2.6, ombre: 3.0, armure: 0.35, renforts: ['wabbit', 'Wabbits'], pluie: 7, degSort: 11.6, rage: true, boss: true },
+  /* Phase 2, palier 2 : la Montagne des Koalaks (k = n - 60). Les 15 Koalaks (blender/koalaks.py), le Koulosse et ses Boufcouls (14/10/2026, « travaille-les bien »,
+     puis « dommage de pas tout utiliser ») : chacun son role ; les comportements nouveaux : bucheron (frappe les tours), fouisseur (sort au pied d'un batiment),
+     bandit (vole des kamas a la grange), ralentit, assomme, poison (sur le perso), fruit (projectile du lance-pierre), demonte (il continue a pied) */
+  koalakImmature: { nom: 'Koalak Immature', modele: 'koalakImmature', icone: 'koalak-immature', desc: 'le petit, arrive en bande et file grignoter tes cultures', res: 'kaliptus', grignote: true, /* (comme les Wabbits : « fais en sorte qu'ils foncent pas tous sur lui direct », Mathieu) */ pv: (n) => 300 + 14 * (n - 60), deg: (n) => 16 + (n - 60), cadence: 0.9, vitesse: 3.1, portee: 1.2, ombre: 1.0, casse: 0.3 },
+  koalakForestier: { nom: 'Koalak Forestier', modele: 'koalakForestier', icone: 'koalak-forestier', desc: 'le bûcheron à la hache double : il abat tes tours (deux fois plus de dégâts sur elles)', res: 'kaliptus', pv: (n) => 600 + 26 * (n - 60), deg: (n) => 26 + Math.round(1.6 * (n - 60)), cadence: 1.8, vitesse: 1.6, portee: 1.5, ombre: 1.4, armure: 0.1, casse: 0.8, bucheron: 2 },
+  koalakFossoyeur: { nom: 'Koalak Fossoyeur', modele: 'koalakFossoyeur', icone: 'koalak-fossoyeur', desc: 'creuse sous ta ferme et ressort au pied d\'un bâtiment, derrière tes tours', res: 'kaliptus', pv: (n) => 480 + 20 * (n - 60), deg: (n) => 22 + Math.round(1.3 * (n - 60)), cadence: 1.5, vitesse: 1.7, portee: 1.4, ombre: 1.3, casse: 1, fouisseur: true },
+  guerrierKoalak: { nom: 'Guerrier Koalak', modele: 'guerrierKoalak', icone: 'guerrier-koalak', desc: 'la brute en armure, démolit les bâtiments', res: 'kaliptus', pv: (n) => 880 + 34 * (n - 60), deg: (n) => 30 + 2 * (n - 60), cadence: 2.1, vitesse: 1.3, portee: 1.7, ombre: 1.8, armure: 0.15, casse: 0.9 },
+  koalakFarouche: { nom: 'Koalak Farouche', modele: 'koalakFarouche', icone: 'koalak-farouche', desc: 'le bandit : file à ta grange, vole des kamas et s\'enfuit (abats-le pour les récupérer)', res: 'kaliptus', pv: (n) => 420 + 18 * (n - 60), deg: (n) => 18 + (n - 60), cadence: 1.2, vitesse: 2.6, portee: 1.3, ombre: 1.2, bandit: true },
+  mamaKoalak: { nom: 'Mama Koalak', fem: true, modele: 'mamaKoalak', icone: 'mama-koalak', desc: 'soigne les Koalaks autour d\'elle, abats-la en premier', res: 'kaliptus', pv: (n) => 650 + 28 * (n - 60), deg: (n) => 15 + (n - 60), cadence: 2.0, vitesse: 1.3, portee: 1.5, ombre: 1.5, soigne: 4 },
+  maitreKoalak: { nom: 'Maître Koalak', modele: 'maitreKoalak', icone: 'maitre-koalak', desc: 'galvanise la horde : ils frappent et courent plus vite', res: 'kaliptus', pv: (n) => 560 + 24 * (n - 60), deg: (n) => 16 + (n - 60), cadence: 2.0, vitesse: 1.3, portee: 1.5, ombre: 1.4, galvanise: 5 },
+  dokAlako: { nom: 'Dok Alako', propre: true, modele: 'dokAlako', icone: 'dok-alako', desc: 'le sorcier : boules de feu rouges, de loin', res: 'kaliptus', pv: (n) => 380 + 16 * (n - 60), deg: (n) => 24 + Math.round(1.4 * (n - 60)), cadence: 2.0, vitesse: 1.5, portee: 6, distance: true, magie: true, couleurMagie: '#ff5a3a', ombre: 1.3 },
+  momieKoalak: { nom: 'Momie Koalak', fem: true, modele: 'momieKoalak', icone: 'momie-koalak', desc: 'se relève une fois, et te ralentit quand elle te frappe', res: 'kaliptus', revit: true, ralentit: 2.5, pv: (n) => 520 + 22 * (n - 60), deg: (n) => 20 + Math.round(1.2 * (n - 60)), cadence: 1.5, vitesse: 1.4, portee: 1.4, ombre: 1.3 },
+  koalakGriotte: { nom: 'Koalak Griotte', modele: 'koalakGriotte', icone: 'koalak-griotte', desc: 'au lance-pierre : tire ses griottes très vite', res: 'kaliptus', pv: (n) => 340 + 15 * (n - 60), deg: (n) => 14 + (n - 60), cadence: 1.1, vitesse: 1.7, portee: 6, distance: true, projectile: 'fruit', fruit: '#d0243a', ombre: 1.2 },
+  koalakReinette: { nom: 'Koalak Reinette', modele: 'koalakReinette', icone: 'koalak-reinette', desc: 'au lance-pierre : sa pomme t\'assomme un instant', res: 'kaliptus', pv: (n) => 360 + 15 * (n - 60), deg: (n) => 18 + (n - 60), cadence: 2.0, vitesse: 1.7, portee: 6, distance: true, projectile: 'fruit', fruit: '#93cf3e', assomme: 0.7, ombre: 1.2 },
+  koalakIndigo: { nom: 'Koalak Indigo', modele: 'koalakIndigo', icone: 'koalak-indigo', desc: 'au lance-pierre : sa baie t\'empoisonne quelques secondes', res: 'kaliptus', pv: (n) => 360 + 15 * (n - 60), deg: (n) => 15 + (n - 60), cadence: 2.0, vitesse: 1.7, portee: 6, distance: true, projectile: 'fruit', fruit: '#4f63c8', poison: [0.012, 4], ombre: 1.2 },
+  koalakCoco: { nom: 'Koalak Coco', modele: 'koalakCoco', icone: 'koalak-coco', desc: 'au lance-pierre : sa noix de coco abîme tes bâtiments, de loin', res: 'kaliptus', pv: (n) => 400 + 17 * (n - 60), deg: (n) => 22 + Math.round(1.3 * (n - 60)), cadence: 2.3, vitesse: 1.6, portee: 6, distance: true, projectile: 'fruit', fruit: '#7a5230', grosFruit: true, ombre: 1.2, casse: 0.7 },
+  drakoalak: { nom: 'Drakoalak', modele: 'drakoalak', icone: 'drakoalak', desc: 'charge en ligne droite sur sa Dragodinde : sors de la bande rouge', res: 'kaliptus', pv: (n) => 820 + 32 * (n - 60), deg: (n) => 28 + Math.round(1.8 * (n - 60)), cadence: 1.8, vitesse: 2.4, portee: 1.7, ombre: 2.0, charge: 9, degSort: 1.8 },
+  chevaucheurKoalak: { nom: 'Chevaucheur Koalak', modele: 'chevaucheurKoalak', icone: 'chevaucheur-koalak', desc: 'quand sa monture squelette tombe, il continue à pied', res: 'kaliptus', pv: (n) => 700 + 28 * (n - 60), deg: (n) => 26 + Math.round(1.6 * (n - 60)), cadence: 1.8, vitesse: 2.2, portee: 1.8, ombre: 2.0, demonte: 'guerrierKoalak' },
+  boufcoul: { nom: 'Boufcoul', modele: 'chafer', fabrique: () => fabriquerBoufcoul(), icone: 'boufcoul', desc: 'le Bouftou du Koulosse, laine rasta : il fonce sur toi', res: 'kaliptus', pv: (n) => 500 + 20 * (n - 60), deg: (n) => 20 + (n - 60), cadence: 1.4, vitesse: 2.0, portee: 1.3, ombre: 1.4, casse: 0.3 },
+  koulosse: { nom: 'Koulosse', propre: true, modele: 'koulosse', icone: 'koulosse', desc: 'le colosse fumeur de la montagne, armure (-35 %) : crache des nuages de fumée (reste plus de 2 s dedans et tu es empoisonné), t\'attire à lui (sors de la bande verte), appelle des Boufcouls toutes les 16 s ; sous 30 % de vie, il tire sur son calumet et s\'entoure de fumée', res: 'kaliptus', pv: () => 5200, deg: () => 30, cadence: 2.3, vitesse: 0.9, portee: 2.8, ombre: 4.2, armure: 0.35, renforts: ['boufcoul', 'Boufcouls'], fumee: 9, appel: 13, calumet: true, degSort: 9, rage: true, boss: true }
 };
 const STATS_CLASSE = {
   /* (13/10/2026, Mathieu : portees en cases rondes, Iop 1, Osamodas 3, Cra 5 (une case = S = 2 unites) ; degats de base 10, 6 et 8, puis la pente par niveau
@@ -4566,7 +4612,7 @@ const STATS_CLASSE = {
 /* (13/10/2026, « augmente un chouille la difficulte du 1 a 50, +10 % de degats des monstres », Mathieu : les degats des paliers 1 a 5 x1,1, le palier 6 et les boss inchanges) */
 /* +15 % de PV et de degats des la vague 11, boss compris (13/10/2026, bot patient : 1 a 3 defaites sur toute la partie ; avant : 1,1/1,27, 1,3/1,6, 1,4/1,71, 1,45/1,76, 1,4/1,5).
    Le premier palier ne change pas. Le lissage des renforts (renfort) part de la 9e vague : le palier 2 monte donc en douceur jusqu'aux +15 % */
-const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }];
+const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }, { pv: 1.6, deg: 1.55 }]; /* (les Koalaks, 14/10/2026 : 1,61 et 1,73 au premier jet, simule trop dur quand ils fonçaient tous sur le perso ; les Immatures vont maintenant aux champs, comme les Wabbits) */
 const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? { pv: 1, deg: 1 } : DURETE[palierDe(n)]; /* les voleurs des raids VSA ont leur propre equilibrage */
 /* « quand on reprend une nouvelle phase, les mobs sont nuls sur les premiers niveaux : la vague 19 est plus dure que la 22 » (Mathieu, 12/10/2026) :
    chaque palier repartait avec 3 ou 4 monstres, une force divisee par 5 d'une vague a l'autre. La force d'une vague = PV totaux x degats par seconde ;
@@ -4583,7 +4629,7 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS; return L; };
 /* « durcis encore » (Mathieu, 12/10/2026) : les monstres des vagues normales prennent des PV et des degats en plus, davantage dans les paliers du haut
    (simulations : on finissait les vagues avec 65 a 95 % de PV, maintenant 30 a 70 %). Les vagues de boss et les voleurs des raids ne changent pas. */
-const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
+const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
 const durci = (t, n, c) => (MONSTRES[t].boss || !(n >= 1) || n % VAGUES_PALIER === 0 ? 1 : DURCI[c][palierDe(n)] || 1);
 const forceBrute = (n) => { let pv = 0, dps = 0; compoVague0(n).forEach(([t, k]) => { const d = durete(t, n); pv += k * MONSTRES[t].pv(n) * d.pv * durci(t, n, 'pv'); dps += k * MONSTRES[t].deg(n) * d.deg * durci(t, n, 'deg') * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
 const RENFORTS = {};
@@ -4594,20 +4640,39 @@ const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1
    le boss ca doit vraiment etre un boss, un truc dur a tuer, il faudrait qu'il ait un sort special aussi » (Mathieu, 12/10/2026) :
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
    de PV (BOSS_PV, regle par simulation pour un long combat), des coups moderes (BOSS_DEG), et un sort special annonce au sol qu'on peut esquiver */
-const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7], vagueBoss = (n) => n >= 1 && n <= VAGUES_TOTAL && n % VAGUES_PALIER === 0;
-const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68], BOSS_DEG = [0.3, 0.31, 0.35, 0.48, 0.5, 0.92]; /* (+15 % des le boss 20, 13/10/2026 au soir : 1,6, 1,2, 1,45, 1,7, 3,2 et 0,27, 0,3, 0,42, 0,5, 0,8 avant ; les sorts des boss n'en dependent pas, voir degSort. Sauf Crocabulia, le boss 50, garde a 1,7 et 0,5 : a +15 %, le bot Osamodas patient l'a perdu 14 fois de suite, et le Cra simule 3 victoires sur 6) */ /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
+const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62], vagueBoss = (n) => n >= 1 && n <= VAGUES_TOTAL && n % VAGUES_PALIER === 0;
+const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68, 3.4], BOSS_DEG = [0.3, 0.31, 0.35, 0.48, 0.5, 0.92, 0.95]; /* (+15 % des le boss 20, 13/10/2026 au soir : 1,6, 1,2, 1,45, 1,7, 3,2 et 0,27, 0,3, 0,42, 0,5, 0,8 avant ; les sorts des boss n'en dependent pas, voir degSort. Sauf Crocabulia, le boss 50, garde a 1,7 et 0,5 : a +15 %, le bot Osamodas patient l'a perdu 14 fois de suite, et le Cra simule 3 victoires sur 6) */ /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
 /* « il faut obliger le joueur a prendre une decision entre focus les mobs et le boss » (Mathieu, 12/10/2026) : sa troupe le protege (chaque monstre a moins
    de 6 cases lui retire 12 % des degats recus, jusqu'a -60 %), et il la rappelle toutes les 16 s tant qu'il est debout. Taper le boss au milieu de ses gardes
    ne sert presque a rien, nettoyer la troupe sans fin non plus : on degage, puis on tape le boss avant le retour des renforts */
 const PROTEGE_TROUPE = 0.12, PROTEGE_MAX = 0.6, RAYON_TROUPE = 6, RAPPEL_TROUPE = 16, TROUPE_MAX = 6;
 const protectionBoss = (mo) => (combat ? Math.min(PROTEGE_MAX, PROTEGE_TROUPE * combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && !o.d.boss && Math.hypot(o.x - mo.x, o.z - mo.z) < RAYON_TROUPE).length) : 0);
-const degSort = (mo) => Math.max(1, Math.round(mo.deg / BOSS_DEG[palierDe(combat.n || 1)] * mo.d.degSort)); /* les sorts : degSort fois ses degats de base, quel que soit BOSS_DEG */
+const degSort = (mo) => Math.max(1, Math.round(mo.d.boss ? mo.deg / BOSS_DEG[palierDe(combat.n || 1)] * mo.d.degSort : mo.deg * (mo.d.degSort || 1.5))); /* (un monstre ordinaire qui charge, le Drakoalak : degSort fois ses degats) */ /* les sorts : degSort fois ses degats de base, quel que soit BOSS_DEG */
 const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOSS_PV)[palierDe(n)] : 1);
 const pvMonstre = (t, n) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(pvMonstre(t, n - 1) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t].pv(n) * durete(t, n).pv * durci(t, n, 'pv') * renfort(n) * forceBoss(t, n, 0))),
   degMonstre = (t, n) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(degMonstre(t, n - 1) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t].deg(n) * durete(t, n).deg * durci(t, n, 'deg') * renfort(n) * forceBoss(t, n, 1)));
+/* Phase 2, palier 2 : la Montagne des Koalaks (14/10/2026, « je trouve ca dommage de pas tout utiliser », « plus de monstres, ou alors la vague du boss se fait
+   en plusieurs temps », Mathieu) : les 15 Koalaks arrivent au fil des vagues 61 a 69 (deux nouveaux presque a chaque vague), et la vague 70 se joue en trois temps :
+   la horde, puis les cavaliers, puis le Koulosse et sa garde (PHASES_BOSS, lancees l'une apres l'autre quand la precedente est nettoyee) */
+const COMPO_KOALAKS = [null,
+  [['koalakImmature', 3], ['koalakForestier', 1], ['guerrierKoalak', 1], ['koalakGriotte', 2]],
+  [['koalakImmature', 3], ['koalakForestier', 1], ['guerrierKoalak', 1], ['koalakFarouche', 1], ['koalakGriotte', 2]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['koalakFarouche', 1], ['mamaKoalak', 1], ['koalakReinette', 2], ['koalakForestier', 1]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['koalakFossoyeur', 1], ['mamaKoalak', 1], ['dokAlako', 1], ['koalakReinette', 1], ['koalakForestier', 1]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['koalakFossoyeur', 1], ['maitreKoalak', 1], ['dokAlako', 1], ['koalakIndigo', 1]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['momieKoalak', 1], ['maitreKoalak', 1], ['koalakCoco', 1], ['koalakIndigo', 1], ['koalakFarouche', 1]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['drakoalak', 1], ['momieKoalak', 1], ['mamaKoalak', 1], ['koalakCoco', 1], ['koalakGriotte', 1]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['chevaucheurKoalak', 1], ['drakoalak', 1], ['mamaKoalak', 1], ['maitreKoalak', 1], ['koalakReinette', 1]],
+  [['koalakImmature', 3], ['guerrierKoalak', 1], ['chevaucheurKoalak', 1], ['drakoalak', 1], ['mamaKoalak', 1], ['momieKoalak', 1], ['dokAlako', 1], ['koalakCoco', 1]],
+  [['koalakImmature', 4], ['koalakForestier', 1], ['guerrierKoalak', 2], ['koalakFarouche', 1], ['mamaKoalak', 1], ['dokAlako', 1], ['koalakGriotte', 1], ['koalakReinette', 1]]];
+const PHASES_BOSS = { 70: [
+  { nom: 'les cavaliers', L: [['drakoalak', 2], ['chevaucheurKoalak', 2], ['maitreKoalak', 1], ['koalakIndigo', 1], ['koalakCoco', 1]] },
+  { nom: 'le Koulosse et sa garde', L: [['koulosse', 1], ['momieKoalak', 2], ['koalakFossoyeur', 1], ['mamaKoalak', 1]] }] };
+const compoTotale = (n) => compoVague(n).concat(...(PHASES_BOSS[n] || []).map((p) => p.L)); /* (la vague entiere, ses temps compris : le bestiaire, la fenetre des vagues) */
 const compoBase = (n) => {
   if (n === VAGUES_PALIER) return [['royal', 1], ['bouftou', 2], ['tofu', 3]];
   if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['bouftou', Math.ceil(n / 3)]] : []);
+  if (n > 6 * VAGUES_PALIER) return COMPO_KOALAKS[Math.min(VAGUES_PALIER, n - 6 * VAGUES_PALIER)].map((x) => x.slice()); /* la Montagne des Koalaks */
   if (n > 5 * VAGUES_PALIER) { /* Phase 2 : l'ile des Wabbits */
     const h = n - 5 * VAGUES_PALIER;
     if (h >= VAGUES_PALIER) return [['waWabbit', 1], ['woWabbit', 1], ['wabbitSorciere', 1], ['wabbitNoir', 1], ['wabbit', 2]];
@@ -4637,6 +4702,7 @@ const compoBase = (n) => {
 const XP_VAGUES = 0.85, KAMAS_VAGUES = 0.8, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES), kamas: Math.round(g.kamas * KAMAS_VAGUES) }); };
 const gainsVagueBrut = (n, rejoue) => {
   const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER, w = n - 5 * VAGUES_PALIER;
+  { const k7 = n - 6 * VAGUES_PALIER; if (k7 > 0) return { kamas: Math.round((k7 === VAGUES_PALIER ? 70000 : 3300 + 550 * k7) * k), xp: Math.round((k7 === VAGUES_PALIER ? 800 : 100 + 18 * k7) * k) }; } /* la Montagne des Koalaks */
   if (w > 0) return { kamas: Math.round((w === VAGUES_PALIER ? 50000 : 2600 + 450 * w) * k), xp: Math.round((w === VAGUES_PALIER ? 700 : 85 + 16 * w) * k) }; /* l'ile des Wabbits */
   if (r > 0) return { kamas: Math.round((r === VAGUES_PALIER ? 35000 : 1800 + 350 * r) * k), xp: Math.round((r === VAGUES_PALIER ? 600 : 70 + 14 * r) * k) }; /* le Nid des Dragoeufs */
   if (q > 0) return { kamas: Math.round((q === VAGUES_PALIER ? 20000 : 1200 + 250 * q) * k), xp: Math.round((q === VAGUES_PALIER ? 500 : 60 + 12 * q) * k) }; /* le Massif des Craqueleurs */
@@ -4695,7 +4761,7 @@ function ouvrirVagues() {
   const fini = S_.vague.num > VAGUES_TOTAL, n = vagueCourante(), P = palierDe(n), base = P * VAGUES_PALIER, B = MONSTRES[PALIERS[P].boss], st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe()), g = gainsVague(n, fini), repos = S_.vague.repos - Date.now();
   const piste = Array.from({ length: VAGUES_PALIER - 1 }, (_, k) => { const v = base + k + 1; return '<i class="' + (v < S_.vague.num ? 'fait' : v === n ? 'ici' : '') + '">' + v + '</i>'; }).join('') + '<img class="' + (fini || S_.vague.num > base + VAGUES_PALIER ? 'fait' : n === base + VAGUES_PALIER ? 'ici' : '') + '" src="assets/icones/' + PALIERS[P].icone + '.png" alt="' + B.nom + '" data-info="' + B.nom + '">';
   /* chaque monstre : ses PV, ses degats, et combien de coups il te faut pour l'abattre */
-  const monstres = compoVague(n).map(([t, k]) => { const M = MONSTRES[t], pv = pvMonstre(t, n), coups = Math.ceil(pv / st.deg);
+  const monstres = compoTotale(n).map(([t, k]) => { const M = MONSTRES[t], pv = pvMonstre(t, n), coups = Math.ceil(pv / st.deg);
     return '<div class="vg-monstre"><img src="assets/icones/' + M.icone + '.png" alt=""><b>× ' + k + '</b><small>' + M.nom + ' : ' + M.desc + '</small><div class="vg-stats"><span class="puce">❤ ' + pv + ' PV</span><span class="puce">⚔ ' + Math.round(degMonstre(t, n) * multDegats(n)) + ' toutes les ' + String(M.cadence).replace('.', ',') + ' s</span><span class="puce ' + (coups <= 1 ? 'bonne' : coups >= 6 ? 'mauvaise' : '') + '">' + coups + ' coup' + (coups > 1 ? 's' : '') + ' pour toi</span></div></div>'; }).join('');
   const ok = st.niveau >= n;
   const perso = '<div class="art">' + ico(classeDe()) + '<div><b>' + cl.nom + ' niveau ' + st.niveau + '</b><div class="puces"><span class="puce">❤ ' + st.pvMax + ' PV</span><span class="puce">⚔ ' + st.deg + ' toutes les ' + String(st.cadence).replace('.', ',') + ' s</span><span class="puce">Sort : ' + cl.sort + (classeDe() === 'cra' ? ' (' + Math.min(KILLS_PERCANTE, S_.chargeSort || 0) + '/' + KILLS_PERCANTE + ' monstres)' : '') + '</span>' + (classeDe() === 'cra' ? '<span class="puce">🔥 1 tir sur ' + TIR_FEU + ' en feu</span>' : '') + '<span class="puce ' + (st.niveau >= niveauRequis(n) ? 'bonne' : 'mauvaise') + '">Niveau requis ' + niveauRequis(n) + '</span></div><div class="desc">Ton niveau de Paysan est aussi ton niveau de combat.</div></div><div></div></div>' +
@@ -4724,7 +4790,7 @@ function ouvrirBestiaire(onglet) {
     if (!atteint(P)) return titre + '<p class="best-verrou">🔒 À découvrir en atteignant la vague ' + (base + 1) + '.</p>';
     const Pn = PANOS[Math.min(P, PANOS.length - 1)], B = MONSTRES[Pa.boss], leg = LEGENDAIRES.find((x) => x.boss === Pa.boss);
     if (onglet === 'monstres') {
-      const types = {}; for (let n = base + 1; n <= base + VAGUES_PALIER; n++) compoVague(n).forEach(([t]) => { (types[t] = types[t] || []).push(n); });
+      const types = {}; for (let n = base + 1; n <= base + VAGUES_PALIER; n++) compoTotale(n).forEach(([t]) => { (types[t] = types[t] || []).push(n); });
       return titre + Object.entries(types).map(([t, ns]) => { const M = MONSTRES[t], n0 = ns[0], n1 = ns[ns.length - 1], r = M.res || RES_MONSTRE[t], ecart = (f) => { const a = f(n0), b = f(n1); return a === b ? fmt(a) : fmt(a) + ' à ' + fmt(b); };
         const drops = [r ? (M.boss ? '5 ' + PAR_ID[r].nom + ' (100 %)' : PAR_ID[r].nom + ' ' + pc(0.35 * pros)) : '',
           M.boss ? 'une pièce ' + Pn.de + ' (100 % la 1re fois, puis 40 %)' : 'une pièce ' + Pn.de + ' ' + pc((t === 'tofu' ? 0.02 : 0.07) * pros),
@@ -4777,6 +4843,7 @@ function lancerVague(pBoss) {
   file.sort(() => Math.random() - 0.5); file.sort((a, b) => (MONSTRES[a].boss ? 1 : 0) - (MONSTRES[b].boss ? 1 : 0)); /* le boss arrive en dernier */
   const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe());
   combat = { n, file, total: file.length, attente: 0.8, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: vieActuelle(), regen: menthePrete(), citron: citronPret(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, rejoueBoss: rejoueB ? pBoss : null };
+  combat.phases = (PHASES_BOSS[n] || []).map((p) => { const f = []; p.L.forEach(([t, k]) => { for (let i = 0; i < k; i++) f.push(t); }); f.sort(() => Math.random() - 0.5); return { nom: p.nom, f }; }); /* (la vague 70 : ses temps suivants) */
   if (rejoueB) { S_.bossRejoue = S_.bossRejoue || {}; S_.bossRejoue[pBoss] = jourJeu(); sauver(); }
   const repas = Object.keys(S_.mange || {}).filter((id) => S_.mange[id] && PAR_ID[id] && PAR_ID[id].mange); /* ce que le perso a mange avant la vague : valable pour cette vague seulement */
   repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; });
@@ -4784,7 +4851,7 @@ function lancerVague(pBoss) {
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
   $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
-  toast(rejoueB ? leNom(MONSTRES[PALIERS[pBoss].boss]) + ' revient pour la revanche, remis à ton niveau !' : 'Vague ' + n + ' : ' + file.length + ' monstres arrivent par les bords de ta ferme !', 'alerte'); majCombatHud(); son('vague');
+  toast(rejoueB ? leNom(MONSTRES[PALIERS[pBoss].boss]) + ' revient pour la revanche, remis à ton niveau !' : (combat.phases.length ? 'Vague ' + n + ' en ' + (combat.phases.length + 1) + ' temps : d\'abord la horde (' + file.length + ' monstres), puis ' + combat.phases.map((p) => p.nom).join(', puis ') + ' !' : 'Vague ' + n + ' : ' + file.length + ' monstres arrivent par les bords de ta ferme !'), 'alerte'); majCombatHud(); son('vague');
 }
 /* les bords de la ferme : une case praticable dont un cote ne donne sur aucune de tes cases. L'ILE RONDE : sur la friche (un terrain pas encore achete),
    les monstres sortent des broussailles ; sur le vide, ils grimpent comme avant ; jamais par l'eau ni par la berge */
@@ -4803,6 +4870,7 @@ function bordsDirects(L) {
 }
 function apparaitre(type, pres) {
   const d = MONSTRES[type];
+  if (!pres && d.fouisseur && !combat.raid) { pres = pointPresBat(); if (pres && !combat.fouisseurVu) { combat.fouisseurVu = true; toast('Un ' + d.nom + ' surgit de terre au pied de tes bâtiments, derrière tes défenses !', 'alerte'); } }
   const L0 = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), L = L0.length && !combat.raid ? bordsDirects(L0) : L0, b = L.length ? hasard(L) : null;
   const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
   const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
@@ -4850,8 +4918,11 @@ function blesser(mo, n, gros) {
   mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
-    if (!combat.revitVu) { combat.revitVu = true; toast('Le Wabbit Squelette se relève : il faut l\'abattre deux fois !', 'alerte'); } return;
+    if (!combat.revitVu) { combat.revitVu = true; toast(leNom(mo.d) + ' se relève : il faut l\'abattre deux fois !', 'alerte'); } return;
   }
+  if (mo.pv <= 0 && mo.butinK > 1) { S_.kamas += mo.butinK; chiffre('+' + fmt(mo.butinK) + ' kamas', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast('Le ' + mo.d.nom + ' est abattu : tes ' + fmt(mo.butinK) + ' kamas reviennent à la grange !', 'or'); mo.butinK = 0; rendreHaut(); }
+  if (mo.pv <= 0 && mo.d.demonte && !combat.raid) { const x = mo.x, z = mo.z, y = mo.m.position.y; setTimeout(() => { if (!combat || combat.fin) return; apparaitre(mo.d.demonte, { x, z }); const nm = combat.monstres[combat.monstres.length - 1]; nm.dep = { x, y: y + 1.3, z }; nm.t = 0.25; combat.total++;
+    chiffre('Il continue à pied !', new T.Vector3(x, y + 2.6, z), 'butin'); if (!combat.demonteVu) { combat.demonteVu = true; toast('Sa monture tombe, mais le ' + mo.d.nom + ' continue à pied !', 'alerte'); } }, 0); }
   if (mo.pv <= 0) { if (combat.st) combat.st.tues++; S_.chargeSort = Math.min(KILLS_PERCANTE, (S_.chargeSort || 0) + 1); compter('monstres'); son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.type === 'monture', combat.lootV); } else butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
 }
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
@@ -4896,6 +4967,104 @@ function zoneDanger(o) {
     if (t >= o.duree) { fin(); o.effet(d); return true; }
   });
   return d;
+}
+/* LE PALIER DES KOALAKS (14/10/2026) : ce que certains coups font en plus, la fumee du Koulosse, son appel, le Fossoyeur, le bandit */
+function ouvrirEntracte() {
+  const c = combat; if (!c || !c.entracte || !c.phases.length) return; const pc = Math.round(100 * c.pv / c.pvMax), p = c.phases[0]; S_.pots = S_.pots || {};
+  const pots = Object.keys(POTS).filter((t) => (S_.pots[t] || 0) > 0).map((t) => { const P = POTS[t], non = (c.pv >= c.pvMax && !P.menthe && !P.citron) || (P.menthe && c.regen) || (P.citron && c.citron);
+    return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + ' ×' + S_.pots[t] + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + (P.menthe ? ' (jusqu\'à la fin de la vague)' : P.citron ? ' (jusqu\'à la fin de la vague)' : '') + '</span></div></div><div class="act"><button class="btn kamas" data-entracte-pot="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button></div></div>'; }).join('');
+  const repas = CULTURES.filter((cu) => cu.mange && ((S_.grange[cu.id] || 0) > 0 || c.repasEntracte[cu.id])).map((cu) => { const pris = !!c.repasEntracte[cu.id];
+    return '<div class="art">' + ico(cu.id) + '<div><b>' + cu.nom + (pris ? ' : mangée !' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + cu.mange.txt + ' jusqu\'à la fin de la vague</span><span class="puce">' + (S_.grange[cu.id] || 0) + ' en grange</span></div></div><div class="act">' +
+      (pris ? '<span class="cadenas">✓ Mangée</span>' : '<button class="btn mini" data-entracte-manger="' + cu.id + '">Manger</button>') + '</div></div>'; }).join('');
+  ouvrirModale('entracte', entete('Vague ' + c.n + ' : souffle un instant') + '<p class="hdv-aide">Ce temps-là est nettoyé. Le suivant, <b>' + p.nom + '</b>, n\'attend que toi : bois un pot, mange une Cawotte ou une Fraise, puis lance-le.</p>' +
+    '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>Ta vie : ' + pc + ' %</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV' + (c.regen ? '. La Menthe te soigne pendant la vague.' : '') + '</small></div></div>' +
+    (pots ? '<div class="hdv-section">Tes pots</div>' + pots : '<p class="hdv-aide">Tu n\'as plus de pot de gelée.</p>') + (repas ? '<div class="hdv-section">Manger</div>' + repas : '') +
+    '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-entracte-suite>Lancer : ' + p.nom + '</button></div>');
+}
+function boireEntracte(t) {
+  const c = combat, P = POTS[t]; S_.pots = S_.pots || {}; if (!c || !c.entracte || !P || !(S_.pots[t] > 0)) return;
+  const avant = c.pv; S_.pots[t]--; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * P.soin); if (P.menthe) c.regen = REGEN_MENTHE; if (P.citron) c.citron = true; son('boire'); compter('pots');
+  toast('Glou glou : ' + Math.round(100 * avant / c.pvMax) + ' % de vie, puis ' + Math.round(100 * c.pv / c.pvMax) + ' %' + (P.menthe ? ', et la Menthe te soigne jusqu\'à la fin.' : P.citron ? ', et tu cours plus vite jusqu\'à la fin.' : '.'), 'or'); rendreHaut(); sauver(); ouvrirEntracte();
+}
+function mangerEntracte(id) {
+  const c = combat, cu = PAR_ID[id]; if (!c || !c.entracte || !cu || !cu.mange || c.repasEntracte[id] || !((S_.grange[id] || 0) > 0)) return;
+  S_.grange[id]--; c.repasEntracte[id] = true; if (cu.mange.deg) c.boostDeg = (c.boostDeg || 0) + cu.mange.deg; if (cu.mange.pros) c.boostPros = (c.boostPros || 0) + cu.mange.pros;
+  son('manger'); toast('Miam ! ' + cu.nom + ' : ' + cu.mange.txt + ' jusqu\'à la fin de la vague.', 'or'); rendreGrange(); sauver(); ouvrirEntracte();
+}
+function tempsSuivant() {
+  const c = combat; if (!c || !c.entracte || !c.phases.length) return; c.entracte = false; if (modaleOuverte === 'entracte') fermerModale();
+  const p = c.phases.shift(); c.file = p.f; c.total += p.f.length; c.attente = 1.5; c.bords = null; son('vague'); toast((c.phases.length ? 'Deuxième temps' : 'Dernier temps') + ' : ' + p.nom + ' arrivent !', 'alerte');
+}
+function effetsCoup(mo) { /* la Momie ralentit, la pomme de la Reinette assomme, la baie de l'Indigo empoisonne */
+  const c = combat; if (!c || c.fin || !mo || c.deroute != null) return; const d = mo.d, p = paysanMesh.position.clone(); p.y += 2.1;
+  if (d.ralentit) { if (!c.lenteurVu) { c.lenteurVu = true; toast(leNom(d) + ' te ralentit à chaque coup : éloigne-toi !', 'alerte'); } c.lenteur = d.ralentit; }
+  if (d.assomme) { c.assomme = d.assomme; chiffre('Assommé !', p, 'vol'); }
+  if (d.poison) { (c.poisons = c.poisons || []).push({ pct: d.poison[0], t: d.poison[1] }); if (!c.poisonVuB) { c.poisonVuB = true; toast('La baie du ' + d.nom + ' t\'empoisonne quelques secondes !', 'alerte'); } }
+}
+function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre vert toutes les 0,6 s */
+  const c = combat; if (!c || c.fin || c.deroute != null) return;
+  c.poisonAcc = (c.poisonAcc || 0) + c.pvMax * pct * dt; const n = Math.floor(c.poisonAcc); if (n < 1) return;
+  c.poisonAcc -= n; c.pv = Math.max(0, c.pv - n); if (c.st) c.st.recus += n; c.poisonCumul = (c.poisonCumul || 0) + n;
+  if (performance.now() - (c.poisonT || 0) > 600) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + c.poisonCumul, p, 'perso'); c.poisonCumul = 0; c.poisonT = performance.now(); }
+  if (c.pv <= 0) commencerDeroute();
+}
+function majAfflictions(dt) {
+  const c = combat; if (!c) return;
+  if (c.lenteur > 0) c.lenteur -= dt; if (c.assomme > 0) c.assomme -= dt;
+  if (c.poisons && c.poisons.length) { c.poisons.forEach((p) => { p.t -= dt; }); c.poisons = c.poisons.filter((p) => p.t > 0); const pct = c.poisons.reduce((a, p) => a + p.pct, 0); if (pct) poisonPerso(pct, dt); }
+}
+function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage */
+  const c0 = combat, de = new T.Vector3(mo.x, mo.m.position.y + mo.haut * 0.8, mo.z), vers = new T.Vector3(x, solA(x, z) + 0.4, z);
+  const boule = new T.Mesh(new T.IcosahedronGeometry(0.4, 1), new T.MeshToonMaterial({ color: '#9ad86a', gradientMap: grad, transparent: true, opacity: 0.85 })); scene.add(boule); let t = -delai;
+  effets.push((dt) => { t += dt / 0.6; if (combat !== c0 || c0.fin) { scene.remove(boule); return true; } if (t < 0) { boule.visible = false; return; } boule.visible = true;
+    const k = Math.min(1, t); boule.position.lerpVectors(de, vers, k); boule.position.y += Math.sin(k * Math.PI) * 1.5;
+    if (k >= 1) { scene.remove(boule); pouf(x, solA(x, z), z, 2.2, '#9ad86a'); poserFumee(x, z, r, duree, null); return true; } });
+}
+function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : il suit le Koulosse jusqu'a la fin) ; il compte comme un danger, que le bot evite */
+  const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 10) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
+  const g = new T.Group(), matF = new T.MeshToonMaterial({ color: '#a8de78', gradientMap: grad, transparent: true, opacity: 0.66, depthWrite: false });
+  const sol = new T.Mesh(new T.CircleGeometry(r, 32), new T.MeshBasicMaterial({ color: '#6cc43c', transparent: true, opacity: 0.34, depthWrite: false, side: T.DoubleSide })); sol.rotation.x = -Math.PI / 2; sol.position.y = 0.06; sol.renderOrder = 2; g.add(sol);
+  const bouffees = []; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.random(), d = r * (0.15 + Math.random() * 0.65), m = new T.Mesh(new T.IcosahedronGeometry(0.45 + Math.random() * 0.4, 1), matF); m.position.set(Math.cos(a) * d, 0.4, Math.sin(a) * d); m.userData.p = Math.random() * 6; m.castShadow = false; g.add(m); bouffees.push(m); }
+  g.position.set(x, solA(x, z), z); scene.add(g);
+  const f = { x, z, r, fin: duree, t: 0, g, bouffees, suit, matF, danger: { x, z, r } }; c.fumees.push(f); (c.dangers = c.dangers || []).push(f.danger); return f;
+}
+function retirerFumee(f) { if (!f) return; scene.remove(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
+function majFumees(dt, s) { /* rester plus de 2 s dans un nuage : 2 % des PV par seconde, tant qu'on y reste */
+  const c = combat; if (!c || !c.fumees || !c.fumees.length) { if (c) c.enfume = 0; return; }
+  const pp = paysanMesh.position; let dedans = false;
+  c.fumees.slice().forEach((f) => {
+    f.t += dt; if (f.suit) { if (f.suit.etat !== 'actif') { retirerFumee(f); return; } f.x = f.suit.x; f.z = f.suit.z; f.g.position.set(f.x, solA(f.x, f.z), f.z); f.danger.x = f.x; f.danger.z = f.z; }
+    if (f.fin && f.t >= f.fin) { retirerFumee(f); return; }
+    f.matF.opacity = 0.66 * Math.min(1, f.t / 0.6, f.fin ? Math.max(0, (f.fin - f.t) / 1.2) : 1);
+    f.bouffees.forEach((m) => { m.position.y = 0.4 + Math.sin(s * 1.3 + m.userData.p) * 0.14; m.rotation.y += dt * 0.3; });
+    if (Math.hypot(pp.x - f.x, pp.z - f.z) < f.r) dedans = true;
+  });
+  c.enfume = dedans ? (c.enfume || 0) + dt : Math.max(0, (c.enfume || 0) - dt * 2);
+  if (dedans && c.enfume >= 2) { if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : tu perds 2 % de tes PV par seconde tant que tu y restes !', 'alerte'); } poisonPerso(0.02, dt); }
+}
+function attirerPerso(mo) { /* l'appel du Koulosse : le perso glisse jusqu'a lui */
+  const p = paysanMesh.position, a = Math.atan2(p.x - mo.x, p.z - mo.z), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4), x0 = p.x, z0 = p.z, c0 = combat; let t = 0;
+  chemin = []; arrivee = null; pouf(x0, p.y, z0, 1.4, '#7ad04a'); const q = p.clone(); q.y += 2.1; chiffre('Attiré !', q, 'vol');
+  effets.push((dt) => { t += dt / 0.35; if (combat !== c0) return true; const k = Math.min(1, t); paysanMesh.position.x = x0 + (f.x - x0) * k; paysanMesh.position.z = z0 + (f.z - z0) * k; if (k >= 1) { const c = caseIci(f.x, f.z); if (c) paysanMesh.userData.cellule = c; return true; } });
+}
+function pointPresBat() { /* le Fossoyeur : une case praticable collee a un batiment debout */
+  const L = clesBats().filter((k) => !enRuine(k)); if (!L.length) return null;
+  const k = hasard(L), t = typeCle(k), cells = t === 'tour' ? S_.cases.filter((c) => c.id === k.slice(5)) : S_.cases.filter((c) => c.type === t);
+  const v = cells.flatMap((c) => voisins(c)).filter((c) => PASSABLE[c.type]); if (!v.length) return null; const q = posCase(hasard(v)); return { x: q.x, z: q.z };
+}
+function volerKamas(mo) { /* le Koalak Farouche a la grange : il prend des kamas, et file */
+  const n = Math.min(Math.max(0, Math.floor(S_.kamas)), 250 + 45 * Math.max(0, (combat.n || 60) - 60)); mo.butinK = Math.max(1, n); S_.kamas -= n; rendreHaut();
+  mo.m.add(sacVole()); const z = zoneBat('grange'); if (z) chiffre('-' + fmt(n) + ' kamas', new T.Vector3(z.x, z.y + 3, z.z), 'vol');
+  toast('Un ' + mo.d.nom + ' a volé ' + fmt(n) + ' kamas dans ta grange : abats-le avant qu\'il s\'enfuie !', 'alerte');
+}
+function fuiteBandit(mo) { pouf(mo.x, mo.m.position.y, mo.z, 1.6, '#d8c8a8'); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (combat && combat.cible === mo) combat.cible = null; if (mo.butinK > 1) toast('Le ' + mo.d.nom + ' s\'est enfui avec ' + fmt(mo.butinK) + ' kamas.', 'alerte'); mo.butinK = 0; }
+function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee sur ta cible, qui ronge les monstres dedans pendant 4 s */
+  const c0 = combat, r = 2.2, g = new T.Group(), matN = new T.MeshToonMaterial({ color: '#dfe8cf', gradientMap: grad, transparent: true, opacity: 0.55, depthWrite: false });
+  for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, m = new T.Mesh(new T.IcosahedronGeometry(0.5 + Math.random() * 0.35, 1), matN); m.position.set(Math.cos(a) * r * 0.5, 0.5 + Math.random() * 0.3, Math.sin(a) * r * 0.5); g.add(m); }
+  g.position.set(x, solA(x, z), z); scene.add(g); let t = 0, tic = 0;
+  effets.push((dt) => { t += dt; tic += dt; if (combat !== c0 || c0.fin) { scene.remove(g); return true; } matN.opacity = 0.55 * Math.min(1, t / 0.3, Math.max(0, (4 - t) / 0.5)); g.rotation.y += dt * 0.4;
+    if (tic >= 0.5) { tic = 0; c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < r) blesser(o, Math.max(1, Math.round(o.pvMax * (o.d.boss ? 0.01 : 0.03) * 0.5))); }); }
+    if (t >= 4) { scene.remove(g); return true; } });
 }
 /* le souffle de Crocabulia : des flammes qui filent en cone devant elle */
 function souffleFeu(mo, a) {
@@ -4949,8 +5118,14 @@ function majMonstre(mo, dt, s) {
     }
     if (mo.champ) { const q = posCase(mo.champ), [ox, oz] = [[0, 0], [0.45, 0.25], [-0.4, 0.3], [0.15, -0.45], [-0.35, -0.35]][mo.id % 5]; tx = q.x + ox; tz = q.z + oz; versPerso = false; }
   }
+  let bandit = false;
+  if (mo.d.bandit && (!mo.aggro || mo.butinK)) { /* le Koalak Farouche : il file a la grange, y vole des kamas, puis repart par ou il est venu */
+    const zg = !mo.butinK && zoneBat('grange');
+    if (zg) { tx = zg.x; tz = zg.z; versPerso = false; bandit = true; if (Math.hypot(Math.max(0, Math.abs(mo.x - zg.x) - zg.hw), Math.max(0, Math.abs(mo.z - zg.z) - zg.hd)) < 1.3) volerKamas(mo); }
+    else if (mo.butinK) { tx = mo.sortie.x; tz = mo.sortie.z; versPerso = false; bandit = true; if (Math.hypot(tx - mo.x, tz - mo.z) < 1.0) { fuiteBandit(mo); return; } }
+  }
   let bat = null;
-  if (!mo.d.grignote) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
+  if (!mo.d.grignote && !bandit) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
   if (versPerso) { tx = pp.x; tz = pp.z; }
   const d = Math.hypot(tx - mo.x, tz - mo.z), portee = versPerso || bat ? mo.d.portee : 0.3;
   if (d > portee) {
@@ -4960,13 +5135,13 @@ function majMonstre(mo, dt, s) {
     tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
       mo.cd = mo.d.cadence; mo.frappe = 0.25;
-      if (bat && !mo.d.distance) blesserBat(bat.cle, mo.deg); /* il cogne le batiment */
+      if (bat && !mo.d.distance) blesserBat(bat.cle, mo.deg * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment (le Forestier : double sur les tours) */
       else if (mo.d.distance) { /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) */
         const de = new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle;
-        const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
+        const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })) : mo.d.projectile === 'fruit' ? new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.2 : 0.11, 10, 8), mat(mo.d.fruit)) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
         if (mo.d.projectile === 'feu') { const c = new T.Mesh(new T.IcosahedronGeometry(0.12, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); fl.add(c); }
-        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { scene.remove(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : '#9a948c'); if (cleB) blesserBat(cleB, deg); else blesserPerso(deg); return true; } });
-      } else blesserPerso(mo.deg, mo);
+        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { scene.remove(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (cleB) blesserBat(cleB, deg); else { blesserPerso(deg); effetsCoup(mo); } return true; } });
+      } else { blesserPerso(mo.deg, mo); effetsCoup(mo); }
     }
   } else { /* il picore : une recolte volee toutes les 5 s */
     mo.picore += dt;
@@ -4974,7 +5149,9 @@ function majMonstre(mo, dt, s) {
   }
   }
   if (!combat || combat.fin) return; /* le coup qui vient d'achever le perso a clos la vague */
-  if (mo.d.rage && !mo.enrage && mo.pv < mo.pvMax * 0.3) { mo.enrage = true; toast(leNom(mo.d) + ' entre en rage : ' + (mo.d.fem ? 'elle' : 'il') + ' frappe bien plus vite !', 'alerte'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a'); }
+  if (mo.d.rage && !mo.enrage && mo.pv < mo.pvMax * 0.3) { mo.enrage = true; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a');
+    if (mo.d.calumet) { mo.deg = Math.round(mo.deg * 1.25); poserFumee(mo.x, mo.z, 2.8, 0, mo); toast('Le Koulosse tire sur son calumet de la paix : il s\'entoure de fumée, frappe plus fort et bien plus vite. Ne reste pas collé à lui !', 'alerte'); }
+    else toast(leNom(mo.d) + ' entre en rage : ' + (mo.d.fem ? 'elle' : 'il') + ' frappe bien plus vite !', 'alerte'); }
   if (mo.d.protege) { /* le Craqueleur de Cristal : un bouclier de cristal sur trois monstres autour de lui (-40 % de degats, 4 s) */
     mo.protT = (mo.protT || 0) + dt;
     if (mo.protT >= mo.d.protege) { mo.protT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax).slice(0, 3).forEach((o) => { o.bouclier = 4; pouf(o.x, o.m.position.y, o.z, 1.4, '#6fe0e8'); }); }
@@ -5084,6 +5261,20 @@ function majMonstre(mo, dt, s) {
       if (!combat || combat.fin) return;
     }
   }
+  if (mo.d.fumee && combat.deroute == null) { /* le Koulosse crache des nuages de fumee verte : un sur toi, deux autour */
+    if (mo.fumeeT == null) mo.fumeeT = mo.d.fumee - 3; mo.fumeeT += vSort;
+    if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
+      if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : reste plus de 2 s dans un nuage vert et tu es empoisonné (2 % de tes PV par seconde). Sors-en !', 'alerte'); }
+      [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 12, k * 0.15));
+      if (!combat || combat.fin) return; }
+  }
+  if (mo.d.appel && combat.deroute == null) { /* il t'attire a lui (souvent en pleine fumee) : une bande verte jusqu'a toi, une seconde pour en sortir */
+    const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+    if (sortPret('appelT', mo.d.appel) && dP > 4 && dP < 14) { mo.appelT = 0; mo.bloqueT = 1.1; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.frappe = 0.3;
+      if (!combat.appelVu) { combat.appelVu = true; toast('Le Koulosse te lance son appel : sors de la bande verte, ou il t\'attire à lui !', 'alerte'); }
+      zoneDanger({ mo, x: mo.x, z: mo.z, x2: pp.x, z2: pp.z, larg: 1.6, duree: 1.0, couleur: '#7ad04a', effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) attirerPerso(mo); } });
+    }
+  }
   if (mo.bouclier > 0) { mo.bouclier -= dt; if (!mo.bulleB) { mo.bulleB = new T.Mesh(new T.SphereGeometry(1, 16, 12), new T.MeshBasicMaterial({ color: '#6fe0e8', transparent: true, opacity: 0.25, depthWrite: false })); m.add(mo.bulleB); } mo.bulleB.visible = true; mo.bulleB.scale.setScalar(mo.haut * 0.62); mo.bulleB.position.y = mo.haut * 0.45; } else if (mo.bulleB) mo.bulleB.visible = false;
   if (mo.galva > 0) { mo.galva -= dt; if (!mo.anneauG) { mo.anneauG = new T.Mesh(new T.RingGeometry(0.45, 0.62, 24), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false })); mo.anneauG.rotation.x = -Math.PI / 2; mo.anneauG.position.y = 0.07; mo.anneauG.scale.setScalar(Math.max(1, mo.d.ombre * 0.8)); m.add(mo.anneauG); } mo.anneauG.visible = true; } else if (mo.anneauG) mo.anneauG.visible = false;
   if (mo.d.soigne) { /* le Mage soigne le Bwork le plus blesse autour de lui */
@@ -5122,6 +5313,7 @@ const porteeSur = (o, st) => st.portee + Math.max(0, 0.35 + o.d.ombre * 0.3 - 1)
 function majPerso(dt) {
   const u = paysanMesh.userData, st = statsPerso(), classe = classeDe();
   combat.cdAttaque -= dt; combat.cdSort = Math.max(0, combat.cdSort - dt); combat.cdUlti = Math.max(0, combat.cdUlti - dt);
+  if (combat.assomme > 0) return; /* assomme par la pomme d'un Koalak Reinette : il ne frappe plus un instant */
   if (u.charge) return;
   if (combat.ordre) { if (chemin.length) return; combat.ordre = false; }
   if (combat.tenir) { /* il tient la position ou on l'a envoye : il frappe ce qui passe a portee, sans courir apres (toucher un monstre le relance) */
@@ -5346,6 +5538,11 @@ function majLegendaire(dt) {
         actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
     }
   }
+  if (legPorte('koulosse')) { /* la Lame, l'Arc ou le Fouet du Koulosse : toutes les 10 s, un nuage de fumee sur ta cible */
+    c.fumeeLeg = (c.fumeeLeg == null ? 3 : c.fumeeLeg) - dt;
+    const cib = (c.cible && c.cible.etat === 'actif' && Math.hypot(c.cible.x - pp.x, c.cible.z - pp.z) < 9) ? c.cible : actifs.filter((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 7).sort((a, b) => Math.hypot(a.x - pp.x, a.z - pp.z) - Math.hypot(b.x - pp.x, b.z - pp.z))[0];
+    if (c.fumeeLeg <= 0 && cib) { c.fumeeLeg = 10; nuageLeg(cib.x, cib.z); }
+  }
   if (legPorte('croc')) {
     c.souffleLeg = (c.souffleLeg == null ? 3 : c.souffleLeg) - dt;
     const cib = (c.cible && c.cible.etat === 'actif' && Math.hypot(c.cible.x - pp.x, c.cible.z - pp.z) < 6) ? c.cible : actifs.filter((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 6).sort((a, b) => Math.hypot(a.x - pp.x, a.z - pp.z) - Math.hypot(b.x - pp.x, b.z - pp.z))[0];
@@ -5432,12 +5629,15 @@ function majCombat(dt, s) {
   c.attente -= dt; c.duree = (c.duree || 0) + dt;
   if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
+  majFumees(dt, s); majAfflictions(dt); if (combat !== c || c.fin) return;
   c.monstres = c.monstres.filter((o) => !(o.etat === 'mort' && !o.m.parent));
   if (c.deroute == null) { majInvoc(dt); majLegendaire(dt); } if (combat !== c || c.fin) return; if (c.deroute == null) majPerso(dt); if (combat !== c || c.fin) return; majVisee(s);
   const cb = c.cible && c.cible.etat === 'actif' ? c.cible : null; ANNEAU.visible = !!cb;
   if (cb) { ANNEAU.position.set(cb.x, cb.m.position.y + 0.04, cb.z); ANNEAU.scale.setScalar(Math.max(1, cb.d.ombre * 0.75) * (1 + Math.sin(s * 6) * 0.06)); }
   majCombatHud();
-  if (!c.file.length && c.monstres.every((o) => o.etat === 'mort')) { c.victoire += dt; if (c.victoire > 0.6) finVague(true); }
+  if (!c.file.length && c.monstres.every((o) => o.etat === 'mort')) {
+    if (c.phases && c.phases.length) { if (!c.entracte) { c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else if (modaleOuverte !== 'entracte') tempsSuivant(); return; } /* (l'entracte, puis le temps suivant) */
+    c.victoire += dt; if (c.victoire > 0.6) finVague(true); }
 }
 /* le recap de la vague : sa duree, les monstres abattus, les degats donnes (toi, ta defense, ton Bouftou) et recus, le plus gros coup, les sorts lances */
 function recapCombat(c) {
@@ -5451,6 +5651,7 @@ function finVague(gagne, fuite) {
   if (!combat || combat.fin) return;
   const c = combat; c.fin = true; if (!fuite) son(gagne ? 'victoire' : 'defaite'); const n = c.n, rejoue = S_.vague.num > VAGUES_TOTAL || c.rejoueBoss != null;
   c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); scene.remove(o.m); } o.barre.remove(); });
+  (c.fumees || []).forEach((f) => scene.remove(f.g)); /* (les nuages du Koulosse se dissipent) */
   if (c.invoc) scene.remove(c.invoc.m);
   combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; paysanMesh.userData.attaque = null; $('b-fuir').hidden = false; if (c.deroute != null) { paysanMesh.rotation.x = 0; paysanMesh.userData.charge = false; } /* (il se releve) */
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null;
@@ -5486,7 +5687,7 @@ function finVague(gagne, fuite) {
     const g = c.rejoueBoss != null ? gainsBoss(c.rejoueBoss) : gainsVague(n, rejoue); if (c.rejoueBoss != null) { S_.bossFois = S_.bossFois || {}; S_.bossFois[c.rejoueBoss] = (S_.bossFois[c.rejoueBoss] || 0) + 1; } S_.kamas += g.kamas; compter('vagues'); if (!rejoue) { S_.vague.num = n + 1; if (n < VAGUES_TOTAL) S_.vague.prepa = Date.now() + PREPA_VAGUE[palierDe(n + 1)] * MIN; } gagnerXp(g.xp, true); g.xpVrai = gagnerXp.dernier; g.freine = false; /* « 12 xp a la vague 33, mouais » (Mathieu, 12/10/2026) : le frein ne touche plus les vagues gagnees */
     const P = palierDe(n), finPalier = !rejoue && n % VAGUES_PALIER === 0;
     const suite = S_.vague.num > VAGUES_TOTAL ? '<p style="font-size:.82rem;font-weight:600">' + leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' : tous les paliers sont terminés. La suite arrive bientôt.</p>'
-      : '<p style="font-size:.82rem;font-weight:600">' + (finPalier ? leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' ! ' + (P === 4 ? '<b>Phase 1 terminée.</b> Place à la <b>Phase 2</b> : ' + PALIERS[P + 1].nom + ', et ton niveau maximum passe à 60. ' : 'Place au ' + nomPalier(P + 1).toLowerCase() + ' : ' + PALIERS[P + 1].nom + '. ') : '') + 'La vague ' + S_.vague.num + ' t\'attend : ' + compoVague(S_.vague.num).map(([t, k]) => k + ' ' + (k > 1 ? pluriel(MONSTRES[t].nom) : MONSTRES[t].nom)).join(', ') + '.</p>';
+      : '<p style="font-size:.82rem;font-weight:600">' + (finPalier ? leNom(MONSTRES[PALIERS[P].boss]) + ' est tombé' + ac(MONSTRES[PALIERS[P].boss]) + ' ! ' + (P === 4 ? '<b>Phase 1 terminée.</b> Place à la <b>Phase 2</b> : ' + PALIERS[P + 1].nom + ', et ton niveau maximum passe à 60. ' : P === 5 ? 'Place au ' + nomPalier(P + 1).toLowerCase() + ' : ' + PALIERS[P + 1].nom + ', et ton niveau maximum passe à 70. ' : 'Place au ' + nomPalier(P + 1).toLowerCase() + ' : ' + PALIERS[P + 1].nom + '. ') : '') + 'La vague ' + S_.vague.num + ' t\'attend : ' + compoVague(S_.vague.num).map(([t, k]) => k + ' ' + (k > 1 ? pluriel(MONSTRES[t].nom) : MONSTRES[t].nom)).join(', ') + '.</p>';
     corps = entete(c.rejoueBoss != null ? 'Revanche gagnée : ' + MONSTRES[PALIERS[c.rejoueBoss].boss].nom + ' !' : 'Vague ' + n + ' gagnée !') + '<div class="art">' + ico('kama') + '<div><b>+' + fmt(g.kamas) + ' ' + KAMA + ' et +' + fmt(g.xpVrai != null ? g.xpVrai : g.xp) + ' points d\'expérience</b><div class="desc">Il te restait ' + Math.ceil(c.pv) + ' PV sur ' + c.pvMax + '.' + (g.freine ? ' Expérience réduite : tu as beaucoup d\'avance sur tes vagues.' : '') + '</div></div><div></div></div>' + suite;
   } else {
     const champs = S_.cases.filter((x) => x.type === 'champ' && x.c).sort((a, b) => recolte(b) * prix(b.c) - recolte(a) * prix(a.c));
@@ -5541,7 +5742,7 @@ function trajetCoupe(depart, cible, but, bloc) {
 }
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
-const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1); /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
+const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1) * (combat && combat.lenteur > 0 ? 0.55 : 1); /* (ralenti par une Momie Koalak) */ /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
 function hauteurSol() { return 0; } /* l'ile ronde est plate */
 function caseSous(x, z) { return caseAt(Math.round(x / S + (COLS - 1) / 2), Math.round(z / S + (ROWS - 1) / 2)); }
 function ligneLibre(a, b) {
@@ -5588,6 +5789,7 @@ function animerPas(u, dt, cible) {
 }
 function marcher(dt, s) {
   if (combat && combat.deroute != null) return; /* a terre, il ne marche plus */
+  if (combat && combat.assomme > 0) return; /* assomme : il ne bouge plus un instant */
   if (!paysanMesh) return;
   if (auCasino) { majCasino(dt); return; }
   const u = paysanMesh.userData;
@@ -6104,10 +6306,16 @@ function ouvrirEnclos() {
   const repro = '<div class="art">' + ico('bouftou') + '<div><b>Faire un petit</b><div class="puces"><span class="puce ' + (prets >= 2 ? 'bonne' : 'mauvaise') + '">' + prets + ' adulte' + (prets > 1 ? 's' : '') + ' prêt' + (prets > 1 ? 's' : '') + '</span><span class="puce ' + (houblon >= COUT_REPRO ? 'bonne' : 'mauvaise') + '">' + picto('pousse', '#8a7a5c') + COUT_REPRO + ' Houblon (' + houblon + ' en grange)</span><span class="puce">' + (noirs ? noirs + ' noir' + (noirs > 1 ? 's' : '') + ' ★' : '1 chance sur 20 : noir') + '</span></div><div class="desc">Deux adultes repus et ' + COUT_REPRO + ' Houblon' + (debloquee(PAR_ID.houblon) ? '' : ' (il se cultive au niveau ' + PAR_ID.houblon.niv + ')') + ' font un bébé, puis se reposent ' + dureeLisible(REPOS_REPRO) + '. Le bébé naît affamé : il mange ' + REPAS_BEBE + ' Blé par repas et ne grandit que repu (' + dureeLisible(DUREE_CROISSANCE) + '). Il naît <b>noir</b> 1 fois sur 20 : sa laine vaut ' + LAINE_NOIRE.prix + ' kamas. Dès que tu as un noir, le suivant naît 1 fois sur 40 ; deux parents noirs ensemble, 1 fois sur 2.</div></div><div class="act"><button class="btn kamas" data-reproduire' + (prets < 2 || plein || houblon < COUT_REPRO ? ' disabled' : '') + '>Faire un petit</button>' + (plein ? '<small class="manque">Plus de place</small>' : '') + '</div></div>';
   ouvrirModale('enclos', entete('Enclos à Bouftous') + amenager + betes + repro + achat + lignesAmelio(['enclos'], 'Améliorer l\'enclos'));
 }
+function reglagesPepito() {
+  if (niv('epouvantail') < 5) return '';
+  const ligne = (k, nom, aide) => { const on = pepitoTire(k); return '<div class="art"><div><b>' + nom + '</b><div class="desc">' + aide + '</div></div><div class="act"><button class="btn ' + (on ? 'kamas' : 'discret') + '" data-pepito="' + k + '">' + (on ? 'Il tire' : 'Il les laisse') + '</button></div></div>'; };
+  return '<div class="hdv-section">Réglages du PÉPITO-TRON</div><p class="hdv-aide">Le reste (les grignoteurs des vagues' + (niv('epouvantail') >= 6 ? ', les voleurs de VSA' : '') + '), il le tire à vue. Ici, tu décides :</p>' +
+    ligne('champs', 'Les Tofus qui picorent tes champs', 'Chaque tir coûte ' + PRIX_LASER + ' kamas. Sans lui, chasse-les toi-même.') + ligne('sauvage', 'Le Tofu sauvage dans l\'herbe', 'Laisse-le si tu veux le capturer au filet pour ta volière.');
+}
 function ouvrirEpouvantail() {
   ouvrirModale('epouvantail', entete('L\'épouvantail') + (degatsBat('epouvantail') ? artPv('epouvantail') : '') + (() => { const n = niv('epouvantail'), E = EPOU[Math.min(5, n)];
     const etat = n >= 6 ? 'PÉPITO-TRON blindé : laser sur toute la ferme, sur les Tofus des vagues et sur les voleurs de VSA (' + DEG_PEPITO_VSA + ' dégâts par tir). ' + PRIX_LASER + ' kamas par tir.' : n >= 5 ? 'PÉPITO-TRON : laser sur toute la ferme, il abat aussi les Tofus des vagues. ' + PRIX_LASER + ' kamas par tir.' : n >= 3 ? 'Il tire à l\'arbalète sur les Tofus qui picorent, ' + (n >= 4 ? 'sur toute l\'île' : 'à ' + enCases(E.portee) + ' cases') + ', ' + dureeLisible(E.delai) + ' après leur arrivée' + '. Une flèche par tir (' + S_.fleches + ' en réserve).' : n === 2 ? 'Les Tofus viennent trois fois moins souvent.' : n === 1 ? 'Les Tofus viennent deux fois moins souvent.' : 'Il fait fuir une partie des Tofus qui viennent picorer tes champs.';
-    return '<div class="art">' + ico('epouvantail') + '<div><b>' + (n >= 5 ? 'PÉPITO-TRON' : 'Épouvantail niveau ' + n) + '</b><div class="desc">' + etat + (n >= 6 ? ' Il ne s\'occupe que des Tofus et des voleurs.' : ' Il ne s\'occupe que des Tofus.') + '</div></div><div></div></div>'; })() + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
+    return '<div class="art">' + ico('epouvantail') + '<div><b>' + (n >= 5 ? 'PÉPITO-TRON' : 'Épouvantail niveau ' + n) + '</b><div class="desc">' + etat + (n >= 6 ? ' Il ne s\'occupe que des Tofus et des voleurs.' : ' Il ne s\'occupe que des Tofus.') + '</div></div><div></div></div>'; })() + reglagesPepito() + lignesAmelio(['epouvantail', 'cloche'], 'Contre les Tofus'));
 }
 function ouvrirPuits() {
   ouvrirModale('puits', entete('Le puits') + (degatsBat('puits') ? artPv('puits') + (S_.eau < capaciteEau() || !citernePleine() ? '<div class="ligne"><div><b>Remplir</b><small>Arrosoir ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ', citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() : '') + '.</small></div><button class="btn eau" data-remplir>Remplir</button></div>' : '') : '') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Arrosoir : ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? '. Citerne : ' + (S_.citerne || 0) + '/' + capaciteCiterne() + ' (elle arrose seule les nouveaux semis)' : '') + '. Touche le puits pour remplir ' + (niv('arrosoir') ? 'les deux' : 'l\'arrosoir') + '.</p>' + lignesAmelio(['nivPuits'], 'Améliorer le puits'));
@@ -6310,6 +6518,10 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.hdvOnglet) ouvrirHdv(b.dataset.hdvOnglet);
   else if (b.dataset.graines) ACTIONS.acheterGraines(b.dataset.graines, parseInt(b.dataset.n, 10));
   else if (b.dataset.potAchat) ACTIONS.acheterPots(b.dataset.potAchat, parseInt(b.dataset.n, 10));
+  else if (b.dataset.pepito) { const k = b.dataset.pepito; S_.pepito = S_.pepito || {}; S_.pepito[k] = !pepitoTire(k); toast('PÉPITO-TRON : ' + (pepitoTire(k) ? 'cible autorisée.' : 'cible ignorée.') + (k === 'sauvage' ? ' (le Tofu sauvage)' : ' (les Tofus des champs)'), 'or'); sauver(); ouvrirEpouvantail(); }
+  else if (b.dataset.entractePot) boireEntracte(b.dataset.entractePot);
+  else if (b.dataset.entracteManger) mangerEntracte(b.dataset.entracteManger);
+  else if (b.hasAttribute('data-entracte-suite')) tempsSuivant();
   else if (b.dataset.boire) boirePot(b.dataset.boire);
   else if (b.dataset.geleeAchat) ACTIONS.acheterGelee(b.dataset.geleeAchat);
   else if (b.dataset.geleeNourrir) { if (b.dataset.geleeNourrir === 'tout') ACTIONS.nourrirGelees(); else ACTIONS.nourrirGelee(parseInt(b.dataset.geleeNourrir, 10)); }
