@@ -4650,9 +4650,19 @@ function lancerVague(pBoss) {
 function bordsFerme() {
   const L = []; S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; const q = posCase(c); COTES.forEach(([di, dj]) => { if (!caseIci(q.x + di * S, q.z + dj * S)) L.push({ c, di, dj }); }); }); return L;
 }
+/* « les mobs qui attaquent de par la (la terrasse du fond, derriere la grange), surtout quand ils doivent nous attaquer nous et pas un batiment, ils galerent
+   trop a nous rejoindre, le boss a pop de par la, il a meme pas eu le temps de me toucher » (Mathieu, 15/10/2026) : la terrasse ne descend que par l'escalier.
+   On n'apparait que sur un bord dont le chemin jusqu'au perso n'est pas un long detour (au plus 1,25 fois la ligne droite, plus 1 case) */
+function bordsDirects(L) {
+  const pc = paysanMesh && caseIci(paysanMesh.position.x, paysanMesh.position.z); if (!pc) return L;
+  const dist = new Map([[pc.id, 0]]), file = [pc];
+  while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (!dist.has(v.id) && PASSABLE[v.type]) { dist.set(v.id, dist.get(c.id) + 1); file.push(v); } }); }
+  const q0 = posCase(pc), ok = L.filter((b) => { const d = dist.get(b.c.id), q = posCase(b.c); return d != null && d <= Math.hypot(q.x - q0.x, q.z - q0.z) / S * 1.25 + 1; });
+  return ok.length >= 3 ? ok : L;
+}
 function apparaitre(type, pres) {
   const d = MONSTRES[type];
-  const L = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), b = L.length ? hasard(L) : null;
+  const L0 = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), L = L0.length && !combat.raid ? bordsDirects(L0) : L0, b = L.length ? hasard(L) : null;
   const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
   const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
   const zone = new T.Mesh(new T.SphereGeometry(Math.max(0.6, d.ombre * 0.5), 8, 6), CIBLE); zone.position.y = d.ombre * 0.4; zone.userData.monstre = id; m.add(zone); /* plus facile a toucher */
