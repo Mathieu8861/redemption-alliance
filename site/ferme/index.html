@@ -833,7 +833,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
    (pousse, repas, preparation des vagues, raids, Tofus) va plus vite ; les combats, rythmes par l'affichage, gardent leur vitesse.
    L'avance prise est gardee d'une visite a l'autre, sinon les cultures rajeuniraient au rechargement. */
 /* LE RYTHME (13/10/2026, apres l'etude du rythme : « ok alors commence a coder de cette maniere », Mathieu) : le x20 d'avant est la vitesse normale
-   (RYTHME, plus bas : une minute de jeu dure 3 vraies secondes). Puis, par Discord : « laisse le curseur, juste si le mode normal est en x20. Met le x20
+   (depuis le 14/10/2026, c'est le x1 et toutes les durees du code sont ecrites en vraies minutes : voir LE TEMPS, plus bas). Puis, par Discord : « laisse le curseur, juste si le mode normal est en x20. Met le x20
    = normal, le x30 = x1,5, x40 = x2, et basta ». Le curseur va donc de x1 a x2 par pas de 0,5 ; jusqu'a x10 pour les tests (?test=1 en local, ?curseur=1).
    Une seule fois, au passage au rythme, l'avance et la vitesse de l'ancien curseur s'effacent (elles etaient comptees a l'ancienne minute) : les dates
    de la ferme se recalent toutes seules sur l'heure vraie (reprendreTemps). */
@@ -850,21 +850,21 @@ const horlogeJeu = (() => {
 })();
 /* ===================== DONNEES DU JEU ===================== */
 const CULTURES = [
-  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 15, rendement: 3, prix: 9, xp: 3, couleur: '#f3c03c', tige: '#d6a63c' },
-  { id: 'orge', nom: 'Orge', niv: 5, graine: 15, temps: 45, rendement: 3, prix: 23, xp: 6, couleur: '#e8d48c', tige: '#cdb46a' },
-  { id: 'cawotte', nom: 'Cawotte', niv: 9, graine: 600, temps: 240, rendement: 4, prix: 40, xp: 20, couleur: '#f08a24', tige: '#4fae3a', glb: 'cultures3', mange: { deg: 0.2, txt: '+20 % de dégâts' } },
-  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 30, temps: 120, rendement: 4, prix: 32, xp: 10, couleur: '#f6e4a0', tige: '#d9c070' },
-  { id: 'fraise', nom: 'Fraise', niv: 12, graine: 900, temps: 480, rendement: 5, prix: 55, xp: 28, couleur: '#e8323a', tige: '#3f9a35', glb: 'cultures3', mange: { pros: 30, txt: '+30 % de prospection' } },
-  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 60, temps: 300, rendement: 4, prix: 51, xp: 16, couleur: '#6fae3b', tige: '#8b6a42' },
-  { id: 'lin', nom: 'Lin', niv: 20, graine: 100, temps: 600, rendement: 5, prix: 61, xp: 24, couleur: '#8cb8ff', tige: '#7fa84a' },
-  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 180, temps: 1440, rendement: 5, prix: 103, xp: 35, couleur: '#c9a35a', tige: '#a88a4a' },
+  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 0.75, rendement: 3, prix: 9, xp: 3, couleur: '#f3c03c', tige: '#d6a63c' },
+  { id: 'orge', nom: 'Orge', niv: 5, graine: 15, temps: 2.25, rendement: 3, prix: 23, xp: 6, couleur: '#e8d48c', tige: '#cdb46a' },
+  { id: 'cawotte', nom: 'Cawotte', niv: 9, graine: 600, temps: 12, rendement: 4, prix: 40, xp: 20, couleur: '#f08a24', tige: '#4fae3a', glb: 'cultures3', mange: { deg: 0.2, txt: '+20 % de dégâts' } },
+  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 30, temps: 6, rendement: 4, prix: 32, xp: 10, couleur: '#f6e4a0', tige: '#d9c070' },
+  { id: 'fraise', nom: 'Fraise', niv: 12, graine: 900, temps: 24, rendement: 5, prix: 55, xp: 28, couleur: '#e8323a', tige: '#3f9a35', glb: 'cultures3', mange: { pros: 30, txt: '+30 % de prospection' } },
+  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 60, temps: 15, rendement: 4, prix: 51, xp: 16, couleur: '#6fae3b', tige: '#8b6a42' },
+  { id: 'lin', nom: 'Lin', niv: 20, graine: 100, temps: 30, rendement: 5, prix: 61, xp: 24, couleur: '#8cb8ff', tige: '#7fa84a' },
+  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 180, temps: 72, rendement: 5, prix: 103, xp: 35, couleur: '#c9a35a', tige: '#a88a4a' },
   /* les cultures de haut niveau (blender/cultures2.py) ; le Quisnoa du meme fichier attend le niveau 70 */
-  { id: 'riz', nom: 'Riz', niv: 30, graine: 220, temps: 600, rendement: 6, prix: 85, xp: 45, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
-  { id: 'malt', nom: 'Malt', niv: 35, graine: 300, temps: 900, rendement: 6, prix: 122, xp: 60, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
-  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 420, temps: 1200, rendement: 6, prix: 169, xp: 80, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
-  { id: 'mais', nom: 'Maïs', niv: 45, graine: 550, temps: 1440, rendement: 7, prix: 188, xp: 100, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
-  { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 1440, rendement: 7, prix: 244, xp: 125, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
-  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 1800, rendement: 8, prix: 283, xp: 160, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
+  { id: 'riz', nom: 'Riz', niv: 30, graine: 220, temps: 30, rendement: 6, prix: 85, xp: 45, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
+  { id: 'malt', nom: 'Malt', niv: 35, graine: 300, temps: 45, rendement: 6, prix: 122, xp: 60, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
+  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 420, temps: 60, rendement: 6, prix: 169, xp: 80, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
+  { id: 'mais', nom: 'Maïs', niv: 45, graine: 550, temps: 72, rendement: 7, prix: 188, xp: 100, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
+  { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 72, rendement: 7, prix: 244, xp: 125, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
+  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 90, rendement: 8, prix: 283, xp: 160, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
    Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */
@@ -925,25 +925,29 @@ const PRIX_PARCELLE = [150, 200, 300, 400, 500, 650, 800, 1000, 1300, 1600, 1900
 const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)$/.test(location.hostname); /* le mode test (temps x60) : sur le PC et le reseau local seulement ; en ligne, la beta demande un compte */
 /* « en mode test local, retire le x60, laisse-moi comme tout le monde choisir de x1 a x50 » (Mathieu, 12/10/2026) : ?test=1 garde sa sauvegarde a part,
    mais le temps est celui de tout le monde (le curseur) ; le x60 ne sert plus qu'aux tests automatiques, avec &rapide=1 en plus */
-/* LE RYTHME (13/10/2026) : toutes les durees du jeu sont en minutes de jeu, et une minute de jeu dure 60000 / RYTHME ms, soit 3 vraies secondes.
-   C'est le x20 d'avant, devenu la vitesse normale : le Ble pousse en 45 s, le Seigle en 1 h 12, la laine vient toutes les 6 min. */
-const RYTHME = 20, RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 1000 : 60000 / RYTHME;
-const DUREE_CROISSANCE = 240 * MIN, REPOS_REPRO = 480 * MIN, COUT_REPRO = 10, CHANCE_NOIR = { aucun: 1 / 20, deja: 1 / 40, deuxParents: 1 / 2 }, REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon */
+/* LE TEMPS (14/10/2026, « remet tout a la bonne echelle, on parlera en x1, x1,5, x2, comme c'est regle actuellement dans le jeu », Mathieu) : toutes les
+   durees du code sont en VRAIES minutes (MIN) et vraies secondes (SEC), a la vitesse x1 du curseur. Il n'y a plus de « minute de jeu » : le Ble pousse en 45 s,
+   le Seigle en 1 h 12, la laine vient toutes les 6 min, un pot de gelee en 1 min. Seule exception, voulue : en pause ou hors du jeu, la ferme tourne 20 fois
+   moins vite (VITESSE_ABSENCE), pour ne pas retrouver 200 pots et toutes ses recoltes au retour.
+   (Du 13 au 14/10/2026, les durees etaient ecrites en minutes de jeu de 3 s, le x20 du premier curseur : chaque valeur a ete divisee par 20 ce jour-la.) */
+const RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 20000 : 60000, SEC = MIN / 60; /* (rapide=1 : les tests automatiques, trois fois plus vite) */
+const REPERE_TEMPS = RAPIDE ? 60 : 20; /* le repere ecrit dans chaque sauvegarde (S_.rythme), a ne jamais changer : convertirRythme recale les parties d'avant le 13/10/2026 */
+const DUREE_CROISSANCE = 12 * MIN, REPOS_REPRO = 24 * MIN, COUT_REPRO = 10, CHANCE_NOIR = { aucun: 1 / 20, deja: 1 / 40, deuxParents: 1 / 2 }, REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
 const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
 const citernePleine = () => !niv('arrosoir') || (S_.citerne || 0) >= capaciteCiterne();
 const capaciteEau = () => [10, 15, 20, 30, 45][niv('reservoir')] || CAPACITE_EAU;
 const PRIX_FILET = 40, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
-const CADENCE_PLUME = 90 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 20 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
+const CADENCE_PLUME = 4.5 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 1 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
 const PRIX_BOUFTOU = 1000, PRIX_PREMIER_BOUFTOU = 300, REVENTE_BOUFTOU = 800, REVENTE_BEBE = 300, REVENTE_NOIR = 3000; /* (le noir : sa laine vaut 3,75 fois l'autre, il se revend 3,75 fois plus) */
 const prixBouftou = () => ((S_ && S_.bouftousAchetes) ? PRIX_BOUFTOU : PRIX_PREMIER_BOUFTOU); /* le premier achete coute 300, les suivants 1 000 */
-const REPAS = 2, DUREE_REPAS = 240 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 120 * MIN;
+const REPAS = 2, DUREE_REPAS = 12 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 6 * MIN;
 /* les ameliorations de l'elevage : abreuvoir (repus plus longtemps), cisailles d'or (plus de laine en attente), voliere agrandie (plus de plumes) */
 const dureeRepas = () => DUREE_REPAS * (niv('abreuvoir') ? 1.5 : 1), laineMax = () => LAINE_MAX + 2 * niv('cisailles'), plumesParTofu = () => PLUMES_PAR_TOFU, capaciteVoliere = () => 2 + 2 * niv('voliere'); /* la voliere : 2 places, puis 4, 6, 8 et 10 */
 /* les Tofus nuisibles : ils se posent sur une culture plantee (a tout stade), environ une fois toutes les 3 h par parcelle, 2 au plus en meme temps ;
    pas chasse au bout de 30 min, il vole 1 recolte et s'en va. Il reste toujours au moins 1 recolte. Une parcelle est tranquille 20 min apres. */
 /* le voleur de VSA : il passe environ toutes les 2 h 30 si la grange vaut le detour, et file vers elle ; on le touche pour le chasser */
-const CADENCE_VOLEUR = 150 * MIN, VITESSE_VOLEUR = 1.7;
+const CADENCE_VOLEUR = 7.5 * MIN, VITESSE_VOLEUR = 1.7;
 const PRIX_FLECHE = 10; /* l'arbalete du toit de la grange : un carreau par tir, a recharger avec les fleches achetees */
 const nivArb = () => Math.max(1, Math.min(5, niv('arbalete'))) - 1; /* (une arbalete pas encore construite se lit comme le niveau 1) */
 const degatsArbalete = () => niv('arbalete') ? [18, 27, 36, 45, 54][nivArb()] : 0, /* (-40 % le 13/10/2026 : 30, 45, 60, 75, 90 avant) */ porteeArbalete = () => [7, 8, 9.5, 10.5, 12][nivArb()], capaciteArbalete = () => [3, 6, 9, 12, 15][nivArb()], cadenceArbalete = () => [1.1, 1.0, 0.9, 0.8, 0.65][nivArb()];
@@ -963,7 +967,7 @@ const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur 
 /* « quand ta voliere a Tofus est pleine, reduis de 40 % le taux d'apparition des Tofus » (Mathieu, 13/10/2026) : les Tofus des champs et les sauvages */
 const peutCapturer = () => S_.filets > 0 && S_.tofus < capaciteVoliere(); /* (voliere pleine : on chasse, sans fenetre) */
 const freinTofus = () => (S_.tofus >= capaciteVoliere() ? 0.6 : 1);
-const RYTHME_TOFU = 180 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 30 * MIN, ACCALMIE_TOFU = 20 * MIN, CADENCE_COURS = 40 * MIN, CADENCE_CRISE = 100 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
+const RYTHME_TOFU = 9 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 1.5 * MIN, ACCALMIE_TOFU = 1 * MIN, CADENCE_COURS = 2 * MIN, CADENCE_CRISE = 5 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
 const PEPITO = [
   'un Tofu dans le blé, c\'est comme VSA à l\'HDV : faut le chasser vite.',
@@ -1213,7 +1217,7 @@ function avertirFrein() {
   const f = freinXp(); if (f < 1 && (S_.freinVu || 1) > f && !combat) toast('Tu as beaucoup d\'avance sur tes vagues : tu gagnes ' + ({ 0.5: 'deux', 0.25: 'quatre' }[f] || 'dix') + ' fois moins d\'expérience. Gagne des vagues pour la retrouver.', 'or');
   S_.freinVu = f;
 }
-const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais'));
+const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais')); /* (temps : en vraies minutes, 0,75 = 45 s) */
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
 const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
@@ -1238,10 +1242,10 @@ function etatInitial() {
   const cours = {}; VENDABLES.forEach((v) => { cours[v.id] = 1; });
   const cases = casesInitiales();
   const champs = cases.filter((c) => c.type === 'champ');
-  Object.assign(champs[0], { c: 'ble', pousse: 13 * MIN, arrose: true });
-  Object.assign(champs[1], { c: 'ble', pousse: 3 * MIN, arrose: false });
+  Object.assign(champs[0], { c: 'ble', pousse: 39 * SEC, arrose: true });
+  Object.assign(champs[1], { c: 'ble', pousse: 9 * SEC, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: 60000 / MIN, courbeXp: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 30 * MIN, prochainRaid: t + 120 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1 /* (nee sur l'ile ronde : rien a convertir) */
   };
@@ -1259,7 +1263,7 @@ function convertirNiveaux(e) {
   ['murs', 'cadenas', 'arbDegats', 'arbCadence', 'arbChargeur', 'arbPortee', 'reservoir', 'poulie', 'arrosoir', 'abreuvoir', 'mangeoire', 'cisailles', 'charrette', 'remise', 'tours', 'toursPortee', 'toursPv'].forEach((id) => { delete a[id]; });
   e.niveauxBat = 1;
 }
-function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 30 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if (!e.niveauxBat && (e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 120 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; if (!e.pots) e.pots = { petit: POTS_DEPART }; if (!Array.isArray(e.gelees)) e.gelees = []; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */ convertirNiveaux(e); convertirRythme(e); convertirXp(e); return e; } } catch (err) { /* rien */ } return null; }
+function charger() { try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { if (!e.graines) e.graines = { ble: 3 }; if (!e.filets) e.filets = 0; if (!e.tofus) e.tofus = 0; if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU; if (!e.voliere) e.voliere = { plumes: 0, accu: 0 }; if (e.sauvage === undefined) e.sauvage = null; if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 1.5 * MIN; if (typeof e.fleches !== 'number') e.fleches = 0; if (e.arbaleteArmee === undefined) e.arbaleteArmee = false; if (!e.niveauxBat && (e.amelio || {}).arbalete > 1) { e.amelio.arbDegats = Math.min(3, e.amelio.arbalete - 1); e.amelio.arbalete = 1; } if (typeof e.carreaux !== 'number') e.carreaux = e.arbaleteArmee ? 1 : 0; if (!e.prochainRaid) e.prochainRaid = Date.now() + 6 * MIN; if (!e.vague) e.vague = { num: 1, repos: 0 }; if (!e.bats) e.bats = {}; if (!e.equip) e.equip = {}; if (typeof e.citerne !== 'number') e.citerne = [0, 6, 12, 20, 32][Math.min(4, (e.amelio || {}).arrosoir || 0)]; if (!e.sac) e.sac = {}; if (!e.pots) e.pots = { petit: POTS_DEPART }; if (!Array.isArray(e.gelees)) e.gelees = []; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */ convertirNiveaux(e); convertirRythme(e); convertirXp(e); return e; } } catch (err) { /* rien */ } return null; }
 /* les parties d'avant le rythme fixe (13/10/2026) : leurs durees en cours etaient comptees a l'ancienne minute de 60 s. On les ramene au nouveau rythme :
    chaque date, passee ou a venir, se rapproche d'autant de l'instant de la sauvegarde, et les compteurs (pousse, laine, croissance, plumes) rapetissent
    pareil. Une Fraise a moitie poussee reste a moitie poussee, une vague qui se preparait encore 3 h attend 9 min. */
@@ -1270,7 +1274,7 @@ function convertirXp(e) {
   const f = (e.xp - seuilAncien(L)) / Math.max(1, seuilAncien(L + 1) - seuilAncien(L)); e.xp = Math.round(seuil(L) + f * (seuil(L + 1) - seuil(L)));
 }
 function convertirRythme(e) {
-  const r = 60000 / MIN, k = r / (e.rythme || 1); if (Math.abs(k - 1) < 1e-9) return; const ref = e.vu || Date.now();
+  const r = REPERE_TEMPS, k = r / (e.rythme || 1); if (Math.abs(k - 1) < 1e-9) return; const ref = e.vu || Date.now();
   const dates = (o) => { for (const c in o) { const v = o[c]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[c] = Math.round(ref + (v - ref) / k); } else if (v && typeof v === 'object') dates(v); } };
   dates(e);
   (e.cases || []).forEach((p) => { if (typeof p.pousse === 'number') p.pousse /= k; });
@@ -1536,7 +1540,7 @@ function avancer(maintenant, enDirect) {
   }
   if (direct) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
     if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
-    else if (!S_.sauvage && Math.random() < (dt / MIN) / 45 * freinTofus()) {
+    else if (!S_.sauvage && Math.random() < (dt / MIN) / 2.25 * freinTofus()) {
       const libres = S_.cases.filter((c) => c.type === 'libre');
       if (libres.length) { S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE }; sauv = true; toast('Un Tofu sauvage se pose dans l\'herbe.' + (S_.filets ? ' Sors ton filet !' : ' Avec un filet de capture, tu pourrais l\'attraper.'), 'or'); }
     }
@@ -3695,7 +3699,7 @@ function ouvrirBatPv(cle) {
    Il ne s'occupe que des Tofus. */
 const DEG_PEPITO_VSA = 90; /* le niveau 6 : son laser sur les voleurs de VSA (14/10/2026) */
 const pepitoTire = (k) => !(S_ && S_.pepito && S_.pepito[k] === false); /* les reglages du Pepito-Tron : 'champs' (les Tofus qui picorent), 'sauvage' (le Tofu sauvage) */
-const EPOU = [null, null, null, { portee: 8 * S, delai: 1 * MIN, cadence: 3.5, deg: 40 }, { portee: 99, delai: MIN / 3, cadence: 2.2, deg: 60 }, /* (« l'epouvantail tape pas les Tofus » : portee 8 en unites du jeu, soit 4 cases, pour « 8 cases » promises ; le niveau 4 couvre toute l'ile, comme annonce) */ { portee: 99, delai: 0.15 * MIN, cadence: 1.0, deg: 150 }];
+const EPOU = [null, null, null, { portee: 8 * S, delai: 3 * SEC, cadence: 3.5, deg: 40 }, { portee: 99, delai: 1 * SEC, cadence: 2.2, deg: 60 }, /* (« l'epouvantail tape pas les Tofus » : portee 8 en unites du jeu, soit 4 cases, pour « 8 cases » promises ; le niveau 4 couvre toute l'ile, comme annonce) */ { portee: 99, delai: 0.45 * SEC, cadence: 1.0, deg: 150 }];
 const PRIX_LASER = 15;
 const PEPITO_TRON = ['PÉPITO-TRON en ligne. Les Tofus ont été prévenus. Ils n\'ont pas aimé.', 'chaque tir de laser : 15 kamas. la sécurité, ça se paie. en pépites.', 'un Tofu abattu, c\'est une récolte sauvée. ma marge : 100 %.', 'mode terminator activé. je reviendrai... pour la facture.', 'j\'ai scanné ta ferme : 0 Tofu, 100 % de pépites. de rien.'];
 let epou = null; /* { g: arme et armure posees sur l'epouvantail, tete, canon, pepites, cd, base } */
@@ -4245,7 +4249,7 @@ function montrerAbsence() {
    les Chafers et le Royal foncent sur le perso. Le perso frappe tout seul le monstre cible (on touche un monstre pour le cibler,
    une case pour se deplacer), son sort de classe se recharge, l'arbalete de la grange tire aussi.
    Gagne : kamas et experience, la vague suivante s'ouvre. Perdu : une culture saccagee et 1 h de repos avant de relancer. */
-const VAGUES_PALIER = 10, REPOS_VAGUE = 60 * MIN, RECHARGE_SORT = 8;
+const VAGUES_PALIER = 10, REPOS_VAGUE = 3 * MIN, RECHARGE_SORT = 8;
 /* LES POTS DE GELEE (13/10/2026, idee de Mathieu) : la vie ne remonte plus d'un coup entre les vagues (S_.pv garde ce qui reste de la precedente ; absent :
    vie pleine). On se soigne avec des pots, achetes a l'HDV (categorie Gelees), bus depuis leur fenetre (le bouton potion a cote de la vie, ou en touchant la vie :
    « j'aime pas que ce soit associe a la grange », Mathieu) ou depuis la fenetre des vagues, jamais en combat. Sans pot, on attend : la vie remonte doucement (REGEN_PV). Le filet de securite : 3 petits pots au depart, et apres une defaite le perso revient a 30 % de vie. Les pots de la Geliere viendront ensuite.
@@ -4319,7 +4323,7 @@ function ouvrirPots() {
    20 min ; recette validee par Mathieu (« on valide comme ca, on ajustera par la suite ») : Bleue 4 Cawottes, Fraise 4 Fraises, Citron 3 Fraises et 3 Cawottes,
    Royale 6 Fraises et 4 Cawottes (Menthe 3 Cawottes et 2 Fraises, par defaut). Croiser deux couleurs fait parfois naitre une Gelee Royale. Effets des pots :
    la maquette du plan (Bleue +25 %, Menthe soigne pendant la vague, Citron +25 % et le perso court plus vite, Fraise +40 %, Royale toute la vie). */
-const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 20 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 60 * MIN, CHANCE_ROYALE = 0.18, VITESSE_CITRON = 1.3;
+const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 1 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, VITESSE_CITRON = 1.3;
 const GELEES = {
   bleue: { nom: 'Gelée Bleue', pot: 'petit', recette: { cawotte: 4 }, prix: 2000 },
   menthe: { nom: 'Gelée Menthe', pot: 'menthe', recette: { cawotte: 3, fraise: 2 }, prix: 3500 },
@@ -4436,8 +4440,8 @@ const PEAU_IOP = 0.15, SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC = 12
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
    minimum pour la lancer. Sans ca, l'experience des vagues suffisait a tout enchainer en moins d'une heure (bot de test). */
-const PREPA_VAGUE = [10, 15, 45, 120, 240, 300, 330], /* (en minutes de jeu : de 30 s au palier 1 a 15 min au dernier ; 3 au palier 1 avant le rythme fixe, soit 9 s) */ niveauRequis = (n) => Math.max(1, n - 2);
-const CADENCE_RAID = 480 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 8 h environ (de 5 h 30 a 10 h 30), annonce 30 vraies secondes avant */
+const PREPA_VAGUE = [0.5, 0.75, 2.25, 6, 12, 15, 16.5], /* (en vraies minutes : de 30 s au palier 1 a 16 min 30 au palier 7) */ niveauRequis = (n) => Math.max(1, n - 2);
+const CADENCE_RAID = 24 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 24 min environ (de 17 a 31 min), annonce 30 s avant */
 /* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
 const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hidden && !auCasino; /* au Casino : pas de raid */
@@ -6658,9 +6662,9 @@ function actionMontgolfiere(a) {
 
 /* ---------- l'ardoise et les gros bras (« si tu finis en negatif au casino, des mecs te renvoient sur ton ile et reviennent te reclamer
    des sous avec interet ; si tu ne les as pas, ils te pillent un peu », Mathieu, 11/10/2026) ----------
-   Fini a 0 kama avec une ardoise : Bouboule et Filou te raccompagnent a la ferme. Ensuite, environ toutes les 2 h de jeu (et seulement quand tu es la),
+   Fini a 0 kama avec une ardoise : Bouboule et Filou te raccompagnent a la ferme. Ensuite, environ toutes les 6 min (et seulement quand tu es la),
    ils debarquent pres de la montgolfiere : l'ardoise prend 10 % d'interets, tu payes tout, une partie, ou ils pillent la grange (la moitie de la dette). */
-const VISITE_ARDOISE = 120, INTERETS = 0.1;
+const VISITE_ARDOISE = 6, INTERETS = 0.1; /* (en vraies minutes) */
 let grosBras = null; /* les deux modeles poses sur la ferme pendant une visite */
 async function chargerGrosBras() {
   if (MODELES.bouboule) return;
@@ -6941,8 +6945,8 @@ function reprendreTemps(maintenant) {
    recouvreurs du Casino attendent ton retour (leurs dates sont decalees, comme pendant l'ancienne pause). Le temps avance par petits pas, pour que la
    mangeoire serve ses repas un par un. Au retour, Pepito resume ce qui a pousse (montrerAbsence). */
 /* Puis (« on va se connecter, on va faire 50000 kamas lol », Mathieu) : sans toi, la ferme pousse au rythme d'avant le x20, 20 fois moins vite qu'en jeu
-   (VITESSE_ABSENCE) : une nuit de 8 h vaut 24 min de jeu, une Fraise plantee le soir est mure le matin, un Millet a pousse d'un tiers. 10 h comptent au plus. */
-const ABSENCE_MAX = 10 * 3600e3, VITESSE_ABSENCE = 1 / RYTHME;
+   (VITESSE_ABSENCE) : une nuit de 8 h compte comme 24 min de jeu, une Fraise plantee le soir est mure le matin, un Millet a pousse d'un tiers. 10 h comptent au plus. */
+const ABSENCE_MAX = 10 * 3600e3, VITESSE_ABSENCE = 1 / 20; /* (« quand la personne met en pause ou quitte le jeu, le temps sera ralenti de x20 tout simplement », Mathieu, 14/10/2026) */
 function fermeSansToi(maintenant, d) {
   const avant = photoFerme(), garde = Math.round(Math.min(d, ABSENCE_MAX) * VITESSE_ABSENCE); /* (le temps qui compte pour la ferme ; le reste est une pause) */
   if (d > garde) { const x = d - garde; const decaler = (o) => { for (const k in o) { if (k === 'parties') continue; const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + x; } else if (v && typeof v === 'object') decaler(v); } }; decaler(S_); if (raidAnnonce) raidAnnonce.fin += x; } /* (ce qui ne compte pas : comme une pause, toutes les dates avancent d'autant) */
