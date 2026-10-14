@@ -733,6 +733,8 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .art .pic.brume { background: radial-gradient(circle at 50% 45%, #ffffff, #dfe8ee); color: #9aa7b2; font: 400 1.6rem/1 var(--f-titre); }
 .arene-tete { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; margin: 4px 0 8px; } .arene-tete img { width: 150px; } .arene-tete b { font: 400 1.25rem/1.1 var(--f-titre); } .arene-tete p { margin: 4px 0 0; font-size: .84rem; font-weight: 600; color: #6b5a48; }
 .arene-regles { margin: 6px 0 10px; padding-left: 18px; font-size: .84rem; font-weight: 600; } .arene-regles li { margin: 3px 0; } .arene-regles b { font-weight: 800; }
+.fp-forge { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; } .fp-forge-t { font: 400 .95rem/1 var(--f-titre); margin-right: 2px; } .fp-forge small { font-size: .74rem; font-weight: 700; color: #6b5a48; }
+.fp-forge .btn.mini { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 4px; font-size: .74rem; } .fp-forge .btn.mini img { width: 24px; height: 24px; object-fit: contain; }
 .arene-puces { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; } .arene-puces .puce { background: #f3ead8; border-radius: 99px; padding: 2px 9px; font-size: .74rem; font-weight: 700; color: #5b5240; white-space: nowrap; } .arene-puces .puce.bonne { background: #dff1d3; color: #2d6a1e; } .arene-puces .puce.mauvaise { background: #fde3df; color: #8a1e16; }
 .rc-l.moi { background: #fff1c9; border-radius: 8px; padding-left: 6px; padding-right: 6px; }
 .arene-bilan { text-align: center; margin: 6px 0 10px; } .arene-bilan .gros { font: 400 3rem/1 var(--f-titre); color: var(--bord); } .arene-bilan .sous { font-weight: 700; color: #6b5a48; } .arene-bilan .record { display: inline-block; margin-top: 6px; background: var(--or); border: 2px solid var(--bord); border-radius: 99px; padding: 2px 12px; font: 400 1rem/1.3 var(--f-titre); }
@@ -1100,6 +1102,26 @@ function creerObjet(id) {
   S_.jets[k] = Object.fromEntries(Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v); return [c, a + Math.floor(Math.random() * (b - a + 1))]; })); return k;
 }
 function donnerObjet(id) { const k = creerObjet(id); S_.sac[k] = 1; marquerNeuf(k); return k; } /* une piece tombee, tiree, rangee dans le sac et signalee */
+/* LES RUNES DE FORGEMAGIE (14/10/2026, Mathieu : « kamas et xp c'est bien, mais les gens veulent d'autres recompenses : des runes magiques qui
+   permettent d'augmenter les stats d'un item ; si l'item a un jet a 70 %, il prend +20 %, pour que le mec puisse avoir des items jet max »).
+   La rune de forgemagie ajoute 20 % de la fourchette a chaque caracteristique d'une piece (au moins 1), sans depasser le maximum ;
+   la rune parfaite met la piece au jet maximum. Elles se gagnent dans l'Arene (blender/runes.py pour les icones). */
+const RUNES = { forge: { nom: 'Rune de forgemagie', court: 'Runes de forgemagie', gain: 0.2, bref: '+20 % de jet' }, parfaite: { nom: 'Rune parfaite', court: 'Runes parfaites', gain: 1, bref: 'jet maximum' } };
+const runes = () => (S_.runes = S_.runes || { forge: 0, parfaite: 0 });
+function forgerObjet(k, t) {
+  const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
+  if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
+  if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }
+  S_.jets = S_.jets || {}; let cle = k; const emp = Object.keys(S_.equip).find((e) => S_.equip[e] === k);
+  if (!S_.jets[k] || (S_.sac[k] || 0) > 1) { /* une piece d'avant les jets, ou en plusieurs exemplaires : on en sort un exemplaire a part, a son jet actuel */
+    S_.nInst = (S_.nInst || 0) + 1; cle = base + '~' + S_.nInst.toString(36); S_.jets[cle] = Object.assign({}, obj(k).stats);
+    if (emp) S_.equip[emp] = cle; else { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; S_.sac[cle] = 1; }
+  }
+  const q0 = qualiteJet(cle), J = S_.jets[cle];
+  Object.entries(B.stats).forEach(([c, v]) => { const [a, b] = fourchette(v), cur = J[c] != null ? J[c] : v; J[c] = R.gain >= 1 ? b : Math.min(b, cur + Math.max(1, Math.round(R.gain * (b - a)))); });
+  n[t]--; compter('runes'); son('niveau'); confettis(25);
+  toast('Forgemagie réussie : ' + obj(cle).nom + ', jet ' + Math.round(q0 * 100) + ' % puis ' + Math.round(qualiteJet(cle) * 100) + ' %.', 'or'); rendreHaut(); sauver(); return cle;
+}
 /* la qualite du jet, de 0 (tout au minimum) a 1 (tout au maximum) */
 function qualiteJet(k) {
   const o = obj(k), b = OBJETS[baseObjet(k)]; if (!o || !b) return 0.5;
@@ -2263,7 +2285,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261016h'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016j'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -6511,6 +6533,8 @@ function ouvrirPerso(sel) {
       return '<div class="fp-ligne"><span>' + CARACS[cc][2] + ' ' + CARACS[cc][0] + '<small>' + (B.stats[cc] ? 'de ' + fa + ' à ' + fb + u : '') + '</small></span><span><b>+' + v + u + '</b></span>' + (q ? '<span>+' + w + u + '</span><span class="' + (v > w ? 'fp-gain' : v < w ? 'fp-perte' : '') + '">' + (v > w ? '▲ +' + (v - w) : v < w ? '▼ ' + (v - w) : '=') + u + '</span>' : '') + '</div>'; };
     const table = '<div class="fp-compare' + (q ? '' : ' seule') + '"><div class="fp-ligne th"><span>Caractéristique</span><span>' + (porteeIci ? 'Portée' : 'Elle') + '</span>' + (q ? '<span>Ta pièce</span><span>Écart</span>' : '') + '</div>' + cles.map(ligne).join('') + '</div>';
     const jet = '<div class="fp-jet"><span>Jet <b>' + nomJet(qj) + '</b></span><div class="barre"><i style="width:' + Math.round(qj * 100) + '%"></i></div><small>' + Math.round(qj * 100) + ' %</small></div>';
+    const nr = runes(), maxi = qj >= 0.999, aRunes = nr.forge > 0 || nr.parfaite > 0; /* la forgemagie : une rune sur cette piece */
+    const forge = (aRunes || maxi || niveau(S_.xp) >= NIV_ARENE) ? '<div class="fp-forge"><span class="fp-forge-t">Forgemagie</span>' + (maxi ? '<small>Jet maximum : rien à améliorer.</small>' : Object.keys(RUNES).map((t) => '<button class="btn mini ' + (nr[t] ? 'kamas' : 'discret') + '" data-forger="' + t + '|' + k + '"' + (nr[t] ? '' : ' disabled') + ' data-info="' + RUNES[t].nom + ' : ' + RUNES[t].bref + '"><img src="assets/icones/rune-' + t + '.png?v=' + VERSION_MODELES + '" alt="">' + RUNES[t].bref + ' <b>×' + (nr[t] || 0) + '</b></button>').join('') + (aRunes ? '' : '<small>Les runes se gagnent dans l\'Arène.</small>')) + '</div>' : '';
     const pano = !o.leg && !o.arme ? (() => { const n0 = comptePanos()[o.pano] || 0, n1 = porteeIci ? n0 : n0 + (q && q.pano === o.pano && !q.leg ? 0 : 1);
       return '<div class="fp-pano">Panoplie ' + PANOS[o.pano].de + ' : ' + (porteeIci ? n0 + '/6 pièces portées.' : 'tu passes à ' + Math.min(6, n1) + '/6 pièces.') + (PALIERS_PANO.find(([m]) => m > n1) ? ' À ' + PALIERS_PANO.find(([m]) => m > n1)[0] + ' : ' + texteBonus(PALIERS_PANO.find(([m]) => m > n1)[1](o.pano)) + '.' : ' Panoplie complète !') + '</div>'; })() : '';
     const raison = !cmp.ok ? (o.classe && o.classe !== classeDe() ? 'Arme du ' + nomClasse(o.classe) + ' : tu peux seulement la revendre.' : 'Il faut le niveau ' + o.niv + ' pour la porter.') : '';
@@ -6518,7 +6542,7 @@ function ouvrirPerso(sel) {
       : '<div class="fp-actions"><button class="btn kamas fp-principal" data-equiper="' + k + '"' + (cmp.ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div>' +
         '<p class="fp-aide">' + (raison || (q ? q.nom + ' retournera dans ton sac.' : 'L\'emplacement ' + NOMS_EMP[o.emp].toLowerCase() + ' est vide.')) + '</p>';
     milieu = '<div class="fp-bloc fp-detail"><div class="fp-entete"><span class="fp-grosse' + (o.rare ? ' rare' : '') + (o.leg ? ' leg' : '') + '"><img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><div class="fp-nom">' + o.nom + '</div><div class="fp-pils">' + pils + '</div></div></div>' +
-      jet + table + (o.pouvoir ? '<div class="fp-pouvoir">✦ ' + o.pouvoir + '</div>' : '') + pano + actions + '</div>';
+      jet + forge + table + (o.pouvoir ? '<div class="fp-pouvoir">✦ ' + o.pouvoir + '</div>' : '') + pano + actions + '</div>';
   }
   /* a droite : le sac en cases, et les panoplies */
   const presents = EMPLACEMENTS_PERSO.map(([e]) => e).filter((e) => sacL.some((k) => obj(k).emp === e));
@@ -6656,6 +6680,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.fpCarac) { persoCarac = persoCarac === b.dataset.fpCarac ? null : b.dataset.fpCarac; ouvrirPerso(); }
   else if (b.dataset.persoSel) ouvrirPerso(b.dataset.persoSel);
   else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);
+  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); const cle = forgerObjet(k, t); ouvrirPerso(cle || k); }
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
   else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
@@ -6849,10 +6874,11 @@ function appliquerVagueArene(c, p) {
   c.arene.k = p.k; c.n = p.n; c.file = p.f.slice(); c.total = p.f.length; c.attente = 2.2; c.victoire = 0; son('vague');
   const b = p.f.find((t) => MONSTRES[t].boss); toast('Arène, vague ' + p.k + ' : ' + p.f.length + ' monstres' + (b ? ', dont ' + leNom(MONSTRES[b], true) : '') + ' !', 'alerte'); majCombatHud();
 }
-async function chargerArene() {
+async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), faite avec les outils de la ferme et rendue comme elle ; le fond est deja tourne loin de la camera */
   if (ileArene) return;
-  const sc = await chargerGlb('assets/modeles/jeu/arene-jeu.glb?v=' + VERSION_MODELES); versToon(sc, { normales: 0.012, sansContour: SC_BATI });
-  const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneJeu') || sc, {})); g.position.copy(ARENE); g.rotation.y = ROT_ARENE;
+  const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
+  const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
+  if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(13, 0, 3.2); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); scene.add(g); ileArene = g; if (!soleil.target.parent) scene.add(soleil.target);
 }
 async function classementArene(sem) { /* le classement de l'alliance pour une semaine (il faut etre connecte ; DAMOCLES/sql/068) */
@@ -6864,7 +6890,8 @@ async function primeArene() { /* la semaine suivante : le podium de la semaine p
   const a = etatArene(), passee = semaineJeu(tempsReel() - 7 * 864e5); if (a.primeVue === passee) return;
   const L = await classementArene(passee); if (!L) return; a.primeVue = passee;
   const i = L.findIndex((j) => j.moi);
-  if (i >= 0 && i < 3 && L[i].vagues > 0) { S_.kamas += PRIMES_ARENE[i]; son('niveau'); confettis(60); toast('Arène : tu finis ' + ['premier', 'deuxième', 'troisième'][i] + ' de la semaine passée, avec ' + L[i].vagues + ' vagues ! Prime : ' + fmt(PRIMES_ARENE[i]) + ' kamas.', 'or'); rendreHaut(); }
+  if (i >= 0 && i < 3 && L[i].vagues > 0) { const R = runes(), lot = [['parfaite', 2], ['parfaite', 1], ['forge', 3]][i]; R[lot[0]] = (R[lot[0]] || 0) + lot[1]; S_.kamas += PRIMES_ARENE[i]; son('niveau'); confettis(60);
+    toast('Arène : tu finis ' + ['premier', 'deuxième', 'troisième'][i] + ' de la semaine passée, avec ' + L[i].vagues + ' vagues ! Prime : ' + fmt(PRIMES_ARENE[i]) + ' kamas et ' + lot[1] + ' ' + (lot[1] > 1 ? RUNES[lot[0]].court : RUNES[lot[0]].nom).toLowerCase() + '.', 'or'); rendreHaut(); }
   sauver();
 }
 async function afficherClassementArene() {
@@ -6880,8 +6907,8 @@ function ouvrirArene() {
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
     '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tes paliers déjà battus, de plus en plus forts, qui sortent des herses et foncent tous sur toi.</li>' +
     '<li><b>Un boss toutes les 5 vagues</b>, puis un souffle pour boire tes pots et manger.</li>' +
-    '<li><b>À chaque vague tenue</b> : des kamas et de l\'expérience. <b>Chaque boss</b> : un coffre, avec une pièce de ta panoplie.</li>' +
-    '<li><b>Ton record de la semaine</b> compte au classement de l\'alliance. La semaine suivante, le podium touche sa prime : ' + PRIMES_ARENE.map(fmt).join(', ') + ' kamas.</li>' +
+    '<li><b>À chaque vague tenue</b> : des kamas, de l\'expérience, parfois une <b>rune de forgemagie</b> (+20 % de jet sur une pièce). <b>Chaque boss</b> : un coffre, avec une pièce de ta panoplie et des runes ; dès la vague 15, une chance de <b>rune parfaite</b> (jet maximum).</li>' +
+    '<li><b>Ton record de la semaine</b> compte au classement de l\'alliance. La semaine suivante, le podium touche sa prime : ' + PRIMES_ARENE.map(fmt).join(', ') + ' kamas, et des runes (2 parfaites, 1 parfaite, 3 de forgemagie).</li>' +
     '<li>Tomber ne coûte rien de plus : tu gardes tout ce que tu as gagné. Le bouton Fuir arrête la partie quand tu veux.</li></ul>' + blocVie() +
     '<div class="hdv-section">Classement de la semaine (' + sem.replace('-S', ', semaine ') + ')</div><div id="arene-classement"><p class="hdv-aide">Chargement…</p></div>' +
     '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button><button class="btn kamas" data-montgolfiere="entrerArene"' + (raison ? ' disabled' : '') + '>Entrer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
@@ -6912,7 +6939,7 @@ async function partirArene() {
 function lancerArene() {
   if (combat || !paysanMesh || !enArene) return;
   const st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe()), a = etatArene();
-  combat = { n: nArene(1), arene: { k: 0, tenues: 0, kamas: 0, xp: 0, objets: [], record: a.record || 0, recordSem: recordSemaine() }, file: [], total: 1, attente: 1, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: vieActuelle(), regen: menthePrete(), citron: citronPret(), agi: royalePrete(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] };
+  combat = { n: nArene(1), arene: { k: 0, tenues: 0, kamas: 0, xp: 0, objets: [], runes: {}, record: a.record || 0, recordSem: recordSemaine() }, file: [], total: 1, attente: 1, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: vieActuelle(), regen: menthePrete(), citron: citronPret(), agi: royalePrete(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] };
   const repas = Object.keys(S_.mange || {}).filter((id) => S_.mange[id] && PAR_ID[id] && PAR_ID[id].mange); /* ce que le perso a mange avant : valable pour toute la partie */
   repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; });
   if (repas.length) { S_.mange = {}; S_.mangeDeux = false; sauver(); }
@@ -6927,10 +6954,16 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
   if (k > (a.record || 0)) a.record = k; if (k > (a.semaines[sem] || 0)) a.semaines[sem] = k;
   Object.keys(a.semaines).sort().slice(0, -8).forEach((x) => { delete a.semaines[x]; }); /* (les 8 dernieres semaines) */
   let coffre = '';
+  const gagneRune = (t, nb) => { runes()[t] = (runes()[t] || 0) + nb; c.arene.runes[t] = (c.arene.runes[t] || 0) + nb; };
+  if (k >= 3 && k % 5 && Math.random() < 0.15 * (1 + caracs().prospection / 100)) { gagneRune('forge', 1); coffre += ' Une rune de forgemagie !'; } /* (une chance sur 7 environ, a partir de la vague 3) */
+  if (k % 5 === 0) { /* le coffre du boss : des runes de forgemagie, et a partir de la vague 15 une chance de rune parfaite */
+    const nf = 1 + Math.floor(k / 10); gagneRune('forge', nf); coffre += ' ' + nf + ' rune' + (nf > 1 ? 's' : '') + ' de forgemagie' + (nf > 1 ? '' : '') + '.';
+    if (k >= 15 && Math.random() < Math.min(0.5, 0.04 * (k - 10))) { gagneRune('parfaite', 1); coffre += ' ★ Une RUNE PARFAITE !'; }
+  }
   if (k % 5 === 0) { /* le coffre du boss : une poignee de kamas et une piece de ta panoplie (rare deux fois plus souvent) */
     const bonus = 2 * g.kamas, P = PANOS[palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)))], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = tirerRare(hasard(neufs.length ? neufs : ids), 2 * (1 + caracs().prospection / 100));
     S_.kamas += bonus; c.arene.kamas += bonus; const cle = donnerObjet(id); c.arene.objets.push(cle); son('niveau'); confettis(30);
-    coffre = ' Coffre du boss : +' + fmt(bonus) + ' kamas et ' + (OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' !';
+    coffre = ' Coffre du boss : +' + fmt(bonus) + ' kamas, ' + (OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' et' + coffre;
   }
   toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soinArene) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + g.xp + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
   const p = vagueArene(k + 1);
@@ -6952,6 +6985,7 @@ function finArene(abandon) {
     '<div class="recap-combat"><div class="rc-l">' + picto('kama', GRIS_PICTO) + '<span>Kamas gagnés</span><b>' + fmt(A.kamas) + '</b></div><div class="rc-l">' + picto('etoile', GRIS_PICTO) + '<span>Expérience</span><b>' + fmt(A.xp) + '</b></div>' +
     '<div class="rc-l">' + picto('tofu', GRIS_PICTO) + '<span>Monstres abattus</span><b>' + c.st.tues + '</b></div><div class="rc-l">' + picto('degats', GRIS_PICTO) + '<span>Dégâts infligés</span><b>' + fmt(Math.round(c.st.inflige)) + '</b></div></div>' +
     (objets ? '<div class="hdv-section">Les coffres</div>' + objets : '') +
+    (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce : dans la fiche du perso, touche la pièce puis la rune.</div></div><div class="act"></div></div>').join('') : '') +
     '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
     '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
   rendreHaut(); sauver();
@@ -7456,7 +7490,8 @@ const LECONS = [
       () => `Après une défaite, ton perso se repose et revient à ${Math.round(VIE_APRES_DEFAITE * 100)} % de vie au moins. Pépito t'a laissé ${POTS_DEPART} petits pots pour commencer.`] },
   { id: 'arene', titre: 'L\'Arène', ico: 'kama', resume: 'Les vagues sans fin, le ticket, le classement.', quand: () => enArene,
     pages: [() => `Bienvenue dans l'<em>Arène</em> ! Des vagues sans fin, de plus en plus dures, avec les monstres de tes paliers déjà battus. Ils sortent des trois herses et foncent tous sur toi : ici, ni culture ni bâtiment à défendre.`,
-      () => `Un <em>boss</em> toutes les 5 vagues, avec son <em>coffre</em> (une pièce de ta panoplie), puis un souffle pour boire tes pots et manger. Chaque vague tenue rapporte des kamas et de l'expérience.`,
+      () => `Un <em>boss</em> toutes les 5 vagues, avec son <em>coffre</em> (une pièce de ta panoplie et des runes), puis un souffle pour boire tes pots et manger. Chaque vague tenue rapporte des kamas et de l'expérience.`,
+      () => `Les <em>runes de forgemagie</em> améliorent tes pièces : +20 % de jet sur chaque caractéristique, jusqu'au maximum. La <em>rune parfaite</em> met une pièce au jet maximum. Dans la fiche du perso, touche une pièce, puis la rune.`,
       () => `Ton <em>record de la semaine</em> compte au classement de l'alliance, et le podium touche sa prime la semaine suivante. ${ENTREES_ARENE} entrées par jour, un ticket de ${fmt(TICKET_ARENE)} kamas chacune.`] },
   { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les simus VSA sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
     pages: [() => `Une <em>simu VSA</em> : des <em>voleurs de VSA</em> attaquent à plusieurs ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par la case violette, où Omeho, leur chef, les attend sur sa calèche.`,
