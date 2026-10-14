@@ -2809,19 +2809,20 @@ function habillerPerso(g) {
     let k = Math.max(st.x * 0.85 / Math.max(r0.x, r0.z), st.x * 1.12 / Math.max(t0.x, t0.z));
     /* « on dirait que j'ai une kippa » (Mathieu, 15/10/2026, Cra en coiffe Bouftou) : un bonnet rond (calotte, bonnet) se calait sur son bord, son dome ne
        couvrait que 80 % de la chevelure et se posait dessus comme une calotte de pretre. Le dome couvre maintenant toute la largeur du crane */
-    const dome = corpsC.find((m) => /^(calotte|bonnet)$/.test(nomP(m)));
+    const dome = corpsC.find((m) => /^(calotte|bonnet|os)$/.test(nomP(m))); /* (os : le casque-crane du Chafer, 15/10/2026) */
     if (dome) { const d0 = boiteDe(dome).getSize(new T.Vector3()); k = Math.max(k, st.x * 1.04 / Math.max(d0.x, d0.z)); }
     /* « en format bonnet c'est parfait, fais pareil avec les coiffes legendaires » (Mathieu, 15/10/2026) : couronnes, casques et coussin couvrent tout le crane */
     const oC = obj(idC), estLeg = !!(oC && (oC.base ? OBJETS[oC.base] : oC).leg); if (estLeg) k = Math.max(k, st.x * 1.04 / Math.max(r0.x, r0.z));
     c.scale.multiplyScalar(k); if (t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
     const b1 = unionDe(corpsC.length ? corpsC : [c]), c1 = b1.getCenter(new T.Vector3()), couronne = estLeg && pc.some((m) => /^couronne/.test(nomP(m))),
-      bas0 = couronne ? bt.min.y + st.y * 0.6 : Math.max(bt.min.y + st.y * (estLeg ? 0.6 : 0.52), bt.max.y + 0.04 - (b1.max.y - b1.min.y)); /* (un casque legendaire s'arrete au haut du front : celui de Crocabulia descendait sur les yeux ;
+      machoire = pc.some((m) => /^museau/.test(nomP(m))),
+      bas0 = couronne ? bt.min.y + st.y * 0.6 : Math.max(bt.min.y + st.y * (machoire ? 0.6 : 0.52), bt.max.y + 0.04 - (b1.max.y - b1.min.y)); /* (un casque a machoire s'arrete au haut du front : celui de Crocabulia descendait sur les yeux ;
       une couronne, ouverte, n'a pas a couvrir le dessus du crane : « c'est plus une couronne qu'un bonnet, faut qu'elle soit un peu plus enfoncee », Mathieu, 15/10/2026) */
     c.position.add(new T.Vector3(ct.x - c1.x, bas0 - b1.min.y, ct.z - c1.z)); eq.add(c);
     if (pc.some((m) => /^(calotte|bonnet|coussin|casque|os|crane)$/.test(nomP(m)))) { /* sous une coiffe fermee, le dessus de la chevelure s'aplatit (elle traversait) ;
       « on dirait qu'il a des trous dans les cheveux » (Mathieu, 12/10/2026) : avant, toute la chevelure retrecissait et decouvrait le crane entre les meches */
       const yp = bt.min.y + st.y * 0.5, fy = 0.78;
-      corpsP.filter((o) => /^cheveux/.test(nomP(o))).forEach((o) => { const g0 = o.geometry, M = o.matrixWorld.clone(), Mi = M.clone().invert(), P = g0.attributes.position, v = new T.Vector3(), geo = g0.clone(), Q = geo.attributes.position;
+      corpsP.filter((o) => /^(cheveux|meches)/.test(nomP(o))).forEach((o) => { const g0 = o.geometry, /* (et la frange : elle ressortait par-dessus le casque du Chafer, 15/10/2026) */ M = o.matrixWorld.clone(), Mi = M.clone().invert(), P = g0.attributes.position, v = new T.Vector3(), geo = g0.clone(), Q = geo.attributes.position;
         for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(M);
           if (v.y > bas0 - 0.03) { const f = 1 - 0.24 * Math.min(1, (v.y - bas0 + 0.03) / 0.07); v.x = ct.x + (v.x - ct.x) * f; v.z = ct.z + (v.z - ct.z) * f; } /* (15/10/2026 : au-dessus du bord de la coiffe, la chevelure rentre dessous ; elle traversait le casque du Chafer) */
           if (v.y > yp) v.y = yp + (v.y - yp) * fy; v.applyMatrix4(Mi); Q.setXYZ(i, v.x, v.y, v.z); }
