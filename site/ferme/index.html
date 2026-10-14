@@ -5886,7 +5886,8 @@ function ouvrirHdv0(onglet) {
     ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + cats + corps);
     return;
   }
-  const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0 || (v.id === 'laine' ? S_.bouftous.length : v.id === 'laine_noire' ? S_.bouftous.some((b) => b.noir) : v.id === 'plume' ? S_.tofus : debloquee(v)));
+  /* seulement ce qu'on a en grange (« quand on a 0 de quelque chose, ca sert a rien de le mettre dans la liste », Mathieu, 15/10/2026) */
+  const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
   ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + (S_.crise ? '<div class="crise" style="background:#fde3df;border:2px solid var(--rouge);border-radius:10px;padding:5px 8px;font-size:.75rem;margin-bottom:8px">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' : -40 % jusqu\'à ce qu\'ils s\'en aillent.</div>' : '') +
     (lignes.length ? lignes.map((v) => {
       const oV = [[1, '×1'], [10, '×10'], [0, 'Tout']], q = qteDe('v:' + v.id, oV), st = S_.grange[v.id] || 0, p = prix(v.id), avant = (S_.coursAvant && S_.coursAvant[v.id]) || 1, mtn = S_.cours[v.id] || 1, n = q === 0 ? st : Math.min(q, st);
