@@ -882,7 +882,7 @@ const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 30, xp: 3 };
 const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }, { id: 'kaliptus', nom: 'Branche de Kaliptus', prix: 240, xp: 0 }];
 const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES).map((c) => [c.id, c]));
 const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES);
-/* l'elevage (revu le 12/10/2026) : deux adultes repus font un petit contre 10 Houblon, puis 8 h de repos chacun. Le bebe nait affame,
+/* l'elevage (revu le 12/10/2026) : deux adultes repus font un petit contre 10 Houblon (15 depuis le 14/10/2026), puis 8 h de repos chacun. Le bebe nait affame,
    mange trois fois plus qu'un adulte (6 Ble, repu deux fois moins longtemps) et ne grandit que repu : 4 h repu pour devenir adulte (lui seul
    fait de la laine). Il nait noir 1 fois sur 10 (laine noire, tres chere), 1 sur 4 avec un parent noir, 1 sur 2 avec deux. */
 const NOMS_NOIRS = ['Ébène', 'Réglisse', 'Charbon', 'Minuit', 'Corbeau', 'Encre'];
@@ -933,7 +933,7 @@ const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192
    (Du 13 au 14/10/2026, les durees etaient ecrites en minutes de jeu de 3 s, le x20 du premier curseur : chaque valeur a ete divisee par 20 ce jour-la.) */
 const RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 20000 : 60000, SEC = MIN / 60; /* (rapide=1 : les tests automatiques, trois fois plus vite) */
 const REPERE_TEMPS = RAPIDE ? 60 : 20; /* le repere ecrit dans chaque sauvegarde (S_.rythme), a ne jamais changer : convertirRythme recale les parties d'avant le 13/10/2026 */
-const DUREE_CROISSANCE = 12 * MIN, REPOS_REPRO = 24 * MIN, COUT_REPRO = 10, CHANCE_NOIR = { aucun: 1 / 20, deja: 1 / 40, deuxParents: 1 / 2 }, REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon */
+const DUREE_CROISSANCE = 12 * MIN, REPOS_REPRO = 24 * MIN, COUT_REPRO = 15, CHANCE_NOIR = { aucun: 1 / 20, deja: 1 / 40, deuxParents: 1 / 2 }, REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon (15 depuis le 14/10/2026, « met 15 houblons au lieu de 10 », Mathieu ; 10 avant) */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
 const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
 const citernePleine = () => !niv('arrosoir') || (S_.citerne || 0) >= capaciteCiterne();
@@ -4138,7 +4138,7 @@ const OBJECTIFS = [
   ['terrainsAchetes', 1, 'Achète un terrain pour agrandir ta ferme.', 250, 20],
   ['vagueMax', 10, 'Bats le Bouftou Royal à la vague 10.', 500, 40],
   ['equipes', 1, 'Équipe une pièce d\'équipement (bouton Perso).', 200, 20],
-  ['naissances', 1, 'Fais naître un petit Bouftou (10 Houblon, dans l\'enclos).', 600, 40],
+  ['naissances', 1, 'Fais naître un petit Bouftou (' + COUT_REPRO + ' Houblon, dans l\'enclos).', 600, 40],
   ['vagueMax', 20, 'Bats le Chafer Cuirassé à la vague 20.', 1500, 80],
   ['equipes', 6, 'Porte 6 pièces d\'équipement.', 2000, 100],
   ['vagueMax', 30, 'Bats le Bworker à la vague 30.', 5000, 150],
