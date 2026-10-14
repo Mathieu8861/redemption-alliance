@@ -1094,26 +1094,78 @@ const possede = (id) => Object.keys(S_.sac).some((k) => S_.sac[k] > 0 && baseObj
 const statsTexte = (st) => Object.entries(st).map(([c, v]) => '<span class="puce">' + CARACS[c][2] + ' +' + v + CARACS[c][1] + '</span>').join('');
 const CLE = TEST ? 'ferme-amakna-3d-v2-test' : 'ferme-amakna-3d-v2'; /* v2 : le plan a change pour coller a l'ile */
 
-/* L'ile de depart : 8 x 5, calee sur le modele de l'ile (assets/modeles/ile-jeu.glb, iles.py version 7). Les deux rangees du fond sont en terrasse,
-   l'escalier descend dans la colonne 3. G grange, V voliere, H HDV, W puits, E epouvantail, B foin, e enclos, c champ, p chemin (pied de l'escalier), . herbe libre */
-const COLS = 8, ROWS = 5, S = 2, HAUT_TERRASSE = 0.7, COL_ESCALIER = 3;
-const PLAN = ['G G V . H H . W', 'G G . . . . . .', 'c c c p . e e e', 'c c c c . e e e', 'E . . . . . . B'].map((l) => l.split(' '));
-/* Terrains a vendre : ils ajoutent des cases d'herbe libre et relevent le plafond de construction */
-const aVendre = (t) => !S_.terrains[t.id] && (!t.apres || S_.terrains[t.apres]);
-const nivTerrainOk = (t) => !t.niv || niveau(S_.xp) >= t.niv; /* les terrains de la Phase 2 : en vue, mais pas a vendre avant leur niveau */
-const TERRAINS = [ /* colles a l'ile, alignes sur sa grille, une case de bordure entre les deux (modeles : iles.py version 8 -> terrains.glb) */
-  { id: 't0', cols: 4, rows: 4, ox: -14, oz: 3, y: 0, prix: 500, parcelles: 6 },
-  { id: 't1', cols: 5, rows: 3, ox: -1, oz: 10, y: 0, prix: 1500, parcelles: 6 },
-  { id: 't2', cols: 4, rows: 4, ox: 14, oz: -5, y: HAUT_TERRASSE, prix: 3500, parcelles: 6 },
-  /* 3 de plus : chacun n'est a vendre qu'une fois son voisin achete (apres) */
-  { id: 't3', cols: 5, rows: 3, ox: -11, oz: 10, y: 0, prix: 6000, parcelles: 6, apres: 't1' },
-  { id: 't4', cols: 4, rows: 4, ox: 14, oz: 3, y: 0, prix: 9000, parcelles: 6, apres: 't2' },
-  { id: 't5', cols: 6, rows: 3, ox: 0, oz: -10, y: HAUT_TERRASSE, prix: 14000, parcelles: 8, apres: 't2' },
-  /* la Phase 2 (« au bout d'un moment on peut plus acheter de terrain, c'est normal ? », Mathieu, 11/10/2026) : deux de plus, en bout de chaine,
-     visibles des que leur voisin est achete mais a vendre seulement au niveau 50 */
-  { id: 't6', cols: 4, rows: 3, ox: -10, oz: -10, y: HAUT_TERRASSE, prix: 25000, parcelles: 6, apres: 't5', niv: 50 },
-  { id: 't7', cols: 4, rows: 3, ox: -20, oz: 10, y: 0, prix: 40000, parcelles: 6, apres: 't3', niv: 50 }
-]
+/* La ferme 8 x 5 d'origine : ses cases (i 0 a 7, j 0 a 4) gardent leur place au milieu de l'ile ronde. G grange, V voliere, H HDV, W puits, E epouvantail, B foin,
+   e enclos, c champ, . herbe libre (p, l'ancien chemin au pied de l'escalier, est devenu de l'herbe) */
+const COLS = 8, ROWS = 5, S = 2;
+const PLAN = ['G G V . H H . W', 'G G . . . . . .', 'c c c . . e e e', 'c c c c . e e e', 'E . . . . . . B'].map((l) => l.split(' '));
+/* L'ILE RONDE (14/10/2026, plan v3 valide par Mathieu : « ca c'est top yes ») : une seule ile pour les 200 niveaux, toute plate (« le muret il fait chier,
+   [...] faudrait un truc plus homogene » : plus de terrasse ni d'escalier). Le depart (92 cases, la ferme 8 x 5 au milieu) est a toi des le niveau 1 ; autour,
+   16 terrains en friche s'achetent dans l'ordre, un par palier de niveau : l'anneau 1 (6 terrains de 17 ou 18 cases, niveaux 5 a 50), puis l'anneau 2
+   (10 terrains de 25 ou 26 cases, niveaux 60 a 195). L'eau (riviere du fond, etang devant a droite) et la berge sont du decor.
+   Le plan vient de blender/ile_plan.py, comme le modele (assets/modeles/jeu/ile-ronde-jeu.glb, blender/ile-ronde-jeu.py) ; recopie ici par blender/plan-vers-jeu.py. */
+const ILE_PLAN = { i0: -11, j0: -8, /* une ligne par j, un caractere par i : « . » le depart, a..p les terrains T0..T15 (dans l'ordre d'achat), ~ l'eau, « , » la berge (decor), = un pont, espace hors de l'ile */
+  lignes: [
+    "          ~~~ppppppp          ",
+    "       ~~~oooopppppppnn       ",
+    "     ,~~ooooooppppppnnnnn     ",
+    "    ,~~oooooooppppppnnnnnn    ",
+    "   ,~~ooooffffffffffnnnnnnn   ",
+    "  ,~~ooooeeffffffffddnnnnnll  ",
+    " ,~~mmmeeeee......dddddnlllll ",
+    " ,~mmmmeee..........dddllllll ",
+    " ~~mmmeee............dddlllll ",
+    ",~mmmmeee............dddllllll",
+    "~~mmmmcce............ddbljjjjj",
+    "~mmmmmccc............bbbjjjjjj",
+    " mmmkkccc............bbbjjjjj ",
+    " kkkkkkccc..........bbbjjjjjj ",
+    " kkkkkkccccc......bbbbbhhjjjj ",
+    "  kkkkkkiccaaaaaaaabbhhh~~~j  ",
+    "   kkkkiiiaaaaaaaaaahhh~~~~   ",
+    "    kiiiiiiiiggggghhhhh~~~    ",
+    "     iiiiiiiggggggghhhhhh     ",
+    "       iiiiiggggggghhhh       ",
+    "          iigggggggh          ",
+  ],
+  terrains: [
+    {id: 'T0', niv: 5, prix: 500, parcelles: 6, anneau: 1},
+    {id: 'T1', niv: 12, prix: 1500, parcelles: 6, anneau: 1},
+    {id: 'T2', niv: 20, prix: 3500, parcelles: 6, anneau: 1},
+    {id: 'T3', niv: 30, prix: 6000, parcelles: 6, anneau: 1},
+    {id: 'T4', niv: 40, prix: 9000, parcelles: 6, anneau: 1},
+    {id: 'T5', niv: 50, prix: 14000, parcelles: 6, anneau: 1},
+    {id: 'T6', niv: 60, prix: 25000, parcelles: 8, anneau: 2},
+    {id: 'T7', niv: 75, prix: 40000, parcelles: 8, anneau: 2},
+    {id: 'T8', niv: 90, prix: 60000, parcelles: 8, anneau: 2},
+    {id: 'T9', niv: 105, prix: 85000, parcelles: 8, anneau: 2},
+    {id: 'T10', niv: 120, prix: 115000, parcelles: 8, anneau: 2},
+    {id: 'T11', niv: 135, prix: 150000, parcelles: 8, anneau: 2},
+    {id: 'T12', niv: 150, prix: 190000, parcelles: 8, anneau: 2},
+    {id: 'T13', niv: 165, prix: 240000, parcelles: 8, anneau: 2},
+    {id: 'T14', niv: 180, prix: 300000, parcelles: 8, anneau: 2},
+    {id: 'T15', niv: 195, prix: 370000, parcelles: 8, anneau: 2},
+  ]
+};
+const idCase = (i, j) => 'm' + i + '_' + j;
+const ILE = (() => { /* le code de chaque case de l'ile, les cases du depart, celles de chaque terrain */
+  const code = new Map(), depart = [], parT = ILE_PLAN.terrains.map(() => []);
+  ILE_PLAN.lignes.forEach((l, dj) => [...l].forEach((ch, di) => {
+    const i = ILE_PLAN.i0 + di, j = ILE_PLAN.j0 + dj; if (ch === ' ') return; code.set(i + '_' + j, ch);
+    if (ch === '.') depart.push([i, j]); else { const k = 'abcdefghijklmnop'.indexOf(ch); if (k >= 0) parT[k].push([i, j]); }
+  }));
+  return { code, depart, parT };
+})();
+const codeIle = (i, j) => ILE.code.get(i + '_' + j) || null; /* null : le vide autour de l'ile */
+const terrainDe = (i, j) => 'abcdefghijklmnop'.indexOf(codeIle(i, j) || '?'); /* -1 : pas un terrain (depart, eau, berge, vide) */
+const TERRAINS = ILE_PLAN.terrains.map((t, k) => { const cs = ILE.parT[k], X = (i) => (i - (COLS - 1) / 2) * S, Z = (j) => (j - (ROWS - 1) / 2) * S;
+  return Object.assign({}, t, { cases: cs, x: cs.reduce((a, [i]) => a + X(i), 0) / cs.length, z: cs.reduce((a, [, j]) => a + Z(j), 0) / cs.length }); });
+const prochainTerrain = () => TERRAINS.find((t) => !S_.terrains[t.id]) || null; /* on les achete dans l'ordre */
+const aVendre = (t) => prochainTerrain() === t;
+const nivTerrainOk = (t) => niveau(S_.xp) >= t.niv;
+const MONTGOLFIERE_CASE = [-2, 0]; /* la case ou la montgolfiere du Casino est amarree, au bord gauche du depart (la ou elle etait deja) */
+/* les 8 terrains d'avant l'ile ronde : seulement pour convertir les anciennes sauvegardes (migrerIleRonde) */
+const ANCIENS_TERRAINS = { t0: { cols: 4, rows: 4, ox: -14, oz: 3 }, t1: { cols: 5, rows: 3, ox: -1, oz: 10 }, t2: { cols: 4, rows: 4, ox: 14, oz: -5 }, t3: { cols: 5, rows: 3, ox: -11, oz: 10 },
+  t4: { cols: 4, rows: 4, ox: 14, oz: 3 }, t5: { cols: 6, rows: 3, ox: 0, oz: -10 }, t6: { cols: 4, rows: 3, ox: -10, oz: -10 }, t7: { cols: 4, rows: 3, ox: -20, oz: 10 } };
 
 /* ===================== ETAT ===================== */
 let S_ = null;
@@ -1160,13 +1212,11 @@ function prix(id) {
   if (S_.crise && S_.crise.id === id) p *= 0.6;
   return Math.max(1, Math.round(p));
 }
-function casesInitiales() {
-  const cases = casesBordure();
+function casesInitiales() { /* tout le depart en herbe, puis la ferme 8 x 5 au milieu */
+  const cases = casesDepart(), par = new Map(cases.map((c) => [c.id, c]));
   PLAN.forEach((ligne, j) => ligne.forEach((code, i) => {
-    const type = { G: 'grange', V: 'voliere', H: 'hdv', W: 'puits', E: 'epouvantail', B: 'foin', e: 'enclos', c: 'champ', p: 'chemin', '.': 'libre' }[code];
-    const cell = { id: 'm' + i + '_' + j, i, j, terrain: 'main', type };
-    if (type === 'champ') Object.assign(cell, champVide());
-    cases.push(cell);
+    const cell = par.get(idCase(i, j)); cell.type = { G: 'grange', V: 'voliere', H: 'hdv', W: 'puits', E: 'epouvantail', B: 'foin', e: 'enclos', c: 'champ', '.': 'libre' }[code];
+    if (cell.type === 'champ') Object.assign(cell, champVide());
   }));
   return cases;
 }
@@ -1353,7 +1403,7 @@ addEventListener('pagehide', () => nuageEnvoyer(true));
 const parcelleAjoutee = (p) => p.type === 'champ';
 /* le quota de parcelles : 8 sur l'ile, plus 70 % des cases de chaque terrain achete ; on laboure ou l'on veut dans ce quota */
 const QUOTA_ILE = 8;
-const quotaParcelles = () => QUOTA_ILE + TERRAINS.filter((t) => S_.terrains[t.id]).reduce((n, t) => n + (t.parcelles || Math.round(t.cols * t.rows * 0.4)), 0); /* chaque terrain : beaucoup de cases, quelques parcelles */
+const quotaParcelles = () => QUOTA_ILE + TERRAINS.filter((t) => S_.terrains[t.id]).reduce((n, t) => n + t.parcelles, 0); /* chaque terrain : beaucoup de cases, quelques parcelles */
 const parcelles = () => S_.cases.filter((c) => c.type === 'champ').length;
 let mode = null, aDeplacer = null, aPoser = null; /* (aPoser : la decoration a poser, en mode 'poserDeco') mode amenagement : 'choisir' une parcelle, puis 'deplacer' vers une case d'herbe */
 /* choisir un element a deplacer : une parcelle, un batiment, une tour, ou l'enclos (qu'on amenage) */
@@ -1511,7 +1561,7 @@ function gagnerXp(n, sansFrein) {
   const avant = niveau(S_.xp), x0 = S_.xp; S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(capNiveau()))); const apres = niveau(S_.xp); gagnerXp.dernier = S_.xp - x0; /* plus rien a gagner au niveau maximum (de la phase) */
   if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres)); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
   avertirFrein();
-  TERRAINS.forEach((t, k) => { if (!t.niv || avant >= t.niv || apres < t.niv || !aVendre(t)) return; const b = document.querySelector('[data-vente="' + k + '"]'); if (b) b.remove(); bulleVente(t, k); toast('Un terrain de la Phase 2 est à vendre !', 'or'); });
+  { const t = prochainTerrain(); if (t && avant < t.niv && apres >= t.niv) { const k = TERRAINS.indexOf(t), b = document.querySelector('[data-vente="' + k + '"]'); if (b) b.remove(); bulleVente(t, k); toast('Un nouveau terrain est à vendre : ' + t.cases.length + ' cases de plus pour ta ferme !', 'or'); } }
   if (avant < NIV_ULTI && apres >= NIV_ULTI && !S_.ulti) { toast('Niveau ' + NIV_ULTI + ' : ton ulti se débloque ! Choisis-le dans la fiche des vagues.', 'or'); if (!combat && !modaleOuverte) ouvrirUlti(); }
   rendreHaut();
 }
@@ -1520,6 +1570,7 @@ function gagnerXp(n, sansFrein) {
 const ACTIONS = {
   toucherCase(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p) return;
+    if (p.type === 'montgolfiere' && !mode && !combat) { ouvrirMontgolfiere(); return; }
     if (mode === 'deplacer' || mode === 'deplacerBat') {
       const lui = mode === 'deplacer' ? p === aDeplacer : aDeplacer && (aDeplacer.piece !== undefined ? false : aDeplacer.tour ? aDeplacer.tour === p : aDeplacer.deco ? aDeplacer.deco === p : aDeplacer.arbre ? p.arbre === aDeplacer.arbre : p.type === aDeplacer.bat);
       if (!lui && p.type !== 'libre' && selectionner(p)) return; /* un autre element : on le prend a la place */
@@ -1741,7 +1792,7 @@ const ACTIONS = {
     if (!a || n >= a.couts.length || niveau(S_.xp) < nivRequis(a, n) || S_.kamas < a.couts[n] || (a.requiert && !niv(a.requiert))) return;
     if (id === 'voliere' && n === 0 && bloqueursVoliere().length) { toast('Pas la place : libère une case à côté de la volière (une parcelle se déplace avec Aménager).', 'alerte'); return; }
     const blocGel = id === 'geliere' && n === 0 ? blocLibreGeliere() : null;
-    if (id === 'geliere' && n === 0 && !blocGel) { toast('Pas la place : la Gelière prend 6 cases d\'herbe libres d\'un seul tenant (3 sur 2), au même niveau. Libère-les avec Aménager, ou achète un terrain.', 'alerte'); return; }
+    if (id === 'geliere' && n === 0 && !blocGel) { toast('Pas la place : la Gelière prend 6 cases d\'herbe libres d\'un seul tenant (3 sur 2). Libère-les avec Aménager, ou achète un terrain.', 'alerte'); return; }
     S_.kamas -= a.couts[n]; S_.amelio[id] = n + 1; compter('amelios'); son('quete');
     toast(a.nom + (a.couts.length > 1 ? ' (niveau ' + (NIVBAT[id] ? nivBat(id) : n + 1) + ')' : '') + ' : c\'est fait.', 'or'); /* (un batiment : son vrai niveau, l'enclos ameliore une fois est au niveau 2) */
     if (id === 'enclos') { /* « quand on l'agrandit et qu'on doit ajouter des places, c'est un enfer » : elles se posent toutes seules, collees a lui, le plus compact possible */
@@ -1962,13 +2013,13 @@ const ACTIONS = {
   },
   acheterTerrain(k) {
     const t = TERRAINS[k]; if (!t || S_.terrains[t.id]) return;
-    if (!nivTerrainOk(t)) { toast('Ce terrain de la Phase 2 s\u2019achète à partir du niveau ' + t.niv + ' de Paysan.'); return; }
+    if (!aVendre(t)) { const u = prochainTerrain(); toast('Les terrains s\u2019achètent dans l\u2019ordre : d\u2019abord celui du niveau ' + u.niv + '.'); return; }
+    if (!nivTerrainOk(t)) { toast('Ce terrain s\u2019achète à partir du niveau ' + t.niv + ' de Paysan.'); return; }
     if (S_.kamas < t.prix) { toast('Ce terrain coûte ' + fmt(t.prix) + ' kamas.'); return; }
     S_.kamas -= t.prix; S_.terrains[t.id] = true; compter('terrains');
-    for (let i = 0; i < t.cols; i++) for (let j = 0; j < t.rows; j++) S_.cases.push({ id: t.id + '_' + i + '_' + j, i, j, terrain: t.id, type: 'libre' });
-    toast('Terrain acheté : ' + (t.cols * t.rows) + ' cases de plus, ' + quotaParcelles() + ' parcelles possibles au total.', 'or');
-    construireTerrain(k);
-    TERRAINS.forEach((u, j) => { if (u.apres === t.id && aVendre(u)) { construireFantome(j); bulleVente(u, j); toast('Un nouveau terrain est à vendre, collé à celui-ci.', 'or'); } }); /* le suivant se debloque */
+    t.cases.forEach(([i, j]) => { if (!caseAt(i, j)) S_.cases.push({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' }); });
+    toast('Terrain défriché : ' + t.cases.length + ' cases de plus, ' + quotaParcelles() + ' parcelles possibles au total.', 'or');
+    construireTerrain(k); if (combat) combat.bords = null; /* les monstres sortent maintenant du nouveau bord */
     rendreHaut(); placerBulles();
   }
 };
@@ -1985,6 +2036,7 @@ const camera = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
 const VISEE = new T.Vector3(0.6, 0.6, 0.6);
 camera.position.set(VISEE.x + 30, VISEE.y + 27, VISEE.z + 30); camera.lookAt(VISEE);
 let zoom = 1, angleCam = Math.PI / 4, enAccueil = true, departAngle = performance.now();
+const ZOOM_MIN = 0.36; /* (l'ile ronde : de quoi la voir en entier) */
 function placerCamera() { const r = 42.4; camera.position.set(VISEE.x + Math.cos(angleCam) * r, VISEE.y + 27, VISEE.z + Math.sin(angleCam) * r); camera.lookAt(VISEE); }
 function cadrer() {
   const w = innerWidth, h = innerHeight, a = w / h;
@@ -2061,7 +2113,7 @@ function eauAnimee(m) {
 }
 const SOUPLE_ILE = { herbe: 1, tige: 1, feuille: 1, brin: 1, pousse: 1, fleur: 1, fleurs: 0.15, tronc: 0.12, branche: 0.12, noeud: 0.12, feuillage: 0.12, feuillageClair: 0.12, feuillageSombre: 0.12, etage: 0.12, cime: 0.12, pomme: 0.12, pommeReflet: 0.12 };
 const SOUPLE_CULTURES = { tige: 1, epi: 1, barbe: 1, feuille: 1, brin: 1, pousse: 1, grain: 1, fleur: 1, capsule: 1, liane: 0.1, feuille_houblon: 0.1, cone: 0.1 };
-const SC_ILE = new Set(['feuillageClair', 'feuillageSombre', 'pommeReflet', 'ecume_filet', 'nenuphar', 'galet', 'barbe', 'pousse', 'herbe', 'caillou', 'reflet', 'joint', 'fleur', 'tige', 'champi_point', 'petale', 'ecume']);
+const SC_ILE = new Set(['pierre_fond', 'terre_dessous', 'feuillageClair', 'feuillageSombre', 'pommeReflet', 'ecume_filet', 'nenuphar', 'galet', 'barbe', 'pousse', 'herbe', 'caillou', 'reflet', 'joint', 'fleur', 'tige', 'champi_point', 'petale', 'ecume']);
 const SC_PERSO = new Set(['peinture', 'muscle', 'cicatrice', 'paupiere', 'croc', 'anneau_barbe', 'reflet', 'pupille', 'iris', 'joue', 'sourcil', 'bouche', 'croix_v', 'croix_h', 'boucle_trou', 'paille_nervure', 'paille_brin', 'gorge', 'clou']);
 const SC_BATI = new Set(['craie', 'graine', 'fil', 'carreau', 'grillage', 'feu', 'flamme', 'lueur', 'etincelle', 'visage', 'joue', 'plume', 'tache', 'oeil', 'tige', 'epi', 'maille', 'tressage', 'clou', 'caisse_fond', 'chaume_rang', 'ligature', 'brin', 'fleur', 'vitre', 'lanterne', 'buche_bout', 'botte_bout', 'tonneau_dessus',
   'corde_tour', 'douelle', 'lierre', 'grain_ble', 'trou', 'paille', 'barbe', 'kama_cran', 'kama_motif', 'couture', 'pousse', 'trou_serrure', 'rivet', 'reflet', 'eau']);
@@ -2184,7 +2236,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261015b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -2271,31 +2323,22 @@ function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.a
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['terrains', 'ile-jeu', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
+  const fichiers = ['ile-ronde-jeu', 'granges', 'puits2', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
-  versToon(G.terrains, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true }); TERRAINS.forEach((t) => { const g = G.terrains.getObjectByName('terrain_' + t.id); if (g) { g.parent.remove(g); MODELES['terrain_' + t.id] = fusionner(g, { caseDe: caseDeTouffe(t) }); } });
-  const ileT = versToon(G['ile-jeu'], { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, eauIle: true, douce: true }); ileT.updateMatrixWorld(true);
-  MODELES.arbres = []; const groupes = []; ileT.traverse((o) => { if (/^arbre_\d+$/.test(o.name)) groupes.push(o); });
-  groupes.forEach((g) => { /* chaque arbre : un objet a part, pivot au pied du tronc, pour pouvoir le replanter ailleurs */
-    const b = new T.Box3(); g.traverse((o) => { if (o.isMesh && /^tronc/.test(o.name)) b.expandByObject(o); }); if (b.isEmpty()) b.setFromObject(g);
-    const base = new T.Vector3((b.min.x + b.max.x) / 2, b.min.y, (b.min.z + b.max.z) / 2), pivot = new T.Group(); pivot.position.copy(base); pivot.updateMatrixWorld(true);
-    g.children.slice().forEach((c) => pivot.attach(c)); g.parent.remove(g); pivot.name = g.name;
-    let genre = 'arbre_rond'; pivot.traverse((o) => { if (/^pomme/.test(o.name)) genre = 'pommier'; else if (/^etage/.test(o.name) && genre !== 'pommier') genre = 'sapin'; }); /* (range, il revient comme ce genre de decoration) */
-    MODELES.arbres.push({ nom: g.name, g: fusionner(pivot), base, genre });
-  });
-  MODELES.piecesIle = []; { /* les pieces de l'ile (blender/iles.py) qui deviennent des decorations : un objet a part, pivot a leur pied, comme les arbres.
-    D'abord les rochers moussus avec leur mousse (indices 0 et 1, deja dans les sauvegardes), puis les lanternes de pierre de l'escalier (13/10/2026) */
-    const rochers = [], mousses = [], lant = []; ileT.traverse((o) => { if (!o.isMesh) return; if (/^rocher/.test(o.name)) rochers.push(o); else if (/^mousse/.test(o.name)) mousses.push(o); else if (/^(lanterne|joint)/.test(o.name)) lant.push(o); });
-    const centre = (o) => new T.Box3().setFromObject(o).getCenter(new T.Vector3());
-    const extraire = (pieces, ref, genre) => { const b = new T.Box3(); ref.forEach((o) => b.expandByObject(o)); const c = b.getCenter(new T.Vector3()), base = new T.Vector3(c.x, b.min.y, c.z), pivot = new T.Group(); pivot.position.copy(base); pivot.updateMatrixWorld(true);
-      pieces.forEach((o) => pivot.attach(o)); MODELES.piecesIle.push({ g: fusionner(pivot), base, genre }); };
-    rochers.forEach((r) => { const c = centre(r); extraire([r].concat(mousses.filter((m) => { const q = centre(m); return Math.hypot(q.x - c.x, q.z - c.z) < 0.35 && q.y > c.y; })), [r], 'rocher'); });
-    const axes = []; lant.filter((o) => /^lanterne/.test(o.name)).forEach((o) => { const q = centre(o), A = axes.find((x) => Math.hypot(x.x - q.x, x.z - q.z) < 0.3); if (A) A.L.push(o); else axes.push({ x: q.x, z: q.z, L: [o] }); }); /* une lanterne : ses pierres empilees sur un meme axe, et ses joints autour */
-    axes.sort((a, b) => a.x - b.x || a.z - b.z).forEach((A) => extraire(A.L.concat(lant.filter((o) => /^joint/.test(o.name) && (() => { const q = centre(o); return Math.hypot(q.x - A.x, q.z - A.z) < 0.3; })())), A.L, 'lanterne'));
-  }
-  MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe(null) });
+  /* L'ILE RONDE (blender/ile-ronde-jeu.py) : chaque terrain existe en herbe (herbe_Tn) et en friche (friche_Tn), on montre l'un ou l'autre (majTerrains) ;
+     le reste (le depart, le pourtour, l'eau, la roche du dessous) est fusionne en un seul modele. Plus d'arbres ni de pieces a extraire : ceux des
+     anciennes sauvegardes sont devenus des decorations (migrerIleRonde) */
+  const ileT = versToon(G['ile-ronde-jeu'], { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, eauIle: true, douce: true }); ileT.updateMatrixWorld(true);
+  MODELES.arbres = []; MODELES.piecesIle = []; MODELES.ileTerrains = {};
+  const detacher = (nom, touffes) => { const g = ileT.getObjectByName(nom); if (!g) return null; const e = new T.Group(); e.name = nom; g.parent.remove(g); e.add(g); return fusionner(e, touffes ? { caseDe: caseDeTouffe() } : {}); };
+  TERRAINS.forEach((t) => { MODELES.ileTerrains[t.id] = { herbe: detacher('herbe_' + t.id, true), friche: detacher('friche_' + t.id, false) }; });
+  /* le pourtour et la roche du dessous, en morceaux de 18 de cote : ce qui sort de l'ecran n'est pas dessine (fusionnes d'un bloc, ils l'etaient toujours) */
+  MODELES.ileMorceaux = []; ['pourtour', 'dessous'].forEach((nom) => { const g = ileT.getObjectByName(nom); if (!g) return; const paquets = new Map(), v = new T.Vector3();
+    g.children.slice().forEach((o) => { o.getWorldPosition(v); const k = Math.floor(v.x / 18) + '_' + Math.floor(v.z / 18); if (!paquets.has(k)) paquets.set(k, new T.Group()); paquets.get(k).attach(o); });
+    g.parent.remove(g); paquets.forEach((e) => MODELES.ileMorceaux.push(fusionner(e))); });
+  MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe() });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
   versToon(G.granges, BATI); versToon(G.puits2, BATI); versToon(G.batiments, BATI); versToon(G.objets, BATI);
   versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('Montgolfiere'); MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
@@ -2402,11 +2445,16 @@ const cx = (i) => (i - (COLS - 1) / 2) * S, cz = (j) => (j - (ROWS - 1) / 2) * S
 const TERRE = { libre: '#8fd45c', labour: '#6e4226', sec: '#b0844f', mouille: '#4b2f1b', enclos: '#7ccb52' };
 function vider(g) { while (g.children.length) g.remove(g.children[0]); }
 
-/* position monde d'une case */
-function posCase(p) {
-  if (p.terrain === 'main') return { x: cx(p.i), y: p.j <= 1 ? HAUT_TERRASSE : 0, z: cz(p.j) };
-  const t = TERRAINS.find((t) => t.id === p.terrain);
-  return { x: t.ox + (p.i - (t.cols - 1) / 2) * S, y: t.y, z: t.oz + (p.j - (t.rows - 1) / 2) * S };
+/* position monde d'une case : l'ile ronde est une seule grille, toute plate */
+function posCase(p) { return { x: cx(p.i), y: 0, z: cz(p.j) }; }
+/* les cases rangees par (i, j) : les recherches par position (sous le perso, sous chaque monstre, a chaque image) ne parcourent plus toutes les cases.
+   L'index se refait tout seul quand la liste change (achat d'un terrain, partie rechargee) */
+let idxCases = null, idxListe = null, idxN = -1;
+function invaliderIndex() { idxCases = null; }
+function caseAt(i, j) {
+  if (!S_) return undefined;
+  if (!idxCases || idxListe !== S_.cases || idxN !== S_.cases.length) { idxCases = new Map(); S_.cases.forEach((c) => idxCases.set(c.i + '_' + c.j, c)); idxListe = S_.cases; idxN = S_.cases.length; }
+  return idxCases.get(i + '_' + j);
 }
 function socle(ox, oz, cols, rows, fantome, marge) {
   const g = new T.Group(); const w = cols * S + 2 * (marge || 0), d = rows * S + 2 * (marge || 0);
@@ -2426,7 +2474,7 @@ function batiment(nom, x, y, z, cellule, ry) { const g = marquer(cloner(nom), ce
 /* ---------- l'enclos : un ensemble de cases que le joueur amenage lui-meme (Amenager l'enclos) ;
    la cloture suit son bord, un module par cote de case, le portillon au milieu du devant, l'auge dans le coin du fond ---------- */
 const COTES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const caseGrille = (c, di, dj) => S_.cases.find((x) => x.terrain === c.terrain && x.i === c.i + di && x.j === c.j + dj);
+const caseGrille = (c, di, dj) => caseAt(c.i + di, c.j + dj);
 const memeNiveau = (a, b) => Math.abs(posCase(a).y - posCase(b).y) < 0.1;
 const casesEnclos = () => S_.cases.filter((c) => c.type === 'enclos');
 const maxCasesEnclos = () => [6, 8, 10, 12, 14][nivBat('enclos') - 1];
@@ -2892,8 +2940,6 @@ function nuage(x, y, z, t) { const g = new T.Group(); const blanc = new T.MeshTo
 const ancres = {};
 const casesMesh = {};      /* id -> boite cliquable */
 const casesDyn = {};       /* id -> groupe dynamique (cultures, tofu) */
-const terrainsMesh = {};   /* id terrain -> groupe fantome */
-const terrainsPoses = {};  /* id terrain -> son modele pose (un seul a la fois) */
 const enclosDef = { x: cx(6), z: (cz(2) + cz(3)) / 2, w: 3 * S, d: 2 * S, cellule: 'm5_2' };
 const SLOTS_BOUFTOUS = [[-1.7, 0.3, 0.5], [0.6, 1.0, 1.3], [1.2, -0.6, -0.2], [-0.4, -0.9, 0.9], [0.1, 0.2, 2.2], [-1.5, -1.1, 1.8]];
 let bouftousMesh = [], tofusMesh = {};
@@ -2902,42 +2948,53 @@ let nuages = [];
 
 let sauvageMesh = null, marchandMesh = null;
 function construireStatique() {
-  scene.add(MODELES.ile); indexerTouffes(); construireArbres();
-  const HT = HAUT_TERRASSE;
+  scene.add(MODELES.ile); indexerTouffes(); (MODELES.ileMorceaux || []).forEach((m) => scene.add(m));
+  TERRAINS.forEach((t, k) => { const G = MODELES.ileTerrains[t.id]; if (G.herbe) { scene.add(G.herbe); indexerTouffes(G.herbe); } if (G.friche) { G.friche.traverse((o) => { o.userData.friche = k; }); scene.add(G.friche); } });
+  majTerrains(); construireArbres();
   construireBatiments();
   appliquerEnclos(); appliquerVoliere();
   construireArbalete();
   const dep = ['m4_3', 'm3_2'].map((id) => S_.cases.find((c) => c.id === id)).find((c) => c && PASSABLE[c.type]); /* hors de l'enclos agrandi */
   const q0 = posCase(dep); paysanMesh = paysan(q0.x, q0.y, q0.z, S_.perso && S_.perso.classe); paysanMesh.userData.cellule = dep;
-  nuages = [nuage(-15, -6.5, 10, 0.95), nuage(13, -7.5, 12, 0.85), nuage(17, -5.5, -13, 1.0), nuage(-19, -8, -9, 0.9), nuage(-2, -10, 6, 1.2), nuage(-6, -8.5, 17, 0.8), nuage(9.6, -5.8, 8.6, 1.15)];
-  TERRAINS.forEach((t, k) => { if (aVendre(t)) construireFantome(k); });
+  nuages = [nuage(-36, -7, 12, 1.9), nuage(30, -8, 22, 1.7), nuage(38, -6, -14, 2.0), nuage(-38, -9, -14, 1.8), nuage(-6, -14, 34, 2.4), nuage(-22, -11, 30, 1.6), nuage(20, -7, 30, 2.2)]; /* (l'ile ronde : autour de son bord) */
 }
-/* un terrain a vendre : sa vraie forme et ses contours, couleurs palies et bleutees, un peu transparent */
-const fantomes = new Map();
-function matFantome(m) { if (!fantomes.has(m.uuid)) { const n = new T.MeshToonMaterial({ color: (m.color ? m.color.clone() : new T.Color('#ffffff')).lerp(new T.Color('#c9dde9'), 0.55), gradientMap: grad, transparent: true, opacity: 0.82 }); fantomes.set(m.uuid, n); } return fantomes.get(m.uuid); }
-function construireFantome(k) {
-  /* un terrain a vendre : le morceau d'ile en fantome translucide, avec son panneau */
-  const t = TERRAINS[k], src = MODELES['terrain_' + t.id]; if (!src) return;
-  const g = src.clone(true); g.traverse((o) => { if (o.isMesh && !(o.material && o.material.side === T.BackSide)) { o.material = matFantome(o.material); o.castShadow = false; } o.userData.terrain = k; });
-  scene.add(g);
-  const pan = cloner('panneau'); pan.traverse((o) => { o.userData.terrain = k; }); poser(pan, t.ox, t.y, t.oz, 0.3); g.add(pan);
-  terrainsMesh[t.id] = g; ancres['v' + k] = new T.Vector3(t.ox, t.y + 1.3, t.oz); /* (juste au-dessus de son panneau, sur le terrain : a 2,6 elle remontait sur les cases de l'ile et les rendait intouchables, retour de Mathieu du 13/10/2026) */
+/* chaque terrain : en herbe s'il est a toi, en friche sinon ; le panneau « a vendre » sur le prochain (au milieu de ses cases) */
+let panneauVente = null;
+function majTerrains() {
+  TERRAINS.forEach((t) => { const G = MODELES.ileTerrains[t.id], a = !!S_.terrains[t.id]; if (G.herbe) G.herbe.visible = a; if (G.friche) G.friche.visible = !a; });
+  if (panneauVente) { scene.remove(panneauVente); panneauVente = null; }
+  Object.keys(ancres).forEach((k) => { if (/^v\d+$/.test(k)) delete ancres[k]; });
+  const t = prochainTerrain(); if (!t || !MODELES.panneau) return; const k = TERRAINS.indexOf(t);
+  const [i, j] = t.cases.reduce((b, c) => (Math.hypot(cx(c[0]) - t.x, cz(c[1]) - t.z) < Math.hypot(cx(b[0]) - t.x, cz(b[1]) - t.z) ? c : b));
+  const pan = cloner('panneau'); pan.traverse((o) => { o.userData.terrain = k; }); poser(pan, cx(i), 0, cz(j), 0.3); panneauVente = pan;
+  ancres['v' + k] = new T.Vector3(cx(i), 1.3, cz(j));
 }
-function construireTerrain(k, sansCases) {
-  const t = TERRAINS[k];
-  if (terrainsMesh[t.id]) { scene.remove(terrainsMesh[t.id]); delete terrainsMesh[t.id]; }
-  const bulle = document.querySelector('[data-vente="' + k + '"]'); if (bulle) bulle.remove(); delete ancres['v' + k];
-  if (terrainsPoses[t.id]) scene.remove(terrainsPoses[t.id]);
-  const src = MODELES['terrain_' + t.id]; if (src) { const g = src.clone(true); scene.add(g); indexerTouffes(g); terrainsPoses[t.id] = g; }
-  if (!sansCases) S_.cases.filter((c) => c.terrain === t.id).forEach((p) => construireCase(p));
+/* la partie lancee peut avoir d'autres terrains que celle chargee au demarrage : les cases et la friche se remettent a jour */
+function resynchroniserIle() {
+  const ids = new Set(S_.cases.map((c) => c.id));
+  Object.keys(casesMesh).forEach((id) => { if (ids.has(id)) return; scene.remove(casesMesh[id]); delete casesMesh[id]; if (casesDyn[id]) { scene.remove(casesDyn[id]); delete casesDyn[id]; } });
+  S_.cases.forEach((p) => { if (!casesMesh[p.id]) construireCase(p); else rendreCase(p.id); });
+  majTerrains(); document.querySelectorAll('.bulle.vente').forEach((e) => e.remove()); const t = prochainTerrain(); if (t) bulleVente(t, TERRAINS.indexOf(t));
+}
+/* toucher la friche : ce terrain-la, quand il s'achete et combien */
+function infoFriche(k) {
+  const t = TERRAINS[k], u = prochainTerrain(); if (!t) return;
+  if (t === u) toast(nivTerrainOk(t) ? 'Terrain en friche : ' + t.cases.length + ' cases pour ' + fmt(t.prix) + ' kamas. Touche son panneau pour le défricher.' : 'Le prochain terrain : ' + t.cases.length + ' cases, à vendre au niveau ' + t.niv + ' pour ' + fmt(t.prix) + ' kamas.');
+  else toast('Terrain en friche (' + t.cases.length + ' cases) : il se vendra au niveau ' + t.niv + '. Les terrains s\u2019achètent dans l\u2019ordre, en faisant le tour de l\u2019île.');
+}
+/* un terrain qui vient d'etre achete : l'herbe a la place de la friche, ses cases, le panneau et la bulle passent au suivant */
+function construireTerrain(k) {
+  const bulle = document.querySelector('[data-vente="' + k + '"]'); if (bulle) bulle.remove();
+  majTerrains(); S_.cases.forEach((p) => { if (!casesMesh[p.id]) construireCase(p); });
+  const u = prochainTerrain(); if (u) bulleVente(u, TERRAINS.indexOf(u));
 }
 const CIBLE = new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, visible: false }); /* invisible pour le rendu (avant, chaque case
   transparente coutait quand meme un appel de dessin par image, ~170 en tout) ; le rayon du clic la trouve toujours */
 /* les touffes d'herbe de l'ile, rangees par case : on les cache quand une case d'herbe est labouree */
 const TOUFFES = new Map();
-function caseDeTouffe(t) {
-  const nc = t ? t.cols : COLS, nr = t ? t.rows : ROWS, X = (i) => t ? t.ox + (i - (t.cols - 1) / 2) * S : cx(i), Z = (j) => t ? t.oz + (j - (t.rows - 1) / 2) * S : cz(j), v = new T.Vector3(), b = t ? 0 : 1; /* l'ile : bordure comprise */
-  return (h) => { h.getWorldPosition(v); const i = Math.round((v.x - X(0)) / S), j = Math.round((v.z - Z(0)) / S); if (i < -b || i >= nc + b || j < -b || j >= nr + b || Math.abs(v.x - X(i)) > 0.92 || Math.abs(v.z - Z(j)) > 0.92) return null; return (t ? t.id + '_' : 'm') + i + '_' + j; };
+function caseDeTouffe() {
+  const v = new T.Vector3();
+  return (h) => { h.getWorldPosition(v); const i = Math.round(v.x / S + (COLS - 1) / 2), j = Math.round(v.z / S + (ROWS - 1) / 2); if (!codeIle(i, j) || Math.abs(v.x - cx(i)) > 0.92 || Math.abs(v.z - cz(j)) > 0.92) return null; return idCase(i, j); };
 }
 function indexerTouffes(racine) { /* apres la fusion : les paquets de touffes portent l'identifiant de leur case */
   (racine || MODELES.ile).traverse((o) => { if (o.isMesh && o.userData.case) { if (!TOUFFES.has(o.userData.case)) TOUFFES.set(o.userData.case, []); TOUFFES.get(o.userData.case).push(o); } });
@@ -2983,16 +3040,16 @@ function modeleVoleur() {
 function lancerVoleur() {
   if (voleur || enAccueil) return; son('alerte');
   const grange = S_.cases.find((c) => c.type === 'grange'); if (!grange) return;
-  const bords = S_.cases.filter((c) => c.terrain === 'main' && c.j === ROWS - 1 && PASSABLE[c.type]); if (!bords.length) return;
-  const depart = hasard(bords), ch = trajet(depart, grange); if (!ch) return;
+  const bords = bordsFerme(); if (!bords.length) return; /* (l'ile ronde : un bord de la ferme, cote friche ou cote vide) */
+  const bd = hasard(bords), depart = bd.c, ch = trajet(depart, grange); if (!ch) return;
   const pts = ch.map((c) => ({ x: posCase(c).x, z: posCase(c).z, c }));
   const fin = ch[ch.length - 1], t = posCase(blocDe(grange).find((v) => voisins(fin).includes(v)) || grange), pf = posCase(fin);
   pts[pts.length - 1] = { x: pf.x + (t.x - pf.x) * 0.35, z: pf.z + (t.z - pf.z) * 0.35, c: fin };
   const q = posCase(depart), m = modeleVoleur(); ombrePieds(m, 1.4); m.rotation.order = 'YXZ'; m.traverse((o) => { o.userData.voleur = true; });
   m.userData.membres = ['pivot_jambeG', 'pivot_jambeD', 'pivot_brasG', 'pivot_brasD'].map((n) => m.getObjectByName(n));
-  poser(m, q.x, 0, q.z + 1.1); m.scale.multiplyScalar(0.01);
+  poser(m, q.x + bd.di * 1.1, 0, q.z + bd.dj * 1.1); m.scale.multiplyScalar(0.01);
   const barre = document.createElement('div'); barre.className = 'pv-monstre'; barre.innerHTML = '<i></i>'; zoneBulles.appendChild(barre);
-  voleur = { m, pts, k: 0, etat: 'arrive', depart: { x: q.x, z: q.z + 1.1 }, pas: 0, t: 0, pv: pvVoleur(), pvMax: pvVoleur(), barre };
+  voleur = { m, pts, k: 0, etat: 'arrive', depart: { x: q.x + bd.di * 1.1, z: q.z + bd.dj * 1.1 }, pas: 0, t: 0, pv: pvVoleur(), pvMax: pvVoleur(), barre };
   toast('Un voleur de VSA (' + voleur.pv + ' PV) débarque sur ton île et file vers ta grange ! Touche-le pour le frapper.', 'alerte');
 }
 /* l'arbalete : montee sur le toit de la grange, elle guette, vise le voleur et tire si elle est armee */
@@ -4512,7 +4569,7 @@ const classeDe = () => (S_.perso && S_.perso.classe) || 'iop';
 function boostDegats() { try { return combat && combat.boostDeg ? 1 + combat.boostDeg : 1; } catch (e) { return 1; } } /* la Cawotte mangee avant la vague */
 const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats()), cadence: +(st.cadence / (1 + c.agilite / 100)).toFixed(2), /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
-const caseIci = (x, z) => S_.cases.find((c) => { const q = posCase(c); return Math.abs(q.x - x) <= S / 2 && Math.abs(q.z - z) <= S / 2; });
+const caseIci = (x, z) => caseSous(x, z);
 /* le prochain point vers lequel marcher : en ligne droite si la cible est sur la meme case ou une voisine, sinon par les cases (muret, batiments) */
 function prochainPas(e, x, z, dt) {
   const a = caseIci(e.x, e.z), b = caseIci(x, z);
@@ -4644,11 +4701,12 @@ function lancerVague(pBoss) {
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
   $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
-  toast(rejoueB ? leNom(MONSTRES[PALIERS[pBoss].boss]) + ' revient pour la revanche, remis à ton niveau !' : 'Vague ' + n + ' : ' + file.length + ' monstres grimpent par les bords de ta ferme !', 'alerte'); majCombatHud(); son('vague');
+  toast(rejoueB ? leNom(MONSTRES[PALIERS[pBoss].boss]) + ' revient pour la revanche, remis à ton niveau !' : 'Vague ' + n + ' : ' + file.length + ' monstres arrivent par les bords de ta ferme !', 'alerte'); majCombatHud(); son('vague');
 }
-/* les bords de la ferme : une case praticable dont un cote donne sur le vide */
+/* les bords de la ferme : une case praticable dont un cote ne donne sur aucune de tes cases. L'ILE RONDE : sur la friche (un terrain pas encore achete),
+   les monstres sortent des broussailles ; sur le vide, ils grimpent comme avant ; jamais par l'eau ni par la berge */
 function bordsFerme() {
-  const L = []; S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; const q = posCase(c); COTES.forEach(([di, dj]) => { if (!caseIci(q.x + di * S, q.z + dj * S)) L.push({ c, di, dj }); }); }); return L;
+  const L = []; S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; COTES.forEach(([di, dj]) => { if (caseAt(c.i + di, c.j + dj)) return; const code = codeIle(c.i + di, c.j + dj); if (code === '~' || code === ',' || code === '=') return; L.push({ c, di, dj, friche: !!code }); }); }); return L;
 }
 /* « les mobs qui attaquent de par la (la terrasse du fond, derriere la grange), surtout quand ils doivent nous attaquer nous et pas un batiment, ils galerent
    trop a nous rejoindre, le boss a pop de par la, il a meme pas eu le temps de me toucher » (Mathieu, 15/10/2026) : la terrasse ne descend que par l'escalier.
@@ -4667,9 +4725,9 @@ function apparaitre(type, pres) {
   const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
   const zone = new T.Mesh(new T.SphereGeometry(Math.max(0.6, d.ombre * 0.5), 8, 6), CIBLE); zone.position.y = d.ombre * 0.4; zone.userData.monstre = id; m.add(zone); /* plus facile a toucher */
   let x, z, ry, dep;
-  if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case */
+  if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case ; ou il sort de la friche (les hautes herbes du terrain voisin), d'un bond */
     const le = (Math.random() - 0.5) * 1.2; x = q.x + b.di * 0.55 + (b.dj ? le : 0); z = q.z + b.dj * 0.55 + (b.di ? le : 0); ry = Math.atan2(-b.di, -b.dj);
-    dep = { x: x + b.di * 1.1, y: q.y - 2.4, z: z + b.dj * 1.1 };
+    dep = b.friche ? { x: x + b.di * 1.9, y: q.y, z: z + b.dj * 1.9, friche: true } : { x: x + b.di * 1.1, y: q.y - 2.4, z: z + b.dj * 1.1 };
   } else { /* les renforts sortent de terre, pres du boss */
     x = pres ? pres.x : q.x; z = pres ? pres.z : q.z; ry = Math.random() * 6.28; dep = { x, y: q.y - 1.6, z };
   }
@@ -4786,7 +4844,7 @@ function majMonstre(mo, dt, s) {
   if (mo.etat === 'grimpe') { /* il se hisse : remonte de sous le bord, puis un petit saut pour passer la falaise */
     mo.t += dt / 0.9; const k = Math.max(0, Math.min(1, mo.t)), e = k * k * (3 - 2 * k), dp = mo.dep;
     m.position.set(dp.x + (mo.x - dp.x) * Math.max(0, (k - 0.55) / 0.45), dp.y + (mo.y - dp.y) * Math.min(1, e * 1.25) + Math.sin(Math.max(0, (k - 0.55) / 0.45) * Math.PI) * 0.45, dp.z + (mo.z - dp.z) * Math.max(0, (k - 0.55) / 0.45));
-    m.rotation.x = -0.5 * (1 - Math.min(1, k * 1.6)); m.visible = mo.t > 0;
+    m.rotation.x = dp.friche ? 0 : -0.5 * (1 - Math.min(1, k * 1.6)); m.visible = mo.t > 0;
     if (k >= 1) { mo.etat = 'actif'; m.rotation.x = 0; pouf(mo.x, mo.y, mo.z, 1.2); } return;
   }
   if (mo.d.boss) majBarreBoss(mo);
@@ -5368,14 +5426,8 @@ function finVague(gagne, fuite) {
 
 /* ----- le paysan marche jusqu'a la case touchee, puis agit ----- */
 const PASSABLE = { libre: true, champ: true, chemin: true }; /* on contourne le foin et l'epouvantail, comme les batiments */
-function voisins(p) {
-  const q = posCase(p);
-  return S_.cases.filter((c) => {
-    if (c !== p && c.terrain !== p.terrain) { const r = posCase(c), dx = Math.abs(r.x - q.x), dz = Math.abs(r.z - q.z); return Math.abs(r.y - q.y) < 0.1 && ((Math.abs(dx - S) < 0.2 && dz < S / 2 + 0.2) || (Math.abs(dz - S) < 0.2 && dx < S / 2 + 0.2)); } /* le passage vers un terrain achete : deux cases collees par un bord (certains terrains sont decales d'une demi-case), jamais par-dessus le vide */
-    if (c === p || c.terrain !== p.terrain || Math.abs(Math.hypot(posCase(c).x - q.x, posCase(c).z - q.z) - S) >= 0.2) return false;
-    if (p.terrain === 'main' && Math.min(p.j, c.j) === 1 && Math.max(p.j, c.j) === 2) return p.i === COL_ESCALIER && c.i === COL_ESCALIER; /* le muret de la terrasse */
-    return true;
-  });
+function voisins(p) { /* les quatre cases qui touchent celle-ci (l'ile ronde : une seule grille, plus de muret) */
+  const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c) L.push(c); } return L;
 }
 const blocDe = (cible) => ['grange', 'hdv', 'enclos', 'voliere', 'geliere'].includes(cible.type) ? S_.cases.filter((c) => c.type === cible.type && c.terrain === cible.terrain) : [cible];
 function trajet(depart, cible) {
@@ -5407,12 +5459,8 @@ function trajetCoupe(depart, cible, but, bloc) {
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
 const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1); /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
-function hauteurSol(x, z, c) {
-  if (c && c.terrain !== 'main') return posCase(c).y;
-  if (Math.abs(x - cx(COL_ESCALIER)) < 0.95 && z < 0.05 && z > -1.55) return HAUT_TERRASSE * borne((-z + 0.25) / 1.5, 0, 1); /* les marches */
-  return z < cz(1) + 1 ? HAUT_TERRASSE : 0;
-}
-function caseSous(x, z) { const i = Math.round(x / S + (COLS - 1) / 2), j = Math.round(z / S + (ROWS - 1) / 2); return S_.cases.find((c) => c.terrain === 'main' && c.i === i && c.j === j); }
+function hauteurSol() { return 0; } /* l'ile ronde est plate */
+function caseSous(x, z) { return caseAt(Math.round(x / S + (COLS - 1) / 2), Math.round(z / S + (ROWS - 1) / 2)); }
 function ligneLibre(a, b) {
   /* on avance par petits pas sur la ligne et de part et d'autre (la largeur du perso) : que des cases praticables, et jamais a travers le muret */
   const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz); if (L < 0.01) return true;
@@ -5421,7 +5469,6 @@ function ligneLibre(a, b) {
     for (const o of [0, -0.3, 0.3]) {
       const x = a.x + dx * Math.min(t, L) / L + nx * o, z = a.z + dz * Math.min(t, L) / L + nz * o, c = caseSous(x, z);
       if (!c || !PASSABLE[c.type]) return false;
-      if (z < 0.05 && z > -1.55 && Math.abs(x - cx(COL_ESCALIER)) > 0.62 && caseSous(x, z) && caseSous(x, z).i === COL_ESCALIER && (a.z < -1 || b.z < -1)) return false; /* l'escalier se prend de face */
       if (o === 0) { if (prec && c !== prec && !voisins(prec).includes(c)) return false; prec = c; }
     }
   }
@@ -5559,11 +5606,11 @@ function placerBulles() {
 }
 function bullesFixes() {
   [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière'], ['epouvantail', 'PÉPITO-TRON']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
-  TERRAINS.forEach((t, k) => { if (!aVendre(t)) return; bulleVente(t, k); });
+  { const t = prochainTerrain(); if (t) bulleVente(t, TERRAINS.indexOf(t)); }
 }
 function bulleVente(t, k) {
   { if (document.querySelector('[data-vente="' + k + '"]')) return; const e = document.createElement('div'); e.className = 'bulle vente'; e.dataset.ancre = 'v' + k; e.dataset.vente = k; const ok = nivTerrainOk(t); e.classList.toggle('verrou', !ok);
-    e.innerHTML = (ok ? 'Terrain à vendre, ' : 'Terrain de la Phase 2, ') + (t.cols * t.rows) + ' cases<small>' + (ok ? '+' + t.parcelles + ' parcelles à labourer' : 'à vendre au niveau ' + t.niv) + '</small><b>' + fmt(t.prix) + ' ' + KAMA + '</b>'; e.addEventListener('click', () => ACTIONS.acheterTerrain(k)); zoneBulles.appendChild(e); }
+    e.innerHTML = (ok ? 'Terrain à vendre, ' : 'Prochain terrain, ') + t.cases.length + ' cases<small>' + (ok ? '+' + t.parcelles + ' parcelles à labourer' : 'à vendre au niveau ' + t.niv) + '</small><b>' + fmt(t.prix) + ' ' + KAMA + '</b>'; e.addEventListener('click', () => ACTIONS.acheterTerrain(k)); zoneBulles.appendChild(e); }
 }
 
 /* ----- interaction : toucher une case, un bouftou, un terrain ----- */
@@ -5635,8 +5682,9 @@ canvas.addEventListener('pointerup', (e) => {
       continue;
     }
     if (h.object.userData.voleur) { attaquerVoleur(); return; }
-    let o = h.object; let bouftou = null, cellule = null, terrain = null;
-    while (o) { if (o.userData.bouftou !== undefined && bouftou === null) bouftou = o.userData.bouftou; if (o.userData.cellule && !cellule) cellule = o.userData.cellule; if (o.userData.terrain !== undefined && terrain === null) terrain = o.userData.terrain; o = o.parent; }
+    let o = h.object; let bouftou = null, cellule = null, terrain = null, friche = null;
+    while (o) { if (o.userData.bouftou !== undefined && bouftou === null) bouftou = o.userData.bouftou; if (o.userData.cellule && !cellule) cellule = o.userData.cellule; if (o.userData.terrain !== undefined && terrain === null) terrain = o.userData.terrain; if (o.userData.friche !== undefined && friche === null) friche = o.userData.friche; o = o.parent; }
+    if (friche !== null && !cellule && !caseIci(h.point.x, h.point.z) && !mode) { infoFriche(friche); return; }
     const action = agir || mode; /* en amenageant, le clic garde son role de selection */
     if (bouftou !== null && mode !== 'enclos' && mode !== 'enclosDeplacer') { if (action) toucherBouftou(bouftou); else allerVers(S_.cases.find((c) => c.type === 'enclos')); return; }
     if (terrain !== null) { ACTIONS.acheterTerrain(terrain); return; }
@@ -5657,9 +5705,9 @@ canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol
   const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = 27 / Math.hypot(27, 42.4);
   const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(dy / incl)); camera.position.add(dep); VISEE.add(dep); });
 canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
-canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), 0.6, 2.2); cadrer(); }, { passive: true });
+canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
 canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
-canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, 0.6, 2.2); pince = d; cadrer(); drag = null; } }, { passive: true });
+canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; } }, { passive: true });
 canvas.addEventListener('touchend', () => { pince = null; }, { passive: true });
 function toucherBouftou(k) {
   const b = S_.bouftous[k]; if (!b) return;
@@ -6264,7 +6312,7 @@ document.addEventListener('click', (e) => {
    Trois jeux : machine a sous, roulette rouge et noir, course de Dragodindes (jouee en vrai sur la piste de l'ile).
    Garde-fous : une mise maximale selon le niveau, un plafond de pertes par jour ; la maison garde un petit avantage (environ 93 % rendus). */
 const NIV_MONTGOLFIERE = 15, PRIX_MONTGOLFIERE = 3000;
-const CASINO = new T.Vector3(0, 0, 240), POS_MONTGOLFIERE = new T.Vector3(-11, HAUT_TERRASSE, -4);
+const CASINO = new T.Vector3(0, 0, 240), POS_MONTGOLFIERE = new T.Vector3((MONTGOLFIERE_CASE[0] - (COLS - 1) / 2) * S, 0, (MONTGOLFIERE_CASE[1] - (ROWS - 1) / 2) * S); /* (x -11, z -4 : sa case, au bord du depart) */
 let auCasino = false, ileCasino = null, casinoMarche = null, montgolfiereMesh = null, course = null, casinoTourne = false;
 let casinoMise = 100, casinoJeton = 10, casinoParis = {}, casinoRoue = 0, casinoDrago = 0;
 const miseMax = () => 100 + 15 * niveau(S_.xp);
@@ -6381,6 +6429,13 @@ async function chargerCasino() {
   scene.add(g); ileCasino = g; scene.add(soleil.target);
 }
 function soleilVers(c) { soleil.position.set(c.x - 16, 28, c.z + 12); soleil.target.position.set(c.x, 0, c.z); soleil.target.updateMatrixWorld(); }
+/* L'ILE RONDE est grande (60 cases de large au niveau 200) : la boite des ombres suit ce qu'on regarde, a la taille du zoom, au lieu de couvrir toute l'ile */
+function suivreOmbres() {
+  const c = suivreOmbres.c || (suivreOmbres.c = new T.Vector3(1e9, 0, 0)), r = Math.round(Math.max(22, Math.max(camera.right, camera.top) * 1.7));
+  if (Math.abs(c.x - VISEE.x) + Math.abs(c.z - VISEE.z) < 0.5 && suivreOmbres.r === r) return;
+  c.set(VISEE.x, 0, VISEE.z); suivreOmbres.r = r; if (!soleil.target.parent) scene.add(soleil.target); soleilVers(c);
+  Object.assign(soleil.shadow.camera, { left: -r, right: r, top: r, bottom: -r, far: 140 }); soleil.shadow.camera.updateProjectionMatrix(); rendu.shadowMap.needsUpdate = true;
+}
 async function partirCasino() {
   if (combat || raidAnnonce || voleur) { toast('Impossible de partir pendant une attaque.'); return; }
   if (!S_.montgolfiere) return;
@@ -6651,6 +6706,7 @@ function boucle(t) {
     majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
+  if (!auCasino) suivreOmbres();
   rendu.render(scene, camera); placerBulles(); placerBarresBat(); requestAnimationFrame(boucle);
 }
 /* PLUSIEURS PARTIES (13/10/2026, « qu'un joueur puisse avoir plusieurs parties, la j'ai celle de l'Osa, si je veux faire une partie Iop que je ne sois pas
@@ -6721,10 +6777,57 @@ function ouvrirAccueil() {
   };
 }
 const niveauDe = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) n++; return n; };
-/* la bordure de l'ile : colonnes -1 et COLS, rangees -1 et ROWS (la mare, dans le coin bas droit, reste du decor) */
-function casesBordure() { const L = []; for (let i = -1; i <= COLS; i++) for (let j = -1; j <= ROWS; j++) { if (i >= 0 && i < COLS && j >= 0 && j < ROWS) continue; if (i === COLS && j === ROWS) continue; L.push({ id: 'm' + i + '_' + j, i, j, terrain: 'main', type: 'libre' }); } return L; }
+/* les cases du depart (92), dont celle de la montgolfiere */
+function casesDepart() { return ILE.depart.map(([i, j]) => ({ id: idCase(i, j), i, j, terrain: 'main', type: i === MONTGOLFIERE_CASE[0] && j === MONTGOLFIERE_CASE[1] ? 'montgolfiere' : 'libre' })); }
 function completerTerrains() {
-  casesBordure().forEach((c) => { if (!S_.cases.some((x) => x.id === c.id)) S_.cases.push(c); }); /* (anciennes sauvegardes) */ TERRAINS.forEach((t) => { if (!S_.terrains[t.id]) return; for (let i = 0; i < t.cols; i++) for (let j = 0; j < t.rows; j++) { const id = t.id + '_' + i + '_' + j; if (!S_.cases.some((c) => c.id === id)) S_.cases.push({ id, i, j, terrain: t.id, type: 'libre' }); } }); }
+  migrerIleRonde(S_); invaliderIndex();
+  const ids = new Set(S_.cases.map((c) => c.id)), ajouter = (c) => { if (!ids.has(c.id)) { S_.cases.push(c); ids.add(c.id); } };
+  casesDepart().forEach(ajouter);
+  TERRAINS.forEach((t) => { if (S_.terrains[t.id]) t.cases.forEach(([i, j]) => ajouter({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' })); });
+  if (S_.sauvage && !ids.has(S_.sauvage.id)) S_.sauvage = null;
+  invaliderIndex();
+}
+/* L'ILE RONDE, les anciennes sauvegardes (14/10/2026) : la ferme 8 x 5 et sa bordure restent ou elles sont (elles font partie du depart) ; les N terrains achetes
+   deviennent les N premiers terrains de l'ile ronde (plus grands, aux memes prix) ; ce qui etait pose dessus (champs et leurs cultures, enclos, batiments, tours,
+   decorations) est repose sur une case libre de la ferme, au plus pres de son ancienne place. Les arbres et les pieces de l'ancienne ile (rochers, lanternes de
+   l'escalier) deviennent des decorations ordinaires : sur leur case, ou dans « Mes decorations » s'ils n'en avaient pas. Une seule fois (e.ileRonde). */
+function migrerIleRonde(e) {
+  if (!e || e.ileRonde) return; e.ileRonde = 1;
+  const vieux = e.cases.filter((c) => c.terrain !== 'main'); e.cases = e.cases.filter((c) => c.terrain === 'main');
+  const n = Object.keys(e.terrains || {}).filter((id) => ANCIENS_TERRAINS[id] && e.terrains[id]).length;
+  e.terrains = {}; TERRAINS.slice(0, n).forEach((t) => { e.terrains[t.id] = true; });
+  e.cases.forEach((c) => { if (c.type === 'chemin') c.type = 'libre'; });
+  const ids = new Set(e.cases.map((c) => c.id)), ajouter = (c) => { if (!ids.has(c.id)) { e.cases.push(c); ids.add(c.id); } };
+  casesDepart().forEach(ajouter); TERRAINS.slice(0, n).forEach((t) => t.cases.forEach(([i, j]) => ajouter({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' })));
+  /* les arbres de l'ancienne ile (arbre_0 a arbre_7, blender/iles.py version 7) : leur genre, dans l'ordre ou ils y etaient plantes */
+  const GENRES = ['arbre_rond', 'pommier', 'sapin', 'sapin', 'arbre_rond', 'sapin', 'arbre_rond', 'arbre_rond'], genreDe = (nom) => GENRES[+String(nom || '').replace(/\D/g, '')] || 'arbre_rond';
+  const decos = e.decos = e.decos || {}, stock = (k) => { decos[k] = (decos[k] || 0) + 1; };
+  Object.entries(e.arbres || {}).forEach(([nom, st]) => { if (!st || st.range) return; const c = st.cell && (e.cases.find((x) => x.id === st.cell) || vieux.find((x) => x.id === st.cell)); if (!c || c.type !== 'arbre') stock(genreDe(nom)); });
+  e.arbres = {};
+  e.cases.concat(vieux).forEach((c) => {
+    if (c.type === 'arbre') { Object.assign(c, { type: 'deco', deco: genreDe(c.arbre), rotD: c.rotD || 0 }); delete c.arbre; }
+    if (c.type === 'deco') { delete c.ile; delete c.orig; }
+  });
+  Object.keys(e.ileLibre || {}).forEach((k) => { if (e.ileLibre[k]) stock('lanterne'); }); e.ileLibre = {};
+  /* ce qui etait sur les anciens terrains */
+  const par = new Map(e.cases.map((c) => [c.i + '_' + c.j, c])), libre = (i, j) => { const c = par.get(i + '_' + j); return c && c.type === 'libre' && !(e.sauvage && e.sauvage.id === c.id) ? c : null; };
+  const avant = (t, i, j) => { const A = ANCIENS_TERRAINS[t] || { cols: 1, rows: 1, ox: 0, oz: 0 }; return { x: A.ox + (i - (A.cols - 1) / 2) * S, z: A.oz + (j - (A.rows - 1) / 2) * S }; };
+  const BLOCS = ['grange', 'hdv', 'enclos', 'voliere', 'geliere'], groupes = [];
+  BLOCS.forEach((ty) => { const L = vieux.filter((c) => c.type === ty); if (L.length) groupes.push(L); });
+  vieux.forEach((c) => { if (c.type !== 'libre' && !BLOCS.includes(c.type)) groupes.push([c]); });
+  const perdus = [];
+  groupes.forEach((L) => {
+    const i0 = Math.min(...L.map((c) => c.i)), j0 = Math.min(...L.map((c) => c.j)), forme = L.map((c) => [c.i - i0, c.j - j0, c]), p0 = avant(L[0].terrain, i0, j0);
+    let best = null, bd = Infinity;
+    e.cases.forEach((a) => { if (!forme.every(([di, dj]) => libre(a.i + di, a.j + dj))) return; const d = Math.hypot(cx(a.i) - p0.x, cz(a.j) - p0.z); if (d < bd) { bd = d; best = a; } });
+    if (!best) { perdus.push(L); return; }
+    forme.forEach(([di, dj, v]) => { const c = libre(best.i + di, best.j + dj), copie = Object.assign({}, v); ['id', 'i', 'j', 'terrain'].forEach((k) => { delete copie[k]; }); Object.assign(c, copie);
+      if (v.type === 'tour' && e.bats && e.bats['tour:' + v.id]) { e.bats['tour:' + c.id] = e.bats['tour:' + v.id]; delete e.bats['tour:' + v.id]; } });
+  });
+  perdus.forEach((L) => { if (L[0].type === 'deco') stock(L[0].deco); }); /* (ne devrait pas arriver : l'ile ronde a toujours plus de place) */
+  if (e.sauvage && !e.cases.some((c) => c.id === e.sauvage.id)) e.sauvage = null;
+  e.migreIleRonde = { terrains: n, replaces: groupes.length - perdus.length, perdus: perdus.length }; /* (pour le message d'accueil) */
+}
 /* ===================== LES LECONS DE PEPITO (12/10/2026) =====================
    « le tuto il est pas un peu leger ? faudrait expliquer plus de trucs, y'a beaucoup de choses a savoir, la on donne juste les bases » (Mathieu).
    Apres le tuto du debut, Pepito explique chaque systeme au moment ou il devient utile : 2 a 4 cartes, le jeu en pause pendant la lecture,
@@ -6982,10 +7085,12 @@ function lancer(etat) {
   S_ = etat; completerTerrains(); arbresSurCases(); sauver();
   document.getElementById('accueil').hidden = true; document.getElementById('hud').classList.remove('cache');
   enAccueil = false; angleCam = Math.PI / 4; placerCamera();
-  construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
+  resynchroniserIle(); construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
   if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
   if (S_.equip && (S_.equip.coiffe || S_.equip.cape)) rafraichirTenue(); /* (les modeles des pieces portees arrivent apres) */
   toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
+  if (S_.migreIleRonde && !S_.migreIleRonde.vu) { const m = S_.migreIleRonde; m.vu = 1; sauver(); /* (une seule fois, apres la conversion d'une ancienne ferme) */
+    setTimeout(() => toast('Ta ferme a déménagé sur l\'île ronde ! Le départ fait maintenant 92 cases' + (m.terrains ? ', et tes ' + m.terrains + ' terrain' + (m.terrains > 1 ? 's sont devenus les ' + m.terrains + ' premiers' : ' est devenu le premier') + ' terrain' + (m.terrains > 1 ? 's' : '') + ' de l\'île, plus grand' + (m.terrains > 1 ? 's' : '') : '') + (m.replaces ? '. Ce qui était posé dessus a été replacé sur ta ferme' : '') + '. Les suivants se débloquent avec ton niveau, en faisant le tour de l\'île.', 'or'), 3500); }
   const tutoAuto = !S_.tuto && niveau(S_.xp) < 5; /* un debutant qui ne l'a jamais vu (ou pas fini) */
   rendreHaut(); rendreObjectif(); setTimeout(placerPanneaux, 50); if (!tutoAuto) setTimeout(astuceClics, 4000); setTimeout(nuageEnvoyer, 1500);
   if (tutoAuto) setTimeout(() => demarrerTuto(S_.tutoEtape || 0), 700); else { if (absence) setTimeout(montrerAbsence, 400); setTimeout(cadeauDuJour, absence ? 2500 : 600); }
@@ -6998,8 +7103,7 @@ async function demarrer() {
   document.getElementById('chargement').hidden = true;
   if (graphismes() === 'leger') appliquerGraphismes(); /* le choix du joueur (ou la bascule automatique d'une visite precedente) */
   arbresSurCases(); construireStatique(); poserMontgolfiere(); /* la montgolfiere du Casino, au bord de la ferme */
-  S_.cases.forEach((p) => { if (p.terrain === 'main') construireCase(p); });
-  TERRAINS.forEach((t, k) => { if (S_.terrains[t.id]) construireTerrain(k); });
+  S_.cases.forEach((p) => construireCase(p));
   bullesFixes();
   /* la pause : plus de rattrapage du temps passe dehors, la ferme reprend ou elle en etait (voir reprendreTemps) */
   rendreHaut(); rendreGrange(); rendreBouftous(); rendreSauvage(); rendreCasesBulles();
