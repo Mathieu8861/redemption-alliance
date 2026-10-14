@@ -4712,7 +4712,7 @@ const MONSTRES = {
   fantassin: { nom: 'Chafer Fantassin', modele: 'fantassin', icone: 'chafer-fantassin', desc: 'le soldat, en nombre', casse: 0.4, pv: (n) => 70 + 8 * (n - 10), deg: (n) => 4 + Math.round(0.6 * (n - 10)), cadence: 1.4, vitesse: 1.8, portee: 1.15, ombre: 1.4 },
   gardien: { nom: 'Chafer Gardien', modele: 'gardien', icone: 'chafer-gardien', desc: 'lent, encaisse et cogne les bâtiments', casse: 0.6, pv: (n) => 120 + 10 * (n - 10), deg: (n) => 7 + (n - 10), cadence: 1.9, vitesse: 1.1, portee: 1.3, ombre: 1.5 },
   archer: { nom: 'Chafer Archer', modele: 'archer', icone: 'chafer-archer', desc: 'tire de loin, va le chercher', pv: (n) => 55 + 6 * (n - 10), deg: (n) => 4 + Math.round(0.5 * (n - 10)), cadence: 1.8, vitesse: 1.7, portee: 6, distance: true, ombre: 1.4 },
-  cuirasse: { nom: 'Chafer Cuirassé', modele: 'cuirasse', icone: 'chafer-cuirasse', desc: 'armure (-25 %), se replie sous sa carapace d\'épines (presque aucun dégât, il renvoie un cinquième de tes coups : frappe ses soldats en attendant), appelle des Fantassins toutes les 16 s, enragé sous 30 % de vie', pv: () => 1100, deg: () => 14, cadence: 1.8, vitesse: 1.0, portee: 2.0, ombre: 2.8, armure: 0.25, renforts: ['fantassin', 'Fantassins'], carapace: 10, rage: true, boss: true },
+  cuirasse: { nom: 'Chafer Cuirassé', modele: 'cuirasse', icone: 'chafer-cuirasse', desc: 'armure (-25 %), te lance sa lance d\'os de loin (sors de la bande rouge, ou cache-toi derrière un bâtiment), se replie sous sa carapace d\'épines (presque aucun dégât, il renvoie un cinquième de tes coups : frappe ses soldats en attendant), appelle des Fantassins toutes les 16 s ; enragé sous 30 % de vie, il appelle des Archers', pv: () => 1100, deg: () => 14, cadence: 1.8, vitesse: 1.1, portee: 2.0, ombre: 2.8, armure: 0.25, renforts: ['fantassin', 'Fantassins'], renfortsRage: ['archer', 'Chafers Archers'], carapace: 10, lance: 9, degSort: 3.5, rage: true, boss: true }, /* (14/10/2026 : la lance d'os toutes les 9 s et les Archers en rage, « je le trouve tellement simple en Cra », Mathieu ; vitesse 1 avant. Simule : 6 s et 5 fois ses degats, le bot Cra perdait 5 fois sur 5) */
   /* palier 3 : la Horde des Bworks (k = n - 20) */
   bwork: { nom: 'Bwork', modele: 'bwork', icone: 'bwork', desc: 'la brute à massue, démolit les bâtiments', casse: 0.7, pv: (n) => 150 + 12 * (n - 20), deg: (n) => 9 + Math.round(1.2 * (n - 20)), cadence: 1.7, vitesse: 1.4, portee: 1.4, ombre: 1.6 },
   bworkArcher: { nom: 'Bwork Archer', modele: 'bworkArcher', icone: 'bwork-archer', desc: 'tire de loin, va le chercher', pv: (n) => 90 + 8 * (n - 20), deg: (n) => 7 + Math.round(0.7 * (n - 20)), cadence: 1.8, vitesse: 1.6, portee: 6, distance: true, ombre: 1.5 },
@@ -5332,9 +5332,11 @@ function majMonstre(mo, dt, s) {
     if (mo.d.renforts && sortPret('renfortT', RAPPEL_TROUPE)) {
       mo.renfortT = 0;
       if (combat.monstres.filter((o) => o !== mo && o.etat !== 'mort' && !o.d.boss).length < TROUPE_MAX) {
-        if (!combat.rappelVu) { combat.rappelVu = true; toast(leNom(mo.d) + ' appelle deux ' + mo.d.renforts[1] + ' : ' + (mo.d.fem ? 'elle' : 'il') + ' en rappellera toutes les ' + RAPPEL_TROUPE + ' s tant qu\'' + (mo.d.fem ? 'elle' : 'il') + ' sera debout !', 'alerte'); }
+        const rf = (mo.enrage && mo.d.renfortsRage) || mo.d.renforts; /* (le Chafer Cuirasse enrage appelle des Archers) */
+        if (!combat.rappelVu) { combat.rappelVu = true; toast(leNom(mo.d) + ' appelle deux ' + rf[1] + ' : ' + (mo.d.fem ? 'elle' : 'il') + ' en rappellera toutes les ' + RAPPEL_TROUPE + ' s tant qu\'' + (mo.d.fem ? 'elle' : 'il') + ' sera debout !', 'alerte'); }
+        else if (rf !== mo.d.renforts && !combat.rappelRageVu) { combat.rappelRageVu = true; toast(leNom(mo.d) + ' enragé appelle maintenant des ' + rf[1] + ' : ils tirent de loin !', 'alerte'); }
         else chiffre('Renforts !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.4, mo.z), 'butin');
-        mo.frappe = 0.3; for (let k = 0; k < 2; k++) { const a = k * 2.6 + 0.4 + Math.random(); apparaitre(mo.d.renforts[0], { x: mo.x + Math.cos(a) * 1.8, z: mo.z + Math.sin(a) * 1.8 }); combat.total++; }
+        mo.frappe = 0.3; for (let k = 0; k < 2; k++) { const a = k * 2.6 + 0.4 + Math.random(); apparaitre(rf[0], { x: mo.x + Math.cos(a) * 1.8, z: mo.z + Math.sin(a) * 1.8 }); combat.total++; }
       }
     }
     const pr = protectionBoss(mo); if (pr > 0 && !(mo.protege > 0) && !combat.protegeVu) { combat.protegeVu = true; toast('Sa troupe protège ' + leNom(mo.d, true) + ' : chaque monstre près ' + (mo.d.fem ? 'd\'elle' : 'de lui') + ' lui retire 12 % de tes dégâts. Dégage-les, puis frappe le boss !', 'alerte'); }
@@ -5370,6 +5372,25 @@ function majMonstre(mo, dt, s) {
       if (!combat.bonditVu) { combat.bonditVu = true; toast(leNom(mo.d) + ' va te sauter dessus : sors du cercle rouge !', 'alerte'); }
       let t = 0; effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } if (t > 0.8) { const k = Math.min(1, (t - 0.8) / 0.6); mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * 2.8; } if (t >= 1.4) { mo.hop = 0; return true; } });
       zoneDanger({ mo, x: cx, z: cz, r: R, duree: 1.4, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo); } });
+    }
+  }
+  if (mo.d.lance && !(mo.carapace > 0)) { /* le Chafer Cuirasse lance sa lance d'os quand le perso se tient loin : une bande rouge jusqu'a lui (1 s pour en sortir), puis la lance file ;
+       un batiment sur sa route l'arrete et prend le coup (« il est tellement lent et avec un sort de cac que c'est facile a mort », Mathieu, 14/10/2026) */
+    const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+    if (sortPret('lanceT', mo.d.lance) && dP > 3.2 && dP < 14) {
+      mo.lanceT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), L = Math.min(14, dP + 3), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * L, mo.z + Math.cos(a) * L);
+      let cleB = null; { const L0 = Math.hypot(f.x - mo.x, f.z - mo.z), bats = clesBats().filter((k) => !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z);
+        for (let d = 1.2; d <= L0 && !cleB; d += 0.2) { const x = mo.x + Math.sin(a) * d, z = mo.z + Math.cos(a) * d, b = bats.find(([, zb]) => Math.abs(x - zb.x) < zb.hw + 0.2 && Math.abs(z - zb.z) < zb.hd + 0.2);
+          if (b) { cleB = b[0]; f.x = x; f.z = z; } } }
+      mo.ry = a; mo.bloqueT = 1.0 + 0.35; mo.frappe = 0.3;
+      if (!combat.lanceVu) { combat.lanceVu = true; toast(leNom(mo.d) + ' lève sa lance d\'os : sors de la bande rouge, ou cache-toi derrière un bâtiment !', 'alerte'); }
+      zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: 1.3, duree: 1.0, effet: (d) => {
+        mo.frappe = 0.4; const y0 = mo.m.position.y + mo.haut * 0.6, de = new T.Vector3(mo.x, y0, mo.z), vers = new T.Vector3(f.x, solA(f.x, f.z) + 0.7, f.z);
+        const os = new T.Mesh(new T.CylinderGeometry(0.06, 0.09, 1.5, 6), new T.MeshLambertMaterial({ color: '#efe6cf' })); os.rotation.order = 'YXZ'; os.rotation.set(Math.PI / 2, a, 0); scene.add(os);
+        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo);
+        if (cleB && combat && !combat.fin) blesserBat(cleB, Math.round(degSort(mo) / 2));
+        let t = 0; effets.push((dt2) => { t += dt2 / 0.25; os.position.lerpVectors(de, vers, Math.min(1, t)); if (t >= 1) { scene.remove(os); os.geometry.dispose(); pouf(vers.x, vers.y - 0.5, vers.z, 1.4, '#efe6cf'); return true; } });
+      } });
     }
   }
   if (mo.d.carapace) { /* le Chafer Cuirasse se replie sous sa carapace d'epines : 3,5 s presque invulnerable, il renvoie un cinquieme des coups du perso */
