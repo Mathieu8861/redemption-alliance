@@ -585,8 +585,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .scene-coffre.ouvert .c-ferme { opacity: 0; animation: none; }
 .scene-coffre.ouvert .c-ouvert { opacity: 1; animation: coffre-jaillit .55s cubic-bezier(.2, 1.7, .4, 1) both; }
 .scene-coffre .rayons { position: absolute; left: 50%; top: 50%; width: 290px; height: 290px; margin: -145px 0 0 -145px; border-radius: 50%; opacity: 0; transition: opacity .4s;
-  background: repeating-conic-gradient(rgba(255, 207, 92, .6) 0 9deg, rgba(255, 207, 92, 0) 9deg 22deg); -webkit-mask: radial-gradient(circle closest-side, #000 30%, transparent 100%); mask: radial-gradient(circle closest-side, #000 30%, transparent 100%); }
+  background: repeating-conic-gradient(rgba(255, 168, 30, .85) 0 8deg, rgba(255, 214, 90, .35) 8deg 11deg, rgba(255, 200, 80, 0) 11deg 22deg); /* (15/10/2026, « un peu pale » : des rayons d'or plus francs) */ -webkit-mask: radial-gradient(circle closest-side, #000 30%, transparent 100%); mask: radial-gradient(circle closest-side, #000 30%, transparent 100%); }
 .scene-coffre.ouvert .rayons { opacity: 1; animation: rayons-tournent 9s linear infinite; }
+.scene-coffre::before { content: ''; position: absolute; left: 50%; top: 50%; width: 250px; height: 250px; margin: -125px 0 0 -125px; border-radius: 50%; opacity: 0; transition: opacity .4s; background: radial-gradient(circle, rgba(255, 186, 50, .6) 0, rgba(255, 150, 30, .28) 42%, rgba(255, 150, 30, 0) 70%); }
+.scene-coffre.ouvert::before { opacity: 1; } /* un halo d'or chaud derriere le coffre ouvert */
 .scene-coffre .eclair { position: absolute; left: 50%; top: 50%; width: 280px; height: 280px; margin: -140px 0 0 -140px; border-radius: 50%; pointer-events: none; opacity: 0; background: radial-gradient(circle, #fff 0, rgba(255, 255, 255, .95) 30%, rgba(255, 255, 255, 0) 70%); }
 .scene-coffre.flash .eclair { animation: coffre-eclair .5s ease-out both; }
 @keyframes coffre-arrive { from { transform: translate(-50%, -35%) scale(.4); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
@@ -2441,7 +2443,7 @@ const chargeur = new T.GLTFLoader();
 const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/'); chargeur.setDRACOLoader(draco);
 const chargerGlb = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const MODELES = {};
-const VERSION_MODELES = '20261016k'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261016l'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
