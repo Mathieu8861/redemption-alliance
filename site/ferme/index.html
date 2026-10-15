@@ -1047,6 +1047,7 @@ const capaciteEau = () => [10, 15, 20, 30, 45][niv('reservoir')] || CAPACITE_EAU
 const PRIX_FILET = 40, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
 const CADENCE_PLUME = 4.5 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 1 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
 const NERF_KAMAS = 0.9; /* (15/10/2026 : -10 % sur tout ce qui rapporte des kamas, voir plus bas a chaque gain) */
+const NERF_XP = 0.9; /* (16/10/2026 : -10 % sur toute l'XP, dans xpReel et xpParRecolte ; toute nouvelle XP doit passer par gagnerXp pour la prendre) */
 const PRIX_BOUFTOU = 1000, PRIX_PREMIER_BOUFTOU = 300, REVENTE_BOUFTOU = Math.round(800 * NERF_KAMAS), REVENTE_BEBE = Math.round(300 * NERF_KAMAS), REVENTE_NOIR = Math.round(3000 * NERF_KAMAS); /* (le noir : sa laine vaut 3,75 fois l'autre, il se revend 3,75 fois plus) */
 const prixBouftou = () => ((S_ && S_.bouftousAchetes) ? PRIX_BOUFTOU : PRIX_PREMIER_BOUFTOU); /* le premier achete coute 300, les suivants 1 000 */
 const REPAS = 2, DUREE_REPAS = 12 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 6 * MIN;
@@ -1741,13 +1742,13 @@ function avancer(maintenant, enDirect) {
 }
 const valeurGrange = () => VENDABLES.reduce((t, v) => t + (S_.grange[v.id] || 0) * prix(v.id), 0);
 function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
-const xpReel = (n, sansFrein) => n > 0 ? Math.max(1, Math.round(n * (sansFrein ? 1 : freinXp()) * (1 + caracs().sagesse / 100))) : n; /* ce que rapporte vraiment n points (le chiffre a afficher) */
+const xpReel = (n, sansFrein) => n > 0 ? Math.max(1, Math.round(n * NERF_XP * (sansFrein ? 1 : freinXp()) * (1 + caracs().sagesse / 100))) : n; /* ce que rapporte vraiment n points (le chiffre a afficher) */
 const xpFermeReel = (n) => xpReel(Math.max(1, Math.round(n * XP_FERME))); /* une tonte, des plumes */
 function xpParRecolte(c) { /* l'XP moyenne d'une recolte (14/10/2026) : toute l'XP jusqu'a 10 niveaux au-dessus de la culture, 40 % jusqu'a 20, 10 % au-dela ;
   et jamais plus, a l'heure, qu'une culture plus haute que tu peux deja planter (le Ble et l'Orge du tutoriel, a 1 XP pour 45 s et 2 min 15) */
   const n = niveau(S_.xp), base = (k) => k.xp * (n - k.niv <= 10 ? 1 : n - k.niv <= 20 ? 0.4 : 0.1);
   let x = base(c); CULTURES.forEach((h) => { if (h.niv > c.niv && h.niv <= n) x = Math.min(x, base(h) * c.temps / h.temps); });
-  return x;
+  return x * NERF_XP; /* (-10 %, 16/10/2026) */
 }
 const xpRecolteReel = (c) => { /* ce que rapporte vraiment une recolte, frein d'avance et Sagesse compris ; la fraction se tire au sort (1,4 XP : 2 quatre fois sur dix, 1 sinon) */
   const x = xpParRecolte(c) * freinXp() * (1 + caracs().sagesse / 100); return Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0); };
@@ -7602,7 +7603,7 @@ async function reclamerIleBoss() { /* le coffre du vendredi : la participation, 
   const lignes = [];
   for (const [k, J] of L) {
     const r = await classementIleBoss(k), tombe = !!(r && r.total >= PV_ILE_BOSS), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
-    S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; const xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp, true);
+    S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; let xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp, true); xp = gagnerXp.dernier; /* (le vrai gain, affiche) */
     const dans = [fmt(R.kamas) + ' kamas', R.forge + ' rune' + (R.forge > 1 ? 's' : '') + ' de forgemagie', fmt(xp) + ' XP'];
     if (tombe) { const Pn = PANOS[palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)))], ids = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e), id = hasard(ids), cle = donnerObjet(id, R.piece); dans.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
       const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg); donnerObjet(idl); dans.push('✦ ' + OBJETS[idl].nom); } }
@@ -7705,7 +7706,7 @@ function lancerArene() {
 }
 function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du boss, le record ; puis la suivante (apres un souffle, si c'etait un boss) */
   const k = c.arene.k, g = gainsArene(k, c.arene.niv0), a = etatArene(), sem = semaineJeu(); c.arene.tenues = k; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * soinArene);
-  S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp); c.arene.xp += g.xp;
+  S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp); c.arene.xp += gagnerXp.dernier; const xpV = gagnerXp.dernier; /* (le vrai gain, affiche) */
   if (k > (a.record || 0)) a.record = k; if (k > (a.semaines[sem] || 0)) a.semaines[sem] = k;
   Object.keys(a.semaines).sort().slice(0, -8).forEach((x) => { delete a.semaines[x]; }); /* (les 8 dernieres semaines) */
   let coffre = '';
@@ -7720,7 +7721,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
     if (k >= 10 && Math.random() < RUNE_PARFAITE_COFFRE * pros) { gagneRune('parfaite', 1); dans.push('★ une RUNE PARFAITE'); } /* (des le boss de la 10e depuis le 15/10/2026 : « la rune parfaite descend a la 10 », Mathieu ; la 15e avant) */
     son('niveau'); confettis(dans.length > 1 ? 30 : 10); coffre = ' Coffre du boss : ' + dans.join(', ') + '.';
   }
-  toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soinArene) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + g.xp + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
+  toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soinArene) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + xpV + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
   const p = vagueArene(k + 1);
   if (k % 5 === 0) { c.phases = [p]; c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else appliquerVagueArene(c, p);
 }
