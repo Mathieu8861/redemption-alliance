@@ -556,8 +556,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .rc-l { display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 700; border-bottom: 1px dashed #e3d6bf; padding: 4px 0; } .rc-l svg { width: 17px; height: 17px; flex: none; } .rc-l span { flex: 1; color: #6b5a48; } .rc-l b { white-space: nowrap; }
 .info-survol { position: fixed; z-index: 8; pointer-events: none; background: var(--papier); border: 2px solid var(--bord); border-radius: 9px; box-shadow: 0 3px 0 var(--bord); padding: 4px 9px; font-size: .74rem; font-weight: 700; white-space: nowrap; } .info-survol[hidden] { display: none; }
 /* « replacer les sorts autre part » (testeurs, 12/10/2026) : au PC, au centre en bas (rien n'y est pendant un combat), touches 1 et 2 ; au doigt, ils restent sous le pouce */
-@media (pointer: fine) and (min-width: 721px) { .combat-sort { right: auto; left: calc(50% - 96px); } .combat-sort.ulti { right: auto; left: calc(50% + 10px); } }
-@media (pointer: fine) { .combat-sort .rond { position: relative; } .combat-sort .rond::after { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--papier); border: 2px solid var(--bord); color: var(--encre); text-shadow: none; font: 800 .75rem/18px var(--f-texte); text-align: center; } #b-sort .rond::after { content: '1'; } #b-ulti .rond::after { content: '2'; } }
+@media (pointer: fine) and (min-width: 721px) { .combat-sort { right: auto; left: calc(50% - 96px + var(--decal, 0px)); } .combat-sort.ulti { right: auto; left: calc(50% + 10px + var(--decal, 0px)); } } /* (--decal : la rangee reste centree avec les sorts legendaires) */
+@media (pointer: fine) { .combat-sort .rond { position: relative; } .combat-sort .rond::after { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--papier); border: 2px solid var(--bord); color: var(--encre); text-shadow: none; font: 800 .75rem/18px var(--f-texte); text-align: center; } #b-sort .rond::after { content: '1'; } #b-ulti .rond::after { content: '2'; } #b-leg-coiffe .rond::after { content: '3'; } #b-leg-arme .rond::after { content: '4'; } }
+/* les sorts legendaires (16/10/2026) : au doigt, au-dessus du sort et de l'ulti ; au PC, a la suite, touches 3 et 4 */
+.combat-sort[hidden] { display: none; }
+.combat-sort.leg .rond { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord); background: conic-gradient(rgba(36, 49, 28, .55) 0 var(--cd, 0%), var(--teinte, #e0a10a) var(--cd, 0%) 100%); }
+.combat-sort.leg.coiffe { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); } .combat-sort.leg.arme { right: 110px; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+@media (pointer: fine) and (min-width: 721px) { .combat-sort.leg.coiffe { right: auto; left: calc(50% + 116px + var(--decal, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); } .combat-sort.leg.arme { right: auto; left: calc(50% + 222px + var(--decal, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); } .sans-coiffe .combat-sort.leg.arme { left: calc(50% + 116px + var(--decal, 0px)); } }
 .combat-sort.ulti .rond { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord); background: conic-gradient(rgba(36, 49, 28, .55) 0 var(--cd, 0%), var(--teinte, #9b6cff) var(--cd, 0%) 100%); }
 .ulti-carte { border-top: 2px solid #eadfc8; padding: 10px 0; display: grid; grid-template-columns: 50px 1fr auto; gap: 10px; align-items: center; }
 .ulti-carte .rond { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--bord); display: grid; place-items: center; font: 400 .66rem/1 var(--f-titre); color: #fff; text-shadow: 0 1px 0 var(--bord); text-align: center; padding: 3px; }
@@ -892,6 +897,8 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
     <div class="combat-perso"><img id="combat-ico" src="assets/icones/iop.png" alt=""><div><b id="combat-nom"></b><div class="pvb"><i id="combat-pv"></i></div><small id="combat-pv-txt"></small></div></div>
     <button class="combat-sort" id="b-sort"><span class="rond" id="sort-rond">Sort</span><small id="sort-etat">prêt</small></button>
     <button class="combat-sort ulti" id="b-ulti"><span class="rond" id="ulti-rond">Ulti</span><small id="ulti-etat">niveau 5</small></button>
+    <button class="combat-sort leg coiffe" id="b-leg-coiffe" hidden><span class="rond" id="leg-coiffe-rond"></span><small id="leg-coiffe-etat">prêt</small></button>
+    <button class="combat-sort leg arme" id="b-leg-arme" hidden><span class="rond" id="leg-arme-rond"></span><small id="leg-arme-etat">prêt</small></button>
   </div>
   <div class="casino-barre" id="casino-barre" hidden><span id="casino-info"></span><button class="btn kamas" id="b-rentrer">Rentrer à la ferme</button></div>
   <div class="bandeau" id="bandeau" hidden><span id="bandeau-texte"></span><button class="btn discret" id="b-tourner" hidden>Tourner</button><button class="btn discret" id="b-ranger" hidden>Ranger</button><button class="btn discret" id="b-mes-decos" hidden>Décorations</button><button class="btn discret" id="b-enclos-bouger" hidden>Déplacer tout l'enclos</button><button class="btn" id="b-terminer">Terminer</button></div>
@@ -1151,16 +1158,16 @@ const LEGENDAIRES = [
   { cle: 'royal', boss: 'royal', nom: 'Couronne du Bouftou Royal', pouvoir: 'Tes Bouftous donnent 25 % de laine en plus.' },
   { cle: 'chafer', boss: 'cuirasse', nom: 'Heaume du Chafer Cuirassé', pouvoir: 'Tu prends 10 % de dégâts en moins et tu renvoies 10 % des coups reçus au corps à corps.' },
   { cle: 'bworker', boss: 'bworker', nom: 'Casque du Bworker', pouvoir: 'Sous 30 % de vie, tu entres en rage : tu frappes 30 % plus vite.' },
-  { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Un séisme autour de toi toutes les 10 s, pendant les vagues : 2 fois tes dégâts.' },
+  { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Sort Séisme (touche 3) : la terre s\'ouvre autour de ta cible, 2 fois tes dégâts. Recharge 12 s.' },
   { cle: 'wa', boss: 'waWabbit', arme: true, rang: 5, /* (14/10/2026 : « les items legendaires du niveau 60 a 100, des corps a corps », Mathieu ; variantes choisies : epee B, arc A, fouet A) */
     noms: { epee: 'Épée du Wa Wabbit', arc: 'Arc du Wa Wabbit', fouet: 'Fouet du Wa Wabbit' }, icone: 'wawabbit', noeuds: { epee: 'Arme_epee_wawabbitB', arc: 'Arme_arc_wawabbit', fouet: 'Arme_fouet_wawabbit' },
     cales: { epee: { y0: 0.06, L: 1.51 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.05, L: 0.57, laniere: 'laniere', retirer: /^(laniere|cawotte|sillon|fane)$/ } }, /* (le modele : pommeau, pointe, corde, laniere) */
-    pouvoir: 'Une pluie de cawottes toutes les 9 s autour de toi, pendant les vagues : 2 fois tes dégâts. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.' },
+    pouvoir: 'Sort Pluie de cawottes (touche 4) : quatre cawottes tombent autour de ta cible, 2 fois tes dégâts chacune. Recharge 13 s. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.' },
   { cle: 'koulosse', boss: 'koulosse', arme: true, rang: 6, fichier: 'equipements-boufcoul', /* (le palier 7, 14/10/2026 ; variantes choisies par Mathieu : lame A, arc B, fouet B) */
     noms: { epee: 'Lame du Koulosse', arc: 'Arc du Koulosse', fouet: 'Fouet du Koulosse' }, icone: 'koulosse', noeuds: { epee: 'Arme_epee_koulosse', arc: 'Arme_arc_koulosseB', fouet: 'Arme_fouet_koulosseB' },
     cales: { epee: { y0: 0.02, L: 1.62 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.03, L: 0.65, laniere: 'fumee', retirer: /^fumee$/ } },
-    pouvoir: 'Toutes les 10 s, un nuage de fumée enveloppe ta cible : les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss).' },
-  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Tu craches un cône de feu toutes les 8 s, pendant les vagues : 3 fois tes dégâts, et les monstres touchés brûlent.' }
+    pouvoir: 'Sort Fumée (touche 4) : un nuage enveloppe ta cible, les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss). Recharge 13 s.' },
+  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Sort Souffle de feu (touche 3) : un cône de feu vers ta cible, 3 fois tes dégâts, et les monstres touchés brûlent. Recharge 12 s.' }
 ];
 LEGENDAIRES.forEach((L, i) => { if (L.arme) return; const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
 /* les armes : l'epee du Iop, l'arc du Cra, le fouet de l'Osamodas, aux couleurs de chaque panoplie (icones arme-<type>-<panoplie>, equipements.glb).
@@ -6055,39 +6062,47 @@ function invoquer(pt) {
   toast('Un Bouftou retombe sur les monstres et se bat pendant ' + DUREE_INVOC + ' s.', 'or');
 }
 /* les pouvoirs des coiffes legendaires qui agissent seuls pendant les vagues : le seisme du Craqueleur, le souffle de Crocabulia */
-function majLegendaire(dt) {
+/* LES SORTS LEGENDAIRES (16/10/2026) : la coiffe (touche 3) et l'arme (touche 4) ; on les lance sur sa cible (ou le monstre le plus proche a portee) */
+const SORTS_LEG = {
+  craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10 },
+  croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 7 },
+  wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10 },
+  koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10 },
+};
+const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k); return o && o.leg && SORTS_LEG[o.leg] ? o.leg : null; };
+const cdLeg = (emp) => emp === 'coiffe' ? 'cdLegC' : 'cdLegA';
+function cibleLeg(portee) { const c = combat, pp = paysanMesh.position, d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z);
+  if (c.cible && c.cible.etat === 'actif' && d(c.cible) <= portee) return c.cible;
+  return c.monstres.filter((o) => o.etat === 'actif' && d(o) <= portee).sort((a, b) => d(a) - d(b))[0] || null; }
+function lancerLeg(emp) {
+  const c = combat; if (!c || c.fin || c.deroute != null) return; const cle = legDe(emp); if (!cle) return;
+  const S = SORTS_LEG[cle]; if ((c[cdLeg(emp)] || 0) > 0) return;
+  const cib = cibleLeg(S.portee); if (!cib) { toast('Aucun monstre à portée pour ' + S.nom + ' (' + Math.round(S.portee / 2) + ' cases).'); return; }
+  const pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), y = cib.m.position.y;
+  c[cdLeg(emp)] = S.recharge; if (c.st) c.st.sorts++; son('sort'); paysanMesh.userData.angle = Math.atan2(cib.x - pp.x, cib.z - pp.z);
+  if (cle === 'craq') { /* le seisme : la terre s'ouvre autour de ta cible */
+    const x = cib.x, z = cib.z; pouf(x, y, z, 6, '#9a948c'); pouf(x, y, z, 3, '#ff7a1e');
+    actifs.forEach((o) => { if (Math.hypot(o.x - x, o.z - z) < 3) blesser(o, Math.round(st.deg * 2), true); });
+  } else if (cle === 'croc') { /* le souffle de feu : un cone vers ta cible, les monstres touches brulent */
+    const a = Math.atan2(cib.x - pp.x, cib.z - pp.z);
+    for (let k = 1; k <= 4; k++) pouf(pp.x + Math.sin(a) * k * 1.3, pp.y + 0.6, pp.z + Math.cos(a) * k * 1.3, 1 + k * 0.5, k % 2 ? '#ff7a1e' : '#ffd04a');
+    actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
+      if (d < 7 && Math.abs(e) < 0.55) { blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') { o.brule = 3; o.bruleDeg = Math.max(1, Math.round(st.deg * 0.3)); } } });
+  } else if (cle === 'wa') { /* la pluie de cawottes : quatre cawottes autour de ta cible */
+    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.6 : 0, x = cib.x + Math.cos(a) * r, z = cib.z + Math.sin(a) * r; pouf(x, y, z, 2.4, '#f08a24');
+      actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
+  } else if (cle === 'koulosse') nuageLeg(cib.x, cib.z); /* la fumee : un nuage sur ta cible */
+  majCombatHud();
+}
+function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
   const c = combat; if (!c || c.fin) return;
-  const pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif');
-  if (legPorte('craq')) {
-    c.seisme = (c.seisme == null ? 4 : c.seisme) - dt;
-    if (c.seisme <= 0 && actifs.some((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 3)) {
-      c.seisme = 10; pouf(pp.x, pp.y, pp.z, 6, '#9a948c'); pouf(pp.x, pp.y, pp.z, 3, '#ff7a1e');
-      actifs.forEach((o) => { if (Math.hypot(o.x - pp.x, o.z - pp.z) < 3) blesser(o, Math.round(st.deg * 2), true); });
-    }
-  }
-  if (legPorte('wa')) { /* l'arme du Wa Wabbit (avant le 14/10/2026, sa Couronne) : des cawottes tombent autour du perso */
-    c.pluieLeg = (c.pluieLeg == null ? 3 : c.pluieLeg) - dt;
-    if (c.pluieLeg <= 0 && actifs.some((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 5)) {
-      c.pluieLeg = 9;
-      for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = 1.5 + Math.random() * 2, x = pp.x + Math.cos(a) * r, z = pp.z + Math.sin(a) * r; pouf(x, pp.y, z, 2.4, '#f08a24');
-        actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
-    }
-  }
-  if (legPorte('koulosse')) { /* la Lame, l'Arc ou le Fouet du Koulosse : toutes les 10 s, un nuage de fumee sur ta cible */
-    c.fumeeLeg = (c.fumeeLeg == null ? 3 : c.fumeeLeg) - dt;
-    const cib = (c.cible && c.cible.etat === 'actif' && Math.hypot(c.cible.x - pp.x, c.cible.z - pp.z) < 9) ? c.cible : actifs.filter((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 7).sort((a, b) => Math.hypot(a.x - pp.x, a.z - pp.z) - Math.hypot(b.x - pp.x, b.z - pp.z))[0];
-    if (c.fumeeLeg <= 0 && cib) { c.fumeeLeg = 10; nuageLeg(cib.x, cib.z); }
-  }
-  if (legPorte('croc')) {
-    c.souffleLeg = (c.souffleLeg == null ? 3 : c.souffleLeg) - dt;
-    const cib = (c.cible && c.cible.etat === 'actif' && Math.hypot(c.cible.x - pp.x, c.cible.z - pp.z) < 6) ? c.cible : actifs.filter((o) => Math.hypot(o.x - pp.x, o.z - pp.z) < 6).sort((a, b) => Math.hypot(a.x - pp.x, a.z - pp.z) - Math.hypot(b.x - pp.x, b.z - pp.z))[0];
-    if (c.souffleLeg <= 0 && cib) {
-      c.souffleLeg = 8; const a = Math.atan2(cib.x - pp.x, cib.z - pp.z);
-      for (let k = 1; k <= 4; k++) pouf(pp.x + Math.sin(a) * k * 1.3, pp.y + 0.6, pp.z + Math.cos(a) * k * 1.3, 1 + k * 0.5, k % 2 ? '#ff7a1e' : '#ffd04a');
-      actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
-        if (d < 6 && Math.abs(e) < 0.55) { blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') { o.brule = 3; o.bruleDeg = Math.max(1, Math.round(st.deg * 0.3)); } } });
-    }
-  }
+  c.cdLegC = Math.max(0, (c.cdLegC || 0) - dt); c.cdLegA = Math.max(0, (c.cdLegA || 0) - dt);
+}
+function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coiffe ou une arme legendaire a sort */
+  const c = combat, nC = !!(c && legDe('coiffe')), nA = !!(c && legDe('arme')); $('combat').style.setProperty('--decal', (-53 * (nC + nA)) + 'px'); $('combat').classList.toggle('sans-coiffe', !nC); [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
+    const S = SORTS_LEG[cle], r = $('leg-' + emp + '-rond'), k = S_.equip[emp];
+    if (r.dataset.cle !== k) { r.dataset.cle = k; r.innerHTML = '<img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + S.nom + '</span>'; r.style.setProperty('--teinte', S.teinte); }
+    r.style.setProperty('--cd', (100 * (c[cd] || 0) / S.recharge).toFixed(1) + '%'); $('leg-' + emp + '-etat').textContent = (c[cd] || 0) > 0 ? 'prêt dans ' + Math.ceil(c[cd]) + ' s' : 'prêt'; });
 }
 const VEC_INVOC = new T.Vector3();
 function majInvoc(dt) {
@@ -6126,6 +6141,7 @@ function majCombatHud() {
   else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / RECHARGE_ULTI).toFixed(1) + '%'); $('ulti-etat').textContent = c.cdUlti > 0 ? 'prêt dans ' + Math.ceil(c.cdUlti) + ' s' : 'prêt'; }
   if (classeDe() === 'cra') { const k = S_.chargeSort || 0; $('sort-rond').style.setProperty('--cd', (100 * (1 - k / KILLS_PERCANTE)).toFixed(1) + '%'); $('sort-etat').textContent = k >= KILLS_PERCANTE ? 'prête' : k + '/' + KILLS_PERCANTE + ' monstres'; }
   else { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / rechargeSort()).toFixed(1) + '%'); $('sort-etat').textContent = c.cdSort > 0 ? 'prêt dans ' + Math.ceil(c.cdSort) + ' s' : 'prêt'; }
+  majBoutonsLeg();
   { let b = majCombatHud.barrePerso; /* la barre de vie au-dessus de la tete du perso, comme celles des monstres */
     if (!b || !b.isConnected) { b = majCombatHud.barrePerso = document.createElement('div'); b.className = 'pv-monstre pv-perso'; b.innerHTML = '<i></i>'; $('combat-zone').appendChild(b); }
     b.firstChild.style.width = (100 * Math.max(0, f)).toFixed(1) + '%'; b.classList.toggle('bas', f < 0.3);
@@ -7208,6 +7224,8 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-manger')) { const id = b.dataset.manger; if ((S_.grange[id] || 0) > 0 && !(S_.mange || {})[id]) { S_.grange[id]--; S_.mange = S_.mange || {}; S_.mange[id] = true; son('manger'); toast('Miam ! ' + PAR_ID[id].nom + ' : ' + PAR_ID[id].mange.txt + ' pendant ta prochaine vague.', 'or'); sauver(); rendreGrange(); ouvrirVagues(); } }
   else if (b.id === 'b-sort') lancerSort();
   else if (b.id === 'b-ulti') lancerUlti();
+  else if (b.id === 'b-leg-coiffe') lancerLeg('coiffe');
+  else if (b.id === 'b-leg-arme') lancerLeg('arme');
   else if (b.hasAttribute('data-voir-ulti')) ouvrirUlti();
   else if (b.dataset.choisirUlti) choisirUlti(b.dataset.choisirUlti);
   else if (b.dataset.confirmerUlti) choisirUlti(b.dataset.confirmerUlti, true);
@@ -8426,7 +8444,7 @@ $('b-reprendre').addEventListener('click', (e) => { e.stopPropagation(); mettreP
 $('b-simu').addEventListener('click', (e) => { e.stopPropagation(); accepterSimu(); });
 addEventListener('keydown', (e) => { /* 1 et 2 : le sort et l'ulti pendant un combat (touches du haut du clavier, AZERTY comme QWERTY) */
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return; if (!combat || combat.fin || enPause || e.repeat) return;
-  if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); lancerSort(); } else if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); lancerUlti(); }
+  if (e.code === 'Digit1' || e.code === 'Numpad1') { e.preventDefault(); lancerSort(); } else if (e.code === 'Digit2' || e.code === 'Numpad2') { e.preventDefault(); lancerUlti(); } else if (e.code === 'Digit3' || e.code === 'Numpad3') { e.preventDefault(); lancerLeg('coiffe'); } else if (e.code === 'Digit4' || e.code === 'Numpad4') { e.preventDefault(); lancerLeg('arme'); }
 });
 addEventListener('keydown', (e) => { /* P : pause et reprise ; Echap reprend aussi (pas quand on ecrit dans un champ) */
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
