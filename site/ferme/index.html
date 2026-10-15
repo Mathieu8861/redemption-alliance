@@ -4807,7 +4807,7 @@ const MONSTRES = {
   woWabbit: { nom: 'Wo Wabbit', modele: 'woWabbit', icone: 'wo-wabbit', desc: 'le gros, encaisse et soigne les Wabbits autour de lui', res: 'poil_wabbit', pv: (n) => 560 + 26 * (n - 50), deg: (n) => 13 + (n - 50), cadence: 2.0, vitesse: 1.2, portee: 1.5, ombre: 1.6, soigne: 4 },
   wabbitSorciere: { nom: 'Wabbit Sorcière', fem: true, modele: 'wabbitSorciere', icone: 'wabbit-sorciere', desc: 'la mage, lance des sorts violets de loin', res: 'poil_wabbit', pv: (n) => 250 + 12 * (n - 50), deg: (n) => 17 + Math.round(1.2 * (n - 50)), cadence: 2.0, vitesse: 1.5, portee: 6, distance: true, magie: true, couleurMagie: '#b48cff', ombre: 1.3 },
   gwandWabbit: { nom: 'Gwand Wabbit', modele: 'gwandWabbit', icone: 'gwand-wabbit', desc: 'le costaud à la cawotte-massue, démolit les bâtiments', res: 'poil_wabbit', pv: (n) => 720 + 30 * (n - 50), deg: (n) => 24 + 2 * (n - 50), cadence: 2.1, vitesse: 1.2, portee: 1.7, ombre: 1.9, armure: 0.15, casse: 0.9 },
-  waWabbit: { nom: 'Wa Wabbit', modele: 'waWabbit', icone: 'wa-wabbit', desc: 'le roi des Wabbits, armure (-35 %), pluie de cawottes explosives (sors des cercles orange), appelle des Wabbits toutes les 16 s (ils filent vers tes Cawottes), enragé sous 30 % de vie', res: 'poil_wabbit', pv: () => 4400, deg: () => 27, cadence: 2.2, vitesse: 1.0, portee: 2.6, ombre: 3.0, armure: 0.35, renforts: ['wabbit', 'Wabbits'], pluie: 7, degSort: 11.6, rage: true, boss: true },
+  waWabbit: { nom: 'Wa Wabbit', modele: 'waWabbit', icone: 'wa-wabbit', desc: 'le roi des Wabbits, armure (-35 %), pluie de cawottes explosives (sors des cercles orange), la Cawotte royale (une petite cible rouge te suit puis se fige : file, la cawotte géante assomme), appelle des Wabbits toutes les 16 s (ils filent vers tes Cawottes), enragé sous 30 % de vie', res: 'poil_wabbit', pv: () => 4400, deg: () => 27, cadence: 2.2, vitesse: 1.0, portee: 2.6, ombre: 3.0, armure: 0.35, renforts: ['wabbit', 'Wabbits'], pluie: 7, cawotteRoyale: 11, degSort: 11.6, rage: true, boss: true }, /* (la Cawotte royale, son deuxieme sort, le 15/10/2026) */
   /* Phase 2, palier 2 : la Montagne des Koalaks (k = n - 60). Les 15 Koalaks (blender/koalaks.py), le Koulosse et ses Boufcouls (14/10/2026, « travaille-les bien »,
      puis « dommage de pas tout utiliser ») : chacun son role ; les comportements nouveaux : bucheron (frappe les tours), fouisseur (sort au pied d'un batiment),
      bandit (vole des kamas a la grange), ralentit, assomme, poison (sur le perso), fruit (projectile du lance-pierre), demonte (il continue a pied) */
@@ -5545,6 +5545,33 @@ function majMonstre(mo, dt, s) {
         });
       });
       if (!combat || combat.fin) return;
+    }
+  }
+  if (mo.d.cawotteRoyale && combat.deroute == null) { /* la Cawotte royale du Wa Wabbit : une petite cible te suit, se fige, puis la cawotte geante s'abat */
+    const V0 = mo.royVise;
+    if (!V0) { if (mo.royT == null) mo.royT = mo.d.cawotteRoyale - 5; mo.royT += vSort; }
+    if (!V0 && mo.royT >= mo.d.cawotteRoyale) {
+      mo.royT = 0; mo.frappe = 0.4; const R = 0.95, c0 = combat;
+      const rond = new T.Mesh(new T.RingGeometry(R - 0.14, R, 32), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.9, depthWrite: false, side: T.DoubleSide })); rond.rotation.x = -Math.PI / 2; rond.renderOrder = 3;
+      const fond = new T.Mesh(new T.CircleGeometry(R, 28), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.25, depthWrite: false, side: T.DoubleSide })); fond.rotation.x = -Math.PI / 2; fond.renderOrder = 2;
+      const cw = new T.Group(), corps = new T.Mesh(new T.ConeGeometry(0.42, 1.6, 10), new T.MeshLambertMaterial({ color: '#f08a24' })); corps.rotation.x = Math.PI; cw.add(corps);
+      for (let k = 0; k < 3; k++) { const f = new T.Mesh(new T.ConeGeometry(0.1, 0.6, 5), new T.MeshLambertMaterial({ color: '#4fae3a' })); f.position.set((k - 1) * 0.14, 1.0, 0); f.rotation.z = (k - 1) * 0.4; cw.add(f); }
+      cw.visible = false; scene.add(rond, fond, cw);
+      mo.royVise = { t: 0, x: pp.x, z: pp.z, rond, fond, cw, d: null, R, c0 };
+      if (!combat.royVu) { combat.royVu = true; toast('La Cawotte royale du Wa Wabbit : la cible rouge te suit, puis se fige. File, sinon la cawotte géante t\'assomme !', 'alerte'); }
+    }
+    const V = mo.royVise;
+    if (V) {
+      const fin = () => { scene.remove(V.rond, V.fond, V.cw); if (V.d && V.c0.dangers) { const i = V.c0.dangers.indexOf(V.d); if (i >= 0) V.c0.dangers.splice(i, 1); } mo.royVise = null; };
+      if (combat !== V.c0 || combat.fin || mo.etat !== 'actif') fin();
+      else {
+        V.t += dt; if (V.t < 1.4) { V.x = pp.x; V.z = pp.z; } else if (!V.d) { V.d = { x: V.x, z: V.z, r: V.R }; (V.c0.dangers = V.c0.dangers || []).push(V.d); V.rond.material.color.set('#ff2a1a'); } /* (figee : le bot aussi peut l'esquiver) */
+        const cel = caseIci(V.x, V.z), y = cel ? hauteurSol(V.x, V.z, cel) : 0; V.rond.position.set(V.x, y + 0.08, V.z); V.fond.position.set(V.x, y + 0.07, V.z); V.fond.material.opacity = 0.18 + 0.2 * Math.abs(Math.sin(V.t * (V.t < 1.4 ? 6 : 14)));
+        if (V.t >= 1.4) { const k = Math.min(1, (V.t - 1.4) / 0.5); V.cw.visible = true; V.cw.position.set(V.x, y + 0.8 + 12 * (1 - k), V.z); V.cw.rotation.y += dt * 6; }
+        if (V.t >= 1.9) { pouf(V.x, y, V.z, 3.2, '#f08a24'); pouf(V.x, y, V.z, 1.8, '#ffd04a'); const p2 = paysanMesh.position, x = V.x, z = V.z; fin();
+          if (Math.hypot(p2.x - x, p2.z - z) < V.R) { blesserPerso(Math.round(degSort(mo) * 1.8), mo); if (combat && !combat.fin) { combat.assomme = Math.max(combat.assomme || 0, 1.0); chiffre('Assommé !', new T.Vector3(p2.x, p2.y + 2.2, p2.z), 'gros'); } }
+          if (!combat || combat.fin) return; }
+      }
     }
   }
   if (mo.d.fumee && combat.deroute == null) { /* le Koulosse crache des nuages de fumee verte : un sur toi, deux autour */
