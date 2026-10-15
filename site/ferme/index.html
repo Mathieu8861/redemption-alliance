@@ -7362,7 +7362,7 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
   return g;
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi ; let : les tests le changent) */
-const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 100000, /* (100 000 « en attendant », Mathieu le 15/10/2026 ; 5 000 000 au depart, hors de portee de l'alliance) */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 20, pas: 0.12 }; /* (le vendredi) */
+const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 500000, /* (500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 20, pas: 0.12 }; /* (le vendredi) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal'];
 let enIleBoss = false, ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
 const RECOMPENSES_ILE = { participation: { kamas: 10000, forge: 1, xp: 0.15 }, tombe: { kamas: 40000, forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: 30000, parfaite: 1 }, { kamas: 20000, forge: 3 }, { kamas: 10000, forge: 2 }] };
