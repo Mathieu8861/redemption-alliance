@@ -3501,7 +3501,7 @@ function majTours(dt, s) {
     majTours.vide = false; S_.fleches--; g.userData.cd = cadenceTour(ct); son('arc', null, -6); /* (les tours : l'arc, plus bas que celui du perso) */
     const de = new T.Vector3(); g.userData.pointe.getWorldPosition(de); const vers = cible.clone(); vers.y += mo ? 0.5 : 0.8;
     const fl = boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let u = 0;
-    effets.push((dt2) => { u += dt2 / 0.3; fl.position.lerpVectors(de, vers, Math.min(1, u)); if (u >= 1) { scene.remove(fl); if (mo) blesser(mo, degatsTour(ct)); else blesserVoleur(degatsTour(ct), 'Une tour de défense fait fuir le voleur de VSA !'); return true; } });
+    effets.push((dt2) => { u += dt2 / 0.3; fl.position.lerpVectors(de, vers, Math.min(1, u)); if (u >= 1) { scene.remove(fl); if (mo) blesser(mo, degatsTour(ct), false, 'def'); else blesserVoleur(degatsTour(ct), 'Une tour de défense fait fuir le voleur de VSA !'); return true; } });
   });
 }
 function artTour() {
@@ -3553,7 +3553,7 @@ function tirer(mo) {
   son('arbalete'); S_.carreaux = Math.max(0, S_.carreaux - 1); arbalete.userData.cd = cadenceArbalete(); rechargerSeule(); rendreArbaleteBulle();
   const de = new T.Vector3(); arbalete.userData.pointe.getWorldPosition(de); const vers = (mo ? mo.m.position : voleur.m.position).clone(); vers.y += mo ? 0.5 : 0.8;
   const m = boite(0.04, 0.04, 0.5, '#d9c08a'); m.lookAt(vers.clone().sub(de)); scene.add(m); m.position.copy(de); m.lookAt(vers);
-  carreau = { m, de, vers, t: 0, impact: mo ? () => blesser(mo, degatsArbalete(), true) : () => blesserVoleur(degatsArbalete(), 'Tchac ! L\'arbalète de la grange fait fuir le voleur de VSA.' + (rechargeAuto() ? '' : ' Pense à la recharger.')) };
+  carreau = { m, de, vers, t: 0, impact: mo ? () => blesser(mo, degatsArbalete(), true, 'def') : () => blesserVoleur(degatsArbalete(), 'Tchac ! L\'arbalète de la grange fait fuir le voleur de VSA.' + (rechargeAuto() ? '' : ' Pense à la recharger.')) };
   sauver();
 }
 /* chasser le voleur a la main : chaque classe a son geste. Le Cra tire une fleche de loin, le Iop court lui mettre un coup d'epee,
@@ -4037,7 +4037,7 @@ function majEpouvantail(dt, s) { if (enArene || enIleBoss) return; /* (Pepito re
   const touche = () => {
     if (cible.sauvage) { if (!S_.sauvage) return; compter('tofusChasses'); S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('PÉPITO-TRON : Tofu sauvage neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 'or'); sauver(); return; }
     if (cible.voleur) { blesserVoleur(DEG_PEPITO_VSA, 'PÉPITO-TRON : voleur de VSA neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 0.5); return; }
-    if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, cible.vsa ? DEG_PEPITO_VSA : E.deg, true); return; }
+    if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, cible.vsa ? DEG_PEPITO_VSA : E.deg, true, 'def'); return; }
     const p = cible.champ; if (!p.tofu) return; const nuisible = p.nuisible; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1); p.nuisible = nuisible; /* (le nom du toast, puis on l'oublie) */
     const bete = p.nuisible === 'wabbit' ? 'Wabbit' : 'Tofu'; p.nuisible = null; toast(n >= 5 ? 'PÉPITO-TRON : ' + bete + ' neutralisé sur ton ' + PAR_ID[p.c].nom + '. Facture : ' + PRIX_LASER + ' kamas.' : 'L\'épouvantail a chassé un ' + bete + ' de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
   };
@@ -5356,7 +5356,7 @@ function cibleEcran(e) {
   return best;
 }
 function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === id && x.etat === 'actif'); if (o) { combat.cible = o; combat.ordre = false; combat.tenir = false; } }
-function blesser(mo, n, gros) {
+function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
   if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
@@ -5364,7 +5364,7 @@ function blesser(mo, n, gros) {
   if (mo.carapace > 0) n = Math.max(1, Math.round(n * 0.2)); /* la carapace d'epines du Chafer Cuirasse (ses epines renvoient les coups du perso : voir majPerso) */
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.arene && combat.arene.ileBoss && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
-  mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
     if (!combat.revitVu) { combat.revitVu = true; toast(leNom(mo.d) + ' se relève : il faut l\'abattre deux fois !', 'alerte'); } return;
@@ -6169,7 +6169,8 @@ function majCombat(dt, s) {
   c.monstres = c.monstres.filter((o) => !(o.etat === 'mort' && !o.m.parent));
   if (c.deroute == null) { majInvoc(dt); majLegendaire(dt); } if (combat !== c || c.fin) return; if (c.deroute == null) majPerso(dt); if (combat !== c || c.fin) return; majVisee(s);
   const cb = c.cible && c.cible.etat === 'actif' ? c.cible : null; ANNEAU.visible = !!cb;
-  if (cb) { ANNEAU.position.set(cb.x, cb.m.position.y + 0.04, cb.z); ANNEAU.scale.setScalar(Math.max(1, cb.d.ombre * 0.75) * (1 + Math.sin(s * 6) * 0.06)); }
+  if (cb) { ANNEAU.position.set(cb.x, cb.m.position.y + 0.04, cb.z); const rA = cb.d.distance ? Math.max(1, cb.d.ombre * 0.75) * 0.64 : cb.d.portee * (cb.allonge || 1); ANNEAU.scale.setScalar(rA / 0.64 * (1 + Math.sin(s * 6) * 0.04)); }
+  /* (16/10/2026, « pour moi sa portee de coup au cac, c'etait le cercle jaune » : pour un monstre au corps a corps, le cercle jaune est maintenant sa portee exacte ; entre dedans, il te frappe) */
   majCombatHud();
   if (c.arene && c.arene.ileBoss && ileBoss) c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; const q = bornerIle(o.x, o.z, o.d.boss ? 0.9 : 0.3); o.x = q[0]; o.z = q[1]; }); /* (les monstres aussi restent sur l'ile et butent sur le decor) */
   if (c.arene && c.arene.ileBoss) { c.arene.t += dt; const pas = Math.floor(c.arene.t / ENRAGE_ILE.periode); if (pas > c.arene.pas) { c.arene.pas = pas; const b = c.monstres.find((o) => o.d.boss && o.etat === 'actif');
@@ -6185,9 +6186,10 @@ function majCombat(dt, s) {
 function recapCombat(c) {
   const st = c.st; if (!st) return '';
   const d = Math.round(c.duree || 0), duree = d >= 60 ? Math.floor(d / 60) + ' min ' + String(d % 60).padStart(2, '0') + ' s' : d + ' s', pv = Math.max(0, Math.round(100 * c.pv / c.pvMax)), bats = Object.values(c.bats || {}).reduce((a, b) => a + b, 0);
-  const l = (e, t, v) => '<div class="rc-l">' + picto(e, GRIS_PICTO) + '<span>' + t + '</span><b>' + v + '</b></div>';
-  return '<div class="hdv-section">Le combat</div><div class="recap-combat">' + l('vitesse', 'Durée', duree) + l('tofu', 'Monstres abattus', st.tues + ' sur ' + c.total) + l('degats', 'Dégâts infligés', fmt(Math.round(st.inflige))) + l('puissance', 'Plus gros coup', fmt(Math.round(st.max))) +
-    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('cases', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>';
+  const l = (e, t, v, col) => '<div class="rc-l">' + picto(e, col) + '<span>' + t + '</span><b>' + v + '</b></div>', def = Math.round(st.def || 0); /* (les pictos en couleur, 16/10/2026) */
+  return '<div class="hdv-section">Le combat</div><div class="recap-combat">' + l('vitesse', 'Durée', duree, '#3d8fd6') + l('tofu', 'Monstres abattus', st.tues + ' sur ' + c.total, '#d9443a') +
+    l('degats', 'Tes dégâts', fmt(Math.max(0, Math.round(st.inflige) - def)), '#e07c0a') + l('carreaux', 'Dégâts de tes défenses', fmt(def), '#2f9a8a') + l('puissance', 'Ton plus gros coup', fmt(Math.round(st.max)), '#e0a10a') +
+    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)', '#d9443a') + l('etoile', 'Sorts et ultis lancés', st.sorts, '#7a4fc9') + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats)), '#9a6a3a') : '') + '</div>';
 }
 function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }
