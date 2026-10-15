@@ -7362,12 +7362,15 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
   return g;
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi ; let : les tests le changent) */
-const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 5000000, NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 20, pas: 0.12 }; /* (le vendredi) */
+const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 100000, /* (100 000 « en attendant », Mathieu le 15/10/2026 ; 5 000 000 au depart, hors de portee de l'alliance) */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 20, pas: 0.12 }; /* (le vendredi) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal'];
 let enIleBoss = false, ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
 const RECOMPENSES_ILE = { participation: { kamas: 10000, forge: 1, xp: 0.15 }, tombe: { kamas: 40000, forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: 30000, parfaite: 1 }, { kamas: 20000, forge: 3 }, { kamas: 10000, forge: 2 }] };
 const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-const jourIleBoss = () => new Date(tempsReel()).getDay() === JOUR_ILE_BOSS ? cleJour() : null; /* (le jour du boss, sinon null) */
+const TESTEURS_ILE = ['9a67160a-0234-46dc-aeb3-f52e3d03408b']; /* (le compte de ferme de Mathieu, Rorschach : « donne-moi le libre acces, que je teste ; que pour moi ») */
+const libreIle = () => !!(enLigneSv.compte && TESTEURS_ILE.includes(enLigneSv.compte)) && new Date(tempsReel()).getDay() !== JOUR_ILE_BOSS; /* (hors vendredi : entree libre, essais sans limite, rien ne compte) */
+const essaisMax = () => libreIle() ? Infinity : ESSAIS_ILE_BOSS;
+const jourIleBoss = () => new Date(tempsReel()).getDay() === JOUR_ILE_BOSS || libreIle() ? cleJour() : null; /* (le jour du boss, sinon null) */
 function bossDuJour(cle) { const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); return ROTATION_ILE_BOSS[(((sem - 42) % 7) + 7) % 7]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
 const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (palierDuBoss(t) + 1) * VAGUES_PALIER;
 function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
@@ -7375,7 +7378,7 @@ const partiesIle = () => [S_].concat(Object.values(S_.parties || {}).filter((e) 
 const jourIleDe = (e, cle) => (e.ileBoss && e.ileBoss.jours && e.ileBoss.jours[cle]) || null;
 const essaisCompte = (cle) => partiesIle().reduce((a, e) => a + ((jourIleDe(e, cle) || {}).essais || 0), 0); /* (3 essais par compte, toutes parties confondues) */
 const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleDe(e, cle) || {}).meilleur || 0));
-const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => k !== jourIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
+const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS && k !== jourIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
 const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
 const prochainVendredi = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
 async function classementIleBoss(cle) { /* le total et le classement de l'alliance ce jour-la (DAMOCLES/sql/069) */
@@ -7384,12 +7387,12 @@ async function classementIleBoss(cle) { /* le total et le classement de l'allian
 }
 function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, la vie commune, les recompenses, le classement */
   const cle = jourIleBoss(), l = niveau(S_.xp), v = '?v=' + VERSION_MODELES, aReclamer = aReclamerIle();
-  const t = cle ? bossDuJour(cle) : bossDuJour(cleJour(Date.parse(new Date().toDateString()) + ((JOUR_ILE_BOSS - new Date().getDay() + 7) % 7) * 864e5)), B = MONSTRES[t], J = cle ? jourIle(cle) : null, reste = J ? Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(cle)) : 0;
+  const t = cle ? bossDuJour(cle) : bossDuJour(cleJour(Date.parse(new Date().toDateString()) + ((JOUR_ILE_BOSS - new Date().getDay() + 7) % 7) * 864e5)), B = MONSTRES[t], J = cle ? jourIle(cle) : null, reste = J ? Math.max(0, essaisMax() - essaisCompte(cle)) : 0;
   const raison = !cle ? 'Le boss revient ' + prochainVendredi() + ', de 0 h 01 à 23 h 59.' : l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + ESSAIS_ILE_BOSS + ' essais du jour sont pris : reviens vendredi prochain.' : '';
   const total = ileBossTotal != null && cle ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / PV_ILE_BOSS) : 0;
   const R = RECOMPENSES_ILE, rec = (titre, txt) => '<div class="rc-l"><span>' + titre + '</span><b>' + txt + '</b></div>';
   ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + (cle ? B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là' : 'Prochain boss : ' + B.nom + ' colossal' + (B.fem ? 'e' : '')) + '</b><p>Le vendredi seulement, de 0 h 01 à 23 h 59. Toute l\'alliance tape sur la même vie.</p></div></div>' +
-    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + (cle ? '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS + '</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' : '') + '<span class="puce">gratuit</span></div>' +
+    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + (cle ? '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + (libreIle() ? 'accès libre, essais de test' : reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS) + '</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' : '') + '<span class="puce">gratuit</span></div>' +
     (cle ? '<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, PV_ILE_BOSS - total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV' : 'Connecte-toi pour voir la vie commune') + '</span></div>' : '') +
     '<ul class="arene-regles"><li><b>3 essais, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : +' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts toutes les ' + ENRAGE_ILE.periode + ' s. Tiens, et tape le plus fort possible.</li>' +
@@ -7406,7 +7409,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
 }
 async function partirIleBoss() {
   const cle = jourIleBoss(); if (!cle) { toast('Le boss ne vient que le vendredi.'); return; }
-  const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) { toast('Tes ' + ESSAIS_ILE_BOSS + ' essais du jour sont pris.', 'alerte'); return; }
+  const J = jourIle(cle); if (essaisCompte(cle) >= essaisMax()) { toast('Tes ' + ESSAIS_ILE_BOSS + ' essais du jour sont pris.', 'alerte'); return; }
   if (niveau(S_.xp) < NIV_ILE_BOSS) { toast('L\'île des boss ouvre au niveau ' + NIV_ILE_BOSS + '.'); return; }
   if (combat || raidAnnonce || voleur || simuEnAttente) { toast('Impossible de partir pendant une attaque.'); return; }
   if (auCasino || enArene) { toast('Rentre d\'abord à la ferme.'); return; }
@@ -7425,7 +7428,7 @@ async function partirIleBoss() {
   setTimeout(() => { if (enIleBoss && !combat) lancerIleBoss(); }, 1800);
 }
 function lancerIleBoss() {
-  const cle = jourIleBoss(); if (combat || !paysanMesh || !enIleBoss || !cle) return; const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) return;
+  const cle = jourIleBoss(); if (combat || !paysanMesh || !enIleBoss || !cle) return; const J = jourIle(cle); if (essaisCompte(cle) >= essaisMax()) return;
   J.essais++; sauver(); /* (l'essai compte des qu'il commence) */
   const t = J.boss = bossDuJour(cle), n = vagueDuBoss(t), st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe());
   combat = { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, file: [], total: 1, attente: 99, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: st.pvMax, /* (chaque essai part avec toute sa vie) */ regen: menthePrete(), citron: citronPret(), agi: royalePrete(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] };
@@ -7444,12 +7447,12 @@ function finIleBoss(abandon, tombe) {
   /* (la vie de la ferme reste celle d'avant le voyage : un essai rate ne te renvoie pas a 1 PV) */
   const A = c.arene, J = jourIle(A.cle), d = Math.round(A.deg), mc = meilleurCompte(A.cle), record = d > mc; if (record && ileBossTotal != null) ileBossTotal += d - mc; if (d > J.meilleur) J.meilleur = d; /* (record : le meilleur du compte, toutes parties) */ compter('ileBossEssais');
   son(tombe || record ? 'victoire' : 'defaite'); if (tombe || record) confettis(tombe ? 80 : 40);
-  const reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
+  const reste = Math.max(0, essaisMax() - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
     '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai du jour !</div>' : '<div class="sous">ton meilleur aujourd\'hui : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
     '<div class="recap-combat"><div class="rc-l">' + picto('cadence', GRIS_PICTO) + '<span>Tenu</span><b>' + (m ? m + ' min ' : '') + sec + ' s</b></div><div class="rc-l">' + picto('rage', GRIS_PICTO) + '<span>Sa rage</span><b>+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %</b></div><div class="rc-l">' + picto('renfort', GRIS_PICTO) + '<span>Monstres abattus</span><b>' + c.st.tues + '</b></div></div>' +
-    '<p class="hdv-aide">Les récompenses arrivent samedi, selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
-    '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
+    '<p class="hdv-aide">' + (libreIle() ? 'Essai de test : il ne compte ni au classement du vendredi ni pour le coffre.' : 'Les récompenses arrivent samedi, selon ton meilleur essai et si l\'alliance l\'a fait tomber.') + '</p>' +
+    '<div class="act-bas"><small style="color:#6b5a48">' + (libreIle() ? 'accès libre' : reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '')) + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
   rendreHaut(); sauver();
 }
 async function reclamerIleBoss() { /* le coffre du vendredi : la participation, ou mieux s'il est tombe, et le podium */
