@@ -5166,8 +5166,8 @@ function ficheMonstre(t) {
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
   if (d.pluie) L.push(capa('sort', 'Pluie de cawottes', 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,2 s pour esquiver') + recup('pluie'), 'violet'));
   if (d.cawotteRoyale) L.push(capa('assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num('0,5 s pour esquiver') + recup('cawotteRoyale'), 'or'));
-  if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée : reste plus de 2 s dedans et tu es empoisonné.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
-  if (d.appel) L.push(capa('sort', 'Il t\'attire à lui', 'Une bande verte : reste dedans et il te tire jusqu\'à lui.', recup('appel'), 'violet'));
+  if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée, ses nuages restent 24 s au sol : reste plus de 2 s dedans et tu es empoisonné.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
+  if (d.appel) L.push(capa('sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui.', recup('appel'), 'violet'));
   if (d.renforts) L.push(capa('renfort', 'Renforts', 'Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert'));
   if (d.rage) L.push(capa('rage', 'Rage', 'Sous 30 % de vie, il frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge'));
   if (!L.length) L.push(capa('degats', 'Au contact', 'Il vient te frapper, sans rien de plus.'));
@@ -5472,7 +5472,7 @@ function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de
     if (k >= 1) { scene.remove(boule); pouf(x, solA(x, z), z, 2.2, '#9ad86a'); poserFumee(x, z, r, duree, null); return true; } });
 }
 function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : il suit le Koulosse jusqu'a la fin) ; il compte comme un danger, que le bot evite */
-  const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 10) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
+  const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 20) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
   const g = new T.Group(), matF = new T.MeshToonMaterial({ color: '#a8de78', gradientMap: grad, transparent: true, opacity: 0.66, depthWrite: false });
   const sol = new T.Mesh(new T.CircleGeometry(r, 32), new T.MeshBasicMaterial({ color: '#6cc43c', transparent: true, opacity: 0.34, depthWrite: false, side: T.DoubleSide })); sol.rotation.x = -Math.PI / 2; sol.position.y = 0.06; sol.renderOrder = 2; g.add(sol);
   const bouffees = []; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.random(), d = r * (0.15 + Math.random() * 0.65), m = new T.Mesh(new T.IcosahedronGeometry(0.45 + Math.random() * 0.4, 1), matF); m.position.set(Math.cos(a) * d, 0.4, Math.sin(a) * d); m.userData.p = Math.random() * 6; m.castShadow = false; g.add(m); bouffees.push(m); }
@@ -5791,12 +5791,12 @@ function majMonstre(mo, dt, s) {
     if (mo.fumeeT == null) mo.fumeeT = mo.d.fumee - 3; mo.fumeeT += vSort;
     if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
       if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : reste plus de 2 s dans un nuage vert et tu es empoisonné (2 % de tes PV par seconde). Sors-en !', 'alerte'); }
-      [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 12, k * 0.15));
+      [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 24, k * 0.15));
       if (!combat || combat.fin) return; }
   }
   if (mo.d.appel && combat.deroute == null) { /* il t'attire a lui (souvent en pleine fumee) : une bande verte jusqu'a toi, une seconde pour en sortir */
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
-    if (sortPret('appelT', mo.d.appel) && dP > 4 && dP < 14) { mo.appelT = 0; mo.bloqueT = 1.1; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.frappe = 0.3;
+    if (sortPret('appelT', mo.d.appel) && dP > 4 && dP < 28) { /* (portee doublee le 15/10/2026 : de 14 a 28, un Cra ne lui echappe plus en reculant) */ mo.appelT = 0; mo.bloqueT = 1.1; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.frappe = 0.3;
       if (!combat.appelVu) { combat.appelVu = true; toast('Le Koulosse te lance son appel : sors de la bande verte, ou il t\'attire à lui !', 'alerte'); }
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: pp.x, z2: pp.z, larg: 1.6, duree: 1.0, couleur: '#7ad04a', effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) attirerPerso(mo); } });
     }
