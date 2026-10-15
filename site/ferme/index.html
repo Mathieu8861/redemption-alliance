@@ -5331,6 +5331,8 @@ function apparaitre(type, pres) {
     if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = PV_ILE_BOSS; o.pv = Math.max(1, PV_ILE_BOSS - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; } /* (colossal : une fois et demie plus grand) */
     else { o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * a.dps / b.dps * 0.6)); o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv * 0.6)); o.deg = Math.max(1, Math.round(o.deg0 * mR)); } }
   else if (combat.arene) { const o = combat.monstres[combat.monstres.length - 1], mu = forceArene(combat.arene.k) * (combat.monstres[combat.monstres.length - 1].d.boss ? forceBossArene : 1); o.aggro = true; o.casseur = false; o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * mu)); o.deg = Math.max(1, Math.round(o.deg * mu)); } /* l'Arene : tous sur toi */
+  { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.d.boss && o.m && !o.d.vole) { o.m.updateMatrixWorld(true); const b = new T.Box3().setFromObject(o.m), r = Math.max(b.max.x - b.min.x, b.max.z - b.min.z) / 2; o.allonge = Math.max(1, (r * 0.85 + 1.0) / o.d.portee); } }
+  /* (16/10/2026, « quand on passe dans la zone d'un boss, il doit nous attaquer » : sa portee ne depassait guere son corps ; il frappe maintenant jusqu'a environ 1 au-dela, mesure sur son modele, colosse de l'ile compris) */
 }
 /* le monstre (ou le voleur) le plus proche du clic a l'ecran : sa silhouette des pieds a la tete, elargie d'une marge (plus grande au doigt) */
 function bouftouEcran(e) { /* le Bouftou le plus proche du clic a l'ecran (trouve en jouant le tuto au PC le 12/10/2026 : un Bouftou colle a la cloture, le clic droit tombait sur la cloture et ouvrait l'enclos au lieu de le nourrir) */
@@ -5604,8 +5606,9 @@ function majMonstre(mo, dt, s) {
   }
   let bat = null;
   if (!mo.d.grignote && !bandit) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
+  if (!versPerso && !bandit && !mo.d.distance && combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) <= mo.d.portee * (mo.allonge || 1)) { versPerso = true; bat = null; } /* passer a sa portee : il te frappe, meme s'il visait un batiment ou une culture */
   if (versPerso) { tx = pp.x; tz = pp.z; } mo.chasse = versPerso;
-  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = versPerso || bat ? mo.d.portee : 0.3;
+  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = versPerso ? mo.d.portee * (mo.allonge || 1) : bat ? mo.d.portee : 0.3; /* (allonge : le boss colossal de l'ile frappe plus loin, a sa taille) */
   if (versPerso && !combat.raid && d > portee + 0.8 && d <= SAUT_PORTEE && mo.sautT >= SAUT_RECHARGE && peutSauter(mo)) sauterSurPerso(mo); /* le bond : a moins de 3 cases, il te saute dessus */
   else if (d > portee) {
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
