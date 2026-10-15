@@ -4701,7 +4701,7 @@ function ouvrirGeliere() {
     (L.length ? L.map(ligne).join('') : '<p class="hdv-aide">Aucune Gelée pour l\'instant : achète ta première à l\'HDV, catégorie Gelées.</p>') +
     '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + ', ' + ROYALES_MAX + ' Royales au plus' + (nbRoyales() >= ROYALES_MAX ? ' : tu les as, les croisements n\'en donnent plus' : ', tu en as ' + nbRoyales()) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
     '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (!parents ? '<small class="gel-note">' + (L.length >= places ? 'La Gelière est pleine.' : 'Il faut deux Gelées de couleurs différentes, reposées.') + '</small>' : mc.length ? '<small class="gel-note">Il manque ' + mc.join(' et ') + '.</small>' : '') +
-    '<button class="btn discret" data-hdv-cat="gelees">Acheter une Gelée</button><button class="btn kamas" data-gelee-croiser' + (parents && !mc.length ? '' : ' disabled') + '>' + (parents ? 'Croiser ' + parents[0].nom + ' et ' + parents[1].nom : 'Croiser') + '</button></div>' +
+    '<button class="btn discret" data-hdv-cat="animaux" data-hdv-voir="[data-gelee-achat]">Acheter une Gelée</button><button class="btn kamas" data-gelee-croiser' + (parents && !mc.length ? '' : ' disabled') + '>' + (parents ? 'Croiser ' + parents[0].nom + ' et ' + parents[1].nom : 'Croiser') + '</button></div>' +
     lignesAmelio(['geliere'], 'Agrandir la Gelière'));
 }
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;
@@ -7155,7 +7155,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.hdvQte !== undefined) { ouvrirHdv.qte = parseInt(b.dataset.hdvQte, 10); ouvrirHdv(); }
   else if (b.id === 'fleches-stock') { ouvrirHdv.cat = 'materiel'; ouvrirHdv('acheter'); }
   else if (b.dataset.qteItem) { ouvrirHdv.qtes = ouvrirHdv.qtes || {}; ouvrirHdv.qtes[b.dataset.qteItem] = parseInt(b.dataset.qteV, 10); ouvrirHdv(); }
-  else if (b.dataset.hdvCat) { ouvrirHdv.cat = b.dataset.hdvCat; ouvrirHdv('acheter'); $('carte').scrollTop = 0; }
+  else if (b.dataset.hdvCat) { ouvrirHdv.cat = b.dataset.hdvCat; ouvrirHdv('acheter'); $('carte').scrollTop = 0; if (b.dataset.hdvVoir) { const e = document.querySelector('#carte ' + b.dataset.hdvVoir), l = e && (e.closest('.art') || e); if (l) l.scrollIntoView({ block: 'center' }); } } /* (16/10/2026 : « Acheter une Gelée » de la Gelière ouvrait les pots ; les Gelees sont dans Animaux, on y descend) */
   else if (b.dataset.hdvCatA) { ouvrirHdv.catA = b.dataset.hdvCatA; ouvrirHdv('ameliorer'); $('carte').scrollTop = 0; }
   else if (b.dataset.amelio) ACTIONS.amelio(b.dataset.amelio);
   else if (b.dataset.nourrir) { ACTIONS.nourrir(parseInt(b.dataset.nourrir, 10)); ouvrirEnclos(); }
