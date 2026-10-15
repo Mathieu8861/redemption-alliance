@@ -344,6 +344,37 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .modale.ouverte { display: grid; }
 .carte { width: min(100%, 460px); max-height: 86vh; overflow: auto; background: var(--papier); border: 3px solid var(--bord); border-radius: 18px; box-shadow: 0 6px 0 var(--bord); padding: 14px; }
 .carte.large { width: min(100%, 640px); }
+/* LA GRANGE (15/10/2026) : des cases a gauche, la grange elle-meme a droite */
+.carte.grange { width: min(100%, 920px); }
+.carte.grange h2 { gap: 10px; } .gr-valeur { font: 800 .78rem/1.2 var(--f-texte); color: #7a6a52; margin-right: auto; } .gr-valeur b { color: var(--kamas); }
+.gr-corps { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; align-items: start; }
+.gr-titre { margin: 10px 0 6px; font: 400 .98rem/1 var(--f-titre); display: flex; align-items: baseline; gap: 6px; } .gr-gauche > .gr-titre:first-child, .gr-carte > .gr-titre:first-child { margin-top: 0; }
+.gr-titre small { font: 800 .72rem/1 var(--f-texte); color: #7a6a52; margin-left: auto; }
+.gr-grille { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.gr-case { position: relative; aspect-ratio: 1; background: #fff; border: 2.5px solid var(--bord); border-radius: 12px; display: grid; place-items: center; box-shadow: 0 2px 0 var(--bord); padding: 0; cursor: pointer; }
+.gr-case img { width: 68%; height: 68%; object-fit: contain; pointer-events: none; }
+.gr-case b { position: absolute; right: 4px; bottom: 1px; font: 800 .74rem/1.2 var(--f-texte); text-shadow: 0 0 3px #fff, 0 0 3px #fff; pointer-events: none; }
+.gr-case.rare { border-color: #b57cf0; box-shadow: 0 2px 0 #7b4fc9; } .gr-case.vide { background: transparent; border-style: dashed; box-shadow: none; opacity: .35; cursor: default; }
+.gr-case.choisie { outline: 3px solid var(--or); outline-offset: 2px; } .gr-case:not(.vide):hover { transform: translateY(-1px); }
+.gr-graine { position: relative; display: inline-grid; place-items: center; width: 68%; height: 68%; pointer-events: none; } .gr-graine img { width: 100%; height: 100%; }
+.gr-graine::after { content: ''; position: absolute; left: -14%; top: -10%; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--bord); background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M6 10V5M6 6c-2 0-3-1-3-3 2 0 3 1 3 3zm0 0c2 0 3-1 3-3-2 0-3 1-3 3z" stroke="%233f8a2e" stroke-width="1.4" fill="none"/></svg>') center/10px no-repeat; }
+.gr-graine.petite { width: 28px; height: 28px; flex: none; }
+.gr-detail { margin-top: 10px; background: #fff; border: 2.5px dashed #dcc48e; border-radius: 12px; padding: 8px 10px; font-size: .8rem; font-weight: 700; display: flex; align-items: center; gap: 8px; min-height: 46px; }
+.gr-detail.plein { background: #fff3c4; border: 2.5px solid var(--or); } .gr-detail > img { width: 30px; height: 30px; object-fit: contain; flex: none; }
+.gr-detail > .btn, .gr-detail > .gr-act { margin-left: auto; } .gr-act { display: grid; gap: 4px; } .gr-detail .puces { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.gr-aide { font-size: .74rem; font-weight: 700; color: #7a6a52; }
+.gr-carte { background: #fff; border: 3px solid var(--bord); border-radius: 16px; padding: 9px 12px 11px; box-shadow: 0 4px 0 var(--bord); }
+.gr-pv { height: 14px; border: 2.5px solid var(--bord); border-radius: 99px; background: #f4e7d0; overflow: hidden; } .gr-pv i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #6fc24a, #3f8a22); }
+.gr-carte .gr-aide { margin: 4px 0 0; }
+.gr-arb { display: flex; align-items: center; gap: 10px; border: 2px solid var(--bord); border-radius: 14px; padding: 7px 10px; margin-top: 8px; font-size: .8rem; line-height: 1.25; }
+.gr-arb > img { width: 34px; height: 34px; object-fit: contain; } .gr-arb b { font-size: .9rem; }
+.gr-jauge { height: 8px; border-radius: 99px; background: #eadfc9; overflow: hidden; margin-top: 3px; } .gr-jauge i { display: block; height: 100%; background: linear-gradient(90deg, #6fc24a, #3f8a22); }
+.gr-arb-etat { margin-left: auto; font-size: .72rem; color: #3f8a22; font-weight: 800; text-align: right; }
+.gr-amel { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 2px solid #eadfc9; font-size: .82rem; font-weight: 800; }
+.gr-amel img { width: 28px; height: 28px; object-fit: contain; } .gr-amel > .btn, .gr-amel > .gr-aide { margin-left: auto; }
+.gr-menace { font-size: .74rem; font-weight: 700; color: #9c2a20; background: #fde3df; border: 2px solid #f0a99f; border-radius: 10px; padding: 6px 8px; margin-top: 8px; }
+.gr-pied { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+@media (max-width: 760px) { .gr-corps { grid-template-columns: 1fr; } .gr-grille { grid-template-columns: repeat(5, 1fr); } .gr-case.vide { display: none; } } /* (sur telephone : pas de cases vides qui tombent seules sur une ligne) */
 .carte h2 { margin: 0 0 8px; font: 400 1.4rem/1 var(--f-titre); display: flex; justify-content: space-between; align-items: center; }
 .carte h2 button { background: none; border: 0; font-size: 1.4rem; }
 .ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 2px solid #eadfc8; }
@@ -6364,7 +6395,7 @@ function basculerChat(ouvrir) {
 
 /* modales */
 let modaleOuverte = null;
-function ouvrirModale(nom, html) { modaleOuverte = nom; $('carte').innerHTML = html; $('carte').classList.toggle('large', nom === 'vagues'); $('carte').classList.toggle('fiche', nom === 'perso'); /* la fiche des vagues, plus large */ $('modale').classList.add('ouverte'); }
+function ouvrirModale(nom, html) { modaleOuverte = nom; $('carte').innerHTML = html; $('carte').classList.toggle('large', nom === 'vagues'); $('carte').classList.toggle('grange', nom === 'grange'); $('carte').classList.toggle('fiche', nom === 'perso'); /* la fiche des vagues, plus large */ $('modale').classList.add('ouverte'); }
 function fermerModale() { const m = modaleOuverte; modaleOuverte = null; $('modale').classList.remove('ouverte'); if (m === 'arene-fin' && enArene && !combat && !areneSuite) setTimeout(rentrerFerme, 30); } /* (fermer le bilan de l'Arene, c'est rentrer a la ferme) */
 $('modale').addEventListener('click', (e) => { if (e.target === $('modale')) fermerModale(); });
 const entete = (titre) => '<h2>' + titre + '<button data-fermer aria-label="Fermer">✕</button></h2>';
@@ -6585,17 +6616,59 @@ function ouvrirEpouvantail() {
 function ouvrirPuits() {
   ouvrirModale('puits', entete('Le puits') + (degatsBat('puits') ? artPv('puits') + (S_.eau < capaciteEau() || !citernePleine() ? '<div class="ligne"><div><b>Remplir</b><small>Arrosoir ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ', citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() : '') + '.</small></div><button class="btn eau" data-remplir>Remplir</button></div>' : '') : '') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Arrosoir : ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? '. Citerne : ' + (S_.citerne || 0) + '/' + capaciteCiterne() + ' (elle arrose seule les nouveaux semis)' : '') + '. Touche le puits pour remplir ' + (niv('arrosoir') ? 'les deux' : 'l\'arrosoir') + '.</p>' + lignesAmelio(['nivPuits'], 'Améliorer le puits'));
 }
-function ouvrirGrange() {
-  const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
+function ouvrirGrange(choix) {
+  if (choix !== undefined) ouvrirGrange.choix = choix === ouvrirGrange.choix ? null : choix; /* (toucher la meme case la referme) */
+  const sel = ouvrirGrange.choix, v = '?v=' + VERSION_MODELES, img = (n) => '<img src="assets/icones/' + n + '.png' + v + '" alt="">';
+  const kase = (cle, icone, n, titre, extra) => '<button class="gr-case' + (sel === cle ? ' choisie' : '') + (extra || '') + '" data-grange-case="' + cle + '" data-info="' + titre + '">' + icone + (n != null ? '<b>' + fmt(n) + '</b>' : '') + '</button>';
+  const grille = (L) => { const vides = (7 - (L.length % 7)) % 7; return '<div class="gr-grille">' + L.join('') + '<span class="gr-case vide"></span>'.repeat(vides) + '</div>'; };
+  const section = (titre, L, compte) => L.length ? '<h3 class="gr-titre">' + titre + (compte != null ? '<small>' + fmt(compte) + '</small>' : '') + '</h3>' + grille(L) : '';
+  const somme = (L, f) => L.reduce((t, x) => t + f(x), 0);
+  /* les cases */
+  const recoltes = CULTURES.filter((c) => (S_.grange[c.id] || 0) > 0), autres = VENDABLES.filter((x) => !PAR_ID[x.id].temps && (S_.grange[x.id] || 0) > 0);
   const graines = CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0);
-  const arb = niv('arbalete') ? '<div class="ligne"><div class="gl">' + icoGrange('arbalete') + '<div><b>Arbalète du toit, niveau ' + niv('arbalete') + '/5</b><small>' + S_.carreaux + '/' + capaciteArbalete() + ' carreau' + (capaciteArbalete() > 1 ? 'x' : '') + ' chargé' + (S_.carreaux > 1 ? 's' : '') + ', ' + degatsArbalete() + ' dégâts, portée ' + enCases(porteeArbalete()) + ' cases. ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + ' en réserve.</small></div></div>' + (rechargeAuto() ? '<small style="font-weight:800;color:' + (S_.fleches ? '#3f8a22' : 'var(--rouge)') + '">' + (S_.fleches ? 'Se recharge toute seule' : 'Réserve vide : achète des flèches à l\'HDV') + '</small>' : S_.carreaux >= capaciteArbalete() ? '' : '<button class="btn kamas" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div>' : '';
-  const menace = '<p style="font-size:.78rem;font-weight:600">Les voleurs de VSA ont maintenant <b>' + pvVoleur() + ' PV</b> : ils se renforcent à chaque vague gagnée.</p>';
-  const divers = arb + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="ligne"><b class="gl">' + icoGrange('pot-' + t) + POTS[t].nom + '</b><span>' + S_.pots[t] + '</span></div>').join('') +
-    (S_.filets ? '<div class="ligne"><b class="gl">' + icoGrange('filet') + 'Filets de capture</b><span>' + S_.filets + '</span></div>' : '') + (S_.tofus ? '<div class="ligne"><b class="gl">' + icoGrange('tofu') + 'Tofus capturés (volière)</b><span>' + S_.tofus + '</span></div>' : '');
-  const sac = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && obj(k)).sort((x, y) => obj(y).niv - obj(x).niv), portes = Object.values(S_.equip).filter((k) => obj(k));
-  const butinH = '<div class="hdv-section">Butin des vagues</div>' + (sac.length ? sac.map((k) => '<div class="art">' + icoObjet(k) + '<div><b>' + obj(k).nom + (S_.sac[k] > 1 ? ' ×' + S_.sac[k] : '') + '</b><div class="puces">' + statsObjet(obj(k)) + '<span class="puce">niveau ' + obj(k).niv + '</span></div></div><div class="act mini"><button class="btn kamas mini" data-perso-slot="' + obj(k).emp + '">Équiper</button><button class="btn discret mini" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div></div>').join('') : '<p style="font-size:.78rem;font-weight:600;margin:4px 0">Rien pour l\'instant : les monstres des vagues lâchent parfois une pièce d\'équipement, chaque boss en lâche une.</p>') +
-    (portes.length ? '<p style="font-size:.74rem;font-weight:700;margin:6px 0 0">Porté : ' + portes.map((k) => obj(k).nom).join(', ') + '. <button class="btn discret mini" data-perso-slot="">Fiche du perso</button></p>' : '');
-  ouvrirModale('grange', entete('Grange') + (degatsBat('grange') || enRuine('grange') ? artPv('grange') : '') + (lignes.length ? lignes.map((v) => '<div class="ligne"><b class="gl">' + icoGrange(v.id) + v.nom + '</b><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<p>Rien pour l\'instant. Récolte une culture.</p>') + '<h3 style="margin:10px 0 0;font:400 1rem/1 var(--f-titre)">Graines</h3>' + (graines.length ? graines.map((c) => '<div class="ligne"><b class="gl">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</b><span>' + (S_.graines[c.id] || 0) + '</span></div>').join('') : '<p style="font-size:.78rem;font-weight:600">Aucune graine, passe à l\'HDV.</p>') + divers + lignesAmelio(['qg', 'arbalete'], 'La grange et son arbalète') + artTour() + butinH + menace + '<p style="font-size:.78rem;font-weight:600">Les Bouftous mangent ' + REPAS + ' Blé par repas. Vends le reste à l\'HDV.</p>');
+  const pots = Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0), R = runes();
+  const materiel = pots.map((t) => kase('p:' + t, img('pot-' + t), S_.pots[t], POTS[t].nom))
+    .concat(S_.filets ? [kase('filets', img('filet'), S_.filets, 'Filets de capture')] : [])
+    .concat(niv('arbalete') && S_.fleches ? [kase('fleches', img('fleches'), S_.fleches, 'Flèches pour l\'arbalète')] : [])
+    .concat(R.forge ? [kase('rune:forge', img('rune-forge'), R.forge, RUNES.forge.court)] : []).concat(R.parfaite ? [kase('rune:parfaite', img('rune-parfaite'), R.parfaite, RUNES.parfaite.court)] : []);
+  const sac = Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && obj(k)).sort((x, y) => obj(y).niv - obj(x).niv);
+  const gauche = section('Récoltes', recoltes.map((c) => kase('r:' + c.id, img(c.id), S_.grange[c.id], c.nom)), somme(recoltes, (c) => S_.grange[c.id])) +
+    section('Laine, plumes et ressources de monstres', autres.map((x) => kase('r:' + x.id, img(x.id), S_.grange[x.id], x.nom)), somme(autres, (x) => S_.grange[x.id])) +
+    section('Graines', graines.map((c) => kase('g:' + c.id, '<span class="gr-graine">' + img(c.id) + '</span>', S_.graines[c.id], 'Graines ' + de(c.nom))), somme(graines, (c) => S_.graines[c.id])) +
+    section('Pots, matériel et runes', materiel) +
+    section('Butin des vagues', sac.map((k) => kase('o:' + k, img(iconeObjet(k)), S_.sac[k] > 1 ? S_.sac[k] : null, obj(k).nom, obj(k).rare ? ' rare' : '')), null).replace(/<small><\/small>/, '') +
+    (!recoltes.length && !autres.length && !graines.length && !materiel.length && !sac.length ? '<p class="gr-aide">Ta grange est vide : récolte une culture, tonds un Bouftou, ou passe à l\'HDV.</p>' : '');
+  /* le detail de la case touchee */
+  let det = '<span class="gr-aide">Touche une case pour voir son détail.</span>';
+  if (sel) {
+    const [t, id] = sel.includes(':') ? [sel.slice(0, sel.indexOf(':')), sel.slice(sel.indexOf(':') + 1)] : [sel, ''];
+    if (t === 'r' && (S_.grange[id] || 0) > 0) { const x = PAR_ID[id], n = S_.grange[id];
+      det = img(id) + '<span><b>' + x.nom + '</b> : ' + fmt(n) + ' en grange, ' + fmt(prix(id)) + ' kamas pièce (' + fmt(Math.round(n * prix(id))) + ' en tout).' + (id === 'ble' ? ' Les Bouftous en mangent ' + REPAS + ' par repas.' : '') + '</span><button class="btn kamas" data-hdv-onglet="vendre">Vendre à l\'HDV</button>'; }
+    else if (t === 'g' && (S_.graines[id] || 0) > 0) { const c = PAR_ID[id];
+      det = '<span class="gr-graine petite">' + img(id) + '</span><span><b>Graines ' + de(c.nom) + '</b> : ' + fmt(S_.graines[id]) + '. ' + Maj(c.nom) + ' pousse en ' + dureeLisible(duree(c)) + ' et rend ' + c.rendement + ' récoltes.</span><button class="btn kamas" data-graine="' + id + '">Planter</button>'; }
+    else if (t === 'p' && POTS[id] && S_.pots[id] > 0) det = img('pot-' + id) + '<span><b>' + POTS[id].nom + '</b> (' + S_.pots[id] + ') : ' + POTS[id].effet + '</span>' + (combat ? '' : '<button class="btn kamas" data-boire="' + id + '">Boire</button>');
+    else if (t === 'filets' && S_.filets) det = img('filet') + '<span><b>Filets de capture</b> (' + S_.filets + ') : pour attraper un Tofu sauvage quand il se pose dans l\'herbe, et le mettre dans ta volière.</span>';
+    else if (t === 'fleches') det = img('fleches') + '<span><b>Flèches</b> (' + fmt(S_.fleches) + ') : la réserve de l\'arbalète' + (nbTours() ? ' et de tes tours' : '') + '. Elles s\'achètent à l\'HDV.</span>';
+    else if (t === 'rune' && RUNES[id] && R[id]) det = img('rune-' + id) + '<span><b>' + RUNES[id].court + '</b> (' + R[id] + ') : ' + RUNES[id].bref + ' sur une pièce, à l\'atelier de forgemagie.</span>' + (niv('forge') ? '<button class="btn kamas" data-ouvrir-forge>Atelier</button>' : '<small class="gr-aide">Atelier : Améliorer, catégorie Ferme</small>');
+    else if (t === 'o' && obj(id) && (S_.sac[id] || 0) > 0) { const o = obj(id);
+      det = img(iconeObjet(id)) + '<span><b>' + (o.rare ? '★ ' : '') + o.nom + '</b> · niveau ' + o.niv + (S_.jets && S_.jets[id] ? ' · jet ' + nomJet(qualiteJet(id)) + ' (' + Math.round(100 * qualiteJet(id)) + ' %)' : '') + '<span class="puces">' + statsObjet(o) + '</span></span>' +
+        '<span class="gr-act"><button class="btn kamas" data-perso-slot="' + o.emp + '">Équiper</button><button class="btn discret" data-revendre-objet="' + id + '">Revendre ' + fmt(reventeObjet(id)) + ' ' + KAMA + '</button></span>'; }
+  }
+  /* a droite : la grange elle-meme */
+  const nq = niv('qg'), arb = niv('arbalete'), cap = arb ? capaciteArbalete() : 0, abime = degatsBat('grange') || enRuine('grange');
+  const pvG = abime ? artPv('grange') : '<div class="gr-pv"><i></i></div><p class="gr-aide">' + fmt(pvMaxBat('grange')) + ' / ' + fmt(pvMaxBat('grange')) + ' PV : intacte.</p>';
+  const arbal = arb ? '<div class="gr-arb">' + img('arbalete') + '<div><b>Arbalète ' + arb + '/5</b><br>' + degatsArbalete() + ' dégâts, ' + enCases(porteeArbalete()) + ' cases<div class="gr-jauge"><i style="width:' + Math.round(100 * S_.carreaux / cap) + '%"></i></div></div><div class="gr-arb-etat">' + S_.carreaux + '/' + cap + ' · ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : '') +
+    (rechargeAuto() ? '<br>' + (S_.fleches ? 'se recharge seule' : '<span style="color:var(--rouge)">réserve vide</span>') : S_.carreaux >= cap ? '' : '<br><button class="btn kamas mini" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div></div>' : '';
+  const ligneA = (id, icone) => { const a = AMELIOS.find((x) => x.id === id); if (!a) return ''; const n = niv(id), e = etatAmelio(id), bat = !!NIVBAT[id] || id === 'arbalete', total = bat ? 5 : a.couts.length, actuel = bat ? (id === 'arbalete' ? n : n + 1) : n;
+    const act = e.e === 'fini' ? '<span class="gr-aide">Niveau max</span>' : e.e === 'bloque' ? '<span class="gr-aide">' + picto('cadenas', GRIS_PICTO) + 'Niveau ' + nivRequis(a, n) + '</span>' : '<button class="btn kamas" data-amelio="' + id + '"' + (e.ok ? '' : ' disabled') + '>' + fmt(a.couts[n]) + ' ' + KAMA + '</button>';
+    return '<div class="gr-amel">' + img(icone) + '<span>' + (id === 'qg' ? 'La grange' : 'L\'arbalète') + ' ' + actuel + '/' + total + '</span>' + act + '</div>'; };
+  const nt = nbTours(), ct = PRIX_TOUR[Math.min(nt, PRIX_TOUR.length - 1)];
+  const tours = '<div class="gr-amel">' + img('tour') + '<span>Tours : ' + nt + ' sur ' + TOURS_MAX + '</span>' + (niveau(S_.xp) < NIV_TOUR ? '<span class="gr-aide">' + picto('cadenas', GRIS_PICTO) + 'Niveau ' + NIV_TOUR + '</span>' : nt >= TOURS_MAX ? '<span class="gr-aide">Toutes construites</span>' : '<button class="btn kamas" data-poser-tour' + (S_.kamas < ct ? ' disabled' : '') + '>Construire ' + fmt(ct) + ' ' + KAMA + '</button>') + '</div>';
+  const droite = '<div class="gr-carte"><h3 class="gr-titre">La grange<small>niveau ' + (nq + 1) + '</small></h3>' + pvG + arbal + '<h3 class="gr-titre" style="margin-top:12px">Améliorer</h3>' + ligneA('qg', 'grange') + ligneA('arbalete', 'arbalete') + tours +
+    '<div class="gr-menace">Les voleurs de VSA ont maintenant <b>' + pvVoleur() + ' PV</b> : ils se renforcent à chaque vague gagnée.</div></div>' +
+    '<div class="gr-pied"><button class="btn discret" data-perso-slot="">Fiche du perso</button><button class="btn discret" data-hdv-onglet="vendre">Aller à l\'HDV</button></div>';
+  ouvrirModale('grange', '<h2>Grange<span class="gr-valeur">Ton stock vaut <b>' + fmt(Math.round(valeurGrange())) + ' kamas</b> à l\'HDV</span><button data-fermer aria-label="Fermer">✕</button></h2>' +
+    '<div class="gr-corps"><div class="gr-gauche">' + gauche + '<div class="gr-detail' + (sel ? ' plein' : '') + '">' + det + '</div></div><div class="gr-droite">' + droite + '</div></div>');
 }
 const SORTS = {
   iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Bond du Iop', 'Tu vises où il saute (jusqu\'à ' + PORTEE_BOND + ' cases) : en retombant, 3 fois ses dégâts sur le monstre le plus proche, 1,5 fois tout autour, et chaque monstre touché lui rend 3 % de sa vie. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins.']],
@@ -6768,6 +6841,7 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-tuto') { fermerModale(); if (!combat) demarrerTuto(1, true); else toast('Pendant une vague, on se bat : le tuto attendra.'); return; }
   else if (b.hasAttribute('data-fermer')) fermerModale();
   else if (b.dataset.graine) { S_.graine = b.dataset.graine; rendreHaut(); fermerModale(); }
+  else if (b.dataset.grangeCase) ouvrirGrange(b.dataset.grangeCase); /* une case de la grange : son detail */
   else if (b.dataset.vendre) ACTIONS.vendre(b.dataset.vendre, parseInt(b.dataset.n, 10));
   else if (b.dataset.hdvQte !== undefined) { ouvrirHdv.qte = parseInt(b.dataset.hdvQte, 10); ouvrirHdv(); }
   else if (b.id === 'fleches-stock') { ouvrirHdv.cat = 'materiel'; ouvrirHdv('acheter'); }
