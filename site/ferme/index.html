@@ -2190,6 +2190,7 @@ const ACTIONS = {
   reparerDansBilan(cles) { /* depuis le bilan (vague, simu) : tout de suite, sur place, et la fenetre reste ouverte (le moins cher d'abord si les kamas manquent) */
     if (combat) return;
     const L = cles.filter((k) => degatsBat(k) || enRuine(k)).map((k) => ({ k, ruine: enRuine(k), cout: enRuine(k) ? coutReconstruire(k) : coutReparer(k) })).sort((a, b) => a.cout - b.cout);
+    if (!L.length) { toast('Tout est déjà réparé : rien à payer.'); majReparationsModale(); return; } /* (un bilan relu : plus rien a faire) */
     let faits = 0, paye = 0;
     L.forEach((x) => {
       if (S_.kamas < x.cout) return; S_.kamas -= x.cout; paye += x.cout; faits++;
@@ -6625,9 +6626,21 @@ function memoriserCombat() {
   let k = 0; for (let i = JOURNAL.length - 1; i >= 0; i--) if (JOURNAL[i].combat && ++k > 10) delete JOURNAL[i].combat; /* (les 10 dernieres seulement) */
   if (!$('chat').hidden) remplirChat();
 }
+function majReparationsModale() { /* les boutons de reparation d'un bilan (ou d'un bilan relu dans l'historique) suivent l'etat reel des batiments */
+  document.querySelectorAll('.modale [data-reparer], .modale [data-reconstruire]').forEach((e) => {
+    const k = e.dataset.reparer || e.dataset.reconstruire, ligne = e.closest('.art'), d = ligne && ligne.querySelector('.desc');
+    let abime = false, ruine = false; try { ruine = enRuine(k); abime = ruine || degatsBat(k) > 0; } catch (err) { abime = false; } /* (un batiment vendu depuis : plus rien a faire) */
+    if (!abime) { if (d) d.textContent = 'Réparé depuis.'; e.outerHTML = '<span class="cadenas">✓ Réparé</span>'; return; }
+    if (ruine) { delete e.dataset.reparer; e.dataset.reconstruire = k; e.innerHTML = 'Reconstruire ' + fmt(coutReconstruire(k)) + ' ' + KAMA; }
+    else { delete e.dataset.reconstruire; e.dataset.reparer = k; e.innerHTML = 'Réparer ' + fmt(coutReparer(k)) + ' ' + KAMA; if (d) d.textContent = 'Il lui reste ' + fmt(pvBat(k)) + ' PV sur ' + fmt(pvMaxBat(k)) + '.'; }
+  });
+  const tb = document.querySelector('.modale [data-tout-reparer]');
+  if (tb) { let reste = []; try { reste = tb.dataset.toutReparer.split(',').filter((k) => degatsBat(k) || enRuine(k)); } catch (err) { reste = []; }
+    if (reste.length < 2) tb.parentNode.remove(); else { tb.dataset.toutReparer = reste.join(','); tb.innerHTML = 'Tout réparer ' + fmt(reste.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0)) + ' ' + KAMA; } }
+}
 function revoirCombat(i) {
   const m = JOURNAL[i]; if (!m || !m.combat) { toast('Ce combat est trop ancien pour être revu.'); return; }
-  ouvrirModale('vague-fin', m.combat.replace('</h2>', '</h2><p class="hist-note">Historique de combat : ' + m.h + '</p>'));
+  ouvrirModale('vague-fin', m.combat.replace('</h2>', '</h2><p class="hist-note">Historique de combat : ' + m.h + '</p>')); majReparationsModale(); /* (l'etat des batiments d'aujourd'hui, pas celui de la copie) */
 }
 function noterJournal(msg, genre) {
   const d = JOURNAL[JOURNAL.length - 1], h = new Date(performance.timeOrigin + performance.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
