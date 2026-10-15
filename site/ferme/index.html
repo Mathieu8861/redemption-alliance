@@ -348,6 +348,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .carte.grange { width: min(100%, 920px); }
 /* LE BESTIAIRE (15/10/2026) */
 .carte.bestiaire { width: min(100%, 1000px); }
+.ib-rec { margin: 2px 0 8px; } .ib-rec .rc-l { align-items: flex-start; gap: 14px; } .ib-rec .rc-l span { flex: none; width: 34%; } .ib-rec .rc-l b { flex: 1; white-space: normal; text-align: right; color: #3b2f25; }
+.ib-barre { position: relative; height: 26px; border: 3px solid var(--bord); border-radius: 999px; background: #3a2f4e; overflow: hidden; margin: 6px 0 10px; } .ib-barre i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #7a3fe0, #b98cff); } .ib-barre span { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .8rem/1 var(--f-texte); color: #fff; text-shadow: 0 1px 2px #0008; } /* (l'ile des boss : la vie commune) */
 .rang { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--bord); font: 400 .72rem/1 var(--f-titre); color: #fff; margin-right: 2px; } .rang.r1 { background: #e0a31e; } .rang.r2 { background: #9aa4b0; } .rang.r3 { background: #b9773e; } /* (les medailles du classement, sans emoji) */
 .g-info .pc, .best-verrou .pc, .g-cad .pc, .b-journal .pc, .chat-tete .pc { width: 14px; height: 14px; vertical-align: -2px; }
 .bx-compte { font: 800 .8rem/1.2 var(--f-texte); color: #7a6a52; margin: 0 auto 0 12px; } .bx-compte b { color: #3f8a22; }
@@ -3946,7 +3948,7 @@ function equiperEpouvantail() {
   epou.g.visible = !enRuine('epouvantail');
 }
 /* chaque image : il guette, pivote vers sa cible, tire */
-function majEpouvantail(dt, s) { if (enArene) return; /* (Pepito reste a la ferme) */
+function majEpouvantail(dt, s) { if (enArene || enIleBoss) return; /* (Pepito reste a la ferme) */
   if (!epou || !S_) return;
   const n = niv('epouvantail'), E = EPOU[Math.min(5, n)], pos = epou.g.position; epou.g.visible = !enRuine('epouvantail'); /* (le niveau 6 garde les reglages du 5, plus les voleurs) */
   if (epou.remplace) epou.remplace.visible = false;
@@ -4638,7 +4640,7 @@ const PREPA_VAGUE = [0.5, 0.75, 2.25, 6, 12, 15, 16.5], /* (en vraies minutes : 
 const CADENCE_RAID = 24 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 24 min environ (de 17 a 31 min), annonce 30 s avant */
 /* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
-const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hidden && !auCasino && !enArene; /* au Casino ou a l'Arene : pas de raid */
+const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hidden && !auCasino && !enArene && !enIleBoss; /* au Casino, a l'Arene, sur l'ile des boss : pas de raid */
 let raidAnnonce = null;
 const tailleSimu = () => { const f = forceVoleur(), nb = 4 + Math.floor(Math.min(f, 40) / 5) + (f >= 25 ? 1 : 0) + (f >= 40 ? 1 : 0), montes = f >= 2 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 2) / 5)) : 0; return { f, nb, montes }; }; /* plus VSA se renforce, plus ils sont nombreux (14 au plus) et montes (la moitie au plus) ; « les raids VSA, ameliore un peu » (Mathieu, 12/10/2026) : en fin de partie l'arbalete et les tours les arretaient presque tous, ils se renforcent a partir de la vague 26 */
 /* LA SIMU VSA ACCEPTEE (13/10/2026, idee de Moonsbir, approuvee par UnMortVivant, notee par Mathieu : « mets juste un pop-up qui te bloque le jeu tant que tu
@@ -5199,7 +5201,7 @@ function sectionRejouerBoss() {
 }
 function lancerVague(pBoss, difficile) {
   if (combat || enAccueil || !paysanMesh) return;
-  if (auCasino || enArene) { toast('Rentre d\'abord à la ferme en montgolfière.'); return; }
+  if (auCasino || enArene || enIleBoss) { toast('Rentre d\'abord à la ferme en montgolfière.'); return; }
   if (Date.now() < S_.vague.repos) { toast('Ton perso se repose encore ' + dureeLisible(S_.vague.repos - Date.now()) + '.'); return; }
   const rejoueB = pBoss != null && pBoss >= 0;
   if (rejoueB && !bossRejouable(pBoss)) { toast('Tu as déjà rejoué ce boss aujourd\'hui : reviens demain.'); return; }
@@ -5261,7 +5263,10 @@ function apparaitre(type, pres) {
   poser(m, dep.x, dep.y, dep.z, ry); if (d.boss) son(type === 'royal' ? 'royal' : 'vague', null, type === 'royal' ? 0 : 2); /* (le boss arrive : le Royal bele, les autres ont le cor) */
   const barre = document.createElement('div'); barre.className = 'pv-monstre'; barre.innerHTML = '<i></i>'; barre.hidden = true; $('combat-zone').appendChild(barre);
   combat.monstres.push({ id, type, d, m, echelle: m.scale.x, barre, pv: Math.round(pvMonstre(type, combat.n) * facteurRejoue('pv', type)), pvMax: Math.round(pvMonstre(type, combat.n) * facteurRejoue('pv', type)), deg: Math.round(degMonstre(type, combat.n) * facteurRejoue('deg', type)), x, z, y: q.y, ry, dep, sortie: combat.raid && combat.sortie ? { x: combat.sortie.x, z: combat.sortie.z } : { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 + (d.vol || 0), ombreM });
-  if (combat.arene) { const o = combat.monstres[combat.monstres.length - 1], mu = forceArene(combat.arene.k) * (combat.monstres[combat.monstres.length - 1].d.boss ? forceBossArene : 1); o.aggro = true; o.casseur = false; o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * mu)); o.deg = Math.max(1, Math.round(o.deg * mu)); } /* l'Arene : tous sur toi */
+  if (combat.arene && combat.arene.ileBoss) { const o = combat.monstres[combat.monstres.length - 1], L = niveau(S_.xp), Lb = niveauRequis(combat.n), a = forceRef(L), b = forceRef(Lb); o.aggro = true; o.casseur = false; /* l'ile des boss : tout a ton niveau */
+    if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = PV_ILE_BOSS; o.pv = Math.max(1, PV_ILE_BOSS - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; } /* (colossal : une fois et demie plus grand) */
+    else { o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * a.dps / b.dps * 0.6)); o.deg = Math.max(1, Math.round(o.deg * a.pv / b.pv * 0.6)); } }
+  else if (combat.arene) { const o = combat.monstres[combat.monstres.length - 1], mu = forceArene(combat.arene.k) * (combat.monstres[combat.monstres.length - 1].d.boss ? forceBossArene : 1); o.aggro = true; o.casseur = false; o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * mu)); o.deg = Math.max(1, Math.round(o.deg * mu)); } /* l'Arene : tous sur toi */
 }
 /* le monstre (ou le voleur) le plus proche du clic a l'ecran : sa silhouette des pieds a la tete, elargie d'une marge (plus grande au doigt) */
 function bouftouEcran(e) { /* le Bouftou le plus proche du clic a l'ecran (trouve en jouant le tuto au PC le 12/10/2026 : un Bouftou colle a la cloture, le clic droit tombait sur la cloture et ouvrait l'enclos au lieu de le nourrir) */
@@ -5292,6 +5297,7 @@ function blesser(mo, n, gros) {
   if (mo.d.boss && mo.protege > 0) n = Math.max(1, Math.round(n * (1 - mo.protege))); /* sa troupe le protege */
   if (mo.carapace > 0) n = Math.max(1, Math.round(n * 0.2)); /* la carapace d'epines du Chafer Cuirasse (ses epines renvoient les coups du perso : voir majPerso) */
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
+  if (combat.arene && combat.arene.ileBoss && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
@@ -5388,7 +5394,7 @@ function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre ver
   c.poisonAcc = (c.poisonAcc || 0) + c.pvMax * pct * dt; const n = Math.floor(c.poisonAcc); if (n < 1) return;
   c.poisonAcc -= n; c.pv = Math.max(0, c.pv - n); if (c.st) c.st.recus += n; c.poisonCumul = (c.poisonCumul || 0) + n;
   if (performance.now() - (c.poisonT || 0) > 600) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + c.poisonCumul, p, 'perso'); c.poisonCumul = 0; c.poisonT = performance.now(); }
-  if (c.pv <= 0) commencerDeroute();
+  if (c.pv <= 0) { if (c.raid) finVague(false); else if (c.arene) finArene(false); else commencerDeroute(); } /* (comme pour un coup : l'Arene et l'ile ont leur bilan) */
 }
 function majAfflictions(dt) {
   const c = combat; if (!c) return;
@@ -6040,7 +6046,7 @@ function majBarreBoss(mo) {
 function majCombatHud() {
   const c = combat; if (!c) return;
   const rest = c.file.length + c.monstres.filter((o) => o.etat !== 'mort').length;
-  $('combat-titre').textContent = c.deroute != null ? 'À terre : ils saccagent ta ferme, ' + Math.max(0, Math.ceil(c.deroute)) + ' s' : c.raid ? 'Simu VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : c.arene ? 'Arène, vague ' + c.arene.k + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
+  $('combat-titre').textContent = c.deroute != null ? 'À terre : ils saccagent ta ferme, ' + Math.max(0, Math.ceil(c.deroute)) + ' s' : c.raid ? 'Simu VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : c.arene ? (c.arene.ileBoss ? 'Île des boss : ' + MONSTRES[c.arene.boss].nom + ' colossal' + (MONSTRES[c.arene.boss].fem ? 'e' : '') : 'Arène, vague ' + c.arene.k + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '')) : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
   $('combat-barre').style.width = (100 * rest / c.total).toFixed(0) + '%'; $('b-fuir').hidden = c.deroute != null; /* (a terre, on ne fuit plus) */
   const f = c.pv / c.pvMax; $('combat-pv').style.width = (100 * f).toFixed(1) + '%'; $('combat-pv').style.background = f < 0.3 ? 'var(--rouge)' : '';
   $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV'; majVieHaut();
@@ -6093,7 +6099,10 @@ function majCombat(dt, s) {
   const cb = c.cible && c.cible.etat === 'actif' ? c.cible : null; ANNEAU.visible = !!cb;
   if (cb) { ANNEAU.position.set(cb.x, cb.m.position.y + 0.04, cb.z); ANNEAU.scale.setScalar(Math.max(1, cb.d.ombre * 0.75) * (1 + Math.sin(s * 6) * 0.06)); }
   majCombatHud();
+  if (c.arene && c.arene.ileBoss) { c.arene.t += dt; const pas = Math.floor(c.arene.t / ENRAGE_ILE.periode); if (pas > c.arene.pas) { c.arene.pas = pas; const b = c.monstres.find((o) => o.d.boss && o.etat === 'actif');
+      if (b) { b.deg = Math.round(b.deg0 * (1 + ENRAGE_ILE.pas * pas)); chiffre('Rage +' + Math.round(ENRAGE_ILE.pas * pas * 100) + ' %', new T.Vector3(b.x, b.m.position.y + b.haut + 0.5, b.z), 'gros'); if (pas === 1) toast(b.d.nom + ' enrage : +' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts toutes les ' + ENRAGE_ILE.periode + ' s. Tiens bon !', 'alerte'); } } }
   if (!c.file.length && c.monstres.every((o) => o.etat === 'mort')) {
+    if (c.arene && c.arene.ileBoss) { finIleBoss(false, true); return; } /* (le boss est tombe : toute l'alliance l'a abattu) */
     if (c.arene && !c.entracte) { c.victoire += dt; if (c.victoire > 0.8) { c.victoire = 0; vagueAreneTenue(c); } return; } /* l'Arene : la vague suivante */
     if (c.phases && c.phases.length) { if (!c.entracte) { c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else if (modaleOuverte !== 'entracte') tempsSuivant(); return; } /* (l'entracte, puis le temps suivant) */
     c.victoire += dt; if (c.victoire > 0.6) finVague(true); }
@@ -6420,7 +6429,7 @@ canvas.addEventListener('pointerup', (e) => {
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }
       if (mid !== undefined) { cibler(mid); return; }
-      if (combat.arene) { const x = h.point.x, z = h.point.z; if (Math.hypot(x - ARENE.x, z - ARENE.z) < R_ARENE) { combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; } return; }
+      if (combat.arene) { const x = h.point.x, z = h.point.z, C0 = combat.arene.ileBoss ? ILE_BOSS : ARENE, R0 = combat.arene.ileBoss ? R_ILE_BOSS : R_ARENE; if (Math.hypot(x - C0.x, z - C0.z) < R0) { combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; } return; }
       if (cel) { ACTIONS.toucherCase(cel); return; }
       if (h.object.material && h.object.material.transparent) continue;
       const sous = caseIci(h.point.x, h.point.z); if (sous) ACTIONS.toucherCase(sous.id); return;
@@ -6568,7 +6577,7 @@ function basculerChat(ouvrir) {
 /* modales */
 let modaleOuverte = null;
 function ouvrirModale(nom, html) { modaleOuverte = nom; $('carte').innerHTML = html; $('carte').classList.toggle('large', nom === 'vagues'); $('carte').classList.toggle('grange', nom === 'grange'); $('carte').classList.toggle('bestiaire', nom === 'bestiaire'); $('carte').classList.toggle('fiche', nom === 'perso'); /* la fiche des vagues, plus large */ $('modale').classList.add('ouverte'); }
-function fermerModale() { const m = modaleOuverte; modaleOuverte = null; $('modale').classList.remove('ouverte'); if (m === 'arene-fin' && enArene && !combat && !areneSuite) setTimeout(rentrerFerme, 30); } /* (fermer le bilan de l'Arene, c'est rentrer a la ferme) */
+function fermerModale() { const m = modaleOuverte; modaleOuverte = null; $('modale').classList.remove('ouverte'); if (m === 'arene-fin' && enArene && !combat && !areneSuite) setTimeout(rentrerFerme, 30); if (m === 'ileboss-fin' && enIleBoss && !combat && !areneSuite) setTimeout(rentrerFerme, 30); } /* (fermer le bilan de l'Arene, c'est rentrer a la ferme) */
 $('modale').addEventListener('click', (e) => { if (e.target === $('modale')) fermerModale(); });
 const entete = (titre) => '<h2>' + titre + '<button data-fermer aria-label="Fermer">✕</button></h2>';
 /* une carte de graine : l'icone de la culture et le nombre en grange en pastille, le temps de pousse et ce que rapporte la recolte */
@@ -7171,7 +7180,7 @@ function ouvrirMontgolfiere() {
   ouvrirModale('montgolfiere', entete('La carte des vents') + '<p class="hdv-aide">Où t\'emmène la montgolfière ? Pendant ton voyage, ni vague ni simu VSA sur ta ferme.</p>' +
     ile('ile-casino', 'Le Casino', 'Machine à sous, roulette et course de Dragodindes.' + (dette() ? ' <b style="color:var(--rouge)">Fermé tant que ton ardoise de ' + fmt(dette()) + ' kamas n\'est pas réglée.</b>' : ''), '<span class="puce">mise max ' + fmt(miseMax()) + '</span><span class="puce">pertes max ' + fmt(plafondPertes()) + ' par jour</span>', '<button class="btn kamas" data-montgolfiere="partir"' + (dette() ? ' disabled' : '') + '>Partir</button>') +
     ile('ile-arene', 'L\'Arène', 'Des vagues sans fin, de plus en plus dures. Ton record compte au classement de l\'alliance.', '<span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? '' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + '</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + '</span>', '<button class="btn kamas" data-montgolfiere="arene">Voir</button>') +
-    ile('ile-boss', 'L\'Île des boss', 'Le boss de la semaine, à battre tous ensemble.', '<span class="puce">bientôt</span>', '') +
+    ile('ile-boss', 'L\'Île des boss', 'Le vendredi seulement : un boss colossal, une vie commune pour toute l\'alliance, 3 essais.', '<span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span><span class="puce ' + (jourIleBoss() ? 'bonne' : '') + '">' + (jourIleBoss() ? 'aujourd\'hui !' : 'vendredi') + '</span>', '<button class="btn kamas" data-montgolfiere="ileBoss">Voir</button>') +
     ile(null, 'Les donjons', 'Encore dans la brume.', '<span class="puce">bientôt</span>', ''));
 }
 function actionMontgolfiere(a) {
@@ -7179,6 +7188,9 @@ function actionMontgolfiere(a) {
   else if (a === 'partir') partirCasino();
   else if (a === 'rentrer') { areneSuite = true; rentrerFerme(); areneSuite = false; }
   else if (a === 'arene') ouvrirArene();
+  else if (a === 'ileBoss') ouvrirIleBoss();
+  else if (a === 'partirIleBoss') partirIleBoss();
+  else if (a === 'reclamerIleBoss') reclamerIleBoss();
   else if (a === 'entrerArene') partirArene();
   else if (a === 'carte') ouvrirMontgolfiere();
 }
@@ -7349,6 +7361,112 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
   }
   return g;
 }
+let JOUR_ILE_BOSS = 5; /* (le vendredi ; let : les tests le changent) */
+const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 5000000, NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 20, pas: 0.12 }; /* (le vendredi) */
+const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal'];
+let enIleBoss = false, ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
+const RECOMPENSES_ILE = { participation: { kamas: 10000, forge: 1, xp: 0.15 }, tombe: { kamas: 40000, forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: 30000, parfaite: 1 }, { kamas: 20000, forge: 3 }, { kamas: 10000, forge: 2 }] };
+const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const jourIleBoss = () => new Date(tempsReel()).getDay() === JOUR_ILE_BOSS ? cleJour() : null; /* (le jour du boss, sinon null) */
+function bossDuJour(cle) { const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); return ROTATION_ILE_BOSS[(((sem - 42) % 7) + 7) % 7]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
+const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (palierDuBoss(t) + 1) * VAGUES_PALIER;
+function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
+const partiesIle = () => [S_].concat(Object.values(S_.parties || {}).filter((e) => e && e.perso)); /* (la partie en cours et les autres du compte) */
+const jourIleDe = (e, cle) => (e.ileBoss && e.ileBoss.jours && e.ileBoss.jours[cle]) || null;
+const essaisCompte = (cle) => partiesIle().reduce((a, e) => a + ((jourIleDe(e, cle) || {}).essais || 0), 0); /* (3 essais par compte, toutes parties confondues) */
+const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleDe(e, cle) || {}).meilleur || 0));
+const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => k !== jourIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
+const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
+const prochainVendredi = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
+async function classementIleBoss(cle) { /* le total et le classement de l'alliance ce jour-la (DAMOCLES/sql/069) */
+  if (!ENLIGNE || !enLigneSv.compte) return null;
+  try { const jeton = jetonInvite(), jwt = jeton ? null : (enLigneSv.jwt || await jetonSite()); const r = await rpc('ferme_ile_boss', { p_jeton: jeton, p_jour: cle }, jwt); return r && r.ok ? r : null; } catch (e) { return null; }
+}
+function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, la vie commune, les recompenses, le classement */
+  const cle = jourIleBoss(), l = niveau(S_.xp), v = '?v=' + VERSION_MODELES, aReclamer = aReclamerIle();
+  const t = cle ? bossDuJour(cle) : bossDuJour(cleJour(Date.parse(new Date().toDateString()) + ((JOUR_ILE_BOSS - new Date().getDay() + 7) % 7) * 864e5)), B = MONSTRES[t], J = cle ? jourIle(cle) : null, reste = J ? Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(cle)) : 0;
+  const raison = !cle ? 'Le boss revient ' + prochainVendredi() + ', de 0 h 01 à 23 h 59.' : l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + ESSAIS_ILE_BOSS + ' essais du jour sont pris : reviens vendredi prochain.' : '';
+  const total = ileBossTotal != null && cle ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / PV_ILE_BOSS) : 0;
+  const R = RECOMPENSES_ILE, rec = (titre, txt) => '<div class="rc-l"><span>' + titre + '</span><b>' + txt + '</b></div>';
+  ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + (cle ? B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là' : 'Prochain boss : ' + B.nom + ' colossal' + (B.fem ? 'e' : '')) + '</b><p>Le vendredi seulement, de 0 h 01 à 23 h 59. Toute l\'alliance tape sur la même vie.</p></div></div>' +
+    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + (cle ? '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS + '</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' : '') + '<span class="puce">gratuit</span></div>' +
+    (cle ? '<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, PV_ILE_BOSS - total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV' : 'Connecte-toi pour voir la vie commune') + '</span></div>' : '') +
+    '<ul class="arene-regles"><li><b>3 essais, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
+    '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : +' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts toutes les ' + ENRAGE_ILE.periode + ' s. Tiens, et tape le plus fort possible.</li>' +
+    '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
+    '<div class="hdv-section">Les récompenses, le samedi</div><div class="ib-rec">' + rec('Si tu as participé', fmt(R.participation.kamas) + ' kamas, 1 rune de forgemagie, ' + Math.round(R.participation.xp * 100) + ' % d\'un niveau') +
+    rec('Si le boss tombe (pour tous)', fmt(R.tombe.kamas) + ' kamas, ' + R.tombe.forge + ' runes, une pièce au jet de 75 % ou plus, ' + Math.round(R.tombe.leg * 100) + ' % de sa pièce légendaire, ' + Math.round(R.tombe.xp * 100) + ' % d\'un niveau') +
+    rec('1er du classement', 'en plus : ' + fmt(R.podium[0].kamas) + ' kamas et 1 rune parfaite') + rec('2e', 'en plus : ' + fmt(R.podium[1].kamas) + ' kamas et ' + R.podium[1].forge + ' runes') + rec('3e', 'en plus : ' + fmt(R.podium[2].kamas) + ' kamas et ' + R.podium[2].forge + ' runes') + '</div>' +
+    (cle ? '<div class="hdv-section">Le classement du jour</div><div id="ileboss-classement"><p class="hdv-aide">Chargement…</p></div>' : '') +
+    '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de vendredi</button>' : '') + '<button class="btn kamas" data-montgolfiere="partirIleBoss"' + (raison ? ' disabled' : '') + '>Partir</button></div>');
+  if (cle) classementIleBoss(cle).then((r) => { const e = document.getElementById('ileboss-classement'); if (!e) return; ileBossTotal = r ? r.total : null; ileBossListe = r ? r.joueurs : null;
+    if (!r) { e.innerHTML = '<p class="hdv-aide">Le classement s\'affiche quand tu joues connecté à ton compte.</p>'; return; }
+    e.innerHTML = r.joueurs.length ? r.joueurs.slice(0, 10).map((j, i) => '<div class="rc-l' + (j.moi ? ' moi' : '') + '"><span>' + (i < 3 ? '<span class="rang r' + (i + 1) + '">' + (i + 1) + '</span>' : (i + 1) + '.') + ' ' + echapper(j.nom) + '</span><b>' + fmt(j.degats) + '</b></div>').join('') : '<p class="hdv-aide">Personne n\'a encore frappé : à toi l\'honneur !</p>';
+    const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / PV_ILE_BOSS).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, PV_ILE_BOSS - r.total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV'; } });
+}
+async function partirIleBoss() {
+  const cle = jourIleBoss(); if (!cle) { toast('Le boss ne vient que le vendredi.'); return; }
+  const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) { toast('Tes ' + ESSAIS_ILE_BOSS + ' essais du jour sont pris.', 'alerte'); return; }
+  if (niveau(S_.xp) < NIV_ILE_BOSS) { toast('L\'île des boss ouvre au niveau ' + NIV_ILE_BOSS + '.'); return; }
+  if (combat || raidAnnonce || voleur || simuEnAttente) { toast('Impossible de partir pendant une attaque.'); return; }
+  if (auCasino || enArene) { toast('Rentre d\'abord à la ferme.'); return; }
+  areneSuite = true; fermerModale(); areneSuite = false;
+  if (!enIleBoss) {
+    chemin = []; arrivee = null; fileActions.length = 0; $('voile').classList.add('on');
+    try { await Promise.all([chargerIleBoss(), attendreMs(750)]); } catch (e) { $('voile').classList.remove('on'); toast('Le ballon n\'a pas pu décoller (chargement de l\'île), réessaie.', 'alerte'); return; }
+    enIleBoss = true; ileBoss.visible = true; compter('ileBossVisites');
+    zoom = 0.72; VISEE.set(ILE_BOSS.x + 0.6, 0.6, ILE_BOSS.z + 0.6); placerCamera(); cadrer(); soleilVers(ILE_BOSS);
+    Object.assign(soleil.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, far: 100 }); soleil.shadow.camera.updateProjectionMatrix(); suivreOmbres.r = null; rendu.shadowMap.needsUpdate = true;
+    setTimeout(() => $('voile').classList.remove('on'), 120);
+  }
+  const p = new T.Vector3(2.2, 0, 3.0).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS), u = paysanMesh.userData; paysanMesh.position.set(p.x, 0, p.z); u.y = 0; u.angle = Math.atan2(ILE_BOSS.x - p.x, ILE_BOSS.z - p.z); paysanMesh.rotation.set(0, u.angle, 0); u.charge = false;
+  if (ileBossTotal == null) classementIleBoss(cle).then((r) => { if (r) { ileBossTotal = r.total; ileBossListe = r.joueurs; } });
+  toast('L\'île des boss ! ' + MONSTRES[bossDuJour(cle)].nom + ' sort de l\'arche-crâne...', 'alerte');
+  setTimeout(() => { if (enIleBoss && !combat) lancerIleBoss(); }, 1800);
+}
+function lancerIleBoss() {
+  const cle = jourIleBoss(); if (combat || !paysanMesh || !enIleBoss || !cle) return; const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) return;
+  J.essais++; sauver(); /* (l'essai compte des qu'il commence) */
+  const t = J.boss = bossDuJour(cle), n = vagueDuBoss(t), st = statsPerso(), cl = CLASSES.find((c) => c.id === classeDe());
+  combat = { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, file: [], total: 1, attente: 99, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: st.pvMax, /* (chaque essai part avec toute sa vie) */ regen: menthePrete(), citron: citronPret(), agi: royalePrete(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] };
+  mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
+  $('hud').classList.add('en-combat'); $('combat').hidden = false;
+  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  const g = new T.Vector3(-6.4, 0, -6.4).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS); apparaitre(t, { x: g.x, z: g.z }); /* (il sort de l'arche-crane) */
+  son('vague'); toast(MONSTRES[t].nom + ' colossal' + (MONSTRES[t].fem ? 'e' : '') + ' ! Tape le plus fort possible : il enrage toutes les ' + ENRAGE_ILE.periode + ' s.', 'alerte'); majCombatHud();
+}
+function finIleBoss(abandon, tombe) {
+  const c = combat; if (!c || c.fin || !c.arene || !c.arene.ileBoss) return; c.fin = true;
+  c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); scene.remove(o.m); } o.barre.remove(); });
+  (c.fumees || []).forEach((f) => scene.remove(f.g)); if (c.invoc) scene.remove(c.invoc.m);
+  combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; const u = paysanMesh.userData; u.attaque = null; u.charge = false; paysanMesh.rotation.x = 0; $('b-fuir').hidden = false;
+  $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null; if (modaleOuverte === 'entracte') fermerModale();
+  /* (la vie de la ferme reste celle d'avant le voyage : un essai rate ne te renvoie pas a 1 PV) */
+  const A = c.arene, J = jourIle(A.cle), d = Math.round(A.deg), mc = meilleurCompte(A.cle), record = d > mc; if (record && ileBossTotal != null) ileBossTotal += d - mc; if (d > J.meilleur) J.meilleur = d; /* (record : le meilleur du compte, toutes parties) */ compter('ileBossEssais');
+  son(tombe || record ? 'victoire' : 'defaite'); if (tombe || record) confettis(tombe ? 80 : 40);
+  const reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
+  ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
+    '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai du jour !</div>' : '<div class="sous">ton meilleur aujourd\'hui : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
+    '<div class="recap-combat"><div class="rc-l">' + picto('cadence', GRIS_PICTO) + '<span>Tenu</span><b>' + (m ? m + ' min ' : '') + sec + ' s</b></div><div class="rc-l">' + picto('rage', GRIS_PICTO) + '<span>Sa rage</span><b>+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %</b></div><div class="rc-l">' + picto('renfort', GRIS_PICTO) + '<span>Monstres abattus</span><b>' + c.st.tues + '</b></div></div>' +
+    '<p class="hdv-aide">Les récompenses arrivent samedi, selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
+    '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
+  rendreHaut(); sauver();
+}
+async function reclamerIleBoss() { /* le coffre du vendredi : la participation, ou mieux s'il est tombe, et le podium */
+  const S0 = etatIleBoss(), L = aReclamerIle(); if (!L.length) return;
+  const lignes = [];
+  for (const [k, J] of L) {
+    const r = await classementIleBoss(k), tombe = !!(r && r.total >= PV_ILE_BOSS), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
+    S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; const xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp, true);
+    const dans = [fmt(R.kamas) + ' kamas', R.forge + ' rune' + (R.forge > 1 ? 's' : '') + ' de forgemagie', fmt(xp) + ' XP'];
+    if (tombe) { const Pn = PANOS[palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)))], ids = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e), id = hasard(ids), cle = donnerObjet(id, R.piece); dans.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
+      const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg); donnerObjet(idl); dans.push('✦ ' + OBJETS[idl].nom); } }
+    if (rang >= 0 && rang < 3) { const Pd = RECOMPENSES_ILE.podium[rang]; S_.kamas += Pd.kamas; if (Pd.parfaite) runes().parfaite = (runes().parfaite || 0) + Pd.parfaite; if (Pd.forge) runes().forge += Pd.forge; dans.push((rang + 1) + (rang ? 'e' : 'er') + ' du classement : ' + fmt(Pd.kamas) + ' kamas et ' + (Pd.parfaite ? '1 rune parfaite' : Pd.forge + ' runes')); }
+    lignes.push('<div class="art">' + ico(B.icone) + '<div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ', le ' + k.split('-').reverse().join('/') + (tombe ? ' : tombé !' : r ? ' : il a tenu' : '') + '</b><div class="desc">Ton meilleur essai : ' + fmt(J.meilleur) + ' dégâts' + (r ? ', alliance : ' + fmt(r.total) + ' / ' + fmt(PV_ILE_BOSS) : ' (classement non disponible hors connexion)') + '.</div><div class="puces">' + dans.map((x) => '<span class="puce bonne">' + x + '</span>').join('') + '</div></div><div></div></div>');
+  }
+  son('niveau'); confettis(50); rendreHaut(); sauver();
+  ouvrirModale('ileboss', entete('Le coffre de l\'île des boss') + lignes.join('') + '<div class="act-bas"><button class="btn kamas" data-montgolfiere="ileBoss">Retour à l\'île</button></div>');
+}
 function animerIleBoss(dt) { /* tout en douceur (« plus lent, tranquille, que ca ne bouille pas dans tous les sens, que ca ne clignote pas : leger, fluide, joli », Mathieu, 15/10/2026) */
   if (!ileBoss || !ileBoss.visible) return; const fx = ileBoss.userData.fx; fx.t += dt; const t = fx.t;
   fx.cercles.forEach(({ m, k }) => { m.material.opacity = k === 2 ? 0.06 + 0.015 * Math.sin(t * 0.8) : (k ? 0.24 : 0.3) + 0.05 * Math.sin(t * 0.9 + k * 1.3); if (k < 2) m.rotation.z = t * (k ? -0.025 : 0.018); }); /* (une respiration de 7 s, a peine) */
@@ -7462,6 +7580,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
   if (k % 5 === 0) { c.phases = [p]; c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else appliquerVagueArene(c, p);
 }
 function finArene(abandon) {
+  if (combat && combat.arene && combat.arene.ileBoss) { finIleBoss(abandon); return; } /* (l'ile des boss a son bilan) */
   const c = combat; if (!c || c.fin || !c.arene) return; c.fin = true;
   c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); scene.remove(o.m); } o.barre.remove(); });
   (c.fumees || []).forEach((f) => scene.remove(f.g)); if (c.invoc) scene.remove(c.invoc.m);
@@ -7517,10 +7636,10 @@ async function partirCasino() {
   toast('Bienvenue sur l\'île du Casino ! Touche un jeu pour y aller.', 'or'); sauver();
 }
 async function rentrerFerme() {
-  if (!auCasino && !enArene) return; if (combat) return;
+  if (!auCasino && !enArene && !enIleBoss) return; if (combat) return;
   if (course) { toast('Attends la fin de la course.'); return; }
   fermerModale(); $('voile').classList.add('on'); await attendreMs(700);
-  auCasino = false; enArene = false; casinoMarche = null; $('casino-barre').hidden = true; $('hud').classList.remove('au-casino'); if (modaleOuverte) { areneSuite = true; fermerModale(); areneSuite = false; }
+  auCasino = false; enArene = false; enIleBoss = false; if (ileBoss) ileBoss.visible = false; /* (l'ile des boss n'est plus dessinee ni animee une fois rentre) */ casinoMarche = null; $('casino-barre').hidden = true; $('hud').classList.remove('au-casino'); if (modaleOuverte) { areneSuite = true; fermerModale(); areneSuite = false; }
   const libres = S_.cases.filter((c) => PASSABLE[c.type]).map((c) => [c, posCase(c)]).sort((a, b) => Math.hypot(a[1].x - POS_MONTGOLFIERE.x, a[1].z - POS_MONTGOLFIERE.z) - Math.hypot(b[1].x - POS_MONTGOLFIERE.x, b[1].z - POS_MONTGOLFIERE.z));
   if (libres[0]) { const [c, q] = libres[0], u = paysanMesh.userData; u.cellule = c; u.y = hauteurSol(q.x, q.z, c); paysanMesh.position.set(q.x, u.y, q.z); u.angle = Math.atan2(POS_MONTGOLFIERE.x - q.x, POS_MONTGOLFIERE.z - q.z); }
   VISEE.set(0.6, 0.6, 0.6); placerCamera(); cadrer(); soleilVers(new T.Vector3(0, 0, 0));
@@ -7773,7 +7892,7 @@ function boucle(t) {
     majCombat(dtb, s); marcher(dtb, s); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); animerIleBoss(dtb); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
-  if (!auCasino && !enArene) suivreOmbres();
+  if (!auCasino && !enArene && !enIleBoss) suivreOmbres();
   rendu.render(scene, camera); placerBulles(); placerBarresBat(); requestAnimationFrame(boucle);
 }
 /* PLUSIEURS PARTIES (13/10/2026, « qu'un joueur puisse avoir plusieurs parties, la j'ai celle de l'Osa, si je veux faire une partie Iop que je ne sois pas
