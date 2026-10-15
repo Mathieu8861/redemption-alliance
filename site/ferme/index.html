@@ -1035,7 +1035,8 @@ const citernePleine = () => !niv('arrosoir') || (S_.citerne || 0) >= capaciteCit
 const capaciteEau = () => [10, 15, 20, 30, 45][niv('reservoir')] || CAPACITE_EAU;
 const PRIX_FILET = 40, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
 const CADENCE_PLUME = 4.5 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 1 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
-const PRIX_BOUFTOU = 1000, PRIX_PREMIER_BOUFTOU = 300, REVENTE_BOUFTOU = 800, REVENTE_BEBE = 300, REVENTE_NOIR = 3000; /* (le noir : sa laine vaut 3,75 fois l'autre, il se revend 3,75 fois plus) */
+const NERF_KAMAS = 0.9; /* (15/10/2026 : -10 % sur tout ce qui rapporte des kamas, voir plus bas a chaque gain) */
+const PRIX_BOUFTOU = 1000, PRIX_PREMIER_BOUFTOU = 300, REVENTE_BOUFTOU = Math.round(800 * NERF_KAMAS), REVENTE_BEBE = Math.round(300 * NERF_KAMAS), REVENTE_NOIR = Math.round(3000 * NERF_KAMAS); /* (le noir : sa laine vaut 3,75 fois l'autre, il se revend 3,75 fois plus) */
 const prixBouftou = () => ((S_ && S_.bouftousAchetes) ? PRIX_BOUFTOU : PRIX_PREMIER_BOUFTOU); /* le premier achete coute 300, les suivants 1 000 */
 const REPAS = 2, DUREE_REPAS = 12 * MIN, LAINE_MAX = 3, CADENCE_LAINE = 6 * MIN;
 /* les ameliorations de l'elevage : abreuvoir (repus plus longtemps), cisailles d'or (plus de laine en attente), voliere agrandie (plus de plumes) */
@@ -1195,7 +1196,7 @@ function caracs() {
   try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
   return t;
 }
-const reventeObjet = (id) => 15 * obj(id).niv * (obj(id).rare ? 3 : 1); /* « la revente devrait moins rapporter » (Mathieu, 12/10/2026) : 40 par niveau, soit les deux tiers d'une vague du meme niveau ; maintenant environ un quart */
+const reventeObjet = (id) => Math.round(15 * obj(id).niv * (obj(id).rare ? 3 : 1) * NERF_KAMAS); /* « la revente devrait moins rapporter » (Mathieu, 12/10/2026) : 40 par niveau, soit les deux tiers d'une vague du meme niveau ; maintenant environ un quart */
 /* les jets : chaque piece qui tombe est un exemplaire a part (cle « id~n »), ses stats tirees entre 75 % et 125 % des valeurs de reference
    (une Coiffe du Bwork : de 60 a 100 PV). Les pieces d'avant gardent les valeurs de reference (un jet moyen). */
 const JET_MIN = 0.75, JET_MAX = 1.25;
@@ -1382,7 +1383,7 @@ const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + niv('faux') - (p.vole
 const prixGraine = (c) => Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5) * [1, 1, 0.85, 0.85, 0.8][nivBat('nivEtal') - 1])); /* le prix des graines suit un peu le cours */
 function prix(id) {
   const v = PAR_ID[id];
-  let p = v.prix * (S_.cours[id] || 1) * [1, 1.1, 1.1, 1.15, 1.2][nivBat('nivEtal') - 1];
+  let p = v.prix * NERF_KAMAS * (S_.cours[id] || 1) * [1, 1.1, 1.1, 1.15, 1.2][nivBat('nivEtal') - 1];
   if (S_.crise && S_.crise.id === id) p *= 0.6;
   return Math.max(1, Math.round(p));
 }
@@ -4405,11 +4406,12 @@ function jourCourant() {
   if (!S_.jour || S_.jour.date !== auj) {
     const L = niveau(S_.xp), pool = POOL_DEFIS.filter(([c]) => !(c === 'laines' || c === 'repas') || S_.bouftous.length).filter(([c]) => !(c === 'plumes') || S_.tofus).filter(([c]) => !(c === 'monstres' || c === 'vagues') || S_.vague.num > 1);
     const choix = pool.slice().sort(() => Math.random() - 0.5).slice(0, 3);
-    S_.jour = { date: auj, defis: choix.map(([cle, but, txt]) => { const b = Math.round(but * (1 + L / 25)); return { cle, but: b, txt: txt.replace('{n}', b), fait: 0, reclame: false, kamas: 40 + 15 * L, xp: 5 + Math.round(L / 2) }; }), coffre: false };
+    S_.jour = { date: auj, defis: choix.map(([cle, but, txt]) => { const b = Math.round(but * (1 + L / 25)); return { cle, but: b, txt: txt.replace('{n}', b), fait: 0, reclame: false, kamas: Math.round((40 + 15 * L) * NERF_KAMAS), xp: 5 + Math.round(L / 2) }; }), coffre: false };
   }
   return S_.jour;
 }
 const CADEAUX = [[100, 'des graines de Blé', () => { S_.graines.ble = (S_.graines.ble || 0) + 5; }], [150, '20 flèches', () => { S_.fleches += 20; }], [200, '3 filets de capture', () => { S_.filets += 3; }], [300, 'des graines de la meilleure culture que tu puisses planter', () => { const c = CULTURES.filter(debloquee).pop(); S_.graines[c.id] = (S_.graines[c.id] || 0) + 5; }], [400, '40 flèches', () => { S_.fleches += 40; }], [500, '5 filets de capture', () => { S_.filets += 5; }], [800, 'une pièce d\'équipement de ton palier', () => { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = hasard(neufs.length ? neufs : ids); S_.sac[id] = (S_.sac[id] || 0) + 1; marquerNeuf(id); }]];
+CADEAUX.forEach((c) => { c[0] = Math.round(c[0] * NERF_KAMAS); }); OBJECTIFS.forEach((o) => { o[3] = Math.round(o[3] * NERF_KAMAS); }); /* (le cadeau du jour et les objectifs de Pepito, -10 %) */
 function cadeauDuJour() {
   if (!S_ || !S_.perso || combat) return; const auj = jourDe(tempsReel()), hier = jourDe(tempsReel() - 86400000); S_.serie = S_.serie || { n: 0, date: null };
   if (S_.serie.date === auj) return;
@@ -4454,7 +4456,7 @@ function ouvrirDefis() {
   const J = jourCourant(); if (!J) return; const tous = J.defis.every((d) => d.reclame);
   ouvrirModale('defis', entete('Défis du jour') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Trois défis, renouvelés chaque jour. Les trois réussis ouvrent le coffre du jour.</p>' +
     J.defis.map((d, k) => '<div class="defi"><div><b>' + d.txt + '</b><div class="pv-grand"><i style="width:' + (100 * Math.min(1, d.fait / d.but)).toFixed(0) + '%;background:var(--vert)"></i></div><small style="font-size:.7rem;font-weight:700;color:#6b5a3a">' + Math.min(d.fait, d.but) + ' / ' + d.but + ' : +' + fmt(d.kamas) + ' kamas, +' + xpReel(d.xp) + ' XP</small></div><div class="act">' + (d.reclame ? '<span class="cadenas">✓ Réclamé</span>' : '<button class="btn kamas" data-reclamer-defi="' + k + '"' + (d.fait >= d.but ? '' : ' disabled') + '>Réclamer</button>') + '</div></div>').join('') +
-    '<div class="art">' + ico('coffre') + '<div><b>Le coffre du jour</b><div class="desc">' + (J.coffre ? 'Ouvert ! Reviens demain pour de nouveaux défis.' : 'Réussis les trois défis : ' + fmt(150 + 40 * niveau(S_.xp)) + ' kamas et une chance sur deux de trouver une pièce d\'équipement.') + '</div></div><div class="act">' + (J.coffre ? '<span class="cadenas">✓ Ouvert</span>' : '<button class="btn kamas" data-coffre' + (tous ? '' : ' disabled') + '>Ouvrir</button>') + '</div></div>');
+    '<div class="art">' + ico('coffre') + '<div><b>Le coffre du jour</b><div class="desc">' + (J.coffre ? 'Ouvert ! Reviens demain pour de nouveaux défis.' : 'Réussis les trois défis : ' + fmt(Math.round((150 + 40 * niveau(S_.xp)) * NERF_KAMAS)) + ' kamas et une chance sur deux de trouver une pièce d\'équipement.') + '</div></div><div class="act">' + (J.coffre ? '<span class="cadenas">✓ Ouvert</span>' : '<button class="btn kamas" data-coffre' + (tous ? '' : ' disabled') + '>Ouvrir</button>') + '</div></div>');
 }
 function reclamerDefi(k) {
   const J = jourCourant(), d = J && J.defis[k]; if (!d || d.reclame || d.fait < d.but) return;
@@ -4462,7 +4464,7 @@ function reclamerDefi(k) {
 }
 function ouvrirCoffre() {
   const J = jourCourant(); if (!J || J.coffre || !J.defis.every((d) => d.reclame)) return;
-  J.coffre = true; const kamas = 150 + 40 * niveau(S_.xp); S_.kamas += kamas; let objet = '';
+  J.coffre = true; const kamas = Math.round((150 + 40 * niveau(S_.xp)) * NERF_KAMAS); S_.kamas += kamas; let objet = '';
   if (Math.random() < 0.5) { const k = palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))), P = PANOS[k], ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)), id = tirerRare(hasard(neufs.length ? neufs : ids)); objet = donnerObjet(id); } /* (l'identifiant : l'animation montre la piece) */
   rendreHaut(); rendreObjectif(); sauver(); animerCoffre(kamas, objet);
 }
@@ -5044,7 +5046,7 @@ const compoBase = (n) => {
 };
 /* « reduis de 15 % l'xp gagnee sur toutes les vagues du jeu » (Mathieu, 13/10/2026) : toutes les vagues, boss et vagues rejouees compris (gainsBoss en derive) */
 /* « un nerf de -20 % sur les kamas gagnes sur les vagues » (Mathieu, 13/10/2026) : toutes les vagues, boss et revanches compris */
-const XP_VAGUES = 0.85, KAMAS_VAGUES = 0.8, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES), kamas: Math.round(g.kamas * KAMAS_VAGUES) }); };
+const XP_VAGUES = 0.85, KAMAS_VAGUES = 0.8, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES), kamas: Math.round(g.kamas * KAMAS_VAGUES * NERF_KAMAS) }); };
 const gainsVagueBrut = (n, rejoue) => {
   const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER, w = n - 5 * VAGUES_PALIER;
   { const k7 = n - 6 * VAGUES_PALIER; if (k7 > 0) return { kamas: Math.round((k7 === VAGUES_PALIER ? 70000 : 3300 + 550 * k7) * k), xp: Math.round((k7 === VAGUES_PALIER ? 800 : 100 + 18 * k7) * k) }; } /* la Montagne des Koalaks */
@@ -5525,7 +5527,7 @@ function souffleFeu(mo, a) {
 function butinVoleur(monte, L) {
   L = L || { res: {}, objets: [], kamas: 0 };
   /* « il faudrait que les mecs de VSA n'aient pas de loot sur eux, a part des kamas » (Mathieu, 12/10/2026) : plus de ressources ni de pieces, leur bourse seulement */
-  const bourse = Math.round((3 + 1.2 * forceVoleur()) * (monte ? 2 : 1) * (0.6 + Math.random() * 0.8)); S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
+  const bourse = Math.round((3 + 1.2 * forceVoleur()) * (monte ? 2 : 1) * (0.6 + Math.random() * 0.8) * NERF_KAMAS); S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
   rendreGrange(); rendreHaut(); return L;
 }
 const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => obj(id).nom)).filter(Boolean).join(', ');
@@ -6189,7 +6191,7 @@ function finVague(gagne, fuite) {
   if (c.raid) partirOmeho((c.butin || []).length > 0); /* (Omeho s'en va avec sa troupe : ravi s'ils ont vole quelque chose, vexe sinon) */
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
     if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
-    const f = forceVoleur(), prime = c.tues * (15 + 5 * f); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 10);
+    const f = forceVoleur(), prime = Math.round(c.tues * (15 + 5 * f) * NERF_KAMAS); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 10);
     /* « c'est pas tres clair, on sait pas si y'a vraiment des voleurs qui ont reussi a s'echapper et avec combien de butin » (Mathieu, 12/10/2026) :
        le bilan dit maintenant combien se sont enfuis, ce qui est perdu pour de bon (et ce que ca vaut), et ce qui a ete repris sur les voleurs abattus */
     const somme = (L) => { const t = {}; L.forEach((r) => { (t[r.id] = t[r.id] || { nom: r.nom, n: 0 }).n += r.n; }); return Object.entries(t); };
@@ -7342,7 +7344,7 @@ let forceArene = (k) => (0.25 + 0.03 * (k - 1)) * multArene(k); /* (seul et sans
 const nArene = () => 55; /* leur base : la force d'une vague 55, toujours la meme (en montant de vague, le palier 7 faisait un saut brutal a la 11e) ; c'est forceArene qui monte, en douceur */
 const partNiveauArene = (k) => k <= 10 ? 0.3 * k / 55 : 0.06; /* la part d'un niveau que rapporte la vague k (30 % pour les 10 premieres) */
 function gainsArene(k, niv0) { const n = Math.min(69, 50 + k), b = gainsVagueBrut(n % VAGUES_PALIER === 0 ? n - 1 : n, false), L = niv0 || niveau(S_.xp);
-  return { kamas: Math.round(b.kamas * KAMAS_ARENE * multArene(k)), xp: Math.max(1, Math.round((seuil(L + 1) - seuil(L)) * partNiveauArene(k))) }; } /* (kamas : 40 % d'une vague avant le 14/10/2026) */
+  return { kamas: Math.round(b.kamas * KAMAS_ARENE * multArene(k) * NERF_KAMAS), xp: Math.max(1, Math.round((seuil(L + 1) - seuil(L)) * partNiveauArene(k))) }; } /* (kamas : 40 % d'une vague avant le 14/10/2026) */
 function piocheArene() { /* les monstres des 30 dernieres vagues battues (sans les boss, les voleurs ni les Boufcouls du Koulosse) */
   const haut = Math.max(9, Math.min(S_.vague.num - 1, VAGUES_TOTAL - 1)), L = new Set();
   for (let n = Math.max(1, haut - 29); n <= haut; n++) { if (n % VAGUES_PALIER === 0) continue; compoVague(n).forEach(([t]) => { const d = MONSTRES[t]; if (d && !d.boss && !d.vole && !d.fabrique) L.add(t); }); }
@@ -7444,7 +7446,7 @@ let JOUR_ILE_BOSS = 5; /* (le vendredi ; let : les tests le changent) */
 const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 500000, /* (500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (le vendredi) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal'];
 let enIleBoss = false, ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
-const RECOMPENSES_ILE = { participation: { kamas: 10000, forge: 1, xp: 0.15 }, tombe: { kamas: 40000, forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: 30000, parfaite: 1 }, { kamas: 20000, forge: 3 }, { kamas: 10000, forge: 2 }] };
+const RECOMPENSES_ILE = { participation: { kamas: 9000, forge: 1, xp: 0.15 }, tombe: { kamas: 36000, forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: 27000, parfaite: 1 }, { kamas: 18000, forge: 3 }, { kamas: 9000, forge: 2 }] }; /* (-10 % le 15/10/2026, NERF_KAMAS) */
 const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const TESTEURS_ILE = ['9a67160a-0234-46dc-aeb3-f52e3d03408b']; /* (le compte de ferme de Mathieu, Rorschach : « donne-moi le libre acces, que je teste ; que pour moi ») */
 const libreIle = () => !!(enLigneSv.compte && TESTEURS_ILE.includes(enLigneSv.compte)) && new Date(tempsReel()).getDay() !== JOUR_ILE_BOSS; /* (hors vendredi : entree libre, essais sans limite, rien ne compte) */
