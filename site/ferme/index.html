@@ -548,7 +548,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .combat-perso .pvb { width: 150px; height: 12px; margin: 3px 0 2px; border: 2px solid var(--bord); border-radius: 99px; background: #eadfc8; overflow: hidden; } .combat-perso .pvb i { display: block; height: 100%; background: var(--vert); transition: width .2s; }
 .combat-perso small { font-size: .72rem; font-weight: 700; }
 .combat-sort { position: absolute; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: grid; justify-items: center; gap: 4px; background: none; border: 0; padding: 0; pointer-events: auto; }
-.combat-sort .rond { width: 84px; height: 84px; border-radius: 50%; border: 3px solid var(--bord); box-shadow: 0 4px 0 var(--bord); display: grid; place-items: center; padding: 8px; font: 400 .9rem/1.05 var(--f-titre); text-align: center; background: conic-gradient(rgba(36, 49, 28, .45) 0 var(--cd, 0%), var(--or) var(--cd, 0%) 100%); }
+.combat-sort .rond { width: 84px; height: 84px; border-radius: 16px; border: 3px solid var(--bord); box-shadow: 0 4px 0 var(--bord); display: grid; place-items: center; padding: 8px; font: 400 .9rem/1.05 var(--f-titre); text-align: center; background: conic-gradient(#3b3f33 0 var(--cd, 0%), var(--or) var(--cd, 0%) 100%); }
+.combat-sort.pret .rond { box-shadow: 0 4px 0 var(--bord), 0 0 0 3px #ffe17a, 0 0 16px 2px rgba(255, 205, 70, .85); animation: sort-pret 1.6s ease-in-out infinite; } /* pret : un liseré dore qui respire */
+@keyframes sort-pret { 50% { box-shadow: 0 4px 0 var(--bord), 0 0 0 3px #ffe17a, 0 0 6px 0 rgba(255, 205, 70, .5); } }
+.combat-sort .rond span { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord), 0 0 3px var(--bord); }
+.combat-sort small { font-weight: 800; }
 .combat-sort:active .rond { transform: translateY(3px); box-shadow: 0 1px 0 var(--bord); }
 .combat-sort small { background: var(--papier); border: 2px solid var(--bord); border-radius: 99px; padding: 2px 8px; font-size: .72rem; }
 .combat-sort.ulti { right: 110px; }
@@ -560,15 +564,15 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @media (pointer: fine) { .combat-sort .rond { position: relative; } .combat-sort .rond::after { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--papier); border: 2px solid var(--bord); color: var(--encre); text-shadow: none; font: 800 .75rem/18px var(--f-texte); text-align: center; } #b-sort .rond::after { content: '1'; } #b-ulti .rond::after { content: '2'; } #b-leg-coiffe .rond::after { content: '3'; } #b-leg-arme .rond::after { content: '4'; } }
 /* les sorts legendaires (16/10/2026) : au doigt, au-dessus du sort et de l'ulti ; au PC, a la suite, touches 3 et 4 */
 .combat-sort[hidden] { display: none; }
-.combat-sort.leg .rond { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord); background: conic-gradient(rgba(36, 49, 28, .55) 0 var(--cd, 0%), var(--teinte, #e0a10a) var(--cd, 0%) 100%); }
+.combat-sort.leg .rond { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord); background: conic-gradient(#3b3f33 0 var(--cd, 0%), var(--teinte, #e0a10a) var(--cd, 0%) 100%); }
 .combat-sort.leg.coiffe { bottom: calc(132px + env(safe-area-inset-bottom, 0px)); } .combat-sort.leg.arme { right: 110px; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
 @media (pointer: fine) and (min-width: 721px) { .combat-sort.leg.coiffe { right: auto; left: calc(50% + 116px + var(--decal, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); } .combat-sort.leg.arme { right: auto; left: calc(50% + 222px + var(--decal, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); } .sans-coiffe .combat-sort.leg.arme { left: calc(50% + 116px + var(--decal, 0px)); } }
-.combat-sort.ulti .rond { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord); background: conic-gradient(rgba(36, 49, 28, .55) 0 var(--cd, 0%), var(--teinte, #9b6cff) var(--cd, 0%) 100%); }
+.combat-sort.ulti .rond { color: #fff; text-shadow: 0 1px 0 var(--bord), 0 0 3px var(--bord); background: conic-gradient(#3b3f33 0 var(--cd, 0%), var(--teinte, #9b6cff) var(--cd, 0%) 100%); }
 .ulti-carte { border-top: 2px solid #eadfc8; padding: 10px 0; display: grid; grid-template-columns: 50px 1fr auto; gap: 10px; align-items: center; }
 .ulti-carte .rond { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--bord); display: grid; place-items: center; font: 400 .66rem/1 var(--f-titre); color: #fff; text-shadow: 0 1px 0 var(--bord); text-align: center; padding: 3px; }
 .ulti-carte .rond img { width: 42px; height: 42px; object-fit: contain; filter: drop-shadow(0 1px 0 rgba(59, 42, 26, .35)); }
 .pic.trio { display: grid !important; grid-template-columns: 1fr 1fr; place-items: center; padding: 2px; } .pic.trio img { width: 22px !important; height: 22px !important; } .pic.trio img:last-child { grid-column: 1 / -1; }
-.combat-sort .rond img { width: 40px; height: 40px; object-fit: contain; margin-bottom: -4px; filter: drop-shadow(0 1px 0 rgba(59, 42, 26, .5)); }
+.combat-sort .rond img { width: 48px; height: 48px; object-fit: contain; margin-bottom: -4px; filter: drop-shadow(0 1px 0 rgba(59, 42, 26, .5)); }
 .combat-sort .rond span { font-size: .68rem; line-height: 1; }
 .combat-sort.ulti .rond { padding: 4px; align-content: center; gap: 0; }
 .confirme { text-align: center; } .confirme .gros { width: 110px; height: 110px; margin: 4px auto 6px; border-radius: 50%; display: grid; place-items: center; border: 3px solid var(--bord); box-shadow: 0 4px 0 var(--bord); }
@@ -1086,7 +1090,7 @@ const PEPITO = [
 const CLASSES = [
   { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et son Bond du Iop le soigne.', sort: 'Bond du Iop', tunique: '#c0392b',
     role: 'Corps à corps', niveau: ['Facile', 'facile'], lignes: ['Va au contact et frappe fort.', 'Le plus solide : idéal pour débuter.'], sortTxt: 'tu choisis où il saute ; en retombant, il frappe trois fois plus fort.' },
-  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin (5 cases), une flèche de feu toutes les 10. Plus léger, il court 15 % plus vite : recule pour garder tes distances. Sa Flèche perçante se charge en abattant 30 monstres.', sort: 'Flèche perçante', tunique: '#2e8b57',
+  { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin (5 cases), une flèche de feu toutes les 10. Plus léger, il court 15 % plus vite : recule pour garder tes distances. Sa Flèche perçante traverse toute une ligne de monstres (recharge 20 s).', sort: 'Flèche perçante', tunique: '#2e8b57',
     role: 'À distance', niveau: ['Moyen', 'moyen'], lignes: ['Tire de loin, à l\'abri.', 'Plus fragile : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
   { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées : il vise où poser son Bouftou, qui retombe sur les monstres et se bat pour lui.', sort: 'Invocation', tunique: '#6f42c1',
     role: 'Invocateur', niveau: ['Avancé', 'avance'], lignes: ['Fait combattre des Bouftous à sa place.', 'Plus technique : tu choisis où les poser.'], sortTxt: 'un Bouftou tombe sur les monstres puis se bat pour toi.' }
@@ -4703,7 +4707,8 @@ function ouvrirGeliere() {
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;
    l'Osamodas vise ou poser son Bouftou, qui retombe en frappant autour de lui, au lieu d'un Bouftou qui sortait tout seul et restait en permanence */
 const PEAU_IOP = 0.15, SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC = 12, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
-const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : RECHARGE_SORT;
+const RECHARGE_PERCANTE = 20; /* (la Fleche percante du Cra : 20 s, elle traverse toute une ligne a 3 fois les degats ; avant le 16/10/2026 : 30 monstres a abattre) */
+const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : classeDe() === 'cra' ? RECHARGE_PERCANTE : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
    minimum pour la lancer. Sans ca, l'experience des vagues suffisait a tout enchainer en moins d'une heure (bot de test). */
 const PREPA_VAGUE = [0.5, 0.75, 2.25, 6, 12, 15, 16.5], /* (en vraies minutes : de 30 s au palier 1 a 16 min 30 au palier 7) */ niveauRequis = (n) => Math.max(1, n - 2);
@@ -4853,7 +4858,7 @@ function lancerRaid() {
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
   $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>';
-  $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<img src="' + srcUlti('zone') + '" alt="" style="filter:grayscale(1) brightness(1.2);opacity:.75"><span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
   toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils rejoignent Omeho, sur la case violette.', 'alerte'); majCombatHud();
 }
 /* un voleur du raid : il va a la grange, prend sa part, et repart par ou il est venu */
@@ -4888,7 +4893,7 @@ function majVoleurRaid(mo, dt, s) {
   if (mo.coup > 0) { mo.coup -= dt; m.scale.setScalar((mo.echelle || 1) * (1 + Math.max(0, mo.coup) * 0.9)); } else m.scale.setScalar(mo.echelle || 1);
 }
 const KILLS_PERCANTE = 30, TIR_FEU = 10; /* Cra : la Fleche percante se charge en abattant 30 monstres ; une attaque sur 10 est une fleche de feu */
-const percantePrete = () => (S_.chargeSort || 0) >= KILLS_PERCANTE;
+const percantePrete = () => !combat || (combat.cdSort || 0) <= 0; /* (sa recharge, comme les autres sorts) */
 /* les paliers : 10 vagues chacun, un boss a la 10e. Battre le Bouftou Royal ouvre la Vague de Chafers (vagues 11 a 20), battre le Chafer Cuirasse ouvre la Horde des Bworks (21 a 30). */
 const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }, { nom: 'la Horde des Bworks', boss: 'bworker', icone: 'bworker' }, { nom: 'le Massif des Craqueleurs', boss: 'craqLegendaire', icone: 'craq-legendaire' }, { nom: 'le Nid des Dragoeufs', boss: 'crocabulia', icone: 'crocabulia' }, { nom: 'l\'île des Wabbits', boss: 'waWabbit', icone: 'wa-wabbit', phase: 2 }, { nom: 'la Montagne des Koalaks', boss: 'koulosse', icone: 'koulosse', phase: 2 }];
 const nomPalier = (P) => P < 5 ? 'Palier ' + (P + 1) : 'Phase 2, palier ' + (P - 4); /* la Phase 2 commence apres Crocabulia (« le niveau 1 a 50 c'est la phase 1 », Mathieu) */
@@ -5120,7 +5125,7 @@ function ouvrirVagues() {
   const monstres = compoTotale(n).map(([t, k]) => { const M = MONSTRES[t], pv = pvMonstre(t, n), coups = Math.ceil(pv / st.deg), neuf = !vusB[t];
     return '<button class="vg-monstre' + (M.boss ? ' boss' : '') + (neuf ? ' neuf' : '') + '" data-fiche-monstre="' + t + '" data-info="Sa fiche">' + (neuf ? '<em class="vg-neuf">Nouveau !</em>' : '') + '<img src="assets/icones/' + M.icone + '.png" alt=""><b>× ' + k + '</b><small>' + M.nom + '</small><div class="vg-stats"><span class="puce">' + picto('vita') + fmt(pv) + '</span><span class="puce">' + picto('degats') + Math.round(degMonstre(t, n) * multDegats(n)) + '</span><span class="puce ' + (coups <= 1 ? 'bonne' : coups >= 6 ? 'mauvaise' : '') + '">' + coups + ' coup' + (coups > 1 ? 's' : '') + '</span></div><span class="vg-fiche">' + picto('livre') + 'Sa fiche</span></button>'; }).join('');
   const ok = st.niveau >= n;
-  const perso = '<div class="art">' + ico(classeDe()) + '<div><b>' + cl.nom + ' niveau ' + st.niveau + '</b><div class="puces"><span class="puce">' + picto('vita') + st.pvMax + ' PV</span><span class="puce">' + picto('degats') + st.deg + ' toutes les ' + String(st.cadence).replace('.', ',') + ' s</span><span class="puce">Sort : ' + cl.sort + (classeDe() === 'cra' ? ' (' + Math.min(KILLS_PERCANTE, S_.chargeSort || 0) + '/' + KILLS_PERCANTE + ' monstres)' : '') + '</span>' + (classeDe() === 'cra' ? '<span class="puce">' + picto('rage') + '1 tir sur ' + TIR_FEU + ' en feu</span>' : '') + '<span class="puce ' + (st.niveau >= niveauRequis(n) ? 'bonne' : 'mauvaise') + '">Niveau requis ' + niveauRequis(n) + '</span></div><div class="desc">Ton niveau de Paysan est aussi ton niveau de combat.</div></div><div></div></div>' +
+  const perso = '<div class="art">' + ico(classeDe()) + '<div><b>' + cl.nom + ' niveau ' + st.niveau + '</b><div class="puces"><span class="puce">' + picto('vita') + st.pvMax + ' PV</span><span class="puce">' + picto('degats') + st.deg + ' toutes les ' + String(st.cadence).replace('.', ',') + ' s</span><span class="puce">Sort : ' + cl.sort + (classeDe() === 'cra' ? ' (recharge ' + RECHARGE_PERCANTE + ' s)' : '') + '</span>' + (classeDe() === 'cra' ? '<span class="puce">' + picto('rage') + '1 tir sur ' + TIR_FEU + ' en feu</span>' : '') + '<span class="puce ' + (st.niveau >= niveauRequis(n) ? 'bonne' : 'mauvaise') + '">Niveau requis ' + niveauRequis(n) + '</span></div><div class="desc">Ton niveau de Paysan est aussi ton niveau de combat.</div></div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + ULTIS[S_.ulti].teinte + ')"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : '<span class="pic img trio">' + ['gel', 'zone', 'mono'].map((u) => '<img src="' + srcUlti(u) + '" alt="">').join('') + '</span>') + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? ULTIS[S_.ulti].desc : st.niveau >= NIV_ULTI ? 'Débloqué : gel, zone ou coup fatal, à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + ' : gel, zone ou coup fatal, à choisir une fois pour toutes.') + '</div></div><div class="act"><button class="btn' + (S_.ulti || st.niveau < NIV_ULTI ? ' discret' : ' kamas') + '" data-voir-ulti>' + (S_.ulti ? 'Voir' : st.niveau >= NIV_ULTI ? 'Choisir' : 'Voir') + '</button></div></div>';
   const arb = niv('arbalete') ? '<div class="art">' + ico('arbalete') + '<div><b>Arbalète de la grange</b><div class="puces"><span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? S_.carreaux + '/' + capaciteArbalete() + ' chargé' + (rechargeAuto() ? ', se recharge seule' : '') : rechargeAuto() ? 'plus de flèches' : 'à recharger') + ', ' + degatsArbalete() + ' dégâts, ' + S_.fleches + ' flèche' + (S_.fleches > 1 ? 's' : '') + '</span></div><div class="desc">Elle tire aussi sur les monstres qui approchent de la grange.</div></div><div></div></div>' : '';
   const gains = '<div class="art">' + ico('kama') + '<div><b>' + fmt(g.kamas) + ' ' + KAMA + ' et ' + g.xp + ' points d\'expérience</b>' + (fini ? '<div class="desc">Plus de vague à lancer pour l\'instant : rejoue un boss plus bas, une fois par jour chacun.</div>' : n === base + VAGUES_PALIER ? '<div class="desc">Battre ' + leNom(B, true) + ' termine le palier ' + PALIERS[P].nom + (P + 1 < PALIERS.length ? ' et ouvre le suivant : ' + PALIERS[P + 1].nom + '.' : '.') + '</div>' : '') + '</div><div></div></div>';
@@ -5290,7 +5295,7 @@ function lancerVague(pBoss, difficile) {
   if (repas.length) { if (legPorte('wa') && !S_.mangeDeux) S_.mangeDeux = true; else { S_.mange = {}; S_.mangeDeux = false; } sauver(); /* l'arme du Wa Wabbit (avant le 14/10/2026, sa Couronne) : le repas vaut 2 vagues */ setTimeout(() => toast('Repas avant la bataille : ' + repas.map((id) => PAR_ID[id].nom + ' ' + PAR_ID[id].mange.txt).join(', ') + ' pendant cette vague.', 'or'), 1200); }
   fermerModale(); mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
-  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<img src="' + srcUlti('zone') + '" alt="" style="filter:grayscale(1) brightness(1.2);opacity:.75"><span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
   toast(rejoueB ? leNom(MONSTRES[PALIERS[pBoss].boss]) + (difficile ? ' revient en mode DIFFICILE : remis à ton niveau, bien plus coriace, plus vicieux, et deux fois plus de chances de lâcher sa pièce légendaire. Bonne chance !' : ' revient pour la revanche, remis à ton niveau !') : (combat.phases.length ? 'Vague ' + n + ' en ' + (combat.phases.length + 1) + ' temps : d\'abord la horde (' + file.length + ' monstres), puis ' + combat.phases.map((p) => p.nom).join(', puis ') + ' !' : 'Vague ' + n + ' : ' + file.length + ' monstres arrivent par les bords de ta ferme !'), 'alerte'); majCombatHud(); son('vague');
 }
 /* les bords de la ferme : une case praticable dont un cote ne donne sur aucune de tes cases. L'ILE RONDE : sur la friche (un terrain pas encore achete),
@@ -6004,9 +6009,8 @@ function executerUlti(id, c, pt) {
   }) };
 }
 function lancerSort() {
-  if (!combat || combat.fin || combat.deroute != null || (combat.cdSort > 0 && classeDe() !== 'cra' && !(visee && visee.quoi === 'sort'))) return;
+  if (!combat || combat.fin || combat.deroute != null || (combat.cdSort > 0 && !(visee && visee.quoi === 'sort'))) return;
   const classe = classeDe(), st = statsPerso(), pp = paysanMesh.position, u = paysanMesh.userData;
-  if (classe === 'cra' && !percantePrete() && !(visee && visee.quoi === 'sort')) { toast('Flèche perçante : encore ' + (KILLS_PERCANTE - (S_.chargeSort || 0)) + ' monstres à abattre pour la charger.'); return; }
   if (classe === 'osa') { if (visee && visee.quoi === 'sort') { annulerVisee(); return; } if (!combat.monstres.some((o) => o.etat === 'actif')) { toast('Aucun monstre à viser pour l\'instant.'); return; } viser({ quoi: 'sort', id: 'invoc', rayon: RAYON_INVOC, teinte: '#b48cff', portee: PORTEE_INVOC }); return; }
   if (classe === 'cra') { if (visee && visee.quoi === 'sort') { annulerVisee(); return; } if (!combat.monstres.some((o) => o.etat === 'actif')) { toast('Aucun monstre à viser pour l\'instant.'); return; } viser({ quoi: 'sort', ligne: true, teinte: '#ffe08a' }); return; }
   /* iop : on vise ou sauter, le cercle montre la zone touchee (« qu'on puisse nous-meme cibler ou on saute », Mathieu, 12/10/2026) */
@@ -6038,7 +6042,7 @@ function bondIop(pt) {
 function flechePercante(pt) {
   const st = statsPerso(), pp = paysanMesh.position, u = paysanMesh.userData;
   const dir = new T.Vector3(pt.x - pp.x, 0, pt.z - pp.z); if (dir.lengthSq() < 0.01) dir.set(Math.sin(paysanMesh.rotation.y), 0, Math.cos(paysanMesh.rotation.y)); dir.normalize();
-  S_.chargeSort = 0; chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(dir.x, dir.z); paysanMesh.rotation.y = u.angle; /* elle se recharge en abattant 30 monstres */
+  combat.cdSort = rechargeSort(); chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(dir.x, dir.z); paysanMesh.rotation.y = u.angle; /* (sa recharge : 20 s) */
   u.attaque = { t: 0, classe: 'cra', base: u.angle, tour: false, surFrappe: () => {} };
   const de = pp.clone(); de.y += 0.95; const fin = de.clone().add(dir.multiplyScalar(PORTEE_PERCANTE));
   const fl = boite(0.07, 0.07, 0.9, '#ffe08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(fin); const touches = new Set(); let t = 0;
@@ -6102,7 +6106,7 @@ function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coi
   const c = combat, nC = !!(c && legDe('coiffe')), nA = !!(c && legDe('arme')); $('combat').style.setProperty('--decal', (-53 * (nC + nA)) + 'px'); $('combat').classList.toggle('sans-coiffe', !nC); [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
     const S = SORTS_LEG[cle], r = $('leg-' + emp + '-rond'), k = S_.equip[emp];
     if (r.dataset.cle !== k) { r.dataset.cle = k; r.innerHTML = '<img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + S.nom + '</span>'; r.style.setProperty('--teinte', S.teinte); }
-    r.style.setProperty('--cd', (100 * (c[cd] || 0) / S.recharge).toFixed(1) + '%'); $('leg-' + emp + '-etat').textContent = (c[cd] || 0) > 0 ? 'prêt dans ' + Math.ceil(c[cd]) + ' s' : 'prêt'; });
+    r.style.setProperty('--cd', (100 * (c[cd] || 0) / S.recharge).toFixed(1) + '%'); b.classList.toggle('pret', !(c[cd] > 0)); $('leg-' + emp + '-etat').textContent = (c[cd] || 0) > 0 ? 'prêt dans ' + Math.ceil(c[cd]) + ' s' : 'prêt'; });
 }
 const VEC_INVOC = new T.Vector3();
 function majInvoc(dt) {
@@ -6139,8 +6143,8 @@ function majCombatHud() {
   $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV'; majVieHaut();
   if (!S_.ulti) { $('ulti-rond').style.setProperty('--cd', '100%'); $('ulti-etat').textContent = niveau(S_.xp) >= NIV_ULTI ? 'à choisir' : 'niveau ' + NIV_ULTI; }
   else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / RECHARGE_ULTI).toFixed(1) + '%'); $('ulti-etat').textContent = c.cdUlti > 0 ? 'prêt dans ' + Math.ceil(c.cdUlti) + ' s' : 'prêt'; }
-  if (classeDe() === 'cra') { const k = S_.chargeSort || 0; $('sort-rond').style.setProperty('--cd', (100 * (1 - k / KILLS_PERCANTE)).toFixed(1) + '%'); $('sort-etat').textContent = k >= KILLS_PERCANTE ? 'prête' : k + '/' + KILLS_PERCANTE + ' monstres'; }
-  else { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / rechargeSort()).toFixed(1) + '%'); $('sort-etat').textContent = c.cdSort > 0 ? 'prêt dans ' + Math.ceil(c.cdSort) + ' s' : 'prêt'; }
+  { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / rechargeSort()).toFixed(1) + '%'); $('sort-etat').textContent = c.cdSort > 0 ? 'prêt dans ' + Math.ceil(c.cdSort) + ' s' : 'prêt'; }
+  $('b-sort').classList.toggle('pret', c.cdSort <= 0); $('b-ulti').classList.toggle('pret', !!S_.ulti && c.cdUlti <= 0); /* (le liseré dore : pret) */
   majBoutonsLeg();
   { let b = majCombatHud.barrePerso; /* la barre de vie au-dessus de la tete du perso, comme celles des monstres */
     if (!b || !b.isConnected) { b = majCombatHud.barrePerso = document.createElement('div'); b.className = 'pv-monstre pv-perso'; b.innerHTML = '<i></i>'; $('combat-zone').appendChild(b); }
@@ -6959,7 +6963,7 @@ function ouvrirGrange(choix) {
 }
 const SORTS = {
   iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé.'], ['Bond du Iop', 'Tu vises où il saute (jusqu\'à ' + PORTEE_BOND + ' cases) : en retombant, 3 fois ses dégâts sur le monstre le plus proche, 1,5 fois tout autour, et chaque monstre touché lui rend 3 % de sa vie. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins.']],
-  cra: [['Flèche', 'À distance (7 cases). Une flèche sur ' + TIR_FEU + ' est une flèche de feu : double dégâts, et la cible brûle 3 s.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Elle se charge en abattant ' + KILLS_PERCANTE + ' monstres.']],
+  cra: [['Flèche', 'À distance (7 cases). Une flèche sur ' + TIR_FEU + ' est une flèche de feu : double dégâts, et la cible brûle 3 s.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Recharge ' + RECHARGE_PERCANTE + ' s.']],
   osa: [['Coup de fouet', 'À portée de fouet (3 cases), il frappe le monstre ciblé.'], ['Invocation', 'Tu vises où poser un Bouftou (jusqu\'à ' + PORTEE_INVOC + ' cases) : il retombe en frappant tout autour (2 fois tes dégâts), puis se bat ' + DUREE_INVOC + ' s. Recharge ' + RECHARGE_INVOC + ' s.']]
 };
 let persoCarac = null; /* la caracteristique dont on lit l'explication */
@@ -7556,7 +7560,7 @@ function lancerIleBoss() {
   combat = { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, file: [], total: 1, attente: 99, st: { inflige: 0, max: 0, recus: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: st.pvMax, /* (chaque essai part avec toute sa vie) */ regen: menthePrete(), citron: citronPret(), agi: royalePrete(), pvMax: st.pvMax, cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] };
   mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
-  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<img src="' + srcUlti('zone') + '" alt="" style="filter:grayscale(1) brightness(1.2);opacity:.75"><span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
   const g = new T.Vector3(-6.4, 0, -6.4).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS); apparaitre(t, { x: g.x, z: g.z }); /* (il sort de l'arche-crane) */
   son('vague'); toast(MONSTRES[t].nom + ' colossal' + (MONSTRES[t].fem ? 'e' : '') + ' ! Tape le plus fort possible : il enrage toutes les ' + ENRAGE_ILE.periode + ' s.', 'alerte'); majCombatHud();
 }
@@ -7680,7 +7684,7 @@ function lancerArene() {
   if (repas.length) { S_.mange = {}; S_.mangeDeux = false; sauver(); }
   mode = null; aDeplacer = null; majBandeau(); chemin = []; arrivee = null;
   $('hud').classList.add('en-combat'); $('combat').hidden = false;
-  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
+  $('combat-ico').src = 'assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES; $('combat-nom').textContent = cl.nom + ' niveau ' + st.niveau; $('sort-rond').innerHTML = '<img src="assets/icones/btn-sort-' + modeleDe(classeDe(), S_.perso.look) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + cl.sort + '</span>'; $('ulti-rond').innerHTML = S_.ulti ? '<img src="' + srcUlti(S_.ulti) + '" alt=""><span>' + nomUlti(S_.ulti) + '</span>' : '<img src="' + srcUlti('zone') + '" alt="" style="filter:grayscale(1) brightness(1.2);opacity:.75"><span>Ulti</span>'; $('ulti-rond').style.setProperty('--teinte', S_.ulti ? ULTIS[S_.ulti].teinte : '#9b6cff');
   appliquerVagueArene(combat, vagueArene(1));
 }
 function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du boss, le record ; puis la suivante (apres un souffle, si c'etait un boss) */
@@ -8153,7 +8157,7 @@ const toucherQ = (quoi) => (tutoDoigt() ? 'touche ' : 'clic droit sur ') + quoi;
 const cliquerQ = (quoi) => (tutoDoigt() ? 'touche ' : 'clic gauche sur ') + quoi;
 const SORT_LECON = {
   iop: () => `le <em>Bond du Iop</em> : tu vises où il saute, il frappe trois fois plus fort en retombant et se soigne un peu à chaque monstre touché.`,
-  cra: () => `la <em>Flèche perçante</em> : elle traverse toute une ligne de monstres. Elle se charge en abattant 30 monstres.`,
+  cra: () => `la <em>Flèche perçante</em> : elle traverse toute une ligne de monstres. Elle se recharge en 20 s.`,
   osa: () => `l'<em>Invocation</em> : tu vises où poser un Bouftou, qui retombe sur les monstres puis se bat pour toi.`
 };
 const LECONS = [
