@@ -1162,16 +1162,16 @@ const LEGENDAIRES = [
   { cle: 'royal', boss: 'royal', nom: 'Couronne du Bouftou Royal', pouvoir: 'Tes Bouftous donnent 25 % de laine en plus.' },
   { cle: 'chafer', boss: 'cuirasse', nom: 'Heaume du Chafer Cuirassé', pouvoir: 'Tu prends 10 % de dégâts en moins et tu renvoies 10 % des coups reçus au corps à corps.' },
   { cle: 'bworker', boss: 'bworker', nom: 'Casque du Bworker', pouvoir: 'Sous 30 % de vie, tu entres en rage : tu frappes 30 % plus vite.' },
-  { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Sort Séisme (touche 3) : la terre s\'ouvre autour de ta cible, 2 fois tes dégâts. Recharge 12 s.' },
+  { cle: 'craq', boss: 'craqLegendaire', nom: 'Couronne du Craqueleur Légendaire', pouvoir: 'Sort Séisme (touche 3) : la terre s\'ouvre là où tu vises (jusqu\'à 5 cases de toi), sur 1,5 case autour, 2 fois tes dégâts. Recharge 12 s.' },
   { cle: 'wa', boss: 'waWabbit', arme: true, rang: 5, /* (14/10/2026 : « les items legendaires du niveau 60 a 100, des corps a corps », Mathieu ; variantes choisies : epee B, arc A, fouet A) */
     noms: { epee: 'Épée du Wa Wabbit', arc: 'Arc du Wa Wabbit', fouet: 'Fouet du Wa Wabbit' }, icone: 'wawabbit', noeuds: { epee: 'Arme_epee_wawabbitB', arc: 'Arme_arc_wawabbit', fouet: 'Arme_fouet_wawabbit' },
     cales: { epee: { y0: 0.06, L: 1.51 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.05, L: 0.57, laniere: 'laniere', retirer: /^(laniere|cawotte|sillon|fane)$/ } }, /* (le modele : pommeau, pointe, corde, laniere) */
-    pouvoir: 'Sort Pluie de cawottes (touche 4) : quatre cawottes tombent autour de ta cible, 2 fois tes dégâts chacune. Recharge 13 s. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.' },
+    pouvoir: 'Sort Pluie de cawottes (touche 4) : quatre cawottes tombent là où tu vises (jusqu\'à 5 cases de toi, sur environ 1 case autour), 2 fois tes dégâts chacune. Recharge 13 s. Et tes repas de Cawotte et de Fraise valent pour 2 vagues.' },
   { cle: 'koulosse', boss: 'koulosse', arme: true, rang: 6, fichier: 'equipements-boufcoul', /* (le palier 7, 14/10/2026 ; variantes choisies par Mathieu : lame A, arc B, fouet B) */
     noms: { epee: 'Lame du Koulosse', arc: 'Arc du Koulosse', fouet: 'Fouet du Koulosse' }, icone: 'koulosse', noeuds: { epee: 'Arme_epee_koulosse', arc: 'Arme_arc_koulosseB', fouet: 'Arme_fouet_koulosseB' },
     cales: { epee: { y0: 0.02, L: 1.62 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.03, L: 0.65, laniere: 'fumee', retirer: /^fumee$/ } },
-    pouvoir: 'Sort Fumée (touche 4) : un nuage enveloppe ta cible, les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss). Recharge 13 s.' },
-  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Sort Souffle de feu (touche 3) : un cône de feu vers ta cible, 3 fois tes dégâts, et les monstres touchés brûlent. Recharge 12 s.' }
+    pouvoir: 'Sort Fumée (touche 4) : un nuage là où tu vises (jusqu\'à 5 cases de toi, sur 1 case autour), les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss). Recharge 13 s.' },
+  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Sort Souffle de feu (touche 3) : un cône de feu vers où tu vises, sur 3,5 cases, 3 fois tes dégâts, et les monstres touchés brûlent. Recharge 12 s.' }
 ];
 LEGENDAIRES.forEach((L, i) => { if (L.arme) return; const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
 /* les armes : l'epee du Iop, l'arc du Cra, le fouet de l'Osamodas, aux couleurs de chaque panoplie (icones arme-<type>-<panoplie>, equipements.glb).
@@ -5920,6 +5920,9 @@ const viseurBord = new T.Mesh(new T.RingGeometry(0.93, 1, 56), new T.MeshBasicMa
 [viseurDisque, viseurBord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 3; VISEUR.add(m); });
 const geoLigne = new T.BoxGeometry(1, 0.02, 1); geoLigne.translate(0, 0, 0.5);
 const VISEE_LIGNE = new T.Mesh(geoLigne, new T.MeshBasicMaterial({ color: '#ffe08a', transparent: true, opacity: 0.4, depthWrite: false, depthTest: false })); VISEE_LIGNE.visible = false; VISEE_LIGNE.renderOrder = 3; scene.add(VISEE_LIGNE);
+const VISEE_CONE = new T.Group(); { const m = new T.Mesh(new T.CircleGeometry(1, 40, -Math.PI / 2 - 0.55, 1.1), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.35, depthWrite: false, depthTest: false, side: T.DoubleSide })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; VISEE_CONE.add(m);
+  const bord = new T.Mesh(new T.RingGeometry(0.95, 1, 40, 1, -Math.PI / 2 - 0.55, 1.1), new T.MeshBasicMaterial({ color: '#ff5a10', transparent: true, opacity: 0.9, depthWrite: false, depthTest: false, side: T.DoubleSide })); bord.rotation.x = -Math.PI / 2; bord.renderOrder = 4; VISEE_CONE.add(bord);
+  for (const t0 of [-Math.PI / 2 - 0.55, -Math.PI / 2 + 0.55]) { const l = new T.Mesh(new T.CircleGeometry(1, 1, t0 - 0.014, 0.028), bord.material); l.rotation.x = -Math.PI / 2; l.renderOrder = 4; VISEE_CONE.add(l); } } /* (les deux cotes : de fines parts, du perso au bord) */ VISEE_CONE.visible = false; /* (un bord net : l'arc et les deux cotes) */ scene.add(VISEE_CONE); /* (le cone du Souffle de feu, vers +z, mis a l'echelle de sa portee) */
 const PORTEE_PERCANTE = 10, LARGEUR_PERCANTE = 0.9;
 const solPlan = new T.Plane(new T.Vector3(0, 1, 0), 0);
 function pointSol(ev) { /* le point du sol sous la souris : la case touchee, sinon le plan du sol */
@@ -5930,9 +5933,9 @@ function pointSol(ev) { /* le point du sol sous la souris : la case touchee, sin
 function viser(v) {
   const pp = paysanMesh.position, c = (combat.cible && combat.cible.etat === 'actif') ? combat.cible : plusProcheMonstre(pp);
   visee = Object.assign(v, { point: c ? new T.Vector3(c.x, c.m.position.y, c.z) : pp.clone().add(new T.Vector3(Math.sin(paysanMesh.rotation.y) * 3, 0, Math.cos(paysanMesh.rotation.y) * 3)) });
-  toast(v.ligne ? 'Vise : la flèche part en ligne droite vers la souris. Clique pour tirer (clic droit pour annuler).' : v.rayon < 1 ? 'Vise un monstre et clique (clic droit pour annuler).' : 'Place le cercle avec la souris, clique pour lancer (clic droit pour annuler).', 'or');
+  toast(v.cone ? 'Vise : le souffle part vers la souris. Clique pour lancer (clic droit pour annuler).' : v.ligne ? 'Vise : la flèche part en ligne droite vers la souris. Clique pour tirer (clic droit pour annuler).' : v.rayon < 1 ? 'Vise un monstre et clique (clic droit pour annuler).' : 'Place le cercle avec la souris, clique pour lancer (clic droit pour annuler).', 'or');
 }
-function annulerVisee() { visee = null; VISEUR.visible = false; VISEE_LIGNE.visible = false; if (typeof PORTEE_VUE !== 'undefined') PORTEE_VUE.visible = false; }
+function annulerVisee() { visee = null; VISEUR.visible = false; VISEE_LIGNE.visible = false; VISEE_CONE.visible = false; if (typeof PORTEE_VUE !== 'undefined') PORTEE_VUE.visible = false; }
 /* le point ou un sort vise tombe vraiment : a portee du perso, et sur une case ou l'on marche (sinon la plus proche autour du point vise).
    « malgre le ciblage, le Bouftou de l'Osa ne tombe pas a l'endroit cible » (testeurs, 12/10/2026) : au-dela de la portee, le cercle restait sous
    la souris et le Bouftou tombait plus pres ; le cercle de visee utilise maintenant ce meme point */
@@ -5944,23 +5947,27 @@ function pointSort(pt, portee) {
   for (let r = 0.5; r <= 3; r += 0.5) { let best = null, bd = Infinity; for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8, X = x + Math.sin(a) * r, Z = z + Math.cos(a) * r; if (ok(X, Z)) { const d = Math.hypot(X - pt.x, Z - pt.z); if (d < bd) { bd = d; best = { x: X, z: Z }; } } } if (best) return best; }
   const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; k = Math.max(0, k); return { x: pp.x + (x0 - pp.x) * k, z: pp.z + (z0 - pp.z) * k };
 }
+function pointLibre(pt, portee) { const pp = paysanMesh.position, L = Math.hypot(pt.x - pp.x, pt.z - pp.z); return L > portee ? { x: pp.x + (pt.x - pp.x) * portee / L, z: pp.z + (pt.z - pp.z) * portee / L } : { x: pt.x, z: pt.z }; } /* (un sort legendaire tombe partout a portee) */
 function monstreVise(pt) { let best = null, bd = 1.4; if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - pt.x, o.z - pt.z); if (d < bd) { bd = d; best = o; } }); return best; }
 function majVisee(s) {
   if (!visee || !combat) { if (visee) annulerVisee(); return; }
   const pp = paysanMesh.position, pt = visee.point;
+  if (visee.cone) { VISEUR.visible = false; VISEE_LIGNE.visible = false; PORTEE_VUE.visible = false; VISEE_CONE.visible = true; VISEE_CONE.position.set(pp.x, pp.y + 0.08, pp.z); VISEE_CONE.rotation.y = Math.atan2(pt.x - pp.x, pt.z - pp.z); VISEE_CONE.scale.setScalar(visee.portee); VISEE_CONE.children[0].material.opacity = 0.42 + Math.sin(s * 6) * 0.06; return; }
+  VISEE_CONE.visible = false;
   if (visee.ligne) {
     VISEUR.visible = false; VISEE_LIGNE.visible = true; VISEE_LIGNE.position.set(pp.x, pp.y + 0.08, pp.z); VISEE_LIGNE.rotation.y = Math.atan2(pt.x - pp.x, pt.z - pp.z);
     VISEE_LIGNE.scale.set(LARGEUR_PERCANTE * 2, 1, PORTEE_PERCANTE); VISEE_LIGNE.material.opacity = 0.5 + Math.sin(s * 6) * 0.1; return;
   }
   VISEE_LIGNE.visible = false; VISEUR.visible = true;
   let x = pt.x, z = pt.z, y = pt.y; const m = visee.rayon < 1 && monstreVise(pt); if (m) { x = m.x; z = m.z; y = m.m.position.y; } /* le coup fatal s'accroche au monstre le plus proche */
-  if (visee.portee) { const q = pointSort(pt, visee.portee); x = q.x; z = q.z; PORTEE_VUE.visible = true; PORTEE_VUE.position.set(pp.x, pp.y + 0.08, pp.z); PORTEE_VUE.scale.setScalar(visee.portee); } /* (la ou il tombera vraiment, et jusqu'ou il porte) */
+  if (visee.portee) { const q = visee.libre ? pointLibre(pt, visee.portee) : pointSort(pt, visee.portee); x = q.x; z = q.z; PORTEE_VUE.visible = true; PORTEE_VUE.position.set(pp.x, pp.y + 0.08, pp.z); PORTEE_VUE.scale.setScalar(visee.portee); } /* (la ou il tombera vraiment, et jusqu'ou il porte) */
   const c = caseIci(x, z); VISEUR.position.set(x, (c ? posCase(c).y : y) + 0.09, z); VISEUR.scale.setScalar(visee.rayon * (m ? Math.max(1, m.d.ombre * 0.8) : 1) * (1 + Math.sin(s * 6) * 0.03));
   const t = new T.Color(visee.teinte); viseurDisque.material.color.copy(t); viseurBord.material.color.copy(t); viseurDisque.material.opacity = visee.rayon < 1 && !m ? 0.1 : 0.25;
 }
 function tirerVisee(pt) {
   const v = visee; if (!v || !combat || combat.fin) { annulerVisee(); return; }
   if (v.quoi === 'ulti' && v.id === 'mono') { const m = monstreVise(pt); if (!m) { toast('Vise un monstre.'); return; } annulerVisee(); if (combat.st) combat.st.sorts++; executerUlti('mono', m); return; }
+  if (v.quoi === 'leg') { annulerVisee(); executerLeg(v.emp, v.cone ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); return; }
   annulerVisee(); if (combat.st) combat.st.sorts++; son('sort');
   if (v.quoi === 'ulti') executerUlti(v.id, null, pt); else if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt);
 }
@@ -6068,34 +6075,43 @@ function invoquer(pt) {
 /* les pouvoirs des coiffes legendaires qui agissent seuls pendant les vagues : le seisme du Craqueleur, le souffle de Crocabulia */
 /* LES SORTS LEGENDAIRES (16/10/2026) : la coiffe (touche 3) et l'arme (touche 4) ; on les lance sur sa cible (ou le monstre le plus proche a portee) */
 const SORTS_LEG = {
-  craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10 },
+  craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 7 },
-  wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10 },
-  koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10 },
+  wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
+  koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 2.2 },
 };
 const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k); return o && o.leg && SORTS_LEG[o.leg] ? o.leg : null; };
 const cdLeg = (emp) => emp === 'coiffe' ? 'cdLegC' : 'cdLegA';
 function cibleLeg(portee) { const c = combat, pp = paysanMesh.position, d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z);
   if (c.cible && c.cible.etat === 'actif' && d(c.cible) <= portee) return c.cible;
   return c.monstres.filter((o) => o.etat === 'actif' && d(o) <= portee).sort((a, b) => d(a) - d(b))[0] || null; }
-function lancerLeg(emp) {
+function lancerLeg(emp) { /* le bouton 3 ou 4 : on vise, comme l'ulti (la zone au sol, la portee autour du perso) ; retoucher le bouton annule */
   const c = combat; if (!c || c.fin || c.deroute != null) return; const cle = legDe(emp); if (!cle) return;
+  if (visee && visee.quoi === 'leg' && visee.emp === emp) { annulerVisee(); return; }
   const S = SORTS_LEG[cle]; if ((c[cdLeg(emp)] || 0) > 0) return;
-  const cib = cibleLeg(S.portee); if (!cib) { toast('Aucun monstre à portée pour ' + S.nom + ' (' + Math.round(S.portee / 2) + ' cases).'); return; }
-  const pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), y = cib.m.position.y;
-  c[cdLeg(emp)] = S.recharge; if (c.st) c.st.sorts++; son('sort'); paysanMesh.userData.angle = Math.atan2(cib.x - pp.x, cib.z - pp.z);
-  if (cle === 'craq') { /* le seisme : la terre s'ouvre autour de ta cible */
-    const x = cib.x, z = cib.z; pouf(x, y, z, 6, '#9a948c'); pouf(x, y, z, 3, '#ff7a1e');
-    actifs.forEach((o) => { if (Math.hypot(o.x - x, o.z - z) < 3) blesser(o, Math.round(st.deg * 2), true); });
-  } else if (cle === 'croc') { /* le souffle de feu : un cone vers ta cible, les monstres touches brulent */
-    const a = Math.atan2(cib.x - pp.x, cib.z - pp.z);
-    for (let k = 1; k <= 4; k++) pouf(pp.x + Math.sin(a) * k * 1.3, pp.y + 0.6, pp.z + Math.cos(a) * k * 1.3, 1 + k * 0.5, k % 2 ? '#ff7a1e' : '#ffd04a');
+  if (!c.monstres.some((o) => o.etat === 'actif')) { toast('Aucun monstre à viser pour l\'instant.'); return; }
+  viser({ quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', libre: true });
+}
+function lancerLegAuto(emp) { /* (les bots de test : sur la cible, sans viser) */
+  const c = combat; if (!c || c.fin || c.deroute != null) return; const cle = legDe(emp); if (!cle || (c[cdLeg(emp)] || 0) > 0) return;
+  const cib = cibleLeg(SORTS_LEG[cle].portee); if (cib) executerLeg(emp, { x: cib.x, z: cib.z }, true);
+}
+function executerLeg(emp, pt, compter) {
+  const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
+  const S = SORTS_LEG[cle], pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
+  c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; son('sort'); paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
+  if (cle === 'craq') { /* le seisme : la terre s'ouvre la ou tu vises */
+    pouf(x, y, z, S.zone * 2, '#9a948c'); pouf(x, y, z, S.zone, '#ff7a1e');
+    actifs.forEach((o) => { if (Math.hypot(o.x - x, o.z - z) < S.zone) blesser(o, Math.round(st.deg * 2), true); });
+  } else if (cle === 'croc') { /* le souffle de feu : un cone vers ou tu vises, les monstres touches brulent */
+    const a = Math.atan2(x - pp.x, z - pp.z);
+    for (let k = 1; k <= 5; k++) pouf(pp.x + Math.sin(a) * k * 1.3, pp.y + 0.6, pp.z + Math.cos(a) * k * 1.3, 1 + k * 0.5, k % 2 ? '#ff7a1e' : '#ffd04a');
     actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
-      if (d < 7 && Math.abs(e) < 0.55) { blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') { o.brule = 3; o.bruleDeg = Math.max(1, Math.round(st.deg * 0.3)); } } });
-  } else if (cle === 'wa') { /* la pluie de cawottes : quatre cawottes autour de ta cible */
-    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.6 : 0, x = cib.x + Math.cos(a) * r, z = cib.z + Math.sin(a) * r; pouf(x, y, z, 2.4, '#f08a24');
-      actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
-  } else if (cle === 'koulosse') nuageLeg(cib.x, cib.z); /* la fumee : un nuage sur ta cible */
+      if (d < S.portee && Math.abs(e) < 0.55) { blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') { o.brule = 3; o.bruleDeg = Math.max(1, Math.round(st.deg * 0.3)); } } });
+  } else if (cle === 'wa') { /* la pluie de cawottes : quatre cawottes dans la zone visee */
+    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.0 : 0, X = x + Math.cos(a) * r, Z = z + Math.sin(a) * r; pouf(X, y, Z, 2.4, '#f08a24');
+      actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
+  } else if (cle === 'koulosse') nuageLeg(x, z); /* la fumee : un nuage la ou tu vises */
   majCombatHud();
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
