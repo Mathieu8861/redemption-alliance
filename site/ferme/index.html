@@ -4944,8 +4944,8 @@ const MONSTRES = {
   koalakCoco: { nom: 'Koalak Coco', modele: 'koalakCoco', icone: 'koalak-coco', desc: 'au lance-pierre : sa noix de coco abîme tes bâtiments, de loin', res: 'kaliptus', pv: (n) => 400 + 17 * (n - 60), deg: (n) => 22 + Math.round(1.3 * (n - 60)), cadence: 2.3, vitesse: 1.6, portee: 6, distance: true, projectile: 'fruit', fruit: '#7a5230', grosFruit: true, ombre: 1.2, casse: 0.7 },
   drakoalak: { nom: 'Drakoalak', modele: 'drakoalak', icone: 'drakoalak', desc: 'charge en ligne droite sur sa Dragodinde : sors de la bande rouge', res: 'kaliptus', pv: (n) => 820 + 32 * (n - 60), deg: (n) => 28 + Math.round(1.8 * (n - 60)), cadence: 1.8, vitesse: 2.4, portee: 1.7, ombre: 2.0, charge: 9, degSort: 1.8 },
   chevaucheurKoalak: { nom: 'Chevaucheur Koalak', modele: 'chevaucheurKoalak', icone: 'chevaucheur-koalak', desc: 'quand sa monture squelette tombe, il continue à pied', res: 'kaliptus', pv: (n) => 700 + 28 * (n - 60), deg: (n) => 26 + Math.round(1.6 * (n - 60)), cadence: 1.8, vitesse: 2.2, portee: 1.8, ombre: 2.0, demonte: 'guerrierKoalak' },
-  boufcoul: { nom: 'Boufcoul', modele: 'chafer', fabrique: () => fabriquerBoufcoul(), icone: 'boufcoul', desc: 'le Bouftou du Koulosse, laine rasta : il fonce sur toi', res: 'kaliptus', pv: (n) => 500 + 20 * (n - 60), deg: (n) => 20 + (n - 60), cadence: 1.4, vitesse: 2.0, portee: 1.3, ombre: 1.4, casse: 0.3 },
-  koulosse: { nom: 'Koulosse', propre: true, modele: 'koulosse', icone: 'koulosse', desc: 'le colosse fumeur de la montagne, armure (-35 %) : crache des nuages de fumée (reste plus de 2 s dedans et tu es empoisonné), t\'attire à lui (sors de la bande verte), appelle des Boufcouls toutes les 16 s ; sous 30 % de vie, il tire sur son calumet et s\'entoure de fumée', res: 'kaliptus', pv: () => 5200, deg: () => 30, cadence: 2.3, vitesse: 0.9, portee: 2.8, ombre: 4.2, armure: 0.35, renforts: ['boufcoul', 'Boufcouls'], fumee: 9, appel: 13, calumet: true, degSort: 9, rage: true, boss: true }
+  boufcoul: { nom: 'Boufcoul', modele: 'chafer', fabrique: () => fabriquerBoufcoul(), icone: 'boufcoul', desc: 'le Bouftou du Koulosse, laine rasta : il fonce sur toi', res: 'kaliptus', pv: (n) => 500 + 20 * (n - 60), deg: (n) => 20 + (n - 60), cadence: 1.4, vitesse: 2.2, /* (+10 % le 15/10/2026) */ portee: 1.3, ombre: 1.4, casse: 0.3 },
+  koulosse: { nom: 'Koulosse', propre: true, modele: 'koulosse', icone: 'koulosse', desc: 'le colosse fumeur de la montagne, armure (-35 %) : crache des nuages de fumée (les toucher empoisonne : 2 s de poison par seconde passée dedans), t\'attire à lui (sors de la bande verte), appelle des Boufcouls toutes les 16 s ; sous 30 % de vie, il tire sur son calumet et s\'entoure de fumée', res: 'kaliptus', pv: () => 5200, deg: () => 30, cadence: 2.3, vitesse: 0.9, portee: 2.8, ombre: 4.2, armure: 0.35, renforts: ['boufcoul', 'Boufcouls'], fumee: 9, appel: 13, calumet: true, degSort: 9, rage: true, boss: true }
 };
 const STATS_CLASSE = {
   /* (13/10/2026, Mathieu : portees en cases rondes, Iop 1, Osamodas 3, Cra 5 (une case = S = 2 unites) ; degats de base 10, 6 et 8, puis la pente par niveau
@@ -5166,7 +5166,7 @@ function ficheMonstre(t) {
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
   if (d.pluie) L.push(capa('sort', 'Pluie de cawottes', 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,2 s pour esquiver') + recup('pluie'), 'violet'));
   if (d.cawotteRoyale) L.push(capa('assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num('0,5 s pour esquiver') + recup('cawotteRoyale'), 'or'));
-  if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée, ses nuages restent 24 s au sol : reste plus de 2 s dedans et tu es empoisonné.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
+  if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée, ses nuages restent 24 s au sol : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
   if (d.appel) L.push(capa('sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui.', recup('appel'), 'violet'));
   if (d.renforts) L.push(capa('renfort', 'Renforts', 'Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert'));
   if (d.rage) L.push(capa('rage', 'Rage', 'Sous 30 % de vie, il frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge'));
@@ -5378,6 +5378,7 @@ function blesser(mo, n, gros) {
 /* (le Bouftou des vagues 1 a 10 lache de la laine depuis le 14/10/2026 : « ouais applique », Mathieu ; il ne lachait aucune ressource) */
 const RES_MONSTRE = { bwork: 'dent_bwork', bworkArcher: 'dent_bwork', bworkMage: 'dent_bwork', bworkette: 'dent_bwork', bworker: 'dent_bwork', tofu: 'plume', bouftou: 'laine', chafer: 'os_chafer', fantassin: 'os_chafer', gardien: 'os_chafer', archer: 'os_chafer', cuirasse: 'os_chafer', royal: 'laine' };
 function butin(mo) {
+  if (combat.arene && combat.arene.ileBoss) return; /* (15/10/2026, « j'ai gagne 51 branches de Kaliptus, ca fait beaucoup non ? » : sur l'ile des boss, aucun butin ; les recompenses sont dans le coffre du samedi) */
   const L = combat.loot || (combat.loot = { res: {}, objets: [] }), pros = 1 + caracs().prospection / 100, r = mo.d.res || RES_MONSTRE[mo.type];
   if (r && Math.random() < (mo.d.boss ? 1 : 0.35) * pros) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   if (combat.arene) return; /* (l'Arene : les pieces sont dans les coffres des boss, pas sur les monstres) */
@@ -5480,8 +5481,10 @@ function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : i
   const f = { x, z, r, fin: duree, t: 0, g, bouffees, suit, matF, danger: { x, z, r } }; c.fumees.push(f); (c.dangers = c.dangers || []).push(f.danger); return f;
 }
 function retirerFumee(f) { if (!f) return; scene.remove(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
-function majFumees(dt, s) { /* rester plus de 2 s dans un nuage : 2 % des PV par seconde, tant qu'on y reste */
-  const c = combat; if (!c || !c.fumees || !c.fumees.length) { if (c) c.enfume = 0; return; }
+function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, puis 2 s de plus par seconde passee dedans ; le poison court encore une fois sorti (2 % des PV par seconde) */
+  const c = combat; if (!c) return;
+  if (c.poisonFumee > 0) { poisonPerso(0.02 * (c.arene && c.arene.ileBoss ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), Math.min(dt, c.poisonFumee)); if (!combat || combat !== c) return; c.poisonFumee = Math.max(0, c.poisonFumee - dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
+  if (!c.fumees || !c.fumees.length) { c.dansFumee = false; return; }
   const pp = paysanMesh.position; let dedans = false;
   c.fumees.slice().forEach((f) => {
     f.t += dt; if (f.suit) { if (f.suit.etat !== 'actif') { retirerFumee(f); return; } f.x = f.suit.x; f.z = f.suit.z; f.g.position.set(f.x, solA(f.x, f.z), f.z); f.danger.x = f.x; f.danger.z = f.z; }
@@ -5490,8 +5493,10 @@ function majFumees(dt, s) { /* rester plus de 2 s dans un nuage : 2 % des PV par
     f.bouffees.forEach((m) => { m.position.y = 0.4 + Math.sin(s * 1.3 + m.userData.p) * 0.14; m.rotation.y += dt * 0.3; });
     if (Math.hypot(pp.x - f.x, pp.z - f.z) < f.r) dedans = true;
   });
-  c.enfume = dedans ? (c.enfume || 0) + dt : Math.max(0, (c.enfume || 0) - dt * 2);
-  if (dedans && c.enfume >= 2) { if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : tu perds 2 % de tes PV par seconde tant que tu y restes !', 'alerte'); } poisonPerso(0.02 * (c.arene && c.arene.ileBoss ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
+  if (dedans) {
+    if (!c.dansFumee) { c.dansFumee = true; c.fumeeT = 0; c.poisonFumee = (c.poisonFumee || 0) + 2; if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : 2 s de poison dès que tu la touches, puis 2 s de plus par seconde passée dedans (2 % de tes PV par seconde) !', 'alerte'); } } /* (le premier contact compte pour une seconde) */
+    else { c.fumeeT += dt; while (c.fumeeT >= 1) { c.fumeeT -= 1; c.poisonFumee += 2; } }
+  } else c.dansFumee = false;
 }
 function attirerPerso(mo) { /* l'appel du Koulosse : le perso glisse jusqu'a lui */
   const p = paysanMesh.position, a = Math.atan2(p.x - mo.x, p.z - mo.z), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4), x0 = p.x, z0 = p.z, c0 = combat; let t = 0;
@@ -5790,7 +5795,7 @@ function majMonstre(mo, dt, s) {
   if (mo.d.fumee && combat.deroute == null) { /* le Koulosse crache des nuages de fumee verte : un sur toi, deux autour */
     if (mo.fumeeT == null) mo.fumeeT = mo.d.fumee - 3; mo.fumeeT += vSort;
     if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
-      if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : reste plus de 2 s dans un nuage vert et tu es empoisonné (2 % de tes PV par seconde). Sors-en !', 'alerte'); }
+      if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : la toucher t\'empoisonne (2 s de poison par seconde passée dedans, 2 % de tes PV par seconde). Évite les nuages verts !', 'alerte'); }
       [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 24, k * 0.15));
       if (!combat || combat.fin) return; }
   }
