@@ -1133,7 +1133,7 @@ function ouvrirForge() {
     (cles.length ? '<div class="hdv-section">Tes pièces</div>' + cles.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce d\'équipement pour l\'instant : les monstres des vagues en lâchent.</p>'));
 }
 function forgerObjet(k, t) {
-  if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (Améliorer, catégorie Défense, niveau ' + NIV_ARENE + ').'); return null; }
+  if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (Améliorer, catégorie Ferme, niveau ' + NIV_ARENE + ').'); return null; }
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
   if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
   if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }
@@ -6351,9 +6351,9 @@ const GAINS = {
 /* « le systeme qu'on a fait a l'HDV dans Achat est super, on pourrait faire le meme principe pour les ameliorations ? » (Mathieu, 13/10/2026) : trois categories
    en haut, chacune avec le nombre d'ameliorations que tu peux acheter tout de suite ; dedans, une phrase sur leur role, ce qui s'achete d'abord, puis ce qui attend
    un niveau, puis ce qui est au maximum */
-const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal']],
+const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes. Et l\'atelier de forgemagie, pour monter le jet de tes pièces.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal', 'forge']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
   ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous, tes Tofus et tes Gelées : plus de laine, de plumes et de pots de gelée.', ['enclos', 'voliere', 'geliere']],
-  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus. Et l\'atelier de forgemagie, pour monter le jet de tes pièces.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'forge']]];
+  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche']]];
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
   if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
@@ -7598,7 +7598,7 @@ const LECONS = [
   { id: 'arene', titre: 'L\'Arène', ico: 'kama', resume: 'Les vagues sans fin, le ticket, le classement.', quand: () => enArene,
     pages: [() => `Bienvenue dans l'<em>Arène</em> ! Des vagues sans fin, de plus en plus dures, avec les monstres de tes paliers déjà battus. Ils sortent des trois herses et foncent tous sur toi : ici, ni culture ni bâtiment à défendre.`,
       () => `Un <em>boss</em> toutes les 5 vagues, avec son <em>coffre</em> (des kamas, parfois une pièce de ta panoplie avec un bon jet, avec beaucoup de chance des runes), puis un souffle pour boire tes pots et manger. Chaque vague tenue rapporte de l'expérience et un peu de kamas. Les runes se méritent : plus tu vas loin, plus les monstres en lâchent.`,
-      () => `Les <em>runes de forgemagie</em> améliorent tes pièces : +20 % de jet sur chaque caractéristique, jusqu'au maximum. La <em>rune parfaite</em> met une pièce au jet maximum. Elles s'utilisent à ton <em>atelier de forgemagie</em> (Améliorer, catégorie Défense, ${fmt(100000)} kamas).`,
+      () => `Les <em>runes de forgemagie</em> améliorent tes pièces : +20 % de jet sur chaque caractéristique, jusqu'au maximum. La <em>rune parfaite</em> met une pièce au jet maximum. Elles s'utilisent à ton <em>atelier de forgemagie</em> (Améliorer, catégorie Ferme, ${fmt(100000)} kamas).`,
       () => `Ton <em>record de la semaine</em> compte au classement de l'alliance, pour l'honneur. ${ENTREES_ARENE} entrées par jour, un ticket de ${fmt(TICKET_ARENE)} kamas chacune.`] },
   { id: 'raids', titre: 'Les voleurs de VSA', ico: 'voleur', urgent: true, resume: 'Les simus VSA sur la grange, l\'arbalète, les tours.', quand: () => !!raidAnnonce,
     pages: [() => `Une <em>simu VSA</em> : des <em>voleurs de VSA</em> attaquent à plusieurs ! Ils grimpent sur l'île et filent vers ta <em>grange</em> pour voler tes récoltes, puis repartent par la case violette, où Omeho, leur chef, les attend sur sa calèche.`,
