@@ -126,10 +126,10 @@ function majBarresBat() {
     const r = pvBat(k) / pvMaxBat(k), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)';
     e.classList.toggle('ruine', enRuine(k)); e.dataset.info = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
     e.innerHTML = '<img src="assets/icones/marteau.png?v=' + VERSION_MODELES + '" alt="">' + (enRuine(k) ? 'En ruine' : '<span class="b"><i style="width:' + (100 * r).toFixed(0) + '%;background:' + col + '"></i></span>' + fmt(pvBat(k)));
-    const z = zoneBat(k); if (z) { const b = boiteBat(z); e.dataset.point = JSON.stringify([z.x, enRuine(k) ? z.y + 1.1 : b.max.y + 0.3, z.z]); }
+    const z = zoneBat(k); if (z) { const b = boiteBat(z); e._point = [z.x, enRuine(k) ? z.y + 1.1 : b.max.y + 0.3, z.z]; }
   });
 }
-function placerBarresBat() { barresBat.forEach((e) => { if (!e.dataset.point) return; const p = JSON.parse(e.dataset.point); vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
+function placerBarresBat() { barresBat.forEach((e) => { const p = e._point; if (!p) return; vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
 /* un coup sur un batiment */
 const DEGATS_BATIMENTS = 3; /* les monstres cognent les batiments 3 fois plus fort que le perso (avant : pareil, une grange tenait une centaine de coups ; 4 jusqu'au 12/10/2026 : en milieu de partie, les reparations coutaient plus que la vague ne rapportait) */
 function blesserBat(cle, n) {

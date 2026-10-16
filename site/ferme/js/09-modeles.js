@@ -85,6 +85,18 @@ function fusionGeo(liste, inv, avecOrigine) {
 }
 /* un Bouftou fusionne, pattes comprises : ses 4 pattes deviennent un seul maillage anime par 8 os (une hanche et un genou chacune), une couleur
    par maillage (pattes, sabots, contour), soit 3 dessins au lieu de 24 ; le corps se fusionne comme avant */
+/* COPIER UN MODELE ARTICULE (16/10/2026) : clone() partage le squelette du modele ; ici, chaque os de la copie est retrouve par sa place dans l'arbre
+   (les os des pattes n'ont pas de nom) et les maillages a peau sont lies a ces nouveaux os. userData.pattes pointe vers les os de la copie. */
+function clonerArticule(g0) {
+  const ud = g0.userData; g0.userData = {}; const g = g0.clone(true); g0.userData = ud; /* (clone recopie userData en JSON : pas les os) */
+  const a = [], b = []; g0.traverse((o) => a.push(o)); g.traverse((o) => b.push(o)); const lien = new Map(a.map((o, i) => [o, b[i]]));
+  b.forEach((o, i) => { if (!o.isSkinnedMesh) return; const s = a[i].skeleton; o.bind(new T.Skeleton(s.bones.map((x) => lien.get(x)), s.boneInverses.map((x) => x.clone())), a[i].bindMatrix); });
+  g.userData = Object.assign({}, ud, ud.pattes ? { pattes: ud.pattes.map((p) => ({ hanche: lien.get(p.hanche), genou: lien.get(p.genou) })) } : {}); return g;
+}
+/* un gabarit fabrique une fois, partage (jeter ne le libere jamais), puis copie a chaque usage */
+const GABARITS = {};
+const copieGabarit = (nom, fabriquer) => clonerArticule(GABARITS[nom] || (GABARITS[nom] = partagerGabarit(fabriquer())));
+const partagerGabarit = (g) => { partager(g); return g; };
 function fusionnerBouftou(g) { souderPattes(g); return fusionner(g); }
 function souderPattes(g) {
   const P = g.userData.pattes; if (!P || !P.length || P[0].hanche.isBone) return;

@@ -115,7 +115,7 @@ function bulle(cle, icone, genre, point, cible, nombre, titre) {
   if (!e) { e = document.createElement('div'); zoneBulles.appendChild(e); bullesDyn.set(cle, e); }
   const cls = 'bulle ico ' + (genre || ''), html = icone + (nombre ? '<small>' + nombre + '</small>' : ''); /* rien n'est refait si rien ne change : sur tablette, l'image refaite clignotait */
   if (e.className !== cls) e.className = cls; if (e._html !== html) { e.innerHTML = html; e._html = html; } if (e.dataset.info !== (titre || '')) { e.dataset.info = titre || ''; e.setAttribute('aria-label', titre || ''); }
-  e.dataset.point = JSON.stringify(point); e.dataset.cible = cible || ''; e.hidden = false;
+  e._point = point; e.dataset.cible = cible || ''; e.hidden = false;
 }
 function retirerBulle(cle) { const e = bullesDyn.get(cle); if (e) { e.remove(); bullesDyn.delete(cle); } }
 /* l'infobulle : plus celle du navigateur (attribut title, jaune pale et sans style) mais une etiquette aux couleurs du jeu,
@@ -175,13 +175,17 @@ function rendreCasesBulles() {
   });
 }
 const vec = new T.Vector3();
-function placerBulles() {
-  const w = innerWidth, h = innerHeight;
-  bullesDyn.forEach((e) => { const p = JSON.parse(e.dataset.point); vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * w).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * h).toFixed(1) + 'px'; });
-  document.querySelectorAll('[data-ancre]').forEach((e) => { const a = ancres[e.dataset.ancre]; if (!a) { e.hidden = true; return; } e.hidden = false; vec.copy(a); if (e.classList.contains('lieu')) vec.y += 1.2; /* le nom au-dessus du toit, il ne cache plus rien */ vec.project(camera); e.style.left = ((vec.x + 1) / 2 * w).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * h).toFixed(1) + 'px'; });
-  /* un nom de batiment qui tombe sur une bulle d'action (plumes, arbalete, voleur...) remonte juste au-dessus d'elle */
+function placerBulles() { /* a chaque image : chaque bulle au-dessus de son point 3D */
+  const w = innerWidth, h = innerHeight, placer = (e, x, y, z) => { vec.set(x, y, z).project(camera); e._top = +((1 - vec.y) / 2 * h).toFixed(1); e.style.left = ((vec.x + 1) / 2 * w).toFixed(1) + 'px'; e.style.top = e._top + 'px'; };
+  bullesDyn.forEach((e) => { const p = e._point; if (p) placer(e, p[0], p[1], p[2]); });
+  document.querySelectorAll('[data-ancre]').forEach((e) => { const a = ancres[e.dataset.ancre]; if (!a) { e.hidden = true; return; } e.hidden = false; placer(e, a.x, a.y + (e.classList.contains('lieu') ? 1.2 : 0), a.z); }); /* (le nom au-dessus du toit, il ne cache plus rien) */
+  /* un nom de batiment qui tombe sur une bulle d'action (plumes, arbalete, voleur...) remonte juste au-dessus d'elle ; toutes les mesures d'abord (une seule mise
+     en page par image, 16/10/2026 : avant, une par mesure apres chaque deplacement), puis les deplacements, calcules a partir de ces mesures */
   const icones = [...bullesDyn.values()].filter((e) => !e.hidden).map((e) => e.getBoundingClientRect());
-  document.querySelectorAll('.bulle.lieu').forEach((e) => { if (e.hidden) return; for (let k = 0; k < 3; k++) { const r = e.getBoundingClientRect(), b = icones.find((i) => r.left < i.right + 2 && r.right > i.left - 2 && r.top < i.bottom + 2 && r.bottom > i.top - 2); if (!b) break; e.style.top = (b.top - 6).toFixed(1) + 'px'; } });
+  [...document.querySelectorAll('.bulle.lieu')].filter((e) => !e.hidden).map((e) => [e, e.getBoundingClientRect()]).forEach(([e, r]) => {
+    const d = r.top - e._top; let haut = r.top, bas = r.bottom, T = null;
+    for (let k = 0; k < 3; k++) { const b = icones.find((i) => r.left < i.right + 2 && r.right > i.left - 2 && haut < i.bottom + 2 && bas > i.top - 2); if (!b) break; T = +(b.top - 6).toFixed(1); haut = T + d; bas = haut + r.height; }
+    if (T !== null) e.style.top = T + 'px'; });
 }
 function bullesFixes() {
   [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière'], ['epouvantail', 'PÉPITO-TRON'], ['forge', 'Forgemagie']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });

@@ -738,24 +738,25 @@ function errer(dt, s) {
     animerPattes(m, e.pas, Math.min(1, e.v * 1.6));
     if (S_.bouftous[k] && S_.bouftous[k].ne) { const t = 0.5 * (0.55 + 0.45 * croissance(S_.bouftous[k])); if (Math.abs(t - m.userData.taille) > 0.002) { m.userData.taille = t; m.scale.setScalar(t); } }
     const sol = caseIci(e.x, e.z); m.position.set(e.x, (sol ? posCase(sol).y : 0) + (1 - Math.cos(e.pas * 2)) * 0.012 * Math.min(1, e.v * 1.5), e.z);
-    const b = bullesDyn.get('b' + k); if (b) b.dataset.point = JSON.stringify([e.x, 1.6, e.z]);
+    const b = bullesDyn.get('b' + k); if (b) b._point = [e.x, 1.6, e.z];
   });
 }
 /* un Bouftou des vagues : le modele de la ferme, dans un groupe (le combat reecrit l'echelle du monstre a chaque image : celle du Bouftou reste dedans) */
 /* le Boufcoul, l'invocation du Koulosse (choisi par Mathieu le 15/10/2026) : notre Bouftou, la laine en trois bandes de l'arriere vers l'avant (rouge, jaune,
    vert sur la tete), cornes brunes, pattes et sabots prune sombre, visage clair */
 const TEINTES_BOUFCOUL = { '34506a': '#3e2a36', '7a6e45': '#5c4049', '746538': '#c49a72', '5f5233': '#a87e5a' }; /* sabots, pattes, museau, paupieres */
-function fabriquerBoufcoul() {
+const fabriquerBoufcoul = () => copieGabarit('boufcoul', construireBoufcoul), fabriquerBouftou = () => copieGabarit('bouftou', construireBouftou); /* (fabriques une fois, copies ensuite, 16/10/2026) */
+function construireBoufcoul() {
   const b0 = creerBouftou(T, maille, { laine: '#ff00ff', cornes: '#9a6a3a', corneTip: '#c8955a', peau: '#dcb890' }); b0.updateMatrixWorld(true); const v = new T.Vector3();
   b0.traverse((o) => { if (!o.isMesh || !o.material || !o.material.color || o.material.side === T.BackSide) return; const hex = o.material.color.getHexString();
     if (hex === 'ff00ff') { o.getWorldPosition(v); o.material = o.material.clone(); o.material.color.set(v.z > 0.05 ? '#8fd34a' : v.z > -0.6 ? '#f6c62e' : '#e0322c'); }
     else if (TEINTES_BOUFCOUL[hex]) { o.material = o.material.clone(); o.material.color.set(TEINTES_BOUFCOUL[hex]); } });
-  const b = fusionnerBouftou(b0); b.scale.setScalar(0.55); const g = new T.Group(); g.add(b); g.updateMatrixWorld(true);
-  const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; return g;
+  return emballerBouftou(fusionnerBouftou(b0));
 }
-function fabriquerBouftou() {
-  const b = fusionnerBouftou(creerBouftou(T, maille, {})); b.scale.setScalar(0.55); const g = new T.Group(); g.add(b); g.updateMatrixWorld(true);
-  const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; return g;
+function construireBouftou() { return emballerBouftou(fusionnerBouftou(creerBouftou(T, maille, {}))); }
+function emballerBouftou(b) { /* dans un groupe (le combat reecrit l'echelle du monstre a chaque image : celle du Bouftou reste dedans) ; ses pattes sur le groupe */
+  b.scale.setScalar(0.55); const g = new T.Group(); g.add(b); g.updateMatrixWorld(true);
+  const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; delete b.userData.pattes; return g;
 }
 function rendreBouftous() {
   bouftousMesh.forEach((b) => scene.remove(b)); bouftousMesh = [];

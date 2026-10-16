@@ -152,7 +152,7 @@ function invoquer(pt) {
   const pp = paysanMesh.position, st = statsPerso(), u = paysanMesh.userData; if (combat.invoc) { jeter(combat.invoc.m); if (combat.invoc.barre) combat.invoc.barre.remove(); }
   const q0 = pointSort(pt || { x: pp.x + 0.9, z: pp.z + 0.3 }, PORTEE_INVOC), x = q0.x, z = q0.z; /* (la ou le cercle de visee l'a montre) */
   const y = hauteurSol(x, z, caseIci(x, z)); u.angle = Math.atan2(x - pp.x, z - pp.z); paysanMesh.rotation.y = u.angle;
-  const m = fusionnerBouftou(creerBouftou(T, maille)); ombrePieds(m, 2.4); m.scale.setScalar(0.45); poser(m, x, y, z, 0);
+  const m = copieGabarit('bouftouInvoque', () => { const g = fusionnerBouftou(creerBouftou(T, maille)); ombrePieds(g, 2.4); return g; }); m.scale.setScalar(0.45); poser(m, x, y, z, 0); /* (fabrique une fois, copie ensuite) */
   /* « mieux reperer le Bouftou allie, et voir le temps avant qu'il disparaisse » (testeurs, 12/10/2026) : un anneau vert a ses pieds, une barre verte
      au-dessus de lui qui se vide en 12 s ; il reste pose 0,6 s la ou il est tombe avant de foncer sur un monstre */
   const anneauA = new T.Mesh(new T.RingGeometry(1.35, 1.65, 36), new T.MeshBasicMaterial({ color: '#56d27a', transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false })); anneauA.rotation.x = -Math.PI / 2; anneauA.position.y = 0.08; m.add(anneauA);
