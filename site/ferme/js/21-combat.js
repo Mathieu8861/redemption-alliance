@@ -28,9 +28,9 @@ function ouvrirHudCombat() { /* l'interface de combat : la classe et le niveau d
 }
 function nettoyerCombat(c, releve) { /* les monstres et leurs effets disparaissent, l'interface de combat se ferme ; releve : le perso se remet debout */
   c.fin = true;
-  c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); scene.remove(o.m); } o.barre.remove(); });
-  (c.fumees || []).forEach((f) => scene.remove(f.g)); /* (les nuages du Koulosse se dissipent) */
-  if (c.invoc) scene.remove(c.invoc.m);
+  c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); jeter(o.m); } o.barre.remove(); });
+  (c.fumees || []).forEach((f) => jeter(f.g)); /* (les nuages du Koulosse se dissipent) */
+  if (c.invoc) jeter(c.invoc.m);
   combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; const u = paysanMesh.userData; u.attaque = null; if (releve) { u.charge = false; paysanMesh.rotation.x = 0; } $('b-fuir').hidden = false;
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null; if (modaleOuverte === 'entracte') fermerModale();
 }
@@ -70,10 +70,11 @@ function chiffre(txt, pos, genre) {
 function pouf(x, y, z, r, couleur) {
   const m = new T.Mesh(new T.RingGeometry(0.2, 0.45, 20), new T.MeshBasicMaterial({ color: couleur || '#fffaf0', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, y + 0.05, z); scene.add(m);
-  let t = 0; effets.push((dt) => { t += dt / 0.4; m.scale.setScalar(1 + t * (r || 2)); m.material.opacity = 0.85 * (1 - t); if (t >= 1) { scene.remove(m); return true; } });
+  let t = 0; effets.push((dt) => { t += dt / 0.4; m.scale.setScalar(1 + t * (r || 2)); m.material.opacity = 0.85 * (1 - t); if (t >= 1) { jeter(m); return true; } });
 }
 /* l'anneau jaune sous le monstre cible */
 const ANNEAU = new T.Mesh(new T.RingGeometry(0.5, 0.64, 32), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.95, side: T.DoubleSide, depthWrite: false }));
+partager(ANNEAU);
 ANNEAU.rotation.x = -Math.PI / 2; ANNEAU.renderOrder = 2; ANNEAU.visible = false; scene.add(ANNEAU);
 
 function ouvrirVagues() {
@@ -375,7 +376,7 @@ function zoneDanger(o) {
   if (o.r) { fond = new T.Mesh(new T.CircleGeometry(o.r, 40), mat0(0.3)); plein = new T.Mesh(new T.CircleGeometry(o.r, 40), mat0(0.38)); const bord = new T.Mesh(new T.RingGeometry(o.r - 0.16, o.r, 48), mat0(0.95)); [fond, plein, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; g.add(m); }); g.position.set(o.x, solA(o.x, o.z) + 0.07, o.z); }
   else { const L = Math.hypot(o.x2 - o.x, o.z2 - o.z) || 0.1; fond = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.3)); plein = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.38)); [fond, plein].forEach((m) => { m.geometry.translate(0, -L / 2, 0); m.rotation.x = -Math.PI / 2; g.add(m); }); g.rotation.y = Math.atan2(o.x2 - o.x, o.z2 - o.z); g.position.set(o.x, Math.max(solA(o.x, o.z), solA(o.x2, o.z2)) + 0.07, o.z); }
   g.children.forEach((m) => { m.renderOrder = 2; }); scene.add(g); (c0.dangers = c0.dangers || []).push(d); let t = 0;
-  const fin = () => { scene.remove(g); g.children.forEach((m) => m.geometry.dispose()); const i = c0.dangers.indexOf(d); if (i >= 0) c0.dangers.splice(i, 1); return true; };
+  const fin = () => { jeter(g); const i = c0.dangers.indexOf(d); if (i >= 0) c0.dangers.splice(i, 1); return true; };
   effets.push((dt) => {
     t += dt; const k = Math.min(1, t / o.duree); if (o.r) plein.scale.setScalar(Math.max(0.01, k)); else plein.scale.y = Math.max(0.01, k); fond.material.opacity = 0.22 + 0.2 * Math.abs(Math.sin(t * 9));
     if (combat !== c0 || c0.fin || (o.mo && o.mo.etat !== 'actif')) return fin();
@@ -432,9 +433,9 @@ function majAfflictions(dt) {
 function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage */
   const c0 = combat, de = new T.Vector3(mo.x, mo.m.position.y + mo.haut * 0.8, mo.z), vers = new T.Vector3(x, solA(x, z) + 0.4, z);
   const boule = new T.Mesh(new T.IcosahedronGeometry(0.4, 1), new T.MeshToonMaterial({ color: '#9ad86a', gradientMap: grad, transparent: true, opacity: 0.85 })); scene.add(boule); let t = -delai;
-  effets.push((dt) => { t += dt / 0.6; if (combat !== c0 || c0.fin) { scene.remove(boule); return true; } if (t < 0) { boule.visible = false; return; } boule.visible = true;
+  effets.push((dt) => { t += dt / 0.6; if (combat !== c0 || c0.fin) { jeter(boule); return true; } if (t < 0) { boule.visible = false; return; } boule.visible = true;
     const k = Math.min(1, t); boule.position.lerpVectors(de, vers, k); boule.position.y += Math.sin(k * Math.PI) * 1.5;
-    if (k >= 1) { scene.remove(boule); pouf(x, solA(x, z), z, 2.2, '#9ad86a'); poserFumee(x, z, r, duree, null); return true; } });
+    if (k >= 1) { jeter(boule); pouf(x, solA(x, z), z, 2.2, '#9ad86a'); poserFumee(x, z, r, duree, null); return true; } });
 }
 function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : il suit le Koulosse jusqu'a la fin) ; il compte comme un danger, que le bot evite */
   const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 20) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
@@ -444,7 +445,7 @@ function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : i
   g.position.set(x, solA(x, z), z); scene.add(g);
   const f = { x, z, r, fin: duree, t: 0, g, bouffees, suit, matF, danger: { x, z, r } }; c.fumees.push(f); (c.dangers = c.dangers || []).push(f.danger); return f;
 }
-function retirerFumee(f) { if (!f) return; scene.remove(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
+function retirerFumee(f) { if (!f) return; jeter(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
 function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, puis 2 s de plus par seconde passee dedans ; le poison court encore une fois sorti (2 % des PV par seconde) */
   const c = combat; if (!c) return;
   if (c.poisonFumee > 0) { poisonPerso(0.02 * (c.genre === 'ile' ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), Math.min(dt, c.poisonFumee)); if (!combat || combat !== c) return; c.poisonFumee = Math.max(0, c.poisonFumee - dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
@@ -482,15 +483,15 @@ function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee sur ta cible
   const c0 = combat, r = 2.2, g = new T.Group(), matN = new T.MeshToonMaterial({ color: '#dfe8cf', gradientMap: grad, transparent: true, opacity: 0.55, depthWrite: false });
   for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, m = new T.Mesh(new T.IcosahedronGeometry(0.5 + Math.random() * 0.35, 1), matN); m.position.set(Math.cos(a) * r * 0.5, 0.5 + Math.random() * 0.3, Math.sin(a) * r * 0.5); g.add(m); }
   g.position.set(x, solA(x, z), z); scene.add(g); let t = 0, tic = 0;
-  effets.push((dt) => { t += dt; tic += dt; if (combat !== c0 || c0.fin) { scene.remove(g); return true; } matN.opacity = 0.55 * Math.min(1, t / 0.3, Math.max(0, (4 - t) / 0.5)); g.rotation.y += dt * 0.4;
+  effets.push((dt) => { t += dt; tic += dt; if (combat !== c0 || c0.fin) { jeter(g); return true; } matN.opacity = 0.55 * Math.min(1, t / 0.3, Math.max(0, (4 - t) / 0.5)); g.rotation.y += dt * 0.4;
     if (tic >= 0.5) { tic = 0; c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < r) blesser(o, Math.max(1, Math.round(o.pvMax * (o.d.boss ? 0.01 : 0.03) * 0.5))); }); }
-    if (t >= 4) { scene.remove(g); return true; } });
+    if (t >= 4) { jeter(g); return true; } });
 }
 /* le souffle de Crocabulia : des flammes qui filent en cone devant elle */
 function souffleFeu(mo, a) {
   const y = mo.m.position.y + 1.4, L = [];
   for (let i = 0; i < 9; i++) { const e = (Math.random() - 0.5) * 0.9, m = new T.Mesh(new T.IcosahedronGeometry(0.25, 1), new T.MeshBasicMaterial({ color: i % 3 ? '#ff7a1e' : '#ffd04a', transparent: true })); scene.add(m); L.push({ m, a: a + e, v: 6 + Math.random() * 2, t: -i * 0.04 }); }
-  effets.push((dt) => { let fini = true; L.forEach((f) => { f.t += dt; if (f.t < 0) { f.m.visible = false; fini = false; return; } const d = f.t * f.v; if (d < 7) fini = false; f.m.visible = d < 7; f.m.position.set(mo.x + Math.sin(f.a) * d, y - d * 0.12, mo.z + Math.cos(f.a) * d); f.m.scale.setScalar(1 + d * 0.35); f.m.material.opacity = Math.max(0, 1 - d / 7); }); if (fini) { L.forEach((f) => scene.remove(f.m)); return true; } });
+  effets.push((dt) => { let fini = true; L.forEach((f) => { f.t += dt; if (f.t < 0) { f.m.visible = false; fini = false; return; } const d = f.t * f.v; if (d < 7) fini = false; f.m.visible = d < 7; f.m.position.set(mo.x + Math.sin(f.a) * d, y - d * 0.12, mo.z + Math.cos(f.a) * d); f.m.scale.setScalar(1 + d * 0.35); f.m.material.opacity = Math.max(0, 1 - d / 7); }); if (fini) { L.forEach((f) => jeter(f.m)); return true; } });
 }
 /* ce qu'un voleur de VSA abattu a sur lui : sa bourse */
 function butinVoleur(monte, L) {
@@ -632,7 +633,7 @@ function capLance(mo, ctx) {
         const os = new T.Mesh(new T.CylinderGeometry(0.06, 0.09, 1.5, 6), new T.MeshLambertMaterial({ color: '#efe6cf' })); os.rotation.order = 'YXZ'; os.rotation.set(Math.PI / 2, a, 0); scene.add(os);
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo);
         if (cleB && combat && !combat.fin) blesserBat(cleB, Math.round(degSort(mo) / 2));
-        let t = 0; effets.push((dt2) => { t += dt2 / 0.25; os.position.lerpVectors(de, vers, Math.min(1, t)); if (t >= 1) { scene.remove(os); os.geometry.dispose(); pouf(vers.x, vers.y - 0.5, vers.z, 1.4, '#efe6cf'); return true; } });
+        let t = 0; effets.push((dt2) => { t += dt2 / 0.25; os.position.lerpVectors(de, vers, Math.min(1, t)); if (t >= 1) { jeter(os); pouf(vers.x, vers.y - 0.5, vers.z, 1.4, '#efe6cf'); return true; } });
       } });
     }
   }
@@ -668,13 +669,13 @@ function capSouffle(mo, ctx) {
       const a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a;
       const c = new T.Mesh(new T.CircleGeometry(7, 24, Math.PI / 2 - 0.5, 1.0), new T.MeshBasicMaterial({ color: '#ff5a1e', transparent: true, opacity: 0.25, depthWrite: false, side: T.DoubleSide }));
       c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, mo.m.position.y + 0.06, mo.z); c.renderOrder = 2; scene.add(c);
-      effets.push(() => { if (!combat || mo.etat !== 'actif' || !mo.vise) { scene.remove(c); if (mo.vise && mo.vise.c === c) mo.vise = null; return true; } }); /* le cone disparait si elle tombe avant de cracher */
+      effets.push(() => { if (!combat || mo.etat !== 'actif' || !mo.vise) { jeter(c); if (mo.vise && mo.vise.c === c) mo.vise = null; return true; } }); /* le cone disparait si elle tombe avant de cracher */
       mo.vise = { a, t: 0, c };
       if (!combat.souffleVu) { combat.souffleVu = true; toast('Crocabulia prend son souffle : sors du cône rouge !', 'alerte'); }
     }
     if (mo.vise) { mo.vise.t += dt; mo.vise.c.material.opacity = 0.2 + 0.25 * Math.abs(Math.sin(mo.vise.t * 9)); }
     if (mo.vise && mo.vise.t >= 1.0) {
-      const a = mo.vise.a; scene.remove(mo.vise.c); mo.vise = null; mo.souffleT = 0; souffleFeu(mo, a);
+      const a = mo.vise.a; jeter(mo.vise.c); mo.vise = null; mo.souffleT = 0; souffleFeu(mo, a);
       const dans = (x, z) => { const d = Math.hypot(x - mo.x, z - mo.z); let e = Math.atan2(x - mo.x, z - mo.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e)); return d < 7 && Math.abs(e) < 0.5; };
       if (dans(pp.x, pp.z)) blesserPerso(degSort(mo), mo);
       clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && dans(z.x, z.z)) blesserBat(k, mo.deg * 2); });
@@ -695,8 +696,8 @@ function capPluie(mo, ctx) {
         const cw = new T.Mesh(new T.ConeGeometry(0.2, 0.7, 8), new T.MeshBasicMaterial({ color: '#f08a24' })); cw.rotation.x = Math.PI; scene.add(cw); let t = 0;
         effets.push((dt2) => {
           t += dt2; rond.material.opacity = 0.2 + 0.25 * Math.abs(Math.sin(t * 9)); cw.position.set(x, y + 0.35 + 9 * Math.max(0, 1 - t / 1.2), z);
-          if (!combat || combat.fin) { scene.remove(rond); scene.remove(cw); oter(); return true; }
-          if (t >= 1.2) { scene.remove(rond); scene.remove(cw); oter(); pouf(x, y, z, 3, '#f08a24'); pouf(x, y, z, 1.6, '#ffd04a'); const p2 = paysanMesh.position; if (Math.hypot(p2.x - x, p2.z - z) < 1.3) blesserPerso(degSort(mo), mo); return true; }
+          if (!combat || combat.fin) { jeter(rond); jeter(cw); oter(); return true; }
+          if (t >= 1.2) { jeter(rond); jeter(cw); oter(); pouf(x, y, z, 3, '#f08a24'); pouf(x, y, z, 1.6, '#ffd04a'); const p2 = paysanMesh.position; if (Math.hypot(p2.x - x, p2.z - z) < 1.3) blesserPerso(degSort(mo), mo); return true; }
         });
       });
       if (!combat || combat.fin) return;
@@ -720,7 +721,7 @@ function capCawotteRoyale(mo, ctx) {
     }
     const V = mo.royVise;
     if (V) {
-      const fin = () => { scene.remove(V.rond, V.fond, V.cw); if (V.d && V.c0.dangers) { const i = V.c0.dangers.indexOf(V.d); if (i >= 0) V.c0.dangers.splice(i, 1); } mo.royVise = null; };
+      const fin = () => { jeter(V.rond, V.fond, V.cw); if (V.d && V.c0.dangers) { const i = V.c0.dangers.indexOf(V.d); if (i >= 0) V.c0.dangers.splice(i, 1); } mo.royVise = null; };
       if (combat !== V.c0 || combat.fin || mo.etat !== 'actif') fin();
       else {
         V.t += dt; if (V.t < 1.4) { V.x = pp.x; V.z = pp.z; } else if (!V.d) { V.d = { x: V.x, z: V.z, r: V.R }; (V.c0.dangers = V.c0.dangers || []).push(V.d); V.rond.material.color.set('#ff2a1a'); } /* (figee : le bot aussi peut l'esquiver) */
@@ -781,7 +782,7 @@ function majMonstre(mo, dt, s) {
     if (k >= 1) { mo.etat = 'actif'; m.rotation.x = 0; pouf(mo.x, mo.y, mo.z, 1.2); } return;
   }
   if (mo.d.boss) majBarreBoss(mo);
-  if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) scene.remove(m); return; }
+  if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
   const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
   if (mo.bloqueT > 0) mo.bloqueT -= dt;
@@ -824,7 +825,7 @@ function majMonstre(mo, dt, s) {
         const de = new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle, c0 = combat;
         const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })) : mo.d.projectile === 'fruit' ? new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.2 : 0.11, 10, 8), mat(mo.d.fruit)) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
         if (mo.d.projectile === 'feu') { const c = new T.Mesh(new T.IcosahedronGeometry(0.12, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); fl.add(c); }
-        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { scene.remove(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, deg); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, la fleche ne touche plus rien) */
+        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { jeter(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, deg); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, la fleche ne touche plus rien) */
       } else { blesserPerso(mo.deg, mo); effetsCoup(mo); }
     }
   } else { /* il picore : une recolte volee toutes les 5 s */

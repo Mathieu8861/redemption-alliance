@@ -258,9 +258,22 @@ function articuler(racine) {
 }
 /* une ombre douce sous les pieds : sans elle, l'ombre du soleil tombe de biais et on croit que le personnage flotte */
 const OMBRE_PIEDS = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(40,30,20,0.55)'); g.addColorStop(0.6, 'rgba(40,30,20,0.25)'); g.addColorStop(1, 'rgba(40,30,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false }); })();
+partager(OMBRE_PIEDS);
 function ombrePieds(g, taille) { g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } }); /* une seule ombre, ronde, sous les pieds ; et plus d'ombre recue : sur tablette, les ombres moins precises noircissaient la tete des Bouftous (photo de Mathieu, 11/10/2026) */ const o = new T.Mesh(new T.PlaneGeometry(1, 1), OMBRE_PIEDS); o.rotation.x = -Math.PI / 2; o.position.y = 0.03; o.scale.setScalar(taille); o.renderOrder = 1; g.add(o); return o; }
 function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); return g; }
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
+/* LES PERSONNAGES DE LA SIMU VSA (Omeho, le voleur, le voleur monte) et le marchand, charges a part (16/10/2026) : un modele rate (connexion) se recharge
+   a l'annonce d'une simu, au lieu de faire planter la simu a l'apparition de ses voleurs. Ne charge que ce qui manque. */
+let chargementVsa = null; /* (un seul rechargement a la fois) */
+function chargerPersonnagesVsa() { return chargementVsa || (chargementVsa = chargerPersonnagesVsa0().finally(() => { chargementVsa = null; })); }
+async function chargerPersonnagesVsa0() {
+  if (!MODELES.omeho) try { const sc = await chargerGlb('assets/modeles/jeu/omeho.glb?v=' + VERSION_MODELES); MODELES.omeho = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); MODELES.omeho.scale.setScalar(0.6); MODELES.omeho.userData.hauteur = 1.75; /* (un peu plus grand que le voleur : c'est un repere) */ } catch (err) { /* pas encore de modele */ }
+  for (const f of ['voleur', 'marchand']) { if (MODELES[f]) continue; try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); MODELES[f].userData.hauteur = 1.7; } catch (err) { /* pas encore de modele */ } }
+  if (MODELES.voleur && MODELES.monture && !MODELES.voleurMonte) { /* le voleur en selle sur sa Dragodinde */
+    const g = new T.Group(), mt = cloner('monture'), v = cloner('voleur'); g.add(mt); v.scale.multiplyScalar(0.72); v.position.set(0, 0.84, 0.02); v.rotation.x = 0.1; /* assis sur la selle (a 1,28 du sol), plus petit que sa monture */ g.add(v); g.userData.hauteur = 2.4; MODELES.voleurMonte = g;
+  }
+}
+const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
   const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge'];
@@ -316,12 +329,8 @@ async function chargerModeles() {
     ['koalakIndigo', 'KoalakIndigo', 1.6], ['koalakCoco', 'KoalakCoco', 1.6], ['drakoalak', 'Drakoalak', 2.6], ['chevaucheurKoalak', 'ChevaucheurKoalak', 2.6]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.koalaks, n, h, 'y'); });
   MODELES.koulosse = gabarit(G.koulosse, 'Koulosse', 4.2, 'y');
   [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
-  try { const sc = await chargerGlb('assets/modeles/jeu/omeho.glb?v=' + VERSION_MODELES); MODELES.omeho = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); MODELES.omeho.scale.setScalar(0.6); MODELES.omeho.userData.hauteur = 1.75; /* (un peu plus grand que le voleur : c'est un repere) */ } catch (err) { /* pas encore de modele */ }
   try { const sc = await chargerGlb('assets/modeles/jeu/sortie-vsa.glb?v=' + VERSION_MODELES); versToon(sc, { normales: 0.012, sansContour: SC_BATI }); MODELES.caleche = sc.getObjectByName('SortieCaleche'); } catch (err) { /* pas encore de modele */ }
-  for (const f of ['voleur', 'marchand']) { try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); MODELES[f].userData.hauteur = 1.7; } catch (err) { /* pas encore de modele */ } }
-  if (MODELES.voleur && MODELES.monture) { /* le voleur en selle sur sa Dragodinde */
-    const g = new T.Group(), mt = cloner('monture'), v = cloner('voleur'); g.add(mt); v.scale.multiplyScalar(0.72); v.position.set(0, 0.84, 0.02); v.rotation.x = 0.1; /* assis sur la selle (a 1,28 du sol), plus petit que sa monture */ g.add(v); g.userData.hauteur = 2.4; MODELES.voleurMonte = g;
-  }
+  await chargerPersonnagesVsa();
   ['iop3', 'osa', 'cra'].forEach((f) => { MODELES[f] = versToon(G[f], { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); });
 }
 /* terre plus sombre quand le champ est arrose */

@@ -322,6 +322,7 @@ function construireTerrain(k) {
   const u = prochainTerrain(); if (u) bulleVente(u, TERRAINS.indexOf(u));
 }
 const CIBLE = new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, visible: false }); /* invisible pour le rendu (avant, chaque case
+partager(CIBLE);
   transparente coutait quand meme un appel de dessin par image, ~170 en tout) ; le rayon du clic la trouve toujours */
 /* les touffes d'herbe de l'ile, rangees par case : on les cache quand une case d'herbe est labouree */
 const TOUFFES = new Map();
@@ -332,7 +333,7 @@ function caseDeTouffe() {
 function indexerTouffes(racine) { /* apres la fusion : les paquets de touffes portent l'identifiant de leur case */
   (racine || MODELES.ile).traverse((o) => { if (o.isMesh && o.userData.case) { if (!TOUFFES.has(o.userData.case)) TOUFFES.set(o.userData.case, []); TOUFFES.get(o.userData.case).push(o); } });
 }
-const SOL_LABOURE = new T.BoxGeometry(1.98, 0.12, 1.98);
+const SOL_LABOURE = new T.BoxGeometry(1.98, 0.12, 1.98); partager(SOL_LABOURE);
 function construireCase(p) {
   const pos = posCase(p), ile = true; /* l'ile et les terrains sont des modeles : la case est une cible invisible */
   /* sur l'ile, la case est une cible invisible juste au-dessus du sol ; sur un terrain achete, une dalle coloree */
@@ -488,7 +489,7 @@ function majTours(dt, s) {
     majTours.vide = false; S_.fleches--; g.userData.cd = cadenceTour(ct); son('arc', null, -6); /* (les tours : l'arc, plus bas que celui du perso) */
     const de = new T.Vector3(); g.userData.pointe.getWorldPosition(de); const vers = cible.clone(); vers.y += mo ? 0.5 : 0.8;
     const fl = boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let u = 0;
-    effets.push((dt2) => { u += dt2 / 0.3; fl.position.lerpVectors(de, vers, Math.min(1, u)); if (u >= 1) { scene.remove(fl); if (mo) blesser(mo, degatsTour(ct), false, 'def'); else blesserVoleur(degatsTour(ct), 'Une tour de défense fait fuir le voleur de VSA !'); return true; } });
+    effets.push((dt2) => { u += dt2 / 0.3; fl.position.lerpVectors(de, vers, Math.min(1, u)); if (u >= 1) { jeter(fl); if (mo) blesser(mo, degatsTour(ct), false, 'def'); else blesserVoleur(degatsTour(ct), 'Une tour de défense fait fuir le voleur de VSA !'); return true; } });
   });
 }
 function artTour() {
@@ -533,7 +534,7 @@ function viserArbalete(dt, s) {
   if (cible && S_.carreaux > 0 && !arbalete.userData.cd && Math.hypot(cible.x - arbalete.position.x, cible.z - arbalete.position.z) < porteeArbalete() && Math.abs(d) < 0.15) tirer(mo);
   if (carreau) { /* la fleche file vers le voleur */
     carreau.t += dt / 0.3; const a = carreau.de, b = carreau.vers; carreau.m.position.set(a.x + (b.x - a.x) * carreau.t, a.y + (b.y - a.y) * carreau.t + Math.sin(carreau.t * Math.PI) * 0.4, a.z + (b.z - a.z) * carreau.t);
-    if (carreau.t >= 1) { if (carreau.impact) carreau.impact(); scene.remove(carreau.m); carreau = null; }
+    if (carreau.t >= 1) { if (carreau.impact) carreau.impact(); jeter(carreau.m); carreau = null; }
   }
 }
 function tirer(mo) {
@@ -594,13 +595,13 @@ function effetFrappe(classe, pv, auImpact, feu) {
     const de = pp.clone(); de.y += 0.95; const fl = boite(feu ? 0.05 : 0.035, feu ? 0.05 : 0.035, 0.55, feu ? '#ff7a1e' : '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(pv);
     if (feu) { const b = new T.Mesh(new T.IcosahedronGeometry(0.13, 1), new T.MeshBasicMaterial({ color: '#ffcf3e' })); b.position.z = 0.32; fl.add(b); } /* la pointe en flammes */
     const pointe = cone(0.04, 0.1, '#9aa1aa', 6); pointe.rotation.x = Math.PI / 2; pointe.position.z = 0.3; fl.add(pointe);
-    let t = 0; effets.push((dt) => { t += dt / 0.28; fl.position.lerpVectors(de, pv, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.35; if (t >= 1) { scene.remove(fl); auImpact(); return true; } });
+    let t = 0; effets.push((dt) => { t += dt / 0.28; fl.position.lerpVectors(de, pv, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.35; if (t >= 1) { jeter(fl); auImpact(); return true; } });
     return;
   }
   if (classe === 'iop') { /* un grand arc blanc de taille autour du Iop */
     const arc = new T.Mesh(new T.RingGeometry(1.0, 1.25, 28, 1, 0, Math.PI * 1.3), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false }));
     arc.rotation.x = -Math.PI / 2; arc.position.set(pp.x, pp.y + 0.75, pp.z); scene.add(arc);
-    let t = 0; effets.push((dt) => { t += dt / 0.35; arc.rotation.z += dt * 14; arc.material.opacity = 0.85 * (1 - t); arc.scale.setScalar(1 + t * 0.3); if (t >= 1) { scene.remove(arc); return true; } });
+    let t = 0; effets.push((dt) => { t += dt / 0.35; arc.rotation.z += dt * 14; arc.material.opacity = 0.85 * (1 - t); arc.scale.setScalar(1 + t * 0.3); if (t >= 1) { jeter(arc); return true; } });
     auImpact(); return;
   }
   /* osamodas : la laniere du fouet part de la main et claque sur la cible */
@@ -608,7 +609,7 @@ function effetFrappe(classe, pv, auImpact, feu) {
   const courbe = new T.QuadraticBezierCurve3(de, de.clone().add(dir.clone().multiplyScalar(0.5)).add(new T.Vector3(0, 0.9, 0)).add(cote.multiplyScalar(0.4)), pv);
   const fouet = new T.Mesh(new T.TubeGeometry(courbe, 20, 0.03, 5, false), new T.MeshBasicMaterial({ color: '#5a3a22', transparent: true, opacity: 1 })); scene.add(fouet);
   const claque = new T.Mesh(new T.RingGeometry(0.15, 0.35, 16), new T.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false })); claque.position.copy(pv); claque.lookAt(camera.position); scene.add(claque);
-  let t = 0; effets.push((dt) => { t += dt / 0.3; fouet.material.opacity = claque.material.opacity = 1 - t; claque.scale.setScalar(1 + t * 1.5); if (t >= 1) { scene.remove(fouet); scene.remove(claque); return true; } });
+  let t = 0; effets.push((dt) => { t += dt / 0.3; fouet.material.opacity = claque.material.opacity = 1 - t; claque.scale.setScalar(1 + t * 1.5); if (t >= 1) { jeter(fouet); jeter(claque); return true; } });
   auImpact();
 }
 function frapper(classe) {
@@ -666,7 +667,7 @@ function deplacerVoleur(dt, s) {
   if (v.etat === 'arrive') { /* il apparait au bord de l'ile */
     m.scale.setScalar(Math.min(0.5, 0.5 * v.t / 0.4)); if (v.t >= 0.4) v.etat = 'approche';
   } else if (v.etat === 'parti') {
-    m.scale.setScalar(Math.max(0.001, 0.5 * (1 - v.t / 0.4))); if (v.t >= 0.4) { scene.remove(m); if (v.barre) v.barre.remove(); voleur = null; retirerBulle('voleur'); } return;
+    m.scale.setScalar(Math.max(0.001, 0.5 * (1 - v.t / 0.4))); if (v.t >= 0.4) { jeter(m); if (v.barre) v.barre.remove(); voleur = null; retirerBulle('voleur'); } return;
   } else {
     const cible = v.pts[v.k];
     if (!cible) {

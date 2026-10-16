@@ -12,6 +12,7 @@ function proposerSimu() {
 function accepterSimu() { if (!simuEnAttente) return; simuEnAttente = false; $('simu-pop').hidden = true; mettrePause(false); annoncerRaid(true); }
 function annoncerRaid(muet) {
   if (raidAnnonce || combat || enAccueil) return;
+  if (!personnagesVsaPrets() || !MODELES.omeho) chargerPersonnagesVsa(); /* (un modele rate au chargement : il a 30 s pour arriver) */
   const { f, nb, montes } = tailleSimu();
   /* (la taille : tailleSimu, plus haut) */
   const B = bordsFerme(), cotes = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => B.some((b) => b.di === di && b.dj === dj)), cote = hasard(cotes.length ? cotes : [[0, 1]]);
@@ -84,18 +85,18 @@ function direOmeho(genre, duree) { /* une replique dans sa bulle violette, quelq
 function partirOmeho(vole) { /* la fin du raid : sa derniere replique, puis la caleche l'emporte (ou il detale a pied) */
   if (!omeho) return; const o = omeho; omeho = null; direOmehoSur(o, vole ? 'vole' : 'rate');
   o.gardes.forEach((v) => { pouf(v.position.x, v.position.y, v.position.z, 1.1); v.visible = false; }); /* (ses gardes sautent dans la caleche) */
-  scene.remove(o.marque); const m = o.m, cal = o.decor.children.find((x) => x.visible !== false && !o.gardes.includes(x));
+  jeter(o.marque); const m = o.m, cal = o.decor.children.find((x) => x.visible !== false && !o.gardes.includes(x));
   const ry = cal ? cal.rotation.y : Math.atan2(o.so.di, o.so.dj), dx = Math.sin(ry), dz = Math.cos(ry), x0 = cal ? cal.position.x : 0, z0 = cal ? cal.position.z : 0, mx = m ? m.position.x : 0, mz = m ? m.position.z : 0;
   if (m && !cal) m.rotation.y = ry; let t = 0;
   effets.push((dt) => { t += dt; const k = Math.max(0, t - 0.9), d = k * k * 2.2 + k * 0.8; /* un temps pour sa replique, puis la Dragodinde demarre */
     if (cal) { cal.position.x = x0 + dx * d; cal.position.z = z0 + dz * d; }
     if (m) { m.position.x = mx + dx * d; m.position.z = mz + dz * d; m.position.y = m.userData.y0 + (cal ? Math.abs(Math.sin(t * 9)) * 0.05 : Math.abs(Math.sin(t * 14)) * 0.18); }
     if (Math.random() < 0.25 && k > 0) pouf(x0 + dx * (d - 1.5), o.so.y + 0.1, z0 + dz * (d - 1.5), 0.8, '#d8c8a8');
-    if (t > 3.6) { pouf((cal ? x0 : mx) + dx * d, o.so.y + 0.5, (cal ? z0 : mz) + dz * d, 2.5, '#d8c8a8'); if (m) scene.remove(m); scene.remove(o.decor); o.bulle.remove(); if (ancres.omeho === o.ancre) delete ancres.omeho; return true; }
+    if (t > 3.6) { pouf((cal ? x0 : mx) + dx * d, o.so.y + 0.5, (cal ? z0 : mz) + dz * d, 2.5, '#d8c8a8'); if (m) jeter(m); jeter(o.decor); o.bulle.remove(); if (ancres.omeho === o.ancre) delete ancres.omeho; return true; }
     if (m) { o.ancre.set(m.position.x, m.position.y + 2.3, m.position.z); } });
 }
 function direOmehoSur(o, genre) { const sv = omeho; omeho = o; direOmeho(genre, 3400); omeho = sv; }
-function retirerOmeho() { if (!omeho) return; if (omeho.m) scene.remove(omeho.m); scene.remove(omeho.marque); scene.remove(omeho.decor); omeho.bulle.remove(); delete ancres.omeho; omeho = null; }
+function retirerOmeho() { if (!omeho) return; if (omeho.m) jeter(omeho.m); jeter(omeho.marque); jeter(omeho.decor); omeho.bulle.remove(); delete ancres.omeho; omeho = null; }
 const tournerVers = (o, x, z, dt, v) => { let e = Math.atan2(x - o.userData.x0, z - o.userData.z0) - o.userData.ry0; e = Math.atan2(Math.sin(e), Math.cos(e)); o.userData.ry0 += e * Math.min(1, dt * v); o.rotation.y = o.userData.ry0; };
 function animerOmeho(dt, s) { /* il tremble de peur, plus fort quand tu approches, et sautille quand un voleur le rejoint ; les gardes te surveillent */
   if (!omeho) return; const m = omeho.m; omeho.marque.children.forEach((o, k) => { o.material.opacity = (k ? 0.85 : 0.6) * (0.65 + 0.35 * Math.abs(Math.sin(s * 3))); });
@@ -131,11 +132,16 @@ function majRaidAnnonce() {
   R.marques.children.forEach((m, k) => { m.material.opacity = (k % 2 ? 0.8 : 0.5) * (0.5 + 0.5 * Math.abs(Math.sin(Date.now() / 300))); }); /* la case, puis sa bande cote vide */
 }
 function lancerRaid() {
-  const R = raidAnnonce; raidAnnonce = null; if (R) scene.remove(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
+  if (raidAnnonce && !personnagesVsaPrets()) { /* ses voleurs ne sont toujours pas charges : 10 s de plus pendant qu'on les recharge (une fois), sinon la simu s'annule */
+    const R0 = raidAnnonce; if (!R0.reessai) { R0.reessai = true; R0.fin = Date.now() + 10 * SEC; chargerPersonnagesVsa(); toast('Les voleurs de VSA arrivent dans quelques secondes.'); return; }
+    raidAnnonce = null; jeter(R0.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = ''; retirerOmeho();
+    toast('La simu VSA est annulée : ses voleurs n\'ont pas pu se charger (connexion ?). Recharge la page si ça se répète.', 'alerte'); return;
+  }
+  const R = raidAnnonce; raidAnnonce = null; if (R) jeter(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
   if (!R || combat || enAccueil || !paysanMesh) { retirerOmeho(); return; } son('vague');
   const file = []; for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture');
   const B = bordsFerme().filter((b) => surCote(b, R.cote, R.cote2));
-  nouveauCombat('raid', { raid: true, file, total: file.length, attente: 0.3, st: null, butin: [], tues: 0, bords: B.length ? B : null, sortie: R.sortie || null }); /* (pas de stats : la simu a son propre bilan) */
+  nouveauCombat('raid', { raid: true, file, total: file.length, attente: 0.3, butin: [], tues: 0, bords: B.length ? B : null, sortie: R.sortie || null }); /* (ses stats comme tout combat : sorts, degats, coups recus, affichees sous son bilan, 16/10/2026) */
   fermerModale(); ouvrirHudCombat();
   toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils rejoignent Omeho, sur la case violette.', 'alerte'); majCombatHud();
 }

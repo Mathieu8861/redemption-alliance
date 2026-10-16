@@ -6,7 +6,7 @@ const DUREE_DEROUTE = 12;
 function commencerDeroute() {
   const c = combat; if (!c || c.fin || c.deroute != null) return;
   c.deroute = DUREE_DEROUTE; c.pv = 0; chemin = []; arrivee = null; annulerVisee();
-  if (c.invoc) { scene.remove(c.invoc.m); if (c.invoc.barre) c.invoc.barre.remove(); c.invoc = null; }
+  if (c.invoc) { jeter(c.invoc.m); if (c.invoc.barre) c.invoc.barre.remove(); c.invoc = null; }
   const u = paysanMesh.userData; u.attaque = null; u.charge = true; paysanMesh.rotation.x = -1.3; /* il tombe a la renverse */
   c.monstres.forEach((o) => { o.casseur = true; o.aggro = false; o.bat = null; o.batT = 0; });
   pouf(paysanMesh.position.x, paysanMesh.position.y, paysanMesh.position.z, 2.4, '#e2413a'); son('touche', null, 5);
@@ -45,14 +45,18 @@ function majCombat(dt, s) {
     if (c.phases && c.phases.length) { if (!c.entracte) { c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else if (modaleOuverte !== 'entracte') tempsSuivant(); return; } /* (l'entracte, puis le temps suivant) */
     c.victoire += dt; if (c.victoire > 0.6) finVague(true); }
 }
+/* UNE LIGNE DE RECAP DE FIN DE COMBAT, la meme partout (vagues, simu VSA, Arene, ile des boss ; 16/10/2026 : l'Arene et l'ile etaient en gris, les vagues
+   en couleur), chaque picto avec sa couleur */
+const COULEURS_RECAP = { vitesse: '#3d8fd6', cadence: '#3d8fd6', tofu: '#d9443a', renfort: '#d9443a', rage: '#d9443a', vita: '#d9443a', degats: '#e07c0a', carreaux: '#2f9a8a', puissance: '#e0a10a', etoile: '#7a4fc9', casse: '#9a6a3a', kama: '#e0a31e' };
+const ligneRecap = (e, t, v) => '<div class="rc-l">' + picto(e, COULEURS_RECAP[e]) + '<span>' + t + '</span><b>' + v + '</b></div>';
 /* le recap de la vague : sa duree, les monstres abattus, les degats donnes (toi, ta defense, ton Bouftou) et recus, le plus gros coup, les sorts lances */
 function recapCombat(c) {
   const st = c.st; if (!st) return '';
   const d = Math.round(c.duree || 0), duree = d >= 60 ? Math.floor(d / 60) + ' min ' + String(d % 60).padStart(2, '0') + ' s' : d + ' s', pv = Math.max(0, Math.round(100 * c.pv / c.pvMax)), bats = Object.values(c.bats || {}).reduce((a, b) => a + b, 0);
-  const l = (e, t, v, col) => '<div class="rc-l">' + picto(e, col) + '<span>' + t + '</span><b>' + v + '</b></div>', def = Math.round(st.def || 0); /* (les pictos en couleur, 16/10/2026) */
-  return '<div class="hdv-section">Le combat</div><div class="recap-combat">' + l('vitesse', 'Durée', duree, '#3d8fd6') + l('tofu', 'Monstres abattus', st.tues + ' sur ' + c.total, '#d9443a') +
-    l('degats', 'Tes dégâts', fmt(Math.max(0, Math.round(st.inflige) - def)), '#e07c0a') + l('carreaux', 'Dégâts de tes défenses', fmt(def), '#2f9a8a') + l('puissance', 'Ton plus gros coup', fmt(Math.round(st.max)), '#e0a10a') +
-    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)', '#d9443a') + l('etoile', 'Sorts et ultis lancés', st.sorts, '#7a4fc9') + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats)), '#9a6a3a') : '') + '</div>';
+  const l = ligneRecap, def = Math.round(st.def || 0);
+  return '<div class="hdv-section">Le combat</div><div class="recap-combat">' + l('vitesse', 'Durée', duree) + l('tofu', 'Monstres abattus', st.tues + ' sur ' + c.total) +
+    l('degats', 'Tes dégâts', fmt(Math.max(0, Math.round(st.inflige) - def))) + l('carreaux', 'Dégâts de tes défenses', fmt(def)) + l('puissance', 'Ton plus gros coup', fmt(Math.round(st.max))) +
+    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>';
 }
 function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }
@@ -85,7 +89,7 @@ function finVague(gagne, fuite) {
        des recoltes volees au prix de l'HDV (les recoltes reprises reviennent dans la grange : elles ne comptent pas) */
     const bilan = prime + ((c.lootV && c.lootV.kamas) || 0) - vPerdu;
     const pied = '<div class="bv-pied"><div class="bv-bilan ' + (bilan >= 0 ? 'plus' : 'moins') + '"><img src="assets/icones/kama.png?v=' + VERSION_MODELES + '" alt=""><div class="bv-txt"><span>Bilan de l\'attaque</span>' + (vPerdu ? '<small>récoltes perdues au prix de l\'HDV</small>' : '') + '</div><b>' + (bilan >= 0 ? '+' : '−') + fmt(Math.abs(bilan)) + ' kamas</b></div><button class="btn kamas" data-fermer>Retour à la ferme</button></div>';
-    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + pied); memoriserCombat();
+    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + recapCombat(c) + pied); /* (le recap du combat, comme apres une vague, 16/10/2026) */ memoriserCombat();
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); }

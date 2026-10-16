@@ -97,7 +97,7 @@ function tempeteDeLames(pt) {
       while (combat && !combat.fin && coups < COUPS_TEMPETE && t - dash >= coups * (DUREE_TEMPETE / COUPS_TEMPETE)) { coups++; combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) <= R) blesser(o, Math.round(st.deg * 3 / COUPS_TEMPETE), true); }); } }
     const cel = caseIci(p.x, p.z); u.y = hauteurSol(p.x, p.z, cel); p.y = u.y; fx.position.set(p.x, p.y, p.z);
     fx.children.forEach((g) => { if (g.userData.tourne) g.rotation.z += dt * 15 * g.userData.tourne; else g.material.opacity = 0.35 + 0.2 * Math.sin(t * 12); });
-    if (t >= dash + DUREE_TEMPETE || !combat) { scene.remove(fx); u.charge = false; if (bras) bras.rotation.x = 0; if (cel && PASSABLE[cel.type]) u.cellule = cel; pouf(p.x, p.y, p.z, 3.5, '#ffd28a'); return true; }
+    if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); u.charge = false; if (bras) bras.rotation.x = 0; if (cel && PASSABLE[cel.type]) u.cellule = cel; pouf(p.x, p.y, p.z, 3.5, '#ffd28a'); return true; }
   });
 }
 function executerUlti(id, c, pt) {
@@ -145,11 +145,11 @@ function flechePercante(pt) {
   effets.push((dt) => {
     t += dt / 0.45; fl.position.lerpVectors(de, fin, Math.min(1, t));
     if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && !touches.has(o) && Math.hypot(o.x - fl.position.x, o.z - fl.position.z) < LARGEUR_PERCANTE) { touches.add(o); blesser(o, Math.round(st.deg * 3), true); } });
-    if (t >= 1) { scene.remove(fl); return true; }
+    if (t >= 1) { jeter(fl); return true; }
   });
 }
 function invoquer(pt) {
-  const pp = paysanMesh.position, st = statsPerso(), u = paysanMesh.userData; if (combat.invoc) { scene.remove(combat.invoc.m); if (combat.invoc.barre) combat.invoc.barre.remove(); }
+  const pp = paysanMesh.position, st = statsPerso(), u = paysanMesh.userData; if (combat.invoc) { jeter(combat.invoc.m); if (combat.invoc.barre) combat.invoc.barre.remove(); }
   const q0 = pointSort(pt || { x: pp.x + 0.9, z: pp.z + 0.3 }, PORTEE_INVOC), x = q0.x, z = q0.z; /* (la ou le cercle de visee l'a montre) */
   const y = hauteurSol(x, z, caseIci(x, z)); u.angle = Math.atan2(x - pp.x, z - pp.z); paysanMesh.rotation.y = u.angle;
   const m = fusionnerBouftou(creerBouftou(T, maille)); ombrePieds(m, 2.4); m.scale.setScalar(0.45); poser(m, x, y, z, 0);
@@ -242,7 +242,7 @@ function lancerLeg(emp) { armerSort(emp); }
 const VEC_INVOC = new T.Vector3();
 function majInvoc(dt) {
   const iv = combat.invoc; if (!iv) return;
-  iv.vie -= dt; if (iv.vie <= 0) { pouf(iv.x, iv.m.position.y, iv.z, 2, '#d9c2ff'); scene.remove(iv.m); if (iv.barre) iv.barre.remove(); combat.invoc = null; return; }
+  iv.vie -= dt; if (iv.vie <= 0) { pouf(iv.x, iv.m.position.y, iv.z, 2, '#d9c2ff'); jeter(iv.m); if (iv.barre) iv.barre.remove(); combat.invoc = null; return; }
   if (iv.barre) { iv.barre.firstChild.style.width = (100 * iv.vie / DUREE_INVOC).toFixed(0) + '%'; versEcran(VEC_INVOC.set(iv.x, iv.m.position.y + 1.25, iv.z), iv.barre); }
   if (iv.pose > 0) iv.pose -= dt; /* il se pose la ou il est tombe */
   iv.cd -= dt; const c = iv.pose > 0 ? null : plusProcheMonstre(iv); let v = 0;

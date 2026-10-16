@@ -57,4 +57,16 @@ const cyl = (rh, rb, h, c, s) => maille(new T.CylinderGeometry(rh, rb, h, s || 7
 const sphere = (r, c, d) => maille(new T.IcosahedronGeometry(r, d || 1), c);
 const cone = (r, h, c, s) => maille(new T.ConeGeometry(r, h, s || 6), c);
 function poser(o, x, y, z, ry, parent) { o.position.set(x, y, z); if (ry) o.rotation.y = ry; (parent || scene).add(o); return o; }
+/* JETER CE QUI QUITTE LA SCENE (16/10/2026, la fuite de memoire des combats : chaque effet et chaque monstre fabrique laissait ses geometries et ses
+   materiaux dans la carte graphique, 2 350 geometries perdues en 3 min d'Arene). jeter(objet) le retire et libere ce qui lui appartient en propre ; ce qui
+   est partage (les modeles charges, que les copies de monstres reutilisent, et les objets communs marques par partager) n'est jamais libere. Une liberation
+   de trop ne casse rien : three.js renvoie l'objet a la carte graphique s'il resert, il coute juste un peu de temps. */
+const PARTAGES = new WeakSet(); let modelesPartages = 0;
+function partager(...L) { L.forEach((x) => { if (!x) return; if (Array.isArray(x)) partager(...x); else if (x.isMaterial || x.isBufferGeometry || x.isTexture) PARTAGES.add(x); else if (x.traverse) x.traverse((o) => { if (o.geometry) PARTAGES.add(o.geometry); [].concat(o.material || []).forEach((m) => PARTAGES.add(m)); }); }); }
+function jeter(...L) {
+  const n = Object.keys(MODELES).length; if (n !== modelesPartages) { modelesPartages = n; partager(...Object.values(MODELES)); } /* (les modeles charges depuis la derniere fois, ceux des iles compris) */
+  L.forEach((x) => { if (!x) return; if (x.parent) x.parent.remove(x);
+    x.traverse((o) => { if (o.geometry && !PARTAGES.has(o.geometry)) o.geometry.dispose(); [].concat(o.material || []).forEach((m) => { if (m && !PARTAGES.has(m)) m.dispose(); }); }); });
+}
+partager(CONTOUR, grad);
 

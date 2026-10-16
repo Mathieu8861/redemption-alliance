@@ -99,10 +99,10 @@ function majEpouvantail(dt, s) { if (lieu === 'arene' || lieu === 'ile') return;
     const coeur = new T.Mesh(new T.CylinderGeometry(0.018, 0.018, L, 6, 1, true), new T.MeshBasicMaterial({ color: '#fff0f0', transparent: true, depthWrite: false })); rayon.add(coeur);
     rayon.position.copy(de).lerp(vers, 0.5); rayon.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), vers.clone().sub(de).normalize()); scene.add(rayon);
     pouf(x, y - 0.6, z, 2, '#ff3a3a'); pouf(x, y - 0.6, z, 1.2, '#f2b630'); touche();
-    let t = 0; effets.push((dt2) => { t += dt2 / 0.25; rayon.material.opacity = 0.95 * (1 - t); coeur.material.opacity = 1 - t; rayon.scale.x = rayon.scale.z = 1 + t; if (t >= 1) { scene.remove(rayon); return true; } });
+    let t = 0; effets.push((dt2) => { t += dt2 / 0.25; rayon.material.opacity = 0.95 * (1 - t); coeur.material.opacity = 1 - t; rayon.scale.x = rayon.scale.z = 1 + t; if (t >= 1) { jeter(rayon); return true; } });
     return;
   }
   const fl = boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0;
-  effets.push((dt2) => { t += dt2 / 0.32; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.4; if (t >= 1) { scene.remove(fl); touche(); return true; } });
+  effets.push((dt2) => { t += dt2 / 0.32; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.4; if (t >= 1) { jeter(fl); touche(); return true; } });
 }
 

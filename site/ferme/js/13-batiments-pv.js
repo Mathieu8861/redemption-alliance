@@ -56,7 +56,7 @@ const FEU_FS = `varying vec2 vUv; uniform float uT; uniform float uS;
 const texDouce = (stops) => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(cv); };
 const LUEUR_TEX = texDouce([[0, 'rgba(255,170,60,0.9)'], [0.5, 'rgba(255,110,30,0.35)'], [1, 'rgba(255,90,20,0)']]);
 const FUMEE_TEX = texDouce([[0, 'rgba(255,255,255,1)'], [0.6, 'rgba(255,255,255,0.6)'], [1, 'rgba(255,255,255,0)']]);
-const GEO_PLAN = new T.PlaneGeometry(1, 1);
+const GEO_PLAN = new T.PlaneGeometry(1, 1); partager(GEO_PLAN);
 /* un foyer : des flammes aux points donnes [x, y, z, hauteur], plus halo, braises et fumee. fort : fumee noire, plus de braises */
 function foyer(pts, fort) {
   const grp = new T.Group(); scene.add(grp);
@@ -95,7 +95,7 @@ function ruines(z) {
 }
 const feux = {}; /* cle -> { etat, grp, ruine, x, z } */
 function etatFeu(cle) { if (enRuine(cle)) return 3; if (!degatsBat(cle)) return 0; return pvBat(cle) / pvMaxBat(cle) <= 0.35 ? 2 : 1; }
-function eteindre(cle) { const f = feux[cle]; if (!f) return; if (f.grp) scene.remove(f.grp); if (f.ruine) scene.remove(f.ruine); delete feux[cle]; }
+function eteindre(cle) { const f = feux[cle]; if (!f) return; jeter(f.grp, f.ruine); delete feux[cle]; }
 function majFeu(cle, force) {
   const z = zoneBat(cle); if (!z) { eteindre(cle); return; }
   const e = etatFeu(cle), f = feux[cle];
