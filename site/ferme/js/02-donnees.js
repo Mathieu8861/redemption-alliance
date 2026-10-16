@@ -1,24 +1,30 @@
 'use strict';
 /* ===================== DONNEES DU JEU ===================== */
-/* L'XP DES CULTURES (16/10/2026) : fixe, la meme a tous les niveaux. Chaque culture rapporte a peu pres 14 XP par heure et par champ (le Ble 0,18 par
-   recolte de 45 s, le Millet 18,6 par recolte de 72 min) ; le Frostiz davantage, pour la phase 2 ou les niveaux coutent bien plus cher. La fraction
-   d'XP d'une recolte se tire au sort (0,18 : 1 XP une fois sur cinq environ). Plus aucun malus selon le niveau. */
+/* LES CULTURES A VENDRE (16/10/2026, refaites comme la courbe d'XP ; « plus tu montes plus tu fais des gains, mais plus c'est long a pousser, mais les
+   gains par minute sont quand meme de mieux en mieux », Mathieu). Trois regles, de la 1re (Ble) a la 12e (Frostiz) :
+   - le temps de pousse, arrose et sans engrais : 1,5 x k^1,763 minutes, de 1 min 30 (Ble) a 2 h (Frostiz) ;
+   - le gain par minute a la revente (recolte vendue moins la graine) : de 5 a 10 kamas, +6,5 % a chaque culture ;
+   - la graine coute 25 % (Ble) a 50 % (Frostiz) de ce que rapporte la recolte : plus on monte, plus on investit.
+   La Cawotte et la Fraise ne suivent pas ces regles : elles se mangent avant un combat, elles ne se vendent pas a profit.
+   L'XP DES CULTURES : fixe, la meme a tous les niveaux. Chaque culture rapporte a peu pres 14 XP par heure et par champ (le Ble 0,36 par recolte de
+   1 min 30, le Millet 26,61 par recolte de 1 h 43) ; le Frostiz davantage, pour la phase 2 ou les niveaux coutent bien plus cher. La fraction
+   d'XP d'une recolte se tire au sort (0,36 : 1 XP un peu plus d'une fois sur trois). Plus aucun malus selon le niveau. */
 const CULTURES = [
-  { id: 'ble', nom: 'Blé', niv: 1, graine: 6, temps: 0.75, rendement: 3, prix: 9, xp: 0.18, couleur: '#f3c03c', tige: '#d6a63c' },
-  { id: 'orge', nom: 'Orge', niv: 5, graine: 15, temps: 2.25, rendement: 3, prix: 23, xp: 0.53, couleur: '#e8d48c', tige: '#cdb46a' },
+  { id: 'ble', nom: 'Blé', niv: 1, graine: 2, temps: 1.5, rendement: 3, prix: 3, xp: 0.36, couleur: '#f3c03c', tige: '#d6a63c' },
+  { id: 'orge', nom: 'Orge', niv: 5, graine: 9, temps: 5, rendement: 3, prix: 13, xp: 1.18, couleur: '#e8d48c', tige: '#cdb46a' },
   { id: 'cawotte', nom: 'Cawotte', niv: 9, graine: 600, temps: 12, rendement: 4, prix: 40, xp: 2.7, couleur: '#f08a24', tige: '#4fae3a', glb: 'cultures3', mange: { deg: 0.2, txt: '+20 % de dégâts' } },
-  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 30, temps: 6, rendement: 4, prix: 32, xp: 1.4, couleur: '#f6e4a0', tige: '#d9c070' },
+  { id: 'avoine', nom: 'Avoine', niv: 10, graine: 23, temps: 10, rendement: 4, prix: 22, xp: 2.33, couleur: '#f6e4a0', tige: '#d9c070' },
   { id: 'fraise', nom: 'Fraise', niv: 12, graine: 900, temps: 24, rendement: 5, prix: 55, xp: 5.6, couleur: '#e8323a', tige: '#3f9a35', glb: 'cultures3', mange: { pros: 30, txt: '+30 % de prospection' } },
-  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 60, temps: 15, rendement: 4, prix: 51, xp: 3.5, couleur: '#6fae3b', tige: '#8b6a42' },
-  { id: 'lin', nom: 'Lin', niv: 20, graine: 100, temps: 30, rendement: 5, prix: 61, xp: 7, couleur: '#8cb8ff', tige: '#7fa84a' },
-  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 180, temps: 72, rendement: 5, prix: 103, xp: 17.1, couleur: '#c9a35a', tige: '#a88a4a' },
+  { id: 'houblon', nom: 'Houblon', niv: 15, graine: 49, temps: 17, rendement: 4, prix: 42, xp: 3.97, couleur: '#6fae3b', tige: '#8b6a42' },
+  { id: 'lin', nom: 'Lin', niv: 20, graine: 88, temps: 26, rendement: 5, prix: 57, xp: 6.07, couleur: '#8cb8ff', tige: '#7fa84a' },
+  { id: 'seigle', nom: 'Seigle', niv: 25, graine: 135, temps: 35, rendement: 5, prix: 83, xp: 8.31, couleur: '#c9a35a', tige: '#a88a4a' },
   /* les cultures de haut niveau (blender/cultures2.py) ; le Quisnoa du meme fichier attend le niveau 70 */
-  { id: 'riz', nom: 'Riz', niv: 30, graine: 220, temps: 30, rendement: 6, prix: 85, xp: 7.2, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
-  { id: 'malt', nom: 'Malt', niv: 35, graine: 300, temps: 45, rendement: 6, prix: 122, xp: 11.1, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
-  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 420, temps: 60, rendement: 6, prix: 169, xp: 15, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
-  { id: 'mais', nom: 'Maïs', niv: 45, graine: 550, temps: 72, rendement: 7, prix: 188, xp: 18.3, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
-  { id: 'millet', nom: 'Millet', niv: 50, graine: 700, temps: 72, rendement: 7, prix: 244, xp: 18.6, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
-  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1000, temps: 90, rendement: 8, prix: 283, xp: 56, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
+  { id: 'riz', nom: 'Riz', niv: 30, graine: 210, temps: 46, rendement: 6, prix: 101, xp: 11.04, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
+  { id: 'malt', nom: 'Malt', niv: 35, graine: 315, temps: 59, rendement: 6, prix: 143, xp: 14.55, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
+  { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 454, temps: 72, rendement: 6, prix: 194, xp: 18, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
+  { id: 'mais', nom: 'Maïs', niv: 45, graine: 640, temps: 87, rendement: 7, prix: 223, xp: 22.11, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
+  { id: 'millet', nom: 'Millet', niv: 50, graine: 881, temps: 103, rendement: 7, prix: 293, xp: 26.61, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
+  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1200, temps: 120, rendement: 8, prix: 333, xp: 74.67, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
    Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */
@@ -91,8 +97,8 @@ const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192
 /* « en mode test local, retire le x60, laisse-moi comme tout le monde choisir de x1 a x50 » (Mathieu, 12/10/2026) : ?test=1 garde sa sauvegarde a part,
    mais le temps est celui de tout le monde (le curseur) ; le x60 ne sert plus qu'aux tests automatiques, avec &rapide=1 en plus */
 /* LE TEMPS (14/10/2026, « remet tout a la bonne echelle, on parlera en x1, x1,5, x2, comme c'est regle actuellement dans le jeu », Mathieu) : toutes les
-   durees du code sont en VRAIES minutes (MIN) et vraies secondes (SEC), a la vitesse x1 du curseur. Il n'y a plus de « minute de jeu » : le Ble pousse en 45 s,
-   le Seigle en 1 h 12, la laine vient toutes les 6 min, un pot de gelee en 1 min. Seule exception, voulue : en pause ou hors du jeu, la ferme tourne 20 fois
+   durees du code sont en VRAIES minutes (MIN) et vraies secondes (SEC), a la vitesse x1 du curseur. Il n'y a plus de « minute de jeu » : le Ble pousse en 1 min 30,
+   le Seigle en 35 min, la laine vient toutes les 6 min, un pot de gelee en 1 min. Seule exception, voulue : en pause ou hors du jeu, la ferme tourne 20 fois
    moins vite (VITESSE_ABSENCE), pour ne pas retrouver 200 pots et toutes ses recoltes au retour.
    (Du 13 au 14/10/2026, les durees etaient ecrites en minutes de jeu de 3 s, le x20 du premier curseur : chaque valeur a ete divisee par 20 ce jour-la.) */
 const RAPIDE = TEST && /[?&]rapide=1/.test(location.search), MIN = RAPIDE ? 20000 : 60000, SEC = MIN / 60; /* (rapide=1 : les tests automatiques, trois fois plus vite) */

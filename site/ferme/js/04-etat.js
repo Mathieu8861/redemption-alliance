@@ -28,7 +28,7 @@ const texteCap = () => { const v = capNiveau(), P = v / 10 - 1, B = PALIERS[P] &
 /* l'XP de la laine et des plumes (35 % de leur valeur) ; le frein d'avance sur les vagues a ete retire le 16/10/2026 (« pas de malus en fonction du niveau ») */
 const XP_FERME = 0.35; /* (14/10/2026, « faut nerf l'xp des plantes, j'suis deja 65 », Moonsbir : 0,6 et un frein de 1/2, 1/4, 1/10 avant ; ses 28 parcelles de Frostiz donnaient 1 700 XP par heure, trois fois les vagues ; maintenant environ 650, autant que les vagues) */
 function xpFerme(n) { return gagnerXp(Math.max(1, Math.round(n * XP_FERME))); }
-const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais')); /* (temps : en vraies minutes, 0,75 = 45 s) */
+const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais')); /* (temps : en vraies minutes, 1,5 = 1 min 30) */
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
 const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
@@ -53,10 +53,10 @@ function etatInitial() {
   const cours = {}; VENDABLES.forEach((v) => { cours[v.id] = 1; });
   const cases = casesInitiales();
   const champs = cases.filter((c) => c.type === 'champ');
-  Object.assign(champs[0], { c: 'ble', pousse: 39 * SEC, arrose: true });
-  Object.assign(champs[1], { c: 'ble', pousse: 9 * SEC, arrose: false });
+  Object.assign(champs[0], { c: 'ble', pousse: 78 * SEC, arrose: true }); /* (presque mur : 78 s sur 1 min 30) */
+  Object.assign(champs[1], { c: 'ble', pousse: 18 * SEC, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
   };
@@ -99,7 +99,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -115,6 +115,14 @@ function convertirXp(e) {
     if (!p || p.courbeXp >= 3 || typeof p.xp !== 'number') return; const v = p.courbeXp || 1, ancien = (n) => seuilCourbe(v, Math.min(n, 101)); p.courbeXp = 3;
     let L = 1; while (L < 100 && p.xp >= ancien(L + 1)) L++;
     const f = (p.xp - ancien(L)) / Math.max(1, ancien(L + 1) - ancien(L)); p.xp = Math.floor(seuil(L) + f * (seuil(L + 1) - seuil(L)));
+  });
+}
+/* les temps de pousse changent (16/10/2026) : un champ en cours garde son avancee (a moitie pousse, il reste a moitie pousse), dans toutes les parties */
+const TEMPS_CULTURES_1 = { ble: 0.75, orge: 2.25, avoine: 6, houblon: 15, lin: 30, seigle: 72, riz: 30, malt: 45, chanvre: 60, mais: 72, millet: 72, frostiz: 90 };
+function convertirCultures(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => {
+    if (!p || p.cultures >= 2 || !Array.isArray(p.cases)) return; p.cultures = 2;
+    p.cases.forEach((x) => { const t0 = x.type === 'champ' && x.c && TEMPS_CULTURES_1[x.c]; if (t0 && typeof x.pousse === 'number') x.pousse *= PAR_ID[x.c].temps / t0; });
   });
 }
 function convertirRythme(e) {
