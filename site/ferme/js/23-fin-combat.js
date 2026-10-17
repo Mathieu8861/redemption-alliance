@@ -26,6 +26,7 @@ function majCombat(dt, s) {
   }
   c.attente -= dt; c.duree = (c.duree || 0) + dt;
   if (c.arene && c.file.length && c.attente <= 0) { for (let i = 0; i < 3 && c.file.length; i++) apparaitre(c.file.shift()); c.attente = 2.5; } /* l'Arene : ils sortent des herses trois par trois */
+  else if (c.raid && c.file.length && c.attente <= 0) { apparaitre(c.file.shift()); c.attente = 1; } /* la simu VSA : en file par leur entree, un par seconde (17/10/2026) */
   else if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   majFumees(dt, s); majAfflictions(dt); if (combat !== c || c.fin) return;

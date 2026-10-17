@@ -72,10 +72,11 @@ function avancer(maintenant, enDirect) {
     S_.prochainVoleur = maintenant + CADENCE_VOLEUR * (0.6 + Math.random() * 0.8);
     if (valeurGrange() >= 100 && joueurPresent()) voleur = true;
   }
-  let raid = false; /* le Raid VSA : un groupe de voleurs, annonce 30 s avant (seulement apres la vague 3) */
+  let raid = false; /* la simu VSA : un groupe de voleurs, annonce 30 s avant (des le niveau 20) */
   if (enDirect) verifierRecouvreurs(maintenant); /* l'ardoise du Casino (meme en temps accelere) */
-  if (direct && !raidAnnonce && S_.vague.num > 3 && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
-    S_.prochainRaid = maintenant + CADENCE_RAID * (0.7 + Math.random() * 0.6);
+  if (niveau(S_.xp) < NIV_SIMU) S_.prochainRaid = Math.max(S_.prochainRaid || 0, maintenant + CADENCE_RAID); /* (avant le niveau 20, pas de simu ; la premiere, 30 min apres) */
+  else if (direct && !raidAnnonce && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
+    S_.prochainRaid = maintenant + CADENCE_RAID;
     if (valeurGrange() >= 150) raid = true;
   }
   return { cases: ch, enclos: encl, hdv, sauvage: sauv, voleur, raid };

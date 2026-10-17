@@ -127,9 +127,13 @@ const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : classeDe() ==
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
    minimum pour la lancer. Sans ca, l'experience des vagues suffisait a tout enchainer en moins d'une heure (bot de test). */
 const PREPA_VAGUE = [0.5, 0.75, 2.25, 6, 12, 15, 16.5], /* (en vraies minutes : de 30 s au palier 1 a 16 min 30 au palier 7) */ niveauRequis = (n) => Math.max(1, n - 2);
-const CADENCE_RAID = 24 * MIN, ANNONCE_RAID = 30000; /* un raid toutes les 24 min environ (de 17 a 31 min), annonce 30 s avant */
+const CADENCE_RAID = 30 * MIN, ANNONCE_RAID = 30000, NIV_SIMU = 20; /* une simu VSA toutes les 30 min pile quand on joue, des le niveau 20, annoncee 30 s avant (17/10/2026) */
 /* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
 const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hidden && lieu === 'ferme'; /* au Casino, a l'Arene, sur l'ile des boss : pas de raid */
 let raidAnnonce = null;
-const tailleSimu = () => { const f = forceVoleur(), nb = 4 + Math.floor(Math.min(f, 40) / 5) + (f >= 25 ? 1 : 0) + (f >= 40 ? 1 : 0), montes = f >= 2 ? Math.min(Math.ceil(nb / 2), 1 + Math.floor((f - 2) / 5)) : 0; return { f, nb, montes }; }; /* plus VSA se renforce, plus ils sont nombreux (14 au plus) et montes (la moitie au plus) ; « les raids VSA, ameliore un peu » (Mathieu, 12/10/2026) : en fin de partie l'arbalete et les tours les arretaient presque tous, ils se renforcent a partir de la vague 26 */
+/* LA SIMU VSA, UNE SEULE REGLE (17/10/2026, « trop aleatoire, je vois pas la limite », Mathieu) : elle suit ta vague, de la 20e (la premiere simu, niveau 20)
+   a la 70e. 4 voleurs, un de plus toutes les 5 vagues, 12 au plus (vague 60), un sur trois sur Dragodinde ; 40 PV + 12 par vague a pied, le double monte. */
+const vagueSimu = () => Math.max(20, Math.min(VAGUES_TOTAL, S_.vague.num));
+const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(12, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3) }; };
+const pvSimu = (monte) => (40 + 12 * vagueSimu()) * (monte ? 2 : 1);
