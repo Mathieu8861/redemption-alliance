@@ -48,7 +48,7 @@ function majCombat(dt, s) {
 }
 /* UNE LIGNE DE RECAP DE FIN DE COMBAT, la meme partout (vagues, simu VSA, Arene, ile des boss ; 16/10/2026 : l'Arene et l'ile etaient en gris, les vagues
    en couleur), chaque picto avec sa couleur */
-const COULEURS_RECAP = { vitesse: '#3d8fd6', cadence: '#3d8fd6', tofu: '#d9443a', renfort: '#d9443a', rage: '#d9443a', vita: '#d9443a', degats: '#e07c0a', carreaux: '#2f9a8a', puissance: '#e0a10a', etoile: '#7a4fc9', casse: '#9a6a3a', kama: '#e0a31e' };
+const COULEURS_RECAP = { vitesse: '#3d8fd6', cadence: '#3d8fd6', tofu: '#d9443a', renfort: '#d9443a', rage: '#d9443a', vita: '#d9443a', degats: '#e07c0a', carreaux: '#2f9a8a', puissance: '#e0a10a', etoile: '#7a4fc9', casse: '#9a6a3a', kama: '#e0a31e', couronne: '#e0a10a' };
 const ligneRecap = (e, t, v) => '<div class="rc-l">' + picto(e, COULEURS_RECAP[e]) + '<span>' + t + '</span><b>' + v + '</b></div>';
 /* le recap de la vague : sa duree, les monstres abattus, les degats donnes (toi, ta defense, ton Bouftou) et recus, le plus gros coup, les sorts lances */
 function recapCombat(c) {

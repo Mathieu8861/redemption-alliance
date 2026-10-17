@@ -330,7 +330,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .carte.grange { width: min(100%, 920px); }
 /* LE BESTIAIRE (15/10/2026) */
 .carte.bestiaire { width: min(100%, 1000px); }
-.ib-rec { margin: 2px 0 8px; } .ib-rec .rc-l { align-items: flex-start; gap: 14px; } .ib-rec .rc-l span { flex: none; width: 34%; } .ib-rec .rc-l b { flex: 1; white-space: normal; text-align: right; color: #3b2f25; }
+.ib-rec { margin: 2px 0 8px; } .ib-rec .ib-total { border-bottom: 0; font-size: .86rem; } .ib-rec .ib-total b { color: #3f8a22; } .ib-rec .rc-l { align-items: flex-start; gap: 14px; } .ib-rec .rc-l span { flex: none; width: 34%; } .ib-rec .rc-l b { flex: 1; white-space: normal; text-align: right; color: #3b2f25; }
 .ib-barre { position: relative; height: 26px; border: 3px solid var(--bord); border-radius: 999px; background: #3a2f4e; overflow: hidden; margin: 6px 0 10px; } .ib-barre i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #7a3fe0, #b98cff); } .ib-barre span { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .8rem/1 var(--f-texte); color: #fff; text-shadow: 0 1px 2px #0008; } /* (l'ile des boss : la vie commune) */
 .rang { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--bord); font: 400 .72rem/1 var(--f-titre); color: #fff; margin-right: 2px; } .rang.r1 { background: #e0a31e; } .rang.r2 { background: #9aa4b0; } .rang.r3 { background: #b9773e; } /* (les medailles du classement, sans emoji) */
 .g-info .pc, .best-verrou .pc, .g-cad .pc, .b-journal .pc, .chat-tete .pc { width: 14px; height: 14px; vertical-align: -2px; }
