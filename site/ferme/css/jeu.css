@@ -185,14 +185,14 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .hdv-qte .seg button:first-child { border-left: 0; }
 .hdv-qte .seg button[aria-pressed="true"] { background: var(--vert); color: #fff; }
 .hdv-section { margin: 12px 0 2px; font: 400 .95rem/1 var(--f-titre); color: #6b5a3a; }
-.art { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 2px solid #eadfc8; }
+.art { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 2px solid #eadfc8; }
 .art .pic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--bord); font: 400 1.1rem/1 var(--f-titre); color: #fff; background: #c9a35a; }
 .art .pic.img { width: 50px; height: 50px; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); overflow: hidden; } .art .pic.img img { width: 46px; height: 46px; object-fit: contain; }
 .art:has(.pic.img) { grid-template-columns: 50px 1fr auto; }
 .art .pic.emoji { background: #fff7e6; color: inherit; font-size: 1.2rem; }
 .art b { display: block; font-size: .92rem; }
 .art .puces { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
-.art .puce { background: #f3ead8; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 700; color: #5b5240; white-space: nowrap; }
+.art .puce { background: #f3ead8; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 700; color: #5b5240; } /* (17/10/2026 : une etiquette longue passe a la ligne au lieu de pousser le bouton hors de l'ecran du telephone) */
 .art .puce.bonne { background: #dff1d3; color: #2d6a1e; } .art .puce.mauvaise { background: #fde3df; color: #8a1e16; }
 .art .desc { font-size: .72rem; font-weight: 600; color: #5b5240; margin-top: 2px; }
 .art .act { display: grid; justify-items: end; gap: 2px; }

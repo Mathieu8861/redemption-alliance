@@ -19,7 +19,7 @@ const POTS = {
   citron: { nom: 'Pot de gelée Citron', court: 'Pots de Citron', soin: 0.25, citron: true, effet: '+25 % de vie, et ton perso court 30 % plus vite pendant la vague', desc: 'Fait à ta Gelière. À boire juste avant de lancer la vague.', geliere: true },
   royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 20, effet: 'Toute ta vie, et +20 Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +20 Agilité (des coups plus rapides) pendant la prochaine vague.', geliere: true }
 };
-const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 %, puis soin en vague', fraise: '+40 % de vie', citron: '+25 %, et tu cours plus vite', royale: 'toute ta vie, et +20 Agilité en vague' };
+const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % par seconde en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 30 % plus vite', royale: 'toute ta vie, et +20 Agilité en vague' };
 const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01;
 /* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
    « met pas 1 %, mais 1 PV par minute ; et une vraie minute, sinon les gelees perdent tout leur interet » (Mathieu, 13/10/2026) : 1 PV par VRAIE minute,
