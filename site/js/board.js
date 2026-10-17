@@ -335,7 +335,7 @@
             html += '<tr class="board-table__row' + (p.user_id === myId ? ' board-table__row--me' : '') + '">';
             html += '<td class="board-table__td board-table__td--rank">' + p.rang + '</td>';
             html += '<td class="board-table__td board-table__td--name notranslate">' + esc(p.username) + '</td>';
-            html += '<td class="board-table__td board-table__td--points">' + p.points + '</td>';
+            html += '<td class="board-table__td board-table__td--points">' + window.REN.formatNumber(p.points) + '</td>';
             html += '<td class="board-table__td board-table__td--tier">' + palierTxt + '</td>';
             html += '<td class="board-table__td board-table__td--reward">' + reward + '</td>';
             var zoneTxt = (zoneReserveeMap[p.user_id] && canResaPoints(p.user_id))
@@ -565,7 +565,7 @@
             ctx.fillStyle = '#f0a63c';
             ctx.font = '700 14px Inter, sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText(String(p.points), xPts, cy);
+            ctx.fillText(window.REN.formatNumber(p.points), xPts, cy);
             ctx.textAlign = 'left';
 
             if (isPoints) {
@@ -961,7 +961,7 @@
                         + (moi ? '<span class="board-palier__toi">toi</span>' : '') + '</div>'
                     + (zoneHtml ? '<div class="board-palier__zone notranslate"' + (zoneTitre ? ' title="' + esc(zoneTitre) + '"' : '') + '>' + zoneHtml + '</div>' : '')
                 + '</div>'
-                + '<span class="board-palier__pts">' + p.points + (zones ? '<small>pts</small>' : '') + '</span>'
+                + '<span class="board-palier__pts">' + window.REN.formatNumber(p.points) + (zones ? '<small>pts</small>' : '') + '</span>'
                 + '</div>';
         }
 

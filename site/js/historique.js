@@ -208,7 +208,7 @@
             html += '<strong>' + auteur + '</strong> vs <strong>' + alliance + '</strong><br>';
             html += c.nb_allies + 'v' + c.nb_ennemis;
             if (c.butin_kamas > 0) html += ' &mdash; Butin: <span class="text-warning">' + window.REN.formatKamas(c.butin_kamas) + '</span>';
-            if (c.points_gagnes !== 0) html += ' &mdash; <span class="' + (c.points_gagnes > 0 ? 'text-success' : 'text-danger') + '">' + (c.points_gagnes > 0 ? '+' : '') + c.points_gagnes + ' pts</span>';
+            if (c.points_gagnes !== 0) html += ' &mdash; <span class="' + (c.points_gagnes > 0 ? 'text-success' : 'text-danger') + '">' + (c.points_gagnes > 0 ? '+' : '') + window.REN.formatNumber(c.points_gagnes) + ' pts</span>';
             if (participants.length > 1) {
                 html += '<br><span class="text-muted">Avec: ' + participants.filter(function(p) { return p !== auteur; }).join(', ') + '</span>';
             }
@@ -340,10 +340,13 @@
             + '</div>';
         document.body.appendChild(overlay);
 
+        /* 0 ennemi = percepteur seul, possible en attaque uniquement */
+        document.getElementById('edit-combat-ennemis').add(new Option('0 (perco seul)', 0));
         for (var n = 1; n <= 5; n++) {
             document.getElementById('edit-combat-allies').add(new Option(n, n));
             document.getElementById('edit-combat-ennemis').add(new Option(n, n));
         }
+        document.getElementById('edit-combat-type').addEventListener('change', syncEditEnnemisZero);
 
         document.getElementById('history-edit-close').addEventListener('click', closeEditModal);
         document.getElementById('history-edit-cancel').addEventListener('click', closeEditModal);
@@ -408,6 +411,7 @@
         document.getElementById('edit-combat-resultat').value = editingCombat.resultat;
         document.getElementById('edit-combat-allies').value = editingCombat.nb_allies;
         document.getElementById('edit-combat-ennemis').value = editingCombat.nb_ennemis;
+        syncEditEnnemisZero();
         document.getElementById('edit-combat-butin').value = editingCombat.butin_kamas || 0;
         document.getElementById('edit-combat-commentaire').value = editingCombat.commentaire || '';
 
@@ -448,6 +452,14 @@
         var overlay = document.getElementById('history-edit-modal');
         if (overlay) overlay.classList.remove('active');
         editingCombat = null;
+    }
+
+    /* En defense il y a forcement des attaquants : l'option 0 n'a de sens qu'en attaque */
+    function syncEditEnnemisZero() {
+        var sel = document.getElementById('edit-combat-ennemis');
+        var defense = document.getElementById('edit-combat-type').value === 'defense';
+        sel.options[0].disabled = defense;
+        if (defense && sel.value === '0') sel.value = '1';
     }
 
     async function saveEditCombat() {

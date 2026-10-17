@@ -456,7 +456,7 @@
             .from('bareme_points').select('*').order('nb_allies').order('nb_ennemis');
 
         var html = '<div class="admin-panel__title">Bareme de Points</div>';
-        html += '<div class="admin-panel__desc">Configurez les points obtenus en fonction du nombre d\'allies et d\'ennemis.<br>Chaque cellule : <span style="color:var(--color-success);">points en victoire</span> / <span style="color:var(--color-info);">points obtenus malgre la defaite</span> (toujours ajoutes au joueur, jamais retires).</div>';
+        html += '<div class="admin-panel__desc">Configurez les points obtenus en fonction du nombre d\'allies et d\'ennemis.<br>Chaque cellule : <span style="color:var(--color-success);">points en victoire</span> / <span style="color:var(--color-info);">points obtenus malgre la defaite</span> (toujours ajoutes au joueur, jamais retires). Les demi-points sont acceptes (0,5).</div>';
 
         /* Sous-tabs attaque / defense */
         html += '<div style="display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-lg);">';
@@ -469,18 +469,19 @@
 
         html += '<div class="bareme-grid"><table class="table">';
 
-        /* Header */
+        /* Header (colonne 0 en attaque : percepteur seul, personne en defense) */
+        var eMin = baremeMode === 'attaque' ? 0 : 1;
         html += '<thead><tr><th>Allies \\ Ennemis</th>';
-        for (var e = 1; e <= 5; e++) html += '<th>' + e + ' enn.</th>';
+        for (var e = eMin; e <= 5; e++) html += '<th>' + (e === 0 ? '0 (perco seul)' : e + ' enn.') + '</th>';
         html += '</tr></thead><tbody>';
 
         /* Lignes */
         for (var a = 1; a <= 5; a++) {
             html += '<tr><th>' + a + ' allie' + (a > 1 ? 's' : '') + '</th>';
-            for (var ee = 1; ee <= 5; ee++) {
+            for (var ee = eMin; ee <= 5; ee++) {
                 var cell = filtered.find(function (b) { return b.nb_allies === a && b.nb_ennemis === ee; });
-                var pv = cell ? cell.points_victoire : 0;
-                var pd = cell ? cell.points_defaite : 0;
+                var pv = cell ? String(cell.points_victoire).replace('.', ',') : 0;
+                var pd = cell ? String(cell.points_defaite).replace('.', ',') : 0;
                 html += '<td>';
                 html += '<input class="bareme-grid__input bareme-grid__input--victoire bareme-input" data-allies="' + a + '" data-ennemis="' + ee + '" data-field="victoire" value="' + pv + '" title="Victoire">';
                 html += ' / ';
@@ -510,8 +511,10 @@
             inputs.forEach(function (input) {
                 var key = input.dataset.allies + '-' + input.dataset.ennemis;
                 if (!updates[key]) updates[key] = { nb_allies: parseInt(input.dataset.allies), nb_ennemis: parseInt(input.dataset.ennemis) };
-                if (input.dataset.field === 'victoire') updates[key].points_victoire = parseInt(input.value) || 0;
-                else updates[key].points_defaite = parseInt(input.value) || 0;
+                /* Demi-points acceptes, avec une virgule ou un point */
+                var val = parseFloat(String(input.value).replace(',', '.')) || 0;
+                if (input.dataset.field === 'victoire') updates[key].points_victoire = val;
+                else updates[key].points_defaite = val;
             });
 
             try {

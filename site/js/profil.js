@@ -542,7 +542,7 @@
             html += '<div class="profil-stats-section">';
             html += '<h3 class="profil-stats-section__title">Recompenses</h3>';
             html += '<div class="profil-stats-row">';
-            html += buildStatItem('Points', myStats.total_points || 0, 'accent');
+            html += buildStatItem('Points', window.REN.formatNumber(myStats.total_points || 0), 'accent');
             html += buildStatItem('Jetons', (myStats.jetons || 0) + ' <img class="icon-inline" src="assets/images/jeton.png" alt="">');
             html += buildStatItem('Kamas', window.REN.formatKamas(myStats.total_kamas || 0), 'warning');
             html += buildStatItem('Winrate', winrateGlobal + '%', winrateGlobal >= 50 ? 'success' : 'danger');

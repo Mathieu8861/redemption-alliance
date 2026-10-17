@@ -460,16 +460,19 @@
                     if (cfgJetons.data && cfgJetons.data.valeur === 'false') jetonsActifs = false;
                 } catch (e) { /* table absente : jetons actifs par défaut */ }
 
-                if (points > 0 && jetonsActifs) {
+                /* Les jetons restent entiers : un demi-point (percepteur seul) n'en donne pas */
+                var jetons = Math.floor(points);
+                if (jetons > 0 && jetonsActifs) {
                     for (var pi = 0; pi < uniqueIds.length; pi++) {
-                        await window.REN.supabase.rpc('ajouter_jetons', { p_user_id: uniqueIds[pi], p_points: points });
+                        await window.REN.supabase.rpc('ajouter_jetons', { p_user_id: uniqueIds[pi], p_points: jetons });
                     }
-                    window.REN.currentProfile.jetons = (window.REN.currentProfile.jetons || 0) + points;
+                    window.REN.currentProfile.jetons = (window.REN.currentProfile.jetons || 0) + jetons;
                 }
 
+                var pts = window.REN.formatNumber(points);
                 var msg = resultat === 'victoire'
-                    ? 'Victoire enregistrée ! +' + points + ' points' + (jetonsActifs && points > 0 ? ' (+' + points + ' jetons)' : '')
-                    : 'Défaite enregistrée. ' + points + ' points';
+                    ? 'Victoire enregistrée ! +' + pts + (points > 1 ? ' points' : ' point') + (jetonsActifs && jetons > 0 ? ' (+' + jetons + ' jetons)' : '')
+                    : 'Défaite enregistrée. ' + pts + (points > 1 ? ' points' : ' point');
 
                 window.REN.toast(msg, resultat === 'victoire' ? 'success' : 'info');
 

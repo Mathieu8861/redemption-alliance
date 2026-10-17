@@ -236,7 +236,7 @@
                 var actionVerb = c.resultat === 'victoire' ? 'a remporte' : 'a perdu';
                 var allianceName = c.alliance ? '<strong>' + c.alliance.nom + (c.alliance.tag ? ' [' + c.alliance.tag + ']' : '') + '</strong>' : (c.alliance_ennemie_nom || 'Inconnu');
                 var butinStr = c.type === 'attaque' && c.butin_kamas > 0 ? ' &mdash; Butin : <span class="kamas">' + window.REN.formatKamas(c.butin_kamas) + '</span>' : '';
-                var pointsStr = c.points_gagnes !== 0 ? ' &mdash; <span class="' + (c.points_gagnes > 0 ? 'text-success' : 'text-danger') + '">' + (c.points_gagnes > 0 ? '+' : '') + c.points_gagnes + ' pts</span>' : '';
+                var pointsStr = c.points_gagnes !== 0 ? ' &mdash; <span class="' + (c.points_gagnes > 0 ? 'text-success' : 'text-danger') + '">' + (c.points_gagnes > 0 ? '+' : '') + window.REN.formatNumber(c.points_gagnes) + ' pts</span>' : '';
 
                 var preuvesStr = '';
                 [c.preuve_url_1, c.preuve_url_2].forEach(function (u, idx) {
@@ -245,7 +245,7 @@
                     preuvesStr += ' <a class="activity__preuve js-lightbox" href="' + su + '" target="_blank" rel="noopener" title="Voir le screenshot ' + (idx + 1) + '">&#128247;' + (idx + 1) + '</a>';
                 });
 
-                var formatBadge = (c.nb_allies && c.nb_ennemis) ? '<span class="badge badge--format">' + c.nb_allies + 'v' + c.nb_ennemis + '</span>' : '';
+                var formatBadge = (c.nb_allies && c.nb_ennemis != null) ? '<span class="badge badge--format">' + c.nb_allies + 'v' + c.nb_ennemis + '</span>' : '';
                 html += '<div class="activity__item">';
                 html += '<div class="activity__text"><span class="badge ' + badgeClass + '">' + badgeText + '</span>' + formatBadge;
                 html += '<strong>' + auteurName + '</strong>' + matesStr + ' ' + actionVerb + ' ' + actionType + ' contre ' + allianceName + butinStr + pointsStr + preuvesStr;
@@ -376,7 +376,20 @@
             }
         }
 
-        html += '</div></div></div>';
+        html += '</div></div>';
+
+        /* Percepteur seul (0 ennemi, attaque uniquement) : hors grille, en une ligne */
+        var seul = filtered.filter(function (b) { return b.nb_ennemis === 0 && Number(b.points_victoire) > 0; });
+        if (seul.length) {
+            var fmt = window.REN.formatNumber;
+            var memeValeur = seul.length === 5 && seul.every(function (b) { return Number(b.points_victoire) === Number(seul[0].points_victoire); });
+            var detail = memeValeur
+                ? '+' + fmt(seul[0].points_victoire) + ' en victoire, quel que soit le nombre d\'alliés'
+                : seul.map(function (b) { return b.nb_allies + 'v0 : +' + fmt(b.points_victoire); }).join(', ');
+            html += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-sm);">Percepteur seul (personne en défense, 0 ennemi) : ' + detail + '.</p>';
+        }
+
+        html += '</div>';
         return html;
     }
     window.REN.buildBaremeHeatmap = buildBaremeHeatmap;

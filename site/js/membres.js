@@ -99,7 +99,7 @@
             html += '<div class="member-card__stats">';
             html += '<div class="member-card__stat"><span class="member-card__stat-label">ATK</span><span class="member-card__stat-value">' + (m.total_attaques || 0) + '</span></div>';
             html += '<div class="member-card__stat"><span class="member-card__stat-label">DEF</span><span class="member-card__stat-value">' + (m.total_defenses || 0) + '</span></div>';
-            html += '<div class="member-card__stat"><span class="member-card__stat-label">Points</span><span class="member-card__stat-value member-card__stat-value--accent">' + (m.total_points || 0) + '</span></div>';
+            html += '<div class="member-card__stat"><span class="member-card__stat-label">Points</span><span class="member-card__stat-value member-card__stat-value--accent">' + window.REN.formatNumber(m.total_points || 0) + '</span></div>';
             html += '</div>';
 
             /* Infos secondaires */
