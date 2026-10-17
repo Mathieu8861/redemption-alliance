@@ -276,13 +276,14 @@ function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.a
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 /* LES PERSONNAGES DE LA SIMU VSA (Omeho, le voleur, le voleur monte) et le marchand, charges a part (16/10/2026) : un modele rate (connexion) se recharge
    a l'annonce d'une simu, au lieu de faire planter la simu a l'apparition de ses voleurs. Ne charge que ce qui manque. */
+const TAILLE_VOLEUR = 0.72; /* les voleurs de VSA, a 72 % d'un perso (17/10/2026 : « reduis la taille de ceux qui attaquent », Mathieu ; c'etait deja celle du cavalier) */
 let chargementVsa = null; /* (un seul rechargement a la fois) */
 function chargerPersonnagesVsa() { return chargementVsa || (chargementVsa = chargerPersonnagesVsa0().finally(() => { chargementVsa = null; })); }
 async function chargerPersonnagesVsa0() {
   if (!MODELES.omeho) try { const sc = await chargerGlb('assets/modeles/jeu/omeho.glb?v=' + VERSION_MODELES); MODELES.omeho = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); MODELES.omeho.scale.setScalar(0.6); MODELES.omeho.userData.hauteur = 1.75; /* (un peu plus grand que le voleur : c'est un repere) */ } catch (err) { /* pas encore de modele */ }
-  for (const f of ['voleur', 'marchand']) { if (MODELES[f]) continue; try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); MODELES[f].userData.hauteur = 1.7; } catch (err) { /* pas encore de modele */ } }
+  for (const f of ['voleur', 'marchand']) { if (MODELES[f]) continue; try { const sc = await chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES); MODELES[f] = versToon(sc, { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5 * (f === 'voleur' ? TAILLE_VOLEUR : 1)); MODELES[f].userData.hauteur = 1.7 * (f === 'voleur' ? TAILLE_VOLEUR : 1); } catch (err) { /* pas encore de modele */ } }
   if (MODELES.voleur && MODELES.monture && !MODELES.voleurMonte) { /* le voleur en selle sur sa Dragodinde */
-    const g = new T.Group(), mt = cloner('monture'), v = cloner('voleur'); g.add(mt); v.scale.multiplyScalar(0.72); v.position.set(0, 0.84, 0.02); v.rotation.x = 0.1; /* assis sur la selle (a 1,28 du sol), plus petit que sa monture */ g.add(v); g.userData.hauteur = 2.4; MODELES.voleurMonte = g;
+    const g = new T.Group(), mt = cloner('monture'), v = cloner('voleur'); g.add(mt); v.position.set(0, 0.84, 0.02); v.rotation.x = 0.1; /* assis sur la selle (a 1,28 du sol), a la taille de tous les voleurs */ g.add(v); g.userData.hauteur = 2.4; MODELES.voleurMonte = g;
   }
 }
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
