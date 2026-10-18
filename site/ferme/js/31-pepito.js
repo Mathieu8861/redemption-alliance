@@ -58,7 +58,7 @@ const LECONS = [
       () => `En bas à droite, ton <em>sort</em> : ${(SORT_LECON[classeDe()] || SORT_LECON.iop)()}`,
       () => `Si tes PV tombent à zéro, ton perso tombe : pendant 12 s, les monstres saccagent tes bâtiments (tes tours et ton arbalète tirent toujours), puis ils repartent avec ton plus beau champ, et ton perso se repose ${dureeLisible(REPOS_VAGUE)} et revient à ${Math.round(VIE_APRES_DEFAITE * 100)} % de vie. Le bouton <em>Fuir</em> arrête la vague sans repos, mais ils saccagent quand même un champ.`] },
   { id: 'victoire', titre: 'Après la victoire', ico: 'kama', resume: 'La préparation, le niveau requis, les réparations.', quand: () => S_.vague.num >= 2,
-    pages: [() => `Bravo ! La vague suivante <em>se prépare</em> : quelques minutes au début, plus longtemps aux paliers suivants. Il faut aussi le <em>niveau</em> qu'elle demande : le numéro de la vague moins 2.`,
+    pages: [() => `Bravo ! La vague suivante <em>se prépare</em> pendant 1 minute. Il faut aussi le <em>niveau</em> qu'elle demande : le numéro de la vague moins 2.`,
       () => `Les bâtiments frappés gardent leurs dégâts : ${toucherQ('un bâtiment abîmé')} pour le réparer, ou le bouton <em>Tout réparer</em> en fin de vague. Un bâtiment en ruine ne sert plus à rien tant que tu ne l'as pas reconstruit.`,
       () => `Toutes les 10 vagues, un <em>boss</em> t'attend. Je t'expliquerai le moment venu.`] },
   { id: 'ulti', titre: 'Ton ulti', ico: 'ulti-zone', resume: 'Gel, Zone ou Coup fatal, pour de bon.', quand: () => niveau(S_.xp) >= NIV_ULTI && !S_.ulti,

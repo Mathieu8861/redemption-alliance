@@ -72,6 +72,7 @@ function avancer(maintenant, enDirect) {
     S_.prochainVoleur = maintenant + CADENCE_VOLEUR * (0.6 + Math.random() * 0.8);
     if (valeurGrange() >= 100 && joueurPresent()) voleur = true;
   }
+  if (S_.vague.prepa > maintenant + PREPA_VAGUE * MIN) S_.vague.prepa = maintenant + PREPA_VAGUE * MIN; /* (jamais plus d'1 min d'attente : une attente plus longue d'avant le 18/10/2026, meme decalee par une absence, retombe a 1 min) */
   let raid = false; /* la simu VSA : un groupe de voleurs, annonce 30 s avant (des le niveau 20) */
   if (enDirect) verifierRecouvreurs(maintenant); /* l'ardoise du Casino (meme en temps accelere) */
   if (niveau(S_.xp) < NIV_SIMU) S_.prochainRaid = Math.max(S_.prochainRaid || 0, maintenant + CADENCE_RAID); /* (avant le niveau 20, pas de simu ; la premiere, 30 min apres) */

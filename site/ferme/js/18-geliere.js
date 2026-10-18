@@ -126,7 +126,7 @@ const RECHARGE_PERCANTE = 20; /* (la Fleche percante du Cra : 20 s, elle travers
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : classeDe() === 'cra' ? RECHARGE_PERCANTE : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
    minimum pour la lancer. Sans ca, l'experience des vagues suffisait a tout enchainer en moins d'une heure (bot de test). */
-const PREPA_VAGUE = [0.5, 0.75, 2.25, 6, 12, 15, 16.5], /* (en vraies minutes : de 30 s au palier 1 a 16 min 30 au palier 7) */ niveauRequis = (n) => Math.max(1, n - 2);
+const PREPA_VAGUE = 1, /* (1 minute avant la vague suivante, quel que soit le palier : « tu mets 1 minute d'attente, peu importe le niveau de vague », Mathieu, 18/10/2026 ; avant, de 30 s au palier 1 a 16 min 30 au palier 7 ; le niveau requis reste la vraie limite) */ niveauRequis = (n) => Math.max(1, n - 2);
 const CADENCE_RAID = 30 * MIN, ANNONCE_RAID = 30000, NIV_SIMU = 20; /* une simu VSA toutes les 30 min pile quand on joue, des le niveau 20, annoncee 30 s avant (17/10/2026) */
 /* le joueur est-il la ? pas de raid ni de voleur s'il n'a rien touche depuis 3 vraies minutes : on ne se fait pas piller en son absence */
 let derniereAction = Date.now(); ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((ev) => addEventListener(ev, () => { derniereAction = Date.now(); }, { passive: true }));
