@@ -115,9 +115,9 @@ function ficheMonstre(t) {
     stat('vitesse', 'Vitesse', String(d.vitesse).replace('.', ','), vit) + stat('portee', 'Portée', d.distance ? casesDe(d.portee) + ' cases' : 'Au contact', d.distance ? 'il tire' : 'corps à corps') + stat('cases', 'Vise', vis);
   const capa = (p, titre, txt, chiffres, cl) => '<div class="bx-capa"><span class="bx-ic ' + (cl || '') + '">' + picto(p) + '</span><div><b>' + titre + '</b><p>' + txt + '</p>' + (chiffres ? '<div class="puces">' + chiffres + '</div>' : '') + '</div></div>';
   const L = [], recup = (k) => num('toutes les ' + String(d[k]).replace('.', ',') + ' s');
-  if (!d.boss && peutSauter({ d, aggro: true })) L.push(capa('saut', 'Saute sur toi', 'À moins de 3 cases, il se ramasse, puis bondit là où tu es. Reste dans le rond rouge et il t\'agrippe.', num('3 cases') + num(fmt(deg) + ' dégâts', 'rouge') + num('ralentit ' + String(AGRIPPE).replace('.', ',') + ' s', 'bleu') + num(String(SAUT_VOL).replace('.', ',') + ' s pour esquiver') + num('toutes les ' + SAUT_RECHARGE + ' s'), 'violet'));
+  if (!d.boss && peutSauter({ d, aggro: true })) L.push(capa('saut', 'Saute sur toi', 'À moins de 3 cases, il se ramasse, puis bondit là où tu es. Reste dans le rond rouge et il t\'agrippe.', num('3 cases') + num(fmt(deg) + ' dégâts', 'rouge') + num('ralentit ' + String(AGRIPPE).replace('.', ',') + ' s', 'bleu') + num(secondes(ESQUIVE.saut) + ' pour esquiver') + num('toutes les ' + SAUT_RECHARGE + ' s'), 'violet'));
   if (!d.boss && (d.charge || d.pique)) L.push(capa(d.pique ? 'pique' : 'charge', d.pique ? 'Vol en piqué' : 'Charge', d.pique ? 'À moins de 3 cases, il prend de la hauteur, puis plonge sur toi en ligne droite. Une bande rouge te prévient.' : 'Il baisse la tête et fonce sur toi en ligne droite. Une bande rouge te prévient.',
-    num((d.chargeMax ? '3' : '5') + ' cases') + num(fmt(dSort) + ' dégâts', 'rouge') + num((d.chargeMax ? '0,9' : '1,2') + ' s pour esquiver') + num('toutes les ' + (d.charge || d.pique) + ' s') + num('un bâtiment sur sa route prend le coup', 'vert'), 'violet'));
+    num((d.chargeMax ? '3' : '5') + ' cases') + num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(d.chargeMax ? ESQUIVE.charge : ESQUIVE.grandeCharge) + ' pour esquiver') + num('toutes les ' + (d.charge || d.pique) + ' s') + num('un bâtiment sur sa route prend le coup', 'vert'), 'violet'));
   if (d.casse) L.push(capa('casse', 'Démolit les bâtiments', 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.' + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : '')));
   if (d.distance) L.push(capa('carreaux', 'Tire de loin', 'Il reste à distance et te tire dessus' + (d.casse ? ', ou sur tes bâtiments' : '') + '. Va le chercher.', num(casesDe(d.portee) + ' cases') + num(fmt(deg) + ' dégâts', 'rouge')));
   if (d.ralentit) L.push(capa('lenteur', 'Te ralentit', 'Chacun de ses coups te fait marcher plus lentement.', num(String(d.ralentit).replace('.', ',') + ' s', 'bleu'), 'bleu'));
@@ -132,10 +132,10 @@ function ficheMonstre(t) {
   if (d.bandit) L.push(capa('kama', 'Vole tes kamas', 'Il file à ta grange, y vole des kamas, puis repart par où il est venu.', '', 'or'));
   if (d.fouisseur) L.push(capa('cases', 'Surgit de terre', 'Il sort de terre au pied de tes bâtiments, derrière tes défenses.'));
   /* les sorts des boss */
-  if (d.boss && d.charge) L.push(capa('charge', 'Charge', 'Une bande rouge jusqu\'à toi, puis il fonce. Cache-toi derrière un bâtiment : il s\'y écrase.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,2 s pour esquiver') + recup('charge'), 'violet'));
+  if (d.boss && d.charge) L.push(capa('charge', 'Charge', 'Une bande rouge jusqu\'à toi, puis il fonce. Cache-toi derrière un bâtiment : il s\'y écrase.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.grandeCharge) + ' pour esquiver') + recup('charge'), 'violet'));
   if (d.lance) L.push(capa('sort', 'Lance d\'os', 'De loin, une bande rouge jusqu\'à toi, puis sa lance file. Un bâtiment sur sa route prend la moitié du coup.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1 s pour esquiver') + recup('lance'), 'violet'));
   if (d.carapace) L.push(capa('bouclier', 'Carapace d\'épines', 'Il se replie sous sa carapace : presque aucun dégât, et il renvoie un cinquième des coups reçus au corps à corps. Frappe ses soldats en attendant.', num('3,5 s') + recup('carapace')));
-  if (d.bondit) L.push(capa('saut', 'Bond écrasant', 'Il saute là où tu es : un cercle rouge, sors-en.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,4 s pour esquiver') + recup('bondit'), 'violet'));
+  if (d.bondit) L.push(capa('saut', 'Bond écrasant', 'Il saute là où tu es : un cercle rouge, sors-en.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
   if (d.seisme) L.push(capa('sort', 'Séisme', 'Il frappe le sol : un grand cercle rouge autour de lui. Tes bâtiments proches prennent aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,3 s pour esquiver') + recup('seisme'), 'violet'));
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
   if (d.pluie) L.push(capa('sort', 'Pluie de cawottes', 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,2 s pour esquiver') + recup('pluie'), 'violet'));
@@ -512,23 +512,24 @@ function blesserPerso(n, mo) {
   if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */
 }
-const SAUT_PORTEE = 3 * S, SAUT_PREPA = 0.45, SAUT_VOL = 0.55, AGRIPPE = 1.5; let SAUT_RECHARGE = 6; /* (let : les tests le mettent a Infinity pour comparer sans bond) */
+/* LE TEMPS POUR ESQUIVER les elans des monstres, du signal (rond ou bande rouge) au coup (18/10/2026, « entre 1,5 et 2 secondes », Mathieu) */
+const ESQUIVE = { saut: 1.5, charge: 1.5, grandeCharge: 1.7, bond: 2 }, secondes = (x) => String(x).replace('.', ',') + ' s';
+const SAUT_PORTEE = 3 * S, SAUT_VOL = 0.6, SAUT_PREPA = ESQUIVE.saut - SAUT_VOL, AGRIPPE = 1.5; let SAUT_RECHARGE = 6; /* (let : les tests le mettent a Infinity pour comparer sans bond) */
 const peutSauter = (mo) => !mo.d.distance && !mo.d.boss && !mo.d.vole && !mo.d.bandit && !mo.d.roule && !mo.d.charge && !mo.d.pique && mo.d.vitesse < 2.5 && (!mo.d.grignote || mo.aggro); /* (les rapides n'en ont pas besoin ; ceux qui chargent ou piquent ont leur elan a eux) */
 const ELANS = { bouftou: 'charge', boufcoul: 'charge', craqueleur: 'charge', craqCristal: 'charge', chevaucheurKoalak: 'charge', dragNoir: 'pique', dragDore: 'pique' };
 Object.entries(ELANS).forEach(([t, e]) => { const d = MONSTRES[t]; if (!d || d.charge || d.pique) return; Object.assign(d, e === 'charge' ? { charge: 7 } : { pique: 7 }, { chargeMax: SAUT_PORTEE, degSort: d.degSort || 1.5 }); });
 function sauterSurPerso(mo) {
-  const x0 = mo.x, z0 = mo.z; let f = null, t = 0;
+  const x0 = mo.x, z0 = mo.z, pp0 = paysanMesh.position, cx = pp0.x, cz = pp0.z; let f = null, t = 0; /* (il vise la ou tu es quand il se ramasse : le rond rouge s'y pose tout de suite) */
   mo.sautT = 0; mo.bloqueT = SAUT_PREPA + SAUT_VOL; mo.frappe = 0.2;
+  zoneDanger({ mo, x: cx, z: cz, r: 1.05, duree: ESQUIVE.saut, effet: (d) => { if (f) pouf(f.x, solA(f.x, f.z), f.z, 1.6, '#c9b28a'); const p2 = paysanMesh.position;
+    if (dansDanger(d, p2.x, p2.z) && combat && !combat.fin && mo.etat === 'actif') { blesserPerso(mo.deg, mo); if (!combat || combat.fin) return; /* (le saut l'a acheve : le combat est fini) */ effetsCoup(mo); combat.agrippe = AGRIPPE; if (!combat.agrippeVu) { combat.agrippeVu = true; toast(leNom(mo.d) + ' t\'agrippe : tu marches deux fois moins vite un instant !', 'alerte'); } }
+    mo.cd = Math.min(mo.cd, 0.5); } });
   if (!combat.sautVu) { combat.sautVu = true; toast('Attention : à moins de 3 cases, les monstres te sautent dessus. Sors du rond rouge, sinon ils t\'agrippent !', 'alerte'); }
   effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; }
-    const pp = paysanMesh.position;
-    if (t < SAUT_PREPA) { mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.hop = -0.06 * Math.sin(t / SAUT_PREPA * Math.PI); return; } /* il se ramasse, les yeux sur toi */
-    if (!f) { /* l'envol : vers l'endroit ou tu es maintenant, un peu avant toi */
-      const a = Math.atan2(pp.x - x0, pp.z - z0), dP = Math.hypot(pp.x - x0, pp.z - z0), L = Math.max(0, dP - mo.d.portee * 0.5);
-      f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L); mo.ry = a;
-      zoneDanger({ mo, x: pp.x, z: pp.z, r: 1.05, duree: SAUT_VOL, effet: (d) => { pouf(f.x, solA(f.x, f.z), f.z, 1.6, '#c9b28a'); const p2 = paysanMesh.position;
-        if (dansDanger(d, p2.x, p2.z) && combat && !combat.fin) { blesserPerso(mo.deg, mo); if (!combat || combat.fin) return; /* (le saut l'a acheve : le combat est fini) */ effetsCoup(mo); combat.agrippe = AGRIPPE; if (!combat.agrippeVu) { combat.agrippeVu = true; toast(leNom(mo.d) + ' t\'agrippe : tu marches deux fois moins vite un instant !', 'alerte'); } }
-        mo.cd = Math.min(mo.cd, 0.5); } }); }
+    if (t < SAUT_PREPA) { mo.ry = Math.atan2(cx - mo.x, cz - mo.z); mo.hop = -0.06 * Math.sin(t / SAUT_PREPA * Math.PI); return; } /* il se ramasse, les yeux sur le rond rouge */
+    if (!f) { /* l'envol : vers le rond rouge, un peu avant son centre */
+      const a = Math.atan2(cx - x0, cz - z0), dP = Math.hypot(cx - x0, cz - z0), L = Math.max(0, dP - mo.d.portee * 0.5);
+      f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L); mo.ry = a; }
     const k = Math.min(1, (t - SAUT_PREPA) / SAUT_VOL); mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k; mo.hop = Math.sin(k * Math.PI) * 1.1;
     if (t >= SAUT_PREPA + SAUT_VOL) { mo.hop = 0; return true; } });
 }
@@ -578,9 +579,9 @@ function capTroupe(mo, ctx) {
 }
 function capCharge(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
-  if (mo.d.charge || mo.d.pique) { /* le Bouftou Royal baisse la tete : une bande rouge jusqu'a toi (1,2 s pour en sortir), puis il fonce et renverse tout sur son passage ;
-       les petits monstres qui chargent, et les Dragoeufs qui piquent (15/10/2026), font pareil, de plus pres (3 cases) et plus vite (0,9 s) */
-    const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? 0.9 : 1.2;
+  if (mo.d.charge || mo.d.pique) { /* le Bouftou Royal baisse la tete : une bande rouge jusqu'a toi (ESQUIVE.grandeCharge pour en sortir), puis il fonce et renverse tout sur son passage ;
+       les petits monstres qui chargent, et les Dragoeufs qui piquent (15/10/2026), font pareil, de plus pres (3 cases), en ESQUIVE.charge */
+    const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? ESQUIVE.charge : ESQUIVE.grandeCharge;
     if (petit && mo.chargeT == null) mo.chargeT = Math.random() * per * 0.7; /* (pas tous en meme temps) */
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
     if (sortPret('chargeT', per) && dP > (petit ? mo.d.portee + 0.8 : 1.2) && dP < (mo.d.chargeMax || 10) && (!petit || mo.chasse)) {
@@ -610,10 +611,10 @@ function capBond(mo, ctx) {
   if (mo.d.bondit) { /* le Bworker vise ou tu es : un cercle rouge au sol, il saute et ecrase tout dedans en retombant */
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
     if (sortPret('bonditT', mo.d.bondit) && dP > 1.5 && dP < 11) {
-      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = 2.3; mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = 1.4 + 0.3;
+      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = 2.3; mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = ESQUIVE.bond + 0.3;
       if (!combat.bonditVu) { combat.bonditVu = true; toast(leNom(mo.d) + ' va te sauter dessus : sors du cercle rouge !', 'alerte'); }
-      let t = 0; effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } if (t > 0.8) { const k = Math.min(1, (t - 0.8) / 0.6); mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * 2.8; } if (t >= 1.4) { mo.hop = 0; return true; } });
-      zoneDanger({ mo, x: cx, z: cz, r: R, duree: 1.4, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo); } });
+      let t = 0; effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } if (t > ESQUIVE.bond - 0.6) { const k = Math.min(1, (t - (ESQUIVE.bond - 0.6)) / 0.6); mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * 2.8; } if (t >= ESQUIVE.bond) { mo.hop = 0; return true; } });
+      zoneDanger({ mo, x: cx, z: cz, r: R, duree: ESQUIVE.bond, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo); } });
     }
   }
 }
