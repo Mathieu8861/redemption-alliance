@@ -14,16 +14,16 @@ function annoncerRaid(muet) {
   if (raidAnnonce || combat || enAccueil) return;
   if (!personnagesVsaPrets() || !MODELES.omeho) chargerPersonnagesVsa(); /* (un modele rate au chargement : il a 30 s pour arriver) */
   const { nb, montes } = tailleSimu(); /* (la taille : tailleSimu, 18-geliere.js) */
-  const sortie = sortieVSA(), entree = entreeVSA(sortie); /* (une seule entree, toujours la meme pour une ferme, 17/10/2026) */
-  const marques = new T.Group(); /* la case par ou ils arriveront, en rouge */
+  const sortie = sortieVSA(), entrees = entreesVSA(sortie, nb); /* (une case de bord par voleur, tout autour de la ferme, 18/10/2026) */
+  const marques = new T.Group(); /* les cases par ou ils arriveront, en rouge */
   /* « les cases rouges sont pas alignees avec les cases en dessous » (Mathieu, 11/10/2026) : elles etaient poussees de 0,45 vers le vide et dessinees
      par-dessus tout (on les voyait a travers la grange). Maintenant : pile sur la case, cachees par les batiments, et une bande plus foncee cote vide */
-  (entree ? [entree] : []).forEach((b) => { const q = posCase(b.c);
+  entrees.filter((b, k) => entrees.indexOf(b) === k).forEach((b) => { const q = posCase(b.c);
     const r = new T.Mesh(new T.PlaneGeometry(S - 0.15, S - 0.15), new T.MeshBasicMaterial({ color: '#d9443a', transparent: true, opacity: 0.4, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(q.x, q.y + 0.08, q.z); r.renderOrder = 3; marques.add(r);
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
   poserOmeho(sortie);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, entree, marques, sortie }; if (!muet) son('raid');
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, entrees, marques, sortie }; if (!muet) son('raid');
   construireRaidAnnonce(); majRaidAnnonce(); /* (plus de message en plus : la carte dit tout) */
 }
 /* LA SORTIE DES VOLEURS, ET OMEHO QUI LES ATTEND (14/10/2026, Mathieu : « ils peuvent apparaitre de n'importe ou, mais pour repartir, ils doivent repartir vers
@@ -39,13 +39,18 @@ function sortieVSA() {
   const b = B.reduce((m, x) => (score(x) > score(m) ? x : m)), q = posCase(b.c);
   return { id: b.c.id, di: b.di, dj: b.dj, x: q.x + b.di * 0.25, z: q.z + b.dj * 0.25, cx: q.x, cz: q.z, y: q.y, gx, gz };
 }
-/* L'ENTREE DES VOLEURS (17/10/2026, « trop aleatoire », Mathieu) : une seule case, toujours la meme pour une ferme : la case de bord la plus loin de la grange,
-   prise sur un autre cote que la sortie d'Omeho (ils traversent la ferme : entree, grange, sortie). Sans autre cote possible, n'importe quel bord sauf la sortie. */
-function entreeVSA(so) {
-  const G = S_.cases.filter((c) => c.type === 'grange'); if (!G.length) return null;
-  const gx = G.reduce((t, c) => t + posCase(c).x, 0) / G.length, gz = G.reduce((t, c) => t + posCase(c).z, 0) / G.length, loin = (b) => { const q = posCase(b.c); return Math.hypot(q.x - gx, q.z - gz); };
-  const B = bordsFerme().filter((b) => PASSABLE[b.c.type] && !(so && b.c.id === so.id)), autre = B.filter((b) => !so || b.di !== so.di || b.dj !== so.dj), L = autre.length ? autre : B;
-  return L.length ? L.reduce((m, x) => (loin(x) > loin(m) ? x : m)) : null;
+/* LES ENTREES DES VOLEURS (18/10/2026, « faut que ce soit comme avant, qu'ils arrivent de partout et qu'ils repartent vers Omeho », Mathieu ; l'entree
+   unique du 17/10 ne lui plaisait pas) : une case de bord par voleur, reparties sur tout le tour de la ferme (les bords ranges par angle autour de son
+   centre, puis pris au nombre d'or : deux voleurs qui se suivent arrivent de cotes opposes), jamais a moins de 2 cases d'Omeho. Toujours un par seconde,
+   chacun par sa case, marquee en rouge des l'annonce. */
+function entreesVSA(so, nb) {
+  const C = S_.cases; if (!C.length) return [];
+  const cx = C.reduce((t, c) => t + posCase(c).x, 0) / C.length, cz = C.reduce((t, c) => t + posCase(c).z, 0) / C.length;
+  const B0 = bordsFerme().filter((b) => PASSABLE[b.c.type] && !(so && b.c.id === so.id)), loin = B0.filter((b) => { if (!so) return true; const q = posCase(b.c); return Math.hypot(q.x - so.cx, q.z - so.cz) >= 2 * S; }), B = loin.length ? loin : B0;
+  if (!B.length) return [];
+  const angle = (b) => { const q = posCase(b.c); return Math.atan2(q.x + b.di * S / 2 - cx, q.z + b.dj * S / 2 - cz); };
+  B.sort((a, b) => angle(a) - angle(b));
+  const o = Math.random(); return Array.from({ length: nb }, (_, k) => B[Math.floor(((o + k * 0.618034) % 1) * B.length)]);
 }
 /* SON ESCORTE ET SA CALECHE (« ta realisation d'Omeho est super pour le moment, on met pas une caleche, une escorte avec lui ? » puis « ca peut faire plusieurs
    cases, tout n'est pas oblige de tenir sur une case », Mathieu, 14/10/2026) : Omeho sur sa case violette, un voleur de garde de chaque cote ; la caleche
@@ -123,7 +128,7 @@ function construireRaidAnnonce() {
   $('raid-annonce').innerHTML = '<div class="ra-tete"><img src="assets/icones/voleur.png' + v + '" alt=""><div><b>Simu VSA</b><span>Les voleurs de VSA arrivent sur ta grange</span></div>' +
     '<div class="ra-rebours"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="19"/><circle class="arc" id="ra-arc" cx="22" cy="22" r="19"/></svg><em id="ra-s">30</em></div></div>' +
     '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') +
-    '<span class="rouge"><i></i>' + 'par la case en rouge, en file' + '</span>' + (R.sortie ? '<span class="violet"><i></i>ils repartent par Omeho, en violet</span>' : '') + '</div>' +
+    '<span class="rouge"><i></i>' + 'de tout autour, par les cases en rouge' + '</span>' + (R.sortie ? '<span class="violet"><i></i>ils repartent par Omeho, en violet</span>' : '') + '</div>' +
     '<div class="ra-actions"><span class="ra-arb" id="ra-arb"></span><button class="btn discret" data-recharger id="ra-recharger">Recharger</button><button class="btn kamas" data-raid-go>Lancer maintenant</button></div>';
 }
 function majRaidAnnonce() {
@@ -145,7 +150,7 @@ function lancerRaid() {
   const R = raidAnnonce; raidAnnonce = null; if (R) jeter(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
   if (!R || combat || enAccueil || !paysanMesh) { retirerOmeho(); return; } son('vague');
   const file = []; for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture');
-  nouveauCombat('raid', { raid: true, file, total: file.length, attente: 0.3, butin: [], tues: 0, bords: R.entree ? [R.entree] : null, sortie: R.sortie || null }); /* (en file par leur entree, un par seconde : 23-fin-combat.js) */ /* (ses stats comme tout combat : sorts, degats, coups recus, affichees sous son bilan, 16/10/2026) */
+  nouveauCombat('raid', { raid: true, file, total: file.length, attente: 0.3, butin: [], tues: 0, bords: null, entrees: (R.entrees || []).slice(), sortie: R.sortie || null }); /* (un par seconde, chacun par sa case rouge : 23-fin-combat.js et apparaitre) */ /* (ses stats comme tout combat : sorts, degats, coups recus, affichees sous son bilan, 16/10/2026) */
   fermerModale(); ouvrirHudCombat();
   toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils rejoignent Omeho, sur la case violette.', 'alerte'); majCombatHud();
 }
