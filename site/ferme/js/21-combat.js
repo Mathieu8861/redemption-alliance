@@ -118,7 +118,7 @@ function ficheMonstre(t) {
   if (!d.boss && peutSauter({ d, aggro: true })) L.push(capa('saut', 'Saute sur toi', 'À moins de 3 cases, il se ramasse, puis bondit là où tu es. Reste dans le rond rouge et il t\'agrippe.', num('3 cases') + num(fmt(deg) + ' dégâts', 'rouge') + num('ralentit ' + String(AGRIPPE).replace('.', ',') + ' s', 'bleu') + num(secondes(ESQUIVE.saut) + ' pour esquiver') + num('toutes les ' + SAUT_RECHARGE + ' s'), 'violet'));
   if (!d.boss && (d.charge || d.pique)) L.push(capa(d.pique ? 'pique' : 'charge', d.pique ? 'Vol en piqué' : 'Charge', d.pique ? 'À moins de 3 cases, il prend de la hauteur, puis plonge sur toi en ligne droite. Une bande rouge te prévient.' : 'Il baisse la tête et fonce sur toi en ligne droite. Une bande rouge te prévient.',
     num((d.chargeMax ? '3' : '5') + ' cases') + num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(d.chargeMax ? ESQUIVE.charge : ESQUIVE.grandeCharge) + ' pour esquiver') + num('toutes les ' + (d.charge || d.pique) + ' s') + num('un bâtiment sur sa route prend le coup', 'vert'), 'violet'));
-  if (d.casse) L.push(capa('casse', 'Démolit les bâtiments', 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.' + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : '')));
+  if (d.casse) L.push(capa('casse', 'Démolit les bâtiments', 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.' + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : ''), num(Math.round((d.casse || 0) * 100) + ' % de chances') + num(fmt(Math.round(dpsBatiments(n))) + ' dégâts par seconde sur un bâtiment', 'rouge')));
   if (d.distance) L.push(capa('carreaux', 'Tire de loin', 'Il reste à distance et te tire dessus' + (d.casse ? ', ou sur tes bâtiments' : '') + '. Va le chercher.', num(casesDe(d.portee) + ' cases') + num(fmt(deg) + ' dégâts', 'rouge')));
   if (d.ralentit) L.push(capa('lenteur', 'Te ralentit', 'Chacun de ses coups te fait marcher plus lentement.', num(String(d.ralentit).replace('.', ',') + ' s', 'bleu'), 'bleu'));
   if (d.assomme) L.push(capa('assomme', 'T\'assomme', 'Touché, tu ne frappes plus un instant.', num(String(d.assomme).replace('.', ',') + ' s', 'rouge'), 'or'));
@@ -600,7 +600,7 @@ function capCharge(mo, ctx) {
           if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
           const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3)) { touche = true; blesserPerso(degSort(mo), mo); }
           if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8');
-            if (cleB && combat && !combat.fin) { pouf(f.x, solA(f.x, f.z) + 0.6, f.z, 3, '#8e7a5e'); blesserBat(cleB, Math.round(degSort(mo) / 2)); if (!combat.chargeBatVu) { combat.chargeBatVu = true; chiffre('Bam !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'gros'); } } /* sonne, il reste un instant sur place */
+            if (cleB && combat && !combat.fin) { pouf(f.x, solA(f.x, f.z) + 0.6, f.z, 3, '#8e7a5e'); blesserBat(cleB, degatsBatiment(1, mo)); if (!combat.chargeBatVu) { combat.chargeBatVu = true; chiffre('Bam !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'gros'); } } /* sonne, il reste un instant sur place */
             return true; } });
       } });
     }
@@ -634,7 +634,7 @@ function capLance(mo, ctx) {
         mo.frappe = 0.4; const y0 = mo.m.position.y + mo.haut * 0.6, de = new T.Vector3(mo.x, y0, mo.z), vers = new T.Vector3(f.x, solA(f.x, f.z) + 0.7, f.z);
         const os = new T.Mesh(new T.CylinderGeometry(0.06, 0.09, 1.5, 6), new T.MeshLambertMaterial({ color: '#efe6cf' })); os.rotation.order = 'YXZ'; os.rotation.set(Math.PI / 2, a, 0); scene.add(os);
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo);
-        if (cleB && combat && !combat.fin) blesserBat(cleB, Math.round(degSort(mo) / 2));
+        if (cleB && combat && !combat.fin) blesserBat(cleB, degatsBatiment(1, mo));
         let t = 0; effets.push((dt2) => { t += dt2 / 0.25; os.position.lerpVectors(de, vers, Math.min(1, t)); if (t >= 1) { jeter(os); pouf(vers.x, vers.y - 0.5, vers.z, 1.4, '#efe6cf'); return true; } });
       } });
     }
@@ -658,7 +658,7 @@ function capSeisme(mo, ctx) {
       zoneDanger({ mo, x: x0, z: z0, r: R, duree: 1.3, effet: (d) => {
         pouf(x0, mo.m.position.y, z0, 9, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5, '#c9b28a'); mo.frappe = 0.4;
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo);
-        if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < R + Math.max(z.hw, z.hd)) blesserBat(k, mo.deg * 2); });
+        if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < R + Math.max(z.hw, z.hd)) blesserBat(k, degatsBatiment(1, mo)); });
       } });
     }
   }
@@ -680,7 +680,7 @@ function capSouffle(mo, ctx) {
       const a = mo.vise.a; jeter(mo.vise.c); mo.vise = null; mo.souffleT = 0; souffleFeu(mo, a);
       const dans = (x, z) => { const d = Math.hypot(x - mo.x, z - mo.z); let e = Math.atan2(x - mo.x, z - mo.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e)); return d < 7 && Math.abs(e) < 0.5; };
       if (dans(pp.x, pp.z)) blesserPerso(degSort(mo), mo);
-      clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && dans(z.x, z.z)) blesserBat(k, mo.deg * 2); });
+      clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && dans(z.x, z.z)) blesserBat(k, degatsBatiment(1, mo)); });
       if (!combat || combat.fin) return;
     }
   }
@@ -822,12 +822,12 @@ function majMonstre(mo, dt, s) {
     tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
       mo.cd = mo.d.cadence; mo.frappe = 0.25;
-      if (bat && !mo.d.distance) blesserBat(bat.cle, mo.deg * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment (le Forestier : double sur les tours) */
+      if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
       else if (mo.d.distance) { /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) */
         const de = new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle, c0 = combat;
         const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })) : mo.d.projectile === 'fruit' ? new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.2 : 0.11, 10, 8), mat(mo.d.fruit)) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
         if (mo.d.projectile === 'feu') { const c = new T.Mesh(new T.IcosahedronGeometry(0.12, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); fl.add(c); }
-        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { jeter(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, deg); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, la fleche ne touche plus rien) */
+        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { jeter(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, la fleche ne touche plus rien) */
       } else { blesserPerso(mo.deg, mo); effetsCoup(mo); }
     }
   } else { /* il picore : une recolte volee toutes les 5 s */

@@ -130,10 +130,16 @@ function majBarresBat() {
   });
 }
 function placerBarresBat() { barresBat.forEach((e) => { const p = e._point; if (!p) return; vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
+/* LES DEGATS SUR LES BATIMENTS, UNE SEULE REGLE (18/10/2026, « graduels selon le niveau du monstre, la meme logique que l'XP et les recoltes », Mathieu) :
+   un casseur fait 3 degats par seconde par numero de vague sur un batiment (30 a la vague 10, 90 a la 30, 150 a la 50, 210 a la 70), la moyenne de
+   l'ancienne regle sur la partie, sans ses creux en debut de palier. Un coup vaut ces degats par seconde fois l'intervalle entre deux coups du monstre ;
+   un sort ou une charge qui touche un batiment vaut une seconde de coups. La revanche les durcit comme le reste (facteurRejoue). */
+const DPS_BATIMENT = 3;
+const dpsBatiments = (n) => DPS_BATIMENT * Math.max(1, n);
+const degatsBatiment = (secondes, mo) => Math.max(1, Math.round(dpsBatiments(combat ? combat.n : S_.vague.num) * secondes * (mo ? facteurRejoue('deg', mo.type) : 1)));
 /* un coup sur un batiment */
-const DEGATS_BATIMENTS = 3; /* les monstres cognent les batiments 3 fois plus fort que le perso (avant : pareil, une grange tenait une centaine de coups ; 4 jusqu'au 12/10/2026 : en milieu de partie, les reparations coutaient plus que la vague ne rapportait) */
 function blesserBat(cle, n) {
-  if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n * DEGATS_BATIMENTS)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
+  if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
   const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
   if (z) { const bx = boiteBat(z); chiffre('-' + n, new T.Vector3(z.x, bx.max.y + 0.2, z.z), 'bat'); }
   if (combat) { combat.bats = combat.bats || {}; combat.bats[cle] = (combat.bats[cle] || 0) + n; if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); } }
