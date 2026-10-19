@@ -651,7 +651,6 @@
     function exportPaliersImage() {
         var W = 1500, pad = 40, gap = 14;
         var utile = W - 2 * pad;
-        var enDirect = periodeEnDirect();
         var groupes = groupesParPalier();
         var avecZones = percoResa && groupes.some(function (g) { return droitsPalier(g.palier).resa > 0; });
         var ligneH = avecZones ? 52 : 46, teteH = 64;
@@ -823,7 +822,7 @@
                         if (!resas.length) {
                             ctx.fillStyle = '#6c7077';
                             ctx.font = 'italic 400 13px Inter, sans-serif';
-                            ctx.fillText(enDirect ? 'aucune zone libre' : 'au prochain tirage', nx, zy);
+                            ctx.fillText('en attente de son choix', nx, zy);
                             return;
                         }
                         var zx = nx;
@@ -1040,7 +1039,7 @@
                 : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.')) + '</li>';
         if (percoResa) {
             html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. L\'en-tête de leur palier l\'indique, par exemple « 3 percos dont 1 en zone réservée », et la zone s\'affiche sous le pseudo.</li>';
-            html += '<li><strong>Ton top ' + prefMax + '.</strong> Dans « Mes préférences », choisis jusqu\'à ' + prefMax + ' zones dans ton ordre. Dans l\'ordre du classement, chacun reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Ceux qui n\'ont rien choisi passent après et reçoivent une zone dans l\'ordre conseillé par l\'alliance.</li>';
+            html += '<li><strong>Ton top ' + prefMax + '.</strong> Dans « Mes préférences », choisis jusqu\'à ' + prefMax + ' zones dans ton ordre. Dans l\'ordre du classement, chacun reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Sans top enregistré, pas de zone tirée au hasard : ta ligne affiche « en attente de ton choix », et dès que tu enregistres ton top tu reçois ton premier choix encore libre, sans prendre la zone de personne.</li>';
             html += '<li><strong>Quand ça bouge.</strong> ' + (!periodeEnDirect()
                 ? 'Le tirage se fait au début de chaque période, sur le classement de la précédente, et reste figé jusqu\'à la suivante.'
                 : (programme
@@ -1190,7 +1189,6 @@
 
         var esc = window.REN.escapeHtml;
         var myId = window.REN.currentProfile.id;
-        var enDirect = periodeEnDirect();
         var avecZones = percoResa && groupes.some(function (g) { return droitsPalier(g.palier).resa > 0; });
 
         function ligne(p, zones) {
@@ -1209,7 +1207,8 @@
                         return r.zone ? r.zone.nom + (r.zone.sous_titre ? ' (' + r.zone.sous_titre + ')' : '') : '?';
                     }).join(', ');
                 } else {
-                    zoneHtml = '<span class="board-palier__vide">' + (enDirect ? 'aucune zone libre' : 'au prochain tirage') + '</span>';
+                    /* Pas de zone par defaut (sql/071) : le joueur la choisit lui-meme */
+                    zoneHtml = '<span class="board-palier__vide">' + (moi ? 'en attente de ton choix' : 'en attente de son choix') + '</span>';
                 }
             }
             return '<div class="board-palier__ligne' + (moi ? ' board-palier__ligne--moi' : '') + '">'
@@ -1306,7 +1305,7 @@
         var ouvert = tirageOuvert();
         var rangsTxt = texteRangs(plagesResa());
 
-        if (hintEl) hintEl.textContent = 'Choisis jusqu\'à ' + prefMax + ' zones dans la liste, dans ton ordre de préférence. Dans l\'ordre du classement, chaque joueur qui a droit à une zone reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Ceux qui n\'ont rien choisi passent après tout le monde.';
+        if (hintEl) hintEl.textContent = 'Choisis jusqu\'à ' + prefMax + ' zones dans la liste, dans ton ordre de préférence. Dans l\'ordre du classement, chaque joueur qui a droit à une zone reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Sans top enregistré, tu restes « en attente » : dès que tu l\'enregistres, tu reçois ton premier choix encore libre.';
 
         /* Encart : ma situation */
         var moi = ligneDe(me);
@@ -1332,9 +1331,10 @@
                         ? 'Cette semaine, le tirage reste ouvert jusqu\'au ' + esc(finTirageOuvert()) + ' : si tu changes ton top, ta zone suit tout de suite.'
                         : 'Ton top sert au tirage de la prochaine période.')) + '</div></div>';
         } else {
-            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu es <strong>' + ordinal(moi.rang) + '</strong> : ' + (enDirect || ouvert
-                ? 'plus aucune zone libre pour toi en ce moment.'
-                : 'pas de zone sur cette période, ton top servira au prochain tirage.') + '</div>';
+            /* Droit a une zone mais rien d'attribue : en attente (sql/071) */
+            mine = '<div class="board-prefs__mine board-prefs__mine--none">Tu es <strong>' + ordinal(moi.rang) + '</strong> et tu as droit à une zone réservée : ' + (myPrefs.length
+                ? 'toutes les zones de ton top sont déjà prises par des joueurs mieux classés. Ajoute d\'autres zones et enregistre, tu recevras tout de suite la première encore libre.'
+                : 'elle est <strong>en attente de ton choix</strong>. Enregistre ton top, tu recevras tout de suite ton premier choix encore libre.') + '</div>';
         }
         if (mineEl) mineEl.innerHTML = mine;
 
@@ -1461,17 +1461,19 @@
             myPrefs = myTop.map(function (z) { return { zone_id: z.id, nom: z.nom, sous_titre: z.sous_titre || '' }; });
             prefsDirty = false;
 
-            /* Tirage en direct, ou ouvert (sql/062) : l'enregistrement a deja
-               refait le tirage, on recharge pour montrer tout de suite l'effet */
+            /* Tirage en direct ou ouvert (sql/062), ou joueur en attente
+               (sql/071) : l'enregistrement a pu donner une zone tout de suite,
+               on recharge pour le montrer */
             var immediat = periodeEnDirect() || tirageOuvert();
-            if (immediat) {
-                await loadReservations();
-                renderTable();
-            }
+            var avaitZone = reservations.some(function (r) { return r.user_id === me; });
+            await loadReservations();
+            renderTable();
+            var aZone = reservations.some(function (r) { return r.user_id === me; });
             renderPrefs();
             window.REN.toast(myTop.length
-                ? (immediat ? 'Ton top est enregistré, le tirage en tient compte tout de suite.' : 'Ton top est enregistré, il servira au prochain tirage.')
-                : 'Ton top est vidé : si tu as droit à une zone, tu en recevras une par défaut.', 'success');
+                ? (immediat ? 'Ton top est enregistré, le tirage en tient compte tout de suite.'
+                    : (!avaitZone && aZone ? 'Ton top est enregistré : ta zone réservée t\'est attribuée tout de suite.' : 'Ton top est enregistré, il servira au prochain tirage.'))
+                : 'Ton top est vidé : sans top, pas de zone réservée' + (immediat ? '.' : ' au prochain tirage.'), 'success');
         } catch (err) {
             console.error('[REN-BOARD] Erreur sauvegarde préférences:', err);
             window.REN.toast('Erreur : ' + err.message, 'error');
