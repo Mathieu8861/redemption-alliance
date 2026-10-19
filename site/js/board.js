@@ -387,6 +387,8 @@
             window.REN.toast('Aucun classement à exporter.', 'error');
             return;
         }
+        /* Mode classement : l'image reprend les colonnes par palier du board */
+        if (percoMode !== 'points') { exportPaliersImage(); return; }
 
         var isPoints = percoMode === 'points';
         var bareme = isPoints ? pointsConfig : paliers;
@@ -603,6 +605,10 @@
         ctx.fillText('généré le ' + now.getDate() + ' ' + mois[now.getMonth()] + ' ' + now.getFullYear(), W - pad, fy);
         ctx.textAlign = 'left';
 
+        telechargerCanvas(canvas);
+    }
+
+    function telechargerCanvas(canvas) {
         canvas.toBlob(function (blob) {
             if (!blob) { window.REN.toast('Erreur lors de la génération.', 'error'); return; }
             var a = document.createElement('a');
@@ -614,6 +620,247 @@
             setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
             window.REN.toast('Image téléchargée ! Glisse-la dans Discord.', 'success');
         }, 'image/png');
+    }
+
+    /* Texte coupe a la largeur (mesuree, pas en nombre de lettres) */
+    function ajusterTxt(ctx, s, maxW) {
+        s = String(s || '');
+        if (ctx.measureText(s).width <= maxW) return s;
+        while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+        return s + '…';
+    }
+
+    /* Phrase coupee en lignes de largeur maxW */
+    function lignesTxt(txt, font, maxW) {
+        var m = document.createElement('canvas').getContext('2d');
+        m.font = font;
+        var out = [], cur = '';
+        String(txt || '').split(' ').forEach(function (mot) {
+            var essai = cur ? cur + ' ' + mot : mot;
+            if (cur && m.measureText(essai).width > maxW) { out.push(cur); cur = mot; } else { cur = essai; }
+        });
+        if (cur) out.push(cur);
+        return out.length ? out : [''];
+    }
+
+    /* === EXPORT IMAGE, MODE CLASSEMENT : les colonnes par palier du board ===
+       Memes groupes, couleurs, en-tetes et zones que renderTable(), sans la
+       ligne « toi » (l'image se partage). Les colonnes se placent comme le
+       flex du board : largeur de base, le reste reparti au poids, retour a la
+       ligne si ca deborde. */
+    function exportPaliersImage() {
+        var W = 1500, pad = 40, gap = 14;
+        var utile = W - 2 * pad;
+        var enDirect = periodeEnDirect();
+        var groupes = groupesParPalier();
+        var avecZones = percoResa && groupes.some(function (g) { return droitsPalier(g.palier).resa > 0; });
+        var ligneH = avecZones ? 52 : 46, teteH = 64;
+
+        var resaByUser = {};
+        reservations.forEach(function (r) {
+            if (!resaByUser[r.user_id]) resaByUser[r.user_id] = [];
+            resaByUser[r.user_id].push(r);
+        });
+
+        /* Colonnes : sous-colonnes de 10 joueurs au plus, comme a l'ecran. La
+           colonne des zones est plus large qu'a l'ecran : sur l'image, le nom
+           de la zone ET son sous-titre doivent se lire en entier */
+        var cols = groupes.map(function (g) {
+            var d = droitsPalier(g.palier);
+            var zones = percoResa && d.resa > 0;
+            var nbSous = Math.ceil(g.joueurs.length / LIGNES_PAR_SOUS_COLONNE);
+            var base = (zones ? 320 : 200) * nbSous;
+            return { g: g, d: d, zones: zones, nbSous: nbSous, parSous: Math.ceil(g.joueurs.length / nbSous),
+                base: base, poids: (zones ? 2 : 1) * nbSous, max: Math.round(base * 1.7), couleur: couleurPalier(g.palier) };
+        });
+
+        /* Rangees de colonnes, puis largeurs (flex-grow plafonne par max-width) */
+        var rangees = [], cur = [], larg = 0;
+        cols.forEach(function (c) {
+            var besoin = c.base + (cur.length ? gap : 0);
+            if (cur.length && larg + besoin > utile) { rangees.push(cur); cur = []; larg = 0; besoin = c.base; }
+            cur.push(c); larg += besoin;
+        });
+        if (cur.length) rangees.push(cur);
+        rangees.forEach(function (rg) {
+            var libre = utile - gap * (rg.length - 1) - rg.reduce(function (s, c) { return s + c.base; }, 0);
+            var poids = rg.reduce(function (s, c) { return s + c.poids; }, 0);
+            rg.forEach(function (c) { c.w = Math.min(c.max, c.base + (poids ? libre * c.poids / poids : 0)); });
+            rg.h = teteH + Math.max.apply(null, rg.map(function (c) { return c.parSous; })) * ligneH;
+        });
+
+        /* En-tete : titre, periode, avis du tirage ouvert */
+        var periodeEl = document.getElementById('board-period');
+        var lignesPeriode = lignesTxt(periodeEl ? periodeEl.textContent : '', '400 14px Inter, sans-serif', utile);
+        var avis = percoResa && tirageOuvert()
+            ? lignesTxt('⏳ Tirage des zones ouvert jusqu\'au ' + finTirageOuvert() + ' : un top modifié dans « Mes préférences » compte tout de suite, toujours dans l\'ordre du classement.', '400 14px Inter, sans-serif', utile - 32)
+            : null;
+        var headerH = 104 + lignesPeriode.length * 20 + (avis ? avis.length * 20 + 30 : 0);
+        var footerH = 50;
+        var H = headerH + rangees.reduce(function (s, rg) { return s + rg.h; }, 0) + gap * (rangees.length - 1) + footerH;
+
+        var canvas = document.createElement('canvas');
+        var scale = 2; /* export net (retina) */
+        canvas.width = W * scale;
+        canvas.height = H * scale;
+        var ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = '#1a1b1e';
+        ctx.fillRect(0, 0, W, H);
+        var grad = ctx.createLinearGradient(0, 0, W, 0);
+        grad.addColorStop(0, '#e07c0a');
+        grad.addColorStop(1, '#251a4d');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, 6);
+
+        ctx.fillStyle = '#e8eaed';
+        ctx.font = '700 32px Rajdhani, Inter, sans-serif';
+        ctx.fillText('REDEMPTION [RDM]', pad, 46);
+        ctx.fillStyle = '#ffb238';
+        ctx.font = '700 20px Rajdhani, Inter, sans-serif';
+        ctx.fillText('DROITS PERCEPTEURS', pad, 78);
+        ctx.fillStyle = '#a1a5ad';
+        ctx.font = '400 14px Inter, sans-serif';
+        lignesPeriode.forEach(function (l, i) { ctx.fillText(l, pad, 104 + i * 20); });
+        var y = 104 + lignesPeriode.length * 20;
+        if (avis) {
+            var ah = avis.length * 20 + 14;
+            ctx.fillStyle = 'rgba(224, 124, 10, 0.10)';
+            drawRoundRect(ctx, pad, y, utile, ah, 8);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(224, 124, 10, 0.45)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = '#c6c9cf';
+            ctx.font = '400 14px Inter, sans-serif';
+            avis.forEach(function (l, i) { ctx.fillText(l, pad + 16, y + 17 + i * 20); });
+            y += ah + 16;
+        } else {
+            y += 4;
+        }
+
+        rangees.forEach(function (rg) {
+            var x = pad;
+            rg.forEach(function (c) {
+                var ch = teteH + c.parSous * ligneH;
+                /* Carte de la colonne */
+                ctx.save();
+                drawRoundRect(ctx, x, y, c.w, ch, 12);
+                ctx.fillStyle = '#25262b';
+                ctx.fill();
+                ctx.clip();
+                ctx.fillStyle = c.couleur[1];
+                ctx.fillRect(x, y, c.w, teteH);
+                ctx.fillStyle = c.couleur[0];
+                ctx.fillRect(x, y, c.w, 3);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+                ctx.fillRect(x, y + teteH - 1, c.w, 1);
+                ctx.restore();
+                ctx.strokeStyle = '#373a40';
+                ctx.lineWidth = 1;
+                drawRoundRect(ctx, x + 0.5, y + 0.5, c.w - 1, ch - 1, 12);
+                ctx.stroke();
+
+                /* En-tete : titre et droits */
+                var premier = c.g.joueurs[0].rang, dernier = c.g.joueurs[c.g.joueurs.length - 1].rang;
+                var titre = (c.g.palier && c.g.palier.emoji ? c.g.palier.emoji + ' ' : '') + (c.g.palier ? 'Top ' : 'Rangs ') + (premier === dernier ? premier : premier + '-' + dernier);
+                ctx.fillStyle = '#e8eaed';
+                ctx.font = '700 22px Rajdhani, Inter, sans-serif';
+                ctx.fillText(ajusterTxt(ctx, titre, c.w - 32), x + 16, y + 24);
+                var morceaux = [];
+                if (c.d.total > 0) {
+                    morceaux.push([c.d.total + ' perco' + (c.d.total > 1 ? 's' : ''), true]);
+                    morceaux.push([c.zones ? ' dont ' + c.d.resa + ' en zone réservée' : (c.d.p150 > 0 ? '' : ' chacun'), false]);
+                }
+                if (c.d.p150 > 0) morceaux.push([(c.d.total > 0 ? ' + ' : '') + c.d.p150 + ' perco' + (c.d.p150 > 1 ? 's' : ''), true], [' niv 150-', false]);
+                if (!morceaux.length) morceaux.push(['aucun perco', true]);
+                var dx = x + 16;
+                morceaux.forEach(function (m) {
+                    if (!m[0]) return;
+                    ctx.font = m[1] ? '700 16px Inter, sans-serif' : '400 14px Inter, sans-serif';
+                    ctx.fillStyle = m[1] ? c.couleur[0] : '#a1a5ad';
+                    var t = ajusterTxt(ctx, m[0], x + c.w - 16 - dx);
+                    ctx.fillText(t, dx, y + 47);
+                    dx += ctx.measureText(t).width;
+                });
+
+                /* Lignes, par sous-colonne */
+                var sw = c.w / c.nbSous;
+                for (var s = 0; s < c.nbSous; s++) {
+                    var sx = x + s * sw;
+                    if (s > 0) { ctx.fillStyle = 'rgba(255, 255, 255, 0.06)'; ctx.fillRect(sx, y + teteH, 1, c.parSous * ligneH); }
+                    c.g.joueurs.slice(s * c.parSous, (s + 1) * c.parSous).forEach(function (p, i) {
+                        var ly = y + teteH + i * ligneH;
+                        if (i > 0) { ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; ctx.fillRect(sx + 1, ly, sw - 2, 1); }
+                        var milieu = ly + ligneH / 2;
+                        ctx.fillStyle = c.couleur[0];
+                        ctx.font = '700 21px Rajdhani, Inter, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(String(p.rang), sx + 26, milieu);
+                        /* Points a droite, mesures d'abord pour laisser le reste au pseudo */
+                        ctx.textAlign = 'right';
+                        var droite = sx + sw - 12;
+                        var unite = c.zones ? 'pts' : '';
+                        ctx.font = '500 12px Inter, sans-serif';
+                        var uw = unite ? ctx.measureText(unite).width + 4 : 0;
+                        if (unite) { ctx.fillStyle = '#6c7077'; ctx.fillText(unite, droite, milieu + 1); }
+                        ctx.font = '700 20px Rajdhani, Inter, sans-serif';
+                        ctx.fillStyle = '#ffb238';
+                        var pts = window.REN.formatNumber(p.points);
+                        ctx.fillText(pts, droite - uw, milieu);
+                        var ptsW = ctx.measureText(pts).width + uw;
+                        ctx.textAlign = 'left';
+                        var nx = sx + 46, nMax = droite - ptsW - 10 - nx;
+                        ctx.fillStyle = '#e8eaed';
+                        ctx.font = '600 15px Inter, sans-serif';
+                        ctx.fillText(ajusterTxt(ctx, p.username, nMax), nx, c.zones ? milieu - 9 : milieu);
+                        if (!c.zones) return;
+                        /* Zone reservee sous le pseudo : nom en orange, sous-titre en gris */
+                        var resas = resaByUser[p.user_id] || [];
+                        var zy = milieu + 11;
+                        if (!resas.length) {
+                            ctx.fillStyle = '#6c7077';
+                            ctx.font = 'italic 400 13px Inter, sans-serif';
+                            ctx.fillText(enDirect ? 'aucune zone libre' : 'au prochain tirage', nx, zy);
+                            return;
+                        }
+                        var zx = nx;
+                        resas.forEach(function (r, k) {
+                            var nom = (k ? ' · ' : '') + (r.zone ? r.zone.nom : '?');
+                            ctx.font = '700 13px Inter, sans-serif';
+                            ctx.fillStyle = '#ffb238';
+                            var tn = ajusterTxt(ctx, nom, nx + nMax - zx);
+                            ctx.fillText(tn, zx, zy);
+                            zx += ctx.measureText(tn).width;
+                            if (r.zone && r.zone.sous_titre && zx < nx + nMax - 20) {
+                                ctx.font = '400 13px Inter, sans-serif';
+                                ctx.fillStyle = '#a1a5ad';
+                                var ts = ajusterTxt(ctx, ' ' + r.zone.sous_titre, nx + nMax - zx);
+                                ctx.fillText(ts, zx, zy);
+                                zx += ctx.measureText(ts).width;
+                            }
+                        });
+                    });
+                }
+                x += c.w + gap;
+            });
+            y += rg.h + gap;
+        });
+
+        /* Pied de page */
+        var fy = H - footerH / 2;
+        var mois = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+        var now = new Date();
+        ctx.fillStyle = '#6c7077';
+        ctx.font = '400 13px Inter, sans-serif';
+        ctx.fillText('redemption-alliance.vercel.app', pad, fy);
+        ctx.textAlign = 'right';
+        ctx.fillText('généré le ' + now.getDate() + ' ' + mois[now.getMonth()] + ' ' + now.getFullYear(), W - pad, fy);
+        ctx.textAlign = 'left';
+
+        telechargerCanvas(canvas);
     }
 
     /* === PERIODE (periode_pvp_infos() en SQL, reglee par les admins) === */
@@ -895,6 +1142,27 @@
     var COULEUR_HORS_PALIER = ['#8b9099', 'rgba(139, 144, 153, 0.10)'];
     var LIGNES_PAR_SOUS_COLONNE = 10;
 
+    /* Joueurs consecutifs d'un meme palier ; palier null = au-dela du dernier
+       (le tableau et l'export image partent des memes groupes) */
+    function groupesParPalier() {
+        var groupes = [];
+        ladder.forEach(function (p) {
+            var palier = palierFor(p.rang);
+            var g = groupes[groupes.length - 1];
+            if (!g || g.palier !== palier) {
+                g = { palier: palier, joueurs: [] };
+                groupes.push(g);
+            }
+            g.joueurs.push(p);
+        });
+        return groupes;
+    }
+
+    function couleurPalier(palier) {
+        var idx = palier ? paliers.indexOf(palier) : -1;
+        return idx >= 0 ? COULEURS_PALIERS[idx % COULEURS_PALIERS.length] : COULEUR_HORS_PALIER;
+    }
+
     function renderTable() {
         var container = document.getElementById('board-table-wrap');
         if (!container) return;
@@ -918,17 +1186,7 @@
             resaByUser[r.user_id].push(r);
         });
 
-        /* Joueurs consecutifs d'un meme palier ; palier null = au-dela du dernier */
-        var groupes = [];
-        ladder.forEach(function (p) {
-            var palier = palierFor(p.rang);
-            var g = groupes[groupes.length - 1];
-            if (!g || g.palier !== palier) {
-                g = { palier: palier, joueurs: [] };
-                groupes.push(g);
-            }
-            g.joueurs.push(p);
-        });
+        var groupes = groupesParPalier();
 
         var esc = window.REN.escapeHtml;
         var myId = window.REN.currentProfile.id;
@@ -969,8 +1227,7 @@
         groupes.forEach(function (g) {
             var d = droitsPalier(g.palier);
             var zones = percoResa && d.resa > 0;
-            var idx = g.palier ? paliers.indexOf(g.palier) : -1;
-            var couleur = idx >= 0 ? COULEURS_PALIERS[idx % COULEURS_PALIERS.length] : COULEUR_HORS_PALIER;
+            var couleur = couleurPalier(g.palier);
             var premier = g.joueurs[0].rang;
             var dernier = g.joueurs[g.joueurs.length - 1].rang;
             var titre = (g.palier ? 'Top ' : 'Rangs ') + (premier === dernier ? premier : premier + '-' + dernier);
