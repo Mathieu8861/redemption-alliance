@@ -24,6 +24,7 @@ const ACTIONS = {
       allerPuis(p, () => ouvrirConstruire(p)); return; /* (le clic gauche, lui, deplace seulement : voir allerVers) */
     }
     if (p.type === 'champ' && p.tofu) { if (capturable(p)) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
+    if (p.type === 'leurre' && S_.leurreWabbit) { if (niv('leurre') >= 3) allerPuis(p, () => ACTIONS.chasserLeurre()); else chasserDeLoin(p, () => ACTIONS.chasserLeurre()); return; } /* (pris au panier : on va le relacher, de pres) */
     allerPuis(p, () => ACTIONS.agirSurCase(p));
   },
   agirSurCase(p) {
@@ -37,6 +38,7 @@ const ACTIONS = {
     if (p.type === 'voliere') { ouvrirVoliere(); return; }
     if (p.type === 'geliere') { if (potsPretsGeliere()) ACTIONS.ramasserPots(); ouvrirGeliere(); return; }
     if (p.type === 'forge') { ouvrirForge(); return; }
+    if (p.type === 'leurre') { if (S_.leurreWabbit) ACTIONS.chasserLeurre(); else ouvrirLeurre(); return; }
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
     if (!p.c) { ACTIONS.planter(p); return; }
@@ -173,7 +175,10 @@ const ACTIONS = {
     S_.grange.plume = (S_.grange.plume || 0) + n; compter('plumes'); S_.voliere.plumes = 0; xpFerme(PLUME.xp * n);
     toast('+' + n + ' Plume' + (n > 1 ? 's' : '') + ' de Tofu à la grange. Elles se vendent à l\'HDV.', 'or'); rendreGrange(); ouvrirVoliere();
   },
-  chasser(p) { compter('tofusChasses'); son('tofu'); const w = p.nuisible === 'wabbit'; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); toast(w ? 'Wabbit chassé ! Il retourne sur son île.' : 'Tofu chassé ! Il ira picorer chez VSA.'); gagnerXp(1); rendreCase(p.id); },
+  chasser(p) { compter('tofusChasses'); son('tofu'); const w = p.nuisible === 'wabbit', poil = w && poilDeWabbit(); p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); toast(w ? 'Wabbit chassé ! Il retourne sur son île' + (poil ? ', en laissant un Poil de Wabbit derrière lui.' : '.') : 'Tofu chassé ! Il ira picorer chez VSA.', poil ? 'or' : undefined); gagnerXp(1); rendreCase(p.id); },
+  chasserLeurre() { /* le Wabbit du leurre : chasse (niveaux 1 et 2) ou relache de sous le panier (niveau 3) */
+    if (!S_.leurreWabbit) return; const pris = niv('leurre') >= 3; S_.leurreWabbit = null; compter('tofusChasses'); son('tofu'); const poil = poilDeWabbit(); gagnerXp(1);
+    majLeurre(); rendreCasesBulles(); sauver(); toast((pris ? 'Tu soulèves le panier : le Wabbit file sur son île' : 'Wabbit chassé de ta fausse Cawotte ! Il retourne sur son île') + (poil ? ', en laissant un Poil de Wabbit derrière lui.' : '.'), poil ? 'or' : undefined); },
   nourrir(j) {
     const b = S_.bouftous[j]; if (!b) return;
     const r = repasDe(b), d = dureeRepasDe(b), bebe = !adulte(b);
@@ -222,10 +227,12 @@ const ACTIONS = {
   },
   amelio(id) {
     const a = AMELIOS.find((x) => x.id === id), n = niv(id);
-    if (!a || n >= a.couts.length || niveau(S_.xp) < nivRequis(a, n) || S_.kamas < a.couts[n] || (a.requiert && !niv(a.requiert))) return;
+    if (!a || n >= a.couts.length || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a) || S_.kamas < a.couts[n] || (a.requiert && !niv(a.requiert))) return;
     if (id === 'voliere' && n === 0 && bloqueursVoliere().length) { toast('Pas la place : libère une case à côté de la volière (une parcelle se déplace avec Aménager).', 'alerte'); return; }
     const caseForge = id === 'forge' && n === 0 ? caseLibreForge() : null;
     if (id === 'forge' && n === 0 && !caseForge) { toast('Pas la place : l\'atelier prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
+    const caseLeurre = id === 'leurre' && n === 0 ? caseLibreLeurre() : null;
+    if (id === 'leurre' && n === 0 && !caseLeurre) { toast('Pas la place : le leurre prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
     const blocGel = id === 'geliere' && n === 0 ? blocLibreGeliere() : null;
     if (id === 'geliere' && n === 0 && !blocGel) { toast('Pas la place : la Gelière prend 6 cases d\'herbe libres d\'un seul tenant (3 sur 2). Libère-les avec Aménager, ou achète un terrain.', 'alerte'); return; }
     S_.kamas -= a.couts[n]; S_.amelio[id] = n + 1; compter('amelios'); son('quete');
@@ -239,6 +246,11 @@ const ACTIONS = {
     if (id === 'forge' && caseForge) { /* construit : sur sa case, pres de la grange */
       caseForge.type = 'forge'; const u = paysanMesh.userData; if (u.cellule === caseForge || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseForge) { const v = voisins(caseForge).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } }
       rendreCase(caseForge.id); construireBatiments(); sauver(); fermerModale(); rendreHaut(); toast('L\'atelier de forgemagie est construit, près de ta grange : touche-le pour forger tes pièces avec tes runes.', 'or'); ouvrirForge(); return; }
+    if (id === 'leurre') { /* pose a l'achat, pres de tes Cawottes et de tes Fraises ; puis a chaque niveau, son nouveau modele */
+      if (caseLeurre) { caseLeurre.type = 'leurre'; const u = paysanMesh.userData; if (u.cellule === caseLeurre || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseLeurre) { const v = voisins(caseLeurre).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } } rendreCase(caseLeurre.id); }
+      majLeurre(); rendreCasesBulles(); sauver();
+      toast(n === 0 ? 'La fausse Cawotte est plantée près de tes champs : un Wabbit sur deux ira la ronger au lieu de tes Cawottes et de tes Fraises. Tu peux la déplacer avec Aménager.' : n === 1 ? 'Caramel ! Trois Wabbits sur quatre iront sur la fausse Cawotte, et ils y resteront collés jusqu\'à ce que tu viennes.' : 'Le panier à ressort est armé : tous les Wabbits iront sur la fausse Cawotte, et le panier leur tombera dessus.', 'or');
+    }
     if (id === 'geliere') { /* construite : ses 6 cases ; puis a chaque niveau, son nouveau modele */
       if (blocGel) { S_.rot = S_.rot || {}; S_.rot.geliere = blocGel.tourne ? 1 : 0; blocGel.cells.forEach((c) => { c.type = 'geliere'; }); S_.gelees = S_.gelees || [];
         const u = paysanMesh.userData; if (blocGel.cells.includes(u.cellule) || blocGel.cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => blocGel.cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } }
@@ -252,7 +264,7 @@ const ACTIONS = {
     if (id === 'arbalete') { if (n === 0) { S_.carreaux = capaciteArbalete(); toast('L\'arbalète est montée sur le toit de la grange, armée de ' + S_.carreaux + ' carreaux.', 'or'); } construireArbalete(); rendreArbaleteBulle(); }
     if (id === 'arbalete' && n > 0) toast('Arbalète : ' + degatsArbalete() + ' dégâts, ' + capaciteArbalete() + ' carreaux chargés au plus, un tir toutes les ' + String(cadenceArbalete()).replace('.', ',') + ' s.', 'or');
     rendreHaut(); rendreBouftous();
-    ({ enclos: ouvrirEnclos, voliere: ouvrirVoliere, geliere: ouvrirGeliere, grange: ouvrirGrange, epouvantail: ouvrirEpouvantail, puits: ouvrirPuits }[modaleOuverte] || (() => ouvrirHdv('ameliorer')))();
+    ({ enclos: ouvrirEnclos, voliere: ouvrirVoliere, geliere: ouvrirGeliere, grange: ouvrirGrange, epouvantail: ouvrirEpouvantail, puits: ouvrirPuits, leurre: ouvrirLeurre }[modaleOuverte] || (() => ouvrirHdv('ameliorer')))();
   },
   construireParcelle(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'libre') return;

@@ -832,7 +832,8 @@ function majMonstre(mo, dt, s) {
     }
   } else { /* il picore : une recolte volee toutes les 5 s */
     mo.picore += dt;
-    if (mo.picore >= 5) { mo.picore = 0.01; const p = mo.champ; p.vole = (p.vole || 0) + 1; rendreCase(p.id); { const q = posCase(p), C = PAR_ID[p.c]; chiffre('-1 ' + C.nom, new T.Vector3(q.x, q.y + 0.9, q.z), 'vol'); pouf(q.x, q.y + 0.2, q.z, 1.1, C.couleur); } toast('Un ' + mo.d.nom + ' ' + (mo.type === 'tofu' ? 'picore' : 'grignote') + ' ton ' + PAR_ID[p.c].nom + ' : 1 récolte de moins !', 'alerte'); }
+    if (mo.picore >= 5) { mo.picore = 0.01; const p = mo.champ; p.vole = (p.vole || 0) + 1; rendreCase(p.id);
+      { const V = combat.cultures || (combat.cultures = {}), v = V[p.c] || (V[p.c] = { n: 0, par: [] }); v.n++; if (!v.par.includes(mo.type)) v.par.push(mo.type); } /* (pour le bilan : « Cultures perdues ») */ { const q = posCase(p), C = PAR_ID[p.c]; chiffre('-1 ' + C.nom, new T.Vector3(q.x, q.y + 0.9, q.z), 'vol'); pouf(q.x, q.y + 0.2, q.z, 1.1, C.couleur); } toast('Un ' + mo.d.nom + ' ' + (mo.type === 'tofu' ? 'picore' : 'grignote') + ' ton ' + PAR_ID[p.c].nom + ' : 1 récolte de moins !', 'alerte'); }
   }
   }
   if (!combat || combat.fin) return; /* le coup qui vient d'achever le perso a clos la vague */

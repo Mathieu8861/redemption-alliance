@@ -16,11 +16,12 @@ function avancer(maintenant, enDirect) {
       if (p.pousse >= d) p.pretDepuis = maintenant;
       if (etape(p) !== avant) ch.add(p.id);
     }
-    if (direct) { /* les Tofus nuisibles */
+    if (direct) { /* les nuisibles des champs : les Tofus, et apres la vague 50 les Wabbits sur les Cawottes et les Fraises (02-donnees.js, WABBIT_MANGE) */
       if (!p.tofu) {
-        const phase2 = S_.vague.num > 5 * VAGUES_PALIER, gout = phase2 ? (p.c === 'cawotte' ? 3 : p.c === 'fraise' ? 2 : 1) : 1; /* les Wabbits raffolent des Cawottes, puis des Fraises */
-        if (recolte(p) > 1 && S_.cases.filter((x) => x.tofu).length < TOFUS_MAX && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU && Math.random() < (dt / RYTHME_TOFU) * gout * [1, 0.5, 0.33, 0.33, 0.33, 0.33][Math.min(5, niv('epouvantail'))] * (enRuine('epouvantail') ? 1.8 : 1) * freinTofus()) {
-          p.tofu = maintenant; p.nuisible = phase2 && (gout > 1 || Math.random() < 0.5) ? 'wabbit' : 'tofu'; ch.add(p.id); toast((p.nuisible === 'wabbit' ? 'Un Wabbit grignote ta ' : 'Un Tofu picore ton ') + c.nom + ' ! Chasse-le dans les ' + dureeLisible(DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) + ', sinon il te vole une récolte.', 'alerte');
+        const lapin = mangeWabbit(p.c), pret = recolte(p) > 1 && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU;
+        if (pret && lapin && wabbitsDehors() < WABBITS_MAX && Math.random() < dt / RYTHME_WABBIT) arriveeWabbit(p, maintenant, ch); /* (l'epouvantail ne leur fait pas peur ; le leurre les attire peut-etre : 14b-leurre.js) */
+        else if (pret && !lapin && tofusDehors() < TOFUS_MAX && Math.random() < (dt / RYTHME_TOFU) * [1, 0.5, 0.33, 0.33, 0.33, 0.33][Math.min(5, niv('epouvantail'))] * (enRuine('epouvantail') ? 1.8 : 1) * freinTofus()) {
+          p.tofu = maintenant; p.nuisible = 'tofu'; ch.add(p.id); toast('Un Tofu picore ton ' + c.nom + ' ! Chasse-le dans les ' + dureeLisible(DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) + ', sinon il te vole une récolte.', 'alerte');
         }
       } else if (maintenant - p.tofu > DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) {
         p.tofu = 0; p.tofuParti = maintenant; p.vole = (p.vole || 0) + 1; ch.add(p.id);
@@ -28,6 +29,9 @@ function avancer(maintenant, enDirect) {
       }
     }
   });
+  if (S_.leurreWabbit && niv('leurre') < 2 && maintenant - S_.leurreWabbit.depuis > DUREE_PICORAGE) { /* la fausse Cawotte en bois : le Wabbit se lasse et repart, sans rien voler */
+    S_.leurreWabbit = null; majLeurre(); rendreCasesBulles(); if (direct) toast('Le Wabbit en a assez de ronger du bois : il repart sur son île, sans rien t\'avoir volé.');
+  }
   let encl = false, hdv = false;
   S_.bouftous.forEach((b) => {
     if (niv('mangeoire') && maintenant >= b.rassasie && (S_.grange.ble || 0) >= repasDe(b)) { S_.grange.ble -= repasDe(b); b.rassasie = maintenant + dureeRepasDe(b); encl = true; hdv = true; }

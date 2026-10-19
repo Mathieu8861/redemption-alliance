@@ -148,7 +148,7 @@ function rendreTofusVoliere() {
 }
 
 /* ---------- les batiments sont poses d'apres leurs cases : on les deplace avec Amenager ---------- */
-const BATIS = { forge: 'l\'atelier de forgemagie', grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
+const BATIS = { forge: 'l\'atelier de forgemagie', grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', leurre: 'le leurre à Wabbits', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
 function blocBati(type) {
   const B = S_.cases.filter((c) => c.type === type); if (!B.length) return null;
   const i0 = Math.min(...B.map((c) => c.i)), j0 = Math.min(...B.map((c) => c.j)), P = B.map(posCase);
@@ -265,7 +265,7 @@ function construireBatiments() {
   o = blocBati('geliere'); if (o && niv('geliere')) { if (MODELES.geliere1) { pose('geliere' + Math.min(4, niv('geliere')), o.x, o.y, o.z, o.c0.id, rotDe('geliere')); ancres.geliere = new T.Vector3(o.x, o.y + 2.2, o.z); } else assurerGeliere(); } /* (la Geliere : son modele arrive au premier besoin) */
   rendreGelees();
   if (arbalete) { scene.remove(arbalete); arbalete = null; } construireArbalete(); construireTours();
-  majFeux(true); equiperEpouvantail();
+  majFeux(true); equiperEpouvantail(); majLeurre();
 }
 /* poser un batiment de w x h cases de facon que la case touchee soit dessous : cases d'herbe libres (ou les siennes), au meme niveau */
 function essaiPose(type, cible, W, H) {

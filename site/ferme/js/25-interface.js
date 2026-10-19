@@ -125,7 +125,7 @@ function ouvrirGraines() {
   ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Le nombre sur l\'icône : tes graines en grange. Elles s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>');
 }
 /* les icones : rendues depuis nos modeles 3D (generer-icones.html + exporter-icones.mjs -> assets/icones/) */
-const ICONES = { forge: 'atelier-forge', geliere: 'geliere', qg: 'grange', nivPuits: 'puits', nivEtal: 'etal', voliere: 'voliere', arbalete: 'arbalete', enclos: 'cloture', arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
+const ICONES = { forge: 'atelier-forge', geliere: 'geliere', qg: 'grange', nivPuits: 'puits', nivEtal: 'etal', voliere: 'voliere', arbalete: 'arbalete', enclos: 'cloture', arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', leurre: 'cawotte', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
 const ico = (nom) => '<span class="pic img' + (/^obj-leg-/.test(nom) ? ' leg' : '') + '"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt=""></span>';
 const pastille = (c) => '<span class="pic" style="background:' + c.couleur + '">' + c.nom[0] + '</span>'; /* une graine : sa couleur et son initiale */
 const pic = (e) => '<span class="pic emoji">' + e + '</span>';
@@ -149,13 +149,15 @@ const GAINS = {
   nivEtal: { role: 'Tu y vends tes récoltes et y achètes tes graines.', looks: ['l\'étal', 'la charrette', 'graines et balance', 'le comptoir couvert', 'le comptoir de Redemption'],
     stats: [['kama', 'Tes ventes', [0, 10, 10, 15, 20], (x) => '+' + x + ' %'], ['pousse', 'Prix des graines', [0, 0, 15, 15, 20], (x) => '-' + x + ' %']] },
   engrais: { stats: [['pousse', 'Temps de pousse de tes cultures', [0, 15, 28, 39, 48], (x) => '-' + x + ' %']] }, /* (0,85 a la puissance du niveau) */
-  epouvantail: { role: 'Il éloigne les Tofus de tes champs.', looks: [null, null, null, 'il prend une arbalète', null, 'le PÉPITO-TRON', null],
+  epouvantail: { role: 'Il éloigne les Tofus de tes champs. Les Wabbits, eux, n\'en ont pas peur.', looks: [null, null, null, 'il prend une arbalète', null, 'le PÉPITO-TRON', null],
     stats: [['tofu', 'Tofus qui viennent picorer', ['', '2 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins'], (x) => x],
       ['degats', 'Il tire sur les Tofus : dégâts', [0, 0, 0, 40, 60, 150, 150]], ['portee', 'Portée', ['', '', '', '8 cases', 'toute l\'île', 'toute la ferme', 'toute la ferme'], (x) => x],
       ['cadence', 'Il tire au bout de', ['', '', '', dureeLisible(EPOU[3].delai), dureeLisible(EPOU[4].delai), dureeLisible(EPOU[5].delai), dureeLisible(EPOU[5].delai)], (x) => x], ['cadence', 'Un tir toutes les', [0, 0, 0, 3.5, 2.2, 1, 1], (x) => virgule(x) + ' s']],
     neufs: { 3: [['carreaux', 'Une flèche par tir, prise dans ta réserve']], 5: [['auto', 'Il tire aussi sur les Tofus des vagues'], ['kama', '15 kamas par tir : Pépito facture tout']], 6: [['degats', 'Il tire aussi sur les voleurs de VSA, ceux des raids compris : ' + DEG_PEPITO_VSA + ' dégâts par tir']] } },
   bottes: { stats: [['vitesse', 'Ton perso marche plus vite', [0, 30], (x) => '+' + x + ' %']] },
-  cloche: { stats: [['cadence', 'Temps pour chasser un Tofu avant qu\'il vole', [1, 2], (x) => dureeLisible(x * DUREE_PICORAGE)]] },
+  leurre: { role: 'Une fausse Cawotte qui attire les Wabbits loin de tes Cawottes et de tes Fraises (pas ceux des vagues). Il ne les chasse pas : c\'est à toi de venir.', looks: [null, 'la fausse Cawotte en bois peint', 'la Cawotte au caramel', 'le panier à ressort'],
+    stats: [['protege', 'Wabbits qui filent dessus', ['', '1 sur 2', '3 sur 4', 'tous'], (x) => x], ['cadence', 'Le Wabbit y reste', ['', dureeLisible(DUREE_PICORAGE), 'jusqu\'à ce que tu viennes', 'pris au panier'], (x) => x]] },
+  cloche: { stats: [['cadence', 'Temps pour chasser un Tofu ou un Wabbit avant qu\'il vole', [1, 2], (x) => dureeLisible(x * DUREE_PICORAGE)]] },
   semences: { stats: [['pousse', 'Graine rendue à la récolte', ['', '1 fois sur 4'], (x) => x]] },
   forge: { stats: [['etoile', 'Forgemagie de tes pièces', ['', '+20 % de jet par rune'], (x) => x]] },
   faux: { stats: [['epi', 'Récolte de chaque parcelle', ['', '+1 (Blé : 3 → 4)'], (x) => x]] },
@@ -167,16 +169,16 @@ const GAINS = {
    un niveau, puis ce qui est au maximum */
 const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes. Et l\'atelier de forgemagie, pour monter le jet de tes pièces.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal', 'forge']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
   ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous, tes Tofus et tes Gelées : plus de laine, de plumes et de pots de gelée.', ['enclos', 'voliere', 'geliere']],
-  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche']]];
+  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus, le leurre contre les Wabbits.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre']]];
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
   if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
   const a = AMELIOS.find((x) => x.id === id), n = niv(id); if (n >= a.couts.length) return { e: 'fini' };
-  if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n)) return { e: 'bloque' };
+  if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a)) return { e: 'bloque' };
   return { e: 'dispo', ok: S_.kamas >= a.couts[n] };
 }
 const PARTIES_AMELIO = [['', 'Productivité', 'Produire plus et plus vite : eau, Bouftous, Tofus, ventes, cultures.', ['nivPuits', 'enclos', 'voliere', 'nivEtal', 'engrais', 'bottes', 'semences', 'faux']],
-  ['', 'Défense', 'Protéger ta ferme des voleurs de VSA, des monstres des vagues et des Tofus.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche']]];
+  ['', 'Défense', 'Protéger ta ferme des voleurs de VSA, des monstres des vagues, des Tofus et des Wabbits.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre']]];
 /* les cellules d'amelioration, style A (« la A pour arbalete, niquel », Mathieu, 12/10/2026, sur design-amelio-cellules.html) : l'icone, le nom en grand,
    le niveau en crans, une phrase, puis ce que change le prochain achat en lignes nettes (picto gris, libelle, avant → apres), sans cases ni emojis */
 const GRIS_PICTO = '#a3957a';
@@ -194,16 +196,16 @@ function lignesGain(G, n, fini) {
   return L ? '<dl class="a-gains">' + L + '</dl>' : '';
 }
 function artAmelio(a) {
-  const nv = niveau(S_.xp), n = niv(a.id), fini = n >= a.couts.length, cout = fini ? 0 : a.couts[n], bloque = !fini && nv < nivRequis(a, n), manqueReq = a.requiert && !niv(a.requiert), bat = NIVBAT[a.id] || a.id === 'arbalete';
-  const place = fini ? '' : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : a.id === 'forge' && n === 0 && !bloque && !caseLibreForge() ? 'Libère une case d\'herbe' : '';
+  const nv = niveau(S_.xp), n = niv(a.id), fini = n >= a.couts.length, cout = fini ? 0 : a.couts[n], bloque = !fini && (nv < nivRequis(a, n) || verrouVague(a)), manqueReq = a.requiert && !niv(a.requiert), bat = NIVBAT[a.id] || a.id === 'arbalete';
+  const place = fini ? '' : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : a.id === 'forge' && n === 0 && !bloque && !caseLibreForge() ? 'Libère une case d\'herbe' : a.id === 'leurre' && n === 0 && !bloque && !caseLibreLeurre() ? 'Libère une case d\'herbe' : '';
   const plusieurs = a.couts.length > 1, numSuiv = NIVBAT[a.id] ? n + 2 : n + 1, G = GAINS[a.id];
   const total = bat ? 5 : plusieurs ? a.couts.length : 0, actuel = bat ? (a.id === 'arbalete' ? n : n + 1) : n;
   const look = !fini && G && G.looks && G.looks[n + 1];
   const suiv = fini ? (plusieurs ? 'Niveau maximum' : 'Acquis') : plusieurs ? ((a.id === 'arbalete' || a.id === 'geliere') && !n ? 'En la construisant' : 'Au niveau ' + numSuiv + (look ? ', ' + look : '')) : 'En l\'achetant';
   const achat = fini ? '<span class="a-etat">' + (plusieurs ? 'Niveau maximum atteint' : 'Déjà acheté') + '</span>'
     : manqueReq ? '<span class="a-etat">' + picto('cadenas', GRIS_PICTO) + AMELIOS.find((x) => x.id === a.requiert).nom.split(' sur ')[0] + ' d\'abord</span>'
-    : bloque ? '<span class="a-etat">' + picto('cadenas', GRIS_PICTO) + 'Paysan niveau ' + nivRequis(a, n) + '</span>'
-    : (place ? '<span class="a-manque">' + place + '</span>' : ilManque(cout)) + '<button class="btn kamas" data-amelio="' + a.id + '"' + (S_.kamas < cout || place ? ' disabled' : '') + '>' + ((a.id === 'arbalete' || a.id === 'geliere') && !n ? 'Construire' : plusieurs ? 'Niveau ' + numSuiv : 'Acheter') + ' · ' + fmt(cout) + ' ' + KAMA + '</button>';
+    : bloque ? '<span class="a-etat">' + picto('cadenas', GRIS_PICTO) + (verrouVague(a) ? 'Après la vague ' + a.apresVague : 'Paysan niveau ' + nivRequis(a, n)) + '</span>'
+    : (place ? '<span class="a-manque">' + place + '</span>' : ilManque(cout)) + '<button class="btn kamas" data-amelio="' + a.id + '"' + (S_.kamas < cout || place ? ' disabled' : '') + '>' + ((a.id === 'arbalete' || a.id === 'geliere' || a.id === 'leurre') && !n ? 'Construire' : plusieurs ? 'Niveau ' + numSuiv : 'Acheter') + ' · ' + fmt(cout) + ' ' + KAMA + '</button>';
   const gains = G ? lignesGain(G, n, fini) : '';
   return '<div class="amel' + (bloque ? ' verrou' : '') + '"><img class="a-ico" src="assets/icones/' + (ICONES[a.id] || 'coffre') + '.png?v=' + VERSION_MODELES + '" alt=""><h3>' + a.nom + '</h3>' + crans(actuel, total, total ? '' : fini ? 'acquis' : 'achat unique') +
     '<p class="a-desc">' + (G && G.role ? G.role : a.desc) + '</p>' + (gains ? '<div class="a-prochain">' + suiv + '</div>' + gains : '') + '<div class="a-achat">' + achat + '</div></div>';

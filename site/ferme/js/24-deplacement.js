@@ -17,7 +17,7 @@ function trajet(depart, cible) {
   return trajetCoupe(depart, cible, but, bloc);
 }
 /* aucun chemin libre (un placement a ferme l'acces) : il coupe a travers, mais par le plus petit obstacle (foin, epouvantail avant un batiment), jamais par le vide */
-const COUT_TRAVERSE = { foin: 6, epouvantail: 6, arbre: 12 };
+const COUT_TRAVERSE = { foin: 6, epouvantail: 6, leurre: 6, arbre: 12 };
 function trajetCoupe(depart, cible, but, bloc) {
   const cout = new Map([[depart.id, 0]]), prec = new Map([[depart.id, null]]), ouverts = [depart], fait = new Set();
   while (ouverts.length) {
@@ -166,6 +166,7 @@ function rendreCasesBulles() {
     if (p.type === 'puits') { if (niv('arrosoir') && !(S_.citerne > 0) && !enRuine('puits') && !combat) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, pos.y + 2.4, pos.z], 'case:' + p.id, '0', 'Citerne vide : touche le puits pour la remplir'); else retirerBulle(cle); return; }
     if (p.type === 'voliere') { if (S_.voliere.plumes && p === S_.cases.find((c) => c.type === 'voliere')) bulle(cle, icoB('plume'), 'or', [pos.x, pos.y + 2.3, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }
     if (p.type === 'geliere') { const o = blocBati('geliere'), n = potsPretsGeliere(), faim = (S_.gelees || []).some((g) => etatGelee(g) === 'faim' && !manqueRecette(GELEES[g.c].recette).length); if (o && p === o.c0 && !combat && (n || faim)) bulle(cle, icoB(n ? 'pot-petit' : 'gelee-bleue'), n ? 'or' : 'eau', [o.x, o.y + 2.2, o.z], 'case:' + p.id, n ? '×' + n : '', n ? 'Pots de gelée prêts : touche pour les ramasser' : 'Tes Gelées ont faim : touche pour les nourrir'); else retirerBulle(cle); return; }
+    if (p.type === 'leurre') { if (S_.leurreWabbit && !combat) bulle(cle, icoB('wabbit'), 'rouge', [pos.x, pos.y + 1.8, pos.z], 'case:' + p.id, '', niv('leurre') >= 3 ? 'Un Wabbit pris au panier : touche pour le relâcher' : 'Un Wabbit ronge la fausse Cawotte : touche pour le chasser'); else retirerBulle(cle); return; }
     if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
     const st = etape(p), haut = pos.y + (st === 'mur' ? 1.9 : st === 'pousse' ? 1.4 : 0.9);
     if (p.tofu) { const w = p.nuisible === 'wabbit'; bulle(cle, capturable(p) ? icoB('filet') : icoB(w ? 'wabbit' : 'tofu'), 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, '', w ? 'Un Wabbit grignote : touche pour le chasser' : capturable(p) ? 'Un Tofu picore : touche pour le chasser ou le capturer' : 'Un Tofu picore : touche pour le chasser'); }
@@ -228,7 +229,7 @@ function verbeDroit(p) {
   const k = cleDeCase(p); if (k && enRuine(k)) return 'reconstruire';
   if (p.type === 'libre') return 'labourer ou construire';
   if (p.type === 'champ') { if (!p.c) return 'planter'; return p.pousse >= duree(PAR_ID[p.c]) ? 'récolter' : !p.arrose ? 'arroser' : ''; }
-  return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', tour: 'ouvrir la tour', voliere: 'ouvrir la volière' })[p.type] || '';
+  return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', leurre: S_.leurreWabbit ? (niv('leurre') >= 3 ? 'relâcher le Wabbit' : 'chasser le Wabbit') : 'ouvrir le leurre', tour: 'ouvrir la tour', voliere: 'ouvrir la volière' })[p.type] || '';
 }
 function rappelClicDroit(p) {
   if (tuto.actif || (S_.clicsDroits || 0) >= 6 || performance.now() - (rappelClicDroit.t || 0) < 4000) return; /* (pendant le tuto, Pepito explique deja) */ const v = verbeDroit(p); if (!v) return;
