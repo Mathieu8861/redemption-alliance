@@ -8,6 +8,7 @@ const LARGEUR_PERSO = { iop: [1.55, 1.28], cra: [1.25, 1.12], osa: [1.25, 1.12],
 const P_CHAPEAU = /^(cone|paille|chapeau)/, P_RIGIDE = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|fleche_queue)/, /* (la sangle tient l'epee : elle bouge avec elle, sans s'etirer) */
   P_ARME_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage)/, P_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|baudrier|cape|col|barbe|moustache|tresse|anneau_barbe|criniere|favoris|meche_folle)/, /* (la barbe et les cheveux longs ne comptent pas dans le torse) */
   P_SAILLIE = /^(nasal|corne|anneau_corne|queue|crin|cristal|lueur|plume|feuille|museau|couvre_nuque|garde_joue|crete|dent|oreille|cawotte|cercle|noeud|embleme|gemme|clou|orbite|arcade|fente|visiere|touffe|couronne_pointe|couronne_boule|sillon|couture|roc)/, EP_CAPE = 0.16;
+const P_PEND = /^(dread|dread_bout|anneau_dread)$/; /* ce qui pend sous une coiffe (les dreadlocks du Boufcoul) : hors des mesures et du calage (19/10/2026) */
 const nomP = (o) => ((o && o.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, '');
 const boiteDe = (o) => new T.Box3().setFromObject(o), unionDe = (L) => { const b = new T.Box3(); L.forEach((o) => b.union(boiteDe(o))); return b; };
 function elargirPerso(g, classe) {
@@ -131,8 +132,8 @@ function habillerTenue(g) {
       const pend = bB ? pc.filter((m) => /^(os|dent)$/.test(nomP(m)) && boiteDe(m).max.y < bB.max.y + 0.1 && boiteDe(m).min.y < bB.min.y - 0.1) : [];
       if (pend.length) { const dy = bB.min.y - 0.09 - Math.min(...pend.map((m) => boiteDe(m).min.y)); pend.forEach((m) => { m.position.y += dy; }); c.updateMatrixWorld(true); }
     }
-    const B0 = boiteDe(c), h0 = B0.max.y - B0.min.y || 1;
-    const corpsC = pc.filter((m) => !P_SAILLIE.test(nomP(m))), bas = corpsC.filter((m) => (boiteDe(m).min.y - B0.min.y) / h0 <= 0.35);
+    const pcH = pc.filter((m) => !P_PEND.test(nomP(m))), B0 = pcH.length ? unionDe(pcH) : boiteDe(c), h0 = B0.max.y - B0.min.y || 1; /* (sans ce qui pend dessous) */
+    const corpsC = pcH.filter((m) => !P_SAILLIE.test(nomP(m))), bas = corpsC.filter((m) => (boiteDe(m).min.y - B0.min.y) / h0 <= 0.35);
     const pied = (m) => { const z = boiteDe(m).getSize(new T.Vector3()); return z.x * z.z; }, rebord = bas.sort((a, b) => pied(b) - pied(a))[0];
     const r0 = rebord ? boiteDe(rebord).getSize(new T.Vector3()) : B0.getSize(new T.Vector3()), t0 = B0.getSize(new T.Vector3());
     let k = Math.max(st.x * 0.85 / Math.max(r0.x, r0.z), st.x * 1.12 / Math.max(t0.x, t0.z));
@@ -152,6 +153,12 @@ function habillerTenue(g) {
       dents = pc.filter((m) => /^dent$/.test(nomP(m))), basC = dents.length ? Math.min(b1.min.y, unionDe(dents).min.y) : b1.min.y, /* (les dents du crane du Chafer restent sur le front, pas sur les yeux) */
       decal = bas0 - basC, sommet = b1.max.y + decal, bord0 = (rebord ? boiteDe(rebord).min.y : b1.min.y) + decal;
     c.position.add(new T.Vector3(ct.x - c1.x, decal, ct.z - c1.z)); eq.add(c);
+    { const pend = pc.filter((m) => P_PEND.test(nomP(m))); /* ce qui pend (les dreadlocks du Boufcoul) s'arrete sur la nuque, pas aux pieds (19/10/2026) */
+      if (pend.length) { c.updateMatrixWorld(true); const bP = unionDe(pend), haut = Math.min(bord0, bP.max.y), limite = bt.min.y - st.y * 0.08;
+        if (bP.min.y < limite && haut > limite) { const f = (haut - limite) / Math.max(0.01, haut - bP.min.y), v = new T.Vector3();
+          pend.forEach((m) => { const M = m.matrixWorld.clone(), Mi = M.clone().invert(), g0 = m.geometry, geo = g0.clone(), P = geo.attributes.position;
+            for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(M); if (v.y < haut) v.y = haut - (haut - v.y) * f; v.applyMatrix4(Mi); P.setXYZ(i, v.x, v.y, v.z); }
+            P.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere(); m.children.forEach((k) => { if (k.isMesh && k.geometry === g0) k.geometry = geo; }); m.geometry = geo; }); } } }
     if (estLeg || pc.some((m) => /^(calotte|bonnet|coussin|casque|os|crane|fond)$/.test(nomP(m)))) { /* sous une coiffe fermee (ou une couronne), le dessus de la chevelure s'aplatit jusque sous son sommet ;
       « on dirait qu'il a des trous dans les cheveux » (Mathieu, 12/10/2026) : avant, toute la chevelure retrecissait et decouvrait le crane entre les meches */
       const couronne = estLeg && /^(royal|craq)$/.test((oC.base ? OBJETS[oC.base] : oC).leg); /* (les couronnes du Bouftou Royal et du Craqueleur sont ouvertes : la chevelure en remplit l'interieur, sinon on voyait le crane chauve entre les cristaux) */
