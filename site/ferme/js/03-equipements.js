@@ -144,22 +144,34 @@ function ouvrirForge() {
     return '<div class="art">' + icoObjet(k) + '<div><b>' + (o.leg ? '✦ ' : o.rare ? '★ ' : '') + o.nom + (eq.includes(k) ? ' <span class="puce bonne">portée</span>' : '') + (S_.sac[k] > 1 ? ' <span class="puce">×' + S_.sac[k] + '</span>' : '') + '</b>' +
       '<div class="forge-jet"><span>Jet ' + nomJet(q) + '</span><div class="barre"><i style="width:' + Math.round(q * 100) + '%"></i></div><small>' + Math.round(q * 100) + ' %</small></div></div><div class="act forge-act">' +
       (maxi ? '<span class="cadenas">✓ jet max</span>' : Object.keys(RUNES).map((t) => '<button class="btn mini ' + (nr[t] ? 'kamas' : 'discret') + '" data-forger="' + t + '|' + k + '"' + (nr[t] ? '' : ' disabled') + ' data-info="' + RUNES[t].nom + ' : ' + RUNES[t].bref + '">' + img(t) + RUNES[t].bref + '</button>').join('')) + '</div></div>'; };
-  ouvrirModale('forge', entete('L\'atelier de forgemagie') + '<p class="hdv-aide">Une <b>rune de forgemagie</b> ajoute 20 % de jet à chaque caractéristique d\'une pièce, jusqu\'au maximum. Une <b>rune parfaite</b> la met d\'un coup au jet maximum. Les runes se gagnent dans l\'Arène (la montgolfière).</p>' +
+  ouvrirModale('forge', entete('L\'atelier de forgemagie') + '<p class="hdv-aide">Une <b>rune de forgemagie</b> ajoute 20 % de jet à la caractéristique de ton choix, jusqu\'à son maximum. Une <b>rune parfaite</b> la met d\'un coup au jet maximum. Les runes se gagnent dans l\'Arène (la montgolfière).</p>' +
     '<div class="forge-stock">' + Object.keys(RUNES).map((t) => '<span class="puce">' + img(t) + '<b>' + (nr[t] || 0) + '</b> ' + ((nr[t] || 0) > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</span>').join('') + '</div>' +
     (cles.length ? '<div class="hdv-section">Tes pièces</div>' + cles.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce d\'équipement pour l\'instant : les monstres des vagues en lâchent.</p>'));
 }
-function forgerObjet(k, t) {
+/* le choix de la caracteristique pour une rune de forgemagie : celles qui peuvent encore monter, avant -> apres */
+const gainRune = (R, a, b) => Math.max(1, Math.ceil(R.gain * (b - a) - 1e-9));
+function ouvrirChoixForge(k) {
+  const B = OBJETS[baseObjet(k)], o = obj(k), R = RUNES.forge; if (!B || !o) return;
+  const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v), cur = o.stats[c] != null ? o.stats[c] : v, apres = Math.min(b, cur + gainRune(R, a, b)), q = (x) => Math.round(100 * (b > a ? (x - a) / (b - a) : 1));
+    const C = CARACS[c] || [c, '', ''];
+    return '<div class="art"><span class="pic">' + (C[2] || '') + '</span><div><b>' + C[0] + '</b><div class="desc">' + (cur >= b ? 'Déjà au maximum (' + fmt(b) + C[1] + ').' : fmt(cur) + C[1] + ' (' + q(cur) + ' %) → <b>' + fmt(apres) + C[1] + '</b> (' + q(apres) + ' %)') + '</div></div><div class="act">' +
+      (cur >= b ? '<span class="cadenas">✓ max</span>' : '<button class="btn kamas" data-forger-carac="' + k + '|' + c + '">Forger</button>') + '</div></div>'; }).join('');
+  ouvrirModale('forge-choix', entete('Quelle caractéristique ?') + '<p class="hdv-aide"><b>' + o.nom + '</b> : la rune de forgemagie ajoute 20 % de jet à la caractéristique de ton choix, jusqu\'à son maximum.</p>' + L +
+    '<div class="act-bas"><button class="btn discret" data-forge-retour>Retour à l\'atelier</button></div>');
+}
+function forgerObjet(k, t, carac) {
   if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (Améliorer, catégorie Ferme, niveau ' + NIV_ARENE + ').'); return null; }
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
   if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
   if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }
+  if (R.gain < 1) { const v0 = B.stats[carac]; if (v0 == null) { ouvrirChoixForge(k); return null; } const [a0, b0] = fourchette(v0), cur0 = obj(k).stats[carac]; if (cur0 != null && cur0 >= b0) { toast('Cette caractéristique est déjà au maximum.'); return null; } } /* (sans caracteristique choisie : on la demande) */
   S_.jets = S_.jets || {}; let cle = k; const emp = Object.keys(S_.equip).find((e) => S_.equip[e] === k);
   if (!S_.jets[k] || (S_.sac[k] || 0) > 1) { /* une piece d'avant les jets, ou en plusieurs exemplaires : on en sort un exemplaire a part, a son jet actuel */
     S_.nInst = (S_.nInst || 0) + 1; cle = base + '~' + S_.nInst.toString(36); S_.jets[cle] = Object.assign({}, obj(k).stats);
     if (emp) S_.equip[emp] = cle; else { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; S_.sac[cle] = 1; }
   }
   const q0 = qualiteJet(cle), J = S_.jets[cle];
-  Object.entries(B.stats).forEach(([c, v]) => { const [a, b] = fourchette(v), cur = J[c] != null ? J[c] : v; J[c] = R.gain >= 1 ? b : Math.min(b, cur + Math.max(1, Math.round(R.gain * (b - a)))); });
+  Object.entries(B.stats).forEach(([c, v]) => { const [a, b] = fourchette(v), cur = J[c] != null ? J[c] : v; if (R.gain >= 1) J[c] = b; else if (c === carac) J[c] = Math.min(b, cur + gainRune(R, a, b)); }); /* (la rune de forgemagie : la seule caracteristique choisie, 19/10/2026) */
   n[t]--; compter('runes'); son('niveau'); confettis(25);
   toast('Forgemagie réussie : ' + obj(cle).nom + ', jet ' + Math.round(q0 * 100) + ' % puis ' + Math.round(qualiteJet(cle) * 100) + ' %.', 'or'); rendreHaut(); sauver(); return cle;
 }

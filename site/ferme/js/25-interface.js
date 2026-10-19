@@ -627,7 +627,9 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.fpCarac) { persoCarac = persoCarac === b.dataset.fpCarac ? null : b.dataset.fpCarac; ouvrirPerso(); }
   else if (b.dataset.persoSel) ouvrirPerso(b.dataset.persoSel);
   else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);
-  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); const cle = forgerObjet(k, t); if (modaleOuverte === 'forge') ouvrirForge(); else ouvrirPerso(cle || k); }
+  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); if (t === 'forge') { ouvrirChoixForge(k); return; } const cle = forgerObjet(k, t); if (modaleOuverte === 'forge') ouvrirForge(); else ouvrirPerso(cle || k); } /* (la rune de forgemagie demande d'abord la caracteristique) */
+  else if (b.dataset.forgerCarac) { const [k, c] = b.dataset.forgerCarac.split('|'); forgerObjet(k, 'forge', c); ouvrirForge(); }
+  else if (b.hasAttribute('data-forge-retour')) ouvrirForge();
   else if (b.hasAttribute('data-ouvrir-forge')) ouvrirForge();
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);

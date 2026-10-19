@@ -284,7 +284,7 @@ function ouvrirArene() {
     '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tes paliers déjà battus, de plus en plus forts, qui sortent des herses et foncent tous sur toi.</li>' +
     '<li><b>Un boss toutes les 5 vagues</b>, puis un souffle pour boire tes pots et manger.</li>' +
     '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : à 10 vagues, tu récupères environ les deux tiers de ton ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
-    '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur une pièce) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
+    '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur la caractéristique de ton choix) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
     '<li><b>Le coffre de chaque boss</b> (toutes les 5 vagues) : des kamas ; dès le boss de la 10e, 30 % de chance d\'une pièce de ta panoplie, <b>avec un jet jamais sous la moyenne</b> ; 2 % de chance de runes de forgemagie ; dès le boss de la 10e aussi, 2 % de chance de <b>rune parfaite</b> (jet maximum). Ta Prospection augmente ces chances.</li>' +
     '<li><b>Ton record de la semaine</b> compte au classement de l\'alliance, pour l\'honneur.</li>' +
     '<li>Tomber ne coûte rien de plus : tu gardes tout ce que tu as gagné. Le bouton Fuir arrête la partie quand tu veux.</li></ul>' + blocVie() +
