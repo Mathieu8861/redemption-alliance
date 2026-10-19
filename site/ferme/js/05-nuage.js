@@ -72,7 +72,8 @@ function conflitNuage() {
 function connexionDiscord() { if (sb) sb.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: location.origin + location.pathname } }); }
 async function connexionInvite(pseudo, mdp) {
   const r = await rpc('ferme_connexion', { p_pseudo: pseudo, p_mdp: mdp });
-  if (!r.ok) return r.erreur === 'mdp_court' ? 'Choisis un mot de passe de 6 caractères au moins.' : 'Pseudo ou mot de passe incorrect.';
+  if (!r.ok) return ({ mdp_court: 'Choisis un mot de passe de 6 caractères au moins.', pseudo: 'Ton pseudo : de 3 à 20 lettres ou chiffres (espaces, - et _ permis).',
+    pseudo_membre: 'Ce pseudo est celui d\'un membre de Redemption : connecte-toi avec Discord, ou choisis-en un autre.', trop: 'Trop de nouveaux comptes en ce moment : réessaie dans une heure.' })[r.erreur] || 'Pseudo ou mot de passe incorrect.'; /* (19/10/2026 : un pseudo inconnu cree le compte, sql/072) */
   try { localStorage.setItem(JETON, r.jeton); } catch (err) { /* rien */ } location.reload(); return '';
 }
 async function deconnecter() {
@@ -87,8 +88,8 @@ async function deconnecter() {
 function ecranConnexion(carte) {
   const tete = '<h1>Ferme d\'Incarnam</h1><span class="beta">BÊTA</span>';
   if (enLigneSv.refus === 'pas_testeur') { carte.innerHTML = tete + '<div class="bloc"><h3>Bonjour' + (enLigneSv.pseudoRefus ? ' ' + echapper(enLigneSv.pseudoRefus) : '') + ' !</h3><p>La bêta de la ferme est réservée à quelques testeurs pour l\'instant. Elle ouvrira à toute l\'alliance ensuite.</p></div><button class="lien" data-deconnexion>Se connecter avec un autre compte</button>'; return; }
-  const formulaire = (msg) => { carte.innerHTML = tete + '<div class="bloc"><h3>Pas de Discord ?</h3><p>Connecte-toi avec le pseudo qu\'on t\'a donné. La première fois, le mot de passe que tu tapes devient le tien.</p><label for="cx-pseudo">Ton pseudo</label><input id="cx-pseudo" autocomplete="username" maxlength="30"><label for="cx-mdp">Ton mot de passe <small>(6 caractères au moins)</small></label><input id="cx-mdp" type="password" autocomplete="current-password" maxlength="72">' + (msg ? '<p class="erreur">' + msg + '</p>' : '') + '<button class="btn grand kamas" data-cx-entrer>Entrer dans la ferme</button></div><button class="lien" data-cx-retour>Retour : se connecter avec Discord</button>'; };
-  const accueilCx = () => { carte.innerHTML = tete + '<div class="bloc"><h3>Connecte-toi avec Discord</h3><p>Le même compte que sur le site de Redemption : ta ferme est liée à ton profil, tu la retrouves sur tous tes appareils.</p><button class="discord" data-cx-discord>Se connecter avec Discord</button></div><button class="lien" data-cx-mdp>Pas de Discord ? Connexion avec un mot de passe</button>'; };
+  const formulaire = (msg) => { carte.innerHTML = tete + '<div class="bloc"><h3>Pas de Discord ?</h3><p>Déjà un compte de jeu : ton pseudo et ton mot de passe. Nouveau : choisis un pseudo libre et un mot de passe, ton compte est créé. Note-les bien, ils te servent sur tous tes appareils.</p><label for="cx-pseudo">Ton pseudo</label><input id="cx-pseudo" autocomplete="username" maxlength="30"><label for="cx-mdp">Ton mot de passe <small>(6 caractères au moins)</small></label><input id="cx-mdp" type="password" autocomplete="current-password" maxlength="72">' + (msg ? '<p class="erreur">' + msg + '</p>' : '') + '<button class="btn grand kamas" data-cx-entrer>Entrer dans la ferme</button></div><button class="lien" data-cx-retour>Retour : se connecter avec Discord</button>'; };
+  const accueilCx = () => { carte.innerHTML = tete + '<div class="bloc"><h3>Connecte-toi avec Discord</h3><p>Le même compte que sur le site de Redemption : ta ferme est liée à ton profil, tu la retrouves sur tous tes appareils.</p><button class="discord" data-cx-discord>Se connecter avec Discord</button></div><button class="lien" data-cx-mdp>Pas de Discord ? Joue avec un pseudo et un mot de passe</button>'; };
   accueilCx();
   carte.onclick = async (e) => {
     const b = e.target.closest('button'); if (!b) return;

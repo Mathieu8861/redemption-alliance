@@ -120,6 +120,7 @@
                 case 'boutique': await tabBoutique(content); break;
                 case 'demandes-kamas': await tabDemandesKamas(content); break;
                 case 'slot': await tabSlot(content); break;
+                case 'ferme': await window.tabFerme(content); break; /* la Ferme d'Incarnam : joueurs, progression, temps de jeu (19/10/2026) */
                 default: content.innerHTML = '<p class="text-muted">Onglet inconnu.</p>';
             }
         } catch (err) {
