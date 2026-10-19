@@ -23,7 +23,7 @@ const ACTIONS = {
       if (S_.sauvage && S_.sauvage.id === p.id) { if (peutCapturer()) ouvrirTofu(p, true); else chasserDeLoin(p, () => ACTIONS.chasserSauvage()); return; }
       allerPuis(p, () => ouvrirConstruire(p)); return; /* (le clic gauche, lui, deplace seulement : voir allerVers) */
     }
-    if (p.type === 'champ' && p.tofu) { if (peutCapturer()) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
+    if (p.type === 'champ' && p.tofu) { if (capturable(p)) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
     allerPuis(p, () => ACTIONS.agirSurCase(p));
   },
   agirSurCase(p) {
@@ -40,7 +40,7 @@ const ACTIONS = {
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
     if (!p.c) { ACTIONS.planter(p); return; }
-    if (p.tofu) { if (peutCapturer()) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
+    if (p.tofu) { if (capturable(p)) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
     const d = duree(PAR_ID[p.c]);
     if (p.pousse >= d) { ACTIONS.recolter(p); return; }
     if (!p.arrose) { ACTIONS.arroser(p); return; }
@@ -136,7 +136,7 @@ const ACTIONS = {
     toast('+' + qte + ' ' + c.nom + ' à la grange.' + (rendue ? ' Et une graine récupérée !' : '')); if (xpRecolte > 0) gagnerXp(xpRecolte, true); rendreCase(p.id); rendreGrange();
   },
   capturer(p) {
-    if (!p.tofu || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorations.', 'alerte'); return; } S_.filets--; fermerModale();
+    if (!p.tofu || p.nuisible === 'wabbit' || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorations.', 'alerte'); return; } S_.filets--; fermerModale();
     if (Math.random() < CHANCE_CAPTURE) { compter('captures'); S_.tofus++; p.tofu = 0; p.tofuParti = Date.now(); toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else { p.tofu = 0; p.tofuParti = Date.now(); toast('Raté, le Tofu s\'est échappé avec ton filet, mais il a lâché ta culture.', 'alerte'); }
     rendreCase(p.id); rendreHaut(); rendreGrange();

@@ -145,6 +145,7 @@ const degatsTour = (c) => NIV_TOURS.deg[nivTour(c)], nbTours = () => S_.cases.fi
 const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
 /* « quand ta voliere a Tofus est pleine, reduis de 40 % le taux d'apparition des Tofus » (Mathieu, 13/10/2026) : les Tofus des champs et les sauvages */
 const peutCapturer = () => S_.filets > 0 && S_.tofus < capaciteVoliere(); /* (voliere pleine : on chasse, sans fenetre) */
+const capturable = (p) => peutCapturer() && p.nuisible !== 'wabbit'; /* un Wabbit qui grignote un champ ne va pas dans la voliere a Tofus : on le chasse (19/10/2026) */
 const freinTofus = () => (S_.tofus >= capaciteVoliere() ? 0.6 : 1);
 const RYTHME_TOFU = 9 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 1.5 * MIN, ACCALMIE_TOFU = 1 * MIN, CADENCE_COURS = 2 * MIN, CADENCE_CRISE = 5 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */

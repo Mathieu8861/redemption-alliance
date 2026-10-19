@@ -168,7 +168,7 @@ function rendreCasesBulles() {
     if (p.type === 'geliere') { const o = blocBati('geliere'), n = potsPretsGeliere(), faim = (S_.gelees || []).some((g) => etatGelee(g) === 'faim' && !manqueRecette(GELEES[g.c].recette).length); if (o && p === o.c0 && !combat && (n || faim)) bulle(cle, icoB(n ? 'pot-petit' : 'gelee-bleue'), n ? 'or' : 'eau', [o.x, o.y + 2.2, o.z], 'case:' + p.id, n ? '×' + n : '', n ? 'Pots de gelée prêts : touche pour les ramasser' : 'Tes Gelées ont faim : touche pour les nourrir'); else retirerBulle(cle); return; }
     if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
     const st = etape(p), haut = pos.y + (st === 'mur' ? 1.9 : st === 'pousse' ? 1.4 : 0.9);
-    if (p.tofu) bulle(cle, peutCapturer() ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, '', peutCapturer() ? 'Un Tofu picore : touche pour le chasser ou le capturer' : 'Un Tofu picore : touche pour le chasser');
+    if (p.tofu) { const w = p.nuisible === 'wabbit'; bulle(cle, capturable(p) ? icoB('filet') : icoB(w ? 'wabbit' : 'tofu'), 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, '', w ? 'Un Wabbit grignote : touche pour le chasser' : capturable(p) ? 'Un Tofu picore : touche pour le chasser ou le capturer' : 'Un Tofu picore : touche pour le chasser'); }
     else if (st === 'mur') bulle(cle, icoB(p.c), 'or', [pos.x, haut, pos.z], 'case:' + p.id, '×' + recolte(p), PAR_ID[p.c].nom + ' prêt : touche pour récolter');
     else if (!p.arrose) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, haut, pos.z], 'case:' + p.id, '', 'À sec : touche pour arroser');
     else retirerBulle(cle);
