@@ -135,5 +135,5 @@ let raidAnnonce = null;
 /* LA SIMU VSA, UNE SEULE REGLE (17/10/2026, « trop aleatoire, je vois pas la limite », Mathieu) : elle suit ta vague, de la 20e (la premiere simu, niveau 20)
    a la 70e. 4 voleurs, un de plus toutes les 5 vagues, 12 au plus (vague 60), un sur trois sur Dragodinde ; 40 PV + 12 par vague a pied, le double monte. */
 const vagueSimu = () => Math.max(20, Math.min(VAGUES_TOTAL, S_.vague.num));
-const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(12, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3) }; };
+const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(12, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3), demenageurs: v >= 50 ? 2 : v >= 30 ? 1 : 0 }; }; /* (les Demenageurs en plus des voleurs, 19/10/2026) */
 const pvSimu = (monte) => (40 + 12 * vagueSimu()) * (monte ? 2 : 1);

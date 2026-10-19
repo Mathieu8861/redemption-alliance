@@ -13,8 +13,8 @@ function accepterSimu() { if (!simuEnAttente) return; simuEnAttente = false; $('
 function annoncerRaid(muet) {
   if (raidAnnonce || combat || enAccueil) return;
   if (!personnagesVsaPrets() || !MODELES.omeho) chargerPersonnagesVsa(); /* (un modele rate au chargement : il a 30 s pour arriver) */
-  const { nb, montes } = tailleSimu(); /* (la taille : tailleSimu, 18-geliere.js) */
-  const sortie = sortieVSA(), entrees = entreesVSA(sortie, nb); /* (une case de bord par voleur, tout autour de la ferme, 18/10/2026) */
+  const { nb, montes } = tailleSimu(), dem = MODELES.demenageur ? tailleSimu().demenageurs : 0; /* (la taille : tailleSimu, 18-geliere.js ; sans son modele, pas de Demenageur) */
+  const sortie = sortieVSA(), entrees = entreesVSA(sortie, nb + dem); /* (une case de bord par voleur, tout autour de la ferme, 18/10/2026) */
   const marques = new T.Group(); /* les cases par ou ils arriveront, en rouge */
   /* « les cases rouges sont pas alignees avec les cases en dessous » (Mathieu, 11/10/2026) : elles etaient poussees de 0,45 vers le vide et dessinees
      par-dessus tout (on les voyait a travers la grange). Maintenant : pile sur la case, cachees par les batiments, et une bande plus foncee cote vide */
@@ -23,7 +23,7 @@ function annoncerRaid(muet) {
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
   poserOmeho(sortie);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, entrees, marques, sortie }; if (!muet) son('raid');
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, dem, entrees, marques, sortie }; if (!muet) son('raid');
   construireRaidAnnonce(); majRaidAnnonce(); /* (plus de message en plus : la carte dit tout) */
 }
 /* LA SORTIE DES VOLEURS, ET OMEHO QUI LES ATTEND (14/10/2026, Mathieu : « ils peuvent apparaitre de n'importe ou, mais pour repartir, ils doivent repartir vers
@@ -127,7 +127,7 @@ function construireRaidAnnonce() {
   const R = raidAnnonce; if (!R) return; const v = '?v=' + VERSION_MODELES;
   $('raid-annonce').innerHTML = '<div class="ra-tete"><img src="assets/icones/voleur.png' + v + '" alt=""><div><b>Simu VSA</b><span>Les voleurs de VSA arrivent sur ta grange</span></div>' +
     '<div class="ra-rebours"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="19"/><circle class="arc" id="ra-arc" cx="22" cy="22" r="19"/></svg><em id="ra-s">30</em></div></div>' +
-    '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') +
+    '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') + (R.dem ? '<span>+ ' + R.dem + ' Déménageur' + (R.dem > 1 ? 's' : '') + ' : lent, coriace, il vide ta grange</span>' : '') +
     '<span class="rouge"><i></i>' + 'de tout autour, par les cases en rouge' + '</span>' + (R.sortie ? '<span class="violet"><i></i>ils repartent par Omeho, en violet</span>' : '') + '</div>' +
     '<div class="ra-actions"><span class="ra-arb" id="ra-arb"></span><button class="btn discret" data-recharger id="ra-recharger">Recharger</button><button class="btn kamas" data-raid-go>Lancer maintenant</button></div>';
 }
@@ -149,7 +149,7 @@ function lancerRaid() {
   }
   const R = raidAnnonce; raidAnnonce = null; if (R) jeter(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
   if (!R || combat || enAccueil || !paysanMesh) { retirerOmeho(); return; } son('vague');
-  const file = []; for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture');
+  const file = []; for (let k = 0; k < (R.dem || 0); k++) file.push('demenageur'); for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture'); /* (le Demenageur d'abord : il est lent) */
   nouveauCombat('raid', { raid: true, file, total: file.length, attente: 0.3, butin: [], tues: 0, bords: null, entrees: (R.entrees || []).slice(), sortie: R.sortie || null }); /* (un par seconde, chacun par sa case rouge : 23-fin-combat.js et apparaitre) */ /* (ses stats comme tout combat : sorts, degats, coups recus, affichees sous son bilan, 16/10/2026) */
   fermerModale(); ouvrirHudCombat();
   toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils rejoignent Omeho, sur la case violette.', 'alerte'); majCombatHud();
@@ -175,7 +175,7 @@ function majVoleurRaid(mo, dt, s) {
     v = mo.d.vitesse * (lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1); /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
   } else if (!mo.fuite) {
     const r = volerRaid(mo.d.vole); mo.fuite = true; mo.cg = null;
-    if (r) { mo.porte = r; m.add(sacVole()); toast('Un voleur de VSA a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il rejoigne Omeho !', 'alerte'); }
+    if (r) { mo.porte = r; if (mo.type !== 'demenageur') m.add(sacVole()); toast((mo.type === 'demenageur' ? 'Le Déménageur de VSA' : 'Un voleur de VSA') + ' a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il rejoigne Omeho !', 'alerte'); } /* (le Demenageur a deja son gros sac) */
   } else { /* il a file avec son butin */
     mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (combat.cible === mo) combat.cible = null; if (omeho) { omeho.saut = 1; pouf(mo.x, mo.m.position.y, mo.z, 1.2); if (mo.porte) direOmeho('butin'); }
     if (mo.porte) { combat.butin.push(mo.porte); toast('Un voleur de VSA a rejoint Omeho avec ' + mo.porte.n + ' ' + mo.porte.nom + '.', 'alerte'); mo.porte = null; } return;
