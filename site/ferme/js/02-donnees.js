@@ -91,7 +91,7 @@ const PALIERS_BAT = {
 };
 const nivRequis = (a, n) => a.nivs ? a.nivs[Math.min(n, a.nivs.length - 1)] : a.niv;
 /* « les parcelles ca coute pas tres cher, surtout a partir de la 2 » (Mathieu, 12/10/2026) : 150, puis par paliers qui suivent les terrains
-   (6 parcelles par terrain), et 6 000 a partir de la 30e jusqu'a la fin (avant : 50, puis bloque a 2 500 des la 12e) */
+   (6 parcelles par terrain a l'epoque, 4 depuis le 19/10/2026), et 6 000 a partir de la 30e jusqu'a la fin (avant : 50, puis bloque a 2 500 des la 12e) */
 const PRIX_PARCELLE = [150, 200, 300, 400, 500, 650, 800, 1000, 1300, 1600, 1900, 2200, 2500, 2800, 3000, 3200, 3400, 3600, 3800, 4000, 4200, 4400, 4600, 4800, 5000, 5200, 5400, 5600, 5800, 6000];
 /* Temps reel : les durees sont en minutes. Avec ?test=1 dans l'adresse, tout va 60 fois plus vite (une minute devient une seconde). */
 const TEST = /[?&]test=1/.test(location.search) && /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)$/.test(location.hostname); /* le mode test (temps x60) : sur le PC et le reseau local seulement ; en ligne, la beta demande un compte */
