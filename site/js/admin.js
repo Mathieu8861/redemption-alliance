@@ -472,7 +472,7 @@
         /* Header (colonne 0 en attaque : percepteur seul, personne en defense) */
         var eMin = baremeMode === 'attaque' ? 0 : 1;
         html += '<thead><tr><th>Allies \\ Ennemis</th>';
-        for (var e = eMin; e <= 5; e++) html += '<th>' + (e === 0 ? '0 (perco seul)' : e + ' enn.') + '</th>';
+        for (var e = eMin; e <= 5; e++) html += '<th>' + (e === 0 ? '0 (percepteur seul)' : e + ' enn.') + '</th>';
         html += '</tr></thead><tbody>';
 
         /* Lignes */

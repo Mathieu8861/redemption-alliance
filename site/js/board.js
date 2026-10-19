@@ -233,12 +233,12 @@
                 + '</div>'
                 + '<div class="board-bareme__rewards">';
             var hasReward = false;
-            if (r.percepteurs_bonus > 0) { hasReward = true; html += '<span class="board-bareme__perco">' + r.percepteurs_bonus + ' perco' + (r.percepteurs_bonus > 1 ? 's' : '') + '</span>'; }
+            if (r.percepteurs_bonus > 0) { hasReward = true; html += '<span class="board-bareme__perco">' + r.percepteurs_bonus + ' percepteur' + (r.percepteurs_bonus > 1 ? 's' : '') + '</span>'; }
             if ((r.resa || 0) > 0) { hasReward = true; html += '<span class="board-bareme__resa">+ ' + r.resa + ' résa de zone</span>'; }
             if (r.pepites > 0) { hasReward = true; html += '<span class="board-bareme__pepites">' + formatNumber(r.pepites) + ' pépites</span>'; }
             if ((r.jetons_reward || 0) > 0) { hasReward = true; html += '<span class="board-bareme__pepites">' + r.jetons_reward + ' jetons</span>'; }
             if ((r.resa || 0) > 0 && r.percepteurs_bonus > 0) {
-                html += '<span class="board-bareme__total">= ' + (r.percepteurs_bonus + r.resa) + ' percos au total</span>';
+                html += '<span class="board-bareme__total">= ' + (r.percepteurs_bonus + r.resa) + ' percepteurs au total</span>';
             }
             if (!hasReward) html += '<span class="text-muted">—</span>';
             html += '</div></div>';
@@ -306,7 +306,7 @@
         html += '<th class="board-table__th board-table__th--name">Joueur</th>';
         html += '<th class="board-table__th board-table__th--points">Points</th>';
         html += '<th class="board-table__th board-table__th--tier">Palier</th>';
-        html += '<th class="board-table__th board-table__th--reward">Droits percos</th>';
+        html += '<th class="board-table__th board-table__th--reward">Droits percepteurs</th>';
         html += '<th class="board-table__th board-table__th--zone">Zone réservée</th>';
         html += '</tr></thead><tbody>';
 
@@ -323,7 +323,7 @@
                 } else if (r.percepteurs_bonus > 0 || (r.resa || 0) > 0) {
                     /* Total des poses = percos du palier + perco de la zone reservee */
                     var totalPercos = r.percepteurs_bonus + (r.resa || 0);
-                    reward = '<strong>' + totalPercos + '</strong> <img class="icon-inline icon-inline--perco" src="assets/images/percepteur.png" alt="perco">';
+                    reward = '<strong>' + totalPercos + '</strong> <img class="icon-inline icon-inline--perco" src="assets/images/percepteur.png" alt="percepteur">';
                     if ((r.resa || 0) > 0) {
                         reward += ' <span class="board-table__resa-note">(dont ' + r.resa + ' résa)</span>';
                     }
@@ -377,7 +377,7 @@
         if (pref === 'pepites' && r.pepites > 0) return formatNumber(r.pepites) + ' pépites';
         if (pref === 'jetons' && (r.jetons_reward || 0) > 0) return '+' + r.jetons_reward + ' jetons';
         var total = r.percepteurs_bonus + (r.resa || 0);
-        if (total > 0) return total + ' perco' + (total > 1 ? 's' : '') + ((r.resa || 0) > 0 ? ' (dont ' + r.resa + ' résa)' : '');
+        if (total > 0) return total + ' percepteur' + (total > 1 ? 's' : '') + ((r.resa || 0) > 0 ? ' (dont ' + r.resa + ' résa)' : '');
         if (r.pepites > 0) return formatNumber(r.pepites) + ' pépites';
         return '—';
     }
@@ -477,13 +477,13 @@
             if (isPoints) {
                 var range = b.seuil_max !== null ? b.seuil_min + '-' + b.seuil_max + ' pts' : b.seuil_min + '+ pts';
                 var parts = [];
-                if (b.percepteurs_bonus > 0) parts.push(b.percepteurs_bonus + ' perco' + (b.percepteurs_bonus > 1 ? 's' : ''));
+                if (b.percepteurs_bonus > 0) parts.push(b.percepteurs_bonus + ' percepteur' + (b.percepteurs_bonus > 1 ? 's' : ''));
                 if ((b.resa || 0) > 0) parts.push(b.resa + ' résa de zone');
                 if (b.pepites > 0) parts.push(formatNumber(b.pepites) + ' pépites');
                 if ((b.jetons_reward || 0) > 0) parts.push(b.jetons_reward + ' jetons');
                 txt = (b.emoji ? b.emoji + ' ' : '') + b.label + ' (' + range + ') : ' + (parts.join(' + ') || '—');
                 if ((b.resa || 0) > 0 && b.percepteurs_bonus > 0) {
-                    txt += '  =  ' + (b.percepteurs_bonus + b.resa) + ' percos au total';
+                    txt += '  =  ' + (b.percepteurs_bonus + b.resa) + ' percepteurs au total';
                 }
             } else {
                 var lbl = b.rang_min === b.rang_max ? 'Top ' + b.rang_min : 'Top ' + b.rang_min + '-' + b.rang_max;
@@ -770,11 +770,11 @@
                 ctx.fillText(ajusterTxt(ctx, titre, c.w - 32), x + 16, y + 24);
                 var morceaux = [];
                 if (c.d.total > 0) {
-                    morceaux.push([c.d.total + ' perco' + (c.d.total > 1 ? 's' : ''), true]);
+                    morceaux.push([c.d.total + ' percepteur' + (c.d.total > 1 ? 's' : ''), true]);
                     morceaux.push([c.zones ? ' dont ' + c.d.resa + ' en zone réservée' : (c.d.p150 > 0 ? '' : ' chacun'), false]);
                 }
-                if (c.d.p150 > 0) morceaux.push([(c.d.total > 0 ? ' + ' : '') + c.d.p150 + ' perco' + (c.d.p150 > 1 ? 's' : ''), true], [' niv 150-', false]);
-                if (!morceaux.length) morceaux.push(['aucun perco', true]);
+                if (c.d.p150 > 0) morceaux.push([(c.d.total > 0 ? ' + ' : '') + c.d.p150 + ' percepteur' + (c.d.p150 > 1 ? 's' : ''), true], [' niv 150-', false]);
+                if (!morceaux.length) morceaux.push(['aucun percepteur', true]);
                 var dx = x + 16;
                 morceaux.forEach(function (m) {
                     if (!m[0]) return;
@@ -1030,7 +1030,7 @@
     function renderGuideRang() {
         var ol = document.querySelector('#guide-modal .guide-steps');
         if (!ol) return;
-        var html = '<li><strong>Le ladder.</strong> Ta place au classement PvP détermine ton palier, et chaque palier donne un nombre de percos à poser.</li>';
+        var html = '<li><strong>Le ladder.</strong> Ta place au classement PvP détermine ton palier, et chaque palier donne un nombre de percepteurs à poser.</li>';
         var programme = periodeInfos && periodeInfos.programme && periodeInfos.fin;
         html += '<li><strong>La période.</strong> ' + (!periodeEnDirect()
             ? 'Le classement PvP repart de zéro ' + rythmeTxt() + '. Les droits affichés valent pour la période en cours et se calculent sur le classement de la précédente' + (periodeInfos.precedente_cumulee ? ' : pour cette première période, le classement cumulé depuis le début, arrêté à la remise à zéro.' : '.')
@@ -1038,7 +1038,7 @@
                 ? 'Pas de remise à zéro jusqu\'au ' + jourParis(periodeInfos.fin) + ' ' + heureRemise(periodeInfos.fin) + ' : d\'ici là, les droits suivent le classement depuis le début, et c\'est ce classement, arrêté à ce moment-là, qui donne les droits de la première période. Ensuite le classement PvP repart de zéro ' + rythmeTxt() + ', et les droits de chaque période se calculent sur le classement de la précédente.'
                 : 'Pas de remise à zéro pour le moment : les droits suivent le classement depuis le début et bougent en direct.')) + '</li>';
         if (percoResa) {
-            html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percos y a sa place et personne d\'autre de l\'alliance n\'y pose. L\'en-tête de leur palier l\'indique, par exemple « 3 percos dont 1 en zone réservée », et la zone s\'affiche sous le pseudo.</li>';
+            html += '<li><strong>Les zones réservées.</strong> Les ' + texteRangs(plagesResa()) + ' ont une zone réservée : un de leurs percepteurs y a sa place et personne d\'autre de l\'alliance n\'y pose. L\'en-tête de leur palier l\'indique, par exemple « 3 percepteurs dont 1 en zone réservée », et la zone s\'affiche sous le pseudo.</li>';
             html += '<li><strong>Ton top ' + prefMax + '.</strong> Dans « Mes préférences », choisis jusqu\'à ' + prefMax + ' zones dans ton ordre. Dans l\'ordre du classement, chacun reçoit son premier choix encore libre : si un joueur mieux classé a déjà pris ta zone n°1, tu reçois ta n°2, et ainsi de suite. Sans top enregistré, pas de zone tirée au hasard : ta ligne affiche « en attente de ton choix », et dès que tu enregistres ton top tu reçois ton premier choix encore libre, sans prendre la zone de personne.</li>';
             html += '<li><strong>Quand ça bouge.</strong> ' + (!periodeEnDirect()
                 ? 'Le tirage se fait au début de chaque période, sur le classement de la précédente, et reste figé jusqu\'à la suivante.'
@@ -1060,9 +1060,9 @@
             var label = p.rang_min === p.rang_max ? 'Top ' + p.rang_min : 'Top ' + p.rang_min + '-' + p.rang_max;
             var d = droitsPalier(p);
             var rewards = '';
-            if (d.total > 0) rewards += '<span class="board-bareme__perco">' + d.total + ' perco' + (d.total > 1 ? 's' : '') + '</span>';
+            if (d.total > 0) rewards += '<span class="board-bareme__perco">' + d.total + ' percepteur' + (d.total > 1 ? 's' : '') + '</span>';
             if (d.resa > 0) rewards += '<span class="board-bareme__resa">dont ' + d.resa + ' en zone réservée</span>';
-            if (d.p150 > 0) rewards += '<span class="board-bareme__resa">+ ' + d.p150 + ' perco' + (d.p150 > 1 ? 's' : '') + ' niv 150-</span>';
+            if (d.p150 > 0) rewards += '<span class="board-bareme__resa">+ ' + d.p150 + ' percepteur' + (d.p150 > 1 ? 's' : '') + ' niv 150-</span>';
             html += '<div class="board-bareme__item">'
                 + '<span class="board-bareme__emoji">' + esc(p.emoji || '') + '</span>'
                 + '<div class="board-bareme__info">'
@@ -1093,8 +1093,8 @@
     function droitsTexte(p, court) {
         var d = droitsPalier(p);
         var parts = [];
-        if (d.total > 0) parts.push(d.total + ' perco' + (d.total > 1 ? 's' : '') + (d.resa > 0 ? (court ? ' dont ' + d.resa + ' rés.' : ' dont ' + d.resa + ' en zone réservée') : ''));
-        if (d.p150 > 0) parts.push(d.p150 + (court ? '' : ' perco' + (d.p150 > 1 ? 's' : '')) + ' niv 150-');
+        if (d.total > 0) parts.push(d.total + ' percepteur' + (d.total > 1 ? 's' : '') + (d.resa > 0 ? (court ? ' dont ' + d.resa + ' rés.' : ' dont ' + d.resa + ' en zone réservée') : ''));
+        if (d.p150 > 0) parts.push(d.p150 + (court ? '' : ' percepteur' + (d.p150 > 1 ? 's' : '')) + ' niv 150-');
         return parts.join(' + ') || 'aucun';
     }
 
@@ -1232,9 +1232,9 @@
             var titre = (g.palier ? 'Top ' : 'Rangs ') + (premier === dernier ? premier : premier + '-' + dernier);
 
             var droits = [];
-            if (d.total > 0) droits.push('<strong>' + d.total + ' perco' + (d.total > 1 ? 's' : '') + '</strong>'
+            if (d.total > 0) droits.push('<strong>' + d.total + ' percepteur' + (d.total > 1 ? 's' : '') + '</strong>'
                 + (zones ? ' dont ' + d.resa + ' en zone réservée' : (d.p150 > 0 ? '' : ' chacun')));
-            if (d.p150 > 0) droits.push('<strong>' + d.p150 + ' perco' + (d.p150 > 1 ? 's' : '') + '</strong> niv 150-');
+            if (d.p150 > 0) droits.push('<strong>' + d.p150 + ' percepteur' + (d.p150 > 1 ? 's' : '') + '</strong> niv 150-');
 
             var nbSous = Math.ceil(g.joueurs.length / LIGNES_PAR_SOUS_COLONNE);
             var parSous = Math.ceil(g.joueurs.length / nbSous);
@@ -1254,7 +1254,7 @@
                 + ' style="--palier-c:' + couleur[0] + ';--palier-f:' + couleur[1] + ';flex:' + poids + ' 1 ' + base + 'px;max-width:' + Math.round(base * 1.7) + 'px;">'
                 + '<header class="board-palier__tete">'
                     + '<div class="board-palier__titre">' + (g.palier && g.palier.emoji ? '<span>' + esc(g.palier.emoji) + '</span>' : '') + esc(titre) + '</div>'
-                    + '<div class="board-palier__droits">' + (droits.join(' + ') || '<strong>aucun perco</strong>') + '</div>'
+                    + '<div class="board-palier__droits">' + (droits.join(' + ') || '<strong>aucun percepteur</strong>') + '</div>'
                 + '</header>'
                 + '<div class="board-palier__corps" style="grid-template-columns:repeat(' + nbSous + ', minmax(0, 1fr));">' + sous + '</div>'
                 + '</section>';

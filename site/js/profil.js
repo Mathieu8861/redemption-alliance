@@ -758,7 +758,7 @@
                 html += '<div class="profil-droits__zone">';
                 html += percoResa
                     ? '<span class="text-muted" style="font-size:0.8125rem;">Les rangs ' + rangsResaTxt + ' du classement ont une zone réservée, tirée selon le top de préférences de chacun. <a href="board.html" style="color:var(--color-accent-light);">Choisis ton top ' + prefMaxProfil + ' de zones ici</a>.</span>'
-                    : '<span class="text-muted" style="font-size:0.8125rem;">Tes droits percos suivent ta place au classement, sans réservation de zone pour le moment. <a href="board.html" style="color:var(--color-accent-light);">Voir le ladder et les paliers</a>.</span>';
+                    : '<span class="text-muted" style="font-size:0.8125rem;">Tes droits percepteurs suivent ta place au classement, sans réservation de zone pour le moment. <a href="board.html" style="color:var(--color-accent-light);">Voir le ladder et les paliers</a>.</span>';
                 html += '</div>';
             } else if (canResa) {
                 /* Modèle simple : le palier de points atteint inclut un droit de résa */

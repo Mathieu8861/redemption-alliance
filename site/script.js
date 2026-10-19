@@ -780,7 +780,7 @@
             items: [
                 { page: 'membres', label: 'Membres', href: 'membres.html', icon: 'users', module: 'membres' },
                 { page: 'builds', label: 'Builds', href: 'builds.html', icon: 'tool', module: 'builds' },
-                { page: 'board', label: 'Droits Perco', href: 'board.html', icon: 'chart', module: 'board' },
+                { page: 'board', label: 'Droits Percepteurs', href: 'board.html', icon: 'chart', module: 'board' },
                 { page: 'liens', label: 'Liens utiles', href: 'liens.html', icon: 'link', module: 'liens' }
             ]
         },

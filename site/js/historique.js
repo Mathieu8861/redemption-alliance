@@ -341,7 +341,7 @@
         document.body.appendChild(overlay);
 
         /* 0 ennemi = percepteur seul, possible en attaque uniquement */
-        document.getElementById('edit-combat-ennemis').add(new Option('0 (perco seul)', 0));
+        document.getElementById('edit-combat-ennemis').add(new Option('0 (percepteur seul)', 0));
         for (var n = 1; n <= 5; n++) {
             document.getElementById('edit-combat-allies').add(new Option(n, n));
             document.getElementById('edit-combat-ennemis').add(new Option(n, n));
