@@ -313,7 +313,7 @@ function infoFriche(k) {
   const t = TERRAINS[k], u = prochainTerrain(); if (!t) return;
   if (t === u && nivTerrainOk(t)) { ACTIONS.acheterTerrain(k); return; } /* (comme le terrain fantome d'avant : le toucher l'achete) */
   if (t === u) toast('Le prochain terrain : ' + t.cases.length + ' cases et +' + t.parcelles + ' parcelles, à vendre au niveau ' + t.niv + ' pour ' + fmt(t.prix) + ' kamas.');
-  else toast('Ce terrain-là (' + t.cases.length + ' cases) se vendra au niveau ' + t.niv + '. ' + (u ? 'Celui à vendre maintenant, c\u2019est celui du panneau : ' + u.cases.length + ' cases pour ' + fmt(u.prix) + ' kamas, ' + (nivTerrainOk(u) ? 'touche le panneau ou sa bulle pour l\u2019acheter.' : 'à partir du niveau ' + u.niv + '.') : 'Les terrains s\u2019achètent dans l\u2019ordre, en faisant le tour de l\u2019île.'));
+  else toast('Ce terrain-là (' + t.cases.length + ' cases) se vendra au niveau ' + t.niv + '. ' + (u ? 'Celui à vendre maintenant, c\u2019est celui du panneau : ' + u.cases.length + ' cases pour ' + fmt(u.prix) + ' kamas, ' + (nivTerrainOk(u) ? 'touche sa bulle de prix, au-dessus du panneau, pour l\u2019acheter.' : 'à partir du niveau ' + u.niv + '.') : 'Les terrains s\u2019achètent dans l\u2019ordre, en faisant le tour de l\u2019île.'));
 }
 /* un terrain qui vient d'etre achete : l'herbe a la place de la friche, ses cases, le panneau et la bulle passent au suivant */
 function construireTerrain(k) {

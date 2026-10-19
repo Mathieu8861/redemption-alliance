@@ -109,6 +109,7 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .bulle.vente b { font: 400 .82rem/1 var(--f-titre); color: var(--kamas); display: flex; align-items: center; gap: 3px; } .bulle.vente b img { width: 13px; height: 13px; }
 .bulle.vente small { font-weight: 700; font-size: .62rem; }
 .bulle.vente.verrou { opacity: .8; } .bulle.vente.verrou b { color: #8a7a68; }
+.bulle.vente { pointer-events: auto; cursor: pointer; transition: transform .12s; } .bulle.vente:hover { transform: translate(-50%, -100%) scale(1.08); } /* (la bulle de prix achete le terrain : 19/10/2026) */
 #ciel { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
 #scene { position: relative; z-index: 1; }
 .hud { z-index: 2; }
