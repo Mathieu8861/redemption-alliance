@@ -23,15 +23,35 @@ const nArene = () => 55; /* leur base : la force d'une vague 55, toujours la mem
 const partNiveauArene = (k) => k <= 10 ? 0.15 * k / 55 : 0.03; /* la part d'un niveau que rapporte la vague k (15 % pour les 10 premieres, 3 % ensuite ; le double avant le 19/10/2026 : 0,84 niveau pour 19 vagues, 2,5 par jour) */
 function gainsArene(k, niv0) { const n = Math.min(69, 50 + k), b = gainsVagueBrut(n % VAGUES_PALIER === 0 ? n - 1 : n, false), L = niv0 || niveau(S_.xp);
   return { kamas: kamasGagnes(b.kamas * KAMAS_ARENE * multArene(k)), xp: Math.max(1, Math.round((seuil(L + 1) - seuil(L)) * partNiveauArene(k))) }; } /* (kamas : 40 % d'une vague avant le 14/10/2026) */
-function piocheArene() { /* les monstres des 30 dernieres vagues battues (sans les boss, les voleurs ni les Boufcouls du Koulosse) */
-  const haut = Math.max(9, Math.min(S_.vague.num - 1, VAGUES_TOTAL - 1)), L = new Set();
-  for (let n = Math.max(1, haut - 29); n <= haut; n++) { if (n % VAGUES_PALIER === 0) continue; compoVague(n).forEach(([t]) => { const d = MONSTRES[t]; if (d && !d.boss && !d.vole && !d.fabrique) L.add(t); }); }
-  return L.size ? [...L] : ['bouftou'];
+/* L'ARENE PLUS VARIEE (20/10/2026, « je tombe que contre les memes monstres ; plus de diversite, mais adaptes au niveau », Mathieu) : les monstres de
+   toutes les vagues battues (sans les boss, les voleurs ni les Boufcouls du Koulosse), par famille (un palier = une famille) ; avant, ceux des 30 dernieres
+   vagues seulement. Chaque vague de l'Arene tire 3 familles au hasard, et statsArene remet chaque monstre a la force de l'Arene */
+const hautArene = () => Math.max(9, Math.min(S_.vague.num - 1, VAGUES_TOTAL - 1));
+function famillesArene() {
+  const F = new Map();
+  for (let n = 1; n <= hautArene(); n++) { if (n % VAGUES_PALIER === 0) continue; const p = palierDe(n);
+    compoVague(n).forEach(([t]) => { const d = MONSTRES[t]; if (d && !d.boss && !d.vole && !d.fabrique) { if (!F.has(p)) F.set(p, new Set()); F.get(p).add(t); } }); }
+  return F.size ? [...F.values()].map((s) => [...s]) : [['bouftou']];
 }
+/* la force d'un monstre dans l'Arene : celle de sa vague d'origine (la derniere battue ou il vient), multipliee par le rapport entre la moyenne d'une
+   vague 55 et la moyenne de sa vague d'origine ; il garde son role dans sa famille (costaud, fragile), au niveau de l'Arene */
+const STATS_ARENE = new Map();
+function statsArene(t) {
+  const haut = hautArene(), cle = t + '|' + haut; if (STATS_ARENE.has(cle)) return STATS_ARENE.get(cle);
+  let nt = 0; for (let n = haut; n >= 1 && !nt; n--) if (n % VAGUES_PALIER && compoVague(n).some(([x]) => x === t)) nt = n;
+  const N = nArene(); if (!nt) nt = N;
+  const moy = (n, f) => { let s = 0, c = 0; compoVague(n).forEach(([x, q]) => { if (MONSTRES[x] && !MONSTRES[x].boss) { s += f(x, n) * q; c += q; } }); return c ? s / c : 1; };
+  const r = { pv: pvMonstre(t, nt) * moy(N, pvMonstre) / moy(nt, pvMonstre), deg: degMonstre(t, nt) * moy(N, degMonstre) / moy(nt, degMonstre) };
+  STATS_ARENE.set(cle, r); return r;
+}
+/* un boss dans l'Arene : la force du boss de reference (celui du palier de la vague 55, le Wa Wabbit), quel qu'il soit ; avant, le Bouftou Royal y
+   gardait sa fiche de la vague 10 et tombait en deux fleches (« je le tue plus vite que les monstres », Mathieu, 20/10/2026) */
+const statsBossArene = () => { const N = nArene(), R = PALIERS[palierDe(N)].boss; return { pv: pvMonstre(R, N), deg: degMonstre(R, N), sort: MONSTRES[R].degSort * 0.8 }; };
 const bossArene = () => PALIERS.slice(0, Math.max(1, Math.min(PALIERS.length, Math.floor((S_.vague.num - 1) / VAGUES_PALIER)))).map((p) => p.boss).filter((b) => MONSTRES[b]);
 function vagueArene(k) {
-  const pioche = piocheArene(), boss = k % 5 === 0, nb = Math.min(20, 6 + Math.floor(k * 0.7)) - (boss ? 2 : 0), f = [];
-  for (let i = 0; i < nb; i++) f.push(hasard(pioche));
+  const fam = famillesArene(); for (let i = fam.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fam[i], fam[j]] = [fam[j], fam[i]]; } /* (3 familles au hasard par vague) */
+  const choix = fam.slice(0, 3), boss = k % 5 === 0, nb = Math.min(20, 6 + Math.floor(k * 0.7)) - (boss ? 2 : 0), f = [];
+  for (let i = 0; i < nb; i++) f.push(hasard(hasard(choix)));
   if (boss) f.push(hasard(bossArene()));
   return { k, n: nArene(k), f, nom: 'la vague ' + k };
 }
@@ -281,7 +301,7 @@ function ouvrirArene() {
   const raison = l < NIV_ARENE ? 'Il faut le niveau ' + NIV_ARENE + '.' : !reste ? 'Tes ' + ENTREES_ARENE + ' entrées du jour sont prises : l\'Arène te rouvre demain.' : S_.kamas < TICKET_ARENE ? 'Il te manque ' + fmt(TICKET_ARENE - S_.kamas) + ' kamas pour le ticket.' : '';
   ouvrirModale('arene', entete('L\'Arène') + '<div class="arene-tete"><img src="assets/icones/ile-arene.png?v=' + VERSION_MODELES + '" alt=""><div><b>Tiens le plus longtemps possible</b><p>Des vagues sans fin, de plus en plus dures, devant toute l\'alliance.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
-    '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tes paliers déjà battus, de plus en plus forts, qui sortent des herses et foncent tous sur toi.</li>' +
+    '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tous tes paliers déjà battus, trois familles au hasard par vague, tous remis à la même force, de plus en plus forts, qui sortent des herses et foncent tous sur toi.</li>' +
     '<li><b>Un boss toutes les 5 vagues</b>, puis un souffle pour boire tes pots et manger.</li>' +
     '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : à 10 vagues, tu récupères environ les deux tiers de ton ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
     '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur la caractéristique de ton choix) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
@@ -341,7 +361,7 @@ function finArene(abandon) {
   if (combat && combat.genre === 'ile') { finIleBoss(abandon); return; } /* (l'ile des boss a son bilan) */
   const c = combat; if (!c || c.fin || !c.arene) return;
   nettoyerCombat(c, true);
-  { const max = statsPerso().pvMax; S_.pv = Math.max(1, Math.min(max, Math.round(c.pv))); }
+  { const max = statsPerso().pvMax; S_.pv = Math.max(1, vieActuelle(), Math.min(max, Math.round(c.pv))); } /* (au moins la vie d'avant l'Arene, comme a l'ile des boss : a terre, on ne rentre plus a 1 PV, 20/10/2026) */
   const a = etatArene(), A = c.arene, t = A.tenues, rec = t > A.record, recSem = !rec && t > A.recordSem; a.parties = (a.parties || 0) + 1; compter('arenes');
   son(rec || recSem ? 'victoire' : abandon ? 'gelee' : 'defaite'); if (rec) confettis(60);
   const objets = A.objets.map((id) => { const o = obj(id); return o ? '<div class="art">' + icoObjet(id) + '<div><b>' + (o.rare ? '★ ' : '') + o.nom + '</b><div class="puces">' + statsTexte(o.stats) + '</div></div><div class="act"></div></div>' : ''; }).join('');

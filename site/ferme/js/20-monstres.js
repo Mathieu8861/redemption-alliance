@@ -114,7 +114,7 @@ const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68, 3.4], BOSS_DEG = [0.3, 0.31, 
    ne sert presque a rien, nettoyer la troupe sans fin non plus : on degage, puis on tape le boss avant le retour des renforts */
 const PROTEGE_TROUPE = 0.12, PROTEGE_MAX = 0.6, RAYON_TROUPE = 6, RAPPEL_TROUPE = 16, TROUPE_MAX = 6;
 const protectionBoss = (mo) => (combat ? Math.min(PROTEGE_MAX, PROTEGE_TROUPE * combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && !o.d.boss && Math.hypot(o.x - mo.x, o.z - mo.z) < RAYON_TROUPE).length) : 0);
-const degSort = (mo) => Math.max(1, Math.round(mo.d.boss ? mo.deg / BOSS_DEG[palierDe(combat.n || 1)] * mo.d.degSort : mo.deg * (mo.d.degSort || 1.5))); /* (un monstre ordinaire qui charge, le Drakoalak : degSort fois ses degats) */ /* les sorts : degSort fois ses degats de base, quel que soit BOSS_DEG */
+const degSort = (mo) => Math.max(1, Math.round(mo.d.boss ? mo.deg / BOSS_DEG[palierDe(combat.n || 1)] * (mo.degSortA || mo.d.degSort) : mo.deg * (mo.d.degSort || 1.5))); /* (un monstre ordinaire qui charge, le Drakoalak : degSort fois ses degats) */ /* les sorts : degSort fois ses degats de base, quel que soit BOSS_DEG */
 const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOSS_PV)[palierDe(n)] : 1);
 /* LA FORCE D'UN MONSTRE (refonte du 16/10/2026), ses PV (c = 'pv') ou ses degats (c = 'deg') a la vague n : sa fiche, x la durete du palier (DURETE),
    x les vagues normales durcies (DURCI), x le lissage des debuts de palier (renfort), x le boss (BOSS_PV, BOSS_DEG) ; l'escorte d'un boss vaut le

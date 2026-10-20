@@ -265,8 +265,9 @@ function completerBestiaire() { /* les sauvegardes d'avant : les monstres des va
   const B = bestiaire(); for (let n = 1; n < Math.min(S_.vague.num, VAGUES_TOTAL + 1); n++) compoTotale(n).forEach(([t]) => { if (!B[t]) B[t] = { vus: 1, tues: 0 }; });
 }
 /* LES REGLES D'ARRIVEE (refonte du 16/10/2026) : l'Arene et l'ile des boss changent la force d'un monstre a son arrivee, et ils s'en prennent tous au perso */
-function regleArene(o) { /* l'Arene : tous plus forts au fil des vagues (forceArene), le boss davantage */
-  const mu = forceArene(combat.arene.k) * (o.d.boss ? forceBossArene : 1); o.aggro = true; o.casseur = false; o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * mu)); o.deg = Math.max(1, Math.round(o.deg * mu));
+function regleArene(o) { /* l'Arene : chacun remis a la force de l'Arene (statsArene, le boss a celle du boss de reference), puis tous plus forts au fil des vagues (forceArene), le boss a moitie */
+  const mu = forceArene(combat.arene.k) * (o.d.boss ? forceBossArene : 1), s = o.d.boss ? statsBossArene() : statsArene(o.type); o.aggro = true; o.casseur = false;
+  o.pv = o.pvMax = Math.max(1, Math.round(s.pv * mu)); o.deg = Math.max(1, Math.round(s.deg * mu)); if (o.d.boss) o.degSortA = Math.max(o.d.degSort || 0, s.sort); /* (20/10/2026) */
 }
 function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colossal (une fois et demie plus grand) a les PV de toute l'alliance */
   const L = niveau(S_.xp), Lb = niveauRequis(combat.n), a = forceRef(L), b = forceRef(Lb); o.aggro = true; o.casseur = false;
