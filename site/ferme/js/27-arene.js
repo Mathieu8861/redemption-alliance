@@ -19,16 +19,52 @@ const multArene = (k) => 1 + 0.08 * Math.max(0, k - 20); /* au-dela de la vague 
 let forceBossArene = 1; /* (20/10/2026, « les boss, je les ai trouves trop faciles », Mathieu : a pleine force ; la moitie datait du temps ou tout le monde affrontait le boss de la vague 55) */
 /* LES BONUS DE L'ARENE (20/10/2026, Mathieu : « tous les 10 niveaux de vague, qu'on puisse choisir un petit bonus : +10 agilite, +10 puissance, +10 esquive,
    +1 % de vol de vie ») : apres le boss de la 10e, de la 20e..., trois bonus au hasard ; tu en choisis un, il dure jusqu'a la fin de la partie et se cumule */
+const TR_CARTE = 'stroke="#3b2a1a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"'; /* (le trait des dessins des cartes) */
 const BONUS_ARENE = {
-  puissance: { nom: 'Rage de l\'arène', txt: '+10 Puissance (+10 % de dégâts)', ico: 'puissance' },
-  agilite: { nom: 'Mains rapides', txt: '+10 Agilité (+10 % de vitesse d\'attaque)', ico: 'agilite' },
-  vita: { nom: 'Second souffle', txt: '+10 % de PV max', ico: 'vita' },
-  esquive: { nom: 'Esquive', txt: '10 % de chances d\'esquiver un coup (50 % au plus)', ico: 'vitesse' },
-  vol: { nom: 'Vol de vie', txt: 'tes coups te soignent de 1 % des dégâts infligés', ico: 'soin' }, /* (1 % et non 2 : « trop facile de remonter ses PV », Mathieu) */
-  foule: { nom: 'Chouchou de la foule', txt: '+6 % de vie rendue à chaque vague tenue', ico: 'etoile' },
-  recharge: { nom: 'Concentration', txt: 'tes sorts se rechargent 15 % plus vite', ico: 'cadence' },
-  butin: { nom: 'Flair', txt: '+20 Prospection (+20 % de butin)', ico: 'prospection' },
+  puissance: { nom: 'Rage de l\'arène', c: ['#e07c0a', '#9a4f06', '#ffe2b8'], effet: '+10 Puissance', txt: '+10 % de dégâts sur tes coups et tes sorts',
+    svg: `<g ${TR_CARTE}><path d="M60 6 69 27 91 18 80 39 104 47 80 54 89 77 66 64 52 86 49 62 24 70 37 50 14 37 38 32 33 9 51 24Z" fill="#ffd04a"/>
+      <path d="M68 12 45 50h15l-9 30 30-42H65l10-26Z" fill="#e07c0a"/></g><path d="M66 20 53 44" stroke="#fff3c4" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+      <g fill="#fff6d8" ${TR_CARTE}><circle cx="20" cy="18" r="3"/><circle cx="102" cy="76" r="3"/></g>` },
+  agilite: { nom: 'Mains rapides', c: ['#2f9a8a', '#1d6a5e', '#c9efe6'], effet: '+10 Agilité', txt: '+10 % de vitesse d\'attaque : tu tires plus vite',
+    svg: `<g ${TR_CARTE}><path d="M98 8C66 10 40 32 32 66l-6 16 12-8c32-6 56-32 60-66Z" fill="#9fe0d2"/><path d="M96 10 30 78" fill="none"/>
+      <path d="M78 22l-10 3M66 34l-12 2M56 46l-12 1M84 30l-2 10M72 44l-2 10" fill="none" stroke-width="2.4"/></g>
+      <g stroke="#2f9a8a" stroke-width="4.5" stroke-linecap="round"><path d="M10 30h20M4 46h22M12 62h14"/></g>` },
+  vita: { nom: 'Second souffle', c: ['#d9443a', '#8e2a24', '#ffd2cc'], effet: '+10 % de PV max', txt: 'ta vie maximale grimpe, et tu regagnes la différence',
+    svg: `<g ${TR_CARTE}><path d="M60 82C30 64 18 48 18 33c0-12 10-21 21-21 9 0 17 6 21 14 4-8 12-14 21-14 11 0 21 9 21 21 0 15-12 31-42 49Z" fill="#e8504a"/></g>
+      <path d="M60 34v24M48 46h24" stroke="#fffaf0" stroke-width="7" stroke-linecap="round"/><path d="M30 28c0-6 4-9 9-9" stroke="#ffb3a8" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <g ${TR_CARTE} fill="#ff8f86"><path d="M104 22c-6-4-8-7-8-10a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 3-2 6-8 10Z"/><path d="M14 72c-5-3-7-6-7-8a3.5 3.5 0 0 1 7-1 3.5 3.5 0 0 1 7 1c0 2-2 5-7 8Z"/></g>` },
+  esquive: { nom: 'Esquive', c: ['#6f8fb8', '#3f5a80', '#dbe6f5'], effet: '10 % d\'esquive', txt: 'une chance d\'éviter chaque coup (50 % au plus)',
+    svg: `<path d="M14 70C30 86 66 88 96 70" stroke="#6f8fb8" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="9 7"/>
+      <g ${TR_CARTE}><path d="M40 28h20v26l20 6c8 2 10 8 8 14H38Z" fill="#a8693a"/><path d="M38 66h50v8H38Z" fill="#6a4426"/><path d="M40 28h20v8H40Z" fill="#d9a46a"/>
+      <path d="M112 16H64" fill="none"/><path d="M64 10 50 16l14 6Z" fill="#dfe6ec"/><path d="M112 16l6-6M112 16l6 6M106 16l6-6M106 16l6 6" fill="none" stroke-width="2.4"/></g>
+      <g stroke="#3f5a80" stroke-width="3" stroke-linecap="round"><path d="M22 38h10M18 48h12M24 58h8"/></g>` },
+  vol: { nom: 'Vol de vie', c: ['#a8324a', '#6e1c2e', '#f6c9d2'], effet: '1 % de vol de vie', txt: 'tes coups te soignent de 1 % des dégâts infligés',
+    svg: `<g ${TR_CARTE}><path d="M34 10c10 16 16 26 16 36a16 16 0 0 1-32 0c0-10 6-20 16-36Z" fill="#d0243a"/>
+      <path d="M86 70C70 60 64 52 64 44c0-7 5-12 11-12 5 0 9 3 11 7 2-4 6-7 11-7 6 0 11 5 11 12 0 8-6 16-22 26Z" fill="#e8504a"/></g>
+      <path d="M28 40c0-6 3-11 6-15" stroke="#ff9aa4" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M40 66c10 14 30 16 40 10" stroke="#a8324a" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="6 5"/><path d="M76 70l9 5-9 5" fill="none" stroke="#a8324a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` },
+  foule: { nom: 'Chouchou de la foule', c: ['#e0a31e', '#93690c', '#ffeab0'], effet: '+6 % de vie par vague', txt: 'la foule te soigne davantage à chaque vague tenue',
+    svg: `<g ${TR_CARTE}><path d="M14 90c0-14 7-22 16-22s16 8 16 22Z" fill="#7b4fc9"/><path d="M44 90c0-16 7-26 16-26s16 10 16 26Z" fill="#2f9a8a"/><path d="M74 90c0-14 7-22 16-22s16 8 16 22Z" fill="#d9443a"/>
+      <circle cx="30" cy="58" r="10" fill="#f6c99a"/><circle cx="60" cy="52" r="11" fill="#f6c99a"/><circle cx="90" cy="58" r="10" fill="#f6c99a"/>
+      <path d="M20 72 12 52M40 72l6-18M50 66l-8-22M70 66l8-22M80 72l-6-18M100 72l8-20" fill="none"/></g>
+      <g fill="#ffd04a" ${TR_CARTE} stroke-width="2.4"><path d="M60 6l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z"/><path d="M22 18l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5Z"/><path d="M98 16l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5Z"/></g>` },
+  recharge: { nom: 'Concentration', c: ['#3a7fc1', '#24527e', '#cfe4f6'], effet: 'Sorts 15 % plus vite', txt: 'tes sorts se rechargent plus vite',
+    svg: `<path d="M22 54A40 40 0 0 1 92 24" stroke="#3a7fc1" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M86 14l8 11-13 3" fill="none" stroke="#3a7fc1" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <g ${TR_CARTE}><path d="M46 18h28c0 18-12 22-12 28s12 10 12 28H46c0-18 12-22 12-28s-12-10-12-28Z" fill="#e8f5fd"/>
+      <path d="M50 24h20c-2 8-8 11-10 14-2-3-8-6-10-14Z" fill="#f2b630"/><path d="M48 72c2-8 8-10 12-12 4 2 10 4 12 12Z" fill="#f2b630"/>
+      <path d="M40 12h40v7H40ZM40 73h40v7H40Z" fill="#8a5634"/></g>
+      <g fill="#fff6d8" ${TR_CARTE} stroke-width="2.2"><path d="M100 60l2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/><path d="M18 76l1.6 4.4 4.4 1.6-4.4 1.6L18 88l-1.6-4.4L12 82l4.4-1.6Z"/></g>` },
+  butin: { nom: 'Flair', c: ['#3f8a22', '#275a14', '#d6efc6'], effet: '+20 Prospection', txt: '+20 % de butin : pièces, runes et ressources',
+    svg: `<g ${TR_CARTE}><path d="M50 44c-2 14-8 26-18 36" fill="none" stroke-width="4.5"/>
+      <g transform="translate(50 42)">${[45, 135, 225, 315].map((r, i) => '<path transform="rotate(' + r + ')" d="M0 0C-4-6-17-9-17-18a8.5 8.5 0 0 1 17-3 8.5 8.5 0 0 1 17 3C17-9 4-6 0 0Z" fill="' + (i % 2 ? '#4fa32e' : '#5fb73a') + '"/>').join('')}</g>
+      <circle cx="50" cy="42" r="3.5" fill="#3f8a22"/></g>
+      <g ${TR_CARTE}><circle cx="88" cy="70" r="13" fill="#f2b630"/><circle cx="102" cy="58" r="11" fill="#f6c94a"/></g>
+      <path d="M85 64v12M85 70l5-5M85 70l5 5M99 53v10M99 58l4-4M99 58l4 4" stroke="#9a6a14" stroke-width="2.4" stroke-linecap="round" fill="none"/>` },
 };
+const DOS_CARTE = `<svg viewBox="0 0 120 120"><g stroke="#3b2a1a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+  <circle cx="60" cy="60" r="44" fill="#ffd65a"/><circle cx="60" cy="60" r="34" fill="#8e2a3a"/>
+  <path d="M34 36 78 80M86 36 42 80" stroke="#fffaf0" stroke-width="9"/><path d="M34 36 78 80M86 36 42 80" stroke="#3b2a1a" stroke-width="3" fill="none"/>
+  <path d="M74 84l10-4-4 10ZM46 84l-10-4 4 10Z" fill="#f2b630"/></g></svg>`;
 const bonusA = () => (combat && combat.genre === 'arene' && combat.arene && combat.arene.bonus) || null; /* (les bonus pris dans cette partie) */
 const nbBonus = (id) => { try { return (bonusA() || {})[id] || 0; } catch (e) { return 0; } };
 function tirerBonusArene() { const L = Object.keys(BONUS_ARENE); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L.slice(0, 3); }
@@ -36,8 +72,14 @@ function prendreBonusArene(id) {
   const c = combat; if (!c || !c.entracte || !c.arene || !c.arene.choix || !c.arene.choix.includes(id)) return;
   const b = c.arene.bonus = c.arene.bonus || {}; b[id] = (b[id] || 0) + 1; c.arene.choix = null;
   if (id === 'vita') { const plus = Math.round(c.pvMax * 0.1); c.pvMax += plus; c.pv += plus; }
-  son('niveau'); toast('Bonus de l\'Arène : ' + BONUS_ARENE[id].nom + ' (' + BONUS_ARENE[id].txt + ') jusqu\'à la fin de la partie.', 'or'); ouvrirEntracte();
+  son('niveau'); toast('Carte de l\'Arène : ' + BONUS_ARENE[id].nom + ' (' + BONUS_ARENE[id].effet + ') jusqu\'à la fin de la partie.', 'or'); ouvrirEntracte();
 }
+/* une carte (face : sa couleur, son dessin, son effet ; dos : l'embleme de l'Arene) ; i : son rang, elles se retournent l'une apres l'autre ; vu : deja retournee */
+function carteArene(id, i, vu) { const B = BONUS_ARENE[id], n = nbBonus(id);
+  return '<button class="bca' + (vu ? ' vu' : '') + '" data-bonus-arene="' + id + '" style="--c:' + B.c[0] + ';--cf:' + B.c[1] + ';--cc:' + B.c[2] + ';--d:' + (0.2 + 0.32 * i).toFixed(2) + 's" aria-label="' + B.nom + ' : ' + B.effet + '"><span class="bca-tour">' +
+    '<span class="bca-face"><span class="bca-gemme"></span><span class="bca-titre">' + B.nom + '</span><span class="bca-visuel"><svg viewBox="0 0 120 92">' + B.svg + '</svg></span><span class="bca-effet">' + B.effet + '</span><span class="bca-texte">' + B.txt + '</span>' +
+    (n ? '<span class="bca-deja">déjà ×' + n + '</span>' : '') + '<span class="bca-pied"><i></i>jusqu\'à la fin de la partie<i></i></span></span>' +
+    '<span class="bca-face bca-dos"><span class="bca-motif"></span>' + DOS_CARTE + '<span class="bca-nom">Arène</span></span></span></button>'; }
 let soinArene = 0.12; /* la foule t'acclame : chaque vague tenue te rend 12 % de ta vie */
 let forceArene = (k) => (0.35 + 0.045 * (k - 1)) * multArene(k); /* (19/10/2026, « pas trouve ca si dur », Mathieu, record 19 en Cra 62 : 35 % a la vague 1 et +4,5 % par vague, soit 116 % a la 19e ; avant 25 % et +3 %, 79 % a la 19e) */ /* (seul et sans defenses, tout le monde sur lui : a la force d'une vague normale, le perso tombait des la premiere. Simule avec la ferme de Moon, niveau 61, le 14/10/2026 : 9 a 11 vagues tenues selon la classe, soit environ 29 000 kamas et deux coffres pour un ticket de 10 000) */
 const nArene = () => Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.floor((Math.min(S_.vague.num, VAGUES_TOTAL + 1) - 1) / VAGUES_PALIER)); /* (20/10/2026, « au niveau du boss que t'as passe juste avant », Mathieu : la vague du dernier boss battu, 55 pour tous avant) */ /* leur base : la force d'une vague 55, toujours la meme (en montant de vague, le palier 7 faisait un saut brutal a la 11e) ; c'est forceArene qui monte, en douceur */
@@ -378,7 +420,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
   }
   toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soin) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + xpV + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
   const p = vagueArene(k + 1);
-  if (k % 5 === 0) { c.phases = [p]; c.entracte = true; c.repasEntracte = {}; if (k % 10 === 0) c.arene.choix = tirerBonusArene(); ouvrirEntracte(); } else appliquerVagueArene(c, p);
+  if (k % 5 === 0) { c.phases = [p]; c.entracte = true; c.repasEntracte = {}; if (k % 10 === 0) { c.arene.choix = tirerBonusArene(); c.arene.choixVu = false; } ouvrirEntracte(); } else appliquerVagueArene(c, p);
 }
 function finArene(abandon) {
   if (combat && combat.genre === 'ile') { finIleBoss(abandon); return; } /* (l'ile des boss a son bilan) */

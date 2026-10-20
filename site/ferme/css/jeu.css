@@ -187,7 +187,6 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .hdv-qte .seg button[aria-pressed="true"] { background: var(--vert); color: #fff; }
 .hdv-section { margin: 12px 0 2px; font: 400 .95rem/1 var(--f-titre); color: #6b5a3a; }
 .art { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 2px solid #eadfc8; }
-.art .pic.bonus-a { background: #fff3dc; } .art .pic.bonus-a .pc { width: 22px; height: 22px; } /* (les bonus de l'Arene) */
 .art .pic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--bord); font: 400 1.1rem/1 var(--f-titre); color: #fff; background: #c9a35a; }
 .art .pic.img { width: 50px; height: 50px; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); overflow: hidden; } .art .pic.img img { width: 46px; height: 46px; object-fit: contain; }
 .art:has(.pic.img) { grid-template-columns: 50px 1fr auto; }
@@ -840,3 +839,36 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   .toasts { left: calc(8px + env(safe-area-inset-left, 0px)); bottom: calc(70px + env(safe-area-inset-bottom, 0px)); width: 250px; } .toast { font-size: .66rem; }
 }
 @media (max-width: 720px) { .panneau, .commis { display: none; } .actions { gap: 2px; padding: 5px 4px; max-width: calc(100% - 12px); } .action { width: 48px; font-size: .58rem; gap: 5px; } .action .tuile { width: 40px; height: 40px; border-radius: 12px; } .action .tuile img { width: 34px; height: 34px; } .stats-grille { grid-template-columns: repeat(2, 1fr); } .bulle { font-size: .68rem; padding: 2px 6px; } .aide { display: none; } .titre { display: none; } }
+/* LES CARTES DE L'ARENE (20/10/2026, planche design-cartes-arene.html validee) : trois cartes au souffle des vagues 10, 20... ; elles arrivent face cachee
+   et se retournent l'une apres l'autre (--d), puis restent retournees (.vu) */
+.bca-rang { display: flex; justify-content: center; gap: 10px; padding: 16px 0 10px; }
+.bca { --k: clamp(7.6px, calc((100vw - 100px) / 41), 10.6px); --c: #e07c0a; --cf: #9a4f06; --cc: #ffe2b8; appearance: none; background: none; border: 0; padding: 0; margin: 0; font-size: var(--k); width: 13.4em; height: 19.6em; perspective: 70em; position: relative; transition: transform .18s; }
+.bca:hover, .bca:focus-visible { transform: translateY(-.6em) rotate(-1.2deg); outline: none; }
+.bca:hover .bca-face:first-child, .bca:focus-visible .bca-face:first-child { box-shadow: 0 .36em 0 var(--bord), 0 1.4em 2em rgba(59,42,26,.32), 0 0 0 .3em rgba(255,214,90,.75); }
+.bca-tour { position: absolute; inset: 0; display: block; transform-style: preserve-3d; animation: bcaRetourne .9s var(--d) cubic-bezier(.3,1.3,.5,1) both; }
+.bca.vu .bca-tour, .bca.vu { animation: none; }
+.bca { animation: bcaArrive .3s var(--d) both; } /* (le fondu sur la carte, pas sur l'element en 3D : sinon il s'aplatit et la face se voit a l'envers) */
+@keyframes bcaArrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bcaRetourne { 0% { transform: translateY(-1.8em) rotateY(180deg); } 30% { transform: translateY(0) rotateY(180deg); } 100% { transform: rotateY(0); } }
+.bca-face { position: absolute; inset: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; border: .22em solid var(--bord); border-radius: 1.2em; background: var(--papier);
+  box-shadow: 0 .36em 0 var(--bord), 0 .8em 1.4em rgba(59,42,26,.28); backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: box-shadow .18s; }
+.bca-face::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4.1em; border-radius: .98em .98em 0 0; background: linear-gradient(180deg, var(--c), var(--cf)); }
+.bca-face::after { content: ""; position: absolute; inset: .45em; border-radius: .85em; border: .1em dashed rgba(59,42,26,.18); pointer-events: none; }
+.bca-gemme { position: absolute; top: -.85em; left: 50%; width: 1.5em; height: 1.5em; transform: translateX(-50%) rotate(45deg); background: linear-gradient(135deg, #fff6d8, var(--c)); border: .2em solid var(--bord); border-radius: .3em; z-index: 2; }
+.bca-titre { position: relative; z-index: 1; margin-top: 1em; font: 400 1.18em/1 var(--f-titre); color: var(--papier); -webkit-text-stroke: .14em var(--bord); paint-order: stroke fill; text-shadow: 0 .16em 0 var(--bord); text-align: center; padding: 0 .4em; white-space: nowrap; }
+.bca-visuel { position: relative; z-index: 1; margin-top: .75em; width: 10.6em; height: 7.8em; border: .2em solid var(--bord); border-radius: .9em; overflow: hidden; display: block;
+  background: radial-gradient(circle at 50% 58%, #fffdf6 0, var(--cc) 58%, var(--c) 135%); box-shadow: inset 0 -.3em 0 rgba(59,42,26,.12); }
+.bca-visuel::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(59,42,26,.16) .09em, transparent .11em); background-size: .9em .9em; opacity: .7; }
+.bca-visuel svg { position: relative; width: 100%; height: 100%; display: block; }
+.bca-effet { margin-top: .6em; font: 400 1.12em/1.05 var(--f-titre); color: var(--cf); text-align: center; padding: 0 .5em; }
+.bca-texte { margin-top: .3em; font-size: .76em; line-height: 1.25; color: #6b5a3a; text-align: center; padding: 0 1.1em; }
+.bca-pied { position: absolute; bottom: .75em; left: 50%; transform: translateX(-50%); font: 400 .72em/1 var(--f-titre); color: var(--cf); letter-spacing: .04em; white-space: nowrap; display: flex; align-items: center; gap: .4em; }
+.bca-pied i { width: .45em; height: .45em; border-radius: 50%; background: var(--c); display: inline-block; border: .1em solid var(--bord); }
+.bca-deja { position: absolute; top: 3.3em; right: -.6em; z-index: 3; background: var(--papier); border: .18em solid var(--bord); border-radius: .6em; font: 400 .8em/1 var(--f-titre); color: var(--cf); padding: .25em .45em; transform: rotate(8deg); box-shadow: 0 .18em 0 var(--bord); }
+.bca-dos { transform: rotateY(180deg); background: radial-gradient(circle at 50% 45%, #b8434f, #5a1626 75%); justify-content: center; }
+.bca-dos::before { display: none; }
+.bca-dos::after { border: .14em solid rgba(255,214,90,.45); }
+.bca-motif { position: absolute; inset: .9em; border-radius: .7em; background-image: radial-gradient(circle, rgba(255,214,90,.22) .1em, transparent .12em); background-size: 1em 1em; }
+.bca-dos svg { position: relative; width: 9em; height: 9em; }
+.bca-nom { position: relative; font: 400 1.3em/1 var(--f-titre); color: #ffd65a; -webkit-text-stroke: .12em var(--bord); paint-order: stroke fill; text-shadow: 0 .16em 0 var(--bord); margin-top: .2em; }
+@media (max-width: 420px) { .bca-texte { display: none; } .bca-rang { gap: 6px; } } /* (au telephone : l'effet suffit, les cartes restent lisibles) */

@@ -404,13 +404,13 @@ function ouvrirEntracte() {
     return '<div class="art">' + ico(cu.id) + '<div><b>' + cu.nom + (pris ? ' : déjà active' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + cu.mange.txt + jusqua + '</span><span class="puce">' + (S_.grange[cu.id] || 0) + ' en grange</span></div></div><div class="act">' +
       (pris ? '<span class="cadenas">✓ Active</span>' : '<button class="btn mini" data-entracte-manger="' + cu.id + '">Manger</button>') + '</div></div>'; }).join('');
   const choix = c.arene && c.arene.choix, pris = c.arene && c.arene.bonus ? Object.entries(c.arene.bonus) : []; /* (les bonus de l'Arene, toutes les 10 vagues) */
-  const bonus = choix ? '<div class="hdv-section">Choisis un bonus pour la suite</div>' + choix.map((id) => { const B = BONUS_ARENE[id], n = nbBonus(id);
-    return '<div class="art"><span class="pic bonus-a">' + picto(B.ico) + '</span><div><b>' + B.nom + (n ? ' (déjà ×' + n + ')' : '') + '</b><div class="puces"><span class="puce bonne">' + B.txt + '</span></div></div><div class="act"><button class="btn kamas" data-bonus-arene="' + id + '">Choisir</button></div></div>'; }).join('')
+  const bonus = choix ? '<div class="hdv-section">Choisis une carte (une seule, tirée au hasard)</div><div class="bca-rang">' + choix.map((id, i) => carteArene(id, i, c.arene.choixVu)).join('') + '</div>' /* (les cartes, 20/10/2026) */
     : pris.length ? '<p class="hdv-aide">Tes bonus : ' + pris.map(([id, n]) => BONUS_ARENE[id].nom + (n > 1 ? ' ×' + n : '')).join(', ') + '.</p>' : '';
-  ouvrirModale('entracte', entete(c.arene ? 'Arène : ' + c.arene.tenues + ' vagues tenues, souffle un instant' : 'Vague ' + c.n + ' : souffle un instant') + '<p class="hdv-aide">Ce temps-là est nettoyé. Le suivant, <b>' + p.nom + '</b>, n\'attend que toi : bois un pot, mange une Cawotte ou une Fraise, puis lance-le.</p>' +
+  if (choix) c.arene.choixVu = true; /* (re-dessinee apres un pot : les cartes restent retournees) */
+  ouvrirModale('entracte', entete(c.arene ? 'Arène : ' + c.arene.tenues + ' vagues tenues, souffle un instant' : 'Vague ' + c.n + ' : souffle un instant') + '<p class="hdv-aide">Ce temps-là est nettoyé. Le suivant, <b>' + p.nom + '</b>, n\'attend que toi : ' + (choix ? 'choisis ta carte, ' : '') + 'bois un pot, mange une Cawotte ou une Fraise, puis lance-le.</p>' +
     '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>Ta vie : ' + pc + ' %</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV' + (c.regen ? '. La Menthe te soigne pendant la vague.' : '') + '</small></div></div>' +
     bonus + (pots ? '<div class="hdv-section">Tes pots</div>' + pots : '<p class="hdv-aide">Tu n\'as plus de pot de gelée.</p>') + (repas ? '<div class="hdv-section">Manger</div>' + repas : '') +
-    '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-entracte-suite' + (choix ? ' disabled' : '') + '>' + (choix ? 'Choisis d\'abord ton bonus' : 'Lancer : ' + p.nom) + '</button></div>');
+    '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-entracte-suite' + (choix ? ' disabled' : '') + '>' + (choix ? 'Choisis d\'abord ta carte' : 'Lancer : ' + p.nom) + '</button></div>');
 }
 function boireEntracte(t) {
   const c = combat, P = POTS[t]; S_.pots = S_.pots || {}; if (!c || !c.entracte || !P || !(S_.pots[t] > 0)) return;
