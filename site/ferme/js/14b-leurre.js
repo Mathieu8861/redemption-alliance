@@ -34,7 +34,7 @@ function majLeurre() {
   if (!S_ || typeof scene === 'undefined') return;
   const o = blocBati('leurre'), n = niv('leurre'); if (!o || !n) return;
   leurreMesh = marquer(fabriquerLeurre(n, !!S_.leurreWabbit), o.c0.id); poser(leurreMesh, o.x, o.y, o.z, rotDe('leurre'));
-  ancres.leurre = new T.Vector3(o.x, o.y + 1.8, o.z);
+  ancres.leurre = new T.Vector3(o.x, o.y + 2.6, o.z); /* (plus haut : le leurre a grandi, 20/10/2026) */
 }
 /* LE MODELE : une Cawotte taillee dans le bois a facettes et peinte (des bandes plus foncees, la coupe du haut laissee en bois brut, des fanes en planchettes),
    plantee dans une butte de terre et tenue par un tuteur. Niveau 2 : un caramel dore nappe le haut et coule le long des facettes. Niveau 3 : un panier
@@ -44,6 +44,13 @@ function fabriquerLeurre(n, wabbit) {
   const g = new T.Group(), axe = new T.Group(); axe.rotation.y = Math.PI / 4; g.add(axe);
   const BOIS = '#d2a874', TUTEUR = '#8a5a32', ORANGE = '#ef7d22', BANDE = '#c95d14', VERT = '#4fae3a', CARAMEL = '#f0b545', FICELLE = '#e2cf98';
   const plat = (geo, c) => maille(geo, c, { flatShading: true });
+  /* LA DALLE DE TERRE (20/10/2026, « toute la case, une petite dalle de terre, qu'on voie qu'il y a quelque chose », Mathieu) : un carre de terre battue
+     un peu sureleve, borde plus fonce, seme de mottes ; alignee sur la case (dans g, pas dans axe qui est tourne d'un quart) */
+  const bord = plat(new T.BoxGeometry(1.94, 0.05, 1.94), '#5e3d22'); bord.position.y = 0.025; g.add(bord);
+  const dalle = plat(new T.BoxGeometry(1.82, 0.09, 1.82), '#86603a'); dalle.position.y = 0.045; g.add(dalle);
+  [[-0.62, -0.55, 0.09], [0.58, -0.66, 0.07], [-0.7, 0.48, 0.08], [0.66, 0.6, 0.09], [0.1, 0.74, 0.06], [-0.2, -0.78, 0.065], [0.78, 0.0, 0.06], [-0.8, -0.08, 0.07]].forEach(([x, z, r], k) => {
+    const m = sphere(r, k % 2 ? '#9a7048' : '#6a4626', 1); m.scale.set(1, 0.5, 1); m.position.set(x, 0.09, z); g.add(m); });
+  const K = n >= 3 ? 1.3 : 1.55; axe.scale.setScalar(K); axe.position.y = 0.09; /* (plus grande : sur une case de 2, elle passait inapercue) */
   const cw = new T.Group(); axe.add(cw); /* la fausse Cawotte, sa butte et son tuteur */
   const butte = sphere(0.38, '#7a5232', 1); butte.scale.set(1, 0.22, 1); cw.add(butte);
   /* la Cawotte : un tronc de cone a 8 facettes, pointe en bas, enfoncee dans la butte ; R au sommet, H de haut, sa pointe a Y0 */
@@ -88,7 +95,7 @@ function fabriquerLeurre(n, wabbit) {
     }
   } else if (wabbit && MODELES.wabbit) { /* le Wabbit, a droite de la Cawotte, qui la ronge */
     const tient = new T.Group(); tient.position.set(0.46, 0, 0.06); tient.rotation.y = Math.atan2(-0.46, -0.06); axe.add(tient); /* (tourne vers la Cawotte : il pique du nez dans son propre axe) */
-    w = cloner('wabbit'); w.scale.multiplyScalar(0.85); tient.add(w);
+    w = cloner('wabbit'); w.scale.multiplyScalar(0.85 / K); tient.add(w); /* (le Wabbit garde sa taille, seul le leurre grandit) */
   }
   g.userData.anim = { w, panier, wx: w ? w.rotation.x : 0, wz: w ? w.rotation.z : 0 };
   return g;
