@@ -82,6 +82,7 @@ function marcher(dt, s) {
   if (combat && combat.agrippe > 0) combat.agrippe -= dt; /* agrippe par un monstre qui lui a saute dessus : il marche deux fois moins vite */
   if (combat && combat.deroute != null) return; /* a terre, il ne marche plus */
   if (combat && combat.assomme > 0) return; /* assomme : il ne bouge plus un instant */
+  if (combat && combat.colle > 0) return; /* colle dans la boue du Dragon Cochon, ou menotte par le Don Dorgan : il ne marche plus, il frappe encore (20/10/2026) */
   if (!paysanMesh) return;
   if (lieu === 'casino') { majCasino(dt); return; }
   const u = paysanMesh.userData;

@@ -142,7 +142,7 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi : chaque semaine de l'ile commence ce jour-la ; let : les tests le changent) */
 const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 500000, /* (500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
-const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal'];
+const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
 const RECOMPENSES_ILE = { participation: { kamas: kamasGagnes(10000), forge: 1, xp: 0.15 }, tombe: { kamas: kamasGagnes(40000), forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: kamasGagnes(30000), parfaite: 1 }, { kamas: kamasGagnes(20000), forge: 3 }, { kamas: kamasGagnes(10000), forge: 2 }] };
 const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -151,7 +151,7 @@ const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return
    vendredi (le format que lit la base). Chaque vendredi : un nouveau boss (la rotation), une vie commune neuve, 3 essais neufs, et le coffre de la semaine finie. */
 const semaineIleBoss = (t) => { const d = new Date(t == null ? tempsReel() : t); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
 const finSemaineIle = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
-function bossDuJour(cle) { const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); return ROTATION_ILE_BOSS[(((sem - 42) % 7) + 7) % 7]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
+function bossDuJour(cle) { const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
 const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (palierDuBoss(t) + 1) * VAGUES_PALIER;
 function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
 const partiesIle = () => [S_].concat(Object.values(S_.parties || {}).filter((e) => e && e.perso)); /* (la partie en cours et les autres du compte) */
@@ -240,7 +240,7 @@ async function reclamerIleBoss() { /* le coffre de la semaine finie : la partici
     const runesTxt = (n, parf) => [n ? n + ' rune' + (n > 1 ? 's' : '') + ' de forgemagie' : '', parf ? parf + ' rune' + (parf > 1 ? 's' : '') + ' parfaite' + (parf > 1 ? 's' : '') : ''].filter(Boolean).join(', ');
     const base = [fmt(R.kamas) + ' kamas', runesTxt(R.forge, 0), fmt(xp) + ' XP'];
     let totK = R.kamas, totF = R.forge, totP = 0; const objets = [];
-    if (tombe) { const id = tirerPiece(PANOS[palierCourant()], 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
+    if (tombe) { const id = tirerPiece(panoDe(palierCourant()), 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
       const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg); donnerObjet(idl); objets.push('✦ ' + OBJETS[idl].nom); } }
     const L2 = [ligneRecap('kama', tombe ? 'Le boss est tombé' : 'Ta participation', base.concat(objets).join(', '))];
     if (rang >= 0 && rang < 3) { const Pd = RECOMPENSES_ILE.podium[rang]; S_.kamas += Pd.kamas; if (Pd.parfaite) runes().parfaite = (runes().parfaite || 0) + Pd.parfaite; if (Pd.forge) runes().forge += Pd.forge;
@@ -348,7 +348,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
        (1 a la 5e vague, 2 a la 10e, 3 a la 20e) ; des la 10e, 2 % de rune parfaite. La piece tombe avec un jet jamais sous la moyenne (JET_ARENE) */
     const pros = 1 + caracs().prospection / 100, nf = 1 + Math.floor(k / 10), bonus = 2 * g.kamas, dans = ['+' + fmt(bonus) + ' kamas'];
     S_.kamas += bonus; c.arene.kamas += bonus;
-    if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(PANOS[palierCourant()], pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
+    if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(panoDe(palierCourant()), pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
       const cle = donnerObjet(id, JET_ARENE); c.arene.objets.push(cle); dans.push((OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)'); }
     if (Math.random() < RUNE_COFFRE * pros) { gagneRune('forge', nf); dans.push('★ ' + nf + ' rune' + (nf > 1 ? 's' : '') + ' de forgemagie'); }
     if (k >= 10 && Math.random() < RUNE_PARFAITE_COFFRE * pros) { gagneRune('parfaite', 1); dans.push('★ une RUNE PARFAITE'); } /* (des le boss de la 10e depuis le 15/10/2026 : « la rune parfaite descend a la 10 », Mathieu ; la 15e avant) */

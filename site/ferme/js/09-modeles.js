@@ -272,7 +272,19 @@ function articuler(racine) {
 const OMBRE_PIEDS = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(40,30,20,0.55)'); g.addColorStop(0.6, 'rgba(40,30,20,0.25)'); g.addColorStop(1, 'rgba(40,30,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false }); })();
 partager(OMBRE_PIEDS);
 function ombrePieds(g, taille) { g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } }); /* une seule ombre, ronde, sous les pieds ; et plus d'ombre recue : sur tablette, les ombres moins precises noircissaient la tete des Bouftous (photo de Mathieu, 11/10/2026) */ const o = new T.Mesh(new T.PlaneGeometry(1, 1), OMBRE_PIEDS); o.rotation.x = -Math.PI / 2; o.position.y = 0.03; o.scale.setScalar(taille); o.renderOrder = 1; g.add(o); return o; }
-function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); return g; }
+/* les pivots d'un modele du palier 8, retrouves par leur nom dans une copie (le glTF colle un numero aux doublons : hanche_G001) */
+const PIVOT_P8 = /^(hanche_|genou_|epaule_|aile_(G|D)|queue_pivot|segment_|tete_pivot)/, SC_P8 = new Set([...SC_MONSTRES, 'papier', 'peinture', 'brillant', 'losange', 'spirale', 'clou', 'rivet', 'corde_arc']);
+function lierPivots(g) {
+  const u = { membres: true, bras: [], ailes: [], anneaux: [] }, H = {}, K = {};
+  g.traverse((o) => { let r;
+    if ((r = /^hanche_(AG|AD|RG|RD|G|D)\d*$/.exec(o.name))) H[r[1]] = o; else if ((r = /^genou_(AG|AD|RG|RD|G|D)\d*$/.exec(o.name))) K[r[1]] = o;
+    else if ((r = /^epaule_(G|D)\d*$/.exec(o.name))) u.bras[r[1] === 'G' ? 0 : 1] = o; else if ((r = /^aile_(G|D)\d*$/.exec(o.name))) u.ailes[r[1] === 'G' ? 0 : 1] = o;
+    else if (/^segment_\d/.test(o.name)) u.anneaux.push(o); else if (/^queue_pivot/.test(o.name)) u.queue = o; else if (/^tete_pivot/.test(o.name)) u.tete = o; });
+  const P = ['AG', 'AD', 'RG', 'RD', 'G', 'D'].filter((k) => H[k] && K[k]).map((k) => ({ hanche: H[k], genou: K[k] })); if (P.length) u.pattes = P;
+  u.anneaux.sort((a, b) => (a.name < b.name ? -1 : 1)); u.anneaux.forEach((o) => { o.userData.y0 = o.position.y; });
+  return u;
+}
+function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); if (g.userData.pivots) Object.assign(g.userData, lierPivots(g)); return g; }
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 /* LES PERSONNAGES DE LA SIMU VSA (Omeho, le voleur, le voleur monte) et le marchand, charges a part (16/10/2026) : un modele rate (connexion) se recharge
    a l'annonce d'une simu, au lieu de faire planter la simu a l'apparition de ses voleurs. Ne charge que ce qui manque. */
@@ -290,7 +302,7 @@ async function chargerPersonnagesVsa0() {
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -342,6 +354,11 @@ async function chargerModeles() {
     ['mamaKoalak', 'MamaKoalak', 1.75], ['maitreKoalak', 'MaitreKoalak', 1.7], ['dokAlako', 'DokAlako', 1.75], ['momieKoalak', 'MomieKoalak', 1.65], ['koalakGriotte', 'KoalakGriotte', 1.6], ['koalakReinette', 'KoalakReinette', 1.6],
     ['koalakIndigo', 'KoalakIndigo', 1.6], ['koalakCoco', 'KoalakCoco', 1.6], ['drakoalak', 'Drakoalak', 2.6], ['chevaucheurKoalak', 'ChevaucheurKoalak', 2.6]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.koalaks, n, h, 'y'); });
   MODELES.koulosse = gabarit(G.koulosse, 'Koulosse', 4.2, 'y');
+  /* LE PALIER 8, le Repaire du Dragon Cochon (20/10/2026, blender/palier8.py et dragon-cochon.py) : des modeles a pivots (hanches, genoux, epaules, ailes,
+     queue, anneaux de la larve) qui ne se soudent pas au corps ; cloner les relie sur chaque copie, le combat les anime (animerPattes) */
+  [G.palier8, G['dragon-cochon']].forEach((sc) => { sc.traverse((o) => { if (PIVOT_P8.test(o.name)) o.userData.articule = true; }); versToon(sc, { normales: 0.01, sansContour: SC_P8 }); });
+  [['cochonFarle', 'CochonFarle', 1.1], ['sanglier', 'Sanglier', 1.7], ['sanglierFouisseur', 'SanglierFouisseur', 1.7], ['donDorgan', 'DonDorgan', 2.3], ['donDussAng', 'DonDussAng', 2.3], ['gorgouille', 'Gorgouille', 2.8], ['porsalu', 'Porsalu', 2.0]].forEach(([k, n, ht]) => { MODELES[k] = gabarit(G.palier8, n, ht, 'y'); MODELES[k].userData.pivots = true; });
+  MODELES.dragonCochon = gabarit(G['dragon-cochon'], 'DragonCochon', 4.0, 'y'); MODELES.dragonCochon.userData.pivots = true;
   [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
   try { const sc = await chargerGlb('assets/modeles/jeu/sortie-vsa.glb?v=' + VERSION_MODELES); versToon(sc, { normales: 0.012, sansContour: SC_BATI }); MODELES.caleche = sc.getObjectByName('SortieCaleche'); } catch (err) { /* pas encore de modele */ }
   await chargerPersonnagesVsa();

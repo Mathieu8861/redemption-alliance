@@ -717,8 +717,14 @@ function cibleEnclos(k) {
    de marche, le sabot recule au sol d'a peu pres ce que le corps avance : il ne glisse pas */
 const DEC_PATTES = [Math.PI / 2, Math.PI * 1.5, 0, Math.PI]; /* avant gauche, avant droite, arriere gauche, arriere droite */
 function animerPattes(m, pas, f) {
-  const P = m.userData.pattes; if (!P) return;
-  P.forEach((p, i) => { const ph = pas + DEC_PATTES[i]; p.hanche.rotation.x = Math.sin(ph) * 0.6 * f; p.genou.rotation.x = Math.max(0, -Math.cos(ph)) * 1.05 * f; });
+  const u = m.userData, P = u.pattes;
+  if (P) P.forEach((p, i) => { const ph = pas + DEC_PATTES[i]; p.hanche.rotation.x = Math.sin(ph) * 0.6 * f; p.genou.rotation.x = Math.max(0, -Math.cos(ph)) * 1.05 * f; });
+  /* (le palier 8, 20/10/2026) les bras balancent a l'oppose des jambes, les petites ailes battent, la queue fouette, la larve ondule de la tete a la queue */
+  if (u.bras) u.bras.forEach((b, i) => { if (b) b.rotation.x = -Math.sin(pas + DEC_PATTES[i]) * 0.45 * f; });
+  if (u.ailes) u.ailes.forEach((a, i) => { if (a) a.rotation.z = (i ? -1 : 1) * (0.1 + Math.sin(pas * 3) * (0.1 + 0.15 * f)); });
+  if (u.queue) u.queue.rotation.y = Math.sin(pas * 0.9) * 0.25;
+  if (u.anneaux) u.anneaux.forEach((o, i) => { o.position.y = o.userData.y0 + Math.max(0, Math.sin(pas * 1.3 - i * 0.9)) * 0.08 * Math.max(0.3, f); });
+  if (u.tete) u.tete.rotation.x = Math.sin(pas * 1.3 + 0.6) * 0.08;
 }
 function errer(dt, s) {
   bouftousMesh.forEach((m, k) => {

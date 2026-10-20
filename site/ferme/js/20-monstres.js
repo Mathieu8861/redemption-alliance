@@ -1,7 +1,7 @@
 'use strict';
 const TIR_FEU = 10; /* Cra : une attaque sur 10 est une fleche de feu */
 /* les paliers : 10 vagues chacun, un boss a la 10e. Battre le Bouftou Royal ouvre la Vague de Chafers (vagues 11 a 20), battre le Chafer Cuirasse ouvre la Horde des Bworks (21 a 30). */
-const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }, { nom: 'la Horde des Bworks', boss: 'bworker', icone: 'bworker' }, { nom: 'le Massif des Craqueleurs', boss: 'craqLegendaire', icone: 'craq-legendaire' }, { nom: 'le Nid des Dragoeufs', boss: 'crocabulia', icone: 'crocabulia' }, { nom: 'l\'île des Wabbits', boss: 'waWabbit', icone: 'wa-wabbit', phase: 2 }, { nom: 'la Montagne des Koalaks', boss: 'koulosse', icone: 'koulosse', phase: 2 }];
+const PALIERS = [{ nom: 'Amakna', boss: 'royal', icone: 'bouftou-royal' }, { nom: 'la Vague de Chafers', boss: 'cuirasse', icone: 'chafer-cuirasse' }, { nom: 'la Horde des Bworks', boss: 'bworker', icone: 'bworker' }, { nom: 'le Massif des Craqueleurs', boss: 'craqLegendaire', icone: 'craq-legendaire' }, { nom: 'le Nid des Dragoeufs', boss: 'crocabulia', icone: 'crocabulia' }, { nom: 'l\'île des Wabbits', boss: 'waWabbit', icone: 'wa-wabbit', phase: 2 }, { nom: 'la Montagne des Koalaks', boss: 'koulosse', icone: 'koulosse', phase: 2 }, { nom: 'le Repaire du Dragon Cochon', boss: 'dragonCochon', icone: 'dragon-cochon', phase: 2 }];
 const nomPalier = (P) => P < 5 ? 'Palier ' + (P + 1) : 'Phase 2, palier ' + (P - 4); /* la Phase 2 commence apres Crocabulia (« le niveau 1 a 50 c'est la phase 1 », Mathieu) */
 const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length;
 const palierDe = (n) => Math.min(PALIERS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, VAGUES_TOTAL);
@@ -65,7 +65,17 @@ const MONSTRES = {
   drakoalak: { nom: 'Drakoalak', modele: 'drakoalak', icone: 'drakoalak', desc: 'charge en ligne droite sur sa Dragodinde : sors de la bande rouge', res: 'kaliptus', pv: (n) => 820 + 32 * (n - 60), deg: (n) => 28 + Math.round(1.8 * (n - 60)), cadence: 1.8, vitesse: 2.4, portee: 1.7, ombre: 2.0, charge: 9, degSort: 1.8 },
   chevaucheurKoalak: { nom: 'Chevaucheur Koalak', modele: 'chevaucheurKoalak', icone: 'chevaucheur-koalak', desc: 'quand sa monture squelette tombe, il continue à pied', res: 'kaliptus', pv: (n) => 700 + 28 * (n - 60), deg: (n) => 26 + Math.round(1.6 * (n - 60)), cadence: 1.8, vitesse: 2.2, portee: 1.8, ombre: 2.0, demonte: 'guerrierKoalak' },
   boufcoul: { nom: 'Boufcoul', modele: 'chafer', fabrique: () => fabriquerBoufcoul(), icone: 'boufcoul', desc: 'le Bouftou du Koulosse, laine rasta : il fonce sur toi', res: 'kaliptus', pv: (n) => 500 + 20 * (n - 60), deg: (n) => 20 + (n - 60), cadence: 1.4, vitesse: 2.2, /* (+10 % le 15/10/2026) */ portee: 1.3, ombre: 1.4, casse: 0.3 },
-  koulosse: { nom: 'Koulosse', propre: true, modele: 'koulosse', icone: 'koulosse', desc: 'le colosse fumeur de la montagne, armure (-35 %) : crache des nuages de fumée (les toucher empoisonne : 2 s de poison par seconde passée dedans), t\'attire à lui (sors de la bande verte), appelle des Boufcouls toutes les 16 s ; sous 30 % de vie, il tire sur son calumet et s\'entoure de fumée', res: 'kaliptus', pv: () => 5200, deg: () => 30, cadence: 2.3, vitesse: 0.9, portee: 2.8, ombre: 4.2, armure: 0.35, renforts: ['boufcoul', 'Boufcouls'], fumee: 9, appel: 13, calumet: true, degSort: 9, rage: true, boss: true }
+  koulosse: { nom: 'Koulosse', propre: true, modele: 'koulosse', icone: 'koulosse', desc: 'le colosse fumeur de la montagne, armure (-35 %) : crache des nuages de fumée (les toucher empoisonne : 2 s de poison par seconde passée dedans), t\'attire à lui (sors de la bande verte), appelle des Boufcouls toutes les 16 s ; sous 30 % de vie, il tire sur son calumet et s\'entoure de fumée', res: 'kaliptus', pv: () => 5200, deg: () => 30, cadence: 2.3, vitesse: 0.9, portee: 2.8, ombre: 4.2, armure: 0.35, renforts: ['boufcoul', 'Boufcouls'], fumee: 9, appel: 13, calumet: true, degSort: 9, rage: true, boss: true },
+  /* PHASE 2, PALIER 3 : le Repaire du Dragon Cochon (20/10/2026). La lignee des Koalaks (formules en n - 70), un cran au-dessus */
+  cochonFarle: { nom: 'Cochon de Farle', modele: 'cochonFarle', icone: 'cochon-farle', desc: 'une larve de cochon aux gros yeux ronds : arrive en bande et file grignoter tes cultures', grignote: true, pv: (n) => 480 + 16 * (n - 70), deg: (n) => 26 + (n - 70), cadence: 1.5, vitesse: 2.4, portee: 1.2, ombre: 1.3 },
+  sanglier: { nom: 'Sanglier', modele: 'sanglier', icone: 'sanglier', desc: 'fonce tête baissée sur tes bâtiments', pv: (n) => 900 + 32 * (n - 70), deg: (n) => 40 + 2 * (n - 70), cadence: 1.7, vitesse: 2.0, portee: 1.6, ombre: 1.8, casse: 0.6 },
+  sanglierFouisseur: { nom: 'Sanglier fouisseur', modele: 'sanglierFouisseur', icone: 'sanglier-fouisseur', desc: 'creuse sous ta ferme et ressort au pied d\'un bâtiment, derrière tes défenses', pv: (n) => 760 + 26 * (n - 70), deg: (n) => 36 + Math.round(1.5 * (n - 70)), cadence: 1.5, vitesse: 1.8, portee: 1.5, ombre: 1.7, casse: 1, fouisseur: true },
+  donDorgan: { nom: 'Don Dorgan', modele: 'donDorgan', icone: 'don-dorgan', desc: 'le cochon sumo aux chaînes cassées : il charge, et sa charge te menotte un instant', pv: (n) => 1250 + 44 * (n - 70), deg: (n) => 48 + 2 * (n - 70), cadence: 1.8, vitesse: 2.0, portee: 1.8, ombre: 1.9, charge: 9, degSort: 1.8, menotte: 1 },
+  donDussAng: { nom: 'Don Duss Ang', modele: 'donDussAng', icone: 'don-duss-ang', desc: 'le cochon sumo au tablier rouge : il soigne les cochons autour de lui, abats-le en premier', pv: (n) => 1000 + 36 * (n - 70), deg: (n) => 26 + (n - 70), cadence: 2.0, vitesse: 1.3, portee: 1.6, ombre: 1.9, soigne: 4 },
+  porsalu: { nom: 'Porsalu', modele: 'porsalu', icone: 'porsalu', desc: 'tire à l\'arbalète : ses carreaux te ralentissent', pv: (n) => 560 + 20 * (n - 70), deg: (n) => 30 + Math.round(1.2 * (n - 70)), cadence: 2.0, vitesse: 1.6, portee: 6, distance: true, ralentit: 2, ombre: 1.4 },
+  /* le mini-boss (« la Gorgouille, faudrait limite que ce soit un mini-boss », Mathieu, 20/10/2026) : vague 75, puis au deuxieme temps de la vague 80 */
+  gorgouille: { nom: 'Gorgouille', fem: true, modele: 'gorgouille', icone: 'gorgouille', desc: 'la gargouille de pierre aux brassards d\'or, armure (-35 %) : son coup de brassard te repousse (sors de l\'arc rouge), sa peau de pierre lui fait prendre moitié moins de dégâts quelques secondes ; enragée sous 30 % de vie', pv: () => 2750, deg: () => 28, cadence: 2.4, vitesse: 0.8, portee: 2.4, ombre: 2.8, armure: 0.35, brassard: 8, pierre: 14, repousse: 3 * S, degSort: 8.9, rage: true, boss: true },
+  dragonCochon: { nom: 'Dragon Cochon', modele: 'dragonCochon', icone: 'dragon-cochon', desc: 'plus cochon que dragon, de toutes petites ailes, armure (-35 %) : bain de boue (sors du cercle rouge, sinon tu restes collé), charge de très loin (sors de la bande rouge), envol éclair jusqu\'à toi (sors du cercle rouge), écrasement qui te repousse ; appelle des Cochons de Farle toutes les 16 s, enragé sous 30 % de vie', pv: () => 5900, deg: () => 33, cadence: 2.2, vitesse: 1.0, portee: 2.8, ombre: 4.0, armure: 0.35, renforts: ['cochonFarle', 'Cochons de Farle'], boue: 13, charge: 11, bondit: 9, seisme: 15, seismeNom: 'Écrasement', seismeR: 3.6, seismeDuree: 1.5, repousse: 2 * S, sortsX: { charge: 1.1, seisme: 0.76 }, degSort: 10, rage: true, boss: true }
 };
 const STATS_CLASSE = {
   /* (13/10/2026, Mathieu : portees en cases rondes, Iop 1, Osamodas 3, Cra 5 (une case = S = 2 unites) ; degats de base 10, 6 et 8, puis la pente par niveau
@@ -79,7 +89,7 @@ const STATS_CLASSE = {
 /* (13/10/2026, « augmente un chouille la difficulte du 1 a 50, +10 % de degats des monstres », Mathieu : les degats des paliers 1 a 5 x1,1, le palier 6 et les boss inchanges) */
 /* +15 % de PV et de degats des la vague 11, boss compris (13/10/2026, bot patient : 1 a 3 defaites sur toute la partie ; avant : 1,1/1,27, 1,3/1,6, 1,4/1,71, 1,45/1,76, 1,4/1,5).
    Le premier palier ne change pas. Le lissage des renforts (renfort) part de la 9e vague : le palier 2 monte donc en douceur jusqu'aux +15 % */
-const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }, { pv: 1.6, deg: 1.55 }]; /* (les Koalaks, 14/10/2026 : 1,61 et 1,73 au premier jet, simule trop dur quand ils fonçaient tous sur le perso ; les Immatures vont maintenant aux champs, comme les Wabbits) */
+const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }]; /* (les Koalaks, 14/10/2026 : 1,61 et 1,73 au premier jet, simule trop dur quand ils fonçaient tous sur le perso ; les Immatures vont maintenant aux champs, comme les Wabbits) */
 const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? { pv: 1, deg: 1 } : DURETE[palierDe(n)]; /* les voleurs des raids VSA ont leur propre equilibrage */
 /* « quand on reprend une nouvelle phase, les mobs sont nuls sur les premiers niveaux : la vague 19 est plus dure que la 22 » (Mathieu, 12/10/2026) :
    chaque palier repartait avec 3 ou 4 monstres, une force divisee par 5 d'une vague a l'autre. La force d'une vague = PV totaux x degats par seconde ;
@@ -96,9 +106,9 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS; return L; };
 /* « durcis encore » (Mathieu, 12/10/2026) : les monstres des vagues normales prennent des PV et des degats en plus, davantage dans les paliers du haut
    (simulations : on finissait les vagues avec 65 a 95 % de PV, maintenant 30 a 70 %). Les vagues de boss et les voleurs des raids ne changent pas. */
-const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
+const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
 const durci = (t, n, c) => (MONSTRES[t].boss || !(n >= 1) || n % VAGUES_PALIER === 0 ? 1 : DURCI[c][palierDe(n)] || 1);
-const forceBrute = (n) => { let pv = 0, dps = 0; compoVague0(n).forEach(([t, k]) => { const d = durete(t, n); pv += k * MONSTRES[t].pv(n) * d.pv * durci(t, n, 'pv'); dps += k * MONSTRES[t].deg(n) * d.deg * durci(t, n, 'deg') * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
+const forceBrute = (n) => { let pv = 0, dps = 0; compoVague0(n).forEach(([t, k]) => { if (MONSTRES[t].boss) return; const d = durete(t, n); /* (le mini-boss d'une vague normale ne compte pas dans le lissage, 20/10/2026) */ pv += k * MONSTRES[t].pv(n) * d.pv * durci(t, n, 'pv'); dps += k * MONSTRES[t].deg(n) * d.deg * durci(t, n, 'deg') * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
 const RENFORTS = {};
 const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1) % VAGUES_PALIER + 1; let f = 1;
   if (n > VAGUES_PALIER && n <= VAGUES_TOTAL && h < VAGUES_PALIER - 1) { const a = forceBrute(n - h - 1), b = forceBrute(n - h + VAGUES_PALIER - 1), cible = a * Math.pow(b / a, h / (VAGUES_PALIER - 1)); f = Math.min(1.8, Math.max(1, Math.sqrt(cible / forceBrute(n)))); } /* (plafonne : au-dela, des coups trop gros) */
@@ -107,8 +117,8 @@ const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1
    le boss ca doit vraiment etre un boss, un truc dur a tuer, il faudrait qu'il ait un sort special aussi » (Mathieu, 12/10/2026) :
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
    de PV (BOSS_PV, regle par simulation pour un long combat), des coups moderes (BOSS_DEG), et un sort special annonce au sol qu'on peut esquiver */
-const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62], vagueBoss = (n) => n >= 1 && n <= VAGUES_TOTAL && n % VAGUES_PALIER === 0;
-const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68, 3.4], BOSS_DEG = [0.3, 0.31, 0.35, 0.48, 0.5, 0.92, 0.95]; /* (+15 % des le boss 20, 13/10/2026 au soir : 1,6, 1,2, 1,45, 1,7, 3,2 et 0,27, 0,3, 0,42, 0,5, 0,8 avant ; les sorts des boss n'en dependent pas, voir degSort. Sauf Crocabulia, le boss 50, garde a 1,7 et 0,5 : a +15 %, le bot Osamodas patient l'a perdu 14 fois de suite, et le Cra simule 3 victoires sur 6) */ /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
+const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62, 0.6], vagueBoss = (n) => n >= 1 && n <= VAGUES_TOTAL && n % VAGUES_PALIER === 0;
+const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68, 3.4, 3.3], BOSS_DEG = [0.3, 0.31, 0.35, 0.48, 0.5, 0.92, 0.95, 1]; /* (le Dragon Cochon, 20/10/2026 : 5 900 x 3,3 = 19 500 PV, 33 par coup ; la Gorgouille, 2 750 x 3,3 = 9 075 PV, 28 par coup) */ /* (+15 % des le boss 20, 13/10/2026 au soir : 1,6, 1,2, 1,45, 1,7, 3,2 et 0,27, 0,3, 0,42, 0,5, 0,8 avant ; les sorts des boss n'en dependent pas, voir degSort. Sauf Crocabulia, le boss 50, garde a 1,7 et 0,5 : a +15 %, le bot Osamodas patient l'a perdu 14 fois de suite, et le Cra simule 3 victoires sur 6) */ /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
 /* « il faut obliger le joueur a prendre une decision entre focus les mobs et le boss » (Mathieu, 12/10/2026) : sa troupe le protege (chaque monstre a moins
    de 6 cases lui retire 12 % des degats recus, jusqu'a -60 %), et il la rappelle toutes les 16 s tant qu'il est debout. Taper le boss au milieu de ses gardes
    ne sert presque a rien, nettoyer la troupe sans fin non plus : on degage, puis on tape le boss avant le retour des renforts */
@@ -120,7 +130,7 @@ const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOS
    x les vagues normales durcies (DURCI), x le lissage des debuts de palier (renfort), x le boss (BOSS_PV, BOSS_DEG) ; l'escorte d'un boss vaut le
    meme monstre de la vague d'avant (ESCORTE). A son arrivee, la regle du combat s'ajoute : la revanche (facteurRejoue), l'Arene (regleArene),
    l'ile des boss (regleIleBoss). Sur le perso, ses coups prennent encore multDegats (DEGATS_MONSTRES), au moment du coup. */
-const forceMonstre = (t, n, c) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(forceMonstre(t, n - 1, c) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t][c](n) * durete(t, n)[c] * durci(t, n, c) * renfort(n) * forceBoss(t, n, c === 'deg' ? 1 : 0)));
+const forceMonstre = (t, n, c) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(forceMonstre(t, n - 1, c) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t][c](n) * durete(t, n)[c] * durci(t, n, c) * (MONSTRES[t].boss ? 1 : renfort(n)) * forceBoss(t, n, c === 'deg' ? 1 : 0))); /* (un boss garde sa force : le lissage des debuts de palier ne touche que les monstres ; avant le mini-boss de la vague 75, ca ne changeait rien) */
 const pvMonstre = (t, n) => forceMonstre(t, n, 'pv'), degMonstre = (t, n) => forceMonstre(t, n, 'deg');
 /* Phase 2, palier 2 : la Montagne des Koalaks (14/10/2026, « je trouve ca dommage de pas tout utiliser », « plus de monstres, ou alors la vague du boss se fait
    en plusieurs temps », Mathieu) : les 15 Koalaks arrivent au fil des vagues 61 a 69 (deux nouveaux presque a chaque vague), et la vague 70 se joue en trois temps :
@@ -136,13 +146,29 @@ const COMPO_KOALAKS = [null,
   [['koalakImmature', 3], ['guerrierKoalak', 1], ['chevaucheurKoalak', 1], ['drakoalak', 1], ['mamaKoalak', 1], ['maitreKoalak', 1], ['koalakReinette', 1]],
   [['koalakImmature', 3], ['guerrierKoalak', 1], ['chevaucheurKoalak', 1], ['drakoalak', 1], ['mamaKoalak', 1], ['momieKoalak', 1], ['dokAlako', 1], ['koalakCoco', 1]],
   [['koalakImmature', 4], ['koalakForestier', 1], ['guerrierKoalak', 2], ['koalakFarouche', 1], ['mamaKoalak', 1], ['dokAlako', 1], ['koalakGriotte', 1], ['koalakReinette', 1]]];
-const PHASES_BOSS = { 70: [
+/* Phase 2, palier 3 : le Repaire du Dragon Cochon (20/10/2026) : les cochons arrivent au fil des vagues 71 a 79, la Gorgouille en mini-boss a la 75 ;
+   la vague 80 en trois temps : la horde, la Gorgouille et sa garde, le Dragon Cochon et sa garde */
+const COMPO_COCHONS = [null,
+  [['cochonFarle', 3], ['sanglier', 2], ['porsalu', 1]],
+  [['cochonFarle', 3], ['sanglier', 2], ['porsalu', 1], ['sanglierFouisseur', 1]],
+  [['cochonFarle', 3], ['sanglier', 1], ['porsalu', 2], ['sanglierFouisseur', 1], ['donDussAng', 1]],
+  [['cochonFarle', 3], ['sanglier', 2], ['porsalu', 1], ['sanglierFouisseur', 1], ['donDorgan', 1]],
+  [['cochonFarle', 3], ['sanglier', 1], ['porsalu', 1], ['donDussAng', 1], ['gorgouille', 1]],
+  [['cochonFarle', 3], ['sanglier', 2], ['porsalu', 1], ['donDorgan', 1], ['donDussAng', 1], ['sanglierFouisseur', 1]],
+  [['cochonFarle', 3], ['sanglier', 2], ['porsalu', 2], ['donDorgan', 1], ['donDussAng', 1]],
+  [['cochonFarle', 3], ['sanglier', 2], ['porsalu', 1], ['donDorgan', 2], ['donDussAng', 1], ['sanglierFouisseur', 1]],
+  [['cochonFarle', 4], ['sanglier', 2], ['porsalu', 2], ['donDorgan', 1], ['donDussAng', 1], ['sanglierFouisseur', 1]],
+  [['cochonFarle', 4], ['sanglier', 2], ['porsalu', 2], ['donDorgan', 1], ['donDussAng', 1], ['sanglierFouisseur', 1]]];
+const PHASES_BOSS = { 80: [
+  { nom: 'la Gorgouille et sa garde', L: [['gorgouille', 1], ['sanglier', 2], ['porsalu', 1]] },
+  { nom: 'le Dragon Cochon et sa garde', L: [['dragonCochon', 1], ['donDorgan', 1], ['donDussAng', 1], ['cochonFarle', 2]] }], 70: [
   { nom: 'les cavaliers', L: [['drakoalak', 2], ['chevaucheurKoalak', 2], ['maitreKoalak', 1], ['koalakIndigo', 1], ['koalakCoco', 1]] },
   { nom: 'le Koulosse et sa garde', L: [['koulosse', 1], ['momieKoalak', 2], ['koalakFossoyeur', 1], ['mamaKoalak', 1]] }] };
 const compoTotale = (n) => compoVague(n).concat(...(PHASES_BOSS[n] || []).map((p) => p.L)); /* (la vague entiere, ses temps compris : le bestiaire, la fenetre des vagues) */
 const compoBase = (n) => {
   if (n === VAGUES_PALIER) return [['royal', 1], ['bouftou', 2], ['tofu', 3]];
   if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['bouftou', Math.ceil(n / 3)]] : []);
+  if (n > 7 * VAGUES_PALIER) return COMPO_COCHONS[Math.min(VAGUES_PALIER, n - 7 * VAGUES_PALIER)].map((x) => x.slice()); /* le Repaire du Dragon Cochon */
   if (n > 6 * VAGUES_PALIER) return COMPO_KOALAKS[Math.min(VAGUES_PALIER, n - 6 * VAGUES_PALIER)].map((x) => x.slice()); /* la Montagne des Koalaks */
   if (n > 5 * VAGUES_PALIER) { /* Phase 2 : l'ile des Wabbits */
     const h = n - 5 * VAGUES_PALIER;
@@ -173,6 +199,7 @@ const compoBase = (n) => {
 const XP_VAGUES = 0.85, KAMAS_VAGUES = 0.8, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES), kamas: kamasGagnes(g.kamas * KAMAS_VAGUES) }); };
 const gainsVagueBrut = (n, rejoue) => {
   const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER, w = n - 5 * VAGUES_PALIER;
+  { const k8 = n - 7 * VAGUES_PALIER; if (k8 > 0) return { kamas: Math.round((k8 === VAGUES_PALIER ? 90000 : 4000 + 650 * k8) * k), xp: Math.round((k8 === VAGUES_PALIER ? 900 : 115 + 20 * k8) * k) }; } /* le Repaire du Dragon Cochon */
   { const k7 = n - 6 * VAGUES_PALIER; if (k7 > 0) return { kamas: Math.round((k7 === VAGUES_PALIER ? 70000 : 3300 + 550 * k7) * k), xp: Math.round((k7 === VAGUES_PALIER ? 800 : 100 + 18 * k7) * k) }; } /* la Montagne des Koalaks */
   if (w > 0) return { kamas: Math.round((w === VAGUES_PALIER ? 50000 : 2600 + 450 * w) * k), xp: Math.round((w === VAGUES_PALIER ? 700 : 85 + 16 * w) * k) }; /* l'ile des Wabbits */
   if (r > 0) return { kamas: Math.round((r === VAGUES_PALIER ? 35000 : 1800 + 350 * r) * k), xp: Math.round((r === VAGUES_PALIER ? 600 : 70 + 14 * r) * k) }; /* le Nid des Dragoeufs */
@@ -183,6 +210,6 @@ const gainsVagueBrut = (n, rejoue) => {
   return { kamas: Math.round(kamas * k), xp: Math.round(xp * k) };
 };
 /* le pluriel d'un nom de monstre : chaque mot jusqu'au premier « de » ou « à » (Craqueleurs Lanceurs, Craqueleurs de Cristal) */
-const leNom = (d, min) => d.propre ? d.nom : (min ? 'le ' : 'Le ') + d.nom, ac = (d) => d.fem ? 'e' : ''; /* « Le Bworker est tombé », « Crocabulia est tombée » */
+const leNom = (d, min) => d.propre ? d.nom : (d.fem ? (min ? 'la ' : 'La ') : (min ? 'le ' : 'Le ')) + d.nom, /* (« la Gorgouille », 20/10/2026 : le feminin avait « le ») */ ac = (d) => d.fem ? 'e' : ''; /* « Le Bworker est tombé », « Crocabulia est tombée » */
 const pluriel = (nom) => { let stop = false; return nom.split(' ').map((w) => { if (stop || /^(de|du|à|d')$/i.test(w)) { stop = true; return w; } return /[sx]$/.test(w) ? w : w + 's'; }).join(' '); };
 const classeDe = () => (S_.perso && S_.perso.classe) || 'iop';

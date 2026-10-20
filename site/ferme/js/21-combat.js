@@ -121,6 +121,7 @@ function ficheMonstre(t) {
   if (d.casse) L.push(capa('casse', 'Démolit les bâtiments', 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.' + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : ''), num(Math.round((d.casse || 0) * 100) + ' % de chances') + num(fmt(Math.round(dpsBatiments(n))) + ' dégâts par seconde sur un bâtiment', 'rouge')));
   if (d.distance) L.push(capa('carreaux', 'Tire de loin', 'Il reste à distance et te tire dessus' + (d.casse ? ', ou sur tes bâtiments' : '') + '. Va le chercher.', num(casesDe(d.portee) + ' cases') + num(fmt(deg) + ' dégâts', 'rouge')));
   if (d.ralentit) L.push(capa('lenteur', 'Te ralentit', 'Chacun de ses coups te fait marcher plus lentement.', num(String(d.ralentit).replace('.', ',') + ' s', 'bleu'), 'bleu'));
+  if (d.menotte) L.push(capa('assomme', 'Te menotte', 'Si sa charge te touche, tu restes sur place un instant. Tu peux encore frapper.', num(secondes(d.menotte), 'rouge'), 'or'));
   if (d.assomme) L.push(capa('assomme', 'T\'assomme', 'Touché, tu ne frappes plus un instant.', num(String(d.assomme).replace('.', ',') + ' s', 'rouge'), 'or'));
   if (d.poison) L.push(capa('poison', 'T\'empoisonne', 'Son coup t\'empoisonne quelques secondes.', num(d.poison[0] + ' % de ta vie par seconde', 'rouge') + num(d.poison[1] + ' s'), 'vert'));
   if (d.soigne) L.push(capa('soin', 'Soigne ses alliés', 'Il soigne les monstres autour de lui : abats-le en premier.', '', 'vert'));
@@ -132,11 +133,14 @@ function ficheMonstre(t) {
   if (d.bandit) L.push(capa('kama', 'Vole tes kamas', 'Il file à ta grange, y vole des kamas, puis repart par où il est venu.', '', 'or'));
   if (d.fouisseur) L.push(capa('cases', 'Surgit de terre', 'Il sort de terre au pied de tes bâtiments, derrière tes défenses.'));
   /* les sorts des boss */
-  if (d.boss && d.charge) L.push(capa('charge', 'Charge', 'Une bande rouge jusqu\'à toi, puis il fonce. Cache-toi derrière un bâtiment : il s\'y écrase.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.grandeCharge) + ' pour esquiver') + recup('charge'), 'violet'));
+  if (d.boss && d.charge) L.push(capa('charge', 'Charge', 'Une bande rouge jusqu\'à toi, puis il fonce. Cache-toi derrière un bâtiment : il s\'y écrase.', num(fmt(Math.round(dSort * ((d.sortsX || {}).charge || 1))) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.grandeCharge) + ' pour esquiver') + recup('charge'), 'violet'));
   if (d.lance) L.push(capa('sort', 'Lance d\'os', 'De loin, une bande rouge jusqu\'à toi, puis sa lance file. Un bâtiment sur sa route prend la moitié du coup.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1 s pour esquiver') + recup('lance'), 'violet'));
   if (d.carapace) L.push(capa('bouclier', 'Carapace d\'épines', 'Il se replie sous sa carapace : presque aucun dégât, et il renvoie un cinquième des coups reçus au corps à corps. Frappe ses soldats en attendant.', num('3,5 s') + recup('carapace')));
   if (d.bondit) L.push(capa('saut', 'Bond écrasant', 'Il saute là où tu es : un cercle rouge, sors-en.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
-  if (d.seisme) L.push(capa('sort', 'Séisme', 'Il frappe le sol : un grand cercle rouge autour de lui. Tes bâtiments proches prennent aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1,3 s pour esquiver') + recup('seisme'), 'violet'));
+  if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', 'Il frappe le sol : un ' + (d.seismeR ? '' : 'grand ') + 'cercle rouge autour de lui' + (d.repousse ? ', qui te repousse' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
+  if (d.boue) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
+  if (d.brassard) L.push(capa('sort', 'Coup de brassard', 'Un arc rouge devant elle, puis un grand coup de brassard qui te repousse.', num(fmt(dSort) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'));
+  if (d.pierre) L.push(capa('bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre')));
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
   if (d.pluie) L.push(capa('sort', 'Pluie de cawottes', 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.pluie) + ' pour esquiver') + recup('pluie'), 'violet'));
   if (d.cawotteRoyale) L.push(capa('assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num(secondes(ESQUIVE.cawotteRoyale) + ' pour esquiver') + recup('cawotteRoyale'), 'or'));
@@ -326,6 +330,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
   if (mo.d.boss && mo.protege > 0) n = Math.max(1, Math.round(n * (1 - mo.protege))); /* sa troupe le protege */
   if (mo.carapace > 0) n = Math.max(1, Math.round(n * 0.2)); /* la carapace d'epines du Chafer Cuirasse (ses epines renvoient les coups du perso : voir majPerso) */
+  if (mo.pierre > 0) n = Math.max(1, Math.round(n * 0.5)); /* la peau de pierre de la Gorgouille (20/10/2026) */
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
@@ -340,7 +345,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
     runes().forge = (runes().forge || 0) + 1; combat.arene.runes.forge = (combat.arene.runes.forge || 0) + 1; son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#b48cff');
     chiffre('★ Rune de forgemagie !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast('★ Une rune de forgemagie ! Elle t\'attend à l\'atelier de forgemagie.', 'or'); }
   if (mo.pv <= 0 && combat.arene && combat.genre !== 'ile' && !mo.d.boss && combat.arene.k >= 5) { const pros = 1 + caracs().prospection / 100; /* l'Arene : une piece de SA panoplie, des la 5e vague (0,25 % par monstre, jet de 50 % au moins ; 20/10/2026, « c'est pour la revente », Mathieu) */
-    if (Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = PANOS[statsArene(mo.type).p] || PANOS[palierCourant()], id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
+    if (Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoDe(statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
       chiffre('★ ' + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast('★ ' + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
   if (mo.pv <= 0) { if (combat.st) combat.st.tues++; noterTue(mo.type); compter('monstres'); son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
 }
@@ -353,11 +358,11 @@ function butin(mo) {
   if (r && Math.random() < (mo.d.boss ? 1 : 0.35) * pros) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros;
   if (Math.random() < chance) {
-    const id = tirerPiece(PANOS[palierDe(combat.n)], pros);
+    const id = tirerPiece(panoDe(palierDe(combat.n)), pros);
     L.objets.push(donnerObjet(id)); if (OBJETS[id].rare) { son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630'); }
     chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }
-  const ar = mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + PANOS[palierDe(combat.n)].id;
+  const ar = mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + panoDe(palierDe(combat.n)).id;
   if (arme && OBJETS[arme] && Math.random() < (deja ? 0.25 * pros : 1)) { /* l'arme de ta classe : a coup sur la premiere fois, puis une fois sur 4 */
     const id = tirerRare(arme, pros); L.objets.push(donnerObjet(id));
     chiffre('Arme : ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.9, mo.z), 'butin'); toast('Arme : ' + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
@@ -431,7 +436,7 @@ function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre ver
 }
 function majAfflictions(dt) {
   const c = combat; if (!c) return;
-  if (c.lenteur > 0) c.lenteur -= dt; if (c.assomme > 0) c.assomme -= dt;
+  if (c.lenteur > 0) c.lenteur -= dt; if (c.assomme > 0) c.assomme -= dt; if (c.colle > 0) c.colle -= dt;
   if (c.poisons && c.poisons.length) { c.poisons.forEach((p) => { p.t -= dt; }); c.poisons = c.poisons.filter((p) => p.t > 0); const pct = c.poisons.reduce((a, p) => a + p.pct, 0); if (pct) poisonPerso(pct, dt); }
 }
 function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage */
@@ -466,6 +471,17 @@ function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, p
     if (!c.dansFumee) { c.dansFumee = true; c.fumeeT = 0; c.poisonFumee = (c.poisonFumee || 0) + 2; if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : 2 s de poison dès que tu la touches, puis 2 s de plus par seconde passée dedans (2 % de tes PV par seconde) !', 'alerte'); } } /* (le premier contact compte pour une seconde) */
     else { c.fumeeT += dt; while (c.fumeeT >= 1) { c.fumeeT -= 1; c.poisonFumee += 2; } }
   } else c.dansFumee = false;
+}
+function repousserPerso(mo, dist) { /* repousse (l'ecrasement du Dragon Cochon, le brassard de la Gorgouille, 20/10/2026) : le perso glisse loin du monstre */
+  const p = paysanMesh.position, a = Math.atan2(p.x - mo.x, p.z - mo.z), f = pointValide(p.x, p.z, p.x + Math.sin(a) * dist, p.z + Math.cos(a) * dist), x0 = p.x, z0 = p.z, c0 = combat; let t = 0;
+  chemin = []; arrivee = null; const q = p.clone(); q.y += 2.1; chiffre('Repoussé !', q, 'vol');
+  effets.push((dt) => { t += dt / 0.3; if (combat !== c0) return true; const k = Math.min(1, t); paysanMesh.position.x = x0 + (f.x - x0) * k; paysanMesh.position.z = z0 + (f.z - z0) * k; if (k >= 1) { const c = caseIci(f.x, f.z); if (c) paysanMesh.userData.cellule = c; return true; } });
+}
+function coller(duree, txt, boue) { /* colle sur place (la boue du Dragon Cochon, les menottes du Don Dorgan, 20/10/2026) : il ne marche plus, il frappe encore */
+  const c0 = combat; if (!c0 || c0.fin || !paysanMesh) return; c0.colle = Math.max(c0.colle || 0, duree); chemin = []; arrivee = null;
+  const q = paysanMesh.position.clone(); q.y += 2.1; chiffre(txt, q, 'vol');
+  if (boue && !c0.flaque) { const f = new T.Mesh(new T.CircleGeometry(0.95, 20), new T.MeshBasicMaterial({ color: '#5a3a1e', transparent: true, opacity: 0.85, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.renderOrder = 2; scene.add(f); c0.flaque = f;
+    effets.push(() => { if (combat !== c0 || c0.fin || !(c0.colle > 0)) { jeter(f); c0.flaque = null; return true; } const p = paysanMesh.position; f.position.set(p.x, p.y + 0.06, p.z); }); }
 }
 function attirerPerso(mo) { /* l'appel du Koulosse : le perso glisse jusqu'a lui */
   const p = paysanMesh.position, a = Math.atan2(p.x - mo.x, p.z - mo.z), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4), x0 = p.x, z0 = p.z, c0 = combat; let t = 0;
@@ -516,7 +532,8 @@ function blesserPerso(n, mo) {
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */
 }
 /* LE TEMPS POUR ESQUIVER les elans des monstres, du signal (rond ou bande rouge) au coup (18/10/2026, « entre 1,5 et 2 secondes », Mathieu) */
-const ESQUIVE = { saut: 1.5, charge: 1.5, grandeCharge: 1.7, bond: 2, pluie: 1.4, cawotteRoyale: 0.8 }, /* (pluie et Cawotte royale du Wa Wabbit : 1,2 et 0,5 s avant le 19/10/2026) */ secondes = (x) => String(x).replace('.', ',') + ' s';
+const DUREE_COLLE = 1.5; /* colle dans la boue du Dragon Cochon (20/10/2026) */
+const ESQUIVE = { saut: 1.5, charge: 1.5, grandeCharge: 1.7, bond: 2, pluie: 1.4, cawotteRoyale: 0.8, boue: 1.5, brassard: 1.5 }, /* (pluie et Cawotte royale du Wa Wabbit : 1,2 et 0,5 s avant le 19/10/2026) */ secondes = (x) => String(x).replace('.', ',') + ' s';
 const SAUT_PORTEE = 3 * S, SAUT_VOL = 0.6, SAUT_PREPA = ESQUIVE.saut - SAUT_VOL, AGRIPPE = 1.5; let SAUT_RECHARGE = 6; /* (let : les tests le mettent a Infinity pour comparer sans bond) */
 const peutSauter = (mo) => !mo.d.distance && !mo.d.boss && !mo.d.vole && !mo.d.bandit && !mo.d.roule && !mo.d.charge && !mo.d.pique && mo.d.vitesse < 2.5 && (!mo.d.grignote || mo.aggro); /* (les rapides n'en ont pas besoin ; ceux qui chargent ou piquent ont leur elan a eux) */
 const ELANS = { bouftou: 'charge', boufcoul: 'charge', craqueleur: 'charge', craqCristal: 'charge', chevaucheurKoalak: 'charge', dragNoir: 'pique', dragDore: 'pique' };
@@ -587,7 +604,7 @@ function capCharge(mo, ctx) {
     const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? ESQUIVE.charge : ESQUIVE.grandeCharge;
     if (petit && mo.chargeT == null) mo.chargeT = Math.random() * per * 0.7; /* (pas tous en meme temps) */
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
-    if (sortPret('chargeT', per) && dP > (petit ? mo.d.portee + 0.8 : 1.2) && dP < (mo.d.chargeMax || 10) && (!petit || mo.chasse)) {
+    if (sortPret('chargeT', per) && dP > (petit ? mo.d.portee + 0.8 : 1.2) && dP < (mo.d.chargeMax || 10) && (!petit || mo.chasse) && !(combat.colle > 0)) { /* (jamais quand le perso est colle : il doit pouvoir sortir de la bande, 20/10/2026) */
       mo.chargeT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), L = Math.min(petit ? mo.d.chargeMax + 1.5 : 10, dP + (petit ? 1.2 : 2.5)), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * L, mo.z + Math.cos(a) * L);
       /* « si il y a un batiment entre deux, que ca endommage le batiment » (Mathieu, 12/10/2026) : il s'ecrase sur le premier batiment de sa route, la bande
          rouge s'arrete la ; cache derriere, le perso ne prend rien */
@@ -601,7 +618,7 @@ function capCharge(mo, ctx) {
         const x0 = mo.x, z0 = mo.z; let t = 0, touche = false;
         effets.push((dt2) => { t += dt2; const k = Math.min(1, t / (piq ? 0.4 : 0.45)); if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k;
           if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
-          const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3)) { touche = true; blesserPerso(degSort(mo), mo); }
+          const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3)) { touche = true; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).charge || 1)), mo); if (mo.d.menotte) coller(mo.d.menotte, 'Menotté !'); }
           if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8');
             if (cleB && combat && !combat.fin) { pouf(f.x, solA(f.x, f.z) + 0.6, f.z, 3, '#8e7a5e'); blesserBat(cleB, degatsBatiment(1, mo)); if (!combat.chargeBatVu) { combat.chargeBatVu = true; chiffre('Bam !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'gros'); } } /* sonne, il reste un instant sur place */
             return true; } });
@@ -656,11 +673,11 @@ function capSeisme(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.seisme) { /* le Craqueleur Legendaire frappe le sol : un cercle rouge s'annonce autour de lui (1,3 s pour en sortir), puis l'onde de choc, sur le perso et les batiments */
     if (sortPret('seismeT', mo.d.seisme)) {
-      mo.seismeT = 0; const R = 4.5, x0 = mo.x, z0 = mo.z; mo.bloqueT = 1.3 + 0.3;
-      if (!combat.seismeVu) { combat.seismeVu = true; toast('Séisme ! Le Craqueleur Légendaire va frapper le sol : sors du cercle rouge.', 'alerte'); }
-      zoneDanger({ mo, x: x0, z: z0, r: R, duree: 1.3, effet: (d) => {
-        pouf(x0, mo.m.position.y, z0, 9, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5, '#c9b28a'); mo.frappe = 0.4;
-        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo);
+      mo.seismeT = 0; const R = mo.d.seismeR || 4.5, duree = mo.d.seismeDuree || 1.3, x0 = mo.x, z0 = mo.z; mo.bloqueT = duree + 0.3; /* (le rayon et le temps : ceux du Craqueleur Legendaire, ou de la fiche ; l'ecrasement du Dragon Cochon, 20/10/2026) */
+      if (!combat.seismeVu) { combat.seismeVu = true; toast((mo.d.seismeNom || 'Séisme') + ' ! ' + leNom(mo.d) + ' va frapper le sol : sors du cercle rouge.', 'alerte'); }
+      zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => {
+        pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); mo.frappe = 0.4;
+        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).seisme || 1)), mo); if (mo.d.repousse && combat && !combat.fin) repousserPerso(mo, mo.d.repousse); }
         if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < R + Math.max(z.hw, z.hd)) blesserBat(k, degatsBatiment(1, mo)); });
       } });
     }
@@ -775,8 +792,41 @@ function capSoin(mo, ctx) {
     }
   }
 }
+function capBoue(mo, ctx) { /* le Bain de boue du Dragon Cochon (20/10/2026) : il frappe le sol, un cercle rouge sous toi (ESQUIVE.boue pour en sortir) ; dedans, la boue te colle sur place */
+  const { pp, sortPret } = ctx;
+  if (!mo.d.boue || combat.deroute != null || !sortPret('boueT', mo.d.boue)) return;
+  mo.boueT = 0; mo.bloqueT = ESQUIVE.boue + 0.3; mo.frappe = 0.4; const x0 = pp.x, z0 = pp.z;
+  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + ' prépare un bain de boue : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
+  zoneDanger({ mo, x: x0, z: z0, r: 1.6, duree: ESQUIVE.boue, effet: (d) => { pouf(x0, solA(x0, z0), z0, 4, '#6a4524'); pouf(x0, solA(x0, z0), z0, 2.2, '#8e6640');
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) coller(DUREE_COLLE, 'Collé !', true); } });
+}
+function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2026) : un arc rouge devant elle (ESQUIVE.brassard pour en sortir), puis le coup, qui repousse */
+  const { dt, pp, sortPret } = ctx;
+  if (!mo.d.brassard || combat.deroute != null) return;
+  if (!mo.viseB && Math.hypot(pp.x - mo.x, pp.z - mo.z) < 6 && sortPret('brassardT', mo.d.brassard)) {
+    mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = 4.2, OUV = 1.3, c0 = combat; mo.ry = a; mo.bloqueT = ESQUIVE.brassard + 0.4;
+    const c = new T.Mesh(new T.CircleGeometry(R, 24, Math.PI / 2 - OUV / 2, OUV), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide }));
+    c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, mo.m.position.y + 0.07, mo.z); c.renderOrder = 2; scene.add(c);
+    mo.viseB = { a, t: 0, c, R, OUV, x: mo.x, z: mo.z };
+    effets.push(() => { if (combat !== c0 || mo.etat !== 'actif' || !mo.viseB || mo.viseB.c !== c) { jeter(c); if (mo.viseB && mo.viseB.c === c) mo.viseB = null; return true; } }); /* (l'arc s'efface si elle tombe avant de frapper) */
+    if (!combat.brassardVu) { combat.brassardVu = true; toast(leNom(mo.d) + ' arme son brassard : sors de l\'arc rouge, sinon elle te repousse !', 'alerte'); }
+  }
+  const V = mo.viseB; if (!V) return;
+  V.t += dt; V.c.material.opacity = 0.22 + 0.25 * Math.abs(Math.sin(V.t * 9));
+  if (V.t >= ESQUIVE.brassard) { mo.viseB = null; mo.frappe = 0.4; pouf(V.x + Math.sin(V.a) * 1.8, mo.m.position.y, V.z + Math.cos(V.a) * 1.8, 4, '#8e7a5e');
+    const d = Math.hypot(pp.x - V.x, pp.z - V.z); let e = Math.atan2(pp.x - V.x, pp.z - V.z) - V.a; e = Math.atan2(Math.sin(e), Math.cos(e));
+    if (d < V.R && Math.abs(e) < V.OUV / 2) { blesserPerso(degSort(mo), mo); if (combat && !combat.fin && mo.d.repousse) repousserPerso(mo, mo.d.repousse); } }
+}
+function capPierre(mo, ctx) { /* la peau de pierre de la Gorgouille (20/10/2026) : 4 s, elle prend moitie moins de degats */
+  const { m, dt, sortPret } = ctx;
+  if (!mo.d.pierre) return;
+  if (mo.pierre > 0) mo.pierre -= dt;
+  else if (sortPret('pierreT', mo.d.pierre)) { mo.pierreT = 0; mo.pierre = 4; pouf(mo.x, mo.m.position.y, mo.z, 3, '#9aa0a2'); if (!combat.pierreVu) { combat.pierreVu = true; toast(leNom(mo.d) + ' se change en pierre : elle prend moitié moins de dégâts, frappe sa troupe en attendant !', 'alerte'); } }
+  if (!mo.bulleP) { mo.bulleP = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshBasicMaterial({ color: '#9aa0a2', transparent: true, opacity: 0.35, depthWrite: false })); m.add(mo.bulleP); }
+  mo.bulleP.visible = mo.pierre > 0; if (mo.bulleP.visible) { mo.bulleP.scale.setScalar(mo.haut * 0.6); mo.bulleP.position.y = mo.haut * 0.45; mo.bulleP.rotation.y += dt * 0.5; }
+}
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin];
+const CAPACITES = [capTroupe, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre];
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
@@ -849,7 +899,7 @@ function majMonstre(mo, dt, s) {
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
-  mo.pas += v * dt * 5; if (m.userData.pattes) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
+  mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   const saut = mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
   let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; }

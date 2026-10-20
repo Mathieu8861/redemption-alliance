@@ -66,7 +66,7 @@ function jourCourant() {
   }
   return S_.jour;
 }
-const CADEAUX = [[100, 'des graines de Blé', () => { S_.graines.ble = (S_.graines.ble || 0) + 5; }], [150, '20 flèches', () => { S_.fleches += 20; }], [200, '3 filets de capture', () => { S_.filets += 3; }], [300, 'des graines de la meilleure culture que tu puisses planter', () => { const c = CULTURES.filter(debloquee).pop(); S_.graines[c.id] = (S_.graines[c.id] || 0) + 5; }], [400, '40 flèches', () => { S_.fleches += 40; }], [500, '5 filets de capture', () => { S_.filets += 5; }], [800, 'une pièce d\'équipement de ton palier', () => { donnerObjet(tirerPiece(PANOS[palierCourant()])); /* (un vrai jet ; avant le 16/10/2026, la piece s'empilait sans caracteristiques) */ }]];
+const CADEAUX = [[100, 'des graines de Blé', () => { S_.graines.ble = (S_.graines.ble || 0) + 5; }], [150, '20 flèches', () => { S_.fleches += 20; }], [200, '3 filets de capture', () => { S_.filets += 3; }], [300, 'des graines de la meilleure culture que tu puisses planter', () => { const c = CULTURES.filter(debloquee).pop(); S_.graines[c.id] = (S_.graines[c.id] || 0) + 5; }], [400, '40 flèches', () => { S_.fleches += 40; }], [500, '5 filets de capture', () => { S_.filets += 5; }], [800, 'une pièce d\'équipement de ton palier', () => { donnerObjet(tirerPiece(panoDe(palierCourant()))); /* (un vrai jet ; avant le 16/10/2026, la piece s'empilait sans caracteristiques) */ }]];
 const kamasCoffreJour = () => kamasGagnes(150 + 40 * niveau(S_.xp)); /* (le coffre des trois defis : le meme chiffre affiche et verse) */
 CADEAUX.forEach((c) => { c[0] = kamasGagnes(c[0]); }); OBJECTIFS.forEach((o) => { o[3] = kamasGagnes(o[3]); }); /* (le cadeau du jour et les objectifs de Pepito, -10 %) */
 function cadeauDuJour() {
@@ -122,7 +122,7 @@ function reclamerDefi(k) {
 function ouvrirCoffre() {
   const J = jourCourant(); if (!J || J.coffre || !J.defis.every((d) => d.reclame)) return;
   J.coffre = true; const kamas = kamasCoffreJour(); S_.kamas += kamas; let objet = '';
-  if (Math.random() < 0.5) { objet = donnerObjet(tirerPiece(PANOS[palierCourant()])); } /* (l'identifiant : l'animation montre la piece) */
+  if (Math.random() < 0.5) { objet = donnerObjet(tirerPiece(panoDe(palierCourant()))); } /* (l'identifiant : l'animation montre la piece) */
   rendreHaut(); rendreObjectif(); sauver(); animerCoffre(kamas, objet);
 }
 /* le coffre arrive ferme, tremble, s'ouvre dans un eclair (images coffre-ferme / coffre-ouvert, generer-coffre.html), puis les gains sortent un par un */

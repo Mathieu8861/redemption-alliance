@@ -55,7 +55,7 @@ const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:
 const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')] };
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }];
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
-const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320], puissance: [4, 7, 10, 14, 18, 23, 29], agilite: [3, 5, 7, 9, 12, 15, 19], sagesse: [5, 8, 11, 15, 20, 25, 31], prospection: [8, 12, 16, 20, 25, 31, 38] };
+const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405], puissance: [4, 7, 10, 14, 18, 23, 29, 36], agilite: [3, 5, 7, 9, 12, 15, 19, 23], sagesse: [5, 8, 11, 15, 20, 25, 31, 38], prospection: [8, 12, 16, 20, 25, 31, 38, 46] }; /* (le palier 8, 20/10/2026 : la suite des ecarts) */
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, VALEURS[c][k]])) }; }));
@@ -186,7 +186,8 @@ const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [
 /* UNE PIECE TIREE (refonte du 16/10/2026) : une piece de la panoplie du palier P, de preference une qu'on n'a pas encore, parfois en version rare
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
-const palierCourant = () => palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL))); /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
+const palierCourant = () => palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)));
+const panoDe = (p) => PANOS[Math.max(0, Math.min(p, PANOS.length - 1))]; /* la panoplie d'un palier, ou la derniere qui existe (le palier 8 n'a pas encore la sienne, 20/10/2026) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {
