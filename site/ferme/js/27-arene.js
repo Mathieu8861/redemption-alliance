@@ -9,7 +9,7 @@
 const NIV_ARENE = 50, ENTREES_ARENE = 3, TICKET_ARENE = 10000, ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 9.2; /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
 const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 8.9, z: ARENE.z + d.z * 8.9, ox: ARENE.x + d.x * 11.6, oz: ARENE.z + d.z * 11.6 }; }); /* les trois herses : le fond, la gauche, la droite */
 let ileArene = null, areneSuite = false;
-const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, /* (0,5 avant le 19/10/2026) */ KAMAS_ARENE = 0.1, JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
+const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, ITEM_MONSTRE_ARENE = 0.0025, /* (0,5 avant le 19/10/2026) */ KAMAS_ARENE = 0.1, JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
 const runeParMonstre = (k) => k < 3 ? 0 : k < 10 ? 0.001 : k < 15 ? 0.0025 : 0.005; /* plus on va loin, plus les monstres lachent de runes (moitie moins depuis le 19/10/2026 : 0,2, 0,5 et 1 % avant) */
 function etatArene() { S_.arene = S_.arene || { record: 0, semaines: {}, parties: 0 }; if (!S_.arene.semaines) S_.arene.semaines = {}; const j = jourJeu(); if (S_.arene.jour !== j) Object.assign(S_.arene, { jour: j, entrees: 0 }); return S_.arene; }
 const semaineJeu = (t) => { const d = new Date(t == null ? tempsReel() : t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const s1 = new Date(d.getFullYear(), 0, 4); return d.getFullYear() + '-S' + String(1 + Math.round(((d - s1) / 864e5 - 3 + (s1.getDay() + 6) % 7) / 7)).padStart(2, '0'); }; /* (la semaine ISO, du lundi au dimanche) */
@@ -19,7 +19,7 @@ const multArene = (k) => 1 + 0.08 * Math.max(0, k - 20); /* au-dela de la vague 
 let forceBossArene = 0.5; /* les boss de palier, seuls face au perso, pesaient trop lourd : a moitie de la courbe */
 let soinArene = 0.12; /* la foule t'acclame : chaque vague tenue te rend 12 % de ta vie */
 let forceArene = (k) => (0.35 + 0.045 * (k - 1)) * multArene(k); /* (19/10/2026, « pas trouve ca si dur », Mathieu, record 19 en Cra 62 : 35 % a la vague 1 et +4,5 % par vague, soit 116 % a la 19e ; avant 25 % et +3 %, 79 % a la 19e) */ /* (seul et sans defenses, tout le monde sur lui : a la force d'une vague normale, le perso tombait des la premiere. Simule avec la ferme de Moon, niveau 61, le 14/10/2026 : 9 a 11 vagues tenues selon la classe, soit environ 29 000 kamas et deux coffres pour un ticket de 10 000) */
-const nArene = () => 55; /* leur base : la force d'une vague 55, toujours la meme (en montant de vague, le palier 7 faisait un saut brutal a la 11e) ; c'est forceArene qui monte, en douceur */
+const nArene = () => Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.floor((Math.min(S_.vague.num, VAGUES_TOTAL + 1) - 1) / VAGUES_PALIER)); /* (20/10/2026, « au niveau du boss que t'as passe juste avant », Mathieu : la vague du dernier boss battu, 55 pour tous avant) */ /* leur base : la force d'une vague 55, toujours la meme (en montant de vague, le palier 7 faisait un saut brutal a la 11e) ; c'est forceArene qui monte, en douceur */
 const partNiveauArene = (k) => k <= 10 ? 0.15 * k / 55 : 0.03; /* la part d'un niveau que rapporte la vague k (15 % pour les 10 premieres, 3 % ensuite ; le double avant le 19/10/2026 : 0,84 niveau pour 19 vagues, 2,5 par jour) */
 function gainsArene(k, niv0) { const n = Math.min(69, 50 + k), b = gainsVagueBrut(n % VAGUES_PALIER === 0 ? n - 1 : n, false), L = niv0 || niveau(S_.xp);
   return { kamas: kamasGagnes(b.kamas * KAMAS_ARENE * multArene(k)), xp: Math.max(1, Math.round((seuil(L + 1) - seuil(L)) * partNiveauArene(k))) }; } /* (kamas : 40 % d'une vague avant le 14/10/2026) */
@@ -37,15 +37,15 @@ function famillesArene() {
    vague 55 et la moyenne de sa vague d'origine ; il garde son role dans sa famille (costaud, fragile), au niveau de l'Arene */
 const STATS_ARENE = new Map();
 function statsArene(t) {
-  const haut = hautArene(), cle = t + '|' + haut; if (STATS_ARENE.has(cle)) return STATS_ARENE.get(cle);
+  const haut = hautArene(), cle = t + '|' + haut + '|' + nArene(); if (STATS_ARENE.has(cle)) return STATS_ARENE.get(cle);
   let nt = 0; for (let n = haut; n >= 1 && !nt; n--) if (n % VAGUES_PALIER && compoVague(n).some(([x]) => x === t)) nt = n;
-  const N = nArene(); if (!nt) nt = N;
+  const N = nArene() - 1; if (!nt) nt = N; /* (la reference : la vague normale juste avant le dernier boss battu) */
   const moy = (n, f) => { let s = 0, c = 0; compoVague(n).forEach(([x, q]) => { if (MONSTRES[x] && !MONSTRES[x].boss) { s += f(x, n) * q; c += q; } }); return c ? s / c : 1; };
-  const r = { pv: pvMonstre(t, nt) * moy(N, pvMonstre) / moy(nt, pvMonstre), deg: degMonstre(t, nt) * moy(N, degMonstre) / moy(nt, degMonstre) };
+  const r = { pv: pvMonstre(t, nt) * moy(N, pvMonstre) / moy(nt, pvMonstre), deg: degMonstre(t, nt) * moy(N, degMonstre) / moy(nt, degMonstre), p: palierDe(nt) };
   STATS_ARENE.set(cle, r); return r;
 }
-/* un boss dans l'Arene : la force du boss de reference (celui du palier de la vague 55, le Wa Wabbit), quel qu'il soit ; avant, le Bouftou Royal y
-   gardait sa fiche de la vague 10 et tombait en deux fleches (« je le tue plus vite que les monstres », Mathieu, 20/10/2026) */
+/* un boss dans l'Arene : la force du dernier boss que tu as battu (nArene), quel que soit le boss tire ; avant, le Bouftou Royal y gardait sa fiche de
+   la vague 10 et tombait en deux fleches (« je le tue plus vite que les monstres », Mathieu, 20/10/2026) */
 const statsBossArene = () => { const N = nArene(), R = PALIERS[palierDe(N)].boss; return { pv: pvMonstre(R, N), deg: degMonstre(R, N), sort: MONSTRES[R].degSort * 0.8 }; };
 const bossArene = () => PALIERS.slice(0, Math.max(1, Math.min(PALIERS.length, Math.floor((S_.vague.num - 1) / VAGUES_PALIER)))).map((p) => p.boss).filter((b) => MONSTRES[b]);
 function vagueArene(k) {
@@ -301,13 +301,14 @@ function ouvrirArene() {
   const raison = l < NIV_ARENE ? 'Il faut le niveau ' + NIV_ARENE + '.' : !reste ? 'Tes ' + ENTREES_ARENE + ' entrées du jour sont prises : l\'Arène te rouvre demain.' : S_.kamas < TICKET_ARENE ? 'Il te manque ' + fmt(TICKET_ARENE - S_.kamas) + ' kamas pour le ticket.' : '';
   ouvrirModale('arene', entete('L\'Arène') + '<div class="arene-tete"><img src="assets/icones/ile-arene.png?v=' + VERSION_MODELES + '" alt=""><div><b>Tiens le plus longtemps possible</b><p>Des vagues sans fin, de plus en plus dures, devant toute l\'alliance.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
-    '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tous tes paliers déjà battus, trois familles au hasard par vague, tous remis à la même force, de plus en plus forts, qui sortent des herses et foncent tous sur toi.</li>' +
-    '<li><b>Un boss toutes les 5 vagues</b>, puis un souffle pour boire tes pots et manger.</li>' +
+    '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tous tes paliers déjà battus, trois familles au hasard par vague, tous à la force du dernier boss que tu as battu (celui de la vague ' + nArene() + '), puis de plus en plus forts. Ils sortent des herses et foncent tous sur toi.</li>' +
+    '<li><b>Un boss toutes les 5 vagues</b>, lui aussi à la force de ce boss, puis un souffle pour boire tes pots et manger.</li>' +
     '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : à 10 vagues, tu récupères environ les deux tiers de ton ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
     '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur la caractéristique de ton choix) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
-    '<li><b>Le coffre de chaque boss</b> (toutes les 5 vagues) : des kamas ; dès le boss de la 10e, 30 % de chance d\'une pièce de ta panoplie, <b>avec un jet jamais sous la moyenne</b> ; 2 % de chance de runes de forgemagie ; dès le boss de la 10e aussi, 2 % de chance de <b>rune parfaite</b> (jet maximum). Ta Prospection augmente ces chances.</li>' +
+    '<li><b>Les monstres lâchent des pièces</b> : dès la 5e vague, 0,25 % de chance par monstre d\'une pièce de <b>sa</b> panoplie (un Bouftou, une pièce du Bouftou), avec un jet de 50 % au moins. De quoi revendre à l\'HDV.</li>' +
+    '<li><b>Le coffre de chaque boss</b> (toutes les 5 vagues) : des kamas ; dès le boss de la 5e, 30 % de chance d\'une pièce de ta panoplie, <b>avec un jet jamais sous la moyenne</b> ; 2 % de chance de runes de forgemagie ; dès le boss de la 10e aussi, 2 % de chance de <b>rune parfaite</b> (jet maximum). Ta Prospection augmente ces chances.</li>' +
     '<li><b>Ton record de la semaine</b> compte au classement de l\'alliance, pour l\'honneur.</li>' +
-    '<li>Tomber ne coûte rien de plus : tu gardes tout ce que tu as gagné. Le bouton Fuir arrête la partie quand tu veux.</li></ul>' + blocVie() +
+    '<li>Tomber ne coûte rien de plus : tu gardes tout ce que tu as gagné et tu rentres avec la vie que tu avais en entrant. Le bouton Fuir arrête la partie quand tu veux.</li></ul>' + blocVie() +
     '<div class="hdv-section">Classement de la semaine (' + sem.replace('-S', ', semaine ') + ')</div><div id="arene-classement"><p class="hdv-aide">Chargement…</p></div>' +
     '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button><button class="btn kamas" data-montgolfiere="entrerArene"' + (raison ? ' disabled' : '') + '>Entrer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
   afficherClassementArene();
@@ -347,7 +348,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
        (1 a la 5e vague, 2 a la 10e, 3 a la 20e) ; des la 10e, 2 % de rune parfaite. La piece tombe avec un jet jamais sous la moyenne (JET_ARENE) */
     const pros = 1 + caracs().prospection / 100, nf = 1 + Math.floor(k / 10), bonus = 2 * g.kamas, dans = ['+' + fmt(bonus) + ' kamas'];
     S_.kamas += bonus; c.arene.kamas += bonus;
-    if (k >= 10 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(PANOS[palierCourant()], pros);
+    if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(PANOS[palierCourant()], pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
       const cle = donnerObjet(id, JET_ARENE); c.arene.objets.push(cle); dans.push((OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)'); }
     if (Math.random() < RUNE_COFFRE * pros) { gagneRune('forge', nf); dans.push('★ ' + nf + ' rune' + (nf > 1 ? 's' : '') + ' de forgemagie'); }
     if (k >= 10 && Math.random() < RUNE_PARFAITE_COFFRE * pros) { gagneRune('parfaite', 1); dans.push('★ une RUNE PARFAITE'); } /* (des le boss de la 10e depuis le 15/10/2026 : « la rune parfaite descend a la 10 », Mathieu ; la 15e avant) */
@@ -370,7 +371,7 @@ function finArene(abandon) {
     '<div class="arene-bilan"><div class="gros">' + t + '</div><div class="sous">vague' + (t > 1 ? 's' : '') + ' tenue' + (t > 1 ? 's' : '') + '</div>' + (rec ? '<div class="record">★ Nouveau record !</div>' : recSem ? '<div class="record">★ Record de la semaine !</div>' : '<div class="sous">record : ' + Math.max(A.record, t) + ', cette semaine : ' + Math.max(A.recordSem, t) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('kama', 'Kamas gagnés', fmt(A.kamas)) + ligneRecap('etoile', 'Expérience', fmt(A.xp)) +
     ligneRecap('tofu', 'Monstres abattus', c.st.tues) + ligneRecap('degats', 'Dégâts infligés', fmt(Math.round(c.st.inflige))) + '</div>' +
-    (objets ? '<div class="hdv-section">Les coffres</div>' + objets : '') +
+    (objets ? '<div class="hdv-section">Les pièces</div>' + objets : '') +
     (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce, à ton atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</div></div><div class="act"></div></div>').join('') : '') +
     '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
     '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
