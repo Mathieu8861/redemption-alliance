@@ -168,6 +168,7 @@ const SORTS_LEG = {
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 7 },
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 2.2 },
+  cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
 };
 const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k); return o && o.leg && SORTS_LEG[o.leg] ? o.leg : null; };
 const cdLeg = (emp) => emp === 'coiffe' ? 'cdLegC' : 'cdLegA';
@@ -194,11 +195,12 @@ function executerLeg(emp, pt, compter) {
     for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.0 : 0, X = x + Math.cos(a) * r, Z = z + Math.sin(a) * r; pouf(X, y, Z, 2.4, '#f08a24');
       actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
   } else if (cle === 'koulosse') nuageLeg(x, z); /* la fumee : un nuage la ou tu vises */
+  else if (cle === 'cochon') boueLeg(x, z, S.zone, st); /* le bain de boue : une flaque la ou tu vises, les monstres dedans restent colles */
   majCombatHud();
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
   const c = combat; if (!c || c.fin) return;
-  c.cdLegC = Math.max(0, (c.cdLegC || 0) - dt); c.cdLegA = Math.max(0, (c.cdLegA || 0) - dt);
+  const r = dt * (1 + 0.15 * nbBonus('recharge')); c.cdLegC = Math.max(0, (c.cdLegC || 0) - r); c.cdLegA = Math.max(0, (c.cdLegA || 0) - r);
 }
 function majEtatSort(id, cd) { /* sous un bouton : « prêt », ou « prêt dans 12 s » (« 12 s » au doigt) ; reecrit seulement quand ca change */
   const t = cd > 0 ? '<span class="long">prêt dans </span>' + Math.ceil(cd) + ' s' : 'prêt', el = $(id); if (el._t !== t) { el._t = t; el.innerHTML = t; }

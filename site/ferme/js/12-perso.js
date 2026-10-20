@@ -40,15 +40,16 @@ function elargirPerso(g, classe) {
 }
 /* les modeles des pieces portees (charges seulement quand une coiffe ou une cape est portee) */
 const VISUELS = {}; let visuelsPromesse = null;
-const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
+const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
   .then(() => true).catch(() => { visuelsPromesse = null; return false; }));
 const visuelsPrets = () => !!VISUELS.equipements;
-const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit' };
+const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit', cochon: 'Coiffe_DragonCochon' };
+const FICHIER_PANO = { wabbit: 'equipements-wabbit', boufcoul: 'equipements-boufcoul', dragoncochon: 'equipements-cochon' }; /* (les autres : equipements) */
 function noeudVisuel(id) {
   const o0 = obj(id); if (!o0 || !visuelsPrets()) return null; const o = o0.base ? OBJETS[o0.base] : o0;
-  if (o.leg) return o.emp === 'coiffe' ? VISUELS['coiffes-legendaires'].getObjectByName(NOEUD_LEG[o.leg]) || null : null;
+  if (o.leg) { const L = LEGENDAIRES.find((x) => x.cle === o.leg), F = VISUELS[(L && L.fichier) || 'coiffes-legendaires']; return o.emp === 'coiffe' && F ? F.getObjectByName(NOEUD_LEG[o.leg]) || null : null; } /* (le Heaume du Dragon Cochon : dans equipements-cochon) */
   const P = PANOS[o.pano] && PANOS[o.pano].id; if (!P) return null;
-  return VISUELS[P === 'wabbit' ? 'equipements-wabbit' : P === 'boufcoul' ? 'equipements-boufcoul' : 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
+  return VISUELS[FICHIER_PANO[P] || 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
 }
 function porterCapeSur(eq, cape, o) { /* la cape du modele (nappe autour de l'axe vertical, rayon 0,3 a 0,62, angle -1,25 a 1,25) enroulee autour du torse, relief garde */
   const r = cape.clone(true); r.position.set(0, 0, 0); r.rotation.set(0, 0, 0); r.scale.set(1, 1, 1); r.updateMatrixWorld(true);

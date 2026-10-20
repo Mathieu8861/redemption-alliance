@@ -53,7 +53,7 @@ const PICTOS = {
 };
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
 const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')] };
-const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }];
+const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 }];
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
 const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405], puissance: [4, 7, 10, 14, 18, 23, 29, 36], agilite: [3, 5, 7, 9, 12, 15, 19, 23], sagesse: [5, 8, 11, 15, 20, 25, 31, 38], prospection: [8, 12, 16, 20, 25, 31, 38, 46] }; /* (le palier 8, 20/10/2026 : la suite des ecarts) */
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
@@ -75,6 +75,8 @@ const LEGENDAIRES = [
     noms: { epee: 'Lame du Koulosse', arc: 'Arc du Koulosse', fouet: 'Fouet du Koulosse' }, icone: 'koulosse', noeuds: { epee: 'Arme_epee_koulosse', arc: 'Arme_arc_koulosseB', fouet: 'Arme_fouet_koulosseB' },
     cales: { epee: { y0: 0.02, L: 1.62 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.03, L: 0.65, laniere: 'fumee', retirer: /^fumee$/ } },
     pouvoir: 'Sort Fumée (touche 4) : un nuage là où tu vises (jusqu\'à 5 cases de toi, sur 1 case autour), les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss). Recharge 13 s.' },
+  { cle: 'cochon', boss: 'dragonCochon', rang: 7, fichier: 'equipements-cochon', nom: 'Heaume du Dragon Cochon', /* (le palier 8, 20/10/2026 ; son modele est dans equipements-cochon) */
+    pouvoir: 'Sort Bain de boue (touche 3) : une flaque de boue là où tu vises (jusqu\'à 5 cases de toi, sur 1,5 case autour), 2 fois tes dégâts, et les monstres dedans restent collés 2 s (1 s pour un boss). Recharge 12 s.' },
   { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Sort Souffle de feu (touche 3) : un cône de feu vers où tu vises, sur 3,5 cases, 3 fois tes dégâts, et les monstres touchés brûlent. Recharge 12 s.' }
 ];
 LEGENDAIRES.forEach((L, i) => { if (L.arme) return; const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
@@ -108,7 +110,7 @@ function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
-  try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
+  try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; const b = bonusA(); if (b) { t.puissance += 10 * (b.puissance || 0); t.agilite += 10 * (b.agilite || 0); t.prospection += 20 * (b.butin || 0); } } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
   return t;
 }
 const reventeObjet = (id) => kamasGagnes(15 * obj(id).niv * (obj(id).rare ? 3 : 1)); /* « la revente devrait moins rapporter » (Mathieu, 12/10/2026) : 40 par niveau, soit les deux tiers d'une vague du meme niveau ; maintenant environ un quart */
@@ -187,7 +189,7 @@ const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
 const palierCourant = () => palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)));
-const panoDe = (p) => PANOS[Math.max(0, Math.min(p, PANOS.length - 1))]; /* la panoplie d'un palier, ou la derniere qui existe (le palier 8 n'a pas encore la sienne, 20/10/2026) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
+const panoDe = (p) => PANOS[Math.max(0, Math.min(p, PANOS.length - 1))]; /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {

@@ -38,7 +38,7 @@ const LAINE = { id: 'laine', nom: 'Laine de Bouftou', prix: 80, xp: 4 }; /* (80 
 const LAINE_NOIRE = { id: 'laine_noire', nom: 'Laine de Bouftou noir', prix: 300, xp: 25 }; /* le Bouftou noir, tres rare, donne celle-ci */
 const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 30, xp: 3 };
 /* ce que lachent les monstres des vagues (a la grange, ca se vend a l'HDV) */
-const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }, { id: 'kaliptus', nom: 'Branche de Kaliptus', prix: 240, xp: 0 }];
+const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }, { id: 'kaliptus', nom: 'Branche de Kaliptus', prix: 240, xp: 0 }, { id: 'couenne', nom: 'Couenne de Cochon', prix: 300, xp: 0 }];
 const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES).map((c) => [c.id, c]));
 const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES);
 /* l'elevage (revu le 12/10/2026) : deux adultes repus font un petit contre 10 Houblon (15 depuis le 14/10/2026), puis 8 h de repos chacun. Le bebe nait affame,

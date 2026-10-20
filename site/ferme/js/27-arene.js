@@ -16,7 +16,28 @@ const semaineJeu = (t) => { const d = new Date(t == null ? tempsReel() : t); d.s
 const recordSemaine = (sem) => etatArene().semaines[sem || semaineJeu()] || 0;
 const entreesRestantes = () => Math.max(0, ENTREES_ARENE - (etatArene().entrees || 0));
 const multArene = (k) => 1 + 0.08 * Math.max(0, k - 20); /* au-dela de la vague 20, les monstres grossissent encore de 8 % par vague */
-let forceBossArene = 0.5; /* les boss de palier, seuls face au perso, pesaient trop lourd : a moitie de la courbe */
+let forceBossArene = 1; /* (20/10/2026, « les boss, je les ai trouves trop faciles », Mathieu : a pleine force ; la moitie datait du temps ou tout le monde affrontait le boss de la vague 55) */
+/* LES BONUS DE L'ARENE (20/10/2026, Mathieu : « tous les 10 niveaux de vague, qu'on puisse choisir un petit bonus : +10 agilite, +10 puissance, +10 esquive,
+   +1 % de vol de vie ») : apres le boss de la 10e, de la 20e..., trois bonus au hasard ; tu en choisis un, il dure jusqu'a la fin de la partie et se cumule */
+const BONUS_ARENE = {
+  puissance: { nom: 'Rage de l\'arène', txt: '+10 Puissance (+10 % de dégâts)', ico: 'puissance' },
+  agilite: { nom: 'Mains rapides', txt: '+10 Agilité (+10 % de vitesse d\'attaque)', ico: 'agilite' },
+  vita: { nom: 'Second souffle', txt: '+10 % de PV max', ico: 'vita' },
+  esquive: { nom: 'Esquive', txt: '10 % de chances d\'esquiver un coup (50 % au plus)', ico: 'vitesse' },
+  vol: { nom: 'Vol de vie', txt: 'tes coups te soignent de 2 % des dégâts infligés', ico: 'soin' },
+  foule: { nom: 'Chouchou de la foule', txt: '+6 % de vie rendue à chaque vague tenue', ico: 'etoile' },
+  recharge: { nom: 'Concentration', txt: 'tes sorts se rechargent 15 % plus vite', ico: 'cadence' },
+  butin: { nom: 'Flair', txt: '+20 Prospection (+20 % de butin)', ico: 'prospection' },
+};
+const bonusA = () => (combat && combat.genre === 'arene' && combat.arene && combat.arene.bonus) || null; /* (les bonus pris dans cette partie) */
+const nbBonus = (id) => { try { return (bonusA() || {})[id] || 0; } catch (e) { return 0; } };
+function tirerBonusArene() { const L = Object.keys(BONUS_ARENE); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L.slice(0, 3); }
+function prendreBonusArene(id) {
+  const c = combat; if (!c || !c.entracte || !c.arene || !c.arene.choix || !c.arene.choix.includes(id)) return;
+  const b = c.arene.bonus = c.arene.bonus || {}; b[id] = (b[id] || 0) + 1; c.arene.choix = null;
+  if (id === 'vita') { const plus = Math.round(c.pvMax * 0.1); c.pvMax += plus; c.pv += plus; }
+  son('niveau'); toast('Bonus de l\'Arène : ' + BONUS_ARENE[id].nom + ' (' + BONUS_ARENE[id].txt + ') jusqu\'à la fin de la partie.', 'or'); ouvrirEntracte();
+}
 let soinArene = 0.12; /* la foule t'acclame : chaque vague tenue te rend 12 % de ta vie */
 let forceArene = (k) => (0.35 + 0.045 * (k - 1)) * multArene(k); /* (19/10/2026, « pas trouve ca si dur », Mathieu, record 19 en Cra 62 : 35 % a la vague 1 et +4,5 % par vague, soit 116 % a la 19e ; avant 25 % et +3 %, 79 % a la 19e) */ /* (seul et sans defenses, tout le monde sur lui : a la force d'une vague normale, le perso tombait des la premiere. Simule avec la ferme de Moon, niveau 61, le 14/10/2026 : 9 a 11 vagues tenues selon la classe, soit environ 29 000 kamas et deux coffres pour un ticket de 10 000) */
 const nArene = () => Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.floor((Math.min(S_.vague.num, VAGUES_TOTAL + 1) - 1) / VAGUES_PALIER)); /* (20/10/2026, « au niveau du boss que t'as passe juste avant », Mathieu : la vague du dernier boss battu, 55 pour tous avant) */ /* leur base : la force d'une vague 55, toujours la meme (en montant de vague, le palier 7 faisait un saut brutal a la 11e) ; c'est forceArene qui monte, en douceur */
@@ -302,7 +323,8 @@ function ouvrirArene() {
   ouvrirModale('arene', entete('L\'Arène') + '<div class="arene-tete"><img src="assets/icones/ile-arene.png?v=' + VERSION_MODELES + '" alt=""><div><b>Tiens le plus longtemps possible</b><p>Des vagues sans fin, de plus en plus dures, devant toute l\'alliance.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
     '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tous tes paliers déjà battus, trois familles au hasard par vague, tous à la force du dernier boss que tu as battu (celui de la vague ' + nArene() + '), puis de plus en plus forts. Ils sortent des herses et foncent tous sur toi.</li>' +
-    '<li><b>Un boss toutes les 5 vagues</b>, lui aussi à la force de ce boss, puis un souffle pour boire tes pots et manger.</li>' +
+    '<li><b>Un boss toutes les 5 vagues</b>, lui aussi à la force de ce boss, puis un souffle pour boire tes pots et manger (un repas vaut pour toute la partie, il ne se cumule pas avec lui-même).</li>' +
+    '<li><b>Toutes les 10 vagues, un bonus au choix</b> parmi trois (Puissance, Agilité, esquive, vol de vie...), gardé jusqu\'à la fin de la partie.</li>' +
     '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : à 10 vagues, tu récupères environ les deux tiers de ton ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
     '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur la caractéristique de ton choix) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
     '<li><b>Les monstres lâchent des pièces</b> : dès la 5e vague, 0,25 % de chance par monstre d\'une pièce de <b>sa</b> panoplie (un Bouftou, une pièce du Bouftou), avec un jet de 50 % au moins. De quoi revendre à l\'HDV.</li>' +
@@ -338,7 +360,7 @@ function lancerArene() {
   appliquerVagueArene(combat, vagueArene(1));
 }
 function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du boss, le record ; puis la suivante (apres un souffle, si c'etait un boss) */
-  const k = c.arene.k, g = gainsArene(k, c.arene.niv0), a = etatArene(), sem = semaineJeu(); c.arene.tenues = k; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * soinArene);
+  const k = c.arene.k, g = gainsArene(k, c.arene.niv0), a = etatArene(), sem = semaineJeu(), soin = soinArene + 0.06 * nbBonus('foule'); c.arene.tenues = k; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * soin);
   S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp); c.arene.xp += gagnerXp.dernier; const xpV = gagnerXp.dernier; /* (le vrai gain, affiche) */
   if (k > (a.record || 0)) a.record = k; if (k > (a.semaines[sem] || 0)) a.semaines[sem] = k;
   Object.keys(a.semaines).sort().slice(0, -8).forEach((x) => { delete a.semaines[x]; }); /* (les 8 dernieres semaines) */
@@ -354,9 +376,9 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
     if (k >= 10 && Math.random() < RUNE_PARFAITE_COFFRE * pros) { gagneRune('parfaite', 1); dans.push('★ une RUNE PARFAITE'); } /* (des le boss de la 10e depuis le 15/10/2026 : « la rune parfaite descend a la 10 », Mathieu ; la 15e avant) */
     son('niveau'); confettis(dans.length > 1 ? 30 : 10); coffre = ' Coffre du boss : ' + dans.join(', ') + '.';
   }
-  toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soinArene) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + xpV + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
+  toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soin) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + xpV + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
   const p = vagueArene(k + 1);
-  if (k % 5 === 0) { c.phases = [p]; c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else appliquerVagueArene(c, p);
+  if (k % 5 === 0) { c.phases = [p]; c.entracte = true; c.repasEntracte = {}; if (k % 10 === 0) c.arene.choix = tirerBonusArene(); ouvrirEntracte(); } else appliquerVagueArene(c, p);
 }
 function finArene(abandon) {
   if (combat && combat.genre === 'ile') { finIleBoss(abandon); return; } /* (l'ile des boss a son bilan) */

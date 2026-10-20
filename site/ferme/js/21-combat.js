@@ -14,7 +14,7 @@ function nouveauCombat(genre, champs) {
 function appliquerRepas() { /* LE REPAS D'AVANT COMBAT (16/10/2026) : ce que le perso a mange vaut pour ce combat (vague, Arene, ile des boss) ;
   avec l'arme du Wa Wabbit, pour deux combats. Renvoie les repas pris (pour le message). */
   const repas = Object.keys(S_.mange || {}).filter((id) => S_.mange[id] && PAR_ID[id] && PAR_ID[id].mange);
-  repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; });
+  repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; (combat.repasActifs = combat.repasActifs || {})[id] = true; });
   if (repas.length) { if (legPorte('wa') && !S_.mangeDeux) S_.mangeDeux = true; else { S_.mange = {}; S_.mangeDeux = false; } sauver(); }
   return repas;
 }
@@ -333,6 +333,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.pierre > 0) n = Math.max(1, Math.round(n * 0.5)); /* la peau de pierre de la Gorgouille (20/10/2026) */
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
+  { const v = 0.02 * nbBonus('vol'); if (v) combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); } /* (le bonus Vol de vie de l'Arene) */
   mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
@@ -398,13 +399,18 @@ function ouvrirEntracte() {
   const c = combat; if (!c || !c.entracte || !c.phases.length) return; const pc = Math.round(100 * c.pv / c.pvMax), p = c.phases[0]; S_.pots = S_.pots || {};
   const pots = Object.keys(POTS).filter((t) => (S_.pots[t] || 0) > 0).map((t) => { const P = POTS[t], non = (c.pv >= c.pvMax && !P.menthe && !P.citron && !P.agi) || (P.menthe && c.regen) || (P.citron && c.citron) || (P.agi && c.agi);
     return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + ' ×' + S_.pots[t] + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + (P.menthe || P.citron || P.agi ? ' (jusqu\'à la fin de la vague)' : '') + '</span></div></div><div class="act"><button class="btn kamas" data-entracte-pot="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button></div></div>'; }).join('');
-  const repas = CULTURES.filter((cu) => cu.mange && ((S_.grange[cu.id] || 0) > 0 || c.repasEntracte[cu.id])).map((cu) => { const pris = !!c.repasEntracte[cu.id];
-    return '<div class="art">' + ico(cu.id) + '<div><b>' + cu.nom + (pris ? ' : mangée !' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + cu.mange.txt + ' jusqu\'à la fin de la vague</span><span class="puce">' + (S_.grange[cu.id] || 0) + ' en grange</span></div></div><div class="act">' +
-      (pris ? '<span class="cadenas">✓ Mangée</span>' : '<button class="btn mini" data-entracte-manger="' + cu.id + '">Manger</button>') + '</div></div>'; }).join('');
+  const actifs = c.repasActifs || {}, jusqua = c.arene ? ' jusqu\'à la fin de la partie' : ' jusqu\'à la fin de la vague'; /* (un repas deja actif ne se reprend pas : il ne se cumule pas avec lui-meme, 20/10/2026) */
+  const repas = CULTURES.filter((cu) => cu.mange && ((S_.grange[cu.id] || 0) > 0 || actifs[cu.id])).map((cu) => { const pris = !!actifs[cu.id];
+    return '<div class="art">' + ico(cu.id) + '<div><b>' + cu.nom + (pris ? ' : déjà active' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + cu.mange.txt + jusqua + '</span><span class="puce">' + (S_.grange[cu.id] || 0) + ' en grange</span></div></div><div class="act">' +
+      (pris ? '<span class="cadenas">✓ Active</span>' : '<button class="btn mini" data-entracte-manger="' + cu.id + '">Manger</button>') + '</div></div>'; }).join('');
+  const choix = c.arene && c.arene.choix, pris = c.arene && c.arene.bonus ? Object.entries(c.arene.bonus) : []; /* (les bonus de l'Arene, toutes les 10 vagues) */
+  const bonus = choix ? '<div class="hdv-section">Choisis un bonus pour la suite</div>' + choix.map((id) => { const B = BONUS_ARENE[id], n = nbBonus(id);
+    return '<div class="art"><span class="pic bonus-a">' + picto(B.ico) + '</span><div><b>' + B.nom + (n ? ' (déjà ×' + n + ')' : '') + '</b><div class="puces"><span class="puce bonne">' + B.txt + '</span></div></div><div class="act"><button class="btn kamas" data-bonus-arene="' + id + '">Choisir</button></div></div>'; }).join('')
+    : pris.length ? '<p class="hdv-aide">Tes bonus : ' + pris.map(([id, n]) => BONUS_ARENE[id].nom + (n > 1 ? ' ×' + n : '')).join(', ') + '.</p>' : '';
   ouvrirModale('entracte', entete(c.arene ? 'Arène : ' + c.arene.tenues + ' vagues tenues, souffle un instant' : 'Vague ' + c.n + ' : souffle un instant') + '<p class="hdv-aide">Ce temps-là est nettoyé. Le suivant, <b>' + p.nom + '</b>, n\'attend que toi : bois un pot, mange une Cawotte ou une Fraise, puis lance-le.</p>' +
     '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>Ta vie : ' + pc + ' %</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV' + (c.regen ? '. La Menthe te soigne pendant la vague.' : '') + '</small></div></div>' +
-    (pots ? '<div class="hdv-section">Tes pots</div>' + pots : '<p class="hdv-aide">Tu n\'as plus de pot de gelée.</p>') + (repas ? '<div class="hdv-section">Manger</div>' + repas : '') +
-    '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-entracte-suite>Lancer : ' + p.nom + '</button></div>');
+    bonus + (pots ? '<div class="hdv-section">Tes pots</div>' + pots : '<p class="hdv-aide">Tu n\'as plus de pot de gelée.</p>') + (repas ? '<div class="hdv-section">Manger</div>' + repas : '') +
+    '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn kamas" data-entracte-suite' + (choix ? ' disabled' : '') + '>' + (choix ? 'Choisis d\'abord ton bonus' : 'Lancer : ' + p.nom) + '</button></div>');
 }
 function boireEntracte(t) {
   const c = combat, P = POTS[t]; S_.pots = S_.pots || {}; if (!c || !c.entracte || !P || !(S_.pots[t] > 0)) return;
@@ -412,12 +418,13 @@ function boireEntracte(t) {
   toast('Glou glou : ' + Math.round(100 * avant / c.pvMax) + ' % de vie, puis ' + Math.round(100 * c.pv / c.pvMax) + ' %' + (P.menthe ? ', et la Menthe te soigne jusqu\'à la fin.' : P.citron ? ', et tu cours plus vite jusqu\'à la fin.' : P.agi ? ', et +' + P.agi + ' Agilité jusqu\'à la fin.' : '.'), 'or'); rendreHaut(); sauver(); ouvrirEntracte();
 }
 function mangerEntracte(id) {
-  const c = combat, cu = PAR_ID[id]; if (!c || !c.entracte || !cu || !cu.mange || c.repasEntracte[id] || !((S_.grange[id] || 0) > 0)) return;
-  S_.grange[id]--; c.repasEntracte[id] = true; if (cu.mange.deg) c.boostDeg = (c.boostDeg || 0) + cu.mange.deg; if (cu.mange.pros) c.boostPros = (c.boostPros || 0) + cu.mange.pros;
-  son('manger'); toast('Miam ! ' + cu.nom + ' : ' + cu.mange.txt + ' jusqu\'à la fin de la vague.', 'or'); rendreGrange(); sauver(); ouvrirEntracte();
+  const c = combat, cu = PAR_ID[id]; if (!c || !c.entracte || !cu || !cu.mange || (c.repasActifs || {})[id] || !((S_.grange[id] || 0) > 0)) return;
+  S_.grange[id]--; c.repasEntracte[id] = true; (c.repasActifs = c.repasActifs || {})[id] = true; if (cu.mange.deg) c.boostDeg = (c.boostDeg || 0) + cu.mange.deg; if (cu.mange.pros) c.boostPros = (c.boostPros || 0) + cu.mange.pros;
+  son('manger'); toast('Miam ! ' + cu.nom + ' : ' + cu.mange.txt + (c.arene ? ' jusqu\'à la fin de la partie.' : ' jusqu\'à la fin de la vague.'), 'or'); rendreGrange(); sauver(); ouvrirEntracte();
 }
 function tempsSuivant() {
-  const c = combat; if (!c || !c.entracte || !c.phases.length) return; c.entracte = false; if (modaleOuverte === 'entracte') fermerModale();
+  const c = combat; if (!c || !c.entracte || !c.phases.length) return; if (c.arene && c.arene.choix) prendreBonusArene(c.arene.choix[0]); /* (le bouton attend le choix ; les bots de test prennent le premier) */
+  c.entracte = false; if (modaleOuverte === 'entracte') fermerModale();
   if (c.arene) { appliquerVagueArene(c, c.phases.shift()); return; }
   const p = c.phases.shift(); c.file = p.f; c.total += p.f.length; c.attente = 1.5; c.bords = null; son('vague'); toast((c.phases.length ? 'Deuxième temps' : 'Dernier temps') + ' : ' + p.nom + ' arrivent !', 'alerte');
 }
@@ -507,6 +514,12 @@ function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee sur ta cible
     if (tic >= 0.5) { tic = 0; c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < r) blesser(o, Math.max(1, Math.round(o.pvMax * (o.d.boss ? 0.01 : 0.03) * 0.5))); }); }
     if (t >= 4) { jeter(g); return true; } });
 }
+function boueLeg(x, z, r, st) { /* le Heaume du Dragon Cochon (20/10/2026) : une flaque de boue la ou tu vises, 2 fois tes degats, les monstres dedans collent 2 s (1 s un boss) */
+  const c0 = combat, y = solA(x, z), mat = new T.MeshBasicMaterial({ color: '#6a4524', transparent: true, opacity: 0.75, depthWrite: false }), f = new T.Mesh(new T.CircleGeometry(r, 28), mat);
+  f.rotation.x = -Math.PI / 2; f.position.set(x, y + 0.06, z); f.renderOrder = 2; scene.add(f); pouf(x, y, z, r * 1.6, '#6a4524'); pouf(x, y, z, r, '#8e6640');
+  c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > r) return; blesser(o, Math.round(st.deg * 2), true); if (o.etat === 'actif') o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 1 : 2); });
+  let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= 2) { jeter(f); return true; } mat.opacity = 0.75 * Math.min(1, (2 - t) / 0.5); });
+}
 /* le souffle de Crocabulia : des flammes qui filent en cone devant elle */
 function souffleFeu(mo, a) {
   const y = mo.m.position.y + 1.4, L = [];
@@ -525,6 +538,7 @@ const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1,
 const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MONSTRES[Math.max(0, palierDe(Math.max(1, n || 1)))] || 1;
 function blesserPerso(n, mo) {
   if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */
+  { const e = Math.min(0.5, 0.1 * nbBonus('esquive')); if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (classeDe() === 'iop') n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); /* Peau de Iop : 15 % de degats en moins */
@@ -923,7 +937,7 @@ const porteeSur = (o, st) => st.portee + Math.max(0, 0.35 + o.d.ombre * 0.3 - 1)
 /* le perso : il va vers sa cible (ou le monstre le plus proche) et frappe des qu'il est a portee */
 function majPerso(dt) {
   const u = paysanMesh.userData, st = statsPerso(), classe = classeDe();
-  combat.cdAttaque -= dt; combat.cdSort = Math.max(0, combat.cdSort - dt); combat.cdUlti = Math.max(0, combat.cdUlti - dt);
+  combat.cdAttaque -= dt; { const r = dt * (1 + 0.15 * nbBonus('recharge')); combat.cdSort = Math.max(0, combat.cdSort - r); combat.cdUlti = Math.max(0, combat.cdUlti - r); } /* (le bonus Concentration de l'Arene) */
   if (combat.assomme > 0) return; /* assomme par la pomme d'un Koalak Reinette : il ne frappe plus un instant */
   if (u.charge) return;
   if (combat.ordre) { if (chemin.length) return; combat.ordre = false; }

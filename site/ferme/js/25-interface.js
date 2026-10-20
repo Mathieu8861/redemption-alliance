@@ -581,6 +581,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.pepito) { const k = b.dataset.pepito; S_.pepito = S_.pepito || {}; S_.pepito[k] = !pepitoTire(k); toast('PÉPITO-TRON : ' + (pepitoTire(k) ? 'cible autorisée.' : 'cible ignorée.') + (k === 'sauvage' ? ' (le Tofu sauvage)' : ' (les Tofus des champs)'), 'or'); sauver(); ouvrirEpouvantail(); }
   else if (b.dataset.entractePot) boireEntracte(b.dataset.entractePot);
   else if (b.dataset.entracteManger) mangerEntracte(b.dataset.entracteManger);
+  else if (b.dataset.bonusArene) prendreBonusArene(b.dataset.bonusArene);
   else if (b.hasAttribute('data-entracte-suite')) tempsSuivant();
   else if (b.dataset.boire) boirePot(b.dataset.boire);
   else if (b.dataset.geleeAchat) ACTIONS.acheterGelee(b.dataset.geleeAchat);
