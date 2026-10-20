@@ -24,7 +24,7 @@ const BONUS_ARENE = {
   agilite: { nom: 'Mains rapides', txt: '+10 Agilité (+10 % de vitesse d\'attaque)', ico: 'agilite' },
   vita: { nom: 'Second souffle', txt: '+10 % de PV max', ico: 'vita' },
   esquive: { nom: 'Esquive', txt: '10 % de chances d\'esquiver un coup (50 % au plus)', ico: 'vitesse' },
-  vol: { nom: 'Vol de vie', txt: 'tes coups te soignent de 2 % des dégâts infligés', ico: 'soin' },
+  vol: { nom: 'Vol de vie', txt: 'tes coups te soignent de 1 % des dégâts infligés', ico: 'soin' }, /* (1 % et non 2 : « trop facile de remonter ses PV », Mathieu) */
   foule: { nom: 'Chouchou de la foule', txt: '+6 % de vie rendue à chaque vague tenue', ico: 'etoile' },
   recharge: { nom: 'Concentration', txt: 'tes sorts se rechargent 15 % plus vite', ico: 'cadence' },
   butin: { nom: 'Flair', txt: '+20 Prospection (+20 % de butin)', ico: 'prospection' },
