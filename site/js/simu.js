@@ -253,7 +253,11 @@
     }
 
     /* === INSCRITS === */
-    function idsInscrits() { return (simu && simu.inscrits || []).map(function (i) { return i.discord_id; }); }
+    function idsInscrits() { return (simu && simu.inscrits || []).filter(function (i) { return !i.peut_etre; }).map(function (i) { return i.discord_id; }); }
+
+    /* 🤷 sous l'annonce (« en retard ou pas sur d'etre dispo ») : retardataires d'office,
+       jamais remplacants, tant qu'ils n'ont pas coche ✅ (lu par api/_simu-coeur.mjs) */
+    function idsPeutEtre() { return (simu && simu.inscrits || []).filter(function (i) { return i.peut_etre; }).map(function (i) { return i.discord_id; }); }
 
     function aLHeure() {
         var ids = idsInscrits();
@@ -269,8 +273,11 @@
     }
 
     function enRetard() {
-        if (!simu || !Array.isArray(simu.inscrits_a_l_heure)) return [];
-        return idsInscrits().filter(function (id) { return simu.inscrits_a_l_heure.indexOf(id) === -1 && !estAjoute(id); });
+        var tard = simu && Array.isArray(simu.inscrits_a_l_heure)
+            ? idsInscrits().filter(function (id) { return simu.inscrits_a_l_heure.indexOf(id) === -1 && !estAjoute(id); })
+            : [];
+        idsPeutEtre().forEach(function (id) { if (!estAjoute(id) && tard.indexOf(id) === -1) tard.push(id); });
+        return tard;
     }
 
     /* Ceux qui jouent : les ✅ a l'heure et les ajoutes a la main */
@@ -831,7 +838,8 @@
 
     function carteJoueur(ent, poste, doublon) {
         var j = joueur(ent.joueur, ent.nom);
-        var coche = idsInscrits().indexOf(ent.joueur) !== -1;
+        var peutEtre = idsPeutEtre().indexOf(ent.joueur) !== -1;
+        var coche = idsInscrits().indexOf(ent.joueur) !== -1 || peutEtre;
         var ajoute = estAjoute(ent.joueur);
         var inscrit = coche || ajoute;
         var horsPoste = poste && poste !== '*' && ent.classe !== poste;
@@ -844,6 +852,7 @@
         if (!inscrit) classesCss.push('simu-joueur--desinscrit');
         var notes = [];
         if (!inscrit) notes.push('a retiré son ✅');
+        if (peutEtre) notes.push('🤷 en retard ou pas sûr d\'être là');
         if (doublon) notes.push(court(ent.classe) + ' en double dans l\'équipe');
         if (horsPoste) notes.push('pas ' + court(poste) + ' sur son profil');
         if (!j.site) notes.push('sans compte site');

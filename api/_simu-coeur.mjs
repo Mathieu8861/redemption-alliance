@@ -120,17 +120,33 @@ async function annonces(ctx) {
     return { annonces: liste };
 }
 
-async function inscritsDiscord(ctx, messageId) {
+async function reacteurs(ctx, messageId, emoji) {
     let tous = [], apres = null;
     for (let page = 0; page < 10; page++) {
-        const lot = await discord(ctx, '/channels/' + salonEvent(ctx) + '/messages/' + messageId + '/reactions/' + encodeURIComponent(OUI) + '?limit=100' + (apres ? '&after=' + apres : ''));
+        const lot = await discord(ctx, '/channels/' + salonEvent(ctx) + '/messages/' + messageId + '/reactions/' + encodeURIComponent(emoji) + '?limit=100' + (apres ? '&after=' + apres : ''));
         tous = tous.concat(lot || []);
         if (!lot || lot.length < 100) break;
         apres = lot[lot.length - 1].id;
     }
-    return tous.filter(function (u) { return !u.bot; }).map(function (u) {
+    return tous.filter(function (u) { return !u.bot; });
+}
+
+/* Les ✅, puis les 🤷 (toutes ses variantes, 🤷🏻‍♂️ compris) : « en retard ou pas sur d'etre
+   dispo » (annonce de Ror, 21/10). Un 🤷 est marque peut_etre : la page le range en
+   retardataire, jamais en remplacant, tant qu'il n'a pas coche ✅ (le ✅ l'emporte). */
+const DOUTE = '\u{1F937}';
+async function inscritsDiscord(ctx, messageId) {
+    const liste = (await reacteurs(ctx, messageId, OUI)).map(function (u) {
         return { discord_id: u.id, nom: u.global_name || u.username };
     });
+    const m = await discord(ctx, '/channels/' + salonEvent(ctx) + '/messages/' + messageId);
+    const doutes = ((m && m.reactions) || []).filter(function (r) { return r.emoji && !r.emoji.id && String(r.emoji.name).indexOf(DOUTE) === 0; });
+    for (const r of doutes) {
+        (await reacteurs(ctx, messageId, r.emoji.name)).forEach(function (u) {
+            if (!liste.some(function (i) { return i.discord_id === u.id; })) liste.push({ discord_id: u.id, nom: u.global_name || u.username, peut_etre: true });
+        });
+    }
+    return liste;
 }
 
 async function ligne(ctx, simuId) {
@@ -148,7 +164,8 @@ async function lire(ctx, params) {
     if (l.lancement && !l.inscrits_a_l_heure) {
         const cloture = new Date(l.lancement).getTime() - (l.lecture_avant_min || 0) * 60000;
         if (Date.now() >= cloture) {
-            maj.inscrits_a_l_heure = inscrits.map(function (i) { return i.discord_id; });
+            /* Les 🤷 ne sont pas « a l'heure » : s'ils cochent ✅ plus tard, ils restent retardataires */
+            maj.inscrits_a_l_heure = inscrits.filter(function (i) { return !i.peut_etre; }).map(function (i) { return i.discord_id; });
             maj.cloture_le = maj.lu_le;
         }
     }
