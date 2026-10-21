@@ -720,7 +720,7 @@
         l.push('');
         compo.equipes.forEach(function (eq) {
             var noms = eq.places.map(function (p) { return p && p.joueur ? mention(p) : '(place libre)'; });
-            l.push('**' + eq.nom + '**' + (eq.modele ? ' (' + libelleModele(modeles[eq.modele] || modeles[0]) + ')' : '') + ' : ' + noms.join(' / '));
+            l.push('**' + nomEquipe(eq) + '**' + (eq.modele ? ' (' + libelleModele(modeles[eq.modele] || modeles[0]) + ')' : '') + ' : ' + noms.join(' / '));
         });
         var ligneBanc = function (titre, liste) {
             return '**' + titre + '** : ' + liste.map(function (r) { return mention(r) + (r.classe ? ' (' + court(r.classe) + ')' : ''); }).join(', ');
@@ -875,6 +875,9 @@
             + '</div>';
     }
 
+    /* Nom affiche d'une equipe : « Team 3 » suivi de son nom libre s'il y en a un (« Team 3 · Team Diors ») */
+    function nomEquipe(eq) { return eq.nom + (eq.surnom ? ' · ' + eq.surnom : ''); }
+
     function renderEquipes() {
         var bloc = document.getElementById('simu-equipes');
         if (!compo || !compo.equipes.length) {
@@ -901,6 +904,7 @@
                 + '<div class="simu-equipe__tete">'
                     + '<div class="simu-equipe__titre">'
                         + '<strong>' + esc(eq.nom) + '</strong><span class="simu-equipe__voc">Voc ' + (e + 1) + '</span>'
+                        + '<input type="text" class="simu-equipe__surnom" data-e="' + e + '" maxlength="24" placeholder="nom d\'équipe" value="' + esc(eq.surnom || '') + '" aria-label="Nom de l\'équipe" style="flex:1;min-width:0;align-self:center;padding:2px 6px;border:1px dashed var(--color-border);border-radius:6px;background:transparent;color:var(--color-accent-light);font-size:0.78rem;font-weight:600;">'
                         + '<button type="button" class="simu-equipe__suppr" data-e="' + e + '" title="Supprimer l\'équipe (ses joueurs passent en remplaçants)">&times;</button>'
                     + '</div>'
                     + '<select class="simu-equipe__modele" data-e="' + e + '" aria-label="Formule de l\'équipe">'
@@ -1024,7 +1028,7 @@
             var poste = p.poste === '*'
                 ? 'en <strong>Autre</strong>' + (p.classe ? ' avec ton <strong>' + esc(court(p.classe)) + '</strong>' : '')
                 : 'au poste <strong>' + esc(court(p.poste)) + '</strong>';
-            return 'Tu joues dans la <strong>' + esc(eq.nom) + '</strong> ' + poste + ', vocal <strong>Voc ' + (p.e + 1) + '</strong>.' + provisoire;
+            return 'Tu joues dans la <strong>' + esc(nomEquipe(eq)) + '</strong> ' + poste + ', vocal <strong>Voc ' + (p.e + 1) + '</strong>.' + provisoire;
         }
         if (p.type === 'remplacants') return 'Tu es <strong>remplaçant</strong> : tu entres si une place se libère, reste dispo au lancement.' + provisoire;
         if (p.type === 'retardataires') return 'Tu es <strong>retardataire</strong> : tu as coché après la lecture des ✅, tu passes après les remplaçants.' + provisoire;
@@ -1084,7 +1088,7 @@
                 }).join('');
                 return '<div class="simu-equipe' + (avecMoi ? ' simu-equipe--moi' : '') + '">'
                     + '<div class="simu-equipe__tete">'
-                        + '<div class="simu-equipe__titre"><strong>' + esc(eq.nom) + '</strong><span class="simu-equipe__voc">Voc ' + (e + 1) + '</span></div>'
+                        + '<div class="simu-equipe__titre"><strong>' + esc(nomEquipe(eq)) + '</strong><span class="simu-equipe__voc">Voc ' + (e + 1) + '</span></div>'
                         + '<span class="simu-equipe__formule">' + esc(libelleModele(modele)) + '</span>'
                     + '</div>'
                     + places
@@ -1150,6 +1154,14 @@
             if (sel) {
                 var loc = localiser(sel.getAttribute('data-cle'));
                 if (loc) { lire(loc).classe = sel.value; compo.auto = false; sauver(); renderTout(); }
+                return;
+            }
+            var sur = e.target.closest('.simu-equipe__surnom');
+            if (sur) {
+                compo.equipes[parseInt(sur.getAttribute('data-e'), 10)].surnom = sur.value.trim().slice(0, 24);
+                compo.auto = false;
+                sauver();
+                renderTout();
                 return;
             }
             var mod = e.target.closest('.simu-equipe__modele');
