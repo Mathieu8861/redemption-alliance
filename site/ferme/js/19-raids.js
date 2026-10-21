@@ -168,11 +168,11 @@ function cibleGrange(mo) {
   return (mo.cg = posCase(c || G[0] || S_.cases[0]));
 }
 function majVoleurRaid(mo, dt, s) {
-  const m = mo.m, lent = mo.lent > 0; if (lent) mo.lent -= dt;
+  const m = mo.m, lent = mo.lent > 0; if (lent) mo.lent -= dt; if (mo.coince > 0) mo.coince -= dt; /* (la Gueule de fer de Masdog : coince, il ne bouge plus) */
   const but = mo.fuite ? mo.sortie : cibleGrange(mo), d = Math.hypot(but.x - mo.x, but.z - mo.z); let v = 0;
   if (d > (mo.fuite ? 0.35 : 0.8)) {
     const w = prochainPas(mo, but.x, but.z, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = mo.d.vitesse * (lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1); /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
+    v = mo.d.vitesse * (mo.coince > 0 ? 0 : lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1); /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
   } else if (!mo.fuite) {
     const r = volerRaid(mo.d.vole); mo.fuite = true; mo.cg = null;
     if (r) { mo.porte = r; if (mo.type !== 'demenageur') m.add(sacVole()); toast((mo.type === 'demenageur' ? 'Le Déménageur de VSA' : 'Un voleur de VSA') + ' a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il rejoigne Omeho !', 'alerte'); } /* (le Demenageur a deja son gros sac) */

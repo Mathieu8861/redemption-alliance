@@ -98,6 +98,7 @@ function gagnerXp(n, exact) { /* toute l'XP du jeu passe par ici (exact : deja c
   if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres)); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
   { const t = prochainTerrain(); if (t && avant < t.niv && apres >= t.niv) { const k = TERRAINS.indexOf(t), b = document.querySelector('[data-vente="' + k + '"]'); if (b) b.remove(); bulleVente(t, k); toast('Un nouveau terrain est à vendre : ' + t.cases.length + ' cases de plus pour ta ferme !', 'or'); } }
   if (avant < NIV_ULTI && apres >= NIV_ULTI && !S_.ulti) { toast('Niveau ' + NIV_ULTI + ' : ton ulti se débloque ! Choisis-le dans la fiche des vagues.', 'or'); if (!combat && !modaleOuverte) ouvrirUlti(); }
+  if (avant < NIV_GARDIEN && apres >= NIV_GARDIEN && !S_.gardien) { toast('Niveau ' + NIV_GARDIEN + ' : un gardien pour ta ferme ! Newton le chat ou Masdog le chien (HDV, Améliorer, Défense).', 'or'); if (!combat && !modaleOuverte) ouvrirChoixGardien(); }
   rendreHaut();
 }
 

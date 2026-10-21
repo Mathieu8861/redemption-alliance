@@ -169,9 +169,10 @@ const GAINS = {
    un niveau, puis ce qui est au maximum */
 const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes. Et l\'atelier de forgemagie, pour monter le jet de tes pièces.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal', 'forge']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
   ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous, tes Tofus et tes Gelées : plus de laine, de plumes et de pots de gelée.', ['enclos', 'voliere', 'geliere']],
-  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus, le leurre contre les Wabbits.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre']]];
+  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus, le leurre contre les Wabbits, et ton gardien au niveau 80.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre', 'gardien']]];
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
+  if (id === 'gardien') return etatGardien(); /* (le gardien n'est pas une amelioration : un choix, au niveau 80) */
   if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
   const a = AMELIOS.find((x) => x.id === id), n = niv(id); if (n >= a.couts.length) return { e: 'fini' };
   if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a)) return { e: 'bloque' };
@@ -231,7 +232,7 @@ function ouvrirHdv0(onglet) {
   const etatHdv = S_.cases.some((c) => c.type === 'hdv') && (degatsBat('hdv') || enRuine('hdv')) ? artPv('hdv') : '';
   if (onglet !== 'ameliorer' && enRuine('hdv')) { ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv); return; }
   if (onglet === 'ameliorer') {
-    const carte = (id) => id === 'tours' ? artTour() : artAmelio(AMELIOS.find((a) => a.id === id)), pretes = (L) => L.filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
+    const carte = (id) => id === 'tours' ? artTour() : id === 'gardien' ? artGardien() : artAmelio(AMELIOS.find((a) => a.id === id)), pretes = (L) => L.filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
     if (!ouvrirHdv.catA) ouvrirHdv.catA = (CATS_AMELIO.find((C) => pretes(C[4])) || CATS_AMELIO[0])[0]; /* (la premiere fois : la ou il y a quelque chose a acheter) */
     const C = CATS_AMELIO.find(([k]) => k === ouvrirHdv.catA) || CATS_AMELIO[0], par = (e) => C[4].filter((id) => etatAmelio(id).e === e);
     const cats = '<div class="hdv-cats">' + CATS_AMELIO.map(([k, t, i, , L]) => { const n = pretes(L); return '<button data-hdv-cat-a="' + k + '" aria-pressed="' + (C[0] === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + (n ? '<span class="hdv-pret" title="' + n + ' à acheter tout de suite">' + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
@@ -568,6 +569,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.hdvCat) { ouvrirHdv.cat = b.dataset.hdvCat; ouvrirHdv('acheter'); $('carte').scrollTop = 0; if (b.dataset.hdvVoir) { const e = document.querySelector('#carte ' + b.dataset.hdvVoir), l = e && (e.closest('.art') || e); if (l) l.scrollIntoView({ block: 'center' }); } } /* (16/10/2026 : « Acheter une Gelée » de la Gelière ouvrait les pots ; les Gelees sont dans Animaux, on y descend) */
   else if (b.dataset.hdvCatA) { ouvrirHdv.catA = b.dataset.hdvCatA; ouvrirHdv('ameliorer'); $('carte').scrollTop = 0; }
   else if (b.dataset.amelio) ACTIONS.amelio(b.dataset.amelio);
+  else if (b.dataset.gardien) actionGardien(b.dataset.gardien, b.dataset.type);
   else if (b.dataset.nourrir) { ACTIONS.nourrir(parseInt(b.dataset.nourrir, 10)); ouvrirEnclos(); }
   else if (b.hasAttribute('data-reproduire')) { ACTIONS.reproduire(); ouvrirEnclos(); }
   else if (b.dataset.vendreBouftou) { const j = parseInt(b.dataset.vendreBouftou, 10), noir = S_.bouftous[j] && S_.bouftous[j].noir; ACTIONS.vendreBouftou(j); if (!noir) ouvrirEnclos(); }

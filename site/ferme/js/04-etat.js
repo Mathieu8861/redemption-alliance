@@ -56,7 +56,7 @@ function etatInitial() {
   Object.assign(champs[0], { c: 'ble', pousse: 78 * SEC, arrose: true }); /* (presque mur : 78 s sur 1 min 30) */
   Object.assign(champs[1], { c: 'ble', pousse: 18 * SEC, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
   };
@@ -83,6 +83,7 @@ function completerSauvegarde(e) {
   if (!e.graines) e.graines = { ble: 3 };
   if (!e.filets) e.filets = 0;
   if (!e.tofus) e.tofus = 0;
+  if (e.gardien === undefined) e.gardien = null; /* le gardien de la ferme (niveau 80) : { type: 'chat' ou 'chien', rassasie, depuis } */
   if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU;
   if (!e.voliere) e.voliere = { plumes: 0, accu: 0 };
   if (e.sauvage === undefined) e.sauvage = null;

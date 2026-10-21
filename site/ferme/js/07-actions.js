@@ -38,6 +38,7 @@ const ACTIONS = {
     if (p.type === 'voliere') { ouvrirVoliere(); return; }
     if (p.type === 'geliere') { if (potsPretsGeliere()) ACTIONS.ramasserPots(); ouvrirGeliere(); return; }
     if (p.type === 'forge') { ouvrirForge(); return; }
+    if (p.type === 'niche') { ouvrirGardien(); return; }
     if (p.type === 'leurre') { if (S_.leurreWabbit) ACTIONS.chasserLeurre(); else ouvrirLeurre(); return; }
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }

@@ -230,7 +230,7 @@ function verbeDroit(p) {
   const k = cleDeCase(p); if (k && enRuine(k)) return 'reconstruire';
   if (p.type === 'libre') return 'labourer ou construire';
   if (p.type === 'champ') { if (!p.c) return 'planter'; return p.pousse >= duree(PAR_ID[p.c]) ? 'récolter' : !p.arrose ? 'arroser' : ''; }
-  return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', leurre: S_.leurreWabbit ? (niv('leurre') >= 3 ? 'relâcher le Wabbit' : 'chasser le Wabbit') : 'ouvrir le leurre', tour: 'ouvrir la tour', voliere: 'ouvrir la volière' })[p.type] || '';
+  return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', leurre: S_.leurreWabbit ? (niv('leurre') >= 3 ? 'relâcher le Wabbit' : 'chasser le Wabbit') : 'ouvrir le leurre', tour: 'ouvrir la tour', voliere: 'ouvrir la volière', niche: 'voir ton gardien' })[p.type] || '';
 }
 function rappelClicDroit(p) {
   if (tuto.actif || (S_.clicsDroits || 0) >= 6 || performance.now() - (rappelClicDroit.t || 0) < 4000) return; /* (pendant le tuto, Pepito explique deja) */ const v = verbeDroit(p); if (!v) return;
@@ -269,6 +269,7 @@ canvas.addEventListener('pointerup', (e) => {
       continue;
     }
     if (h.object.userData.voleur) { attaquerVoleur(); return; }
+    if (!mode && clicGardien(h.object)) { if (agir) caresserGardien(); else if (gard) allerVers(caseIci(gard.x, gard.z)); return; } /* le gardien : on le caresse (le clic qui deplace, lui, emmene le perso pres de lui) */
     let o = h.object; let bouftou = null, cellule = null, terrain = null, friche = null;
     while (o) { if (o.userData.bouftou !== undefined && bouftou === null) bouftou = o.userData.bouftou; if (o.userData.cellule && !cellule) cellule = o.userData.cellule; if (o.userData.terrain !== undefined && terrain === null) terrain = o.userData.terrain; if (o.userData.friche !== undefined && friche === null) friche = o.userData.friche; o = o.parent; }
     if (friche !== null && !cellule && !caseIci(h.point.x, h.point.z) && !mode) { infoFriche(friche); return; }

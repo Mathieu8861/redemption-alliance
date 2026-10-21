@@ -534,7 +534,7 @@ function butinVoleur(monte, L) {
   rendreGrange(); rendreHaut(); return L;
 }
 const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => obj(id).nom)).filter(Boolean).join(', ');
-const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); return sac; }; /* le sac de butin sur son dos */
+const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); sac.userData.sac = true; return sac; }; /* (marque : le Bond de Newton le fait lacher) */ /* le sac de butin sur son dos */
 const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MONSTRES[Math.max(0, palierDe(Math.max(1, n || 1)))] || 1;
 function blesserPerso(n, mo) {
   if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */

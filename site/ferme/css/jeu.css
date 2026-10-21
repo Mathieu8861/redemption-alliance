@@ -872,3 +872,9 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .bca-dos svg { position: relative; width: 9em; height: 9em; }
 .bca-nom { position: relative; font: 400 1.3em/1 var(--f-titre); color: #ffd65a; -webkit-text-stroke: .12em var(--bord); paint-order: stroke fill; text-shadow: 0 .16em 0 var(--bord); margin-top: .2em; }
 @media (max-width: 420px) { .bca-texte { display: none; } .bca-rang { gap: 6px; } } /* (au telephone : l'effet suffit, les cartes restent lisibles) */
+
+/* LES GARDIENS DE LA FERME (21/10/2026) : leur portrait rond dans le choix, la forme de VSA en vignette, la bulle de la maison quand il a faim */
+.ulti-carte .rond.gardien, .confirme .gros.gardien { background: radial-gradient(circle at 50% 40%, #fffaf0, #cfe9b8); }
+.ulti-carte .gardien-vsa { display: flex; align-items: center; gap: 6px; margin-top: 4px; font: 700 .72rem/1.1 "Nunito", sans-serif; color: #6b5a3a; }
+.ulti-carte .gardien-vsa img { width: 34px; height: 34px; object-fit: contain; border-radius: 50%; background: #e9f7d6; border: 2px solid var(--bord); }
+.bulle.lieu.faim { background: #c0392b; }
