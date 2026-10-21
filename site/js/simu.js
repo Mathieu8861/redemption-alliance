@@ -835,7 +835,10 @@
         var liste = j.classes.length ? j.classes.slice() : classes.slice();
         if (actuelle && liste.indexOf(actuelle) === -1) liste.push(actuelle);
         var opt = function (c) { return '<option value="' + esc(c) + '"' + (c === actuelle ? ' selected' : '') + '>' + esc(court(c)) + '</option>'; };
-        return (actuelle ? '' : '<option value="" selected>classe ?</option>') + liste.map(opt).join('');
+        /* Mule pas encore declaree sur le site : les autres classes restent proposees, a part */
+        var autres = j.classes.length ? classes.filter(function (c) { return liste.indexOf(c) === -1; }) : [];
+        return (actuelle ? '' : '<option value="" selected>classe ?</option>') + liste.map(opt).join('')
+            + (autres.length ? '<optgroup label="Hors profil">' + autres.map(opt).join('') + '</optgroup>' : '');
     }
 
     function carteJoueur(ent, poste, doublon) {
