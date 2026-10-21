@@ -668,7 +668,9 @@
                 var n = p && p.new;
                 if (!n || !n.id) return;
                 var parUnAutre = n.maj_par && n.maj_par !== moi.id && n.compo && JSON.stringify(n.compo) !== JSON.stringify(compo);
-                simu = n;
+                /* Fusion, pas remplacement : Supabase n'envoie pas les grosses colonnes
+                   inchangees (inscrits, compo...) ; sans ca, tout le monde parait desinscrit */
+                Object.keys(n).forEach(function (k) { if (n[k] !== undefined) simu[k] = n[k]; });
                 if (parUnAutre) {
                     compo = n.compo;
                     toast('Compo modifiée par un autre organisateur', 'info');
