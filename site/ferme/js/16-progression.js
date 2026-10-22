@@ -7,10 +7,10 @@ function gainFlottant(texte, x, y, z, icone, genre) {
 }
 /* ---------- la fete du passage de niveau ---------- */
 function confettis(n) { const cols = ['#f2b630', '#e07c0a', '#5aa02c', '#3a95d1', '#d9443a', '#c87ae0']; for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.className = 'confetti'; c.style.left = (Math.random() * 100) + 'vw'; c.style.background = hasard(cols); c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's'; c.style.animationDelay = (Math.random() * 0.4) + 's'; document.body.appendChild(c); setTimeout(() => c.remove(), 3800); } }
-function feterNiveau(n, nouveautes) {
+function feterNiveau(n, nouveautes, avant) { /* (avant : le niveau d'avant ; les PV et les degats gagnes s'affichent, 22/10/2026) */
   son('niveau'); confettis(70); const f = document.createElement('div'); f.className = 'fete';
-  f.innerHTML = '<div class="ban"><span>Paysan</span><b>Niveau ' + n + ' !</b>' + (nouveautes.length ? '<ul>' + nouveautes.map((x) => '<li>' + x + '</li>').join('') + '</ul>' : '<span>Ton perso est plus fort : plus de PV, plus de dégâts.</span>') + '<button class="btn kamas">Super !</button></div>';
-  document.body.appendChild(f); const fin = () => f.remove(); f.querySelector('.btn').addEventListener('click', fin); setTimeout(fin, 6500);
+  f.innerHTML = '<div class="ban"><span>Paysan</span><b>Niveau ' + n + ' !</b>' + gainsNiveau(avant || n - 1, n) + (nouveautes.length ? '<ul>' + nouveautes.map((x) => '<li>' + x + '</li>').join('') + '</ul>' : '') + '<button class="btn kamas">Super !</button></div>';
+  document.body.appendChild(f); const fin = () => f.remove(); f.querySelector('.btn').addEventListener('click', fin); setTimeout(fin, 8000);
 }
 function nouveautesNiveau(avant, apres) {
   const L = CULTURES.filter((c) => c.niv > avant && c.niv <= apres && !(S_.cultAcquises || []).includes(c.id)).map((c) => 'Nouvelle culture : ' + c.nom); /* (pas celles deja acquises avant le 12/10) */

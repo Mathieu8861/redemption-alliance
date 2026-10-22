@@ -95,7 +95,7 @@ const xpRecolteReel = (c) => { /* ce que rapporte vraiment une recolte, Sagesse 
 function gagnerXp(n, exact) { /* toute l'XP du jeu passe par ici (exact : deja calcule, une recolte) */
   if (n > 0 && !exact) n = xpReel(n);
   const avant = niveau(S_.xp), x0 = S_.xp; S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(capNiveau()))); const apres = niveau(S_.xp); gagnerXp.dernier = S_.xp - x0; /* plus rien a gagner au niveau maximum (de la phase) */
-  if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres)); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
+  if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres), avant); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
   { const t = prochainTerrain(); if (t && avant < t.niv && apres >= t.niv) { const k = TERRAINS.indexOf(t), b = document.querySelector('[data-vente="' + k + '"]'); if (b) b.remove(); bulleVente(t, k); toast('Un nouveau terrain est à vendre : ' + t.cases.length + ' cases de plus pour ta ferme !', 'or'); } }
   if (avant < NIV_ULTI && apres >= NIV_ULTI && !S_.ulti) { toast('Niveau ' + NIV_ULTI + ' : ton ulti se débloque ! Choisis-le dans la fiche des vagues.', 'or'); if (!combat && !modaleOuverte) ouvrirUlti(); }
   if (avant < NIV_GARDIEN && apres >= NIV_GARDIEN && !S_.gardien) { toast('Niveau ' + NIV_GARDIEN + ' : un gardien pour ta ferme ! Newton le chat ou Masdog le chien (HDV, onglet Construire).', 'or'); if (!combat && !modaleOuverte) ouvrirChoixGardien(); }

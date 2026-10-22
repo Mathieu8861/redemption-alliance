@@ -906,3 +906,24 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .hdv-aide .lien { background: none; border: 0; padding: 0; font: inherit; font-weight: 800; color: #b5651d; text-decoration: underline; cursor: pointer; }
 @media (max-width: 420px) { .action { width: 44px; } .actions { gap: 1px; } } /* (8 boutons depuis le Bestiaire, 22/10/2026) */
 @media (max-width: 380px) { .action { width: 40px; font-size: .52rem; } .action .tuile { width: 38px; height: 38px; } .action .tuile img { width: 32px; height: 32px; } .actions { padding: 5px 3px; } } /* (les plus petits telephones, 360 px : les 8 boutons tiennent) */
+/* LES CLASSES EN CHIFFRES (22/10/2026) : les gains dans la fete du niveau, la carte de chaque classe a la creation, la comparaison dans la page Perso */
+.fete .fete-gains { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.fete .ban .fete-gains span { display: inline-flex; align-items: center; gap: 4px; margin: 0; background: #f3ead8; border-radius: 99px; padding: 3px 10px; font-size: .82rem; }
+.fete .ban .fete-gains b { display: inline; font: 800 .9rem var(--f-texte); color: #2d6a1e; -webkit-text-stroke: 0; text-shadow: none; }
+.fete .fete-gains .pc { width: 16px; height: 16px; }
+.classe .chiffres { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 6px; }
+.classe .chiffres span { display: inline-flex; align-items: center; gap: 2px; font-size: .64rem; font-weight: 800; color: var(--encre); white-space: nowrap; }
+.classe .chiffres b { font: 800 .64rem var(--f-texte); color: #2d6a1e; }
+.classe .chiffres .pc { width: 12px; height: 12px; }
+.fc h4, .fp-sorts h4.fc-sorts { font: 400 1rem/1.1 var(--f-titre); margin: 6px 0 6px; }
+.fc-moi { background: #fbf4e4; border: 2px solid #e4d6b8; border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
+.fc-moi > b { font: 400 .98rem var(--f-titre); }
+.fc-moi .puces { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0; } .fc-moi .desc { font-size: .78rem; font-weight: 600; }
+.fc-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.fc-carte { background: #fff; border: 2px solid #e4d6b8; border-radius: 12px; padding: 7px 9px; display: grid; gap: 3px; align-content: start; }
+.fc-carte.moi { border-color: var(--or); box-shadow: 0 0 0 2px rgba(242, 182, 48, .35); }
+.fc-nom { display: flex; align-items: center; gap: 6px; } .fc-nom img { width: 34px; height: 34px; object-fit: contain; } .fc-nom b { font: 400 .98rem var(--f-titre); } .fc-nom i { font-style: normal; font-size: .62rem; font-weight: 800; background: #f3ead8; border-radius: 99px; padding: 1px 6px; }
+.fc-carte span { font-size: .74rem; font-weight: 700; display: flex; align-items: center; gap: 4px; } .fc-carte span b { color: #2d6a1e; }
+.fc-carte .pc { width: 14px; height: 14px; flex: none; }
+.fc-carte small { font-size: .7rem; font-weight: 600; color: #6b604c; margin-top: 2px; }
+.fc-bilan { font-size: .78rem; font-weight: 600; background: #eef6e6; border-radius: 10px; padding: 7px 10px; margin: 10px 0 4px; }

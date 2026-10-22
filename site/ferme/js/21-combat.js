@@ -2,6 +2,29 @@
 function boostDegats() { try { return combat && combat.boostDeg ? 1 + combat.boostDeg : 1; } catch (e) { return 1; } } /* la Cawotte mangee avant la vague */
 const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats()), cadence: +(st.cadence / (1 + c.agilite / 100)).toFixed(2), /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
+/* LES CLASSES EN CHIFFRES (22/10/2026) : la fenetre du passage de niveau, la page Perso et le choix du personnage lisent tout ici, d'apres STATS_CLASSE
+   (rien n'est recopie a la main : une classe reequilibree s'affiche juste partout) */
+const degInvoc = (l) => 6 + 2 * l; /* un coup du Bouftou invoque par l'Osamodas */
+const ATOUT_CLASSE = { iop: 'Encaisse 15 % de dégâts en moins, et son Bond le soigne.', cra: 'Court 15 % plus vite, et une flèche sur ' + TIR_FEU + ' est en feu (double dégâts).', osa: 'Son Bouftou se bat avec lui : 6 + 2 dégâts par niveau, un coup toutes les 0,8 s.' };
+function progressionClasse(id) { const st = STATS_CLASSE[id]; return { pv1: st.pv(1), pvN: st.pv(2) - st.pv(1), deg1: st.deg(1), degN: +((st.deg(NIV_MAX) - st.deg(1)) / (NIV_MAX - 1)).toFixed(1), pvMax: st.pv(NIV_MAX), degMax: st.deg(NIV_MAX), portee: Math.round(st.portee / S), cadence: st.cadence }; }
+function gainsNiveau(avant, n) { /* ce que le niveau vient de donner (les totaux comptent l'equipement) */
+  const id = classeDe(), st = STATS_CLASSE[id], s = statsPerso(), dp = st.pv(n) - st.pv(avant), dd = st.deg(n) - st.deg(avant);
+  return '<div class="fete-gains"><span>' + picto('vita') + 'PV max <b>+' + dp + '</b> (' + fmt(s.pvMax) + ' au total)</span><span>' + picto('degats') + 'Dégâts <b>+' + dd + '</b> (' + s.deg + ' par coup)</span>' +
+    (id === 'osa' ? '<span>' + picto('bouftou') + 'Ton Bouftou <b>+' + (degInvoc(n) - degInvoc(avant)) + '</b> (' + degInvoc(n) + ' par coup)</span>' : '') + '</div>';
+}
+function blocClasse() { /* la sienne a son niveau (sans equipement), ce que donne un niveau, ce qu'ajoute l'equipement ; puis les trois classes cote a cote */
+  const id = classeDe(), st = statsPerso(), b = st.base, P = progressionClasse(id), cl = CLASSES.find((x) => x.id === id), e = st.c, cases = (n) => n + ' case' + (n > 1 ? 's' : '');
+  const equip = [e.vita ? '+' + e.vita + ' PV (vita)' : '', e.puissance ? '+' + e.puissance + ' % de dégâts (puissance)' : '', e.agilite ? '+' + e.agilite + ' % de coups (agilité)' : ''].filter(Boolean);
+  const moi = '<div class="fc-moi"><b>Ton ' + cl.nom + ' au niveau ' + st.niveau + ', sans équipement</b><div class="puces"><span class="puce">' + picto('vita') + fmt(b.pv) + ' PV</span><span class="puce">' + picto('degats') + b.deg + ' dégâts par coup</span><span class="puce">' + picto('cadence') + 'un coup toutes les ' + virgule(b.cadence) + ' s</span><span class="puce">' + picto('portee') + 'portée ' + cases(P.portee) + '</span></div>' +
+    '<div class="desc">À chaque niveau : <b>+' + P.pvN + ' PV</b> et <b>+' + virgule(P.degN) + ' dégâts</b>' + (id === 'osa' ? ', et ton Bouftou +2 dégâts' : '') + '. ' + (equip.length ? 'Ton équipement ajoute ' + equip.join(', ') + '.' : 'Ton équipement ajoutera de la vita (PV), de la puissance (dégâts) et de l\'agilité (des coups en plus).') + '</div></div>';
+  const cartes = CLASSES.slice().sort((x, y) => x.rang - y.rang).map((k) => { const Q = progressionClasse(k.id);
+    return '<div class="fc-carte' + (k.id === id ? ' moi' : '') + '"><div class="fc-nom"><img src="assets/icones/' + k.id + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + k.nom + '</b><i>' + k.role + '</i></div>' +
+      '<span>' + picto('vita') + Q.pv1 + ' PV au départ, <b>+' + Q.pvN + '</b> par niveau</span><span>' + picto('degats') + Q.deg1 + ' dégâts au départ, <b>+' + virgule(Q.degN) + '</b> par niveau</span>' +
+      '<span>' + picto('etoile') + 'Au niveau ' + NIV_MAX + ' : <b>' + fmt(Q.pvMax) + ' PV</b>, <b>' + Q.degMax + ' dégâts</b></span><span>' + picto('portee') + 'Portée ' + cases(Q.portee) + ', un coup toutes les ' + virgule(Q.cadence) + ' s</span><small>' + ATOUT_CLASSE[k.id] + '</small></div>'; }).join('');
+  const I = progressionClasse('iop'), C = progressionClasse('cra'), O = progressionClasse('osa');
+  const bilan = 'Au niveau ' + NIV_MAX + ', le Iop a ' + Math.round((I.pvMax / C.pvMax - 1) * 100) + ' % de PV en plus que le Cra et l\'Osamodas, et il encaisse 15 % de dégâts en moins : c\'est ce qui paie le corps à corps. Le Cra frappe presque aussi fort (' + C.degMax + ' contre ' + I.degMax + ') sans se faire toucher. L\'Osamodas frappe moins fort lui-même (' + O.degMax + '), mais son Bouftou ajoute ses coups aux siens (' + degInvoc(NIV_MAX) + ' par coup au niveau ' + NIV_MAX + '). L\'équipement compte autant que la classe.';
+  return '<div class="fc"><h4>Ta classe</h4>' + moi + '<h4>Les trois classes, sans équipement</h4><div class="fc-grille">' + cartes + '</div><p class="fc-bilan">' + bilan + '</p></div>';
+}
 /* LE DEBUT ET LA FIN D'UN COMBAT (refonte du 16/10/2026) : la vague, la simu VSA, l'Arene et l'ile des boss partent tous de nouveauCombat
    et finissent tous par nettoyerCombat (avant : quatre copies qui divergeaient). genre : 'vague', 'raid', 'arene' ou 'ile'.
    Les pots bus avant la vague (Menthe, Citron, Royale) ne sont pris que par les combats qui les consomment (potsDeVague) : la simu VSA les laisse. */
