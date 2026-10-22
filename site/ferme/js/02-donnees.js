@@ -169,9 +169,9 @@ const PEPITO = [
 ];
 const CLASSES = [
   { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et son Bond du Iop le soigne.', sort: 'Bond du Iop', tunique: '#c0392b',
-    role: 'Corps à corps', niveau: ['Facile', 'facile'], lignes: ['Va au contact et frappe fort.', 'Le plus solide : idéal pour débuter.'], sortTxt: 'tu choisis où il saute ; en retombant, il frappe trois fois plus fort.' },
+    role: 'Corps à corps', niveau: ['Difficile', 'difficile'], rang: 3, lignes: ['Va au contact et frappe fort.', 'Le plus solide, mais il encaisse tout au corps à corps.'], sortTxt: 'tu choisis où il saute ; en retombant, il frappe trois fois plus fort.' },
   { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin (5 cases), une flèche de feu toutes les 10. Plus léger, il court 15 % plus vite : recule pour garder tes distances. Sa Flèche perçante traverse toute une ligne de monstres (recharge 20 s).', sort: 'Flèche perçante', tunique: '#2e8b57',
-    role: 'À distance', niveau: ['Moyen', 'moyen'], lignes: ['Tire de loin, à l\'abri.', 'Plus fragile : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
+    role: 'À distance', niveau: ['Facile', 'facile'], rang: 1, lignes: ['Tire de loin, à l\'abri.', 'Idéal pour débuter : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
   { id: 'osa', nom: 'Osamodas', ico: '🐏', desc: 'Invoque les bêtes capturées : il vise où poser son Bouftou, qui retombe sur les monstres et se bat pour lui.', sort: 'Invocation', tunique: '#6f42c1',
-    role: 'Invocateur', niveau: ['Avancé', 'avance'], lignes: ['Fait combattre des Bouftous à sa place.', 'Plus technique : tu choisis où les poser.'], sortTxt: 'un Bouftou tombe sur les monstres puis se bat pour toi.' }
+    role: 'Invocateur', niveau: ['Moyen', 'moyen'], rang: 2, lignes: ['Fait combattre des Bouftous à sa place.', 'Plus technique : tu choisis où les poser.'], sortTxt: 'un Bouftou tombe sur les monstres puis se bat pour toi.' }
 ];
