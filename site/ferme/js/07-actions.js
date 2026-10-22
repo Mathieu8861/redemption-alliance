@@ -140,9 +140,10 @@ const ACTIONS = {
   },
   capturer(p) {
     if (!p.tofu || p.nuisible === 'wabbit' || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale();
-    if (Math.random() < CHANCE_CAPTURE) { compter('captures'); S_.tofus++; p.tofu = 0; p.tofuParti = Date.now(); toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
+    const vu = tofuDuChamp(p), pris = Math.random() < CHANCE_CAPTURE; /* (le Tofu tel qu'on le voit, avant que la case soit redessinee sans lui : le filet part de la) */
+    if (pris) { compter('captures'); S_.tofus++; p.tofu = 0; p.tofuParti = Date.now(); toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else { p.tofu = 0; p.tofuParti = Date.now(); toast('Raté, le Tofu s\'est échappé avec ton filet, mais il a lâché ta culture.', 'alerte'); }
-    rendreCase(p.id); rendreHaut(); rendreGrange();
+    rendreCase(p.id); rendreHaut(); rendreGrange(); animerFilet(vu, pris);
   },
   acheterFleches(n) {
     const cout = PRIX_FLECHE * n; if (S_.kamas < cout) { toast('Il te manque ' + fmt(cout - S_.kamas) + ' kamas.'); return; }
@@ -166,9 +167,10 @@ const ACTIONS = {
   },
   capturerSauvage() {
     if (!S_.sauvage || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale(); S_.sauvage = null;
-    if (Math.random() < CHANCE_SAUVAGE) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
+    const vu = tofuVu(sauvageMesh), pris = Math.random() < CHANCE_SAUVAGE;
+    if (pris) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte');
-    rendreSauvage(); rendreHaut(); rendreGrange();
+    rendreSauvage(); rendreHaut(); rendreGrange(); animerFilet(vu, pris);
   },
   chasserSauvage() { compter('tofusChasses'); S_.sauvage = null; fermerModale(); rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole.'); },
   ramasserPlumes() {

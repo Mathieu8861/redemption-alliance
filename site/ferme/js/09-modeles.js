@@ -34,7 +34,7 @@ const SC_PERSO = new Set(['peinture', 'muscle', 'cicatrice', 'paupiere', 'croc',
 const SC_BATI = new Set(['craie', 'graine', 'fil', 'carreau', 'grillage', 'feu', 'flamme', 'lueur', 'etincelle', 'visage', 'joue', 'plume', 'tache', 'oeil', 'tige', 'epi', 'maille', 'tressage', 'clou', 'caisse_fond', 'chaume_rang', 'ligature', 'brin', 'fleur', 'vitre', 'lanterne', 'buche_bout', 'botte_bout', 'tonneau_dessus',
   'corde_tour', 'douelle', 'lierre', 'grain_ble', 'trou', 'paille', 'barbe', 'kama_cran', 'kama_motif', 'couture', 'pousse', 'trou_serrure', 'rivet', 'reflet', 'eau']);
 const SC_CULT = new Set(['barbe', 'pousse', 'ficelle', 'brin']);
-const SC_MONSTRES = new Set(['pupille', 'reflet', 'iris', 'point_front', 'aile_coeur', 'fissure', 'dent', 'gueule', 'narine', 'orbite', 'gravure', 'lame_fil', 'bouche', 'sourcil', 'flamme_coeur', 'couronne_rouge', 'gemme', 'phalange']);
+const SC_MONSTRES = new Set(['griffe', 'joue', 'gorge', 'bec_coin', 'pupille', 'reflet', 'iris', 'point_front', 'aile_coeur', 'fissure', 'dent', 'gueule', 'narine', 'orbite', 'gravure', 'lame_fil', 'bouche', 'sourcil', 'flamme_coeur', 'couronne_rouge', 'gemme', 'phalange']);
 const SANS_OMBRE = new Set(['cone', 'cone_bord', 'paille_nervure', 'paille_brin', 'eau', 'ecume', 'fumee', 'ecume_filet']);
 const BRILLE = new Set(['feu', 'flamme', 'lueur', 'etincelle', 'lanterne']);
 /* o : { normales: epaisseur du contour pousse, echelle: epaisseur du contour agrandi, souple: souplesses au vent, sansContour, eauIle } */
@@ -165,7 +165,7 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261022a'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261022b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -338,7 +338,7 @@ async function chargerModeles() {
   const nu = MODELES.ble0.clone(true); /* (la parcelle nue, avant la fusion du ble) */ const enlever = []; nu.children.forEach((o) => { const nom = o.name.replace(/\.?\d+$/, ''); if (nom !== 'terre' && nom !== 'sillon') enlever.push(o); }); enlever.forEach((o) => nu.remove(o)); MODELES.nu = fusionner(nu, { parNom: true });
   CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { MODELES[c.id + k] = fusionner(MODELES[c.id + k], { parNom: true }); }));
   versToon(G.monstres, { normales: 0.01, sansContour: SC_MONSTRES });
-  MODELES.tofu = gabarit(G.monstres, 'Tofu', 0.85, 'y');
+  MODELES.tofu = gabarit(G.monstres, 'Tofu', 0.75, 'y'); /* (0,75 et non plus 0,85 depuis ses pattes et sa petite houppe, 22/10/2026 : le corps garde la meme taille) */
   MODELES.chafer = gabarit(G.monstres, 'Chafer', 1.5, 'y'); MODELES.royal = gabarit(G.monstres, 'BouftouRoyal', 2.7, 'y'); /* les vagues */
   versToon(G.chafers, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 2 (blender/chafers.py) */
   versToon(G.monture, { normales: 0.01, sansContour: SC_MONSTRES }); MODELES.monture = gabarit(G.monture, 'Monture', 2.0, 'y'); /* la Dragodinde des raids (blender/monture.py) */
