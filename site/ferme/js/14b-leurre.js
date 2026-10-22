@@ -26,7 +26,7 @@ function arriveeWabbit(p, maintenant, ch) {
     return;
   }
   p.tofu = maintenant; p.nuisible = 'wabbit'; ch.add(p.id);
-  toast('Un Wabbit grignote ta ' + nom + ' ! Chasse-le dans les ' + dureeLisible(DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) + ', sinon il te vole une récolte.' + (premier ? ' Les Wabbits n\'ont pas peur de l\'épouvantail : à toi de les chasser, ou pose un leurre à Wabbits (HDV, Améliorations, Défense).' : ''), 'alerte');
+  toast('Un Wabbit grignote ta ' + nom + ' ! Chasse-le dans les ' + dureeLisible(DUREE_PICORAGE * (niv('cloche') ? 2 : 1)) + ', sinon il te vole une récolte.' + (premier ? ' Les Wabbits n\'ont pas peur de l\'épouvantail : à toi de les chasser, ou pose un leurre à Wabbits (HDV, onglet Construire).' : ''), 'alerte');
 }
 /* le leurre en 3D, refait a chaque changement (niveau, Wabbit pris ou chasse, deplacement) */
 function majLeurre() {

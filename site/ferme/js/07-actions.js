@@ -139,7 +139,7 @@ const ACTIONS = {
     toast('+' + qte + ' ' + c.nom + ' à la grange.' + (rendue ? ' Et une graine récupérée !' : '')); if (xpRecolte > 0) gagnerXp(xpRecolte, true); rendreCase(p.id); rendreGrange();
   },
   capturer(p) {
-    if (!p.tofu || p.nuisible === 'wabbit' || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorations.', 'alerte'); return; } S_.filets--; fermerModale();
+    if (!p.tofu || p.nuisible === 'wabbit' || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale();
     if (Math.random() < CHANCE_CAPTURE) { compter('captures'); S_.tofus++; p.tofu = 0; p.tofuParti = Date.now(); toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else { p.tofu = 0; p.tofuParti = Date.now(); toast('Raté, le Tofu s\'est échappé avec ton filet, mais il a lâché ta culture.', 'alerte'); }
     rendreCase(p.id); rendreHaut(); rendreGrange();
@@ -165,7 +165,7 @@ const ACTIONS = {
     S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole. Avec un filet de capture (HDV, onglet Acheter), tu l\'aurais attrapé.');
   },
   capturerSauvage() {
-    if (!S_.sauvage || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorations.', 'alerte'); return; } S_.filets--; fermerModale(); S_.sauvage = null;
+    if (!S_.sauvage || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale(); S_.sauvage = null;
     if (Math.random() < CHANCE_SAUVAGE) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte');
     rendreSauvage(); rendreHaut(); rendreGrange();
@@ -265,7 +265,7 @@ const ACTIONS = {
     if (id === 'arbalete') { if (n === 0) { S_.carreaux = capaciteArbalete(); toast('L\'arbalète est montée sur le toit de la grange, armée de ' + S_.carreaux + ' carreaux.', 'or'); } construireArbalete(); rendreArbaleteBulle(); }
     if (id === 'arbalete' && n > 0) toast('Arbalète : ' + degatsArbalete() + ' dégâts, ' + capaciteArbalete() + ' carreaux chargés au plus, un tir toutes les ' + String(cadenceArbalete()).replace('.', ',') + ' s.', 'or');
     rendreHaut(); rendreBouftous();
-    ({ enclos: ouvrirEnclos, voliere: ouvrirVoliere, geliere: ouvrirGeliere, grange: ouvrirGrange, epouvantail: ouvrirEpouvantail, puits: ouvrirPuits, leurre: ouvrirLeurre }[modaleOuverte] || (() => ouvrirHdv('ameliorer')))();
+    ({ enclos: ouvrirEnclos, voliere: ouvrirVoliere, geliere: ouvrirGeliere, grange: ouvrirGrange, epouvantail: ouvrirEpouvantail, puits: ouvrirPuits, leurre: ouvrirLeurre }[modaleOuverte] || (() => ouvrirHdv(['acheter', 'construire'].includes(ouvrirHdv.dernier) ? ouvrirHdv.dernier : 'ameliorer')))(); /* (on reste sur l'onglet d'ou on a achete) */
   },
   construireParcelle(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'libre') return;

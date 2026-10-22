@@ -896,3 +896,11 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
   .accueil .carte:has(.classes) h1 { font-size: 2rem; } .classe .ico { width: 84px; height: 84px; } .classe .ico img { width: 78px; height: 78px; }
   .classe { padding: 9px 10px 8px; gap: 4px; } .look img { height: 54px; } .look { padding: 4px 4px 3px; }
 }
+
+/* L'HDV EN QUATRE ONGLETS (22/10/2026) : Acheter, Vendre, Construire, Ameliorer ; la pastille orange sur Construire ; Acheter a six categories */
+.hdv-tete .btn { position: relative; } .hdv-tete .hdv-pret { top: -9px; right: -8px; }
+.hdv-cats.q6 { grid-template-columns: repeat(6, 1fr); } .hdv-cats.q6 button { flex-direction: column; gap: 1px; padding: 4px 2px; font-size: .74rem; min-width: 0; } .hdv-cats.q6 button img { width: 26px; height: 26px; }
+@media (max-width: 520px) { .hdv-cats.q6 { grid-template-columns: repeat(3, 1fr); } .hdv-tete .btn { padding-left: 9px; padding-right: 9px; } }
+.hdv-aide .lien { background: none; border: 0; padding: 0; font: inherit; font-weight: 800; color: #b5651d; text-decoration: underline; cursor: pointer; }
+@media (max-width: 420px) { .action { width: 44px; } .actions { gap: 1px; } } /* (8 boutons depuis le Bestiaire, 22/10/2026) */
+@media (max-width: 380px) { .action { width: 40px; font-size: .52rem; } .action .tuile { width: 38px; height: 38px; } .action .tuile img { width: 32px; height: 32px; } .actions { padding: 5px 3px; } } /* (les plus petits telephones, 360 px : les 8 boutons tiennent) */

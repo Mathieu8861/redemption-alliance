@@ -39,7 +39,7 @@ const OBJECTIFS = [
   ['niveau', 3, 'Atteins le niveau 3 de Paysan.', 80, 0],
   ['tofusChasses', 1, 'Chasse un Tofu qui picore tes champs.', 40, 8],
   ['vagues', 1, 'Lance et gagne ta première vague (bouton Vagues).', 100, 15],
-  ['amelios', 1, 'Achète ta première amélioration (bouton Améliorer).', 80, 10],
+  ['amelios', 1, 'Achète ta première amélioration (HDV, onglet Améliorer).', 80, 10],
   ['recolte_orge', 1, 'Récolte de l\'Orge (niveau 5).', 100, 10],
   ['vagueMax', 5, 'Gagne la vague 5.', 200, 20],
   ['terrainsAchetes', 1, 'Achète un terrain pour agrandir ta ferme.', 250, 20],

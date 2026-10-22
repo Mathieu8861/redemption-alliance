@@ -162,7 +162,7 @@ function ouvrirChoixForge(k) {
     '<div class="act-bas"><button class="btn discret" data-forge-retour>Retour à l\'atelier</button></div>');
 }
 function forgerObjet(k, t, carac) {
-  if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (Améliorer, catégorie Ferme, niveau ' + NIV_ARENE + ').'); return null; }
+  if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (HDV, onglet Construire, niveau ' + NIV_ARENE + ').'); return null; }
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
   if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
   if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }

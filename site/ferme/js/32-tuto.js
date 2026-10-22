@@ -38,11 +38,22 @@ const ETAPES_TUTO = [
     cases: () => S_.cases.filter((c) => c.type === 'enclos'), etiq: () => tutoDoigt() ? 'Touche' : 'Clic droit', haut: 1.6, picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG('droit'),
     texte: () => '<em>' + ((S_.bouftous[0] || {}).nom || 'Ton Bouftou') + '</em> a faim : ' + (tutoDoigt() ? '<em>touche-le</em>' : 'un <em>clic droit</em> sur lui') + ' pour le nourrir avec du Blé. Nourri, il fait de la laine que tu revends.',
     compteur: 'repas', saute: () => !tuto.revoir && !S_.bouftous.some((b) => Date.now() >= b.rassasie) },
+  { id: 'tofu', avant() { if (tuto.revoir) return; const p = champTuto() || S_.cases.find((c) => c.type === 'champ' && c.c); if (p && !p.tofu) { p.tofu = Date.now(); p.nuisible = null; rendreCase(p.id); rendreCasesBulles(); } tuto.tofu = p ? p.id : null; },
+    cases: () => [S_.cases.find((c) => c.id === tuto.tofu && c.tofu)].filter(Boolean), etiq: () => tutoDoigt() ? 'Touche' : 'Clic droit', haut: 1.7, picto: () => tutoDoigt() ? DOIGT_SVG(false) : SOURIS_SVG('droit'),
+    texte: () => 'Un <em>Tofu</em> picore ton champ ! ' + (tutoDoigt() ? '<em>Touche-le</em>' : 'Un <em>clic droit</em> dessus') + ' pour le chasser, sinon il te vole des récoltes. Plus tard, avec un <em>filet</em> (HDV), tu pourras le capturer pour ta volière.',
+    compteur: 'tofusChasses', saute: () => tuto.revoir && !S_.cases.some((c) => c.type === 'champ' && c.tofu && c.nuisible !== 'wabbit') }, /* (22/10/2026) */
   { id: 'vendre', anneaux: () => modaleOuverte === 'hdv' ? [document.querySelector('[data-hdv-onglet="vendre"][aria-pressed="false"]') || document.querySelector('#carte [data-vendre]')] : [$('b-hdv')],
     etiq: () => modaleOuverte === 'hdv' ? (document.querySelector('[data-hdv-onglet="vendre"][aria-pressed="false"]') ? 'Vendre' : 'Ici') : 'HDV',
-    texte: () => 'Ta récolte est à la grange. Vends-la à l\'<em>HDV</em> : le bouton en bas, onglet <em>Vendre</em>. Tu y rachètes aussi tes graines.', compteur: 'ventes' },
+    texte: () => 'Ta récolte est à la grange. Vends-la à l\'<em>HDV</em> : le bouton en bas, onglet <em>Vendre</em>.', compteur: 'ventes', garder: true },
+  { id: 'acheter', avant() { if (!tuto.revoir && S_.kamas < prixGraine(PAR_ID.ble)) { S_.kamas = prixGraine(PAR_ID.ble); rendreHaut(); } }, /* (22/10/2026) */
+    anneaux: () => modaleOuverte === 'hdv' ? [document.querySelector('[data-hdv-onglet="acheter"][aria-pressed="false"]') || document.querySelector('#carte [data-graines="ble"]') || document.querySelector('#carte [data-graines]')] : [$('b-hdv')],
+    etiq: () => modaleOuverte === 'hdv' ? (document.querySelector('[data-hdv-onglet="acheter"][aria-pressed="false"]') ? 'Acheter' : 'Ici') : 'HDV',
+    texte: () => 'Rachète des <em>graines</em> pour replanter : onglet <em>Acheter</em> de l\'HDV. Les autres cultures se débloquent avec ton niveau, et le bouton <em>Graines</em> choisit ce que ton perso plante.', compteur: 'achatsGraines', garder: true },
+  { id: 'construire', anneaux: () => modaleOuverte === 'hdv' ? [document.querySelector('[data-hdv-onglet="construire"]')] : [$('b-hdv')], etiq: () => modaleOuverte === 'hdv' ? 'Construire' : 'HDV',
+    texte: () => 'L\'onglet <em>Construire</em> : les bâtiments à poser sur ta ferme (arbalète, tours, Gelière...), qui se débloquent avec ton niveau. Ceux que tu as déjà montent de niveau dans <em>Améliorer</em>. Jette un œil !',
+    fait: () => modaleOuverte === 'hdv' && ouvrirHdv.dernier === 'construire', garder: true },
   { id: 'fin', anneaux: () => [$('objectif'), $('b-vagues')], suivant: 'À toi de jouer !',
-    texte: () => 'C\'est tout pour les bases ! Mes <em>objectifs</em>, en haut à gauche, te guident pour la suite. Et quand tu te sens prêt, le bouton <em>Vagues</em> : des monstres grimpent par les bords de l\'île, à des endroits tirés au hasard. Défends la ferme pour gagner kamas et équipement.' }
+    texte: () => 'C\'est tout pour les bases ! Mes <em>objectifs</em>, en haut à gauche, te guident pour la suite. Quand tu te sens prêt, le bouton <em>Vagues</em> : des monstres grimpent par les bords de l\'île. Défends la ferme pour gagner kamas et équipement : je t\'explique le combat à ta première vague, et chaque nouveauté au moment où tu la découvres.' }
 ];
 function demarrerTuto(depuis, revoir) {
   if (!S_ || !S_.perso || combat) return; tuto.revoir = !!revoir;
@@ -79,7 +90,7 @@ function dessinerTuto() {
   if (!tuto.actif || !tuto.el) return;
   const n = tuto.etape, E = ETAPES_TUTO[n], points = '<span class="tuto-points">' + ETAPES_TUTO.map((_, k) => '<i class="' + (k < n ? 'ok' : k === n ? 'ici' : '') + '"></i>').join('') + '</span>';
   if (E.id === 'accueil') {
-    tuto.el.innerHTML = '<div class="tuto-voile"></div><div class="tuto-carte centre"><h2>Bienvenue à la ferme !</h2><p>Salut, moi c\'est <em>Pépito</em>, le commis. Je te montre les bases ? Deux minutes, promis.</p><div class="tuto-boutons"><button class="btn discret" data-tuto-passer>Je connais déjà</button><button class="btn kamas grand" data-tuto-go>C\'est parti !</button></div></div>';
+    tuto.el.innerHTML = '<div class="tuto-voile"></div><div class="tuto-carte centre"><h2>Bienvenue à la ferme !</h2><p>Salut, moi c\'est <em>Pépito</em>, le commis. Je te montre les bases ? Trois minutes, promis.</p><div class="tuto-boutons"><button class="btn discret" data-tuto-passer>Je connais déjà</button><button class="btn kamas grand" data-tuto-go>C\'est parti !</button></div></div>';
     return;
   }
   tuto.el.innerHTML = '<svg class="tuto-sol"></svg><div class="tuto-reperes"></div><div class="tuto-carte"><div class="tuto-tete"><b>Pépito</b> Étape ' + (n + 1) + ' sur ' + ETAPES_TUTO.length + points + '<button class="tuto-passer" data-tuto-passer>Passer le tuto</button></div>' +
@@ -91,7 +102,7 @@ function majTuto() { /* chaque image : les reperes suivent la camera, et l'etape
   if (!tuto.actif) return; requestAnimationFrame(majTuto);
   const E = ETAPES_TUTO[tuto.etape]; if (!E || E.id === 'accueil') return;
   if (etapeFaite(E)) { son('quete'); if (E.id === 'fin') return; allerEtapeTuto(tuto.etape + 1); return; }
-  const carte = tuto.el.querySelector('.tuto-carte'); if (carte) carte.classList.toggle('cachee', !!modaleOuverte); /* une fenetre ouverte : la carte s'efface, les reperes restent */
+  const carte = tuto.el.querySelector('.tuto-carte'); if (carte) carte.classList.toggle('cachee', !!modaleOuverte && !(E.garder && modaleOuverte === 'hdv')); /* une fenetre ouverte : la carte s'efface, les reperes restent (sauf les etapes de l'HDV : on lit ce qu'il faut y faire) */
   const svg = tuto.el.querySelector('.tuto-sol'), rep = tuto.el.querySelector('.tuto-reperes'); if (!svg || !rep) return;
   let s = '', h = '';
   const cases = E.cases && !modaleOuverte ? E.cases() : [];

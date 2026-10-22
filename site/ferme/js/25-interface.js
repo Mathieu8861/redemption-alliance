@@ -167,9 +167,14 @@ const GAINS = {
 /* « le systeme qu'on a fait a l'HDV dans Achat est super, on pourrait faire le meme principe pour les ameliorations ? » (Mathieu, 13/10/2026) : trois categories
    en haut, chacune avec le nombre d'ameliorations que tu peux acheter tout de suite ; dedans, une phrase sur leur role, ce qui s'achete d'abord, puis ce qui attend
    un niveau, puis ce qui est au maximum */
-const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Produire plus et plus vite : l\'eau, les cultures, tes déplacements et tes ventes. Et l\'atelier de forgemagie, pour monter le jet de tes pièces.', ['nivPuits', 'engrais', 'semences', 'faux', 'bottes', 'nivEtal', 'forge']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
+const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Ton puits, ton étal de l\'HDV et ton atelier de forgemagie.', ['nivPuits', 'nivEtal', 'forge']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
   ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous, tes Tofus et tes Gelées : plus de laine, de plumes et de pots de gelée.', ['enclos', 'voliere', 'geliere']],
-  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et l\'arbalète contre les voleurs de VSA, les tours contre les vagues, l\'épouvantail et la cloche contre les Tofus, le leurre contre les Wabbits, et ton gardien au niveau 80.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre', 'gardien']]];
+  ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et son arbalète contre les voleurs de VSA, l\'épouvantail contre les Tofus, le leurre contre les Wabbits, et ton gardien.', ['qg', 'arbalete', 'epouvantail', 'leurre', 'gardien']]];
+/* CONSTRUIRE (22/10/2026) : ce qui se construit une premiere fois ; une fois construit, ca passe dans Ameliorer (les tours restent ici jusqu'a la derniere,
+   chacune se monte de niveau depuis sa propre fenetre). OUTILS : les achats qui rendent le travail plus facile, dans Acheter. */
+const CONSTRUCTIONS = ['arbalete', 'tours', 'geliere', 'forge', 'leurre', 'gardien'], OUTILS = ['engrais', 'semences', 'faux', 'bottes', 'cloche'];
+const construit = (id) => (id === 'gardien' ? !!S_.gardien : id === 'tours' ? nbTours() >= TOURS_MAX : niv(id) > 0);
+const aConstruire = () => CONSTRUCTIONS.filter((id) => !construit(id));
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
   if (id === 'gardien') return etatGardien(); /* (le gardien n'est pas une amelioration : un choix, au niveau 80) */
@@ -178,7 +183,7 @@ function etatAmelio(id) {
   if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a)) return { e: 'bloque' };
   return { e: 'dispo', ok: S_.kamas >= a.couts[n] };
 }
-const PARTIES_AMELIO = [['', 'Productivité', 'Produire plus et plus vite : eau, Bouftous, Tofus, ventes, cultures.', ['nivPuits', 'enclos', 'voliere', 'nivEtal', 'engrais', 'bottes', 'semences', 'faux']],
+const PARTIES_AMELIO = [['', 'Productivité', 'Produire plus et plus vite : eau, Bouftous, Tofus, ventes.', ['nivPuits', 'enclos', 'voliere', 'nivEtal']],
   ['', 'Défense', 'Protéger ta ferme des voleurs de VSA, des monstres des vagues, des Tofus et des Wabbits.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre']]];
 /* les cellules d'amelioration, style A (« la A pour arbalete, niquel », Mathieu, 12/10/2026, sur design-amelio-cellules.html) : l'icone, le nom en grand,
    le niveau en crans, une phrase, puis ce que change le prochain achat en lignes nettes (picto gris, libelle, avant → apres), sans cases ni emojis */
@@ -227,17 +232,27 @@ function ouvrirHdv(onglet) { /* (redessinee sur le meme onglet et la meme catego
 }
 function ouvrirHdv0(onglet) {
   onglet = onglet || ouvrirHdv.dernier || 'vendre'; ouvrirHdv.dernier = onglet;
-  const tete = '<div class="hdv-tete">' + [['acheter', 'Acheter'], ['vendre', 'Vendre'], ['ameliorer', 'Améliorations']].map(([k, t]) => '<button class="btn" data-hdv-onglet="' + k + '" aria-pressed="' + (onglet === k) + '">' + t + '</button>').join('') + '<span class="solde">' + fmt(S_.kamas) + ' ' + KAMA + '</span></div>';
+  const nConstruire = aConstruire().filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length; /* (ce qu'on peut construire tout de suite : la pastille orange de l'onglet) */
+  const tete = '<div class="hdv-tete">' + [['acheter', 'Acheter'], ['vendre', 'Vendre'], ['construire', 'Construire'], ['ameliorer', 'Améliorer']].map(([k, t]) => '<button class="btn" data-hdv-onglet="' + k + '" aria-pressed="' + (onglet === k) + '">' + t + (k === 'construire' && nConstruire ? '<span class="hdv-pret" title="' + nConstruire + ' à construire tout de suite">' + nConstruire + '</span>' : '') + '</button>').join('') + '<span class="solde">' + fmt(S_.kamas) + ' ' + KAMA + '</span></div>';
   const choixQte = (options) => { const q = ouvrirHdv.qte = options.some(([v]) => v === ouvrirHdv.qte) ? ouvrirHdv.qte : 1; return '<div class="hdv-qte">Quantité <span class="seg">' + options.map(([v, t]) => '<button data-hdv-qte="' + v + '" aria-pressed="' + (q === v) + '">' + t + '</button>').join('') + '</span></div>'; };
   const etatHdv = S_.cases.some((c) => c.type === 'hdv') && (degatsBat('hdv') || enRuine('hdv')) ? artPv('hdv') : '';
-  if (onglet !== 'ameliorer' && enRuine('hdv')) { ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv); return; }
+  if (onglet !== 'ameliorer' && onglet !== 'construire' && enRuine('hdv')) { ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv); return; }
+  const carte = (id) => id === 'tours' ? artTour() : id === 'gardien' ? artGardien() : artAmelio(AMELIOS.find((a) => a.id === id));
+  if (onglet === 'construire') {
+    const L = aConstruire(), par = (e) => L.filter((id) => etatAmelio(id).e === e), faits = CONSTRUCTIONS.filter((id) => !L.includes(id));
+    ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + '<p class="hdv-aide">Les bâtiments que tu n\'as pas encore. Une fois construits, ils passent dans <b>Améliorer</b>, où ils montent de niveau. Ils se posent tout seuls sur une case libre, puis se déplacent avec Aménager.</p>' +
+      par('dispo').map(carte).join('') + (par('bloque').length ? '<div class="hdv-section">À débloquer</div>' + par('bloque').map(carte).join('') : '') +
+      (L.length ? '' : '<p class="hdv-aide">Tout est construit ! Leurs niveaux se montent dans Améliorer.</p>') +
+      (faits.length ? '<p class="hdv-aide" style="margin-top:10px">Déjà construits : ' + faits.map((id) => ({ tours: 'tes ' + TOURS_MAX + ' tours', gardien: gardienDe() ? gardienDe().nom : '', arbalete: 'l\'arbalète de la grange', geliere: 'la Gelière', forge: 'l\'atelier de forgemagie', leurre: 'le leurre à Wabbits' })[id]).join(', ') + '.</p>' : '')); return;
+  }
   if (onglet === 'ameliorer') {
-    const carte = (id) => id === 'tours' ? artTour() : id === 'gardien' ? artGardien() : artAmelio(AMELIOS.find((a) => a.id === id)), pretes = (L) => L.filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
+    const pretes = (L) => L.filter((id) => construit(id) || !CONSTRUCTIONS.includes(id)).filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
     if (!ouvrirHdv.catA) ouvrirHdv.catA = (CATS_AMELIO.find((C) => pretes(C[4])) || CATS_AMELIO[0])[0]; /* (la premiere fois : la ou il y a quelque chose a acheter) */
-    const C = CATS_AMELIO.find(([k]) => k === ouvrirHdv.catA) || CATS_AMELIO[0], par = (e) => C[4].filter((id) => etatAmelio(id).e === e);
+    const C = CATS_AMELIO.find(([k]) => k === ouvrirHdv.catA) || CATS_AMELIO[0], ici = C[4].filter((id) => !CONSTRUCTIONS.includes(id) || construit(id)), par = (e) => ici.filter((id) => etatAmelio(id).e === e);
+    const versConstruire = nConstruire ? '<p class="hdv-aide">' + nConstruire + ' bâtiment' + (nConstruire > 1 ? 's' : '') + ' à construire : <button class="lien" data-hdv-onglet="construire">onglet Construire</button>.</p>' : '';
     const cats = '<div class="hdv-cats">' + CATS_AMELIO.map(([k, t, i, , L]) => { const n = pretes(L); return '<button data-hdv-cat-a="' + k + '" aria-pressed="' + (C[0] === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + (n ? '<span class="hdv-pret" title="' + n + ' à acheter tout de suite">' + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
     const bloque = par('bloque'), fini = par('fini');
-    ouvrirModale('hdv', entete('Hôtel de vente') + tete + cats + '<p class="hdv-aide">' + C[3] + '</p>' + par('dispo').map(carte).join('') +
+    ouvrirModale('hdv', entete('Hôtel de vente') + tete + cats + '<p class="hdv-aide">' + C[3] + '</p>' + versConstruire + (ici.length ? '' : '<p class="hdv-aide">Rien encore : construis d\'abord (onglet Construire).</p>') + par('dispo').map(carte).join('') +
       (bloque.length ? '<div class="hdv-section">À débloquer</div>' + bloque.map(carte).join('') : '') + (fini.length ? '<div class="hdv-section">Déjà au maximum</div>' + fini.map(carte).join('') : '')); return;
   }
   if (onglet === 'acheter') {
@@ -245,7 +260,7 @@ function ouvrirHdv0(onglet) {
        qu'il y a les Bouftous, les filets et les fleches ; et expliquer a quoi ils servent, les rendre plus visibles avant ce qui n'est pas debloque »
        (Mathieu, 12/10/2026) : trois categories visibles en haut, la quantite a cote de chaque bouton, une phrase sur l'usage, les graines a debloquer en dernier */
     const cat = ouvrirHdv.cat || 'graines', cap = capacite(), pc = (e, t) => '<span class="puce">' + picto(e, '#8a7a5c') + t + '</span>';
-    const cats = '<div class="hdv-cats q5">' + [['graines', 'Graines', 'ble'], ['animaux', 'Animaux', 'bouftou'], ['materiel', 'Matériel', 'fleches'], ['gelees', 'Gelées', 'pot-petit'], ['deco', 'Déco', 'deco-lanterne']].map(([k, t, i]) => '<button data-hdv-cat="' + k + '" aria-pressed="' + (cat === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + '</button>').join('') + '</div>';
+    const cats = '<div class="hdv-cats q6">' + [['graines', 'Graines', 'ble'], ['animaux', 'Animaux', 'bouftou'], ['materiel', 'Matériel', 'fleches'], ['outils', 'Outils', 'faux'], ['gelees', 'Gelées', 'pot-petit'], ['deco', 'Déco', 'deco-lanterne']].map(([k, t, i]) => '<button data-hdv-cat="' + k + '" aria-pressed="' + (cat === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + '</button>').join('') + '</div>';
     let corps = '';
     if (cat === 'graines') {
       const ouvertes = CULTURES.filter(debloquee), fermees = CULTURES.filter((c) => !debloquee(c));
@@ -271,11 +286,15 @@ function ouvrirHdv0(onglet) {
           return '<div class="art">' + ico('pot-' + t) + '<div><b>' + P.nom + '</b><div class="puces"><span class="puce bonne">' + P.effet + '</span><span class="puce">' + (S_.pots[t] || 0) + ' en réserve</span></div><div class="desc">' + P.desc + '</div></div>' +
             '<div class="act"><small>' + fmt(pr) + ' ' + KAMA + ' le pot</small>' + segQte('pot:' + t, o) + '<button class="btn kamas" data-pot-achat="' + t + '" data-n="' + n + '"' + (S_.kamas >= n * pr ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * pr) + ' ' + KAMA + '</button>' + manque(n * pr) + '</div></div>'; }).join('') +
         '<p class="hdv-aide">Les Gelées elles-mêmes, qui font ces pots à ta Gelière, sont dans la catégorie Animaux.</p>';
+    } else if (cat === 'outils') { /* (22/10/2026 : sortis d'Ameliorer, ce ne sont pas des batiments) */
+      const par = (e) => OUTILS.filter((id) => etatAmelio(id).e === e);
+      corps = '<p class="hdv-aide">Des outils pour travailler plus vite : tes cultures poussent plus vite, tu récoltes plus, tu cours plus vite. Achetés une fois, ils servent pour toujours.</p>' + par('dispo').map(carte).join('') +
+        (par('bloque').length ? '<div class="hdv-section">À débloquer</div>' + par('bloque').map(carte).join('') : '') + (par('fini').length ? '<div class="hdv-section">Déjà achetés</div>' + par('fini').map(carte).join('') : '');
     } else if (cat === 'deco') { corps = corpsDecoHdv();
     } else {
       const oF = [[1, '×1'], [5, '×5']], nF = qteDe('filets', oF), oA = [[10, '×10'], [50, '×50']], nA = qteDe('fleches', oA);
       corps = '<div class="art">' + ico('fleches') + '<div><b>Flèches</b><div class="puces"><span class="puce">' + fmt(S_.fleches) + ' en réserve</span>' + (niv('arbalete') ? '<span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? 'arbalète : ' + S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'arbalète à recharger') + '</span>' : '') + '</div>' +
-          '<div class="desc">Les munitions de ta défense : l\'arbalète de la grange, les tours et l\'épouvantail tirent une flèche par tir. Sans flèches, ils ne tirent plus.' + (niv('arbalete') ? '' : ' L\'arbalète s\'achète dans Améliorations.') + '</div></div>' +
+          '<div class="desc">Les munitions de ta défense : l\'arbalète de la grange, les tours et l\'épouvantail tirent une flèche par tir. Sans flèches, ils ne tirent plus.' + (niv('arbalete') ? '' : ' L\'arbalète se construit à l\'HDV, onglet Construire.') + '</div></div>' +
           '<div class="act"><small>' + PRIX_FLECHE + ' ' + KAMA + ' la flèche</small>' + segQte('fleches', oA) + '<button class="btn kamas" data-fleches="' + nA + '"' + (S_.kamas >= nA * PRIX_FLECHE ? '' : ' disabled') + '>Acheter ×' + nA + ' = ' + fmt(nA * PRIX_FLECHE) + ' ' + KAMA + '</button>' + manque(nA * PRIX_FLECHE) + '</div></div>' +
         '<div class="art">' + ico('filet') + '<div><b>Filet de capture</b><div class="puces">' + pc('tofu', 'sur un champ : ' + Math.round(CHANCE_CAPTURE * 100) + ' %') + pc('pousse', 'dans l\'herbe : ' + Math.round(CHANCE_SAUVAGE * 100) + ' %') + '<span class="puce">' + S_.filets + ' en grange</span></div>' +
           '<div class="desc">Pour capturer un Tofu au lieu de le chasser : touche-le avec un filet en poche. Il part dans ta volière et donne des plumes à revendre. Un Tofu sauvage posé dans l\'herbe se laisse mieux attraper.</div></div>' +
@@ -504,7 +523,7 @@ function ouvrirPerso(sel) {
 function ouvrirTofu(p, sauvage) {
   const titre = sauvage ? 'Un Tofu sauvage dans l\'herbe' : 'Un Tofu picore ton ' + PAR_ID[p.c].nom, chance = sauvage ? CHANCE_SAUVAGE : CHANCE_CAPTURE;
   ouvrirModale('tofu', entete(titre) + '<div class="ligne"><div><b>Le chasser</b><small>Gratuit, ton perso le chasse à distance' + (classeDe() === 'cra' ? ', d\'une flèche' : '') + ' : il s\'envole.</small></div><button class="btn discret" ' + (sauvage ? 'data-chasser-sauvage="1"' : 'data-chasser="' + p.id + '"') + '>Chasser</button></div>' +
-    (S_.tofus >= capaciteVoliere() ? '<div class="ligne"><div><b>Le capturer au filet</b><small>Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ' places). Agrandis-la à l\'HDV, onglet Améliorations.</small></div><button class="btn kamas" disabled>Pleine</button></div>' :
+    (S_.tofus >= capaciteVoliere() ? '<div class="ligne"><div><b>Le capturer au filet</b><small>Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ' places). Agrandis-la à l\'HDV, onglet Améliorer.</small></div><button class="btn kamas" disabled>Pleine</button></div>' :
     '<div class="ligne"><div><b>Le capturer au filet</b><small>' + Math.round(chance * 100) + ' % de chance, le filet est perdu dans tous les cas (' + S_.filets + ' en grange). Capturé, il va à la volière (' + S_.tofus + '/' + capaciteVoliere() + ' places) et donne des plumes.</small></div><button class="btn kamas" ' + (sauvage ? 'data-capturer-sauvage="1"' : 'data-capturer="' + p.id + '"') + '>Capturer</button></div>'));
 }
 function ouvrirPlanter(p, dispo) {
@@ -538,7 +557,7 @@ document.addEventListener('click', (e) => {
   if (b.dataset.bestiaire) { ouvrirBestiaire(b.dataset.bestiaire); return; }
   if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
   if (b.dataset.revoirCombat) { revoirCombat(+b.dataset.revoirCombat); return; }
-  if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
+  if (b.id === 'b-bestiaire') { ouvrirBestiaire.retour = null; ouvrirBestiaire('monstres'); } else if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();
   else if (b.hasAttribute('data-carnet')) ouvrirCarnet();
   else if (b.dataset.relire) { fermerModale(); ouvrirLecon(b.dataset.relire, true); }
   else if (b.hasAttribute('data-lecons-bascule')) { if (S_.leconsOff) delete S_.leconsOff; else S_.leconsOff = true; sauver(); ouvrirCarnet(); }
