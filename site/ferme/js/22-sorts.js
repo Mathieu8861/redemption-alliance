@@ -9,6 +9,7 @@ const ULTIS = {
   mono: { nom: { iop: 'Colère de Iop', cra: 'Flèche fatale', osa: 'Morsure du Dragoeuf' }, genre: 'Coup fatal', teinte: '#d9443a', desc: 'Un seul monstre, mais cinq fois ton attaque : de quoi entamer sérieusement un boss.', chiffres: (d) => [5 * d + ' dégâts', 'une seule cible'] }
 };
 const nomUlti = (id) => ULTIS[id].nom[classeDe()];
+const descUlti = (id) => id === 'zone' && classeDe() === 'iop' ? 'Il fonce au point visé, puis tournoie ' + DUREE_TEMPETE + ' s épée tendue : ' + COUPS_TEMPETE + ' coups sur tous les monstres autour de lui, trois fois son attaque en tout. Tu peux le déplacer pendant qu\'il tournoie.' : ULTIS[id].desc; /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
 /* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
    (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
 const sufUlti = () => classeDe() === 'cra' ? '' : '-' + classeDe();
@@ -16,13 +17,13 @@ const srcUlti = (id) => 'assets/icones/ulti-' + id + sufUlti() + '.png?v=' + VER
 function ouvrirUlti() {
   const l = niveau(S_.xp), d = statsPerso().deg, cl = CLASSES.find((c) => c.id === classeDe());
   const carte = (id) => { const U = ULTIS[id], pris = S_.ulti === id;
-    return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + RECHARGE_ULTI + ' s</span></div></div><div class="desc">' + U.desc + '</div></div>' +
+    return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + RECHARGE_ULTI + ' s</span></div></div><div class="desc">' + descUlti(id) + '</div></div>' +
       (S_.ulti ? (pris ? '<span class="cadenas">✓ Ton ulti</span>' : '<span></span>') : '<button class="btn kamas" data-choisir-ulti="' + id + '"' + (l < NIV_ULTI ? ' disabled' : '') + '>Choisir</button>') + '</div>'; };
   ouvrirModale('ulti', entete('L\'ulti du ' + cl.nom) + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">' + (S_.ulti ? 'Ton choix est fait, il est définitif.' : l < NIV_ULTI ? 'Il se débloque au niveau ' + NIV_ULTI + ' de Paysan (tu es niveau ' + l + ').' : 'Il s\'ajoute à ton attaque et à ton sort. <b>Tu le choisis une seule fois : impossible d\'en changer ensuite.</b>') + ' Les dégâts indiqués sont ceux de ton niveau actuel, ils montent avec toi.</p>' + ['gel', 'zone', 'mono'].map(carte).join(''));
 }
 function choisirUlti(id, confirme) {
   if (S_.ulti || !ULTIS[id] || niveau(S_.xp) < NIV_ULTI) return;
-  if (!confirme) { const U = ULTIS[id]; ouvrirModale('ulti', entete('Prendre ' + nomUlti(id) + ' ?') + '<div class="confirme"><div class="gros" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></div><b>' + U.genre + '</b><p>' + U.desc + '<br><b>C\'est pour de bon : tu ne pourras plus changer d\'ulti.</b></p><div class="boutons"><button class="btn discret" data-voir-ulti>Revoir les trois</button><button class="btn kamas" data-confirmer-ulti="' + id + '">Oui, je le prends</button></div></div>'); return; }
+  if (!confirme) { const U = ULTIS[id]; ouvrirModale('ulti', entete('Prendre ' + nomUlti(id) + ' ?') + '<div class="confirme"><div class="gros" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></div><b>' + U.genre + '</b><p>' + descUlti(id) + '<br><b>C\'est pour de bon : tu ne pourras plus changer d\'ulti.</b></p><div class="boutons"><button class="btn discret" data-voir-ulti>Revoir les trois</button><button class="btn kamas" data-confirmer-ulti="' + id + '">Oui, je le prends</button></div></div>'); return; }
   S_.ulti = id; sauver(); toast(nomUlti(id) + ' est ton ulti. Il t\'attend pendant les vagues, à côté de ton sort.', 'or'); ouvrirUlti();
 }
 /* ---------- viser soi-meme : un cercle sur le sol pour les ultis de zone, la cible sous la souris pour le coup fatal,
@@ -89,12 +90,12 @@ function tempeteDeLames(pt) {
   combat.cdUlti = RECHARGE_ULTI; chemin = []; arrivee = null; combat.ordre = false; u.charge = true; toast(nomUlti('zone') + ' !', 'or');
   const dash = Math.min(0.4, Math.hypot(x - pp.x, z - pp.z) / 18), fx = new T.Group(); scene.add(fx);
   [[0.95, 1.18, '#ffffff', 0.9, 0], [1.28, 1.42, '#ffd28a', 0.75, Math.PI], [R - 0.12, R, '#ee8a34', 0.55, 0]].forEach(([r0, r1, c, o, a], i) => { const g = new T.Mesh(new T.RingGeometry(r0, r1, 48, 1, a, i === 2 ? Math.PI * 2 : Math.PI * 1.25), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: o, side: T.DoubleSide, depthWrite: false })); g.rotation.x = -Math.PI / 2; g.position.y = i === 2 ? 0.05 : 0.7 + i * 0.12; g.userData.tourne = i < 2 ? (i ? -1 : 1) : 0; fx.add(g); });
-  let t = 0, coups = 0;
+  let t = 0, coups = 0, tour = u.angle || 0; /* (son propre angle : la marche reecrit u.angle a chaque image, il ne tournait plus en marchant) */
   effets.push((dt) => {
     t += dt; const p = paysanMesh.position;
     if (t < dash) { const k = t / dash; p.x = de.x + (x - de.x) * k; p.z = de.z + (z - de.z) * k; }
-    else { p.x = x; p.z = z; u.angle = (u.angle || 0) + dt * 17; paysanMesh.rotation.y = u.angle; if (bras) bras.rotation.x = -1.45; /* il tournoie, epee tendue */
-      while (combat && !combat.fin && coups < COUPS_TEMPETE && t - dash >= coups * (DUREE_TEMPETE / COUPS_TEMPETE)) { coups++; combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) <= R) blesser(o, Math.round(st.deg * 3 / COUPS_TEMPETE), true); }); } }
+    else { tour += dt * 17; paysanMesh.rotation.y = tour; if (bras) bras.rotation.x = -1.45; /* il tournoie, epee tendue ; et il se deplace ou on le guide (« bloque a faire la toupie, c'est naze », Mathieu, 22/10/2026) : les coups frappent autour de lui, la ou il est */
+      while (combat && !combat.fin && coups < COUPS_TEMPETE && t - dash >= coups * (DUREE_TEMPETE / COUPS_TEMPETE)) { coups++; combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - p.x, o.z - p.z) <= R) blesser(o, Math.round(st.deg * 3 / COUPS_TEMPETE), true); }); } }
     const cel = caseIci(p.x, p.z); u.y = hauteurSol(p.x, p.z, cel); p.y = u.y; fx.position.set(p.x, p.y, p.z);
     fx.children.forEach((g) => { if (g.userData.tourne) g.rotation.z += dt * 15 * g.userData.tourne; else g.material.opacity = 0.35 + 0.2 * Math.sin(t * 12); });
     if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); u.charge = false; if (bras) bras.rotation.x = 0; if (cel && PASSABLE[cel.type]) u.cellule = cel; pouf(p.x, p.y, p.z, 3.5, '#ffd28a'); return true; }

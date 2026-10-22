@@ -897,6 +897,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 @media (min-width: 900px) and (max-height: 820px) { /* (un portable : medaillons et apparences du Iop encore un peu plus petits) */
   .accueil .carte:has(.classes) h1 { font-size: 2rem; } .classe .ico { width: 84px; height: 84px; } .classe .ico img { width: 78px; height: 78px; }
   .classe { padding: 9px 10px 8px; gap: 4px; } .look img { height: 54px; } .look { padding: 4px 4px 3px; }
+  .classe .l2 { display: none; } .classe .ico { width: 76px; height: 76px; } .classe .ico img { width: 70px; height: 70px; } /* (22/10/2026 : les chiffres et le passif en plus ; la 2e phrase de chaque classe redit les chiffres) */
 }
 
 /* L'HDV EN QUATRE ONGLETS (22/10/2026) : Acheter, Vendre, Construire, Ameliorer ; la pastille orange sur Construire ; Acheter a six categories */
@@ -932,3 +933,9 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .fp-sorts .art.passif .pic { width: 64px; height: 64px; justify-self: center; background: #f3ead8; border-color: #c9b48a; } .fp-sorts .art.passif .pic .pc { width: 34px; height: 34px; }
 .fp-sorts .desc.passif-sort { margin-top: 4px; padding: 4px 8px; background: #eef6e6; border-radius: 8px; }
 .classe .passif { padding: 3px 5px; background: #eef6e6; border-radius: 8px; } .classe .passif em { font-style: normal; font-weight: 800; color: var(--encre); }
+/* « Comparer les trois classes » a la creation (22/10/2026) : par-dessus l'ecran, sans le faire defiler */
+.choix-classe .lien { font: 800 .8rem var(--f-texte); color: var(--kamas); text-decoration: underline; background: none; border: 0; padding: 0; cursor: pointer; }
+.fc-calque { position: absolute; inset: 8px; z-index: 5; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 6px 0 var(--bord); padding: 10px 14px; overflow: auto; text-align: left; }
+.fc-calque-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; } .fc-calque-tete b { font: 400 1.1rem var(--f-titre); }
+.accueil .carte { position: relative; } /* (le calque de comparaison se pose dessus) */
+@media (min-width: 900px) and (max-height: 740px) { .classe .ico { width: 66px; height: 66px; } .classe .ico img { width: 60px; height: 60px; } .look img { height: 46px; } } /* (un portable de 720 px de haut, avec les apparences du Iop) */
