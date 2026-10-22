@@ -69,11 +69,12 @@ function boucle(t) {
   if (!reduit && !enPause) {
     errer(Math.min(0.05, (t - (boucle.t1 || t)) / 1000), s);
     nuages.forEach((n, k) => { n.position.x += Math.sin(s * 0.2 + k) * 0.002; });
-    Object.values(casesDyn).forEach((g) => g.children.forEach((o) => { if (o.userData && o.userData.tofu) o.rotation.z = Math.sin(s * 6) * 0.18; }));
+    const dtv = Math.min(0.05, (t - (boucle.t1 || t)) / 1000); /* les Tofus picorent, regardent autour d'eux, font quelques pas (14f-tofus.js) */
+    Object.values(casesDyn).forEach((g) => g.children.forEach((o) => { if (o.userData && o.userData.tofu) vieTofu(o, dtv, VIE_CHAMP); }));
     if (marchandMesh) { marchandMesh.rotation.y = (marchandMesh.userData.ry0 !== undefined ? marchandMesh.userData.ry0 : -0.5) + Math.sin(s * 0.45) * 0.3; marchandMesh.position.y = (marchandMesh.userData.y0 || 0) + Math.sin(s * 1.6) * 0.008; } /* il regarde autour de lui */
     animerGelees(Math.min(0.05, (t - (boucle.t1 || t)) / 1000), s);
-    tofusVoliere.forEach((t, k) => { t.position.y = t.userData.base.y + Math.abs(Math.sin(s * 3.2 + k * 1.7)) * 0.1; t.rotation.y += Math.sin(s * 0.7 + k) * 0.004; });
-    if (sauvageMesh) { sauvageMesh.position.y = sauvageMesh.userData.base + Math.abs(Math.sin(s * 5)) * 0.18; sauvageMesh.rotation.y = 0.7 + Math.sin(s * 1.3) * 0.6; }
+    tofusVoliere.forEach((o) => vieTofu(o, dtv, VIE_VOLIERE));
+    if (sauvageMesh) vieTofu(sauvageMesh, dtv, VIE_SAUVAGE);
   }
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
