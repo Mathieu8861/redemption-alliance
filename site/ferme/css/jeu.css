@@ -481,14 +481,16 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .slot-partie .btn { padding: 7px 14px; font-size: .86rem; } .partie-suppr { background: none; border: 0; font: 800 1rem/1 var(--f-texte); color: #a08a6a; cursor: pointer; padding: 4px 6px; } .partie-suppr:hover { color: var(--rouge); }
 .accueil .retour-parties { display: block; margin: 0 0 8px; background: none; border: 0; font: 800 .78rem var(--f-texte); color: #8a6a3a; text-decoration: underline; cursor: pointer; } /* de l'air sous le bouton (son ombre le fait paraitre plus bas) */
 .reprise button { background: none; border: 0; text-decoration: underline; font: inherit; color: var(--rouge); }
-/* les bulles : nos icones sur un rond clair, un fin anneau de couleur (or : a recolter, bleu : a arroser, rouge : urgent), une ombre douce, sans gros trait noir */
-.bulle.ico { --anneau: var(--or); width: 40px; height: 40px; background: #fffdf6; border: 2.5px solid var(--anneau); box-shadow: 0 3px 8px rgba(36, 49, 28, .3), inset 0 -3px 0 rgba(59, 42, 26, .08); }
-.bulle.ico.or, .bulle.ico.eau, .bulle.ico.rouge { background: #fffdf6; color: var(--encre); }
-.bulle.ico.eau { --anneau: var(--eau); } .bulle.ico.rouge { --anneau: var(--rouge); }
-.bulle.ico::after { bottom: -8px; border-width: 5px; border-top-color: var(--anneau); }
-.bulle.ico img { width: 31px; height: 31px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 1px 0 rgba(59, 42, 26, .25)); }
-.bulle.ico small { right: -9px; top: -7px; background: var(--anneau); color: #fff; border: 2px solid #fffdf6; box-shadow: 0 1px 3px rgba(36, 49, 28, .35); padding: 2px 5px; }
-.bulle.ico.or small { color: var(--encre); }
+/* les bulles BONBON (22/10/2026) : « trop grandes, les diviser par deux ; le fond blanc, ca fait fade pour un jeu » (Mathieu, qui a choisi ce style parmi trois) :
+   la pastille prend la couleur de l'action (or : a recolter, bleu : de l'eau, rouge : urgent, rose : un petit en route), liseré blanc, reflet brillant */
+.bulle.ico { --h: #ffe27a; --b: #e89a12; --q: #b06f05; width: 24px; height: 24px; background: linear-gradient(var(--h), var(--b)); border: 2px solid #fff; box-shadow: 0 2px 0 var(--q), 0 3px 7px rgba(0, 0, 0, .35); overflow: visible; }
+.bulle.ico.or, .bulle.ico.eau, .bulle.ico.rouge, .bulle.ico.rose { background: linear-gradient(var(--h), var(--b)); color: #fff; }
+.bulle.ico.eau { --h: #8fd3ff; --b: #2f8fd6; --q: #1b5f96; } .bulle.ico.rouge { --h: #ff8e7e; --b: #d9372b; --q: #93201a; } .bulle.ico.rose { --h: #ffc9de; --b: #ea7fab; --q: #b24b78; }
+.bulle.ico::before { content: ""; position: absolute; left: 4px; right: 4px; top: 2px; height: 38%; border-radius: 50%; background: linear-gradient(rgba(255, 255, 255, .7), rgba(255, 255, 255, 0)); pointer-events: none; }
+.bulle.ico::after { bottom: -8px; border-width: 4px; border-top-color: #fff; }
+.bulle.ico img { width: 19px; height: 19px; object-fit: contain; position: relative; z-index: 1; pointer-events: none; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .35)); }
+.bulle.ico small { right: -9px; top: -7px; background: #3b2a1a; color: #fff; border: 1.5px solid #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); font: 800 9px/1 var(--f-texte); padding: 1px 3px; z-index: 2; }
+@media (pointer: coarse) { .bulle.ico { width: 28px; height: 28px; } .bulle.ico img { width: 22px; height: 22px; } } /* (au doigt : un peu plus grande, pour la toucher sans viser) */
 .pastille img.ico-haut { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; }
 /* ---- les vagues : la fiche ---- */
 .vg-sous { font-size: .8rem; font-weight: 600; color: #6b5a3a; margin: -2px 0 8px; }
@@ -657,7 +659,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   .classe > :not(.ico) { grid-column: 2; } .classe .etiquettes { justify-content: flex-start; }
   .classe b { font-size: 1.25rem; } .classe span { font-size: .8rem; }
 }
-.bulle.ico.file { box-shadow: 0 0 0 4px rgba(90, 160, 44, .55), 0 3px 8px rgba(36, 49, 28, .3); }
+.bulle.ico.file { box-shadow: 0 0 0 3px rgba(90, 160, 44, .7), 0 2px 0 var(--q), 0 3px 7px rgba(0, 0, 0, .35); }
 /* ---- la fiche du perso ---- */
 .fiche-tete { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: center; margin-bottom: 6px; }
 .fiche-tete img { width: 74px; height: 74px; object-fit: contain; border: 3px solid var(--bord); border-radius: 18px; background: radial-gradient(circle at 50% 40%, #fffaf0, #f3e3c0); box-shadow: 0 3px 0 var(--bord); }
