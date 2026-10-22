@@ -165,7 +165,7 @@ function rendreCasesBulles() {
     const cle = 'c' + p.id, pos = posCase(p);
     if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, peutCapturer() ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', peutCapturer() ? 'Un Tofu sauvage : touche pour le capturer au filet' : S_.filets ? 'Un Tofu sauvage : ta volière est pleine, touche pour le chasser' : 'Un Tofu sauvage : touche pour le chasser'); return; }
     if (p.type === 'puits') { if (niv('arrosoir') && !(S_.citerne > 0) && !enRuine('puits') && !combat) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, pos.y + 2.4, pos.z], 'case:' + p.id, '0', 'Citerne vide : touche le puits pour la remplir'); else retirerBulle(cle); return; }
-    if (p.type === 'voliere') { if (S_.voliere.plumes && p === S_.cases.find((c) => c.type === 'voliere')) bulle(cle, icoB('plume'), 'or', [pos.x, pos.y + 2.3, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }
+    if (p.type === 'voliere') { if (S_.voliere.plumes && p === S_.cases.find((c) => c.type === 'voliere')) bulle(cle, icoB('plume'), 'or', [pos.x, ancres.voliere ? ancres.voliere.y + 0.95 : pos.y + 3.4, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }
     if (p.type === 'geliere') { const o = blocBati('geliere'), n = potsPretsGeliere(), faim = (S_.gelees || []).some((g) => etatGelee(g) === 'faim' && !manqueRecette(GELEES[g.c].recette).length); if (o && p === o.c0 && !combat && (n || faim)) bulle(cle, icoB(n ? 'pot-petit' : 'gelee-bleue'), n ? 'or' : 'eau', [o.x, o.y + 2.2, o.z], 'case:' + p.id, n ? '×' + n : '', n ? 'Pots de gelée prêts : touche pour les ramasser' : 'Tes Gelées ont faim : touche pour les nourrir'); else retirerBulle(cle); return; }
     if (p.type === 'leurre') { if (S_.leurreWabbit && !combat) bulle(cle, icoB('wabbit'), 'rouge', [pos.x, pos.y + 1.8, pos.z], 'case:' + p.id, '', niv('leurre') >= 3 ? 'Un Wabbit pris au panier : touche pour le relâcher' : 'Un Wabbit ronge la fausse Cawotte : touche pour le chasser'); else retirerBulle(cle); return; }
     if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
@@ -190,7 +190,6 @@ function placerBulles() { /* a chaque image : chaque bulle au-dessus de son poin
     if (T !== null) e.style.top = T + 'px'; });
 }
 function bullesFixes() {
-  [['grange', 'Grange'], ['hdv', 'HDV'], ['voliere', 'Volière'], ['epouvantail', 'PÉPITO-TRON'], ['forge', 'Forgemagie']].forEach(([cle, texte]) => { const e = document.createElement('div'); e.className = 'bulle lieu'; e.dataset.ancre = cle; e.textContent = texte; zoneBulles.appendChild(e); });
   { const t = prochainTerrain(); if (t) bulleVente(t, TERRAINS.indexOf(t)); }
 }
 function bulleVente(t, k) {

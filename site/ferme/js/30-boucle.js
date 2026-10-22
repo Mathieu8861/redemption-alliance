@@ -82,6 +82,7 @@ function boucle(t) {
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   if (lieu === 'ferme') suivreOmbres();
+  majPancartes(dtb); /* (meme en pause : un batiment pose ou refait recoit sa pancarte) */
   rendu.render(scene, camera); placerBulles(); placerBarresBat(); requestAnimationFrame(boucle);
 }
 /* PLUSIEURS PARTIES (13/10/2026, « qu'un joueur puisse avoir plusieurs parties, la j'ai celle de l'Osa, si je veux faire une partie Iop que je ne sois pas

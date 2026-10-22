@@ -135,7 +135,8 @@ function retirerGardien() { if (!gard) return; ['calme', 'assis', 'vsa'].forEach
 function creerGardien() {
   retirerGardien(); const G = gardienDe(); if (!G || !MODELES.gardienCalme || !blocBati('niche')) return;
   const mk = (k, ombre) => { const m = cloner(k); ombrePieds(m, ombre); m.traverse((o) => { o.userData.gardien = true; }); m.visible = false; scene.add(m); return m; };
-  const p = porcheGardien(), bulle = document.createElement('div'); bulle.className = 'bulle lieu'; bulle.dataset.ancre = 'niche'; bulle.textContent = G.nom; zoneBulles.appendChild(bulle);
+  const p = porcheGardien(), bulle = document.createElement('div'); bulle.className = 'bulle ico rouge'; bulle.dataset.ancre = 'niche'; bulle.style.display = 'none'; /* (son nom est sur sa pancarte : la pastille ne sort que quand il a faim, et le toucher ouvre sa maison) */
+  bulle.innerHTML = icoB(G.proie === 'Tofu' ? 'tofu' : 'bouftou'); bulle.dataset.info = G.nom + ' a faim : touche sa maison pour le nourrir'; bulle.dataset.cible = 'case:' + blocBati('niche').c0.id; zoneBulles.appendChild(bulle);
   gard = { calme: mk('gardienCalme', G.ombre), assis: mk('gardienAssis', G.ombre), vsa: mk('gardienVsa', G.ombreVsa), x: p.x, y: p.y, z: p.z, ry: p.ry, etat: 'pause', t: 2 + Math.random() * 3, pas: 0, recharge: 0, mord: 0, joie: 0, coup: 0, forme: null, bulle, faimVue: false, horsVsa: 0 };
   montrerForme('assis'); placerGardien(p);
 }
@@ -167,10 +168,11 @@ function majGardien(dt, s) {
   const G = gardienDe(); if (!G) { if (gard) retirerGardien(); return; }
   if (!MODELES.gardienCalme || MODELES.gardienCalme.userData.type !== S_.gardien.type) { chargerGardien(); return; }
   if (!gard) { creerGardien(); if (!gard) return; }
-  const ici = lieu === 'ferme'; gard.bulle.hidden = !ici;
-  if (!ici) { ['calme', 'assis', 'vsa'].forEach((k) => { gard[k].visible = false; }); return; }
+  const ici = lieu === 'ferme';
+  if (!ici) { ['calme', 'assis', 'vsa'].forEach((k) => { gard[k].visible = false; }); gard.bulle.style.display = 'none'; return; }
   const faim = gardienAffame();
-  if (faim !== gard.faimVue) { gard.faimVue = faim; gard.bulle.textContent = G.nom + (faim ? ' a faim' : ''); gard.bulle.classList.toggle('faim', faim);
+  gard.bulle.style.display = ici && faim && !combat ? '' : 'none';
+  if (faim !== gard.faimVue) { gard.faimVue = faim;
     if (faim) toast(G.nom + ' a faim : il reste dans ' + G.nomMaison + ' et ne défend plus ta ferme. Touche sa maison pour le nourrir (1 ' + G.proie + ').', 'alerte'); }
   gard.recharge = Math.max(0, gard.recharge - dt); gard.mord = Math.max(0, gard.mord - dt); gard.joie = Math.max(0, gard.joie - dt); gard.coup = Math.max(0, gard.coup - dt);
   if (faim) { /* dans sa maison : on ne le voit plus */
