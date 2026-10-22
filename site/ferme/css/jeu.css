@@ -483,13 +483,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .reprise button { background: none; border: 0; text-decoration: underline; font: inherit; color: var(--rouge); }
 /* les bulles BONBON (22/10/2026) : « trop grandes, les diviser par deux ; le fond blanc, ca fait fade pour un jeu » (Mathieu, qui a choisi ce style parmi trois) :
    la pastille prend la couleur de l'action (or : a recolter, bleu : de l'eau, rouge : urgent, rose : un petit en route), liseré blanc, reflet brillant */
-.bulle.ico { --h: #ffeba3; --b: #f5bd45; --q: #c98d22; width: 29px; height: 29px; background: linear-gradient(var(--h), var(--b)); border: 2px solid #fff; box-shadow: 0 2px 0 var(--q), 0 3px 7px rgba(0, 0, 0, .35); overflow: visible; }
+.bulle.ico { --h: #fff4cc; --b: #fad57d; --q: #d6a64a; --n: #ec9a22; width: 29px; height: 29px; background: linear-gradient(var(--h), var(--b)); border: 2px solid #fff; box-shadow: 0 2px 0 var(--q), 0 3px 7px rgba(0, 0, 0, .35); overflow: visible; }
 .bulle.ico.or, .bulle.ico.eau, .bulle.ico.rouge, .bulle.ico.rose { background: linear-gradient(var(--h), var(--b)); color: #fff; }
-.bulle.ico.eau { --h: #b2e2ff; --b: #63b4ea; --q: #3a82ba; } .bulle.ico.rouge { --h: #ffaea2; --b: #ec6a5e; --q: #b2463c; } .bulle.ico.rose { --h: #ffdbe9; --b: #f3a4c5; --q: #c46d92; } /* (un peu moins colorees le 22/10/2026 au soir : « c'est trop fonce ») */
+.bulle.ico.eau { --h: #d6f0ff; --b: #97cff4; --q: #5f9fcd; --n: #3a92d6; } .bulle.ico.rouge { --h: #ffd0c9; --b: #f6978c; --q: #c76a60; --n: #e3574a; } .bulle.ico.rose { --h: #ffebf3; --b: #f8c3d9; --q: #d28fab; --n: #df74a2; } /* (deux fois eclaircies le 22/10/2026 au soir : « c'est trop fonce », puis « plus clair encore ») */
 .bulle.ico::before { content: ""; position: absolute; left: 4px; right: 4px; top: 2px; height: 38%; border-radius: 50%; background: linear-gradient(rgba(255, 255, 255, .7), rgba(255, 255, 255, 0)); pointer-events: none; }
 .bulle.ico::after { bottom: -8px; border-width: 4px; border-top-color: #fff; }
 .bulle.ico img { width: 23px; height: 23px; object-fit: contain; position: relative; z-index: 1; pointer-events: none; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .35)); }
-.bulle.ico small { right: -10px; top: -8px; background: #3b2a1a; color: #fff; border: 1.5px solid #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); font: 800 10px/1 var(--f-texte); padding: 1px 3px; z-index: 2; }
+.bulle.ico small { right: -10px; top: -8px; background: var(--n); color: #fff; border: 1.5px solid #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); font: 800 10px/1 var(--f-texte); padding: 1px 3px; z-index: 2; text-shadow: 0 1px 0 rgba(0, 0, 0, .25); } /* (le compteur a la couleur de sa pastille, plus en marron fonce : « en noir / marron je suis pas fan », 22/10/2026) */
 @media (pointer: coarse) { .bulle.ico { width: 34px; height: 34px; } .bulle.ico img { width: 27px; height: 27px; } } /* (au doigt : un peu plus grande, pour la toucher sans viser) */
 .pastille img.ico-haut { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; }
 /* ---- les vagues : la fiche ---- */
