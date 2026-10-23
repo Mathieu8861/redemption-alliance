@@ -20,12 +20,27 @@ function gainsNiveau(avant, n) { /* ce que le niveau vient de donner (les totaux
   return '<div class="fete-gains"><span>' + picto('vita') + 'PV max <b>+' + dp + '</b> (' + fmt(s.pvMax) + ' au total)</span><span>' + picto('degats') + 'Dégâts <b>+' + dd + '</b> (' + s.deg + ' par coup)</span>' +
     (id === 'osa' ? '<span>' + picto('bouftou') + 'Ton Bouftou <b>+' + (degBouftou(n) - degBouftou(avant)) + '</b> (' + degBouftou(n) + ' par coup)</span>' : '') + '</div>';
 }
-function blocClasse() { /* la sienne a son niveau (sans equipement), ce que donne un niveau, ce qu'ajoute l'equipement (les trois classes cote a cote : comparaisonClasses, au choix du personnage) */
-  const id = classeDe(), st = statsPerso(), b = st.base, P = progressionClasse(id), cl = CLASSES.find((x) => x.id === id), e = st.c, cases = (n) => n + ' case' + (n > 1 ? 's' : '');
-  const equip = [e.vita ? '+' + e.vita + ' PV (vita)' : '', e.puissance ? '+' + e.puissance + ' % de dégâts (puissance)' : '', e.agilite ? '+' + e.agilite + ' % de coups (agilité)' : ''].filter(Boolean);
-  const moi = '<div class="fc-moi"><b>Ton ' + cl.nom + ' au niveau ' + st.niveau + ', sans équipement</b><div class="puces"><span class="puce">' + picto('vita') + fmt(b.pv) + ' PV</span><span class="puce">' + picto('degats') + b.deg + ' dégâts par coup</span><span class="puce">' + picto('cadence') + 'un coup toutes les ' + virgule(b.cadence) + ' s</span><span class="puce">' + picto('portee') + 'portée ' + cases(P.portee) + '</span></div>' +
-    '<div class="desc">À chaque niveau : <b>+' + P.pvN + ' PV</b> et <b>+' + virgule(P.degN) + ' dégâts</b>' + (id === 'osa' ? ', et ton Bouftou +2 dégâts' : '') + '. ' + (equip.length ? 'Ton équipement ajoute ' + equip.join(', ') + '.' : 'Ton équipement ajoutera de la vita (PV), de la puissance (dégâts) et de l\'agilité (des coups en plus).') + '</div></div>';
-  return '<div class="fc"><h4>Ta classe</h4>' + moi + '</div>';
+/* « TA CLASSE » EN ANNEAUX (23/10/2026, « on peut faire mieux pour les stats, + stats par niveau gagne » puis « comme ca c'est pas mal, mais il faut que ce
+   soit clair : 3 cases ca dit pas que c'est la portee d'attaque ; +2 Bouftou, on pourrait croire qu'on gagne 2 invocations ; le coeur est a l'envers ;
+   le 0,9 par coup on sait pas ce que c'est », Mathieu) : un panneau de nuit, le perso sur son ilot, quatre anneaux qui se remplissent jusqu'au niveau max
+   (sans equipement ; ce qu'il ajoute en dore dessous), et ce que donne chaque niveau, avec la barre d'XP */
+const portraitsRognes = {};
+function blocClasse() {
+  const id = classeDe(), st = statsPerso(), b = st.base, P = progressionClasse(id), cl = CLASSES.find((x) => x.id === id), e = st.c, l = st.niveau, co = COUL_CLASSE[id] || COUL_CLASSE.iop;
+  const porteeMax = Math.max(...['iop', 'cra', 'osa'].map((c) => progressionClasse(c).portee)), src = portraitPerso(), rogne = portraitsRognes[src];
+  if (!rogne) rognerPortrait(src).then((r) => { portraitsRognes[src] = r; const im = document.querySelector('.tc-scene img[data-rogner]'); if (im) { im.src = r; im.removeAttribute('data-rogner'); im.classList.add('rogne'); } });
+  const anneau = (k, frac, val, unite, nom, eq) => '<div class="tc-ann"><div class="tc-r"><svg class="tc-anneau" viewBox="0 0 100 100"><circle class="tc-f" cx="50" cy="50" r="40"/><circle class="tc-p" cx="50" cy="50" r="40" style="stroke:' + PICTOS[k][0] + ';stroke-dasharray:' + (Math.max(0.03, Math.min(1, frac)) * 251.3).toFixed(1) + ' 252"/></svg>' +
+    '<span class="tc-ic" style="background:' + PICTOS[k][0] + '">' + picto(k, '#fff') + '</span><div class="tc-m"><b>' + val + '</b><small>' + unite + '</small></div></div><span class="tc-nom">' + nom + '</span>' + (eq ? '<span class="tc-eq">' + eq + '</span>' : '') + '</div>';
+  const gain = (k, n, t) => '<span class="tc-gain">' + picto(k, '#fff') + n + ' <small>' + t + '</small></span>', bf = id === 'osa' ? degBouftou(l + 1) - degBouftou(l) : 0;
+  const max = l >= capNiveau(), x0 = seuil(l), x1 = seuil(l + 1), fx = max ? 1 : Math.max(0, Math.min(1, (S_.xp - x0) / Math.max(1, x1 - x0)));
+  return '<div class="fc"><h4>Ta classe</h4><div class="tc-panneau" style="--c1:' + co[0] + ';--c2:' + co[1] + '"><div class="tc-scene"><span class="tc-socle"></span><img class="tc-perso' + (rogne ? ' rogne' : '') + '" src="' + (rogne || src) + '"' + (rogne ? '' : ' data-rogner') + ' alt=""></div><div class="tc-droite">' +
+    '<div class="tc-titre">' + cl.nom + ' niveau ' + l + '</div><div class="tc-sous">Tes stats de classe, sans équipement. Chaque anneau se remplit jusqu\'au niveau ' + NIV_MAX + '.</div><div class="tc-anns">' +
+    anneau('vita', b.pv / P.pvMax, fmt(b.pv), 'PV', 'Points de vie', e.vita ? '+' + fmt(e.vita) + ' PV avec l\'équipement' : '') +
+    anneau('degats', b.deg / P.degMax, b.deg, 'par coup', 'Dégâts', e.puissance ? '+' + e.puissance + ' % avec l\'équipement' : '') +
+    anneau('cadence', (1 / b.cadence) / 1.6, virgule(b.cadence) + ' s', 'entre 2 coups', 'Vitesse d\'attaque', e.agilite ? '+' + e.agilite + ' % de coups avec l\'équipement' : '') +
+    anneau('portee', P.portee / porteeMax, P.portee, P.portee > 1 ? 'cases' : 'case', 'Portée d\'attaque', '') + '</div>' +
+    '<div class="tc-suiv"><span class="tc-lv">' + (max ? 'Niveau maximum' : 'Chaque niveau gagné') + '</span>' + (max ? '' : gain('vita', '+' + P.pvN, 'PV') + gain('degats', '+' + virgule(P.degN), 'dégâts') + (bf ? gain('bouftou', '+' + bf, 'dégâts à ton Bouftou') : '')) +
+    '<div class="tc-xp"><i style="width:' + (fx * 100).toFixed(1) + '%"></i><b>' + (max ? 'Niveau maximum pour l\'instant' : fmt(S_.xp - x0) + ' / ' + fmt(x1 - x0) + ' XP vers le niveau ' + (l + 1)) + '</b></div></div></div></div></div>';
 }
 function comparaisonClasses(id) { /* les trois classes cote a cote, sans equipement, et le bilan (id : celle qui est choisie, mise en avant) */
   const cases = (n) => n + ' case' + (n > 1 ? 's' : '');
