@@ -473,12 +473,48 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .accueil .connecte button { margin-left: auto; background: none; border: 0; font: 800 .72rem var(--f-texte); color: #8a7a68; text-decoration: underline; cursor: pointer; }
 .accueil .reprise { margin: 18px 0 0; font-size: .76rem; font-weight: 600; }
 /* les parties (13/10/2026) : trois emplacements, la partie en cours en vert */
-.accueil .parties-titre { margin: 6px 0 8px; font: 400 1.2rem/1 var(--f-titre); text-align: left; } .slots-parties { display: grid; gap: 9px; text-align: left; }
-.slot-partie { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 3px 0 var(--bord); padding: 7px 8px 7px 10px; }
-.slot-partie.actif { background: #eef7e6; border-color: var(--vert); box-shadow: 0 3px 0 #3f6f1f; } .slot-partie.vide { background: #f6efe1; border-style: dashed; box-shadow: none; }
-.slot-partie img { width: 44px; height: 44px; object-fit: contain; flex: none; } .slot-partie img.rendu { width: 50px; height: 60px; margin: -6px 0; } /* (le perso habille, rendu en 3D : un peu plus haut que l'icone) */ .slot-partie .pnum { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #eadfc8; font: 400 1.2rem/1 var(--f-titre); color: #8a7a5a; }
-.slot-partie > div { flex: 1; min-width: 0; } .slot-partie b { display: block; font-size: .95rem; } .slot-partie span { display: block; font-size: .74rem; font-weight: 700; color: #6b5a48; }
-.slot-partie .btn { padding: 7px 14px; font-size: .86rem; } .partie-suppr { background: none; border: 0; font: 800 1rem/1 var(--f-texte); color: #a08a6a; cursor: pointer; padding: 4px 6px; } .partie-suppr:hover { color: var(--rouge); }
+.accueil .parties-titre { margin: 6px 0 8px; font: 400 1.2rem/1 var(--f-titre); text-align: left; }
+/* L'ECRAN « TES PARTIES » DE NUIT (23/10/2026, « je prefere le mode nuit, j'en ai marre du blanc ; une petite transparence pour qu'on voie la map derriere »,
+   Mathieu) : un ciel etoile un peu transparent, une carte de heros par partie, le perso pose sur son ilot (il ne vole pas) */
+@keyframes heros-tourne { to { transform: rotate(360deg); } }
+@keyframes heros-respire { 0%, 100% { transform: translateX(-50%) scaleY(1); } 50% { transform: translateX(-50%) scaleY(1.025); } }
+@keyframes heros-brille { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+@keyframes heros-halo { 0%, 100% { box-shadow: 0 6px 0 #11142a, 0 0 0 4px rgba(255, 207, 74, .45), 0 0 24px rgba(255, 207, 74, .45); } 50% { box-shadow: 0 6px 0 #11142a, 0 0 0 4px rgba(255, 207, 74, .8), 0 0 40px rgba(255, 207, 74, .8); } }
+.accueil .carte.nuit { width: min(100%, 780px); color: #f3ead8; border-color: #11142a; box-shadow: 0 6px 0 #11142a, 0 18px 50px rgba(10, 12, 30, .45); -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px);
+  background: radial-gradient(2px 2px at 8% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 6%, #fff, transparent), radial-gradient(2px 2px at 37% 11%, #ffe9a8, transparent), radial-gradient(1.5px 1.5px at 55% 4%, #fff, transparent),
+    radial-gradient(2px 2px at 71% 12%, #fff, transparent), radial-gradient(1.5px 1.5px at 86% 5%, #ffe9a8, transparent), radial-gradient(2px 2px at 94% 17%, #fff, transparent), radial-gradient(1.5px 1.5px at 4% 40%, #fff, transparent), radial-gradient(1.5px 1.5px at 97% 46%, #fff, transparent),
+    radial-gradient(ellipse at 50% 0%, rgba(58, 63, 122, .84), rgba(27, 31, 61, .76) 72%); }
+.accueil .carte.nuit h1 { color: #ffcf4a; -webkit-text-stroke-color: #11142a; text-shadow: 0 3px 0 #11142a, 0 0 22px rgba(255, 207, 74, .55); }
+.accueil .carte.nuit .parties-titre { color: #ffe08a; }
+.accueil .carte.nuit .connecte { background: rgba(255, 255, 255, .08); border-color: #6a74c9; } .accueil .carte.nuit .connecte span { color: #b8c0ff; } .accueil .carte.nuit .lien { color: #ffe08a; }
+.heros-grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-top: 12px; text-align: center; }
+.heros { position: relative; display: flex; flex-direction: column; border: 3px solid #11142a; border-radius: 20px; background: linear-gradient(#2a2f5a, #22264a); box-shadow: 0 6px 0 #11142a, inset 0 0 0 2px rgba(255, 207, 74, .28); }
+.heros.actif { border-color: #ffcf4a; animation: heros-halo 2.6s ease-in-out infinite; }
+.heros .scene { position: relative; height: 200px; border-radius: 17px 17px 0 0; overflow: hidden; background: radial-gradient(circle at 50% 62%, var(--c2), var(--c1) 60%, #15183a 100%); }
+.heros .scene::before { content: ''; position: absolute; inset: -60%; background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .2) 0deg 8deg, transparent 8deg 22deg); animation: heros-tourne 30s linear infinite; }
+.heros .scene::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(transparent, rgba(0, 0, 0, .2)); }
+.heros .eclat { position: absolute; z-index: 1; color: #fff; font-size: 14px; text-shadow: 0 0 6px rgba(255, 255, 255, .9); animation: heros-brille 2.4s ease-in-out infinite; pointer-events: none; }
+.heros .socle { position: absolute; z-index: 1; left: 50%; bottom: 18px; width: 118px; height: 30px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #ffe08a, #f2b630 70%); border: 3px solid #11142a; box-shadow: 0 7px 0 -1px #a8741c, 0 7px 0 2px #11142a; }
+.heros .socle::after { content: ''; position: absolute; left: 50%; top: 24%; width: 54%; height: 44%; transform: translateX(-50%); border-radius: 50%; background: rgba(70, 35, 0, .3); } /* (l'ombre des pieds, sur l'ilot) */
+.heros .perso { position: absolute; z-index: 2; left: 50%; bottom: 34px; height: 84px; transform: translateX(-50%); transform-origin: 50% 100%; }
+.heros .perso.rendu { height: auto; max-height: 158px; max-width: 80%; animation: heros-respire 3.4s ease-in-out infinite; } /* (le portrait recadre : ses pieds sont le bas de l'image, poses au milieu de l'ilot) */
+.heros .niv { position: absolute; z-index: 3; top: 10px; left: 10px; width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff1a8, #f2b630 55%, #c98a1e); border: 3px solid #11142a; box-shadow: 0 3px 0 #11142a; display: grid; place-content: center; font: 400 1.35rem/.8 var(--f-titre); color: #fff; -webkit-text-stroke: 1px #11142a; paint-order: stroke fill; }
+.heros .niv small { display: block; font: 800 .5rem/1 var(--f-texte); color: #11142a; -webkit-text-stroke: 0; letter-spacing: .08em; margin-bottom: 2px; }
+.heros .nom { position: relative; z-index: 3; align-self: center; margin: -18px 10px 0; max-width: calc(100% - 20px); background: var(--c1); color: #fff; font: 400 1.3rem/1.1 var(--f-titre); -webkit-text-stroke: 1.2px #11142a; paint-order: stroke fill; border: 3px solid #11142a; border-radius: 12px; padding: 4px 14px 5px; box-shadow: 0 3px 0 #11142a, 0 0 14px var(--c2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heros .cl { font: 800 .8rem/1.2 var(--f-texte); color: #c9c3e6; margin: 8px 6px 6px; }
+.heros .stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin: 0 8px 10px; }
+.heros .pil { background: rgba(255, 255, 255, .08); border: 2px solid rgba(255, 255, 255, .18); border-radius: 99px; padding: 2px 9px; font: 800 .72rem/1.3 var(--f-texte); color: #f3ead8; white-space: nowrap; }
+.heros .btn { margin: auto 12px 12px; font-size: 1.05rem; padding: 9px; }
+.heros .encours { position: absolute; z-index: 4; top: -13px; left: 50%; transform: translateX(-50%); background: var(--or); color: var(--encre); border: 2.5px solid #11142a; border-radius: 99px; padding: 3px 12px; font: 400 .8rem/1 var(--f-titre); box-shadow: 0 2px 0 #11142a; white-space: nowrap; }
+.heros .partie-suppr { position: absolute; z-index: 4; top: 8px; right: 8px; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 2px solid #11142a; background: rgba(255, 255, 255, .88); font: 800 .78rem/1 var(--f-texte); color: #8a6a4a; cursor: pointer; display: grid; place-items: center; } .heros .partie-suppr:hover { color: var(--rouge); }
+.heros.vide { border: 3px dashed rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .04); box-shadow: none; }
+.heros.vide .scene { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .05) 0 12px, transparent 12px 24px); } .heros.vide .scene::before, .heros.vide .scene::after { display: none; }
+.heros .plus { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 74px; height: 74px; border-radius: 50%; border: 3px dashed rgba(255, 224, 138, .55); display: grid; place-items: center; font: 400 2.6rem/1 var(--f-titre); color: rgba(255, 224, 138, .7); }
+.heros.vide .cl { margin-top: 14px; }
+@media (max-width: 600px) { /* au telephone, les cartes defilent au doigt */
+  .heros-grille { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 76%; overflow-x: auto; scroll-snap-type: x mandatory; padding: 14px 4px 10px; }
+  .heros { scroll-snap-align: center; }
+}
 .accueil .retour-parties { display: block; margin: 0 0 8px; background: none; border: 0; font: 800 .78rem var(--f-texte); color: #8a6a3a; text-decoration: underline; cursor: pointer; } /* de l'air sous le bouton (son ombre le fait paraitre plus bas) */
 .reprise button { background: none; border: 0; text-decoration: underline; font: inherit; color: var(--rouge); }
 /* les bulles BONBON (22/10/2026) : « trop grandes, les diviser par deux ; le fond blanc, ca fait fade pour un jeu » (Mathieu, qui a choisi ce style parmi trois) :

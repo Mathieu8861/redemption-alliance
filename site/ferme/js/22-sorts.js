@@ -12,7 +12,10 @@ const nomUlti = (id) => ULTIS[id].nom[classeDe()];
 const descUlti = (id) => id === 'zone' && classeDe() === 'iop' ? 'Il fonce au point visé, puis tournoie ' + DUREE_TEMPETE + ' s épée tendue : ' + COUPS_TEMPETE + ' coups sur tous les monstres autour de lui, trois fois son attaque en tout. Tu peux le déplacer pendant qu\'il tournoie.' : ULTIS[id].desc; /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
 /* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
    (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
-const srcUlti = (id) => 'assets/icones/ulti3d-' + id + '-' + classeDe() + '.png?v=' + VERSION_MODELES + V_ICONES_3D; /* (les icones 3D des ultis, une par classe, dans le style des sorts : 23/10/2026) */
+/* les icones 3D des ultis, une par classe, dans le style des sorts (23/10/2026) ; les autres Iop ont les leurs, avec leur tete
+   (23/10/2026, « refait les icones des autres iops quand y'a besoin, genre l'ulti », Mathieu) */
+const ULTIS_PAR_LOOK = new Set([]); /* (les modeles qui ont leurs icones : 'iop-berserker-a', 'iop-berserker-b', 'iop-berserker-c', 'feminin-iop' une fois faites) */
+const srcUlti = (id) => { const m = modeleDe(classeDe(), S_.perso.look); return 'assets/icones/ulti3d-' + id + '-' + (ULTIS_PAR_LOOK.has(m) ? m : classeDe()) + '.png?v=' + VERSION_MODELES + V_ICONES_3D; };
 function ouvrirUlti() {
   const l = niveau(S_.xp), d = statsPerso().deg, cl = CLASSES.find((c) => c.id === classeDe());
   const carte = (id) => { const U = ULTIS[id], pris = S_.ulti === id;
