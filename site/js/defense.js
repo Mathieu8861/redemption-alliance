@@ -27,6 +27,8 @@
         setupSubmit();
         renderAlliesList();
         offerLastTeam();
+        if (window.REN.tempo) window.REN.tempo.initFormulaire();
+        majTempo();
         /* Autocomplete zones+donjons sur le champ "Zone" */
         var zoneInput = document.getElementById('input-commentaire');
         if (zoneInput && window.REN.attachZoneAutocomplete) {
@@ -57,10 +59,24 @@
         setupCountGroup('count-allies', function (val) {
             nbAllies = val;
             renderAlliesList();
+            majTempo();
         });
         setupCountGroup('count-ennemis', function (val) {
             nbEnnemis = val;
+            majTempo();
         });
+    }
+
+    /* Le tempo n'existe qu'en inferiorite : si les effectifs ne le permettent plus, on le retire */
+    function majTempo() {
+        if (!window.REN.tempo) return;
+        if (!window.REN.tempo.dispo(nbAllies, nbEnnemis) && resultat === 'tempo') {
+            resultat = null;
+            document.getElementById('btn-tempo').classList.remove('active');
+            window.REN.tempo.afficher(false);
+            var sectionPercoDetails = document.getElementById('section-perco-details');
+            if (sectionPercoDetails) sectionPercoDetails.style.display = 'none';
+        }
     }
 
     function setupCountGroup(containerId, callback) {
@@ -227,21 +243,36 @@
     function setupResultButtons() {
         var btnV = document.getElementById('btn-victoire');
         var btnD = document.getElementById('btn-defaite');
+        var btnT = document.getElementById('btn-tempo');
         var sectionPercoDetails = document.getElementById('section-perco-details');
+
+        function choisir(btn) {
+            [btnV, btnD, btnT].forEach(function (b) { if (b) b.classList.toggle('active', b === btn); });
+            if (window.REN.tempo) window.REN.tempo.afficher(btn === btnT);
+            if (sectionPercoDetails) sectionPercoDetails.style.display = '';
+        }
+
         if (btnV) {
             btnV.addEventListener('click', function () {
                 resultat = 'victoire';
-                btnV.classList.add('active');
-                if (btnD) btnD.classList.remove('active');
-                if (sectionPercoDetails) sectionPercoDetails.style.display = '';
+                choisir(btnV);
             });
         }
         if (btnD) {
             btnD.addEventListener('click', function () {
                 resultat = 'defaite';
-                btnD.classList.add('active');
-                if (btnV) btnV.classList.remove('active');
-                if (sectionPercoDetails) sectionPercoDetails.style.display = '';
+                choisir(btnD);
+            });
+        }
+        if (btnT) {
+            btnT.addEventListener('click', function () {
+                if (btnT.classList.contains('off')) {
+                    window.REN.toast(window.REN.tempo.messageIndispo, 'info');
+                    return;
+                }
+                if (resultat === 'tempo') return;
+                resultat = 'tempo';
+                choisir(btnT);
             });
         }
     }
@@ -367,6 +398,7 @@
             });
             nbAllies = count;
             renderAlliesList();
+            majTempo();
 
             var wraps = document.querySelectorAll('#allies-list .ally-autocomplete');
             rows.forEach(function (r, i) {
@@ -389,7 +421,12 @@
 
         btn.addEventListener('click', async function () {
             if (!resultat) {
-                window.REN.toast('Selectionnez victoire ou defaite.', 'error');
+                window.REN.toast('Selectionnez victoire, defaite ou tempo.', 'error');
+                return;
+            }
+            var tempoMinutes = resultat === 'tempo' ? window.REN.tempo.minutes() : null;
+            if (resultat === 'tempo' && !tempoMinutes) {
+                window.REN.toast('Indique combien de temps tu les as tenus.', 'error');
                 return;
             }
 
@@ -426,15 +463,18 @@
             btn.textContent = 'Envoi...';
 
             try {
-                var pointsRes = await window.REN.supabase.rpc('calculer_points', {
-                    p_nb_allies: nbAllies,
-                    p_nb_ennemis: nbEnnemis,
-                    p_resultat: resultat,
-                    p_alliance_id: allianceId,
-                    p_type: combatType
-                });
+                /* Le tempo a son propre bareme */
+                var pointsRes = resultat === 'tempo'
+                    ? await window.REN.supabase.rpc('points_tempo', { p_minutes: tempoMinutes })
+                    : await window.REN.supabase.rpc('calculer_points', {
+                        p_nb_allies: nbAllies,
+                        p_nb_ennemis: nbEnnemis,
+                        p_resultat: resultat,
+                        p_alliance_id: allianceId,
+                        p_type: combatType
+                    });
 
-                var points = pointsRes.data || 0;
+                var points = Number(pointsRes.data) || 0;
 
                 var preuves = window.REN.combatPreuves ? window.REN.combatPreuves.getUrls() : [null, null];
                 var insertData = {
@@ -445,6 +485,7 @@
                     nb_allies: nbAllies,
                     nb_ennemis: nbEnnemis,
                     resultat: resultat,
+                    tempo_minutes: tempoMinutes,
                     butin_kamas: 0,
                     points_gagnes: points,
                     commentaire: commentaire,
@@ -484,17 +525,22 @@
                     if (cfgJetons.data && cfgJetons.data.valeur === 'false') jetonsActifs = false;
                 } catch (e) { /* table absente : jetons actifs par défaut */ }
 
-                if (points > 0 && jetonsActifs) {
+                /* Les jetons restent entiers : un demi-point (tempo) n'en donne pas */
+                var jetons = Math.floor(points);
+                if (jetons > 0 && jetonsActifs) {
                     for (var pi = 0; pi < uniqueIds.length; pi++) {
-                        await window.REN.supabase.rpc('ajouter_jetons', { p_user_id: uniqueIds[pi], p_points: points });
+                        await window.REN.supabase.rpc('ajouter_jetons', { p_user_id: uniqueIds[pi], p_points: jetons });
                     }
-                    window.REN.currentProfile.jetons = (window.REN.currentProfile.jetons || 0) + points;
+                    window.REN.currentProfile.jetons = (window.REN.currentProfile.jetons || 0) + jetons;
                 }
 
+                var pts = window.REN.formatNumber(points);
                 var msg = resultat === 'victoire'
-                    ? 'Victoire enregistrée ! +' + points + ' points' + (jetonsActifs && points > 0 ? ' (+' + points + ' jetons)' : '')
-                    : 'Défaite enregistrée. ' + points + ' points';
-                window.REN.toast(msg, resultat === 'victoire' ? 'success' : 'info');
+                    ? 'Victoire enregistrée ! +' + pts + ' points' + (jetonsActifs && jetons > 0 ? ' (+' + jetons + ' jetons)' : '')
+                    : resultat === 'tempo'
+                        ? 'Tempo enregistré ! +' + pts + (points > 1 ? ' points' : ' point')
+                        : 'Défaite enregistrée. ' + pts + ' points';
+                window.REN.toast(msg, resultat === 'defaite' ? 'info' : 'success');
 
                 setTimeout(function () { window.location.reload(); }, 1500);
             } catch (err) {

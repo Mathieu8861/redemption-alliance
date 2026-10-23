@@ -217,8 +217,8 @@
             var html = '<div class="activity">';
 
             combats.forEach(function (c) {
-                var badgeClass = c.resultat === 'victoire' ? 'badge--victoire' : 'badge--defaite';
-                var badgeText = c.resultat === 'victoire' ? 'VICTOIRE' : 'DEFAITE';
+                var badgeClass = c.resultat === 'victoire' ? 'badge--victoire' : c.resultat === 'tempo' ? 'badge--tempo' : 'badge--defaite';
+                var badgeText = c.resultat === 'victoire' ? 'VICTOIRE' : c.resultat === 'tempo' ? 'TEMPO' : 'DEFAITE';
                 var auteurName = c.auteur ? c.auteur.username : 'Inconnu';
                 var mates = [];
                 if (c.participants) {
@@ -233,7 +233,7 @@
                     matesStr += ' <span class="text-muted">(+ invités : ' + c.invites.map(function (n) { return window.REN.escapeHtml(n); }).join(', ') + ')</span>';
                 }
                 var actionType = c.type === 'attaque' ? 'une Attaque' : 'une Defense';
-                var actionVerb = c.resultat === 'victoire' ? 'a remporte' : 'a perdu';
+                var actionVerb = c.resultat === 'victoire' ? 'a remporte' : c.resultat === 'tempo' ? 'a fait durer' : 'a perdu';
                 var allianceName = c.alliance ? '<strong>' + c.alliance.nom + (c.alliance.tag ? ' [' + c.alliance.tag + ']' : '') + '</strong>' : (c.alliance_ennemie_nom || 'Inconnu');
                 var butinStr = c.type === 'attaque' && c.butin_kamas > 0 ? ' &mdash; Butin : <span class="kamas">' + window.REN.formatKamas(c.butin_kamas) + '</span>' : '';
                 var pointsStr = c.points_gagnes !== 0 ? ' &mdash; <span class="' + (c.points_gagnes > 0 ? 'text-success' : 'text-danger') + '">' + (c.points_gagnes > 0 ? '+' : '') + window.REN.formatNumber(c.points_gagnes) + ' pts</span>' : '';
@@ -314,7 +314,7 @@
             var bonus = (alliances || []).filter(function (a) { return Number(a.multiplicateur) !== 1; });
             html += '<div class="bareme-section__head" style="margin-top:var(--spacing-xl);">'
                   + '<h3 class="bareme-section__title">Multiplicateurs d\'alliance</h3>'
-                  + '<span class="text-muted bareme-section__sub">S\'appliquent à tous les points du combat, en victoire comme en défaite</span>'
+                  + '<span class="text-muted bareme-section__sub">S\'appliquent à tous les points du combat, en victoire comme en défaite, sauf sur un percepteur seul</span>'
                   + '</div>';
             if (!bonus.length) {
                 html += '<p class="text-muted" style="font-size:0.8125rem;">Aucun multiplicateur actif pour le moment : toutes les alliances sont à x1.</p>';
@@ -322,6 +322,21 @@
                 html += '<div class="bareme-multis">';
                 bonus.forEach(function (a) {
                     html += '<span class="bareme-multi"><span class="bareme-multi__nom">' + window.REN.escapeHtml(a.nom) + (a.tag ? ' [' + window.REN.escapeHtml(a.tag) + ']' : '') + '</span><span class="bareme-multi__val">x' + a.multiplicateur + '</span></span>';
+                });
+                html += '</div>';
+            }
+
+            /* Tempo : bareme a part, paye a la duree, jamais cumule avec le reste (sql/075) */
+            var { data: tempos } = await window.REN.supabase.from('bareme_tempo').select('minutes, points').order('minutes');
+            if (tempos && tempos.length) {
+                html += '<div class="bareme-section__head" style="margin-top:var(--spacing-xl);">'
+                      + '<h3 class="bareme-section__title">Tempo</h3>'
+                      + '<span class="text-muted bareme-section__sub">Moins nombreux qu\'eux, vous y allez pour leur faire perdre du temps : payé à la durée, sans multiplicateur, ni victoire ni défaite</span>'
+                      + '</div>';
+                html += '<div class="bareme-multis">';
+                tempos.forEach(function (t, i) {
+                    var duree = i < tempos.length - 1 ? t.minutes + ' à ' + tempos[i + 1].minutes + ' min' : t.minutes + ' min et +';
+                    html += '<span class="bareme-multi"><span class="bareme-multi__nom">' + duree + '</span><span class="bareme-multi__val">+' + window.REN.formatNumber(Number(t.points)) + '</span></span>';
                 });
                 html += '</div>';
             }
@@ -386,7 +401,7 @@
             var detail = memeValeur
                 ? '+' + fmt(seul[0].points_victoire) + ' en victoire, quel que soit le nombre d\'alliés'
                 : seul.map(function (b) { return b.nb_allies + 'v0 : +' + fmt(b.points_victoire); }).join(', ');
-            html += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-sm);">Percepteur seul (personne en défense, 0 ennemi) : ' + detail + '.</p>';
+            html += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-sm);">Percepteur seul (personne en défense, 0 ennemi) : ' + detail + ', sans multiplicateur d\'alliance.</p>';
         }
 
         html += '</div>';

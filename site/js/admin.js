@@ -463,7 +463,10 @@
         html += '<div style="display:flex;gap:var(--spacing-sm);margin-bottom:var(--spacing-lg);">';
         html += '<button class="btn btn--small bareme-type-btn' + (baremeMode === 'attaque' ? ' btn--primary' : ' btn--secondary') + '" data-bareme-type="attaque">Bareme Attaque</button>';
         html += '<button class="btn btn--small bareme-type-btn' + (baremeMode === 'defense' ? ' btn--primary' : ' btn--secondary') + '" data-bareme-type="defense">Bareme Defense</button>';
+        html += '<button class="btn btn--small bareme-type-btn' + (baremeMode === 'tempo' ? ' btn--primary' : ' btn--secondary') + '" data-bareme-type="tempo">Bareme Tempo</button>';
         html += '</div>';
+
+        if (baremeMode === 'tempo') return tabBaremeTempo(container, html);
 
         /* Filtrer par type */
         var filtered = (bareme || []).filter(function (b) { return b.type === baremeMode; });
@@ -526,6 +529,44 @@
                         .eq('nb_allies', u.nb_allies).eq('nb_ennemis', u.nb_ennemis).eq('type', baremeMode);
                 }
                 window.REN.toast('Bareme ' + baremeMode + ' sauvegarde !', 'success');
+            } catch (err) {
+                window.REN.toast('Erreur: ' + err.message, 'error');
+            }
+        });
+    }
+
+    /* Tempo : bareme a part, une valeur par tranche de 5 minutes (sql/075) */
+    async function tabBaremeTempo(container, html) {
+        var { data: tempos } = await window.REN.supabase.from('bareme_tempo').select('minutes, points').order('minutes');
+        tempos = tempos || [];
+
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Un tempo se déclare en infériorité, quand on y va pour leur faire perdre du temps. Il est payé à la durée du combat, sans multiplicateur d\'alliance, et ne se cumule jamais avec une victoire ou une défaite. Les nouvelles valeurs valent pour les prochains tempos.</p>';
+        html += '<div class="bareme-grid"><table class="table"><thead><tr><th>Durée du combat</th><th>Points</th></tr></thead><tbody>';
+        tempos.forEach(function (t, i) {
+            var duree = i < tempos.length - 1 ? t.minutes + ' à ' + tempos[i + 1].minutes + ' min' : t.minutes + ' min et +';
+            html += '<tr><th>' + duree + '</th><td><input class="bareme-grid__input bareme-tempo-input" data-minutes="' + t.minutes + '" value="' + String(t.points).replace('.', ',') + '"></td></tr>';
+        });
+        html += '</tbody></table></div>';
+        html += '<div class="text-center mt-lg"><button class="btn btn--primary" id="btn-save-bareme">Sauvegarder le bareme tempo</button></div>';
+        container.innerHTML = html;
+
+        container.querySelectorAll('.bareme-type-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                baremeMode = btn.dataset.baremeType;
+                tabBareme(container);
+            });
+        });
+
+        document.getElementById('btn-save-bareme').addEventListener('click', async function () {
+            try {
+                var inputs = container.querySelectorAll('.bareme-tempo-input');
+                for (var i = 0; i < inputs.length; i++) {
+                    var val = parseFloat(String(inputs[i].value).replace(',', '.')) || 0;
+                    var res = await window.REN.supabase.from('bareme_tempo')
+                        .update({ points: val }).eq('minutes', parseInt(inputs[i].dataset.minutes, 10));
+                    if (res.error) throw res.error;
+                }
+                window.REN.toast('Bareme tempo sauvegarde !', 'success');
             } catch (err) {
                 window.REN.toast('Erreur: ' + err.message, 'error');
             }

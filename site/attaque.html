@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261022">
+    <link rel="stylesheet" href="style.css?v=20261032">
 </head>
 <body>
 
@@ -121,7 +121,21 @@
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                             <span>Defaite</span>
                         </button>
+                        <button class="combat-result-btn combat-result-btn--tempo off" id="btn-tempo" title="Tempo : y aller en infériorité pour leur faire perdre du temps">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/></svg>
+                            <span>Tempo</span>
+                        </button>
                     </div>
+                </div>
+            </div>
+
+            <div class="combat-form__section" id="section-tempo" style="display:none;">
+                <div class="tempo">
+                    <div class="tempo__q">Combien de temps tu les as tenus ?</div>
+                    <div class="tempo__aide">Prends la durée affichée sur l'écran de fin de combat : elle doit apparaître sur un des 2 screenshots.</div>
+                    <div class="tempo__tranches" id="tempo-tranches"></div>
+                    <div class="tempo__total" id="tempo-total" style="display:none;"></div>
+                    <div class="tempo__note">Barème à part, sans multiplicateur d'alliance. Un tempo n'est ni une victoire ni une défaite : ton ratio de victoires ne bouge pas.</div>
                 </div>
             </div>
 
@@ -195,6 +209,7 @@
                     <li><strong>Reprendre l'équipe.</strong> Après un combat déclaré, un bandeau te propose de reprendre la même équipe en un clic (valable 12h).</li>
                     <li><strong>L'alliance ennemie.</strong> La plus affrontée est présélectionnée. Introuvable dans la liste ? Choisis « Autre » et tape son nom.</li>
                     <li><strong>Résultat, zone et butin.</strong> Victoire ou défaite, la zone du combat (facultatif, avec autocomplétion) et le butin en kamas si victoire.</li>
+                    <li><strong>Tempo.</strong> Vous étiez moins nombreux et vous y êtes allés pour leur faire perdre du temps, pas pour gagner ? Choisis « Tempo » puis la durée du combat. Il a son propre barème, payé à la durée par tranche de 5 minutes, et ne compte ni comme une victoire ni comme une défaite.</li>
                     <li><strong>Les 2 screenshots.</strong> Obligatoires, ils servent de preuve : colle-les avec <kbd>Ctrl</kbd>+<kbd>V</kbd> ou clique pour parcourir.</li>
                     <li><strong>Enregistrer.</strong> Les points sont calculés automatiquement selon le barème (bouton « Système de points » sur l'accueil) et attribués à tous les participants inscrits.</li>
                     <li><strong>Une erreur ?</strong> Tu peux corriger ta déclaration pendant 3h depuis l'Historique (crayon sur la carte). Au-delà, demande à un admin.</li>
@@ -207,6 +222,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js?v=20261026"></script>
     <script src="js/combat-preuves.js?v=20261022"></script>
-    <script src="js/attaque.js?v=20261023"></script>
+    <script src="js/tempo.js?v=20261032"></script>
+    <script src="js/attaque.js?v=20261032"></script>
 </body>
 </html>

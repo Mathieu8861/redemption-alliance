@@ -20,6 +20,7 @@
         setupTabs();
         setupSearchFilters();
         setupArchiveToggle();
+        if (window.REN.tempo) { try { await window.REN.tempo.charger(); } catch (e) { /* libelles par defaut */ } }
         await loadCombats();
     }
 
@@ -137,6 +138,7 @@
                 case 'defenses': if (c.type !== 'defense') return false; break;
                 case 'victoires': if (c.resultat !== 'victoire') return false; break;
                 case 'defaites': if (c.resultat !== 'defaite') return false; break;
+                case 'tempos': if (c.resultat !== 'tempo') return false; break;
             }
             /* Filtre alliance */
             if (searchAlliance) {
@@ -180,7 +182,9 @@
             var safeType = esc(c.type);
             var safeResultat = esc(c.resultat);
             var badgeType = '<span class="badge badge--' + safeType + '">' + safeType.toUpperCase() + '</span>';
-            var badgeResult = '<span class="badge badge--' + safeResultat + '">' + safeResultat.toUpperCase() + '</span>';
+            var badgeResult = c.resultat === 'tempo'
+                ? '<span class="badge badge--tempo">\u23F1 Tempo ' + esc(window.REN.tempo ? window.REN.tempo.libelle(c.tempo_minutes) : (c.tempo_minutes + ' min')) + '</span>'
+                : '<span class="badge badge--' + safeResultat + '">' + safeResultat.toUpperCase() + '</span>';
             var auteur = c.auteur ? esc(c.auteur.username) : 'Inconnu';
             var alliance = c.alliance ? esc(c.alliance.nom) + (c.alliance.tag ? ' [' + esc(c.alliance.tag) + ']' : '') : esc(c.alliance_ennemie_nom || 'N/A');
 
@@ -305,7 +309,7 @@
             +   '<div class="form-group"><label class="form-label">Type</label>'
             +     '<select id="edit-combat-type" class="form-select"><option value="attaque">Attaque</option><option value="defense">D\u00e9fense</option></select></div>'
             +   '<div class="form-group"><label class="form-label">R\u00e9sultat</label>'
-            +     '<select id="edit-combat-resultat" class="form-select"><option value="victoire">Victoire</option><option value="defaite">D\u00e9faite</option></select></div>'
+            +     '<select id="edit-combat-resultat" class="form-select"><option value="victoire">Victoire</option><option value="defaite">D\u00e9faite</option><option value="tempo">Tempo</option></select></div>'
             + '</div>'
             + '<div class="form-row">'
             +   '<div class="form-group"><label class="form-label">Alli\u00e9s</label><select id="edit-combat-allies" class="form-select"></select></div>'
@@ -314,6 +318,10 @@
             + '<div class="form-row">'
             +   '<div class="form-group"><label class="form-label">Alliance ennemie</label><select id="edit-combat-alliance" class="form-select"></select></div>'
             +   '<div class="form-group"><label class="form-label">Butin (kamas)</label><input type="number" id="edit-combat-butin" class="form-input" min="0" step="1"></div>'
+            + '</div>'
+            + '<div class="form-group" id="edit-combat-tempo-wrap" hidden>'
+            +   '<label class="form-label">Dur\u00e9e du tempo (\u00e9cran de fin de combat)</label>'
+            +   '<select id="edit-combat-tempo" class="form-select"></select>'
             + '</div>'
             + '<div class="form-group" id="edit-combat-alliance-custom-wrap" hidden>'
             +   '<label class="form-label">Nom de l\'alliance (libre)</label>'
@@ -332,7 +340,7 @@
             +   '<label class="form-label">Invit\u00e9s hors site (s\u00e9par\u00e9s par des virgules)</label>'
             +   '<input type="text" id="edit-combat-invites" class="form-input" placeholder="Ex : pseudo1, pseudo2">'
             + '</div>'
-            + '<p class="text-muted" style="font-size:0.78rem;margin:4px 0 14px;">Les points sont recalcul\u00e9s automatiquement selon le bar\u00e8me (butin remis \u00e0 0 en cas de d\u00e9faite).</p>'
+            + '<p class="text-muted" style="font-size:0.78rem;margin:4px 0 14px;">Les points sont recalcul\u00e9s automatiquement selon le bar\u00e8me (butin remis \u00e0 0 en cas de d\u00e9faite ou de tempo).</p>'
             + '<div style="display:flex;gap:10px;justify-content:flex-end;">'
             +   '<button class="btn btn--secondary" id="history-edit-cancel">Annuler</button>'
             +   '<button class="btn btn--primary" id="history-edit-save">Enregistrer</button>'
@@ -347,6 +355,7 @@
             document.getElementById('edit-combat-ennemis').add(new Option(n, n));
         }
         document.getElementById('edit-combat-type').addEventListener('change', syncEditEnnemisZero);
+        document.getElementById('edit-combat-resultat').addEventListener('change', syncEditTempo);
 
         document.getElementById('history-edit-close').addEventListener('click', closeEditModal);
         document.getElementById('history-edit-cancel').addEventListener('click', closeEditModal);
@@ -409,6 +418,7 @@
 
         document.getElementById('edit-combat-type').value = editingCombat.type;
         document.getElementById('edit-combat-resultat').value = editingCombat.resultat;
+        remplirEditTempo(editingCombat.tempo_minutes);
         document.getElementById('edit-combat-allies').value = editingCombat.nb_allies;
         document.getElementById('edit-combat-ennemis').value = editingCombat.nb_ennemis;
         syncEditEnnemisZero();
@@ -462,6 +472,21 @@
         if (defense && sel.value === '0') sel.value = '1';
     }
 
+    /* Tempo : la duree n'apparait que pour ce resultat */
+    function remplirEditTempo(minutes) {
+        var sel = document.getElementById('edit-combat-tempo');
+        sel.innerHTML = [5, 10, 15, 20].map(function (m) {
+            return '<option value="' + m + '">' + (window.REN.tempo ? window.REN.tempo.libelle(m) : m + ' min') + '</option>';
+        }).join('');
+        if (minutes) sel.value = String(minutes);
+        syncEditTempo();
+    }
+
+    function syncEditTempo() {
+        var tempo = document.getElementById('edit-combat-resultat').value === 'tempo';
+        document.getElementById('edit-combat-tempo-wrap').hidden = !tempo;
+    }
+
     async function saveEditCombat() {
         if (!editingCombat) return;
         var btn = document.getElementById('history-edit-save');
@@ -469,7 +494,12 @@
         var resultat = document.getElementById('edit-combat-resultat').value;
         var nbAllies = parseInt(document.getElementById('edit-combat-allies').value, 10);
         var nbEnnemis = parseInt(document.getElementById('edit-combat-ennemis').value, 10);
-        var butin = resultat === 'defaite' ? 0 : (parseInt(document.getElementById('edit-combat-butin').value, 10) || 0);
+        var butin = resultat === 'victoire' ? (parseInt(document.getElementById('edit-combat-butin').value, 10) || 0) : 0;
+        var tempoMinutes = resultat === 'tempo' ? parseInt(document.getElementById('edit-combat-tempo').value, 10) : null;
+        if (resultat === 'tempo' && nbAllies >= nbEnnemis) {
+            window.REN.toast(window.REN.tempo ? window.REN.tempo.messageIndispo : 'Un tempo se joue en inf\u00e9riorit\u00e9.', 'error');
+            return;
+        }
         var commentaire = document.getElementById('edit-combat-commentaire').value.trim() || null;
 
         var allianceSel = document.getElementById('edit-combat-alliance');
@@ -489,20 +519,23 @@
         btn.disabled = true;
         btn.textContent = 'Enregistrement...';
         try {
-            /* Recalcul des points selon le bareme (meme RPC que la declaration) */
-            var pointsRes = await window.REN.supabase.rpc('calculer_points', {
-                p_nb_allies: nbAllies,
-                p_nb_ennemis: nbEnnemis,
-                p_resultat: resultat,
-                p_alliance_id: allianceId,
-                p_type: type
-            });
+            /* Recalcul des points selon le bareme (meme RPC que la declaration, bareme a part pour le tempo) */
+            var pointsRes = resultat === 'tempo'
+                ? await window.REN.supabase.rpc('points_tempo', { p_minutes: tempoMinutes })
+                : await window.REN.supabase.rpc('calculer_points', {
+                    p_nb_allies: nbAllies,
+                    p_nb_ennemis: nbEnnemis,
+                    p_resultat: resultat,
+                    p_alliance_id: allianceId,
+                    p_type: type
+                });
             if (pointsRes.error) throw pointsRes.error;
             var points = pointsRes.data || 0;
 
             var upd = await window.REN.supabase.from('combats').update({
                 type: type,
                 resultat: resultat,
+                tempo_minutes: tempoMinutes,
                 nb_allies: nbAllies,
                 nb_ennemis: nbEnnemis,
                 butin_kamas: butin,

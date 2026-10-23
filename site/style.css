@@ -10960,3 +10960,134 @@ body.app-has-sidebar {
     .simu-confirm__boite { padding: var(--spacing-lg); }
     .simu-confirm__actions { flex-direction: column-reverse; }
 }
+
+/* === TEMPO : 3e resultat d'un combat (sql/075, js/tempo.js) === */
+.combat-result-btn--tempo {
+    color: var(--color-accent-light);
+    border-color: rgba(224, 124, 10, 0.15);
+}
+
+.combat-result-btn--tempo:hover {
+    opacity: 0.8;
+    border-color: rgba(224, 124, 10, 0.4);
+}
+
+.combat-result-btn--tempo.active {
+    opacity: 1;
+    background: rgba(224, 124, 10, 0.1);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 24px rgba(224, 124, 10, 0.2);
+}
+
+/* Effectifs egaux ou superieurs : pas de tempo possible */
+.combat-result-btn--tempo.off,
+.combat-result-btn--tempo.off:hover {
+    opacity: 0.2;
+    border-color: rgba(224, 124, 10, 0.15);
+    cursor: not-allowed;
+}
+
+.tempo {
+    border: 1px solid rgba(224, 124, 10, 0.55);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: rgba(224, 124, 10, 0.05);
+}
+
+.tempo__q {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+}
+
+.tempo__aide {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    margin: 2px 0 var(--spacing-sm);
+}
+
+.tempo__tranches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.tempo__tranche {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--spacing-sm) 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    font: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.tempo__tranche:hover {
+    border-color: rgba(224, 124, 10, 0.5);
+}
+
+.tempo__tranche.active {
+    border-color: var(--color-accent);
+    background: rgba(224, 124, 10, 0.18);
+    box-shadow: 0 0 12px rgba(224, 124, 10, 0.25);
+}
+
+.tempo__tranche--zero {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.tempo__duree {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.tempo__pts {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--color-accent-light);
+}
+
+.tempo__tranche--zero .tempo__pts {
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.tempo__total {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    border-top: 1px dashed var(--color-border);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.tempo__egal {
+    margin-left: auto;
+    font-family: var(--font-title);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-accent-light);
+    white-space: nowrap;
+}
+
+.tempo__note {
+    margin-top: var(--spacing-sm);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.badge--tempo {
+    background-color: var(--color-accent);
+    color: #111;
+}

@@ -26,6 +26,8 @@
         setupSubmit();
         renderAlliesList();
         offerLastTeam();
+        if (window.REN.tempo) window.REN.tempo.initFormulaire();
+        majTempo();
         /* Autocomplete zones+donjons sur le champ "Zone" */
         var zoneInput = document.getElementById('input-commentaire');
         if (zoneInput && window.REN.attachZoneAutocomplete) {
@@ -58,10 +60,24 @@
         setupCountGroup('count-allies', function (val) {
             nbAllies = val;
             renderAlliesList();
+            majTempo();
         });
         setupCountGroup('count-ennemis', function (val) {
             nbEnnemis = val;
+            majTempo();
         });
+    }
+
+    /* Le tempo n'existe qu'en inferiorite : si les effectifs ne le permettent plus, on le retire */
+    function majTempo() {
+        if (!window.REN.tempo) return;
+        if (!window.REN.tempo.dispo(nbAllies, nbEnnemis) && resultat === 'tempo') {
+            resultat = null;
+            document.getElementById('btn-tempo').classList.remove('active');
+            window.REN.tempo.afficher(false);
+            var sectionDetails = document.getElementById('section-attaque-details');
+            if (sectionDetails) sectionDetails.style.display = 'none';
+        }
     }
 
     function setupCountGroup(containerId, callback) {
@@ -245,14 +261,19 @@
     function setupResultButtons() {
         var btnV = document.getElementById('btn-victoire');
         var btnD = document.getElementById('btn-defaite');
+        var btnT = document.getElementById('btn-tempo');
         var sectionDetails = document.getElementById('section-attaque-details');
         var sectionButin = document.getElementById('section-butin');
+
+        function choisir(btn) {
+            [btnV, btnD, btnT].forEach(function (b) { if (b) b.classList.toggle('active', b === btn); });
+            if (window.REN.tempo) window.REN.tempo.afficher(btn === btnT);
+        }
 
         if (btnV) {
             btnV.addEventListener('click', function () {
                 resultat = 'victoire';
-                btnV.classList.add('active');
-                if (btnD) btnD.classList.remove('active');
+                choisir(btnV);
                 if (sectionDetails) sectionDetails.style.display = '';
                 if (sectionButin) sectionButin.style.display = '';
             });
@@ -261,8 +282,22 @@
         if (btnD) {
             btnD.addEventListener('click', function () {
                 resultat = 'defaite';
-                btnD.classList.add('active');
-                if (btnV) btnV.classList.remove('active');
+                choisir(btnD);
+                if (sectionDetails) sectionDetails.style.display = '';
+                if (sectionButin) sectionButin.style.display = 'none';
+            });
+        }
+
+        /* Tempo : pas de butin, la zone reste possible */
+        if (btnT) {
+            btnT.addEventListener('click', function () {
+                if (btnT.classList.contains('off')) {
+                    window.REN.toast(window.REN.tempo.messageIndispo, 'info');
+                    return;
+                }
+                if (resultat === 'tempo') return;
+                resultat = 'tempo';
+                choisir(btnT);
                 if (sectionDetails) sectionDetails.style.display = '';
                 if (sectionButin) sectionButin.style.display = 'none';
             });
@@ -337,6 +372,7 @@
             });
             nbAllies = count;
             renderAlliesList();
+            majTempo();
 
             var wraps = document.querySelectorAll('#allies-list .ally-autocomplete');
             rows.forEach(function (r, i) {
@@ -360,7 +396,12 @@
 
         btn.addEventListener('click', async function () {
             if (!resultat) {
-                window.REN.toast('Selectionnez victoire ou defaite.', 'error');
+                window.REN.toast('Selectionnez victoire, defaite ou tempo.', 'error');
+                return;
+            }
+            var tempoMinutes = resultat === 'tempo' ? window.REN.tempo.minutes() : null;
+            if (resultat === 'tempo' && !tempoMinutes) {
+                window.REN.toast('Indique combien de temps tu les as tenus.', 'error');
                 return;
             }
 
@@ -401,14 +442,16 @@
             btn.textContent = 'Envoi...';
 
             try {
-                /* Calculer les points via RPC */
-                var pointsRes = await window.REN.supabase.rpc('calculer_points', {
-                    p_nb_allies: nbAllies,
-                    p_nb_ennemis: nbEnnemis,
-                    p_resultat: resultat,
-                    p_alliance_id: allianceId,
-                    p_type: combatType
-                });
+                /* Calculer les points via RPC (le tempo a son propre bareme) */
+                var pointsRes = resultat === 'tempo'
+                    ? await window.REN.supabase.rpc('points_tempo', { p_minutes: tempoMinutes })
+                    : await window.REN.supabase.rpc('calculer_points', {
+                        p_nb_allies: nbAllies,
+                        p_nb_ennemis: nbEnnemis,
+                        p_resultat: resultat,
+                        p_alliance_id: allianceId,
+                        p_type: combatType
+                    });
 
                 var points = pointsRes.data || 0;
 
@@ -422,6 +465,7 @@
                     nb_allies: nbAllies,
                     nb_ennemis: nbEnnemis,
                     resultat: resultat,
+                    tempo_minutes: tempoMinutes,
                     butin_kamas: butin,
                     points_gagnes: points,
                     commentaire: commentaire,
@@ -472,9 +516,11 @@
                 var pts = window.REN.formatNumber(points);
                 var msg = resultat === 'victoire'
                     ? 'Victoire enregistrée ! +' + pts + (points > 1 ? ' points' : ' point') + (jetonsActifs && jetons > 0 ? ' (+' + jetons + ' jetons)' : '')
-                    : 'Défaite enregistrée. ' + pts + (points > 1 ? ' points' : ' point');
+                    : resultat === 'tempo'
+                        ? 'Tempo enregistré ! +' + pts + (points > 1 ? ' points' : ' point')
+                        : 'Défaite enregistrée. ' + pts + (points > 1 ? ' points' : ' point');
 
-                window.REN.toast(msg, resultat === 'victoire' ? 'success' : 'info');
+                window.REN.toast(msg, resultat === 'defaite' ? 'info' : 'success');
 
                 /* Reset form */
                 setTimeout(function () { window.location.reload(); }, 1500);
