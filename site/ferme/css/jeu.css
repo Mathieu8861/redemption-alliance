@@ -1045,7 +1045,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 
 /* LE THEME SOMBRE (23/10/2026, « je me demande si on va pas tout passer en fond sombre, et les petites rubriques en fond plus clair, comme sur le site de
    Redemption » puis « c'est sublime ; une toute petite transparence derriere les blocs a fond noir, pas derriere les icones ni les textes », Mathieu) :
-   les couleurs claires de cette feuille ont ete converties (outil scratchpad theme-sombre.py, la version claire est gardee a cote) ; les grands panneaux
+   les couleurs claires de cette feuille ont ete converties (outils/theme/theme-sombre.py ; la version claire du 23/10 : outils/theme/jeu-clair-2026-10-23.css) ; les grands panneaux
    laissent deviner la ferme derriere eux, leurs rubriques et les cases des icones restent pleines */
 :root { --papier: #1e1f22; --encre: #e8eaed; --bord: #0b0c0f; --fantome: #2b2d31; --voile: rgba(30, 31, 34, .87); }
 html, body { color: #e8eaed; }
