@@ -32,6 +32,16 @@ function parentsCroisement() { /* deux Gelees de couleurs differentes, reposees 
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (L[i].c !== L[j].c) return [L[i], L[j]];
   return null;
 }
+/* LA FUSION (23/10/2026, « quand t'es full en gelees, comment on recupere des Royales ? si t'as une verte, une bleue, une rouge et une jaune, que tu
+   puisses les fusionner », Mathieu) : une Gelee de chaque couleur se fond avec les trois autres en une Gelee Royale, a coup sur, meme Geliere pleine.
+   On prend d'abord celles qui ont faim, puis celles dont le pot est pret (ramasse avant), et en dernier celles dont le pot est en route (il est perdu, dit avant) */
+const COULEURS_FUSION = ['bleue', 'menthe', 'fraise', 'citron'];
+function geleesFusion() {
+  const L = S_.gelees || [], rang = (g) => ({ faim: 0, pret: 1, prod: 2 })[etatGelee(g)];
+  const choix = COULEURS_FUSION.map((c) => L.filter((g) => g.c === c).sort((a, b) => rang(a) - rang(b))[0]);
+  return choix.every(Boolean) ? choix : null;
+}
+const listeNoms = (L) => L.length > 1 ? L.slice(0, -1).join(', ') + ' et ' + L[L.length - 1] : L.join('');
 function blocLibreGeliere() { /* 6 cases d'herbe libres d'un seul tenant (3 sur 2, ou 2 sur 3), au meme niveau, sans couper un acces : l'ile d'abord, puis les terrains */
   const deja = inaccessibles(), libre = (c) => c && c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id);
   const tri = S_.cases.filter(libre).sort((a, b) => (a.terrain === 'main' ? 0 : 1) - (b.terrain === 'main' ? 0 : 1));
@@ -117,6 +127,11 @@ function ouvrirGeliere() {
     '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + ', ' + ROYALES_MAX + ' Royales au plus' + (nbRoyales() >= ROYALES_MAX ? ' : tu les as, les croisements n\'en donnent plus' : ', tu en as ' + nbRoyales()) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
     '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (!parents ? '<small class="gel-note">' + (L.length >= places ? 'La Gelière est pleine.' : 'Il faut deux Gelées de couleurs différentes, reposées.') + '</small>' : mc.length ? '<small class="gel-note">Il manque ' + mc.join(' et ') + '.</small>' : '') +
     '<button class="btn discret" data-hdv-cat="animaux" data-hdv-voir="[data-gelee-achat]">Acheter une Gelée</button><button class="btn kamas" data-gelee-croiser' + (parents && !mc.length ? '' : ' disabled') + '>' + (parents ? 'Croiser ' + parents[0].nom + ' et ' + parents[1].nom : 'Croiser') + '</button></div>' +
+    (() => { const fus = geleesFusion(), plein = nbRoyales() >= ROYALES_MAX, manque = COULEURS_FUSION.filter((c) => !L.some((g) => g.c === c));
+      return '<div class="hdv-section">Fusionner quatre Gelées</div><p class="hdv-aide">Quatre Gelées, une de chaque couleur, se fondent en une <b>Gelée Royale</b>, à coup sûr, même quand la Gelière est pleine. Les quatre la quittent pour de bon.</p>' +
+        '<div class="fusion-gel">' + COULEURS_FUSION.map((c) => '<span class="fg' + (manque.includes(c) ? ' manque' : '') + '" title="' + GELEES[c].nom + '"><img src="assets/icones/gelee-' + c + '.png?v=' + VERSION_MODELES + '" alt="' + GELEES[c].nom + '"></span>').join('<b>+</b>') + '<b>=</b><span class="fg royale" title="Gelée Royale"><img src="assets/icones/gelee-royale.png?v=' + VERSION_MODELES + '" alt="Gelée Royale"></span></div>' +
+        '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (plein ? '<small class="gel-note">Tu as déjà ' + ROYALES_MAX + ' Gelées Royales, le plus possible.</small>' : !fus ? '<small class="gel-note">Il te manque ' + listeNoms(manque.map((c) => 'une ' + GELEES[c].nom)) + '.</small>' : '') +
+        '<button class="btn kamas" data-gelee-fusion' + (fus && !plein ? '' : ' disabled') + '>Fusionner</button></div>'; })() +
     lignesAmelio(['geliere'], 'Agrandir la Gelière'));
 }
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;

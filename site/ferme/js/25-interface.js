@@ -632,6 +632,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.geleeNourrir) { if (b.dataset.geleeNourrir === 'tout') ACTIONS.nourrirGelees(); else ACTIONS.nourrirGelee(parseInt(b.dataset.geleeNourrir, 10)); }
   else if (b.hasAttribute('data-gelee-ramasser')) ACTIONS.ramasserPots();
   else if (b.hasAttribute('data-gelee-croiser')) ACTIONS.croiserGelees();
+  else if (b.hasAttribute('data-gelee-fusion')) ACTIONS.fusionnerGelees(); else if (b.hasAttribute('data-gelee-fusion-ok')) ACTIONS.fusionnerGelees(true); else if (b.hasAttribute('data-gelee-retour')) ouvrirGeliere();
   else if (b.hasAttribute('data-geliere')) ouvrirGeliere();
   else if (b.id === 'b-vie' || b.id === 'b-pots') { if (combat) toast('Les pots de gelée se boivent entre les vagues.'); else ouvrirPots(); }
   else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));

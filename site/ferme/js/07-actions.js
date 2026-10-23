@@ -125,6 +125,17 @@ const ACTIONS = {
     toast(royale ? 'Incroyable : ' + a.nom + ' et ' + b.nom + ' donnent naissance à ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 Agilité pour la vague.' : a.nom + ' et ' + b.nom + ' ont un petit : ' + g.nom + ', ' + GELEES[c].nom.toLowerCase() + '.', 'or');
     rendreGrange(); rendreGelees(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere();
   },
+  fusionnerGelees(confirme) { /* quatre Gelees, une de chaque couleur, donnent une Gelee Royale (voir geleesFusion) */
+    const L = geleesFusion(); if (!L) { toast('Il te faut une Gelée de chaque couleur : Bleue, Menthe, Fraise et Citron.', 'alerte'); return; }
+    if (nbRoyales() >= ROYALES_MAX) { toast('Tu as déjà ' + ROYALES_MAX + ' Gelées Royales, le plus possible.', 'alerte'); return; }
+    const noms = listeNoms(L.map((g) => g.nom)), enRoute = L.filter((g) => etatGelee(g) === 'prod').map((g) => g.nom);
+    if (!confirme) { ouvrirModale('geliere', entete('Fusionner en Gelée Royale ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/gelee-royale.png?v=' + VERSION_MODELES + '" alt=""></div><p>' + noms + ' vont se fondre en une Gelée Royale, et quitter la Gelière pour de bon.' +
+      (L.some((g) => etatGelee(g) === 'pret') ? ' Les pots prêts sont ramassés avant.' : '') + (enRoute.length ? '<br><b>' + listeNoms(enRoute) + (enRoute.length > 1 ? ' perdent leur pot' : ' perd son pot') + ' en route.</b>' : '') + '</p><div class="boutons"><button class="btn discret" data-gelee-retour>Retour</button><button class="btn kamas" data-gelee-fusion-ok>Fusionner</button></div></div>'); return; }
+    if (L.some((g) => etatGelee(g) === 'pret')) ACTIONS.ramasserPots();
+    S_.gelees = S_.gelees.filter((g) => !L.includes(g)); const g = { c: 'royale', nom: nouveauNomGelee(), fin: 0 }; S_.gelees.push(g); compter('fusions'); compter('royales');
+    son('niveau'); confettis(40); toast(noms + ' fusionnent : voici ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 Agilité pour la vague.', 'or');
+    rendreGelees(); rendreCasesBulles(); sauver(); ouvrirGeliere();
+  },
   acheterGraines(id, n) {
     const c = PAR_ID[id]; if (!c || !debloquee(c)) return;
     const cout = prixGraine(c) * n;
