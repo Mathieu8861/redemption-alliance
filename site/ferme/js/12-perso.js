@@ -178,7 +178,11 @@ function habillerTenue(g) {
   /* la tete mesuree sans ce qui pend sous le crane : les longues meches de l'Osa feminine (23/10/2026) faisaient croire a une tete jusqu'au milieu du dos,
      et les coiffes tombaient sur son visage (« bizarre les coiffes sur la femme, limite on voit plus son visage », Mathieu) */
   const bt = unionDe(craneP.length ? craneP : sousTete.length ? sousTete : [teteN]), crP = craneP.filter((o) => /^crane/.test(nomP(o))); if (crP.length) bt.min.y = Math.max(bt.min.y, unionDe(crP).min.y);
-  const ct = bt.getCenter(new T.Vector3()), st = bt.getSize(new T.Vector3());
+  const ct = bt.getCenter(new T.Vector3()), st = bt.getSize(new T.Vector3()),
+    /* la largeur qui regle la taille des coiffes (23/10/2026, « les coiffes sur le Iop, je les trouve tres grosses, meme sur le modele de base », Mathieu) :
+       les epis du Iop s'ecartent de la tete (17 cm de plus que le crane), la coiffe grossissait d'autant. La largeur est plafonnee a 1,18 fois le crane
+       (Iop : 15 % plus petite, Osa et Cra : 7 %) ; les meches qui depassent sous le bord, c'est normal sous un chapeau */
+    lx = crP.length ? Math.min(st.x, unionDe(crP).getSize(new T.Vector3()).x * 1.18) : st.x;
   const corps = unionDe(corpsP), sc = corps.getSize(new T.Vector3());
   const bouche = g.getObjectByName('bouche'), avant = bouche ? Math.sign(boiteDe(bouche).getCenter(new T.Vector3()).z - ct.z) || 1 : 1;
   const torse = corpsP.filter((o) => { if (P_DOS.test(nomP(o))) return false; const c = boiteDe(o).getCenter(new T.Vector3()); return c.y < bt.min.y && c.y > bt.min.y - sc.y * 0.3 && Math.abs(c.x - ct.x) < sc.x * 0.22; });
@@ -198,13 +202,13 @@ function habillerTenue(g) {
     const corpsC = pcH.filter((m) => !P_SAILLIE.test(nomP(m))), bas = corpsC.filter((m) => (boiteDe(m).min.y - B0.min.y) / h0 <= 0.35);
     const pied = (m) => { const z = boiteDe(m).getSize(new T.Vector3()); return z.x * z.z; }, rebord = bas.sort((a, b) => pied(b) - pied(a))[0];
     const r0 = rebord ? boiteDe(rebord).getSize(new T.Vector3()) : B0.getSize(new T.Vector3()), t0 = B0.getSize(new T.Vector3());
-    let k = Math.max(st.x * 0.85 / Math.max(r0.x, r0.z), st.x * 1.12 / Math.max(t0.x, t0.z));
+    let k = Math.max(lx * 0.85 / Math.max(r0.x, r0.z), lx * 1.12 / Math.max(t0.x, t0.z));
     /* « on dirait que j'ai une kippa » (Mathieu, 15/10/2026, Cra en coiffe Bouftou) : un bonnet rond (calotte, bonnet) se calait sur son bord, son dome ne
        couvrait que 80 % de la chevelure et se posait dessus comme une calotte de pretre. Le dome couvre maintenant toute la largeur du crane */
     const dome = corpsC.filter((m) => /^(calotte|bonnet|os)$/.test(nomP(m))).sort((a, b) => pied(b) - pied(a))[0]; /* (os : le casque-crane du Chafer, 15/10/2026 ; le plus large : sa machoire s'appelle os aussi, et le crane devenait deux fois trop gros) */
-    if (dome) { const d0 = boiteDe(dome).getSize(new T.Vector3()); k = Math.max(k, st.x * 1.04 / Math.max(d0.x, d0.z)); }
+    if (dome) { const d0 = boiteDe(dome).getSize(new T.Vector3()); k = Math.max(k, lx * 1.04 / Math.max(d0.x, d0.z)); }
     /* « en format bonnet c'est parfait, fais pareil avec les coiffes legendaires » (Mathieu, 15/10/2026) : couronnes, casques et coussin couvrent tout le crane */
-    const oC = obj(idC), estLeg = !!(oC && (oC.base ? OBJETS[oC.base] : oC).leg); if (estLeg) k = Math.max(k, st.x * 1.04 / Math.max(r0.x, r0.z));
+    const oC = obj(idC), estLeg = !!(oC && (oC.base ? OBJETS[oC.base] : oC).leg); if (estLeg) k = Math.max(k, lx * 1.04 / Math.max(r0.x, r0.z));
     c.scale.multiplyScalar(k); if (t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
     const b1 = unionDe(corpsC.length ? corpsC : [c]), c1 = b1.getCenter(new T.Vector3()), h1 = b1.max.y - b1.min.y, machoire = pc.some((m) => /^museau/.test(nomP(m))),
       /* le bord de la coiffe se pose juste au-dessus des sourcils (ils s'arretent a 55 % de la tete, sur les quatre persos) ; une coiffe trop basse pour couvrir
