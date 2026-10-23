@@ -122,7 +122,8 @@ function carteGraine(c, attrs, ok) {
     '<b>' + c.nom + '</b>' + (ok ? '<span class="g-info"><span>' + picto('cadence') + dureeLisible(duree(c)) + '</span><span>' + picto('epi') + '×' + c.rendement + '</span></span>' + (c.mange ? '<span class="g-mange">' + c.mange.txt + '</span>' : '') : '<span class="g-info"><span>niveau ' + c.niv + '</span></span>') + '</button>';
 }
 function ouvrirGraines() {
-  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Le nombre sur l\'icône : tes graines en grange. Elles s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>');
+  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Celle-ci se plante sur tout le champ d\'une touche. Le nombre sur l\'icône : tes graines en grange. Elles s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:.8rem;font-weight:700"><span>Après la récolte, il replante tout seul la même culture (s\'il en a les graines).</span><button class="btn ' + (S_.replanter !== false ? 'kamas' : 'discret') + '" data-replanter>' + (S_.replanter !== false ? 'Oui' : 'Non') + '</button></div>');
 }
 /* les icones : rendues depuis nos modeles 3D (generer-icones.html + exporter-icones.mjs -> assets/icones/) */
 const ICONES = { forge: 'atelier-forge', geliere: 'geliere', qg: 'grange', nivPuits: 'puits', nivEtal: 'etal', voliere: 'voliere', arbalete: 'arbalete', enclos: 'cloture', arbPortee: 'arbalete', toursPortee: 'tour', arbChargeur: 'fleches', arbCadence: 'arbalete', arbDegats: 'fleches', tours: 'tour', reservoir: 'arrosoir', poulie: 'poulie', arrosoir: 'arrosoir', enclos: 'cloture', engrais: 'engrais', charrette: 'charrette', epouvantail: 'epouvantail', leurre: 'cawotte', mangeoire: 'auge', bottes: 'bottes', cloche: 'cloche', remise: 'kama', semences: 'sac', faux: 'faux', abreuvoir: 'abreuvoir', cisailles: 'cisailles', voliere: 'voliere', cadenas: 'cadenas', arbalete: 'arbalete', murs: 'grange', toursPv: 'tour' };
@@ -601,6 +602,7 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-tuto') { fermerModale(); if (!combat) demarrerTuto(1, true); else toast('Pendant une vague, on se bat : le tuto attendra.'); return; }
   else if (b.hasAttribute('data-fermer')) fermerModale();
   else if (b.dataset.graine) { S_.graine = b.dataset.graine; rendreHaut(); fermerModale(); }
+  else if (b.hasAttribute('data-replanter')) { S_.replanter = S_.replanter === false; sauver(); ouvrirGraines(); }
   else if (b.dataset.grangeCase) ouvrirGrange(b.dataset.grangeCase); /* une case de la grange : son detail */
   else if (b.dataset.ficheMonstre) { if (modaleOuverte === 'vagues') ouvrirBestiaire.retour = 'vagues'; else if (modaleOuverte !== 'bestiaire') ouvrirBestiaire.retour = null; ouvrirBestiaire('monstres', b.dataset.ficheMonstre); } /* la fiche d'un monstre */
   else if (b.hasAttribute('data-retour-vagues')) { ouvrirBestiaire.retour = null; ouvrirVagues(); }

@@ -42,7 +42,7 @@ const ACTIONS = {
     if (p.type === 'leurre') { if (S_.leurreWabbit) ACTIONS.chasserLeurre(); else ouvrirLeurre(); return; }
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
-    if (!p.c) { ACTIONS.planter(p); return; }
+    if (!p.c) { ACTIONS.planterChamp(p); return; }
     if (p.tofu) { if (capturable(p)) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
     const d = duree(PAR_ID[p.c]);
     if (p.pousse >= d) { ACTIONS.recolter(p); return; }
@@ -81,6 +81,19 @@ const ACTIONS = {
     S_.graines[c.id]--; S_.graine = c.id; compter('plantes'); son('planter'); const auto = niv('arrosoir') && (S_.citerne || 0) > 0; if (auto) { S_.citerne--; if (!S_.citerne) toast('La citerne est vide : passe au puits pour la remplir.', 'alerte'); }
     Object.assign(p, champVide(), { c: c.id, arrose: !!auto });
     rendreCase(p.id); rendreHaut();
+  },
+  /* PLANTER TOUT UN CHAMP (23/10/2026, « on peut fluidifier aussi le fait de planter ? limiter les clics gauche / droit », Mathieu) : la case touchee, puis les
+     cases vides voisines du meme champ, avec la graine choisie (bouton Graines), case par case comme la recolte (file d'actions, pas plus que de graines).
+     La fenetre « Que planter ? » ne s'ouvre plus que si cette graine manque */
+  planterChamp(p) {
+    const g = S_.graine && PAR_ID[S_.graine] && debloquee(PAR_ID[S_.graine]) && (S_.graines[S_.graine] || 0) > 0 ? S_.graine : null;
+    if (!g) { ACTIONS.planter(p); return; }
+    ACTIONS.planter(p, g);
+    const vide = (c) => c.type === 'champ' && !c.c && !c.tofu, G = [p], vu = new Set([p.id]);
+    for (let k = 0; k < G.length; k++) voisins(G[k]).forEach((v) => { if (!vu.has(v.id) && vide(v)) { vu.add(v.id); G.push(v); } });
+    const L = G.slice(1).filter((c) => !fileActions.includes(c.id)), ordre = []; let q = posCase(p);
+    while (L.length) { let k = 0; L.forEach((c, i) => { if (Math.hypot(posCase(c).x - q.x, posCase(c).z - q.z) < Math.hypot(posCase(L[k]).x - q.x, posCase(L[k]).z - q.z)) k = i; }); const c = L.splice(k, 1)[0]; ordre.push(c.id); q = posCase(c); }
+    fileActions.push(...ordre.slice(0, Math.min(S_.graines[g] || 0, Math.max(0, 40 - fileActions.length))));
   },
   acheterPots(t, n) {
     const P = POTS[t]; if (!P || !(n > 0)) return; const cout = prixPot(t) * n;
@@ -147,7 +160,9 @@ const ACTIONS = {
     const c = PAR_ID[p.c]; const qte = recolte(p);
     S_.grange[c.id] = (S_.grange[c.id] || 0) + qte; const xpRecolte = xpRecolteReel(c); if (xpRecolte > 0) { const q = posCase(p); if (niveau(S_.xp) < capNiveau()) gainFlottant('+' + xpRecolte + ' XP', q.x, q.y + 1.1, q.z, null, 'gain-xp'); } /* seulement l'XP (la bulle affichait deja la recolte) : celle vraiment gagnee */ son(c.glb === 'cultures3' ? 'cueillette' : 'fauchage'); compter('recoltes'); compter('recolte_' + c.id); Object.assign(p, champVide());
     const rendue = niv('semences') && Math.random() < 0.25; if (rendue) S_.graines[c.id] = (S_.graines[c.id] || 0) + 1;
-    toast('+' + qte + ' ' + c.nom + ' à la grange.' + (rendue ? ' Et une graine récupérée !' : '')); if (xpRecolte > 0) gagnerXp(xpRecolte, true); rendreCase(p.id); rendreGrange();
+    /* il replante tout de suite la meme culture s'il en a les graines (23/10/2026, voir planterChamp) ; « Replanter apres la recolte » se coupe dans la fenetre Graines */
+    const replante = S_.replanter !== false && (S_.graines[c.id] || 0) > 0; if (replante) { const g0 = S_.graine; ACTIONS.planter(p, c.id); S_.graine = g0 || c.id; }
+    toast('+' + qte + ' ' + c.nom + ' à la grange' + (replante ? ', et replanté.' : '.') + (rendue ? ' Et une graine récupérée !' : '')); if (xpRecolte > 0) gagnerXp(xpRecolte, true); rendreCase(p.id); rendreGrange(); rendreHaut();
   },
   capturer(p) {
     if (!p.tofu || p.nuisible === 'wabbit' || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale();
