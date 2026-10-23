@@ -183,7 +183,7 @@ setInterval(() => { /* la bulle a disparu sous la souris, ou son texte a change 
 zoneBulles.addEventListener('click', actionBulle);
 zoneBulles.addEventListener('contextmenu', (ev) => { if (ev.target.closest('.bulle.ico')) actionBulle(ev); }); /* la bulle est posee sur la case : le clic droit y agit aussi (avant, rien) */
 function actionBulle(ev) {
-  const e = ev.target.closest('.bulle.ico'); if (!e || !e.dataset.cible || enAccueil || combat) return;
+  const e = ev.target.closest('.bulle.ico'); if (!e || !e.dataset.cible || enAccueil || combat) return; if (paysanMesh) paysanMesh.userData.chasse = null;
   const [genre, val] = e.dataset.cible.split(':');
   if (genre === 'champ') { /* tout un champ : la case la plus proche d'abord, puis de proche en proche ; le reste va dans la file */
     const pp = paysanMesh.position, L = val.split(',').map((id) => S_.cases.find((c) => c.id === id)).filter(Boolean), ordre = []; let x = pp.x, z = pp.z;
@@ -307,6 +307,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (long && navigator.vibrate) navigator.vibrate(15);
   if (visee) { const pt = pointSol(e); if (pt) tirerVisee(pt); return; } /* « des fois faut cliquer 2 fois » (Mathieu et les testeurs, 12/10/2026) : un clic qui bougeait de quelques pixels passait pour un glisser de la vue ; en visee, la vue ne bouge pas, on lance la ou on relache (au doigt : on glisse pour viser, on leve pour lancer) */
   if (bouge) return;
+  if (paysanMesh) paysanMesh.userData.chasse = null; /* (un clic du joueur arrete la poursuite du voleur ; toucher le voleur la relance) */
   if (!mode && lieu !== 'casino') { const c = cibleEcran(e); if (c === 'voleur') { attaquerVoleur(); return; } if (c !== null) { cibler(c); return; } }
   souris.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(souris, camera);

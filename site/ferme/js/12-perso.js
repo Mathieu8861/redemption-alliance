@@ -639,6 +639,7 @@ function attaquerVoleur() {
   if (!voleurCiblable() || !paysanMesh || paysanMesh.userData.attaque) return;
   const classe = (S_.perso && S_.perso.classe) || 'iop', pv = voleur.m.position, pp = paysanMesh.position;
   if (Math.hypot(pv.x - pp.x, pv.z - pp.z) > porteeClasse(classe) + 0.3) { /* trop loin : il s'approche juste assez (la case la plus proche d'ou il touche), puis reessaie */
+    paysanMesh.userData.chasse = { t: 0, prec: null, refait: 1 }; /* (il poursuit le voleur : voir poursuivreVoleur) */
     const aPortee = classe !== 'iop' && caseAPortee(pv.x, pv.z, porteeClasse(classe)); if (aPortee && aPortee !== caseIci(pp.x, pp.z)) { allerPuis(aPortee, () => attaquerVoleur()); return; }
     /* « je viens de tuer le voleur a distance avec le Iop, bizarre nan ? » (Mathieu, 11/10/2026) : caseSous ne connait que l'ile de depart ;
        sur un terrain achete (ou une case ou l'on ne marche pas), il ne courait pas et frappait de loin. Maintenant : la case du voleur,
@@ -650,11 +651,26 @@ function attaquerVoleur() {
     toast(classe === 'cra' ? 'Trop loin, même pour une flèche.' : 'Le voleur est hors de portée : attends qu\'il approche.'); return;
   }
   chemin = []; arrivee = null;
-  const u = paysanMesh.userData; u.angle = Math.atan2(pv.x - pp.x, pv.z - pp.z); paysanMesh.rotation.y = u.angle;
+  const u = paysanMesh.userData; u.chasse = null; u.angle = Math.atan2(pv.x - pp.x, pv.z - pp.z); paysanMesh.rotation.y = u.angle;
   u.attaque = { t: 0, classe, base: u.angle, contreVoleur: true };
+}
+/* LA POURSUITE DU VOLEUR (23/10/2026, « en Iop, quand on veut taper un mec de VSA, le perso est un peu debile : il court, passe a travers, puis fait demi-tour
+   pour le rattraper a chaque fois », Mathieu) : avant, il courait vers la case ou ETAIT le voleur et ne frappait qu'au bout de son chemin. Maintenant il le suit :
+   il vise la ou le voleur va (sa position, plus sa vitesse), corrige sa course cinq fois par seconde, et frappe des qu'il est a portee */
+function poursuivreVoleur(dt) {
+  const u = paysanMesh.userData, h = u.chasse; if (!h) return;
+  if (!voleurCiblable() || combat || u.attaque || (!chemin.length && !arrivee)) { u.chasse = null; return; }
+  const pv = voleur.m.position, pp = paysanMesh.position, d = Math.hypot(pv.x - pp.x, pv.z - pp.z);
+  if (d <= porteeClasse(classeDe()) + 0.25) { u.chasse = null; chemin = []; arrivee = null; attaquerVoleur(); return; }
+  h.t -= dt; h.refait -= dt; if (h.t > 0) return; h.t = 0.2;
+  const vx = h.prec ? (pv.x - h.prec.x) / 0.2 : 0, vz = h.prec ? (pv.z - h.prec.z) / 0.2 : 0; h.prec = { x: pv.x, z: pv.z };
+  const avance = Math.min(1.2, d / Math.max(1, vitesse())), cx = pv.x + vx * avance, cz = pv.z + vz * avance, c = caseSous(cx, cz);
+  if (c && PASSABLE[c.type] && ligneLibre({ x: pp.x, z: pp.z }, { x: cx, z: cz })) { chemin = [{ c, x: cx, z: cz }]; arrivee = { cible: c, fn: () => attaquerVoleur(), vise: true }; return; } /* (en ligne droite vers ou il va) */
+  if (h.refait <= 0) { h.refait = 1; const cv = caseIci(pv.x, pv.z); if (cv && PASSABLE[cv.type]) allerPuis(cv, () => attaquerVoleur()); u.chasse = h; } /* (un obstacle entre eux : le chemin est refait chaque seconde vers sa case) */
 }
 function animerAttaque(dt) {
   const u = paysanMesh && paysanMesh.userData, a = u && u.attaque;
+  if (u && u.chasse && !a) poursuivreVoleur(dt);
   if (!a) { if (u && u.reprise > 0) { u.reprise -= dt; if (u.reprise <= 0 && voleurCiblable() && !combat && !chemin.length) attaquerVoleur(); } return; }
   a.t += dt; const k = Math.min(1, a.t / 0.5), m = u.membres || [], bras = m[3] || m[2];
   if (a.classe === 'iop') { if (a.tour !== false) paysanMesh.rotation.y = a.base + Math.PI * 2 * Math.min(1, a.t / 0.4); if (bras) bras.rotation.x = -2.2 * Math.sin(k * Math.PI); } /* il tournoie (contre le voleur), epee en avant */
