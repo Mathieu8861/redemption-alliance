@@ -129,7 +129,7 @@ const ICONES = { forge: 'atelier-forge', geliere: 'geliere', qg: 'grange', nivPu
 /* LES ICONES 3D DES SORTS ET DES PASSIFS (23/10/2026, « refais les visuels des sorts », Mathieu) : peintes a partir du rendu du perso, une par apparence,
    toutes dans le meme style, en pleine image (« faut qu'on ait tous le meme ton ») ; tant qu'une apparence n'a pas la sienne, l'ancienne image reste */
 const ICONES_3D = new Set(['iop3', 'iop-berserker-a', 'iop-berserker-b', 'iop-berserker-c', 'feminin-iop', 'cra', 'feminin-cra', 'osa', 'feminin-osa'].flatMap((m) => ['sort3d-' + m + '-attaque', 'sort3d-' + m + '-sort', 'passif-' + m]));
-const V_ICONES_3D = 'i3'; /* (a changer quand on repeint les icones 3D : le navigateur garde sinon les anciennes, sans recharger tous les modeles) */
+const V_ICONES_3D = 'i4'; /* (a changer quand on repeint les icones 3D : le navigateur garde sinon les anciennes, sans recharger tous les modeles) */
 const icone3d = (nom) => '<span class="pic img trois-d"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + V_ICONES_3D + '" alt=""></span>';
 const ico = (nom) => '<span class="pic img' + (/^obj-leg-/.test(nom) ? ' leg' : '') + '"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt=""></span>';
 const pastille = (c) => '<span class="pic" style="background:' + c.couleur + '">' + c.nom[0] + '</span>'; /* une graine : sa couleur et son initiale */
