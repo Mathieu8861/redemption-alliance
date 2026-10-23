@@ -103,7 +103,10 @@ function partirOmeho(vole) { /* la fin du raid : sa derniere replique, puis la c
     if (cal) { cal.position.x = x0 + dx * d; cal.position.z = z0 + dz * d; }
     if (m) { m.position.x = mx + dx * d; m.position.z = mz + dz * d; m.position.y = m.userData.y0 + (cal ? Math.abs(Math.sin(t * 9)) * 0.05 : Math.abs(Math.sin(t * 14)) * 0.18); }
     if (Math.random() < 0.25 && k > 0) pouf(x0 + dx * (d - 1.5), o.so.y + 0.1, z0 + dz * (d - 1.5), 0.8, '#d8c8a8');
-    if (t > 3.6) { pouf((cal ? x0 : mx) + dx * d, o.so.y + 0.5, (cal ? z0 : mz) + dz * d, 2.5, '#d8c8a8'); if (m) jeter(m); jeter(o.decor); o.bulle.remove(); if (ancres.omeho === o.ancre) delete ancres.omeho; return true; }
+    /* « des fois il s'envole dans le ciel : s'il passe la limite de la map, il disparait » (Mathieu, 23/10/2026) : l'ile flotte, la caleche roulait au-dessus
+       du vide ; des que son milieu (un peu en avant) quitte le sol, elle disparait dans un nuage de poussiere */
+    const av = cal ? d + 0.8 : d, px = (cal ? x0 : mx) + dx * av, pz = (cal ? z0 : mz) + dz * av; /* (a pied : ses pieds) */
+    if (t > 3.6 || (k > 0 && !caseIci(px, pz))) { pouf((cal ? x0 : mx) + dx * d, o.so.y + 0.5, (cal ? z0 : mz) + dz * d, 2.5, '#d8c8a8'); if (m) jeter(m); jeter(o.decor); o.bulle.remove(); if (ancres.omeho === o.ancre) delete ancres.omeho; return true; }
     if (m) { o.ancre.set(m.position.x, m.position.y + 2.3, m.position.z); } });
 }
 function direOmehoSur(o, genre) { const sv = omeho; omeho = o; direOmeho(genre, 3400); omeho = sv; }
