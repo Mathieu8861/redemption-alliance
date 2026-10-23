@@ -79,12 +79,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* la barre du bas : un panneau de bois clair, une tuile par action avec l'icone de nos modeles */
 .actions { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; padding: 6px 8px; background: rgba(38, 39, 43, .94); border: 3px solid var(--bord); border-radius: 20px; box-shadow: 0 5px 0 var(--bord); pointer-events: auto; }
 .action { display: grid; justify-items: center; gap: 7px; width: 74px; padding: 3px 2px 2px; background: none; border: 0; border-radius: 14px; font: 800 .72rem/1.1 var(--f-texte); color: var(--encre); }
-.action .tuile { position: relative; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; border: 2px solid var(--bord); background: radial-gradient(circle at 50% 40%, #26272b, #3a3c42); box-shadow: 0 3px 0 var(--bord); }
-.action .tuile img { width: 46px; height: 46px; object-fit: contain; }
+.action .tuile { position: relative; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; border: 2px solid var(--bord); --t1: #3a3c42; --t2: #5a5e6a; background: radial-gradient(circle at 50% 26%, var(--t2), var(--t1) 78%); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35), inset 0 -3px 0 rgba(0, 0, 0, .28), 0 3px 0 var(--bord); }
+/* LES CASES DE LA BARRE EN COULEUR (23/10/2026, « faudrait faire ressortir les icones, ca fait noir sur noir », Mathieu) : une couleur par action, comme des icones d'appli */
+#b-graine .tuile { --t1: #2f7a1c; --t2: #7fd04f; } #b-hdv .tuile { --t1: #b4580e; --t2: #ffb347; } #b-amelio .tuile { --t1: #2d5f9c; --t2: #7ab4ec; } #b-grange .tuile { --t1: #9a3a22; --t2: #ef8a5a; }
+#b-amenager .tuile { --t1: #5e7a1e; --t2: #b8d85a; } #b-perso .tuile { --t1: #b07a14; --t2: #ffd86b; } #b-bestiaire .tuile { --t1: #5a3aa0; --t2: #a98cf0; } #b-vagues .tuile { --t1: #9a1c24; --t2: #f05a5a; }
+.action .tuile img { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .35)); }
 .action .tuile b { position: absolute; right: -7px; top: -7px; min-width: 20px; padding: 2px 5px; background: var(--kamas); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 800 .62rem/1 var(--f-texte); }
-.action:hover .tuile { background: radial-gradient(circle at 50% 40%, #2b2d31, #3a3c42); }
+.action:hover .tuile { filter: brightness(1.12); }
 .action:active .tuile { transform: translateY(3px); box-shadow: 0 0 0 var(--bord); }
-.action[aria-pressed="true"] .tuile { background: radial-gradient(circle at 50% 40%, #313338, var(--or)); }
+.action[aria-pressed="true"] .tuile { box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35), 0 0 0 3px var(--or), 0 3px 0 var(--bord); }
 .pastille.options { pointer-events: auto; font: 800 .78rem var(--f-texte); cursor: pointer; }
 /* les stocks au bout de la barre d'actions (12/10/2026) : l'eau et les fleches */
 .stocks { display: grid; align-content: center; gap: 5px; padding-left: 8px; margin-left: 2px; border-left: 2px dashed #43464e; }
