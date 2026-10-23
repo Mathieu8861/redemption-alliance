@@ -11,6 +11,7 @@ const SORT_LECON = {
   cra: () => `la <em>Flèche perçante</em> : elle traverse toute une ligne de monstres. Elle se recharge en 20 s.`,
   osa: () => `l'<em>Invocation</em> : tu vises où poser un Bouftou, qui retombe sur les monstres puis se bat pour toi.`
 };
+const premiereRare = () => [...Object.keys(S_.sac || {}), ...Object.values(S_.equip || {})].find((k) => { const o = k && obj(k); return !!(o && o.rare); }); /* (la premiere piece rare du sac ou portee : la lecon « Une piece rare ») */
 const LECONS = [ /* (les dernieres, « premiere fois », 22/10/2026 : en bas de la liste) */
   { id: 'eau', titre: 'L\'eau', ico: 'arrosoir', resume: 'Le puits, l\'arrosoir, la citerne.', quand: () => S_.eau <= 0,
     pages: [() => `Ton <em>arrosoir</em> est vide (la goutte bleue, en bas à droite). Pour le remplir, ${toucherQ('le <em>puits</em>')} : ton perso y va et fait le plein.`,
@@ -71,7 +72,10 @@ const LECONS = [ /* (les dernieres, « premiere fois », 22/10/2026 : en bas de 
     pages: [() => `Un monstre t'a laissé une <em>pièce d'équipement</em> ! Ouvre <em>Perso</em> (en bas) : touche une case, puis une pièce du sac pour la comparer. Une flèche verte, c'est mieux que ce que tu portes.`,
       () => `Chaque pièce donne des <em>caractéristiques</em> : Vitalité, Puissance, Agilité... Touche-en une dans la fiche pour savoir à quoi elle sert. Les pièces d'une même <em>panoplie</em> donnent un bonus à 2, 4 et 6 pièces portées.`,
       () => `Deux pièces du même nom n'ont pas les mêmes chiffres : chacune a son <em>jet</em>, tiré entre 75 % et 125 % des valeurs de base. Garde les meilleures ! L'<em>atelier de forgemagie</em> les améliore ensuite avec des runes.`,
-      () => `Chaque boss lâche une pièce à coup sûr la première fois, et parfois son arme. Les pièces en trop se revendent à l'HDV (onglet Vendre) ou depuis la grange. Les panoplies sont toutes dans le <em>Bestiaire</em>, onglet Panoplies.`] },
+      /* (23/10/2026, « on explique tout ca, les stuffs, la rarete, comment on recupere, dans le tuto ? », Mathieu : d'ou viennent les pieces, et les rares) */
+      () => `D'où viennent les pièces ? Pendant les vagues, chaque monstre a <em>7 % de chances</em> d'en lâcher une de la panoplie de son palier (un Tofu, 2 %), en priorité une que tu n'as pas encore. Le <em>boss</em> en lâche une à coup sûr la première fois, puis 4 fois sur 10 quand tu le rejoues, et parfois son arme. Ta <em>Prospection</em> augmente les chances des monstres.`,
+      () => `Une pièce sur 100 tombe <em>rare</em> : une étoile ★ devant son nom, un liseré doré, et <em>50 % de caractéristiques en plus</em>. Une rare d'un palier bat souvent une pièce normale du palier suivant ! Elle compte dans sa panoplie et se revend 3 fois plus cher.`,
+      () => `Les pièces en trop se revendent à l'HDV (onglet Vendre) ou depuis la grange. Les panoplies sont toutes dans le <em>Bestiaire</em>, onglet Panoplies.`] },
   { id: 'repas', titre: 'Les repas', ico: 'cawotte', resume: 'Manger avant une vague.', quand: () => CULTURES.some((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)),
     pages: [() => `Avant une vague, ton perso peut <em>manger</em> une récolte de ta grange : la <em>Cawotte</em> donne +20 % de dégâts, la <em>Fraise</em> +30 % de prospection (plus de butin), pendant la vague suivante.`,
       () => `Ça se passe dans la fenêtre <em>Vagues</em>, partie « Avant la bataille : manger ». Pense-y avant un boss !`] },
@@ -128,6 +132,9 @@ const LECONS = [ /* (les dernieres, « premiere fois », 22/10/2026 : en bas de 
   { id: 'runes', titre: 'Les runes de forgemagie', ico: 'rune-forge', resume: 'Améliorer le jet de tes pièces à l\'atelier.', quand: () => lieu === 'ferme' && (runes().forge || 0) + (runes().parfaite || 0) > 0,
     pages: [() => `Tu as gagné une <em>rune</em> ! Une <em>rune de forgemagie</em> ajoute 20 % de jet à la caractéristique de ton choix sur une pièce, jusqu'au maximum. Une <em>rune parfaite</em> met toute la pièce au jet maximum.`,
       () => `Elles s'utilisent à l'<em>atelier de forgemagie</em> : HDV, onglet Construire (niveau ${NIV_ARENE}, ${fmt(100000)} kamas). ${niv('forge') ? 'Tu l\'as déjà : touche-le sur ta ferme.' : 'Garde tes runes en attendant, elles ne se perdent pas.'}`] },
+  { id: 'rare', titre: 'Une pièce rare', ico: () => iconeObjet(premiereRare()), resume: 'L\'étoile, le liseré doré, 50 % de plus.', quand: () => !!premiereRare(),
+    pages: [() => `Une pièce <em>rare</em> ! Tu la reconnais à l'étoile ★ devant son nom et à son liseré doré. Elle a <em>50 % de caractéristiques en plus</em> que la même pièce normale : une rare d'un palier bat souvent une pièce normale du palier suivant.`,
+      () => `Il en tombe une sur 100, un peu plus avec ta <em>Prospection</em>. Elle compte dans sa panoplie comme les autres, se forgemage pareil, et se revend 3 fois plus cher. Garde-la !`] },
   { id: 'legendaire', titre: 'Une pièce légendaire', ico: 'obj-leg-royal', resume: 'Son pouvoir, un sort de plus en combat.', quand: () => valeurCompteur('legendaires') > 0,
     pages: [() => `Une pièce <em>légendaire</em> ! En plus de ses caractéristiques, elle a un <em>pouvoir</em> : portée, elle t'ajoute un sort pendant les combats, sur un bouton à côté des tiens.`,
       () => `Les légendaires viennent des <em>boss rejoués</em> (la revanche, en bas de la fenêtre Vagues). Une coiffe et une arme légendaires portées ensemble : deux sorts de plus.`] },
