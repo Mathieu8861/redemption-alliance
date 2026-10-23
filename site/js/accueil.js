@@ -314,7 +314,7 @@
             var bonus = (alliances || []).filter(function (a) { return Number(a.multiplicateur) !== 1; });
             html += '<div class="bareme-section__head" style="margin-top:var(--spacing-xl);">'
                   + '<h3 class="bareme-section__title">Multiplicateurs d\'alliance</h3>'
-                  + '<span class="text-muted bareme-section__sub">S\'appliquent à tous les points du combat, en victoire comme en défaite, sauf sur un percepteur seul</span>'
+                  + '<span class="text-muted bareme-section__sub">S\'appliquent à tous les points du combat, en victoire comme en défaite, sauf en 1 VP (seul contre un percepteur sans défense)</span>'
                   + '</div>';
             if (!bonus.length) {
                 html += '<p class="text-muted" style="font-size:0.8125rem;">Aucun multiplicateur actif pour le moment : toutes les alliances sont à x1.</p>';
@@ -401,7 +401,7 @@
             var detail = memeValeur
                 ? '+' + fmt(seul[0].points_victoire) + ' en victoire, quel que soit le nombre d\'alliés'
                 : seul.map(function (b) { return b.nb_allies + 'v0 : +' + fmt(b.points_victoire); }).join(', ');
-            html += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-sm);">Percepteur seul (personne en défense, 0 ennemi) : ' + detail + ', sans multiplicateur d\'alliance.</p>';
+            html += '<p class="text-muted" style="font-size:0.8125rem;margin-top:var(--spacing-sm);">Percepteur seul (personne en défense, 0 ennemi) : ' + detail + '. Seul contre le percepteur (1 VP), pas de multiplicateur d\'alliance.</p>';
         }
 
         html += '</div>';
