@@ -165,7 +165,7 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261023l'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261023m'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
