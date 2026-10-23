@@ -16,17 +16,22 @@ const descUlti = (id) => id === 'zone' && classeDe() === 'iop' ? 'Il fonce au po
    (23/10/2026, « refait les icones des autres iops quand y'a besoin, genre l'ulti », Mathieu) */
 const ULTIS_PAR_LOOK = new Set([]); /* (les modeles qui ont leurs icones : 'iop-berserker-a', 'iop-berserker-b', 'iop-berserker-c', 'feminin-iop' une fois faites) */
 const srcUlti = (id) => { const m = modeleDe(classeDe(), S_.perso.look); return 'assets/icones/ulti3d-' + id + '-' + (ULTIS_PAR_LOOK.has(m) ? m : classeDe()) + '.png?v=' + VERSION_MODELES + V_ICONES_3D; };
+/* LES ULTIS AU CHOIX POUR LES TESTS (23/10/2026, « sur mon truc a moi, Rorschach, laisse-moi la possibilite de changer d'ultimate comme je veux, pour faire
+   des tests », Mathieu) : le compte de Mathieu change d'ulti quand il veut, sans confirmation ; pour tous les autres, le choix reste definitif */
+const TESTEURS_ULTI = ['9a67160a-0234-46dc-aeb3-f52e3d03408b']; /* (son compte de ferme, le meme que l'ancien acces libre de l'ile) */
+const ultiLibre = () => !!(enLigneSv.compte && TESTEURS_ULTI.includes(enLigneSv.compte));
 function ouvrirUlti() {
   const l = niveau(S_.xp), d = statsPerso().deg, cl = CLASSES.find((c) => c.id === classeDe());
   const carte = (id) => { const U = ULTIS[id], pris = S_.ulti === id;
     return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + RECHARGE_ULTI + ' s</span></div></div><div class="desc">' + descUlti(id) + '</div></div>' +
-      (S_.ulti ? (pris ? '<span class="cadenas">✓ Ton ulti</span>' : '<span></span>') : '<button class="btn kamas" data-choisir-ulti="' + id + '"' + (l < NIV_ULTI ? ' disabled' : '') + '>Choisir</button>') + '</div>'; };
-  ouvrirModale('ulti', entete('L\'ulti du ' + cl.nom) + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">' + (S_.ulti ? 'Ton choix est fait, il est définitif.' : l < NIV_ULTI ? 'Il se débloque au niveau ' + NIV_ULTI + ' de Paysan (tu es niveau ' + l + ').' : 'Il s\'ajoute à ton attaque et à ton sort. <b>Tu le choisis une seule fois : impossible d\'en changer ensuite.</b>') + ' Les dégâts indiqués sont ceux de ton niveau actuel, ils montent avec toi.</p>' + ['gel', 'zone', 'mono'].map(carte).join(''));
+      (S_.ulti ? (pris ? '<span class="cadenas">✓ Ton ulti</span>' : ultiLibre() ? '<button class="btn discret" data-confirmer-ulti="' + id + '">Prendre (test)</button>' : '<span></span>') : '<button class="btn kamas" data-choisir-ulti="' + id + '"' + (l < NIV_ULTI ? ' disabled' : '') + '>Choisir</button>') + '</div>'; };
+  ouvrirModale('ulti', entete('L\'ulti du ' + cl.nom) + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">' + (S_.ulti ? (ultiLibre() ? 'Compte de test : tu changes d\'ulti quand tu veux.' : 'Ton choix est fait, il est définitif.') : l < NIV_ULTI ? 'Il se débloque au niveau ' + NIV_ULTI + ' de Paysan (tu es niveau ' + l + ').' : 'Il s\'ajoute à ton attaque et à ton sort. <b>Tu le choisis une seule fois : impossible d\'en changer ensuite.</b>') + ' Les dégâts indiqués sont ceux de ton niveau actuel, ils montent avec toi.</p>' + ['gel', 'zone', 'mono'].map(carte).join(''));
 }
 function choisirUlti(id, confirme) {
-  if (S_.ulti || !ULTIS[id] || niveau(S_.xp) < NIV_ULTI) return;
+  if ((S_.ulti && !ultiLibre()) || !ULTIS[id] || niveau(S_.xp) < NIV_ULTI) return;
   if (!confirme) { const U = ULTIS[id]; ouvrirModale('ulti', entete('Prendre ' + nomUlti(id) + ' ?') + '<div class="confirme"><div class="gros" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></div><b>' + U.genre + '</b><p>' + descUlti(id) + '<br><b>C\'est pour de bon : tu ne pourras plus changer d\'ulti.</b></p><div class="boutons"><button class="btn discret" data-voir-ulti>Revoir les trois</button><button class="btn kamas" data-confirmer-ulti="' + id + '">Oui, je le prends</button></div></div>'); return; }
   S_.ulti = id; sauver(); toast(nomUlti(id) + ' est ton ulti. Il t\'attend pendant les vagues, à côté de ton sort.', 'or'); ouvrirUlti();
+  if (combat && $('ulti-rond')) $('ulti-rond').innerHTML = '<img class="trois-d" src="' + srcUlti(id) + '" alt=""><span>' + nomUlti(id) + '</span>'; /* (change en pleine vague, pour les tests : le bouton suit) */
 }
 /* ---------- viser soi-meme : un cercle sur le sol pour les ultis de zone, la cible sous la souris pour le coup fatal,
    une ligne depuis le perso pour la Fleche percante. On deplace a la souris (ou au doigt), on clique pour lancer, clic droit ou Echap pour annuler ---------- */
