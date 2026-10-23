@@ -539,7 +539,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* LES BULLES EN BANDE DESSINEE (23/10/2026, « ca fait fouillis, faut retravailler les couleurs » puis « on teste la bulle de BD », Mathieu ; facon Stardew Valley) :
    une bulle blanche, la pointe vers ce qu'il faut faire, l'objet dedans, le compteur en pastille ; teintee pour l'eau, bordee de rouge pour les alertes */
 @keyframes bulle-bd { 0%, 100% { scale: 1; } 50% { scale: 1.06; } }
-.bulle.ico { width: 36px; height: 32px; border-radius: 12px; background: #fffef8; border: 2.5px solid #2a2b30; box-shadow: 0 3px 0 rgba(0, 0, 0, .25), 0 4px 8px rgba(0, 0, 0, .25); overflow: visible; transform-origin: 50% 120%; animation: bulle-bd 2.4s ease-in-out infinite; }
+.bulle.ico { width: 31px; height: 29px; border-radius: 11px; background: #fffef8; border: 2.5px solid #2a2b30; box-shadow: 0 3px 0 rgba(0, 0, 0, .25), 0 4px 8px rgba(0, 0, 0, .25); overflow: visible; transform-origin: 50% 120%; animation: bulle-bd 2.4s ease-in-out infinite; }
 .bulle.ico.or, .bulle.ico.eau, .bulle.ico.rouge, .bulle.ico.rose { color: #2a2b30; }
 .bulle.ico.eau { background: #eaf6ff; } .bulle.ico.rouge { background: #fff0ee; border-color: #c0392b; } .bulle.ico.rose { background: #fff0f6; border-color: #c56e94; }
 .bulle.ico::before { display: none; }
