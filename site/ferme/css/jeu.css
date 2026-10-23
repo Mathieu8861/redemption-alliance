@@ -205,6 +205,12 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 /* la fenetre de l'enclos : trois petits boutons par Bouftou, qui passent a la ligne au lieu de deborder */
 .art .act.mini { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 176px; }
 .art .act .btn.mini { min-width: 0; padding: 4px 9px; font-size: .74rem; box-shadow: 0 2px 0 var(--bord); }
+/* l'interrupteur (24/10/2026) : un reglage qui se lit tout seul, vert et pousse a droite quand il est actif, son etat ecrit dessous */
+.inter { position: relative; width: 50px; height: 28px; padding: 0; border: 3px solid var(--bord); border-radius: 999px; background: #4a4d55; box-shadow: 0 2px 0 var(--bord); cursor: pointer; transition: background .15s; }
+.inter::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #d5d8de; box-shadow: 0 1px 2px rgba(0, 0, 0, .5); transition: transform .15s; }
+.inter.on { background: #3fae5a; } .inter.on::after { transform: translateX(22px); background: #fff; }
+.inter:focus-visible { outline: 2px solid #ffd23a; outline-offset: 2px; }
+.etat-inter { font-size: .7rem; font-weight: 800; color: #a9adb5; white-space: nowrap; } .etat-inter.on { color: #6fd38a; }
 .art .desc b { display: inline; }
 .art.perte > div > b { color: #e1807a; } /* (le bilan d'un raid : ce qui est perdu pour de bon) */
 /* les cellules d'amelioration, style A (12/10/2026, choisi par Mathieu sur design-amelio-cellules.html) : plus grand, plus aere, sans cases ni emojis */
