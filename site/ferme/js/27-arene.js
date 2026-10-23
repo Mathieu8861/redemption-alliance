@@ -286,7 +286,7 @@ function finIleBoss(abandon, tombe) {
     '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) + '</div>' +
     '<p class="hdv-aide">Le coffre de la semaine s\'ouvre ' + prochainVendredi() + ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
-    '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
+    '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
   rendreHaut(); sauver();
 }
 async function reclamerIleBoss() { /* le coffre de la semaine finie : la participation, ou mieux s'il est tombe, et le podium */
@@ -437,7 +437,7 @@ function finArene(abandon) {
     ligneRecap('tofu', 'Monstres abattus', c.st.tues) + ligneRecap('degats', 'Dégâts infligés', fmt(Math.round(c.st.inflige))) + '</div>' +
     (objets ? '<div class="hdv-section">Les pièces</div>' + objets : '') +
     (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce, à ton atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</div></div><div class="act"></div></div>').join('') : '') +
-    '<div class="act-bas"><small style="color:#6b5a48">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
+    '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
     '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
   rendreHaut(); sauver();
 }
