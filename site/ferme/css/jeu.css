@@ -942,7 +942,14 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 /* les icones 3D des sorts et des passifs (23/10/2026) : elles ont leur propre fond, elles remplissent le cadre */
 .art .pic.img.trois-d { background: none; padding: 0; } .art .pic.img.trois-d img { width: 100%; height: 100%; object-fit: cover; }
 .fp-sorts .art.passif .pic.img.trois-d { width: 80px; height: 80px; border-radius: 18px; border-color: #c9b48a; }
-.combat-sort .rond img.trois-d { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; filter: none; box-shadow: 0 1px 0 rgba(59, 42, 26, .45); }
+/* en combat (23/10/2026, « pk ca apparait comme ça, c'est pas top », Mathieu) : l'image remplit tout le bouton au lieu d'un petit carre dans un cadre de couleur ;
+   le nom passe dans un bandeau sombre en bas, la recharge devient un voile sombre qui tourne par-dessus l'image */
+.combat-sort .rond:has(img.trois-d) { position: relative; padding: 0; background: #3b3f33; }
+.combat-sort .rond img.trois-d { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border-radius: 13px; object-fit: cover; filter: none; }
+.combat-sort .rond:has(img.trois-d)::before { content: ''; position: absolute; inset: 0; z-index: 1; border-radius: 13px; pointer-events: none; background: conic-gradient(rgba(28, 30, 22, .74) 0 var(--cd, 0%), transparent var(--cd, 0%) 100%); }
+.combat-sort .rond:has(img.trois-d) span { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 12px 3px 5px; border-radius: 0 0 13px 13px; background: linear-gradient(transparent, rgba(30, 22, 14, .82)); }
+.combat-sort .rond:has(img.trois-d)::after { z-index: 3; }
+@media (max-width: 720px) { .combat-sort .rond img.trois-d, .combat-sort .rond:has(img.trois-d)::before { border-radius: 10px; } }
 /* les icones 3D des ultis (23/10/2026) : en pleine image, elles remplissent le cadre rond des cartes de choix et de la confirmation */
 .ulti-carte .rond:has(img[src*="ulti3d-"]), .confirme .gros:has(img[src*="ulti3d-"]) { padding: 0; overflow: hidden; }
 .ulti-carte .rond img[src*="ulti3d-"], .confirme .gros img[src*="ulti3d-"] { width: 100%; height: 100%; object-fit: cover; filter: none; }
