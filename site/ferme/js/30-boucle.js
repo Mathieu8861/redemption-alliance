@@ -101,6 +101,15 @@ function sansPartieActive(sauve) { /* effacer la partie en cours : la premiere d
   const autres = Object.assign({}, sauve.parties || {}), ks = Object.keys(autres).map(Number).filter((k) => autres[k] && autres[k].perso).sort((a, b) => a - b); if (!ks.length) return null;
   const nv = Object.assign({}, autres[ks[0]]); delete autres[ks[0]]; nv.parties = autres; nv.emplacement = ks[0]; return nv;
 }
+/* LES PARTIES MONTRENT LE PERSO HABILLE (23/10/2026, « tu penses y'a moyen que ca affiche ton personnage avec tes equipements etc de visible comme en jeu ? », Mathieu) :
+   le portrait de la fiche perso, rendu pour chaque partie (sa classe, son apparence, sa coiffe, sa cape, son arme) ; l'icone de la classe reste le temps du rendu.
+   Le temps de fabriquer le modele, la partie a montrer devient la partie en cours (tout ce qui habille le perso lit S_), puis on la rend */
+async function portraitDePartie(e) {
+  const eq = e.equip || {}, m = modeleDe(e.perso.classe, e.perso.look, e.perso.sexe === 'f' ? 'f' : 'm');
+  await assurerLook(m); if (eq.coiffe || eq.cape || eq.arme) await assurerVisuels();
+  const S0 = S_; S_ = e.equip ? e : Object.assign({}, e, { equip: {} });
+  try { return portraitPerso(); } finally { S_ = S0; }
+}
 function ouvrirAccueil() {
   const sauve = charger();
   let classe = (sauve && sauve.perso && sauve.perso.classe) || 'cra', look = (sauve && sauve.perso && sauve.perso.look) || 'classique', sexe = (sauve && sauve.perso && sauve.perso.sexe) || 'm';
@@ -111,10 +120,13 @@ function ouvrirAccueil() {
   const partieDe = (k) => (k === actif ? (sauve && sauve.perso ? sauve : null) : (sauve && sauve.parties && sauve.parties[k] && sauve.parties[k].perso ? sauve.parties[k] : null));
   const ligneP = (k) => { const e = partieDe(k); if (!e) return '<div class="slot-partie vide"><span class="pnum">' + k + '</span><div><b>Partie ' + k + '</b><span>Emplacement libre</span></div><button class="btn" data-creer="' + k + '">Nouvelle partie</button></div>';
     const cl = CLASSES.find((c) => c.id === e.perso.classe), vg = Math.max(0, ((e.vague && e.vague.num) || 1) - 1);
-    return '<div class="slot-partie' + (k === actif ? ' actif' : '') + '"><img src="assets/icones/' + (e.perso.sexe === 'f' ? 'feminin-' : '') + e.perso.classe + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + echapper(e.perso.nom) + '</b><span>' + (cl ? cl.nom + ', ' : '') + 'niveau ' + niveau(e.xp) + (vg ? ', vague ' + vg : '') + ', ' + fmt(e.kamas) + ' kamas</span></div>' +
+    const ico0 = e.perso.sexe === 'f' ? 'feminin-' + e.perso.classe : e.perso.classe === 'iop' && e.perso.look && e.perso.look !== 'classique' ? 'iop-look-' + e.perso.look : e.perso.classe;
+    return '<div class="slot-partie' + (k === actif ? ' actif' : '') + '"><img class="portrait-partie" data-portrait="' + k + '" src="assets/icones/' + ico0 + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + echapper(e.perso.nom) + '</b><span>' + (cl ? cl.nom + ', ' : '') + 'niveau ' + niveau(e.xp) + (vg ? ', vague ' + vg : '') + ', ' + fmt(e.kamas) + ' kamas</span></div>' +
       '<button class="btn kamas" data-jouer="' + k + '">' + (k === actif ? 'Reprendre' : 'Jouer') + '</button><button class="partie-suppr" data-suppr="' + k + '" aria-label="Supprimer cette partie" title="Supprimer cette partie">✕</button></div>'; };
   const rendre = () => {
-    if (sauve && sauve.perso && creer == null) { carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + '<p class="parties-titre">Tes parties (' + MAX_PARTIES + ' au plus)</p><div class="slots-parties">' + [1, 2, 3].map(ligneP).join('') + '</div>'; return; }
+    if (sauve && sauve.perso && creer == null) { carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + '<p class="parties-titre">Tes parties (' + MAX_PARTIES + ' au plus)</p><div class="slots-parties">' + [1, 2, 3].map(ligneP).join('') + '</div>';
+      carte.querySelectorAll('img[data-portrait]').forEach((im) => { const e = partieDe(+im.dataset.portrait); if (e) portraitDePartie(e).then((src) => { if (src && im.isConnected) { im.src = src; im.classList.add('rendu'); } }).catch(() => {}); });
+      return; }
     carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + (creer != null ? '' : '<p>Une île de 40 cases dans le ciel d\'Incarnam. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>') + /* (la presentation : seulement pour une premiere ferme) */
       (creer != null ? '<button class="retour-parties" data-retour-parties>← Mes parties</button><p class="parties-titre">Nouvelle partie, emplacement ' + creer + '</p>' : '') +
       ('<div class="nom-sexe"><input id="perso-nom" maxlength="16" placeholder="Ton nom de fermier" value="' + echapper(creer != null ? '' : (sauve && sauve.perso && sauve.perso.nom) || (enLigneSv.pseudo || '').slice(0, 16)) + '"><div class="sexes" role="group" aria-label="Version de ton personnage"><button class="sexe" data-sexe="m" aria-pressed="' + (sexe === 'm') + '">Masculin</button><button class="sexe" data-sexe="f" aria-pressed="' + (sexe === 'f') + '">Féminin</button></div></div><p class="choix-classe">Choisis ton personnage. À la ferme, ils font tous pareil : la classe change seulement ta façon de te battre quand les monstres attaquent. <button class="lien" data-comparer>Comparer les trois classes</button></p><div class="classes">' + CLASSES.slice().sort((x, y) => x.rang - y.rang).map((c) => '<button class="classe" data-classe="' + c.id + '" aria-pressed="' + (classe === c.id) + '"><span class="ico"><img src="assets/icones/' + (sexe === 'f' ? 'feminin-' : '') + c.id + '.png?v=' + VERSION_MODELES + '" alt=""></span><b>' + c.nom + '</b><span class="etiquettes"><i>' + c.role + '</i><i class="' + c.niveau[1] + '">' + c.niveau[0] + '</i></span>' + (() => { const P = progressionClasse(c.id); return '<span class="chiffres"><span>' + picto('vita') + P.pv1 + ' PV <b>+' + P.pvN + '</b>/niv</span><span>' + picto('degats') + P.deg1 + ' dégâts <b>+' + virgule(P.degN) + '</b>/niv</span></span>'; })() + c.lignes.map((t, i) => '<span class="ligne' + (i ? ' l2' : '') + '">' + t + '</span>').join('') + '<span class="sort"><em>Son sort, ' + c.sort + ' :</em> ' + c.sortTxt + '<br><em>Passif de classe :</em> ' + (enBref(c.id).passif || 'aucun pour l\'instant') + '</span></button>').join('') + '</div>' +

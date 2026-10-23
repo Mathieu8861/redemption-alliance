@@ -31,6 +31,30 @@ function trajetCoupe(depart, cible, but, bloc) {
   }
   return null;
 }
+/* LE PERSO MARCHE AUSSI EN DIAGONALE (23/10/2026, « faudrait qu'on integre les deplacements en diagonale en vrai, qu'on soit plus trop limite et qu'on
+   fluidifie encore les deplacements », Mathieu) : son trajet passe par les huit cases voisines, une diagonale seulement si les deux cases qu'elle
+   frole sont praticables (il ne coupe pas l'angle d'un batiment). Les monstres, les voleurs et le gardien gardent leur trajet en quatre directions */
+const COINS = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+function coinLibre(a, b) { const di = b.i - a.i, dj = b.j - a.j; if (Math.abs(di) !== 1 || Math.abs(dj) !== 1) return false; const x = caseAt(a.i + di, a.j), y = caseAt(a.i, a.j + dj); return !!(x && y && PASSABLE[x.type] && PASSABLE[y.type]); }
+function voisinsMarche(p) {
+  const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c && PASSABLE[c.type]) L.push([c, 1]); }
+  for (const [di, dj] of COINS) { const c = caseAt(p.i + di, p.j + dj); if (c && PASSABLE[c.type] && coinLibre(p, c)) L.push([c, Math.SQRT2]); }
+  return L;
+}
+function trajetPerso(depart, cible) {
+  const but = PASSABLE[cible.type] ? cible : null, bloc = blocDe(cible);
+  const cout = new Map([[depart.id, 0]]), prec = new Map([[depart.id, null]]), ouverts = [depart], fait = new Set();
+  while (ouverts.length) {
+    let k = 0; ouverts.forEach((c, i) => { if (cout.get(c.id) < cout.get(ouverts[k].id)) k = i; });
+    const c = ouverts.splice(k, 1)[0]; if (fait.has(c.id)) continue; fait.add(c.id);
+    if (c === but || (!but && PASSABLE[c.type] && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let x = c; while (x) { ch.unshift(x); x = prec.get(x.id); } return ch; }
+    for (const [v, pas] of voisinsMarche(c)) { const d = cout.get(c.id) + pas; if (!fait.has(v.id) && d < (cout.has(v.id) ? cout.get(v.id) : Infinity)) { cout.set(v.id, d); prec.set(v.id, c); ouverts.push(v); } }
+  }
+  return trajetCoupe(depart, cible, but, bloc);
+}
+/* le point exact touche dans la case (un clic qui deplace seulement) : il y va, au lieu du centre de la case. Pose par le clic, lu par allerPuis */
+let pointVise = null;
+function pointDansCase(c, p) { const q = posCase(c), m = S / 2 - 0.35; return { x: Math.max(q.x - m, Math.min(q.x + m, p.x)), z: Math.max(q.z - m, Math.min(q.z + m, p.z)) }; }
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
 const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1) * (combat && combat.lenteur > 0 ? 0.55 : 1); /* (ralenti par une Momie Koalak) */ /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
@@ -44,7 +68,7 @@ function ligneLibre(a, b) {
     for (const o of [0, -0.3, 0.3]) {
       const x = a.x + dx * Math.min(t, L) / L + nx * o, z = a.z + dz * Math.min(t, L) / L + nz * o, c = caseSous(x, z);
       if (!c || !PASSABLE[c.type]) return false;
-      if (o === 0) { if (prec && c !== prec && !voisins(prec).includes(c)) return false; prec = c; }
+      if (o === 0) { if (prec && c !== prec && !voisins(prec).includes(c) && !coinLibre(prec, c)) return false; prec = c; } /* (en diagonale par un coin : les deux cases a cote doivent etre praticables) */
     }
   }
   return true;
@@ -53,12 +77,15 @@ function allerPuis(cible, fn) {
   const u = paysanMesh.userData, ici = caseSous(paysanMesh.position.x, paysanMesh.position.z);
   let depart = (ici && PASSABLE[ici.type] && (u.cellule ? u.cellule.terrain === 'main' : true)) ? ici : (u.cellule || S_.cases[0]);
   if (!PASSABLE[depart.type]) depart = voisins(depart).find((v) => PASSABLE[v.type]) || depart;
-  if (depart === cible || (!PASSABLE[cible.type] && voisins(depart).some((v) => blocDe(cible).includes(v)) && !chemin.length)) { chemin = []; arrivee = null; u.cellule = depart; regarder(posCase(cible)); fn(); return; }
-  const ch = trajet(depart, cible), pc = posCase(cible);
+  const vise = pointVise && pointVise.c === cible.id && PASSABLE[cible.type] ? pointDansCase(cible, pointVise) : null; pointVise = null;
+  if (vise && depart === cible) { if (Math.hypot(vise.x - paysanMesh.position.x, vise.z - paysanMesh.position.z) > 0.05) { chemin = [{ c: cible, x: vise.x, z: vise.z }]; arrivee = { cible, fn, vise }; return; } }
+  if (depart === cible || (!PASSABLE[cible.type] && voisins(depart).some((v) => blocDe(cible).includes(v)) && !chemin.length)) { chemin = []; arrivee = null; u.cellule = depart; if (!vise) regarder(posCase(cible)); fn(); return; }
+  const ch = trajetPerso(depart, cible), pc = posCase(cible);
   if (!ch) { chemin = []; arrivee = null; regarder(pc); fn(); return; } /* sans chemin (ne devrait plus arriver) : il agit d'ou il est, jamais a travers les batiments ou le vide */
   /* ou s'arreter : devant un batiment (un peu vers lui), au bord d'un champ (cote d'ou l'on vient), sinon au centre de la case */
   const fin = ch[ch.length - 1], pf = posCase(fin); let cellFin = fin, pt = { x: pf.x, z: pf.z };
   if (fin !== cible) { const t = posCase(blocDe(cible).find((v) => voisins(fin).includes(v)) || cible); pt = { x: pf.x + (t.x - pf.x) * 0.3, z: pf.z + (t.z - pf.z) * 0.3 }; }
+  else if (vise) pt = { x: vise.x, z: vise.z };
   else if (cible.type === 'champ' && ch.length >= 2) { cellFin = ch[ch.length - 2]; const pv = posCase(cellFin); pt = { x: pc.x + (pv.x - pc.x) * 0.62, z: pc.z + (pv.z - pc.z) * 0.62 }; }
   let pts = ch.slice(1, ch.indexOf(cellFin) + 1).map((c) => ({ c, x: posCase(c).x, z: posCase(c).z }));
   if (pts.length) pts[pts.length - 1] = { c: cellFin, x: pt.x, z: pt.z }; else pts = [{ c: cellFin, x: pt.x, z: pt.z }];
@@ -67,7 +94,7 @@ function allerPuis(cible, fn) {
     while (k < pts.length) { let j = pts.length - 1; while (j > k && !ligneLibre(cur, pts[j])) j--; lisse.push(pts[j]); cur = pts[j]; k = j + 1; }
     pts = lisse;
   }
-  chemin = pts; arrivee = { cible, fn };
+  chemin = pts; arrivee = { cible, fn, vise };
 }
 function regarder(pt) { const dx = pt.x - paysanMesh.position.x, dz = pt.z - paysanMesh.position.z; if (Math.hypot(dx, dz) > 0.05) paysanMesh.userData.angle = Math.atan2(dx, dz); }
 function hancheDe(g) { const p = (g.userData.membres || [])[0]; if (!p) return 0.3; g.updateMatrixWorld(true); return Math.max(0.1, p.getWorldPosition(new T.Vector3()).y - g.position.y); } /* la hauteur de la hanche au-dessus des pieds */
@@ -94,9 +121,13 @@ function marcher(dt, s) {
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); } /* il tourne en douceur */
   if (!chemin.length) {
     u.marche = 0; animerPas(u, dt, 0); paysanMesh.position.y += ((u.y || 0) - paysanMesh.position.y) * Math.min(1, dt * 12);
-    if (arrivee) { const a = arrivee; arrivee = null; regarder(posCase(a.cible)); a.fn(); sauver(); }
+    if (arrivee) { const a = arrivee; arrivee = null; if (!a.vise) regarder(posCase(a.cible)); a.fn(); sauver(); } /* (arrive au point touche, il garde la direction de sa marche) */
     if (fileActions.length && !arrivee && !chemin.length) enchainer(); /* la tache suivante de la file */
     return;
+  }
+  { /* les virages s'arrondissent : pres d'un point de passage, des que le suivant se voit en ligne droite, il file directement vers lui (23/10/2026) */
+    const px = paysanMesh.position.x, pz = paysanMesh.position.z;
+    if (chemin.length >= 2 && Math.hypot(chemin[0].x - px, chemin[0].z - pz) < 0.9 && ligneLibre({ x: px, z: pz }, chemin[1])) { const ici = caseSous(px, pz); if (ici && PASSABLE[ici.type]) u.cellule = ici; chemin.shift(); }
   }
   const e = chemin[0], px = paysanMesh.position.x, pz = paysanMesh.position.z, dx = e.x - px, dz = e.z - pz, d = Math.hypot(dx, dz);
   let reste = d; for (let k = 1; k < chemin.length; k++) reste += Math.hypot(chemin[k].x - chemin[k - 1].x, chemin[k].z - chemin[k - 1].z);
@@ -266,9 +297,9 @@ canvas.addEventListener('pointerup', (e) => {
       if (mid !== undefined) { cibler(mid); return; }
       if (combat.genre === 'ile') { const [x, z] = bornerIle(h.point.x, h.point.z); combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; return; }
       if (combat.arene) { const x = h.point.x, z = h.point.z, C0 = ARENE, R0 = R_ARENE; if (Math.hypot(x - C0.x, z - C0.z) < R0) { combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; } return; }
-      if (cel) { ACTIONS.toucherCase(cel); return; }
+      if (cel) { pointVise = { c: cel, x: h.point.x, z: h.point.z }; ACTIONS.toucherCase(cel); pointVise = null; return; } /* (il va au point touche, pas au centre de la case) */
       if (h.object.material && h.object.material.transparent) continue;
-      const sous = caseIci(h.point.x, h.point.z); if (sous) ACTIONS.toucherCase(sous.id); return;
+      const sous = caseIci(h.point.x, h.point.z); if (sous) { pointVise = { c: sous.id, x: h.point.x, z: h.point.z }; ACTIONS.toucherCase(sous.id); pointVise = null; } return;
     }
     if (mode === 'choisir' && h.object.userData.piece !== undefined) { aDeplacer = { piece: h.object.userData.piece }; mode = 'deplacerBat'; majBandeau(); return; } /* une lanterne de l'escalier, a sa place */
     if (mode && mode !== 'enclos' && h.object.userData.arbre) { /* en amenageant : toucher un arbre le choisit (le meme : on vise la case dessous) */
@@ -284,11 +315,11 @@ canvas.addEventListener('pointerup', (e) => {
     if (bouftou !== null && mode !== 'enclos' && mode !== 'enclosDeplacer') { if (action) toucherBouftou(bouftou); else allerVers(S_.cases.find((c) => c.type === 'enclos')); return; }
     if (terrain !== null) { ACTIONS.acheterTerrain(terrain); return; }
     if (cellule && action && !mode) { const ce = S_.cases.find((c) => c.id === cellule); if (ce && ce.type === 'enclos') { const k = bouftouEcran(e); if (k !== null) { toucherBouftou(k); return; } } } /* un Bouftou contre la cloture : c'est lui qu'on vise, pas l'enclos */
-    if (cellule) { if (action) ACTIONS.toucherCase(cellule); else allerVers(cellule); sauver(); return; }
+    if (cellule) { if (action) ACTIONS.toucherCase(cellule); else { pointVise = { c: cellule, x: h.point.x, z: h.point.z }; allerVers(cellule); pointVise = null; } sauver(); return; }
     if (h.object.material && h.object.material.transparent) continue;
     /* un objet de decor (grange, HDV...) : on cherche la case sous lui */
     const sous = S_.cases.find((p) => { const q = posCase(p); return Math.abs(q.x - h.point.x) < S / 2 && Math.abs(q.z - h.point.z) < S / 2; });
-    if (sous) { if (action) ACTIONS.toucherCase(sous.id); else allerVers(sous); sauver(); return; }
+    if (sous) { if (action) ACTIONS.toucherCase(sous.id); else { pointVise = { c: sous.id, x: h.point.x, z: h.point.z }; allerVers(sous); pointVise = null; } sauver(); return; }
     return;
   }
 });
