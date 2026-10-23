@@ -104,21 +104,35 @@ function sansPartieActive(sauve) { /* effacer la partie en cours : la premiere d
 /* LES PARTIES MONTRENT LE PERSO HABILLE (23/10/2026, « tu penses y'a moyen que ca affiche ton personnage avec tes equipements etc de visible comme en jeu ? », Mathieu) :
    le portrait de la fiche perso, rendu pour chaque partie (sa classe, son apparence, sa coiffe, sa cape, son arme) ; l'icone de la classe reste le temps du rendu.
    Le temps de fabriquer le modele, la partie a montrer devient la partie en cours (tout ce qui habille le perso lit S_), puis on la rend */
+/* (23/10/2026, « ils sont tous un peu decales, pas au centre du socle ; on dirait qu'ils sont sur la pointe des pieds ; le Cra est plus petit que les autres »,
+   Mathieu) : la camera se cale sur le CORPS (sans chapeau, coiffe, cape ni arme), toujours a la meme echelle ; l'image est recadree de facon symetrique autour
+   du corps : son milieu est le milieu du perso, son bas les semelles. Le corps fait toujours PORTRAIT_HEROS.corps de la hauteur rendue */
+let herosR = null; const PORTRAIT_HEROS = { w: 360, h: 460, corps: 0.56 };
 async function portraitDePartie(e) {
   const eq = e.equip || {}, m = modeleDe(e.perso.classe, e.perso.look, e.perso.sexe === 'f' ? 'f' : 'm');
   await assurerLook(m); if (eq.coiffe || eq.cape || eq.arme) await assurerVisuels();
-  const S0 = S_; S_ = e.equip ? e : Object.assign({}, e, { equip: {} });
-  let src; try { src = portraitPerso(); } finally { S_ = S0; }
-  return rognerPortrait(src);
+  const S0 = S_; S_ = e.equip ? e : Object.assign({}, e, { equip: {} }); let g;
+  try { g = paysan(0, 0, 0, e.perso.classe); } finally { S_ = S0; }
+  scene.remove(g); g.rotation.set(0, 0, 0); g.traverse((o) => { if ((o.userData && o.userData.ombre) || o.material === OMBRE_PIEDS) o.visible = false; }); g.updateMatrixWorld(true);
+  const eqG = g.getObjectByName('equipement_porte'), porte = (o) => { for (let x = o; x; x = x.parent) if (x === eqG || P_CHAPEAU.test(nomP(x)) || P_DOS.test(nomP(x))) return true; return false; };
+  const bb = new T.Box3(); g.traverse((o) => { if (o.isMesh && o.geometry && !(o.material && o.material.side === T.BackSide) && !porte(o)) { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
+  const c = bb.getCenter(new T.Vector3()), hb = Math.max(0.1, bb.max.y - bb.min.y), W = PORTRAIT_HEROS.w, H = PORTRAIT_HEROS.h;
+  if (!herosR) { herosR = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); herosR.setPixelRatio(1); herosR.setSize(W, H); herosR.setClearColor(0x000000, 0); herosR.outputEncoding = rendu.outputEncoding; }
+  const sc = new T.Scene(); sc.add(new T.HemisphereLight('#fff8ec', '#9db7cf', 0.75)); const d = new T.DirectionalLight('#fff3dc', 0.85); d.position.set(3, 6, 8); sc.add(d); sc.add(g);
+  const cam = new T.PerspectiveCamera(24, W / H, 0.05, 50), dist = hb / PORTRAIT_HEROS.corps / (2 * Math.tan(12 * Math.PI / 180));
+  cam.position.copy(c).add(new T.Vector3(Math.sin(0.4), 0.12, Math.cos(0.4)).normalize().multiplyScalar(dist)); cam.lookAt(c);
+  herosR.render(sc, cam); const src = herosR.domElement.toDataURL('image/png'); sc.remove(g);
+  return rognerPortrait(src, true);
 }
-function rognerPortrait(src) { /* l'image recadree sur le perso (sans le vide autour) : ses pieds touchent le bas de l'image, et donc son socle */
+function rognerPortrait(src, symetrique) { /* l'image recadree sur le perso (sans le vide autour) : ses pieds touchent le bas de l'image, et donc son socle ; symetrique : autant de vide coupe a gauche qu'a droite, le milieu reste le milieu du corps */
   return new Promise((ok) => { const im = new Image(); im.onerror = () => ok(src); im.onload = () => {
     const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data;
     let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1; for (let y = 0; y < c.height; y++) for (let i = 0; i < c.width; i++) if (d[(y * c.width + i) * 4 + 3] > 8) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    if (x1 < 0) { ok(src); return; } const r = document.createElement('canvas'); r.width = x1 - x0 + 1; r.height = y1 - y0 + 1; r.getContext('2d').drawImage(c, x0, y0, r.width, r.height, 0, 0, r.width, r.height); ok(r.toDataURL('image/png')); }; im.src = src; });
+    if (x1 < 0) { ok(src); return; } if (symetrique) { const mg = Math.min(x0, c.width - 1 - x1); x0 = mg; x1 = c.width - 1 - mg; } const r = document.createElement('canvas'); r.width = x1 - x0 + 1; r.height = y1 - y0 + 1; r.getContext('2d').drawImage(c, x0, y0, r.width, r.height, 0, 0, r.width, r.height); ok(r.toDataURL('image/png')); }; im.src = src; });
 }
 /* L'ECRAN « TES PARTIES » DE NUIT (23/10/2026, « je veux un truc qui claque de fou » puis « je prefere le mode nuit, j'en ai marre du blanc », Mathieu) :
    une carte de heros par partie, sous un ciel etoile un peu transparent (l'ile tourne derriere), le perso pose sur son ilot aux couleurs de sa classe */
+const ECHELLE_HEROS = 128 / (460 * 0.56); /* (le corps fait 128 px de haut sur la carte, quelle que soit la classe) */
 const COUL_CLASSE = { iop: ['#d9443a', '#ffb347'], cra: ['#4f9a2c', '#c4ea6a'], osa: ['#2b8c9e', '#9ff0dc'] };
 const ECLATS_HEROS = [[14, 22, 0], [80, 30, 0.8], [24, 62, 1.6], [86, 66, 2.1]].map(([x, y, d]) => '<span class="eclat" style="left:' + x + '%;top:' + y + '%;animation-delay:' + d + 's">✦</span>').join('');
 function ouvrirAccueil() {
@@ -133,16 +147,16 @@ function ouvrirAccueil() {
     const cl = CLASSES.find((c) => c.id === e.perso.classe), vg = Math.max(0, ((e.vague && e.vague.num) || 1) - 1), co = COUL_CLASSE[e.perso.classe] || COUL_CLASSE.iop;
     const ico0 = e.perso.sexe === 'f' ? 'feminin-' + e.perso.classe : e.perso.classe === 'iop' && e.perso.look && e.perso.look !== 'classique' ? 'iop-look-' + e.perso.look : e.perso.classe;
     const look = e.perso.classe === 'iop' && e.perso.sexe !== 'f' && e.perso.look && e.perso.look !== 'classique' ? (LOOKS_IOP.find((l) => l[0] === e.perso.look) || [])[1] : '';
-    return '<div class="heros' + (k === actif ? ' actif' : '') + '" style="--c1:' + co[0] + ';--c2:' + co[1] + '">' + (k === actif ? '<span class="encours">En cours</span>' : '') +
+    return '<div class="heros' + (k === actif ? ' actif choisie' : '') + '" data-carte="' + k + '" tabindex="0" style="--c1:' + co[0] + ';--c2:' + co[1] + '">' + (k === actif ? '<span class="encours">En cours</span>' : '') +
       '<button class="partie-suppr" data-suppr="' + k + '" aria-label="Supprimer cette partie" title="Supprimer cette partie">✕</button>' +
-      '<div class="scene">' + ECLATS_HEROS + '<span class="socle"></span><img class="perso" data-portrait="' + k + '" src="assets/icones/' + ico0 + '.png?v=' + VERSION_MODELES + '" alt=""><span class="niv"><small>NIV</small>' + niveau(e.xp) + '</span></div>' +
+      '<div class="scene"><span class="fond" style="background-image:url(assets/icones/fond-heros-' + (COUL_CLASSE[e.perso.classe] ? e.perso.classe : 'iop') + '.jpg?v=' + VERSION_MODELES + ')"></span>' + ECLATS_HEROS + '<span class="socle"></span><span class="ombre-pieds"></span><img class="perso" data-portrait="' + k + '" src="assets/icones/' + ico0 + '.png?v=' + VERSION_MODELES + '" alt=""><span class="niv"><small>NIV</small>' + niveau(e.xp) + '</span></div>' +
       '<div class="nom">' + echapper(e.perso.nom) + '</div><div class="cl">' + (cl ? cl.nom : '') + (look ? ' · ' + look : '') + '</div>' +
       '<div class="stats">' + (vg ? '<span class="pil">Vague ' + vg + '</span>' : '') + '<span class="pil">' + fmt(e.kamas) + ' kamas</span></div>' +
       '<button class="btn kamas" data-jouer="' + k + '">' + (k === actif ? 'Reprendre' : 'Jouer') + '</button></div>'; };
   const rendre = () => {
     const choix = !!(sauve && sauve.perso && creer == null); carte.classList.toggle('nuit', choix); /* (le ciel de nuit : l'ecran des parties seulement) */
     if (choix) { carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + '<p class="parties-titre">Tes parties (' + MAX_PARTIES + ' au plus)</p><div class="heros-grille">' + [1, 2, 3].map(ligneP).join('') + '</div>';
-      carte.querySelectorAll('img[data-portrait]').forEach((im) => { const e = partieDe(+im.dataset.portrait); if (e) portraitDePartie(e).then((src) => { if (src && im.isConnected) { im.src = src; im.classList.add('rendu'); } }).catch(() => {}); });
+      carte.querySelectorAll('img[data-portrait]').forEach((im) => { const e = partieDe(+im.dataset.portrait); if (e) portraitDePartie(e).then((src) => { if (!src || !im.isConnected) return; const n = new Image(); n.onload = () => { if (!im.isConnected) return; im.style.width = (n.naturalWidth * ECHELLE_HEROS).toFixed(1) + 'px'; im.src = src; im.classList.add('rendu'); }; n.src = src; }).catch(() => {}); });
       return; }
     carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + (creer != null ? '' : '<p>Une île de 40 cases dans le ciel d\'Incarnam. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>') + /* (la presentation : seulement pour une premiere ferme) */
       (creer != null ? '<button class="retour-parties" data-retour-parties>← Mes parties</button><p class="parties-titre">Nouvelle partie, emplacement ' + creer + '</p>' : '') +
@@ -151,8 +165,12 @@ function ouvrirAccueil() {
       '<button class="btn grand" data-commencer>Commencer</button>');
   };
   rendre();
+  /* (23/10/2026, « si on clique sur la carte sans cliquer sur jouer, que ca la selectionne, que ca reste », Mathieu) */
+  const choisirCarte = (h) => { carte.querySelectorAll('.heros.choisie').forEach((x) => x.classList.remove('choisie')); h.classList.add('choisie'); };
+  carte.ondblclick = (e) => { const h = e.target.closest('.heros[data-carte]'); if (h && !e.target.closest('button')) { const j = h.querySelector('[data-jouer]'); if (j) j.click(); } };
+  carte.onkeydown = (e) => { if (e.key !== 'Enter' || e.target.closest('input')) return; const j = carte.querySelector('.heros.choisie [data-jouer]'); if (j) j.click(); };
   carte.onclick = (e) => {
-    const b = e.target.closest('button'); if (!b) return;
+    const b = e.target.closest('button'); if (!b) { const h = e.target.closest('.heros[data-carte]'); if (h) choisirCarte(h); return; }
     if (b.hasAttribute('data-deconnexion')) { deconnecter(); return; }
     if (b.hasAttribute('data-comparer')) { const k = document.createElement('div'); k.className = 'fc-calque'; k.innerHTML = '<div class="fc-calque-tete"><b>Les trois classes, sans équipement</b><button class="fp-fermer" data-fermer-comparer aria-label="Fermer">✕</button></div>' + comparaisonClasses(classe); carte.appendChild(k); return; } /* (par-dessus l'ecran : il ne pousse rien, l'ecran tient toujours sans defiler) */
     if (b.hasAttribute('data-fermer-comparer')) { const k = carte.querySelector('.fc-calque'); if (k) k.remove(); return; }
