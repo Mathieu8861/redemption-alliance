@@ -4,7 +4,7 @@
    la geometrie des pieces (une echelle de groupe aurait deforme les bras et les jambes qui tournent) ; l'epee, l'arc, le carquois et la queue
    sont deplaces sans etre epaissis. Puis la coiffe et la cape portees : la coiffe calee sur le crane (le chapeau de paille et les cornes de
    l'Osamodas s'effacent), la cape enroulee autour du dos, l'arme portee par-dessus. */
-const LARGEUR_PERSO = { iop: [1.55, 1.28], cra: [1.25, 1.12], osa: [1.25, 1.12], 'feminin-iop': [1.3, 1.15], 'feminin-cra': [1.15, 1.06], 'feminin-osa': [1.15, 1.06] }; /* (les versions feminines un peu moins elargies, comme sur la planche) */
+const LARGEUR_PERSO = { iop: [1.55, 1.28], cra: [1.25, 1.12], osa: [1, 1], 'feminin-iop': [1.3, 1.15], 'feminin-cra': [1.15, 1.06], 'feminin-osa': [1, 1] }; /* (l'Osa refait le 23/10/2026 a ses propres proportions : on ne l'elargit plus, ses bras se decollaient du corps) */ /* (les versions feminines un peu moins elargies, comme sur la planche) */
 const P_CHAPEAU = /^(cone|paille|chapeau)/, P_RIGIDE = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|fleche_queue)/, /* (la sangle tient l'epee : elle bouge avec elle, sans s'etirer) */
   P_ARME_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage)/, P_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|baudrier|cape|col|barbe|moustache|tresse|anneau_barbe|criniere|favoris|meche_folle)/, /* (la barbe et les cheveux longs ne comptent pas dans le torse) */
   P_SAILLIE = /^(nasal|corne|anneau_corne|queue|crin|cristal|lueur|plume|feuille|museau|couvre_nuque|garde_joue|crete|dent|oreille|cawotte|cercle|noeud|embleme|gemme|clou|orbite|arcade|fente|visiere|touffe|couronne_pointe|couronne_boule|sillon|couture|roc)/, EP_CAPE = 0.16;
@@ -109,6 +109,64 @@ function armerPerso(g) {
   e.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
   g.add(e);
 }
+/* L'EPEE EN MAIN PENDANT LES COMBATS (23/10/2026, « le Iop quand il combat il faudrait qu'il ait son épée dans la main, ça a pas de sens qu'elle reste
+   dans son dos », Mathieu) : les morceaux de l'epee (et l'arme legendaire posee par-dessus) passent d'un bloc dans la main droite, la poignee dans le
+   poing, la lame vers l'avant ; ils suivent alors le bras qui frappe. A la fin du combat, ils reviennent exactement ou ils etaient, dans le dos. */
+const P_EPEE = /^(lame|gorge|garde|garde_g|garde_d|poignee|pommeau)$/, AXE_EPEE_MAIN = new T.Vector3(0, 1.5, 1).normalize(); /* (au repos, la lame pointe vers l'avant et vers le haut, en garde) */
+function epeeEnMain(g, oui) {
+  const u = g.userData; if (!!u.epeeMain === !!oui) return;
+  if (!oui) { (u.epeeMain || []).forEach(({ m, parent, p, q, s }) => { parent.add(m); m.position.copy(p); m.quaternion.copy(q); m.scale.copy(s); }); u.epeeMain = null; return; }
+  const bras = (u.membres || [])[3]; if (!bras) return;
+  const rot0 = bras.rotation.clone(); bras.rotation.set(0, 0, 0); g.updateMatrixWorld(true); /* (le calcul se fait bras au repos : sinon le balancement de la marche restait fige dans l'epee) */
+  try { prendreEpee(g, bras); } finally { bras.rotation.copy(rot0); g.updateMatrixWorld(true); }
+}
+function prendreEpee(g, bras) {
+  const u = g.userData;
+  const tete = g.getObjectByName('tete'), sous = (o, r) => { for (let x = o; x; x = x.parent) if (x === r) return true; return false; };
+  const L = []; g.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh) && P_EPEE.test(nomP(m)) && !(tete && sous(m, tete)) && !sous(m, bras)) L.push(m); });
+  const pom = L.find((m) => nomP(m) === 'pommeau'), poi = L.find((m) => nomP(m) === 'poignee'); if (!pom || !poi) return;
+  const p0 = boiteDe(pom).getCenter(new T.Vector3()), prise = boiteDe(poi).getCenter(new T.Vector3()), tip = p0.clone(), v = new T.Vector3(); let dmax = 0;
+  L.filter((m) => nomP(m) === 'lame').forEach((m) => { const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); const d = v.distanceTo(p0); if (d > dmax) { dmax = d; tip.copy(v); } } });
+  const gG = L.find((m) => nomP(m) === 'garde_g'), gD = L.find((m) => nomP(m) === 'garde_d');
+  const a = tip.clone().sub(p0).normalize(), b = gG && gD ? boiteDe(gD).getCenter(new T.Vector3()).sub(boiteDe(gG).getCenter(new T.Vector3())) : new T.Vector3(1, 0, 0);
+  const paume = []; bras.traverse((m) => { if (m.isMesh && /^(paume|doigts|main)$/.test(nomP(m))) paume.push(m); }); const main = paume.length ? unionDe(paume).getCenter(new T.Vector3()) : bras.localToWorld(new T.Vector3(0, -0.5, 0));
+  const rot = new T.Matrix4().extractRotation(g.matrixWorld), A1 = AXE_EPEE_MAIN.clone().applyMatrix4(rot), B1 = new T.Vector3(1, 0, 0).applyMatrix4(rot); /* (la lame vers l'avant et un peu vers le haut, la garde en travers) */
+  const base = (x, y) => { const X = x.clone().normalize(), Y = y.clone().sub(X.clone().multiplyScalar(y.dot(X))).normalize(); return new T.Matrix4().makeBasis(X, Y, new T.Vector3().crossVectors(X, Y)); };
+  const M = new T.Matrix4().makeTranslation(main.x, main.y, main.z).multiply(base(A1, B1)).multiply(base(a, b).transpose()).multiply(new T.Matrix4().makeTranslation(-prise.x, -prise.y, -prise.z));
+  const leg = g.getObjectByName('arme_legendaire'); if (leg) L.push(leg);
+  const inv = new T.Matrix4().copy(bras.matrixWorld).invert();
+  u.epeeMain = L.map((m) => { const r = { m, parent: m.parent, p: m.position.clone(), q: m.quaternion.clone(), s: m.scale.clone() };
+    new T.Matrix4().multiplyMatrices(inv, new T.Matrix4().multiplyMatrices(M, m.matrixWorld)).decompose(m.position, m.quaternion, m.scale); bras.add(m); return r; });
+}
+function tenirEpee() { if (!paysanMesh) return; if (classeDe() === 'iop') epeeEnMain(paysanMesh, !!combat); else if (classeDe() === 'osa') fouetEnMain(paysanMesh, !!combat); } /* (a chaque image : en combat dans la main, sinon dans le dos ou a la ceinture) */
+/* LE FOUET EN MAIN PENDANT LES COMBATS (23/10/2026, « l'arme dans la main », Mathieu) : comme l'epee du Iop, le fouet enroule de l'Osamodas (et le manche
+   legendaire pose dessus) passe d'un bloc dans sa main droite, le manche dans le poing, le pommeau en haut, les boucles qui pendent devant ; la laniere
+   du coup part alors du bout du manche (mainDe, 22b-effets.js). A la fin du combat, il revient a la ceinture. */
+const P_FOUET = /^(fouet|manche_fouet|pommeau_fouet|bague_fouet|meche_fouet|bout_fouet)$/, AXE_FOUET_MAIN = new T.Vector3(0, -0.55, 1).normalize(); /* (du pommeau vers le bas du manche : vers l'avant et un peu vers le bas) */
+function fouetEnMain(g, oui) {
+  const u = g.userData; if (!!u.fouetMain === !!oui) return;
+  if (!oui) { (u.fouetMain || []).forEach(({ m, parent, p, q, s }) => { parent.add(m); m.position.copy(p); m.quaternion.copy(q); m.scale.copy(s); }); u.fouetMain = null; return; }
+  const bras = (u.membres || [])[3]; if (!bras) return;
+  const rot0 = bras.rotation.clone(); bras.rotation.set(0, 0, 0); g.updateMatrixWorld(true);
+  try { prendreFouet(g, bras); } finally { bras.rotation.copy(rot0); g.updateMatrixWorld(true); }
+}
+function prendreFouet(g, bras) {
+  const u = g.userData, sous = (o, r) => { for (let x = o; x; x = x.parent) if (x === r) return true; return false; };
+  const L = []; g.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh) && P_FOUET.test(nomP(m)) && !sous(m, bras)) L.push(m); });
+  const man = L.filter((m) => nomP(m) === 'manche_fouet'), pom = L.find((m) => nomP(m) === 'pommeau_fouet'), bag = L.find((m) => nomP(m) === 'bague_fouet'); if (!man.length || !pom || !bag) return;
+  const haut = boiteDe(pom).getCenter(new T.Vector3()), bas = boiteDe(bag).getCenter(new T.Vector3()), prise = haut.clone().lerp(bas, 0.45);
+  const a = bas.clone().sub(haut).normalize(), b = new T.Vector3(0, 0, 1).applyMatrix4(new T.Matrix4().extractRotation(g.matrixWorld)); /* (b : l'avant du perso, pour fixer la rotation autour du manche) */
+  const paume = []; bras.traverse((m) => { if (m.isMesh && /^(paume|doigts|main)$/.test(nomP(m))) paume.push(m); }); const main = paume.length ? unionDe(paume).getCenter(new T.Vector3()) : bras.localToWorld(new T.Vector3(0, -0.5, 0));
+  const rot = new T.Matrix4().extractRotation(g.matrixWorld), A1 = AXE_FOUET_MAIN.clone().applyMatrix4(rot), B1 = new T.Vector3(1, 0, 0).applyMatrix4(rot);
+  const base = (x, y) => { const X = x.clone().normalize(), Y = y.clone().sub(X.clone().multiplyScalar(y.dot(X))).normalize(); return new T.Matrix4().makeBasis(X, Y, new T.Vector3().crossVectors(X, Y)); };
+  const B0 = new T.Vector3().crossVectors(a, b).lengthSq() > 1e-4 ? new T.Vector3().crossVectors(a, b) : new T.Vector3(1, 0, 0);
+  const M = new T.Matrix4().makeTranslation(main.x, main.y, main.z).multiply(base(A1, B1)).multiply(base(a, B0).transpose()).multiply(new T.Matrix4().makeTranslation(-prise.x, -prise.y, -prise.z));
+  const leg = g.getObjectByName('arme_legendaire'); if (leg) L.push(leg);
+  const inv = new T.Matrix4().copy(bras.matrixWorld).invert();
+  u.fouetMain = L.map((m) => { const r = { m, parent: m.parent, p: m.position.clone(), q: m.quaternion.clone(), s: m.scale.clone() };
+    new T.Matrix4().multiplyMatrices(inv, new T.Matrix4().multiplyMatrices(M, m.matrixWorld)).decompose(m.position, m.quaternion, m.scale); bras.add(m); return r; });
+  u.boutFouet = bag; /* (la laniere du coup part d'ici) */
+}
 function habillerTenue(g) {
   const idC = S_ && S_.equip && S_.equip.coiffe, idK = S_ && S_.equip && S_.equip.cape, coiffe = idC && noeudVisuel(idC), cape = idK && noeudVisuel(idK);
   if (!coiffe && !cape) return;
@@ -117,7 +175,10 @@ function habillerTenue(g) {
   const chapeau = pieces.filter((o) => P_CHAPEAU.test(nomP(o))), corpsP = pieces.filter((o) => !P_CHAPEAU.test(nomP(o)));
   const teteN = g.getObjectByName('tete'); if (!teteN) return;
   const sousTete = []; teteN.traverse((o) => { if (o.isMesh && !(o.parent && o.parent.isMesh) && !P_CHAPEAU.test(nomP(o))) sousTete.push(o); }); const craneP = sousTete.filter((o) => /^(crane|cheveux|meches)/.test(nomP(o)));
-  const bt = unionDe(craneP.length ? craneP : sousTete.length ? sousTete : [teteN]), ct = bt.getCenter(new T.Vector3()), st = bt.getSize(new T.Vector3());
+  /* la tete mesuree sans ce qui pend sous le crane : les longues meches de l'Osa feminine (23/10/2026) faisaient croire a une tete jusqu'au milieu du dos,
+     et les coiffes tombaient sur son visage (« bizarre les coiffes sur la femme, limite on voit plus son visage », Mathieu) */
+  const bt = unionDe(craneP.length ? craneP : sousTete.length ? sousTete : [teteN]), crP = craneP.filter((o) => /^crane/.test(nomP(o))); if (crP.length) bt.min.y = Math.max(bt.min.y, unionDe(crP).min.y);
+  const ct = bt.getCenter(new T.Vector3()), st = bt.getSize(new T.Vector3());
   const corps = unionDe(corpsP), sc = corps.getSize(new T.Vector3());
   const bouche = g.getObjectByName('bouche'), avant = bouche ? Math.sign(boiteDe(bouche).getCenter(new T.Vector3()).z - ct.z) || 1 : 1;
   const torse = corpsP.filter((o) => { if (P_DOS.test(nomP(o))) return false; const c = boiteDe(o).getCenter(new T.Vector3()); return c.y < bt.min.y && c.y > bt.min.y - sc.y * 0.3 && Math.abs(c.x - ct.x) < sc.x * 0.22; });
@@ -190,7 +251,7 @@ function habillerTenue(g) {
 function rhabiller() {
   if (!paysanMesh || !S_ || !S_.perso) return;
   const v = paysanMesh, n = paysan(v.position.x, v.position.y, v.position.z, S_.perso.classe);
-  n.rotation.copy(v.rotation); n.position.copy(v.position); const membres = n.userData.membres; Object.assign(n.userData, v.userData, { membres });
+  n.rotation.copy(v.rotation); n.position.copy(v.position); const { membres, genoux, haut } = n.userData; Object.assign(n.userData, v.userData, { membres, genoux, haut, hanche: undefined, paumes: undefined, epeeMain: null, fouetMain: null, boutFouet: null }); /* (ce qui pointe vers les pieces de l'ancien modele est recalcule) */
   scene.remove(v); paysanMesh = n; if (modaleOuverte === 'perso') ouvrirPerso();
 }
 function rafraichirTenue() { /* une coiffe ou une cape portee : on charge leurs modeles si besoin, puis on rhabille */
@@ -214,7 +275,8 @@ function paysan(x, y, z, classe) {
   const mUse = MODELES[mLook] ? mLook : ({ iop: 'iop3', osa: 'osa', cra: 'cra' }[classe] || 'iop3'), g = cloner(mUse);
   { const e0 = g.scale.x; g.scale.setScalar(1); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); elargirPerso(g, LARGEUR_PERSO[mUse] ? mUse : classe); try { habillerPerso(g); } catch (err) { console.warn('tenue', err); } g.scale.setScalar(e0); }
   g.rotation.order = 'YXZ'; g.rotation.y = -2.3; poser(g, x, y, z); g.userData.y = y; g.userData.angle = -2.3; ombrePieds(g, 1.4);
-  g.userData.membres = ['pivot_jambeG', 'pivot_jambeD', 'pivot_brasG', 'pivot_brasD'].map((n) => g.getObjectByName(n)); return g;
+  g.userData.membres = ['pivot_jambeG', 'pivot_jambeD', 'pivot_brasG', 'pivot_brasD'].map((n) => g.getObjectByName(n));
+  g.userData.genoux = ['pivot_genouG', 'pivot_genouD'].map((n) => g.getObjectByName(n)); g.userData.haut = g.getObjectByName('haut'); return g; /* (genoux et haut du corps : la marche, 24-deplacement.js) */
 }
 function nuage(x, y, z, t) { const g = new T.Group(); const blanc = new T.MeshToonMaterial({ color: '#ffffff', gradientMap: grad, transparent: true, opacity: 0.92 }); [[0, 0, 0, 1.4], [1.3, -0.2, 0.3, 1.0], [-1.3, -0.25, -0.2, 1.05], [0.5, 0.45, -0.4, 0.9], [-0.6, 0.35, 0.5, 0.8]].forEach(([a, b, c, r]) => { const m = new T.Mesh(new T.IcosahedronGeometry(r * t, 1), blanc); m.position.set(a * t, b * t, c * t); g.add(m); }); poser(g, x, y, z); return g; }
 
@@ -555,7 +617,8 @@ function tirer(mo) {
 /* chasser le voleur a la main : chaque classe a son geste. Le Cra tire une fleche de loin, le Iop court lui mettre un coup d'epee,
    l'Osamodas s'approche a portee de fouet. A l'impact, le voleur detale. */
 const effets = [];
-function majEffets(dt) { /* les effets animes ; un effet qui plante est retire et son erreur notee, au lieu d'arreter toute la boucle (16/10/2026) */
+function majEffets(dt) { /* les effets animes ; un effet qui plante est retire et son erreur notee, au lieu d'arreter toute la boucle (16/10/2026) ; les particules avancent avec eux (22b-effets.js) */
+  if (typeof majParticules === 'function') majParticules(dt);
   for (let i = effets.length - 1; i >= 0; i--) { let fini; try { fini = effets[i](dt); } catch (err) { fini = true; (window.__erreursEffets = window.__erreursEffets || []).push(String(err && err.stack || err).slice(0, 400)); console.error('effet retiré', err); } if (fini) effets.splice(i, 1); }
 }
 /* LA PORTEE DES ATTAQUES, LA MEME PARTOUT (13/10/2026 : « des fois je peux taper de loin, des fois au corps a corps, que ce soit un Tofu, un boss ou un mec VSA ;
@@ -591,33 +654,30 @@ function animerAttaque(dt) {
   if (!a) { if (u && u.reprise > 0) { u.reprise -= dt; if (u.reprise <= 0 && voleurCiblable() && !combat && !chemin.length) attaquerVoleur(); } return; }
   a.t += dt; const k = Math.min(1, a.t / 0.5), m = u.membres || [], bras = m[3] || m[2];
   if (a.classe === 'iop') { if (a.tour !== false) paysanMesh.rotation.y = a.base + Math.PI * 2 * Math.min(1, a.t / 0.4); if (bras) bras.rotation.x = -2.2 * Math.sin(k * Math.PI); } /* il tournoie (contre le voleur), epee en avant */
-  else if (a.classe === 'osa') { if (bras) bras.rotation.x = -2.8 * Math.sin(Math.min(1, k * 1.4) * Math.PI); } /* le bras monte puis claque */
+  else if (a.classe === 'osa') { if (bras) bras.rotation.x = -2.0 * Math.sin(Math.min(1, k * 1.4) * Math.PI); } /* le bras monte devant lui puis claque (le fouet part de la main, 22b-effets.js) */
   else { if (m[3]) m[3].rotation.x = 0.9 * Math.sin(k * Math.PI); paysanMesh.rotation.x = -0.08 * Math.sin(k * Math.PI); } /* il bande l'arc */
   if (!a.frappe && a.t >= (a.classe === 'cra' ? 0.25 : 0.18)) { a.frappe = true; if (a.surFrappe) a.surFrappe(); else frapper(a.classe); }
   if (a.t >= 0.5) { u.attaque = null; paysanMesh.rotation.y = a.base; paysanMesh.rotation.x = 0; if (a.contreVoleur) u.reprise = Math.max(0.05, statsPerso().cadence - 0.5); } /* il continue de frapper le voleur tant qu'il n'a pas fui */
 }
-/* l'effet du geste de classe vers un point : fleche (Cra, l'impact a l'arrivee), arc d'epee (Iop), coup de fouet (Osamodas) */
+/* l'effet du geste de classe vers un point : fleche (Cra, l'impact a l'arrivee), arc d'epee (Iop), coup de fouet (Osamodas).
+   style : '' (le coup normal), 'feu' (la fleche de feu, true accepte), 'gel' (les ultis de givre), 'fatal' (le coup fatal) ; chaque sort garde son ton
+   (« la fleche de glace, c'est pas cense faire un tremblement ou une explosion », Mathieu, 23/10/2026) */
+const COULEUR_FLECHE = { '': '#d9c08a', feu: '#ff7a1e', gel: '#bfe6ff', fatal: '#ff3b2e' };
 function effetFrappe(classe, pv, auImpact, feu) {
-  const pp = paysanMesh.position.clone();
+  const pp = paysanMesh.position.clone(), style = feu === true ? 'feu' : (feu || ''), gros = style !== '';
   if (classe === 'cra') {
-    const de = pp.clone(); de.y += 0.95; const fl = boite(feu ? 0.05 : 0.035, feu ? 0.05 : 0.035, 0.55, feu ? '#ff7a1e' : '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(pv);
-    if (feu) { const b = new T.Mesh(new T.IcosahedronGeometry(0.13, 1), new T.MeshBasicMaterial({ color: '#ffcf3e' })); b.position.z = 0.32; fl.add(b); } /* la pointe en flammes */
+    const de = pp.clone(); de.y += 0.95; const fl = boite(gros ? 0.05 : 0.035, gros ? 0.05 : 0.035, style === 'fatal' ? 0.8 : 0.55, COULEUR_FLECHE[style]); scene.add(fl); fl.position.copy(de); fl.lookAt(pv);
+    if (gros) { const b = new T.Mesh(new T.IcosahedronGeometry(0.13, style === 'gel' ? 0 : 1), new T.MeshBasicMaterial({ color: { feu: '#ffcf3e', gel: '#eaf8ff', fatal: '#ff8a6a' }[style] })); b.position.z = 0.32; fl.add(b); } /* la pointe en flammes, en glace ou rougeoyante */
     const pointe = cone(0.04, 0.1, '#9aa1aa', 6); pointe.rotation.x = Math.PI / 2; pointe.position.z = 0.3; fl.add(pointe);
-    let t = 0; effets.push((dt) => { t += dt / 0.28; fl.position.lerpVectors(de, pv, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.35; if (t >= 1) { jeter(fl); auImpact(); return true; } });
+    decocher(de, pv); /* (22b-effets.js : l'eclat a l'arc, la trainee, l'eclat a l'impact, chacun a son ton) */
+    let t = 0; effets.push((dt) => { t += dt / 0.28; fl.position.lerpVectors(de, pv, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.35; traineeFleche(fl.position, style); if (t >= 1) { jeter(fl); impactFleche(pv, style); auImpact(); return true; } });
     return;
   }
-  if (classe === 'iop') { /* un grand arc blanc de taille autour du Iop */
-    const arc = new T.Mesh(new T.RingGeometry(1.0, 1.25, 28, 1, 0, Math.PI * 1.3), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false }));
-    arc.rotation.x = -Math.PI / 2; arc.position.set(pp.x, pp.y + 0.75, pp.z); scene.add(arc);
-    let t = 0; effets.push((dt) => { t += dt / 0.35; arc.rotation.z += dt * 14; arc.material.opacity = 0.85 * (1 - t); arc.scale.setScalar(1 + t * 0.3); if (t >= 1) { jeter(arc); return true; } });
-    auImpact(); return;
+  if (classe === 'iop') { /* une lame de lumiere qui balaie devant lui, et l'eclat du coup sur la cible (22b-effets.js, 23/10/2026) */
+    entailleIop(pp, pv, style); etoileImpact(pv, 0.85, style === 'gel' ? '#9fd8ff' : style === 'fatal' ? '#ff5a3a' : undefined); auImpact(); return;
   }
   /* osamodas : la laniere du fouet part de la main et claque sur la cible */
-  const de = pp.clone(); de.y += 1.1; const dir = pv.clone().sub(de), cote = new T.Vector3(-dir.z, 0, dir.x).normalize();
-  const courbe = new T.QuadraticBezierCurve3(de, de.clone().add(dir.clone().multiplyScalar(0.5)).add(new T.Vector3(0, 0.9, 0)).add(cote.multiplyScalar(0.4)), pv);
-  const fouet = new T.Mesh(new T.TubeGeometry(courbe, 20, 0.03, 5, false), new T.MeshBasicMaterial({ color: '#5a3a22', transparent: true, opacity: 1 })); scene.add(fouet);
-  const claque = new T.Mesh(new T.RingGeometry(0.15, 0.35, 16), new T.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false })); claque.position.copy(pv); claque.lookAt(camera.position); scene.add(claque);
-  let t = 0; effets.push((dt) => { t += dt / 0.3; fouet.material.opacity = claque.material.opacity = 1 - t; claque.scale.setScalar(1 + t * 1.5); if (t >= 1) { jeter(fouet); jeter(claque); return true; } });
+  coupDeFouet(mainDe(paysanMesh), pv, paysanMesh, style); /* (22b-effets.js : la laniere part de la main, ondule jusqu'a la cible et claque ; « le fouet est cense partir de sa main, pas de son front », Mathieu) */
   auImpact();
 }
 function frapper(classe) {

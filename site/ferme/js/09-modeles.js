@@ -165,7 +165,7 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261022b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261023k'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -251,7 +251,12 @@ function articuler(racine) {
   const haut = racine.getObjectByName('haut'), corps = pieces.find((o) => o.isMesh && base(o) === 'jambe').parent; /* le groupe du personnage */
   [-1, 1].forEach((sg) => {
     const piv = new T.Group(); piv.name = 'pivot_jambe' + (sg < 0 ? 'G' : 'D'); corps.add(piv); piv.position.copy(corps.worldToLocal(new T.Vector3(sg * 0.19, hanche, 0))); piv.updateMatrixWorld(true);
-    pieces.filter((o) => o.isMesh && o.parent === corps && ['jambe', 'botte', 'bande'].includes(base(o))).forEach((o) => { box.setFromObject(o); box.getCenter(c); if (Math.sign(c.x) === sg && box.max.y <= hanche + 0.05) piv.attach(o); });
+    pieces.filter((o) => o.isMesh && o.parent === corps && ['jambe', 'tibia', 'botte', 'bande', 'short_jambe', 'ourlet_jambe'].includes(base(o))).forEach((o) => { box.setFromObject(o); box.getCenter(c); if (Math.sign(c.x) === sg && box.max.y <= hanche + 0.05) piv.attach(o); });
+    /* un genou, si le modele a un tibia (l'Osa refait, 23/10/2026) : le tibia, la botte et sa bande plient ensemble sous la cuisse */
+    const tib = piv.children.find((o) => base(o) === 'tibia');
+    if (tib) { box.setFromObject(tib); const yg = box.max.y - (box.max.x - box.min.x) * 0.5, gen = new T.Group(); gen.name = 'pivot_genou' + (sg < 0 ? 'G' : 'D'); piv.add(gen);
+      gen.position.copy(piv.worldToLocal(new T.Vector3((box.min.x + box.max.x) / 2, yg, (box.min.z + box.max.z) / 2))); gen.updateMatrixWorld(true);
+      piv.children.slice().forEach((o) => { if (o === gen || !['tibia', 'botte', 'bande'].includes(base(o))) return; box.setFromObject(o); if (base(o) === 'tibia' || box.max.y <= yg + 0.12) gen.attach(o); }); }
   });
   if (!haut) return;
   const arc = racine.getObjectByName('arc'); let coteArc = 0; if (arc) { box.setFromObject(arc); box.getCenter(c); coteArc = Math.sign(c.x); }
@@ -263,7 +268,7 @@ function articuler(racine) {
       if (o === piv || /^pivot|epauliere|pointe|col|arc|carquois|fouet|sac|dague|epee|fourreau/.test(base(o))) return;
       box.setFromObject(o); box.getCenter(c); const t = new T.Vector3(); box.getSize(t);
       const seg = new T.Line3(epaule, poignet), proche = seg.closestPointToPoint(c, true, new T.Vector3()).distanceTo(c); /* colle le long du bras (lacets, bracelets, mitaines) */
-      const surBras = ['bras', 'brassard', 'main'].includes(base(o)) || (proche < 0.17 && Math.max(t.x, t.y, t.z) < 0.4 && !/queue|garde|kama|bourse|cordon|attache|pelerine|foulard|ceinture|boucle|tunique|baudrier/.test(base(o)));
+      const surBras = ['bras', 'brassard', 'main', 'mancheronne'].includes(base(o)) || (proche < 0.17 && Math.max(t.x, t.y, t.z) < 0.4 && !/queue|garde|kama|bourse|cordon|attache|pelerine|foulard|ceinture|boucle|tunique|baudrier/.test(base(o)));
       if (surBras && Math.sign(c.x) === sg) piv.attach(o);
     });
   });

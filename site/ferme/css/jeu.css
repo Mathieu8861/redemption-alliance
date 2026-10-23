@@ -939,3 +939,11 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .fc-calque-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; } .fc-calque-tete b { font: 400 1.1rem var(--f-titre); }
 .accueil .carte { position: relative; } /* (le calque de comparaison se pose dessus) */
 @media (min-width: 900px) and (max-height: 740px) { .classe .ico { width: 66px; height: 66px; } .classe .ico img { width: 60px; height: 60px; } .look img { height: 46px; } } /* (un portable de 720 px de haut, avec les apparences du Iop) */
+/* les icones 3D des sorts et des passifs (23/10/2026) : elles ont leur propre fond, elles remplissent le cadre */
+.art .pic.img.trois-d { background: none; padding: 0; } .art .pic.img.trois-d img { width: 100%; height: 100%; object-fit: cover; }
+.fp-sorts .art.passif .pic.img.trois-d { width: 80px; height: 80px; border-radius: 18px; border-color: #c9b48a; }
+.combat-sort .rond img.trois-d { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; filter: none; box-shadow: 0 1px 0 rgba(59, 42, 26, .45); }
+/* les icones 3D des ultis (23/10/2026) : en pleine image, elles remplissent le cadre rond des cartes de choix et de la confirmation */
+.ulti-carte .rond:has(img[src*="ulti3d-"]), .confirme .gros:has(img[src*="ulti3d-"]) { padding: 0; overflow: hidden; }
+.ulti-carte .rond img[src*="ulti3d-"], .confirme .gros img[src*="ulti3d-"] { width: 100%; height: 100%; object-fit: cover; filter: none; }
+.pic.trio img[src*="ulti3d-"] { border-radius: 6px; object-fit: cover; }

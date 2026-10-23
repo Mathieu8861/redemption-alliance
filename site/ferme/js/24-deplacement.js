@@ -70,12 +70,17 @@ function allerPuis(cible, fn) {
   chemin = pts; arrivee = { cible, fn };
 }
 function regarder(pt) { const dx = pt.x - paysanMesh.position.x, dz = pt.z - paysanMesh.position.z; if (Math.hypot(dx, dz) > 0.05) paysanMesh.userData.angle = Math.atan2(dx, dz); }
+function hancheDe(g) { const p = (g.userData.membres || [])[0]; if (!p) return 0.3; g.updateMatrixWorld(true); return Math.max(0.1, p.getWorldPosition(new T.Vector3()).y - g.position.y); } /* la hauteur de la hanche au-dessus des pieds */
 function animerPas(u, dt, cible) {
   u.ampl = (u.ampl || 0) + (cible - (u.ampl || 0)) * Math.min(1, dt * 8); /* l'amplitude monte au depart et retombe a l'arret */
   const a = u.ampl, ph = u.pas || 0, m = u.membres || [];
   if (a < 0.01 && u.pas) u.pas = Math.round(u.pas / Math.PI) * Math.PI; /* a l'arret, les jambes se rejoignent */
   if (m[0]) m[0].rotation.x = Math.sin(ph) * 0.62 * a; if (m[1]) m[1].rotation.x = -Math.sin(ph) * 0.62 * a;
-  if (m[2]) m[2].rotation.x = -Math.sin(ph) * 0.45 * a; if (m[3]) m[3].rotation.x = Math.sin(ph) * 0.45 * a;
+  /* une marche plus souple (23/10/2026, « faut ameliorer la fluidite des deplacements », Mathieu) : les bras suivent avec un petit retard, le haut du corps
+     tourne un peu a l'inverse des hanches, et le genou plie quand la jambe passe en avant (les modeles qui en ont un : l'Osa refait) */
+  if (m[2]) m[2].rotation.x = -Math.sin(ph - 0.3) * 0.48 * a; if (m[3]) m[3].rotation.x = Math.sin(ph - 0.3) * 0.48 * a;
+  const g = u.genoux || []; if (g[0]) g[0].rotation.x = Math.pow(Math.max(0, -Math.cos(ph)), 1.3) * 0.95 * a; if (g[1]) g[1].rotation.x = Math.pow(Math.max(0, Math.cos(ph)), 1.3) * 0.95 * a;
+  if (u.haut) u.haut.rotation.y = -Math.sin(ph) * 0.1 * a;
   paysanMesh.rotation.z = Math.sin(ph) * 0.03 * a; paysanMesh.rotation.x = 0.08 * a; /* leger balancement, penche un peu en avant en marchant */
 }
 function marcher(dt, s) {
@@ -103,7 +108,10 @@ function marcher(dt, s) {
   u.y = hauteurSol(nx, nz, e.c); u.pas = (u.pas || 0) + v * 4.6; /* une foulee complete tous les 1,4 de distance */
   animerPas(u, dt, Math.min(1, v / (vitesse() * dt)));
   if (lieu === 'ile' && ileBoss) { const q = bornerIle(nx, nz); if (Math.hypot(q[0] - nx, q[1] - nz) > 0.001) { u.bute = Math.hypot(e.x - q[0], e.z - q[1]) > d - v * 0.3 ? (u.bute || 0) + dt : 0; if (u.bute > 0.35 && chemin.length) { chemin.shift(); u.bute = 0; } } else u.bute = 0; nx = q[0]; nz = q[1]; } /* (l'ile des boss : il bute sur le bord et glisse le long du decor ; bloque net, il s'arrete) */
-  paysanMesh.position.set(nx, u.y + (1 - Math.cos(u.pas * 2)) * 0.012 * u.ampl, nz); /* le corps descend un peu a chaque appui, sans decoller */
+  /* le bassin descend quand les jambes s'ecartent, juste de quoi garder le pied d'appui au sol (des jambes raides qui pivotent levaient les deux pieds),
+     et remonte un peu quand elles se croisent (23/10/2026 : c'etait l'inverse, il flottait a chaque grand pas) */
+  const hh = u.hanche || (u.hanche = hancheDe(paysanMesh));
+  paysanMesh.position.set(nx, u.y - hh * (1 - Math.cos(0.62 * u.ampl * Math.sin(u.pas))) + (1 + Math.cos(u.pas * 2)) * 0.006 * u.ampl, nz);
 }
 
 /* ----- bulles HTML accrochees a la scene ----- */
