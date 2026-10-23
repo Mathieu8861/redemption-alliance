@@ -185,6 +185,13 @@ zoneBulles.addEventListener('contextmenu', (ev) => { if (ev.target.closest('.bul
 function actionBulle(ev) {
   const e = ev.target.closest('.bulle.ico'); if (!e || !e.dataset.cible || enAccueil || combat) return;
   const [genre, val] = e.dataset.cible.split(':');
+  if (genre === 'champ') { /* tout un champ : la case la plus proche d'abord, puis de proche en proche ; le reste va dans la file */
+    const pp = paysanMesh.position, L = val.split(',').map((id) => S_.cases.find((c) => c.id === id)).filter(Boolean), ordre = []; let x = pp.x, z = pp.z;
+    while (L.length) { let k = 0; L.forEach((c, i) => { const a = posCase(c), b = posCase(L[k]); if (Math.hypot(a.x - x, a.z - z) < Math.hypot(b.x - x, b.z - z)) k = i; }); const c = L.splice(k, 1)[0]; ordre.push(c.id); x = posCase(c).x; z = posCase(c).z; }
+    const neufs = ordre.filter((id) => !fileActions.includes(id)); e.classList.add('file'); son('plouf');
+    if ((arrivee || chemin.length) && !mode) { fileActions.push(...neufs.slice(0, Math.max(0, 40 - fileActions.length))); return; }
+    const [premier, ...reste] = neufs; fileActions.push(...reste.slice(0, Math.max(0, 40 - fileActions.length))); if (premier) ACTIONS.toucherCase(premier); sauver(); return;
+  }
   if (genre === 'case' && (arrivee || chemin.length) && !mode) { if (!fileActions.includes(val) && fileActions.length < 10) { fileActions.push(val); e.classList.add('file'); son('plouf'); } return; } /* il travaille deja : en file */
   if (genre === 'case') ACTIONS.toucherCase(val); else if (genre === 'bouftou') toucherBouftou(parseInt(val, 10)); else if (genre === 'voleur') attaquerVoleur(); else if (genre === 'arbalete') { const g = S_.cases.find((c) => c.type === 'grange'); allerPuis(g, () => ACTIONS.recharger()); }
   sauver();
@@ -199,7 +206,21 @@ function rendreEnclosBulles() {
   });
   for (let k = S_.bouftous.length; k < 6; k++) retirerBulle('b' + k);
 }
+/* UNE BULLE PAR CHAMP (23/10/2026, « les petites bulles, ca fait fouillis », Mathieu, puis « on teste la bulle de BD ») : les cases voisines pretes de la
+   meme culture, ou a sec, ne font qu'une bulle, posee au milieu du champ, avec le total de la recolte ; la toucher fait tout le champ, case apres case */
+function groupesChamps() {
+  const M = new Map(), etat = (c) => (c.type !== 'champ' || !c.c || c.tofu ? null : etape(c) === 'mur' ? 'mur:' + c.c : !c.arrose ? 'sec' : null);
+  S_.cases.forEach((c0) => {
+    const e0 = etat(c0); if (!e0 || M.has(c0.id)) return; const G = [c0], vu = new Set([c0.id]);
+    for (let k = 0; k < G.length; k++) voisins(G[k]).forEach((v) => { if (!vu.has(v.id) && etat(v) === e0) { vu.add(v.id); G.push(v); } });
+    const x = G.reduce((t, c) => t + posCase(c).x, 0) / G.length, z = G.reduce((t, c) => t + posCase(c).z, 0) / G.length, d = (c) => Math.hypot(posCase(c).x - x, posCase(c).z - z);
+    const g = { cases: G, garde: G.slice().sort((a, b) => d(a) - d(b))[0], x, z, mur: e0 !== 'sec', total: e0 !== 'sec' ? G.reduce((t, c) => t + recolte(c), 0) : 0 };
+    G.forEach((c) => M.set(c.id, g));
+  });
+  return M;
+}
 function rendreCasesBulles() {
+  const groupes = groupesChamps();
   S_.cases.forEach((p) => {
     const cle = 'c' + p.id, pos = posCase(p);
     if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, peutCapturer() ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', peutCapturer() ? 'Un Tofu sauvage : touche pour le capturer au filet' : S_.filets ? 'Un Tofu sauvage : ta volière est pleine, touche pour le chasser' : 'Un Tofu sauvage : touche pour le chasser'); return; }
@@ -210,8 +231,11 @@ function rendreCasesBulles() {
     if (p.type !== 'champ' || !p.c) { retirerBulle(cle); return; }
     const st = etape(p), haut = pos.y + (st === 'mur' ? 1.9 : st === 'pousse' ? 1.4 : 0.9);
     if (p.tofu) { const w = p.nuisible === 'wabbit'; bulle(cle, capturable(p) ? icoB('filet') : icoB(w ? 'wabbit' : 'tofu'), 'rouge', [pos.x, haut + 0.4, pos.z], 'case:' + p.id, '', w ? 'Un Wabbit grignote : touche pour le chasser' : capturable(p) ? 'Un Tofu picore : touche pour le chasser ou le capturer' : 'Un Tofu picore : touche pour le chasser'); }
-    else if (st === 'mur') bulle(cle, icoB(p.c), 'or', [pos.x, haut, pos.z], 'case:' + p.id, '×' + recolte(p), PAR_ID[p.c].nom + ' prêt : touche pour récolter');
-    else if (!p.arrose) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, haut, pos.z], 'case:' + p.id, '', 'À sec : touche pour arroser');
+    else if (st === 'mur' || !p.arrose) {
+      const G = groupes.get(p.id); if (!G || G.garde !== p) { retirerBulle(cle); return; } const n = G.cases.length, cible = n > 1 ? 'champ:' + G.cases.map((c) => c.id).join(',') : 'case:' + p.id;
+      if (G.mur) bulle(cle, icoB(p.c), 'or', [G.x, haut, G.z], cible, '×' + G.total, PAR_ID[p.c].nom + ' prêt' + (n > 1 ? ' sur ' + n + ' cases : touche pour tout récolter' : ' : touche pour récolter'));
+      else bulle(cle, icoB('arrosoir'), 'eau', [G.x, haut, G.z], cible, n > 1 ? '×' + n : '', n > 1 ? n + ' cases à sec : touche pour tout arroser' : 'À sec : touche pour arroser');
+    }
     else retirerBulle(cle);
   });
 }
