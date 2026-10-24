@@ -402,7 +402,7 @@ function lancerArene() {
   appliquerVagueArene(combat, vagueArene(1));
 }
 function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du boss, le record ; puis la suivante (apres un souffle, si c'etait un boss) */
-  const k = c.arene.k, g = gainsArene(k, c.arene.niv0), a = etatArene(), sem = semaineJeu(), soin = soinArene + 0.06 * nbBonus('foule'); c.arene.tenues = k; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * soin);
+  const k = c.arene.k, g = gainsArene(k, c.arene.niv0), a = etatArene(), sem = semaineJeu(), soin = soinArene + 0.06 * nbBonus('foule'); c.arene.tenues = k; { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * soin); if (c.st) c.st.soins += c.pv - a0; }
   S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp); c.arene.xp += gagnerXp.dernier; const xpV = gagnerXp.dernier; /* (le vrai gain, affiche) */
   if (k > (a.record || 0)) a.record = k; if (k > (a.semaines[sem] || 0)) a.semaines[sem] = k;
   Object.keys(a.semaines).sort().slice(0, -8).forEach((x) => { delete a.semaines[x]; }); /* (les 8 dernieres semaines) */

@@ -190,7 +190,7 @@ function bondIop(pt) {
       secousse(0.22, 0.32); onde(fin.x, u.y, fin.z, RAYON_BOND + 0.4, '#ffffff', 0.3, 0.95); onde(fin.x, u.y, fin.z, RAYON_BOND + 1.1, '#ffc24a', 0.55, 0.75);
       solFendu(fin.x, u.y, fin.z, RAYON_BOND); mottes(fin.x, u.y, fin.z, 12, 1.1); poussiere(fin.x, u.y, fin.z, 14, RAYON_BOND);
       let k = 0; if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - fin.x, o.z - fin.z) < RAYON_BOND) { k++; etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), o === cible ? 1.1 : 0.8); blesser(o, Math.round(st.deg * (o === cible ? 3 : 1.5)), true); } });
-      if (combat && !combat.fin && k) { const h = Math.min(combat.pvMax - combat.pv, Math.round(st.pvMax * SOIN_CHARGE * Math.min(4, k))); if (h > 0) { combat.pv += h; chiffre('+' + h, new T.Vector3(fin.x, u.y + 1.7, fin.z), 'soin'); croixSoin(fin.x, u.y, fin.z, Math.min(4, k)); } } /* chaque monstre touche lui rend 3 % de sa vie (4 au plus) */
+      if (combat && !combat.fin && k) { const h = Math.min(combat.pvMax - combat.pv, Math.round(st.pvMax * SOIN_CHARGE * Math.min(4, k))); if (h > 0) { combat.pv += h; if (combat.st) combat.st.soins += h; chiffre('+' + h, new T.Vector3(fin.x, u.y + 1.7, fin.z), 'soin'); croixSoin(fin.x, u.y, fin.z, Math.min(4, k)); } } /* chaque monstre touche lui rend 3 % de sa vie (4 au plus) */
       return true;
     }
   });

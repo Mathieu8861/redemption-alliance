@@ -16,7 +16,7 @@ function majCombat(dt, s) {
   if (!combat) { ANNEAU.visible = false; return; }
   const c = combat;
   if (c.fin) return;
-  if (c.regen && c.deroute == null && c.pv > 0) c.pv = Math.min(c.pvMax, c.pv + c.pvMax * c.regen * dt); /* le pot de Menthe */
+  if (c.regen && c.deroute == null && c.pv > 0) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * c.regen * dt); if (c.st) { c.st.soins += c.pv - a0; c.st.menthe += c.pv - a0; } } /* le pot de Menthe */
   if (c.deroute != null) { /* a terre : le compte a rebours du saccage */
     c.deroute -= dt;
     if (c.deroute <= 0 || (!c.file.length && !c.monstres.some((o) => o.etat === 'actif' || o.etat === 'grimpe'))) {
@@ -48,7 +48,7 @@ function majCombat(dt, s) {
 }
 /* UNE LIGNE DE RECAP DE FIN DE COMBAT, la meme partout (vagues, simu VSA, Arene, ile des boss ; 16/10/2026 : l'Arene et l'ile etaient en gris, les vagues
    en couleur), chaque picto avec sa couleur */
-const COULEURS_RECAP = { vitesse: '#3d8fd6', cadence: '#3d8fd6', tofu: '#d9443a', renfort: '#d9443a', rage: '#d9443a', vita: '#d9443a', degats: '#e07c0a', carreaux: '#2f9a8a', puissance: '#e0a10a', etoile: '#7a4fc9', casse: '#9a6a3a', kama: '#e0a31e', couronne: '#e0a10a' };
+const COULEURS_RECAP = { soin: '#3f9a4a', vitesse: '#3d8fd6', cadence: '#3d8fd6', tofu: '#d9443a', renfort: '#d9443a', rage: '#d9443a', vita: '#d9443a', degats: '#e07c0a', carreaux: '#2f9a8a', puissance: '#e0a10a', etoile: '#7a4fc9', casse: '#9a6a3a', kama: '#e0a31e', couronne: '#e0a10a' };
 const ligneRecap = (e, t, v) => '<div class="rc-l">' + picto(e, COULEURS_RECAP[e]) + '<span>' + t + '</span><b>' + v + '</b></div>';
 /* le recap de la vague : sa duree, les monstres abattus, les degats donnes (toi, ta defense, ton Bouftou) et recus, le plus gros coup, les sorts lances */
 function recapCombat(c) {
@@ -57,7 +57,7 @@ function recapCombat(c) {
   const l = ligneRecap, def = Math.round(st.def || 0);
   return '<div class="hdv-section">Le combat</div><div class="recap-combat">' + l('vitesse', 'Durée', duree) + l('tofu', 'Monstres abattus', st.tues + ' sur ' + c.total) +
     l('degats', 'Tes dégâts', fmt(Math.max(0, Math.round(st.inflige) - def))) + l('carreaux', 'Dégâts de tes défenses', fmt(def)) + l('puissance', 'Ton plus gros coup', fmt(Math.round(st.max))) +
-    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>';
+    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('soin', 'Soins reçus', fmt(Math.round(st.soins || 0)) + (st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(st.menthe)) + ')' : '')) + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>';
 }
 function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }

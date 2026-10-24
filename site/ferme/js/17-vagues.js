@@ -14,13 +14,13 @@ const VAGUES_PALIER = 10, REPOS_VAGUE = 3 * MIN, RECHARGE_SORT = 8;
 const POTS = {
   petit: { nom: 'Petit pot de gelée Bleue', court: 'Petits pots', soin: 0.25, prix: 24, effet: '+25 % de vie', desc: 'Le soin de base, entre deux vagues.' },
   grand: { nom: 'Grand pot de gelée Bleue', court: 'Grands pots', soin: 0.6, prix: 54, effet: '+60 % de vie', desc: 'Pour repartir presque neuf après une vague difficile.' },
-  menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % par seconde pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' },
+  menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % toutes les 4 s pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' },
   fraise: { nom: 'Pot de gelée Fraise', court: 'Pots de Fraise', soin: 0.4, effet: '+40 % de vie', desc: 'Fait à ta Gelière par tes Gelées Fraise.', geliere: true },
   citron: { nom: 'Pot de gelée Citron', court: 'Pots de Citron', soin: 0.25, citron: true, effet: '+25 % de vie, et ton perso court 30 % plus vite pendant la vague', desc: 'Fait à ta Gelière. À boire juste avant de lancer la vague.', geliere: true },
   royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 20, effet: 'Toute ta vie, et +20 Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +20 Agilité (des coups plus rapides) pendant la prochaine vague.', geliere: true }
 };
-const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % par seconde en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 30 % plus vite', royale: 'toute ta vie, et +20 Agilité en vague' };
-const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01;
+const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % toutes les 4 s en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 30 % plus vite', royale: 'toute ta vie, et +20 Agilité en vague' };
+const POTS_HDV = ['petit', 'grand', 'menthe'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01 / 4; /* (1 % de la vie toutes les 4 s ; 1 % par seconde avant le 24/10/2026, « les potions Menthe c'est clairement trop broken » : a la vague 70, Moon soignait 22 PV/s pour 19 PV/s recus, il ne descendait presque plus) */
 /* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
    « met pas 1 %, mais 1 PV par minute ; et une vraie minute, sinon les gelees perdent tout leur interet » (Mathieu, 13/10/2026) : 1 PV par VRAIE minute,
    quelle que soit la vitesse du jeu (regenVie recoit du temps reel : avancer divise par la vitesse du curseur). Les pots restent le vrai moyen de se soigner.
