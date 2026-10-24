@@ -106,7 +106,7 @@ const ACTIONS = {
     if (!niv('geliere')) { toast('Construis d\'abord la Gelière (Améliorer, catégorie Animaux).', 'alerte'); return; }
     S_.gelees = S_.gelees || []; if (S_.gelees.length >= placesGeliere()) { toast('Ta Gelière est pleine : ' + placesGeliere() + ' places. Agrandis-la pour en loger plus.', 'alerte'); return; }
     if (S_.kamas < G.prix) { toast('Il te manque ' + fmt(G.prix - S_.kamas) + ' kamas.'); return; }
-    S_.kamas -= G.prix; const g = { c, nom: nouveauNomGelee(), fin: 0 }; S_.gelees.push(g); compter('gelees'); son('gelee');
+    S_.kamas -= G.prix; const g = { c, nom: nouveauNomGelee(), fin: 0, achetee: true, arrivee: Date.now() }; S_.gelees.push(g); compter('gelees'); son('gelee'); /* (achetee : elle ne fusionne pas, voir geleesFusion) */
     toast(g.nom + ', ta ' + G.nom + ', saute dans la Gelière. Nourris-la : ' + recetteTxt(G.recette) + ' par pot.', 'or');
     rendreGelees(); rendreCasesBulles(); rendreHaut(); sauver(); if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
   },
@@ -133,21 +133,31 @@ const ACTIONS = {
     const L = parentsCroisement(); if (!L) { toast('Il faut deux Gelées de couleurs différentes, reposées, et une place libre.', 'alerte'); return; }
     const m = manqueRecette(CROISEMENT); if (m.length) { toast('Il manque ' + m.join(' et ') + ' pour les croiser.', 'alerte'); return; }
     Object.entries(CROISEMENT).forEach(([id, n]) => { S_.grange[id] -= n; }); const [a, b] = L; a.repos = b.repos = Date.now() + REPOS_CROISEMENT;
-    const royale = nbRoyales() < ROYALES_MAX && Math.random() < CHANCE_ROYALE, c = royale ? 'royale' : hasard([a.c, b.c]), g = { c, nom: nouveauNomGelee(), fin: 0 }; S_.gelees.push(g); compter('croisements');
+    const royale = nbRoyales() < ROYALES_MAX && Math.random() < CHANCE_ROYALE, c = royale ? 'royale' : hasard([a.c, b.c]), g = { c, nom: nouveauNomGelee(), fin: 0, nee: true, arrivee: Date.now() }; S_.gelees.push(g); compter('croisements');
     son(royale ? 'niveau' : 'gelee'); if (royale) { compter('royales'); confettis(40); }
     toast(royale ? 'Incroyable : ' + a.nom + ' et ' + b.nom + ' donnent naissance à ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 Agilité pour la vague.' : a.nom + ' et ' + b.nom + ' ont un petit : ' + g.nom + ', ' + GELEES[c].nom.toLowerCase() + '.', 'or');
     rendreGrange(); rendreGelees(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere();
   },
   fusionnerGelees(confirme) { /* quatre Gelees, une de chaque couleur, donnent une Gelee Royale (voir geleesFusion) */
-    const L = geleesFusion(); if (!L) { toast('Il te faut une Gelée de chaque couleur : Bleue, Menthe, Fraise et Citron.', 'alerte'); return; }
+    const L = geleesFusion(); if (!L) { toast('Il te faut une Gelée de chaque couleur, née dans ta Gelière : Bleue, Menthe, Fraise et Citron (celles achetées à l\'HDV ne fusionnent pas).', 'alerte'); return; }
     if (nbRoyales() >= ROYALES_MAX) { toast('Tu as déjà ' + ROYALES_MAX + ' Gelées Royales, le plus possible.', 'alerte'); return; }
     const noms = listeNoms(L.map((g) => g.nom)), enRoute = L.filter((g) => etatGelee(g) === 'prod').map((g) => g.nom);
     if (!confirme) { ouvrirModale('geliere', entete('Fusionner en Gelée Royale ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/gelee-royale.png?v=' + VERSION_MODELES + '" alt=""></div><p>' + noms + ' vont se fondre en une Gelée Royale, et quitter la Gelière pour de bon.' +
       (L.some((g) => etatGelee(g) === 'pret') ? ' Les pots prêts sont ramassés avant.' : '') + (enRoute.length ? '<br><b>' + listeNoms(enRoute) + (enRoute.length > 1 ? ' perdent leur pot' : ' perd son pot') + ' en route.</b>' : '') + '</p><div class="boutons"><button class="btn discret" data-gelee-retour>Retour</button><button class="btn kamas" data-gelee-fusion-ok>Fusionner</button></div></div>'); return; }
     if (L.some((g) => etatGelee(g) === 'pret')) ACTIONS.ramasserPots();
-    S_.gelees = S_.gelees.filter((g) => !L.includes(g)); const g = { c: 'royale', nom: nouveauNomGelee(), fin: 0 }; S_.gelees.push(g); compter('fusions'); compter('royales');
+    S_.gelees = S_.gelees.filter((g) => !L.includes(g)); const g = { c: 'royale', nom: nouveauNomGelee(), fin: 0, nee: true, arrivee: Date.now() }; S_.gelees.push(g); compter('fusions'); compter('royales');
     son('niveau'); confettis(40); toast(noms + ' fusionnent : voici ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 Agilité pour la vague.', 'or');
     rendreGelees(); rendreCasesBulles(); sauver(); ouvrirGeliere();
+  },
+  relacherGelee(k, nom, confirme) { /* (24/10/2026) elle quitte la Geliere et laisse 5 pots de sa couleur : de la place pour en acheter une autre (voir peutRelacher) */
+    const g = (S_.gelees || [])[k]; if (!g || g.nom !== nom) { ouvrirGeliere(); return; } const r = peutRelacher(g); if (r) { toast(r, 'alerte'); return; }
+    const G = GELEES[g.c], P = POTS[G.pot], e = etatGelee(g);
+    if (!confirme) { ouvrirModale('geliere', entete('Relâcher ' + g.nom + ' ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/gelee-' + g.c + '.png?v=' + VERSION_MODELES + '" alt=""></div><p>' + g.nom + ', ta ' + G.nom + ', quitte la Gelière pour de bon et te laisse <b>' + RELACHE_POTS + ' ' + P.court.toLowerCase() + '</b>.' +
+      (e === 'pret' ? ' Son pot prêt est ramassé avant.' : e === 'prod' ? '<br><b>Elle perd son pot en route.</b>' : '') + '</p><div class="boutons"><button class="btn discret" data-gelee-retour>Retour</button><button class="btn kamas" data-gelee-relacher-ok="' + k + '" data-nom="' + echapper(g.nom) + '">Relâcher</button></div></div>'); return; }
+    if (e === 'pret') ACTIONS.ramasserPots();
+    S_.gelees = S_.gelees.filter((x) => x !== g); S_.pots = S_.pots || {}; S_.pots[G.pot] = (S_.pots[G.pot] || 0) + RELACHE_POTS; compter('relachees'); son('gelee');
+    toast(g.nom + ' retourne à la rivière et te laisse ' + RELACHE_POTS + ' ' + P.court.toLowerCase() + '. Une place est libre dans la Gelière.', 'or');
+    rendreGelees(); rendreCasesBulles(); rendreHaut(); rendreGrange(); sauver(); ouvrirGeliere();
   },
   acheterGraines(id, n) {
     const c = PAR_ID[id]; if (!c || !debloquee(c)) return;

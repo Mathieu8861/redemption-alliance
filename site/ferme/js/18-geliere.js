@@ -35,9 +35,17 @@ function parentsCroisement() { /* deux Gelees de couleurs differentes, reposees 
 /* LA FUSION (23/10/2026, « quand t'es full en gelees, comment on recupere des Royales ? si t'as une verte, une bleue, une rouge et une jaune, que tu
    puisses les fusionner », Mathieu) : une Gelee de chaque couleur se fond avec les trois autres en une Gelee Royale, a coup sur, meme Geliere pleine.
    On prend d'abord celles qui ont faim, puis celles dont le pot est pret (ramasse avant), et en dernier celles dont le pot est en route (il est perdu, dit avant) */
+/* (24/10/2026, « il faudrait ne pas pouvoir fusionner celles qu'on achete, sinon c'est trop facile, t'achetes les 4 couleurs et voila », Mathieu) :
+   seules les Gelees nees dans la Geliere fusionnent. Une Gelee achetee le retient (achetee) ; celles d'avant ce jour, dont on ne sait rien, gardent le droit */
 const COULEURS_FUSION = ['bleue', 'menthe', 'fraise', 'citron'];
+const geleeFusionnable = (g) => g.c !== 'royale' && !g.achetee;
+/* RELACHER UNE GELEE (24/10/2026, « j'en ai 8, je peux pas en vendre, pas en retirer ; il faudrait pouvoir detruire une Gelee pour gagner x5 potions de son
+   element, et racheter une autre couleur », Mathieu) : elle laisse 5 pots de sa couleur. Pas la Royale (5 pots qui rendent toute la vie, et une Royale se
+   refait par la fusion). Une Gelee nee ici attend 24 h : sinon croiser (10 fruits) puis relacher ferait 5 pots en 3 min, bien plus vite qu'en la nourrissant */
+const RELACHE_POTS = 5, AGE_RELACHE = 24 * 60 * MIN;
+const peutRelacher = (g) => g.c === 'royale' ? 'La Gelée Royale ne se relâche pas.' : g.nee && g.arrivee && Date.now() - g.arrivee < AGE_RELACHE ? g.nom + ' est trop jeune : encore ' + dureeLisible(g.arrivee + AGE_RELACHE - Date.now()) + ' avant de pouvoir la relâcher.' : '';
 function geleesFusion() {
-  const L = S_.gelees || [], rang = (g) => ({ faim: 0, pret: 1, prod: 2 })[etatGelee(g)];
+  const L = (S_.gelees || []).filter(geleeFusionnable), rang = (g) => ({ faim: 0, pret: 1, prod: 2 })[etatGelee(g)];
   const choix = COULEURS_FUSION.map((c) => L.filter((g) => g.c === c).sort((a, b) => rang(a) - rang(b))[0]);
   return choix.every(Boolean) ? choix : null;
 }
@@ -116,7 +124,9 @@ function ouvrirGeliere() {
     const etat = e === 'pret' ? '<span class="puce bonne">son pot est prêt</span>' : e === 'prod' ? '<span class="puce">son pot dans ' + dureeLisible(g.fin - Date.now()) + '</span>' : '<span class="puce mauvaise">a faim : ' + recetteTxt(G.recette) + '</span>';
     const repos = g.repos && Date.now() < g.repos ? '<span class="puce">se repose ' + dureeLisible(g.repos - Date.now()) + '</span>' : '';
     const act = e === 'pret' ? '<button class="btn kamas" data-gelee-ramasser>Ramasser</button>' : e === 'faim' ? (m.length ? '<span class="a-manque">il manque ' + m.join(' et ') + '</span>' : '') + '<button class="btn kamas" data-gelee-nourrir="' + k + '"' + (m.length ? ' disabled' : '') + '>Nourrir</button>' : '';
-    return '<div class="art">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small><div class="puces">' + etat + '<span class="puce">' + BREF_POT[G.pot] + '</span>' + repos + '</div></div><div class="act">' + act + '</div></div>';
+    const origine = g.achetee ? '<span class="puce">achetée</span>' : g.nee && g.c !== 'royale' ? '<span class="puce bonne">née ici</span>' : '', rel = peutRelacher(g);
+    const relache = g.c === 'royale' ? '' : '<button class="btn discret mini" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '"' + (rel ? ' disabled title="' + echapper(rel) + '"' : ' title="Elle quitte la Gelière et te laisse ' + RELACHE_POTS + ' ' + POTS[G.pot].court.toLowerCase() + '"') + '>Relâcher</button>';
+    return '<div class="art">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small><div class="puces">' + etat + '<span class="puce">' + BREF_POT[G.pot] + '</span>' + origine + repos + '</div></div><div class="act">' + act + relache + '</div></div>';
   };
   const parents = parentsCroisement(), mc = manqueRecette(CROISEMENT);
   ouvrirModale('geliere', entete('La Gelière') + '<p class="hdv-aide">' + look[0].toUpperCase() + look.slice(1) + ', niveau ' + nv + '. Tes Gelées vivent au bord de l\'eau. Nourris-les de fruits : chacune te fait un pot de sa couleur en ' + dureeLisible(PROD_GELEE) + ' (la Royale en ' + dureeLisible(PROD_ROYALE) + ').</p>' +
@@ -127,10 +137,10 @@ function ouvrirGeliere() {
     '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + ', ' + ROYALES_MAX + ' Royales au plus' + (nbRoyales() >= ROYALES_MAX ? ' : tu les as, les croisements n\'en donnent plus' : ', tu en as ' + nbRoyales()) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
     '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (!parents ? '<small class="gel-note">' + (L.length >= places ? 'La Gelière est pleine.' : 'Il faut deux Gelées de couleurs différentes, reposées.') + '</small>' : mc.length ? '<small class="gel-note">Il manque ' + mc.join(' et ') + '.</small>' : '') +
     '<button class="btn discret" data-hdv-cat="animaux" data-hdv-voir="[data-gelee-achat]">Acheter une Gelée</button><button class="btn kamas" data-gelee-croiser' + (parents && !mc.length ? '' : ' disabled') + '>' + (parents ? 'Croiser ' + parents[0].nom + ' et ' + parents[1].nom : 'Croiser') + '</button></div>' +
-    (() => { const fus = geleesFusion(), plein = nbRoyales() >= ROYALES_MAX, manque = COULEURS_FUSION.filter((c) => !L.some((g) => g.c === c));
-      return '<div class="hdv-section">Fusionner quatre Gelées</div><p class="hdv-aide">Quatre Gelées, une de chaque couleur, se fondent en une <b>Gelée Royale</b>, à coup sûr, même quand la Gelière est pleine. Les quatre la quittent pour de bon.</p>' +
+    (() => { const fus = geleesFusion(), plein = nbRoyales() >= ROYALES_MAX, manque = COULEURS_FUSION.filter((c) => !L.some((g) => g.c === c && geleeFusionnable(g)));
+      return '<div class="hdv-section">Fusionner quatre Gelées</div><p class="hdv-aide">Quatre Gelées <b>nées dans ta Gelière</b>, une de chaque couleur, se fondent en une <b>Gelée Royale</b>, à coup sûr, même quand la Gelière est pleine. Les quatre la quittent pour de bon. Celles achetées à l\'HDV ne fusionnent pas.</p>' +
         '<div class="fusion-gel">' + COULEURS_FUSION.map((c) => '<span class="fg' + (manque.includes(c) ? ' manque' : '') + '" title="' + GELEES[c].nom + '"><img src="assets/icones/gelee-' + c + '.png?v=' + VERSION_MODELES + '" alt="' + GELEES[c].nom + '"></span>').join('<b>+</b>') + '<b>=</b><span class="fg royale" title="Gelée Royale"><img src="assets/icones/gelee-royale.png?v=' + VERSION_MODELES + '" alt="Gelée Royale"></span></div>' +
-        '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (plein ? '<small class="gel-note">Tu as déjà ' + ROYALES_MAX + ' Gelées Royales, le plus possible.</small>' : !fus ? '<small class="gel-note">Il te manque ' + listeNoms(manque.map((c) => 'une ' + GELEES[c].nom)) + '.</small>' : '') +
+        '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (plein ? '<small class="gel-note">Tu as déjà ' + ROYALES_MAX + ' Gelées Royales, le plus possible.</small>' : !fus ? '<small class="gel-note">Il te manque ' + listeNoms(manque.map((c) => 'une ' + GELEES[c].nom)) + (manque.length > 1 ? ', nées ici' : ' née ici') + '.</small>' : '') +
         '<button class="btn kamas" data-gelee-fusion' + (fus && !plein ? '' : ' disabled') + '>Fusionner</button></div>'; })() +
     lignesAmelio(['geliere'], 'Agrandir la Gelière'));
 }
