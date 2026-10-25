@@ -117,7 +117,7 @@
 
             if (error) throw error;
             allCombats = data || [];
-            await loadCorrections();
+            await Promise.all([loadCorrections(), loadReclamations()]);
             renderCombats();
         } catch (err) {
             console.error('[REN] Erreur historique:', err);
@@ -141,18 +141,126 @@
 
     var LIBELLE_CORRECTION = { doublon: 'Doublon supprimé', format: 'Format corrigé', type: 'Type corrigé', participants: 'Joueurs corrigés' };
 
+    /* === RECLAMATIONS (sql/078) : un joueur demande une verification, un admin repond === */
+    var reclamations = [];
+    var STATUT_RECLAM = { ouverte: ['attente', 'En attente'], traitee: ['traitee', 'Vérifiée'], refusee: ['refusee', 'Refusée'] };
+
+    async function loadReclamations() {
+        try {
+            var res = await window.REN.supabase.from('reclamations_combats')
+                .select('*, auteur:profiles!reclamations_combats_auteur_id_fkey(username)')
+                .order('cree_le', { ascending: false }).limit(100);
+            reclamations = res.data || [];
+        } catch (e) { reclamations = []; }
+        /* Les admins voient d'un coup d'oeil s'il y a des reclamations a traiter */
+        var onglet = document.querySelector('#history-tabs [data-tab="corrections"]');
+        if (onglet && window.REN.currentProfile && window.REN.currentProfile.is_admin) {
+            var n = reclamations.filter(function (r) { return r.statut === 'ouverte'; }).length;
+            onglet.textContent = 'Corrections' + (n ? ' (' + n + ')' : '');
+        }
+    }
+
+    function ouvrirReclamation(combatId) {
+        currentFilter = 'corrections';
+        document.querySelectorAll('#history-tabs .tabs__btn').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-tab') === 'corrections');
+        });
+        renderCombats();
+        var num = document.getElementById('reclam-combat');
+        var msg = document.getElementById('reclam-message');
+        if (num) num.value = combatId || '';
+        if (msg) { msg.scrollIntoView({ block: 'center' }); msg.focus(); }
+    }
+
+    function htmlReclamations() {
+        var esc = window.REN.escapeHtml;
+        var isAdmin = window.REN.currentProfile && window.REN.currentProfile.is_admin;
+        var html = '<div class="reclamation">'
+            + '<div class="reclamation__titre">Une erreur sur un combat ?</div>'
+            + '<div class="reclamation__aide">Donne le numéro du combat (#, à côté de la date dans l\'historique) et explique ce qui ne va pas : joueur oublié, mauvais format, combat déclaré deux fois... Un admin vérifie les screens et te répond ici.</div>'
+            + '<div class="reclamation__ligne">'
+            +   '<input type="number" min="1" class="form-input" id="reclam-combat" placeholder="N° du combat">'
+            +   '<textarea class="form-input reclamation__message" id="reclam-message" maxlength="1000" placeholder="Explique ce qui ne va pas..."></textarea>'
+            + '</div>'
+            + '<div class="reclamation__actions"><span class="text-muted" id="reclam-compteur">0 / 1000</span>'
+            +   '<button type="button" class="btn btn--primary btn--small" id="reclam-envoyer">Envoyer la réclamation</button></div>'
+            + '</div>';
+        if (reclamations.length) {
+            html += '<div class="history-corrections__titre">' + (isAdmin ? 'Réclamations des joueurs' : 'Mes réclamations') + '</div>';
+            html += '<div class="reclamations">';
+            reclamations.forEach(function (r) {
+                var st = STATUT_RECLAM[r.statut] || STATUT_RECLAM.ouverte;
+                html += '<div class="reclam reclam--' + st[0] + '">'
+                    + '<div class="reclam__tete"><span class="badge badge--' + st[0] + '">' + st[1] + '</span>'
+                    + (r.combat_id ? '<span>Combat #' + r.combat_id + '</span>' : '')
+                    + (isAdmin && r.auteur ? '<span>par <strong>' + esc(r.auteur.username) + '</strong></span>' : '')
+                    + '<span>' + window.REN.formatDateFull(r.cree_le) + '</span></div>'
+                    + '<div class="reclam__message">' + esc(r.message) + '</div>'
+                    + (r.reponse ? '<div class="reclam__reponse"><strong>Réponse :</strong> ' + esc(r.reponse) + '</div>' : '');
+                if (isAdmin && r.statut === 'ouverte') {
+                    html += '<div class="reclam__admin">'
+                        + '<textarea class="form-input reclam__reponse-saisie" data-id="' + r.id + '" maxlength="1000" placeholder="Réponse au joueur (facultatif)"></textarea>'
+                        + '<div class="reclamation__actions">'
+                        + '<button type="button" class="btn btn--secondary btn--small js-reclam-traiter" data-id="' + r.id + '" data-statut="refusee">Refuser</button>'
+                        + '<button type="button" class="btn btn--primary btn--small js-reclam-traiter" data-id="' + r.id + '" data-statut="traitee">Vérifiée</button>'
+                        + '</div></div>';
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+        return html;
+    }
+
+    function brancherReclamations(grid) {
+        var msg = document.getElementById('reclam-message');
+        var compteur = document.getElementById('reclam-compteur');
+        if (msg && compteur) msg.addEventListener('input', function () { compteur.textContent = msg.value.length + ' / 1000'; });
+        var envoyer = document.getElementById('reclam-envoyer');
+        if (envoyer) envoyer.addEventListener('click', async function () {
+            var texte = (msg.value || '').trim();
+            var num = parseInt(document.getElementById('reclam-combat').value, 10) || null;
+            if (texte.length < 5) { window.REN.toast('Explique en quelques mots ce qui ne va pas.', 'error'); return; }
+            envoyer.disabled = true;
+            var res = await window.REN.supabase.from('reclamations_combats')
+                .insert({ auteur_id: window.REN.currentProfile.id, combat_id: num, message: texte });
+            envoyer.disabled = false;
+            if (res.error) { window.REN.toast(res.error.message || 'Envoi impossible.', 'error'); return; }
+            window.REN.toast('Réclamation envoyée : un admin va vérifier.', 'success');
+            await loadReclamations();
+            renderCombats();
+        });
+        grid.querySelectorAll('.js-reclam-traiter').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                var id = parseInt(btn.dataset.id, 10);
+                var saisie = grid.querySelector('.reclam__reponse-saisie[data-id="' + id + '"]');
+                var res = await window.REN.supabase.from('reclamations_combats').update({
+                    statut: btn.dataset.statut,
+                    reponse: saisie && saisie.value.trim() ? saisie.value.trim() : null,
+                    traite_le: new Date().toISOString(),
+                    traite_par: window.REN.currentProfile.id
+                }).eq('id', id);
+                if (res.error) { window.REN.toast(res.error.message || 'Erreur.', 'error'); return; }
+                window.REN.toast(btn.dataset.statut === 'traitee' ? 'Réclamation marquée vérifiée.' : 'Réclamation refusée.', 'success');
+                await loadReclamations();
+                renderCombats();
+            });
+        });
+    }
+
     function renderCorrections(grid) {
         var esc = window.REN.escapeHtml;
         var liste = corrections.filter(function (k) {
             var texte = (k.resume || '').toLowerCase();
-            if (searchJoueur && texte.indexOf(searchJoueur) === -1) return false;
+            if (searchJoueur && texte.indexOf(searchJoueur.replace('#', '')) === -1) return false;
             if (searchAlliance && texte.indexOf(searchAlliance) === -1) return false;
             return true;
         });
-        var html = '<div class="history-corrections__intro">Corrections faites par les admins après vérification des screens : combats déclarés deux fois, mauvais nombre de joueurs, joueurs oubliés. Les points du classement sont recalculés.</div>';
+        var html = htmlReclamations();
+        html += '<div class="history-corrections__titre">Corrections faites</div>';
+        html += '<div class="history-corrections__intro">Corrections faites par les admins après vérification des screens : combats déclarés deux fois, mauvais nombre de joueurs, joueurs oubliés. Les points du classement sont recalculés.</div>';
         if (!liste.length) {
-            grid.innerHTML = html + '<p class="text-muted" style="padding:1rem;">Aucune correction pour le moment.</p>';
-            return;
+            html += '<p class="text-muted" style="padding:1rem;grid-column:1 / -1;">Aucune correction pour le moment.</p>';
         }
         liste.forEach(function (k) {
             html += '<div class="history-card">'
@@ -162,6 +270,7 @@
                 + '</div>';
         });
         grid.innerHTML = html;
+        brancherReclamations(grid);
     }
 
     function renderCombats() {
@@ -193,6 +302,8 @@
                 var comment = (c.commentaire || '').toLowerCase();
                 if (comment.indexOf(searchZone) === -1) return false;
             }
+            /* Numero de combat (« 878 » ou « #878 ») */
+            if (/^#?\d+$/.test(searchJoueur)) return String(c.id) === searchJoueur.replace('#', '');
             /* Filtre joueur (auteur, participants ou invites hors site) */
             if (searchJoueur) {
                 var noms = [];
@@ -281,11 +392,17 @@
                 html += '</div>';
             }
             html += '</div>';
-            html += '<div class="history-card__footer">' + window.REN.formatDateFull(c.created_at) + '</div>';
+            /* Numero du combat : c'est lui qu'on cite dans les corrections et les reclamations */
+            html += '<div class="history-card__footer">'
+                + (readOnly ? '' : '<button type="button" class="history-card__signaler" data-id="' + c.id + '" title="Demander une vérification de ce combat">⚑ Signaler</button>')
+                + '<span class="history-card__num">#' + c.id + '</span> · ' + window.REN.formatDateFull(c.created_at) + '</div>';
             html += '</div>';
         });
 
         grid.innerHTML = html;
+        grid.querySelectorAll('.history-card__signaler').forEach(function (btn) {
+            btn.addEventListener('click', function () { ouvrirReclamation(parseInt(btn.dataset.id, 10)); });
+        });
 
         /* Pas d'actions d'edition/suppression sur l'archive DMO (lecture seule) */
         if (readOnly) return;

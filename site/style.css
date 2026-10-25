@@ -11112,3 +11112,154 @@ body.app-has-sidebar {
     font-size: 0.85rem;
     color: var(--color-text-muted);
 }
+
+/* === NUMERO DE COMBAT ET RECLAMATIONS (Historique, sql/078) === */
+.history-card__num {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.history-card__signaler {
+    float: left;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.history-card__signaler:hover {
+    color: var(--color-accent-light);
+}
+
+.history-corrections__titre {
+    grid-column: 1 / -1;
+    margin-top: var(--spacing-md);
+    font-family: var(--font-title);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-accent-light);
+}
+
+.reclamation {
+    grid-column: 1 / -1;
+    padding: var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border: 1px solid rgba(224, 124, 10, 0.4);
+    border-radius: var(--radius-md);
+}
+
+.reclamation__titre {
+    font-family: var(--font-title);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.reclamation__aide {
+    margin: 2px 0 var(--spacing-md);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.reclamation__ligne {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: var(--spacing-sm);
+    align-items: start;
+}
+
+.reclamation__message,
+.reclam__reponse-saisie {
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.reclamation__actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+.reclamations {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: var(--spacing-sm);
+}
+
+.reclam {
+    padding: var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-md);
+}
+
+.reclam--traitee {
+    border-left-color: var(--color-success);
+}
+
+.reclam--refusee {
+    border-left-color: var(--color-danger);
+}
+
+.reclam__tete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.reclam__message {
+    margin-top: var(--spacing-xs);
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+    color: var(--color-text-primary);
+}
+
+.reclam__reponse {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-tertiary);
+    white-space: pre-wrap;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.reclam__admin {
+    margin-top: var(--spacing-sm);
+}
+
+.badge--attente {
+    background-color: rgba(224, 124, 10, 0.15);
+    border: 1px solid rgba(224, 124, 10, 0.55);
+    color: var(--color-accent-light);
+}
+
+.badge--traitee {
+    background-color: rgba(46, 204, 113, 0.15);
+    border: 1px solid rgba(46, 204, 113, 0.55);
+    color: var(--color-success);
+}
+
+.badge--refusee {
+    background-color: rgba(232, 68, 68, 0.15);
+    border: 1px solid rgba(232, 68, 68, 0.55);
+    color: var(--color-danger);
+}
+
+@media (max-width: 600px) {
+    .reclamation__ligne {
+        grid-template-columns: 1fr;
+    }
+}
