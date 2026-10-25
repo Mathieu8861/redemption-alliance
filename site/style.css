@@ -11091,3 +11091,24 @@ body.app-has-sidebar {
     background-color: var(--color-accent);
     color: #111;
 }
+
+/* === JOURNAL DES CORRECTIONS (Historique, sql/077) === */
+.badge--corrige {
+    background-color: rgba(224, 124, 10, 0.15);
+    border: 1px solid rgba(224, 124, 10, 0.55);
+    color: var(--color-accent-light);
+}
+
+.history-card__correction {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: 0.78rem;
+    color: var(--color-accent-light);
+}
+
+.history-corrections__intro {
+    grid-column: 1 / -1;
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}

@@ -12,6 +12,8 @@
     var allCombats = [];
     var archiveMode = false;      /* true = on consulte l'archive DMO (lecture seule) */
     var archiveCombats = null;    /* combats DMO charges a la demande */
+    var corrections = [];         /* journal des corrections faites par les admins (sql/077) */
+    var correctionsParCombat = {};
 
     document.addEventListener('ren:ready', init);
 
@@ -115,6 +117,7 @@
 
             if (error) throw error;
             allCombats = data || [];
+            await loadCorrections();
             renderCombats();
         } catch (err) {
             console.error('[REN] Erreur historique:', err);
@@ -123,9 +126,48 @@
         }
     }
 
+    /* Journal des corrections : sans lui, la page marche comme avant */
+    async function loadCorrections() {
+        try {
+            var res = await window.REN.supabase.from('corrections_combats')
+                .select('*').order('cree_le', { ascending: false }).order('id').limit(300);
+            corrections = res.data || [];
+        } catch (e) { corrections = []; }
+        correctionsParCombat = {};
+        corrections.forEach(function (k) {
+            (correctionsParCombat[k.combat_id] = correctionsParCombat[k.combat_id] || []).push(k);
+        });
+    }
+
+    var LIBELLE_CORRECTION = { doublon: 'Doublon supprimé', format: 'Format corrigé', type: 'Type corrigé', participants: 'Joueurs corrigés' };
+
+    function renderCorrections(grid) {
+        var esc = window.REN.escapeHtml;
+        var liste = corrections.filter(function (k) {
+            var texte = (k.resume || '').toLowerCase();
+            if (searchJoueur && texte.indexOf(searchJoueur) === -1) return false;
+            if (searchAlliance && texte.indexOf(searchAlliance) === -1) return false;
+            return true;
+        });
+        var html = '<div class="history-corrections__intro">Corrections faites par les admins après vérification des screens : combats déclarés deux fois, mauvais nombre de joueurs, joueurs oubliés. Les points du classement sont recalculés.</div>';
+        if (!liste.length) {
+            grid.innerHTML = html + '<p class="text-muted" style="padding:1rem;">Aucune correction pour le moment.</p>';
+            return;
+        }
+        liste.forEach(function (k) {
+            html += '<div class="history-card">'
+                + '<div class="history-card__header"><span class="badge badge--corrige">✎ ' + esc(LIBELLE_CORRECTION[k.type] || 'Correction') + '</span></div>'
+                + '<div class="history-card__body">' + esc(k.resume) + '</div>'
+                + '<div class="history-card__footer">' + window.REN.formatDateFull(k.cree_le) + '</div>'
+                + '</div>';
+        });
+        grid.innerHTML = html;
+    }
+
     function renderCombats() {
         var grid = document.getElementById('history-grid');
         if (!grid) return;
+        if (!archiveMode && currentFilter === 'corrections') return renderCorrections(grid);
 
         var isAdmin = window.REN.currentProfile && window.REN.currentProfile.is_admin;
         var readOnly = archiveMode;
@@ -221,6 +263,11 @@
             }
             if (c.commentaire) {
                 html += '<br><span class="text-muted">&#128205; ' + esc(c.commentaire) + '</span>';
+            }
+            if (!readOnly && correctionsParCombat[c.id]) {
+                correctionsParCombat[c.id].forEach(function (k) {
+                    html += '<span class="history-card__correction">✎ Corrigé : ' + esc(String(k.resume || '').replace(/^Combat #\d+ \([^)]*\) : /, '')) + '</span>';
+                });
             }
             if (c.preuve_url_1 || c.preuve_url_2) {
                 html += '<div class="history-card__preuves">';
