@@ -76,9 +76,15 @@ function instantGeste(g, clip) {
     os.forEach((o, i) => { const p = o.getWorldPosition(new T.Vector3()); if (av[i] && t > clip.duration * 0.12 && t < clip.duration * 0.85) { const v = p.distanceTo(av[i]); if (v > best) { best = v; tb = t; } } av[i] = p; }); }
   return [{ t: tb }];
 }
+const SQ_EN_COURS = {}; /* (un seul chargement par modele : les deux renforts d'un meme appel ne le chargent pas deux fois) */
 async function chargerSquelettes(noms) {
   for (const [nom, url, h] of SQUELETTES_A_CHARGER) {
     if (MODELES[nom] || (noms && !noms.includes(nom))) continue;
+    await (SQ_EN_COURS[nom] = SQ_EN_COURS[nom] || chargerSquelette(nom, url, h).finally(() => { delete SQ_EN_COURS[nom]; }));
+  }
+}
+async function chargerSquelette(nom, url, h) {
+  {
     try { const gl = await new Promise((ok, ko) => chargeur.load(url + '?v=' + VERSION_MODELES, ok, undefined, ko)); preparerSquelette(gl.scene);
       gl.scene.updateMatrixWorld(true); const hips = gl.scene.getObjectByName('mixamorigHips');
       const vit = {}, impacts = {}, trajets = {}; gl.animations.forEach((c) => { if (familleDe(c.name) === 'roulade') trajets[c.name] = trajet(c, hips); vit[c.name] = surPlace(c, hips); });
@@ -108,9 +114,13 @@ function jouerAnim(an, nom, fondu) {
   an.cour = nom; an.fam = familleDe(nom); return a;
 }
 /* un geste d'un coup (rugir, encaisser...) : il garde la main jusqu'a sa fin, le monstre ne marche pas pendant */
+/* (26/10/2026, « c'est surtout le boss le souci », Mathieu : un geste long est joue plus vite, jamais plus de ces durees en temps du jeu ;
+   le cri d'arrivee d'Ebil durait 3,4 s, ses sorts 2 s, les combos du marteau de Moon jusqu'a 3 s) */
+const GESTE_MAX = { rugir: 1.6, sort: 1.4, coup: 2, tourbillon: 2 };
 function geste(mo, fam, bloque, choisi) { /* (choisi : le mouvement deja tire, celui dont on a lu les impacts) */
   const an = mo.m.userData.anim, nom = choisi || piocher(an, fam); if (!nom) return 0;
-  const a = jouerAnim(an, nom, 0.15); a.timeScale = vif(); const d = a.getClip().duration / vif(); mo.geste = { t: 0, d: d - 0.2 }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
+  const a = jouerAnim(an, nom, 0.15), D = a.getClip().duration, ts = Math.max(vif(), GESTE_MAX[fam] ? D / GESTE_MAX[fam] : 0); a.timeScale = ts; const d = D / ts;
+  mo.geste = { t: 0, d: d - 0.2, ts }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
 }
 /* chaque image : un geste en cours garde la main ; sinon il marche (ou court) a sa vitesse, ou il attend en changeant de repos de temps en temps.
    Il rugit a son arrivee, puis quand il enrage */
@@ -176,7 +186,7 @@ function mortSquelette(mo, dt) {
    monstre jusqu'a la caisse ou autour d'elle (un coup a plusieurs temps partage ses degats) */
 function coupMarteau(mo) {
   const an = mo.m.userData.anim, fam = an.F.tourbillon && Math.random() < 0.2 ? 'tourbillon' : 'coup', nom = piocher(an, fam), c0 = combat;
-  const d = geste(mo, fam, true, nom), ts = vif(), L = ((mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45 * ts, sol: true }]).map((x) => Object.assign({}, x, { t: x.t / ts })), part = L.length > 1 ? 0.6 : 1; let t = 0, k = 0;
+  const d = geste(mo, fam, true, nom), ts = (mo.geste && mo.geste.ts) || vif(), L = ((mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45 * ts, sol: true }]).map((x) => Object.assign({}, x, { t: x.t / ts })), part = L.length > 1 ? 0.6 : 1; let t = 0, k = 0;
   /* (26/10/2026 : les impacts sont lus en temps du mouvement, ramenes au temps du jeu ; et le geste joue bien le coup tire, pas un autre) */
   mo.cd = Math.max(mo.cd, d + 0.7); /* (un souffle entre deux coups : un enchainement long ne repart pas aussitot) */
   effets.push((dt) => { t += dt;

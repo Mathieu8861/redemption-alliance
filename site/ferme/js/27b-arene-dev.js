@@ -48,7 +48,8 @@ async function partirDev() {
   if (!peutPartir('arene')) return;
   areneSuite = true; fermerModale(); areneSuite = false;
   toast('Arène dev : chargement des monstres…');
-  await chargerSquelettes([...new Set(file.map((t) => MONSTRES[t].modele))]);
+  const avecRenforts = [].concat(...file.map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : []))).filter((t) => MONSTRES[t]);
+  await chargerSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (et ceux qu'ils appellent : Ebil seul appelait des Jav jamais charges, et l'image se figeait, 26/10/2026) */
   const manque = file.filter((t) => !MODELES[MONSTRES[t].modele]); if (manque.length) { toast('Arène dev : le modèle de ' + MONSTRES[manque[0]].nom + ' n\'a pas pu se charger.', 'alerte'); return; }
   if (lieu !== 'arene' && !(await allerSur('arene'))) { toast('Arène dev : le ballon n\'a pas pu décoller, réessaie.', 'alerte'); return; }
   const u = paysanMesh.userData; paysanMesh.position.set(ARENE.x + 0.6, 0, ARENE.z + 0.6); u.y = 0; u.angle = ROT_ARENE + Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false;

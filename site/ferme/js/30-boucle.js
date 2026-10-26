@@ -63,6 +63,9 @@ function mettrePause(oui, sansEcran) { /* (sansEcran : une lecon de Pepito fige 
   if (audio) { try { if (pauseEcran()) audio.suspend(); else if (sonActif() && !document.hidden) audio.resume(); } catch (e) { /* rien */ } } /* (en pause : plus aucun son, la musique reprend ou elle en etait) */
   if (oui) { if (visee) annulerVisee(); sauver(); } else if (S_) reprendreTemps(Date.now());
 }
+/* une erreur dans la mise a jour d'une image ne fige plus jamais le jeu (26/10/2026, « l'image est figee », Mathieu) : elle est notee une fois, l'image
+   suivante repart */
+function erreurBoucle(err) { const m = String(err && err.stack || err).slice(0, 400), L = (window.__erreursBoucle = window.__erreursBoucle || []); if (!L.includes(m) && L.length < 20) { L.push(m); console.error('boucle', err); } }
 function boucle(t) {
   const s = (t - t0) / 1000;
   if (enAccueil && !reduit) { angleCam = Math.PI / 4 + (t - departAngle) / 1000 * 0.12; placerCamera(); }
@@ -78,8 +81,9 @@ function boucle(t) {
   }
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
-  if (!enPause) { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s); animerLeurre(s);
-    majCombat(dtb, s); marcher(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
+  if (!enPause) { try { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s); animerLeurre(s);
+    majCombat(dtb, s); marcher(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); }
+    catch (err) { erreurBoucle(err); } } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   if (lieu === 'ferme') suivreOmbres();
