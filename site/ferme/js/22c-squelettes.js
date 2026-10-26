@@ -15,6 +15,10 @@ const FAMILLES_BOUCLE = new Set(['repos', 'marche', 'course']);
 /* (26/10/2026, « les monstres sont au ralenti, t'as l'impression qu'ils sont en x0.5 », Mathieu : les mouvements de Mixamo ont le rythme d'un vrai
    corps, plus lent que nos monstres de dessin anime ; tous un peu plus vifs, et une course ou une marche jamais jouee sous 90 % de sa vitesse) */
 const VIF = 1.2, ALLURE_MIN = 0.9, ALLURE_MAX = 1.8;
+/* la vitesse de toutes leurs animations, par-dessus (26/10/2026, « pourquoi je ressens ca moi ? j'ai pas ce ressenti sur les autres monstres », Mathieu) :
+   les mouvements captures sur de vrais acteurs paraissent au ralenti sur nos petits monstres de dessin anime ; Mathieu la regle dans l'Arene dev */
+let VITESSE_ANIM = (() => { try { return +localStorage.getItem('ferme-vitesse-anim') || 1.25; } catch (e) { return 1.25; } })();
+const vif = () => VIF * VITESSE_ANIM;
 const FAMILLES_COUP = ['coup', 'tourbillon'];
 const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite) */
 const BOUTS = ['mixamorigRightHand', 'mixamorigLeftHand', 'mixamorigRightFoot', 'mixamorigLeftFoot'];
@@ -104,9 +108,9 @@ function jouerAnim(an, nom, fondu) {
   an.cour = nom; an.fam = familleDe(nom); return a;
 }
 /* un geste d'un coup (rugir, encaisser...) : il garde la main jusqu'a sa fin, le monstre ne marche pas pendant */
-function geste(mo, fam, bloque) {
-  const an = mo.m.userData.anim, nom = piocher(an, fam); if (!nom) return 0;
-  const a = jouerAnim(an, nom, 0.15); a.timeScale = VIF; const d = a.getClip().duration / VIF; mo.geste = { t: 0, d: d - 0.2 }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
+function geste(mo, fam, bloque, choisi) { /* (choisi : le mouvement deja tire, celui dont on a lu les impacts) */
+  const an = mo.m.userData.anim, nom = choisi || piocher(an, fam); if (!nom) return 0;
+  const a = jouerAnim(an, nom, 0.15); a.timeScale = vif(); const d = a.getClip().duration / vif(); mo.geste = { t: 0, d: d - 0.2 }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
 }
 /* chaque image : un geste en cours garde la main ; sinon il marche (ou court) a sa vitesse, ou il attend en changeant de repos de temps en temps.
    Il rugit a son arrivee, puis quand il enrage */
@@ -124,8 +128,8 @@ function majSquelette(mo, v, dt) {
       const C = ['marche', 'course'].map((f) => [f, nat(f)]).filter(([, x]) => x); if (!C.length) C.push(['marche', 1.4]);
       const ecart = ([, x]) => { const r = v / x; return r < ALLURE_MIN ? (ALLURE_MIN - r) * 3 : r > ALLURE_MAX ? r - ALLURE_MAX : Math.abs(Math.log(r / 1.15)) * 0.1; };
       const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25);
-      if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)); }
-    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = VIF; an.repT = 5 + Math.random() * 5; }
+      if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)) * VITESSE_ANIM; }
+    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(); an.repT = 5 + Math.random() * 5; }
   }
   if (an.eclat > 0) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16; an.peau.forEach((m) => m.emissive.setRGB(0.32 * k, 0.06 * k, 0.03 * k)); /* (un eclat leger : plus fort, une Tortue jaune virait au rose) */ }
   an.mixer.update(dt);
@@ -142,7 +146,7 @@ function attaqueSquelette(mo, fam, frapper) {
   const an = mo.m.userData.anim; if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
   if (!fam || mo.geste) { frapper(); return; }
   const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.1), d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t;
-  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.distance ? 0.5 : 0.42))); a.timeScale = k; const ti = t0 / k, c0 = combat;
+  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.distance ? 0.5 : 0.42))) * VITESSE_ANIM; a.timeScale = k; const ti = t0 / k, c0 = combat;
   mo.geste = { t: 0, d: Math.min(d0 / k - 0.1, ti + 0.4) }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
   effets.push((dt) => { t += dt; if (t < ti) return false; if (combat === c0 && !c0.fin && mo.etat === 'actif') frapper(); return true; });
 }
@@ -150,7 +154,7 @@ function attaqueSquelette(mo, fam, frapper) {
    la manquent (mo.esquive, voir blesser) */
 function rouladeSquelette(mo, a) {
   const an = mo.m.userData.anim, nom = an.F.roulade && an.F.roulade[0], tj = nom && (mo.m.userData.trajets || {})[nom]; if (!nom || mo.geste) return false;
-  const ac = jouerAnim(an, nom, 0.08), k = 1.3; ac.timeScale = k; const d0 = ac.getClip().duration, D = d0 / k;
+  const ac = jouerAnim(an, nom, 0.08), k = 1.3 * VITESSE_ANIM; ac.timeScale = k; const d0 = ac.getClip().duration, D = d0 / k;
   const L = (mo.m.userData.vit[nom] || 1.5) * d0, f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * L, mo.z + Math.cos(a) * L), x0 = mo.x, z0 = mo.z, c0 = combat;
   mo.ry = a; mo.geste = { t: 0, d: D - 0.05 }; mo.bloqueT = Math.max(mo.bloqueT || 0, D); mo.esquive = D * 0.8; let t = 0;
   const part = (u) => { if (!tj) return u; const T0 = u * d0; let i = 1; while (i < tj.t.length - 1 && tj.t[i] < T0) i++;
@@ -172,7 +176,8 @@ function mortSquelette(mo, dt) {
    monstre jusqu'a la caisse ou autour d'elle (un coup a plusieurs temps partage ses degats) */
 function coupMarteau(mo) {
   const an = mo.m.userData.anim, fam = an.F.tourbillon && Math.random() < 0.2 ? 'tourbillon' : 'coup', nom = piocher(an, fam), c0 = combat;
-  const d = geste(mo, fam, true), L = (mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45, sol: true }], part = L.length > 1 ? 0.6 : 1; let t = 0, k = 0;
+  const d = geste(mo, fam, true, nom), ts = vif(), L = ((mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45 * ts, sol: true }]).map((x) => Object.assign({}, x, { t: x.t / ts })), part = L.length > 1 ? 0.6 : 1; let t = 0, k = 0;
+  /* (26/10/2026 : les impacts sont lus en temps du mouvement, ramenes au temps du jeu ; et le geste joue bien le coup tire, pas un autre) */
   mo.cd = Math.max(mo.cd, d + 0.7); /* (un souffle entre deux coups : un enchainement long ne repart pas aussitot) */
   effets.push((dt) => { t += dt;
     while (k < L.length && t >= L[k].t) { const imp = L[k++];
