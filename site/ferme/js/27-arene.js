@@ -424,6 +424,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
 }
 function finArene(abandon) {
   if (combat && combat.genre === 'ile') { finIleBoss(abandon); return; } /* (l'ile des boss a son bilan) */
+  if (combat && combat.dev) { finDev(abandon, false); return; } /* (l'Arene dev, 27b-arene-dev.js : ni gain ni perte) */
   const c = combat; if (!c || c.fin || !c.arene) return;
   nettoyerCombat(c, true);
   { const max = statsPerso().pvMax; S_.pv = Math.max(1, vieActuelle(), Math.min(max, Math.round(c.pv))); } /* (au moins la vie d'avant l'Arene, comme a l'ile des boss : a terre, on ne rentre plus a 1 PV, 20/10/2026) */

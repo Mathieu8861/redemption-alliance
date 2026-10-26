@@ -289,7 +289,7 @@ function lierPivots(g) {
   u.anneaux.sort((a, b) => (a.name < b.name ? -1 : 1)); u.anneaux.forEach((o) => { o.userData.y0 = o.position.y; });
   return u;
 }
-function cloner(nom) { const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); if (g.userData.pivots) Object.assign(g.userData, lierPivots(g)); return g; }
+function cloner(nom) { if (MODELES[nom].userData.squelette) return clonerSquelette(nom); /* (un modele a squelette, 22c-squelettes.js) */ const g = MODELES[nom].clone(true); g.userData = Object.assign({}, MODELES[nom].userData); if (g.userData.pivots) Object.assign(g.userData, lierPivots(g)); return g; }
 function marquer(g, cellule) { g.traverse((o) => { o.userData.cellule = cellule; }); return g; }
 /* LES PERSONNAGES DE LA SIMU VSA (Omeho, le voleur, le voleur monte) et le marchand, charges a part (16/10/2026) : un modele rate (connexion) se recharge
    a l'annonce d'une simu, au lieu de faire planter la simu a l'apparition de ses voleurs. Ne charge que ce qui manque. */
@@ -368,6 +368,7 @@ async function chargerModeles() {
   try { const sc = await chargerGlb('assets/modeles/jeu/sortie-vsa.glb?v=' + VERSION_MODELES); versToon(sc, { normales: 0.012, sansContour: SC_BATI }); MODELES.caleche = sc.getObjectByName('SortieCaleche'); } catch (err) { /* pas encore de modele */ }
   await chargerPersonnagesVsa();
   ['iop3', 'osa', 'cra'].forEach((f) => { MODELES[f] = versToon(G[f], { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); });
+  /* (les monstres a squelette du palier 9 et Moon ne se chargent plus au demarrage : seulement a l'Arene dev, chargerSquelettes, 26/10/2026) */
 }
 /* terre plus sombre quand le champ est arrose */
 const MOUILLE = new Map();

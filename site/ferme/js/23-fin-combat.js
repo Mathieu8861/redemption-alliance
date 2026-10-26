@@ -42,6 +42,7 @@ function majCombat(dt, s) {
       if (b) { b.deg = Math.round(b.deg0 * mR); chiffre('Rage +' + Math.round(ENRAGE_ILE.pas * pas * 100) + ' %', new T.Vector3(b.x, b.m.position.y + b.haut + 0.5, b.z), 'gros'); if (pas === 1) toast(b.d.nom + ' enrage : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse, d\'attaque et de sorts. Tiens bon !', 'alerte'); } } }
   if (!c.file.length && c.monstres.every((o) => o.etat === 'mort')) {
     if (c.genre === 'ile') { finIleBoss(false, true); return; } /* (le boss est tombe : toute l'alliance l'a abattu) */
+    if (c.dev) { c.victoire += dt; if (c.victoire > 0.8) finDev(false, true); return; } /* (l'Arene dev : tous abattus, le bilan) */
     if (c.arene && !c.entracte) { c.victoire += dt; if (c.victoire > 0.8) { c.victoire = 0; vagueAreneTenue(c); } return; } /* l'Arene : la vague suivante */
     if (c.phases && c.phases.length) { if (!c.entracte) { c.entracte = true; c.repasEntracte = {}; ouvrirEntracte(); } else if (modaleOuverte !== 'entracte') tempsSuivant(); return; } /* (l'entracte, puis le temps suivant) */
     c.victoire += dt; if (c.victoire > 0.6) finVague(true); }

@@ -348,8 +348,9 @@ function apparaitre(type, pres) {
   poser(m, dep.x, dep.y, dep.z, ry); if (d.boss) son(type === 'royal' ? 'royal' : 'vague', null, type === 'royal' ? 0 : 2); /* (le boss arrive : le Royal bele, les autres ont le cor) */
   const barre = document.createElement('div'); barre.className = 'pv-monstre'; barre.innerHTML = '<i></i>'; barre.hidden = true; $('combat-zone').appendChild(barre);
   combat.monstres.push({ id, type, d, m, echelle: m.scale.x, barre, pv: Math.round(pvMonstre(type, combat.n) * facteurRejoue('pv', type)), pvMax: Math.round(pvMonstre(type, combat.n) * facteurRejoue('pv', type)), deg: Math.round(degMonstre(type, combat.n) * facteurRejoue('deg', type)), x, z, y: q.y, ry, dep, sortie: combat.raid && combat.sortie ? { x: combat.sortie.x, z: combat.sortie.z } : { x, z }, t: -Math.random() * 0.8, etat: 'grimpe', cd: 0.6 + Math.random() * 0.6, pas: 0, picore: 0, champ: null, frappe: 0, coup: 0, haut: (m.userData.hauteur || 1) + 0.35 + (d.vol || 0), ombreM });
-  { const o = combat.monstres[combat.monstres.length - 1]; if (combat.genre === 'ile') regleIleBoss(o); else if (combat.arene) regleArene(o); }
+  { const o = combat.monstres[combat.monstres.length - 1]; if (combat.genre === 'ile') regleIleBoss(o); else if (combat.arene && !combat.dev) regleArene(o); } /* (l'Arene dev : leur propre force) */
   { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.d.boss && o.m && !o.d.vole) { o.m.updateMatrixWorld(true); const b = new T.Box3().setFromObject(o.m), r = Math.max(b.max.x - b.min.x, b.max.z - b.min.z) / 2; o.allonge = Math.max(1, (r * 0.85 + 1.0) / o.d.portee); } }
+  { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.m.userData.portee) o.allonge = Math.max(0.6, (o.m.userData.portee + 0.6) / o.d.portee); } /* (un monstre a squelette : sa portee est celle de ses coups, mesuree sur ses animations) */
   /* (16/10/2026, « quand on passe dans la zone d'un boss, il doit nous attaquer » : sa portee ne depassait guere son corps ; il frappe maintenant jusqu'a environ 1 au-dela, mesure sur son modele, colosse de l'ile compris) */
 }
 /* le monstre (ou le voleur) le plus proche du clic a l'ecran : sa silhouette des pieds a la tete, elargie d'une marge (plus grande au doigt) */
@@ -374,8 +375,11 @@ function cibleEcran(e) {
   return best;
 }
 function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === id && x.etat === 'actif'); if (o) { combat.cible = o; combat.ordre = false; combat.tenir = false; } }
+const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
 function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
+  if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; } /* (une Tortue en pleine roulade : tes coups la manquent) */
+  mo.recent = 1.2; /* (il vient d'etre touche : une Tortue peut rouler pour esquiver la suite) */
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
   if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
   if (mo.d.boss && mo.protege > 0) n = Math.max(1, Math.round(n * (1 - mo.protege))); /* sa troupe le protege */
@@ -384,7 +388,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
-  mo.pv -= n; mo.coup = 0.18; if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
     if (!combat.revitVu) { combat.revitVu = true; toast(leNom(mo.d) + ' se relève : il faut l\'abattre deux fois !', 'alerte'); } return;
@@ -482,7 +486,7 @@ function effetsCoup(mo) { /* la Momie ralentit, la pomme de la Reinette assomme,
   const c = combat; if (!c || c.fin || !mo || c.deroute != null) return; const d = mo.d, p = paysanMesh.position.clone(); p.y += 2.1;
   if (d.ralentit) { if (!c.lenteurVu) { c.lenteurVu = true; toast(leNom(d) + ' te ralentit à chaque coup : éloigne-toi !', 'alerte'); } c.lenteur = d.ralentit; }
   if (d.assomme) { c.assomme = d.assomme; chiffre('Assommé !', p, 'vol'); }
-  if (d.poison) { (c.poisons = c.poisons || []).push({ pct: d.poison[0], t: d.poison[1] }); if (!c.poisonVuB) { c.poisonVuB = true; toast('La baie du ' + d.nom + ' t\'empoisonne quelques secondes !', 'alerte'); } }
+  if (d.poison) { (c.poisons = c.poisons || []).push({ pct: d.poison[0], t: d.poison[1] }); if (!c.poisonVuB) { c.poisonVuB = true; toast((d.poisonObjet || 'La baie') + ' du ' + d.nom + ' t\'empoisonne quelques secondes !', 'alerte'); } }
 }
 function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre vert toutes les 0,6 s */
   const c = combat; if (!c || c.fin || c.deroute != null) return;
@@ -607,7 +611,7 @@ const ELANS = { bouftou: 'charge', boufcoul: 'charge', craqueleur: 'charge', cra
 Object.entries(ELANS).forEach(([t, e]) => { const d = MONSTRES[t]; if (!d || d.charge || d.pique) return; Object.assign(d, e === 'charge' ? { charge: 7 } : { pique: 7 }, { chargeMax: SAUT_PORTEE, degSort: d.degSort || 1.5 }); });
 function sauterSurPerso(mo) {
   const x0 = mo.x, z0 = mo.z, pp0 = paysanMesh.position, cx = pp0.x, cz = pp0.z; let f = null, t = 0; /* (il vise la ou tu es quand il se ramasse : le rond rouge s'y pose tout de suite) */
-  mo.sautT = 0; mo.bloqueT = SAUT_PREPA + SAUT_VOL; mo.frappe = 0.2;
+  mo.sautT = 0; mo.bloqueT = SAUT_PREPA + SAUT_VOL; mo.frappe = 0.2; gesteSort(mo, 'bond'); /* (un monstre a squelette : son geste de saut, s'il en a un) */
   zoneDanger({ mo, x: cx, z: cz, r: 1.05, duree: ESQUIVE.saut, effet: (d) => { if (f) pouf(f.x, solA(f.x, f.z), f.z, 1.6, '#c9b28a'); const p2 = paysanMesh.position;
     if (dansDanger(d, p2.x, p2.z) && combat && !combat.fin && mo.etat === 'actif') { blesserPerso(mo.deg, mo); if (!combat || combat.fin) return; /* (le saut l'a acheve : le combat est fini) */ effetsCoup(mo); combat.agrippe = AGRIPPE; if (!combat.agrippeVu) { combat.agrippeVu = true; toast(leNom(mo.d) + ' t\'agrippe : tu marches deux fois moins vite un instant !', 'alerte'); } }
     mo.cd = Math.min(mo.cd, 0.5); } });
@@ -641,7 +645,7 @@ function capGalvanise(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.galvanise) { /* le Dragoeuf Dore : la horde autour de lui frappe et court plus vite pendant 4 s */
     mo.galvT = (mo.galvT || 0) + dt;
-    if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, '#f2b630'); }
+    if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; gesteSort(mo, 'sort'); if (mo.d.tambour) { onde(mo.x, mo.m.position.y, mo.z, 7, '#f2b630', 0.55, 0.8); onde(mo.x, mo.m.position.y, mo.z, 4.5, '#ffe9a8', 0.4, 0.6); } combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, '#f2b630'); }
   }
 }
 function capTroupe(mo, ctx) {
@@ -678,7 +682,7 @@ function capCharge(mo, ctx) {
       let cleB = null; { const L0 = Math.hypot(f.x - mo.x, f.z - mo.z), bats = clesBats().filter((k) => !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z);
         for (let d = 1.2; d <= L0 && !cleB; d += 0.2) { const x = mo.x + Math.sin(a) * d, z = mo.z + Math.cos(a) * d, b = bats.find(([, zb]) => Math.abs(x - zb.x) < zb.hw + 0.2 && Math.abs(z - zb.z) < zb.hd + 0.2);
           if (b) { cleB = b[0]; const d2 = Math.max(0.5, d - 0.4); f.x = mo.x + Math.sin(a) * d2; f.z = mo.z + Math.cos(a) * d2; } } }
-      mo.ry = a; mo.bloqueT = prepa + 0.6; mo.frappe = 0.3;
+      mo.ry = a; mo.bloqueT = prepa + 0.6; mo.frappe = 0.3; gesteSort(mo, 'bond');
       if (piq) { let t0 = 0; effets.push((dt2) => { t0 += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.hop = 1.7 * Math.min(1, t0 / prepa); return t0 >= prepa; }); } /* le Dragoeuf prend de la hauteur */
       if (!combat[piq ? 'piqueVu' : 'chargeVu']) { combat[piq ? 'piqueVu' : 'chargeVu'] = true; toast(piq ? leNom(mo.d) + ' prend son envol pour piquer sur toi : sors de la bande rouge, ou cache-toi derrière un bâtiment !' : leNom(mo.d) + ' baisse la tête : sors de la bande rouge !', 'alerte'); }
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: petit ? 1.3 : 1.9, duree: prepa, effet: () => {
@@ -715,14 +719,14 @@ function capLance(mo, ctx) {
       let cleB = null; { const L0 = Math.hypot(f.x - mo.x, f.z - mo.z), bats = clesBats().filter((k) => !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z);
         for (let d = 1.2; d <= L0 && !cleB; d += 0.2) { const x = mo.x + Math.sin(a) * d, z = mo.z + Math.cos(a) * d, b = bats.find(([, zb]) => Math.abs(x - zb.x) < zb.hw + 0.2 && Math.abs(z - zb.z) < zb.hd + 0.2);
           if (b) { cleB = b[0]; f.x = x; f.z = z; } } }
-      mo.ry = a; mo.bloqueT = 1.0 + 0.35; mo.frappe = 0.3;
-      if (!combat.lanceVu) { combat.lanceVu = true; toast(leNom(mo.d) + ' lève sa lance d\'os : sors de la bande rouge, ou cache-toi derrière un bâtiment !', 'alerte'); }
+      mo.ry = a; mo.bloqueT = 1.0 + 0.35; mo.frappe = 0.3; gesteSort(mo, 'tir');
+      if (!combat.lanceVu) { combat.lanceVu = true; toast(leNom(mo.d) + ' ' + (mo.d.lanceNom || 'lève sa lance d\'os') + ' : sors de la bande rouge, ou cache-toi derrière un bâtiment !', 'alerte'); }
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: 1.3, duree: 1.0, effet: (d) => {
         mo.frappe = 0.4; const y0 = mo.m.position.y + mo.haut * 0.6, de = new T.Vector3(mo.x, y0, mo.z), vers = new T.Vector3(f.x, solA(f.x, f.z) + 0.7, f.z);
-        const os = new T.Mesh(new T.CylinderGeometry(0.06, 0.09, 1.5, 6), new T.MeshLambertMaterial({ color: '#efe6cf' })); os.rotation.order = 'YXZ'; os.rotation.set(Math.PI / 2, a, 0); scene.add(os);
+        const os = mo.d.projectile === 'sagaie' ? sagaieVolante() : new T.Mesh(new T.CylinderGeometry(0.06, 0.09, 1.5, 6), new T.MeshLambertMaterial({ color: '#efe6cf' })); os.rotation.order = 'YXZ'; if (mo.d.projectile === 'sagaie') os.rotation.set(0, a, 0); else os.rotation.set(Math.PI / 2, a, 0); scene.add(os); /* (la sagaie de Jav, ou la lance d'os du Chafer) */
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(degSort(mo), mo);
         if (cleB && combat && !combat.fin) blesserBat(cleB, degatsBatiment(1, mo));
-        let t = 0; effets.push((dt2) => { t += dt2 / 0.25; os.position.lerpVectors(de, vers, Math.min(1, t)); if (t >= 1) { jeter(os); pouf(vers.x, vers.y - 0.5, vers.z, 1.4, '#efe6cf'); return true; } });
+        let t = 0; effets.push((dt2) => { t += dt2 / 0.25; os.position.lerpVectors(de, vers, Math.min(1, t)); if (t >= 1) { jeter(os); pouf(vers.x, vers.y - 0.5, vers.z, 1.4, mo.d.projectile === 'sagaie' ? '#a8a294' : '#efe6cf'); return true; } });
       } });
     }
   }
@@ -740,7 +744,7 @@ function capSeisme(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.seisme) { /* le Craqueleur Legendaire frappe le sol : un cercle rouge s'annonce autour de lui (1,3 s pour en sortir), puis l'onde de choc, sur le perso et les batiments */
     if (sortPret('seismeT', mo.d.seisme)) {
-      mo.seismeT = 0; const R = mo.d.seismeR || 4.5, duree = mo.d.seismeDuree || 1.3, x0 = mo.x, z0 = mo.z; mo.bloqueT = duree + 0.3; /* (le rayon et le temps : ceux du Craqueleur Legendaire, ou de la fiche ; l'ecrasement du Dragon Cochon, 20/10/2026) */
+      mo.seismeT = 0; const R = mo.d.seismeR || 4.5, duree = mo.d.seismeDuree || 1.3, x0 = mo.x, z0 = mo.z; mo.bloqueT = duree + 0.3; gesteSort(mo, 'sort'); /* (le rayon et le temps : ceux du Craqueleur Legendaire, ou de la fiche ; l'ecrasement du Dragon Cochon, 20/10/2026) */
       if (!combat.seismeVu) { combat.seismeVu = true; toast((mo.d.seismeNom || 'Séisme') + ' ! ' + leNom(mo.d) + ' va frapper le sol : sors du cercle rouge.', 'alerte'); }
       zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => {
         pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); mo.frappe = 0.4;
@@ -778,21 +782,25 @@ function capPluie(mo, ctx) {
     if (mo.pluieT == null) mo.pluieT = mo.d.pluie - 3; mo.pluieT += vSort;
     if (mo.pluieT >= mo.d.pluie) {
       mo.pluieT = 0; mo.frappe = 0.4;
-      if (!combat.pluieVu) { combat.pluieVu = true; toast('Le Wa Wabbit fait pleuvoir des cawottes explosives : sors des cercles orange !', 'alerte'); }
+      gesteSort(mo, 'tir'); const fleches = !!mo.d.pluieFleches; /* (Ark : une pluie de flèches, 25/10/2026) */
+      if (!combat[fleches ? 'pluieFVu' : 'pluieVu']) { combat[fleches ? 'pluieFVu' : 'pluieVu'] = true; toast(fleches ? leNom(mo.d) + ' tire une pluie de flèches : sors des cercles rouges !' : 'Le Wa Wabbit fait pleuvoir des cawottes explosives : sors des cercles orange !', 'alerte'); }
       [[pp.x, pp.z]].concat([0, 1, 2, 3].map(() => [pp.x + (Math.random() - 0.5) * 7, pp.z + (Math.random() - 0.5) * 7])).forEach(([x, z]) => {
         const cel = caseIci(x, z), y = cel ? hauteurSol(x, z, cel) : 0, c0 = combat, dz = { x, z, r: 1.3 }; (c0.dangers = c0.dangers || []).push(dz); const oter = () => { const i = c0.dangers.indexOf(dz); if (i >= 0) c0.dangers.splice(i, 1); };
-        const rond = new T.Mesh(new T.CircleGeometry(1.3, 24), new T.MeshBasicMaterial({ color: '#f08a24', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide })); rond.rotation.x = -Math.PI / 2; rond.position.set(x, y + 0.07, z); rond.renderOrder = 2; scene.add(rond);
-        const cw = new T.Mesh(new T.ConeGeometry(0.2, 0.7, 8), new T.MeshBasicMaterial({ color: '#f08a24' })); cw.rotation.x = Math.PI; scene.add(cw); let t = 0;
+        const rond = new T.Mesh(new T.CircleGeometry(1.3, 24), new T.MeshBasicMaterial({ color: fleches ? '#e2413a' : '#f08a24', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide })); rond.rotation.x = -Math.PI / 2; rond.position.set(x, y + 0.07, z); rond.renderOrder = 2; scene.add(rond);
+        const cw = fleches ? volee() : new T.Mesh(new T.ConeGeometry(0.2, 0.7, 8), new T.MeshBasicMaterial({ color: '#f08a24' })); if (!fleches) cw.rotation.x = Math.PI; scene.add(cw); let t = 0;
         effets.push((dt2) => {
           t += dt2; rond.material.opacity = 0.2 + 0.25 * Math.abs(Math.sin(t * 9)); cw.position.set(x, y + 0.35 + 9 * Math.max(0, 1 - t / ESQUIVE.pluie), z);
           if (!combat || combat.fin) { jeter(rond); jeter(cw); oter(); return true; }
-          if (t >= ESQUIVE.pluie) { jeter(rond); jeter(cw); oter(); pouf(x, y, z, 3, '#f08a24'); pouf(x, y, z, 1.6, '#ffd04a'); const p2 = paysanMesh.position; if (Math.hypot(p2.x - x, p2.z - z) < 1.3) blesserPerso(degSort(mo), mo); return true; }
+          if (t >= ESQUIVE.pluie) { jeter(rond); jeter(cw); oter(); if (fleches) { pouf(x, y, z, 2.2, '#c9b28a'); fichees(x, y, z); } else { pouf(x, y, z, 3, '#f08a24'); pouf(x, y, z, 1.6, '#ffd04a'); } const p2 = paysanMesh.position; if (Math.hypot(p2.x - x, p2.z - z) < 1.3) blesserPerso(degSort(mo), mo); return true; }
         });
       });
       if (!combat || combat.fin) return;
     }
   }
 }
+/* la pluie de flèches d'Ark : une volée de cinq flèches qui tombe sur le cercle, puis reste fichée au sol un instant */
+const volee = () => { const g = new T.Group(); for (let i = 0; i < 5; i++) { const f = boite(0.03, 0.6, 0.03, '#8a5a30'), p = new T.Mesh(new T.ConeGeometry(0.05, 0.14, 4), mat('#a8a294')); p.rotation.x = Math.PI; p.position.y = -0.36; f.add(p); f.position.set(Math.sin(i * 2.4) * 0.5 * (i % 3) / 2, 0.3, Math.cos(i * 2.4) * 0.5 * (i % 3) / 2); f.rotation.z = (i - 2) * 0.06; g.add(f); } return g; };
+function fichees(x, y, z) { const g = volee(); g.position.set(x, y - 0.12, z); fxVie(g, 1.6, (k) => { g.position.y = y - 0.12 - Math.max(0, k - 0.6) * 1.2; }); }
 function capCawotteRoyale(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.cawotteRoyale && combat.deroute == null) { /* la Cawotte royale du Wa Wabbit : une petite cible te suit, se fige, puis la cawotte geante s'abat */
@@ -884,6 +892,15 @@ function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2
     const d = Math.hypot(pp.x - V.x, pp.z - V.z); let e = Math.atan2(pp.x - V.x, pp.z - V.z) - V.a; e = Math.atan2(Math.sin(e), Math.cos(e));
     if (d < V.R && Math.abs(e) < V.OUV / 2) { blesserPerso(degSort(mo), mo); if (combat && !combat.fin && mo.d.repousse) repousserPerso(mo, mo.d.repousse); } }
 }
+function capRoulade(mo, ctx) { /* les Tortues roulent pour esquiver (26/10/2026, « ce serait rigolo de les voir faire ça et esquiver de temps en temps », Mathieu) : touchée, une fois
+     toutes les quelques secondes, elle part en roulade sur le côté, un peu vers toi ; pendant la culbute, tes coups la manquent */
+  const { pp, dt, sortPret } = ctx;
+  if (!mo.d.roulade || !mo.m.userData.anim) return;
+  if (mo.esquiveVu > 0) mo.esquiveVu -= dt;
+  const pret = sortPret('rouladeT', mo.d.roulade + (mo.id % 3)); if (!pret || !(mo.recent > 0) || mo.geste) return;
+  const vers = Math.atan2(pp.x - mo.x, pp.z - mo.z), cote = Math.random() < 0.5 ? 1 : -1;
+  if (rouladeSquelette(mo, vers + cote * (Math.PI / 2 - 0.45))) { mo.rouladeT = 0; if (!combat.rouladeVu) { combat.rouladeVu = true; toast(leNom(mo.d) + ' roule pour esquiver : pendant sa culbute, tes coups la manquent !', 'alerte'); } }
+}
 function capPierre(mo, ctx) { /* la peau de pierre de la Gorgouille (20/10/2026) : 4 s, elle prend moitie moins de degats */
   const { m, dt, sortPret } = ctx;
   if (!mo.d.pierre) return;
@@ -893,7 +910,17 @@ function capPierre(mo, ctx) { /* la peau de pierre de la Gorgouille (20/10/2026)
   mo.bulleP.visible = mo.pierre > 0; if (mo.bulleP.visible) { mo.bulleP.scale.setScalar(mo.haut * 0.6); mo.bulleP.position.y = mo.haut * 0.45; mo.bulleP.rotation.y += dt * 0.5; }
 }
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre];
+const CAPACITES = [capTroupe, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre, capRoulade];
+/* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
+   Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
+function tirMonstre(mo, bat) {
+  const main = mainSquelette(mo);
+  const de = main || new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle, c0 = combat;
+  const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })) : mo.d.projectile === 'fruit' ? new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.2 : 0.11, 10, 8), mat(mo.d.fruit)) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : mo.d.projectile === 'sagaie' ? sagaieVolante() : mo.d.projectile === 'flechette' ? boite(0.025, 0.025, 0.3, '#e8683a') : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
+  if (mo.d.projectile === 'feu') { const c = new T.Mesh(new T.IcosahedronGeometry(0.12, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); fl.add(c); }
+  effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { jeter(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, la fleche ne touche plus rien) */
+}
+const sagaieVolante = () => { const g = new T.Group(), h = boite(0.05, 0.05, 1.3, '#8a5a30'), p = new T.Mesh(new T.ConeGeometry(0.07, 0.24, 5), mat('#a8a294')); p.rotation.x = Math.PI / 2; p.position.z = 0.75; g.add(h, p); return g; };
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
@@ -904,6 +931,7 @@ function majMonstre(mo, dt, s) {
     if (k >= 1) { mo.etat = 'actif'; m.rotation.x = 0; pouf(mo.x, mo.y, mo.z, 1.2); } return;
   }
   if (mo.d.boss) majBarreBoss(mo);
+  if (mo.etat === 'mort' && m.userData.anim) { mortSquelette(mo, dt); return; } /* (un monstre a squelette tombe, puis s'enfonce dans le sol) */
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
   const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
@@ -942,13 +970,13 @@ function majMonstre(mo, dt, s) {
     tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
       mo.cd = mo.d.cadence; mo.frappe = 0.25;
-      if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
-      else if (mo.d.distance) { /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) */
-        const de = new T.Vector3(mo.x, mo.m.position.y + 1.0, mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle, c0 = combat;
-        const fl = mo.d.magie ? new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })) : mo.d.projectile === 'fruit' ? new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.2 : 0.11, 10, 8), mat(mo.d.fruit)) : mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.28, 0), mat('#9a948c')) : mo.d.projectile === 'feu' ? new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff7a1e' })) : boite(0.035, 0.035, 0.5, '#d9c08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(vers); let t = 0; /* le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu */
-        if (mo.d.projectile === 'feu') { const c = new T.Mesh(new T.IcosahedronGeometry(0.12, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); fl.add(c); }
-        effets.push((dt2) => { t += dt2 / 0.4; fl.position.lerpVectors(de, vers, Math.min(1, t)); fl.position.y += Math.sin(Math.min(1, t) * Math.PI) * 0.5; if (t >= 1) { jeter(fl); if (mo.d.projectile) pouf(vers.x, vers.y - 0.8, vers.z, 1.6, mo.d.projectile === 'feu' ? '#ff7a1e' : mo.d.projectile === 'fruit' ? mo.d.fruit : '#9a948c'); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, la fleche ne touche plus rien) */
-      } else { blesserPerso(mo.deg, mo); effetsCoup(mo); }
+      const frapper = () => { /* (le coup lui-meme ; un monstre a squelette le porte a l'instant de son geste : s'il t'a vu filer, il frappe dans le vide) */
+        if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
+        else if (mo.d.distance) tirMonstre(mo, bat);
+        else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg, mo); effetsCoup(mo); } };
+      if (mo.d.marteau && m.userData.anim && !bat) coupMarteau(mo); /* (Moon : le coup tombe a l'impact du marteau, 22c-squelettes.js) */
+      else if (m.userData.anim) attaqueSquelette(mo, mo.d.distance ? 'tir' : 'coup', frapper); /* (les Kannibouls et les Tortues : a l'instant de leur geste) */
+      else frapper();
     }
   } else { /* il picore : une recolte volee toutes les 5 s */
     mo.picore += dt;
@@ -967,13 +995,14 @@ function majMonstre(mo, dt, s) {
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
+  if (m.userData.anim) majSquelette(mo, v, dt); /* (les monstres a squelette : marche, repos, coup de marteau) */
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
-  const saut = mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
-  let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; }
+  const saut = m.userData.anim ? 0 : mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
+  let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; if (!m.userData.anim) elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; } /* (un monstre a squelette a son propre geste) */
   const pique = mo.picore > 0 ? Math.abs(Math.sin(s * 9)) : 0;
   const vol = mo.d.vol ? mo.d.vol + Math.sin(s * 2.4 + mo.id) * 0.14 : 0; if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
-  m.rotation.y = mo.ry; m.rotation.z = Math.sin(mo.pas) * 0.07; m.rotation.x = pique * 0.35;
+  m.rotation.y = mo.ry; m.rotation.z = m.userData.anim ? 0 : Math.sin(mo.pas) * 0.07; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35;
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
     if (!mo.flamme) { mo.flamme = new T.Mesh(new T.ConeGeometry(0.18, 0.5, 6), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.85 })); m.add(mo.flamme); }
