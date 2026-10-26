@@ -11263,3 +11263,81 @@ body.app-has-sidebar {
         grid-template-columns: 1fr;
     }
 }
+
+/* === DROITS : SEMAINE PROCHAINE (board, sql/079) === */
+.board-suivante__intro {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+.board-suivante__intro p + p {
+    margin-top: var(--spacing-xs);
+}
+
+.board-suivante__systeme strong {
+    color: var(--color-text-primary);
+}
+
+.board-suivante__nouveau {
+    display: inline-block;
+    margin-left: var(--spacing-xs);
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(224, 124, 10, 0.55);
+    background: rgba(224, 124, 10, 0.15);
+    color: var(--color-accent-light);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.board-suivante__moi {
+    color: var(--color-text-primary);
+}
+
+.board-suivante__moi strong {
+    color: var(--color-accent-light);
+}
+
+.board-suivante__vide {
+    padding: var(--spacing-md);
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+/* Admin : les deux semaines et le bareme a modifier */
+.perco-mode-ligne__label {
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.perco-mode-ligne__label small {
+    margin-left: var(--spacing-xs);
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+.perco-mode-ligne .perco-mode-switch {
+    margin-bottom: var(--spacing-md);
+}
+
+.perco-bareme-vue {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0 var(--spacing-xl);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+#board-suivante .board-palier__droits {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}

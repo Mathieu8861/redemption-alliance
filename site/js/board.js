@@ -24,6 +24,8 @@
     var prefMax = 5;            /* taille du top de preferences (site_config.perco_pref_max) */
     var myTop = [];             /* mon top : zones choisies, dans mon ordre */
     var tirageOuvertJusqua = null; /* site_config.perco_tirage_ouvert_jusqua (sql/062) */
+    var modeSuivant = null;     /* systeme des droits de la semaine prochaine (sql/079) */
+    var basculeDes = null;      /* remise a zero ou ce systeme s'applique, s'il change */
 
     document.addEventListener('ren:ready', init);
 
@@ -35,11 +37,8 @@
 
         /* Mode simple : paliers par points, sans reservations de zones */
         if (percoMode === 'points') {
-            var tabsEl = document.getElementById('board-tabs');
-            /* .tabs a un display:flex en CSS qui ecrase l'attribut hidden */
-            if (tabsEl) tabsEl.style.display = 'none';
-            var tabPrefsEl = document.getElementById('board-tab-preferences');
-            if (tabPrefsEl) tabPrefsEl.hidden = true;
+            /* Pas de preferences de zones : onglets Droits en cours et Semaine prochaine seulement */
+            masquerOngletPreferences();
             var tabDroitsEl = document.getElementById('board-tab-droits');
             if (tabDroitsEl) tabDroitsEl.hidden = false;
 
@@ -49,6 +48,8 @@
             renderResaPoints();
             renderTablePoints();
             setupBdaModal();
+            setupTabs();
+            renderSuivante();
             return;
         }
 
@@ -60,16 +61,15 @@
         /* Pas de reservation : le ladder seul, sans onglet Mes preferences ni
            colonne Zone reservee */
         if (!percoResa) {
-            var tabsRang = document.getElementById('board-tabs');
-            if (tabsRang) tabsRang.style.display = 'none';
-            var tabPrefsRang = document.getElementById('board-tab-preferences');
-            if (tabPrefsRang) tabPrefsRang.hidden = true;
+            masquerOngletPreferences();
             reservations = [];
             renderPeriode();
             renderBareme();
             renderTable();
             renderGuideRang();
             setupBdaModal();
+            setupTabs();
+            renderSuivante();
             return;
         }
 
@@ -85,9 +85,10 @@
         renderGuideRang();
         setupBdaModal();
         setupTabs();
+        renderSuivante();
     }
 
-    /* === ONGLETS === */
+    /* === ONGLETS : Droits en cours / Semaine prochaine / Mes preferences === */
     function setupTabs() {
         var btns = document.querySelectorAll('#board-tabs .tabs__btn');
         btns.forEach(function (btn) {
@@ -95,22 +96,179 @@
                 btns.forEach(function (b) { b.classList.remove('active'); });
                 btn.classList.add('active');
                 var tab = btn.getAttribute('data-tab');
-                var tabDroits = document.getElementById('board-tab-droits');
-                var tabPrefs = document.getElementById('board-tab-preferences');
-                if (tabDroits) tabDroits.hidden = tab !== 'droits';
-                if (tabPrefs) tabPrefs.hidden = tab !== 'preferences';
+                ['droits', 'suivante', 'preferences'].forEach(function (t) {
+                    var el = document.getElementById('board-tab-' + t);
+                    if (el) el.hidden = tab !== t;
+                });
             });
         });
+    }
+
+    function masquerOngletPreferences() {
+        var bouton = document.querySelector('#board-tabs [data-tab="preferences"]');
+        if (bouton) bouton.style.display = 'none';
+        var tabPrefs = document.getElementById('board-tab-preferences');
+        if (tabPrefs) tabPrefs.hidden = true;
+    }
+
+    /* === SEMAINE PROCHAINE (sql/079) ===
+       Ce que les points faits depuis la remise a zero donneront a la suivante,
+       avec le systeme programme pour elle (qui peut differer des droits en cours). */
+    async function renderSuivante() {
+        var box = document.getElementById('board-suivante');
+        if (!box) return;
+        var esc = window.REN.escapeHtml;
+        var mode = modeSuivant || percoMode;
+        try {
+            var res = await window.REN.supabase.from('classement_pvp_semaine').select('id, username, points');
+            if (mode === 'points' && !pointsConfig.length) await loadPointsConfig();
+            if (mode === 'rang' && !paliers.length) await loadPaliers();
+            var classes = (res.data || []).slice()
+                .sort(function (a, b) { return b.points - a.points || a.username.localeCompare(b.username); })
+                .map(function (r, i) { return { user_id: r.id, username: r.username, points: Number(r.points), rang: i + 1 }; });
+            var myId = window.REN.currentProfile.id;
+            var moi = classes.find(function (p) { return p.user_id === myId; }) || null;
+
+            /* En-tete : semaine concernee, systeme, et ou j'en suis */
+            var enDirect = periodeEnDirect();
+            var html = '<div class="board-suivante__intro">';
+            if (!enDirect && periodeInfos && periodeInfos.fin) {
+                var debut = new Date(periodeInfos.fin);
+                var duree = new Date(periodeInfos.fin).getTime() - new Date(periodeInfos.debut).getTime();
+                var veille = new Date(debut.getTime() + duree - 12 * 3600 * 1000);
+                html += '<p><strong>Droits de la ' + esc(String(periodeInfos.libelle || 'période').toLowerCase()) + ' du ' + formatDate(debut) + ' au ' + formatDate(veille) + '</strong>, calculés sur les points faits depuis la dernière remise à zéro. Classement provisoire : il se fige le ' + esc(jourParis(periodeInfos.fin)) + ' à 00:00:01.</p>';
+            } else {
+                html += '<p>Sans remise à zéro, les droits suivent le classement en direct : cet onglet montre le même calcul que les droits en cours.</p>';
+            }
+            html += '<p class="board-suivante__systeme">Système : <strong>' + (mode === 'points' ? 'paliers de points' : 'classement (ladder)') + '</strong>'
+                + (basculeDes && modeSuivant !== percoMode ? ' <span class="board-suivante__nouveau">nouveau à partir du ' + esc(jourParis(basculeDes.toISOString())) + '</span>' : '') + '</p>';
+            html += '<p class="board-suivante__moi">' + texteMoiSuivante(mode, moi, classes) + '</p>';
+            html += '</div>';
+
+            html += '<div class="board-table-wrap board-table-wrap--paliers"><div class="board-paliers">'
+                + (mode === 'points' ? colonnesPoints(classes, myId) : colonnesRang(classes, myId)) + '</div></div>';
+            box.innerHTML = html;
+        } catch (err) {
+            console.error('[REN-BOARD] Erreur semaine prochaine:', err);
+            box.innerHTML = '<p class="text-muted" style="padding:1rem;">Erreur de chargement.</p>';
+        }
+    }
+
+    function nbPercos(n) { return n + ' percepteur' + (n > 1 ? 's' : ''); }
+
+    function droitsPoints(r) {
+        if (!r) return 'aucun percepteur';
+        var t = (r.percepteurs_bonus || 0) > 0 ? nbPercos(r.percepteurs_bonus) : 'aucun percepteur';
+        if ((r.resa || 0) > 0) t += ' + ' + r.resa + ' zone' + (r.resa > 1 ? 's' : '') + ' réservée' + (r.resa > 1 ? 's' : '');
+        return t;
+    }
+
+    function texteMoiSuivante(mode, moi, classes) {
+        var esc = window.REN.escapeHtml;
+        var pts = moi ? moi.points : 0;
+        var fmt = window.REN.formatNumber;
+        if (mode === 'points') {
+            var tiers = pointsConfig.slice().sort(function (a, b) { return a.seuil_min - b.seuil_min; });
+            var actuel = rewardForPoints(pts);
+            var prochain = tiers.find(function (r) { return r.seuil_min > pts && (r.percepteurs_bonus || 0) + (r.resa || 0) > 0; });
+            var t = moi
+                ? 'Tu as <strong>' + fmt(pts) + ' pts</strong> cette semaine : ' + (actuel ? 'palier <strong>' + esc(actuel.label) + '</strong>, ' + droitsPoints(actuel) : 'pas encore de palier') + '.'
+                : 'Tu n\'as pas encore de points cette semaine.';
+            if (prochain) t += ' Encore <strong>' + fmt(Math.max(0, prochain.seuil_min - pts)) + ' pts</strong> pour ' + esc(prochain.label) + ' (' + droitsPoints(prochain) + ').';
+            return t;
+        }
+        if (!moi) return 'Tu n\'as pas encore de points cette semaine : chaque combat déclaré te fait entrer au classement.';
+        var p = palierFor(moi.rang);
+        var t2 = 'Tu es <strong>' + ordinal(moi.rang) + '</strong> avec <strong>' + fmt(pts) + ' pts</strong> : ' + droitsTexte(p) + ' si la semaine s\'arrêtait maintenant.';
+        if (p) {
+            var idx = paliers.indexOf(p);
+            var dessus = idx > 0 ? paliers[idx - 1] : null;
+            var cible = dessus ? classes[dessus.rang_max - 1] : null;
+            if (cible) t2 += ' Pour passer ' + (dessus.rang_min === dessus.rang_max ? 'Top ' + dessus.rang_min : 'dans le Top ' + dessus.rang_min + '-' + dessus.rang_max) + ', il faut dépasser ' + esc(cible.username) + ' (' + fmt(cible.points) + ' pts).';
+        }
+        return t2;
+    }
+
+    function ligneSuivante(p, myId) {
+        var esc = window.REN.escapeHtml;
+        var moi = p.user_id === myId;
+        return '<div class="board-palier__ligne' + (moi ? ' board-palier__ligne--moi' : '') + '">'
+            + '<span class="board-palier__rang">' + p.rang + '</span>'
+            + '<div class="board-palier__joueur"><div class="board-palier__nom notranslate" title="' + esc(p.username) + '">' + esc(p.username)
+            + (moi ? '<span class="board-palier__toi">toi</span>' : '') + '</div></div>'
+            + '<span class="board-palier__pts">' + window.REN.formatNumber(p.points) + '</span>'
+            + '</div>';
+    }
+
+    function colonneSuivante(titre, emoji, droits, couleur, joueurs, myId) {
+        var esc = window.REN.escapeHtml;
+        var nbSous = Math.max(1, Math.ceil(joueurs.length / LIGNES_PAR_SOUS_COLONNE));
+        var parSous = Math.max(1, Math.ceil(joueurs.length / nbSous));
+        var corps = '';
+        if (!joueurs.length) corps = '<div class="board-palier__sous"><p class="board-suivante__vide">Personne pour l\'instant</p></div>';
+        for (var i = 0; i < joueurs.length; i += parSous) {
+            corps += '<div class="board-palier__sous">' + joueurs.slice(i, i + parSous).map(function (p) { return ligneSuivante(p, myId); }).join('') + '</div>';
+        }
+        var base = 200 * nbSous;
+        return '<section class="board-palier' + (nbSous > 1 ? ' board-palier--multi' : '') + '"'
+            + ' style="--palier-c:' + couleur[0] + ';--palier-f:' + couleur[1] + ';flex:' + nbSous + ' 1 ' + base + 'px;max-width:' + Math.round(base * 1.7) + 'px;">'
+            + '<header class="board-palier__tete"><div class="board-palier__titre">' + (emoji ? '<span>' + esc(emoji) + '</span>' : '') + esc(titre) + '</div>'
+            + '<div class="board-palier__droits">' + droits + '</div></header>'
+            + '<div class="board-palier__corps" style="grid-template-columns:repeat(' + nbSous + ', minmax(0, 1fr));">' + corps + '</div>'
+            + '</section>';
+    }
+
+    /* Paliers de points : une colonne par palier, du plus haut au plus bas, meme vide */
+    function colonnesPoints(classes, myId) {
+        var tiers = pointsConfig.slice().sort(function (a, b) { return b.seuil_min - a.seuil_min; });
+        if (!tiers.length) return '<p class="text-muted" style="padding:1rem;">Barème par paliers de points pas encore configuré.</p>';
+        var html = '';
+        tiers.forEach(function (r, i) {
+            var max = r.seuil_max !== null ? r.seuil_max : Infinity;
+            var joueurs = classes.filter(function (p) { return p.points >= r.seuil_min && p.points <= max; });
+            var plage = r.seuil_max !== null ? r.seuil_min + ' à ' + r.seuil_max + ' pts' : r.seuil_min + ' pts et +';
+            html += colonneSuivante(r.label + ' · ' + plage, r.emoji || '', '<strong>' + droitsPoints(r) + '</strong>', COULEURS_PALIERS[i % COULEURS_PALIERS.length], joueurs, myId);
+        });
+        var plusBas = tiers[tiers.length - 1].seuil_min;
+        var sans = classes.filter(function (p) { return p.points < plusBas; });
+        if (sans.length) html += colonneSuivante('Moins de ' + plusBas + ' pts', '', '<strong>aucun percepteur</strong>', COULEUR_HORS_PALIER, sans, myId);
+        return html;
+    }
+
+    /* Classement : les paliers par rang sur le classement provisoire de la semaine */
+    function colonnesRang(classes, myId) {
+        if (!classes.length) return '<p class="text-muted" style="padding:1rem;">Aucun combat depuis la remise à zéro.</p>';
+        var groupes = [];
+        classes.forEach(function (p) {
+            var palier = palierFor(p.rang);
+            var g = groupes[groupes.length - 1];
+            if (!g || g.palier !== palier) { g = { palier: palier, joueurs: [] }; groupes.push(g); }
+            g.joueurs.push(p);
+        });
+        return groupes.map(function (g) {
+            var premier = g.joueurs[0].rang, dernier = g.joueurs[g.joueurs.length - 1].rang;
+            var titre = (g.palier ? 'Top ' : 'Rangs ') + (premier === dernier ? premier : premier + '-' + dernier);
+            var d = droitsPalier(g.palier);
+            var droits = d.total > 0 ? '<strong>' + nbPercos(d.total) + '</strong>' + (d.resa > 0 ? ' dont ' + d.resa + ' en zone réservée' : ' chacun') : '<strong>aucun percepteur</strong>';
+            return colonneSuivante(titre, g.palier && g.palier.emoji, droits, couleurPalier(g.palier), g.joueurs, myId);
+        }).join('');
     }
 
     /* === MODE SIMPLE (paliers par points) === */
     async function loadPercoMode() {
         try {
             var { data } = await window.REN.supabase
-                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations', 'perco_pref_max', 'perco_tirage_ouvert_jusqua']);
+                .from('site_config').select('cle, valeur').in('cle', ['perco_mode', 'perco_reservations', 'perco_pref_max', 'perco_tirage_ouvert_jusqua', 'perco_mode_suivant', 'perco_mode_suivant_des']);
             var cfg = {};
             (data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
             percoMode = cfg.perco_mode === 'rang' ? 'rang' : 'points';
+            /* Systeme programme pour la semaine prochaine : s'il est deja l'heure,
+               il vaut pour la semaine en cours (le cron l'applique dans l'heure) */
+            var suivant = cfg.perco_mode_suivant === 'rang' || cfg.perco_mode_suivant === 'points' ? cfg.perco_mode_suivant : null;
+            var des = cfg.perco_mode_suivant_des ? lireDate(cfg.perco_mode_suivant_des) : null;
+            if (suivant && des && Date.now() >= des.getTime()) { percoMode = suivant; suivant = null; }
+            modeSuivant = suivant || percoMode;
+            basculeDes = suivant ? des : null;
             /* cle absente = reservations actives (comportement d'avant la migration 053) */
             percoResa = cfg.perco_reservations !== 'false';
             prefMax = Math.min(20, Math.max(1, parseInt(cfg.perco_pref_max, 10) || 5));
@@ -120,6 +278,12 @@
                 : null;
             tirageOuvertJusqua = ouvert && !isNaN(ouvert.getTime()) ? ouvert : null;
         } catch (e) { percoMode = 'points'; percoResa = true; }
+    }
+
+    /* Format Postgres « 2026-11-01 23:00:01+00 » ou ISO, lisible par tous les navigateurs */
+    function lireDate(s) {
+        var d = new Date(String(s).trim().replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00'));
+        return isNaN(d.getTime()) ? null : d;
     }
 
     /* Tirage ouvert (sql/062) : jusqu'a cette date, un top enregistre refait

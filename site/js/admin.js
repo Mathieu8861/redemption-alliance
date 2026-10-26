@@ -1362,19 +1362,44 @@
     }
 
     /* === TAB: BARÈME PERCO (config récompenses) === */
-    /* === Selecteur de modele de droits perco (points = simple / rang = reservations) === */
-    function percoModeSelectorHtml(active) {
-        var html = '<div class="admin-panel__title">Modèle de droits perco</div>';
-        html += '<div class="perco-mode-switch">';
-        html += '<button type="button" class="perco-mode-card' + (active === 'points' ? ' perco-mode-card--active' : '') + '" data-perco-mode="points">';
-        html += '<strong>Paliers de points</strong>';
-        html += '<span>Simple : les points PvP de la période donnent droit à des percos. Pas de réservation de zones.</span>';
-        html += '</button>';
-        html += '<button type="button" class="perco-mode-card' + (active === 'rang' ? ' perco-mode-card--active' : '') + '" data-perco-mode="rang">';
-        html += '<strong>Classement (ladder)</strong>';
-        html += '<span>Droits selon le rang au classement. Réservations de zones activables en option, plus bas.</span>';
-        html += '</button>';
+    /* === Modele de droits perco : semaine en cours / semaine prochaine (sql/079) ===
+       Les droits en cours restent sur leur systeme ; celui de la semaine prochaine
+       s'applique tout seul a la remise a zero. Les deux baremes se modifient
+       quel que soit le systeme actif. */
+    var modesPerco = { courant: 'points', suivant: null, des: null };
+    var baremeVue = null;  /* 'rang' | 'points' : bareme affiche dans l'editeur */
+
+    async function chargerModesPerco() {
+        var { data } = await window.REN.supabase.from('site_config').select('cle, valeur')
+            .in('cle', ['perco_mode', 'perco_mode_suivant', 'perco_mode_suivant_des']);
+        var cfg = {};
+        (data || []).forEach(function (r) { cfg[r.cle] = r.valeur; });
+        modesPerco.courant = cfg.perco_mode === 'rang' ? 'rang' : 'points';
+        modesPerco.suivant = cfg.perco_mode_suivant === 'rang' || cfg.perco_mode_suivant === 'points' ? cfg.perco_mode_suivant : null;
+        modesPerco.des = cfg.perco_mode_suivant_des || null;
+    }
+
+    function cartesModePerco(attr, actif) {
+        var html = '<div class="perco-mode-switch">';
+        html += '<button type="button" class="perco-mode-card' + (actif === 'points' ? ' perco-mode-card--active' : '') + '" ' + attr + '="points">';
+        html += '<strong>Paliers de points</strong><span>Les points PvP de la semaine donnent droit à des percos, selon des seuils.</span></button>';
+        html += '<button type="button" class="perco-mode-card' + (actif === 'rang' ? ' perco-mode-card--active' : '') + '" ' + attr + '="rang">';
+        html += '<strong>Classement (ladder)</strong><span>Droits selon le rang au classement, avec tirage des zones réservées.</span></button>';
         html += '</div>';
+        return html;
+    }
+
+    function modelesPercoHtml(vue) {
+        var m = modesPerco;
+        var suivant = m.suivant || m.courant;
+        var quand = m.des ? new Date(String(m.des).replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00')).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }) : null;
+        var html = '<div class="admin-panel__title">Modèle de droits perco</div>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-md);">Les deux se règlent séparément. La page Droits Perco montre les droits en cours avec le système de la semaine en cours, et l\'onglet « Semaine prochaine » avec celui de la semaine prochaine, qui s\'applique tout seul à la remise à zéro.</p>';
+        html += '<div class="perco-mode-ligne"><div class="perco-mode-ligne__label">Semaine en cours <small>change tout de suite les droits affichés</small></div>' + cartesModePerco('data-perco-mode', m.courant) + '</div>';
+        html += '<div class="perco-mode-ligne"><div class="perco-mode-ligne__label">Semaine prochaine <small>' + (m.suivant && quand ? 'à partir du ' + window.REN.escapeHtml(quand) + ' à 00:00:01' : 'même système que la semaine en cours') + '</small></div>' + cartesModePerco('data-perco-mode-suivant', suivant) + '</div>';
+        html += '<div class="perco-bareme-vue">Barème à modifier :'
+            + ' <button type="button" class="btn btn--small ' + (vue === 'rang' ? 'btn--primary' : 'btn--secondary') + '" data-bareme-vue="rang">Par rang</button>'
+            + ' <button type="button" class="btn btn--small ' + (vue === 'points' ? 'btn--primary' : 'btn--secondary') + '" data-bareme-vue="points">Par paliers de points</button></div>';
         return html;
     }
 
@@ -1383,12 +1408,34 @@
             btn.addEventListener('click', async function () {
                 if (btn.classList.contains('perco-mode-card--active')) return;
                 var mode = btn.getAttribute('data-perco-mode');
+                if (!confirm('Changer le système de la SEMAINE EN COURS ? Les droits affichés aux membres changent tout de suite. Pour la semaine prochaine seulement, utilise la ligne du dessous.')) return;
                 var { error } = await window.REN.supabase.from('site_config')
                     .upsert({ cle: 'perco_mode', valeur: mode }, { onConflict: 'cle' });
                 if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+                /* Semaine prochaine programmee sur ce meme systeme : plus rien a basculer */
+                if (modesPerco.suivant === mode) await window.REN.supabase.rpc('programmer_perco_mode', { p_mode: mode });
                 window.REN.toast(mode === 'points'
-                    ? 'Modèle « paliers de points » activé.'
-                    : 'Modèle « classement » activé.', 'success');
+                    ? 'Semaine en cours : paliers de points.'
+                    : 'Semaine en cours : classement.', 'success');
+                tabBaremePerco(content);
+            });
+        });
+        content.querySelectorAll('[data-perco-mode-suivant]').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                if (btn.classList.contains('perco-mode-card--active')) return;
+                var mode = btn.getAttribute('data-perco-mode-suivant');
+                var { data, error } = await window.REN.supabase.rpc('programmer_perco_mode', { p_mode: mode });
+                if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+                window.REN.toast(data && data.programme
+                    ? 'Semaine prochaine : ' + (mode === 'points' ? 'paliers de points' : 'classement') + ', à la remise à zéro.'
+                    : 'La semaine prochaine garde le système en cours.', 'success');
+                baremeVue = mode;
+                tabBaremePerco(content);
+            });
+        });
+        content.querySelectorAll('[data-bareme-vue]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                baremeVue = btn.getAttribute('data-bareme-vue');
                 tabBaremePerco(content);
             });
         });
@@ -1401,9 +1448,9 @@
         var rows = config || [];
         var esc = window.REN.escapeHtml;
 
-        var html = percoModeSelectorHtml('points');
+        var html = modelesPercoHtml('points');
         html += '<div class="admin-panel__title">Barème par paliers de points</div>';
-        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Récompenses selon les points PvP de la quinzaine écoulée. Laisser « Pts max » vide pour un palier sans plafond. « Résa » = droit de réserver une zone de percepteur (depuis la page Droits Perco ou le profil).</p>';
+        html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Récompenses selon les points PvP de la période écoulée. Laisser « Pts max » vide pour un palier sans plafond. « Résa » = droit de réserver une zone de percepteur (depuis la page Droits Perco ou le profil).</p>';
 
         html += '<div class="table-wrapper"><table class="table">';
         html += '<thead><tr><th>Palier</th><th>Emoji</th><th>Pts min</th><th>Pts max</th><th>Percos</th><th>Résa</th><th>Pépites</th><th>Jetons</th><th>Actions</th></tr></thead><tbody>';
@@ -1467,10 +1514,11 @@
     }
 
     async function tabBaremePerco(content) {
-        var modeRes = await window.REN.supabase.from('site_config').select('valeur').eq('cle', 'perco_mode').maybeSingle();
-        var percoMode = modeRes.data && modeRes.data.valeur === 'rang' ? 'rang' : 'points';
+        await chargerModesPerco();
+        /* Par defaut : le bareme du systeme de la semaine prochaine (c'est lui qu'on prepare) */
+        var vue = baremeVue || modesPerco.suivant || modesPerco.courant;
 
-        if (percoMode === 'points') {
+        if (vue === 'points') {
             await renderBaremePoints(content);
             return;
         }
@@ -1529,7 +1577,7 @@
             return '<td><input type="number" class="form-input" style="width:76px;" data-f="' + f + '" min="' + min + '"' + (max ? ' max="' + max + '"' : '') + ' value="' + l[f] + '"></td>';
         }
 
-        var html = percoModeSelectorHtml('rang');
+        var html = modelesPercoHtml('rang');
         html += '<div class="admin-panel__title">Droits Percos par rang</div>';
         html += '<p class="text-muted" style="font-size:0.8125rem;margin-bottom:var(--spacing-lg);">Paliers selon la position au ladder : classement de la période écoulée, ou classement en cours quand il n\'y a pas de remise à zéro. « Percos » = poses libres, « Percos 150- » = poses en zones de niveau 150 maximum, « Réservations » = percos posés dans une zone réservée au joueur, en plus des poses libres (0 = pas de zone pour ce palier). Le total est ce que voient les membres, par exemple « 4 percos dont 1 en zone réservée ».</p>';
         html += '<div class="table-wrapper"><table class="table admin-paliers">';

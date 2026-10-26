@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20261022">
+    <link rel="stylesheet" href="style.css?v=20261036">
 </head>
 <body>
 
@@ -72,7 +72,8 @@
 
         <!-- Onglets -->
         <div class="tabs" id="board-tabs">
-            <button class="tabs__btn active" data-tab="droits">Droits &amp; réservations</button>
+            <button class="tabs__btn active" data-tab="droits">Droits en cours</button>
+            <button class="tabs__btn" data-tab="suivante">Semaine prochaine</button>
             <button class="tabs__btn" data-tab="preferences">Mes préférences</button>
         </div>
 
@@ -90,7 +91,14 @@
             </div>
         </div>
 
-        <!-- Onglet 2 : mes préférences de zones (top N choisi dans la liste) -->
+        <!-- Onglet 2 : droits de la semaine prochaine (points faits depuis la remise a zero, sql/079) -->
+        <div id="board-tab-suivante" hidden>
+            <div id="board-suivante">
+                <div class="loading"><div class="spinner"></div> Chargement...</div>
+            </div>
+        </div>
+
+        <!-- Onglet 3 : mes préférences de zones (top N choisi dans la liste) -->
         <div id="board-tab-preferences" hidden>
             <div class="board-prefs" id="board-prefs">
                 <div class="board-prefs__header">
@@ -150,6 +158,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js?v=20261026"></script>
-    <script src="js/board.js?v=20261026"></script>
+    <script src="js/board.js?v=20261036"></script>
 </body>
 </html>
