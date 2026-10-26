@@ -12,6 +12,9 @@
 const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
 const FAMILLES_BOUCLE = new Set(['repos', 'marche', 'course']);
+/* (26/10/2026, « les monstres sont au ralenti, t'as l'impression qu'ils sont en x0.5 », Mathieu : les mouvements de Mixamo ont le rythme d'un vrai
+   corps, plus lent que nos monstres de dessin anime ; tous un peu plus vifs, et une course ou une marche jamais jouee sous 90 % de sa vitesse) */
+const VIF = 1.2, ALLURE_MIN = 0.9, ALLURE_MAX = 1.8;
 const FAMILLES_COUP = ['coup', 'tourbillon'];
 const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite) */
 const BOUTS = ['mixamorigRightHand', 'mixamorigLeftHand', 'mixamorigRightFoot', 'mixamorigLeftFoot'];
@@ -103,7 +106,7 @@ function jouerAnim(an, nom, fondu) {
 /* un geste d'un coup (rugir, encaisser...) : il garde la main jusqu'a sa fin, le monstre ne marche pas pendant */
 function geste(mo, fam, bloque) {
   const an = mo.m.userData.anim, nom = piocher(an, fam); if (!nom) return 0;
-  const a = jouerAnim(an, nom, 0.15), d = a.getClip().duration; mo.geste = { t: 0, d: d - 0.2 }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
+  const a = jouerAnim(an, nom, 0.15); a.timeScale = VIF; const d = a.getClip().duration / VIF; mo.geste = { t: 0, d: d - 0.2 }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
 }
 /* chaque image : un geste en cours garde la main ; sinon il marche (ou court) a sa vitesse, ou il attend en changeant de repos de temps en temps.
    Il rugit a son arrivee, puis quand il enrage */
@@ -116,11 +119,13 @@ function majSquelette(mo, v, dt) {
   if (!mo.geste && !mo.rugiArrivee) { mo.rugiArrivee = true; if (mo.d.boss) { face(); geste(mo, 'rugir', true); } } /* (un boss rugit a son arrivee ; la horde fonce tout de suite) */
   else if (!mo.geste && mo.enrage && !mo.rugiRage) { mo.rugiRage = true; face(); geste(mo, 'rugir', true); }
   if (!mo.geste) {
-    if (v > 0.05) { /* l'allure la plus proche de sa vitesse : il court plutot que de marcher en accelere */
-      const nat = (f) => { const L = an.F[f]; const x = L && mo.m.userData.vit[L[0]]; return x > 0.2 ? x : 0; }, nm = nat('marche') || 1.4, nc = nat('course');
-      const fam = nc && Math.abs(Math.log(v / nc)) < Math.abs(Math.log(v / nm)) ? 'course' : 'marche'; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25);
-      const nv = mo.m.userData.vit[an.cour]; an.A[an.cour].timeScale = Math.max(0.5, Math.min(2.2, v / (nv > 0.2 ? nv : 1.4))); }
-    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { jouerAnim(an, piocher(an, 'repos'), 0.4); an.repT = 5 + Math.random() * 5; }
+    if (v > 0.05) { /* l'allure qui colle a sa vitesse, jouee entre 90 % et 180 % : jamais de course au ralenti (une marche acceleree vaut mieux) */
+      const nat = (f) => { const L = an.F[f]; const x = L && mo.m.userData.vit[L[0]]; return x > 0.2 ? x : 0; };
+      const C = ['marche', 'course'].map((f) => [f, nat(f)]).filter(([, x]) => x); if (!C.length) C.push(['marche', 1.4]);
+      const ecart = ([, x]) => { const r = v / x; return r < ALLURE_MIN ? (ALLURE_MIN - r) * 3 : r > ALLURE_MAX ? r - ALLURE_MAX : Math.abs(Math.log(r / 1.15)) * 0.1; };
+      const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25);
+      if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)); }
+    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = VIF; an.repT = 5 + Math.random() * 5; }
   }
   if (an.eclat > 0) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16; an.peau.forEach((m) => m.emissive.setRGB(0.32 * k, 0.06 * k, 0.03 * k)); /* (un eclat leger : plus fort, une Tortue jaune virait au rose) */ }
   an.mixer.update(dt);

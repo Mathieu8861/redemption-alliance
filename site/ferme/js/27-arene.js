@@ -336,7 +336,7 @@ async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), fait
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
   if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(13, 0, 3.2); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
   { /* le public : les monstres du jeu a leur taille de combat, assis sur les trois gradins du fond (blender/arene-ile.py), tournes vers le sable */
-    const types = [...new Set(Object.values(MONSTRES).filter((d) => !d.boss && !d.vole && !d.fabrique && MODELES[d.modele]).map((d) => d.modele))].filter((nom) => (MODELES[nom].userData.hauteur || 1.8) <= 2.7).concat(MODELES.voleur ? ['voleur', 'voleur'] : []);
+    const types = [...new Set(Object.values(MONSTRES).filter((d) => !d.boss && !d.vole && !d.fabrique && MODELES[d.modele] && !MODELES[d.modele].userData.squelette).map((d) => d.modele))] /* (pas les monstres a squelette : figes en croix dans les gradins, 26/10/2026) */.filter((nom) => (MODELES[nom].userData.hauteur || 1.8) <= 2.7).concat(MODELES.voleur ? ['voleur', 'voleur'] : []);
     const pub = new T.Group(), fond = 225 * Math.PI / 180;
     if (types.length) [[11.3, 1.4, 1.7], [12.15, 2.2, 2.0], [13.0, 3.0, 1.75]].forEach(([rr, y, pas], ri) => {
       const a0 = 150 * Math.PI / 180, a1 = 300 * Math.PI / 180, n = Math.floor((a1 - a0) * rr / pas);
