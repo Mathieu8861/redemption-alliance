@@ -30,13 +30,28 @@ function annoncerRaid(muet) {
    la case la plus loin par rapport a la grange, et faut une indication » ; puis « il faut absolument Omeho : imagine un Enutrof, un vieux papi, avec des habits
    de pouilleux, des pattes de poulet bleu a la place des pieds, et un trouillard de fou ; il a juste une couronne en or », modele blender/omeho.py).
    A l'annonce, la simu choisit sa sortie : la case de bord la plus loin de la grange, une case ou l'on passe (libre de preference). Omeho, le chef de VSA, y
-   attend ses voleurs en tremblant, sur une case violette ; chaque voleur qui repart court vers lui et disparait a ses pieds. Il s'en va a la fin de la simu. */
+   attend ses voleurs en tremblant, sur une case violette ; chaque voleur qui repart court vers lui et disparait a ses pieds. Il s'en va a la fin de la simu.
+   (27/10/2026, « Omeho est cache lors des simus : quand on achete la map en bas, il apparait que sur une seule case, pres de l'etang ; il faudrait qu'en fonction
+   des terrains qu'on achete il apparaisse a differents endroits, pas forcement au plus loin, mais pas trop pres non plus », Mathieu) : la sortie est tiree au
+   hasard parmi les cases de bord a au moins 60 % de la plus grande distance a la grange ; de preference une case qu'on voit a l'ecran (ni sous la barre des
+   sorts, ni sous un panneau), une case libre compte double, et jamais deux fois de suite la meme quand on a le choix. */
+let sortiePrec = null;
+const PANNEAUX_ECRAN = ['panneau-grange', 'panneau-elevage', 'toasts', 'objectif', 'chat'];
+function aLEcran(q) { /* (Omeho debout sur cette case, vu par la camera du moment) */
+  const v = new T.Vector3(q.x, q.y + 1, q.z).project(camera), w = innerWidth, h = innerHeight, x = (v.x + 1) / 2 * w, y = (1 - v.y) / 2 * h;
+  if (x < 40 || x > w - 40 || y < h * 0.17 || y > h - 200) return false; /* (en haut le bandeau du combat, en bas la barre des sorts, pas encore la a l'annonce) */
+  return !PANNEAUX_ECRAN.some((id) => { const e = $(id); if (!e || !e.offsetParent) return false; const r = e.getBoundingClientRect(); return r.width > 0 && x > r.left - 30 && x < r.right + 30 && y > r.top - 40 && y < r.bottom + 30; });
+}
 function sortieVSA() {
   const G = S_.cases.filter((c) => c.type === 'grange'); if (!G.length) return null;
   const gx = G.reduce((t, c) => t + posCase(c).x, 0) / G.length, gz = G.reduce((t, c) => t + posCase(c).z, 0) / G.length;
   const B = bordsFerme().filter((b) => PASSABLE[b.c.type]); if (!B.length) return null;
-  const score = (b) => { const q = posCase(b.c); return Math.hypot(q.x - gx, q.z - gz) - (b.c.type === 'libre' ? 0 : S); }; /* (une case occupee compte une case plus pres) */
-  const b = B.reduce((m, x) => (score(x) > score(m) ? x : m)), q = posCase(b.c);
+  const dist = (b) => { const q = posCase(b.c); return Math.hypot(q.x - gx, q.z - gz); }, dmax = Math.max(...B.map(dist));
+  let L = B.filter((b) => dist(b) >= dmax * 0.6);
+  const vus = L.filter((b) => aLEcran(posCase(b.c))); if (vus.length) L = vus;
+  const autres = L.filter((b) => b.c.id !== sortiePrec); if (autres.length) L = autres;
+  const poids = L.map((b) => (b.c.type === 'libre' ? 2 : 1)); let p = Math.random() * poids.reduce((t, x) => t + x, 0), k = 0; while (k < L.length - 1 && (p -= poids[k]) > 0) k++;
+  const b = L[k], q = posCase(b.c); sortiePrec = b.c.id;
   return { id: b.c.id, di: b.di, dj: b.dj, x: q.x + b.di * 0.25, z: q.z + b.dj * 0.25, cx: q.x, cz: q.z, y: q.y, gx, gz };
 }
 /* LES ENTREES DES VOLEURS (18/10/2026, « faut que ce soit comme avant, qu'ils arrivent de partout et qu'ils repartent vers Omeho », Mathieu ; l'entree
