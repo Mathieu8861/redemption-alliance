@@ -26,7 +26,7 @@ function ouvrirAreneDev() {
     '<p class="hdv-aide">Réservée à ton compte. Les monstres en avant-première sortent des herses de l\'Arène avec leur propre force. Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ; tu rentres avec ta vie d\'avant.</p>' +
     '<div class="hdv-section">Les groupes</div><div class="puces dev-groupes">' + Object.entries(GROUPES_DEV).map(([id, g]) => '<button class="btn discret" data-dev-groupe="' + id + '">' + g.nom + '</button>').join('') + '<button class="btn discret" data-dev-groupe="vider">Vider</button></div>' +
     '<div class="hdv-section">La force des monstres : vague ' + E.n + '</div><div class="act dev-nb"><button class="btn discret" data-dev-n="-1"' + (E.n > 1 ? '' : ' disabled') + '>−</button><b>vague ' + E.n + '</b><button class="btn discret" data-dev-n="1"' + (E.n < 90 ? '' : ' disabled') + '>+</button></div>' +
-    '<div class="hdv-section">Vitesse des animations</div><p class="hdv-aide">Leurs mouvements sont capturés sur de vrais acteurs : au rythme réel, ils paraissent au ralenti sur nos petits monstres. Choisis celle qui te paraît juste, elle sera mise pour tout le monde.</p><div class="puces dev-groupes">' +
+    '<div class="hdv-section">Vitesse des animations de Moon</div><p class="hdv-aide">Les Kannibouls sont réglés à ×1,75 et les Tortues à ×1,25, comme tu l\'as choisi. Reste Moon : choisis celle qui te paraît juste, elle sera mise pour tout le monde.</p><div class="puces dev-groupes">' +
       [1, 1.25, 1.5, 1.75].map((x) => '<button class="btn ' + (VITESSE_ANIM === x ? 'kamas' : 'discret') + '" data-dev-vit="' + x + '">×' + String(x).replace('.', ',') + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>');
@@ -50,6 +50,7 @@ async function partirDev() {
   toast('Arène dev : chargement des monstres…');
   const avecRenforts = [].concat(...file.map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : []))).filter((t) => MONSTRES[t]);
   await chargerSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (et ceux qu'ils appellent : Ebil seul appelait des Jav jamais charges, et l'image se figeait, 26/10/2026) */
+  prechaufferSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (leurs shaders prets avant le combat, 27/10/2026) */
   const manque = file.filter((t) => !MODELES[MONSTRES[t].modele]); if (manque.length) { toast('Arène dev : le modèle de ' + MONSTRES[manque[0]].nom + ' n\'a pas pu se charger.', 'alerte'); return; }
   if (lieu !== 'arene' && !(await allerSur('arene'))) { toast('Arène dev : le ballon n\'a pas pu décoller, réessaie.', 'alerte'); return; }
   const u = paysanMesh.userData; paysanMesh.position.set(ARENE.x + 0.6, 0, ARENE.z + 0.6); u.y = 0; u.angle = ROT_ARENE + Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false;

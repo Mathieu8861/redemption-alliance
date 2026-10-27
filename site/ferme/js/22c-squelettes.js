@@ -18,7 +18,10 @@ const VIF = 1.2, ALLURE_MIN = 0.9, ALLURE_MAX = 1.8;
 /* la vitesse de toutes leurs animations, par-dessus (26/10/2026, « pourquoi je ressens ca moi ? j'ai pas ce ressenti sur les autres monstres », Mathieu) :
    les mouvements captures sur de vrais acteurs paraissent au ralenti sur nos petits monstres de dessin anime ; Mathieu la regle dans l'Arene dev */
 let VITESSE_ANIM = (() => { try { return +localStorage.getItem('ferme-vitesse-anim') || 1.25; } catch (e) { return 1.25; } })();
-const vif = () => VIF * VITESSE_ANIM;
+/* (27/10/2026, apres ses essais : « les Kannibouls a x1,75, sinon ca fait l'effet de ralenti », les Tortues a x1,25 ; le reglage ne sert plus qu'a Moon) */
+const VITESSE_FAMILLE = { jav: 1.75, sarbak: 1.75, ark: 1.75, tam: 1.75, ebil: 1.75, 'tortue-bleue': 1.25, 'tortue-jaune': 1.25, 'tortue-rouge': 1.25, 'tortue-verte': 1.25 };
+const vitAnim = (mo) => (mo && mo.d && VITESSE_FAMILLE[mo.d.modele]) || VITESSE_ANIM;
+const vif = (mo) => VIF * vitAnim(mo);
 const FAMILLES_COUP = ['coup', 'tourbillon'];
 const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite) */
 const BOUTS = ['mixamorigRightHand', 'mixamorigLeftHand', 'mixamorigRightFoot', 'mixamorigLeftFoot'];
@@ -57,24 +60,31 @@ function surPlace(clip, hips) {
 }
 /* les instants ou le marteau arrive en bas pendant un coup : les creux de la hauteur de la caisse (au sol, ou a hauteur de taille pour un coup
    balaye) ; a defaut, l'instant ou il va le plus vite */
+/* un clone du squelette sans recopier ses donnees (27/10/2026, « j'ai des petits freeze », Mathieu) : Object3D.copy recopie userData en JSON, et celui
+   du modele porte toutes ses animations ; chaque arrivee de monstre les serialisait, 11 a 57 ms d'un bloc */
+function cloneNu(M) { const ud = M.userData; M.userData = {}; try { return T.SkeletonUtils.clone(M); } finally { M.userData = ud; } }
 function instantsCoup(g, clip) {
-  const c = T.SkeletonUtils.clone(g), caisse = trouverCaisse(c); if (!caisse) return [{ t: clip.duration * 0.45, sol: true }];
+  const c = cloneNu(g), caisse = trouverCaisse(c); if (!caisse) return [{ t: clip.duration * 0.45, sol: true }];
   const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const b = new T.Box3(), P = [], dt = 1 / 60;
   for (let t = 0; t <= clip.duration; t += dt) { mx.setTime(t); c.updateMatrixWorld(true); b.setFromObject(caisse); P.push({ t, y: b.min.y, p: b.getCenter(new T.Vector3()) }); }
   const L = [];
   for (let i = 2; i < P.length - 2; i++) { const y = P[i].y; if (!(y < 1.1 && y <= P[i - 1].y && y <= P[i - 2].y && y < P[i + 1].y && y <= P[i + 2].y)) continue;
     let haut = y; for (let j = i; j >= 0 && P[i].t - P[j].t <= 0.4; j--) haut = Math.max(haut, P[j].y); /* (un vrai coup : le marteau vient de tomber d'au moins 1,3 ; pas la pose de garde, marteau bas, du debut ou de la fin) */
-    if (haut - y > 1.3 && P[i].p.z > 0.6 && P[i].t > 0.15 && P[i].t < clip.duration - 0.2 && (!L.length || P[i].t - L[L.length - 1].t > 0.3)) L.push({ t: P[i].t, sol: y < 0.35, d: Math.hypot(P[i].p.x, P[i].p.z) }); }
+    if (haut - y > 1.3 && P[i].p.z > 0.6 && P[i].t > 0.15 && P[i].t < clip.duration - 0.2 && (!L.length || P[i].t - L[L.length - 1].t > 0.3)) L.push({ t: P[i].t, sol: y < 0.35, d: Math.hypot(P[i].p.x, P[i].p.z), x: P[i].p.x, z: P[i].p.z }); }
   /* (P[i].p.z > 0.6 : devant lui ; le modele est a l'origine, tourne vers +z, l'avant du jeu. Un creux derriere lui, c'est l'elan, pas le coup) */
   if (!L.length) { let best = 0, k = 1; for (let i = 1; i < P.length; i++) { const v = P[i].p.distanceTo(P[i - 1].p); if (v > best) { best = v; k = i; } } L.push({ t: P[k].t, sol: false }); }
   return L;
 }
 function instantGeste(g, clip) {
-  const c = T.SkeletonUtils.clone(g), os = BOUTS.map((n) => c.getObjectByName(n)).filter(Boolean); if (!os.length) return [{ t: clip.duration * 0.45 }];
+  const c = cloneNu(g), os = BOUTS.map((n) => c.getObjectByName(n)).filter(Boolean); if (!os.length) return [{ t: clip.duration * 0.45 }];
   const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const dt = 1 / 60, av = os.map(() => null); let best = 0, tb = clip.duration * 0.45;
   for (let t = 0; t <= clip.duration; t += dt) { mx.setTime(t); c.updateMatrixWorld(true);
     os.forEach((o, i) => { const p = o.getWorldPosition(new T.Vector3()); if (av[i] && t > clip.duration * 0.12 && t < clip.duration * 0.85) { const v = p.distanceTo(av[i]); if (v > best) { best = v; tb = t; } } av[i] = p; }); }
   return [{ t: tb }];
+}
+function prechaufferSquelettes(noms) { /* (les shaders de leurs matieres prepares au chargement, pas au premier affichage en plein combat, 27/10/2026) */
+  const L = noms.filter((n) => MODELES[n] && MODELES[n].userData.squelette).map((n) => clonerSquelette(n)); if (!L.length) return;
+  L.forEach((g) => scene.add(g)); try { rendu.compile(scene, camera); } catch (e) { /* rien */ } L.forEach((g) => { scene.remove(g); g.userData.anim.mixer.stopAllAction(); });
 }
 const SQ_EN_COURS = {}; /* (un seul chargement par modele : les deux renforts d'un meme appel ne le chargent pas deux fois) */
 async function chargerSquelettes(noms) {
@@ -98,7 +108,7 @@ async function chargerSquelette(nom, url, h) {
   }
 }
 function clonerSquelette(nom) {
-  const M = MODELES[nom], g = T.SkeletonUtils.clone(M); g.userData = Object.assign({}, M.userData);
+  const M = MODELES[nom], g = cloneNu(M); g.userData = Object.assign({}, M.userData);
   const mixer = new T.AnimationMixer(g), A = {}, F = {};
   M.userData.clips.forEach((c) => { const a = mixer.clipAction(c), f = familleDe(c.name); A[c.name] = a; (F[f] = F[f] || []).push(c.name);
     if (!FAMILLES_BOUCLE.has(f)) { a.setLoop(T.LoopOnce, 1); a.clampWhenFinished = true; } });
@@ -119,7 +129,7 @@ function jouerAnim(an, nom, fondu) {
 const GESTE_MAX = { rugir: 1.6, sort: 1.4, coup: 2, tourbillon: 2 };
 function geste(mo, fam, bloque, choisi) { /* (choisi : le mouvement deja tire, celui dont on a lu les impacts) */
   const an = mo.m.userData.anim, nom = choisi || piocher(an, fam); if (!nom) return 0;
-  const a = jouerAnim(an, nom, 0.15), D = a.getClip().duration, ts = Math.max(vif(), GESTE_MAX[fam] ? D / GESTE_MAX[fam] : 0); a.timeScale = ts; const d = D / ts;
+  const a = jouerAnim(an, nom, 0.15), D = a.getClip().duration, ts = Math.max(vif(mo), GESTE_MAX[fam] ? D / GESTE_MAX[fam] : 0); a.timeScale = ts; const d = D / ts;
   mo.geste = { t: 0, d: d - 0.2, ts }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
 }
 /* chaque image : un geste en cours garde la main ; sinon il marche (ou court) a sa vitesse, ou il attend en changeant de repos de temps en temps.
@@ -138,8 +148,8 @@ function majSquelette(mo, v, dt) {
       const C = ['marche', 'course'].map((f) => [f, nat(f)]).filter(([, x]) => x); if (!C.length) C.push(['marche', 1.4]);
       const ecart = ([, x]) => { const r = v / x; return r < ALLURE_MIN ? (ALLURE_MIN - r) * 3 : r > ALLURE_MAX ? r - ALLURE_MAX : Math.abs(Math.log(r / 1.15)) * 0.1; };
       const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25);
-      if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)) * VITESSE_ANIM; }
-    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(); an.repT = 5 + Math.random() * 5; }
+      if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)) * vitAnim(mo); }
+    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); an.repT = 5 + Math.random() * 5; }
   }
   if (an.eclat > 0) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16; an.peau.forEach((m) => m.emissive.setRGB(0.32 * k, 0.06 * k, 0.03 * k)); /* (un eclat leger : plus fort, une Tortue jaune virait au rose) */ }
   an.mixer.update(dt);
@@ -156,7 +166,7 @@ function attaqueSquelette(mo, fam, frapper) {
   const an = mo.m.userData.anim; if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
   if (!fam || mo.geste) { frapper(); return; }
   const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.1), d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t;
-  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.distance ? 0.5 : 0.42))) * VITESSE_ANIM; a.timeScale = k; const ti = t0 / k, c0 = combat;
+  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.distance ? 0.5 : 0.42))) * vitAnim(mo); a.timeScale = k; const ti = t0 / k, c0 = combat;
   mo.geste = { t: 0, d: Math.min(d0 / k - 0.1, ti + 0.4) }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
   effets.push((dt) => { t += dt; if (t < ti) return false; if (combat === c0 && !c0.fin && mo.etat === 'actif') frapper(); return true; });
 }
@@ -164,7 +174,7 @@ function attaqueSquelette(mo, fam, frapper) {
    la manquent (mo.esquive, voir blesser) */
 function rouladeSquelette(mo, a) {
   const an = mo.m.userData.anim, nom = an.F.roulade && an.F.roulade[0], tj = nom && (mo.m.userData.trajets || {})[nom]; if (!nom || mo.geste) return false;
-  const ac = jouerAnim(an, nom, 0.08), k = 1.3 * VITESSE_ANIM; ac.timeScale = k; const d0 = ac.getClip().duration, D = d0 / k;
+  const ac = jouerAnim(an, nom, 0.08), k = 1.3 * vitAnim(mo); ac.timeScale = k; const d0 = ac.getClip().duration, D = d0 / k;
   const L = (mo.m.userData.vit[nom] || 1.5) * d0, f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * L, mo.z + Math.cos(a) * L), x0 = mo.x, z0 = mo.z, c0 = combat;
   mo.ry = a; mo.geste = { t: 0, d: D - 0.05 }; mo.bloqueT = Math.max(mo.bloqueT || 0, D); mo.esquive = D * 0.8; let t = 0;
   const part = (u) => { if (!tj) return u; const T0 = u * d0; let i = 1; while (i < tj.t.length - 1 && tj.t[i] < T0) i++;
@@ -186,16 +196,27 @@ function mortSquelette(mo, dt) {
    monstre jusqu'a la caisse ou autour d'elle (un coup a plusieurs temps partage ses degats) */
 function coupMarteau(mo) {
   const an = mo.m.userData.anim, fam = an.F.tourbillon && Math.random() < 0.2 ? 'tourbillon' : 'coup', nom = piocher(an, fam), c0 = combat;
-  const d = geste(mo, fam, true, nom), ts = (mo.geste && mo.geste.ts) || vif(), L = ((mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45 * ts, sol: true }]).map((x) => Object.assign({}, x, { t: x.t / ts })), part = L.length > 1 ? 0.6 : 1; let t = 0, k = 0;
+  const d = geste(mo, fam, true, nom), ts = (mo.geste && mo.geste.ts) || vif(mo), L = ((mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45 * ts, sol: true }]).map((x) => Object.assign({}, x, { t: x.t / ts })); let t = 0, k = 0;
   /* (26/10/2026 : les impacts sont lus en temps du mouvement, ramenes au temps du jeu ; et le geste joue bien le coup tire, pas un autre) */
   mo.cd = Math.max(mo.cd, d + 0.7); /* (un souffle entre deux coups : un enchainement long ne repart pas aussitot) */
+  /* (27/10/2026, « les coups de marteau tapent dans le vide, les degats sont insignifiants », Mathieu : chaque impact s'annonce par une zone rouge la
+     ou le marteau va tomber, un cercle pour un coup au sol, une bande devant lui pour un coup qui balaie, un grand cercle autour de lui pour le
+     moulinet. Dedans a l'impact, il tape comme un sort (degSort, part de sortsX) ; dehors, rien. Il ne tourne pas pendant son geste : la zone est juste) */
+  const x0 = mo.x, z0 = mo.z, ca = Math.cos(mo.ry), sa = Math.sin(mo.ry), e = mo.m.scale.x / ((MODELES[mo.d.modele] || mo.m).scale.x || 1), X = mo.d.sortsX || {}, tour = fam === 'tourbillon';
+  L.forEach((imp, i) => {
+    const lx = (imp.x || 0) * e, lz = (imp.z != null ? imp.z : imp.d || 2) * e, px = x0 + lx * ca + lz * sa, pz = z0 - lx * sa + lz * ca;
+    const dg = Math.max(1, Math.round(degSort(mo) * (tour ? X.moulinet || 0.35 : imp.sol ? X.marteau || 0.5 : X.balaye || 0.25)));
+    const z = tour ? { x: x0, z: z0, r: 3.4 } : imp.sol ? { x: px, z: pz, r: 1.9 } : { x: x0, z: z0, x2: x0 + (px - x0) * 1.35, z2: z0 + (pz - z0) * 1.35, larg: 2.4 };
+    const touche = (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && dansDanger(dz, p2.x, p2.z)) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); } };
+    if (tour && i > 0) { let t2 = 0; effets.push((dt) => { t2 += dt; if (t2 < imp.t) return false; touche(z); return true; }); return; } /* (le moulinet : un seul grand cercle, chaque tour y frappe) */
+    zoneDanger(Object.assign({ mo, duree: Math.max(0.3, imp.t), effet: touche }, z));
+  });
+  if (!c0.marteauVu) { c0.marteauVu = true; toast(leNom(mo.d) + ' abat son marteau : sors de la zone rouge avant qu\'il tombe !', 'alerte'); }
   effets.push((dt) => { t += dt;
     while (k < L.length && t >= L[k].t) { const imp = L[k++];
       if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !an.caisse) return true;
       const p = new T.Box3().setFromObject(an.caisse).getCenter(new T.Vector3()), y = mo.m.position.y;
-      if (imp.sol) impactMarteau(p.x, y, p.z); else { secousse(0.12, 0.25); onde(p.x, y, p.z, 3.2, '#fff3d6', 0.4, 0.7); poussiere(p.x, y, p.z, 10, 1.2, '#d8c6a0'); }
-      const pp = paysanMesh.position, ax = p.x - mo.x, az = p.z - mo.z, L2 = ax * ax + az * az || 1, u = Math.max(0, Math.min(1, ((pp.x - mo.x) * ax + (pp.z - mo.z) * az) / L2));
-      if (Math.hypot(pp.x - (mo.x + ax * u), pp.z - (mo.z + az * u)) < 1.6 || Math.hypot(pp.x - p.x, pp.z - p.z) < 2.0) { blesserPerso(Math.max(1, Math.round(mo.deg * part)), mo); effetsCoup(mo); }
+      if (imp.sol) impactMarteau(p.x, y, p.z); else { secousse(0.16, 0.3); onde(p.x, y, p.z, tour ? 4.2 : 3.2, '#fff3d6', 0.45, 0.75); poussiere(p.x, y, p.z, 12, 1.4, '#d8c6a0'); } /* (les degats : la zone rouge, plus haut) */
     }
     return t >= d || k >= L.length && t > L[L.length - 1].t + 0.1; });
 }
