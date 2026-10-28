@@ -9,8 +9,12 @@
 /* Le soir du 25/10 : les Kannibouls et les Tortues, rattaches a leur squelette Mixamo (blender/lier-squelette.py : masques, cheveux et carapace
    rigides) puis assembles avec leurs mouvements et leur arme (blender/monstre-anime.py). Leurs coups et leurs tirs partent a l'instant ou une main ou
    un pied va le plus vite, lu sur chaque animation (attaqueSquelette) ; leurs sorts jouent un geste (gesteSort). */
-const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8]]
+const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 3.4], ['golem-lune', 3.4], ['tortue-corail', 2.6]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
+/* (28/10/2026) le Lemurien tiki, anime a la main dans Blender (blender/lemurien-anime.py, lemurien-export.py), pas par Mixamo (« c'est des creatures,
+   Mixamo c'est plus pour des humanoides », Mathieu) : son squelette n'a pas de hanches Mixamo, la vitesse naturelle de sa marche et de sa course
+   (sur place) est donnee ici, en unites du jeu par seconde */
+const ALLURES = { lemurien: { marche: 0.97, course: 2.97 } }; /* (a 2,3 de haut, boss du 28/10/2026 : 0,8 et 2,45 a 1,9) */
 const FAMILLES_BOUCLE = new Set(['repos', 'marche', 'course']);
 /* (26/10/2026, « les monstres sont au ralenti, t'as l'impression qu'ils sont en x0.5 », Mathieu : les mouvements de Mixamo ont le rythme d'un vrai
    corps, plus lent que nos monstres de dessin anime ; tous un peu plus vifs, et une course ou une marche jamais jouee sous 90 % de sa vitesse) */
@@ -19,12 +23,12 @@ const VIF = 1.2, ALLURE_MIN = 0.9, ALLURE_MAX = 1.8;
    les mouvements captures sur de vrais acteurs paraissent au ralenti sur nos petits monstres de dessin anime ; Mathieu la regle dans l'Arene dev */
 let VITESSE_ANIM = (() => { try { return +localStorage.getItem('ferme-vitesse-anim') || 1.25; } catch (e) { return 1.25; } })();
 /* (27/10/2026, apres ses essais : « les Kannibouls a x1,75, sinon ca fait l'effet de ralenti », les Tortues a x1,25 ; le reglage ne sert plus qu'a Moon) */
-const VITESSE_FAMILLE = { jav: 1.75, sarbak: 1.75, ark: 1.75, tam: 1.75, ebil: 1.75, 'tortue-bleue': 1.25, 'tortue-jaune': 1.25, 'tortue-rouge': 1.25, 'tortue-verte': 1.25 };
+const VITESSE_FAMILLE = { jav: 1.75, sarbak: 1.75, ark: 1.75, tam: 1.75, ebil: 1.75, 'tortue-bleue': 1.25, 'tortue-jaune': 1.25, 'tortue-rouge': 1.25, 'tortue-verte': 1.25, lemurien: 1.15, 'gorille-roi': 1.45, 'golem-lune': 1.25, 'tortue-corail': 1.4 }; /* (les 4 boss du 28/10/2026, « vifs », Mathieu ; le golem, de pierre, un peu plus lourd) */
 const vitAnim = (mo) => (mo && mo.d && VITESSE_FAMILLE[mo.d.modele]) || VITESSE_ANIM;
 const vif = (mo) => VIF * vitAnim(mo);
 const FAMILLES_COUP = ['coup', 'tourbillon'];
-const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite) */
-const BOUTS = ['mixamorigRightHand', 'mixamorigLeftHand', 'mixamorigRightFoot', 'mixamorigLeftFoot'];
+const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond', 'fouet', 'toupie', 'ruee']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite ; fouet, toupie et ruee : les sorts des boss du 28/10/2026) */
+const BOUTS = ['mixamorigRightHand', 'mixamorigLeftHand', 'mixamorigRightFoot', 'mixamorigLeftFoot', 'mainD', 'mainG', 'queue7']; /* (mainD, mainG, queue7 : les pattes et le bout de la queue du Lemurien) */
 const MAT_CONTOUR_SQ = (() => { const m = new T.MeshBasicMaterial({ color: '#3a2b1f', side: T.BackSide, skinning: true });
   m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(objectNormal) * 0.006;'); }; m.customProgramCacheKey = () => 'contour-squelette'; return m; })();
 /* le rendu du jeu : la peau en toon, texture prise telle quelle, sans ombre recue (elle faisait des taches « feuillage »), un contour qui suit le
@@ -98,6 +102,7 @@ async function chargerSquelette(nom, url, h) {
     try { const gl = await new Promise((ok, ko) => chargeur.load(url + '?v=' + VERSION_MODELES, ok, undefined, ko)); preparerSquelette(gl.scene);
       gl.scene.updateMatrixWorld(true); const hips = gl.scene.getObjectByName('mixamorigHips');
       const vit = {}, impacts = {}, trajets = {}; gl.animations.forEach((c) => { if (familleDe(c.name) === 'roulade') trajets[c.name] = trajet(c, hips); vit[c.name] = surPlace(c, hips); });
+      if (ALLURES[nom]) gl.animations.forEach((c) => { const x = ALLURES[nom][familleDe(c.name)]; if (x) vit[c.name] = x; });
       gl.scene.userData = { squelette: true, hauteur: h, clips: gl.animations, vit, trajets };
       const aCaisse = !!trouverCaisse(gl.scene);
       gl.animations.forEach((c) => { const f = familleDe(c.name); if (aCaisse && (FAMILLES_COUP.includes(f) || f === 'bond')) impacts[c.name] = instantsCoup(gl.scene, c); else if (!aCaisse && FAMILLES_GESTE.includes(f)) impacts[c.name] = instantGeste(gl.scene, c); });
@@ -183,7 +188,12 @@ function rouladeSquelette(mo, a) {
   return true;
 }
 /* le geste d'un sort (le tambour de Tam, la sagaie que Jav arme...) : il le joue, sans bloquer plus que le sort lui-meme */
-function gesteSort(mo, fam) { const an = mo.m && mo.m.userData.anim; if (an && an.F[fam] && !mo.geste) geste(mo, fam, false); }
+function gesteSort(mo, fam, dans) { const an = mo.m && mo.m.userData.anim; if (!an || !an.F[fam] || mo.geste) return;
+  if (!dans) { geste(mo, fam, false); return; }
+  /* (28/10/2026, « des vraies attaques avec des animations », Mathieu) dans : le temps jusqu'a l'impact du sort (la fin de sa zone rouge) ; le geste
+     est accelere ou ralenti pour que son instant de frappe tombe la, l'elan remplit l'attente */
+  const nom = piocher(an, fam), imp = ((mo.m.userData.impacts || {})[nom] || [])[0], a = jouerAnim(an, nom, 0.12), D = a.getClip().duration, t0 = imp ? imp.t : D * 0.5;
+  const ts = Math.max(0.5, Math.min(2.5, t0 / dans)); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, dans + 0.6), ts }; }
 /* d'ou part un tir : la main qui tient l'arme (l'arc dans la main gauche) */
 function mainSquelette(mo) { const o = mo.m && mo.m.getObjectByName(mo.d.tirGauche ? 'mixamorigLeftHand' : 'mixamorigRightHand'); return o ? o.getWorldPosition(new T.Vector3()) : null; }
 /* sa mort : la chute, puis il s'enfonce dans le sol */

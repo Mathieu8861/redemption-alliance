@@ -5,13 +5,15 @@
    force (pas les regles de l'Arene). Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ;
    sa vie d'avant est gardee. Les modeles des monstres a squelette (palier 9, Moon) ne se chargent qu'ici (chargerSquelettes). */
 const estAdmin = () => ultiLibre();
-const AVANT_PREMIERE = ['kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon'];
+const AVANT_PREMIERE = ['lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon'];
 const GROUPES_DEV = {
   troupe: { nom: 'La troupe', liste: { tortueJaune: 1, tortueRouge: 1, kannibJav: 1, kannibSarbak: 1, kannibArk: 1, kannibTam: 1 } },
   tortues: { nom: 'Les 4 Tortues', liste: { tortueBleue: 1, tortueJaune: 1, tortueRouge: 1, tortueVerte: 1 } },
   kannibouls: { nom: 'Les Kannibouls', liste: { kannibJav: 2, kannibSarbak: 2, kannibArk: 1, kannibTam: 1 } },
   ebil: { nom: 'Ebil et sa garde', liste: { kannibEbil: 1, kannibJav: 1, tortueBleue: 1, tortueVerte: 1 } },
   moon: { nom: 'Moon', liste: { moon: 1 } },
+  lemurien: { nom: 'Les Lémuriens', liste: { lemurienTiki: 3 } }, /* (28/10/2026, le premier monstre anime a la main) */
+  nouveaux: { nom: 'Les 4 boss', liste: { lemurienTiki: 1, gorilleRoi: 1, golemLune: 1, tortueCorail: 1 } }, /* (28/10/2026, les 4 dessins de Mathieu, des boss) */
 };
 const NB_DEV_MAX = 6;
 let choixDev = null;
