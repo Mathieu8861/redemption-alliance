@@ -12,6 +12,14 @@ const VISEE = new T.Vector3(0.6, 0.6, 0.6);
 camera.position.set(VISEE.x + 30, VISEE.y + 27, VISEE.z + 30); camera.lookAt(VISEE);
 let zoom = 1, angleCam = Math.PI / 4, enAccueil = true, departAngle = performance.now();
 const ZOOM_MIN = 0.36; /* (l'ile ronde : de quoi la voir en entier) */
+/* tourner autour de la ferme (29/10/2026, « je peux pas placer ma tour derriere la grange, il y a des cases que je vois pas ; il faudrait pouvoir
+   faire un 360 », Mathieu) : clic droit ou molette maintenus en glissant, A et E (Q et E en qwerty) d'un quart de tour, R pour revenir ; l'angle est garde */
+const ANGLE_DEPART = Math.PI / 4;
+let angleVise = null;
+const angleSauve = () => { try { const a = parseFloat(localStorage.getItem('ferme-angle-camera')); return isFinite(a) ? a : ANGLE_DEPART; } catch (e) { return ANGLE_DEPART; } };
+function garderAngle() { try { localStorage.setItem('ferme-angle-camera', String(angleVise != null ? angleVise : angleCam)); } catch (e) { /* rien */ } }
+function tournerCamera(da) { angleVise = null; angleCam += da; placerCamera(); garderAngle(); }
+function tournerCameraVers(a) { angleVise = a; garderAngle(); }
 function placerCamera() { const r = 42.4; camera.position.set(VISEE.x + Math.cos(angleCam) * r, VISEE.y + 27, VISEE.z + Math.sin(angleCam) * r); camera.lookAt(VISEE); }
 function cadrer() {
   const w = innerWidth, h = innerHeight, a = w / h;

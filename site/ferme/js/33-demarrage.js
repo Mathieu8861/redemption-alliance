@@ -3,7 +3,7 @@ function lancer(etat) {
   lancer.t = performance.now(); pDown = null;
   S_ = etat; completerTerrains(); arbresSurCases(); sauver();
   document.getElementById('accueil').hidden = true; document.getElementById('hud').classList.remove('cache');
-  enAccueil = false; angleCam = Math.PI / 4; placerCamera();
+  enAccueil = false; angleCam = angleSauve(); angleVise = null; placerCamera(); /* (l'angle choisi la derniere fois, 29/10/2026) */
   resynchroniserIle(); construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);
   if (paysanMesh) { const c = paysanMesh.userData.cellule, q = c ? posCase(c) : { x: cx(4), y: 0, z: cz(3) }; scene.remove(paysanMesh); paysanMesh = paysan(q.x, q.y, q.z, S_.perso.classe); paysanMesh.userData.cellule = c; }
   if (S_.equip && (S_.equip.coiffe || S_.equip.cape || S_.equip.arme)) rafraichirTenue(); /* (les modeles des pieces portees arrivent apres) */
@@ -50,5 +50,8 @@ addEventListener('keydown', (e) => {
   const sort = TOUCHES_SORT[e.code]; if (sort && combat && !combat.fin && !enPause && !e.repeat) { e.preventDefault(); sort(); }
   if (lecon.ouverte) return;
   if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);
+  /* tourner la camera (29/10/2026) : A et E sur un clavier azerty (Q et E en qwerty : la meme place), R pour revenir a la vue de depart */
+  if (!enAccueil && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { const base = angleVise != null ? angleVise : angleCam;
+    if (e.code === 'KeyQ') tournerCameraVers(base - Math.PI / 2); else if (e.code === 'KeyE') tournerCameraVers(base + Math.PI / 2); else if (e.code === 'KeyR') tournerCameraVers(ANGLE_DEPART + Math.round((angleCam - ANGLE_DEPART) / (2 * Math.PI)) * 2 * Math.PI); }
 });
 demarrer();

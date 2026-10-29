@@ -350,16 +350,19 @@ canvas.addEventListener('pointerup', (e) => {
 });
 /* glisser pour deplacer la vue, molette et pincement pour zoomer */
 let drag = null, pince = null;
-canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY }; });
-canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol(e); if (pt) visee.point = pt; return; } if (!drag || !e.isPrimary || e.buttons === 0) return; const k = (camera.right - camera.left) / innerWidth; const dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k; drag = { x: e.clientX, y: e.clientY }; /* « de haut en bas c'est pas inverse ? » (Mathieu, 11/10/2026) : si, la carte suivait la souris a l'horizontale mais fuyait a la verticale ;
+canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY, b: e.button }; });
+canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol(e); if (pt) visee.point = pt; return; } if (!drag || !e.isPrimary || e.buttons === 0) return;
+  if (drag.b === 1 || drag.b === 2) { tournerCamera((e.clientX - drag.x) * 0.007); drag = { x: e.clientX, y: e.clientY, b: drag.b }; return; } /* (clic droit ou molette maintenus : on tourne autour de la ferme, 29/10/2026 ; un clic droit sans glisser agit toujours) */
+  const k = (camera.right - camera.left) / innerWidth; const dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k; drag = { x: e.clientX, y: e.clientY }; /* « de haut en bas c'est pas inverse ? » (Mathieu, 11/10/2026) : si, la carte suivait la souris a l'horizontale mais fuyait a la verticale ;
      maintenant le point saisi reste sous le curseur dans les deux sens (1 / sinus de l'inclinaison de la camera pour la profondeur) */
   const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = 27 / Math.hypot(27, 42.4);
   const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(dy / incl)); camera.position.add(dep); VISEE.add(dep); });
 canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
 canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), lieu === 'casino' ? 0.6 : ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
-canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
-canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, lieu === 'casino' ? 0.6 : ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; } }, { passive: true });
-canvas.addEventListener('touchend', () => { pince = null; }, { passive: true });
+const angleDoigts = (e) => Math.atan2(e.touches[1].clientY - e.touches[0].clientY, e.touches[1].clientX - e.touches[0].clientX); let tourDoigts = null; /* (deux doigts qui tournent : la camera tourne autour de la ferme, 29/10/2026) */
+canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); tourDoigts = angleDoigts(e); } }, { passive: true });
+canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, lieu === 'casino' ? 0.6 : ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; if (tourDoigts != null) { const a = angleDoigts(e); let da = a - tourDoigts; da = Math.atan2(Math.sin(da), Math.cos(da)); tourDoigts = a; if (Math.abs(da) > 0.002) tournerCamera(-da); } } }, { passive: true });
+canvas.addEventListener('touchend', () => { pince = null; tourDoigts = null; }, { passive: true });
 function toucherBouftou(k) {
   const b = S_.bouftous[k]; if (!b) return;
   const encl = S_.cases.find((c) => c.type === 'enclos');

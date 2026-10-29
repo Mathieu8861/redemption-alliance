@@ -69,6 +69,7 @@ function erreurBoucle(err) { const m = String(err && err.stack || err).slice(0, 
 function boucle(t) {
   const s = (t - t0) / 1000;
   if (enAccueil && !reduit) { angleCam = Math.PI / 4 + (t - departAngle) / 1000 * 0.12; placerCamera(); }
+  else if (angleVise != null) { const d = angleVise - angleCam; if (Math.abs(d) < 0.002) { angleCam = angleVise; angleVise = null; } else angleCam += d * 0.18; placerCamera(); } /* (le quart de tour au clavier, en douceur) */
   if (!reduit && !enPause) {
     errer(Math.min(0.05, (t - (boucle.t1 || t)) / 1000), s);
     nuages.forEach((n, k) => { n.position.x += Math.sin(s * 0.2 + k) * 0.002; });
