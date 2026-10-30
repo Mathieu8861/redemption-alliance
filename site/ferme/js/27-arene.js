@@ -6,8 +6,8 @@
    un boss toutes les 5 vagues, puis un souffle pour boire et manger. Chaque vague tenue rapporte de l'experience et un peu de kamas, chaque boss
    un coffre (des kamas, parfois une piece de ta panoplie, rarement des runes : voir vagueAreneTenue). Ton record de la semaine compte au classement de l'alliance (DAMOCLES/sql/068) ;
    pour l'honneur (le podium et ses primes retires le 14/10/2026). L'entree : un ticket, trois par jour. Pendant ce temps, ni vague ni simu VSA sur la ferme. */
-const NIV_ARENE = 50, ENTREES_ARENE = 3, TICKET_ARENE = 10000, ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 9.2; /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
-const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 8.9, z: ARENE.z + d.z * 8.9, ox: ARENE.x + d.x * 11.6, oz: ARENE.z + d.z * 11.6 }; }); /* les trois herses : le fond, la gauche, la droite */
+const NIV_ARENE = 50, ENTREES_ARENE = 3, TICKET_ARENE = 10000, ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 12.2; /* (9,2 avant le 30/10/2026 : « agrandis un peu l'arene, de quelques cases de diametre », Mathieu ; 3 cases de plus, blender/arene-ile.py) */ /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
+const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 11.9, z: ARENE.z + d.z * 11.9, ox: ARENE.x + d.x * 14.6, oz: ARENE.z + d.z * 14.6 }; }); /* les trois herses : le fond, la gauche, la droite */
 let ileArene = null, areneSuite = false;
 const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, ITEM_MONSTRE_ARENE = 0.0025, /* (0,5 avant le 19/10/2026) */ KAMAS_ARENE = 0.1, JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
 const runeParMonstre = (k) => k < 3 ? 0 : k < 10 ? 0.001 : k < 15 ? 0.0025 : 0.005; /* plus on va loin, plus les monstres lachent de runes (moitie moins depuis le 19/10/2026 : 0,2, 0,5 et 1 % avant) */
@@ -122,8 +122,8 @@ function appliquerVagueArene(c, p) {
   c.arene.k = p.k; c.n = p.n; c.file = p.f.slice(); c.total = p.f.length; c.attente = 2.2; c.victoire = 0; son('vague');
   const b = p.f.find((t) => MONSTRES[t].boss); toast('Arène, vague ' + p.k + ' : ' + p.f.length + ' monstres' + (b ? ', dont ' + leNom(MONSTRES[b], true) : '') + ' !', 'alerte'); majCombatHud();
 }
-function humainPublic(classe, sexe, equip) { /* un spectateur fait comme le perso : sa classe, son sexe, une coiffe, une cape, parfois une arme legendaire */
-  const nom = modeleDe(classe, null, sexe), mUse = MODELES[nom] ? nom : ({ iop: 'iop3', osa: 'osa', cra: 'cra' }[classe] || 'iop3'); if (!MODELES[mUse]) return null;
+function humainPublic(classe, sexe, equip, look) { /* un spectateur fait comme le perso : sa classe, son sexe, une coiffe, une cape, parfois une arme legendaire */
+  const nom = modeleDe(classe, look || null, sexe), mUse = MODELES[nom] ? nom : ({ iop: 'iop3', osa: 'osa', cra: 'cra' }[classe] || 'iop3'); if (!MODELES[mUse]) return null;
   const g = cloner(mUse), e0 = g.scale.x; g.scale.setScalar(1); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0);
   const sv = { equip: S_.equip, perso: S_.perso }; /* (l'habillage lit l'equipement et la classe du perso : on les lui prete le temps de l'habiller) */
   try { S_.equip = equip; S_.perso = Object.assign({}, S_.perso || {}, { classe, sexe }); elargirPerso(g, LARGEUR_PERSO[mUse] ? mUse : classe); habillerPerso(g); }
@@ -131,8 +131,8 @@ function humainPublic(classe, sexe, equip) { /* un spectateur fait comme le pers
   g.scale.setScalar(e0); return g;
 }
 function tenueAuHasard(classe) {
-  const de = (emp) => Object.keys(OBJETS).filter((id) => { const o = OBJETS[id]; return o.emp === emp && !o.rare && !o.leg && !/~/.test(id) && PANOS[o.pano] && PANOS[o.pano].id !== 'boufcoul'; }); /* (sans la panoplie Boufcoul ni les armes legendaires : mal calees sur le public, enormes) */
-  const e = {}; if (Math.random() < 0.8) e.coiffe = hasard(de('coiffe')); if (Math.random() < 0.6) e.cape = hasard(de('cape'));
+  const de = (emp) => Object.keys(OBJETS).filter((id) => { const o = OBJETS[id]; return o.emp === emp && !o.leg && !/~/.test(id) && PANOS[o.pano] && PANOS[o.pano].id !== 'boufcoul'; }); /* (les pieces rares aussi depuis le 30/10/2026 : plus de monde different) */ /* (sans la panoplie Boufcoul ni les armes legendaires : mal calees sur le public, enormes) */
+  const e = {}; if (Math.random() < 0.85) e.coiffe = hasard(de('coiffe')); if (Math.random() < 0.65) e.cape = hasard(de('cape'));
   return e;
 }
 const ILE_BOSS = new T.Vector3(0, 0, 240), ROT_ILE_BOSS = Math.PI / 4, R_ILE_BOSS = 9.0; let ileBoss = null, VARIANTE_SCEAU = 'crane'; /* (le sceau du milieu : le crane, choisi par Mathieu le 15/10/2026, « je prefere le crane » ; l'etoile et l'oeil restent dans sceauIleBoss) */
@@ -329,24 +329,91 @@ function animerIleBoss(dt) { /* tout en douceur (« plus lent, tranquille, que c
       const tx = loc.x / L * d, ty = -loc.z / L * d; u.pupille.position.x += (tx - u.pupille.position.x) * Math.min(1, dt * 2); u.pupille.position.y += (ty - u.pupille.position.y) * Math.min(1, dt * 2); u.iris.position.x = u.pupille.position.x * 0.6; u.iris.position.y = u.pupille.position.y * 0.6; } }
   fx.feux.forEach((o) => { o.a.scale.set(1, 0.94 + 0.08 * Math.sin(t * 3.2 + o.ph) + 0.03 * Math.sin(t * 5.3 + o.ph), 1); o.b.scale.set(1, 0.92 + 0.08 * Math.sin(t * 4.1 + o.ph * 2), 1); o.f.rotation.y = t * 0.15 + o.ph; });
 }
+/* LE PUBLIC FIGE EN DECOR (30/10/2026, « refaire les mecs dans les gradins, on a beaucoup plus de stuff different pour mettre plein de gens differents, mais
+   comme si c'etait des elements de decor pour eviter que ca bouffe trop, car je ressens pas mal de petits lags », Mathieu). Mesure avant : 37 spectateurs,
+   4 828 pieces, 2,8 millions de sommets ; 3 118 dessins par image (96 sans eux), 25 ms par image au lieu de 8. Chaque spectateur etait un vrai perso complet
+   (130 pieces, 76 000 sommets) qui ne bougeait pas.
+   Maintenant : une vingtaine d'aventuriers differents (classe, homme ou femme, coiffe, cape, au hasard parmi tout l'equipement) et une douzaine de monstres
+   sont habilles une fois, puis simplifies (decimerPublic : leurs sommets a moins de PAS_PUBLIC l'un de l'autre, tournes du meme cote, n'en font plus qu'un) ;
+   chaque place des gradins en recoit un au hasard, et tout le public est fondu en une piece par couleur (poserPublic), sans ombre portee. */
+const PAS_PUBLIC = 0.03, AVENTURIERS_PUBLIC = 20, MONSTRES_PUBLIC = 12, PART_AVENTURIERS = 0.62;
+function decimerPublic(g) { /* un spectateur pose a l'origine -> { cle: { M, pos, nor, uv, col, idx } }, ses pieces fondues par apparence et simplifiees */
+  g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.updateMatrixWorld(true);
+  const brut = new Map(), v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3(), defaut = T.Material.prototype.onBeforeCompile;
+  g.traverseVisible((m) => { if (!m.isMesh || m.isSkinnedMesh || !m.geometry || !m.geometry.attributes.position || Array.isArray(m.material)) return; const M = m.material;
+    const cle = M.side === T.BackSide || M.onBeforeCompile !== defaut ? M.uuid : [M.type, M.color ? M.color.getHexString() : '', M.map ? M.map.uuid : '', M.gradientMap ? M.gradientMap.uuid : '', M.transparent ? 't' + M.opacity : '', M.vertexColors ? 'v' : '', M.side].join('|');
+    if (!brut.has(cle)) brut.set(cle, { M, L: [] }); brut.get(cle).L.push(m); });
+  const sortie = new Map(), P_ = 1 / PAS_PUBLIC;
+  brut.forEach(({ M, L }, cle) => {
+    const tex = !!M.map, vc = !!M.vertexColors, cel = new Map(), ps = [], ns = [], us = [], cs = [], nb = [], idx = [];
+    L.forEach((m) => { nm.getNormalMatrix(m.matrixWorld); const G = m.geometry, P = G.attributes.position, N = G.attributes.normal, UV = G.attributes.uv, C = G.attributes.color, I = G.index, loc = new Int32Array(P.count);
+      for (let i = 0; i < P.count; i++) {
+        v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); if (N) n.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); else n.set(0, 1, 0);
+        const ax = Math.abs(n.x), ay = Math.abs(n.y), az = Math.abs(n.z), b = ax >= ay && ax >= az ? (n.x > 0 ? 0 : 1) : ay >= az ? (n.y > 0 ? 2 : 3) : (n.z > 0 ? 4 : 5);
+        let k = ((Math.floor(v.x * P_) + 512) * 1024 + Math.floor(v.y * P_) + 512) * 1024 + Math.floor(v.z * P_) + 512; k = k * 8 + b;
+        if (tex && UV) k = k * 65536 + Math.floor(UV.getX(i) * 255.99 % 256) * 256 + Math.floor(UV.getY(i) * 255.99 % 256); /* (une piece texturee : on ne fond pas deux points d'une couture) */
+        let j = cel.get(k); if (j === undefined) { j = nb.length; cel.set(k, j); nb.push(0); ps.push(0, 0, 0); ns.push(0, 0, 0); if (tex) us.push(UV ? UV.getX(i) : 0, UV ? UV.getY(i) : 0); if (vc) cs.push(C ? C.getX(i) : 1, C ? C.getY(i) : 1, C ? C.getZ(i) : 1); }
+        nb[j]++; ps[3 * j] += v.x; ps[3 * j + 1] += v.y; ps[3 * j + 2] += v.z; ns[3 * j] += n.x; ns[3 * j + 1] += n.y; ns[3 * j + 2] += n.z; loc[i] = j;
+      }
+      const t3 = I ? I.count : P.count; for (let t = 0; t + 2 < t3; t += 3) { const a = loc[I ? I.getX(t) : t], b = loc[I ? I.getX(t + 1) : t + 1], c = loc[I ? I.getX(t + 2) : t + 2]; if (a !== b && b !== c && a !== c) idx.push(a, b, c); }
+    });
+    if (!idx.length) return;
+    const pos = new Float32Array(ps.length), nor = new Float32Array(ns.length);
+    for (let j = 0; j < nb.length; j++) { for (let c = 0; c < 3; c++) pos[3 * j + c] = ps[3 * j + c] / nb[j]; n.set(ns[3 * j], ns[3 * j + 1], ns[3 * j + 2]).normalize(); n.toArray(nor, 3 * j); }
+    sortie.set(cle, { M, pos, nor, uv: tex ? new Float32Array(us) : null, col: vc ? new Float32Array(cs) : null, idx: new Uint32Array(idx) });
+  });
+  return sortie;
+}
+function poserPublic(places) { /* chaque spectateur simplifie a sa place, tout le public fondu en une piece par apparence */
+  const tot = new Map(), g = new T.Group(), v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3(), mx = new T.Matrix4();
+  places.forEach((p) => p.E.forEach((d, cle) => { if (!tot.has(cle)) tot.set(cle, { M: d.M, L: [] }); tot.get(cle).L.push({ d, p }); }));
+  tot.forEach(({ M, L }) => {
+    let nv = 0, ni = 0; L.forEach(({ d }) => { nv += d.pos.length / 3; ni += d.idx.length; });
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = L[0].d.uv ? new Float32Array(nv * 2) : null, col = L[0].d.col ? new Float32Array(nv * 3) : null, idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    let ov = 0, oi = 0;
+    L.forEach(({ d, p }) => { mx.makeRotationY(p.ry).setPosition(p.x, p.y, p.z); nm.getNormalMatrix(mx); const k = d.pos.length / 3;
+      for (let i = 0; i < k; i++) { v.fromArray(d.pos, 3 * i).applyMatrix4(mx).toArray(pos, 3 * (ov + i)); n.fromArray(d.nor, 3 * i).applyMatrix3(nm).toArray(nor, 3 * (ov + i)); }
+      if (uv && d.uv) uv.set(d.uv, 2 * ov); if (col && d.col) col.set(d.col, 3 * ov);
+      for (let i = 0; i < d.idx.length; i++) idx[oi + i] = d.idx[i] + ov; ov += k; oi += d.idx.length; });
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
+    if (uv) geo.setAttribute('uv', new T.BufferAttribute(uv, 2)); if (col) geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.computeBoundingSphere();
+    const f = new T.Mesh(geo, M); f.castShadow = false; f.receiveShadow = M.side !== T.BackSide; f.matrixAutoUpdate = false; f.updateMatrix(); g.add(f);
+  });
+  g.name = 'public'; return g;
+}
+async function figerPublic(places, types) {
+  if (!places.length) return null;
+  const pause = () => new Promise((r) => setTimeout(r, 0)), aventuriers = [], monstres = [];
+  const looks = ['iop-berserker-a', 'iop-berserker-b', 'iop-berserker-c'].filter((m) => MODELES[m]); /* (les autres apparences du Iop, seulement si elles sont deja chargees : rien de plus a telecharger) */
+  for (let k = 0; k < AVENTURIERS_PUBLIC; k++) {
+    const cl = hasard(['iop', 'cra', 'osa']), sexe = Math.random() < 0.5 ? 'f' : 'm', look = cl === 'iop' && sexe === 'm' && looks.length && Math.random() < 0.5 ? LOOKS_IOP.find((l) => l[2] === hasard(looks))[0] : null;
+    const m = humainPublic(cl, sexe, tenueAuHasard(cl), look); if (m) aventuriers.push(decimerPublic(m)); if (k % 3 === 2) await pause();
+  }
+  const T0 = types.slice().sort(() => Math.random() - 0.5).slice(0, MONSTRES_PUBLIC);
+  for (const t of T0) { monstres.push(decimerPublic(cloner(t))); await pause(); }
+  places.forEach((p) => { p.E = (Math.random() < PART_AVENTURIERS && aventuriers.length) || !monstres.length ? hasard(aventuriers) : hasard(monstres); });
+  return poserPublic(places);
+}
 async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), faite avec les outils de la ferme et rendue comme elle ; le fond est deja tourne loin de la camera */
   if (ileArene) return;
   await Promise.all([assurerVisuels(), assurerLook('feminin-iop'), assurerLook('feminin-cra'), assurerLook('feminin-osa')].map((p) => p.catch(() => false))); /* (les tenues et les versions feminines, pour les humains du public) */
   const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
-  if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(13, 0, 3.2); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
-  { /* le public : les monstres du jeu a leur taille de combat, assis sur les trois gradins du fond (blender/arene-ile.py), tournes vers le sable */
-    const types = [...new Set(Object.values(MONSTRES).filter((d) => !d.boss && !d.vole && !d.fabrique && MODELES[d.modele] && !MODELES[d.modele].userData.squelette).map((d) => d.modele))] /* (pas les monstres a squelette : figes en croix dans les gradins, 26/10/2026) */.filter((nom) => (MODELES[nom].userData.hauteur || 1.8) <= 2.7).concat(MODELES.voleur ? ['voleur', 'voleur'] : []);
-    const pub = new T.Group(), fond = 225 * Math.PI / 180;
-    if (types.length) [[11.3, 1.4, 1.7], [12.15, 2.2, 2.0], [13.0, 3.0, 1.75]].forEach(([rr, y, pas], ri) => {
+  if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(16, 0, 3.9); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  { /* le public, assis sur les trois gradins du fond (blender/arene-ile.py), tourne vers le sable : des aventuriers habilles comme le perso et des monstres
+       du jeu a leur taille de combat (30/10/2026 : deux fois plus nombreux, plus varies, figes en decor, voir figerPublic) */
+    const types = [...new Set(Object.values(MONSTRES).filter((d) => !d.boss && !d.vole && !d.fabrique && MODELES[d.modele] && !MODELES[d.modele].userData.squelette).map((d) => d.modele))] /* (pas les monstres a squelette : figes en croix dans les gradins, 26/10/2026) */.filter((nom) => (MODELES[nom].userData.hauteur || 1.8) <= 2.7).concat(MODELES.voleur ? ['voleur'] : []);
+    const places = [], fond = 225 * Math.PI / 180;
+    [[14.3, 1.4, 1.45], [15.15, 2.2, 1.6], [16.0, 3.0, 1.5]].forEach(([rr, y, pas], ri) => {
       const a0 = 150 * Math.PI / 180, a1 = 300 * Math.PI / 180, n = Math.floor((a1 - a0) * rr / pas);
       for (let q = 0; q < n; q++) {
         const a = a0 + (a1 - a0) * (q + (ri % 2 ? 0.9 : 0.4)) / n; if (Math.abs(Math.atan2(Math.sin(a - fond), Math.cos(a - fond))) < 0.33) continue;
-        const cl = hasard(['iop', 'cra', 'osa']), m = (Math.random() < 0.42 && humainPublic(cl, Math.random() < 0.5 ? 'f' : 'm', tenueAuHasard(cl))) || cloner(hasard(types)), x = Math.cos(a) * rr, z = Math.sin(a) * rr; m.position.set(x, y + 0.03, z); m.rotation.y = Math.atan2(-x, -z) + (Math.random() - 0.5) * 0.4; pub.add(m);
+        const x = Math.cos(a) * rr, z = Math.sin(a) * rr; places.push({ x, y: y + 0.03, z, ry: Math.atan2(-x, -z) + (Math.random() - 0.5) * 0.4 });
       }
     });
-    g.add(pub); }
-  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); scene.add(g); ileArene = g; if (!soleil.target.parent) scene.add(soleil.target);
+    const pub = await figerPublic(places, types); if (pub) g.add(pub); }
+  scene.add(g); ileArene = g; if (!soleil.target.parent) scene.add(soleil.target);
 }
 async function classementArene(sem) { /* le classement de l'alliance pour une semaine (il faut etre connecte ; DAMOCLES/sql/068) */
   if (!ENLIGNE || !enLigneSv.compte) return null;

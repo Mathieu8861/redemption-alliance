@@ -24,7 +24,7 @@ function suivreOmbres() {
 let lieu = 'ferme';
 const VOYAGES = {
   casino: { centre: CASINO, charger: () => chargerCasino(), zoom: () => Math.max(zoom, 0.6) },
-  arene: { centre: ARENE, charger: () => chargerArene(), zoom: () => 0.72 },
+  arene: { centre: ARENE, charger: () => chargerArene(), zoom: () => 0.6 }, /* (0,72 avant l'agrandissement du 30/10/2026) */
   ile: { centre: ILE_BOSS, charger: () => chargerIleBoss(), zoom: () => 0.72 },
 };
 function montrerIles() { if (ileCasino) ileCasino.visible = lieu === 'casino'; if (ileArene) ileArene.visible = lieu === 'arene'; if (ileBoss) ileBoss.visible = lieu === 'ile'; }
