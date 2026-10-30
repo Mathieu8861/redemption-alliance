@@ -367,6 +367,12 @@ function peauDeIop() {
   fxVie(g, 0.32, (k) => { const p = paysanMesh.position; g.position.set(p.x, p.y + 0.8, p.z); g.scale.setScalar(0.85 + 0.25 * k); plein.material.opacity = 0.22 * (1 - k); fil.material.opacity = 0.85 * (1 - k); });
   const p = paysanMesh.position; emettre(FX_LUM, 8, { x: p.x, y: p.y + 0.8, z: p.z, r: 0.9, dv: 1, vie: [0.2, 0.4], taille: [0.1, 0.02], c: ['#ffffff', '#ffd75e'], a: 1 });
 }
+function bulleInvincible(duree) { /* l'ulti du Iop le rend invincible (30/10/2026) : une bulle doree qui le suit et tourne, le temps que ca dure */
+  if (!paysanMesh) return;
+  const g = new T.Group(), plein = new T.Mesh(GEO_BOUCLIER, fxMat('#ffd75e', 0.2)), fil = new T.Mesh(GEO_BOUCLIER, new T.MeshBasicMaterial({ color: '#fff1b8', wireframe: true, transparent: true, opacity: 0.7, depthWrite: false, blending: T.AdditiveBlending })); g.add(plein, fil);
+  fxVie(g, duree, (k) => { const p = paysanMesh.position, f = k > 0.85 ? (1 - k) / 0.15 : Math.min(1, k * 8); g.position.set(p.x, p.y + 0.8, p.z); g.scale.setScalar(1.15 * (1 + 0.05 * Math.sin(k * duree * 12))); g.rotation.y = k * duree * 1.5; plein.material.opacity = 0.2 * f; fil.material.opacity = 0.7 * f; });
+  const p = paysanMesh.position; emettre(FX_LUM, 14, { x: p.x, y: p.y + 0.8, z: p.z, r: 1.1, dv: 1.5, vie: [0.3, 0.6], taille: [0.12, 0.02], c: ['#ffffff', '#ffd75e'], a: 1 });
+}
 function majPassifs(dt) {
   if (!combat || !paysanMesh || classeDe() !== 'cra') { majPassifs.de = null; return; }
   const p = paysanMesh.position, de = majPassifs.de; majPassifs.de = p.clone(); if (!de) return;

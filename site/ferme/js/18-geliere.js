@@ -148,9 +148,12 @@ function ouvrirGeliere() {
    l'Osamodas vise ou poser son Bouftou, qui retombe en frappant autour de lui, au lieu d'un Bouftou qui sortait tout seul et restait en permanence */
 let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC = 12, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
 /* le Iop au corps a corps (30/10/2026 au soir, « le Iop, faut absolument faire quelque chose, etre corps a corps ca pique trop », Mathieu) : son coup d'epee
-   balaie aussi les monstres colles a sa cible (BALAYAGE_IOP de ses degats, a RAYON_BALAYAGE de la cible), et il se soigne de VOL_IOP de tout ce qu'il
-   inflige ainsi (21-combat.js, coupIop). let : les tests les changent pour comparer */
-let VOL_IOP = 0.08, BALAYAGE_IOP = 0.5; const RAYON_BALAYAGE = 1 * S;
+   balaie aussi les monstres colles a sa cible (BALAYAGE_IOP de ses degats, a RAYON_BALAYAGE de la cible ; 21-combat.js, coupIop). Puis le kit voulu par
+   Mathieu le meme soir, a la place d'un vol de vie de 8 % (« moi je mettrais pas du vol de vie, mais de la regeneration, +1 % toutes les 3 secondes ;
+   son ultimate au declenchement le rend invincible pendant 3 secondes ; et sous 50 % de ses HP il gagne degats x2 ») : REGEN_IOP toutes les PAS_REGEN_IOP s
+   (23-fin-combat.js), INVINCIBLE_IOP s a chaque ulti (22-sorts.js, blesserPerso), la Colere du Iop sous SEUIL_COLERE_IOP de vie (statsPerso).
+   let : les tests les changent pour comparer */
+let BALAYAGE_IOP = 0.5, REGEN_IOP = 0.01, PAS_REGEN_IOP = 3, INVINCIBLE_IOP = 3, SEUIL_COLERE_IOP = 0.5, COLERE_IOP = 2; const RAYON_BALAYAGE = 1 * S;
 const RECHARGE_PERCANTE = 20; /* (la Fleche percante du Cra : 20 s, elle traverse toute une ligne a 3 fois les degats ; avant le 16/10/2026 : 30 monstres a abattre) */
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : classeDe() === 'cra' ? RECHARGE_PERCANTE : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau

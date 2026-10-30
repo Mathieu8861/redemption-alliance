@@ -123,6 +123,7 @@ function tempeteDeLames(pt) {
   });
 }
 function executerUlti(id, c, pt) {
+  if (classeDe() === 'iop' && combat) { combat.invincible = INVINCIBLE_IOP; bulleInvincible(INVINCIBLE_IOP); } /* l'ulti du Iop le rend invincible (18-geliere.js) */
   if (id === 'zone' && classeDe() === 'iop' && !c && pt) { tempeteDeLames(pt); return; } /* le Iop tournoie au lieu de lancer l'effet de zone commun */
   const st = statsPerso(), classe = classeDe(), u = paysanMesh.userData, pp = paysanMesh.position, cx0 = c ? c.x : pt.x, cz0 = c ? c.z : pt.z;
   combat.cdUlti = RECHARGE_ULTI; chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(cx0 - pp.x, cz0 - pp.z); paysanMesh.rotation.y = u.angle;
