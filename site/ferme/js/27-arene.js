@@ -332,54 +332,54 @@ function animerIleBoss(dt) { /* tout en douceur (« plus lent, tranquille, que c
 /* LE PUBLIC FIGE EN DECOR (30/10/2026, « refaire les mecs dans les gradins, on a beaucoup plus de stuff different pour mettre plein de gens differents, mais
    comme si c'etait des elements de decor pour eviter que ca bouffe trop, car je ressens pas mal de petits lags », Mathieu). Mesure avant : 37 spectateurs,
    4 828 pieces, 2,8 millions de sommets ; 3 118 dessins par image (96 sans eux), 25 ms par image au lieu de 8. Chaque spectateur etait un vrai perso complet
-   (130 pieces, 76 000 sommets) qui ne bougeait pas.
-   Maintenant : une vingtaine d'aventuriers differents (classe, homme ou femme, coiffe, cape, au hasard parmi tout l'equipement) et une douzaine de monstres
-   sont habilles une fois, puis simplifies (decimerPublic : leurs sommets a moins de PAS_PUBLIC l'un de l'autre, tournes du meme cote, n'en font plus qu'un) ;
-   chaque place des gradins en recoit un au hasard, et tout le public est fondu en une piece par couleur (poserPublic), sans ombre portee. */
-const PAS_PUBLIC = 0.03, AVENTURIERS_PUBLIC = 20, MONSTRES_PUBLIC = 12, PART_AVENTURIERS = 0.62;
-function decimerPublic(g) { /* un spectateur pose a l'origine -> { cle: { M, pos, nor, uv, col, idx } }, ses pieces fondues par apparence et simplifiees */
-  g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.updateMatrixWorld(true);
-  const brut = new Map(), v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3(), defaut = T.Material.prototype.onBeforeCompile;
-  g.traverseVisible((m) => { if (!m.isMesh || m.isSkinnedMesh || !m.geometry || !m.geometry.attributes.position || Array.isArray(m.material)) return; const M = m.material;
-    const cle = M.side === T.BackSide || M.onBeforeCompile !== defaut ? M.uuid : [M.type, M.color ? M.color.getHexString() : '', M.map ? M.map.uuid : '', M.gradientMap ? M.gradientMap.uuid : '', M.transparent ? 't' + M.opacity : '', M.vertexColors ? 'v' : '', M.side].join('|');
-    if (!brut.has(cle)) brut.set(cle, { M, L: [] }); brut.get(cle).L.push(m); });
-  const sortie = new Map(), P_ = 1 / PAS_PUBLIC;
-  brut.forEach(({ M, L }, cle) => {
-    const tex = !!M.map, vc = !!M.vertexColors, cel = new Map(), ps = [], ns = [], us = [], cs = [], nb = [], idx = [];
-    L.forEach((m) => { nm.getNormalMatrix(m.matrixWorld); const G = m.geometry, P = G.attributes.position, N = G.attributes.normal, UV = G.attributes.uv, C = G.attributes.color, I = G.index, loc = new Int32Array(P.count);
-      for (let i = 0; i < P.count; i++) {
-        v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); if (N) n.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); else n.set(0, 1, 0);
-        const ax = Math.abs(n.x), ay = Math.abs(n.y), az = Math.abs(n.z), b = ax >= ay && ax >= az ? (n.x > 0 ? 0 : 1) : ay >= az ? (n.y > 0 ? 2 : 3) : (n.z > 0 ? 4 : 5);
-        let k = ((Math.floor(v.x * P_) + 512) * 1024 + Math.floor(v.y * P_) + 512) * 1024 + Math.floor(v.z * P_) + 512; k = k * 8 + b;
-        if (tex && UV) k = k * 65536 + Math.floor(UV.getX(i) * 255.99 % 256) * 256 + Math.floor(UV.getY(i) * 255.99 % 256); /* (une piece texturee : on ne fond pas deux points d'une couture) */
-        let j = cel.get(k); if (j === undefined) { j = nb.length; cel.set(k, j); nb.push(0); ps.push(0, 0, 0); ns.push(0, 0, 0); if (tex) us.push(UV ? UV.getX(i) : 0, UV ? UV.getY(i) : 0); if (vc) cs.push(C ? C.getX(i) : 1, C ? C.getY(i) : 1, C ? C.getZ(i) : 1); }
-        nb[j]++; ps[3 * j] += v.x; ps[3 * j + 1] += v.y; ps[3 * j + 2] += v.z; ns[3 * j] += n.x; ns[3 * j + 1] += n.y; ns[3 * j + 2] += n.z; loc[i] = j;
-      }
-      const t3 = I ? I.count : P.count; for (let t = 0; t + 2 < t3; t += 3) { const a = loc[I ? I.getX(t) : t], b = loc[I ? I.getX(t + 1) : t + 1], c = loc[I ? I.getX(t + 2) : t + 2]; if (a !== b && b !== c && a !== c) idx.push(a, b, c); }
-    });
-    if (!idx.length) return;
-    const pos = new Float32Array(ps.length), nor = new Float32Array(ns.length);
-    for (let j = 0; j < nb.length; j++) { for (let c = 0; c < 3; c++) pos[3 * j + c] = ps[3 * j + c] / nb[j]; n.set(ns[3 * j], ns[3 * j + 1], ns[3 * j + 2]).normalize(); n.toArray(nor, 3 * j); }
-    sortie.set(cle, { M, pos, nor, uv: tex ? new Float32Array(us) : null, col: vc ? new Float32Array(cs) : null, idx: new Uint32Array(idx) });
+   (130 pieces, 76 000 sommets) qui ne bougeait pas. Premier essai le jour meme : fondus par couleur et simplifies, 311 dessins, mais encore 2,5 millions de
+   triangles (les pieces d'equipement sont des modeles tres detailles), pour 0,45 million dans tout le reste de l'Arene : « elle full lag a nouveau l'arene ».
+   Maintenant, des images : une vingtaine d'aventuriers differents (classe, homme ou femme, coiffe, cape, au hasard parmi tout l'equipement) et une douzaine
+   de monstres sont habilles une fois, puis photographies sous l'angle de la camera du jeu et sous VUES_PUBLIC directions, dans une seule grande image
+   (photographierPublic). Chaque place des gradins est un rectangle debout, tourne vers la camera, qui montre la photo de la direction la plus proche de la
+   sienne (imagesPublic) : deux triangles par spectateur, un seul dessin pour tout le public. */
+const AVENTURIERS_PUBLIC = 20, MONSTRES_PUBLIC = 12, PART_AVENTURIERS = 0.62;
+const VUES_PUBLIC = 8, CASE_PUBLIC = 128, COTE_PUBLIC = 16, ELEV_PUBLIC = Math.atan2(27, 42.4); /* (16 x 16 cases de 128 : 32 spectateurs sous 8 directions ; ELEV : la pente de la camera du jeu, placerCamera) */
+function photographierPublic(L) { /* L : les spectateurs habilles, poses a l'origine -> { tex, cadres } */
+  const N = COTE_PUBLIC * CASE_PUBLIC, opt = { minFilter: T.LinearMipmapLinearFilter, magFilter: T.LinearFilter, format: T.RGBAFormat, generateMipmaps: false };
+  const rt = rendu.capabilities.isWebGL2 && T.WebGLMultisampleRenderTarget ? new T.WebGLMultisampleRenderTarget(N, N, opt) : new T.WebGLRenderTarget(N, N, opt); if (rt.isWebGLMultisampleRenderTarget) rt.samples = 4;
+  const sc = new T.Scene(); sc.add(new T.HemisphereLight('#fff6e0', '#8aa6c0', 0.5)); const s1 = new T.DirectionalLight('#ffe9c4', 0.75); s1.position.set(-16, 28, 12); sc.add(s1);
+  const s2 = new T.DirectionalLight('#bfe2ff', 0.22); s2.position.set(18, 10, -20); sc.add(s2); /* (les lumieres du jeu, 08-scene.js) */
+  const cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 200), aC = Math.PI / 4, ce = Math.cos(ELEV_PUBLIC), se = Math.sin(ELEV_PUBLIC), cadres = [], av = rendu.getRenderTarget(), b = new T.Box3();
+  L.forEach((g, i) => {
+    g.rotation.set(0, 0, 0); g.updateMatrixWorld(true); b.makeEmpty(); g.traverseVisible((o) => { if (o.isMesh && o.name !== 'contour' && !(o.material && o.material.side === T.BackSide)) b.expandByObject(o); });
+    const rH = Math.hypot(Math.max(Math.abs(b.min.x), Math.abs(b.max.x)), Math.max(Math.abs(b.min.z), Math.abs(b.max.z))), H = Math.max(0.3, b.max.y), y0 = Math.min(0, b.min.y);
+    const ty = (H + y0) / 2, S = Math.max(rH, ((H - y0) * ce + 2 * rH * se) / 2) * 1.05; /* (le cadre : la silhouette sous tous les angles, centree) */
+    cadres.push({ S, v0: 0.5 - ty * ce / (2 * S) }); /* (v0 : la hauteur, dans la case, de l'endroit ou il pose les pieds) */
+    cam.left = cam.bottom = -S; cam.right = cam.top = S; cam.updateProjectionMatrix(); cam.position.set(Math.cos(aC) * 42.4, ty + 27, Math.sin(aC) * 42.4); cam.lookAt(0, ty, 0); cam.updateMatrixWorld(true);
+    sc.add(g);
+    for (let j = 0; j < VUES_PUBLIC; j++) { const c = i * VUES_PUBLIC + j, x = (c % COTE_PUBLIC) * CASE_PUBLIC, y = Math.floor(c / COTE_PUBLIC) * CASE_PUBLIC;
+      g.rotation.y = (Math.PI / 2 - aC) - j * Math.PI * 2 / VUES_PUBLIC; g.updateMatrixWorld(true); /* (vue j : la camera est a j huitiemes de tour de son devant) */
+      rt.viewport.set(x, y, CASE_PUBLIC, CASE_PUBLIC); rt.scissor.set(x, y, CASE_PUBLIC, CASE_PUBLIC); rt.scissorTest = true;
+      rendu.setRenderTarget(rt); rendu.clear(); rendu.render(sc, cam); }
+    sc.remove(g);
   });
-  return sortie;
+  /* les mipmaps une fois, sur l'image complete : un dernier rendu vide (three.js les calcule avant de recopier l'image lissee, d'ou ce passage de plus) */
+  rt.texture.generateMipmaps = true; const ac = rendu.autoClear; rendu.autoClear = false; rendu.setRenderTarget(rt); rendu.render(new T.Scene(), cam); rendu.autoClear = ac;
+  rendu.setRenderTarget(av); return { tex: rt.texture, cadres };
 }
-function poserPublic(places) { /* chaque spectateur simplifie a sa place, tout le public fondu en une piece par apparence */
-  const tot = new Map(), g = new T.Group(), v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3(), mx = new T.Matrix4();
-  places.forEach((p) => p.E.forEach((d, cle) => { if (!tot.has(cle)) tot.set(cle, { M: d.M, L: [] }); tot.get(cle).L.push({ d, p }); }));
-  tot.forEach(({ M, L }) => {
-    let nv = 0, ni = 0; L.forEach(({ d }) => { nv += d.pos.length / 3; ni += d.idx.length; });
-    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = L[0].d.uv ? new Float32Array(nv * 2) : null, col = L[0].d.col ? new Float32Array(nv * 3) : null, idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
-    let ov = 0, oi = 0;
-    L.forEach(({ d, p }) => { mx.makeRotationY(p.ry).setPosition(p.x, p.y, p.z); nm.getNormalMatrix(mx); const k = d.pos.length / 3;
-      for (let i = 0; i < k; i++) { v.fromArray(d.pos, 3 * i).applyMatrix4(mx).toArray(pos, 3 * (ov + i)); n.fromArray(d.nor, 3 * i).applyMatrix3(nm).toArray(nor, 3 * (ov + i)); }
-      if (uv && d.uv) uv.set(d.uv, 2 * ov); if (col && d.col) col.set(d.col, 3 * ov);
-      for (let i = 0; i < d.idx.length; i++) idx[oi + i] = d.idx[i] + ov; ov += k; oi += d.idx.length; });
-    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
-    if (uv) geo.setAttribute('uv', new T.BufferAttribute(uv, 2)); if (col) geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.computeBoundingSphere();
-    const f = new T.Mesh(geo, M); f.castShadow = false; f.receiveShadow = M.side !== T.BackSide; f.matrixAutoUpdate = false; f.updateMatrix(); g.add(f);
-  });
-  g.name = 'public'; return g;
+function imagesPublic(places, A) { /* chaque place : un rectangle debout, tourne vers la camera, qui montre la photo de la direction la plus proche */
+  const n = places.length, pos = new Float32Array(n * 12), uv = new Float32Array(n * 8), idx = new Uint16Array(n * 6), du = 1 / COTE_PUBLIC, ce = Math.cos(ELEV_PUBLIC), te = Math.tan(ELEV_PUBLIC);
+  for (let k = 0; k < n; k++) idx.set([0, 1, 2, 0, 2, 3].map((x) => x + 4 * k), 6 * k);
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.BufferAttribute(uv, 2)); geo.setIndex(new T.BufferAttribute(idx, 1));
+  geo.attributes.position.setUsage(T.DynamicDrawUsage); geo.attributes.uv.setUsage(T.DynamicDrawUsage);
+  const m = new T.Mesh(geo, new T.MeshBasicMaterial({ map: A.tex, alphaTest: 0.5, side: T.DoubleSide })); m.frustumCulled = false; m.castShadow = m.receiveShadow = false; m.name = 'public'; m.renderOrder = 1;
+  const r = new T.Vector3(); let dernier = null;
+  m.onBeforeRender = (rd, sc, cam) => { /* (seulement quand la camera a tourne) */
+    r.setFromMatrixColumn(cam.matrixWorld, 0); r.y = 0; r.normalize(); const cle = r.x.toFixed(4) + r.z.toFixed(4); if (cle === dernier) return; dernier = cle;
+    const dcx = -r.z, dcz = r.x, aCam = Math.atan2(dcx, dcz), D = 0.3; /* (D : un peu vers la camera, pour que la marche ne mange pas le bout des pieds ; et autant plus haut, la photo ne bouge pas a l'ecran) */
+    places.forEach((p, k) => { const C = A.cadres[p.i], S = C.S, t0 = -C.v0 * 2 * S / ce, t1 = (1 - C.v0) * 2 * S / ce; /* (la photo, prise en pente, debout : etiree de 1 / cos de la pente) */
+      let j = Math.round((aCam - p.ry) / (Math.PI * 2 / VUES_PUBLIC)) % VUES_PUBLIC; if (j < 0) j += VUES_PUBLIC;
+      const c = p.i * VUES_PUBLIC + j, u0 = (c % COTE_PUBLIC) * du, v0 = Math.floor(c / COTE_PUBLIC) * du, x = p.x + dcx * D, y = p.y + D * te, z = p.z + dcz * D;
+      pos.set([x - r.x * S, y + t0, z - r.z * S, x + r.x * S, y + t0, z + r.z * S, x + r.x * S, y + t1, z + r.z * S, x - r.x * S, y + t1, z - r.z * S], 12 * k);
+      uv.set([u0, v0, u0 + du, v0, u0 + du, v0 + du, u0, v0 + du], 8 * k); });
+    geo.attributes.position.needsUpdate = geo.attributes.uv.needsUpdate = true; };
+  return m;
 }
 async function figerPublic(places, types) {
   if (!places.length) return null;
@@ -387,12 +387,13 @@ async function figerPublic(places, types) {
   const looks = ['iop-berserker-a', 'iop-berserker-b', 'iop-berserker-c'].filter((m) => MODELES[m]); /* (les autres apparences du Iop, seulement si elles sont deja chargees : rien de plus a telecharger) */
   for (let k = 0; k < AVENTURIERS_PUBLIC; k++) {
     const cl = hasard(['iop', 'cra', 'osa']), sexe = Math.random() < 0.5 ? 'f' : 'm', look = cl === 'iop' && sexe === 'm' && looks.length && Math.random() < 0.5 ? LOOKS_IOP.find((l) => l[2] === hasard(looks))[0] : null;
-    const m = humainPublic(cl, sexe, tenueAuHasard(cl), look); if (m) aventuriers.push(decimerPublic(m)); if (k % 3 === 2) await pause();
+    const m = humainPublic(cl, sexe, tenueAuHasard(cl), look); if (m) aventuriers.push(m); if (k % 3 === 2) await pause();
   }
   const T0 = types.slice().sort(() => Math.random() - 0.5).slice(0, MONSTRES_PUBLIC);
-  for (const t of T0) { monstres.push(decimerPublic(cloner(t))); await pause(); }
-  places.forEach((p) => { p.E = (Math.random() < PART_AVENTURIERS && aventuriers.length) || !monstres.length ? hasard(aventuriers) : hasard(monstres); });
-  return poserPublic(places);
+  for (const t of T0) { const m = cloner(t); m.position.set(0, 0, 0); monstres.push(m); }
+  const L = aventuriers.concat(monstres).slice(0, COTE_PUBLIC * COTE_PUBLIC / VUES_PUBLIC); if (!L.length) return null;
+  places.forEach((p) => { p.i = (Math.random() < PART_AVENTURIERS && aventuriers.length) || !monstres.length ? Math.floor(Math.random() * aventuriers.length) : aventuriers.length + Math.floor(Math.random() * monstres.length); });
+  return imagesPublic(places, photographierPublic(L));
 }
 async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), faite avec les outils de la ferme et rendue comme elle ; le fond est deja tourne loin de la camera */
   if (ileArene) return;
