@@ -10,7 +10,7 @@ const degInvoc = (l) => 6 + 2 * l; /* un coup du Bouftou invoque par l'Osamodas 
 const MEUTE = 0.15, meuteActive = () => !!(combat && combat.invoc && classeDe() === 'osa'), degBouftou = (l) => Math.round(degInvoc(l) * (1 + MEUTE));
 /* chaque classe en trois lignes : son passif de classe (toujours actif, sans rien faire), son sort (le bouton), le passif de son sort (ce qu'il fait en plus) */
 const enBref = (id) => ({ /* (une fonction : VITESSE_CRA n'est defini que plus loin, dans 24-deplacement.js) */
-  iop: { passif: 'il encaisse ' + Math.round(PEAU_IOP * 100) + ' % de dégâts en moins (Peau de Iop)', sort: 'Bond du Iop : il saute sur un monstre, 3 fois ses dégâts', passifSort: 'il se soigne de 3 % par monstre touché (12 % au plus)' },
+  iop: { passif: 'il encaisse ' + Math.round(PEAU_IOP * 100) + ' % de dégâts en moins (Peau de Iop) ; son épée touche aussi les monstres collés à sa cible (' + Math.round(BALAYAGE_IOP * 100) + ' % de ses dégâts), et ses coups le soignent de ' + Math.round(VOL_IOP * 100) + ' % des dégâts infligés', sort: 'Bond du Iop : il saute sur un monstre, 3 fois ses dégâts', passifSort: 'il se soigne de 3 % par monstre touché (12 % au plus)' },
   cra: { passif: 'il court ' + Math.round((VITESSE_CRA - 1) * 100) + ' % plus vite, et une flèche sur ' + TIR_FEU + ' fait double dégâts (la cible brûle 3 s)', sort: 'Flèche perçante : toute une ligne de monstres, 3 fois ses dégâts', passifSort: null },
   osa: { passif: 'tant que son Bouftou est en vie, lui et son Bouftou font ' + Math.round(MEUTE * 100) + ' % de dégâts en plus (Meute)', sort: 'Invocation : un Bouftou tombe sur les monstres, 2 fois ses dégâts', passifSort: 'le Bouftou se bat ensuite ' + DUREE_INVOC + ' s à ses côtés : 6 + 2 dégâts par niveau, plus la Meute, un coup toutes les 0,8 s' } })[id];
 const lignesEnBref = (id) => { const E = enBref(id); return '<span class="eb"><em>Passif de classe :</em> ' + (E.passif || 'aucun pour l\'instant') + '</span><span class="eb"><em>Sort :</em> ' + E.sort + '</span><span class="eb"><em>Passif du sort :</em> ' + (E.passifSort || 'aucun') + '</span>'; };
@@ -1170,7 +1170,14 @@ function majPerso(dt) {
     const rage = legPorte('bworker') && combat.pv < combat.pvMax * 0.3; if (rage && !combat.rage) { combat.rage = true; toast('Casque du Bworker : tu entres en rage !', 'alerte'); pouf(pp.x, pp.y, pp.z, 2.5, '#e2413a'); }
     combat.cdAttaque = st.cadence * (rage ? 0.7 : 1); const cible = c; son(classe === 'cra' ? 'arc' : classe === 'osa' ? 'fouet' : 'epee'); /* (l'arme de la classe : l'arc du Cra, le fouet de l'Osamodas, l'epee du Iop) */
     combat.tirs = (combat.tirs || 0) + 1; const feu = classe === 'cra' && combat.tirs % TIR_FEU === 0; /* une fleche de feu toutes les 10 */
-    u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => { const p = new T.Vector3(cible.x, cible.m.position.y + cible.haut * 0.5, cible.z); effetFrappe(classe, p, () => { const epines = cible.carapace > 0 && classe !== 'cra'; blesser(cible, feu ? st.deg * 2 : st.deg, feu); if (epines && combat && !combat.fin) blesserPerso(Math.max(1, Math.round(st.deg * 0.2 / multDegats(combat.n))), cible); if (!combat || combat.fin) return; if (feu && cible.etat === 'actif') { cible.brule = 3; cible.bruleDeg = Math.max(1, Math.round(st.deg * 0.25)); pouf(cible.x, cible.m.position.y, cible.z, 2, '#ff7a1e'); } }, feu); } };
+    u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => { const p = new T.Vector3(cible.x, cible.m.position.y + cible.haut * 0.5, cible.z); effetFrappe(classe, p, () => { const epines = cible.carapace > 0 && classe !== 'cra', av = cible.pv; blesser(cible, feu ? st.deg * 2 : st.deg, feu); if (classe === 'iop') coupIop(cible, st, av); if (epines && combat && !combat.fin) blesserPerso(Math.max(1, Math.round(st.deg * 0.2 / multDegats(combat.n))), cible); if (!combat || combat.fin) return; if (feu && cible.etat === 'actif') { cible.brule = 3; cible.bruleDeg = Math.max(1, Math.round(st.deg * 0.25)); pouf(cible.x, cible.m.position.y, cible.z, 2, '#ff7a1e'); } }, feu); } };
   }
+}
+function coupIop(cible, st, av) { /* le balayage et le vol de vie du Iop (18-geliere.js) */
+  if (!combat || combat.fin) return; let inflige = Math.max(0, av - Math.max(0, cible.pv)), k = 0;
+  if (BALAYAGE_IOP > 0) combat.monstres.slice().forEach((o) => { if (o === cible || o.etat !== 'actif' || Math.hypot(o.x - cible.x, o.z - cible.z) > RAYON_BALAYAGE) return;
+    const a = o.pv; blesser(o, Math.max(1, Math.round(st.deg * BALAYAGE_IOP))); inflige += Math.max(0, a - Math.max(0, o.pv)); k++; });
+  if (k) onde(cible.x, cible.m.position.y + 0.05, cible.z, RAYON_BALAYAGE, '#ffd27a', 0.3, 0.3);
+  if (VOL_IOP > 0 && combat && !combat.fin) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + inflige * VOL_IOP); if (combat.st) combat.st.soins += combat.pv - a0; }
 }
 /* le sort de classe : Charge (Iop), Fleche percante (Cra), Invocation d'un Bouftou (Osamodas) */
