@@ -230,16 +230,46 @@ function coupDeFouet(de, pv, perso, style) {
   });
 }
 /* l'Invocation : un cercle magique violet qui s'allume au sol, une colonne de lumiere, des lueurs qui montent ; le Bouftou tombe du ciel (majInvoc) et retombe dans un choc */
-function cercleInvocation(x, y, z) {
-  const g = new T.Group(), mats = []; g.position.set(x, y + 0.07, z);
-  const ajoute = (geo, o, rz) => { const m = new T.Mesh(geo, fxMat('#c39bff', o)); m.material.blending = T.AdditiveBlending; m.rotation.x = -Math.PI / 2; if (rz) m.rotation.z = rz; mats.push([m.material, o]); g.add(m); return m; };
+function cercleInvocation(x, y, z, C) { /* (C : la teinte, le clair, le fonce ; violet par defaut, comme le Bouftou du perso) */
+  const [cA, cB, cC] = C || ['#c39bff', '#c9a6ff', '#7a4ad8'], g = new T.Group(), mats = []; g.position.set(x, y + 0.07, z);
+  const ajoute = (geo, o, rz) => { const m = new T.Mesh(geo, fxMat(cA, o)); m.material.blending = C ? T.NormalBlending : T.AdditiveBlending; /* (en lumiere, un bleu se perd sur le sol clair de l'Arene) */ m.rotation.x = -Math.PI / 2; if (rz) m.rotation.z = rz; mats.push([m.material, o]); g.add(m); return m; };
   ajoute(new T.RingGeometry(1.55, 1.68, 56), 0.95); ajoute(new T.RingGeometry(1.05, 1.11, 48), 0.85); ajoute(new T.RingGeometry(1.0, 1.07, 3), 0.85); ajoute(new T.RingGeometry(1.0, 1.07, 3), 0.85, Math.PI);
   for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r = ajoute(new T.PlaneGeometry(0.1, 0.22), 0.9); r.position.set(Math.cos(a) * 1.33, 0, Math.sin(a) * 1.33); r.rotation.z = -a; }
-  const colonne = new T.Mesh(new T.CylinderGeometry(0.85, 0.85, 5, 28, 1, true), fxMat('#c9a6ff', 0.35)); colonne.material.blending = T.AdditiveBlending; colonne.position.y = 2.5; g.add(colonne);
+  const colonne = new T.Mesh(new T.CylinderGeometry(0.85, 0.85, 5, 28, 1, true), fxMat(cB, 0.35)); colonne.material.blending = T.AdditiveBlending; colonne.position.y = 2.5; g.add(colonne);
   fxVie(g, 1.3, (k) => { g.rotation.y = k * 1.6; const o = k < 0.1 ? k / 0.1 : k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1; mats.forEach(([m, o0]) => { m.opacity = o0 * o; }); g.scale.setScalar(0.6 + 0.4 * Math.min(1, k / 0.12));
     colonne.material.opacity = 0.35 * Math.max(0, 1 - k / 0.4); colonne.scale.set(Math.max(0.01, 1 - k / 0.4), 1, Math.max(0.01, 1 - k / 0.4)); });
-  emettre(FX_LUM, 40, { x, y: y + 0.1, z, r: 1.5, plat: true, v: [0, 2.2, 0], dv: 0.5, vie: [0.6, 1.1], taille: [0.16, 0.03], c: ['#ffffff', '#c9a6ff', '#7a4ad8'], a: 0.95, frein: 0.6 });
-  flashLumiere(x, y + 1.5, z, '#b48cff', 2.5, 7, 0.5);
+  emettre(FX_LUM, 40, { x, y: y + 0.1, z, r: 1.5, plat: true, v: [0, 2.2, 0], dv: 0.5, vie: [0.6, 1.1], taille: [0.16, 0.03], c: ['#ffffff', cB, cC], a: 0.95, frein: 0.6 });
+  flashLumiere(x, y + 1.5, z, C ? cA : '#b48cff', 2.5, 7, 0.5);
+}
+/* LE GEYSER (30/10/2026, « s'il y a un geyser qui est cense apparaitre, fais une animation de geyser sous mes pieds, au niveau du cercle », Mathieu) :
+   une colonne d'eau jaillit du cercle en un dixieme de seconde, ruisselle vers le haut (des filets clairs qui montent, la colonne ondule), se dechire
+   en gerbe a son sommet, puis s'affaisse ; la gerbe retombe en pluie sur tout le cercle ; au sol, une flaque, de l'ecume et deux anneaux d'eau */
+const VS_GEYSER = `uniform float uT; varying vec2 vUv; void main() { vUv = uv; vec3 p = position; float a = atan(p.z, p.x);
+  p.xz *= 1.0 + 0.1 * sin(p.y * 9.0 - uT * 13.0 + a * 3.0) + 0.06 * sin(a * 5.0 + uT * 7.0); gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`;
+const FS_GEYSER = `uniform float uT, uA; uniform vec3 uC1, uC2; varying vec2 vUv; void main() {
+  float y = vUv.y, n = sin(vUv.x * 43.98 + sin(y * 9.0 - uT * 14.0) * 1.6) * 0.5 + 0.5, m = sin(vUv.x * 25.13 - y * 5.0 + uT * 4.0) * 0.5 + 0.5, f = fract(y * 2.6 - uT * 3.8);
+  float b = clamp(smoothstep(0.55, 1.0, n * 0.6 + m * 0.4) * 0.85 + smoothstep(0.82, 1.0, f) * 0.35, 0.0, 1.0);
+  gl_FragColor = vec4(mix(uC1, uC2, b), uA * (0.5 + 0.5 * b) * smoothstep(0.0, 0.06, y) * (1.0 - smoothstep(0.78, 1.0, y))); }`;
+const GEO_GEYSER = new T.CylinderGeometry(0.75, 0.5, 1, 28, 12, true); GEO_GEYSER.translate(0, 0.5, 0); partager(GEO_GEYSER);
+function geyserEau(x, y, z, r, C) {
+  const [cA, cB, cC] = C || ['#2aa8e0', '#bdf0ff', '#16608f'], H = 5.2, D = 1.5, g = new T.Group(); g.position.set(x, y, z);
+  const tube = (rad, c1, c2, a, add) => { const u = { uT: { value: 0 }, uA: { value: a }, uC1: { value: new T.Color(c1) }, uC2: { value: new T.Color(c2) } };
+    const m = new T.Mesh(GEO_GEYSER, new T.ShaderMaterial({ uniforms: u, vertexShader: VS_GEYSER, fragmentShader: FS_GEYSER, transparent: true, depthWrite: false, side: T.DoubleSide, blending: add ? T.AdditiveBlending : T.NormalBlending }));
+    m.renderOrder = 5; m.userData = { u, rad, a }; g.add(m); return m; };
+  const tubes = [tube(r * 0.8, cC, cB, 0.85), tube(r * 0.45, cA, '#ffffff', 0.6, true)];
+  const flaque = new T.Mesh(GEO_DISQUE, fxMat(cA, 0.4)); flaque.rotation.x = -Math.PI / 2; flaque.position.y = 0.06; flaque.renderOrder = 3; g.add(flaque);
+  let kp = 0, gerbe = 0;
+  fxVie(g, D, (k) => {
+    const e = 1 - Math.pow(1 - Math.min(1, k / 0.1), 3), tombe = k > 0.6 ? (k - 0.6) / 0.4 : 0, h = Math.max(0.01, H * e * (1 - 0.92 * tombe * tombe));
+    tubes.forEach((m) => { const U = m.userData; U.u.uT.value = k * D; m.scale.set(U.rad * (1 + 0.2 * tombe), h, U.rad * (1 + 0.2 * tombe)); U.u.uA.value = U.a * (1 - tombe); });
+    flaque.scale.setScalar(r * (0.55 + 0.45 * e)); flaque.material.opacity = 0.4 * (1 - k);
+    gerbe += (k - kp) * D * (k < 0.65 ? 90 : 0); kp = k; const n = Math.floor(gerbe); gerbe -= n; /* (la gerbe du sommet : des gouttes qui partent en couronne et retombent sur le cercle) */
+    if (n) emettre(FX_VIF, n, { x, y: y + h * 0.97, z, r: r * 0.3, v: [0, 1.5, 0], dv: r * 1.9, haut: true, vie: [0.7, 1.1], taille: [0.2, 0.07], c: ['#ffffff', cB, cA], a: 0.92, grav: 10, sol: y + 0.05, rebond: 0.15 });
+  });
+  onde(x, y, z, r * 1.25, cB, 0.5, 0.9); onde(x, y, z, r * 0.9, '#ffffff', 0.35, 0.7);
+  emettre(FX_VIF, 40, { x, y: y + 0.1, z, r: r * 0.95, plat: true, v: [0, 3.2, 0], dv: 2.4, haut: true, vie: [0.4, 0.75], taille: [0.18, 0.06], c: ['#ffffff', cB, cA], a: 0.95, grav: 11, sol: y + 0.05 });
+  emettre(FX_FUM, 16, { x, y: y + 0.25, z, r: r * 0.7, plat: true, dv: 1.6, haut: true, vie: [0.6, 1.1], taille: [0.6, 1.1], c: ['#f2fcff', cB], a: 0.45, grav: -0.8 });
+  flashLumiere(x, y + 1.5, z, cA, 2, 6, 0.4);
 }
 function atterrirBouftou(x, y, z) { secousse(0.14, 0.25); onde(x, y, z, 2.4, '#d9c2ff', 0.35, 0.9); onde(x, y, z, 1.6, '#ffffff', 0.25, 0.7); poussiere(x, y, z, 10, 1.6); mottes(x, y, z, 6, 0.8); emettre(FX_LUM, 20, { x, y: y + 0.2, z, r: 0.6, dv: 4, haut: true, vie: [0.3, 0.6], taille: [0.1, 0.02], c: ['#ffffff', '#c9a6ff'], grav: 6, etire: 0.03 }); }
 /* la Meute : un halo violet aux pieds de l'Osamodas tant que son Bouftou est en vie, des lueurs qui tournent autour de lui */

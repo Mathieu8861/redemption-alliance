@@ -198,7 +198,7 @@ function ficheMonstre(t) {
   if (d.cawotteRoyale) L.push(capa('assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num(secondes(ESQUIVE.cawotteRoyale) + ' pour esquiver') + recup('cawotteRoyale'), 'or'));
   if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée, ses nuages restent 24 s au sol : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
   if (d.appel) L.push(capa('sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui.', recup('appel'), 'violet'));
-  if (d.geyser) L.push(capa('sort', 'Geyser', 'Un cercle rouge sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge'));
+  if (d.geyser) L.push(capa('sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge'));
   if (d.garde) L.push(capa('carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu'));
   if (d.invoque) L.push(capa('renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' lève son bâton de corail et invoque ' + d.invoque.n + ' tortues toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus) : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.', '', 'vert'));
   if (d.renforts) L.push(capa('renfort', 'Renforts','Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert'));
@@ -445,7 +445,7 @@ const dansDanger = (d, x, z) => { if (d.r) return Math.hypot(x - d.x, z - d.z) <
 const solA = (x, z) => { const c = caseIci(x, z); return c ? hauteurSol(x, z, c) : 0; };
 const pointValide = (x0, z0, x, z) => { const ok = (a, b) => { if (lieu === 'arene') return solSort(a, b); const q = caseIci(a, b); return q && PASSABLE[q.type]; }; /* (a l'Arene, son cercle : elle n'a pas de cases de ferme, tout y tombait a zero ; les Tortues roulaient sur place, « elles avancent pas », Mathieu, 29/10/2026) */ let k = 1; while (k > 0 && !ok(x0 + (x - x0) * k, z0 + (z - z0) * k)) k -= 0.05; k = Math.max(0, k); return { x: x0 + (x - x0) * k, z: z0 + (z - z0) * k }; };
 function zoneDanger(o) {
-  const c0 = combat, g = new T.Group(), mat0 = (op) => new T.MeshBasicMaterial({ color: o.couleur || '#e2413a', transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide });
+  const c0 = combat, g = new T.Group(), mat0 = (op) => new T.MeshBasicMaterial({ color: o.couleur || (o.mo && o.mo.d.couleurSorts && o.mo.d.couleurSorts[0]) || '#e2413a', transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide });
   const d = o.r ? { x: o.x, z: o.z, r: o.r } : { x: o.x, z: o.z, x2: o.x2, z2: o.z2, larg: o.larg }; let fond, plein;
   if (o.r) { fond = new T.Mesh(new T.CircleGeometry(o.r, 40), mat0(0.3)); plein = new T.Mesh(new T.CircleGeometry(o.r, 40), mat0(0.38)); const bord = new T.Mesh(new T.RingGeometry(o.r - 0.16, o.r, 48), mat0(0.95)); [fond, plein, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; g.add(m); }); g.position.set(o.x, solA(o.x, o.z) + 0.07, o.z); }
   else { const L = Math.hypot(o.x2 - o.x, o.z2 - o.z) || 0.1; fond = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.3)); plein = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.38)); [fond, plein].forEach((m) => { m.geometry.translate(0, -L / 2, 0); m.rotation.x = -Math.PI / 2; g.add(m); }); g.rotation.y = Math.atan2(o.x2 - o.x, o.z2 - o.z); g.position.set(o.x, Math.max(solA(o.x, o.z), solA(o.x2, o.z2)) + 0.07, o.z); }
@@ -660,14 +660,18 @@ function capGalvanise(mo, ctx) {
     if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; gesteSort(mo, gesteDe(mo, 'galvanise', 'sort')); if (mo.d.tambour || mo.d.galvaCouleurs) { const C = mo.d.galvaCouleurs || ['#f2b630', '#ffe9a8']; onde(mo.x, mo.m.position.y, mo.z, 7, C[0], 0.55, 0.8); onde(mo.x, mo.m.position.y, mo.z, 4.5, C[1], 0.4, 0.6); } combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, (mo.d.galvaCouleurs || ['#f2b630'])[0]); if (mo.d.galvaCouleurs && !combat.galvaVu) { combat.galvaVu = true; toast(leNom(mo.d) + ' galvanise ses alliés autour d\'' + (mo.d.fem ? 'elle' : 'lui') + ' : ils frappent et courent plus vite 4 s. Éloigne-les d\'' + (mo.d.fem ? 'elle' : 'lui') + ' !', 'alerte'); } }
   }
 }
-function capGeyser(mo, ctx) { /* le geyser de la Tortue Corail (30/10/2026, « elle lance des sorts de loin ») : un cercle rouge sous le perso, 1,4 s pour en sortir, puis l'eau jaillit */
+function capGeyser(mo, ctx) { /* le geyser de la Tortue Corail (30/10/2026, « elle lance des sorts de loin ») : un cercle bleu sous le perso, 1,4 s pour en sortir, puis l'eau jaillit
+     (le soir : « fais une animation de geyser sous mes pieds, au niveau du cercle », Mathieu : l'eau bouillonne dans le cercle, puis une colonne en jaillit, geyserEau, 22b-effets.js) */
   const { pp, sortPret } = ctx;
   if (!mo.d.geyser) return; const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
   if (!sortPret('geyserT', mo.d.geyser) || dP > 16) return;
   mo.geyserT = 0; const x0 = pp.x, z0 = pp.z, R = 2.2, duree = 1.4; mo.ry = Math.atan2(x0 - mo.x, z0 - mo.z); mo.bloqueT = 1.0; gesteSort(mo, gesteDe(mo, 'geyser', 'tir'), 0.8);
-  if (!combat.geyserVu) { combat.geyserVu = true; toast(leNom(mo.d) + ' fait jaillir un geyser sous tes pieds : sors du cercle rouge !', 'alerte'); }
+  if (!combat.geyserVu) { combat.geyserVu = true; toast(leNom(mo.d) + ' fait jaillir un geyser sous tes pieds : sors du cercle bleu !', 'alerte'); }
+  const C = mo.d.couleurSorts, c0 = combat, y0 = solA(x0, z0); let tb = 0, nb = 0; /* l'eau bouillonne dans le cercle, de plus en plus fort jusqu'au jet */
+  effets.push((dt) => { tb += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || tb >= duree) return true; nb += dt * (25 + 110 * tb / duree);
+    const n = Math.floor(nb); nb -= n; if (n) emettre(FX_VIF, n, { x: x0, y: y0 + 0.05, z: z0, r: R * 0.85, plat: true, v: [0, 1.3 + 2.4 * tb / duree, 0], dv: 0.6, vie: [0.25, 0.5], taille: [0.24, 0.07], c: ['#ffffff', C[1], C[0]], a: 0.9, grav: 4 }); });
   zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => { const y = solA(x0, z0);
-    onde(x0, y, z0, R * 1.3, '#5fd6e8', 0.5, 0.85); emettre(FX_VIF, 46, { x: x0, y: y + 0.1, z: z0, r: R * 0.45, dv: 7.5, haut: true, vie: [0.45, 0.9], taille: [0.16, 0.05], c: ['#ffffff', '#bff4ff', '#5fd6e8', '#2a9ccc'], a: 0.95, grav: 11 }); emettre(FX_FUM, 14, { x: x0, y: y + 0.2, z: z0, r: R * 0.5, dv: 2.5, haut: true, vie: [0.5, 0.9], taille: [0.5, 0.9], c: ['#e8fbff', '#bfeaf5'], a: 0.5, grav: -1 }); secousse(0.1, 0.25);
+    geyserEau(x0, y, z0, R, C); secousse(0.12, 0.3);
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).geyser || 1)), mo); } });
 }
 function capTroupe(mo, ctx) {
@@ -951,7 +955,7 @@ function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/20
   if (!combat.invoqueVu) { combat.invoqueVu = true; toast(leNom(mo.d) + ' lève son bâton et invoque ' + I.n + ' tortues : ' + (mo.d.fem ? 'elle' : 'il') + ' en invoquera toutes les ' + I.periode + ' s !', 'alerte'); }
   else chiffre('Invocation !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.4, mo.z), 'butin');
   const places = [];
-  for (let k = 0; k < Math.min(I.n, I.max - debout); k++) { const a = mo.ry + (k + 0.5) / I.n * Math.PI * 2, p = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z); }
+  for (let k = 0; k < Math.min(I.n, I.max - debout); k++) { const a = mo.ry + (k + 0.5) / I.n * Math.PI * 2, p = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, mo.d.couleurSorts); } /* (a sa couleur, 30/10/2026) */
   let t = 0; effets.push((dt) => { t += dt; if (!combat || combat.fin) return true; if (t < 0.8) return false;
     places.forEach((p, k) => { pouf(p.x, solA(p.x, p.z), p.z, 2.4, '#7fe0d8'); apparaitre(I.types[k % I.types.length], { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; });
     return true; });
