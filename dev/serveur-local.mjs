@@ -11,6 +11,8 @@
      service (lecture et ecriture reelles, sans RLS).
    - /api/simu : le meme coeur que la route en ligne (api/_simu-coeur.mjs),
      mais en mode a blanc : « Publier » ne poste RIEN dans #event.
+   - /api/recensement : les membres du Discord (api/_recensement-coeur.mjs),
+     pour l'onglet Recensement de admin.html.
    Ecoute uniquement sur 127.0.0.1. Lit DAMOCLES/.env.local (jamais affiche). */
 
 import http from 'node:http';
@@ -18,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { executer } from '../api/_simu-coeur.mjs';
+import { membresDiscord } from '../api/_recensement-coeur.mjs';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(RACINE, 'site');
@@ -165,6 +168,7 @@ http.createServer(async function (req, res) {
         if (url.pathname.startsWith('/__supabase/rest/v1/')) return await relaisBase(req, res, url);
         if (url.pathname.startsWith('/__supabase/')) return envoyer(res, 404, 'application/json', '{}');
         if (url.pathname === '/api/simu') return await routeSimu(req, res);
+        if (url.pathname === '/api/recensement') return envoyer(res, 200, 'application/json', JSON.stringify(await membresDiscord(ENV.DISCORD_BOT_TOKEN))); /* lecture seule */
         return fichierStatique(req, res, url);
     } catch (e) {
         envoyer(res, 500, 'text/plain; charset=utf-8', 'Erreur : ' + e.message);

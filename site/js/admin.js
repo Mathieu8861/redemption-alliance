@@ -101,6 +101,7 @@
             switch (tab) {
                 case 'validation': await tabValidation(content); break;
                 case 'utilisateurs': await tabUtilisateurs(content); break;
+                case 'recensement': await window.tabRecensement(content); break; /* jeu, Discord et site croisés (30/10/2026, sql/081) */
                 case 'alliances': await tabAlliances(content); break;
                 case 'modules': await tabModules(content); break;
                 case 'bareme': await tabBareme(content); break;
