@@ -24,7 +24,7 @@ const VIF = 1.2, ALLURE_MIN = 0.9, ALLURE_MAX = 1.8;
 let VITESSE_ANIM = (() => { try { return +localStorage.getItem('ferme-vitesse-anim') || 1.25; } catch (e) { return 1.25; } })();
 /* (27/10/2026, apres ses essais : « les Kannibouls a x1,75, sinon ca fait l'effet de ralenti », les Tortues a x1,25 ; le reglage ne sert plus qu'a Moon) */
 const VITESSE_FAMILLE = { jav: 1.75, sarbak: 1.75, ark: 1.75, tam: 1.75, ebil: 1.75, 'tortue-bleue': 1.25, 'tortue-jaune': 1.25, 'tortue-rouge': 1.25, 'tortue-verte': 1.25, lemurien: 1.15, 'gorille-roi': 1.45, 'golem-lune': 1.25, 'tortue-corail': 1.4 }; /* (les 4 boss du 28/10/2026, « vifs », Mathieu ; le golem, de pierre, un peu plus lourd) */
-const vitAnim = (mo) => (mo && mo.d && VITESSE_FAMILLE[mo.d.modele]) || VITESSE_ANIM;
+const vitAnim = (mo) => ((mo && mo.d && VITESSE_FAMILLE[mo.d.modele]) || VITESSE_ANIM) * ((mo && mo.d && mo.d.vivacite) || 1); /* (vivacite : un monstre plus vif que sa famille, Moon a +25 %, 30/10/2026) */
 const vif = (mo) => VIF * vitAnim(mo);
 const FAMILLES_COUP = ['coup', 'tourbillon'];
 const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond', 'fouet', 'toupie', 'ruee']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite ; fouet, toupie et ruee : les sorts des boss du 28/10/2026) */
@@ -236,7 +236,7 @@ function coupMarteau(mo) {
   const an = mo.m.userData.anim; if (an.F.tourbillon && Math.random() < 0.2) { moulinet(mo); return; }
   const nom = piocher(an, 'coup'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), X = mo.d.sortsX || {};
   const brut = (mo.m.userData.impacts || {})[nom] || [{ t: 1, sol: true, x: 0, z: 2.6 }];
-  const d = geste(mo, 'coup', true, nom, brut[0].t / ALERTE_MARTEAU), ts = (mo.geste && mo.geste.ts) || vif(mo), L = brut.map((x) => Object.assign({}, x, { t: x.t / ts }));
+  const d = geste(mo, 'coup', true, nom, brut[0].t / (ALERTE_MARTEAU / (mo.d.vivacite || 1))), ts = (mo.geste && mo.geste.ts) || vif(mo), L = brut.map((x) => Object.assign({}, x, { t: x.t / ts }));
   mo.cd = Math.max(mo.cd, d + 0.7); /* (un souffle entre deux coups : un enchainement long ne repart pas aussitot) */
   const aP = Math.atan2(pp.x - mo.x, pp.z - mo.z), dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), sol = L.find((x) => x.sol && x.x != null);
   let ry = aP, x1 = mo.x, z1 = mo.z;
@@ -269,10 +269,10 @@ function balayage(mo, x, y, z, ry, r) {
 /* le moulinet (30/10/2026 au soir, « 3 tours, un coup par tour », propose a Mathieu) : il te fait face et arme son coup, le grand cercle s'annonce ;
    puis, marteau tendu (la pose du tourbillon ou la caisse est la plus loin de lui), il tourne trois fois sur lui-meme, une lame de vent derriere le
    marteau, de la poussiere au sol ; chaque tour frappe dans le cercle, qui reste affiche tant qu'il tourne */
-const TOURS_MOULINET = 3, VITESSE_MOULINET = 2.2; /* (tours par seconde) */
+const TOURS_MOULINET = 3, VITESSE_MOULINET = 2.6; /* (tours par seconde, fois sa vivacite ; 2,2 avant le 30/10/2026 au soir, « le tour qu'il fait sur lui-meme faudrait que ce soit plus rapide », Mathieu) */
 function moulinet(mo) {
   const an = mo.m.userData.anim, nom = piocher(an, 'tourbillon'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
-  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e, Ds = TOURS_MOULINET / VITESSE_MOULINET, alerte = ALERTE_MARTEAU;
+  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e, viv = mo.d.vivacite || 1, Ds = TOURS_MOULINET / (VITESSE_MOULINET * viv), alerte = ALERTE_MARTEAU / viv;
   const dg = Math.max(1, Math.round(degSort(mo) * ((mo.d.sortsX || {}).moulinet || 0.35)));
   const a = jouerAnim(an, nom, 0.12); a.timeScale = bras.t / alerte; mo.geste = { t: 0, d: alerte + Ds + 0.15, ts: a.timeScale };
   mo.bloqueT = Math.max(mo.bloqueT || 0, alerte + Ds + 0.25); mo.cd = Math.max(mo.cd, alerte + Ds + 1.1);
@@ -307,7 +307,7 @@ function moulinet(mo) {
    le marteau), et il ne quitte le sol qu'entre le moment ou ses hanches decollent et celui ou elles retombent (lus sur l'animation). Il atterrit a la
    longueur de son marteau du centre, plus au centre ; son ombre grandit sur le cercle pendant qu'il est en l'air */
 function bondMarteau(mo, cx, cz) {
-  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = ESQUIVE.bond, c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
+  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = ESQUIVE.bond / (mo.d.vivacite || 1), c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
   if (!nom) return;
   const S = ((U.impacts || {})[nom] || []).filter((x) => x.sol && x.x != null), imp = S[S.length - 1] || { t: 1.75, x: 0, z: 1.8 }, vol = (U.vols || {})[nom] || [imp.t * 0.35, imp.t * 0.9];
   const a = jouerAnim(an, nom, 0.1), D = a.getClip().duration, ts = imp.t / E; a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts - 0.15, E + 0.7), ts }; mo.bloqueT = Math.max(mo.bloqueT || 0, E + 0.6); /* (il se releve en marchant : la fin du bond, 1,6 s debout sur place, est coupee) */
