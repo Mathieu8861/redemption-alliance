@@ -9,7 +9,7 @@
 /* Le soir du 25/10 : les Kannibouls et les Tortues, rattaches a leur squelette Mixamo (blender/lier-squelette.py : masques, cheveux et carapace
    rigides) puis assembles avec leurs mouvements et leur arme (blender/monstre-anime.py). Leurs coups et leurs tirs partent a l'instant ou une main ou
    un pied va le plus vite, lu sur chaque animation (attaqueSquelette) ; leurs sorts jouent un geste (gesteSort). */
-const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 3.4], ['golem-lune', 3.4], ['tortue-corail', 2.6]]
+const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 3.4], ['golem-lune', 3.4], ['tortue-corail', 3.0]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
 /* (28/10/2026) le Lemurien tiki, anime a la main dans Blender (blender/lemurien-anime.py, lemurien-export.py), pas par Mixamo (« c'est des creatures,
    Mixamo c'est plus pour des humanoides », Mathieu) : son squelette n'a pas de hanches Mixamo, la vitesse naturelle de sa marche et de sa course

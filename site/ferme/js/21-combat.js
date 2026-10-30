@@ -198,6 +198,8 @@ function ficheMonstre(t) {
   if (d.cawotteRoyale) L.push(capa('assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num(secondes(ESQUIVE.cawotteRoyale) + ' pour esquiver') + recup('cawotteRoyale'), 'or'));
   if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée, ses nuages restent 24 s au sol : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
   if (d.appel) L.push(capa('sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui.', recup('appel'), 'violet'));
+  if (d.geyser) L.push(capa('sort', 'Geyser', 'Un cercle rouge sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge'));
+  if (d.garde) L.push(capa('carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu'));
   if (d.invoque) L.push(capa('renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' lève son bâton de corail et invoque ' + d.invoque.n + ' tortues toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus) : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.', '', 'vert'));
   if (d.renforts) L.push(capa('renfort', 'Renforts','Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert'));
   if (d.rage) L.push(capa('rage', 'Rage', 'Sous 30 % de vie, il frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge'));
@@ -441,7 +443,7 @@ function butin(mo) {
    ({ x, z, x2, z2, larg }) ; elle reste dans combat.dangers jusqu'au coup (le bot et les simulations l'esquivent comme un joueur) */
 const dansDanger = (d, x, z) => { if (d.r) return Math.hypot(x - d.x, z - d.z) < d.r; const ax = d.x2 - d.x, az = d.z2 - d.z, L2 = ax * ax + az * az || 1, k = Math.max(0, Math.min(1, ((x - d.x) * ax + (z - d.z) * az) / L2)); return Math.hypot(x - d.x - k * ax, z - d.z - k * az) < d.larg / 2; };
 const solA = (x, z) => { const c = caseIci(x, z); return c ? hauteurSol(x, z, c) : 0; };
-const pointValide = (x0, z0, x, z) => { const ok = (a, b) => { const q = caseIci(a, b); return q && PASSABLE[q.type]; }; let k = 1; while (k > 0 && !ok(x0 + (x - x0) * k, z0 + (z - z0) * k)) k -= 0.05; k = Math.max(0, k); return { x: x0 + (x - x0) * k, z: z0 + (z - z0) * k }; };
+const pointValide = (x0, z0, x, z) => { const ok = (a, b) => { if (lieu === 'arene') return solSort(a, b); const q = caseIci(a, b); return q && PASSABLE[q.type]; }; /* (a l'Arene, son cercle : elle n'a pas de cases de ferme, tout y tombait a zero ; les Tortues roulaient sur place, « elles avancent pas », Mathieu, 29/10/2026) */ let k = 1; while (k > 0 && !ok(x0 + (x - x0) * k, z0 + (z - z0) * k)) k -= 0.05; k = Math.max(0, k); return { x: x0 + (x - x0) * k, z: z0 + (z - z0) * k }; };
 function zoneDanger(o) {
   const c0 = combat, g = new T.Group(), mat0 = (op) => new T.MeshBasicMaterial({ color: o.couleur || '#e2413a', transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide });
   const d = o.r ? { x: o.x, z: o.z, r: o.r } : { x: o.x, z: o.z, x2: o.x2, z2: o.z2, larg: o.larg }; let fond, plein;
@@ -655,8 +657,18 @@ function capGalvanise(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.galvanise) { /* le Dragoeuf Dore : la horde autour de lui frappe et court plus vite pendant 4 s */
     mo.galvT = (mo.galvT || 0) + dt;
-    if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; gesteSort(mo, 'sort'); if (mo.d.tambour) { onde(mo.x, mo.m.position.y, mo.z, 7, '#f2b630', 0.55, 0.8); onde(mo.x, mo.m.position.y, mo.z, 4.5, '#ffe9a8', 0.4, 0.6); } combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, '#f2b630'); }
+    if (mo.galvT >= mo.d.galvanise) { mo.galvT = 0; gesteSort(mo, gesteDe(mo, 'galvanise', 'sort')); if (mo.d.tambour || mo.d.galvaCouleurs) { const C = mo.d.galvaCouleurs || ['#f2b630', '#ffe9a8']; onde(mo.x, mo.m.position.y, mo.z, 7, C[0], 0.55, 0.8); onde(mo.x, mo.m.position.y, mo.z, 4.5, C[1], 0.4, 0.6); } combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).forEach((o) => { o.galva = 4; }); pouf(mo.x, mo.m.position.y, mo.z, 5, (mo.d.galvaCouleurs || ['#f2b630'])[0]); if (mo.d.galvaCouleurs && !combat.galvaVu) { combat.galvaVu = true; toast(leNom(mo.d) + ' galvanise ses alliés autour d\'' + (mo.d.fem ? 'elle' : 'lui') + ' : ils frappent et courent plus vite 4 s. Éloigne-les d\'' + (mo.d.fem ? 'elle' : 'lui') + ' !', 'alerte'); } }
   }
+}
+function capGeyser(mo, ctx) { /* le geyser de la Tortue Corail (30/10/2026, « elle lance des sorts de loin ») : un cercle rouge sous le perso, 1,4 s pour en sortir, puis l'eau jaillit */
+  const { pp, sortPret } = ctx;
+  if (!mo.d.geyser) return; const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('geyserT', mo.d.geyser) || dP > 16) return;
+  mo.geyserT = 0; const x0 = pp.x, z0 = pp.z, R = 2.2, duree = 1.4; mo.ry = Math.atan2(x0 - mo.x, z0 - mo.z); mo.bloqueT = 1.0; gesteSort(mo, gesteDe(mo, 'geyser', 'tir'), 0.8);
+  if (!combat.geyserVu) { combat.geyserVu = true; toast(leNom(mo.d) + ' fait jaillir un geyser sous tes pieds : sors du cercle rouge !', 'alerte'); }
+  zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => { const y = solA(x0, z0);
+    onde(x0, y, z0, R * 1.3, '#5fd6e8', 0.5, 0.85); emettre(FX_VIF, 46, { x: x0, y: y + 0.1, z: z0, r: R * 0.45, dv: 7.5, haut: true, vie: [0.45, 0.9], taille: [0.16, 0.05], c: ['#ffffff', '#bff4ff', '#5fd6e8', '#2a9ccc'], a: 0.95, grav: 11 }); emettre(FX_FUM, 14, { x: x0, y: y + 0.2, z: z0, r: R * 0.5, dv: 2.5, haut: true, vie: [0.5, 0.9], taille: [0.5, 0.9], c: ['#e8fbff', '#bfeaf5'], a: 0.5, grav: -1 }); secousse(0.1, 0.25);
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).geyser || 1)), mo); } });
 }
 function capTroupe(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
@@ -945,7 +957,7 @@ function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/20
     return true; });
 }
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre, capRoulade];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre, capRoulade];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -1034,7 +1046,13 @@ function majMonstre(mo, dt, s) {
   if (!mo.d.grignote && !bandit) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
   if (!versPerso && !bandit && !mo.d.distance && combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) <= mo.d.portee * (mo.allonge || 1)) { versPerso = true; bat = null; } /* passer a sa portee : il te frappe, meme s'il visait un batiment ou une culture */
   if (versPerso) { tx = pp.x; tz = pp.z; } mo.chasse = versPerso;
-  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = versPerso ? mo.d.portee * (mo.allonge || 1) : bat ? mo.d.portee : 0.3; /* (allonge : le boss colossal de l'ile frappe plus loin, a sa taille) */
+  let recule = false; /* garde : l'incantatrice (la Tortue Corail, 30/10/2026) recule quand le perso l'approche, pour lancer ses sorts de loin */
+  if (mo.tientT > 0) mo.tientT -= dt; /* (apres 1,6 s de recul, elle se plante 2,5 s pour tirer : le perso court bien plus vite qu'elle, sinon elle ne ferait que fuir, essai du 30/10) */
+  if (versPerso && mo.d.garde && !(mo.bloqueT > 0) && !(mo.tientT > 0)) { const dp = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (dp < mo.d.garde) { /* (dos au mur, elle file de cote : droit devant elle, puis de plus en plus de biais ; essai du 30/10 : arrivee par une herse, elle restait collee au bord) */
+    const a0 = Math.atan2(mo.x - pp.x, mo.z - pp.z), L = mo.d.garde + 2.5 - dp;
+    for (const da of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) { const f = pointValide(mo.x, mo.z, mo.x + Math.sin(a0 + da) * L, mo.z + Math.cos(a0 + da) * L); if (Math.hypot(f.x - mo.x, f.z - mo.z) > Math.min(1.5, L * 0.6)) { tx = f.x; tz = f.z; recule = true; break; } } } }
+  if (recule) { mo.reculT = (mo.reculT || 0) + dt; if (mo.reculT > 1.6) { mo.reculT = 0; mo.tientT = 2.5; recule = false; tx = pp.x; tz = pp.z; } } else if (mo.reculT > 0) mo.reculT = Math.max(0, mo.reculT - dt * 0.5);
+  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = recule ? 0.3 : versPerso ? mo.d.portee * (mo.allonge || 1) : bat ? mo.d.portee : 0.3; /* (allonge : le boss colossal de l'ile frappe plus loin, a sa taille) */
   if (versPerso && !combat.raid && d > portee + 0.8 && d <= SAUT_PORTEE && mo.sautT >= SAUT_RECHARGE && peutSauter(mo)) sauterSurPerso(mo); /* le bond : a moins de 3 cases, il te saute dessus */
   else if (d > portee) {
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;

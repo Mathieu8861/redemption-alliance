@@ -13,7 +13,7 @@ const GROUPES_DEV = {
   ebil: { nom: 'Ebil et sa garde', liste: { kannibEbil: 1, kannibJav: 1, tortueBleue: 1, tortueVerte: 1 } },
   moon: { nom: 'Moon', liste: { moon: 1 } },
   lemurien: { nom: 'Les Lémuriens', liste: { lemurienTiki: 3 } }, /* (28/10/2026, le premier monstre anime a la main) */
-  nouveaux: { nom: 'Les 4 boss', liste: { lemurienTiki: 1, gorilleRoi: 1, golemLune: 1, tortueCorail: 1 } }, /* (28/10/2026, les 4 dessins de Mathieu, des boss) */
+  nouveaux: { nom: 'Les 3 boss et la Tortue Corail', liste: { lemurienTiki: 1, gorilleRoi: 1, golemLune: 1, tortueCorail: 1 } }, /* (28/10/2026, les 4 dessins de Mathieu, des boss) */
 };
 const NB_DEV_MAX = 6;
 let choixDev = null;
