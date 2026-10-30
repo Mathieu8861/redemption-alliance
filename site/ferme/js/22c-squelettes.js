@@ -307,7 +307,7 @@ function moulinet(mo) {
    le marteau), et il ne quitte le sol qu'entre le moment ou ses hanches decollent et celui ou elles retombent (lus sur l'animation). Il atterrit a la
    longueur de son marteau du centre, plus au centre ; son ombre grandit sur le cercle pendant qu'il est en l'air */
 function bondMarteau(mo, cx, cz) {
-  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = ESQUIVE.bond / (mo.d.vivacite || 1), c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
+  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = ESQUIVE.bond / ((mo.d.vivacite || 1) * (mo.d.bondVif || 1)), c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
   if (!nom) return;
   const S = ((U.impacts || {})[nom] || []).filter((x) => x.sol && x.x != null), imp = S[S.length - 1] || { t: 1.75, x: 0, z: 1.8 }, vol = (U.vols || {})[nom] || [imp.t * 0.35, imp.t * 0.9];
   const a = jouerAnim(an, nom, 0.1), D = a.getClip().duration, ts = imp.t / E; a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts - 0.15, E + 0.7), ts }; mo.bloqueT = Math.max(mo.bloqueT || 0, E + 0.6); /* (il se releve en marchant : la fin du bond, 1,6 s debout sur place, est coupee) */
