@@ -79,6 +79,19 @@ function instantsCoup(g, clip) {
   if (!L.length) { let best = 0, k = 1; for (let i = 1; i < P.length; i++) { const v = P[i].p.distanceTo(P[i - 1].p); if (v > best) { best = v; k = i; } } L.push({ t: P[k].t, sol: false }); }
   return L;
 }
+/* un bond : quand ses hanches quittent le sol et quand elles y reviennent (0,4 au-dessus de leur hauteur de depart) */
+function envol(g, clip) {
+  const c = cloneNu(g), h = c.getObjectByName('mixamorigHips'); if (!h) return null; const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const v = new T.Vector3(); let y0 = null, t0 = null, t1 = null;
+  for (let t = 0; t <= clip.duration; t += 1 / 60) { mx.setTime(t); c.updateMatrixWorld(true); const y = h.getWorldPosition(v).y; if (y0 == null) y0 = y; if (y > y0 + 0.4) { if (t0 == null) t0 = t; t1 = t; } }
+  return t0 == null ? null : [t0, t1];
+}
+/* le tourbillon : l'instant ou la caisse est la plus loin de lui, a mi-hauteur (le marteau tendu du moulinet), et ou elle est alors */
+function brasTendu(g, clip) {
+  const c = cloneNu(g), ca = trouverCaisse(c); if (!ca) return null; const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const b = new T.Box3(); let m = null;
+  for (let t = 0; t <= clip.duration; t += 1 / 60) { mx.setTime(t); c.updateMatrixWorld(true); const p = b.setFromObject(ca).getCenter(new T.Vector3()), d = Math.hypot(p.x, p.z);
+    if (p.y > 0.6 && p.y < 2.2 && (!m || d > m.d)) m = { t, d, x: p.x, z: p.z, y: p.y }; }
+  return m;
+}
 function instantGeste(g, clip) {
   const c = cloneNu(g), os = BOUTS.map((n) => c.getObjectByName(n)).filter(Boolean); if (!os.length) return [{ t: clip.duration * 0.45 }];
   const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const dt = 1 / 60, av = os.map(() => null); let best = 0, tb = clip.duration * 0.45;
@@ -107,6 +120,8 @@ async function chargerSquelette(nom, url, h) {
       const aCaisse = !!trouverCaisse(gl.scene);
       gl.animations.forEach((c) => { const f = familleDe(c.name); if (aCaisse && (FAMILLES_COUP.includes(f) || f === 'bond')) impacts[c.name] = instantsCoup(gl.scene, c); else if (!aCaisse && FAMILLES_GESTE.includes(f)) impacts[c.name] = instantGeste(gl.scene, c); });
       gl.scene.userData.impacts = impacts;
+      if (aCaisse) { const vols = {}, bras = {}; gl.animations.forEach((c) => { const f = familleDe(c.name); if (f === 'bond') vols[c.name] = envol(gl.scene, c); if (f === 'tourbillon') bras[c.name] = brasTendu(gl.scene, c); });
+        gl.scene.userData.vols = vols; gl.scene.userData.bras = bras; } /* (le bond et le moulinet de Moon) */
       /* sa portee : la ou tombent ses coups au sol, en moyenne (il ne frappe que si tu es dedans) */
       const D = aCaisse ? [].concat(...Object.values(impacts)).filter((x) => x.sol && x.d).map((x) => x.d).sort((x, y) => x - y) : []; gl.scene.userData.portee = D.length ? D[Math.floor(D.length / 2)] : 0; /* (sans marteau : la portee de sa fiche) */
       MODELES[nom] = gl.scene; } catch (err) { console.error('squelette', nom, err); }
@@ -132,9 +147,9 @@ function jouerAnim(an, nom, fondu) {
 /* (26/10/2026, « c'est surtout le boss le souci », Mathieu : un geste long est joue plus vite, jamais plus de ces durees en temps du jeu ;
    le cri d'arrivee d'Ebil durait 3,4 s, ses sorts 2 s, les combos du marteau de Moon jusqu'a 3 s) */
 const GESTE_MAX = { rugir: 1.6, sort: 1.4, coup: 2, tourbillon: 2 };
-function geste(mo, fam, bloque, choisi) { /* (choisi : le mouvement deja tire, celui dont on a lu les impacts) */
+function geste(mo, fam, bloque, choisi, tsMax) { /* (choisi : le mouvement deja tire, celui dont on a lu les impacts ; tsMax : pas plus vite, le coup de Moon s'annonce au moins 0,9 s) */
   const an = mo.m.userData.anim, nom = choisi || piocher(an, fam); if (!nom) return 0;
-  const a = jouerAnim(an, nom, 0.15), D = a.getClip().duration, ts = Math.max(vif(mo), GESTE_MAX[fam] ? D / GESTE_MAX[fam] : 0); a.timeScale = ts; const d = D / ts;
+  const a = jouerAnim(an, nom, 0.15), D = a.getClip().duration, ts = Math.min(tsMax || 99, Math.max(vif(mo), GESTE_MAX[fam] ? D / GESTE_MAX[fam] : 0)); a.timeScale = ts; const d = D / ts;
   mo.geste = { t: 0, d: d - 0.2, ts }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
 }
 /* chaque image : un geste en cours garde la main ; sinon il marche (ou court) a sa vitesse, ou il attend en changeant de repos de temps en temps.
@@ -156,7 +171,8 @@ function majSquelette(mo, v, dt) {
       if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)) * vitAnim(mo); }
     else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); an.repT = 5 + Math.random() * 5; }
   }
-  if (an.eclat > 0) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16; an.peau.forEach((m) => m.emissive.setRGB(0.32 * k, 0.06 * k, 0.03 * k)); /* (un eclat leger : plus fort, une Tortue jaune virait au rose) */ }
+  const rage = mo.enrage && mo.d.auraRage && mo.etat === 'actif'; if (rage) auraRage(mo, an, dt);
+  if (an.eclat > 0 || rage) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16, g = rage ? 0.16 + 0.12 * Math.sin(performance.now() / 150) : 0; an.peau.forEach((m) => m.emissive.setRGB(0.32 * k + g, 0.06 * k + g * 0.3, 0.03 * k + g * 0.04)); /* (un eclat leger : plus fort, une Tortue jaune virait au rose ; enrage, Moon rougeoie en battant) */ }
   an.mixer.update(dt);
 }
 /* un coup recu : un eclat rouge, sans s'arreter (26/10/2026, « l'animation de degat pris ralentit le mob, du coup on prend 0 degat », Mathieu :
@@ -202,33 +218,120 @@ function mortSquelette(mo, dt) {
   mo.chute.t += dt; an.mixer.update(dt);
   if (mo.chute.t > mo.chute.d + 0.6) { mo.m.position.y -= dt * 1.4; if (mo.chute.t > mo.chute.d + 2.4 && mo.m.parent) jeter(mo.m); }
 }
-/* le coup de marteau : un coup au hasard (parfois le tourbillon), ses degats a chaque instant ou le marteau arrive en bas, sur une bande du pied du
-   monstre jusqu'a la caisse ou autour d'elle (un coup a plusieurs temps partage ses degats) */
+/* le coup de marteau : un coup au hasard (parfois le moulinet), ses degats a chaque instant ou le marteau arrive en bas.
+   (30/10/2026 au soir, « les animations sont vraiment bizarres, le cratere au sol est pas sur moi, le saut est decale », Mathieu) : chaque coup
+   tombait la ou son animation pose le marteau, jusqu'a 70 degres sur le cote et a plus de 3 de lui, presque jamais sous le perso. Maintenant il se
+   tourne et se recale d'un pas, avant de frapper, pour que le premier impact au sol tombe la ou tu es : le cercle est sous tes pieds, le cratere
+   dans le cercle. Un coup qui balaie (sans impact au sol) frappe en eventail devant lui, face a toi. Ses zones sont a la couleur de ses sorts */
+const ALERTE_MARTEAU = 0.9; /* (le premier impact jamais moins de 0,9 s apres l'annonce : 0,5 a 0,65 s avant, on n'avait pas le temps de lire le cercle) */
+const echelleSq = (mo) => mo.m.scale.x / ((MODELES[mo.d.modele] || mo.m).scale.x || 1) / (1 + Math.max(0, mo.coup || 0) * 0.9); /* (sans le gonflement d'un coup recu) */
+const versMonde = (x0, z0, ry, lx, lz) => ({ x: x0 + lx * Math.cos(ry) + lz * Math.sin(ry), z: z0 - lx * Math.sin(ry) + lz * Math.cos(ry) }); /* (un point du modele, tourne de ry, pose en x0, z0) */
+/* il se tourne et glisse jusqu'a sa place de frappe, en douceur */
+function recaler(mo, x1, z1, ry1, duree) {
+  const x0 = mo.x, z0 = mo.z, r0 = mo.ry, dr = Math.atan2(Math.sin(ry1 - r0), Math.cos(ry1 - r0)), c0 = combat; let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif') return true; const k = Math.min(1, t / Math.max(0.01, duree)), e = k * k * (3 - 2 * k);
+    mo.x = x0 + (x1 - x0) * e; mo.z = z0 + (z1 - z0) * e; mo.ry = r0 + dr * e; return k >= 1; });
+}
 function coupMarteau(mo) {
-  const an = mo.m.userData.anim, fam = an.F.tourbillon && Math.random() < 0.2 ? 'tourbillon' : 'coup', nom = piocher(an, fam), c0 = combat;
-  const d = geste(mo, fam, true, nom), ts = (mo.geste && mo.geste.ts) || vif(mo), L = ((mo.m.userData.impacts || {})[nom] || [{ t: d * 0.45 * ts, sol: true }]).map((x) => Object.assign({}, x, { t: x.t / ts })); let t = 0, k = 0;
-  /* (26/10/2026 : les impacts sont lus en temps du mouvement, ramenes au temps du jeu ; et le geste joue bien le coup tire, pas un autre) */
+  const an = mo.m.userData.anim; if (an.F.tourbillon && Math.random() < 0.2) { moulinet(mo); return; }
+  const nom = piocher(an, 'coup'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), X = mo.d.sortsX || {};
+  const brut = (mo.m.userData.impacts || {})[nom] || [{ t: 1, sol: true, x: 0, z: 2.6 }];
+  const d = geste(mo, 'coup', true, nom, brut[0].t / ALERTE_MARTEAU), ts = (mo.geste && mo.geste.ts) || vif(mo), L = brut.map((x) => Object.assign({}, x, { t: x.t / ts }));
   mo.cd = Math.max(mo.cd, d + 0.7); /* (un souffle entre deux coups : un enchainement long ne repart pas aussitot) */
-  /* (27/10/2026, « les coups de marteau tapent dans le vide, les degats sont insignifiants », Mathieu : chaque impact s'annonce par une zone rouge la
-     ou le marteau va tomber, un cercle pour un coup au sol, une bande devant lui pour un coup qui balaie, un grand cercle autour de lui pour le
-     moulinet. Dedans a l'impact, il tape comme un sort (degSort, part de sortsX) ; dehors, rien. Il ne tourne pas pendant son geste : la zone est juste) */
-  const x0 = mo.x, z0 = mo.z, ca = Math.cos(mo.ry), sa = Math.sin(mo.ry), e = mo.m.scale.x / ((MODELES[mo.d.modele] || mo.m).scale.x || 1), X = mo.d.sortsX || {}, tour = fam === 'tourbillon';
-  L.forEach((imp, i) => {
-    const lx = (imp.x || 0) * e, lz = (imp.z != null ? imp.z : imp.d || 2) * e, px = x0 + lx * ca + lz * sa, pz = z0 - lx * sa + lz * ca;
-    const dg = Math.max(1, Math.round(degSort(mo) * (tour ? X.moulinet || 0.35 : imp.sol ? X.marteau || 0.5 : X.balaye || 0.25)));
-    const z = tour ? { x: x0, z: z0, r: 3.4 } : imp.sol ? { x: px, z: pz, r: 1.9 } : { x: x0, z: z0, x2: x0 + (px - x0) * 1.35, z2: z0 + (pz - z0) * 1.35, larg: 2.4 };
+  const aP = Math.atan2(pp.x - mo.x, pp.z - mo.z), dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), sol = L.find((x) => x.sol && x.x != null);
+  let ry = aP, x1 = mo.x, z1 = mo.z;
+  if (sol) { const lx = sol.x * e, lz = sol.z * e, k = Math.max(-1.6, Math.min(1.6, dP - Math.hypot(lx, lz))), f = pointValide(mo.x, mo.z, mo.x + Math.sin(aP) * k, mo.z + Math.cos(aP) * k);
+    ry = aP - Math.atan2(lx, lz); x1 = f.x; z1 = f.z; } /* (le pas qu'il fait vers toi, ou en arriere, pour que le marteau tombe sur toi) */
+  recaler(mo, x1, z1, ry, Math.min(0.3, L[0].t * 0.4));
+  L.forEach((imp) => {
+    const dg = Math.max(1, Math.round(degSort(mo) * (imp.sol ? X.marteau || 0.5 : X.balaye || 0.25)));
+    const z = imp.sol && imp.x != null ? Object.assign({ r: 1.9 }, versMonde(x1, z1, ry, imp.x * e, imp.z * e)) : { x: x1, z: z1, r: 3.7 * e, a: ry, ouv: 1.0 };
     const touche = (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && dansDanger(dz, p2.x, p2.z)) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); } };
-    if (tour && i > 0) { let t2 = 0; effets.push((dt) => { t2 += dt; if (t2 < imp.t) return false; touche(z); return true; }); return; } /* (le moulinet : un seul grand cercle, chaque tour y frappe) */
     zoneDanger(Object.assign({ mo, duree: Math.max(0.3, imp.t), effet: touche }, z));
   });
-  if (!c0.marteauVu) { c0.marteauVu = true; toast(leNom(mo.d) + ' abat son marteau : sors de la zone rouge avant qu\'il tombe !', 'alerte'); }
+  if (!c0.marteauVu) { c0.marteauVu = true; toast(leNom(mo.d) + ' abat son marteau sur toi : sors du cercle avant qu\'il tombe !', 'alerte'); }
+  let t = 0, k = 0;
   effets.push((dt) => { t += dt;
     while (k < L.length && t >= L[k].t) { const imp = L[k++];
       if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !an.caisse) return true;
       const p = new T.Box3().setFromObject(an.caisse).getCenter(new T.Vector3()), y = mo.m.position.y;
-      if (imp.sol) impactMarteau(p.x, y, p.z); else { secousse(0.16, 0.3); onde(p.x, y, p.z, tour ? 4.2 : 3.2, '#fff3d6', 0.45, 0.75); poussiere(p.x, y, p.z, 12, 1.4, '#d8c6a0'); } /* (les degats : la zone rouge, plus haut) */
-    }
+      if (imp.sol) impactMarteau(p.x, y, p.z, mo.d.couleurSorts);
+      else { secousse(0.16, 0.3); balayage(mo, x1, y, z1, ry, 3.4 * e); poussiere(p.x, y, p.z, 12, 1.4, '#d8c6a0'); } }
     return t >= d || k >= L.length && t > L[L.length - 1].t + 0.1; });
+}
+/* la trainee d'un coup qui balaie : une lame de vent en eventail devant lui, a sa couleur */
+function balayage(mo, x, y, z, ry, r) {
+  const C = mo.d.couleurSorts || ['#ff7a3a', '#ffe0c0', '#8a2a12'], g = new T.Group(); g.position.set(x, y + 1.1, z); g.rotation.y = ry;
+  const lames = [['#ffffff', C[1], 1, 1.0, true], [C[1], C[0], 0.75, 1.12, false]].map(([c, b, o, sc, plein]) => { const m = new T.Mesh(GEO_RUBAN, matRuban(c, b, o, plein)); m.rotation.x = Math.PI / 2; m.scale.set(sc * r / 1.15, sc * r / 1.15, 1); m.renderOrder = plein ? 9 : 8; g.add(m); return m; });
+  fxVie(g, 0.3, (k) => { const u = 1 - Math.pow(1 - k, 2.2); lames.forEach((m, i) => { m.material.uniforms.uP.value = u * 1.5; m.material.uniforms.uA.value = (i ? 0.75 : 1) * (k < 0.7 ? 1 : (1 - k) / 0.3); }); });
+  onde(x, y, z, r * 1.1, C[1], 0.45, 0.6);
+}
+/* le moulinet (30/10/2026 au soir, « 3 tours, un coup par tour », propose a Mathieu) : il te fait face et arme son coup, le grand cercle s'annonce ;
+   puis, marteau tendu (la pose du tourbillon ou la caisse est la plus loin de lui), il tourne trois fois sur lui-meme, une lame de vent derriere le
+   marteau, de la poussiere au sol ; chaque tour frappe dans le cercle, qui reste affiche tant qu'il tourne */
+const TOURS_MOULINET = 3, VITESSE_MOULINET = 2.2; /* (tours par seconde) */
+function moulinet(mo) {
+  const an = mo.m.userData.anim, nom = piocher(an, 'tourbillon'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
+  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e, Ds = TOURS_MOULINET / VITESSE_MOULINET, alerte = ALERTE_MARTEAU;
+  const dg = Math.max(1, Math.round(degSort(mo) * ((mo.d.sortsX || {}).moulinet || 0.35)));
+  const a = jouerAnim(an, nom, 0.12); a.timeScale = bras.t / alerte; mo.geste = { t: 0, d: alerte + Ds + 0.15, ts: a.timeScale };
+  mo.bloqueT = Math.max(mo.bloqueT || 0, alerte + Ds + 0.25); mo.cd = Math.max(mo.cd, alerte + Ds + 1.1);
+  recaler(mo, mo.x, mo.z, Math.atan2(pp.x - mo.x, pp.z - mo.z) - Math.atan2(bras.x || 0, bras.z || 1), 0.25);
+  if (!c0.moulinetVu) { c0.moulinetVu = true; toast(leNom(mo.d) + ' tourne trois fois sur lui-même : sors du grand cercle !', 'alerte'); }
+  const touche = () => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && Math.hypot(p2.x - mo.x, p2.z - mo.z) < R) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); }
+    const y = mo.m.position.y; onde(mo.x, y, mo.z, R * 1.05, C[1], 0.4, 0.75); onde(mo.x, y, mo.z, R * 0.8, C[2], 0.5, 0.45, true); secousse(0.12, 0.25); };
+  zoneDanger({ mo, x: mo.x, z: mo.z, r: R, duree: alerte, effet: () => {
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif') return;
+    a.time = bras.t; a.timeScale = 0; touche(); /* (le marteau tendu, fige ; c'est lui qui tourne) */
+    const d = { x: mo.x, z: mo.z, r: R }; (c0.dangers = c0.dangers || []).push(d);
+    const g = new T.Group(), y0 = mo.m.position.y; g.position.set(mo.x, y0 + 0.07, mo.z);
+    const fond = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshBasicMaterial({ color: C[0], transparent: true, opacity: 0.22, depthWrite: false, side: T.DoubleSide })), bord = new T.Mesh(new T.RingGeometry(R - 0.16, R, 56), new T.MeshBasicMaterial({ color: C[0], transparent: true, opacity: 0.9, depthWrite: false, side: T.DoubleSide }));
+    [fond, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 2; g.add(m); }); scene.add(g);
+    const lame = new T.Group(); lame.position.set(mo.x, y0 + bras.y * e, mo.z);
+    const lames = [['#ffffff', C[1], 0.9, 1.0, true], [C[1], C[0], 0.6, 1.1, false]].map(([c, b, o, sc, plein]) => { const m = new T.Mesh(GEO_RUBAN, matRuban(c, b, o, plein)); m.rotation.x = Math.PI / 2; m.scale.set(sc * (R - 0.3) / 1.15, sc * (R - 0.3) / 1.15, 1); m.material.uniforms.uP.value = 1; m.material.uniforms.uQ.value = 0.85; m.renderOrder = plein ? 9 : 8; lame.add(m); return m; });
+    scene.add(lame);
+    const r0 = mo.ry, a0 = Math.atan2(bras.x || 0, bras.z || 1); let t = 0, tours = 0, pf = 0;
+    const fin = () => { jeter(g); jeter(lame); const i = c0.dangers.indexOf(d); if (i >= 0) c0.dangers.splice(i, 1); if (mo.geste) mo.geste.d = Math.min(mo.geste.d, mo.geste.t); return true; };
+    effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin();
+      const k = Math.min(1, t / Ds); mo.ry = r0 + k * TOURS_MOULINET * Math.PI * 2; lame.rotation.y = mo.ry + a0 - 1.25; /* (la tete de la lame, a +1,25 dans le ruban, sur le marteau) */
+      lames.forEach((m, i) => { m.material.uniforms.uA.value = (i ? 0.6 : 0.9) * Math.min(1, t / 0.12) * Math.min(1, (Ds - t) / 0.15 + 0.2); });
+      fond.material.opacity = 0.16 + 0.1 * Math.abs(Math.sin(t * 9));
+      if ((pf -= dt) <= 0) { pf = 0.06; const am = mo.ry + a0, rx = mo.x + Math.sin(am) * (R - 0.6), rz = mo.z + Math.cos(am) * (R - 0.6);
+        emettre(FX_FUM, 2, { x: rx, y: y0 + 0.15, z: rz, v: [Math.cos(am) * 2.2, 0.9, -Math.sin(am) * 2.2], dv: 0.6, vie: [0.5, 0.8], taille: [0.6, 1.4], c: ['#e6d6b4', '#d2bf98'], a: 0.5, frein: 2.5, vrot: 1.2 }); }
+      const n = Math.floor(k * TOURS_MOULINET + 1e-6); if (n > tours && tours < TOURS_MOULINET - 1) { tours = n; touche(); } else tours = Math.max(tours, n);
+      if (k >= 1) { mo.ry = r0; return fin(); } });
+  } });
+}
+/* le bond de Moon (30/10/2026 au soir) : il vise l'endroit ou tu es ; son animation est recalee pour que le marteau s'abatte sur le centre du cercle
+   a la fin du temps pour esquiver (le dernier impact au sol, pas le premier : celui-la, c'etait l'elan, et les degats tombaient une seconde avant
+   le marteau), et il ne quitte le sol qu'entre le moment ou ses hanches decollent et celui ou elles retombent (lus sur l'animation). Il atterrit a la
+   longueur de son marteau du centre, plus au centre ; son ombre grandit sur le cercle pendant qu'il est en l'air */
+function bondMarteau(mo, cx, cz) {
+  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = ESQUIVE.bond, c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
+  if (!nom) return;
+  const S = ((U.impacts || {})[nom] || []).filter((x) => x.sol && x.x != null), imp = S[S.length - 1] || { t: 1.75, x: 0, z: 1.8 }, vol = (U.vols || {})[nom] || [imp.t * 0.35, imp.t * 0.9];
+  const a = jouerAnim(an, nom, 0.1), D = a.getClip().duration, ts = imp.t / E; a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts - 0.15, E + 0.7), ts }; mo.bloqueT = Math.max(mo.bloqueT || 0, E + 0.6); /* (il se releve en marchant : la fin du bond, 1,6 s debout sur place, est coupee) */
+  const x0 = mo.x, z0 = mo.z, lx = imp.x * e, lz = imp.z * e, ry = Math.atan2(cx - x0, cz - z0) - Math.atan2(lx, lz), q = versMonde(0, 0, ry, lx, lz);
+  const f = pointValide(x0, z0, cx - q.x, cz - q.z), c = { x: f.x + q.x, z: f.z + q.z }, R = 2.8; /* (c : la ou le marteau tombe vraiment, si un mur l'a arrete avant) */
+  recaler(mo, x0, z0, ry, 0.2);
+  if (!c0.bonditVu) { c0.bonditVu = true; toast(leNom(mo.d) + ' va bondir et abattre son marteau sur toi : sors du cercle !', 'alerte'); }
+  const ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(c.x, solA(c.x, c.z) + 0.09, c.z); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre);
+  const t0 = vol[0] / ts, t1 = Math.max(t0 + 0.2, vol[1] / ts); let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { jeter(ombre); return true; }
+    if (t > t0) { const k = Math.min(1, (t - t0) / (t1 - t0)), e2 = k * k * (3 - 2 * k); mo.x = x0 + (f.x - x0) * e2; mo.z = z0 + (f.z - z0) * e2; }
+    const o = Math.max(0, Math.min(1, (t - t0) / (E - t0))); ombre.scale.setScalar(Math.max(0.01, R * (0.25 + 0.65 * o))); ombre.material.opacity = 0.2 + 0.4 * o;
+    if (t >= E) { jeter(ombre); return true; } });
+  zoneDanger({ mo, x: c.x, z: c.z, r: R, duree: E, effet: (d) => { mo.frappe = 0.4; const y = solA(c.x, c.z); impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, 7.5, C[1], 0.7, 0.6);
+    pouf(c.x, y, c.z, 5, '#8e7a5e'); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
+}
+/* sa colere (enrage, auraRage dans sa fiche) : sa peau rougeoie en battant, des braises montent autour de lui et de la vapeur sort de sa tete */
+function auraRage(mo, an, dt) {
+  if (!an.rageVu) { an.rageVu = true; const y = mo.m.position.y; onde(mo.x, y, mo.z, 6, '#ff9a4a', 0.6, 0.8); flashLumiere(mo.x, y + 2, mo.z, '#ff7a2e', 3, 9, 0.35); emettre(FX_VIF, 30, { x: mo.x, y: y + 2, z: mo.z, r: 1.2, dv: 5, vie: [0.4, 0.8], taille: [0.12, 0.03], c: ['#fff1c0', '#ff9a3a', '#e2413a'], grav: 4, frein: 1.5, etire: 0.03 }); }
+  if ((an.rageT = (an.rageT || 0) - dt) > 0) return; an.rageT = 0.08; const h = mo.haut || 4, y = mo.m.position.y, a = Math.random() * Math.PI * 2, r = 0.6 + Math.random() * 1.2;
+  emettre(FX_VIF, 2, { x: mo.x + Math.sin(a) * r, y: y + 0.3 + Math.random() * h * 0.7, z: mo.z + Math.cos(a) * r, r: 0.3, v: [0, 2.2, 0], dv: 0.5, vie: [0.5, 0.9], taille: [0.13, 0.03], c: ['#ffb02e', '#e8411a', '#9a1a08'], frein: 0.6 }); /* (des braises en couleur pleine : en lumiere, elles disparaissaient sur le sable clair) */
+  if ((an.vapeurT = (an.vapeurT || 0) - 1) > 0) return; an.vapeurT = 5;
+  const tete = an.tete || (an.tete = mo.m.getObjectByName('mixamorigHead')); if (!tete) return; const p = tete.getWorldPosition(new T.Vector3());
+  emettre(FX_FUM, 4, { x: p.x, y: p.y + 0.6, z: p.z, r: 0.35, v: [0, 2.2, 0], dv: 0.6, vie: [0.7, 1.1], taille: [0.6, 1.8], c: ['#d8cfc8', '#b8aca4'], a: 0.7, frein: 1.5, vrot: 1 });
 }
 /* le petit cratere (« l'impact doit faire comme un pti cratere », Mathieu) : un creux sombre, un bourrelet de terre souleve tout autour, des mottes et
    des touffes d'herbe sur le bord ; il jaillit en 0,1 s, reste, puis s'enfonce dans le sol et s'efface */
@@ -244,9 +347,9 @@ function cratere(x, y, z, r, duree) {
   fxVie(g, duree, (k) => { const tk = k * duree, monte = Math.min(1, tk / 0.1), fin = Math.max(0, (tk - (duree - 0.7)) / 0.7);
     g.scale.set(0.6 + 0.4 * monte, monte * (1 - fin) + 0.001, 0.6 + 0.4 * monte); fond.material.opacity = 0.92 * (1 - fin); bord.material.opacity = 0.85 * (1 - fin); });
 }
-function impactMarteau(x, y, z) {
+function impactMarteau(x, y, z, C) { /* (C : la couleur de ses sorts, pour l'onde) */
   secousse(0.32, 0.45); flashLumiere(x, y + 0.6, z, '#fff1d0', 3.2, 9, 0.22);
-  emettre(FX_LUM, 1, { x, y: y + 0.3, z, vie: [0.12, 0.14], taille: [3.5, 5.5], c: ['#ffffff', '#ffe2a0'], a: 0.85, entree: 0.01 });
-  onde(x, y, z, 5.5, '#fff3d6', 0.5, 0.95); onde(x, y, z, 3.6, '#8b6a45', 0.7, 0.55, true);
+  emettre(FX_LUM, 1, { x, y: y + 0.3, z, vie: [0.12, 0.14], taille: [3.5, 5.5], c: ['#ffffff', C ? C[1] : '#ffe2a0'], a: 0.85, entree: 0.01 });
+  onde(x, y, z, 5.5, C ? C[1] : '#fff3d6', 0.5, 0.95); onde(x, y, z, 3.6, '#8b6a45', 0.7, 0.55, true);
   solFendu(x, y, z, 3.0, false); poussiere(x, y, z, 18, 1.8, '#d8c6a0'); mottes(x, y, z, 12, 1.4); cratere(x, y, z, 1.15, 4);
 }
