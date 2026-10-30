@@ -251,25 +251,46 @@ const FS_GEYSER = `uniform float uT, uA; uniform vec3 uC1, uC2; varying vec2 vUv
   float b = clamp(smoothstep(0.55, 1.0, n * 0.6 + m * 0.4) * 0.85 + smoothstep(0.82, 1.0, f) * 0.35, 0.0, 1.0);
   gl_FragColor = vec4(mix(uC1, uC2, b), uA * (0.5 + 0.5 * b) * smoothstep(0.0, 0.06, y) * (1.0 - smoothstep(0.78, 1.0, y))); }`;
 const GEO_GEYSER = new T.CylinderGeometry(0.75, 0.5, 1, 28, 12, true); GEO_GEYSER.translate(0, 0.5, 0); partager(GEO_GEYSER);
-function geyserEau(x, y, z, r, C) {
+function geyserEau(x, y, z, r, C, petit) { /* (petit : les geysers de sa rage, six a la fois, moitie moins de gouttes) */
   const [cA, cB, cC] = C || ['#2aa8e0', '#bdf0ff', '#16608f'], H = 5.2, D = 1.5, g = new T.Group(); g.position.set(x, y, z);
   const tube = (rad, c1, c2, a, add) => { const u = { uT: { value: 0 }, uA: { value: a }, uC1: { value: new T.Color(c1) }, uC2: { value: new T.Color(c2) } };
     const m = new T.Mesh(GEO_GEYSER, new T.ShaderMaterial({ uniforms: u, vertexShader: VS_GEYSER, fragmentShader: FS_GEYSER, transparent: true, depthWrite: false, side: T.DoubleSide, blending: add ? T.AdditiveBlending : T.NormalBlending }));
     m.renderOrder = 5; m.userData = { u, rad, a }; g.add(m); return m; };
   const tubes = [tube(r * 0.8, cC, cB, 0.85), tube(r * 0.45, cA, '#ffffff', 0.6, true)];
   const flaque = new T.Mesh(GEO_DISQUE, fxMat(cA, 0.4)); flaque.rotation.x = -Math.PI / 2; flaque.position.y = 0.06; flaque.renderOrder = 3; g.add(flaque);
-  let kp = 0, gerbe = 0;
+  let kp = 0, gerbe = 0; const q = petit ? 0.5 : 1;
   fxVie(g, D, (k) => {
     const e = 1 - Math.pow(1 - Math.min(1, k / 0.1), 3), tombe = k > 0.6 ? (k - 0.6) / 0.4 : 0, h = Math.max(0.01, H * e * (1 - 0.92 * tombe * tombe));
     tubes.forEach((m) => { const U = m.userData; U.u.uT.value = k * D; m.scale.set(U.rad * (1 + 0.2 * tombe), h, U.rad * (1 + 0.2 * tombe)); U.u.uA.value = U.a * (1 - tombe); });
     flaque.scale.setScalar(r * (0.55 + 0.45 * e)); flaque.material.opacity = 0.4 * (1 - k);
-    gerbe += (k - kp) * D * (k < 0.65 ? 90 : 0); kp = k; const n = Math.floor(gerbe); gerbe -= n; /* (la gerbe du sommet : des gouttes qui partent en couronne et retombent sur le cercle) */
+    gerbe += (k - kp) * D * (k < 0.65 ? 90 * q : 0); kp = k; const n = Math.floor(gerbe); gerbe -= n; /* (la gerbe du sommet : des gouttes qui partent en couronne et retombent sur le cercle) */
     if (n) emettre(FX_VIF, n, { x, y: y + h * 0.97, z, r: r * 0.3, v: [0, 1.5, 0], dv: r * 1.9, haut: true, vie: [0.7, 1.1], taille: [0.2, 0.07], c: ['#ffffff', cB, cA], a: 0.92, grav: 10, sol: y + 0.05, rebond: 0.15 });
   });
   onde(x, y, z, r * 1.25, cB, 0.5, 0.9); onde(x, y, z, r * 0.9, '#ffffff', 0.35, 0.7);
-  emettre(FX_VIF, 40, { x, y: y + 0.1, z, r: r * 0.95, plat: true, v: [0, 3.2, 0], dv: 2.4, haut: true, vie: [0.4, 0.75], taille: [0.18, 0.06], c: ['#ffffff', cB, cA], a: 0.95, grav: 11, sol: y + 0.05 });
-  emettre(FX_FUM, 16, { x, y: y + 0.25, z, r: r * 0.7, plat: true, dv: 1.6, haut: true, vie: [0.6, 1.1], taille: [0.6, 1.1], c: ['#f2fcff', cB], a: 0.45, grav: -0.8 });
-  flashLumiere(x, y + 1.5, z, cA, 2, 6, 0.4);
+  emettre(FX_VIF, Math.round(40 * q), { x, y: y + 0.1, z, r: r * 0.95, plat: true, v: [0, 3.2, 0], dv: 2.4, haut: true, vie: [0.4, 0.75], taille: [0.18, 0.06], c: ['#ffffff', cB, cA], a: 0.95, grav: 11, sol: y + 0.05 });
+  emettre(FX_FUM, Math.round(16 * q), { x, y: y + 0.25, z, r: r * 0.7, plat: true, dv: 1.6, haut: true, vie: [0.6, 1.1], taille: [0.6, 1.1], c: ['#f2fcff', cB], a: 0.45, grav: -0.8 });
+  if (!petit) flashLumiere(x, y + 1.5, z, cA, 2, 6, 0.4);
+}
+/* LA GALVANISATION DE LA TORTUE CORAIL (30/10/2026, « l'onde bleue, faudrait revoir l'animation, on a l'impression que c'est un sort d'attaque », Mathieu) :
+   plus d'onde qui s'elargit au sol. Un sort de soutien : la lumiere monte autour d'elle, un filet de lumiere part de son baton vers chaque alliee, et chez
+   chacune trois fleches montent (le signe d'un bonus) ; son anneau prend la couleur de la tortue et une lumiere monte d'elle tant que dure le bonus (21-combat.js) */
+const GEO_CHEVRON = new T.ShapeGeometry(new T.Shape([[-0.5, -0.1], [0, 0.4], [0.5, -0.1], [0.5, -0.45], [0, 0.05], [-0.5, -0.45]].map(([x, y]) => new T.Vector2(x * 0.42, y * 0.42)))); partager(GEO_CHEVRON);
+function flechesBonus(x, y, z, couleur) { /* trois chevrons qui montent l'un apres l'autre et s'effacent, toujours face a la camera */
+  for (let k = 0; k < 3; k++) { const m = new T.Mesh(GEO_CHEVRON, fxMat(couleur, 0, true)); m.renderOrder = 9; const d0 = k * 0.14, D = 0.85 + d0;
+    fxVie(m, D, (t) => { const u = Math.max(0, (t * D - d0) / 0.85); m.position.set(x, y + 0.3 + u * 1.3 + k * 0.32, z); versCamera(m); m.material.opacity = u <= 0 ? 0 : 0.95 * (u < 0.15 ? u / 0.15 : 1 - Math.max(0, (u - 0.55) / 0.45)); }); }
+}
+function galvaniser(mo, allies, C) {
+  const y = mo.m.position.y, h = mo.haut || 2.5, main = typeof mainSquelette === 'function' && mainSquelette(mo), de = main || new T.Vector3(mo.x, y + h * 0.75, mo.z);
+  emettre(FX_LUM, 34, { x: mo.x, y: y + 0.2, z: mo.z, r: 1.3, plat: true, v: [0, 2.4, 0], dv: 0.4, vie: [0.7, 1.1], taille: [0.2, 0.04], c: ['#ffffff', C[1], C[0]], a: 0.9, frein: 0.3 });
+  emettre(FX_LUM, 10, { x: de.x, y: de.y, z: de.z, r: 0.25, dv: 1.2, vie: [0.3, 0.5], taille: [0.35, 0.05], c: ['#ffffff', C[0]], a: 0.95 });
+  flashLumiere(de.x, de.y, de.z, C[0], 1.5, 5, 0.45);
+  allies.forEach((o) => { let t = 0; const D = 0.4 + Math.hypot(o.x - mo.x, o.z - mo.z) * 0.04; /* (le filet de lumiere : une tete qui file en arc vers l'alliee, sa trainee derriere elle) */
+    effets.push((dt) => { t += dt; if (!combat || combat.fin || !o.m) return true; const k = Math.min(1, t / D), oy = o.m.position.y + (o.haut || 1.4) * 0.6;
+      const px = de.x + (o.x - de.x) * k, py = de.y + (oy - de.y) * k + Math.sin(k * Math.PI) * 1.0, pz = de.z + (o.z - de.z) * k;
+      emettre(FX_LUM, 2, { x: px, y: py, z: pz, r: 0.06, vie: [0.25, 0.4], taille: [0.3, 0.05], c: ['#ffffff', C[0]], a: 0.95 });
+      if (k < 1) return false;
+      flechesBonus(o.x, o.m.position.y + (o.haut || 1.4) * 0.55, o.z, C[0]);
+      emettre(FX_LUM, 16, { x: o.x, y: o.m.position.y + 0.2, z: o.z, r: 0.6, plat: true, v: [0, 2, 0], dv: 0.3, vie: [0.5, 0.9], taille: [0.16, 0.03], c: ['#ffffff', C[1], C[0]], a: 0.9 }); return true; }); });
 }
 function atterrirBouftou(x, y, z) { secousse(0.14, 0.25); onde(x, y, z, 2.4, '#d9c2ff', 0.35, 0.9); onde(x, y, z, 1.6, '#ffffff', 0.25, 0.7); poussiere(x, y, z, 10, 1.6); mottes(x, y, z, 6, 0.8); emettre(FX_LUM, 20, { x, y: y + 0.2, z, r: 0.6, dv: 4, haut: true, vie: [0.3, 0.6], taille: [0.1, 0.02], c: ['#ffffff', '#c9a6ff'], grav: 6, etire: 0.03 }); }
 /* la Meute : un halo violet aux pieds de l'Osamodas tant que son Bouftou est en vie, des lueurs qui tournent autour de lui */
