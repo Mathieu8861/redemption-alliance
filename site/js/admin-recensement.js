@@ -134,27 +134,44 @@
                 + '</div>';
         }).join('');
     }
-    function celluleLiens(p) {
-        var h = '';
-        p.aretes.forEach(function (e) {
-            if (e.force === 'probable') {
-                h += '<div class="rc-lien rc-lien--probable"><span class="rc-q">?</span> ' + esc(court(e.a)) + ' ↔ ' + esc(court(e.b))
-                    + '<br><span class="rc-muet">' + esc(e.raison) + '</span> '
-                    + '<button class="rc-mini rc-mini--ok" data-confirmer="' + esc(e.a) + '|' + esc(e.b) + '" title="C\'est bien la même personne">✓ confirmer</button>'
-                    + '<button class="rc-mini rc-mini--non" data-separer="' + esc(e.a) + '|' + esc(e.b) + '" title="Ce ne sont pas les mêmes">✕ séparer</button></div>';
-            } else if (e.lien) {
-                h += '<div class="rc-lien">🔗 ' + esc(court(e.a)) + ' ↔ ' + esc(court(e.b)) + '<br><span class="rc-muet">' + esc(e.raison) + '</span> '
-                    + '<button class="rc-mini rc-mini--non" data-separer="' + esc(e.a) + '|' + esc(e.b) + '" title="Retirer ce rattachement">✕ retirer</button></div>';
-            }
+    /* les liens d'une personne, regroupés par raison : la raison une seule fois, puis les paires */
+    function groupesLiens(aretes) {
+        var l = [], parRaison = {};
+        aretes.forEach(function (e) {
+            var sorte = e.force === 'probable' ? 'probable' : e.lien ? 'sur' : null;
+            if (!sorte) return; /* les liens venus du site lui-même ne se retirent pas ici */
+            var k = sorte + '|' + e.raison;
+            if (!parRaison[k]) { parRaison[k] = { sorte: sorte, raison: e.raison, aretes: [] }; l.push(parRaison[k]); }
+            parRaison[k].aretes.push(e);
         });
-        var probables = p.aretes.filter(function (e) { return e.force === 'probable'; });
-        if (probables.length > 1) {
-            h += '<button class="rc-mini rc-mini--ok" data-tout-confirmer="' + esc(probables.map(function (e) { return e.a + '|' + e.b; }).join(',')) + '">✓ tout confirmer (' + probables.length + ')</button>';
-        }
+        return l;
+    }
+    function rendreGroupe(g) {
+        var probable = g.sorte === 'probable', seul = g.aretes.length === 1;
+        /* le bout commun à toutes les paires (souvent le Discord) passe en tête, chaque paire n'affiche que l'autre bout */
+        var compte = {};
+        g.aretes.forEach(function (e) { compte[e.a] = (compte[e.a] || 0) + 1; compte[e.b] = (compte[e.b] || 0) + 1; });
+        var commun = seul ? null : Object.keys(compte).filter(function (k) { return compte[k] === g.aretes.length; })[0];
+        var h = '<div class="rc-groupe' + (probable ? ' rc-groupe--probable' : '') + '"><div class="rc-groupe__tete">'
+            + (probable ? '<span class="rc-q">?</span>' : '<span>🔗</span>') + '<span>' + esc(g.raison) + '</span>';
+        if (probable && !seul) h += '<button class="rc-mini rc-mini--ok" data-tout-confirmer="' + esc(g.aretes.map(function (e) { return e.a + '|' + e.b; }).join(',')) + '">✓ tout confirmer (' + g.aretes.length + ')</button>';
+        h += '</div>' + (commun ? '<div class="rc-groupe__commun">' + esc(court(commun)) + ' ↔</div>' : '') + '<div class="rc-paires">';
+        g.aretes.forEach(function (e) {
+            var duo = esc(e.a) + '|' + esc(e.b);
+            h += '<span class="rc-paire"><span>' + esc(commun ? court(e.a === commun ? e.b : e.a) : court(e.a) + ' ↔ ' + court(e.b)) + '</span>'
+                + (probable ? '<button class="rc-mini rc-mini--ok" data-confirmer="' + duo + '" title="C\'est bien la même personne">✓' + (seul ? ' confirmer' : '') + '</button>' : '')
+                + '<button class="rc-mini rc-mini--non" data-separer="' + duo + '" title="' + (probable ? 'Ce ne sont pas les mêmes' : 'Retirer ce rattachement') + '">✕'
+                + (seul ? (probable ? ' séparer' : ' retirer') : '') + '</button></span>';
+        });
+        return h + '</div></div>';
+    }
+    function celluleSuivi(p) {
+        var h = '';
         p.remarques.forEach(function (r) { h += '<div class="rc-remarque">⚠ ' + esc(r) + '</div>'; });
-        h += '<div class="rc-rattacher" data-pour="' + esc(p.cles[0]) + '"><button class="rc-mini" data-ouvrir-rattacher="1">+ rattacher…</button></div>';
         var n = p.note && p.note.note ? p.note.note : '';
-        h += '<textarea class="form-input rc-note" rows="1" placeholder="Note…" data-note="' + esc(p.cleNote) + '">' + esc(n) + '</textarea>';
+        h += '<textarea class="form-input rc-note" rows="2" placeholder="Note : qui c\'est, d\'où vient l\'info…" data-note="' + esc(p.cleNote) + '">' + esc(n) + '</textarea>';
+        groupesLiens(p.aretes).forEach(function (g) { h += rendreGroupe(g); });
+        h += '<div class="rc-rattacher" data-pour="' + esc(p.cles[0]) + '"><button class="rc-mini" data-ouvrir-rattacher="1">+ rattacher…</button></div>';
         return h;
     }
     function ligne(p) {
@@ -163,11 +180,23 @@
             + '<option value=""' + (manuel ? '' : ' selected') + '>Auto : ' + esc(libelleStatut(p.statutAuto)) + '</option>'
             + M.STATUTS.map(function (s) { return '<option value="' + s[0] + '"' + (manuel && p.note.statut === s[0] ? ' selected' : '') + '>' + esc(s[1]) + '</option>'; }).join('')
             + '</select>';
-        return '<tr class="rc-statut-' + esc(p.statut) + '">'
-            + '<td><strong class="rc-nom">' + esc(p.nom) + '</strong> <span class="rc-score rc-score--' + p.score + '">' + p.score + '/3</span>'
-            + (p.aConfirmer ? ' <span class="rc-q" title="Au moins un lien déduit, à confirmer">?</span>' : '') + '<br>' + sel + '</td>'
-            + '<td>' + celluleJeu(p) + '</td><td>' + celluleDiscord(p) + '</td><td>' + celluleSite(p) + '</td><td>' + celluleLiens(p) + '</td></tr>';
+        return '<div class="rc-ligne rc-statut-' + esc(p.statut) + '">'
+            + '<div class="rc-c rc-c--qui"><strong class="rc-nom">' + esc(p.nom) + '</strong> <span class="rc-score rc-score--' + p.score + '">' + p.score + '/3</span>'
+            + (p.aConfirmer ? ' <span class="rc-q" title="Au moins un lien déduit, à confirmer">?</span>' : '') + sel + '</div>'
+            + '<div class="rc-c rc-c--jeu" data-lib="Persos dans l\'alliance">' + celluleJeu(p) + '</div>'
+            + '<div class="rc-c rc-c--dc" data-lib="Discord">' + celluleDiscord(p) + '</div>'
+            + '<div class="rc-c rc-c--site" data-lib="Site">' + celluleSite(p) + '</div>'
+            + '<div class="rc-c rc-c--suivi">' + celluleSuivi(p) + '</div></div>';
     }
+
+    /* les notes prennent la hauteur de leur texte (CSS field-sizing, sinon à la main) */
+    var tailleAuto = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
+    function ajuster(t) {
+        if (tailleAuto || !t.offsetParent) return; /* dans une catégorie fermée : on verra à l'ouverture */
+        t.style.height = 'auto';
+        t.style.height = (t.scrollHeight + 2) + 'px';
+    }
+    function ajusterDans(el) { if (!tailleAuto) el.querySelectorAll('textarea.rc-note').forEach(ajuster); }
 
     function correspond(p) {
         if (filtre.statut && p.statut !== filtre.statut) return false;
@@ -209,11 +238,12 @@
             h += '<details class="rc-cat rc-cat--' + c.ton + '" data-cat="' + c.id + '"' + (ouverte ? ' open' : '') + '><summary><span class="rc-cat__titre">' + esc(c.titre) + '</span> <span class="rc-cat__nb">'
                 + (l.length === total ? total : l.length + ' / ' + total) + '</span> <span class="rc-muet">' + esc(c.aide) + '</span></summary>';
             if (!l.length) h += '<p class="rc-muet" style="padding:8px 12px;">Personne ici' + (total ? ' avec ces filtres' : '') + '.</p>';
-            else h += '<div class="rc-defile"><table class="rc-table"><thead><tr><th>Personne</th><th>Persos dans l\'alliance</th><th>Discord</th><th>Site</th><th>Liens, remarques, note</th></tr></thead><tbody>'
-                + l.map(ligne).join('') + '</tbody></table></div>';
+            else h += '<div class="rc-liste"><div class="rc-entete"><div>Personne</div><div>Persos dans l\'alliance</div><div>Discord</div><div>Site</div><div>Note, remarques et liens</div></div>'
+                + l.map(ligne).join('') + '</div>';
             h += '</details>';
         });
         zone.innerHTML = h;
+        ajusterDans(zone);
 
         var dl = document.getElementById('rc-noeuds');
         dl.innerHTML = Object.keys(index).map(function (k) { return '<option value="' + esc(etiquette(k)) + '"></option>'; }).join('');
@@ -233,27 +263,48 @@
         + '.rc-cat__nb{display:inline-block;min-width:26px;text-align:center;border-radius:10px;padding:0 8px;background:var(--rc-ton);color:#111;font-weight:700;margin:0 6px;}'
         + '.rc-cat--rouge{--rc-ton:var(--color-danger);}.rc-cat--orange{--rc-ton:var(--color-warning);}.rc-cat--jaune{--rc-ton:#f1c40f;}'
         + '.rc-cat--gris{--rc-ton:#8a8f98;}.rc-cat--vert{--rc-ton:var(--color-success);}.rc-cat--bleu{--rc-ton:var(--color-info);}'
-        + '.rc-defile{overflow-x:auto;}'
-        + '.rc-table{width:100%;border-collapse:collapse;min-width:980px;}'
-        + '.rc-table th,.rc-table td{padding:8px 10px;text-align:left;vertical-align:top;border-top:1px solid var(--color-border);font-size:.86rem;}'
-        + '.rc-table th{color:var(--color-text-muted);font-size:.75rem;font-weight:600;}'
-        + '.rc-table td:first-child{width:170px;}.rc-table td:last-child{width:300px;}'
-        + '.rc-statut{margin-top:6px;font-size:.78rem;padding:4px 6px;}'
+        /* une grille plutôt qu'un tableau : 5 colonnes en grand, la colonne de suivi à droite sur tablette, tout empilé sur téléphone */
+        + '.rc-liste{container-type:inline-size;}'
+        + '.rc-entete,.rc-ligne{display:grid;grid-template-columns:minmax(150px,.75fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,.7fr) minmax(360px,2fr);gap:0 18px;padding:12px 16px;}'
+        + '.rc-entete{position:sticky;top:var(--header-height,64px);z-index:2;padding-top:8px;padding-bottom:8px;background:var(--color-bg-secondary);border-top:1px solid var(--color-border);color:var(--color-text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}'
+        + '.rc-ligne{border-top:1px solid var(--color-border);font-size:.86rem;align-items:start;}'
+        + '.rc-ligne:hover{background:rgba(255,255,255,.025);}'
+        + '.rc-c{min-width:0;overflow-wrap:anywhere;}'
+        + '.rc-c--suivi{border-left:1px solid var(--color-border);padding-left:18px;}'
+        + '.rc-nom{font-size:.95rem;}'
+        + '@container (max-width:1150px){'
+        + '.rc-entete{display:none;}'
+        + '.rc-ligne{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);grid-template-rows:auto auto auto auto 1fr;grid-template-areas:"qui suivi" "jeu suivi" "dc suivi" "site suivi" ". suivi";gap:10px 20px;}'
+        + '.rc-c--qui{grid-area:qui;}.rc-c--jeu{grid-area:jeu;}.rc-c--dc{grid-area:dc;}.rc-c--site{grid-area:site;}.rc-c--suivi{grid-area:suivi;}'
+        + '.rc-c[data-lib]::before{content:attr(data-lib);display:block;margin-bottom:3px;color:var(--color-text-muted);font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}}'
+        + '@container (max-width:680px){'
+        + '.rc-ligne{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"qui" "jeu" "dc" "site" "suivi";padding:12px;}'
+        + '.rc-c--suivi{border-left:0;padding-left:0;border-top:1px dashed var(--color-border);padding-top:10px;}}'
+        + '.rc-statut{display:block;width:100%;max-width:210px;margin-top:6px;font-size:.78rem;padding:4px 6px;}'
         + '.rc-statut-suspect .rc-nom{color:var(--color-danger);}.rc-statut-ok .rc-nom{color:var(--color-success);}'
         + '.rc-score{display:inline-block;border-radius:8px;padding:0 6px;font-size:.72rem;font-weight:700;color:#111;}'
         + '.rc-score--1{background:var(--color-danger);}.rc-score--2{background:var(--color-warning);}.rc-score--3{background:var(--color-success);}'
         + '.rc-q{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:var(--color-info);color:#fff;font-size:.7rem;font-weight:700;}'
         + '.rc-chip{display:inline-block;margin:0 4px 4px 0;padding:2px 8px;border-radius:8px;background:var(--color-bg-tertiary);border:1px solid var(--color-border);white-space:nowrap;}'
         + '.rc-chip b{color:var(--color-accent-light);font-weight:600;}.rc-chip small{display:block;color:var(--color-text-muted);font-size:.68rem;}'
-        + '.rc-dc{display:flex;gap:8px;align-items:flex-start;margin-bottom:4px;}.rc-dc img{width:24px;height:24px;border-radius:50%;}'
+        + '.rc-dc{display:flex;gap:8px;align-items:flex-start;margin-bottom:4px;}.rc-dc img{width:24px;height:24px;border-radius:50%;flex:none;}'
         + '.rc-role{display:inline-block;margin:2px 3px 0 0;padding:0 6px;border-radius:6px;font-size:.7rem;border:1px solid;}'
         + '.rc-role--vert{color:var(--color-success);}.rc-role--bleu{color:var(--color-info);}.rc-role--orange{color:var(--color-accent-light);}.rc-role--gris{color:var(--color-text-secondary);}'
-        + '.rc-lien{margin-bottom:6px;font-size:.8rem;}.rc-lien--probable{border-left:2px solid var(--color-info);padding-left:6px;}'
-        + '.rc-remarque{color:var(--color-warning);font-size:.78rem;margin-bottom:4px;}'
-        + '.rc-mini{font-size:.7rem;padding:1px 6px;margin:2px 4px 0 0;border-radius:6px;border:1px solid var(--color-border-light);background:var(--color-bg-tertiary);color:var(--color-text-secondary);cursor:pointer;}'
+        + '.rc-remarque{color:var(--color-warning);font-size:.8rem;line-height:1.35;margin-bottom:6px;}'
+        + '.rc-mini{font-size:.72rem;padding:1px 7px;margin:2px 4px 0 0;border-radius:999px;border:1px solid var(--color-border-light);background:var(--color-bg-tertiary);color:var(--color-text-secondary);cursor:pointer;white-space:nowrap;}'
         + '.rc-mini--ok{border-color:var(--color-success);color:var(--color-success);}.rc-mini--non{border-color:var(--color-danger);color:var(--color-danger);}'
-        + '.rc-rattacher .form-input{font-size:.78rem;padding:4px 6px;margin-top:4px;}'
-        + '.rc-note{margin-top:6px;font-size:.78rem;padding:4px 6px;resize:vertical;min-height:28px;width:100%;}'
+        + '.rc-mini:hover{filter:brightness(1.25);}'
+        + '.rc-groupe{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--color-bg-tertiary);border:1px solid var(--color-border);}'
+        + '.rc-groupe--probable{border-left:3px solid var(--color-info);}'
+        + '.rc-groupe__tete{font-size:.8rem;line-height:1.5;color:var(--color-text-secondary);}'
+        + '.rc-groupe__tete>:first-child{margin-right:6px;}.rc-groupe__tete .rc-mini{margin:0 0 0 6px;vertical-align:1px;}'
+        + '.rc-groupe__commun{margin-top:6px;font-size:.82rem;font-weight:600;}'
+        + '.rc-paires{display:flex;flex-wrap:wrap;gap:5px 6px;margin-top:6px;}'
+        + '.rc-paire{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:100%;padding:2px 3px 2px 9px;border-radius:999px;background:var(--color-bg-secondary);border:1px solid var(--color-border);font-size:.8rem;}'
+        + '.rc-paire .rc-mini{margin:0;}'
+        + '.rc-rattacher{margin-top:8px;}.rc-rattacher .form-input{width:100%;font-size:.78rem;padding:4px 6px;margin:0 0 4px;}'
+        + '.rc-note{display:block;width:100%;font-size:.82rem;line-height:1.4;padding:6px 9px;resize:vertical;min-height:2.9em;max-height:18em;field-sizing:content;}'
+        + '.rc-note:not(:placeholder-shown){border-left:3px solid var(--color-info);}'
         + '.rc-import textarea{width:100%;min-height:140px;font-family:monospace;font-size:.8rem;}'
         + '</style>';
 
@@ -292,8 +343,9 @@
         var zone = document.getElementById('rc-resultats');
         zone.addEventListener('toggle', function (e) {
             var d = e.target.closest && e.target.closest('details[data-cat]');
-            if (d) ouvertes[d.getAttribute('data-cat')] = d.open;
+            if (d) { ouvertes[d.getAttribute('data-cat')] = d.open; if (d.open) ajusterDans(d); }
         }, true);
+        zone.addEventListener('input', function (e) { if (e.target.matches('textarea.rc-note')) ajuster(e.target); });
         zone.addEventListener('change', function (e) {
             var t = e.target;
             if (t.matches('select[data-statut]')) agir(function () { return poserNote(t.getAttribute('data-statut'), { statut: t.value || null }); }, 'Statut enregistré');
