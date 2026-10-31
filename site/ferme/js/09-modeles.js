@@ -165,7 +165,7 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261031b'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261031c'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -364,7 +364,9 @@ async function chargerModeles() {
   [G.palier8, G['dragon-cochon']].forEach((sc) => { sc.traverse((o) => { if (PIVOT_P8.test(o.name)) o.userData.articule = true; }); versToon(sc, { normales: 0.01, sansContour: SC_P8 }); });
   [['cochonFarle', 'CochonFarle', 1.1], ['sanglier', 'Sanglier', 1.7], ['sanglierFouisseur', 'SanglierFouisseur', 1.7], ['donDorgan', 'DonDorgan', 2.3], ['donDussAng', 'DonDussAng', 2.3], ['gorgouille', 'Gorgouille', 2.8], ['porsalu', 'Porsalu', 2.0]].forEach(([k, n, ht]) => { MODELES[k] = gabarit(G.palier8, n, ht, 'y'); MODELES[k].userData.pivots = true; });
   MODELES.dragonCochon = gabarit(G['dragon-cochon'], 'DragonCochon', 4.0, 'y'); MODELES.dragonCochon.userData.pivots = true;
+  G.dragoeufs.traverse((o) => { if (/^aile_pivot/.test(o.name)) o.userData.articule = true; }); /* (les grandes ailes de Crocabulia battent : pas soudees au corps, blender/dragoeufs.py, 31/10/2026) */
   [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
+  fusionnerPivots(MODELES.crocabulia); /* (chaque aile d'un seul tenant) */
   try { const sc = await chargerGlb('assets/modeles/jeu/sortie-vsa.glb?v=' + VERSION_MODELES); versToon(sc, { normales: 0.012, sansContour: SC_BATI }); MODELES.caleche = sc.getObjectByName('SortieCaleche'); } catch (err) { /* pas encore de modele */ }
   await chargerPersonnagesVsa();
   ['iop3', 'osa', 'cra'].forEach((f) => { MODELES[f] = versToon(G[f], { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); });

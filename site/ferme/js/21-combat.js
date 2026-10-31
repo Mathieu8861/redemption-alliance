@@ -1175,12 +1175,15 @@ function majMonstre(mo, dt, s) {
   if (m.userData.anim) majSquelette(mo, v, dt); /* (les monstres a squelette : marche, repos, coup de marteau) */
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   const allure = mo.d.fluide ? Math.min(1, v / Math.max(0.1, vitesseMonstre(mo.d))) : 1; /* (fluide : son balancement suit sa vitesse, il s'eteint quand elle s'arrete) */
-  const saut = m.userData.anim ? 0 : mo.d.fluide ? (1 - Math.cos(mo.pas * 2)) * 0.03 * allure : mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
+  const saut = m.userData.anim || mo.d.battements ? 0 : mo.d.fluide ? (1 - Math.cos(mo.pas * 2)) * 0.03 * allure : mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
   let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; if (!m.userData.anim) elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; } /* (un monstre a squelette a son propre geste) */
   const pique = mo.picore > 0 ? Math.abs(Math.sin(s * 9)) : 0;
-  const vol = mo.d.vol ? mo.d.vol + Math.sin(s * 2.4 + mo.id) * 0.14 : 0; if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
+  const bat = mo.d.battements ? (mo.batPh = (mo.batPh || mo.id) + dt * mo.d.battements * Math.PI * 2 * (v > 0.3 ? 1.15 : 1)) : 0; /* (Crocabulia, 31/10/2026 : la phase de ses ailes) */
+  if (mo.d.battements) { const A = mo.ailes || (mo.ailes = [m.getObjectByName('aile_pivot_G'), m.getObjectByName('aile_pivot_D')]), th = 0.12 + 0.55 * Math.sin(bat), av = 0.12 * Math.cos(bat);
+    if (A[0]) A[0].rotation.set(0, -av, -th); if (A[1]) A[1].rotation.set(0, av, th); m.rotation.order = 'YXZ'; } /* (ailes levees quand sin > 0 ; en descendant, elles balaient vers l'avant) */
+  const vol = mo.d.vol ? mo.d.vol + (mo.d.battements ? -0.16 * Math.sin(bat) : Math.sin(s * 2.4 + mo.id) * 0.14) : 0; /* (avec des ailes qui battent, le corps monte quand elles s'abaissent) */ if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
-  m.rotation.y = mo.ry; m.rotation.z = m.userData.anim ? 0 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35;
+  m.rotation.y = mo.ry; m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0); /* (en volant vers toi, elle penche le nez) */
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
     if (!mo.flamme) { mo.flamme = new T.Mesh(new T.ConeGeometry(0.18, 0.5, 6), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.85 })); m.add(mo.flamme); }
