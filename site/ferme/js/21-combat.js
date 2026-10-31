@@ -816,6 +816,28 @@ function capCharge(mo, ctx) {
     }
   }
 }
+/* LA VIE D'UN BOSS A PIVOTS (01/11/2026, par Discord, du Dragon Cochon : « on dirait qu'il est en une seule piece, il a rien qui bouge, c'est une pierre », Mathieu) :
+   par-dessus animerPattes (la marche). Au repos il respire, tourne la tete, fouette de la queue, ses ailes fremissent et il gratte le sol du sabot comme un
+   taureau ; quand il se cabre (penche < 0) ses pattes avant se levent, en l'air il replie les quatre, quand il fonce ses pattes arriere poussent, quand il
+   tourne sur lui-meme il pietine, et ses gestes tirent la tete (teteB : + baisse la tete, - la releve). Ordre des pattes : avant G, avant D, arriere G, arriere D */
+function vieBoss(mo, m, v, dt, s) {
+  const u = m.userData, repos = 1 - Math.min(1, v * 0.7), ph = s + mo.id * 1.7, occupe = mo.bloqueT > 0 || mo.hop || mo.elanB || mo.tourne;
+  mo.respire = repos * 0.022 * Math.sin(ph * 1.9);
+  if (u.tete) { u.tete.rotation.x += (mo.teteB || 0) + repos * 0.06 * Math.sin(ph * 1.9 + 1); u.tete.rotation.y = repos * 0.3 * Math.sin(ph * 0.55) * (occupe ? 0.2 : 1); }
+  if (u.queue) { u.queue.rotation.y += repos * 0.4 * Math.sin(ph * 1.5); u.queue.rotation.x = 0.12 * Math.sin(ph * 0.9) + 0.25 * Math.max(0, -(mo.penche || 0)) * 2; }
+  if (u.ailes && !mo.ailesVite) { const fr = Math.pow(Math.max(0, Math.sin(ph * 0.8)), 8); u.ailes.forEach((a, i) => { if (a) a.rotation.z += (i ? -1 : 1) * fr * 0.45 * Math.sin(s * 30); }); } /* (de temps en temps, ses petites ailes fremissent) */
+  const P = u.pattes; if (!P || P.length < 4) return;
+  const leve = Math.max(0, Math.min(1, -(mo.penche || 0) * 2.6)) * (mo.hop > 1 ? 0 : 1), vol = Math.max(0, Math.min(1, (mo.hop || 0) / 1.5)), pousse = Math.max(0, Math.min(1, (mo.elanB || 0) / 1.2));
+  for (let i = 0; i < 4; i++) { const av = i < 2, p = P[i];
+    p.hanche.rotation.x += av ? -0.95 * leve - 0.55 * vol - 0.3 * pousse : 0.55 * vol + 0.5 * pousse; p.genou.rotation.x += av ? 0.9 * leve + 0.9 * vol : 0.8 * vol;
+    if (mo.tourne) p.hanche.rotation.x += Math.sin(mo.tourne * 5 + i * 1.6) * 0.45; } /* (il pietine en tournant) */
+  if (repos > 0.8 && !occupe && !(mo.cd < 0.5)) { mo.gratteT = (mo.gratteT || 0) + dt; } else mo.gratteT = Math.min(mo.gratteT || 0, 2.5);
+  if (mo.gratteT > 4) { const g = mo.gratteT - 4, p = P[1], c = Math.sin(g * Math.PI * 2.5); /* (il gratte le sol trois fois du sabot avant droit, comme un taureau, puis repart pour 4 s) */
+    p.hanche.rotation.x += -0.45 + 0.5 * c; p.genou.rotation.x += 0.5 + 0.3 * Math.max(0, -c); if (u.tete) u.tete.rotation.x += 0.12;
+    if (c < -0.9 && !(mo.gratteP > 0)) { mo.gratteP = 0.3; const k = (mo.d.ombre || 2) * 0.32, x = mo.x + Math.sin(mo.ry) * k - Math.cos(mo.ry) * k * 0.4, z = mo.z + Math.cos(mo.ry) * k + Math.sin(mo.ry) * k * 0.4; poussiere(x, solA(x, z), z, 4, 0.5, '#d8c6a0'); }
+    if (g >= 1.2) mo.gratteT = 0; }
+  if (mo.gratteP > 0) mo.gratteP -= dt;
+}
 /* LES COUPS D'UN BOSS SANS SQUELETTE (01/11/2026, par Discord, du Dragon Cochon : « je le trouve tres limite quand il attaque sur place, il bouge meme pas », Mathieu) :
    au lieu d'un petit glissement, il enchaine ses gestes ; le coup tombe a l'instant du geste (s'il t'a vu filer, il frappe dans le vide, comme les monstres a squelette).
    groin : il recule, puis se jette en avant tete baissee ; pietine : il se cabre et retombe des pattes avant, la terre tremble ; queue : il tourne sur lui-meme, sa queue balaie.
@@ -824,14 +846,14 @@ const GESTES_LOURDS = { groin: { d: 0.6, imp: 0.36 }, pietine: { d: 0.78, imp: 0
 function coupLourd(mo, portee, frapper) {
   const c0 = combat, L = mo.d.coups, g = L[(mo.coupN = (mo.coupN || 0) + 1) % L.length], G = GESTES_LOURDS[g], k = Math.max(1, (mo.haut || 3) / 3.2), av = (mo.d.ombre || 2) * 0.5;
   let t = 0, tape = false; mo.frappe = 0;
-  const devant = (r) => ({ x: mo.x + Math.sin(mo.ry) * r, z: mo.z + Math.cos(mo.ry) * r }), fin = () => { mo.elanB = 0; mo.penche = 0; mo.hop = 0; mo.dresse = 0; mo.tourne = 0; mo.queueB = 0; };
+  const devant = (r) => ({ x: mo.x + Math.sin(mo.ry) * r, z: mo.z + Math.cos(mo.ry) * r }), fin = () => { mo.elanB = 0; mo.penche = 0; mo.hop = 0; mo.dresse = 0; mo.tourne = 0; mo.queueB = 0; mo.teteB = 0; };
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { fin(); return true; } const u = Math.min(1, t / G.d);
-    if (g === 'groin') { if (t < 0.28) { const a = t / 0.28; mo.elanB = -0.45 * k * a; mo.penche = -0.16 * a; }
-      else if (t < 0.4) { const a = (t - 0.28) / 0.12; mo.elanB = (-0.45 + 1.95 * a) * k; mo.penche = -0.16 + 0.56 * a; }
-      else { const a = Math.min(1, (t - 0.4) / 0.2); mo.elanB = 1.5 * k * (1 - a); mo.penche = 0.4 * (1 - a); } }
-    else if (g === 'pietine') { if (t < 0.42) { const a = Math.sin(Math.min(1, t / 0.42) * Math.PI / 2); mo.penche = -0.38 * a; mo.hop = 0.7 * k * a; mo.dresse = 0.08 * a; }
-      else if (t < 0.5) { const a = (t - 0.42) / 0.08; mo.penche = -0.38 + 0.58 * a; mo.hop = 0.7 * k * (1 - a) - 0.2 * a; mo.dresse = 0.08 * (1 - a); }
-      else { const a = Math.min(1, (t - 0.5) / 0.28); mo.penche = 0.2 * (1 - a); mo.hop = -0.2 * (1 - a); } }
+    if (g === 'groin') { if (t < 0.28) { const a = t / 0.28; mo.elanB = -0.45 * k * a; mo.penche = -0.16 * a; mo.teteB = -0.25 * a; }
+      else if (t < 0.4) { const a = (t - 0.28) / 0.12; mo.elanB = (-0.45 + 1.95 * a) * k; mo.penche = -0.16 + 0.56 * a; mo.teteB = -0.25 + 0.7 * a; }
+      else { const a = Math.min(1, (t - 0.4) / 0.2); mo.elanB = 1.5 * k * (1 - a); mo.penche = 0.4 * (1 - a); mo.teteB = 0.45 * (1 - a); } }
+    else if (g === 'pietine') { if (t < 0.42) { const a = Math.sin(Math.min(1, t / 0.42) * Math.PI / 2); mo.penche = -0.38 * a; mo.hop = 0.7 * k * a; mo.dresse = 0.08 * a; mo.teteB = -0.3 * a; }
+      else if (t < 0.5) { const a = (t - 0.42) / 0.08; mo.penche = -0.38 + 0.58 * a; mo.hop = 0.7 * k * (1 - a) - 0.2 * a; mo.dresse = 0.08 * (1 - a); mo.teteB = -0.3 + 0.55 * a; }
+      else { const a = Math.min(1, (t - 0.5) / 0.28); mo.penche = 0.2 * (1 - a); mo.hop = -0.2 * (1 - a); mo.teteB = 0.25 * (1 - a); } }
     else { const a = u * u * (3 - 2 * u); mo.tourne = a * Math.PI * 2; mo.queueB = 0.9 * Math.sin(u * Math.PI); mo.hop = 0.25 * k * Math.sin(u * Math.PI); mo.penche = 0.08 * Math.sin(u * Math.PI);
       if (u > 0.2 && u < 0.8 && Math.random() < dt * 20) { const b = mo.ry + mo.tourne + Math.PI, q = { x: mo.x + Math.sin(b) * av * 1.3, z: mo.z + Math.cos(b) * av * 1.3 }; poussiere(q.x, solA(q.x, q.z), q.z, 2, 0.5, '#d8c6a0'); } } /* (la queue rase le sol) */
     if (!tape && t >= G.imp) { tape = true; const q = devant(g === 'queue' ? 0 : av * 1.2), y = solA(q.x, q.z);
@@ -1300,12 +1322,12 @@ function capBoue(mo, ctx) { /* le Crachat de boue du Dragon Cochon (le Bain de b
   const tg = 0.55, vol = ESQUIVE.boue - tg, dP = Math.hypot(x0 - mo.x, z0 - mo.z), H = 2 + dP * 0.15, vers = new T.Vector3(x0, solA(x0, z0) + 0.35 * k, z0);
   const bouche = () => new T.Vector3(mo.x + Math.sin(a) * av, mo.m.position.y + (mo.haut || 3) * 0.5, mo.z + Math.cos(a) * av);
   let t = 0, de = null, goutte = 0;
-  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(boule); mo.penche = 0; return true; }
-    if (t < tg) { const u = Math.min(1, t / tg); boule.position.copy(bouche()); boule.scale.setScalar(0.15 + 0.85 * u); boule.rotation.y += dt * 3; mo.penche = -0.25 * u; /* (il se cabre, la boule gonfle dans sa gueule) */
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(boule); mo.penche = 0; mo.teteB = 0; return true; }
+    if (t < tg) { const u = Math.min(1, t / tg); boule.position.copy(bouche()); boule.scale.setScalar(0.15 + 0.85 * u); boule.rotation.y += dt * 3; mo.penche = -0.25 * u; mo.teteB = -0.3 * u; /* (il se cabre, la boule gonfle dans sa gueule) */
       if ((goutte += dt) > 0.08) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y - 0.3 * k, z: boule.position.z, r: 0.3 * k, dv: 0.6, vie: [0.3, 0.5], taille: [0.14, 0.06], c: ['#6a4524', '#4a2f18'], grav: 9 }); }
       return false; }
-    if (!de) { de = boule.position.clone(); mo.penche = 0.3; secousse(0.05, 0.12); poussiere(de.x, solA(de.x, de.z), de.z, 6, 0.8, '#9a7650'); }
-    const u = Math.min(1, (t - tg) / vol); mo.penche = 0.3 * (1 - u); boule.position.lerpVectors(de, vers, u); boule.position.y += Math.sin(u * Math.PI) * H; boule.rotation.set(u * 7, a, u * 4); boule.scale.setScalar(1);
+    if (!de) { de = boule.position.clone(); mo.penche = 0.3; mo.teteB = 0.35; secousse(0.05, 0.12); poussiere(de.x, solA(de.x, de.z), de.z, 6, 0.8, '#9a7650'); }
+    const u = Math.min(1, (t - tg) / vol); mo.penche = 0.3 * (1 - u); mo.teteB = 0.35 * (1 - u); boule.position.lerpVectors(de, vers, u); boule.position.y += Math.sin(u * Math.PI) * H; boule.rotation.set(u * 7, a, u * 4); boule.scale.setScalar(1);
     if ((goutte += dt) > 0.05) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.25 * k, dv: 0.8, vie: [0.35, 0.6], taille: [0.16, 0.06], c: ['#6a4524', '#4a2f18'], grav: 10 }); } /* (elle goutte en vol) */
     if (u < 1) return false; jeter(boule); return true; });
   zoneDanger({ mo, x: x0, z: z0, r: R, duree: ESQUIVE.boue, effet: (d) => { const y = solA(x0, z0); pouf(x0, y, z0, 4, '#6a4524'); pouf(x0, y, z0, 2.2, '#8e6640');
@@ -1529,6 +1551,7 @@ function majMonstre(mo, dt, s) {
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
   if (mo.queueB && m.userData.queue) m.userData.queue.rotation.y += mo.queueB; /* (le coup de queue du Dragon Cochon, 01/11/2026) */
   if (mo.ailesVite && m.userData.ailes) m.userData.ailes.forEach((a, i) => { if (a) a.rotation.z = (i ? -1 : 1) * (0.2 + mo.ailesVite * 0.6 * Math.sin(s * 34)); }); /* (ses petites ailes battent a toute vitesse pour le porter, son envol) */
+  if (mo.d.boss && m.userData.membres) vieBoss(mo, m, v, dt, s); /* (le Dragon Cochon respire, gratte le sol, leve les pattes, 01/11/2026) */
   if (m.userData.anim) majSquelette(mo, v, dt); /* (les monstres a squelette : marche, repos, coup de marteau) */
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   const allure = mo.d.fluide ? Math.min(1, v / Math.max(0.1, vitesseMonstre(mo.d))) : 1; /* (fluide : son balancement suit sa vitesse, il s'eteint quand elle s'arrete) */
@@ -1548,7 +1571,7 @@ function majMonstre(mo, dt, s) {
   } else if (mo.flamme) mo.flamme.visible = false;
   if (!combat || mo.etat !== 'actif') return;
   if (mo.coup > 0) { mo.coup -= dt; m.scale.setScalar((mo.echelle || 1) * (1 + Math.max(0, mo.coup) * (mo.d.fluide ? 0.25 : 0.9))); } /* (fluide : elle gonfle a peine sous les coups, une fleche du Cra la faisait sursauter a chaque tir) */ else m.scale.setScalar(mo.echelle || 1);
-  if (mo.dresse) m.scale.y *= 1 + mo.dresse; /* (dresse : il se grandit pour frapper le sol, le seisme du Craqueleur Legendaire, 31/10/2026) */
+  if (mo.dresse) m.scale.y *= 1 + mo.dresse; if (mo.respire) m.scale.y *= 1 + mo.respire; /* (il respire, vieBoss) */ /* (dresse : il se grandit pour frapper le sol, le seisme du Craqueleur Legendaire, 31/10/2026) */
   if (lent && !mo.givre) { mo.givre = new T.Mesh(new T.RingGeometry(0.3, 0.55, 24), new T.MeshBasicMaterial({ color: '#9fd8ff', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false })); mo.givre.rotation.x = -Math.PI / 2; mo.givre.position.y = 0.06; mo.givre.scale.setScalar(Math.max(1, mo.d.ombre)); m.add(mo.givre); }
   if (mo.givre) mo.givre.visible = lent;
 }
