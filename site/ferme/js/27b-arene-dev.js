@@ -5,13 +5,14 @@
    force (pas les regles de l'Arene). Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ;
    sa vie d'avant est gardee. Les modeles des monstres a squelette (palier 9, Moon) ne se chargent qu'ici (chargerSquelettes). */
 const estAdmin = () => ultiLibre();
-const AVANT_PREMIERE = ['lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille', 'crocabulia']; /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */ /* (Crocabulia, qui vole sur ses grandes ailes, 31/10/2026 : « le croca est pas dispo en arene », Mathieu) */
+const AVANT_PREMIERE = ['lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille', 'crocabulia', 'royal', 'cuirasse', 'bworker', 'craqLegendaire', 'waWabbit', 'koulosse', 'dragonCochon']; /* (31/10/2026, par Discord, « mets-moi tous les nouveaux boss dans l'arene que je teste » : les boss des paliers 1 a 8 aux sorts refaits) */ /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */ /* (Crocabulia, qui vole sur ses grandes ailes, 31/10/2026 : « le croca est pas dispo en arene », Mathieu) */
 const GROUPES_DEV = {
   troupe: { nom: 'La troupe', liste: { tortueJaune: 1, tortueRouge: 1, kannibJav: 1, kannibSarbak: 1, kannibArk: 1, kannibTam: 1 } },
   tortues: { nom: 'Les 4 Tortues', liste: { tortueBleue: 1, tortueJaune: 1, tortueRouge: 1, tortueVerte: 1 } },
   kannibouls: { nom: 'Les Kannibouls', liste: { kannibJav: 2, kannibSarbak: 2, kannibArk: 1, kannibTam: 1 } },
   ebil: { nom: 'Ebil et sa garde', liste: { kannibEbil: 1, kannibJav: 1, tortueBleue: 1, tortueVerte: 1 } },
   moon: { nom: 'Moon', liste: { moon: 1 } },
+  bossRefaits: { nom: 'Les boss refaits', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, waWabbit: 1, koulosse: 1 } }, /* (31/10/2026, sorts refaits par Discord) */
   lemurien: { nom: 'Les Lémuriens', liste: { lemurienTiki: 3 } }, /* (28/10/2026, le premier monstre anime a la main) */
   nouveaux: { nom: 'Les 3 boss et la Tortue Corail', liste: { lemurienTiki: 1, gorilleRoi: 1, golemLune: 1, tortueCorail: 1 } }, /* (28/10/2026, les 4 dessins de Mathieu, des boss) */
 };

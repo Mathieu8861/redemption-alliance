@@ -521,12 +521,34 @@ function majAfflictions(dt) {
   if (c.lenteur > 0) c.lenteur -= dt; if (c.assomme > 0) c.assomme -= dt; if (c.colle > 0) c.colle -= dt;
   if (c.poisons && c.poisons.length) { c.poisons.forEach((p) => { p.t -= dt; }); c.poisons = c.poisons.filter((p) => p.t > 0); const pct = c.poisons.reduce((a, p) => a + p.pct, 0); if (pct) poisonPerso(pct, dt); }
 }
-function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage */
-  const c0 = combat, de = new T.Vector3(mo.x, mo.m.position.y + mo.haut * 0.8, mo.z), vers = new T.Vector3(x, solA(x, z) + 0.4, z);
-  const boule = new T.Mesh(new T.IcosahedronGeometry(0.4, 1), new T.MeshToonMaterial({ color: '#9ad86a', gradientMap: grad, transparent: true, opacity: 0.85 })); scene.add(boule); let t = -delai;
+function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage (31/10/2026 : plus grosse, elle tourne, laisse une trainee et eclate) */
+  const c0 = combat, vers = new T.Vector3(x, solA(x, z) + 0.4, z), gros = mo.d.boss ? 1.6 : 1;
+  const boule = new T.Mesh(new T.IcosahedronGeometry(0.4 * gros, 1), new T.MeshToonMaterial({ color: '#9ad86a', gradientMap: grad, transparent: true, opacity: 0.85 })); scene.add(boule); let t = -delai, de = null;
   effets.push((dt) => { t += dt / 0.6; if (combat !== c0 || c0.fin) { jeter(boule); return true; } if (t < 0) { boule.visible = false; return; } boule.visible = true;
-    const k = Math.min(1, t); boule.position.lerpVectors(de, vers, k); boule.position.y += Math.sin(k * Math.PI) * 1.5;
-    if (k >= 1) { jeter(boule); pouf(x, solA(x, z), z, 2.2, '#9ad86a'); poserFumee(x, z, r, duree, null); return true; } });
+    if (!de) { de = new T.Vector3(mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.35, mo.m.position.y + mo.haut * 0.8, mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.35); if (gros > 1) emettre(FX_FUM, 6, { x: de.x, y: de.y, z: de.z, r: 0.3, v: [(x - de.x) * 0.8, 0.5, (z - de.z) * 0.8], dv: 1, vie: [0.4, 0.7], taille: [0.6, 1.6], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2 }); }
+    const k = Math.min(1, t); boule.position.lerpVectors(de, vers, k); boule.position.y += Math.sin(k * Math.PI) * 2.2; boule.rotation.set(k * 6, k * 4, 0); boule.scale.setScalar(1 + 0.15 * Math.sin(k * 20));
+    if (gros > 1) emettre(FX_FUM, 1, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.2, vie: [0.4, 0.7], taille: [0.4, 1.1], c: ['#c8f0a0', '#9ad86a'], a: 0.55, frein: 1, entree: 0.05 });
+    if (k >= 1) { jeter(boule); const y = solA(x, z); pouf(x, y, z, 2.2 * gros, '#9ad86a'); if (gros > 1) { onde(x, y, z, r * 1.6, '#a8de78', 0.45, 0.8, true); emettre(FX_FUM, 14, { x, y: y + 0.4, z, r: r * 0.5, dv: 2.5, haut: true, vie: [0.6, 1], taille: [0.6, 2], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2, vrot: 1 }); secousse(0.06, 0.15); } poserFumee(x, z, r, duree, null); return true; } });
+}
+/* le Koulosse inspire avant de cracher (31/10/2026) : il se cambre, la fumee monte de sa bouche et tourbillonne, puis il se penche en avant en crachant */
+function inspireKoulosse(mo, t0) {
+  const c0 = combat; let t = 0, f = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif') { mo.penche = 0; return true; } const bx = mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.35, by = mo.m.position.y + mo.haut * 0.8, bz = mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.35;
+    if (t < t0) { mo.penche = -0.28 * (t / t0); if ((f -= dt) <= 0) { f = 0.04; const a = Math.random() * Math.PI * 2; emettre(FX_FUM, 1, { x: bx + Math.cos(a) * 1.2, y: by + 0.3, z: bz + Math.sin(a) * 1.2, v: [-Math.cos(a) * 2.5, 0.3, -Math.sin(a) * 2.5], vie: [0.35, 0.5], taille: [0.6, 0.15], c: ['#c8f0a0', '#9ad86a'], a: 0.55, frein: 0.5 }); } return false; }
+    const u = Math.min(1, (t - t0) / 0.5); mo.penche = -0.28 + 0.68 * Math.sin(u * Math.PI / 2) * (1 - u) + 0.0; if (u >= 1) { mo.penche = 0; return true; } });
+}
+/* son appel (31/10/2026) : une langue de fumee verte qui file de sa bouche jusqu'au bout de la bande ; si elle t'attrape, elle te ramene a lui */
+function langueFumee(mo, x2, z2, prise) {
+  const c0 = combat, bx = () => mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.35, by = () => mo.m.position.y + mo.haut * 0.75, bz = () => mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.35, N = 16, B = [];
+  const matL = new T.MeshToonMaterial({ color: '#9ad86a', gradientMap: grad, transparent: true, opacity: 0.85 });
+  for (let i = 0; i < N; i++) { const b = new T.Mesh(new T.IcosahedronGeometry(0.48 - i * 0.012, 1), matL); scene.add(b); B.push(b); }
+  let t = 0; const aller = 0.22, tient = prise ? 0.38 : 0.1, retour = 0.25;
+  effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif') { B.forEach((b) => jeter(b)); return true; }
+    const p = paysanMesh.position, fx = prise && t > aller ? p.x : x2, fz = prise && t > aller ? p.z : z2, fy = prise && t > aller ? p.y + 1 : solA(x2, z2) + 0.9;
+    const ext = t < aller ? t / aller : t < aller + tient ? 1 : Math.max(0, 1 - (t - aller - tient) / retour); mo.penche = prise && t > aller ? -0.3 * Math.min(1, (t - aller) / 0.1) : 0;
+    B.forEach((b, i) => { const u = (i + 1) / N * ext, x = bx() + (fx - bx()) * u, z = bz() + (fz - bz()) * u, y = by() + (fy - by()) * u + Math.sin(u * Math.PI) * 0.6 + 0.15 * Math.sin(t * 25 + i); b.position.set(x, y, z); b.visible = ext > 0.02; });
+    if (Math.random() < 0.5) { const b = B[Math.floor(Math.random() * N)]; emettre(FX_FUM, 1, { x: b.position.x, y: b.position.y, z: b.position.z, r: 0.2, vie: [0.3, 0.5], taille: [0.4, 0.9], c: ['#c8f0a0', '#8ac85a'], a: 0.5 }); }
+    if (t >= aller + tient + retour) { B.forEach((b) => jeter(b)); mo.penche = 0; return true; } });
 }
 function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : il suit le Koulosse jusqu'a la fin) ; il compte comme un danger, que le bot evite */
   const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 20) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
@@ -1150,7 +1172,8 @@ function capFumee(mo, ctx) {
     if (mo.fumeeT == null) mo.fumeeT = mo.d.fumee - 3; mo.fumeeT += vSort;
     if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
       if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : la toucher t\'empoisonne (2 s de poison par seconde passée dedans, 2 % de tes PV par seconde). Évite les nuages verts !', 'alerte'); }
-      [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 24, k * 0.15));
+      const geste = !m.userData.anim; if (geste) { inspireKoulosse(mo, 0.45); mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = Math.max(mo.bloqueT || 0, 0.9); } /* (31/10/2026 : il inspire, puis crache) */
+      [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 24, (geste ? 0.45 : 0) + k * 0.15));
       if (!combat || combat.fin) return; }
   }
 }
@@ -1160,7 +1183,9 @@ function capAppel(mo, ctx) {
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
     if (sortPret('appelT', mo.d.appel) && dP > 4 && dP < 28) { /* (portee doublee le 15/10/2026 : de 14 a 28, un Cra ne lui echappe plus en reculant) */ mo.appelT = 0; mo.bloqueT = 1.1; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.frappe = 0.3;
       if (!combat.appelVu) { combat.appelVu = true; toast('Le Koulosse te lance son appel : sors de la bande verte, ou il t\'attire à lui !', 'alerte'); }
-      zoneDanger({ mo, x: mo.x, z: mo.z, x2: pp.x, z2: pp.z, larg: 1.6, duree: 1.0, couleur: '#7ad04a', effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) attirerPerso(mo); } });
+      const geste = !m.userData.anim, c0 = combat; if (geste) { let t = 0, f = 0; effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif' || t > 1) return true; mo.penche = -0.15 * Math.min(1, t / 0.3); const bx = mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.4, by = mo.m.position.y + mo.haut * 0.75, bz = mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.4;
+        if ((f -= dt) <= 0) { f = 0.03; const a = t * 14 + Math.random(); emettre(FX_FUM, 1, { x: bx + Math.cos(a) * 0.7, y: by + Math.sin(a) * 0.7, z: bz, v: [0, 0.2, 0], vie: [0.25, 0.4], taille: [0.5, 0.2], c: ['#c8f0a0', '#9ad86a'], a: 0.7 }); } return false; }); } /* (31/10/2026 : la fumee tourbillonne devant sa bouche) */
+      const x2 = pp.x, z2 = pp.z; zoneDanger({ mo, x: mo.x, z: mo.z, x2, z2, larg: 1.6, duree: 1.0, couleur: '#7ad04a', effet: (d) => { const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z); if (geste) langueFumee(mo, x2, z2, pris); if (pris) { if (geste) setTimeout(() => { if (combat === c0 && !c0.fin && mo.etat === 'actif') attirerPerso(mo); }, 220); else attirerPerso(mo); } } });
     }
   }
 }
