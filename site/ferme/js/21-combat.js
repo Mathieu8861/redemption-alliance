@@ -1085,6 +1085,26 @@ function tirMonstre(mo, bat) {
     if (t >= 1) { jeter(fl); impactTir(type, vers, mo, !cleB); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, le tir ne touche plus rien) */
 }
 const sagaieVolante = () => { const g = new T.Group(), h = boite(0.05, 0.05, 1.3, '#8a5a30'), p = new T.Mesh(new T.ConeGeometry(0.07, 0.24, 5), mat('#a8a294')); p.rotation.x = Math.PI / 2; p.position.z = 0.75; g.add(h, p); return g; };
+/* la mort d'un monstre qui vole en battant des ailes (31/10/2026, « animation de sa mort pas top », Mathieu : Crocabulia tournait sur elle-meme en
+   retrecissant) : ses ailes se crispent vers le haut, elle se cabre ; puis elles retombent, molles, et elle chute en roulant sur le flanc, une
+   trainee de fumee et de braises derriere elle ; elle s'ecrase dans la poussiere (secousse, onde, braises), rebondit un peu, reste au sol,
+   puis s'enfonce dedans. Le combat attend qu'elle ait touche le sol (23-fin-combat.js) */
+function mortVolante(mo, dt) {
+  const m = mo.m, M = mo.mort || (mo.mort = { t: 0, y0: m.position.y, sol: hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z)), cote: Math.random() < 0.5 ? -1 : 1, rx0: m.rotation.x, rz0: m.rotation.z, fx: 0 });
+  M.t += dt; const t = M.t, A = mo.ailes || [m.getObjectByName('aile_pivot_G'), m.getObjectByName('aile_pivot_D')], lis = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const chute = Math.max(0, Math.min(1, (t - 0.3) / 0.7)), crispe = lis(t / 0.15) * (1 - lis((t - 0.3) / 0.35));
+  const th = 0.75 * crispe - 0.7 * lis((t - 0.3) / 0.6); /* (crispees vers le haut, puis molles et pendantes) */
+  if (A[0]) A[0].rotation.set(0, 0, -(th - (M.cote < 0 ? 0.25 : 0) * chute)); if (A[1]) A[1].rotation.set(0, 0, th - (M.cote > 0 ? 0.25 : 0) * chute); /* (celle du cote ou elle tombe se froisse un peu plus) */
+  let y = M.y0 + 0.18 * Math.sin(Math.min(1, t / 0.3) * Math.PI) - (M.y0 - M.sol) * chute * chute; /* (un sursaut, puis la chute qui accelere) */
+  if (t > 1 && t < 1.3) y = M.sol + 0.22 * Math.sin((t - 1) / 0.3 * Math.PI); else if (t >= 1.3) y = M.sol; if (t > 2.2) y = M.sol - (t - 2.2) * 1.3; /* (le rebond, puis elle s'enfonce) */
+  m.position.y = y; m.rotation.z = M.rz0 + M.cote * 1.05 * lis((t - 0.3) / 0.8); m.rotation.x = M.rx0 - 0.25 * crispe + 0.3 * lis((t - 0.3) / 0.7);
+  if (mo.ombreM) { mo.ombreM.position.y = 0.03 - Math.max(0, y - M.sol); mo.ombreM.visible = t < 1; }
+  if (t > 0.3 && t < 1 && (M.fx += dt) > 0.05) { M.fx = 0; const p = m.position; emettre(FX_FUM, 2, { x: p.x, y: y + 1.6, z: p.z, r: 0.6, v: [0, 1, 0], vie: [0.6, 1], taille: [0.6, 1.6], c: ['#4a3a32', '#7a706a'], a: 0.5, frein: 1, vrot: 1, entree: 0.1 });
+    emettre(FX_VIF, 3, { x: p.x, y: y + 1.6, z: p.z, r: 0.8, v: [0, 1.5, 0], dv: 1, vie: [0.4, 0.7], taille: [0.1, 0.03], c: ['#ffd27a', '#ff6a1e'], a: 1, frein: 1 }); }
+  if (t >= 1 && !M.choc) { M.choc = true; const x = mo.x, z = mo.z; secousse(0.28, 0.4); pouf(x, M.sol, z, 6, '#8e7a5e'); poussiere(x, M.sol, z, 22, 2.4, '#d8c6a0'); onde(x, M.sol, z, 6, '#ffb26a', 0.5, 0.7); mottes(x, M.sol, z, 10, 1.6);
+    emettre(FX_VIF, 30, { x, y: M.sol + 0.6, z, r: 1.4, dv: 5, haut: true, vie: [0.4, 0.9], taille: [0.12, 0.03], c: ['#fff1a8', '#ff8a1e', '#c8302e'], grav: 6, frein: 1.4, etire: 0.03 }); }
+  if (t > 3.4 && m.parent) jeter(m);
+}
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
@@ -1096,6 +1116,7 @@ function majMonstre(mo, dt, s) {
   }
   if (mo.d.boss && !mo.invoque) majBarreBoss(mo); /* (les Gorilles appeles par Moon sont des boss : la barre reste a Moon, sinon elle sautait de l'un a l'autre) */
   if (mo.etat === 'mort' && m.userData.anim) { mortSquelette(mo, dt); return; } /* (un monstre a squelette tombe, puis s'enfonce dans le sol) */
+  if (mo.etat === 'mort' && mo.d.battements) { mortVolante(mo, dt); return; } /* (Crocabulia : elle tombe du ciel, 31/10/2026) */
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
   const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */

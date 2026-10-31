@@ -49,7 +49,7 @@ function majCombat(dt, s) {
   if (c.genre === 'ile') { c.arene.t += dt; const pas = Math.floor(c.arene.t / ENRAGE_ILE.periode); if (pas > c.arene.pas) { c.arene.pas = pas; const b = c.monstres.find((o) => o.d.boss && o.etat === 'actif');
       const mR = 1 + ENRAGE_ILE.pas * pas; c.monstres.forEach((o) => { if (o.etat === 'mort') return; o.rageM = mR; if (o.deg0 != null && !o.d.boss) o.deg = Math.max(1, Math.round(o.deg0 * mR)); }); /* (sa troupe enrage avec lui) */
       if (b) { b.deg = Math.round(b.deg0 * mR); chiffre('Rage +' + Math.round(ENRAGE_ILE.pas * pas * 100) + ' %', new T.Vector3(b.x, b.m.position.y + b.haut + 0.5, b.z), 'gros'); if (pas === 1) toast(b.d.nom + ' enrage : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse, d\'attaque et de sorts. Tiens bon !', 'alerte'); } } }
-  if (!c.file.length && c.monstres.every((o) => o.etat === 'mort')) {
+  if (!c.file.length && c.monstres.every((o) => o.etat === 'mort') && !c.monstres.some((o) => o.mort && o.mort.t < 1.6)) { /* (un monstre volant qui tombe : on attend qu'il ait touche le sol, 31/10/2026) */
     if (c.genre === 'ile') { finIleBoss(false, true); return; } /* (le boss est tombe : toute l'alliance l'a abattu) */
     if (c.dev) { c.victoire += dt; if (c.victoire > 0.8) finDev(false, true); return; } /* (l'Arene dev : tous abattus, le bilan) */
     if (c.arene && !c.entracte) { c.victoire += dt; if (c.victoire > 0.8) { c.victoire = 0; vagueAreneTenue(c); } return; } /* l'Arene : la vague suivante */
