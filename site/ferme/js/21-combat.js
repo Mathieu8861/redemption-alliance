@@ -802,8 +802,17 @@ function capBond(mo, ctx) {
       const fb = gesteDe(mo, 'bondit', 'bond');
       if (an && an.F[fb]) { const nom = piocher(an, fb), D = an.A[nom].getClip().duration, imp = ((m.userData.impacts || {})[nom] || [])[0], ts = Math.max(0.6, (imp ? imp.t : D * 0.6) / ESQUIVE.bond), a = jouerAnim(an, nom, 0.1); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, ESQUIVE.bond + 0.5) }; }
       if (!combat.bonditVu) { combat.bonditVu = true; toast(leNom(mo.d) + ' va te sauter dessus : sors du cercle rouge !', 'alerte'); }
-      let t = 0; effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } if (t > ESQUIVE.bond - 0.6) { const k = Math.min(1, (t - (ESQUIVE.bond - 0.6)) / 0.6); mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * H; } if (t >= ESQUIVE.bond) { mo.hop = 0; return true; } });
-      zoneDanger({ mo, x: cx, z: cz, r: R, duree: ESQUIVE.bond, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau) impactMarteau(cx, solA(cx, cz), cz);
+      const lourd = mo.d.boss && !an; /* (31/10/2026, un boss sans squelette, le Bworker : un vrai bond, elan, envol haut, ombre, ecrasement) */
+      let t = 0, ombre = null; if (lourd) { ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(cx, solA(cx, cz) + 0.09, cz); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre); }
+      const vol = lourd ? 0.75 : 0.6, Hl = lourd ? 5.5 : H;
+      effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; mo.penche = 0; if (ombre) jeter(ombre); return true; }
+        if (lourd && t < ESQUIVE.bond - vol) { const k = t / (ESQUIVE.bond - vol); mo.hop = -0.35 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 2); mo.penche = -0.15 * k; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); /* (il se tasse et se cambre : l'elan) */
+          if (Math.random() < dt2 * 6) poussiere(mo.x, solA(mo.x, mo.z), mo.z, 3, 0.8, '#d8c6a0'); }
+        if (t > ESQUIVE.bond - vol) { const k = Math.min(1, (t - (ESQUIVE.bond - vol)) / vol); if (lourd && !mo.envol) { mo.envol = true; poussiere(x0, solA(x0, z0), z0, 14, 1.4, '#d8c6a0'); mottes(x0, solA(x0, z0), z0, 6, 1); }
+          mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * Hl; if (lourd) mo.penche = 0.45 * Math.sin(k * Math.PI) - 0.15 * (1 - k); }
+        if (ombre) { const o = Math.max(0, Math.min(1, t / ESQUIVE.bond)); ombre.scale.setScalar(Math.max(0.01, R * (0.2 + 0.7 * o))); ombre.material.opacity = 0.15 + 0.4 * o; }
+        if (t >= ESQUIVE.bond) { mo.hop = 0; mo.envol = false; if (ombre) jeter(ombre); if (lourd) { let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.3 * Math.max(0, 1 - r / 0.4); mo.hop = -0.3 * Math.sin(Math.min(1, r / 0.4) * Math.PI); return r >= 0.4; }); } return true; } });
+      zoneDanger({ mo, x: cx, z: cz, r: R, duree: ESQUIVE.bond, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
     }
   }
@@ -897,13 +906,41 @@ function capCarapace(mo, ctx) {
     if (mo.carapace > 0 && mo.epinesVu !== mo.carapaceT) { mo.epinesVu = mo.carapaceT; const y = mo.m.position.y; onde(mo.x, y, mo.z, 3.2, '#f2d27a', 0.4, 0.8); poussiere(mo.x, y, mo.z, 10, 1.2, '#d8c6a0'); secousse(0.08, 0.2); }
   }
 }
+/* le seisme d'un boss sans squelette (31/10/2026, « on passe a la suite », Mathieu, apres l'audit : le cercle s'affichait puis presque rien) : il se
+   dresse en levant les bras (il grandit et se cambre), le sol tremble de plus en plus fort, des fissures rougeoyantes et des cailloux sautent dans le
+   cercle ; a la fin il s'abat (penche en avant, tasse) au moment du seisme */
+/* le seisme lui-meme : tout le cercle se fend et rougeoie (fissures en couronne, pas seulement sous ses pieds, sinon on ne les voyait pas), des
+   rochers jaillissent et retombent dans le cercle, eclair, ondes, poussiere, grosse secousse ; un cratere la ou tombent ses poings */
+const MAT_ROCHER = mat('#8a8070'); partager(MAT_ROCHER);
+function seismeBoss(mo, x, y, z, R) {
+  seisme(x, y, z, R); secousse(0.45, 0.6); flashLumiere(x, y + 1, z, '#ff8a2e', 4, 10, 0.4); onde(x, y, z, R * 1.5, '#ffb26a', 0.6, 0.9); onde(x, y, z, R * 1.1, '#7a5a3a', 0.8, 0.6, true);
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + fxAlea() * 0.5, r = R * (0.45 + fxAlea() * 0.35); solFendu(x + Math.cos(a) * r, y, z + Math.sin(a) * r, R * 0.45, true); }
+  cratere(x + Math.sin(mo.ry) * mo.d.ombre * 0.45, y, z + Math.cos(mo.ry) * mo.d.ombre * 0.45, 1.4, 3);
+  for (let i = 0; i < 10; i++) { const m = new T.Mesh(new T.DodecahedronGeometry(0.18 + fxAlea() * 0.22, 0), MAT_ROCHER), a = fxAlea() * Math.PI * 2, r0 = fxAlea() * R * 0.8, r1 = r0 + 0.5 + fxAlea() * 1.2;
+    const x0 = x + Math.cos(a) * r0, z0 = z + Math.sin(a) * r0, x1 = x + Math.cos(a) * r1, z1 = z + Math.sin(a) * r1, H = 1.5 + fxAlea() * 2, D = 0.6 + fxAlea() * 0.3; m.castShadow = true;
+    fxVie(m, D + 0.5, (k) => { const u = Math.min(1, k * (D + 0.5) / D); m.position.set(x0 + (x1 - x0) * u, y + 0.1 + Math.sin(u * Math.PI) * H, z0 + (z1 - z0) * u); m.rotation.set(k * 9, k * 7, 0); m.scale.setScalar(k > 0.85 ? Math.max(0.01, (1 - k) / 0.15) : 1);
+      if (u >= 1 && !m.userData.pose) { m.userData.pose = true; poussiere(x1, y, z1, 3, 0.5, '#d8c6a0'); } }); }
+  emettre(FX_FUM, 24, { x, y: y + 0.3, z, r: R * 0.8, plat: true, v: [0, 1.6, 0], dv: 1.2, vie: [0.8, 1.4], taille: [1, 3], c: ['#d8c6a0', '#b8a07a'], a: 0.55, frein: 1.5, vrot: 1, entree: 0.1 });
+}
+function prepaSeisme(mo, x0, z0, R, duree) {
+  const c0 = combat, y = solA(x0, z0); let t = 0, tic = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.penche = 0; mo.hop = 0; mo.dresse = 0; return true; } const k = Math.min(1, t / duree);
+    if (k < 0.85) { const u = Math.min(1, k / 0.6); mo.penche = -0.28 * u; mo.dresse = 0.12 * u; mo.hop = 0.25 * u; } /* (il se dresse, les bras leves) */
+    else { const u = (k - 0.85) / 0.15; mo.penche = -0.28 + 0.68 * u; mo.dresse = 0.12 * (1 - u); mo.hop = 0.25 * (1 - u) - 0.25 * u; } /* (il s'abat) */
+    if ((tic -= dt) <= 0) { tic = 0.12 - 0.07 * k; secousse(0.03 + 0.1 * k, 0.15); const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * R * 0.95, x = x0 + Math.cos(a) * r, z = z0 + Math.sin(a) * r;
+      emettre(FX_VIF, 2, { x, y: y + 0.1, z, r: 0.2, v: [0, 2.5 + 2 * k, 0], dv: 1, vie: [0.4, 0.7], taille: [0.12, 0.06], c: ['#8e7a5e', '#6a5a44'], a: 1, grav: 9 });
+      if (k > 0.3) emettre(FX_LUM, 1, { x, y: y + 0.08, z, plat: true, vie: [0.3, 0.5], taille: [0.6 + k, 0.2], c: ['#ffd27a', '#ff6a1e'], a: 0.5 * k }); }
+    if (k >= 1) { let r = 0; effets.push((d2) => { r += d2; if (mo.etat !== 'actif') { mo.penche = 0; mo.hop = 0; return true; } mo.penche = 0.4 * Math.max(0, 1 - r / 0.5); mo.hop = -0.25 * Math.max(0, 1 - r / 0.5); return r >= 0.5; }); return true; } });
+}
 function capSeisme(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.seisme) { /* le Craqueleur Legendaire frappe le sol : un cercle rouge s'annonce autour de lui (1,3 s pour en sortir), puis l'onde de choc, sur le perso et les batiments */
     if (sortPret('seismeT', mo.d.seisme) && (!mo.d.seismeProche || Math.hypot(pp.x - mo.x, pp.z - mo.z) <= (mo.d.seismeR || 4.5) + mo.d.seismeProche)) { /* (seismeProche, 29/10/2026 : il attend que tu sois a portee, sinon le sort part dans le vide ; le sort reste pret) */
       mo.seismeT = 0; const R = mo.d.seismeR || 4.5, duree = mo.d.seismeDuree || 1.3, x0 = mo.x, z0 = mo.z; mo.bloqueT = duree + 0.3; gesteSort(mo, gesteDe(mo, 'seisme', 'sort'), duree); /* (le rayon et le temps : ceux du Craqueleur Legendaire, ou de la fiche ; l'ecrasement du Dragon Cochon, 20/10/2026) */
       if (!combat.seismeVu) { combat.seismeVu = true; toast((mo.d.seismeNom || 'Séisme') + ' ! ' + leNom(mo.d) + ' va frapper le sol : sors du cercle ' + teinteSorts(mo.d) + '.', 'alerte'); }
+      const lourdS = !m.userData.anim; if (lourdS) prepaSeisme(mo, x0, z0, R, duree); /* (31/10/2026 : le Craqueleur Legendaire se dresse, le sol tremble et rougeoie) */
       zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => {
+        if (lourdS) seismeBoss(mo, x0, mo.m.position.y, z0, R); /* (il abat ses poings : le vrai seisme, 31/10/2026) */
         const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p, y = mo.m.position.y; impactMarteau(q.x, y, q.z, mo.d.couleurSorts); onde(x0, y, z0, R, (mo.d.couleurSorts || [])[1] || '#fff3d6', 0.6, 0.8); } /* (le Gorille : ses deux poings au sol, 31/10/2026) */
         pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); mo.frappe = 0.4;
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).seisme || 1)), mo); if (mo.d.repousse && combat && !combat.fin) repousserPerso(mo, mo.d.repousse); }
@@ -1296,6 +1333,7 @@ function majMonstre(mo, dt, s) {
   } else if (mo.flamme) mo.flamme.visible = false;
   if (!combat || mo.etat !== 'actif') return;
   if (mo.coup > 0) { mo.coup -= dt; m.scale.setScalar((mo.echelle || 1) * (1 + Math.max(0, mo.coup) * (mo.d.fluide ? 0.25 : 0.9))); } /* (fluide : elle gonfle a peine sous les coups, une fleche du Cra la faisait sursauter a chaque tir) */ else m.scale.setScalar(mo.echelle || 1);
+  if (mo.dresse) m.scale.y *= 1 + mo.dresse; /* (dresse : il se grandit pour frapper le sol, le seisme du Craqueleur Legendaire, 31/10/2026) */
   if (lent && !mo.givre) { mo.givre = new T.Mesh(new T.RingGeometry(0.3, 0.55, 24), new T.MeshBasicMaterial({ color: '#9fd8ff', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false })); mo.givre.rotation.x = -Math.PI / 2; mo.givre.position.y = 0.06; mo.givre.scale.setScalar(Math.max(1, mo.d.ombre)); m.add(mo.givre); }
   if (mo.givre) mo.givre.visible = lent;
 }
