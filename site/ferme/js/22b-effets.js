@@ -337,13 +337,13 @@ function seisme(x, y, z, r) { /* le sol se fend en rougeoyant, des rochers jaill
 }
 /* le Souffle de feu : un jet de flammes crache par la bouche, en cone, sur tout ce qui est devant (0,7 s de flammes, de la fumee, des braises) */
 function bouche(mesh) { const t = mesh.getObjectByName('tete'), p = t ? t.getWorldPosition(new T.Vector3()) : mesh.position.clone().add(new T.Vector3(0, 1.2, 0)); return p; }
-function souffleDeFeu(de, a, portee) {
-  const perso = paysanMesh, dx = Math.sin(a), dz = Math.cos(a); let t = 0;
+function souffleDeFeu(de, a, portee, o) { /* (o, 31/10/2026 : un monstre qui souffle, Crocabulia ; o.src, d'ou part le feu ; o.ouv, la demi-ouverture de son cone) */
+  const perso = o ? null : paysanMesh, dx = Math.sin(a), dz = Math.cos(a), nb = o ? Math.max(3, Math.round(portee / 2.3)) : 3; let t = 0;
   flashLumiere(de.x + dx, de.y + 1, de.z + dz, '#ff8a2e', 3.5, 8, 0.8); secousse(0.08, 0.6);
   effets.push((dt) => {
-    t += dt; if (t > 0.75) { const y0 = solA(de.x, de.z); for (let k = 1; k <= 3; k++) brulure(de.x + dx * k * portee * 0.25, y0, de.z + dz * k * portee * 0.25, 0.5 + k * 0.3); return true; } const b = perso ? bouche(perso) : de.clone().add(new T.Vector3(0, 1.1, 0)); b.x += dx * 0.35; b.z += dz * 0.35; b.y -= 0.05;
+    t += dt; if (t > 0.75) { const y0 = solA(de.x, de.z); for (let k = 1; k <= nb; k++) brulure(de.x + dx * k * portee / (nb + 1), y0, de.z + dz * k * portee / (nb + 1), 0.5 + 0.9 * k / nb); return true; } const b = o && o.src ? o.src() : perso ? bouche(perso) : de.clone().add(new T.Vector3(0, 1.1, 0)); b.x += dx * 0.35; b.z += dz * 0.35; b.y -= 0.05;
     const n = t < 0.6 ? 9 : 2, v = portee * 1.85; /* (un cone serre de 35 degres, des flammes qui grossissent en s'eloignant et atteignent la portee) */
-    for (let i = 0; i < n; i++) { const e = (fxAlea() - 0.5) * 0.6, ve = (fxAlea() - 0.45) * 0.22, ca = Math.cos(e), sa = Math.sin(e), vx = (dx * ca - dz * sa) * v * fxEntre(0.85, 1.1), vz = (dz * ca + dx * sa) * v * fxEntre(0.85, 1.1);
+    for (let i = 0; i < n; i++) { const e = (fxAlea() - 0.5) * (o && o.ouv ? o.ouv * 1.8 : 0.6), ve = (fxAlea() - 0.45) * 0.22, ca = Math.cos(e), sa = Math.sin(e), vx = (dx * ca - dz * sa) * v * fxEntre(0.85, 1.1), vz = (dz * ca + dx * sa) * v * fxEntre(0.85, 1.1);
       emettre(FX_VIF, 1, { x: b.x, y: b.y, z: b.z, v: [vx, ve * v - 0.4, vz], vie: [0.42, 0.58], taille: [0.1, 1.05], c: ['#fffbe0', '#ffd04a', '#ff6a1e', '#8a1a06'], a: 0.9, frein: 0.9, grav: -1.4, vrot: 3, entree: 0.03 });
       if (i % 4 === 0) emettre(FX_LUM, 1, { x: b.x, y: b.y, z: b.z, v: [vx * 0.92, ve * v - 0.3, vz * 0.92], vie: [0.35, 0.5], taille: [0.15, 1.6], c: ['#ffb84a', '#ff5a1e'], a: 0.35, frein: 0.9, grav: -1.4 }); }
     if (fxAlea() < 0.6) emettre(FX_VIF, 1, { x: b.x, y: b.y, z: b.z, v: [dx * v * 0.8, 1, dz * v * 0.8], dv: 2, vie: [0.5, 0.9], taille: [0.07, 0.02], c: ['#fff1a8', '#ff8a1e'], grav: 3, etire: 0.03 });
