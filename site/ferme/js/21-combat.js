@@ -190,8 +190,8 @@ function ficheMonstre(t) {
   if (d.carapace) L.push(capa('bouclier', 'Carapace d\'épines', 'Il se replie sous sa carapace : presque aucun dégât, et il renvoie un cinquième des coups reçus au corps à corps. Frappe ses soldats en attendant.', num('3,5 s') + recup('carapace')));
   if (d.marteau || d.poings) L.push(capa('sort', d.poings ? 'Coups de poing' : 'Coup de marteau', d.poings ? 'Il se tourne vers toi et abat son poing là où tu es : un cercle ' + teinteSorts(d) + ' sous tes pieds pour un coup au sol, un éventail devant lui pour un coup de poing ou un revers. Sors-en avant l\'impact.' : 'Il se tourne vers toi et abat son marteau là où tu es : un cercle orange sous tes pieds pour un coup au sol, un éventail devant lui pour un coup qui balaie. Sors-en avant l\'impact.', num(fmt(Math.round(dSort * ((d.sortsX || {}).marteau || 0.5))) + ' dégâts au sol', 'rouge') + num(fmt(Math.round(dSort * ((d.sortsX || {}).balaye || 0.25))) + ' en balayant', 'rouge'), 'violet'));
   if (d.marteau || d.poings) L.push(capa('sort', 'Moulinet', d.poings ? 'Il tend le bras et tourne trois fois sur lui-même : un grand cercle ' + teinteSorts(d) + ' autour de lui, chaque tour frappe dedans.' : 'Il tend son marteau et tourne trois fois sur lui-même : un grand cercle orange autour de lui, chaque tour frappe dedans.', num(fmt(Math.round(dSort * ((d.sortsX || {}).moulinet || 0.35))) + ' dégâts par tour', 'rouge') + num(TOURS_MOULINET + ' tours'), 'violet'));
-  if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
-  if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
+  if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : d.bondPrepa || ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
+  if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR && d.seismeR < 6 ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + (d.seismeLoin ? ', et l\'onde frappe plus fort au bord' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + (d.seismeLoin ? num('+' + Math.round(d.seismeLoin.parCase * 100) + ' % par case, jusqu\'à ×' + d.seismeLoin.max, 'rouge') : '') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
   if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
   if (d.boue) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
   if (d.brassard) L.push(capa('sort', 'Coup de brassard', 'Un arc rouge devant elle, puis un grand coup de brassard qui te repousse.', num(fmt(dSort) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'));
@@ -206,6 +206,8 @@ function ficheMonstre(t) {
   if (d.garde) L.push(capa('carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu'));
   if (d.invoque) L.push(capa('renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' lève son bâton de corail et invoque ' + d.invoque.n + ' tortues toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus) : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.', '', 'vert'));
   if (d.renforts) L.push(capa('renfort', 'Renforts','Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert'));
+  if (d.jet) L.push(capa('sort', d.jet.nom, 'Quand tu restes loin ' + (d.fem ? 'd\'elle' : 'de lui') + ', ' + (d.jet.arme === 'hache' ? 'il lève sa grande hache et te la lance' : 'il arrache un rocher du sol et te le lance') + ' : un grand cercle rouge sous toi, sors-en.', num(fmt(Math.round(dSort * d.jet.x)) + ' dégâts', 'rouge') + num(secondes(d.jet.prepa) + ' pour esquiver') + num('toutes les ' + d.jet.periode + ' s'), 'violet'));
+  if (d.faille) L.push(capa('sort', 'Faille', 'Il fend le sol jusqu\'à toi : une bande, puis le sol éclate de lui vers toi. Sors-en par le côté.', num(fmt(Math.round(dSort * d.faille.x)) + ' dégâts', 'rouge') + num('1 s pour esquiver') + num('toutes les ' + d.faille.periode + ' s'), 'violet'));
   if (d.affaibli) { const A = d.affaibli, pc = Math.round(A.seuil * 100); L.push(capa('bouclier', 'Affaibli', 'Sous ' + pc + ' % de vie, il tombe à genoux : invulnérable, sa vie bloquée à ' + pc + ' %, il appelle ' + A.n + ' ' + A.noms + '. Tant qu\'un seul est debout, il regagne ' + Math.round(A.regen * 100) + ' % de sa vie toutes les ' + A.pas + ' s. Abats-les tous : il se relève enragé.', num(fmt(A.pv) + ' PV par Gorille') + num('+' + Math.round(A.regen * 100) + ' % toutes les ' + A.pas + ' s', 'vert'), 'violet')); }
   if (d.rage) L.push(capa('rage', 'Rage', (d.affaibli ? 'Une fois ses ' + d.affaibli.noms + ' abattus' : 'Sous 30 % de vie') + ', il frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge'));
   if (!L.length) L.push(capa('degats', 'Au contact', 'Il vient te frapper, sans rien de plus.'));
@@ -797,22 +799,23 @@ function capBond(mo, ctx) {
     const vise = !!(mo.d.marteau || mo.d.poings); /* (Moon et le Gorille roi, 31/10/2026) */
     if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < 11) { /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
       if (vise && m.userData.anim) { mo.bonditT = 0; bondMarteau(mo, pp.x, pp.z); return; } /* (Moon, le Gorille : 22c-squelettes.js) */
-      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = ESQUIVE.bond + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
+      const EB = mo.d.bondPrepa || ESQUIVE.bond; /* (bondPrepa : le temps pour esquiver le bond, propre au boss, le Bworker 1,3 s, 31/10/2026) */
+      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = EB + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
       const an = m.userData.anim, H = an ? 1.2 : 2.8; /* (un monstre a squelette : son geste de saut, recale pour retomber a la fin du cercle ; le saut du geste porte deja une partie de la hauteur, 27/10/2026) */
       const fb = gesteDe(mo, 'bondit', 'bond');
-      if (an && an.F[fb]) { const nom = piocher(an, fb), D = an.A[nom].getClip().duration, imp = ((m.userData.impacts || {})[nom] || [])[0], ts = Math.max(0.6, (imp ? imp.t : D * 0.6) / ESQUIVE.bond), a = jouerAnim(an, nom, 0.1); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, ESQUIVE.bond + 0.5) }; }
+      if (an && an.F[fb]) { const nom = piocher(an, fb), D = an.A[nom].getClip().duration, imp = ((m.userData.impacts || {})[nom] || [])[0], ts = Math.max(0.6, (imp ? imp.t : D * 0.6) / EB), a = jouerAnim(an, nom, 0.1); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, EB + 0.5) }; }
       if (!combat.bonditVu) { combat.bonditVu = true; toast(leNom(mo.d) + ' va te sauter dessus : sors du cercle rouge !', 'alerte'); }
       const lourd = mo.d.boss && !an; /* (31/10/2026, un boss sans squelette, le Bworker : un vrai bond, elan, envol haut, ombre, ecrasement) */
       let t = 0, ombre = null; if (lourd) { ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(cx, solA(cx, cz) + 0.09, cz); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre); }
       const vol = lourd ? 0.75 : 0.6, Hl = lourd ? 5.5 : H;
       effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; mo.penche = 0; if (ombre) jeter(ombre); return true; }
-        if (lourd && t < ESQUIVE.bond - vol) { const k = t / (ESQUIVE.bond - vol); mo.hop = -0.35 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 2); mo.penche = -0.15 * k; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); /* (il se tasse et se cambre : l'elan) */
+        if (lourd && t < EB - vol) { const k = t / (EB - vol); mo.hop = -0.35 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 2); mo.penche = -0.15 * k; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); /* (il se tasse et se cambre : l'elan) */
           if (Math.random() < dt2 * 6) poussiere(mo.x, solA(mo.x, mo.z), mo.z, 3, 0.8, '#d8c6a0'); }
-        if (t > ESQUIVE.bond - vol) { const k = Math.min(1, (t - (ESQUIVE.bond - vol)) / vol); if (lourd && !mo.envol) { mo.envol = true; poussiere(x0, solA(x0, z0), z0, 14, 1.4, '#d8c6a0'); mottes(x0, solA(x0, z0), z0, 6, 1); }
+        if (t > EB - vol) { const k = Math.min(1, (t - (EB - vol)) / vol); if (lourd && !mo.envol) { mo.envol = true; poussiere(x0, solA(x0, z0), z0, 14, 1.4, '#d8c6a0'); mottes(x0, solA(x0, z0), z0, 6, 1); }
           mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * Hl; if (lourd) mo.penche = 0.45 * Math.sin(k * Math.PI) - 0.15 * (1 - k); }
-        if (ombre) { const o = Math.max(0, Math.min(1, t / ESQUIVE.bond)); ombre.scale.setScalar(Math.max(0.01, R * (0.2 + 0.7 * o))); ombre.material.opacity = 0.15 + 0.4 * o; }
-        if (t >= ESQUIVE.bond) { mo.hop = 0; mo.envol = false; if (ombre) jeter(ombre); if (lourd) { let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.3 * Math.max(0, 1 - r / 0.4); mo.hop = -0.3 * Math.sin(Math.min(1, r / 0.4) * Math.PI); return r >= 0.4; }); } return true; } });
-      zoneDanger({ mo, x: cx, z: cz, r: R, duree: ESQUIVE.bond, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
+        if (ombre) { const o = Math.max(0, Math.min(1, t / EB)); ombre.scale.setScalar(Math.max(0.01, R * (0.2 + 0.7 * o))); ombre.material.opacity = 0.15 + 0.4 * o; }
+        if (t >= EB) { mo.hop = 0; mo.envol = false; if (ombre) jeter(ombre); if (lourd) { let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.3 * Math.max(0, 1 - r / 0.4); mo.hop = -0.3 * Math.sin(Math.min(1, r / 0.4) * Math.PI); return r >= 0.4; }); } return true; } });
+      zoneDanger({ mo, x: cx, z: cz, r: R, duree: EB, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
     }
   }
@@ -885,6 +888,58 @@ function epinesTouche(mo) { /* ses epines te renvoient le coup : elles etincelle
   etincelle(de, 1, '#fff1c0'); etoileImpact(vers, 0.8, '#efe0b8'); emettre(FX_VIF, 8, { x: de.x, y: de.y, z: de.z, r: 0.3, v: [(vers.x - de.x) * 3, (vers.y - de.y) * 3, (vers.z - de.z) * 3], dv: 1.5, vie: [0.2, 0.3], taille: [0.1, 0.03], c: ['#ffffff', '#efe0b8'], a: 1, etire: 0.04 });
   if (mo.epinesC) mo.epinesK = 1.25; /* (elles se herissent un instant) */
 }
+/* LE JET D'UN BOSS (31/10/2026, par Discord) : quand tu restes loin de lui, il arme son arme au-dessus de sa tete (la hache du Bworker, un rocher
+   arrache du sol par le Craqueleur), un grand cercle rouge s'annonce sous toi, puis l'arme part en cloche, tourne sur elle-meme et s'ecrase a la fin
+   du cercle (choc, onde, sol fendu) ; la hache reste plantee un instant, le rocher eclate. Fiche : jet: { nom, arme, periode, loin, R, prepa, x } */
+function armeJet(type, k) {
+  const g = new T.Group();
+  if (type === 'hache') { const manche = new T.Mesh(new T.CylinderGeometry(0.06 * k, 0.07 * k, 2.2 * k, 8), mat('#6a4528')); g.add(manche);
+    const f = new T.Shape(); f.moveTo(0, -0.55); f.quadraticCurveTo(0.95, -0.6, 0.85, 0); f.quadraticCurveTo(0.95, 0.6, 0, 0.55); f.lineTo(0.1, 0); f.lineTo(0, -0.55);
+    for (const s of [-1, 1]) { const l = new T.Mesh(new T.ExtrudeGeometry(f, { depth: 0.06, bevelEnabled: false }), mat('#9aa3ad')); l.geometry.translate(0, 0, -0.03); l.scale.set(s * k, k, k); l.position.y = 0.7 * k; g.add(l);
+      const fil = new T.Mesh(new T.ExtrudeGeometry(f, { depth: 0.07, bevelEnabled: false }), mat('#dfe6ec')); fil.geometry.translate(0, 0, -0.035); fil.scale.set(s * k * 1.02, k * 0.92, k); fil.position.y = 0.7 * k; fil.position.x = s * 0.06 * k; g.add(fil); }
+    const pique = new T.Mesh(new T.ConeGeometry(0.1 * k, 0.4 * k, 6), mat('#9aa3ad')); pique.position.y = 1.3 * k; g.add(pique); }
+  else { const r = new T.Mesh(new T.DodecahedronGeometry(0.75 * k, 0), mat('#7d7468')); r.scale.set(1, 0.8, 1.1); g.add(r); const r2 = new T.Mesh(new T.DodecahedronGeometry(0.4 * k, 0), mat('#5f5850')); r2.position.set(0.45 * k, 0.3 * k, 0.2 * k); g.add(r2);
+    for (let i = 0; i < 3; i++) { const c = new T.Mesh(new T.OctahedronGeometry(0.18 * k, 0), fxMat('#ff7a1e', 0.9)); c.position.set((i - 1) * 0.35 * k, 0.55 * k, -0.2 * k); g.add(c); } } /* (un rocher de lave, fentes rougeoyantes) */
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g;
+}
+function capJet(mo, ctx) {
+  const { pp, sortPret } = ctx, J = mo.d.jet; if (!J || combat.deroute != null || mo.carapace > 0) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('jetT', J.periode)) return; if (dP < J.loin || dP > 15) { mo.jetT = J.periode; return; } /* (pret, il attend que tu sois loin) */
+  mo.jetT = 0; const c0 = combat, cx = pp.x, cz = pp.z, a = Math.atan2(cx - mo.x, cz - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), arme = armeJet(J.arme, k), hache = J.arme === 'hache';
+  mo.ry = a; mo.bloqueT = J.prepa + 0.4; mo.frappe = 0.3; scene.add(arme);
+  if (!c0['jetVu' + J.arme]) { c0['jetVu' + J.arme] = true; toast(leNom(mo.d) + (hache ? ' lève sa grande hache pour te la lancer' : ' arrache un rocher du sol pour te le lancer') + ' : sors du cercle rouge !', 'alerte'); }
+  if (!hache) { const y = solA(mo.x, mo.z); poussiere(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 10, 1, '#d8c6a0'); mottes(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 6, 0.9); }
+  const vol = Math.max(0.45, Math.min(0.75, dP / 16)), tl = J.prepa - vol; let t = 0, de = null; const vers = new T.Vector3(cx, solA(cx, cz) + (hache ? 0.6 : 0.5) * k, cz), H = 2.5 + dP * 0.12;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(arme); mo.penche = 0; return true; }
+    if (t < tl) { const u = Math.min(1, t / tl), h = mo.m.position.y + (mo.haut || 3) * (0.75 + 0.45 * u); /* (il l'arme au-dessus de sa tete, tire en arriere) */
+      arme.position.set(mo.x - Math.sin(a) * 0.6 * u, h, mo.z - Math.cos(a) * 0.6 * u); arme.rotation.set(-1.2 * u, a, 0); mo.penche = -0.22 * u; return false; }
+    if (!de) { de = arme.position.clone(); mo.penche = 0.3; secousse(0.06, 0.15); }
+    const u = Math.min(1, (t - tl) / vol); mo.penche = 0.3 * (1 - u); arme.position.lerpVectors(de, vers, u); arme.position.y += Math.sin(u * Math.PI) * H;
+    if (hache) arme.rotation.set(-1.2 - u * Math.PI * 4, a, 0); else arme.rotation.set(u * 9, a + u * 5, 0); traineeFleche(arme.position);
+    if (u < 1) return false;
+    if (hache) { arme.rotation.set(-2.3, a, 0); arme.position.y = vers.y - 0.2; let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.2) arme.position.y -= d3 * 2; if (s2 > 1.7) { pouf(cx, solA(cx, cz), cz, 1.5, '#9aa3ad'); jeter(arme); return true; } }); }
+    else { jeter(arme); emettre(FX_VIF, 20, { x: cx, y: vers.y, z: cz, r: 0.5, dv: 5, haut: true, vie: [0.4, 0.8], taille: [0.16, 0.06], c: ['#8a8070', '#5f5850'], grav: 10, frein: 1 }); emettre(FX_LUM, 10, { x: cx, y: vers.y, z: cz, r: 0.4, dv: 4, haut: true, vie: [0.3, 0.5], taille: [0.2, 0.04], c: ['#ffd27a', '#ff6a1e'], grav: 6 }); }
+    return true; });
+  zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz); impactMarteau(cx, y, cz); onde(cx, y, cz, J.R * 1.6, '#ffd27a', 0.5, 0.7);
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * J.x)), mo); } });
+}
+/* LA FAILLE du Craqueleur Legendaire (31/10/2026) : il frappe le sol, une bande s'annonce jusqu'a toi, puis le sol eclate en chapelet depuis ses pieds
+   jusqu'au bout de la bande, rochers et braises, une eruption toutes les 0,09 s : tu as le temps d'en sortir de cote. Fiche : faille: { periode, L, x } */
+function capFaille(mo, ctx) {
+  const { pp, sortPret } = ctx, F = mo.d.faille; if (!F || combat.deroute != null) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('failleT', F.periode)) return; if (dP < 3 || dP > F.L) { mo.failleT = F.periode; return; }
+  mo.failleT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x + Math.sin(a) * 1.2, z0 = mo.z + Math.cos(a) * 1.2, L = Math.min(F.L, dP + 3), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L), prepa = 1.0;
+  mo.ry = a; mo.bloqueT = prepa + 0.5; prepaSeisme(mo, mo.x, mo.z, 0.01, prepa);
+  if (!c0.failleVu) { c0.failleVu = true; toast(leNom(mo.d) + ' fend le sol jusqu\'à toi : sors de la bande, la faille éclate de lui vers toi !', 'alerte'); }
+  let touche = false; const dg = Math.max(1, Math.round(degSort(mo) * F.x));
+  zoneDanger({ mo, x: x0, z: z0, x2: f.x, z2: f.z, larg: 1.6, duree: prepa, effet: () => {
+    const Lr = Math.hypot(f.x - x0, f.z - z0), n = Math.max(3, Math.round(Lr / 1.3)); secousse(0.2, 0.4);
+    for (let i = 0; i <= n; i++) { const u = i / n, x = x0 + (f.x - x0) * u, z = z0 + (f.z - z0) * u; setTimeout(() => { if (combat !== c0 || c0.fin) return; const y = solA(x, z);
+      solFendu(x, y, z, 1.4, true); poussiere(x, y, z, 6, 0.8, '#d8c6a0'); mottes(x, y, z, 3, 1.1); emettre(FX_LUM, 4, { x, y: y + 0.1, z, r: 0.4, dv: 3, haut: true, vie: [0.3, 0.5], taille: [0.15, 0.03], c: ['#ffd27a', '#ff6a1e'], grav: 6 });
+      if (i % 2 === 0) { const r = new T.Mesh(new T.DodecahedronGeometry(0.3, 0), mat('#7d7468')); r.castShadow = true; fxVie(r, 0.7, (k) => { r.position.set(x + (k - 0.5) * 0.3, y + Math.sin(k * Math.PI) * 1.6, z); r.rotation.set(k * 8, k * 5, 0); }); }
+      const p2 = paysanMesh.position; if (!touche && Math.hypot(p2.x - x, p2.z - z) < 1.1) { touche = true; blesserPerso(dg, mo); } }, i * 90); }
+  } });
+}
 function capCarapace(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.carapace) { /* le Chafer Cuirasse se replie sous sa carapace d'epines : 3,5 s presque invulnerable, il renvoie un cinquieme des coups du perso */
@@ -943,7 +998,7 @@ function capSeisme(mo, ctx) {
         if (lourdS) seismeBoss(mo, x0, mo.m.position.y, z0, R); /* (il abat ses poings : le vrai seisme, 31/10/2026) */
         const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p, y = mo.m.position.y; impactMarteau(q.x, y, q.z, mo.d.couleurSorts); onde(x0, y, z0, R, (mo.d.couleurSorts || [])[1] || '#fff3d6', 0.6, 0.8); } /* (le Gorille : ses deux poings au sol, 31/10/2026) */
         pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); mo.frappe = 0.4;
-        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).seisme || 1)), mo); if (mo.d.repousse && combat && !combat.fin) repousserPerso(mo, mo.d.repousse); }
+        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { const SL = mo.d.seismeLoin, kl = SL ? Math.min(SL.max, 1 + SL.parCase * Math.hypot(p2.x - x0, p2.z - z0) / S) : 1; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).seisme || 1) * kl), mo); if (kl >= 1.4) chiffre('De loin ×' + String(Math.round(kl * 10) / 10).replace('.', ','), new T.Vector3(p2.x, p2.y + 2.6, p2.z), 'gros'); /* (seismeLoin : plus tu es loin de lui, plus l'onde frappe fort, le Craqueleur Legendaire, 31/10/2026) */ if (mo.d.repousse && combat && !combat.fin) repousserPerso(mo, mo.d.repousse); }
         if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < R + Math.max(z.hw, z.hd)) blesserBat(k, degatsBatiment(1, mo)); });
       } });
     }
@@ -1156,7 +1211,7 @@ function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/20
     return true; });
 }
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre, capRoulade];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre, capRoulade];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
