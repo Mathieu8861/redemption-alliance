@@ -59,7 +59,7 @@ const PANCARTES = [
   ['forge', () => { const g = batiPose('forge'); return g && [g, 'Forgemagie', { avance: 0.3 }]; }],
   ['geliere', () => { const g = batiPose('geliere'); return g && [g, 'Gelière', { avance: 0.3 }]; }],
   ['niche', () => { const g = batiPose('niche'), G = gardienDe(); return g && G && [g, G.nom, G.espece === 'chat' ? { h: 0.3, origine: true, cotes: [1, 3], pied: 0.1 } : { h: 0.3, avance: 0.2, pied: 0.1 }]; }], /* (Newton : sur son tonneau) */
-  ['epouvantail', () => epou && epou.g && [epou.g, 'Pépito-tron', { h: 0.36, poteau: true, sol: epou.g.position.y, pied: 0.9, x: epou.g.position.x + 0.15, z: epou.g.position.z + 0.95, ry: 0, cellule: (blocBati('epouvantail') || {}).c0 && blocBati('epouvantail').c0.id }]], /* (plantee devant le robot, a cote de son bras) */
+  /* (le Pépito-tron n'a plus de pancarte : « retire la pancarte », Mathieu, 31/10/2026) */
   ['enclos', () => { const E = casesEnclos(); if (!E.length || !clotureMesh) return null; const P = E.map(posCase), xs = P.map((q) => q.x), zs = P.map((q) => q.z); /* plantee dans l'herbe le long du cote droit, qui regarde aussi
       la camera : le portillon est au milieu du devant, la pancarte le cachait (« enclos a Bouftous devant le portail, pas dingue », Mathieu) */
     return [clotureMesh, 'Enclos à Bouftous', { h: 0.4, poteau: false, ry: 0, cotes: [1], sol: P[0].y, pied: 0.62, x: Math.max(...xs) + S * 0.62, z: (Math.min(...zs) + Math.max(...zs)) / 2, cellule: E[0].id }]; }],
