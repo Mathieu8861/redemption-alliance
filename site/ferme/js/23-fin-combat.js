@@ -16,14 +16,14 @@ function majCombat(dt, s) {
   if (!combat) { ANNEAU.visible = false; return; }
   const c = combat;
   if (c.fin) return;
-  if (classeDe() === 'iop') { /* le Iop (18-geliere.js) : sa regeneration, son invincibilite, sa Colere */
+  if (classeDe() === 'iop') { /* le Iop (18-geliere.js) : sa regeneration, son invincibilite, son Berserker */
     if (c.invincible > 0) c.invincible -= dt;
     if (c.deroute == null && c.pv > 0 && (c.regenIop = (c.regenIop || 0) + dt) >= PAS_REGEN_IOP) { c.regenIop -= PAS_REGEN_IOP;
       if (c.pv < c.pvMax) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * REGEN_IOP); if (c.st) c.st.soins += c.pv - a0; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('+' + Math.round(c.pv - a0), p, 'soin'); } }
-    const col = colereIop(), p = paysanMesh.position;
-    if (col && !c.colere) { pouf(p.x, p.y, p.z, 2.5, '#e2413a'); if (!c.colereVu) { c.colereVu = true; toast('Colère du Iop : sous ' + Math.round(SEUIL_COLERE_IOP * 100) + ' % de vie, tes dégâts sont doublés !', 'alerte'); } }
-    if (col && (c.colereT = (c.colereT || 0) + dt) > 0.12) { c.colereT = 0; emettre(FX_VIF, 2, { x: p.x, y: p.y + 0.9, z: p.z, r: 0.5, dv: 1.4, vie: [0.35, 0.6], taille: [0.09, 0.02], c: ['#ff5a2a', '#ffb347'], a: 1 }); }
-    c.colere = col;
+    const col = berserkerIop(), p = paysanMesh.position;
+    if (col && !c.berserker) { pouf(p.x, p.y, p.z, 2.5, '#e2413a'); if (!c.berserkerVu) { c.berserkerVu = true; toast('Berserker : sous ' + Math.round(SEUIL_BERSERKER_IOP * 100) + ' % de vie, tes coups d\'épée font deux fois plus de dégâts !', 'alerte'); } }
+    if (col && (c.berserkerT = (c.berserkerT || 0) + dt) > 0.12) { c.berserkerT = 0; emettre(FX_VIF, 2, { x: p.x, y: p.y + 0.9, z: p.z, r: 0.5, dv: 1.4, vie: [0.35, 0.6], taille: [0.09, 0.02], c: ['#ff5a2a', '#ffb347'], a: 1 }); }
+    c.berserker = col;
   }
   if (c.regen && c.deroute == null && c.pv > 0) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * c.regen * dt); if (c.st) { c.st.soins += c.pv - a0; c.st.menthe += c.pv - a0; } } /* le pot de Menthe */
   if (c.deroute != null) { /* a terre : le compte a rebours du saccage */
