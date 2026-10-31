@@ -192,7 +192,7 @@ function ficheMonstre(t) {
   if (d.marteau || d.poings) L.push(capa('sort', 'Moulinet', d.poings ? 'Il tend le bras et tourne trois fois sur lui-même : un grand cercle ' + teinteSorts(d) + ' autour de lui, chaque tour frappe dedans.' : 'Il tend son marteau et tourne trois fois sur lui-même : un grand cercle orange autour de lui, chaque tour frappe dedans.', num(fmt(Math.round(dSort * ((d.sortsX || {}).moulinet || 0.35))) + ' dégâts par tour', 'rouge') + num(TOURS_MOULINET + ' tours'), 'violet'));
   if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
   if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
-  if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il bande son arc : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
+  if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
   if (d.boue) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
   if (d.brassard) L.push(capa('sort', 'Coup de brassard', 'Un arc rouge devant elle, puis un grand coup de brassard qui te repousse.', num(fmt(dSort) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'));
   if (d.pierre) L.push(capa('bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre')));
@@ -887,7 +887,8 @@ function capPluie(mo, ctx) {
     }
   }
 }
-/* la Bourrasque d'Ark (31/10/2026, « des sorts de fleche et de vent », Mathieu, qui l'a choisie parmi quatre) : face a toi, il bande son arc pendant
+/* la Bourrasque (31/10/2026, « des sorts de fleche et de vent », Mathieu, qui l'a choisie parmi quatre ; faite pour l'Ark, passee a Ebil le meme jour,
+   « la bourrasque de l'Ark tu la donnes a Ebil ») : face a toi, il bande son arc (Ebil pointe son baton, bourrasqueGeste) pendant
    qu'un cone rouge s'annonce devant lui, puis il decoche une fleche de vent ; la rafale balaie le cone (bourrasqueVent, 22b-effets.js) : dedans, tu
    prends le coup, tu es repousse de 2 cases et ralenti 1,5 s. Toute la horde ne le lance pas en meme temps */
 const RECUL_BOURRASQUE = 2 * S, LENTEUR_BOURRASQUE = 1.5, OUV_BOURRASQUE = 0.42;
@@ -898,8 +899,8 @@ function capBourrasque(mo, ctx) {
   if (!sortPret('bourrasqueT', mo.d.bourrasque) || mo.geste) return;
   if (dP > R - 0.4) { mo.bourrasqueT = mo.d.bourrasque; return; } /* (pret, il attend que tu sois a portee) */
   mo.bourrasqueT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x, z0 = mo.z, duree = ESQUIVE.bourrasque, c0 = combat;
-  mo.ry = a; mo.bloqueT = duree + 0.35; mo.cd = Math.max(mo.cd || 0, duree + 0.6); mo.frappe = 0.3; gesteSort(mo, 'tir', duree);
-  if (!c0.bourrasqueVu) { c0.bourrasqueVu = true; toast(leNom(mo.d) + ' bande son arc : sors du cône rouge, sa bourrasque te repousse et te ralentit !', 'alerte'); }
+  mo.ry = a; mo.bloqueT = duree + 0.35; mo.cd = Math.max(mo.cd || 0, duree + 0.6); mo.frappe = 0.3; gesteSort(mo, gesteDe(mo, 'bourrasque', 'tir'), duree); /* (Ebil : son geste de magie, gestes de sa fiche) */
+  if (!c0.bourrasqueVu) { c0.bourrasqueVu = true; toast(leNom(mo.d) + ' ' + (mo.d.bourrasqueGeste || 'bande son arc') + ' : sors du cône rouge, sa bourrasque te repousse et te ralentit !', 'alerte'); }
   zoneDanger({ mo, x: x0, z: z0, r: R, a, ouv: OUV_BOURRASQUE, duree, effet: (d) => {
     const p0 = (mainSquelette(mo) || new T.Vector3(x0, mo.m.position.y + 1.2, z0)); bourrasqueVent(p0, solA(x0, z0), a, R, OUV_BOURRASQUE);
     const p2 = paysanMesh.position; if (!dansDanger(d, p2.x, p2.z)) return;
