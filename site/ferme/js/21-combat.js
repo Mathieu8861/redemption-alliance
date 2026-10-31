@@ -455,15 +455,16 @@ const dansDanger = (d, x, z) => { if (d.r && d.ouv != null) { const dx = x - d.x
 const solA = (x, z) => { const c = caseIci(x, z); return c ? hauteurSol(x, z, c) : 0; };
 const pointValide = (x0, z0, x, z) => { const ok = (a, b) => { if (lieu === 'arene') return solSort(a, b); const q = caseIci(a, b); return q && PASSABLE[q.type]; }; /* (a l'Arene, son cercle : elle n'a pas de cases de ferme, tout y tombait a zero ; les Tortues roulaient sur place, « elles avancent pas », Mathieu, 29/10/2026) */ let k = 1; while (k > 0 && !ok(x0 + (x - x0) * k, z0 + (z - z0) * k)) k -= 0.05; k = Math.max(0, k); return { x: x0 + (x - x0) * k, z: z0 + (z - z0) * k }; };
 function zoneDanger(o) {
-  const c0 = combat, g = new T.Group(), mat0 = (op) => new T.MeshBasicMaterial({ color: o.couleur || (o.mo && o.mo.d.couleurSorts && o.mo.d.couleurSorts[0]) || '#e2413a', transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide });
+  const c0 = combat, g = new T.Group(), mat0 = (op) => new T.MeshBasicMaterial({ color: o.couleur || (o.mo && o.mo.d.couleurSorts && o.mo.d.couleurSorts[0]) || '#e2413a', transparent: true, opacity: Math.min(0.95, op * (o.fort || 1)), depthWrite: false, side: T.DoubleSide }); /* (fort : une zone plus opaque, la bande verte du Koulosse sur l'herbe, 31/10/2026) */
   const d = o.r ? { x: o.x, z: o.z, r: o.r, a: o.a, ouv: o.ouv } : { x: o.x, z: o.z, x2: o.x2, z2: o.z2, larg: o.larg }; let fond, plein;
   if (o.r) { const a0 = o.ouv != null ? o.a - Math.PI / 2 - o.ouv : 0, da = o.ouv != null ? o.ouv * 2 : Math.PI * 2; /* (l'eventail : l'angle du jeu a devient a - pi/2 dans le disque couche) */
     fond = new T.Mesh(new T.CircleGeometry(o.r, 40, a0, da), mat0(0.3)); plein = new T.Mesh(new T.CircleGeometry(o.r, 40, a0, da), mat0(0.38)); const bord = new T.Mesh(new T.RingGeometry(o.r - 0.16, o.r, 48, 1, a0, da), mat0(0.95)); [fond, plein, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; g.add(m); }); g.position.set(o.x, solA(o.x, o.z) + 0.07, o.z); }
-  else { const L = Math.hypot(o.x2 - o.x, o.z2 - o.z) || 0.1; fond = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.3)); plein = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.38)); [fond, plein].forEach((m) => { m.geometry.translate(0, -L / 2, 0); m.rotation.x = -Math.PI / 2; g.add(m); }); g.rotation.y = Math.atan2(o.x2 - o.x, o.z2 - o.z); g.position.set(o.x, Math.max(solA(o.x, o.z), solA(o.x2, o.z2)) + 0.07, o.z); }
+  else { const L = Math.hypot(o.x2 - o.x, o.z2 - o.z) || 0.1; fond = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.3)); plein = new T.Mesh(new T.PlaneGeometry(o.larg, L), mat0(0.38)); [fond, plein].forEach((m) => { m.geometry.translate(0, -L / 2, 0); m.rotation.x = -Math.PI / 2; g.add(m); });
+    if (o.bord) for (const s of [-1, 1]) { const b = new T.Mesh(new T.PlaneGeometry(0.12, L), mat0(0.95 / (o.fort || 1))); b.geometry.translate(s * (o.larg / 2 - 0.06), -L / 2, 0); b.rotation.x = -Math.PI / 2; g.add(b); } /* (bord : deux liseres pleins le long de la bande) */ g.rotation.y = Math.atan2(o.x2 - o.x, o.z2 - o.z); g.position.set(o.x, Math.max(solA(o.x, o.z), solA(o.x2, o.z2)) + 0.07, o.z); }
   g.children.forEach((m) => { m.renderOrder = 2; }); scene.add(g); (c0.dangers = c0.dangers || []).push(d); let t = 0;
   const fin = () => { jeter(g); const i = c0.dangers.indexOf(d); if (i >= 0) c0.dangers.splice(i, 1); return true; };
   effets.push((dt) => {
-    t += dt; const k = Math.min(1, t / o.duree); if (o.r) plein.scale.setScalar(Math.max(0.01, k)); else plein.scale.y = Math.max(0.01, k); fond.material.opacity = 0.22 + 0.2 * Math.abs(Math.sin(t * 9));
+    t += dt; const k = Math.min(1, t / o.duree); if (o.r) plein.scale.setScalar(Math.max(0.01, k)); else plein.scale.y = Math.max(0.01, k); fond.material.opacity = Math.min(0.9, (0.22 + 0.2 * Math.abs(Math.sin(t * 9))) * (o.fort || 1));
     if (combat !== c0 || c0.fin || (o.mo && o.mo.etat !== 'actif')) return fin();
     if (t >= o.duree) { fin(); o.effet(d); return true; }
   });
@@ -1185,7 +1186,7 @@ function capAppel(mo, ctx) {
       if (!combat.appelVu) { combat.appelVu = true; toast('Le Koulosse te lance son appel : sors de la bande verte, ou il t\'attire à lui !', 'alerte'); }
       const geste = !m.userData.anim, c0 = combat; if (geste) { let t = 0, f = 0; effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif' || t > 1) return true; mo.penche = -0.15 * Math.min(1, t / 0.3); const bx = mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.4, by = mo.m.position.y + mo.haut * 0.75, bz = mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.4;
         if ((f -= dt) <= 0) { f = 0.03; const a = t * 14 + Math.random(); emettre(FX_FUM, 1, { x: bx + Math.cos(a) * 0.7, y: by + Math.sin(a) * 0.7, z: bz, v: [0, 0.2, 0], vie: [0.25, 0.4], taille: [0.5, 0.2], c: ['#c8f0a0', '#9ad86a'], a: 0.7 }); } return false; }); } /* (31/10/2026 : la fumee tourbillonne devant sa bouche) */
-      const x2 = pp.x, z2 = pp.z; zoneDanger({ mo, x: mo.x, z: mo.z, x2, z2, larg: 1.6, duree: 1.0, couleur: '#7ad04a', effet: (d) => { const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z); if (geste) langueFumee(mo, x2, z2, pris); if (pris) { if (geste) setTimeout(() => { if (combat === c0 && !c0.fin && mo.etat === 'actif') attirerPerso(mo); }, 220); else attirerPerso(mo); } } });
+      const x2 = pp.x, z2 = pp.z; zoneDanger({ mo, x: mo.x, z: mo.z, x2, z2, larg: 1.6, duree: 1.0, couleur: '#14501a', fort: 1.7, bord: true, effet: (d) => { const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z); if (geste) langueFumee(mo, x2, z2, pris); if (pris) { if (geste) setTimeout(() => { if (combat === c0 && !c0.fin && mo.etat === 'actif') attirerPerso(mo); }, 220); else attirerPerso(mo); } } });
     }
   }
 }
