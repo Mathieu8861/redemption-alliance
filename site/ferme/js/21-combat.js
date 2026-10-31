@@ -206,7 +206,8 @@ function ficheMonstre(t) {
   if (d.garde) L.push(capa('carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu'));
   if (d.invoque) L.push(capa('renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' lève son bâton de corail et invoque ' + d.invoque.n + ' tortues toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus) : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.', '', 'vert'));
   if (d.renforts) L.push(capa('renfort', 'Renforts','Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert'));
-  if (d.rage) L.push(capa('rage', 'Rage', 'Sous 30 % de vie, il frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge'));
+  if (d.affaibli) { const A = d.affaibli, pc = Math.round(A.seuil * 100); L.push(capa('bouclier', 'Affaibli', 'Sous ' + pc + ' % de vie, il tombe à genoux : invulnérable, sa vie bloquée à ' + pc + ' %, il appelle ' + A.n + ' ' + A.noms + '. Tant qu\'un seul est debout, il regagne ' + Math.round(A.regen * 100) + ' % de sa vie toutes les ' + A.pas + ' s. Abats-les tous : il se relève enragé.', num(fmt(A.pv) + ' PV par Gorille') + num('+' + Math.round(A.regen * 100) + ' % toutes les ' + A.pas + ' s', 'vert'), 'violet')); }
+  if (d.rage) L.push(capa('rage', 'Rage', (d.affaibli ? 'Une fois ses ' + d.affaibli.noms + ' abattus' : 'Sous 30 % de vie') + ', il frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge'));
   if (!L.length) L.push(capa('degats', 'Au contact', 'Il vient te frapper, sans rien de plus.'));
   /* le butin */
   const r = d.res || RES_MONSTRE[t], Pn = P != null ? PANOS[Math.min(P, PANOS.length - 1)] : null, leg = d.boss && LEGENDAIRES.find((x) => x.boss === t);
@@ -392,7 +393,8 @@ function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === i
 const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
 function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
-  if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; } /* (une Tortue en pleine roulade : tes coups la manquent) */
+  if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
+  if (mo.faible) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
   mo.recent = 1.2; /* (il vient d'etre touche : une Tortue peut rouler pour esquiver la suite) */
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
   if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
@@ -403,6 +405,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
   mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  if (mo.d.affaibli && !mo.faible && !mo.faibleFini && m0Anim(mo) && mo.pv <= mo.pvMax * mo.d.affaibli.seuil) { mo.pv = Math.ceil(mo.pvMax * mo.d.affaibli.seuil); entrerFaible(mo); return; } /* (Moon, sa vie bloquee a 30 %, 31/10/2026) */
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
     if (!combat.revitVu) { combat.revitVu = true; toast(leNom(mo.d) + ' se relève : il faut l\'abattre deux fois !', 'alerte'); } return;
@@ -649,7 +652,7 @@ function sauterSurPerso(mo) {
 const gesteDe = (mo, cap, def) => (mo.d.gestes && mo.d.gestes[cap]) || def;
 function capRage(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
-  if (mo.d.rage && !mo.enrage && mo.pv < mo.pvMax * (combat.difficile ? DUR.rage : 0.3)) { mo.enrage = true; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a');
+  if (mo.d.rage && !mo.enrage && !(mo.d.affaibli && m0Anim(mo) && !mo.faibleFini) && mo.pv < mo.pvMax * (combat.difficile ? DUR.rage : 0.3)) { /* (Moon : sa rage vient apres ses Gorilles, finFaible) */ mo.enrage = true; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a');
     if (mo.d.calumet) { mo.deg = Math.round(mo.deg * 1.25); if (mo.deg0 != null) mo.deg0 = Math.round(mo.deg0 * 1.25); /* (sur l'ile, la rage repart de deg0 : le calumet y reste) */ poserFumee(mo.x, mo.z, 2.8, 0, mo); toast('Le Koulosse tire sur son calumet de la paix : il s\'entoure de fumée, frappe plus fort et bien plus vite. Ne reste pas collé à lui !', 'alerte'); }
     else toast(leNom(mo.d) + ' entre en rage : ' + (mo.d.fem ? 'elle' : 'il') + ' frappe bien plus vite !', 'alerte'); }
 }
@@ -1076,7 +1079,7 @@ function majMonstre(mo, dt, s) {
     m.rotation.x = dp.friche ? 0 : -0.5 * (1 - Math.min(1, k * 1.6)); m.visible = mo.t > 0;
     if (k >= 1) { mo.etat = 'actif'; m.rotation.x = 0; pouf(mo.x, mo.y, mo.z, 1.2); } return;
   }
-  if (mo.d.boss) majBarreBoss(mo);
+  if (mo.d.boss && !mo.invoque) majBarreBoss(mo); /* (les Gorilles appeles par Moon sont des boss : la barre reste a Moon, sinon elle sautait de l'un a l'autre) */
   if (mo.etat === 'mort' && m.userData.anim) { mortSquelette(mo, dt); return; } /* (un monstre a squelette tombe, puis s'enfonce dans le sol) */
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }

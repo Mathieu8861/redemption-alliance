@@ -333,7 +333,7 @@ function majBarreBoss(mo) {
   const pv = Math.max(0, Math.ceil(mo.pv)), w = (100 * pv / mo.pvMax).toFixed(1) + '%';
   if (el._w !== w) { el._w = w; $('boss-pv').style.width = w; $('boss-pv-txt').textContent = fmt(pv) + ' / ' + fmt(mo.pvMax) + ' PV'; }
   el.classList.toggle('rage', !!mo.enrage); el.classList.toggle('carapace', mo.carapace > 0); el.classList.toggle('protege', mo.protege > 0);
-  const etat = mo.carapace > 0 ? 'sous sa carapace' : mo.pierre > 0 ? 'en pierre' : mo.protege > 0 ? 'protégé' + ac(mo.d) + ' à ' + Math.round(100 * mo.protege) + ' %' : mo.enrage ? 'en rage' : ''; /* (« protégée » pour la Gorgouille, et sa peau de pierre, 20/10/2026) */
+  const etat = mo.faible ? 'affaibli, invulnérable' : mo.carapace > 0 ? 'sous sa carapace' : mo.pierre > 0 ? 'en pierre' : mo.protege > 0 ? 'protégé' + ac(mo.d) + ' à ' + Math.round(100 * mo.protege) + ' %' : mo.enrage ? 'en rage' : ''; /* (« protégée » pour la Gorgouille, et sa peau de pierre, 20/10/2026) */
   if (el._e !== etat) { el._e = etat; $('boss-etat').textContent = etat; }
 }
 function majCombatHud() {

@@ -9,7 +9,7 @@
 /* Le soir du 25/10 : les Kannibouls et les Tortues, rattaches a leur squelette Mixamo (blender/lier-squelette.py : masques, cheveux et carapace
    rigides) puis assembles avec leurs mouvements et leur arme (blender/monstre-anime.py). Leurs coups et leurs tirs partent a l'instant ou une main ou
    un pied va le plus vite, lu sur chaque animation (attaqueSquelette) ; leurs sorts jouent un geste (gesteSort). */
-const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 4.6], ['golem-lune', 3.4], ['tortue-corail', 3.0]]
+const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 2.3], ['golem-lune', 3.4], ['tortue-corail', 3.0]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
 /* (28/10/2026) le Lemurien tiki, anime a la main dans Blender (blender/lemurien-anime.py, lemurien-export.py), pas par Mixamo (« c'est des creatures,
    Mixamo c'est plus pour des humanoides », Mathieu) : son squelette n'a pas de hanches Mixamo, la vitesse naturelle de sa marche et de sa course
@@ -169,6 +169,7 @@ function geste(mo, fam, bloque, choisi, tsMax) { /* (choisi : le mouvement deja 
    Il rugit a son arrivee, puis quand il enrage */
 function majSquelette(mo, v, dt) {
   const an = mo.m.userData.anim; if (!an) return;
+  if (mo.faible) { majFaible(mo, an, dt); an.mixer.update(dt); return; } /* (Moon affaibli : a genoux, rien d'autre) */
   if (mo.geste) { mo.geste.t += dt; if (mo.geste.t >= mo.geste.d) mo.geste = null; }
   if (mo.reactT > 0) mo.reactT -= dt;
   if (mo.esquive > 0) mo.esquive -= dt; if (mo.recent > 0) mo.recent -= dt;
@@ -260,14 +261,14 @@ function coupMarteau(mo) {
   L.forEach((imp) => {
     const dg = Math.max(1, Math.round(degSort(mo) * (imp.sol ? X.marteau || 0.5 : X.balaye || 0.25)));
     const z = imp.sol && imp.x != null ? Object.assign({ r: 1.9 }, versMonde(x1, z1, ry, imp.x * e, imp.z * e)) : { x: x1, z: z1, r: 3.7 * e, a: ry, ouv: 1.0 };
-    const touche = (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && dansDanger(dz, p2.x, p2.z)) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); } };
+    const touche = (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && !mo.faible && dansDanger(dz, p2.x, p2.z)) { /* (s'il s'effondre avant l'impact, le coup ne part pas) */ blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); } };
     zoneDanger(Object.assign({ mo, duree: Math.max(0.3, imp.t), effet: touche }, z));
   });
   if (!c0.marteauVu) { c0.marteauVu = true; toast(leNom(mo.d) + ' abat ' + armeDe(mo.d) + ' sur toi : sors du cercle avant ' + (mo.d.poings ? 'qu\'ils tombent' : 'qu\'il tombe') + ' !', 'alerte'); }
   let t = 0, k = 0;
   effets.push((dt) => { t += dt;
     while (k < L.length && t >= L[k].t) { const imp = L[k++];
-      if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !an.frappe) return true;
+      if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible || !an.frappe) return true;
       const p = an.frappe().p, y = mo.m.position.y;
       if (imp.sol) impactMarteau(p.x, y, p.z, mo.d.couleurSorts);
       else { secousse(0.16, 0.3); balayage(mo, x1, y, z1, ry, 3.4 * e); poussiere(p.x, y, p.z, 12, 1.4, '#d8c6a0'); } }
@@ -295,7 +296,7 @@ function moulinet(mo) {
   const touche = () => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && Math.hypot(p2.x - mo.x, p2.z - mo.z) < R) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); }
     const y = mo.m.position.y; onde(mo.x, y, mo.z, R * 1.05, C[1], 0.4, 0.75); onde(mo.x, y, mo.z, R * 0.8, C[2], 0.5, 0.45, true); secousse(0.12, 0.25); };
   zoneDanger({ mo, x: mo.x, z: mo.z, r: R, duree: alerte, effet: () => {
-    if (combat !== c0 || c0.fin || mo.etat !== 'actif') return;
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) return;
     a.time = bras.t; a.timeScale = 0; touche(); /* (le marteau tendu, fige ; c'est lui qui tourne) */
     const d = { x: mo.x, z: mo.z, r: R }; (c0.dangers = c0.dangers || []).push(d);
     const g = new T.Group(), y0 = mo.m.position.y; g.position.set(mo.x, y0 + 0.07, mo.z);
@@ -306,7 +307,7 @@ function moulinet(mo) {
     scene.add(lame);
     const r0 = mo.ry, a0 = Math.atan2(bras.x || 0, bras.z || 1); let t = 0, tours = 0, pf = 0;
     const fin = () => { jeter(g); jeter(lame); const i = c0.dangers.indexOf(d); if (i >= 0) c0.dangers.splice(i, 1); if (mo.geste) mo.geste.d = Math.min(mo.geste.d, mo.geste.t); return true; };
-    effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin();
+    effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) return fin();
       const k = Math.min(1, t / Ds); mo.ry = r0 + k * TOURS_MOULINET * Math.PI * 2; lame.rotation.y = mo.ry + a0 - 1.25; /* (la tete de la lame, a +1,25 dans le ruban, sur le marteau) */
       lames.forEach((m, i) => { m.material.uniforms.uA.value = (i ? 0.6 : 0.9) * Math.min(1, t / 0.12) * Math.min(1, (Ds - t) / 0.15 + 0.2); });
       fond.material.opacity = 0.16 + 0.1 * Math.abs(Math.sin(t * 9));
@@ -331,12 +332,60 @@ function bondMarteau(mo, cx, cz) {
   if (!c0.bonditVu) { c0.bonditVu = true; toast(leNom(mo.d) + ' va bondir et abattre ' + armeDe(mo.d) + ' sur toi : sors du cercle !', 'alerte'); }
   const ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(c.x, solA(c.x, c.z) + 0.09, c.z); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre);
   const t0 = vol[0] / ts, t1 = Math.max(t0 + 0.2, vol[1] / ts); let t = 0;
-  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { jeter(ombre); return true; }
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) { jeter(ombre); return true; }
     if (t > t0) { const k = Math.min(1, (t - t0) / (t1 - t0)), e2 = k * k * (3 - 2 * k); mo.x = x0 + (f.x - x0) * e2; mo.z = z0 + (f.z - z0) * e2; }
     const o = Math.max(0, Math.min(1, (t - t0) / (E - t0))); ombre.scale.setScalar(Math.max(0.01, R * (0.25 + 0.65 * o))); ombre.material.opacity = 0.2 + 0.4 * o;
     if (t >= E) { jeter(ombre); return true; } });
-  zoneDanger({ mo, x: c.x, z: c.z, r: R, duree: E, effet: (d) => { mo.frappe = 0.4; const y = solA(c.x, c.z); impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, 7.5, C[1], 0.7, 0.6);
+  zoneDanger({ mo, x: c.x, z: c.z, r: R, duree: E, effet: (d) => { if (mo.faible) return; mo.frappe = 0.4; const y = solA(c.x, c.z); impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, 7.5, C[1], 0.7, 0.6);
     pouf(c.x, y, c.z, 5, '#8e7a5e'); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
+}
+/* L'ETAT AFFAIBLI DE MOON (31/10/2026, « lorsque Moon tombe sous 30 % il passe dans l'etat affaibli, il devient invulnerable et bloque a 30 % ; une
+   animation ou il est un genou a terre, ou endormi, pas bien ; il invoque 4 gorilles de 12k PV ; tant qu'ils ne sont pas tous morts, il regagne 1 %
+   toutes les 3 s ; une fois les gorilles vaincus, il sort de l'etat affaibli et passe dans l'etat enrage », Mathieu). Il tombe a genoux, penche sur
+   son marteau (le debut de sa mort en avant, clip faible_1), puis respire lourdement (l'animation va et vient entre deux instants du clip) ; une
+   bulle a sa couleur le protege, un filet vert le relie a chaque Gorille qui le soigne. Quand le dernier tombe, il se releve (le meme clip a
+   l'envers) et entre en rage (capRage l'attend, finFaible) */
+const FAIBLE = { tombe: 0.55, a: 0.55, b: 0.8, souffle: 1.7, releve: 1.3 }; /* (instants du clip : a genoux a 0,55 s, il respire entre 0,55 et 0,8 s ; il se releve a 1,3 fois la vitesse) */
+const GEO_LIEN = (() => { const g = new T.CylinderGeometry(0.07, 0.07, 1, 6, 1, true); g.translate(0, 0.5, 0); partager(g); return g; })();
+function entrerFaible(mo) {
+  const A = mo.d.affaibli, an = mo.m.userData.anim, c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
+  mo.faible = { t: 0, regen: 0, phase: 'tombe', liens: new Map() }; mo.bloqueT = 1e9; mo.cd = 1e9; mo.vise = null; mo.geste = null;
+  const a = an.F.faible && jouerAnim(an, an.F.faible[0], 0.2); if (a) a.timeScale = 1;
+  const y = mo.m.position.y; pouf(mo.x, y, mo.z, 3.5, '#8e7a5e'); onde(mo.x, y, mo.z, 5, C[1], 0.6, 0.8); secousse(0.15, 0.3);
+  toast(leNom(mo.d) + ' tombe à genoux, invulnérable : ' + (mo.d.fem ? 'elle' : 'il') + ' appelle ' + A.n + ' ' + A.noms + ' qui le soignent. Abats-les tous !', 'alerte');
+  const places = []; for (let k = 0; k < A.n; k++) { const ang = mo.ry + (k + 0.5) / A.n * Math.PI * 2, p = pointValide(mo.x, mo.z, mo.x + Math.sin(ang) * 4, mo.z + Math.cos(ang) * 4); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, C); }
+  let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.8) return false;
+    places.forEach((p) => { pouf(p.x, solA(p.x, p.z), p.z, 2.4, C[1]); apparaitre(A.invoque, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.gardeMoon = mo.id; o.pv = o.pvMax = A.pv; } }); c0.total++; });
+    return true; });
+  /* la bulle : il est invulnerable tant qu'elle est la */
+  const g = new T.Group(), plein = new T.Mesh(GEO_BOUCLIER, fxMat(C[1], 0.16)), fil = new T.Mesh(GEO_BOUCLIER, new T.MeshBasicMaterial({ color: C[1], wireframe: true, transparent: true, opacity: 0.6, depthWrite: false })); g.add(plein, fil); scene.add(g);
+  effets.push((dt) => { if (combat !== c0 || !mo.faible || mo.etat !== 'actif') { jeter(g); return true; } const k = Math.min(1, mo.faible.t / 0.4), s = mo.faible.t;
+    g.position.set(mo.x, mo.m.position.y + 1.4, mo.z); g.scale.setScalar(2.7 * k * (1 + 0.03 * Math.sin(s * 5))); g.rotation.y = s * 0.4; plein.material.opacity = 0.16 * k; fil.material.opacity = (0.45 + 0.15 * Math.sin(s * 5)) * k; });
+}
+function majFaible(mo, an, dt) {
+  const F = mo.faible, A = mo.d.affaibli, a = an.F.faible && an.A[an.F.faible[0]]; F.t += dt; mo.bloqueT = 1e9; mo.cd = 1e9;
+  if (a) { if (F.phase === 'tombe') { if (a.time >= FAIBLE.tombe) { F.phase = 'souffle'; F.s = 0; } }
+    if (F.phase === 'souffle') { F.s += dt; a.timeScale = 0; a.time = FAIBLE.a + (FAIBLE.b - FAIBLE.a) * (0.5 - 0.5 * Math.cos(F.s / FAIBLE.souffle * Math.PI * 2)); }
+    if (F.phase === 'releve') { a.timeScale = 0; a.time = Math.max(0, a.time - dt * FAIBLE.releve); if (a.time <= 0) { finFaible(mo); return; } } }
+  else if (F.phase === 'releve') { finFaible(mo); return; }
+  const G = combat.monstres.filter((o) => o.gardeMoon === mo.id && o.etat !== 'mort'), y = mo.m.position.y;
+  /* les filets de vie : de chaque Gorille debout jusqu'a lui */
+  F.liens.forEach((L, o) => { if (!G.includes(o) || F.phase === 'releve') { jeter(L); F.liens.delete(o); } });
+  if (F.phase !== 'releve') G.forEach((o) => { if (o.etat !== 'actif') return; let L = F.liens.get(o); if (!L) { L = new T.Mesh(GEO_LIEN, fxMat('#4fd06a', 0.55)); L.renderOrder = 5; scene.add(L); F.liens.set(o, L); }
+    const de = new T.Vector3(o.x, o.m.position.y + (o.haut || 2) * 0.55, o.z), vers = new T.Vector3(mo.x, y + 1.4, mo.z), d = vers.clone().sub(de), l = d.length();
+    L.position.copy(de); L.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); L.scale.set(1 + 0.3 * Math.sin(F.t * 8), l, 1 + 0.3 * Math.sin(F.t * 8)); L.material.opacity = 0.4 + 0.2 * Math.sin(F.t * 6);
+    if (Math.random() < dt * 6) { const u = Math.random(); emettre(FX_VIF, 1, { x: de.x + (vers.x - de.x) * u, y: de.y + (vers.y - de.y) * u, z: de.z + (vers.z - de.z) * u, v: [(vers.x - de.x) * 0.8, (vers.y - de.y) * 0.8, (vers.z - de.z) * 0.8], vie: [0.3, 0.45], taille: [0.12, 0.04], c: ['#d8ffd8', '#4fd06a'], a: 1 }); } });
+  if (F.phase === 'releve') return;
+  /* tant qu'un Gorille est debout, il se soigne */
+  if (G.length && (F.regen += dt) >= A.pas) { F.regen -= A.pas; const a0 = mo.pv; mo.pv = Math.min(mo.pvMax, mo.pv + Math.round(mo.pvMax * A.regen));
+    if (mo.pv > a0) { chiffre('+' + fmt(mo.pv - a0), new T.Vector3(mo.x, y + mo.haut * 0.8, mo.z), 'soin'); emettre(FX_VIF, 14, { x: mo.x, y: y + 1, z: mo.z, r: 1.4, v: [0, 2.4, 0], dv: 0.8, vie: [0.5, 0.8], taille: [0.14, 0.04], c: ['#d8ffd8', '#4fd06a'], a: 1, frein: 0.8 }); onde(mo.x, y, mo.z, 3, '#4fd06a', 0.5, 0.7, true); } }
+  /* le dernier Gorille tombe (pas avant qu'ils soient arrives) : il se releve */
+  if (!G.length && F.t > 2.5) { F.phase = 'releve'; toast('Ses ' + A.noms + ' sont tombés : ' + leNom(mo.d) + ' se relève, fou de rage !', 'alerte'); }
+}
+function finFaible(mo) {
+  const an = mo.m.userData.anim; mo.faible = null; mo.faibleFini = true; mo.bloqueT = 0; mo.cd = 1.2; mo.geste = null;
+  const a = jouerAnim(an, piocher(an, 'repos'), 0.2); if (a) a.timeScale = vif(mo);
+  mo.enrage = true; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a'); /* (capRage ne passe plus : il est en rage, il rugit au prochain tour, majSquelette) */
 }
 /* sa colere (enrage, auraRage dans sa fiche) : sa peau rougeoie en battant, des braises montent autour de lui et de la vapeur sort de sa tete */
 function auraRage(mo, an, dt) {
