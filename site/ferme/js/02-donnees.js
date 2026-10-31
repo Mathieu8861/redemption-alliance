@@ -168,7 +168,7 @@ const PEPITO = [
   'l\'Engrais d\'Amakna, c\'est le seul boost que personne ne nerfe.'
 ];
 const CLASSES = [
-  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps. Beaucoup de PV, encaisse 15 % de dégâts en moins, et son Bond du Iop le soigne.', sort: 'Bond du Iop', tunique: '#c0392b',
+  { id: 'iop', nom: 'Iop', ico: '⚔️', desc: 'Frappe au corps à corps, et son épée touche aussi les monstres collés à sa cible. Beaucoup de PV, encaisse 15 % de dégâts en moins, se régénère en combat, frappe deux fois plus fort sous 50 % de vie, et son ulti le rend invincible 3 s. Son Bond du Iop le soigne.', sort: 'Bond du Iop', tunique: '#c0392b',
     role: 'Corps à corps', niveau: ['Difficile', 'difficile'], rang: 3, lignes: ['Va au contact et frappe fort.', 'Le plus solide, mais il encaisse tout au corps à corps.'], sortTxt: 'tu choisis où il saute ; en retombant, il frappe trois fois plus fort.' },
   { id: 'cra', nom: 'Cra', ico: '🏹', desc: 'Tire de loin (5 cases), une flèche de feu toutes les 10. Plus léger, il court 15 % plus vite : recule pour garder tes distances. Sa Flèche perçante traverse toute une ligne de monstres (recharge 20 s).', sort: 'Flèche perçante', tunique: '#2e8b57',
     role: 'À distance', niveau: ['Facile', 'facile'], rang: 1, lignes: ['Tire de loin, à l\'abri.', 'Idéal pour débuter : il touche avant d\'être touché.'], sortTxt: 'une flèche qui traverse toute une ligne de monstres.' },
