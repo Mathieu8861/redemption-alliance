@@ -185,7 +185,7 @@ function ficheMonstre(t) {
   if (d.bandit) L.push(capa('kama', 'Vole tes kamas', 'Il file à ta grange, y vole des kamas, puis repart par où il est venu.', '', 'or'));
   if (d.fouisseur) L.push(capa('cases', 'Surgit de terre', 'Il sort de terre au pied de tes bâtiments, derrière tes défenses.'));
   /* les sorts des boss */
-  if (d.boss && d.charge) L.push(capa('charge', d.poings ? 'Ruée' : 'Charge', 'Une bande ' + teinteSorts(d, true) + ' jusqu\'à toi, puis il fonce. Cache-toi derrière un bâtiment : il s\'y écrase.', num(fmt(Math.round(dSort * ((d.sortsX || {}).charge || 1))) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.grandeCharge) + ' pour esquiver') + recup('charge'), 'violet'));
+  if (d.boss && d.charge) L.push(capa('charge', d.poings ? 'Ruée' : 'Charge', 'Une bande ' + teinteSorts(d, true) + ' jusqu\'à toi, puis il fonce. Cache-toi derrière un bâtiment : il s\'y écrase.', num(fmt(Math.round(dSort * ((d.sortsX || {}).charge || 1))) + ' dégâts', 'rouge') + num(secondes(d.chargePrepa || ESQUIVE.grandeCharge) + ' pour esquiver') + recup('charge'), 'violet'));
   if (d.lance) L.push(capa('sort', 'Lance d\'os', 'De loin, une bande rouge jusqu\'à toi, puis sa lance file. Un bâtiment sur sa route prend la moitié du coup.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.lanceLoin ? num('+' + Math.round(d.lanceLoin.parCase * 100) + ' % par case au-delà de 2, jusqu\'à ×' + String(d.lanceLoin.max).replace('.', ','), 'rouge') : '') + num('1 s pour esquiver') + recup('lance'), 'violet'));
   if (d.carapace) L.push(capa('bouclier', 'Carapace d\'épines', 'Il se replie sous sa carapace : presque aucun dégât, et il renvoie un cinquième des coups reçus au corps à corps. Frappe ses soldats en attendant.', num('3,5 s') + recup('carapace')));
   if (d.marteau || d.poings) L.push(capa('sort', d.poings ? 'Coups de poing' : 'Coup de marteau', d.poings ? 'Il se tourne vers toi et abat son poing là où tu es : un cercle ' + teinteSorts(d) + ' sous tes pieds pour un coup au sol, un éventail devant lui pour un coup de poing ou un revers. Sors-en avant l\'impact.' : 'Il se tourne vers toi et abat son marteau là où tu es : un cercle orange sous tes pieds pour un coup au sol, un éventail devant lui pour un coup qui balaie. Sors-en avant l\'impact.', num(fmt(Math.round(dSort * ((d.sortsX || {}).marteau || 0.5))) + ' dégâts au sol', 'rouge') + num(fmt(Math.round(dSort * ((d.sortsX || {}).balaye || 0.25))) + ' en balayant', 'rouge'), 'violet'));
@@ -762,11 +762,11 @@ function capCharge(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.charge || mo.d.pique) { /* le Bouftou Royal baisse la tete : une bande rouge jusqu'a toi (ESQUIVE.grandeCharge pour en sortir), puis il fonce et renverse tout sur son passage ;
        les petits monstres qui chargent, et les Dragoeufs qui piquent (15/10/2026), font pareil, de plus pres (3 cases), en ESQUIVE.charge */
-    const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? ESQUIVE.charge : ESQUIVE.grandeCharge;
+    const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? ESQUIVE.charge : (mo.d.chargePrepa || ESQUIVE.grandeCharge); /* (chargePrepa : le Royal, 31/10/2026) */
     if (petit && mo.chargeT == null) mo.chargeT = Math.random() * per * 0.7; /* (pas tous en meme temps) */
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
     if (sortPret('chargeT', per) && dP > (petit ? mo.d.portee + 0.8 : 1.2) && dP < (mo.d.chargeMax || 10) && (!petit || mo.chasse) && !(combat.colle > 0)) { /* (jamais quand le perso est colle : il doit pouvoir sortir de la bande, 20/10/2026) */
-      mo.chargeT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), L = Math.min(petit ? mo.d.chargeMax + 1.5 : 10, dP + (petit ? 1.2 : 2.5)), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * L, mo.z + Math.cos(a) * L);
+      mo.chargeT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), L = Math.min(petit ? mo.d.chargeMax + 1.5 : (mo.d.chargeMax || 10), dP + (petit ? 1.2 : 2.5)), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * L, mo.z + Math.cos(a) * L);
       /* « si il y a un batiment entre deux, que ca endommage le batiment » (Mathieu, 12/10/2026) : il s'ecrase sur le premier batiment de sa route, la bande
          rouge s'arrete la ; cache derriere, le perso ne prend rien */
       let cleB = null; { const L0 = Math.hypot(f.x - mo.x, f.z - mo.z), bats = clesBats().filter((k) => !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z);
@@ -777,8 +777,8 @@ function capCharge(mo, ctx) {
       const tete = !piq && mo.d.boss && !m.userData.anim; if (tete) prepaCharge(mo, a, prepa); /* (le Royal, 31/10/2026 : il recule, baisse la tete, gratte le sol, souffle) */
       if (!combat[piq ? 'piqueVu' : 'chargeVu']) { combat[piq ? 'piqueVu' : 'chargeVu'] = true; toast(piq ? leNom(mo.d) + ' prend son envol pour piquer sur toi : sors de la bande rouge, ou cache-toi derrière un bâtiment !' : leNom(mo.d) + (mo.d.poings ? ' se rue sur toi' : ' baisse la tête') + ' : sors de la bande ' + teinteSorts(mo.d, true) + ' !', 'alerte'); }
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: petit ? 1.3 : 1.9, duree: prepa, effet: () => {
-        const x0 = mo.x, z0 = mo.z; let t = 0, touche = false;
-        effets.push((dt2) => { t += dt2; const k = Math.min(1, t / (piq ? 0.4 : 0.45)); if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k;
+        const x0 = mo.x, z0 = mo.z, ruee = piq ? 0.4 : mo.d.chargeVitesse ? Math.max(0.18, Math.hypot(f.x - x0, f.z - z0) / mo.d.chargeVitesse) : 0.45; let t = 0, touche = false; /* (chargeVitesse : sa vitesse de ruee, 31/10/2026) */
+        effets.push((dt2) => { t += dt2; const k = Math.min(1, t / ruee); if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k;
           if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (tete) sillageCharge(mo, a, dt2); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
           const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3) * (tete ? Math.max(1, mo.d.ombre * 0.55) : 1)) { touche = true; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).charge || 1)), mo); if (mo.d.menotte) coller(mo.d.menotte, 'Menotté !'); if (tete) chocCharge(mo, a, p2); }
           if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8'); if (tete) finCharge(mo, a, !!cleB);
@@ -883,11 +883,15 @@ function capCarapace(mo, ctx) {
     else if (sortPret('carapaceT', mo.d.carapace)) { mo.carapaceT = 0; mo.carapace = 3.5; pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2d27a'); if (mo.d.gestes && mo.d.gestes.carapace) gesteSort(mo, mo.d.gestes.carapace); if (!combat.carapaceVu) { combat.carapaceVu = true; toast(leNom(mo.d) + ' ' + (mo.d.carapaceTexte || 'se replie sous sa carapace d\'épines : il renvoie tes coups, frappe ses soldats en attendant !'), 'alerte'); } }
     /* (31/10/2026, par Discord, « refais la carapace du Chafer, pour voir », Mathieu : une bulle doree l'entourait) des epines d'os jaillissent de tout
        son corps en 0,2 s, il se tasse, elles vibrent ; elles rentrent a la fin. Elles etincellent quand elles te renvoient un coup (epinesTouche) */
-    if (!mo.epinesC) { const g = new T.Group(), mo1 = mat('#efe0b8'), mo2 = mat('#c9b48a'), n = 22, h = mo.haut || 3;
-      for (let i = 0; i < n; i++) { const y = 1 - (i + 0.5) / n * 1.45, r = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399, dir = new T.Vector3(Math.cos(th) * r, Math.max(-0.35, y), Math.sin(th) * r).normalize();
-        const L = h * (0.16 + 0.08 * ((i * 7) % 3)), c = new T.Mesh(new T.ConeGeometry(h * 0.035, L, 6), i % 3 ? mo1 : mo2); c.geometry.translate(0, L / 2, 0);
-        c.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dir); c.position.copy(dir).multiply(new T.Vector3(h * 0.2, h * 0.3, h * 0.2)); c.userData.dir = dir; g.add(c); }
-      g.position.y = (mo.haut || 3) * 0.48; g.visible = false; m.add(g); mo.epinesC = g; mo.epinesK = 0; }
+    /* (puis « les pics du Chafer devraient etre sur la boule du bouclier, un genre de bouclier avec des pics », Mathieu) : la bulle doree revient, et les
+       epines sont plantees sur elle, pointees vers l'exterieur */
+    if (!mo.epinesC) { const g = new T.Group(), mo1 = mat('#efe0b8'), mo2 = mat('#c9b48a'), n = 26, h = mo.haut || 3, R = h * 0.62;
+      const bulle = new T.Mesh(new T.IcosahedronGeometry(R, 2), new T.MeshBasicMaterial({ color: '#f2d27a', transparent: true, opacity: 0.3, depthWrite: false })), fil = new T.Mesh(new T.IcosahedronGeometry(R * 1.002, 1), new T.MeshBasicMaterial({ color: '#ffe9a0', wireframe: true, transparent: true, opacity: 0.45, depthWrite: false }));
+      g.add(bulle, fil); g.userData.bulle = bulle;
+      for (let i = 0; i < n; i++) { const y = 1 - (i + 0.5) / n * 1.7, r = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399, dir = new T.Vector3(Math.cos(th) * r, y, Math.sin(th) * r).normalize();
+        const L = h * (0.13 + 0.06 * ((i * 7) % 3)), c = new T.Mesh(new T.ConeGeometry(h * 0.04, L, 6), i % 3 ? mo1 : mo2); c.geometry.translate(0, L / 2, 0);
+        c.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dir); c.position.copy(dir).multiplyScalar(R * 0.97); g.add(c); }
+      g.position.y = (mo.haut || 3) * 0.45; g.visible = false; m.add(g); mo.epinesC = g; mo.epinesK = 0; }
     const voulu = mo.carapace > 0 ? 1 : 0; mo.epinesK += (voulu - mo.epinesK) * Math.min(1, dt * (voulu ? 14 : 8)); const k = mo.epinesK;
     mo.epinesC.visible = k > 0.02; if (mo.epinesC.visible) { mo.epinesC.scale.setScalar(Math.max(0.01, k) * (1 + 0.03 * Math.sin(s * 23))); mo.epinesC.rotation.y += dt * 0.15; }
     if (mo.carapace > 0 && mo.epinesVu !== mo.carapaceT) { mo.epinesVu = mo.carapaceT; const y = mo.m.position.y; onde(mo.x, y, mo.z, 3.2, '#f2d27a', 0.4, 0.8); poussiere(mo.x, y, mo.z, 10, 1.2, '#d8c6a0'); secousse(0.08, 0.2); }
