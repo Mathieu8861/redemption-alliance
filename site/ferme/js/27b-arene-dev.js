@@ -5,7 +5,7 @@
    force (pas les regles de l'Arene). Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ;
    sa vie d'avant est gardee. Les modeles des monstres a squelette (palier 9, Moon) ne se chargent qu'ici (chargerSquelettes). */
 const estAdmin = () => ultiLibre();
-const AVANT_PREMIERE = ['lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille']; /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */
+const AVANT_PREMIERE = ['lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille', 'crocabulia']; /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */ /* (Crocabulia, qui vole sur ses grandes ailes, 31/10/2026 : « le croca est pas dispo en arene », Mathieu) */
 const GROUPES_DEV = {
   troupe: { nom: 'La troupe', liste: { tortueJaune: 1, tortueRouge: 1, kannibJav: 1, kannibSarbak: 1, kannibArk: 1, kannibTam: 1 } },
   tortues: { nom: 'Les 4 Tortues', liste: { tortueBleue: 1, tortueJaune: 1, tortueRouge: 1, tortueVerte: 1 } },
