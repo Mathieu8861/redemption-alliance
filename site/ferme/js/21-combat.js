@@ -1040,6 +1040,28 @@ function solEnFeu(mo, a, R, ouv, duree) {
         if (i === 0 && fxAlea() < 0.4) emettre(FX_FUM, 1, { x, y: y + 0.6, z, r: 0.3, v: [0, 1.4, 0], vie: [0.8, 1.2], taille: [0.6, 1.8], c: ['#3a2e28', '#6a605a'], a: 0.4, frein: 1, vrot: 1, entree: 0.2 }); } }
     if ((tic += dt) >= 0.5) { tic = 0; const p = paysanMesh.position; if (dansDanger(d, p.x, p.z)) { blesserPerso(dg, mo); if (!c0.solFeuVu && combat && !combat.fin) { c0.solFeuVu = true; toast('Le sol brûle derrière le souffle de ' + leNom(mo.d) + ' : sors des flammes !', 'alerte'); } } } });
 }
+/* LE WA WABBIT LANCE SES CAWOTTES (31/10/2026, par Discord, « fais le Wa Wabbit », Mathieu ; avant, de petits cones orange tombaient du ciel et un pouf).
+   sautLancer : il se tasse, puis saute en se cabrant au moment du lancer (t0), et retombe. cawotteVolante : une cawotte (corps orange, fanes vertes) part
+   de lui, monte au-dessus de l'ecran puis retombe pointe en bas sur son cercle a l'instant voulu, en tournant, avec une trainee ; elle explose */
+function sautLancer(mo, t0) {
+  const c0 = combat; let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif') { mo.hop = 0; mo.penche = 0; return true; }
+    if (t < t0) { const u = t / t0; mo.hop = -0.3 * Math.sin(u * Math.PI / 2); mo.penche = 0.15 * u; }
+    else { const u = Math.min(1, (t - t0) / 0.55); mo.hop = Math.sin(u * Math.PI) * 1.4 - 0.3 * (1 - Math.min(1, u * 4)); mo.penche = -0.3 * Math.sin(u * Math.PI); if (u >= 1) { mo.hop = 0; mo.penche = 0; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.5, '#d8c6a0'); return true; } } });
+}
+function cawotteMesh(k) { const g = new T.Group(), c = new T.Mesh(GEO_CAWOTTE, mat('#f08a24')); g.add(c); for (let i = 0; i < 3; i++) { const f = new T.Mesh(new T.ConeGeometry(0.06, 0.32, 5), mat(i === 1 ? '#5fae3a' : '#4f9a2e')); f.position.set((i - 1) * 0.07, 0.42, 0); f.rotation.z = (i - 1) * 0.45; g.add(f); } g.scale.setScalar(k); g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g; }
+function cawotteVolante(de, x, y, z, depart, arrivee, k, grosse) {
+  const c0 = combat, g = cawotteMesh(k); g.visible = false; scene.add(g); let t = 0; const H = 14;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { jeter(g); return true; } if (t < depart) return false; g.visible = true;
+    const montee = Math.min(0.55, (arrivee - depart) * 0.45);
+    if (t < depart + montee) { const u = (t - depart) / montee; g.position.set(de.x + (x - de.x) * u * 0.25, de.y + H * (1 - (1 - u) * (1 - u)), de.z + (z - de.z) * u * 0.25); g.rotation.set(0, t * 12, 0); } /* (elle part de lui vers le ciel) */
+    else { const chute = Math.min(0.4, arrivee - depart - montee), u = Math.min(1, (t - (arrivee - chute)) / chute); if (t < arrivee - chute) { g.visible = false; return false; } g.visible = true;
+      g.position.set(x, y + 0.3 + H * (1 - u * u), z); g.rotation.set(Math.PI, t * 14, 0); emettre(FX_LUM, 2, { x, y: g.position.y + 0.4 * k, z, r: 0.05, vie: [0.18, 0.3], taille: [0.3 * k, 0.05], c: ['#ffffff', '#ffb46a'], a: 0.85 }); }
+    if (t < arrivee) return false;
+    jeter(g); boule(x, y + 0.4, z, grosse ? 1.6 : 0.9, ['#ff9a2e', '#e8541e']); onde(x, y, z, grosse ? 4 : 2.4, '#ffb46a', 0.4, 0.9); etoileImpact(new T.Vector3(x, y + 0.5, z), grosse ? 1.4 : 0.9, '#f08a24');
+    mottes(x, y, z, grosse ? 12 : 6, grosse ? 1.4 : 0.9); poussiere(x, y, z, grosse ? 14 : 6, grosse ? 1.6 : 1, '#d8c6a0'); secousse(grosse ? 0.3 : 0.1, grosse ? 0.4 : 0.18); if (grosse) { solFendu(x, y, z, 2.2, true); cratere(x, y, z, 1.1, 3); }
+    return true; });
+}
 function capPluie(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.pluie && combat.deroute == null) { /* le Wa Wabbit fait pleuvoir des cawottes explosives : des cercles au sol, une seconde pour en sortir */
@@ -1048,14 +1070,16 @@ function capPluie(mo, ctx) {
       mo.pluieT = 0; mo.frappe = 0.4;
       gesteSort(mo, 'tir'); const fleches = !!mo.d.pluieFleches; /* (Ark : une pluie de flèches, 25/10/2026) */
       if (!combat[fleches ? 'pluieFVu' : 'pluieVu']) { combat[fleches ? 'pluieFVu' : 'pluieVu'] = true; toast(fleches ? leNom(mo.d) + ' tire une pluie de flèches : sors des cercles rouges !' : 'Le Wa Wabbit fait pleuvoir des cawottes explosives : sors des cercles orange !', 'alerte'); }
-      [[pp.x, pp.z]].concat([0, 1, 2, 3].map(() => [pp.x + (Math.random() - 0.5) * 7, pp.z + (Math.random() - 0.5) * 7])).forEach(([x, z]) => {
+      const lanceur = !fleches && !m.userData.anim; if (lanceur) sautLancer(mo, 0.35); /* (le Wa Wabbit saute en lancant ses cawottes, 31/10/2026) */
+      [[pp.x, pp.z]].concat([0, 1, 2, 3].map(() => [pp.x + (Math.random() - 0.5) * 7, pp.z + (Math.random() - 0.5) * 7])).forEach(([x, z], ic) => {
         const cel = caseIci(x, z), y = cel ? hauteurSol(x, z, cel) : 0, c0 = combat, dz = { x, z, r: 1.3 }; (c0.dangers = c0.dangers || []).push(dz); const oter = () => { const i = c0.dangers.indexOf(dz); if (i >= 0) c0.dangers.splice(i, 1); };
         const rond = new T.Mesh(new T.CircleGeometry(1.3, 24), new T.MeshBasicMaterial({ color: fleches ? '#e2413a' : '#f08a24', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide })); rond.rotation.x = -Math.PI / 2; rond.position.set(x, y + 0.07, z); rond.renderOrder = 2; scene.add(rond);
-        const cw = fleches ? volee() : new T.Mesh(new T.ConeGeometry(0.2, 0.7, 8), new T.MeshBasicMaterial({ color: '#f08a24' })); if (!fleches) cw.rotation.x = Math.PI; scene.add(cw); let t = 0;
+        const cw = fleches ? volee() : lanceur ? new T.Group() : new T.Mesh(new T.ConeGeometry(0.2, 0.7, 8), new T.MeshBasicMaterial({ color: '#f08a24' })); if (!fleches && !lanceur) cw.rotation.x = Math.PI; scene.add(cw); let t = 0;
+        if (lanceur) cawotteVolante(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 3) * 0.8, mo.z), x, y, z, 0.35 + ic * 0.04, ESQUIVE.pluie, 1.6, false);
         effets.push((dt2) => {
           t += dt2; rond.material.opacity = 0.2 + 0.25 * Math.abs(Math.sin(t * 9)); cw.position.set(x, y + 0.35 + 9 * Math.max(0, 1 - t / ESQUIVE.pluie), z);
           if (!combat || combat.fin) { jeter(rond); jeter(cw); oter(); return true; }
-          if (t >= ESQUIVE.pluie) { jeter(rond); jeter(cw); oter(); if (fleches) { pouf(x, y, z, 2.2, '#c9b28a'); fichees(x, y, z); } else { pouf(x, y, z, 3, '#f08a24'); pouf(x, y, z, 1.6, '#ffd04a'); } const p2 = paysanMesh.position; if (Math.hypot(p2.x - x, p2.z - z) < 1.3) blesserPerso(degSort(mo), mo); return true; }
+          if (t >= ESQUIVE.pluie) { jeter(rond); jeter(cw); oter(); if (fleches) { pouf(x, y, z, 2.2, '#c9b28a'); fichees(x, y, z); } else if (!lanceur) { pouf(x, y, z, 3, '#f08a24'); pouf(x, y, z, 1.6, '#ffd04a'); } const p2 = paysanMesh.position; if (Math.hypot(p2.x - x, p2.z - z) < 1.3) blesserPerso(degSort(mo), mo); return true; }
         });
       });
       if (!combat || combat.fin) return;
@@ -1096,8 +1120,11 @@ function capCawotteRoyale(mo, ctx) {
       const fond = new T.Mesh(new T.CircleGeometry(R, 28), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.25, depthWrite: false, side: T.DoubleSide })); fond.rotation.x = -Math.PI / 2; fond.renderOrder = 2;
       const cw = new T.Group(), corps = new T.Mesh(new T.ConeGeometry(0.42, 1.6, 10), new T.MeshLambertMaterial({ color: '#f08a24' })); corps.rotation.x = Math.PI; cw.add(corps);
       for (let k = 0; k < 3; k++) { const f = new T.Mesh(new T.ConeGeometry(0.1, 0.6, 5), new T.MeshLambertMaterial({ color: '#4fae3a' })); f.position.set((k - 1) * 0.14, 1.0, 0); f.rotation.z = (k - 1) * 0.4; cw.add(f); }
-      cw.visible = false; scene.add(rond, fond, cw);
+      cw.visible = false; scene.add(rond, fond, cw); cw.scale.setScalar(1.6); cw.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       mo.royVise = { t: 0, x: pp.x, z: pp.z, rond, fond, cw, d: null, R, c0 };
+      if (!m.userData.anim) { sautLancer(mo, 0.3); const de = new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 3) * 0.8, mo.z), up = cawotteMesh(2.6); up.rotation.x = 0; scene.add(up); let t = -0.3; /* (31/10/2026 : il lance la cawotte geante vers le ciel) */
+        effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t > 0.7) { jeter(up); return true; } if (t < 0) { up.visible = false; return false; } up.visible = true; const u = t / 0.7; up.position.set(de.x, de.y + 16 * (1 - (1 - u) * (1 - u)), de.z); up.rotation.y = t * 10;
+          emettre(FX_LUM, 2, { x: up.position.x, y: up.position.y - 0.5, z: up.position.z, r: 0.1, vie: [0.2, 0.35], taille: [0.5, 0.08], c: ['#ffffff', '#ffb46a'], a: 0.85 }); return false; }); }
       if (!combat.royVu) { combat.royVu = true; toast('La Cawotte royale du Wa Wabbit : la cible rouge te suit, puis se fige. File, sinon la cawotte géante t\'assomme !', 'alerte'); }
     }
     const V = mo.royVise;
@@ -1107,9 +1134,10 @@ function capCawotteRoyale(mo, ctx) {
       else {
         V.t += dt; if (V.t < 1.4) { V.x = pp.x; V.z = pp.z; } else if (!V.d) { V.d = { x: V.x, z: V.z, r: V.R }; (V.c0.dangers = V.c0.dangers || []).push(V.d); V.rond.material.color.set('#ff2a1a'); } /* (figee : le bot aussi peut l'esquiver) */
         const cel = caseIci(V.x, V.z), y = cel ? hauteurSol(V.x, V.z, cel) : 0; V.rond.position.set(V.x, y + 0.08, V.z); V.fond.position.set(V.x, y + 0.07, V.z); V.fond.material.opacity = 0.18 + 0.2 * Math.abs(Math.sin(V.t * (V.t < 1.4 ? 6 : 14)));
-        if (V.t >= 1.4) { const k = Math.min(1, (V.t - 1.4) / ESQUIVE.cawotteRoyale); V.cw.visible = true; V.cw.position.set(V.x, y + 0.8 + 12 * (1 - k), V.z); V.cw.rotation.y += dt * 6; }
-        if (V.t >= 1.4 + ESQUIVE.cawotteRoyale) { pouf(V.x, y, V.z, 3.2, '#f08a24'); pouf(V.x, y, V.z, 1.8, '#ffd04a'); const p2 = paysanMesh.position, x = V.x, z = V.z; fin();
-          if (Math.hypot(p2.x - x, p2.z - z) < V.R) { blesserPerso(degSort(mo), mo); /* (autant que sa pluie depuis le 15/10/2026 : 1,8 fois avant, 567, « c'est enorme, le Koulosse c'est 275 et 275 », Mathieu ; c'est l'assommement qui la rend dangereuse) */ if (combat && !combat.fin) { combat.assomme = Math.max(combat.assomme || 0, 1.0); chiffre('Assommé !', new T.Vector3(p2.x, p2.y + 2.2, p2.z), 'gros'); } }
+        if (V.t >= 1.4) { const k = Math.min(1, (V.t - 1.4) / ESQUIVE.cawotteRoyale); V.cw.visible = true; V.cw.position.set(V.x, y + 1.3 + 14 * (1 - k * k), V.z); V.cw.rotation.y += dt * 6;
+          emettre(FX_LUM, 3, { x: V.x, y: V.cw.position.y + 1.2, z: V.z, r: 0.2, vie: [0.25, 0.4], taille: [0.7, 0.1], c: ['#ffffff', '#ffb46a'], a: 0.9 }); emettre(FX_FUM, 1, { x: V.x, y: V.cw.position.y + 1.5, z: V.z, r: 0.3, vie: [0.4, 0.6], taille: [0.4, 1], c: ['#f6e6c8', '#d8c6a0'], a: 0.5 }); } /* (une trainee derriere elle) */
+        if (V.t >= 1.4 + ESQUIVE.cawotteRoyale) { const x = V.x, z = V.z; boule(x, y + 0.6, z, 2, ['#ff9a2e', '#e8541e']); onde(x, y, z, 5.5, '#ffb46a', 0.5, 0.95); solFendu(x, y, z, 2.6, true); cratere(x, y, z, 1.3, 3.5); mottes(x, y, z, 14, 1.5); poussiere(x, y, z, 16, 1.8, '#d8c6a0'); secousse(0.4, 0.5); flashLumiere(x, y + 1, z, '#ff9a2e', 3.5, 9, 0.3); const p2 = paysanMesh.position; fin();
+          if (Math.hypot(p2.x - x, p2.z - z) < V.R) { blesserPerso(degSort(mo), mo); /* (autant que sa pluie depuis le 15/10/2026 : 1,8 fois avant, 567, « c'est enorme, le Koulosse c'est 275 et 275 », Mathieu ; c'est l'assommement qui la rend dangereuse) */ if (combat && !combat.fin) { combat.assomme = Math.max(combat.assomme || 0, 1.0); chiffre('Assommé !', new T.Vector3(p2.x, p2.y + 2.2, p2.z), 'gros'); for (let i = 0; i < 4; i++) setTimeout(() => { const q = paysanMesh.position; emettre(FX_VIF, 3, { x: q.x, y: q.y + 2, z: q.z, r: 0.4, v: [0, 0.5, 0], dv: 0.5, vie: [0.4, 0.6], taille: [0.14, 0.05], c: ['#fff6a0', '#ffd23a'], a: 1 }); }, i * 220); } } /* (des etoiles autour de sa tete, 31/10/2026) */
           if (!combat || combat.fin) return; }
       }
     }
