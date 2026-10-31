@@ -730,6 +730,34 @@ function capTroupe(mo, ctx) {
     mo.halo.visible = pr > 0; if (pr > 0) mo.halo.material.opacity = 0.35 + pr; /* le halo dore : plus il est vif, plus il est protege */
   }
 }
+/* LA CHARGE D'UN BOSS (31/10/2026, par Discord, « refais le Bouftou Royal, pour voir », Mathieu ; avant, la bande s'affichait et il glissait jusqu'a toi
+   avec un peu de poussiere). Pendant l'annonce : il recule d'un pas, baisse la tete (mo.penche, applique dans majMonstre), gratte le sol d'un sabot
+   (mottes et poussiere derriere lui, un petit sursaut), souffle par les naseaux. Pendant la ruee : penche en avant, un sillage de poussiere et des mottes.
+   Il te percute : un choc (etoile, onde, secousse, tu es bouscule). Au bout : il se redresse, sonne s'il s'est ecrase sur un batiment */
+function prepaCharge(mo, a, prepa) {
+  const c0 = combat, dx = Math.sin(a), dz = Math.cos(a), x0 = mo.x, z0 = mo.z, R = mo.d.ombre * 0.5; let t = 0, gratte = 0.2, souffle = 0.35;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.penche = 0; mo.hop = 0; return true; } const k = Math.min(1, t / prepa);
+    if (t < 0.3) { const r = 0.45 * Math.sin(t / 0.3 * Math.PI / 2); mo.x = x0 - dx * r; mo.z = z0 - dz * r; } /* (il recule d'un pas) */
+    mo.penche = 0.3 * Math.min(1, t / 0.4); mo.ry = a;
+    if ((gratte -= dt) <= 0 && k < 0.92) { gratte = 0.38; const bx = mo.x - dx * R, bz = mo.z - dz * R, y = solA(bx, bz); mo.hop = 0.12; poussiere(bx, y, bz, 6, 0.7, '#d8c6a0'); mottes(bx, y, bz, 4, 0.7); } else mo.hop = Math.max(0, (mo.hop || 0) - dt * 0.8);
+    if ((souffle -= dt) <= 0) { souffle = 0.45; const nx = mo.x + dx * R * 1.15, nz = mo.z + dz * R * 1.15, y = mo.m.position.y + (mo.haut || 2) * 0.35;
+      for (const s of [-1, 1]) emettre(FX_FUM, 2, { x: nx - dz * 0.25 * s, y, z: nz + dx * 0.25 * s, v: [dx * 1.2 - dz * 0.5 * s, -0.2, dz * 1.2 + dx * 0.5 * s], dv: 0.3, vie: [0.4, 0.6], taille: [0.25, 0.7], c: ['#ffffff', '#e8e2d6'], a: 0.7, frein: 2, entree: 0.05 }); }
+    if (k >= 1) { mo.hop = 0; return true; } });
+}
+function sillageCharge(mo, a, dt) {
+  const dx = Math.sin(a), dz = Math.cos(a), R = mo.d.ombre * 0.5, y = solA(mo.x, mo.z); mo.penche = 0.38;
+  emettre(FX_FUM, 3, { x: mo.x - dx * R, y: y + 0.2, z: mo.z - dz * R, r: R * 0.6, v: [-dx * 2.5, 1.2, -dz * 2.5], dv: 0.8, vie: [0.5, 0.9], taille: [0.7, 2], c: ['#e6d6b4', '#cbb68c'], a: 0.55, frein: 2, vrot: 1, entree: 0.08 });
+  if (Math.random() < dt * 14) mottes(mo.x - dx * R, y, mo.z - dz * R, 2, 0.9);
+  if (Math.random() < dt * 20) for (const s of [-1, 1]) emettre(FX_VIF, 1, { x: mo.x + dz * R * 0.9 * s, y: y + 0.5 + Math.random() * (mo.haut || 2) * 0.5, z: mo.z - dx * R * 0.9 * s, v: [-dx * 9, 0, -dz * 9], vie: [0.18, 0.28], taille: [0.07, 0.03], c: ['#ffffff', '#efe2c0'], a: 0.9, etire: 0.04 }); /* (des filets d'air le long de ses flancs) */
+}
+function chocCharge(mo, a, p) {
+  const y = p.y + 1.0; secousse(0.3, 0.35); etoileImpact(new T.Vector3(p.x, y, p.z), 1.5, '#ffd27a'); onde(p.x, solA(p.x, p.z), p.z, 3, '#fff1c0', 0.4, 0.8); poussiere(p.x, solA(p.x, p.z), p.z, 12, 1.4, '#d8c6a0');
+  if (combat && !combat.fin) repousserPerso(mo, 1.6 * S); /* (bouscule, projete un peu plus loin) */
+}
+function finCharge(mo, a, mur) {
+  const c0 = combat; let t = 0; if (mur) { secousse(0.25, 0.3); for (let k = 0; k < 4; k++) setTimeout(() => { if (combat === c0 && mo.etat === 'actif') emettre(FX_VIF, 3, { x: mo.x, y: mo.m.position.y + (mo.haut || 2) + 0.2, z: mo.z, r: 0.5, v: [0, 0.6, 0], dv: 0.6, vie: [0.4, 0.6], taille: [0.16, 0.06], c: ['#fff6a0', '#ffd23a'], a: 1 }); }, k * 180); } /* (des etoiles au-dessus de sa tete : sonne) */
+  effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.38 * Math.max(0, 1 - t / 0.35); return t >= 0.35; });
+}
 function capCharge(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.charge || mo.d.pique) { /* le Bouftou Royal baisse la tete : une bande rouge jusqu'a toi (ESQUIVE.grandeCharge pour en sortir), puis il fonce et renverse tout sur son passage ;
@@ -746,13 +774,14 @@ function capCharge(mo, ctx) {
           if (b) { cleB = b[0]; const d2 = Math.max(0.5, d - 0.4); f.x = mo.x + Math.sin(a) * d2; f.z = mo.z + Math.cos(a) * d2; } } }
       mo.ry = a; mo.bloqueT = prepa + 0.6; mo.frappe = 0.3; gesteSort(mo, gesteDe(mo, 'charge', 'bond'), prepa + (mo.d.poings ? 0.45 : 0.25)); /* (le Gorille retombe poings au sol au bout de sa ruee) */
       if (piq) { let t0 = 0; effets.push((dt2) => { t0 += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.hop = 1.7 * Math.min(1, t0 / prepa); return t0 >= prepa; }); } /* le Dragoeuf prend de la hauteur */
+      const tete = !piq && mo.d.boss && !m.userData.anim; if (tete) prepaCharge(mo, a, prepa); /* (le Royal, 31/10/2026 : il recule, baisse la tete, gratte le sol, souffle) */
       if (!combat[piq ? 'piqueVu' : 'chargeVu']) { combat[piq ? 'piqueVu' : 'chargeVu'] = true; toast(piq ? leNom(mo.d) + ' prend son envol pour piquer sur toi : sors de la bande rouge, ou cache-toi derrière un bâtiment !' : leNom(mo.d) + (mo.d.poings ? ' se rue sur toi' : ' baisse la tête') + ' : sors de la bande ' + teinteSorts(mo.d, true) + ' !', 'alerte'); }
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: petit ? 1.3 : 1.9, duree: prepa, effet: () => {
         const x0 = mo.x, z0 = mo.z; let t = 0, touche = false;
         effets.push((dt2) => { t += dt2; const k = Math.min(1, t / (piq ? 0.4 : 0.45)); if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k;
-          if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
-          const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3)) { touche = true; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).charge || 1)), mo); if (mo.d.menotte) coller(mo.d.menotte, 'Menotté !'); }
-          if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8');
+          if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (tete) sillageCharge(mo, a, dt2); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
+          const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3) * (tete ? Math.max(1, mo.d.ombre * 0.55) : 1)) { touche = true; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).charge || 1)), mo); if (mo.d.menotte) coller(mo.d.menotte, 'Menotté !'); if (tete) chocCharge(mo, a, p2); }
+          if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8'); if (tete) finCharge(mo, a, !!cleB);
             const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p; impactMarteau(q.x, solA(q.x, q.z), q.z, mo.d.couleurSorts); } /* (le Gorille : ses poings au sol, 31/10/2026) */
             if (cleB && combat && !combat.fin) { pouf(f.x, solA(f.x, f.z) + 0.6, f.z, 3, '#8e7a5e'); blesserBat(cleB, degatsBatiment(1, mo)); if (!combat.chargeBatVu) { combat.chargeBatVu = true; chiffre('Bam !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'gros'); } } /* sonne, il reste un instant sur place */
             return true; } });
@@ -842,13 +871,26 @@ function capLance(mo, ctx) {
     }
   }
 }
+function epinesTouche(mo) { /* ses epines te renvoient le coup : elles etincellent, un eclat file de lui jusqu'a toi (31/10/2026) */
+  const p = paysanMesh.position, de = new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 3) * 0.5, mo.z), vers = new T.Vector3(p.x, p.y + 1, p.z);
+  etincelle(de, 1, '#fff1c0'); etoileImpact(vers, 0.8, '#efe0b8'); emettre(FX_VIF, 8, { x: de.x, y: de.y, z: de.z, r: 0.3, v: [(vers.x - de.x) * 3, (vers.y - de.y) * 3, (vers.z - de.z) * 3], dv: 1.5, vie: [0.2, 0.3], taille: [0.1, 0.03], c: ['#ffffff', '#efe0b8'], a: 1, etire: 0.04 });
+  if (mo.epinesC) mo.epinesK = 1.25; /* (elles se herissent un instant) */
+}
 function capCarapace(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.carapace) { /* le Chafer Cuirasse se replie sous sa carapace d'epines : 3,5 s presque invulnerable, il renvoie un cinquieme des coups du perso */
     if (mo.carapace > 0) mo.carapace -= dt;
     else if (sortPret('carapaceT', mo.d.carapace)) { mo.carapaceT = 0; mo.carapace = 3.5; pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2d27a'); if (mo.d.gestes && mo.d.gestes.carapace) gesteSort(mo, mo.d.gestes.carapace); if (!combat.carapaceVu) { combat.carapaceVu = true; toast(leNom(mo.d) + ' ' + (mo.d.carapaceTexte || 'se replie sous sa carapace d\'épines : il renvoie tes coups, frappe ses soldats en attendant !'), 'alerte'); } }
-    if (!mo.bulleC) { mo.bulleC = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshBasicMaterial({ color: '#f2d27a', transparent: true, opacity: 0.32, depthWrite: false, wireframe: false })); m.add(mo.bulleC); }
-    mo.bulleC.visible = mo.carapace > 0; if (mo.bulleC.visible) { mo.bulleC.scale.setScalar(mo.haut * 0.62 * (1 + 0.04 * Math.sin(s * 10))); mo.bulleC.position.y = mo.haut * 0.45; mo.bulleC.rotation.y += dt * 0.8; }
+    /* (31/10/2026, par Discord, « refais la carapace du Chafer, pour voir », Mathieu : une bulle doree l'entourait) des epines d'os jaillissent de tout
+       son corps en 0,2 s, il se tasse, elles vibrent ; elles rentrent a la fin. Elles etincellent quand elles te renvoient un coup (epinesTouche) */
+    if (!mo.epinesC) { const g = new T.Group(), mo1 = mat('#efe0b8'), mo2 = mat('#c9b48a'), n = 22, h = mo.haut || 3;
+      for (let i = 0; i < n; i++) { const y = 1 - (i + 0.5) / n * 1.45, r = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399, dir = new T.Vector3(Math.cos(th) * r, Math.max(-0.35, y), Math.sin(th) * r).normalize();
+        const L = h * (0.16 + 0.08 * ((i * 7) % 3)), c = new T.Mesh(new T.ConeGeometry(h * 0.035, L, 6), i % 3 ? mo1 : mo2); c.geometry.translate(0, L / 2, 0);
+        c.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dir); c.position.copy(dir).multiply(new T.Vector3(h * 0.2, h * 0.3, h * 0.2)); c.userData.dir = dir; g.add(c); }
+      g.position.y = (mo.haut || 3) * 0.48; g.visible = false; m.add(g); mo.epinesC = g; mo.epinesK = 0; }
+    const voulu = mo.carapace > 0 ? 1 : 0; mo.epinesK += (voulu - mo.epinesK) * Math.min(1, dt * (voulu ? 14 : 8)); const k = mo.epinesK;
+    mo.epinesC.visible = k > 0.02; if (mo.epinesC.visible) { mo.epinesC.scale.setScalar(Math.max(0.01, k) * (1 + 0.03 * Math.sin(s * 23))); mo.epinesC.rotation.y += dt * 0.15; }
+    if (mo.carapace > 0 && mo.epinesVu !== mo.carapaceT) { mo.epinesVu = mo.carapaceT; const y = mo.m.position.y; onde(mo.x, y, mo.z, 3.2, '#f2d27a', 0.4, 0.8); poussiere(mo.x, y, mo.z, 10, 1.2, '#d8c6a0'); secousse(0.08, 0.2); }
   }
 }
 function capSeisme(mo, ctx) {
@@ -1242,7 +1284,7 @@ function majMonstre(mo, dt, s) {
     if (A[0]) A[0].rotation.set(0, -av, -th); if (A[1]) A[1].rotation.set(0, av, th); m.rotation.order = 'YXZ'; } /* (ailes levees quand sin > 0 ; en descendant, elles balaient vers l'avant) */
   const vol = mo.d.vol ? mo.d.vol + (mo.d.battements ? -0.16 * Math.sin(bat) : Math.sin(s * 2.4 + mo.id) * 0.14) : 0; /* (avec des ailes qui battent, le corps monte quand elles s'abaissent) */ if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
-  m.rotation.y = mo.ry; m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0); /* (en volant vers toi, elle penche le nez) */
+  m.rotation.y = mo.ry; m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
     if (!mo.flamme) { mo.flamme = new T.Mesh(new T.ConeGeometry(0.18, 0.5, 6), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.85 })); m.add(mo.flamme); }
@@ -1281,7 +1323,7 @@ function majPerso(dt) {
     const rage = legPorte('bworker') && combat.pv < combat.pvMax * 0.3; if (rage && !combat.rage) { combat.rage = true; toast('Casque du Bworker : tu entres en rage !', 'alerte'); pouf(pp.x, pp.y, pp.z, 2.5, '#e2413a'); }
     combat.cdAttaque = st.cadence * (rage ? 0.7 : 1); const cible = c; son(classe === 'cra' ? 'arc' : classe === 'osa' ? 'fouet' : 'epee'); /* (l'arme de la classe : l'arc du Cra, le fouet de l'Osamodas, l'epee du Iop) */
     combat.tirs = (combat.tirs || 0) + 1; const feu = classe === 'cra' && combat.tirs % TIR_FEU === 0; /* une fleche de feu toutes les 10 */
-    u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => { const p = new T.Vector3(cible.x, cible.m.position.y + cible.haut * 0.5, cible.z); effetFrappe(classe, p, () => { const epines = cible.carapace > 0 && classe !== 'cra', bk = classe === 'iop' && berserkerIop() ? BERSERKER_IOP : 1; blesser(cible, Math.round((feu ? st.deg * 2 : st.deg) * bk), feu); if (classe === 'iop') coupIop(cible, st, bk); /* (bk : le Berserker du Iop, sur ses coups d'epee seulement) */ if (epines && combat && !combat.fin) blesserPerso(Math.max(1, Math.round(st.deg * 0.2 / multDegats(combat.n))), cible); if (!combat || combat.fin) return; if (feu && cible.etat === 'actif') { cible.brule = 3; cible.bruleDeg = Math.max(1, Math.round(st.deg * 0.25)); pouf(cible.x, cible.m.position.y, cible.z, 2, '#ff7a1e'); } }, feu); } };
+    u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => { const p = new T.Vector3(cible.x, cible.m.position.y + cible.haut * 0.5, cible.z); effetFrappe(classe, p, () => { const epines = cible.carapace > 0 && classe !== 'cra', bk = classe === 'iop' && berserkerIop() ? BERSERKER_IOP : 1; blesser(cible, Math.round((feu ? st.deg * 2 : st.deg) * bk), feu); if (classe === 'iop') coupIop(cible, st, bk); /* (bk : le Berserker du Iop, sur ses coups d'epee seulement) */ if (epines && combat && !combat.fin) { blesserPerso(Math.max(1, Math.round(st.deg * 0.2 / multDegats(combat.n))), cible); epinesTouche(cible); } if (!combat || combat.fin) return; if (feu && cible.etat === 'actif') { cible.brule = 3; cible.bruleDeg = Math.max(1, Math.round(st.deg * 0.25)); pouf(cible.x, cible.m.position.y, cible.z, 2, '#ff7a1e'); } }, feu); } };
   }
 }
 function coupIop(cible, st, bk) { /* le balayage du Iop (18-geliere.js) ; bk : le Berserker, x2 sous 50 % de vie */
