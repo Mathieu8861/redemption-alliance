@@ -193,7 +193,7 @@ function ficheMonstre(t) {
   if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : d.bondPrepa || ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
   if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR && d.seismeR < 6 ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + (d.seismeLoin ? ', et l\'onde frappe plus fort au bord' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + (d.seismeLoin ? num('+' + Math.round(d.seismeLoin.parCase * 100) + ' % par case, jusqu\'à ×' + d.seismeLoin.max, 'rouge') : '') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
   if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
-  if (d.boue) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
+  if (d.boue) L.push(capa('lenteur', 'Bain de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
   if (d.brassard) L.push(capa('sort', 'Coup de brassard', 'Un arc rouge devant elle, puis un grand coup de brassard qui te repousse.', num(fmt(dSort) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'));
   if (d.pierre) L.push(capa('bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre')));
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', d.souffleSol ? (d.fem ? 'Elle' : 'Il') + ' crache un long jet de feu vers toi, sur ' + casesDe(d.souffleR) + ' cases dans un cône étroit : il brûle tout sur son passage, tes bâtiments aussi, et le sol reste en feu ' + d.souffleSol + ' s.' : 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.souffleSol ? num(fmt(Math.max(1, Math.round(dSort * 0.1))) + ' toutes les 0,5 s dans les flammes', 'rouge') : '') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
@@ -1209,12 +1209,35 @@ function capSoin(mo, ctx) {
     }
   }
 }
-function capBoue(mo, ctx) { /* le Bain de boue du Dragon Cochon (20/10/2026) : il frappe le sol, un cercle rouge sous toi (ESQUIVE.boue pour en sortir) ; dedans, la boue te colle sur place */
+function capBoue(mo, ctx) { /* le Bain de boue du Dragon Cochon (20/10/2026) : un cercle rouge sous toi (ESQUIVE.boue pour en sortir) ; dedans, la boue te colle sur place.
+     31/10/2026 (par Discord, la revue des boss un par un) : il se cabre, gonfle une boule de boue dans sa gueule et te la crache en cloche ; elle s'ecrase sur le cercle
+     a la fin du delai, gicle en mottes et en gouttes, et laisse une flaque qui bouillonne 3 s (le decor, les regles ne changent pas) */
   const { pp, sortPret } = ctx;
   if (!mo.d.boue || combat.deroute != null || !sortPret('boueT', mo.d.boue)) return;
-  mo.boueT = 0; mo.bloqueT = ESQUIVE.boue + 0.3; mo.frappe = 0.4; const x0 = pp.x, z0 = pp.z;
-  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + ' prépare un bain de boue : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
-  zoneDanger({ mo, x: x0, z: z0, r: 1.6, duree: ESQUIVE.boue, effet: (d) => { pouf(x0, solA(x0, z0), z0, 4, '#6a4524'); pouf(x0, solA(x0, z0), z0, 2.2, '#8e6640');
+  mo.boueT = 0; mo.bloqueT = ESQUIVE.boue + 0.3; mo.frappe = 0.4; const x0 = pp.x, z0 = pp.z, c0 = combat;
+  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + ' te crache un bain de boue : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
+  const a = Math.atan2(x0 - mo.x, z0 - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), av = (mo.d.ombre || 2) * 0.45, R = 1.6; mo.ry = a;
+  const boule = new T.Group(), coeur = new T.Mesh(new T.IcosahedronGeometry(0.5 * k, 1), mat('#5a3a1e')); boule.add(coeur);
+  for (let i = 0; i < 4; i++) { const b = new T.Mesh(new T.IcosahedronGeometry(0.22 * k, 0), mat(i % 2 ? '#7a5230' : '#4a2f18')), u = i * 1.7; b.position.set(Math.cos(u) * 0.4 * k, Math.sin(u * 1.3) * 0.3 * k, Math.sin(u) * 0.4 * k); boule.add(b); } /* (des grumeaux, pas une bille lisse) */
+  boule.traverse((o) => { if (o.isMesh) o.castShadow = true; }); boule.scale.setScalar(0.01); scene.add(boule);
+  const tg = 0.55, vol = ESQUIVE.boue - tg, dP = Math.hypot(x0 - mo.x, z0 - mo.z), H = 2 + dP * 0.15, vers = new T.Vector3(x0, solA(x0, z0) + 0.35 * k, z0);
+  const bouche = () => new T.Vector3(mo.x + Math.sin(a) * av, mo.m.position.y + (mo.haut || 3) * 0.5, mo.z + Math.cos(a) * av);
+  let t = 0, de = null, goutte = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(boule); mo.penche = 0; return true; }
+    if (t < tg) { const u = Math.min(1, t / tg); boule.position.copy(bouche()); boule.scale.setScalar(0.15 + 0.85 * u); boule.rotation.y += dt * 3; mo.penche = -0.25 * u; /* (il se cabre, la boule gonfle dans sa gueule) */
+      if ((goutte += dt) > 0.08) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y - 0.3 * k, z: boule.position.z, r: 0.3 * k, dv: 0.6, vie: [0.3, 0.5], taille: [0.14, 0.06], c: ['#6a4524', '#4a2f18'], grav: 9 }); }
+      return false; }
+    if (!de) { de = boule.position.clone(); mo.penche = 0.3; secousse(0.05, 0.12); poussiere(de.x, solA(de.x, de.z), de.z, 6, 0.8, '#9a7650'); }
+    const u = Math.min(1, (t - tg) / vol); mo.penche = 0.3 * (1 - u); boule.position.lerpVectors(de, vers, u); boule.position.y += Math.sin(u * Math.PI) * H; boule.rotation.set(u * 7, a, u * 4); boule.scale.setScalar(1);
+    if ((goutte += dt) > 0.05) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.25 * k, dv: 0.8, vie: [0.35, 0.6], taille: [0.16, 0.06], c: ['#6a4524', '#4a2f18'], grav: 10 }); } /* (elle goutte en vol) */
+    if (u < 1) return false; jeter(boule); return true; });
+  zoneDanger({ mo, x: x0, z: z0, r: R, duree: ESQUIVE.boue, effet: (d) => { const y = solA(x0, z0); pouf(x0, y, z0, 4, '#6a4524'); pouf(x0, y, z0, 2.2, '#8e6640');
+    secousse(0.12, 0.22); onde(x0, y, z0, R + 0.8, '#8e6640', 0.45, 0.9); mottes(x0, y, z0, 14, 1.2); poussiere(x0, y, z0, 8, R, '#9a7650');
+    emettre(FX_VIF, 26, { x: x0, y: y + 0.3, z: z0, r: 0.5, dv: 6, haut: true, vie: [0.45, 0.8], taille: [0.2, 0.08], c: ['#6a4524', '#4a2f18', '#8e6640'], grav: 12, frein: 0.6 }); /* (la boue gicle) */
+    const mf = new T.MeshBasicMaterial({ color: '#5a3a1e', transparent: true, opacity: 0.8, depthWrite: false }), fl = new T.Mesh(new T.CircleGeometry(R * 0.9, 28), mf);
+    fl.rotation.x = -Math.PI / 2; fl.position.set(x0, y + 0.05, z0); fl.renderOrder = 2; scene.add(fl); let s2 = 0, bulle = 0;
+    effets.push((d2) => { s2 += d2; bulle += d2; if (combat !== c0 || c0.fin || s2 >= 3) { jeter(fl); return true; } mf.opacity = 0.8 * Math.min(1, (3 - s2) / 0.6); fl.scale.setScalar(Math.min(1, 0.6 + s2 * 2));
+      if (bulle >= 0.18 && s2 < 2.5) { bulle = 0; const b = fxAlea() * Math.PI * 2, r2 = fxAlea() * R * 0.8; lueur(new T.Vector3(x0 + Math.cos(b) * r2, y + 0.12, z0 + Math.sin(b) * r2), '#4a2f18', 1.6, 0.4); } }); /* (la flaque bouillonne puis seche) */
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) coller(DUREE_COLLE, 'Collé !', true); } });
 }
 function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2026) : un arc rouge devant elle (ESQUIVE.brassard pour en sortir), puis le coup, qui repousse */
