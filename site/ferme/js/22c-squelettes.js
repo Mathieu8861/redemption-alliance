@@ -343,13 +343,12 @@ function bondMarteau(mo, cx, cz) {
    animation ou il est un genou a terre, ou endormi, pas bien ; il invoque 4 gorilles de 12k PV ; tant qu'ils ne sont pas tous morts, il regagne 1 %
    toutes les 3 s ; une fois les gorilles vaincus, il sort de l'etat affaibli et passe dans l'etat enrage », Mathieu). Il tombe a genoux, penche sur
    son marteau (le debut de sa mort en avant, clip faible_1), puis respire lourdement (l'animation va et vient entre deux instants du clip) ; une
-   bulle a sa couleur le protege, un filet vert le relie a chaque Gorille qui le soigne. Quand le dernier tombe, il se releve (le meme clip a
+   bulle a sa couleur le protege (plus de filet vert vers ses Gorilles : « oublie le fil vert qui le relie », Mathieu). Quand le dernier tombe, il se releve (le meme clip a
    l'envers) et entre en rage (capRage l'attend, finFaible) */
 const FAIBLE = { tombe: 0.55, a: 0.55, b: 0.8, souffle: 1.7, releve: 1.3 }; /* (instants du clip : a genoux a 0,55 s, il respire entre 0,55 et 0,8 s ; il se releve a 1,3 fois la vitesse) */
-const GEO_LIEN = (() => { const g = new T.CylinderGeometry(0.07, 0.07, 1, 6, 1, true); g.translate(0, 0.5, 0); partager(g); return g; })();
 function entrerFaible(mo) {
   const A = mo.d.affaibli, an = mo.m.userData.anim, c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
-  mo.faible = { t: 0, regen: 0, phase: 'tombe', liens: new Map() }; mo.bloqueT = 1e9; mo.cd = 1e9; mo.vise = null; mo.geste = null;
+  mo.faible = { t: 0, regen: 0, phase: 'tombe' }; mo.bloqueT = 1e9; mo.cd = 1e9; mo.vise = null; mo.geste = null;
   const a = an.F.faible && jouerAnim(an, an.F.faible[0], 0.2); if (a) a.timeScale = 1;
   const y = mo.m.position.y; pouf(mo.x, y, mo.z, 3.5, '#8e7a5e'); onde(mo.x, y, mo.z, 5, C[1], 0.6, 0.8); secousse(0.15, 0.3);
   toast(leNom(mo.d) + ' tombe à genoux, invulnérable : ' + (mo.d.fem ? 'elle' : 'il') + ' appelle ' + A.n + ' ' + A.noms + ' qui le soignent. Abats-les tous !', 'alerte');
@@ -369,12 +368,6 @@ function majFaible(mo, an, dt) {
     if (F.phase === 'releve') { a.timeScale = 0; a.time = Math.max(0, a.time - dt * FAIBLE.releve); if (a.time <= 0) { finFaible(mo); return; } } }
   else if (F.phase === 'releve') { finFaible(mo); return; }
   const G = combat.monstres.filter((o) => o.gardeMoon === mo.id && o.etat !== 'mort'), y = mo.m.position.y;
-  /* les filets de vie : de chaque Gorille debout jusqu'a lui */
-  F.liens.forEach((L, o) => { if (!G.includes(o) || F.phase === 'releve') { jeter(L); F.liens.delete(o); } });
-  if (F.phase !== 'releve') G.forEach((o) => { if (o.etat !== 'actif') return; let L = F.liens.get(o); if (!L) { L = new T.Mesh(GEO_LIEN, fxMat('#4fd06a', 0.55)); L.renderOrder = 5; scene.add(L); F.liens.set(o, L); }
-    const de = new T.Vector3(o.x, o.m.position.y + (o.haut || 2) * 0.55, o.z), vers = new T.Vector3(mo.x, y + 1.4, mo.z), d = vers.clone().sub(de), l = d.length();
-    L.position.copy(de); L.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); L.scale.set(1 + 0.3 * Math.sin(F.t * 8), l, 1 + 0.3 * Math.sin(F.t * 8)); L.material.opacity = 0.4 + 0.2 * Math.sin(F.t * 6);
-    if (Math.random() < dt * 6) { const u = Math.random(); emettre(FX_VIF, 1, { x: de.x + (vers.x - de.x) * u, y: de.y + (vers.y - de.y) * u, z: de.z + (vers.z - de.z) * u, v: [(vers.x - de.x) * 0.8, (vers.y - de.y) * 0.8, (vers.z - de.z) * 0.8], vie: [0.3, 0.45], taille: [0.12, 0.04], c: ['#d8ffd8', '#4fd06a'], a: 1 }); } });
   if (F.phase === 'releve') return;
   /* tant qu'un Gorille est debout, il se soigne */
   if (G.length && (F.regen += dt) >= A.pas) { F.regen -= A.pas; const a0 = mo.pv; mo.pv = Math.min(mo.pvMax, mo.pv + Math.round(mo.pvMax * A.regen));
