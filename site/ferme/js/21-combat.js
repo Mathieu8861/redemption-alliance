@@ -927,8 +927,8 @@ function capJet(mo, ctx) {
    jusqu'au bout de la bande, rochers et braises, une eruption toutes les 0,09 s : tu as le temps d'en sortir de cote. Fiche : faille: { periode, L, x } */
 function capFaille(mo, ctx) {
   const { pp, sortPret } = ctx, F = mo.d.faille; if (!F || combat.deroute != null) return;
-  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('failleT', F.periode)) return; if (dP < 3 || dP > F.L) { mo.failleT = F.periode; return; }
-  mo.failleT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x + Math.sin(a) * 1.2, z0 = mo.z + Math.cos(a) * 1.2, L = Math.min(F.L, dP + 3), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L), prepa = 1.0;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('failleT', F.periode)) return; /* (31/10/2026, par Discord, « la faille, ca te touche peu importe ou tu es et ou est le Craqueleur, faut esquiver, pas de portee minimum », Mathieu : plus de portee mini ni maxi, elle court jusqu'a toi et un peu au-dela) */
+  mo.failleT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x + Math.sin(a) * 1.2, z0 = mo.z + Math.cos(a) * 1.2, L = Math.max(4, dP + 3), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L), prepa = 1.0;
   mo.ry = a; mo.bloqueT = prepa + 0.5; prepaSeisme(mo, mo.x, mo.z, 0.01, prepa);
   if (!c0.failleVu) { c0.failleVu = true; toast(leNom(mo.d) + ' fend le sol jusqu\'à toi : sors de la bande, la faille éclate de lui vers toi !', 'alerte'); }
   let touche = false; const dg = Math.max(1, Math.round(degSort(mo) * F.x));
