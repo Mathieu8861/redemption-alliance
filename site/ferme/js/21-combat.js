@@ -193,7 +193,8 @@ function ficheMonstre(t) {
   if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : d.bondPrepa || ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
   if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR && d.seismeR < 6 ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + (d.seismeLoin ? ', et l\'onde frappe plus fort au bord' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + (d.seismeLoin ? num('+' + Math.round(d.seismeLoin.parCase * 100) + ' % par case, jusqu\'à ×' + d.seismeLoin.max, 'rouge') : '') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
   if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
-  if (d.boue) L.push(capa('lenteur', 'Bain de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
+  if (d.bain) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu'));
+  if (d.boue) L.push(capa('lenteur', 'Crachat de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
   if (d.brassard) L.push(capa('sort', 'Coup de brassard', 'Un arc rouge devant elle, puis un grand coup de brassard qui te repousse.', num(fmt(dSort) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'));
   if (d.pierre) L.push(capa('bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre')));
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', d.souffleSol ? (d.fem ? 'Elle' : 'Il') + ' crache un long jet de feu vers toi, sur ' + casesDe(d.souffleR) + ' cases dans un cône étroit : il brûle tout sur son passage, tes bâtiments aussi, et le sol reste en feu ' + d.souffleSol + ' s.' : 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.souffleSol ? num(fmt(Math.max(1, Math.round(dSort * 0.1))) + ' toutes les 0,5 s dans les flammes', 'rouge') : '') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
@@ -1209,13 +1210,49 @@ function capSoin(mo, ctx) {
     }
   }
 }
-function capBoue(mo, ctx) { /* le Bain de boue du Dragon Cochon (20/10/2026) : un cercle rouge sous toi (ESQUIVE.boue pour en sortir) ; dedans, la boue te colle sur place.
+/* LE BAIN DE BOUE du Dragon Cochon (01/11/2026, par Discord : « un sort qu'il lance qui s'appelle bain de boue : ca remplit la plupart de la map de boue, qui booste
+   la vitesse du Dragon Cochon et qui nous ralentit nous », Mathieu). Il se dresse et s'abat, la boue jaillit en geysers et s'etale en grandes flaques sur la plus grande
+   partie du terrain, des ilots secs entre elles. Dedans, tu es ralenti (la lenteur de la Momie, x0,55) ; lui court x v. Les flaques sechent au bout de duree, ou a sa mort.
+   Fiche : bain: { periode, duree, R (le rayon couvert autour de vous deux), n (le nombre de flaques), v } */
+function flaqueBoue(x, z, r) { /* une grande flaque aux bords irreguliers, son liseré plus clair dessous */
+  const g = new T.Group(), y = solA(x, z), forme = (rr, dec) => { const geo = new T.CircleGeometry(rr, 40), P = geo.attributes.position;
+    for (let i = 1; i < P.count; i++) { const a = Math.atan2(P.getY(i), P.getX(i)), k = 1 + 0.12 * Math.sin(a * 3 + dec) + 0.07 * Math.sin(a * 7 + dec * 2.3); P.setXY(i, P.getX(i) * k, P.getY(i) * k); } return geo; };
+  const dec = fxAlea() * 6, mB = new T.MeshBasicMaterial({ color: '#7a5230', transparent: true, opacity: 0.55, depthWrite: false }), mF = new T.MeshBasicMaterial({ color: '#4e321a', transparent: true, opacity: 0.85, depthWrite: false });
+  const bord = new T.Mesh(forme(r * 1.08, dec), mB), fond = new T.Mesh(forme(r, dec), mF); [bord, fond].forEach((o, i) => { o.rotation.x = -Math.PI / 2; o.position.y = 0.04 + i * 0.01; o.renderOrder = 2; g.add(o); });
+  g.position.set(x, y, z); g.scale.setScalar(0.01); scene.add(g); return { g, x, z, r, y, mB, mF };
+}
+function capBain(mo, ctx) {
+  const { pp, sortPret } = ctx, B = mo.d.bain; if (!B || combat.deroute != null || combat.bain) return;
+  if (!sortPret('bainT', B.periode)) return;
+  mo.bainT = 0; const c0 = combat, prepa = 1.0; mo.bloqueT = prepa + 0.4; mo.frappe = 0.4; prepaSeisme(mo, mo.x, mo.z, 3, prepa);
+  if (!c0.bainVu) { c0.bainVu = true; toast(leNom(mo.d) + ' répand un bain de boue : dedans tu es ralenti et lui court plus vite, cherche les coins secs !', 'alerte'); }
+  const cx = (mo.x + pp.x) / 2, cz = (mo.z + pp.z) / 2, P = [{ x: mo.x, z: mo.z, r: 3.8 }, { x: pp.x, z: pp.z, r: 3.2 }]; /* (une sous lui, une sous toi : pas d'esquive au moment ou elle jaillit) */
+  for (let e = 0; e < 60 && P.length < B.n; e++) { const a = fxAlea() * Math.PI * 2, d = Math.sqrt(fxAlea()) * B.R, q = pointValide(cx, cz, cx + Math.cos(a) * d, cz + Math.sin(a) * d);
+    if (P.every((o) => Math.hypot(o.x - q.x, o.z - q.z) > 3.4)) P.push({ x: q.x, z: q.z, r: 2.6 + fxAlea() * 1.6 }); } /* (assez ecartees pour laisser des ilots secs) */
+  const F = []; c0.bain = { F, de: mo }; let t = 0, tic = 0, pas = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { F.forEach((f) => jeter(f.g)); mo.boueV = 0; return true; }
+    if (!c0.bain.fin && mo.etat !== 'actif') c0.bain.fin = t + 1; /* (il meurt : sa boue seche en 1 s) */
+    const fin = c0.bain.fin || prepa + B.duree + 1; if (t >= fin) { F.forEach((f) => jeter(f.g)); mo.boueV = 0; c0.bain = null; return true; }
+    if (t < prepa) return false;
+    if (!F.length && mo.etat === 'actif') { secousse(0.22, 0.45); const y0 = solA(mo.x, mo.z); onde(mo.x, y0, mo.z, B.R, '#8e6640', 0.7, 1); mottes(mo.x, y0, mo.z, 12, 1.2);
+      P.forEach((p) => { const f = flaqueBoue(p.x, p.z, p.r); f.t0 = 0.1 * fxAlea() + Math.hypot(p.x - mo.x, p.z - mo.z) * 0.05; F.push(f); }); } /* (elle s'etale depuis lui) */
+    const u = t - prepa, finK = Math.min(1, fin - t), pp2 = paysanMesh.position; let dedans = false, lui = false;
+    F.forEach((f) => { const k = Math.max(0, Math.min(1, (u - f.t0) / 0.7)); if (k > 0 && !f.jailli) { f.jailli = true; emettre(FX_VIF, 14, { x: f.x, y: f.y + 0.2, z: f.z, r: 0.4, v: [0, 5, 0], dv: 2.5, vie: [0.5, 0.9], taille: [0.22, 0.08], c: ['#6a4524', '#4a2f18', '#8e6640'], grav: 11 }); pouf(f.x, f.y, f.z, f.r * 0.6, '#6a4524'); } /* (un geyser de boue, puis elle s'etale) */
+      f.g.scale.setScalar(Math.max(0.01, 1 - Math.pow(1 - k, 3))); f.mF.opacity = 0.85 * Math.min(1, finK); f.mB.opacity = 0.55 * Math.min(1, finK);
+      if (k >= 1 && finK > 0.3) { if (Math.hypot(pp2.x - f.x, pp2.z - f.z) < f.r * 0.95) dedans = true; if (mo.etat === 'actif' && Math.hypot(mo.x - f.x, mo.z - f.z) < f.r) lui = true; } });
+    if ((tic += dt) > 0.16 && finK > 0.5) { tic = 0; const f = F[Math.floor(fxAlea() * F.length)]; if (f) { const a = fxAlea() * Math.PI * 2, d = fxAlea() * f.r * 0.8; lueur(new T.Vector3(f.x + Math.cos(a) * d, f.y + 0.12, f.z + Math.sin(a) * d), '#3e2814', 1.8, 0.45); } } /* (des bulles crevent) */
+    if (dedans) { c0.lenteur = Math.max(c0.lenteur || 0, 0.15); } mo.boueV = lui ? B.v : 0;
+    if ((pas += dt) > 0.14) { pas = 0; if (lui && !(mo.bloqueT > 0)) emettre(FX_VIF, 3, { x: mo.x, y: solA(mo.x, mo.z) + 0.15, z: mo.z, r: 0.6, v: [0, 2, 0], dv: 1.5, vie: [0.3, 0.5], taille: [0.16, 0.06], c: ['#6a4524', '#4a2f18'], grav: 10 }); /* (il patauge, ca gicle) */
+      if (dedans) emettre(FX_VIF, 2, { x: pp2.x, y: pp2.y + 0.1, z: pp2.z, r: 0.25, v: [0, 1.5, 0], dv: 1, vie: [0.25, 0.4], taille: [0.12, 0.05], c: ['#6a4524', '#4a2f18'], grav: 10 }); }
+    return false; });
+}
+function capBoue(mo, ctx) { /* le Crachat de boue du Dragon Cochon (le Bain de boue jusqu'au 01/11/2026, 20/10/2026) : un cercle rouge sous toi (ESQUIVE.boue pour en sortir) ; dedans, la boue te colle sur place.
      31/10/2026 (par Discord, la revue des boss un par un) : il se cabre, gonfle une boule de boue dans sa gueule et te la crache en cloche ; elle s'ecrase sur le cercle
      a la fin du delai, gicle en mottes et en gouttes, et laisse une flaque qui bouillonne 3 s (le decor, les regles ne changent pas) */
   const { pp, sortPret } = ctx;
   if (!mo.d.boue || combat.deroute != null || !sortPret('boueT', mo.d.boue)) return;
   mo.boueT = 0; mo.bloqueT = ESQUIVE.boue + 0.3; mo.frappe = 0.4; const x0 = pp.x, z0 = pp.z, c0 = combat;
-  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + ' te crache un bain de boue : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
+  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + ' te crache de la boue : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
   const a = Math.atan2(x0 - mo.x, z0 - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), av = (mo.d.ombre || 2) * 0.45, R = 1.6; mo.ry = a;
   const boule = new T.Group(), coeur = new T.Mesh(new T.IcosahedronGeometry(0.5 * k, 1), mat('#5a3a1e')); boule.add(coeur);
   for (let i = 0; i < 4; i++) { const b = new T.Mesh(new T.IcosahedronGeometry(0.22 * k, 0), mat(i % 2 ? '#7a5230' : '#4a2f18')), u = i * 1.7; b.position.set(Math.cos(u) * 0.4 * k, Math.sin(u * 1.3) * 0.3 * k, Math.sin(u) * 0.4 * k); boule.add(b); } /* (des grumeaux, pas une bille lisse) */
@@ -1291,7 +1328,7 @@ function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/20
     return true; });
 }
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBrassard, capPierre, capRoulade];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -1413,7 +1450,7 @@ function majMonstre(mo, dt, s) {
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
