@@ -199,7 +199,7 @@ function ficheMonstre(t) {
   if (d.souffle) L.push(capa('sort', 'Souffle de feu', d.souffleSol ? (d.fem ? 'Elle' : 'Il') + ' crache un long jet de feu vers toi, sur ' + casesDe(d.souffleR) + ' cases dans un cône étroit : il brûle tout sur son passage, tes bâtiments aussi, et le sol reste en feu ' + d.souffleSol + ' s.' : 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.souffleSol ? num(fmt(Math.max(1, Math.round(dSort * 0.1))) + ' toutes les 0,5 s dans les flammes', 'rouge') : '') + num('1 s pour esquiver') + recup('souffle'), 'violet'));
   if (d.pluie) L.push(capa('sort', d.pluieFleches ? 'Pluie de flèches' : 'Pluie de cawottes', d.pluieFleches ? 'Cinq cercles rouges : un sur toi, quatre autour.' : 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.pluie) + ' pour esquiver') + recup('pluie'), 'violet'));
   if (d.cawotteRoyale) L.push(capa('assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num(secondes(ESQUIVE.cawotteRoyale) + ' pour esquiver') + recup('cawotteRoyale'), 'or'));
-  if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache de la fumée, ses nuages restent 24 s au sol : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
+  if (d.fumee) L.push(capa('poison', 'Nuages de fumée', 'Il crache ' + (d.fumeeN || 3) + ' nuages de fumée (un sur toi), ils restent 24 s au sol et se dissipent à sa mort : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num('2 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert'));
   if (d.appel) L.push(capa('sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui.', recup('appel'), 'violet'));
   if (d.geyser) L.push(capa('sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge'));
   if (d.geyserRage) L.push(capa('sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge'));
@@ -529,7 +529,7 @@ function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de
     if (!de) { de = new T.Vector3(mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.35, mo.m.position.y + mo.haut * 0.8, mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.35); if (gros > 1) emettre(FX_FUM, 6, { x: de.x, y: de.y, z: de.z, r: 0.3, v: [(x - de.x) * 0.8, 0.5, (z - de.z) * 0.8], dv: 1, vie: [0.4, 0.7], taille: [0.6, 1.6], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2 }); }
     const k = Math.min(1, t); boule.position.lerpVectors(de, vers, k); boule.position.y += Math.sin(k * Math.PI) * 2.2; boule.rotation.set(k * 6, k * 4, 0); boule.scale.setScalar(1 + 0.15 * Math.sin(k * 20));
     if (gros > 1) emettre(FX_FUM, 1, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.2, vie: [0.4, 0.7], taille: [0.4, 1.1], c: ['#c8f0a0', '#9ad86a'], a: 0.55, frein: 1, entree: 0.05 });
-    if (k >= 1) { jeter(boule); const y = solA(x, z); pouf(x, y, z, 2.2 * gros, '#9ad86a'); if (gros > 1) { onde(x, y, z, r * 1.6, '#a8de78', 0.45, 0.8, true); emettre(FX_FUM, 14, { x, y: y + 0.4, z, r: r * 0.5, dv: 2.5, haut: true, vie: [0.6, 1], taille: [0.6, 2], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2, vrot: 1 }); secousse(0.06, 0.15); } poserFumee(x, z, r, duree, null); return true; } });
+    if (k >= 1) { jeter(boule); if (mo.etat !== 'actif' && mo.d.boss) return true; const y = solA(x, z); pouf(x, y, z, 2.2 * gros, '#9ad86a'); if (gros > 1) { onde(x, y, z, r * 1.6, '#a8de78', 0.45, 0.8, true); emettre(FX_FUM, 14, { x, y: y + 0.4, z, r: r * 0.5, dv: 2.5, haut: true, vie: [0.6, 1], taille: [0.6, 2], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2, vrot: 1 }); secousse(0.06, 0.15); } const f = poserFumee(x, z, r, duree, null); if (f && mo.d.boss) f.de = mo; return true; } });
 }
 /* le Koulosse inspire avant de cracher (31/10/2026) : il se cambre, la fumee monte de sa bouche et tourbillonne, puis il se penche en avant en crachant */
 function inspireKoulosse(mo, t0) {
@@ -552,7 +552,7 @@ function langueFumee(mo, x2, z2, prise) {
     if (t >= aller + tient + retour) { B.forEach((b) => jeter(b)); mo.penche = 0; return true; } });
 }
 function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : il suit le Koulosse jusqu'a la fin) ; il compte comme un danger, que le bot evite */
-  const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 20) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
+  const c = combat; if (!c || c.fin) return null; c.fumees = c.fumees || []; if (c.fumees.length >= 30) retirerFumee(c.fumees.find((f) => !f.suit) || c.fumees[0]);
   const g = new T.Group(), matF = new T.MeshToonMaterial({ color: '#a8de78', gradientMap: grad, transparent: true, opacity: 0.66, depthWrite: false });
   const sol = new T.Mesh(new T.CircleGeometry(r, 32), new T.MeshBasicMaterial({ color: '#6cc43c', transparent: true, opacity: 0.34, depthWrite: false, side: T.DoubleSide })); sol.rotation.x = -Math.PI / 2; sol.position.y = 0.06; sol.renderOrder = 2; g.add(sol);
   const bouffees = []; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.random(), d = r * (0.15 + Math.random() * 0.65), m = new T.Mesh(new T.IcosahedronGeometry(0.45 + Math.random() * 0.4, 1), matF); m.position.set(Math.cos(a) * d, 0.4, Math.sin(a) * d); m.userData.p = Math.random() * 6; m.castShadow = false; g.add(m); bouffees.push(m); }
@@ -568,6 +568,7 @@ function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, p
   c.fumees.slice().forEach((f) => {
     f.t += dt; if (f.suit) { if (f.suit.etat !== 'actif') { retirerFumee(f); return; } f.x = f.suit.x; f.z = f.suit.z; f.g.position.set(f.x, solA(f.x, f.z), f.z); f.danger.x = f.x; f.danger.z = f.z; }
     if (f.fin && f.t >= f.fin) { retirerFumee(f); return; }
+    if (f.de && f.de.etat !== 'actif' && !f.dissipe) f.dissipe = f.fin = f.t + 1.2; /* (son boss est mort : ses nuages se dissipent, 31/10/2026) */
     f.matF.opacity = 0.66 * Math.min(1, f.t / 0.6, f.fin ? Math.max(0, (f.fin - f.t) / 1.2) : 1);
     f.bouffees.forEach((m) => { m.position.y = 0.4 + Math.sin(s * 1.3 + m.userData.p) * 0.14; m.rotation.y += dt * 0.3; });
     if (Math.hypot(pp.x - f.x, pp.z - f.z) < f.r) dedans = true;
@@ -1174,7 +1175,8 @@ function capFumee(mo, ctx) {
     if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
       if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : la toucher t\'empoisonne (2 s de poison par seconde passée dedans, 2 % de tes PV par seconde). Évite les nuages verts !', 'alerte'); }
       const geste = !m.userData.anim; if (geste) { inspireKoulosse(mo, 0.45); mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = Math.max(mo.bloqueT || 0, 0.9); } /* (31/10/2026 : il inspire, puis crache) */
-      [[pp.x, pp.z]].concat([0, 1].map(() => [pp.x + (Math.random() - 0.5) * 8, pp.z + (Math.random() - 0.5) * 8])).forEach(([x, z], k) => cracherFumee(mo, x, z, 1.9, 24, (geste ? 0.45 : 0) + k * 0.15));
+      const nf = mo.d.fumeeN || 3, rf = mo.d.fumeeR || 1.9; /* (31/10/2026, par Discord, « il devrait en jeter beaucoup plus, plus de zones de brume, sur la carte c'est tres facile a esquiver », Mathieu : fumeeN nuages par jet, de rayon fumeeR) */
+      [[pp.x, pp.z]].concat(Array.from({ length: nf - 1 }, (_, i) => { const a = (i / (nf - 1)) * Math.PI * 2 + Math.random() * 0.8, r = 3 + Math.random() * 5; return [pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]; })).forEach(([x, z], k) => cracherFumee(mo, x, z, rf, 24, (geste ? 0.45 : 0) + k * 0.1));
       if (!combat || combat.fin) return; }
   }
 }
