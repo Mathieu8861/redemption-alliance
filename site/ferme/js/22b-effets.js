@@ -351,6 +351,29 @@ function souffleDeFeu(de, a, portee) {
     return false;
   });
 }
+/* la Bourrasque d'Ark (31/10/2026) : sa fleche de vent file droit devant, une spirale d'air autour d'elle ; derriere, trois fronts de vent en arc
+   s'ecartent dans le cone, des filets d'air filent, la poussiere et des feuilles sont balayees au sol. En bleu ciel et en melange normal : en blanc
+   et en lumiere, le vent disparaissait sur le sable clair de l'Arene */
+const GEO_FRONT_VENT = (() => { const g = new T.RingGeometry(0.84, 1, 28, 1, -0.5, 1); g.rotateX(-Math.PI / 2); partager(g); return g; })(); /* (un arc d'un radian, rescale a l'ouverture du cone) */
+function bourrasqueVent(de, ySol, a, R, ouv) {
+  const dx = Math.sin(a), dz = Math.cos(a), V = R / 0.32;
+  { const f = projectileMonstre('fleche', { d: {} }); f.position.copy(de); f.rotation.y = a; let t = 0;
+    fxVie(f, 0.34, (k) => { t = k * 0.34; const d = Math.min(R + 0.5, t * V * 1.1); f.position.set(de.x + dx * d, de.y - 0.15 * k, de.z + dz * d);
+      for (let i = 0; i < 2; i++) { const s = t * 40 + i * Math.PI, r = 0.22; emettre(FX_VIF, 1, { x: f.position.x + Math.cos(a) * Math.cos(s) * r, y: f.position.y + Math.sin(s) * r, z: f.position.z - Math.sin(a) * Math.cos(s) * r, vie: [0.2, 0.3], taille: [0.13, 0.04], c: ['#ffffff', '#6fc4ea'], a: 0.95 }); } }); }
+  for (let i = 0; i < 3; i++) { const m = new T.Mesh(GEO_FRONT_VENT, new T.MeshBasicMaterial({ color: i === 1 ? '#bfeaff' : '#6cc0e8', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }));
+    m.renderOrder = 5; m.position.set(de.x, ySol + 0.35 + i * 0.35, de.z); m.rotation.y = a - Math.PI / 2; const t0 = i * 0.07;
+    fxVie(m, 0.5, (k) => { const u = Math.max(0, (k * 0.5 - t0) / 0.38); if (u <= 0) { m.visible = false; return; } m.visible = true; const e = 1 - Math.pow(1 - Math.min(1, u), 2), r = 0.6 + (R - 0.4) * e;
+      m.scale.set(r, 1, r * Math.sin(ouv) / Math.sin(0.5)); m.material.opacity = (u < 1 ? 0.8 * (1 - u * 0.75) : 0); }); }
+  let t = 0; effets.push((dt) => { t += dt; if (t > 0.42) return true;
+    for (let i = 0; i < 6; i++) { const e = (fxAlea() - 0.5) * 2 * ouv, ca = Math.cos(e), sa = Math.sin(e), vx = (dx * ca - dz * sa) * V * fxEntre(0.8, 1.15), vz = (dz * ca + dx * sa) * V * fxEntre(0.8, 1.15);
+      emettre(FX_VIF, 1, { x: de.x + dx * 0.4, y: ySol + 0.3 + fxAlea() * 1.4, z: de.z + dz * 0.4, v: [vx, 0.3, vz], vie: [0.3, 0.42], taille: [0.09, 0.04], c: ['#ffffff', '#5fb8e4'], a: 1, frein: 1.2, etire: 0.035 }); }
+    if (fxAlea() < 0.7) { const e = (fxAlea() - 0.5) * 2 * ouv, d = fxEntre(0.8, R * 0.9), ca = Math.cos(e), sa = Math.sin(e), ux = dx * ca - dz * sa, uz = dz * ca + dx * sa;
+      emettre(FX_FUM, 1, { x: de.x + ux * d, y: ySol + 0.15, z: de.z + uz * d, v: [ux * 5, 0.6, uz * 5], vie: [0.5, 0.8], taille: [0.4, 1.3], c: ['#d6c39a', '#c4ad80'], a: 0.55, frein: 2.2, vrot: 1.5, entree: 0.1 }); }
+    if (fxAlea() < 0.45) { const e = (fxAlea() - 0.5) * 2 * ouv, d = fxEntre(0.6, R * 0.7), ca = Math.cos(e), sa = Math.sin(e), ux = dx * ca - dz * sa, uz = dz * ca + dx * sa;
+      emettre(FX_VIF, 1, { x: de.x + ux * d, y: ySol + 0.2, z: de.z + uz * d, v: [ux * 7, 2.2, uz * 7], dv: 1, vie: [0.5, 0.8], taille: [0.11, 0.08], c: ['#7cc24a', '#4f9a32'], a: 1, grav: 3, frein: 1.5, vrot: 9 }); }
+    return false; });
+  secousse(0.05, 0.2);
+}
 const GEO_CAWOTTE = new T.ConeGeometry(0.16, 0.6, 7); GEO_CAWOTTE.rotateX(Math.PI); partager(GEO_CAWOTTE);
 function pluieCawotte(x, y, z, retard) { /* une cawotte tombe du ciel en sifflant (une trainee), la pointe en bas, et eclate au sol */
   const g = new T.Group(), c = new T.Mesh(GEO_CAWOTTE, mat('#f08a24')), f = new T.Mesh(new T.ConeGeometry(0.12, 0.3, 5), mat('#5fae3a')); f.position.y = 0.42; g.add(c, f); g.visible = false; scene.add(g);
