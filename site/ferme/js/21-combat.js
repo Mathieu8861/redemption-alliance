@@ -816,6 +816,45 @@ function capCharge(mo, ctx) {
     }
   }
 }
+/* LES COUPS D'UN BOSS SANS SQUELETTE (01/11/2026, par Discord, du Dragon Cochon : « je le trouve tres limite quand il attaque sur place, il bouge meme pas », Mathieu) :
+   au lieu d'un petit glissement, il enchaine ses gestes ; le coup tombe a l'instant du geste (s'il t'a vu filer, il frappe dans le vide, comme les monstres a squelette).
+   groin : il recule, puis se jette en avant tete baissee ; pietine : il se cabre et retombe des pattes avant, la terre tremble ; queue : il tourne sur lui-meme, sa queue balaie.
+   Fiche : coups: ['groin', 'pietine', 'queue'] (joues dans l'ordre) */
+const GESTES_LOURDS = { groin: { d: 0.6, imp: 0.36 }, pietine: { d: 0.78, imp: 0.5 }, queue: { d: 0.62, imp: 0.34 } };
+function coupLourd(mo, portee, frapper) {
+  const c0 = combat, L = mo.d.coups, g = L[(mo.coupN = (mo.coupN || 0) + 1) % L.length], G = GESTES_LOURDS[g], k = Math.max(1, (mo.haut || 3) / 3.2), av = (mo.d.ombre || 2) * 0.5;
+  let t = 0, tape = false; mo.frappe = 0;
+  const devant = (r) => ({ x: mo.x + Math.sin(mo.ry) * r, z: mo.z + Math.cos(mo.ry) * r }), fin = () => { mo.elanB = 0; mo.penche = 0; mo.hop = 0; mo.dresse = 0; mo.tourne = 0; mo.queueB = 0; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { fin(); return true; } const u = Math.min(1, t / G.d);
+    if (g === 'groin') { if (t < 0.28) { const a = t / 0.28; mo.elanB = -0.45 * k * a; mo.penche = -0.16 * a; }
+      else if (t < 0.4) { const a = (t - 0.28) / 0.12; mo.elanB = (-0.45 + 1.95 * a) * k; mo.penche = -0.16 + 0.56 * a; }
+      else { const a = Math.min(1, (t - 0.4) / 0.2); mo.elanB = 1.5 * k * (1 - a); mo.penche = 0.4 * (1 - a); } }
+    else if (g === 'pietine') { if (t < 0.42) { const a = Math.sin(Math.min(1, t / 0.42) * Math.PI / 2); mo.penche = -0.38 * a; mo.hop = 0.7 * k * a; mo.dresse = 0.08 * a; }
+      else if (t < 0.5) { const a = (t - 0.42) / 0.08; mo.penche = -0.38 + 0.58 * a; mo.hop = 0.7 * k * (1 - a) - 0.2 * a; mo.dresse = 0.08 * (1 - a); }
+      else { const a = Math.min(1, (t - 0.5) / 0.28); mo.penche = 0.2 * (1 - a); mo.hop = -0.2 * (1 - a); } }
+    else { const a = u * u * (3 - 2 * u); mo.tourne = a * Math.PI * 2; mo.queueB = 0.9 * Math.sin(u * Math.PI); mo.hop = 0.25 * k * Math.sin(u * Math.PI); mo.penche = 0.08 * Math.sin(u * Math.PI);
+      if (u > 0.2 && u < 0.8 && Math.random() < dt * 20) { const b = mo.ry + mo.tourne + Math.PI, q = { x: mo.x + Math.sin(b) * av * 1.3, z: mo.z + Math.cos(b) * av * 1.3 }; poussiere(q.x, solA(q.x, q.z), q.z, 2, 0.5, '#d8c6a0'); } } /* (la queue rase le sol) */
+    if (!tape && t >= G.imp) { tape = true; const q = devant(g === 'queue' ? 0 : av * 1.2), y = solA(q.x, q.z);
+      if (g === 'groin') { secousse(0.07, 0.14); poussiere(q.x, y, q.z, 8, 0.9, '#d8c6a0'); emettre(FX_LUM, 1, { x: q.x, y: y + 1.2 * k, z: q.z, vie: [0.1, 0.14], taille: [1.4, 2.2], c: ['#ffffff', '#ffe2a0'], a: 0.7, entree: 0.01 }); }
+      else if (g === 'pietine') { secousse(0.16, 0.3); onde(q.x, y, q.z, 3.2, '#c9b28a', 0.45, 0.85); poussiere(q.x, y, q.z, 12, 1.4, '#d8c6a0'); mottes(q.x, y, q.z, 8, 1); }
+      else { secousse(0.06, 0.12); onde(mo.x, solA(mo.x, mo.z), mo.z, av * 2.4, '#d8c6a0', 0.35, 0.6); }
+      const p = paysanMesh.position; if (Math.hypot(p.x - mo.x, p.z - mo.z) <= portee + 1.0) frapper(); }
+    if (t >= G.d) { fin(); return true; } });
+}
+/* L'ENVOL DU DRAGON COCHON (01/11/2026, par Discord : « et pour l'attaque en vol qui fait trembler ? », Mathieu) : il prend son elan, ses petites ailes battent
+   a toute vitesse, il monte au-dessus de toi, plane un instant, bascule tete en bas et pique ; la terre tremble fort, boue et mottes giclent. Fiche : bondVol */
+function volDragon(mo, x0, z0, cx, cz, EB, R, ombre) {
+  const c0 = combat, tE = EB * 0.32, tM = EB * 0.34, tP = EB * 0.2, tC = EB - tE - tM - tP, H = 6; let t = 0, parti = false;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.hop = 0; mo.penche = 0; mo.ailesVite = 0; jeter(ombre); return true; }
+    if (t < tE) { const k = t / tE; mo.hop = -0.4 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 2); mo.penche = -0.2 * k; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); mo.ailesVite = k;
+      if (Math.random() < dt * 8) poussiere(mo.x, solA(mo.x, mo.z), mo.z, 3, 1, '#d8c6a0'); } /* (il se tasse, les ailes se mettent a vrombir) */
+    else if (t < tE + tM) { const k = (t - tE) / tM, e = 1 - (1 - k) * (1 - k); if (!parti) { parti = true; secousse(0.08, 0.2); poussiere(x0, solA(x0, z0), z0, 16, 1.6, '#d8c6a0'); mottes(x0, solA(x0, z0), z0, 8, 1.1); }
+      mo.x = x0 + (cx - x0) * e; mo.z = z0 + (cz - z0) * e; mo.hop = H * e; mo.penche = -0.25 + 0.1 * k; mo.ailesVite = 1; }
+    else if (t < tE + tM + tP) { const k = (t - tE - tM) / tP; mo.x = cx; mo.z = cz; mo.hop = H + Math.sin(k * Math.PI) * 0.35; mo.penche = -0.15 + 0.6 * k; mo.ailesVite = 1; } /* (il plane au-dessus de toi, puis bascule) */
+    else { const k = Math.min(1, (t - tE - tM - tP) / tC); mo.hop = H * (1 - k * k); mo.penche = 0.45; mo.ailesVite = 0.3; } /* (le pique) */
+    const o = Math.min(1, t / EB); ombre.scale.setScalar(Math.max(0.01, R * (0.2 + 0.8 * o))); ombre.material.opacity = 0.15 + 0.45 * o;
+    if (t >= EB) { mo.hop = 0; mo.ailesVite = 0; jeter(ombre); let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; mo.hop = 0; return true; } mo.penche = 0.45 * Math.max(0, 1 - r / 0.5); mo.hop = -0.35 * Math.sin(Math.min(1, r / 0.5) * Math.PI); return r >= 0.5; }); return true; } });
+}
 function capBond(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.bondit) { /* le Bworker vise ou tu es : un cercle rouge au sol, il saute et ecrase tout dedans en retombant */
@@ -833,7 +872,7 @@ function capBond(mo, ctx) {
       const lourd = mo.d.boss && !an; /* (31/10/2026, un boss sans squelette, le Bworker : un vrai bond, elan, envol haut, ombre, ecrasement) */
       let t = 0, ombre = null; if (lourd) { ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(cx, solA(cx, cz) + 0.09, cz); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre); }
       const vol = lourd ? 0.75 : 0.6, Hl = lourd ? 5.5 : H;
-      effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; mo.penche = 0; if (ombre) jeter(ombre); return true; }
+      if (lourd && mo.d.bondVol) volDragon(mo, x0, z0, cx, cz, EB, R, ombre); else effets.push((dt2) => { t += dt2; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; mo.penche = 0; if (ombre) jeter(ombre); return true; }
         if (lourd && t < EB - vol) { const k = t / (EB - vol); mo.hop = -0.35 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 2); mo.penche = -0.15 * k; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); /* (il se tasse et se cambre : l'elan) */
           if (Math.random() < dt2 * 6) poussiere(mo.x, solA(mo.x, mo.z), mo.z, 3, 0.8, '#d8c6a0'); }
         if (t > EB - vol) { const k = Math.min(1, (t - (EB - vol)) / vol); if (lourd && !mo.envol) { mo.envol = true; poussiere(x0, solA(x0, z0), z0, 14, 1.4, '#d8c6a0'); mottes(x0, solA(x0, z0), z0, 6, 1); }
@@ -841,6 +880,7 @@ function capBond(mo, ctx) {
         if (ombre) { const o = Math.max(0, Math.min(1, t / EB)); ombre.scale.setScalar(Math.max(0.01, R * (0.2 + 0.7 * o))); ombre.material.opacity = 0.15 + 0.4 * o; }
         if (t >= EB) { mo.hop = 0; mo.envol = false; if (ombre) jeter(ombre); if (lourd) { let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.3 * Math.max(0, 1 - r / 0.4); mo.hop = -0.3 * Math.sin(Math.min(1, r / 0.4) * Math.PI); return r >= 0.4; }); } return true; } });
       zoneDanger({ mo, x: cx, z: cz, r: R, duree: EB, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
+        if (mo.d.bondVol) { const y = solA(cx, cz); secousse(0.42, 0.6); onde(cx, y, cz, R * 2.6, '#c9b28a', 0.7, 1); mottes(cx, y, cz, 16, 1.4); emettre(FX_VIF, 24, { x: cx, y: y + 0.3, z: cz, r: 0.6, dv: 6, haut: true, vie: [0.45, 0.8], taille: [0.2, 0.08], c: ['#6a4524', '#4a2f18', '#8e6640'], grav: 12, frein: 0.6 }); } /* (le Dragon Cochon : la terre tremble plus fort, la boue gicle) */
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
     }
   }
@@ -1461,6 +1501,7 @@ function majMonstre(mo, dt, s) {
         else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg, mo); effetsCoup(mo); } };
       if ((mo.d.marteau || mo.d.poings) && m.userData.anim && !bat) coupMarteau(mo); /* (Moon, et le Gorille roi avec ses poings : le coup tombe a l'impact, 22c-squelettes.js) */
       else if (m.userData.anim) attaqueSquelette(mo, mo.d.distance ? 'tir' : 'coup', frapper); /* (les Kannibouls et les Tortues : a l'instant de leur geste) */
+      else if (mo.d.coups && !bat) coupLourd(mo, portee, frapper); /* (le Dragon Cochon : ses trois coups, 01/11/2026) */
       else frapper();
     }
   } else { /* il picore : une recolte volee toutes les 5 s */
@@ -1486,18 +1527,20 @@ function majMonstre(mo, dt, s) {
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
+  if (mo.queueB && m.userData.queue) m.userData.queue.rotation.y += mo.queueB; /* (le coup de queue du Dragon Cochon, 01/11/2026) */
+  if (mo.ailesVite && m.userData.ailes) m.userData.ailes.forEach((a, i) => { if (a) a.rotation.z = (i ? -1 : 1) * (0.2 + mo.ailesVite * 0.6 * Math.sin(s * 34)); }); /* (ses petites ailes battent a toute vitesse pour le porter, son envol) */
   if (m.userData.anim) majSquelette(mo, v, dt); /* (les monstres a squelette : marche, repos, coup de marteau) */
   const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   const allure = mo.d.fluide ? Math.min(1, v / Math.max(0.1, vitesseMonstre(mo.d))) : 1; /* (fluide : son balancement suit sa vitesse, il s'eteint quand elle s'arrete) */
   const saut = m.userData.anim || mo.d.battements ? 0 : mo.d.fluide ? (1 - Math.cos(mo.pas * 2)) * 0.03 * allure : mo.d.grignote ? Math.abs(Math.sin(mo.pas)) * (v > 3 ? 0.2 : 0.28) * Math.min(1, v) : mo.d.roule ? Math.abs(Math.sin(mo.pas * 0.8)) * 0.12 * Math.min(1, v) : (1 - Math.cos(mo.pas * 2)) * 0.03;
-  let elan = 0; if (mo.frappe > 0) { mo.frappe -= dt; if (!m.userData.anim) elan = Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; } /* (un monstre a squelette a son propre geste) */
+  let elan = mo.elanB || 0; if (mo.frappe > 0) { mo.frappe -= dt; if (!m.userData.anim) elan += Math.sin((1 - Math.max(0, mo.frappe) / 0.25) * Math.PI) * 0.35; } /* (un monstre a squelette a son propre geste) */
   const pique = mo.picore > 0 ? Math.abs(Math.sin(s * 9)) : 0;
   const bat = mo.d.battements ? (mo.batPh = (mo.batPh || mo.id) + dt * mo.d.battements * Math.PI * 2 * (v > 0.3 ? 1.15 : 1)) : 0; /* (Crocabulia, 31/10/2026 : la phase de ses ailes) */
   if (mo.d.battements) { const A = mo.ailes || (mo.ailes = [m.getObjectByName('aile_pivot_G'), m.getObjectByName('aile_pivot_D')]), th = 0.12 + 0.55 * Math.sin(bat), av = 0.12 * Math.cos(bat);
     if (A[0]) A[0].rotation.set(0, -av, -th); if (A[1]) A[1].rotation.set(0, av, th); m.rotation.order = 'YXZ'; } /* (ailes levees quand sin > 0 ; en descendant, elles balaient vers l'avant) */
   const vol = mo.d.vol ? mo.d.vol + (mo.d.battements ? -0.16 * Math.sin(bat) : Math.sin(s * 2.4 + mo.id) * 0.14) : 0; /* (avec des ailes qui battent, le corps monte quand elles s'abaissent) */ if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
-  m.rotation.y = mo.ry; m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
+  m.rotation.y = mo.ry + (mo.tourne || 0); m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
     if (!mo.flamme) { mo.flamme = new T.Mesh(new T.ConeGeometry(0.18, 0.5, 6), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.85 })); m.add(mo.flamme); }
