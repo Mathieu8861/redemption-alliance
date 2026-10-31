@@ -784,6 +784,17 @@ function capBond(mo, ctx) {
    pour sa longueur), en cases ; lanceLoin : { parCase, max } dans la fiche, rien sinon */
 const lanceDeLoin = (mo, dist) => { const L = mo.d.lanceLoin; return L ? Math.min(L.max, 1 + L.parCase * Math.max(0, dist / S - 2)) : 1; };
 /* la lance d'os du Chafer Cuirasse (31/10/2026) : un long os, une pointe d'os taillee, une bande de cuir, un noeud d'os au bout ; elle pointe vers +z */
+/* le bras qui lance (31/10/2026, « on la voit etre lancee par son bras ? », Mathieu) : son bras libre tourne a l'epaule (pivot bras_lance) ; sa main est le
+   point de ce bras le plus loin de l'epaule, lu une fois sur le modele */
+const ease = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+function mainDuBras(bras) {
+  if (bras.userData.main) return bras.userData.main; bras.updateMatrixWorld(true); const inv = new T.Matrix4().copy(bras.matrixWorld).invert(), v = new T.Vector3(); let best = new T.Vector3(0, -1, 0), d = 0;
+  bras.traverse((o) => { if (!o.isMesh || !o.geometry.attributes.position) return; const P = o.geometry.attributes.position, M = new T.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+    for (let i = 0; i < P.count; i += 3) { v.fromBufferAttribute(P, i).applyMatrix4(M); if (v.length() > d) { d = v.length(); best = v.clone(); } } });
+  return (bras.userData.main = best.multiplyScalar(0.85)); /* (la paume, un peu avant le bout des doigts) */
+}
+/* le bras arme (angle a), le lance (vers -0,6), puis revient au repos ; theta autour de x (le bras part en arriere et en haut), un peu ecarte de la tete */
+const poseBras = (bras, th) => bras.rotation.set(th, 0, -0.7 * Math.min(1, Math.max(0, th) / 2.7)); /* (ecarte de 0,6 une fois arme : sa main a cote de la tete, pas cachee derriere le casque) */
 const lanceOs = () => { const g = new T.Group(), L = 3.0, piece = (geo, c, z) => { const m = new T.Mesh(geo, mat(c)); m.rotation.x = Math.PI / 2; m.position.z = z; g.add(m); return m; };
   piece(new T.CylinderGeometry(0.11, 0.13, L, 8), '#efe6cf', 0); piece(new T.ConeGeometry(0.24, 0.75, 6), '#f6efdc', L / 2 + 0.35); piece(new T.CylinderGeometry(0.15, 0.15, 0.36, 8), '#7a4a28', -0.2);
   const n = new T.Mesh(new T.SphereGeometry(0.2, 8, 6), mat('#e2d8bf')); n.position.z = -L / 2; g.add(n); return g; };
@@ -806,13 +817,16 @@ function capLance(mo, ctx) {
       const c0 = combat, estOs = !mo.d.projectile, vers = new T.Vector3(f.x, solA(f.x, f.z) + 0.25, f.z), haut0 = mo.m.position.y + mo.haut * (estOs ? 0.95 : 0.6);
       const dist = Math.hypot(f.x - mo.x, f.z - mo.z), vol = Math.max(0.3, Math.min(0.6, dist / 18)), H = 0.6 + dist * 0.05, dx = Math.sin(a), dz = Math.cos(a), cote = 0.35 * mo.d.ombre;
       const os = mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.5, 0), mat('#d9d4c4')) /* (le rocher de lune du Golem lunaire, 28/10/2026) */ : mo.d.projectile === 'sagaie' ? sagaieVolante() : lanceOs();
-      os.visible = estOs; scene.add(os); let t = 0, de = null; const avant = new T.Vector3();
+      os.visible = estOs; scene.add(os); let t = 0, de = null; const avant = new T.Vector3(), bras = estOs && mo.m.getObjectByName('bras_lance');
       effets.push((dt2) => { t += dt2;
         if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(os); return true; }
-        if (!de) { /* l'annonce : la lance d'os au-dessus de son epaule, pointee vers toi, qu'il tire en arriere */
+        if (!de) { /* l'annonce : la lance d'os au-dessus de son epaule, pointee vers toi, qu'il tire en arriere ; s'il a un bras qui lance, elle est dans sa main et le bras l'arme */
+          if (t < 1.0 - vol && bras) { const k = Math.min(1, t / (1.0 - vol)); poseBras(bras, 2.7 * ease(k * 1.4)); bras.updateMatrixWorld(true); const h = bras.localToWorld(mainDuBras(bras).clone()), u = new T.Vector3(vers.x - h.x, 0, vers.z - h.z).normalize();
+            os.position.copy(h).addScaledVector(u, 0.35); os.position.y += 0.15; os.lookAt(vers.x, vers.y + 2.5 * (1 - k * 0.6), vers.z); if (Math.random() < dt2 * 12) lueur(os.localToWorld(new T.Vector3(0, 0, 1.5)), '#fff1c0', 1.4, 0.3); return false; }
           if (t < 1.0 - vol) { if (estOs) { const k = Math.min(1, t / (1.0 - vol)), r = 0.2 + 0.55 * k * k; os.position.set(mo.x + dz * cote - dx * r, haut0 + 0.25 * k, mo.z - dx * cote - dz * r); os.lookAt(vers.x, vers.y + 1.5 * (1 - k), vers.z);
               if (Math.random() < dt2 * 12) lueur(os.localToWorld(new T.Vector3(0, 0, 1.3)), '#fff1c0', 1.4, 0.3); } return false; }
-          de = estOs ? os.position.clone() : (mainSquelette(mo) || new T.Vector3(mo.x + dx * 0.6, haut0, mo.z + dz * 0.6)); os.visible = true; os.position.copy(de); mo.frappe = 0.4; if (estOs) secousse(0.06, 0.15); }
+          de = estOs ? os.position.clone() : (mainSquelette(mo) || new T.Vector3(mo.x + dx * 0.6, haut0, mo.z + dz * 0.6)); os.visible = true; os.position.copy(de); mo.frappe = 0.4; if (estOs) secousse(0.06, 0.15);
+          if (bras) { let s3 = 0; effets.push((d4) => { s3 += d4; if (!bras.parent) return true; poseBras(bras, s3 < 0.16 ? 2.7 - 3.7 * ease(s3 / 0.16) : -1.0 * (1 - ease((s3 - 0.35) / 0.45))); return s3 > 0.8; }); } } /* (le grand mouvement vers l'avant, puis le bras retombe) */
         const k = Math.min(1, (t - (1.0 - vol)) / vol); avant.copy(os.position); os.position.lerpVectors(de, vers, k); os.position.y += Math.sin(k * Math.PI) * H;
         if (mo.d.projectile === 'rocher') { os.rotation.x += dt2 * 9; os.rotation.y += dt2 * 6; } else if (os.position.distanceToSquared(avant) > 1e-6) os.lookAt(os.position.clone().multiplyScalar(2).sub(avant));
         traineeFleche(os.position); if (estOs && Math.random() < 0.6) emettre(FX_FUM, 1, { x: os.position.x, y: os.position.y, z: os.position.z, vie: [0.25, 0.4], taille: [0.2, 0.45], c: ['#efe6cf', '#d8cfb8'], a: 0.5 });
