@@ -765,7 +765,7 @@ function capBond(mo, ctx) {
     const vise = !!(mo.d.marteau || mo.d.poings); /* (Moon et le Gorille roi, 31/10/2026) */
     if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < 11) { /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
       if (vise && m.userData.anim) { mo.bonditT = 0; bondMarteau(mo, pp.x, pp.z); return; } /* (Moon, le Gorille : 22c-squelettes.js) */
-      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.marteau ? 2.8 : 2.3; mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = ESQUIVE.bond + 0.3;
+      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = ESQUIVE.bond + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
       const an = m.userData.anim, H = an ? 1.2 : 2.8; /* (un monstre a squelette : son geste de saut, recale pour retomber a la fin du cercle ; le saut du geste porte deja une partie de la hauteur, 27/10/2026) */
       const fb = gesteDe(mo, 'bondit', 'bond');
       if (an && an.F[fb]) { const nom = piocher(an, fb), D = an.A[nom].getClip().duration, imp = ((m.userData.impacts || {})[nom] || [])[0], ts = Math.max(0.6, (imp ? imp.t : D * 0.6) / ESQUIVE.bond), a = jouerAnim(an, nom, 0.1); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, ESQUIVE.bond + 0.5) }; }
@@ -970,8 +970,8 @@ function capBoue(mo, ctx) { /* le Bain de boue du Dragon Cochon (20/10/2026) : i
 function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2026) : un arc rouge devant elle (ESQUIVE.brassard pour en sortir), puis le coup, qui repousse */
   const { dt, pp, sortPret } = ctx;
   if (!mo.d.brassard || combat.deroute != null) return;
-  if (!mo.viseB && Math.hypot(pp.x - mo.x, pp.z - mo.z) < 6 && sortPret('brassardT', mo.d.brassard)) {
-    mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = 4.2, OUV = 1.3, c0 = combat; mo.ry = a; mo.bloqueT = ESQUIVE.brassard + 0.4;
+  if (!mo.viseB && Math.hypot(pp.x - mo.x, pp.z - mo.z) < Math.max(6, (mo.d.brassardR || 4.2) + 1) && sortPret('brassardT', mo.d.brassard)) {
+    mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = mo.d.brassardR || 4.2, OUV = 1.3, /* (brassardR : la Gorgouille, 5,2 depuis le 31/10/2026) */ c0 = combat; mo.ry = a; mo.bloqueT = ESQUIVE.brassard + 0.4;
     const c = new T.Mesh(new T.CircleGeometry(R, 24, Math.PI / 2 - OUV / 2, OUV), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide }));
     c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, mo.m.position.y + 0.07, mo.z); c.renderOrder = 2; scene.add(c);
     mo.viseB = { a, t: 0, c, R, OUV, x: mo.x, z: mo.z }; gesteSort(mo, gesteDe(mo, 'brassard', 'coup'), ESQUIVE.brassard); /* (un monstre a squelette arme son coup pendant que l'arc s'affiche, 28/10/2026) */
