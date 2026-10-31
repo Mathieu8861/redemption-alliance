@@ -9,7 +9,7 @@
 /* Le soir du 25/10 : les Kannibouls et les Tortues, rattaches a leur squelette Mixamo (blender/lier-squelette.py : masques, cheveux et carapace
    rigides) puis assembles avec leurs mouvements et leur arme (blender/monstre-anime.py). Leurs coups et leurs tirs partent a l'instant ou une main ou
    un pied va le plus vite, lu sur chaque animation (attaqueSquelette) ; leurs sorts jouent un geste (gesteSort). */
-const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 3.4], ['golem-lune', 3.4], ['tortue-corail', 3.0]]
+const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 4.6], ['golem-lune', 3.4], ['tortue-corail', 3.0]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
 /* (28/10/2026) le Lemurien tiki, anime a la main dans Blender (blender/lemurien-anime.py, lemurien-export.py), pas par Mixamo (« c'est des creatures,
    Mixamo c'est plus pour des humanoides », Mathieu) : son squelette n'a pas de hanches Mixamo, la vitesse naturelle de sa marche et de sa course
@@ -42,6 +42,17 @@ function preparerSquelette(sc) {
 }
 const trouverCaisse = (g) => { let c = null; g.traverse((o) => { if (!c && o.isMesh && /^caisse/.test(o.name)) c = o; }); return c; };
 const familleDe = (nom) => nom.replace(/_\d+$/, '');
+/* (31/10/2026) le Gorille roi vise comme Moon, avec ses poings au lieu du marteau (« refais son pack d'animation, dans le meme style que le Moon »,
+   Mathieu) : ses coups se calent sur le perso, ses zones a sa couleur, le moulinet, le bond qui retombe poings au sol */
+const POINGS = new Set(['gorille-roi']);
+/* ce qui frappe : la caisse du marteau de Moon, ou les poings du Gorille (le plus bas des deux, ou entre les deux quand ils tombent ensemble) ; une
+   fonction qui rend son bas (y) et sa position (p) dans la pose du moment */
+function frappeur(g, poings) {
+  const ca = trouverCaisse(g); if (ca) { const b = new T.Box3(); return () => { b.setFromObject(ca); return { y: b.min.y, p: b.getCenter(new T.Vector3()) }; }; }
+  const D = poings && g.getObjectByName('mixamorigRightHand'), G = poings && g.getObjectByName('mixamorigLeftHand'); if (!D || !G) return null;
+  return () => { const a = D.getWorldPosition(new T.Vector3()), b = G.getWorldPosition(new T.Vector3()), p = Math.abs(a.y - b.y) < 0.35 ? a.add(b).multiplyScalar(0.5) : a.y < b.y ? a : b; return { y: p.y, p }; };
+}
+const armeDe = (d) => d.poings ? 'ses poings' : 'son marteau';
 /* sur place : le jeu deplace le monstre lui-meme ; la vitesse naturelle de la marche et de la course est notee avant (pour regler leur cadence).
    La piste des hanches est dans le repere du squelette, tourne d'un quart de tour : la verticale du jeu y est un autre axe. On garde la hauteur
    des hanches (elles montent et descendent, s'accroupissent, tombent a la mort) et on retire seulement le deplacement a plat. (26/10/2026 : on
@@ -67,14 +78,14 @@ function surPlace(clip, hips) {
 /* un clone du squelette sans recopier ses donnees (27/10/2026, « j'ai des petits freeze », Mathieu) : Object3D.copy recopie userData en JSON, et celui
    du modele porte toutes ses animations ; chaque arrivee de monstre les serialisait, 11 a 57 ms d'un bloc */
 function cloneNu(M) { const ud = M.userData; M.userData = {}; try { return T.SkeletonUtils.clone(M); } finally { M.userData = ud; } }
-function instantsCoup(g, clip) {
-  const c = cloneNu(g), caisse = trouverCaisse(c); if (!caisse) return [{ t: clip.duration * 0.45, sol: true }];
-  const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const b = new T.Box3(), P = [], dt = 1 / 60;
-  for (let t = 0; t <= clip.duration; t += dt) { mx.setTime(t); c.updateMatrixWorld(true); b.setFromObject(caisse); P.push({ t, y: b.min.y, p: b.getCenter(new T.Vector3()) }); }
+function instantsCoup(g, clip, poings) {
+  const c = cloneNu(g), fr = frappeur(c, poings); if (!fr) return [{ t: clip.duration * 0.45, sol: true }];
+  const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const P = [], dt = 1 / 60, [fen, chute] = poings ? [0.5, 0.8] : [0.4, 1.3]; /* (un poing tombe de moins haut qu'un marteau : le bas du bras du Gorille, 1 en 0,5 s pour son poing abattu) */
+  for (let t = 0; t <= clip.duration; t += dt) { mx.setTime(t); c.updateMatrixWorld(true); const q = fr(); P.push({ t, y: q.y, p: q.p }); }
   const L = [];
   for (let i = 2; i < P.length - 2; i++) { const y = P[i].y; if (!(y < 1.1 && y <= P[i - 1].y && y <= P[i - 2].y && y < P[i + 1].y && y <= P[i + 2].y)) continue;
-    let haut = y; for (let j = i; j >= 0 && P[i].t - P[j].t <= 0.4; j--) haut = Math.max(haut, P[j].y); /* (un vrai coup : le marteau vient de tomber d'au moins 1,3 ; pas la pose de garde, marteau bas, du debut ou de la fin) */
-    if (haut - y > 1.3 && P[i].p.z > 0.6 && P[i].t > 0.15 && P[i].t < clip.duration - 0.2 && (!L.length || P[i].t - L[L.length - 1].t > 0.3)) L.push({ t: P[i].t, sol: y < 0.35, d: Math.hypot(P[i].p.x, P[i].p.z), x: P[i].p.x, z: P[i].p.z }); }
+    let haut = y; for (let j = i; j >= 0 && P[i].t - P[j].t <= fen; j--) haut = Math.max(haut, P[j].y); /* (un vrai coup : le marteau vient de tomber d'au moins 1,3 ; pas la pose de garde, marteau bas, du debut ou de la fin) */
+    if (haut - y > chute && P[i].p.z > 0.6 && P[i].t > 0.15 && P[i].t < clip.duration - 0.2 && (!L.length || P[i].t - L[L.length - 1].t > 0.3)) L.push({ t: P[i].t, sol: y < 0.35, d: Math.hypot(P[i].p.x, P[i].p.z), x: P[i].p.x, z: P[i].p.z, chute: haut - y }); }
   /* (P[i].p.z > 0.6 : devant lui ; le modele est a l'origine, tourne vers +z, l'avant du jeu. Un creux derriere lui, c'est l'elan, pas le coup) */
   if (!L.length) { let best = 0, k = 1; for (let i = 1; i < P.length; i++) { const v = P[i].p.distanceTo(P[i - 1].p); if (v > best) { best = v; k = i; } } L.push({ t: P[k].t, sol: false }); }
   return L;
@@ -86,10 +97,12 @@ function envol(g, clip) {
   return t0 == null ? null : [t0, t1];
 }
 /* le tourbillon : l'instant ou la caisse est la plus loin de lui, a mi-hauteur (le marteau tendu du moulinet), et ou elle est alors */
-function brasTendu(g, clip) {
-  const c = cloneNu(g), ca = trouverCaisse(c); if (!ca) return null; const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const b = new T.Box3(); let m = null;
-  for (let t = 0; t <= clip.duration; t += 1 / 60) { mx.setTime(t); c.updateMatrixWorld(true); const p = b.setFromObject(ca).getCenter(new T.Vector3()), d = Math.hypot(p.x, p.z);
-    if (p.y > 0.6 && p.y < 2.2 && (!m || d > m.d)) m = { t, d, x: p.x, z: p.z, y: p.y }; }
+function brasTendu(g, clip, poings) { /* (le Gorille : le poing le plus loin de lui, bras tendu au ras du sol, 31/10/2026) */
+  const c = cloneNu(g), ca = trouverCaisse(c), M = ca || !poings ? [] : ['mixamorigRightHand', 'mixamorigLeftHand'].map((n) => c.getObjectByName(n)).filter(Boolean); if (!ca && !M.length) return null;
+  const mx = new T.AnimationMixer(c); mx.clipAction(clip).play(); const b = new T.Box3(), bas = ca ? 0.6 : 0.3; let m = null;
+  for (let t = 0; t <= clip.duration; t += 1 / 60) { mx.setTime(t); c.updateMatrixWorld(true);
+    (ca ? [b.setFromObject(ca).getCenter(new T.Vector3())] : M.map((o) => o.getWorldPosition(new T.Vector3()))).forEach((p) => { const d = Math.hypot(p.x, p.z);
+      if (p.y > bas && p.y < 2.2 && (!m || d > m.d)) m = { t, d, x: p.x, z: p.z, y: p.y }; }); }
   return m;
 }
 function instantGeste(g, clip) {
@@ -117,13 +130,13 @@ async function chargerSquelette(nom, url, h) {
       const vit = {}, impacts = {}, trajets = {}; gl.animations.forEach((c) => { if (familleDe(c.name) === 'roulade') trajets[c.name] = trajet(c, hips); vit[c.name] = surPlace(c, hips); });
       if (ALLURES[nom]) gl.animations.forEach((c) => { const x = ALLURES[nom][familleDe(c.name)]; if (x) vit[c.name] = x; });
       gl.scene.userData = { squelette: true, hauteur: h, clips: gl.animations, vit, trajets };
-      const aCaisse = !!trouverCaisse(gl.scene);
-      gl.animations.forEach((c) => { const f = familleDe(c.name); if (aCaisse && (FAMILLES_COUP.includes(f) || f === 'bond')) impacts[c.name] = instantsCoup(gl.scene, c); else if (!aCaisse && FAMILLES_GESTE.includes(f)) impacts[c.name] = instantGeste(gl.scene, c); });
+      const poings = POINGS.has(nom), vise = !!trouverCaisse(gl.scene) || poings; /* (vise : Moon et son marteau, le Gorille et ses poings ; ses sorts aussi, au moment ou ses poings touchent le sol) */
+      gl.animations.forEach((c) => { const f = familleDe(c.name); if (vise && (FAMILLES_COUP.includes(f) || f === 'bond' || (poings && FAMILLES_GESTE.includes(f)))) impacts[c.name] = instantsCoup(gl.scene, c, poings); else if (!vise && FAMILLES_GESTE.includes(f)) impacts[c.name] = instantGeste(gl.scene, c); });
       gl.scene.userData.impacts = impacts;
-      if (aCaisse) { const vols = {}, bras = {}; gl.animations.forEach((c) => { const f = familleDe(c.name); if (f === 'bond') vols[c.name] = envol(gl.scene, c); if (f === 'tourbillon') bras[c.name] = brasTendu(gl.scene, c); });
-        gl.scene.userData.vols = vols; gl.scene.userData.bras = bras; } /* (le bond et le moulinet de Moon) */
+      if (vise) { const vols = {}, bras = {}; gl.animations.forEach((c) => { const f = familleDe(c.name); if (f === 'bond') vols[c.name] = envol(gl.scene, c); if (f === 'tourbillon') bras[c.name] = brasTendu(gl.scene, c, poings); });
+        gl.scene.userData.vols = vols; gl.scene.userData.bras = bras; } /* (le bond et le moulinet de Moon, et du Gorille) */
       /* sa portee : la ou tombent ses coups au sol, en moyenne (il ne frappe que si tu es dedans) */
-      const D = aCaisse ? [].concat(...Object.values(impacts)).filter((x) => x.sol && x.d).map((x) => x.d).sort((x, y) => x - y) : []; gl.scene.userData.portee = D.length ? D[Math.floor(D.length / 2)] : 0; /* (sans marteau : la portee de sa fiche) */
+      const D = vise ? [].concat(...Object.values(impacts)).filter((x) => x.sol && x.d).map((x) => x.d).sort((x, y) => x - y) : []; gl.scene.userData.portee = D.length ? D[Math.floor(D.length / 2)] : 0; /* (sans marteau : la portee de sa fiche) */
       MODELES[nom] = gl.scene; } catch (err) { console.error('squelette', nom, err); }
   }
 }
@@ -133,7 +146,7 @@ function clonerSquelette(nom) {
   M.userData.clips.forEach((c) => { const a = mixer.clipAction(c), f = familleDe(c.name); A[c.name] = a; (F[f] = F[f] || []).push(c.name);
     if (!FAMILLES_BOUCLE.has(f)) { a.setLoop(T.LoopOnce, 1); a.clampWhenFinished = true; } });
   const peau = []; g.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') { o.material = o.material.clone(); peau.push(o.material); } }); /* (sa propre matiere : l'eclat d'un coup ne touche que lui) */
-  g.userData.anim = { mixer, A, F, cour: null, fam: null, dernier: {}, repT: 0, caisse: trouverCaisse(g), peau, eclat: 0 };
+  g.userData.anim = { mixer, A, F, cour: null, fam: null, dernier: {}, repT: 0, caisse: trouverCaisse(g), frappe: frappeur(g, POINGS.has(nom)), peau, eclat: 0 };
   jouerAnim(g.userData.anim, piocher(g.userData.anim, 'repos'), 0); return g;
 }
 function piocher(an, fam) { const L = an.F[fam] || an.F.repos || []; if (!L.length) return null; let n = L[Math.floor(Math.random() * L.length)]; if (L.length > 1 && n === an.dernier[fam]) n = L[(L.indexOf(n) + 1) % L.length]; an.dernier[fam] = n; return n; }
@@ -207,8 +220,9 @@ function rouladeSquelette(mo, a) {
 function gesteSort(mo, fam, dans) { const an = mo.m && mo.m.userData.anim; if (!an || !an.F[fam] || mo.geste) return;
   if (!dans) { geste(mo, fam, false); return; }
   /* (28/10/2026, « des vraies attaques avec des animations », Mathieu) dans : le temps jusqu'a l'impact du sort (la fin de sa zone rouge) ; le geste
-     est accelere ou ralenti pour que son instant de frappe tombe la, l'elan remplit l'attente */
-  const nom = piocher(an, fam), imp = ((mo.m.userData.impacts || {})[nom] || [])[0], a = jouerAnim(an, nom, 0.12), D = a.getClip().duration, t0 = imp ? imp.t : D * 0.5;
+     est accelere ou ralenti pour que son instant de frappe tombe la, l'elan remplit l'attente. (31/10/2026) Le Gorille : l'instant ou ses poings tombent
+     de plus haut, pas celui ou il pose les mains pour prendre son elan */
+  const nom = piocher(an, fam), IL = (mo.m.userData.impacts || {})[nom] || [], imp = IL.length ? IL.reduce((m, x) => ((x.chute || 0) > (m.chute || 0) ? x : m)) : null, a = jouerAnim(an, nom, 0.12), D = a.getClip().duration, t0 = imp ? imp.t : D * 0.5;
   const ts = Math.max(0.5, Math.min(2.5, t0 / dans)); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, dans + 0.6), ts }; }
 /* d'ou part un tir : la main qui tient l'arme (l'arc dans la main gauche) */
 function mainSquelette(mo) { const o = mo.m && mo.m.getObjectByName(mo.d.tirGauche ? 'mixamorigLeftHand' : 'mixamorigRightHand'); return o ? o.getWorldPosition(new T.Vector3()) : null; }
@@ -249,12 +263,12 @@ function coupMarteau(mo) {
     const touche = (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && dansDanger(dz, p2.x, p2.z)) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); } };
     zoneDanger(Object.assign({ mo, duree: Math.max(0.3, imp.t), effet: touche }, z));
   });
-  if (!c0.marteauVu) { c0.marteauVu = true; toast(leNom(mo.d) + ' abat son marteau sur toi : sors du cercle avant qu\'il tombe !', 'alerte'); }
+  if (!c0.marteauVu) { c0.marteauVu = true; toast(leNom(mo.d) + ' abat ' + armeDe(mo.d) + ' sur toi : sors du cercle avant ' + (mo.d.poings ? 'qu\'ils tombent' : 'qu\'il tombe') + ' !', 'alerte'); }
   let t = 0, k = 0;
   effets.push((dt) => { t += dt;
     while (k < L.length && t >= L[k].t) { const imp = L[k++];
-      if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !an.caisse) return true;
-      const p = new T.Box3().setFromObject(an.caisse).getCenter(new T.Vector3()), y = mo.m.position.y;
+      if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !an.frappe) return true;
+      const p = an.frappe().p, y = mo.m.position.y;
       if (imp.sol) impactMarteau(p.x, y, p.z, mo.d.couleurSorts);
       else { secousse(0.16, 0.3); balayage(mo, x1, y, z1, ry, 3.4 * e); poussiere(p.x, y, p.z, 12, 1.4, '#d8c6a0'); } }
     return t >= d || k >= L.length && t > L[L.length - 1].t + 0.1; });
@@ -314,7 +328,7 @@ function bondMarteau(mo, cx, cz) {
   const x0 = mo.x, z0 = mo.z, lx = imp.x * e, lz = imp.z * e, ry = Math.atan2(cx - x0, cz - z0) - Math.atan2(lx, lz), q = versMonde(0, 0, ry, lx, lz);
   const f = pointValide(x0, z0, cx - q.x, cz - q.z), c = { x: f.x + q.x, z: f.z + q.z }, R = 2.8; /* (c : la ou le marteau tombe vraiment, si un mur l'a arrete avant) */
   recaler(mo, x0, z0, ry, 0.2);
-  if (!c0.bonditVu) { c0.bonditVu = true; toast(leNom(mo.d) + ' va bondir et abattre son marteau sur toi : sors du cercle !', 'alerte'); }
+  if (!c0.bonditVu) { c0.bonditVu = true; toast(leNom(mo.d) + ' va bondir et abattre ' + armeDe(mo.d) + ' sur toi : sors du cercle !', 'alerte'); }
   const ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(c.x, solA(c.x, c.z) + 0.09, c.z); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre);
   const t0 = vol[0] / ts, t1 = Math.max(t0 + 0.2, vol[1] / ts); let t = 0;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { jeter(ombre); return true; }
