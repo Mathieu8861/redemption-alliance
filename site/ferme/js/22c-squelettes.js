@@ -347,6 +347,8 @@ function bondMarteau(mo, cx, cz, o) { /* (o : le bond du Marteau de Moon, son on
    bulle a sa couleur le protege (plus de filet vert vers ses Gorilles : « oublie le fil vert qui le relie », Mathieu). Quand le dernier tombe, il se releve (le meme clip a
    l'envers) et entre en rage (capRage l'attend, finFaible) */
 const FAIBLE = { tombe: 0.55, a: 0.55, b: 0.8, souffle: 1.7, releve: 1.3 }; /* (instants du clip : a genoux a 0,55 s, il respire entre 0,55 et 0,8 s ; il se releve a 1,3 fois la vitesse) */
+/* (01/11/2026, « ca lag un peu quand il y a les 4 gorilles sur le terrain », Mathieu) : leur modele allege (7 000 triangles au lieu de 20 000, monstre-anime.py),
+   et pas d'ombre calculee pour eux (leur ombre ronde au sol reste) */
 function entrerFaible(mo) {
   const A = mo.d.affaibli, an = mo.m.userData.anim, c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
   mo.faible = { t: 0, regen: 0, phase: 'tombe' }; mo.bloqueT = 1e9; mo.cd = 1e9; mo.vise = null; mo.geste = null;
@@ -355,7 +357,7 @@ function entrerFaible(mo) {
   toast(leNom(mo.d) + ' tombe à genoux, invulnérable : ' + (mo.d.fem ? 'elle' : 'il') + ' appelle ' + A.n + ' ' + A.noms + ' qui le soignent. Abats-les tous !', 'alerte');
   const places = []; for (let k = 0; k < A.n; k++) { const ang = mo.ry + (k + 0.5) / A.n * Math.PI * 2, p = pointValide(mo.x, mo.z, mo.x + Math.sin(ang) * 4, mo.z + Math.cos(ang) * 4); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, C); }
   let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.8) return false;
-    places.forEach((p) => { pouf(p.x, solA(p.x, p.z), p.z, 2.4, C[1]); apparaitre(A.invoque, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.gardeMoon = mo.id; o.pv = o.pvMax = A.pv; } }); c0.total++; });
+    places.forEach((p) => { pouf(p.x, solA(p.x, p.z), p.z, 2.4, C[1]); apparaitre(A.invoque, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.gardeMoon = mo.id; o.pv = o.pvMax = A.pv; o.m.traverse((x) => { if (x.isSkinnedMesh) x.castShadow = false; }); } }); c0.total++; });
     return true; });
   /* la bulle : il est invulnerable tant qu'elle est la */
   const g = new T.Group(), plein = new T.Mesh(GEO_BOUCLIER, fxMat(C[1], 0.16)), fil = new T.Mesh(GEO_BOUCLIER, new T.MeshBasicMaterial({ color: C[1], wireframe: true, transparent: true, opacity: 0.6, depthWrite: false })); g.add(plein, fil); scene.add(g);
