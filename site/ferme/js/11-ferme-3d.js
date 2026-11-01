@@ -196,9 +196,10 @@ const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
 const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
 const texteDeco = (k) => { const D = DECOS[k] || { nom: 'Décoration', pr: 'la' }; return D.nom + ' : touche une case d\'herbe libre pour ' + D.pr + ' déplacer, Tourner pour ' + D.pr + ' pivoter, Ranger pour ' + D.pr + ' mettre dans tes décorations.'; };
 let decosMesh = [], decosCharge = null; const pavesMesh = new Map();
-/* (01/11/2026, « il faudrait que ce soit a la meme hauteur que l'herbe », Mathieu) les paves sont enfonces : le dessus des joints a 2 cm et celui des paves a 3 cm
-   au-dessus de l'herbe (blender/deco.py) */
-const yPave = (P) => { if (P.userData.yPave == null) P.userData.yPave = 0.032 - new T.Box3().setFromObject(P).getSize(new T.Vector3()).y; return P.userData.yPave; };
+/* (01/11/2026, « il faudrait que ce soit a la meme hauteur que l'herbe », puis « rends les dalles plus detaillees, comme les batiments », Mathieu) : le lit de
+   joints a 2,6 cm au-dessus de l'herbe, les paves bombes 2 a 3 cm plus haut. Dans blender/deco.py le lit va de -0,015 a 0,015 et les paves de -0,015 a
+   0,035 (plus le relief, des deux cotes) : le milieu du modele est a 0,01, le dessus du lit 0,005 au-dessus */
+const yPave = (P) => { if (P.userData.yPave == null) P.userData.yPave = 0.021 - new T.Box3().setFromObject(P).getSize(new T.Vector3()).y / 2; return P.userData.yPave; };
 function assurerDecos() {
   if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
   decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
