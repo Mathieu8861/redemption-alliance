@@ -14,6 +14,7 @@ const ACTIONS = {
     if (mode === 'poserDeco') { ACTIONS.poserDeco(p); return; }
     if (mode === 'poserTour') { if (p.type !== 'libre') { toast('Il faut une case d\'herbe libre.'); return; } ACTIONS.construireTour(p.id); return; }
     if (mode === 'choisir') {
+      { const kc = pointClic && clotureProche(pointClic.x, pointClic.z, 0.35); if (kc) { rangerCloture(kc); return; } } /* (toucher une cloture en amenageant la range, 01/11/2026) */
       if (parcelleAjoutee(p)) ouvrirParcelle(p);
       else if (!selectionner(p)) toast('Touche une parcelle, un bâtiment, une tour, une décoration ou l\'enclos.');
       return;
@@ -378,8 +379,8 @@ const ACTIONS = {
   poserDeco(p) { /* depuis « Mes décorations » : sur une case d'herbe libre, puis elle reste choisie pour l'ajuster */
     const k = aPoser; if (!DECOS[k]) return;
     if (DECOS[k].bord) { /* une cloture : le bord le plus proche du point touche ; retouche un morceau pose, il revient dans tes decorations (01/11/2026) */
-      const pt = pointClic || posCase(p), cle = bordProche(p, pt.x, pt.z); S_.clotures = S_.clotures || {}; S_.decos = S_.decos || {};
-      if (S_.clotures[cle]) { delete S_.clotures[cle]; S_.decos[k] = nbDecos(k) + 1; }
+      S_.clotures = S_.clotures || {}; S_.decos = S_.decos || {}; const pt = pointClic || posCase(p), e = bordDuPoint(pt.x, pt.z), cle = S_.clotures[e] ? e : (clotureProche(pt.x, pt.z, 0.25) || e); /* (le bord sous le doigt d'abord : pres d'un coin, la cloture du champ voisin passait avant) */
+      if (S_.clotures[cle]) { rangerCloture(cle); majBandeau(); return; }
       else { if (!nbDecos(k)) { toast('Plus de petites clôtures en réserve : achète-en à l\'HDV, ou retouche un morceau posé pour le ranger.'); return; } S_.clotures[cle] = 1; S_.decos[k]--; }
       son('planter'); construireClotures(); majBandeau(); sauver(); return;
     }

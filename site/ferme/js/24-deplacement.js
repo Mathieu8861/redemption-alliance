@@ -53,7 +53,8 @@ function trajetPerso(depart, cible) {
   return trajetCoupe(depart, cible, but, bloc);
 }
 /* le point exact touche dans la case (un clic qui deplace seulement) : il y va, au lieu du centre de la case. Pose par le clic, lu par allerPuis */
-let pointVise = null, pointClic = null; /* (pointClic : le point du sol sous un clic d'amenagement, pour le bord ou poser une cloture) */
+let pointVise = null, pointClic = null; /* (pointClic : le point touche en amenageant, a la hauteur des lisses d'une cloture (0,3), pour trouver la cloture ou le bord vise) */
+const PLAN_LISSES = new T.Plane(new T.Vector3(0, 1, 0), -0.3), pointLisses = () => ray.ray.intersectPlane(PLAN_LISSES, new T.Vector3());
 function pointDansCase(c, p) { const q = posCase(c), m = S / 2 - 0.35; return { x: Math.max(q.x - m, Math.min(q.x + m, p.x)), z: Math.max(q.z - m, Math.min(q.z + m, p.z)) }; }
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
@@ -340,11 +341,11 @@ canvas.addEventListener('pointerup', (e) => {
     if (bouftou !== null && mode !== 'enclos' && mode !== 'enclosDeplacer') { if (action) toucherBouftou(bouftou); else allerVers(S_.cases.find((c) => c.type === 'enclos')); return; }
     if (terrain !== null) { ACTIONS.acheterTerrain(terrain); return; }
     if (cellule && action && !mode) { const ce = S_.cases.find((c) => c.id === cellule); if (ce && ce.type === 'enclos') { const k = bouftouEcran(e); if (k !== null) { toucherBouftou(k); return; } } } /* un Bouftou contre la cloture : c'est lui qu'on vise, pas l'enclos */
-    if (cellule) { if (action) { pointClic = mode ? pointSol(e) : null; ACTIONS.toucherCase(cellule); pointClic = null; } else { pointVise = { c: cellule, x: h.point.x, z: h.point.z }; allerVers(cellule); pointVise = null; } sauver(); return; }
+    if (cellule) { if (action) { pointClic = mode ? pointLisses() : null; ACTIONS.toucherCase(cellule); pointClic = null; } else { pointVise = { c: cellule, x: h.point.x, z: h.point.z }; allerVers(cellule); pointVise = null; } sauver(); return; }
     if (h.object.material && h.object.material.transparent) continue;
     /* un objet de decor (grange, HDV...) : on cherche la case sous lui */
     const sous = S_.cases.find((p) => { const q = posCase(p); return Math.abs(q.x - h.point.x) < S / 2 && Math.abs(q.z - h.point.z) < S / 2; });
-    if (sous) { if (action) { pointClic = mode ? pointSol(e) : null; ACTIONS.toucherCase(sous.id); pointClic = null; } else { pointVise = { c: sous.id, x: h.point.x, z: h.point.z }; allerVers(sous); pointVise = null; } sauver(); return; }
+    if (sous) { if (action) { pointClic = mode ? pointLisses() : null; ACTIONS.toucherCase(sous.id); pointClic = null; } else { pointVise = { c: sous.id, x: h.point.x, z: h.point.z }; allerVers(sous); pointVise = null; } sauver(); return; }
     return;
   }
 });

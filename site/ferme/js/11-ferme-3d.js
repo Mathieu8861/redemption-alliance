@@ -261,7 +261,12 @@ function animerLanternes(s) {
    (i, j + 1). Un poteau a chaque coin touche, un seul meme quand plusieurs morceaux s'y rejoignent. Elles ne bloquent personne et ne prennent aucune case :
    un champ borde de clotures reste un champ */
 let cloturesMesh = [];
-function bordProche(p, x, z) { const q = posCase(p), dx = x - q.x, dz = z - q.z; return Math.abs(dx) > Math.abs(dz) ? 'x' + (dx > 0 ? p.i : p.i - 1) + '_' + p.j : 'z' + p.i + '_' + (dz > 0 ? p.j : p.j - 1); }
+/* (01/11/2026, « peu importe ce que je fais, j'arrive pas a la retirer », Mathieu, avec une capture) : le bord se calculait depuis la case touchee en premier,
+   souvent le champ voisin (ses epis arretent le rayon), et retoucher une cloture en posait une autre sur le bord du champ. Maintenant tout part du point
+   touche, a la hauteur des lisses (pointClic) : la cloture posee la plus proche si on est dessus, sinon le bord le plus proche de ce point */
+function bordDuPoint(x, z) { const i = Math.round(x / S + (COLS - 1) / 2), j = Math.round(z / S + (ROWS - 1) / 2), dx = x - cx(i), dz = z - cz(j); return Math.abs(dx) > Math.abs(dz) ? 'x' + (dx > 0 ? i : i - 1) + '_' + j : 'z' + i + '_' + (dz > 0 ? j : j - 1); }
+function clotureProche(x, z, seuil) { let k0 = null, d0 = seuil; Object.keys(S_.clotures || {}).forEach((k) => { const b = bordPos(k), d = b.long === 'x' ? Math.hypot(Math.max(0, Math.abs(x - b.x) - S / 2), z - b.z) : Math.hypot(x - b.x, Math.max(0, Math.abs(z - b.z) - S / 2)); if (d < d0) { d0 = d; k0 = k; } }); return k0; }
+function rangerCloture(cle) { delete S_.clotures[cle]; S_.decos = S_.decos || {}; S_.decos.cloture = nbDecos('cloture') + 1; son('planter'); construireClotures(); toast('Petite clôture rangée dans tes décorations.', 'or'); sauver(); }
 function bordPos(cle) { const [i, j] = cle.slice(1).split('_').map(Number); return cle[0] === 'x' ? { x: cx(i) + S / 2, z: cz(j), long: 'z' } : { x: cx(i), z: cz(j) + S / 2, long: 'x' }; }
 function construireClotures() {
   cloturesMesh.forEach((m) => scene.remove(m)); cloturesMesh = []; const ks = Object.keys(S_.clotures || {}); if (!ks.length) return;
