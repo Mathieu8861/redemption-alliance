@@ -1929,13 +1929,20 @@ function mortLourde(mo, dt) {
     if (t > M.tc + 0.85 * k + 0.45) M.yFixe = m.position.y; } /* (a terre et immobile : on ne recalcule plus) */
   if (t >= M.tc && !M.choc) { M.choc = true; const R = Math.max(2, M.h * 0.65);
     secousse(0.3, 0.5); pouf(p.x, M.sol, p.z, 5.5, '#8e7a5e'); poussiere(p.x, M.sol, p.z, 26, R * 1.1, '#d8c6a0'); mottes(p.x, M.sol, p.z, 12, 1.8);
-    if (el) impactElement(el, p.x, p.z, R); else { poussiere(p.x, M.sol, p.z, 18, R * 1.4, '#cbb894'); mottes(p.x, M.sol, p.z, 8, 2.2); } /* (sans element : plus de poussiere, pas le cercle blanc) */
+    if (el === 'esprit') mortEsprit(p.x, M.sol, p.z, R); else if (el) impactElement(el, p.x, p.z, R); else { poussiere(p.x, M.sol, p.z, 18, R * 1.4, '#cbb894'); mottes(p.x, M.sol, p.z, 8, 2.2); } /* (sans element : plus de poussiere, pas le cercle blanc) */
     if (mo.ombreM) mo.ombreM.visible = false; }
   if (finCorps(mo, M)) return;
   if (t > M.tc && t < M.ts + 2 && (M.fx += dt) > 0.12) { M.fx = 0; const cx = (mo.x + p.x) / 2, cz = (mo.z + p.z) / 2;
     if (St) emettre(St.lum ? FX_LUM : FX_VIF, 2, { x: cx, y: M.sol + 0.4, z: cz, r: M.h * 0.3, v: [0, St.v * 0.7, 0], dv: 0.4, vie: [0.6, 1], taille: [St.t, 0.03], c: St.c, frein: 0.5, grav: St.grav || 0 }); /* (ce qui monte de lui, a son element) */ }
   if (M.ch === 'eclats' && t > M.ts && !M.eclats) { M.eclats = true; const cx = (mo.x + p.x) / 2, cz = (mo.z + p.z) / 2; /* (la pierre se fend, des eclats s'en detachent) */
     secousse(0.2, 0.35); eclatsRoche(cx, M.sol + 0.5, cz, 26, 1.5); poussiere(cx, M.sol, cz, 26, M.h * 0.7, '#b8ab98'); pouf(cx, M.sol, cz, 4, '#9a8e7e'); }
+}
+/* la mort d'un mort-vivant (« le Chafer, quand il meurt, pourquoi il y a la flaque ? », Mathieu, 01/11/2026 : l'impact esprit laissait une grande tache sombre
+   sous lui) : pas de tache, ses os s'eparpillent et son ame s'echappe de son corps en montant, des lueurs vertes */
+function mortEsprit(x, y, z, r) {
+  secousse(0.2, 0.35); poussiere(x, y, z, 16, r, '#d8cfb8'); eclatsRoche(x, y + 0.4, z, 18, 1.1, MATS_OS);
+  for (let k = 0; k < 3; k++) ameEnvol(x + (Math.random() - 0.5) * r * 0.6, y + 0.3, z + (Math.random() - 0.5) * r * 0.6, 0.9 + k * 0.15, 0.25 + k * 0.3);
+  emettre(FX_LUM, 26, { x, y: y + 0.3, z, r: r * 0.6, v: [0, 1.4, 0], dv: 0.6, vie: [0.7, 1.2], taille: [0.12, 0.02], c: ['#e8fff4', '#7ff0c8', '#2f9a78'], frein: 0.5 });
 }
 /* son corps ne se clique plus (un clic dessus deplace le perso), et il garde le numero de la vague ou il est tombe */
 function corpsInerte(mo) { mo.m.traverse((o) => { o.raycast = () => {}; }); mo.vagueMort = combat && combat.arene ? combat.arene.k : null;
