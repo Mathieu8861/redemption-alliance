@@ -609,4 +609,30 @@ function impactMagie(x, z, r, couleur) { /* un cercle de runes violet (#8f55e0 :
     mats.forEach((m, i) => { m.opacity = (i === mats.length - 1 ? 0.18 : 0.9) * f; }); });
   emettre(FX_LUM, 24, { x, y: y + 0.1, z, r: r * 0.8, plat: true, v: [0, 1.6, 0], dv: 0.4, vie: [0.6, 1.0], taille: [0.12, 0.02], c: ['#ffffff', C], frein: 0.6 });
 }
-function impactElement(el, x, z, r) { ({ vent: () => rafaleVent(x, 0, z, r), terre: () => impactTerre(x, z, r), feu: () => impactFeu(x, z, r), eau: () => impactEau(x, z, r), fumee: () => impactFumee(x, z, r), poison: () => impactPoison(x, z, r), feuille: () => impactFeuille(x, z, r), magie: () => impactMagie(x, z, r) }[el] || (() => {}))(); }
+/* LA LUNE (01/11/2026, par Discord, du Golem lunaire : « c'est quoi ses sorts ? Travaille-les », Mathieu) : le sol du cercle devient de la surface lunaire, de petits
+   crateres s'y creusent, une poussiere argentee roule, une onde de clair de lune, des etincelles qui montent doucement */
+const TEX_LUNE_SOL = texCanvas(256, (g, n) => { /* du regolithe gris clair aux bords irreguliers, seme de crateres (bord eclaire, creux dans l'ombre) */
+  const c = n / 2; g.save(); g.beginPath(); for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI * 2, rr = c * (0.9 + 0.06 * Math.sin(a * 5) + 0.03 * Math.sin(a * 11)); if (i) g.lineTo(c + Math.cos(a) * rr, c + Math.sin(a) * rr); else g.moveTo(c + Math.cos(a) * rr, c + Math.sin(a) * rr); }
+  g.closePath(); g.clip(); g.fillStyle = '#b9bec7'; g.fillRect(0, 0, n, n);
+  for (let k = 0; k < 900; k++) { g.fillStyle = fxAlea() < 0.5 ? 'rgba(150,156,168,0.5)' : 'rgba(215,220,228,0.5)'; g.fillRect(fxAlea() * n, fxAlea() * n, 2, 2); } /* (le grain) */
+  for (let k = 0; k < 16; k++) { const x = fxAlea() * n, y = fxAlea() * n, r = 5 + fxAlea() * 18; let d = g.createRadialGradient(x - r * 0.2, y - r * 0.2, r * 0.2, x, y, r);
+    d.addColorStop(0, 'rgba(120,126,138,0.9)'); d.addColorStop(0.75, 'rgba(140,146,158,0.6)'); d.addColorStop(0.9, 'rgba(232,236,242,0.95)'); d.addColorStop(1, 'rgba(232,236,242,0)'); g.fillStyle = d; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); } /* (les crateres) */
+  g.restore(); });
+const TEX_CROISSANT = texCanvas(128, (g, n) => { /* un croissant de lune qui luit */
+  const c = n / 2, d = g.createRadialGradient(c, c, n * 0.1, c, c, n * 0.5); d.addColorStop(0, 'rgba(200,235,255,0.45)'); d.addColorStop(1, 'rgba(200,235,255,0)'); g.fillStyle = d; g.fillRect(0, 0, n, n);
+  g.fillStyle = '#f2fbff'; g.beginPath(); g.arc(c, c, n * 0.3, 0, Math.PI * 2); g.fill(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(c + n * 0.13, c - n * 0.06, n * 0.27, 0, Math.PI * 2); g.fill(); });
+function craterLune(x, y, z, rr, duree) { /* un petit cratere : un bourrelet gris clair et un creux sombre, qui se creuse puis s'efface */
+  const g = new T.Group(), fond = new T.Mesh(GEO_DISQUE, fxMat('#7d828d', 0.9)), bord = new T.Mesh(new T.TorusGeometry(1, 0.22, 6, 20), mat('#c3c8d0'));
+  fond.rotation.x = bord.rotation.x = -Math.PI / 2; fond.position.y = 0.04; bord.scale.set(1, 1, 0.45); g.add(fond, bord); g.position.set(x, y, z); g.scale.setScalar(0.01);
+  fxVie(g, duree, (k) => { const tk = k * duree, o = Math.min(1, tk / 0.15), f = Math.max(0, (tk - (duree - 0.5)) / 0.5); g.scale.set(rr * o, rr * o * (1 - f) + 0.001, rr * o); fond.material.opacity = 0.9 * (1 - f); });
+}
+function impactLune(x, z, r) {
+  const y = solA(x, z); secousse(0.14, 0.28); flashLumiere(x, y + 0.8, z, '#cfeeff', 2.2, 7, 0.5);
+  const sol = sansClic(new T.Mesh(new T.CircleGeometry(r, 48), new T.MeshBasicMaterial({ map: TEX_LUNE_SOL, transparent: true, opacity: 0, depthWrite: false }))); sol.rotation.x = -Math.PI / 2; sol.rotation.z = fxAlea() * 6; sol.position.set(x, y + 0.04, z); sol.renderOrder = 2; scene.add(sol);
+  fxVie(sol, 2.4, (k) => { const tk = k * 2.4; sol.material.opacity = Math.min(1, tk / 0.15) * (k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3); sol.scale.setScalar(0.6 + 0.4 * Math.min(1, tk / 0.25)); });
+  for (let k = 0; k < 7; k++) { const a = k * 2.399 + fxAlea() * 0.4, d = Math.sqrt((k + 0.5) / 7) * r * 0.8, cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d, rr = r * fxEntre(0.12, 0.2); let tw = 0; effets.push((dt) => { tw += dt; if (tw < d / r * 0.25) return false; craterLune(cx, y + 0.02, cz, rr, 2.0); emettre(FX_VIF, 3, { x: cx, y: y + 0.1, z: cz, dv: 2, haut: true, vie: [0.4, 0.6], taille: [0.09, 0.04], c: ['#d8dde6', '#a8adb8'], grav: 10 }); return true; }); } /* (les crateres se creusent du centre vers le bord) */
+  onde(x, y, z, r * 1.2, '#bfe6ff', 0.55, 0.8, true);
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2, v = 1.3 + fxAlea(); emettre(FX_FUM, 1, { x: x + Math.cos(a) * r * 0.5, y: y + 0.2, z: z + Math.sin(a) * r * 0.5, v: [Math.cos(a) * v, 0.3, Math.sin(a) * v], vie: [1.0, 1.4], taille: [0.6, 1.4], c: ['#e2e6ee', '#b8bec8'], a: 0.55, frein: 1.3 }); } /* (la poussiere argentee roule) */
+  emettre(FX_LUM, 26, { x, y: y + 0.15, z, r: r * 0.8, plat: true, v: [0, 0.9, 0], dv: 0.3, vie: [0.8, 1.4], taille: [0.1, 0.02], c: ['#ffffff', '#bfe6ff'], frein: 0.5 }); /* (des etincelles de lune montent doucement) */
+}
+function impactElement(el, x, z, r) { ({ vent: () => rafaleVent(x, 0, z, r), terre: () => impactTerre(x, z, r), feu: () => impactFeu(x, z, r), eau: () => impactEau(x, z, r), fumee: () => impactFumee(x, z, r), poison: () => impactPoison(x, z, r), feuille: () => impactFeuille(x, z, r), magie: () => impactMagie(x, z, r), lune: () => impactLune(x, z, r) }[el] || (() => {}))(); }

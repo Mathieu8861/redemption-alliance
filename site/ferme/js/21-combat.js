@@ -1090,7 +1090,8 @@ function capLance(mo, ctx) {
          reste plantee au sol un instant. La sagaie de Jav et le rocher du Golem partent de leur main, au meme rythme */
       const c0 = combat, estOs = !mo.d.projectile, vers = new T.Vector3(f.x, solA(f.x, f.z) + 0.25, f.z), haut0 = mo.m.position.y + mo.haut * (estOs ? 0.95 : 0.6);
       const dist = Math.hypot(f.x - mo.x, f.z - mo.z), vol = Math.max(0.3, Math.min(0.6, dist / 18)), H = 0.6 + dist * 0.05, dx = Math.sin(a), dz = Math.cos(a), cote = 0.35 * mo.d.ombre;
-      const os = mo.d.projectile === 'rocher' ? new T.Mesh(new T.DodecahedronGeometry(0.5, 0), mat('#d9d4c4')) /* (le rocher de lune du Golem lunaire, 28/10/2026) */ : mo.d.projectile === 'sagaie' ? sagaieVolante() : lanceOs();
+      const os = mo.d.projectile === 'rocher' ? rocherLune() /* (le rocher de lune du Golem lunaire, 28/10/2026 ; veine de cristaux, 01/11/2026) */ : mo.d.projectile === 'sagaie' ? sagaieVolante() : lanceOs();
+      if (mo.d.projectile === 'rocher') { const q = new T.Vector3(mo.x + dx * mo.d.ombre * 0.4, solA(mo.x, mo.z), mo.z + dz * mo.d.ombre * 0.4); craterLune(q.x, q.y + 0.02, q.z, 0.6, 1.8); mottes(q.x, q.y, q.z, 5, 0.7); emettre(FX_FUM, 5, { x: q.x, y: q.y + 0.3, z: q.z, r: 0.3, v: [0, 0.8, 0], vie: [0.6, 0.9], taille: [0.5, 1.0], c: ['#e2e6ee', '#b8bec8'], a: 0.5 }); } /* (il l'arrache du sol : un trou, de la terre, 01/11/2026) */
       os.visible = estOs; scene.add(os); let t = 0, de = null; const avant = new T.Vector3(), bras = estOs && mo.m.getObjectByName('bras_lance');
       effets.push((dt2) => { t += dt2;
         if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(os); return true; }
@@ -1103,10 +1104,11 @@ function capLance(mo, ctx) {
           if (bras) { let s3 = 0; effets.push((d4) => { s3 += d4; if (!bras.parent) return true; poseBras(bras, s3 < 0.16 ? 2.7 - 3.7 * ease(s3 / 0.16) : -1.0 * (1 - ease((s3 - 0.35) / 0.45))); return s3 > 0.8; }); } } /* (le grand mouvement vers l'avant, puis le bras retombe) */
         const k = Math.min(1, (t - (1.0 - vol)) / vol); avant.copy(os.position); os.position.lerpVectors(de, vers, k); os.position.y += Math.sin(k * Math.PI) * H;
         if (mo.d.projectile === 'rocher') { os.rotation.x += dt2 * 9; os.rotation.y += dt2 * 6; } else if (os.position.distanceToSquared(avant) > 1e-6) os.lookAt(os.position.clone().multiplyScalar(2).sub(avant));
+        if (mo.d.projectile === 'rocher' && Math.random() < 0.8) emettre(FX_LUM, 2, { x: os.position.x, y: os.position.y, z: os.position.z, r: 0.3, vie: [0.3, 0.5], taille: [0.16, 0.02], c: ['#ffffff', '#a8ecff'] }); /* (une trainee bleutee) */
         traineeFleche(os.position); if (estOs && Math.random() < 0.6) emettre(FX_FUM, 1, { x: os.position.x, y: os.position.y, z: os.position.z, vie: [0.25, 0.4], taille: [0.2, 0.45], c: ['#efe6cf', '#d8cfb8'], a: 0.5 });
         if (k < 1) return false;
+        if (mo.d.projectile === 'rocher') { jeter(os); impactRocherLune(vers); return true; } /* (01/11/2026) */
         pouf(vers.x, vers.y - 0.2, vers.z, 1.8, mo.d.projectile === 'sagaie' ? '#a8a294' : '#efe6cf'); poussiere(vers.x, vers.y - 0.25, vers.z, 8, 0.9, '#d8c6a0'); etoileImpact(vers.clone().setY(vers.y + 0.3), 0.8, '#efe6cf');
-        if (mo.d.projectile === 'rocher') { jeter(os); mottes(vers.x, vers.y - 0.25, vers.z, 6, 0.8); return true; }
         const y0 = os.position.y; let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(os); return true; } if (s2 > 1.2) os.position.y = y0 - (s2 - 1.2) * 1.5; if (s2 > 1.8) { jeter(os); return true; } }); /* (plantee au sol, puis elle s'enfonce) */
         return true; });
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: 1.3, duree: 1.0, effet: (d) => {
@@ -1221,6 +1223,22 @@ function prepaSeisme(mo, x0, z0, R, duree) {
       if (k > 0.3 && !mo.d.element) emettre(FX_LUM, 1, { x, y: y + 0.08, z, plat: true, vie: [0.3, 0.5], taille: [0.6 + k, 0.2], c: ['#ffd27a', '#ff6a1e'], a: 0.5 * k }); } /* (la lueur de lave sous lui : seulement sans element, 01/11/2026) */
     if (k >= 1) { let r = 0; effets.push((d2) => { r += d2; if (mo.etat !== 'actif') { mo.penche = 0; mo.hop = 0; return true; } mo.penche = 0.4 * Math.max(0, 1 - r / 0.5); mo.hop = -0.25 * Math.max(0, 1 - r / 0.5); return r >= 0.5; }); return true; } });
 }
+function croissantLune(mo, duree) { /* un croissant de lune qui grandit et luit au-dessus de sa tete pendant qu'il charge l'onde, puis s'eteint d'un coup */
+  const c0 = combat, s = new T.Sprite(new T.SpriteMaterial({ map: TEX_CROISSANT, transparent: true, depthWrite: false })); s.raycast = () => {}; s.renderOrder = 7; scene.add(s); let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif' || t >= duree) { jeter(s); if (combat === c0 && mo.etat === 'actif') emettre(FX_LUM, 14, { x: s.position.x, y: s.position.y, z: s.position.z, r: 0.4, dv: 3, vie: [0.3, 0.5], taille: [0.2, 0.03], c: ['#ffffff', '#bfe6ff'] }); return true; }
+    const k = Math.min(1, t / (duree * 0.6)), h = (mo.haut || 3); s.position.set(mo.x, mo.m.position.y + h * 1.15 + Math.sin(t * 3) * 0.08, mo.z); s.scale.setScalar(h * 0.55 * (0.3 + 0.7 * k) * (1 + 0.06 * Math.sin(t * 9))); s.material.opacity = 0.5 + 0.5 * k;
+    if (Math.random() < dt * 12) emettre(FX_LUM, 1, { x: s.position.x + fxEntre(-0.5, 0.5), y: s.position.y + fxEntre(-0.4, 0.4), z: s.position.z + fxEntre(-0.5, 0.5), v: [0, -0.4, 0], vie: [0.4, 0.7], taille: [0.12, 0.02], c: ['#ffffff', '#bfe6ff'] }); }); /* (de la poussiere de lune en tombe) */
+}
+function rocherLune() { /* la pierre de lune du Golem : un rocher gris bleute, veine de cristaux qui luisent */
+  const g = new T.Group(), r = new T.Mesh(new T.DodecahedronGeometry(0.6, 0), mat('#8d929c')); r.scale.set(1, 0.85, 1.1); g.add(r);
+  for (let i = 0; i < 6; i++) { const q = new T.Mesh(new T.OctahedronGeometry(0.12 + fxAlea() * 0.08, 0), new T.MeshBasicMaterial({ color: i % 2 ? '#a8ecff' : '#e8f8ff' })), a = i * 1.1, b = (i % 3 - 1) * 0.6;
+    q.position.set(Math.cos(a) * Math.cos(b) * 0.52, Math.sin(b) * 0.45, Math.sin(a) * Math.cos(b) * 0.55); q.scale.set(1, 1.8, 1); q.lookAt(0, 0, 0); g.add(q); } return g;
+}
+function impactRocherLune(v) { /* le rocher de lune s'ecrase : un cratere, des eclats de pierre, des eclats de cristal qui luisent, une onde de clair de lune */
+  const y = v.y - 0.25; secousse(0.12, 0.22); craterLune(v.x, y + 0.02, v.z, 0.9, 2.2); eclatsRoche(v.x, y, v.z, 6, 0.8); onde(v.x, y, v.z, 2.2, '#bfe6ff', 0.45, 0.8, true);
+  emettre(FX_LUM, 16, { x: v.x, y: y + 0.3, z: v.z, r: 0.3, dv: 3.5, haut: true, vie: [0.4, 0.7], taille: [0.14, 0.03], c: ['#ffffff', '#a8ecff'], grav: 6 }); flashLumiere(v.x, y + 0.6, v.z, '#bfe6ff', 1.6, 5, 0.3);
+  emettre(FX_FUM, 6, { x: v.x, y: y + 0.3, z: v.z, r: 0.4, v: [0, 0.6, 0], vie: [0.7, 1.0], taille: [0.6, 1.2], c: ['#e2e6ee', '#b8bec8'], a: 0.5 });
+}
 function capSeisme(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.seisme) { /* le Craqueleur Legendaire frappe le sol : un cercle rouge s'annonce autour de lui (1,3 s pour en sortir), puis l'onde de choc, sur le perso et les batiments */
@@ -1228,10 +1246,12 @@ function capSeisme(mo, ctx) {
       mo.seismeT = 0; const R = mo.d.seismeR || 4.5, duree = mo.d.seismeDuree || 1.3, x0 = mo.x, z0 = mo.z; mo.bloqueT = duree + 0.3; gesteSort(mo, gesteDe(mo, 'seisme', 'sort'), duree); /* (le rayon et le temps : ceux du Craqueleur Legendaire, ou de la fiche ; l'ecrasement du Dragon Cochon, 20/10/2026) */
       if (!combat.seismeVu) { combat.seismeVu = true; toast((mo.d.seismeNom || 'Séisme') + ' ! ' + leNom(mo.d) + ' va frapper le sol : sors du cercle ' + teinteSorts(mo.d) + '.', 'alerte'); }
       const lourdS = !m.userData.anim; if (lourdS) prepaSeisme(mo, x0, z0, R, duree); /* (31/10/2026 : le Craqueleur Legendaire se dresse, le sol tremble et rougeoie) */
+      if (mo.d.element === 'lune') croissantLune(mo, duree); /* (le Golem lunaire : un croissant de lune s'allume au-dessus de sa tete, 01/11/2026) */
       zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => {
         if (lourdS) seismeBoss(mo, x0, mo.m.position.y, z0, R); /* (il abat ses poings : le vrai seisme, 31/10/2026) */
         const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p, y = mo.m.position.y; if (mo.d.element) impactElement(mo.d.element, x0, z0, R); else { impactMarteau(q.x, y, q.z, mo.d.couleurSorts); onde(x0, y, z0, R, (mo.d.couleurSorts || [])[1] || '#fff3d6', 0.6, 0.8); } } /* (le Gorille : ses deux poings au sol, 31/10/2026 ; son element sur tout le cercle, 01/11/2026) */
-        pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); mo.frappe = 0.4;
+        else if (!lourdS && mo.d.element) { secousse(0.35, 0.5); impactElement(mo.d.element, x0, z0, R); } /* (un monstre anime sans poings, le Golem, Ebil : son element sur tout le cercle ; il n'y avait que deux bouffees, 01/11/2026) */
+        if (!mo.d.element) { pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); } mo.frappe = 0.4;
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { const SL = mo.d.seismeLoin, kl = SL ? Math.min(SL.max, 1 + SL.parCase * Math.hypot(p2.x - x0, p2.z - z0) / S) : 1; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).seisme || 1) * kl), mo); if (kl >= 1.4) chiffre('De loin ×' + String(Math.round(kl * 10) / 10).replace('.', ','), new T.Vector3(p2.x, p2.y + 2.6, p2.z), 'gros'); /* (seismeLoin : plus tu es loin de lui, plus l'onde frappe fort, le Craqueleur Legendaire, 31/10/2026) */ if (mo.d.repousse && combat && !combat.fin) repousserPerso(mo, mo.d.repousse); }
         if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < R + Math.max(z.hw, z.hd)) blesserBat(k, degatsBatiment(1, mo)); });
       } });
@@ -1516,13 +1536,20 @@ function capRoulade(mo, ctx) { /* les Tortues roulent pour esquiver (26/10/2026,
   const vers = Math.atan2(pp.x - mo.x, pp.z - mo.z), cote = Math.random() < 0.5 ? 1 : -1;
   if (rouladeSquelette(mo, vers + cote * (Math.PI / 2 - 0.45))) { mo.rouladeT = 0; if (!combat.rouladeVu) { combat.rouladeVu = true; toast(leNom(mo.d) + ' roule pour esquiver : pendant sa culbute, tes coups la manquent !', 'alerte'); } }
 }
-function capPierre(mo, ctx) { /* la peau de pierre de la Gorgouille (20/10/2026) : 4 s, elle prend moitie moins de degats */
+function capPierre(mo, ctx) { /* la peau de pierre de la Gorgouille (20/10/2026) : 4 s, elle prend moitie moins de degats. (01/11/2026, du Golem lunaire : « travaille ses
+     sorts », Mathieu) A la place d'une bulle grise : des rochers tournent autour de lui comme un bouclier, son corps se grise ; a la fin, les rochers tombent */
   const { m, dt, sortPret } = ctx;
   if (!mo.d.pierre) return;
   if (mo.pierre > 0) mo.pierre -= dt;
-  else if (sortPret('pierreT', mo.d.pierre)) { mo.pierreT = 0; mo.pierre = 4; pouf(mo.x, mo.m.position.y, mo.z, 3, '#9aa0a2'); if (mo.d.gestes && mo.d.gestes.pierre) gesteSort(mo, mo.d.gestes.pierre); if (!combat.pierreVu) { combat.pierreVu = true; toast(leNom(mo.d) + ' ' + (mo.d.pierreTexte || 'se change en pierre : elle prend moitié moins de dégâts, frappe sa troupe en attendant !'), 'alerte'); } }
-  if (!mo.bulleP) { mo.bulleP = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshBasicMaterial({ color: '#9aa0a2', transparent: true, opacity: 0.35, depthWrite: false })); m.add(mo.bulleP); }
-  mo.bulleP.visible = mo.pierre > 0; if (mo.bulleP.visible) { mo.bulleP.scale.setScalar(mo.haut * 0.6); mo.bulleP.position.y = mo.haut * 0.45; mo.bulleP.rotation.y += dt * 0.5; }
+  else if (sortPret('pierreT', mo.d.pierre)) { mo.pierreT = 0; mo.pierre = 4; pouf(mo.x, mo.m.position.y, mo.z, 3, '#9aa0a2'); if (mo.d.gestes && mo.d.gestes.pierre) gesteSort(mo, mo.d.gestes.pierre); if (!combat.pierreVu) { combat.pierreVu = true; toast(leNom(mo.d) + ' ' + (mo.d.pierreTexte || 'se change en pierre : elle prend moitié moins de dégâts, garde tes gros sorts pour après !'), 'alerte'); }
+    const h = mo.haut || 3, c0 = combat, rocs = []; for (let k = 0; k < 8; k++) { const r = new T.Mesh(new T.DodecahedronGeometry(h * fxEntre(0.06, 0.1), 0), mat(k % 3 ? '#8d929c' : '#6f747e')); r.castShadow = true; r.raycast = () => {}; scene.add(r); rocs.push({ r, a: k / 8 * Math.PI * 2, y: h * fxEntre(0.3, 0.8), w: fxEntre(-2, 2) }); }
+    let t = 0; effets.push((d2) => { t += d2; const fini = combat !== c0 || !(mo.pierre > 0) || mo.etat !== 'actif', R = (mo.d.ombre || 2) * 0.62;
+      if (!fini) { rocs.forEach((o) => { o.a += d2 * 2.4; const k = Math.min(1, t / 0.35); o.r.position.set(mo.x + Math.cos(o.a) * R * k, mo.m.position.y + o.y * (0.4 + 0.6 * k), mo.z + Math.sin(o.a) * R * k); o.r.rotation.x += d2 * o.w; o.r.rotation.y += d2 * 2; }); return false; } /* (ils tournent autour de lui) */
+      if (combat !== c0) { rocs.forEach((o) => jeter(o.r)); return true; }
+      rocs.forEach((o) => { let vy = 0; effets.push((d3) => { vy -= 14 * d3; o.r.position.y += vy * d3; const sol = solA(o.r.position.x, o.r.position.z) + 0.1; if (o.r.position.y <= sol) { poussiere(o.r.position.x, sol, o.r.position.z, 2, 0.4, '#b8bec8'); jeter(o.r); return true; } }); }); return true; }); } /* (a la fin, ils tombent) */
+  const an = m.userData.anim; if (an && an.peau) { const g = mo.pierre > 0 ? 0.68 : 1; an.peau.forEach((x) => { if (x.color) x.color.setRGB(g, g * 1.02, g * 1.08); }); } /* (son corps se grise, un monstre a squelette) */
+  else { if (!mo.bulleP) { mo.bulleP = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshBasicMaterial({ color: '#9aa0a2', transparent: true, opacity: 0.35, depthWrite: false })); m.add(mo.bulleP); }
+    mo.bulleP.visible = mo.pierre > 0; if (mo.bulleP.visible) { mo.bulleP.scale.setScalar(mo.haut * 0.6); mo.bulleP.position.y = mo.haut * 0.45; mo.bulleP.rotation.y += dt * 0.5; } } /* (la Gorgouille garde sa bulle et prend aussi les rochers) */
 }
 function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/2026, « un bâton de mage, invocateur de tortues, il en invoque 4 toutes les 8 s », Mathieu) :
      elle leve son baton, un cercle s'allume au sol a chaque place, les tortues en sortent ; 12 debout au plus, sinon elle reessaie 2 s plus tard */
