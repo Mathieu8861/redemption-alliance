@@ -784,14 +784,32 @@ function prepaCharge(mo, a, prepa) {
       for (const s of [-1, 1]) emettre(FX_FUM, 2, { x: nx - dz * 0.25 * s, y, z: nz + dx * 0.25 * s, v: [dx * 1.2 - dz * 0.5 * s, -0.2, dz * 1.2 + dx * 0.5 * s], dv: 0.3, vie: [0.4, 0.6], taille: [0.25, 0.7], c: ['#ffffff', '#e8e2d6'], a: 0.7, frein: 2, entree: 0.05 }); }
     if (k >= 1) { mo.hop = 0; return true; } });
 }
-function sillon(x, y, z, a, l) { /* un bout de sillon de terre retournee, dans l'axe de la charge : il fonce, s'efface au bout de 3 s */
-  const g = new T.Group(), f = new T.Mesh(new T.PlaneGeometry(l, 0.9), fxMat('#6a4a2e', 0.6)), b = new T.Mesh(new T.PlaneGeometry(l * 1.25, 1.1), fxMat('#8a6a46', 0.35)); [b, f].forEach((p, i) => { p.rotation.x = -Math.PI / 2; p.position.y = 0.04 + i * 0.005; p.renderOrder = 2; g.add(p); });
-  g.rotation.y = a; g.position.set(x, y, z); fxVie(g, 3.2, (k) => { const o = Math.min(1, k * 3.2 / 0.15) * (k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3); f.material.opacity = 0.6 * o; b.material.opacity = 0.35 * o; });
-  if (fxAlea() < 0.5) emettre(FX_VIF, 2, { x, y: y + 0.1, z, r: l * 0.3, dv: 1.5, haut: true, vie: [0.4, 0.6], taille: [0.09, 0.05], c: fxAlea() < 0.4 ? ['#5fae3a', '#4f8f2e'] : ['#6a4a2e', '#8a6a46'], grav: 10 }); /* (des mottes et de l'herbe arrachee) */
+/* LE SILLON DE LA CHARGE (01/11/2026 ; deuxieme version, par Discord : « pas top, la trainee du Bouftou », Mathieu : des rectangles poses l'un apres l'autre) : une
+   seule bande de terre retournee qui suit exactement son chemin et s'allonge pendant qu'il fonce ; bords irreguliers, deux rainures creusees par ses sabots, des
+   mottes le long des bords ; elle s'efface en douceur apres la charge */
+let TEX_SILLON = null; /* (cree au premier sillon : texCanvas vient de 22b-effets.js, charge apres ce fichier ; au chargement, il cassait toute la suite du fichier) */
+const texSillon = () => TEX_SILLON || (TEX_SILLON = (() => { const t = texCanvas(128, (g, n) => { /* de la terre retournee, raccord haut et bas (elle se repete le long du sillon) */
+  const im = g.createImageData(n, n), D = im.data;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const u = x / n, bord = 0.5 - Math.abs(u - 0.5), b = 0.07 * Math.sin(y / n * Math.PI * 6 + 1) + 0.05 * Math.sin(y / n * Math.PI * 14), a = Math.max(0, Math.min(1, (bord - 0.06 - b) / 0.08));
+    const rainure = Math.exp(-(((u - 0.33) / 0.05) ** 2)) + Math.exp(-(((u - 0.67) / 0.05) ** 2)), mot = 0.5 + 0.5 * Math.sin(x * 0.9 + Math.sin(y * 0.7) * 2) * Math.sin(y * 0.8 + Math.sin(x * 0.5) * 2), i = (y * n + x) * 4;
+    const v = 0.78 + 0.32 * mot - 0.4 * rainure; D[i] = 118 * v; D[i + 1] = 84 * v; D[i + 2] = 52 * v; D[i + 3] = 255 * a * 0.9; }
+  g.putImageData(im, 0, 0); }); t.wrapT = T.RepeatWrapping; return t; })());
+function sillonCharge(mo, larg) { /* cree le sillon d'une charge ; renvoie { ajouter(x, z), finir() } */
+  const P = [], mt = new T.MeshBasicMaterial({ map: texSillon(), transparent: true, depthWrite: false, opacity: 1, side: T.DoubleSide }), m = new T.Mesh(new T.BufferGeometry(), mt), c0 = combat; m.renderOrder = 2; m.raycast = () => {}; scene.add(m); let fini = false, long = 0;
+  effets.push(() => { if (combat !== c0 || c0.fin) { jeter(m); fini = true; return true; } return fini; }); /* (fin du combat avant la fin de la charge : on le retire) */
+  const refaire = () => { if (P.length < 2) return; const pos = [], uv = [], idx = [];
+    P.forEach((p, k) => { const a = P[Math.max(0, k - 1)], b = P[Math.min(P.length - 1, k + 1)], dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L, w = larg * p.w * (k === 0 ? 0.4 : 1);
+      pos.push(p.x + nx * w, p.y, p.z + nz * w, p.x - nx * w, p.y, p.z - nz * w); uv.push(0, p.l / 1.4, 1, p.l / 1.4); if (k) { const q = (k - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } });
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); m.geometry.dispose(); m.geometry = g; };
+  return {
+    ajouter(x, z) { if (fini) return; const d = P.length ? Math.hypot(x - P[P.length - 1].x, z - P[P.length - 1].z) : 0; if (P.length && d < 0.18) return; long += d;
+      P.push({ x, z, y: solA(x, z) + 0.035, l: long, w: 0.85 + 0.3 * fxAlea() }); refaire();
+      if (fxAlea() < 0.55) { const s = fxAlea() < 0.5 ? -1 : 1, b = P[Math.max(0, P.length - 2)], dx = x - b.x, dz = z - b.z, L = Math.hypot(dx, dz) || 1; mottes(x - dz / L * larg * 1.05 * s, solA(x, z), z + dx / L * larg * 1.05 * s, 1, 0.5); } }, /* (des mottes rejetees sur les bords) */
+    finir() { if (fini) return; fini = true; let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || t >= 3.5) { jeter(m); return true; } mt.opacity = t < 2.2 ? 1 : 1 - (t - 2.2) / 1.3; }); } };
 }
 function sillageCharge(mo, a, dt) {
   const dx = Math.sin(a), dz = Math.cos(a), R = mo.d.ombre * 0.5, y = solA(mo.x, mo.z); mo.penche = 0.38;
-  if (mo.d.boss && ((mo.sillonT = (mo.sillonT || 0) + dt) > 0.07)) { mo.sillonT = 0; sillon(mo.x - dx * R * 0.3, y, mo.z - dz * R * 0.3, a, R * 1.3); } /* (la charge laboure le sol derriere lui, 01/11/2026) */
+  if (mo.d.boss) { if (!mo.sillon) mo.sillon = sillonCharge(mo, R * 0.85); mo.sillon.ajouter(mo.x - dx * R * 0.2, mo.z - dz * R * 0.2); } /* (la charge laboure le sol derriere lui, un seul sillon continu, 01/11/2026) */
   emettre(FX_FUM, 3, { x: mo.x - dx * R, y: y + 0.2, z: mo.z - dz * R, r: R * 0.6, v: [-dx * 2.5, 1.2, -dz * 2.5], dv: 0.8, vie: [0.5, 0.9], taille: [0.7, 2], c: ['#e6d6b4', '#cbb68c'], a: 0.55, frein: 2, vrot: 1, entree: 0.08 });
   if (Math.random() < dt * 14) mottes(mo.x - dx * R, y, mo.z - dz * R, 2, 0.9);
   if (Math.random() < dt * 20) for (const s of [-1, 1]) emettre(FX_VIF, 1, { x: mo.x + dz * R * 0.9 * s, y: y + 0.5 + Math.random() * (mo.haut || 2) * 0.5, z: mo.z - dx * R * 0.9 * s, v: [-dx * 9, 0, -dz * 9], vie: [0.18, 0.28], taille: [0.07, 0.03], c: ['#ffffff', '#efe2c0'], a: 0.9, etire: 0.04 }); /* (des filets d'air le long de ses flancs) */
@@ -801,6 +819,7 @@ function chocCharge(mo, a, p) {
   if (combat && !combat.fin) repousserPerso(mo, 2.4 * S); /* (bouscule, projete un peu plus loin ; plus loin encore le 01/11/2026, « quand il te charge, ca te repousse ») */
 }
 function finCharge(mo, a, mur) {
+  if (mo.sillon) { mo.sillon.finir(); mo.sillon = null; } /* (le sillon s'arrete et s'efface) */
   const c0 = combat; let t = 0; if (mur) { secousse(0.25, 0.3); for (let k = 0; k < 4; k++) setTimeout(() => { if (combat === c0 && mo.etat === 'actif') emettre(FX_VIF, 3, { x: mo.x, y: mo.m.position.y + (mo.haut || 2) + 0.2, z: mo.z, r: 0.5, v: [0, 0.6, 0], dv: 0.6, vie: [0.4, 0.6], taille: [0.16, 0.06], c: ['#fff6a0', '#ffd23a'], a: 1 }); }, k * 180); } /* (des etoiles au-dessus de sa tete : sonne) */
   effets.push((dt) => { t += dt; if (combat !== c0 || mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.38 * Math.max(0, 1 - t / 0.35); return t >= 0.35; });
 }
@@ -827,7 +846,7 @@ function capCharge(mo, ctx) {
         effets.push((dt2) => { t += dt2; const k = Math.min(1, t / ruee); if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; return true; } mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k;
           if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (tete) sillageCharge(mo, a, dt2); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
           const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3) * (tete ? Math.max(1, mo.d.ombre * 0.55) : 1)) { touche = true; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).charge || 1)), mo); if (mo.d.menotte) coller(mo.d.menotte, 'Menotté !'); if (tete) chocCharge(mo, a, p2); }
-          if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8'); if (tete) finCharge(mo, a, !!cleB);
+          if (k >= 1) { if (mo.sillon) { mo.sillon.finir(); mo.sillon = null; } mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8'); if (tete) finCharge(mo, a, !!cleB);
             const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p; if (mo.d.element) impactElement(mo.d.element, q.x, q.z, 2.2); else impactMarteau(q.x, solA(q.x, q.z), q.z, mo.d.couleurSorts); } /* (le Gorille : ses poings au sol, 31/10/2026 ; son element, 01/11/2026) */
             if (cleB && combat && !combat.fin) { pouf(f.x, solA(f.x, f.z) + 0.6, f.z, 3, '#8e7a5e'); blesserBat(cleB, degatsBatiment(1, mo)); if (!combat.chargeBatVu) { combat.chargeBatVu = true; chiffre('Bam !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'gros'); } } /* sonne, il reste un instant sur place */
             return true; } });
