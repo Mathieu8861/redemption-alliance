@@ -186,7 +186,8 @@ const DECOS = {
   pommier: { nom: 'Pommier', prix: 3000, niv: 20, pr: 'le' }, statue_gelee: { nom: 'Statue de Gelée', prix: 8000, niv: 25, pr: 'la' },
   fontaine: { nom: 'Fontaine', prix: 12000, niv: 30, pr: 'la' }, banniere: { nom: 'Bannière de Redemption', prix: 20000, niv: 40, pr: 'la' },
   /* (01/11/2026, « des routes pavees, un peu dans le meme style que les pierres qu'on a sur les batiments, des lanternes de lumiere, et des petites clotures
-     pour separer nos differents champs », Mathieu) sol : la route se traverse, ne prend pas de parcelle (case 'route') ; bord : la cloture se pose sur le
+     pour separer nos differents champs », Mathieu) sol : la route est un sol, comme l'herbe (c.pave : « fais en sorte qu'on puisse poser un batiment ou une
+     deco par-dessus les paves », Mathieu, le meme soir) ; bord : la cloture se pose sur le
      bord d'une case (S_.clotures), juste decorative ; lumiere : la hauteur de son verre et la taille de sa lueur */
   route_pavee: { nom: 'Route pavée', prix: 250, niv: 1, pr: 'la', sol: true }, cloture: { nom: 'Petite clôture', prix: 150, niv: 1, pr: 'la', bord: true },
   lanterne_sol: { nom: 'Petite lanterne', prix: 1500, niv: 5, pr: 'la', lumiere: { y: 0.25, r: 0.6 } }, lanterne_pied: { nom: 'Lanterne sur pied', prix: 3500, niv: 12, pr: 'la', lumiere: { y: 1.77, r: 1.0 } },
@@ -194,7 +195,10 @@ const DECOS = {
 const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
 const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
 const texteDeco = (k) => { const D = DECOS[k] || { nom: 'Décoration', pr: 'la' }; return D.nom + ' : touche une case d\'herbe libre pour ' + D.pr + ' déplacer, Tourner pour ' + D.pr + ' pivoter, Ranger pour ' + D.pr + ' mettre dans tes décorations.'; };
-let decosMesh = [], decosCharge = null;
+let decosMesh = [], decosCharge = null; const pavesMesh = new Map();
+/* (01/11/2026, « il faudrait que ce soit a la meme hauteur que l'herbe », Mathieu) les paves sont enfonces : le dessus des joints a 2 cm et celui des paves a 3 cm
+   au-dessus de l'herbe (blender/deco.py) */
+const yPave = (P) => { if (P.userData.yPave == null) P.userData.yPave = 0.032 - new T.Box3().setFromObject(P).getSize(new T.Vector3()).y; return P.userData.yPave; };
 function assurerDecos() {
   if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
   decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
@@ -219,9 +223,12 @@ function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennen
   if (ranges.length) setTimeout(() => toast('Les rochers et les lanternes de l\'île sont maintenant des décorations. ' + ranges.length + ' gênai' + (ranges.length > 1 ? 'ent' : 't') + ' un passage : ' + (ranges.length > 1 ? 'elles t\'attendent' : 'elle t\'attend') + ' dans tes décorations (Aménager, puis Décorations).', 'or'), 5000);
 }
 function construireDecos() {
-  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; lanternesAnim = []; let manque = false;
+  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; lanternesAnim = []; pavesMesh.clear(); let manque = false;
   S_.cases.forEach((c) => {
-    if (c.type !== 'deco' && c.type !== 'route') return; /* (la route pavee : une case qu'on traverse) */
+    if (c.type === 'route') { c.type = 'libre'; c.pave = c.deco || 'route_pavee'; if (c.rotD) c.paveRot = c.rotD; delete c.deco; delete c.rotD; } /* (la route posee comme une case, le 01/11 au soir : devenue un sol) */
+    if (c.pave) { const P = MODELES['deco_' + c.pave]; if (!P) manque = true; else { /* le sol pave, sous ce qui est pose dessus ; cache sous un champ */
+      const m = marquer(P.clone(true), c.id), q = posCase(c); m.position.set(q.x, q.y + yPave(P), q.z); m.rotation.y = (c.paveRot || 0) * Math.PI / 2; m.visible = c.type !== 'champ'; scene.add(m); decosMesh.push(m); pavesMesh.set(c.id, m); } }
+    if (c.type !== 'deco') return;
     const R = c.ile != null && MODELES.piecesIle && MODELES.piecesIle[c.ile], M = R ? R.g : MODELES['deco_' + c.deco]; if (!M) { manque = true; return; }
     const m = marquer(M.clone(true), c.id), q = posCase(c);
     if (R && c.orig) m.position.copy(R.base); else m.position.set(q.x, q.y, q.z); /* (un rocher de l'ile garde sa place exacte tant qu'il n'a pas bouge) */
@@ -329,8 +336,8 @@ function ouvrirDecos() {
 }
 /* la categorie Deco de l'HDV : ce qui s'achete a ton niveau, puis ce qui se debloque */
 function corpsDecoHdv() {
-  const nv = niveau(S_.xp), ks = Object.keys(DECOS), stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => (DECOS[k].bord ? Object.keys(S_.clotures || {}).length : S_.cases.filter((c) => (c.type === 'deco' || c.type === 'route') && c.deco === k).length);
-  return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux. La route pavée se traverse et ne prend pas de parcelle ; la petite clôture se pose sur le bord d\'une case, pour séparer tes champs.</p>' +
+  const nv = niveau(S_.xp), ks = Object.keys(DECOS), stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => (DECOS[k].bord ? Object.keys(S_.clotures || {}).length : DECOS[k].sol ? S_.cases.filter((c) => c.pave === k).length : S_.cases.filter((c) => c.type === 'deco' && c.deco === k).length);
+  return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux. La route pavée est un sol, comme l\'herbe : on pose ce qu\'on veut dessus ; la petite clôture se pose sur le bord d\'une case, pour séparer tes champs.</p>' +
     '<div class="deco-pied deco-tete"><button class="btn discret" data-mes-decos>Mes décorations' + (stock ? ' (' + stock + ')' : '') + '</button></div>' +
     ks.filter((k) => nv >= DECOS[k].niv).map((k) => { const D = DECOS[k], n = nbDecos(k), po = posees(k);
       return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + '</div></div>' +

@@ -1,6 +1,6 @@
 'use strict';
 /* ----- le paysan marche jusqu'a la case touchee, puis agit ----- */
-const PASSABLE = { libre: true, champ: true, chemin: true, route: true }; /* (route : la route pavee, 01/11/2026) */ /* on contourne le foin et l'epouvantail, comme les batiments */
+const PASSABLE = { libre: true, champ: true, chemin: true }; /* on contourne le foin et l'epouvantail, comme les batiments */
 function voisins(p) { /* les quatre cases qui touchent celle-ci (l'ile ronde : une seule grille, plus de muret) */
   const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c) L.push(c); } return L;
 }

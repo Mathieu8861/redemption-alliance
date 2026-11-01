@@ -426,7 +426,8 @@ function couleurCase(p) {
 function rendreCase(id) {
   const p = S_.cases.find((c) => c.id === id); const g = casesDyn[id]; if (!p || !g) return;
   vider(g); if (casesMesh[id].material !== CIBLE) casesMesh[id].material.color.set(couleurCase(p));
-  if (p.type !== 'champ') { const sousBati = !!BATIS[p.type] || p.type === 'tour' || p.type === 'arbre' || (p.type === 'deco' && !p.orig) || p.type === 'route'; (TOUFFES.get(p.id) || []).forEach((o) => { o.visible = !sousBati; }); return; }
+  { const pv = pavesMesh.get(p.id); if (pv) pv.visible = p.type !== 'champ'; } /* (les paves : caches sous un champ, 01/11/2026) */
+  if (p.type !== 'champ') { const sousBati = !!BATIS[p.type] || p.type === 'tour' || p.type === 'arbre' || (p.type === 'deco' && !p.orig) || !!p.pave; (TOUFFES.get(p.id) || []).forEach((o) => { o.visible = !sousBati; }); return; }
   /* la parcelle : nue, ou la culture a son stade (semis, en croissance, mure), la terre plus sombre si elle est arrosee */
   const st = etape(p), k = { graine: 0, pousse: 1, mur: 2 }[st];
   const parc = (p.c ? MODELES[p.c + k] : MODELES.nu).clone(true); marquer(parc, p.id);

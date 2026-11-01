@@ -610,10 +610,22 @@ function coller(duree, txt, boue) { /* colle sur place (la boue du Dragon Cochon
   if (boue && !c0.flaque) { const f = new T.Mesh(new T.CircleGeometry(0.95, 20), new T.MeshBasicMaterial({ color: '#5a3a1e', transparent: true, opacity: 0.85, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.renderOrder = 2; scene.add(f); c0.flaque = f;
     effets.push(() => { if (combat !== c0 || c0.fin || !(c0.colle > 0)) { jeter(f); c0.flaque = null; return true; } const p = paysanMesh.position; f.position.set(p.x, p.y + 0.06, p.z); }); }
 }
+/* ETOURDI (01/11/2026, « quand tu te fais attirer, peu importe le monstre qui t'attire, tu te prends un stun de 0,5 seconde », puis « faut que ca ecrive
+   l'effet aussi, sinon le joueur pourrait ne pas comprendre », Mathieu) : il ne bouge ni ne frappe (assomme), « Étourdi ! » au-dessus de lui, des etoiles
+   tournent autour de sa tete ; la premiere fois du combat, un message explique */
+function etourdir(duree) {
+  const c0 = combat; if (!c0 || c0.fin || !paysanMesh) return; c0.assomme = Math.max(c0.assomme || 0, duree); chemin = []; arrivee = null;
+  const q = paysanMesh.position.clone(); q.y += 2.6; chiffre('Étourdi !', q, 'vol'); /* (au-dessus de « Attiré ! », qui le cachait) */
+  if (!c0.etourdiVu) { c0.etourdiVu = true; toast('Étourdi : tu ne peux ni bouger ni frapper pendant ' + String(duree).replace('.', ',') + ' s.', 'alerte'); }
+  const E = [0, 1, 2].map(() => { const m = new T.Mesh(GEO_ETOILE, new T.MeshBasicMaterial({ color: '#ffd84a', transparent: true, depthWrite: false, side: T.DoubleSide })); m.scale.setScalar(0.55); m.renderOrder = 7; m.raycast = () => {}; scene.add(m); return m; });
+  let t = 0; effets.push((dt) => { t += dt; const p = paysanMesh.position;
+    if (combat !== c0 || t > duree + 0.1) { jeter(...E); return true; }
+    E.forEach((m, i) => { const a = t * 9 + i / 3 * Math.PI * 2; m.position.set(p.x + Math.sin(a) * 0.45, p.y + 2.05 + 0.06 * Math.sin(t * 14 + i), p.z + Math.cos(a) * 0.45); m.lookAt(camera.position); m.material.opacity = Math.min(1, (duree + 0.1 - t) / 0.15); }); return false; });
+}
 function attirerPerso(mo) { /* l'appel du Koulosse : le perso glisse jusqu'a lui */
   const p = paysanMesh.position, a = Math.atan2(p.x - mo.x, p.z - mo.z), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4), x0 = p.x, z0 = p.z, c0 = combat; let t = 0;
   chemin = []; arrivee = null; pouf(x0, p.y, z0, 1.4, '#7ad04a'); const q = p.clone(); q.y += 2.1; chiffre('Attiré !', q, 'vol');
-  effets.push((dt) => { t += dt / 0.35; if (combat !== c0) return true; const k = Math.min(1, t); paysanMesh.position.x = x0 + (f.x - x0) * k; paysanMesh.position.z = z0 + (f.z - z0) * k; if (k >= 1) { const c = caseIci(f.x, f.z); if (c) paysanMesh.userData.cellule = c; return true; } });
+  effets.push((dt) => { t += dt / 0.35; if (combat !== c0) return true; const k = Math.min(1, t); paysanMesh.position.x = x0 + (f.x - x0) * k; paysanMesh.position.z = z0 + (f.z - z0) * k; if (k >= 1) { const c = caseIci(f.x, f.z); if (c) paysanMesh.userData.cellule = c; etourdir(0.5); return true; } }); /* (puis etourdi) */
 }
 function pointPresBat() { /* le Fossoyeur : une case praticable collee a un batiment debout */
   const L = clesBats().filter((k) => !enRuine(k)); if (!L.length) return null;
@@ -1199,7 +1211,7 @@ function capLianes(mo, ctx) {
       if (!prise) { const k = Math.min(1, (t - 0.18) / 0.3); poserLiane(lv, h, bout.clone().lerp(h, k), t); if (k >= 1) { jeter(lv.g); return true; } return false; } /* (ratee : elle revient) */
       const k = Math.min(1, (t - 0.18) / 0.45), e = k * k * (3 - 2 * k), cx = mo.x + Math.sin(mo.ry) * devant, cz = mo.z + Math.cos(mo.ry) * devant; paysanMesh.position.x = x0 + (cx - x0) * e; paysanMesh.position.z = z0 + (cz - z0) * e; /* (elle te tire contre lui) */
       poserLiane(lv, h, new T.Vector3(paysanMesh.position.x, paysanMesh.position.y + 1, paysanMesh.position.z), t);
-      if (k >= 1 && !tire) { tire = true; const cc = caseIci(cx, cz); if (cc) paysanMesh.userData.cellule = cc; jeter(lv.g); coupLianes(mo); return true; } return false; });
+      if (k >= 1 && !tire) { tire = true; const cc = caseIci(cx, cz); if (cc) paysanMesh.userData.cellule = cc; jeter(lv.g); etourdir(0.5); coupLianes(mo); return true; } return false; }); /* (etourdi a l'arrivee) */
   } });
 }
 function coupLianes(mo) { /* le gros coup charge apres les lianes : un cercle tout autour de lui, puis il abat ses poings, le sol devient lunaire */

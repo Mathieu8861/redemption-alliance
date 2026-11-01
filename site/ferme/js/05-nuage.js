@@ -146,7 +146,7 @@ function selectionner(p) {
   else if (BATIS[p.type]) { aDeplacer = { bat: p.type }; mode = 'deplacerBat'; }
   else if (p.type === 'tour') { aDeplacer = { tour: p }; mode = 'deplacerBat'; }
   else if (p.type === 'arbre') { aDeplacer = { arbre: p.arbre }; mode = 'deplacerBat'; }
-  else if (p.type === 'deco' || p.type === 'route') { aDeplacer = { deco: p }; mode = 'deplacerBat'; }
+  else if (p.type === 'deco') { aDeplacer = { deco: p }; mode = 'deplacerBat'; }
   else if (p.type === 'enclos') { aDeplacer = null; mode = 'enclos'; }
   else return false;
   majBandeau(); return true;
@@ -197,7 +197,7 @@ function majBandeau() {
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.tour ? 'Tour choisie : touche une case d\'herbe libre pour la poser, autant de fois que tu veux, puis Terminer.'
     : mode === 'deplacerBat' ? BATIS[aDeplacer.bat][0].toUpperCase() + BATIS[aDeplacer.bat].slice(1) + ' : touche où le poser, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer' + (o ? ' (' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ')' : '') + '.'
     : mode === 'poserDeco' && DECOS[aPoser] && DECOS[aPoser].bord ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche près du bord d\'une case pour y poser un morceau, retouche un morceau pour le ranger, puis Terminer.'
-    : mode === 'poserDeco' && DECOS[aPoser] && DECOS[aPoser].sol ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche des cases d\'herbe pour les paver, retouche une case pavée pour la ranger, puis Terminer.'
+    : mode === 'poserDeco' && DECOS[aPoser] && DECOS[aPoser].sol ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche des cases pour les paver (même sous un bâtiment ou une décoration), retouche une case pavée pour la ranger, puis Terminer.'
     : mode === 'poserDeco' && DECOS[aPoser] ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche une case d\'herbe libre pour ' + DECOS[aPoser].pr + ' poser.'
     : mode === 'poserTour' ? 'Tour de défense (' + fmt(PRIX_TOUR[Math.min(nbTours(), PRIX_TOUR.length - 1)]) + ' kamas) : touche une case d\'herbe pour la construire.'
     : mode === 'enclos' ? texteEnclos()
@@ -205,6 +205,6 @@ function majBandeau() {
     : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer.';
   marquerEnclos();
 }
-const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin' && c.type !== 'route').length; /* (la route pavee ne compte pas) */
+const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin').length;
 const plafond = () => Math.floor(S_.cases.length * PART_CONSTRUCTIBLE);
 
