@@ -83,7 +83,7 @@ function boucle(t) {
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
   if (!enPause) { try { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s); animerLeurre(s);
-    majCombat(dtb, s); marcher(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); }
+    majCombat(dtb, s); marcher(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); animerFontaines(dtb, s); }
     catch (err) { erreurBoucle(err); } } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */

@@ -214,17 +214,74 @@ function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennen
   if (ranges.length) setTimeout(() => toast('Les rochers et les lanternes de l\'île sont maintenant des décorations. ' + ranges.length + ' gênai' + (ranges.length > 1 ? 'ent' : 't') + ' un passage : ' + (ranges.length > 1 ? 'elles t\'attendent' : 'elle t\'attend') + ' dans tes décorations (Aménager, puis Décorations).', 'or'), 5000);
 }
 function construireDecos() {
-  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; let manque = false;
+  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; let manque = false;
   S_.cases.forEach((c) => {
     if (c.type !== 'deco') return;
     const R = c.ile != null && MODELES.piecesIle && MODELES.piecesIle[c.ile], M = R ? R.g : MODELES['deco_' + c.deco]; if (!M) { manque = true; return; }
     const m = marquer(M.clone(true), c.id), q = posCase(c);
     if (R && c.orig) m.position.copy(R.base); else m.position.set(q.x, q.y, q.z); /* (un rocher de l'ile garde sa place exacte tant qu'il n'a pas bouge) */
     m.rotation.y = (c.rotD || 0) * Math.PI / 2; scene.add(m); decosMesh.push(m);
+    if (!R && c.deco === 'fontaine') { const A = eauFontaine(m); marquer(A.g, c.id); fontainesAnim.push(A); } /* (son eau, animee, 01/11/2026) */
   });
   Object.keys(S_.ileLibre || {}).forEach((k) => { const R = MODELES.piecesIle && MODELES.piecesIle[k]; if (!R || !S_.ileLibre[k]) return;
     const m = R.g.clone(true); m.position.copy(R.base); m.traverse((o) => { o.userData.piece = +k; }); scene.add(m); decosMesh.push(m); });
   if (manque) assurerDecos();
+}
+/* LA FONTAINE ANIMEE (01/11/2026, « elle est vilaine la fontaine mdr, pas d'animation, un bloc de pierre », Mathieu) : la pierre vient de deco.py ;
+   l'eau est faite ici : la surface du bassin (translucide, on voit le fond et les poissons), les nappes qui coulent de la vasque du haut a celle du milieu
+   puis au bassin, l'ecume a leur pied, le jet du sommet (des gouttes qui montent et retombent), les rides, les reflets, deux poissons qui tournent.
+   FONTAINE : les hauteurs et les rayons de deco.py (y : la surface du bassin, V : la vasque du milieu, H : celle du haut), a changer des deux cotes. */
+const FONTAINE = { y: 0.2, r: 0.63, yV: 0.785, rV: 0.475, yH: 1.31, rH: 0.262, jet: 1.47 };
+let fontainesAnim = [], texNappe = null;
+function textureNappe() {
+  if (texNappe) return texNappe; const cv = document.createElement('canvas'); cv.width = 64; cv.height = 128; const x = cv.getContext('2d');
+  for (let i = 0; i < 30; i++) { const px = Math.random() * 64, w = 1 + Math.random() * 3, y0 = Math.random() * 128, h = 30 + Math.random() * 90, a = 0.35 + Math.random() * 0.6;
+    const g = x.createLinearGradient(0, y0, 0, y0 + h); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.3, 'rgba(235,248,255,' + a + ')'); g.addColorStop(1, 'rgba(200,236,255,0)');
+    x.fillStyle = g; x.fillRect(px, y0, w, h); x.fillRect(px, y0 - 128, w, h); } /* (des filets d'eau etires sur un fond vide : la nappe se lit filet par filet, pas comme un tube) */
+  texNappe = new T.CanvasTexture(cv); texNappe.wrapS = texNappe.wrapT = T.RepeatWrapping; texNappe.repeat.set(3, 1); return texNappe;
+}
+function eauFontaine(m) {
+  const F = FONTAINE, g = new T.Group(), fx = (c, o) => new T.MeshBasicMaterial(Object.assign({ color: c, transparent: true, depthWrite: false }, o));
+  const eau = new T.Mesh(new T.CircleGeometry(F.r, 36), fx('#56b8ea', { opacity: 0.6 })); eau.rotation.x = -Math.PI / 2; eau.position.y = F.y; eau.renderOrder = 2; g.add(eau);
+  [[F.yV, F.rV - 0.04], [F.yH, F.rH - 0.035]].forEach(([y, r]) => { const v = new T.Mesh(new T.CircleGeometry(r, 28), fx('#4aa6e4', { opacity: 0.88 })); v.rotation.x = -Math.PI / 2; v.position.y = y + 0.003; v.renderOrder = 2; g.add(v); }); /* (l'eau des vasques, du meme bleu que le bassin) */
+  const nappe = (r1, r2, y1, y2) => { const n = new T.Mesh(new T.CylinderGeometry(r1, r2, y1 - y2, 32, 1, true), fx('#d8f1ff', { map: textureNappe(), opacity: 0.9, side: T.DoubleSide }));
+    n.position.y = (y1 + y2) / 2; n.renderOrder = 3; g.add(n); return n; };
+  nappe(F.rH + 0.004, F.rH + 0.03, F.yH - 0.01, F.yV - 0.012); nappe(F.rV + 0.004, F.rV + 0.05, F.yV - 0.02, F.y + 0.004); /* (elle s'evase un peu en tombant) */
+  const ecume = (r1, r2, y, ph) => { const e = new T.Mesh(new T.RingGeometry(r1, r2, 40), fx('#f2fbff', { opacity: 0.6 })); e.rotation.x = -Math.PI / 2; e.position.y = y + 0.006; e.renderOrder = 4; g.add(e); return { m: e, ph }; };
+  const ecumes = [ecume(F.rV - 0.01, F.rV + 0.11, F.y, 0), ecume(F.rH - 0.01, F.rH + 0.07, F.yV - 0.012, 1.7)];
+  const ride = (y, a, b, ph) => { const r = new T.Mesh(new T.RingGeometry(0.965, 1, 48), fx('#ffffff', { opacity: 0 })); r.rotation.x = -Math.PI / 2; r.position.y = y + 0.008; r.renderOrder = 4; g.add(r); return { m: r, a, b, ph }; };
+  const rides = [0, 0.33, 0.66].map((ph) => ride(F.y, F.rV + 0.1, F.r - 0.02, ph)).concat([0.15, 0.65].map((ph) => ride(F.yV, F.rH + 0.06, F.rV - 0.04, ph))); /* (dans le bassin et dans la vasque du milieu) */
+  const jet = new T.Mesh(new T.CylinderGeometry(0.012, 0.03, 0.32, 8, 1, true), fx('#e6f6ff', { opacity: 0.85 })); jet.position.y = F.jet + 0.14; g.add(jet);
+  const nenuphars = [[0.42, 0.2, true], [0.55, 2.3, false], [0.33, 4.1, false]].map(([r, a, fleur], k) => { /* (des nenuphars qui derivent lentement autour de la fontaine, l'un fleuri) */
+    const n = new T.Group(), f = new T.Mesh(new T.CircleGeometry(0.075 + 0.015 * k, 14, 0.4, Math.PI * 2 - 0.5), mat(k % 2 ? '#5fae55' : '#4f9a4a')); f.rotation.x = -Math.PI / 2; n.add(f);
+    if (fleur) for (let i = 0; i < 5; i++) { const p = new T.Mesh(new T.ConeGeometry(0.022, 0.06, 4), mat(i % 2 ? '#f7c6d6' : '#fbe3ec')); const b = i / 5 * Math.PI * 2; p.position.set(Math.cos(b) * 0.02, 0.03, Math.sin(b) * 0.02); p.rotation.set(Math.sin(b) * 0.5, 0, -Math.cos(b) * 0.5); n.add(p); }
+    n.position.y = F.y + 0.006; g.add(n); return { n, r, a, v: 0.06 + 0.02 * k }; });
+  const poissons = [['#f08a2c', '#fff4e6', 0.47, 0.5, 0], ['#fff4e6', '#f08a2c', 0.36, -0.38, 2.6]].map(([c, c2, r, v, ph]) => { /* (deux kois, l'un orange tache de blanc, l'autre l'inverse, qui tournent en sens contraire) */
+    const p = new T.Group(), corps = new T.Mesh(new T.SphereGeometry(0.05, 12, 8), mat(c)); corps.scale.set(0.7, 0.55, 1.7); p.add(corps); p.scale.setScalar(1.3);
+    const tache = new T.Mesh(new T.SphereGeometry(0.03, 8, 6), mat(c2)); tache.position.set(0, 0.02, 0.015); tache.scale.set(1, 0.5, 1.5); p.add(tache);
+    const piv = new T.Group(); piv.position.z = -0.07; p.add(piv); const q = new T.Mesh(new T.ConeGeometry(0.045, 0.08, 4), mat(c)); q.rotation.x = Math.PI / 2; q.position.z = -0.035; q.scale.set(0.25, 1, 1); piv.add(q);
+    p.position.y = F.y - 0.03; g.add(p); return { p, piv, r, v, ph }; });
+  g.position.y = -(m.userData.solY || 0); /* (le modele est pose par le bas de ce qu'il a de plus bas, les racines des touffes : on suit le meme decalage) */
+  m.add(g); return { m, g, eau, ecumes, rides, jet, poissons, nenuphars, tJet: 0, tPlouf: 0, tReflet: 0 };
+}
+function animerFontaines(dt, s) {
+  if (!fontainesAnim.length || lieu === 'arene' || lieu === 'ile') return;
+  if (texNappe) texNappe.offset.y = (texNappe.offset.y + dt * 1.4) % 1; /* (l'eau coule) */
+  const F = FONTAINE, w = new T.Vector3();
+  fontainesAnim.forEach((A) => { if (!A.m.parent) return; A.g.getWorldPosition(w);
+    A.eau.material.opacity = 0.7 + 0.05 * Math.sin(s * 1.3);
+    A.ecumes.forEach((e) => { const k = 1 + 0.035 * Math.sin(s * 6 + e.ph); e.m.scale.set(k, k, 1); e.m.material.opacity = 0.5 + 0.15 * Math.sin(s * 4.3 + e.ph); });
+    A.rides.forEach((o) => { const k = (s * 0.5 + o.ph) % 1; o.m.scale.setScalar(o.a + k * (o.b - o.a)); o.m.material.opacity = 0.4 * (1 - k); }); /* (des rides partent du pied de la nappe vers le bord) */
+    const j = 0.85 + 0.2 * Math.sin(s * 9); A.jet.scale.y = j; A.jet.position.y = F.jet + 0.16 * j;
+    A.nenuphars.forEach((o) => { const a = o.a + s * o.v; o.n.position.x = Math.cos(a) * o.r; o.n.position.z = Math.sin(a) * o.r; o.n.rotation.y = -a * 0.6; o.n.position.y = F.y + 0.006 + 0.004 * Math.sin(s * 2 + o.a); });
+    A.poissons.forEach((o) => { const a = o.ph + s * o.v, rr = o.r + 0.04 * Math.sin(s * 0.7 + o.ph); o.p.position.x = Math.cos(a) * rr; o.p.position.z = Math.sin(a) * rr;
+      o.p.rotation.y = Math.atan2(-Math.sin(a) * o.v, Math.cos(a) * o.v); o.piv.rotation.y = Math.sin(s * 11 + o.ph) * 0.5; }); /* (il nage droit devant lui, la queue bat) */
+    if ((A.tJet += dt) > 0.05) { A.tJet = 0; emettre(FX_VIF, 1, { x: w.x, y: w.y + F.jet + 0.22, z: w.z, r: 0.02, v: [0, 0.9, 0], dv: 0.5, vie: [0.4, 0.55], taille: [0.05, 0.02], c: ['#ffffff', '#bfe6ff'], grav: 5 }); } /* (le jet : des gouttes qui montent et retombent dans la vasque du haut) */
+    if ((A.tPlouf += dt) > 0.07) { A.tPlouf = 0; const a = Math.random() * Math.PI * 2, haut = Math.random() < 0.35, r = (haut ? F.rH : F.rV) + 0.04, y = haut ? F.yV : F.y;
+      emettre(FX_VIF, 1, { x: w.x + Math.cos(a) * r, y: w.y + y + 0.02, z: w.z + Math.sin(a) * r, r: 0.02, v: [Math.cos(a) * 0.25, 0.7, Math.sin(a) * 0.25], dv: 0.25, vie: [0.25, 0.35], taille: [0.04, 0.015], c: ['#ffffff', '#cfeeff'], grav: 6 }); } /* (ca eclabousse au pied des nappes) */
+    if ((A.tReflet += dt) > 0.35) { A.tReflet = 0; const a = Math.random() * Math.PI * 2, r = 0.25 + Math.random() * 0.33;
+      emettre(FX_LUM, 1, { x: w.x + Math.cos(a) * r, y: w.y + F.y + 0.03, z: w.z + Math.sin(a) * r, vie: [0.3, 0.5], taille: [0.1, 0.02], c: ['#ffffff', '#bfe6ff'], a: 0.8 }); } /* (un reflet qui scintille) */
+  });
 }
 /* « Mes décorations » : ce qui est range ou achete, a poser */
 function ouvrirDecos() {
