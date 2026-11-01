@@ -27,7 +27,8 @@
             var res = await window.REN.supabase
                 .from('profiles')
                 .select('id', { count: 'exact', head: true })
-                .eq('is_validated', false);
+                .eq('is_validated', false)
+                .is('bloque_le', null);
             var n = res.count || 0;
             var btn = document.querySelector('.admin-sidebar__btn[data-tab="validation"]');
             if (!btn) return;
@@ -132,42 +133,73 @@
 
     /* === TAB: VALIDATION === */
     async function tabValidation(container) {
-        var { data: pending } = await window.REN.supabase
+        var { data: nonValides } = await window.REN.supabase
             .from('profiles').select('*').eq('is_validated', false).order('created_at');
+
+        /* Un compte bloqué par un admin (bloque_le, sql/082) n'est pas une inscription à valider : il va à part, en dessous */
+        var pending = (nonValides || []).filter(function (p) { return !p.bloque_le; });
+        var bloques = (nonValides || []).filter(function (p) { return p.bloque_le; });
+        var esc = window.REN.escapeHtml;
 
         var html = '<div class="admin-panel__title">Validations en attente</div>';
 
-        if (!pending || !pending.length) {
+        if (!pending.length) {
             html += '<p class="text-muted text-center">Aucune inscription en attente.</p>';
-            container.innerHTML = html;
-            return;
+        } else {
+            html += '<div class="table-wrapper"><table class="table">';
+            html += '<thead><tr><th>Pseudo</th><th>Classe</th><th>Element</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+            pending.forEach(function (p) {
+                html += '<tr>';
+                html += '<td>' + esc(p.username) + '</td>';
+                html += '<td>' + esc(p.classe || '-') + '</td>';
+                html += '<td>' + esc(p.element || '-') + '</td>';
+                html += '<td>' + window.REN.formatDateFull(p.created_at) + '</td>';
+                html += '<td>';
+                html += '<button class="btn btn--primary btn--small admin-validate" data-id="' + p.id + '">Valider</button> ';
+                html += '<button class="btn btn--danger btn--small admin-reject" data-id="' + p.id + '">Refuser</button>';
+                html += '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
         }
 
-        html += '<div class="table-wrapper"><table class="table">';
-        html += '<thead><tr><th>Pseudo</th><th>Classe</th><th>Element</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+        if (bloques.length) {
+            html += '<details style="margin-top:var(--spacing-xl);">';
+            html += '<summary style="cursor:pointer;font-family:var(--font-title);font-size:1rem;color:var(--color-danger);">Comptes bloqués (' + bloques.length + ')</summary>';
+            html += '<p class="text-muted" style="font-size:0.8125rem;margin:var(--spacing-sm) 0;">Bloqués par un admin (partis de l\'alliance, alliés...). Ce ne sont pas des inscriptions : ils n\'ont rien à valider.</p>';
+            html += '<div class="table-wrapper"><table class="table">';
+            html += '<thead><tr><th>Pseudo</th><th>Classe</th><th>Bloqué le</th><th>Inscrit le</th><th>Actions</th></tr></thead><tbody>';
+            bloques.forEach(function (p) {
+                html += '<tr style="opacity:0.6;">';
+                html += '<td>' + esc(p.username) + '</td>';
+                html += '<td>' + esc(p.classe || '-') + '</td>';
+                html += '<td>' + window.REN.formatDateFull(p.bloque_le) + '</td>';
+                html += '<td>' + window.REN.formatDateFull(p.created_at) + '</td>';
+                html += '<td><button class="btn btn--small admin-unblock-user" data-id="' + p.id + '" data-username="' + esc(p.username) + '" style="background:var(--color-success);color:#fff;">Debloquer</button></td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            html += '</details>';
+        }
 
-        var esc = window.REN.escapeHtml;
-        pending.forEach(function (p) {
-            html += '<tr>';
-            html += '<td>' + esc(p.username) + '</td>';
-            html += '<td>' + esc(p.classe || '-') + '</td>';
-            html += '<td>' + esc(p.element || '-') + '</td>';
-            html += '<td>' + window.REN.formatDateFull(p.created_at) + '</td>';
-            html += '<td>';
-            html += '<button class="btn btn--primary btn--small admin-validate" data-id="' + p.id + '">Valider</button> ';
-            html += '<button class="btn btn--danger btn--small admin-reject" data-id="' + p.id + '">Refuser</button>';
-            html += '</td>';
-            html += '</tr>';
-        });
-
-        html += '</tbody></table></div>';
         container.innerHTML = html;
 
         /* Event listeners */
         container.querySelectorAll('.admin-validate').forEach(function (btn) {
             btn.addEventListener('click', async function () {
-                await window.REN.supabase.from('profiles').update({ is_validated: true }).eq('id', btn.dataset.id);
+                await window.REN.supabase.from('profiles').update({ is_validated: true, bloque_le: null }).eq('id', btn.dataset.id);
                 window.REN.toast('Utilisateur valide !', 'success');
+                loadTab('validation');
+            });
+        });
+
+        container.querySelectorAll('.admin-unblock-user').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                var username = btn.dataset.username;
+                if (!confirm('Debloquer ' + username + ' ?\nCette personne pourra a nouveau acceder au site.')) return;
+                var { error } = await window.REN.supabase.from('profiles').update({ is_validated: true, bloque_le: null }).eq('id', btn.dataset.id);
+                if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
+                window.REN.toast(username + ' a ete debloque.', 'success');
                 loadTab('validation');
             });
         });
@@ -239,7 +271,8 @@
             .from('profiles').select('*').order('username');
 
         var activeUsers = (users || []).filter(function (u) { return u.is_validated; });
-        var blockedUsers = (users || []).filter(function (u) { return !u.is_validated; });
+        /* les inscriptions pas encore validées sont dans l'onglet Validation, pas ici */
+        var blockedUsers = (users || []).filter(function (u) { return !u.is_validated && u.bloque_le; });
 
         var html = '<div class="admin-panel__title">Gestion des Utilisateurs</div>';
 
@@ -326,7 +359,7 @@
             btn.addEventListener('click', async function () {
                 var username = btn.dataset.username;
                 if (!confirm('Bloquer ' + username + ' ?\nCette personne ne pourra plus acceder au site.')) return;
-                var { error } = await window.REN.supabase.from('profiles').update({ is_validated: false }).eq('id', btn.dataset.id);
+                var { error } = await window.REN.supabase.from('profiles').update({ is_validated: false, bloque_le: new Date().toISOString() }).eq('id', btn.dataset.id);
                 if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
                 window.REN.toast(username + ' a ete bloque.', 'success');
                 loadTab('utilisateurs');
@@ -338,7 +371,7 @@
             btn.addEventListener('click', async function () {
                 var username = btn.dataset.username;
                 if (!confirm('Debloquer ' + username + ' ?\nCette personne pourra a nouveau acceder au site.')) return;
-                var { error } = await window.REN.supabase.from('profiles').update({ is_validated: true }).eq('id', btn.dataset.id);
+                var { error } = await window.REN.supabase.from('profiles').update({ is_validated: true, bloque_le: null }).eq('id', btn.dataset.id);
                 if (error) { window.REN.toast('Erreur : ' + error.message, 'error'); return; }
                 window.REN.toast(username + ' a ete debloque.', 'success');
                 loadTab('utilisateurs');

@@ -46,7 +46,7 @@
             toutes('recensement_jeu', 'nom,rang,niveau,en_ligne,releve_le'),
             toutes('recensement_liens', 'id,a,b,type,note,cree_le'),
             toutes('recensement_notes', 'cle,statut,note,maj_le'),
-            toutes('profiles', 'id,username,classe,mules,discord_id,is_validated,is_admin,created_at'),
+            toutes('profiles', 'id,username,classe,mules,discord_id,is_validated,bloque_le,is_admin,created_at'),
             toutes('combat_participants', 'user_id')
         ]);
         var nb = {};
@@ -128,7 +128,7 @@
         return p.site.map(function (s) {
             var horsJeu = (s.mules || []).filter(function (m) { return !enJeu[M.norm(m)]; });
             return '<div><strong>' + esc(s.username) + '</strong>' + (s.is_admin ? ' <span class="rc-role rc-role--orange">admin</span>' : '')
-                + '<br><span class="rc-muet">' + (s.is_validated ? 'validé' : '<span style="color:var(--color-warning);">pas validé</span>') + ' · '
+                + '<br><span class="rc-muet">' + (s.is_validated ? 'validé' : s.bloque_le ? '<span style="color:var(--color-danger);">bloqué</span>' : '<span style="color:var(--color-warning);">pas validé</span>') + ' · '
                 + s.combats + ' combat' + (s.combats > 1 ? 's' : '') + ' · inscrit le ' + date(s.created_at) + '</span>'
                 + (horsJeu.length ? '<br><span class="rc-muet" title="Déclarées sur le site, absentes de l\'alliance en jeu">mules hors alliance : ' + esc(horsJeu.join(', ')) + '</span>' : '')
                 + '</div>';

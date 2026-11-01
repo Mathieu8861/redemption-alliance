@@ -85,7 +85,7 @@
                 }
 
                 if (profile && !profile.is_validated && !isAuthPage) {
-                    showPendingValidation();
+                    showPendingValidation(profile);
                     return;
                 }
 
@@ -175,7 +175,8 @@
             var res = await window.REN.supabase
                 .from('profiles')
                 .select('id', { count: 'exact', head: true })
-                .eq('is_validated', false);
+                .eq('is_validated', false)
+                .is('bloque_le', null);
             var n = res.count || 0;
             ['nav-admin-link', 'app-admin-link'].forEach(function (id) {
                 var el = document.getElementById(id);
@@ -353,13 +354,17 @@
     }
 
     /* === PENDING VALIDATION === */
-    function showPendingValidation() {
+    function showPendingValidation(profile) {
+        /* compte bloqué par un admin (sql/082) : pas la peine de lui faire attendre une validation */
+        var bloque = profile && profile.bloque_le;
         document.body.innerHTML = '\
             <div class="pending-validation">\
-                <div class="pending-validation__icon">&#9203;</div>\
-                <h1 class="pending-validation__title">Compte en attente</h1>\
+                <div class="pending-validation__icon">' + (bloque ? '&#128274;' : '&#9203;') + '</div>\
+                <h1 class="pending-validation__title">' + (bloque ? 'Acces retire' : 'Compte en attente') + '</h1>\
                 <p class="pending-validation__text">\
-                    Votre compte a bien ete cree. Un administrateur doit valider votre acces avant que vous puissiez utiliser le site.\
+                    ' + (bloque
+                        ? 'Ton acces au site a ete retire par un administrateur. Si c\'est une erreur, contacte un lead sur le Discord.'
+                        : 'Votre compte a bien ete cree. Un administrateur doit valider votre acces avant que vous puissiez utiliser le site.') + '\
                 </p>\
                 <button class="btn btn--secondary mt-lg" onclick="window.location.href=\'connexion.html\'">\
                     Se deconnecter\

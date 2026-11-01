@@ -164,6 +164,7 @@
         p.site.forEach(function (s) {
             if (s.discord_id && !noeuds['discord:' + s.discord_id]) r.push('Le Discord connecté au compte « ' + s.username + ' » n\'est plus sur le serveur.');
             if (/^user_[0-9a-f]{8}$/.test(s.username || '')) r.push('Compte du site sans pseudo (jamais fini l\'inscription).');
+            else if (s.bloque_le) r.push('Compte du site bloqué.');
             else if (!s.is_validated) r.push('Compte du site pas encore validé.');
         });
         return r;
