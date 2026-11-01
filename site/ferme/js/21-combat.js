@@ -961,7 +961,8 @@ function rafaleVent(x, y, z, r) {
     if (fini) { arcs.forEach((o) => jeter(o.m)); return true; } });
   for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2, d = r * (0.25 + 0.55 * Math.random()), v = 3 + Math.random() * 2.5;
     emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.05 + Math.random() * 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v + Math.cos(a) * 1.2, 0.25, Math.cos(a) * v + Math.sin(a) * 1.2], vie: [0.55, 0.85], taille: [0.17, 0.06], c: i % 3 ? ['#b8a07a', '#8f7a5a'] : ['#ffffff', '#9fc3d3'], frein: 1.2 }); } /* (en rond, a plat) */
-  for (let i = 0; i < 7; i++) { const a = Math.random() * Math.PI * 2, d = r * 0.5 * Math.random(), v = 3.5; emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.8, Math.cos(a) * v], vie: [0.6, 0.9], taille: [0.09, 0.06], c: ['#7fbf4a', '#4f8f2e'], frein: 1, grav: 1.5 }); } /* (des feuilles emportees) */
+  feuillesVolantes(x, y0, z, r * 0.8, 8, true); /* (de vraies feuilles emportees en rond, 22b-effets.js) */
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, d = r * (0.35 + 0.4 * Math.random()), v = 4 + Math.random() * 2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.1 + Math.random() * 0.3, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.1, Math.cos(a) * v], vie: [0.3, 0.45], taille: [0.06, 0.02], c: ['#ffffff', '#cfe7f2'], etire: 0.12, frein: 0.8 }); } /* (des filets d'air etires) */
 }
 function souffleMain(h) { /* le vent qui rend sa lance a sa main : une petite spirale d'air, sans rien d'explosif */
   for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 0.5; emettre(FX_VIF, 1, { x: h.x + Math.cos(a) * r, y: h.y + (i % 3 - 1) * 0.2, z: h.z + Math.sin(a) * r, v: [-Math.sin(a) * 2.5 - Math.cos(a) * 1.2, 0.3, Math.cos(a) * 2.5 - Math.sin(a) * 1.2], vie: [0.3, 0.4], taille: [0.1, 0.02], c: ['#ffffff', '#cfe7f2'], frein: 1 }); }

@@ -470,30 +470,93 @@ function tacheSol(x, y, z, r, couleur, op, duree, bord) { /* une tache au sol qu
   let b = null; if (bord) { b = new T.Mesh(new T.RingGeometry(0.88, 1, 40), fxMat(bord, 0.9)); b.rotation.x = -Math.PI / 2; b.scale.setScalar(r); b.renderOrder = 3; g.add(b); }
   g.position.set(x, y + 0.05, z); return fxVie(g, duree, (k) => { const a = Math.min(1, k * duree / 0.12) * (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4); d.material.opacity = op * a; if (b) b.material.opacity = 0.9 * a * Math.max(0, 1 - k * 1.6); });
 }
-function impactTerre(x, z, r) { /* le sol se fend, des mottes et du gravier sautent, la poussiere brune roule, une onde de terre (pas de lumiere) */
-  const y = solA(x, z); secousse(0.14, 0.25); solFendu(x, y, z, r * 1.1); mottes(x, y, z, 10, 1.1); poussiere(x, y, z, 14, r * 0.7, '#b89a72'); tacheSol(x, y, z, r * 0.7, '#5a4028', 0.45, 1.6);
-  onde(x, y, z, r * 1.25, '#8b6a45', 0.45, 0.85, true);
-  emettre(FX_VIF, 18, { x, y: y + 0.1, z, r: r * 0.3, dv: 4.5, haut: true, vie: [0.5, 0.8], taille: [0.13, 0.07], c: ['#7a5a3a', '#9a7a52'], grav: 12, frein: 0.4 });
+/* (deuxieme version, le meme jour, par Discord : « je pense qu'on peut ameliorer un peu les details et le realisme des cercles qui representent un element
+   naturel : feu, eau, terre, vent, fumee, poison, feuille », Mathieu) : de vraies pieces a la place des seuls grains : des langues de feu qui vacillent, une
+   couronne d'eau qui jaillit et retombe, des eclats de roche qui rebondissent, des bulles qui gonflent et crevent, des feuilles qui virevoltent, de l'herbe qui pousse */
+const TEX_FLAMME = texCanvas(128, (g, n) => { /* une langue de feu : coeur jaune pale, corps orange, pointe rouge qui s'efface */
+  const forme = (k) => { g.beginPath(); g.moveTo(n * 0.5, n * 0.04); g.bezierCurveTo(n * (0.5 + 0.2 * k), n * 0.35, n * (0.5 + 0.38 * k), n * 0.6, n * (0.5 + 0.3 * k), n * 0.82); g.bezierCurveTo(n * (0.5 + 0.22 * k), n * 0.98, n * (0.5 - 0.22 * k), n * 0.98, n * (0.5 - 0.3 * k), n * 0.82); g.bezierCurveTo(n * (0.5 - 0.38 * k), n * 0.6, n * (0.5 - 0.2 * k), n * 0.35, n * 0.5, n * 0.04); g.closePath(); };
+  let d = g.createLinearGradient(0, n, 0, 0); d.addColorStop(0, 'rgba(255,190,70,1)'); d.addColorStop(0.45, 'rgba(255,120,30,0.95)'); d.addColorStop(0.8, 'rgba(220,60,20,0.6)'); d.addColorStop(1, 'rgba(180,30,10,0)'); g.fillStyle = d; forme(1); g.fill();
+  d = g.createLinearGradient(0, n, 0, n * 0.3); d.addColorStop(0, 'rgba(255,250,210,1)'); d.addColorStop(0.6, 'rgba(255,220,120,0.8)'); d.addColorStop(1, 'rgba(255,200,80,0)'); g.fillStyle = d; g.save(); g.translate(0, n * 0.12); forme(0.55); g.fill(); g.restore(); });
+const TEX_COURONNE = texCanvas(128, (g, n) => { /* la couronne d'eau : une paroi translucide aux pointes dechiquetees, plus blanche en haut */
+  for (let x = 0; x < n; x += 2) { const h = n * (0.45 + 0.4 * Math.abs(Math.sin(x * 0.19)) * (0.6 + 0.4 * fxAlea())), d = g.createLinearGradient(0, n, 0, n - h); d.addColorStop(0, 'rgba(150,205,240,0.75)'); d.addColorStop(0.7, 'rgba(210,238,255,0.85)'); d.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = d; g.fillRect(x, n - h, 2, h); } });
+const GEO_ECLAT = new T.DodecahedronGeometry(0.1, 0), GEO_BULLE = new T.SphereGeometry(1, 12, 9), GEO_BRIN = new T.ConeGeometry(0.035, 1, 4); GEO_BRIN.translate(0, 0.5, 0);
+const GEO_FEUILLE = (() => { const s = new T.Shape(); s.moveTo(0, -0.1); s.quadraticCurveTo(0.065, -0.02, 0, 0.1); s.quadraticCurveTo(-0.065, -0.02, 0, -0.1); return new T.ShapeGeometry(s, 5); })();
+partager(GEO_ECLAT, GEO_BULLE, GEO_BRIN, GEO_FEUILLE);
+const MATS_ECLAT = ['#8a8070', '#6f6658', '#9a7a52', '#7a5a3a'].map((c) => mat(c)), MATS_FEUILLE = ['#5fae3a', '#7fc24f', '#4f8f2e', '#a8c84a'].map((c) => new T.MeshToonMaterial({ color: c, gradientMap: grad, side: T.DoubleSide })), MAT_BRIN = mat('#5fae3a');
+partager(MATS_ECLAT, MATS_FEUILLE, MAT_BRIN);
+const sansClic = (o) => { o.traverse((q) => { q.raycast = () => {}; }); return o; };
+function langueFeu(x, y, z, h, vie, ph) { /* une langue de feu qui vacille (un sprite pose par sa base, en couleur pleine : en lumiere additive, elle virait au blanc sur le sable) ; renvoie de quoi la deplacer */
+  const s = sansClic(new T.Sprite(new T.SpriteMaterial({ map: TEX_FLAMME, transparent: true, depthWrite: false }))); s.center.set(0.5, 0.04); s.position.set(x, y, z); scene.add(s); let t = 0;
+  const o = { s, x, z }; effets.push((dt) => { t += dt; const k = t / vie, mont = Math.min(1, t / 0.12), f = k < 0.65 ? 1 : Math.max(0, 1 - (k - 0.65) / 0.35);
+    const hh = h * mont * f * (0.75 + 0.25 * Math.sin(t * 17 + ph) + 0.12 * Math.sin(t * 31 + ph * 2)); s.scale.set(hh * 0.62, Math.max(0.001, hh), 1); s.position.set(o.x + Math.sin(t * 9 + ph) * 0.03, y, o.z); s.material.opacity = Math.min(1, f * 1.2);
+    if (k >= 1) { jeter(s); return true; } }); return o;
 }
-function impactFeu(x, z, r) { /* un anneau de flammes qui s'ouvre, des braises qui montent, le sol brule (noir, bord rougeoyant) */
-  const y = solA(x, z); secousse(0.1, 0.2); flashLumiere(x, y + 0.5, z, '#ff8a3a', 2.2, 6, 0.35); tacheSol(x, y, z, r * 0.85, '#2a1a10', 0.7, 2.4, '#ff7a1e'); onde(x, y, z, r * 1.15, '#ff7a1e', 0.4, 0.8);
-  let t = 0; effets.push((dt) => { t += dt; const rr = r * (0.3 + 0.7 * Math.min(1, t / 0.3)), n = t < 0.6 ? 5 : 2;
-    for (let i = 0; i < n; i++) { const a = fxAlea() * Math.PI * 2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * rr, y: y + 0.08, z: z + Math.sin(a) * rr, v: [0, 2.0 * (1 - t / 1.2), 0], dv: 0.4, vie: [0.3, 0.5], taille: [0.4, 0.05], c: ['#fff1a0', '#ffb030', '#ff5a10'] }); } return t > 1.1; }); /* (les flammes courent sur l'anneau) */
-  emettre(FX_LUM, 22, { x, y: y + 0.2, z, r: r * 0.6, v: [0, 1.4, 0], dv: 1, vie: [0.8, 1.4], taille: [0.09, 0.01], c: ['#ffd27a', '#ff6a1e'], frein: 0.5 });
-  emettre(FX_FUM, 6, { x, y: y + 0.4, z, r: r * 0.5, v: [0, 1.0, 0], vie: [0.8, 1.2], taille: [0.6, 1.4], c: ['#5a4a40', '#3a3028'], a: 0.5 });
+function eclatsRoche(x, y, z, n, force) { /* des eclats de roche qui jaillissent en tournant, rebondissent une fois et s'enfoncent */
+  for (let i = 0; i < n; i++) { const m = sansClic(new T.Mesh(GEO_ECLAT, MATS_ECLAT[i % 4])), a = fxAlea() * Math.PI * 2, v = (1.5 + fxAlea() * 2.5) * force, s = 0.6 + fxAlea() * 1.0; m.scale.set(s, s * 0.8, s * 1.1); m.castShadow = true;
+    m.position.set(x + Math.cos(a) * 0.2, y + 0.1, z + Math.sin(a) * 0.2); scene.add(m); let vx = Math.cos(a) * v, vz = Math.sin(a) * v, vy = 3 + fxAlea() * 3.5 * force, t = 0, rebond = 0; const wr = [fxEntre(-9, 9), fxEntre(-9, 9)];
+    effets.push((dt) => { t += dt; if (rebond < 2) { vy -= 16 * dt; m.position.x += vx * dt; m.position.y += vy * dt; m.position.z += vz * dt; m.rotation.x += wr[0] * dt; m.rotation.z += wr[1] * dt;
+        if (m.position.y < y + 0.05) { m.position.y = y + 0.05; rebond++; vy = Math.abs(vy) * 0.3; vx *= 0.45; vz *= 0.45; wr[0] *= 0.4; wr[1] *= 0.4; if (rebond === 1) emettre(FX_VIF, 2, { x: m.position.x, y: y + 0.05, z: m.position.z, dv: 0.8, haut: true, vie: [0.2, 0.3], taille: [0.08, 0.03], c: ['#a89070', '#8a7058'], grav: 8 }); } }
+      if (t > 1.3) { m.position.y -= dt * 0.25; } if (t > 1.8) { jeter(m); return true; } }); }
 }
-function impactEau(x, z, r) { /* une gerbe d'eau en couronne, des rides bleues, le sol mouille, un peu de bruine */
-  const y = solA(x, z); secousse(0.08, 0.15); tacheSol(x, y, z, r * 0.9, '#2f6f9a', 0.45, 1.9);
-  for (let i = 0; i < 30; i++) { const a = i / 30 * Math.PI * 2 + fxAlea() * 0.2, v = 1.8 + fxAlea(); emettre(FX_VIF, 1, { x: x + Math.cos(a) * r * 0.25, y: y + 0.1, z: z + Math.sin(a) * r * 0.25, v: [Math.cos(a) * v, 3.4 + fxAlea() * 1.4, Math.sin(a) * v], vie: [0.6, 0.9], taille: [0.13, 0.04], c: ['#ffffff', '#7fc8f0'], grav: 10 }); }
-  let t = 0, k = 0; effets.push((dt) => { t += dt; while (k < 3 && t >= k * 0.16) { onde(x, y, z, r * (0.75 + k * 0.3), '#5fb4ea', 0.65, 0.8, true); k++; } return k >= 3; }); /* (trois rides l'une apres l'autre) */
-  emettre(FX_FUM, 7, { x, y: y + 0.3, z, r: r * 0.5, v: [0, 0.6, 0], vie: [0.6, 1.0], taille: [0.6, 1.2], c: ['#dff2ff', '#bfe2f5'], a: 0.45 });
+function bullePoison(x, y, z, r, vie) { /* une bulle verte qui gonfle, luit, puis creve : un petit anneau et des gouttes */
+  const b = sansClic(new T.Mesh(GEO_BULLE, new T.MeshBasicMaterial({ color: '#8fd84a', transparent: true, opacity: 0.75, depthWrite: false }))), reflet = sansClic(new T.Mesh(GEO_BULLE, new T.MeshBasicMaterial({ color: '#f2ffd8', transparent: true, opacity: 0.8, depthWrite: false })));
+  reflet.scale.setScalar(0.28); reflet.position.set(-0.35, 0.45, 0.35); b.add(reflet); b.position.set(x, y, z); scene.add(b); let t = 0;
+  effets.push((dt) => { t += dt; const k = Math.min(1, t / vie), s = r * (0.2 + 0.8 * Math.sin(k * Math.PI / 2)); b.scale.set(s, s * 0.85, s); b.position.y = y + s * 0.5;
+    if (k >= 1) { jeter(b); onde(x, y + 0.02, z, r * 2.6, '#b8f07a', 0.25, 0.7, true); emettre(FX_VIF, 5, { x, y: y + r * 0.6, z, dv: 1.6, haut: true, vie: [0.25, 0.4], taille: [0.07, 0.02], c: ['#d8ff9a', '#6fae3a'], grav: 9 }); return true; } });
 }
-function impactPoison(x, z, r) { /* une flaque verte qui bouillonne, des bulles qui crevent, une brume verte au ras du sol */
-  const y = solA(x, z); tacheSol(x, y, z, r * 0.85, '#3f8a2a', 0.75, 2.8, '#9fe060'); onde(x, y, z, r * 1.1, '#7ad04a', 0.5, 0.7, true);
-  emettre(FX_VIF, 14, { x, y: y + 0.1, z, r: r * 0.3, dv: 3, haut: true, vie: [0.4, 0.6], taille: [0.12, 0.05], c: ['#b8f07a', '#5f9a2e'], grav: 9 });
-  let t = 0, tic = 0; effets.push((dt) => { t += dt; if ((tic += dt) > 0.07) { tic = 0; const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.7; lueur(new T.Vector3(x + Math.cos(a) * d, y + 0.1, z + Math.sin(a) * d), '#9fe060', 1.4, 0.35);
-      emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y + 0.08, z: z + Math.sin(a) * d, v: [0, 0.9, 0], dv: 0.3, vie: [0.25, 0.35], taille: [0.1, 0.02], c: ['#d8ff9a', '#7ad04a'], grav: 4 }); } return t > 2.2; }); /* (des bulles crevent a la surface) */
-  emettre(FX_FUM, 12, { x, y: y + 0.15, z, r: r * 0.7, v: [0, 0.3, 0], vie: [1.0, 1.6], taille: [0.6, 1.3], c: ['#9fd060', '#5f9a2e'], a: 0.45 });
+function feuillesVolantes(x, y, z, r, n, tourne) { /* des feuilles qui partent en tournoyant, flottent et retombent doucement (tourne : emportees en rond, le vent) */
+  for (let i = 0; i < n; i++) { const m = sansClic(new T.Mesh(GEO_FEUILLE, MATS_FEUILLE[i % 4])), a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.4, s = 0.9 + fxAlea() * 0.8; m.scale.setScalar(s); m.position.set(x + Math.cos(a) * d, y + 0.1, z + Math.sin(a) * d); scene.add(m);
+    let va = a, ra = d, vy = 2 + fxAlea() * 2.2, t = 0; const vr = 2.5 + fxAlea() * 2.5, w = fxEntre(6, 11), ph = fxAlea() * 6;
+    effets.push((dt) => { t += dt; vy -= 3.2 * dt; vy = Math.max(vy, -0.7); ra += dt * vr * (tourne ? 0.6 : 1) * Math.max(0.2, 1 - t); if (tourne) va += dt * 3.5 * Math.max(0.3, 1 - t * 0.6);
+      m.position.set(x + Math.cos(va) * ra, Math.max(y + 0.03, m.position.y + vy * dt), z + Math.sin(va) * ra); m.rotation.set(Math.sin(t * w + ph) * 1.2, t * 4 + ph, Math.cos(t * w * 0.7 + ph) * 0.8); /* (elle vrille et se balance) */
+      if (t > 1.9) { m.scale.setScalar(s * Math.max(0, 1 - (t - 1.9) / 0.4)); } if (t > 2.3) { jeter(m); return true; } }); }
+}
+function impactTerre(x, z, r) { /* le sol se fend et se souleve en bourrelet, des eclats de roche jaillissent et rebondissent, gravier, une poussiere brune qui roule au ras du sol */
+  const y = solA(x, z); secousse(0.16, 0.28); solFendu(x, y, z, r * 1.1); cratere(x, y, z, r * 0.5, 1.8); eclatsRoche(x, y, z, 12, 1); tacheSol(x, y, z, r * 0.8, '#5a4028', 0.4, 1.9);
+  onde(x, y, z, r * 1.25, '#8b6a45', 0.45, 0.8, true);
+  emettre(FX_VIF, 16, { x, y: y + 0.1, z, r: r * 0.3, dv: 4.5, haut: true, vie: [0.5, 0.8], taille: [0.09, 0.05], c: ['#7a5a3a', '#9a7a52'], grav: 12, frein: 0.4, sol: y + 0.03, rebond: 0.3 });
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, v = 1.6 + fxAlea() * 1.2; emettre(FX_FUM, 1, { x: x + Math.cos(a) * r * 0.3, y: y + 0.25, z: z + Math.sin(a) * r * 0.3, v: [Math.cos(a) * v, 0.35, Math.sin(a) * v], vie: [1.0, 1.5], taille: [0.6, 1.5], c: ['#b89a72', '#9a8262'], a: 0.6, frein: 1.4 }); } /* (la poussiere roule) */
+}
+function impactFeu(x, z, r) { /* des langues de feu courent en anneau et vacillent, des braises et des etincelles montent, une fumee sombre s'eleve, le sol brule (fentes rougeoyantes) */
+  const y = solA(x, z); secousse(0.1, 0.2); flashLumiere(x, y + 0.6, z, '#ff8a3a', 2.4, 7, 0.6); tacheSol(x, y, z, r * 0.85, '#2a1a10', 0.75, 2.6, '#ff7a1e'); solFendu(x, y, z, r * 0.8, true); onde(x, y, z, r * 1.15, '#ff7a1e', 0.4, 0.75);
+  const anneau = []; for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2 + fxAlea() * 0.2; anneau.push({ a, o: langueFeu(x, y, z, r * fxEntre(0.34, 0.55), fxEntre(1.1, 1.5), fxAlea() * 6) }); }
+  for (let i = 0; i < 5; i++) langueFeu(x + fxEntre(-0.2, 0.2), y, z + fxEntre(-0.2, 0.2), r * fxEntre(0.45, 0.7), 0.5, fxAlea() * 6); /* (le coeur flambe d'un coup) */
+  for (let i = 0; i < 5; i++) { const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.6; langueFeu(x + Math.cos(a) * d, y, z + Math.sin(a) * d, r * fxEntre(0.12, 0.2), fxEntre(1.8, 2.4), fxAlea() * 6); } /* (des petits feux qui restent) */
+  let t = 0; effets.push((dt) => { t += dt; const rr = r * (0.3 + 0.62 * Math.min(1, t / 0.3)); anneau.forEach((f) => { f.o.x = x + Math.cos(f.a) * rr; f.o.z = z + Math.sin(f.a) * rr; }); /* (l'anneau s'ouvre) */
+    if (t < 1.3) { emettre(FX_LUM, 2, { x: x + fxEntre(-rr, rr) * 0.8, y: y + 0.3, z: z + fxEntre(-rr, rr) * 0.8, v: [fxEntre(-0.4, 0.4), 1.6, fxEntre(-0.4, 0.4)], vie: [0.7, 1.2], taille: [0.07, 0.01], c: ['#ffe08a', '#ff6a1e'], frein: 0.4 }); /* (braises) */
+      if (fxAlea() < 0.35) emettre(FX_FUM, 1, { x: x + fxEntre(-rr, rr) * 0.6, y: y + 0.7, z: z + fxEntre(-rr, rr) * 0.6, v: [0, 1.1, 0], vie: [1.0, 1.4], taille: [0.5, 1.4], c: ['#5a4a40', '#2e2622'], a: 0.55 }); } /* (fumee sombre) */
+    return t > 1.3; });
+}
+function impactEau(x, z, r) { /* une couronne d'eau jaillit et retombe, une colonne au centre, des gouttes qui rebondissent, des rides, le sol mouille qui brille */
+  const y = solA(x, z); secousse(0.08, 0.15); tacheSol(x, y, z, r * 0.9, '#2f6f9a', 0.5, 2.2, '#7fc8f0');
+  const cour = sansClic(new T.Mesh(new T.CylinderGeometry(1, 0.85, 1, 40, 1, true), new T.MeshBasicMaterial({ map: TEX_COURONNE, transparent: true, depthWrite: false, side: T.DoubleSide }))); cour.position.set(x, y, z); scene.add(cour);
+  let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 0.75), h = 0.9 * Math.sin(Math.min(1, k * 1.25) * Math.PI) * r * 0.45, rr = r * (0.25 + 0.5 * Math.sqrt(k)); cour.scale.set(rr, Math.max(0.001, h), rr); cour.position.y = y + h / 2; cour.material.opacity = 1 - k * k;
+    if (k >= 1) { jeter(cour); return true; } }); /* (la couronne monte puis s'effondre en s'ouvrant) */
+  for (let i = 0; i < 34; i++) { const a = i / 34 * Math.PI * 2 + fxAlea() * 0.2, v = 1.6 + fxAlea() * 1.2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * r * 0.3, y: y + 0.2, z: z + Math.sin(a) * r * 0.3, v: [Math.cos(a) * v, 3.2 + fxAlea() * 1.6, Math.sin(a) * v], vie: [0.7, 1.0], taille: [0.11, 0.05], c: ['#ffffff', '#7fc8f0'], grav: 10, sol: y + 0.04, rebond: 0.25 }); }
+  let tc = 0, kr = 0; effets.push((dt) => { tc += dt; if (tc > 0.18 && tc < 0.45) emettre(FX_VIF, 2, { x, y: y + 0.1, z, r: 0.06, v: [0, 4.2, 0], dv: 0.5, vie: [0.4, 0.55], taille: [0.12, 0.05], c: ['#ffffff', '#9fd6f5'], grav: 11 }); /* (la colonne du centre) */
+    while (kr < 4 && tc >= kr * 0.14) { onde(x, y, z, r * (0.7 + kr * 0.25), kr % 2 ? '#ffffff' : '#4f9fd0', 0.7, kr % 2 ? 0.5 : 0.8, true); kr++; }
+    if (tc < 2 && fxAlea() < dt * 10) { const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.8; emettre(FX_LUM, 1, { x: x + Math.cos(a) * d, y: y + 0.07, z: z + Math.sin(a) * d, vie: [0.15, 0.3], taille: [0.12, 0.02], c: ['#ffffff', '#bfe6ff'], a: 0.9 }); } /* (le sol mouille brille) */
+    return tc > 2; });
+  emettre(FX_FUM, 8, { x, y: y + 0.3, z, r: r * 0.5, v: [0, 0.5, 0], vie: [0.7, 1.1], taille: [0.6, 1.3], c: ['#eef8ff', '#cfe8f5'], a: 0.4 });
+}
+function impactFumee(x, z, r) { /* une nappe de fumee epaisse qui roule au ras du sol en tournant, plus sombre au coeur, et s'eleve lentement */
+  const y = solA(x, z); tacheSol(x, y, z, r * 0.7, '#4a4440', 0.35, 2.2); onde(x, y, z, r * 1.1, '#8a8480', 0.4, 0.6, true);
+  for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, v = 1.8 + fxAlea() * 1.4; emettre(FX_FUM, 1, { x: x + Math.cos(a) * 0.3, y: y + 0.3, z: z + Math.sin(a) * 0.3, v: [Math.cos(a) * v - Math.sin(a) * 0.8, 0.2, Math.sin(a) * v + Math.cos(a) * 0.8], vie: [1.4, 2.2], taille: [0.8, 1.9], c: [i % 3 ? '#9a948e' : '#b8b2ac', '#6a6460'], a: 0.75, frein: 1.3 }); } /* (elle roule et tourne) */
+  let t = 0; effets.push((dt) => { t += dt; if (fxAlea() < dt * 14) emettre(FX_FUM, 1, { x: x + fxEntre(-0.4, 0.4), y: y + 0.4, z: z + fxEntre(-0.4, 0.4), v: [fxEntre(-0.3, 0.3), 0.7, fxEntre(-0.3, 0.3)], vie: [1.4, 2.0], taille: [0.9, 2.0], c: ['#5a5450', '#3e3a36'], a: 0.6 }); return t > 1.2; }); /* (le coeur sombre s'eleve) */
+}
+function impactPoison(x, z, r) { /* une flaque verte qui bouillonne : des bulles gonflent et crevent, des vapeurs vertes ondulent en montant */
+  const y = solA(x, z); tacheSol(x, y, z, r * 0.85, '#3f8a2a', 0.78, 2.9, '#9fe060'); [[0.4, 0.3, 0.35], [-0.35, 0.25, 0.3], [0.1, -0.4, 0.32]].forEach(([dx, dz, s]) => tacheSol(x + dx * r, y + 0.004, z + dz * r, r * s, '#5fae3a', 0.6, 2.9)); /* (une flaque aux bords irreguliers) */
+  onde(x, y, z, r * 1.1, '#7ad04a', 0.5, 0.7, true); emettre(FX_VIF, 16, { x, y: y + 0.1, z, r: r * 0.3, dv: 3, haut: true, vie: [0.4, 0.6], taille: [0.11, 0.05], c: ['#b8f07a', '#5f9a2e'], grav: 9, sol: y + 0.03, rebond: 0.2 });
+  let t = 0, tic = 0; effets.push((dt) => { t += dt; if ((tic += dt) > 0.09 && t < 2.3) { tic = 0; const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.7; bullePoison(x + Math.cos(a) * d, y + 0.03, z + Math.sin(a) * d, fxEntre(0.05, 0.13), fxEntre(0.3, 0.7)); }
+    if (fxAlea() < dt * 9 && t < 2.2) { const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.6, s = fxAlea() < 0.5 ? -1 : 1; emettre(FX_FUM, 1, { x: x + Math.cos(a) * d, y: y + 0.2, z: z + Math.sin(a) * d, v: [s * 0.5, 0.8, -s * 0.3], vie: [1.0, 1.6], taille: [0.4, 1.1], c: ['#a8e070', '#5f9a2e'], a: 0.45 }); } /* (des vapeurs qui ondulent) */
+    return t > 2.3; });
+}
+function impactFeuille(x, z, r) { /* la nature : un anneau d'herbes qui jaillissent du sol et ondulent, des feuilles qui partent en tournoyant, des petales */
+  const y = solA(x, z); tacheSol(x, y, z, r * 0.85, '#4f9a3a', 0.45, 2.2); onde(x, y, z, r * 1.1, '#7fc24f', 0.45, 0.6, true); feuillesVolantes(x, y, z, r, 18, false);
+  const brins = []; for (let i = 0; i < 30; i++) { const a = i / 30 * Math.PI * 2 + fxAlea() * 0.15, d = r * fxEntre(0.55, 0.9), m = sansClic(new T.Mesh(GEO_BRIN, MAT_BRIN)); m.position.set(x + Math.cos(a) * d, y, z + Math.sin(a) * d); m.scale.set(1, 0.001, 1); scene.add(m); brins.push({ m, h: fxEntre(0.25, 0.5), ph: fxAlea() * 6, d0: fxAlea() * 0.2, a }); }
+  let t = 0; effets.push((dt) => { t += dt; brins.forEach((b) => { const k = Math.max(0, t - b.d0), up = Math.min(1, k / 0.25), f = t < 1.5 ? 1 : Math.max(0, 1 - (t - 1.5) / 0.4); b.m.scale.set(1, Math.max(0.001, b.h * up * f), 1); b.m.rotation.set(Math.sin(t * 5 + b.ph) * 0.25 * Math.cos(b.a), 0, Math.sin(t * 5 + b.ph) * 0.25 * Math.sin(b.a)); }); /* (ils jaillissent, ondulent, puis rentrent) */
+    if (t > 1.9) { brins.forEach((b) => jeter(b.m)); return true; } });
+  emettre(FX_VIF, 14, { x, y: y + 0.2, z, r: r * 0.4, dv: 2.2, haut: true, vie: [0.8, 1.2], taille: [0.07, 0.05], c: ['#f7c6d6', '#fbe3ec'], grav: 2, frein: 1 }); /* (des petales) */
 }
 function impactMagie(x, z, r, couleur) { /* un cercle de runes violet (#8f55e0 : assez fonce pour rester violet sur un sol clair) : deux anneaux, une etoile a six branches, des runes ; il s'ouvre, tourne et s'eteint, des etincelles montent */
   const C = couleur || '#8f55e0', y = solA(x, z), g = new T.Group(), mt = (o) => new T.MeshBasicMaterial({ color: C, transparent: true, opacity: o, depthWrite: false, side: T.DoubleSide }), mats = []; /* (sans melange additif : sur le sable clair, il virait au blanc) */
@@ -506,4 +569,4 @@ function impactMagie(x, z, r, couleur) { /* un cercle de runes violet (#8f55e0 :
     mats.forEach((m, i) => { m.opacity = (i === mats.length - 1 ? 0.18 : 0.9) * f; }); });
   emettre(FX_LUM, 24, { x, y: y + 0.1, z, r: r * 0.8, plat: true, v: [0, 1.6, 0], dv: 0.4, vie: [0.6, 1.0], taille: [0.12, 0.02], c: ['#ffffff', C], frein: 0.6 });
 }
-function impactElement(el, x, z, r) { ({ vent: () => rafaleVent(x, 0, z, r), terre: () => impactTerre(x, z, r), feu: () => impactFeu(x, z, r), eau: () => impactEau(x, z, r), poison: () => impactPoison(x, z, r), magie: () => impactMagie(x, z, r) }[el] || (() => {}))(); }
+function impactElement(el, x, z, r) { ({ vent: () => rafaleVent(x, 0, z, r), terre: () => impactTerre(x, z, r), feu: () => impactFeu(x, z, r), eau: () => impactEau(x, z, r), fumee: () => impactFumee(x, z, r), poison: () => impactPoison(x, z, r), feuille: () => impactFeuille(x, z, r), magie: () => impactMagie(x, z, r) }[el] || (() => {}))(); }
