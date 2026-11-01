@@ -36,6 +36,11 @@ const MAT_CONTOUR_SQ = (() => { const m = new T.MeshBasicMaterial({ color: '#3a2
 function preparerSquelette(sc) {
   const peau = []; sc.traverse((o) => { if (o.isSkinnedMesh) peau.push(o); });
   const mart = sc.getObjectByName('marteau'); if (mart) versToon(mart, { normales: 0.01, sansContour: SC_MONSTRES });
+  /* (01/11/2026) un monstre en pieces rigides posees sur les os (le Golem lunaire en pierre, blender/golem-pierre.py) : ses rochers passent en toon avec leur
+     contour, ses yeux et ses cristaux de lune (matiere « lune ») restent lumineux, et ses pieces prennent l'eclat des coups comme une peau */
+  const rocs = []; sc.traverse((o) => { if (/^roc_/.test(o.name) && !(o.parent && /^roc_/.test(o.parent.name))) rocs.push(o); });
+  rocs.forEach((g) => { g.traverse((m) => { if (m.isMesh && m.material && /^lune/.test(m.material.name || '')) m.name = 'lumiere_lune'; }); versToon(g, { normales: 0.01, sansContour: SC_MONSTRES });
+    g.traverse((m) => { if (m.isMesh && m.material && m.material.isMeshToonMaterial) m.userData.roc = true; }); });
   peau.forEach((m) => { const map = m.material.map || null; if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; }
     m.material = new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, skinning: true, side: T.DoubleSide }); m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false;
     const k = new T.SkinnedMesh(m.geometry, MAT_CONTOUR_SQ); k.name = 'contour'; k.bind(m.skeleton, m.bindMatrix); k.frustumCulled = false; m.parent.add(k); });
@@ -145,7 +150,7 @@ function clonerSquelette(nom) {
   const mixer = new T.AnimationMixer(g), A = {}, F = {};
   M.userData.clips.forEach((c) => { const a = mixer.clipAction(c), f = familleDe(c.name); A[c.name] = a; (F[f] = F[f] || []).push(c.name);
     if (!FAMILLES_BOUCLE.has(f)) { a.setLoop(T.LoopOnce, 1); a.clampWhenFinished = true; } });
-  const peau = []; g.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') { o.material = o.material.clone(); peau.push(o.material); } }); /* (sa propre matiere : l'eclat d'un coup ne touche que lui) */
+  const peau = []; g.traverse((o) => { if ((o.isSkinnedMesh && o.name !== 'contour') || (o.isMesh && o.userData.roc)) { o.material = o.material.clone(); peau.push(o.material); } }); /* (sa propre matiere : l'eclat d'un coup ne touche que lui ; les rochers du Golem aussi, 01/11/2026) */
   g.userData.anim = { mixer, A, F, cour: null, fam: null, dernier: {}, repT: 0, caisse: trouverCaisse(g), frappe: frappeur(g, POINGS.has(nom)), peau, eclat: 0 };
   jouerAnim(g.userData.anim, piocher(g.userData.anim, 'repos'), 0); return g;
 }
