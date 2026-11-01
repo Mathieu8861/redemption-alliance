@@ -952,15 +952,15 @@ function tournerVent(g, dt) { g.children.forEach((a) => { a.rotation.z += a.user
    faire un cercle de vent ? Comme si une tornade se formait, mais en forme de cercle au ras du sol, pas un truc qui part en hauteur », Mathieu) : des arcs de vent
    couches sur le sol qui tournoient en s'ouvrant, la poussiere et des feuilles emportees en rond, rien qui monte, pas d'eclair blanc */
 function rafaleVent(x, y, z, r) {
-  const y0 = solA(x, z) + 0.06, arcs = [[0.25, 2.3, 13, '#eef8fc'], [0.4, 2.0, -11, '#b9d3de'], [0.55, 2.4, 15, '#dceef6'], [0.7, 1.8, -9, '#a9c4cf']].map(([d, ouv, v, col], k) => {
-    const m = new T.Mesh(new T.RingGeometry(0.86, 1, 40, 1, k * 1.6, ouv), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }));
+  const y0 = solA(x, z) + 0.06, arcs = [[0.25, 2.3, 13, '#e6f3f8'], [0.4, 2.0, -11, '#8fb2c2'], [0.55, 2.4, 15, '#c4dce6'], [0.7, 1.8, -9, '#7c9fb0']].map(([d, ouv, v, col], k) => { /* (bleu gris : il se voit sur l'herbe comme sur le sable de l'Arene) */
+    const m = new T.Mesh(new T.RingGeometry(0.72, 1, 40, 1, k * 1.6, ouv), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }));
     m.rotation.x = -Math.PI / 2; m.position.set(x, y0 + k * 0.004, z); m.renderOrder = 3; scene.add(m); return { m, d, v }; });
   let t = 0; effets.push((dt) => { t += dt; let fini = true;
-    arcs.forEach((o) => { const k = Math.max(0, Math.min(1, (t - o.d * 0.25) / 0.75)); if (k < 1) fini = false; const e = 1 - (1 - k) * (1 - k);
-      o.m.scale.setScalar(Math.max(0.01, r * (0.25 + 0.75 * e) * (0.7 + o.d * 0.5))); o.m.rotation.z += o.v * dt * (1 - 0.6 * k); o.m.material.opacity = 0.85 * Math.min(1, k * 5) * (1 - k); });
+    arcs.forEach((o) => { const k = Math.max(0, Math.min(1, (t - o.d * 0.2) / 1.0)); if (k < 1) fini = false; const e = 1 - (1 - k) * (1 - k);
+      o.m.scale.setScalar(Math.max(0.01, r * (0.3 + 0.7 * e) * (0.75 + o.d * 0.45))); o.m.rotation.z += o.v * dt * (1 - 0.5 * k); o.m.material.opacity = 0.95 * Math.min(1, k * 6) * (1 - k * k); });
     if (fini) { arcs.forEach((o) => jeter(o.m)); return true; } });
-  for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, d = r * (0.25 + 0.5 * Math.random()), v = 3 + Math.random() * 2.5;
-    emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.05 + Math.random() * 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v + Math.cos(a) * 1.2, 0.25, Math.cos(a) * v + Math.sin(a) * 1.2], vie: [0.4, 0.65], taille: [0.14, 0.05], c: i % 3 ? ['#d8c6a0', '#b8a888'] : ['#ffffff', '#cfe7f2'], frein: 1.4 }); } /* (en rond, a plat) */
+  for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2, d = r * (0.25 + 0.55 * Math.random()), v = 3 + Math.random() * 2.5;
+    emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.05 + Math.random() * 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v + Math.cos(a) * 1.2, 0.25, Math.cos(a) * v + Math.sin(a) * 1.2], vie: [0.55, 0.85], taille: [0.17, 0.06], c: i % 3 ? ['#b8a07a', '#8f7a5a'] : ['#ffffff', '#9fc3d3'], frein: 1.2 }); } /* (en rond, a plat) */
   for (let i = 0; i < 7; i++) { const a = Math.random() * Math.PI * 2, d = r * 0.5 * Math.random(), v = 3.5; emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.8, Math.cos(a) * v], vie: [0.6, 0.9], taille: [0.09, 0.06], c: ['#7fbf4a', '#4f8f2e'], frein: 1, grav: 1.5 }); } /* (des feuilles emportees) */
 }
 function souffleMain(h) { /* le vent qui rend sa lance a sa main : une petite spirale d'air, sans rien d'explosif */
