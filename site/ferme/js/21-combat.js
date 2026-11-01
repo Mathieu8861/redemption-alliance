@@ -713,6 +713,7 @@ const AURAS = {
   magie: { ext: '#7a3fd8', int: '#e0c4ff', halo: '#9a5af0', c: ['#ffffff', '#d0a8ff', '#7a3fd8'], v: 1.8, t: 0.14, lum: true },
   vent: { ext: '#7fb8d0', int: '#ffffff', halo: '#a8d8ec', c: ['#ffffff', '#cfe7f2', '#8fb8cc'], v: 0.8, t: 0.14, tourne: 4 },
   lune: { ext: '#6fa8ff', int: '#eef8ff', halo: '#9fc8ff', c: ['#ffffff', '#bfe6ff', '#6f9ae0'], v: 1.0, t: 0.12, lum: true },
+  esprit: { ext: '#2fc890', int: '#d8fff0', halo: '#3fd8a0', c: ['#e8fff4', '#7ff0c8', '#2f9a78'], v: 1.3, t: 0.15, lum: true, fum: ['#9ff0d0', '#3f8a70'] }, /* (le mort-vivant, 01/11/2026) */
 };
 function auraRageCorps(mo) {
   if (mo.aura || !mo.m) return; const L = [], c0 = combat, St = AURAS[mo.d.element] || AURAS.feu, w = new T.Vector3(), H = mo.haut || 3;
@@ -1234,18 +1235,20 @@ function capLance(mo, ctx) {
         if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(os); return true; }
         if (!de) { /* l'annonce : la lance d'os au-dessus de son epaule, pointee vers toi, qu'il tire en arriere ; s'il a un bras qui lance, elle est dans sa main et le bras l'arme */
           if (t < 1.0 - vol && bras) { const k = Math.min(1, t / (1.0 - vol)); poseBras(bras, 2.7 * ease(k * 1.4)); bras.updateMatrixWorld(true); const h = bras.localToWorld(mainDuBras(bras).clone()), u = new T.Vector3(vers.x - h.x, 0, vers.z - h.z).normalize();
-            os.position.copy(h).addScaledVector(u, 0.35); os.position.y += 0.15; os.lookAt(vers.x, vers.y + 2.5 * (1 - k * 0.6), vers.z); if (Math.random() < dt2 * 12) lueur(os.localToWorld(new T.Vector3(0, 0, 1.5)), '#fff1c0', 1.4, 0.3); return false; }
+            os.position.copy(h).addScaledVector(u, 0.35); os.position.y += 0.15; os.lookAt(vers.x, vers.y + 2.5 * (1 - k * 0.6), vers.z); if (Math.random() < dt2 * 12) lueur(os.localToWorld(new T.Vector3(0, 0, 1.5)), (AURAS[mo.d.element] || { int: '#fff1c0' }).int, 1.4, 0.3); return false; }
           if (t < 1.0 - vol) { if (estOs) { const k = Math.min(1, t / (1.0 - vol)), r = 0.2 + 0.55 * k * k; os.position.set(mo.x + dz * cote - dx * r, haut0 + 0.25 * k, mo.z - dx * cote - dz * r); os.lookAt(vers.x, vers.y + 1.5 * (1 - k), vers.z);
-              if (Math.random() < dt2 * 12) lueur(os.localToWorld(new T.Vector3(0, 0, 1.3)), '#fff1c0', 1.4, 0.3); } return false; }
+              if (Math.random() < dt2 * 12) lueur(os.localToWorld(new T.Vector3(0, 0, 1.3)), (AURAS[mo.d.element] || { int: '#fff1c0' }).int, 1.4, 0.3); } return false; }
           de = estOs ? os.position.clone() : (mainSquelette(mo) || new T.Vector3(mo.x + dx * 0.6, haut0, mo.z + dz * 0.6)); os.visible = true; os.position.copy(de); mo.frappe = 0.4; if (estOs) secousse(0.06, 0.15);
           if (bras) { let s3 = 0; effets.push((d4) => { s3 += d4; if (!bras.parent) return true; poseBras(bras, s3 < 0.16 ? 2.7 - 3.7 * ease(s3 / 0.16) : -1.0 * (1 - ease((s3 - 0.35) / 0.45))); return s3 > 0.8; }); } } /* (le grand mouvement vers l'avant, puis le bras retombe) */
         const k = Math.min(1, (t - (1.0 - vol)) / vol); avant.copy(os.position); os.position.lerpVectors(de, vers, k); os.position.y += Math.sin(k * Math.PI) * H;
         if (mo.d.projectile === 'rocher') { os.rotation.x += dt2 * 9; os.rotation.y += dt2 * 6; } else if (os.position.distanceToSquared(avant) > 1e-6) os.lookAt(os.position.clone().multiplyScalar(2).sub(avant));
         if (mo.d.projectile === 'rocher' && Math.random() < 0.8) emettre(FX_LUM, 2, { x: os.position.x, y: os.position.y, z: os.position.z, r: 0.3, vie: [0.3, 0.5], taille: [0.16, 0.02], c: ['#ffffff', '#a8ecff'] }); /* (une trainee bleutee) */
         traineeFleche(os.position); if (estOs && Math.random() < 0.6) emettre(FX_FUM, 1, { x: os.position.x, y: os.position.y, z: os.position.z, vie: [0.25, 0.4], taille: [0.2, 0.45], c: ['#efe6cf', '#d8cfb8'], a: 0.5 });
+        if (estOs && AURAS[mo.d.element]) emettre(FX_LUM, 2, { x: os.position.x, y: os.position.y, z: os.position.z, r: 0.25, v: [0, 0.6, 0], vie: [0.4, 0.7], taille: [0.14, 0.02], c: AURAS[mo.d.element].c }); /* (une trainee a son element : l'esprit du Chafer, 01/11/2026) */
         if (k < 1) return false;
         if (mo.d.projectile === 'rocher') { jeter(os); impactRocherLune(vers); return true; } /* (01/11/2026) */
-        pouf(vers.x, vers.y - 0.2, vers.z, 1.8, mo.d.projectile === 'sagaie' ? '#a8a294' : '#efe6cf'); poussiere(vers.x, vers.y - 0.25, vers.z, 8, 0.9, '#d8c6a0'); etoileImpact(vers.clone().setY(vers.y + 0.3), 0.8, '#efe6cf');
+        if (estOs && mo.d.element) impactElement(mo.d.element, vers.x, vers.z, 1.6); /* (la lance d'os du Chafer : l'esprit, 01/11/2026) */
+        else { pouf(vers.x, vers.y - 0.2, vers.z, 1.8, mo.d.projectile === 'sagaie' ? '#a8a294' : '#efe6cf'); poussiere(vers.x, vers.y - 0.25, vers.z, 8, 0.9, '#d8c6a0'); etoileImpact(vers.clone().setY(vers.y + 0.3), 0.8, '#efe6cf'); }
         const y0 = os.position.y; let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(os); return true; } if (s2 > 1.2) os.position.y = y0 - (s2 - 1.2) * 1.5; if (s2 > 1.8) { jeter(os); return true; } }); /* (plantee au sol, puis elle s'enfonce) */
         return true; });
       zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: 1.3, duree: 1.0, effet: (d) => {
