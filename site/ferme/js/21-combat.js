@@ -1346,13 +1346,13 @@ function capCarapace(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.carapace) { /* le Chafer Cuirasse se replie sous sa carapace d'epines : 3,5 s presque invulnerable, il renvoie un cinquieme des coups du perso */
     if (mo.carapace > 0) mo.carapace -= dt;
-    else if (sortPret('carapaceT', mo.d.carapace)) { mo.carapaceT = 0; mo.carapace = 3.5; pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2d27a'); if (mo.d.gestes && mo.d.gestes.carapace) gesteSort(mo, mo.d.gestes.carapace); if (!combat.carapaceVu) { combat.carapaceVu = true; toast(leNom(mo.d) + ' ' + (mo.d.carapaceTexte || 'se replie sous sa carapace d\'épines : il renvoie tes coups, frappe ses soldats en attendant !'), 'alerte'); } }
+    else if (sortPret('carapaceT', mo.d.carapace)) { mo.carapaceT = 0; mo.carapace = 3.5; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e8dfc6'); if (mo.d.gestes && mo.d.gestes.carapace) gesteSort(mo, mo.d.gestes.carapace); if (!combat.carapaceVu) { combat.carapaceVu = true; toast(leNom(mo.d) + ' ' + (mo.d.carapaceTexte || 'se replie sous sa carapace d\'épines : il renvoie tes coups, frappe ses soldats en attendant !'), 'alerte'); } }
     /* (31/10/2026, par Discord, « refais la carapace du Chafer, pour voir », Mathieu : une bulle doree l'entourait) des epines d'os jaillissent de tout
        son corps en 0,2 s, il se tasse, elles vibrent ; elles rentrent a la fin. Elles etincellent quand elles te renvoient un coup (epinesTouche) */
     /* (puis « les pics du Chafer devraient etre sur la boule du bouclier, un genre de bouclier avec des pics », Mathieu) : la bulle doree revient, et les
        epines sont plantees sur elle, pointees vers l'exterieur */
     if (!mo.epinesC) { const g = new T.Group(), mo1 = mat('#efe0b8'), mo2 = mat('#c9b48a'), n = 26, h = mo.haut || 3, R = h * 0.62;
-      const bulle = new T.Mesh(new T.IcosahedronGeometry(R, 2), new T.MeshBasicMaterial({ color: '#f2d27a', transparent: true, opacity: 0.3, depthWrite: false })), fil = new T.Mesh(new T.IcosahedronGeometry(R * 1.002, 1), new T.MeshBasicMaterial({ color: '#ffe9a0', wireframe: true, transparent: true, opacity: 0.45, depthWrite: false }));
+      const bulle = new T.Mesh(new T.IcosahedronGeometry(R, 2), new T.MeshBasicMaterial({ color: '#e8dfc6', transparent: true, opacity: 0.36, depthWrite: false })), fil = new T.Mesh(new T.IcosahedronGeometry(R * 1.002, 1), new T.MeshBasicMaterial({ color: '#b8a87e', wireframe: true, transparent: true, opacity: 0.6, depthWrite: false })); /* (couleur os, comme ses epines : « la bulle du Chafer couleur os, non ? », Mathieu, 01/11/2026 ; elle etait doree) */
       g.add(bulle, fil); g.userData.bulle = bulle;
       for (let i = 0; i < n; i++) { const y = 1 - (i + 0.5) / n * 1.7, r = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399, dir = new T.Vector3(Math.cos(th) * r, y, Math.sin(th) * r).normalize();
         const L = h * (0.13 + 0.06 * ((i * 7) % 3)), c = new T.Mesh(new T.ConeGeometry(h * 0.04, L, 6), i % 3 ? mo1 : mo2); c.geometry.translate(0, L / 2, 0);
@@ -1360,7 +1360,7 @@ function capCarapace(mo, ctx) {
       g.position.y = (mo.haut || 3) * 0.45; g.visible = false; m.add(g); mo.epinesC = g; mo.epinesK = 0; }
     const voulu = mo.carapace > 0 ? 1 : 0; mo.epinesK += (voulu - mo.epinesK) * Math.min(1, dt * (voulu ? 14 : 8)); const k = mo.epinesK;
     mo.epinesC.visible = k > 0.02; if (mo.epinesC.visible) { mo.epinesC.scale.setScalar(Math.max(0.01, k) * (1 + 0.03 * Math.sin(s * 23))); mo.epinesC.rotation.y += dt * 0.15; }
-    if (mo.carapace > 0 && mo.epinesVu !== mo.carapaceT) { mo.epinesVu = mo.carapaceT; const y = mo.m.position.y; onde(mo.x, y, mo.z, 3.2, '#f2d27a', 0.4, 0.8); poussiere(mo.x, y, mo.z, 10, 1.2, '#d8c6a0'); secousse(0.08, 0.2); }
+    if (mo.carapace > 0 && mo.epinesVu !== mo.carapaceT) { mo.epinesVu = mo.carapaceT; const y = mo.m.position.y; onde(mo.x, y, mo.z, 3.2, '#e8dfc6', 0.4, 0.8); poussiere(mo.x, y, mo.z, 10, 1.2, '#d8c6a0'); secousse(0.08, 0.2); }
   }
 }
 /* le seisme d'un boss sans squelette (31/10/2026, « on passe a la suite », Mathieu, apres l'audit : le cercle s'affichait puis presque rien) : il se
@@ -1812,12 +1812,12 @@ function capMalediction(mo, ctx) { /* la malediction : un masque fantome part de
 /* maudit (« quand le masque te touche, tu es maudit pendant 2 secondes et tu ne peux pas bouger », Mathieu, le meme jour) : colle sur place (il frappe encore),
    trois petits masques fantomes tournent autour de sa tete, un cercle violet bat a ses pieds, des lueurs violettes montent */
 function envoutement(duree) {
-  const c0 = combat, M = [0, 1, 2].map(() => { const q = sansClic(masqueTiki(true)); q.scale.setScalar(0.4); scene.add(q); return q; });
+  const c0 = combat, M = [0, 1, 2].map(() => { const q = sansClic(masqueTiki(true)); q.scale.setScalar(0.7); scene.add(q); return q; }); /* (plus gros : « trop discrets », 01/11/2026) */
   const anneau = new T.Mesh(new T.RingGeometry(0.7, 0.85, 40), new T.MeshBasicMaterial({ color: '#8a3fc8', transparent: true, opacity: 0.8, depthWrite: false, side: T.DoubleSide })); anneau.rotation.x = -Math.PI / 2; anneau.renderOrder = 3; anneau.raycast = () => {}; scene.add(anneau);
   let t = 0, fx = 0; effets.push((dt) => { t += dt; const p = paysanMesh.position;
     if (combat !== c0 || c0.fin || t > duree) { M.forEach((q) => { if (combat === c0) pouf(q.position.x, q.position.y - 0.3, q.position.z, 0.8, '#8a3fc8'); }); jeter(anneau, ...M); return true; }
     const o = Math.min(1, t / 0.2) * Math.min(1, (duree - t) / 0.25); anneau.position.set(p.x, p.y + 0.06, p.z); anneau.scale.setScalar(1 + 0.12 * Math.sin(t * 14)); anneau.material.opacity = 0.8 * o;
-    M.forEach((q, i) => { const a = t * 3.2 + i / 3 * Math.PI * 2; q.position.set(p.x + Math.sin(a) * 0.75, p.y + 2.0 + 0.12 * Math.sin(t * 6 + i), p.z + Math.cos(a) * 0.75); q.rotation.y = a; q.scale.setScalar(0.4 * Math.max(0.05, o)); });
+    M.forEach((q, i) => { const a = t * 3.2 + i / 3 * Math.PI * 2; q.position.set(p.x + Math.sin(a) * 0.95, p.y + 2.1 + 0.12 * Math.sin(t * 6 + i), p.z + Math.cos(a) * 0.95); q.rotation.y = a; q.scale.setScalar(0.7 * Math.max(0.05, o)); });
     if ((fx += dt) > 0.06) { fx = 0; const a = Math.random() * Math.PI * 2; emettre(FX_LUM, 1, { x: p.x + Math.cos(a) * 0.6, y: p.y + 0.2, z: p.z + Math.sin(a) * 0.6, v: [0, 1.4, 0], vie: [0.5, 0.8], taille: [0.12, 0.02], c: ['#e0c4ff', '#8a3fc8'] }); }
     return false; });
 }
@@ -1907,7 +1907,7 @@ function basCorps(mo) {
   mo.m.traverse((o) => { if (!o.isMesh || o === mo.ombreM || !o.visible || !o.geometry || !o.geometry.attributes.position || (o.material && o.material.visible === false)) return;
     const P = o.geometry.attributes.position, n = P.count, pas = Math.max(1, Math.floor(n / 1500));
     for (let i = 0; i < n; i += pas) { V_BAS.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); L.push(V_BAS.y); } });
-  if (!L.length) return Infinity; L.sort((a, b) => a - b); return L[Math.floor(L.length * 0.02)];
+  if (!L.length) return Infinity; L.sort((a, b) => a - b); return L[Math.floor(L.length * (mo.d.basCorps || 0.02))]; /* (basCorps : plus pour un grand chapeau) */
 }
 function mortLourde(mo, dt) {
   const m = mo.m; let M = mo.mort;
@@ -1915,7 +1915,7 @@ function mortLourde(mo, dt) {
     m.traverse((o) => { if (o.isMesh && o !== mo.ombreM && o.visible) bx.expandByObject(o); }); const sz = bx.getSize(new T.Vector3()); m.rotation.copy(r0); m.rotation.order = 'YXZ'; /* (sa taille, de face ; puis le tangage dans son repere a lui) */
     const ch = mo.d.chute || 'flanc', h = sz.y || mo.haut || 3, k = Math.max(0.85, Math.min(1.4, h / 3));
     M = mo.mort = { t: 0, ch, k, h, A: CHUTES[ch] || 1.4, cote: Math.random() < 0.5 ? -1 : 1, y0: m.position.y, sol: solA(mo.x, mo.z), rx0: m.rotation.x, rz0: m.rotation.z, fx: 0 };
-    M.tv = 0.55 * k; M.tc = M.tv + 0.6 * k; M.ts = M.tc + 1.1 * k; M.attente = M.tc + 0.85 * k + (ch === 'eclats' ? 0.7 : 0.5); corpsInerte(mo);
+    M.tv = 0.55 * k; M.tc = M.tv + 0.6 * k; M.ts = M.tc + 1.1 * k; M.attente = M.tc + 1.2 + (ch === 'eclats' ? 0.3 : 0); /* (le bilan s'ouvre 0,8 s plus tard : 2 s apres le choc, 01/11/2026) */ corpsInerte(mo);
     const off = h * 0.5, L = ch === 'flanc' ? [-M.cote * off, 0] : [0, ch === 'arriere' ? -off : off]; M.p = versMonde(mo.x, mo.z, m.rotation.y, L[0], L[1]); /* (la ou tombe son corps) */
     pouf(mo.x, M.sol, mo.z, 3, (AURAS[mo.d.element] || { halo: '#e2413a' }).halo); }
   M.t += dt; const t = M.t, k = M.k, el = mo.d.element, St = AURAS[el], p = M.p;
@@ -1938,7 +1938,8 @@ function mortLourde(mo, dt) {
     secousse(0.2, 0.35); eclatsRoche(cx, M.sol + 0.5, cz, 26, 1.5); poussiere(cx, M.sol, cz, 26, M.h * 0.7, '#b8ab98'); pouf(cx, M.sol, cz, 4, '#9a8e7e'); }
 }
 /* son corps ne se clique plus (un clic dessus deplace le perso), et il garde le numero de la vague ou il est tombe */
-function corpsInerte(mo) { mo.m.traverse((o) => { o.raycast = () => {}; }); mo.vagueMort = combat && combat.arene ? combat.arene.k : null; }
+function corpsInerte(mo) { mo.m.traverse((o) => { o.raycast = () => {}; }); mo.vagueMort = combat && combat.arene ? combat.arene.k : null;
+  [mo.halo, mo.epinesC, mo.bulleB, mo.anneauG, mo.bulleP, mo.flamme, mo.givre].forEach((o) => { if (o) o.visible = false; }); } /* (ce qui flottait sur lui s'eteint : la bulle d'os du Chafer restait sur son corps couche, 01/11/2026) */
 /* a l'Arene, la vague suivante arrive : son corps se dissipe dans un nuage de poussiere et de ce qui montait de lui */
 function finCorps(mo, M) {
   if (!combat || !combat.arene || combat.arene.k === mo.vagueMort || !mo.m.parent) return false;
@@ -1952,7 +1953,7 @@ function chuteSquelette(mo) {
   const C = mo.chute, H = mo.m.getObjectByName('mixamorigHips'), p = H ? H.getWorldPosition(new T.Vector3()) : new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.5, mo.z), sol = solA(mo.x, mo.z); /* (sans os Mixamo, le Lemurien : on suit la duree de sa chute) */
   if (C.h0 == null) { C.h0 = Math.max(0.3, p.y - sol); mo.mort = { t: 0, attente: C.d + 0.4, sol }; corpsInerte(mo); } mo.mort.t = C.t; if (finCorps(mo, mo.mort) || C.choc) return;
   if ((H && p.y - sol < C.h0 * 0.4) || C.t > C.d * (H ? 0.9 : 0.6)) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6), el = mo.d.element;
-    secousse(0.26, 0.45); pouf(p.x, sol, p.z, 5, '#8e7a5e'); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 10, 1.5); if (el) impactElement(el, p.x, p.z, R); }
+    mo.mort.attente = C.t + 1.2; /* (le bilan 2 s apres le choc) */ secousse(0.26, 0.45); pouf(p.x, sol, p.z, 5, '#8e7a5e'); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 10, 1.5); if (el) impactElement(el, p.x, p.z, R); }
 }
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
