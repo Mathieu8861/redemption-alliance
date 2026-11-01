@@ -693,9 +693,51 @@ function sauterSurPerso(mo) {
    dans la fiche du monstre (MONSTRES). ctx : m (le modele), dt, s, pp (la position du perso), bloque (il prepare un sort ou s'abrite), vSort, sortPret. */
 /* le geste joue par un monstre a squelette pour un sort : celui de sa fiche (gestes : { seisme: 'toupie', ... }, 28/10/2026), sinon celui d'usage */
 const gesteDe = (mo, cap, def) => (mo.d.gestes && mo.d.gestes[cap]) || def;
+/* L'AURA DE RAGE (01/11/2026, par Discord : « retravailler la rage esthetiquement, une aura visiblement autour de leur corps », Mathieu) : deux coques qui epousent
+   son corps (gonflees le long des normales, comme le contour : elles suivent ses mouvements et ses animations), une rouge dehors, une orange plus serree, qui
+   ondulent vers le haut comme des flammes ; un halo rouge qui bat au sol ; des volutes rouges qui montent. Tous les boss et demi-boss, a squelette ou non */
+const AURA_T = { value: 0 };
+function matAura(couleur, ep, r, op, additif, peau) {
+  const m = new T.MeshBasicMaterial({ color: couleur, transparent: true, opacity: op, depthWrite: false, side: T.BackSide, blending: additif ? T.AdditiveBlending : T.NormalBlending, skinning: peau });
+  m.onBeforeCompile = (sh) => { sh.uniforms.uT = AURA_T; sh.uniforms.uEp = { value: ep }; sh.uniforms.uR = { value: r };
+    sh.vertexShader = 'uniform float uT; uniform float uEp; uniform float uR;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  float hA = position.y / uR;\n  float fA = 0.7 + 0.35 * sin(uT * 8.0 - hA * 7.0) + 0.18 * sin(uT * 21.0 + position.x / uR * 9.0) + 0.25 * max(0.0, hA);\n  transformed += normalize(normal) * uEp * fA;'); }; /* (plus haut, plus gonfle, et ca monte : des flammes ; normal et pas objectNormal : la matiere de base ne le definit qu'avec un squelette, le shader ne compilait pas) */
+  m.customProgramCacheKey = () => 'aura-rage-' + (additif ? 'a' : 'n') + (peau ? 's' : ''); return m;
+}
+/* l'aura de son element (« il faudrait que l'aura soit adaptee a l'element du monstre », Mathieu, le meme jour) : ses couleurs (dehors, dedans, halo) et ce qui
+   monte de lui ; sans element (Moon), le rouge de la rage */
+const AURAS = {
+  feu: { ext: '#ff2a10', int: '#ffb02e', halo: '#ff3a1e', c: ['#ffb02e', '#ff3a1e', '#7a1408'], v: 2.6, t: 0.22 },
+  terre: { ext: '#5a3818', int: '#d8a050', halo: '#8a5a2a', op: 0.55, /* (plus fonce et plus opaque : sur la laine blanche du Royal, elle ne se voyait pas) */ c: ['#c9a06a', '#8a6a46', '#5a4028'], v: 1.4, t: 0.16, grav: -1, fum: ['#b89a72', '#9a8262'] },
+  eau: { ext: '#1e78d8', int: '#a8e4ff', halo: '#3a9be0', c: ['#ffffff', '#8fd8ff', '#3a9be0'], v: 2.4, t: 0.14, grav: 3 },
+  poison: { ext: '#3f9a1e', int: '#c8f58a', halo: '#5fbf2a', c: ['#d8ff9a', '#7ad04a', '#3f6a1e'], v: 1.2, t: 0.2, fum: ['#9fd060', '#5f9a2e'] },
+  magie: { ext: '#7a3fd8', int: '#e0c4ff', halo: '#9a5af0', c: ['#ffffff', '#d0a8ff', '#7a3fd8'], v: 1.8, t: 0.14, lum: true },
+  vent: { ext: '#7fb8d0', int: '#ffffff', halo: '#a8d8ec', c: ['#ffffff', '#cfe7f2', '#8fb8cc'], v: 0.8, t: 0.14, tourne: 4 },
+  lune: { ext: '#6fa8ff', int: '#eef8ff', halo: '#9fc8ff', c: ['#ffffff', '#bfe6ff', '#6f9ae0'], v: 1.0, t: 0.12, lum: true },
+};
+function auraRageCorps(mo) {
+  if (mo.aura || !mo.m) return; const L = [], c0 = combat, St = AURAS[mo.d.element] || AURAS.feu, w = new T.Vector3(), H = mo.haut || 3;
+  mo.m.updateMatrixWorld(true); mo.m.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshToonMaterial && o.geometry && !(o.userData && o.userData.ep != null) && o.name !== 'contour') L.push(o); });
+  const A = []; L.forEach((o) => { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); let ep, uR;
+    if (o.isSkinnedMesh) { const r = o.geometry.boundingSphere.radius || 1; ep = r * 0.045; uR = r; } /* (un corps a squelette : son rayon, dans ses unites) */
+    else { o.getWorldScale(w); const s = Math.max(1e-4, Math.abs(w.y)); ep = H * 0.045 / s; uR = H / s; } /* (des pieces : la meme epaisseur pour toutes, a la taille du monstre) */
+    [[St.ext, 1.0, St.op || 0.32, false], [St.int, 0.45, 0.45, true]].forEach(([coul, e, op, add]) => { const mt = matAura(coul, ep * e, uR, op, add, !!o.isSkinnedMesh); let k;
+      if (o.isSkinnedMesh) { k = new T.SkinnedMesh(o.geometry, mt); k.bind(o.skeleton, o.bindMatrix); o.parent.add(k); } else { k = new T.Mesh(o.geometry, mt); o.add(k); }
+      k.frustumCulled = false; k.raycast = () => {}; k.renderOrder = 5; A.push(k); }); });
+  mo.aura = A;
+  const halo = new T.Mesh(new T.RingGeometry(0.55, 1, 40), new T.MeshBasicMaterial({ color: St.halo, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide })); halo.rotation.x = -Math.PI / 2; halo.renderOrder = 3; halo.raycast = () => {}; scene.add(halo);
+  const R = (mo.d.ombre || 2) * 0.75; let tic = 0, ang = 0;
+  effets.push((dt) => { const fin = combat !== c0 || mo.etat !== 'actif'; if (fin) { A.forEach((k) => { if (k.parent) k.parent.remove(k); k.material.dispose(); }); jeter(halo); mo.aura = null; return true; }
+    AURA_T.value = performance.now() / 1000; const b = 0.5 + 0.5 * Math.sin(AURA_T.value * 5);
+    halo.position.set(mo.x, solA(mo.x, mo.z) + 0.05, mo.z); halo.scale.setScalar(R * (1 + 0.12 * b)); halo.material.opacity = 0.35 + 0.25 * b; /* (le halo bat au sol) */
+    ang += dt * (St.tourne || 0);
+    if ((tic += dt) > 0.07) { tic = 0; const a = Math.random() * Math.PI * 2 + ang, rr = R * (0.5 + 0.4 * Math.random()), y = mo.m.position.y, x = mo.x + Math.cos(a) * rr, z = mo.z + Math.sin(a) * rr, vt = St.tourne ? St.tourne * rr : 0;
+      emettre(St.lum ? FX_LUM : FX_VIF, 1, { x, y: y + 0.2 + Math.random() * H * 0.5, z, v: [-Math.sin(a) * vt, St.v, Math.cos(a) * vt], dv: 0.4, vie: [0.5, 0.8], taille: [St.t, 0.03], c: St.c, frein: 0.5, grav: St.grav || 0 }); /* (ce qui monte de lui, a son element) */
+      if (St.fum && Math.random() < 0.35) emettre(FX_FUM, 1, { x, y: y + 0.3, z, v: [0, St.v * 0.6, 0], vie: [0.7, 1.1], taille: [0.5, 1.2], c: St.fum, a: 0.45 }); }
+    return false; });
+}
 function capRage(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
-  if (mo.d.rage && !mo.enrage && !(mo.d.affaibli && m0Anim(mo) && !mo.faibleFini) && mo.pv < mo.pvMax * (combat.difficile ? DUR.rage : 0.3)) { /* (Moon : sa rage vient apres ses Gorilles, finFaible) */ mo.enrage = true; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a');
+  if (mo.d.rage && !mo.enrage && !(mo.d.affaibli && m0Anim(mo) && !mo.faibleFini) && mo.pv < mo.pvMax * (combat.difficile ? DUR.rage : 0.3)) { /* (Moon : sa rage vient apres ses Gorilles, finFaible) */ mo.enrage = true; pouf(mo.x, mo.m.position.y, mo.z, 3, '#e2413a'); if (mo.d.boss) auraRageCorps(mo); /* (l'aura de rage, 01/11/2026) */
     if (mo.d.calumet) { mo.deg = Math.round(mo.deg * 1.25); if (mo.deg0 != null) mo.deg0 = Math.round(mo.deg0 * 1.25); /* (sur l'ile, la rage repart de deg0 : le calumet y reste) */ poserFumee(mo.x, mo.z, 2.8, 0, mo); toast('Le Koulosse tire sur son calumet de la paix : il s\'entoure de fumée, frappe plus fort et bien plus vite. Ne reste pas collé à lui !', 'alerte'); }
     else toast(leNom(mo.d) + ' entre en rage : ' + (mo.d.fem ? 'elle' : 'il') + ' frappe bien plus vite !', 'alerte'); }
 }
