@@ -224,6 +224,7 @@ function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennen
   if (ranges.length) setTimeout(() => toast('Les rochers et les lanternes de l\'île sont maintenant des décorations. ' + ranges.length + ' gênai' + (ranges.length > 1 ? 'ent' : 't') + ' un passage : ' + (ranges.length > 1 ? 'elles t\'attendent' : 'elle t\'attend') + ' dans tes décorations (Aménager, puis Décorations).', 'or'), 5000);
 }
 function construireDecos() {
+  lanternesAnim.forEach((A) => { jeter(A.sol); A.halo.material.dispose(); }); fontainesAnim.forEach((A) => jeter(A.g)); /* (leur lueur et leur eau sont faites ici : on les libere, 01/11/2026) */
   decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; lanternesAnim = []; pavesMesh.clear(); let manque = false;
   S_.cases.forEach((c) => {
     if (c.type === 'route') { c.type = 'libre'; c.pave = c.deco || 'route_pavee'; if (c.rotD) c.paveRot = c.rotD; delete c.deco; delete c.rotD; } /* (la route posee comme une case, le 01/11 au soir : devenue un sol) */
@@ -334,7 +335,7 @@ function animerFontaines(dt, s) {
 }
 /* « Mes décorations » : ce qui est range ou achete, a poser */
 function ouvrirDecos() {
-  const L = Object.keys(DECOS).filter((k) => nbDecos(k) > 0 || (DECOS[k].bord && Object.keys(S_.clotures || {}).length)); /* (des clotures posees : on peut revenir les ranger) */
+  const L = Object.keys(DECOS).filter((k) => nbDecos(k) > 0 || (DECOS[k].bord && Object.keys(S_.clotures || {}).length) || (DECOS[k].sol && S_.cases.some((c) => c.pave === k))); /* (des clotures ou des paves poses : on peut revenir les ranger) */
   ouvrirModale('decos', entete('Mes décorations') + '<p class="hdv-aide">Ce que tu as rangé ou acheté : pose-les où tu veux sur ta ferme. Pour ranger une décoration ou un arbre, passe par Aménager et touche-le.</p>' +
     (L.length ? '<div class="deco-grille">' + L.map((k) => '<div class="deco-carte"><img src="assets/icones/deco-' + k + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + DECOS[k].nom + '</b><span class="n">×' + nbDecos(k) + '</span><button class="btn kamas" data-poser-deco="' + k + '">Poser</button></div>').join('') + '</div>'
       : '<p class="deco-vide">Rien de rangé pour l\'instant. Achète des décorations à l\'HDV, ou range celles de ta ferme avec Aménager.</p>') +
@@ -347,7 +348,7 @@ function corpsDecoHdv() {
     '<div class="deco-pied deco-tete"><button class="btn discret" data-mes-decos>Mes décorations' + (stock ? ' (' + stock + ')' : '') + '</button></div>' +
     ks.filter((k) => nv >= DECOS[k].niv).map((k) => { const D = DECOS[k], n = nbDecos(k), po = posees(k);
       return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + '</div></div>' +
-        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n ? '<button class="btn discret mini" data-poser-deco="' + k + '">Poser</button>' : '') + '</div></div>'; }).join('') +
+        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n || ((D.sol || D.bord) && po) ? '<button class="btn discret mini" data-poser-deco="' + k + '">' + (n ? 'Poser' : 'Ranger') + '</button>' : '') + '</div></div>'; }).join('') +
     (ks.some((k) => nv < DECOS[k].niv) ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + ks.filter((k) => nv < DECOS[k].niv).map((k) => '<div class="art verrou">' + ico('deco-' + k) + '<div><b>' + DECOS[k].nom + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + DECOS[k].niv + '</span></div></div>').join('') : '');
 }
 let batisMesh = [];

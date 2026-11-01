@@ -436,13 +436,13 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.pv <= 0 && mo.butinK > 1) { S_.kamas += mo.butinK; chiffre('+' + fmt(mo.butinK) + ' kamas', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast('Le ' + mo.d.nom + ' est abattu : tes ' + fmt(mo.butinK) + ' kamas reviennent à la grange !', 'or'); mo.butinK = 0; rendreHaut(); }
   if (mo.pv <= 0 && mo.d.demonte && !combat.raid) { const x = mo.x, z = mo.z, y = mo.m.position.y; setTimeout(() => { if (!combat || combat.fin) return; apparaitre(mo.d.demonte, { x, z }); const nm = combat.monstres[combat.monstres.length - 1]; nm.dep = { x, y: y + 1.3, z }; nm.t = 0.25; combat.total++;
     chiffre('Il continue à pied !', new T.Vector3(x, y + 2.6, z), 'butin'); if (!combat.demonteVu) { combat.demonteVu = true; toast('Sa monture tombe, mais le ' + mo.d.nom + ' continue à pied !', 'alerte'); } }, 0); }
-  if (mo.pv <= 0 && combat.arene && Math.random() < runeParMonstre(combat.arene.k) * (1 + caracs().prospection / 100)) { /* l'Arene : une rune, rarement, sur un monstre abattu (0,1 % des la vague 3, 0,25 % des la 10e, 0,5 % des la 15e) */
+  if (mo.pv <= 0 && combat.arene && !mo.d.sansButin && Math.random() < runeParMonstre(combat.arene.k) * (1 + caracs().prospection / 100)) { /* l'Arene : une rune, rarement, sur un monstre abattu (0,1 % des la vague 3, 0,25 % des la 10e, 0,5 % des la 15e) */
     runes().forge = (runes().forge || 0) + 1; combat.arene.runes.forge = (combat.arene.runes.forge || 0) + 1; son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#b48cff');
     chiffre('★ Rune de forgemagie !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast('★ Une rune de forgemagie ! Elle t\'attend à l\'atelier de forgemagie.', 'or'); }
-  if (mo.pv <= 0 && combat.arene && combat.genre !== 'ile' && !mo.d.boss && combat.arene.k >= 5) { const pros = 1 + caracs().prospection / 100; /* l'Arene : une piece de SA panoplie, des la 5e vague (0,25 % par monstre, jet de 50 % au moins ; 20/10/2026, « c'est pour la revente », Mathieu) */
+  if (mo.pv <= 0 && combat.arene && combat.genre !== 'ile' && !mo.d.boss && !mo.d.sansButin && combat.arene.k >= 5) { const pros = 1 + caracs().prospection / 100; /* l'Arene : une piece de SA panoplie, des la 5e vague (0,25 % par monstre, jet de 50 % au moins ; 20/10/2026, « c'est pour la revente », Mathieu) */
     if (Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoDe(statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
       chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
-  if (mo.pv <= 0) { if (combat.st) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
+  if (mo.pv <= 0) { if (combat.st && !mo.d.sansButin) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
 }
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
 /* (le Bouftou des vagues 1 a 10 lache de la laine depuis le 14/10/2026 : « ouais applique », Mathieu ; il ne lachait aucune ressource) */
@@ -680,6 +680,7 @@ function blesserPerso(n, mo) {
   if (classeDe() === 'iop') { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins (et un bouclier dore qui s'eclaire, 22b-effets.js) */
   if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */
+  return true; /* (le coup a touche : la malediction du Lemurien s'en sert, 01/11/2026) */
 }
 /* LE TEMPS POUR ESQUIVER les elans des monstres, du signal (rond ou bande rouge) au coup (18/10/2026, « entre 1,5 et 2 secondes », Mathieu) */
 const DUREE_COLLE = 1.5; /* colle dans la boue du Dragon Cochon (20/10/2026) */
@@ -1814,7 +1815,7 @@ function capMalediction(mo, ctx) { /* la malediction : un masque fantome part de
     else if (t < 0.5 + MA.duree) { const u = t - 0.5, presse = u / MA.duree; q.position.set(p.x + Math.sin(u * 3) * 0.2, p.y + 2.5 + 0.15 * Math.sin(u * 6), p.z);
       anneau.position.set(p.x, solA(p.x, p.z) + 0.06, p.z); anneau.scale.setScalar(MA.R * (1 + 0.07 * Math.sin(u * (8 + 18 * presse)))); anneau.material.opacity = 0.75; } /* (il te suit) */
     else if (!arret) { arret = { x: p.x, z: p.z }; anneau.visible = false;
-      zoneDanger({ mo, x: arret.x, z: arret.z, r: MA.R, duree: MA.prepa, couleur: '#8a3fc8', effet: (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && dansDanger(dz, p2.x, p2.z)) { blesserPerso(dg, mo); if (combat === c0 && !c0.fin) { coller(MA.maudit, 'Maudit !'); envoutement(MA.maudit); } } } }); }
+      zoneDanger({ mo, x: arret.x, z: arret.z, r: MA.R, duree: MA.prepa, couleur: '#8a3fc8', effet: (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && dansDanger(dz, p2.x, p2.z) && blesserPerso(dg, mo) && combat === c0 && !c0.fin && c0.deroute == null) { coller(MA.maudit, 'Maudit !'); envoutement(MA.maudit); } } }); } /* (maudit seulement si le coup touche, 01/11/2026) */
     if (arret) { const u = t - 0.5 - MA.duree, y = solA(arret.x, arret.z), k = Math.min(1, u / MA.prepa); q.position.set(arret.x, y + 2.5 - k * k * 1.7, arret.z); q.scale.setScalar(0.9 * (1 + 0.6 * k)); /* (il tombe en gonflant) */
       if (u >= MA.prepa) { jeter(q, anneau); secousse(0.18, 0.3); impactMagie(arret.x, arret.z, MA.R, '#8a3fc8'); eclatsRoche(arret.x, y + 0.8, arret.z, 10, 0.8, MATS_BOIS);
         emettre(FX_FUM, 14, { x: arret.x, y: y + 0.6, z: arret.z, r: MA.R * 0.5, v: [0, 1.2, 0], dv: 1.2, vie: [0.8, 1.3], taille: [0.6, 1.4], c: ['#9ff0c0', '#5a2f8a'], a: 0.55, frein: 1 }); return true; } }
@@ -1850,7 +1851,7 @@ function capMarteauMoon(mo, ctx) {
   const nom = an.A.coup_1 ? 'coup_1' : piocher(an, 'coup'), imp = ((mo.m.userData.impacts || {})[nom] || [{ t: 0.9 }])[0].t, a = jouerAnim(an, nom, 0.12); a.timeScale = imp / TA; mo.geste = { t: 0, d: TA + 0.25, ts: a.timeScale }; /* (il l'abat au-dessus de sa tete : il le lache au moment ou il tomberait) */
   if (!c0.marteauMoonVu) { c0.marteauMoonVu = true; toast(leNom(mo.d) + ' lance son marteau sur toi : son onde de choc fait plus mal près du centre. Puis il le ramasse et bondit sur toi !', 'alerte'); }
   zoneDanger({ mo, x: c.x, z: c.z, r: MM.R * 0.45, duree: TA + TV, fort: 1.6, effet: () => {} }); /* (le centre, plus fonce : la ou ca fait le plus mal) */
-  zoneDanger({ mo, x: c.x, z: c.z, r: MM.R, duree: TA + TV, effet: () => { const dg = degatsOnde(mo, c.x, c.z, MM.R, MM.x); if (dg && combat === c0 && !c0.fin) blesserPerso(dg, mo); } });
+  zoneDanger({ mo, x: c.x, z: c.z, r: MM.R, duree: TA + TV, effet: () => { if (mo.faible) return; const dg = degatsOnde(mo, c.x, c.z, MM.R, MM.x); if (dg && combat === c0 && !c0.fin) blesserPerso(dg, mo); } }); /* (a genoux pendant le lancer : son onde ne frappe plus) */
   let t = 0, vol = null, pose = null, saut = null; const rendre = () => { if (vol) jeter(vol.m); vol = null; mart.visible = true; };
   effets.push((dt) => { t += dt;
     if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) { rendre(); return true; }
@@ -2001,7 +2002,7 @@ function chuteSquelette(mo) {
   const C = mo.chute, H = mo.m.getObjectByName('mixamorigHips'), p = H ? H.getWorldPosition(new T.Vector3()) : new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.5, mo.z), sol = solA(mo.x, mo.z); /* (sans os Mixamo, le Lemurien : on suit la duree de sa chute) */
   if (C.h0 == null) { C.h0 = Math.max(0.3, p.y - sol); mo.mort = { t: 0, attente: C.d + 0.4, sol }; corpsInerte(mo); } mo.mort.t = C.t; if (finCorps(mo, mo.mort) || C.choc) return;
   if ((H && p.y - sol < C.h0 * 0.4) || C.t > C.d * (H ? 0.9 : 0.6)) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6);
-    mo.mort.attente = C.t + 1.2; /* (le bilan 2 s apres le choc) */ secousse(0.26, 0.45); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 8, 1.4); }
+    mo.mort.attente = C.t + 1.2; /* (le bilan 2 s apres le choc) */ if (mo.ombreM) mo.ombreM.visible = false; secousse(0.26, 0.45); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 8, 1.4); }
 }
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
@@ -2092,8 +2093,9 @@ function majMonstre(mo, dt, s) {
   ctx.vSort = vSort; ctx.sortPret = sortPret;
   for (const cap of CAPACITES) { cap(mo, ctx); if (!combat || combat.fin) return; } /* (un sort qui acheve le perso clot le combat) */
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
+  if (!mo.d.totem) { /* (un totem est plante : rien ne le pousse, 01/11/2026) */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
-  { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } }
+  { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
   if (mo.queueB && m.userData.queue) m.userData.queue.rotation.y += mo.queueB; /* (le coup de queue du Dragon Cochon, 01/11/2026) */
   if (mo.ailesVite && m.userData.ailes) m.userData.ailes.forEach((a, i) => { if (a) a.rotation.z = (i ? -1 : 1) * (0.2 + mo.ailesVite * 0.6 * Math.sin(s * 34)); }); /* (ses petites ailes battent a toute vitesse pour le porter, son envol) */

@@ -328,7 +328,7 @@ function majInvoc(dt) {
 }
 function majBarreBoss(mo) {
   const el = $('boss-barre'); if (!el) return;
-  if (mo.etat === 'mort') { el.hidden = true; return; }
+  if (mo.etat === 'mort') { if (el._mo === mo) el.hidden = true; return; } /* (01/11/2026 : son corps reste jusqu'a la fin du combat ; il ne cache plus la barre d'un autre boss encore debout) */
   if (el.hidden || el._mo !== mo) { el.hidden = false; el._mo = mo; el._w = el._e = null; $('boss-nom').textContent = mo.d.nom; } /* (un nouveau boss : tout se redessine) */
   const pv = Math.max(0, Math.ceil(mo.pv)), w = (100 * pv / mo.pvMax).toFixed(1) + '%';
   if (el._w !== w) { el._w = w; $('boss-pv').style.width = w; $('boss-pv-txt').textContent = fmt(pv) + ' / ' + fmt(mo.pvMax) + ' PV'; }
