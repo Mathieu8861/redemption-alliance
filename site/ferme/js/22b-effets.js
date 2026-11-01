@@ -484,6 +484,24 @@ const GEO_FEUILLE = (() => { const s = new T.Shape(); s.moveTo(0, -0.1); s.quadr
 partager(GEO_ECLAT, GEO_BULLE, GEO_BRIN, GEO_FEUILLE);
 const MATS_ECLAT = ['#8a8070', '#6f6658', '#9a7a52', '#7a5a3a'].map((c) => mat(c)), MATS_FEUILLE = ['#5fae3a', '#7fc24f', '#4f8f2e', '#a8c84a'].map((c) => new T.MeshToonMaterial({ color: c, gradientMap: grad, side: T.DoubleSide })), MAT_BRIN = mat('#5fae3a');
 partager(MATS_ECLAT, MATS_FEUILLE, MAT_BRIN);
+/* (quatrieme version du vent et de la terre, par Discord : « il faut que ca couvre toute la zone du cercle, comme pour les autres elements », « vent, on voit pas que
+   c'est du vent », « terre, c'est juste les impacts de marteau du geant », Mathieu) */
+const TEX_TOURBILLON = texCanvas(256, (g, n) => { /* un ouragan vu du dessus : neuf bras en spirale, blancs, soulignes de bleu gris pour se voir sur le sable comme sur l'herbe */
+  const c = n / 2, d = g.createRadialGradient(c, c, 0, c, c, c); d.addColorStop(0, 'rgba(225,242,250,0.35)'); d.addColorStop(0.75, 'rgba(225,242,250,0.18)'); d.addColorStop(1, 'rgba(225,242,250,0)'); g.fillStyle = d; g.fillRect(0, 0, n, n);
+  const bras = (dx, dy, couleur, l) => { for (let k = 0; k < 9; k++) { const a0 = k / 9 * Math.PI * 2; g.beginPath(); for (let i = 0; i <= 40; i++) { const t = i / 40, a = a0 + t * 3.4, r = 8 + t * (c - 12); const x = c + dx + Math.cos(a) * r, y = c + dy + Math.sin(a) * r; if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.strokeStyle = couleur; g.lineWidth = l * (0.6 + 0.4 * (k % 3) / 2); g.lineCap = 'round'; g.stroke(); } };
+  bras(2, 2, 'rgba(70,110,130,0.45)', 6); bras(0, 0, 'rgba(255,255,255,0.95)', 4.5); });
+const TEX_VOLUTE = texCanvas(128, (g, n) => { /* le trait du vent qui finit en boucle, celui des dessins */
+  const trace = () => { g.beginPath(); g.moveTo(6, 82); g.bezierCurveTo(30, 70, 52, 90, 78, 72); for (let i = 0; i <= 30; i++) { const t = i / 30, a = -Math.PI * 0.35 + t * Math.PI * 1.75, r = 20 * (1 - t * 0.7); g.lineTo(88 + Math.cos(a) * r, 58 + Math.sin(a) * r); } };
+  g.lineCap = g.lineJoin = 'round'; trace(); g.strokeStyle = 'rgba(70,110,130,0.7)'; g.lineWidth = 10; g.stroke(); trace(); g.strokeStyle = 'rgba(255,255,255,1)'; g.lineWidth = 5.5; g.stroke(); });
+const TEX_CRAQUELE = texCanvas(256, (g, n) => { /* la terre craquelee en plaques : de la terre brune aux bords irreguliers, des fentes sombres entre des plaques (Voronoi) */
+  const c = n / 2, S = Array.from({ length: 22 }, (_, k) => { const a = k * 2.399, r = Math.sqrt((k + 0.5) / 22) * c * 0.95; return [c + Math.cos(a) * r + (fxAlea() - 0.5) * 14, c + Math.sin(a) * r + (fxAlea() - 0.5) * 14]; });
+  const im = g.createImageData(n, n), D = im.data, plus = (x, y) => { let b = 1e9, b2 = 1e9; for (const [sx, sy] of S) { const d = (sx - x) ** 2 + (sy - y) ** 2; if (d < b) { b2 = b; b = d; } else if (d < b2) b2 = d; } return Math.sqrt(b2) - Math.sqrt(b); };
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const dr = Math.hypot(x - c, y - c) / c, bord = 0.86 + 0.08 * Math.sin(Math.atan2(y - c, x - c) * 7), a = dr > bord ? Math.max(0, 1 - (dr - bord) / 0.07) : 1; if (a <= 0) continue;
+    const f = plus(x, y), fente = f < 2.2, i = (y * n + x) * 4, v = 0.9 + 0.1 * Math.sin(x * 0.7) * Math.sin(y * 0.6); /* (une fente la ou deux plaques se touchent) */
+    D[i] = fente ? 48 : 128 * v; D[i + 1] = fente ? 32 : 96 * v; D[i + 2] = fente ? 20 : 62 * v; D[i + 3] = 255 * a * (fente ? 1 : 0.72); }
+  g.putImageData(im, 0, 0); });
+const GEO_PLAQUE = new T.CylinderGeometry(1, 0.85, 1, 6); partager(GEO_PLAQUE);
 const sansClic = (o) => { o.traverse((q) => { q.raycast = () => {}; }); return o; };
 function langueFeu(x, y, z, h, vie, ph) { /* une langue de feu qui vacille (un sprite pose par sa base, en couleur pleine : en lumiere additive, elle virait au blanc sur le sable) ; renvoie de quoi la deplacer */
   const s = sansClic(new T.Sprite(new T.SpriteMaterial({ map: TEX_FLAMME, transparent: true, depthWrite: false }))); s.center.set(0.5, 0.04); s.position.set(x, y, z); scene.add(s); let t = 0;
@@ -511,11 +529,21 @@ function feuillesVolantes(x, y, z, r, n, tourne) { /* des feuilles qui partent e
       m.position.set(x + Math.cos(va) * ra, Math.max(y + 0.03, m.position.y + vy * dt), z + Math.sin(va) * ra); m.rotation.set(Math.sin(t * w + ph) * 1.2, t * 4 + ph, Math.cos(t * w * 0.7 + ph) * 0.8); /* (elle vrille et se balance) */
       if (t > 1.9) { m.scale.setScalar(s * Math.max(0, 1 - (t - 1.9) / 0.4)); } if (t > 2.3) { jeter(m); return true; } }); }
 }
-function impactTerre(x, z, r) { /* le sol se fend et se souleve en bourrelet, des eclats de roche jaillissent et rebondissent, gravier, une poussiere brune qui roule au ras du sol */
-  const y = solA(x, z); secousse(0.16, 0.28); solFendu(x, y, z, r * 1.1); cratere(x, y, z, r * 0.5, 1.8); eclatsRoche(x, y, z, 12, 1); tacheSol(x, y, z, r * 0.8, '#5a4028', 0.4, 1.9);
-  onde(x, y, z, r * 1.25, '#8b6a45', 0.45, 0.8, true);
-  emettre(FX_VIF, 16, { x, y: y + 0.1, z, r: r * 0.3, dv: 4.5, haut: true, vie: [0.5, 0.8], taille: [0.09, 0.05], c: ['#7a5a3a', '#9a7a52'], grav: 12, frein: 0.4, sol: y + 0.03, rebond: 0.3 });
-  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, v = 1.6 + fxAlea() * 1.2; emettre(FX_FUM, 1, { x: x + Math.cos(a) * r * 0.3, y: y + 0.25, z: z + Math.sin(a) * r * 0.3, v: [Math.cos(a) * v, 0.35, Math.sin(a) * v], vie: [1.0, 1.5], taille: [0.6, 1.5], c: ['#b89a72', '#9a8262'], a: 0.6, frein: 1.4 }); } /* (la poussiere roule) */
+/* LA TERRE (quatrieme version) : tout le cercle se craquelle en plaques ; les plaques se soulevent et basculent en vague du centre vers le bord, puis retombent ;
+   des cailloux sautent, une poussiere brune couvre la zone. Ni etoile de fentes ni cratere : ca, c'est le marteau de Moon */
+function impactTerre(x, z, r) {
+  const y = solA(x, z); secousse(0.16, 0.45);
+  const sol = sansClic(new T.Mesh(new T.CircleGeometry(r, 48), new T.MeshBasicMaterial({ map: TEX_CRAQUELE, transparent: true, opacity: 0, depthWrite: false }))); sol.rotation.x = -Math.PI / 2; sol.rotation.z = fxAlea() * 6; sol.position.set(x, y + 0.04, z); sol.renderOrder = 2; scene.add(sol);
+  const P = []; for (let k = 0; k < 16; k++) { const a = k * 2.399 + fxAlea() * 0.4, d = Math.sqrt((k + 0.5) / 16) * r * 0.82, s = r * fxEntre(0.13, 0.19), m = sansClic(new T.Mesh(GEO_PLAQUE, MATS_ECLAT[k % 3 === 0 ? 3 : k % 2 ? 2 : 1]));
+    m.scale.set(s, 0.14 * r / 2.2, s * fxEntre(0.8, 1.1)); m.rotation.y = fxAlea() * 6; m.position.set(x + Math.cos(a) * d, y - 0.12, z + Math.sin(a) * d); m.castShadow = true; scene.add(m);
+    P.push({ m, d, rx: fxEntre(-0.45, 0.45), rz: fxEntre(-0.45, 0.45), h: fxEntre(0.12, 0.32) * r / 2.2 }); } /* (des plaques sur toute la zone, du centre au bord) */
+  let t = 0, poussiere = 0; effets.push((dt) => { t += dt; const fin = Math.max(0, (t - 1.5) / 0.5); sol.material.opacity = Math.min(1, t / 0.1) * (1 - fin);
+    P.forEach((p) => { const k = t - p.d / r * 0.35; if (k < 0) return; const up = Math.min(1, k / 0.14), retombe = k > 0.55 ? Math.min(1, (k - 0.55) / 0.3) : 0, h = p.h * up * (1 - 0.75 * retombe) * (1 - fin);
+      p.m.position.y = y - 0.12 + 0.12 * up + h; p.m.rotation.x = p.rx * up * (1 - 0.6 * retombe); p.m.rotation.z = p.rz * up * (1 - 0.6 * retombe);
+      if (!p.saute && up >= 1) { p.saute = true; emettre(FX_VIF, 3, { x: p.m.position.x, y: y + 0.1, z: p.m.position.z, dv: 2.2, haut: true, vie: [0.4, 0.6], taille: [0.08, 0.04], c: ['#7a5a3a', '#9a7a52'], grav: 12, sol: y + 0.03, rebond: 0.3 }); } }); /* (elles jaillissent en vague, basculent, retombent) */
+    if ((poussiere += dt) > 0.05 && t < 1.0) { poussiere = 0; const a = fxAlea() * Math.PI * 2, d = Math.sqrt(fxAlea()) * r * 0.9; emettre(FX_FUM, 1, { x: x + Math.cos(a) * d, y: y + 0.2, z: z + Math.sin(a) * d, v: [Math.cos(a) * 0.6, 0.5, Math.sin(a) * 0.6], vie: [0.9, 1.4], taille: [0.6, 1.4], c: ['#a88a62', '#8a7052'], a: 0.6, frein: 1 }); } /* (la poussiere monte de toute la zone) */
+    if (t > 2) { jeter(sol); P.forEach((p) => jeter(p.m)); return true; } });
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2, v = 1.2 + fxAlea(); emettre(FX_FUM, 1, { x: x + Math.cos(a) * r * 0.85, y: y + 0.2, z: z + Math.sin(a) * r * 0.85, v: [Math.cos(a) * v, 0.3, Math.sin(a) * v], vie: [1.0, 1.4], taille: [0.6, 1.3], c: ['#b89a72', '#9a8262'], a: 0.55, frein: 1.4 }); } /* (et roule au bord) */
 }
 function impactFeu(x, z, r) { /* des langues de feu courent en anneau et vacillent, des braises et des etincelles montent, une fumee sombre s'eleve, le sol brule (fentes rougeoyantes) */
   const y = solA(x, z); secousse(0.1, 0.2); flashLumiere(x, y + 0.6, z, '#ff8a3a', 2.4, 7, 0.6); tacheSol(x, y, z, r * 0.85, '#2a1a10', 0.75, 2.6, '#ff7a1e'); solFendu(x, y, z, r * 0.8, true); onde(x, y, z, r * 1.15, '#ff7a1e', 0.4, 0.75);

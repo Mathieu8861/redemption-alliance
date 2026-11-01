@@ -951,16 +951,18 @@ function tournerVent(g, dt) { g.children.forEach((a) => { a.rotation.z += a.user
 /* L'IMPACT DE VENT (01/11/2026, par Discord : « les sorts d'impact, a chaque fois ca fait un cercle blanc un peu explosif ; la, comme c'est du vent, on pourrait
    faire un cercle de vent ? Comme si une tornade se formait, mais en forme de cercle au ras du sol, pas un truc qui part en hauteur », Mathieu) : des arcs de vent
    couches sur le sol qui tournoient en s'ouvrant, la poussiere et des feuilles emportees en rond, rien qui monte, pas d'eclair blanc */
-function rafaleVent(x, y, z, r) {
-  const y0 = solA(x, z) + 0.06, arcs = [[0.25, 2.3, 13, '#e6f3f8'], [0.4, 2.0, -11, '#8fb2c2'], [0.55, 2.4, 15, '#c4dce6'], [0.7, 1.8, -9, '#7c9fb0']].map(([d, ouv, v, col], k) => { /* (bleu gris : il se voit sur l'herbe comme sur le sable de l'Arene) */
-    const m = new T.Mesh(new T.RingGeometry(0.72, 1, 40, 1, k * 1.6, ouv), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }));
-    m.rotation.x = -Math.PI / 2; m.position.set(x, y0 + k * 0.004, z); m.renderOrder = 3; scene.add(m); return { m, d, v }; });
-  let t = 0; effets.push((dt) => { t += dt; let fini = true;
-    arcs.forEach((o) => { const k = Math.max(0, Math.min(1, (t - o.d * 0.2) / 1.0)); if (k < 1) fini = false; const e = 1 - (1 - k) * (1 - k);
-      o.m.scale.setScalar(Math.max(0.01, r * (0.3 + 0.7 * e) * (0.75 + o.d * 0.45))); o.m.rotation.z += o.v * dt * (1 - 0.5 * k); o.m.material.opacity = 0.95 * Math.min(1, k * 6) * (1 - k * k); });
-    if (fini) { arcs.forEach((o) => jeter(o.m)); return true; } });
-  for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2, d = r * (0.25 + 0.55 * Math.random()), v = 3 + Math.random() * 2.5;
-    emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.05 + Math.random() * 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v + Math.cos(a) * 1.2, 0.25, Math.cos(a) * v + Math.sin(a) * 1.2], vie: [0.55, 0.85], taille: [0.17, 0.06], c: i % 3 ? ['#b8a07a', '#8f7a5a'] : ['#ffffff', '#9fc3d3'], frein: 1.2 }); } /* (en rond, a plat) */
+function rafaleVent(x, y, z, r) { /* LE VENT (quatrieme version, par Discord : « il faut que ca couvre toute la zone du cercle », « vent, on voit pas que c'est du vent »,
+     Mathieu) : un ouragan vu du dessus qui couvre tout le cercle et tourne, les volutes du vent (le trait qui finit en boucle) qui tournent autour a hauteur de genou,
+     le sable qui tourbillonne au bord, des feuilles emportees */
+  const y0 = solA(x, z) + 0.05, ouragan = sansClic(new T.Mesh(new T.CircleGeometry(r, 48), new T.MeshBasicMaterial({ map: TEX_TOURBILLON, transparent: true, opacity: 0, depthWrite: false })));
+  ouragan.rotation.x = -Math.PI / 2; ouragan.position.set(x, y0, z); ouragan.renderOrder = 3; scene.add(ouragan);
+  const volutes = []; for (let i = 0; i < 7; i++) { const s = sansClic(new T.Sprite(new T.SpriteMaterial({ map: TEX_VOLUTE, transparent: true, opacity: 0, depthWrite: false }))); s.center.set(0.5, 0.3); scene.add(s);
+    volutes.push({ s, a: i / 7 * Math.PI * 2, d: r * fxEntre(0.45, 0.85), h: fxEntre(0.25, 0.7), k: fxEntre(0.8, 1.1) }); }
+  let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 1.3), e = 1 - (1 - k) * (1 - k), o = Math.min(1, t / 0.15) * (1 - k * k * k);
+    ouragan.scale.setScalar(0.35 + 0.65 * e); ouragan.rotation.z += dt * (10 - 7 * k); ouragan.material.opacity = 0.95 * o; /* (il s'ouvre sur tout le cercle en tournant, de moins en moins vite) */
+    volutes.forEach((v) => { v.a += dt * (4.5 - 2.5 * k); const d = v.d * (0.5 + 0.5 * e); v.s.position.set(x + Math.cos(v.a) * d, y0 + v.h + Math.sin(t * 6 + v.a) * 0.06, z + Math.sin(v.a) * d); v.s.scale.set(r * 0.42 * v.k, r * 0.42 * v.k, 1); v.s.material.opacity = o; });
+    if (k >= 1) { jeter(ouragan); volutes.forEach((v) => jeter(v.s)); return true; } });
+  for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, d = r * fxEntre(0.55, 0.95), v = fxEntre(2.5, 4); emettre(FX_FUM, 1, { x: x + Math.cos(a) * d, y: y0 + 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.25, Math.cos(a) * v], vie: [0.8, 1.2], taille: [0.4, 1.0], c: ['#e2d2ac', '#c9b48a'], a: 0.5, frein: 1.2 }); } /* (le sable tourbillonne au bord) */
   feuillesVolantes(x, y0, z, r * 0.8, 8, true); /* (de vraies feuilles emportees en rond, 22b-effets.js) */
   for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, d = r * (0.35 + 0.4 * Math.random()), v = 4 + Math.random() * 2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.1 + Math.random() * 0.3, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.1, Math.cos(a) * v], vie: [0.3, 0.45], taille: [0.06, 0.02], c: ['#ffffff', '#cfe7f2'], etire: 0.12, frein: 0.8 }); } /* (des filets d'air etires) */
 }
