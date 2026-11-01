@@ -180,7 +180,7 @@
 
     var STATUTS = [
         ['ok', 'OK, vérifié'], ['a_verifier', 'À vérifier'], ['suspect', 'Suspect'], ['allie', 'Allié'],
-        ['mule', 'Mule de quelqu\'un'], ['parti', 'Parti / à retirer'], ['inconnu', 'Inconnu']
+        ['mule', 'Mule de quelqu\'un'], ['afk', 'AFK 30 jours +'], ['parti', 'Parti / à retirer'], ['inconnu', 'Inconnu']
     ];
 
     var M = { norm: norm, cleJeu: cleJeu, morceaux: morceaux, croiser: croiser, CATEGORIES: CATEGORIES, STATUTS: STATUTS };
