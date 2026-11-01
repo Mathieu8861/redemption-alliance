@@ -56,7 +56,7 @@ const PANCARTES = [
   ['grange', () => { const g = batiPose('grange'); return g && [g, 'Grange', { h: 0.5, avance: 0.45, cotes: [1, 3] }]; }], /* (sur un des longs pans du toit, loin de la cheminee) */
   ['hdv', () => { const g = batiPose('hdv'); return g && [g, 'HDV', nivBat('nivEtal') >= 4 ? { h: 0.55, avance: 0, pied: 0.05 } : { h: 0.46, avance: 0.35, pied: 0.12 }]; }], /* (posee sur l'auvent de l'etal ; des le niveau 4, en haut du toit, a la place de l'enseigne aux trois kamas : « mets le HDV sur le toit », Mathieu, 01/11/2026) */
   ['voliere', () => volieresMesh[0] && [volieresMesh[0], 'Volière', { avance: 0.2 }]],
-  ['forge', () => { const g = batiPose('forge'); return g && [g, 'Forgemagie', { avance: 0.3 }]; }],
+  ['forge', () => { const g = batiPose('forge'); return g && [g, 'Forgemagie', { h: 0.27, avance: -0.15, pied: 0.06 }]; }], /* (01/11/2026, « refais la pancarte et le toit », Mathieu : elle faisait 3 de large pour une case de 2 et cachait le toit ; a la largeur du batiment, en haut du toit) */
   ['geliere', () => { const g = batiPose('geliere'); return g && [g, 'Gelière', { avance: 0.3 }]; }],
   ['niche', () => { const g = batiPose('niche'), G = gardienDe(); return g && G && [g, G.nom, G.espece === 'chat' ? { h: 0.3, origine: true, cotes: [1, 3], pied: 0.1 } : { h: 0.3, avance: 0.2, pied: 0.1 }]; }], /* (Newton : sur son tonneau) */
   /* (le Pépito-tron n'a plus de pancarte : « retire la pancarte », Mathieu, 31/10/2026) */
