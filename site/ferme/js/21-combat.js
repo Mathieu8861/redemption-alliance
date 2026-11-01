@@ -192,6 +192,8 @@ function ficheMonstre(t) {
   if (d.marteau || d.poings) L.push(capa('sort', 'Moulinet', d.poings ? 'Il tend le bras et tourne trois fois sur lui-même : un grand cercle ' + teinteSorts(d) + ' autour de lui, chaque tour frappe dedans.' : 'Il tend son marteau et tourne trois fois sur lui-même : un grand cercle orange autour de lui, chaque tour frappe dedans.', num(fmt(Math.round(dSort * ((d.sortsX || {}).moulinet || 0.35))) + ' dégâts par tour', 'rouge') + num(TOURS_MOULINET + ' tours'), 'violet'));
   if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : d.bondPrepa || ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
   if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR && d.seismeR < 6 ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + (d.seismeLoin ? ', et l\'onde frappe plus fort au bord' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + (d.seismeLoin ? num('+' + Math.round(d.seismeLoin.parCase * 100) + ' % par case, jusqu\'à ×' + d.seismeLoin.max, 'rouge') : '') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
+  if (d.lanceVent) L.push(capa('sort', 'Lance de vent', 'De loin, il brandit sa lance : un cercle rouge sous toi. Il la jette, elle file dans un tourbillon de vent et se plante là, une rafale jaillit. Puis le vent la lui ramène en main.', num(secondes(d.lanceVent.prepa) + ' pour esquiver') + num('toutes les ' + d.lanceVent.periode + ' s'), 'rouge'));
+  if (d.tornades) L.push(capa('saut', 'Tornades', 'Il lève sa lance : ' + d.tornades.n + ' cercles s\'annoncent, un sous toi et les autres autour. Une petite tornade jaillit de chacun et tourne ' + secondes(d.tornades.duree) + '. Dedans, tu es projeté en l\'air 1,5 s : tu ne bouges ni ne frappes.', num('en l\'air 1,5 s', 'rouge') + num('toutes les ' + d.tornades.periode + ' s'), 'bleu'));
   if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
   if (d.bain) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu'));
   if (d.boue) L.push(capa('lenteur', 'Crachat de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu'));
@@ -926,6 +928,72 @@ const poseBras = (bras, th) => bras.rotation.set(th, 0, -0.7 * Math.min(1, Math.
 const lanceOs = () => { const g = new T.Group(), L = 3.0, piece = (geo, c, z) => { const m = new T.Mesh(geo, mat(c)); m.rotation.x = Math.PI / 2; m.position.z = z; g.add(m); return m; };
   piece(new T.CylinderGeometry(0.11, 0.13, L, 8), '#efe6cf', 0); piece(new T.ConeGeometry(0.24, 0.75, 6), '#f6efdc', L / 2 + 0.35); piece(new T.CylinderGeometry(0.15, 0.15, 0.36, 8), '#7a4a28', -0.2);
   const n = new T.Mesh(new T.SphereGeometry(0.2, 8, 6), mat('#e2d8bf')); n.position.z = -L / 2; g.add(n); return g; };
+/* LA LANCE ET LES TORNADES D'EBIL (01/11/2026, « le Kanniboul Ebil, il a rien en sort ? Il a un grand baton dans sa main, transforme-le en lance, qu'il peut
+   lancer, quand il la lance il y a un effet de vent autour. Et il peut declencher des petites tornades a distance qui te propulsent dans les airs pendant 1,5 s »,
+   Mathieu). Son baton est devenu une lance (armes-kannibouls.py, lance_ebil, dans sa main droite). */
+const Y_HAUT = new T.Vector3(0, 1, 0);
+function arcsDeVent(n, r, couleur) { /* des arcs de vent qui tournent autour d'un axe (leur axe : y du groupe) */
+  const g = new T.Group(); for (let i = 0; i < n; i++) { const a = new T.Mesh(new T.TorusGeometry(r * (0.8 + 0.25 * (i % 2)), 0.045, 4, 20, Math.PI * 1.3), new T.MeshBasicMaterial({ color: couleur || (i % 2 ? '#b9d3de' : '#e6f4fa'), transparent: true, opacity: 0.9, depthWrite: false }));
+    a.rotation.x = Math.PI / 2; a.position.y = (i - (n - 1) / 2) * 0.32; a.userData.v = (i % 2 ? -1 : 1) * (9 + i * 2); g.add(a); } return g;
+}
+function tournerVent(g, dt) { g.children.forEach((a) => { a.rotation.z += a.userData.v * dt; }); }
+function rafaleVent(x, y, z, r) { /* un souffle qui jaillit en tourbillon : onde claire, poussiere, des filets blancs qui tournent en s'ecartant */
+  onde(x, y, z, r, '#eef9ff', 0.5, 0.9); poussiere(x, y, z, 10, r * 0.6, '#e6e2d6');
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, v = 3 + Math.random() * 2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * 0.3, y: y + 0.3 + Math.random() * 0.8, z: z + Math.sin(a) * 0.3, v: [Math.cos(a + 1.2) * v, 0.6, Math.sin(a + 1.2) * v], vie: [0.35, 0.55], taille: [0.12, 0.03], c: ['#ffffff', '#cfefff'], frein: 1.5 }); }
+}
+/* la lance de vent : de loin (lanceVent.loin), il la brandit, un cercle rouge sous toi ; il la jette, elle file dans un tourbillon de vent et se plante, une rafale
+   jaillit a l'impact ; puis le vent la lui ramene en main. Fiche : lanceVent: { periode, loin, R, prepa, x } */
+function capLanceVent(mo, ctx) {
+  const { pp, sortPret } = ctx, J = mo.d.lanceVent; if (!J || combat.deroute != null) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('lanceVT', J.periode) || mo.geste) return; if (dP < J.loin || dP > 16) { mo.lanceVT = J.periode; return; } /* (pret, il attend que tu sois loin) */
+  const c0 = combat, cx = pp.x, cz = pp.z, vol = Math.max(0.35, Math.min(0.6, dP / 22)), tl = J.prepa - vol, tenue = mo.m.getObjectByName('lance_ebil');
+  mo.lanceVT = 0; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); mo.bloqueT = J.prepa + 0.4; mo.cd = Math.max(mo.cd || 0, J.prepa + 0.6); mo.frappe = 0.3; gesteSort(mo, gesteDe(mo, 'lanceVent', 'sort'), tl);
+  if (!c0.lanceVentVu) { c0.lanceVentVu = true; toast(leNom(mo.d) + ' va te jeter sa lance dans un tourbillon de vent : sors du cercle rouge !', 'alerte'); }
+  let t = 0, L = null, de = null, tour = null, fin = false; const vers = new T.Vector3(cx, solA(cx, cz) + 0.35, cz), H = 1.0 + dP * 0.07, p = new T.Vector3(), q = new T.Vector3(), dir = new T.Vector3(), rendre = () => { if (tenue) tenue.visible = true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!L && mo.etat !== 'actif')) { if (L) jeter(L); if (tour) jeter(tour); rendre(); return true; }
+    if (t < tl) { const h = mainSquelette(mo); if (h && Math.random() < dt * 30) { const a = Math.random() * Math.PI * 2; emettre(FX_VIF, 1, { x: h.x + Math.cos(a) * 0.5, y: h.y + (Math.random() - 0.3) * 0.8, z: h.z + Math.sin(a) * 0.5, v: [-Math.sin(a) * 2.5, 0.8, Math.cos(a) * 2.5], vie: [0.25, 0.4], taille: [0.1, 0.03], c: ['#ffffff', '#cfefff'], frein: 1 }); } return false; } /* (le vent se leve autour de sa main) */
+    if (!L) { de = tenue ? tenue.getWorldPosition(new T.Vector3()) : (mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + 1.6, mo.z));
+      if (tenue) { L = tenue.clone(true); tenue.getWorldScale(L.scale); tenue.visible = false; } else L = lanceOs(); L.visible = true; scene.add(L); tour = arcsDeVent(4, 0.5); scene.add(tour); secousse(0.05, 0.12); }
+    const u = Math.min(1, (t - tl) / vol), u2 = Math.min(1, u + 0.03); p.lerpVectors(de, vers, u); p.y += Math.sin(u * Math.PI) * H; q.lerpVectors(de, vers, u2); q.y += Math.sin(u2 * Math.PI) * H;
+    if (!fin) { dir.subVectors(q, p); if (dir.lengthSq() < 1e-6) dir.subVectors(vers, de); dir.normalize(); L.position.copy(p); L.quaternion.setFromUnitVectors(Y_HAUT, dir); L.rotateY(u * 9); /* (la pointe en avant, elle vrille) */
+      tour.position.copy(p); tour.quaternion.setFromUnitVectors(Y_HAUT, dir); tournerVent(tour, dt);
+      const e1 = new T.Vector3().crossVectors(dir, Y_HAUT).normalize(), e2 = new T.Vector3().crossVectors(dir, e1), a = t * 26; /* (des filets de vent en spirale autour d'elle) */
+      for (const k of [0, Math.PI]) emettre(FX_VIF, 2, { x: p.x + (e1.x * Math.cos(a + k) + e2.x * Math.sin(a + k)) * 0.55, y: p.y + (e1.y * Math.cos(a + k) + e2.y * Math.sin(a + k)) * 0.55, z: p.z + (e1.z * Math.cos(a + k) + e2.z * Math.sin(a + k)) * 0.55, vie: [0.3, 0.45], taille: [0.14, 0.03], c: ['#ffffff', '#a9cfe0'], a: 1 }); traineeFleche(p); }
+    if (u < 1) return false;
+    if (!fin) { fin = true; jeter(tour); tour = null; L.position.copy(vers).addScaledVector(dir, 0.35); } /* (plantee, un peu enfoncee) */
+    if (t - tl - vol < 0.9) return false;
+    rafaleVent(vers.x, vers.y - 0.3, vers.z, 1.4); jeter(L); L = null; rendre(); const h = mainSquelette(mo); if (h) rafaleVent(h.x, h.y - 0.4, h.z, 1.0); return true; }); /* (le vent la reprend et la lui rend) */
+  zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz); secousse(0.12, 0.25); rafaleVent(cx, y, cz, J.R * 1.7); mottes(cx, y, cz, 6, 0.9);
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * J.x)), mo); } });
+}
+/* les tornades : il leve sa lance, des cercles s'annoncent (un sous toi, les autres autour) ; une petite tornade jaillit de chacun et tourne sur place. Dedans,
+   tu es aspire et projete en l'air (1,5 s : tu ne bouges ni ne frappes), puis tu retombes. Fiche : tornades: { periode, n, R, prepa, duree, x, loin } */
+function tornadeMesh(R) { /* un entonnoir d'arcs de vent qui tournent, plus large en haut, la poussiere a son pied */
+  const g = new T.Group(), n = 9; for (let i = 0; i < n; i++) { const k = i / (n - 1), a = new T.Mesh(new T.TorusGeometry(R * (0.35 + 0.8 * k), 0.06 + 0.03 * k, 4, 22, Math.PI * (1.2 + 0.4 * (i % 2))), new T.MeshBasicMaterial({ color: i % 2 ? '#c4d3d8' : '#8fa4ad', transparent: true, opacity: 0.88, depthWrite: false }));
+    a.rotation.x = Math.PI / 2; a.position.y = 0.12 + k * 2.6; a.userData = { v: (i % 2 ? 8 : 11) + i, k }; g.add(a); } /* (gris bleute : il se voit sur l'herbe comme sur le sable de l'Arene) */ return g;
+}
+function propulserPerso(mo, x, z, dg) { /* aspire par une tornade : il monte en tournoyant, reste en l'air 1,5 s en tout, puis retombe */
+  const c0 = combat; if (!c0 || c0.fin || c0.envol > 0 || !paysanMesh) return; const D = 1.5; c0.envol = D; c0.assomme = Math.max(c0.assomme || 0, D); chemin = []; arrivee = null;
+  const p = paysanMesh.position, y0 = p.y, ry0 = paysanMesh.rotation.y; let t = 0; const q = p.clone(); q.y += 2.1; chiffre('Projeté !', q, 'vol'); blesserPerso(dg, mo);
+  effets.push((dt) => { t += dt; if (combat !== c0) { c0.envol = 0; return true; } const k = Math.min(1, t / D), h = k < 0.35 ? Math.sin(k / 0.35 * Math.PI / 2) : k < 0.7 ? 1 : 1 - Math.pow((k - 0.7) / 0.3, 2);
+    p.y = y0 + 3.2 * h; p.x += (x - p.x) * Math.min(1, dt * 3) * (1 - k); p.z += (z - p.z) * Math.min(1, dt * 3) * (1 - k); paysanMesh.rotation.y = ry0 + t * 13 * (1 - k * 0.6); /* (aspire vers le coeur de la tornade, il tournoie) */
+    if (k >= 1) { c0.envol = 0; p.y = y0; paysanMesh.rotation.y = ry0; poussiere(p.x, y0, p.z, 8, 0.8, '#d8c6a0'); secousse(0.08, 0.15); return true; } });
+}
+function capTornades(mo, ctx) {
+  const { pp, sortPret } = ctx, TO = mo.d.tornades; if (!TO || combat.deroute != null) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('tornadesT', TO.periode) || mo.geste) return; if (dP < (TO.loin || 0) || dP > 20) { mo.tornadesT = TO.periode; return; } /* (a distance : pas collee a lui) */
+  const c0 = combat; mo.tornadesT = 0; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = TO.prepa + 0.3; mo.cd = Math.max(mo.cd || 0, TO.prepa + 0.4); mo.frappe = 0.3; gesteSort(mo, gesteDe(mo, 'tornades', 'sort'), TO.prepa);
+  if (!c0.tornadesVu) { c0.tornadesVu = true; toast(leNom(mo.d) + ' déchaîne des tornades : sors des cercles, elles te projettent en l\'air !', 'alerte'); }
+  const P = [{ x: pp.x, z: pp.z }]; for (let e = 0; e < 40 && P.length < TO.n; e++) { const a = Math.random() * Math.PI * 2, d = 2.2 + Math.random() * 2.2, f = pointValide(pp.x, pp.z, pp.x + Math.cos(a) * d, pp.z + Math.sin(a) * d);
+    if (P.every((o) => Math.hypot(o.x - f.x, o.z - f.z) > TO.R * 2.2)) P.push({ x: f.x, z: f.z }); } /* (une sous toi, les autres a cote : ou que tu fuies, il faut regarder) */
+  const dg = Math.max(1, Math.round(degSort(mo) * TO.x));
+  P.forEach((o) => zoneDanger({ mo, x: o.x, z: o.z, r: TO.R, duree: TO.prepa, effet: () => { const y0 = solA(o.x, o.z), g = tornadeMesh(TO.R); g.position.set(o.x, y0, o.z); g.scale.setScalar(0.01); scene.add(g); rafaleVent(o.x, y0, o.z, TO.R * 1.4);
+    let t = 0, tic = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= TO.duree) { jeter(g); return true; }
+      const k = Math.min(1, t / 0.35), f = Math.min(1, (TO.duree - t) / 0.4); g.scale.set(k * f, k, k * f); g.children.forEach((a) => { a.rotation.z += a.userData.v * dt; a.position.x = Math.sin(t * 3 + a.userData.k * 2) * 0.12 * a.userData.k; }); /* (elle tourne, son haut ondule) */
+      if ((tic += dt) > 0.06) { tic = 0; const a = Math.random() * Math.PI * 2; emettre(FX_VIF, 2, { x: o.x + Math.cos(a) * TO.R * 0.6, y: y0 + 0.1, z: o.z + Math.sin(a) * TO.R * 0.6, v: [-Math.sin(a) * 3, 2.5, Math.cos(a) * 3], vie: [0.4, 0.6], taille: [0.14, 0.05], c: ['#b8a888', '#8a7a62'], frein: 1 }); emettre(FX_FUM, 1, { x: o.x, y: y0 + 0.2, z: o.z, r: TO.R * 0.5, vie: [0.4, 0.6], taille: [0.4, 0.9], c: ['#c9bfa8', '#a89c84'], a: 0.5 }); } /* (la poussiere tourne a son pied) */
+      const p2 = paysanMesh.position; if (f > 0.5 && !(c0.envol > 0) && Math.hypot(p2.x - o.x, p2.z - o.z) < TO.R * 0.9) { propulserPerso(mo, o.x, o.z, dg); t = Math.max(t, TO.duree - 0.4); } /* (une tornade qui t'a projete se dissipe : tu ne retombes pas dedans) */
+      return false; }); } }));
+}
 function capLance(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.lance && !(mo.carapace > 0)) { /* le Chafer Cuirasse lance sa lance d'os quand le perso se tient loin : une bande rouge jusqu'a lui (1 s pour en sortir), puis la lance file ;
@@ -1390,7 +1458,7 @@ function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/20
     return true; });
 }
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
