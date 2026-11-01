@@ -796,6 +796,27 @@ function capGeyserRage(mo, ctx) {
   if (!(mo.bloqueT > 0)) { mo.bloqueT = 0.9; gesteSort(mo, gesteDe(mo, 'invoque', 'sort'), 1.4); }
   pointsGeysers(G.n, G.r, G.r * 2).forEach((p) => lancerGeyser(mo, p.x, p.z, G.r, 1.4, true));
 }
+/* L'APPEL DES RENFORTS (01/11/2026, dans la liste de Mathieu : « un geste quand ils appellent des renforts » ; avant, ses soldats sortaient de terre
+   sans qu'il bouge) : il se dresse, la tete levee, et pousse un cri (trois ondes a sa couleur partent de sa tete, l'ecran tremble) ; au sol, deux cercles
+   d'invocation a sa couleur s'ouvrent la ou vont sortir ses soldats ; il s'abat, et ils jaillissent de terre. Un monstre a squelette rugit (son animation) */
+function criAppel(mo, C) {
+  const y = mo.m.position.y + (mo.haut || 3) * 0.85, s0 = (mo.haut || 3) / 3;
+  for (let i = 0; i < 3; i++) { const m = new T.Mesh(new T.RingGeometry(0.82, 1, 40), new T.MeshBasicMaterial({ color: C, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide })); m.renderOrder = 6; m.raycast = () => {}; m.position.set(mo.x, y, mo.z); scene.add(m); let t = -i * 0.14;
+    effets.push((dt) => { t += dt; if (t < 0) return false; const k = t / 0.6; m.lookAt(camera.position); m.scale.setScalar(s0 * (0.4 + 2.4 * k)); m.material.opacity = 0.85 * (1 - k); if (k >= 1) { jeter(m); return true; } }); }
+}
+function gesteAppel(mo, points, apres) {
+  const St = AURAS[mo.d.element], C = St ? [St.ext, St.int, St.halo] : ['#e0b050', '#fff1c0', '#a07020'], c0 = combat, sq = mo.m.userData.anim, neutre = () => { mo.penche = 0; mo.dresse = 0; mo.hop = 0; mo.teteB = 0; }; let t = 0, cri = false, choc = false;
+  mo.bloqueT = Math.max(mo.bloqueT || 0, 1.3); if (sq) gesteSort(mo, gesteDe(mo, 'appel', 'rugir'), 0.6);
+  points.forEach((p, i) => { let tw = 0; effets.push((dt) => { tw += dt; if (combat !== c0 || mo.etat !== 'actif') return true; if (tw < 0.15 + i * 0.1) return false; cercleInvocation(p.x, solA(p.x, p.z), p.z, C); return true; }); });
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { if (!sq) neutre(); return true; }
+    if (!sq) { if (t < 0.55) { const u = Math.sin(Math.min(1, t / 0.55) * Math.PI / 2); mo.penche = -0.3 * u; mo.dresse = 0.1 * u; mo.hop = 0.3 * u; mo.teteB = -0.45 * u; } /* (il se dresse, la tete levee) */
+      else if (t < 0.72) { const u = (t - 0.55) / 0.17; mo.penche = -0.3 + 0.62 * u; mo.dresse = 0.1 * (1 - u); mo.hop = 0.3 * (1 - u) - 0.15 * u; mo.teteB = -0.45 + 0.6 * u; } /* (il s'abat) */
+      else { const u = Math.min(1, (t - 0.72) / 0.45); mo.penche = 0.32 * (1 - u); mo.dresse = 0; mo.hop = -0.15 * (1 - u); mo.teteB = 0.15 * (1 - u); } }
+    if (!cri && t > 0.3) { cri = true; criAppel(mo, C[0]); secousse(0.08, 0.45); }
+    if (!choc && t > 0.72) { choc = true; const y = mo.m.position.y; poussiere(mo.x, y, mo.z, 14, (mo.d.ombre || 2) * 0.8, '#d8c6a0'); onde(mo.x, y, mo.z, (mo.d.ombre || 2) * 1.6, C[0], 0.4, 0.7, true);
+      points.forEach((p) => { const y2 = solA(p.x, p.z); mottes(p.x, y2, p.z, 8, 1.2); poussiere(p.x, y2, p.z, 10, 1.1, '#d8c6a0'); }); apres(); } /* (ils jaillissent de terre) */
+    if (t > 1.2) { if (!sq) neutre(); return true; } return false; });
+}
 function capTroupe(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.boss) { /* sa troupe : il la rappelle toutes les 16 s (deux monstres, s'il n'en a pas deja 6 debout), et elle le protege tant qu'elle est pres de lui */
@@ -807,7 +828,8 @@ function capTroupe(mo, ctx) {
         if (!combat.rappelVu) { combat.rappelVu = true; toast(leNom(mo.d) + ' appelle deux ' + rf[1] + ' : ' + (mo.d.fem ? 'elle' : 'il') + ' en rappellera toutes les ' + RAPPEL_TROUPE + ' s tant qu\'' + (mo.d.fem ? 'elle' : 'il') + ' sera debout !', 'alerte'); }
         else if (rf !== mo.d.renforts && !combat.rappelRageVu) { combat.rappelRageVu = true; toast(leNom(mo.d) + ' enragé appelle maintenant des ' + rf[1] + ' : ils tirent de loin !', 'alerte'); }
         else chiffre('Renforts !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.4, mo.z), 'butin');
-        mo.frappe = 0.3; for (let k = 0; k < 2; k++) { const a = k * 2.6 + 0.4 + Math.random(); apparaitre(rf[0], { x: mo.x + Math.cos(a) * 1.8, z: mo.z + Math.sin(a) * 1.8 }); combat.total++; }
+        const r = Math.max(1.8, (mo.d.ombre || 2) * 0.85), c0 = combat, P = [0, 1].map((k) => { const a = k * 2.6 + 0.4 + Math.random(); return pointValide(mo.x, mo.z, mo.x + Math.cos(a) * r, mo.z + Math.sin(a) * r); }); /* (a l'ecart de son corps, meme chez les grands) */
+        gesteAppel(mo, P, () => { if (combat !== c0 || c0.fin) return; P.forEach((p) => { apparaitre(rf[0], { x: p.x, z: p.z }); combat.total++; }); });
       }
     }
     const pr = protectionBoss(mo); if (pr > 0 && !(mo.protege > 0) && !combat.protegeVu) { combat.protegeVu = true; toast('Sa troupe protège ' + leNom(mo.d, true) + ' : chaque monstre près ' + (mo.d.fem ? 'd\'elle' : 'de lui') + ' lui retire 12 % de tes dégâts. Dégage-les, puis frappe le boss !', 'alerte'); }
