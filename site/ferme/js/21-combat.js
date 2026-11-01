@@ -441,7 +441,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.pv <= 0 && combat.arene && combat.genre !== 'ile' && !mo.d.boss && combat.arene.k >= 5) { const pros = 1 + caracs().prospection / 100; /* l'Arene : une piece de SA panoplie, des la 5e vague (0,25 % par monstre, jet de 50 % au moins ; 20/10/2026, « c'est pour la revente », Mathieu) */
     if (Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoDe(statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
       chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
-  if (mo.pv <= 0) { if (combat.st) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
+  if (mo.pv <= 0) { if (combat.st) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
 }
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
 /* (le Bouftou des vagues 1 a 10 lache de la laine depuis le 14/10/2026 : « ouais applique », Mathieu ; il ne lachait aucune ressource) */
@@ -1893,8 +1893,8 @@ function mortVolante(mo, dt) {
 }
 /* LA MORT D'UN BOSS (01/11/2026, « une vraie chute pour chacun », au lieu de tourner sur lui-meme en retrecissant comme un petit monstre) : il vacille,
    secoue de ses derniers spasmes, puis bascule de tout son poids (sur le flanc, en avant ou en arriere : chute de sa fiche), de plus en plus vite ; il
-   s'ecrase (l'ecran tremble, la poussiere, l'impact de son element la ou tombe son corps), rebondit un peu, un dernier soubresaut, ce qui monte de lui a
-   son element. (« et le fais pas disparaitre en s'enfoncant dans le sol », Mathieu, le meme jour : son corps reste couche jusqu'a la fin du combat ; a
+   s'ecrase (l'ecran tremble, la poussiere : ni l'impact de son element ni anneau, « juste il meurt », Mathieu), rebondit un peu, un dernier soubresaut.
+   (« et le fais pas disparaitre en s'enfoncant dans le sol », Mathieu, le meme jour : son corps reste couche jusqu'a la fin du combat ; a
    l'Arene, il se dissipe en poussiere quand la vague suivante arrive, sinon ils s'entasseraient.) Ceux de pierre (chute: 'eclats') se fendent, des eclats
    se detachent d'eux. Plus il est grand, plus c'est lent. Le combat attend qu'il soit a terre (attente, 23-fin-combat.js) */
 const CHUTES = { flanc: 1.45, avant: 1.38, arriere: 1.32, eclats: 1.38 };
@@ -1917,8 +1917,8 @@ function mortLourde(mo, dt) {
     M = mo.mort = { t: 0, ch, k, h, A: CHUTES[ch] || 1.4, cote: Math.random() < 0.5 ? -1 : 1, y0: m.position.y, sol: solA(mo.x, mo.z), rx0: m.rotation.x, rz0: m.rotation.z, fx: 0 };
     M.tv = 0.55 * k; M.tc = M.tv + 0.6 * k; M.ts = M.tc + 1.1 * k; M.attente = M.tc + 1.2 + (ch === 'eclats' ? 0.3 : 0); /* (le bilan s'ouvre 0,8 s plus tard : 2 s apres le choc, 01/11/2026) */ corpsInerte(mo);
     const off = h * 0.5, L = ch === 'flanc' ? [-M.cote * off, 0] : [0, ch === 'arriere' ? -off : off]; M.p = versMonde(mo.x, mo.z, m.rotation.y, L[0], L[1]); /* (la ou tombe son corps) */
-    pouf(mo.x, M.sol, mo.z, 3, (AURAS[mo.d.element] || { halo: '#e2413a' }).halo); }
-  M.t += dt; const t = M.t, k = M.k, el = mo.d.element, St = AURAS[el], p = M.p;
+  }
+  M.t += dt; const t = M.t, k = M.k, p = M.p;
   let a = 0, y = M.sol, tr = 0;
   if (t < M.tv) { const u = t / M.tv; tr = 0.07 * (1 - u * 0.5) * Math.sin(t * 38); a = 0.12 * u * u * (3 - 2 * u); y = M.y0 + (M.sol - M.y0) * Math.min(1, u * 2); } /* (il vacille, ses spasmes, il penche deja ; en plein bond, il retombe d'abord) */
   else if (t < M.tc) { const u = (t - M.tv) / (M.tc - M.tv); a = 0.12 + (M.A - 0.12) * u * u; } /* (il bascule de tout son poids, de plus en plus vite) */
@@ -1928,21 +1928,11 @@ function mortLourde(mo, dt) {
   if (M.yFixe == null) { m.position.y = y; const bas = basCorps(mo), dessus = Math.max(0, M.sol - 0.04 - bas); m.position.y = y + dessus; /* (ce qui touche le sol y reste pose, il ne s'y enfonce pas en basculant) */
     if (t > M.tc + 0.85 * k + 0.45) M.yFixe = m.position.y; } /* (a terre et immobile : on ne recalcule plus) */
   if (t >= M.tc && !M.choc) { M.choc = true; const R = Math.max(2, M.h * 0.65);
-    secousse(0.3, 0.5); pouf(p.x, M.sol, p.z, 5.5, '#8e7a5e'); poussiere(p.x, M.sol, p.z, 26, R * 1.1, '#d8c6a0'); mottes(p.x, M.sol, p.z, 12, 1.8);
-    if (el === 'esprit') mortEsprit(p.x, M.sol, p.z, R); else if (el) impactElement(el, p.x, p.z, R); else { poussiere(p.x, M.sol, p.z, 18, R * 1.4, '#cbb894'); mottes(p.x, M.sol, p.z, 8, 2.2); } /* (sans element : plus de poussiere, pas le cercle blanc) */
+    secousse(0.3, 0.5); poussiere(p.x, M.sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, M.sol, p.z, 8, 1.4); /* (« quand un boss meurt, juste il meurt : evite la flaque en dessous et l'espece d'explosion », Mathieu, 01/11/2026 : plus d'impact de son element ni d'anneau) */
     if (mo.ombreM) mo.ombreM.visible = false; }
   if (finCorps(mo, M)) return;
-  if (t > M.tc && t < M.ts + 2 && (M.fx += dt) > 0.12) { M.fx = 0; const cx = (mo.x + p.x) / 2, cz = (mo.z + p.z) / 2;
-    if (St) emettre(St.lum ? FX_LUM : FX_VIF, 2, { x: cx, y: M.sol + 0.4, z: cz, r: M.h * 0.3, v: [0, St.v * 0.7, 0], dv: 0.4, vie: [0.6, 1], taille: [St.t, 0.03], c: St.c, frein: 0.5, grav: St.grav || 0 }); /* (ce qui monte de lui, a son element) */ }
   if (M.ch === 'eclats' && t > M.ts && !M.eclats) { M.eclats = true; const cx = (mo.x + p.x) / 2, cz = (mo.z + p.z) / 2; /* (la pierre se fend, des eclats s'en detachent) */
-    secousse(0.2, 0.35); eclatsRoche(cx, M.sol + 0.5, cz, 26, 1.5); poussiere(cx, M.sol, cz, 26, M.h * 0.7, '#b8ab98'); pouf(cx, M.sol, cz, 4, '#9a8e7e'); }
-}
-/* la mort d'un mort-vivant (« le Chafer, quand il meurt, pourquoi il y a la flaque ? », Mathieu, 01/11/2026 : l'impact esprit laissait une grande tache sombre
-   sous lui) : pas de tache, ses os s'eparpillent et son ame s'echappe de son corps en montant, des lueurs vertes */
-function mortEsprit(x, y, z, r) {
-  secousse(0.2, 0.35); poussiere(x, y, z, 16, r, '#d8cfb8'); eclatsRoche(x, y + 0.4, z, 18, 1.1, MATS_OS);
-  for (let k = 0; k < 3; k++) ameEnvol(x + (Math.random() - 0.5) * r * 0.6, y + 0.3, z + (Math.random() - 0.5) * r * 0.6, 0.9 + k * 0.15, 0.25 + k * 0.3);
-  emettre(FX_LUM, 26, { x, y: y + 0.3, z, r: r * 0.6, v: [0, 1.4, 0], dv: 0.6, vie: [0.7, 1.2], taille: [0.12, 0.02], c: ['#e8fff4', '#7ff0c8', '#2f9a78'], frein: 0.5 });
+    secousse(0.12, 0.25); eclatsRoche(cx, M.sol + 0.5, cz, 9, 0.6); poussiere(cx, M.sol, cz, 12, M.h * 0.5, '#b8ab98'); } /* (discret : quelques eclats) */
 }
 /* son corps ne se clique plus (un clic dessus deplace le perso), et il garde le numero de la vague ou il est tombe */
 function corpsInerte(mo) { mo.m.traverse((o) => { o.raycast = () => {}; }); mo.vagueMort = combat && combat.arene ? combat.arene.k : null;
@@ -1950,8 +1940,8 @@ function corpsInerte(mo) { mo.m.traverse((o) => { o.raycast = () => {}; }); mo.v
 /* a l'Arene, la vague suivante arrive : son corps se dissipe dans un nuage de poussiere et de ce qui montait de lui */
 function finCorps(mo, M) {
   if (!combat || !combat.arene || combat.arene.k === mo.vagueMort || !mo.m.parent) return false;
-  const St = AURAS[mo.d.element], b = new T.Box3().setFromObject(mo.m), q = b.getCenter(new T.Vector3()), r = Math.max(1, b.getSize(new T.Vector3()).length() * 0.3);
-  poussiere(q.x, M.sol, q.z, 24, r, '#d8c6a0'); pouf(q.x, M.sol, q.z, 4, '#cbb894'); if (St) emettre(St.lum ? FX_LUM : FX_VIF, 24, { x: q.x, y: q.y, z: q.z, r, v: [0, St.v, 0], dv: 1, vie: [0.6, 1], taille: [St.t, 0.03], c: St.c, frein: 0.6 });
+  const b = new T.Box3().setFromObject(mo.m), q = b.getCenter(new T.Vector3()), r = Math.max(1, b.getSize(new T.Vector3()).length() * 0.3);
+  poussiere(q.x, M.sol, q.z, 20, r, '#d8c6a0'); /* (juste de la poussiere) */
   jeter(mo.m); return true;
 }
 /* (01/11/2026) un boss a squelette : quand son corps touche le sol (ses hanches presque au ras du sol), l'ecran tremble, la poussiere et l'impact de son
@@ -1959,8 +1949,8 @@ function finCorps(mo, M) {
 function chuteSquelette(mo) {
   const C = mo.chute, H = mo.m.getObjectByName('mixamorigHips'), p = H ? H.getWorldPosition(new T.Vector3()) : new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.5, mo.z), sol = solA(mo.x, mo.z); /* (sans os Mixamo, le Lemurien : on suit la duree de sa chute) */
   if (C.h0 == null) { C.h0 = Math.max(0.3, p.y - sol); mo.mort = { t: 0, attente: C.d + 0.4, sol }; corpsInerte(mo); } mo.mort.t = C.t; if (finCorps(mo, mo.mort) || C.choc) return;
-  if ((H && p.y - sol < C.h0 * 0.4) || C.t > C.d * (H ? 0.9 : 0.6)) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6), el = mo.d.element;
-    mo.mort.attente = C.t + 1.2; /* (le bilan 2 s apres le choc) */ secousse(0.26, 0.45); pouf(p.x, sol, p.z, 5, '#8e7a5e'); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 10, 1.5); if (el) impactElement(el, p.x, p.z, R); }
+  if ((H && p.y - sol < C.h0 * 0.4) || C.t > C.d * (H ? 0.9 : 0.6)) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6);
+    mo.mort.attente = C.t + 1.2; /* (le bilan 2 s apres le choc) */ secousse(0.26, 0.45); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 8, 1.4); }
 }
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
