@@ -485,8 +485,8 @@ const GEO_ECLAT = new T.DodecahedronGeometry(0.1, 0), GEO_BULLE = new T.SphereGe
 const GEO_FEUILLE = (() => { const s = new T.Shape(); s.moveTo(0, -0.1); s.quadraticCurveTo(0.065, -0.02, 0, 0.1); s.quadraticCurveTo(-0.065, -0.02, 0, -0.1); return new T.ShapeGeometry(s, 5); })();
 partager(GEO_ECLAT, GEO_BULLE, GEO_BRIN, GEO_FEUILLE);
 const MATS_ECLAT = ['#8a8070', '#6f6658', '#9a7a52', '#7a5a3a'].map((c) => mat(c)), MATS_FEUILLE = ['#5fae3a', '#7fc24f', '#4f8f2e', '#a8c84a'].map((c) => new T.MeshToonMaterial({ color: c, gradientMap: grad, side: T.DoubleSide })), MAT_BRIN = mat('#5fae3a');
-const MATS_OS = ['#efe6cf', '#d8cfb8', '#c9bc98'].map((c) => mat(c));
-partager(MATS_ECLAT, MATS_FEUILLE, MAT_BRIN, MATS_OS);
+const MATS_OS = ['#efe6cf', '#d8cfb8', '#c9bc98'].map((c) => mat(c)), MATS_BOIS = ['#7a5230', '#5a3a20', '#c8873a'].map((c) => mat(c));
+partager(MATS_ECLAT, MATS_FEUILLE, MAT_BRIN, MATS_OS, MATS_BOIS);
 /* (quatrieme version du vent et de la terre, par Discord : « il faut que ca couvre toute la zone du cercle, comme pour les autres elements », « vent, on voit pas que
    c'est du vent », « terre, c'est juste les impacts de marteau du geant », Mathieu) */
 const TEX_TOURBILLON = texCanvas(256, (g, n) => { /* un ouragan vu du dessus : neuf bras en spirale, blancs, soulignes de bleu gris pour se voir sur le sable comme sur l'herbe */

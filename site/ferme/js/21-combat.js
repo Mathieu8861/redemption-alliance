@@ -207,6 +207,9 @@ function ficheMonstre(t) {
   if (d.lianes) L.push(capa('lenteur', 'Lianes', 'De loin, une bande verte s\'annonce : ses lianes jaillissent. Si elles t\'attrapent, elles te tirent contre lui, puis il charge un gros coup tout autour de lui : sors du cercle.', num('coup ×' + String(d.lianes.x).replace('.', ','), 'rouge') + num('toutes les ' + d.lianes.periode + ' s'), 'bleu'));
   if (d.ultime) L.push(capa('sort', 'La nuit lunaire (ultime)', 'Il lève les bras : la nuit tombe, et des météorites s\'abattent sur toute la zone pendant ' + secondes(d.ultime.duree) + ', chacune annoncée par un cercle.', num(d.ultime.n + ' météorites', 'rouge') + num('toutes les ' + d.ultime.periode + ' s'), 'rouge'));
   if (d.lanceVent) L.push(capa('sort', 'Lance de vent', 'De loin, un cercle rouge sous toi : sa lance quitte sa main et lévite au-dessus de lui, pointée sur toi, dans un tourbillon de vent. Puis elle part d\'un coup : portée par le vent, elle file très vite et se plante là, la rafale te repousse. Le vent la lui ramène ensuite en main.', num(secondes(d.lanceVent.prepa) + ' pour esquiver') + num('toutes les ' + d.lanceVent.periode + ' s'), 'rouge'));
+  if (d.totems) L.push(capa('renfort', 'Totems-masques', 'Il plante ' + d.totems.n + ' totems-masques autour de toi : ils sortent de terre et te crachent des fléchettes. Casse-les ; ils tombent aussi avec lui.', num('toutes les ' + d.totems.periode + ' s'), 'rouge'));
+  if (d.danse) L.push(capa('sort', 'Danse vaudou', 'Des masques tournent autour de lui pendant ' + secondes(d.danse.duree) + ' : il court et frappe plus vite.', num('×' + String(d.danse.vit).replace('.', ',')) + num('toutes les ' + d.danse.periode + ' s'), 'rouge'));
+  if (d.malediction) L.push(capa('sort', 'Malédiction', 'Un masque fantôme vole au-dessus de toi et te suit pendant ' + secondes(d.malediction.duree) + ', puis s\'arrête : un cercle s\'annonce là où il tombe, sors-en. S\'il te touche, tu es maudit : tu ne peux plus bouger pendant ' + secondes(d.malediction.maudit) + ' (tu frappes encore).', num('coup ×' + String(d.malediction.x).replace('.', ','), 'rouge') + num('toutes les ' + d.malediction.periode + ' s'), 'rouge'));
   if (d.tornades) L.push(capa('saut', 'Tornades', 'Il lève sa lance : ' + d.tornades.n + ' cercles s\'annoncent, un sous toi et les autres autour. Une petite tornade jaillit de chacun et tourne ' + secondes(d.tornades.duree) + '. Dedans, tu es projeté en l\'air 1,5 s : tu ne bouges ni ne frappes.', num('en l\'air 1,5 s', 'rouge') + num('toutes les ' + d.tornades.periode + ' s'), 'bleu'));
   if (d.bourrasque) L.push(capa('lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu'));
   if (d.bain) L.push(capa('lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu'));
@@ -438,7 +441,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.pv <= 0 && combat.arene && combat.genre !== 'ile' && !mo.d.boss && combat.arene.k >= 5) { const pros = 1 + caracs().prospection / 100; /* l'Arene : une piece de SA panoplie, des la 5e vague (0,25 % par monstre, jet de 50 % au moins ; 20/10/2026, « c'est pour la revente », Mathieu) */
     if (Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoDe(statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
       chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
-  if (mo.pv <= 0) { if (combat.st) combat.st.tues++; noterTue(mo.type); compter('monstres'); son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
+  if (mo.pv <= 0) { if (combat.st) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; }
 }
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
 /* (le Bouftou des vagues 1 a 10 lache de la laine depuis le 14/10/2026 : « ouais applique », Mathieu ; il ne lachait aucune ressource) */
@@ -713,6 +716,8 @@ const AURAS = {
   magie: { ext: '#7a3fd8', int: '#e0c4ff', halo: '#9a5af0', c: ['#ffffff', '#d0a8ff', '#7a3fd8'], v: 1.8, t: 0.14, lum: true },
   vent: { ext: '#7fb8d0', int: '#ffffff', halo: '#a8d8ec', c: ['#ffffff', '#cfe7f2', '#8fb8cc'], v: 0.8, t: 0.14, tourne: 4 },
   lune: { ext: '#6fa8ff', int: '#eef8ff', halo: '#9fc8ff', c: ['#ffffff', '#bfe6ff', '#6f9ae0'], v: 1.0, t: 0.12, lum: true },
+  feuille: { ext: '#3f9a2a', int: '#d8ff9a', halo: '#5fb83a', c: ['#e8ffb0', '#8fd050', '#3f7a1e'], v: 1.2, t: 0.16, lum: true }, /* (01/11/2026) */
+  fumee: { ext: '#5a5550', int: '#c8c2b8', halo: '#7a746c', c: ['#d8d2c8', '#8a847c', '#4a4540'], v: 1.0, t: 0.18, fum: ['#8a847c', '#5a5550'] },
   esprit: { ext: '#2fc890', int: '#d8fff0', halo: '#3fd8a0', c: ['#e8fff4', '#7ff0c8', '#2f9a78'], v: 1.3, t: 0.15, lum: true, fum: ['#9ff0d0', '#3f8a70'] }, /* (le mort-vivant, 01/11/2026) */
 };
 function auraRageCorps(mo) {
@@ -1729,8 +1734,95 @@ function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/20
     places.forEach((p, k) => { pouf(p.x, solA(p.x, p.z), p.z, 2.4, '#7fe0d8'); apparaitre(I.types[k % I.types.length], { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; });
     return true; });
 }
+/* LE LEMURIEN TIKI, BETE SAUVAGE ET INCANTATEUR VAUDOU (01/11/2026, par Discord : « ses etats, c'est : bete sauvage, incantateur, en gros malediction
+   vaudou et nature, feuille, arbre », Mathieu, qui garde les quatre idees proposees) : element feuille (sa toupie et son bond font pousser l'herbe et voler
+   les feuilles), des totems-masques plantes autour de toi qui crachent des flechettes, une danse vaudou ou des masques tournent autour de lui et le rendent
+   plus vif, et une malediction : un masque fantome te suit, s'arrete, et explose */
+/* le masque tiki : une face de bois sculpte, des yeux qui luisent vert, une bouche aux dents, une couronne de feuilles (spectre : le masque fantome) */
+function masqueTiki(spectre) {
+  const g = new T.Group(), P = (geo, c, x, y, z, rz) => { const o = spectre ? new T.Mesh(geo, new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.8, depthWrite: false })) : maille(geo, c); o.position.set(x, y, z); if (rz) o.rotation.z = rz; g.add(o); return o; };
+  P(new T.BoxGeometry(0.56, 0.72, 0.12), spectre ? '#7fffb0' : '#c8873a', 0, 0, 0); P(new T.BoxGeometry(0.6, 0.12, 0.15), spectre ? '#3fd890' : '#8a4a20', 0, 0.28, 0);
+  [-1, 1].forEach((s) => { P(new T.BoxGeometry(0.16, 0.12, 0.04), '#1e1410', 0.13 * s, 0.08, 0.07); P(new T.BoxGeometry(0.2, 0.05, 0.05), spectre ? '#2f9a68' : '#5a2a10', 0.13 * s, 0.19, 0.075, -0.3 * s); P(new T.BoxGeometry(0.05, 0.14, 0.02), spectre ? '#2f9a68' : '#c83a2a', 0.22 * s, -0.08, 0.065);
+    const o = new T.Mesh(new T.SphereGeometry(0.035, 8, 6), new T.MeshBasicMaterial({ color: '#b8ff5a' })); o.position.set(0.13 * s, 0.08, 0.1); g.add(o); }); /* (les yeux, les sourcils froncés, les peintures de guerre) */
+  P(new T.BoxGeometry(0.08, 0.16, 0.08), spectre ? '#5fe8a0' : '#a86a2a', 0, -0.03, 0.09); P(new T.BoxGeometry(0.36, 0.14, 0.04), '#1e1410', 0, -0.21, 0.07);
+  for (let i = 0; i < 4; i++) P(new T.BoxGeometry(0.05, 0.05, 0.03), '#f0ead8', -0.105 + i * 0.07, -0.165, 0.09); /* (les dents) */
+  for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.32, f = P(new T.ConeGeometry(0.08, 0.42, 4), spectre ? '#7fffb0' : (i % 2 ? '#7fc24f' : '#4f8f2e'), Math.sin(a) * 0.22, 0.36 + Math.cos(a) * 0.18, -0.02, -a); f.scale.z = 0.35; } /* (la couronne de feuilles) */
+  return g;
+}
+/* le totem-masque : un poteau de bois sculpte, deux anneaux, le masque en haut, une butte de terre et des feuilles au pied */
+function fabriquerTotem() {
+  const g = new T.Group(), a = (o, y) => { o.position.y = y; g.add(o); return o; };
+  a(maille(new T.CylinderGeometry(0.45, 0.6, 0.18, 10), '#6a5236'), 0.09); a(maille(new T.CylinderGeometry(0.2, 0.26, 1.3, 8), '#6f4a2a'), 0.75);
+  [0.4, 0.95].forEach((y) => a(maille(new T.CylinderGeometry(0.25, 0.25, 0.07, 8), '#4a2e18'), y));
+  const mq = masqueTiki(); mq.position.set(0, 1.5, 0.12); mq.scale.setScalar(1.1); g.add(mq);
+  for (let i = 0; i < 5; i++) { const b = i * 1.26, f = maille(new T.ConeGeometry(0.07, 0.35, 4), i % 2 ? '#5fae3a' : '#7fc24f'); f.position.set(Math.cos(b) * 0.42, 0.25, Math.sin(b) * 0.42); f.rotation.set(Math.sin(b) * 0.6, 0, -Math.cos(b) * 0.6); f.scale.z = 0.35; g.add(f); }
+  const env = new T.Group(); env.add(g); env.userData.hauteur = 2.0; return fusionner(env);
+}
+function capTotems(mo, ctx) { /* il plante ses totems autour de toi : un cercle d'invocation vert a chaque place, ils sortent de terre 0,8 s apres */
+  const { pp, sortPret } = ctx, TO = mo.d.totems; if (!TO || combat.deroute != null || !sortPret('totemsT', TO.periode)) return;
+  const debout = combat.monstres.filter((o) => o.invoqueur === mo.id && o.d.totem && o.etat !== 'mort').length; if (debout >= TO.n) { mo.totemsT = TO.periode - 3; return; }
+  mo.totemsT = 0; mo.bloqueT = 1.1; gesteSort(mo, gesteDe(mo, 'totems', 'rugir'), 0.9);
+  if (!combat.totemsVu) { combat.totemsVu = true; toast(leNom(mo.d) + ' plante des totems-masques autour de toi : ils crachent des fléchettes, casse-les !', 'alerte'); }
+  else chiffre('Totems !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.4, mo.z), 'butin');
+  const a0 = Math.random() * Math.PI * 2, C = ['#5fae3a', '#c8f08a', '#3f7a1e'], places = [], c0 = combat;
+  for (let k = 0; k < TO.n - debout; k++) { const a = a0 + k / TO.n * Math.PI * 2, p = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * TO.R, pp.z + Math.cos(a) * TO.R); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, C); }
+  let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return true; if (t < 0.8) return false;
+    places.forEach((p) => { const y = solA(p.x, p.z); mottes(p.x, y, p.z, 8, 1.1); feuillesVolantes(p.x, y + 0.3, p.z, 0.6, 6); apparaitre('totemTiki', { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; }); return true; });
+}
+function capTotem(mo, ctx) { /* un totem te regarde ; son sorcier tombe, il s'effondre */
+  if (!mo.d.totem) return; const { pp } = ctx; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z);
+  const inv = combat.monstres.find((o) => o.id === mo.invoqueur); if (!inv || inv.etat === 'mort') { mo.pv = 0; mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (combat.cible === mo) combat.cible = null; }
+}
+function capDanse(mo, ctx) { /* la danse vaudou : des masques tournent autour de lui en montant et descendant, des lueurs vertes ; il court et frappe plus vite */
+  const { sortPret } = ctx, D = mo.d.danse; if (!D || combat.deroute != null || !sortPret('danseT', D.periode)) return;
+  mo.danseT = 0; mo.bloqueT = 0.9; gesteSort(mo, gesteDe(mo, 'danse', 'rugir'), 0.8);
+  if (!combat.danseVu) { combat.danseVu = true; toast(leNom(mo.d) + ' entre dans sa danse vaudou : des masques tournent autour de lui, il court et frappe plus vite !', 'alerte'); }
+  else chiffre('Danse vaudou !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.4, mo.z), 'butin');
+  const c0 = combat, M = []; for (let i = 0; i < D.n; i++) { const q = sansClic(masqueTiki()); q.scale.setScalar(0.05); scene.add(q); M.push(q); }
+  mo.danseV = D.vit; let t = 0, tic = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || t > D.duree) { mo.danseV = 0; M.forEach((q) => { if (combat === c0) pouf(q.position.x, q.position.y - 0.4, q.position.z, 1.2, '#7fc24f'); jeter(q); }); return true; }
+    const y0 = mo.m.position.y, o = Math.min(1, t / 0.3) * Math.min(1, (D.duree - t) / 0.3);
+    M.forEach((q, i) => { const a = t * 2.6 + i / M.length * Math.PI * 2, r = 1.5 * (0.6 + 0.4 * o); q.position.set(mo.x + Math.sin(a) * r, y0 + 1.2 + 0.25 * Math.sin(t * 5 + i * 1.3), mo.z + Math.cos(a) * r); q.rotation.y = a; q.scale.setScalar(0.7 * Math.max(0.05, o)); }); /* (ils regardent dehors) */
+    if ((tic += dt) > 0.06) { tic = 0; const q = M[Math.floor(Math.random() * M.length)]; emettre(FX_LUM, 1, { x: q.position.x, y: q.position.y, z: q.position.z, r: 0.15, v: [0, 0.6, 0], vie: [0.4, 0.7], taille: [0.12, 0.02], c: ['#e8ffb0', '#7fc24f'] }); }
+    return false; });
+}
+function capMalediction(mo, ctx) { /* la malediction : un masque fantome part de sa tete, vole au-dessus de toi et te suit (un anneau violet sous tes pieds, qui bat de plus en plus
+     vite) ; puis il s'arrete : le cercle rouge s'annonce la ou tu etais, le masque tombe en gonflant, et explose (runes violettes, fumee verte, eclats de bois) */
+  const { pp, sortPret } = ctx, MA = mo.d.malediction; if (!MA || combat.deroute != null || !sortPret('maledictionT', MA.periode)) return;
+  mo.maledictionT = 0; mo.bloqueT = 0.9; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); gesteSort(mo, gesteDe(mo, 'malediction', 'rugir'), 0.8);
+  if (!combat.maledictionVu) { combat.maledictionVu = true; toast(leNom(mo.d) + ' te maudit : un masque fantôme te suit, puis s\'arrête et tombe. Sors du cercle dès qu\'il s\'arrête, sinon tu es maudit ' + secondes(MA.maudit) + ' sans pouvoir bouger !', 'alerte'); }
+  const c0 = combat, q = sansClic(masqueTiki(true)), dg = Math.max(1, Math.round(degSort(mo) * MA.x)), de = new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.9, mo.z), vers = new T.Vector3();
+  q.scale.setScalar(0.9); q.position.copy(de); scene.add(q);
+  const anneau = new T.Mesh(new T.RingGeometry(0.86, 1, 48), new T.MeshBasicMaterial({ color: '#8a3fc8', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide })); anneau.rotation.x = -Math.PI / 2; anneau.renderOrder = 3; anneau.raycast = () => {}; scene.add(anneau);
+  let t = 0, fx = 0, arret = null;
+  effets.push((dt) => { t += dt; const p = paysanMesh.position;
+    if (combat !== c0 || c0.fin || (mo.etat !== 'actif' && !arret)) { jeter(q, anneau); return true; }
+    if (t < 0.5) { const k = t / 0.5, e = k * k * (3 - 2 * k); vers.set(p.x, p.y + 2.5, p.z); q.position.lerpVectors(de, vers, e); q.position.y += Math.sin(k * Math.PI) * 1.2; } /* (il vole jusqu'au-dessus de toi) */
+    else if (t < 0.5 + MA.duree) { const u = t - 0.5, presse = u / MA.duree; q.position.set(p.x + Math.sin(u * 3) * 0.2, p.y + 2.5 + 0.15 * Math.sin(u * 6), p.z);
+      anneau.position.set(p.x, solA(p.x, p.z) + 0.06, p.z); anneau.scale.setScalar(MA.R * (1 + 0.07 * Math.sin(u * (8 + 18 * presse)))); anneau.material.opacity = 0.75; } /* (il te suit) */
+    else if (!arret) { arret = { x: p.x, z: p.z }; anneau.visible = false;
+      zoneDanger({ mo, x: arret.x, z: arret.z, r: MA.R, duree: MA.prepa, couleur: '#8a3fc8', effet: (dz) => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && dansDanger(dz, p2.x, p2.z)) { blesserPerso(dg, mo); if (combat === c0 && !c0.fin) { coller(MA.maudit, 'Maudit !'); envoutement(MA.maudit); } } } }); }
+    if (arret) { const u = t - 0.5 - MA.duree, y = solA(arret.x, arret.z), k = Math.min(1, u / MA.prepa); q.position.set(arret.x, y + 2.5 - k * k * 1.7, arret.z); q.scale.setScalar(0.9 * (1 + 0.6 * k)); /* (il tombe en gonflant) */
+      if (u >= MA.prepa) { jeter(q, anneau); secousse(0.18, 0.3); impactMagie(arret.x, arret.z, MA.R, '#8a3fc8'); eclatsRoche(arret.x, y + 0.8, arret.z, 10, 0.8, MATS_BOIS);
+        emettre(FX_FUM, 14, { x: arret.x, y: y + 0.6, z: arret.z, r: MA.R * 0.5, v: [0, 1.2, 0], dv: 1.2, vie: [0.8, 1.3], taille: [0.6, 1.4], c: ['#9ff0c0', '#5a2f8a'], a: 0.55, frein: 1 }); return true; } }
+    q.rotation.y = Math.atan2(camera.position.x - q.position.x, camera.position.z - q.position.z); /* (il te fait face, a l'ecran) */
+    if ((fx += dt) > 0.05) { fx = 0; emettre(FX_LUM, 1, { x: q.position.x, y: q.position.y, z: q.position.z, r: 0.25, v: [0, 0.4, 0], vie: [0.4, 0.7], taille: [0.12, 0.02], c: ['#e8ffe0', '#8a3fc8', '#5fe8a0'] }); }
+    return false; });
+}
+/* maudit (« quand le masque te touche, tu es maudit pendant 2 secondes et tu ne peux pas bouger », Mathieu, le meme jour) : colle sur place (il frappe encore),
+   trois petits masques fantomes tournent autour de sa tete, un cercle violet bat a ses pieds, des lueurs violettes montent */
+function envoutement(duree) {
+  const c0 = combat, M = [0, 1, 2].map(() => { const q = sansClic(masqueTiki(true)); q.scale.setScalar(0.4); scene.add(q); return q; });
+  const anneau = new T.Mesh(new T.RingGeometry(0.7, 0.85, 40), new T.MeshBasicMaterial({ color: '#8a3fc8', transparent: true, opacity: 0.8, depthWrite: false, side: T.DoubleSide })); anneau.rotation.x = -Math.PI / 2; anneau.renderOrder = 3; anneau.raycast = () => {}; scene.add(anneau);
+  let t = 0, fx = 0; effets.push((dt) => { t += dt; const p = paysanMesh.position;
+    if (combat !== c0 || c0.fin || t > duree) { M.forEach((q) => { if (combat === c0) pouf(q.position.x, q.position.y - 0.3, q.position.z, 0.8, '#8a3fc8'); }); jeter(anneau, ...M); return true; }
+    const o = Math.min(1, t / 0.2) * Math.min(1, (duree - t) / 0.25); anneau.position.set(p.x, p.y + 0.06, p.z); anneau.scale.setScalar(1 + 0.12 * Math.sin(t * 14)); anneau.material.opacity = 0.8 * o;
+    M.forEach((q, i) => { const a = t * 3.2 + i / 3 * Math.PI * 2; q.position.set(p.x + Math.sin(a) * 0.75, p.y + 2.0 + 0.12 * Math.sin(t * 6 + i), p.z + Math.cos(a) * 0.75); q.rotation.y = a; q.scale.setScalar(0.4 * Math.max(0.05, o)); });
+    if ((fx += dt) > 0.06) { fx = 0; const a = Math.random() * Math.PI * 2; emettre(FX_LUM, 1, { x: p.x + Math.cos(a) * 0.6, y: p.y + 0.2, z: p.z + Math.sin(a) * 0.6, v: [0, 1.4, 0], vie: [0.5, 0.8], taille: [0.12, 0.02], c: ['#e0c4ff', '#8a3fc8'] }); }
+    return false; });
+}
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -1857,9 +1949,9 @@ function finCorps(mo, M) {
 /* (01/11/2026) un boss a squelette : quand son corps touche le sol (ses hanches presque au ras du sol), l'ecran tremble, la poussiere et l'impact de son
    element la ou il tombe ; le combat attend qu'il soit a terre */
 function chuteSquelette(mo) {
-  const C = mo.chute, H = mo.m.getObjectByName('mixamorigHips'); if (!H) return; const p = H.getWorldPosition(new T.Vector3()), sol = solA(mo.x, mo.z);
+  const C = mo.chute, H = mo.m.getObjectByName('mixamorigHips'), p = H ? H.getWorldPosition(new T.Vector3()) : new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.5, mo.z), sol = solA(mo.x, mo.z); /* (sans os Mixamo, le Lemurien : on suit la duree de sa chute) */
   if (C.h0 == null) { C.h0 = Math.max(0.3, p.y - sol); mo.mort = { t: 0, attente: C.d + 0.4, sol }; corpsInerte(mo); } mo.mort.t = C.t; if (finCorps(mo, mo.mort) || C.choc) return;
-  if (p.y - sol < C.h0 * 0.4 || C.t > C.d * 0.9) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6), el = mo.d.element;
+  if ((H && p.y - sol < C.h0 * 0.4) || C.t > C.d * (H ? 0.9 : 0.6)) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6), el = mo.d.element;
     secousse(0.26, 0.45); pouf(p.x, sol, p.z, 5, '#8e7a5e'); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 10, 1.5); if (el) impactElement(el, p.x, p.z, R); }
 }
 function majMonstre(mo, dt, s) {
@@ -1874,10 +1966,11 @@ function majMonstre(mo, dt, s) {
   if (mo.d.boss && !mo.invoque) majBarreBoss(mo); /* (les Gorilles appeles par Moon sont des boss : la barre reste a Moon, sinon elle sautait de l'un a l'autre) */
   if (mo.etat === 'mort' && m.userData.anim) { mortSquelette(mo, dt); return; } /* (un monstre a squelette tombe, puis s'enfonce dans le sol) */
   if (mo.etat === 'mort' && mo.d.battements) { mortVolante(mo, dt); return; } /* (Crocabulia : elle tombe du ciel, 31/10/2026) */
+  if (mo.etat === 'mort' && mo.d.totem) { if (m.parent) { const y = solA(mo.x, mo.z); eclatsRoche(mo.x, y + 0.6, mo.z, 14, 1.0, MATS_BOIS); feuillesVolantes(mo.x, y + 1.3, mo.z, 0.6, 8); poussiere(mo.x, y, mo.z, 10, 1, '#b8a07a'); jeter(m); } return; } /* (un totem-masque se brise en eclats de bois et en feuilles, 01/11/2026) */
   if (mo.etat === 'mort' && (mo.d.boss || mo.d.demi) && !mo.invoque && mo.pv <= 0) { mortLourde(mo, dt); return; } /* (un boss tombe de tout son poids, 01/11/2026) */
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
-  const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
+  const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1) * (mo.danseV || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite ; danseV : la danse vaudou du Lemurien Tiki) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
   if (mo.bloqueT > 0) mo.bloqueT -= dt;
   mo.sautT = mo.sautT == null ? Math.random() * SAUT_RECHARGE * 0.75 : mo.sautT + dt; /* (le premier bond : entre 2 et 8 s apres son arrivee, pas tous en meme temps) */
   const pp = paysanMesh.position, bloque = mo.bloqueT > 0 || !!mo.vise || mo.carapace > 0; let v = 0; /* (un boss qui prepare son sort ne marche pas) */
@@ -1916,7 +2009,7 @@ function majMonstre(mo, dt, s) {
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
