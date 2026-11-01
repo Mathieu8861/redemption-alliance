@@ -202,7 +202,7 @@ function majBandeau() {
     : mode === 'poserTour' ? 'Tour de défense (' + fmt(PRIX_TOUR[Math.min(nbTours(), PRIX_TOUR.length - 1)]) + ' kamas) : touche une case d\'herbe pour la construire.'
     : mode === 'enclos' ? texteEnclos()
     : mode === 'enclosDeplacer' ? 'Déplacer l\'enclos : touche une case d\'herbe, il s\'y installe autour, Bouftous compris' + (DOIGT ? '.' : ' (en vert : il rentre, en rouge : pas la place).')
-    : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer.';
+    : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer, une petite clôture pour la ranger.';
   marquerEnclos();
 }
 const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin').length;

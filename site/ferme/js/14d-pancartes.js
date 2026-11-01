@@ -54,7 +54,7 @@ function poserPancarte(texte, obj, o = {}) {
 const batiPose = (type) => { const o = blocBati(type); return o && batisMesh.find((m) => m.userData.cellule === o.c0.id); };
 const PANCARTES = [
   ['grange', () => { const g = batiPose('grange'); return g && [g, 'Grange', { h: 0.5, avance: 0.45, cotes: [1, 3] }]; }], /* (sur un des longs pans du toit, loin de la cheminee) */
-  ['hdv', () => { const g = batiPose('hdv'); return g && [g, 'HDV', { h: 0.46, avance: 0.35, pied: 0.12 }]; }], /* (posee sur l'auvent de l'etal) */
+  ['hdv', () => { const g = batiPose('hdv'); return g && [g, 'HDV', nivBat('nivEtal') >= 4 ? { h: 0.55, avance: 0, pied: 0.05 } : { h: 0.46, avance: 0.35, pied: 0.12 }]; }], /* (posee sur l'auvent de l'etal ; des le niveau 4, en haut du toit, a la place de l'enseigne aux trois kamas : « mets le HDV sur le toit », Mathieu, 01/11/2026) */
   ['voliere', () => volieresMesh[0] && [volieresMesh[0], 'Volière', { avance: 0.2 }]],
   ['forge', () => { const g = batiPose('forge'); return g && [g, 'Forgemagie', { avance: 0.3 }]; }],
   ['geliere', () => { const g = batiPose('geliere'); return g && [g, 'Gelière', { avance: 0.3 }]; }],

@@ -180,7 +180,7 @@ function construireArbres() {
    (blender/deco.py, 0,6 Mo) arrivent au premier besoin. pr : le pronom (pour LE deplacer, LA, LES). */
 const DECOS = {
   rocher: { nom: 'Rocher moussu', prix: 800, niv: 1, pr: 'le' }, gros_rocher: { nom: 'Gros rochers', prix: 1800, niv: 1, pr: 'les' },
-  champignons: { nom: 'Champignons', prix: 1200, niv: 1, pr: 'les' }, fleurs: { nom: 'Massif de fleurs', prix: 1500, niv: 1, pr: 'le' },
+  champignons: { nom: 'Champignons', prix: 1200, niv: 1, pr: 'les' }, fleurs: { nom: 'Parterre de fleurs', prix: 1500, niv: 1, pr: 'le' },
   lanterne: { nom: 'Lanterne de pierre', prix: 2500, niv: 10, pr: 'la' }, banc: { nom: 'Banc de bois', prix: 2000, niv: 10, pr: 'le' },
   arbre_rond: { nom: 'Arbre rond', prix: 2000, niv: 15, pr: 'le' }, sapin: { nom: 'Sapin', prix: 2500, niv: 15, pr: 'le' },
   pommier: { nom: 'Pommier', prix: 3000, niv: 20, pr: 'le' }, statue_gelee: { nom: 'Statue de Gelée', prix: 8000, niv: 25, pr: 'la' },
