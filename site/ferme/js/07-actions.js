@@ -40,7 +40,7 @@ const ACTIONS = {
     if (p.type === 'forge') { ouvrirForge(); return; }
     if (p.type === 'niche') { ouvrirGardien(); return; }
     if (p.type === 'leurre') { if (S_.leurreWabbit) ACTIONS.chasserLeurre(); else ouvrirLeurre(); return; }
-    if (p.type === 'chemin') return;
+    if (p.type === 'chemin' || p.type === 'route') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
     if (!p.c) { ACTIONS.planterChamp(p); return; }
     if (p.tofu) { if (capturable(p)) ouvrirTofu(p); else chasserDeLoin(p, () => ACTIONS.chasser(p)); return; }
@@ -333,7 +333,8 @@ const ACTIONS = {
     if (aDeplacer && aDeplacer.deco) { /* une decoration : une seule case, elle emporte son genre et son orientation */
       const src = aDeplacer.deco; if (cible === src) { toast('Choisis une autre case.'); return; }
       if (cible.type !== 'libre' || (S_.sauvage && S_.sauvage.id === cible.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
-      const deja = inaccessibles(), avant = avantCases([src, cible]); src.type = 'libre'; cible.type = 'deco'; if (refuserSiBloque(deja, avant)) return;
+      if (src.type === 'route') { src.type = 'libre'; cible.type = 'route'; } /* (la route se traverse : elle ne coupe aucun passage) */
+      else { const deja = inaccessibles(), avant = avantCases([src, cible]); src.type = 'libre'; cible.type = 'deco'; if (refuserSiBloque(deja, avant)) return; }
       ['deco', 'rotD', 'ile'].forEach((x) => { if (src[x] !== undefined) cible[x] = src[x]; delete src[x]; }); delete src.orig;
       rendreCase(src.id); rendreCase(cible.id); construireDecos(); son('planter'); aDeplacer = { deco: cible }; majBandeau(); sauver(); return;
     }
@@ -364,7 +365,7 @@ const ACTIONS = {
   },
   rangerDeco() { /* Ranger : la decoration (ou l'arbre) choisie part dans « Mes décorations », sa case redevient de l'herbe */
     S_.decos = S_.decos || {};
-    if (aDeplacer && aDeplacer.deco) { const c = aDeplacer.deco, k = c.deco; if (c.type !== 'deco' || !DECOS[k]) return;
+    if (aDeplacer && aDeplacer.deco) { const c = aDeplacer.deco, k = c.deco; if ((c.type !== 'deco' && c.type !== 'route') || !DECOS[k]) return;
       S_.decos[k] = nbDecos(k) + 1; c.type = 'libre'; ['deco', 'rotD', 'ile', 'orig'].forEach((x) => { delete c[x]; });
       rendreCase(c.id); construireDecos(); toast(DECOS[k].nom + ' ' + accordDeco(k, 'rangé') + ' dans tes décorations.', 'or'); }
     else if (aDeplacer && aDeplacer.piece !== undefined) { const k = MODELES.piecesIle[aDeplacer.piece].genre; delete S_.ileLibre[aDeplacer.piece]; S_.decos[k] = nbDecos(k) + 1; construireDecos(); toast(DECOS[k].nom + ' ' + accordDeco(k, 'rangé') + ' dans tes décorations.', 'or'); }
@@ -377,6 +378,19 @@ const ACTIONS = {
   },
   poserDeco(p) { /* depuis « Mes décorations » : sur une case d'herbe libre, puis elle reste choisie pour l'ajuster */
     const k = aPoser; if (!DECOS[k]) return;
+    if (DECOS[k].bord) { /* une cloture : le bord le plus proche du point touche ; retouche un morceau pose, il revient dans tes decorations (01/11/2026) */
+      const pt = pointClic || posCase(p), cle = bordProche(p, pt.x, pt.z); S_.clotures = S_.clotures || {}; S_.decos = S_.decos || {};
+      if (S_.clotures[cle]) { delete S_.clotures[cle]; S_.decos[k] = nbDecos(k) + 1; }
+      else { if (!nbDecos(k)) { toast('Plus de petites clôtures en réserve : achète-en à l\'HDV, ou retouche un morceau posé pour le ranger.'); return; } S_.clotures[cle] = 1; S_.decos[k]--; }
+      son('planter'); construireClotures(); majBandeau(); sauver(); return;
+    }
+    if (DECOS[k].sol) { /* une route : on pave case apres case sans quitter le mode ; retouche une case pavee, elle revient dans tes decorations (01/11/2026) */
+      S_.decos = S_.decos || {};
+      if (p.type === 'route' && p.deco === k) { p.type = 'libre'; delete p.deco; delete p.rotD; S_.decos[k] = nbDecos(k) + 1; son('planter'); rendreCase(p.id); construireDecos(); majBandeau(); sauver(); return; }
+      if (!nbDecos(k)) { toast('Plus de ' + DECOS[k].nom + ' en réserve : achète-en à l\'HDV.'); return; }
+      if (p.type !== 'libre' || (S_.sauvage && S_.sauvage.id === p.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
+      p.type = 'route'; p.deco = k; p.rotD = 0; S_.decos[k]--; son('planter'); rendreCase(p.id); construireDecos(); majBandeau(); sauver(); return;
+    }
     if (!nbDecos(k)) { toast('Plus de ' + DECOS[k].nom + ' dans tes décorations.'); mode = null; majBandeau(); rendreHaut(); return; }
     if (p.type !== 'libre' || (S_.sauvage && S_.sauvage.id === p.id)) { toast('Il faut une case d\'herbe libre.', 'alerte'); return; }
     const deja = inaccessibles(), avant = avantCases([p]); p.type = 'deco'; if (refuserSiBloque(deja, avant)) return;
@@ -384,12 +398,12 @@ const ACTIONS = {
     toast('Décoration posée. Touche une autre case pour ' + DECOS[k].pr + ' déplacer, ou Terminer.', 'or');
     aDeplacer = { deco: p }; mode = 'deplacerBat'; majBandeau(); rendreHaut(); sauver();
   },
-  acheterDeco(k) {
-    const D = DECOS[k]; if (!D) return;
+  acheterDeco(k, n) {
+    const D = DECOS[k]; if (!D) return; n = Math.max(1, n || 1); /* (n : par dizaines, la route et la cloture) */
     if (niveau(S_.xp) < D.niv) { toast(D.nom + ' : niveau ' + D.niv + '.'); return; }
-    if (S_.kamas < D.prix) { toast('Il te manque ' + fmt(D.prix - S_.kamas) + ' kamas.'); return; }
-    S_.kamas -= D.prix; S_.decos = S_.decos || {}; S_.decos[k] = nbDecos(k) + 1; son('kamas'); assurerDecos();
-    toast(D.nom + ' : dans tes décorations, pose-' + D.pr + ' où tu veux.', 'or'); rendreHaut(); ouvrirHdv('acheter'); sauver();
+    if (S_.kamas < D.prix * n) { toast('Il te manque ' + fmt(D.prix * n - S_.kamas) + ' kamas.'); return; }
+    S_.kamas -= D.prix * n; S_.decos = S_.decos || {}; S_.decos[k] = nbDecos(k) + n; son('kamas'); assurerDecos();
+    toast((n > 1 ? n + ' × ' : '') + D.nom + ' : dans tes décorations, pose-' + (n > 1 ? 'les' : D.pr) + ' où tu veux.', 'or'); rendreHaut(); ouvrirHdv('acheter'); sauver();
   },
   tournerBatiment() { /* un quart de tour ; un batiment pas carre change d'emprise, il faut la place */
     if (mode === 'enclosDeplacer') { ACTIONS.tournerEnclos(); return; }

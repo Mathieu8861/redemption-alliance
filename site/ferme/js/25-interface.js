@@ -693,8 +693,8 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-tourner') ACTIONS.tournerBatiment();
   else if (b.id === 'b-ranger') ACTIONS.rangerDeco();
   else if (b.id === 'b-mes-decos' || b.hasAttribute('data-mes-decos')) ouvrirDecos();
-  else if (b.dataset.poserDeco) { fermerModale(); if (nbDecos(b.dataset.poserDeco)) { aPoser = b.dataset.poserDeco; aDeplacer = null; mode = 'poserDeco'; assurerDecos(); majBandeau(); rendreHaut(); } }
-  else if (b.dataset.decoAchat) ACTIONS.acheterDeco(b.dataset.decoAchat);
+  else if (b.dataset.poserDeco) { fermerModale(); if (nbDecos(b.dataset.poserDeco) || (DECOS[b.dataset.poserDeco] && DECOS[b.dataset.poserDeco].bord)) { aPoser = b.dataset.poserDeco; aDeplacer = null; mode = 'poserDeco'; assurerDecos(); majBandeau(); rendreHaut(); } }
+  else if (b.dataset.decoAchat) ACTIONS.acheterDeco(b.dataset.decoAchat, +b.dataset.n || 1);
   else if (b.id === 'b-terminer') { mode = null; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.id === 'b-vagues' || b.hasAttribute('data-voir-vagues')) ouvrirVagues();
   else if (b.hasAttribute('data-lancer-vague')) lancerVague();

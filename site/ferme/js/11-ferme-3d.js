@@ -185,6 +185,11 @@ const DECOS = {
   arbre_rond: { nom: 'Arbre rond', prix: 2000, niv: 15, pr: 'le' }, sapin: { nom: 'Sapin', prix: 2500, niv: 15, pr: 'le' },
   pommier: { nom: 'Pommier', prix: 3000, niv: 20, pr: 'le' }, statue_gelee: { nom: 'Statue de Gelée', prix: 8000, niv: 25, pr: 'la' },
   fontaine: { nom: 'Fontaine', prix: 12000, niv: 30, pr: 'la' }, banniere: { nom: 'Bannière de Redemption', prix: 20000, niv: 40, pr: 'la' },
+  /* (01/11/2026, « des routes pavees, un peu dans le meme style que les pierres qu'on a sur les batiments, des lanternes de lumiere, et des petites clotures
+     pour separer nos differents champs », Mathieu) sol : la route se traverse, ne prend pas de parcelle (case 'route') ; bord : la cloture se pose sur le
+     bord d'une case (S_.clotures), juste decorative ; lumiere : la hauteur de son verre et la taille de sa lueur */
+  route_pavee: { nom: 'Route pavée', prix: 250, niv: 1, pr: 'la', sol: true }, cloture: { nom: 'Petite clôture', prix: 150, niv: 1, pr: 'la', bord: true },
+  lanterne_sol: { nom: 'Petite lanterne', prix: 1500, niv: 5, pr: 'la', lumiere: { y: 0.25, r: 0.6 } }, lanterne_pied: { nom: 'Lanterne sur pied', prix: 3500, niv: 12, pr: 'la', lumiere: { y: 1.77, r: 1.0 } },
 };
 const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
 const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
@@ -194,7 +199,7 @@ function assurerDecos() {
   if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
   decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
     versToon(G, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true }); /* (au style de l'ile, faites avec les memes outils) */
-    Object.keys(DECOS).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); });
+    Object.keys(DECOS).concat(['cloture_poteau']).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); }); /* (le poteau d'un coin de cloture : pas a vendre) */
     if (S_ && S_.perso) construireDecos();
   }).catch((e) => { console.warn('Décorations', e); decosCharge = null; });
   return decosCharge;
@@ -214,18 +219,49 @@ function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennen
   if (ranges.length) setTimeout(() => toast('Les rochers et les lanternes de l\'île sont maintenant des décorations. ' + ranges.length + ' gênai' + (ranges.length > 1 ? 'ent' : 't') + ' un passage : ' + (ranges.length > 1 ? 'elles t\'attendent' : 'elle t\'attend') + ' dans tes décorations (Aménager, puis Décorations).', 'or'), 5000);
 }
 function construireDecos() {
-  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; let manque = false;
+  decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; lanternesAnim = []; let manque = false;
   S_.cases.forEach((c) => {
-    if (c.type !== 'deco') return;
+    if (c.type !== 'deco' && c.type !== 'route') return; /* (la route pavee : une case qu'on traverse) */
     const R = c.ile != null && MODELES.piecesIle && MODELES.piecesIle[c.ile], M = R ? R.g : MODELES['deco_' + c.deco]; if (!M) { manque = true; return; }
     const m = marquer(M.clone(true), c.id), q = posCase(c);
     if (R && c.orig) m.position.copy(R.base); else m.position.set(q.x, q.y, q.z); /* (un rocher de l'ile garde sa place exacte tant qu'il n'a pas bouge) */
     m.rotation.y = (c.rotD || 0) * Math.PI / 2; scene.add(m); decosMesh.push(m);
     if (!R && c.deco === 'fontaine') { const A = eauFontaine(m); marquer(A.g, c.id); fontainesAnim.push(A); } /* (son eau, animee, 01/11/2026) */
+    if (!R && DECOS[c.deco] && DECOS[c.deco].lumiere) lueurLanterne(m, DECOS[c.deco].lumiere); /* (sa lueur, 01/11/2026) */
   });
+  construireClotures();
   Object.keys(S_.ileLibre || {}).forEach((k) => { const R = MODELES.piecesIle && MODELES.piecesIle[k]; if (!R || !S_.ileLibre[k]) return;
     const m = R.g.clone(true); m.position.copy(R.base); m.traverse((o) => { o.userData.piece = +k; }); scene.add(m); decosMesh.push(m); });
   if (manque) assurerDecos();
+}
+/* LES LANTERNES QUI LUISENT (01/11/2026) : le verre brille deja (matiere lumiere) ; autour, un halo chaud qui palpite comme une flamme, et une flaque de
+   lumiere doree au sol (en couleur normale : en lumiere additive, elle virait au blanc sur l'herbe claire). La ferme n'a pas de nuit : elles luisent toujours */
+let lanternesAnim = [], texHalo = null, texFlaqueLumiere = null;
+function lueurLanterne(m, L) {
+  texHalo = texHalo || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,240,190,0.9)'); r.addColorStop(0.35, 'rgba(255,200,90,0.45)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  texFlaqueLumiere = texFlaqueLumiere || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,214,120,0.55)'); r.addColorStop(0.6, 'rgba(255,190,90,0.18)'); r.addColorStop(1, 'rgba(255,170,60,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * 1.4); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
+  const sol = new T.Mesh(new T.CircleGeometry(L.r * 1.9, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
+  [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); }); lanternesAnim.push({ halo, sol, r: L.r, ph: Math.random() * 6 });
+}
+function animerLanternes(s) {
+  if (!lanternesAnim.length || lieu === 'arene' || lieu === 'ile') return;
+  lanternesAnim.forEach((A) => { const f = 1 + 0.07 * Math.sin(s * 7 + A.ph) + 0.04 * Math.sin(s * 13.3 + A.ph * 2); A.halo.scale.setScalar(A.r * 1.4 * f); A.sol.material.opacity = 0.85 + 0.15 * Math.sin(s * 5 + A.ph); });
+}
+/* LES PETITES CLOTURES (01/11/2026, « des petites clotures pour separer nos differents champs », Mathieu ; posees sur les bords des cases, juste decoratives) :
+   un morceau par bord, S_.clotures[cle] ; 'x' + i + '_' + j : le bord entre la case (i, j) et sa voisine (i + 1, j) ; 'z' + i + '_' + j : entre (i, j) et
+   (i, j + 1). Un poteau a chaque coin touche, un seul meme quand plusieurs morceaux s'y rejoignent. Elles ne bloquent personne et ne prennent aucune case :
+   un champ borde de clotures reste un champ */
+let cloturesMesh = [];
+function bordProche(p, x, z) { const q = posCase(p), dx = x - q.x, dz = z - q.z; return Math.abs(dx) > Math.abs(dz) ? 'x' + (dx > 0 ? p.i : p.i - 1) + '_' + p.j : 'z' + p.i + '_' + (dz > 0 ? p.j : p.j - 1); }
+function bordPos(cle) { const [i, j] = cle.slice(1).split('_').map(Number); return cle[0] === 'x' ? { x: cx(i) + S / 2, z: cz(j), long: 'z' } : { x: cx(i), z: cz(j) + S / 2, long: 'x' }; }
+function construireClotures() {
+  cloturesMesh.forEach((m) => scene.remove(m)); cloturesMesh = []; const ks = Object.keys(S_.clotures || {}); if (!ks.length) return;
+  if (!MODELES.deco_cloture || !MODELES.deco_cloture_poteau) { assurerDecos(); return; }
+  const coins = new Map(), pose = (M, x, z, ry) => { const m = M.clone(true); m.position.set(x, 0, z); m.rotation.y = ry; m.traverse((o) => { o.raycast = () => {}; }); scene.add(m); cloturesMesh.push(m); };
+  ks.forEach((k) => { const b = bordPos(k), lx = b.long === 'x'; pose(MODELES.deco_cloture, b.x, b.z, lx ? 0 : Math.PI / 2);
+    [-1, 1].forEach((s) => { const x = b.x + (lx ? s * S / 2 : 0), z = b.z + (lx ? 0 : s * S / 2); coins.set(Math.round(x * 10) + '_' + Math.round(z * 10), [x, z]); }); });
+  coins.forEach(([x, z]) => pose(MODELES.deco_cloture_poteau, x, z, 0));
 }
 /* LA FONTAINE ANIMEE (01/11/2026, « elle est vilaine la fontaine mdr, pas d'animation, un bloc de pierre », Mathieu) : la pierre vient de deco.py ;
    l'eau est faite ici : la surface du bassin (translucide, on voit le fond et les poissons), les nappes qui coulent de la vasque du haut a celle du milieu
@@ -285,7 +321,7 @@ function animerFontaines(dt, s) {
 }
 /* « Mes décorations » : ce qui est range ou achete, a poser */
 function ouvrirDecos() {
-  const L = Object.keys(DECOS).filter((k) => nbDecos(k) > 0);
+  const L = Object.keys(DECOS).filter((k) => nbDecos(k) > 0 || (DECOS[k].bord && Object.keys(S_.clotures || {}).length)); /* (des clotures posees : on peut revenir les ranger) */
   ouvrirModale('decos', entete('Mes décorations') + '<p class="hdv-aide">Ce que tu as rangé ou acheté : pose-les où tu veux sur ta ferme. Pour ranger une décoration ou un arbre, passe par Aménager et touche-le.</p>' +
     (L.length ? '<div class="deco-grille">' + L.map((k) => '<div class="deco-carte"><img src="assets/icones/deco-' + k + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + DECOS[k].nom + '</b><span class="n">×' + nbDecos(k) + '</span><button class="btn kamas" data-poser-deco="' + k + '">Poser</button></div>').join('') + '</div>'
       : '<p class="deco-vide">Rien de rangé pour l\'instant. Achète des décorations à l\'HDV, ou range celles de ta ferme avec Aménager.</p>') +
@@ -293,12 +329,12 @@ function ouvrirDecos() {
 }
 /* la categorie Deco de l'HDV : ce qui s'achete a ton niveau, puis ce qui se debloque */
 function corpsDecoHdv() {
-  const nv = niveau(S_.xp), ks = Object.keys(DECOS), stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => S_.cases.filter((c) => c.type === 'deco' && c.deco === k).length;
-  return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux.</p>' +
+  const nv = niveau(S_.xp), ks = Object.keys(DECOS), stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => (DECOS[k].bord ? Object.keys(S_.clotures || {}).length : S_.cases.filter((c) => (c.type === 'deco' || c.type === 'route') && c.deco === k).length);
+  return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux. La route pavée se traverse et ne prend pas de parcelle ; la petite clôture se pose sur le bord d\'une case, pour séparer tes champs.</p>' +
     '<div class="deco-pied deco-tete"><button class="btn discret" data-mes-decos>Mes décorations' + (stock ? ' (' + stock + ')' : '') + '</button></div>' +
     ks.filter((k) => nv >= DECOS[k].niv).map((k) => { const D = DECOS[k], n = nbDecos(k), po = posees(k);
       return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + '</div></div>' +
-        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (n ? '<button class="btn discret mini" data-poser-deco="' + k + '">Poser</button>' : '') + '</div></div>'; }).join('') +
+        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n ? '<button class="btn discret mini" data-poser-deco="' + k + '">Poser</button>' : '') + '</div></div>'; }).join('') +
     (ks.some((k) => nv < DECOS[k].niv) ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + ks.filter((k) => nv < DECOS[k].niv).map((k) => '<div class="art verrou">' + ico('deco-' + k) + '<div><b>' + DECOS[k].nom + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + DECOS[k].niv + '</span></div></div>').join('') : '');
 }
 let batisMesh = [];
