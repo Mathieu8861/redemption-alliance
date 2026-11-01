@@ -504,7 +504,7 @@ const TEX_CRAQUELE = texCanvas(256, (g, n) => { /* la terre craquelee en plaques
 const GEO_PLAQUE = new T.CylinderGeometry(1, 0.85, 1, 6); partager(GEO_PLAQUE);
 const sansClic = (o) => { o.traverse((q) => { q.raycast = () => {}; }); return o; };
 function langueFeu(x, y, z, h, vie, ph) { /* une langue de feu qui vacille (un sprite pose par sa base, en couleur pleine : en lumiere additive, elle virait au blanc sur le sable) ; renvoie de quoi la deplacer */
-  const s = sansClic(new T.Sprite(new T.SpriteMaterial({ map: TEX_FLAMME, transparent: true, depthWrite: false }))); s.center.set(0.5, 0.04); s.position.set(x, y, z); scene.add(s); let t = 0;
+  const s = sansClic(new T.Sprite(new T.SpriteMaterial({ map: TEX_FLAMME, transparent: true, depthWrite: false }))); s.center.set(0.5, 0.04); s.position.set(x, y, z); s.renderOrder = 6; scene.add(s); let t = 0; /* (dessinee apres le lit de braises, qui la recouvrait) */
   const o = { s, x, z }; effets.push((dt) => { t += dt; const k = t / vie, mont = Math.min(1, t / 0.12), f = k < 0.65 ? 1 : Math.max(0, 1 - (k - 0.65) / 0.35);
     const hh = h * mont * f * (0.75 + 0.25 * Math.sin(t * 17 + ph) + 0.12 * Math.sin(t * 31 + ph * 2)); s.scale.set(hh * 0.62, Math.max(0.001, hh), 1); s.position.set(o.x + Math.sin(t * 9 + ph) * 0.03, y, o.z); s.material.opacity = Math.min(1, f * 1.2);
     if (k >= 1) { jeter(s); return true; } }); return o;
@@ -545,15 +545,27 @@ function impactTerre(x, z, r) {
     if (t > 2) { jeter(sol); P.forEach((p) => jeter(p.m)); return true; } });
   for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2, v = 1.2 + fxAlea(); emettre(FX_FUM, 1, { x: x + Math.cos(a) * r * 0.85, y: y + 0.2, z: z + Math.sin(a) * r * 0.85, v: [Math.cos(a) * v, 0.3, Math.sin(a) * v], vie: [1.0, 1.4], taille: [0.6, 1.3], c: ['#b89a72', '#9a8262'], a: 0.55, frein: 1.4 }); } /* (et roule au bord) */
 }
-function impactFeu(x, z, r) { /* des langues de feu courent en anneau et vacillent, des braises et des etincelles montent, une fumee sombre s'eleve, le sol brule (fentes rougeoyantes) */
-  const y = solA(x, z); secousse(0.1, 0.2); flashLumiere(x, y + 0.6, z, '#ff8a3a', 2.4, 7, 0.6); tacheSol(x, y, z, r * 0.85, '#2a1a10', 0.75, 2.6, '#ff7a1e'); solFendu(x, y, z, r * 0.8, true); onde(x, y, z, r * 1.15, '#ff7a1e', 0.4, 0.75);
-  const anneau = []; for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2 + fxAlea() * 0.2; anneau.push({ a, o: langueFeu(x, y, z, r * fxEntre(0.34, 0.55), fxEntre(1.1, 1.5), fxAlea() * 6) }); }
-  for (let i = 0; i < 5; i++) langueFeu(x + fxEntre(-0.2, 0.2), y, z + fxEntre(-0.2, 0.2), r * fxEntre(0.45, 0.7), 0.5, fxAlea() * 6); /* (le coeur flambe d'un coup) */
-  for (let i = 0; i < 5; i++) { const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.6; langueFeu(x + Math.cos(a) * d, y, z + Math.sin(a) * d, r * fxEntre(0.12, 0.2), fxEntre(1.8, 2.4), fxAlea() * 6); } /* (des petits feux qui restent) */
-  let t = 0; effets.push((dt) => { t += dt; const rr = r * (0.3 + 0.62 * Math.min(1, t / 0.3)); anneau.forEach((f) => { f.o.x = x + Math.cos(f.a) * rr; f.o.z = z + Math.sin(f.a) * rr; }); /* (l'anneau s'ouvre) */
-    if (t < 1.3) { emettre(FX_LUM, 2, { x: x + fxEntre(-rr, rr) * 0.8, y: y + 0.3, z: z + fxEntre(-rr, rr) * 0.8, v: [fxEntre(-0.4, 0.4), 1.6, fxEntre(-0.4, 0.4)], vie: [0.7, 1.2], taille: [0.07, 0.01], c: ['#ffe08a', '#ff6a1e'], frein: 0.4 }); /* (braises) */
-      if (fxAlea() < 0.35) emettre(FX_FUM, 1, { x: x + fxEntre(-rr, rr) * 0.6, y: y + 0.7, z: z + fxEntre(-rr, rr) * 0.6, v: [0, 1.1, 0], vie: [1.0, 1.4], taille: [0.5, 1.4], c: ['#5a4a40', '#2e2622'], a: 0.55 }); } /* (fumee sombre) */
-    return t > 1.3; });
+/* LE FEU (troisieme version, par Discord : « le feu, c'est un peu bizarre, ca fait gaziniere, et pourquoi il y a un impact de terre en dessous ? », Mathieu) : plus
+   d'anneau de flammes ni de fentes. Tout le cercle prend feu, du centre vers le bord : des flammes de toutes tailles partout, plus hautes au coeur, sur un lit de braises
+   qui rougeoie ; puis le feu retombe, les braises palissent, la fumee monte */
+const TEX_BRAISES = texCanvas(256, (g, n) => { /* un sol calcine aux bords irreguliers, parseme de braises et de veines rougeoyantes */
+  const c = n / 2, im = g.createImageData(n, n), D = im.data;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const dx = x - c, dy = y - c, dr = Math.hypot(dx, dy) / c, an = Math.atan2(dy, dx), bord = 0.84 + 0.07 * Math.sin(an * 5) + 0.04 * Math.sin(an * 13); if (dr > bord + 0.08) continue;
+    const a = dr > bord ? 1 - (dr - bord) / 0.08 : 1, v = Math.sin(x * 0.21 + Math.sin(y * 0.13) * 3) * Math.sin(y * 0.19 + Math.sin(x * 0.11) * 3), braise = Math.max(0, v - 0.55) / 0.45, i = (y * n + x) * 4; /* (des veines qui serpentent) */
+    D[i] = 40 + 215 * braise; D[i + 1] = 26 + 120 * braise * braise; D[i + 2] = 18 + 30 * braise * braise * braise; D[i + 3] = 255 * a * (0.8 + 0.2 * braise); }
+  g.putImageData(im, 0, 0);
+  for (let k = 0; k < 160; k++) { const a = fxAlea() * Math.PI * 2, d = Math.sqrt(fxAlea()) * c * 0.8, x = c + Math.cos(a) * d, y = c + Math.sin(a) * d, rr = 1 + fxAlea() * 2.5, gr = g.createRadialGradient(x, y, 0, x, y, rr * 2);
+    gr.addColorStop(0, 'rgba(255,230,140,1)'); gr.addColorStop(0.5, 'rgba(255,120,30,0.8)'); gr.addColorStop(1, 'rgba(200,50,10,0)'); g.fillStyle = gr; g.fillRect(x - rr * 2, y - rr * 2, rr * 4, rr * 4); } }); /* (des braises) */
+function impactFeu(x, z, r) {
+  const y = solA(x, z); secousse(0.1, 0.2); flashLumiere(x, y + 0.6, z, '#ff8a3a', 2.4, 7, 0.9);
+  const lit = sansClic(new T.Mesh(new T.CircleGeometry(r, 48), new T.MeshBasicMaterial({ map: TEX_BRAISES, transparent: true, opacity: 0, depthWrite: false }))); lit.rotation.x = -Math.PI / 2; lit.rotation.z = fxAlea() * 6; lit.position.set(x, y + 0.04, z); lit.renderOrder = 2; scene.add(lit);
+  for (let k = 0; k < 26; k++) { const a = k * 2.399 + fxAlea() * 0.5, d = Math.sqrt((k + 0.5) / 26) * r * 0.85, cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d, h = r * (0.65 - 0.3 * d / r) * fxEntre(0.7, 1.2), retard = d / r * 0.3;
+    let tw = 0; effets.push((dt) => { tw += dt; if (tw < retard) return false; langueFeu(cx, y, cz, h, fxEntre(1.1, 1.7) - retard * 0.5, fxAlea() * 6); return true; }); } /* (des flammes sur tout le cercle, qui prennent du centre vers le bord) */
+  let t = 0, tic = 0; effets.push((dt) => { t += dt; const prend = Math.min(1, t / 0.3), palit = t > 1.4 ? Math.min(1, (t - 1.4) / 0.9) : 0; lit.material.opacity = prend * (1 - palit); lit.material.color.setRGB(1, 1 - 0.35 * palit, 1 - 0.45 * palit); /* (les braises palissent) */
+    if ((tic += dt) > 0.04 && t < 1.8) { tic = 0; const a = fxAlea() * Math.PI * 2, d = Math.sqrt(fxAlea()) * r * 0.85 * prend;
+      emettre(FX_LUM, 1, { x: x + Math.cos(a) * d, y: y + 0.2, z: z + Math.sin(a) * d, v: [fxEntre(-0.4, 0.4), fxEntre(1.2, 2.2), fxEntre(-0.4, 0.4)], vie: [0.7, 1.2], taille: [0.07, 0.01], c: ['#ffe08a', '#ff6a1e'], frein: 0.4 }); /* (braises qui montent) */
+      if (fxAlea() < 0.4) emettre(FX_FUM, 1, { x: x + Math.cos(a) * d, y: y + 0.8, z: z + Math.sin(a) * d, v: [0, 1.1, 0], vie: [1.1, 1.6], taille: [0.6, 1.6], c: ['#5a4a40', '#2e2622'], a: 0.5 }); } /* (fumee sombre) */
+    if (t > 2.3) { jeter(lit); return true; } });
 }
 function impactEau(x, z, r) { /* une couronne d'eau jaillit et retombe, une colonne au centre, des gouttes qui rebondissent, des rides, le sol mouille qui brille */
   const y = solA(x, z); secousse(0.08, 0.15); tacheSol(x, y, z, r * 0.9, '#2f6f9a', 0.5, 2.2, '#7fc8f0');

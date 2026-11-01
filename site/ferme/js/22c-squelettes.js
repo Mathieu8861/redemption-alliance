@@ -270,7 +270,7 @@ function coupMarteau(mo) {
     while (k < L.length && t >= L[k].t) { const imp = L[k++];
       if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible || !an.frappe) return true;
       const p = an.frappe().p, y = mo.m.position.y;
-      if (imp.sol) impactMarteau(p.x, y, p.z, mo.d.couleurSorts);
+      if (imp.sol) { if (mo.d.element) impactElement(mo.d.element, p.x, p.z, 2.0); else impactMarteau(p.x, y, p.z, mo.d.couleurSorts); } /* (le Gorille : son element ; Moon : son marteau, 01/11/2026) */
       else { secousse(0.16, 0.3); balayage(mo, x1, y, z1, ry, 3.4 * e); poussiere(p.x, y, p.z, 12, 1.4, '#d8c6a0'); } }
     return t >= d || k >= L.length && t > L[L.length - 1].t + 0.1; });
 }
@@ -336,8 +336,8 @@ function bondMarteau(mo, cx, cz) {
     if (t > t0) { const k = Math.min(1, (t - t0) / (t1 - t0)), e2 = k * k * (3 - 2 * k); mo.x = x0 + (f.x - x0) * e2; mo.z = z0 + (f.z - z0) * e2; }
     const o = Math.max(0, Math.min(1, (t - t0) / (E - t0))); ombre.scale.setScalar(Math.max(0.01, R * (0.25 + 0.65 * o))); ombre.material.opacity = 0.2 + 0.4 * o;
     if (t >= E) { jeter(ombre); return true; } });
-  zoneDanger({ mo, x: c.x, z: c.z, r: R, duree: E, effet: (d) => { if (mo.faible) return; mo.frappe = 0.4; const y = solA(c.x, c.z); impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, 7.5, C[1], 0.7, 0.6);
-    pouf(c.x, y, c.z, 5, '#8e7a5e'); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
+  zoneDanger({ mo, x: c.x, z: c.z, r: R, duree: E, effet: (d) => { if (mo.faible) return; mo.frappe = 0.4; const y = solA(c.x, c.z); if (mo.d.element) { impactElement(mo.d.element, c.x, c.z, R * 1.1); secousse(0.3, 0.4); } else { impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, 7.5, C[1], 0.7, 0.6);
+    pouf(c.x, y, c.z, 5, '#8e7a5e'); } /* (le Gorille : son element, 01/11/2026) */ const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
 }
 /* L'ETAT AFFAIBLI DE MOON (31/10/2026, « lorsque Moon tombe sous 30 % il passe dans l'etat affaibli, il devient invulnerable et bloque a 30 % ; une
    animation ou il est un genou a terre, ou endormi, pas bien ; il invoque 4 gorilles de 12k PV ; tant qu'ils ne sont pas tous morts, il regagne 1 %

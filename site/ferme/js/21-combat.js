@@ -543,7 +543,7 @@ function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de
     if (!de) { de = new T.Vector3(mo.x + Math.sin(mo.ry) * mo.d.ombre * 0.35, mo.m.position.y + mo.haut * 0.8, mo.z + Math.cos(mo.ry) * mo.d.ombre * 0.35); if (gros > 1) emettre(FX_FUM, 6, { x: de.x, y: de.y, z: de.z, r: 0.3, v: [(x - de.x) * 0.8, 0.5, (z - de.z) * 0.8], dv: 1, vie: [0.4, 0.7], taille: [0.6, 1.6], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2 }); }
     const k = Math.min(1, t); boule.position.lerpVectors(de, vers, k); boule.position.y += Math.sin(k * Math.PI) * 2.2; boule.rotation.set(k * 6, k * 4, 0); boule.scale.setScalar(1 + 0.15 * Math.sin(k * 20));
     if (gros > 1) emettre(FX_FUM, 1, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.2, vie: [0.4, 0.7], taille: [0.4, 1.1], c: ['#c8f0a0', '#9ad86a'], a: 0.55, frein: 1, entree: 0.05 });
-    if (k >= 1) { jeter(boule); if (mo.etat !== 'actif' && mo.d.boss) return true; const y = solA(x, z); pouf(x, y, z, 2.2 * gros, '#9ad86a'); if (gros > 1) { onde(x, y, z, r * 1.6, '#a8de78', 0.45, 0.8, true); emettre(FX_FUM, 14, { x, y: y + 0.4, z, r: r * 0.5, dv: 2.5, haut: true, vie: [0.6, 1], taille: [0.6, 2], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2, vrot: 1 }); secousse(0.06, 0.15); } const f = poserFumee(x, z, r, duree, null); if (f && mo.d.boss) f.de = mo; return true; } });
+    if (k >= 1) { jeter(boule); if (mo.etat !== 'actif' && mo.d.boss) return true; const y = solA(x, z); pouf(x, y, z, 2.2 * gros, '#9ad86a'); if (gros > 1 && mo.d.element === 'poison') impactPoison(x, z, r * 1.1); /* (la flaque de poison du gros nuage, 01/11/2026) */ if (gros > 1) { onde(x, y, z, r * 1.6, '#a8de78', 0.45, 0.8, true); emettre(FX_FUM, 14, { x, y: y + 0.4, z, r: r * 0.5, dv: 2.5, haut: true, vie: [0.6, 1], taille: [0.6, 2], c: ['#c8f0a0', '#8ac85a'], a: 0.6, frein: 2, vrot: 1 }); secousse(0.06, 0.15); } const f = poserFumee(x, z, r, duree, null); if (f && mo.d.boss) f.de = mo; return true; } });
 }
 /* le Koulosse inspire avant de cracher (31/10/2026) : il se cambre, la fumee monte de sa bouche et tourbillonne, puis il se penche en avant en crachant */
 function inspireKoulosse(mo, t0) {
@@ -729,7 +729,7 @@ function lancerGeyser(mo, x0, z0, R, duree, petit) { /* un geyser : le cercle bl
   effets.push((dt) => { tb += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || tb >= duree) return true; nb += dt * (25 + 110 * tb / duree) * q;
     const n = Math.floor(nb); nb -= n; if (n) emettre(FX_VIF, n, { x: x0, y: y0 + 0.05, z: z0, r: R * 0.85, plat: true, v: [0, 1.3 + 2.4 * tb / duree, 0], dv: 0.6, vie: [0.25, 0.5], taille: [0.24, 0.07], c: ['#ffffff', C[1], C[0]], a: 0.9, grav: 4 }); });
   zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => { const y = solA(x0, z0);
-    geyserEau(x0, y, z0, R, C, petit); if (!petit) secousse(0.12, 0.3);
+    geyserEau(x0, y, z0, R, C, petit); if (!petit) secousse(0.12, 0.3); if (!petit && mo.d.element === 'eau') impactEau(x0, z0, R); /* (l'eau couvre le cercle, 01/11/2026) */
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).geyser || 1)), mo); } });
 }
 /* SA RAGE (30/10/2026, « sous 30 % de sa vie elle envoie des geysers partout sur la map, a differents endroits, qu'il faut esquiver assez souvent ; ca nous
@@ -791,7 +791,7 @@ function sillageCharge(mo, a, dt) {
   if (Math.random() < dt * 20) for (const s of [-1, 1]) emettre(FX_VIF, 1, { x: mo.x + dz * R * 0.9 * s, y: y + 0.5 + Math.random() * (mo.haut || 2) * 0.5, z: mo.z - dx * R * 0.9 * s, v: [-dx * 9, 0, -dz * 9], vie: [0.18, 0.28], taille: [0.07, 0.03], c: ['#ffffff', '#efe2c0'], a: 0.9, etire: 0.04 }); /* (des filets d'air le long de ses flancs) */
 }
 function chocCharge(mo, a, p) {
-  const y = p.y + 1.0; secousse(0.3, 0.35); etoileImpact(new T.Vector3(p.x, y, p.z), 1.5, '#ffd27a'); onde(p.x, solA(p.x, p.z), p.z, 3, '#fff1c0', 0.4, 0.8); poussiere(p.x, solA(p.x, p.z), p.z, 12, 1.4, '#d8c6a0');
+  const y = p.y + 1.0; secousse(0.3, 0.35); if (mo.d.element) impactElement(mo.d.element, p.x, p.z, 2.2); else { etoileImpact(new T.Vector3(p.x, y, p.z), 1.5, '#ffd27a'); onde(p.x, solA(p.x, p.z), p.z, 3, '#fff1c0', 0.4, 0.8); } /* (le Bouftou Royal : la terre, 01/11/2026) */ poussiere(p.x, solA(p.x, p.z), p.z, 12, 1.4, '#d8c6a0');
   if (combat && !combat.fin) repousserPerso(mo, 1.6 * S); /* (bouscule, projete un peu plus loin) */
 }
 function finCharge(mo, a, mur) {
@@ -822,7 +822,7 @@ function capCharge(mo, ctx) {
           if (piq) mo.hop = 1.7 * (1 - k) * (1 - k); else if (tete) sillageCharge(mo, a, dt2); else if (Math.random() < 0.5) pouf(mo.x, solA(mo.x, mo.z), mo.z, 0.9, '#d8c8a8');
           const p2 = paysanMesh.position; if (!touche && (!piq || k > 0.5) && Math.hypot(p2.x - mo.x, p2.z - mo.z) < (petit ? 1.1 : 1.3) * (tete ? Math.max(1, mo.d.ombre * 0.55) : 1)) { touche = true; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).charge || 1)), mo); if (mo.d.menotte) coller(mo.d.menotte, 'Menotté !'); if (tete) chocCharge(mo, a, p2); }
           if (k >= 1) { mo.hop = 0; mo.bloqueT = cleB ? 0.8 : 0.25; pouf(mo.x, solA(mo.x, mo.z), mo.z, 2.2, '#d8c8a8'); if (tete) finCharge(mo, a, !!cleB);
-            const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p; impactMarteau(q.x, solA(q.x, q.z), q.z, mo.d.couleurSorts); } /* (le Gorille : ses poings au sol, 31/10/2026) */
+            const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p; if (mo.d.element) impactElement(mo.d.element, q.x, q.z, 2.2); else impactMarteau(q.x, solA(q.x, q.z), q.z, mo.d.couleurSorts); } /* (le Gorille : ses poings au sol, 31/10/2026 ; son element, 01/11/2026) */
             if (cleB && combat && !combat.fin) { pouf(f.x, solA(f.x, f.z) + 0.6, f.z, 3, '#8e7a5e'); blesserBat(cleB, degatsBatiment(1, mo)); if (!combat.chargeBatVu) { combat.chargeBatVu = true; chiffre('Bam !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'gros'); } } /* sonne, il reste un instant sur place */
             return true; } });
       } });
@@ -914,7 +914,7 @@ function capBond(mo, ctx) {
           mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = Math.sin(k * Math.PI) * Hl; if (lourd) mo.penche = 0.45 * Math.sin(k * Math.PI) - 0.15 * (1 - k); }
         if (ombre) { const o = Math.max(0, Math.min(1, t / EB)); ombre.scale.setScalar(Math.max(0.01, R * (0.2 + 0.7 * o))); ombre.material.opacity = 0.15 + 0.4 * o; }
         if (t >= EB) { mo.hop = 0; mo.envol = false; if (ombre) jeter(ombre); if (lourd) { let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.3 * Math.max(0, 1 - r / 0.4); mo.hop = -0.3 * Math.sin(Math.min(1, r / 0.4) * Math.PI); return r >= 0.4; }); } return true; } });
-      zoneDanger({ mo, x: cx, z: cz, r: R, duree: EB, effet: (d) => { mo.frappe = 0.4; pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
+      zoneDanger({ mo, x: cx, z: cz, r: R, duree: EB, effet: (d) => { mo.frappe = 0.4; if (mo.d.element) { impactElement(mo.d.element, cx, cz, R * 1.1); secousse(0.3, 0.4); } else { pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); } /* (l'impact de son element, 01/11/2026) */ /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
         if (mo.d.bondVol) { const y = solA(cx, cz); secousse(0.42, 0.6); onde(cx, y, cz, R * 2.6, '#c9b28a', 0.7, 1); mottes(cx, y, cz, 16, 1.4); emettre(FX_VIF, 24, { x: cx, y: y + 0.3, z: cz, r: 0.6, dv: 6, haut: true, vie: [0.45, 0.8], taille: [0.2, 0.08], c: ['#6a4524', '#4a2f18', '#8e6640'], grav: 12, frein: 0.6 }); } /* (le Dragon Cochon : la terre tremble plus fort, la boue gicle) */
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
     }
@@ -1128,7 +1128,7 @@ function capJet(mo, ctx) {
     if (hache) { arme.rotation.set(-2.3, a, 0); arme.position.y = vers.y - 0.2; let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.2) arme.position.y -= d3 * 2; if (s2 > 1.7) { pouf(cx, solA(cx, cz), cz, 1.5, '#9aa3ad'); jeter(arme); return true; } }); }
     else { jeter(arme); emettre(FX_VIF, 20, { x: cx, y: vers.y, z: cz, r: 0.5, dv: 5, haut: true, vie: [0.4, 0.8], taille: [0.16, 0.06], c: ['#8a8070', '#5f5850'], grav: 10, frein: 1 }); emettre(FX_LUM, 10, { x: cx, y: vers.y, z: cz, r: 0.4, dv: 4, haut: true, vie: [0.3, 0.5], taille: [0.2, 0.04], c: ['#ffd27a', '#ff6a1e'], grav: 6 }); }
     return true; });
-  zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz); impactMarteau(cx, y, cz); onde(cx, y, cz, J.R * 1.6, '#ffd27a', 0.5, 0.7);
+  zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz), el = J.element || mo.d.element; if (el) { impactElement(el, cx, cz, J.R * 1.1); secousse(0.2, 0.3); } else { impactMarteau(cx, y, cz); onde(cx, y, cz, J.R * 1.6, '#ffd27a', 0.5, 0.7); } /* (la hache : terre ; le rocher de lave : feu, 01/11/2026) */
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * J.x)), mo); } });
 }
 /* LA FAILLE du Craqueleur Legendaire (31/10/2026) : il frappe le sol, une bande s'annonce jusqu'a toi, puis le sol eclate en chapelet depuis ses pieds
@@ -1176,6 +1176,7 @@ function capCarapace(mo, ctx) {
    rochers jaillissent et retombent dans le cercle, eclair, ondes, poussiere, grosse secousse ; un cratere la ou tombent ses poings */
 const MAT_ROCHER = mat('#8a8070'); partager(MAT_ROCHER);
 function seismeBoss(mo, x, y, z, R) {
+  if (mo.d.element) { secousse(0.4, 0.55); impactElement(mo.d.element, x, z, R); return; } /* (l'impact de son element sur tout le cercle, 01/11/2026) */
   seisme(x, y, z, R); secousse(0.45, 0.6); flashLumiere(x, y + 1, z, '#ff8a2e', 4, 10, 0.4); onde(x, y, z, R * 1.5, '#ffb26a', 0.6, 0.9); onde(x, y, z, R * 1.1, '#7a5a3a', 0.8, 0.6, true);
   for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + fxAlea() * 0.5, r = R * (0.45 + fxAlea() * 0.35); solFendu(x + Math.cos(a) * r, y, z + Math.sin(a) * r, R * 0.45, true); }
   cratere(x + Math.sin(mo.ry) * mo.d.ombre * 0.45, y, z + Math.cos(mo.ry) * mo.d.ombre * 0.45, 1.4, 3);
@@ -1204,7 +1205,7 @@ function capSeisme(mo, ctx) {
       const lourdS = !m.userData.anim; if (lourdS) prepaSeisme(mo, x0, z0, R, duree); /* (31/10/2026 : le Craqueleur Legendaire se dresse, le sol tremble et rougeoie) */
       zoneDanger({ mo, x: x0, z: z0, r: R, duree, effet: (d) => {
         if (lourdS) seismeBoss(mo, x0, mo.m.position.y, z0, R); /* (il abat ses poings : le vrai seisme, 31/10/2026) */
-        const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p, y = mo.m.position.y; impactMarteau(q.x, y, q.z, mo.d.couleurSorts); onde(x0, y, z0, R, (mo.d.couleurSorts || [])[1] || '#fff3d6', 0.6, 0.8); } /* (le Gorille : ses deux poings au sol, 31/10/2026) */
+        const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p, y = mo.m.position.y; if (mo.d.element) impactElement(mo.d.element, x0, z0, R); else { impactMarteau(q.x, y, q.z, mo.d.couleurSorts); onde(x0, y, z0, R, (mo.d.couleurSorts || [])[1] || '#fff3d6', 0.6, 0.8); } } /* (le Gorille : ses deux poings au sol, 31/10/2026 ; son element sur tout le cercle, 01/11/2026) */
         pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); mo.frappe = 0.4;
         const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { const SL = mo.d.seismeLoin, kl = SL ? Math.min(SL.max, 1 + SL.parCase * Math.hypot(p2.x - x0, p2.z - z0) / S) : 1; blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).seisme || 1) * kl), mo); if (kl >= 1.4) chiffre('De loin ×' + String(Math.round(kl * 10) / 10).replace('.', ','), new T.Vector3(p2.x, p2.y + 2.6, p2.z), 'gros'); /* (seismeLoin : plus tu es loin de lui, plus l'onde frappe fort, le Craqueleur Legendaire, 31/10/2026) */ if (mo.d.repousse && combat && !combat.fin) repousserPerso(mo, mo.d.repousse); }
         if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < R + Math.max(z.hw, z.hd)) blesserBat(k, degatsBatiment(1, mo)); });
@@ -1266,7 +1267,7 @@ function cawotteVolante(de, x, y, z, depart, arrivee, k, grosse) {
     else { const chute = Math.min(0.4, arrivee - depart - montee), u = Math.min(1, (t - (arrivee - chute)) / chute); if (t < arrivee - chute) { g.visible = false; return false; } g.visible = true;
       g.position.set(x, y + 0.3 + H * (1 - u * u), z); g.rotation.set(Math.PI, t * 14, 0); emettre(FX_LUM, 2, { x, y: g.position.y + 0.4 * k, z, r: 0.05, vie: [0.18, 0.3], taille: [0.3 * k, 0.05], c: ['#ffffff', '#ffb46a'], a: 0.85 }); }
     if (t < arrivee) return false;
-    jeter(g); boule(x, y + 0.4, z, grosse ? 1.6 : 0.9, ['#ff9a2e', '#e8541e']); onde(x, y, z, grosse ? 4 : 2.4, '#ffb46a', 0.4, 0.9); etoileImpact(new T.Vector3(x, y + 0.5, z), grosse ? 1.4 : 0.9, '#f08a24');
+    jeter(g); boule(x, y + 0.4, z, grosse ? 1.6 : 0.9, ['#ff9a2e', '#e8541e']); impactFeu(x, z, grosse ? 2.0 : 1.3); /* (l'impact de feu, 01/11/2026) */
     mottes(x, y, z, grosse ? 12 : 6, grosse ? 1.4 : 0.9); poussiere(x, y, z, grosse ? 14 : 6, grosse ? 1.6 : 1, '#d8c6a0'); secousse(grosse ? 0.3 : 0.1, grosse ? 0.4 : 0.18); if (grosse) { solFendu(x, y, z, 2.2, true); cratere(x, y, z, 1.1, 3); }
     return true; });
 }
@@ -1345,7 +1346,7 @@ function capCawotteRoyale(mo, ctx) {
         const cel = caseIci(V.x, V.z), y = cel ? hauteurSol(V.x, V.z, cel) : 0; V.rond.position.set(V.x, y + 0.08, V.z); V.fond.position.set(V.x, y + 0.07, V.z); V.fond.material.opacity = 0.18 + 0.2 * Math.abs(Math.sin(V.t * (V.t < SUIT_ROYALE ? 6 : 14)));
         if (V.t >= SUIT_ROYALE) { const k = Math.min(1, (V.t - SUIT_ROYALE) / ESQUIVE.cawotteRoyale); V.cw.visible = true; V.cw.position.set(V.x, y + 1.3 + 14 * (1 - k * k), V.z); V.cw.rotation.y += dt * 6;
           emettre(FX_LUM, 3, { x: V.x, y: V.cw.position.y + 1.2, z: V.z, r: 0.2, vie: [0.25, 0.4], taille: [0.7, 0.1], c: ['#ffffff', '#ffb46a'], a: 0.9 }); emettre(FX_FUM, 1, { x: V.x, y: V.cw.position.y + 1.5, z: V.z, r: 0.3, vie: [0.4, 0.6], taille: [0.4, 1], c: ['#f6e6c8', '#d8c6a0'], a: 0.5 }); } /* (une trainee derriere elle) */
-        if (V.t >= SUIT_ROYALE + ESQUIVE.cawotteRoyale) { const x = V.x, z = V.z; boule(x, y + 0.6, z, 2.6, ['#ff9a2e', '#e8541e']); onde(x, y, z, 7, '#ffb46a', 0.5, 0.95); solFendu(x, y, z, 3.6, true); cratere(x, y, z, 1.8, 3.5); mottes(x, y, z, 14, 1.5); poussiere(x, y, z, 16, 1.8, '#d8c6a0'); secousse(0.4, 0.5); flashLumiere(x, y + 1, z, '#ff9a2e', 3.5, 9, 0.3); const p2 = paysanMesh.position; fin();
+        if (V.t >= SUIT_ROYALE + ESQUIVE.cawotteRoyale) { const x = V.x, z = V.z; boule(x, y + 0.6, z, 2.6, ['#ff9a2e', '#e8541e']); impactFeu(x, z, 2.4); /* (l'impact de feu, 01/11/2026) */ mottes(x, y, z, 14, 1.5); poussiere(x, y, z, 16, 1.8, '#d8c6a0'); secousse(0.4, 0.5); flashLumiere(x, y + 1, z, '#ff9a2e', 3.5, 9, 0.3); const p2 = paysanMesh.position; fin();
           if (Math.hypot(p2.x - x, p2.z - z) < V.R) { blesserPerso(degSort(mo), mo); /* (autant que sa pluie depuis le 15/10/2026 : 1,8 fois avant, 567, « c'est enorme, le Koulosse c'est 275 et 275 », Mathieu ; c'est l'assommement qui la rend dangereuse) */ if (combat && !combat.fin) { combat.assomme = Math.max(combat.assomme || 0, 1.0); chiffre('Assommé !', new T.Vector3(p2.x, p2.y + 2.2, p2.z), 'gros'); for (let i = 0; i < 4; i++) setTimeout(() => { const q = paysanMesh.position; emettre(FX_VIF, 3, { x: q.x, y: q.y + 2, z: q.z, r: 0.4, v: [0, 0.5, 0], dv: 0.5, vie: [0.4, 0.6], taille: [0.14, 0.05], c: ['#fff6a0', '#ffd23a'], a: 1 }); }, i * 220); } } /* (des etoiles autour de sa tete, 31/10/2026) */
           if (!combat || combat.fin) return; }
       }
@@ -1541,7 +1542,7 @@ function traineeTir(type, p, mo) {
 }
 function impactTir(type, p, mo, perso) {
   const y = solA(p.x, p.z);
-  if (type === 'feu') { boule(p.x, p.y, p.z, 0.55 * (mo.d.feuTaille || 1), ['#ff9a2e', '#e8541e']); return; }
+  if (type === 'feu') { boule(p.x, p.y, p.z, 0.55 * (mo.d.feuTaille || 1), ['#ff9a2e', '#e8541e']); if (mo.d.boss && mo.d.element === 'feu') impactFeu(p.x, p.z, 1.0); return; } /* (Crocabulia : ses boules de feu brulent le sol, 01/11/2026) */
   if (type === 'magie') { etoileImpact(p, 0.8, mo.d.couleurMagie || '#5fe0e8'); onde(p.x, y, p.z, 1.4, mo.d.couleurMagie || '#5fe0e8', 0.35, 0.7); return; }
   if (type === 'rocher') { pouf(p.x, y, p.z, 1.8, '#9a948c'); poussiere(p.x, y, p.z, 8, 0.8, '#d8c6a0'); mottes(p.x, y, p.z, 5, 0.6); if (perso) secousse(0.08, 0.18); return; }
   if (type === 'fruit') { pouf(p.x, y, p.z, 1.4, mo.d.fruit); emettre(FX_VIF, 10, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.25, 0.45], taille: [0.12, 0.04], c: ['#ffffff', mo.d.fruit], grav: 9, frein: 1.5 }); return; }
