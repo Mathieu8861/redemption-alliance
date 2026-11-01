@@ -13,6 +13,8 @@ const GROUPES_DEV = {
   ebil: { nom: 'Ebil et sa garde', liste: { kannibEbil: 1, kannibJav: 1, tortueBleue: 1, tortueVerte: 1 } },
   moon: { nom: 'Moon', liste: { moon: 1 } },
   bossRefaits: { nom: 'Les boss refaits', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, waWabbit: 1, koulosse: 1 } }, /* (31/10/2026, sorts refaits par Discord) */
+  lesBoss: { nom: 'Les 9 boss', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, crocabulia: 1, waWabbit: 1, koulosse: 1, dragonCochon: 1, moon: 1 } }, /* (01/11/2026, « mets-les tous en arène », Mathieu : un de chaque, dans l'ordre des paliers) */
+  demiBoss: { nom: 'Les 6 demi-boss', liste: { gorgouille: 1, gorilleRoi: 1, golemLune: 1, tortueCorail: 1, lemurienTiki: 1, kannibEbil: 1 } },
   lemurien: { nom: 'Les Lémuriens', liste: { lemurienTiki: 3 } }, /* (28/10/2026, le premier monstre anime a la main) */
   nouveaux: { nom: 'Les 3 boss et la Tortue Corail', liste: { lemurienTiki: 1, gorilleRoi: 1, golemLune: 1, tortueCorail: 1 } }, /* (28/10/2026, les 4 dessins de Mathieu, des boss) */
 };
