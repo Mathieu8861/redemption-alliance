@@ -321,13 +321,13 @@ function moulinet(mo) {
    a la fin du temps pour esquiver (le dernier impact au sol, pas le premier : celui-la, c'etait l'elan, et les degats tombaient une seconde avant
    le marteau), et il ne quitte le sol qu'entre le moment ou ses hanches decollent et celui ou elles retombent (lus sur l'animation). Il atterrit a la
    longueur de son marteau du centre, plus au centre ; son ombre grandit sur le cercle pendant qu'il est en l'air */
-function bondMarteau(mo, cx, cz) {
+function bondMarteau(mo, cx, cz, o) { /* (o : le bond du Marteau de Moon, son onde : R, et ses degats x, plus forts au centre, 01/11/2026) */
   const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = ESQUIVE.bond / ((mo.d.vivacite || 1) * (mo.d.bondVif || 1)), c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
   if (!nom) return;
   const S = ((U.impacts || {})[nom] || []).filter((x) => x.sol && x.x != null), imp = S[S.length - 1] || { t: 1.75, x: 0, z: 1.8 }, vol = (U.vols || {})[nom] || [imp.t * 0.35, imp.t * 0.9];
   const a = jouerAnim(an, nom, 0.1), D = a.getClip().duration, ts = imp.t / E; a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts - 0.15, E + 0.7), ts }; mo.bloqueT = Math.max(mo.bloqueT || 0, E + 0.6); /* (il se releve en marchant : la fin du bond, 1,6 s debout sur place, est coupee) */
   const x0 = mo.x, z0 = mo.z, lx = imp.x * e, lz = imp.z * e, ry = Math.atan2(cx - x0, cz - z0) - Math.atan2(lx, lz), q = versMonde(0, 0, ry, lx, lz);
-  const f = pointValide(x0, z0, cx - q.x, cz - q.z), c = { x: f.x + q.x, z: f.z + q.z }, R = 2.8; /* (c : la ou le marteau tombe vraiment, si un mur l'a arrete avant) */
+  const f = pointValide(x0, z0, cx - q.x, cz - q.z), c = { x: f.x + q.x, z: f.z + q.z }, R = (o && o.R) || 2.8; /* (c : la ou le marteau tombe vraiment, si un mur l'a arrete avant) */
   recaler(mo, x0, z0, ry, 0.2);
   if (!c0.bonditVu) { c0.bonditVu = true; toast(leNom(mo.d) + ' va bondir et abattre ' + armeDe(mo.d) + ' sur toi : sors du cercle !', 'alerte'); }
   const ombre = new T.Mesh(GEO_DISQUE, fxMat('#1c120a', 0.5)); ombre.rotation.x = -Math.PI / 2; ombre.position.set(c.x, solA(c.x, c.z) + 0.09, c.z); ombre.renderOrder = 3; ombre.scale.setScalar(0.01); scene.add(ombre);
@@ -337,7 +337,8 @@ function bondMarteau(mo, cx, cz) {
     const o = Math.max(0, Math.min(1, (t - t0) / (E - t0))); ombre.scale.setScalar(Math.max(0.01, R * (0.25 + 0.65 * o))); ombre.material.opacity = 0.2 + 0.4 * o;
     if (t >= E) { jeter(ombre); return true; } });
   zoneDanger({ mo, x: c.x, z: c.z, r: R, duree: E, effet: (d) => { if (mo.faible) return; mo.frappe = 0.4; const y = solA(c.x, c.z); if (mo.d.element) { impactElement(mo.d.element, c.x, c.z, R * 1.1); secousse(0.3, 0.4); } else { impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, 7.5, C[1], 0.7, 0.6);
-    pouf(c.x, y, c.z, 5, '#8e7a5e'); } /* (le Gorille : son element, 01/11/2026) */ const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
+    pouf(c.x, y, c.z, 5, '#8e7a5e'); } /* (le Gorille : son element, 01/11/2026) */ const p2 = paysanMesh.position; if (o) { const dg = degatsOnde(mo, c.x, c.z, R, o.x); if (dg) blesserPerso(dg, mo); } else if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
+  if (o) zoneDanger({ mo, x: c.x, z: c.z, r: R * 0.45, duree: E, fort: 1.6, effet: () => {} }); /* (son centre, plus fonce) */
 }
 /* L'ETAT AFFAIBLI DE MOON (31/10/2026, « lorsque Moon tombe sous 30 % il passe dans l'etat affaibli, il devient invulnerable et bloque a 30 % ; une
    animation ou il est un genou a terre, ou endormi, pas bien ; il invoque 4 gorilles de 12k PV ; tant qu'ils ne sont pas tous morts, il regagne 1 %

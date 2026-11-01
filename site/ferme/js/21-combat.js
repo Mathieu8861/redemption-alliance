@@ -203,6 +203,7 @@ function ficheMonstre(t) {
   if (d.marteau || d.poings) L.push(capa('sort', 'Moulinet', d.poings ? 'Il tend le bras et tourne trois fois sur lui-même : un grand cercle ' + teinteSorts(d) + ' autour de lui, chaque tour frappe dedans.' : 'Il tend son marteau et tourne trois fois sur lui-même : un grand cercle orange autour de lui, chaque tour frappe dedans.', num(fmt(Math.round(dSort * ((d.sortsX || {}).moulinet || 0.35))) + ' dégâts par tour', 'rouge') + num(TOURS_MOULINET + ' tours'), 'violet'));
   if (d.bondit) L.push(capa('saut', 'Bond écrasant', d.marteau ? 'De loin, il saute et abat son marteau là où tu es : un cercle orange et son ombre qui grandit, sors-en.' : d.poings ? 'De loin, il saute et abat ses deux poings là où tu es : un cercle ' + teinteSorts(d) + ' et son ombre qui grandit, sors-en.' : (d.fem ? 'Elle' : 'Il') + ' saute là où tu es : un cercle rouge, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bond || 1))) + ' dégâts', 'rouge') + num(secondes(d.marteau || d.poings ? +(ESQUIVE.bond / ((d.vivacite || 1) * (d.bondVif || 1))).toFixed(2) : d.bondPrepa || ESQUIVE.bond) + ' pour esquiver') + recup('bondit'), 'violet'));
   if (d.seisme) L.push(capa('sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR && d.seismeR < 6 ? '' : 'grand ') + 'cercle ' + teinteSorts(d) + ' autour de lui' + (d.repousse ? ', qui te repousse' : '') + (d.seismeLoin ? ', et l\'onde frappe plus fort au bord' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + (d.seismeLoin ? num('+' + Math.round(d.seismeLoin.parCase * 100) + ' % par case, jusqu\'à ×' + d.seismeLoin.max, 'rouge') : '') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet'));
+  if (d.marteauMoon) L.push(capa('sort', 'Marteau de Moon', 'Il jette son marteau là où tu es : le cercle s\'annonce, plus foncé au centre, et l\'onde de choc fait d\'autant plus mal que tu es près de l\'impact. Il saute le ramasser, puis rebondit sur toi et frappe à deux mains, avec la même onde.', num('jusqu\'à ×' + String(d.marteauMoon.x).replace('.', ','), 'rouge') + num('toutes les ' + d.marteauMoon.periode + ' s'), 'rouge'));
   if (d.boomerang) L.push(capa('sort', 'Boomerang lunaire', 'Il décroche le croissant de lune de sa tête et le lance : une bande s\'annonce vers toi, le croissant file en tournoyant et revient se poser sur sa tête. Il touche à l\'aller et au retour.', num('toutes les ' + d.boomerang.periode + ' s'), 'rouge'));
   if (d.lianes) L.push(capa('lenteur', 'Lianes', 'De loin, une bande verte s\'annonce : ses lianes jaillissent. Si elles t\'attrapent, elles te tirent contre lui, puis il charge un gros coup tout autour de lui : sors du cercle.', num('coup ×' + String(d.lianes.x).replace('.', ','), 'rouge') + num('toutes les ' + d.lianes.periode + ' s'), 'bleu'));
   if (d.ultime) L.push(capa('sort', 'La nuit lunaire (ultime)', 'Il lève les bras : la nuit tombe, et des météorites s\'abattent sur toute la zone pendant ' + secondes(d.ultime.duree) + ', chacune annoncée par un cercle.', num(d.ultime.n + ' météorites', 'rouge') + num('toutes les ' + d.ultime.periode + ' s'), 'rouge'));
@@ -1821,8 +1822,46 @@ function envoutement(duree) {
     if ((fx += dt) > 0.06) { fx = 0; const a = Math.random() * Math.PI * 2; emettre(FX_LUM, 1, { x: p.x + Math.cos(a) * 0.6, y: p.y + 0.2, z: p.z + Math.sin(a) * 0.6, v: [0, 1.4, 0], vie: [0.5, 0.8], taille: [0.12, 0.02], c: ['#e0c4ff', '#8a3fc8'] }); }
     return false; });
 }
+/* LE MARTEAU DE MOON (01/11/2026, « fais-lui une attaque marteau de Moon : il lance son marteau, cree une onde de choc, il saute de la ou il est jusqu'a son
+   marteau pour le ramasser et ensuite resaute jusqu'a nous avec son marteau en main, dans les deux mains, et il frappe la ou on est ; si on se trouve dans
+   l'onde de choc, plus on est proche du point d'impact plus on prend cher », Mathieu) : il arme son marteau au-dessus de sa tete et le jette la ou tu es (le
+   cercle s'annonce, plus fonce au centre) ; le marteau tournoie, s'ecrase et reste plante ; il bondit a cote, le ramasse, puis son bond a deux mains sur
+   toi (bondMarteau), avec la meme onde. Une onde : tous ses degats au centre, 0,3 au bord */
+function degatsOnde(mo, cx, cz, R, x) { const p = paysanMesh.position, d = Math.hypot(p.x - cx, p.z - cz); if (d > R) return 0; return Math.max(1, Math.round(degSort(mo) * x * (0.3 + 0.7 * (1 - d / R)))); }
+function capMarteauMoon(mo, ctx) {
+  const MM = mo.d.marteauMoon, an = mo.m && mo.m.userData.anim; if (!MM || !an || mo.faible || combat.deroute != null) return;
+  const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (dP < 3.5 || dP > 14 || !sortPret('marteauMoonT', MM.periode)) return;
+  const mart = mo.m.getObjectByName('marteau'); if (!mart) return;
+  mo.marteauMoonT = 0; const c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'], TA = 1.0 / (mo.d.vivacite || 1), TV = 0.55, TJ = 0.85;
+  const c = pointValide(mo.x, mo.z, pp.x, pp.z), ry = Math.atan2(c.x - mo.x, c.z - mo.z); recaler(mo, mo.x, mo.z, ry, 0.15);
+  mo.bloqueT = Math.max(mo.bloqueT || 0, TA + TV + TJ + 1.2);
+  const nom = an.A.coup_1 ? 'coup_1' : piocher(an, 'coup'), imp = ((mo.m.userData.impacts || {})[nom] || [{ t: 0.9 }])[0].t, a = jouerAnim(an, nom, 0.12); a.timeScale = imp / TA; mo.geste = { t: 0, d: TA + 0.25, ts: a.timeScale }; /* (il l'abat au-dessus de sa tete : il le lache au moment ou il tomberait) */
+  if (!c0.marteauMoonVu) { c0.marteauMoonVu = true; toast(leNom(mo.d) + ' lance son marteau sur toi : son onde de choc fait plus mal près du centre. Puis il le ramasse et bondit sur toi !', 'alerte'); }
+  zoneDanger({ mo, x: c.x, z: c.z, r: MM.R * 0.45, duree: TA + TV, fort: 1.6, effet: () => {} }); /* (le centre, plus fonce : la ou ca fait le plus mal) */
+  zoneDanger({ mo, x: c.x, z: c.z, r: MM.R, duree: TA + TV, effet: () => { const dg = degatsOnde(mo, c.x, c.z, MM.R, MM.x); if (dg && combat === c0 && !c0.fin) blesserPerso(dg, mo); } });
+  let t = 0, vol = null, pose = null, saut = null; const rendre = () => { if (vol) jeter(vol.m); vol = null; mart.visible = true; };
+  effets.push((dt) => { t += dt;
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) { rendre(); return true; }
+    if (!vol && pose == null && t >= TA) { /* il le lache : le marteau quitte sa main */
+      mart.updateMatrixWorld(true); const m2 = mart.clone(true); mart.matrixWorld.decompose(m2.position, m2.quaternion, m2.scale); m2.traverse((o) => { o.raycast = () => {}; }); scene.add(m2); mart.visible = false;
+      vol = { m: m2, de: m2.position.clone(), vers: new T.Vector3(c.x, solA(c.x, c.z) + 0.4, c.z), axe: new T.Vector3(Math.cos(ry), 0, -Math.sin(ry)), t: 0 }; }
+    if (vol && pose == null) { vol.t += dt; const k = Math.min(1, vol.t / TV); vol.m.position.lerpVectors(vol.de, vol.vers, k); vol.m.position.y += Math.sin(k * Math.PI) * 3.2; vol.m.rotateOnWorldAxis(vol.axe, dt * 16); /* (il tournoie) */
+      if (Math.random() < 0.6) emettre(FX_FUM, 1, { x: vol.m.position.x, y: vol.m.position.y, z: vol.m.position.z, vie: [0.25, 0.4], taille: [0.3, 0.6], c: ['#d8c6a0', '#b8a888'], a: 0.4 });
+      if (k >= 1) { pose = t; const y = solA(c.x, c.z), b = new T.Box3().setFromObject(vol.m); vol.m.position.y += y - b.min.y - 0.15; /* (il reste plante dans le sol) */
+        impactMarteau(c.x, y, c.z, C); onde(c.x, y, c.z, MM.R * 1.6, C[1], 0.6, 0.7); secousse(0.4, 0.5); } }
+    if (pose != null && !saut && t >= pose + 0.3) { /* il bondit le ramasser : il atterrit a cote, de son cote */
+      const dx = mo.x - c.x, dz = mo.z - c.z, L = Math.hypot(dx, dz) || 1, f = pointValide(mo.x, mo.z, c.x + dx / L * 1.3, c.z + dz / L * 1.3);
+      const ns = an.A.saut_1 ? 'saut_1' : piocher(an, 'bond'), as = jouerAnim(an, ns, 0.1); as.timeScale = as.getClip().duration / (TJ + 0.3); mo.geste = { t: 0, d: TJ + 0.3, ts: as.timeScale };
+      mo.ry = Math.atan2(c.x - mo.x, c.z - mo.z); saut = { x0: mo.x, z0: mo.z, x1: f.x, z1: f.z, t: 0 }; }
+    if (saut) { saut.t += dt; const k = Math.min(1, Math.max(0, (saut.t - 0.12) / TJ)), e = k * k * (3 - 2 * k); mo.x = saut.x0 + (saut.x1 - saut.x0) * e; mo.z = saut.z0 + (saut.z1 - saut.z0) * e;
+      if (saut.t >= TJ + 0.15) { const y = solA(mo.x, mo.z); poussiere(mo.x, y, mo.z, 14, 1.6, '#d8c6a0'); secousse(0.15, 0.25); rendre(); /* il le ramasse */
+        let w = 0; effets.push((d2) => { w += d2; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) return true; if (w < 0.3) return false;
+          const p = paysanMesh.position; mo.bloqueT = 0; bondMarteau(mo, p.x, p.z, { R: MM.R2, x: MM.xBond }); return true; }); /* (puis il rebondit sur toi, a deux mains) */
+        return true; } }
+    return false; });
+}
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
