@@ -230,7 +230,7 @@ function mainSquelette(mo) { const o = mo.m && mo.m.getObjectByName(mo.d.tirGauc
 /* sa mort : la chute, puis il s'enfonce dans le sol */
 function mortSquelette(mo, dt) {
   const an = mo.m.userData.anim; if (!mo.chute) { mo.chute = { t: 0, d: geste(mo, 'mort', false) || 1.5 }; mo.geste = null; }
-  mo.chute.t += dt; an.mixer.update(dt);
+  mo.chute.t += dt; an.mixer.update(dt); if ((mo.d.boss || mo.d.demi) && !mo.invoque && mo.pv <= 0) { chuteSquelette(mo); return; } /* (un boss : l'impact quand il touche le sol, puis son corps reste couche, 01/11/2026) */
   if (mo.chute.t > mo.chute.d + 0.6) { mo.m.position.y -= dt * 1.4; if (mo.chute.t > mo.chute.d + 2.4 && mo.m.parent) jeter(mo.m); }
 }
 /* le coup de marteau : un coup au hasard (parfois le moulinet), ses degats a chaque instant ou le marteau arrive en bas.

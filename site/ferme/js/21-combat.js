@@ -1774,6 +1774,69 @@ function mortVolante(mo, dt) {
     emettre(FX_VIF, 30, { x, y: M.sol + 0.6, z, r: 1.4, dv: 5, haut: true, vie: [0.4, 0.9], taille: [0.12, 0.03], c: ['#fff1a8', '#ff8a1e', '#c8302e'], grav: 6, frein: 1.4, etire: 0.03 }); }
   if (t > 3.4 && m.parent) jeter(m);
 }
+/* LA MORT D'UN BOSS (01/11/2026, « une vraie chute pour chacun », au lieu de tourner sur lui-meme en retrecissant comme un petit monstre) : il vacille,
+   secoue de ses derniers spasmes, puis bascule de tout son poids (sur le flanc, en avant ou en arriere : chute de sa fiche), de plus en plus vite ; il
+   s'ecrase (l'ecran tremble, la poussiere, l'impact de son element la ou tombe son corps), rebondit un peu, un dernier soubresaut, ce qui monte de lui a
+   son element. (« et le fais pas disparaitre en s'enfoncant dans le sol », Mathieu, le meme jour : son corps reste couche jusqu'a la fin du combat ; a
+   l'Arene, il se dissipe en poussiere quand la vague suivante arrive, sinon ils s'entasseraient.) Ceux de pierre (chute: 'eclats') se fendent, des eclats
+   se detachent d'eux. Plus il est grand, plus c'est lent. Le combat attend qu'il soit a terre (attente, 23-fin-combat.js) */
+const CHUTES = { flanc: 1.45, avant: 1.38, arriere: 1.32, eclats: 1.38 };
+/* le bas de son corps tel qu'il est tourne, pris sur les sommets de ses pieces (pas sa boite) en laissant de cote les 2 % les plus bas : une pointe
+   d'epee, un manche de hache, le bord d'un chapeau peuvent entrer dans le sol, sinon il retombe appuye dessus, couche en l'air (le Chafer, le Bworker,
+   le Wa Wabbit, 01/11/2026 ; leurs pieces sont fusionnees, on ne peut pas les reconnaitre a leur nom) ; sans son ombre ni sa sphere de clic invisible */
+const V_BAS = new T.Vector3();
+function basCorps(mo) {
+  const L = []; mo.m.updateMatrixWorld(true);
+  mo.m.traverse((o) => { if (!o.isMesh || o === mo.ombreM || !o.visible || !o.geometry || !o.geometry.attributes.position || (o.material && o.material.visible === false)) return;
+    const P = o.geometry.attributes.position, n = P.count, pas = Math.max(1, Math.floor(n / 1500));
+    for (let i = 0; i < n; i += pas) { V_BAS.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); L.push(V_BAS.y); } });
+  if (!L.length) return Infinity; L.sort((a, b) => a - b); return L[Math.floor(L.length * 0.02)];
+}
+function mortLourde(mo, dt) {
+  const m = mo.m; let M = mo.mort;
+  if (!M) { const r0 = m.rotation.clone(); m.rotation.set(0, 0, 0); m.updateMatrixWorld(true); const bx = new T.Box3();
+    m.traverse((o) => { if (o.isMesh && o !== mo.ombreM && o.visible) bx.expandByObject(o); }); const sz = bx.getSize(new T.Vector3()); m.rotation.copy(r0); m.rotation.order = 'YXZ'; /* (sa taille, de face ; puis le tangage dans son repere a lui) */
+    const ch = mo.d.chute || 'flanc', h = sz.y || mo.haut || 3, k = Math.max(0.85, Math.min(1.4, h / 3));
+    M = mo.mort = { t: 0, ch, k, h, A: CHUTES[ch] || 1.4, cote: Math.random() < 0.5 ? -1 : 1, y0: m.position.y, sol: solA(mo.x, mo.z), rx0: m.rotation.x, rz0: m.rotation.z, fx: 0 };
+    M.tv = 0.55 * k; M.tc = M.tv + 0.6 * k; M.ts = M.tc + 1.1 * k; M.attente = M.tc + 0.85 * k + (ch === 'eclats' ? 0.7 : 0.5); corpsInerte(mo);
+    const off = h * 0.5, L = ch === 'flanc' ? [-M.cote * off, 0] : [0, ch === 'arriere' ? -off : off]; M.p = versMonde(mo.x, mo.z, m.rotation.y, L[0], L[1]); /* (la ou tombe son corps) */
+    pouf(mo.x, M.sol, mo.z, 3, (AURAS[mo.d.element] || { halo: '#e2413a' }).halo); }
+  M.t += dt; const t = M.t, k = M.k, el = mo.d.element, St = AURAS[el], p = M.p;
+  let a = 0, y = M.sol, tr = 0;
+  if (t < M.tv) { const u = t / M.tv; tr = 0.07 * (1 - u * 0.5) * Math.sin(t * 38); a = 0.12 * u * u * (3 - 2 * u); y = M.y0 + (M.sol - M.y0) * Math.min(1, u * 2); } /* (il vacille, ses spasmes, il penche deja ; en plein bond, il retombe d'abord) */
+  else if (t < M.tc) { const u = (t - M.tv) / (M.tc - M.tv); a = 0.12 + (M.A - 0.12) * u * u; } /* (il bascule de tout son poids, de plus en plus vite) */
+  else if (t < M.tc + 0.35 * k) { const u = (t - M.tc) / (0.35 * k); a = M.A - 0.12 * Math.sin(u * Math.PI); y += 0.06 * M.h * Math.sin(u * Math.PI); } /* (le rebond) */
+  else { a = M.A; const u = t - M.tc - 0.85 * k; if (u > 0 && u < 0.4) tr = 0.04 * Math.sin(u * 55) * (1 - u / 0.4); } /* (le dernier soubresaut) */
+  if (M.ch === 'flanc') { m.rotation.z = M.rz0 + M.cote * a + tr; m.rotation.x = M.rx0; } else { m.rotation.x = M.rx0 + (M.ch === 'arriere' ? -a : a) + tr; m.rotation.z = M.rz0 + tr * 0.6; }
+  if (M.yFixe == null) { m.position.y = y; const bas = basCorps(mo), dessus = Math.max(0, M.sol - 0.04 - bas); m.position.y = y + dessus; /* (ce qui touche le sol y reste pose, il ne s'y enfonce pas en basculant) */
+    if (t > M.tc + 0.85 * k + 0.45) M.yFixe = m.position.y; } /* (a terre et immobile : on ne recalcule plus) */
+  if (t >= M.tc && !M.choc) { M.choc = true; const R = Math.max(2, M.h * 0.65);
+    secousse(0.3, 0.5); pouf(p.x, M.sol, p.z, 5.5, '#8e7a5e'); poussiere(p.x, M.sol, p.z, 26, R * 1.1, '#d8c6a0'); mottes(p.x, M.sol, p.z, 12, 1.8);
+    if (el) impactElement(el, p.x, p.z, R); else { poussiere(p.x, M.sol, p.z, 18, R * 1.4, '#cbb894'); mottes(p.x, M.sol, p.z, 8, 2.2); } /* (sans element : plus de poussiere, pas le cercle blanc) */
+    if (mo.ombreM) mo.ombreM.visible = false; }
+  if (finCorps(mo, M)) return;
+  if (t > M.tc && t < M.ts + 2 && (M.fx += dt) > 0.12) { M.fx = 0; const cx = (mo.x + p.x) / 2, cz = (mo.z + p.z) / 2;
+    if (St) emettre(St.lum ? FX_LUM : FX_VIF, 2, { x: cx, y: M.sol + 0.4, z: cz, r: M.h * 0.3, v: [0, St.v * 0.7, 0], dv: 0.4, vie: [0.6, 1], taille: [St.t, 0.03], c: St.c, frein: 0.5, grav: St.grav || 0 }); /* (ce qui monte de lui, a son element) */ }
+  if (M.ch === 'eclats' && t > M.ts && !M.eclats) { M.eclats = true; const cx = (mo.x + p.x) / 2, cz = (mo.z + p.z) / 2; /* (la pierre se fend, des eclats s'en detachent) */
+    secousse(0.2, 0.35); eclatsRoche(cx, M.sol + 0.5, cz, 26, 1.5); poussiere(cx, M.sol, cz, 26, M.h * 0.7, '#b8ab98'); pouf(cx, M.sol, cz, 4, '#9a8e7e'); }
+}
+/* son corps ne se clique plus (un clic dessus deplace le perso), et il garde le numero de la vague ou il est tombe */
+function corpsInerte(mo) { mo.m.traverse((o) => { o.raycast = () => {}; }); mo.vagueMort = combat && combat.arene ? combat.arene.k : null; }
+/* a l'Arene, la vague suivante arrive : son corps se dissipe dans un nuage de poussiere et de ce qui montait de lui */
+function finCorps(mo, M) {
+  if (!combat || !combat.arene || combat.arene.k === mo.vagueMort || !mo.m.parent) return false;
+  const St = AURAS[mo.d.element], b = new T.Box3().setFromObject(mo.m), q = b.getCenter(new T.Vector3()), r = Math.max(1, b.getSize(new T.Vector3()).length() * 0.3);
+  poussiere(q.x, M.sol, q.z, 24, r, '#d8c6a0'); pouf(q.x, M.sol, q.z, 4, '#cbb894'); if (St) emettre(St.lum ? FX_LUM : FX_VIF, 24, { x: q.x, y: q.y, z: q.z, r, v: [0, St.v, 0], dv: 1, vie: [0.6, 1], taille: [St.t, 0.03], c: St.c, frein: 0.6 });
+  jeter(mo.m); return true;
+}
+/* (01/11/2026) un boss a squelette : quand son corps touche le sol (ses hanches presque au ras du sol), l'ecran tremble, la poussiere et l'impact de son
+   element la ou il tombe ; le combat attend qu'il soit a terre */
+function chuteSquelette(mo) {
+  const C = mo.chute, H = mo.m.getObjectByName('mixamorigHips'); if (!H) return; const p = H.getWorldPosition(new T.Vector3()), sol = solA(mo.x, mo.z);
+  if (C.h0 == null) { C.h0 = Math.max(0.3, p.y - sol); mo.mort = { t: 0, attente: C.d + 0.4, sol }; corpsInerte(mo); } mo.mort.t = C.t; if (finCorps(mo, mo.mort) || C.choc) return;
+  if (p.y - sol < C.h0 * 0.4 || C.t > C.d * 0.9) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6), el = mo.d.element;
+    secousse(0.26, 0.45); pouf(p.x, sol, p.z, 5, '#8e7a5e'); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 10, 1.5); if (el) impactElement(el, p.x, p.z, R); }
+}
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
@@ -1786,6 +1849,7 @@ function majMonstre(mo, dt, s) {
   if (mo.d.boss && !mo.invoque) majBarreBoss(mo); /* (les Gorilles appeles par Moon sont des boss : la barre reste a Moon, sinon elle sautait de l'un a l'autre) */
   if (mo.etat === 'mort' && m.userData.anim) { mortSquelette(mo, dt); return; } /* (un monstre a squelette tombe, puis s'enfonce dans le sol) */
   if (mo.etat === 'mort' && mo.d.battements) { mortVolante(mo, dt); return; } /* (Crocabulia : elle tombe du ciel, 31/10/2026) */
+  if (mo.etat === 'mort' && (mo.d.boss || mo.d.demi) && !mo.invoque && mo.pv <= 0) { mortLourde(mo, dt); return; } /* (un boss tombe de tout son poids, 01/11/2026) */
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
   const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
