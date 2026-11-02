@@ -816,6 +816,12 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .fp-filtres { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .fp-filtres button { border: 2px solid #43464e; background: #2b2d31; border-radius: 99px; padding: 1px 9px; font: 800 .66rem var(--f-texte); color: #a9adb5; cursor: pointer; } .fp-filtres button[aria-pressed="true"] { background: var(--bord); border-color: var(--bord); color: #fff; }
 .fp-sac { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+/* les runes, en tete du sac (02/11/2026) */
+.fp-runes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; padding: 7px 9px; border: 2px solid #5b3f8f; border-radius: 12px; background: linear-gradient(135deg, #2c2240, #33274b); }
+.fp-runes-l { display: flex; gap: 10px; flex: 1; min-width: 0; } .fp-runes > small { flex: 1 1 100%; font-size: .68rem; font-weight: 700; color: #b9a6dc; }
+.fp-rune { display: flex; align-items: center; gap: 5px; min-width: 0; } .fp-rune img { width: 34px; height: 34px; object-fit: contain; flex: none; } .fp-rune b { font: 400 1.15rem/1 var(--f-titre); color: #fff; }
+.fp-rune small { font-size: .66rem; font-weight: 800; color: #b9a6dc; line-height: 1.1; } .fp-rune.vide img { filter: grayscale(.8) opacity(.55); } .fp-rune.vide b { color: #8f8a9b; }
+.fp-runes .btn.mini { padding: 5px 12px; font-size: .78rem; }
 .fp-case { position: relative; aspect-ratio: 1; border: 2px solid #43464e; border-radius: 12px; background: #313338; display: grid; place-items: center; padding: 0; }
 .fp-case.plein { background: radial-gradient(circle at 50% 40%, #26272b, #3a3c42); border: 2.5px solid var(--bord); cursor: pointer; } .fp-case img { width: 80%; height: 80%; object-fit: contain; }
 .fp-case.verrou img { filter: grayscale(.7) opacity(.7); } .fp-case .fp-nb { position: absolute; bottom: 1px; right: 4px; font-size: .6rem; font-weight: 800; color: #a9adb5; }

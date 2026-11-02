@@ -475,6 +475,14 @@ function portraitPerso() {
   } catch (e) { portraits[cle] = 'assets/icones/' + classeDe() + '.png?v=' + VERSION_MODELES; }
   return portraits[cle];
 }
+/* LES RUNES DANS L'INVENTAIRE (02/11/2026, « les runes on sait pas ou elles sont, faudrait les rendre plus visibles dans l'inventaire du stuff », Mathieu) :
+   en tete du sac, tes runes de forgemagie et tes runes parfaites, et le chemin de l'atelier (avant : une petite ligne, seulement quand on choisissait une piece) */
+function blocRunes() {
+  const r = runes(), n = r.forge || 0, p = r.parfaite || 0; if (!n && !p && !niv('forge')) return '';
+  const rune = (t, x, un, plus) => '<span class="fp-rune' + (x ? '' : ' vide') + '"><img src="assets/icones/rune-' + t + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + x + '</b><small>' + (x > 1 ? plus : un) + '</small></span>';
+  return '<div class="fp-runes"><div class="fp-runes-l">' + rune('forge', n, 'rune de forgemagie', 'runes de forgemagie') + rune('parfaite', p, 'rune parfaite', 'runes parfaites') + '</div>' +
+    (niv('forge') ? '<button class="btn mini kamas" data-ouvrir-forge>Forger</button>' : '<small>À utiliser à l\'atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</small>') + '</div>';
+}
 function ouvrirPerso(sel) {
   if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; }
   const dansSac = (k) => S_.sac[k] > 0 && obj(k), sacL = Object.keys(S_.sac).filter(dansSac), equipe = (k) => Object.values(S_.equip).includes(k);
@@ -542,7 +550,7 @@ function ouvrirPerso(sel) {
     (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">Up</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length }, () => '<span class="fp-case"></span>').join('');
   const panos = Object.entries(comptePanos()); const droite = '<div class="fp-bloc"><h3>Sac <small>' + sacL.length + ' pièce' + (sacL.length > 1 ? 's' : '') + '</small></h3>' +
     '<div class="fp-filtres">' + [['tout', 'Tout', sacL.length]].concat(presents.map((e) => [e, PLURIELS_EMP[e], sacL.filter((k) => obj(k).emp === e).length])).map(([f, t, n]) => '<button data-fp-filtre="' + f + '" aria-pressed="' + (persoFiltre === f) + '">' + t + ' <small>' + n + '</small></button>').join('') + '</div>' +
-    '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">Up</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
+    blocRunes() + '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">Up</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
     (panos.length ? '<h4>Panoplies portées</h4>' + panos.map(([kk, n]) => blocPano(+kk, n)).join('') : '') + '</div>';
   ouvrirModale('perso', tete + '<div class="fp-corps">' + gauche + milieu + droite + '</div>');
 }

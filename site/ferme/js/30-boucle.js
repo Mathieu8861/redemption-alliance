@@ -36,6 +36,7 @@ function fermeSansToi(maintenant, d) {
 }
 function tick() {
   if (enAccueil || enPause || document.hidden) return; /* en pause */
+  coffreIleAuto(); /* (le coffre de l'ile, la semaine finie : il s'ouvre tout seul, 27-arene.js) */
   { const m = Date.now(); if (Math.abs(m - S_.vu) > 4000 * horlogeJeu.vitesse()) reprendreTemps(m); } /* (une boucle toutes les 500 ms : un trou plus long, c'est une pause) */
   const ch = avancer(Date.now(), !combat); /* pendant une vague : pas de Tofu nuisible ni de voleur en plus */
   if (!combat) majVieHaut(); /* (la vie qui remonte doucement, a vue d'oeil) */

@@ -240,7 +240,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
     '<ul class="arene-regles"><li><b>3 essais par semaine, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse de déplacement et de vitesse d\'attaque, et leurs sorts reviennent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % plus vite. Toute l\'île est à toi : esquive tant que tu peux, et tape le plus fort possible.</li>' +
     '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
-    '<div class="hdv-section">Les récompenses, le vendredi suivant</div><div class="ib-rec">' + rec('Si tu as participé', fmt(R.participation.kamas) + ' kamas, 1 rune de forgemagie, ' + Math.round(R.participation.xp * 100) + ' % d\'un niveau') +
+    '<div class="hdv-section">Les récompenses, le vendredi suivant (le coffre s\'ouvre tout seul à ta ferme)</div><div class="ib-rec">' + rec('Si tu as participé', fmt(R.participation.kamas) + ' kamas, 1 rune de forgemagie, ' + Math.round(R.participation.xp * 100) + ' % d\'un niveau') +
     rec('Si le boss tombe (pour tous)', fmt(R.tombe.kamas) + ' kamas, ' + R.tombe.forge + ' runes, une pièce au jet de 75 % ou plus, ' + Math.round(R.tombe.leg * 100) + ' % de sa pièce légendaire, ' + Math.round(R.tombe.xp * 100) + ' % d\'un niveau') +
     rec('1er du classement', 'en plus : ' + fmt(R.podium[0].kamas) + ' kamas et 1 rune parfaite') + rec('2e', 'en plus : ' + fmt(R.podium[1].kamas) + ' kamas et ' + R.podium[1].forge + ' runes') + rec('3e', 'en plus : ' + fmt(R.podium[2].kamas) + ' kamas et ' + R.podium[2].forge + ' runes') + '</div>' +
     '<div class="hdv-section">Le classement de la semaine</div><div id="ileboss-classement"><p class="hdv-aide">Chargement…</p></div>' +
@@ -285,17 +285,26 @@ function finIleBoss(abandon, tombe) {
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
     '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) + '</div>' +
-    '<p class="hdv-aide">Le coffre de la semaine s\'ouvre ' + prochainVendredi() + ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
+    '<p class="hdv-aide">Le coffre de la semaine s\'ouvre tout seul à ta ferme ' + prochainVendredi() + ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
     '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
   rendreHaut(); sauver();
 }
-async function reclamerIleBoss() { /* le coffre de la semaine finie : la participation, ou mieux s'il est tombe, et le podium */
+/* LE COFFRE DE L'ILE, TOUT SEUL (02/11/2026, « on recoit a quel moment les recompenses de classement, de participation ? il faudrait un message ou une notif
+   avec les gains quand on les recoit », Mathieu) : avant, il fallait penser a rouvrir la fiche de l'ile et toucher « Ouvrir le coffre de la semaine ». Maintenant,
+   des que la semaine est finie (le vendredi), il s'ouvre de lui-meme a la ferme, connecte, sans fenetre ni combat en cours, et sa fenetre detaille les gains.
+   Le bouton de la fiche reste. Un classement illisible : un nouvel essai toutes les 5 min, sans message. */
+function coffreIleAuto() {
+  if (!S_ || !S_.perso || enAccueil || combat || modaleOuverte || lieu !== 'ferme' || lecon.ouverte || reclamerIleBoss.enCours || !ENLIGNE || !enLigneSv.compte) return;
+  if (coffreIleAuto.t && Date.now() - coffreIleAuto.t < 5 * 60000) return;
+  if (!aReclamerIle().length) return; coffreIleAuto.t = Date.now(); reclamerIleBoss(true);
+}
+async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la participation, ou mieux s'il est tombe, et le podium ; auto : ouvert tout seul a la ferme (coffreIleAuto) */
   if (reclamerIleBoss.enCours) return; const S0 = etatIleBoss(), L = aReclamerIle(); if (!L.length) return;
   reclamerIleBoss.enCours = true; /* (un double clic ne paie plus deux fois) */
   try {
   const lignes = [];
   for (const [k, J] of L) {
-    const r = await classementIleBoss(k); if (!r) { toast('Le classement de l\'île n\'est pas lisible pour l\'instant (hors connexion ?) : ton coffre t\'attend, réessaie dans un moment.', 'alerte'); continue; } /* (avant le 16/10/2026 : la participation, et la recompense du boss tombe perdue) */
+    const r = await classementIleBoss(k); if (!r) { if (!auto) toast('Le classement de l\'île n\'est pas lisible pour l\'instant (hors connexion ?) : ton coffre t\'attend, réessaie dans un moment.', 'alerte'); continue; } /* (avant le 16/10/2026 : la participation, et la recompense du boss tombe perdue) */
     const tombe = !!(r && r.total >= PV_ILE_BOSS), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
     S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; let xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp); xp = gagnerXp.dernier; /* (le vrai gain, affiche) */
     /* « on pourrait etre plus explicite sur les gains, c'est pas tres clair » (Mathieu, 17/10/2026) : ce qui s'est passe, puis ce que tu recois ligne par
@@ -314,8 +323,10 @@ async function reclamerIleBoss() { /* le coffre de la semaine finie : la partici
     lignes.push('<div class="art">' + ico(B.icone) + '<div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ', semaine du ' + k.split('-').reverse().join('/') + '</b><div class="desc">' + etat + ' Ton meilleur essai : ' + fmt(J.meilleur) + ' dégâts' + (rang >= 0 && r ? ', ' + (rang + 1) + (rang ? 'e' : 'er') + ' sur ' + r.joueurs.length + ' joueur' + (r.joueurs.length > 1 ? 's' : '') : '') + '.</div></div><div></div></div>' +
       '<div class="hdv-section">Ce que tu reçois</div><div class="ib-rec">' + L2.join('') + '<div class="rc-l ib-total">' + picto('etoile', '#7a4fc9') + '<span>Au total</span><b>' + total + '</b></div></div>' + siTombe);
   }
+  if (!lignes.length) return; /* (aucun classement lisible : le coffre attend) */
   son('niveau'); confettis(50); rendreHaut(); sauver();
-  ouvrirModale('ileboss', entete('Le coffre de l\'île des boss') + lignes.join('') + '<div class="act-bas"><button class="btn kamas" data-montgolfiere="ileBoss">Retour à l\'île</button></div>');
+  ouvrirModale('ileboss', entete('Le coffre de l\'île des boss') + '<p class="hdv-aide">La semaine de l\'île est finie : voici ce que tu gagnes. C\'est déjà ajouté : les kamas et l\'XP sur ta ferme, les runes et les pièces dans ton inventaire (Perso).</p>' + lignes.join('') +
+    '<div class="act-bas"><button class="btn discret" data-montgolfiere="ileBoss">Voir l\'île des boss</button><button class="btn kamas" data-fermer>Super !</button></div>');
   } finally { reclamerIleBoss.enCours = false; }
 }
 function animerIleBoss(dt) { /* tout en douceur (« plus lent, tranquille, que ca ne bouille pas dans tous les sens, que ca ne clignote pas : leger, fluide, joli », Mathieu, 15/10/2026) */
