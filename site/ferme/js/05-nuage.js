@@ -200,10 +200,11 @@ function majBandeau() {
     : mode === 'poserDeco' && DECOS[aPoser] && DECOS[aPoser].sol ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche des cases pour les paver (même sous un bâtiment ou une décoration), retouche une case pavée pour la ranger, puis Terminer.'
     : mode === 'poserDeco' && DECOS[aPoser] ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche une case d\'herbe libre pour ' + DECOS[aPoser].pr + ' poser.'
     : mode === 'poserTour' ? 'Tour de défense (' + fmt(PRIX_TOUR[Math.min(nbTours(), PRIX_TOUR.length - 1)]) + ' kamas) : touche une case d\'herbe pour la construire.'
+    : mode === 'poserChateau' ? 'Le château de Redemption : touche l\'endroit où le bâtir (4 cases sur 4 : de l\'herbe libre, ta grange ou tes tours), ou Terminer pour annuler.'
     : mode === 'enclos' ? texteEnclos()
     : mode === 'enclosDeplacer' ? 'Déplacer l\'enclos : touche une case d\'herbe, il s\'y installe autour, Bouftous compris' + (DOIGT ? '.' : ' (en vert : il rentre, en rouge : pas la place).')
     : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer, une petite clôture pour la ranger.';
-  marquerEnclos();
+  marquerEnclos(); if (mode !== 'poserChateau') majApercuChateau(null); /* (les cases du chateau-grange, eclairees le temps de le poser) */
 }
 const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin').length;
 const plafond = () => Math.floor(S_.cases.length * PART_CONSTRUCTIBLE);

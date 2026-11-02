@@ -13,6 +13,7 @@ const ACTIONS = {
     if (mode === 'enclosDeplacer') { if (p.type === 'libre') ACTIONS.deplacerEnclos(p); else if (p.type !== 'enclos') toast('Touche une case d\'herbe libre.'); return; }
     if (mode === 'poserDeco') { ACTIONS.poserDeco(p); return; }
     if (mode === 'poserTour') { if (p.type !== 'libre') { toast('Il faut une case d\'herbe libre.'); return; } ACTIONS.construireTour(p.id); return; }
+    if (mode === 'poserChateau') { ACTIONS.poserChateau(p); return; }
     if (mode === 'choisir') {
       { const kc = pointClic && clotureProche(pointClic.x, pointClic.z, 0.35); if (kc) { rangerCloture(kc); return; } } /* (toucher une cloture en amenageant la range, 01/11/2026) */
       if (parcelleAjoutee(p)) ouvrirParcelle(p);
@@ -268,6 +269,11 @@ const ACTIONS = {
   amelio(id) {
     const a = AMELIOS.find((x) => x.id === id), n = niv(id);
     if (!a || n >= a.couts.length || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a) || S_.kamas < a.couts[n] || (a.requiert && !niv(a.requiert))) return;
+    if (id === 'qg' && n === 4) { /* le chateau-grange : on choisit d'abord ou le batir, il se paie a la confirmation (batirChateau) */
+      const m = manqueChateau(); if (m) { toast(m + '.', 'alerte'); return; }
+      fermerModale(); aDeplacer = null; mode = 'poserChateau'; assurerChateau(); majBandeau(); rendreHaut();
+      toast('Touche l\'endroit où bâtir ton château : il prend 4 cases sur 4. Ta grange et tes 4 tours y fusionnent.', 'or'); return;
+    }
     if (id === 'voliere' && n === 0 && bloqueursVoliere().length) { toast('Pas la place : libère une case à côté de la volière (une parcelle se déplace avec Aménager).', 'alerte'); return; }
     const caseForge = id === 'forge' && n === 0 ? caseLibreForge() : null;
     if (id === 'forge' && n === 0 && !caseForge) { toast('Pas la place : l\'atelier prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
@@ -362,6 +368,27 @@ const ACTIONS = {
     anciennes.concat(cells).forEach((c) => rendreCase(c.id));
     construireBatiments(); if (type === 'voliere') appliquerVoliere(); rendreCasesBulles();
     toast(BATIS[type][0].toUpperCase() + BATIS[type].slice(1) + ' a déménagé.', 'or'); majBandeau(); sauver();
+  },
+  poserChateau(p) { /* le carre de 4 x 4 cases autour de la case touchee : ses cases s'eclairent, puis on confirme */
+    const cells = essaiChateau(p); majApercuChateau(cells); chateauVise = cells;
+    if (!cells) { toast('Pas la place ici : il faut 4 x 4 cases d\'herbe libres, au même niveau (ta grange et tes tours comptent comme libres : elles fusionnent).', 'alerte'); return; }
+    const cout = AMELIOS.find((x) => x.id === 'qg').couts[4];
+    ouvrirModale('chateau', entete('Le château de Redemption') + '<p class="hdv-aide">Ta grange et tes 4 tours de défense fusionnent ici, sur les cases en vert : 12 000 PV, et ses 4 tours tirent comme des tours niveau 6. Tu pourras le déplacer et le tourner avec Aménager.</p>' +
+      '<div class="act-bas"><button class="btn discret" data-chateau="ailleurs">Choisir ailleurs</button><button class="btn kamas" data-chateau="batir"' + (S_.kamas < cout ? ' disabled' : '') + '>Bâtir · ' + fmt(cout) + ' ' + KAMA + '</button></div>');
+  },
+  batirChateau() {
+    const cells = chateauVise, cout = AMELIOS.find((x) => x.id === 'qg').couts[4];
+    if (!cells || niv('qg') !== 4 || manqueChateau() || S_.kamas < cout) return;
+    const anciennes = S_.cases.filter((c) => c.type === 'grange' || c.type === 'tour'), tours = anciennes.filter((c) => c.type === 'tour');
+    const deja = inaccessibles(), avant = avantCases(anciennes.concat(cells)); anciennes.forEach((c) => { c.type = 'libre'; }); cells.forEach((c) => { c.type = 'grange'; });
+    if (refuserSiBloque(deja, avant)) { majApercuChateau(null); chateauVise = null; fermerModale(); return; }
+    tours.forEach((c) => { delete c.niv; delete c.prixPaye; if (S_.bats) delete S_.bats['tour:' + c.id]; }); if (S_.bats) delete S_.bats.grange; /* (le chateau arrive intact) */
+    S_.kamas -= cout; S_.amelio.qg = 5; compter('amelios'); son('quete');
+    const u = paysanMesh.userData; if (cells.includes(u.cellule) || cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } } /* il s'ecarte */
+    anciennes.concat(cells).forEach((c) => rendreCase(c.id));
+    mode = null; chateauVise = null; majApercuChateau(null); fermerModale(); majBandeau();
+    construireBatiments(); rendreCasesBulles(); rendreHaut(); sauver();
+    toast('Le château de Redemption est bâti ! Ta grange et tes 4 tours ne font plus qu\'un : 12 000 PV, et ses 4 tours tirent comme des tours niveau 6.', 'or');
   },
   rangerDeco() { /* Ranger : la decoration (ou l'arbre) choisie part dans « Mes décorations », sa case redevient de l'herbe */
     S_.decos = S_.decos || {};

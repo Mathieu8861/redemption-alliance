@@ -489,6 +489,7 @@ function modeleArbalete() {
 function construireArbalete() {
   if (arbalete || !niv('arbalete') || !ancres.grange) return;
   const g = MODELES.arbalete1 ? arbaleteNiv(niv('arbalete')) : modeleArbalete(); g.scale.setScalar(2.2);
+  if (aChateau()) { const o = blocBati('grange'), [ax, az] = tourne(0, 0.15, rotDe('grange')); g.scale.setScalar(1.55); poser(g, o.x + ax, o.y + Y_DONJON, o.z + az); marquer(g, o.c0.id); arbalete = g; rendreArbaleteBulle(); return; } /* (sur l'estrade du donjon du chateau-grange, 02/11/2026) */
   /* une plateforme de bois sur pilotis entre l'arbalete et le toit : elle ne flotte plus */
   const sup = new T.Group(); g.add(sup); const bois = '#8a5a32', fonce = '#5e3b23';
   const plat = boite(0.6, 0.05, 0.6, bois); plat.position.y = -0.02; sup.add(plat);
@@ -525,6 +526,10 @@ function modeleTour() {
 function construireTours() {
   toursMesh.forEach((t) => scene.remove(t)); toursMesh = [];
   S_.cases.filter((c) => c.type === 'tour').forEach((c) => { const q = posCase(c), g = MODELES.tour1 ? modeleTourNiv(c) : modeleTour(); poser(g, q.x, q.y, q.z); marquer(g, c.id); g.userData.cd = Math.random() * CADENCE_TOUR; toursMesh.push(g); });
+  const o = aChateau() && MODELES.arbalete5 && blocBati('grange'); /* les 4 tours du chateau-grange : une baliste niveau 5 sur chaque plate-forme, qui tire comme une tour niveau 6 (TOUR_CHATEAU) */
+  if (o) [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => { const [dx, dz] = tourne(sx * COIN_CHATEAU, sz * COIN_CHATEAU, rotDe('grange')), g = new T.Group(), ar = arbaleteNiv(5); ar.scale.setScalar(1.15); g.add(ar);
+    g.userData.tete = ar.userData.tete; g.userData.pointe = ar.userData.pointe; poser(g, o.x + dx, o.y + Y_TOURS_CHATEAU, o.z + dz); const c = caseIci(o.x + dx, o.z + dz); marquer(g, c ? c.id : o.c0.id);
+    g.userData.chateau = true; g.userData.cd = Math.random() * CADENCE_TOUR; toursMesh.push(g); });
   if (S_.bats) majFeux(true);
 }
 /* chaque tour vise le voleur ou le monstre le plus proche a sa portee, et tire une fleche de la reserve */
@@ -552,8 +557,8 @@ canvas.addEventListener('pointermove', (ev) => {
 canvas.addEventListener('pointerleave', () => { PORTEE_VUE.visible = false; $('info-survol').hidden = true; });
 function majTours(dt, s) {
   toursMesh.forEach((g, k) => {
-    if (enRuine('tour:' + g.userData.cellule)) return;
-    const t = g.userData.tete, pos = g.position, ct = caseTour(g.userData.cellule);
+    if (enRuine(g.userData.chateau ? 'grange' : 'tour:' + g.userData.cellule)) return; /* (les tours du chateau-grange tombent avec lui) */
+    const t = g.userData.tete, pos = g.position, ct = g.userData.chateau ? TOUR_CHATEAU : caseTour(g.userData.cellule);
     g.userData.cd = Math.max(0, g.userData.cd - dt);
     const v = voleurCiblable() && Math.hypot(voleur.m.position.x - pos.x, voleur.m.position.z - pos.z) < porteeTour(ct) ? voleur : null;
     const mo = !v && combat ? monstreAViser(pos, porteeTour(ct)) : null, cible = v ? v.m.position : mo ? mo.m.position : null;

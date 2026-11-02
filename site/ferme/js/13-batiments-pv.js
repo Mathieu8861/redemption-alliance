@@ -12,7 +12,7 @@ const PERTE_RUINE = { grange: 'L\'arbalète du toit ne tire plus, et les voleurs
 const typeCle = (cle) => cle.split(':')[0];
 const nomBat = (cle) => NOM_BAT[typeCle(cle)];
 const Maj = (t) => t[0].toUpperCase() + t.slice(1);
-const pvMaxBat = (cle) => { const t = typeCle(cle); if (t === 'grange') return [500, 900, 1500, 2400, 3600][niv('murs')]; if (t === 'tour') return NIV_TOURS.pv[nivTour(caseTour(cle.slice(5)))]; return 150 + 25 * niveau(S_.xp); };
+const pvMaxBat = (cle) => { const t = typeCle(cle); if (t === 'grange') return [500, 900, 1500, 2400, 3600, 12000][niv('murs')]; if (t === 'tour') return NIV_TOURS.pv[nivTour(caseTour(cle.slice(5)))]; return 150 + 25 * niveau(S_.xp); };
 const etatBat = (cle) => (S_.bats && S_.bats[cle]) || null;
 const degatsBat = (cle) => { const b = etatBat(cle); return b ? Math.min(b.deg || 0, pvMaxBat(cle)) : 0; };
 const enRuine = (cle) => { const b = etatBat(cle); return !!(b && b.ruine); };

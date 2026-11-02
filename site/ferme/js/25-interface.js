@@ -159,8 +159,8 @@ const manque = (cout) => S_.kamas < cout ? '<small class="manque">Il manque ' + 
 const virgule = (x) => String(x).replace('.', ',');
 const enCases = (u) => virgule(Math.round(u / S * 10) / 10); /* une portee en unites du jeu, dite en cases (une case fait S = 2 unites) */
 const GAINS = {
-  qg: { role: 'Elle garde tes récoltes. Plus elle a de PV, plus elle tient face aux monstres.', looks: ['la grange à colombages', 'cheminée et hangar à foin', 'un soubassement de pierre', 'la tourelle de guet', 'le QG de Redemption'],
-    stats: [['vita', 'Points de vie', [500, 900, 1500, 2400, 3600]]], neufs: { 1: [['bouclier', 'Les voleurs de VSA emportent 2 fois moins']] } },
+  qg: { role: 'Elle garde tes récoltes. Plus elle a de PV, plus elle tient face aux monstres.', looks: ['la grange à colombages', 'cheminée et hangar à foin', 'un soubassement de pierre', 'la tourelle de guet', 'le QG de Redemption', 'le château de Redemption'],
+    stats: [['vita', 'Points de vie', [500, 900, 1500, 2400, 3600, 12000]]], neufs: { 1: [['bouclier', 'Les voleurs de VSA emportent 2 fois moins']], 5: [['degats', 'Tes 4 tours fusionnent : elles tirent comme des tours niveau 6'], ['cases', 'Il prend 4 cases sur 4, là où tu veux']] } },
   arbalete: { role: 'Elle tire seule sur les voleurs et les monstres, tant qu\'elle a des carreaux.', looks: [null, 'de bois', 'cerclée de fer', 'double, avec lunette', 'à répétition', 'la baliste de Redemption'],
     stats: [['degats', 'Dégâts', [0].concat(DEG_ARBALETE)], ['carreaux', 'Carreaux chargés', [0, 3, 6, 9, 12, 15]], ['cadence', 'Un tir toutes les', [0, 1.1, 1.0, 0.9, 0.8, 0.65], (x) => virgule(x) + ' s'], ['portee', 'Portée', [0, 7, 8, 9.5, 10.5, 12], (x) => enCases(x) + ' cases']], neufs: { 3: [['auto', 'Elle se recharge toute seule avec ta réserve de flèches']] } },
   nivPuits: { role: 'Il remplit ton arrosoir.', looks: ['le puits', 'la poulie', 'la citerne d\'arrosage', 'dallage et abreuvoir', 'le château d\'eau'],
@@ -204,7 +204,7 @@ function etatAmelio(id) {
   if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
   const a = AMELIOS.find((x) => x.id === id), n = niv(id); if (n >= a.couts.length) return { e: 'fini' };
   if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a)) return { e: 'bloque' };
-  return { e: 'dispo', ok: S_.kamas >= a.couts[n] };
+  return { e: 'dispo', ok: S_.kamas >= a.couts[n] && !(id === 'qg' && n === 4 && manqueChateau()) };
 }
 const PARTIES_AMELIO = [['', 'Productivité', 'Produire plus et plus vite : eau, Bouftous, Tofus, ventes.', ['nivPuits', 'enclos', 'voliere', 'nivEtal']],
   ['', 'Défense', 'Protéger ta ferme des voleurs de VSA, des monstres des vagues, des Tofus et des Wabbits.', ['qg', 'arbalete', 'tours', 'epouvantail', 'cloche', 'leurre']]];
@@ -226,15 +226,15 @@ function lignesGain(G, n, fini) {
 }
 function artAmelio(a) {
   const nv = niveau(S_.xp), n = niv(a.id), fini = n >= a.couts.length, cout = fini ? 0 : a.couts[n], bloque = !fini && (nv < nivRequis(a, n) || verrouVague(a)), manqueReq = a.requiert && !niv(a.requiert), bat = NIVBAT[a.id] || a.id === 'arbalete';
-  const place = fini ? '' : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : a.id === 'forge' && n === 0 && !bloque && !caseLibreForge() ? 'Libère une case d\'herbe' : a.id === 'leurre' && n === 0 && !bloque && !caseLibreLeurre() ? 'Libère une case d\'herbe' : '';
+  const place = fini ? '' : a.id === 'qg' && n === 4 && !bloque && manqueChateau() ? manqueChateau() : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : a.id === 'forge' && n === 0 && !bloque && !caseLibreForge() ? 'Libère une case d\'herbe' : a.id === 'leurre' && n === 0 && !bloque && !caseLibreLeurre() ? 'Libère une case d\'herbe' : '';
   const plusieurs = a.couts.length > 1, numSuiv = NIVBAT[a.id] ? n + 2 : n + 1, G = GAINS[a.id];
-  const total = bat ? 5 : plusieurs ? a.couts.length : 0, actuel = bat ? (a.id === 'arbalete' ? n : n + 1) : n;
+  const total = bat ? (a.id === 'qg' ? 6 : 5) : plusieurs ? a.couts.length : 0, actuel = bat ? (a.id === 'arbalete' ? n : n + 1) : n; /* (la grange : 6 niveaux, le 6e est le chateau) */
   const look = !fini && G && G.looks && G.looks[n + 1];
   const suiv = fini ? (plusieurs ? 'Niveau maximum' : 'Acquis') : plusieurs ? ((a.id === 'arbalete' || a.id === 'geliere') && !n ? 'En la construisant' : 'Au niveau ' + numSuiv + (look ? ', ' + look : '')) : 'En l\'achetant';
   const achat = fini ? '<span class="a-etat">' + (plusieurs ? 'Niveau maximum atteint' : 'Déjà acheté') + '</span>'
     : manqueReq ? '<span class="a-etat">' + picto('cadenas', GRIS_PICTO) + AMELIOS.find((x) => x.id === a.requiert).nom.split(' sur ')[0] + ' d\'abord</span>'
     : bloque ? '<span class="a-etat">' + picto('cadenas', GRIS_PICTO) + (verrouVague(a) ? 'Après la vague ' + a.apresVague : 'Paysan niveau ' + nivRequis(a, n)) + '</span>'
-    : (place ? '<span class="a-manque">' + place + '</span>' : ilManque(cout)) + '<button class="btn kamas" data-amelio="' + a.id + '"' + (S_.kamas < cout || place ? ' disabled' : '') + '>' + ((a.id === 'arbalete' || a.id === 'geliere' || a.id === 'leurre') && !n ? 'Construire' : plusieurs ? 'Niveau ' + numSuiv : 'Acheter') + ' · ' + fmt(cout) + ' ' + KAMA + '</button>';
+    : (place ? '<span class="a-manque">' + place + '</span>' : ilManque(cout)) + '<button class="btn kamas" data-amelio="' + a.id + '"' + (S_.kamas < cout || place ? ' disabled' : '') + '>' + (a.id === 'qg' && n === 4 ? 'Bâtir le château' : (a.id === 'arbalete' || a.id === 'geliere' || a.id === 'leurre') && !n ? 'Construire' : plusieurs ? 'Niveau ' + numSuiv : 'Acheter') + ' · ' + fmt(cout) + ' ' + KAMA + '</button>';
   const gains = G ? lignesGain(G, n, fini) : '';
   return '<div class="amel' + (bloque ? ' verrou' : '') + '"><img class="a-ico" src="assets/icones/' + (ICONES[a.id] || 'coffre') + '.png?v=' + VERSION_MODELES + '" alt=""><h3>' + a.nom + '</h3>' + crans(actuel, total, total ? '' : fini ? 'acquis' : 'achat unique') +
     '<p class="a-desc">' + (G && G.role ? G.role : a.desc) + '</p>' + (gains ? '<div class="a-prochain">' + suiv + '</div>' + gains : '') + '<div class="a-achat">' + achat + '</div></div>';
@@ -421,7 +421,7 @@ function ouvrirGrange(choix) {
   const pvG = abime ? artPv('grange') : '<div class="gr-pv"><i></i></div><p class="gr-aide">' + fmt(pvMaxBat('grange')) + ' / ' + fmt(pvMaxBat('grange')) + ' PV : intacte.</p>';
   const arbal = arb ? '<div class="gr-arb">' + img('arbalete') + '<div><b>Arbalète ' + arb + '/5</b><br>' + degatsArbalete() + ' dégâts, ' + enCases(porteeArbalete()) + ' cases<div class="gr-jauge"><i style="width:' + Math.round(100 * S_.carreaux / cap) + '%"></i></div></div><div class="gr-arb-etat">' + S_.carreaux + '/' + cap + ' · ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : '') +
     (rechargeAuto() ? '<br>' + (S_.fleches ? 'se recharge seule' : '<span style="color:var(--rouge)">réserve vide</span>') : S_.carreaux >= cap ? '' : '<br><button class="btn kamas mini" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div></div>' : '';
-  const ligneA = (id, icone) => { const a = AMELIOS.find((x) => x.id === id); if (!a) return ''; const n = niv(id), e = etatAmelio(id), bat = !!NIVBAT[id] || id === 'arbalete', total = bat ? 5 : a.couts.length, actuel = bat ? (id === 'arbalete' ? n : n + 1) : n;
+  const ligneA = (id, icone) => { const a = AMELIOS.find((x) => x.id === id); if (!a) return ''; const n = niv(id), e = etatAmelio(id), bat = !!NIVBAT[id] || id === 'arbalete', total = bat ? (id === 'qg' ? 6 : 5) : a.couts.length, actuel = bat ? (id === 'arbalete' ? n : n + 1) : n;
     const act = e.e === 'fini' ? '<span class="gr-aide">Niveau max</span>' : e.e === 'bloque' ? '<span class="gr-aide">' + picto('cadenas', GRIS_PICTO) + 'Niveau ' + nivRequis(a, n) + '</span>' : '<button class="btn kamas" data-amelio="' + id + '"' + (e.ok ? '' : ' disabled') + '>' + fmt(a.couts[n]) + ' ' + KAMA + '</button>';
     return '<div class="gr-amel">' + img(icone) + '<span>' + (id === 'qg' ? 'La grange' : 'L\'arbalète') + ' ' + actuel + '/' + total + '</span>' + act + '</div>'; };
   const nt = nbTours(), ct = PRIX_TOUR[Math.min(nt, PRIX_TOUR.length - 1)];
@@ -615,6 +615,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.hdvCat) { ouvrirHdv.cat = b.dataset.hdvCat; ouvrirHdv('acheter'); $('carte').scrollTop = 0; if (b.dataset.hdvVoir) { const e = document.querySelector('#carte ' + b.dataset.hdvVoir), l = e && (e.closest('.art') || e); if (l) l.scrollIntoView({ block: 'center' }); } } /* (16/10/2026 : « Acheter une Gelée » de la Gelière ouvrait les pots ; les Gelees sont dans Animaux, on y descend) */
   else if (b.dataset.hdvCatA) { ouvrirHdv.catA = b.dataset.hdvCatA; ouvrirHdv('ameliorer'); $('carte').scrollTop = 0; }
   else if (b.dataset.amelio) ACTIONS.amelio(b.dataset.amelio);
+  else if (b.dataset.chateau) { if (b.dataset.chateau === 'batir') ACTIONS.batirChateau(); else fermerModale(); } /* (le chateau-grange : bâtir ici, ou choisir ailleurs) */
   else if (b.dataset.gardien) actionGardien(b.dataset.gardien, b.dataset.type);
   else if (b.dataset.nourrir) { ACTIONS.nourrir(parseInt(b.dataset.nourrir, 10)); ouvrirEnclos(); }
   else if (b.hasAttribute('data-reproduire')) { ACTIONS.reproduire(); ouvrirEnclos(); }

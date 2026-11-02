@@ -351,6 +351,36 @@ function corpsDecoHdv() {
         '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n || ((D.sol || D.bord) && po) ? '<button class="btn discret mini" data-poser-deco="' + k + '">' + (n ? 'Poser' : 'Ranger') + '</button>' : '') + '</div></div>'; }).join('') +
     (ks.some((k) => nv < DECOS[k].niv) ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + ks.filter((k) => nv < DECOS[k].niv).map((k) => '<div class="art verrou">' + ico('deco-' + k) + '<div><b>' + DECOS[k].nom + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + DECOS[k].niv + '</span></div></div>').join('') : '');
 }
+/* LE CHATEAU-GRANGE (02/11/2026, « une version niveau 6 de la grange qu'on peut fusionner avec les quatre tours, et ca devient un grand batiment qui fait
+   4 sur 4 ; un chateau avec des tours dans chaque coin », puis le fort de Redemption de la planche, « ca j'aime bien », Mathieu ; modele : blender/chateau-grange.py
+   --jeu). Ses conditions : perso niveau 80, grange niveau 5, 4 tours niveau 5, 500 000 kamas ; on choisit ou le batir (4 x 4 cases d'herbe, la grange et les
+   tours comptent comme libres). La grange devient 16 cases 'grange', les tours disparaissent : ses 4 tours d'angle tirent comme des tours niveau 6 (construireTours),
+   la baliste de la grange passe sur la terrasse du donjon (construireArbalete) ; 12 000 PV a lui seul. */
+const Y_DONJON = 4.15, COIN_CHATEAU = 3.157, Y_TOURS_CHATEAU = 3.45; /* (la terrasse du donjon, le centre des balistes d'angle et leur estrade, en unites du jeu) */
+let chateauCharge = null, chateauVise = null, apercuChateau = null; const TUILE_CHATEAU = new T.PlaneGeometry(S - 0.1, S - 0.1); partager(TUILE_CHATEAU);
+function assurerChateau() {
+  if (MODELES.grange6) return Promise.resolve(); if (chateauCharge) return chateauCharge;
+  chateauCharge = chargerGlb('assets/modeles/jeu/chateau.glb?v=' + VERSION_MODELES).then((G) => {
+    versToon(G, { normales: 0.01, sansContour: SC_BATI }); MODELES.grange6 = gabaritEchelle(G, 'Grange6', 1, new T.Vector3(0, 0, 0));
+    if (S_ && S_.perso) construireBatiments();
+  }).catch((e) => { console.warn('Château', e); chateauCharge = null; });
+  return chateauCharge;
+}
+const manqueChateau = () => { const L = S_.cases.filter((c) => c.type === 'tour'); return L.length < TOURS_MAX ? 'Construis d\'abord tes ' + TOURS_MAX + ' tours de défense' : L.some((c) => nivTour(c) < 4) ? 'Monte d\'abord tes ' + TOURS_MAX + ' tours au niveau 5' : ''; };
+function essaiChateau(cible) { /* 4 x 4 cases autour de la case touchee (le carre le plus centre sur elle d'abord) : herbe libre, ou la grange et les tours, au meme niveau */
+  const ok = (c) => c && (c.type === 'libre' || c.type === 'grange' || c.type === 'tour') && !(S_.sauvage && S_.sauvage.id === c.id) && memeNiveau(c, cible);
+  for (const [di, dj] of [[1, 1], [2, 1], [1, 2], [2, 2], [0, 1], [1, 0], [3, 1], [1, 3], [0, 2], [2, 0], [3, 2], [2, 3], [0, 0], [3, 0], [0, 3], [3, 3]]) {
+    const cells = []; let bon = true;
+    for (let x = 0; x < 4 && bon; x++) for (let y = 0; y < 4 && bon; y++) { const c = S_.cases.find((v) => v.terrain === cible.terrain && v.i === cible.i - di + x && v.j === cible.j - dj + y); if (ok(c)) cells.push(c); else bon = false; }
+    if (bon) return cells;
+  }
+  return null;
+}
+function majApercuChateau(cells) {
+  if (apercuChateau) { scene.remove(apercuChateau); apercuChateau = null; } if (!cells) return;
+  const g = new T.Group(); cells.forEach((c) => { const q = posCase(c), m = new T.Mesh(TUILE_CHATEAU, MARQUE_OK); m.rotation.x = -Math.PI / 2; m.position.set(q.x, q.y + 0.09, q.z); m.renderOrder = 3; m.raycast = () => {}; g.add(m); });
+  scene.add(g); apercuChateau = g;
+}
 let batisMesh = [];
 const rotDe = (type) => ((S_.rot && S_.rot[type]) || 0) * Math.PI / 2;
 const tourne = (dx, dz, a) => [dx * Math.cos(a) + dz * Math.sin(a), -dx * Math.sin(a) + dz * Math.cos(a)]; /* un decalage, tourne avec le batiment */
@@ -359,7 +389,9 @@ function construireBatiments() {
   const pose = (...a) => { const m = batiment(...a); batisMesh.push(m); return m; };
   if (montgolfiereMesh) poserMontgolfiere(); /* (deplacee ou tournee dans Amenager, ou une autre partie) */
   if (!S_.cases.some((c) => c.type === 'foin')) { const c = S_.cases.find((x) => x.id === 'm7_4'); if (c && c.type === 'enclos') c.type = 'foin'; } /* (anciennes sauvegardes : le foin etait passe dans l'enclos) */
-  let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg'); fumerCheminee(pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a), ng); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); /* au faitage, pas en haut de la tourelle */ }
+  let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg');
+    if (ng >= 6) { if (MODELES.grange6) pose('grange6', o.x, o.y, o.z, o.c0.id, a); else assurerChateau(); ancres.grange = new T.Vector3(o.x, o.y + Y_DONJON + 0.4, o.z); } /* (le chateau-grange : sa baliste sur la terrasse du donjon) */
+    else { fumerCheminee(pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a), ng); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); } } /* au faitage, pas en haut de la tourelle */
   o = blocBati('hdv'); if (o) {
     const a = rotDe('hdv'), [hx, hz] = tourne(0, -0.15, a), [mx, mz] = tourne(1.75, 0.45, a); const h = pose('hdv' + nivBat('nivEtal'), o.x + hx, o.y, o.z + hz, o.c0.id, a); ancres.hdv = new T.Vector3(o.x, o.y + h.userData.hauteur + 0.3, o.z);
     if (MODELES.marchand && !MODELES.marchand.userData.ombre) { ombrePieds(MODELES.marchand, 1.4); MODELES.marchand.userData.ombre = true; }
