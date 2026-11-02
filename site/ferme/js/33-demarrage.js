@@ -1,7 +1,7 @@
 'use strict';
 function lancer(etat) {
   lancer.t = performance.now(); pDown = null;
-  S_ = etat; completerTerrains(); arbresSurCases(); sauver();
+  S_ = etat; rendreArmeEssai(true); completerTerrains(); arbresSurCases(); sauver(); /* (une arme a l'essai de l'Arene dev, page fermee en plein combat : rendue) */
   document.getElementById('accueil').hidden = true; document.getElementById('hud').classList.remove('cache');
   enAccueil = false; angleCam = angleSauve(); angleVise = null; placerCamera(); /* (l'angle choisi la derniere fois, 29/10/2026) */
   resynchroniserIle(); construireBatiments(); construireArbres(); appliquerEnclos(); appliquerVoliere(); rendreBouftous(); majFeux(true);

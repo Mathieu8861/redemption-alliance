@@ -235,6 +235,7 @@ const SORTS_LEG = {
   royal: { nom: 'Charge', teinte: '#e8b84a', recharge: 12, portee: PORTEE_CHARGE, ligne: true, largeur: 1.0 }, /* (02/11/2026 : les sorts des coiffes du Royal et du Chafer, leur attaque de boss) */
   chafer: { nom: 'Lance d\'os', teinte: '#e8dcc0', recharge: 12, portee: PORTEE_LANCE_OS, ligne: true, largeur: 0.8 },
   bworker: { nom: 'Hache lancée', teinte: '#c08a4a', recharge: 12, portee: 10, zone: 2.2 }, /* (« go bworker ouais », Mathieu, 02/11/2026) */
+  moon: { nom: 'Bond de Moon', teinte: '#c98a52', recharge: 13, portee: 10, zone: 2.6 }, /* (l'arme de Moon, 02/11/2026) */
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 7 },
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
@@ -270,6 +271,7 @@ function executerLeg(emp, pt, compter) {
   else if (cle === 'royal') chargeRoyale(pt, st); /* la charge : tete baissee vers ou tu vises */
   else if (cle === 'chafer') lanceOsPerso(pt, st); /* la lance d'os : en ligne droite, plus forte de loin */
   else if (cle === 'bworker') hacheLancee(x, z, S.zone, st); /* la hache lancee : elle retombe la ou tu vises */
+  else if (cle === 'moon') bondMoon(x, z, S.zone, st); /* le bond de Moon : le marteau abattu la ou tu vises */
   majCombatHud();
 }
 /* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
@@ -333,6 +335,35 @@ function hacheLancee(x, z, R, st) {
     if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < R + 0.25 * (o.d.ombre || 1)) { etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 0.9, '#ffd27a'); blesser(o, Math.round(st.deg * 2.5), true); } });
     let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.0) arme.position.y -= d3 * 2; if (s2 > 1.5) { pouf(x, y, z, 1.2, '#9aa3ad'); jeter(arme); return true; } return false; }); /* (plantee, puis elle s'enfonce) */
     return true; });
+}
+/* LE BOND DE MOON (l'arme legendaire de Moon, 02/11/2026, « fais l'item legendaire du Moon, c'est son marteau ; le sort c'est le saut avec le coup de
+   marteau », Mathieu) : comme Moon qui bondit de loin pour ecraser l'endroit ou tu es, tu sautes tres haut vers ou tu vises (5 cases au plus), son
+   marteau-caisse leve au-dessus de la tete, et tu l'abats en retombant : sa caisse s'ecrase au centre du cercle vise (tu retombes juste avant), 3 fois tes
+   degats autour, les monstres touches sonnes 1 s (0,5 s un boss). Le marteau : celui du Iop (equipements-moon), en grand, pour les trois classes */
+const PORTEE_BOND_MOON = 10;
+function bondMoon(x0, z0, R, st) {
+  const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, cible = pointSort({ x: x0, z: z0 }, PORTEE_BOND_MOON), de = pp.clone(), D = 0.65;
+  const L0 = Math.hypot(cible.x - de.x, cible.z - de.z), a = L0 > 0.05 ? Math.atan2(cible.x - de.x, cible.z - de.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a), recul = Math.min(2.0, L0);
+  const x = cible.x - dx * recul, z = cible.z - dz * recul, y = solA(cible.x, cible.z); /* (il retombe un peu avant : c'est la caisse du marteau qui tombe au centre) */
+  chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true;
+  const V = VISUELS['equipements-moon'] && VISUELS['equipements-moon'].getObjectByName('Arme_epee_moon'), propre = !V, mart = V ? V.clone(true) : armeJet('hache', 1.1);
+  const ranger = () => { if (propre) jeter(mart); else scene.remove(mart); }; /* (le clone partage les maillages du modele charge : on ne les libere pas) */
+  mart.rotation.order = 'YXZ'; mart.scale.setScalar(V ? 1.9 : 1); mart.traverse((o) => { o.raycast = () => {}; }); scene.add(mart);
+  poussiere(de.x, de.y, de.z, 8, 0.9, '#d8c6a0'); onde(de.x, de.y, de.z, 1.4, '#f4e2b0', 0.3, 0.7); secousse(0.06, 0.15);
+  let t = 0, frappe = false, trace = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0) { ranger(); u.charge = false; return true; }
+    const k = Math.min(1, t / D), X = de.x + (x - de.x) * k, Z = de.z + (z - de.z) * k, cel = caseIci(X, Z); u.y = hauteurSol(X, Z, cel);
+    if (!frappe) { paysanMesh.position.set(X, u.y + Math.sin(k * Math.PI) * 2.4, Z); paysanMesh.rotation.y = a; }
+    const sw = k < 0.72 ? -0.45 - 0.25 * Math.sin(k / 0.72 * Math.PI) : -0.45 + 2.2 * Math.min(1, (k - 0.72) / 0.28) ** 2; /* (leve au-dessus de la tete, un peu en arriere, puis abattu vers l'avant) */
+    const P = paysanMesh.position; mart.position.set(P.x + dx * 0.25, P.y + 1.0, P.z + dz * 0.25); mart.rotation.set(Math.min(1.75, sw), a, 0);
+    if ((trace += dt) > 0.03 && k > 0.72 && !frappe) { trace = 0; lueur(mart.localToWorld(new T.Vector3(0, 1.17, 0)), '#ffd27a', 1.2, 0.25); }
+    if (k < 1) return false;
+    if (!frappe) { frappe = true; u.charge = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; P.y = u.y;
+      impactMarteau(cible.x, y, cible.z); solFendu(cible.x, y, cible.z, R); mottes(cible.x, y, cible.z, 12, 1.2); poussiere(cible.x, y, cible.z, 14, R, '#d8c6a0');
+      if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - cible.x, o.z - cible.z) > R + 0.25 * (o.d.ombre || 1)) return;
+        etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.1, '#ffd27a'); blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); }); }
+    const r = t - D; if (r > 0.35) mart.scale.multiplyScalar(Math.max(0, 1 - dt * 8)); /* (le marteau reste un instant, puis disparait) */
+    if (r > 0.6) { ranger(); return true; } return false; });
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
   const c = combat; if (!c || c.fin) return;
