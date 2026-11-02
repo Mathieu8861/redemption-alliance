@@ -56,7 +56,7 @@ function pointSol(ev) { /* le point du sol sous la souris : la case touchee, sin
 function viser(v) {
   const pp = paysanMesh.position, c = (combat.cible && combat.cible.etat === 'actif') ? combat.cible : plusProcheMonstre(pp);
   visee = Object.assign(v, { point: c ? new T.Vector3(c.x, c.m.position.y, c.z) : pp.clone().add(new T.Vector3(Math.sin(paysanMesh.rotation.y) * 3, 0, Math.cos(paysanMesh.rotation.y) * 3)) });
-  toast(v.cone ? 'Vise : le souffle part vers la souris. Clique pour lancer (clic droit pour annuler).' : v.ligne ? 'Vise : la flèche part en ligne droite vers la souris. Clique pour tirer (clic droit pour annuler).' : v.rayon < 1 ? 'Vise un monstre et clique (clic droit pour annuler).' : 'Place le cercle avec la souris, clique pour lancer (clic droit pour annuler).', 'or');
+  toast(v.cone ? 'Vise : le souffle part vers la souris. Clique pour lancer (clic droit pour annuler).' : v.ligne ? (v.cle === 'royal' ? 'Vise : tu fonces en ligne droite vers la souris. Clique pour charger (clic droit pour annuler).' : v.cle === 'chafer' ? 'Vise : la lance part en ligne droite vers la souris. Clique pour la jeter (clic droit pour annuler).' : 'Vise : la flèche part en ligne droite vers la souris. Clique pour tirer (clic droit pour annuler).') : v.rayon < 1 ? 'Vise un monstre et clique (clic droit pour annuler).' : 'Place le cercle avec la souris, clique pour lancer (clic droit pour annuler).', 'or');
 }
 function annulerVisee() { visee = null; VISEUR.visible = false; VISEE_LIGNE.visible = false; VISEE_CONE.visible = false; if (typeof PORTEE_VUE !== 'undefined') PORTEE_VUE.visible = false; }
 /* le point ou un sort vise tombe vraiment : a portee du perso, et sur une case ou l'on marche (sinon la plus proche autour du point vise).
@@ -82,7 +82,7 @@ function majVisee(s) {
   VISEE_CONE.visible = false;
   if (visee.ligne) {
     VISEUR.visible = false; VISEE_LIGNE.visible = true; VISEE_LIGNE.position.set(pp.x, pp.y + 0.08, pp.z); VISEE_LIGNE.rotation.y = Math.atan2(pt.x - pp.x, pt.z - pp.z);
-    VISEE_LIGNE.scale.set(LARGEUR_PERCANTE * 2, 1, PORTEE_PERCANTE); VISEE_LIGNE.material.opacity = 0.5 + Math.sin(s * 6) * 0.1; return;
+    VISEE_LIGNE.scale.set((visee.largeur || LARGEUR_PERCANTE) * 2, 1, visee.portee || PORTEE_PERCANTE); VISEE_LIGNE.material.color.set(visee.teinte || '#ffe08a'); VISEE_LIGNE.material.opacity = 0.5 + Math.sin(s * 6) * 0.1; return;
   }
   VISEE_LIGNE.visible = false; VISEUR.visible = true;
   let x = pt.x, z = pt.z, y = pt.y; const m = visee.rayon < 1 && monstreVise(pt); if (m) { x = m.x; z = m.z; y = m.m.position.y; } /* le coup fatal s'accroche au monstre le plus proche */
@@ -230,7 +230,10 @@ function invoquer(pt) {
 }
 /* les pouvoirs des coiffes legendaires qui agissent seuls pendant les vagues : le seisme du Craqueleur, le souffle de Crocabulia */
 /* LES SORTS LEGENDAIRES (16/10/2026) : la coiffe (touche 3) et l'arme (touche 4) ; on les lance sur sa cible (ou le monstre le plus proche a portee) */
+const PORTEE_CHARGE = 10, PORTEE_LANCE_OS = 12; /* (5 et 6 cases) */
 const SORTS_LEG = {
+  royal: { nom: 'Charge', teinte: '#e8b84a', recharge: 12, portee: PORTEE_CHARGE, ligne: true, largeur: 1.0 }, /* (02/11/2026 : les sorts des coiffes du Royal et du Chafer, leur attaque de boss) */
+  chafer: { nom: 'Lance d\'os', teinte: '#e8dcc0', recharge: 12, portee: PORTEE_LANCE_OS, ligne: true, largeur: 0.8 },
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 7 },
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
@@ -263,7 +266,56 @@ function executerLeg(emp, pt, compter) {
       actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
   } else if (cle === 'koulosse') nuageLeg(x, z); /* la fumee : un nuage la ou tu vises */
   else if (cle === 'cochon') boueLeg(x, z, S.zone, st); /* le bain de boue : une flaque la ou tu vises, les monstres dedans restent colles */
+  else if (cle === 'royal') chargeRoyale(pt, st); /* la charge : tete baissee vers ou tu vises */
+  else if (cle === 'chafer') lanceOsPerso(pt, st); /* la lance d'os : en ligne droite, plus forte de loin */
   majCombatHud();
+}
+/* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
+   des boss quoi », Mathieu) : leur attaque de boss, a la main du perso, en ligne droite vers ou tu vises. Leurs pouvoirs d'avant restent en plus.
+   La Charge : tete baissee comme le Bouftou Royal, jusqu'au premier obstacle (5 cases au plus) ; chaque monstre sur ton passage prend 2 fois tes degats,
+   est bouscule sur le cote et reste sonne 1 s (0,5 s un boss, qui ne bouge pas) ; l'air claque devant toi, la poussiere derriere ; au bout, le choc */
+function chargeRoyale(pt, st) {
+  const pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a);
+  let L = 0; while (L < PORTEE_CHARGE && solSort(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25; /* (jusqu'au premier obstacle) */
+  const fin = { x: de.x + dx * L, z: de.z + dz * L }, duree = Math.max(0.15, L / 26), touches = new Set(), dir = new T.Vector3(dx, 0, dz);
+  chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true;
+  const fant = fantomes(paysanMesh, 4, '#f0c96a', 1.4); secousse(0.08, 0.2); poussiere(de.x, de.y, de.z, 8, 0.8, '#d8c6a0'); onde(de.x, de.y, de.z, 1.3, '#f4e2b0', 0.3, 0.7);
+  let t = 0, poudre = 0, choc = 0;
+  effets.push((dt) => { t += dt; const k = Math.min(1, t / duree), x = de.x + (fin.x - de.x) * k, z = de.z + (fin.z - de.z) * k, cel = caseIci(x, z);
+    u.y = hauteurSol(x, z, cel); paysanMesh.position.set(x, u.y, z); paysanMesh.rotation.y = a; fant.maj(dt, 1 - 0.5 * k);
+    if ((poudre += dt) > 0.025) { poudre = 0; emettre(FX_FUM, 1, { x: x - dx * 0.5, y: u.y + 0.2, z: z - dz * 0.5, v: [-dx * 1.5, fxEntre(0.4, 0.9), -dz * 1.5], vie: [0.4, 0.7], taille: [0.4, 1.0], c: ['#e6d6b2', '#cdb98f'], a: 0.5, frein: 2.5 }); }
+    if ((choc += dt) > 0.07) { choc = 0; anneauChoc(new T.Vector3(x + dx * 0.8, u.y + 0.8, z + dz * 0.8), dir, 0.3, 1.0, 0.22, '#f6e2a8'); } /* (l'air qui claque devant lui) */
+    if (combat === c0 && !c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || touches.has(o) || Math.hypot(o.x - x, o.z - z) > 1.0 + 0.3 * (o.d.ombre || 1)) return; touches.add(o);
+      etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.0, '#f6d27a'); secousse(0.1, 0.12); blesser(o, Math.round(st.deg * 2), true); if (o.etat !== 'actif') return;
+      o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); if (!o.d.boss) bousculer(o, a, x, z); });
+    if (k < 1) return false;
+    fant.fin(); u.charge = false; if (cel && PASSABLE[cel.type]) u.cellule = cel;
+    secousse(0.16, 0.25); onde(fin.x, u.y, fin.z, 1.8, '#ffffff', 0.3, 0.9); onde(fin.x, u.y, fin.z, 2.4, '#f0c96a', 0.5, 0.7); poussiere(fin.x, u.y, fin.z, 12, 1.4, '#d8c6a0'); mottes(fin.x, u.y, fin.z, 8, 0.9); return true; });
+}
+function bousculer(o, a, x, z) { /* le monstre est projete sur le cote de la charge, 1,6 plus loin en 0,2 s, s'il y a du sol */
+  const s = Math.sign(Math.cos(a) * (o.x - x) - Math.sin(a) * (o.z - z)) || 1, X = o.x + Math.cos(a) * s * 1.6, Z = o.z - Math.sin(a) * s * 1.6; if (!solSort(X, Z)) return;
+  const x0 = o.x, z0 = o.z, c0 = combat; let t = 0;
+  effets.push((dt) => { t += dt / 0.2; if (combat !== c0 || o.etat !== 'actif') return true; const k = Math.min(1, t), e = 1 - (1 - k) * (1 - k); o.x = x0 + (X - x0) * e; o.z = z0 + (Z - z0) * e; return k >= 1; });
+}
+/* La Lance d'os : comme le Chafer Cuirasse, tu la jettes en ligne droite (6 cases) ; elle transperce tous les monstres sur son passage, plus forte a chaque
+   case parcourue (1,5 fois tes degats, plus 0,25 par case : 3 fois au bout), dans un sillage a l'esprit (son element), et se plante au bout */
+function lanceOsPerso(pt, st) {
+  const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dir = new T.Vector3(Math.sin(a), 0, Math.cos(a));
+  chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.attaque = { t: 0, classe: classeDe(), base: a, tour: false, surFrappe: () => {} }; /* (le geste de lancer) */
+  const p0 = pp.clone(), de = pp.clone().addScaledVector(dir, 0.5), fin = pp.clone().addScaledVector(dir, PORTEE_LANCE_OS); de.y += 1.15; fin.y = solA(fin.x, fin.z) + 0.3;
+  const os = lanceOs(), touches = new Set(), C = (AURAS.esprit || {}).c || ['#ffffff', '#cfe7ff'], vol = 0.45, avant = new T.Vector3(); os.scale.setScalar(0.55); os.position.copy(de); os.lookAt(fin); scene.add(os);
+  secousse(0.05, 0.12); flashLumiere(de.x, de.y, de.z, '#e8f2ff', 1.5, 5, 0.2);
+  let t = 0; effets.push((dt) => { t += dt; if (combat !== c0) { jeter(os); return true; } const k = Math.min(1, t / vol); avant.copy(os.position); os.position.lerpVectors(de, fin, k); os.position.y += Math.sin(k * Math.PI) * 0.35;
+    if (os.position.distanceToSquared(avant) > 1e-6) os.lookAt(os.position.clone().multiplyScalar(2).sub(avant));
+    traineeFleche(os.position); emettre(FX_LUM, 2, { x: os.position.x, y: os.position.y, z: os.position.z, r: 0.2, v: [0, 0.5, 0], vie: [0.35, 0.6], taille: [0.14, 0.02], c: C });
+    if (Math.random() < 0.5) emettre(FX_FUM, 1, { x: os.position.x, y: os.position.y, z: os.position.z, vie: [0.25, 0.4], taille: [0.2, 0.45], c: ['#efe6cf', '#d8cfb8'], a: 0.5 });
+    if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || touches.has(o) || Math.hypot(o.x - os.position.x, o.z - os.position.z) > 0.7 + 0.25 * (o.d.ombre || 1)) return; touches.add(o);
+      const f = Math.min(3, 1.5 + 0.25 * Math.hypot(o.x - p0.x, o.z - p0.z) / 2); etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 0.9, '#efe6cf'); blesser(o, Math.round(st.deg * f), true);
+      if (f >= 2) chiffre('De loin ×' + String(Math.round(f * 10) / 10).replace('.', ','), new T.Vector3(o.x, o.m.position.y + o.haut + 0.6, o.z), 'gros'); });
+    if (k < 1) return false;
+    impactElement('esprit', fin.x, fin.z, 1.2); const y0 = os.position.y; let s2 = 0;
+    effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(os); return true; } if (s2 > 1.0) os.position.y = y0 - (s2 - 1.0) * 1.5; if (s2 > 1.6) { jeter(os); return true; } return false; }); /* (plantee au sol, puis elle s'enfonce) */
+    return true; });
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
   const c = combat; if (!c || c.fin) return;
@@ -284,8 +336,8 @@ function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coi
 const viseeClasse = () => ({ osa: { id: 'invoc', rayon: RAYON_INVOC, teinte: '#b48cff', portee: PORTEE_INVOC }, cra: { ligne: true, teinte: '#ffe08a' },
   iop: { id: 'bond', rayon: RAYON_BOND, teinte: '#ffe08a', portee: PORTEE_BOND } })[classeDe()]; /* (iop : on vise ou sauter, « qu'on puisse nous-meme cibler ou on saute », Mathieu, 12/10/2026) */
 const boutonLeg = (emp) => ({ cd: cdLeg(emp), dispo: () => !!legDe(emp),
-  visee: () => { const cle = legDe(emp), S = SORTS_LEG[cle]; return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', libre: true }; }, /* (la zone au sol, la portee autour du perso) */
-  tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.cone ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
+  visee: () => { const cle = legDe(emp), S = SORTS_LEG[cle]; return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', ligne: !!S.ligne, largeur: S.largeur, libre: true }; }, /* (la zone au sol, la portee autour du perso ; ligne : la bande de la charge ou de la lance) */
+  tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
 const BOUTONS_SORT = {
   sort: { cd: 'cdSort', visee: () => Object.assign({ quoi: 'sort' }, viseeClasse()),
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
