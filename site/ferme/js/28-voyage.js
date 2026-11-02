@@ -3,7 +3,7 @@
 async function chargerCasino() {
   if (ileCasino) return;
   const [cases, drag] = await Promise.all([chargerGlb('assets/modeles/jeu/ile-casino-cases.glb?v=' + VERSION_MODELES), chargerGlb('assets/modeles/jeu/dragodindes.glb?v=' + VERSION_MODELES)]);
-  versToon(cases, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
+  versToon(cases, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
   const g = new T.Group(); g.position.copy(CASINO); g.add(fusionner(cases.getObjectByName('IleCasinoCases') || cases, {}));
   if (MODELES.decorCasino) { MODELES.decorCasino.position.set(0, 0, 0); g.add(MODELES.decorCasino); }
   versToon(drag, { normales: 0.01, sansContour: SC_MONSTRES });

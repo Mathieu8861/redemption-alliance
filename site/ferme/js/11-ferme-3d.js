@@ -203,7 +203,7 @@ const yPave = (P) => { if (P.userData.yPave == null) P.userData.yPave = 0.021 - 
 function assurerDecos() {
   if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
   decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
-    versToon(G, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true }); /* (au style de l'ile, faites avec les memes outils) */
+    versToon(G, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true }); /* (au style de l'ile, faites avec les memes outils) */
     Object.keys(DECOS).concat(['cloture_poteau']).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); }); /* (le poteau d'un coin de cloture : pas a vendre) */
     if (S_ && S_.perso) construireDecos();
   }).catch((e) => { console.warn('Décorations', e); decosCharge = null; });

@@ -37,7 +37,10 @@ const SC_CULT = new Set(['barbe', 'pousse', 'ficelle', 'brin']);
 const SC_MONSTRES = new Set(['griffe', 'joue', 'gorge', 'bec_coin', 'pupille', 'reflet', 'iris', 'point_front', 'aile_coeur', 'fissure', 'dent', 'gueule', 'narine', 'orbite', 'gravure', 'lame_fil', 'bouche', 'sourcil', 'flamme_coeur', 'couronne_rouge', 'gemme', 'phalange']);
 const SANS_OMBRE = new Set(['cone', 'cone_bord', 'paille_nervure', 'paille_brin', 'eau', 'ecume', 'fumee', 'ecume_filet']);
 const BRILLE = new Set(['feu', 'flamme', 'lueur', 'etincelle', 'lanterne']);
-/* o : { normales: epaisseur du contour pousse, echelle: epaisseur du contour agrandi, souple: souplesses au vent, sansContour, eauIle } */
+/* o : { normales: epaisseur du contour pousse, echelle: epaisseur du contour agrandi, souple: souplesses au vent, sansContour, eauIle, centre } */
+/* centre (02/11/2026, « l'ombre collee a l'arbre ca fait bizarre », Mathieu) : le contour agrandi l'etait autour de l'origine de la piece. Les pieces de l'ile
+   et des decorations (blender/iles.py, deco.py) ont leur origine au centre de la scene Blender, a plusieurs metres : leur contour glissait d'autant sur le
+   cote (l'arbre rond, fait a 20 m du centre, trainait une tache brune de 24 cm a sa droite). Il s'agrandit maintenant autour du milieu de la piece */
 function versToon(g, o) {
   const ajouts = [], retirer = [];
   g.traverse((m) => {
@@ -53,7 +56,7 @@ function versToon(g, o) {
     m.material = toon(c, sp); m.castShadow = !SANS_OMBRE.has(nom); m.receiveShadow = true; m.userData.souple = sp;
     if (sp != null) m.customDepthMaterial = vent.ombre(sp);
     if (nom === 'eau') { m.material.transparent = true; m.material.opacity = 0.85; eauAnimee(m.material); return; }
-    if (!(o.sansContour && o.sansContour.has(nom))) { const k = new T.Mesh(m.geometry, contourMat(o.normales || 0, sp)); k.userData.ep = o.normales || 0; if (o.echelle) k.scale.setScalar(1 + o.echelle); ajouts.push([m, k]); }
+    if (!(o.sansContour && o.sansContour.has(nom))) { const k = new T.Mesh(m.geometry, contourMat(o.normales || 0, sp)); k.userData.ep = o.normales || 0; if (o.echelle) { k.scale.setScalar(1 + o.echelle); if (o.centre) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); m.geometry.boundingBox.getCenter(k.position).multiplyScalar(-o.echelle); } } ajouts.push([m, k]); }
   });
   retirer.forEach((m) => m.parent.remove(m));
   ajouts.forEach(([m, k]) => m.add(k)); return g;
@@ -314,7 +317,7 @@ async function chargerModeles() {
   /* L'ILE RONDE (blender/ile-ronde-jeu.py) : chaque terrain existe en herbe (herbe_Tn) et en friche (friche_Tn), on montre l'un ou l'autre (majTerrains) ;
      le reste (le depart, le pourtour, l'eau, la roche du dessous) est fusionne en un seul modele. Plus d'arbres ni de pieces a extraire : ceux des
      anciennes sauvegardes sont devenus des decorations (migrerIleRonde) */
-  const ileT = versToon(G['ile-ronde-jeu'], { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, eauIle: true, douce: true }); ileT.updateMatrixWorld(true);
+  const ileT = versToon(G['ile-ronde-jeu'], { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, eauIle: true, douce: true, centre: true }); ileT.updateMatrixWorld(true);
   MODELES.arbres = []; MODELES.piecesIle = []; MODELES.ileTerrains = {};
   const detacher = (nom, touffes) => { const g = ileT.getObjectByName(nom); if (!g) return null; const e = new T.Group(); e.name = nom; g.parent.remove(g); e.add(g); return fusionner(e, touffes ? { caseDe: caseDeTouffe() } : {}); };
   TERRAINS.forEach((t) => { MODELES.ileTerrains[t.id] = { herbe: detacher('herbe_' + t.id, true), friche: detacher('friche_' + t.id, false) }; });

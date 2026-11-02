@@ -153,7 +153,7 @@ async function chargerIleBoss() { /* l'ile des boss (blender/boss-ile.py), rendu
   if (ileBoss) return ileBoss;
   const sc = await chargerGlb('assets/modeles/jeu/boss-ile.glb?v=' + VERSION_MODELES), reperes = [];
   sc.updateMatrixWorld(true); sc.traverse((o) => { if (/^repere_/.test(o.name)) { const p = new T.Vector3(); o.getWorldPosition(p); reperes.push({ nom: o.name, p }); } });
-  versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
+  versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('BossIle') || sc, {})); g.position.copy(ILE_BOSS); g.rotation.y = ROT_ILE_BOSS;
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   const fx = { t: 0, cercles: [], motes: [], flammes: [], bulles: [], flaques: [], feux: [] }, add = (m) => { m.raycast = () => {}; g.add(m); return m; };
@@ -409,7 +409,7 @@ async function figerPublic(places, types) {
 async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), faite avec les outils de la ferme et rendue comme elle ; le fond est deja tourne loin de la camera */
   if (ileArene) return;
   await Promise.all([assurerVisuels(), assurerLook('feminin-iop'), assurerLook('feminin-cra'), assurerLook('feminin-osa')].map((p) => p.catch(() => false))); /* (les tenues et les versions feminines, pour les humains du public) */
-  const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true });
+  const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
   if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(16, 0, 3.9); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
