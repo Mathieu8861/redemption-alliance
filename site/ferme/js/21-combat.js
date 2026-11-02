@@ -311,8 +311,8 @@ function sectionRejouerBoss() {
     L.map((P) => { const B = MONSTRES[PALIERS[P].boss], leg = LEGENDAIRES.find((x) => x.boss === PALIERS[P].boss), ok = bossRejouable(P), g = gainsBoss(P);
       return '<div class="art">' + ico(B.icone) + '<div><b>' + B.nom + '</b><div class="puces"><span class="puce">+' + fmt(g.kamas) + ' ' + KAMA + '</span><span class="puce">+' + xpReel(g.xp) + ' XP</span>' + (leg ? '<span class="puce leg">✦ ' + (leg.nom || OBJETS[idLeg(leg)].nom) + ' : 2 %, 4 % en difficile' + (possede(idLeg(leg)) ? ' (déjà à toi)' : '') + '</span>' : '') + '</div></div><div class="act"><button class="btn kamas mini" data-rejouer-boss="' + P + '"' + (ok ? '' : ' disabled') + '>' + (ok ? 'Rejouer' : 'Demain') + '</button>' + (ok ? '<button class="btn mini dur" data-rejouer-dur="' + P + '">Difficile</button>' : '') + '</div></div>'; }).join('');
 }
-function lancerVague(pBoss, difficile) {
-  if (combat || enAccueil || !paysanMesh) return;
+function lancerVague(pBoss, difficile, charges) {
+  if (combat || enAccueil || !paysanMesh || lancerVague.charge) return;
   if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme en montgolfière.'); return; }
   if (Date.now() < S_.vague.repos) { toast('Ton perso se repose encore ' + dureeLisible(S_.vague.repos - Date.now()) + '.'); return; }
   const rejoueB = pBoss != null && pBoss >= 0;
@@ -321,6 +321,11 @@ function lancerVague(pBoss, difficile) {
   const n = rejoueB ? (pBoss + 1) * VAGUES_PALIER : vagueCourante(), file = [], rejoueV = rejoueB || S_.vague.num > VAGUES_TOTAL;
   if (!rejoueV && Date.now() < (S_.vague.prepa || 0)) { toast('La vague ' + n + ' se prépare : elle sera là dans ' + dureeLisible(S_.vague.prepa - Date.now()) + '. Profites-en pour cultiver.'); return; }
   if (!rejoueV && niveau(S_.xp) < niveauRequis(n)) { toast('Il faut le niveau ' + niveauRequis(n) + ' pour la vague ' + n + ' : cultive et élève tes bêtes pour gagner de l\'expérience.', 'alerte'); return; }
+  if (!charges) { /* les monstres a squelette (l'ile de Moon, 02/11/2026) : charges avant la vague, avec ceux qu'ils appellent, leurs shaders prets (sinon l'image se fige a leur arrivee) */
+    const T0 = [...new Set(compoTotale(n).map(([t]) => t))], tous = [].concat(...T0.map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : [], MONSTRES[t].invoque ? MONSTRES[t].invoque.types : [], MONSTRES[t].affaibli ? [MONSTRES[t].affaibli.invoque] : []))).filter((t) => MONSTRES[t]);
+    const sq = [...new Set(tous.map((t) => MONSTRES[t].modele))].filter((x) => !MODELES[x] && SQUELETTES_A_CHARGER.some(([s]) => s === x));
+    if (sq.length) { lancerVague.charge = true; toast('Les monstres de ' + PALIERS[palierDe(n)].nom + ' arrivent…', 'or');
+      chargerSquelettes(sq).then(() => { prechaufferSquelettes(sq); }).catch(() => {}).finally(() => { lancerVague.charge = false; lancerVague(pBoss, difficile, true); }); return; } }
   compoVague(n).forEach(([t, k]) => { for (let i = 0; i < k; i++) file.push(t); });
   file.sort(() => Math.random() - 0.5); file.sort((a, b) => (MONSTRES[a].boss ? 1 : 0) - (MONSTRES[b].boss ? 1 : 0)); /* le boss arrive en dernier */
   nouveauCombat('vague', { n, file, total: file.length, attente: 0.8, pv: vieActuelle(), ...potsDeVague(), rejoueBoss: rejoueB ? pBoss : null, difficile: rejoueB && !!difficile });
