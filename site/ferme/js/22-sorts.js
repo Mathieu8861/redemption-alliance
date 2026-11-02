@@ -234,6 +234,7 @@ const PORTEE_CHARGE = 10, PORTEE_LANCE_OS = 12; /* (5 et 6 cases) */
 const SORTS_LEG = {
   royal: { nom: 'Charge', teinte: '#e8b84a', recharge: 12, portee: PORTEE_CHARGE, ligne: true, largeur: 1.0 }, /* (02/11/2026 : les sorts des coiffes du Royal et du Chafer, leur attaque de boss) */
   chafer: { nom: 'Lance d\'os', teinte: '#e8dcc0', recharge: 12, portee: PORTEE_LANCE_OS, ligne: true, largeur: 0.8 },
+  bworker: { nom: 'Hache lancée', teinte: '#c08a4a', recharge: 12, portee: 10, zone: 2.2 }, /* (« go bworker ouais », Mathieu, 02/11/2026) */
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 7 },
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
@@ -268,6 +269,7 @@ function executerLeg(emp, pt, compter) {
   else if (cle === 'cochon') boueLeg(x, z, S.zone, st); /* le bain de boue : une flaque la ou tu vises, les monstres dedans restent colles */
   else if (cle === 'royal') chargeRoyale(pt, st); /* la charge : tete baissee vers ou tu vises */
   else if (cle === 'chafer') lanceOsPerso(pt, st); /* la lance d'os : en ligne droite, plus forte de loin */
+  else if (cle === 'bworker') hacheLancee(x, z, S.zone, st); /* la hache lancee : elle retombe la ou tu vises */
   majCombatHud();
 }
 /* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
@@ -315,6 +317,21 @@ function lanceOsPerso(pt, st) {
     if (k < 1) return false;
     impactElement('esprit', fin.x, fin.z, 1.2); const y0 = os.position.y; let s2 = 0;
     effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(os); return true; } if (s2 > 1.0) os.position.y = y0 - (s2 - 1.0) * 1.5; if (s2 > 1.6) { jeter(os); return true; } return false; }); /* (plantee au sol, puis elle s'enfonce) */
+    return true; });
+}
+/* La Hache lancee (Casque du Bworker, 02/11/2026, « go bworker ouais », Mathieu) : comme le Bworker, tu lances ta grande hache en cloche la ou tu vises
+   (5 cases au plus) ; elle tournoie, retombe et fend le sol (la terre, son element) : 2,5 fois tes degats sur 1 case autour ; elle reste plantee un instant */
+function hacheLancee(x, z, R, st) {
+  const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, a = Math.atan2(x - pp.x, z - pp.z), d = Math.hypot(x - pp.x, z - pp.z), vol = Math.max(0.35, Math.min(0.6, d / 16));
+  chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.attaque = { t: 0, classe: classeDe(), base: a, tour: false, surFrappe: () => {} }; /* (le geste de lancer) */
+  const arme = armeJet('hache', 0.6), de = new T.Vector3(pp.x + Math.sin(a) * 0.4, pp.y + 1.5, pp.z + Math.cos(a) * 0.4), y = solA(x, z), vers = new T.Vector3(x, y + 0.4, z), H = 1.6 + d * 0.12;
+  arme.position.copy(de); scene.add(arme); secousse(0.05, 0.12);
+  let t = 0; effets.push((dt) => { t += dt; if (combat !== c0) { jeter(arme); return true; } const k = Math.min(1, t / vol);
+    arme.position.lerpVectors(de, vers, k); arme.position.y += Math.sin(k * Math.PI) * H; arme.rotation.set(-1.2 - k * Math.PI * 4, a, 0); traineeFleche(arme.position); /* (elle tournoie en cloche) */
+    if (k < 1) return false;
+    arme.rotation.set(-2.3, a, 0); arme.position.y = y + 0.2; impactElement('terre', x, z, R * 1.1); secousse(0.16, 0.28);
+    if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < R + 0.25 * (o.d.ombre || 1)) { etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 0.9, '#ffd27a'); blesser(o, Math.round(st.deg * 2.5), true); } });
+    let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.0) arme.position.y -= d3 * 2; if (s2 > 1.5) { pouf(x, y, z, 1.2, '#9aa3ad'); jeter(arme); return true; } return false; }); /* (plantee, puis elle s'enfonce) */
     return true; });
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
