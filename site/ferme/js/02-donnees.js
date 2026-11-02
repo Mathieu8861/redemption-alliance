@@ -18,13 +18,18 @@ const CULTURES = [
   { id: 'houblon', nom: 'Houblon', niv: 15, graine: 49, temps: 17, rendement: 4, prix: 42, xp: 3.97, couleur: '#6fae3b', tige: '#8b6a42' },
   { id: 'lin', nom: 'Lin', niv: 20, graine: 88, temps: 26, rendement: 5, prix: 57, xp: 6.07, couleur: '#8cb8ff', tige: '#7fa84a' },
   { id: 'seigle', nom: 'Seigle', niv: 25, graine: 135, temps: 35, rendement: 5, prix: 83, xp: 8.31, couleur: '#c9a35a', tige: '#a88a4a' },
-  /* les cultures de haut niveau (blender/cultures2.py) ; le Quisnoa du meme fichier attend le niveau 70 */
+  /* les cultures de haut niveau (blender/cultures2.py) ; le Quisnoa du meme fichier au niveau 70, le Sorgho de Moon au niveau 80 (blender/cultures4.py) */
   { id: 'riz', nom: 'Riz', niv: 30, graine: 210, temps: 46, rendement: 6, prix: 101, xp: 11.04, couleur: '#f3e2a6', tige: '#5cb848', glb: 'cultures2' },
   { id: 'malt', nom: 'Malt', niv: 35, graine: 315, temps: 59, rendement: 6, prix: 143, xp: 14.55, couleur: '#a8683a', tige: '#c98a4a', glb: 'cultures2' },
   { id: 'chanvre', nom: 'Chanvre', niv: 40, graine: 454, temps: 72, rendement: 6, prix: 194, xp: 18, couleur: '#8f8a4a', tige: '#3f8f3a', glb: 'cultures2' },
   { id: 'mais', nom: 'Maïs', niv: 45, graine: 640, temps: 87, rendement: 7, prix: 223, xp: 22.11, couleur: '#f6c83a', tige: '#7fb048', glb: 'cultures2' },
   { id: 'millet', nom: 'Millet', niv: 50, graine: 881, temps: 103, rendement: 7, prix: 293, xp: 26.61, couleur: '#e8964a', tige: '#d0b06a', glb: 'cultures2' },
-  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1200, temps: 120, rendement: 8, prix: 333, xp: 74.67, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' }
+  { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1200, temps: 120, rendement: 8, prix: 333, xp: 74.67, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' },
+  /* (02/11/2026, « il faut peut-etre une nouvelle cereale aussi, a partir du niveau 80 ? », puis « l'ile de Moon, c'est une jungle et des plages » et « Sorgho vas-y »,
+     Mathieu) : le Quisnoa, modelise depuis le 12/10 et jamais plante, au niveau 70 ; le Sorgho de Moon au niveau 80. Dans la suite du Frostiz : un peu plus de kamas
+     a la minute (11,4 et 12,3 contre 10), l'XP doublee a chaque palier (le niveau 81 coute 4 fois le 71) */
+  { id: 'quisnoa', nom: 'Quisnoa', niv: 70, graine: 1650, temps: 140, rendement: 8, prix: 450, xp: 160, couleur: '#c8323e', tige: '#8a9a4a', glb: 'cultures2' },
+  { id: 'sorgho', nom: 'Sorgho de Moon', niv: 80, graine: 2250, temps: 160, rendement: 9, prix: 520, xp: 360, couleur: '#a8402a', tige: '#b89a5a', glb: 'cultures4' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
    Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */
