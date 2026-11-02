@@ -200,7 +200,7 @@ const construit = (id) => (id === 'gardien' ? !!S_.gardien : id === 'tours' ? nb
 const aConstruire = () => CONSTRUCTIONS.filter((id) => !construit(id));
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
-  if (id === 'gardien') return etatGardien(); /* (le gardien n'est pas une amelioration : un choix, au niveau 80) */
+  if (id === 'gardien') return etatGardien(); /* (le gardien n'est pas une amelioration : un choix, au niveau 60) */
   if (id === 'tours') { const n = nbTours(), ct = PRIX_TOUR[Math.min(n, PRIX_TOUR.length - 1)]; return niveau(S_.xp) < NIV_TOUR ? { e: 'bloque' } : n >= TOURS_MAX ? { e: 'fini' } : { e: 'dispo', ok: S_.kamas >= ct }; }
   const a = AMELIOS.find((x) => x.id === id), n = niv(id); if (n >= a.couts.length) return { e: 'fini' };
   if ((a.requiert && !niv(a.requiert)) || niveau(S_.xp) < nivRequis(a, n) || verrouVague(a)) return { e: 'bloque' };

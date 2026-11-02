@@ -5,7 +5,8 @@
    Bouftous pour le chien » ; « si il a faim il reste dans sa niche ; faut creer un batiment pour le chat et le chien » ; « le chien c'est Masdog ».)
    Modeles valides sur planche (blender/gardiens.py, export leger « --jeu » ; blender/niches.py) : Newton d'apres les photos du chat de Mathieu, en panthere
    quand il se transforme ; Masdog le chiot lavande (les couleurs du perso de Masdov), en Meulou ; la niche et le tonneau, a la meme echelle.
-   - Le choix, des le niveau 80, est definitif. Sa maison se pose sur une case d'herbe pres de la grange (elle se deplace dans Amenager).
+   - (02/11/2026, « les gardiens, mets-les au niveau 60, vu qu'on a le up grange / tourelles au 80 », Mathieu : le chateau-grange prend le niveau 80)
+   - Le choix, des le niveau 60, est definitif. Sa maison se pose sur une case d'herbe pres de la grange (elle se deplace dans Amenager).
    - Au calme, il se promene autour de sa maison et s'assoit ; on le caresse en le touchant ; sa maison ouvre sa fenetre (repas, ce qu'il fait en VSA).
    - Un voleur de VSA ou une simu VSA : il se transforme et mord les voleurs (stats validees le 21/10/2026) : Masdog 60 % de tes degats toutes les 0,8 s,
      vitesse 5,5, Gueule de fer (le voleur mordu reste coince 1,5 s), il vise le voleur le plus pres de la grange ; Newton 40 % toutes les 0,6 s,
@@ -13,7 +14,7 @@
    - Les repas : Masdog mange un Bouftou (48 h), Newton un Tofu (24 h), 3 repas d'avance au plus. Jamais un Bouftou noir, une femelle qui attend un petit,
      ni tes deux derniers adultes ; un Tofu de la voliere. Affame, il reste dans sa maison, meme en VSA (« si il a faim il reste dans sa niche »).
    Les heures sont celles de la ferme (comme les repas des Bouftous : pendant une absence, elles passent 20 fois moins vite). */
-const NIV_GARDIEN = 80, RESERVE_GARDIEN = 3, ECHELLE_GARDIEN = 0.582, RECHARGE_POUVOIR = 8;
+const NIV_GARDIEN = 60, RESERVE_GARDIEN = 3, ECHELLE_GARDIEN = 0.582, RECHARGE_POUVOIR = 8;
 const GARDIENS = {
   chat: { nom: 'Newton', espece: 'chat', fichier: 'gardien-chat', calme: 'Newton_D', assis: 'Newton_A', vsa: 'Newton_T1', maison: 'MaisonChat', nomMaison: 'son tonneau', proie: 'Tofu', heures: 24,
     deg: 0.4, cadence: 0.6, vitesse: 6.5, pouvoir: 'bond', ico: 'newton', icoVsa: 'newton-vsa', forme: 'en panthère', ombre: 0.75, ombreVsa: 1.5,
@@ -49,7 +50,7 @@ function chargerGardien() {
 /* chaque membre (hanche, genou, tete, queue) reste un pivot qui bouge, mais ses pieces se soudent entre elles : quelques dessins par membre au lieu de dizaines */
 function fusionnerPivots(m) { const P = []; m.traverse((o) => { if (o.userData && o.userData.articule) P.push(o); }); P.forEach((p) => fusionner(p)); }
 
-/* ---------- le choix, au niveau 80 ---------- */
+/* ---------- le choix, au niveau 60 ---------- */
 function ouvrirChoixGardien() {
   if (S_.gardien) { ouvrirGardien(); return; }
   const l = niveau(S_.xp), d = statsPerso().deg;
@@ -120,7 +121,7 @@ function caresserGardien() {
   toast(hasard(G.caresses)); compter('caresses');
 }
 const actionGardien = (a, type) => ({ choix: ouvrirChoixGardien, confirmer: () => confirmerGardien(type), adopter: () => adopterGardien(type), nourrir: nourrirGardien, caresser: caresserGardien, voir: ouvrirGardien }[a] || (() => {}))();
-/* sa carte dans l'HDV (Ameliorer, Defense) : verrouillee avant le niveau 80, puis « Choisir », puis son etat */
+/* sa carte dans l'HDV (Ameliorer, Defense) : verrouillee avant le niveau 60, puis « Choisir », puis son etat */
 const etatGardien = () => (S_.gardien ? { e: 'fini' } : niveau(S_.xp) < NIV_GARDIEN ? { e: 'bloque' } : { e: 'dispo', ok: true });
 function artGardien() {
   const G = gardienDe(), l = niveau(S_.xp), verrou = !G && l < NIV_GARDIEN;
