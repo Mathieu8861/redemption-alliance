@@ -360,7 +360,8 @@ function construireStatique() {
   construireBatiments();
   appliquerEnclos(); appliquerVoliere();
   construireArbalete();
-  const dep = ['m4_3', 'm3_2'].map((id) => S_.cases.find((c) => c.id === id)).find((c) => c && PASSABLE[c.type]); /* hors de l'enclos agrandi */
+  const dep = ['m4_3', 'm3_2'].map((id) => S_.cases.find((c) => c.id === id)).find((c) => c && PASSABLE[c.type]) || /* hors de l'enclos agrandi */
+    S_.cases.filter((c) => PASSABLE[c.type]).sort((a, b) => Math.hypot(a.i - 4, a.j - 3) - Math.hypot(b.i - 4, b.j - 3))[0]; /* (sinon la case libre la plus proche : le chateau peut couvrir les deux, 02/11/2026, la page ne chargeait plus) */
   const q0 = posCase(dep); paysanMesh = paysan(q0.x, q0.y, q0.z, S_.perso && S_.perso.classe); paysanMesh.userData.cellule = dep;
   nuages = [nuage(-36, -7, 12, 1.9), nuage(30, -8, 22, 1.7), nuage(38, -6, -14, 2.0), nuage(-38, -9, -14, 1.8), nuage(-6, -14, 34, 2.4), nuage(-22, -11, 30, 1.6), nuage(20, -7, 30, 2.2)]; /* (l'ile ronde : autour de son bord) */
 }
