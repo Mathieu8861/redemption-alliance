@@ -207,7 +207,7 @@ function ficheMonstre(t) {
   if (d.boomerang) L.push(capa('sort', 'Boomerang lunaire', 'Il décroche le croissant de lune de sa tête et le lance : une bande s\'annonce vers toi, le croissant file en tournoyant et revient se poser sur sa tête. Il touche à l\'aller et au retour.', num('toutes les ' + d.boomerang.periode + ' s'), 'rouge'));
   if (d.lianes) L.push(capa('lenteur', 'Lianes', 'De loin, une bande verte s\'annonce : ses lianes jaillissent. Si elles t\'attrapent, elles te tirent contre lui, puis il charge un gros coup tout autour de lui : sors du cercle.', num('coup ×' + String(d.lianes.x).replace('.', ','), 'rouge') + num('toutes les ' + d.lianes.periode + ' s'), 'bleu'));
   if (d.ultime) L.push(capa('sort', 'La nuit lunaire (ultime)', 'Il lève les bras : la nuit tombe, et des météorites s\'abattent sur toute la zone pendant ' + secondes(d.ultime.duree) + ', chacune annoncée par un cercle.', num(d.ultime.n + ' météorites', 'rouge') + num('toutes les ' + d.ultime.periode + ' s'), 'rouge'));
-  if (d.lanceVent) L.push(capa('sort', 'Lance de vent', 'De loin, un cercle rouge sous toi : sa lance quitte sa main et lévite au-dessus de lui, pointée sur toi, dans un tourbillon de vent. Puis elle part d\'un coup : portée par le vent, elle file très vite et se plante là, la rafale te repousse. Le vent la lui ramène ensuite en main.', num(secondes(d.lanceVent.prepa) + ' pour esquiver') + num('toutes les ' + d.lanceVent.periode + ' s'), 'rouge'));
+  if (d.lanceVent) L.push(capa('sort', 'Lance de vent', 'De loin, un trait rouge part de lui jusqu\'à toi et finit par un petit cercle : sa lance quitte sa main et lévite au-dessus de lui, pointée sur toi, dans un tourbillon de vent. Puis elle part d\'un coup : portée par le vent, elle file très vite le long du trait et se plante dans le cercle. Sur son passage ou dans le cercle, la rafale te repousse. Le vent la lui ramène ensuite en main.', num(secondes(d.lanceVent.prepa) + ' pour esquiver') + num('toutes les ' + d.lanceVent.periode + ' s'), 'rouge'));
   if (d.totems) L.push(capa('renfort', 'Totems-masques', 'Il plante ' + d.totems.n + ' totems-masques autour de toi : ils sortent de terre et te crachent des fléchettes. Casse-les ; ils tombent aussi avec lui.', num('toutes les ' + d.totems.periode + ' s'), 'rouge'));
   if (d.danse) L.push(capa('sort', 'Danse vaudou', 'Des masques tournent autour de lui pendant ' + secondes(d.danse.duree) + ' : il court et frappe plus vite.', num('×' + String(d.danse.vit).replace('.', ',')) + num('toutes les ' + d.danse.periode + ' s'), 'rouge'));
   if (d.malediction) L.push(capa('sort', 'Malédiction', 'Un masque fantôme vole au-dessus de toi et te suit pendant ' + secondes(d.malediction.duree) + ', puis s\'arrête : un cercle s\'annonce là où il tombe, sors-en. S\'il te touche, tu es maudit : tu ne peux plus bouger pendant ' + secondes(d.malediction.maudit) + ' (tu frappes encore).', num('coup ×' + String(d.malediction.x).replace('.', ','), 'rouge') + num('toutes les ' + d.malediction.periode + ' s'), 'rouge'));
@@ -1055,36 +1055,29 @@ const lanceOs = () => { const g = new T.Group(), L = 3.0, piece = (geo, c, z) =>
    lancer, quand il la lance il y a un effet de vent autour. Et il peut declencher des petites tornades a distance qui te propulsent dans les airs pendant 1,5 s »,
    Mathieu). Son baton est devenu une lance (armes-kannibouls.py, lance_ebil, dans sa main droite). */
 const Y_HAUT = new T.Vector3(0, 1, 0);
-function arcsDeVent(n, r, couleur) { /* des arcs de vent qui tournent autour d'un axe (leur axe : y du groupe) */
-  const g = new T.Group(); for (let i = 0; i < n; i++) { const a = new T.Mesh(new T.TorusGeometry(r * (0.8 + 0.25 * (i % 2)), 0.045, 4, 20, Math.PI * 1.3), new T.MeshBasicMaterial({ color: couleur || (i % 2 ? '#b9d3de' : '#e6f4fa'), transparent: true, opacity: 0.9, depthWrite: false }));
-    a.rotation.x = Math.PI / 2; a.position.y = (i - (n - 1) / 2) * 0.32; a.userData.v = (i % 2 ? -1 : 1) * (9 + i * 2); g.add(a); } return g;
-}
-function tournerVent(g, dt) { g.children.forEach((a) => { a.rotation.z += a.userData.v * dt; }); }
 /* L'IMPACT DE VENT (01/11/2026, par Discord : « les sorts d'impact, a chaque fois ca fait un cercle blanc un peu explosif ; la, comme c'est du vent, on pourrait
    faire un cercle de vent ? Comme si une tornade se formait, mais en forme de cercle au ras du sol, pas un truc qui part en hauteur », Mathieu) : des arcs de vent
    couches sur le sol qui tournoient en s'ouvrant, la poussiere et des feuilles emportees en rond, rien qui monte, pas d'eclair blanc */
-function rafaleVent(x, y, z, r) { /* LE VENT (quatrieme version, par Discord : « il faut que ca couvre toute la zone du cercle », « vent, on voit pas que c'est du vent »,
-     Mathieu) : un ouragan vu du dessus qui couvre tout le cercle et tourne, les volutes du vent (le trait qui finit en boucle) qui tournent autour a hauteur de genou,
-     le sable qui tourbillonne au bord, des feuilles emportees */
-  const y0 = solA(x, z) + 0.05, ouragan = sansClic(new T.Mesh(new T.CircleGeometry(r, 48), new T.MeshBasicMaterial({ map: TEX_TOURBILLON, transparent: true, opacity: 0, depthWrite: false })));
-  ouragan.rotation.x = -Math.PI / 2; ouragan.position.set(x, y0, z); ouragan.renderOrder = 3; scene.add(ouragan);
-  const volutes = []; for (let i = 0; i < 7; i++) { const s = sansClic(new T.Sprite(new T.SpriteMaterial({ map: TEX_VOLUTE, transparent: true, opacity: 0, depthWrite: false }))); s.center.set(0.5, 0.3); scene.add(s);
-    volutes.push({ s, a: i / 7 * Math.PI * 2, d: r * fxEntre(0.45, 0.85), h: fxEntre(0.25, 0.7), k: fxEntre(0.8, 1.1) }); }
-  let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 1.3), e = 1 - (1 - k) * (1 - k), o = Math.min(1, t / 0.15) * (1 - k * k * k);
-    ouragan.scale.setScalar(0.35 + 0.65 * e); ouragan.rotation.z += dt * (10 - 7 * k); ouragan.material.opacity = 0.95 * o; /* (il s'ouvre sur tout le cercle en tournant, de moins en moins vite) */
-    volutes.forEach((v) => { v.a += dt * (4.5 - 2.5 * k); const d = v.d * (0.5 + 0.5 * e); v.s.position.set(x + Math.cos(v.a) * d, y0 + v.h + Math.sin(t * 6 + v.a) * 0.06, z + Math.sin(v.a) * d); v.s.scale.set(r * 0.42 * v.k, r * 0.42 * v.k, 1); v.s.material.opacity = o; });
-    if (k >= 1) { jeter(ouragan); volutes.forEach((v) => jeter(v.s)); return true; } });
+function rafaleVent(x, y, z, r) { /* LE VENT AU SOL (cinquieme version, 02/11/2026, « l'animation au sol quand il jette sa lance, et sur un autre sort aussi », Mathieu ;
+     voir entonnoirVent dans 22b-effets.js) : la poussiere se couche en spirale et s'ouvre du centre a tout le cercle en tournant de moins en moins vite, un mur
+     de poussiere bas roule vers le bord, du sable et des feuilles emportes en rond, des filets d'air. Plus de bras blancs ni de boucles dessinees */
+  const y0 = solA(x, z) + 0.05, sol = solVent(r), U = sol.userData.u, mur = entonnoirVent({ rb: 1, rh: 1.1, exp: 1, ond: 0.1, a: 0.65, vit: 3.6, monte: 0.5, c1: '#7a6448', c2: '#ecdfc0', ordre: 5 }), M = mur.userData.u;
+  sol.position.set(x, y0, z); mur.position.set(x, y0 - 0.02, z); scene.add(sol, mur);
+  let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 1.4), e = 1 - (1 - k) * (1 - k), o = Math.min(1, t / 0.12);
+    U.uT.value += dt * (2.8 - 2 * k); U.uOuv.value = 0.2 + 1.1 * e; U.uA.value = o * (1 - k * k * k);
+    const rm = r * (0.3 + 0.75 * e); mur.scale.set(rm, 0.6 * (1 - 0.5 * k), rm); M.uT.value += dt; M.uA.value = 0.65 * o * Math.pow(1 - k, 1.5); /* (le mur de poussiere roule vers le bord et retombe) */
+    if (k >= 1) { jeter(sol, mur); return true; } });
   for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2, d = r * fxEntre(0.55, 0.95), v = fxEntre(2.5, 4); emettre(FX_FUM, 1, { x: x + Math.cos(a) * d, y: y0 + 0.15, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.25, Math.cos(a) * v], vie: [0.8, 1.2], taille: [0.4, 1.0], c: ['#e2d2ac', '#c9b48a'], a: 0.5, frein: 1.2 }); } /* (le sable tourbillonne au bord) */
   feuillesVolantes(x, y0, z, r * 0.8, 8, true); /* (de vraies feuilles emportees en rond, 22b-effets.js) */
-  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, d = r * (0.35 + 0.4 * Math.random()), v = 4 + Math.random() * 2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.1 + Math.random() * 0.3, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.1, Math.cos(a) * v], vie: [0.3, 0.45], taille: [0.06, 0.02], c: ['#ffffff', '#cfe7f2'], etire: 0.12, frein: 0.8 }); } /* (des filets d'air etires) */
+  for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, d = r * (0.35 + 0.4 * Math.random()), v = 4 + Math.random() * 2; emettre(FX_VIF, 1, { x: x + Math.cos(a) * d, y: y0 + 0.1 + Math.random() * 0.3, z: z + Math.sin(a) * d, v: [-Math.sin(a) * v, 0.1, Math.cos(a) * v], vie: [0.3, 0.45], taille: [0.06, 0.02], c: ['#ffffff', '#cfe7f2'], etire: 0.12, frein: 0.8 }); } /* (des filets d'air etires) */
 }
 function souffleMain(h) { /* le vent qui rend sa lance a sa main : une petite spirale d'air, sans rien d'explosif */
   for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 0.5; emettre(FX_VIF, 1, { x: h.x + Math.cos(a) * r, y: h.y + (i % 3 - 1) * 0.2, z: h.z + Math.sin(a) * r, v: [-Math.sin(a) * 2.5 - Math.cos(a) * 1.2, 0.3, Math.cos(a) * 2.5 - Math.sin(a) * 1.2], vie: [0.3, 0.4], taille: [0.1, 0.02], c: ['#ffffff', '#cfe7f2'], frein: 1 }); }
 }
-/* la lance de vent : de loin (lanceVent.loin), un cercle rouge sous toi ; il CHARGE sa lance : le vent se leve autour de lui en tourbillon, de plus en plus
+/* la lance de vent : de loin (lanceVent.loin), un trait rouge de lui a toi et un petit cercle sous toi (02/11/2026) ; il CHARGE sa lance : le vent se leve autour de lui en tourbillon, de plus en plus
    vite, l'air est aspire vers sa lance qui s'illumine. Puis il la jette d'un coup : un claquement d'air a sa main, et portee par le vent elle file en ligne droite,
    tres vite, dans un sillage d'anneaux de vent ; elle se plante, une rafale jaillit et repousse. Puis le vent la lui ramene en main.
-   (01/11/2026, « le vent on le ressent pas : il faut qu'il la charge, mais quand il la lance elle est super rapide grace au vent », Mathieu) Fiche : lanceVent: { periode, loin, R, prepa, x, repousse } */
+   (01/11/2026, « le vent on le ressent pas : il faut qu'il la charge, mais quand il la lance elle est super rapide grace au vent », Mathieu) Fiche : lanceVent: { periode, loin, R, larg, prepa, x, repousse } */
 function anneauChoc(pos, dir, r0, r1, duree, couleur) { /* un anneau d'air qui s'ouvre en travers d'une direction et s'efface */
   const m = new T.Mesh(new T.TorusGeometry(1, 0.06, 6, 28), new T.MeshBasicMaterial({ color: couleur || '#f2fbff', transparent: true, opacity: 0.9, depthWrite: false })); m.position.copy(pos);
   m.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), dir); m.scale.setScalar(r0); scene.add(m); let t = 0;
@@ -1097,19 +1090,20 @@ function capLanceVent(mo, ctx) { /* (01/11/2026, par Discord : « la lance, elle
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('lanceVT', J.periode) || mo.geste) return; if (dP < J.loin || dP > 16) { mo.lanceVT = J.periode; return; } /* (pret, il attend que tu sois loin) */
   const c0 = combat, cx = pp.x, cz = pp.z, vol = 0.14, tl = J.prepa - vol, monte = 0.45, recul = 0.18, tenue = mo.m.getObjectByName('lance_ebil');
   mo.lanceVT = 0; const a0 = Math.atan2(cx - mo.x, cz - mo.z); mo.ry = a0; mo.bloqueT = J.prepa + 0.4; mo.cd = Math.max(mo.cd || 0, J.prepa + 0.6); mo.frappe = 0.3; gesteSort(mo, gesteDe(mo, 'lanceVent', 'sort'), monte);
-  if (!c0.lanceVentVu) { c0.lanceVentVu = true; toast(leNom(mo.d) + ' fait léviter sa lance dans le vent : sors du cercle rouge, elle part d\'un coup !', 'alerte'); }
+  if (!c0.lanceVentVu) { c0.lanceVentVu = true; toast(leNom(mo.d) + ' fait léviter sa lance dans le vent : sors du trait rouge, elle part d\'un coup !', 'alerte'); }
   const vers = new T.Vector3(cx, solA(cx, cz) + 0.35, cz), haut = new T.Vector3(mo.x + Math.sin(a0) * 1.0, mo.m.position.y + (mo.haut || 2.6) * 1.15, mo.z + Math.cos(a0) * 1.0), dir = new T.Vector3().subVectors(vers, haut).normalize();
   const vise = new T.Quaternion().setFromUnitVectors(Y_HAUT, dir), q0 = new T.Quaternion(), p0 = new T.Vector3(), p = new T.Vector3();
   let L; if (tenue) { L = tenue.clone(true); tenue.getWorldPosition(p0); tenue.getWorldQuaternion(q0); tenue.getWorldScale(L.scale); L.scale.multiplyScalar(1.2); tenue.visible = false; } else { L = lanceOs(); p0.set(mo.x, mo.m.position.y + 1.6, mo.z); }
   L.visible = true; L.position.copy(p0); L.quaternion.copy(q0); scene.add(L); /* (elle quitte sa main) */
-  const tour = arcsDeVent(4, 0.55); tour.scale.setScalar(0.4); scene.add(tour); /* (le tourbillon, autour de la lance) */
+  const tour = new T.Group(), manchon = entonnoirVent({ rb: 0.3, rh: 0.42, exp: 1, ond: 0.14, a: 0.3, vit: 7, monte: 2.4, c1: '#9db6c2', c2: '#f6fcff', ordre: 6 }); manchon.position.y = -0.9; manchon.scale.y = 1.8; tour.add(manchon);
+  tour.scale.setScalar(0.4); scene.add(tour); /* (le tourbillon autour de la lance : un manchon d'air qui file vers sa pointe, 02/11/2026, plus d'anneaux) */
   let t = 0, de = null, trace = null, fin = false, tic = 0, choc = 0; const rendre = () => { if (tenue) tenue.visible = true; };
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { if (L) jeter(L); jeter(tour); if (trace) jeter(trace); rendre(); return true; }
     if (t < tl) { const k = t / tl;
       if (t < monte) { const u = t / monte, e = u * u * (3 - 2 * u); p.lerpVectors(p0, haut, e); p.y += Math.sin(u * Math.PI) * 0.4; L.position.copy(p); L.quaternion.slerpQuaternions(q0, vise, e); } /* (elle monte au-dessus de lui et se tourne vers toi) */
       else { const r = Math.max(0, (t - (tl - recul)) / recul), v = 0.015 + 0.05 * k; p.copy(haut); p.y += Math.sin(t * 5) * 0.08 * (1 - r); p.addScaledVector(dir, -0.6 * r * r); p.x += (Math.random() - 0.5) * v; p.y += (Math.random() - 0.5) * v; p.z += (Math.random() - 0.5) * v;
         L.position.copy(p); L.quaternion.copy(vise); L.rotateY((t - monte) * (4 + 14 * k)); } /* (elle flotte et vrille de plus en plus vite, tremble, puis recule d'un coup sec) */
-      tour.position.copy(L.position); tour.quaternion.copy(vise); tour.scale.setScalar(0.4 + 0.9 * k); tournerVent(tour, dt * (0.8 + 2.6 * k)); tour.children.forEach((a) => { a.material.opacity = 0.4 + 0.5 * k; });
+      tour.position.copy(L.position); tour.quaternion.copy(vise); tour.scale.setScalar(0.4 + 0.9 * k); manchon.userData.u.uT.value += dt * (0.6 + 2 * k); manchon.userData.u.uA.value = 0.3 + 0.5 * k;
       if ((tic += dt) > 0.035 - 0.02 * k) { tic = 0; const a = Math.random() * Math.PI * 2, r = 2.0 - 0.6 * k, h = L.position, s0 = new T.Vector3(h.x + Math.cos(a) * r, h.y + (Math.random() - 0.5) * 1.6, h.z + Math.sin(a) * r), v = h.clone().sub(s0).multiplyScalar(2.6);
         emettre(FX_VIF, 1, { x: s0.x, y: s0.y, z: s0.z, v: [v.x - Math.sin(a) * 1.5, v.y, v.z + Math.cos(a) * 1.5], vie: [0.32, 0.4], taille: [0.12, 0.02], c: ['#ffffff', '#a9cfe0'], a: 1 }); /* (l'air est aspire vers la lance) */
         if (Math.random() < 0.5) { const b = Math.random() * Math.PI * 2; emettre(FX_VIF, 1, { x: mo.x + Math.cos(b) * 1.2, y: solA(mo.x, mo.z) + 0.1, z: mo.z + Math.sin(b) * 1.2, v: [-Math.sin(b) * 4, 1.2, Math.cos(b) * 4], vie: [0.35, 0.5], taille: [0.14, 0.05], c: ['#d8c6a0', '#b8a888'], frein: 1 }); } } /* (la poussiere tourne a ses pieds) */
@@ -1118,7 +1112,7 @@ function capLanceVent(mo, ctx) { /* (01/11/2026, par Discord : « la lance, elle
       return false; }
     if (!de) { jeter(tour); de = L.position.clone(); dir.subVectors(vers, de).normalize(); L.quaternion.setFromUnitVectors(Y_HAUT, dir);
       trace = new T.Mesh(new T.CylinderGeometry(0.16, 0.03, 1, 10, 1, true), new T.MeshBasicMaterial({ color: '#eef8ff', transparent: true, opacity: 0.75, depthWrite: false })); scene.add(trace); /* (le sillage d'air derriere elle) */
-      secousse(0.16, 0.22); anneauChoc(de, dir, 0.3, 1.6, 0.35); anneauChoc(de, dir, 0.2, 1.0, 0.25, '#bfe6ff'); rafaleVent(mo.x, 0, mo.z, 2.4); }
+      secousse(0.16, 0.22); anneauChoc(de, dir, 0.3, 1.6, 0.35); anneauChoc(de, dir, 0.2, 1.0, 0.25, '#bfe6ff'); rafaleVent(mo.x, 0, mo.z, 1.8); }
     const u = Math.min(1, (t - tl) / vol);
     if (!fin) { p.lerpVectors(de, vers, u); L.position.copy(p); L.quaternion.setFromUnitVectors(Y_HAUT, dir); L.rotateY(u * 6);
       const lg = Math.max(0.01, p.distanceTo(de)); trace.position.lerpVectors(de, p, 0.5); trace.quaternion.setFromUnitVectors(Y_HAUT, dir); trace.scale.set(1, lg, 1);
@@ -1127,16 +1121,15 @@ function capLanceVent(mo, ctx) { /* (01/11/2026, par Discord : « la lance, elle
     if (!fin) { fin = true; L.position.copy(vers).addScaledVector(dir, 0.35); } /* (plantee, un peu enfoncee) */
     const r = t - tl - vol; trace.material.opacity = 0.75 * Math.max(0, 1 - r / 0.35); L.rotation.z += Math.sin(r * 60) * 0.02 * Math.max(0, 1 - r / 0.5); /* (le sillage s'efface, la lance vibre) */
     if (r < 0.9) return false;
-    jeter(trace); trace = null; rafaleVent(vers.x, vers.y - 0.3, vers.z, 1.4); jeter(L); L = null; rendre(); const h = mainSquelette(mo); if (h) souffleMain(h); return true; }); /* (le vent la reprend et la lui rend) */
-  zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz); secousse(0.22, 0.32); rafaleVent(cx, y, cz, J.R * 2.0); mottes(cx, y, cz, 4, 0.6);
-    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(degSort(mo) * J.x)), mo); if (J.repousse) repousserPerso(mo, J.repousse); } } }); /* (la rafale te repousse) */
+    jeter(trace); trace = null; rafaleVent(vers.x, vers.y - 0.3, vers.z, 1.0); jeter(L); L = null; rendre(); const h = mainSquelette(mo); if (h) souffleMain(h); return true; }); /* (le vent la reprend et la lui rend) */
+  /* (02/11/2026, « la lance, ca doit faire un trait rouge ou tu dois pas etre dans la ligne, et lorsqu'elle atterrit c'est un petit cercle, environ la taille d'une
+     case », Mathieu : un cercle de 1,9 sous toi, et une rafale de 3,8 a l'arrivee) : le trait de sa main a toi, et le cercle d'une case ou elle se plante */
+  const bande = zoneDanger({ mo, x: mo.x + Math.sin(a0) * 0.8, z: mo.z + Math.cos(a0) * 0.8, x2: cx, z2: cz, larg: J.larg || 0.8, bord: true, duree: J.prepa, effet: () => {} });
+  zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz); secousse(0.22, 0.32); rafaleVent(cx, y, cz, J.R * 1.15); mottes(cx, y, cz, 4, 0.6);
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z) || dansDanger(bande, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(degSort(mo) * J.x)), mo); if (J.repousse) repousserPerso(mo, J.repousse); } } }); /* (sur le trait ou dans le cercle : touche, la rafale te repousse) */
 }
 /* les tornades : il leve sa lance, des cercles s'annoncent (un sous toi, les autres autour) ; une petite tornade jaillit de chacun et tourne sur place. Dedans,
    tu es aspire et projete en l'air (1,5 s : tu ne bouges ni ne frappes), puis tu retombes. Fiche : tornades: { periode, n, R, prepa, duree, x, loin } */
-function tornadeMesh(R) { /* un entonnoir d'arcs de vent qui tournent, plus large en haut, la poussiere a son pied */
-  const g = new T.Group(), n = 9; for (let i = 0; i < n; i++) { const k = i / (n - 1), a = new T.Mesh(new T.TorusGeometry(R * (0.35 + 0.8 * k), 0.06 + 0.03 * k, 4, 22, Math.PI * (1.2 + 0.4 * (i % 2))), new T.MeshBasicMaterial({ color: i % 2 ? '#c4d3d8' : '#8fa4ad', transparent: true, opacity: 0.88, depthWrite: false }));
-    a.rotation.x = Math.PI / 2; a.position.y = 0.12 + k * 2.6; a.userData = { v: (i % 2 ? 8 : 11) + i, k }; g.add(a); } /* (gris bleute : il se voit sur l'herbe comme sur le sable de l'Arene) */ return g;
-}
 function propulserPerso(mo, x, z, dg) { /* aspire par une tornade : il monte en tournoyant, reste en l'air 1,5 s en tout, puis retombe */
   const c0 = combat; if (!c0 || c0.fin || c0.envol > 0 || !paysanMesh) return; const D = 1.5; c0.envol = D; c0.assomme = Math.max(c0.assomme || 0, D); chemin = []; arrivee = null;
   const p = paysanMesh.position, y0 = p.y, ry0 = paysanMesh.rotation.y; let t = 0; const q = p.clone(); q.y += 2.1; chiffre('Projeté !', q, 'vol'); blesserPerso(dg, mo);
@@ -1152,12 +1145,18 @@ function capTornades(mo, ctx) {
   const P = [{ x: pp.x, z: pp.z }]; for (let e = 0; e < 40 && P.length < TO.n; e++) { const a = Math.random() * Math.PI * 2, d = 2.2 + Math.random() * 2.2, f = pointValide(pp.x, pp.z, pp.x + Math.cos(a) * d, pp.z + Math.sin(a) * d);
     if (P.every((o) => Math.hypot(o.x - f.x, o.z - f.z) > TO.R * 2.2)) P.push({ x: f.x, z: f.z }); } /* (une sous toi, les autres a cote : ou que tu fuies, il faut regarder) */
   const dg = Math.max(1, Math.round(degSort(mo) * TO.x));
-  P.forEach((o) => zoneDanger({ mo, x: o.x, z: o.z, r: TO.R, duree: TO.prepa, effet: () => { const y0 = solA(o.x, o.z), g = tornadeMesh(TO.R); g.position.set(o.x, y0, o.z); g.scale.setScalar(0.01); scene.add(g); rafaleVent(o.x, y0, o.z, TO.R * 1.4);
+  P.forEach((o) => { /* (02/11/2026, « les tornades et l'espace de cercle au sol, on peut faire bcp plus realiste », Mathieu : tornadeVent, 22b-effets.js) pendant
+      l'annonce, la poussiere se met a tourner dans le cercle, de plus en plus vite, et l'air y est aspire ; puis la tornade monte du sol */
+    const y0 = solA(o.x, o.z), pre = solVent(TO.R * 1.5, { ombre: 0.3 }), U = pre.userData.u; pre.position.set(o.x, y0 + 0.045, o.z); scene.add(pre); let tp = 0;
+    effets.push((dt) => { tp += dt; const k = Math.min(1, tp / TO.prepa); if (k >= 1 || combat !== c0 || c0.fin) { jeter(pre); return true; } U.uT.value += dt * (0.6 + 2.6 * k); U.uA.value = 0.65 * k * k; U.uOuv.value = 0.3 + 0.9 * k;
+      if (Math.random() < dt * 12 * k) { const a = Math.random() * Math.PI * 2, d = TO.R * 1.3; emettre(FX_FUM, 1, { x: o.x + Math.cos(a) * d, y: y0 + 0.12, z: o.z + Math.sin(a) * d, v: [-Math.sin(a) * 2.2 - Math.cos(a) * 1.4, 0.15, Math.cos(a) * 2.2 - Math.sin(a) * 1.4], vie: [0.5, 0.7], taille: [0.3, 0.7], c: ['#d6c7a6', '#b3a284'], a: 0.4, frein: 0.6 }); } /* (le sable aspire vers le centre, en tournant) */
+      return false; });
+    zoneDanger({ mo, x: o.x, z: o.z, r: TO.R, duree: TO.prepa, effet: () => { const g = tornadeVent(TO.R, 3.6); g.position.set(o.x, y0, o.z); g.scale.set(0.5, 0.01, 0.5); scene.add(g); rafaleVent(o.x, y0, o.z, TO.R * 1.3);
     let t = 0, tic = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= TO.duree) { jeter(g); return true; }
-      const k = Math.min(1, t / 0.35), f = Math.min(1, (TO.duree - t) / 0.4); g.scale.set(k * f, k, k * f); g.children.forEach((a) => { a.rotation.z += a.userData.v * dt; a.position.x = Math.sin(t * 3 + a.userData.k * 2) * 0.12 * a.userData.k; }); /* (elle tourne, son haut ondule) */
+      const k = Math.min(1, t / 0.45), f = Math.min(1, (TO.duree - t) / 0.5), s = 0.5 + 0.5 * Math.min(k, f); g.scale.set(s, Math.max(0.01, k * (0.6 + 0.4 * f)), s); g.userData.maj(dt, Math.min(k, f)); /* (elle monte du sol, puis se dissipe en s'affaissant) */
       if ((tic += dt) > 0.06) { tic = 0; const a = Math.random() * Math.PI * 2; emettre(FX_VIF, 2, { x: o.x + Math.cos(a) * TO.R * 0.6, y: y0 + 0.1, z: o.z + Math.sin(a) * TO.R * 0.6, v: [-Math.sin(a) * 3, 2.5, Math.cos(a) * 3], vie: [0.4, 0.6], taille: [0.14, 0.05], c: ['#b8a888', '#8a7a62'], frein: 1 }); emettre(FX_FUM, 1, { x: o.x, y: y0 + 0.2, z: o.z, r: TO.R * 0.5, vie: [0.4, 0.6], taille: [0.4, 0.9], c: ['#c9bfa8', '#a89c84'], a: 0.5 }); } /* (la poussiere tourne a son pied) */
       const p2 = paysanMesh.position; if (f > 0.5 && !(c0.envol > 0) && Math.hypot(p2.x - o.x, p2.z - o.z) < TO.R * 0.9) { propulserPerso(mo, o.x, o.z, dg); t = Math.max(t, TO.duree - 0.4); } /* (une tornade qui t'a projete se dissipe : tu ne retombes pas dedans) */
-      return false; }); } }));
+      return false; }); } }); });
 }
 /* LE KIT DU GOLEM LUNAIRE (01/11/2026, par Discord : « pour moi il fait une invocation, ca s'assombrit comme si la nuit tombait, et il fait tomber des meteorites sur la
    map : c'est son ultime ; sinon il envoie un boomerang lunaire qu'il decroche de sa tete, et il utilise ses lianes, les lance pour attirer au corps a corps et charger un

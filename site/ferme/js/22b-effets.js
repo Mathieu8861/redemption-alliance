@@ -487,16 +487,68 @@ partager(GEO_ECLAT, GEO_BULLE, GEO_BRIN, GEO_FEUILLE);
 const MATS_ECLAT = ['#8a8070', '#6f6658', '#9a7a52', '#7a5a3a'].map((c) => mat(c)), MATS_FEUILLE = ['#5fae3a', '#7fc24f', '#4f8f2e', '#a8c84a'].map((c) => new T.MeshToonMaterial({ color: c, gradientMap: grad, side: T.DoubleSide })), MAT_BRIN = mat('#5fae3a');
 const MATS_OS = ['#efe6cf', '#d8cfb8', '#c9bc98'].map((c) => mat(c)), MATS_BOIS = ['#7a5230', '#5a3a20', '#c8873a'].map((c) => mat(c));
 partager(MATS_ECLAT, MATS_FEUILLE, MAT_BRIN, MATS_OS, MATS_BOIS);
-/* (quatrieme version du vent et de la terre, par Discord : « il faut que ca couvre toute la zone du cercle, comme pour les autres elements », « vent, on voit pas que
-   c'est du vent », « terre, c'est juste les impacts de marteau du geant », Mathieu) */
-const TEX_TOURBILLON = texCanvas(256, (g, n) => { /* un ouragan vu du dessus : neuf bras en spirale, blancs, soulignes de bleu gris pour se voir sur le sable comme sur l'herbe */
-  const c = n / 2, d = g.createRadialGradient(c, c, 0, c, c, c); d.addColorStop(0, 'rgba(225,242,250,0.35)'); d.addColorStop(0.75, 'rgba(225,242,250,0.18)'); d.addColorStop(1, 'rgba(225,242,250,0)'); g.fillStyle = d; g.fillRect(0, 0, n, n);
-  const bras = (dx, dy, couleur, l) => { for (let k = 0; k < 9; k++) { const a0 = k / 9 * Math.PI * 2; g.beginPath(); for (let i = 0; i <= 40; i++) { const t = i / 40, a = a0 + t * 3.4, r = 8 + t * (c - 12); const x = c + dx + Math.cos(a) * r, y = c + dy + Math.sin(a) * r; if (i) g.lineTo(x, y); else g.moveTo(x, y); }
-    g.strokeStyle = couleur; g.lineWidth = l * (0.6 + 0.4 * (k % 3) / 2); g.lineCap = 'round'; g.stroke(); } };
-  bras(2, 2, 'rgba(70,110,130,0.45)', 6); bras(0, 0, 'rgba(255,255,255,0.95)', 4.5); });
-const TEX_VOLUTE = texCanvas(128, (g, n) => { /* le trait du vent qui finit en boucle, celui des dessins */
-  const trace = () => { g.beginPath(); g.moveTo(6, 82); g.bezierCurveTo(30, 70, 52, 90, 78, 72); for (let i = 0; i <= 30; i++) { const t = i / 30, a = -Math.PI * 0.35 + t * Math.PI * 1.75, r = 20 * (1 - t * 0.7); g.lineTo(88 + Math.cos(a) * r, 58 + Math.sin(a) * r); } };
-  g.lineCap = g.lineJoin = 'round'; trace(); g.strokeStyle = 'rgba(70,110,130,0.7)'; g.lineWidth = 10; g.stroke(); trace(); g.strokeStyle = 'rgba(255,255,255,1)'; g.lineWidth = 5.5; g.stroke(); });
+/* LE VENT, CINQUIEME VERSION (02/11/2026, « les animations du Kanniboul Ebil, les tornades et l'espace de cercle au sol sont pas tres bien reussis, on peut faire
+   bcp plus realiste », puis « l'animation au sol quand il jette sa lance, et sur un autre sort aussi », Mathieu ; captures : des anneaux empiles en ressort, des
+   bras blancs et des boucles dessinees sur le sable). Plus de traits dessines : de la poussiere et de l'air, en nuanceur, avec un bruit periodique autour de l'axe
+   (pas de couture) : des bandes etirees qui tournent et montent.
+   - entonnoirVent(o) : une paroi de vent, un cylindre ouvert dont le nuanceur fait le profil (rb en bas, rh en haut), la torsion et les bandes ; dos puis face ;
+   - solVent(r, o) : la poussiere couchee au sol en spirale qui s'enroule vers le centre, des filets d'air clairs ; uOuv : ouverte du centre (0) a tout le disque (1) ;
+   - tornadeVent(R, H) : le coeur dense, le voile, la jupe de debris a son pied, le sol qui tourbillonne (assombri dessous), cailloux, brins et feuilles en orbite */
+const GLSL_BRUIT_P = `float h1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float nP(vec2 p, float per) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = mod(i.x, per), b = mod(i.x + 1.0, per);
+    return mix(mix(h1(vec2(a, i.y)), h1(vec2(b, i.y)), f.x), mix(h1(vec2(a, i.y + 1.0)), h1(vec2(b, i.y + 1.0)), f.x), f.y); }
+  float fbmP(vec2 p, float per) { float v = 0.0, a = 0.5; for (int k = 0; k < 4; k++) { v += a * nP(p, per); p = p * 2.0 + vec2(0.0, 7.31); per *= 2.0; a *= 0.5; } return v; }`;
+const VS_ENTONNOIR = `uniform float uT, uRb, uRh, uExp, uTord, uOnd; varying vec2 vUv; varying float vBord;
+  void main() { vUv = uv; float y = position.y, a = atan(position.z, position.x);
+    float r = mix(uRb, uRh, pow(y, uExp)) * (1.0 + uOnd * sin(a * 3.0 + y * 7.0 - uT * 8.0));
+    vec3 p = vec3(cos(a) * r, y, sin(a) * r);
+    p.x += (sin(y * 2.4 - uT * 1.8) * 0.2 + sin(y * 6.0 + uT * 2.6) * 0.05) * y * uTord; p.z += cos(y * 2.0 - uT * 1.5) * 0.16 * y * uTord;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0); vBord = 1.0 - abs(dot(normalize(normalMatrix * vec3(cos(a), 0.0, sin(a))), normalize(-mv.xyz)));
+    gl_Position = projectionMatrix * mv; }`;
+const FS_ENTONNOIR = `uniform float uT, uA, uVit, uMonte; uniform vec3 uC1, uC2; varying vec2 vUv; varying float vBord;
+  ` + GLSL_BRUIT_P + `
+  void main() { float y = vUv.y, u = vUv.x, s = uT * uVit;
+    float d = fbmP(vec2(u * 5.0 - s * (1.25 - 0.45 * y) + y * 2.2, y * 6.0 - uT * uMonte), 5.0);
+    float f = nP(vec2(u * 16.0 - s * 1.6 + y * 5.0, y * 26.0 - uT * uMonte * 2.0), 16.0);
+    float b = smoothstep(0.4, 0.7, d * 0.8 + f * 0.3);
+    float a = uA * (0.3 + 0.7 * b) * (0.45 + 0.55 * pow(vBord, 0.7)) * smoothstep(0.0, 0.08, y) * (1.0 - smoothstep(0.7, 1.0, y));
+    gl_FragColor = vec4(mix(uC1, uC2, clamp(b * 0.75 + y * 0.3, 0.0, 1.0)), a); }`;
+const VS_PLAT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const FS_SOL_VENT = `uniform float uT, uA, uOuv, uOmbre; uniform vec3 uC1, uC2; varying vec2 vUv;
+  ` + GLSL_BRUIT_P + `
+  void main() { vec2 q = vUv * 2.0 - 1.0; float r = length(q); if (r >= 1.0) discard;
+    float an = atan(q.y, q.x) / 6.28318 + 0.5, s = an + log(max(r, 0.03)) * 0.42 + uT * 0.55;
+    float b = smoothstep(0.4, 0.75, fbmP(vec2(s * 6.0, r * 4.0 - uT * 1.2), 6.0));
+    float fil = smoothstep(0.82, 1.0, nP(vec2(s * 20.0, r * 3.0 - uT), 20.0)) * smoothstep(0.12, 0.4, r);
+    float bord = (1.0 - smoothstep(0.75, 1.0, r)) * (1.0 - smoothstep(uOuv - 0.22, uOuv, r)), ombre = uOmbre * (1.0 - smoothstep(0.0, 0.6, r));
+    vec3 c = mix(mix(uC1, uC2, b), vec3(1.0), fil * 0.6) * (1.0 - ombre * 0.5);
+    gl_FragColor = vec4(c, uA * bord * clamp(0.16 + 0.75 * b + 0.55 * fil + ombre * 0.6, 0.0, 1.0)); }`;
+const GEO_ENTONNOIR = new T.CylinderGeometry(1, 1, 1, 40, 24, true), GEO_DISQUE_VENT = new T.CircleGeometry(1, 48); GEO_ENTONNOIR.translate(0, 0.5, 0); partager(GEO_ENTONNOIR, GEO_DISQUE_VENT);
+function entonnoirVent(o) { /* o : rb, rh, exp, tord, ond, vit, monte, a, c1, c2, ordre ; la hauteur et l'echelle : celles du groupe (y de 0 a 1) ; ses uniformes : userData.u */
+  const u = { uT: { value: fxAlea() * 20 }, uA: { value: o.a }, uRb: { value: o.rb }, uRh: { value: o.rh }, uExp: { value: o.exp || 1.4 }, uTord: { value: o.tord || 0 }, uOnd: { value: o.ond != null ? o.ond : 0.06 },
+    uVit: { value: o.vit || 3 }, uMonte: { value: o.monte || 1 }, uC1: { value: new T.Color(o.c1) }, uC2: { value: new T.Color(o.c2) } };
+  const g = new T.Group(); [T.BackSide, T.FrontSide].forEach((side, k) => { const m = new T.Mesh(GEO_ENTONNOIR, new T.ShaderMaterial({ uniforms: u, vertexShader: VS_ENTONNOIR, fragmentShader: FS_ENTONNOIR, transparent: true, depthWrite: false, side }));
+    m.frustumCulled = false; m.renderOrder = (o.ordre || 6) + k; g.add(m); }); /* (le dos d'abord : la paroi du fond se voit a travers celle de devant) */
+  g.userData.u = u; return sansClic(g);
+}
+function solVent(r, o = {}) { /* o : ombre (le sol assombri au centre, sous une tornade), c1, c2 */
+  const u = { uT: { value: fxAlea() * 10 }, uA: { value: 0 }, uOuv: { value: 2 }, uOmbre: { value: o.ombre || 0 }, uC1: { value: new T.Color(o.c1 || '#75664f') }, uC2: { value: new T.Color(o.c2 || '#f3ead5') } }; /* (assez sombre et assez clair pour se voir sur le sable de l'Arene comme sur l'herbe) */
+  const m = sansClic(new T.Mesh(GEO_DISQUE_VENT, new T.ShaderMaterial({ uniforms: u, vertexShader: VS_PLAT, fragmentShader: FS_SOL_VENT, transparent: true, depthWrite: false })));
+  m.rotation.x = -Math.PI / 2; m.scale.setScalar(r); m.renderOrder = 3; m.userData.u = u; return m;
+}
+function tornadeVent(R, H) { /* userData.maj(dt, f) : f, sa force de 0 a 1 (elle nait et se dissipe) */
+  const g = new T.Group(), coeur = entonnoirVent({ rb: R * 0.18, rh: R * 0.7, exp: 1.7, tord: 0.35, a: 0.9, vit: 4.4, monte: 1.6, c1: '#4f463b', c2: '#bfb19a', ordre: 7 }),
+    voile = entonnoirVent({ rb: R * 0.28, rh: R * 1.35, exp: 1.8, tord: 0.45, a: 0.55, vit: 2.7, monte: 1.0, c1: '#6e6352', c2: '#d9d2c4', ordre: 9 }),
+    jupe = entonnoirVent({ rb: R * 0.95, rh: R * 0.38, exp: 0.6, ond: 0.12, a: 0.75, vit: 5.2, monte: 2.4, c1: '#7a6448', c2: '#e3d0a8', ordre: 5 }), sol = solVent(R * 1.7, { ombre: 1 });
+  coeur.scale.y = H; voile.scale.y = H * 1.04; sol.position.y = 0.04; g.add(sol, jupe, coeur, voile);
+  const E = [coeur, voile, jupe].map((x) => [x.userData.u, x.userData.u.uA.value]), D = [];
+  for (let i = 0; i < 18; i++) { const k = i % 3, m = sansClic(new T.Mesh(k === 0 ? GEO_FEUILLE : k === 1 ? GEO_BRIN : GEO_ECLAT, k === 0 ? MATS_FEUILLE[i % 4] : k === 1 ? MAT_BRIN : MATS_ECLAT[i % 4]));
+    m.scale.setScalar(k === 0 ? fxEntre(1.1, 1.6) : k === 1 ? fxEntre(0.25, 0.4) : fxEntre(0.5, 1.1)); g.add(m); D.push({ m, a: fxAlea() * 6.28, h: fxAlea() * 0.85, v: fxEntre(5, 9), vy: fxEntre(0.25, 0.45), ph: fxAlea() * 6 }); } /* (les debris emportes) */
+  let t = 0; g.userData.maj = (dt, f) => { t += dt; E.forEach(([u, a]) => { u.uT.value += dt; u.uA.value = a * f; }); sol.userData.u.uT.value += dt * 1.6; sol.userData.u.uA.value = 0.9 * f;
+    D.forEach((d) => { d.a += dt * d.v * (1.2 - 0.5 * d.h); d.h += dt * d.vy; if (d.h > 0.85) d.h = 0.04; const r = R * (0.22 + 0.95 * Math.pow(d.h, 1.3)) * (1 + 0.12 * Math.sin(t * 3 + d.ph)); /* (ils montent en spirale, au bord de l'entonnoir) */
+      d.m.position.set(Math.cos(d.a) * r, d.h * H, Math.sin(d.a) * r); d.m.rotation.set(t * 6 + d.ph, t * 4.5 + d.ph, t * 3); d.m.visible = f > 0.25; }); };
+  return g;
+}
 const TEX_CRAQUELE = texCanvas(256, (g, n) => { /* la terre craquelee en plaques : de la terre brune aux bords irreguliers, des fentes sombres entre des plaques (Voronoi) */
   const c = n / 2, S = Array.from({ length: 22 }, (_, k) => { const a = k * 2.399, r = Math.sqrt((k + 0.5) / 22) * c * 0.95; return [c + Math.cos(a) * r + (fxAlea() - 0.5) * 14, c + Math.sin(a) * r + (fxAlea() - 0.5) * 14]; });
   const im = g.createImageData(n, n), D = im.data, plus = (x, y) => { let b = 1e9, b2 = 1e9; for (const [sx, sy] of S) { const d = (sx - x) ** 2 + (sy - y) ** 2; if (d < b) { b2 = b; b = d; } else if (d < b2) b2 = d; } return Math.sqrt(b2) - Math.sqrt(b); };
