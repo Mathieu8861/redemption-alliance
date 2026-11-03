@@ -284,7 +284,7 @@ function astuceClics() {
 function allerVers(id) { /* le clic gauche : il y va, sans rien faire (un nuisible, lui, se cible : on le chasse) */
   const p = typeof id === 'string' ? S_.cases.find((c) => c.id === id) : id; if (!p || !paysanMesh) return;
   if ((p.type === 'champ' && p.tofu) || (S_.sauvage && S_.sauvage.id === p.id)) { ACTIONS.toucherCase(p.id); return; }
-  if (combat) { if (PASSABLE[p.type]) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); } return; } /* (pendant une vague : il va ou on le pose et y tient sa position, sans repartir vers un monstre) */
+  if (combat) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); return; } /* (pendant une vague : il va ou on le pose et y tient sa position, sans repartir vers un monstre ; un batiment : a cote de lui, 03/11/2026) */
   allerPuis(p, () => {}); if (!S_[matchMedia('(pointer: coarse)').matches ? 'astuceDoigt' : 'astuceClics']) astuceClics(); else rappelClicDroit(p);
 }
 /* « je peux plus planter, ah c'est parce que je dois clic droit » (Mathieu, 11/10/2026) : l'astuce du lancement ne suffit pas, alors un clic gauche

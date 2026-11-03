@@ -20,7 +20,7 @@ const ACTIONS = {
       else if (!selectionner(p)) toast('Touche une parcelle, un bâtiment, une tour, une décoration ou l\'enclos.');
       return;
     }
-    if (combat) { if (PASSABLE[p.type]) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); } else toast('Pendant la vague : touche un monstre pour le cibler, ou une case libre pour t\'y déplacer.'); return; }
+    if (combat) { combat.ordre = true; combat.tenir = true; allerPuis(p, () => {}); return; } /* (03/11/2026, « quand tu cliques quelque part, au moins ca t'y dirige, meme si ca clique sur un batiment », Mathieu : pendant la vague, un batiment touche, il va a cote ; avant, un message et il restait la) */
     if (p.type === 'libre') {
       if (S_.sauvage && S_.sauvage.id === p.id) { if (peutCapturer()) ouvrirTofu(p, true); else chasserDeLoin(p, () => ACTIONS.chasserSauvage()); return; }
       allerPuis(p, () => ouvrirConstruire(p)); return; /* (le clic gauche, lui, deplace seulement : voir allerVers) */
