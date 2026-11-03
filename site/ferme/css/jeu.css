@@ -367,6 +367,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .bx-capa { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 2px solid #43464e; } .bx-capa:last-of-type { border-bottom: 0; }
 .bx-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; border: 2px solid var(--bord); background: #313338; } .bx-ic .pc { width: 22px; height: 22px; }
 .bx-ic.violet { background: #372259; } .bx-ic.vert { background: #335922; } .bx-ic.rouge { background: #592922; } .bx-ic.or { background: #3a3c42; } .bx-ic.bleu { background: #223d59; }
+.bx-etiq { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 99px; font-size: .64rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; vertical-align: 1px; background: #43464e; color: var(--encre); }
+.bx-etiq.rage { background: #a8342a; color: #fff; } .bx-etiq.renfort { background: #3f7a2a; color: #fff; } .bx-etiq.ultime { background: #9b6cff; color: #fff; } .bx-etiq.sort { background: var(--or); color: #2a1d05; } /* (la ligne de chaque sort d'un boss, 03/11/2026) */
+.bx-capa.vide { opacity: .45; } .bx-capa.vide b { font-weight: 700; } .bx-note { margin: 2px 0 4px; font-size: .74rem; font-weight: 700; opacity: .8; }
 .bx-capa b { font-size: .86rem; } .bx-capa p { margin: 2px 0 0; font-size: .78rem; font-weight: 700; }
 .bx-drops { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; } .bx-drop { display: flex; align-items: center; gap: 6px; border: 2px solid #43464e; border-radius: 10px; padding: 4px 8px; font-size: .78rem; font-weight: 700; } .bx-drop img { width: 26px; height: 26px; object-fit: contain; }
 .vg-monstre { position: relative; cursor: pointer; font: inherit; color: inherit; } .vg-monstre:hover { transform: translateY(-1px); box-shadow: 0 3px 0 var(--bord); } .vg-monstre.boss { background: #313338; border-color: #8a6414; }
