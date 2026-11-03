@@ -27,9 +27,10 @@ const CULTURES = [
   { id: 'frostiz', nom: 'Frostiz', niv: 60, graine: 1200, temps: 120, rendement: 8, prix: 333, xp: 74.67, couleur: '#bfefff', tige: '#b6e4f0', glb: 'cultures2' },
   /* (02/11/2026, « il faut peut-etre une nouvelle cereale aussi, a partir du niveau 80 ? », puis « l'ile de Moon, c'est une jungle et des plages » et « Sorgho vas-y »,
      Mathieu) : le Quisnoa, modelise depuis le 12/10 et jamais plante, au niveau 70 ; le Sorgho de Moon au niveau 80. Dans la suite du Frostiz : un peu plus de kamas
-     a la minute (11,4 et 12,3 contre 10), l'XP doublee a chaque palier (le niveau 81 coute 4 fois le 71) */
-  { id: 'quisnoa', nom: 'Quisnoa', niv: 70, graine: 1650, temps: 140, rendement: 8, prix: 450, xp: 160, couleur: '#c8323e', tige: '#8a9a4a', glb: 'cultures2' },
-  { id: 'sorgho', nom: 'Sorgho de Moon', niv: 80, graine: 2250, temps: 160, rendement: 9, prix: 520, xp: 360, couleur: '#a8402a', tige: '#b89a5a', glb: 'cultures4' }
+     a la minute (11,4 et 12,3 contre 10). L'XP (03/11/2026, « validons ca », Mathieu) : une recolte vaut une part fixe du niveau ou la cereale se debloque, 5 % de
+     moins a chaque tranche de 10 niveaux : le Frostiz 6,3 % du niveau 61 (inchange), le Quisnoa 6,0 % du 71, le Sorgho 5,7 % du 81 (la suite : 5,4 % du 91) */
+  { id: 'quisnoa', nom: 'Quisnoa', niv: 70, graine: 1650, temps: 140, rendement: 8, prix: 450, xp: 211, couleur: '#c8323e', tige: '#8a9a4a', glb: 'cultures2' },
+  { id: 'sorgho', nom: 'Sorgho de Moon', niv: 80, graine: 2250, temps: 160, rendement: 9, prix: 520, xp: 818, couleur: '#a8402a', tige: '#b89a5a', glb: 'cultures4' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
    Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */
