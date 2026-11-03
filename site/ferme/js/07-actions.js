@@ -49,7 +49,13 @@ const ACTIONS = {
     const d = duree(PAR_ID[p.c]);
     if (p.pousse >= d) { ACTIONS.recolter(p); return; }
     if (!p.arrose) { ACTIONS.arroser(p); return; }
+    if (PAR_ID[p.c].arbre) { ouvrirBananier(p); return; } /* (son prochain regime, et de quoi l'arracher) */
     toast(PAR_ID[p.c].nom + ' : encore ' + dureeLisible((d - p.pousse) / (p.arrose ? 1 : 0.4)) + (p.arrose ? '.' : ' à sec, arrose pour aller plus vite.'));
+  },
+  arracher(id, confirme) { /* arracher un bananier : la case redevient un champ vide (03/11/2026) */
+    const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'champ' || !p.c || !PAR_ID[p.c].arbre) { fermerModale(); return; }
+    if (!confirme) { ouvrirModale('bananier', entete('Arracher le bananier ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/' + p.c + '.png?v=' + VERSION_MODELES + '" alt=""></div><p>Le champ redevient vide. Pour un nouveau bananier, il faudra replanter une pousse et attendre qu\'il grandisse.</p><div class="boutons"><button class="btn discret" data-fermer>Garder</button><button class="btn" data-arracher-ok="' + p.id + '" style="background:var(--rouge);color:#fff">Arracher</button></div></div>'); return; }
+    Object.assign(p, champVide()); fermerModale(); son('fauchage'); toast('Bananier arraché : le champ est libre.'); rendreCase(p.id); rendreCasesBulles(); sauver();
   },
   arroser(p) {
     if (S_.eau <= 0 && enRuine('puits')) { toast('Arrosoir vide, et le puits est en ruine : reconstruis-le d\'abord.', 'alerte'); return; }
@@ -170,7 +176,11 @@ const ACTIONS = {
   },
   recolter(p) {
     const c = PAR_ID[p.c]; const qte = recolte(p);
-    S_.grange[c.id] = (S_.grange[c.id] || 0) + qte; const xpRecolte = xpRecolteReel(c); if (xpRecolte > 0) { const q = posCase(p); if (niveau(S_.xp) < capNiveau()) gainFlottant('+' + xpRecolte + ' XP', q.x, q.y + 1.1, q.z, null, 'gain-xp'); } /* seulement l'XP (la bulle affichait deja la recolte) : celle vraiment gagnee */ son(c.glb === 'cultures3' ? 'cueillette' : 'fauchage'); compter('recoltes'); compter('recolte_' + c.id); Object.assign(p, champVide());
+    S_.grange[c.id] = (S_.grange[c.id] || 0) + qte; const xpRecolte = xpRecolteReel(c); if (xpRecolte > 0) { const q = posCase(p); if (niveau(S_.xp) < capNiveau()) gainFlottant('+' + xpRecolte + ' XP', q.x, q.y + 1.1, q.z, null, 'gain-xp'); } /* seulement l'XP (la bulle affichait deja la recolte) : celle vraiment gagnee */ son(c.glb === 'cultures3' ? 'cueillette' : 'fauchage'); compter('recoltes'); compter('recolte_' + c.id);
+    if (c.arbre) { /* le bananier reste : il repart pour un nouveau regime (03/11/2026) */
+      Object.assign(p, champVide(), { c: c.id, pousse: duree(c) * c.arbre, arrose: true }); toast('+' + qte + ' ' + c.nom + ' à la grange. Le bananier redonnera un régime dans ' + dureeLisible(duree(c) * (1 - c.arbre)) + '.');
+      if (xpRecolte > 0) gagnerXp(xpRecolte, true); rendreCase(p.id); rendreGrange(); rendreHaut(); return; }
+    Object.assign(p, champVide());
     const rendue = niv('semences') && Math.random() < 0.25; if (rendue) S_.graines[c.id] = (S_.graines[c.id] || 0) + 1;
     /* il replante tout de suite la meme culture s'il en a les graines (23/10/2026, voir planterChamp) ; « Replanter apres la recolte » se coupe dans la fenetre Graines */
     const replante = S_.replanter !== false && (S_.graines[c.id] || 0) > 0; if (replante) { const g0 = S_.graine; ACTIONS.planter(p, c.id); S_.graine = g0 || c.id; }

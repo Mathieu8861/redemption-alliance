@@ -483,6 +483,12 @@ function blocRunes() {
   return '<div class="fp-runes"><div class="fp-runes-l">' + rune('forge', n, 'rune de forgemagie', 'runes de forgemagie') + rune('parfaite', p, 'rune parfaite', 'runes parfaites') + '</div>' +
     (niv('forge') ? '<button class="btn mini kamas" data-ouvrir-forge>Forger</button>' : '<small>À utiliser à l\'atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</small>') + '</div>';
 }
+/* LE BANANIER (03/11/2026) : touché pendant qu'il pousse, il dit quand vient son prochain regime ; on peut l'arracher */
+function ouvrirBananier(p) {
+  const c = PAR_ID[p.c], d = duree(c), reste = Math.max(0, d - p.pousse), premier = p.pousse < d * c.arbre;
+  ouvrirModale('bananier', entete('Ton bananier') + '<div class="art">' + ico(c.id) + '<div><b>' + (premier ? 'Il grandit encore' : 'Un nouveau régime mûrit') + '</b><div class="desc">' + (premier ? 'Son premier régime' : 'Le prochain régime') + ' dans ' + dureeLisible(reste) + '. Ensuite, il reste en place et redonne un régime de ' + (c.rendement + niv('faux')) + ' ' + c.nom + 's toutes les ' + dureeLisible(d * (1 - c.arbre)) + '.</div></div></div>' +
+    '<p class="hdv-aide">Un Bananagrume se mange avant un combat : ' + c.mange.txt + '.</p><div class="act-bas"><button class="btn discret" data-arracher="' + p.id + '">Arracher le bananier</button><button class="btn kamas" data-fermer>OK</button></div>');
+}
 function ouvrirPerso(sel) {
   if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; }
   const dansSac = (k) => S_.sac[k] > 0 && obj(k), sacL = Object.keys(S_.sac).filter(dansSac), equipe = (k) => Object.values(S_.equip).includes(k);
@@ -713,6 +719,7 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-montgolfiere')) actionMontgolfiere(b.dataset.montgolfiere);
   else if (b.hasAttribute('data-cas')) actionCasino(b);
   else if (b.hasAttribute('data-ardoise')) actionArdoise(b.dataset.ardoise);
+  else if (b.dataset.arracher) ACTIONS.arracher(b.dataset.arracher); else if (b.dataset.arracherOk) ACTIONS.arracher(b.dataset.arracherOk, true); /* (le bananier, 03/11/2026) */
   else if (b.hasAttribute('data-manger')) { const id = b.dataset.manger; if ((S_.grange[id] || 0) > 0 && !(S_.mange || {})[id]) { S_.grange[id]--; S_.mange = S_.mange || {}; S_.mange[id] = true; son('manger'); toast('Miam ! ' + PAR_ID[id].nom + ' : ' + PAR_ID[id].mange.txt + ' pendant ta prochaine vague.', 'or'); sauver(); rendreGrange(); ouvrirVagues(); } }
   else if (b.id === 'b-sort') lancerSort();
   else if (b.id === 'b-ulti') lancerUlti();

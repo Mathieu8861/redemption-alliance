@@ -66,7 +66,7 @@ function nouveauCombat(genre, champs) {
 function appliquerRepas() { /* LE REPAS D'AVANT COMBAT (16/10/2026) : ce que le perso a mange vaut pour ce combat (vague, Arene, ile des boss) ;
   avec l'arme du Wa Wabbit, pour deux combats. Renvoie les repas pris (pour le message). */
   const repas = Object.keys(S_.mange || {}).filter((id) => S_.mange[id] && PAR_ID[id] && PAR_ID[id].mange);
-  repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; (combat.repasActifs = combat.repasActifs || {})[id] = true; });
+  repas.forEach((id) => { const m = PAR_ID[id].mange; if (m.deg) combat.boostDeg = (combat.boostDeg || 0) + m.deg; if (m.pros) combat.boostPros = (combat.boostPros || 0) + m.pros; if (m.recharge) combat.boostRecharge = (combat.boostRecharge || 0) + m.recharge; (combat.repasActifs = combat.repasActifs || {})[id] = true; });
   if (repas.length) { if (legPorte('wa') && !S_.mangeDeux) S_.mangeDeux = true; else { S_.mange = {}; S_.mangeDeux = false; } sauver(); }
   return repas;
 }
@@ -521,7 +521,7 @@ function boireEntracte(t) {
 }
 function mangerEntracte(id) {
   const c = combat, cu = PAR_ID[id]; if (!c || !c.entracte || !cu || !cu.mange || (c.repasActifs || {})[id] || !((S_.grange[id] || 0) > 0)) return;
-  S_.grange[id]--; c.repasEntracte[id] = true; (c.repasActifs = c.repasActifs || {})[id] = true; if (cu.mange.deg) c.boostDeg = (c.boostDeg || 0) + cu.mange.deg; if (cu.mange.pros) c.boostPros = (c.boostPros || 0) + cu.mange.pros;
+  S_.grange[id]--; c.repasEntracte[id] = true; (c.repasActifs = c.repasActifs || {})[id] = true; if (cu.mange.deg) c.boostDeg = (c.boostDeg || 0) + cu.mange.deg; if (cu.mange.recharge) c.boostRecharge = (c.boostRecharge || 0) + cu.mange.recharge; if (cu.mange.pros) c.boostPros = (c.boostPros || 0) + cu.mange.pros;
   son('manger'); toast('Miam ! ' + cu.nom + ' : ' + cu.mange.txt + (c.arene ? ' jusqu\'à la fin de la partie.' : ' jusqu\'à la fin de la vague.'), 'or'); rendreGrange(); sauver(); ouvrirEntracte();
 }
 function tempsSuivant() {
@@ -2133,7 +2133,7 @@ const porteeSur = (o, st) => st.portee + Math.max(0, 0.35 + o.d.ombre * 0.3 - 1)
 /* le perso : il va vers sa cible (ou le monstre le plus proche) et frappe des qu'il est a portee */
 function majPerso(dt) {
   const u = paysanMesh.userData, st = statsPerso(), classe = classeDe();
-  combat.cdAttaque -= dt; { const r = dt * (1 + 0.15 * nbBonus('recharge')); combat.cdSort = Math.max(0, combat.cdSort - r); combat.cdUlti = Math.max(0, combat.cdUlti - r); } /* (le bonus Concentration de l'Arene) */
+  combat.cdAttaque -= dt; { const r = dt * (1 + 0.15 * nbBonus('recharge') + (combat.boostRecharge || 0)); /* (+ le Bananagrume mange, 03/11/2026) */ combat.cdSort = Math.max(0, combat.cdSort - r); combat.cdUlti = Math.max(0, combat.cdUlti - r); } /* (le bonus Concentration de l'Arene) */
   if (combat.assomme > 0) return; /* assomme par la pomme d'un Koalak Reinette : il ne frappe plus un instant */
   if (u.charge) return;
   if (combat.ordre) { if (chemin.length) return; combat.ordre = false; }

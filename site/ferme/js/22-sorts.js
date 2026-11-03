@@ -367,7 +367,7 @@ function bondMoon(x0, z0, R, st) {
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
   const c = combat; if (!c || c.fin) return;
-  const r = dt * (1 + 0.15 * nbBonus('recharge')); c.cdLegC = Math.max(0, (c.cdLegC || 0) - r); c.cdLegA = Math.max(0, (c.cdLegA || 0) - r);
+  const r = dt * (1 + 0.15 * nbBonus('recharge') + (c.boostRecharge || 0)); c.cdLegC = Math.max(0, (c.cdLegC || 0) - r); c.cdLegA = Math.max(0, (c.cdLegA || 0) - r);
 }
 function majEtatSort(id, cd) { /* sous un bouton : « prêt », ou « prêt dans 12 s » (« 12 s » au doigt) ; reecrit seulement quand ca change */
   const t = cd > 0 ? '<span class="long">prêt dans </span>' + Math.ceil(cd) + ' s' : 'prêt', el = $(id); if (el._t !== t) { el._t = t; el.innerHTML = t; }
