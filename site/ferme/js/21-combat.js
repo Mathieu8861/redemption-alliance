@@ -215,7 +215,7 @@ function ficheMonstre(t) {
   if (d.bourrasque) met('bourrasque', 'lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu');
   if (d.bain) met('bain', 'lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu');
   if (d.boue) met('boue', 'lenteur', 'Crachat de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu');
-  if (d.brassard) met('brassard', 'sort', d.brassardTitre || 'Coup de brassard', 'Un arc rouge devant ' + (d.fem ? 'elle' : 'lui') + ', puis ' + (d.brassardCoup || 'un grand coup de brassard') + ' qui te repousse.', num(fmt(dSort) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet');
+  if (d.brassard) met('brassard', 'sort', d.brassardTitre || 'Coup de brassard', 'Un arc rouge devant ' + (d.fem ? 'elle' : 'lui') + ', puis ' + (d.brassardCoup || 'un grand coup de brassard') + ' qui te repousse.', num(fmt(Math.round(dSort * ((d.sortsX || {}).brassard || 1))) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'); /* (sortsX : le Coup d'aile de Crocabulia, a moitie, 03/11/2026) */
   if (d.pierre) met('pierre', 'bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre'));
   if (d.souffle) met('souffle', 'sort', 'Souffle de feu', d.souffleSol ? (d.fem ? 'Elle' : 'Il') + ' crache un long jet de feu vers toi, sur ' + casesDe(d.souffleR) + ' cases dans un cône étroit : il brûle tout sur son passage, tes bâtiments aussi, et le sol reste en feu ' + d.souffleSol + ' s.' : 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.souffleSol ? num(fmt(Math.max(1, Math.round(dSort * 0.1))) + ' toutes les 0,5 s dans les flammes', 'rouge') : '') + num('1 s pour esquiver') + recup('souffle'), 'violet');
   if (d.pluie) met('pluie', 'sort', d.pluieFleches ? 'Pluie de flèches' : 'Pluie de cawottes', d.pluieFleches ? 'Cinq cercles rouges : un sur toi, quatre autour.' : 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.pluie) + ' pour esquiver') + recup('pluie'), 'violet');
@@ -226,7 +226,7 @@ function ficheMonstre(t) {
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
   if (d.garde) met('garde', 'carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu');
   if (d.invoque) met('invoque', 'renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' lève son bâton de corail et invoque ' + d.invoque.n + ' tortues toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus) : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.', '', 'vert');
-  if (d.renforts) met('renforts', 'renfort', 'Renforts','Il appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' : '') + '. Sa troupe le protège : chaque monstre près de lui lui retire 12 % de tes dégâts.', '', 'vert');
+  if (d.renforts) met('renforts', 'renfort', 'Renforts', (d.fem ? 'Elle' : 'Il') + ' appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' + (d.fem ? 'e' : '') : '') + '. Sa troupe ' + (d.fem ? 'la' : 'le') + ' protège : chaque monstre près d\'' + (d.fem ? 'elle' : 'lui') + ' lui retire 12 % de tes dégâts.', '', 'vert'); /* (au feminin pour Crocabulia, 03/11/2026) */
   if (d.jet) met('jet', 'sort', d.jet.nom, 'Quand tu restes loin ' + (d.fem ? 'd\'elle' : 'de lui') + ', ' + (d.jet.arme === 'hache' ? 'il lève sa grande hache et te la lance' : 'il arrache un rocher du sol et te le lance') + ' : un grand cercle rouge sous toi, sors-en.', num(fmt(Math.round(dSort * d.jet.x)) + ' dégâts', 'rouge') + num(secondes(d.jet.prepa) + ' pour esquiver') + num('toutes les ' + d.jet.periode + ' s'), 'violet');
   if (d.faille) met('faille', 'sort', 'Faille', 'Il fend le sol jusqu\'à toi : une bande, puis le sol éclate de lui vers toi. Sors-en par le côté.', num(fmt(Math.round(dSort * d.faille.x)) + ' dégâts', 'rouge') + num('1 s pour esquiver') + num('toutes les ' + d.faille.periode + ' s'), 'violet');
   if (d.affaibli) { const A = d.affaibli, pc = Math.round(A.seuil * 100); met('affaibli', 'bouclier', 'Affaibli', 'Sous ' + pc + ' % de vie, il tombe à genoux : invulnérable, sa vie bloquée à ' + pc + ' %, il appelle ' + A.n + ' ' + A.noms + '. Tant qu\'un seul est debout, il regagne ' + Math.round(A.regen * 100) + ' % de sa vie toutes les ' + A.pas + ' s. Abats-les tous : il se relève enragé.', num(fmt(A.pv) + ' PV par Gorille') + num('+' + Math.round(A.regen * 100) + ' % toutes les ' + A.pas + ' s', 'vert'), 'violet'); }
@@ -1461,7 +1461,7 @@ function capSouffle(mo, ctx) {
     if (mo.souffleT >= mo.d.souffle && !mo.vise) { /* elle prend son souffle : le cone s'affiche au sol, on a une seconde pour en sortir */
       const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = mo.d.souffleR || 7, OUV = mo.d.souffleOuv || 0.5; mo.ry = a; /* (souffleR, souffleOuv : sa longueur et sa demi-ouverture, 31/10/2026) */
       const c = new T.Mesh(new T.CircleGeometry(R, 32, Math.PI / 2 - OUV, OUV * 2), new T.MeshBasicMaterial({ color: '#ff5a1e', transparent: true, opacity: 0.25, depthWrite: false, side: T.DoubleSide }));
-      c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, mo.m.position.y + 0.06, mo.z); c.renderOrder = 2; scene.add(c);
+      c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, (mo.d.vol ? solA(mo.x, mo.z) : mo.m.position.y) + 0.06, mo.z); c.renderOrder = 2; scene.add(c); /* (au sol : elle vole, son cone flottait a 1,5 au-dessus et paraissait decale vu d'en haut, 03/11/2026) */
       effets.push(() => { if (!combat || mo.etat !== 'actif' || !mo.vise) { jeter(c); if (mo.vise && mo.vise.c === c) mo.vise = null; return true; } }); /* le cone disparait si elle tombe avant de cracher */
       mo.vise = { a, t: 0, c };
       if (!combat.souffleVu) { combat.souffleVu = true; toast('Crocabulia prend son souffle : sors du cône rouge !', 'alerte'); }
@@ -1706,13 +1706,53 @@ function capBoue(mo, ctx) { /* le Crachat de boue du Dragon Cochon (le Bain de b
       if (bulle >= 0.18 && s2 < 2.5) { bulle = 0; const b = fxAlea() * Math.PI * 2, r2 = fxAlea() * R * 0.8; lueur(new T.Vector3(x0 + Math.cos(b) * r2, y + 0.12, z0 + Math.sin(b) * r2), '#4a2f18', 1.6, 0.4); } }); /* (la flaque bouillonne puis seche) */
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) coller(DUREE_COLLE, 'Collé !', true); } });
 }
+/* LE COUP D'AILE DE CROCABULIA (03/11/2026, « ouais coup d'aile vas y », Mathieu) : pendant l'arc rouge (ESQUIVE.brassard), une aile se leve et se tire en
+   arriere, le corps tourne pour armer, l'aile tremble de tension ; puis elle la balaie vers l'avant en 0,2 s, a l'horizontale, le corps tourne avec, des braises
+   filent du bout de l'aile ; puis l'aile revient a son battement. cote : 1 l'aile droite (aile_pivot_D, cote +x, en arriere vers +y), -1 la gauche (en miroir) */
+function coupDAile(mo, A, dt) {
+  const C = mo.coupAile; C.t += dt; const t = C.t, ARME = ESQUIVE.brassard - 0.13, FRAPPE = 0.2, FIN = 0.5, /* (le balayage part 0,13 s avant le coup : l'aile passe devant elle quand il touche, capBrassard) */ i = C.cote > 0 ? 1 : 0, P = A[i], sg = i ? 1 : -1;
+  if (t >= ARME + FRAPPE + FIN || mo.etat !== 'actif') { if (C.trace) C.trace(2); mo.coupAile = null; mo.tourne = 0; mo.hop = 0; mo.penche = 0; return; }
+  let y, z, tr, h, pe, w; /* y : l'aile en arriere (+) ou en avant (-) ; z : levee (+) ; tr : le corps qui arme (-) puis suit le coup (+) ; h, pe : il se hisse et se cambre, puis plonge ; w : la part du geste sur le battement */
+  if (t < ARME) { const k = Math.min(1, t / 0.45), e = k * k * (3 - 2 * k), fr = Math.sin(t * 31) * 0.035 * e; y = 1.0 * e + fr; z = 1.15 * e - fr; tr = -0.45 * e; h = 0.35 * e; pe = -0.12 * e; w = e; }
+  else if (t < ARME + FRAPPE) { const u = (t - ARME) / FRAPPE, e = 1 - Math.pow(1 - u, 3); y = 1.0 - 2.6 * e; z = 1.15 - 1.55 * e; tr = -0.45 + 1.05 * e; h = 0.35 - 0.5 * e; pe = -0.12 + 0.34 * e; w = 1;
+    if (!C.trace) C.trace = traineeAile(mo, sg); C.trace(u);
+    if (P) { const B = boiteAile(mo, P, i); [0.5, 0.75, 0.97].forEach((f) => { const q = P.localToWorld(new T.Vector3(sg > 0 ? B.min.x + (B.max.x - B.min.x) * f : B.max.x - (B.max.x - B.min.x) * f, B.max.y - (B.max.y - B.min.y) * 0.2, (B.min.z + B.max.z) / 2));
+      emettre(FX_VIF, 1, { x: q.x, y: q.y, z: q.z, r: 0.2, v: [0, 0.4, 0], dv: 0.6, vie: [0.22, 0.38], taille: [0.28, 0.5], c: ['#fff1a8', '#ffb02e', '#ff5a1e', '#7a1a06'], a: 0.95, grav: -0.8, frein: 1.5, vrot: 3, entree: 0.03 }); }); } }
+  else { const u = (t - ARME - FRAPPE) / FIN, e = u * u * (3 - 2 * u); if (C.trace) { C.trace(1 + u); } y = -1.6; z = -0.4; tr = 0.6 * (1 - e); h = -0.15 * (1 - e); pe = 0.22 * (1 - e); w = 1 - e; }
+  if (P) { P.rotation.y = P.rotation.y * (1 - w) + sg * y * w; P.rotation.z = P.rotation.z * (1 - w) + sg * z * w; }
+  mo.tourne = -sg * tr; mo.hop = h; mo.penche = pe;
+}
+/* le bord de l'aile, dans le repere de son pivot (calcule une fois) : les braises partent du bord d'attaque, du milieu jusqu'au bout */
+function boiteAile(mo, P, i) {
+  const K = mo.boitesAile || (mo.boitesAile = []); if (K[i]) return K[i];
+  P.updateMatrixWorld(true); const inv = new T.Matrix4().copy(P.matrixWorld).invert(), b = new T.Box3();
+  P.traverse((o) => { if (!o.isMesh) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b.union(o.geometry.boundingBox.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld))); });
+  return (K[i] = b);
+}
+/* la trainee de feu du Coup d'aile : une bande de flammes a hauteur d'aile, du flanc de l'aile vers l'avant et au-dela, qui suit le bout de l'aile comme une
+   comete (vive a la tete, qui s'eteint derriere elle, les bords fondus) ; apres le coup, la queue la rattrape et elle s'efface en s'evasant.
+   sg : 1 l'aile droite (flanc +x), -1 la gauche. Rend une fonction f(u) : u de 0 a 1, le coup ; de 1 a 2, l'effacement ; 2, la fin */
+function traineeAile(mo, sg) {
+  const N = 32, L = 2.6, th0 = sg > 0 ? -0.4 : Math.PI - 0.4, RR = [2.3, 3.5, 4.7], AL = [0.3, 1, 0.2], CO = ['#ff4a12', '#ffa02a', '#b8240e'].map((x) => new T.Color(x)); /* (franche sur le ciel clair : orange vif au coeur, rouge aux bords) */
+  const pos = new Float32Array((N + 1) * 9), col = new Float32Array((N + 1) * 12), ind = [];
+  for (let k = 0; k <= N; k++) { const th = th0 + L * k / N; for (let j = 0; j < 3; j++) { const v = k * 3 + j; pos.set([RR[j] * Math.cos(th), RR[j] * Math.sin(th), 0], v * 3); col.set([CO[j].r, CO[j].g, CO[j].b, 0], v * 4); }
+    if (k < N) for (let j = 0; j < 2; j++) { const p = k * 3 + j; ind.push(p, p + 3, p + 1, p + 1, p + 3, p + 4); } }
+  const geo = new T.BufferGeometry(), C = new T.BufferAttribute(col, 4); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('color', C); geo.setIndex(ind);
+  const m = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: T.DoubleSide })); if (sg > 0) m.scale.y = -1; m.renderOrder = 6; /* (a droite, retournee : elle se dessine du flanc vers l'avant) */
+  const g = new T.Group(); g.add(m); g.rotation.order = 'YXZ'; g.rotation.set(-Math.PI / 2, mo.ry, 0); g.position.set(mo.x, mo.m.position.y + 2.1, mo.z); scene.add(g);
+  let fini = false; const c0 = combat; effets.push(() => { if (fini || combat !== c0) { jeter(g); return true; } });
+  return (u) => { if (u >= 2) { fini = true; return; } const tete = u <= 1 ? u * N : N + (u - 1) * N * 0.8, f = u <= 1 ? 1 : 2 - u;
+    for (let k = 0; k <= N; k++) { const al = k > tete + 0.5 ? 0 : Math.exp(-(tete - Math.min(k, tete)) / (N * 0.45)) * f; for (let j = 0; j < 3; j++) C.array[(k * 3 + j) * 4 + 3] = AL[j] * al; }
+    C.needsUpdate = true; const s = u <= 1 ? 1 : 1 + (u - 1) * 0.12; g.scale.set(s, s, 1); };
+}
 function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2026) : un arc rouge devant elle (ESQUIVE.brassard pour en sortir), puis le coup, qui repousse */
   const { dt, pp, sortPret } = ctx;
   if (!mo.d.brassard || combat.deroute != null) return;
   if (!mo.viseB && Math.hypot(pp.x - mo.x, pp.z - mo.z) < Math.max(6, (mo.d.brassardR || 4.2) + 1) && sortPret('brassardT', mo.d.brassard)) {
     mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = mo.d.brassardR || 4.2, OUV = 1.3, /* (brassardR : la Gorgouille, 5,2 depuis le 31/10/2026) */ c0 = combat; mo.ry = a; mo.bloqueT = ESQUIVE.brassard + 0.4;
     const c = new T.Mesh(new T.CircleGeometry(R, 24, Math.PI / 2 - OUV / 2, OUV), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide }));
-    c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, mo.m.position.y + 0.07, mo.z); c.renderOrder = 2; scene.add(c);
+    c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, (mo.d.vol ? solA(mo.x, mo.z) : mo.m.position.y) + 0.07, mo.z); c.renderOrder = 2; scene.add(c); /* (au sol sous Crocabulia, qui vole : son arc flottait a 1,3 au-dessus, 03/11/2026) */
+    if (mo.d.coupAile) mo.coupAile = { t: 0, cote: (mo.coteAile = -(mo.coteAile || -1)) }; /* (une aile puis l'autre, majMonstre) */
     mo.viseB = { a, t: 0, c, R, OUV, x: mo.x, z: mo.z }; gesteSort(mo, gesteDe(mo, 'brassard', 'coup'), ESQUIVE.brassard); /* (un monstre a squelette arme son coup pendant que l'arc s'affiche, 28/10/2026) */
     effets.push(() => { if (combat !== c0 || mo.etat !== 'actif' || !mo.viseB || mo.viseB.c !== c) { jeter(c); if (mo.viseB && mo.viseB.c === c) mo.viseB = null; return true; } }); /* (l'arc s'efface si elle tombe avant de frapper) */
     if (!combat.brassardVu) { combat.brassardVu = true; toast(leNom(mo.d) + ' ' + (mo.d.brassardNom || 'arme son brassard') + ' : sors de l\'arc rouge, sinon ' + (mo.d.fem ? 'elle' : 'il') + ' te repousse !', 'alerte'); }
@@ -1721,7 +1761,8 @@ function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2
   V.t += dt; V.c.material.opacity = 0.22 + 0.25 * Math.abs(Math.sin(V.t * 9));
   if (V.t >= ESQUIVE.brassard) { mo.viseB = null; mo.frappe = 0.4; pouf(V.x + Math.sin(V.a) * 1.8, mo.m.position.y, V.z + Math.cos(V.a) * 1.8, 4, '#8e7a5e');
     const d = Math.hypot(pp.x - V.x, pp.z - V.z); let e = Math.atan2(pp.x - V.x, pp.z - V.z) - V.a; e = Math.atan2(Math.sin(e), Math.cos(e));
-    if (d < V.R && Math.abs(e) < V.OUV / 2) { blesserPerso(degSort(mo), mo); if (combat && !combat.fin && mo.d.repousse) repousserPerso(mo, mo.d.repousse); } }
+    if (mo.d.coupAile) { const y0 = solA(V.x, V.z); rafaleVent(V.x + Math.sin(V.a) * 3, y0, V.z + Math.cos(V.a) * 3, 1.6); flashLumiere(V.x + Math.sin(V.a) * 2.5, y0 + 2, V.z + Math.cos(V.a) * 2.5, '#ff8a2e', 2.2, 7, 0.35); secousse(0.05, 0.25); } /* (l'air balaye devant elle) */
+    if (d < V.R && Math.abs(e) < V.OUV / 2) { blesserPerso(Math.max(1, Math.round(degSort(mo) * ((mo.d.sortsX || {}).brassard || 1))), mo); if (combat && !combat.fin && mo.d.repousse) repousserPerso(mo, mo.d.repousse); } }
 }
 function capRoulade(mo, ctx) { /* les Tortues roulent pour esquiver (26/10/2026, « ce serait rigolo de les voir faire ça et esquiver de temps en temps », Mathieu) : touchée, une fois
      toutes les quelques secondes, elle part en roulade sur le côté, un peu vers toi ; pendant la culbute, tes coups la manquent */
@@ -2133,7 +2174,8 @@ function majMonstre(mo, dt, s) {
   const pique = mo.picore > 0 ? Math.abs(Math.sin(s * 9)) : 0;
   const bat = mo.d.battements ? (mo.batPh = (mo.batPh || mo.id) + dt * mo.d.battements * Math.PI * 2 * (v > 0.3 ? 1.15 : 1)) : 0; /* (Crocabulia, 31/10/2026 : la phase de ses ailes) */
   if (mo.d.battements) { const A = mo.ailes || (mo.ailes = [m.getObjectByName('aile_pivot_G'), m.getObjectByName('aile_pivot_D')]), th = 0.12 + 0.55 * Math.sin(bat), av = 0.12 * Math.cos(bat);
-    if (A[0]) A[0].rotation.set(0, -av, -th); if (A[1]) A[1].rotation.set(0, av, th); m.rotation.order = 'YXZ'; } /* (ailes levees quand sin > 0 ; en descendant, elles balaient vers l'avant) */
+    if (A[0]) A[0].rotation.set(0, -av, -th); if (A[1]) A[1].rotation.set(0, av, th); m.rotation.order = 'YXZ'; /* (ailes levees quand sin > 0 ; en descendant, elles balaient vers l'avant) */
+    if (mo.coupAile) coupDAile(mo, A, dt); }
   const vol = mo.d.vol ? mo.d.vol + (mo.d.battements ? -0.16 * Math.sin(bat) : Math.sin(s * 2.4 + mo.id) * 0.14) : 0; /* (avec des ailes qui battent, le corps monte quand elles s'abaissent) */ if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
   m.rotation.y = mo.ry + (mo.tourne || 0); m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
