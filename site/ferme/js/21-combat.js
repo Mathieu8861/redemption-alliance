@@ -1716,8 +1716,8 @@ function coupDAile(mo, A, dt) {
   if (t < ARME) { const k = Math.min(1, t / 0.45), e = k * k * (3 - 2 * k), fr = Math.sin(t * 31) * 0.035 * e; y = 1.0 * e + fr; z = 1.15 * e - fr; tr = -0.45 * e; h = 0.35 * e; pe = -0.12 * e; w = e; }
   else if (t < ARME + FRAPPE) { const u = (t - ARME) / FRAPPE, e = 1 - Math.pow(1 - u, 3); y = 1.0 - 2.6 * e; z = 1.15 - 1.55 * e; tr = -0.45 + 1.05 * e; h = 0.35 - 0.5 * e; pe = -0.12 + 0.34 * e; w = 1;
     if (!C.trace) C.trace = traineeAile(mo, sg); C.trace(u);
-    if (P) { const B = boiteAile(mo, P, i); [0.5, 0.75, 0.97].forEach((f) => { const q = P.localToWorld(new T.Vector3(sg > 0 ? B.min.x + (B.max.x - B.min.x) * f : B.max.x - (B.max.x - B.min.x) * f, B.max.y - (B.max.y - B.min.y) * 0.2, (B.min.z + B.max.z) / 2));
-      emettre(FX_VIF, 1, { x: q.x, y: q.y, z: q.z, r: 0.2, v: [0, 0.4, 0], dv: 0.6, vie: [0.22, 0.38], taille: [0.28, 0.5], c: ['#fff1a8', '#ffb02e', '#ff5a1e', '#7a1a06'], a: 0.95, grav: -0.8, frein: 1.5, vrot: 3, entree: 0.03 }); }); } }
+    if (P) { const B = boiteAile(mo, P, i), fx = Math.sin(mo.ry), fz = Math.cos(mo.ry); for (let k = 0; k < 2; k++) { const f = 0.55 + Math.random() * 0.45, q = P.localToWorld(new T.Vector3(sg > 0 ? B.min.x + (B.max.x - B.min.x) * f : B.max.x - (B.max.x - B.min.x) * f, B.max.y - (B.max.y - B.min.y) * 0.2, (B.min.z + B.max.z) / 2)), v = 6 + Math.random() * 4;
+      emettre(FX_VIF, 1, { x: q.x, y: q.y, z: q.z, r: 0.15, v: [fx * v, 0.8, fz * v], dv: 1.5, vie: [0.18, 0.3], taille: [0.09, 0.03], c: ['#fff1a8', '#ffb02e', '#ff5a1e'], a: 1, grav: 3, frein: 1.2, etire: 0.04 }); } } } /* (de fines etincelles etirees, lancees vers l'avant depuis un point au hasard du bord de l'aile : plus de braises rondes en rangs) */
   else { const u = (t - ARME - FRAPPE) / FIN, e = u * u * (3 - 2 * u); if (C.trace) { C.trace(1 + u); } y = -1.6; z = -0.4; tr = 0.6 * (1 - e); h = -0.15 * (1 - e); pe = 0.22 * (1 - e); w = 1 - e; }
   if (P) { P.rotation.y = P.rotation.y * (1 - w) + sg * y * w; P.rotation.z = P.rotation.z * (1 - w) + sg * z * w; }
   mo.tourne = -sg * tr; mo.hop = h; mo.penche = pe;
