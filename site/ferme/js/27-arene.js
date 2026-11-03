@@ -509,7 +509,7 @@ function finArene(abandon) {
   { const max = statsPerso().pvMax; S_.pv = Math.max(1, vieActuelle(), Math.min(max, Math.round(c.pv))); } /* (au moins la vie d'avant l'Arene, comme a l'ile des boss : a terre, on ne rentre plus a 1 PV, 20/10/2026) */
   const a = etatArene(), A = c.arene, t = A.tenues, rec = t > A.record, recSem = !rec && t > A.recordSem; a.parties = (a.parties || 0) + 1; compter('arenes');
   son(rec || recSem ? 'victoire' : abandon ? 'gelee' : 'defaite'); if (rec) confettis(60);
-  const objets = A.objets.map((id) => { const o = obj(id); return o ? '<div class="art">' + icoObjet(id) + '<div><b>' + (o.rare ? '★ ' : '') + o.nom + '</b><div class="puces">' + statsTexte(o.stats) + '</div></div><div class="act"></div></div>' : ''; }).join('');
+  const objets = lignesButin(A.objets, false); /* (le jet, le tri par rarete, la ligne doree, 03/11/2026) */
   const reste = entreesRestantes(), peut = reste > 0 && S_.kamas >= TICKET_ARENE;
   ouvrirModale('arene-fin', entete(abandon ? 'Tu quittes l\'Arène' : 'À terre dans l\'Arène !') +
     '<div class="arene-bilan"><div class="gros">' + t + '</div><div class="sous">vague' + (t > 1 ? 's' : '') + ' tenue' + (t > 1 ? 's' : '') + '</div>' + (rec ? '<div class="record">★ Nouveau record !</div>' : recSem ? '<div class="record">★ Record de la semaine !</div>' : '<div class="sous">record : ' + Math.max(A.record, t) + ', cette semaine : ' + Math.max(A.recordSem, t) + '</div>') + '</div>' +

@@ -833,6 +833,12 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .pano-bonus > b { display: block; font: 400 .9rem/1.1 var(--f-titre); color: var(--encre); margin-bottom: 4px; }
 .pano-bonus .paliers { display: grid; gap: 3px; } .pano-bonus .paliers span { background: #2b2d31; border: 1.5px solid #43464e; border-radius: 8px; padding: 2px 7px; color: #a9adb5; }
 .pano-bonus .paliers span.actif { background: #385922; border-color: #43464e; color: #92db80; }
+/* le butin de fin de combat (03/11/2026) : la ligne d'une piece rare doree, d'une legendaire violette, le badge avant le nom, le jet en couleur */
+.art.butin.rare { margin: 4px -8px; padding: 9px 8px; border: 2px solid var(--or); border-radius: 12px; background: linear-gradient(90deg, rgba(242, 182, 48, .22), rgba(242, 182, 48, .05)); box-shadow: 0 0 12px rgba(242, 182, 48, .45); }
+.art.butin.leg { margin: 4px -8px; padding: 9px 8px; border: 2px solid #9b6cff; border-radius: 12px; background: linear-gradient(90deg, rgba(155, 108, 255, .26), rgba(155, 108, 255, .06)); box-shadow: 0 0 12px rgba(155, 108, 255, .5); }
+.badge-butin { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 99px; font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; vertical-align: 1px; }
+.badge-butin.rare { background: var(--or); color: #2a1d05; } .badge-butin.leg { background: #9b6cff; color: #fff; }
+.puce.jet { font-weight: 900; } .puce.jet.excellent { background: #2e5a2a; color: #b8f08a; } .puce.jet.bon { background: #2a4a5a; color: #9fd8f0; } .puce.jet.moyen { background: #4a4430; color: #f0d890; } .puce.jet.faible { background: #4a3030; color: #f0a8a0; }
 .pic.img.rare, .slot.rare, .gain-coffre img.rare { box-shadow: 0 0 0 2.5px var(--or), 0 0 10px rgba(242, 182, 48, .8); }
 .btn-bestiaire { display: flex; justify-content: center; margin-top: 10px; }
 .best-note { font-size: .72rem; font-weight: 700; color: #a9adb5; margin: 6px 0 0; } .best-verrou { font-size: .76rem; font-weight: 700; color: #a9adb5; margin: 4px 0 2px; }

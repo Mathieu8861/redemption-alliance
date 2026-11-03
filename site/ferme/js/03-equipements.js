@@ -204,6 +204,16 @@ function comparer(id) {
   return { mieux, ok, html: (pareil ? '<span class="puce">comme ta pièce actuelle</span>' : ecarts.map(([k, d]) => '<span class="puce ' + (d > 0 ? 'bonne' : 'mauvaise') + '">' + CARACS[k][2] + ' ' + (d > 0 ? '+' : '') + d + CARACS[k][1] + '</span>').join('')) + (q.pouvoir && !o.pouvoir ? '<span class="puce mauvaise">perd : ' + q.pouvoir + '</span>' : '') };
 }
 const possede = (id) => Object.keys(S_.sac).some((k) => S_.sac[k] > 0 && baseObjet(k) === id) || Object.values(S_.equip).some((k) => baseObjet(k) === id); /* (le modele, quel que soit le jet) */
+/* LE BUTIN DE FIN DE COMBAT (03/11/2026, « qu'on voie directement le pourcentage du jet ; un item avec une etoile beaucoup plus visible, qu'on n'ait pas a
+   chercher ; trie dans l'ordre de rarete, le premier le plus rare », Mathieu) : les legendaires, puis les rares, puis les autres, chacun du meilleur jet au moins bon ;
+   le jet en pourcentage, de la couleur de sa qualite ; une ligne doree pour une piece rare, violette pour une legendaire. voir : le bouton Voir (la fiche du perso) */
+const rangButin = (k) => { const o = obj(k); return o ? (o.leg ? 2 : o.rare ? 1 : 0) : -1; };
+function lignesButin(cles, voir) {
+  const L = [...new Set(cles)].filter((k) => obj(k)).sort((a, b) => rangButin(b) - rangButin(a) || qualiteJet(b) - qualiteJet(a));
+  return L.map((k) => { const o = obj(k), nb = cles.filter((x) => x === k).length, q = qualiteJet(k), r = rangButin(k);
+    return '<div class="art butin' + (r === 2 ? ' leg' : r === 1 ? ' rare' : '') + '">' + icoObjet(k) + '<div><b>' + (r === 2 ? '<span class="badge-butin leg">✦ Légendaire</span>' : r === 1 ? '<span class="badge-butin rare">★ Rare</span>' : '') + o.nom + (nb > 1 ? ' ×' + nb : '') + '</b>' +
+      '<div class="puces"><span class="puce jet ' + nomJet(q) + '">Jet ' + Math.round(q * 100) + ' %</span>' + statsTexte(o.stats) + '</div></div><div class="act">' + (voir ? '<button class="btn kamas" data-perso-sel="' + k + '">Voir</button>' : '') + '</div></div>'; }).join('');
+}
 const statsTexte = (st) => Object.entries(st).map(([c, v]) => '<span class="puce">' + CARACS[c][2] + ' +' + v + CARACS[c][1] + '</span>').join('');
 const CLE = TEST ? 'ferme-amakna-3d-v2-test' : 'ferme-amakna-3d-v2'; /* v2 : le plan a change pour coller a l'ile */
 
