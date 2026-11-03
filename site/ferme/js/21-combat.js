@@ -1729,21 +1729,25 @@ function boiteAile(mo, P, i) {
   P.traverse((o) => { if (!o.isMesh) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b.union(o.geometry.boundingBox.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld))); });
   return (K[i] = b);
 }
-/* la trainee de feu du Coup d'aile : une bande de flammes a hauteur d'aile, du flanc de l'aile vers l'avant et au-dela, qui suit le bout de l'aile comme une
-   comete (vive a la tete, qui s'eteint derriere elle, les bords fondus) ; apres le coup, la queue la rattrape et elle s'efface en s'evasant.
+/* la trainee de feu du Coup d'aile : une flamme a hauteur d'aile, du flanc de l'aile vers l'avant et au-dela, qui suit le bout de l'aile comme une
+   comete (vive a la tete, qui s'eteint derriere elle, les bords fondus et dechiquetes, jamais un arc de cercle parfait, 03/11/2026) ; apres le coup, la queue la rattrape et elle s'efface en s'evasant.
    sg : 1 l'aile droite (flanc +x), -1 la gauche. Rend une fonction f(u) : u de 0 a 1, le coup ; de 1 a 2, l'effacement ; 2, la fin */
 function traineeAile(mo, sg) {
-  const N = 32, L = 2.6, th0 = sg > 0 ? -0.4 : Math.PI - 0.4, RR = [2.3, 3.5, 4.7], AL = [0.3, 1, 0.2], CO = ['#ff4a12', '#ffa02a', '#b8240e'].map((x) => new T.Color(x)); /* (franche sur le ciel clair : orange vif au coeur, rouge aux bords) */
-  const pos = new Float32Array((N + 1) * 9), col = new Float32Array((N + 1) * 12), ind = [];
-  for (let k = 0; k <= N; k++) { const th = th0 + L * k / N; for (let j = 0; j < 3; j++) { const v = k * 3 + j; pos.set([RR[j] * Math.cos(th), RR[j] * Math.sin(th), 0], v * 3); col.set([CO[j].r, CO[j].g, CO[j].b, 0], v * 4); }
-    if (k < N) for (let j = 0; j < 2; j++) { const p = k * 3 + j; ind.push(p, p + 3, p + 1, p + 1, p + 3, p + 4); } }
-  const geo = new T.BufferGeometry(), C = new T.BufferAttribute(col, 4); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('color', C); geo.setIndex(ind);
-  const m = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: T.DoubleSide })); if (sg > 0) m.scale.y = -1; m.renderOrder = 6; /* (a droite, retournee : elle se dessine du flanc vers l'avant) */
+  const N = 32, L = 2.6, th0 = sg > 0 ? -0.4 : Math.PI - 0.4, W = [-1, -0.5, 0, 0.5, 1], J = W.length, AL = [0, 0.8, 1, 0.75, 0], CO = ['#a81e0a', '#ff4a12', '#ffb03a', '#ff6a1e', '#b8240e'].map((x) => new T.Color(x)); /* (cinq rangs en travers : bords transparents, donc fondus ; orange vif au coeur, rouge aux bords) */
+  const ph = [0, 1, 2, 3].map(() => Math.random() * 6.28), pos = new Float32Array((N + 1) * J * 3), col = new Float32Array((N + 1) * J * 4), ind = []; /* (des phases au hasard : deux coups d'aile ne se ressemblent pas) */
+  for (let k = 0; k <= N; k++) { for (let j = 0; j < J; j++) { const v = k * J + j, cc = CO[j].clone().lerp(CO[2], Math.random() * 0.3); col.set([cc.r, cc.g, cc.b, 0], v * 4); }
+    if (k < N) for (let j = 0; j < J - 1; j++) { const p = k * J + j; ind.push(p, p + J, p + 1, p + 1, p + J, p + J + 1); } }
+  const geo = new T.BufferGeometry(), C = new T.BufferAttribute(col, 4), P = new T.BufferAttribute(pos, 3); geo.setAttribute('position', P); geo.setAttribute('color', C); geo.setIndex(ind);
+  const m = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: T.DoubleSide })); if (sg > 0) m.scale.y = -1; m.renderOrder = 6; m.frustumCulled = false; /* (a droite, retournee : elle se dessine du flanc vers l'avant ; sa forme change a chaque image, d'ou pas de tri par la boite) */
   const g = new T.Group(); g.add(m); g.rotation.order = 'YXZ'; g.rotation.set(-Math.PI / 2, mo.ry, 0); g.position.set(mo.x, mo.m.position.y + 2.1, mo.z); scene.add(g);
   let fini = false; const c0 = combat; effets.push(() => { if (fini || combat !== c0) { jeter(g); return true; } });
-  return (u) => { if (u >= 2) { fini = true; return; } const tete = u <= 1 ? u * N : N + (u - 1) * N * 0.8, f = u <= 1 ? 1 : 2 - u;
-    for (let k = 0; k <= N; k++) { const al = k > tete + 0.5 ? 0 : Math.exp(-(tete - Math.min(k, tete)) / (N * 0.45)) * f; for (let j = 0; j < 3; j++) C.array[(k * 3 + j) * 4 + 3] = AL[j] * al; }
-    C.needsUpdate = true; const s = u <= 1 ? 1 : 1 + (u - 1) * 0.12; g.scale.set(s, s, 1); };
+  return (u) => { if (u >= 2) { fini = true; return; } const tete = u <= 1 ? u * N : N + (u - 1) * N * 0.8, f = u <= 1 ? 1 : 2 - u, q = u * 7;
+    for (let k = 0; k <= N; k++) { const a = k / N, d = tete - k, e = Math.min(1, Math.max(0, (d + 0.5) / 3)), hw = 1.5 * (0.4 + 0.6 * Math.exp(-Math.max(0, d) / (N * 0.5))) * e * e * (3 - 2 * e); /* (large a la tete, effilee a la queue, pointue au bout) */
+      const rc = 3.0 + 0.8 * a + Math.sin(k * 0.5 + ph[0] + q) * 0.12, th = th0 + L * a, zc = 0.3 - 0.6 * a + Math.sin(k * 0.42 + ph[2] + q * 0.6) * 0.15; /* (une spirale qui s'ouvre, et qui descend avec l'aile en ondulant) */
+      const al = k > tete + 0.5 ? 0 : Math.exp(-Math.max(0, d) / (N * 0.45)) * f * (0.78 + 0.22 * Math.sin(k * 2.3 + ph[3] + q * 3)); /* (des stries de lumiere le long) */
+      for (let j = 0; j < J; j++) { const w = W[j], v = k * J + j, r = rc + w * hw + Math.abs(w) * 0.17 * (Math.sin(k * 1.9 + j * 2.7 + q * 2.1 + ph[j % 4]) + 0.6 * Math.sin(k * 0.71 - q * 1.3 + j)); /* (des bords dechiquetes qui bougent, comme une flamme) */
+        pos[v * 3] = r * Math.cos(th); pos[v * 3 + 1] = r * Math.sin(th); pos[v * 3 + 2] = zc + Math.abs(w) * Math.sin(k * 1.3 + j + q) * 0.06; C.array[v * 4 + 3] = AL[j] * al; } }
+    P.needsUpdate = true; C.needsUpdate = true; const s = u <= 1 ? 1 : 1 + (u - 1) * 0.12; g.scale.set(s, s, 1); };
 }
 function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2026) : un arc rouge devant elle (ESQUIVE.brassard pour en sortir), puis le coup, qui repousse */
   const { dt, pp, sortPret } = ctx;
