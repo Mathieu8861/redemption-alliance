@@ -202,13 +202,24 @@ function flechePercante(pt) {
   const st = statsPerso(), pp = paysanMesh.position, u = paysanMesh.userData;
   const dir = new T.Vector3(pt.x - pp.x, 0, pt.z - pp.z); if (dir.lengthSq() < 0.01) dir.set(Math.sin(paysanMesh.rotation.y), 0, Math.cos(paysanMesh.rotation.y)); dir.normalize();
   combat.cdSort = rechargeSort(); chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(dir.x, dir.z); paysanMesh.rotation.y = u.angle; /* (sa recharge : 20 s) */
-  u.attaque = { t: 0, classe: 'cra', base: u.angle, tour: false, surFrappe: () => {} };
-  const de = pp.clone(); de.y += 0.95; const fin = de.clone().addScaledVector(dir, PORTEE_PERCANTE);
+  u.attaque = { t: -0.55, classe: 'cra', base: u.angle, tour: false, surFrappe: () => {} }; u.charge = true; /* (le temps de bander l'arc, pas d'autre tir ni de pas) */
+  /* (04/11/2026, « j'ai envie de le voir prendre son arc, tendre son arc, la fleche part et ca desintegre tout », Mathieu) : il bande l'arc 0,42 s, la lumiere
+     se concentre sur la pointe de la fleche encochee, puis il lache : tout le reste part de l'arc (pointeArc, 12-perso.js) */
+  const P = (u.tirPercant = { tension: 0, recul: 0 }), c0 = combat, BANDER = 0.42; let tb = 0; voileEcran(0.5, 0.95); son('arc');
+  effets.push((dt) => { if (combat !== c0 || !paysanMesh) { u.tirPercant = null; u.charge = false; return true; } tb += dt; paysanMesh.rotation.y = u.angle;
+    const k = Math.min(1, tb / BANDER); P.tension = k < 0.2 ? 0.15 * k / 0.2 : 0.15 + 0.85 * Math.pow((k - 0.2) / 0.8, 0.7); const q = pointeArc(paysanMesh);
+    for (let i = 0; i < 2; i++) { const a2 = fxAlea() * Math.PI * 2, b2 = fxAlea() * Math.PI, r = 0.7 + 0.5 * fxAlea(), x = q.x + Math.sin(b2) * Math.cos(a2) * r, y = q.y + Math.cos(b2) * r * 0.7, z = q.z + Math.sin(b2) * Math.sin(a2) * r;
+      emettre(FX_VIF, 1, { x, y, z, v: [(q.x - x) * 4.5, (q.y - y) * 4.5, (q.z - z) * 4.5], vie: [0.18, 0.22], taille: [0.08, 0.02], c: ['#fff1c0', '#ffb347'], a: 1, etire: 0.05 }); } /* (des filets de lumiere aspires par la pointe) */
+    emettre(FX_LUM, 1, { x: q.x, y: q.y, z: q.z, vie: [0.06, 0.08], taille: [0.4 + 1.1 * k, 0.3], c: ['#ffffff', '#ffc24a'], a: 0.95, entree: 0.01 });
+    if (tb < BANDER) return false;
+    u.charge = false; tirer(); let tr = 0; effets.push((d2) => { tr += d2; P.tension = Math.max(0, 1 - tr / 0.06); P.recul = Math.sin(Math.min(1, tr / 0.35) * Math.PI); if (tr >= 0.35) { if (u.tirPercant === P) u.tirPercant = null; return true; } }); return true; });
+  const tirer = () => {
+  const de = pointeArc(paysanMesh), fin = de.clone().addScaledVector(dir, PORTEE_PERCANTE);
   const fl = boite(0.07, 0.07, 0.9, '#ffe08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(fin); const touches = new Set(); let t = 0, temps = 0, brume = 0, anneaux = 0, sol = 0;
   /* l'animation (refaite le 04/11/2026, d'apres une video d'effets de jeu, 22b-effets.js) : l'ecran s'assombrit, un eclat et un anneau de souffle a l'arc,
      un faisceau blanc et orange qui suit la fleche comme une comete, des anneaux le long du trait, des etincelles, une brume violette, un trait de braise
      au sol ; sur chaque monstre transperce, un eclat, un anneau et une gerbe ; au premier, l'image se fige un instant et la camera tremble */
-  decocher(de, fin); voileEcran(0.5, 0.55); flashLumiere(de.x, de.y, de.z, '#ffd27a', 3, 7, 0.3); secousse(0.05, 0.12);
+  decocher(de, fin); flashLumiere(de.x, de.y, de.z, '#ffd27a', 3, 7, 0.3); secousse(0.05, 0.12);
   { const p0 = de.clone().addScaledVector(dir, 0.6); anneauSouffle(p0, dir, 0.3, 2.4, 0.4, '#fff6dc', 0.95); anneauSouffle(p0, dir, 0.2, 1.5, 0.32, '#ff9a2e', 0.85); }
   const F = faisceau(de, fin, [['#fffaf0', '#ff6a14', 0.6, false], ['#ffffff', '#ffd27a', 0.28, true]]), L = PORTEE_PERCANTE, aSol = Math.atan2(dir.x, dir.z), PAS_SOL = 0.7;
   effets.push((dt) => {
@@ -223,9 +234,10 @@ function flechePercante(pt) {
       const q = new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z); if (!touches.size) { arretImage(0.07); secousse(0.1, 0.18); }
       touches.add(o); etoileImpact(q, 1.4, '#ffb347'); anneauSouffle(q, dir, 0.3, 1.6, 0.26, '#fff1c8', 0.95); flashLumiere(q.x, q.y, q.z, '#ffb347', 3, 6, 0.25);
       emettre(FX_VIF, 14, { x: q.x, y: q.y, z: q.z, r: 0.1, v: [dir.x * 7, 1, dir.z * 7], dv: 6, vie: [0.18, 0.34], taille: [0.09, 0.02], c: ['#ffffff', '#ffd36a', '#ff6a1e'], grav: 8, frein: 2.5, etire: 0.05 });
-      blesser(o, Math.round(st.deg * 3), true); } });
+      blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'mort' && !o.d.boss && !o.d.demi) desintegrer(o); } });
     if (t >= 1) { jeter(fl); let f = 0; effets.push((d2) => { f += d2 / 0.28; temps += d2; F.maj(1 + f * 0.25, Math.max(0, 1 - f), temps); if (f >= 1) { jeter(F.g); return true; } }); return true; }
   });
+  };
 }
 function invoquer(pt) {
   const pp = paysanMesh.position, st = statsPerso(), u = paysanMesh.userData; if (combat.invoc) { jeter(combat.invoc.m); if (combat.invoc.barre) combat.invoc.barre.remove(); }

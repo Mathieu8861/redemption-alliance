@@ -217,6 +217,13 @@ function braiseSol(x, z, a, long, duree) { /* un bout du trait de braise au sol 
   const y = solA(x, z) + 0.05, g = new T.Group(); [['#ff8a2e', 0.32, 0.85], ['#fff1c0', 0.1, 1]].forEach(([c, l, o]) => { const m = new T.Mesh(GEO_TRAIT_SOL, fxMat(c, o)); m.scale.set(l, 1, long * 1.05); m.userData.o = o; m.renderOrder = 3; g.add(m); });
   g.position.set(x, y, z); g.rotation.y = a; fxVie(g, duree, (k) => { g.children.forEach((m, i) => { m.material.opacity = m.userData.o * (i ? Math.max(0, 1 - k * 3) : (1 - k) * (1 - k)); }); g.children[0].material.color.lerpColors(new T.Color('#ff8a2e'), new T.Color('#8a1e0a'), k); });
   if (fxAlea() < 0.6) emettre(FX_VIF, 1, { x, y: y + 0.05, z, r: 0.15, v: [0, 0.9, 0], dv: 0.5, vie: [0.5, 0.9], taille: [0.07, 0.02], c: ['#ffd36a', '#ff6a1e'], grav: -0.6, frein: 1 }); }
+function desintegrer(o) { /* un monstre tue par le Tir percant part en braises et en cendres (04/11/2026, « ca desintegre tout », Mathieu) */
+  const m = o.m; if (!m) return; m.updateMatrixWorld(true); const B = new T.Box3().setFromObject(m), c = B.getCenter(new T.Vector3()), s = B.getSize(new T.Vector3()), r = Math.max(0.4, Math.max(s.x, s.z) * 0.45);
+  emettre(FX_VIF, 34, { x: c.x, y: c.y, z: c.z, r, v: [0, 1.2, 0], dv: 2.2, vie: [0.4, 0.9], taille: [0.1, 0.02], c: ['#ffffff', '#ffd36a', '#ff6a1e', '#8a1e0a'], a: 1, grav: -1.5, frein: 1.6, etire: 0.03 });
+  emettre(FX_FUM, 10, { x: c.x, y: c.y, z: c.z, r: r * 0.8, v: [0, 1, 0], dv: 0.8, vie: [0.6, 1.1], taille: [0.4, 1.3], c: ['#3a2a24', '#6a5a52'], a: 0.45, frein: 1.2, entree: 0.1 });
+  emettre(FX_LUM, 1, { x: c.x, y: c.y, z: c.z, vie: [0.14, 0.16], taille: [Math.max(s.x, s.y) * 1.4, Math.max(s.x, s.y) * 2], c: ['#ffffff', '#ffb347'], a: 0.9, entree: 0.01 });
+  m.visible = false; if (o.ombreM) o.ombreM.visible = false;
+}
 let VOILE_FX = null;
 function voileEcran(force, duree) { /* l'ecran s'assombrit un instant (les bords surtout) : la lumiere du sort ressort comme sur un fond sombre */
   if (!VOILE_FX) { VOILE_FX = document.createElement('div'); VOILE_FX.id = 'voile-fx'; const cv = rendu.domElement; cv.parentNode.insertBefore(VOILE_FX, cv.nextSibling); } /* (juste au-dessus de la 3D, sous l'interface) */

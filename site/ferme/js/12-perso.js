@@ -138,7 +138,7 @@ function prendreEpee(g, bras) {
   u.epeeMain = L.map((m) => { const r = { m, parent: m.parent, p: m.position.clone(), q: m.quaternion.clone(), s: m.scale.clone() };
     new T.Matrix4().multiplyMatrices(inv, new T.Matrix4().multiplyMatrices(M, m.matrixWorld)).decompose(m.position, m.quaternion, m.scale); bras.add(m); return r; });
 }
-function tenirEpee() { if (!paysanMesh) return; if (classeDe() === 'iop') epeeEnMain(paysanMesh, !!combat); else if (classeDe() === 'osa') fouetEnMain(paysanMesh, !!combat); } /* (a chaque image : en combat dans la main, sinon dans le dos ou a la ceinture) */
+function tenirEpee() { if (!paysanMesh) return; if (classeDe() === 'iop') epeeEnMain(paysanMesh, !!combat); else if (classeDe() === 'osa') fouetEnMain(paysanMesh, !!combat); else if (classeDe() === 'cra') { arcEnMain(paysanMesh, !!combat); majArcMain(paysanMesh); } } /* (a chaque image : en combat dans la main, sinon dans le dos ou a la ceinture) */
 /* LE FOUET EN MAIN PENDANT LES COMBATS (23/10/2026, « l'arme dans la main », Mathieu) : comme l'epee du Iop, le fouet enroule de l'Osamodas (et le manche
    legendaire pose dessus) passe d'un bloc dans sa main droite, le manche dans le poing, le pommeau en haut, les boucles qui pendent devant ; la laniere
    du coup part alors du bout du manche (mainDe, 22b-effets.js). A la fin du combat, il revient a la ceinture. */
@@ -167,6 +167,72 @@ function prendreFouet(g, bras) {
     new T.Matrix4().multiplyMatrices(inv, new T.Matrix4().multiplyMatrices(M, m.matrixWorld)).decompose(m.position, m.quaternion, m.scale); bras.add(m); return r; });
   u.boutFouet = bag; /* (la laniere du coup part d'ici) */
 }
+/* L'ARC EN MAIN PENDANT LES COMBATS (04/11/2026, « il tire avec quoi la son tir ? Avec sa bouche ? ... Moi j'ai envie de le voir prendre son arc, tendre son
+   arc, la fleche part », Mathieu) : l'arc du Cra (et l'arc legendaire pose dessus) quitte le dos pour sa main gauche. Il ne tourne pas avec le bras : la main
+   le porte, le jeu le tient droit (majArcMain), penche le long du corps au repos, debout devant lui quand il vise ; la corde se tend vers l'arriere, dans le
+   plan de l'arc, avec la fleche encochee (u.arcMain.tension) ; ses fleches partent de l'arc (pointeArc). A la fin du combat, il revient dans le dos. */
+const P_ARC = /^(arc|corde_arc|bout_arc|poignee_arc)$/, ECHELLE_ARC_MAIN = 1.6;
+function pivotBrasG(g) { /* le Cra refait n'a pas d'epaule gauche articulee (son bras gauche est soude au haut du corps) : on lui en pose une, en miroir de la droite */
+  const D = g.getObjectByName('pivot_brasD'), H = D && D.parent; if (!H) return null;
+  const L = H.children.filter((o) => o !== D && /^(bras|brassard|main)$/.test(o.name)); if (!L.length) return null;
+  const P = new T.Group(); P.name = 'pivot_brasG'; P.position.set(-D.position.x, D.position.y, D.position.z); H.add(P); g.updateMatrixWorld(true);
+  const c = new T.Box3(); L.forEach((o) => c.expandByObject(o)); const x = H.worldToLocal(c.getCenter(new T.Vector3())).x; if (Math.sign(x) === Math.sign(D.position.x)) { H.remove(P); return null; } /* (pas du bon cote : on ne touche a rien) */
+  L.forEach((o) => P.attach(o)); return P;
+}
+function arcEnMain(g, oui) {
+  const u = g.userData; if (!!u.arcMain === !!oui) return;
+  const m = u.membres || [];
+  if (oui && !m[2] && m[3]) m[2] = pivotBrasG(g); /* (la nouvelle epaule gauche reste : il balance aussi ce bras en marchant) */
+  if (!oui) { const A = u.arcMain; A.L.forEach(({ m: o, parent, p, q, s }) => { parent.add(o); o.position.copy(p); o.quaternion.copy(q); o.scale.copy(s); }); A.cordes.forEach((c) => { c.visible = c.userData.vis0; }); g.remove(A.g); if (m[3]) m[3].position.copy(A.posD); u.arcMain = null; return; }
+  if (!m[2] || !m[3]) return;
+  const r0 = m.map((b) => b && b.rotation.clone()); m.forEach((b) => b && b.rotation.set(0, 0, 0)); g.updateMatrixWorld(true); /* (le calcul se fait bras au repos) */
+  try { prendreArc(g); } finally { m.forEach((b, i) => b && b.rotation.copy(r0[i])); g.updateMatrixWorld(true); }
+}
+function prendreArc(g) {
+  const u = g.userData, m = u.membres, gInv = new T.Matrix4().copy(g.matrixWorld).invert(), loc = (v) => v.clone().applyMatrix4(gInv);
+  const L = []; g.traverse((o) => { if (o.isMesh && !(o.parent && o.parent.isMesh) && P_ARC.test(nomP(o))) L.push(o); });
+  const bouts = L.filter((o) => nomP(o) === 'bout_arc').map((o) => loc(boiteDe(o).getCenter(new T.Vector3()))).sort((p, q) => q.y - p.y); if (bouts.length < 2) return;
+  let haut = bouts[0], bas = bouts[bouts.length - 1], axe = haut.clone().sub(bas).normalize();
+  const poi = L.find((o) => nomP(o) === 'poignee_arc'); let prise = poi ? loc(boiteDe(poi).getCenter(new T.Vector3())) : haut.clone().lerp(bas, 0.5);
+  const cordes = L.filter((o) => nomP(o) === 'corde_arc'), cc = cordes.length ? loc(unionDe(cordes).getCenter(new T.Vector3())) : haut.clone().lerp(bas, 0.5);
+  const ventre = prise.clone().sub(cc); ventre.sub(axe.clone().multiplyScalar(ventre.dot(axe))); if (ventre.lengthSq() < 1e-8) ventre.set(0, 0, 1); ventre.normalize();
+  const leg0 = g.getObjectByName('arme_legendaire');
+  if (leg0) { /* l'arc legendaire pose par-dessus : son modele a l'arc le long de son y et le ventre vers son +x (le calage dans le dos le met en croix avec le carquois, pas sur l'arc de base) : c'est lui qui donne le repere */
+    leg0.updateMatrixWorld(true); const Mg = new T.Matrix4().multiplyMatrices(gInv, leg0.matrixWorld); axe = new T.Vector3(0, 1, 0).transformDirection(Mg); ventre.copy(new T.Vector3(1, 0, 0).transformDirection(Mg)); ventre.sub(axe.clone().multiplyScalar(ventre.dot(axe))).normalize();
+    prise = loc(new T.Box3().setFromObject(leg0).getCenter(new T.Vector3())); let dmax = 0; const v = new T.Vector3();
+    leg0.traverse((o) => { if (!o.isMesh) return; const P = o.geometry.attributes.position; for (let i = 0; i < P.count; i += 3) { v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld).applyMatrix4(gInv); dmax = Math.max(dmax, Math.abs(v.sub(prise).dot(axe))); } });
+    haut = prise.clone().addScaledVector(axe, dmax * 0.97); bas = prise.clone().addScaledVector(axe, -dmax * 0.97); }
+  const Mb = new T.Matrix4().makeBasis(new T.Vector3().crossVectors(axe, ventre), axe, ventre).setPosition(prise), Mi = Mb.clone().invert(); /* (le repere de l'arc : la poignee au centre, y le long de l'arc, z vers la cible) */
+  const G = new T.Group(); G.name = 'arc_main'; g.add(G);
+  const leg = leg0, objs = leg ? L.concat([leg]) : L;
+  const save = objs.map((o) => ({ m: o, parent: o.parent, p: o.position.clone(), q: o.quaternion.clone(), s: o.scale.clone() }));
+  objs.forEach((o) => { o.updateMatrixWorld(true); new T.Matrix4().multiplyMatrices(Mi, new T.Matrix4().multiplyMatrices(gInv, o.matrixWorld)).decompose(o.position, o.quaternion, o.scale); G.add(o); });
+  cordes.forEach((c) => { c.userData.vis0 = c.visible; });
+  const mainDans = (b) => { const P = []; b.traverse((o) => { if (o.isMesh && /^(paume|doigts|main)$/.test(nomP(o))) P.push(o); }); return P.length ? b.worldToLocal(unionDe(P).getCenter(new T.Vector3())) : new T.Vector3(0, -0.5, 0); };
+  const hB = haut.clone().applyMatrix4(Mi), bB = bas.clone().applyMatrix4(Mi), long = haut.distanceTo(bas);
+  const corde = new T.Line(new T.BufferGeometry().setFromPoints([hB, new T.Vector3(), bB]), new T.LineBasicMaterial({ color: '#f3ead2' })); corde.visible = false; corde.frustumCulled = false; G.add(corde);
+  const geoF = new T.BoxGeometry(1, 1, 1); geoF.translate(0, 0, 0.5); const fleche = new T.Mesh(geoF, new T.MeshBasicMaterial({ color: '#e6cf98' })); fleche.visible = false; G.add(fleche);
+  G.traverse((o) => { o.raycast = () => {}; if (o.isMesh) o.castShadow = false; });
+  G.scale.setScalar(ECHELLE_ARC_MAIN); /* (en main, l'arc grandit : dans le dos, il etait cale a la taille du carquois) */
+  u.arcMain = { g: G, L: save, cordes, corde, fleche, hB, bB, long, mainG: mainDans(m[2]), posD: m[3].position.clone(), vise: 0, tension: 0 };
+}
+/* chaque image en combat : les bras, l'arc a la main gauche, la corde et la fleche encochee. La tension vient du tir en cours (u.attaque : 0,25 s pour bander,
+   puis il lache), ou du Tir percant (u.tirPercant, 22-sorts.js) */
+function majArcMain(g) {
+  const u = g.userData, A = u.arcMain; if (!A) return; const m = u.membres, now = performance.now(), dt = Math.min(0.05, (now - (A.t || now)) / 1000); A.t = now;
+  const a = u.attaque && u.attaque.classe === 'cra' ? u.attaque : null, P = u.tirPercant;
+  const tension = P ? P.tension : a ? (a.t < 0.25 ? Math.max(0, a.t) / 0.25 : Math.max(0, 1 - (a.t - 0.25) / 0.07)) : 0;
+  const viseC = P || a || (combat && combat.cible && combat.cible.etat === 'actif' && !chemin.length) ? 1 : 0;
+  A.vise += (viseC - A.vise) * Math.min(1, dt * 12); A.tension = tension; const e = A.vise * A.vise * (3 - 2 * A.vise), rec = P ? P.recul || 0 : 0;
+  m[2].rotation.x = m[2].rotation.x * (1 - e) - (1.45 + 0.12 * rec) * e; /* le bras de l'arc tendu devant lui (et qui remonte un peu au lacher du Tir percant) */
+  m[3].rotation.x = m[3].rotation.x * (1 - e) + (-1.4 + 0.3 * tension - 0.25 * rec) * e; m[3].position.z = A.posD.z - (0.14 * tension + 0.1 * rec) * e * A.long * ECHELLE_ARC_MAIN; /* la main droite tire la corde vers l'arriere */
+  g.updateMatrixWorld(true); A.g.position.copy(g.worldToLocal(m[2].localToWorld(A.mainG.clone()))); A.g.rotation.set(-0.95 * (1 - e) - 0.1 * rec, 0, 0.12 * e);
+  const tendu = tension > 0.02 && e > 0.4, nk = new T.Vector3(0, 0, -(0.05 + 0.32 * tension) * A.long);
+  A.cordes.forEach((c) => { c.visible = tendu ? false : c.userData.vis0; }); A.corde.visible = tendu; A.fleche.visible = tendu;
+  if (tendu) { const pos = A.corde.geometry.attributes.position; pos.setXYZ(1, nk.x, nk.y, nk.z); pos.needsUpdate = true; A.fleche.position.copy(nk); A.fleche.scale.set(0.025 * A.long, 0.025 * A.long, -nk.z + 0.12 * A.long); }
+}
+/* d'ou partent les fleches : la pointe de la fleche encochee (la poignee de l'arc, un peu devant) ; sans arc en main, du milieu du perso comme avant */
+function pointeArc(g) { const A = g && g.userData.arcMain; if (!A) { const p = g.position.clone(); p.y += 0.95; return p; } A.g.updateMatrixWorld(true); return A.g.localToWorld(new T.Vector3(0, 0, 0.18 * A.long)); }
 function habillerTenue(g) {
   const idC = S_ && S_.equip && S_.equip.coiffe, idK = S_ && S_.equip && S_.equip.cape, coiffe = idC && noeudVisuel(idC), cape = idK && noeudVisuel(idK);
   if (!coiffe && !cape) return;
@@ -255,7 +321,7 @@ function habillerTenue(g) {
 function rhabiller() {
   if (!paysanMesh || !S_ || !S_.perso) return;
   const v = paysanMesh, n = paysan(v.position.x, v.position.y, v.position.z, S_.perso.classe);
-  n.rotation.copy(v.rotation); n.position.copy(v.position); const { membres, genoux, haut } = n.userData; Object.assign(n.userData, v.userData, { membres, genoux, haut, hanche: undefined, paumes: undefined, epeeMain: null, fouetMain: null, boutFouet: null }); /* (ce qui pointe vers les pieces de l'ancien modele est recalcule) */
+  n.rotation.copy(v.rotation); n.position.copy(v.position); const { membres, genoux, haut } = n.userData; Object.assign(n.userData, v.userData, { membres, genoux, haut, hanche: undefined, paumes: undefined, epeeMain: null, fouetMain: null, boutFouet: null, arcMain: null }); /* (ce qui pointe vers les pieces de l'ancien modele est recalcule) */
   scene.remove(v); paysanMesh = n; if (modaleOuverte === 'perso') ouvrirPerso();
 }
 function rafraichirTenue() { /* une coiffe ou une cape portee : on charge leurs modeles si besoin, puis on rhabille */
@@ -682,7 +748,7 @@ function animerAttaque(dt) {
   a.t += dt; const k = Math.min(1, a.t / 0.5), m = u.membres || [], bras = m[3] || m[2];
   if (a.classe === 'iop') { if (a.tour !== false) paysanMesh.rotation.y = a.base + Math.PI * 2 * Math.min(1, a.t / 0.4); if (bras) bras.rotation.x = -2.2 * Math.sin(k * Math.PI); } /* il tournoie (contre le voleur), epee en avant */
   else if (a.classe === 'osa') { if (bras) bras.rotation.x = -2.0 * Math.sin(Math.min(1, k * 1.4) * Math.PI); } /* le bras monte devant lui puis claque (le fouet part de la main, 22b-effets.js) */
-  else { if (m[3]) m[3].rotation.x = 0.9 * Math.sin(k * Math.PI); paysanMesh.rotation.x = -0.08 * Math.sin(k * Math.PI); } /* il bande l'arc */
+  else if (!u.arcMain) { if (m[3]) m[3].rotation.x = 0.9 * Math.sin(k * Math.PI); paysanMesh.rotation.x = -0.08 * Math.sin(k * Math.PI); } /* il bande l'arc (l'arc en main : majArcMain s'en charge) */
   if (!a.frappe && a.t >= (a.classe === 'cra' ? 0.25 : 0.18)) { a.frappe = true; if (a.surFrappe) a.surFrappe(); else frapper(a.classe); }
   if (a.t >= 0.5) { u.attaque = null; paysanMesh.rotation.y = a.base; paysanMesh.rotation.x = 0; if (a.contreVoleur) u.reprise = Math.max(0.05, statsPerso().cadence - 0.5); } /* il continue de frapper le voleur tant qu'il n'a pas fui */
 }
@@ -693,7 +759,7 @@ const COULEUR_FLECHE = { '': '#d9c08a', feu: '#ff7a1e', gel: '#bfe6ff', fatal: '
 function effetFrappe(classe, pv, auImpact, feu) {
   const pp = paysanMesh.position.clone(), style = feu === true ? 'feu' : (feu || ''), gros = style !== '';
   if (classe === 'cra') {
-    const de = pp.clone(); de.y += 0.95; const fl = boite(gros ? 0.05 : 0.035, gros ? 0.05 : 0.035, style === 'fatal' ? 0.8 : 0.55, COULEUR_FLECHE[style]); scene.add(fl); fl.position.copy(de); fl.lookAt(pv);
+    const de = pointeArc(paysanMesh); const fl = boite(gros ? 0.05 : 0.035, gros ? 0.05 : 0.035, style === 'fatal' ? 0.8 : 0.55, COULEUR_FLECHE[style]); scene.add(fl); fl.position.copy(de); fl.lookAt(pv);
     if (gros) { const b = new T.Mesh(new T.IcosahedronGeometry(0.13, style === 'gel' ? 0 : 1), new T.MeshBasicMaterial({ color: { feu: '#ffcf3e', gel: '#eaf8ff', fatal: '#ff8a6a' }[style] })); b.position.z = 0.32; fl.add(b); } /* la pointe en flammes, en glace ou rougeoyante */
     const pointe = cone(0.04, 0.1, '#9aa1aa', 6); pointe.rotation.x = Math.PI / 2; pointe.position.z = 0.3; fl.add(pointe);
     decocher(de, pv); /* (22b-effets.js : l'eclat a l'arc, la trainee, l'eclat a l'impact, chacun a son ton) */
