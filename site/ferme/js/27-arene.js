@@ -313,7 +313,7 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
     const runesTxt = (n, parf) => [n ? n + ' rune' + (n > 1 ? 's' : '') + ' de forgemagie' : '', parf ? parf + ' rune' + (parf > 1 ? 's' : '') + ' parfaite' + (parf > 1 ? 's' : '') : ''].filter(Boolean).join(', ');
     const base = [fmt(R.kamas) + ' kamas', runesTxt(R.forge, 0), fmt(xp) + ' XP'];
     let totK = R.kamas, totF = R.forge, totP = 0; const objets = [];
-    if (tombe) { const id = tirerPiece(panoDe(palierCourant()), 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
+    if (tombe) { const id = tirerPiece(panoAuHasard(palierCourant()), 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
       const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg); donnerObjet(idl); objets.push('✦ ' + OBJETS[idl].nom); } }
     const L2 = [ligneRecap('kama', tombe ? 'Le boss est tombé' : 'Ta participation', base.concat(objets).join(', '))];
     if (rang >= 0 && rang < 3) { const Pd = RECOMPENSES_ILE.podium[rang]; S_.kamas += Pd.kamas; if (Pd.parfaite) runes().parfaite = (runes().parfaite || 0) + Pd.parfaite; if (Pd.forge) runes().forge += Pd.forge;
@@ -492,7 +492,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
        (1 a la 5e vague, 2 a la 10e, 3 a la 20e) ; des la 10e, 2 % de rune parfaite. La piece tombe avec un jet jamais sous la moyenne (JET_ARENE) */
     const pros = 1 + caracs().prospection / 100, nf = 1 + Math.floor(k / 10), bonus = 2 * g.kamas, dans = ['+' + fmt(bonus) + ' kamas'];
     S_.kamas += bonus; c.arene.kamas += bonus;
-    if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(panoDe(palierCourant()), pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
+    if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(panoAuHasard(palierCourant()), pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
       const cle = donnerObjet(id, JET_ARENE); c.arene.objets.push(cle); dans.push((OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)'); }
     if (Math.random() < RUNE_COFFRE * pros) { gagneRune('forge', nf); dans.push('★ ' + nf + ' rune' + (nf > 1 ? 's' : '') + ' de forgemagie'); }
     if (k >= 10 && Math.random() < RUNE_PARFAITE_COFFRE * pros) { gagneRune('parfaite', 1); dans.push('★ une RUNE PARFAITE'); } /* (des le boss de la 10e depuis le 15/10/2026 : « la rune parfaite descend a la 10 », Mathieu ; la 15e avant) */

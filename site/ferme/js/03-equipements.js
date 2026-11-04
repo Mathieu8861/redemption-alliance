@@ -53,12 +53,18 @@ const PICTOS = {
 };
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
 const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')] };
-const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 }];
+const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 },
+  { id: 'kanniboul', nom: 'Kanniboul', de: 'du Kanniboul', niv: 81 }, /* (l'ile de Moon, 04/11/2026 : « j'aime bien la A, qu'on drop sur les Kannibouls, et la C sur les Tortues », Mathieu ; blender/equipements-kanniboul.py) */
+  /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
+     une panoplie de palier se met avant elles (son indice doit rester celui de son palier) */
+  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }];
+const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
+const PANOS_PALIER = PANOS.filter((P) => P.bis == null); /* (une par palier, dans l'ordre des paliers) */
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
 const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55] }; /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
 const OBJETS = {};
-PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, VALEURS[c][k]])) }; }));
+PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, VALEURS[c][rangPano(k)]])) }; }));
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
    (plus avec la Prospection), deux fois les stats de la coiffe de sa panoplie, de la Puissance en plus, et un pouvoir. Elles ne comptent dans aucune panoplie. */
 const CHANCE_LEG = 0.02;
@@ -94,7 +100,7 @@ LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entr
   OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], fichier: L.fichier || 'equipements-wabbit', cale: L.cales[t], nom: L.noms[t], niv: Math.min(80, (PANOS[k] ? PANOS[k].niv : 81) + 9) /* (Moon, rang 8 sans panoplie : le niveau maximum, 80) */, pouvoir: L.pouvoir,
     stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5), agilite: Math.round(VALEURS.agilite[k] * 1.5), vita: VALEURS.vita[k] } }; }); });
 const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || classeDe()][0] : 'leg-' + L.cle); /* la piece legendaire d'un boss, pour ta classe */
-PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { const id = 'arme-' + t + '-' + P.id; OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats: { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] } }; }));
+PANOS.forEach((P, k) => P.bis == null && Object.entries(ARMES).forEach(([cl, [t, nom]]) => { /* (une panoplie en plus n'a pas d'arme : celles du palier tombent sur son boss) */ const id = 'arme-' + t + '-' + P.id; OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats: { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] } }; }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
@@ -106,10 +112,10 @@ const legPorte = (cle) => !!(S_ && S_.equip && [S_.equip.coiffe, S_.equip.arme].
 const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* les bonus de panoplie, renforces et par paliers : 2, 4 puis 6 pieces (avant : 3 et 6), chaque palier s'ajoute au precedent */
 const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];
-const bonusPano = (k, n) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(f(k)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
+const bonusPano = (k, n) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(f(rangPano(k))).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
 const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && !o.arme) c[o.pano] = (c[o.pano] || 0) + 1; }); return c; };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
-const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(f(k)) + '</span>').join('') + '</div></div>';
+const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(f(rangPano(k))) + '</span>').join('') + '</div></div>';
 function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
@@ -193,7 +199,10 @@ const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
 const palierCourant = () => palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)));
-const panoDe = (p) => PANOS[Math.max(0, Math.min(p, PANOS.length - 1))], panoExiste = (p) => p < PANOS.length; /* (panoExiste : le palier a deja sa panoplie ; l'ile de Moon pas encore, 04/11/2026) */ /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
+const panoDe = (p) => PANOS_PALIER[Math.max(0, Math.min(p, PANOS_PALIER.length - 1))], panoExiste = (p) => p < PANOS_PALIER.length;
+/* la panoplie que lache un monstre : la sienne s'il en a une (les Tortues : celle de la Tortue), sinon celle du palier ; un coffre : l'une des panoplies du palier */
+const panoMonstre = (t, p) => { const id = MONSTRES[t] && MONSTRES[t].pano; return (id && PANOS.find((P) => P.id === id)) || panoDe(p); };
+const panosDuPalier = (p) => [panoDe(p)].concat(panoExiste(p) ? PANOS.filter((P) => P.bis === p) : []), panoAuHasard = (p) => hasard(panosDuPalier(p)); /* (panoExiste : le palier a deja sa panoplie ; l'ile de Moon pas encore, 04/11/2026) */ /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {

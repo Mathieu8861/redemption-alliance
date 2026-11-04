@@ -244,7 +244,7 @@ function ficheMonstre(t) {
   }
   if (!L.length) L.push(capa('degats', 'Au contact', 'Il vient te frapper, sans rien de plus.'));
   /* le butin */
-  const r = d.res || RES_MONSTRE[t], Pn = P != null ? PANOS[Math.min(P, PANOS.length - 1)] : null, leg = d.boss && LEGENDAIRES.find((x) => x.boss === t);
+  const r = d.res || RES_MONSTRE[t], Pn = P != null ? panoMonstre(t, P) : null, leg = d.boss && LEGENDAIRES.find((x) => x.boss === t);
   const drop = (ic, t2) => '<div class="bx-drop">' + ic + '<span>' + t2 + '</span></div>';
   const drops = [r && PAR_ID[r] ? drop('<img src="assets/icones/' + r + '.png?v=' + VERSION_MODELES + '" alt="">', PAR_ID[r].nom + ' · ' + (d.boss ? '5, à coup sûr' : pc(0.35 * pros))) : '',
     Pn && !d.vole ? drop('<img src="assets/icones/' + iconeObjet(Pn.id + '-cape') + '.png?v=' + VERSION_MODELES + '" alt="">', 'Une pièce ' + Pn.de + ' · ' + (d.boss ? 'à coup sûr la 1re fois, puis 40 %' : pc((t === 'tofu' ? 0.02 : 0.07) * pros))) : '',
@@ -278,18 +278,19 @@ function ouvrirPanoplies(onglet) {
   const c = caracs(), pros = 1 + c.prospection / 100, ar = ARMES[classeDe()];
   const pc = (x) => { const v = Math.min(1, x) * 100; return (v < 10 ? (Math.round(v * 10) / 10) : Math.round(v)).toString().replace('.', ',') + ' %'; };
   const atteint = (P) => S_.vague.num > P * VAGUES_PALIER;
-  const leN = (M) => { const n = leNom(M); return n.charAt(0).toLowerCase() + n.slice(1); }; /* « sur le Bouftou Royal » */
+  const leN = (M) => leNom(M, true); /* « sur le Bouftou Royal », « sur Moon » (le nom propre garde sa majuscule, 05/11/2026 : « sur moon ») */
   const tete = '<div class="hdv-tete">' + [['monstres', 'Monstres'], ['panoplies', 'Panoplies']].map(([k, t]) => '<button class="btn" data-bestiaire="' + k + '" aria-pressed="' + (onglet === k) + '">' + t + '</button>').join('') + '</div>' +
     '<p class="best-note">Les chances tiennent compte de ta Prospection (+' + c.prospection + ' %). Chaque pièce tombe avec ses propres stats, tirées dans la fourchette indiquée. Une sur 100 sort <b>rare ★</b> : stats +50 %.</p>';
   const corps = PALIERS.map((Pa, P) => {
     const base = P * VAGUES_PALIER, titre = '<div class="hdv-section">' + nomPalier(P) + ' : ' + Pa.nom + ' (vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ')</div>';
     if (!atteint(P)) return titre + '<p class="best-verrou">' + picto('cadenas') + 'À découvrir en atteignant la vague ' + (base + 1) + '.</p>';
-    const Pn = PANOS[Math.min(P, PANOS.length - 1)], B = MONSTRES[Pa.boss], leg = LEGENDAIRES.find((x) => x.boss === Pa.boss);
-    const pieces = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e).concat(ar ? ['arme-' + ar[0] + '-' + Pn.id] : []);
+    const Pn = panoDe(P), B = MONSTRES[Pa.boss], leg = LEGENDAIRES.find((x) => x.boss === Pa.boss), bis = panosDuPalier(P).slice(1); /* (bis : la Tortue sur l'ile de Moon) */
+    const dequi = (x) => Object.values(MONSTRES).filter((M) => M.pano === x.id).map((M) => leN(M)).join(', ');
+    const pieces = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e).concat(ar ? ['arme-' + ar[0] + '-' + Pn.id] : [], ...bis.map((x) => EMPLACEMENTS.map(([e]) => x.id + '-' + e)));
     return titre + pieces.map((id) => { const o = OBJETS[id], eu = possede(id) || possede(id + '-rare'); /* (les stats : la fourchette des jets) */
       return '<div class="art' + (eu ? '' : ' pas-eu') + '">' + icoObjet(id) + '<div><b>' + o.nom + (eu ? ' <span class="puce bonne">✓ obtenue</span>' : '') + '</b><div class="puces">' + statsFourchette(o) + '<span class="puce">niveau ' + o.niv + '</span></div>' +
-        '<div class="desc">' + (o.arme ? 'Sur ' + leN(B) + ' seulement, pour ta classe.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
-      blocPano(P, comptePanos()[P] || 0) + (leg ? '<div class="art">' + icoObjet(idLeg(leg)) + '<div><b>✦ ' + OBJETS[idLeg(leg)].nom + '</b><div class="puces">' + statsFourchette(OBJETS[idLeg(leg)]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + (leg.arme ? ', l\'arme de ta classe' : '') + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
+        '<div class="desc">' + (o.arme ? 'Sur ' + leN(B) + ' seulement, pour ta classe.' : PANOS[o.pano].bis != null ? 'Sur ' + dequi(PANOS[o.pano]) + ', des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + '.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
+      blocPano(P, comptePanos()[P] || 0) + bis.map((x) => { const k = PANOS.indexOf(x); return blocPano(k, comptePanos()[k] || 0); }).join('') + (leg ? '<div class="art">' + icoObjet(idLeg(leg)) + '<div><b>✦ ' + OBJETS[idLeg(leg)].nom + '</b><div class="puces">' + statsFourchette(OBJETS[idLeg(leg)]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + (leg.arme ? ', l\'arme de ta classe' : '') + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
   }).join('');
   ouvrirModale('bestiaire', entete('Bestiaire et butin') + tete + corps); /* (l'onglet Panoplies) */
 }
@@ -457,7 +458,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
     runes().forge = (runes().forge || 0) + 1; combat.arene.runes.forge = (combat.arene.runes.forge || 0) + 1; son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#b48cff');
     chiffre('★ Rune de forgemagie !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast('★ Une rune de forgemagie ! Elle t\'attend à l\'atelier de forgemagie.', 'or'); }
   if (mo.pv <= 0 && combat.arene && combat.genre !== 'ile' && !mo.d.boss && !mo.d.sansButin && combat.arene.k >= 5) { const pros = 1 + caracs().prospection / 100; /* l'Arene : une piece de SA panoplie, des la 5e vague (0,25 % par monstre, jet de 50 % au moins ; 20/10/2026, « c'est pour la revente », Mathieu) */
-    if (panoExiste(statsArene(mo.type).p) && Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoDe(statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
+    if (panoExiste(statsArene(mo.type).p) && Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoMonstre(mo.type, statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
       chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
   if (mo.pv <= 0) { if (combat.st && !mo.d.sansButin) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
 }
@@ -470,7 +471,7 @@ function butin(mo) {
   if (r && Math.random() < (mo.d.boss ? 1 : 0.35) * pros / horde) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros / horde, aPano = panoExiste(palierDe(combat.n)); /* (un palier sans sa panoplie, l'ile de Moon : ni piece ni arme, plutot que celles du Dragon Cochon, 04/11/2026) */
   if (aPano && Math.random() < chance) {
-    const id = tirerPiece(panoDe(palierDe(combat.n)), pros);
+    const id = tirerPiece(panoMonstre(mo.type, palierDe(combat.n)), pros); /* (les Tortues : la panoplie de la Tortue) */
     L.objets.push(donnerObjet(id)); if (OBJETS[id].rare) { son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630'); }
     chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }

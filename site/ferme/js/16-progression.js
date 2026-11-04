@@ -122,7 +122,7 @@ function reclamerDefi(k) {
 function ouvrirCoffre() {
   const J = jourCourant(); if (!J || J.coffre || !J.defis.every((d) => d.reclame)) return;
   J.coffre = true; const kamas = kamasCoffreJour(); S_.kamas += kamas; let objet = '';
-  if (Math.random() < 0.5) { objet = donnerObjet(tirerPiece(panoDe(palierCourant()))); } /* (l'identifiant : l'animation montre la piece) */
+  if (Math.random() < 0.5) { objet = donnerObjet(tirerPiece(panoAuHasard(palierCourant()))); } /* (l'identifiant : l'animation montre la piece) */
   rendreHaut(); rendreObjectif(); sauver(); animerCoffre(kamas, objet);
 }
 /* le coffre arrive ferme, tremble, s'ouvre dans un eclair (images coffre-ferme / coffre-ouvert, generer-coffre.html), puis les gains sortent un par un */
