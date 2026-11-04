@@ -150,12 +150,16 @@ const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? {
 /* les premieres vagues d'un palier ont au moins 60 % de l'effectif de la fin du palier precedent (des monstres de base en plus) */
 const effectif = (L) => L.reduce((t, [, k]) => t + k, 0);
 const compoVague0 = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER + 1; if (n <= VAGUES_PALIER || n > VAGUES_TOTAL || h >= VAGUES_PALIER - 1) return L;
-  const manque = Math.ceil(effectif(compoBase(n - h - 1)) * 0.6) - effectif(L); return manque > 0 ? L.map(([t, k], i) => [t, i ? k : k + manque]) : L; };
+  const manque = Math.ceil(effectif(compoBase(n - h - 1)) * (n > 8 * VAGUES_PALIER ? 0.8 : 0.6)) - effectif(L); /* (l'ile de Moon : 80 % de l'effectif de la fin du palier precedent, 04/11/2026 ; la vague 81 n'avait que 8 monstres contre 12 a la 79 ; a 100 %, les javelots des Kannibouls tuaient le bot en 31 s) */ return manque > 0 ? L.map(([t, k], i) => [t, i ? k : k + manque]) : L; };
 /* « je rajouterais bien 1 mob par vague, sauf sur le premier palier : on laisse le debutant se faire au jeu » (Mathieu, 13/10/2026) : des la vague 11, un monstre
    de base de plus (le plus nombreux de la vague, jamais un boss). Il ne compte pas dans le lissage des renforts (forceBrute) : sinon ses PV seraient repris aux autres */
 const MOBS_EN_PLUS = 1;
 const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_TOTAL) return L;
-  let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS; return L; };
+  let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS;
+  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return L; };
+/* « il faudrait + de monstres, en vrai, et qui apparaissent au fur et a mesure », « voire tripler » (Mathieu, 04/11/2026) : sur l'ile de Moon d'abord, hors vague de boss,
+   2,5 fois plus de monstres ordinaires, un peu moins forts chacun (FORCE_HORDE ; le lissage des renforts ne les compte pas). Ils arrivent par groupes (finVague, majCombat) */
+const HORDE = 2.5, multVague = (n) => (n > 8 * VAGUES_PALIER && n <= VAGUES_TOTAL && n % VAGUES_PALIER ? HORDE : 1); /* (d'abord l'ile de Moon, vagues 81 a 89 : les paliers d'avant suivront une fois la horde jugee en jeu) */
 /* « durcis encore » (Mathieu, 12/10/2026) : les monstres des vagues normales prennent des PV et des degats en plus, davantage dans les paliers du haut
    (simulations : on finissait les vagues avec 65 a 95 % de PV, maintenant 30 a 70 %). Les vagues de boss et les voleurs des raids ne changent pas. */
 const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.75, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
@@ -192,7 +196,9 @@ const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOS
    meme monstre de la vague d'avant (ESCORTE). A son arrivee, la regle du combat s'ajoute : la revanche (facteurRejoue), l'Arene (regleArene),
    l'ile des boss (regleIleBoss). Sur le perso, ses coups prennent encore multDegats (DEGATS_MONSTRES), au moment du coup. */
 const forceMonstre = (t, n, c) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(forceMonstre(t, n - 1, c) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t][c](n) * durete(t, n)[c] * durci(t, n, c) * (MONSTRES[t].boss ? 1 : renfort(n)) * forceBoss(t, n, c === 'deg' ? 1 : 0))); /* (un boss garde sa force : le lissage des debuts de palier ne touche que les monstres ; avant le mini-boss de la vague 75, ca ne changeait rien) */
-const pvMonstre = (t, n) => forceMonstre(t, n, 'pv'), degMonstre = (t, n) => forceMonstre(t, n, 'deg') * (MONSTRES[t].boss && !MONSTRES[t].demi ? DEG_BOSS_X : 1); /* (DEG_BOSS_X : les boss, 31/10/2026) */
+const FORCE_HORDE = 0.55, forceHorde = (t, n) => (!MONSTRES[t].boss && multVague(n) > 1 ? FORCE_HORDE : 1); /* (la horde de la Phase 2, 04/11/2026 : chaque monstre a 55 % de ses PV et de ses degats ; sans pot en combat, 2,5 fois plus de monstres de meme force tuaient le bot a la vague 81) */
+const parHorde = (v, t, n, brut) => { const h = brut ? 1 : forceHorde(t, n); return h === 1 ? v : Math.max(1, Math.round(v * h)); }; /* (brut : la force sans la horde, pour l'Arene) */
+const pvMonstre = (t, n, brut) => parHorde(forceMonstre(t, n, 'pv'), t, n, brut), degMonstre = (t, n, brut) => parHorde(forceMonstre(t, n, 'deg') * (MONSTRES[t].boss && !MONSTRES[t].demi ? DEG_BOSS_X : 1), t, n, brut); /* (DEG_BOSS_X : les boss, 31/10/2026) */
 /* la vitesse de base des monstres (30/10/2026 au soir, « je pense vitesse de base des mobs a 2, on va super vite nous », Mathieu ; le perso marche a 5,6) :
    aucun ne marche sous 2, les plus rapides gardent la leur (let : les tests le mettent a 0 pour comparer avec avant) */
 let VITESSE_MIN_MONSTRES = 2; const vitesseMonstre = (d) => (d.totem ? 0 : Math.max(VITESSE_MIN_MONSTRES, d.vitesse)); /* (un totem ne bouge pas) */

@@ -104,7 +104,8 @@ function statsArene(t) {
   let nt = 0; for (let n = haut; n >= 1 && !nt; n--) if (n % VAGUES_PALIER && compoVague(n).some(([x]) => x === t)) nt = n;
   const N = nArene() - 1; if (!nt) nt = N; /* (la reference : la vague normale juste avant le dernier boss battu) */
   const moy = (n, f) => { let s = 0, c = 0; compoVague(n).forEach(([x, q]) => { if (MONSTRES[x] && !MONSTRES[x].boss) { s += f(x, n) * q; c += q; } }); return c ? s / c : 1; };
-  const r = { pv: pvMonstre(t, nt) * moy(N, pvMonstre) / moy(nt, pvMonstre), deg: degMonstre(t, nt) * moy(N, degMonstre) / moy(nt, degMonstre), p: palierDe(nt) };
+  const pvB = (x, n) => pvMonstre(x, n, true), degB = (x, n) => degMonstre(x, n, true); /* (les forces brutes : la horde des vagues ne touche pas l'Arene, 04/11/2026) */
+  const r = { pv: pvB(t, nt) * moy(N, pvB) / moy(nt, pvB), deg: degB(t, nt) * moy(N, degB) / moy(nt, degB), p: palierDe(nt) };
   STATS_ARENE.set(cle, r); return r;
 }
 /* un boss dans l'Arene : la force du dernier boss que tu as battu (nArene), quel que soit le boss tire ; avant, le Bouftou Royal y gardait sa fiche de
