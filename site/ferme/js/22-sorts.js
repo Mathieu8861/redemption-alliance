@@ -275,10 +275,16 @@ function lancerLegAuto(emp) { /* (les bots de test : sur la cible, sans viser) *
   const c = combat; if (!c || c.fin || c.deroute != null) return; const cle = legDe(emp); if (!cle || (c[cdLeg(emp)] || 0) > 0) return;
   const cib = cibleLeg(SORTS_LEG[cle].portee); if (cib) executerLeg(emp, { x: cib.x, z: cib.z }, true);
 }
-function executerLeg(emp, pt, compter) {
+function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
   const S = SORTS_LEG[cle], pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
-  c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; son('sort'); paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
+  if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
+  if (emp === 'arme' && !tire && paysanMesh.userData.arcMain && (cle === 'wa' || cle === 'koulosse')) { /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », Mathieu) :
+      le Cra decoche d'abord, une fleche vers le ciel pour la pluie de cawottes, une fleche sur le point vise pour la fumee ; le sort part a l'arrivee de la fleche */
+    const u = paysanMesh.userData, a = u.angle; chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son('arc');
+    const vers = cle === 'wa' ? new T.Vector3(pp.x + Math.sin(a) * 2.5, pp.y + 9, pp.z + Math.cos(a) * 2.5) : new T.Vector3(x, y + 0.3, z);
+    u.attaque = { t: 0, classe: 'cra', base: a, tour: false, surFrappe: () => effetFrappe('cra', vers, () => { if (combat === c && !c.fin) executerLeg(emp, pt, false, true); }) }; return; }
+  son('sort');
   if (cle === 'craq') { /* le seisme : la terre s'ouvre la ou tu vises */
     seisme(x, y, z, S.zone);
     actifs.forEach((o) => { if (Math.hypot(o.x - x, o.z - z) < S.zone) blesser(o, Math.round(st.deg * 2), true); });
