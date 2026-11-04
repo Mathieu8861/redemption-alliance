@@ -522,9 +522,9 @@ const ACTIONS = {
     toast(o.nom + ' équipé' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + '.', 'or'); ouvrirPerso(o.emp); sauver(); if (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'arme') rafraichirTenue();
   },
   retirer(emp) { const id = S_.equip[emp]; if (!id) return; S_.sac[id] = (S_.sac[id] || 0) + 1; delete S_.equip[emp]; ouvrirPerso(emp); sauver(); if (emp === 'coiffe' || emp === 'cape' || emp === 'arme') rafraichirTenue(); },
-  revendreObjet(id) {
+  revendreObjet(id, ici) { /* (ici : depuis le bilan d'un combat, la fenetre reste ouverte, 04/11/2026) */
     if (!(S_.sac[id] > 0)) return; const o = obj(id), gain = reventeObjet(id); S_.sac[id]--; if (!S_.sac[id]) { delete S_.sac[id]; if (S_.jets) delete S_.jets[id]; } S_.kamas += gain;
-    toast(o.nom + ' revendu' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + ' : +' + fmt(gain) + ' kamas.'); rendreHaut(); if (modaleOuverte === 'perso') ouvrirPerso(o.emp); else ouvrirGrange(); sauver();
+    toast(o.nom + ' revendu' + (o.emp === 'coiffe' || o.emp === 'cape' || o.emp === 'amulette' || o.emp === 'ceinture' || o.emp === 'arme' ? 'e' : o.emp === 'bottes' ? 'es' : '') + ' : +' + fmt(gain) + ' kamas.'); rendreHaut(); if (ici) {} else if (modaleOuverte === 'perso') ouvrirPerso(o.emp); else ouvrirGrange(); sauver();
   },
   reparer(cle) {
     if (combat || !degatsBat(cle) || enRuine(cle)) return; const cout = coutReparer(cle);

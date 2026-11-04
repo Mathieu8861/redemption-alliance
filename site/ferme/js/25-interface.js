@@ -701,6 +701,8 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
   else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
+  else if (b.dataset.vendreButin) { const k = b.dataset.vendreButin; ACTIONS.revendreObjet(k, true); if (!(S_.sac[k] > 0)) { b.closest('.act').querySelectorAll('button').forEach((y) => { y.disabled = true; }); b.textContent = 'Vendu'; } } /* (le butin d'un bilan, vendu sur place, 04/11/2026) */
+  else if (b.dataset.vendreRes) { ACTIONS.vendre(b.dataset.vendreRes, +b.dataset.n); b.disabled = true; b.textContent = 'Vendu'; sauver(); }
   else if (b.dataset.reconstruire) { if (modaleOuverte === 'vague-fin') ACTIONS.reparerDansBilan([b.dataset.reconstruire]); else ACTIONS.reconstruire(b.dataset.reconstruire); }
   else if (b.id === 'b-amenager') { mode = mode ? null : 'choisir'; aDeplacer = null; majBandeau(); rendreHaut(); }
   else if (b.hasAttribute('data-enclos-auto')) ACTIONS.enclosAuto();
