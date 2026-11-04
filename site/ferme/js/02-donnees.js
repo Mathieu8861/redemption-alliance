@@ -28,12 +28,16 @@ const CULTURES = [
   /* (02/11/2026, « il faut peut-etre une nouvelle cereale aussi, a partir du niveau 80 ? », puis « l'ile de Moon, c'est une jungle et des plages » et « Sorgho vas-y »,
      Mathieu) : le Quisnoa, modelise depuis le 12/10 et jamais plante, au niveau 70 ; le Sorgho de Moon au niveau 80. Dans la suite du Frostiz : un peu plus de kamas
      a la minute (11,4 et 12,3 contre 10). L'XP (03/11/2026, « validons ca », Mathieu) : une recolte vaut une part fixe du niveau ou la cereale se debloque, 5 % de
-     moins a chaque tranche de 10 niveaux : le Frostiz 6,3 % du niveau 61 (inchange), le Quisnoa 6,0 % du 71, le Sorgho 5,7 % du 81 (la suite : 5,4 % du 91) */
-  { id: 'quisnoa', nom: 'Quisnoa', niv: 70, graine: 1650, temps: 140, rendement: 8, prix: 450, xp: 211, couleur: '#c8323e', tige: '#8a9a4a', glb: 'cultures2' },
+     moins a chaque tranche de 10 niveaux : le Frostiz 6,3 % du niveau 61 (inchange), le Quisnoa 6,0 % du 71, le Sorgho 5,7 % du 81 (la suite : 5,4 % du 91).
+     (04/11/2026) Ces parts ne comptaient ni la Sagesse ni la baisse de 10 % : avec les 87 de Sagesse d'un perso niveau 80 equipe, une parcelle de Sorgho donnait
+     9,6 % du niveau, un champ de 20 pres de 2 niveaux par recolte. Le Quisnoa, le Sorgho et le Bananagrume sont divises par 1,7 (211, 818 et 760 avant) */
+  { id: 'quisnoa', nom: 'Quisnoa', niv: 70, graine: 1650, temps: 140, rendement: 8, prix: 450, xp: 124, couleur: '#c8323e', tige: '#8a9a4a', glb: 'cultures2' },
   /* (03/11/2026) le Bananagrume : un bananier de la jungle de Moon, planté sur une case de champ ; il pousse une fois (3 h 40), puis reste et redonne un régime
-     toutes les 2 h (arbre : la part de la pousse où il repart apres la recolte). Il se mange avant un combat : les sorts se rechargent 20 % plus vite */
-  { id: 'bananagrume', nom: 'Bananagrume', niv: 80, graine: 2400, temps: 220, rendement: 6, prix: 560, xp: 760, couleur: '#f2bc3a', tige: '#4a8240', glb: 'cultures4', arbre: 0.46, mange: { recharge: 0.2, txt: 'tes sorts se rechargent 20 % plus vite' } },
-  { id: 'sorgho', nom: 'Sorgho de Moon', niv: 80, graine: 2250, temps: 160, rendement: 9, prix: 520, xp: 818, couleur: '#a8402a', tige: '#b89a5a', glb: 'cultures4' }
+     toutes les 2 h (arbre : la part de la pousse où il repart apres la recolte). Il se mange avant un combat : les sorts se rechargent 20 % plus vite.
+     (04/11/2026, « je voulais que ce soit un truc un peu rare », Mathieu : 3 bananiers lui donnaient 21 fruits, de quoi manger avant chaque vague) : 2 bananiers
+     au plus par ferme (max), un régime de 2 que la Faux n'augmente pas */
+  { id: 'bananagrume', nom: 'Bananagrume', niv: 80, graine: 2400, temps: 220, rendement: 2, max: 2, prix: 560, xp: 447, couleur: '#f2bc3a', tige: '#4a8240', glb: 'cultures4', arbre: 0.46, mange: { recharge: 0.2, txt: 'tes sorts se rechargent 20 % plus vite' } },
+  { id: 'sorgho', nom: 'Sorgho de Moon', niv: 80, graine: 2250, temps: 160, rendement: 9, prix: 520, xp: 481, couleur: '#a8402a', tige: '#b89a5a', glb: 'cultures4' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
    Les graines, la laine, les plumes et les ressources des monstres ne bougent pas. */

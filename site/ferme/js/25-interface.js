@@ -290,7 +290,8 @@ function ouvrirHdv0(onglet) {
       corps = '<p class="hdv-aide">Une graine plantée sur une parcelle donne une récolte à revendre. Les plus longues à pousser rapportent plus.</p>' + ouvertes.map((c) => {
         const p = prixGraine(c), st = S_.graines[c.id] || 0, opts = [[1, '×1'], [10, '×10']], n = qteDe('g:' + c.id, opts);
         return '<div class="art">' + ico(c.id) + '<div><b>Graines ' + de(c.nom) + '</b><div class="puces">' + pc('vitesse', dureeLisible(duree(c))) + pc('epi', '×' + c.rendement + ' à la récolte') + '<span class="puce">' + st + ' en grange</span>' + (c.mange ? '<span class="puce bonne">repas : ' + c.mange.txt + '</span>' : '') + '</div>' +
-          (c.mange ? '<div class="desc">Une culture à manger : avant une vague, dans la fenêtre Vagues, ton perso en mange une récolte et gagne ' + c.mange.txt + ' pendant toute la vague. Elle se vend aussi.</div>' : '') + '</div>' +
+          (c.arbre ? '<div class="desc">Un arbre rare : ' + c.max + ' au plus sur ta ferme. Il pousse une fois, puis reste et redonne un régime de ' + c.rendement + ' toutes les ' + dureeLisible(duree(c) * (1 - c.arbre)) + '. Avant une vague, ton perso en mange un : ' + c.mange.txt + ' pendant toute la vague.</div>'
+            : c.mange ? '<div class="desc">Une culture à manger : avant une vague, dans la fenêtre Vagues, ton perso en mange une récolte et gagne ' + c.mange.txt + ' pendant toute la vague. Elle se vend aussi.</div>' : '') + '</div>' +
           '<div class="act"><small>' + p + ' ' + KAMA + ' la graine</small>' + segQte('g:' + c.id, opts) + '<button class="btn kamas" data-graines="' + c.id + '" data-n="' + n + '"' + (S_.kamas >= n * p ? '' : ' disabled') + '>Acheter ×' + n + ' = ' + fmt(n * p) + ' ' + KAMA + '</button>' + manque(n * p) + '</div></div>';
       }).join('') + (fermees.length ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + fermees.map((c) => '<div class="art verrou">' + ico(c.id) + '<div><b>Graines ' + de(c.nom) + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + c.niv + '</span></div></div>').join('') : '');
     } else if (cat === 'animaux') {
@@ -486,7 +487,7 @@ function blocRunes() {
 /* LE BANANIER (03/11/2026) : touché pendant qu'il pousse, il dit quand vient son prochain regime ; on peut l'arracher */
 function ouvrirBananier(p) {
   const c = PAR_ID[p.c], d = duree(c), reste = Math.max(0, d - p.pousse), premier = p.pousse < d * c.arbre;
-  ouvrirModale('bananier', entete('Ton bananier') + '<div class="art">' + ico(c.id) + '<div><b>' + (premier ? 'Il grandit encore' : 'Un nouveau régime mûrit') + '</b><div class="desc">' + (premier ? 'Son premier régime' : 'Le prochain régime') + ' dans ' + dureeLisible(reste) + '. Ensuite, il reste en place et redonne un régime de ' + (c.rendement + niv('faux')) + ' ' + c.nom + 's toutes les ' + dureeLisible(d * (1 - c.arbre)) + '.</div></div></div>' +
+  ouvrirModale('bananier', entete('Ton bananier') + '<div class="art">' + ico(c.id) + '<div><b>' + (premier ? 'Il grandit encore' : 'Un nouveau régime mûrit') + '</b><div class="desc">' + (premier ? 'Son premier régime' : 'Le prochain régime') + ' dans ' + dureeLisible(reste) + '. Ensuite, il reste en place et redonne un régime de ' + c.rendement + ' ' + c.nom + 's toutes les ' + dureeLisible(d * (1 - c.arbre)) + '.</div></div></div>' +
     '<p class="hdv-aide">Un Bananagrume se mange avant un combat : ' + c.mange.txt + '.</p><div class="act-bas"><button class="btn discret" data-arracher="' + p.id + '">Arracher le bananier</button><button class="btn kamas" data-fermer>OK</button></div>');
 }
 function ouvrirPerso(sel) {

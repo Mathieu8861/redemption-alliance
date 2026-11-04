@@ -2,7 +2,7 @@
 /* ===================== ETAT ===================== */
 let S_ = null;
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
-const dureeLisible = (ms) => { const s = Math.max(1, Math.round(ms / 1000)); if (RAPIDE || s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r : ''); };
+const dureeLisible = (ms) => { const s = Math.max(1, Math.round(ms / 1000)); if (RAPIDE || s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + String(r).padStart(2, '0') : ''); }; /* (1 h 02 et non 1 h 2, 04/11/2026) */
 const borne = (v, a, b) => Math.min(b, Math.max(a, v));
 const hasard = (t) => t[Math.floor(Math.random() * t.length)];
 const de = (nom) => (/^(Cawotte|Fraise)/.test(nom) ? 'de la ' : /^Houblon/.test(nom) ? 'du ' : /^[AEIOUYÉH]/i.test(nom) ? 'de l\'' : 'du ') + nom;
@@ -32,7 +32,7 @@ const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais')); /* (temps :
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
 const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
-const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + niv('faux') - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes */
+const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + (PAR_ID[p.c].arbre ? 0 : niv('faux')) - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes ; un arbre, le bananier : son regime ne grossit pas avec la Faux (04/11/2026) */
 const prixGraine = (c) => Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5) * [1, 1, 0.85, 0.85, 0.8][nivBat('nivEtal') - 1])); /* le prix des graines suit un peu le cours */
 function prix(id) {
   const v = PAR_ID[id];

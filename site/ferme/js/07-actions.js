@@ -86,6 +86,7 @@ const ACTIONS = {
       id = dispo[0].id;
     }
     const c = PAR_ID[id]; if (!c || !debloquee(c) || !(S_.graines[c.id] > 0) || p.c) return;
+    if (c.max && S_.cases.filter((x) => x.type === 'champ' && x.c === c.id).length >= c.max) { toast('Pas plus de ' + c.max + ' ' + (c.arbre ? 'bananiers' : c.nom) + ' sur ta ferme : arrache-en un pour en replanter un autre.', 'alerte'); return; } /* (le Bananagrume, rare : 2 au plus, 04/11/2026) */
     S_.graines[c.id]--; S_.graine = c.id; compter('plantes'); son('planter'); const auto = niv('arrosoir') && (S_.citerne || 0) > 0; if (auto) { S_.citerne--; if (!S_.citerne) toast('La citerne est vide : passe au puits pour la remplir.', 'alerte'); }
     Object.assign(p, champVide(), { c: c.id, arrose: !!auto });
     rendreCase(p.id); rendreHaut();
@@ -96,7 +97,7 @@ const ACTIONS = {
   planterChamp(p) {
     const g = S_.graine && PAR_ID[S_.graine] && debloquee(PAR_ID[S_.graine]) && (S_.graines[S_.graine] || 0) > 0 ? S_.graine : null;
     if (!g) { ACTIONS.planter(p); return; }
-    ACTIONS.planter(p, g);
+    ACTIONS.planter(p, g); if (PAR_ID[g].arbre) return; /* (un arbre se plante case par case, pas sur tout le champ) */
     const vide = (c) => c.type === 'champ' && !c.c && !c.tofu, G = [p], vu = new Set([p.id]);
     for (let k = 0; k < G.length; k++) voisins(G[k]).forEach((v) => { if (!vu.has(v.id) && vide(v)) { vu.add(v.id); G.push(v); } });
     const L = G.slice(1).filter((c) => !fileActions.includes(c.id)), ordre = []; let q = posCase(p);
