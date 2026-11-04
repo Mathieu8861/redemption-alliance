@@ -82,7 +82,7 @@ function boucle(t) {
     if (sauvageMesh) vieTofu(sauvageMesh, dtv, VIE_SAUVAGE);
   }
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
-  const dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000);
+  let dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000); if (ARRET.t > 0 && !enPause) { ARRET.t -= dtb; dtb /= 12; } /* (l'image figee d'un gros coup : le temps passe 12 fois moins vite, 22b-effets.js, 04/11/2026) */
   if (!enPause) { try { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s); animerLeurre(s);
     majCombat(dtb, s); marcher(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); animerFontaines(dtb, s); animerLanternes(s); }
     catch (err) { erreurBoucle(err); } } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */

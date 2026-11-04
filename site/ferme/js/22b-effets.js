@@ -189,6 +189,40 @@ function traineeFleche(p, feu) {
   emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.15, 0.2], taille: [0.6, 0.2], c: ['#ffb84a', '#ff6a1e'], a: 0.6 });
   emettre(FX_FUM, 1, { x: p.x, y: p.y, z: p.z, v: [0, 0.9, 0], vie: [0.5, 0.8], taille: [0.2, 0.7], c: ['#5a4a42', '#8a8078'], a: 0.35, entree: 0.2 });
 }
+/* ---------- LE TIR PERCANT DU CRA (04/11/2026, d'apres une video d'effets de jeu, « j'adore le style, c'est ouf », Mathieu) : un faisceau au coeur blanc
+   et aux bords orange qui suit la fleche comme une comete, un anneau de souffle au depart, des anneaux le long du trait, des etincelles, une brume violette,
+   un trait de braise au sol qui s'eteint ; sur chaque monstre transperce, un eclat et un anneau ; l'ecran s'assombrit un instant pour que la lumiere ressorte ---------- */
+const ARRET = { t: 0 }; /* l'image figee d'un gros coup : le temps passe 12 fois moins vite tant que ARRET.t > 0 (30-boucle.js) */
+const arretImage = (d) => { ARRET.t = Math.max(ARRET.t, d); };
+const GEO_FAISCEAU = (() => { const g = new T.PlaneGeometry(1, 1, 1, 24); g.translate(0, 0.5, 0); g.rotateX(Math.PI / 2); partager(g); return g; })(); /* (a plat, de z = 0 a 1 ; uv.y le long) */
+const VS_FAISCEAU = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const FS_FAISCEAU = `uniform vec3 uCoeur, uBord; uniform float uTete, uQueue, uA, uT; varying vec2 vUv;
+void main() { float y = vUv.y; if (y > uTete) discard; float d = (uTete - y) / uQueue; float f = exp(-d * d * 0.7); float x = abs(vUv.x - 0.5) * 2.0;
+  float coeur = smoothstep(0.45, 0.0, x), bord = smoothstep(1.0, 0.2, x), strie = 0.92 + 0.08 * sin(y * 9.0 - uT * 30.0), pointe = smoothstep(0.0, 0.012, uTete - y);
+  gl_FragColor = vec4(mix(uBord, uCoeur, coeur) * (1.0 + coeur * 0.5), (bord * 0.6 + coeur * 0.9) * f * uA * strie * pointe); }`;
+function matFaisceau(coeur, bord, additif) { return new T.ShaderMaterial({ uniforms: { uCoeur: { value: new T.Color(coeur) }, uBord: { value: new T.Color(bord) }, uTete: { value: 0 }, uQueue: { value: 0.4 }, uA: { value: 1 }, uT: { value: 0 } },
+  vertexShader: VS_FAISCEAU, fragmentShader: FS_FAISCEAU, transparent: true, depthWrite: false, side: T.DoubleSide, blending: additif ? T.AdditiveBlending : T.NormalBlending }); }
+function faisceau(de, fin, couches) { /* deux plans croises par couche, a plat et debout : il se voit de partout ; rend { g, maj(tete, a, t) } */
+  const g = new T.Group(), mats = []; couches.forEach(([c, b, larg, add]) => { const m = matFaisceau(c, b, add); mats.push(m); [0, Math.PI / 2].forEach((rz) => { const p = new T.Mesh(GEO_FAISCEAU, m); p.scale.x = larg; p.rotation.z = rz; p.renderOrder = add ? 7 : 6; p.frustumCulled = false; g.add(p); }); });
+  g.position.copy(de); g.lookAt(fin); g.scale.z = Math.max(0.01, de.distanceTo(fin)); g.traverse((o) => { o.raycast = () => {}; }); scene.add(g);
+  return { g, maj: (tete, a, t) => mats.forEach((m) => { m.uniforms.uTete.value = tete; m.uniforms.uA.value = a; m.uniforms.uT.value = t; }) };
+}
+const GEO_ANNEAU_S = (() => { const g = new T.RingGeometry(0.84, 1, 40); partager(g); return g; })();
+function anneauSouffle(p, dir, r0, r1, duree, couleur, o) { /* un anneau de lumiere en travers du trait, qui s'ouvre et s'efface */
+  const m = new T.Mesh(GEO_ANNEAU_S, fxMat(couleur, o || 0.9)); m.renderOrder = 7; /* (opaque et clair : en lumiere additive, il disparaissait sur l'herbe et le ciel) */ m.position.copy(p); m.lookAt(p.clone().add(dir));
+  fxVie(m, duree, (k) => { const e = 1 - Math.pow(1 - k, 3); m.scale.setScalar(r0 + (r1 - r0) * e); m.material.opacity = (o || 0.9) * (1 - k) * (1 - k * 0.5); });
+}
+const GEO_TRAIT_SOL = (() => { const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2); partager(g); return g; })();
+function braiseSol(x, z, a, long, duree) { /* un bout du trait de braise au sol : orange vif, puis il s'eteint en rougeoyant */
+  const y = solA(x, z) + 0.05, g = new T.Group(); [['#ff8a2e', 0.32, 0.85], ['#fff1c0', 0.1, 1]].forEach(([c, l, o]) => { const m = new T.Mesh(GEO_TRAIT_SOL, fxMat(c, o)); m.scale.set(l, 1, long * 1.05); m.userData.o = o; m.renderOrder = 3; g.add(m); });
+  g.position.set(x, y, z); g.rotation.y = a; fxVie(g, duree, (k) => { g.children.forEach((m, i) => { m.material.opacity = m.userData.o * (i ? Math.max(0, 1 - k * 3) : (1 - k) * (1 - k)); }); g.children[0].material.color.lerpColors(new T.Color('#ff8a2e'), new T.Color('#8a1e0a'), k); });
+  if (fxAlea() < 0.6) emettre(FX_VIF, 1, { x, y: y + 0.05, z, r: 0.15, v: [0, 0.9, 0], dv: 0.5, vie: [0.5, 0.9], taille: [0.07, 0.02], c: ['#ffd36a', '#ff6a1e'], grav: -0.6, frein: 1 }); }
+let VOILE_FX = null;
+function voileEcran(force, duree) { /* l'ecran s'assombrit un instant (les bords surtout) : la lumiere du sort ressort comme sur un fond sombre */
+  if (!VOILE_FX) { VOILE_FX = document.createElement('div'); VOILE_FX.id = 'voile-fx'; const cv = rendu.domElement; cv.parentNode.insertBefore(VOILE_FX, cv.nextSibling); } /* (juste au-dessus de la 3D, sous l'interface) */
+  const V = VOILE_FX; V.t = 0; V.d = duree; V.f = force; if (V.actif) return; V.actif = true;
+  effets.push((dt) => { V.t += dt; const k = Math.min(1, V.t / V.d); V.style.opacity = String(V.f * (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85)); if (k >= 1) { V.style.opacity = '0'; V.actif = false; return true; } });
+}
 function flamme(p, haut) { emettre(FX_VIF, 1, { x: p.x, y: p.y, z: p.z, r: 0.08, v: [0, (haut || 0.8) * 2.2, 0], dv: 0.4, vie: [0.35, 0.55], taille: [0.42, 0.06], c: ['#fff3b0', '#ff8a1e', '#a8200a'], a: 0.95, frein: 1.2 }); }
 function boule(x, y, z, r, couleurs, fumee) { /* une boule de feu : un coeur blanc qui jaillit, des flammes qui s'ouvrent, des braises, de la fumee qui monte */
   emettre(FX_LUM, 1, { x, y, z, vie: [0.16, 0.18], taille: [2.2 * r, 3.2 * r], c: ['#ffffff', couleurs[0]], a: 0.9, entree: 0.01 });

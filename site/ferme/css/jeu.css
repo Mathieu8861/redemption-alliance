@@ -115,6 +115,7 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .bulle.vente { pointer-events: auto; cursor: pointer; transition: transform .12s; } .bulle.vente:hover { transform: translate(-50%, -100%) scale(1.08); } /* (la bulle de prix achete le terrain : 19/10/2026) */
 #ciel { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
 #scene { position: relative; z-index: 1; }
+#voile-fx { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 50%, rgba(12, 8, 24, .35) 0%, rgba(12, 8, 24, .55) 55%, rgba(6, 4, 14, .85) 100%); } /* (l'ecran s'assombrit un instant pendant un gros sort, 04/11/2026) */
 .hud { z-index: 2; }
 .vitesse { cursor: pointer; pointer-events: auto; font: inherit; color: inherit; }
 .vitesse.rapide { background: var(--or); color: #1d1e22; }

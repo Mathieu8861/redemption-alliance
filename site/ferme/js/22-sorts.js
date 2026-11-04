@@ -203,16 +203,28 @@ function flechePercante(pt) {
   const dir = new T.Vector3(pt.x - pp.x, 0, pt.z - pp.z); if (dir.lengthSq() < 0.01) dir.set(Math.sin(paysanMesh.rotation.y), 0, Math.cos(paysanMesh.rotation.y)); dir.normalize();
   combat.cdSort = rechargeSort(); chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(dir.x, dir.z); paysanMesh.rotation.y = u.angle; /* (sa recharge : 20 s) */
   u.attaque = { t: 0, classe: 'cra', base: u.angle, tour: false, surFrappe: () => {} };
-  const de = pp.clone(); de.y += 0.95; const fin = de.clone().add(dir.multiplyScalar(PORTEE_PERCANTE));
-  const fl = boite(0.07, 0.07, 0.9, '#ffe08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(fin); const touches = new Set(); let t = 0;
-  /* l'animation (23/10/2026) : un eclat a l'arc, un rayon dore qui s'etire derriere la fleche puis s'efface, un eclat sur chaque monstre transperce */
-  decocher(de, fin); onde(pp.x, pp.y, pp.z, 1.3, '#ffe08a', 0.3, 0.8);
-  const rayon = new T.Group(), geoR = new T.BoxGeometry(1, 1, 1); geoR.translate(0, 0, 0.5); [['#ffd24a', 0.55, 0.16], ['#ffffff', 0.95, 0.06]].forEach(([c, o, l]) => { const m = new T.Mesh(geoR, fxMat(c, o)); m.scale.set(l, l, 1); m.userData.o = o; rayon.add(m); });
-  rayon.position.copy(de); rayon.lookAt(fin); scene.add(rayon);
+  const de = pp.clone(); de.y += 0.95; const fin = de.clone().addScaledVector(dir, PORTEE_PERCANTE);
+  const fl = boite(0.07, 0.07, 0.9, '#ffe08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(fin); const touches = new Set(); let t = 0, temps = 0, brume = 0, anneaux = 0, sol = 0;
+  /* l'animation (refaite le 04/11/2026, d'apres une video d'effets de jeu, 22b-effets.js) : l'ecran s'assombrit, un eclat et un anneau de souffle a l'arc,
+     un faisceau blanc et orange qui suit la fleche comme une comete, des anneaux le long du trait, des etincelles, une brume violette, un trait de braise
+     au sol ; sur chaque monstre transperce, un eclat, un anneau et une gerbe ; au premier, l'image se fige un instant et la camera tremble */
+  decocher(de, fin); voileEcran(0.5, 0.55); flashLumiere(de.x, de.y, de.z, '#ffd27a', 3, 7, 0.3); secousse(0.05, 0.12);
+  { const p0 = de.clone().addScaledVector(dir, 0.6); anneauSouffle(p0, dir, 0.3, 2.4, 0.4, '#fff6dc', 0.95); anneauSouffle(p0, dir, 0.2, 1.5, 0.32, '#ff9a2e', 0.85); }
+  const F = faisceau(de, fin, [['#fffaf0', '#ff6a14', 0.6, false], ['#ffffff', '#ffd27a', 0.28, true]]), L = PORTEE_PERCANTE, aSol = Math.atan2(dir.x, dir.z), PAS_SOL = 0.7;
   effets.push((dt) => {
-    t += dt / 0.45; fl.position.lerpVectors(de, fin, Math.min(1, t)); rayon.scale.z = Math.max(0.01, de.distanceTo(fl.position)); traineeFleche(fl.position, false);
-    if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && !touches.has(o) && Math.hypot(o.x - fl.position.x, o.z - fl.position.z) < LARGEUR_PERCANTE) { touches.add(o); etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.0, '#ffc93a'); blesser(o, Math.round(st.deg * 3), true); } });
-    if (t >= 1) { jeter(fl); let f = 0; effets.push((d2) => { f += d2 / 0.3; rayon.children.forEach((m) => { m.material.opacity = m.userData.o * Math.max(0, 1 - f); m.scale.x = m.scale.y = m.scale.x * (1 - d2 * 2); }); if (f >= 1) { jeter(rayon); return true; } }); return true; }
+    t += dt / 0.45; temps += dt; const k = Math.min(1, t); fl.position.lerpVectors(de, fin, k); F.maj(k, 1, temps); const p = fl.position;
+    emettre(FX_VIF, 3, { x: p.x, y: p.y, z: p.z, r: 0.08, v: [-dir.x * 4, 0.8, -dir.z * 4], dv: 3.2, vie: [0.18, 0.34], taille: [0.12, 0.03], c: ['#ffffff', '#ffd36a', '#ff6a1e'], grav: 6, frein: 2, etire: 0.06 });
+    emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.1, 0.14], taille: [1.5, 0.4], c: ['#ffffff', '#ffb347'], a: 0.95, entree: 0.01 }); /* (la tete de la comete) */
+    for (let i = 0; i < 2; i++) { const r = Math.min(k * L, 3) * fxAlea(), h = p.clone().addScaledVector(dir, -r); emettre(FX_LUM, 1, { x: h.x, y: h.y, z: h.z, vie: [0.16, 0.26], taille: [0.9, 0.2], c: ['#ffe9b0', '#ff8a2e'], a: 0.55, entree: 0.02 }); } /* (le halo du faisceau, a la place d'un vrai flou lumineux, trop lourd) */
+    brume += dt; if (brume > 0.03) { brume = 0; emettre(FX_FUM, 1, { x: p.x, y: p.y - 0.1, z: p.z, r: 0.15, v: [-dir.x * 0.6, 0.25, -dir.z * 0.6], vie: [0.35, 0.6], taille: [0.35, 1.1], c: ['#d2b8ff', '#7a5ab8'], a: 0.22, frein: 2, entree: 0.05 }); }
+    const parcouru = k * L; while (anneaux + 1.6 <= parcouru) { anneaux += 1.6; anneauSouffle(de.clone().addScaledVector(dir, anneaux), dir, 0.2, 1.0, 0.3, '#ffe3a0', 0.8); }
+    while (sol + PAS_SOL <= parcouru) { const x = de.x + dir.x * (sol + PAS_SOL / 2), z = de.z + dir.z * (sol + PAS_SOL / 2); sol += PAS_SOL; if (lieu !== 'ferme' || caseIci(x, z)) braiseSol(x, z, aSol, PAS_SOL, 1.1 + sol / L * 0.3); }
+    if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && !touches.has(o) && Math.hypot(o.x - fl.position.x, o.z - fl.position.z) < LARGEUR_PERCANTE) {
+      const q = new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z); if (!touches.size) { arretImage(0.07); secousse(0.1, 0.18); }
+      touches.add(o); etoileImpact(q, 1.4, '#ffb347'); anneauSouffle(q, dir, 0.3, 1.6, 0.26, '#fff1c8', 0.95); flashLumiere(q.x, q.y, q.z, '#ffb347', 3, 6, 0.25);
+      emettre(FX_VIF, 14, { x: q.x, y: q.y, z: q.z, r: 0.1, v: [dir.x * 7, 1, dir.z * 7], dv: 6, vie: [0.18, 0.34], taille: [0.09, 0.02], c: ['#ffffff', '#ffd36a', '#ff6a1e'], grav: 8, frein: 2.5, etire: 0.05 });
+      blesser(o, Math.round(st.deg * 3), true); } });
+    if (t >= 1) { jeter(fl); let f = 0; effets.push((d2) => { f += d2 / 0.28; temps += d2; F.maj(1 + f * 0.25, Math.max(0, 1 - f), temps); if (f >= 1) { jeter(F.g); return true; } }); return true; }
   });
 }
 function invoquer(pt) {
