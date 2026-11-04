@@ -331,6 +331,12 @@ const ACTIONS = {
     S_.kamas -= cout; S_.parcellesAchetees++; compter('parcelles'); Object.assign(p, { type: 'champ', prixPaye: cout }, champVide());
     toast('Nouvelle parcelle labourée.', 'or'); fermerModale(); rendreCase(p.id); rendreHaut();
   },
+  planterArbre(id) { /* un bananier dans l'herbe : une parcelle labouree pour lui (son prix, dans le quota) et sa graine plantee d'un coup (04/11/2026) */
+    const p = S_.cases.find((c) => c.id === id), c = CULTURES.find((x) => x.arbre); if (!p || p.type !== 'libre' || !c || !debloquee(c)) return;
+    if (!(S_.graines[c.id] > 0)) { toast('Il te faut une graine ' + de(c.nom) + ' : achète-la à l\'HDV.', 'alerte'); return; }
+    if (S_.cases.filter((x) => x.type === 'champ' && x.c === c.id).length >= c.max) { toast('Pas plus de ' + c.max + ' bananiers sur ta ferme : arrache-en un pour en replanter un autre.', 'alerte'); return; }
+    const n0 = parcelles(); ACTIONS.construireParcelle(id); if (parcelles() === n0) return; ACTIONS.planter(p, c.id); toast('Bananier planté : son premier régime dans ' + dureeLisible(duree(c)) + '.', 'or');
+  },
   deplacerVers(dest) {
     const src = aDeplacer; if (!src) return;
     if (dest === src) { toast('Choisis une autre case.'); return; }
