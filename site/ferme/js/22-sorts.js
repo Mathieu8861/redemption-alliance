@@ -248,6 +248,7 @@ function invoquer(pt) {
      au-dessus de lui qui se vide en 12 s ; il reste pose 0,6 s la ou il est tombe avant de foncer sur un monstre */
   const anneauA = new T.Mesh(new T.RingGeometry(1.35, 1.65, 36), new T.MeshBasicMaterial({ color: '#56d27a', transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false })); anneauA.rotation.x = -Math.PI / 2; anneauA.position.y = 0.08; m.add(anneauA);
   const barre = document.createElement('div'); barre.className = 'pv-monstre allie'; barre.innerHTML = '<i></i>'; $('combat-zone').appendChild(barre);
+  if (!u.attaque) u.attaque = { t: 0.08, classe: 'osa', base: u.angle, tour: false, surFrappe: () => { if (combat) coupDeFouet(mainDe(paysanMesh), new T.Vector3(x, y + 0.5, z), paysanMesh, ''); } }; /* (04/11/2026 : il fait claquer son fouet la ou tombe le Bouftou) */
   combat.invoc = { m, x, z, ry: u.angle, vie: DUREE_INVOC, cd: 0.4, pas: 0, frappe: 0, pose: 0.6, barre, chute: CHUTE_INVOC }; pouf(x, y, z, 3.2, '#d9c2ff'); cercleInvocation(x, y, z); /* (il tombe du ciel dans un cercle magique, 22b-effets.js) */
   combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < RAYON_INVOC) blesser(o, Math.round(st.deg * 2), true); }); /* il retombe en frappant tout autour */
   toast('Un Bouftou retombe sur les monstres et se bat pendant ' + DUREE_INVOC + ' s.', 'or');
@@ -279,11 +280,12 @@ function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
   const S = SORTS_LEG[cle], pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
   if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && paysanMesh.userData.arcMain && (cle === 'wa' || cle === 'koulosse')) { /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », Mathieu) :
-      le Cra decoche d'abord, une fleche vers le ciel pour la pluie de cawottes, une fleche sur le point vise pour la fumee ; le sort part a l'arrivee de la fleche */
-    const u = paysanMesh.userData, a = u.angle; chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son('arc');
-    const vers = cle === 'wa' ? new T.Vector3(pp.x + Math.sin(a) * 2.5, pp.y + 9, pp.z + Math.cos(a) * 2.5) : new T.Vector3(x, y + 0.3, z);
-    u.attaque = { t: 0, classe: 'cra', base: a, tour: false, surFrappe: () => effetFrappe('cra', vers, () => { if (combat === c && !c.fin) executerLeg(emp, pt, false, true); }) }; return; }
+  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse')) { /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+      l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
+      l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
+    const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
+    const vers = cl === 'cra' && cle === 'wa' ? new T.Vector3(pp.x + Math.sin(a) * 2.5, pp.y + 9, pp.z + Math.cos(a) * 2.5) : new T.Vector3(x, y + 0.3, z);
+    u.attaque = { t: 0, classe: cl, base: a, tour: false, surFrappe: () => effetFrappe(cl, vers, () => { if (combat === c && !c.fin) executerLeg(emp, pt, false, true); }) }; return; }
   son('sort');
   if (cle === 'craq') { /* le seisme : la terre s'ouvre la ou tu vises */
     seisme(x, y, z, S.zone);
