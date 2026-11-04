@@ -193,7 +193,7 @@ const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
 const palierCourant = () => palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)));
-const panoDe = (p) => PANOS[Math.max(0, Math.min(p, PANOS.length - 1))]; /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
+const panoDe = (p) => PANOS[Math.max(0, Math.min(p, PANOS.length - 1))], panoExiste = (p) => p < PANOS.length; /* (panoExiste : le palier a deja sa panoplie ; l'ile de Moon pas encore, 04/11/2026) */ /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {
