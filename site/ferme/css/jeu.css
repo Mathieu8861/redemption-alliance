@@ -1088,3 +1088,6 @@ html, body { color: #e8eaed; }
 .carte { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
 
 #bandeau-test { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); z-index: 4; display: flex; align-items: center; gap: 8px; background: #7a2fd0; color: #fff; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 5px 8px 5px 12px; font-size: .78rem; pointer-events: auto; } #bandeau-test b { letter-spacing: .06em; } #bandeau-test span { opacity: .85; } /* (le mode test de Mathieu, 05/11/2026) */
+/* (05/11/2026, idee de Madazu relayee par Mathieu : « tant que le sort n'est pas recharge, qu'il soit grise ; des qu'il est recharge a fond, il repasse dans sa couleur ;
+   presque recharge, on croit qu'on l'a recupere ») : un bouton pas pret est en gris (sa part a recharger reste sombre), la couleur revient a 100 % avec le liseré dore */
+.combat-sort .rond { transition: filter .2s; } .combat-sort:not(.pret) .rond { filter: grayscale(1) brightness(.92); }
