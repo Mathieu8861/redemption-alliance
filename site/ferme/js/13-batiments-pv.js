@@ -153,7 +153,7 @@ function batLePlusProche(mo) {
 function cibleBatiment(mo, dt) {
   if (mo.casseur === undefined) mo.casseur = !mo.d.boss && Math.random() < (mo.d.casse || 0);
   if (!mo.casseur || mo.aggro) return null;
-  const pp = paysanMesh.position; if (combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) < 2.2) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend (pas quand il est a terre) */
+  const pp = paysanMesh.position; if (combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) < (mo.d.aggroR || 2.2)) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend (pas quand il est a terre) ; aggroR : les Koalaks se retournent contre toi de plus loin (05/11/2026) */
   mo.batT = (mo.batT || 0) - dt;
   if (!mo.bat || enRuine(mo.bat) || mo.batT <= 0) { mo.batT = 1.5; mo.bat = batLePlusProche(mo);
     if (mo.d.bucheron) { const T0 = clesBats().filter((k) => /^tour:/.test(k) && !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z).sort((a, b) => Math.hypot(a[1].x - mo.x, a[1].z - mo.z) - Math.hypot(b[1].x - mo.x, b[1].z - mo.z))[0]; if (T0) mo.bat = T0[0]; } } /* (le Forestier : les tours d'abord) */
