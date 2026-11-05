@@ -666,6 +666,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .gains-coffre { display: grid; gap: 8px; margin: 0 0 12px; }
 .gain-coffre { display: flex; align-items: center; justify-content: center; gap: 10px; background: #313338; border: 2.5px solid var(--or); border-radius: 14px; padding: 8px 12px; opacity: 0; transform: translateY(10px) scale(.9); transition: opacity .25s, transform .4s cubic-bezier(.2, 1.6, .4, 1); }
 .gain-coffre.vu { opacity: 1; transform: none; }
+.gain-coffre.bloc { display: block; text-align: left; } /* (une semaine de l'ile des boss : ses lignes telles quelles, 05/11/2026) */
 .gain-coffre img { width: 46px; height: 46px; object-fit: contain; flex: none; }
 .gain-coffre > b { font: 400 1.35rem/1 var(--f-titre); color: var(--kamas); }
 .gain-coffre .desc { text-align: left; } .gain-coffre .desc b { font-size: .95rem; }

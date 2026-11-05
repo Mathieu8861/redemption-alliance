@@ -127,19 +127,25 @@ function ouvrirCoffre() {
 }
 /* le coffre arrive ferme, tremble, s'ouvre dans un eclair, puis les gains sortent un par un ; le coffre est en 3D et anime (coffre3d, 05/11/2026),
    les images coffre-ferme / coffre-ouvert (generer-coffre.html) ne servent plus que si la 3D manque */
-function animerCoffre(kamas, id) {
-  const o = id && obj(id), v = '?v=' + VERSION_MODELES;
-  ouvrirModale('coffre', entete('Le coffre du jour') + '<div class="ouverture-coffre"><div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><canvas class="coffre3d" width="520" height="460"></canvas><div class="eclair"></div></div>' +
-    '<div class="gains-coffre"><div class="gain-coffre"><img src="assets/icones/kama.png' + v + '" alt=""><b>+' + fmt(kamas) + ' kamas</b></div>' +
-    (o ? '<div class="gain-coffre objet"><img src="assets/icones/' + iconeObjet(id) + '.png' + v + '" alt=""' + (o.rare ? ' class="rare"' : '') + '><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
-    '<div class="boutons">' + (o ? '<button class="btn discret" data-coffre-fiche>Voir dans ma fiche</button>' : '') + '<button class="btn kamas" data-coffre-ok>Super !</button></div></div>');
-  const sc = document.querySelector('.scene-coffre'), z = document.querySelector('.ouverture-coffre'), plus = (f, ms) => setTimeout(() => { if (modaleOuverte === 'coffre') f(); }, ms);
+/* la scene du coffre (le coffre 3D, et les images si la 3D manque) et son ouverture, pour toute fenetre : le coffre du jour, celui de l'ile des boss,
+   ceux des boss de l'Arene (05/11/2026) ; cle : la fenetre ouverte (l'ouverture s'arrete si on la ferme) */
+const sceneCoffre = () => { const v = '?v=' + VERSION_MODELES; return '<div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><canvas class="coffre3d" width="520" height="460"></canvas><div class="eclair"></div></div>'; };
+function jouerCoffre(cle) {
+  const z = document.querySelector('.ouverture-coffre'), sc = z && z.querySelector('.scene-coffre'); if (!sc) return; const plus = (f, ms) => setTimeout(() => { if (modaleOuverte === cle && z.isConnected) f(); }, ms);
   const gains = [...z.querySelectorAll('.gain-coffre')];
   try { if (coffre3d(sc.querySelector('canvas.coffre3d'))) sc.classList.add('avec3d'); } catch (e) { console.warn('coffre 3D', e); }
   plus(() => sc.classList.add('tremble'), 450);
   plus(() => { sc.classList.remove('tremble'); sc.classList.add('flash', 'ouvert'); son('niveau'); confettis(50); }, 1450);
   gains.forEach((g, k) => plus(() => { g.classList.add('vu'); son('kamas'); }, 1850 + k * 450));
   plus(() => z.classList.add('fini'), 1850 + gains.length * 450);
+}
+function animerCoffre(kamas, id) {
+  const o = id && obj(id), v = '?v=' + VERSION_MODELES;
+  ouvrirModale('coffre', entete('Le coffre du jour') + '<div class="ouverture-coffre">' + sceneCoffre() +
+    '<div class="gains-coffre"><div class="gain-coffre"><img src="assets/icones/kama.png' + v + '" alt=""><b>+' + fmt(kamas) + ' kamas</b></div>' +
+    (o ? '<div class="gain-coffre objet"><img src="assets/icones/' + iconeObjet(id) + '.png' + v + '" alt=""' + (o.rare ? ' class="rare"' : '') + '><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
+    '<div class="boutons">' + (o ? '<button class="btn discret" data-coffre-fiche>Voir dans ma fiche</button>' : '') + '<button class="btn kamas" data-coffre-ok>Super !</button></div></div>');
+  jouerCoffre('coffre');
 }
 /* LE COFFRE EN 3D (05/11/2026, « le coffre, c'est celui-la qu'on va prendre et animer quand on ouvre nos coffres en jeu ; on a un coffre trop fade »,
    Mathieu) : le coffre au tresor de l'icone du jackpot (generer-icone-jackpot.html, piste B), construit ici en toon comme le reste du jeu : bois
@@ -202,7 +208,7 @@ function coffre3d(cv) {
       sauts.push({ o, v: new T.Vector3(Math.cos(a) * v * 0.42, 1.35 + Math.random() * 0.8, Math.sin(a) * v * 0.3 + 0.12), w: new T.Vector3(Math.random() * 9, Math.random() * 9, Math.random() * 9), pose: false }); } };
   let lance = false, prec = debut;
   const image = (now) => {
-    if (modaleOuverte !== 'coffre' || !document.body.contains(cv)) { C.sc.remove(B.g); return; }
+    if (!cv.isConnected) { C.sc.remove(B.g); return; } /* (la fenetre fermee ou redessinee : il s'arrete) */
     const t = (now - debut) / 1000, dt = Math.min(0.05, (now - prec) / 1000); prec = now;
     const g = B.g; g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
     if (t < 0.4) { const k = t / 0.4; g.position.y = B.H * 2.6 * (1 - k) * (1 - k); }   /* (il tombe) */

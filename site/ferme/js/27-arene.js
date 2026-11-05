@@ -325,9 +325,11 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
       '<div class="hdv-section">Ce que tu reçois</div><div class="ib-rec">' + L2.join('') + '<div class="rc-l ib-total">' + picto('etoile', '#7a4fc9') + '<span>Au total</span><b>' + total + '</b></div></div>' + siTombe);
   }
   if (!lignes.length) return; /* (aucun classement lisible : le coffre attend) */
-  son('niveau'); confettis(50); rendreHaut(); sauver();
-  ouvrirModale('ileboss', entete('Le coffre de l\'île des boss') + '<p class="hdv-aide">La semaine de l\'île est finie : voici ce que tu gagnes. C\'est déjà ajouté : les kamas et l\'XP sur ta ferme, les runes et les pièces dans ton inventaire (Perso).</p>' + lignes.join('') +
-    '<div class="act-bas"><button class="btn discret" data-montgolfiere="ileBoss">Voir l\'île des boss</button><button class="btn kamas" data-fermer>Super !</button></div>');
+  rendreHaut(); sauver(); /* (le son et les confettis : a l'ouverture du coffre, jouerCoffre) */
+  ouvrirModale('ileboss', entete('Le coffre de l\'île des boss') + '<p class="hdv-aide">La semaine de l\'île est finie : voici ce que tu gagnes. C\'est déjà ajouté : les kamas et l\'XP sur ta ferme, les runes et les pièces dans ton inventaire (Perso).</p>' +
+    '<div class="ouverture-coffre">' + sceneCoffre() + '<div class="gains-coffre">' + lignes.map((l) => '<div class="gain-coffre bloc">' + l + '</div>').join('') + '</div>' +
+    '<div class="boutons"><button class="btn discret" data-montgolfiere="ileBoss">Voir l\'île des boss</button><button class="btn kamas" data-fermer>Super !</button></div></div>');
+  jouerCoffre('ileboss'); /* (le coffre en 3D, 05/11/2026) */
   } finally { reclamerIleBoss.enCours = false; }
 }
 function animerIleBoss(dt) { /* tout en douceur (« plus lent, tranquille, que ca ne bouille pas dans tous les sens, que ca ne clignote pas : leger, fluide, joli », Mathieu, 15/10/2026) */
@@ -486,17 +488,17 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
   S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp); c.arene.xp += gagnerXp.dernier; const xpV = gagnerXp.dernier; /* (le vrai gain, affiche) */
   if (k > (a.record || 0)) a.record = k; if (k > (a.semaines[sem] || 0)) a.semaines[sem] = k;
   Object.keys(a.semaines).sort().slice(0, -8).forEach((x) => { delete a.semaines[x]; }); /* (les 8 dernieres semaines) */
-  let coffre = '';
+  let coffre = '', pieceCoffre = null;
   const gagneRune = (t, nb) => { runes()[t] = (runes()[t] || 0) + nb; c.arene.runes[t] = (c.arene.runes[t] || 0) + nb; };
   if (k % 5 === 0) { /* le coffre du boss : des kamas (deux fois la vague) ; des le boss de la 10e, 30 % de chance d'une piece de ta panoplie (50 % avant le 19/10/2026) ; 2 % de runes de forgemagie
        (1 a la 5e vague, 2 a la 10e, 3 a la 20e) ; des la 10e, 2 % de rune parfaite. La piece tombe avec un jet jamais sous la moyenne (JET_ARENE) */
     const pros = 1 + caracs().prospection / 100, nf = 1 + Math.floor(k / 10), bonus = 2 * g.kamas, dans = ['+' + fmt(bonus) + ' kamas'];
     S_.kamas += bonus; c.arene.kamas += bonus;
     if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(panoAuHasard(palierCourant()), pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
-      const cle = donnerObjet(id, JET_ARENE); c.arene.objets.push(cle); dans.push((OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)'); }
+      const cle = donnerObjet(id, JET_ARENE); c.arene.objets.push(cle); pieceCoffre = cle; dans.push((OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)'); }
     if (Math.random() < RUNE_COFFRE * pros) { gagneRune('forge', nf); dans.push('★ ' + nf + ' rune' + (nf > 1 ? 's' : '') + ' de forgemagie'); }
     if (k >= 10 && Math.random() < RUNE_PARFAITE_COFFRE * pros) { gagneRune('parfaite', 1); dans.push('★ une RUNE PARFAITE'); } /* (des le boss de la 10e depuis le 15/10/2026 : « la rune parfaite descend a la 10 », Mathieu ; la 15e avant) */
-    son('niveau'); confettis(dans.length > 1 ? 30 : 10); coffre = ' Coffre du boss : ' + dans.join(', ') + '.';
+    c.arene.coffre = { kamas: bonus, dans: dans.slice(1), objets: pieceCoffre ? [pieceCoffre] : [], vu: false }; /* (ouvert en 3D dans l'entracte qui suit, 05/11/2026) */
   }
   toast('Vague ' + k + ' tenue, la foule t\'acclame (+' + Math.round(100 * soin) + ' % de vie) : +' + fmt(g.kamas) + ' kamas, +' + xpV + ' XP.' + coffre, 'or'); rendreHaut(); sauver();
   const p = vagueArene(k + 1);
