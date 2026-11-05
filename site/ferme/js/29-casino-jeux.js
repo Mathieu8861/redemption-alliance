@@ -47,7 +47,7 @@ function piedMise(sansMise) {
 const pasMise = () => Math.max(10, Math.round(miseMax() / 10 / 10) * 10);
 
 /* ---------- la machine a sous du Bouftou ---------- */
-const SYMBOLES = [['couronne', 'obj-leg-royal', 1, 'Couronnes'], ['dragoeuf', 'drag-dore', 3, 'Dragoeufs'], ['kama', 'kama', 5, 'Kamas'], ['bouftou', 'bouftou', 7, 'Bouftous'], ['tofu', 'tofu', 9, 'Tofus']];
+const SYMBOLES = [['couronne', 'jackpot', 1, 'Jackpots'], /* (05/11/2026 : une machine a sous doree a la place de la Couronne du Bouftou Royal, « j'ai cru qu'il avait gagne la coiffe Bouf legendaire », Mathieu ; l'id reste « couronne ») */ ['dragoeuf', 'drag-dore', 3, 'Dragoeufs'], ['kama', 'kama', 5, 'Kamas'], ['bouftou', 'bouftou', 7, 'Bouftous'], ['tofu', 'tofu', 9, 'Tofus']];
 const PAIE = { dragoeuf: 20, kama: 8, bouftou: 5, tofu: 3 }; /* trois identiques ; deux identiques : la mise est rendue ; trois couronnes : le jackpot */
 const tirerSymbole = () => { let r = Math.random() * 25; for (const s of SYMBOLES) { r -= s[2]; if (r < 0) return s[0]; } return 'tofu'; };
 const icoSym = (id) => 'assets/icones/' + SYMBOLES.find((s) => s[0] === id)[1] + '.png?v=' + VERSION_MODELES;
@@ -64,7 +64,7 @@ function tirerMachine() {
   miser(m); const c = etatCasino(); c.jackpot += Math.round(m * 0.05);
   const r = [tirerSymbole(), tirerSymbole(), tirerSymbole()], n = {}; r.forEach((x) => { n[x] = (n[x] || 0) + 1; });
   let gain = 0, html;
-  if (n.couronne === 3) { gain = Math.max(m * 50, Math.round(c.jackpot * Math.min(1, m / miseMax()))); c.jackpot = Math.max(5000, c.jackpot - gain); html = 'JACKPOT !<small>3 Couronnes du Bouftou Royal : +' + fmt(gain) + ' kamas</small>'; }
+  if (n.couronne === 3) { gain = Math.max(m * 50, Math.round(c.jackpot * Math.min(1, m / miseMax()))); c.jackpot = Math.max(5000, c.jackpot - gain); html = 'JACKPOT !<small>3 Jackpots : +' + fmt(gain) + ' kamas</small>'; }
   else { const t = Object.keys(n).find((k) => n[k] === 3), d = Object.keys(n).find((k) => n[k] === 2);
     if (t) { gain = m * PAIE[t]; html = 'Gagné !<small>3 ' + SYMBOLES.find((s) => s[0] === t)[3] + ' : +' + fmt(gain) + ' kamas</small>'; }
     else if (d) { gain = m; html = 'Presque...<small>2 identiques : ta mise est rendue</small>'; }
@@ -148,7 +148,7 @@ function majCourse(dt) {
 function ouvrirCasinoInfo() {
   const c = etatCasino(), st = S_.stats || {};
   ouvrirModale('casino', entete('Le Casino') + '<div class="art">' + ico('kama') + '<div><b>Ton bilan</b><div class="puces"><span class="puce">misé en tout : ' + fmt(st.casinoMises || 0) + '</span><span class="puce">gagné en tout : ' + fmt(st.casinoGains || 0) + '</span><span class="puce">courses : ' + (st.courses || 0) + '</span></div></div><div></div></div>' +
-    '<div class="art">' + ico('obj-leg-royal') + '<div><b>Le jackpot : ' + fmt(c.jackpot) + ' kamas</b><div class="desc">Il grossit de 5 % de chaque mise à la machine à sous, et tombe avec 3 Couronnes.</div></div><div></div></div>' +
+    '<div class="art">' + ico('jackpot') + '<div><b>Le jackpot : ' + fmt(c.jackpot) + ' kamas</b><div class="desc">Il grossit de 5 % de chaque mise à la machine à sous, et tombe avec 3 Jackpots.</div></div><div></div></div>' +
     '<div class="art">' + ico('cadenas') + '<div><b>Les règles de la maison</b><div class="desc">Mise maximale ' + fmt(miseMax()) + ' kamas (elle monte avec ton niveau). Pertes plafonnées à ' + fmt(plafondPertes()) + ' kamas par jour : aujourd\'hui ' + fmt(perteJour()) + '. Comme dans un vrai casino, la maison garde un petit avantage.</div></div><div></div></div>');
 }
 function actionCasino(b) {
