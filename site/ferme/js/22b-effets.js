@@ -168,14 +168,42 @@ function croixSoin(x, y, z, n) { /* des croix vertes et des lueurs qui montent d
 /* ---------- LE IOP ---------- */
 /* le coup d'epee : une lame de lumiere qui balaie devant lui (un coup a gauche, un coup a droite), des etincelles qui jaillissent du fil */
 const TONS_LAME = { '': [['#ffffff', '#ffe9a8'], ['#ffd27a', '#ff7a1e']], gel: [['#ffffff', '#d8f2ff'], ['#9fd8ff', '#3f8fd8']], fatal: [['#ffffff', '#ffd0c0'], ['#ff6a4a', '#b0180e']], feu: [['#ffffff', '#ffe9a8'], ['#ffb02e', '#e8541e']] };
+/* LE COUP D'EPEE DU IOP, refait le 05/11/2026 dans le style du Tir percant (les videos d'effets de jeu de Mathieu) :
+   1. le balayage (0,1 s) : une grosse lame en trois couches, le bord de couleur en melange normal (visible sur l'herbe claire), le coeur blanc, des traits de vitesse le long de l'arc ;
+   2. l'impact : un micro-arret sur image, une petite secousse, un eclat en etoile, des epines de lumiere qui jaillissent de la cible, un anneau face a la camera ;
+   3. la fin (0,3 s) : la lame s'amincit depuis l'interieur et se defait en etincelles ; une entaille lumineuse reste au sol et s'eteint */
+const FS_TRANCHE = `uniform vec3 uCoeur, uBord; uniform float uP, uQ, uA, uE; varying vec2 vUv;
+void main() { float u = vUv.x; if (u > uP) discard; float t = clamp((u - (uP - uQ)) / uQ, 0.0, 1.0); float bas = 1.0 - uE; if (vUv.y < bas) discard;
+  float w = (vUv.y - bas) / max(uE, 0.001); vec3 c = mix(uBord, uCoeur, smoothstep(0.5, 0.95, w));
+  gl_FragColor = vec4(c, uA * (0.3 + 0.7 * t) * smoothstep(0.0, 0.18, w)); }`;
+function matTranche(coeur, bord, plein) { return new T.ShaderMaterial({ uniforms: { uCoeur: { value: new T.Color(coeur) }, uBord: { value: new T.Color(bord) }, uP: { value: 0 }, uQ: { value: 0.9 }, uA: { value: 1 }, uE: { value: 1 } },
+  vertexShader: VS_RUBAN, fragmentShader: FS_TRANCHE, transparent: true, depthWrite: false, side: T.DoubleSide, blending: plein ? T.NormalBlending : T.AdditiveBlending }); }
+const GEO_RUBAN_LARGE = geoRuban(1.3, 1.25, 0.62, 48), GEO_EPINE = (() => { const g = new T.ShapeGeometry(new T.Shape([new T.Vector2(0, -0.05), new T.Vector2(1, 0), new T.Vector2(0, 0.05)])); partager(g); return g; })();
+const TONS_TRANCHE = { '': ['#ffffff', '#ffe27a', '#ff8a1e', '#ffb347'], gel: ['#ffffff', '#c8ecff', '#3f8fd8', '#9fd8ff'], fatal: ['#ffffff', '#ffc0a8', '#c8180e', '#ff6a4a'], feu: ['#ffffff', '#ffe27a', '#e8541e', '#ffb02e'] };
+function epinesImpact(p, couleur, taille) { /* des epines de lumiere qui jaillissent du point touche, face a la camera */
+  const g = new T.Group(), n = 7, rot = fxAlea() * Math.PI * 2; for (let k = 0; k < n; k++) { const m = new T.Mesh(GEO_EPINE, fxMat(k % 2 ? '#ffffff' : couleur, 1, true)); m.rotation.z = rot + k / n * Math.PI * 2 + (fxAlea() - 0.5) * 0.4; m.renderOrder = 10; m.userData.l = 0.6 + fxAlea() * 0.6; g.add(m); }
+  g.position.copy(p); fxVie(g, 0.2, (k) => { versCamera(g); const e = 1 - Math.pow(1 - k, 2.5); g.children.forEach((m) => { m.scale.set(m.userData.l * taille * (0.3 + 0.9 * e), 1.4 * taille * (1 - k), 1); m.position.set(Math.cos(m.rotation.z) * 0.25 * e * taille, Math.sin(m.rotation.z) * 0.25 * e * taille, 0); m.material.opacity = 1 - k * k; }); });
+}
 function entailleIop(pp, pv, style) {
-  const a = Math.atan2(pv.x - pp.x, pv.z - pp.z), sens = (entailleIop.n = (entailleIop.n || 0) + 1) % 2 ? 1 : -1, d = Math.hypot(pv.x - pp.x, pv.z - pp.z), taille = Math.min(1.8, Math.max(1.15, d * 0.85));
-  const g = new T.Group(), penche = new T.Group(); g.position.set(pp.x, pp.y + 0.72, pp.z); g.rotation.y = a; penche.rotation.z = 0.22 * sens; g.add(penche);
-  const ton = TONS_LAME[style || ''] || TONS_LAME[''], gel = style === 'gel';
-  const lames = [[ton[0][0], ton[0][1], 1, 1.0, true], [ton[1][0], ton[1][1], 0.7, 1.14, false]].map(([c, b, o, s, plein]) => { const m = new T.Mesh(GEO_RUBAN, matRuban(c, b, o, plein)); m.rotation.x = Math.PI / 2; m.scale.set(s * taille * sens, s * taille, 1); m.renderOrder = plein ? 9 : 8; penche.add(m); return m; });
-  const v = new T.Vector3(); let t = 0;
-  fxVie(g, 0.26, (k) => { t = k; const e = 1 - Math.pow(1 - k, 2.2); lames.forEach((m) => { m.material.uniforms.uP.value = e * 1.5; m.material.uniforms.uA.value = (m === lames[0] ? 1 : 0.7) * (k < 0.7 ? 1 : (1 - k) / 0.3); });
-    const u = Math.min(1, e * 1.5), an = -1.25 + 2.5 * u; if (u < 1 && fxAlea() < 0.9) { v.set(Math.sin(an) * 1.15 * sens, Math.cos(an) * 1.15, 0); lames[0].localToWorld(v); emettre(FX_VIF, 2, { x: v.x, y: v.y, z: v.z, dv: 3, vie: [0.15, 0.3], taille: [0.08, 0.02], c: ['#ffffff', gel ? '#9fd8ff' : style === 'fatal' ? '#ff5a3a' : '#ffc24a'], grav: gel ? 1 : 8, frein: 2, etire: gel ? 0 : 0.04 }); } });
+  const a = Math.atan2(pv.x - pp.x, pv.z - pp.z), sens = (entailleIop.n = (entailleIop.n || 0) + 1) % 2 ? 1 : -1, d = Math.hypot(pv.x - pp.x, pv.z - pp.z), taille = Math.min(1.9, Math.max(1.25, d * 0.9));
+  const [cBlanc, cOr, cBord, cEclat] = TONS_TRANCHE[style || ''] || TONS_TRANCHE[''], gros = !!style;
+  const g = new T.Group(), penche = new T.Group(); g.position.set(pp.x, pp.y + 0.72, pp.z); g.rotation.y = a; penche.rotation.z = 0.28 * sens; g.add(penche); g.traverse((o) => { o.raycast = () => {}; });
+  /* les trois couches : le bord de couleur (plein, large), l'or, le coeur blanc (fin, devant) */
+  const couches = [[cOr, cBord, 1.0, true, 9], [cBlanc, cOr, 0.97, false, 10], [cBlanc, cBlanc, 0.94, true, 11]].map(([co, bo, s, plein, ro], i) => {
+    const m = new T.Mesh(GEO_RUBAN_LARGE, matTranche(co, bo, plein)); m.rotation.x = Math.PI / 2; m.scale.set(s * taille * sens, s * taille, 1); m.renderOrder = ro; m.userData.e0 = [1, 0.75, 0.32][i]; penche.add(m); return m; });
+  const v = new T.Vector3(), w = new T.Vector3(); let touche = false;
+  fxVie(g, 0.36, (k, obj) => { const T1 = 0.3, bal = Math.min(1, k / T1), e = 1 - Math.pow(1 - bal, 3), fin = Math.max(0, (k - T1) / (1 - T1));
+    couches.forEach((m) => { const U = m.material.uniforms; U.uP.value = e * 1.12; U.uQ.value = 0.35 + 0.6 * e; U.uE.value = m.userData.e0 * (1 - Math.pow(fin, 0.8)); U.uA.value = fin > 0.85 ? (1 - fin) / 0.15 : 1; });
+    obj.updateMatrixWorld(true); if (bal < 1) { const an = -1.3 + 2.6 * e; for (let s = 0; s < 2; s++) { v.set(Math.sin(an) * 1.2 * sens, Math.cos(an) * 1.2 * (0.86 + 0.14 * s), 0); couches[0].localToWorld(v); w.set(Math.cos(an) * sens, -Math.sin(an), 0).transformDirection(couches[0].matrixWorld);
+        emettre(FX_VIF, 1, { x: v.x, y: v.y, z: v.z, v: [w.x * 9, w.y * 9, w.z * 9], dv: 0.4, vie: [0.08, 0.14], taille: [0.07, 0.02], c: ['#ffffff', cOr], frein: 6, etire: 0.06 }); } } /* (les traits de vitesse le long de l'arc) */
+    else if (fin < 0.7 && fxAlea() < 0.8) { const an = -1.3 + 2.6 * fxAlea(); v.set(Math.sin(an) * 1.15 * sens, Math.cos(an) * 1.15, 0); couches[0].localToWorld(v);
+      emettre(FX_VIF, 2, { x: v.x, y: v.y, z: v.z, dv: 1.6, vie: [0.2, 0.4], taille: [0.07, 0.015], c: [cOr, cBord], grav: 5, frein: 2 }); } /* (la lame se defait en etincelles) */
+    if (!touche && bal >= 0.55) { touche = true; /* l'impact, au passage de la lame sur la cible */
+      arretImage(gros ? 0.06 : 0.035); secousse(gros ? 0.07 : 0.035, 0.1); epinesImpact(pv, cEclat, gros ? 1.3 : 1); anneauSouffle(pv, camera.position.clone().sub(pv).normalize(), 0.2, gros ? 1.3 : 0.95, 0.22, cOr, 0.85);
+      emettre(FX_VIF, gros ? 18 : 10, { x: pv.x, y: pv.y, z: pv.z, r: 0.08, dv: 7, vie: [0.15, 0.32], taille: [0.09, 0.02], c: ['#ffffff', cOr, cBord], grav: 9, frein: 3, etire: 0.05 }); } });
+  const sol = new T.Mesh(GEO_LAME, fxMat(cBord, 0.8)), y = solA(pp.x + Math.sin(a) * 0.9, pp.z + Math.cos(a) * 0.9) + 0.04; sol.rotation.x = -Math.PI / 2; sol.renderOrder = 3; /* l'entaille au sol, devant lui */
+  const gs = new T.Group(); gs.add(sol); gs.position.set(pp.x, y, pp.z); gs.rotation.y = a + Math.PI; sol.scale.set(taille * 0.75 * sens, taille * 0.75, 1); sol.position.z = 0.0;
+  fxVie(gs, 0.6, (k) => { sol.material.opacity = k < 0.15 ? 0.8 * k / 0.15 : 0.8 * Math.pow(1 - (k - 0.15) / 0.85, 1.5); sol.material.color.lerpColors(new T.Color(cOr), new T.Color(cBord), Math.min(1, k * 2)); });
 }
 /* ---------- LE CRA ---------- */
 function decocher(de, vers) { const d = vers.clone().sub(de).normalize(), p = de.clone().addScaledVector(d, 0.35);
