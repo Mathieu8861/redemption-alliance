@@ -36,10 +36,12 @@ function majCombat(dt, s) {
   c.attente -= dt; c.duree = (c.duree || 0) + dt;
   if (c.arene && c.file.length && c.attente <= 0) { for (let i = 0; i < 3 && c.file.length; i++) apparaitre(c.file.shift()); c.attente = 2.5; } /* l'Arene : ils sortent des herses trois par trois */
   else if (c.raid && c.file.length && c.attente <= 0) { apparaitre(c.file.shift()); c.attente = 1; } /* la simu VSA : un par seconde, chacun par sa case rouge, tout autour de la ferme (18/10/2026) */
-  else if (c.groupe && c.file.length) { if (c.attente > 0 || c.deroute != null) {} else { /* la horde de la Phase 2 (04/11/2026) : un premier groupe, puis des renforts a mesure qu'on les abat (3 au plus a la fois), et un de plus toutes les 6 s tant qu'ils ne sont pas une fois et demie le groupe ; plus personne quand le perso est a terre */
-    const actifs = c.monstres.filter((o) => o.etat !== 'mort').length, nb = !c.horde ? c.groupe : actifs < c.groupe ? Math.min(3, c.groupe - actifs) : actifs < c.groupe * 1.5 ? 1 : 0;
+  else if (c.groupe && c.file.length) { if (c.attente > 0 || c.deroute != null) {} else { /* la horde de la Phase 2 (04/11/2026) : un premier groupe, puis HORDE_RENFORT monstres toutes les HORDE_RYTHME s, qu'on les abatte ou non
+       (05/11/2026, par Discord : « il faut en tuer pour qu'ils apparaissent ? c'est nul, trop facile de tempo », Mathieu ; avant, les renforts venaient a mesure
+       qu'on les abattait) ; plus personne quand le perso est a terre */
+    const nb = !c.horde ? c.groupe : HORDE_RENFORT;
     for (let i = 0; i < nb && c.file.length; i++) { const t = c.file.shift(); apparaitre(t); if (MONSTRES[t].boss) toast(leNom(MONSTRES[t]) + ' en personne débarque avec sa troupe !', 'alerte'); }
-    c.attente = !c.horde ? 4 : actifs < c.groupe ? 2 : nb ? 6 : 1; c.horde = true; } }
+    c.attente = HORDE_RYTHME; c.horde = true; } }
   else if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   majFumees(dt, s); majAfflictions(dt); if (combat !== c || c.fin) return;
