@@ -28,7 +28,10 @@ function eauAnimee(m) {
   m.customProgramCacheKey = () => 'eau';
 }
 const SOUPLE_ILE = { herbe: 1, tige: 1, feuille: 1, brin: 1, pousse: 1, fleur: 1, fleurs: 0.15, tronc: 0.12, branche: 0.12, noeud: 0.12, feuillage: 0.12, feuillageClair: 0.12, feuillageSombre: 0.12, etage: 0.12, cime: 0.12, pomme: 0.12, pommeReflet: 0.12 };
-const SOUPLE_CULTURES = { tige: 1, epi: 1, barbe: 1, feuille: 1, brin: 1, pousse: 1, grain: 1, fleur: 1, capsule: 1, liane: 0.1, feuille_houblon: 0.1, cone: 0.1 };
+const SOUPLE_CULTURES = { tige: 1, epi: 1, barbe: 1, feuille: 1, brin: 1, pousse: 1, grain: 1, fleur: 1, capsule: 1, liane: 0.1, feuille_houblon: 0.1, cone: 0.1,
+  /* le bananier (05/11/2026, « des qu'il y a du vent, le truc qui brille est decale par rapport a l'arbre », Mathieu) : la meme souplesse partout et une seule origine
+     (blender/cultures4.py, PlanteBloc), il plie d'un bloc depuis le pied ; avant, feuilles a 1, nervures et tronc immobiles, chaque couleur a son rythme */
+  ban_tronc: 0.35, ban_tige: 0.35, ban_feuille: 0.35, ban_nervure: 0.35, ban_fruit: 0.35, ban_bout: 0.35, ban_point: 0.35, ban_fleur: 0.35 };
 const SC_ILE = new Set(['pierre_fond', 'terre_dessous', 'feuillageClair', 'feuillageSombre', 'pommeReflet', 'ecume_filet', 'nenuphar', 'galet', 'barbe', 'pousse', 'herbe', 'caillou', 'reflet', 'joint', 'fleur', 'tige', 'champi_point', 'petale', 'ecume']);
 const SC_PERSO = new Set(['peinture', 'muscle', 'cicatrice', 'paupiere', 'croc', 'anneau_barbe', 'reflet', 'pupille', 'iris', 'joue', 'sourcil', 'bouche', 'croix_v', 'croix_h', 'boucle_trou', 'paille_nervure', 'paille_brin', 'gorge', 'clou']);
 const SC_BATI = new Set(['craie', 'graine', 'fil', 'carreau', 'grillage', 'feu', 'flamme', 'lueur', 'etincelle', 'visage', 'joue', 'plume', 'tache', 'oeil', 'tige', 'epi', 'maille', 'tressage', 'clou', 'caisse_fond', 'chaume_rang', 'ligature', 'brin', 'fleur', 'vitre', 'lanterne', 'buche_bout', 'botte_bout', 'tonneau_dessus',
@@ -168,7 +171,7 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261103a'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261105a'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */

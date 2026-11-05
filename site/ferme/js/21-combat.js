@@ -475,7 +475,7 @@ function butin(mo) {
     L.objets.push(donnerObjet(id)); if (OBJETS[id].rare) { son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630'); }
     chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }
-  const ar = aPano && mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + panoDe(palierDe(combat.n)).id;
+  const ar = aPano && mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + panoMonstre(mo.type, palierDe(combat.n)).id; /* (la Tortue Corail, boss d'une phase de la 90 : pas l'arme du Kanniboul, que Moon seul donne ; la Tortue n'a pas d'arme, 05/11/2026) */
   if (arme && OBJETS[arme] && Math.random() < (deja ? 0.25 * pros : 1)) { /* l'arme de ta classe : a coup sur la premiere fois, puis une fois sur 4 */
     const id = tirerRare(arme, pros); L.objets.push(donnerObjet(id));
     chiffre('Arme : ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.9, mo.z), 'butin'); toast('Arme : ' + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
