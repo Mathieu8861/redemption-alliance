@@ -122,7 +122,7 @@ function carteGraine(c, attrs, ok) {
     '<b>' + c.nom + '</b>' + (ok ? '<span class="g-info"><span>' + picto('cadence') + dureeLisible(duree(c)) + '</span><span>' + picto('epi') + '×' + c.rendement + '</span></span>' + (c.mange ? '<span class="g-mange">' + c.mange.txt + '</span>' : '') : '<span class="g-info"><span>niveau ' + c.niv + '</span></span>') + '</button>';
 }
 function ouvrirGraines() {
-  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Celle-ci se plante sur tout le champ d\'une touche. Le nombre sur l\'icône : tes graines en grange. Elles s\'achètent à l\'HDV, onglet Acheter.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>' +
+  ouvrirModale('graines', entete('Quelle graine planter ?') + '<p style="font-size:.78rem;font-weight:600;margin:0 0 8px">Celle-ci se plante sur tout le champ d\'une touche. Le nombre sur l\'icône : tes graines en grange. À 0, touche-la pour l\'acheter à l\'HDV.</p><div class="grille-graines">' + CULTURES.map((c) => carteGraine(c, 'data-graine="' + c.id + '"', debloquee(c))).join('') + '</div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:.8rem;font-weight:700"><span>Après la récolte, il replante tout seul la même culture (s\'il en a les graines).</span><span style="display:grid;justify-items:end;gap:2px"><button class="inter' + (S_.replanter !== false ? ' on' : '') + '" role="switch" aria-checked="' + (S_.replanter !== false) + '" aria-label="Replanter après la récolte" data-replanter></button><span class="etat-inter' + (S_.replanter !== false ? ' on' : '') + '">' + (S_.replanter !== false ? 'Oui' : 'Non') + '</span></span></div>');
 }
 /* les icones : rendues depuis nos modeles 3D (generer-icones.html + exporter-icones.mjs -> assets/icones/) */
@@ -623,7 +623,9 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-deconnexion') { fermerModale(); deconnecter(); return; }
   else if (b.id === 'b-tuto') { fermerModale(); if (!combat) demarrerTuto(1, true); else toast('Pendant une vague, on se bat : le tuto attendra.'); return; }
   else if (b.hasAttribute('data-fermer')) fermerModale();
-  else if (b.dataset.graine) { S_.graine = b.dataset.graine; rendreHaut(); fermerModale(); }
+  else if (b.dataset.graine) { const id = b.dataset.graine; S_.graine = id; rendreHaut();
+    if (!(S_.graines[id] || 0)) { ouvrirHdv.cat = 'graines'; ouvrirHdv('acheter'); const art = (document.querySelector('[data-graines="' + id + '"]') || { closest: () => null }).closest('.art'); if (art) { art.scrollIntoView({ block: 'center' }); art.classList.add('repere'); } return; } /* (a 0 : direction l'HDV, sur sa ligne, 05/11/2026) */
+    fermerModale(); }
   else if (b.hasAttribute('data-replanter')) { S_.replanter = S_.replanter === false; sauver(); ouvrirGraines(); }
   else if (b.dataset.grangeCase) ouvrirGrange(b.dataset.grangeCase); /* une case de la grange : son detail */
   else if (b.dataset.ficheMonstre) { if (modaleOuverte === 'vagues') ouvrirBestiaire.retour = 'vagues'; else if (modaleOuverte !== 'bestiaire') ouvrirBestiaire.retour = null; ouvrirBestiaire('monstres', b.dataset.ficheMonstre); } /* la fiche d'un monstre */

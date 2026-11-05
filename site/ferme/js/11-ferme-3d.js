@@ -185,6 +185,7 @@ const DECOS = {
   arbre_rond: { nom: 'Arbre rond', prix: 2000, niv: 15, pr: 'le' }, sapin: { nom: 'Sapin', prix: 2500, niv: 15, pr: 'le' },
   pommier: { nom: 'Pommier', prix: 3000, niv: 20, pr: 'le' }, statue_gelee: { nom: 'Statue de Gelée', prix: 8000, niv: 25, pr: 'la' },
   fontaine: { nom: 'Fontaine', prix: 12000, niv: 30, pr: 'la' }, banniere: { nom: 'Bannière de Redemption', prix: 20000, niv: 40, pr: 'la' },
+  foin: { nom: 'Bottes de foin', prix: 600, niv: 1, pr: 'les', bottes: true }, /* (05/11/2026 : les trois bottes du decor de la ferme, devenues une decoration ; leur modele vient des objets du jeu, pas de deco.glb) */
   /* (01/11/2026, « des routes pavees, un peu dans le meme style que les pierres qu'on a sur les batiments, des lanternes de lumiere, et des petites clotures
      pour separer nos differents champs », Mathieu) sol : la route est un sol, comme l'herbe (c.pave : « fais en sorte qu'on puisse poser un batiment ou une
      deco par-dessus les paves », Mathieu, le meme soir) ; bord : la cloture se pose sur le
@@ -204,10 +205,17 @@ function assurerDecos() {
   if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
   decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
     versToon(G, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true }); /* (au style de l'ile, faites avec les memes outils) */
-    Object.keys(DECOS).concat(['cloture_poteau']).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); }); /* (le poteau d'un coin de cloture : pas a vendre) */
+    Object.keys(DECOS).filter((k) => !DECOS[k].bottes).concat(['cloture_poteau']).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); }); /* (le poteau d'un coin de cloture : pas a vendre) */
+    modeleFoin();
     if (S_ && S_.perso) construireDecos();
   }).catch((e) => { console.warn('Décorations', e); decosCharge = null; });
   return decosCharge;
+}
+/* les bottes de foin en decoration : les trois bottes du decor, a la place qu'elles avaient autour du centre de leur case */
+function modeleFoin() {
+  if (MODELES.deco_foin || !MODELES.botte) return; const g = new T.Group();
+  [[-0.35, 0, -0.2, 0.3], [0.45, 0, 0.35, -0.5], [0.05, 0.55, 0.05, 1.2]].forEach(([dx, dy, dz, r]) => { const b = MODELES.botte.clone(true); b.position.set(dx, dy, dz); b.rotation.y = r; g.add(b); });
+  MODELES.deco_foin = g;
 }
 function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennent des decorations, une seule fois (S_.rochersIle, le nom est reste) ;
   si leur case est prise, ou si elles couperaient un passage, elles attendent dans tes decorations */
@@ -224,6 +232,7 @@ function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennen
   if (ranges.length) setTimeout(() => toast('Les rochers et les lanternes de l\'île sont maintenant des décorations. ' + ranges.length + ' gênai' + (ranges.length > 1 ? 'ent' : 't') + ' un passage : ' + (ranges.length > 1 ? 'elles t\'attendent' : 'elle t\'attend') + ' dans tes décorations (Aménager, puis Décorations).', 'or'), 5000);
 }
 function construireDecos() {
+  modeleFoin(); /* (les bottes de foin : faites des objets du jeu, deja la) */
   lanternesAnim.forEach((A) => { jeter(A.sol); A.halo.material.dispose(); }); fontainesAnim.forEach((A) => jeter(A.g)); /* (leur lueur et leur eau sont faites ici : on les libere, 01/11/2026) */
   decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; lanternesAnim = []; pavesMesh.clear(); let manque = false;
   S_.cases.forEach((c) => {
@@ -405,7 +414,8 @@ function construireBatiments() {
   batisMesh.forEach((m) => scene.remove(m)); batisMesh = []; fumeesCheminee = [];
   const pose = (...a) => { const m = batiment(...a); batisMesh.push(m); return m; };
   if (montgolfiereMesh) poserMontgolfiere(); /* (deplacee ou tournee dans Amenager, ou une autre partie) */
-  if (!S_.cases.some((c) => c.type === 'foin')) { const c = S_.cases.find((x) => x.id === 'm7_4'); if (c && c.type === 'enclos') c.type = 'foin'; } /* (anciennes sauvegardes : le foin etait passe dans l'enclos) */
+  if (!S_.foinDeco && !S_.cases.some((c) => c.type === 'foin')) { const c = S_.cases.find((x) => x.id === 'm7_4'); if (c && c.type === 'enclos') c.type = 'foin'; } /* (anciennes sauvegardes : le foin etait passe dans l'enclos) */
+  if (!S_.foinDeco) { S_.foinDeco = true; S_.cases.filter((c) => c.type === 'foin').forEach((c) => { c.type = 'deco'; c.deco = 'foin'; c.rotD = (S_.rot && S_.rot.foin) || 0; rendreCase(c.id); }); construireDecos(); } /* (05/11/2026 : le foin devient une decoration, une fois) */
   let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg');
     if (ng >= 6) { if (MODELES.grange6) pose('grange6', o.x, o.y, o.z, o.c0.id, a); else assurerChateau(); ancres.grange = new T.Vector3(o.x, o.y + Y_DONJON + 0.4, o.z); } /* (le chateau-grange : sa baliste sur la terrasse du donjon) */
     else { fumerCheminee(pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a), ng); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); } } /* au faitage, pas en haut de la tourelle */
@@ -418,7 +428,6 @@ function construireBatiments() {
   o = blocBati('niche'); if (o && MODELES.maisonGardien) { pose('maisonGardien', o.x, o.y, o.z, o.c0.id, rotDe('niche')); ancres.niche = new T.Vector3(o.x, o.y + 2.3, o.z); } else delete ancres.niche; /* la maison du gardien (14c-gardien.js) */
   o = blocBati('puits'); if (o) pose('puits' + nivBat('nivPuits'), o.x, o.y, o.z, o.c0.id, -0.3 + rotDe('puits'));
   o = blocBati('epouvantail'); if (o) pose('epouvantail', o.x, o.y, o.z, o.c0.id, 0.4 + rotDe('epouvantail'));
-  o = blocBati('foin'); if (o) { const a = rotDe('foin'); [[-0.35, 0, -0.2, 0.3], [0.45, 0, 0.35, -0.5], [0.05, 0.55, 0.05, 1.2]].forEach(([dx, dy, dz, r]) => { const [x, z] = tourne(dx, dz, a); pose('botte', o.x + x, o.y + dy, o.z + z, o.c0.id, r + a); }); }
   o = blocBati('geliere'); if (o && niv('geliere')) { if (MODELES.geliere1) { pose('geliere' + Math.min(4, niv('geliere')), o.x, o.y, o.z, o.c0.id, rotDe('geliere')); ancres.geliere = new T.Vector3(o.x, o.y + 2.2, o.z); } else assurerGeliere(); } /* (la Geliere : son modele arrive au premier besoin) */
   rendreGelees();
   if (arbalete) { scene.remove(arbalete); arbalete = null; } construireArbalete(); construireTours();
