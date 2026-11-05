@@ -217,6 +217,7 @@ function ficheMonstre(t) {
   if (d.bain) met('bain', 'lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu');
   if (d.boue) met('boue', 'lenteur', 'Crachat de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu');
   if (d.racines) met('racines', 'lenteur', 'Racines', 'Quand tu es à mi-distance, il plante ses branches dans le sol : un cercle rouge sous toi, puis ses racines jaillissent. Dedans, elles t\'enracinent : tu ne marches plus, tu frappes encore.', num(fmt(Math.round(dSort * d.racines.x)) + ' dégâts', 'rouge') + num('enraciné ' + secondes(d.racines.duree)) + num(secondes(d.racines.prepa) + ' pour esquiver') + num('toutes les ' + d.racines.periode + ' s'), 'violet');
+  if (d.semis) met('semis', 'renfort', 'Semis', 'Il plonge la main dans sa coupe et sème à la volée : ' + d.semis.n + ' graines tombent autour de toi, chacune dans un cercle vert qui se remplit. Marche dessus pour les écraser avant qu\'il soit plein, sinon un Tronknyde en sort.', num(d.semis.n + ' graines') + num(secondes(d.semis.pousse) + ' pour les écraser') + num('toutes les ' + d.semis.periode + ' s'), 'violet');
   if (d.tourbillon) met('tourbillon', 'sort', 'Tourbillon de hache', 'Il lève sa hache : un cercle bleu autour de lui, puis il tourne deux fois sur lui-même, la hache tendue. Sors du cercle.', num(fmt(Math.round(dSort * d.tourbillon.x)) + ' dégâts', 'rouge') + num(secondes(d.tourbillon.prepa) + ' pour esquiver') + num('toutes les ' + d.tourbillon.periode + ' s'), 'violet');
   if (d.brassard) met('brassard', 'sort', d.brassardTitre || 'Coup de brassard', 'Un arc bleu devant ' + (d.fem ? 'elle' : 'lui') + ', puis ' + (d.brassardCoup || 'un grand coup de brassard') + ' qui te repousse.', num(fmt(Math.round(dSort * ((d.sortsX || {}).brassard || 1))) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'); /* (sortsX : le Coup d'aile de Crocabulia, a moitie, 03/11/2026) */
   if (d.pierre) met('pierre', 'bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre'));
@@ -1818,6 +1819,49 @@ function capRacines(mo, ctx) {
     racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, R.duree);
     if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
 }
+/* LE SEMIS (05/11/2026, le Semeur : « seme des graines qui deviennent des Tronknydes si on ne les ecrase pas », le monstre propose a Mathieu et
+   retenu) : il plonge la main droite dans sa coupe de glands et jette une poignee a la volee (son geste « sort ») ; les graines volent en cloche et
+   tombent autour de toi, chacune dans un petit cercle de terre retournee ; un disque vert s'y remplit (le temps qui reste, le bord clignote a la fin)
+   et une pousse grandit. Marche dessus pour l'ecraser ; sinon, le disque plein, un Tronknyde sort de terre et file sur toi. Pas plus de max
+   Tronknydes a lui, graines comprises */
+function capSemis(mo, ctx) {
+  const { pp, sortPret } = ctx, G = mo.d.semis; if (!G || combat.deroute != null) return;
+  if (!sortPret('semisT', G.periode) || mo.geste) return;
+  const debout = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length + (mo.graines || 0);
+  if (debout >= G.max) { mo.semisT = G.periode - 2; return; }
+  mo.semisT = 0; const c0 = combat, n = Math.min(G.n, G.max - debout); mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = G.lance + 0.5; mo.cd = Math.max(mo.cd || 0, G.lance + 0.6);
+  gesteSort(mo, gesteDe(mo, 'semis', 'sort'), G.lance);
+  if (!c0.semisVu) { c0.semisVu = true; toast(leNom(mo.d) + ' sème des graines autour de toi : marche dessus pour les écraser, sinon des Tronknydes en sortent !', 'alerte'); }
+  const places = []; for (let k = 0; k < n; k++) { const a = (k + Math.random() * 0.7) / n * Math.PI * 2, r = G.loin[0] + Math.random() * (G.loin[1] - G.loin[0]); places.push(pointValide(pp.x, pp.z, pp.x + Math.sin(a) * r, pp.z + Math.cos(a) * r)); }
+  mo.graines = (mo.graines || 0) + n; let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { mo.graines = 0; return true; } if (t < G.lance) return false;
+    const de = mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + 2.2, mo.z); places.forEach((p, k) => graineSemee(mo, de, p, G, c0, k * 0.06)); return true; });
+}
+function graineSemee(mo, de, p, G, c0, retard) { /* la graine qui vole en cloche, de sa main jusqu'a sa place */
+  const vers = new T.Vector3(p.x, solA(p.x, p.z) + 0.08, p.z), g = glandVolant(0.75), dist = de.distanceTo(vers), duree = Math.min(0.85, Math.max(0.45, dist / 8)), H = 1.0 + dist * 0.15; let t = -retard, mis = false;
+  const fini = () => { jeter(g); mo.graines = Math.max(0, (mo.graines || 0) - 1); return true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return fini(); if (t < 0) return false; if (!mis) { mis = true; scene.add(g); }
+    const k = Math.min(1, t / duree); g.position.lerpVectors(de, vers, k); g.position.y += Math.sin(k * Math.PI) * H; g.rotation.x += dt * 9;
+    if (fxAlea() < 0.6) emettre(FX_LUM, 1, { x: g.position.x, y: g.position.y, z: g.position.z, vie: [0.2, 0.3], taille: [0.4, 0.08], c: ['#fff1a8', '#ff9a2e'], a: 0.7 });
+    if (k >= 1) { jeter(g); planterGraine(mo, p, G, c0); return true; } });
+}
+function planterGraine(mo, p, G, c0) { /* la graine plantee : la terre retournee, le disque vert qui se remplit, la pousse qui grandit */
+  const y = solA(p.x, p.z), grp = new T.Group(); grp.position.set(p.x, y + 0.04, p.z); grp.userData.graine = true; scene.add(grp);
+  const plat = (geo, couleur, op, dy) => { const m = new T.Mesh(geo, new T.MeshBasicMaterial({ color: couleur, transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide })); m.rotation.x = -Math.PI / 2; m.position.y = dy; m.renderOrder = 2; grp.add(m); return m; };
+  plat(new T.CircleGeometry(0.4, 20), '#5b3d22', 0.85, 0); const fond = plat(new T.CircleGeometry(G.ecrase, 32), '#7fdc4a', 0.16, 0.01), plein = plat(new T.CircleGeometry(G.ecrase, 32), '#9be35a', 0.32, 0.015), bord = plat(new T.RingGeometry(G.ecrase - 0.09, G.ecrase, 40), '#b8f06a', 0.9, 0.02);
+  const gl = glandVolant(0.6); gl.position.y = 0.04; gl.rotation.z = 0.6; grp.add(gl);
+  const pousse = new T.Group(), tige = new T.Mesh(new T.CylinderGeometry(0.02, 0.035, 0.45, 6), mat('#6a8a2a')); tige.position.y = 0.22; pousse.add(tige);
+  [-1, 1].forEach((s2) => { const f = new T.Mesh(new T.SphereGeometry(0.1, 8, 6), mat('#7cc63e')); f.scale.set(1.5, 0.3, 0.75); f.position.set(s2 * 0.11, 0.36 + (s2 > 0 ? 0.06 : 0), 0); f.rotation.z = s2 * 0.5; pousse.add(f); });
+  pousse.scale.setScalar(0.05); grp.add(pousse); mottes(p.x, y, p.z, 4, 0.4); poussiere(p.x, y, p.z, 4, 0.4, '#8a6a44');
+  let t = 0; /* (la graine compte deja dans mo.graines depuis le semis) */
+  const fin = () => { jeter(grp); mo.graines = Math.max(0, (mo.graines || 0) - 1); return true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return fin(); const k = Math.min(1, t / G.pousse);
+    plein.scale.setScalar(Math.max(0.01, k)); fond.material.opacity = 0.12 + 0.08 * Math.abs(Math.sin(t * 6)); bord.material.color.set(k > 0.75 && Math.sin(t * 18) > 0 ? '#ff6a3a' : '#b8f06a');
+    pousse.scale.setScalar(0.2 + 0.8 * k); pousse.rotation.z = 0.12 * Math.sin(t * 3);
+    const q = paysanMesh.position;
+    if (Math.hypot(q.x - p.x, q.z - p.z) < G.ecrase) { fin(); pouf(p.x, y, p.z, 1.2, '#7a5a34'); emettre(FX_VIF, 10, { x: p.x, y: y + 0.2, z: p.z, r: 0.1, dv: 3, haut: true, vie: [0.3, 0.5], taille: [0.1, 0.03], c: ['#fff1a8', '#ff9a2e'], grav: 8, frein: 1.5 }); chiffre('Écrasée !', new T.Vector3(p.x, y + 0.9, p.z), 'butin'); return true; }
+    if (t >= G.pousse) { fin(); pouf(p.x, y, p.z, 1.8, '#7a5a34'); mottes(p.x, y, p.z, 8, 0.8); apparaitre(G.type, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; return true; } });
+}
 /* LES RACINES DE L'ABRAKNYDE (05/11/2026, « des racines qui viennent te saisir et t'entourer, au style de l'Abraknyde, pendant 1,25 s », puis « plus
    naturelles ? meme texture que l'Abraknyde ? », Mathieu) : n racines sortent du sol autour de (x, z) ; pris : elles montent en serrant jusqu'a sa taille
    (rayon 0,8 -> 0,3, environ un tour), en se tordant au hasard ; rate : elles jaillissent plus droites dans le cercle vide. La texture est celle de
@@ -2030,7 +2074,7 @@ const SORTS_CAC = { seisme: 'seismeT', brassard: 'brassardT', tourbillon: 'tourb
 const TRAITS_BOSS = new Set(['distance', 'casse', 'garde', 'ralentit', 'menotte', 'assomme', 'poison', 'soigne', 'protege', 'revit', 'demonte', 'grignote', 'bandit', 'fouisseur']); /* (ce qu'il fait, sans etiquette, en dernier dans sa fiche) */
 const cacBoss = (mo) => Math.min(porteeSur(mo, STATS_CLASSE.osa) - 0.5, Math.max(porteeSur(mo, STATS_CLASSE.iop) + 1.8, mo.d.portee * (mo.allonge || 1) + 0.3));
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -2039,8 +2083,12 @@ const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, c
    batiment vise. Les briques sont celles des sorts du perso (22b-effets.js). */
 const TIRS = { /* v : vitesse (unites par seconde), arc : hauteur de la courbe (en plus d'une part de la distance), long : il pointe ou il va */
   fleche: { v: 15, arc: 0.3, parD: 0.03, long: true }, flechette: { v: 17, arc: 0.2, parD: 0.02, long: true }, sagaie: { v: 13, arc: 0.5, parD: 0.05, long: true },
-  rocher: { v: 9.5, arc: 0.8, parD: 0.12 }, fruit: { v: 10, arc: 0.7, parD: 0.1 }, feu: { v: 11, arc: 0.35, parD: 0.04 }, magie: { v: 12, arc: 0.25, parD: 0.02 } };
+  rocher: { v: 9.5, arc: 0.8, parD: 0.12 }, fruit: { v: 10, arc: 0.7, parD: 0.1 }, feu: { v: 11, arc: 0.35, parD: 0.04 }, magie: { v: 12, arc: 0.25, parD: 0.02 }, gland: { v: 10.5, arc: 0.8, parD: 0.1 } }; /* (gland : le Semeur, 05/11/2026) */
+/* un gland qui luit (le Semeur, 05/11/2026) : le fruit orange clair, sa cupule brune, une petite queue ; k : sa taille */
+function glandVolant(k) { const g = new T.Group(), f = new T.Mesh(new T.SphereGeometry(0.15, 10, 8), new T.MeshBasicMaterial({ color: '#ffb53c' })), cu = new T.Mesh(new T.SphereGeometry(0.165, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat('#6e4a26')), q = boite(0.035, 0.09, 0.035, '#5a3a1e');
+  f.scale.set(1, 1.3, 1); cu.position.y = 0.05; q.position.y = 0.2; g.add(f, cu, q); g.scale.setScalar(k || 1); return g; }
 function projectileMonstre(type, mo) {
+  if (type === 'gland') return glandVolant(1.1);
   if (type === 'magie') { const g = new T.Group(), c = new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })), b = new T.Mesh(new T.IcosahedronGeometry(0.11, 1), new T.MeshBasicMaterial({ color: '#ffffff' })); g.add(c, b); return g; }
   if (type === 'fruit') return new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.28 : 0.17, 10, 8), mat(mo.d.fruit));
   if (type === 'rocher') return new T.Mesh(new T.DodecahedronGeometry(0.4, 0), mat('#9a948c'));
@@ -2055,6 +2103,7 @@ function projectileMonstre(type, mo) {
 function traineeTir(type, p, mo) {
   if (type === 'feu') return traineeFleche(p, true);
   if (type === 'magie') { emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.2, 0.3], taille: [0.5, 0.1], c: ['#ffffff', mo.d.couleurMagie || '#5fe0e8'], a: 0.8 }); return; }
+  if (type === 'gland') { emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.2, 0.35], taille: [0.5, 0.1], c: ['#fff1a8', '#ff9a2e'], a: 0.75 }); return; }
   if (type === 'rocher' || type === 'fruit') { if (fxAlea() < 0.5) emettre(FX_FUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.3, 0.45], taille: [0.25, 0.45], c: type === 'rocher' ? ['#c9b28a', '#d8c6a0'] : [mo.d.fruit, '#ffffff'], a: 0.4 }); return; }
   traineeFleche(p);
 }
@@ -2062,6 +2111,7 @@ function impactTir(type, p, mo, perso) {
   const y = solA(p.x, p.z);
   if (type === 'feu') { boule(p.x, p.y, p.z, 0.55 * (mo.d.feuTaille || 1), ['#ff9a2e', '#e8541e']); if (mo.d.boss && mo.d.element === 'feu') impactFeu(p.x, p.z, 1.0); return; } /* (Crocabulia : ses boules de feu brulent le sol, 01/11/2026) */
   if (type === 'magie') { etoileImpact(p, 0.8, mo.d.couleurMagie || '#5fe0e8'); onde(p.x, y, p.z, 1.4, mo.d.couleurMagie || '#5fe0e8', 0.35, 0.7); return; }
+  if (type === 'gland') { pouf(p.x, y, p.z, 1.2, '#ffb53c'); emettre(FX_VIF, 12, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.04], c: ['#fff1a8', '#ff9a2e', '#c8641e'], grav: 8, frein: 1.5 }); poussiere(p.x, y, p.z, 4, 0.5, '#8a6a44'); return; }
   if (type === 'rocher') { pouf(p.x, y, p.z, 1.8, '#9a948c'); poussiere(p.x, y, p.z, 8, 0.8, '#d8c6a0'); mottes(p.x, y, p.z, 5, 0.6); if (perso) secousse(0.08, 0.18); return; }
   if (type === 'fruit') { pouf(p.x, y, p.z, 1.4, mo.d.fruit); emettre(FX_VIF, 10, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.25, 0.45], taille: [0.12, 0.04], c: ['#ffffff', mo.d.fruit], grav: 9, frein: 1.5 }); return; }
   etoileImpact(p, type === 'sagaie' ? 0.9 : 0.65); poussiere(p.x, y, p.z, 4, 0.4);

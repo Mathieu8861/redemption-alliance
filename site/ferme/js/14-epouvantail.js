@@ -2,8 +2,8 @@
 /* ===================== L'EPOUVANTAIL CHASSEUR =====================
    Niveau 3 : une arbalete sur l'epaule, il tire sur un Tofu qui picore depuis un moment (portee 8 cases, une fleche de la reserve par tir).
    Niveau 4 : il reagit vite et couvre toute l'ile. Niveau 5 : le PEPITO-TRON, le mini terminator du bot de Redemption : armure doree,
-   visiere rouge, canon laser, pepites en orbite ; il couvre toute la ferme, abat aussi les Tofus des vagues, et facture 15 kamas par tir.
-   Il ne s'occupe que des Tofus. */
+   visiere rouge, canon laser, pepites en orbite ; il couvre toute la ferme. Il ne s'occupe que des Tofus (et, au niveau 6, des voleurs de VSA) :
+   plus des monstres des vagues depuis le 05/11/2026 (« au niveau 5 apparemment ca tape les mobs des vagues, retire ca », Mathieu). */
 const DEG_PEPITO_VSA = 90; /* le niveau 6 : son laser sur les voleurs de VSA (14/10/2026) */
 const pepitoTire = (k) => !(S_ && S_.pepito && S_.pepito[k] === false); /* les reglages du Pepito-Tron : 'champs' (les Tofus qui picorent), 'sauvage' (le Tofu sauvage) */
 const EPOU = [null, null, null, { portee: 8 * S, delai: 3 * SEC, cadence: 3.5, deg: 40 }, { portee: 99, delai: 1 * SEC, cadence: 2.2, deg: 60 }, /* (« l'epouvantail tape pas les Tofus » : portee 8 en unites du jeu, soit 4 cases, pour « 8 cases » promises ; le niveau 4 couvre toute l'ile, comme annonce) */ { portee: 99, delai: 0.45 * SEC, cadence: 1.0, deg: 150 }];
@@ -20,14 +20,15 @@ function equiperEpouvantail() {
   if (n >= 5) { /* le PEPITO-TRON : un vrai petit robot a la place de l'epouvantail (il garde son chapeau de paille) */
     const or = '#e8b84a', acier = '#9aa6ad', fonce = '#3d434a', rouge = new T.MeshBasicMaterial({ color: '#ff2a2a' });
     tete.position.y = 0; /* tout le haut du corps pivote vers la cible */
+    const bas = new T.Group(); g.add(bas); /* (05/11/2026 : les jambes suivent le quart de tour de l'amenagement, le haut scanne autour) */
     const socle = cyl(0.42, 0.48, 0.1, or, 16); socle.position.y = 0.05; g.add(socle);
     [-1, 1].forEach((sg) => { /* deux jambes d'acier */
-      const cuisse = cyl(0.09, 0.08, 0.45, acier, 10); cuisse.position.set(sg * 0.16, 0.78, 0); g.add(cuisse);
-      const genou = sphere(0.1, or, 1); genou.position.set(sg * 0.16, 0.55, 0.02); g.add(genou);
-      const tibia = cyl(0.08, 0.09, 0.42, acier, 10); tibia.position.set(sg * 0.16, 0.33, 0); g.add(tibia);
-      const pied = boite(0.18, 0.1, 0.3, fonce); pied.position.set(sg * 0.16, 0.12, 0.05); g.add(pied);
+      const cuisse = cyl(0.09, 0.08, 0.45, acier, 10); cuisse.position.set(sg * 0.16, 0.78, 0); bas.add(cuisse);
+      const genou = sphere(0.1, or, 1); genou.position.set(sg * 0.16, 0.55, 0.02); bas.add(genou);
+      const tibia = cyl(0.08, 0.09, 0.42, acier, 10); tibia.position.set(sg * 0.16, 0.33, 0); bas.add(tibia);
+      const pied = boite(0.18, 0.1, 0.3, fonce); pied.position.set(sg * 0.16, 0.12, 0.05); bas.add(pied);
     });
-    const bassin = boite(0.46, 0.16, 0.3, fonce); bassin.position.y = 1.02; g.add(bassin);
+    const bassin = boite(0.46, 0.16, 0.3, fonce); bassin.position.y = 1.02; bas.add(bassin);
     const torse = sphere(0.36, acier, 2); torse.scale.set(1, 1.05, 0.8); torse.position.y = 1.42; tete.add(torse);
     const plastron = boite(0.42, 0.34, 0.08, or); plastron.position.set(0, 1.45, 0.26); tete.add(plastron);
     const coeurR = new T.Mesh(new T.CircleGeometry(0.09, 20), rouge); coeurR.position.set(0, 1.47, 0.305); tete.add(coeurR); /* le coeur du reacteur */
@@ -53,7 +54,8 @@ function equiperEpouvantail() {
     const pepites = new T.Group(); pepites.position.y = 1.5; g.add(pepites);
     for (let k = 0; k < 5; k++) { const pp = maille(new T.DodecahedronGeometry(0.08, 0), or); const a = k / 5 * Math.PI * 2; pp.position.set(Math.cos(a) * 0.75, Math.sin(a * 2) * 0.12, Math.sin(a) * 0.75); pepites.add(pp); }
     g.scale.setScalar(H / 2.6); /* a la taille de l'epouvantail qu'il remplace */
-    epou = { g, tete, canon, pepites, voyant, visiere, coeur: coeurR, cd: 1, n, remplace: m }; ancres.epouvantail = new T.Vector3(m.position.x, m.position.y + H + 0.35, m.position.z);
+    const ry0 = m.rotation.y; bas.rotation.y = ry0; tete.rotation.y = ry0;
+    epou = { g, tete, canon, pepites, voyant, visiere, coeur: coeurR, cd: 1, n, remplace: m, ry0 }; ancres.epouvantail = new T.Vector3(m.position.x, m.position.y + H + 0.35, m.position.z);
   } else { /* niveaux 3 et 4 : il tient l'arbalete contre sa poitrine et pivote tout entier sur son piquet vers sa cible
        (11/10/2026, « l'animation de l'arbalete n'est pas tres clean » : avant, l'arbalete et son socle tournaient autour de lui en le traversant) */
     const a = modeleArbalete(), arme = a.userData.tete; a.remove(arme); arme.position.set(0, -0.08, 0.5); arme.scale.setScalar(n >= 4 ? 1.05 : 0.92); tete.add(arme);
@@ -70,11 +72,10 @@ function majEpouvantail(dt, s) { if (lieu === 'arene' || lieu === 'ile' || (MODE
   if (epou.pepites) { epou.pepites.rotation.y += dt * 1.6; epou.coeur.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 5) * 0.12); epou.voyant.visible = Math.sin(s * 6) > -0.3; epou.visiere.material.color.setHSL(0, 1, 0.5 + Math.sin(s * 4) * 0.08); }
   if (!E || enRuine('epouvantail')) return;
   epou.cd = Math.max(0, epou.cd - dt);
-  /* la cible : pendant une vague, le Pepito-Tron tire sur les grignoteurs, ou qu'ils soient (les Tofus, et les petits Wabbits qui foncent vers tes champs),
-     jamais sur les autres monstres (« il faut qu'il tire que sur les tofus, pas les monstres, juste il tapait pas ceux sur le terrain, que ceux dans les champs »,
-     Mathieu, 14/10/2026) ; hors vague, un Tofu (ou un Wabbit) qui picore un champ depuis assez longtemps */
+  /* la cible : hors vague, un Tofu qui picore un champ depuis assez longtemps, le Tofu sauvage ; au niveau 6, les voleurs de VSA (ceux des raids
+     compris). Pendant une vague, plus rien depuis le 05/11/2026 (« au niveau 5 apparemment ca tape les mobs des vagues, retire ca », Mathieu) */
   let cible = null, x = 0, z = 0, y = 0;
-  if (combat && n >= 5) { const t = combat.monstres.filter((o) => o.etat === 'actif' && o.m && ((o.d.grignote && o.type !== 'wabbit') || (n >= 6 && o.d.vole))).sort((a, b) => (a.d.vole ? 0 : 1) - (b.d.vole ? 0 : 1) || Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t, vsa: !!t.d.vole }; x = t.x; z = t.z; y = t.m.position.y + (t.d.vole ? 1.0 : 0.4); } } /* (niveau 6 : les voleurs des raids d'abord) */
+  if (combat && n >= 6) { const t = combat.monstres.filter((o) => o.etat === 'actif' && o.m && o.d.vole).sort((a, b) => Math.hypot(a.x - pos.x, a.z - pos.z) - Math.hypot(b.x - pos.x, b.z - pos.z))[0]; if (t) { cible = { mo: t, vsa: !!t.d.vole }; x = t.x; z = t.z; y = t.m.position.y + (t.d.vole ? 1.0 : 0.4); } } /* (niveau 6 : les voleurs des raids d'abord) */
   if (!cible && !combat && n >= 4 && S_.sauvage && pepitoTire('sauvage')) { /* (des le niveau 4 depuis le 05/11/2026 : « au niveau 4, qu'il tire sur les Tofus sur toute la ferme », Mathieu) */ /* le Tofu sauvage pose dans l'herbe (« pepito tire pas sur le tofu », Mathieu, 14/10/2026), a vue, sauf si on le lui interdit (reglage) */
     const c = S_.cases.find((x) => x.id === S_.sauvage.id); if (c) { const q = posCase(c); cible = { sauvage: true }; x = q.x; z = q.z; y = q.y + 0.6; } }
   if (!cible && !combat && n >= 6 && voleurCiblable()) { const q = voleur.m.position; cible = { voleur: true }; x = q.x; z = q.z; y = q.y + 1.0; } /* niveau 6 : le voleur de VSA qui file a ta grange */
