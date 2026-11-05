@@ -176,7 +176,7 @@ const GAINS = {
     stats: [['tofu', 'Tofus qui viennent picorer', ['', '2 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins', '3 fois moins'], (x) => x],
       ['degats', 'Il tire sur les Tofus : dégâts', [0, 0, 0, 40, 60, 150, 150]], ['portee', 'Portée', ['', '', '', enCases(EPOU[3].portee) + ' cases', 'toute ta ferme', 'toute ta ferme', 'toute ta ferme'], (x) => x],
       ['cadence', 'Il tire au bout de', ['', '', '', dureeLisible(EPOU[3].delai), dureeLisible(EPOU[4].delai), dureeLisible(EPOU[5].delai), dureeLisible(EPOU[5].delai)], (x) => x], ['cadence', 'Un tir toutes les', [0, 0, 0, 3.5, 2.2, 1, 1], (x) => virgule(x) + ' s']],
-    neufs: { 3: [['carreaux', 'Une flèche par tir, prise dans ta réserve']], 4: [['tofu', 'Il tire aussi sur le Tofu sauvage dans l\'herbe']], 5: [['auto', 'En vague, il tire sur les monstres qui grignotent tes cultures'], ['kama', 'Le laser est gratuit : plus de flèche ni de kamas'], ['tofu', 'Chaque Tofu abattu laisse sa Plume de Tofu']], 6: [['degats', 'Il tire aussi sur les voleurs de VSA, ceux des raids compris : ' + DEG_PEPITO_VSA + ' dégâts par tir']] } },
+    neufs: { 3: [['carreaux', 'Une flèche par tir, prise dans ta réserve']], 4: [['tofu', 'Il tire aussi sur le Tofu sauvage dans l\'herbe'], ['auto', 'Des réglages : tu choisis sur quels Tofus il tire']], 5: [['auto', 'En vague, il tire sur les monstres qui grignotent tes cultures'], ['kama', 'Le laser est gratuit : plus de flèche ni de kamas'], ['tofu', 'Chaque Tofu abattu laisse sa Plume de Tofu']], 6: [['degats', 'Il tire aussi sur les voleurs de VSA, ceux des raids compris : ' + DEG_PEPITO_VSA + ' dégâts par tir']] } },
   bottes: { stats: [['vitesse', 'Ton perso marche plus vite', [0, 30], (x) => '+' + x + ' %']] },
   leurre: { role: 'Une fausse Cawotte qui attire les Wabbits loin de tes Cawottes et de tes Fraises (pas ceux des vagues). Il ne les chasse pas : c\'est à toi de venir.', looks: [null, 'la fausse Cawotte en bois peint', 'la Cawotte au caramel', 'le panier à ressort'],
     stats: [['protege', 'Wabbits qui filent dessus', ['', '1 sur 2', '3 sur 4', 'tous'], (x) => x], ['cadence', 'Le Wabbit y reste', ['', dureeLisible(DUREE_PICORAGE), 'jusqu\'à ce que tu viennes', 'pris au panier'], (x) => x]] },
@@ -367,12 +367,12 @@ function ouvrirEnclos() {
   ouvrirModale('enclos', entete('Enclos à Bouftous') + amenager + betes + repro + achat + lignesAmelio(['enclos'], 'Améliorer l\'enclos'));
 }
 function reglagesPepito() {
-  if (niv('epouvantail') < 5) return '';
+  const n = niv('epouvantail'); if (n < 4) return ''; /* (des le niveau 4 depuis le 05/11/2026) */
   const ligne = (k, icone, nom, aide, laisse) => { const on = pepitoTire(k); return '<div class="art">' + ico(icone) + '<div><b>' + nom + '</b><div class="desc">' + aide + '</div></div><div class="act"><button class="inter' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + nom + '" data-pepito="' + k + '"></button><span class="etat-inter' + (on ? ' on' : '') + '">' + (on ? 'Il tire' : laisse) + '</span></div></div>'; }; /* (une icone par reglage : sans elle, le texte tombait dans sa colonne, 19/10/2026) */
   /* (24/10/2026, « je l'ai monte au niveau max, j'ai bien coche les cases, il tire pas » : sa sauvegarde avait les deux reglages coupes. Le bouton « Il tire »
      montrait l'etat mais se lisait comme une action : en cliquant pour le faire tirer, on le coupait. Un vrai interrupteur, vert et pousse a droite quand il tire) */
-  return '<div class="hdv-section">Réglages du PÉPITO-TRON</div><p class="hdv-aide">Pendant les vagues, il tire tout seul. En dehors, à toi de choisir :</p>' +
-    ligne('champs', 'tofu', 'Les Tofus qui picorent tes champs', 'Chacun te laisse sa Plume de Tofu. S\'il les laisse, chasse-les toi-même.', 'Il les laisse') + ligne('sauvage', 'filet', 'Le Tofu sauvage dans l\'herbe', 'Laisse-le si tu veux le capturer au filet pour ta volière.', 'Il le laisse');
+  return '<div class="hdv-section">' + (n >= 5 ? 'Réglages du PÉPITO-TRON' : 'Réglages de l\'épouvantail') + '</div><p class="hdv-aide">' + (n >= 5 ? 'Pendant les vagues, il tire tout seul. En dehors, à toi de choisir :' : 'À toi de choisir sur quels Tofus il tire :') + '</p>' +
+    ligne('champs', 'tofu', 'Les Tofus qui picorent tes champs', (n >= 5 ? 'Chacun te laisse sa Plume de Tofu.' : 'Une flèche par tir.') + ' S\'il les laisse, chasse-les toi-même.', 'Il les laisse') + ligne('sauvage', 'filet', 'Le Tofu sauvage dans l\'herbe', 'Laisse-le si tu veux le capturer au filet pour ta volière.', 'Il le laisse');
 }
 function ouvrirEpouvantail() {
   ouvrirModale('epouvantail', entete('L\'épouvantail') + (degatsBat('epouvantail') ? artPv('epouvantail') : '') + (() => { const n = niv('epouvantail'), E = EPOU[Math.min(5, n)];
@@ -647,7 +647,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.hdvOnglet) ouvrirHdv(b.dataset.hdvOnglet);
   else if (b.dataset.graines) ACTIONS.acheterGraines(b.dataset.graines, parseInt(b.dataset.n, 10));
   else if (b.dataset.potAchat) ACTIONS.acheterPots(b.dataset.potAchat, parseInt(b.dataset.n, 10));
-  else if (b.dataset.pepito) { const k = b.dataset.pepito; S_.pepito = S_.pepito || {}; S_.pepito[k] = !pepitoTire(k); toast('PÉPITO-TRON : ' + (pepitoTire(k) ? 'cible autorisée.' : 'cible ignorée.') + (k === 'sauvage' ? ' (le Tofu sauvage)' : ' (les Tofus des champs)'), 'or'); sauver(); ouvrirEpouvantail(); }
+  else if (b.dataset.pepito) { const k = b.dataset.pepito; S_.pepito = S_.pepito || {}; S_.pepito[k] = !pepitoTire(k); toast((niv('epouvantail') >= 5 ? 'PÉPITO-TRON : ' : 'Épouvantail : ') + (pepitoTire(k) ? 'cible autorisée.' : 'cible ignorée.') + (k === 'sauvage' ? ' (le Tofu sauvage)' : ' (les Tofus des champs)'), 'or'); sauver(); ouvrirEpouvantail(); }
   else if (b.dataset.entractePot) boireEntracte(b.dataset.entractePot);
   else if (b.dataset.entracteManger) mangerEntracte(b.dataset.entracteManger);
   else if (b.dataset.bonusArene) prendreBonusArene(b.dataset.bonusArene);
