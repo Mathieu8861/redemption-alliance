@@ -451,7 +451,11 @@ const VEC_INVOC = new T.Vector3();
 const CHUTE_INVOC = 0.22;
 function majInvoc(dt) {
   const iv = combat.invoc; if (!iv) return;
-  iv.vie -= dt; if (iv.galva > 0) { iv.galva -= dt; if (iv.galva <= 0 && iv.aura) { jeter(iv.aura); iv.aura = null; } }
+  iv.vie -= dt; if (iv.galva > 0) { iv.galva -= dt; const gros = iv.galva > 7.55 ? 1 : iv.galva > 7.25 ? 1 + 0.3 * (7.55 - iv.galva) / 0.3 : /* (il grossit a l'arrivee du jet) */ iv.galva < 0.3 ? 1 + 0.3 * Math.max(0, iv.galva / 0.3) : 1.3 + 0.03 * Math.sin(iv.galva * 9);
+    iv.gros = gros; if (iv.aura) { iv.aura.rotation.z += dt * 3; iv.aura.scale.setScalar(1 + 0.1 * Math.sin(iv.galva * 8)); }
+    if (Math.random() < dt * 12) emettre(FX_VIF, 1, { x: iv.x + (Math.random() - 0.5) * 1.0, y: iv.m.position.y + 0.15, z: iv.z + (Math.random() - 0.5) * 1.0, r: 0.04, v: [0, 1.6, 0], dv: 0.2, vie: [0.5, 0.9], taille: [0.11, 0.03], c: ['#ffffff', '#9fe4ff'] }); /* (des bulles qui montent, visibles en plein jour) */
+    if (Math.random() < dt * 8) emettre(FX_VIF, 1, { x: iv.x + (Math.random() - 0.5) * 0.9, y: iv.m.position.y + 0.9, z: iv.z + (Math.random() - 0.5) * 0.9, r: 0.05, dv: 0.3, vie: [0.4, 0.6], taille: [0.12, 0.04], c: ['#9fe4ff', '#3aa6e0'], grav: 9 }); /* (des gouttes qui tombent de lui) */
+    if (iv.galva <= 0) { iv.gros = 1; eauBouftou(iv, false); if (iv.aura) { jeter(iv.aura); iv.aura = null; } onde(iv.x, iv.m.position.y + 0.05, iv.z, 1.2, '#9fe4ff', 0.3, 0.6); emettre(FX_VIF, 18, { x: iv.x, y: iv.m.position.y + 0.6, z: iv.z, r: 0.5, dv: 2.4, vie: [0.3, 0.6], taille: [0.14, 0.04], c: ['#ffffff', '#9fe4ff'], grav: 7 }); } }
   if (iv.vie <= 0) { if (iv.aura) { jeter(iv.aura); iv.aura = null; } pouf(iv.x, iv.m.position.y, iv.z, 2, '#d9c2ff'); jeter(iv.m); if (iv.barre) iv.barre.remove(); combat.invoc = null; return; }
   if (iv.barre) { iv.barre.firstChild.style.width = Math.min(100, 100 * iv.vie / DUREE_INVOC).toFixed(0) + '%'; versEcran(VEC_INVOC.set(iv.x, iv.m.position.y + 1.25, iv.z), iv.barre); }
   if (iv.pose > 0) iv.pose -= dt; /* il se pose la ou il est tombe */
@@ -460,11 +464,11 @@ function majInvoc(dt) {
   if (c) {
     const d = Math.hypot(c.x - iv.x, c.z - iv.z);
     if (d > 1.0) { const w = prochainPas(iv, c.x, c.z, dt), dx = w.x - iv.x, dz = w.z - iv.z, L = Math.hypot(dx, dz) || 1; v = 3; iv.x += dx / L * Math.min(L, v * dt); iv.z += dz / L * Math.min(L, v * dt); tourner(iv, Math.atan2(dx, dz), dt); }
-    else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = iv.galva > 0 ? 0.8 / 1.3 : 0.8; iv.frappe = 0.25; blesser(c, Math.round(degBouftou(statsPerso().niveau) * (iv.galva > 0 ? 1.5 : 1))); } } /* (la Galvanisation : +30 % de vitesse, +50 % de degats) */
+    else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = iv.galva > 0 ? 0.8 / 1.3 : 0.8; iv.frappe = 0.25; blesser(c, Math.round(degBouftou(statsPerso().niveau) * (iv.galva > 0 ? 1.5 : 1))); if (iv.galva > 0) { onde(c.x, c.m.position.y + 0.05, c.z, 0.9, '#9fe4ff', 0.25, 0.7); emettre(FX_VIF, 10, { x: c.x, y: c.m.position.y + 0.5, z: c.z, r: 0.3, dv: 2.6, haut: true, vie: [0.3, 0.5], taille: [0.13, 0.04], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], grav: 7 }); } } } /* (la Galvanisation : +30 % de vitesse, +50 % de degats, chaque coup eclabousse) */
   }
   iv.pas += v * dt * 6; let elan = 0; if (iv.frappe > 0) { iv.frappe -= dt; elan = Math.sin((1 - Math.max(0, iv.frappe) / 0.25) * Math.PI) * 0.4; }
   iv.m.position.set(iv.x + Math.sin(iv.ry) * elan, hauteurSol(iv.x, iv.z, caseIci(iv.x, iv.z)) + (1 - Math.cos(iv.pas * 2)) * 0.03 + haut, iv.z + Math.cos(iv.ry) * elan);
-  iv.m.rotation.y = iv.ry; iv.m.rotation.z = Math.sin(iv.pas) * 0.05; iv.m.scale.setScalar(0.45 * Math.min(1, iv.vie / 0.3));
+  iv.m.rotation.y = iv.ry; iv.m.rotation.z = Math.sin(iv.pas) * 0.05; iv.m.scale.setScalar(0.45 * (iv.gros || 1) * Math.min(1, iv.vie / 0.3)); /* (gros : la Galvanisation, x1,3) */
 }
 function majBarreBoss(mo) {
   const el = $('boss-barre'); if (!el) return;
@@ -503,21 +507,56 @@ function majCombatHud() {
    un geyser a distance », Mathieu) : la Carapace de corail (Iop), le Geyser (Cra), la Galvanisation (Osamodas) */
 function sortCorail(x, y, z, S, st) {
   const c = combat, cl = classeDe(), pp = paysanMesh.position;
-  if (cl === 'iop') { /* la carapace : 6 s, -40 % recus, +30 % donnes ; des ecailles de corail et d'eau tournent autour de lui */
-    c.carapace = 6; onde(pp.x, pp.y + 0.1, pp.z, 1.6, '#5cc8f0', 0.35, 0.6); pouf(pp.x, pp.y + 0.8, pp.z, 2.2, '#f0604a'); chiffre('Carapace de corail', new T.Vector3(pp.x, pp.y + 2.4, pp.z), 'gros');
-    const g = new T.Group(); for (let k = 0; k < 6; k++) { const e = new T.Mesh(new T.CylinderGeometry(0.16, 0.16, 0.05, 6), new T.MeshToonMaterial({ color: k % 2 ? '#f0604a' : '#4a9ab4', gradientMap: grad })); e.rotation.x = Math.PI / 2; const h = new T.Group(); h.add(e); h.userData.a = k / 6 * Math.PI * 2; g.add(h); }
-    scene.add(g); const c0 = c; let t = 0;
-    effets.push((dt) => { t += dt; if (combat !== c0 || !(c0.carapace > 0)) { jeter(g); return true; } const P = paysanMesh.position; g.position.set(P.x, P.y, P.z);
-      g.children.forEach((h, k) => { const a = h.userData.a + t * 2.4; h.position.set(Math.sin(a) * 0.95, 0.9 + 0.25 * Math.sin(t * 3 + k), Math.cos(a) * 0.95); h.rotation.y = a; }); return false; });
+  if (cl === 'iop') { /* la carapace : 6 s, -40 % recus, +30 % donnes. L'eau monte en spirale autour de lui, une bulle de carapace a facettes se forme
+       (bleu lagon, aretes de corail), enfle et tourne, des ecailles en orbite ; a la fin elle eclate en eclats (05/11/2026, « tres leger », Mathieu) */
+    c.carapace = 6; const c0 = c, u = paysanMesh.userData; u.attaque = { t: 0, classe: 'iop', base: u.angle, tour: true, surFrappe: () => {} }; /* (le geste seul : un tour sur lui-meme, sans coup) */
+    son('sort'); secousse(0.06, 0.2); onde(pp.x, pp.y + 0.06, pp.z, 2.2, '#5cc8f0', 0.45, 0.85); onde(pp.x, pp.y + 0.06, pp.z, 1.4, '#ffffff', 0.3, 0.7);
+    chiffre('Carapace de corail', new T.Vector3(pp.x, pp.y + 2.6, pp.z), 'gros');
+    let ts = 0; effets.push((dt) => { ts += dt; if (combat !== c0) return true; const P = paysanMesh.position; /* la spirale d'eau qui monte (0,6 s) */
+      for (let k = 0; k < 3; k++) { const a = ts * 11 + k * 2.094, r = 1.15 - ts * 0.5;
+        emettre(FX_LUM, 2, { x: P.x + Math.sin(a) * r, y: P.y + 0.1 + ts * 3.2, z: P.z + Math.cos(a) * r, r: 0.05, v: [0, 1.2, 0], dv: 0.3, vie: [0.35, 0.6], taille: [0.24, 0.05], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], a: 0.95 }); }
+      return ts > 0.6; });
+    const g = new T.Group(), plein = new T.Mesh(GEO_BOUCLIER, fxMat('#4ab8e0', 0.24)), fil = new T.Mesh(GEO_BOUCLIER, new T.MeshBasicMaterial({ color: '#ff9a78', wireframe: true, transparent: true, opacity: 0.9, depthWrite: false })); g.add(plein, fil);
+    const ec = new T.Group(); for (let k = 0; k < 8; k++) { const e = new T.Mesh(new T.CylinderGeometry(0.17, 0.17, 0.05, 6), new T.MeshToonMaterial({ color: k % 2 ? '#f0604a' : '#4a9ab4', gradientMap: grad })); e.rotation.x = Math.PI / 2; const h = new T.Group(); h.add(e); h.userData.a = k / 8 * Math.PI * 2; ec.add(h); }
+    g.traverse((o) => { o.raycast = () => {}; }); ec.traverse((o) => { o.raycast = () => {}; }); scene.add(g); scene.add(ec); let t = 0, eclate = false;
+    effets.push((dt) => { t += dt; const P = paysanMesh.position, fin = combat !== c0 || !(c0.carapace > 0);
+      if (fin && !eclate) { eclate = true; t = 0; onde(P.x, P.y + 0.06, P.z, 1.6, '#9fe4ff', 0.3, 0.6); /* la bulle eclate */
+        emettre(FX_LUM, 26, { x: P.x, y: P.y + 0.9, z: P.z, r: 0.9, dv: 3.2, vie: [0.35, 0.7], taille: [0.16, 0.03], c: ['#ffffff', '#9fe4ff', '#ff9a78'], a: 1, grav: 5, etire: 0.03 }); jeter(ec); }
+      if (eclate) { g.position.set(P.x, P.y + 0.85, P.z); g.scale.setScalar(1.25 + t * 1.6); plein.material.opacity = Math.max(0, 0.24 * (1 - t / 0.25)); fil.material.opacity = Math.max(0, 0.9 * (1 - t / 0.25)); if (t > 0.25) { jeter(g); return true; } return false; }
+      const f = Math.min(1, t / 0.35), boing = f < 1 ? 0.3 + 0.95 * f + 0.15 * Math.sin(f * Math.PI) : 1.2 + 0.04 * Math.sin(t * 7); /* elle enfle, deborde un peu, puis respire */
+      g.position.set(P.x, P.y + 0.85, P.z); g.scale.setScalar(boing); g.rotation.y = t * 0.9; g.rotation.x = 0.15 * Math.sin(t * 1.3);
+      plein.material.opacity = 0.2 + 0.06 * Math.sin(t * 5); fil.material.opacity = 0.75 + 0.2 * Math.sin(t * 5);
+      ec.position.set(P.x, P.y, P.z); ec.children.forEach((h, k) => { const a = h.userData.a + t * 2.2, r = 1.25 * Math.min(1, t / 0.4); h.position.set(Math.sin(a) * r, 0.5 + 0.55 * Math.sin(t * 2.5 + k), Math.cos(a) * r); h.rotation.y = a; });
+      if (Math.random() < dt * 10) emettre(FX_LUM, 1, { x: P.x + (Math.random() - 0.5) * 1.6, y: P.y + 0.2, z: P.z + (Math.random() - 0.5) * 1.6, r: 0.05, v: [0, 1.4, 0], dv: 0.2, vie: [0.5, 0.9], taille: [0.12, 0.03], c: ['#ffffff', '#9fe4ff'], a: 0.85 }); /* des bulles qui montent */
+      return false; });
   } else if (cl === 'cra') { /* le geyser : le cercle bleu, 0,6 s, puis le jet ; les monstres touches projetes et sonnes */
     const c0 = c; onde(x, y + 0.05, z, S.zone, '#5cc8f0', 0.6, 0.5); let t = 0, parti = false;
     effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.6) return false;
       if (!parti) { parti = true; geyserEau(x, y, z, S.zone * 0.55, ['#2aa8e0', '#bdf0ff', '#16608f']); secousse(0.08, 0.2); son('sort');
         c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < S.zone) { blesser(o, Math.round(st.deg * 2.5), true); if (o.etat === 'actif') { o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); } } }); }
       return true; });
-  } else if (cl === 'osa') { /* la galvanisation : son Bouftou plus fort et plus vif 8 s, et il reste plus longtemps */
-    const iv = c.invoc; if (!iv) return; iv.galva = 8; iv.vie = Math.min(DUREE_INVOC * 1.3, iv.vie + DUREE_INVOC * 0.3);
-    onde(iv.x, iv.m.position.y + 0.05, iv.z, 1.4, '#5ccbf0', 0.4, 0.6); pouf(iv.x, iv.m.position.y + 0.6, iv.z, 2.4, '#9fe4ff'); chiffre('Galvanisé !', new T.Vector3(iv.x, iv.m.position.y + 1.6, iv.z), 'gros');
+  } else if (cl === 'osa') { /* la galvanisation : un filet d'eau file en arc de sa main vers son Bouftou, qui grossit, chevrons de bonus, bulles autour
+       tant que ca dure, chaque coup eclabousse ; plus fort et plus vif 8 s, et il reste plus longtemps (05/11/2026, etoffee : « tres leger », Mathieu) */
+    const iv = c.invoc; if (!iv) return; iv.galva = 8; iv.vie = Math.min(DUREE_INVOC * 1.3, iv.vie + DUREE_INVOC * 0.3); 
+    /* (galvaniser, l'effet de la Tortue Corail, attend un monstre a squelette : appele avec le perso, il plantait et coupait la suite, 05/11/2026) */
+    const de = mainDe(paysanMesh) || new T.Vector3(pp.x, pp.y + 1.2, pp.z), c0 = c; let tj = 0; /* le jet d'eau : de vraies gouttes bleues qui filent en arc de sa main a son Bouftou */
+    effets.push((dt) => { tj += dt; if (combat !== c0 || !combat.invoc) return true; const k = Math.min(1, tj / 0.42), oy = iv.m.position.y + 0.5;
+      for (let j = 0; j < 3; j++) { const q = Math.max(0, k - j * 0.05), X = de.x + (iv.x - de.x) * q, Y = de.y + (oy - de.y) * q + Math.sin(q * Math.PI) * 0.9, Z = de.z + (iv.z - de.z) * q;
+        emettre(FX_VIF, 3, { x: X, y: Y, z: Z, r: 0.1, dv: 0.5, vie: [0.3, 0.5], taille: [0.24, 0.07], c: j ? ['#3aa6e0', '#1f7fbf'] : ['#ffffff', '#9fe4ff'], grav: 3 }); }
+      return k >= 1; });
+    let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || !combat.invoc) return true; if (t < 0.45) return false; /* (a l'arrivee du jet) */
+      emettre(FX_VIF, 22, { x: iv.x, y: iv.m.position.y + 0.4, z: iv.z, r: 0.4, dv: 3.4, haut: true, vie: [0.4, 0.75], taille: [0.16, 0.05], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], grav: 7, etire: 0.02 }); flechesBonus(iv.x, iv.m.position.y + 1.0, iv.z, '#3aa6e0'); eauBouftou(iv, true); /* (a l'arrivee du jet, il devient un Bouftou d'eau : « que le Bouftou devienne un Bouftou d'eau, ca le boost », Mathieu, 05/11/2026) */
+      const y = iv.m.position.y; onde(iv.x, y + 0.05, iv.z, 1.8, '#5ccbf0', 0.4, 0.8); onde(iv.x, y + 0.05, iv.z, 1.1, '#ffffff', 0.3, 0.6); secousse(0.05, 0.15);
+      emettre(FX_LUM, 24, { x: iv.x, y: y + 0.4, z: iv.z, r: 0.5, dv: 3, haut: true, vie: [0.35, 0.7], taille: [0.16, 0.03], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], a: 1, grav: 5, etire: 0.03 });
+      chiffre('Galvanisé !', new T.Vector3(iv.x, y + 1.7, iv.z), 'gros'); return true; });
     if (!iv.aura) { const r = new T.Mesh(new T.TorusGeometry(0.75, 0.06, 6, 24), new T.MeshBasicMaterial({ color: '#5ccbf0' })); r.rotation.x = Math.PI / 2; r.position.y = 0.1; iv.m.add(r); iv.aura = r; }
   }
+}
+
+function eauBouftou(iv, oui) { /* le Bouftou d'eau : chaque couleur du Bouftou invoque devient un bleu d'eau selon sa clarte (laine claire, peau plus profonde) ; non : ses couleurs reviennent.
+  Ses materiaux sont copies d'abord (le modele est partage avec les Bouftous des vagues) */
+  if (oui && !iv.couleurs0) { iv.couleurs0 = [];
+    iv.m.traverse((o) => { if (!o.isMesh || !o.material || !o.material.color || o.material.side === T.BackSide) return; o.material = o.material.clone(); const h = {}; o.material.color.getHSL(h); iv.couleurs0.push([o, o.material.color.clone()]);
+      o.material.color.set('#1f7fbf').lerp(new T.Color('#c8f4ff'), Math.min(1, Math.max(0, (h.l - 0.15) / 0.75))); }); }
+  else if (!oui && iv.couleurs0) { iv.couleurs0.forEach(([o, c0]) => o.material.color.copy(c0)); iv.couleurs0 = null; }
 }
