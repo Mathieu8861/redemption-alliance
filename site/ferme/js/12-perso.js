@@ -611,7 +611,7 @@ function porteeSous(ev) {
     const c = cel && S_.cases.find((x) => x.id === cel); if (!c) return null;
     if (c.type === 'tour') { const q = posCase(c); return { x: q.x, y: q.y, z: q.z, r: porteeTour(c), txt: 'Tour niveau ' + (nivTour(c) + 1) + ' · portée ' + enCases(porteeTour(c)) + ' cases · ' + fmt(S_.fleches) + ' flèches en réserve' }; }
     if (c.type === 'grange' && arbalete && niv('arbalete')) return { x: arbalete.position.x, y: posCase(c).y, z: arbalete.position.z, r: porteeArbalete(), txt: 'Arbalète niveau ' + niv('arbalete') + ' · portée ' + enCases(porteeArbalete()) + ' cases · ' + S_.carreaux + '/' + capaciteArbalete() + ' carreaux · ' + fmt(S_.fleches) + ' flèches en réserve' };
-    if (c.type === 'epouvantail' && epou && niv('epouvantail') >= 3) { const n = niv('epouvantail'); return { x: epou.g.position.x, y: posCase(c).y, z: epou.g.position.z, r: n >= 4 ? 0 : EPOU[3].portee, txt: (n >= 5 ? 'PÉPITO-TRON · toute la ferme · ' + PRIX_LASER + ' kamas par tir' : 'Épouvantail · ' + (n >= 4 ? 'toute l\'île' : 'portée ' + enCases(EPOU[3].portee) + ' cases') + ' · ' + fmt(S_.fleches) + ' flèches en réserve') }; }
+    if (c.type === 'epouvantail' && epou && niv('epouvantail') >= 3) { const n = niv('epouvantail'); return { x: epou.g.position.x, y: posCase(c).y, z: epou.g.position.z, r: n >= 4 ? 0 : EPOU[3].portee, txt: (n >= 5 ? 'PÉPITO-TRON · toute ta ferme · ' + PRIX_LASER + ' kamas par tir' : 'Épouvantail · ' + (n >= 4 ? 'toute ta ferme' : 'portée ' + enCases(EPOU[3].portee) + ' cases autour de lui') + ' · ' + fmt(S_.fleches) + ' flèches en réserve') }; }
     return null;
   }
   return null;
