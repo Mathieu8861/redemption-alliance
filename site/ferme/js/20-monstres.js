@@ -162,7 +162,7 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
   const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return L; };
 /* « il faudrait + de monstres, en vrai, et qui apparaissent au fur et a mesure », « voire tripler » (Mathieu, 04/11/2026) : sur l'ile de Moon d'abord, hors vague de boss,
    2,5 fois plus de monstres ordinaires, un peu moins forts chacun (FORCE_HORDE ; le lissage des renforts ne les compte pas). Ils arrivent par groupes (finVague, majCombat) */
-const HORDE = 2.5, multVague = (n) => (n > 8 * VAGUES_PALIER && n <= VAGUES_TOTAL && n % VAGUES_PALIER ? HORDE : 1); /* (d'abord l'ile de Moon, vagues 81 a 89 : les paliers d'avant suivront une fois la horde jugee en jeu) */
+const HORDE = 2.5, DEBUT_HORDE = 6 * VAGUES_PALIER, multVague = (n) => (n > DEBUT_HORDE && n <= VAGUES_TOTAL && n % VAGUES_PALIER ? HORDE : 1); /* (d'abord l'ile de Moon, vagues 81 a 89 ; des la vague 61 depuis le 05/11/2026, par Discord : « fais demarrer a partir du lvl 60 », Mathieu : les Koalaks, le Dragon Cochon et l'ile de Moon, hors vagues de boss) */
 /* « durcis encore » (Mathieu, 12/10/2026) : les monstres des vagues normales prennent des PV et des degats en plus, davantage dans les paliers du haut
    (simulations : on finissait les vagues avec 65 a 95 % de PV, maintenant 30 a 70 %). Les vagues de boss et les voleurs des raids ne changent pas. */
 const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.75, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
