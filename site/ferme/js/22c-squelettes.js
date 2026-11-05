@@ -295,12 +295,12 @@ function moulinet(mo) {
   if (!c0.moulinetVu) { c0.moulinetVu = true; toast(leNom(mo.d) + ' tourne trois fois sur lui-même : sors du grand cercle !', 'alerte'); }
   const touche = () => { const p2 = paysanMesh.position; if (combat === c0 && !c0.fin && mo.etat === 'actif' && Math.hypot(p2.x - mo.x, p2.z - mo.z) < R) { blesserPerso(dg, mo); if (combat && !combat.fin) effetsCoup(mo); }
     const y = mo.m.position.y; onde(mo.x, y, mo.z, R * 1.05, C[1], 0.4, 0.75); onde(mo.x, y, mo.z, R * 0.8, C[2], 0.5, 0.45, true); secousse(0.12, 0.25); };
-  zoneDanger({ mo, x: mo.x, z: mo.z, r: R, duree: alerte, effet: () => {
+  zoneDanger({ mo, x: mo.x, z: mo.z, r: R, duree: alerte, couleur: COULEUR_CAC, effet: () => {
     if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) return;
     a.time = bras.t; a.timeScale = 0; touche(); /* (le marteau tendu, fige ; c'est lui qui tourne) */
     const d = { x: mo.x, z: mo.z, r: R }; (c0.dangers = c0.dangers || []).push(d);
     const g = new T.Group(), y0 = mo.m.position.y; g.position.set(mo.x, y0 + 0.07, mo.z);
-    const fond = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshBasicMaterial({ color: C[0], transparent: true, opacity: 0.22, depthWrite: false, side: T.DoubleSide })), bord = new T.Mesh(new T.RingGeometry(R - 0.16, R, 56), new T.MeshBasicMaterial({ color: C[0], transparent: true, opacity: 0.9, depthWrite: false, side: T.DoubleSide }));
+    const fond = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshBasicMaterial({ color: COULEUR_CAC, transparent: true, opacity: 0.22, depthWrite: false, side: T.DoubleSide })), bord = new T.Mesh(new T.RingGeometry(R - 0.16, R, 56), new T.MeshBasicMaterial({ color: COULEUR_CAC, transparent: true, opacity: 0.9, depthWrite: false, side: T.DoubleSide }));
     [fond, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 2; g.add(m); }); scene.add(g);
     const lame = new T.Group(); lame.position.set(mo.x, y0 + bras.y * e, mo.z);
     const lames = [['#ffffff', C[1], 0.9, 1.0, true], [C[1], C[0], 0.6, 1.1, false]].map(([c, b, o, sc, plein]) => { const m = new T.Mesh(GEO_RUBAN, matRuban(c, b, o, plein)); m.rotation.x = Math.PI / 2; m.scale.set(sc * (R - 0.3) / 1.15, sc * (R - 0.3) / 1.15, 1); m.material.uniforms.uP.value = 1; m.material.uniforms.uQ.value = 0.85; m.renderOrder = plein ? 9 : 8; lame.add(m); return m; });
