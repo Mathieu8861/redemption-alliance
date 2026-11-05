@@ -1818,30 +1818,41 @@ function capRacines(mo, ctx) {
     racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, R.duree);
     if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
 }
-/* les racines de l'Abraknyde (05/11/2026) : n tubes effiles qui sortent du sol en spirale autour de (x, z) ; pris : elles montent en serrant jusqu'a
-   la taille du perso (rayon 0,75 -> 0,3, 1,1 tour) ; rate : elles jaillissent plus droites dans le cercle vide. Ecorce en couleurs par sommet (sillons
-   sombres, plaques de mousse), une feuille au bout, contour sombre. Elles poussent (0,25 s), tiennent (duree), se retirent (0,3 s) */
-const ECORCE = ['#7a4a26', '#5e3a1e', '#8a5a30'], MOUSSE = '#6f9a3a';
+/* LES RACINES DE L'ABRAKNYDE (05/11/2026, « des racines qui viennent te saisir et t'entourer, au style de l'Abraknyde, pendant 1,25 s », puis « plus
+   naturelles ? meme texture que l'Abraknyde ? », Mathieu) : n racines sortent du sol autour de (x, z) ; pris : elles montent en serrant jusqu'a sa taille
+   (rayon 0,8 -> 0,3, environ un tour), en se tordant au hasard ; rate : elles jaillissent plus droites dans le cercle vide. La texture est celle de
+   l'Abraknyde (sa peau : un morceau d'ecorce moussue de son atlas, le grain dans le sens de la racine), l'epaisseur varie (des noeuds), le bout se
+   recourbe ; une radicelle sur une racine sur deux, une feuille au bout. Elles poussent (0,25 s), tiennent (duree), se retirent (0,3 s) */
+const ECORCE_UV = [0.622, 0.677, 0.521, 0.729]; /* (u0, u1, v0, v1 : un morceau d'ecorce brun chaud, veinee et moussue, de l'atlas de l'Abraknyde ; la premiere zone, plus sombre, ne lui ressemblait pas) */
+function texAbraknyde() { if (texAbraknyde.t !== undefined) return texAbraknyde.t; let t = null; const M = MODELES.abraknyde; if (M) M.traverse((o) => { if (!t && o.isSkinnedMesh && o.material && o.material.map) t = o.material.map; }); return (texAbraknyde.t = t || null); }
+function tubeRacine(pts, rayon, T_SEG, R_SEG, noeuds) {
+  const courbe = new T.CatmullRomCurve3(pts), geo = new T.TubeGeometry(courbe, T_SEG, rayon, R_SEG, false), pos = geo.attributes.position, uv = geo.attributes.uv, [u0, u1, v0, v1] = ECORCE_UV;
+  for (let s = 0; s <= T_SEG; s++) { const w = s / T_SEG, ctr = courbe.getPointAt(w), ef = (1 - 0.82 * w) * (1 + 0.16 * Math.sin(w * noeuds * Math.PI * 2) ** 2); /* (effilee, avec des noeuds) */
+    for (let j = 0; j <= R_SEG; j++) { const k = s * (R_SEG + 1) + j; pos.setXYZ(k, ctr.x + (pos.getX(k) - ctr.x) * ef, ctr.y + (pos.getY(k) - ctr.y) * ef, ctr.z + (pos.getZ(k) - ctr.z) * ef);
+      uv.setXY(k, u0 + (u1 - u0) * (j / R_SEG), v0 + (v1 - v0) * w); } }
+  pos.needsUpdate = true; uv.needsUpdate = true; geo.computeVertexNormals(); return { geo, courbe };
+}
 function racinesQuiSaisissent(x, y, z, pris, duree) {
-  const c0 = combat, g = new T.Group(), n = pris ? 4 : 5, T_SEG = 36, R_SEG = 7, L = [], own = [];
-  const mt = new T.MeshToonMaterial({ vertexColors: true, gradientMap: grad }), mf = mat('#7fb446'); own.push(mt, mf);
+  const c0 = combat, g = new T.Group(), n = pris ? 4 : 5, T_SEG = 40, R_SEG = 8, L = [], own = [], tex = texAbraknyde(), A = () => Math.random() - 0.5;
+  const mt = tex ? new T.MeshToonMaterial({ map: tex, gradientMap: grad }) : mat('#6b4528'), mf = mat('#86b84a'); own.push(mt, mf);
+  const ajouter = (pts, rayon, T2, noeuds, feuille) => { const { geo, courbe } = tubeRacine(pts, rayon, T2, R_SEG, noeuds), m = new T.Mesh(geo, mt), k2 = new T.Mesh(geo, contourMat(0.016)); m.castShadow = true; g.add(m, k2);
+    let f = null; if (feuille) { const bout = courbe.getPointAt(1), dir = courbe.getTangentAt(1); f = new T.Mesh(new T.SphereGeometry(0.075, 8, 6), mf); f.scale.set(1, 0.3, 2); f.position.copy(bout).addScaledVector(dir, 0.06); f.lookAt(bout.clone().add(dir)); f.visible = false; g.add(f); }
+    const o = { geo, f, pas: R_SEG * 6, T: T2 }; L.push(o); return { o, courbe }; };
   for (let i = 0; i < n; i++) {
-    const a0 = i / n * Math.PI * 2 + Math.random() * 0.4, tours = pris ? 1.1 : 0.35, h = pris ? 1.15 + Math.random() * 0.35 : 0.9 + Math.random() * 0.5, r0 = pris ? 0.75 : 0.5 + Math.random() * 0.6, r1 = pris ? 0.3 : r0 * 0.6;
-    const pts = []; for (let k = 0; k <= 12; k++) { const u = k / 12, a = a0 + u * tours * Math.PI * 2 * (i % 2 ? 1 : -1), r = r0 + (r1 - r0) * Math.min(1, u * 1.6); pts.push(new T.Vector3(Math.cos(a) * r, -0.15 + u * h, Math.sin(a) * r)); }
-    const courbe = new T.CatmullRomCurve3(pts), geo = new T.TubeGeometry(courbe, T_SEG, 0.11, R_SEG, false), pos = geo.attributes.position, col = [], cc = new T.Color();
-    for (let s = 0; s <= T_SEG; s++) { const ctr = courbe.getPointAt(s / T_SEG), ef = 1 - 0.78 * s / T_SEG; /* (effilee vers le bout) */
-      for (let j = 0; j <= R_SEG; j++) { const k = s * (R_SEG + 1) + j; pos.setXYZ(k, ctr.x + (pos.getX(k) - ctr.x) * ef, ctr.y + (pos.getY(k) - ctr.y) * ef, ctr.z + (pos.getZ(k) - ctr.z) * ef);
-        const mousse = (Math.sin(s * 0.9 + i * 2) > 0.55 && j < 4); cc.set(mousse ? MOUSSE : ECORCE[j % 3 === 0 ? 1 : (s + j) % 5 === 0 ? 2 : 0]); col.push(cc.r, cc.g, cc.b); } } /* (sillons sombres en long, quelques plaques de mousse sur le dessus) */
-    pos.needsUpdate = true; geo.setAttribute('color', new T.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
-    const m = new T.Mesh(geo, mt), k2 = new T.Mesh(geo, contourMat(0.018)); m.castShadow = true; g.add(m, k2);
-    const bout = courbe.getPointAt(1), dir = courbe.getTangentAt(1), f = new T.Mesh(new T.SphereGeometry(0.09, 8, 6), mf); f.scale.set(1, 0.35, 1.9); f.position.copy(bout); f.lookAt(bout.clone().add(dir)); f.visible = false; g.add(f);
-    L.push({ geo, f, total: geo.index.count, pas: R_SEG * 6 }); }
-  g.position.set(x, y, z); scene.add(g); let s = 0;
-  const fin = () => { g.parent && g.parent.remove(g); L.forEach((o) => { o.geo.dispose(); o.f.geometry.dispose(); }); own.forEach((o) => o.dispose()); return true; };
+    const sens = i % 2 ? 1 : -1, a0 = i / n * Math.PI * 2 + A() * 0.6, tours = pris ? 0.85 + Math.random() * 0.35 : 0.2 + Math.random() * 0.25;
+    const h = pris ? 1.05 + Math.random() * 0.45 : 0.75 + Math.random() * 0.6, r0 = pris ? 0.8 + A() * 0.2 : 0.45 + Math.random() * 0.7, r1 = pris ? 0.28 + Math.random() * 0.06 : r0 * 0.55;
+    const pts = []; for (let k = 0; k <= 14; k++) { const u = k / 14, a = a0 + u * tours * Math.PI * 2 * sens + A() * 0.25, r = (r0 + (r1 - r0) * Math.min(1, u * 1.5)) * (1 + A() * 0.18);
+      pts.push(new T.Vector3(Math.cos(a) * r + A() * 0.05, -0.18 + u * h + A() * 0.06, Math.sin(a) * r + A() * 0.05)); }
+    { const p = pts[pts.length - 1], q = pts[pts.length - 2], d = p.clone().sub(q); pts.push(p.clone().add(new T.Vector3(-d.z, 0.04, d.x).multiplyScalar(0.9))); } /* (le bout se recourbe) */
+    const { courbe } = ajouter(pts, 0.1 + Math.random() * 0.03, T_SEG, 2 + Math.floor(Math.random() * 2), true);
+    if (i % 2 === 0) { const w = 0.35 + Math.random() * 0.2, b = courbe.getPointAt(w), tg = courbe.getTangentAt(w), dh = new T.Vector3(b.x, 0, b.z).normalize(); /* (une radicelle qui part vers l'exterieur) */
+      ajouter([b.clone(), b.clone().addScaledVector(dh, 0.18).add(new T.Vector3(0, 0.12, 0)).addScaledVector(tg, 0.05), b.clone().addScaledVector(dh, 0.32).add(new T.Vector3(A() * 0.1, 0.3, A() * 0.1))], 0.045, 16, 1, true); } }
+  g.position.set(x, y, z); g.rotation.y = Math.random() * Math.PI * 2; scene.add(g); let s = 0;
+  const fin = () => { g.parent && g.parent.remove(g); L.forEach((o) => { o.geo.dispose(); if (o.f) o.f.geometry.dispose(); }); own.forEach((o) => o.dispose()); return true; }; /* (la texture reste : c'est celle de l'Abraknyde) */
   effets.push((dt) => { s += dt; if (combat !== c0 || s >= duree + 0.3) return fin();
     const k = s < 0.25 ? s / 0.25 : s > duree ? Math.max(0, 1 - (s - duree) / 0.3) : 1, e = 1 - Math.pow(1 - k, 2);
-    L.forEach((o, i) => { const segs = Math.max(1, Math.round(e * T_SEG)); o.geo.setDrawRange(0, segs * o.pas); o.f.visible = e > 0.97; });
-    g.rotation.y = (pris ? 0.06 : 0.12) * Math.sin(s * 7); g.scale.set(1, 1 + 0.03 * Math.sin(s * 11), 1); }); /* (elles serrent et ondulent un peu) */
+    L.forEach((o) => { o.geo.setDrawRange(0, Math.max(1, Math.round(e * o.T)) * o.pas); if (o.f) o.f.visible = e > 0.97; });
+    g.scale.set(1, 1 + 0.025 * Math.sin(s * 11), 1); }); /* (elles serrent, un leger frisson) */
   if (pris) { poussiere(x, y, z, 6, 0.6, '#8a6a44'); mottes(x, y, z, 6, 0.6); }
 }
 function capRoulade(mo, ctx) { /* les Tortues roulent pour esquiver (26/10/2026, « ce serait rigolo de les voir faire ça et esquiver de temps en temps », Mathieu) : touchée, une fois
