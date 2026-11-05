@@ -266,7 +266,10 @@ const SORTS_LEG = {
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 2.2 },
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
+  corail: { nom: 'Corail', teinte: '#3aa6e0', recharge: 15, portee: 12, zone: 3, parClasse: { /* (les armes de la Tortue Corail, 05/11/2026 : un sort par classe ; instant : il part au clic, sans viser) */
+    iop: { nom: 'Carapace de corail', teinte: '#f0604a', recharge: 16, instant: true }, cra: { nom: 'Geyser', teinte: '#3aa6e0', recharge: 12, portee: 12, zone: 3 }, osa: { nom: 'Galvanisation', teinte: '#5ccbf0', recharge: 15, instant: true } } },
 };
+const sortLeg = (cle) => { const S = SORTS_LEG[cle]; return S && S.parClasse ? Object.assign({}, S, S.parClasse[classeDe()]) : S; }; /* (le sort d'une piece legendaire, pour ta classe) */
 const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k); return o && o.leg && SORTS_LEG[o.leg] ? o.leg : null; };
 const cdLeg = (emp) => emp === 'coiffe' ? 'cdLegC' : 'cdLegA';
 function cibleLeg(portee) { const c = combat, pp = paysanMesh.position, d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z);
@@ -274,18 +277,19 @@ function cibleLeg(portee) { const c = combat, pp = paysanMesh.position, d = (o) 
   return c.monstres.filter((o) => o.etat === 'actif' && d(o) <= portee).sort((a, b) => d(a) - d(b))[0] || null; }
 function lancerLegAuto(emp) { /* (les bots de test : sur la cible, sans viser) */
   const c = combat; if (!c || c.fin || c.deroute != null) return; const cle = legDe(emp); if (!cle || (c[cdLeg(emp)] || 0) > 0) return;
-  const cib = cibleLeg(SORTS_LEG[cle].portee); if (cib) executerLeg(emp, { x: cib.x, z: cib.z }, true);
+  const cib = cibleLeg(sortLeg(cle).portee); if (cib) executerLeg(emp, { x: cib.x, z: cib.z }, true);
 }
 function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
-  const S = SORTS_LEG[cle], pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
+  const S = sortLeg(cle), pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
   if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse')) { /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || (cle === 'corail' && classeDe() !== 'iop'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
       l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
       l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
     const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
-    const vers = cl === 'cra' && cle === 'wa' ? new T.Vector3(pp.x + Math.sin(a) * 2.5, pp.y + 9, pp.z + Math.cos(a) * 2.5) : new T.Vector3(x, y + 0.3, z);
-    u.attaque = { t: 0, classe: cl, base: a, tour: false, surFrappe: () => effetFrappe(cl, vers, () => { if (combat === c && !c.fin) executerLeg(emp, pt, false, true); }) }; return; }
+    const iv = cle === 'corail' && cl === 'osa' && c.invoc, vers = cl === 'cra' && cle === 'wa' ? new T.Vector3(pp.x + Math.sin(a) * 2.5, pp.y + 9, pp.z + Math.cos(a) * 2.5) : iv ? new T.Vector3(iv.x, iv.m.position.y + 0.5, iv.z) : new T.Vector3(x, y + 0.3, z);
+    if (iv) { u.angle = Math.atan2(iv.x - pp.x, iv.z - pp.z); paysanMesh.rotation.y = u.angle; }
+    u.attaque = { t: 0, classe: cl, base: iv ? u.angle : a, tour: false, surFrappe: () => effetFrappe(cl, vers, () => { if (combat === c && !c.fin) executerLeg(emp, pt, false, true); }) }; return; }
   son('sort');
   if (cle === 'craq') { /* le seisme : la terre s'ouvre la ou tu vises */
     seisme(x, y, z, S.zone);
@@ -304,6 +308,7 @@ function executerLeg(emp, pt, compter, tire) {
   else if (cle === 'chafer') lanceOsPerso(pt, st); /* la lance d'os : en ligne droite, plus forte de loin */
   else if (cle === 'bworker') hacheLancee(x, z, S.zone, st); /* la hache lancee : elle retombe la ou tu vises */
   else if (cle === 'moon') bondMoon(x, z, S.zone, st); /* le bond de Moon : le marteau abattu la ou tu vises */
+  else if (cle === 'corail') sortCorail(x, y, z, S, st); /* les armes de la Corail : un sort par classe */
   majCombatHud();
 }
 /* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
@@ -398,7 +403,7 @@ function bondMoon(x0, z0, R, st) {
     if (r > 0.6) { ranger(); return true; } return false; });
 }
 function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
-  const c = combat; if (!c || c.fin) return;
+  const c = combat; if (!c || c.fin) return; if (c.carapace > 0) c.carapace -= dt; /* (la Carapace de corail court) */
   const r = dt * (1 + 0.15 * nbBonus('recharge') + (c.boostRecharge || 0)); c.cdLegC = Math.max(0, (c.cdLegC || 0) - r); c.cdLegA = Math.max(0, (c.cdLegA || 0) - r);
 }
 function majEtatSort(id, cd) { /* sous un bouton : « prêt », ou « prêt dans 12 s » (« 12 s » au doigt) ; reecrit seulement quand ca change */
@@ -406,8 +411,8 @@ function majEtatSort(id, cd) { /* sous un bouton : « prêt », ou « prêt dans
 }
 function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coiffe ou une arme legendaire a sort */
   const c = combat; [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
-    const S = SORTS_LEG[cle], r = $('leg-' + emp + '-rond'), k = S_.equip[emp];
-    if (r.dataset.cle !== k) { r.dataset.cle = k; r.innerHTML = '<img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + S.nom + '</span>'; r.style.setProperty('--teinte', S.teinte); }
+    const S = sortLeg(cle), r = $('leg-' + emp + '-rond'), k = S_.equip[emp];
+    if (r.dataset.cle !== k + classeDe()) { r.dataset.cle = k + classeDe(); r.innerHTML = '<img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + S.nom + '</span>'; r.style.setProperty('--teinte', S.teinte); }
     r.style.setProperty('--cd', (100 * (c[cd] || 0) / S.recharge).toFixed(1) + '%'); b.classList.toggle('pret', !(c[cd] > 0)); majEtatSort('leg-' + emp + '-etat', c[cd] || 0); });
 }
 /* LES QUATRE BOUTONS DE SORT (refonte du 16/10/2026) : 1 le sort de classe, 2 l'ulti, 3 et 4 les sorts des coiffes et armes legendaires.
@@ -416,8 +421,9 @@ function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coi
 const viseeClasse = () => ({ osa: { id: 'invoc', rayon: RAYON_INVOC, teinte: '#b48cff', portee: PORTEE_INVOC }, cra: { ligne: true, teinte: '#ffe08a' },
   iop: { id: 'bond', rayon: RAYON_BOND, teinte: '#ffe08a', portee: PORTEE_BOND } })[classeDe()]; /* (iop : on vise ou sauter, « qu'on puisse nous-meme cibler ou on saute », Mathieu, 12/10/2026) */
 const boutonLeg = (emp) => ({ cd: cdLeg(emp), dispo: () => !!legDe(emp),
-  visee: () => { const cle = legDe(emp), S = SORTS_LEG[cle]; return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', ligne: !!S.ligne, largeur: S.largeur, libre: true }; }, /* (la zone au sol, la portee autour du perso ; ligne : la bande de la charge ou de la lance) */
-  tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
+  refus: () => (legDe(emp) === 'corail' && classeDe() === 'osa' && !(combat && combat.invoc) ? 'Invoque d\'abord ton Bouftou : la Galvanisation le renforce.' : ''),
+  visee: () => { const cle = legDe(emp), S = sortLeg(cle); return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', ligne: !!S.ligne, largeur: S.largeur, libre: true, instant: !!S.instant }; }, /* (la zone au sol, la portee autour du perso ; ligne : la bande de la charge ou de la lance) */
+  tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.instant ? { x: paysanMesh.position.x, z: paysanMesh.position.z } : v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
 const BOUTONS_SORT = {
   sort: { cd: 'cdSort', visee: () => Object.assign({ quoi: 'sort' }, viseeClasse()),
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
@@ -434,7 +440,8 @@ function armerSort(bouton) {
   if (B.refus) { const r = B.refus(); if (r) { toast(r); return; } }
   if ((c[B.cd] || 0) > 0) return;
   if (!c.monstres.some((o) => o.etat === 'actif')) { toast('Aucun monstre à viser pour l\'instant.'); return; }
-  viser(Object.assign({ bouton }, B.visee()));
+  const v = Object.assign({ bouton }, B.visee()); if (v.instant) { B.tirer(v, null); return; } /* (un sort sur soi, la Carapace de corail, la Galvanisation : il part au clic) */
+  viser(v);
 }
 function tirerVisee(pt) { const v = visee; if (!v || !combat || combat.fin) { annulerVisee(); return; } BOUTONS_SORT[v.bouton].tirer(v, pt); }
 function lancerSort() { armerSort('sort'); }
@@ -444,15 +451,16 @@ const VEC_INVOC = new T.Vector3();
 const CHUTE_INVOC = 0.22;
 function majInvoc(dt) {
   const iv = combat.invoc; if (!iv) return;
-  iv.vie -= dt; if (iv.vie <= 0) { pouf(iv.x, iv.m.position.y, iv.z, 2, '#d9c2ff'); jeter(iv.m); if (iv.barre) iv.barre.remove(); combat.invoc = null; return; }
-  if (iv.barre) { iv.barre.firstChild.style.width = (100 * iv.vie / DUREE_INVOC).toFixed(0) + '%'; versEcran(VEC_INVOC.set(iv.x, iv.m.position.y + 1.25, iv.z), iv.barre); }
+  iv.vie -= dt; if (iv.galva > 0) { iv.galva -= dt; if (iv.galva <= 0 && iv.aura) { jeter(iv.aura); iv.aura = null; } }
+  if (iv.vie <= 0) { if (iv.aura) { jeter(iv.aura); iv.aura = null; } pouf(iv.x, iv.m.position.y, iv.z, 2, '#d9c2ff'); jeter(iv.m); if (iv.barre) iv.barre.remove(); combat.invoc = null; return; }
+  if (iv.barre) { iv.barre.firstChild.style.width = Math.min(100, 100 * iv.vie / DUREE_INVOC).toFixed(0) + '%'; versEcran(VEC_INVOC.set(iv.x, iv.m.position.y + 1.25, iv.z), iv.barre); }
   if (iv.pose > 0) iv.pose -= dt; /* il se pose la ou il est tombe */
   let haut = 0; if (iv.chute > 0) { iv.chute -= dt; haut = Math.pow(Math.max(0, iv.chute) / CHUTE_INVOC, 2) * 4; if (iv.chute <= 0) atterrirBouftou(iv.x, hauteurSol(iv.x, iv.z, caseIci(iv.x, iv.z)), iv.z); } /* (la chute du ciel, en 0,22 s : pour l'oeil seulement) */
   iv.cd -= dt; const c = iv.pose > 0 ? null : plusProcheMonstre(iv); let v = 0;
   if (c) {
     const d = Math.hypot(c.x - iv.x, c.z - iv.z);
     if (d > 1.0) { const w = prochainPas(iv, c.x, c.z, dt), dx = w.x - iv.x, dz = w.z - iv.z, L = Math.hypot(dx, dz) || 1; v = 3; iv.x += dx / L * Math.min(L, v * dt); iv.z += dz / L * Math.min(L, v * dt); tourner(iv, Math.atan2(dx, dz), dt); }
-    else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = 0.8; iv.frappe = 0.25; blesser(c, degBouftou(statsPerso().niveau)); } }
+    else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = iv.galva > 0 ? 0.8 / 1.3 : 0.8; iv.frappe = 0.25; blesser(c, Math.round(degBouftou(statsPerso().niveau) * (iv.galva > 0 ? 1.5 : 1))); } } /* (la Galvanisation : +30 % de vitesse, +50 % de degats) */
   }
   iv.pas += v * dt * 6; let elan = 0; if (iv.frappe > 0) { iv.frappe -= dt; elan = Math.sin((1 - Math.max(0, iv.frappe) / 0.25) * Math.PI) * 0.4; }
   iv.m.position.set(iv.x + Math.sin(iv.ry) * elan, hauteurSol(iv.x, iv.z, caseIci(iv.x, iv.z)) + (1 - Math.cos(iv.pas * 2)) * 0.03 + haut, iv.z + Math.cos(iv.ry) * elan);
@@ -489,4 +497,27 @@ function majCombatHud() {
     o.barre.hidden = false; o.barre.classList.toggle('cible', o === c.cible); o.barre.firstChild.style.width = (100 * Math.max(0, o.pv) / o.pvMax).toFixed(0) + '%';
     versEcran(new T.Vector3(o.x, o.m.position.y + o.haut, o.z), o.barre);
   });
+}
+
+/* LES SORTS DES ARMES DE LA TORTUE CORAIL (05/11/2026, « sur l'Osamodas tu peux booster ton invocation, sur le Iop un bonus de renforcement, et sur le Cra
+   un geyser a distance », Mathieu) : la Carapace de corail (Iop), le Geyser (Cra), la Galvanisation (Osamodas) */
+function sortCorail(x, y, z, S, st) {
+  const c = combat, cl = classeDe(), pp = paysanMesh.position;
+  if (cl === 'iop') { /* la carapace : 6 s, -40 % recus, +30 % donnes ; des ecailles de corail et d'eau tournent autour de lui */
+    c.carapace = 6; onde(pp.x, pp.y + 0.1, pp.z, 1.6, '#5cc8f0', 0.35, 0.6); pouf(pp.x, pp.y + 0.8, pp.z, 2.2, '#f0604a'); chiffre('Carapace de corail', new T.Vector3(pp.x, pp.y + 2.4, pp.z), 'gros');
+    const g = new T.Group(); for (let k = 0; k < 6; k++) { const e = new T.Mesh(new T.CylinderGeometry(0.16, 0.16, 0.05, 6), new T.MeshToonMaterial({ color: k % 2 ? '#f0604a' : '#4a9ab4', gradientMap: grad })); e.rotation.x = Math.PI / 2; const h = new T.Group(); h.add(e); h.userData.a = k / 6 * Math.PI * 2; g.add(h); }
+    scene.add(g); const c0 = c; let t = 0;
+    effets.push((dt) => { t += dt; if (combat !== c0 || !(c0.carapace > 0)) { jeter(g); return true; } const P = paysanMesh.position; g.position.set(P.x, P.y, P.z);
+      g.children.forEach((h, k) => { const a = h.userData.a + t * 2.4; h.position.set(Math.sin(a) * 0.95, 0.9 + 0.25 * Math.sin(t * 3 + k), Math.cos(a) * 0.95); h.rotation.y = a; }); return false; });
+  } else if (cl === 'cra') { /* le geyser : le cercle bleu, 0,6 s, puis le jet ; les monstres touches projetes et sonnes */
+    const c0 = c; onde(x, y + 0.05, z, S.zone, '#5cc8f0', 0.6, 0.5); let t = 0, parti = false;
+    effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.6) return false;
+      if (!parti) { parti = true; geyserEau(x, y, z, S.zone * 0.55, ['#2aa8e0', '#bdf0ff', '#16608f']); secousse(0.08, 0.2); son('sort');
+        c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < S.zone) { blesser(o, Math.round(st.deg * 2.5), true); if (o.etat === 'actif') { o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); } } }); }
+      return true; });
+  } else if (cl === 'osa') { /* la galvanisation : son Bouftou plus fort et plus vif 8 s, et il reste plus longtemps */
+    const iv = c.invoc; if (!iv) return; iv.galva = 8; iv.vie = Math.min(DUREE_INVOC * 1.3, iv.vie + DUREE_INVOC * 0.3);
+    onde(iv.x, iv.m.position.y + 0.05, iv.z, 1.4, '#5ccbf0', 0.4, 0.6); pouf(iv.x, iv.m.position.y + 0.6, iv.z, 2.4, '#9fe4ff'); chiffre('Galvanisé !', new T.Vector3(iv.x, iv.m.position.y + 1.6, iv.z), 'gros');
+    if (!iv.aura) { const r = new T.Mesh(new T.TorusGeometry(0.75, 0.06, 6, 24), new T.MeshBasicMaterial({ color: '#5ccbf0' })); r.rotation.x = Math.PI / 2; r.position.y = 0.1; iv.m.add(r); iv.aura = r; }
+  }
 }

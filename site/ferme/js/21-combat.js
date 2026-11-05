@@ -1,6 +1,7 @@
 'use strict';
 function boostDegats() { try { return combat && combat.boostDeg ? 1 + combat.boostDeg : 1; } catch (e) { return 1; } } /* la Cawotte mangee avant la vague */
-const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats() * (meuteActive() ? 1 + MEUTE : 1)), cadence: +(st.cadence / (1 + c.agilite / 100)).toFixed(2), /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
+function carapaceActive() { try { return !!(combat && combat.carapace > 0); } catch (e) { return false; } } /* (statsPerso peut tourner avant la declaration de combat) */
+const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = niveau(S_.xp), c = caracs(); return { pvMax: st.pv(l) + c.vita, deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats() * (meuteActive() ? 1 + MEUTE : 1) * (carapaceActive() ? 1.3 : 1)), /* (la Carapace de corail du Iop : +30 %, 05/11/2026) */ cadence: +(st.cadence / (1 + c.agilite / 100)).toFixed(2), /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
 /* LES CLASSES EN CHIFFRES (22/10/2026) : la fenetre du passage de niveau, la page Perso et le choix du personnage lisent tout ici, d'apres STATS_CLASSE
    (rien n'est recopie a la main : une classe reequilibree s'affiche juste partout) */
@@ -695,6 +696,7 @@ function blesserPerso(n, mo) {
   { const e = Math.min(0.5, 0.1 * nbBonus('esquive')); if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
+  if (combat.carapace > 0) n = Math.max(1, Math.round(n * 0.6)); /* (la Carapace de corail : -40 %) */
   if (classeDe() === 'iop') { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins (et un bouclier dore qui s'eclaire, 22b-effets.js) */
   if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); if (MODE_TEST && ETAT_TEST.immortel) combat.pv = Math.max(1, combat.pv); /* (le mode test, « immortel » : les coups s'affichent, il ne tombe jamais) */ const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */
