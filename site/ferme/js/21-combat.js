@@ -382,7 +382,7 @@ function regleArene(o) { /* l'Arene : chacun remis a la force de l'Arene (statsA
 function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colossal (une fois et demie plus grand) a les PV de toute l'alliance */
   const L = niveau(S_.xp), Lb = niveauRequis(combat.n), a = forceRef(L), b = forceRef(Lb); o.aggro = true; o.casseur = false;
   const mR = 1 + ENRAGE_ILE.pas * (combat.arene.pas || 0); o.rageM = mR; /* (sa troupe arrive deja enragee comme lui) */
-  if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = PV_ILE_BOSS; o.pv = Math.max(1, PV_ILE_BOSS - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; }
+  if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = PV_ILE_BOSS; o.pv = Math.max(1, PV_ILE_BOSS - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; o.vitM = VITESSE_ILE[o.type] || 1; }
   else { o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * a.dps / b.dps * 0.6)); o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv * 0.6)); o.deg = Math.max(1, Math.round(o.deg0 * mR)); }
 }
 function apparaitre(type, pres) {
@@ -2277,7 +2277,7 @@ function majMonstre(mo, dt, s) {
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1); const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1); /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0) {
