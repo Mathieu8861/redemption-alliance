@@ -1814,14 +1814,35 @@ function capRacines(mo, ctx) {
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= R.prepa) return true; if (Math.random() < dt * 14) { const b = Math.random() * Math.PI * 2, r = Math.random() * R.R; poussiere(x0 + Math.cos(b) * r, y0, z0 + Math.sin(b) * r, 1, 0.3, '#8a6a44'); } }); /* (la terre fremit dans le cercle) */
   zoneDanger({ mo, x: x0, z: z0, r: R.R, duree: R.prepa, effet: (d) => {
     const y = solA(x0, z0); secousse(0.08, 0.2); impactElement('feuille', x0, z0, R.R); mottes(x0, y, z0, 10, R.R * 0.8); poussiere(x0, y, z0, 8, R.R, '#8a6a44');
-    const g = new T.Group(), mt = mat('#6b4a2a'), mtf = mat('#4f351c'), n = 7, L = [];
-    for (let i = 0; i < n; i++) { const b = i / n * Math.PI * 2 + Math.random() * 0.5, r = R.R * (0.25 + Math.random() * 0.6), h = 0.9 + Math.random() * 0.7;
-      const ra = new T.Mesh(new T.ConeGeometry(0.13 + Math.random() * 0.06, h, 6), i % 2 ? mt : mtf); ra.geometry.translate(0, h / 2, 0); ra.position.set(x0 + Math.cos(b) * r, y - 0.05, z0 + Math.sin(b) * r);
-      ra.rotation.set((Math.random() - 0.5) * 0.7, Math.random() * 3, (Math.random() - 0.5) * 0.7); ra.castShadow = true; ra.scale.setScalar(0.01); g.add(ra); L.push(ra); }
-    scene.add(g); let s = 0;
-    effets.push((dt) => { s += dt; if (combat !== c0 || s >= R.duree + 0.5) { jeter(g); return true; } const k = s < 0.18 ? s / 0.18 : s > R.duree ? Math.max(0.01, 1 - (s - R.duree) / 0.5) : 1;
-      L.forEach((ra, i) => { ra.scale.setScalar(Math.max(0.01, k * (1 + 0.04 * Math.sin(s * 9 + i)))); }); }); /* (elles jaillissent, ondulent, puis rentrent sous terre) */
-    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
+    const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0;
+    racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, R.duree);
+    if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
+}
+/* les racines de l'Abraknyde (05/11/2026) : n tubes effiles qui sortent du sol en spirale autour de (x, z) ; pris : elles montent en serrant jusqu'a
+   la taille du perso (rayon 0,75 -> 0,3, 1,1 tour) ; rate : elles jaillissent plus droites dans le cercle vide. Ecorce en couleurs par sommet (sillons
+   sombres, plaques de mousse), une feuille au bout, contour sombre. Elles poussent (0,25 s), tiennent (duree), se retirent (0,3 s) */
+const ECORCE = ['#7a4a26', '#5e3a1e', '#8a5a30'], MOUSSE = '#6f9a3a';
+function racinesQuiSaisissent(x, y, z, pris, duree) {
+  const c0 = combat, g = new T.Group(), n = pris ? 4 : 5, T_SEG = 36, R_SEG = 7, L = [], own = [];
+  const mt = new T.MeshToonMaterial({ vertexColors: true, gradientMap: grad }), mf = mat('#7fb446'); own.push(mt, mf);
+  for (let i = 0; i < n; i++) {
+    const a0 = i / n * Math.PI * 2 + Math.random() * 0.4, tours = pris ? 1.1 : 0.35, h = pris ? 1.15 + Math.random() * 0.35 : 0.9 + Math.random() * 0.5, r0 = pris ? 0.75 : 0.5 + Math.random() * 0.6, r1 = pris ? 0.3 : r0 * 0.6;
+    const pts = []; for (let k = 0; k <= 12; k++) { const u = k / 12, a = a0 + u * tours * Math.PI * 2 * (i % 2 ? 1 : -1), r = r0 + (r1 - r0) * Math.min(1, u * 1.6); pts.push(new T.Vector3(Math.cos(a) * r, -0.15 + u * h, Math.sin(a) * r)); }
+    const courbe = new T.CatmullRomCurve3(pts), geo = new T.TubeGeometry(courbe, T_SEG, 0.11, R_SEG, false), pos = geo.attributes.position, col = [], cc = new T.Color();
+    for (let s = 0; s <= T_SEG; s++) { const ctr = courbe.getPointAt(s / T_SEG), ef = 1 - 0.78 * s / T_SEG; /* (effilee vers le bout) */
+      for (let j = 0; j <= R_SEG; j++) { const k = s * (R_SEG + 1) + j; pos.setXYZ(k, ctr.x + (pos.getX(k) - ctr.x) * ef, ctr.y + (pos.getY(k) - ctr.y) * ef, ctr.z + (pos.getZ(k) - ctr.z) * ef);
+        const mousse = (Math.sin(s * 0.9 + i * 2) > 0.55 && j < 4); cc.set(mousse ? MOUSSE : ECORCE[j % 3 === 0 ? 1 : (s + j) % 5 === 0 ? 2 : 0]); col.push(cc.r, cc.g, cc.b); } } /* (sillons sombres en long, quelques plaques de mousse sur le dessus) */
+    pos.needsUpdate = true; geo.setAttribute('color', new T.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
+    const m = new T.Mesh(geo, mt), k2 = new T.Mesh(geo, contourMat(0.018)); m.castShadow = true; g.add(m, k2);
+    const bout = courbe.getPointAt(1), dir = courbe.getTangentAt(1), f = new T.Mesh(new T.SphereGeometry(0.09, 8, 6), mf); f.scale.set(1, 0.35, 1.9); f.position.copy(bout); f.lookAt(bout.clone().add(dir)); f.visible = false; g.add(f);
+    L.push({ geo, f, total: geo.index.count, pas: R_SEG * 6 }); }
+  g.position.set(x, y, z); scene.add(g); let s = 0;
+  const fin = () => { g.parent && g.parent.remove(g); L.forEach((o) => { o.geo.dispose(); o.f.geometry.dispose(); }); own.forEach((o) => o.dispose()); return true; };
+  effets.push((dt) => { s += dt; if (combat !== c0 || s >= duree + 0.3) return fin();
+    const k = s < 0.25 ? s / 0.25 : s > duree ? Math.max(0, 1 - (s - duree) / 0.3) : 1, e = 1 - Math.pow(1 - k, 2);
+    L.forEach((o, i) => { const segs = Math.max(1, Math.round(e * T_SEG)); o.geo.setDrawRange(0, segs * o.pas); o.f.visible = e > 0.97; });
+    g.rotation.y = (pris ? 0.06 : 0.12) * Math.sin(s * 7); g.scale.set(1, 1 + 0.03 * Math.sin(s * 11), 1); }); /* (elles serrent et ondulent un peu) */
+  if (pris) { poussiere(x, y, z, 6, 0.6, '#8a6a44'); mottes(x, y, z, 6, 0.6); }
 }
 function capRoulade(mo, ctx) { /* les Tortues roulent pour esquiver (26/10/2026, « ce serait rigolo de les voir faire ça et esquiver de temps en temps », Mathieu) : touchée, une fois
      toutes les quelques secondes, elle part en roulade sur le côté, un peu vers toi ; pendant la culbute, tes coups la manquent */
