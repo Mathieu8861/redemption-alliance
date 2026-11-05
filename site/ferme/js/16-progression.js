@@ -125,19 +125,101 @@ function ouvrirCoffre() {
   if (Math.random() < 0.5) { objet = donnerObjet(tirerPiece(panoAuHasard(palierCourant()))); } /* (l'identifiant : l'animation montre la piece) */
   rendreHaut(); rendreObjectif(); sauver(); animerCoffre(kamas, objet);
 }
-/* le coffre arrive ferme, tremble, s'ouvre dans un eclair (images coffre-ferme / coffre-ouvert, generer-coffre.html), puis les gains sortent un par un */
+/* le coffre arrive ferme, tremble, s'ouvre dans un eclair, puis les gains sortent un par un ; le coffre est en 3D et anime (coffre3d, 05/11/2026),
+   les images coffre-ferme / coffre-ouvert (generer-coffre.html) ne servent plus que si la 3D manque */
 function animerCoffre(kamas, id) {
   const o = id && obj(id), v = '?v=' + VERSION_MODELES;
-  ouvrirModale('coffre', entete('Le coffre du jour') + '<div class="ouverture-coffre"><div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><div class="eclair"></div></div>' +
+  ouvrirModale('coffre', entete('Le coffre du jour') + '<div class="ouverture-coffre"><div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><canvas class="coffre3d" width="520" height="460"></canvas><div class="eclair"></div></div>' +
     '<div class="gains-coffre"><div class="gain-coffre"><img src="assets/icones/kama.png' + v + '" alt=""><b>+' + fmt(kamas) + ' kamas</b></div>' +
     (o ? '<div class="gain-coffre objet"><img src="assets/icones/' + iconeObjet(id) + '.png' + v + '" alt=""' + (o.rare ? ' class="rare"' : '') + '><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
     '<div class="boutons">' + (o ? '<button class="btn discret" data-coffre-fiche>Voir dans ma fiche</button>' : '') + '<button class="btn kamas" data-coffre-ok>Super !</button></div></div>');
   const sc = document.querySelector('.scene-coffre'), z = document.querySelector('.ouverture-coffre'), plus = (f, ms) => setTimeout(() => { if (modaleOuverte === 'coffre') f(); }, ms);
   const gains = [...z.querySelectorAll('.gain-coffre')];
+  try { if (coffre3d(sc.querySelector('canvas.coffre3d'))) sc.classList.add('avec3d'); } catch (e) { console.warn('coffre 3D', e); }
   plus(() => sc.classList.add('tremble'), 450);
   plus(() => { sc.classList.remove('tremble'); sc.classList.add('flash', 'ouvert'); son('niveau'); confettis(50); }, 1450);
   gains.forEach((g, k) => plus(() => { g.classList.add('vu'); son('kamas'); }, 1850 + k * 450));
   plus(() => z.classList.add('fini'), 1850 + gains.length * 450);
+}
+/* LE COFFRE EN 3D (05/11/2026, « le coffre, c'est celui-la qu'on va prendre et animer quand on ouvre nos coffres en jeu ; on a un coffre trop fade »,
+   Mathieu) : le coffre au tresor de l'icone du jackpot (generer-icone-jackpot.html, piste B), construit ici en toon comme le reste du jeu : bois
+   rouge-brun, ferrures et coins d'or, serrure, couvercle bombe ; dedans un tas de kamas du jeu en or franc et des gemmes. Son ouverture suit le rythme
+   de la fenetre (animerCoffre) : il tombe et rebondit (0 a 0,4 s), tremble, le couvercle claque (0,45 a 1,45 s), s'ouvre d'un coup en rebondissant
+   sur sa charniere, une lumiere d'or jaillit du dedans et des kamas et des gemmes sautent en l'air et retombent autour ; puis il tourne doucement. */
+const COFFRE3D = { r: null, sc: null, cam: null, base: null, R: 0.1, EP: 0.02, piece: null };
+const COF_OR = { kama_bord: '#ffcd38', kama_cran: '#8a4b00', kama_motif: '#ffd95a', kama: '#e89b06' };
+function cofPiece() { /* un kama du jeu en or franc, centre et couche a plat */
+  if (!COFFRE3D.piece) {
+    const src = MODELES.kamaPiece; if (!src) return null;
+    const k = src.clone(true); k.position.set(0, 0, 0); k.rotation.set(0, 0, 0); k.scale.set(1, 1, 1);
+    k.traverse((x) => { if (!x.isMesh || x.material.side === T.BackSide) return; const n = x.name.replace(/\.?\d+$/, ''); x.material = toon(new T.Color(COF_OR[n] || COF_OR.kama)); x.castShadow = false; });
+    const b = new T.Box3().setFromObject(k), s = b.getSize(new T.Vector3()), c = b.getCenter(new T.Vector3());
+    const R = Math.max(s.x, s.y, s.z) / 2, EP = Math.min(s.x, s.y, s.z); k.position.sub(c);
+    const p = new T.Group(); p.add(k); if (s.x === EP) p.rotation.z = Math.PI / 2; else if (s.z === EP) p.rotation.x = Math.PI / 2;
+    const g = new T.Group(); g.add(p); g.scale.setScalar(0.1 / R); COFFRE3D.piece = g; COFFRE3D.EP = EP * 0.1 / R; /* (le kama ramene a un rayon de 0,1) */
+  }
+  return COFFRE3D.piece.clone(true);
+}
+function cofMaille(geo, c, sansContour) { const g = new T.Group(), m = new T.Mesh(geo, toon(new T.Color(c))); g.add(m); if (!sansContour) g.add(new T.Mesh(geo, contourMat(0.006))); return g; }
+function cofGemme(c, t, rond) { const g = cofMaille(rond ? new T.IcosahedronGeometry(t, 0) : new T.OctahedronGeometry(t, 0), c); if (!rond) g.scale.set(1, 1.35, 1);
+  const r = new T.Mesh(new T.SphereGeometry(t * 0.22, 8, 6), new T.MeshBasicMaterial({ color: '#ffffff' })); r.position.set(-t * 0.35, t * 0.45, t * 0.55); g.add(r); return g; }
+function construireCoffre3d() {
+  const R = 0.1, L = R * 7.2, P = R * 4.4, H = R * 3.4, BOISC = '#9a4b22', BOISF = '#6e3214', FERR = '#f0b52a', g = new T.Group();
+  const pose = (o, x, y, z, rx, ry, rz, par) => { o.position.set(x, y, z); o.rotation.set(rx || 0, ry || 0, rz || 0); (par || g).add(o); return o; };
+  const B = (w, h, d, c) => cofMaille(new T.BoxGeometry(w, h, d), c);
+  pose(B(L, H, P, BOISC), 0, H / 2, 0);
+  [-1, 1].forEach((s) => { pose(B(R * 0.5, H * 1.02, P * 1.04, FERR), s * L * 0.33, H / 2, 0); [-1, 1].forEach((t) => pose(B(R * 0.55, H * 1.03, R * 0.55, FERR), s * L * 0.49, H / 2, t * P * 0.49)); });
+  [0.3, 0.7].forEach((k) => pose(B(L * 1.005, R * 0.12, P * 1.005, BOISF), 0, H * k, 0));
+  pose(B(R * 1.1, R * 1.3, R * 0.3, FERR), 0, H * 0.72, P / 2 + R * 0.12); pose(cofMaille(new T.CircleGeometry(R * 0.22, 12), '#3a1a06', true), 0, H * 0.74, P / 2 + R * 0.28);
+  pose(B(L * 0.94, R * 0.05, P * 0.9, '#2a1206'), 0, H * 0.985, 0);   /* (le fond sombre, sous le tas) */
+  const tas = new T.Group(); tas.position.y = H * 0.9; g.add(tas);
+  let s0 = 7; const h = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 30; i++) { const a = i * 2.4, r = R * 3.0 * Math.sqrt((i + 0.5) / 30), y = (1 - (r / (R * 3.0)) ** 2) * R * 1.4 + h() * R * 0.15, k = cofPiece(); if (!k) return null;
+    pose(k, Math.cos(a) * r * 1.05, y, Math.sin(a) * r * (P / (R * 6.6)), (h() - 0.5) * 0.9, h() * 6, (h() - 0.5) * 0.9, tas); }
+  [[-L * 0.28, R * 1.1, R * 0.5, '#e0233c'], [L * 0.2, R * 1.2, -R * 0.4, '#25b864', true], [L * 0.04, R * 1.6, R * 0.6, '#2f7fe8'], [-L * 0.06, R * 1.5, -R * 0.9, '#a23ae0']].forEach(([x, y, z, c, rond], i) => pose(cofGemme(c, R * 0.4, rond), x, y, z, 0.3, i, 0.2, tas));
+  const ch = new T.Group(); ch.position.set(0, H, -P / 2); g.add(ch);   /* (la charniere a l'arriere) */
+  const cv = cofMaille(new T.CylinderGeometry(P / 2, P / 2, L, 28, 1, false, 0, Math.PI), BOISC); cv.rotation.z = Math.PI / 2; cv.position.set(0, 0, P / 2); ch.add(cv);
+  pose(B(L, R * 0.18, P, BOISF), 0, -R * 0.09, P / 2, 0, 0, 0, ch);
+  [-1, 1].forEach((s) => { const ba = cofMaille(new T.TorusGeometry(P / 2 * 1.02, R * 0.14, 6, 24, Math.PI), FERR); ba.rotation.y = Math.PI / 2; ba.position.set(s * L * 0.33, 0, P / 2); ch.add(ba);
+    const bo = cofMaille(new T.CylinderGeometry(P / 2 * 1.02, P / 2 * 1.02, R * 0.5, 28, 1, false, 0, Math.PI), FERR); bo.rotation.z = Math.PI / 2; bo.position.set(s * L * 0.49, 0, P / 2); ch.add(bo); });
+  pose(B(R * 1.0, R * 0.7, R * 0.25, FERR), 0, -R * 0.25, P + R * 0.1, 0, 0, 0, ch);   /* (le moraillon de la serrure) */
+  const lum = new T.PointLight('#ffc845', 0, R * 14); lum.position.set(0, H + R * 1.2, 0); g.add(lum);
+  return { g, ch, lum, L, P, H, R };
+}
+function coffre3d(cv) {
+  if (!cv || !MODELES.kamaPiece) return false;
+  const C = COFFRE3D;
+  if (!C.r) { C.r = new T.WebGLRenderer({ canvas: document.createElement('canvas'), antialias: true, alpha: true }); C.r.setPixelRatio(1); C.r.setClearColor(0x000000, 0);
+    C.sc = new T.Scene(); C.sc.add(new T.HemisphereLight('#fff1d6', '#7f5a2e', 0.5)); const d = new T.DirectionalLight('#fff0d0', 0.8); d.position.set(-3, 6, 5); C.sc.add(d); const r = new T.DirectionalLight('#ffd27a', 0.35); r.position.set(4, 2, -5); C.sc.add(r);
+    C.cam = new T.PerspectiveCamera(30, cv.width / cv.height, 0.05, 50); }
+  if (C.base) C.sc.remove(C.base.g);
+  const B = construireCoffre3d(); if (!B) return false; C.base = B; C.sc.add(B.g);
+  C.r.setSize(cv.width, cv.height, false); C.cam.aspect = cv.width / cv.height; C.cam.updateProjectionMatrix();
+  C.cam.position.set(B.L * 1.35, B.H * 4.4, B.L * 3.3); C.cam.lookAt(0, B.H * 1.15, 0);   /* (assez de recul pour le couvercle ouvert et les kamas qui sautent) */
+  const ctx = cv.getContext('2d'), sauts = [], debut = performance.now(), G = 3.2;
+  const lancer = () => { for (let i = 0; i < 18; i++) { const gm = i >= 14, o = gm ? cofGemme(['#e0233c', '#25b864', '#2f7fe8', '#a23ae0'][i - 14], B.R * 0.35, i === 15) : cofPiece(); if (!o) break;
+      const a = Math.random() * Math.PI * 2, v = 0.4 + Math.random() * 0.45; if (!gm) o.scale.multiplyScalar(0.78); o.position.set((Math.random() - 0.5) * B.L * 0.5, B.H * 1.05, (Math.random() - 0.5) * B.P * 0.4); B.g.add(o);
+      sauts.push({ o, v: new T.Vector3(Math.cos(a) * v * 0.42, 1.35 + Math.random() * 0.8, Math.sin(a) * v * 0.3 + 0.12), w: new T.Vector3(Math.random() * 9, Math.random() * 9, Math.random() * 9), pose: false }); } };
+  let lance = false, prec = debut;
+  const image = (now) => {
+    if (modaleOuverte !== 'coffre' || !document.body.contains(cv)) { C.sc.remove(B.g); return; }
+    const t = (now - debut) / 1000, dt = Math.min(0.05, (now - prec) / 1000); prec = now;
+    const g = B.g; g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
+    if (t < 0.4) { const k = t / 0.4; g.position.y = B.H * 2.6 * (1 - k) * (1 - k); }   /* (il tombe) */
+    else if (t < 0.6) { const k = (t - 0.4) / 0.2, e = Math.sin(k * Math.PI); g.scale.set(1 + 0.12 * e, 1 - 0.16 * e, 1 + 0.12 * e); }   /* (il s'ecrase en touchant le sol) */
+    let ang = 0;
+    if (t >= 0.45 && t < 1.45) { const k = (t - 0.45) / 1.0; g.rotation.z = Math.sin(t * 62) * 0.045 * (0.4 + k); g.position.x = Math.sin(t * 47) * B.R * 0.12 * k; ang = -0.16 * Math.abs(Math.sin(t * 24)) * k; }   /* (il tremble, le couvercle claque) */
+    if (t >= 1.45) { const k = t - 1.45; ang = -1.92 - 0.35 * Math.exp(-k * 5) * Math.cos(k * 16); if (k < 0.12) ang = -1.92 * (k / 0.12) - 0.1; /* (il s'ouvre d'un coup et rebondit sur sa charniere) */
+      if (!lance) { lance = true; lancer(); }
+      B.lum.intensity = 2.6 * Math.exp(-k * 1.6) + 0.6;
+      g.rotation.y = Math.sin(k * 0.7) * 0.32 * Math.min(1, k / 1.5); }
+    B.ch.rotation.x = ang;
+    sauts.forEach((s) => { if (s.pose) return; s.v.y -= G * dt; s.o.position.addScaledVector(s.v, dt); s.o.rotation.x += s.w.x * dt; s.o.rotation.y += s.w.y * dt; s.o.rotation.z += s.w.z * dt;
+      if (s.o.position.y <= B.R * 0.04 && s.v.y < 0) { if (Math.abs(s.v.y) > 0.6) { s.v.y *= -0.35; s.v.x *= 0.5; s.v.z *= 0.5; s.w.multiplyScalar(0.4); } else { s.o.position.y = B.R * 0.04; s.o.rotation.set(-Math.PI / 2 * 0 + (Math.random() - 0.5) * 0.3, s.o.rotation.y, (Math.random() - 0.5) * 0.3); s.pose = true; } } });
+    C.r.render(C.sc, C.cam); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(C.r.domElement, 0, 0);
+    requestAnimationFrame(image);
+  };
+  requestAnimationFrame(image); return true;
 }
 /* ---------- la file d'actions : on touche plusieurs bulles, le paysan les enchaine ---------- */
 let fileActions = [];

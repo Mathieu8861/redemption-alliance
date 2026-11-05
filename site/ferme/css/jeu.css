@@ -644,6 +644,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .scene-coffre img { position: absolute; left: 50%; top: 50%; width: 200px; height: 200px; transform: translate(-50%, -50%); }
 .scene-coffre .c-ferme { animation: coffre-arrive .4s cubic-bezier(.2, 1.5, .4, 1) both; }
 .scene-coffre .c-ouvert { opacity: 0; }
+.scene-coffre canvas.coffre3d { position: absolute; left: 50%; top: 50%; width: 260px; height: 230px; transform: translate(-50%, -50%); pointer-events: none; } /* (le coffre en 3D, 05/11/2026 ; les images ne servent plus que sans lui) */
+.scene-coffre.avec3d img { display: none; }
+.scene-coffre:not(.avec3d) canvas.coffre3d { display: none; }
 .scene-coffre.tremble .c-ferme { animation: coffre-tremble .13s linear infinite; }
 .scene-coffre.ouvert .c-ferme { opacity: 0; animation: none; }
 .scene-coffre.ouvert .c-ouvert { opacity: 1; animation: coffre-jaillit .55s cubic-bezier(.2, 1.7, .4, 1) both; }

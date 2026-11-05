@@ -335,6 +335,7 @@ async function chargerModeles() {
   versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
   modelesNiveaux(G); /* 11/10/2026 : les batiments du niveau 1 au niveau 5 */
   MODELES.epouvantail = gabarit(G.batiments, 'epouvantail', 2.6, 'y');
+  MODELES.kamaPiece = G.objets.getObjectByName('kama'); /* (le kama du jeu, pour le coffre en 3D : 16-progression.js, coffre3d) */
   MODELES.botte = gabarit(G.objets, 'botte', 1.0);
   MODELES.auge = gabarit(G.objets, 'auge', 1.5);
   MODELES.cloture = gabarit(G.objets, 'clotureDroite', 2.0);
