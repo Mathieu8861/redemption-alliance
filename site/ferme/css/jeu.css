@@ -632,6 +632,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .confirme { text-align: center; } .confirme .gros { width: 110px; height: 110px; margin: 4px auto 6px; border-radius: 50%; display: grid; place-items: center; border: 3px solid var(--bord); box-shadow: 0 4px 0 var(--bord); }
 .confirme .gros img { width: 86px; height: 86px; object-fit: contain; }
 .confirme p { font-size: .84rem; font-weight: 600; margin: 6px 0 12px; } .confirme .boutons { display: flex; gap: 8px; justify-content: center; }
+.confirme p.note { font-size: .74rem; font-weight: 500; opacity: .75; margin-top: -4px; } /* (achat d'un terrain : ce que l'achat ne fait pas) */
 .ulti-carte b { display: block; font-size: .95rem; } .ulti-carte .desc { font-size: .74rem; font-weight: 600; color: #a9adb5; margin-top: 2px; }
 #combat-zone { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .pv-monstre { position: absolute; width: 46px; height: 8px; transform: translate(-50%, -100%); border: 2px solid var(--bord); border-radius: 99px; background: #2b2d31; overflow: hidden; }

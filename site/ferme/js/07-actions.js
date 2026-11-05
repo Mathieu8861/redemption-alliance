@@ -579,16 +579,25 @@ const ACTIONS = {
     if (!faits) { toast('Il faut ' + fmt(L.length ? L[0].cout : 0) + ' kamas pour commencer les réparations.'); return; }
     toast(faits === L.length ? 'Tout est réparé : ' + fmt(paye) + ' kamas.' : faits + ' bâtiment' + (faits > 1 ? 's' : '') + ' réparé' + (faits > 1 ? 's' : '') + ' pour ' + fmt(paye) + ' kamas. Il en reste ' + (L.length - faits) + ', faute de kamas.', 'or');
   },
-  acheterTerrain(k) {
+  acheterTerrain(k, confirme) { /* (05/11/2026) le clic (bulle, panneau, friche) ouvre d'abord la fenetre qui explique l'achat ; il ne se fait qu'au bouton « Acheter » */
     const t = TERRAINS[k]; if (!t || S_.terrains[t.id]) return;
     if (!aVendre(t)) { const u = prochainTerrain(); toast('Les terrains s\u2019achètent dans l\u2019ordre : d\u2019abord celui du niveau ' + u.niv + '.'); return; }
     if (!nivTerrainOk(t)) { toast('Ce terrain s\u2019achète à partir du niveau ' + t.niv + ' de Paysan.'); return; }
+    if (!confirme) {
+      const q = quotaParcelles(), manque = t.prix - S_.kamas;
+      ouvrirModale('terrain', entete('Acheter ce terrain ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/pelle.png?v=' + VERSION_MODELES + '" alt=""></div>' +
+        '<p><b>+' + t.cases.length + ' cases d’herbe</b> pour bâtir, agrandir l’enclos ou décorer.<br><b>+' + t.parcelles + ' parcelles</b> à labourer : ' + q + ' → ' + (q + t.parcelles) + ' au total.</p>' +
+        '<p class="note">Rien n’est labouré ni planté pour toi, et l’achat est définitif. Les monstres des vagues arriveront aussi par ce nouveau bord.</p>' +
+        '<div class="boutons"><button class="btn discret" data-fermer>Pas maintenant</button>' +
+        (manque > 0 ? '<button class="btn kamas" disabled>Il te manque ' + fmt(manque) + ' ' + KAMA + '</button>' : '<button class="btn kamas" data-terrain-ok="' + k + '">Acheter pour ' + fmt(t.prix) + ' ' + KAMA + '</button>') + '</div></div>');
+      return;
+    }
     if (S_.kamas < t.prix) { toast('Ce terrain (' + t.cases.length + ' cases, +' + t.parcelles + ' parcelles) coûte ' + fmt(t.prix) + ' kamas.'); return; }
-    S_.kamas -= t.prix; S_.terrains[t.id] = true; compter('terrains');
+    fermerModale(); S_.kamas -= t.prix; S_.terrains[t.id] = true; compter('terrains');
     t.cases.forEach(([i, j]) => { if (!caseAt(i, j)) S_.cases.push({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' }); });
     toast('Terrain défriché : ' + t.cases.length + ' cases de plus, ' + quotaParcelles() + ' parcelles possibles au total.', 'or');
     construireTerrain(k); if (combat) combat.bords = null; /* les monstres sortent maintenant du nouveau bord */
-    rendreHaut(); placerBulles();
+    rendreHaut(); placerBulles(); sauver();
   }
 };
 

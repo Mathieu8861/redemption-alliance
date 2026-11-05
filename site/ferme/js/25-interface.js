@@ -652,6 +652,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.boire) boirePot(b.dataset.boire);
   else if (b.dataset.geleeAchat) ACTIONS.acheterGelee(b.dataset.geleeAchat);
   else if (b.dataset.geleeNourrir) { if (b.dataset.geleeNourrir === 'tout') ACTIONS.nourrirGelees(); else ACTIONS.nourrirGelee(parseInt(b.dataset.geleeNourrir, 10)); }
+  else if (b.dataset.terrainOk) ACTIONS.acheterTerrain(parseInt(b.dataset.terrainOk, 10), true);
   else if (b.hasAttribute('data-gelee-ramasser')) ACTIONS.ramasserPots();
   else if (b.hasAttribute('data-gelee-croiser')) ACTIONS.croiserGelees();
   else if (b.dataset.geleeRelacher) ACTIONS.relacherGelee(parseInt(b.dataset.geleeRelacher, 10), b.dataset.nom); else if (b.dataset.geleeRelacherOk) ACTIONS.relacherGelee(parseInt(b.dataset.geleeRelacherOk, 10), b.dataset.nom, true);
