@@ -185,7 +185,7 @@ function epinesImpact(p, couleur, taille) { /* des epines de lumiere qui jaillis
   g.position.copy(p); fxVie(g, 0.2, (k) => { versCamera(g); const e = 1 - Math.pow(1 - k, 2.5); g.children.forEach((m) => { m.scale.set(m.userData.l * taille * (0.3 + 0.9 * e), 1.4 * taille * (1 - k), 1); m.position.set(Math.cos(m.rotation.z) * 0.25 * e * taille, Math.sin(m.rotation.z) * 0.25 * e * taille, 0); m.material.opacity = 1 - k * k; }); });
 }
 function entailleIop(pp, pv, style) {
-  const a = Math.atan2(pv.x - pp.x, pv.z - pp.z), sens = (entailleIop.n = (entailleIop.n || 0) + 1) % 2 ? 1 : -1, d = Math.hypot(pv.x - pp.x, pv.z - pp.z), taille = Math.min(1.9, Math.max(1.25, d * 0.9));
+  const a = Math.atan2(pv.x - pp.x, pv.z - pp.z), sens = (entailleIop.n = (entailleIop.n || 0) + 1) % 2 ? 1 : -1, d = Math.hypot(pv.x - pp.x, pv.z - pp.z), taille = Math.min(1.55, Math.max(1.0, d * 0.74)); /* (05/11/2026 : « reduis un peu la taille du coup d'epee », Mathieu ; 1,25 a 1,9 avant) */
   const [cBlanc, cOr, cBord, cEclat] = TONS_TRANCHE[style || ''] || TONS_TRANCHE[''], gros = !!style;
   const g = new T.Group(), penche = new T.Group(); g.position.set(pp.x, pp.y + 0.72, pp.z); g.rotation.y = a; penche.rotation.z = 0.28 * sens; g.add(penche); g.traverse((o) => { o.raycast = () => {}; });
   /* les trois couches : le bord de couleur (plein, large), l'or, le coeur blanc (fin, devant) */

@@ -5,7 +5,7 @@
    Pendant une vague, une partie des monstres (les « casseurs ») s'en prend aux batiments au lieu du perso, jusqu'a ce que le perso vienne les frapper.
    Un batiment touche brule : flammes legeres, puis un vrai brasier sous 35 % de ses PV. A 0 PV il tombe en ruine et ne sert plus a rien
    tant qu'il n'est pas reconstruit. On repare (ou reconstruit) contre des kamas, en le touchant ou en touchant sa barre de vie. */
-const BATS_PV = ['grange', 'hdv', 'voliere', 'puits', 'epouvantail'];
+const BATS_PV = ['grange', 'voliere', 'puits', 'epouvantail']; /* (05/11/2026 : l'HDV n'a plus de PV, les monstres ne s'en prennent plus a lui, « il faudrait laisser l'HDV, et qu'il ne puisse pas etre detruit », Mathieu : sans lui, ni vente ni reparation) */
 const NOM_BAT = { grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', puits: 'le puits', epouvantail: 'l\'épouvantail', tour: 'la tour de défense' };
 const ICO_BAT = { grange: 'grange', hdv: 'etal', voliere: 'voliere', puits: 'puits', epouvantail: 'epouvantail', tour: 'tour' };
 const PERTE_RUINE = { grange: 'L\'arbalète du toit ne tire plus, et les voleurs de VSA emportent deux fois plus.', hdv: 'Plus d\'achats ni de ventes à l\'HDV.', voliere: 'Tes Tofus ne donnent plus de plumes.', puits: 'Impossible de remplir l\'arrosoir.', epouvantail: 'Les Tofus viennent picorer bien plus souvent.', tour: 'Elle ne tire plus.' };
@@ -13,7 +13,7 @@ const typeCle = (cle) => cle.split(':')[0];
 const nomBat = (cle) => NOM_BAT[typeCle(cle)];
 const Maj = (t) => t[0].toUpperCase() + t.slice(1);
 const pvMaxBat = (cle) => { const t = typeCle(cle); if (t === 'grange') return [500, 900, 1500, 2400, 3600, 12000][niv('murs')]; if (t === 'tour') return NIV_TOURS.pv[nivTour(caseTour(cle.slice(5)))]; return 150 + 25 * niveau(S_.xp); };
-const etatBat = (cle) => (S_.bats && S_.bats[cle]) || null;
+const etatBat = (cle) => (cle !== 'hdv' && S_.bats && S_.bats[cle]) || null; /* (l'HDV : une ruine d'une ancienne sauvegarde ne compte plus) */
 const degatsBat = (cle) => { const b = etatBat(cle); return b ? Math.min(b.deg || 0, pvMaxBat(cle)) : 0; };
 const enRuine = (cle) => { const b = etatBat(cle); return !!(b && b.ruine); };
 const pvBat = (cle) => enRuine(cle) ? 0 : Math.max(0, pvMaxBat(cle) - degatsBat(cle));
@@ -136,7 +136,7 @@ function placerBarresBat() { barresBat.forEach((e) => { const p = e._point; if (
    un sort ou une charge qui touche un batiment vaut une seconde de coups. La revanche les durcit comme le reste (facteurRejoue). */
 const DPS_BATIMENT = 3;
 const dpsBatiments = (n) => DPS_BATIMENT * Math.max(1, n);
-const degatsBatiment = (secondes, mo) => Math.max(1, Math.round(dpsBatiments(combat ? combat.n : S_.vague.num) * secondes * (mo ? facteurRejoue('deg', mo.type) : 1)));
+const degatsBatiment = (secondes, mo) => Math.max(1, Math.round(dpsBatiments(combat ? combat.n : S_.vague.num) * secondes * (mo ? facteurRejoue('deg', mo.type) : 1) * (mo && /^craq/.test(mo.type) ? 0.7 : 1))); /* (05/11/2026 : les Craqueleurs, -30 % sur les batiments) */
 /* un coup sur un batiment */
 function blesserBat(cle, n) {
   if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);

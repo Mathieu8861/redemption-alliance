@@ -50,7 +50,13 @@ const ACTIONS = {
     if (p.pousse >= d) { ACTIONS.recolter(p); return; }
     if (!p.arrose) { ACTIONS.arroser(p); return; }
     if (PAR_ID[p.c].arbre) { ouvrirBananier(p); return; } /* (son prochain regime, et de quoi l'arracher) */
-    toast(PAR_ID[p.c].nom + ' : encore ' + dureeLisible((d - p.pousse) / (p.arrose ? 1 : 0.4)) + (p.arrose ? '.' : ' à sec, arrose pour aller plus vite.'));
+    ACTIONS.mettreANu(p.id); /* (05/11/2026 : une culture qui pousse, deja arrosee : le clic droit propose de remettre la parcelle a nu) */
+  },
+  mettreANu(id, confirme) { /* remettre a nu une parcelle plantee : la culture et sa graine sont perdues, la parcelle redevient vide (05/11/2026, Mathieu) */
+    const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'champ' || !p.c || PAR_ID[p.c].arbre) { fermerModale(); return; }
+    const C = PAR_ID[p.c], d = duree(C);
+    if (!confirme) { ouvrirModale('nu', entete('Remettre la parcelle à nu ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/' + p.c + '.png?v=' + VERSION_MODELES + '" alt=""></div><p>' + C.nom + ' : encore ' + dureeLisible((d - p.pousse) / (p.arrose ? 1 : 0.4)) + ' avant la récolte.<br>À nu, la parcelle redevient vide pour planter autre chose : <b>la culture et sa graine sont perdues</b>.</p><div class="boutons"><button class="btn discret" data-fermer>Laisser pousser</button><button class="btn" data-nu-ok="' + p.id + '" style="background:var(--rouge);color:#fff">Remettre à nu</button></div></div>'); return; }
+    Object.assign(p, champVide()); fermerModale(); son('fauchage'); toast('Parcelle remise à nu : tu peux y planter autre chose.'); rendreCase(p.id); rendreCasesBulles(); sauver();
   },
   arracher(id, confirme) { /* arracher un bananier : la case redevient un champ vide (03/11/2026) */
     const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'champ' || !p.c || !PAR_ID[p.c].arbre) { fermerModale(); return; }
@@ -158,14 +164,14 @@ const ACTIONS = {
     son('niveau'); confettis(40); toast(noms + ' fusionnent : voici ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 Agilité pour la vague.', 'or');
     rendreGelees(); rendreCasesBulles(); sauver(); ouvrirGeliere();
   },
-  relacherGelee(k, nom, confirme) { /* (24/10/2026) elle quitte la Geliere et laisse 5 pots de sa couleur : de la place pour en acheter une autre (voir peutRelacher) */
+  relacherGelee(k, nom, confirme) { /* (05/11/2026) elle se vend a l'HDV, la moitie de son prix (prixReventeGelee) ; avant le 05/11, on la relachait contre 5 pots */
     const g = (S_.gelees || [])[k]; if (!g || g.nom !== nom) { ouvrirGeliere(); return; } const r = peutRelacher(g); if (r) { toast(r, 'alerte'); return; }
-    const G = GELEES[g.c], P = POTS[G.pot], e = etatGelee(g);
-    if (!confirme) { ouvrirModale('geliere', entete('Relâcher ' + g.nom + ' ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/gelee-' + g.c + '.png?v=' + VERSION_MODELES + '" alt=""></div><p>' + g.nom + ', ta ' + G.nom + ', quitte la Gelière pour de bon et te laisse <b>' + RELACHE_POTS + ' ' + P.court.toLowerCase() + '</b>.' +
-      (e === 'pret' ? ' Son pot prêt est ramassé avant.' : e === 'prod' ? '<br><b>Elle perd son pot en route.</b>' : '') + '</p><div class="boutons"><button class="btn discret" data-gelee-retour>Retour</button><button class="btn kamas" data-gelee-relacher-ok="' + k + '" data-nom="' + echapper(g.nom) + '">Relâcher</button></div></div>'); return; }
+    const G = GELEES[g.c], e = etatGelee(g), px = prixReventeGelee(g);
+    if (!confirme) { ouvrirModale('geliere', entete('Vendre ' + g.nom + ' ?') + '<div class="confirme"><div class="gros"><img src="assets/icones/gelee-' + g.c + '.png?v=' + VERSION_MODELES + '" alt=""></div><p>' + g.nom + ', ta ' + G.nom + (g.achetee ? ' achetée' : '') + ', part à l\'HDV pour <b>' + fmt(px) + ' kamas</b> (la moitié de son prix d\'achat). Une place se libère dans ta Gelière.' +
+      (e === 'pret' ? ' Son pot prêt est ramassé avant.' : e === 'prod' ? '<br><b>Elle perd son pot en route.</b>' : '') + '</p><div class="boutons"><button class="btn discret" data-gelee-retour>Retour</button><button class="btn kamas" data-gelee-relacher-ok="' + k + '" data-nom="' + echapper(g.nom) + '">Vendre ' + fmt(px) + ' ' + KAMA + '</button></div></div>'); return; }
     if (e === 'pret') ACTIONS.ramasserPots();
-    S_.gelees = S_.gelees.filter((x) => x !== g); S_.pots = S_.pots || {}; S_.pots[G.pot] = (S_.pots[G.pot] || 0) + RELACHE_POTS; compter('relachees'); son('gelee');
-    toast(g.nom + ' retourne à la rivière et te laisse ' + RELACHE_POTS + ' ' + P.court.toLowerCase() + '. Une place est libre dans la Gelière.', 'or');
+    S_.gelees = S_.gelees.filter((x) => x !== g); S_.kamas += px; compter('geleesVendues'); son('kamas');
+    toast(g.nom + ' est vendue : +' + fmt(px) + ' kamas. Une place est libre dans la Gelière.', 'or');
     rendreGelees(); rendreCasesBulles(); rendreHaut(); rendreGrange(); sauver(); ouvrirGeliere();
   },
   acheterGraines(id, n) {
@@ -270,6 +276,10 @@ const ACTIONS = {
     S_.kamas -= cout; S_.bouftousAchetes = (S_.bouftousAchetes || 0) + 1; const libres = NOMS.filter((n) => !S_.bouftous.some((b) => b.nom === n));
     S_.bouftous.push({ nom: hasard(libres.length ? libres : NOMS), rassasie: Date.now(), laine: 0, accu: 0, affame: true }); /* achete adulte */
     toast('Bienvenue à ' + S_.bouftous[S_.bouftous.length - 1].nom + ' ! Il a déjà faim.'); rendreBouftous(); rendreHaut();
+  },
+  acheterBle(n) { /* (05/11/2026, « parfois nos parcelles sont pleines et il faut pouvoir nourrir les Bouftous ; plus cher que le cout de farm », Mathieu) */
+    n = Math.max(1, n | 0); const cout = prixAchatBle() * n; if (S_.kamas < cout) { toast('Il te manque ' + fmt(cout - S_.kamas) + ' kamas.'); return; }
+    S_.kamas -= cout; S_.grange.ble = (S_.grange.ble || 0) + n; son('kamas'); toast('+' + n + ' Blé dans la grange, pour tes Bouftous.'); rendreGrange(); rendreHaut(); if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
   },
   vendre(id, n) {
     const stock = S_.grange[id] || 0; if (!stock) return;

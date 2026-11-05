@@ -43,7 +43,10 @@ const geleeFusionnable = (g) => g.c !== 'royale' && !g.achetee;
    element, et racheter une autre couleur », Mathieu) : elle laisse 5 pots de sa couleur. Pas la Royale (5 pots qui rendent toute la vie, et une Royale se
    refait par la fusion). Une Gelee nee ici attend 24 h : sinon croiser (10 fruits) puis relacher ferait 5 pots en 3 min, bien plus vite qu'en la nourrissant */
 const RELACHE_POTS = 5, AGE_RELACHE = 24 * 60 * MIN;
-const peutRelacher = (g) => g.c === 'royale' ? 'La Gelée Royale ne se relâche pas.' : g.nee && g.arrivee && Date.now() - g.arrivee < AGE_RELACHE ? g.nom + ' est trop jeune : encore ' + dureeLisible(g.arrivee + AGE_RELACHE - Date.now()) + ' avant de pouvoir la relâcher.' : '';
+/* (05/11/2026, « au lieu de relacher, qu'on puisse revendre assez facilement, que ce soit une Gelee achetee », Mathieu) : elle se vend la moitie de son prix
+   a l'HDV (moins la baisse des kamas, NERF_KAMAS), achetee ou nee ici ; la Royale ne se vend pas ; une nee ici attend toujours 24 h (sinon croiser puis vendre) */
+const prixReventeGelee = (g) => GELEES[g.c] && GELEES[g.c].prix ? Math.round(GELEES[g.c].prix * 0.5 * NERF_KAMAS) : 0;
+const peutRelacher = (g) => g.c === 'royale' ? 'La Gelée Royale ne se vend pas.' : g.nee && g.arrivee && Date.now() - g.arrivee < AGE_RELACHE ? g.nom + ' est trop jeune : encore ' + dureeLisible(g.arrivee + AGE_RELACHE - Date.now()) + ' avant de pouvoir la vendre.' : '';
 function geleesFusion() {
   const L = (S_.gelees || []).filter(geleeFusionnable), rang = (g) => ({ faim: 0, pret: 1, prod: 2 })[etatGelee(g)];
   const choix = COULEURS_FUSION.map((c) => L.filter((g) => g.c === c).sort((a, b) => rang(a) - rang(b))[0]);
@@ -125,7 +128,7 @@ function ouvrirGeliere() {
     const repos = g.repos && Date.now() < g.repos ? '<span class="puce">se repose ' + dureeLisible(g.repos - Date.now()) + '</span>' : '';
     const act = e === 'pret' ? '<button class="btn kamas" data-gelee-ramasser>Ramasser</button>' : e === 'faim' ? (m.length ? '<span class="a-manque">il manque ' + m.join(' et ') + '</span>' : '') + '<button class="btn kamas" data-gelee-nourrir="' + k + '"' + (m.length ? ' disabled' : '') + '>Nourrir</button>' : '';
     const origine = g.achetee ? '<span class="puce">achetée</span>' : g.nee && g.c !== 'royale' ? '<span class="puce bonne">née ici</span>' : '', rel = peutRelacher(g);
-    const relache = g.c === 'royale' ? '' : '<button class="btn discret mini" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '"' + (rel ? ' disabled title="' + echapper(rel) + '"' : ' title="Elle quitte la Gelière et te laisse ' + RELACHE_POTS + ' ' + POTS[G.pot].court.toLowerCase() + '"') + '>Relâcher</button>';
+    const relache = g.c === 'royale' ? '' : '<button class="btn discret mini" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '"' + (rel ? ' disabled title="' + echapper(rel) + '"' : ' title="Elle part à l\'HDV : ' + fmt(prixReventeGelee(g)) + ' kamas"') + '>Vendre ' + fmt(prixReventeGelee(g)) + ' ' + KAMA + '</button>';
     return '<div class="art">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small><div class="puces">' + etat + '<span class="puce">' + BREF_POT[G.pot] + '</span>' + origine + repos + '</div></div><div class="act">' + act + relache + '</div></div>';
   };
   const parents = parentsCroisement(), mc = manqueRecette(CROISEMENT);

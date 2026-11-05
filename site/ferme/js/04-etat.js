@@ -34,6 +34,7 @@ const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cult
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
 const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + (PAR_ID[p.c].arbre ? 0 : niv('faux')) - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes ; un arbre, le bananier : son regime ne grossit pas avec la Faux (04/11/2026) */
 const prixGraine = (c) => Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5) * [1, 1, 0.85, 0.85, 0.8][nivBat('nivEtal') - 1])); /* le prix des graines suit un peu le cours */
+const prixAchatBle = () => Math.max(5, Math.ceil(prix('ble') * 2)); /* le Ble achete a l'HDV : le double de ce qu'il se revend (05/11/2026) */
 function prix(id) {
   const v = PAR_ID[id];
   let p = v.prix * NERF_KAMAS * (S_.cours[id] || 1) * [1, 1.1, 1.1, 1.15, 1.2][nivBat('nivEtal') - 1];

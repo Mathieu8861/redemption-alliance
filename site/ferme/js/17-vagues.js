@@ -64,6 +64,11 @@ function blocVie() {
     (S_.menthe ? 'La Menthe te soignera pendant la vague.' : dispo.length ? 'Bois un pot :' : 'Tu n\'as plus de pot.') + '</small></div><div class="va-pots">' + boutons + '</div></div>';
 }
 /* LA FENETRE DES POTS : la vie, le temps qu'il faut pour qu'elle remonte seule, et chaque pot (a boire, ou a acheter s'il n'y en a plus) */
+const PRIX_FUSION_POTS = 100; /* (05/11/2026, Mathieu : deux petits pots Bleus (+25 % chacun) se fondent en un grand (+60 %) pour 100 kamas) */
+function fusionnerPetitsPots() {
+  S_.pots = S_.pots || {}; if ((S_.pots.petit || 0) < 2) { toast('Il faut 2 petits pots de gelée Bleue.'); return; } if (S_.kamas < PRIX_FUSION_POTS) { toast('Il te manque ' + fmt(PRIX_FUSION_POTS - S_.kamas) + ' kamas.'); return; }
+  S_.pots.petit -= 2; S_.pots.grand = (S_.pots.grand || 0) + 1; S_.kamas -= PRIX_FUSION_POTS; son('boire'); toast('Deux petits pots fondus en un grand pot de gelée Bleue (+60 % de vie).', 'or'); rendreHaut(); sauver(); if (modaleOuverte === 'pots') ouvrirPots();
+}
 function ouvrirPots() {
   const max = statsPerso().pvMax, pv = vieActuelle(), pc = Math.round(100 * pv / max), plein = pv >= max; S_.pots = S_.pots || {};
   const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : ' + REGEN_PV + ' PV par minute, pleine dans ' + dureeLisible((max - pv) / REGEN_PV * REGEN_PAS) + '. Un pot fait gagner ce temps.';
@@ -71,6 +76,7 @@ function ouvrirPots() {
   const types = POTS_HDV.concat(Object.keys(POTS).filter((t) => POTS[t].geliere && ((S_.pots[t] || 0) > 0 || niv('geliere'))));
   const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron && !POTS[t].agi) || (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron) || (POTS[t].agi && S_.royale);
     return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +
-      (n ? '<button class="btn kamas" data-boire="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button>' : POTS[t].geliere ? '<button class="btn discret" data-geliere>Gelière</button>' : '<button class="btn discret" data-hdv-cat="gelees">Acheter</button>') + '</div></div>'; }).join('');
+      (n ? '<button class="btn kamas" data-boire="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button>' : POTS[t].geliere ? '<button class="btn discret" data-geliere>Gelière</button>' : '<button class="btn discret" data-hdv-cat="gelees">Acheter</button>') +
+      (t === 'grand' ? '<button class="btn discret mini" data-pots-fusion title="Deux petits pots Bleus (+25 %) fondus en un grand (+60 %)"' + ((S_.pots.petit || 0) >= 2 && S_.kamas >= PRIX_FUSION_POTS ? '' : ' disabled') + '>2 petits + ' + PRIX_FUSION_POTS + ' ' + KAMA + ' = 1 grand</button>' : '') + '</div></div>'; }).join('');
   ouvrirModale('pots', entete('Pots de gelée') + tete + lignes + '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:10px">' + (niv('geliere') ? '<button class="btn discret" data-geliere>Ta Gelière</button>' : '') + '<button class="btn kamas" data-hdv-cat="gelees">Acheter des pots à l\'HDV</button></div>');
 }
