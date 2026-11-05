@@ -216,8 +216,9 @@ function ficheMonstre(t) {
   if (d.bourrasque) met('bourrasque', 'lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu');
   if (d.bain) met('bain', 'lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu');
   if (d.boue) met('boue', 'lenteur', 'Crachat de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu');
-  if (d.racines) met('racines', 'lenteur', 'Racines', 'Quand tu es à mi-distance, il plante ses branches dans le sol : un cercle rouge sous toi, puis ses racines jaillissent. Dedans, elles t\'enracinent : tu ne marches plus, tu frappes encore.', num(fmt(Math.round(dSort * d.racines.x)) + ' dégâts', 'rouge') + num('enraciné ' + secondes(d.racines.duree)) + num(secondes(d.racines.prepa) + ' pour esquiver') + num('toutes les ' + d.racines.periode + ' s'), 'violet');
-  if (d.semis) met('semis', 'renfort', 'Semis', 'Il plonge la main dans sa coupe et sème à la volée : ' + d.semis.n + ' graines tombent autour de toi, chacune dans un cercle vert qui se remplit. Marche dessus pour les écraser avant qu\'il soit plein, sinon un Tronknyde en sort.', num(d.semis.n + ' graines') + num(secondes(d.semis.pousse) + ' pour les écraser') + num('toutes les ' + d.semis.periode + ' s'), 'violet');
+  if (d.racines) met('racines', 'lenteur', d.racines.graine ? 'Graine collante' : 'Racines', d.racinesFiche || 'Quand tu es à mi-distance, il plante ses branches dans le sol : un cercle rouge sous toi, puis ses racines jaillissent. Dedans, elles t\'enracinent : tu ne marches plus, tu frappes encore.', num(fmt(Math.round(dSort * d.racines.x)) + ' dégâts', 'rouge') + num('enraciné ' + secondes(d.racines.duree)) + num(secondes(d.racines.prepa) + ' pour esquiver') + num('toutes les ' + d.racines.periode + ' s'), 'violet');
+  if (d.pluieGlands) { const G = d.pluieGlands; met('pluieGlands', 'renfort', 'Pluie de glands (ulti)', 'Il jette ' + G.n + ' glands en l\'air : ils retombent autour de toi, chacun dans un cercle vert qui se remplit. Marche sur un gland et il explose (ça fait mal) ; laisse-le et, le cercle plein, un Tronknyde sort de terre.', num(fmt(Math.round(dSort * G.x)) + ' dégâts par gland', 'rouge') + num(secondes(G.pousse) + ' avant qu\'ils germent') + num('toutes les ' + G.periode + ' s'), 'violet'); }
+  if (d.galvanise && d.gestes && d.gestes.galvanise === 'seve') met('seve', 'sort', 'Sève', 'Son cœur de sève luit : ses alliés autour de lui frappent et courent plus vite pendant 4 s. Éloigne-les de lui.', num('toutes les ' + d.galvanise + ' s'), 'violet');
   if (d.tourbillon) met('tourbillon', 'sort', 'Tourbillon de hache', 'Il lève sa hache : un cercle bleu autour de lui, puis il tourne deux fois sur lui-même, la hache tendue. Sors du cercle.', num(fmt(Math.round(dSort * d.tourbillon.x)) + ' dégâts', 'rouge') + num(secondes(d.tourbillon.prepa) + ' pour esquiver') + num('toutes les ' + d.tourbillon.periode + ' s'), 'violet');
   if (d.brassard) met('brassard', 'sort', d.brassardTitre || 'Coup de brassard', 'Un arc bleu devant ' + (d.fem ? 'elle' : 'lui') + ', puis ' + (d.brassardCoup || 'un grand coup de brassard') + ' qui te repousse.', num(fmt(Math.round(dSort * ((d.sortsX || {}).brassard || 1))) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'); /* (sortsX : le Coup d'aile de Crocabulia, a moitie, 03/11/2026) */
   if (d.pierre) met('pierre', 'bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre'));
@@ -1810,7 +1811,12 @@ function capRacines(mo, ctx) {
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('racinesT', R.periode) || mo.geste) return; if (dP < R.min || dP > R.max) { mo.racinesT = R.periode; return; } /* (pret, il attend que tu sois a mi-distance) */
   mo.racinesT = 0; const c0 = combat, x0 = pp.x, z0 = pp.z; mo.ry = Math.atan2(x0 - mo.x, z0 - mo.z); mo.bloqueT = R.prepa + 0.5; mo.cd = Math.max(mo.cd || 0, R.prepa + 0.6);
   gesteSort(mo, gesteDe(mo, 'racines', 'sort'), R.prepa);
-  if (!c0.racinesVu) { c0.racinesVu = true; toast(leNom(mo.d) + ' plante ses branches dans le sol : sors du cercle rouge, sinon ses racines t\'enracinent !', 'alerte'); }
+  if (!c0.racinesVu) { c0.racinesVu = true; toast(leNom(mo.d) + (mo.d.racinesTxt || ' plante ses branches dans le sol : sors du cercle rouge, sinon ses racines t\'enracinent !'), 'alerte'); }
+  if (R.graine) { /* (le Semeur, 05/11/2026 : une graine collante qui vole de sa main jusqu'au cercle, elle y tombe a la fin de l'attente) */
+    const g = glandVolant(0.7), H = 2.2, vers = new T.Vector3(x0, solA(x0, z0) + 0.1, z0); let de = null, tv = 0; const vol = R.prepa * 0.55, part = R.prepa - vol;
+    effets.push((dt) => { tv += dt; if (combat !== c0 || c0.fin) { if (de) jeter(g); return true; } if (tv < part) return false; if (!de) { de = mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + 2.2, mo.z); scene.add(g); }
+      const k = Math.min(1, (tv - part) / vol); g.position.lerpVectors(de, vers, k); g.position.y += Math.sin(k * Math.PI) * H; g.rotation.x += dt * 9;
+      if (fxAlea() < 0.6) emettre(FX_LUM, 1, { x: g.position.x, y: g.position.y, z: g.position.z, vie: [0.2, 0.3], taille: [0.4, 0.08], c: ['#eaffb8', '#9be35a'], a: 0.7 }); if (k >= 1) { jeter(g); return true; } }); }
   let t = 0; const y0 = solA(x0, z0);
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= R.prepa) return true; if (Math.random() < dt * 14) { const b = Math.random() * Math.PI * 2, r = Math.random() * R.R; poussiere(x0 + Math.cos(b) * r, y0, z0 + Math.sin(b) * r, 1, 0.3, '#8a6a44'); } }); /* (la terre fremit dans le cercle) */
   zoneDanger({ mo, x: x0, z: z0, r: R.R, duree: R.prepa, effet: (d) => {
@@ -1825,20 +1831,21 @@ function capRacines(mo, ctx) {
    et une pousse grandit. Marche dessus pour l'ecraser ; sinon, le disque plein, un Tronknyde sort de terre et file sur toi. Pas plus de max
    Tronknydes a lui, graines comprises */
 function capSemis(mo, ctx) {
-  const { pp, sortPret } = ctx, G = mo.d.semis; if (!G || combat.deroute != null) return;
+  const { pp, sortPret } = ctx, G = mo.d.pluieGlands; if (!G || combat.deroute != null) return;
   if (!sortPret('semisT', G.periode) || mo.geste) return;
   const debout = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length + (mo.graines || 0);
   if (debout >= G.max) { mo.semisT = G.periode - 2; return; }
   mo.semisT = 0; const c0 = combat, n = Math.min(G.n, G.max - debout); mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = G.lance + 0.5; mo.cd = Math.max(mo.cd || 0, G.lance + 0.6);
-  gesteSort(mo, gesteDe(mo, 'semis', 'sort'), G.lance);
-  if (!c0.semisVu) { c0.semisVu = true; toast(leNom(mo.d) + ' sème des graines autour de toi : marche dessus pour les écraser, sinon des Tronknydes en sortent !', 'alerte'); }
-  const places = []; for (let k = 0; k < n; k++) { const a = (k + Math.random() * 0.7) / n * Math.PI * 2, r = G.loin[0] + Math.random() * (G.loin[1] - G.loin[0]); places.push(pointValide(pp.x, pp.z, pp.x + Math.sin(a) * r, pp.z + Math.cos(a) * r)); }
+  gesteSort(mo, gesteDe(mo, 'pluie', 'sort'), G.lance);
+  if (!c0.semisVu) { c0.semisVu = true; toast(leNom(mo.d) + ' jette une pluie de glands : marche dessus et ils explosent, laisse-les et des Tronknydes en sortent au bout de ' + G.pousse + ' s !', 'alerte'); }
+  else chiffre('Pluie de glands !', new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 3) + 0.4, mo.z), 'butin');
+  const places = []; for (let k = 0; k < n; k++) { const a = (k + Math.random() * 0.7) / n * Math.PI * 2, r = G.loin[0] + Math.sqrt(Math.random()) * (G.loin[1] - G.loin[0]); places.push(pointValide(pp.x, pp.z, pp.x + Math.sin(a) * r, pp.z + Math.cos(a) * r)); }
   mo.graines = (mo.graines || 0) + n; let t = 0;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { mo.graines = 0; return true; } if (t < G.lance) return false;
-    const de = mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + 2.2, mo.z); places.forEach((p, k) => graineSemee(mo, de, p, G, c0, k * 0.06)); return true; });
+    const de = mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + 2.2, mo.z); places.forEach((p, k) => graineSemee(mo, de, p, G, c0, k * 0.07)); return true; });
 }
 function graineSemee(mo, de, p, G, c0, retard) { /* la graine qui vole en cloche, de sa main jusqu'a sa place */
-  const vers = new T.Vector3(p.x, solA(p.x, p.z) + 0.08, p.z), g = glandVolant(0.75), dist = de.distanceTo(vers), duree = Math.min(0.85, Math.max(0.45, dist / 8)), H = 1.0 + dist * 0.15; let t = -retard, mis = false;
+  const vers = new T.Vector3(p.x, solA(p.x, p.z) + 0.08, p.z), g = glandVolant(0.75), dist = de.distanceTo(vers), duree = Math.min(1.4, Math.max(0.9, dist / 5)), H = 4.5 + dist * 0.3; /* (jetes vers le ciel : ils montent haut et retombent) */ let t = -retard, mis = false;
   const fini = () => { jeter(g); mo.graines = Math.max(0, (mo.graines || 0) - 1); return true; };
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return fini(); if (t < 0) return false; if (!mis) { mis = true; scene.add(g); }
     const k = Math.min(1, t / duree); g.position.lerpVectors(de, vers, k); g.position.y += Math.sin(k * Math.PI) * H; g.rotation.x += dt * 9;
@@ -1859,7 +1866,10 @@ function planterGraine(mo, p, G, c0) { /* la graine plantee : la terre retournee
     plein.scale.setScalar(Math.max(0.01, k)); fond.material.opacity = 0.12 + 0.08 * Math.abs(Math.sin(t * 6)); bord.material.color.set(k > 0.75 && Math.sin(t * 18) > 0 ? '#ff6a3a' : '#b8f06a');
     pousse.scale.setScalar(0.2 + 0.8 * k); pousse.rotation.z = 0.12 * Math.sin(t * 3);
     const q = paysanMesh.position;
-    if (Math.hypot(q.x - p.x, q.z - p.z) < G.ecrase) { fin(); pouf(p.x, y, p.z, 1.2, '#7a5a34'); emettre(FX_VIF, 10, { x: p.x, y: y + 0.2, z: p.z, r: 0.1, dv: 3, haut: true, vie: [0.3, 0.5], taille: [0.1, 0.03], c: ['#fff1a8', '#ff9a2e'], grav: 8, frein: 1.5 }); chiffre('Écrasée !', new T.Vector3(p.x, y + 0.9, p.z), 'butin'); return true; }
+    if (Math.hypot(q.x - p.x, q.z - p.z) < G.ecrase) { /* (marche dessus : le gland explose, ca fait mal, mais pas de Tronknyde) */
+      fin(); boule(p.x, y + 0.4, p.z, 0.7, ['#ffb53c', '#e8541e']); onde(p.x, y + 0.05, p.z, 1.4, '#ffb53c', 0.4, 0.5); mottes(p.x, y, p.z, 6, 0.7); secousse(0.08, 0.18);
+      emettre(FX_VIF, 14, { x: p.x, y: y + 0.3, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.3, 0.55], taille: [0.12, 0.03], c: ['#fff1a8', '#ff9a2e', '#c8641e'], grav: 8, frein: 1.5 });
+      if (combat === c0 && !c0.fin) blesserPerso(Math.max(1, Math.round(degSort(mo) * (G.x || 0.5))), mo); return true; }
     if (t >= G.pousse) { fin(); pouf(p.x, y, p.z, 1.8, '#7a5a34'); mottes(p.x, y, p.z, 8, 0.8); apparaitre(G.type, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; return true; } });
 }
 /* LES RACINES DE L'ABRAKNYDE (05/11/2026, « des racines qui viennent te saisir et t'entourer, au style de l'Abraknyde, pendant 1,25 s », puis « plus
