@@ -7,7 +7,9 @@
     o = o || {};
     const L = o.laine || '#efe8b3', CO = o.cornes || '#3f5f7c', CT = o.corneTip || '#6d90ad', SAB = '#34506a', PAT = '#7a6e45';
     const PEAU = o.peau || '#8f7f4d', PEAU2 = '#746538', PAUP = '#5f5233', SCL = '#e6d7a0';
-    const sph = (r, c, e) => maille(new T.SphereGeometry(r, 24, 18), c, e);
+    /* (05/11/2026, l'allegement : « si ca ne degrade pas la qualite, allege », Mathieu ; un Bouftou faisait 83 000 triangles, contours compris :
+       des boules a 24 x 18 facettes meme pour une narine. Les facettes suivent maintenant la taille de la boule ; le rendu toon a trois tons ne montre pas la difference) */
+    const sph = (r, c, e) => maille(new T.SphereGeometry(r, r >= 0.9 ? 18 : r >= 0.3 ? 14 : r >= 0.12 ? 10 : 7, r >= 0.9 ? 13 : r >= 0.3 ? 10 : r >= 0.12 ? 7 : 5), c, e);
     const cyl = (rh, rb, h, c, e) => maille(new T.CylinderGeometry(rh, rb, h, 14), c, e);
     const pose = (m, x, y, z, sx, sy, sz, parent) => { m.position.set(x, y, z); if (sx) m.scale.set(sx, sy || sx, sz || sx); parent.add(m); return m; };
     const g = new T.Group();
