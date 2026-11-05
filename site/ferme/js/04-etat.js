@@ -135,4 +135,7 @@ function convertirRythme(e) {
   if (e.voliere && typeof e.voliere.accu === 'number') e.voliere.accu /= k;
   e.rythme = r;
 }
-function sauver() { try { localStorage.setItem(CLE, JSON.stringify(S_)); } catch (err) { /* rien */ } nuageMarquer(); }
+/* LE MODE TEST (05/11/2026, 27b-arene-dev.js) : tant qu'il dure, rien n'est enregistre, ni sur l'appareil ni en ligne (sauver ici, rpc et nuageEnvoyer dans 05-nuage.js) ;
+   la vraie partie reste telle qu'elle etait, la page rechargee la reprend */
+let MODE_TEST = false; const ETAT_TEST = { n: 1, immortel: false };
+function sauver() { if (MODE_TEST) return; try { localStorage.setItem(CLE, JSON.stringify(S_)); } catch (err) { /* rien */ } nuageMarquer(); }

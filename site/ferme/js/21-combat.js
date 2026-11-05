@@ -296,7 +296,7 @@ function ouvrirPanoplies(onglet) {
 }
 /* rejouer un boss deja battu : une fois par jour et par boss, remis a ton niveau, la moitie des kamas et de l'XP, son butin et sa coiffe legendaire (2 %) */
 const jourJeu = () => new Date(tempsReel()).toDateString();
-const bossRejouable = (P) => S_.vague.num > (P + 1) * VAGUES_PALIER && ((S_.bossRejoue || {})[P] !== jourJeu());
+const bossRejouable = (P) => MODE_TEST || (S_.vague.num > (P + 1) * VAGUES_PALIER && ((S_.bossRejoue || {})[P] !== jourJeu())); /* (le mode test : chaque boss, a volonte) */
 /* « a chaque fois que tu le rejoues ca divise les recompenses, en dehors du drop d'item » (Mathieu, 11/10/2026) : kamas et XP divises par deux a chaque victoire de plus (5 % au minimum) */
 const partRejoue = (P) => Math.max(0.05, Math.pow(0.5, ((S_.bossFois || {})[P] || 0) + 1));
 const gainsBoss = (P) => { const g = gainsVague((P + 1) * VAGUES_PALIER, false), k = partRejoue(P); return { kamas: Math.round(g.kamas * k), xp: Math.round(g.xp * k) }; };
@@ -326,13 +326,13 @@ function sectionRejouerBoss() {
 function lancerVague(pBoss, difficile, charges) {
   if (combat || enAccueil || !paysanMesh || lancerVague.charge) return;
   if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme en montgolfière.'); return; }
-  if (Date.now() < S_.vague.repos) { toast('Ton perso se repose encore ' + dureeLisible(S_.vague.repos - Date.now()) + '.'); return; }
+  if (!MODE_TEST && Date.now() < S_.vague.repos) { toast('Ton perso se repose encore ' + dureeLisible(S_.vague.repos - Date.now()) + '.'); return; }
   const rejoueB = pBoss != null && pBoss >= 0;
   if (rejoueB && !bossRejouable(pBoss)) { toast('Tu as déjà rejoué ce boss aujourd\'hui : reviens demain.'); return; }
   if (!rejoueB && S_.vague.num > VAGUES_TOTAL) { toast('Tous les paliers sont terminés : la suite arrive bientôt. En attendant, chaque boss se rejoue une fois par jour (fenêtre Vagues).'); return; } /* (« on peut rejouer la vague 60 a l'infini », Mathieu, 13/10/2026 : apres le dernier boss, plus de vague a la chaine ; il se rejoue une fois par jour, comme les autres) */
   const n = rejoueB ? (pBoss + 1) * VAGUES_PALIER : vagueCourante(), file = [], rejoueV = rejoueB || S_.vague.num > VAGUES_TOTAL;
-  if (!rejoueV && Date.now() < (S_.vague.prepa || 0)) { toast('La vague ' + n + ' se prépare : elle sera là dans ' + dureeLisible(S_.vague.prepa - Date.now()) + '. Profites-en pour cultiver.'); return; }
-  if (!rejoueV && niveau(S_.xp) < niveauRequis(n)) { toast('Il faut le niveau ' + niveauRequis(n) + ' pour la vague ' + n + ' : cultive et élève tes bêtes pour gagner de l\'expérience.', 'alerte'); return; }
+  if (!rejoueV && !MODE_TEST && Date.now() < (S_.vague.prepa || 0)) { toast('La vague ' + n + ' se prépare : elle sera là dans ' + dureeLisible(S_.vague.prepa - Date.now()) + '. Profites-en pour cultiver.'); return; }
+  if (!rejoueV && !MODE_TEST && niveau(S_.xp) < niveauRequis(n)) { toast('Il faut le niveau ' + niveauRequis(n) + ' pour la vague ' + n + ' : cultive et élève tes bêtes pour gagner de l\'expérience.', 'alerte'); return; }
   if (!charges) { /* les monstres a squelette (l'ile de Moon, 02/11/2026) : charges avant la vague, avec ceux qu'ils appellent, leurs shaders prets (sinon l'image se fige a leur arrivee) */
     const T0 = [...new Set(compoTotale(n).map(([t]) => t))], tous = [].concat(...T0.map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : [], MONSTRES[t].invoque ? MONSTRES[t].invoque.types : [], MONSTRES[t].affaibli ? [MONSTRES[t].affaibli.invoque] : []))).filter((t) => MONSTRES[t]);
     const sq = [...new Set(tous.map((t) => MONSTRES[t].modele))].filter((x) => !MODELES[x] && SQUELETTES_A_CHARGER.some(([s]) => s === x));
@@ -696,7 +696,7 @@ function blesserPerso(n, mo) {
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (classeDe() === 'iop') { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins (et un bouclier dore qui s'eclaire, 22b-effets.js) */
-  if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
+  if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); if (MODE_TEST && ETAT_TEST.immortel) combat.pv = Math.max(1, combat.pv); /* (le mode test, « immortel » : les coups s'affichent, il ne tombe jamais) */ const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */
   return true; /* (le coup a touche : la malediction du Lemurien s'en sert, 01/11/2026) */
 }

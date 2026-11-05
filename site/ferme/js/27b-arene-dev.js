@@ -91,3 +91,66 @@ function finDev(abandon, gagne) {
     '<p class="hdv-aide">Rien n\'a été gagné ni perdu : ta vie, tes potions et ta ferme sont comme avant.</p>' +
     '<div class="act-bas"><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn discret" data-montgolfiere="areneDev">Changer les monstres</button><button class="btn kamas" data-montgolfiere="lancerDev">Relancer</button></div>');
 }
+
+/* LE MODE TEST (05/11/2026, « il me faudrait un espace dev où je peux lancer des vagues sur ma partie, réadapter mon niveau ; une partie fake où je peux tout
+   commander : telle classe avec tel stuff, tel niveau, lancer toutes les vagues que je veux à l'infini, remettre mes PV au max », Mathieu). Réservé à son compte,
+   ouvert depuis les Options. On part de sa vraie ferme, puis plus rien n'est enregistré (MODE_TEST : sauver, rpc, nuageEnvoyer) : Quitter recharge la page,
+   qui reprend la vraie partie telle qu'elle était. Les vagues se lancent sans attente, sans repos ni niveau requis ; les boss se rejouent à volonté. */
+function bandeauTest() {
+  let b = document.getElementById('bandeau-test'); if (!b) { b = document.createElement('div'); b.id = 'bandeau-test'; document.body.appendChild(b); }
+  b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
+}
+function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; ETAT_TEST.n = Math.max(1, Math.min(VAGUES_TOTAL, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
+function vieAuMax() { const m = statsPerso().pvMax; S_.pv = m; if (combat && combat.pvMax) { combat.pv = combat.pvMax; majCombatHud(); } rendreHaut(); }
+function equiperTest(P) { /* la panoplie entiere au jet moyen, et l'arme de ta classe de cette panoplie */
+  if (combat) return; const cl = classeDe(), t = ARMES[cl][0];
+  EMPLACEMENTS.forEach(([e]) => { S_.equip[e] = P ? P.id + '-' + e : null; });
+  S_.equip.arme = P && OBJETS['arme-' + t + '-' + P.id] ? 'arme-' + t + '-' + P.id : null; rhabiller(); rendreHaut();
+}
+function changerClasseTest(cl) {
+  if (combat || !CLASSES.some((c) => c.id === cl)) return; const a = S_.equip.arme && obj(S_.equip.arme), t = ARMES[cl][0]; S_.perso.classe = cl;
+  if (a && a.leg) S_.equip.arme = OBJETS['leg-' + a.leg + '-' + t] ? 'leg-' + a.leg + '-' + t : null; /* (l'arme suit la classe) */
+  else if (a) S_.equip.arme = OBJETS['arme-' + t + '-' + PANOS[a.pano].id] ? 'arme-' + t + '-' + PANOS[a.pano].id : null;
+  rhabiller(); vieAuMax();
+}
+function ouvrirModeTest() {
+  if (!estAdmin()) return;
+  if (!MODE_TEST) { ouvrirModale('mode-test', entete('Mode test') + '<p class="hdv-aide">Tu pars de ta vraie ferme, puis <b>plus rien n\'est enregistré</b>, ni sur cet appareil ni en ligne. Choisis ta classe, ton niveau et ton équipement, lance n\'importe quelle vague autant de fois que tu veux, remets ta vie au max. « Quitter » recharge la page et te rend ta vraie partie, telle qu\'elle était.</p><div class="act-bas"><button class="btn kamas" data-test="entrer">Entrer en mode test</button></div>'); return; }
+  const cl = classeDe(), L = niveau(S_.xp), E = S_.equip || {}, n = ETAT_TEST.n, P = palierDe(n), bouton = (attr, v, txt, on) => '<button class="btn ' + (on ? 'kamas' : 'discret') + '" data-' + attr + '="' + v + '">' + (on ? '✓ ' : '') + txt + '</button>';
+  const panoPortee = (() => { const o = E.coiffe && obj(E.coiffe), o2 = E.bottes && obj(E.bottes); return o && !o.leg ? PANOS[o.pano].id : o2 ? PANOS[o2.pano].id : null; })(), arme = E.arme && obj(E.arme), coiffe = E.coiffe && obj(E.coiffe);
+  const pas = (attr, v) => '<div class="act dev-nb">' + [-10, -1].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">' + d + '</button>').join('') + '<b>' + v + '</b>' + [1, 10].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">+' + d + '</button>').join('') + '</div>';
+  ouvrirModale('mode-test', entete('Mode test') + '<p class="hdv-aide">Plus rien n\'est enregistré. « Quitter le mode test » recharge la page et te rend ta vraie partie.</p>' +
+    '<div class="hdv-section">Ton perso</div><div class="puces dev-groupes">' + CLASSES.map((c) => bouton('test-classe', c.id, c.nom, c.id === cl)).join('') + bouton('test-sexe', 'm', 'Homme', sexeDe() === 'm') + bouton('test-sexe', 'f', 'Femme', sexeDe() === 'f') + '</div>' +
+    '<div class="hdv-aide">Niveau ' + L + ', ' + fmt(statsPerso().pvMax) + ' PV avec ton équipement</div>' + pas('test-niv', L) +
+    '<div class="hdv-section">Ton équipement</div><p class="hdv-aide">La panoplie entière au jet moyen, et l\'arme de ta classe de cette panoplie.</p><div class="puces dev-groupes">' + bouton('test-pano', '', 'Rien', !panoPortee && !arme) + PANOS.map((x) => bouton('test-pano', x.id, x.nom + ' (' + x.niv + ')', panoPortee === x.id)).join('') + '</div>' +
+    '<p class="hdv-aide">Arme légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => x.arme && OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]]).map((x) => bouton('test-leg-arme', x.cle, OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]].nom, arme && arme.leg === x.cle)).join('') + '</div>' +
+    '<p class="hdv-aide">Coiffe légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => !x.arme && OBJETS['leg-' + x.cle]).map((x) => bouton('test-leg-coiffe', x.cle, OBJETS['leg-' + x.cle].nom, coiffe && coiffe.leg === x.cle)).join('') + '</div>' +
+    '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS[P].boss].nom) + '</b>, ' + PALIERS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
+    '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
+    '<div class="hdv-section">En combat</div><div class="puces dev-groupes">' + bouton('test', 'immortel', 'Immortel (les coups s\'affichent, tu ne tombes pas)', ETAT_TEST.immortel) + bouton('test', 'pv', 'Vie au max', false) + '</div>' +
+    '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n]'); if (!b || !estAdmin()) return;
+  const d = b.dataset, a = d.test;
+  if (a === 'ouvrir') { ouvrirModeTest(); return; }
+  if (a === 'entrer') { entrerModeTest(); return; }
+  if (!MODE_TEST) return;
+  if (a === 'quitter') { location.reload(); return; }
+  if (a === 'pv') { vieAuMax(); if (modaleOuverte === 'mode-test') ouvrirModeTest(); return; }
+  if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
+  else if (a === 'vague' || a === 'revanche' || a === 'difficile') {
+    if (combat) { toast('Un combat est déjà en cours.'); return; } if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme.'); return; }
+    fermerModale(); vieAuMax(); const n = ETAT_TEST.n;
+    if (a === 'vague') { S_.vague.num = n; S_.vague.prepa = 0; S_.vague.repos = 0; lancerVague(); } else lancerVague(palierDe(n), a === 'difficile');
+    return;
+  }
+  else if (d.testClasse) changerClasseTest(d.testClasse);
+  else if (d.testSexe) { if (combat) return; S_.perso.sexe = d.testSexe; rhabiller(); }
+  else if (d.testNiv) { if (combat) return; S_.xp = seuil(Math.max(1, Math.min(NIV_MAX, niveau(S_.xp) + Number(d.testNiv)))); vieAuMax(); }
+  else if (d.testPano != null && b.hasAttribute('data-test-pano')) equiperTest(PANOS.find((x) => x.id === d.testPano) || null);
+  else if (d.testLegArme) { if (combat) return; const id = 'leg-' + d.testLegArme + '-' + ARMES[classeDe()][0], o = S_.equip.arme && obj(S_.equip.arme); S_.equip.arme = o && o.leg === d.testLegArme ? null : id; rhabiller(); }
+  else if (d.testLegCoiffe) { if (combat) return; const o = S_.equip.coiffe && obj(S_.equip.coiffe); S_.equip.coiffe = o && o.leg === d.testLegCoiffe ? null : 'leg-' + d.testLegCoiffe; rhabiller(); }
+  else if (d.testN) ETAT_TEST.n = Math.max(1, Math.min(VAGUES_TOTAL, ETAT_TEST.n + Number(d.testN)));
+  vieAuMax(); ouvrirModeTest();
+});

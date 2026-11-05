@@ -23,6 +23,7 @@ async function jetonSite() { /* la session du site, rafraichie par supabase-js (
   if (!sb) return null; try { const { data } = await sb.auth.getSession(); return data && data.session ? data.session.access_token : null; } catch (err) { return null; }
 }
 async function rpc(nom, args, jwt) {
+  if (MODE_TEST) throw new Error('mode test'); /* (rien ne part en ligne pendant le mode test, 04-etat.js) */
   const corps = JSON.stringify(args), h = { apikey: SB_CLE, 'Content-Type': 'application/json' }; if (jwt) h.Authorization = 'Bearer ' + jwt;
   const r = await fetch(NUAGE_URL + nom, { method: 'POST', headers: h, body: corps, keepalive: corps.length < 60000 });
   if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
@@ -50,7 +51,7 @@ function choisirVersion(n) { /* la ferme de ce navigateur ou celle du compte : l
 }
 const resumeFerme = () => ({ niveau: niveau(S_.xp), vague: Math.max(0, valeurCompteur('vagueMax') || 0), kamas: Math.round(S_.kamas || 0), classe: S_.perso && S_.perso.classe, nom: S_.perso && S_.perso.nom });
 async function nuageEnvoyer(rapide) { /* rapide : la page se ferme, pas le temps de rafraichir la session */
-  if (!ENLIGNE || enLigneSv.envoi || enLigneSv.bloque || !S_ || !S_.perso || enAccueil) return;
+  if (MODE_TEST || !ENLIGNE || enLigneSv.envoi || enLigneSv.bloque || !S_ || !S_.perso || enAccueil) return;
   if (!enLigneSv.compte) { if (enLigneSv.refus === 'hors ligne' && !rapide) rattraper(); return; }
   if (!enLigneSv.sale) return;
   enLigneSv.envoi = true; enLigneSv.sale = false; const ecraser = enLigneSv.ecraser; /* (ce qui change pendant l'envoi repartira au suivant) */

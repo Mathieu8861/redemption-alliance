@@ -1086,3 +1086,5 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 html, body { color: #e8eaed; }
 .carte, .panneau, .objectif, .commis, .chat, .carte-pause, #lecon .carte-lecon, #tuto .tuto-carte, .fete .ban, .vitesse-panneau, .pastille, .vie-bas, .b-pots, .actions, .toast, .combat-haut, .combat-perso { background-color: var(--voile); }
 .carte { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+
+#bandeau-test { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); z-index: 4; display: flex; align-items: center; gap: 8px; background: #7a2fd0; color: #fff; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 5px 8px 5px 12px; font-size: .78rem; pointer-events: auto; } #bandeau-test b { letter-spacing: .06em; } #bandeau-test span { opacity: .85; } /* (le mode test de Mathieu, 05/11/2026) */
