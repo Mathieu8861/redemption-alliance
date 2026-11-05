@@ -216,6 +216,7 @@ function ficheMonstre(t) {
   if (d.bourrasque) met('bourrasque', 'lenteur', 'Bourrasque', 'Il ' + (d.bourrasqueGeste || 'bande son arc') + ' : un cône rouge devant lui, puis sa flèche de vent soulève une rafale. Dedans, elle te repousse de 2 cases et te ralentit.', num(fmt(Math.round(dSort * ((d.sortsX || {}).bourrasque || 1))) + ' dégâts', 'rouge') + num('repoussé de 2 cases') + num('ralenti ' + secondes(LENTEUR_BOURRASQUE), 'bleu') + num(secondes(ESQUIVE.bourrasque) + ' pour esquiver') + recup('bourrasque'), 'bleu');
   if (d.bain) met('bain', 'lenteur', 'Bain de boue', 'Il frappe le sol : la boue jaillit et recouvre la plus grande partie du terrain pendant ' + secondes(d.bain.duree) + '. Dedans, tu marches presque deux fois moins vite et lui court bien plus vite. Cherche les coins restés secs.', num('lui x' + String(d.bain.v).replace('.', ','), 'rouge') + num('toi x0,55', 'bleu') + num('toutes les ' + d.bain.periode + ' s'), 'bleu');
   if (d.boue) met('boue', 'lenteur', 'Crachat de boue', 'Il te crache une boule de boue : un cercle rouge sous toi. Reste dedans et la boue te colle sur place. Tant que tu es collé, il ne charge pas.', num('collé ' + secondes(DUREE_COLLE), 'rouge') + num(secondes(ESQUIVE.boue) + ' pour esquiver') + recup('boue'), 'bleu');
+  if (d.racines) met('racines', 'lenteur', 'Racines', 'Quand tu es à mi-distance, il plante ses branches dans le sol : un cercle rouge sous toi, puis ses racines jaillissent. Dedans, elles t\'enracinent : tu ne marches plus, tu frappes encore.', num(fmt(Math.round(dSort * d.racines.x)) + ' dégâts', 'rouge') + num('enraciné ' + secondes(d.racines.duree)) + num(secondes(d.racines.prepa) + ' pour esquiver') + num('toutes les ' + d.racines.periode + ' s'), 'violet');
   if (d.tourbillon) met('tourbillon', 'sort', 'Tourbillon de hache', 'Il lève sa hache : un cercle bleu autour de lui, puis il tourne deux fois sur lui-même, la hache tendue. Sors du cercle.', num(fmt(Math.round(dSort * d.tourbillon.x)) + ' dégâts', 'rouge') + num(secondes(d.tourbillon.prepa) + ' pour esquiver') + num('toutes les ' + d.tourbillon.periode + ' s'), 'violet');
   if (d.brassard) met('brassard', 'sort', d.brassardTitre || 'Coup de brassard', 'Un arc bleu devant ' + (d.fem ? 'elle' : 'lui') + ', puis ' + (d.brassardCoup || 'un grand coup de brassard') + ' qui te repousse.', num(fmt(Math.round(dSort * ((d.sortsX || {}).brassard || 1))) + ' dégâts', 'rouge') + num('te repousse') + num(secondes(ESQUIVE.brassard) + ' pour esquiver') + recup('brassard'), 'violet'); /* (sortsX : le Coup d'aile de Crocabulia, a moitie, 03/11/2026) */
   if (d.pierre) met('pierre', 'bouclier', 'Peau de pierre', 'Elle se change en pierre : moitié moins de dégâts pendant 4 s. Frappe sa troupe en attendant.', num('4 s') + recup('pierre'));
@@ -1800,6 +1801,28 @@ function capTourbillon(mo, ctx) {
     const p = paysanMesh.position; if (dansDanger(d, p.x, p.z)) { blesserPerso(Math.max(1, Math.round(degSort(mo) * W.x)), mo); if (W.repousse && combat && !combat.fin) repousserPerso(mo, W.repousse); }
     if (combat && !combat.fin) clesBats().forEach((k) => { const z = zoneBat(k); if (z && !enRuine(k) && Math.hypot(z.x - x0, z.z - z0) < W.R + Math.max(z.hw, z.hd)) blesserBat(k, degatsBatiment(1, mo)); }); } });
 }
+/* LES RACINES (05/11/2026, l'Abraknyde : « un sort d'entrave a mi-distance », Mathieu) : il leve ses branches et les plante dans le sol (son geste « sort »),
+   un cercle rouge sous toi ; a la fin, des racines brunes jaillissent du cercle en tournant et retombent ; dedans, tu es enracine (coller, comme la boue
+   du Dragon Cochon) et tu prends un peu de degats. Un sort de loin : colle a lui, il attend (SORTS_LOIN) */
+function capRacines(mo, ctx) {
+  const { pp, sortPret } = ctx, R = mo.d.racines; if (!R || combat.deroute != null) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('racinesT', R.periode) || mo.geste) return; if (dP < R.min || dP > R.max) { mo.racinesT = R.periode; return; } /* (pret, il attend que tu sois a mi-distance) */
+  mo.racinesT = 0; const c0 = combat, x0 = pp.x, z0 = pp.z; mo.ry = Math.atan2(x0 - mo.x, z0 - mo.z); mo.bloqueT = R.prepa + 0.5; mo.cd = Math.max(mo.cd || 0, R.prepa + 0.6);
+  gesteSort(mo, gesteDe(mo, 'racines', 'sort'), R.prepa);
+  if (!c0.racinesVu) { c0.racinesVu = true; toast(leNom(mo.d) + ' plante ses branches dans le sol : sors du cercle rouge, sinon ses racines t\'enracinent !', 'alerte'); }
+  let t = 0; const y0 = solA(x0, z0);
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= R.prepa) return true; if (Math.random() < dt * 14) { const b = Math.random() * Math.PI * 2, r = Math.random() * R.R; poussiere(x0 + Math.cos(b) * r, y0, z0 + Math.sin(b) * r, 1, 0.3, '#8a6a44'); } }); /* (la terre fremit dans le cercle) */
+  zoneDanger({ mo, x: x0, z: z0, r: R.R, duree: R.prepa, effet: (d) => {
+    const y = solA(x0, z0); secousse(0.08, 0.2); impactElement('feuille', x0, z0, R.R); mottes(x0, y, z0, 10, R.R * 0.8); poussiere(x0, y, z0, 8, R.R, '#8a6a44');
+    const g = new T.Group(), mt = mat('#6b4a2a'), mtf = mat('#4f351c'), n = 7, L = [];
+    for (let i = 0; i < n; i++) { const b = i / n * Math.PI * 2 + Math.random() * 0.5, r = R.R * (0.25 + Math.random() * 0.6), h = 0.9 + Math.random() * 0.7;
+      const ra = new T.Mesh(new T.ConeGeometry(0.13 + Math.random() * 0.06, h, 6), i % 2 ? mt : mtf); ra.geometry.translate(0, h / 2, 0); ra.position.set(x0 + Math.cos(b) * r, y - 0.05, z0 + Math.sin(b) * r);
+      ra.rotation.set((Math.random() - 0.5) * 0.7, Math.random() * 3, (Math.random() - 0.5) * 0.7); ra.castShadow = true; ra.scale.setScalar(0.01); g.add(ra); L.push(ra); }
+    scene.add(g); let s = 0;
+    effets.push((dt) => { s += dt; if (combat !== c0 || s >= R.duree + 0.5) { jeter(g); return true; } const k = s < 0.18 ? s / 0.18 : s > R.duree ? Math.max(0.01, 1 - (s - R.duree) / 0.5) : 1;
+      L.forEach((ra, i) => { ra.scale.setScalar(Math.max(0.01, k * (1 + 0.04 * Math.sin(s * 9 + i)))); }); }); /* (elles jaillissent, ondulent, puis rentrent sous terre) */
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
+}
 function capRoulade(mo, ctx) { /* les Tortues roulent pour esquiver (26/10/2026, « ce serait rigolo de les voir faire ça et esquiver de temps en temps », Mathieu) : touchée, une fois
      toutes les quelques secondes, elle part en roulade sur le côté, un peu vers toi ; pendant la culbute, tes coups la manquent */
   const { pp, dt, sortPret } = ctx;
@@ -1970,12 +1993,12 @@ function capMarteauMoon(mo, ctx) {
    corps », puis « la lance du Chafer, on la voit meme pas la lancer quand on est au cac, tu la prends, t'es mort », Mathieu). Le perimetre : la ou se tient
    un Iop qui le frappe, un peu plus large, et jamais jusqu'a l'Osamodas (3 cases). Dedans, et 0,8 s apres en etre sorti, les sorts « de loin » d'un boss ou
    demi-boss attendent (prets, ils partent des que tu t'eloignes) ; ses sorts au corps a corps se rechargent 30 % plus vite. Cle de la fiche : son minuteur */
-const SORTS_LOIN = { lance: 'lanceT', jet: 'jetT', faille: 'failleT', charge: 'chargeT', bondit: 'bonditT', boomerang: 'boomT', lianes: 'lianesT', lanceVent: 'lanceVT', tornades: 'tornadesT', bourrasque: 'bourrasqueT', appel: 'appelT', boue: 'boueT', marteauMoon: 'marteauMoonT' };
+const SORTS_LOIN = { racines: 'racinesT', lance: 'lanceT', jet: 'jetT', faille: 'failleT', charge: 'chargeT', bondit: 'bonditT', boomerang: 'boomT', lianes: 'lianesT', lanceVent: 'lanceVT', tornades: 'tornadesT', bourrasque: 'bourrasqueT', appel: 'appelT', boue: 'boueT', marteauMoon: 'marteauMoonT' };
 const SORTS_CAC = { seisme: 'seismeT', brassard: 'brassardT', tourbillon: 'tourbillonT' }, LOIN_T = new Set(Object.values(SORTS_LOIN)), CAC_T = new Set(Object.values(SORTS_CAC));
 const TRAITS_BOSS = new Set(['distance', 'casse', 'garde', 'ralentit', 'menotte', 'assomme', 'poison', 'soigne', 'protege', 'revit', 'demonte', 'grignote', 'bandit', 'fouisseur']); /* (ce qu'il fait, sans etiquette, en dernier dans sa fiche) */
 const cacBoss = (mo) => Math.min(porteeSur(mo, STATS_CLASSE.osa) - 0.5, Math.max(porteeSur(mo, STATS_CLASSE.iop) + 1.8, mo.d.portee * (mo.allonge || 1) + 0.3));
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
