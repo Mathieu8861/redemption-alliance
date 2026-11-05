@@ -623,9 +623,10 @@ canvas.addEventListener('pointermove', (ev) => {
 });
 canvas.addEventListener('pointerleave', () => { PORTEE_VUE.visible = false; $('info-survol').hidden = true; });
 function majTours(dt, s) {
+  if (MODE_TEST && ETAT_TEST.tours === 0) return; /* (le mode test : tourelles coupees, 27b-arene-dev.js) */
   toursMesh.forEach((g, k) => {
     if (enRuine(g.userData.chateau ? 'grange' : 'tour:' + g.userData.cellule)) return; /* (les tours du chateau-grange tombent avec lui) */
-    const t = g.userData.tete, pos = g.position, ct = g.userData.chateau ? TOUR_CHATEAU : caseTour(g.userData.cellule);
+    const t = g.userData.tete, pos = g.position, ct = MODE_TEST && ETAT_TEST.tours ? { niv: ETAT_TEST.tours } : g.userData.chateau ? TOUR_CHATEAU : caseTour(g.userData.cellule); /* (le mode test : un niveau force pour toutes) */
     g.userData.cd = Math.max(0, g.userData.cd - dt);
     const v = voleurCiblable() && Math.hypot(voleur.m.position.x - pos.x, voleur.m.position.z - pos.z) < porteeTour(ct) ? voleur : null;
     const mo = !v && combat ? monstreAViser(pos, porteeTour(ct)) : null, cible = v ? v.m.position : mo ? mo.m.position : null;
@@ -671,7 +672,7 @@ function rendreArbaleteBulle() {
   else bulle('arbalete', icoB('fleches'), 'eau', [arbalete.position.x, arbalete.position.y + 1.1, arbalete.position.z], 'arbalete:1', S_.fleches || '0', rechargeAuto() ? 'Plus de flèches en réserve : achète-en à l\'HDV, elle se rechargera toute seule' : 'Arbalète à recharger : touche pour y envoyer le paysan');
 }
 function viserArbalete(dt, s) {
-  if (!arbalete || enRuine('grange')) return;
+  if (!arbalete || enRuine('grange') || (MODE_TEST && ETAT_TEST.sansDef)) return; /* (le mode test : arbalete coupee) */
   const t = arbalete.userData.tete, mo = !voleurCiblable() && combat ? monstreAViser(arbalete.position, porteeArbalete()) : null;
   const cible = voleurCiblable() ? voleur.m.position : mo ? mo.m.position : null;
   let ang = Math.sin(s * 0.4) * 1.2; /* elle guette */

@@ -127,11 +127,13 @@ function ouvrirModeTest() {
     '<p class="hdv-aide">Coiffe légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => !x.arme && OBJETS['leg-' + x.cle]).map((x) => bouton('test-leg-coiffe', x.cle, OBJETS['leg-' + x.cle].nom, coiffe && coiffe.leg === x.cle)).join('') + '</div>' +
     '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS[P].boss].nom) + '</b>, ' + PALIERS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
     '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
+    '<div class="hdv-section">Tes défenses</div><p class="hdv-aide">Tes ' + nbTours() + ' tourelles : les tiennes, coupées, ou toutes au niveau de ton choix (6 : celles du château).</p><div class="puces dev-groupes">' + bouton('test-tours', 'tiennes', 'Les tiennes', ETAT_TEST.tours == null) + bouton('test-tours', '0', 'Coupées', ETAT_TEST.tours === 0) + [1, 2, 3, 4, 5, 6].map((k) => bouton('test-tours', String(k), 'Niveau ' + k, ETAT_TEST.tours === k)).join('') + '</div>' +
+    '<div class="puces dev-groupes">' + bouton('test', 'sansdef', 'Arbalète de la grange et Pépito-Tron coupés', ETAT_TEST.sansDef) + '</div>' +
     '<div class="hdv-section">En combat</div><div class="puces dev-groupes">' + bouton('test', 'immortel', 'Immortel (les coups s\'affichent, tu ne tombes pas)', ETAT_TEST.immortel) + bouton('test', 'pv', 'Vie au max', false) + '</div>' +
     '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours]'); if (!b || !estAdmin()) return;
   const d = b.dataset, a = d.test;
   if (a === 'ouvrir') { ouvrirModeTest(); return; }
   if (a === 'entrer') { entrerModeTest(); return; }
@@ -139,6 +141,8 @@ document.addEventListener('click', (e) => {
   if (a === 'quitter') { location.reload(); return; }
   if (a === 'pv') { vieAuMax(); if (modaleOuverte === 'mode-test') ouvrirModeTest(); return; }
   if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
+  else if (a === 'sansdef') ETAT_TEST.sansDef = !ETAT_TEST.sansDef;
+  else if (d.testTours) ETAT_TEST.tours = d.testTours === 'tiennes' ? null : Number(d.testTours);
   else if (a === 'vague' || a === 'revanche' || a === 'difficile') {
     if (combat) { toast('Un combat est déjà en cours.'); return; } if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme.'); return; }
     fermerModale(); vieAuMax(); const n = ETAT_TEST.n;

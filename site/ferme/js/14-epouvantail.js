@@ -63,7 +63,7 @@ function equiperEpouvantail() {
   epou.g.visible = !enRuine('epouvantail');
 }
 /* chaque image : il guette, pivote vers sa cible, tire */
-function majEpouvantail(dt, s) { if (lieu === 'arene' || lieu === 'ile') return; /* (Pepito reste a la ferme) */
+function majEpouvantail(dt, s) { if (lieu === 'arene' || lieu === 'ile' || (MODE_TEST && ETAT_TEST.sansDef)) return; /* (le mode test : Pepito-Tron coupe) */ /* (Pepito reste a la ferme) */
   if (!epou || !S_) return;
   const n = niv('epouvantail'), E = EPOU[Math.min(5, n)], pos = epou.g.position; epou.g.visible = !enRuine('epouvantail'); /* (le niveau 6 garde les reglages du 5, plus les voleurs) */
   if (epou.remplace) epou.remplace.visible = false;
