@@ -7,8 +7,8 @@
 const DEG_PEPITO_VSA = 90; /* le niveau 6 : son laser sur les voleurs de VSA (14/10/2026) */
 const pepitoTire = (k) => !(S_ && S_.pepito && S_.pepito[k] === false); /* les reglages du Pepito-Tron : 'champs' (les Tofus qui picorent), 'sauvage' (le Tofu sauvage) */
 const EPOU = [null, null, null, { portee: 8 * S, delai: 3 * SEC, cadence: 3.5, deg: 40 }, { portee: 99, delai: 1 * SEC, cadence: 2.2, deg: 60 }, /* (« l'epouvantail tape pas les Tofus » : portee 8 en unites du jeu, soit 4 cases, pour « 8 cases » promises ; le niveau 4 couvre toute l'ile, comme annonce) */ { portee: 99, delai: 0.45 * SEC, cadence: 1.0, deg: 150 }];
-const PRIX_LASER = 15;
-const PEPITO_TRON = ['PÉPITO-TRON en ligne. Les Tofus ont été prévenus. Ils n\'ont pas aimé.', 'chaque tir de laser : 15 kamas. la sécurité, ça se paie. en pépites.', 'un Tofu abattu, c\'est une récolte sauvée. ma marge : 100 %.', 'mode terminator activé. je reviendrai... pour la facture.', 'j\'ai scanné ta ferme : 0 Tofu, 100 % de pépites. de rien.'];
+const plumeDuLaser = () => { S_.grange.plume = (S_.grange.plume || 0) + 1; rendreGrange(); }; /* (niveau 5 : chaque Tofu abattu hors vague laisse sa Plume de Tofu, 05/11/2026) */
+const PEPITO_TRON = ['PÉPITO-TRON en ligne. Les Tofus ont été prévenus. Ils n\'ont pas aimé.', 'le laser est offert. oui, offert. ne t\'habitue pas.', 'un Tofu abattu, c\'est une récolte sauvée et une plume pour ta grange. de rien.', 'mode terminator activé. je reviendrai... avec des plumes.', 'j\'ai scanné ta ferme : 0 Tofu, que des plumes.'];
 let epou = null; /* { g: arme et armure posees sur l'epouvantail, tete, canon, pepites, cd, base } */
 const epouvantailMesh = () => batisMesh.find((m) => { const c = S_.cases.find((x) => x.id === m.userData.cellule); return c && c.type === 'epouvantail'; });
 function equiperEpouvantail() {
@@ -83,16 +83,15 @@ function majEpouvantail(dt, s) { if (lieu === 'arene' || lieu === 'ile' || (MODE
   let d = ang - epou.tete.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); epou.tete.rotation.y += d * Math.min(1, dt * (cible ? 8 : 1.5));
   if (epou.corps) epou.corps.rotation.y = epou.tete.rotation.y; /* l'epouvantail entier pivote sur son piquet */
   if (!cible || epou.cd > 0 || Math.abs(d) > 0.2) return;
-  if (n >= 5) { if (S_.kamas < PRIX_LASER) { if (!majEpouvantail.fauche) { majEpouvantail.fauche = true; toast('PÉPITO-TRON : fonds insuffisants. Pas de pépites, pas de laser.', 'alerte'); } return; } S_.kamas -= PRIX_LASER; majEpouvantail.fauche = false; rendreHaut(); }
-  else { if (S_.fleches <= 0) { if (!majEpouvantail.vide) { majEpouvantail.vide = true; toast('L\'épouvantail n\'a plus de flèches : achète-en à l\'HDV.', 'alerte'); } return; } S_.fleches--; majEpouvantail.vide = false; }
+  if (n < 5) { if (S_.fleches <= 0) { if (!majEpouvantail.vide) { majEpouvantail.vide = true; toast('L\'épouvantail n\'a plus de flèches : achète-en à l\'HDV.', 'alerte'); } return; } S_.fleches--; majEpouvantail.vide = false; }
   epou.cd = E.cadence;
   const de = new T.Vector3(); (epou.canon.userData.bout || epou.canon).getWorldPosition(de); const vers = new T.Vector3(x, y, z);
   const touche = () => {
-    if (cible.sauvage) { if (!S_.sauvage) return; compter('tofusChasses'); S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('PÉPITO-TRON : Tofu sauvage neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 'or'); sauver(); return; }
-    if (cible.voleur) { blesserVoleur(DEG_PEPITO_VSA, 'PÉPITO-TRON : voleur de VSA neutralisé. Facture : ' + PRIX_LASER + ' kamas.', 0.5); return; }
+    if (cible.sauvage) { if (!S_.sauvage) return; compter('tofusChasses'); S_.sauvage = null; rendreSauvage(); gagnerXp(1); if (n >= 5) plumeDuLaser(); toast(n >= 5 ? 'PÉPITO-TRON : Tofu sauvage neutralisé. +1 Plume de Tofu à la grange.' : 'L\'épouvantail a chassé le Tofu sauvage !', 'or'); sauver(); return; }
+    if (cible.voleur) { blesserVoleur(DEG_PEPITO_VSA, 'PÉPITO-TRON : voleur de VSA neutralisé.', 0.5); return; }
     if (cible.mo) { if (combat && cible.mo.etat === 'actif') blesser(cible.mo, cible.vsa ? DEG_PEPITO_VSA : E.deg, true, 'def'); return; }
     const p = cible.champ; if (!p.tofu) return; const nuisible = p.nuisible; p.tofu = 0; p.nuisible = null; p.tofuParti = Date.now(); rendreCase(p.id); gagnerXp(1); p.nuisible = nuisible; /* (le nom du toast, puis on l'oublie) */
-    const bete = p.nuisible === 'wabbit' ? 'Wabbit' : 'Tofu'; p.nuisible = null; toast(n >= 5 ? 'PÉPITO-TRON : ' + bete + ' neutralisé sur ton ' + PAR_ID[p.c].nom + '. Facture : ' + PRIX_LASER + ' kamas.' : 'L\'épouvantail a chassé un ' + bete + ' de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
+    const bete = p.nuisible === 'wabbit' ? 'Wabbit' : 'Tofu'; p.nuisible = null; if (n >= 5 && bete === 'Tofu') plumeDuLaser(); toast(n >= 5 ? 'PÉPITO-TRON : ' + bete + ' neutralisé sur ton ' + PAR_ID[p.c].nom + (bete === 'Tofu' ? '. +1 Plume de Tofu à la grange.' : '.') : 'L\'épouvantail a chassé un ' + bete + ' de ton ' + PAR_ID[p.c].nom + ' !', 'or'); sauver();
   };
   if (n >= 5) { /* le laser : un trait rouge instantane qui s'eteint */
     const L = de.distanceTo(vers), rayon = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, L, 6, 1, true), new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.95, depthWrite: false }));
