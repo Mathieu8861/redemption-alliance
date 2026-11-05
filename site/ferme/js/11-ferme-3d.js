@@ -244,18 +244,35 @@ function construireDecos() {
   if (manque) assurerDecos();
 }
 /* LES LANTERNES QUI LUISENT (01/11/2026) : le verre brille deja (matiere lumiere) ; autour, un halo chaud qui palpite comme une flamme, et une flaque de
-   lumiere doree au sol (en couleur normale : en lumiere additive, elle virait au blanc sur l'herbe claire). La ferme n'a pas de nuit : elles luisent toujours */
+   lumiere doree au sol (en couleur normale : en lumiere additive, elle virait au blanc sur l'herbe claire). La ferme n'a pas de nuit : elles suivent la vraie heure (plus bas) */
 let lanternesAnim = [], texHalo = null, texFlaqueLumiere = null;
 function lueurLanterne(m, L) {
   texHalo = texHalo || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,240,190,0.9)'); r.addColorStop(0.35, 'rgba(255,200,90,0.45)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
   texFlaqueLumiere = texFlaqueLumiere || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,214,120,0.55)'); r.addColorStop(0.6, 'rgba(255,190,90,0.18)'); r.addColorStop(1, 'rgba(255,170,60,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
   const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * 1.4); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
   const sol = new T.Mesh(new T.CircleGeometry(L.r * 1.9, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
-  [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); }); lanternesAnim.push({ halo, sol, r: L.r, ph: Math.random() * 6 });
+  [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); });
+  const verres = []; m.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { const M = o.material; if (!M.userData.allume) { M.userData.allume = M.color.clone(); M.userData.eteint = M.color.clone().lerp(new T.Color('#5d6466'), 0.65); } verres.push(M); } }); /* (le verre qui brille : sa couleur allumee et sa couleur eteinte) */
+  const a = lanternesAllumees() ? 1 : 0; lanternesAnim.push({ halo, sol, r: L.r, ph: Math.random() * 6, verres, a }); allumerLanterne(lanternesAnim[lanternesAnim.length - 1]);
 }
+/* (05/11/2026, « les lampadaires, ils peuvent etre eteints le jour ? », Mathieu) : la ferme n'a pas de nuit, les lanternes suivent donc la vraie heure du
+   joueur : allumees quand le soleil est couche a Paris (hauteur sous -1 degre : declinaison du jour, angle horaire et equation du temps, a quelques
+   minutes pres), eteintes le jour. LANTERNES_FORCE (true ou false) les force, pour les tests. */
+let LANTERNES_FORCE = null;
+function lanternesAllumees() {
+  if (LANTERNES_FORCE != null) return LANTERNES_FORCE;
+  const t = new Date(), rad = Math.PI / 180, j = (Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()) - Date.UTC(t.getUTCFullYear(), 0, 0)) / 864e5;
+  const B = 2 * Math.PI * (j - 81) / 365, eqt = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B); /* (l'equation du temps, en minutes : jusqu'a 16 min d'ecart en novembre) */
+  const dec = -23.44 * Math.cos(2 * Math.PI / 365 * (j + 10)) * rad, lat = 48.85 * rad, H = (t.getUTCHours() + t.getUTCMinutes() / 60 + 2.35 / 15 + eqt / 60 - 12) * 15 * rad;
+  return Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H) < Math.sin(-1 * rad);
+}
+function allumerLanterne(A) { A.halo.visible = A.sol.visible = A.a > 0.01; A.halo.material.opacity = A.a; A.verres.forEach((M) => M.color.copy(M.userData.eteint).lerp(M.userData.allume, A.a)); }
 function animerLanternes(s) {
   if (!lanternesAnim.length || lieu === 'arene' || lieu === 'ile') return;
-  lanternesAnim.forEach((A) => { const f = 1 + 0.07 * Math.sin(s * 7 + A.ph) + 0.04 * Math.sin(s * 13.3 + A.ph * 2); A.halo.scale.setScalar(A.r * 1.4 * f); A.sol.material.opacity = 0.85 + 0.15 * Math.sin(s * 5 + A.ph); });
+  const now = performance.now(); if (!animerLanternes.t || now - animerLanternes.t > 2000) { animerLanternes.t = now; animerLanternes.cible = lanternesAllumees() ? 1 : 0; } /* (l'heure, relue toutes les 2 s) */
+  const c = animerLanternes.cible, dt = Math.min(0.1, (now - (animerLanternes.d || now)) / 1000); animerLanternes.d = now;
+  lanternesAnim.forEach((A) => { if (A.a !== c) { A.a = c > A.a ? Math.min(c, A.a + dt) : Math.max(c, A.a - dt); allumerLanterne(A); } if (A.a <= 0.01) return; /* (un fondu d'une seconde) */
+    const f = 1 + 0.07 * Math.sin(s * 7 + A.ph) + 0.04 * Math.sin(s * 13.3 + A.ph * 2); A.halo.scale.setScalar(A.r * 1.4 * f); A.sol.material.opacity = (0.85 + 0.15 * Math.sin(s * 5 + A.ph)) * A.a; });
 }
 /* LES PETITES CLOTURES (01/11/2026, « des petites clotures pour separer nos differents champs », Mathieu ; posees sur les bords des cases, juste decoratives) :
    un morceau par bord, S_.clotures[cle] ; 'x' + i + '_' + j : le bord entre la case (i, j) et sa voisine (i + 1, j) ; 'z' + i + '_' + j : entre (i, j) et
