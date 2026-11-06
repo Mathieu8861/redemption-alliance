@@ -167,7 +167,7 @@ const vaguesDe = (t) => (vaguesDe.c || (vaguesDe.c = {}))[t] || (vaguesDe.c[t] =
 const casesDe = (u) => Math.round(u / S * 2) / 2; /* (une case : 2 unites) */
 function ficheMonstre(t) {
   const d = MONSTRES[t], B = bestiaire()[t] || {}, V = vaguesDe(t), n = V.length ? Math.min(Math.max(S_.vague.num, V[0]), V[V.length - 1]) : Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL));
-  const pv = pvMonstre(t, n), deg = Math.round(degMonstre(t, n) * multDegats(n) * multHautes(n)), dSort = d.boss ? Math.round(degMonstre(t, n) / BOSS_DEG[palierDe(n)] * (d.degSort || 0) * multHautes(n)) : Math.round(deg * (d.degSort || 1.5));
+  const pv = pvMonstre(t, n), deg = Math.round(degMonstre(t, n) * multDegats(n) * multHautes(n) * (d.boss && !d.demi ? AUTO_BOSS[palierDe(n)] || 1 : 1)), dSort = d.boss ? Math.round(degMonstre(t, n) / BOSS_DEG[palierDe(n)] * (d.degSort || 0) * multHautes(n)) : Math.round(deg * (d.degSort || 1.5));
   const P = V.length ? palierDe(V[0]) : null, pros = 1 + caracs().prospection / 100, pc = (x) => (Math.round(Math.min(1, x) * 1000) / 10).toString().replace('.', ',') + ' %';
   const vis = d.grignote ? 'Tes cultures' : d.bandit ? 'Ta grange' : d.casse ? 'Toi ou tes bâtiments' : 'Toi', vM = vitesseMonstre(d), vit = vM <= VITESSE_MIN_MONSTRES ? 'lent' : vM < 2.7 ? 'moyen' : 'rapide';
   const tag = (p, t2, cl) => '<span class="puce ' + (cl || '') + '">' + picto(p) + t2 + '</span>', num = (t2, cl) => '<span class="puce ' + (cl || '') + '">' + t2 + '</span>';
@@ -325,6 +325,16 @@ const facteurRejoue = (quoi, t) => { if (!combat || combat.rejoueBoss == null) r
      (DUR.garde), tombait sous la vague normale pour les derniers boss (Dragon Cochon, Moon) ; elle prend maintenant le plus fort des deux, ce calcul ou la revanche normale
      (les premiers boss ne changent pas : leur troupe reste remise a ton niveau). Le boss, lui : vie x1,5 de plus (DUR.pv 1 -> 1,5) */
   return normale; };
+/* LES AUTOS DES BOSS (07/11/2026, « les autos du boss ca devrait retirer environ 4 % des HP, et en difficile +50 %, donc environ 6 % », Mathieu) : un coup simple
+   du boss enleve environ 4 % des PV d'un Iop de son niveau (panoplie complete du palier, jet moyen ; avant 1,6 a 2,3 % des le Bworker). Seulement les autos (le coup
+   au contact, le tir de Crocabulia) : ses sorts ne bougent pas. En revanche difficile : l'auto du boss de reference (vagueRefDifficile), x1,5. Combats de vague et
+   revanches seulement, pas l'Arene ni l'ile. Le Bouftou Royal et le Chafer y etaient deja (4,4 %) */
+const AUTO_BOSS = [1, 1, 1.75, 2.04, 2.49, 1.82, 1.93, 2.04, 2.09], AUTO_DIFFICILE = 1.5;
+function autoBoss(mo) {
+  if (!combat || combat.genre !== 'vague' || !mo || !mo.d.boss || mo.d.demi || mo.invoque) return 1;
+  const P = combat.difficile && combat.rejoueBoss != null ? palierDe(vagueRefDifficile(niveau(S_.xp))) : palierDe(combat.n);
+  return (AUTO_BOSS[P] || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1);
+}
 /* la Cawotte et la Fraise (« une nouvelle recolte qui donne un boost », Mathieu, 11/10/2026) : on en mange une avant de lancer, pour cette vague seulement */
 function sectionRepas() {
   const L = CULTURES.filter((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)); if (!L.length) return '';
@@ -2172,7 +2182,7 @@ function impactTir(type, p, mo, perso) {
 }
 function tirMonstre(mo, bat) {
   const main = mainSquelette(mo), type = mo.d.magie ? 'magie' : TIRS[mo.d.projectile] ? mo.d.projectile : 'fleche', T0 = TIRS[type];
-  const de = main || new T.Vector3(mo.x, mo.m.position.y + Math.max(1.0, (mo.haut || 1.6) * 0.6), mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg, cleB = bat && bat.cle, c0 = combat;
+  const de = main || new T.Vector3(mo.x, mo.m.position.y + Math.max(1.0, (mo.haut || 1.6) * 0.6), mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg * (bat ? 1 : autoBoss(mo)), cleB = bat && bat.cle, c0 = combat; /* (le tir de Crocabulia : une auto de boss, 07/11/2026) */
   const fl = projectileMonstre(type, mo); scene.add(fl); fl.position.copy(de); fl.lookAt(vers);
   if (T0.long) decocher(de, vers); else pouf(de.x, de.y - 0.3, de.z, 0.7, type === 'feu' ? '#ff9a2e' : '#d8c6a0');
   const dist = de.distanceTo(vers), duree = Math.min(0.9, Math.max(0.3, dist / T0.v)), H = T0.arc + dist * T0.parD, avant = new T.Vector3(); let t = 0;
@@ -2362,7 +2372,7 @@ function majMonstre(mo, dt, s) {
       const frapper = () => { /* (le coup lui-meme ; un monstre a squelette le porte a l'instant de son geste : s'il t'a vu filer, il frappe dans le vide) */
         if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
         else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat); } /* (le perso s'est colle a lui pendant son geste : rien ne part) */
-        else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg, mo); effetsCoup(mo); } };
+        else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg * autoBoss(mo), mo); effetsCoup(mo); } }; /* (autoBoss : les autos des boss, 07/11/2026) */
       if ((mo.d.marteau || mo.d.poings) && m.userData.anim && !bat) coupMarteau(mo); /* (Moon, et le Gorille roi avec ses poings : le coup tombe a l'impact, 22c-squelettes.js) */
       else if (m.userData.anim) attaqueSquelette(mo, mo.d.distance ? 'tir' : 'coup', frapper); /* (les Kannibouls et les Tortues : a l'instant de leur geste) */
       else if (mo.d.coups && !bat) coupLourd(mo, portee, frapper); /* (le Dragon Cochon : ses trois coups, 01/11/2026) */
