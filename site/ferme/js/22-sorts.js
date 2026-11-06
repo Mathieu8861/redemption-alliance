@@ -426,12 +426,17 @@ const boutonLeg = (emp) => ({ cd: cdLeg(emp), dispo: () => !!legDe(emp),
   refus: () => (legDe(emp) === 'corail' && classeDe() === 'osa' && !(combat && combat.invoc) ? 'Invoque d\'abord ton Bouftou : la Galvanisation le renforce.' : ''),
   visee: () => { const cle = legDe(emp), S = sortLeg(cle); return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', ligne: !!S.ligne, largeur: S.largeur, libre: true, instant: !!S.instant }; }, /* (la zone au sol, la portee autour du perso ; ligne : la bande de la charge ou de la lance) */
   tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.instant ? { x: paysanMesh.position.x, z: paysanMesh.position.z } : v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
+/* la portee du coup fatal (Colere de Iop, Fleche fatale, Morsure du Dragoeuf) : celle de l'attaque de ta classe (06/11/2026, « on ne voit pas la portee, et ca te fait
+   avancer vers la cible si tu n'as pas la PO », Mathieu : un cercle pendant la visee, et hors de portee le sort ne part pas au lieu de faire marcher le perso) */
+const porteeMono = () => (STATS_CLASSE[classeDe()] || {}).portee || S;
 const BOUTONS_SORT = {
   sort: { cd: 'cdSort', visee: () => Object.assign({ quoi: 'sort' }, viseeClasse()),
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
   ulti: { cd: 'cdUlti', refus: () => S_.ulti ? '' : niveau(S_.xp) >= NIV_ULTI ? 'Choisis ton ulti dans la fiche des vagues, après ce combat.' : 'L\'ulti se débloque au niveau ' + NIV_ULTI + ' de Paysan.',
-    visee: () => { const id = S_.ulti; return { quoi: 'ulti', id, rayon: id === 'mono' ? 0.75 : id === 'zone' ? 2.8 : 3, teinte: ULTIS[id].teinte }; },
-    tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt); if (!m) { toast('Vise un monstre.'); return; } annulerVisee(); if (combat.st) combat.st.sorts++; executerUlti('mono', m); return; } /* (le coup fatal : un monstre) */
+    visee: () => { const id = S_.ulti; return { quoi: 'ulti', id, rayon: id === 'mono' ? 0.75 : id === 'zone' ? 2.8 : 3, teinte: ULTIS[id].teinte, portee: id === 'mono' ? porteeMono() : undefined }; }, /* (le coup fatal montre sa portee, 06/11/2026) */
+    tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt); if (!m) { toast('Vise un monstre.'); return; }
+        { const pp = paysanMesh.position; if (Math.hypot(m.x - pp.x, m.z - pp.z) > porteeMono()) { toast('Trop loin : ' + nomUlti('mono') + ' porte à ' + String(Math.round(porteeMono() / S * 2) / 2).replace('.', ',') + ' case' + (porteeMono() > S ? 's' : '') + '. Rapproche-toi.'); return; } } /* (avant : le perso marchait vers la cible, 06/11/2026) */
+        annulerVisee(); if (combat.st) combat.st.sorts++; executerUlti('mono', m); return; } /* (le coup fatal : un monstre) */
       annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); executerUlti(v.id, null, pt); } },
   coiffe: boutonLeg('coiffe'), arme: boutonLeg('arme'),
 };
