@@ -47,21 +47,38 @@ function boirePot(t) {
 }
 /* l'alerte de la fenetre des vagues (« ok », Mathieu) : avec combien de vie tu pars, et tes pots */
 /* la pastille de vie du haut, toujours visible (« il faudrait la voir en tout temps », Mathieu, 13/10/2026) ; en combat, elle suit la vie du combat */
+/* LES EFFETS EN COURS (06/11/2026, « quand on prend une potion qui a des buffs, il faudrait qu'il s'affiche a cote de la barre, avec la potion ou la Cawotte », Mathieu) :
+   en combat, les repas et les pots de la vague (dans l'encadre du perso) ; hors combat, ce qui est bu ou mange pour la prochaine vague (a cote de la barre de vie du bas) */
+function effetsEnCours() {
+  const L = [], c = combat, vite = Math.round((VITESSE_CITRON - 1) * 100), suite = c ? '' : ', pour la prochaine vague';
+  Object.keys((c ? c.repasActifs : S_.mange) || {}).forEach((id) => { const cu = PAR_ID[id]; if (cu && cu.mange && (c || S_.mange[id])) L.push([id, cu.nom + ' : ' + cu.mange.txt + suite]); });
+  if (c ? c.regen : S_.menthe) L.push(['pot-menthe', 'Pot de Menthe : il te soigne pendant la vague' + (c ? '' : ' (la prochaine)')]);
+  if (c ? c.citron : S_.citron) L.push(['pot-citron', 'Pot de Citron : tu cours ' + vite + ' % plus vite' + suite]);
+  const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + agi + ' Agilité' + suite]);
+  return L;
+}
+function majEffets() {
+  const e = $(combat ? 'combat-buffs' : 'buffs-attente'), autre = $(combat ? 'buffs-attente' : 'combat-buffs'); if (!e) return; if (autre && autre._h) { autre.innerHTML = ''; autre._h = ''; }
+  const h = combat && combat.raid ? '' : effetsEnCours().map(([ic, t]) => '<span class="buff" data-info="' + t + '"><img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="' + t + '"></span>').join('');
+  if (e._h !== h) { e._h = h; e.innerHTML = h; }
+}
 function majVieHaut() {
   const b = $('b-vie'); if (!b || !S_ || !S_.perso) return; const max = combat ? combat.pvMax : statsPerso().pvMax, pv = combat ? Math.max(0, combat.pv) : vieActuelle(), pc = Math.round(100 * pv / max);
   if (!b._pret) { b.querySelector('.coeur').innerHTML = picto('vita'); b._pret = true; }
   const w = pc + '%'; if (b._w !== w) { b._w = w; $('vie').style.width = w; }
   const t = Math.ceil(pv) + ' / ' + max + ' PV'; if (b._t !== t) { b._t = t; $('vie-txt').textContent = t; }
   b.classList.toggle('moyen', pc < 60 && pc >= 40); b.classList.toggle('bas', pc < 40);
-  const bp = $('b-pots'), np = totalPots(), cle = np + '|' + (pc < 40 && !combat); if (bp && bp._c !== cle) { bp._c = cle; $('pots-nb').textContent = np; bp.classList.toggle('vide', !np); bp.classList.toggle('appel', np > 0 && pc < 40 && !combat); }
+  majEffets(); const bp = $('b-pots'), np = totalPots(), cle = np + '|' + (pc < 40 && !combat); if (bp && bp._c !== cle) { bp._c = cle; $('pots-nb').textContent = np; bp.classList.toggle('vide', !np); bp.classList.toggle('appel', np > 0 && pc < 40 && !combat); }
 }
 function blocVie() {
   const max = statsPerso().pvMax, pv = vieActuelle(); S_.pots = S_.pots || {}; if (pv >= max && !S_.menthe) return '';
   const pc = Math.round(100 * pv / max), dispo = Object.keys(POTS).filter((t) => S_.pots[t] > 0);
   const boutons = dispo.length ? dispo.map((t) => '<button class="btn mini-pot" data-boire="' + t + '" data-info="' + POTS[t].nom + ' : ' + POTS[t].effet + '"><img src="assets/icones/pot-' + t + '.png?v=' + VERSION_MODELES + '" alt="' + POTS[t].nom + '"><span>' + S_.pots[t] + '</span></button>').join('')
     : '<button class="btn kamas" data-hdv-cat="gelees">Acheter des pots</button>';
-  return '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (pv >= max ? 'Ta vie est pleine' : 'Tu pars avec ' + pc + ' % de vie') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.round(pv) + ' / ' + max + ' PV. Elle remonte doucement toute seule, un pot va plus vite. ' +
-    (S_.menthe ? 'La Menthe te soignera pendant la vague.' : dispo.length ? 'Bois un pot :' : 'Tu n\'as plus de pot.') + '</small></div><div class="va-pots">' + boutons + '</div></div>';
+  /* (06/11/2026, « le message n'est pas tres beau », Mathieu : en colonne, le titre et les PV en tete, la barre sur toute la largeur, puis les pots) */
+  return '<div class="vie-alerte empile' + (pc < 40 ? ' bas' : '') + '"><div class="va-tete"><b>' + (pv >= max ? 'Ta vie est pleine' : 'Tu pars avec ' + pc + ' % de vie') + '</b><span>' + fmt(Math.round(pv)) + ' / ' + fmt(max) + ' PV</span></div><div class="pvb"><i style="width:' + pc + '%"></i></div>' +
+    '<small>' + (pv >= max ? '' : 'Elle remonte doucement toute seule, un pot va plus vite.') + (S_.menthe ? ' La Menthe te soignera pendant la vague.' : '') + '</small>' +
+    '<div class="va-pots"><span class="va-lib">' + (dispo.length ? 'Bois un pot :' : 'Tu n\'as plus de pot.') + '</span>' + boutons + '</div></div>';
 }
 /* LA FENETRE DES POTS : la vie, le temps qu'il faut pour qu'elle remonte seule, et chaque pot (a boire, ou a acheter s'il n'y en a plus) */
 const PRIX_FUSION_POTS = 100; /* (05/11/2026, Mathieu : deux petits pots Bleus (+25 % chacun) se fondent en un grand (+60 %) pour 100 kamas) */
