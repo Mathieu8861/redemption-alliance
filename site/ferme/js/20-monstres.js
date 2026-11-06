@@ -167,10 +167,13 @@ const compoVague0 = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER
 const MOBS_EN_PLUS = 1;
 const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_TOTAL) return L;
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS;
-  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return plafonnerTireurs(L); };
+  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return ajusterCompo(n, plafonnerTireurs(L)); };
 /* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
    jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
 const PART_TIREURS_MAX = 0.7;
+/* les retouches d'une vague precise, apres tout le reste (06/11/2026, vague 82 : « retire 2 Jav pour mettre 2 Tambours », Mathieu) */
+const AJUST_COMPO = { 82: [['kannibJav', -2], ['kannibTam', 2]] };
+const ajusterCompo = (n, L) => { (AJUST_COMPO[n] || []).forEach(([t, d]) => { const e = L.find(([x]) => x === t); if (e) e[1] = Math.max(0, e[1] + d); else if (d > 0) L.push([t, d]); }); return L.filter(([, k]) => k > 0); };
 function plafonnerTireurs(L) {
   const mob = L.filter(([t]) => !MONSTRES[t].boss), tot = mob.reduce((a, [, k]) => a + k, 0), loin = mob.filter(([t]) => MONSTRES[t].distance).reduce((a, [, k]) => a + k, 0);
   let trop = loin - Math.floor(tot * PART_TIREURS_MAX); const cac = mob.filter(([t]) => !MONSTRES[t].distance).sort((a, b) => b[1] - a[1])[0]; if (trop <= 0 || !cac) return L;
