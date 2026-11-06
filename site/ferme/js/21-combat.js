@@ -1629,6 +1629,8 @@ function capCawotteRoyale(mo, ctx) {
     }
   }
 }
+/* (06/11/2026, « le Koulosse en Arene, retire-lui 2 flaques, l'Arene est petite et il recouvre trop facilement la map », Mathieu) : 2 nuages de moins par jet dans l'Arene seulement */
+const FUMEES_EN_MOINS_ARENE = 2, nbFumees = (mo) => Math.max(1, (mo.d.fumeeN || 3) - (combat && combat.genre === 'arene' ? FUMEES_EN_MOINS_ARENE : 0));
 function capFumee(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.fumee && combat.deroute == null) { /* le Koulosse crache des nuages de fumee verte : un sur toi, deux autour */
@@ -1636,7 +1638,7 @@ function capFumee(mo, ctx) {
     if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
       if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : la toucher t\'empoisonne (2 s de poison par seconde passée dedans, ' + Math.round(POISON_FUMEE * 100) + ' % de tes PV par seconde). Évite les nuages verts !', 'alerte'); }
       const geste = !m.userData.anim; if (geste) { inspireKoulosse(mo, 0.45); mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = Math.max(mo.bloqueT || 0, 0.9); } /* (31/10/2026 : il inspire, puis crache) */
-      const nf = mo.d.fumeeN || 3, rf = mo.d.fumeeR || 1.9; /* (31/10/2026, par Discord, « il devrait en jeter beaucoup plus, plus de zones de brume, sur la carte c'est tres facile a esquiver », Mathieu : fumeeN nuages par jet, de rayon fumeeR) */
+      const nf = nbFumees(mo), rf = mo.d.fumeeR || 1.9; /* (31/10/2026, par Discord, « il devrait en jeter beaucoup plus, plus de zones de brume, sur la carte c'est tres facile a esquiver », Mathieu : fumeeN nuages par jet, de rayon fumeeR) */
       [[pp.x, pp.z]].concat(Array.from({ length: nf - 1 }, (_, i) => { const a = (i / (nf - 1)) * Math.PI * 2 + Math.random() * 0.8, r = 3 + Math.random() * 5; return [pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]; })).forEach(([x, z], k) => cracherFumee(mo, x, z, rf, DUREE_FUMEE, (geste ? 0.45 : 0) + k * 0.1));
       if (!combat || combat.fin) return; }
   }
