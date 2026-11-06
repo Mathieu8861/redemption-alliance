@@ -21,7 +21,7 @@ function majCombat(dt, s) {
     if (c.deroute == null && c.pv > 0 && (c.regenIop = (c.regenIop || 0) + dt) >= PAS_REGEN_IOP) { c.regenIop -= PAS_REGEN_IOP;
       if (c.pv < c.pvMax) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * REGEN_IOP); if (c.st) c.st.soins += c.pv - a0; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('+' + Math.round(c.pv - a0), p, 'soin'); } }
     const col = berserkerIop(), p = paysanMesh.position;
-    if (col && !c.berserker) { pouf(p.x, p.y, p.z, 2.5, '#e2413a'); if (!c.berserkerVu) { c.berserkerVu = true; toast('Berserker : sous ' + Math.round(SEUIL_BERSERKER_IOP * 100) + ' % de vie, tes coups d\'épée font deux fois plus de dégâts !', 'alerte'); } }
+    if (col && !c.berserker) { pouf(p.x, p.y, p.z, 2.5, '#e2413a'); if (!c.berserkerVu) { c.berserkerVu = true; toast('Berserker : sous ' + Math.round(SEUIL_BERSERKER_IOP * 100) + ' % de vie, tes coups d\'épée font ' + Math.round((BERSERKER_IOP - 1) * 100) + ' % de dégâts en plus !', 'alerte'); } }
     if (col && (c.berserkerT = (c.berserkerT || 0) + dt) > 0.12) { c.berserkerT = 0; emettre(FX_VIF, 2, { x: p.x, y: p.y + 0.9, z: p.z, r: 0.5, dv: 1.4, vie: [0.35, 0.6], taille: [0.09, 0.02], c: ['#ff5a2a', '#ffb347'], a: 1 }); }
     c.berserker = col;
   }
