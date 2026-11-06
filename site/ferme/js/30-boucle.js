@@ -36,6 +36,7 @@ function fermeSansToi(maintenant, d) {
 }
 function tick() {
   if (enAccueil || enPause || document.hidden) return; /* en pause */
+  if (horlogeJeu.vitesse() > vitesseMaxi()) { majVitesse(); toast('À partir du niveau ' + NIV_TEMPS_LENT + ', le temps va au plus en x' + String(VITESSE_MAX_HAUT).replace('.', ',') + '.'); } /* (06/11/2026) */
   coffreIleAuto(); /* (le coffre de l'ile, la semaine finie : il s'ouvre tout seul, 27-arene.js) */
   { const m = Date.now(); if (Math.abs(m - S_.vu) > 4000 * horlogeJeu.vitesse()) reprendreTemps(m); } /* (une boucle toutes les 500 ms : un trou plus long, c'est une pause) */
   const ch = avancer(Date.now(), !combat); /* pendant une vague : pas de Tofu nuisible ni de voleur en plus */

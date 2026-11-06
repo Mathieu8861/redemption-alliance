@@ -8,7 +8,11 @@
    Une seule fois, au passage au rythme, l'avance et la vitesse de l'ancien curseur s'effacent (elles etaient comptees a l'ancienne minute) : les dates
    de la ferme se recalent toutes seules sur l'heure vraie (reprendreTemps). */
 const CURSEUR_LIBRE = /[?&](test|curseur)=1/.test(location.search) && !/[?&]curseur=0/.test(location.search), VITESSE_MAX = CURSEUR_LIBRE ? 10 : 2; /* (curseur=0 : un test qui joue comme tout le monde) */
-const pasVitesse = (v) => Math.min(VITESSE_MAX, Math.max(1, Math.round(v * 2) / 2));
+/* (06/11/2026, « laisse x2 jusqu'au 50, mais a partir du 51 le max c'est 1,5 », Mathieu) : la vitesse permise selon le niveau du perso (la sauvegarde n'est pas
+   encore chargee ici au demarrage : x2, puis tick et majVitesse ramenent a x1,5 si besoin) */
+const NIV_TEMPS_LENT = 51, VITESSE_MAX_HAUT = 1.5;
+const vitesseMaxi = () => !CURSEUR_LIBRE && typeof S_ !== 'undefined' && S_ && typeof niveau === 'function' && niveau(S_.xp) >= NIV_TEMPS_LENT ? VITESSE_MAX_HAUT : VITESSE_MAX;
+const pasVitesse = (v) => Math.min(vitesseMaxi(), Math.max(1, Math.round(v * 2) / 2));
 const horlogeJeu = (() => {
   const vrai = Date.now.bind(Date); let avance = 0, vitesse = 1, ancre = vrai();
   try { if (localStorage.getItem('ferme-horloge') !== 'rythme') { localStorage.removeItem('ferme-avance'); localStorage.removeItem('ferme-vitesse'); localStorage.setItem('ferme-horloge', 'rythme'); }

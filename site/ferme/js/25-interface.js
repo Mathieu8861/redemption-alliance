@@ -2,7 +2,7 @@
 /* ===================== INTERFACE ===================== */
 const $ = (id) => document.getElementById(id);
 /* BETA : le curseur de vitesse du temps (voir horlogeJeu tout en haut) */
-function majVitesse() { const v = horlogeJeu.vitesse(), b = $('b-vitesse'), t = v === 1 ? 'normal' : 'x' + String(v).replace('.', ','); /* (virgule() n'est pas encore definie ici) */ b.innerHTML = '<span class="lib">Temps </span>' + t; b.classList.toggle('rapide', v > 1); $('vitesse').max = VITESSE_MAX; $('vitesse').value = v; $('vitesse-val').textContent = t; }
+function majVitesse() { if (horlogeJeu.vitesse() > vitesseMaxi()) horlogeJeu.regler(vitesseMaxi()); /* (x1,5 au plus a partir du niveau 51, 06/11/2026) */ const v = horlogeJeu.vitesse(), b = $('b-vitesse'), t = v === 1 ? 'normal' : 'x' + String(v).replace('.', ','); /* (virgule() n'est pas encore definie ici) */ b.innerHTML = '<span class="lib">Temps </span>' + t; b.classList.toggle('rapide', v > 1); $('vitesse').max = vitesseMaxi(); $('vitesse').value = v; $('vitesse-val').textContent = t; }
 $('b-vitesse').addEventListener('click', (e) => { e.stopPropagation(); $('vitesse-panneau').hidden = !$('vitesse-panneau').hidden; majVitesse(); });
 $('vitesse').addEventListener('input', (e) => { horlogeJeu.regler(+e.target.value); majVitesse(); });
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#vitesse-panneau, #b-vitesse')) $('vitesse-panneau').hidden = true; });
@@ -47,8 +47,12 @@ function rendreHaut() {
 const icoGrange = (nom, graine) => '<span class="gi"><img src="assets/icones/' + nom + '.png?v=' + VERSION_MODELES + '" alt="">' + (graine ? '<i>' + picto('pousse', '#3f8a2e') + '</i>' : '') + '</span>';
 function rendreGrange() {
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
-  $('panneau-grange').innerHTML = '<h2>Grange</h2>' + (lignes.length ? lignes.map((v) => '<div class="l"><span class="n">' + icoGrange(v.id) + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span class="n">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="l"><span class="n">' + icoGrange('pot-' + t) + POTS[t].court + '</span><span>' + S_.pots[t] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span class="n">' + icoGrange('filet') + 'Filets</span><span>' + S_.filets + '</span></div>' : '') +
-    (S_.crise ? '<div class="crise">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' à l\'HDV : -40 %</div>' : '');
+  const corps = (lignes.length ? lignes.map((v) => '<div class="l"><span class="n">' + icoGrange(v.id) + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span class="n">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="l"><span class="n">' + icoGrange('pot-' + t) + POTS[t].court + '</span><span>' + S_.pots[t] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span class="n">' + icoGrange('filet') + 'Filets</span><span>' + S_.filets + '</span></div>' : '');
+  const crise = S_.crise ? '<div class="crise">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' à l\'HDV : -40 %</div>' : '';
+  /* (06/11/2026) un titre qui replie le panneau, et la liste dans un bloc qui defile, reecrit seulement s'il change (sinon il remonterait en haut a chaque recolte) */
+  const g = $('panneau-grange'); if (!g.querySelector('.defile')) { g.innerHTML = '<h2 class="pli">Grange<span class="chev"></span></h2><div class="defile"></div><div class="crise-zone"></div>'; rendreGrange.dernier = rendreGrange.crise = null; }
+  if (corps !== rendreGrange.dernier) { rendreGrange.dernier = corps; g.querySelector('.defile').innerHTML = corps; }
+  if (crise !== rendreGrange.crise) { rendreGrange.crise = crise; g.querySelector('.crise-zone').innerHTML = crise; }
   rendreElevage();
 }
 function toast(msg, genre) {

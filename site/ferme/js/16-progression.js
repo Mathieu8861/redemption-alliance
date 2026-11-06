@@ -94,12 +94,24 @@ function rendreObjectif() {
 }
 function placerPanneaux() { const h = document.querySelector('.haut'); if (!h) return; const b = h.getBoundingClientRect().bottom + 8; ['objectif', 'panneau-grange'].forEach((id) => { const e = $(id); if (e) e.style.top = b + 'px'; }); placerElevage(); }
 /* « Tes betes », juste sous le panneau de la grange : les Tofus de la voliere, les Bouftous de l'enclos, les Gelees de la geliere, chacun sur sa capacite */
-function placerElevage() { const g = $('panneau-grange'), e = $('panneau-elevage'); if (g && e && !e.hidden) e.style.top = (g.getBoundingClientRect().bottom + 10) + 'px'; }
+function placerElevage() { limiterGrange(); const g = $('panneau-grange'), e = $('panneau-elevage'); if (g && e && !e.hidden) e.style.top = (g.getBoundingClientRect().bottom + 10) + 'px'; }
+/* (06/11/2026, « que ca se limite a la taille de l'ecran, et s'il y a des ressources en plus, il faut scroller a l'interieur du bloc », Mathieu) : la liste de la
+   grange s'arrete au bas de l'ecran, au-dessus de la barre d'actions si elle passe dessous, en laissant la place de « Tes betes » ; au-dela, elle defile */
+function limiterGrange() {
+  const g = $('panneau-grange'), d = g && g.querySelector('.defile'); if (!d || !d.offsetParent) return;
+  const e = $('panneau-elevage'), a = document.querySelector('.actions'), r = g.getBoundingClientRect(), ra = a && a.offsetParent ? a.getBoundingClientRect() : null;
+  const bas = ra && ra.right > r.left - 6 && ra.left < r.right + 6 ? ra.top - 10 : innerHeight - 12, betes = e && !e.hidden ? e.offsetHeight + 10 : 0;
+  d.style.maxHeight = Math.max(110, bas - betes - r.top - (g.offsetHeight - d.offsetHeight)) + 'px';
+}
+/* replier un panneau d'un clic sur son titre (la grange, « Tes betes »), retenu dans le navigateur (06/11/2026, « qu'on puisse reduire la fenetre », Mathieu) */
+['panneau-grange', 'panneau-elevage'].forEach((id) => { const p = document.getElementById(id); if (!p) return; const cle = 'ferme-replie-' + id; /* ($ n'est defini qu'en 25-interface.js) */
+  try { p.classList.toggle('replie', localStorage.getItem(cle) === '1'); } catch (e) { /* rien */ }
+  p.addEventListener('click', (ev) => { if (!ev.target.closest('h2')) return; const r = p.classList.toggle('replie'); try { localStorage.setItem(cle, r ? '1' : '0'); } catch (e) { /* rien */ } placerPanneaux(); }); });
 function rendreElevage() {
   const e = $('panneau-elevage'); if (!e || !S_) return;
   const L = [['tofu', 'Tofus', 'volière', S_.tofus || 0, capaciteVoliere()], ['bouftou', 'Bouftous', 'enclos', S_.bouftous.length, capacite()]]
     .concat(niv('geliere') ? [['gelee-fraise', 'Gelées', 'gelière', (S_.gelees || []).length, placesGeliere()]] : []);
-  const h = '<h2>Tes bêtes</h2>' + L.map(([ic, nom, ou, n, max]) => '<div class="l"><span class="n">' + icoGrange(ic) + nom + ' <small>(' + ou + ')</small></span><span class="cpt' + (n >= max ? ' plein' : '') + '">' + n + '/' + max + '</span></div>').join('');
+  const h = '<h2 class="pli">Tes bêtes<span class="chev"></span></h2>' + L.map(([ic, nom, ou, n, max]) => '<div class="l"><span class="n">' + icoGrange(ic) + nom + ' <small>(' + ou + ')</small></span><span class="cpt' + (n >= max ? ' plein' : '') + '">' + n + '/' + max + '</span></div>').join('');
   if (h !== rendreElevage.dernier) { rendreElevage.dernier = h; e.innerHTML = h; } e.hidden = false; placerElevage();
 }
 function reclamerObjectif() {
