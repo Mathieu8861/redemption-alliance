@@ -167,7 +167,7 @@ const vaguesDe = (t) => (vaguesDe.c || (vaguesDe.c = {}))[t] || (vaguesDe.c[t] =
 const casesDe = (u) => Math.round(u / S * 2) / 2; /* (une case : 2 unites) */
 function ficheMonstre(t) {
   const d = MONSTRES[t], B = bestiaire()[t] || {}, V = vaguesDe(t), n = V.length ? Math.min(Math.max(S_.vague.num, V[0]), V[V.length - 1]) : Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL));
-  const pv = pvMonstre(t, n), deg = Math.round(degMonstre(t, n) * multDegats(n)), dSort = d.boss ? Math.round(degMonstre(t, n) / BOSS_DEG[palierDe(n)] * (d.degSort || 0)) : Math.round(deg * (d.degSort || 1.5));
+  const pv = pvMonstre(t, n), deg = Math.round(degMonstre(t, n) * multDegats(n) * multHautes(n)), dSort = d.boss ? Math.round(degMonstre(t, n) / BOSS_DEG[palierDe(n)] * (d.degSort || 0) * multHautes(n)) : Math.round(deg * (d.degSort || 1.5));
   const P = V.length ? palierDe(V[0]) : null, pros = 1 + caracs().prospection / 100, pc = (x) => (Math.round(Math.min(1, x) * 1000) / 10).toString().replace('.', ',') + ' %';
   const vis = d.grignote ? 'Tes cultures' : d.bandit ? 'Ta grange' : d.casse ? 'Toi ou tes bâtiments' : 'Toi', vM = vitesseMonstre(d), vit = vM <= VITESSE_MIN_MONSTRES ? 'lent' : vM < 2.7 ? 'moyen' : 'rapide';
   const tag = (p, t2, cl) => '<span class="puce ' + (cl || '') + '">' + picto(p) + t2 + '</span>', num = (t2, cl) => '<span class="puce ' + (cl || '') + '">' + t2 + '</span>';
@@ -226,7 +226,7 @@ function ficheMonstre(t) {
   if (d.souffle) met('souffle', 'sort', 'Souffle de feu', d.souffleSol ? (d.fem ? 'Elle' : 'Il') + ' crache un long jet de feu vers toi, sur ' + casesDe(d.souffleR) + ' cases dans un cône étroit : il brûle tout sur son passage, tes bâtiments aussi, et le sol reste en feu ' + d.souffleSol + ' s.' : 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.souffleSol ? num(fmt(Math.max(1, Math.round(dSort * 0.1))) + ' toutes les 0,5 s dans les flammes', 'rouge') : '') + num('1 s pour esquiver') + recup('souffle'), 'violet');
   if (d.pluie) met('pluie', 'sort', d.pluieFleches ? 'Pluie de flèches' : 'Pluie de cawottes', d.pluieFleches ? 'Cinq cercles rouges : un sur toi, quatre autour.' : 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.pluie) + ' pour esquiver') + recup('pluie'), 'violet');
   if (d.cawotteRoyale) met('cawotteRoyale', 'assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num(secondes(ESQUIVE.cawotteRoyale) + ' pour esquiver') + recup('cawotteRoyale'), 'or');
-  if (d.fumee) met('fumee', 'poison', 'Nuages de fumée', 'Il crache ' + (d.fumeeN || 3) + ' nuages de fumée (un sur toi), ils restent 24 s au sol et se dissipent à sa mort : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num('4 % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert');
+  if (d.fumee) met('fumee', 'poison', 'Nuages de fumée', 'Il crache ' + (d.fumeeN || 3) + ' nuages de fumée (un sur toi), ils restent ' + DUREE_FUMEE + ' s au sol et se dissipent à sa mort : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num(Math.round(POISON_FUMEE * 100) + ' % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert');
   if (d.appel) met('appel', 'sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui' + (d.appelStun ? ', te frappe et t\'étourdit.' : '.'), (d.appelX ? num(fmt(Math.round(dSort * d.appelX)) + ' dégâts', 'rouge') + num('étourdi ' + secondes(d.appelStun)) : '') + recup('appel'), 'violet');
   if (d.geyser) met('geyser', 'sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge');
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
@@ -613,9 +613,11 @@ function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : i
   const f = { x, z, r, fin: duree, t: 0, g, bouffees, suit, matF, danger: { x, z, r } }; c.fumees.push(f); (c.dangers = c.dangers || []).push(f.danger); return f;
 }
 function retirerFumee(f) { if (!f) return; jeter(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
+/* la fumee du Koulosse (06/11/2026, « les nuages restent 14 s, et tu perds 3 % de ta vie », Mathieu ; avant 24 s et 4 %) */
+const DUREE_FUMEE = 14, POISON_FUMEE = 0.03;
 function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, puis 2 s de plus par seconde passee dedans ; le poison court encore une fois sorti (2 % des PV par seconde) */
   const c = combat; if (!c) return;
-  if (c.poisonFumee > 0) { poisonPerso(0.04 * (c.genre === 'ile' ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), Math.min(dt, c.poisonFumee)); if (!combat || combat !== c) return; c.poisonFumee = Math.max(0, c.poisonFumee - dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
+  if (c.poisonFumee > 0) { poisonPerso(POISON_FUMEE * (c.genre === 'ile' ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), Math.min(dt, c.poisonFumee)); if (!combat || combat !== c) return; c.poisonFumee = Math.max(0, c.poisonFumee - dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
   if (!c.fumees || !c.fumees.length) { c.dansFumee = false; return; }
   const pp = paysanMesh.position; let dedans = false;
   c.fumees.slice().forEach((f) => {
@@ -627,7 +629,7 @@ function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, p
     if (Math.hypot(pp.x - f.x, pp.z - f.z) < f.r) dedans = true;
   });
   if (dedans) {
-    if (!c.dansFumee) { c.dansFumee = true; c.fumeeT = 0; c.poisonFumee = (c.poisonFumee || 0) + 2; if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : 2 s de poison dès que tu la touches, puis 2 s de plus par seconde passée dedans (2 % de tes PV par seconde) !', 'alerte'); } } /* (le premier contact compte pour une seconde) */
+    if (!c.dansFumee) { c.dansFumee = true; c.fumeeT = 0; c.poisonFumee = (c.poisonFumee || 0) + 2; if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : 2 s de poison dès que tu la touches, puis 2 s de plus par seconde passée dedans (' + Math.round(POISON_FUMEE * 100) + ' % de tes PV par seconde) !', 'alerte'); } } /* (le premier contact compte pour une seconde) */
     else { c.fumeeT += dt; while (c.fumeeT >= 1) { c.fumeeT -= 1; c.poisonFumee += 2; } }
   } else c.dansFumee = false;
 }
@@ -704,13 +706,15 @@ function butinVoleur(monte, L) {
 const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => obj(id).nom)).filter(Boolean).join(', ');
 const sacVole = () => { const sac = sphere(0.22, '#a8743f', 1); sac.scale.set(1, 1.15, 0.9); sac.position.set(0, 1.25, -0.35); sac.userData.sac = true; return sac; }; /* (marque : le Bond de Newton le fait lacher) */ /* le sac de butin sur son dos */
 const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MONSTRES[Math.max(0, palierDe(Math.max(1, n || 1)))] || 1;
+/* (06/11/2026, « reduis de 10 % les degats des monstres des vagues 51 a 90 », Mathieu) : les combats de vague seulement (pas l'Arene, ni l'ile des boss) */
+const REDUC_HAUTES = 0.9, multHautes = (n, genre) => ((genre || 'vague') === 'vague' && n > 50 && n <= 90 ? REDUC_HAUTES : 1);
 /* un coup recu de loin (la Peau de Iop, 06/11/2026) : un tir (sans monstre), un monstre qui tire, ou un monstre hors de sa portee de corps a corps quand le coup tombe */
 const coupDeLoin = (mo) => !mo || !mo.d || !!mo.d.distance || !paysanMesh || Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) > (mo.d.portee || 1.5) * (mo.allonge || 1) + 1.0;
 function blesserPerso(n, mo) {
   if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */
   if (combat.invincible > 0) { if ((blesserPerso.inv || 0) < performance.now()) { blesserPerso.inv = performance.now() + 400; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Invincible', p, 'perso'); } return; } /* l'ulti du Iop (18-geliere.js) */
   { const e = Math.min(0.5, 0.1 * nbBonus('esquive')); if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
-  if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
+  if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n) * multHautes(combat.n, combat.genre)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (combat.carapace > 0) n = Math.max(1, Math.round(n * 0.6)); /* (la Carapace de corail : -40 %) */
   { const ca = caracs(), r = Math.min(50, coupDeLoin(mo) ? ca.resLoin : ca.resCac); if (r > 0) n = Math.max(1, Math.round(n * (1 - r / 100))); } /* les resistances des panoplies completes : Tortue au corps a corps, Kanniboul a distance (06/11/2026) */
@@ -1626,10 +1630,10 @@ function capFumee(mo, ctx) {
   if (mo.d.fumee && combat.deroute == null) { /* le Koulosse crache des nuages de fumee verte : un sur toi, deux autour */
     if (mo.fumeeT == null) mo.fumeeT = mo.d.fumee - 3; mo.fumeeT += vSort;
     if (mo.fumeeT >= mo.d.fumee) { mo.fumeeT = 0; mo.frappe = 0.4;
-      if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : la toucher t\'empoisonne (2 s de poison par seconde passée dedans, 4 % de tes PV par seconde). Évite les nuages verts !', 'alerte'); }
+      if (!combat.fumeeVu) { combat.fumeeVu = true; toast('Le Koulosse crache de la fumée : la toucher t\'empoisonne (2 s de poison par seconde passée dedans, ' + Math.round(POISON_FUMEE * 100) + ' % de tes PV par seconde). Évite les nuages verts !', 'alerte'); }
       const geste = !m.userData.anim; if (geste) { inspireKoulosse(mo, 0.45); mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = Math.max(mo.bloqueT || 0, 0.9); } /* (31/10/2026 : il inspire, puis crache) */
       const nf = mo.d.fumeeN || 3, rf = mo.d.fumeeR || 1.9; /* (31/10/2026, par Discord, « il devrait en jeter beaucoup plus, plus de zones de brume, sur la carte c'est tres facile a esquiver », Mathieu : fumeeN nuages par jet, de rayon fumeeR) */
-      [[pp.x, pp.z]].concat(Array.from({ length: nf - 1 }, (_, i) => { const a = (i / (nf - 1)) * Math.PI * 2 + Math.random() * 0.8, r = 3 + Math.random() * 5; return [pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]; })).forEach(([x, z], k) => cracherFumee(mo, x, z, rf, 24, (geste ? 0.45 : 0) + k * 0.1));
+      [[pp.x, pp.z]].concat(Array.from({ length: nf - 1 }, (_, i) => { const a = (i / (nf - 1)) * Math.PI * 2 + Math.random() * 0.8, r = 3 + Math.random() * 5; return [pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]; })).forEach(([x, z], k) => cracherFumee(mo, x, z, rf, DUREE_FUMEE, (geste ? 0.45 : 0) + k * 0.1));
       if (!combat || combat.fin) return; }
   }
 }
