@@ -57,7 +57,7 @@ function effetsEnCours() {
   const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + agi + ' Agilité' + suite]);
   return L;
 }
-function majEffets() {
+function majIconesEffets() { /* (renommee le 06/11/2026 : sous le nom majEffets, elle remplacait la boucle des effets animes de 12-perso.js, et plus rien ne s'animait) */
   const e = $(combat ? 'combat-buffs' : 'buffs-attente'), autre = $(combat ? 'buffs-attente' : 'combat-buffs'); if (!e) return; if (autre && autre._h) { autre.innerHTML = ''; autre._h = ''; }
   const h = combat && combat.raid ? '' : effetsEnCours().map(([ic, t]) => '<span class="buff" data-info="' + t + '"><img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="' + t + '"></span>').join('');
   if (e._h !== h) { e._h = h; e.innerHTML = h; }
@@ -68,7 +68,7 @@ function majVieHaut() {
   const w = pc + '%'; if (b._w !== w) { b._w = w; $('vie').style.width = w; }
   const t = Math.ceil(pv) + ' / ' + max + ' PV'; if (b._t !== t) { b._t = t; $('vie-txt').textContent = t; }
   b.classList.toggle('moyen', pc < 60 && pc >= 40); b.classList.toggle('bas', pc < 40);
-  majEffets(); const bp = $('b-pots'), np = totalPots(), cle = np + '|' + (pc < 40 && !combat); if (bp && bp._c !== cle) { bp._c = cle; $('pots-nb').textContent = np; bp.classList.toggle('vide', !np); bp.classList.toggle('appel', np > 0 && pc < 40 && !combat); }
+  majIconesEffets(); const bp = $('b-pots'), np = totalPots(), cle = np + '|' + (pc < 40 && !combat); if (bp && bp._c !== cle) { bp._c = cle; $('pots-nb').textContent = np; bp.classList.toggle('vide', !np); bp.classList.toggle('appel', np > 0 && pc < 40 && !combat); }
 }
 function blocVie() {
   const max = statsPerso().pvMax, pv = vieActuelle(); S_.pots = S_.pots || {}; if (pv >= max && !S_.menthe) return '';
