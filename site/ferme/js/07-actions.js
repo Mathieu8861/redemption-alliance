@@ -176,6 +176,7 @@ const ACTIONS = {
   },
   acheterGraines(id, n) {
     const c = PAR_ID[id]; if (!c || !debloquee(c)) return;
+    if (c.max) { const r = arbresAchetables(c); if (r <= 0) { toast('Tu as déjà tes ' + c.max + ' ' + (c.arbre ? 'bananiers' : c.nom) + ' (plantés ou en réserve) : pas plus de ' + c.max + '.', 'alerte'); return; } n = Math.min(n, r); } /* (2 au plus, plantes et graines comprises, 06/11/2026) */
     const cout = prixGraine(c) * n;
     if (S_.kamas < cout) { toast('Il te manque ' + fmt(cout - S_.kamas) + ' kamas.'); return; }
     S_.kamas -= cout; S_.graines[id] = (S_.graines[id] || 0) + n; compter('achatsGraines'); S_.graine = id;

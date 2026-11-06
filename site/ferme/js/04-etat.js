@@ -33,7 +33,12 @@ const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floo
 const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
 const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + (PAR_ID[p.c].arbre ? 0 : niv('faux')) - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes ; un arbre, le bananier : son regime ne grossit pas avec la Faux (04/11/2026) */
-const prixGraine = (c) => Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5) * [1, 1, 0.85, 0.85, 0.8][nivBat('nivEtal') - 1])); /* le prix des graines suit un peu le cours */
+/* (06/11/2026, « il a pu acheter 30 arbres banana, la limite devrait etre a 2 max et l'arbre coute 50k », Mathieu) : le bananier a un prix fixe, et on n'en possede
+   jamais plus que son maximum, plantes et graines en reserve comptes ensemble */
+const PRIX_BANANIER = 50000;
+const arbresPossedes = (c) => (S_.graines[c.id] || 0) + S_.cases.filter((x) => x.type === 'champ' && x.c === c.id).length;
+const arbresAchetables = (c) => (c.max ? Math.max(0, c.max - arbresPossedes(c)) : Infinity);
+const prixGraine = (c) => c.arbre ? PRIX_BANANIER : Math.max(1, Math.round(c.graine * ((S_.cours[c.id] || 1) * 0.5 + 0.5) * [1, 1, 0.85, 0.85, 0.8][nivBat('nivEtal') - 1])); /* le prix des graines suit un peu le cours */
 const prixAchatBle = () => Math.max(5, Math.ceil(prix('ble') * 2)); /* le Ble achete a l'HDV : le double de ce qu'il se revend (05/11/2026) */
 function prix(id) {
   const v = PAR_ID[id];

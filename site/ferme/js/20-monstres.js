@@ -173,6 +173,9 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
 const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout entre 60 et 65 % », Mathieu : les vagues 81 a 85 tombent a 62 %) */
 /* les retouches d'une vague precise, apres tout le reste (06/11/2026, vague 82 : « retire 2 Jav pour mettre 2 Tambours », Mathieu) */
 const AJUST_COMPO = {};
+/* les Tortues melangees (06/11/2026, « pourquoi 11 Tortues Bleues et pas un melange ? », Mathieu) : le complement d'effectif allait tout a la premiere de la liste ;
+   la 86 et la 87 recoivent un vrai melange, avec les Jaunes des la 86 (le meme nombre de monstres au contact qu'avant) */
+const COMPO_FIXE = { 86: { tortueBleue: 6, tortueVerte: 4, tortueJaune: 6 }, 87: { tortueBleue: 6, tortueVerte: 5, tortueJaune: 6 } };
 /* (06/11/2026, vagues 86 a 89 : « c'est du full cac ? pareil, equilibre : 60/65 % de cac et le reste de distance », Mathieu) : au moins 35 % de tireurs sur ces vagues ;
    le manque est pris au groupe au contact le plus nombreux et donne au groupe de tireurs le moins nombreux (pour garder la variete) */
 const PART_TIREURS_MIN = 0.35, VAGUES_PLANCHER_TIREURS = [86, 89];
@@ -183,7 +186,8 @@ function plancherTireurs(n, L) {
   while (manque > 0) { const c = mob.filter(([t, k]) => !MONSTRES[t].distance && k > 1).sort((a, b) => b[1] - a[1])[0], g = mob.filter(([t]) => MONSTRES[t].distance).sort((a, b) => a[1] - b[1])[0]; if (!c || !g) break; c[1]--; g[1]++; manque--; }
   return L;
 } /* (la 82 avait 2 Jav changes en Tambours ; retire quand la limite est passee a 65 %, elle serait tombee a 54 %) */
-const ajusterCompo = (n, L) => { (AJUST_COMPO[n] || []).forEach(([t, d]) => { const e = L.find(([x]) => x === t); if (e) e[1] = Math.max(0, e[1] + d); else if (d > 0) L.push([t, d]); }); return L.filter(([, k]) => k > 0); };
+const ajusterCompo = (n, L) => { (AJUST_COMPO[n] || []).forEach(([t, d]) => { const e = L.find(([x]) => x === t); if (e) e[1] = Math.max(0, e[1] + d); else if (d > 0) L.push([t, d]); });
+  Object.entries(COMPO_FIXE[n] || {}).forEach(([t, k]) => { const e = L.find(([x]) => x === t); if (e) e[1] = k; else L.push([t, k]); }); return L.filter(([, k]) => k > 0); };
 function plafonnerTireurs(L) {
   const mob = L.filter(([t]) => !MONSTRES[t].boss), tot = mob.reduce((a, [, k]) => a + k, 0), loin = mob.filter(([t]) => MONSTRES[t].distance).reduce((a, [, k]) => a + k, 0);
   let trop = loin - Math.floor(tot * PART_TIREURS_MAX); const cac = mob.filter(([t]) => !MONSTRES[t].distance).sort((a, b) => b[1] - a[1])[0]; if (trop <= 0 || !cac) return L;
