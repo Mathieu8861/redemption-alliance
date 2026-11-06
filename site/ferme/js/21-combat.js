@@ -183,7 +183,7 @@ function ficheMonstre(t) {
   if (!d.boss && (d.charge || d.pique)) met('chargeP', d.pique ? 'pique' : 'charge', d.pique ? 'Vol en piqué' : 'Charge', d.pique ? 'À moins de 3 cases, il prend de la hauteur, puis plonge sur toi en ligne droite. Une bande rouge te prévient.' : 'Il baisse la tête et fonce sur toi en ligne droite. Une bande rouge te prévient.',
     num((d.chargeMax ? '3' : '5') + ' cases') + num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(d.chargeMax ? ESQUIVE.charge : ESQUIVE.grandeCharge) + ' pour esquiver') + num('toutes les ' + (d.charge || d.pique) + ' s') + num('un bâtiment sur sa route prend le coup', 'vert'), 'violet');
   if (d.casse) met('casse', 'casse', 'Démolit les bâtiments', 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.' + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : ''), num(Math.round((d.casse || 0) * 100) + ' % de chances') + num(fmt(Math.round(dpsBatiments(n))) + ' dégâts par seconde sur un bâtiment', 'rouge'));
-  if (d.distance) met('distance', 'carreaux', 'Tire de loin', 'Il reste à distance et te tire dessus' + (d.casse ? ', ou sur tes bâtiments' : '') + '. Va le chercher.', num(casesDe(d.portee) + ' cases') + num(fmt(deg) + ' dégâts', 'rouge'));
+  if (d.distance) met('distance', 'carreaux', 'Tire de loin', 'Il reste à distance et te tire dessus' + (d.casse ? ', ou sur tes bâtiments' : '') + '. Va le chercher : collé à lui (moins d\'1,5 case), il ne peut plus te toucher.', num(casesDe(d.portee) + ' cases') + num(fmt(deg) + ' dégâts', 'rouge'));
   if (d.ralentit) met('ralentit', 'lenteur', 'Te ralentit', 'Chacun de ses coups te fait marcher plus lentement.', num(String(d.ralentit).replace('.', ',') + ' s', 'bleu'), 'bleu');
   if (d.menotte) met('menotte', 'assomme', 'Te menotte', 'Si sa charge te touche, tu restes sur place un instant. Tu peux encore frapper.', num(secondes(d.menotte), 'rouge'), 'or');
   if (d.assomme) met('assomme', 'assomme', 'T\'assomme', 'Touché, tu ne frappes plus un instant.', num(String(d.assomme).replace('.', ',') + ' s', 'rouge'), 'or');
@@ -720,6 +720,9 @@ const DEGATS_MONSTRES = [1.6, 1.4, 1.25, 1, 1, 1], multDegats = (n) => DEGATS_MO
 /* (06/11/2026, « reduis de 10 % les degats des monstres des vagues 51 a 90 », Mathieu) : les combats de vague seulement (pas l'Arene, ni l'ile des boss) */
 const REDUC_HAUTES = 0.9, multHautes = (n, genre) => ((genre || 'vague') === 'vague' && n > 50 && n <= 90 ? REDUC_HAUTES : 1);
 /* un coup recu de loin (la Peau de Iop, 06/11/2026) : un tir (sans monstre), un monstre qui tire, ou un monstre hors de sa portee de corps a corps quand le coup tombe */
+/* un tireur colle par le perso (06/11/2026, « tu ne prends pas de degats quand tu es vraiment a leur corps a corps, une case et demie », Mathieu) : il ne tire plus,
+   ses sorts attendent ; les boss et demi-boss gardent les leurs */
+const PORTEE_MIN_LOIN = 1.5 * S, tropPresDuTireur = (mo) => !!mo.d.distance && !mo.d.boss && !mo.d.demi && !!paysanMesh && Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) < PORTEE_MIN_LOIN;
 const coupDeLoin = (mo) => !mo || !mo.d || !!mo.d.distance || !paysanMesh || Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) > (mo.d.portee || 1.5) * (mo.allonge || 1) + 1.0;
 function blesserPerso(n, mo) {
   if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */
@@ -2314,11 +2317,11 @@ function majMonstre(mo, dt, s) {
     v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1); /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
-    if (mo.cd <= 0) {
+    if (mo.cd <= 0 && !(versPerso && !bat && tropPresDuTireur(mo))) { /* (un tireur colle par le perso ne tire pas) */
       mo.cd = mo.d.cadence; mo.frappe = 0.25;
       const frapper = () => { /* (le coup lui-meme ; un monstre a squelette le porte a l'instant de son geste : s'il t'a vu filer, il frappe dans le vide) */
         if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
-        else if (mo.d.distance) tirMonstre(mo, bat);
+        else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat); } /* (le perso s'est colle a lui pendant son geste : rien ne part) */
         else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg, mo); effetsCoup(mo); } };
       if ((mo.d.marteau || mo.d.poings) && m.userData.anim && !bat) coupMarteau(mo); /* (Moon, et le Gorille roi avec ses poings : le coup tombe a l'impact, 22c-squelettes.js) */
       else if (m.userData.anim) attaqueSquelette(mo, mo.d.distance ? 'tir' : 'coup', frapper); /* (les Kannibouls et les Tortues : a l'instant de leur geste) */
@@ -2339,7 +2342,8 @@ function majMonstre(mo, dt, s) {
   for (const cap of CAPACITES_AVANT) { cap(mo, ctx); if (!combat || combat.fin) return; } /* (la rage d'abord : la vitesse des sorts en depend) */
   const vSort = dt * (mo.enrage ? 1.3 : 1) * (combat.difficile ? DUR.sorts : 1) * (mo.rageM || 1); /* enrage, il lance ses sorts plus souvent (et en revanche difficile) */
   const cac = !!mo.d.boss && Math.hypot(pp.x - mo.x, pp.z - mo.z) <= cacBoss(mo); mo.horsCac = cac ? 0 : (mo.horsCac || 0) + dt; const tenu = !!mo.d.boss && mo.horsCac < 0.8; /* (colle a lui : ses sorts de loin attendent, 03/11/2026) */
-  const sortPret = (cle, periode) => { if (mo[cle] == null) mo[cle] = periode - 3; if (bloque || mo.bloqueT > 0 || mo.vise || combat.deroute != null) return false; mo[cle] += vSort * (cac && CAC_T.has(cle) ? 1.3 : 1); return mo[cle] >= periode && !(tenu && LOIN_T.has(cle)); }; /* le premier, 3 s apres son arrivee */
+  const colle = tropPresDuTireur(mo); /* (un tireur colle par le perso : ses sorts attendent, 06/11/2026) */
+  const sortPret = (cle, periode) => { if (mo[cle] == null) mo[cle] = periode - 3; if (bloque || mo.bloqueT > 0 || mo.vise || combat.deroute != null) return false; if (colle) { mo[cle] = Math.min(periode, mo[cle] + vSort); return false; } mo[cle] += vSort * (cac && CAC_T.has(cle) ? 1.3 : 1); return mo[cle] >= periode && !(tenu && LOIN_T.has(cle)); }; /* le premier, 3 s apres son arrivee */
   /* (29/10/2026, « il saute sur moi et revient sur sa case de depart », Mathieu) bloque est lu une fois au debut de l'image : le Gorille roi lancait sa
      ruee, son bond et son martelement dans la meme image (tous prets 3 s apres son arrivee), puis la ruee et le bond le deplacaient en meme temps,
      chacun depuis son point de depart. On relit le blocage a chaque sort : un seul a la fois, les autres attendent la fin du premier (le Dragon Cochon aussi) */

@@ -167,7 +167,16 @@ const compoVague0 = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER
 const MOBS_EN_PLUS = 1;
 const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_TOTAL) return L;
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS;
-  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return L; };
+  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return plafonnerTireurs(L); };
+/* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
+   jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
+const PART_TIREURS_MAX = 0.7;
+function plafonnerTireurs(L) {
+  const mob = L.filter(([t]) => !MONSTRES[t].boss), tot = mob.reduce((a, [, k]) => a + k, 0), loin = mob.filter(([t]) => MONSTRES[t].distance).reduce((a, [, k]) => a + k, 0);
+  let trop = loin - Math.floor(tot * PART_TIREURS_MAX); const cac = mob.filter(([t]) => !MONSTRES[t].distance).sort((a, b) => b[1] - a[1])[0]; if (trop <= 0 || !cac) return L;
+  while (trop > 0) { const g = mob.filter(([t, k]) => MONSTRES[t].distance && k > 1).sort((a, b) => b[1] - a[1])[0]; if (!g) break; g[1]--; cac[1]++; trop--; }
+  return L;
+}
 /* « il faudrait + de monstres, en vrai, et qui apparaissent au fur et a mesure », « voire tripler » (Mathieu, 04/11/2026) : sur l'ile de Moon d'abord, hors vague de boss,
    2,5 fois plus de monstres ordinaires, un peu moins forts chacun (FORCE_HORDE ; le lissage des renforts ne les compte pas). Ils arrivent par groupes (finVague, majCombat) */
 const HORDE = 2.5, HORDE_RENFORT = 3, HORDE_RYTHME = 4, DEBUT_HORDE = 5 * VAGUES_PALIER, multVague = (n) => (n > DEBUT_HORDE && n <= VAGUES_TOTAL ? HORDE : 1); /* (06/11/2026 : les vagues de boss aussi, leur premier temps et la 60, « les vagues de boss on peut aussi laisser ce systeme », Mathieu ; les temps suivants gardent leur troupe) */ /* (d'abord l'ile de Moon, vagues 81 a 89 ; des la vague 61 depuis le 05/11/2026, par Discord : « fais demarrer a partir du lvl 60 », Mathieu ; des la vague 51 depuis le 06/11/2026, « mets a partir de la 51 » : l'ile des Wabbits, les Koalaks, le Dragon Cochon et l'ile de Moon, hors vagues de boss) */
