@@ -6,7 +6,7 @@
    un boss toutes les 5 vagues, puis un souffle pour boire et manger. Chaque vague tenue rapporte de l'experience et un peu de kamas, chaque boss
    un coffre (des kamas, parfois une piece de ta panoplie, rarement des runes : voir vagueAreneTenue). Ton record de la semaine compte au classement de l'alliance (DAMOCLES/sql/068) ;
    pour l'honneur (le podium et ses primes retires le 14/10/2026). L'entree : un ticket, trois par jour. Pendant ce temps, ni vague ni simu VSA sur la ferme. */
-const NIV_ARENE = 50, ENTREES_ARENE = 3, TICKET_ARENE = 10000, ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 12.2; /* (9,2 avant le 30/10/2026 : « agrandis un peu l'arene, de quelques cases de diametre », Mathieu ; 3 cases de plus, blender/arene-ile.py) */ /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
+const NIV_ARENE = 50, ENTREES_ARENE = 1, /* (1 par jour depuis le 06/11/2026, « l'Arene maintenant on peut la faire 1 fois par jour », Mathieu ; 3 avant) */ TICKET_ARENE = 10000, ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 12.2; /* (9,2 avant le 30/10/2026 : « agrandis un peu l'arene, de quelques cases de diametre », Mathieu ; 3 cases de plus, blender/arene-ile.py) */ /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
 const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 11.9, z: ARENE.z + d.z * 11.9, ox: ARENE.x + d.x * 14.6, oz: ARENE.z + d.z * 14.6 }; }); /* les trois herses : le fond, la gauche, la droite */
 let ileArene = null, areneSuite = false;
 const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, ITEM_MONSTRE_ARENE = 0.0025, /* (0,5 avant le 19/10/2026) */ KAMAS_ARENE = 0.1, JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
@@ -14,6 +14,7 @@ const runeParMonstre = (k) => k < 3 ? 0 : k < 10 ? 0.001 : k < 15 ? 0.0025 : 0.0
 function etatArene() { S_.arene = S_.arene || { record: 0, semaines: {}, parties: 0 }; if (!S_.arene.semaines) S_.arene.semaines = {}; const j = jourJeu(); if (S_.arene.jour !== j) Object.assign(S_.arene, { jour: j, entrees: 0 }); return S_.arene; }
 const semaineJeu = (t) => { const d = new Date(t == null ? tempsReel() : t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const s1 = new Date(d.getFullYear(), 0, 4); return d.getFullYear() + '-S' + String(1 + Math.round(((d - s1) / 864e5 - 3 + (s1.getDay() + 6) % 7) / 7)).padStart(2, '0'); }; /* (la semaine ISO, du lundi au dimanche) */
 const recordSemaine = (sem) => etatArene().semaines[sem || semaineJeu()] || 0;
+const entreesPrises = () => (ENTREES_ARENE > 1 ? 'Tes ' + ENTREES_ARENE + ' entrées du jour sont prises' : 'Ton entrée du jour est prise') + ' : l\'Arène te rouvre demain.';
 const entreesRestantes = () => Math.max(0, ENTREES_ARENE - (etatArene().entrees || 0));
 const multArene = (k) => 1 + 0.08 * Math.max(0, k - 20); /* au-dela de la vague 20, les monstres grossissent encore de 8 % par vague */
 let forceBossArene = 1; /* (20/10/2026, « les boss, je les ai trouves trop faciles », Mathieu : a pleine force ; la moitie datait du temps ou tout le monde affrontait le boss de la vague 55) */
@@ -205,7 +206,7 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
   return g;
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi : chaque semaine de l'ile commence ce jour-la ; let : les tests le changent) */
-const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
+const ESSAIS_ILE_BOSS = 5 /* (5 depuis le 06/11/2026, « qu'on puisse le retry 5 fois au lieu de 3 », Mathieu) */, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
 const VITESSE_ILE = { craqLegendaire: 1.25 }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
@@ -239,7 +240,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
   ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque vendredi, avec une vie neuve. Toute l\'alliance tape sur la même vie.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS + ' cette semaine</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' + '<span class="puce">gratuit</span></div>' +
     ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, PV_ILE_BOSS - total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
-    '<ul class="arene-regles"><li><b>3 essais par semaine, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
+    '<ul class="arene-regles"><li><b>' + ESSAIS_ILE_BOSS + ' essais par semaine, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse de déplacement et de vitesse d\'attaque, et leurs sorts reviennent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % plus vite. Toute l\'île est à toi : esquive tant que tu peux, et tape le plus fort possible.</li>' +
     '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
     '<div class="hdv-section">Les récompenses, le vendredi suivant (le coffre s\'ouvre tout seul à ta ferme)</div><div class="ib-rec">' + rec('Si tu as participé', fmt(R.participation.kamas) + ' kamas, 1 rune de forgemagie, ' + Math.round(R.participation.xp * 100) + ' % d\'un niveau') +
@@ -444,7 +445,7 @@ async function afficherClassementArene() {
 }
 function ouvrirArene() {
   const l = niveau(S_.xp), reste = entreesRestantes(), a = etatArene(), sem = semaineJeu();
-  const raison = l < NIV_ARENE ? 'Il faut le niveau ' + NIV_ARENE + '.' : !reste ? 'Tes ' + ENTREES_ARENE + ' entrées du jour sont prises : l\'Arène te rouvre demain.' : S_.kamas < TICKET_ARENE ? 'Il te manque ' + fmt(TICKET_ARENE - S_.kamas) + ' kamas pour le ticket.' : '';
+  const raison = l < NIV_ARENE ? 'Il faut le niveau ' + NIV_ARENE + '.' : !reste ? entreesPrises() : S_.kamas < TICKET_ARENE ? 'Il te manque ' + fmt(TICKET_ARENE - S_.kamas) + ' kamas pour le ticket.' : '';
   ouvrirModale('arene', entete('L\'Arène') + '<div class="arene-tete"><img src="assets/icones/ile-arene.png?v=' + VERSION_MODELES + '" alt=""><div><b>Tiens le plus longtemps possible</b><p>Des vagues sans fin, de plus en plus dures, devant toute l\'alliance.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
     '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tous tes paliers déjà battus, trois familles au hasard par vague, tous à la force du dernier boss que tu as battu (celui de la vague ' + nArene() + '), puis de plus en plus forts. Ils sortent des herses et foncent tous sur toi.</li>' +
@@ -463,7 +464,7 @@ function ouvrirArene() {
 async function partirArene() {
   const a = etatArene();
   if (niveau(S_.xp) < NIV_ARENE) { toast('L\'Arène ouvre au niveau ' + NIV_ARENE + '.'); return; }
-  if (!entreesRestantes()) { toast('Tes ' + ENTREES_ARENE + ' entrées du jour sont prises : l\'Arène te rouvre demain.', 'alerte'); return; }
+  if (!entreesRestantes()) { toast(entreesPrises(), 'alerte'); return; }
   if (S_.kamas < TICKET_ARENE) { toast('Il te faut ' + fmt(TICKET_ARENE) + ' kamas pour le ticket.', 'alerte'); return; }
   if (!peutPartir('arene')) return;
   areneSuite = true; fermerModale(); areneSuite = false;
