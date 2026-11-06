@@ -170,9 +170,9 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
   const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss) y[1] = Math.round(y[1] * x); }); return ajusterCompo(n, plafonnerTireurs(L)); };
 /* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
    jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
-const PART_TIREURS_MAX = 0.7;
+const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout entre 60 et 65 % », Mathieu : les vagues 81 a 85 tombent a 62 %) */
 /* les retouches d'une vague precise, apres tout le reste (06/11/2026, vague 82 : « retire 2 Jav pour mettre 2 Tambours », Mathieu) */
-const AJUST_COMPO = { 82: [['kannibJav', -2], ['kannibTam', 2]] };
+const AJUST_COMPO = {}; /* (la 82 avait 2 Jav changes en Tambours ; retire quand la limite est passee a 65 %, elle serait tombee a 54 %) */
 const ajusterCompo = (n, L) => { (AJUST_COMPO[n] || []).forEach(([t, d]) => { const e = L.find(([x]) => x === t); if (e) e[1] = Math.max(0, e[1] + d); else if (d > 0) L.push([t, d]); }); return L.filter(([, k]) => k > 0); };
 function plafonnerTireurs(L) {
   const mob = L.filter(([t]) => !MONSTRES[t].boss), tot = mob.reduce((a, [, k]) => a + k, 0), loin = mob.filter(([t]) => MONSTRES[t].distance).reduce((a, [, k]) => a + k, 0);
