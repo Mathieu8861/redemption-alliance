@@ -67,7 +67,7 @@ const LECONS = [ /* (les dernieres, « premiere fois », 22/10/2026 : en bas de 
       () => `Toutes les 10 vagues, un <em>boss</em> t'attend. Je t'expliquerai le moment venu.`] },
   { id: 'ulti', titre: 'Ton ulti', ico: 'ulti-zone', resume: 'Gel, Zone ou Coup fatal, pour de bon.', quand: () => niveau(S_.xp) >= NIV_ULTI && !S_.ulti,
     pages: [() => `Niveau ${NIV_ULTI} : tu peux choisir ton <em>ulti</em>, un coup spécial en plus de ton attaque et de ton sort. Le choix est <em>définitif</em> : on le fait dans la fenêtre Vagues, ou au bouton Ulti pendant un combat.`,
-      () => `<em>Gel</em> : petits dégâts autour de la cible, et les monstres touchés sont ralentis 5 s. <em>Zone</em> : 3 fois tes dégâts à tous les monstres autour. <em>Coup fatal</em> : 5 fois tes dégâts sur un seul, parfait contre les boss. Il se recharge en ${RECHARGE_ULTI} s.`] },
+      () => `<em>Gel</em> : petits dégâts autour de la cible, et les monstres touchés sont ralentis 5 s. <em>Zone</em> : 3 fois tes dégâts à tous les monstres autour. <em>Coup fatal</em> : 5 fois tes dégâts sur un seul, parfait contre les boss. Il se recharge en ${rechargeUlti()} s.`] },
   { id: 'equipement', titre: 'L\'équipement', ico: 'sac', resume: 'La fiche Perso, comparer, les panoplies.', quand: () => Object.keys(S_.sac || {}).length > 0,
     pages: [() => `Un monstre t'a laissé une <em>pièce d'équipement</em> ! Ouvre <em>Perso</em> (en bas) : touche une case, puis une pièce du sac pour la comparer. Une flèche verte, c'est mieux que ce que tu portes.`,
       () => `Chaque pièce donne des <em>caractéristiques</em> : Vitalité, Puissance, Agilité... Touche-en une dans la fiche pour savoir à quoi elle sert. Les pièces d'une même <em>panoplie</em> donnent un bonus à 2, 4 et 6 pièces portées.`,

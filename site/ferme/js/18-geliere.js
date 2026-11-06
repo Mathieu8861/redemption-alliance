@@ -156,7 +156,7 @@ let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC 
    son ultimate au declenchement le rend invincible pendant 3 secondes ; et sous 50 % de ses HP il gagne degats x2 ») : REGEN_IOP toutes les PAS_REGEN_IOP s
    (23-fin-combat.js), INVINCIBLE_IOP s a chaque ulti (22-sorts.js, blesserPerso), le Berserker sous SEUIL_BERSERKER_IOP de vie (statsPerso ; « Colère du Iop, non, ça c'est un ultime, appelle-le Berserker », Mathieu, 31/10/2026).
    let : les tests les changent pour comparer */
-let BALAYAGE_IOP = 0.5, REGEN_IOP = 0.01, PAS_REGEN_IOP = 4, INVINCIBLE_IOP = 3, SEUIL_BERSERKER_IOP = 0.5, BERSERKER_IOP = 1.5; /* (06/11/2026, « un petit nerf, la classe est trop broken », Mathieu : regeneration toutes les 4 s au lieu de 3, Berserker x1,5 au lieu de x2, Peau de Iop sur les coups de loin seulement) */ const RAYON_BALAYAGE = 1 * S;
+let BALAYAGE_IOP = 0.5, REGEN_IOP = 0.01, PAS_REGEN_IOP = 4, INVINCIBLE_IOP = 2.5, SEUIL_BERSERKER_IOP = 0.5, BERSERKER_IOP = 1.5; /* (06/11/2026, « un petit nerf, la classe est trop broken », Mathieu : regeneration toutes les 4 s au lieu de 3, Berserker x1,5 au lieu de x2, Peau de Iop sur les coups de loin seulement ; puis l'ulti : invincible 2,5 s au lieu de 3, recharge 24 s, 22-sorts.js) */ const RAYON_BALAYAGE = 1 * S;
 const RECHARGE_PERCANTE = 20; /* (la Fleche percante du Cra : 20 s, elle traverse toute une ligne a 3 fois les degats ; avant le 16/10/2026 : 30 monstres a abattre) */
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : classeDe() === 'cra' ? RECHARGE_PERCANTE : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau

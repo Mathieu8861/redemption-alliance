@@ -2,7 +2,8 @@
 /* ---------- l'ulti : en plus de l'attaque et du sort, un des trois au choix, a partir du niveau 5, pour de bon ----------
    gel : petits degats en zone, les monstres touches sont ralentis 5 s (ils marchent et frappent moins vite) ;
    zone : 3 fois les degats a tous les monstres autour de la cible ; coup fatal : 8 fois les degats, sur la cible seule. */
-const NIV_ULTI = 5, RECHARGE_ULTI = 20;
+const NIV_ULTI = 5, RECHARGE_ULTI = 20, RECHARGE_ULTI_IOP = 24; /* (06/11/2026 : la Tempete de lames du Iop se recharge en 24 s, « un petit nerf », Mathieu) */
+const rechargeUlti = () => (typeof classeDe === 'function' && classeDe() === 'iop' ? RECHARGE_ULTI_IOP : RECHARGE_ULTI);
 const ULTIS = {
   gel: { nom: { iop: 'Épée de givre', cra: 'Flèche glacée', osa: 'Fouet de givre' }, genre: 'Gel', teinte: '#5fb4ef', desc: 'Petits dégâts autour de la cible, et tous les monstres touchés sont ralentis pendant 5 s : ils marchent bien plus lentement et frappent deux fois moins vite.', chiffres: (d) => [d + ' dégâts en zone', 'ralentit 5 s'] },
   zone: { nom: { iop: 'Tempête de lames', cra: 'Flèches enflammées', osa: 'Ruée du troupeau' }, genre: 'Zone', teinte: '#ee8a34', desc: 'Frappe tous les monstres autour de la cible, trois fois plus fort que ton attaque.', chiffres: (d) => [3 * d + ' dégâts à chacun', 'tout autour de la cible'] },
@@ -10,7 +11,7 @@ const ULTIS = {
 };
 const nomUlti = (id) => ULTIS[id].nom[classeDe()];
 const descUlti = (id) => (id === 'zone' && classeDe() === 'iop' ? 'Il fonce au point visé, puis tournoie ' + DUREE_TEMPETE + ' s épée tendue : ' + COUPS_TEMPETE + ' coups sur tous les monstres autour de lui, trois fois son attaque en tout. Tu peux le déplacer pendant qu\'il tournoie.' : ULTIS[id].desc) +
-  (classeDe() === 'iop' ? ' En la lançant, il devient invincible ' + INVINCIBLE_IOP + ' s.' : ''); /* (l'invincibilite du Iop, 30/10/2026) */ /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
+  (classeDe() === 'iop' ? ' En la lançant, il devient invincible ' + String(INVINCIBLE_IOP).replace('.', ',') + ' s.' : ''); /* (l'invincibilite du Iop, 30/10/2026) */ /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
 /* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
    (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
 /* les icones 3D des ultis, une par classe, dans le style des sorts (23/10/2026) ; les autres Iop ont les leurs, avec leur tete
@@ -24,7 +25,7 @@ const ultiLibre = () => !!(enLigneSv.compte && TESTEURS_ULTI.includes(enLigneSv.
 function ouvrirUlti() {
   const l = niveau(S_.xp), d = statsPerso().deg, cl = CLASSES.find((c) => c.id === classeDe());
   const carte = (id) => { const U = ULTIS[id], pris = S_.ulti === id;
-    return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + RECHARGE_ULTI + ' s</span></div></div><div class="desc">' + descUlti(id) + '</div></div>' +
+    return '<div class="ulti-carte"' + (S_.ulti && !pris ? ' style="opacity:.45"' : '') + '><span class="rond" style="background:radial-gradient(circle at 50% 40%, #fffaf0, ' + U.teinte + ')"><img src="' + srcUlti(id) + '" alt=""></span><div><b>' + nomUlti(id) + '</b><div class="art" style="border:0;padding:0;display:block"><div class="puces"><span class="puce" style="background:' + U.teinte + ';color:#fff">' + U.genre + '</span>' + U.chiffres(d).map((t) => '<span class="puce">' + t + '</span>').join('') + '<span class="puce">recharge ' + rechargeUlti() + ' s</span></div></div><div class="desc">' + descUlti(id) + '</div></div>' +
       (S_.ulti ? (pris ? '<span class="cadenas">✓ Ton ulti</span>' : ultiLibre() ? '<button class="btn discret" data-confirmer-ulti="' + id + '">Prendre (test)</button>' : '<span></span>') : '<button class="btn kamas" data-choisir-ulti="' + id + '"' + (l < NIV_ULTI ? ' disabled' : '') + '>Choisir</button>') + '</div>'; };
   ouvrirModale('ulti', entete('L\'ulti du ' + cl.nom) + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">' + (S_.ulti ? (ultiLibre() ? 'Compte de test : tu changes d\'ulti quand tu veux.' : 'Ton choix est fait, il est définitif.') : l < NIV_ULTI ? 'Il se débloque au niveau ' + NIV_ULTI + ' de Paysan (tu es niveau ' + l + ').' : 'Il s\'ajoute à ton attaque et à ton sort. <b>Tu le choisis une seule fois : impossible d\'en changer ensuite.</b>') + ' Les dégâts indiqués sont ceux de ton niveau actuel, ils montent avec toi.</p>' + ['gel', 'zone', 'mono'].map(carte).join(''));
 }
@@ -98,7 +99,7 @@ function tempeteDeLames(pt) {
   const st = statsPerso(), u = paysanMesh.userData, pp = paysanMesh.position, R = 2.8, de = pp.clone(), m = u.membres || [], bras = m[3] || m[2];
   let x = pt.x, z = pt.z; const ok = (a, b) => { const q = caseIci(a, b); return q && PASSABLE[q.type]; };
   if (!ok(x, z)) { const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; x = pp.x + (x0 - pp.x) * Math.max(0, k); z = pp.z + (z0 - pp.z) * Math.max(0, k); }
-  combat.cdUlti = RECHARGE_ULTI; chemin = []; arrivee = null; combat.ordre = false; u.charge = true; toast(nomUlti('zone') + ' !', 'or');
+  combat.cdUlti = rechargeUlti(); chemin = []; arrivee = null; combat.ordre = false; u.charge = true; toast(nomUlti('zone') + ' !', 'or');
   /* l'animation (23/10/2026) : un tourbillon autour de lui, trois lames qui tournent a hauteur d'epee, des rubans de vent a plusieurs hauteurs, l'anneau
      orange de la zone au sol, de la poussiere soulevee sur le bord ; a chaque coup, une onde et un eclat sur chaque monstre touche */
   const dash = Math.min(0.4, Math.hypot(x - pp.x, z - pp.z) / 18), fx = new T.Group(), lames = new T.Group(); scene.add(fx); fx.add(lames); lames.position.y = 0.78;
@@ -127,7 +128,7 @@ function executerUlti(id, c, pt) {
   if (classeDe() === 'iop' && combat) { combat.invincible = INVINCIBLE_IOP; bulleInvincible(INVINCIBLE_IOP); } /* l'ulti du Iop le rend invincible (18-geliere.js) */
   if (id === 'zone' && classeDe() === 'iop' && !c && pt) { tempeteDeLames(pt); return; } /* le Iop tournoie au lieu de lancer l'effet de zone commun */
   const st = statsPerso(), classe = classeDe(), u = paysanMesh.userData, pp = paysanMesh.position, cx0 = c ? c.x : pt.x, cz0 = c ? c.z : pt.z;
-  combat.cdUlti = RECHARGE_ULTI; chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(cx0 - pp.x, cz0 - pp.z); paysanMesh.rotation.y = u.angle;
+  combat.cdUlti = rechargeUlti(); chemin = []; arrivee = null; combat.ordre = false; u.angle = Math.atan2(cx0 - pp.x, cz0 - pp.z); paysanMesh.rotation.y = u.angle;
   toast(nomUlti(id) + ' !', 'or');
   const sol = caseIci(cx0, cz0), y0 = c ? c.m.position.y : sol ? posCase(sol).y : 0, point = new T.Vector3(cx0, y0 + (c ? c.haut * 0.5 : 0.3), cz0);
   /* chaque ulti a son ton (« faut que ça reste en cohérence avec le type de sort », Mathieu, 23/10/2026) : le givre gele sans trembler ; Iop : colonne de lumiere ;
@@ -488,7 +489,7 @@ function majCombatHud() {
   const f = c.pv / c.pvMax; $('combat-pv').style.width = (100 * f).toFixed(1) + '%'; $('combat-pv').style.background = f < 0.3 ? 'var(--rouge)' : '';
   $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV'; majVieHaut();
   if (!S_.ulti) { $('ulti-rond').style.setProperty('--cd', '100%'); $('ulti-etat').textContent = niveau(S_.xp) >= NIV_ULTI ? 'à choisir' : 'niveau ' + NIV_ULTI; $('ulti-etat')._t = null; }
-  else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / RECHARGE_ULTI).toFixed(1) + '%'); majEtatSort('ulti-etat', c.cdUlti); }
+  else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / rechargeUlti()).toFixed(1) + '%'); majEtatSort('ulti-etat', c.cdUlti); }
   { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / rechargeSort()).toFixed(1) + '%'); majEtatSort('sort-etat', c.cdSort); }
   $('b-sort').classList.toggle('pret', c.cdSort <= 0); $('b-ulti').classList.toggle('pret', !!S_.ulti && c.cdUlti <= 0); /* (le liseré dore : pret) */
   majBoutonsLeg();
