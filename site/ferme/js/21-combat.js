@@ -713,6 +713,7 @@ function blesserPerso(n, mo) {
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n)));
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (combat.carapace > 0) n = Math.max(1, Math.round(n * 0.6)); /* (la Carapace de corail : -40 %) */
+  { const ca = caracs(), r = Math.min(50, coupDeLoin(mo) ? ca.resLoin : ca.resCac); if (r > 0) n = Math.max(1, Math.round(n * (1 - r / 100))); } /* les resistances des panoplies completes : Tortue au corps a corps, Kanniboul a distance (06/11/2026) */
   if (classeDe() === 'iop' && coupDeLoin(mo)) { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins sur les coups recus de loin (06/11/2026 ; avant, tous les coups), et un bouclier dore qui s'eclaire (22b-effets.js) */
   if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); if (MODE_TEST && ETAT_TEST.immortel) combat.pv = Math.max(1, combat.pv); /* (le mode test, « immortel » : les coups s'affichent, il ne tombe jamais) */ const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */

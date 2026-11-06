@@ -52,7 +52,8 @@ const PICTOS = {
   livre: ['#8a5634', '<path d="M3 4.6c3.4-.8 6.4-.2 9 1.8v14.4c-2.6-2-5.6-2.6-9-1.8z"/><path d="M21 4.6c-3.4-.8-6.4-.2-9 1.8v14.4c2.6-2 5.6-2.6 9-1.8z" opacity=".75"/>']
 };
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
-const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')] };
+const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')],
+  resCac: ['Résistance au corps à corps', ' % de dégâts en moins au corps à corps', picto('bouclier', '#3a9fb5')], resLoin: ['Résistance à distance', ' % de dégâts en moins à distance', picto('bouclier', '#d9762e')] }; /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 },
   { id: 'kanniboul', nom: 'Kanniboul', de: 'du Kanniboul', niv: 81 }, /* (l'ile de Moon, 04/11/2026 : « j'aime bien la A, qu'on drop sur les Kannibouls, et la C sur les Tortues », Mathieu ; blender/equipements-kanniboul.py) */
   /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
@@ -63,6 +64,7 @@ const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */
 const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 } };
 const multPano = (k, c) => ((PROFIL_PANO[(PANOS[k] || {}).id] || {})[c] || 1);
+const BONUS_COMPLET = { tortue: { resCac: 5 }, kanniboul: { resLoin: 5 } }; /* (en plus du bonus des 6 pieces, 06/11/2026, « 5 % de reduction a distance pour le Kanniboul, 5 % de res au cac pour la Tortue », Mathieu) */
 const PANOS_PALIER = PANOS.filter((P) => P.bis == null); /* (une par palier, dans l'ordre des paliers) */
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
 const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55] }; /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
@@ -122,13 +124,13 @@ const legPorte = (cle) => !!(S_ && S_.equip && [S_.equip.coiffe, S_.equip.arme].
 const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* les bonus de panoplie, renforces et par paliers : 2, 4 puis 6 pieces (avant : 3 et 6), chaque palier s'ajoute au precedent */
 const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];
-const bonusPalier = (f, k, brut) => Object.fromEntries(Object.entries(f(rangPano(k))).map(([c, v]) => [c, brut ? v : Math.round(v * multPano(k, c))])); /* (brut : sans le profil de la panoplie, pour le joueur de reference) */
-const bonusPano = (k, n, brut) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
+const bonusPalier = (f, k, brut, m) => Object.assign(Object.fromEntries(Object.entries(f(rangPano(k))).map(([c, v]) => [c, brut ? v : Math.round(v * multPano(k, c))])), !brut && m === EMPLACEMENTS.length ? BONUS_COMPLET[(PANOS[k] || {}).id] || {} : {}); /* (brut : sans le profil de la panoplie, pour le joueur de reference) */
+const bonusPano = (k, n, brut) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
 const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && !o.arme) c[o.pano] = (c[o.pano] || 0) + 1; }); return c; };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
-const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k)) + '</span>').join('') + '</div></div>';
+const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div></div>';
 function caracs() {
-  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0 };
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
   try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; const b = bonusA(); if (b) { t.puissance += 10 * (b.puissance || 0); t.agilite += 10 * (b.agilite || 0); t.prospection += 20 * (b.butin || 0); } } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
