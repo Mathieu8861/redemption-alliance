@@ -278,7 +278,7 @@ const APPUI_LONG = 450;
    Mathieu, 11/10/2026) : sous Windows le menu part au relacher, donc apres que le clic droit a ouvert une fenetre, et il tombait sur elle */
 document.addEventListener('contextmenu', (e) => { if (!(e.target.closest && e.target.closest('input, textarea'))) e.preventDefault(); });
 function astuceClics() {
-  const doigt = matchMedia('(pointer: coarse)').matches, cle = doigt ? 'astuceDoigt' : 'astuceClics'; if (!S_ || S_[cle]) return; S_[cle] = true; S_.astuceClics = true;
+  const doigt = matchMedia('(pointer: coarse)').matches, cle = doigt ? 'astuceDoigt' : 'astuceClics'; if (!S_ || S_[cle] || tutoCoupe()) return; /* (pas d'astuce quand le tuto est coupe, 06/11/2026) */ S_[cle] = true; S_.astuceClics = true;
   toast(doigt ? 'Touche une case pour agir : labourer, planter, arroser, récolter, construire. Reste appuyé pour seulement t\'y déplacer.' : 'Clic gauche : te déplacer et cibler. Clic droit : agir sur la case (labourer, planter, récolter, construire, ouvrir un bâtiment).', 'or'); sauver();
 }
 function allerVers(id) { /* le clic gauche : il y va, sans rien faire (un nuisible, lui, se cible : on le chasse) */

@@ -153,7 +153,7 @@ function leconsVues() { /* une ferme deja avancee a l'arrivee des lecons : celle
   return S_.lecons;
 }
 function surveillerLecons() { /* dans tick (toutes les 500 ms) : la premiere lecon dont le moment est venu */
-  if (!S_ || !S_.perso || S_.leconsOff || lecon.ouverte || tuto.actif || enPause || enAccueil) return;
+  if (!S_ || !S_.perso || S_.leconsOff || tutoCoupe() || lecon.ouverte || tuto.actif || enPause || enAccueil) return; /* (le tuto coupe dans les Options coupe aussi les lecons, 06/11/2026) */
   const vues = leconsVues();
   for (const L of LECONS.filter((x) => x.urgent).concat(LECONS.filter((x) => !x.urgent))) { /* (le raid d'abord : il n'attend que 30 s) */
     if (vues[L.id]) continue; let ok = false; try { ok = L.quand(); } catch (e) { ok = false; } if (!ok) continue;
@@ -191,5 +191,5 @@ function ouvrirCarnet() {
   ouvrirModale('carnet', entete('Le carnet de Pépito') + '<p style="font-size:.82rem;font-weight:600;margin:0 0 8px">Les leçons de Pépito arrivent au moment où tu en as besoin. Celles que tu as déjà vues se relisent ici : ' + nb + ' sur ' + LECONS.length + '.</p>' +
     LECONS.map((L) => { const vue = !!vues[L.id]; let ic = 'cadenas'; try { ic = icoLecon(L); } catch (e) { /* rien */ }
       return '<div class="art' + (vue ? '' : ' grise') + '">' + ico(vue ? ic : 'cadenas') + '<div><b>' + L.titre + '</b><div class="desc">' + L.resume + '</div></div><div class="act">' + (vue ? '<button class="btn discret" data-relire="' + L.id + '">Relire</button>' : '<span class="cadenas">Plus tard</span>') + '</div></div>'; }).join('') +
-    '<div class="art">' + ico('cloche') + '<div><b>Les leçons</b><div class="desc">' + (S_.leconsOff ? 'Coupées : Pépito ne t\'en propose plus de nouvelles.' : 'Pépito t\'en propose une quand un nouveau sujet arrive.') + '</div></div><div class="act"><button class="btn discret" data-lecons-bascule>' + (S_.leconsOff ? 'Les remettre' : 'Les couper') + '</button></div></div>');
+    '<div class="art">' + ico('cloche') + '<div><b>Les leçons</b><div class="desc">' + (tutoCoupe() ? 'Coupées avec le tuto, dans les Options (Apprendre à jouer).' : S_.leconsOff ? 'Coupées : Pépito ne t\'en propose plus de nouvelles.' : 'Pépito t\'en propose une quand un nouveau sujet arrive.') + '</div></div><div class="act"><button class="btn discret" data-lecons-bascule>' + (S_.leconsOff ? 'Les remettre' : 'Les couper') + '</button></div></div>');
 }
