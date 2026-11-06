@@ -23,7 +23,7 @@ function annoncerRaid(muet) {
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
   poserOmeho(sortie);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, dem, para: tailleSimu().parachutistes, entrees, marques, sortie }; if (!muet) son('raid');
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, dem, para: MODELES.parachutiste ? tailleSimu().parachutistes : 0, entrees, marques, sortie }; if (!muet) son('raid');
   construireRaidAnnonce(); majRaidAnnonce(); /* (plus de message en plus : la carte dit tout) */
 }
 /* LA SORTIE DES VOLEURS, ET OMEHO QUI LES ATTEND (14/10/2026, Mathieu : « ils peuvent apparaitre de n'importe ou, mais pour repartir, ils doivent repartir vers
