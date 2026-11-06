@@ -82,7 +82,7 @@ function ouvrirHudCombat() { /* l'interface de combat : la classe et le niveau d
 function nettoyerCombat(c, releve) { /* les monstres et leurs effets disparaissent, l'interface de combat se ferme ; releve : le perso se remet debout */
   c.fin = true;
   c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); jeter(o.m); } o.barre.remove(); });
-  (c.fumees || []).forEach((f) => jeter(f.g)); /* (les nuages du Koulosse se dissipent) */
+  (c.fumees || []).forEach((f) => jeter(f.g)); (c.solsPara || []).forEach((g) => jeter(g)); /* (les cercles d'atterrissage des parachutistes) */ /* (les nuages du Koulosse se dissipent) */
   if (c.invoc) jeter(c.invoc.m);
   combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; const u = paysanMesh.userData; u.attaque = null; if (releve) { u.charge = false; paysanMesh.rotation.x = 0; } $('b-fuir').hidden = false;
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null; if (modaleOuverte === 'entracte') fermerModale();
@@ -401,6 +401,7 @@ function apparaitre(type, pres) {
   if (!d.fabrique && !MODELES[d.modele]) { /* son modele n'est pas encore la (un monstre a squelette, charge a la demande) : il sort des qu'il est charge ; sans modele, il ne vient pas (26/10/2026 : cloner plantait et l'image se figeait) */
     const c0 = combat; chargerSquelettes([d.modele]).then(() => { if (combat !== c0 || c0.fin) return; if (MODELES[d.modele]) apparaitre(type, pres); else if (c0.total > 0) c0.total--; }); return; }
   if (combat.arene && !pres) { const g = hasard(PORTES_ARENE); pres = { x: g.x + (Math.random() - 0.5) * 1.4, z: g.z + (Math.random() - 0.5) * 1.4, porte: g }; } /* l'Arene : ils sortent des herses */
+  if (!pres && d.parachute && combat.raid) pres = pointParachute(); /* (le Parachutiste de VSA se pose pres de la grange, 06/11/2026) */
   if (!pres && d.fouisseur && !combat.raid && !combat.arene) { pres = pointPresBat(); if (pres && !combat.fouisseurVu) { combat.fouisseurVu = true; toast('Un ' + d.nom + ' surgit de terre au pied de tes bâtiments, derrière tes défenses !', 'alerte'); } }
   const L0 = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), L = L0.length && !combat.raid ? bordsDirects(L0) : L0, b = !pres && combat.raid && combat.entrees && combat.entrees.length ? combat.entrees.shift() : L.length ? hasard(L) : null; /* (la simu VSA : chaque voleur par sa case rouge) */
   const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
@@ -411,7 +412,7 @@ function apparaitre(type, pres) {
     const le = (Math.random() - 0.5) * 1.2; x = q.x + b.di * 0.55 + (b.dj ? le : 0); z = q.z + b.dj * 0.55 + (b.di ? le : 0); ry = Math.atan2(-b.di, -b.dj);
     dep = b.friche ? { x: x + b.di * 1.9, y: q.y, z: z + b.dj * 1.9, friche: true } : { x: x + b.di * 1.1, y: q.y - 2.4, z: z + b.dj * 1.1 };
   } else { /* les renforts sortent de terre, pres du boss */
-    x = pres ? pres.x : q.x; z = pres ? pres.z : q.z; ry = Math.random() * 6.28; dep = { x, y: q.y - 1.6, z };
+    x = pres ? pres.x : q.x; z = pres ? pres.z : q.z; ry = Math.random() * 6.28; dep = d.parachute && combat.raid ? { x, y: q.y + HAUT_PARACHUTE, z, parachute: true } : { x, y: q.y - 1.6, z };
     if (pres && pres.porte) { ry = Math.atan2(ARENE.x - x, ARENE.z - z); dep = { x: pres.porte.ox, y: 0, z: pres.porte.oz, friche: true }; } /* (il bondit hors de la herse) */
   }
   poser(m, dep.x, dep.y, dep.z, ry); if (d.boss) son(type === 'royal' ? 'royal' : 'vague', null, type === 'royal' ? 0 : 2); /* (le boss arrive : le Royal bele, les autres ont le cor) */
@@ -422,6 +423,7 @@ function apparaitre(type, pres) {
   /* (29/10/2026) un monstre a squelette : sa carrure vient de sa hauteur, pas de sa boite. La boite d'une peau Mixamo est celle du fichier, couchee et
      dans un autre repere (12 sur 12 pour le Golem lunaire) : il frappait a 6 cases et te touchait de la, le Gorille roi a 5, Ebil a 3,9 */
   { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.m.userData.portee) o.allonge = Math.max(0.6, (o.m.userData.portee + 0.6) / o.d.portee); } /* (un monstre a squelette : sa portee est celle de ses coups, mesuree sur ses animations) */
+  { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.dep && o.dep.parachute) equiperParachute(o); }
   if (pres && pres.apres) pres.apres(combat.monstres[combat.monstres.length - 1]); /* (une invocation : marquee par son invocateur, meme chargee apres coup) */
   /* (16/10/2026, « quand on passe dans la zone d'un boss, il doit nous attaquer » : sa portee ne depassait guere son corps ; il frappe maintenant jusqu'a environ 1 au-dela, mesure sur son modele, colosse de l'ile compris) */
 }
@@ -2259,9 +2261,44 @@ function chuteSquelette(mo) {
   if ((H && p.y - sol < C.h0 * 0.4) || C.t > C.d * (H ? 0.9 : 0.6)) { C.choc = true; const R = Math.max(2, (mo.haut || 3) * 0.6);
     mo.mort.attente = C.t + 1.2; /* (le bilan 2 s apres le choc) */ if (mo.ombreM) mo.ombreM.visible = false; secousse(0.26, 0.45); poussiere(p.x, sol, p.z, 22, R, '#d8c6a0'); mottes(p.x, sol, p.z, 8, 1.4); }
 }
+/* LE PARACHUTISTE DE VSA (06/11/2026, « un nouveau monstre VSA a partir du niveau 80, il arrive en etant parachute depuis le ciel », Mathieu) : il saute de haut,
+   descend en parachute pres de la grange (derriere les defenses), un cercle rouge au sol montre ou il se pose ; intouchable en l'air ; pose, il plie sa voile */
+const HAUT_PARACHUTE = 16, DUREE_PARACHUTE = 4.5;
+function pointParachute() {
+  const G = S_.cases.filter((c) => c.type === 'grange').map(posCase); if (!G.length) return null;
+  const pris = combat.parasPris || (combat.parasPris = []), dG = (q) => Math.min(...G.map((g) => Math.hypot(g.x - q.x, g.z - q.z)));
+  const L = S_.cases.filter((c) => PASSABLE[c.type]).map((c) => posCase(c)).filter((q) => { const d = dG(q); return d >= 1.5 * S && d <= 4 * S && !pris.some((p) => Math.hypot(p.x - q.x, p.z - q.z) < 2 * S); });
+  const q = L.length ? hasard(L) : null; if (!q) return null; pris.push(q); return { x: q.x + (Math.random() - 0.5) * 0.6, z: q.z + (Math.random() - 0.5) * 0.6 };
+}
+function voileParachute(h) { /* la voile aux couleurs de VSA (violet et creme), et ses suspentes jusqu'aux epaules */
+  const g = new T.Group(), R = 2.1, N = 10, yc = h + 2.0; /* (assez grande pour se voir de loin) */
+  for (let i = 0; i < N; i++) { const p = new T.Mesh(new T.SphereGeometry(R, 3, 6, (i / N) * Math.PI * 2, Math.PI * 2 / N, 0, Math.PI * 0.42), new T.MeshToonMaterial({ color: i % 2 ? '#f2e6c8' : '#6a3a9a', gradientMap: grad, side: T.DoubleSide })); p.scale.y = 0.62; p.position.y = yc - R * 0.62 * Math.cos(Math.PI * 0.42); g.add(p); }
+  const bord = R * Math.sin(Math.PI * 0.42), corde = new T.MeshBasicMaterial({ color: '#3a2a1a' });
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2, A = new T.Vector3(Math.cos(a) * bord, yc - R * 0.62 * Math.cos(Math.PI * 0.42), Math.sin(a) * bord), B = new T.Vector3(Math.cos(a) * 0.18, h * 0.82, Math.sin(a) * 0.12), v = new T.Vector3().subVectors(A, B);
+    const l = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, v.length(), 4), corde); l.position.copy(B).addScaledVector(v, 0.5); l.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v.clone().normalize()); g.add(l); }
+  return g;
+}
+function equiperParachute(o) {
+  const h = o.m.userData.hauteur || 1.7; o.voile = voileParachute(h / (o.m.scale.y || 1)); o.m.add(o.voile);
+  const y = solA(o.x, o.z) + 0.07, sol = new T.Group(); /* (le cercle rouge ou il se pose) */
+  const disque = new T.Mesh(new T.CircleGeometry(1.1, 28), new T.MeshBasicMaterial({ color: '#d9443a', transparent: true, opacity: 0.22, depthWrite: false })), bord = new T.Mesh(new T.RingGeometry(1.0, 1.15, 32), new T.MeshBasicMaterial({ color: '#ff5a3a', transparent: true, opacity: 0.85, depthWrite: false }));
+  [disque, bord].forEach((x) => { x.rotation.x = -Math.PI / 2; x.renderOrder = 3; sol.add(x); }); sol.position.set(o.x, y, o.z); sol.visible = false; scene.add(sol); o.solPara = sol; (combat.solsPara = combat.solsPara || []).push(sol);
+}
+function majParachute(mo, dt, s) {
+  const m = mo.m, dp = mo.dep; mo.t += dt / DUREE_PARACHUTE; const k = Math.max(0, Math.min(1, mo.t)), e = 1 - (1 - k) * (1 - k), libre = 1 - k;
+  m.visible = mo.t > 0; if (mo.solPara) { mo.solPara.visible = mo.t > 0; const p = 0.6 + 0.4 * Math.sin(s * 6); mo.solPara.children[1].material.opacity = 0.85 * p; mo.solPara.scale.setScalar(1 + 0.25 * libre); }
+  m.position.set(mo.x + Math.sin(s * 1.3 + mo.id) * 0.5 * libre, dp.y + (mo.y - dp.y) * e, mo.z + Math.cos(s * 1.1 + mo.id) * 0.4 * libre); m.rotation.z = Math.sin(s * 1.7 + mo.id) * 0.14 * libre; m.rotation.x = Math.cos(s * 1.4 + mo.id) * 0.08 * libre;
+  if (mo.t > 0 && !mo.paraSon) { mo.paraSon = true; if (!combat.paraVu) { combat.paraVu = true; toast('Des parachutistes de VSA tombent du ciel près de ta grange : guette les cercles rouges et cueille-les à l\'atterrissage !', 'alerte'); } }
+  if (k < 1) return;
+  mo.etat = 'actif'; m.rotation.set(0, mo.ry, 0); m.position.set(mo.x, mo.y, mo.z); pouf(mo.x, mo.y, mo.z, 1.3); poussiere(mo.x, mo.y, mo.z, 8, 0.8, '#d8c6a0');
+  if (mo.solPara) { jeter(mo.solPara); mo.solPara = null; }
+  if (mo.voile) { const v = mo.voile, w = new T.Vector3(); v.getWorldPosition(w); m.remove(v); v.position.copy(w); v.scale.multiplyScalar(m.scale.x || 1); scene.add(v); mo.voile = null; let t = 0; const c0 = combat;
+    effets.push((dt2) => { t += dt2 / 0.9; if (combat !== c0 || t >= 1) { jeter(v); return true; } v.scale.y = Math.max(0.05, (1 - t)) * (m.scale.x || 1); v.position.y -= dt2 * 1.6; v.rotation.z += dt2 * 0.8; v.position.x += dt2 * 0.6; }); } /* (la voile se replie et retombe a cote de lui) */
+}
 function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
+  if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
   if (mo.etat === 'grimpe') { /* il se hisse : remonte de sous le bord, puis un petit saut pour passer la falaise */
     mo.t += dt / 0.9; const k = Math.max(0, Math.min(1, mo.t)), e = k * k * (3 - 2 * k), dp = mo.dep;
     m.position.set(dp.x + (mo.x - dp.x) * Math.max(0, (k - 0.55) / 0.45), dp.y + (mo.y - dp.y) * Math.min(1, e * 1.25) + Math.sin(Math.max(0, (k - 0.55) / 0.45) * Math.PI) * 0.45, dp.z + (mo.z - dp.z) * Math.max(0, (k - 0.55) / 0.45));
