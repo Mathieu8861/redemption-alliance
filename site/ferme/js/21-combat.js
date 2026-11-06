@@ -189,9 +189,10 @@ function ficheMonstre(t) {
   if (d.assomme) met('assomme', 'assomme', 'T\'assomme', 'Touché, tu ne frappes plus un instant.', num(String(d.assomme).replace('.', ',') + ' s', 'rouge'), 'or');
   if (d.poison) met('poison', 'poison', 'T\'empoisonne', 'Son coup t\'empoisonne quelques secondes.', num(d.poison[0] + ' % de ta vie par seconde', 'rouge') + num(d.poison[1] + ' s'), 'vert');
   if (d.soigne) met('soigne', 'soin', 'Soigne ses alliés', 'Il soigne les monstres autour de lui : abats-le en premier.', '', 'vert');
-  if (d.protege) met('protege', 'protege', 'Bouclier de cristal', 'Il protège trois monstres autour de lui.', num('-40 % de dégâts') + num('4 s') + recup('protege'));
+  if (d.protege) met('protege', 'protege', d.protegeNom || 'Bouclier de cristal', 'Il protège trois monstres autour de lui.', num('-40 % de dégâts') + num('4 s') + recup('protege'));
+  if (d.malefice) met('malefice', 'lenteur', 'Maléfice', 'Un cercle violet sous toi, puis le sort éclate. Dedans, tu es ralenti.', num(fmt(Math.round(dSort * d.malefice.x)) + ' dégâts', 'rouge') + num('ralenti ' + secondes(d.malefice.duree), 'bleu') + num(secondes(d.malefice.prepa) + ' pour esquiver') + num('toutes les ' + d.malefice.periode + ' s'), 'violet');
   if (d.galvanise) met('galvanise', 'galvanise', 'Galvanise la horde', 'Les monstres autour de lui frappent et courent plus vite.', num('4 s') + recup('galvanise'), 'or');
-  if (d.revit) met('revit', 'revit', 'Se relève', 'Abattu, il se relève une fois.');
+  if (d.revit) met('revit', 'revit', 'Se relève', 'Abattu, il se relève une fois' + (d.revitRage ? ', enragé : il court et frappe plus vite, et cogne plus fort.' : '.'));
   if (d.demonte) met('demonte', 'revit', 'Continue à pied', 'Quand sa monture tombe, il continue à pied.');
   if (d.grignote) met('grignote', 'grignote', 'Grignote tes cultures', d.gourmand ? 'Il file vers tes Cawottes, puis tes Fraises : une récolte de moins toutes les 5 s.' : 'Il file picorer tes champs : une récolte de moins toutes les 5 s.', '', 'or');
   if (d.bandit) met('bandit', 'kama', 'Vole tes kamas', 'Il file à ta grange, y vole des kamas, puis repart par où il est venu.', '', 'or');
@@ -453,7 +454,8 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.d.affaibli && !mo.faible && !mo.faibleFini && m0Anim(mo) && mo.pv <= mo.pvMax * mo.d.affaibli.seuil) { mo.pv = Math.ceil(mo.pvMax * mo.d.affaibli.seuil); entrerFaible(mo); return; } /* (Moon, sa vie bloquee a 30 %, 31/10/2026) */
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
-    mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre('Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
+    mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre(mo.d.revitRage ? 'Il se relève, enragé !' : 'Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
+    if (mo.d.revitRage) { mo.deg = Math.round(mo.deg * mo.d.revitRage); mo.galva = 1e9; mo.galvaC = '#e8412e'; pouf(mo.x, mo.m.position.y, mo.z, 1.6, '#e8412e'); } /* (06/11/2026 : enrage jusqu'a sa mort, plus rapide et plus vif (comme galvanise), et frappe x1,3) */
     if (!combat.revitVu) { combat.revitVu = true; toast(leNom(mo.d) + ' se relève : il faut l\'abattre deux fois !', 'alerte'); } return;
   }
   if (mo.pv <= 0 && mo.butinK > 1) { S_.kamas += mo.butinK; chiffre('+' + fmt(mo.butinK) + ' kamas', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast('Le ' + mo.d.nom + ' est abattu : tes ' + fmt(mo.butinK) + ' kamas reviennent à la grange !', 'or'); mo.butinK = 0; rendreHaut(); }
@@ -798,7 +800,7 @@ function capProtege(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.protege) { /* le Craqueleur de Cristal : un bouclier de cristal sur trois monstres autour de lui (-40 % de degats, 4 s) */
     mo.protT = (mo.protT || 0) + dt;
-    if (mo.protT >= mo.d.protege) { mo.protT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax).slice(0, 3).forEach((o) => { o.bouclier = 4; pouf(o.x, o.m.position.y, o.z, 1.4, '#6fe0e8'); }); }
+    if (mo.protT >= mo.d.protege) { mo.protT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax).slice(0, 3).forEach((o) => { o.bouclier = 4; o.bouclierC = mo.d.protegeCouleur || null; pouf(o.x, o.m.position.y, o.z, 1.4, mo.d.protegeCouleur || '#6fe0e8'); }); }
   }
 }
 function capGalvanise(mo, ctx) {
@@ -1461,7 +1463,8 @@ function capSeisme(mo, ctx) {
       const lourdS = !m.userData.anim; if (lourdS) prepaSeisme(mo, x0, z0, R, duree); /* (31/10/2026 : le Craqueleur Legendaire se dresse, le sol tremble et rougeoie) */
       if (mo.d.element === 'lune') croissantLune(mo, duree); /* (le Golem lunaire : un croissant de lune s'allume au-dessus de sa tete, 01/11/2026) */
       zoneDanger({ mo, x: x0, z: z0, r: R, duree, couleur: COULEUR_CAC, effet: (d) => {
-        if (lourdS) seismeBoss(mo, x0, mo.m.position.y, z0, R); /* (il abat ses poings : le vrai seisme, 31/10/2026) */
+        if (lourdS && mo.d.seismeLeger) { secousse(0.12, 0.25); onde(mo.x, mo.m.position.y, mo.z, R * 1.1, '#ffb26a', 0.5, 0.6); mottes(x0, mo.m.position.y, z0, 8, R * 0.6); } /* (le coup de massue du Gwand Wabbit, 06/11/2026 : plus leger que le seisme d'un boss) */
+        else if (lourdS) seismeBoss(mo, x0, mo.m.position.y, z0, R); /* (il abat ses poings : le vrai seisme, 31/10/2026) */
         const an = mo.d.poings && mo.m.userData.anim; if (an && an.frappe) { const q = an.frappe().p, y = mo.m.position.y; if (mo.d.element) impactElement(mo.d.element, x0, z0, R); else { impactMarteau(q.x, y, q.z, mo.d.couleurSorts); onde(x0, y, z0, R, (mo.d.couleurSorts || [])[1] || '#fff3d6', 0.6, 0.8); } } /* (le Gorille : ses deux poings au sol, 31/10/2026 ; son element sur tout le cercle, 01/11/2026) */
         else if (!lourdS && mo.d.element) { secousse(0.35, 0.5); impactElement(mo.d.element, x0, z0, R); } /* (un monstre anime sans poings, le Golem, Ebil : son element sur tout le cercle ; il n'y avait que deux bouffees, 01/11/2026) */
         if (!mo.d.element) { pouf(x0, mo.m.position.y, z0, 9 * R / 4.5, '#8e7a5e'); pouf(x0, mo.m.position.y, z0, 5 * R / 4.5, '#c9b28a'); } mo.frappe = 0.4;
@@ -1641,7 +1644,7 @@ function capAppel(mo, ctx) {
 }
 function capAuras(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
-  if (mo.bouclier > 0) { mo.bouclier -= dt; if (!mo.bulleB) { mo.bulleB = new T.Mesh(new T.SphereGeometry(1, 16, 12), new T.MeshBasicMaterial({ color: '#6fe0e8', transparent: true, opacity: 0.25, depthWrite: false })); m.add(mo.bulleB); } mo.bulleB.visible = true; mo.bulleB.scale.setScalar(mo.haut * 0.62); mo.bulleB.position.y = mo.haut * 0.45; } else if (mo.bulleB) mo.bulleB.visible = false;
+  if (mo.bouclier > 0) { mo.bouclier -= dt; if (!mo.bulleB) { mo.bulleB = new T.Mesh(new T.SphereGeometry(1, 16, 12), new T.MeshBasicMaterial({ color: '#6fe0e8', transparent: true, opacity: 0.25, depthWrite: false })); m.add(mo.bulleB); } mo.bulleB.visible = true; mo.bulleB.material.color.set(mo.bouclierC || '#6fe0e8'); mo.bulleB.scale.setScalar(mo.haut * 0.62); mo.bulleB.position.y = mo.haut * 0.45; } else if (mo.bulleB) mo.bulleB.visible = false;
   if (mo.galva > 0) { mo.galva -= dt; if (!mo.anneauG) { mo.anneauG = new T.Mesh(new T.RingGeometry(0.45, 0.62, 24), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false })); mo.anneauG.rotation.x = -Math.PI / 2; mo.anneauG.position.y = 0.07; mo.anneauG.scale.setScalar(Math.max(1, mo.d.ombre * 0.8)); m.add(mo.anneauG); } mo.anneauG.visible = true; mo.anneauG.material.color.set(mo.galvaC || '#f2b630');
     if (mo.galvaC && Math.random() < dt * 6) emettre(FX_LUM, 1, { x: mo.x + (Math.random() - 0.5) * 0.9, y: m.position.y + 0.2, z: mo.z + (Math.random() - 0.5) * 0.9, v: [0, 1.7, 0], vie: [0.5, 0.8], taille: [0.15, 0.03], c: ['#ffffff', mo.galvaC], a: 0.85 }); } else if (mo.anneauG) mo.anneauG.visible = false;
 }
@@ -1826,6 +1829,17 @@ function capRacines(mo, ctx) {
     const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0;
     racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, R.duree);
     if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
+}
+/* LE MALEFICE (06/11/2026, la Wabbit Sorciere : « un sort qui te ralentit dans un cercle ») : quand tu es entre min et max d'elle, un cercle violet
+   sous toi ; a la fin, le sort eclate : dedans, un peu de degats et ralenti (c.lenteur, comme la Momie Koalak) */
+function capMalefice(mo, ctx) {
+  const { pp, sortPret } = ctx, M = mo.d.malefice; if (!M || combat.deroute != null) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('maleficeT', M.periode) || mo.geste) return; if (dP < M.min || dP > M.max) { mo.maleficeT = M.periode; return; }
+  mo.maleficeT = 0; const c0 = combat, x0 = pp.x, z0 = pp.z, C = mo.d.couleurMagie || '#b06ae0'; mo.ry = Math.atan2(x0 - mo.x, z0 - mo.z); mo.bloqueT = 0.6; mo.frappe = 0.3;
+  if (!c0.maleficeVu) { c0.maleficeVu = true; toast(leNom(mo.d) + ' te jette un maléfice : sors du cercle violet, sinon tu es ralenti !', 'alerte'); }
+  zoneDanger({ mo, x: x0, z: z0, r: M.R, duree: M.prepa, couleur: C, effet: (d) => { const y = solA(x0, z0); etoileImpact(new T.Vector3(x0, y + 0.6, z0), 1.0, C); onde(x0, y + 0.05, z0, M.R * 1.2, C, 0.4, 0.6);
+    emettre(FX_LUM, 14, { x: x0, y: y + 0.3, z: z0, r: M.R * 0.6, v: [0, 1.8, 0], dv: 1, vie: [0.5, 0.8], taille: [0.25, 0.05], c: ['#ffffff', C], a: 0.85 });
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z) && combat === c0 && !c0.fin) { blesserPerso(Math.max(1, Math.round(degSort(mo) * M.x)), mo); c0.lenteur = Math.max(c0.lenteur || 0, M.duree); const q = p2.clone(); q.y += 2.1; chiffre('Ralenti !', q, 'vol'); } } });
 }
 /* LE SEMIS (05/11/2026, le Semeur : « seme des graines qui deviennent des Tronknydes si on ne les ecrase pas », le monstre propose a Mathieu et
    retenu) : il plonge la main droite dans sa coupe de glands et jette une poignee a la volee (son geste « sort ») ; les graines volent en cloche et
@@ -2086,7 +2100,7 @@ const SORTS_CAC = { seisme: 'seismeT', brassard: 'brassardT', tourbillon: 'tourb
 const TRAITS_BOSS = new Set(['distance', 'casse', 'garde', 'ralentit', 'menotte', 'assomme', 'poison', 'soigne', 'protege', 'revit', 'demonte', 'grignote', 'bandit', 'fouisseur']); /* (ce qu'il fait, sans etiquette, en dernier dans sa fiche) */
 const cacBoss = (mo) => Math.min(porteeSur(mo, STATS_CLASSE.osa) - 0.5, Math.max(porteeSur(mo, STATS_CLASSE.iop) + 1.8, mo.d.portee * (mo.allonge || 1) + 0.3));
 const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
