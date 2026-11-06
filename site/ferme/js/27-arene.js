@@ -205,7 +205,7 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
   return g;
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi : chaque semaine de l'ile commence ce jour-la ; let : les tests le changent) */
-const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 500000, /* (500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
+const ESSAIS_ILE_BOSS = 3, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
 const VITESSE_ILE = { craqLegendaire: 1.25 }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
