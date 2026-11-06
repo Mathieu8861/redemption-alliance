@@ -225,6 +225,7 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .inter::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #d5d8de; box-shadow: 0 1px 2px rgba(0, 0, 0, .5); transition: transform .15s; }
 .inter.on { background: #3fae5a; } .inter.on::after { transform: translateX(22px); background: #fff; }
 .inter:focus-visible { outline: 2px solid #ffd23a; outline-offset: 2px; }
+.act-tuto { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; } .tuto-auto { display: flex; align-items: center; gap: 6px; } /* (l'interrupteur du tuto sous « Revoir le tuto », 06/11/2026) */
 .etat-inter { font-size: .7rem; font-weight: 800; color: #a9adb5; white-space: nowrap; } .etat-inter.on { color: #6fd38a; }
 .art .desc b { display: inline; }
 .art.perte > div > b { color: #e1807a; } /* (le bilan d'un raid : ce qui est perdu pour de bon) */

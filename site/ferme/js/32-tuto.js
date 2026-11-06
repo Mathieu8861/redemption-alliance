@@ -4,6 +4,8 @@
    Pepito guide 9 etapes (maquette maquettes/ferme-amakna-tuto.png) : la case a toucher brille avec une fleche, la carte en bas dit quoi faire,
    l'etape passe toute seule quand c'est fait. Il se lance pour un debutant (niveau < 5) qui ne l'a jamais vu ; « Revoir le tuto » dans Options. */
 const tuto = { actif: false, etape: 0, base: {}, el: null, depart: null, vue: null, revoir: false, h: '', s: '' };
+/* (06/11/2026, « un bouton pour desactiver le tuto, pour les joueurs confirmes comme moi qui se recreent un perso », Mathieu) : retenu sur l'appareil, il vaut pour toutes les nouvelles parties */
+const tutoCoupe = () => { try { return localStorage.getItem('ferme-tuto-off') === '1'; } catch (e) { return false; } };
 const tutoDoigt = () => matchMedia('(pointer: coarse)').matches;
 const SOURIS_SVG = (bouton) => '<svg class="tuto-souris" viewBox="0 0 46 62" aria-hidden="true"><rect x="3" y="3" width="40" height="56" rx="20" fill="#fffdf6" stroke="#3b2a1a" stroke-width="3"/><path d="M23 3 V26 M3 26 H43" stroke="#3b2a1a" stroke-width="3"/>' +
   (bouton === 'droit' ? '<path d="M24.5 4.6 A18.5 18.5 0 0 1 41.5 23 V24.5 H24.5 Z" fill="#f2b630"/>' : bouton === 'gauche' ? '<path d="M21.5 4.6 A18.5 18.5 0 0 0 4.5 23 V24.5 H21.5 Z" fill="#f2b630"/>' : '') + '</svg>';

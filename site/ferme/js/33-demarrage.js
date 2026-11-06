@@ -10,6 +10,7 @@ function lancer(etat) {
   toast('Bienvenue ' + S_.perso.nom + ' ! Pépito t\'attend à la ferme.', 'or');
   if (S_.migreIleRonde && !S_.migreIleRonde.vu) { const m = S_.migreIleRonde; m.vu = 1; sauver(); /* (une seule fois, apres la conversion d'une ancienne ferme) */
     setTimeout(() => toast('Ta ferme a déménagé sur l\'île ronde ! Le départ fait maintenant 92 cases' + (m.terrains ? ', et tes ' + m.terrains + ' terrain' + (m.terrains > 1 ? 's sont devenus les ' + m.terrains + ' premiers' : ' est devenu le premier') + ' terrain' + (m.terrains > 1 ? 's' : '') + ' de l\'île, plus grand' + (m.terrains > 1 ? 's' : '') : '') + (m.replaces ? '. Ce qui était posé dessus a été replacé sur ta ferme' : '') + '. Les suivants se débloquent avec ton niveau, en faisant le tour de l\'île.', 'or'), 3500); }
+  if (!S_.tuto && tutoCoupe()) S_.tuto = 'coupe'; /* (le tuto coupe dans les Options : une nouvelle partie demarre sans lui, 06/11/2026) */
   const tutoAuto = !S_.tuto && niveau(S_.xp) < 5; /* un debutant qui ne l'a jamais vu (ou pas fini) */
   rendreHaut(); rendreObjectif(); setTimeout(placerPanneaux, 50); if (!tutoAuto) setTimeout(astuceClics, 4000); setTimeout(nuageEnvoyer, 1500);
   if (tutoAuto) setTimeout(() => demarrerTuto(S_.tutoEtape || 0), 700); else { if (absence) setTimeout(montrerAbsence, 400); setTimeout(cadeauDuJour, absence ? 2500 : 600); }
