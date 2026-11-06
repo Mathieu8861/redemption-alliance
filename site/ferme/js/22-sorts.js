@@ -47,7 +47,7 @@ const VISEE_LIGNE = new T.Mesh(geoLigne, new T.MeshBasicMaterial({ color: '#ffe0
 const VISEE_CONE = new T.Group(); { const m = new T.Mesh(new T.CircleGeometry(1, 40, -Math.PI / 2 - 0.55, 1.1), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.35, depthWrite: false, depthTest: false, side: T.DoubleSide })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; VISEE_CONE.add(m);
   const bord = new T.Mesh(new T.RingGeometry(0.95, 1, 40, 1, -Math.PI / 2 - 0.55, 1.1), new T.MeshBasicMaterial({ color: '#ff5a10', transparent: true, opacity: 0.9, depthWrite: false, depthTest: false, side: T.DoubleSide })); bord.rotation.x = -Math.PI / 2; bord.renderOrder = 4; VISEE_CONE.add(bord);
   for (const t0 of [-Math.PI / 2 - 0.55, -Math.PI / 2 + 0.55]) { const l = new T.Mesh(new T.CircleGeometry(1, 1, t0 - 0.014, 0.028), bord.material); l.rotation.x = -Math.PI / 2; l.renderOrder = 4; VISEE_CONE.add(l); } } /* (les deux cotes : de fines parts, du perso au bord) */ VISEE_CONE.visible = false; /* (un bord net : l'arc et les deux cotes) */ scene.add(VISEE_CONE); /* (le cone du Souffle de feu, vers +z, mis a l'echelle de sa portee) */
-const PORTEE_PERCANTE = 10, LARGEUR_PERCANTE = 0.9;
+const PORTEE_PERCANTE = 16, LARGEUR_PERCANTE = 0.5; /* (06/11/2026, « la bande plus fine mais plus longue, qu'on puisse toucher de plus loin », Mathieu : 8 cases et une demi-case de large ; avant, 10 et 0,9) */
 const solPlan = new T.Plane(new T.Vector3(0, 1, 0), 0);
 function pointSol(ev) { /* le point du sol sous la souris : la case touchee, sinon le plan du sol */
   souris.set((ev.clientX / innerWidth) * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1); ray.setFromCamera(souris, camera);
@@ -206,7 +206,7 @@ function flechePercante(pt) {
   u.attaque = { t: -0.55, classe: 'cra', base: u.angle, tour: false, surFrappe: () => {} }; u.charge = true; /* (le temps de bander l'arc, pas d'autre tir ni de pas) */
   /* (04/11/2026, « j'ai envie de le voir prendre son arc, tendre son arc, la fleche part et ca desintegre tout », Mathieu) : il bande l'arc 0,42 s, la lumiere
      se concentre sur la pointe de la fleche encochee, puis il lache : tout le reste part de l'arc (pointeArc, 12-perso.js) */
-  const P = (u.tirPercant = { tension: 0, recul: 0 }), c0 = combat, BANDER = 0.42; let tb = 0; voileEcran(0.5, 0.95); son('arc');
+  const P = (u.tirPercant = { tension: 0, recul: 0 }), c0 = combat, BANDER = 0; /* (plus de temps a bander l'arc depuis le 06/11/2026, « le temps de chargement retire-le », Mathieu ; avant, 0,42 s) */ let tb = 0; voileEcran(0.5, 0.95); son('arc');
   effets.push((dt) => { if (combat !== c0 || !paysanMesh) { u.tirPercant = null; u.charge = false; return true; } tb += dt; paysanMesh.rotation.y = u.angle;
     const k = Math.min(1, tb / BANDER); P.tension = k < 0.2 ? 0.15 * k / 0.2 : 0.15 + 0.85 * Math.pow((k - 0.2) / 0.8, 0.7); const q = pointeArc(paysanMesh);
     for (let i = 0; i < 2; i++) { const a2 = fxAlea() * Math.PI * 2, b2 = fxAlea() * Math.PI, r = 0.7 + 0.5 * fxAlea(), x = q.x + Math.sin(b2) * Math.cos(a2) * r, y = q.y + Math.cos(b2) * r * 0.7, z = q.z + Math.sin(b2) * Math.sin(a2) * r;
@@ -224,14 +224,15 @@ function flechePercante(pt) {
   { const p0 = de.clone().addScaledVector(dir, 0.6); anneauSouffle(p0, dir, 0.3, 2.4, 0.4, '#fff6dc', 0.95); anneauSouffle(p0, dir, 0.2, 1.5, 0.32, '#ff9a2e', 0.85); }
   const F = faisceau(de, fin, [['#fffaf0', '#ff6a14', 0.6, false], ['#ffffff', '#ffd27a', 0.28, true]]), L = PORTEE_PERCANTE, aSol = Math.atan2(dir.x, dir.z), PAS_SOL = 0.7;
   effets.push((dt) => {
-    t += dt / 0.45; temps += dt; const k = Math.min(1, t); fl.position.lerpVectors(de, fin, k); F.maj(k, 1, temps); const p = fl.position;
+    t += dt / (0.45 * L / 10); temps += dt; /* (la meme vitesse de fleche qu'avant, sur une ligne plus longue) */ const k = Math.min(1, t); fl.position.lerpVectors(de, fin, k); F.maj(k, 1, temps); const p = fl.position;
     emettre(FX_VIF, 3, { x: p.x, y: p.y, z: p.z, r: 0.08, v: [-dir.x * 4, 0.8, -dir.z * 4], dv: 3.2, vie: [0.18, 0.34], taille: [0.12, 0.03], c: ['#ffffff', '#ffd36a', '#ff6a1e'], grav: 6, frein: 2, etire: 0.06 });
     emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.1, 0.14], taille: [1.5, 0.4], c: ['#ffffff', '#ffb347'], a: 0.95, entree: 0.01 }); /* (la tete de la comete) */
     for (let i = 0; i < 2; i++) { const r = Math.min(k * L, 3) * fxAlea(), h = p.clone().addScaledVector(dir, -r); emettre(FX_LUM, 1, { x: h.x, y: h.y, z: h.z, vie: [0.16, 0.26], taille: [0.9, 0.2], c: ['#ffe9b0', '#ff8a2e'], a: 0.55, entree: 0.02 }); } /* (le halo du faisceau, a la place d'un vrai flou lumineux, trop lourd) */
     brume += dt; if (brume > 0.03) { brume = 0; emettre(FX_FUM, 1, { x: p.x, y: p.y - 0.1, z: p.z, r: 0.15, v: [-dir.x * 0.6, 0.25, -dir.z * 0.6], vie: [0.35, 0.6], taille: [0.35, 1.1], c: ['#d2b8ff', '#7a5ab8'], a: 0.22, frein: 2, entree: 0.05 }); }
     const parcouru = k * L; while (anneaux + 1.6 <= parcouru) { anneaux += 1.6; anneauSouffle(de.clone().addScaledVector(dir, anneaux), dir, 0.2, 1.0, 0.3, '#ffe3a0', 0.8); }
     while (sol + PAS_SOL <= parcouru) { const x = de.x + dir.x * (sol + PAS_SOL / 2), z = de.z + dir.z * (sol + PAS_SOL / 2); sol += PAS_SOL; if (lieu !== 'ferme' || caseIci(x, z)) braiseSol(x, z, aSol, PAS_SOL, 1.1 + sol / L * 0.3); }
-    if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && !touches.has(o) && Math.hypot(o.x - fl.position.x, o.z - fl.position.z) < LARGEUR_PERCANTE) {
+    if (combat) combat.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || touches.has(o)) return; const vx = o.x - de.x, vz = o.z - de.z, sl = vx * dir.x + vz * dir.z, marge = Math.min(0.5, (o.d.ombre || 1) * 0.12); /* (dans la bande : la distance a la ligne, plus le gabarit du monstre ; jusqu'a la pointe de la fleche) */
+      if (sl >= -marge && sl <= parcouru + marge && Math.abs(vx * dir.z - vz * dir.x) < LARGEUR_PERCANTE + marge) {
       const q = new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z); if (!touches.size) { arretImage(0.07); secousse(0.1, 0.18); }
       touches.add(o); etoileImpact(q, 1.4, '#ffb347'); anneauSouffle(q, dir, 0.3, 1.6, 0.26, '#fff1c8', 0.95); flashLumiere(q.x, q.y, q.z, '#ffb347', 3, 6, 0.25);
       emettre(FX_VIF, 14, { x: q.x, y: q.y, z: q.z, r: 0.1, v: [dir.x * 7, 1, dir.z * 7], dv: 6, vie: [0.18, 0.34], taille: [0.09, 0.02], c: ['#ffffff', '#ffd36a', '#ff6a1e'], grav: 8, frein: 2.5, etire: 0.05 });

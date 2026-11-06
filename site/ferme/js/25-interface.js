@@ -438,7 +438,7 @@ function ouvrirGrange(choix) {
 }
 const SORTS = {
   iop: [['Coup d\'épée', 'Au corps à corps, il frappe le monstre ciblé, et son épée touche aussi les monstres collés à sa cible (' + Math.round(BALAYAGE_IOP * 100) + ' % de ses dégâts).'], ['Bond du Iop', 'Tu vises où il saute (jusqu\'à ' + enCases(PORTEE_BOND) + ' cases) : en retombant, 3 fois ses dégâts sur le monstre le plus proche, 1,5 fois tout autour. Recharge ' + RECHARGE_SORT + ' s.'], ['Peau de Iop', 'Toujours actif : il encaisse 15 % de dégâts en moins sur les coups reçus de loin.']],
-  cra: [['Flèche', 'À distance (' + Math.round(STATS_CLASSE.cra.portee / S) + ' cases), il tire sur le monstre ciblé.'], ['Flèche perçante', 'Tu vises une ligne : elle traverse tous les monstres, 3 fois tes dégâts. Recharge ' + RECHARGE_PERCANTE + ' s.']],
+  cra: [['Flèche', 'À distance (' + Math.round(STATS_CLASSE.cra.portee / S) + ' cases), il tire sur le monstre ciblé.'], ['Flèche perçante', 'Tu vises une ligne de ' + Math.round(PORTEE_PERCANTE / S) + ' cases : la flèche part tout de suite et traverse tous les monstres, 3 fois tes dégâts. Recharge ' + RECHARGE_PERCANTE + ' s.']],
   osa: [['Coup de fouet', 'À portée de fouet (3 cases), il frappe le monstre ciblé.'], ['Invocation', 'Tu vises où poser un Bouftou (jusqu\'à ' + enCases(PORTEE_INVOC) + ' cases) : il retombe en frappant tout autour, 2 fois tes dégâts. Recharge ' + RECHARGE_INVOC + ' s.']]
 };
 let persoCarac = null; /* la caracteristique dont on lit l'explication */
