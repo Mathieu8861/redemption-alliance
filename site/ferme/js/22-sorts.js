@@ -99,7 +99,7 @@ function tempeteDeLames(pt) {
   const st = statsPerso(), u = paysanMesh.userData, pp = paysanMesh.position, R = 2.8, de = pp.clone(), m = u.membres || [], bras = m[3] || m[2];
   let x = pt.x, z = pt.z; const ok = (a, b) => { const q = caseIci(a, b); return q && PASSABLE[q.type]; };
   if (!ok(x, z)) { const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; x = pp.x + (x0 - pp.x) * Math.max(0, k); z = pp.z + (z0 - pp.z) * Math.max(0, k); }
-  combat.cdUlti = rechargeUlti(); chemin = []; arrivee = null; combat.ordre = false; u.charge = true; toast(nomUlti('zone') + ' !', 'or');
+  combat.cdUlti = rechargeUlti(); chemin = []; arrivee = null; combat.ordre = false; u.charge = true; u.tempete = true; toast(nomUlti('zone') + ' !', 'or');
   /* l'animation (23/10/2026) : un tourbillon autour de lui, trois lames qui tournent a hauteur d'epee, des rubans de vent a plusieurs hauteurs, l'anneau
      orange de la zone au sol, de la poussiere soulevee sur le bord ; a chaque coup, une onde et un eclat sur chaque monstre touche */
   const dash = Math.min(0.4, Math.hypot(x - pp.x, z - pp.z) / 18), fx = new T.Group(), lames = new T.Group(); scene.add(fx); fx.add(lames); lames.position.y = 0.78;
@@ -121,7 +121,7 @@ function tempeteDeLames(pt) {
     const f = Math.min(1, t / 0.15, (dash + DUREE_TEMPETE - t) / 0.2); /* (le tourbillon se forme puis se defait) */
     lames.rotation.y = tour + 0.3; lames.scale.setScalar(0.6 + 0.4 * f); vents.forEach((g) => { g.rotation.z += dt * g.userData.v; g.material.opacity = 0.45 * f; }); sol.material.opacity = (0.35 + 0.2 * Math.sin(t * 12)) * f;
     lames.children.forEach((b3) => b3.children.forEach((l) => { l.material.uniforms.uA.value = l.userData.o * f; }));
-    if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); if (fant) { fant.fin(); fant = null; } u.charge = false; if (bras) { bras.rotation.x = 0; bras.rotation.z = 0; } if (cel && PASSABLE[cel.type]) u.cellule = cel; onde(p.x, p.y, p.z, R + 0.6, '#ffffff', 0.4, 0.8); poussiere(p.x, p.y, p.z, 12, R * 0.7); flashLumiere(p.x, p.y + 1, p.z, '#ffd27a', 2.5, 7, 0.3); return true; }
+    if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); if (fant) { fant.fin(); fant = null; } u.charge = false; u.tempete = false; if (bras) { bras.rotation.x = 0; bras.rotation.z = 0; } if (cel && PASSABLE[cel.type]) u.cellule = cel; onde(p.x, p.y, p.z, R + 0.6, '#ffffff', 0.4, 0.8); poussiere(p.x, p.y, p.z, 12, R * 0.7); flashLumiere(p.x, p.y + 1, p.z, '#ffd27a', 2.5, 7, 0.3); return true; }
   });
 }
 function executerUlti(id, c, pt) {
@@ -175,7 +175,7 @@ function bondIop(pt) {
   const corps = paysanMesh.children.filter((c) => !(c.isMesh && !c.name)).map((c) => ({ c, p: c.position.clone(), q: c.quaternion.clone() })), R = new T.Quaternion(), CENTRE = new T.Vector3(0, H, 0), AXE = new T.Vector3(1, 0, 0);
   const salto = (phi, dy) => { R.setFromAxisAngle(AXE, phi); corps.forEach(({ c, p, q }) => { c.position.copy(p).sub(CENTRE).applyQuaternion(R).add(CENTRE); c.position.y += dy; c.quaternion.copy(R).multiply(q); }); };
   const fant = fantomes(paysanMesh, 3, '#ffd27a', 1.6); /* (des silhouettes dorees suivent le saut, 22b-effets.js) */
-  let t = 0, trace = 0; u.charge = true; poussiere(de.x, de.y, de.z, 6, 0.9); onde(de.x, de.y, de.z, 1.4, '#fff3c4', 0.3, 0.7);
+  let t = 0, trace = 0; u.charge = true; u.enVol = true; /* (en l'air : rien ne l'atteint, 07/11/2026) */ poussiere(de.x, de.y, de.z, 6, 0.9); onde(de.x, de.y, de.z, 1.4, '#fff3c4', 0.3, 0.7);
   effets.push((dt) => {
     t += dt / 0.3; const k = Math.min(1, t), x0 = de.x + (fin.x - de.x) * k, z0 = de.z + (fin.z - de.z) * k;
     const cel = caseIci(x0, z0); u.y = hauteurSol(x0, z0, cel); const yv = u.y + Math.sin(k * Math.PI) * 1.5, vole = combat && !combat.fin;
@@ -188,12 +188,12 @@ function bondIop(pt) {
     fant.maj(dt, Math.sin(k * Math.PI));
     if (t >= 1) {
       jeter(roue); fant.fin(); corps.forEach(({ c, p, q }) => { c.position.copy(p); c.quaternion.copy(q); }); if (!combat || !combat.fin) { if (bras) bras.rotation.x = 0; }
-      u.charge = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; flashLumiere(fin.x, u.y + 1, fin.z, '#ffd27a', 3.5, 7, 0.35);
+      u.charge = false; u.enVol = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; flashLumiere(fin.x, u.y + 1, fin.z, '#ffd27a', 3.5, 7, 0.35);
       emettre(FX_VIF, 30, { x: fin.x, y: u.y + 0.2, z: fin.z, r: 0.5, plat: true, dv: 7, haut: true, vie: [0.25, 0.55], taille: [0.1, 0.02], c: ['#ffffff', '#ffd27a', '#ff8a2e'], grav: 9, frein: 1.5, etire: 0.04 });
       secousse(0.22, 0.32); onde(fin.x, u.y, fin.z, RAYON_BOND + 0.4, '#ffffff', 0.3, 0.95); onde(fin.x, u.y, fin.z, RAYON_BOND + 1.1, '#ffc24a', 0.55, 0.75);
       solFendu(fin.x, u.y, fin.z, RAYON_BOND); mottes(fin.x, u.y, fin.z, 12, 1.1); poussiere(fin.x, u.y, fin.z, 14, RAYON_BOND);
       let k = 0; if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - fin.x, o.z - fin.z) < RAYON_BOND) { k++; etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), o === cible ? 1.1 : 0.8); blesser(o, Math.round(st.deg * (o === cible ? 3 : 1.5)), true); } });
-      if (combat && !combat.fin && k) { const h = Math.min(combat.pvMax - combat.pv, Math.round(st.pvMax * SOIN_CHARGE * Math.min(4, k))); if (h > 0) { combat.pv += h; if (combat.st) combat.st.soins += h; chiffre('+' + h, new T.Vector3(fin.x, u.y + 1.7, fin.z), 'soin'); croixSoin(fin.x, u.y, fin.z, Math.min(4, k)); } } /* chaque monstre touche lui rend 3 % de sa vie (4 au plus) */
+      if (combat && !combat.fin && k) { const h = Math.round(Math.min(combat.pvMax - combat.pv, st.pvMax * SOIN_CHARGE * Math.min(4, k))); /* (arrondi apres le min : « des fois ca met un chiffre enorme, 199909… », Mathieu, 07/11/2026 ; les PV a virgule donnaient +19,990909…) */ if (h > 0) { combat.pv += h; if (combat.st) combat.st.soins += h; chiffre('+' + h, new T.Vector3(fin.x, u.y + 1.7, fin.z), 'soin'); croixSoin(fin.x, u.y, fin.z, Math.min(4, k)); } } /* chaque monstre touche lui rend 3 % de sa vie (4 au plus) */
       return true;
     }
   });
@@ -214,8 +214,9 @@ function flechePercante(pt) {
     emettre(FX_LUM, 1, { x: q.x, y: q.y, z: q.z, vie: [0.06, 0.08], taille: [0.4 + 1.1 * k, 0.3], c: ['#ffffff', '#ffc24a'], a: 0.95, entree: 0.01 });
     if (tb < BANDER) return false;
     u.charge = false; tirer(); let tr = 0; effets.push((d2) => { tr += d2; P.tension = Math.max(0, 1 - tr / 0.06); P.recul = Math.sin(Math.min(1, tr / 0.35) * Math.PI); if (tr >= 0.35) { if (u.tirPercant === P) u.tirPercant = null; return true; } }); return true; });
+  const ox = pp.x, oz = pp.z; /* (l'origine de la ligne de visee : le perso ; la fleche, elle, part de l'arc, tenu sur le cote) */
   const tirer = () => {
-  const de = pointeArc(paysanMesh), fin = de.clone().addScaledVector(dir, PORTEE_PERCANTE);
+  const de = pointeArc(paysanMesh), fin = de.clone().addScaledVector(dir, PORTEE_PERCANTE), avance = (de.x - ox) * dir.x + (de.z - oz) * dir.z;
   const fl = boite(0.07, 0.07, 0.9, '#ffe08a'); scene.add(fl); fl.position.copy(de); fl.lookAt(fin); const touches = new Set(); let t = 0, temps = 0, brume = 0, anneaux = 0, sol = 0;
   /* l'animation (refaite le 04/11/2026, d'apres une video d'effets de jeu, 22b-effets.js) : l'ecran s'assombrit, un eclat et un anneau de souffle a l'arc,
      un faisceau blanc et orange qui suit la fleche comme une comete, des anneaux le long du trait, des etincelles, une brume violette, un trait de braise
@@ -231,7 +232,7 @@ function flechePercante(pt) {
     brume += dt; if (brume > 0.03) { brume = 0; emettre(FX_FUM, 1, { x: p.x, y: p.y - 0.1, z: p.z, r: 0.15, v: [-dir.x * 0.6, 0.25, -dir.z * 0.6], vie: [0.35, 0.6], taille: [0.35, 1.1], c: ['#d2b8ff', '#7a5ab8'], a: 0.22, frein: 2, entree: 0.05 }); }
     const parcouru = k * L; while (anneaux + 1.6 <= parcouru) { anneaux += 1.6; anneauSouffle(de.clone().addScaledVector(dir, anneaux), dir, 0.2, 1.0, 0.3, '#ffe3a0', 0.8); }
     while (sol + PAS_SOL <= parcouru) { const x = de.x + dir.x * (sol + PAS_SOL / 2), z = de.z + dir.z * (sol + PAS_SOL / 2); sol += PAS_SOL; if (lieu !== 'ferme' || caseIci(x, z)) braiseSol(x, z, aSol, PAS_SOL, 1.1 + sol / L * 0.3); }
-    if (combat) combat.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || touches.has(o)) return; const vx = o.x - de.x, vz = o.z - de.z, sl = vx * dir.x + vz * dir.z, marge = Math.min(0.5, (o.d.ombre || 1) * 0.12); /* (dans la bande : la distance a la ligne, plus le gabarit du monstre ; jusqu'a la pointe de la fleche) */
+    if (combat) combat.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || touches.has(o)) return; const vx = o.x - ox, vz = o.z - oz, sl = vx * dir.x + vz * dir.z - avance, marge = Math.min(0.5, (o.d.ombre || 1) * 0.12); /* (07/11/2026, « j'aligne bien ma fleche mais ca touche pas », Mathieu : la bande se mesurait depuis l'arc, decale de la ligne de visee) */ /* (dans la bande : la distance a la ligne, plus le gabarit du monstre ; jusqu'a la pointe de la fleche) */
       if (sl >= -marge && sl <= parcouru + marge && Math.abs(vx * dir.z - vz * dir.x) < LARGEUR_PERCANTE + marge) {
       const q = new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z); if (!touches.size) { arretImage(0.07); secousse(0.1, 0.18); }
       touches.add(o); etoileImpact(q, 1.4, '#ffb347'); anneauSouffle(q, dir, 0.3, 1.6, 0.26, '#fff1c8', 0.95); flashLumiere(q.x, q.y, q.z, '#ffb347', 3, 6, 0.25);
@@ -384,20 +385,20 @@ function bondMoon(x0, z0, R, st) {
   const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, cible = pointSort({ x: x0, z: z0 }, PORTEE_BOND_MOON), de = pp.clone(), D = 0.65;
   const L0 = Math.hypot(cible.x - de.x, cible.z - de.z), a = L0 > 0.05 ? Math.atan2(cible.x - de.x, cible.z - de.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a), recul = Math.min(2.0, L0);
   const x = cible.x - dx * recul, z = cible.z - dz * recul, y = solA(cible.x, cible.z); /* (il retombe un peu avant : c'est la caisse du marteau qui tombe au centre) */
-  chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true;
+  chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; u.enVol = true; /* (en l'air : rien ne l'atteint, 07/11/2026) */
   const V = VISUELS['equipements-moon'] && VISUELS['equipements-moon'].getObjectByName('Arme_epee_moon'), propre = !V, mart = V ? V.clone(true) : armeJet('hache', 1.1);
   const ranger = () => { if (propre) jeter(mart); else scene.remove(mart); }; /* (le clone partage les maillages du modele charge : on ne les libere pas) */
   mart.rotation.order = 'YXZ'; mart.scale.setScalar(V ? 1.9 : 1); mart.traverse((o) => { o.raycast = () => {}; }); scene.add(mart);
   poussiere(de.x, de.y, de.z, 8, 0.9, '#d8c6a0'); onde(de.x, de.y, de.z, 1.4, '#f4e2b0', 0.3, 0.7); secousse(0.06, 0.15);
   let t = 0, frappe = false, trace = 0;
-  effets.push((dt) => { t += dt; if (combat !== c0) { ranger(); u.charge = false; return true; }
+  effets.push((dt) => { t += dt; if (combat !== c0) { ranger(); u.charge = false; u.enVol = false; return true; }
     const k = Math.min(1, t / D), X = de.x + (x - de.x) * k, Z = de.z + (z - de.z) * k, cel = caseIci(X, Z); u.y = hauteurSol(X, Z, cel);
     if (!frappe) { paysanMesh.position.set(X, u.y + Math.sin(k * Math.PI) * 2.4, Z); paysanMesh.rotation.y = a; }
     const sw = k < 0.72 ? -0.45 - 0.25 * Math.sin(k / 0.72 * Math.PI) : -0.45 + 2.2 * Math.min(1, (k - 0.72) / 0.28) ** 2; /* (leve au-dessus de la tete, un peu en arriere, puis abattu vers l'avant) */
     const P = paysanMesh.position; mart.position.set(P.x + dx * 0.25, P.y + 1.0, P.z + dz * 0.25); mart.rotation.set(Math.min(1.75, sw), a, 0);
     if ((trace += dt) > 0.03 && k > 0.72 && !frappe) { trace = 0; lueur(mart.localToWorld(new T.Vector3(0, 1.17, 0)), '#ffd27a', 1.2, 0.25); }
     if (k < 1) return false;
-    if (!frappe) { frappe = true; u.charge = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; P.y = u.y;
+    if (!frappe) { frappe = true; u.charge = false; u.enVol = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; P.y = u.y;
       impactMarteau(cible.x, y, cible.z); solFendu(cible.x, y, cible.z, R); mottes(cible.x, y, cible.z, 12, 1.2); poussiere(cible.x, y, cible.z, 14, R, '#d8c6a0');
       if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - cible.x, o.z - cible.z) > R + 0.25 * (o.d.ombre || 1)) return;
         etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.1, '#ffd27a'); blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); }); }
@@ -434,8 +435,8 @@ const BOUTONS_SORT = {
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
   ulti: { cd: 'cdUlti', refus: () => S_.ulti ? '' : niveau(S_.xp) >= NIV_ULTI ? 'Choisis ton ulti dans la fiche des vagues, après ce combat.' : 'L\'ulti se débloque au niveau ' + NIV_ULTI + ' de Paysan.',
     visee: () => { const id = S_.ulti; return { quoi: 'ulti', id, rayon: id === 'mono' ? 0.75 : id === 'zone' ? 2.8 : 3, teinte: ULTIS[id].teinte, portee: id === 'mono' ? porteeMono() : undefined }; }, /* (le coup fatal montre sa portee, 06/11/2026) */
-    tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt); if (!m) { toast('Vise un monstre.'); return; }
-        { const pp = paysanMesh.position; if (Math.hypot(m.x - pp.x, m.z - pp.z) > porteeMono()) { toast('Trop loin : ' + nomUlti('mono') + ' porte à ' + String(Math.round(porteeMono() / S * 2) / 2).replace('.', ',') + ' case' + (porteeMono() > S ? 's' : '') + '. Rapproche-toi.'); return; } } /* (avant : le perso marchait vers la cible, 06/11/2026) */
+    tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt); if (!m) { toast('Vise un monstre.'); annulerVisee(); return false; }
+        { const pp = paysanMesh.position; if (Math.hypot(m.x - pp.x, m.z - pp.z) > porteeMono()) { toast('Trop loin : ' + nomUlti('mono') + ' porte à ' + String(Math.round(porteeMono() / S * 2) / 2).replace('.', ',') + ' case' + (porteeMono() > S ? 's' : '') + '. Rapproche-toi.'); annulerVisee(); return false; } } /* (refuse : la visee s'annule et le clic deplace le perso, « des fois je peux pas bouger », Mathieu, 07/11/2026 ; avant, chaque clic retentait le sort) */ /* (avant : le perso marchait vers la cible, 06/11/2026) */
         annulerVisee(); if (combat.st) combat.st.sorts++; executerUlti('mono', m); return; } /* (le coup fatal : un monstre) */
       annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); executerUlti(v.id, null, pt); } },
   coiffe: boutonLeg('coiffe'), arme: boutonLeg('arme'),
@@ -450,7 +451,7 @@ function armerSort(bouton) {
   const v = Object.assign({ bouton }, B.visee()); if (v.instant) { B.tirer(v, null); return; } /* (un sort sur soi, la Carapace de corail, la Galvanisation : il part au clic) */
   viser(v);
 }
-function tirerVisee(pt) { const v = visee; if (!v || !combat || combat.fin) { annulerVisee(); return; } BOUTONS_SORT[v.bouton].tirer(v, pt); }
+function tirerVisee(pt) { const v = visee; if (!v || !combat || combat.fin) { annulerVisee(); return; } return BOUTONS_SORT[v.bouton].tirer(v, pt); } /* (false : le sort a ete refuse, le clic sert a autre chose) */
 function lancerSort() { armerSort('sort'); }
 function lancerUlti() { armerSort('ulti'); }
 function lancerLeg(emp) { armerSort(emp); }

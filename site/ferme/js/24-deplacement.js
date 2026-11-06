@@ -306,7 +306,7 @@ canvas.addEventListener('pointerup', (e) => {
   const doigt = e.pointerType === 'touch' || e.pointerType === 'pen', long = doigt && performance.now() - pDown.t >= APPUI_LONG;
   const agir = e.button === 2 || (doigt && !long); pDown = null; /* au doigt : toucher = agir, appui long = seulement se deplacer */
   if (long && navigator.vibrate) navigator.vibrate(15);
-  if (visee) { const pt = pointSol(e); if (pt) tirerVisee(pt); return; } /* « des fois faut cliquer 2 fois » (Mathieu et les testeurs, 12/10/2026) : un clic qui bougeait de quelques pixels passait pour un glisser de la vue ; en visee, la vue ne bouge pas, on lance la ou on relache (au doigt : on glisse pour viser, on leve pour lancer) */
+  if (visee) { const pt = pointSol(e); if (!pt || tirerVisee(pt) !== false) return; } /* (un sort refuse : le clic deplace le perso, 07/11/2026) */ /* « des fois faut cliquer 2 fois » (Mathieu et les testeurs, 12/10/2026) : un clic qui bougeait de quelques pixels passait pour un glisser de la vue ; en visee, la vue ne bouge pas, on lance la ou on relache (au doigt : on glisse pour viser, on leve pour lancer) */
   if (bouge) return;
   if (paysanMesh) paysanMesh.userData.chasse = null; /* (un clic du joueur arrete la poursuite du voleur ; toucher le voleur la relance) */
   if (!mode && lieu !== 'casino') { const c = cibleEcran(e); if (c === 'voleur') { attaquerVoleur(); return; } if (c !== null) { cibler(c); return; } }

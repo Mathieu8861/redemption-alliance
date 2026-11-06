@@ -84,7 +84,7 @@ function nettoyerCombat(c, releve) { /* les monstres et leurs effets disparaisse
   c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); jeter(o.m); } o.barre.remove(); });
   (c.fumees || []).forEach((f) => jeter(f.g)); (c.solsPara || []).forEach((g) => jeter(g)); /* (les cercles d'atterrissage des parachutistes) */ /* (les nuages du Koulosse se dissipent) */
   if (c.invoc) jeter(c.invoc.m);
-  combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; const u = paysanMesh.userData; u.attaque = null; if (releve) { u.charge = false; paysanMesh.rotation.x = 0; } $('b-fuir').hidden = false;
+  combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; const u = paysanMesh.userData; u.attaque = null; u.enVol = false; u.tempete = false; if (releve) { u.charge = false; paysanMesh.rotation.x = 0; } $('b-fuir').hidden = false;
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null; if (modaleOuverte === 'entracte') fermerModale();
 }
 function persoATerre() { /* la vie du perso tombe a 0 : la simu VSA s'arrete, l'Arene et l'ile ont leur bilan, une vague tourne a la deroute */
@@ -115,6 +115,7 @@ const vecC = new T.Vector3();
 function versEcran(p, el) { vecC.copy(p).project(camera); el.style.left = ((vecC.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; el.style.top = ((1 - vecC.y) / 2 * innerHeight).toFixed(1) + 'px'; }
 /* un nombre qui monte et s'efface : degats sur un monstre, ou sur le perso (en rouge) */
 function chiffre(txt, pos, genre) {
+  if (typeof txt === 'string') txt = txt.replace(/\d+\.\d+/g, (x) => String(Math.round(parseFloat(x)))); /* (jamais de chiffre a virgule affiche, 07/11/2026) */
   const e = document.createElement('div'); e.className = 'degat ' + (genre || ''); e.textContent = txt; (combat ? $('combat-zone') : zoneBulles).appendChild(e);
   const p = pos.clone(); p.x += (Math.random() - 0.5) * 0.4; let t = 0; const vie = genre === 'vol' ? 1.6 : 0.9; /* une recolte volee reste lisible un peu plus longtemps */
   effets.push((dt) => { t += dt; const q = p.clone(); q.y += t * (genre === 'vol' ? 0.7 : 1.3); versEcran(q, e); e.style.opacity = String(Math.max(0, 1 - Math.max(0, t - (vie - 0.4)) / 0.4)); if (t >= vie) { e.remove(); return true; } });
@@ -459,7 +460,18 @@ function cibleEcran(e) {
   });
   return best;
 }
-function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === id && x.etat === 'actif'); if (o) { combat.cible = o; combat.ordre = false; combat.tenir = false; } }
+function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === id && x.etat === 'actif'); if (!o) return;
+  combat.cible = o; combat.ordre = false; combat.tenir = false;
+  if (paysanMesh && paysanMesh.userData.tempete) allerTournoyant(o); /* (pendant la Tempete de lames, un monstre touche : il y va en tournoyant, 07/11/2026) */
+}
+/* (07/11/2026, « l'ultime ou on tourne sur nous-memes, parfois on peut se deplacer, des fois on ne peut pas », Mathieu) : pendant la Tempete de lames, un clic sur un
+   monstre le ciblait sans faire bouger le Iop (il ne repart vers sa cible qu'apres le tourbillon) ; autour de lui il n'y a que des monstres, d'ou les clics « morts ».
+   Maintenant il va vers le monstre touche, comme sur un clic au sol */
+function allerTournoyant(o) {
+  combat.ordre = true; combat.tenir = true; arrivee = null;
+  if (lieu === 'ferme' && !combat.arene) { const q = caseIci(o.x, o.z); if (q && PASSABLE[q.type]) { pointVise = { c: q.id, x: o.x, z: o.z }; allerPuis(q, () => {}); pointVise = null; return; } }
+  chemin = [{ c: paysanMesh.userData.cellule, x: o.x, z: o.z }];
+}
 const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
 function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
@@ -588,7 +600,7 @@ function effetsCoup(mo) { /* la Momie ralentit, la pomme de la Reinette assomme,
 }
 function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre vert toutes les 0,6 s */
   const c = combat; if (!c || c.fin || c.deroute != null) return;
-  c.poisonAcc = (c.poisonAcc || 0) + c.pvMax * pct * dt; const n = Math.floor(c.poisonAcc); if (n < 1) return;
+  c.poisonAcc = (c.poisonAcc || 0) + c.pvMax * pct * dt; if (paysanMesh && paysanMesh.userData.enVol) return; /* (en l'air : le poison attend l'atterrissage) */ const n = Math.floor(c.poisonAcc); if (n < 1) return;
   c.poisonAcc -= n; c.pv = Math.max(0, c.pv - n); if (c.st) c.st.recus += n; c.poisonCumul = (c.poisonCumul || 0) + n;
   if (performance.now() - (c.poisonT || 0) > 600) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + c.poisonCumul, p, 'perso'); c.poisonCumul = 0; c.poisonT = performance.now(); }
   if (c.pv <= 0) persoATerre();
@@ -739,6 +751,7 @@ const PORTEE_MIN_LOIN = 1.5 * S, tropPresDuTireur = (mo) => !!mo.d.distance && !
 const coupDeLoin = (mo) => !mo || !mo.d || !!mo.d.distance || !paysanMesh || Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) > (mo.d.portee || 1.5) * (mo.allonge || 1) + 1.0;
 function blesserPerso(n, mo) {
   if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */
+  if (paysanMesh && paysanMesh.userData.enVol) return; /* (en l'air pendant un bond, rien ne l'atteint : « qu'on prenne des degats quand on reatterrit, oui, mais dans les airs qu'on ne puisse pas se faire tuer », Mathieu, 07/11/2026) */
   if (combat.invincible > 0) { if ((blesserPerso.inv || 0) < performance.now()) { blesserPerso.inv = performance.now() + 400; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Invincible', p, 'perso'); } return; } /* l'ulti du Iop (18-geliere.js) */
   { const e = Math.min(0.5, 0.1 * nbBonus('esquive')); if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n) * multHautes(combat.n, combat.genre)));
