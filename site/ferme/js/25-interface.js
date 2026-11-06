@@ -323,7 +323,7 @@ function ouvrirHdv0(onglet) {
         (par('bloque').length ? '<div class="hdv-section">À débloquer</div>' + par('bloque').map(carte).join('') : '') + (par('fini').length ? '<div class="hdv-section">Déjà achetés</div>' + par('fini').map(carte).join('') : '');
     } else if (cat === 'deco') { corps = corpsDecoHdv();
     } else {
-      const oF = [[1, '×1'], [5, '×5']], nF = qteDe('filets', oF), oA = [[10, '×10'], [50, '×50']], nA = qteDe('fleches', oA);
+      const oF = [[1, '×1'], [5, '×5']], nF = qteDe('filets', oF), oA = [[10, '×10'], [50, '×50'], [100, '×100']], nA = qteDe('fleches', oA); /* (×100 le 06/11/2026, « rajoute un x100 en achat pour les flèches », Mathieu) */
       corps = '<div class="art">' + ico('fleches') + '<div><b>Flèches</b><div class="puces"><span class="puce">' + fmt(S_.fleches) + ' en réserve</span>' + (niv('arbalete') ? '<span class="puce ' + (S_.carreaux > 0 ? 'bonne' : 'mauvaise') + '">' + (S_.carreaux > 0 ? 'arbalète : ' + S_.carreaux + '/' + capaciteArbalete() + ' chargé' : 'arbalète à recharger') + '</span>' : '') + '</div>' +
           '<div class="desc">Les munitions de ta défense : l\'arbalète de la grange, les tours et l\'épouvantail tirent une flèche par tir. Sans flèches, ils ne tirent plus.' + (niv('arbalete') ? '' : ' L\'arbalète se construit à l\'HDV, onglet Construire.') + '</div></div>' +
           '<div class="act"><small>' + PRIX_FLECHE + ' ' + KAMA + ' la flèche</small>' + segQte('fleches', oA) + '<button class="btn kamas" data-fleches="' + nA + '"' + (S_.kamas >= nA * PRIX_FLECHE ? '' : ' disabled') + '>Acheter ×' + nA + ' = ' + fmt(nA * PRIX_FLECHE) + ' ' + KAMA + '</button>' + manque(nA * PRIX_FLECHE) + '</div></div>' +

@@ -257,12 +257,12 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .elevage .cpt { flex: none; font-weight: 800; font-size: .76rem; padding: 0 7px; border-radius: 999px; background: #375922; border: 2px solid #4f9a2e; color: #96df7c; }
 .elevage .cpt.plein { background: #313338; border-color: #d8861e; color: #e8eaed; }
 /* (06/11/2026) un titre qui replie le panneau, et la liste de la grange qui defile a l'interieur une fois le bas de l'ecran atteint (limiterGrange, 16-progression.js) */
-.panneau h2.pli { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; }
+.panneau h2.pli { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; pointer-events: auto; } /* (le HUD laisse passer les clics vers la ferme : sans pointer-events, ni le titre ni la molette ne repondaient, retour de Mathieu le 06/11/2026) */
 .panneau h2.pli .chev { flex: none; width: 8px; height: 8px; margin: 0 4px 3px 0; border-right: 2.5px solid #a9adb5; border-bottom: 2.5px solid #a9adb5; transform: rotate(45deg); transition: transform .15s; }
 .panneau h2.pli:hover .chev { border-color: var(--encre); }
 .panneau.replie h2.pli .chev { transform: rotate(-45deg); margin-bottom: 0; }
 .panneau.replie > :not(h2) { display: none !important; }
-.panneau .defile { display: grid; gap: 5px; align-content: start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #5a5d66 transparent; margin-right: -6px; padding-right: 6px; }
+.panneau .defile { pointer-events: auto; touch-action: pan-y; display: grid; gap: 5px; align-content: start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #5a5d66 transparent; margin-right: -6px; padding-right: 6px; }
 .panneau .crise-zone:empty { display: none; }
 .panneau .crise { background: #592922; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #e97a72; }
 .commis { position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
