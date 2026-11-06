@@ -57,7 +57,7 @@ function etatInitial() {
   Object.assign(champs[0], { c: 'ble', pousse: 78 * SEC, arrose: true }); /* (presque mur : 78 s sur 1 min 30) */
   Object.assign(champs[1], { c: 'ble', pousse: 18 * SEC, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, panosProfil: 1, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
   };
@@ -101,7 +101,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -121,6 +121,15 @@ function convertirXp(e) {
 }
 /* les temps de pousse changent (16/10/2026) : un champ en cours garde son avancee (a moitie pousse, il reste a moitie pousse), dans toutes les parties */
 const TEMPS_CULTURES_1 = { ble: 0.75, orge: 2.25, avoine: 6, houblon: 15, lin: 30, seigle: 72, riz: 30, malt: 45, chanvre: 60, mais: 72, millet: 72, frostiz: 90 };
+/* les pieces des panoplies Tortue et Kanniboul tombees avant leur profil (06/11/2026) : chaque caracteristique prend le multiplicateur du profil, le jet reste le meme
+   (une Coiffe de la Tortue a 520 PV passe a 832), borne a la nouvelle fourchette */
+function convertirPanos(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => {
+    if (!p || p.panosProfil >= 1) return; p.panosProfil = 1;
+    Object.entries(p.jets || {}).forEach(([k, j]) => { const o = OBJETS[baseObjet(k)]; if (!o || o.leg || o.arme || !j) return;
+      Object.keys(j).forEach((c) => { const m = multPano(o.pano, c); if (m === 1 || !o.stats[c]) return; const [a, b] = fourchette(o.stats[c]); j[c] = Math.min(b, Math.max(a, Math.round(j[c] * m))); }); });
+  });
+}
 function convertirCultures(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => {
     if (!p || p.cultures >= 2 || !Array.isArray(p.cases)) return; p.cultures = 2;
