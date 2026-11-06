@@ -175,5 +175,5 @@ const NIV_PARACHUTE = 80, PARACHUTISTES = 2; /* (le Parachutiste de VSA, des le 
    12 voleurs a la 60 puis +1 toutes les 5 vagues (18 a la 90, un tiers a dos de Dragodinde) ; Demenageurs 1 a la 30, 2 a la 50, 3 a la 70, 4 a la 85 ;
    parachutistes 2 au niveau 80, 3 au 85, 4 au 90 ; vie +20 par vague au lieu de +12 a partir de la 60 */
 const parachutistesSimu = () => { const l = niveau(S_.xp); return l >= 90 ? 4 : l >= 85 ? 3 : l >= NIV_PARACHUTE ? PARACHUTISTES : 0; };
-const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(18, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3), demenageurs: v >= 85 ? 4 : v >= 70 ? 3 : v >= 50 ? 2 : v >= 30 ? 1 : 0, parachutistes: parachutistesSimu() }; }; /* (les Demenageurs en plus des voleurs, 19/10/2026) */
-const pvSimu = (monte) => (40 + 12 * vagueSimu() + 8 * Math.max(0, vagueSimu() - 60)) * (monte ? 2 : 1); /* (+20 par vague des la 60, 06/11/2026) */
+const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(16, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3), demenageurs: v >= 75 ? 3 : v >= 50 ? 2 : v >= 30 ? 1 : 0, /* (un peu adouci le 06/11/2026, « peut-etre un peu too much » : 16 voleurs et 3 Demenageurs au plus, au lieu de 18 et 4) */ parachutistes: parachutistesSimu() }; }; /* (les Demenageurs en plus des voleurs, 19/10/2026) */
+const pvSimu = (monte) => (40 + 12 * vagueSimu() + 4 * Math.max(0, vagueSimu() - 60)) * (monte ? 2 : 1); /* (+16 par vague des la 60, 06/11/2026 ; +20 le temps d'un essai, juge trop dur) */
