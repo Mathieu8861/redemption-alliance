@@ -312,11 +312,13 @@ function forceRef(l) { /* un joueur type de ce niveau : sa classe, la panoplie c
   return { pv: st.pv(l) + 3 * V('vita') + (b.vita || 0), dps: st.deg(l) * (1 + (3 * V('puissance') + (b.puissance || 0)) / 100) * (1 + (2 * V('agilite') + (b.agilite || 0)) / 100) / st.cadence };
 }
 const facteurRejoue = (quoi, t) => { if (!combat || combat.rejoueBoss == null) return 1; const L = niveau(S_.xp), Lb = niveauRequis(combat.n);
-  const boss = t && MONSTRES[t] && MONSTRES[t].boss;
-  if (combat.difficile && boss) { const a = forceRef(Math.max(L, Lb)), b = forceRef(Lb); return (quoi === 'deg' ? a.pv / b.pv : a.dps / b.dps) * DUR[quoi === 'deg' ? 'deg' : 'pv']; } /* la revanche difficile : le boss remis a ton niveau, puis bien plus dur */
-  /* (06/11/2026, « en difficile je one-shot les monstres ; les monstres laisse-les pareil, mais le boss plus dur a tuer », Mathieu) : sa troupe est celle de la revanche normale,
-     jamais plus faible qu'une vague ; avant, remise a ton niveau puis x0,6 (DUR.garde), elle tombait sous la vague normale. Le boss, lui : vie x1,5 de plus (DUR.pv 1 -> 1,5) */
-  return Math.min(1.5, 1 + 0.025 * Math.max(0, L - Lb)); };
+  const boss = t && MONSTRES[t] && MONSTRES[t].boss, normale = Math.min(1.5, 1 + 0.025 * Math.max(0, L - Lb)); /* (la revanche normale : +2,5 % par niveau d'avance, x1,5 au plus) */
+  if (combat.difficile) { const a = forceRef(Math.max(L, Lb)), b = forceRef(Lb), r = quoi === 'deg' ? a.pv / b.pv : a.dps / b.dps; /* la revanche difficile : remis a ton niveau */
+    return boss ? r * DUR[quoi === 'deg' ? 'deg' : 'pv'] : Math.max(normale, r * DUR.garde); }
+  /* (06/11/2026, « en difficile je one-shot les monstres ; les monstres laisse-les pareil, mais le boss plus dur a tuer », Mathieu) : la troupe, remise a ton niveau puis x0,6
+     (DUR.garde), tombait sous la vague normale pour les derniers boss (Dragon Cochon, Moon) ; elle prend maintenant le plus fort des deux, ce calcul ou la revanche normale
+     (les premiers boss ne changent pas : leur troupe reste remise a ton niveau). Le boss, lui : vie x1,5 de plus (DUR.pv 1 -> 1,5) */
+  return normale; };
 /* la Cawotte et la Fraise (« une nouvelle recolte qui donne un boost », Mathieu, 11/10/2026) : on en mange une avant de lancer, pour cette vague seulement */
 function sectionRepas() {
   const L = CULTURES.filter((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)); if (!L.length) return '';
