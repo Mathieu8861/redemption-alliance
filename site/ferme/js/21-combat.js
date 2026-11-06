@@ -190,7 +190,8 @@ function ficheMonstre(t) {
   if (d.poison) met('poison', 'poison', 'T\'empoisonne', 'Son coup t\'empoisonne quelques secondes.', num(d.poison[0] + ' % de ta vie par seconde', 'rouge') + num(d.poison[1] + ' s'), 'vert');
   if (d.soigne) met('soigne', 'soin', 'Soigne ses alliés', 'Il soigne les monstres autour de lui : abats-le en premier.', '', 'vert');
   if (d.protege) met('protege', 'protege', d.protegeNom || 'Bouclier de cristal', 'Il protège trois monstres autour de lui.', num('-40 % de dégâts') + num('4 s') + recup('protege'));
-  if (d.malefice) met('malefice', 'lenteur', 'Maléfice', 'Un cercle violet sous toi, puis le sort éclate. Dedans, tu es ralenti.', num(fmt(Math.round(dSort * d.malefice.x)) + ' dégâts', 'rouge') + num('ralenti ' + secondes(d.malefice.duree), 'bleu') + num(secondes(d.malefice.prepa) + ' pour esquiver') + num('toutes les ' + d.malefice.periode + ' s'), 'violet');
+  if (d.malefice && d.malefice.brule) met('malefice', 'rage', d.malefice.nom || 'Boule de feu', 'Un cercle orange sous toi, puis la boule de feu tombe. Dedans, tu brûles.', num(fmt(Math.round(dSort * d.malefice.x)) + ' dégâts', 'rouge') + num('brûle ' + secondes(d.malefice.brule[1]) + ' (' + String(d.malefice.brule[0] * 100).replace('.', ',') + ' % de ta vie par seconde)', 'rouge') + num(secondes(d.malefice.prepa) + ' pour esquiver') + num('toutes les ' + d.malefice.periode + ' s'), 'orange');
+  else if (d.malefice) met('malefice', 'lenteur', 'Maléfice', 'Un cercle violet sous toi, puis le sort éclate. Dedans, tu es ralenti.', num(fmt(Math.round(dSort * d.malefice.x)) + ' dégâts', 'rouge') + num('ralenti ' + secondes(d.malefice.duree), 'bleu') + num(secondes(d.malefice.prepa) + ' pour esquiver') + num('toutes les ' + d.malefice.periode + ' s'), 'violet');
   if (d.galvanise) met('galvanise', 'galvanise', 'Galvanise la horde', 'Les monstres autour de lui frappent et courent plus vite.', num('4 s') + recup('galvanise'), 'or');
   if (d.revit) met('revit', 'revit', 'Se relève', 'Abattu, il se relève une fois' + (d.revitRage ? ', enragé : il court et frappe plus vite, et cogne plus fort.' : '.'));
   if (d.demonte) met('demonte', 'revit', 'Continue à pied', 'Quand sa monture tombe, il continue à pied.');
@@ -1861,10 +1862,12 @@ function capMalefice(mo, ctx) {
   const { pp, sortPret } = ctx, M = mo.d.malefice; if (!M || combat.deroute != null) return;
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('maleficeT', M.periode) || mo.geste) return; if (dP < M.min || dP > M.max) { mo.maleficeT = M.periode; return; }
   mo.maleficeT = 0; const c0 = combat, x0 = pp.x, z0 = pp.z, C = mo.d.couleurMagie || '#b06ae0'; mo.ry = Math.atan2(x0 - mo.x, z0 - mo.z); mo.bloqueT = 0.6; mo.frappe = 0.3;
-  if (!c0.maleficeVu) { c0.maleficeVu = true; toast(leNom(mo.d) + ' te jette un maléfice : sors du cercle violet, sinon tu es ralenti !', 'alerte'); }
+  if (M.brule) { if (!c0.bouleFeuVu) { c0.bouleFeuVu = true; toast(leNom(mo.d) + ' te lance une ' + (M.nom || 'boule de feu').toLowerCase() + ' : sors du cercle orange, sinon tu brûles !', 'alerte'); } } /* (le Dragoeuf Ardoise, 06/11/2026) */
+  else if (!c0.maleficeVu) { c0.maleficeVu = true; toast(leNom(mo.d) + ' te jette un maléfice : sors du cercle violet, sinon tu es ralenti !', 'alerte'); }
   zoneDanger({ mo, x: x0, z: z0, r: M.R, duree: M.prepa, couleur: C, effet: (d) => { const y = solA(x0, z0); etoileImpact(new T.Vector3(x0, y + 0.6, z0), 1.0, C); onde(x0, y + 0.05, z0, M.R * 1.2, C, 0.4, 0.6);
     emettre(FX_LUM, 14, { x: x0, y: y + 0.3, z: z0, r: M.R * 0.6, v: [0, 1.8, 0], dv: 1, vie: [0.5, 0.8], taille: [0.25, 0.05], c: ['#ffffff', C], a: 0.85 });
-    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z) && combat === c0 && !c0.fin) { blesserPerso(Math.max(1, Math.round(degSort(mo) * M.x)), mo); c0.lenteur = Math.max(c0.lenteur || 0, M.duree); const q = p2.clone(); q.y += 2.1; chiffre('Ralenti !', q, 'vol'); } } });
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z) && combat === c0 && !c0.fin) { blesserPerso(Math.max(1, Math.round(degSort(mo) * M.x)), mo); const q = p2.clone(); q.y += 2.1;
+      if (M.brule) { (c0.poisons = c0.poisons || []).push({ pct: M.brule[0], t: M.brule[1] }); chiffre('Tu brûles !', q, 'vol'); } else { c0.lenteur = Math.max(c0.lenteur || 0, M.duree); chiffre('Ralenti !', q, 'vol'); } } } });
 }
 /* LE SEMIS (05/11/2026, le Semeur : « seme des graines qui deviennent des Tronknydes si on ne les ecrase pas », le monstre propose a Mathieu et
    retenu) : il plonge la main droite dans sa coupe de glands et jette une poignee a la volee (son geste « sort ») ; les graines volent en cloche et
