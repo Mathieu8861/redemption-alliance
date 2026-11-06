@@ -185,12 +185,13 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .vie-alerte .va-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; } .vie-alerte .va-tete span { font-size: .8rem; font-weight: 800; color: #e8eaed; white-space: nowrap; }
 .vie-alerte.empile small:empty { display: none; } .vie-alerte.empile .va-pots { justify-content: flex-start; align-items: center; } .va-pots .va-lib { font-size: .76rem; font-weight: 800; margin-right: 4px; }
 /* les effets en cours, en icones (06/11/2026) : dans l'encadre du perso en combat, a cote de la barre de vie du bas hors combat */
-.buffs { display: flex; gap: 5px; align-items: center; } .buffs:empty { display: none; }
+.buffs { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 6px 9px 8px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 3px 0 var(--bord); } .buffs:empty { display: none; }
+.buffs-titre { font: 400 .8rem/1 var(--f-titre); color: #ffd27a; white-space: nowrap; } .buffs-liste { display: flex; gap: 5px; align-items: center; } /* (l'encart « Vos boosts actifs », 06/11/2026) */
 .buff { width: 34px; height: 34px; flex: none; display: grid; place-items: center; background: #26272b; border: 2px solid var(--or); border-radius: 10px; box-shadow: 0 2px 0 var(--bord), 0 0 8px rgba(242, 182, 48, .25); pointer-events: auto; animation: buffArrive .35s ease-out; }
 .buff img { width: 28px; height: 28px; object-fit: contain; display: block; } @keyframes buffArrive { from { transform: scale(.4); opacity: 0; } }
 .combat-perso .buffs { position: absolute; left: 0; bottom: calc(100% + 6px); } /* (au-dessus de l'encadre : il ne s'elargit pas jusque sous les sorts) */
-#buffs-attente { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); }
-@media (max-width: 720px) { .buff { width: 28px; height: 28px; border-radius: 8px; } .buff img { width: 22px; height: 22px; } #buffs-attente { left: 0; top: auto; bottom: calc(100% + 5px); transform: none; } }
+#buffs-attente { position: absolute; right: 0; bottom: calc(100% + 8px); } /* (au-dessus de la barre de vie, a droite : a cote, l'encart debordait sur la barre d'actions) */
+@media (max-width: 720px) { .buff { width: 28px; height: 28px; border-radius: 8px; } .buff img { width: 22px; height: 22px; } #buffs-attente { bottom: calc(100% + 5px); } }
 .pots-vie { font-size: .78rem; font-weight: 600; margin: 0 0 4px; }
 .hdv-cats button { position: relative; } .hdv-pret { position: absolute; top: -8px; right: -6px; min-width: 22px; background: var(--kamas); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 400 .74rem/1 var(--f-titre); padding: 3px 6px; } /* (combien d'ameliorations a acheter tout de suite) */
 .seg.mini { display: inline-flex; border: 2px solid var(--bord); border-radius: 8px; overflow: hidden; margin: 1px 0 2px; }
@@ -1110,7 +1111,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
    laissent deviner la ferme derriere eux, leurs rubriques et les cases des icones restent pleines */
 :root { --papier: #1e1f22; --encre: #e8eaed; --bord: #0b0c0f; --fantome: #2b2d31; --voile: rgba(30, 31, 34, .87); }
 html, body { color: #e8eaed; }
-.carte, .panneau, .objectif, .commis, .chat, .carte-pause, #lecon .carte-lecon, #tuto .tuto-carte, .fete .ban, .vitesse-panneau, .pastille, .vie-bas, .b-pots, .actions, .toast, .combat-haut, .combat-perso { background-color: var(--voile); }
+.carte, .panneau, .buffs, .objectif, .commis, .chat, .carte-pause, #lecon .carte-lecon, #tuto .tuto-carte, .fete .ban, .vitesse-panneau, .pastille, .vie-bas, .b-pots, .actions, .toast, .combat-haut, .combat-perso { background-color: var(--voile); }
 .carte { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
 
 #bandeau-test { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); z-index: 4; display: flex; align-items: center; gap: 8px; background: #7a2fd0; color: #fff; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 5px 8px 5px 12px; font-size: .78rem; pointer-events: auto; } #bandeau-test b { letter-spacing: .06em; } #bandeau-test span { opacity: .85; } /* (le mode test de Mathieu, 05/11/2026) */

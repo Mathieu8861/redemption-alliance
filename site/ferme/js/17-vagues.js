@@ -59,7 +59,7 @@ function effetsEnCours() {
 }
 function majIconesEffets() { /* (renommee le 06/11/2026 : sous le nom majEffets, elle remplacait la boucle des effets animes de 12-perso.js, et plus rien ne s'animait) */
   const e = $(combat ? 'combat-buffs' : 'buffs-attente'), autre = $(combat ? 'buffs-attente' : 'combat-buffs'); if (!e) return; if (autre && autre._h) { autre.innerHTML = ''; autre._h = ''; }
-  const h = combat && combat.raid ? '' : effetsEnCours().map(([ic, t]) => '<span class="buff" data-info="' + t + '"><img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="' + t + '"></span>').join('');
+  const L = combat && combat.raid ? [] : effetsEnCours(), h = L.length ? '<div class="buffs-titre">Vos boosts actifs</div><div class="buffs-liste">' + L.map(([ic, t]) => '<span class="buff" data-info="' + t + '"><img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="' + t + '"></span>').join('') + '</div>' : ''; /* (dans un encart « Vos boosts actifs », 06/11/2026, Mathieu) */
   if (e._h !== h) { e._h = h; e.innerHTML = h; }
 }
 function majVieHaut() {
