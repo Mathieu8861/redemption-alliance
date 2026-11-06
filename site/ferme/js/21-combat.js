@@ -555,7 +555,7 @@ function tempsSuivant() {
   const c = combat; if (!c || !c.entracte || !c.phases.length) return; if (c.arene && c.arene.choix) prendreBonusArene(c.arene.choix[0]); /* (le bouton attend le choix ; les bots de test prennent le premier) */
   c.entracte = false; if (modaleOuverte === 'entracte') fermerModale();
   if (c.arene) { appliquerVagueArene(c, c.phases.shift()); return; }
-  const p = c.phases.shift(); c.file = p.f; c.total += p.f.length; c.attente = 1.5; c.bords = null; son('vague'); toast((c.phases.length ? 'Deuxième temps' : 'Dernier temps') + ' : ' + p.nom + ' arrivent !', 'alerte');
+  const p = c.phases.shift(); c.file = p.f; c.total += p.f.length; c.attente = 1.5; c.bords = null; c.horde = false; /* (06/11/2026 : chaque temps arrive d'un bloc, la horde ne vaut que pour le premier) */ son('vague'); toast((c.phases.length ? 'Deuxième temps' : 'Dernier temps') + ' : ' + p.nom + ' arrivent !', 'alerte');
 }
 function effetsCoup(mo) { /* la Momie ralentit, la pomme de la Reinette assomme, la baie de l'Indigo empoisonne */
   const c = combat; if (!c || c.fin || !mo || c.deroute != null) return; const d = mo.d, p = paysanMesh.position.clone(); p.y += 2.1;
