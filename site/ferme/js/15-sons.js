@@ -40,7 +40,7 @@ function swish(t, dur, f0, f1, v, dest) { /* un objet qui fend l'air : du bruit 
 function craquements(t, dur, n, v, fmin, fmax, dest) { /* des tiges qui cassent, de la terre qui crisse */
   for (let k = 0; k < n; k++) { const tt = t + Math.random() * dur, g = G(0, dest || busSons), bp = F('bandpass', fmin + Math.random() * (fmax - fmin), 2.5, g); bruit(tt, 0.03, bp); env(g, tt, 0.001, 0, 0.012 + Math.random() * 0.015, v * (0.5 + Math.random() * 0.5)); }
 }
-function bulle(t, f, v, dest) { const g = G(0, dest || busSons), o = osc('sine', f, t, 0.07, g); o.frequency.exponentialRampToValueAtTime(f * 1.9, t + 0.05); env(g, t, 0.004, 0, 0.05, v); }
+function bulleSon(t, f, v, dest) { /* (renommee le 06/11/2026 : sous le nom bulle, elle etait remplacee par la bulle d'interface de 24-deplacement.js, et chaque son de plantation ajoutait un element invisible a l'ecran, sans fin) */ const g = G(0, dest || busSons), o = osc('sine', f, t, 0.07, g); o.frequency.exponentialRampToValueAtTime(f * 1.9, t + 0.05); env(g, t, 0.004, 0, 0.05, v); }
 function clic(t, f, v, dest) { const g = G(0, dest || busSons); osc('square', f, t, 0.012, g); env(g, t, 0.001, 0, 0.01, v); }
 function cloche(t, f, v, dest, dur) { dur = dur || 0.7; [[1, 1], [2.76, 0.3], [5.4, 0.1]].forEach(([m, a]) => { const g = G(0, dest || busSons); osc('sine', f * m, t, dur, g); env(g, t, 0.003, 0, dur / Math.sqrt(m), v * a); }); }
 function boiteMusique(t, f, v, dest) { [[1, 1], [3.01, 0.14], [5.97, 0.05]].forEach(([m, a]) => { const g = G(0, dest); osc('sine', f * m, t, 1.6, g); env(g, t, 0.002, 0, 1.5 / Math.sqrt(m), v * a); }); }
@@ -107,17 +107,17 @@ const SONS = {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + 0.1); bp.frequency.setValueAtTime(900, t);
     for (let x = 0.12; x < dur - 0.25; x += 0.03) { g.gain.linearRampToValueAtTime(0.35 + Math.random() * 0.35, t + x); bp.frequency.linearRampToValueAtTime(700 + Math.random() * 1000, t + x); }
     g.gain.linearRampToValueAtTime(0.4, t + dur - 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    for (let k = 0; k < 22; k++) bulle(t + 0.1 + Math.random() * (dur - 0.3), 450 + Math.random() * 900, 0.2);
+    for (let k = 0; k < 22; k++) bulleSon(t + 0.1 + Math.random() * (dur - 0.3), 450 + Math.random() * 900, 0.2);
   },
   puits(t) { /* la poulie qui grince, puis le seau qu'on vide */
     for (let k = 0; k < 3; k++) { const tt = t + k * 0.14, g = G(0, busSons), bp = F('bandpass', 800, 9, g), o = osc('sawtooth', 640 + k * 50, tt, 0.12, bp); o.frequency.linearRampToValueAtTime(820 + k * 60, tt + 0.1); env(g, tt, 0.02, 0.04, 0.05, 0.5); }
     const ts = t + 0.5, g = G(0, busSons), bp = F('bandpass', 750, 0.9, g); bp.frequency.setValueAtTime(900, ts); bp.frequency.exponentialRampToValueAtTime(380, ts + 0.6); bruit(ts, 0.65, bp); env(g, ts, 0.02, 0.15, 0.45, 0.9);
-    for (let k = 0; k < 10; k++) bulle(ts + 0.05 + Math.random() * 0.5, 250 + Math.random() * 450, 0.18);
+    for (let k = 0; k < 10; k++) bulleSon(ts + 0.05 + Math.random() * 0.5, 250 + Math.random() * 450, 0.18);
   },
   planter(t) { /* la graine qu'on enfonce dans la terre */
     const g = G(0, busSons), lp = F('lowpass', 500, 1, g); bruit(t, 0.12, lp); env(g, t, 0.005, 0.02, 0.09, 1.2);
     const g2 = G(0, busSons), o = osc('sine', 160, t, 0.15, g2); o.frequency.exponentialRampToValueAtTime(70, t + 0.12); env(g2, t, 0.004, 0, 0.13, 0.7);
-    craquements(t, 0.08, 4, 0.3, 800, 2000); bulle(t + 0.13, 900, 0.1);
+    craquements(t, 0.08, 4, 0.3, 800, 2000); bulleSon(t + 0.13, 900, 0.1);
   },
   arc(t) { /* la corde qui claque, puis la fleche qui file */
     const g = G(0, busSons), lp = F('lowpass', 2600, 7, g); lp.frequency.setValueAtTime(2600, t); lp.frequency.exponentialRampToValueAtTime(500, t + 0.18);
@@ -158,7 +158,7 @@ const SONS = {
     const g = G(0, busSons), o = osc('sine', 60, t, 0.9, g); o.frequency.exponentialRampToValueAtTime(40, t + 0.8); env(g, t, 0.05, 0.3, 0.5, 0.5);
   },
   boire(t) { /* glou glou glou, puis le petit carillon du soin */
-    [0, 0.2, 0.4].forEach((d, k) => { const tt = t + d, g = G(0, busSons), lp = F('lowpass', 900, 4, g), o = osc('sine', 180 + k * 15, tt, 0.14, lp); o.frequency.exponentialRampToValueAtTime(420 + k * 20, tt + 0.1); env(g, tt, 0.01, 0.03, 0.09, 0.9); bulle(tt + 0.05, 700, 0.1); });
+    [0, 0.2, 0.4].forEach((d, k) => { const tt = t + d, g = G(0, busSons), lp = F('lowpass', 900, 4, g), o = osc('sine', 180 + k * 15, tt, 0.14, lp); o.frequency.exponentialRampToValueAtTime(420 + k * 20, tt + 0.1); env(g, tt, 0.01, 0.03, 0.09, 0.9); bulleSon(tt + 0.05, 700, 0.1); });
     cloche(t + 0.7, 1319, 0.2); cloche(t + 0.79, 1760, 0.17);
   },
   gelee(t) { /* une Gelee qui saute : un boing mou qui tremblote */
