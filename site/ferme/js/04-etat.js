@@ -106,7 +106,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres, cadeauRevancheMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -130,6 +130,13 @@ const TEMPS_CULTURES_1 = { ble: 0.75, orge: 2.25, avoine: 6, houblon: 15, lin: 3
    (une Coiffe de la Tortue a 520 PV passe a 832), borne a la nouvelle fourchette */
 /* les bananiers : jamais plus que leur maximum, plantes et graines en reserve comptes ensemble (06/11/2026, « il en a achete 30, retire-lui 28 et laisse-lui les deux
    qui sont en terre », Mathieu, pour Madazoo : les graines achetees avant la limite de l'HDV) ; a chaque chargement, les plantes d'abord, puis les graines */
+/* (07/11/2026, « redonne le droit de refaire 1 fois le Koulosse en difficile a Mada », Mathieu) : la revanche du Koulosse (palier 6) du samedi 07/11 rendue une fois,
+   a la seule Iop « Madazezette » ; marquee dans la partie pour ne jamais se rejouer */
+function cadeauRevancheMada(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso || p.perso.nom !== 'Madazezette' || p.perso.classe !== 'iop') return;
+    p.cadeaux = p.cadeaux || {}; if (p.cadeaux.revancheKoulosse0711) return; p.cadeaux.revancheKoulosse0711 = true;
+    if (p.bossRejoue && p.bossRejoue['6'] === 'Sat Nov 07 2026') delete p.bossRejoue['6']; });
+}
 function plafonnerArbres(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.graines || !Array.isArray(p.cases)) return;
     CULTURES.filter((c) => c.max).forEach((c) => { const plantes = p.cases.filter((x) => x.type === 'champ' && x.c === c.id).length, g = p.graines[c.id] || 0, garde = Math.max(0, c.max - plantes); if (g > garde) p.graines[c.id] = garde; }); });
