@@ -226,7 +226,7 @@ function ficheMonstre(t) {
   if (d.souffle) met('souffle', 'sort', 'Souffle de feu', d.souffleSol ? (d.fem ? 'Elle' : 'Il') + ' crache un long jet de feu vers toi, sur ' + casesDe(d.souffleR) + ' cases dans un cône étroit : il brûle tout sur son passage, tes bâtiments aussi, et le sol reste en feu ' + d.souffleSol + ' s.' : 'Il crache un cône de feu vers toi, sur tes bâtiments aussi.', num(fmt(dSort) + ' dégâts', 'rouge') + (d.souffleSol ? num(fmt(Math.max(1, Math.round(dSort * 0.1))) + ' toutes les 0,5 s dans les flammes', 'rouge') : '') + num('1 s pour esquiver') + recup('souffle'), 'violet');
   if (d.pluie) met('pluie', 'sort', d.pluieFleches ? 'Pluie de flèches' : 'Pluie de cawottes', d.pluieFleches ? 'Cinq cercles rouges : un sur toi, quatre autour.' : 'Cinq cercles orange : un sur toi, quatre autour.', num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(ESQUIVE.pluie) + ' pour esquiver') + recup('pluie'), 'violet');
   if (d.cawotteRoyale) met('cawotteRoyale', 'assomme', 'Cawotte royale', 'Une petite cible rouge te suit, puis se fige. File : la cawotte géante t\'assomme.', num(fmt(dSort) + ' dégâts', 'rouge') + num('assommé 1 s', 'rouge') + num(secondes(ESQUIVE.cawotteRoyale) + ' pour esquiver') + recup('cawotteRoyale'), 'or');
-  if (d.fumee) met('fumee', 'poison', 'Nuages de fumée', 'Il crache ' + (d.fumeeN || 3) + ' nuages de fumée (un sur toi), ils restent ' + DUREE_FUMEE + ' s au sol et se dissipent à sa mort : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans.', num(Math.round(POISON_FUMEE * 100) + ' % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert');
+  if (d.fumee) met('fumee', 'poison', 'Nuages de fumée', 'Il crache ' + (d.fumeeN || 3) + ' nuages de fumée (un sur toi), ils restent ' + DUREE_FUMEE + ' s au sol et se dissipent à sa mort : les toucher t\'empoisonne, 2 s de poison dès le contact puis 2 s de plus par seconde passée dedans, ' + CUMULS_FUMEE * PAS_FUMEE + ' s au plus (' + CUMULS_FUMEE + ' cumuls).', num(Math.round(POISON_FUMEE * 100) + ' % de ta vie par seconde', 'rouge') + recup('fumee'), 'vert');
   if (d.appel) met('appel', 'sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui' + (d.appelStun ? ', te frappe et t\'étourdit.' : '.'), (d.appelX ? num(fmt(Math.round(dSort * d.appelX)) + ' dégâts', 'rouge') + num('étourdi ' + secondes(d.appelStun)) : '') + recup('appel'), 'violet');
   if (d.geyser) met('geyser', 'sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge');
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
@@ -614,7 +614,8 @@ function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : i
 }
 function retirerFumee(f) { if (!f) return; jeter(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
 /* la fumee du Koulosse (06/11/2026, « les nuages restent 14 s, et tu perds 3 % de ta vie », Mathieu ; avant 24 s et 4 %) */
-const DUREE_FUMEE = 14, POISON_FUMEE = 0.03;
+const DUREE_FUMEE = 14, POISON_FUMEE = 0.03, CUMULS_FUMEE = 5, PAS_FUMEE = 2; /* (06/11/2026, « le max de stacks que tu prends, cape a 5 en simultane », Mathieu : chaque contact ou seconde dedans ajoute 2 s, jamais plus de 5 cumuls, 10 s de poison) */
+const poisonFumeePlus = (c) => { c.poisonFumee = Math.min(CUMULS_FUMEE * PAS_FUMEE, (c.poisonFumee || 0) + PAS_FUMEE); };
 function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, puis 2 s de plus par seconde passee dedans ; le poison court encore une fois sorti (2 % des PV par seconde) */
   const c = combat; if (!c) return;
   if (c.poisonFumee > 0) { poisonPerso(POISON_FUMEE * (c.genre === 'ile' ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), Math.min(dt, c.poisonFumee)); if (!combat || combat !== c) return; c.poisonFumee = Math.max(0, c.poisonFumee - dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
@@ -629,8 +630,8 @@ function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, p
     if (Math.hypot(pp.x - f.x, pp.z - f.z) < f.r) dedans = true;
   });
   if (dedans) {
-    if (!c.dansFumee) { c.dansFumee = true; c.fumeeT = 0; c.poisonFumee = (c.poisonFumee || 0) + 2; if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : 2 s de poison dès que tu la touches, puis 2 s de plus par seconde passée dedans (' + Math.round(POISON_FUMEE * 100) + ' % de tes PV par seconde) !', 'alerte'); } } /* (le premier contact compte pour une seconde) */
-    else { c.fumeeT += dt; while (c.fumeeT >= 1) { c.fumeeT -= 1; c.poisonFumee += 2; } }
+    if (!c.dansFumee) { c.dansFumee = true; c.fumeeT = 0; poisonFumeePlus(c); if (!c.poisonFumeeVu) { c.poisonFumeeVu = true; toast('Empoisonné par la fumée : 2 s de poison dès que tu la touches, puis 2 s de plus par seconde passée dedans, ' + CUMULS_FUMEE * PAS_FUMEE + ' s au plus (' + Math.round(POISON_FUMEE * 100) + ' % de tes PV par seconde) !', 'alerte'); } } /* (le premier contact compte pour une seconde) */
+    else { c.fumeeT += dt; while (c.fumeeT >= 1) { c.fumeeT -= 1; poisonFumeePlus(c); } }
   } else c.dansFumee = false;
 }
 function repousserPerso(mo, dist) { /* repousse (l'ecrasement du Dragon Cochon, le brassard de la Gorgouille, 20/10/2026) : le perso glisse loin du monstre */
