@@ -288,7 +288,7 @@ function balayage(mo, x, y, z, ry, r) {
 const TOURS_MOULINET = 3, VITESSE_MOULINET = 2.6; /* (tours par seconde, fois sa vivacite ; 2,2 avant le 30/10/2026 au soir, « le tour qu'il fait sur lui-meme faudrait que ce soit plus rapide », Mathieu) */
 function moulinet(mo) {
   const an = mo.m.userData.anim, nom = piocher(an, 'tourbillon'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
-  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e, viv = mo.d.vivacite || 1, Ds = TOURS_MOULINET / (VITESSE_MOULINET * viv), alerte = ALERTE_MARTEAU / viv;
+  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e * (mo.d.moulinetR || 1), viv = mo.d.vivacite || 1, /* (moulinetR : le cercle de Moon, +35 %, 07/11/2026) */ Ds = TOURS_MOULINET / (VITESSE_MOULINET * viv), alerte = ALERTE_MARTEAU / viv;
   const dg = Math.max(1, Math.round(degSort(mo) * ((mo.d.sortsX || {}).moulinet || 0.35)));
   const a = jouerAnim(an, nom, 0.12); a.timeScale = bras.t / alerte; mo.geste = { t: 0, d: alerte + Ds + 0.15, ts: a.timeScale };
   mo.bloqueT = Math.max(mo.bloqueT || 0, alerte + Ds + 0.25); mo.cd = Math.max(mo.cd, alerte + Ds + 1.1);
