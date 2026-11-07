@@ -1713,7 +1713,7 @@ function capSoin(mo, ctx) {
     if (mo.soinT >= mo.d.soigne) {
       mo.soinT = 0;
       const b = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax)[0];
-      if (b) { const h = Math.max(1, Math.round(b.pvMax * (b.d.boss ? 0.025 : 0.12))); /* (un boss, 2,5 % : 12 % de ses PV, c'etait un boss increvable) */ b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.6, '#5fe0e8'); }
+      if (b) { const h = Math.max(1, Math.round(b.pvMax * (b.d.boss ? (mo.d.soinBoss || 0.025) : 0.12))); /* (soinBoss : la Tortue Verte, 1 % sur un boss, 07/11/2026) */ /* (un boss, 2,5 % : 12 % de ses PV, c'etait un boss increvable) */ b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.6, '#5fe0e8'); }
     }
   }
 }
