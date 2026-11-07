@@ -91,7 +91,7 @@ function boucle(t) {
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   if (lieu === 'ferme') suivreOmbres();
   majPancartes(dtb); /* (meme en pause : un batiment pose ou refait recoit sa pancarte) */
-  if (SECOUSSE.v.lengthSq()) { camera.position.add(SECOUSSE.v); rendu.render(scene, camera); camera.position.sub(SECOUSSE.v); camera.updateMatrixWorld(); } else rendu.render(scene, camera); placerBulles(); /* (la secousse des gros coups : le temps du rendu seulement ; la matrice de la camera est remise d'aplomb, sinon les clics et la visee partaient de la vue secouee, 22b-effets.js) */ placerBarresBat(); requestAnimationFrame(boucle);
+  if (SECOUSSE.v.lengthSq()) { camera.position.add(SECOUSSE.v); rendu.render(scene, camera); camera.position.sub(SECOUSSE.v); camera.updateMatrixWorld(); } else rendu.render(scene, camera); if (apercuDu()) envoyerApercu(); placerBulles(); /* (la secousse des gros coups : le temps du rendu seulement ; la matrice de la camera est remise d'aplomb, sinon les clics et la visee partaient de la vue secouee, 22b-effets.js) */ placerBarresBat(); requestAnimationFrame(boucle);
 }
 /* PLUSIEURS PARTIES (13/10/2026, « qu'un joueur puisse avoir plusieurs parties, la j'ai celle de l'Osa, si je veux faire une partie Iop que je ne sois pas
    oblige de supprimer celle de l'Osa ; limite a 3 pour le moment », Mathieu) : la partie en cours EST la sauvegarde ; les autres y sont rangees

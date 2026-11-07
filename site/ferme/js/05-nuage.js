@@ -210,3 +210,45 @@ function majBandeau() {
 const occupees = () => S_.cases.filter((c) => c.type !== 'libre' && c.type !== 'chemin').length;
 const plafond = () => Math.floor(S_.cases.length * PART_CONSTRUCTIBLE);
 
+/* L'APERCU POUR LE BOARD DE L'ADMIN (07/11/2026, « une vue comme les cartes de membre, avec un petit screen de ce a quoi ressemble leur ferme et leur
+   perso », Mathieu) : au plus toutes les 10 minutes, sur la ferme et hors combat, une vue d'ensemble de la ferme (JPEG 640 x 360, rendue a part le temps
+   d'une image, rien ne bouge a l'ecran) et le portrait du perso habille partent en ligne (DAMOCLES/sql/085, ferme_apercu). Seul l'admin les voit. */
+const APERCU_CADENCE = 10 * 60000, apercuSv = { prochain: Date.now() + 45000, envoi: false, coupe: false };
+function apercuDu() {
+  return !apercuSv.coupe && !apercuSv.envoi && ENLIGNE && !MODE_TEST && !!enLigneSv.compte && Date.now() >= apercuSv.prochain && !enAccueil && !enPause
+    && typeof lieu !== 'undefined' && lieu === 'ferme' && !combat && !document.hidden && !!S_ && !!S_.perso;
+}
+function imageFerme() { /* la ferme entiere, vue comme en jeu (meme angle), cadree sur ses cases */
+  const L = (S_.cases || []).map(posCase); if (!L.length) return null;
+  const mx = L.reduce((a, q) => a + q.x, 0) / L.length, mz = L.reduce((a, q) => a + q.z, 0) / L.length, R = Math.max(...L.map((q) => Math.hypot(q.x - mx, q.z - mz))) + 1.6;
+  const el = rendu.domElement, cw = el.clientWidth || innerWidth, ch = el.clientHeight || innerHeight, pr = rendu.getPixelRatio();
+  let vw = Math.min(cw, 640), vh = Math.round(vw * 9 / 16); if (vh > ch) { vh = ch; vw = Math.round(vh * 16 / 9); }
+  const d = Math.max(R * 0.62, R * 0.58 + 2.6), a = 16 / 9, cam = camera.clone(), v = new T.Vector3(mx - Math.cos(angleCam) * 1.4, 0.6, mz - Math.sin(angleCam) * 1.4); /* (un peu vers le fond : le bord de l'ile au loin reste dans l'image) */
+  cam.left = -d * a; cam.right = d * a; cam.top = d; cam.bottom = -d; cam.position.set(v.x + Math.cos(angleCam) * 42.4, v.y + 27, v.z + Math.sin(angleCam) * 42.4); cam.lookAt(v); cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+  const vp = rendu.getViewport(new T.Vector4()); let url = null;
+  try {
+    rendu.setViewport(0, 0, vw, vh); rendu.render(scene, cam);
+    const out = document.createElement('canvas'); out.width = 640; out.height = 360; const g = out.getContext('2d');
+    const sw = cielCanvas.width, sh = cielCanvas.height, cw2 = Math.min(sw, sh * a), ch2 = cw2 / a; g.drawImage(cielCanvas, (sw - cw2) / 2, 0, cw2, ch2, 0, 0, 640, 360); /* (le ciel, dessine a part derriere la scene) */
+    g.drawImage(el, 0, el.height - vh * pr, vw * pr, vh * pr, 0, 0, 640, 360);
+    url = out.toDataURL('image/jpeg', 0.74);
+  } catch (err) { url = null; } finally { rendu.setViewport(vp); rendu.render(scene, camera); } /* (l'image du joueur, redessinee dans la foulee : il ne voit rien) */
+  return url;
+}
+async function imagePerso() { /* le portrait de la fiche du perso (25-interface.js), en petit */
+  const src = portraitPerso(); if (!src || !/^data:/.test(src)) return null;
+  const im = new Image(); im.src = src; await im.decode();
+  const c = document.createElement('canvas'); c.width = 150; c.height = 180; c.getContext('2d').drawImage(im, 0, 0, 150, 180);
+  const w = c.toDataURL('image/webp', 0.86); return /^data:image\/webp/.test(w) ? w : c.toDataURL('image/png');
+}
+async function envoyerApercu() {
+  apercuSv.prochain = Date.now() + APERCU_CADENCE; apercuSv.envoi = true;
+  try {
+    const ferme = imageFerme(); let perso = null; try { perso = await imagePerso(); } catch (err) { perso = null; }
+    if (!ferme && !perso) return;
+    const jeton = jetonInvite(), jwt = jeton ? null : await jetonSite();
+    const r = await rpc('ferme_apercu', { p_jeton: jeton, p_ferme: ferme, p_perso: perso }, jwt);
+    if (r && r.erreur === 'image') apercuSv.coupe = true;
+  } catch (err) { if (/HTTP 404/.test(String(err))) apercuSv.coupe = true; } /* (la base n'a pas encore la fonction : plus d'essai jusqu'au prochain chargement) */
+  finally { apercuSv.envoi = false; }
+}

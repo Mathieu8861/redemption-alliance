@@ -214,6 +214,12 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .art .puces { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
 .art .puce { background: #313338; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 700; color: #a9adb5; } /* (17/10/2026 : une etiquette longue passe a la ligne au lieu de pousser le bouton hors de l'ecran du telephone) */
 .art .puce.bonne { background: #385922; color: #92db80; } .art .puce.mauvaise { background: #592922; color: #e97a72; }
+/* ce que mangent les Gelees (07/11/2026) : l'etiquette jaune de chaque Gelee et le bloc du haut */
+.art .puce.repas { display: inline-flex; align-items: center; gap: 4px; background: #4a3d1c; color: #ffd66b; }
+.rp-fruit { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; } .rp-fruit img { width: 15px; height: 15px; object-fit: contain; } .puce.repas i { font-style: normal; opacity: .65; }
+.gel-repas { background: #2f2a1c; border: 2px solid #8a6d22; border-radius: 12px; padding: 8px 12px; margin: 0 0 10px; }
+.gel-repas .gr-titre { font-weight: 800; color: #ffd66b; font-size: .9rem; margin-bottom: 3px; } .gel-repas p { margin: 3px 0; font-size: .8rem; line-height: 1.4; } .gel-repas b { color: #fff3cf; }
+.gel-repas .gr-total .rp-fruit img { width: 17px; height: 17px; vertical-align: -3px; }
 .art .desc { font-size: .72rem; font-weight: 600; color: #a9adb5; margin-top: 2px; }
 .art .act { display: grid; justify-items: end; gap: 2px; }
 .art .act small { font-size: .66rem; font-weight: 700; color: #a9adb5; }

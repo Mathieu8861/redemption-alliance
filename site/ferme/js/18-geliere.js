@@ -20,6 +20,19 @@ const REPERES_GELIERE = {"1": [[-1.95, 0.29, -1.1], [0.4, 0.0, 0.6]], "2": [[-2.
 const placesGeliere = () => PLACES_GELIERE[niv('geliere')] || 0;
 const nomFruit = (id, n) => PAR_ID[id].nom + (n > 1 ? 's' : '');
 const recetteTxt = (r) => Object.entries(r).map(([id, n]) => n + ' ' + nomFruit(id, n)).join(' et ');
+/* CE QUE MANGENT LES GELEES, BIEN EN VUE (07/11/2026, « il faudrait indiquer la consommation de ce que ca mange, genre X fraises, X carottes, tous les combien
+   de temps ; c'est indique nulle part. Si les gelees ont des trucs differents, tu mets pour chaque gelee ; si c'est pareil pour tous, tu le mets en haut, mais assez
+   visible », Mathieu) : chaque couleur a sa recette, donc une etiquette par Gelee avec ses fruits ; le rythme est le meme pour toutes, il va en haut, avec ce que
+   mangent toutes tes Gelees en une heure et le temps que tiennent tes fruits */
+const repasIcones = (r) => Object.entries(r).map(([id, n]) => '<span class="rp-fruit"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt="">' + n + ' ' + nomFruit(id, n) + '</span>').join('<i>+</i>');
+function blocRepasGeliere(L) {
+  const parH = {}; L.forEach((g) => Object.entries(GELEES[g.c].recette).forEach(([id, n]) => { parH[id] = (parH[id] || 0) + n * 60 * MIN / prodGelee(g); }));
+  const ids = Object.keys(parH), nb = (x) => String(Math.round(x * 10) / 10).replace('.', ',');
+  const tient = ids.length ? Math.min(...ids.map((id) => (S_.grange[id] || 0) / parH[id])) : 0;
+  return '<div class="gel-repas"><div class="gr-titre">Les repas, pareil pour toutes</div><p><b>1 repas = 1 pot.</b> Nourrie, une Gelée fait son pot en <b>' + dureeLisible(PROD_GELEE) + '</b> (la Royale en <b>' + dureeLisible(PROD_ROYALE) + '</b>), puis elle a de nouveau faim dès que tu ramasses le pot. Ce qu\'elle mange dépend de sa couleur : c\'est écrit sur chacune, en jaune.</p>' +
+    (ids.length ? '<p class="gr-total">Tes ' + L.length + ' Gelée' + (L.length > 1 ? 's' : '') + ', nourrie' + (L.length > 1 ? 's' : '') + ' à chaque pot, mangent <b>' + ids.map((id) => '<span class="rp-fruit"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt="">' + nb(parH[id]) + ' ' + nomFruit(id, parH[id]) + '</span>').join(' et ') + '</b> par heure'
+      + (tient >= 1 / 60 ? ' : ta grange les nourrit environ <b>' + dureeLisible(tient * 60 * MIN) + '</b>.' : ' : il te manque des fruits pour les nourrir.') + '</p>' : '') + '</div>';
+}
 const manqueRecette = (r) => Object.entries(r).filter(([id, n]) => (S_.grange[id] || 0) < n).map(([id, n]) => (n - (S_.grange[id] || 0)) + ' ' + nomFruit(id, n - (S_.grange[id] || 0)));
 const nbRoyales = () => (S_.gelees || []).filter((g) => g.c === 'royale').length;
 const prodGelee = (g) => g.c === 'royale' ? PROD_ROYALE : PROD_GELEE; /* (14/10/2026 : 30 min par pot, 4 h pour la Royale ; 1 min avant, « n'importe quoi ») */
@@ -124,17 +137,18 @@ function ouvrirGeliere() {
   const L = S_.gelees, places = placesGeliere(), prets = potsPretsGeliere(), faim = L.filter((g) => etatGelee(g) === 'faim'), look = GAINS.geliere.looks[Math.min(4, nv)];
   const ligne = (g, k) => {
     const G = GELEES[g.c], e = etatGelee(g), m = manqueRecette(G.recette);
-    const etat = e === 'pret' ? '<span class="puce bonne">son pot est prêt</span>' : e === 'prod' ? '<span class="puce">son pot dans ' + dureeLisible(g.fin - Date.now()) + '</span>' : '<span class="puce mauvaise">a faim : ' + recetteTxt(G.recette) + '</span>';
+    const etat = e === 'pret' ? '<span class="puce bonne">son pot est prêt</span>' : e === 'prod' ? '<span class="puce">son pot dans ' + dureeLisible(g.fin - Date.now()) + '</span>' : '<span class="puce mauvaise">a faim</span>';
     const repos = g.repos && Date.now() < g.repos ? '<span class="puce">se repose ' + dureeLisible(g.repos - Date.now()) + '</span>' : '';
     const act = e === 'pret' ? '<button class="btn kamas" data-gelee-ramasser>Ramasser</button>' : e === 'faim' ? (m.length ? '<span class="a-manque">il manque ' + m.join(' et ') + '</span>' : '') + '<button class="btn kamas" data-gelee-nourrir="' + k + '"' + (m.length ? ' disabled' : '') + '>Nourrir</button>' : '';
     const origine = g.achetee ? '<span class="puce">achetée</span>' : g.nee && g.c !== 'royale' ? '<span class="puce bonne">née ici</span>' : '', rel = peutRelacher(g);
     const relache = g.c === 'royale' ? '' : '<button class="btn discret mini" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '"' + (rel ? ' disabled title="' + echapper(rel) + '"' : ' title="Elle part à l\'HDV : ' + fmt(prixReventeGelee(g)) + ' kamas"') + '>Vendre ' + fmt(prixReventeGelee(g)) + ' ' + KAMA + '</button>';
-    return '<div class="art">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small><div class="puces">' + etat + '<span class="puce">' + BREF_POT[G.pot] + '</span>' + origine + repos + '</div></div><div class="act">' + act + relache + '</div></div>';
+    return '<div class="art">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small><div class="puces">' + etat + '<span class="puce repas">mange ' + repasIcones(G.recette) + ' par pot</span><span class="puce">' + BREF_POT[G.pot] + '</span>' + origine + repos + '</div></div><div class="act">' + act + relache + '</div></div>';
   };
   const parents = parentsCroisement(), mc = manqueRecette(CROISEMENT);
-  ouvrirModale('geliere', entete('La Gelière') + '<p class="hdv-aide">' + look[0].toUpperCase() + look.slice(1) + ', niveau ' + nv + '. Tes Gelées vivent au bord de l\'eau. Nourris-les de fruits : chacune te fait un pot de sa couleur en ' + dureeLisible(PROD_GELEE) + ' (la Royale en ' + dureeLisible(PROD_ROYALE) + ').</p>' +
+  ouvrirModale('geliere', entete('La Gelière') + '<p class="hdv-aide">' + look[0].toUpperCase() + look.slice(1) + ', niveau ' + nv + '. Tes Gelées vivent au bord de l\'eau et te font des pots de leur couleur.</p>' +
     (prets ? '<div class="vie-alerte"><div><b>' + prets + ' pot' + (prets > 1 ? 's' : '') + ' de gelée prêt' + (prets > 1 ? 's' : '') + '</b><small>Ils iront avec tes autres pots : bouton potion, à côté de ta vie.</small></div><div class="va-pots"><button class="btn kamas" data-gelee-ramasser>Ramasser</button></div></div>' : '') +
     (faim.length > 1 ? '<div style="display:flex;justify-content:flex-end;margin:0 0 6px"><button class="btn kamas" data-gelee-nourrir="tout">Nourrir toutes celles qui ont faim</button></div>' : '') +
+    blocRepasGeliere(L) +
     '<div class="hdv-section">Tes Gelées : ' + L.length + ' sur ' + places + ' place' + (places > 1 ? 's' : '') + '</div>' +
     (L.length ? L.map(ligne).join('') : '<p class="hdv-aide">Aucune Gelée pour l\'instant : achète ta première à l\'HDV, catégorie Gelées.</p>') +
     '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + ', ' + ROYALES_MAX + ' Royales au plus' + (nbRoyales() >= ROYALES_MAX ? ' : tu les as, les croisements n\'en donnent plus' : ', tu en as ' + nbRoyales()) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
