@@ -47,6 +47,11 @@ function tick() {
   if (ch.sauvage) rendreSauvage();
   if (ch.voleur) lancerVoleur();
   if (ch.raid && !combat) proposerSimu(); /* (une fenetre d'abord : la simu attend l'accord du joueur) */
+  /* PLUS D'ECHAPPATOIRE PAR F5 (07/11/2026, « quand la notif de la simu pop, on peut refresh et derriere ca annule la simu ; meme si on refresh, dans les 10 secondes a la
+     reconnexion on a a nouveau la simu », Mathieu) : S_.simuDue reste dans la sauvegarde de son declenchement a la fin de son combat (finVague) ; au retour sur la ferme,
+     la fenetre de la simu revient 10 s apres (et en attendant, pas de voyage) */
+  if (!enAccueil && !repriseSimuT0) repriseSimuT0 = performance.now();
+  if (S_.simuDue && !combat && !simuEnAttente && !raidAnnonce && !enAccueil && !enPause && !MODE_TEST && lieu === 'ferme' && repriseSimuT0 && performance.now() - repriseSimuT0 > 10000) proposerSimu();
   if (rechargerSeule()) { rendreGrange(); if (modaleOuverte === 'grange') ouvrirGrange(); } /* l'arbalete se recharge seule a partir du niveau 3 */
   if (raidAnnonce) { if (Date.now() >= raidAnnonce.fin) { if (combat) raidAnnonce.fin = Date.now() + 10000; else lancerRaid(); } else majRaidAnnonce(); }
   if (ch.hdv) { rendreGrange(); if (modaleOuverte === 'hdv') ouvrirHdv(); }
@@ -58,7 +63,7 @@ function tick() {
 }
 /* LE BOUTON PAUSE (« il faudrait un bouton pause aussi », Mathieu, 12/10/2026) : tout s'arrete, combats compris, comme sur l'accueil ou onglet cache ;
    a la reprise, les dates de la ferme sont decalees de la duree de la pause (reprendreTemps) */
-let enPause = false;
+let enPause = false, repriseSimuT0 = 0; /* (repriseSimuT0 : quand la partie a commence, pour la simu due au rechargement) */
 function mettrePause(oui, sansEcran) { /* (sansEcran : une lecon de Pepito fige le jeu sans afficher l'ecran de pause) */
   oui = !!oui; if (oui === enPause || (oui && (!S_ || !S_.perso || enAccueil)) || (!oui && simuEnAttente)) return; /* (la simu en attente : seul son bouton relance le jeu) */
   enPause = oui; $('ecran-pause').hidden = !oui || !!sansEcran;

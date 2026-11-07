@@ -29,7 +29,7 @@ const VOYAGES = {
 };
 function montrerIles() { if (ileCasino) ileCasino.visible = lieu === 'casino'; if (ileArene) ileArene.visible = lieu === 'arene'; if (ileBoss) ileBoss.visible = lieu === 'ile'; }
 function peutPartir(nom) { /* ce qui empeche tout voyage : une attaque en cours, ou etre deja sur une autre ile */
-  if (combat || raidAnnonce || voleur || simuEnAttente) { toast('Impossible de partir pendant une attaque.'); return false; }
+  if (combat || raidAnnonce || voleur || simuEnAttente || S_.simuDue) { toast('Impossible de partir pendant une attaque.'); return false; }
   if (lieu !== 'ferme' && lieu !== nom) { toast('Rentre d\'abord à la ferme.'); return false; }
   return true;
 }

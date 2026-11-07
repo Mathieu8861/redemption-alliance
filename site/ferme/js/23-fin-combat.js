@@ -81,7 +81,7 @@ function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }
   const c = combat; if (!fuite) son(gagne ? 'victoire' : 'defaite'); const n = c.n, rejoue = S_.vague.num > VAGUES_TOTAL || c.rejoueBoss != null;
   nettoyerCombat(c, c.deroute != null); /* (le perso ne se releve que s'il etait a terre ; en pleine charge, sa charge finit d'elle-meme) */
-  if (c.raid) partirOmeho((c.butin || []).length > 0); /* (Omeho s'en va avec sa troupe : ravi s'ils ont vole quelque chose, vexe sinon) */
+  if (c.raid) { S_.simuDue = false; partirOmeho((c.butin || []).length > 0); } /* (Omeho s'en va avec sa troupe : ravi s'ils ont vole quelque chose, vexe sinon) */
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
     if (fuite) c.monstres.forEach((o) => { if (o.etat === 'mort') return; if (o.porte) c.butin.push(o.porte); else if (!o.fuite) { const r = volerRaid(o.d.vole); if (r) c.butin.push(r); } }); /* tu fuis : ceux qui sont encore la repartent avec leur part */
     const f = forceVoleur(), prime = kamasGagnes(c.tues * (15 + 5 * f)); S_.kamas += prime; /* la prime d'un raid entier : environ la moitie des kamas d'une vague du meme moment */ if (c.tues) gagnerXp(c.tues * 10);

@@ -84,7 +84,7 @@ function avancer(maintenant, enDirect) {
   if (niveau(S_.xp) < NIV_SIMU) S_.prochainRaid = Math.max(S_.prochainRaid || 0, maintenant + CADENCE_RAID); /* (avant le niveau 20, pas de simu ; la premiere, 30 min apres) */
   else if (direct && !raidAnnonce && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
     S_.prochainRaid = maintenant + CADENCE_RAID;
-    if (valeurGrange() >= 150 && !bouclierActif(maintenant)) raid = true; /* (le bouclier anti-VSA : pas de simu, 07/11/2026) */
+    if (valeurGrange() >= 150 && !bouclierActif(maintenant)) { raid = true; S_.simuDue = true; } /* (le bouclier anti-VSA : pas de simu, 07/11/2026) */
   }
   return { cases: ch, enclos: encl, hdv, sauvage: sauv, voleur, raid };
 }

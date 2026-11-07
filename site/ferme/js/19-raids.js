@@ -230,7 +230,7 @@ function majRaidAnnonce() {
 function lancerRaid() {
   if (raidAnnonce && !personnagesVsaPrets()) { /* ses voleurs ne sont toujours pas charges : 10 s de plus pendant qu'on les recharge (une fois), sinon la simu s'annule */
     const R0 = raidAnnonce; if (!R0.reessai) { R0.reessai = true; R0.fin = Date.now() + 10 * SEC; chargerPersonnagesVsa(); toast('Les voleurs de VSA arrivent dans quelques secondes.'); return; }
-    raidAnnonce = null; jeter(R0.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = ''; retirerOmeho();
+    raidAnnonce = null; S_.simuDue = false; jeter(R0.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = ''; retirerOmeho();
     toast('La simu VSA est annulée : ses voleurs n\'ont pas pu se charger (connexion ?). Recharge la page si ça se répète.', 'alerte'); return;
   }
   const R = raidAnnonce; raidAnnonce = null; if (R) jeter(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
