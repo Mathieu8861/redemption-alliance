@@ -753,7 +753,7 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-cas')) actionCasino(b);
   else if (b.hasAttribute('data-ardoise')) actionArdoise(b.dataset.ardoise);
   else if (b.dataset.arracher) ACTIONS.arracher(b.dataset.arracher); else if (b.dataset.arracherOk) ACTIONS.arracher(b.dataset.arracherOk, true); /* (le bananier, 03/11/2026) */
-  else if (b.hasAttribute('data-manger')) { const id = b.dataset.manger; if ((S_.grange[id] || 0) > 0 && !(S_.mange || {})[id]) { S_.grange[id]--; S_.mange = S_.mange || {}; S_.mange[id] = true; son('manger'); toast('Miam ! ' + PAR_ID[id].nom + ' : ' + PAR_ID[id].mange.txt + ' pendant ta prochaine vague.', 'or'); sauver(); rendreGrange(); ouvrirVagues(); } }
+  else if (b.hasAttribute('data-manger')) { const id = b.dataset.manger; if ((S_.grange[id] || 0) > 0 && !(S_.mange || {})[id]) { S_.grange[id]--; S_.mange = S_.mange || {}; S_.mange[id] = true; son('manger'); toast('Miam ! ' + PAR_ID[id].nom + ' : ' + PAR_ID[id].mange.txt + (modaleOuverte === 'arene' ? ' pendant toute ta partie d\'Arène.' : modaleOuverte === 'ileboss' ? ' pendant ton essai sur l\'île.' : ' pendant ta prochaine vague.'), 'or'); sauver(); rendreGrange(); rafraichirAvantCombat(); } }
   else if (b.id === 'b-sort') lancerSort();
   else if (b.id === 'b-ulti') lancerUlti();
   else if (b.id === 'b-leg-coiffe') lancerLeg('coiffe');

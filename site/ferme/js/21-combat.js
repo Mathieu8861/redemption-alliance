@@ -337,11 +337,12 @@ function autoBoss(mo) {
   return (AUTO_BOSS[P] || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1);
 }
 /* la Cawotte et la Fraise (« une nouvelle recolte qui donne un boost », Mathieu, 11/10/2026) : on en mange une avant de lancer, pour cette vague seulement */
-function sectionRepas() {
+function sectionRepas(quand) { /* quand : 'arene' ou 'ile' (07/11/2026, les repas aussi a l'entree de l'Arene et de l'ile des boss), sinon la vague */
   const L = CULTURES.filter((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)); if (!L.length) return '';
   S_.mange = S_.mange || {};
-  return '<div class="hdv-section">Avant la bataille : manger</div><p class="hdv-aide">Un repas se prend ici, juste avant de lancer : une récolte de ta grange, et son bonus dure toute la vague qui suit. La Cawotte et la Fraise se cumulent. Elles se plantent comme les autres cultures (graines à l\'HDV).</p>' + L.map((c) => { const n = S_.grange[c.id] || 0, pris = !!S_.mange[c.id];
-    return '<div class="art">' + ico(c.id) + '<div><b>' + c.nom + (pris ? ' : mangée !' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + c.mange.txt + ' pendant la prochaine vague</span><span class="puce">' + n + ' en grange</span></div></div><div class="act">' +
+  const pendant = quand === 'arene' ? 'pendant toute la partie' : quand === 'ile' ? 'pendant l\'essai' : 'pendant la prochaine vague';
+  return '<div class="hdv-section">Avant la bataille : manger</div><p class="hdv-aide">Un repas se prend ici, juste avant de ' + (quand === 'arene' ? 'partir' : quand === 'ile' ? 'partir' : 'lancer') + ' : une récolte de ta grange, et son bonus dure ' + (quand === 'arene' ? 'toute la partie d\'Arène' : quand === 'ile' ? 'tout l\'essai' : 'toute la vague qui suit') + '. La Cawotte et la Fraise se cumulent. Elles se plantent comme les autres cultures (graines à l\'HDV).</p>' + L.map((c) => { const n = S_.grange[c.id] || 0, pris = !!S_.mange[c.id];
+    return '<div class="art">' + ico(c.id) + '<div><b>' + c.nom + (pris ? ' : mangée !' : '') + '</b><div class="puces"><span class="puce ' + (pris ? 'bonne' : '') + '">' + c.mange.txt + ' ' + pendant + '</span><span class="puce">' + n + ' en grange</span></div></div><div class="act">' +
       (pris ? '<span class="cadenas">✓ Prête</span>' : '<button class="btn mini" data-manger="' + c.id + '"' + (n > 0 ? '' : ' disabled') + '>' + (n > 0 ? 'Manger' : 'Aucune') + '</button>') + '</div></div>'; }).join('');
 }
 function sectionRejouerBoss() {

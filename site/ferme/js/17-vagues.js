@@ -43,7 +43,23 @@ function boirePot(t) {
   S_.pots[t]--; son('boire'); S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; if (P.citron) S_.citron = true; if (P.agi) S_.royale = P.agi; compter('pots');
   toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant la vague.' : P.citron ? '. Le Citron te fera courir plus vite pendant la vague.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant la vague.' : '.'), 'or');
   rendreGrange(); rendreHaut(); sauver();
-  if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'pots') ouvrirPots(); else if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
+  rafraichirAvantCombat();
+}
+/* la fenetre ouverte se redessine apres un pot ou un repas (07/11/2026, « quand on clique sur les potions la barre de vie bouge pas », Mathieu, a l'entree de l'Arene) :
+   les vagues, l'Arene et l'ile des boss (seulement leur fiche d'entree, pas le coffre ni le bilan), les pots, l'HDV */
+function rafraichirAvantCombat() {
+  if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'arene' && $('arene-classement')) ouvrirArene(); else if (modaleOuverte === 'ileboss' && $('ileboss-classement')) ouvrirIleBoss();
+  else if (modaleOuverte === 'pots') ouvrirPots(); else if (modaleOuverte === 'hdv') ouvrirHdv('acheter');
+}
+/* LES POTS A BONUS AVANT L'ILE DES BOSS (07/11/2026, « qu'on puisse aussi selectionner les autres boosts comme pour les vagues, pareil pour le boss de l'ile », Mathieu) :
+   l'essai part toujours vie pleine, seuls la Menthe, le Citron et la Royale y servent ; ils valent pour l'essai qui suit (potsDeVague, 27-arene.js) */
+function sectionPotsBonus(quand) {
+  S_.pots = S_.pots || {}; const bu = (t) => (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron) || (POTS[t].agi && S_.royale);
+  const L = Object.keys(POTS).filter((t) => (POTS[t].menthe || POTS[t].citron || POTS[t].agi) && ((S_.pots[t] || 0) > 0 || bu(t))); if (!L.length) return '';
+  const effet = (t) => POTS[t].menthe ? 'te soigne de 1 % toutes les 4 s' : POTS[t].citron ? 'tu cours ' + Math.round((VITESSE_CITRON - 1) * 100) + ' % plus vite' : '+' + POTS[t].agi + ' Agilité';
+  return '<div class="hdv-section">Avant ' + quand + ' : boire</div>' + L.map((t) => { const n = S_.pots[t] || 0, b = bu(t);
+    return '<div class="art">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + (b ? ' : bu !' : '') + '</b><div class="puces"><span class="puce ' + (b ? 'bonne' : '') + '">' + effet(t) + ' pendant ' + quand + '</span><span class="puce">' + n + ' en grange</span></div></div><div class="act">' +
+      (b ? '<span class="cadenas">✓ Bu</span>' : '<button class="btn mini" data-boire="' + t + '"' + (n > 0 ? '' : ' disabled') + '>Boire</button>') + '</div></div>'; }).join('');
 }
 /* l'alerte de la fenetre des vagues (« ok », Mathieu) : avec combien de vie tu pars, et tes pots */
 /* la pastille de vie du haut, toujours visible (« il faudrait la voir en tout temps », Mathieu, 13/10/2026) ; en combat, elle suit la vie du combat */
