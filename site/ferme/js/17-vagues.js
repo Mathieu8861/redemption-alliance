@@ -41,7 +41,8 @@ function boirePot(t) {
   if (P.agi && S_.royale) { toast('Tu as déjà bu un pot de Royale pour la prochaine vague.'); return; }
   if (avant >= max && !P.menthe && !P.citron && !P.agi) { toast('Ta vie est déjà pleine.'); return; }
   S_.pots[t]--; son('boire'); S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; if (P.citron) S_.citron = true; if (P.agi) S_.royale = P.agi; compter('pots');
-  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant la vague.' : P.citron ? '. Le Citron te fera courir plus vite pendant la vague.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant la vague.' : '.'), 'or');
+  const quand = modaleOuverte === 'arene' ? 'la partie' : modaleOuverte === 'ileboss' ? 'l\'essai' : 'la vague'; /* (07/11/2026 : sur l'ile, « pendant la vague » etait faux) */
+  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant ' + quand + '.' : P.citron ? '. Le Citron te fera courir plus vite pendant ' + quand + '.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant ' + quand + '.' : '.'), 'or');
   rendreGrange(); rendreHaut(); sauver();
   rafraichirAvantCombat();
 }
