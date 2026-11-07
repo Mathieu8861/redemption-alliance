@@ -332,11 +332,11 @@ const facteurRejoue = (quoi, t) => { if (!combat || combat.rejoueBoss == null) r
    du boss enleve environ 4 % des PV d'un Iop de son niveau (panoplie complete du palier, jet moyen ; avant 1,6 a 2,3 % des le Bworker). Seulement les autos (le coup
    au contact, le tir de Crocabulia) : ses sorts ne bougent pas. En revanche difficile : l'auto du boss de reference (vagueRefDifficile), x1,5. Combats de vague et
    revanches seulement, pas l'Arene ni l'ile. Le Bouftou Royal et le Chafer y etaient deja (4,4 %) */
-const AUTO_BOSS = [1, 1, 1.75, 2.04, 2.49, 1.82, 1.93, 2.04, 2.09], AUTO_DIFFICILE = 1.5;
+const AUTO_BOSS = [1, 1, 1.75, 2.04, 2.49, 1.82, 1.93, 2.04, 2.09], AUTO_DIFFICILE = 1.5; /* (Moon : ce chiffre ne joue pas sur ses coups, qui passent tous par son marteau (coupMarteau, ses sortsX) ; il sert a la fiche et a la revanche difficile des joueurs de niveau 90, 07/11/2026) */
 /* LES DEMI-BOSS AUSSI (07/11/2026 au soir, « augmente les degats, faut reequilibrer les demi-boss comme ce qu'on a fait pour les boss de base », Mathieu) : leur
    auto (coup ou tir) enlevait environ 1 % des PV d'un Iop de leur niveau (panoplie complete du palier, jet moyen) ; a 4 % comme les boss. Calcule sur leurs vagues :
    Gorgouille 29 aux vagues 75 et 80 (x4,1), Kanniboul Ebil 31 a la 85 (x3,5), Tortue Corail 32 a la 90 (x3,5). Leurs sorts ne bougent pas */
-const AUTO_DEMI = { gorgouille: 4.15, kannibEbil: 3.5, tortueCorail: 3.5 };
+const AUTO_DEMI = { gorgouille: 5.17, kannibEbil: 5.16, tortueCorail: 4.69 }; /* (puis le meme soir, Mathieu : « Gorgouille a 150 les autos, Kanniboul a 160 et Tortue a 150 ») */
 const autoFiche = (d, t, n) => d.boss ? (d.demi ? AUTO_DEMI[t] || 1 : AUTO_BOSS[palierDe(n)] || 1) : 1; /* (la fiche et la carte de la vague) */
 function autoBoss(mo) {
   if (!combat || combat.genre !== 'vague' || !mo || !mo.d.boss || mo.invoque) return 1;
