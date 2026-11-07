@@ -31,22 +31,22 @@ const FS_DOME = [
   '  vec2 q = abs(gv); float d = max(dot(q, vec2(0.5, 0.8660254)), q.x);',
   '  float ligne = 1.0 - smoothstep(0.40, 0.47, d);',
   '  float bord = smoothstep(0.38, 0.48, d);',
-  '  float hc = hash(floor(id * 10.0)); float allume = pow(0.5 + 0.5 * sin(uT * (1.2 + hc) + hc * 40.0), 14.0);',
-  '  float onde = pow(0.5 + 0.5 * sin(ph * 9.0 - uT * 2.6), 10.0);',
+  '  float hc = hash(floor(id * 10.0)); float allume = pow(0.5 + 0.5 * sin(uT * (0.45 + 0.4 * hc) + hc * 40.0), 40.0);',
+  '  float onde = pow(0.5 + 0.5 * sin(ph * 6.0 - uT * 1.1), 14.0);',
   '  float pied = smoothstep(0.35, 0.0, vP.y);',
   '  vec3 cBas = vec3(0.10, 0.72, 1.0), cHaut = vec3(0.62, 0.30, 1.0), c = mix(cBas, cHaut, smoothstep(0.1, 1.0, vP.y));',
-  '  float al = 0.035 + 0.22 * f + bord * (0.30 + 0.30 * f) + allume * 0.30 * (1.0 - bord) + onde * (0.06 + 0.22 * bord) + pied * 0.22;',
-  '  vec3 col = mix(c, vec3(1.0), bord * 0.35 + allume * 0.45 + onde * bord * 0.3);',
+  '  float al = 0.03 + 0.2 * f + bord * (0.18 + 0.22 * f) + allume * 0.12 * (1.0 - bord) + onde * (0.02 + 0.10 * bord) + pied * 0.14;',
+  '  vec3 col = mix(c, vec3(1.0), bord * 0.25 + allume * 0.3 + onde * bord * 0.15);',
   '  gl_FragColor = vec4(col, al * uF); }'].join('\n');
 function texRunes() { /* un cercle de runes dessine une fois : deux anneaux, des glyphes entre eux, des rayons */
   const N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N; const x = cv.getContext('2d'), c = N / 2;
   x.strokeStyle = '#ffffff'; x.fillStyle = '#ffffff'; x.lineCap = 'round';
-  [[0.97, 6], [0.84, 4], [0.62, 3]].forEach(([k, w]) => { x.lineWidth = w; x.beginPath(); x.arc(c, c, c * k, 0, Math.PI * 2); x.stroke(); });
-  const nb = 24; for (let i = 0; i < nb; i++) { const a = i / nb * Math.PI * 2, rr = c * 0.905; x.save(); x.translate(c + Math.cos(a) * rr, c + Math.sin(a) * rr); x.rotate(a + Math.PI / 2); x.lineWidth = 3.2; x.beginPath();
+  [[0.97, 2.5], [0.88, 1.5]].forEach(([k, w]) => { x.lineWidth = w; x.beginPath(); x.arc(c, c, c * k, 0, Math.PI * 2); x.stroke(); });
+  const nb = 24; for (let i = 0; i < nb; i++) { const a = i / nb * Math.PI * 2, rr = c * 0.925; x.save(); x.translate(c + Math.cos(a) * rr, c + Math.sin(a) * rr); x.rotate(a + Math.PI / 2); x.scale(0.6, 0.6); x.lineWidth = 2.6; x.beginPath();
     const g = i % 4; if (g === 0) { x.moveTo(-9, 10); x.lineTo(0, -12); x.lineTo(9, 10); x.moveTo(-5, 3); x.lineTo(5, 3); } else if (g === 1) { x.moveTo(0, -12); x.lineTo(0, 12); x.moveTo(-8, -4); x.lineTo(8, 4); }
     else if (g === 2) { x.arc(0, 0, 8, 0, Math.PI * 1.6); x.moveTo(0, -12); x.lineTo(0, 12); } else { x.moveTo(-9, -9); x.lineTo(9, 9); x.moveTo(9, -9); x.lineTo(-9, 9); x.moveTo(-10, 0); x.lineTo(10, 0); }
     x.stroke(); x.restore(); }
-  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; x.lineWidth = 2; x.beginPath(); x.moveTo(c + Math.cos(a) * c * 0.62, c + Math.sin(a) * c * 0.62); x.lineTo(c + Math.cos(a) * c * 0.84, c + Math.sin(a) * c * 0.84); x.stroke(); }
+  
   const t = new T.CanvasTexture(cv); t.anisotropy = 4; return t;
 }
 function creerDome() {
@@ -54,7 +54,7 @@ function creerDome() {
   const mat = new T.ShaderMaterial(Object.assign({ uniforms: { uT: { value: 0 }, uF: { value: 0 } }, vertexShader: VS_DOME, fragmentShader: FS_DOME }, add));
   const d = new T.Mesh(new T.SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), mat); d.renderOrder = 6; g.add(d);
   const runes = new T.Mesh(new T.CircleGeometry(1.0, 64), new T.MeshBasicMaterial(Object.assign({ map: texRunes(), color: '#29b8ff', opacity: 0.8 }, add))); runes.rotation.x = -Math.PI / 2; runes.position.y = 0.07; runes.renderOrder = 6; g.add(runes);
-  const halo = new T.Mesh(new T.RingGeometry(0.9, 1.06, 72), new T.MeshBasicMaterial(Object.assign({ color: '#8a5cff', opacity: 0.5 }, add))); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.08; halo.renderOrder = 6; g.add(halo);
+  const halo = new T.Mesh(new T.RingGeometry(0.985, 1.0, 96), new T.MeshBasicMaterial(Object.assign({ color: '#8a5cff', opacity: 0.5 }, add))); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.08; halo.renderOrder = 6; g.add(halo);
   g.traverse((o) => { o.raycast = () => {}; }); g.userData = { mat, runes, halo, t: 0, f: 0, etin: 0, R: 1 }; scene.add(g); return g;
 }
 function majBouclier(dt, s) { /* le dome autour de la grange, tant que le bouclier tient ; un message quand il s'eteint */
@@ -64,11 +64,11 @@ function majBouclier(dt, s) { /* le dome autour de la grange, tant que le boucli
   if (!domeBouclier) domeBouclier = creerDome();
   const D = domeBouclier, u = D.userData; u.t -= dt; u.f = Math.min(1, u.f + dt / 1.2); /* (il se leve en 1,2 s) */
   if (u.t <= 0) { u.t = 1; const G = S_.cases.filter((c) => c.type === 'grange').map(posCase); D.visible = G.length > 0 && lieu === 'ferme';
-    if (G.length) { const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length; u.R = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 1.4 * S;
-      D.position.set(x, solA(x, z), z); D.children[0].scale.set(u.R, u.R * 0.9, u.R); u.runes.scale.setScalar(u.R * 1.04); u.halo.scale.setScalar(u.R); } }
-  u.mat.uniforms.uT.value = s; u.mat.uniforms.uF.value = u.f; u.runes.rotation.z = s * 0.12; u.runes.material.opacity = (0.55 + 0.25 * Math.sin(s * 1.7)) * u.f; u.halo.material.opacity = (0.35 + 0.2 * Math.sin(s * 2.3 + 1)) * u.f;
-  if (D.visible && (u.etin += dt) > 0.07) { u.etin = 0; const a = Math.random() * Math.PI * 2, h = Math.random() * 0.85, rr = u.R * Math.sqrt(1 - h * h); /* (des etincelles qui montent le long du dome) */
-    emettre(FX_LUM, 1, { x: D.position.x + Math.cos(a) * rr, y: D.position.y + h * u.R * 0.9, z: D.position.z + Math.sin(a) * rr, v: [0, 0.7, 0], vie: [0.9, 1.6], taille: [0.28, 0.04], c: [Math.random() < 0.5 ? '#bdf3ff' : '#d4c2ff', '#7a8cff'], a: 0.85, entree: 0.25 }); }
+    if (G.length) { const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length; u.R = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 1.0 * S; /* (plus pres du batiment, 07/11/2026 ; 1,4 case avant) */
+      D.position.set(x, solA(x, z), z); D.children[0].scale.set(u.R, u.R * 1.15, u.R); /* (plus haut que large : serre au sol, il couvre la fleche de la grande tour) */ u.runes.scale.setScalar(u.R); u.halo.scale.setScalar(u.R); } }
+  u.mat.uniforms.uT.value = s; u.mat.uniforms.uF.value = u.f; u.runes.rotation.z = s * 0.12; u.runes.material.opacity = (0.5 + 0.08 * Math.sin(s * 0.9)) * u.f; u.halo.material.opacity = (0.45 + 0.08 * Math.sin(s * 1.1 + 1)) * u.f; /* (des pulsations douces, 07/11/2026 : « ca clignote un peu trop de partout ») */
+  if (D.visible && (u.etin += dt) > 0.3) { u.etin = 0; const a = Math.random() * Math.PI * 2, h = Math.random() * 0.85, rr = u.R * Math.sqrt(1 - h * h); /* (des etincelles qui montent le long du dome) */
+    emettre(FX_LUM, 1, { x: D.position.x + Math.cos(a) * rr, y: D.position.y + h * u.R * 0.9, z: D.position.z + Math.sin(a) * rr, v: [0, 0.7, 0], vie: [1.2, 2.0], taille: [0.2, 0.03], c: [Math.random() < 0.5 ? '#bdf3ff' : '#d4c2ff', '#7a8cff'], a: 0.5, entree: 0.4 }); }
 }
 let simuEnAttente = false;
 function proposerSimu() {
