@@ -33,7 +33,7 @@ async function demarrer() {
   cadrer(); rendu.shadowMap.needsUpdate = true; rendu.render(scene, camera); placerBulles();
   placerCamera();
   ouvrirAccueil();
-  window.__pret = true; requestAnimationFrame(boucle);
+  window.__pret = true; requestAnimationFrame(boucle); setTimeout(prechargerIcones, 4000); /* (les icones de la grange, en fond, 07/11/2026) */
 }
 window.addEventListener('error', (e) => { window.__erreur = e.message; });
 
@@ -48,6 +48,7 @@ const TOUCHES_SORT = { Digit1: () => lancerSort(), Numpad1: () => lancerSort(), 
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && visee) annulerVisee();
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.key === 'Escape' && !visee && !enPause && modaleOuverte && !lecon.ouverte) { fermerModale(); return; } /* (Echap ferme la fenetre ouverte, comme un clic a cote, 07/11/2026) */
   const sort = TOUCHES_SORT[e.code]; if (sort && combat && !combat.fin && !enPause && !e.repeat) { e.preventDefault(); sort(); }
   if (lecon.ouverte) return;
   if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);

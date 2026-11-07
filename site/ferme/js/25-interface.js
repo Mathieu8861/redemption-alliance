@@ -2,7 +2,7 @@
 /* ===================== INTERFACE ===================== */
 const $ = (id) => document.getElementById(id);
 /* BETA : le curseur de vitesse du temps (voir horlogeJeu tout en haut) */
-function majVitesse() { if (horlogeJeu.vitesse() > vitesseMaxi()) horlogeJeu.regler(vitesseMaxi()); /* (x1,5 au plus a partir du niveau 51, 06/11/2026) */ const v = horlogeJeu.vitesse(), b = $('b-vitesse'), t = v === 1 ? 'normal' : 'x' + String(v).replace('.', ','); /* (virgule() n'est pas encore definie ici) */ b.innerHTML = '<span class="lib">Temps </span>' + t; b.classList.toggle('rapide', v > 1); $('vitesse').max = vitesseMaxi(); $('vitesse').value = v; $('vitesse-val').textContent = t; }
+function majVitesse() { if (horlogeJeu.vitesse() > vitesseMaxi()) horlogeJeu.regler(vitesseMaxi()); /* (x1,5 au plus a partir du niveau 51, 06/11/2026) */ const v = horlogeJeu.vitesse(), b = $('b-vitesse'), t = 'x' + String(v).replace('.', ','); /* (« x1 » au lieu de « normal », 07/11/2026) */ /* (virgule() n'est pas encore definie ici) */ b.innerHTML = '<span class="lib">Temps </span>' + t; b.classList.toggle('rapide', v > 1); $('vitesse').max = vitesseMaxi(); $('vitesse').value = v; $('vitesse-val').textContent = t; }
 $('b-vitesse').addEventListener('click', (e) => { e.stopPropagation(); $('vitesse-panneau').hidden = !$('vitesse-panneau').hidden; majVitesse(); });
 $('vitesse').addEventListener('input', (e) => { horlogeJeu.regler(+e.target.value); majVitesse(); });
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#vitesse-panneau, #b-vitesse')) $('vitesse-panneau').hidden = true; });
@@ -27,7 +27,7 @@ function rendreHaut() {
   $('xp-barre').parentNode.dataset.info = max ? (capNiveau() < NIV_MAX ? 'Niveau ' + capNiveau() + ' : ' + texteCap() + '.' : 'Niveau ' + NIV_MAX + ' : le niveau maximum de Paysan.') :'Niveau ' + n + ' : encore ' + fmt(b - S_.xp) + ' points d\'expérience pour passer niveau ' + (n + 1) + ' (' + Math.floor(100 * (S_.xp - a) / (b - a)) + ' %)';
   if (rendreHaut.xp !== undefined && S_.xp > rendreHaut.xp) { const e = $('xp-barre'); e.classList.remove('gagne'); void e.offsetWidth; e.classList.add('gagne'); } rendreHaut.xp = S_.xp;
   $('cases').innerHTML = 'Parcelles <b style="color:var(--kamas)">' + parcelles() + '/' + quotaParcelles() + '</b>'; { const n = parcelles(), q = quotaParcelles(); $('cases').dataset.info = 'Tes parcelles : ' + n + ' labourée' + (n > 1 ? 's' : '') + ' sur ' + q + ' possibles. Une parcelle, c\'est une case de terre où tu sèmes tes graines. Ton île en permet ' + QUOTA_ILE + ', chaque terrain acheté en ajoute. Pour en labourer une : touche une case d\'herbe libre.' + (n >= q ? ' Quota atteint : achète un terrain pour en avoir plus, ou déplace tes parcelles avec Aménager.' : ''); }
-  $('graine-ico').src = 'assets/icones/' + S_.graine + '.png'; $('graine-nb').textContent = S_.graines[S_.graine] || 0; $('b-graine').dataset.info = 'Graine choisie : ' + PAR_ID[S_.graine].nom;
+  $('graine-ico').src = 'assets/icones/' + S_.graine + '.png'; $('graine-nb').textContent = S_.graines[S_.graine] || 0; $('b-graine').dataset.info = 'Graine choisie : ' + PAR_ID[S_.graine].nom + ' (' + (S_.graines[S_.graine] || 0) + ' en grange). Touche pour en choisir une autre';
   $('b-amenager').setAttribute('aria-pressed', !!mode);
   $('eau').innerHTML = '<svg class="goutte" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5C9 7 5.5 10.6 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.6 15 7 12 2.5z" fill="#3a95d1" stroke="#1f5f8b" stroke-width="1.6"/><path d="M9.2 14.2a3 3 0 0 0 2.6 3" fill="none" stroke="#dff1fb" stroke-width="1.6" stroke-linecap="round"/></svg> ' + S_.eau + '/' + capaciteEau() + (niv('arrosoir') ? ' <small style="font-weight:700;color:#3a95d1" data-info="Citerne d\'arrosage">· citerne ' + (S_.citerne || 0) + '/' + capaciteCiterne() + '</small>' : ''); $('eau').classList.toggle('vide', !S_.eau);
   $('eau').dataset.info = niv('arrosoir') ? 'Arrosoir, et citerne qui arrose seule les nouveaux semis : les deux se remplissent au puits' : 'Arrosoir : il se remplit au puits';
@@ -64,7 +64,7 @@ function toast(msg, genre) {
     clearTimeout(deja._t); deja._t = setTimeout(() => deja.remove(), dureeToast(genre)); z.appendChild(deja); return;
   }
   const el = document.createElement('div'); el.className = 'toast' + (genre ? ' ' + genre : ''); el.textContent = msg; el.dataset.msg = msg; z.appendChild(el);
-  while (z.children.length > 4) { const vieux = [...z.children].find((e) => e !== el && !e.classList.contains('or')) || z.firstChild; clearTimeout(vieux._t); vieux.remove(); } /* les orange ne sont pas chasses par les petits messages */
+  while (z.children.length > 3) { /* (3 messages au plus a l'ecran, 07/11/2026 ; 4 avant) */ const vieux = [...z.children].find((e) => e !== el && !e.classList.contains('or')) || z.firstChild; clearTimeout(vieux._t); vieux.remove(); } /* les orange ne sont pas chasses par les petits messages */
   el._t = setTimeout(() => el.remove(), dureeToast(genre));
 }
 /* combien de temps un message reste : les orange (raids, defis, coffre...) le plus longtemps, puis les alertes */
@@ -114,7 +114,13 @@ function basculerChat(ouvrir) {
 
 /* modales */
 let modaleOuverte = null;
-function ouvrirModale(nom, html) { modaleOuverte = nom; $('carte').innerHTML = html; $('carte').classList.toggle('large', nom === 'vagues'); $('carte').classList.toggle('grange', nom === 'grange'); $('carte').classList.toggle('bestiaire', nom === 'bestiaire'); $('carte').classList.toggle('fiche', nom === 'perso'); /* la fiche des vagues, plus large */ $('modale').classList.add('ouverte'); }
+/* les icones de la grange chargees a l'avance (07/11/2026 : a la premiere ouverture, les cases restaient vides un instant) */
+function prechargerIcones() {
+  if (prechargerIcones.fait || !S_) return; prechargerIcones.fait = true; const v = '?v=' + VERSION_MODELES;
+  const L = CULTURES.map((c) => c.id).concat(VENDABLES.map((x) => x.id), Object.keys(POTS).map((t) => 'pot-' + t), ['filet', 'fleches', 'rune-forge', 'rune-parfaite'], Object.keys(S_.sac || {}).filter((k) => obj(k)).map((k) => iconeObjet(k)));
+  [...new Set(L)].forEach((n, k) => setTimeout(() => { const im = new Image(); im.src = 'assets/icones/' + n + '.png' + v; }, 20 * k));
+}
+function ouvrirModale(nom, html) { const neuve = modaleOuverte !== nom || !$('modale').classList.contains('ouverte'); modaleOuverte = nom; $('carte').innerHTML = html; $('carte').classList.toggle('hdv', nom === 'hdv'); $('carte').classList.toggle('large', nom === 'vagues'); $('carte').classList.toggle('grange', nom === 'grange'); $('carte').classList.toggle('bestiaire', nom === 'bestiaire'); $('carte').classList.toggle('fiche', nom === 'perso'); /* la fiche des vagues, plus large */ $('modale').classList.add('ouverte'); if (neuve) { $('carte').scrollTop = 0; requestAnimationFrame(() => { if (modaleOuverte === nom) $('carte').scrollTop = 0; }); } /* (une autre fenetre s'ouvre en haut, pas au defilement de la precedente, 07/11/2026 ; apres l'affichage : une fenetre cachee ne defile pas) */ }
 function fermerModale() { const m = modaleOuverte; modaleOuverte = null; $('modale').classList.remove('ouverte'); if (m === 'arene-fin' && lieu === 'arene' && !combat && !areneSuite) setTimeout(rentrerFerme, 30); if (m === 'ileboss-fin' && lieu === 'ile' && !combat && !areneSuite) setTimeout(rentrerFerme, 30); } /* (fermer le bilan de l'Arene, c'est rentrer a la ferme) */
 $('modale').addEventListener('click', (e) => { if (e.target === $('modale')) fermerModale(); });
 const entete = (titre) => '<h2>' + titre + '<button data-fermer aria-label="Fermer">✕</button></h2>';
@@ -389,8 +395,9 @@ function ouvrirPuits() {
 function ouvrirGrange(choix) {
   if (choix !== undefined) ouvrirGrange.choix = choix === ouvrirGrange.choix ? null : choix; /* (toucher la meme case la referme) */
   const sel = ouvrirGrange.choix, v = '?v=' + VERSION_MODELES, img = (n) => '<img src="assets/icones/' + n + '.png' + v + '" alt="">';
-  const kase = (cle, icone, n, titre, extra) => '<button class="gr-case' + (sel === cle ? ' choisie' : '') + (extra || '') + '" data-grange-case="' + cle + '" data-info="' + titre + '">' + icone + (n != null ? '<b>' + fmt(n) + '</b>' : '') + '</button>';
-  const grille = (L) => { const vides = (7 - (L.length % 7)) % 7; return '<div class="gr-grille">' + L.join('') + '<span class="gr-case vide"></span>'.repeat(vides) + '</div>'; };
+  const nomCourt = (t) => String(t).replace(/^Graines (du |de la |de l'|des |de )/, ''); /* (le nom sous la case ; « Graines » est deja le titre de la section) */
+  const kase = (cle, icone, n, titre, extra) => '<div class="gr-item"><button class="gr-case' + (sel === cle ? ' choisie' : '') + (extra || '') + '" data-grange-case="' + cle + '" data-info="' + titre + '">' + icone + (n != null ? '<b>' + fmt(n) + '</b>' : '') + '</button><i class="gr-nom">' + nomCourt(titre) + '</i></div>'; /* (le nom sous chaque case, 07/11/2026) */
+  const grille = (L) => { const vides = (7 - (L.length % 7)) % 7; return '<div class="gr-grille">' + L.join('') + '<span class="gr-item"><span class="gr-case vide"></span></span>'.repeat(vides) + '</div>'; };
   const section = (titre, L, compte) => L.length ? '<h3 class="gr-titre">' + titre + (compte != null ? '<small>' + fmt(compte) + '</small>' : '') + '</h3>' + grille(L) : '';
   const somme = (L, f) => L.reduce((t, x) => t + f(x), 0);
   /* les cases */

@@ -14,7 +14,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 .pic.leg { background: radial-gradient(circle at 50% 45%, #592259, #3f2259) !important; box-shadow: 0 0 0 3px #8e44d6, 0 0 12px rgba(160, 80, 230, .55); }
 #hud.au-casino .actions, #hud.au-casino .commis { display: none !important; }
-.casino-barre { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 4; display: flex; gap: 10px; align-items: center; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 6px 10px; font-size: .78rem; white-space: nowrap; }
+.casino-barre { pointer-events: auto; /* (le HUD laisse passer les clics : sans ca, « Rentrer a la ferme » ne repondait pas, 07/11/2026) */ position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 4; display: flex; gap: 10px; align-items: center; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 6px 10px; font-size: .78rem; white-space: nowrap; }
 .voile { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0; background: radial-gradient(circle, #26272b, #224659); transition: opacity .7s; }
 .voile.on { opacity: 1; }
 .cas-borne { background: linear-gradient(180deg, #d9443a, #8e2a3a); border: 3px solid var(--bord); border-radius: 16px; padding: 10px 10px 12px; position: relative; margin-right: 22px; }
@@ -190,7 +190,8 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .buff { width: 34px; height: 34px; flex: none; display: grid; place-items: center; background: #26272b; border: 2px solid var(--or); border-radius: 10px; box-shadow: 0 2px 0 var(--bord), 0 0 8px rgba(242, 182, 48, .25); pointer-events: auto; animation: buffArrive .35s ease-out; }
 .buff img { width: 28px; height: 28px; object-fit: contain; display: block; } @keyframes buffArrive { from { transform: scale(.4); opacity: 0; } }
 .combat-perso .buffs { position: absolute; left: 0; bottom: calc(100% + 6px); } /* (au-dessus de l'encadre : il ne s'elargit pas jusque sous les sorts) */
-#buffs-attente { position: absolute; left: calc(100% + 8px); bottom: 0; white-space: nowrap; } /* (a droite du pot, cale en bas sur la barre de vie : il grandit vers le haut et ne deborde pas sur la barre d'actions, 06/11/2026) */
+#buffs-attente { position: absolute; left: calc(100% + 8px); bottom: 0; white-space: nowrap; }
+#buffs-attente.au-dessus { left: auto; right: 0; bottom: calc(100% + 6px); } /* (07/11/2026 : a droite du pot il cachait les lignes de « Tes betes » sur un ecran pas assez large ; il passe alors au-dessus du pot, majIconesEffets) */ /* (a droite du pot, cale en bas sur la barre de vie : il grandit vers le haut et ne deborde pas sur la barre d'actions, 06/11/2026) */
 @media (max-width: 720px) { .buff { width: 28px; height: 28px; border-radius: 8px; } .buff img { width: 22px; height: 22px; } #buffs-attente { left: auto; right: 0; bottom: calc(100% + 5px); } }
 .pots-vie { font-size: .78rem; font-weight: 600; margin: 0 0 4px; }
 .hdv-cats button { position: relative; } .hdv-pret { position: absolute; top: -8px; right: -6px; min-width: 22px; background: var(--kamas); color: #fff; border: 2px solid var(--bord); border-radius: 99px; font: 400 .74rem/1 var(--f-titre); padding: 3px 6px; } /* (combien d'ameliorations a acheter tout de suite) */
@@ -278,7 +279,8 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .panneau .defile { pointer-events: auto; touch-action: pan-y; display: grid; gap: 5px; align-content: start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #5a5d66 transparent; margin-right: -6px; padding-right: 6px; }
 .panneau .crise-zone:empty { display: none; }
 .panneau .crise { background: #592922; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #e97a72; }
-.commis { position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
+.hud:has(#toasts > .toast) .commis { opacity: 0; pointer-events: none; } /* (un message a l'ecran : la phrase de Pepito s'efface, un seul endroit qui parle a la fois, 07/11/2026) */
+.commis { transition: opacity .3s; position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
 .commis b { font-family: var(--f-titre); font-weight: 400; color: var(--kamas); }
 /* les messages : en colonne sur le cote gauche, au-dessus de Pepito, le plus recent en bas ; ils ne cachent plus l'ile */
 .toasts { position: absolute; left: 12px; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; width: min(100% - 24px, 300px); align-content: end; }
@@ -406,11 +408,14 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .gr-corps { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; align-items: start; }
 .gr-titre { margin: 10px 0 6px; font: 400 .98rem/1 var(--f-titre); display: flex; align-items: baseline; gap: 6px; } .gr-gauche > .gr-titre:first-child, .gr-carte > .gr-titre:first-child { margin-top: 0; }
 .gr-titre small { font: 800 .72rem/1 var(--f-texte); color: #a9adb5; margin-left: auto; }
+@media (max-width: 720px) { .casino-barre { left: 8px; right: 8px; transform: none; flex-wrap: wrap; justify-content: center; white-space: normal; text-align: center; } } /* (mobile : la barre du casino ne deborde plus, 07/11/2026) */
+.carte.hdv { height: min(86vh, 700px); } /* (l'HDV garde la meme hauteur d'un onglet a l'autre, 07/11/2026) */
 .gr-grille { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .gr-case { position: relative; aspect-ratio: 1; background: #2b2d31; border: 2.5px solid var(--bord); border-radius: 12px; display: grid; place-items: center; box-shadow: 0 2px 0 var(--bord); padding: 0; cursor: pointer; }
 .gr-case img { width: 68%; height: 68%; object-fit: contain; pointer-events: none; }
 .gr-case b { position: absolute; right: 4px; bottom: 1px; font: 800 .74rem/1.2 var(--f-texte); color: #fff; text-shadow: 0 0 3px #15161a, 0 0 2px #15161a; pointer-events: none; }
 .gr-case.rare { border-color: #43464e; box-shadow: 0 2px 0 #7b4fc9; } .gr-case.vide { background: transparent; border-style: dashed; box-shadow: none; opacity: .35; cursor: default; }
+.gr-item { display: flex; flex-direction: column; gap: 3px; min-width: 0; } .gr-nom { font: 700 .56rem/1.1 var(--f-texte); font-style: normal; color: #b9bcc4; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; } /* (le nom sous chaque case de la grange, 07/11/2026) */
 .gr-case.choisie { outline: 3px solid var(--or); outline-offset: 2px; } .gr-case:not(.vide):hover { transform: translateY(-1px); }
 .gr-graine { position: relative; display: inline-grid; place-items: center; width: 68%; height: 68%; pointer-events: none; } .gr-graine img { width: 100%; height: 100%; }
 .gr-graine::after { content: ''; position: absolute; left: -14%; top: -10%; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--bord); background: #2b2d31 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M6 10V5M6 6c-2 0-3-1-3-3 2 0 3 1 3 3zm0 0c2 0 3-1 3-3-2 0-3 1-3 3z" stroke="%233f8a2e" stroke-width="1.4" fill="none"/></svg>') center/10px no-repeat; }
@@ -439,7 +444,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .btn { background: var(--or); border: 3px solid var(--bord); border-radius: 10px; padding: 5px 10px; box-shadow: 0 3px 0 var(--bord); font-size: .78rem; white-space: nowrap; color: #1d1e22; }
 .btn.kamas { background: var(--kamas); color: #fff; } .btn.eau { background: var(--eau); color: #fff; } .btn.discret { background: #2b2d31; color: #e8eaed; }
 .btn.dur { background: linear-gradient(180deg, #a3342b, #6e1d18); color: #fff; box-shadow: 0 2px 0 #3d0f0c, 0 3px 8px rgba(163, 52, 43, .35); } /* la revanche difficile (15/10/2026) */
-.btn[disabled] { opacity: .45; cursor: default; }
+.btn[disabled] { opacity: .45; filter: grayscale(1); cursor: default; } /* (gris franc : un bouton desactive ne ressemble plus a un bouton actif, 07/11/2026) */
 .btn[aria-pressed="true"] { background: var(--vert); color: #fff; }
 .grille-graines { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
 .graine { display: grid; justify-items: center; gap: 3px; text-align: center; background: #2b2d31; border: 3px solid var(--bord); border-radius: 14px; padding: 8px 6px 9px; box-shadow: 0 3px 0 var(--bord); cursor: pointer; }
@@ -447,7 +452,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .graine .g-ico { position: relative; width: 62px; height: 62px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #26272b, #3a3c42); border: 2px solid #43464e; display: grid; place-items: center; }
 .graine .g-ico img { width: 54px; height: 54px; object-fit: contain; }
 .graine .g-nb { position: absolute; right: -8px; bottom: -4px; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 99px; background: var(--vert); color: #fff; border: 2.5px solid var(--bord); font: 400 .95rem/21px var(--f-titre); font-style: normal; }
-.graine.vide .g-nb { background: #c9b48a; color: #1d1e22; } .graine.vide .g-ico img { filter: grayscale(.6) opacity(.75); }
+.graine.vide .g-nb { background: #c9b48a; color: #1d1e22; } .graine.vide .g-ico img { filter: grayscale(1) opacity(.45); } .graine.vide { background: #26272b; } /* (une graine a 0 : bien grisee, 07/11/2026) */
 .graine .g-cad { position: absolute; right: -6px; bottom: -4px; font-style: normal; font-size: 1rem; }
 .graine b { display: block; font: 400 1rem/1.1 var(--f-titre); margin-top: 2px; }
 .graine .g-info { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; } .graine .g-info span { background: #313338; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 800; color: #a9adb5; white-space: nowrap; }
@@ -597,7 +602,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .vg-stats .puce { background: #313338; border-radius: 99px; padding: 1px 7px; font-size: .66rem; font-weight: 700; color: #a9adb5; white-space: nowrap; }
 .vg-stats .puce.bonne { background: #385922; color: #92db80; } .vg-stats .puce.mauvaise { background: #592922; color: #e97a72; }
 .vg-note { font-size: .74rem; font-weight: 600; color: #a9adb5; margin: 10px 0 0; }
-.btn.vg-lancer { display: block; width: 100%; margin-top: 12px; font: 400 1.25rem/1 var(--f-titre); padding: 12px; border-radius: 14px; white-space: normal; }
+.btn.vg-lancer[disabled] { opacity: 1; filter: none; background: #45474e; color: #c3c6cd; } /* (colle en bas de la fenetre : un fond plein, sinon le texte dessous se voit au travers, 07/11/2026) */
+.btn.vg-lancer { position: sticky; bottom: 0; z-index: 2; /* (toujours visible en bas de la fenetre des vagues, 07/11/2026) */ display: block; width: 100%; margin-top: 12px; font: 400 1.25rem/1 var(--f-titre); padding: 12px; border-radius: 14px; white-space: normal; }
 .action.repos .tuile { filter: grayscale(.7); }
 /* ---- les vagues : l'ecran de combat ---- */
 .combat-hud { position: absolute; inset: 0; pointer-events: none; }
@@ -819,7 +825,7 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .fp-cr:hover, .fp-cr.choisi { background: #313338; }
 .fp-cr .rond { width: 23px; height: 23px; border-radius: 50%; display: grid; place-items: center; flex: none; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18); }
 .fp-cr .rond svg.pc { width: 14px; height: 14px; vertical-align: 0; }
-.fp-cr .nom { flex: 1; min-width: 0; color: #e8eaed; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .fp-cr b { font-size: .9rem; font-weight: 900; white-space: nowrap; } .fp-cr i { font-style: normal; font-size: .72rem; color: #92db80; font-weight: 800; }
+.fp-cr .nom { flex: 1; min-width: 0; color: #e8eaed; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .76rem; letter-spacing: -.01em; } /* (plus petit : « Prospection » tenait en « Prospecti… », 07/11/2026) */ .fp-cr b { font-size: .9rem; font-weight: 900; white-space: nowrap; } .fp-cr i { font-style: normal; font-size: .72rem; color: #92db80; font-weight: 800; }
 .fp-explique { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #313338; font-size: .86rem; line-height: 1.4; }
 .fp-explique > b { font: 400 1.05rem/1.1 var(--f-titre); } .fp-explique p { margin: 4px 0 6px; font-weight: 700; color: #e8eaed; }
 .fp-src { font-size: .8rem; font-weight: 800; color: #a9adb5; } .fp-src ul { margin: 3px 0 0; padding-left: 18px; font-weight: 700; }
