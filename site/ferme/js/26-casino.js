@@ -40,6 +40,9 @@ function poserMontgolfiere() { /* sur sa case (type montgolfiere), tournee comme
   const g = montgolfiereMesh || MODELES.montgolfiere; g.visible = true; g.position.copy(POS_MONTGOLFIERE); g.rotation.set(0, Math.PI + rotDe('montgolfiere'), 0);
   g.traverse((o) => { o.userData.montgolfiere = true; o.userData.cellule = c.id; }); if (!montgolfiereMesh) { scene.add(g); montgolfiereMesh = g; }
 }
+/* LE CASINO EN TRAVAUX (08/11/2026, « en attendant, ferme le casino aux visiteurs, sauf a moi ; dis que c'est ferme pour cause de travaux quand les gens veulent
+   aller dessus », Mathieu) : le temps de finir le nouveau Casino, seul son compte (TESTEURS_ULTI, 22-sorts.js) peut y aller */
+const casinoEnTravaux = () => !ultiLibre();
 function ouvrirMontgolfiere() {
   const l = niveau(S_.xp), ok = S_.montgolfiere;
   if (!ok) { ouvrirModale('montgolfiere', entete('La montgolfière') + '<div class="art">' + ico('kama') + '<div><b>Une vieille montgolfière, à réparer</b><div class="desc">Une fois réparée, elle t\'emmènera sur les îles autour de la ferme : le Casino pour jouer tes kamas, puis l\'Arène.</div><div class="puces">' +
@@ -48,8 +51,9 @@ function ouvrirMontgolfiere() {
   /* LA CARTE DES VENTS (14/10/2026) : la montgolfiere emmene sur les iles autour de la ferme ; on choisit sa destination */
   const ile = (img, nom, desc, puces, bouton) => '<div class="art">' + (img ? '<span class="pic img ile"><img src="assets/icones/' + img + '.png?v=' + VERSION_MODELES + '" alt=""></span>' : '<span class="pic ile brume">?</span>') + '<div><b>' + nom + '</b><div class="desc">' + desc + '</div><div class="puces">' + puces + '</div></div><div class="act">' + bouton + '</div></div>';
   const reste = entreesRestantes();
+  const travaux = casinoEnTravaux();
   ouvrirModale('montgolfiere', entete('La carte des vents') + '<p class="hdv-aide">Où t\'emmène la montgolfière ? Pendant ton voyage, ni vague ni simu VSA sur ta ferme.</p>' +
-    ile('ile-casino', 'Le Casino', 'Machine à sous, roulette et course de Dragodindes.' + (dette() ? ' <b style="color:var(--rouge)">Fermé tant que ton ardoise de ' + fmt(dette()) + ' kamas n\'est pas réglée.</b>' : ''), '<span class="puce">mise max ' + fmt(miseMax()) + '</span><span class="puce">pertes max ' + fmt(plafondPertes()) + ' par jour</span>', '<button class="btn kamas" data-montgolfiere="partir"' + (dette() ? ' disabled' : '') + '>Y aller</button>') +
+    ile('ile-casino', 'Le Casino', (travaux ? '<b style="color:var(--rouge)">Fermé pour cause de travaux.</b> Le Palais du Chat Doré se prépare : il rouvre bientôt, plus grand et plus beau.' : 'Machine à sous, roulette et course de Dragodindes.') + (dette() ? ' <b style="color:var(--rouge)">Fermé tant que ton ardoise de ' + fmt(dette()) + ' kamas n\'est pas réglée.</b>' : ''), '<span class="puce">mise max ' + fmt(miseMax()) + '</span><span class="puce">pertes max ' + fmt(plafondPertes()) + ' par jour</span>', '<button class="btn kamas" data-montgolfiere="partir"' + (dette() || travaux ? ' disabled' : '') + '>' + (travaux ? 'En travaux' : 'Y aller') + '</button>') +
     ile('ile-arene', 'L\'Arène', 'Des vagues sans fin, de plus en plus dures. Ton record compte au classement de l\'alliance.', '<span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? '' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + '</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + '</span>', '<button class="btn kamas" data-montgolfiere="arene">Y aller</button>') +
     ile('ile-boss', 'L\'Île des boss', 'Toute la semaine, un nouveau chaque vendredi : un boss colossal, une vie commune pour toute l\'alliance, ' + ESSAIS_ILE_BOSS + ' essais.', '<span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span><span class="puce bonne">cette semaine</span>', '<button class="btn kamas" data-montgolfiere="ileBoss">Y aller</button>') +
     ile(null, 'Les donjons', 'Encore dans la brume.', '<span class="puce">bientôt</span>', ''));

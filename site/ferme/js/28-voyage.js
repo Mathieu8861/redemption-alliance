@@ -50,6 +50,7 @@ async function allerSur(nom) { /* le ballon decolle : le voile, l'ile chargee, p
 async function partirCasino() {
   if (!peutPartir('casino')) return;
   if (!S_.montgolfiere) return;
+  if (casinoEnTravaux()) { toast('Le Casino est fermé pour cause de travaux : il rouvre bientôt, plus grand et plus beau !', 'alerte'); return; }
   if (dette()) { toast('Le Casino t\'est fermé tant que ton ardoise n\'est pas réglée.', 'alerte'); return; }
   fermerModale();
   if (!(await allerSur('casino'))) { toast('Le ballon n\'a pas pu décoller (chargement de l\'île), réessaie.', 'alerte'); return; }
