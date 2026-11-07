@@ -59,3 +59,17 @@ function courirDore(m, depart) {
   m.position.x = ax; m.position.z = az; m.rotation.y = cap;
   m.userData.vie = { x0: bx, y0: m.position.y, z0: bz, ry0: cap, sy: m.scale.y, x: ax, z: az, ry: cap, ry1: cap, geste: 'marche', t: 0.25, d: 0.25 + dist / 5.5, ax, az, bx, bz, cap, sauts, alea: aleaTofu(graineDe(m.uuid)) };
 }
+
+/* LA MINUTERIE DU TOFU DORE (07/11/2026 au soir) : un Tofu dore toutes les 1 h 30 environ de vrai jeu (DORE_TOUTES, tire au hasard a chaque fois). Ne comptent ni
+   la deconnexion, ni la pause, ni la page cachee, ni l'absence (aucune action depuis 3 min) ; le temps compte partout (ferme, Arene, Casino...), mais il ne se pose
+   que sur la ferme, hors vague, quand aucun Tofu sauvage n'y est deja. Vrai temps (performance.now), pas l'horloge du jeu qui va jusqu'a x2. */
+const seuilDore = () => (DORE_TOUTES[0] + Math.random() * (DORE_TOUTES[1] - DORE_TOUTES[0])) * 60000;
+function majTofuDore() {
+  const t = performance.now(), d = Math.min(5000, Math.max(0, t - (majTofuDore.t || t))); majTofuDore.t = t;
+  if (!S_ || !S_.perso || enAccueil || enPause || MODE_TEST || document.hidden || Date.now() - derniereAction > 180000 || niveau(S_.xp) < NIV_TOFU_DORE) return;
+  if (!(S_.doreSeuil > 0)) S_.doreSeuil = seuilDore(); S_.doreJeu = (S_.doreJeu || 0) + d;
+  if (S_.doreJeu < S_.doreSeuil || S_.sauvage || combat || lieu !== 'ferme') return;
+  const libres = S_.cases.filter((c) => c.type === 'libre'); if (!libres.length) return;
+  S_.sauvage = { id: hasard(libres).id, fin: Date.now() + DUREE_SAUVAGE, dore: true }; S_.doreJeu = 0; S_.doreSeuil = seuilDore(); rendreSauvage(); son('niveau');
+  toast('Un TOFU DORÉ se pose dans l\'herbe ! Il est très rare : sors vite ton filet.', 'or'); sauver();
+}
