@@ -16,33 +16,59 @@ function acheterBouclier() {
   toast('Bouclier anti-VSA levé autour de ta grange : pendant 2 h, aucune simu ni voleur de VSA.', 'or'); rendreHaut(); sauver();
 }
 let domeBouclier = null;
+/* le dome (07/11/2026, refait le meme jour : « la ca fait bulle en plastique ou en verre, ca manque d'un effet un peu magique », Mathieu) : plus de remplissage
+   « verre », un champ de force : une trame d'hexagones qui luit au bord, des cases qui s'allument au hasard, des ondes d'energie qui descendent du sommet,
+   cyan en bas et violet en haut ; au sol, un cercle de runes qui tourne ; des etincelles qui montent le long du dome */
+const VS_DOME = 'varying vec3 vN; varying vec3 vV; varying vec3 vP; void main() { vP = position; vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }';
+const FS_DOME = [
+  'uniform float uT; uniform float uF; varying vec3 vN; varying vec3 vV; varying vec3 vP;',
+  'float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }',
+  'void main() {',
+  '  float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.2);',
+  '  float th = atan(vP.z, vP.x), ph = acos(clamp(vP.y, 0.0, 1.0));',
+  '  vec2 uv = vec2(th * 2.8648, ph * 7.0);',
+  '  vec2 r = vec2(1.0, 1.7320508), h = r * 0.5, a = mod(uv, r) - h, b = mod(uv - h, r) - h, gv = dot(a, a) < dot(b, b) ? a : b, id = uv - gv;',
+  '  vec2 q = abs(gv); float d = max(dot(q, vec2(0.5, 0.8660254)), q.x);',
+  '  float ligne = 1.0 - smoothstep(0.40, 0.47, d);',
+  '  float bord = smoothstep(0.38, 0.48, d);',
+  '  float hc = hash(floor(id * 10.0)); float allume = pow(0.5 + 0.5 * sin(uT * (1.2 + hc) + hc * 40.0), 14.0);',
+  '  float onde = pow(0.5 + 0.5 * sin(ph * 9.0 - uT * 2.6), 10.0);',
+  '  float pied = smoothstep(0.35, 0.0, vP.y);',
+  '  vec3 cBas = vec3(0.10, 0.72, 1.0), cHaut = vec3(0.62, 0.30, 1.0), c = mix(cBas, cHaut, smoothstep(0.1, 1.0, vP.y));',
+  '  float al = 0.035 + 0.22 * f + bord * (0.30 + 0.30 * f) + allume * 0.30 * (1.0 - bord) + onde * (0.06 + 0.22 * bord) + pied * 0.22;',
+  '  vec3 col = mix(c, vec3(1.0), bord * 0.35 + allume * 0.45 + onde * bord * 0.3);',
+  '  gl_FragColor = vec4(col, al * uF); }'].join('\n');
+function texRunes() { /* un cercle de runes dessine une fois : deux anneaux, des glyphes entre eux, des rayons */
+  const N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N; const x = cv.getContext('2d'), c = N / 2;
+  x.strokeStyle = '#ffffff'; x.fillStyle = '#ffffff'; x.lineCap = 'round';
+  [[0.97, 6], [0.84, 4], [0.62, 3]].forEach(([k, w]) => { x.lineWidth = w; x.beginPath(); x.arc(c, c, c * k, 0, Math.PI * 2); x.stroke(); });
+  const nb = 24; for (let i = 0; i < nb; i++) { const a = i / nb * Math.PI * 2, rr = c * 0.905; x.save(); x.translate(c + Math.cos(a) * rr, c + Math.sin(a) * rr); x.rotate(a + Math.PI / 2); x.lineWidth = 3.2; x.beginPath();
+    const g = i % 4; if (g === 0) { x.moveTo(-9, 10); x.lineTo(0, -12); x.lineTo(9, 10); x.moveTo(-5, 3); x.lineTo(5, 3); } else if (g === 1) { x.moveTo(0, -12); x.lineTo(0, 12); x.moveTo(-8, -4); x.lineTo(8, 4); }
+    else if (g === 2) { x.arc(0, 0, 8, 0, Math.PI * 1.6); x.moveTo(0, -12); x.lineTo(0, 12); } else { x.moveTo(-9, -9); x.lineTo(9, 9); x.moveTo(9, -9); x.lineTo(-9, 9); x.moveTo(-10, 0); x.lineTo(10, 0); }
+    x.stroke(); x.restore(); }
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; x.lineWidth = 2; x.beginPath(); x.moveTo(c + Math.cos(a) * c * 0.62, c + Math.sin(a) * c * 0.62); x.lineTo(c + Math.cos(a) * c * 0.84, c + Math.sin(a) * c * 0.84); x.stroke(); }
+  const t = new T.CanvasTexture(cv); t.anisotropy = 4; return t;
+}
 function creerDome() {
-  const g = new T.Group(), mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending,
-    uniforms: { uT: { value: 0 }, uC: { value: new T.Color('#5cc8ff') } },
-    vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vP; void main() { vP = position; vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-    fragmentShader: 'uniform float uT; uniform vec3 uC; varying vec3 vN; varying vec3 vV; varying vec3 vP;\n' +
-      'void main() { float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);\n' +
-      '  float th = atan(vP.z, vP.x), ph = acos(clamp(vP.y, -1.0, 1.0));\n' +
-      '  float gx = abs(fract(th * 3.8197) - 0.5), gy = abs(fract(ph * 4.456 + 0.5 * step(0.5, fract(th * 1.9099))) - 0.5);\n' +
-      '  float grille = (1.0 - smoothstep(0.0, 0.05, min(gx, gy))) * 0.22;\n' +
-      '  float bande = smoothstep(0.12, 0.0, abs(fract(vP.y * 0.9 - uT * 0.18) - 0.5) - 0.38) * 0.25;\n' +
-      '  float a = 0.05 + 0.6 * f + grille + bande * (0.4 + f);\n' +
-      '  gl_FragColor = vec4(uC * (0.6 + 0.8 * f), a * (0.85 + 0.15 * sin(uT * 2.2))); }' });
-  const d = new T.Mesh(new T.SphereGeometry(1, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2), mat); d.renderOrder = 6; g.add(d);
-  const anneau = new T.Mesh(new T.RingGeometry(0.96, 1.0, 72), new T.MeshBasicMaterial({ color: '#8fdcff', transparent: true, opacity: 0.7, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
-  anneau.rotation.x = -Math.PI / 2; anneau.position.y = 0.06; anneau.renderOrder = 6; g.add(anneau);
-  g.traverse((o) => { o.raycast = () => {}; }); g.userData = { mat, anneau, t: 0 }; scene.add(g); return g;
+  const g = new T.Group(), add = { transparent: true, depthWrite: false, side: T.DoubleSide }; /* (melange normal : en additif, sur le sol clair, tout virait au blanc laiteux) */
+  const mat = new T.ShaderMaterial(Object.assign({ uniforms: { uT: { value: 0 }, uF: { value: 0 } }, vertexShader: VS_DOME, fragmentShader: FS_DOME }, add));
+  const d = new T.Mesh(new T.SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), mat); d.renderOrder = 6; g.add(d);
+  const runes = new T.Mesh(new T.CircleGeometry(1.0, 64), new T.MeshBasicMaterial(Object.assign({ map: texRunes(), color: '#29b8ff', opacity: 0.8 }, add))); runes.rotation.x = -Math.PI / 2; runes.position.y = 0.07; runes.renderOrder = 6; g.add(runes);
+  const halo = new T.Mesh(new T.RingGeometry(0.9, 1.06, 72), new T.MeshBasicMaterial(Object.assign({ color: '#8a5cff', opacity: 0.5 }, add))); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.08; halo.renderOrder = 6; g.add(halo);
+  g.traverse((o) => { o.raycast = () => {}; }); g.userData = { mat, runes, halo, t: 0, f: 0, etin: 0, R: 1 }; scene.add(g); return g;
 }
 function majBouclier(dt, s) { /* le dome autour de la grange, tant que le bouclier tient ; un message quand il s'eteint */
   if (!S_) return;
   if (S_.bouclierVsa && Date.now() >= S_.bouclierVsa) { S_.bouclierVsa = 0; toast('Ton bouclier anti-VSA s\'est éteint : les voleurs de VSA peuvent revenir.', 'alerte'); sauver(); }
   if (!bouclierActif()) { if (domeBouclier) { jeter(domeBouclier); domeBouclier = null; } return; }
-  if (!domeBouclier) { domeBouclier = creerDome(); domeBouclier.userData.t = 0; }
-  const D = domeBouclier, u = D.userData; u.t -= dt;
+  if (!domeBouclier) domeBouclier = creerDome();
+  const D = domeBouclier, u = D.userData; u.t -= dt; u.f = Math.min(1, u.f + dt / 1.2); /* (il se leve en 1,2 s) */
   if (u.t <= 0) { u.t = 1; const G = S_.cases.filter((c) => c.type === 'grange').map(posCase); D.visible = G.length > 0 && lieu === 'ferme';
-    if (G.length) { const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length, R = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 1.4 * S;
-      D.position.set(x, solA(x, z), z); D.children[0].scale.set(R, R * 0.9, R); u.anneau.scale.setScalar(R); } }
-  u.mat.uniforms.uT.value = s; u.anneau.material.opacity = 0.45 + 0.3 * Math.sin(s * 2.2);
+    if (G.length) { const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length; u.R = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 1.4 * S;
+      D.position.set(x, solA(x, z), z); D.children[0].scale.set(u.R, u.R * 0.9, u.R); u.runes.scale.setScalar(u.R * 1.04); u.halo.scale.setScalar(u.R); } }
+  u.mat.uniforms.uT.value = s; u.mat.uniforms.uF.value = u.f; u.runes.rotation.z = s * 0.12; u.runes.material.opacity = (0.55 + 0.25 * Math.sin(s * 1.7)) * u.f; u.halo.material.opacity = (0.35 + 0.2 * Math.sin(s * 2.3 + 1)) * u.f;
+  if (D.visible && (u.etin += dt) > 0.07) { u.etin = 0; const a = Math.random() * Math.PI * 2, h = Math.random() * 0.85, rr = u.R * Math.sqrt(1 - h * h); /* (des etincelles qui montent le long du dome) */
+    emettre(FX_LUM, 1, { x: D.position.x + Math.cos(a) * rr, y: D.position.y + h * u.R * 0.9, z: D.position.z + Math.sin(a) * rr, v: [0, 0.7, 0], vie: [0.9, 1.6], taille: [0.28, 0.04], c: [Math.random() < 0.5 ? '#bdf3ff' : '#d4c2ff', '#7a8cff'], a: 0.85, entree: 0.25 }); }
 }
 let simuEnAttente = false;
 function proposerSimu() {
