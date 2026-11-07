@@ -30,7 +30,7 @@ const FAMILLES_COUP = ['coup', 'tourbillon'];
 const FAMILLES_GESTE = ['coup', 'tir', 'sort', 'bond', 'fouet', 'toupie', 'ruee']; /* (les monstres sans marteau : l'instant du coup, celui ou une main ou un pied va le plus vite ; fouet, toupie et ruee : les sorts des boss du 28/10/2026) */
 const BOUTS = ['mixamorigRightHand', 'mixamorigLeftHand', 'mixamorigRightFoot', 'mixamorigLeftFoot', 'mainD', 'mainG', 'queue7', 'griffeD', 'griffeG']; /* (griffeD, griffeG : les branches de l'Abraknyde, 05/11/2026) */ /* (mainD, mainG, queue7 : les pattes et le bout de la queue du Lemurien) */
 const MAT_CONTOUR_SQ = (() => { const m = new T.MeshBasicMaterial({ color: '#3a2b1f', side: T.BackSide, skinning: true });
-  m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(objectNormal) * 0.006;'); }; m.customProgramCacheKey = () => 'contour-squelette'; return m; })();
+  m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(normal) * 0.006;'); }; m.customProgramCacheKey = () => 'contour-squelette'; /* (07/11/2026 : « normal » et non « objectNormal », qui n'existe pas dans un MeshBasicMaterial sans carte d'environnement : le shader ne compilait pas et le contour ne s'est jamais dessine depuis le 26/10) */ return m; })();
 /* le rendu du jeu : la peau en toon, texture prise telle quelle, sans ombre recue (elle faisait des taches « feuillage »), un contour qui suit le
    squelette ; le marteau, fait main, passe par versToon comme les autres modeles */
 function preparerSquelette(sc) {
