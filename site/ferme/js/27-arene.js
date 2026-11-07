@@ -67,6 +67,10 @@ const DOS_CARTE = `<svg viewBox="0 0 120 120"><g stroke="#3b2a1a" stroke-width="
   <path d="M34 36 78 80M86 36 42 80" stroke="#fffaf0" stroke-width="9"/><path d="M34 36 78 80M86 36 42 80" stroke="#3b2a1a" stroke-width="3" fill="none"/>
   <path d="M74 84l10-4-4 10ZM46 84l-10-4 4 10Z" fill="#f2b630"/></g></svg>`;
 const bonusA = () => (combat && combat.genre === 'arene' && combat.arene && combat.arene.bonus) || null; /* (les bonus pris dans cette partie) */
+/* LA PROSPECTION DANS L'ARENE (07/11/2026, « a la limite la prospection compte pas en arene ? », puis « parfait » pour le juste milieu, Mathieu ; Madazoo, 157 de Prospection,
+   avait 8 runes en 31 vagues) : celle de l'equipement ne compte plus, seule celle de la partie compte (la carte Flair, +20 chacune, et le repas de Fraise, +30) ;
+   pour les runes et les pieces des monstres et pour les coffres des boss. Sur la ferme, dans les vagues et sur l'ile, rien ne change */
+const prosArene = () => 1 + ((((combat && combat.boostPros) || 0) + 20 * ((bonusA() || {}).butin || 0)) / 100);
 const nbBonus = (id) => { try { return (bonusA() || {})[id] || 0; } catch (e) { return 0; } };
 function tirerBonusArene() { const L = Object.keys(BONUS_ARENE); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L.slice(0, 3); }
 function prendreBonusArene(id) {
@@ -455,7 +459,7 @@ function ouvrirArene() {
     '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : à 10 vagues, tu récupères environ les deux tiers de ton ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
     '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur la caractéristique de ton choix) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
     '<li><b>Les monstres lâchent des pièces</b> : dès la 5e vague, 0,25 % de chance par monstre d\'une pièce de <b>sa</b> panoplie (un Bouftou, une pièce du Bouftou), avec un jet de 50 % au moins. De quoi revendre à l\'HDV.</li>' +
-    '<li><b>Le coffre de chaque boss</b> (toutes les 5 vagues) : des kamas ; dès le boss de la 5e, 30 % de chance d\'une pièce de ta panoplie, <b>avec un jet jamais sous la moyenne</b> ; 2 % de chance de runes de forgemagie ; dès le boss de la 10e aussi, 2 % de chance de <b>rune parfaite</b> (jet maximum). Ta Prospection augmente ces chances.</li>' +
+    '<li><b>Le coffre de chaque boss</b> (toutes les 5 vagues) : des kamas ; dès le boss de la 5e, 30 % de chance d\'une pièce de ta panoplie, <b>avec un jet jamais sous la moyenne</b> ; 2 % de chance de runes de forgemagie ; dès le boss de la 10e aussi, 2 % de chance de <b>rune parfaite</b> (jet maximum). Ici, seule la Prospection de la partie augmente ces chances (la carte Flair, le repas de Fraise) : celle de ton équipement ne compte pas dans l\'Arène.</li>' +
     '<li><b>Ton record de la semaine</b> compte au classement de l\'alliance, pour l\'honneur.</li>' +
     '<li>Tomber ne coûte rien de plus : tu gardes tout ce que tu as gagné et tu rentres avec la vie que tu avais en entrant. Le bouton Fuir arrête la partie quand tu veux.</li></ul>' + blocVie() + sectionRepas('arene') +
     '<div class="hdv-section">Classement de la semaine (' + sem.replace('-S', ', semaine ') + ')</div><div id="arene-classement"><p class="hdv-aide">Chargement…</p></div>' +
@@ -495,7 +499,7 @@ function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du bo
   const gagneRune = (t, nb) => { runes()[t] = (runes()[t] || 0) + nb; c.arene.runes[t] = (c.arene.runes[t] || 0) + nb; };
   if (k % 5 === 0) { /* le coffre du boss : des kamas (deux fois la vague) ; des le boss de la 10e, 30 % de chance d'une piece de ta panoplie (50 % avant le 19/10/2026) ; 2 % de runes de forgemagie
        (1 a la 5e vague, 2 a la 10e, 3 a la 20e) ; des la 10e, 2 % de rune parfaite. La piece tombe avec un jet jamais sous la moyenne (JET_ARENE) */
-    const pros = 1 + caracs().prospection / 100, nf = 1 + Math.floor(k / 10), bonus = 2 * g.kamas, dans = ['+' + fmt(bonus) + ' kamas'];
+    const pros = prosArene(), nf = 1 + Math.floor(k / 10), bonus = 2 * g.kamas, dans = ['+' + fmt(bonus) + ' kamas'];
     S_.kamas += bonus; c.arene.kamas += bonus;
     if (k >= 5 && Math.random() < PIECE_COFFRE * pros) { const id = tirerPiece(panoAuHasard(palierCourant()), pros); /* (des le boss de la 5e depuis le 20/10/2026, la 10e avant) */
       const cle = donnerObjet(id, JET_ARENE); c.arene.objets.push(cle); pieceCoffre = cle; dans.push((OBJETS[id].rare ? '★ ' : '') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)'); }

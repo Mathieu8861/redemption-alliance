@@ -466,7 +466,7 @@ function expliquerCarac(k, st) {
     puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
     agilite: ['Agilité', 'Te fait attaquer plus vite : ' + c.agilite + ' % de coups en plus (' + virg(st.base.cadence) + ' s entre deux coups sans elle, ' + virg(st.cadence) + ' s avec).'],
     sagesse: ['Sagesse', 'Te fait gagner plus d\'expérience : +' + c.sagesse + ' % sur tout ce qui en rapporte (récoltes, vagues gagnées, défis, Tofus).'],
-    prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %.']
+    prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %. Dans l\'Arène, celle de ton équipement ne compte pas : seules la Fraise et la carte Flair y comptent.']
   }[k];
   const src = [];
   if (['vita', 'puissance', 'agilite', 'sagesse', 'prospection'].includes(cle)) {
