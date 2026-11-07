@@ -168,14 +168,14 @@ function ouvrirGeliere() {
 }
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;
    l'Osamodas vise ou poser son Bouftou, qui retombe en frappant autour de lui, au lieu d'un Bouftou qui sortait tout seul et restait en permanence */
-let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, RECHARGE_INVOC = 10, DUREE_INVOC = 12, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
+let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, SOIN_BOND_MAX = 0.1 /* (le soin du Bond : 3 % par monstre touche, 10 % au plus depuis le 07/11/2026 au soir, 12 % avant ; « le bond du Iop qui regen au max 10 % des PV », Mathieu) */, RECHARGE_INVOC = 10, DUREE_INVOC = 12, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
 /* le Iop au corps a corps (30/10/2026 au soir, « le Iop, faut absolument faire quelque chose, etre corps a corps ca pique trop », Mathieu) : son coup d'epee
    balaie aussi les monstres colles a sa cible (BALAYAGE_IOP de ses degats, a RAYON_BALAYAGE de la cible ; 21-combat.js, coupIop). Puis le kit voulu par
    Mathieu le meme soir, a la place d'un vol de vie de 8 % (« moi je mettrais pas du vol de vie, mais de la regeneration, +1 % toutes les 3 secondes ;
    son ultimate au declenchement le rend invincible pendant 3 secondes ; et sous 50 % de ses HP il gagne degats x2 ») : REGEN_IOP toutes les PAS_REGEN_IOP s
    (23-fin-combat.js), INVINCIBLE_IOP s a chaque ulti (22-sorts.js, blesserPerso), le Berserker sous SEUIL_BERSERKER_IOP de vie (statsPerso ; « Colère du Iop, non, ça c'est un ultime, appelle-le Berserker », Mathieu, 31/10/2026).
    let : les tests les changent pour comparer */
-let BALAYAGE_IOP = 0.5, REGEN_IOP = 0.01, PAS_REGEN_IOP = 4, INVINCIBLE_IOP = 2.5, SEUIL_BERSERKER_IOP = 0.5, BERSERKER_IOP = 1.5; /* (06/11/2026, « un petit nerf, la classe est trop broken », Mathieu : regeneration toutes les 4 s au lieu de 3, Berserker x1,5 au lieu de x2, Peau de Iop sur les coups de loin seulement ; puis l'ulti : invincible 2,5 s au lieu de 3, recharge 24 s, 22-sorts.js) */ const RAYON_BALAYAGE = 1 * S;
+let BALAYAGE_IOP = 0.5, REGEN_IOP = 0.01, PAS_REGEN_IOP = 6 /* (4 avant le 07/11/2026 au soir : « 6 K de PV, ca se regen a mort ; mets la regen a 1 % toutes les 6 secondes pour le Iop », Mathieu) */, INVINCIBLE_IOP = 2.5, SEUIL_BERSERKER_IOP = 0.5, BERSERKER_IOP = 1.5; /* (06/11/2026, « un petit nerf, la classe est trop broken », Mathieu : regeneration toutes les 4 s au lieu de 3, Berserker x1,5 au lieu de x2, Peau de Iop sur les coups de loin seulement ; puis l'ulti : invincible 2,5 s au lieu de 3, recharge 24 s, 22-sorts.js) */ const RAYON_BALAYAGE = 1 * S;
 const RECHARGE_PERCANTE = 20; /* (la Fleche percante du Cra : 20 s, elle traverse toute une ligne a 3 fois les degats ; avant le 16/10/2026 : 30 monstres a abattre) */
 const rechargeSort = () => classeDe() === 'osa' ? RECHARGE_INVOC : classeDe() === 'cra' ? RECHARGE_PERCANTE : RECHARGE_SORT;
 /* le rythme : la vague suivante se prepare un moment apres chaque victoire (plus longtemps aux paliers eleves), et il faut un niveau
