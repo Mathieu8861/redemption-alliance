@@ -259,7 +259,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
   classementIleBoss(cle).then((r) => { const e = document.getElementById('ileboss-classement'); if (!e) return; ileBossTotal = r ? r.total : null; ileBossListe = r ? r.joueurs : null;
     if (!r) { e.innerHTML = '<p class="hdv-aide">Le classement s\'affiche quand tu joues connecté à ton compte.</p>'; return; }
     e.innerHTML = r.joueurs.length ? r.joueurs.slice(0, 10).map((j, i) => '<div class="rc-l' + (j.moi ? ' moi' : '') + '"><span>' + (i < 3 ? '<span class="rang r' + (i + 1) + '">' + (i + 1) + '</span>' : (i + 1) + '.') + ' ' + echapper(j.nom) + '</span><b>' + fmt(j.degats) + '</b></div>').join('') : '<p class="hdv-aide">Personne n\'a encore frappé : à toi l\'honneur !</p>';
-    const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / pvIleBoss(t)).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, PV_ILE_BOSS - r.total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV'; } });
+    const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / pvIleBoss(t)).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, pvIleBoss(t) - r.total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV'; } });
 }
 async function partirIleBoss() {
   const cle = semaineIleBoss();
