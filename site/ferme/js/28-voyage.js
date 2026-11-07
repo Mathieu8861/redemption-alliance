@@ -64,6 +64,7 @@ async function rentrerFerme() {
   if (lieu === 'ferme') return; if (combat) return;
   if (course) { toast('Attends la fin de la course.'); return; }
   fermerModale(); $('voile').classList.add('on'); await attendreMs(700);
+  S_.cases.forEach((c) => { if (c.tofu) c.tofu = Date.now(); }); /* (un nuisible deja la au depart : son delai repart a zero au retour, on n'a pas pu le chasser) */
   lieu = 'ferme'; casinoDedans = false; if (angleAvantSalle != null) { angleCam = angleAvantSalle; angleAvantSalle = null; } montrerIles(); /* (les iles ne sont plus dessinees ni animees une fois rentre) */ casinoMarche = null; $('casino-barre').hidden = true; $('hud').classList.remove('au-casino'); if (modaleOuverte) { areneSuite = true; fermerModale(); areneSuite = false; }
   const libres = S_.cases.filter((c) => PASSABLE[c.type]).map((c) => [c, posCase(c)]).sort((a, b) => Math.hypot(a[1].x - POS_MONTGOLFIERE.x, a[1].z - POS_MONTGOLFIERE.z) - Math.hypot(b[1].x - POS_MONTGOLFIERE.x, b[1].z - POS_MONTGOLFIERE.z));
   if (libres[0]) { const [c, q] = libres[0], u = paysanMesh.userData; u.cellule = c; u.y = hauteurSol(q.x, q.z, c); paysanMesh.position.set(q.x, u.y, q.z); u.angle = Math.atan2(POS_MONTGOLFIERE.x - q.x, POS_MONTGOLFIERE.z - q.z); }

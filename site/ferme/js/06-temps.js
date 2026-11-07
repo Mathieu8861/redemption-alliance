@@ -16,7 +16,7 @@ function avancer(maintenant, enDirect) {
       if (p.pousse >= d) p.pretDepuis = maintenant;
       if (etape(p) !== avant) ch.add(p.id);
     }
-    if (direct) { /* les nuisibles des champs : les Tofus, et apres la vague 50 les Wabbits sur les Cawottes et les Fraises (02-donnees.js, WABBIT_MANGE) */
+    if (direct && lieu === 'ferme') { /* (08/11/2026 : rien n'arrive dans les champs pendant un voyage, on ne peut pas les chasser) les nuisibles des champs : les Tofus, et apres la vague 50 les Wabbits sur les Cawottes et les Fraises (02-donnees.js, WABBIT_MANGE) */
       if (!p.tofu) {
         const lapin = mangeWabbit(p.c), pret = recolte(p) > 1 && maintenant - (p.tofuParti || 0) > ACCALMIE_TOFU;
         if (pret && lapin && wabbitsDehors() < WABBITS_MAX && Math.random() < dt / RYTHME_WABBIT) arriveeWabbit(p, maintenant, ch); /* (l'epouvantail ne leur fait pas peur ; le leurre les attire peut-etre : 14b-leurre.js) */
@@ -54,7 +54,7 @@ function avancer(maintenant, enDirect) {
     if (nD > 0) { const maxD = nD * plumesParTofu(); if ((v.plumesD || 0) < maxD) { v.accuD = (v.accuD || 0) + dt * nD; while (v.accuD >= CADENCE_PLUME && v.plumesD < maxD) { v.plumesD = (v.plumesD || 0) + 1; v.accuD -= CADENCE_PLUME; sauv = true; } if (v.plumesD >= maxD) v.accuD = 0; } }
     if (v.plumes < max) { v.accu += dt * nN; while (v.accu >= CADENCE_PLUME && v.plumes < max) { v.plumes++; v.accu -= CADENCE_PLUME; sauv = true; } if (v.plumes >= max) v.accu = 0; } /* (« bug sur le spawn de plume », testeurs, 12/10/2026 : l'horloge avancait au meme pas avec 1 ou 6 Tofus) */
   }
-  if (direct) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
+  if (direct && lieu === 'ferme') { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet (pas pendant un voyage, 08/11/2026) */
     if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
     else if (!S_.sauvage && Math.random() < (dt / MIN) / 2.25 * freinTofus()) {
       const libres = S_.cases.filter((c) => c.type === 'libre');

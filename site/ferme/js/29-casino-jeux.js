@@ -13,6 +13,27 @@ function zoneCasino(x, z) { /* le jeu touche, d'apres le point de l'ile (l'expor
   if (Math.hypot(x, z) < 4.2) return 'fontaine';
   return null;
 }
+/* LES CURIOSITES (08/11/2026, « teste tout comme un joueur qui veut prendre du plaisir a jouer », Mathieu) : ce qui ne se joue pas a quand meme quelque chose
+   a dire ; on y va, on le regarde, un petit mot. [x, z, rayon, texte], sur l'ile puis dans le hall */
+const CURIOSITES = [
+  [-14, -12, 3.2, 'Le kiosque à musique du palais. Les soirs de gros gain, on dit qu\'un orchestre de chats y joue jusqu\'à l\'aube.'],
+  [-21, -8, 1.5, 'Un kama géant en or massif. Personne n\'a jamais réussi à le soulever... ni à le dépenser.'],
+  [-18.2, 8.4, 2.4, 'Des dés et des cartes géants : le Chat Doré y jouait avec les dragons, les soirs de pleine lune.'],
+  [-25.6, 4.0, 1.0, 'Les chats d\'or gardent l\'entrée de l\'île. Ils ont l\'œil sur ta bourse.'], [-25.6, -4.0, 1.0, 'Les chats d\'or gardent l\'entrée de l\'île. Ils ont l\'œil sur ta bourse.'],
+  [17, 0, 3.6, 'Le bassin des jardins. On dit que ses lotus ne s\'ouvrent que pour les grands gagnants.'],
+  [26, 0, 1.6, 'L\'eau du canal se jette dans le vide, sous les nuages. Un kama lancé ici ne revient jamais.'],
+  [16, 12, 2.9, 'Les écuries des Dragodindes. On entend Rousse taper du sabot : elle a hâte de courir.'],
+  [9.5, -16.9, 1.2, 'Un coffre qui déborde de kamas. Pas touche : les gros bras veillent.'], [-9.5, -16.9, 1.2, 'Un coffre qui déborde de kamas. Pas touche : les gros bras veillent.'], [15.5, -9.4, 1.2, 'Un coffre qui déborde de kamas. Pas touche : les gros bras veillent.'],
+  [8.6, -20.5, 2.0, 'Une tour du palais. Tout là-haut, le kama doré sert de girouette.'], [-8.6, -20.5, 2.0, 'Une tour du palais. Tout là-haut, le kama doré sert de girouette.'],
+];
+const CURIOSITES_SALLE = [
+  [-12.9, -1.0, 4.8, 'La grande tapisserie : le Chat Doré lance ses dés face au dragon, et la fortune change de camp.'],
+  [-9.2, -9.6, 1.0, 'Doré Ier, le fondateur : un chat de gouttière qui gagna l\'île en un seul lancer de dés.'],
+  [-5.0, -9.6, 1.0, 'Doré II, dit le Magnifique : il fit couler la fontaine et creuser le canal.'],
+  [-12.9, 6.4, 1.0, 'Doré III, dit l\'Ombre : on raconte qu\'il n\'a jamais perdu à la roulette. Personne ne sait comment.'],
+  [10.2, 7.6, 2.0, 'Un petit salon pour souffler entre deux parties. Les coussins sentent la menthe et l\'or.'],
+];
+const curiosite = (L, x, z) => L.find(([a, b, r]) => Math.hypot(x - a, z - b) < r);
 function aller(x, z, lx, lz, fn) { /* marcher jusqu'a (x, z) de l'ile (ou de la salle du palais), par les allees, puis regarder (lx, lz) et faire fn */
   const O = origineCasino(), px = paysanMesh.position.x - O.x, pz = paysanMesh.position.z - O.z, ch = (casinoDedans ? cheminSalle : cheminCasino)(px, pz, x, z) || [[x, z]];
   casinoMarche = { pts: ch, i: 0, vers: lx != null ? { x: O.x + lx, z: O.z + lz } : null, fn, O };
@@ -26,6 +47,7 @@ function clicCasino(hits) {
     const lx = h.point.x - CASINO.x, lz = h.point.z - CASINO.z, jeu = zoneCasino(lx, lz);
     if (jeu === 'fontaine') { const px = paysanMesh.position.x - CASINO.x, pz = paysanMesh.position.z - CASINO.z, a = Math.atan2(pz, px); aller(Math.cos(a) * 5.7, Math.sin(a) * 5.7, 0, 0, () => ouvrirJeu('fontaine')); return; } /* (au bord, du cote ou l'on arrive) */
     if (jeu) { const [x, z, vx, vz] = SPOTS[jeu]; aller(x, z, vx, vz, () => ouvrirJeu(jeu)); return; }
+    const cu = curiosite(CURIOSITES, lx, lz); if (cu) { aller(cu[0], cu[1], cu[0], cu[1], () => toast(cu[3])); return; }
     aller(lx, lz, null, null, null); return;
   }
 }
@@ -70,7 +92,7 @@ async function chargerSalle() {
 async function entrerPalais() {
   $('voile').classList.add('on'); fermerModale();
   try { await Promise.all([chargerSalle(), attendreMs(700)]); } catch (e) { $('voile').classList.remove('on'); ouvrirSalle(); return; } /* (le hall n'a pas pu se charger : le vestibule, comme avant) */
-  casinoDedans = true; casinoMarche = null; montrerIles();
+  casinoDedans = true; casinoMarche = null; montrerIles(); majBarreCasino();
   const u = paysanMesh.userData, [x, z] = SALLE_PLACES.porte; paysanMesh.position.set(SALLE_CASINO.x + x, SALLE_CASINO.y, SALLE_CASINO.z + z); u.y = SALLE_CASINO.y; u.angle = Math.PI; paysanMesh.rotation.y = u.angle;
   angleAvantSalle = angleCam; angleCam = ANGLE_DEPART; /* (la salle se regarde du sud-est : ses murs hauts sont au nord et a l'ouest) */
   zoom = 0.8; cadrer(); VISEE.set(SALLE_CASINO.x + 0.6, 0.6, SALLE_CASINO.z + 1.0); placerCamera(); soleilVers(SALLE_CASINO); rendu.shadowMap.needsUpdate = true;
@@ -79,7 +101,7 @@ async function entrerPalais() {
 }
 async function sortirPalais() {
   $('voile').classList.add('on'); fermerModale(); await attendreMs(600);
-  casinoDedans = false; casinoMarche = null; montrerIles();
+  casinoDedans = false; casinoMarche = null; montrerIles(); majBarreCasino();
   const u = paysanMesh.userData, [x, z] = SPOTS.casino; paysanMesh.position.set(CASINO.x + x, CASINO.y, CASINO.z + z); u.y = CASINO.y; u.angle = 0; paysanMesh.rotation.y = 0;
   if (angleAvantSalle != null) { angleCam = angleAvantSalle; angleAvantSalle = null; }
   zoom = Math.max(0.6, Math.min(zoom, 1)); cadrer(); VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z + 4); placerCamera(); soleilVers(CASINO); rendu.shadowMap.needsUpdate = true;
@@ -89,16 +111,19 @@ function clicSalle(hits) {
   for (const h of hits) {
     let o = h.object, perso = false, dans = false; while (o) { if (o === paysanMesh) perso = true; if (o === salleCasino) dans = true; o = o.parent; }
     if (perso || !dans) continue;
-    const lx = h.point.x - SALLE_CASINO.x, lz = h.point.z - SALLE_CASINO.z, j = zoneSalle(lx, lz);
+    const lx = h.point.x - SALLE_CASINO.x, lz = h.point.z - SALLE_CASINO.z, ly = h.point.y - SALLE_CASINO.y;
+    if (ly > 2.2) { const cm = curiosite(CURIOSITES_SALLE, lx, lz); if (cm) { aller(cm[0], cm[1], cm[0], cm[1], () => toast(cm[3])); return; } } /* (ce qui est accroche haut au mur passe avant ce qui est au sol dessous : le portrait au-dessus du coffre) */
+    const j = zoneSalle(lx, lz);
     if (j && j.startsWith('machine')) { const z = MACHINES_SALLE[+j.slice(7)]; aller(-10.7, z, -11.7, z, () => ouvrirJeuSalle('machine')); return; }
     if (j) { const [x, z, vx, vz] = SALLE_PLACES[j]; aller(x, z, vx, vz, () => ouvrirJeuSalle(j)); return; }
+    const cu = curiosite(CURIOSITES_SALLE, lx, lz); if (cu) { aller(cu[0], cu[1], cu[0], cu[1], () => toast(cu[3])); return; }
     aller(lx, lz, null, null, null); return;
   }
 }
 const LEGENDE_CHAT = 'Il y a bien longtemps, un chat de gouttière nommé Doré gagna une île entière en un seul lancer de dés : un double six, contre un dragon qui misait tout son trésor. Avec l\'or du dragon, il fit bâtir ce palais et jura que chacun y aurait sa chance. Ses descendants tiennent toujours la maison : ce sont eux, sur les portraits du hall. On raconte que le Chat Doré n\'a jamais perdu une partie... sauf contre sa propre queue.';
 function ouvrirJeuSalle(j) {
   if (j === 'porte') sortirPalais(); else if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else if (j === 'blackjack') ouvrirBlackjack();
-  else if (j === 'bar') ouvrirBar(); else if (j === 'accueil') ouvrirCasinoInfo();
+  else if (j === 'bar') ouvrirBar(); else if (j === 'accueil') ouvrirCasinoInfo('L\'accueil du palais');
   else if (j === 'statue') toast('Le Chat Doré, fondateur du palais. On dit qu\'il n\'a jamais perdu une partie... sauf contre sa propre queue.');
   else if (j === 'coffre') toast('Le coffre du jackpot : ' + fmt(etatCasino().jackpot) + ' kamas. Il tombe avec trois Jackpots à la machine à sous.', 'or');
 }
@@ -258,9 +283,9 @@ function majCourse(dt) {
 }
 
 /* ---------- le casino lui-meme : le bilan ---------- */
-function ouvrirCasinoInfo() {
+function ouvrirCasinoInfo(titre) {
   const c = etatCasino(), st = S_.stats || {};
-  ouvrirModale('casino', entete('Le Casino') + '<div class="art">' + ico('kama') + '<div><b>Ton bilan</b><div class="puces"><span class="puce">misé en tout : ' + fmt(st.casinoMises || 0) + '</span><span class="puce">gagné en tout : ' + fmt(st.casinoGains || 0) + '</span><span class="puce">courses : ' + (st.courses || 0) + '</span></div></div><div></div></div>' +
+  ouvrirModale('casino', entete(titre || 'Le Casino') + '<div class="art">' + ico('kama') + '<div><b>Ton bilan</b><div class="puces"><span class="puce">misé en tout : ' + fmt(st.casinoMises || 0) + '</span><span class="puce">gagné en tout : ' + fmt(st.casinoGains || 0) + '</span><span class="puce">courses : ' + (st.courses || 0) + '</span></div></div><div></div></div>' +
     '<div class="art">' + ico('jackpot') + '<div><b>Le jackpot : ' + fmt(c.jackpot) + ' kamas</b><div class="desc">Il grossit de 5 % de chaque mise à la machine à sous, et tombe avec 3 Jackpots.</div></div><div></div></div>' +
     '<div class="art">' + ico('cadenas') + '<div><b>Les règles de la maison</b><div class="desc">Mise maximale ' + fmt(miseMax()) + ' kamas (elle monte avec ton niveau). Pertes plafonnées à ' + fmt(plafondPertes()) + ' kamas par jour : aujourd\'hui ' + fmt(perteJour()) + '. Comme dans un vrai casino, la maison garde un petit avantage.</div></div><div></div></div>');
 }
