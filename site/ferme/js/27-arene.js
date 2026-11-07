@@ -210,7 +210,7 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
   return g;
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi : chaque semaine de l'ile commence ce jour-la ; let : les tests le changent) */
-const ESSAIS_ILE_BOSS = 5 /* (5 depuis le 06/11/2026, « qu'on puisse le retry 5 fois au lieu de 3 », Mathieu) */, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
+const ESSAIS_ILE_BOSS = 5 /* (5 depuis le 06/11/2026, « qu'on puisse le retry 5 fois au lieu de 3 », Mathieu) */, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 15 /* (15 s depuis le 07/11/2026 au soir, « mets l'enragement pour tous les boss toutes les 15 secondes », Mathieu ; 30 avant) */, pas: 0.05 }; /* (3 essais par compte et par semaine) */
 /* LA VIE D'UN BOSS DE L'ILE, BOSS PAR BOSS (07/11/2026, « rajoute 1 million de PV sur le Craqueleur legendaire, il est trop faible contre le Iop, Mada peut le tuer solo », Mathieu) :
    les autres gardent PV_ILE_BOSS. Pour une semaine deja passee, on lit le boss qu'elle avait (J.boss) */
 const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000 }, pvIleBoss = (t) => PV_ILE_BOSS_PAR[t] || PV_ILE_BOSS;
