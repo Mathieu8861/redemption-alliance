@@ -337,12 +337,12 @@ const AUTO_BOSS = [1, 1, 1.75, 2.04, 2.49, 1.82, 1.93, 2.04, 2.09], AUTO_DIFFICI
    auto (coup ou tir) enlevait environ 1 % des PV d'un Iop de leur niveau (panoplie complete du palier, jet moyen) ; a 4 % comme les boss. Calcule sur leurs vagues :
    Gorgouille 29 aux vagues 75 et 80 (x4,1), Kanniboul Ebil 31 a la 85 (x3,5), Tortue Corail 32 a la 90 (x3,5). Leurs sorts ne bougent pas */
 const AUTO_DEMI = { gorgouille: 5.17, kannibEbil: 5.16, tortueCorail: 4.69 }; /* (puis le meme soir, Mathieu : « Gorgouille a 150 les autos, Kanniboul a 160 et Tortue a 150 ») */
-const autoFiche = (d, t, n) => d.boss ? (d.demi ? AUTO_DEMI[t] || 1 : AUTO_BOSS[palierDe(n)] || 1) : 1; /* (la fiche et la carte de la vague) */
+const autoFiche = (d, t, n) => d.boss ? (d.demi ? AUTO_DEMI[t] || 1 : (AUTO_BOSS[palierDe(n)] || 1) * (d.autoX || 1)) : 1; /* (la fiche et la carte de la vague) */
 function autoBoss(mo) {
   if (!combat || combat.genre !== 'vague' || !mo || !mo.d.boss || mo.invoque) return 1;
   if (mo.d.demi) return (AUTO_DEMI[mo.type] || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1);
   const P = combat.difficile && combat.rejoueBoss != null ? palierDe(vagueRefDifficile(niveau(S_.xp))) : palierDe(combat.n);
-  return (AUTO_BOSS[P] || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1);
+  return (AUTO_BOSS[P] || 1) * (mo.d.autoX || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1); /* (autoX : Moon, ses coups directs a 220, 07/11/2026) */
 }
 /* la Cawotte et la Fraise (« une nouvelle recolte qui donne un boost », Mathieu, 11/10/2026) : on en mange une avant de lancer, pour cette vague seulement */
 function sectionRepas(quand) { /* quand : 'arene' ou 'ile' (07/11/2026, les repas aussi a l'entree de l'Arene et de l'ile des boss), sinon la vague */
@@ -2395,7 +2395,7 @@ function majMonstre(mo, dt, s) {
         if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
         else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat); } /* (le perso s'est colle a lui pendant son geste : rien ne part) */
         else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg * autoBoss(mo), mo); effetsCoup(mo); } }; /* (autoBoss : les autos des boss, 07/11/2026) */
-      if ((mo.d.marteau || mo.d.poings) && m.userData.anim && !bat) coupMarteau(mo); /* (Moon, et le Gorille roi avec ses poings : le coup tombe a l'impact, 22c-squelettes.js) */
+      if ((mo.d.marteau || mo.d.poings) && m.userData.anim && !bat && !(mo.d.coupDirect && (mo.direct = !mo.direct))) coupMarteau(mo); /* (coupDirect : une attaque sur deux, Moon frappe direct, sans cercle, 07/11/2026) */ /* (Moon, et le Gorille roi avec ses poings : le coup tombe a l'impact, 22c-squelettes.js) */
       else if (m.userData.anim) attaqueSquelette(mo, mo.d.distance ? 'tir' : 'coup', frapper); /* (les Kannibouls et les Tortues : a l'instant de leur geste) */
       else if (mo.d.coups && !bat) coupLourd(mo, portee, frapper); /* (le Dragon Cochon : ses trois coups, 01/11/2026) */
       else frapper();
