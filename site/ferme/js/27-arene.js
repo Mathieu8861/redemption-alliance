@@ -214,6 +214,15 @@ const ESSAIS_ILE_BOSS = 5 /* (5 depuis le 06/11/2026, « qu'on puisse le retry 5
 /* LA VIE D'UN BOSS DE L'ILE, BOSS PAR BOSS (07/11/2026, « rajoute 1 million de PV sur le Craqueleur legendaire, il est trop faible contre le Iop, Mada peut le tuer solo », Mathieu) :
    les autres gardent PV_ILE_BOSS. Pour une semaine deja passee, on lit le boss qu'elle avait (J.boss) */
 const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000 }, pvIleBoss = (t) => PV_ILE_BOSS_PAR[t] || PV_ILE_BOSS;
+/* UN BOSS DE L'ILE RENFORCE, SUR L'ILE SEULEMENT (07/11/2026, Craqueleur legendaire : « son cercle, il met combien de temps avant d'exploser ? » ; 2,6 s, trop confortable
+   pour un Iop colle a lui ; « ok applique les changements, monte les autres stats aussi », Mathieu). d : ce qui remplace sa fiche (sur une copie, le boss de la vague 40
+   ne change pas), deg : ses coups, vit : sa vitesse de marche, rappel : ses renforts (s) */
+const RENFORT_ILE = { craqLegendaire: { d: { seisme: 6, seismeDuree: 1.6, cadence: 1.7, armure: 0.45, sortsX: { seisme: 1.5 }, jet: { periode: 2.2, prepa: 0.85, R: 2.6, x: 0.65 }, faille: { periode: 8, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } };
+function renforcerIle(o) {
+  const R = RENFORT_ILE[o.type]; if (!R) return; const d0 = o.d, d = Object.assign({}, d0, R.d);
+  ['jet', 'faille', 'sortsX'].forEach((k) => { if (R.d[k]) d[k] = Object.assign({}, d0[k] || {}, R.d[k]); }); o.d = d;
+  if (R.deg) o.deg = o.deg0 = Math.max(1, Math.round(o.deg * R.deg)); if (R.vit) o.vitM = (o.vitM || 1) * R.vit; if (R.rappel) o.rappel = R.rappel;
+}
 const VITESSE_ILE = { craqLegendaire: 1.25 }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
