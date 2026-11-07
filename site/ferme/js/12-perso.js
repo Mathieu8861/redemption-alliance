@@ -854,11 +854,30 @@ function dorerTofu(m) { /* (refait le 07/11/2026 : seules ses plumes jaunes et o
   const hsl = {}; m.traverse((o) => { if (!o.isMesh || !o.material) return; o.material = Array.isArray(o.material) ? o.material.map((x) => x.clone()) : o.material.clone();
     [].concat(o.material).forEach((x) => { if (!x.color || x.type === 'MeshBasicMaterial') return; x.color.getHSL(hsl); if (hsl.s < 0.35 || hsl.h < 0.03 || hsl.h > 0.18 || hsl.l < 0.2 || hsl.l > 0.9) return;
       x.color.setHSL(0.122, 0.88, Math.min(0.56, Math.max(0.22, hsl.l * 0.72))); if (x.emissive) x.emissive.copy(x.color).multiplyScalar(0.2); /* (un or franc, plus fonce que le jaune d'un Tofu normal sans tourner a l'orange) */ }); }); return m; }
+/* l'aura du Tofu dore (07/11/2026, « faut lui mettre une petite animation doree, brillante autour de lui », Mathieu) : un halo qui respire et trois
+   petites etoiles qui tournent autour et scintillent ; elle suit le Tofu et disparait avec lui. t : sa taille (1 dans l'herbe, plus petite en voliere) */
+let TEX_AURA_OR = null, TEX_ETOILE_OR = null;
+function texAuraOr() { if (TEX_AURA_OR) return TEX_AURA_OR; const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,236,150,0.9)'); g.addColorStop(0.35, 'rgba(255,200,60,0.45)'); g.addColorStop(1, 'rgba(255,180,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return (TEX_AURA_OR = new T.CanvasTexture(cv)); }
+function texEtoileOr() { if (TEX_ETOILE_OR) return TEX_ETOILE_OR; const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'); x.translate(32, 32); x.fillStyle = '#fff';
+  x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = i % 2 ? 6 : 30; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); x.fill();
+  const g = x.createRadialGradient(0, 0, 0, 0, 0, 14); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 14, 0, Math.PI * 2); x.fill(); return (TEX_ETOILE_OR = new T.CanvasTexture(cv)); }
+function auraDoree(m, taille) {
+  const k = taille || 1, g = new T.Group(), add = { transparent: true, depthWrite: false, blending: T.AdditiveBlending };
+  const halo = new T.Sprite(new T.SpriteMaterial(Object.assign({ map: texAuraOr(), color: '#ffd24a', opacity: 0.55 }, add))); g.add(halo);
+  const etoiles = [0, 1, 2].map(() => { const s = new T.Sprite(new T.SpriteMaterial(Object.assign({ map: texEtoileOr(), color: '#fff1a8' }, add))); g.add(s); return s; });
+  g.traverse((o) => { o.raycast = () => {}; }); scene.add(g); let t = Math.random() * 6; const w = new T.Vector3();
+  effets.push((dt) => { if (!m.parent) { jeter(g); return true; } t += dt; m.getWorldPosition(w); g.position.set(w.x, w.y, w.z); g.visible = m.visible !== false;
+    halo.position.y = 0.38 * k; halo.scale.setScalar(k * (1.45 + 0.14 * Math.sin(t * 2.2))); halo.material.opacity = 0.42 + 0.16 * Math.sin(t * 3.1);
+    etoiles.forEach((s, i) => { const a = t * 1.5 + i * 2.094, tw = 0.5 + 0.5 * Math.sin(t * 5.5 + i * 1.9); s.position.set(Math.cos(a) * 0.55 * k, (0.4 + 0.22 * Math.sin(t * 2.1 + i)) * k, Math.sin(a) * 0.55 * k);
+      s.scale.setScalar(k * (0.1 + 0.17 * tw)); s.material.opacity = 0.35 + 0.65 * tw; s.material.rotation = t * 1.8 + i; }); });
+  return g;
+}
 function rendreSauvage() {
   if (sauvageMesh) { scene.remove(sauvageMesh); sauvageMesh = null; }
   const p = S_.sauvage && S_.cases.find((c) => c.id === S_.sauvage.id);
   if (p) { const q = posCase(p); sauvageMesh = marquer(cloner('tofu'), p.id); sauvageMesh.userData.base = q.y; poser(sauvageMesh, q.x, q.y, q.z, 0.7);
-    if (S_.sauvage.dore) { dorerTofu(sauvageMesh); const m = sauvageMesh; let t = 0; effets.push((dt) => { if (sauvageMesh !== m) return true; t += dt; if (t > 0.12) { t = 0; emettre(FX_LUM, 1, { x: m.position.x + (Math.random() - 0.5) * 0.7, y: m.position.y + 0.3 + Math.random() * 0.5, z: m.position.z + (Math.random() - 0.5) * 0.7, v: [0, 0.6, 0], vie: [0.5, 0.9], taille: [0.16, 0.03], c: ['#fff1a8', '#ffc21a'], a: 0.9, entree: 0.2 }); } }); } } /* (le Tofu dore : il brille et laisse des paillettes, 07/11/2026) */
+    if (S_.sauvage.dore) { dorerTofu(sauvageMesh); auraDoree(sauvageMesh, 1); const m = sauvageMesh; let t = 0; effets.push((dt) => { if (sauvageMesh !== m) return true; t += dt; if (t > 0.12) { t = 0; emettre(FX_LUM, 1, { x: m.position.x + (Math.random() - 0.5) * 0.7, y: m.position.y + 0.3 + Math.random() * 0.5, z: m.position.z + (Math.random() - 0.5) * 0.7, v: [0, 0.6, 0], vie: [0.5, 0.9], taille: [0.16, 0.03], c: ['#fff1a8', '#ffc21a'], a: 0.9, entree: 0.2 }); } }); } } /* (le Tofu dore : il brille et laisse des paillettes, 07/11/2026) */
   rendreCasesBulles();
 }
 /* les Bouftous se promenent dans l'enclos : un point au hasard, ils s'y rendent en trottinant, broutent un moment, repartent */
