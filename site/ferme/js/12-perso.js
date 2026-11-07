@@ -850,7 +850,10 @@ function deplacerVoleur(dt, s) {
   if (v.barre) { v.barre.firstChild.style.width = (100 * Math.max(0, v.pv) / v.pvMax).toFixed(0) + '%'; versEcran(new T.Vector3(m.position.x, m.position.y + 2.05, m.position.z), v.barre); }
 }
 /* un Tofu dore (07/11/2026) : ses materiaux copies et passes a l'or, avec une lueur */
-function dorerTofu(m) { const or = new T.Color('#ffc92e'); m.traverse((o) => { if (!o.isMesh || !o.material) return; o.material = Array.isArray(o.material) ? o.material.map((x) => x.clone()) : o.material.clone(); [].concat(o.material).forEach((x) => { if (x.color) x.color.lerp(or, 0.72); if (x.emissive) { x.emissive = new T.Color('#6a4300'); } }); }); return m; }
+function dorerTofu(m) { /* (refait le 07/11/2026 : seules ses plumes jaunes et oranges passent a l'or, plus sombre et plus riche ; les yeux, le bec, les joues et le contour ne bougent pas) */
+  const hsl = {}; m.traverse((o) => { if (!o.isMesh || !o.material) return; o.material = Array.isArray(o.material) ? o.material.map((x) => x.clone()) : o.material.clone();
+    [].concat(o.material).forEach((x) => { if (!x.color || x.type === 'MeshBasicMaterial') return; x.color.getHSL(hsl); if (hsl.s < 0.35 || hsl.h < 0.03 || hsl.h > 0.18 || hsl.l < 0.2 || hsl.l > 0.9) return;
+      x.color.setHSL(0.122, 0.88, Math.min(0.56, Math.max(0.22, hsl.l * 0.72))); if (x.emissive) x.emissive.copy(x.color).multiplyScalar(0.2); /* (un or franc, plus fonce que le jaune d'un Tofu normal sans tourner a l'orange) */ }); }); return m; }
 function rendreSauvage() {
   if (sauvageMesh) { scene.remove(sauvageMesh); sauvageMesh = null; }
   const p = S_.sauvage && S_.cases.find((c) => c.id === S_.sauvage.id);
