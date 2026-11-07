@@ -2,10 +2,15 @@
 /* ---------- le voyage ---------- */
 async function chargerCasino() {
   if (ileCasino) return;
-  const [cases, drag] = await Promise.all([chargerGlb('assets/modeles/jeu/ile-casino-cases.glb?v=' + VERSION_MODELES), chargerGlb('assets/modeles/jeu/dragodindes.glb?v=' + VERSION_MODELES)]);
+  /* LE NOUVEAU CASINO, le Palais du Chat Dore (07/11/2026) : l'ile (blender/iles.py version 10) et son decor (blender/casino.py --jeu2), charges au premier
+     voyage ; les plantes bercees par le vent chacune a son rythme, l'eau, les nappes, les jets, la cascade et les drapeaux animes (js/26b-casino-decor.js) */
+  const [cases, decor, drag] = await Promise.all([chargerGlb('assets/modeles/jeu/ile-casino2-cases.glb?v=' + VERSION_MODELES), chargerGlb('assets/modeles/jeu/casino2-jeu.glb?v=' + VERSION_MODELES), chargerGlb('assets/modeles/jeu/dragodindes.glb?v=' + VERSION_MODELES)]);
   versToon(cases, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
   const g = new T.Group(); g.position.copy(CASINO); g.add(fusionner(cases.getObjectByName('IleCasinoCases') || cases, {}));
-  if (MODELES.decorCasino) { MODELES.decorCasino.position.set(0, 0, 0); g.add(MODELES.decorCasino); }
+  versToon(decor, { normales: 0.012, souple: SOUPLE_CASINO, sansContour: SC_CASINO }); g.add(decor); g.updateMatrixWorld(true);
+  const nomBase = (m) => m.name.replace(/\.?\d+$/, '').replace(/_\d+$/, '');
+  fusionner(decor, { garder: (m) => ['eau', 'eau_canal', 'drapeau'].includes(nomBase(m)) }); casinoAnim = casinoVivant(T, decor);
+  grilleCasino(); /* (les chemins du perso : la grille se calcule une fois) */
   versToon(drag, { normales: 0.01, sansContour: SC_MONSTRES });
   DRAGOS.forEach((d) => { MODELES['course_' + d.id] = gabarit(drag, d.id, 1.25, 'y'); });
   scene.add(g); ileCasino = g; scene.add(soleil.target);
@@ -48,9 +53,10 @@ async function partirCasino() {
   if (dette()) { toast('Le Casino t\'est fermé tant que ton ardoise n\'est pas réglée.', 'alerte'); return; }
   fermerModale();
   if (!(await allerSur('casino'))) { toast('Le ballon n\'a pas pu décoller (chargement de l\'île), réessaie.', 'alerte'); return; }
-  const u = paysanMesh.userData; paysanMesh.position.set(CASINO.x - 9.6, CASINO.y, CASINO.z + 2.0); u.y = CASINO.y; u.angle = Math.PI / 2; paysanMesh.rotation.y = u.angle; casinoMarche = null;
+  const u = paysanMesh.userData; paysanMesh.position.set(CASINO.x + SPOTS.retour[0] + 0.4, CASINO.y, CASINO.z + SPOTS.retour[1]); u.y = CASINO.y; u.angle = Math.PI / 2; paysanMesh.rotation.y = u.angle; casinoMarche = null; /* (on descend du ballon au ponton, a l'ouest, face a l'allee des Kamas) */
+  VISEE.set(paysanMesh.position.x + 6, 0.6, paysanMesh.position.z); placerCamera();
   etatCasino(); majBarreCasino(); $('casino-barre').hidden = false; $('hud').classList.add('au-casino'); compter('casinoVisites');
-  toast('Bienvenue sur l\'île du Casino ! Touche un jeu pour y aller.', 'or'); sauver();
+  toast('Bienvenue au Palais du Chat Doré ! Le palais au nord, l\'hippodrome au sud, les jardins à l\'est : touche un endroit pour y aller.', 'or'); sauver();
 }
 async function rentrerFerme() {
   if (lieu === 'ferme') return; if (combat) return;

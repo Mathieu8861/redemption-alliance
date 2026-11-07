@@ -1,42 +1,58 @@
 'use strict';
-/* ---------- se promener sur l'ile ---------- */
-const SPOTS = { roulette: [-3.3, -1.9, -3.3, -3.4], machine: [3.4, -2.3, 3.5, -3.6], course: [1.6, 3.4, 1.6, 6.2], casino: [0, -4.4, 0, -7.6], retour: [-9.6, 2.0, -12, 2.0], fontaine: [1.9, 0.9, 0, 0] };
-function zoneCasino(x, z) { /* le jeu touche, d'apres le point de l'ile (repere de l'ile) */
-  if (x < -10.3 && Math.abs(z - 2) < 1.6) return 'retour';
-  if (Math.hypot(x + 3.3, z + 3.4) < 1.5) return 'roulette';
-  if (x > 1.9 && x < 5.1 && z > -4.4 && z < -2.8) return 'machine';
-  if (Math.abs(x) < 2.8 && z < -5.4) return 'casino';
-  if (Math.hypot(x, z) < 1.6) return 'fontaine';
-  if (((x - PISTE.x) / (PISTE.A + 0.8)) ** 2 + ((z - PISTE.z) / (PISTE.B + 0.8)) ** 2 < 1) return 'course';
+/* ---------- se promener sur l'ile (07/11/2026 : le nouveau Casino, le Palais du Chat Dore ; « il faut penser avec une logique humaine de deplacement : pour
+   aller dans le casino, aller devant l'entree ; pour la course de Dragodindes, aller devant l'entree », Mathieu) ----------
+   Chaque jeu a son endroit : la porte du palais au bout du tapis rouge (la salle de jeux, en attendant le grand hall), le guichet des paris de l'hippodrome
+   (avec le tableau des cotes), le ponton de la montgolfiere. Le perso y va par les allees en contournant le decor (cheminCasino, js/26b-casino-decor.js).
+   Coordonnees sur l'ile [x, z, et le point qu'il regarde en arrivant] ; le jeu ajoute CASINO. */
+const SPOTS = { casino: [0, -14.6, 0, -20], course: [-4.3, 10.0, -5.6, 10.0], retour: [-26.2, 0, -29, 0], tribune: [0, 12.4, 0, 14.9] };
+function zoneCasino(x, z) { /* le jeu touche, d'apres le point de l'ile (l'export cuit la hierarchie des groupes : le jeu se reconnait a l'endroit touche) */
+  if (x < -24.6 && Math.abs(z) < 3.2) return 'retour';
+  if (Math.abs(x) < 6.4 && z < -14.9 && z > -27) return 'casino';
+  if (x > -6.6 && x < -4.6 && z > 8.8 && z < 11.2) return 'course'; /* le guichet des paris */
+  if ((Math.abs(x) < 6.6 && z > 11.1 && z < 13.8) || Math.hypot(Math.max(Math.abs(x - STADE_CASINO.cx) - STADE_CASINO.a, 0), z - STADE_CASINO.cz) < STADE_CASINO.R + 1.6) return 'course'; /* la tribune, la piste */
+  if (Math.hypot(x, z) < 4.2) return 'fontaine';
   return null;
 }
-function aller(x, z, lx, lz, fn) { casinoMarche = { x: CASINO.x + x, z: CASINO.z + z, vers: lx != null ? { x: CASINO.x + lx, z: CASINO.z + lz } : null, fn }; }
+function aller(x, z, lx, lz, fn) { /* marcher jusqu'a (x, z) de l'ile, par les allees, puis regarder (lx, lz) et faire fn */
+  const px = paysanMesh.position.x - CASINO.x, pz = paysanMesh.position.z - CASINO.z, ch = cheminCasino(px, pz, x, z) || [[x, z]];
+  casinoMarche = { pts: ch, i: 0, vers: lx != null ? { x: CASINO.x + lx, z: CASINO.z + lz } : null, fn };
+}
 function clicCasino(hits) {
   if (course) return;
   for (const h of hits) {
     let o = h.object, perso = false, dansIle = false;
     while (o) { if (o === paysanMesh) perso = true; if (o === ileCasino) dansIle = true; o = o.parent; }
     if (perso) continue; if (!dansIle) continue;
-    const lx = h.point.x - CASINO.x, lz = h.point.z - CASINO.z, jeu = zoneCasino(lx, lz); /* (le jeu se reconnait a l'endroit touche : l'export cuit la hierarchie des groupes) */
+    const lx = h.point.x - CASINO.x, lz = h.point.z - CASINO.z, jeu = zoneCasino(lx, lz);
+    if (jeu === 'fontaine') { const px = paysanMesh.position.x - CASINO.x, pz = paysanMesh.position.z - CASINO.z, a = Math.atan2(pz, px); aller(Math.cos(a) * 5.7, Math.sin(a) * 5.7, 0, 0, () => ouvrirJeu('fontaine')); return; } /* (au bord, du cote ou l'on arrive) */
     if (jeu) { const [x, z, vx, vz] = SPOTS[jeu]; aller(x, z, vx, vz, () => ouvrirJeu(jeu)); return; }
-    const r = Math.hypot(lx, lz), k = r > 9.6 ? 9.6 / r : 1; aller(lx * k, lz * k, null, null, null); return;
+    aller(lx, lz, null, null, null); return;
   }
 }
 function majCasino(dt) {
+  if (casinoAnim) casinoAnim.animer(dt, performance.now() / 1000);
   majCourse(dt);
-  const u = paysanMesh.userData;
+  const u = paysanMesh.userData, P = paysanMesh.position, sol = (x, z) => CASINO.y + hauteurCasino(x - CASINO.x, z - CASINO.z);
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); }
-  if (!casinoMarche) { animerPas(u, dt, 0); paysanMesh.position.y += (CASINO.y - paysanMesh.position.y) * Math.min(1, dt * 12); return; }
-  const m = casinoMarche, px = paysanMesh.position.x, pz = paysanMesh.position.z, dx = m.x - px, dz = m.z - pz, d = Math.hypot(dx, dz), v = vitesse() * dt;
+  if (!casinoMarche) { animerPas(u, dt, 0); P.y += (sol(P.x, P.z) - P.y) * Math.min(1, dt * 12); return; }
+  const m = casinoMarche, q = m.pts[m.i], tx = CASINO.x + q[0], tz = CASINO.z + q[1], dx = tx - P.x, dz = tz - P.z, d = Math.hypot(dx, dz), v = vitesse() * dt;
   if (d > 0.001) u.angle = Math.atan2(dx, dz);
-  if (d <= v) { paysanMesh.position.x = m.x; paysanMesh.position.z = m.z; casinoMarche = null; if (m.vers) u.angle = Math.atan2(m.vers.x - m.x, m.vers.z - m.z); if (m.fn) m.fn(); return; }
-  paysanMesh.position.x = px + dx / d * v; paysanMesh.position.z = pz + dz / d * v; u.pas = (u.pas || 0) + v * 4.6; animerPas(u, dt, 1);
-  paysanMesh.position.y = CASINO.y + (1 - Math.cos(u.pas * 2)) * 0.012 * (u.ampl || 0);
+  if (d <= v) { P.x = tx; P.z = tz; m.i++; if (m.i < m.pts.length) return; casinoMarche = null; if (m.vers) u.angle = Math.atan2(m.vers.x - tx, m.vers.z - tz); if (m.fn) m.fn(); return; }
+  P.x += dx / d * v; P.z += dz / d * v; u.pas = (u.pas || 0) + v * 4.6; animerPas(u, dt, 1);
+  P.y = sol(P.x, P.z) + (1 - Math.cos(u.pas * 2)) * 0.012 * (u.ampl || 0);
+  if (!drag && !course) { const k = Math.min(1, dt * 1.6); VISEE.x += (P.x - VISEE.x) * k; VISEE.z += (P.z - VISEE.z) * k; placerCamera(); } /* (la camera suit le perso quand il marche : l'ile est grande) */
 }
 function ouvrirJeu(j) {
-  if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else if (j === 'course') ouvrirCourse(); else if (j === 'casino') ouvrirCasinoInfo();
+  if (j === 'course') ouvrirCourse(); else if (j === 'casino') ouvrirSalle();
   else if (j === 'retour') ouvrirModale('montgolfiere', entete('La montgolfière') + '<div class="art">' + ico('kama') + '<div><b>Rentrer à la ferme ?</b><div class="desc">Le ballon te ramène au bord de ta ferme.</div></div><div class="act"><button class="btn kamas" data-montgolfiere="rentrer">Rentrer</button></div></div>');
-  else if (j === 'fontaine') toast('La fontaine du Casino. On dit que le kama doré du sommet porte chance...');
+  else if (j === 'fontaine') toast('La fontaine du Chat Doré. On dit qu\'un kama jeté au fond porte chance au jeu...');
+}
+/* la porte du palais : la salle de jeux (en attendant le grand hall, qui viendra avec le blackjack) */
+function ouvrirSalle() {
+  const c = etatCasino(), ligne = (icone, titre, desc, cle, bouton) => '<div class="art">' + ico(icone) + '<div><b>' + titre + '</b><div class="desc">' + desc + '</div></div><div class="act"><button class="btn ' + (cle === 'bilan' ? 'discret' : 'kamas') + '" data-cas="salle:' + cle + '">' + bouton + '</button></div></div>';
+  ouvrirModale('salle', entete('Le Palais du Chat Doré') + '<p class="hdv-aide">Bienvenue, voyageur. Le grand hall ouvrira bientôt ses portes ; en attendant, les jeux t\'attendent dans le vestibule.</p>' +
+    ligne('jackpot', 'La machine à sous', 'Le jackpot : ' + fmt(c.jackpot) + ' kamas.', 'machine', 'Jouer') + ligne('kama', 'La roulette', 'Rouge ou noir, pair ou impair, ou ton numéro.', 'roulette', 'Jouer') +
+    ligne('cadenas', 'Ton bilan et les règles de la maison', 'Ce que tu as misé et gagné, la mise maximale, les pertes du jour.', 'bilan', 'Voir'));
 }
 /* le pied commun des jeux : la mise, la mise maximale, la jauge des pertes du jour */
 function piedMise(sansMise) {
@@ -109,37 +125,41 @@ function lancerBille() {
 /* ---------- la course de Dragodindes ---------- */
 const DRAGOS = [{ id: 'DragoRousse', nom: 'Rousse', coul: '#c8642e', cote: 2.5, trait: 'rapide au départ' }, { id: 'DragoIndigo', nom: 'Indigo', coul: '#4a5aa8', cote: 3, trait: 'régulière' },
   { id: 'DragoEbene', nom: 'Ébène', coul: '#3a3440', cote: 4, trait: 'finit fort' }, { id: 'DragoDoree', nom: 'Dorée', coul: '#e8b84a', cote: 7.5, trait: 'imprévisible' }];
-const PISTE = { x: 1.6, z: 6.2, A: 2.6, B: 1.5 };
 function ouvrirCourse(res) {
-  ouvrirModale('course', entete('La course de Dragodindes') + (res ? '<div class="cas-res' + (res.gain ? ' gagne' : '') + '">' + res.html + '</div>' : '<p style="font-size:.78rem;font-weight:600;margin:0 0 6px">Choisis ta Dragodinde et ta mise : la course se court en vrai, sur la piste de l\'île.</p>') +
+  ouvrirModale('course', entete('La course de Dragodindes') + (res ? '<div class="cas-res' + (res.gain ? ' gagne' : '') + '">' + res.html + '</div>' : '<p style="font-size:.78rem;font-weight:600;margin:0 0 6px">Choisis ta Dragodinde et ta mise : elles font un tour de la grande piste, et tu regardes l\'arrivée depuis la tribune.</p>') +
     DRAGOS.map((d, i) => '<div class="cas-coureur' + (casinoDrago === i ? ' sel' : '') + '"><span class="pastille" style="background:' + d.coul + '"></span><div><b>' + d.nom + '</b><br><span class="puce">' + d.trait + '</span></div><span class="cas-cote">×' + String(d.cote).replace('.', ',') + '</span><button class="btn ' + (casinoDrago === i ? '' : 'discret') + '" data-cas="drago:' + i + '">' + (casinoDrago === i ? '✓ Choisie' : 'Choisir') + '</button></div>').join('') +
     piedMise() + '<button class="btn kamas grand" data-cas="course" style="width:100%;margin-top:8px"' + (course ? ' disabled' : '') + '>Lancer la course</button>');
 }
+/* LA COURSE SUR LA GRANDE PISTE (07/11/2026 : « un vrai hippodrome, plus grand, et une course un peu plus longue », Mathieu) : un tour complet du stade,
+   depart et arrivee sous le portique d'or, devant la tribune ; le gagnant boucle le tour en COURSE_TOUR s, chacun dans son couloir ; le perso regarde
+   depuis le passage de la tribune, la camera cadre toute la piste */
+const COURSE_TOUR = 22, COULOIRS = [-0.84, -0.28, 0.28, 0.84];
 function lancerCourse() {
   if (course || !ileCasino) return; const m = casinoMise; if (!peutMiser(m)) return;
   miser(m); fermerModale();
   const poids = DRAGOS.map((d) => 0.9 / d.cote), tot = poids.reduce((a, b) => a + b, 0); let r = Math.random() * tot, gagnant = 0; for (let i = 0; i < 4; i++) { r -= poids[i]; if (r < 0) { gagnant = i; break; } }
-  const autres = [0, 1, 2, 3].filter((i) => i !== gagnant).sort(() => Math.random() - 0.5), temps = []; temps[gagnant] = 8;
-  autres.forEach((i, k) => { temps[i] = 8 + 0.35 + k * (0.3 + Math.random() * 0.5); });
-  const meshes = DRAGOS.map((d, i) => { const g = cloner('course_' + d.id); scene.add(g); return g; });
-  course = { t: -1.2, temps, gagnant, choix: casinoDrago, mise: m, meshes, fin: Math.max(...temps) + 0.8, alea: DRAGOS.map(() => Math.random() * 6) };
-  course.zoom = zoom; zoom = Math.max(zoom, 1.7); cadrer(); VISEE.set(CASINO.x + PISTE.x + 0.6, 0.6, CASINO.z + PISTE.z + 0.4); placerCamera(); /* la camera se rapproche de la piste */
-  aller(PISTE.x - 0.6, PISTE.z - PISTE.B - 1.1, PISTE.x, PISTE.z, null);
+  const autres = [0, 1, 2, 3].filter((i) => i !== gagnant).sort(() => Math.random() - 0.5), temps = []; temps[gagnant] = COURSE_TOUR;
+  autres.forEach((i, k) => { temps[i] = COURSE_TOUR + 0.6 + k * (0.7 + Math.random() * 1.1); });
+  const meshes = DRAGOS.map((d) => { const g = cloner('course_' + d.id); scene.add(g); return g; });
+  course = { t: -1.5, temps, gagnant, choix: casinoDrago, mise: m, meshes, fin: Math.max(...temps) + 1, alea: DRAGOS.map(() => Math.random() * 6) };
+  course.zoom = zoom; zoom = 0.95; cadrer(); VISEE.set(CASINO.x + STADE_CASINO.cx, 0.6, CASINO.z + STADE_CASINO.cz - 0.5); placerCamera(); /* la camera cadre toute la piste */
+  const [x, z, vx, vz] = SPOTS.tribune; aller(x, z, vx, vz, null);
   toast('À vos marques... Partez !', 'or'); majCourse(0);
 }
 function majCourse(dt) {
   if (!course) return; const c = course; c.t += dt;
+  const S = STADE_CASINO, tour = 4 * S.a + 2 * Math.PI * S.R;
   c.meshes.forEach((g, i) => {
     const T_ = c.temps[i], t = Math.max(0, c.t), u = Math.min(1, t / T_);
-    const f = u >= 1 ? 1 : Math.min(0.995, u + 0.035 * Math.sin(t * 1.6 + c.alea[i]) * u * (1 - u) * 4);
-    const ra = PISTE.A - 0.42 + i * 0.28, rb = PISTE.B - 0.42 + i * 0.28, th = f * Math.PI * 2;
-    g.position.set(CASINO.x + PISTE.x + ra * Math.cos(th), CASINO.y + (u < 1 && c.t > 0 ? Math.abs(Math.sin(c.t * 11 + i)) * 0.12 : 0), CASINO.z + PISTE.z + rb * Math.sin(th));
-    g.rotation.y = Math.atan2(-ra * Math.sin(th), rb * Math.cos(th));
+    const f = u >= 1 ? 1 : Math.min(0.998, u + 0.03 * Math.sin(t * 0.9 + c.alea[i]) * u * (1 - u) * 4); /* (des remontees et des coups de mou, sans changer l'arrivee) */
+    const p = stadePoint(S.a + f * tour), o = COULOIRS[i];
+    g.position.set(CASINO.x + p.x + p.nx * o, CASINO.y + (u < 1 && c.t > 0 ? Math.abs(Math.sin(c.t * 11 + i)) * 0.12 : 0), CASINO.z + p.z + p.nz * o);
+    g.rotation.y = Math.atan2(p.tx, p.tz);
   });
   if (c.t >= c.fin) {
     const d = DRAGOS[c.gagnant], gagne = c.choix === c.gagnant, gain = gagne ? Math.round(c.mise * DRAGOS[c.choix].cote) : 0;
     c.meshes.forEach((g) => scene.remove(g)); course = null; payer(gain); compter('courses');
-    zoom = c.zoom || 1; cadrer(); VISEE.set(CASINO.x + 0.6, 0.6, CASINO.z + 0.6); placerCamera();
+    zoom = c.zoom || 1; cadrer(); VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); placerCamera();
     ouvrirCourse({ gain, html: (gagne ? 'Gagné !' : 'Perdu...') + '<small>' + d.nom + ' gagne la course' + (gagne ? ' : +' + fmt(gain) + ' kamas' : ', ta ' + DRAGOS[c.choix].nom + ' n\'a pas suffi') + '</small>' });
   }
 }
@@ -160,6 +180,7 @@ function actionCasino(b) {
   else if (a === 'effacer') { if (casinoTourne) return; casinoParis = {}; ouvrirRoulette(); }
   else if (a === 'bille') lancerBille();
   else if (a.startsWith('drago:')) { casinoDrago = +a.slice(6); ouvrirCourse(); }
+  else if (a.startsWith('salle:')) { const j = a.slice(6); if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else ouvrirCasinoInfo(); }
   else if (a === 'course') lancerCourse();
 }
 

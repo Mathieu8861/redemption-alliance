@@ -6,7 +6,7 @@
    Garde-fous : une mise maximale selon le niveau, un plafond de pertes par jour ; la maison garde un petit avantage (environ 93 % rendus). */
 const NIV_MONTGOLFIERE = 15, PRIX_MONTGOLFIERE = 3000;
 const CASINO = new T.Vector3(0, 0, 240), POS_MONTGOLFIERE = new T.Vector3((MONTGOLFIERE_CASE[0] - (COLS - 1) / 2) * S, 0, (MONTGOLFIERE_CASE[1] - (ROWS - 1) / 2) * S); /* (x -11, z -4 : sa case, au bord du depart) */
-let ileCasino = null, casinoMarche = null, montgolfiereMesh = null, course = null, casinoTourne = false;
+let ileCasino = null, casinoMarche = null, montgolfiereMesh = null, course = null, casinoTourne = false, casinoAnim = null; /* (casinoAnim : l'eau, les nappes, les drapeaux du nouveau Casino) */
 let casinoMise = 100, casinoJeton = 10, casinoParis = {}, casinoRoue = 0, casinoDrago = 0;
 const miseMax = () => 100 + 15 * niveau(S_.xp);
 const plafondPertes = () => 1000 + 100 * niveau(S_.xp);

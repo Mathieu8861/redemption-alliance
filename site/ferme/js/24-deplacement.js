@@ -361,10 +361,10 @@ canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol
   const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = 27 / Math.hypot(27, 42.4);
   const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(dy / incl)); camera.position.add(dep); VISEE.add(dep); });
 canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
-canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), lieu === 'casino' ? 0.6 : ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
+canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), lieu === 'casino' ? 0.42 : ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
 const angleDoigts = (e) => Math.atan2(e.touches[1].clientY - e.touches[0].clientY, e.touches[1].clientX - e.touches[0].clientX); let tourDoigts = null; /* (deux doigts qui tournent : la camera tourne autour de la ferme, 29/10/2026) */
 canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); tourDoigts = angleDoigts(e); } }, { passive: true });
-canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, lieu === 'casino' ? 0.6 : ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; if (tourDoigts != null) { const a = angleDoigts(e); let da = a - tourDoigts; da = Math.atan2(Math.sin(da), Math.cos(da)); tourDoigts = a; if (Math.abs(da) > 0.002) tournerCamera(-da); } } }, { passive: true });
+canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pince) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = borne(zoom * d / pince, lieu === 'casino' ? 0.42 : ZOOM_MIN, 2.2); pince = d; cadrer(); drag = null; if (tourDoigts != null) { const a = angleDoigts(e); let da = a - tourDoigts; da = Math.atan2(Math.sin(da), Math.cos(da)); tourDoigts = a; if (Math.abs(da) > 0.002) tournerCamera(-da); } } }, { passive: true });
 canvas.addEventListener('touchend', () => { pince = null; tourDoigts = null; }, { passive: true });
 function toucherBouftou(k) {
   const b = S_.bouftous[k]; if (!b) return;

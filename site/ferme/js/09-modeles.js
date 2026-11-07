@@ -140,7 +140,7 @@ function fusionner(racine, o) {
   const base = (x) => ((x && x.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, ''), paquets = new Map(), porteurs = new Set();
   const articule = (m) => { for (let x = m.parent; x && x !== racine; x = x.parent) if (x.userData && x.userData.articule) return true; return false; }; /* (une patte de Bouftou : elle bouge, on ne la soude pas au corps) */
   racine.traverse((m) => {
-    if (!m.isMesh || articule(m)) return;
+    if (!m.isMesh || articule(m) || (o.garder && o.garder(m))) return; /* (garder : ce qui s'anime seul reste a part, l'eau et les drapeaux du Casino, 07/11/2026) */
     const contour = m.material.side === T.BackSide, porteur = contour && m.parent && m.parent.isMesh ? m.parent : m; /* un contour de maille() (frere de sa piece) se fusionne seul */
     const M = m.material, sp = porteur.userData.souple; /* meme apparence = meme paquet (chaque morceau avait son propre exemplaire de materiau) */
     let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp, M.side].join('|'), cas = null; /* (le cote dessine compte : la cape portee est visible des deux cotes, 12/10/2026) */
