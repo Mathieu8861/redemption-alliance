@@ -58,7 +58,7 @@ function avancer(maintenant, enDirect) {
     if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
     else if (!S_.sauvage && Math.random() < (dt / MIN) / 2.25 * freinTofus()) {
       const libres = S_.cases.filter((c) => c.type === 'libre');
-      if (libres.length) { const dore = niveau(S_.xp) >= NIV_TOFU_DORE && Math.random() < CHANCE_TOFU_DORE; S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE, dore }; sauv = true; /* (le Tofu dore, 1 sur 100 des le niveau 50, 07/11/2026) */
+      if (libres.length) { const dore = niveau(S_.xp) >= NIV_TOFU_DORE && Math.random() < CHANCE_TOFU_DORE; S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE, dore }; sauv = true; /* (le Tofu dore, 1 sur 100, des le niveau 1 : NIV_TOFU_DORE, 07/11/2026) */
         toast(dore ? 'Un TOFU DORÉ se pose dans l\'herbe ! Il est très rare : sors vite ton filet.' : 'Un Tofu sauvage se pose dans l\'herbe.' + (S_.filets ? ' Sors ton filet !' : ' Avec un filet de capture, tu pourrais l\'attraper.'), 'or'); }
     }
   }
