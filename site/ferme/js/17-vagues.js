@@ -55,6 +55,7 @@ function effetsEnCours() {
   if (c ? c.regen : S_.menthe) L.push(['pot-menthe', 'Pot de Menthe : il te soigne pendant la vague' + (c ? '' : ' (la prochaine)')]);
   if (c ? c.citron : S_.citron) L.push(['pot-citron', 'Pot de Citron : tu cours ' + vite + ' % plus vite' + suite]);
   const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + agi + ' Agilité' + suite]);
+  if (!c && bouclierActif()) L.push(['bouclier-vsa', 'Bouclier anti-VSA : ta grange est protégée encore ' + dureeLisible(S_.bouclierVsa - Date.now()) + ', aucune simu ni voleur de VSA']); /* (07/11/2026) */
   return L;
 }
 function majIconesEffets() { /* (renommee le 06/11/2026 : sous le nom majEffets, elle remplacait la boucle des effets animes de 12-perso.js, et plus rien ne s'animait) */

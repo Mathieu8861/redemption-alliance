@@ -2,6 +2,48 @@
 /* LA SIMU VSA ACCEPTEE (13/10/2026, idee de Moonsbir, approuvee par UnMortVivant, notee par Mathieu : « mets juste un pop-up qui te bloque le jeu tant que tu
    as pas accepte, et faut l'accepter pour declencher l'attaque ») : la simu ne tombe plus d'elle-meme ; le jeu se fige sur une fenetre, et c'est le joueur qui
    lance les 30 s de preparation. Il ne se fait jamais piller sans le savoir (et toujours rien s'il n'a pas touche au jeu depuis 3 min). */
+/* LE BOUCLIER ANTI-VSA (07/11/2026, « pouvoir acheter via la grange niveau 6 un shield pour 50k gold, protege 2 h des attaques VSA », « un bouclier qui entoure
+   la base (la grange) », Mathieu) : achete dans la grange niveau 6, il empeche toute simu VSA et tout voleur de VSA pendant 2 h (temps reel) ; un dome bleu
+   entoure la grange tant qu'il tient */
+const PRIX_BOUCLIER = 50000, DUREE_BOUCLIER = 120 * MIN, QG_BOUCLIER = 5; /* (niv('qg') 5 : la grange niveau 6) */
+const bouclierActif = (t) => !!(S_ && S_.bouclierVsa && (t || Date.now()) < S_.bouclierVsa);
+function acheterBouclier() {
+  if (niv('qg') < QG_BOUCLIER) { toast('Le bouclier anti-VSA demande la grange niveau 6.', 'alerte'); return; }
+  if (bouclierActif()) { toast('Ton bouclier anti-VSA tient encore ' + dureeLisible(S_.bouclierVsa - Date.now()) + '.', 'alerte'); return; }
+  if (simuEnAttente || raidAnnonce || (combat && combat.raid)) { toast('Trop tard : les voleurs de VSA sont déjà là. Le bouclier se lève après la simu.', 'alerte'); return; }
+  if (S_.kamas < PRIX_BOUCLIER) { toast('Il te faut ' + fmt(PRIX_BOUCLIER) + ' kamas pour le bouclier anti-VSA.', 'alerte'); return; }
+  S_.kamas -= PRIX_BOUCLIER; S_.bouclierVsa = Date.now() + DUREE_BOUCLIER; son('niveau'); compter('boucliers');
+  toast('Bouclier anti-VSA levé autour de ta grange : pendant 2 h, aucune simu ni voleur de VSA.', 'or'); rendreHaut(); sauver();
+}
+let domeBouclier = null;
+function creerDome() {
+  const g = new T.Group(), mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending,
+    uniforms: { uT: { value: 0 }, uC: { value: new T.Color('#5cc8ff') } },
+    vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vP; void main() { vP = position; vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform float uT; uniform vec3 uC; varying vec3 vN; varying vec3 vV; varying vec3 vP;\n' +
+      'void main() { float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);\n' +
+      '  float th = atan(vP.z, vP.x), ph = acos(clamp(vP.y, -1.0, 1.0));\n' +
+      '  float gx = abs(fract(th * 3.8197) - 0.5), gy = abs(fract(ph * 4.456 + 0.5 * step(0.5, fract(th * 1.9099))) - 0.5);\n' +
+      '  float grille = (1.0 - smoothstep(0.0, 0.05, min(gx, gy))) * 0.22;\n' +
+      '  float bande = smoothstep(0.12, 0.0, abs(fract(vP.y * 0.9 - uT * 0.18) - 0.5) - 0.38) * 0.25;\n' +
+      '  float a = 0.05 + 0.6 * f + grille + bande * (0.4 + f);\n' +
+      '  gl_FragColor = vec4(uC * (0.6 + 0.8 * f), a * (0.85 + 0.15 * sin(uT * 2.2))); }' });
+  const d = new T.Mesh(new T.SphereGeometry(1, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2), mat); d.renderOrder = 6; g.add(d);
+  const anneau = new T.Mesh(new T.RingGeometry(0.96, 1.0, 72), new T.MeshBasicMaterial({ color: '#8fdcff', transparent: true, opacity: 0.7, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+  anneau.rotation.x = -Math.PI / 2; anneau.position.y = 0.06; anneau.renderOrder = 6; g.add(anneau);
+  g.traverse((o) => { o.raycast = () => {}; }); g.userData = { mat, anneau, t: 0 }; scene.add(g); return g;
+}
+function majBouclier(dt, s) { /* le dome autour de la grange, tant que le bouclier tient ; un message quand il s'eteint */
+  if (!S_) return;
+  if (S_.bouclierVsa && Date.now() >= S_.bouclierVsa) { S_.bouclierVsa = 0; toast('Ton bouclier anti-VSA s\'est éteint : les voleurs de VSA peuvent revenir.', 'alerte'); sauver(); }
+  if (!bouclierActif()) { if (domeBouclier) { jeter(domeBouclier); domeBouclier = null; } return; }
+  if (!domeBouclier) { domeBouclier = creerDome(); domeBouclier.userData.t = 0; }
+  const D = domeBouclier, u = D.userData; u.t -= dt;
+  if (u.t <= 0) { u.t = 1; const G = S_.cases.filter((c) => c.type === 'grange').map(posCase); D.visible = G.length > 0 && lieu === 'ferme';
+    if (G.length) { const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length, R = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 1.4 * S;
+      D.position.set(x, solA(x, z), z); D.children[0].scale.set(R, R * 0.9, R); u.anneau.scale.setScalar(R); } }
+  u.mat.uniforms.uT.value = s; u.anneau.material.opacity = 0.45 + 0.3 * Math.sin(s * 2.2);
+}
 let simuEnAttente = false;
 function proposerSimu() {
   if (simuEnAttente || raidAnnonce || combat || enAccueil || enPause) return;

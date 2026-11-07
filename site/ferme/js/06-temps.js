@@ -74,7 +74,7 @@ function avancer(maintenant, enDirect) {
   let voleur = false;
   if (direct && maintenant >= S_.prochainVoleur) {
     S_.prochainVoleur = maintenant + CADENCE_VOLEUR * (0.6 + Math.random() * 0.8);
-    if (valeurGrange() >= 100 && joueurPresent()) voleur = true;
+    if (valeurGrange() >= 100 && joueurPresent() && !bouclierActif(maintenant)) voleur = true; /* (le bouclier anti-VSA : pas de voleur, 07/11/2026) */
   }
   if (S_.vague.prepa > maintenant + PREPA_VAGUE * MIN) S_.vague.prepa = maintenant + PREPA_VAGUE * MIN; /* (jamais plus d'1 min d'attente : une attente plus longue d'avant le 18/10/2026, meme decalee par une absence, retombe a 1 min) */
   let raid = false; /* la simu VSA : un groupe de voleurs, annonce 30 s avant (des le niveau 20) */
@@ -82,7 +82,7 @@ function avancer(maintenant, enDirect) {
   if (niveau(S_.xp) < NIV_SIMU) S_.prochainRaid = Math.max(S_.prochainRaid || 0, maintenant + CADENCE_RAID); /* (avant le niveau 20, pas de simu ; la premiere, 30 min apres) */
   else if (direct && !raidAnnonce && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
     S_.prochainRaid = maintenant + CADENCE_RAID;
-    if (valeurGrange() >= 150) raid = true;
+    if (valeurGrange() >= 150 && !bouclierActif(maintenant)) raid = true; /* (le bouclier anti-VSA : pas de simu, 07/11/2026) */
   }
   return { cases: ch, enclos: encl, hdv, sauvage: sauv, voleur, raid };
 }

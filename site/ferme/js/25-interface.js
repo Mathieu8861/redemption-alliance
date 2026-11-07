@@ -441,7 +441,9 @@ function ouvrirGrange(choix) {
     return '<div class="gr-amel">' + img(icone) + '<span>' + (id === 'qg' ? 'La grange' : 'L\'arbalète') + ' ' + actuel + '/' + total + '</span>' + act + '</div>'; };
   const nt = nbTours(), ct = PRIX_TOUR[Math.min(nt, PRIX_TOUR.length - 1)];
   const tours = '<div class="gr-amel">' + img('tour') + '<span>Tours : ' + nt + ' sur ' + TOURS_MAX + '</span>' + (niveau(S_.xp) < NIV_TOUR ? '<span class="gr-aide">' + picto('cadenas', GRIS_PICTO) + 'Niveau ' + NIV_TOUR + '</span>' : nt >= TOURS_MAX ? '<span class="gr-aide">Toutes construites</span>' : '<button class="btn kamas" data-poser-tour' + (S_.kamas < ct ? ' disabled' : '') + '>Construire ' + fmt(ct) + ' ' + KAMA + '</button>') + '</div>';
-  const droite = '<div class="gr-carte"><h3 class="gr-titre">La grange<small>niveau ' + (nq + 1) + '</small></h3>' + pvG + arbal + '<h3 class="gr-titre" style="margin-top:12px">Améliorer</h3>' + ligneA('qg', 'grange') + ligneA('arbalete', 'arbalete') + tours +
+  const bA = bouclierActif(), bouclier = '<div class="gr-amel">' + img('bouclier-vsa') + '<span>Bouclier anti-VSA<br><small class="gr-aide">' + (bA ? 'actif encore ' + dureeLisible(S_.bouclierVsa - Date.now()) : '2 h sans simu ni voleur de VSA') + '</small></span>' + /* (07/11/2026) */
+    (nq < QG_BOUCLIER ? '<span class="gr-aide">' + picto('cadenas', GRIS_PICTO) + 'Grange niveau 6</span>' : bA ? '<span class="gr-aide">Actif</span>' : '<button class="btn kamas" data-bouclier' + (S_.kamas < PRIX_BOUCLIER ? ' disabled' : '') + '>' + fmt(PRIX_BOUCLIER) + ' ' + KAMA + '</button>') + '</div>';
+  const droite = '<div class="gr-carte"><h3 class="gr-titre">La grange<small>niveau ' + (nq + 1) + '</small></h3>' + pvG + arbal + '<h3 class="gr-titre" style="margin-top:12px">Améliorer</h3>' + ligneA('qg', 'grange') + ligneA('arbalete', 'arbalete') + tours + bouclier +
     '<div class="gr-menace">Les voleurs de VSA ont maintenant <b>' + pvVoleur() + ' PV</b> : ils se renforcent à chaque vague gagnée.</div></div>' +
     '<div class="gr-pied"><button class="btn discret" data-perso-slot="">Fiche du perso</button><button class="btn discret" data-hdv-onglet="vendre">Aller à l\'HDV</button></div>';
   ouvrirModale('grange', '<h2>Grange<span class="gr-valeur">Ton stock vaut <b>' + fmt(Math.round(valeurGrange())) + ' kamas</b> à l\'HDV</span><button data-fermer aria-label="Fermer">✕</button></h2>' +
@@ -680,6 +682,7 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-vie' || b.id === 'b-pots') { if (combat) toast('Les pots de gelée se boivent entre les vagues.'); else ouvrirPots(); }
   else if (b.dataset.filets) ACTIONS.acheterFilets(parseInt(b.dataset.filets, 10));
   else if (b.dataset.fleches) ACTIONS.acheterFleches(parseInt(b.dataset.fleches, 10));
+  else if (b.hasAttribute('data-bouclier')) { acheterBouclier(); ouvrirGrange(); } /* (le bouclier anti-VSA, 07/11/2026) */
   else if (b.hasAttribute('data-recharger')) { ACTIONS.recharger(); if (raidAnnonce) majRaidAnnonce(); }
   else if (b.hasAttribute('data-raid-go')) { if (raidAnnonce && !combat) lancerRaid(); } /* (la simu VSA tout de suite, sans attendre les 30 s) */
   else if (b.hasAttribute('data-remplir')) { ACTIONS.remplir(); ouvrirPuits(); }
