@@ -45,3 +45,17 @@ function vieTofu(o, dt, regle) {
   }
   o.position.set(v.x, v.y0 + y, v.z); o.rotation.set(pench, v.ry, roul, 'YXZ'); o.scale.y = v.sy * (1 + souffle);
 }
+
+/* LE TOFU DORE FILE AU FILET RATE (07/11/2026, « 35 % de chance par capture, mais si tu rates une fois il court jusqu'a une autre case ou tu peux retenter ta chance,
+   et il recourt etc. jusqu'a ce que la minute soit passee depuis son apparition », Mathieu) : une case d'herbe libre a 1 a 3 cases de la, et il y court en sautillant */
+function caseFuiteDore(id) {
+  const ici = S_.cases.find((c) => c.id === id); if (!ici) return null; const q = posCase(ici);
+  const L = S_.cases.filter((c) => c.type === 'libre' && c.id !== id), d = (c) => { const r = posCase(c); return Math.hypot(r.x - q.x, r.z - q.z); };
+  const pres = L.filter((c) => d(c) >= 1.2 * S && d(c) <= 3.3 * S); return pres.length ? hasard(pres) : L.length ? L.sort((a, b) => d(a) - d(b))[0] : null;
+}
+function courirDore(m, depart) {
+  const ax = depart.x, az = depart.z, bx = m.position.x, bz = m.position.z, dist = Math.hypot(bx - ax, bz - az); if (dist < 0.1) return;
+  const cap = Math.atan2(bx - ax, bz - az), sauts = Math.max(3, Math.round(dist / 0.55));
+  m.position.x = ax; m.position.z = az; m.rotation.y = cap;
+  m.userData.vie = { x0: bx, y0: m.position.y, z0: bz, ry0: cap, sy: m.scale.y, x: ax, z: az, ry: cap, ry1: cap, geste: 'marche', t: 0.25, d: 0.25 + dist / 5.5, ax, az, bx, bz, cap, sauts, alea: aleaTofu(graineDe(m.uuid)) };
+}

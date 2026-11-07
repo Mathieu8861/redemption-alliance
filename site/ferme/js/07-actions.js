@@ -224,14 +224,15 @@ const ACTIONS = {
   },
   capturerSauvage() {
     if (!S_.sauvage || S_.filets <= 0) return; const dore = !!S_.sauvage.dore;
-    if (!peutCapturer(dore)) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale(); const sv = S_.sauvage; S_.sauvage = null;
+    if (!peutCapturer(dore)) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale(); const sv = S_.sauvage, depart = sauvageMesh ? sauvageMesh.position.clone() : null; let fuite = false; S_.sauvage = null;
     const vu = tofuVu(sauvageMesh), pris = Math.random() < CHANCE_SAUVAGE;
     if (pris && dore) { compter('captures'); compter('tofusDores'); const remplace = S_.tofus >= capaciteVoliere(); if (!remplace) S_.tofus++; S_.tofusDores = (S_.tofusDores || 0) + 1; son('niveau'); /* (07/11/2026 : voliere pleine, il prend la place d'un Tofu normal) */
       toast('TOFU DORÉ capturé !' + (remplace ? ' Il prend la place d\'un Tofu normal dans ta volière.' : ' Il rejoint ta volière.') + ' Il te donnera des Plumes dorées.', 'or'); gagnerXp(25); appliquerVoliere(); }
     else if (pris) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
-    else if (dore) { S_.sauvage = sv; toast('Raté ! Le Tofu doré a esquivé ton filet, mais il est toujours là : retente ta chance.', 'alerte'); } /* (rate, le Tofu dore reste : il ne part que capture, ou de lui-meme a la fin de son temps, 07/11/2026) */
+    else if (dore) { const c = caseFuiteDore(sv.id); S_.sauvage = Object.assign({}, sv, { id: c ? c.id : sv.id }); fuite = !!(c && depart); /* (rate : il file sur une autre case, sa minute continue de tourner, 07/11/2026) */
+      toast('Raté ! Le Tofu doré file plus loin : cours-lui après et retente ta chance, tant qu' + '\'' + 'il est là.', 'alerte'); }
     else toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte');
-    rendreSauvage(); rendreHaut(); rendreGrange(); animerFilet(vu, pris);
+    rendreSauvage(); if (fuite && sauvageMesh) courirDore(sauvageMesh, depart); rendreHaut(); rendreGrange(); animerFilet(vu, pris);
   },
   chasserSauvage() { if (doreIci()) { refusDore(); return; } compter('tofusChasses'); S_.sauvage = null; fermerModale(); rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole.'); },
   ramasserPlumes() {
