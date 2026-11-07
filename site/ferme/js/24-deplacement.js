@@ -224,6 +224,7 @@ function rendreCasesBulles() {
   const groupes = groupesChamps();
   S_.cases.forEach((p) => {
     const cle = 'c' + p.id, pos = posCase(p);
+    if (S_.sauvage && S_.sauvage.id === p.id && S_.sauvage.dore) { const ok = peutCapturer(true); bulle(cle, ok ? icoB('filet') : icoB('tofu'), 'or', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', ok ? 'Un Tofu doré : touche pour le capturer au filet' : S_.filets ? 'Un Tofu doré : ta volière est pleine de Tofus dorés' : 'Un Tofu doré : il te faut un filet de capture (HDV, onglet Acheter)'); return; }
     if (S_.sauvage && S_.sauvage.id === p.id) { bulle(cle, peutCapturer() ? icoB('filet') : icoB('tofu'), 'rouge', [pos.x, pos.y + 1.5, pos.z], 'case:' + p.id, '', peutCapturer() ? 'Un Tofu sauvage : touche pour le capturer au filet' : S_.filets ? 'Un Tofu sauvage : ta volière est pleine, touche pour le chasser' : 'Un Tofu sauvage : touche pour le chasser'); return; }
     if (p.type === 'puits') { if (niv('arrosoir') && !(S_.citerne > 0) && !enRuine('puits') && !combat) bulle(cle, icoB('arrosoir'), 'eau', [pos.x, pos.y + 2.4, pos.z], 'case:' + p.id, '0', 'Citerne vide : touche le puits pour la remplir'); else retirerBulle(cle); return; }
     if (p.type === 'voliere') { if (S_.voliere.plumes && p === S_.cases.find((c) => c.type === 'voliere')) bulle(cle, icoB('plume'), 'or', [pos.x, ancres.voliere ? ancres.voliere.y + 0.95 : pos.y + 3.4, pos.z], 'case:' + p.id, S_.voliere.plumes, 'Plumes de Tofu à ramasser'); else retirerBulle(cle); return; }

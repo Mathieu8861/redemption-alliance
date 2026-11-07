@@ -166,6 +166,10 @@ const degatsTour = (c) => NIV_TOURS.deg[nivTour(c)], nbTours = () => S_.cases.fi
 const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
 /* « quand ta voliere a Tofus est pleine, reduis de 40 % le taux d'apparition des Tofus » (Mathieu, 13/10/2026) : les Tofus des champs et les sauvages */
 const peutCapturer = (dore) => S_.filets > 0 && (S_.tofus < capaciteVoliere() || (!!dore && (S_.tofusDores || 0) < S_.tofus)); /* (un Tofu dore prend la place d'un Tofu normal quand la voliere est pleine, 07/11/2026) */ /* (voliere pleine : on chasse, sans fenetre) */
+/* LE TOFU DORE NE SE TUE PAS (07/11/2026, « il peut pas se faire tuer par l'epouvantail ? et nous meme si on clique dessus on peut pas le tuer ? on peut juste
+   le capturer, mais faut un filet », Mathieu) : ni chasse ni Pepito-Tron, un filet rate ne le fait pas fuir ; il part capture, ou de lui-meme a la fin de son temps */
+const doreIci = () => !!(S_.sauvage && S_.sauvage.dore);
+function refusDore() { toast(S_.filets > 0 ? 'Ta volière est pleine de Tofus dorés : agrandis-la (HDV, onglet Améliorer) pour en accueillir un autre.' : 'Un Tofu doré ! Il ne se chasse pas : il te faut un filet de capture pour l\'attraper (HDV, onglet Acheter).', 'or'); }
 const capturable = (p) => peutCapturer() && p.nuisible !== 'wabbit'; /* un Wabbit qui grignote un champ ne va pas dans la voliere a Tofus : on le chasse (19/10/2026) */
 const freinTofus = () => (S_.tofus >= capaciteVoliere() ? 0.6 : 1);
 /* LES WABBITS DES CHAMPS (19/10/2026, Mathieu : « les oiseaux s'attaquent plutot aux cereales et les lapins plutot aux carottes ») : apres la vague 50, les
