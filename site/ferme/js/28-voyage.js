@@ -5,8 +5,8 @@ async function chargerCasino() {
   /* LE NOUVEAU CASINO, le Palais du Chat Dore (07/11/2026) : l'ile (blender/iles.py version 10) et son decor (blender/casino.py --jeu2), charges au premier
      voyage ; les plantes bercees par le vent chacune a son rythme, l'eau, les nappes, les jets, la cascade et les drapeaux animes (js/26b-casino-decor.js) */
   const [cases, decor, drag] = await Promise.all([chargerGlb('assets/modeles/jeu/ile-casino2-cases.glb?v=' + VERSION_MODELES), chargerGlb('assets/modeles/jeu/casino2-jeu.glb?v=' + VERSION_MODELES), chargerGlb('assets/modeles/jeu/dragodindes.glb?v=' + VERSION_MODELES)]);
-  versToon(cases, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
-  const g = new T.Group(); g.position.copy(CASINO); g.add(fusionner(cases.getObjectByName('IleCasinoCases') || cases, {}));
+  versToon(cases, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_CASINO_SOL, douce: true, centre: true });
+  const g = new T.Group(); g.position.copy(CASINO); const sol = fusionner(cases.getObjectByName('IleCasinoCases') || cases, {}); sol.traverse((m) => { if (m.isMesh) m.castShadow = false; }); g.add(sol); /* (08/11/2026, « ca full lag » : le sol ne fait pas d'ombre, il est plat ; il la recoit) */
   versToon(decor, { normales: 0.012, souple: SOUPLE_CASINO, sansContour: SC_CASINO }); g.add(decor); g.updateMatrixWorld(true);
   const nomBase = (m) => m.name.replace(/\.?\d+$/, '').replace(/_\d+$/, '');
   fusionner(decor, { garder: (m) => ['eau', 'eau_canal', 'drapeau'].includes(nomBase(m)) }); casinoAnim = casinoVivant(T, decor);
@@ -32,7 +32,7 @@ const VOYAGES = {
   arene: { centre: ARENE, charger: () => chargerArene(), zoom: () => 0.6 }, /* (0,72 avant l'agrandissement du 30/10/2026) */
   ile: { centre: ILE_BOSS, charger: () => chargerIleBoss(), zoom: () => 0.72 },
 };
-function montrerIles() { if (ileCasino) ileCasino.visible = lieu === 'casino'; if (ileArene) ileArene.visible = lieu === 'arene'; if (ileBoss) ileBoss.visible = lieu === 'ile'; }
+function montrerIles() { if (ileCasino) ileCasino.visible = lieu === 'casino' && !casinoDedans; if (salleCasino) salleCasino.visible = lieu === 'casino' && casinoDedans; /* (le grand hall du palais, 08/11/2026) */ if (ileArene) ileArene.visible = lieu === 'arene'; if (ileBoss) ileBoss.visible = lieu === 'ile'; }
 function peutPartir(nom) { /* ce qui empeche tout voyage : une attaque en cours, ou etre deja sur une autre ile */
   if (combat || raidAnnonce || voleur || simuEnAttente || S_.simuDue) { toast('Impossible de partir pendant une attaque.'); return false; }
   if (lieu !== 'ferme' && lieu !== nom) { toast('Rentre d\'abord à la ferme.'); return false; }
@@ -51,6 +51,7 @@ async function partirCasino() {
   if (!peutPartir('casino')) return;
   if (!S_.montgolfiere) return;
   if (casinoEnTravaux()) { toast('Le Casino est fermé pour cause de travaux : il rouvre bientôt, plus grand et plus beau !', 'alerte'); return; }
+  casinoDedans = false;
   if (dette()) { toast('Le Casino t\'est fermé tant que ton ardoise n\'est pas réglée.', 'alerte'); return; }
   fermerModale();
   if (!(await allerSur('casino'))) { toast('Le ballon n\'a pas pu décoller (chargement de l\'île), réessaie.', 'alerte'); return; }
@@ -63,7 +64,7 @@ async function rentrerFerme() {
   if (lieu === 'ferme') return; if (combat) return;
   if (course) { toast('Attends la fin de la course.'); return; }
   fermerModale(); $('voile').classList.add('on'); await attendreMs(700);
-  lieu = 'ferme'; montrerIles(); /* (les iles ne sont plus dessinees ni animees une fois rentre) */ casinoMarche = null; $('casino-barre').hidden = true; $('hud').classList.remove('au-casino'); if (modaleOuverte) { areneSuite = true; fermerModale(); areneSuite = false; }
+  lieu = 'ferme'; casinoDedans = false; if (angleAvantSalle != null) { angleCam = angleAvantSalle; angleAvantSalle = null; } montrerIles(); /* (les iles ne sont plus dessinees ni animees une fois rentre) */ casinoMarche = null; $('casino-barre').hidden = true; $('hud').classList.remove('au-casino'); if (modaleOuverte) { areneSuite = true; fermerModale(); areneSuite = false; }
   const libres = S_.cases.filter((c) => PASSABLE[c.type]).map((c) => [c, posCase(c)]).sort((a, b) => Math.hypot(a[1].x - POS_MONTGOLFIERE.x, a[1].z - POS_MONTGOLFIERE.z) - Math.hypot(b[1].x - POS_MONTGOLFIERE.x, b[1].z - POS_MONTGOLFIERE.z));
   if (libres[0]) { const [c, q] = libres[0], u = paysanMesh.userData; u.cellule = c; u.y = hauteurSol(q.x, q.z, c); paysanMesh.position.set(q.x, u.y, q.z); u.angle = Math.atan2(POS_MONTGOLFIERE.x - q.x, POS_MONTGOLFIERE.z - q.z); }
   VISEE.set(0.6, 0.6, 0.6); placerCamera(); cadrer(); soleilVers(new T.Vector3(0, 0, 0));

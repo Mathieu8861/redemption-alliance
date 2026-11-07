@@ -7,6 +7,7 @@
    Partage par le jeu (js/28-voyage.js) et par la page d'apercu design-casino-ile2.html. Tout boucle sur 60 s (uT), sans saut. */
 const SOUPLE_CASINO = { tige: 1, feuille: 1, petale: 1, coeur: 1, fleur_buisson: 0.15, coeur_buisson: 0.15, feuillage: 0.15, liane: 0.35,
   palme: 0.22, palme_tige: 0.22, palme_stipe: 0.22, palme_coco: 0.22, papyrus: 0.6, cypres: 0.06 };
+const SC_CASINO_SOL = new Set(['pierre_fond', 'terre_dessous', 'terre', 'joint', 'pierre', 'pointe', 'ilot', 'racine', 'liane', 'herbe', 'fleur', 'caillou', 'galet']); /* (le sol de l'ile : contour seulement sur le dessus des cases, 08/11/2026) */
 const SC_CASINO = new Set(['palme', 'palme_tige', 'tige', 'feuille', 'petale', 'coeur', 'fleur_buisson', 'coeur_buisson', 'liane', 'lierre', 'rosier', 'haie_fleur', 'papyrus',
   'nenuphar', 'lotus', 'eau', 'eau_canal', 'drapeau', 'incrustation', 'tapis_or', 'damier', 'kama_tas', 'fond', 'terreau', 'montant', 'balustre', 'tenture']);
 /* les cotes de blender/casino.py (fontaine_luxe, bassin_luxe, canal) */
@@ -188,7 +189,7 @@ const OBST_CASINO = (() => { const R = [], C = [], sym = (x, z, r) => { C.push([
   for (let k = 0; k < 4; k++) { const d = Math.PI / 4 + k * Math.PI / 2; C.push([Math.cos(d) * 8.2, Math.sin(d) * 8.2, 0.55]); [-0.35, 0.35].forEach((e) => C.push([Math.cos(d + e) * 8.2, Math.sin(d + e) * 8.2, 0.35])); [-0.19, 0.19].forEach((e) => C.push([Math.cos(d + e) * 7.7, Math.sin(d + e) * 7.7, 0.9])); }
   sym(-24, 3.3, 0.5); sym(-25.6, 4.0, 0.75); R.push([-20.9, -11.1, 4.4, 5.2], [-20.9, -11.1, -5.2, -4.4]); sym(-16, 3.9, 0.25); sym(-22, 3.9, 0.25); sym(-10.6, 3.6, 0.35); sym(-13.6, 3.6, 0.35); sym(-18.4, 3.6, 0.35); sym(-12.1, 4.0, 0.95); sym(-22.6, 4.3, 0.5);
   C.push([-14, -12, 3.0], [-21, -8, 1.1], [-15.6, -6.4, 0.45], [-12.4, -6.4, 0.45], [-17.5, 8, 0.7], [-16.2, 8.6, 0.7], [-19.6, 7.6, 0.95], [-18.6, 9.4, 0.75]); R.push([-11.4, -8.2, -6.2, -5.0]); /* l'ouest */
-  R.push([-6.5, -1.1, 11.2, 13.7], [1.1, 6.5, 11.2, 13.7], [-6.2, -5.0, 9.0, 11.0], [14.7, 17.3, 9.3, 14.7]); symX(3.2, 8.6, 0.5); C.push([5.6, 10, 0.55], [14, 9, 0.55], [14, 15, 0.55]); /* l'hippodrome */
+  R.push([-6.5, -1.1, 11.2, 13.7], [1.1, 6.5, 11.2, 13.7], [7.5, 8.5, 9.0, 11.0], [14.7, 17.3, 9.3, 14.7]); symX(3.2, 8.6, 0.5); C.push([-5.6, 10, 0.55], [14, 9, 0.55], [14, 15, 0.55]); /* l'hippodrome (le guichet au bout de l'esplanade, a l'est, 08/11/2026) */
   R.push([13.2, 20.8, -2.3, 2.3], [20.7, 21.5, -0.9, 0.9], [22.9, 27.4, -0.9, 0.9], [14.4, 19.6, 5.6, 6.8], [14.4, 19.6, -6.8, -5.6]); /* les jardins : bassin, canal (le pont reste libre), parterres */
   sym(25.6, 1.35, 0.5); sym(24, 2.6, 0.45); sym(11.6, 4.4, 0.5); sym(22.6, 4.4, 0.5); sym(10, 3.6, 0.35); sym(14.5, 4.75, 0.35); sym(19.5, 4.75, 0.35); sym(17, 4.2, 0.95); C.push([15.5, -9.4, 0.8], [17.4, -9.8, 0.6], [19.5, -9, 0.5]);
   return { R, C }; })();
@@ -207,13 +208,13 @@ function alleeCasino(x, z) { /* les allees de marbre (iles.py version 10, marbre
 }
 const COUT_HERBE = 2.2; /* (un pas sur la pelouse compte pour 2,2 pas d'allee : on coupe par l'herbe seulement si l'allee fait un vrai detour) */
 const GRILLE_CASINO = { pas: 0.5, min: -30, n: 121, libre: null, allee: null };
-function grilleCasino() {
-  const G = GRILLE_CASINO; if (G.libre) return G; G.libre = new Uint8Array(G.n * G.n); G.allee = new Uint8Array(G.n * G.n);
-  for (let i = 0; i < G.n; i++) for (let j = 0; j < G.n; j++) { const x = G.min + i * G.pas, z = G.min + j * G.pas; G.libre[i * G.n + j] = libreCasino(x, z) ? 1 : 0; G.allee[i * G.n + j] = alleeCasino(x, z) ? 1 : 0; }
+function grilleDe(G, libreZ, alleeZ) { /* la grille d'une zone (l'ile, la salle du palais) : ou l'on peut marcher, et les allees */
+  if (G.libre) return G; G.libre = new Uint8Array(G.n * G.n); G.allee = new Uint8Array(G.n * G.n);
+  for (let i = 0; i < G.n; i++) for (let j = 0; j < G.n; j++) { const x = G.min + i * G.pas, z = G.min + j * G.pas; G.libre[i * G.n + j] = libreZ(x, z) ? 1 : 0; G.allee[i * G.n + j] = !alleeZ || alleeZ(x, z) ? 1 : 0; }
   return G;
 }
-function cheminCasino(x0, z0, x1, z1) { /* le chemin du perso de (x0, z0) a (x1, z1) : des points [x, z], le dernier au plus pres de la cible ; null s'il n'y en a pas */
-  const G = grilleCasino(), n = G.n, ci = (v) => Math.max(0, Math.min(n - 1, Math.round((v - G.min) / G.pas))), libre = (i, j) => i >= 0 && j >= 0 && i < n && j < n && G.libre[i * n + j] === 1;
+function cheminSur(G, libreZ, alleeZ, x0, z0, x1, z1) { /* le chemin du perso de (x0, z0) a (x1, z1) : des points [x, z], le dernier au plus pres de la cible ; null s'il n'y en a pas */
+  const n = G.n, ci = (v) => Math.max(0, Math.min(n - 1, Math.round((v - G.min) / G.pas))), libre = (i, j) => i >= 0 && j >= 0 && i < n && j < n && G.libre[i * n + j] === 1;
   const proche = (i, j) => { if (libre(i, j)) return [i, j]; for (let r = 1; r < 40; r++) { let best = null, bd = 1e9; for (let a = -r; a <= r; a++) for (const [p, q] of [[i + a, j - r], [i + a, j + r], [i - r, j + a], [i + r, j + a]]) if (libre(p, q)) { const d = (p - i) * (p - i) + (q - j) * (q - j); if (d < bd) { bd = d; best = [p, q]; } } if (best) return best; } return null; };
   const A = proche(ci(x0), ci(z0)), B = proche(ci(x1), ci(z1)); if (!A || !B) return null;
   const k = (i, j) => i * n + j, g = new Float32Array(n * n).fill(Infinity), de = new Int32Array(n * n).fill(-1), ferme = new Uint8Array(n * n), tas = [];
@@ -228,11 +229,44 @@ function cheminCasino(x0, z0, x1, z1) { /* le chemin du perso de (x0, z0) a (x1,
   }
   if (!ferme[fin]) return null;
   const pts = []; for (let id = fin; id !== -1; id = de[id]) pts.push([G.min + Math.floor(id / n) * G.pas, G.min + (id % n) * G.pas]); pts.reverse();
-  if (libreCasino(x1, z1, 0.2)) pts[pts.length - 1] = [x1, z1];
-  const herbe = (x, z) => !alleeCasino(x, z), herbeChemin = pts.map((q) => (herbe(q[0], q[1]) ? G.pas : 0)); /* (les metres d'herbe du chemin trouve, point par point) */
+  if (libreZ(x1, z1, 0.2)) pts[pts.length - 1] = [x1, z1];
+  const herbe = (x, z) => !!alleeZ && !alleeZ(x, z), herbeChemin = pts.map((q) => (herbe(q[0], q[1]) ? G.pas : 0)); /* (les metres d'herbe du chemin trouve, point par point) */
   const voit = (a, b, i, j) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.ceil(L / 0.2); let h = 0;
-    for (let s = 1; s < m; s++) { const t = s / m, x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t; if (!libreCasino(x, z, 0.25)) return false; if (herbe(x, z)) h += L / m; }
+    for (let s = 1; s < m; s++) { const t = s / m, x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t; if (!libreZ(x, z, 0.25)) return false; if (herbe(x, z)) h += L / m; }
     let hc = 0; for (let k = i + 1; k <= j; k++) hc += herbeChemin[k]; return h <= hc + 0.8; }; /* (le raccourci ne coupe pas plus par l'herbe que le chemin trouve) */
   const lisse = [[x0, z0]]; let i = -1; while (i < pts.length - 1) { let j = pts.length - 1; while (j > i + 1 && !voit(lisse[lisse.length - 1], pts[j], Math.max(i, 0), j)) j--; lisse.push(pts[j]); i = j; } /* (on va droit tant qu'on voit le point suivant) */
   return lisse.slice(1);
 }
+
+/* ---------- LE GRAND HALL DU PALAIS (08/11/2026) : ses places (blender/casino.py, salle_casino) et ses chemins ----------
+   La salle est posee loin des iles (SALLE_CASINO, dans le jeu) ; on y marche comme sur l'ile, sur sa propre grille. Coordonnees dans la salle. */
+const SALLE_PLACES = { porte: [0, 9.3, 0, 11], roulette: [-3.5, 0.9, -3.5, -1.5], blackjack: [4.5, 3.3, 4.5, 1.0], bar: [6.35, -6.35, 6.35, -8.0], accueil: [-5.2, 6.5, -6.5, 6.5],
+  statue: [0, -6.2, 0, -8.4], coffre: [-9.0, -7.4, -10.6, -8.4] };
+const MACHINES_SALLE = [0, 1, 2, 3, 4, 5].map((k) => -6.0 + k * 2.0); /* (le z des six machines, le long du mur ouest, x -11,7) */
+const OBST_SALLE = (() => { const R = [], C = [];
+  R.push([-12.6, -10.9, -6.6, 4.6], [-11.9, -9.3, -9.3, -7.5], [-5.1, -2.15, -2.25, -0.75], [2.65, 6.35, 0.9, 2.85], [3.3, 10.7, -8.5, -7.55], [-7.9, -6.0, 5.0, 8.0], [-1.45, 1.45, -7.05, -6.75]);
+  C.push([-9.2, -8.9, 0.5], [-3.5, -0.1, 0.25], [-2.3, 0, 0.25], [-4.7, 0, 0.25], [4.5, 0.25, 0.6], [11.2, 6.6, 1.0], [9.0, 8.7, 1.0], [9.2, 6.6, 0.6], [-2.2, 5.4, 0.35], [2.2, 5.4, 0.35], [0, -8.4, 1.15], [-2.4, -8.6, 0.45], [2.4, -8.6, 0.45], [-11.9, 9.0, 0.45], [11.9, 9.0, 0.45], [11.9, -2.0, 0.45],
+    [-8.5, -4.8, 0.6], [8.5, -4.8, 0.6], [-8.5, 4.6, 0.6], [8.5, 4.6, 0.6], [-2.2, 8.9, 0.5], [2.2, 8.9, 0.5]);
+  for (let k = 0; k < 5; k++) C.push([4.4 + k * 1.3, -7.0, 0.3]);
+  return { R, C }; })();
+function libreSalle(x, z, marge) {
+  const m = marge == null ? 0.3 : marge;
+  if (x < -12.6 + m || x > 12.6 - m || z < -9.6 + m) return false; if (z > 9.7 - m && !(Math.abs(x) < 1.4 && z < 10.6)) return false; /* (les murs ; la porte au sud) */
+  for (const [x0, x1, z0, z1] of OBST_SALLE.R) if (x > x0 - m && x < x1 + m && z > z0 - m && z < z1 + m) return false;
+  for (const [cx, cz, r] of OBST_SALLE.C) if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < (r + m) * (r + m)) return false;
+  return true;
+}
+const GRILLE_SALLE = { pas: 0.4, min: -13.2, n: 67, libre: null, allee: null };
+function zoneSalle(x, z) { /* ce qu'on touche dans la salle */
+  if (z > 8.8 && Math.abs(x) < 2.4) return 'porte';
+  if (x < -10.8 && z > -6.8 && z < 4.8) return 'machine' + Math.max(0, Math.min(5, Math.round((z + 6) / 2)));
+  if (x < -8.8 && z < -7.0) return 'coffre';
+  if (x > -5.3 && x < -1.9 && z > -2.5 && z < -0.5) return 'roulette';
+  if (Math.hypot(x - 4.5, z - 1.4) < 1.9) return 'blackjack';
+  if (x > 3.0 && x < 11 && z < -7.4) return 'bar';
+  if (x > -8.1 && x < -5.8 && z > 4.8 && z < 8.2) return 'accueil';
+  if (Math.hypot(x, z + 8.4) < 1.5 || (Math.abs(x) < 1.4 && z < -6.8)) return 'statue';
+  return null;
+}
+const grilleCasino = () => grilleDe(GRILLE_CASINO, libreCasino, alleeCasino), cheminCasino = (x0, z0, x1, z1) => cheminSur(grilleCasino(), libreCasino, alleeCasino, x0, z0, x1, z1);
+const grilleSalle = () => grilleDe(GRILLE_SALLE, libreSalle, null), cheminSalle = (x0, z0, x1, z1) => cheminSur(grilleSalle(), libreSalle, null, x0, z0, x1, z1);

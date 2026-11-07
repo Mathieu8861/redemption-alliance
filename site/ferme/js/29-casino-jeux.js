@@ -4,21 +4,21 @@
    Chaque jeu a son endroit : la porte du palais au bout du tapis rouge (la salle de jeux, en attendant le grand hall), le guichet des paris de l'hippodrome
    (avec le tableau des cotes), le ponton de la montgolfiere. Le perso y va par les allees en contournant le decor (cheminCasino, js/26b-casino-decor.js).
    Coordonnees sur l'ile [x, z, et le point qu'il regarde en arrivant] ; le jeu ajoute CASINO. */
-const SPOTS = { casino: [0, -14.6, 0, -20], course: [-4.3, 10.0, -5.6, 10.0], retour: [-26.2, 0, -29, 0], tribune: [0, 12.4, 0, 14.9] };
+const SPOTS = { casino: [0, -14.6, 0, -20], course: [6.7, 10.0, 8.0, 10.0], retour: [-26.2, 0, -29, 0], tribune: [0, 12.4, 0, 14.9] };
 function zoneCasino(x, z) { /* le jeu touche, d'apres le point de l'ile (l'export cuit la hierarchie des groupes : le jeu se reconnait a l'endroit touche) */
   if (x < -24.6 && Math.abs(z) < 3.2) return 'retour';
   if (Math.abs(x) < 6.4 && z < -14.9 && z > -27) return 'casino';
-  if (x > -6.6 && x < -4.6 && z > 8.8 && z < 11.2) return 'course'; /* le guichet des paris */
+  if (x > 7.0 && x < 9.0 && z > 8.8 && z < 11.2) return 'course'; /* le guichet des paris */
   if ((Math.abs(x) < 6.6 && z > 11.1 && z < 13.8) || Math.hypot(Math.max(Math.abs(x - STADE_CASINO.cx) - STADE_CASINO.a, 0), z - STADE_CASINO.cz) < STADE_CASINO.R + 1.6) return 'course'; /* la tribune, la piste */
   if (Math.hypot(x, z) < 4.2) return 'fontaine';
   return null;
 }
-function aller(x, z, lx, lz, fn) { /* marcher jusqu'a (x, z) de l'ile, par les allees, puis regarder (lx, lz) et faire fn */
-  const px = paysanMesh.position.x - CASINO.x, pz = paysanMesh.position.z - CASINO.z, ch = cheminCasino(px, pz, x, z) || [[x, z]];
-  casinoMarche = { pts: ch, i: 0, vers: lx != null ? { x: CASINO.x + lx, z: CASINO.z + lz } : null, fn };
+function aller(x, z, lx, lz, fn) { /* marcher jusqu'a (x, z) de l'ile (ou de la salle du palais), par les allees, puis regarder (lx, lz) et faire fn */
+  const O = origineCasino(), px = paysanMesh.position.x - O.x, pz = paysanMesh.position.z - O.z, ch = (casinoDedans ? cheminSalle : cheminCasino)(px, pz, x, z) || [[x, z]];
+  casinoMarche = { pts: ch, i: 0, vers: lx != null ? { x: O.x + lx, z: O.z + lz } : null, fn, O };
 }
 function clicCasino(hits) {
-  if (course) return;
+  if (course) return; if (casinoDedans) { clicSalle(hits); return; }
   for (const h of hits) {
     let o = h.object, perso = false, dansIle = false;
     while (o) { if (o === paysanMesh) perso = true; if (o === ileCasino) dansIle = true; o = o.parent; }
@@ -30,20 +30,19 @@ function clicCasino(hits) {
   }
 }
 function majCasino(dt) {
-  if (casinoAnim) casinoAnim.animer(dt, performance.now() / 1000);
+  if (casinoAnim && !casinoDedans) casinoAnim.animer(dt, performance.now() / 1000);
   majCourse(dt);
-  const u = paysanMesh.userData, P = paysanMesh.position, sol = (x, z) => CASINO.y + hauteurCasino(x - CASINO.x, z - CASINO.z);
+  const u = paysanMesh.userData, P = paysanMesh.position, sol = (x, z) => (casinoDedans ? SALLE_CASINO.y : CASINO.y + hauteurCasino(x - CASINO.x, z - CASINO.z));
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); }
   if (!casinoMarche) { animerPas(u, dt, 0); P.y += (sol(P.x, P.z) - P.y) * Math.min(1, dt * 12); return; }
-  const m = casinoMarche, q = m.pts[m.i], tx = CASINO.x + q[0], tz = CASINO.z + q[1], dx = tx - P.x, dz = tz - P.z, d = Math.hypot(dx, dz), v = vitesse() * dt;
+  const m = casinoMarche, q = m.pts[m.i], tx = m.O.x + q[0], tz = m.O.z + q[1], dx = tx - P.x, dz = tz - P.z, d = Math.hypot(dx, dz), v = vitesse() * dt;
   if (d > 0.001) u.angle = Math.atan2(dx, dz);
   if (d <= v) { P.x = tx; P.z = tz; m.i++; if (m.i < m.pts.length) return; casinoMarche = null; if (m.vers) u.angle = Math.atan2(m.vers.x - tx, m.vers.z - tz); if (m.fn) m.fn(); return; }
   P.x += dx / d * v; P.z += dz / d * v; u.pas = (u.pas || 0) + v * 4.6; animerPas(u, dt, 1);
   P.y = sol(P.x, P.z) + (1 - Math.cos(u.pas * 2)) * 0.012 * (u.ampl || 0);
-  if (!drag && !course) { const k = Math.min(1, dt * 1.6); VISEE.x += (P.x - VISEE.x) * k; VISEE.z += (P.z - VISEE.z) * k; placerCamera(); } /* (la camera suit le perso quand il marche : l'ile est grande) */
 }
 function ouvrirJeu(j) {
-  if (j === 'course') ouvrirCourse(); else if (j === 'casino') ouvrirSalle();
+  if (j === 'course') ouvrirCourse(); else if (j === 'casino') entrerPalais(); /* (la porte du palais : le grand hall, 08/11/2026) */
   else if (j === 'retour') ouvrirModale('montgolfiere', entete('La montgolfière') + '<div class="art">' + ico('kama') + '<div><b>Rentrer à la ferme ?</b><div class="desc">Le ballon te ramène au bord de ta ferme.</div></div><div class="act"><button class="btn kamas" data-montgolfiere="rentrer">Rentrer</button></div></div>');
   else if (j === 'fontaine') toast('La fontaine du Chat Doré. On dit qu\'un kama jeté au fond porte chance au jeu...');
 }
@@ -54,6 +53,100 @@ function ouvrirSalle() {
     ligne('jackpot', 'La machine à sous', 'Le jackpot : ' + fmt(c.jackpot) + ' kamas.', 'machine', 'Jouer') + ligne('kama', 'La roulette', 'Rouge ou noir, pair ou impair, ou ton numéro.', 'roulette', 'Jouer') +
     ligne('cadenas', 'Ton bilan et les règles de la maison', 'Ce que tu as misé et gagné, la mise maximale, les pertes du jour.', 'bilan', 'Voir'));
 }
+/* ---------- LE GRAND HALL DU PALAIS (08/11/2026, « le palais on peut pas rentrer dedans ? », puis « fini-moi ce casino, rends-le viable », Mathieu) ----------
+   La porte du palais emmene dans une salle a part (blender/casino.py --salle), posee loin des iles, derriere le voile, comme un voyage : six machines a sous,
+   la roulette, la table de blackjack, le bar, l'accueil et le coffre du jackpot ; les gros bras gardent la porte. On y marche comme sur l'ile (cheminSalle). */
+const SALLE_CASINO = new T.Vector3(-240, 0, 480); /* (loin de tout, et rien derriere elle dans l'axe de la camera : la ferme se voyait au fond du hall) */
+let salleCasino = null, casinoDedans = false, angleAvantSalle = null;
+const origineCasino = () => (casinoDedans ? SALLE_CASINO : CASINO);
+async function chargerSalle() {
+  if (salleCasino) return;
+  const sc = await chargerGlb('assets/modeles/jeu/casino-salle.glb?v=' + VERSION_MODELES);
+  versToon(sc, { normales: 0.012, souple: SOUPLE_CASINO, sansContour: SC_CASINO });
+  const g = new T.Group(); g.position.copy(SALLE_CASINO); g.add(sc); g.updateMatrixWorld(true); fusionner(sc);
+  try { await chargerGrosBras(); [['bouboule', -2.2], ['filou', 2.2]].forEach(([n, x]) => { const m = cloner(n); m.position.set(x, 0, 8.9); m.rotation.y = Math.PI; g.add(m); }); } catch (e) { /* (sans eux, la salle reste ouverte) */ }
+  g.visible = false; scene.add(g); salleCasino = g; grilleSalle();
+}
+async function entrerPalais() {
+  $('voile').classList.add('on'); fermerModale();
+  try { await Promise.all([chargerSalle(), attendreMs(700)]); } catch (e) { $('voile').classList.remove('on'); ouvrirSalle(); return; } /* (le hall n'a pas pu se charger : le vestibule, comme avant) */
+  casinoDedans = true; casinoMarche = null; montrerIles();
+  const u = paysanMesh.userData, [x, z] = SALLE_PLACES.porte; paysanMesh.position.set(SALLE_CASINO.x + x, SALLE_CASINO.y, SALLE_CASINO.z + z); u.y = SALLE_CASINO.y; u.angle = Math.PI; paysanMesh.rotation.y = u.angle;
+  angleAvantSalle = angleCam; angleCam = ANGLE_DEPART; /* (la salle se regarde du sud-est : ses murs hauts sont au nord et a l'ouest) */
+  zoom = 0.8; cadrer(); VISEE.set(SALLE_CASINO.x + 0.6, 0.6, SALLE_CASINO.z + 1.0); placerCamera(); soleilVers(SALLE_CASINO); rendu.shadowMap.needsUpdate = true;
+  setTimeout(() => $('voile').classList.remove('on'), 120); compter('palaisVisites');
+  toast('Bienvenue au Palais du Chat Doré ! Touche une machine, une table ou le bar pour y aller.', 'or');
+}
+async function sortirPalais() {
+  $('voile').classList.add('on'); fermerModale(); await attendreMs(600);
+  casinoDedans = false; casinoMarche = null; montrerIles();
+  const u = paysanMesh.userData, [x, z] = SPOTS.casino; paysanMesh.position.set(CASINO.x + x, CASINO.y, CASINO.z + z); u.y = CASINO.y; u.angle = 0; paysanMesh.rotation.y = 0;
+  if (angleAvantSalle != null) { angleCam = angleAvantSalle; angleAvantSalle = null; }
+  zoom = Math.max(0.6, Math.min(zoom, 1)); cadrer(); VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z + 4); placerCamera(); soleilVers(CASINO); rendu.shadowMap.needsUpdate = true;
+  setTimeout(() => $('voile').classList.remove('on'), 120);
+}
+function clicSalle(hits) {
+  for (const h of hits) {
+    let o = h.object, perso = false, dans = false; while (o) { if (o === paysanMesh) perso = true; if (o === salleCasino) dans = true; o = o.parent; }
+    if (perso || !dans) continue;
+    const lx = h.point.x - SALLE_CASINO.x, lz = h.point.z - SALLE_CASINO.z, j = zoneSalle(lx, lz);
+    if (j && j.startsWith('machine')) { const z = MACHINES_SALLE[+j.slice(7)]; aller(-10.7, z, -11.7, z, () => ouvrirJeuSalle('machine')); return; }
+    if (j) { const [x, z, vx, vz] = SALLE_PLACES[j]; aller(x, z, vx, vz, () => ouvrirJeuSalle(j)); return; }
+    aller(lx, lz, null, null, null); return;
+  }
+}
+const LEGENDE_CHAT = 'Il y a bien longtemps, un chat de gouttière nommé Doré gagna une île entière en un seul lancer de dés : un double six, contre un dragon qui misait tout son trésor. Avec l\'or du dragon, il fit bâtir ce palais et jura que chacun y aurait sa chance. Ses descendants tiennent toujours la maison : ce sont eux, sur les portraits du hall. On raconte que le Chat Doré n\'a jamais perdu une partie... sauf contre sa propre queue.';
+function ouvrirJeuSalle(j) {
+  if (j === 'porte') sortirPalais(); else if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else if (j === 'blackjack') ouvrirBlackjack();
+  else if (j === 'bar') ouvrirBar(); else if (j === 'accueil') ouvrirCasinoInfo();
+  else if (j === 'statue') toast('Le Chat Doré, fondateur du palais. On dit qu\'il n\'a jamais perdu une partie... sauf contre sa propre queue.');
+  else if (j === 'coffre') toast('Le coffre du jackpot : ' + fmt(etatCasino().jackpot) + ' kamas. Il tombe avec trois Jackpots à la machine à sous.', 'or');
+}
+function ouvrirBar() {
+  ouvrirModale('bar', entete('Le bar du Chat Doré') + '<div class="art">' + ico('kama') + '<div><b>« Qu\'est-ce que je te sers, voyageur ? »</b><div class="desc">Minou, le barman, essuie un verre et te raconte l\'histoire de la maison.</div></div><div class="act"><button class="btn kamas" data-cas="bar:verre">Un lait doré</button></div></div>' +
+    '<div class="hdv-section">La légende du Chat Doré</div><p class="hdv-aide" style="font-size:.84rem;line-height:1.45">' + LEGENDE_CHAT + '</p>');
+}
+
+/* ---------- LE BLACKJACK (le plan du 07/11/2026, valide : le croupier tire jusqu'a 17, gagne : deux fois la mise, blackjack d'entree : deux fois et demie,
+   egalite : la mise rendue ; Tirer, Rester, Doubler ; la meme mise maximale et le meme plafond de pertes que les autres jeux) ---------- */
+const BJ_RANGS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'V', 'D', 'R'], BJ_COULEURS = ['♠', '♥', '♦', '♣'];
+let bj = null; /* la main en cours : { joueur, croupier, mise, double, fini } */
+const bjCarte = () => ({ r: BJ_RANGS[Math.floor(Math.random() * 13)], c: BJ_COULEURS[Math.floor(Math.random() * 4)] }); /* (un sabot sans fin : chaque carte au hasard) */
+function bjTotal(main) { let t = 0, as = 0; main.forEach((k) => { if (k.r === 'A') { t += 11; as++; } else t += ['10', 'V', 'D', 'R'].includes(k.r) ? 10 : +k.r; }); while (t > 21 && as) { t -= 10; as--; } return t; }
+const bjNaturel = (main) => main.length === 2 && bjTotal(main) === 21;
+const bjCarteHtml = (k, cachee) => (cachee ? '<span class="bj-carte dos"></span>' : '<span class="bj-carte' + ('♥♦'.includes(k.c) ? ' rouge' : '') + '"><b>' + k.r + '</b><i>' + k.c + '</i></span>');
+function ouvrirBlackjack(res) {
+  const enCours = !!(bj && !bj.fini), b = bj || { joueur: [], croupier: [] };
+  const main = (titre, cartes, cache) => '<div class="bj-main"><div class="bj-titre">' + titre + (cartes.length ? ' <b>' + (cache ? bjTotal([cartes[0]]) + ' + ?' : bjTotal(cartes)) + '</b>' : '') + '</div><div class="bj-cartes">' +
+    (cartes.length ? cartes.map((k, i) => bjCarteHtml(k, cache && i === 1)).join('') : '<span class="bj-vide">pas encore de carte</span>') + '</div></div>';
+  ouvrirModale('blackjack', entete('Le blackjack du Chat Doré') + '<p class="hdv-aide">Approche-toi de 21 sans le dépasser. Le croupier tire jusqu\'à 17. Gagné : deux fois ta mise. Blackjack d\'entrée : deux fois et demie. Égalité : ta mise est rendue.</p>' +
+    main('Le croupier', b.croupier, enCours) + main('Toi' + (b.mise ? ' (mise ' + fmt(b.mise) + ')' : ''), b.joueur, false) +
+    '<div class="cas-res' + (res && res.gain ? ' gagne' : '') + '">' + (res ? res.html : '') + '</div>' +
+    (enCours ? '<div class="bj-actions"><button class="btn kamas" data-cas="bj:tirer">Tirer</button><button class="btn" data-cas="bj:rester">Rester</button>' + (b.joueur.length === 2 && !b.double ? '<button class="btn discret" data-cas="bj:doubler">Doubler</button>' : '') + '</div>'
+      : piedMise() + '<button class="btn kamas grand" data-cas="bj:donner" style="width:100%;margin-top:8px">' + (casinoMise > S_.kamas ? 'Distribuer à crédit' : 'Distribuer') + '</button>'));
+}
+function bjDonner() {
+  if (bj && !bj.fini) return; const m = casinoMise; if (!peutMiser(m)) return; miser(m);
+  bj = { joueur: [bjCarte(), bjCarte()], croupier: [bjCarte(), bjCarte()], mise: m, double: false, fini: false }; compter('blackjack');
+  if (bjNaturel(bj.joueur)) { bjFin(); return; }
+  ouvrirBlackjack();
+}
+function bjTirer() { if (!bj || bj.fini) return; bj.joueur.push(bjCarte()); if (bjTotal(bj.joueur) >= 21) { bjFin(); return; } ouvrirBlackjack(); }
+function bjDoubler() { if (!bj || bj.fini || bj.joueur.length !== 2 || bj.double || !peutMiser(bj.mise)) return; miser(bj.mise); bj.mise *= 2; bj.double = true; bj.joueur.push(bjCarte()); bjFin(); }
+function bjFin() {
+  const b = bj; b.fini = true; const j = bjTotal(b.joueur), nat = bjNaturel(b.joueur);
+  if (j <= 21 && !nat) while (bjTotal(b.croupier) < 17) b.croupier.push(bjCarte()); /* (le croupier tire jusqu'a 17, et reste sur tous les 17) */
+  const c = bjTotal(b.croupier), natC = bjNaturel(b.croupier); let gain = 0, html;
+  if (j > 21) html = 'Perdu...<small>Tu dépasses 21 (' + j + ').</small>';
+  else if (nat && !natC) { gain = Math.round(b.mise * 2.5); html = 'Blackjack !<small>+' + fmt(gain) + ' kamas</small>'; }
+  else if (nat && natC) { gain = b.mise; html = 'Égalité<small>Deux blackjacks : ta mise est rendue.</small>'; }
+  else if (natC) html = 'Perdu...<small>Blackjack du croupier.</small>';
+  else if (c > 21 || j > c) { gain = b.mise * 2; html = 'Gagné !<small>' + j + (c > 21 ? ', le croupier saute (' + c + ')' : ' contre ' + c) + ' : +' + fmt(gain) + ' kamas</small>'; }
+  else if (j === c) { gain = b.mise; html = 'Égalité<small>' + j + ' partout : ta mise est rendue.</small>'; }
+  else html = 'Perdu...<small>' + j + ' contre ' + c + '.</small>';
+  payer(gain); ouvrirBlackjack({ gain: gain > b.mise ? gain : 0, html });
+}
+
 /* le pied commun des jeux : la mise, la mise maximale, la jauge des pertes du jour */
 function piedMise(sansMise) {
   const max = miseMax(), p = perteJour(), pl = plafondPertes(); casinoMise = Math.max(10, Math.min(casinoMise, max));
@@ -173,13 +266,15 @@ function ouvrirCasinoInfo() {
 }
 function actionCasino(b) {
   const a = b.dataset.cas;
-  if (a === 'moins' || a === 'plus') { casinoMise = Math.max(10, Math.min(miseMax(), casinoMise + (a === 'plus' ? 1 : -1) * pasMise())); ({ machine: ouvrirMachine, course: ouvrirCourse })[modaleOuverte] && ({ machine: ouvrirMachine, course: ouvrirCourse })[modaleOuverte](); }
+  if (a === 'moins' || a === 'plus') { casinoMise = Math.max(10, Math.min(miseMax(), casinoMise + (a === 'plus' ? 1 : -1) * pasMise())); ({ machine: ouvrirMachine, course: ouvrirCourse, blackjack: ouvrirBlackjack })[modaleOuverte] && ({ machine: ouvrirMachine, course: ouvrirCourse, blackjack: ouvrirBlackjack })[modaleOuverte](); }
   else if (a === 'tirer') tirerMachine();
   else if (a.startsWith('jeton:')) { casinoJeton = +a.slice(6); ouvrirRoulette(); }
   else if (a.startsWith('pari:')) { if (casinoTourne) return; const k = a.slice(5); if (totalParis() + casinoJeton > miseMax()) { toast('Mise maximale : ' + fmt(miseMax()) + ' kamas par lancer.'); return; } casinoParis[k] = (casinoParis[k] || 0) + casinoJeton; ouvrirRoulette(); }
   else if (a === 'effacer') { if (casinoTourne) return; casinoParis = {}; ouvrirRoulette(); }
   else if (a === 'bille') lancerBille();
   else if (a.startsWith('drago:')) { casinoDrago = +a.slice(6); ouvrirCourse(); }
+  else if (a === 'bj:donner') bjDonner(); else if (a === 'bj:tirer') bjTirer(); else if (a === 'bj:rester') { if (bj && !bj.fini) bjFin(); } else if (a === 'bj:doubler') bjDoubler();
+  else if (a === 'bar:verre') toast('Minou pousse vers toi un lait doré, mousseux et tiède. « Offert par la maison ! »', 'or');
   else if (a.startsWith('salle:')) { const j = a.slice(6); if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else ouvrirCasinoInfo(); }
   else if (a === 'course') lancerCourse();
 }

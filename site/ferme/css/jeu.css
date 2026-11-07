@@ -1139,3 +1139,10 @@ html, body { color: #e8eaed; }
 /* (05/11/2026, idee de Madazu relayee par Mathieu : « tant que le sort n'est pas recharge, qu'il soit grise ; des qu'il est recharge a fond, il repasse dans sa couleur ;
    presque recharge, on croit qu'on l'a recupere ») : un bouton pas pret est en gris (sa part a recharger reste sombre), la couleur revient a 100 % avec le liseré dore */
 .combat-sort .rond { transition: filter .2s; } .combat-sort:not(.pret) .rond { filter: grayscale(1) brightness(.92); }
+/* le blackjack du Chat Dore (08/11/2026) : les mains du croupier et du joueur, des cartes a jouer en HTML */
+.bj-main { margin: 6px 0; } .bj-titre { font-size: .8rem; font-weight: 700; color: #cfc8b8; margin-bottom: 4px; } .bj-titre b { color: var(--kamas); font: 400 1rem/1 var(--f-titre); margin-left: 6px; }
+.bj-cartes { display: flex; gap: 6px; min-height: 66px; align-items: center; flex-wrap: wrap; }
+.bj-carte { width: 44px; height: 62px; border-radius: 7px; background: #fffaf0; border: 2px solid #d9c9a3; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #2a2230; box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.bj-carte b { font: 400 1.15rem/1 var(--f-titre); } .bj-carte i { font-style: normal; font-size: 1.15rem; line-height: 1.1; } .bj-carte.rouge { color: #d8263a; }
+.bj-carte.dos { background: repeating-linear-gradient(45deg, #9e1c2c 0 6px, #c8323e 6px 12px); border-color: #f2b630; }
+.bj-vide { font-size: .78rem; color: #8d877b; } .bj-actions { display: flex; gap: 8px; margin-top: 10px; } .bj-actions .btn { flex: 1; }
