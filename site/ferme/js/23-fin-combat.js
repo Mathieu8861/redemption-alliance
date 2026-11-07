@@ -28,7 +28,12 @@ function majCombat(dt, s) {
   if (c.regen && c.deroute == null && c.pv > 0) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * c.regen * dt); if (c.st) { c.st.soins += c.pv - a0; c.st.menthe += c.pv - a0; } } /* le pot de Menthe */
   if (c.deroute != null) { /* a terre : le compte a rebours du saccage */
     c.deroute -= dt;
-    if (c.deroute <= 0 || (!c.file.length && !c.monstres.some((o) => o.etat === 'actif' || o.etat === 'grimpe'))) {
+    /* (07/11/2026, « meme si tu meurs, si tes batiments finissent par tuer les monstres dans le temps imparti avant la fin de la manche, tu gagnes, tu ne perds
+       pas », Mathieu) : toute la vague abattue par tes tours et ton arbalete pendant que tu es a terre, c'est gagne (la fin du combat plus bas s'en charge) ;
+       sauf s'il reste un temps a jouer (un boss en plusieurs temps) : sans toi debout, la suite est perdue */
+    const abattus = !c.file.length && !c.monstres.some((o) => o.etat === 'actif' || o.etat === 'grimpe');
+    if (abattus && !(c.phases && c.phases.length) && !c.raid && !c.arene) { if (!c.sauveParDefenses) { c.sauveParDefenses = true; toast('Tes défenses ont abattu les derniers monstres pendant que tu étais à terre : la vague est gagnée !', 'or'); } }
+    else if (c.deroute <= 0 || abattus) {
       c.monstres.forEach((o) => { if (o.etat === 'actif' || o.etat === 'grimpe') { pouf(o.x, o.m.position.y, o.z, 1.6, '#d8c8a8'); o.etat = 'mort'; o.t = 0; } }); /* ils repartent */
       finVague(false); return;
     }
@@ -111,7 +116,7 @@ function finVague(gagne, fuite) {
     ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + recapCombat(c) + pied); /* (le recap du combat, comme apres une vague, 16/10/2026) */ memoriserCombat();
     rendreHaut(); rendreGrange(); sauver(); return;
   }
-  { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); }
+  { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(c.deroute != null ? Math.round(max * VIE_APRES_DEFAITE) : 1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); } /* (gagnee a terre, 07/11/2026 : il se releve avec autant de vie qu'apres une defaite) */
   if (!gagne && !c.raid) { compter(fuite ? 'fuites' : 'defaites'); const D = S_.defaitesVague || (S_.defaitesVague = {}), k = c.rejoueBoss != null ? (c.difficile ? 'dur' : 'rejoue') + (c.rejoueBoss + 1) : String(n); D[k] = (D[k] || 0) + 1; } /* (ou les joueurs perdent, vague par vague : pour regler la difficulte sur de vrais joueurs, 15/10/2026) */ /* la vie qui reste ; perdu : il revient a 30 % au moins */
   let corps;
   if (gagne) {
