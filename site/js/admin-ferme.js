@@ -21,10 +21,13 @@
         var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
         return h ? h + ' h ' + (m < 10 ? '0' : '') + m : m + ' min';
     }
+    var EN_LIGNE = 180; /* (en ligne : une sauvegarde il y a moins de 3 min ; le jeu envoie toutes les 15 s quand il se passe quelque chose, 07/11/2026) */
+    function enLigne(j) { return !!j.derniere_partie && (Date.now() - new Date(j.derniere_partie).getTime()) / 1000 < EN_LIGNE; }
     function ilYa(d) {
         if (!d) return '<span class="text-muted">jamais</span>';
         var s = (Date.now() - new Date(d).getTime()) / 1000;
-        if (s < 300) return '<strong style="color:var(--color-success);">en jeu</strong>';
+        if (s < EN_LIGNE) return '<strong style="color:var(--color-success);">en ligne</strong>';
+        if (s < 300) return 'il y a ' + Math.max(1, Math.round(s / 60)) + ' min';
         if (s < 3600) return 'il y a ' + Math.round(s / 60) + ' min';
         if (s < 86400) return 'il y a ' + Math.round(s / 3600) + ' h';
         if (s < 86400 * 30) return 'il y a ' + Math.round(s / 86400) + ' j';
@@ -49,7 +52,7 @@
         var joueurs = (data.joueurs || []).slice();
         var maintenant = Date.now();
         var actifs7 = joueurs.filter(function (j) { return j.derniere_partie && maintenant - new Date(j.derniere_partie).getTime() < 7 * 86400000; }).length;
-        var enJeu = joueurs.filter(function (j) { return j.derniere_partie && maintenant - new Date(j.derniere_partie).getTime() < 300000; }).length;
+        var enJeuL = joueurs.filter(enLigne), enJeu = enJeuL.length;
         var total = joueurs.reduce(function (n, j) { return n + (j.temps_jeu || 0); }, 0);
         joueurs.sort(function (a, b) { var x = valeurTri(a, tri.cle), y = valeurTri(b, tri.cle); return x < y ? -tri.sens : x > y ? tri.sens : 0; });
 
@@ -62,7 +65,7 @@
         html += '<select id="ferme-acces" class="form-input" style="max-width:320px;">';
         MODES.forEach(function (m) { html += '<option value="' + m[0] + '"' + (data.acces === m[0] ? ' selected' : '') + '>' + m[1] + '</option>'; });
         html += '</select><button class="btn btn--primary btn--small" id="ferme-acces-ok">Enregistrer</button>';
-        html += '<button class="btn btn--secondary btn--small" id="ferme-rafraichir">Rafraîchir</button></div>';
+        html += '<button class="btn btn--secondary btn--small" id="ferme-rafraichir">Rafraîchir</button><span class="text-muted" style="font-size:.8rem;">mis à jour à ' + new Date().toLocaleTimeString('fr-FR') + ', tout seul toutes les 30 s</span></div>';
         var mode = MODES.filter(function (m) { return m[0] === data.acces; })[0];
         html += '<p class="text-muted" id="ferme-acces-aide" style="margin:-6px 0 var(--spacing-md, 16px);font-size:.85rem;">' + (mode ? mode[2] : '') + '</p>';
 
@@ -70,12 +73,12 @@
         html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:var(--spacing-lg, 24px);">';
         html += carte('Joueurs inscrits', joueurs.length, '');
         html += carte('Actifs sur 7 jours', actifs7, '');
-        html += carte('En jeu maintenant', enJeu, 'sauvegarde il y a moins de 5 min');
+        html += carte('En ligne maintenant', enJeu, enJeu ? enJeuL.map(function (j) { return esc(j.nom); }).join(', ') : 'personne pour le moment');
         html += carte('Temps de jeu total', duree(total), 'depuis le 19/10/2026');
         html += '</div>';
 
         /* le tableau */
-        var cols = [['nom', 'Joueur'], ['classe', 'Classe'], ['niveau', 'Niveau'], ['vague', 'Vague'], ['boss', 'Boss battus'], ['kamas', 'Kamas'],
+        var cols = [['nom', 'Joueur'], ['classe', 'Classe'], ['niveau', 'Niveau'], ['vague', 'Vague'], ['boss', 'Boss battus'], ['parties', 'Persos'], ['kamas', 'Kamas'],
             ['temps_jeu', 'Temps de jeu'], ['sessions', 'Sessions'], ['derniere_partie', 'Dernière partie'], ['cree_le', 'Inscrit le']];
         html += '<style>#ferme-joueurs th, #ferme-joueurs td { padding: 8px 12px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--color-border); }'
             + ' #ferme-joueurs th { color: var(--color-text-muted); font-size: .8rem; font-weight: 600; } #ferme-joueurs tbody tr:hover { background: var(--color-bg-tertiary); }</style>';
@@ -89,11 +92,12 @@
         joueurs.forEach(function (j) {
             var type = j.invite ? '<span class="text-muted" style="font-size:.75rem;">compte de jeu</span>' : '<span class="text-muted" style="font-size:.75rem;">Discord</span>';
             html += '<tr>';
-            html += '<td><strong>' + esc(j.nom) + '</strong><br>' + type + (j.nom_fermier && j.nom_fermier !== j.nom ? ' <span class="text-muted" style="font-size:.75rem;">(perso : ' + esc(j.nom_fermier) + ')</span>' : '') + '</td>';
+            html += '<td>' + (enLigne(j) ? '<span title="En ligne" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--color-success);box-shadow:0 0 0 3px rgba(46,204,113,.25);margin-right:6px;vertical-align:1px;"></span>' : '') + '<strong>' + esc(j.nom) + '</strong><br>' + type + (j.nom_fermier && j.nom_fermier !== j.nom ? ' <span class="text-muted" style="font-size:.75rem;">(perso : ' + esc(j.nom_fermier) + ')</span>' : '') + '</td>';
             html += '<td>' + (j.classe ? esc(CLASSES[j.classe] || j.classe) : '<span class="text-muted">-</span>') + '</td>';
             html += '<td>' + nombre(j.niveau) + '</td>';
             html += '<td>' + nombre(j.vague) + '</td>';
             html += '<td>' + nombre(j.boss) + '</td>';
+            html += '<td>' + nombre(j.parties) + '</td>';
             html += '<td>' + (j.kamas == null ? '<span class="text-muted">-</span>' : window.REN.formatKamas ? window.REN.formatKamas(j.kamas) : nombre(j.kamas)) + '</td>';
             html += '<td>' + duree(j.temps_jeu) + '</td>';
             html += '<td>' + nombre(j.sessions) + '</td>';
@@ -134,5 +138,13 @@
             return;
         }
         rendre(container, r.data);
+        /* (07/11/2026) : le tableau se met a jour tout seul toutes les 30 s tant que l'onglet est affiche */
+        clearInterval(window.__fermeAuto);
+        window.__fermeAuto = setInterval(function () {
+            if (!container.isConnected || !container.querySelector('#ferme-joueurs')) { clearInterval(window.__fermeAuto); return; }
+            if (document.hidden || container.offsetParent === null) return;
+            var sel = document.getElementById('ferme-acces'); if (sel && document.activeElement === sel) return; /* (pas pendant un choix dans la liste) */
+            window.REN.supabase.rpc('ferme_admin_joueurs').then(function (r2) { if (!r2.error && r2.data && r2.data.ok && container.isConnected) rendre(container, r2.data); });
+        }, 30000);
     };
 })();
