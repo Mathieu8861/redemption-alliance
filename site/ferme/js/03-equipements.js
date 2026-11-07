@@ -112,7 +112,12 @@ LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entr
   OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], fichier: L.fichier || 'equipements-wabbit', cale: L.cales[t], nom: L.noms[t], niv: Math.min(80, (PANOS[k] ? PANOS[k].niv : 81) + 9) /* (Moon, rang 8 sans panoplie : le niveau maximum, 80) */, pouvoir: (L.pouvoirs && L.pouvoirs[t]) || L.pouvoir, /* (pouvoirs : un sort par classe, la Corail) */
     stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5 * (L.force || 1)), agilite: Math.round(VALEURS.agilite[k] * 1.5 * (L.force || 1)), vita: Math.round(VALEURS.vita[k] * (L.force || 1)) } }; }); }); /* (force : la Corail, 85 % de Moon) */
 const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || classeDe()][0] : 'leg-' + L.cle); /* la piece legendaire d'un boss, pour ta classe */
-PANOS.forEach((P, k) => P.bis == null && Object.entries(ARMES).forEach(([cl, [t, nom]]) => { /* (une panoplie en plus n'a pas d'arme : celles du palier tombent sur son boss) */ const id = 'arme-' + t + '-' + P.id; OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats: { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] } }; }));
+PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { /* (celles d'un palier tombent sur son boss ; L'ARME D'UNE PANOPLIE EN PLUS (07/11/2026, « faut faire la tortue aussi », Mathieu) :
+  celle de la Tortue tombe sur la Tortue Corail, et suit le profil de sa panoplie (moins de Puissance et d'Agilite, de la Vitalite en echange) ; les armes des paliers ne changent pas) */
+  const id = 'arme-' + t + '-' + P.id, r = rangPano(k), bis = P.bis != null;
+  const stats = bis ? Object.fromEntries(Object.entries({ puissance: VALEURS.puissance[r] * 2.5 * multPano(k, 'puissance'), agilite: VALEURS.agilite[r] * multPano(k, 'agilite'), vita: VALEURS.vita[r] * Math.max(0, multPano(k, 'vita') - 1) }).filter(([, v]) => v > 0).map(([c, v]) => [c, Math.round(v)]))
+    : { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] };
+  OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats }; }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
@@ -126,7 +131,9 @@ const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce 
 const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];
 const bonusPalier = (f, k, brut, m) => Object.assign(Object.fromEntries(Object.entries(f(rangPano(k))).map(([c, v]) => [c, brut ? v : Math.round(v * multPano(k, c))])), !brut && m === EMPLACEMENTS.length ? BONUS_COMPLET[(PANOS[k] || {}).id] || {} : {}); /* (brut : sans le profil de la panoplie, pour le joueur de reference) */
 const bonusPano = (k, n, brut) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
-const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && !o.arme) c[o.pano] = (c[o.pano] || 0) + 1; }); return c; };
+/* L'ARME COMPTE DANS SA PANOPLIE (07/11/2026, « il faut que l'arme compte dans les panoplies aussi, mais au max ca reste toujours 6/6 : l'avantage, c'est que tu peux mettre
+   l'epee en panoplie et avoir une coiffe legendaire, ou mettre l'arme legendaire et avoir le 6/6 tout de meme ; pas de 7/7 », Mathieu) : 7 emplacements, 6 pieces au plus */
+const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && o.pano != null) c[o.pano] = Math.min(EMPLACEMENTS.length, (c[o.pano] || 0) + 1); }); return c; };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
 const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div></div>';
 function caracs() {

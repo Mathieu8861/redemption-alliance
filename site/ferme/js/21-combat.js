@@ -294,10 +294,10 @@ function ouvrirPanoplies(onglet) {
     if (!atteint(P)) return titre + '<p class="best-verrou">' + picto('cadenas') + 'À découvrir en atteignant la vague ' + (base + 1) + '.</p>';
     const Pn = panoDe(P), B = MONSTRES[Pa.boss], leg = LEGENDAIRES.find((x) => x.boss === Pa.boss), bis = panosDuPalier(P).slice(1); /* (bis : la Tortue sur l'ile de Moon) */
     const dequi = (x) => Object.values(MONSTRES).filter((M) => M.pano === x.id).map((M) => leN(M)).join(', ');
-    const pieces = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e).concat(ar ? ['arme-' + ar[0] + '-' + Pn.id] : [], ...bis.map((x) => EMPLACEMENTS.map(([e]) => x.id + '-' + e)));
+    const pieces = EMPLACEMENTS.map(([e]) => Pn.id + '-' + e).concat(ar ? ['arme-' + ar[0] + '-' + Pn.id] : [], ...bis.map((x) => EMPLACEMENTS.map(([e]) => x.id + '-' + e).concat(ar && OBJETS['arme-' + ar[0] + '-' + x.id] ? ['arme-' + ar[0] + '-' + x.id] : [])));
     return titre + pieces.map((id) => { const o = OBJETS[id], eu = possede(id) || possede(id + '-rare'); /* (les stats : la fourchette des jets) */
       return '<div class="art' + (eu ? '' : ' pas-eu') + '">' + icoObjet(id) + '<div><b>' + o.nom + (eu ? ' <span class="puce bonne">✓ obtenue</span>' : '') + '</b><div class="puces">' + statsFourchette(o) + '<span class="puce">niveau ' + o.niv + '</span></div>' +
-        '<div class="desc">' + (o.arme ? 'Sur ' + leN(B) + ' seulement, pour ta classe.' : PANOS[o.pano].bis != null ? 'Sur ' + dequi(PANOS[o.pano]) + ', des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + '.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
+        '<div class="desc">' + (o.arme ? 'Sur ' + (PANOS[o.pano].bis != null ? Object.values(MONSTRES).filter((M) => M.pano === PANOS[o.pano].id && M.boss).map((M) => leN(M)).join(', ') : leN(B)) + ' seulement, pour ta classe.' : PANOS[o.pano].bis != null ? 'Sur ' + dequi(PANOS[o.pano]) + ', des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + '.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
       blocPano(P, comptePanos()[P] || 0) + bis.map((x) => { const k = PANOS.indexOf(x); return blocPano(k, comptePanos()[k] || 0); }).join('') + (leg ? '<div class="art">' + icoObjet(idLeg(leg)) + '<div><b>✦ ' + OBJETS[idLeg(leg)].nom + '</b><div class="puces">' + statsFourchette(OBJETS[idLeg(leg)]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + (leg.arme ? ', l\'arme de ta classe' : '') + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
   }).join('');
   ouvrirModale('bestiaire', entete('Bestiaire et butin') + tete + corps); /* (l'onglet Panoplies) */
@@ -406,7 +406,7 @@ function regleArene(o) { /* l'Arene : chacun remis a la force de l'Arene (statsA
 function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colossal (une fois et demie plus grand) a les PV de toute l'alliance */
   const L = niveau(S_.xp), Lb = niveauRequis(combat.n), a = forceRef(L), b = forceRef(Lb); o.aggro = true; o.casseur = false;
   const mR = 1 + ENRAGE_ILE.pas * (combat.arene.pas || 0); o.rageM = mR; /* (sa troupe arrive deja enragee comme lui) */
-  if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = PV_ILE_BOSS; o.pv = Math.max(1, PV_ILE_BOSS - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; o.vitM = VITESSE_ILE[o.type] || 1; }
+  if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = pvIleBoss(o.type); o.pv = Math.max(1, o.pvMax - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; o.vitM = VITESSE_ILE[o.type] || 1; }
   else { o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * a.dps / b.dps * 0.6)); o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv * 0.6)); o.deg = Math.max(1, Math.round(o.deg0 * mR)); }
 }
 function apparaitre(type, pres) {
@@ -518,7 +518,7 @@ function butin(mo) {
     L.objets.push(donnerObjet(id)); if (OBJETS[id].rare) { son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630'); }
     chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }
-  const ar = aPano && mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + panoMonstre(mo.type, palierDe(combat.n)).id; /* (la Tortue Corail, boss d'une phase de la 90 : pas l'arme du Kanniboul, que Moon seul donne ; la Tortue n'a pas d'arme, 05/11/2026) */
+  const ar = aPano && mo.d.boss && ARMES[classeDe()], arme = ar && 'arme-' + ar[0] + '-' + panoMonstre(mo.type, palierDe(combat.n)).id; /* (la Tortue Corail, boss d'une phase de la 90 : pas l'arme du Kanniboul, que Moon seul donne, mais celle de la Tortue depuis le 07/11/2026) */
   if (arme && OBJETS[arme] && Math.random() < (deja ? 0.25 * pros : 1)) { /* l'arme de ta classe : a coup sur la premiere fois, puis une fois sur 4 */
     const id = tirerRare(arme, pros); L.objets.push(donnerObjet(id));
     chiffre('Arme : ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.9, mo.z), 'butin'); toast('Arme : ' + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();

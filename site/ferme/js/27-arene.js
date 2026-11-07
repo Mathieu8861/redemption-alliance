@@ -211,6 +211,9 @@ function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v :
 }
 let JOUR_ILE_BOSS = 5; /* (le vendredi : chaque semaine de l'ile commence ce jour-la ; let : les tests le changent) */
 const ESSAIS_ILE_BOSS = 5 /* (5 depuis le 06/11/2026, « qu'on puisse le retry 5 fois au lieu de 3 », Mathieu) */, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 30, pas: 0.05 }; /* (3 essais par compte et par semaine) */
+/* LA VIE D'UN BOSS DE L'ILE, BOSS PAR BOSS (07/11/2026, « rajoute 1 million de PV sur le Craqueleur legendaire, il est trop faible contre le Iop, Mada peut le tuer solo », Mathieu) :
+   les autres gardent PV_ILE_BOSS. Pour une semaine deja passee, on lit le boss qu'elle avait (J.boss) */
+const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000 }, pvIleBoss = (t) => PV_ILE_BOSS_PAR[t] || PV_ILE_BOSS;
 const VITESSE_ILE = { craqLegendaire: 1.25 }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
@@ -239,11 +242,11 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
   const cle = semaineIleBoss(), l = niveau(S_.xp), v = '?v=' + VERSION_MODELES, aReclamer = aReclamerIle();
   const t = bossDuJour(cle), B = MONSTRES[t], J = jourIle(cle), reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(cle));
   const raison = l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + ESSAIS_ILE_BOSS + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.' : '';
-  const total = ileBossTotal != null && cle ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / PV_ILE_BOSS) : 0;
+  const total = ileBossTotal != null && cle ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / pvIleBoss(t)) : 0;
   const R = RECOMPENSES_ILE, rec = (titre, txt) => '<div class="rc-l"><span>' + titre + '</span><b>' + txt + '</b></div>';
   ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque vendredi, avec une vie neuve. Toute l\'alliance tape sur la même vie.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS + ' cette semaine</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' + '<span class="puce">gratuit</span></div>' +
-    ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, PV_ILE_BOSS - total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
+    ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, pvIleBoss(t) - total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
     '<ul class="arene-regles"><li><b>' + ESSAIS_ILE_BOSS + ' essais par semaine, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse de déplacement et de vitesse d\'attaque, et leurs sorts reviennent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % plus vite. Toute l\'île est à toi : esquive tant que tu peux, et tape le plus fort possible.</li>' +
     '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
@@ -256,7 +259,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
   classementIleBoss(cle).then((r) => { const e = document.getElementById('ileboss-classement'); if (!e) return; ileBossTotal = r ? r.total : null; ileBossListe = r ? r.joueurs : null;
     if (!r) { e.innerHTML = '<p class="hdv-aide">Le classement s\'affiche quand tu joues connecté à ton compte.</p>'; return; }
     e.innerHTML = r.joueurs.length ? r.joueurs.slice(0, 10).map((j, i) => '<div class="rc-l' + (j.moi ? ' moi' : '') + '"><span>' + (i < 3 ? '<span class="rang r' + (i + 1) + '">' + (i + 1) + '</span>' : (i + 1) + '.') + ' ' + echapper(j.nom) + '</span><b>' + fmt(j.degats) + '</b></div>').join('') : '<p class="hdv-aide">Personne n\'a encore frappé : à toi l\'honneur !</p>';
-    const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / PV_ILE_BOSS).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, PV_ILE_BOSS - r.total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV'; } });
+    const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / pvIleBoss(t)).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, PV_ILE_BOSS - r.total)) + ' / ' + fmt(PV_ILE_BOSS) + ' PV'; } });
 }
 async function partirIleBoss() {
   const cle = semaineIleBoss();
@@ -313,7 +316,7 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
   const lignes = [];
   for (const [k, J] of L) {
     const r = await classementIleBoss(k); if (!r) { if (!auto) toast('Le classement de l\'île n\'est pas lisible pour l\'instant (hors connexion ?) : ton coffre t\'attend, réessaie dans un moment.', 'alerte'); continue; } /* (avant le 16/10/2026 : la participation, et la recompense du boss tombe perdue) */
-    const tombe = !!(r && r.total >= PV_ILE_BOSS), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
+    const tombe = !!(r && r.total >= pvIleBoss(J.boss)), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
     S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; let xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp); xp = gagnerXp.dernier; /* (le vrai gain, affiche) */
     /* « on pourrait etre plus explicite sur les gains, c'est pas tres clair » (Mathieu, 17/10/2026) : ce qui s'est passe, puis ce que tu recois ligne par
        ligne (la participation ou le boss tombe, le bonus du classement), le total, et ce que le boss tombe aurait donne */
@@ -327,7 +330,7 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
       totK += Pd.kamas; totF += Pd.forge || 0; totP += Pd.parfaite || 0; L2.push(ligneRecap('couronne', 'Bonus ' + (rang + 1) + (rang ? 'e' : 'er') + ' du classement', '+' + fmt(Pd.kamas) + ' kamas, ' + runesTxt(Pd.forge || 0, Pd.parfaite || 0))); }
     const total = [fmt(totK) + ' kamas', runesTxt(totF, totP), fmt(xp) + ' XP'].concat(objets).join(', ');
     const T2 = RECOMPENSES_ILE.tombe, siTombe = !tombe && r ? '<p class="hdv-aide">S’il était tombé, chacun aurait reçu ' + fmt(T2.kamas) + ' kamas au lieu de ' + fmt(R.kamas) + ', ' + T2.forge + ' runes au lieu d’une, une pièce de sa panoplie (jet de ' + Math.round(T2.piece * 100) + ' % ou plus) et ' + Math.round(T2.leg * 100) + ' % de chance d’avoir sa pièce légendaire.</p>' : '';
-    const etat = r ? (tombe ? 'Tombé ! L’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(PV_ILE_BOSS) + '.' : 'Il a tenu : l’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(PV_ILE_BOSS) + '.') : 'Classement non disponible hors connexion.';
+    const etat = r ? (tombe ? 'Tombé ! L’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.' : 'Il a tenu : l’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.') : 'Classement non disponible hors connexion.';
     lignes.push('<div class="art">' + ico(B.icone) + '<div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ', semaine du ' + k.split('-').reverse().join('/') + '</b><div class="desc">' + etat + ' Ton meilleur essai : ' + fmt(J.meilleur) + ' dégâts' + (rang >= 0 && r ? ', ' + (rang + 1) + (rang ? 'e' : 'er') + ' sur ' + r.joueurs.length + ' joueur' + (r.joueurs.length > 1 ? 's' : '') : '') + '.</div></div><div></div></div>' +
       '<div class="hdv-section">Ce que tu reçois</div><div class="ib-rec">' + L2.join('') + '<div class="rc-l ib-total">' + picto('etoile', '#7a4fc9') + '<span>Au total</span><b>' + total + '</b></div></div>' + siTombe);
   }
