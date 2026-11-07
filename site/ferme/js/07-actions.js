@@ -230,7 +230,7 @@ const ACTIONS = {
       toast('TOFU DORÉ capturé !' + (remplace ? ' Il prend la place d\'un Tofu normal dans ta volière.' : ' Il rejoint ta volière.') + ' Il te donnera des Plumes dorées.', 'or'); gagnerXp(25); appliquerVoliere(); }
     else if (pris) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else if (dore) { const c = caseFuiteDore(sv.id); S_.sauvage = Object.assign({}, sv, { id: c ? c.id : sv.id }); fuite = !!(c && depart); /* (rate : il file sur une autre case, sa minute continue de tourner, 07/11/2026) */
-      toast('Raté ! Le Tofu doré file plus loin : cours-lui après et retente ta chance, tant qu' + '\'' + 'il est là.', 'alerte'); }
+      toast('Raté ! Le Tofu doré file plus loin : cours-lui après et retente ta chance, tant qu\'il est là.', 'alerte'); }
     else toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte');
     rendreSauvage(); if (fuite && sauvageMesh) courirDore(sauvageMesh, depart); rendreHaut(); rendreGrange(); animerFilet(vu, pris);
   },
