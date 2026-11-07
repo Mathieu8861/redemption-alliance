@@ -36,6 +36,8 @@ const TEINTE = { haut: ['#3f9fe0', '#86c9ef', '#cfe9f3', '#fbe6c4', '#f6cfa6'], 
 function dessinerCiel(s) {
   const w = innerWidth, h = innerHeight, d = TEINTE;
   if (cielCanvas.width !== w || cielCanvas.height !== h) { cielCanvas.width = w; cielCanvas.height = h; }
+  if (lieu === 'casino' && typeof casinoDedans !== 'undefined' && casinoDedans) { /* (08/11/2026, « l'interieur, mets pas le ciel en arriere-plan, c'est pas une piece qui vole, on est dans le batiment », Mathieu) : l'ombre chaude du palais */
+    const gp = cx2.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, Math.max(w, h) * 0.75); gp.addColorStop(0, '#3a1a1c'); gp.addColorStop(0.6, '#1e0c0f'); gp.addColorStop(1, '#0c0507'); cx2.fillStyle = gp; cx2.fillRect(0, 0, w, h); return; }
   const g = cx2.createLinearGradient(0, 0, 0, h); d.haut.forEach((c, k) => g.addColorStop(k / (d.haut.length - 1), c)); cx2.fillStyle = g; cx2.fillRect(0, 0, w, h);
   const sx = 0.2 * w, sy = 0.13 * h, sr = 0.5 * h; const gs = cx2.createRadialGradient(sx, sy, 0, sx, sy, sr);
   gs.addColorStop(0, d.soleil + '0.9)'); gs.addColorStop(0.25, d.soleil + '0.35)'); gs.addColorStop(1, d.soleil + '0)'); cx2.fillStyle = gs; cx2.fillRect(0, 0, w, h);
