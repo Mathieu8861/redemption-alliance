@@ -49,27 +49,31 @@ function vieTofu(o, dt, regle) {
 /* LE TOFU DORE FILE AU FILET RATE (07/11/2026, « 35 % de chance par capture, mais si tu rates une fois il court jusqu'a une autre case ou tu peux retenter ta chance,
    et il recourt etc. jusqu'a ce que la minute soit passee depuis son apparition », Mathieu) : une case d'herbe libre a 1 a 3 cases de la, et il y court en sautillant */
 function caseFuiteDore(id) {
-  const ici = S_.cases.find((c) => c.id === id); if (!ici) return null; const q = posCase(ici);
-  const L = S_.cases.filter((c) => c.type === 'libre' && c.id !== id), d = (c) => { const r = posCase(c); return Math.hypot(r.x - q.x, r.z - q.z); };
-  const pres = L.filter((c) => d(c) >= 1.2 * S && d(c) <= 3.3 * S); return pres.length ? hasard(pres) : L.length ? L.sort((a, b) => d(a) - d(b))[0] : null;
+  /* (07/11/2026 au soir, « qu'il parte au plus loin possible de la map a chaque fois que tu dois retry », Mathieu : une des 3 cases d'herbe libres les plus loin de toi ; 1 a 3 cases avant) */
+  const ici = S_.cases.find((c) => c.id === id); if (!ici) return null; const q = paysanMesh ? paysanMesh.position : posCase(ici);
+  const d = (c) => { const r = posCase(c); return Math.hypot(r.x - q.x, r.z - q.z); };
+  const L = S_.cases.filter((c) => c.type === 'libre' && c.id !== id).sort((a, b) => d(b) - d(a)); return L.length ? hasard(L.slice(0, 3)) : null;
 }
 function courirDore(m, depart) {
   const ax = depart.x, az = depart.z, bx = m.position.x, bz = m.position.z, dist = Math.hypot(bx - ax, bz - az); if (dist < 0.1) return;
   const cap = Math.atan2(bx - ax, bz - az), sauts = Math.max(3, Math.round(dist / 0.55));
   m.position.x = ax; m.position.z = az; m.rotation.y = cap;
-  m.userData.vie = { x0: bx, y0: m.position.y, z0: bz, ry0: cap, sy: m.scale.y, x: ax, z: az, ry: cap, ry1: cap, geste: 'marche', t: 0.25, d: 0.25 + dist / 5.5, ax, az, bx, bz, cap, sauts, alea: aleaTofu(graineDe(m.uuid)) };
+  m.userData.vie = { x0: bx, y0: m.position.y, z0: bz, ry0: cap, sy: m.scale.y, x: ax, z: az, ry: cap, ry1: cap, geste: 'marche', t: 0.25, d: 0.25 + Math.min(dist / 5.5, Math.max(1.2, dist / 9)), /* (loin : il file plus vite, 4 s au plus a travers la ferme) */ ax, az, bx, bz, cap, sauts, alea: aleaTofu(graineDe(m.uuid)) };
 }
 
 /* LA MINUTERIE DU TOFU DORE (07/11/2026 au soir) : un Tofu dore toutes les 1 h 30 environ de vrai jeu (DORE_TOUTES, tire au hasard a chaque fois). Ne comptent ni
    la deconnexion, ni la pause, ni la page cachee, ni l'absence (aucune action depuis 3 min) ; le temps compte partout (ferme, Arene, Casino...), mais il ne se pose
    que sur la ferme, hors vague, quand aucun Tofu sauvage n'y est deja. Vrai temps (performance.now), pas l'horloge du jeu qui va jusqu'a x2. */
-const seuilDore = () => (DORE_TOUTES[0] + Math.random() * (DORE_TOUTES[1] - DORE_TOUTES[0])) * 60000;
+/* (07/11/2026 au soir, « a chaque Tofu dore capture, le prochain c'est 2 fois plus long », Mathieu : l'attente double a chaque capture, 1 h 30, 3 h, 6 h, 12 h...
+   On compte les captures de la partie (stats.tofusDores) ; si ce compte change (une capture, ou une ferme d'avant la regle), l'attente est retiree, le temps deja joue reste) */
+const doresPris = () => (S_.stats && S_.stats.tofusDores) || 0;
+const seuilDore = () => (DORE_TOUTES[0] + Math.random() * (DORE_TOUTES[1] - DORE_TOUTES[0])) * 60000 * Math.pow(2, doresPris());
 function majTofuDore() {
   const t = performance.now(), d = Math.min(5000, Math.max(0, t - (majTofuDore.t || t))); majTofuDore.t = t;
   if (!S_ || !S_.perso || enAccueil || enPause || MODE_TEST || document.hidden || Date.now() - derniereAction > 180000 || niveau(S_.xp) < NIV_TOFU_DORE) return;
-  if (!(S_.doreSeuil > 0)) S_.doreSeuil = seuilDore(); S_.doreJeu = (S_.doreJeu || 0) + d;
+  if (!(S_.doreSeuil > 0) || S_.doreN !== doresPris()) { S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); } S_.doreJeu = (S_.doreJeu || 0) + d;
   if (S_.doreJeu < S_.doreSeuil || S_.sauvage || combat || lieu !== 'ferme') return;
   const libres = S_.cases.filter((c) => c.type === 'libre'); if (!libres.length) return;
-  S_.sauvage = { id: hasard(libres).id, fin: Date.now() + DUREE_SAUVAGE, dore: true }; S_.doreJeu = 0; S_.doreSeuil = seuilDore(); rendreSauvage(); son('niveau');
+  S_.sauvage = { id: hasard(libres).id, fin: Date.now() + DUREE_SAUVAGE, dore: true }; S_.doreJeu = 0; S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); rendreSauvage(); son('niveau');
   toast('Un TOFU DORÉ se pose dans l\'herbe ! Il est très rare : sors vite ton filet.', 'or'); sauver();
 }
