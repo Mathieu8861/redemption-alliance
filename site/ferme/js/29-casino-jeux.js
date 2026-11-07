@@ -95,7 +95,7 @@ async function entrerPalais() {
   casinoDedans = true; casinoMarche = null; montrerIles(); majBarreCasino();
   const u = paysanMesh.userData, [x, z] = SALLE_PLACES.porte; paysanMesh.position.set(SALLE_CASINO.x + x, SALLE_CASINO.y, SALLE_CASINO.z + z); u.y = SALLE_CASINO.y; u.angle = Math.PI; paysanMesh.rotation.y = u.angle;
   angleAvantSalle = angleCam; angleCam = ANGLE_DEPART; /* (la salle se regarde du sud-est : ses murs hauts sont au nord et a l'ouest) */
-  zoom = 0.8; cadrer(); VISEE.set(SALLE_CASINO.x + 0.6, 0.6, SALLE_CASINO.z + 1.0); placerCamera(); soleilVers(SALLE_CASINO); rendu.shadowMap.needsUpdate = true;
+  zoom = innerWidth < innerHeight ? 0.6 : 0.8; cadrer(); VISEE.set(SALLE_CASINO.x + 0.6, 0.6, SALLE_CASINO.z + 1.0); /* (sur un telephone tenu droit, un peu plus loin : tout le hall tient dans l'ecran) */ placerCamera(); soleilVers(SALLE_CASINO); rendu.shadowMap.needsUpdate = true;
   setTimeout(() => $('voile').classList.remove('on'), 120); compter('palaisVisites');
   toast('Bienvenue au Palais du Chat Doré ! Touche une machine, une table ou le bar pour y aller.', 'or');
 }
