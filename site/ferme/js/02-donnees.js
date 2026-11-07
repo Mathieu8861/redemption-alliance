@@ -51,11 +51,13 @@ const KAMA = '<img class="kama" src="assets/icones/kama.png" alt="kamas">';
 const LAINE = { id: 'laine', nom: 'Laine de Bouftou', prix: 80, xp: 4 }; /* (80 depuis le 12/10/2026, a la demande de Mathieu) */
 const LAINE_NOIRE = { id: 'laine_noire', nom: 'Laine de Bouftou noir', prix: 300, xp: 25 }; /* le Bouftou noir, tres rare, donne celle-ci */
 const PLUME = { id: 'plume', nom: 'Plume de Tofu', prix: 30, xp: 3 };
+const PLUME_DOREE = { id: 'plume_doree', nom: 'Plume dorée', prix: 300, xp: 25 }; /* le Tofu dore (des le niveau 50, 1 Tofu sauvage sur 100) donne celle-ci, 07/11/2026 */
+const NIV_TOFU_DORE = 50, CHANCE_TOFU_DORE = 0.01;
 /* ce que lachent les monstres des vagues (a la grange, ca se vend a l'HDV) */
 const RES_MONSTRES = [{ id: 'os_chafer', nom: 'Os de Chafer', prix: 30, xp: 0 }, { id: 'dent_bwork', nom: 'Dent de Bwork', prix: 55, xp: 0 }, { id: 'eclat_craq', nom: 'Éclat de Craqueleur', prix: 85, xp: 0 }, { id: 'ecaille_drag', nom: 'Écaille de Dragoeuf', prix: 130, xp: 0 }, { id: 'poil_wabbit', nom: 'Poil de Wabbit', prix: 180, xp: 0 }, { id: 'kaliptus', nom: 'Branche de Kaliptus', prix: 240, xp: 0 }, { id: 'couenne', nom: 'Couenne de Cochon', prix: 300, xp: 0 },
   { id: 'plume_kanniboul', nom: 'Plume de Kanniboul', prix: 360, xp: 0 }, { id: 'ecaille_tortue', nom: 'Écaille de Tortue', prix: 380, xp: 0 }]; /* (l'ile de Moon, 04/11/2026 : la Plume sur les Kannibouls et Moon, l'Ecaille sur les Tortues) */
-const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES).map((c) => [c.id, c]));
-const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME], RES_MONSTRES);
+const PAR_ID = Object.fromEntries(CULTURES.concat([LAINE, LAINE_NOIRE, PLUME, PLUME_DOREE], RES_MONSTRES).map((c) => [c.id, c]));
+const VENDABLES = CULTURES.concat([LAINE, LAINE_NOIRE, PLUME, PLUME_DOREE], RES_MONSTRES);
 /* l'elevage (revu le 12/10/2026) : deux adultes repus font un petit contre 10 Houblon (15 depuis le 14/10/2026), puis 8 h de repos chacun. Le bebe nait affame,
    mange trois fois plus qu'un adulte (6 Ble, repu deux fois moins longtemps) et ne grandit que repu : 4 h repu pour devenir adulte (lui seul
    fait de la laine). Il nait noir 1 fois sur 10 (laine noire, tres chere), 1 sur 4 avec un parent noir, 1 sur 2 avec deux. */
@@ -163,7 +165,7 @@ const aChateau = () => !!(S_ && S_.amelio && S_.amelio.qg >= 5), TOUR_CHATEAU = 
 const degatsTour = (c) => NIV_TOURS.deg[nivTour(c)], nbTours = () => S_.cases.filter((c) => c.type === 'tour').length + (aChateau() ? TOURS_MAX : 0);
 const forceVoleur = () => Math.max(0, Math.min(49, S_.vague.num - 1)), pvVoleur = () => 20 + 7 * forceVoleur(); /* VSA suit ta progression jusqu'a la vague 50 */
 /* « quand ta voliere a Tofus est pleine, reduis de 40 % le taux d'apparition des Tofus » (Mathieu, 13/10/2026) : les Tofus des champs et les sauvages */
-const peutCapturer = () => S_.filets > 0 && S_.tofus < capaciteVoliere(); /* (voliere pleine : on chasse, sans fenetre) */
+const peutCapturer = (dore) => S_.filets > 0 && (S_.tofus < capaciteVoliere() || (!!dore && (S_.tofusDores || 0) < S_.tofus)); /* (un Tofu dore prend la place d'un Tofu normal quand la voliere est pleine, 07/11/2026) */ /* (voliere pleine : on chasse, sans fenetre) */
 const capturable = (p) => peutCapturer() && p.nuisible !== 'wabbit'; /* un Wabbit qui grignote un champ ne va pas dans la voliere a Tofus : on le chasse (19/10/2026) */
 const freinTofus = () => (S_.tofus >= capaciteVoliere() ? 0.6 : 1);
 /* LES WABBITS DES CHAMPS (19/10/2026, Mathieu : « les oiseaux s'attaquent plutot aux cereales et les lapins plutot aux carottes ») : apres la vague 50, les

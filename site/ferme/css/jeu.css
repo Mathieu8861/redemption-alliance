@@ -701,6 +701,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .gain-coffre .puce { background: #313338; border-radius: 99px; padding: 1px 7px; font-size: .68rem; font-weight: 700; color: #a9adb5; white-space: nowrap; } .gain-coffre .puce.neuf { background: var(--or); color: #1d1e22; }
 .ouverture-coffre .boutons { display: flex; gap: 8px; justify-content: center; opacity: 0; transition: opacity .3s; } .ouverture-coffre.fini .boutons { opacity: 1; }
 .pv-monstre.pv-perso { width: 60px; height: 10px; } .pv-perso i { background: var(--vert); } .pv-perso.bas i { background: var(--rouge); } /* la barre du perso : plus large, verte, rouge sous 30 % */
+.marque-mono { position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 2; animation: marqueMono .6s ease-in-out infinite alternate; } .marque-mono img { width: 44px; height: 44px; display: block; filter: drop-shadow(0 0 4px #fff) drop-shadow(0 2px 0 rgba(0, 0, 0, .5)); } .marque-mono.hors img { filter: grayscale(.6) sepia(1) hue-rotate(-40deg) saturate(4) drop-shadow(0 0 4px #ff4a3a); opacity: .85; } @keyframes marqueMono { to { margin-top: -6px; } } /* (les crocs du coup fatal au-dessus du monstre vise, 07/11/2026) */
 .degat { position: absolute; transform: translate(-50%, -100%); font: 400 1.3rem/1 var(--f-titre); color: #fff; -webkit-text-stroke: 2px var(--bord); paint-order: stroke fill; white-space: nowrap; }
 .degat.perso { color: #ff9a8a; } .degat.gros { font-size: 1.7rem; color: var(--or); }
 .degat.soin { color: #7ff0c0; }

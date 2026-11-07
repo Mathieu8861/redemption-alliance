@@ -849,10 +849,13 @@ function deplacerVoleur(dt, s) {
   m.position.y = hauteurSol(m.position.x, m.position.z) + (1 - Math.cos(v.pas * 2)) * 0.01;
   if (v.barre) { v.barre.firstChild.style.width = (100 * Math.max(0, v.pv) / v.pvMax).toFixed(0) + '%'; versEcran(new T.Vector3(m.position.x, m.position.y + 2.05, m.position.z), v.barre); }
 }
+/* un Tofu dore (07/11/2026) : ses materiaux copies et passes a l'or, avec une lueur */
+function dorerTofu(m) { const or = new T.Color('#ffc92e'); m.traverse((o) => { if (!o.isMesh || !o.material) return; o.material = Array.isArray(o.material) ? o.material.map((x) => x.clone()) : o.material.clone(); [].concat(o.material).forEach((x) => { if (x.color) x.color.lerp(or, 0.72); if (x.emissive) { x.emissive = new T.Color('#6a4300'); } }); }); return m; }
 function rendreSauvage() {
   if (sauvageMesh) { scene.remove(sauvageMesh); sauvageMesh = null; }
   const p = S_.sauvage && S_.cases.find((c) => c.id === S_.sauvage.id);
-  if (p) { const q = posCase(p); sauvageMesh = marquer(cloner('tofu'), p.id); sauvageMesh.userData.base = q.y; poser(sauvageMesh, q.x, q.y, q.z, 0.7); }
+  if (p) { const q = posCase(p); sauvageMesh = marquer(cloner('tofu'), p.id); sauvageMesh.userData.base = q.y; poser(sauvageMesh, q.x, q.y, q.z, 0.7);
+    if (S_.sauvage.dore) { dorerTofu(sauvageMesh); const m = sauvageMesh; let t = 0; effets.push((dt) => { if (sauvageMesh !== m) return true; t += dt; if (t > 0.12) { t = 0; emettre(FX_LUM, 1, { x: m.position.x + (Math.random() - 0.5) * 0.7, y: m.position.y + 0.3 + Math.random() * 0.5, z: m.position.z + (Math.random() - 0.5) * 0.7, v: [0, 0.6, 0], vie: [0.5, 0.9], taille: [0.16, 0.03], c: ['#fff1a8', '#ffc21a'], a: 0.9, entree: 0.2 }); } }); } } /* (le Tofu dore : il brille et laisse des paillettes, 07/11/2026) */
   rendreCasesBulles();
 }
 /* les Bouftous se promenent dans l'enclos : un point au hasard, ils s'y rendent en trottinant, broutent un moment, repartent */

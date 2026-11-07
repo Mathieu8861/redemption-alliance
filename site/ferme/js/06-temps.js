@@ -50,14 +50,16 @@ function avancer(maintenant, enDirect) {
   S_.bouftous.filter((b) => b.gestation && maintenant >= b.gestation.fin).forEach((m) => { naissance(m); encl = true; hdv = true; }); /* les naissances (15/10/2026) */
   let sauv = false;
   if (S_.tofus > 0 && !enRuine('voliere')) { /* la voliere : chaque Tofu donne une plume toutes les 90 min, deux en attente au plus par Tofu */
-    const max = S_.tofus * plumesParTofu(), v = S_.voliere;
-    if (v.plumes < max) { v.accu += dt * S_.tofus; while (v.accu >= CADENCE_PLUME && v.plumes < max) { v.plumes++; v.accu -= CADENCE_PLUME; sauv = true; } if (v.plumes >= max) v.accu = 0; } /* (« bug sur le spawn de plume », testeurs, 12/10/2026 : l'horloge avancait au meme pas avec 1 ou 6 Tofus) */
+    const nD = Math.min(S_.tofusDores || 0, S_.tofus), nN = S_.tofus - nD, max = nN * plumesParTofu(), v = S_.voliere; /* (les Tofus dores donnent des Plumes dorees, a part, 07/11/2026) */
+    if (nD > 0) { const maxD = nD * plumesParTofu(); if ((v.plumesD || 0) < maxD) { v.accuD = (v.accuD || 0) + dt * nD; while (v.accuD >= CADENCE_PLUME && v.plumesD < maxD) { v.plumesD = (v.plumesD || 0) + 1; v.accuD -= CADENCE_PLUME; sauv = true; } if (v.plumesD >= maxD) v.accuD = 0; } }
+    if (v.plumes < max) { v.accu += dt * nN; while (v.accu >= CADENCE_PLUME && v.plumes < max) { v.plumes++; v.accu -= CADENCE_PLUME; sauv = true; } if (v.plumes >= max) v.accu = 0; } /* (« bug sur le spawn de plume », testeurs, 12/10/2026 : l'horloge avancait au meme pas avec 1 ou 6 Tofus) */
   }
   if (direct) { /* de temps en temps un Tofu sauvage se pose dans l'herbe libre : on l'attrape au filet */
     if (S_.sauvage && maintenant >= S_.sauvage.fin) { S_.sauvage = null; sauv = true; }
     else if (!S_.sauvage && Math.random() < (dt / MIN) / 2.25 * freinTofus()) {
       const libres = S_.cases.filter((c) => c.type === 'libre');
-      if (libres.length) { S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE }; sauv = true; toast('Un Tofu sauvage se pose dans l\'herbe.' + (S_.filets ? ' Sors ton filet !' : ' Avec un filet de capture, tu pourrais l\'attraper.'), 'or'); }
+      if (libres.length) { const dore = niveau(S_.xp) >= NIV_TOFU_DORE && Math.random() < CHANCE_TOFU_DORE; S_.sauvage = { id: hasard(libres).id, fin: maintenant + DUREE_SAUVAGE, dore }; sauv = true; /* (le Tofu dore, 1 sur 100 des le niveau 50, 07/11/2026) */
+        toast(dore ? 'Un TOFU DORÉ se pose dans l\'herbe ! Il est très rare : sors vite ton filet.' : 'Un Tofu sauvage se pose dans l\'herbe.' + (S_.filets ? ' Sors ton filet !' : ' Avec un filet de capture, tu pourrais l\'attraper.'), 'or'); }
     }
   }
   if (maintenant >= S_.prochainCours) {
@@ -68,7 +70,7 @@ function avancer(maintenant, enDirect) {
   if (S_.crise && maintenant >= S_.crise.fin) { S_.crise = null; hdv = true; }
   if (direct && !S_.crise && maintenant >= S_.prochaineCrise) {
     S_.prochaineCrise = maintenant + CADENCE_CRISE;
-    const visibles = VENDABLES.filter((v) => v.id === 'laine' ? S_.bouftous.length : v.id === 'plume' ? S_.tofus : debloquee(v));
+    const visibles = VENDABLES.filter((v) => v.id === 'laine' ? S_.bouftous.length : v.id === 'plume' ? S_.tofus : v.id === 'plume_doree' ? S_.tofusDores : debloquee(v));
     if (Math.random() < 0.3 && visibles.length) { const v = hasard(visibles); S_.crise = { id: v.id, fin: maintenant + DUREE_CRISE }; toast('Les bots de VSA inondent l\'HDV : le prix ' + de(v.nom) + ' chute pendant une minute.', 'alerte'); hdv = true; }
   }
   let voleur = false;

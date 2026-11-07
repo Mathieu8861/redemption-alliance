@@ -588,10 +588,10 @@ function ouvrirPlanter(p, dispo) {
 }
 function ouvrirVoliere() {
   const ameliorer = lignesAmelio(['voliere'], 'Agrandir la volière');
-  const max = S_.tofus * plumesParTofu(), v = S_.voliere;
+  const nD = Math.min(S_.tofusDores || 0, S_.tofus), max = (S_.tofus - nD) * plumesParTofu(), v = S_.voliere;
   ouvrirModale('voliere', entete('Volière à Tofus') + (degatsBat('voliere') ? artPv('voliere') : '') + (S_.tofus ?
-    '<div class="ligne"><div><b>' + S_.tofus + ' Tofu' + (S_.tofus > 1 ? 's' : '') + ' sur ' + capaciteVoliere() + ' places</b><small>Chacun donne une Plume de Tofu toutes les ' + dureeLisible(CADENCE_PLUME) + ', ' + plumesParTofu() + ' en attente au plus.</small></div></div>' +
-    '<div class="ligne"><div><b>Plumes prêtes</b><small>' + v.plumes + '/' + max + (v.plumes < max ? ', la prochaine dans ' + dureeLisible((CADENCE_PLUME - v.accu) / S_.tofus) : ', la volière est pleine') + '. Elles se vendent à l\'HDV.</small></div><button class="btn kamas" data-plumes' + (v.plumes ? '' : ' disabled') + '>Ramasser</button></div>' :
+    '<div class="ligne"><div><b>' + S_.tofus + ' Tofu' + (S_.tofus > 1 ? 's' : '') + ' sur ' + capaciteVoliere() + ' places' + (nD ? ', dont ' + nD + ' doré' + (nD > 1 ? 's' : '') : '') + '</b><small>Chacun donne une Plume de Tofu toutes les ' + dureeLisible(CADENCE_PLUME) + ', ' + plumesParTofu() + ' en attente au plus' + (nD ? ' ; un Tofu doré donne des Plumes dorées (' + (v.plumesD || 0) + ' prête' + ((v.plumesD || 0) > 1 ? 's' : '') + ')' : '') + '.</small></div></div>' +
+    '<div class="ligne"><div><b>Plumes prêtes</b><small>' + v.plumes + '/' + max + (v.plumes < max ? ', la prochaine dans ' + dureeLisible((CADENCE_PLUME - v.accu) / S_.tofus) : ', la volière est pleine') + '. Elles se vendent à l\'HDV.</small></div><button class="btn kamas" data-plumes' + (v.plumes || v.plumesD ? '' : ' disabled') + '>Ramasser</button></div>' :
     '<p style="font-size:.8rem;font-weight:600">La volière est vide. Achète des filets de capture à l\'HDV : quand un Tofu picore un champ ou se pose dans l\'herbe, touche-le pour l\'attraper.</p>') +
     '<p style="font-size:.74rem;font-weight:600;margin:8px 0 0;color:#a9adb5">Plus tard, l\'Osamodas pourra invoquer ses Tofus en combat.</p>' + ameliorer);
 }

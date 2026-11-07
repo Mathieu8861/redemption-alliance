@@ -141,7 +141,7 @@ function rendreTofusVoliere() {
   if (!MODELES.tofu || !volieresMesh.length) return;
   for (let k = 0; k < S_.tofus; k++) {
     const v = volieresMesh[k % volieresMesh.length], [px, pz] = PLACES_CAGE[Math.floor(k / volieresMesh.length) % PLACES_CAGE.length], e = v.scale.x;
-    const t = marquer(cloner('tofu'), v.userData.cellule || 'm2_0'); t.scale.setScalar(0.38);
+    const t = marquer(cloner('tofu'), v.userData.cellule || 'm2_0'); t.scale.setScalar(0.38); if (k < (S_.tofusDores || 0)) dorerTofu(t); /* (les Tofus dores de la voliere, 07/11/2026) */
     const et = e * (v.userData.etendue || 1), [ox, oz] = tourne(px * et, pz * et, v.rotation.y); t.userData.base = { x: v.position.x + ox, y: v.position.y + (v.userData.sol || 0.27) * e + 0.02, z: v.position.z + oz };
     poser(t, t.userData.base.x, t.userData.base.y, t.userData.base.z, 0.6 + k * 1.3); tofusVoliere.push(t);
   }

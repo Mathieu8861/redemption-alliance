@@ -84,28 +84,36 @@ function adopterGardien(type) {
 }
 
 /* ---------- sa fenetre : son etat, ses repas, ce qu'il fait en VSA ---------- */
-function proieGardien() { /* ce qu'il mangerait maintenant, ou pourquoi il ne peut pas */
-  const G = gardienDe();
-  if (G.proie === 'Tofu') return S_.tofus > 0 ? { ok: true } : { ok: false, txt: 'Il faut un Tofu dans ta volière (attrape-en un au filet).' };
-  const adultes = S_.bouftous.filter(adulte).length, L = S_.bouftous.map((b, j) => ({ b, j })).filter(({ b }) => !b.noir && !b.gestation && adulte(b));
-  if (adultes <= 2 || !L.length) return { ok: false, txt: 'Aucun Bouftou à lui donner : jamais un noir, une femelle qui attend un petit, ni tes deux derniers adultes.' };
-  L.sort((x, y) => (x.b.laine || 0) - (y.b.laine || 0)); return { ok: true, j: L[0].j, b: L[0].b }; /* (celui qui a le moins de laine ; la sienne passe a la grange) */
+/* (07/11/2026, « c'est nous qui decidons quel tofu/bouftou ils mangent, car s'il mange un dore ou un bouf noir... », Mathieu) : ce qu'on peut lui donner ;
+   le joueur choisit dans la fenetre du gardien. Newton : un Tofu normal ou un Tofu dore ; Masdog : un Bouftou au choix (un noir seulement si on le choisit),
+   jamais une femelle qui attend un petit ni tes deux derniers adultes */
+function proiesGardien() {
+  const G = gardienDe(); if (!G) return [];
+  if (G.proie === 'Tofu') { const nD = Math.min(S_.tofusDores || 0, S_.tofus), nN = S_.tofus - nD; return [nN > 0 ? { type: 'tofu', nom: 'un Tofu', n: nN } : null, nD > 0 ? { type: 'dore', nom: 'un Tofu doré', n: nD, rare: true } : null].filter(Boolean); }
+  const adultes = S_.bouftous.filter(adulte).length; if (adultes <= 2) return [];
+  return S_.bouftous.map((b, j) => ({ b, j })).filter(({ b }) => !b.gestation && adulte(b)).sort((x, y) => (x.b.noir ? 1 : 0) - (y.b.noir ? 1 : 0) || (x.b.laine || 0) - (y.b.laine || 0)).map(({ b, j }) => ({ type: String(j), nom: b.nom, b, j, rare: !!b.noir }));
+}
+function proieGardien(type) { /* ce qu'il mangerait (le choix du joueur), ou pourquoi il ne peut pas */
+  const G = gardienDe(), L = proiesGardien();
+  if (!L.length) return { ok: false, txt: G.proie === 'Tofu' ? 'Il faut un Tofu dans ta volière (attrape-en un au filet).' : 'Aucun Bouftou à lui donner : jamais une femelle qui attend un petit, ni tes deux derniers adultes.' };
+  const P = type != null ? L.find((x) => x.type === String(type)) : null; return P ? Object.assign({ ok: true }, P) : { ok: false, txt: 'Choisis ce qu\'il mange.' };
 }
 function ouvrirGardien() {
   const G = gardienDe(); if (!G) { ouvrirChoixGardien(); return; }
-  const faim = gardienAffame(), n = repasGardien(), P = proieGardien(), plein = n >= RESERVE_GARDIEN, d = degGardien();
+  const faim = gardienAffame(), n = repasGardien(), L = proiesGardien(), P = L.length ? { ok: true } : proieGardien(), plein = n >= RESERVE_GARDIEN, d = degGardien();
   const etat = faim ? '<b style="color:#c0392b">Il a faim</b> : il reste dans ' + G.nomMaison + ' et ne défend plus ta ferme.' : 'Rassasié encore ' + dureeLisible(S_.gardien.rassasie - Date.now()) + ' (' + n + ' repas d\'avance sur ' + RESERVE_GARDIEN + ').';
-  const bouton = plein ? '<span class="cadenas">Il a assez mangé</span>' : '<button class="btn kamas" data-gardien="nourrir"' + (P.ok ? '' : ' disabled') + '>Nourrir · 1 ' + G.proie + '</button>';
+  const bouton = plein ? '<span class="cadenas">Il a assez mangé</span>' : !L.length ? '<button class="btn kamas" disabled>Nourrir</button>' : ''; /* (le choix du repas : une ligne par proie possible, plus bas, 07/11/2026) */
+  const choix = plein || !L.length ? '' : '<div class="hdv-section">Que lui donner ?</div>' + L.map((x) => '<div class="ligne"><div><b>' + (x.rare ? '★ ' : '') + (G.proie === 'Tofu' ? (x.type === 'dore' ? 'Un Tofu doré' : 'Un Tofu') + ' (' + x.n + ' dans ta volière)' : x.nom + (x.b.noir ? ' (Bouftou noir)' : '')) + '</b><small>' + (G.proie === 'Tofu' ? (x.type === 'dore' ? 'Il donne des Plumes dorées : mieux vaut le garder.' : 'Un Tofu de ta volière.') : (x.b.noir ? 'Rare, il donne de la Laine noire : à garder.' : (x.b.laine || 0) + ' laine sur lui, elle passe à la grange.')) + '</small></div><button class="btn ' + (x.rare ? 'discret' : 'kamas') + '" data-gardien="nourrir" data-type="' + x.type + '">Donner</button></div>').join('');
   ouvrirModale('gardien', entete(G.nom) + '<div class="art">' + ico(G.ico) + '<div><b>' + G.nom + ', ton ' + G.espece + ' de garde</b><div class="desc">' + etat + ' Il mange 1 ' + G.proie + ' toutes les ' + G.heures + ' h, ' + RESERVE_GARDIEN + ' repas d\'avance au plus.' +
-    (!plein && !P.ok ? ' <b>' + P.txt + '</b>' : '') + '</div></div><div class="act">' + bouton + '</div></div>' +
+    (!plein && !P.ok ? ' <b>' + P.txt + '</b>' : '') + '</div></div><div class="act">' + bouton + '</div></div>' + choix +
     '<div class="art">' + ico(G.icoVsa) + '<div><b>En VSA, ' + G.forme + '</b><div class="desc">Quand un voleur de VSA ou une simu VSA débarque, il se transforme et mord les voleurs : ' + fmt(d) + ' de dégâts (' + Math.round(G.deg * 100) + ' % des tiens) toutes les ' + String(G.cadence).replace('.', ',') + ' s. Il vise ' + G.cible + '. ' +
     G.pouvoirNom + ' : ' + G.pouvoirTxt + ' (toutes les ' + RECHARGE_POUVOIR + ' s).</div></div><div class="act"><button class="btn discret" data-gardien="caresser"' + (faim ? ' disabled' : '') + '>Caresser</button></div></div>');
 }
-function nourrirGardien() {
+function nourrirGardien(type) {
   const G = gardienDe(); if (!G) return; if (repasGardien() >= RESERVE_GARDIEN) { toast(G.nom + ' a assez mangé pour l\'instant.'); return; }
-  const P = proieGardien(); if (!P.ok) { toast(P.txt, 'alerte'); return; }
+  const P = proieGardien(type); if (!P.ok) { toast(P.txt, 'alerte'); return; }
   const t = Date.now(), d = dureeRepasGardien(G), affame = gardienAffame();
-  if (G.proie === 'Tofu') { S_.tofus--; appliquerVoliere(); toast('Newton croque un Tofu de ta volière. Il est rassasié pour ' + G.heures + ' h de plus.', 'or'); }
+  if (G.proie === 'Tofu') { if (P.type === 'dore') S_.tofusDores = Math.max(0, (S_.tofusDores || 0) - 1); S_.tofus--; appliquerVoliere(); toast('Newton croque ' + (P.type === 'dore' ? 'un Tofu doré' : 'un Tofu') + ' de ta volière. Il est rassasié pour ' + G.heures + ' h de plus.', 'or'); }
   else { const { b, j } = P; if (b.laine) { const L = b.noir ? LAINE_NOIRE : LAINE; S_.grange[L.id] = (S_.grange[L.id] || 0) + b.laine; }
     S_.bouftous.splice(j, 1); erre.splice(j, 1); rendreBouftous(); toast('Masdog emporte ' + b.nom + ' dans ' + G.nomMaison + '. Il est rassasié pour ' + G.heures + ' h de plus.' + (b.laine ? ' Sa laine est passée à la grange.' : ''), 'or'); }
   S_.gardien.rassasie = Math.min(Math.max(t, S_.gardien.rassasie) + d, t + RESERVE_GARDIEN * d); son('nourri'); compter('repasGardien');
@@ -120,7 +128,7 @@ function caresserGardien() {
   for (let k = 0; k < 3; k++) setTimeout(() => { if (gard) chiffre('♥', new T.Vector3(gard.x, gard.y + 1.0 + k * 0.1, gard.z), 'butin'); }, k * 180);
   toast(hasard(G.caresses)); compter('caresses');
 }
-const actionGardien = (a, type) => ({ choix: ouvrirChoixGardien, confirmer: () => confirmerGardien(type), adopter: () => adopterGardien(type), nourrir: nourrirGardien, caresser: caresserGardien, voir: ouvrirGardien }[a] || (() => {}))();
+const actionGardien = (a, type) => ({ choix: ouvrirChoixGardien, confirmer: () => confirmerGardien(type), adopter: () => adopterGardien(type), nourrir: () => nourrirGardien(type), caresser: caresserGardien, voir: ouvrirGardien }[a] || (() => {}))();
 /* sa carte dans l'HDV (Ameliorer, Defense) : verrouillee avant le niveau 60, puis « Choisir », puis son etat */
 const etatGardien = () => (S_.gardien ? { e: 'fini' } : niveau(S_.xp) < NIV_GARDIEN ? { e: 'bloque' } : { e: 'dispo', ok: true });
 function artGardien() {

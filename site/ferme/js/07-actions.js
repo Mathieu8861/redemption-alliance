@@ -217,20 +217,24 @@ const ACTIONS = {
   },
   tofuSauvage(p) {
     if (!S_.sauvage || S_.sauvage.id !== p.id) return;
-    if (peutCapturer()) { ouvrirTofu(p, true); return; }
+    if (peutCapturer(S_.sauvage && S_.sauvage.dore)) { ouvrirTofu(p, true); return; }
     if (S_.filets > 0) { chasserDeLoin(p, () => { if (S_.sauvage) ACTIONS.chasserSauvage(); }); return; } /* (des filets mais la voliere pleine : il le chasse) */
     S_.sauvage = null; rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole. Avec un filet de capture (HDV, onglet Acheter), tu l\'aurais attrapé.');
   },
   capturerSauvage() {
-    if (!S_.sauvage || S_.filets <= 0) return; if (S_.tofus >= capaciteVoliere()) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale(); S_.sauvage = null;
+    if (!S_.sauvage || S_.filets <= 0) return; const dore = !!S_.sauvage.dore;
+    if (!peutCapturer(dore)) { fermerModale(); toast('Ta volière est pleine (' + S_.tofus + '/' + capaciteVoliere() + ') : agrandis-la à l\'HDV, onglet Améliorer.', 'alerte'); return; } S_.filets--; fermerModale(); S_.sauvage = null;
     const vu = tofuVu(sauvageMesh), pris = Math.random() < CHANCE_SAUVAGE;
-    if (pris) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
+    if (pris && dore) { compter('captures'); compter('tofusDores'); const remplace = S_.tofus >= capaciteVoliere(); if (!remplace) S_.tofus++; S_.tofusDores = (S_.tofusDores || 0) + 1; son('niveau'); /* (07/11/2026 : voliere pleine, il prend la place d'un Tofu normal) */
+      toast('TOFU DORÉ capturé !' + (remplace ? ' Il prend la place d\'un Tofu normal dans ta volière.' : ' Il rejoint ta volière.') + ' Il te donnera des Plumes dorées.', 'or'); gagnerXp(25); appliquerVoliere(); }
+    else if (pris) { compter('captures'); S_.tofus++; toast('Tofu capturé ! Il rejoint ta volière (' + S_.tofus + '/' + capaciteVoliere() + ') et te donnera des plumes.', 'or'); gagnerXp(5); }
     else toast('Raté, le Tofu s\'est échappé avec ton filet.', 'alerte');
     rendreSauvage(); rendreHaut(); rendreGrange(); animerFilet(vu, pris);
   },
   chasserSauvage() { compter('tofusChasses'); S_.sauvage = null; fermerModale(); rendreSauvage(); gagnerXp(1); toast('Le Tofu s\'envole.'); },
   ramasserPlumes() {
-    const n = S_.voliere.plumes; if (!n) { toast('Pas encore de plume à ramasser.'); return; }
+    const n = S_.voliere.plumes, nD = S_.voliere.plumesD || 0; if (!n && !nD) { toast('Pas encore de plume à ramasser.'); return; }
+    if (nD) { S_.grange.plume_doree = (S_.grange.plume_doree || 0) + nD; S_.voliere.plumesD = 0; xpFerme(PLUME_DOREE.xp * nD); toast('+' + nD + ' Plume' + (nD > 1 ? 's' : '') + ' dorée' + (nD > 1 ? 's' : '') + ' à la grange.', 'or'); } /* (07/11/2026) */
     S_.grange.plume = (S_.grange.plume || 0) + n; compter('plumes'); S_.voliere.plumes = 0; xpFerme(PLUME.xp * n);
     toast('+' + n + ' Plume' + (n > 1 ? 's' : '') + ' de Tofu à la grange. Elles se vendent à l\'HDV.', 'or'); rendreGrange(); ouvrirVoliere();
   },

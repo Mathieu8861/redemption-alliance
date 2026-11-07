@@ -89,9 +89,11 @@ function completerSauvegarde(e) {
   if (!e.graines) e.graines = { ble: 3 };
   if (!e.filets) e.filets = 0;
   if (!e.tofus) e.tofus = 0;
+  if (!e.tofusDores) e.tofusDores = 0; /* (les Tofus dores de la voliere, comptes dans tofus, 07/11/2026) */
   if (e.gardien === undefined) e.gardien = null; /* le gardien de la ferme (niveau 60) : { type: 'chat' ou 'chien', rassasie, depuis } */
   if (typeof e.eau !== 'number') e.eau = CAPACITE_EAU;
   if (!e.voliere) e.voliere = { plumes: 0, accu: 0 };
+  if (e.voliere.plumesD === undefined) { e.voliere.plumesD = 0; e.voliere.accuD = 0; } /* (les Plumes dorees, 07/11/2026) */
   if (e.sauvage === undefined) e.sauvage = null;
   if (!e.prochainVoleur) e.prochainVoleur = Date.now() + 1.5 * MIN;
   if (typeof e.fleches !== 'number') e.fleches = 0;

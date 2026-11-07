@@ -59,7 +59,16 @@ function viser(v) {
   visee = Object.assign(v, { point: c ? new T.Vector3(c.x, c.m.position.y, c.z) : pp.clone().add(new T.Vector3(Math.sin(paysanMesh.rotation.y) * 3, 0, Math.cos(paysanMesh.rotation.y) * 3)) });
   toast(v.cone ? 'Vise : le souffle part vers la souris. Clique pour lancer (clic droit pour annuler).' : v.ligne ? (v.cle === 'royal' ? 'Vise : tu fonces en ligne droite vers la souris. Clique pour charger (clic droit pour annuler).' : v.cle === 'chafer' ? 'Vise : la lance part en ligne droite vers la souris. Clique pour la jeter (clic droit pour annuler).' : 'Vise : la flèche part en ligne droite vers la souris. Clique pour tirer (clic droit pour annuler).') : v.rayon < 1 ? 'Vise un monstre et clique (clic droit pour annuler).' : 'Place le cercle avec la souris, clique pour lancer (clic droit pour annuler).', 'or');
 }
-function annulerVisee() { visee = null; VISEUR.visible = false; VISEE_LIGNE.visible = false; VISEE_CONE.visible = false; if (typeof PORTEE_VUE !== 'undefined') PORTEE_VUE.visible = false; }
+/* le marqueur du coup fatal (07/11/2026, « vu que c'est a cible unique, quand tu cliques sur le sort ca te met un marqueur avec les crocs sur le monstre que tu
+   cibles avec ta souris, et tu cliques ou relaches », Mathieu) : l'icone du sort de ta classe (les crocs de la Morsure pour l'Osamodas) flotte au-dessus du
+   monstre vise ; rouge s'il est hors de portee */
+let marqueMono = null;
+function marqueurMono() { /* (une icone de l'interface, posee au-dessus du monstre comme sa barre de vie : nette a tous les zooms) */
+  const cl = classeDe(), ic = cl === 'cra' ? 'ulti-mono' : 'ulti-mono-' + cl;
+  if (!marqueMono || marqueMono.dataset.ic !== ic) { if (marqueMono) marqueMono.remove(); const e = document.createElement('div'); e.className = 'marque-mono'; e.dataset.ic = ic; e.innerHTML = '<img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="">'; e.style.display = 'none'; marqueMono = e; }
+  const z = $('combat-zone'); if (z && marqueMono.parentNode !== z) z.appendChild(marqueMono); return marqueMono;
+}
+function annulerVisee() { if (marqueMono) marqueMono.style.display = 'none'; visee = null; VISEUR.visible = false; VISEE_LIGNE.visible = false; VISEE_CONE.visible = false; if (typeof PORTEE_VUE !== 'undefined') PORTEE_VUE.visible = false; }
 /* le point ou un sort vise tombe vraiment : a portee du perso, et sur une case ou l'on marche (sinon la plus proche autour du point vise).
    « malgre le ciblage, le Bouftou de l'Osa ne tombe pas a l'endroit cible » (testeurs, 12/10/2026) : au-dela de la portee, le cercle restait sous
    la souris et le Bouftou tombait plus pres ; le cercle de visee utilise maintenant ce meme point */
@@ -75,7 +84,7 @@ function pointSort(pt, portee) {
   const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; k = Math.max(0, k); return { x: pp.x + (x0 - pp.x) * k, z: pp.z + (z0 - pp.z) * k };
 }
 function pointLibre(pt, portee) { const pp = paysanMesh.position, L = Math.hypot(pt.x - pp.x, pt.z - pp.z); return L > portee ? { x: pp.x + (pt.x - pp.x) * portee / L, z: pp.z + (pt.z - pp.z) * portee / L } : { x: pt.x, z: pt.z }; } /* (un sort legendaire tombe partout a portee) */
-function monstreVise(pt) { let best = null, bd = 1.4; if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - pt.x, o.z - pt.z); if (d < bd) { bd = d; best = o; } }); return best; }
+function monstreVise(pt, rayon) { let best = null, bd = rayon || 1.4; /* (rayon : 2,2 pour le coup fatal, plus facile a accrocher, 07/11/2026) */ if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - pt.x, o.z - pt.z); if (d < bd) { bd = d; best = o; } }); return best; }
 function majVisee(s) {
   if (!visee || !combat) { if (visee) annulerVisee(); return; }
   const pp = paysanMesh.position, pt = visee.point;
@@ -86,10 +95,12 @@ function majVisee(s) {
     VISEE_LIGNE.scale.set((visee.largeur || LARGEUR_PERCANTE) * 2, 1, visee.portee || PORTEE_PERCANTE); VISEE_LIGNE.material.color.set(visee.teinte || '#ffe08a'); VISEE_LIGNE.material.opacity = 0.5 + Math.sin(s * 6) * 0.1; return;
   }
   VISEE_LIGNE.visible = false; VISEUR.visible = true;
-  let x = pt.x, z = pt.z, y = pt.y; const m = visee.rayon < 1 && monstreVise(pt); if (m) { x = m.x; z = m.z; y = m.m.position.y; } /* le coup fatal s'accroche au monstre le plus proche */
-  if (visee.portee) { const q = visee.libre ? pointLibre(pt, visee.portee) : pointSort(pt, visee.portee); x = q.x; z = q.z; PORTEE_VUE.visible = true; PORTEE_VUE.position.set(pp.x, pp.y + 0.08, pp.z); PORTEE_VUE.scale.setScalar(visee.portee); } /* (la ou il tombera vraiment, et jusqu'ou il porte) */
+  let x = pt.x, z = pt.z, y = pt.y; const m = visee.rayon < 1 && monstreVise(pt, 2.2); if (m) { x = m.x; z = m.z; y = m.m.position.y; } /* le coup fatal s'accroche au monstre le plus proche */
+  if (visee.portee) { if (!m) { const q = visee.libre ? pointLibre(pt, visee.portee) : pointSort(pt, visee.portee); x = q.x; z = q.z; } /* (07/11/2026 : accroche a un monstre, le cercle reste sur lui ; avant, la portee le ramenait au bord : « bizarre a placer », Mathieu) */ PORTEE_VUE.visible = true; PORTEE_VUE.position.set(pp.x, pp.y + 0.08, pp.z); PORTEE_VUE.scale.setScalar(visee.portee); } /* (la ou il tombera vraiment, et jusqu'ou il porte) */
   const c = caseIci(x, z); VISEUR.position.set(x, (c ? posCase(c).y : y) + 0.09, z); VISEUR.scale.setScalar(visee.rayon * (m ? Math.max(1, m.d.ombre * 0.8) : 1) * (1 + Math.sin(s * 6) * 0.03));
-  const t = new T.Color(visee.teinte); viseurDisque.material.color.copy(t); viseurBord.material.color.copy(t); viseurDisque.material.opacity = visee.rayon < 1 && !m ? 0.1 : 0.25;
+  const hors = m && visee.portee && Math.hypot(m.x - pp.x, m.z - pp.z) > visee.portee; /* (le monstre vise est trop loin : le cercle passe au rouge, 07/11/2026) */
+  if (visee.quoi === 'ulti' && visee.id === 'mono') { const mk = marqueurMono(); mk.style.display = m ? '' : 'none'; if (m) { versEcran(new T.Vector3(m.x, m.m.position.y + (m.haut || 1.5) + 0.9, m.z), mk); mk.classList.toggle('hors', !!hors); } } else if (marqueMono) marqueMono.style.display = 'none'; /* (les crocs au-dessus du monstre vise) */
+  const t = new T.Color(hors ? '#ff4a3a' : visee.teinte); viseurDisque.material.color.copy(t); viseurBord.material.color.copy(t); viseurDisque.material.opacity = visee.rayon < 1 && !m ? 0.1 : 0.25;
 }
 /* (« l'animation de Tempete de lames, c'est la meme que fleche de feu du Cra : il faudrait que le personnage tourne sur lui-meme pendant quelques secondes »,
    Mathieu, 12/10/2026) : il file au centre du cercle vise, tournoie 2 s epee tendue, et frappe tout autour a chaque demi-seconde (4 fois 0,75 de ses degats,
@@ -429,13 +440,13 @@ const boutonLeg = (emp) => ({ cd: cdLeg(emp), dispo: () => !!legDe(emp),
   tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.instant ? { x: paysanMesh.position.x, z: paysanMesh.position.z } : v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
 /* la portee du coup fatal (Colere de Iop, Fleche fatale, Morsure du Dragoeuf) : celle de l'attaque de ta classe (06/11/2026, « on ne voit pas la portee, et ca te fait
    avancer vers la cible si tu n'as pas la PO », Mathieu : un cercle pendant la visee, et hors de portee le sort ne part pas au lieu de faire marcher le perso) */
-const porteeMono = () => (STATS_CLASSE[classeDe()] || {}).portee || S;
+const porteeMono = () => ((STATS_CLASSE[classeDe()] || {}).portee || S) + S; /* (une case de plus que l'attaque, 07/11/2026 : « augmente aussi un peu la portee », Mathieu) */
 const BOUTONS_SORT = {
   sort: { cd: 'cdSort', visee: () => Object.assign({ quoi: 'sort' }, viseeClasse()),
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
   ulti: { cd: 'cdUlti', refus: () => S_.ulti ? '' : niveau(S_.xp) >= NIV_ULTI ? 'Choisis ton ulti dans la fiche des vagues, après ce combat.' : 'L\'ulti se débloque au niveau ' + NIV_ULTI + ' de Paysan.',
     visee: () => { const id = S_.ulti; return { quoi: 'ulti', id, rayon: id === 'mono' ? 0.75 : id === 'zone' ? 2.8 : 3, teinte: ULTIS[id].teinte, portee: id === 'mono' ? porteeMono() : undefined }; }, /* (le coup fatal montre sa portee, 06/11/2026) */
-    tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt); if (!m) { toast('Vise un monstre.'); annulerVisee(); return false; }
+    tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt, 2.2); if (!m) { toast('Vise un monstre.'); annulerVisee(); return false; }
         { const pp = paysanMesh.position; if (Math.hypot(m.x - pp.x, m.z - pp.z) > porteeMono()) { toast('Trop loin : ' + nomUlti('mono') + ' porte à ' + String(Math.round(porteeMono() / S * 2) / 2).replace('.', ',') + ' case' + (porteeMono() > S ? 's' : '') + '. Rapproche-toi.'); annulerVisee(); return false; } } /* (refuse : la visee s'annule et le clic deplace le perso, « des fois je peux pas bouger », Mathieu, 07/11/2026 ; avant, chaque clic retentait le sort) */ /* (avant : le perso marchait vers la cible, 06/11/2026) */
         annulerVisee(); if (combat.st) combat.st.sorts++; executerUlti('mono', m); return; } /* (le coup fatal : un monstre) */
       annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); executerUlti(v.id, null, pt); } },
