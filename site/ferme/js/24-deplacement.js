@@ -318,6 +318,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (agir && !mode && !combat) S_.clicsDroits = (S_.clicsDroits || 0) + 1; /* l'habitude du clic droit se prend : voir rappelClicDroit */
   for (const h of hits) {
     { let o = h.object; while (o && o !== paysanMesh) o = o.parent; if (o) continue; } /* le perso ne bloque pas le clic sur la case ou il se tient */
+    if (h.object.userData.montgolfiere && combat) continue; /* (07/11/2026, « lors d'une vague on ne doit pas pouvoir cliquer sur la montgolfiere, un mauvais clic ouvre la page et t'es mort », Mathieu : pendant un combat, le ballon ne bloque plus le clic, on vise ce qu'il y a derriere) */
     if (h.object.userData.montgolfiere && !mode) { ouvrirMontgolfiere(); return; }
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }

@@ -440,7 +440,7 @@ const boutonLeg = (emp) => ({ cd: cdLeg(emp), dispo: () => !!legDe(emp),
   tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.instant ? { x: paysanMesh.position.x, z: paysanMesh.position.z } : v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
 /* la portee du coup fatal (Colere de Iop, Fleche fatale, Morsure du Dragoeuf) : celle de l'attaque de ta classe (06/11/2026, « on ne voit pas la portee, et ca te fait
    avancer vers la cible si tu n'as pas la PO », Mathieu : un cercle pendant la visee, et hors de portee le sort ne part pas au lieu de faire marcher le perso) */
-const porteeMono = () => ((STATS_CLASSE[classeDe()] || {}).portee || S) + S; /* (une case de plus que l'attaque, 07/11/2026 : « augmente aussi un peu la portee », Mathieu) */
+const porteeMono = () => ((STATS_CLASSE[classeDe()] || {}).portee || S) + S + (classeDe() === 'osa' ? 2 * S : 0); /* (une case de plus que l'attaque, 07/11/2026 : « augmente aussi un peu la portee », Mathieu ; la Morsure du Dragoeuf de l'Osamodas, deux cases de plus encore, 6 en tout : « augmente la portee stp », Mathieu, 07/11/2026 au soir) */
 const BOUTONS_SORT = {
   sort: { cd: 'cdSort', visee: () => Object.assign({ quoi: 'sort' }, viseeClasse()),
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
