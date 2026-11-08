@@ -193,6 +193,7 @@ function geste(mo, fam, bloque, choisi, tsMax) { /* (choisi : le mouvement deja 
 function majSquelette(mo, v, dt) {
   const an = mo.m.userData.anim; if (!an) return;
   if (mo.faible) { majFaible(mo, an, dt); an.mixer.update(dt); return; } /* (Moon affaibli : a genoux, rien d'autre) */
+  if (mo.racine && mo.racine.phase !== 'libre') { majRacine(mo, an, dt); an.mixer.update(dt); return; } /* (le Chene Mou enracine, 08/11/2026) */
   if (mo.geste) { mo.geste.t += dt; if (mo.geste.t >= mo.geste.d) mo.geste = null; }
   if (mo.reactT > 0) mo.reactT -= dt;
   if (mo.esquive > 0) mo.esquive -= dt; if (mo.recent > 0) mo.recent -= dt;
@@ -241,7 +242,7 @@ function rouladeSquelette(mo, a) {
   return true;
 }
 /* le geste d'un sort (le tambour de Tam, la sagaie que Jav arme...) : il le joue, sans bloquer plus que le sort lui-meme */
-function gesteSort(mo, fam, dans) { const an = mo.m && mo.m.userData.anim; if (!an || !an.F[fam] || mo.geste) return;
+function gesteSort(mo, fam, dans) { const an = mo.m && mo.m.userData.anim; if (!an || !an.F[fam] || mo.geste || mo.ancre) return; /* (ancre : le Chene Mou enracine garde sa pose) */
   if (!dans) { geste(mo, fam, false); return; }
   /* (28/10/2026, « des vraies attaques avec des animations », Mathieu) dans : le temps jusqu'a l'impact du sort (la fin de sa zone rouge) ; le geste
      est accelere ou ralenti pour que son instant de frappe tombe la, l'elan remplit l'attente. (31/10/2026) Le Gorille : l'instant ou ses poings tombent
@@ -400,6 +401,16 @@ function majFaible(mo, an, dt) {
     if (mo.pv > a0) { chiffre('+' + fmt(mo.pv - a0), new T.Vector3(mo.x, y + mo.haut * 0.8, mo.z), 'soin'); emettre(FX_VIF, 14, { x: mo.x, y: y + 1, z: mo.z, r: 1.4, v: [0, 2.4, 0], dv: 0.8, vie: [0.5, 0.8], taille: [0.14, 0.04], c: ['#d8ffd8', '#4fd06a'], a: 1, frein: 0.8 }); onde(mo.x, y, mo.z, 3, '#4fd06a', 0.5, 0.7, true); } }
   /* le dernier Gorille tombe (pas avant qu'ils soient arrives) : il se releve */
   if (!G.length && F.t > 2.5) { F.phase = 'releve'; toast('Ses ' + A.noms + ' sont tombés : ' + leNom(mo.d) + ' se relève, fou de rage !', 'alerte'); }
+}
+/* LE CHENE MOU ENRACINE (08/11/2026, capEnracine dans 21-combat.js) : son geste arrache_1, fige entre deux instants du debut, il est enfonce jusqu'aux bras et
+   pousse sur ses bras-branches en se debattant ; ses noeuds tombes, le meme geste joue jusqu'au bout : il s'arrache du sol et retombe sur ses racines */
+const RACINE = { a: 0.06, b: 0.5, souffle: 2.4 };
+function majRacine(mo, an, dt) {
+  const R = mo.racine, nom = an.F.arrache && an.F.arrache[0], a = nom && an.A[nom]; if (!a) { if (R.phase === 'arrache') libererChene(mo); return; }
+  if (an.cour !== nom) jouerAnim(an, nom, 0.15);
+  if (R.phase === 'enfonce') { R.s = (R.s || 0) + dt; a.timeScale = 0; a.time = RACINE.a + (RACINE.b - RACINE.a) * (0.5 - 0.5 * Math.cos(R.s / RACINE.souffle * Math.PI * 2)); return; }
+  if (!R.lance) { R.lance = true; a.timeScale = 1; a.paused = false; }
+  if (a.time >= a.getClip().duration - 0.03) libererChene(mo);
 }
 function finFaible(mo) {
   const an = mo.m.userData.anim; mo.faible = null; mo.faibleFini = true; mo.bloqueT = 0; mo.cd = 1.2; mo.geste = null;

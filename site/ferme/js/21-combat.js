@@ -233,12 +233,14 @@ function ficheMonstre(t) {
   if (d.geyser) met('geyser', 'sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge');
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
   if (d.garde) met('garde', 'carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu');
-  if (d.invoque) met('invoque', 'renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' lève son bâton de corail et invoque ' + d.invoque.n + ' tortues toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus) : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.', '', 'vert');
+  if (d.invoque) met('invoque', 'renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' ' + (d.invoque.geste || 'lève son bâton de corail et invoque') + ' ' + d.invoque.n + ' ' + (d.invoque.noms || 'tortues') + ' toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus)' + (d.invoque.noms ? '.' : ' : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.'), '', 'vert'); /* (noms, geste : les Tronknydes de l'Ancestral et du Chene Mou, 08/11/2026) */
   if (d.renforts) met('renforts', 'renfort', 'Renforts', (d.fem ? 'Elle' : 'Il') + ' appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' + (d.fem ? 'e' : '') : '') + '. Sa troupe ' + (d.fem ? 'la' : 'le') + ' protège : chaque monstre près d\'' + (d.fem ? 'elle' : 'lui') + ' lui retire 12 % de tes dégâts.', '', 'vert'); /* (au feminin pour Crocabulia, 03/11/2026) */
   if (d.jet) met('jet', 'sort', d.jet.nom, 'Quand tu restes loin ' + (d.fem ? 'd\'elle' : 'de lui') + ', ' + (d.jet.arme === 'hache' ? 'il lève sa grande hache et te la lance' : 'il arrache un rocher du sol et te le lance') + ' : un grand cercle rouge sous toi, sors-en.', num(fmt(Math.round(dSort * d.jet.x)) + ' dégâts', 'rouge') + num(secondes(d.jet.prepa) + ' pour esquiver') + num('toutes les ' + d.jet.periode + ' s'), 'violet');
-  if (d.faille) met('faille', 'sort', 'Faille', 'Il fend le sol jusqu\'à toi : une bande, puis le sol éclate de lui vers toi. Sors-en par le côté.', num(fmt(Math.round(dSort * d.faille.x)) + ' dégâts', 'rouge') + num('1 s pour esquiver') + num('toutes les ' + d.faille.periode + ' s'), 'violet');
+  if (d.faille) met('faille', 'sort', d.faille.racines ? 'Racines en ligne' : 'Faille', d.faille.racines ? 'Il fait courir ses racines jusqu\'à toi : une bande, puis elles jaillissent du sol de lui vers toi. Sors-en par le côté.' : 'Il fend le sol jusqu\'à toi : une bande, puis le sol éclate de lui vers toi. Sors-en par le côté.', num(fmt(Math.round(dSort * d.faille.x)) + ' dégâts', 'rouge') + num('1 s pour esquiver') + num('toutes les ' + d.faille.periode + ' s'), 'violet');
   if (d.affaibli) { const A = d.affaibli, pc = Math.round(A.seuil * 100); met('affaibli', 'bouclier', 'Affaibli', 'Sous ' + pc + ' % de vie, il tombe à genoux : invulnérable, sa vie bloquée à ' + pc + ' %, il appelle ' + A.n + ' ' + A.noms + '. Tant qu\'un seul est debout, il regagne ' + Math.round(A.regen * 100) + ' % de sa vie toutes les ' + A.pas + ' s. Abats-les tous : il se relève enragé.', num(fmt(A.pv) + ' PV par Gorille') + num('+' + Math.round(A.regen * 100) + ' % toutes les ' + A.pas + ' s', 'vert'), 'violet'); }
-  if (d.rage) met('rage', 'rage', 'Rage', (d.affaibli ? 'Une fois ses ' + d.affaibli.noms + ' abattus' : 'Sous 30 % de vie') + ', ' + (d.fem ? 'elle' : 'il') + ' frappe 1,7 fois plus vite et lance ses sorts plus souvent.', '', 'rouge');
+  if (d.enracine) { const E = d.enracine; met('enracine', 'bouclier', 'Enraciné', 'Il arrive enfoncé dans le sol, invulnérable, et ' + E.noeuds + ' nœuds de racine sortent de terre autour de toi. Tant qu\'ils vivent, la forêt pousse autour d\'eux (des Tronknydes, des Arbres Collants) et lui fait jaillir ses racines sous toi. Chaque nœud coupé lui arrache un morceau d\'écorce ; le dernier tombe, il s\'arrache du sol et marche sur toi.', num('-' + Math.round(E.ecorce * 100) + ' % de sa vie par nœud', 'rouge') + num('la forêt pousse toutes les ' + E.pousse + ' s', 'vert'), 'violet'); }
+  if (d.avale) met('avale', 'renfort', 'Il avale sa troupe', 'Toutes les ' + d.avale.periode + ' s, s\'il a un monstre de sa troupe à portée de bras, il l\'attrape et l\'avale pour se soigner. Abats sa troupe avant qu\'il ne la mange.', num('+' + Math.round(d.avale.soin * 100) + ' % de sa vie', 'vert'), 'vert');
+  if (d.rage) met('rage', 'rage', 'Rage', (d.affaibli ? 'Une fois ses ' + d.affaibli.noms + ' abattus' : 'Sous 30 % de vie') + ', ' + (d.fem ? 'elle' : 'il') + ' frappe 1,7 fois plus vite et lance ses sorts plus souvent' + (d.tempete ? ', et déchaîne une tempête de feuilles : des tourbillons s\'abattent sans arrêt, un sur deux sous toi, chacun annoncé par un cercle rouge.' : '.'), d.tempete ? num(fmt(Math.round(dSort * d.tempete.x)) + ' dégâts par tourbillon', 'rouge') + num('toutes les ' + secondes(d.tempete.periode)) : '', 'rouge');
   if (d.boss) { /* LES SORTS D'UN BOSS RANGES (03/11/2026, « que chaque truc soit sur la meme ligne : la rage, le renfort avec des allies, un sort ultime, a distance ou un
        saut au corps a corps, et apres un petit sort en plus ; pour tous les boss ; je sais qu'il y a des boss qui ont des sorts en plus », Mathieu) : toujours les
        quatre memes lignes dans le meme ordre (une ligne grisee si le boss n'en a pas), puis ses sorts en plus, puis ce qu'il fait d'autre. Son ultime et son petit
@@ -486,7 +488,7 @@ const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
 function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
   if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
-  if (mo.faible) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
+  if (mo.faible || mo.ancre) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
   mo.recent = 1.2; /* (il vient d'etre touche : une Tortue peut rouler pour esquiver la suite) */
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
   if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
@@ -1454,19 +1456,26 @@ function capJet(mo, ctx) {
 /* LA FAILLE du Craqueleur Legendaire (31/10/2026) : il frappe le sol, une bande s'annonce jusqu'a toi, puis le sol eclate en chapelet depuis ses pieds
    jusqu'au bout de la bande, rochers et braises, une eruption toutes les 0,09 s : tu as le temps d'en sortir de cote. Fiche : faille: { periode, L, x } */
 function capFaille(mo, ctx) {
-  const { pp, sortPret } = ctx, F = mo.d.faille; if (!F || combat.deroute != null) return;
+  const { pp, sortPret } = ctx, F = mo.d.faille; if (!F || mo.ancre || combat.deroute != null) return;
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('failleT', F.periode)) return; /* (31/10/2026, par Discord, « la faille, ca te touche peu importe ou tu es et ou est le Craqueleur, faut esquiver, pas de portee minimum », Mathieu : plus de portee mini ni maxi, elle court jusqu'a toi et un peu au-dela) */
   mo.failleT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x + Math.sin(a) * 1.2, z0 = mo.z + Math.cos(a) * 1.2, L = Math.max(4, dP + 3), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L), prepa = 1.0;
   mo.ry = a; mo.bloqueT = prepa + 0.5; prepaSeisme(mo, mo.x, mo.z, 0.01, prepa);
-  if (!c0.failleVu) { c0.failleVu = true; toast(leNom(mo.d) + ' fend le sol jusqu\'à toi : sors de la bande, la faille éclate de lui vers toi !', 'alerte'); }
+  if (!c0.failleVu) { c0.failleVu = true; toast(leNom(mo.d) + (F.racines ? ' fait courir ses racines jusqu\'à toi : sors de la bande, elles jaillissent de lui vers toi !' : ' fend le sol jusqu\'à toi : sors de la bande, la faille éclate de lui vers toi !'), 'alerte'); }
   let touche = false; const dg = Math.max(1, Math.round(degSort(mo) * F.x));
   zoneDanger({ mo, x: x0, z: z0, x2: f.x, z2: f.z, larg: 1.6, duree: prepa, effet: () => {
     const Lr = Math.hypot(f.x - x0, f.z - z0), n = Math.max(3, Math.round(Lr / 1.3)); secousse(0.2, 0.4);
     for (let i = 0; i <= n; i++) { const u = i / n, x = x0 + (f.x - x0) * u, z = z0 + (f.z - z0) * u; setTimeout(() => { if (combat !== c0 || c0.fin) return; const y = solA(x, z);
-      solFendu(x, y, z, 1.4, false); poussiere(x, y, z, 6, 0.8, '#b89a72'); mottes(x, y, z, 3, 1.1); emettre(FX_VIF, 5, { x, y: y + 0.1, z, r: 0.4, dv: 3, haut: true, vie: [0.4, 0.6], taille: [0.1, 0.05], c: ['#7a5a3a', '#9a7a52'], grav: 10 }); /* (la faille : de la terre et du gravier, plus de braises, 01/11/2026) */
-      if (i % 2 === 0) { const r = new T.Mesh(new T.DodecahedronGeometry(0.3, 0), mat('#7d7468')); r.castShadow = true; fxVie(r, 0.7, (k) => { r.position.set(x + (k - 0.5) * 0.3, y + Math.sin(k * Math.PI) * 1.6, z); r.rotation.set(k * 8, k * 5, 0); }); }
+      solFendu(x, y, z, 1.4, false); poussiere(x, y, z, 6, 0.8, F.racines ? '#8a6a48' : '#b89a72'); mottes(x, y, z, 3, 1.1); emettre(FX_VIF, 5, { x, y: y + 0.1, z, r: 0.4, dv: 3, haut: true, vie: [0.4, 0.6], taille: [0.1, 0.05], c: F.racines ? ['#5a4030', '#6f9a3a'] : ['#7a5a3a', '#9a7a52'], grav: 10 }); /* (la faille : de la terre et du gravier, plus de braises, 01/11/2026) */
+      if (F.racines) racineJaillit(x, y, z, i);
+      else if (i % 2 === 0) { const r = new T.Mesh(new T.DodecahedronGeometry(0.3, 0), mat('#7d7468')); r.castShadow = true; fxVie(r, 0.7, (k) => { r.position.set(x + (k - 0.5) * 0.3, y + Math.sin(k * Math.PI) * 1.6, z); r.rotation.set(k * 8, k * 5, 0); }); }
       const p2 = paysanMesh.position; if (!touche && Math.hypot(p2.x - x, p2.z - z) < 1.1) { touche = true; blesserPerso(dg, mo); } }, i * 90); }
   } });
+}
+/* une racine du Chene Mou qui jaillit du sol, se dresse en se tordant et replonge (08/11/2026, ses racines en ligne) */
+function racineJaillit(x, y, z, i) {
+  const g = new T.Group(), a = i * 2.39, pique = maille(new T.ConeGeometry(0.24, 1.6, 6), i % 2 ? '#5a4030' : '#4a3424'); pique.position.y = 0.8; g.add(pique);
+  const bout = maille(new T.ConeGeometry(0.1, 0.35, 4), '#6f9a3a'); bout.position.set(0.12, 1.35, 0); bout.rotation.z = -0.8; g.add(bout); g.rotation.y = a;
+  fxVie(g, 0.85, (k) => { const h = k < 0.3 ? k / 0.3 : k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3; g.position.set(x, y - 1.6 + 1.75 * h, z); g.rotation.x = Math.sin(a) * 0.35 * h; g.rotation.z = Math.cos(a) * 0.35 * h; });
 }
 function capCarapace(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
@@ -1854,7 +1863,7 @@ function traineeAile(mo, sg) {
 }
 function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2026) : un arc rouge devant elle (ESQUIVE.brassard pour en sortir), puis le coup, qui repousse */
   const { dt, pp, sortPret } = ctx;
-  if (!mo.d.brassard || combat.deroute != null) return;
+  if (!mo.d.brassard || mo.ancre || combat.deroute != null) return;
   if (!mo.viseB && Math.hypot(pp.x - mo.x, pp.z - mo.z) < Math.max(6, (mo.d.brassardR || 4.2) + 1) && sortPret('brassardT', mo.d.brassard)) {
     mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = mo.d.brassardR || 4.2, OUV = 1.3, /* (brassardR : la Gorgouille, 5,2 depuis le 31/10/2026) */ c0 = combat; mo.ry = a; mo.bloqueT = ESQUIVE.brassard + 0.4;
     const c = new T.Mesh(new T.CircleGeometry(R, 24, Math.PI / 2 - OUV / 2, OUV), new T.MeshBasicMaterial({ color: COULEUR_CAC, transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide }));
@@ -2036,13 +2045,13 @@ function capPierre(mo, ctx) { /* la peau de pierre de la Gorgouille (20/10/2026)
 }
 function capInvoque(mo, ctx) { /* la Tortue Corail invoque ses tortues (29/10/2026, « un bâton de mage, invocateur de tortues, il en invoque 4 toutes les 8 s », Mathieu) :
      elle leve son baton, un cercle s'allume au sol a chaque place, les tortues en sortent ; 12 debout au plus, sinon elle reessaie 2 s plus tard */
-  const { bloque, vSort } = ctx, I = mo.d.invoque; if (!I) return;
+  const { bloque, vSort } = ctx, I = mo.d.invoque; if (!I || mo.ancre) return;
   mo.invoqueT = (mo.invoqueT == null ? I.periode - 3 : mo.invoqueT) + vSort; /* (le compte tourne meme pendant ses coups de baton : avec sortPret, 1 invocation en 17 s au lieu de 2) */
   if (mo.invoqueT < I.periode || bloque || mo.bloqueT > 0 || mo.vise || combat.deroute != null) return;
   const debout = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length;
   if (debout >= I.max) { mo.invoqueT = I.periode - 2; return; }
   mo.invoqueT = 0; mo.bloqueT = 1.2; mo.frappe = 0.3; gesteSort(mo, gesteDe(mo, 'invoque', 'sort'), 0.9);
-  if (!combat.invoqueVu) { combat.invoqueVu = true; toast(leNom(mo.d) + ' lève son bâton et invoque ' + I.n + ' tortues : ' + (mo.d.fem ? 'elle' : 'il') + ' en invoquera toutes les ' + I.periode + ' s !', 'alerte'); }
+  if (!combat.invoqueVu) { combat.invoqueVu = true; toast(leNom(mo.d) + ' ' + (I.geste || 'lève son bâton et invoque') + ' ' + I.n + ' ' + (I.noms || 'tortues') + ' : ' + (mo.d.fem ? 'elle' : 'il') + ' en invoquera toutes les ' + I.periode + ' s !', 'alerte'); }
   else chiffre('Invocation !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.4, mo.z), 'butin');
   const places = [];
   for (let k = 0; k < Math.min(I.n, I.max - debout); k++) { const a = mo.ry + (k + 0.5) / I.n * Math.PI * 2, p = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * 2.4, mo.z + Math.cos(a) * 2.4); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, mo.d.couleurSorts); } /* (a sa couleur, 30/10/2026) */
@@ -2073,6 +2082,122 @@ function fabriquerTotem() {
   const mq = masqueTiki(); mq.position.set(0, 1.5, 0.12); mq.scale.setScalar(1.1); g.add(mq);
   for (let i = 0; i < 5; i++) { const b = i * 1.26, f = maille(new T.ConeGeometry(0.07, 0.35, 4), i % 2 ? '#5fae3a' : '#7fc24f'); f.position.set(Math.cos(b) * 0.42, 0.25, Math.sin(b) * 0.42); f.rotation.set(Math.sin(b) * 0.6, 0, -Math.cos(b) * 0.6); f.scale.z = 0.35; g.add(f); }
   const env = new T.Group(); env.add(g); env.userData.hauteur = 2.0; return fusionner(env);
+}
+/* le noeud de racine du Chene Mou (08/11/2026) : une souche de grosses racines nouees qui sortent de terre en arcs, l'ecorce sombre, de la mousse, et au milieu une
+   fente de seve rouge qui luit, de la couleur de l'oeil du Chene Mou ; une butte de terre au pied */
+function fabriquerNoeud() { /* (refait le 08/11/2026 : la premiere version, des arcs fins et sombres, faisait une araignee noire dans la nuit de la foret) */
+  const g = new T.Group(), a = (o, x, y, z) => { o.position.set(x, y, z); g.add(o); return o; }, B = ['#8a6440', '#7a5638', '#946c46'];
+  a(maille(new T.CylinderGeometry(0.85, 1.05, 0.2, 12), '#6b5236'), 0, 0.08, 0); /* (la butte de terre) */
+  a(maille(new T.CylinderGeometry(0.42, 0.62, 0.95, 9), B[0]), 0, 0.5, 0); /* (la souche) */
+  const loupe = a(maille(new T.DodecahedronGeometry(0.5, 1), B[1]), 0.05, 1.0, 0); loupe.scale.set(1.0, 0.75, 0.95); /* (la loupe noueuse du dessus) */
+  a(maille(new T.SphereGeometry(0.22, 7, 6), B[2]), -0.3, 0.75, 0.2); a(maille(new T.SphereGeometry(0.18, 7, 6), B[2]), 0.32, 0.62, -0.18); /* (des noeuds sur le flanc) */
+  for (let i = 0; i < 5; i++) { const b = i / 5 * Math.PI * 2 + 0.4, R = 0.32 + (i % 2) * 0.1, arc = maille(new T.TorusGeometry(R, 0.15, 6, 10, Math.PI), B[i % 3]); /* (de grosses racines qui sortent de la souche et replongent) */
+    const piv = new T.Group(); piv.rotation.y = b; arc.position.set(0.45 + R, 0.04, 0); piv.add(arc); g.add(piv); }
+  for (let i = 0; i < 3; i++) { const b = i * 2.1 + 1, c = maille(new T.ConeGeometry(0.1, 0.55, 5), '#6a4a2e'); c.position.set(Math.cos(b) * 1.15, 0.22, Math.sin(b) * 1.15); c.rotation.set(Math.sin(b) * 0.4, 0, -Math.cos(b) * 0.4); g.add(c); } /* (des pointes de racine qui percent le sol) */
+  for (let i = 0; i < 5; i++) { const b = i * 1.26 + 0.6, m = maille(new T.SphereGeometry(0.17, 6, 5), i % 2 ? '#7fb04a' : '#93c25a'); m.scale.set(1.3, 0.45, 1.1); m.position.set(Math.cos(b) * 0.38, 1.18 - (i % 2) * 0.12, Math.sin(b) * 0.38); g.add(m); } /* (la mousse) */
+  const seve = new T.Mesh(new T.SphereGeometry(0.15, 10, 8), new T.MeshBasicMaterial({ color: '#ff5a24' })); seve.scale.set(0.7, 2.2, 0.5); seve.position.set(0, 0.62, 0.5); g.add(seve); /* (la fente de seve, l'oeil du Chene Mou) */
+  const halo = new T.Mesh(new T.SphereGeometry(0.3, 10, 8), new T.MeshBasicMaterial({ color: '#ff8a3a', transparent: true, opacity: 0.35, depthWrite: false })); halo.scale.set(0.9, 1.6, 0.5); halo.position.set(0, 0.62, 0.48); g.add(halo);
+  const env = new T.Group(); env.add(g); env.userData.hauteur = 1.5; return fusionner(env);
+}
+/* LE CHENE MOU ENRACINE (08/11/2026, PALIER10.md : « premier temps, il est enracine au bord de la ferme, immobile et invulnerable ; trois ou quatre noeuds de
+   racine sortent de terre ; chaque noeud abattu lui arrache un morceau d'armure, mais tant qu'ils vivent ils font pousser des Arbres Collants et sortir des
+   Tronknydes ; second temps, il s'arrache du sol quand le dernier noeud tombe »). Il arrive enfonce dans le sol jusqu'aux bras (son geste arrache_1 fige au
+   debut, il se debat, 22c-squelettes.js), invulnerable, et fait encore jaillir ses racines sous toi (ses autres sorts attendent). Ses noeuds sortent de terre
+   autour du perso, l'herbe devient sous-bois autour d'eux. Toutes les « pousse » s, un noeud (chacun son tour) fait sortir un Tronknyde, ou un Arbre Collant
+   une fois sur trois (« max » en tout). Chaque noeud coupe lui arrache un morceau d'ecorce (« ecorce » : une part de sa vie). Le dernier tombe : il s'arrache
+   du sol (arrache_1 en entier), rugit et marche sur toi. mo.ancre : il ne marche pas, ne frappe pas, rien ne le pousse */
+const C_FORET = ['#6a8a3a', '#c8e08a', '#3e2c1e'];
+function capEnracine(mo, ctx) {
+  const E = mo.d.enracine; if (!E || !mo.m) return;
+  const c0 = combat;
+  if (!mo.racine) { const pp = ctx.pp; mo.racine = { t: 0, phase: 'enfonce', pousse: E.pousse - 4, tour: 0, liste: [], morts: 0 }; mo.ancre = true;
+    toast(leNom(mo.d) + ' est enraciné, invulnérable tant que ses ' + E.noeuds + ' nœuds de racine vivent : coupe-les !', 'alerte');
+    const a0 = Math.random() * Math.PI * 2, places = [];
+    for (let k = 0; k < E.noeuds; k++) { const a = a0 + k / E.noeuds * Math.PI * 2, p = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * E.R, pp.z + Math.cos(a) * E.R); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, C_FORET); }
+    secousse(0.25, 0.6);
+    let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.9) return false;
+      places.forEach((p) => { const y = solA(p.x, p.z); mottes(p.x, y, p.z, 10, 1.3); poussiere(p.x, y, p.z, 10, 1.2, '#8a6a48'); feuillesVolantes(p.x, y + 0.3, p.z, 0.8, 8);
+        apparaitre('noeudRacine', { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.noeudDe = mo.id; mo.racine.liste.push(o); sousBois(o, c0); } }); c0.total++; });
+      return true; });
+    return; }
+  const R = mo.racine; R.t += ctx.dt; if (R.phase === 'libre') return;
+  const N = R.liste.filter((o) => o.etat !== 'mort'), morts = R.liste.length - N.length; /* (un noeud qui sort encore de terre est « grimpe », pas encore actif) */
+  if (morts > R.morts) { /* des noeuds sont tombes : un morceau d'ecorce par noeud */
+    const k = morts - R.morts, y = mo.m.position.y, perte = Math.min(mo.pv - 1, Math.round(mo.pvMax * E.ecorce * k)); R.morts = morts;
+    if (perte > 0) { mo.pv -= perte; if (c0.st) c0.st.inflige += perte; chiffre('-' + fmt(perte), new T.Vector3(mo.x, y + mo.haut * 0.8, mo.z), 'gros'); }
+    eclatsRoche(mo.x, y + mo.haut * 0.5, mo.z, 16, 1.4, MATS_BOIS); feuillesVolantes(mo.x, y + mo.haut * 0.7, mo.z, 1.4, 10); secousse(0.15, 0.3);
+    if (N.length) toast('Un nœud de racine tombe : ' + leNom(mo.d, true) + ' perd un morceau d\'écorce. Encore ' + N.length + ' !', 'or'); }
+  if (R.phase !== 'enfonce') { if (R.phase === 'arrache' && !m0Anim(mo)) libererChene(mo); return; }
+  if (R.t > 2.5 && R.liste.length && !N.length) { R.phase = 'arrache'; toast('Ses nœuds sont tombés : ' + leNom(mo.d, true) + ' s\'arrache du sol et marche sur toi !', 'alerte'); return; }
+  const A = N.filter((o) => o.etat === 'actif'); if ((R.pousse += ctx.dt) < E.pousse || !A.length) return; R.pousse = 0;
+  if (c0.monstres.filter((o) => o.pousseDe === mo.id && o.etat !== 'mort').length >= E.max) return;
+  const n = A[R.tour++ % A.length], types = R.tour % 3 === 0 ? ['arbreCollant'] : ['tronknyde']; /* (un monstre a la fois, 08/11/2026) */
+  types.forEach((ty) => { const a = Math.random() * Math.PI * 2, p = pointValide(n.x, n.z, n.x + Math.sin(a) * 1.9, n.z + Math.cos(a) * 1.9); cercleInvocation(p.x, solA(p.x, p.z), p.z, C_FORET);
+    let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.8) return false; const y = solA(p.x, p.z); mottes(p.x, y, p.z, 6, 1); feuillesVolantes(p.x, y + 0.3, p.z, 0.5, 5);
+      apparaitre(ty, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.pousseDe = mo.id; } }); c0.total++; return true; }); }); /* (invoqueur : le Chene Mou, ils comptent avec ses Tronknydes une fois libre, 4 en tout) */
+  if (!c0.pousseVu) { c0.pousseVu = true; toast('La forêt pousse autour des nœuds : des Tronknydes et des Arbres Collants en sortent tant qu\'ils vivent !', 'alerte'); }
+}
+function libererChene(mo) { /* il est sorti du sol : il marche, frappe, et ses autres sorts reprennent */
+  mo.racine.phase = 'libre'; mo.ancre = false; mo.cd = 1.2; mo.bloqueT = 0.2; const y = mo.m.position.y;
+  secousse(0.35, 0.6); mottes(mo.x, y, mo.z, 18, 2.2); poussiere(mo.x, y, mo.z, 16, 2.6, '#8a6a48'); feuillesVolantes(mo.x, y + 1, mo.z, 2, 14); onde(mo.x, y, mo.z, 6, '#c8e08a', 0.6, 0.8);
+  if (m0Anim(mo)) { const pp = paysanMesh.position; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); geste(mo, 'rugir', true); }
+}
+/* le sous-bois autour d'un noeud : l'herbe s'assombrit sous lui, des feuilles mortes et des fougeres ; il se fane quand le noeud tombe */
+function sousBois(o, c0) {
+  const g = new T.Group(), y = solA(o.x, o.z) + 0.03, disque = new T.Mesh(new T.CircleGeometry(2.1, 28), new T.MeshBasicMaterial({ color: '#24341a', transparent: true, opacity: 0, depthWrite: false })); disque.rotation.x = -Math.PI / 2; g.add(disque);
+  for (let i = 0; i < 9; i++) { const b = i * 2.4, r = 0.9 + (i % 3) * 0.38, f = new T.Mesh(new T.ConeGeometry(0.12, 0.5, 4), mat(i % 2 ? '#3f6a26' : '#5a4a2a')); f.position.set(Math.cos(b) * r, 0.2, Math.sin(b) * r); f.rotation.set(Math.sin(b) * 0.5, b, Math.cos(b) * 0.5); f.scale.z = 0.3; g.add(f); }
+  g.position.set(o.x, y, o.z); scene.add(g); let t = 0, fin = 0;
+  effets.push((dt) => { t += dt; const vivant = combat === c0 && !c0.fin && o.etat === 'actif'; if (!vivant) fin += dt;
+    const k = Math.min(1, t / 1.2) * Math.max(0, 1 - fin / 1.2); disque.material.opacity = 0.55 * k; g.scale.setScalar(0.4 + 0.6 * Math.min(1, t / 1.2));
+    if (fin >= 1.2) { jeter(g); return true; } return false; });
+}
+/* LE CHENE MOU AVALE SA TROUPE (08/11/2026, PALIER10.md : « il avale un monstre de la troupe pour se soigner ») : toutes les « periode » s, s'il a un monstre de
+   sa troupe a portee de bras, il plonge le bras, l'attrape, le ramene a sa bouche et l'avale (son geste avale_1) : il regagne « soin » de sa vie. Le perso qui
+   abat le monstre a temps l'en prive. Fiche : avale: { periode, R, soin } */
+function capAvale(mo, ctx) {
+  const A = mo.d.avale, { sortPret } = ctx; if (!A || mo.ancre || combat.deroute != null) return;
+  if (!sortPret('avaleT', A.periode) || mo.geste) return;
+  const dist = (o) => Math.hypot(o.x - mo.x, o.z - mo.z), proie = combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && !o.attrape && !o.d.boss && !o.d.demi && !o.d.totem && !o.d.plante && dist(o) < A.R).sort((a, b) => dist(a) - dist(b))[0];
+  if (!proie) { mo.avaleT = A.periode - 2; return; }
+  mo.avaleT = 0; const c0 = combat; mo.ry = Math.atan2(proie.x - mo.x, proie.z - mo.z); mo.bloqueT = 2.0; mo.cd = Math.max(mo.cd || 0, 2.1);
+  if (m0Anim(mo)) geste(mo, 'avale', true);
+  proie.attrape = true; proie.bloqueT = 9; proie.cd = 9;
+  if (!c0.avaleVu) { c0.avaleVu = true; toast(leNom(mo.d) + ' attrape ' + leNom(proie.d, true) + ' et l\'avale pour se soigner : abats sa troupe avant qu\'il ne la mange !', 'alerte'); }
+  const x0 = proie.x, z0 = proie.z, s0 = proie.m.scale.x; let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true;
+    if (proie.etat !== 'actif') return true; /* (abattu a temps : pas de soin) */
+    if (mo.etat !== 'actif') { proie.attrape = false; proie.bloqueT = 0; proie.cd = 1; proie.hop = 0; proie.m.scale.setScalar(s0); return true; }
+    if (t < 0.45) return false;
+    const k = Math.min(1, (t - 0.45) / 0.5), bx = mo.x + Math.sin(mo.ry) * 0.9, bz = mo.z + Math.cos(mo.ry) * 0.9;
+    proie.x = x0 + (bx - x0) * k; proie.z = z0 + (bz - z0) * k; proie.hop = Math.sin(k * Math.PI * 0.5) * mo.haut * 0.62; proie.m.scale.setScalar(s0 * (1 - 0.6 * k));
+    if (k < 1) return false;
+    proie.m.visible = false; proie.pv = 0; proie.etat = 'mort'; proie.t = 0; if (proie.barre) proie.barre.remove(); if (combat.cible === proie) combat.cible = null;
+    const a0 = mo.pv, y = mo.m.position.y; mo.pv = Math.min(mo.pvMax, mo.pv + Math.round(mo.pvMax * A.soin));
+    if (mo.pv > a0) chiffre('+' + fmt(mo.pv - a0), new T.Vector3(mo.x, y + mo.haut * 0.85, mo.z), 'soin');
+    emettre(FX_VIF, 18, { x: mo.x, y: y + mo.haut * 0.6, z: mo.z, r: 1.2, v: [0, 2.4, 0], dv: 0.8, vie: [0.5, 0.8], taille: [0.14, 0.04], c: ['#d8ffd8', '#4fd06a'], a: 1, frein: 0.8 }); onde(mo.x, y, mo.z, 3.5, '#4fd06a', 0.5, 0.7, true);
+    return true; });
+}
+/* LA TEMPETE DE FEUILLES du Chene Mou (08/11/2026, PALIER10.md : « rage sous 30 % : une tempete de feuilles, l'ecran se couvre de feuilles, des zones tombent
+   au hasard ») : en rage, des feuilles tombent en tourbillonnant sur tout l'ecran ; toutes les « periode » s, un tourbillon de feuilles s'abat dans un cercle
+   rouge, une fois sur deux sous toi, sinon pres de toi. Fiche : tempete: { periode, R, x } */
+let TEMPETE_F = null;
+function voileTempete(mo, c0) {
+  if (!TEMPETE_F) { const v = document.createElement('div'); v.className = 'tempete-feuilles'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;overflow:hidden;opacity:0;z-index:1;transition:opacity .8s';
+    const st = document.createElement('style'); st.textContent = '@keyframes feuilleTombe{0%{transform:translate(0,-8vh) rotate(0deg)}50%{transform:translate(-14vw,50vh) rotate(380deg)}100%{transform:translate(-32vw,112vh) rotate(760deg)}}'; document.head.appendChild(st);
+    const C = ['#6fae3a', '#9ccc4a', '#c8a03a', '#8a6a30', '#4f8a2a'];
+    v.innerHTML = Array.from({ length: 42 }, (_, i) => '<i style="position:absolute;left:' + (8 + Math.random() * 115).toFixed(1) + '%;top:0;width:' + (11 + Math.random() * 10).toFixed(0) + 'px;height:' + (6 + Math.random() * 4).toFixed(0) + 'px;border-radius:60% 0;background:' + C[i % C.length] + ';opacity:.88;animation:feuilleTombe ' + (2.4 + Math.random() * 2.4).toFixed(1) + 's linear ' + (-Math.random() * 5).toFixed(1) + 's infinite"></i>').join('');
+    canvas.insertAdjacentElement('afterend', v); TEMPETE_F = v; }
+  const v = TEMPETE_F; v.style.opacity = '1';
+  effets.push(() => { if (combat === c0 && !c0.fin && mo.etat === 'actif') return false; v.style.opacity = '0'; return true; });
+}
+function capTempete(mo, ctx) {
+  const TP = mo.d.tempete; if (!TP || !mo.enrage || mo.ancre || combat.deroute != null) return;
+  const c0 = combat; if (!mo.tempeteOn) { mo.tempeteOn = true; mo.tempeteT = 0; voileTempete(mo, c0); toast(leNom(mo.d) + ' déchaîne une tempête de feuilles : des tourbillons tombent sans arrêt, sors des cercles rouges !', 'alerte'); }
+  if ((mo.tempeteT += ctx.dt) < TP.periode) return; mo.tempeteT = 0;
+  const p = paysanMesh.position, n = mo.tempeteN = (mo.tempeteN || 0) + 1, a = Math.random() * Math.PI * 2, r = n % 2 ? 0 : 2 + Math.random() * 4, q = pointValide(p.x, p.z, p.x + Math.cos(a) * r, p.z + Math.sin(a) * r);
+  const prepa = 1.1, y = solA(q.x, q.z); let t = 0, f = 0;
+  zoneDanger({ mo, x: q.x, z: q.z, r: TP.R, duree: prepa, effet: (d) => { impactElement('feuille', q.x, q.z, TP.R); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * TP.x)), mo); } });
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= prepa) return true; if ((f += dt) >= 0.12) { f = 0; feuillesVolantes(q.x, y + 3.2 - t * 2.4, q.z, TP.R * 0.5, 3, true); } return false; });
 }
 function capTotems(mo, ctx) { /* il plante ses totems autour de toi : un cercle d'invocation vert a chaque place, ils sortent de terre 0,8 s apres */
   const { pp, sortPret } = ctx, TO = mo.d.totems; if (!TO || combat.deroute != null || !sortPret('totemsT', TO.periode)) return;
@@ -2184,8 +2309,8 @@ const SORTS_LOIN = { racines: 'racinesT', lance: 'lanceT', jet: 'jetT', faille: 
 const SORTS_CAC = { seisme: 'seismeT', brassard: 'brassardT', tourbillon: 'tourbillonT' }, LOIN_T = new Set(Object.values(SORTS_LOIN)), CAC_T = new Set(Object.values(SORTS_CAC));
 const TRAITS_BOSS = new Set(['distance', 'casse', 'garde', 'ralentit', 'menotte', 'assomme', 'poison', 'soigne', 'protege', 'revit', 'demonte', 'grignote', 'bandit', 'fouisseur']); /* (ce qu'il fait, sans etiquette, en dernier dans sa fiche) */
 const cacBoss = (mo) => Math.min(porteeSur(mo, STATS_CLASSE.osa) - 0.5, Math.max(porteeSur(mo, STATS_CLASSE.iop) + 1.8, mo.d.portee * (mo.allonge || 1) + 0.3));
-const CAPACITES_AVANT = [capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon];
+const CAPACITES_AVANT = [capEnracine, capRage, capProtege, capGalvanise];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon, capAvale, capTempete];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -2377,7 +2502,7 @@ function majMonstre(mo, dt, s) {
   mo.sautT = mo.sautT == null ? Math.random() * SAUT_RECHARGE * 0.75 : mo.sautT + dt; /* (le premier bond : entre 2 et 8 s apres son arrivee, pas tous en meme temps) */
   const pp = paysanMesh.position, bloque = mo.bloqueT > 0 || !!mo.vise || mo.carapace > 0; let v = 0; /* (un boss qui prepare son sort ne marche pas) */
   const x0f = mo.x, z0f = mo.z; /* (fluide : la marche lissee, apres le deplacement) */
-  if (!bloque) {
+  if (!bloque && !mo.ancre) { /* (ancre : le Chene Mou enracine, 08/11/2026) */
   /* sa cible : un Tofu va picorer une culture tant qu'il en reste a voler, sinon (et pour les autres) c'est le perso */
   let tx, tz, versPerso = true;
   if (mo.d.grignote && !mo.aggro) {
@@ -2447,7 +2572,7 @@ function majMonstre(mo, dt, s) {
   ctx.vSort = vSort; ctx.sortPret = sortPret;
   for (const cap of CAPACITES) { cap(mo, ctx); if (!combat || combat.fin) return; } /* (un sort qui acheve le perso clot le combat) */
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
-  if (!mo.d.totem && !mo.d.plante) { /* (un totem est plante : rien ne le pousse, 01/11/2026 ; l'Arbre Collant non plus, 08/11/2026) */
+  if (!mo.d.totem && !mo.d.plante && !mo.ancre) { /* (un totem est plante : rien ne le pousse, 01/11/2026 ; l'Arbre Collant non plus, ni le Chene Mou enracine, 08/11/2026) */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */

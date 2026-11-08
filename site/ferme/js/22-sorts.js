@@ -348,6 +348,7 @@ function chargeRoyale(pt, st) {
     secousse(0.16, 0.25); onde(fin.x, u.y, fin.z, 1.8, '#ffffff', 0.3, 0.9); onde(fin.x, u.y, fin.z, 2.4, '#f0c96a', 0.5, 0.7); poussiere(fin.x, u.y, fin.z, 12, 1.4, '#d8c6a0'); mottes(fin.x, u.y, fin.z, 8, 0.9); return true; });
 }
 function bousculer(o, a, x, z) { /* le monstre est projete sur le cote de la charge, 1,6 plus loin en 0,2 s, s'il y a du sol */
+  if (o.ancre) return; /* (le Chene Mou enracine, 08/11/2026) */
   const s = Math.sign(Math.cos(a) * (o.x - x) - Math.sin(a) * (o.z - z)) || 1, X = o.x + Math.cos(a) * s * 1.6, Z = o.z - Math.sin(a) * s * 1.6; if (!solSort(X, Z)) return;
   const x0 = o.x, z0 = o.z, c0 = combat; let t = 0;
   effets.push((dt) => { t += dt / 0.2; if (combat !== c0 || o.etat !== 'actif') return true; const k = Math.min(1, t), e = 1 - (1 - k) * (1 - k); o.x = x0 + (X - x0) * e; o.z = z0 + (Z - z0) * e; return k >= 1; });
