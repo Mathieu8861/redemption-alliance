@@ -1717,7 +1717,7 @@ function capSoin(mo, ctx) {
     mo.soinT = (mo.soinT || 0) + dt;
     if (mo.soinT >= mo.d.soigne) {
       mo.soinT = 0;
-      const b = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax)[0];
+      const b = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && Math.hypot(o.x - mo.x, o.z - mo.z) < 7 && !(o === mo && (mo.d.boss || mo.d.demi))).sort( /* (un boss ou un demi-boss qui soigne soigne sa troupe, pas lui-meme : l'Ancestral, 08/11/2026) */(a, c) => a.pv / a.pvMax - c.pv / c.pvMax)[0];
       if (b && mo.d.gesteSoin && !mo.geste) gesteSort(mo, 'sort', 0.5); /* (le Venerable leve son baton quand il soigne, 08/11/2026) */
       if (b) { const h = Math.max(1, Math.round(b.pvMax * (b.d.boss ? (mo.d.soinBoss || 0.025) : 0.12))); /* (soinBoss : la Tortue Verte, 1 % sur un boss, 07/11/2026) */ /* (un boss, 2,5 % : 12 % de ses PV, c'etait un boss increvable) */ b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.6, '#5fe0e8'); }
     }
