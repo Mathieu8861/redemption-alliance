@@ -1394,6 +1394,8 @@ function yeuxNuit(N, k, fin) {
       e.getWorldScale(sc); q.copy(p).addScaledVector(droite, D.r * sc.x); p.project(camera); q.project(camera); if (p.z > 1) return;
       const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H, r = Math.min(46, Math.max(6, Math.hypot((q.x - p.x) / 2 * W, (q.y - p.y) / 2 * H) * 2.4));
       if (x < -r || x > W + r || y < -r || y > H + r) return; L.push([x, y, r]); }); });
+  (combat.tetesAnc || []).forEach((h) => { p.copy(h.m.position); q.copy(p).addScaledVector(droite, h.r); p.project(camera); q.project(camera); if (p.z > 1) return; /* (les tetes de l'Ancestral, sorties de terre) */
+    const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H, r = Math.min(160, Math.max(14, Math.hypot((q.x - p.x) / 2 * W, (q.y - p.y) / 2 * H) * 2)); L.push([x, y, r]); });
 }
 function nuitForet() {
   if (!NUIT_F) { const v = document.createElement('div'); v.className = 'nuit-foret'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(10,40,48,.16) 0%,rgba(6,22,30,.38) 45%,rgba(3,10,16,.66) 100%)'; /* (au-dessus de la scene, sous l'interface : la nuit lunaire, elle, ne teinte que le ciel) */
@@ -2007,20 +2009,69 @@ function capEnfouit(mo, ctx) {
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
     if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && caseIci(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
-  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(1.0, Math.hypot(f.x - x0, f.z - z0) / 9);
+  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
   if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : il ressort plus loin, et ses racines jaillissent là où il était !', 'alerte'); }
   let t = 0, sous = false;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { mo.hop = 0; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; return true; }
     if (t < TELL) { if (Math.random() < dt * 20) poussiere(x0 + (Math.random() - 0.5) * 3, y0, z0 + (Math.random() - 0.5) * 3, 1, 0.5, '#8a6a44'); return false; } /* (la terre fremit autour de lui) */
     if (t < TELL + DESC) { const k = (t - TELL) / DESC; mo.hop = -H * k * k; if (Math.random() < dt * 25) mottes(x0, y0, z0, 2, 1.6); return false; } /* (il s'enfonce) */
-    if (!sous) { sous = true; mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.12, 0.3); mottes(x0, y0, z0, 10, 2); poussiere(x0, y0, z0, 12, 2.2, '#8a6a44');
+    if (!sous) { sous = true; const vie = mo.pv / mo.pvMax; teteSurgit(mo, vie > 0.75 ? 0 : vie > 0.5 ? 1 : vie > 0.25 ? 2 : 3, c0); /* (une tete par quart de sa vie) */
+      mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.12, 0.3); mottes(x0, y0, z0, 10, 2); poussiere(x0, y0, z0, 12, 2.2, '#8a6a44');
       zoneDanger({ mo, x: x0, z: z0, r: E.Rr, duree: 0.9, effet: (d) => { const y = solA(x0, z0); impactElement('feuille', x0, z0, E.Rr); mottes(x0, y, z0, 10, E.Rr * 0.8);
         const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.0);
         if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * E.x)), mo); if (combat && !combat.fin) coller(1.0, 'Enraciné !'); } } }); }
     if (t < TELL + DESC + TRAJ) { const k = (t - TELL - DESC) / TRAJ, x = x0 + (f.x - x0) * k, z = z0 + (f.z - z0) * k, y = solA(x, z); if (Math.random() < dt * 30) { mottes(x, y, z, 2, 0.7); poussiere(x, y, z, 2, 0.6, '#8a6a44'); } return false; } /* (la trainee sous le sol) */
     mo.x = f.x; mo.z = f.z; mo.y = solA(f.x, f.z); mo.dep = { x: f.x, y: mo.y - H, z: f.z, friche: true }; mo.t = 0; mo.etat = 'grimpe'; mo.m.visible = true; mo.hop = 0; /* (il ressort de terre, comme un monstre qui grimpe) */
     mo.ry = Math.atan2(paysanMesh.position.x - f.x, paysanMesh.position.z - f.z); mo.m.rotation.y = mo.ry; secousse(0.1, 0.25); mottes(f.x, mo.y, f.z, 12, 2); impactElement('feuille', f.x, f.z, 2.5); return true; });
+}
+/* SES TETES SURGISSENT (08/11/2026, « quand il est sous terre, ses tetes ressortent, en fonction de ses HP, tous les 25 % : une premiere tete de 100 a 75, une autre
+   de 75 a 50, etc., et elles font des choses differentes », Mathieu) : pendant qu'il est sous terre, une tete sort du sol pres de toi, agit, et replonge.
+   Les tetes sont decoupees dans son vrai modele (tetesAncestral, autour de ses yeux), avec sa texture et ses yeux qui luisent ; elles sortent 1,8 fois plus grosses.
+   100-75 % la tete de seve (sous toi : degats et lenteur), 75-50 % la tete des feuilles (une tempete autour d'elle), 50-25 % la tete des racines (a cote de toi :
+   degats et enracine 1,5 s), 25-0 % la tete qui hurle (la terre tremble, 2 Tronknydes sortent du sol) */
+const TETES_NOMS = ['la tête de sève', 'la tête des feuilles', 'la tête des racines', 'la tête qui hurle'];
+let TETES_ANC = null;
+function tetesAncestral() {
+  if (TETES_ANC) return TETES_ANC; const M = MODELES.ancestral; if (!M || typeof YEUX_P10 === 'undefined') return null; M.updateMatrixWorld(true);
+  let sk = null; M.traverse((o) => { if (!sk && o.isSkinnedMesh && o.name !== 'contour') sk = o; }); if (!sk) return null;
+  const rel = sk.bindMatrix.clone(), G = sk.geometry, /* (le repere du modele au chargement, celui des yeux : la peau est agrandie ensuite) */ P = G.attributes.position, N = G.attributes.normal, UV = G.attributes.uv, I = G.index, Y = YEUX_P10.ancestral;
+  const pos = []; for (let k = 0; k < P.count; k++) pos.push(new T.Vector3().fromBufferAttribute(P, k).applyMatrix4(rel));
+  TETES_ANC = [0, 2, 4, 6].map((e) => { const C = new T.Vector3((Y[e][0] + Y[e + 1][0]) / 2, (Y[e][1] + Y[e + 1][1]) / 2 - 0.02, (Y[e][2] + Y[e + 1][2]) / 2 - 0.13), R = 0.36, L = [];
+    const n = I ? I.count : P.count; for (let k = 0; k < n; k += 3) { const a = I ? I.getX(k) : k, b = I ? I.getX(k + 1) : k + 1, c = I ? I.getX(k + 2) : k + 2; if (pos[a].distanceTo(C) < R && pos[b].distanceTo(C) < R && pos[c].distanceTo(C) < R) L.push(a, b, c); }
+    const g = new T.BufferGeometry(), pa = [], na = [], ua = [], v = new T.Vector3();
+    L.forEach((k) => { const q = pos[k]; pa.push(q.x - C.x, q.y - C.y, q.z - C.z); if (N) { v.fromBufferAttribute(N, k).transformDirection(rel); na.push(v.x, v.y, v.z); } if (UV) ua.push(UV.getX(k), UV.getY(k)); });
+    g.setAttribute('position', new T.Float32BufferAttribute(pa, 3)); if (N) g.setAttribute('normal', new T.Float32BufferAttribute(na, 3)); else g.computeVertexNormals(); if (UV) g.setAttribute('uv', new T.Float32BufferAttribute(ua, 2));
+    return { geo: g, tri: L.length / 3 }; });
+  return TETES_ANC;
+}
+function teteSurgit(mo, i, c0) {
+  const T0 = tetesAncestral(); if (!T0 || !T0[i] || !T0[i].tri) return;
+  const pp = paysanMesh.position; let p = null;
+  for (let k = 0; k < 12 && !p; k++) { const a = Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (caseIci(q.x, q.z)) p = q; }
+  if (!p) return; const y0 = solA(p.x, p.z); let src = null; mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
+  const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide });
+  const h = new T.Mesh(T0[i].geo, mat), k = (mo.m.scale.x || 1) * 1.8, taille = 0.75 * k; h.scale.setScalar(k); h.castShadow = true; scene.add(h);
+  const info = { m: h, r: taille * 0.55 }; (c0.tetesAnc = c0.tetesAnc || []).push(info);
+  if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' !', 'alerte'); }
+  mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
+  const MONTE = 0.45, ACTE = 1.6, DESCEND = 0.45; let t = 0, fait = false;
+  effets.push((dt) => { t += dt;
+    if (combat !== c0 || c0.fin || t >= MONTE + ACTE + DESCEND) { scene.remove(h); mat.dispose(); c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== info); return true; }
+    const u = t < MONTE ? t / MONTE : t < MONTE + ACTE ? 1 : 1 - (t - MONTE - ACTE) / DESCEND; h.position.set(p.x, y0 - taille + taille * 1.4 * u * (2 - u), p.z);
+    h.rotation.y = Math.atan2(paysanMesh.position.x - p.x, paysanMesh.position.z - p.z) + Math.sin(t * 9) * 0.06; /* (elle te regarde, et frissonne) */
+    if (!fait && t >= MONTE) { fait = true; actionTete(mo, i, p, c0); }
+    return false; });
+}
+function actionTete(mo, i, p, c0) {
+  const pp = paysanMesh.position, ds = degSort(mo);
+  if (i === 0) { const x = pp.x, z = pp.z; zoneDanger({ mo, x, z, r: 2.2, duree: 1.0, couleur: '#8fd14f', effet: (d) => { const y = solA(x, z); emettre(FX_VIF, 16, { x, y: y + 0.2, z, r: 0.6, dv: 3, haut: true, vie: [0.4, 0.7], taille: [0.2, 0.06], c: ['#d8ff8a', '#8fd14f', '#4f8a2a'], grav: 8 });
+      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.5)), mo); if (combat && !combat.fin) { combat.lenteur = 2.5; const q = p2.clone(); q.y += 2; chiffre('Sève collante !', q, 'perso'); } } } }); }
+  else if (i === 1) zoneDanger({ mo, x: p.x, z: p.z, r: 3.4, duree: 1.0, effet: (d) => { impactElement('feuille', p.x, p.z, 3.4); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(ds * 0.7)), mo); } });
+  else if (i === 2) { const x = pp.x, z = pp.z; zoneDanger({ mo, x, z, r: 1.8, duree: 0.8, effet: (d) => { const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x, cz = pris ? p2.z : z; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.5);
+      if (pris) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); if (combat && !combat.fin) coller(1.5, 'Enraciné !'); } } }); }
+  else { secousse(0.25, 0.5); onde(p.x, solA(p.x, p.z), p.z, 5, '#c8ff8a', 0.5, 0.8);
+    for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, q = pointValide(p.x, p.z, p.x + Math.sin(a) * 2, p.z + Math.cos(a) * 2); apparaitre('tronknyde', { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; } }
 }
 /* LE MALEFICE (06/11/2026, la Wabbit Sorciere : « un sort qui te ralentit dans un cercle ») : quand tu es entre min et max d'elle, un cercle violet
    sous toi ; a la fin, le sort eclate : dedans, un peu de degats et ralenti (c.lenteur, comme la Momie Koalak) */
