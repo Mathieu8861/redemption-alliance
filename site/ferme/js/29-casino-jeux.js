@@ -257,10 +257,10 @@ function bjFin() {
   if (j <= 21 && !nat) while (bjTotal(b.croupier) < 17) b.croupier.push(bjCarte()); /* (le croupier tire jusqu'a 17, et reste sur tous les 17) */
   const c = bjTotal(b.croupier), natC = bjNaturel(b.croupier); let gain = 0, html;
   if (j > 21) html = 'Perdu...<small>Tu dépasses 21 (' + j + ').</small>';
-  else if (nat && !natC) { gain = Math.round(b.mise * 2.5); html = 'Blackjack !<small>+' + fmt(gain) + ' kamas</small>'; }
+  else if (nat && !natC) { gain = Math.round(b.mise * 2.5); html = 'Blackjack !<small>+' + fmt(gain - b.mise) + ' kamas (' + fmt(gain) + ' rendus)</small>'; }
   else if (nat && natC) { gain = b.mise; html = 'Égalité<small>Deux blackjacks : ta mise est rendue.</small>'; }
   else if (natC) html = 'Perdu...<small>Blackjack du croupier.</small>';
-  else if (c > 21 || j > c) { gain = b.mise * 2; html = 'Gagné !<small>' + j + (c > 21 ? ', le croupier saute (' + c + ')' : ' contre ' + c) + ' : +' + fmt(gain) + ' kamas</small>'; }
+  else if (c > 21 || j > c) { gain = b.mise * 2; html = 'Gagné !<small>' + j + (c > 21 ? ', le croupier saute (' + c + ')' : ' contre ' + c) + ' : +' + fmt(gain - b.mise) + ' kamas (' + fmt(gain) + ' rendus)</small>'; }
   else if (j === c) { gain = b.mise; html = 'Égalité<small>' + j + ' partout : ta mise est rendue.</small>'; }
   else html = 'Perdu...<small>' + j + ' contre ' + c + '.</small>';
   payer(gain); ouvrirBlackjack({ gain: gain > b.mise ? gain : 0, html });
@@ -270,7 +270,7 @@ function bjFin() {
 function piedMise(sansMise) {
   const max = miseMax(), p = perteJour(), pl = plafondPertes(); casinoMise = Math.max(10, Math.min(casinoMise, max));
   return '<div class="cas-mise">' + (sansMise ? '<span>mise max ' + fmt(max) + ' ' + KAMA + '</span>' : '<div class="m"><button class="btn discret" data-cas="moins">−</button><b>' + fmt(casinoMise) + ' ' + KAMA + '</b><button class="btn discret" data-cas="plus">+</button></div><span>max ' + fmt(max) + '</span>') +
-    '<span>Pertes du jour : ' + fmt(p) + ' / ' + fmt(pl) + '<div class="cas-jauge"><i style="width:' + Math.min(100, 100 * p / pl).toFixed(0) + '%"></i></div></span></div>';
+    '<span title="Tout ce que tu as misé aujourd\'hui, moins tout ce que les jeux t\'ont rendu">Pertes du jour (mises moins gains) : ' + fmt(p) + ' / ' + fmt(pl) + '<div class="cas-jauge"><i style="width:' + Math.min(100, 100 * p / pl).toFixed(0) + '%"></i></div></span></div>';
 }
 const pasMise = () => Math.max(10, Math.round(miseMax() / 10 / 10) * 10);
 
@@ -292,9 +292,9 @@ function tirerMachine() {
   miser(m); const c = etatCasino(); c.jackpot += Math.round(m * 0.05);
   const r = [tirerSymbole(), tirerSymbole(), tirerSymbole()], n = {}; r.forEach((x) => { n[x] = (n[x] || 0) + 1; });
   let gain = 0, html;
-  if (n.couronne === 3) { gain = Math.max(m * 50, Math.round(c.jackpot * Math.min(1, m / miseMax()))); c.jackpot = Math.max(5000, c.jackpot - gain); html = 'JACKPOT !<small>3 Jackpots : +' + fmt(gain) + ' kamas</small>'; }
+  if (n.couronne === 3) { gain = Math.max(m * 50, Math.round(c.jackpot * Math.min(1, m / miseMax()))); c.jackpot = Math.max(5000, c.jackpot - gain); html = 'JACKPOT !<small>3 Jackpots : +' + fmt(gain - m) + ' kamas (' + fmt(gain) + ' rendus)</small>'; }
   else { const t = Object.keys(n).find((k) => n[k] === 3), d = Object.keys(n).find((k) => n[k] === 2);
-    if (t) { gain = m * PAIE[t]; html = 'Gagné !<small>3 ' + SYMBOLES.find((s) => s[0] === t)[3] + ' : +' + fmt(gain) + ' kamas</small>'; }
+    if (t) { gain = m * PAIE[t]; html = 'Gagné !<small>3 ' + SYMBOLES.find((s) => s[0] === t)[3] + ' : +' + fmt(gain - m) + ' kamas (' + fmt(gain) + ' rendus)</small>'; }
     else if (d) { gain = m; html = 'Presque...<small>2 identiques : ta mise est rendue</small>'; }
     else html = 'Perdu<small>Retente ta chance !</small>'; }
   c.rouleaux = r; casinoTourne = true; ouvrirMachine();
@@ -328,10 +328,10 @@ function lancerBille() {
     if (k === 'rouge' && ROUGES.has(n)) gain += v * 2; else if (k === 'noir' && n && !ROUGES.has(n)) gain += v * 2;
     else if (k === 'pair' && n && n % 2 === 0) gain += v * 2; else if (k === 'impair' && n % 2 === 1) gain += v * 2; else if (k === 'n' + n) gain += v * 36; });
   const i = ORDRE_ROUE.indexOf(n), cible = -(i + 0.5) * 360 / 37; casinoRoue = casinoRoue - (casinoRoue % 360) - 360 * 5 + cible; casinoTourne = true;
-  const html = '<span style="color:' + coulNum(n) + '">' + n + '</span><small>' + (n === 0 ? 'Le zéro vert' : (ROUGES.has(n) ? 'Rouge' : 'Noir') + ', ' + (n % 2 ? 'impair' : 'pair')) + (gain ? ' : tu gagnes ' + fmt(gain) + ' kamas !' : ' : perdu') + '</small>';
+  const html = '<span style="color:' + coulNum(n) + '">' + n + '</span><small>' + (n === 0 ? 'Le zéro vert' : (ROUGES.has(n) ? 'Rouge' : 'Noir') + ', ' + (n % 2 ? 'impair' : 'pair')) + (gain ? ' : ' + fmt(gain) + ' kamas rendus pour ' + fmt(tot) + ' misés, ' + (gain > tot ? '+' + fmt(gain - tot) + ' !' : gain === tot ? 'ni gagné ni perdu' : '−' + fmt(tot - gain)) : ' : perdu') + '</small>';
   ouvrirRoulette({ gain: 0, html: 'La bille roule...<small>&nbsp;</small>' }); son('plouf');
   const roue = $('cas-roue'); if (roue) { roue.style.transform = 'rotate(' + (casinoRoue + 360 * 5) + 'deg)'; requestAnimationFrame(() => { roue.style.transform = 'rotate(' + casinoRoue + 'deg)'; }); }
-  setTimeout(() => { casinoTourne = false; payer(gain); if (modaleOuverte === 'roulette') ouvrirRoulette({ gain, html }); else toast('Roulette : ' + n + (gain ? ', +' + fmt(gain) + ' kamas' : ', perdu'), gain ? 'or' : ''); }, 3400);
+  setTimeout(() => { casinoTourne = false; payer(gain); if (modaleOuverte === 'roulette') ouvrirRoulette({ gain, html }); else toast('Roulette : ' + n + (gain ? ', ' + (gain >= tot ? '+' : '−') + fmt(Math.abs(gain - tot)) + ' kamas' : ', perdu'), gain > tot ? 'or' : ''); }, 3400);
 }
 
 /* ---------- la course de Dragodindes ---------- */
@@ -372,7 +372,7 @@ function majCourse(dt) {
     const d = DRAGOS[c.gagnant], gagne = c.choix === c.gagnant, gain = gagne ? Math.round(c.mise * DRAGOS[c.choix].cote) : 0;
     c.meshes.forEach((g) => scene.remove(g)); course = null; payer(gain); compter('courses');
     zoom = c.zoom || 1; cadrer(); VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); placerCamera();
-    ouvrirCourse({ gain, html: (gagne ? 'Gagné !' : 'Perdu...') + '<small>' + d.nom + ' gagne la course' + (gagne ? ' : +' + fmt(gain) + ' kamas' : ', ta ' + DRAGOS[c.choix].nom + ' n\'a pas suffi') + '</small>' });
+    ouvrirCourse({ gain, html: (gagne ? 'Gagné !' : 'Perdu...') + '<small>' + d.nom + ' gagne la course' + (gagne ? ' : +' + fmt(gain - c.mise) + ' kamas (' + fmt(gain) + ' rendus)' : ', ta ' + DRAGOS[c.choix].nom + ' n\'a pas suffi') + '</small>' });
   }
 }
 

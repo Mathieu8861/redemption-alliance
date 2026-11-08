@@ -318,8 +318,8 @@ canvas.addEventListener('pointerup', (e) => {
   if (!mode && lieu !== 'casino') { const c = cibleEcran(e); if (c === 'voleur') { attaquerVoleur(); return; } if (c !== null) { cibler(c); return; } }
   souris.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(souris, camera);
+  if (lieu === 'casino') { clicCasino(ray.intersectObjects([casinoDedans ? salleCasino : ileCasino, paysanMesh].filter(Boolean), true)); return; } /* (seulement l'ile ou le hall : la ferme, cachee, etait testee aussi, 08/11/2026) */
   const hits = ray.intersectObjects(scene.children, true);
-  if (lieu === 'casino') { clicCasino(hits); return; }
   if (agir && !mode && !combat) S_.clicsDroits = (S_.clicsDroits || 0) + 1; /* l'habitude du clic droit se prend : voir rappelClicDroit */
   for (const h of hits) {
     { let o = h.object; while (o && o !== paysanMesh) o = o.parent; if (o) continue; } /* le perso ne bloque pas le clic sur la case ou il se tient */

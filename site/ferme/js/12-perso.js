@@ -617,7 +617,7 @@ function porteeSous(ev) {
   return null;
 }
 canvas.addEventListener('pointermove', (ev) => {
-  if (visee || ev.buttons) return; const t = performance.now(); if (t - (porteeSous.t || 0) < 70) return; porteeSous.t = t;
+  if (visee || ev.buttons || lieu !== 'ferme') return; const t = performance.now(); if (t - (porteeSous.t || 0) < 70) return; porteeSous.t = t; /* (08/11/2026, « micro freeze sur l'ile du casino » : ce rayon traversait tout le decor de l'ile, 32 a 44 ms toutes les 70 ms des que la souris bougeait ; les tours n'existent qu'a la ferme) */
   const p = porteeSous(ev); PORTEE_VUE.visible = !!(p && p.r); if (p && p.r) { PORTEE_VUE.position.set(p.x, p.y + 0.08, p.z); PORTEE_VUE.scale.setScalar(p.r); }
   const inf = $('info-survol'); if (p && p.txt && ev.pointerType === 'mouse') { inf.hidden = false; inf.textContent = p.txt; inf.style.left = Math.min(ev.clientX + 16, innerWidth - inf.offsetWidth - 8) + 'px'; inf.style.top = (ev.clientY + 18) + 'px'; } else inf.hidden = true; /* « voir le stock de fleches de la tour au survol » (testeurs, 12/10/2026) */
 });
