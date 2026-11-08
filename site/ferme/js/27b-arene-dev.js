@@ -107,9 +107,16 @@ function finDev(abandon, gagne) {
    qui reprend la vraie partie telle qu'elle était. Les vagues se lancent sans attente, sans repos ni niveau requis ; les boss se rejouent à volonté. */
 function bandeauTest() {
   let b = document.getElementById('bandeau-test'); if (!b) { b = document.createElement('div'); b.id = 'bandeau-test'; document.body.appendChild(b); }
-  b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
+  b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="relancer">Relancer la vague ' + ETAT_TEST.n + '</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
 }
 function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
+/* RELANCER UNE VAGUE SANS QUITTER LE MODE TEST (08/11/2026, « je suis a chaque fois oblige de quitter et de relancer pour pouvoir relancer une vague comme je
+   veux », Mathieu) : le combat en cours, gagne, perdu ou en plein milieu, s'arrete net, sans bilan ; la vie remonte, et la vague choisie (ou la revanche) repart */
+function relancerTest(a) {
+  if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme.'); return; }
+  if (combat) nettoyerCombat(combat, true); fermerModale(); vieAuMax(); ETAT_TEST.dernier = a; const n = ETAT_TEST.n; bandeauTest();
+  setTimeout(() => { if (combat || !MODE_TEST) return; if (a === 'vague') { S_.vague.num = n; S_.vague.prepa = 0; S_.vague.repos = 0; lancerVague(); } else lancerVague(palierDe(n), a === 'difficile'); }, 250);
+}
 function vieAuMax() { const m = statsPerso().pvMax; S_.pv = m; if (combat && combat.pvMax) { combat.pv = combat.pvMax; majCombatHud(); } rendreHaut(); }
 function equiperTest(P) { /* la panoplie entiere au jet moyen, et l'arme de ta classe de cette panoplie */
   if (combat) return; const cl = classeDe(), t = ARMES[cl][0];
@@ -148,15 +155,13 @@ document.addEventListener('click', (e) => {
   if (a === 'entrer') { entrerModeTest(); return; }
   if (!MODE_TEST) return;
   if (a === 'quitter') { location.reload(); return; }
+  if (a === 'relancer') { relancerTest(ETAT_TEST.dernier || 'vague'); return; }
   if (a === 'pv') { vieAuMax(); if (modaleOuverte === 'mode-test') ouvrirModeTest(); return; }
   if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
   else if (a === 'sansdef') ETAT_TEST.sansDef = !ETAT_TEST.sansDef;
   else if (d.testTours) ETAT_TEST.tours = d.testTours === 'tiennes' ? null : Number(d.testTours);
   else if (a === 'vague' || a === 'revanche' || a === 'difficile') {
-    if (combat) { toast('Un combat est déjà en cours.'); return; } if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme.'); return; }
-    fermerModale(); vieAuMax(); const n = ETAT_TEST.n;
-    if (a === 'vague') { S_.vague.num = n; S_.vague.prepa = 0; S_.vague.repos = 0; lancerVague(); } else lancerVague(palierDe(n), a === 'difficile');
-    return;
+    relancerTest(a); return; /* (un combat en cours s'arrete, la vague choisie repart) */
   }
   else if (d.testClasse) changerClasseTest(d.testClasse);
   else if (d.testSexe) { if (combat) return; S_.perso.sexe = d.testSexe; rhabiller(); }
@@ -164,6 +169,6 @@ document.addEventListener('click', (e) => {
   else if (d.testPano != null && b.hasAttribute('data-test-pano')) equiperTest(PANOS.find((x) => x.id === d.testPano) || null);
   else if (d.testLegArme) { if (combat) return; const id = 'leg-' + d.testLegArme + '-' + ARMES[classeDe()][0], o = S_.equip.arme && obj(S_.equip.arme); S_.equip.arme = o && o.leg === d.testLegArme ? null : id; rhabiller(); }
   else if (d.testLegCoiffe) { if (combat) return; const o = S_.equip.coiffe && obj(S_.equip.coiffe); S_.equip.coiffe = o && o.leg === d.testLegCoiffe ? null : 'leg-' + d.testLegCoiffe; rhabiller(); }
-  else if (d.testN) ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, ETAT_TEST.n + Number(d.testN)));
+  else if (d.testN) { ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, ETAT_TEST.n + Number(d.testN))); bandeauTest(); }
   vieAuMax(); ouvrirModeTest();
 });

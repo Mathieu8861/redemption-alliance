@@ -424,8 +424,13 @@ function majLegendaire(dt) { /* la recharge des deux sorts legendaires */
 function majEtatSort(id, cd) { /* sous un bouton : « prêt », ou « prêt dans 12 s » (« 12 s » au doigt) ; reecrit seulement quand ca change */
   const t = cd > 0 ? '<span class="long">prêt dans </span>' + Math.ceil(cd) + ' s' : 'prêt', el = $(id); if (el._t !== t) { el._t = t; el.innerHTML = t; }
 }
+/* LES TOUCHES DES LEGENDAIRES A LA SUITE (08/11/2026, « j'ai que l'arme, elle est sur mon bouton 4 : j'ai 1, 2 et 4, pas le 3 ; ou alors automatiquement, quand
+   t'as une seule legendaire c'est le 3, quand t'en as deux ca fait 3, 4 », Mathieu) : une seule (coiffe ou arme) prend le 3 ; les deux : la coiffe en 3, l'arme en 4.
+   Le numero affiche sur le bouton suit (data-touche) */
+const empTouche = (k) => { const co = !!(combat && legDe('coiffe')), ar = !!(combat && legDe('arme')); return k === 3 ? (co ? 'coiffe' : ar ? 'arme' : null) : (co && ar ? 'arme' : null); };
+const legTouche = (k) => { const e = empTouche(k); if (e) lancerLeg(e); };
 function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coiffe ou une arme legendaire a sort */
-  const c = combat; [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
+  const c = combat; { const co = !!(c && legDe('coiffe')); $('leg-coiffe-rond').dataset.touche = '3'; $('leg-arme-rond').dataset.touche = co ? '4' : '3'; } [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
     const S = sortLeg(cle), r = $('leg-' + emp + '-rond'), k = S_.equip[emp];
     if (r.dataset.cle !== k + classeDe()) { r.dataset.cle = k + classeDe(); r.innerHTML = '<img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + S.nom + '</span>'; r.style.setProperty('--teinte', S.teinte); }
     r.style.setProperty('--cd', (100 * (c[cd] || 0) / S.recharge).toFixed(1) + '%'); b.classList.toggle('pret', !(c[cd] > 0)); majEtatSort('leg-' + emp + '-etat', c[cd] || 0); });

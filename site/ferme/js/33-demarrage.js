@@ -44,7 +44,7 @@ $('b-simu').addEventListener('click', (e) => { e.stopPropagation(); accepterSimu
    pendant un combat (touches du haut du clavier ou pave numerique, AZERTY comme QWERTY) ; P met en pause et reprend, Echap reprend aussi.
    Rien quand on ecrit dans un champ (sauf Echap sur une visee), et pendant une lecon de Pepito, c'est elle qui tient la pause. */
 const TOUCHES_SORT = { Digit1: () => lancerSort(), Numpad1: () => lancerSort(), Digit2: () => lancerUlti(), Numpad2: () => lancerUlti(),
-  Digit3: () => lancerLeg('coiffe'), Numpad3: () => lancerLeg('coiffe'), Digit4: () => lancerLeg('arme'), Numpad4: () => lancerLeg('arme') };
+  Digit3: () => legTouche(3), Numpad3: () => legTouche(3), Digit4: () => legTouche(4), Numpad4: () => legTouche(4) };
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && visee) annulerVisee();
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;

@@ -1348,7 +1348,7 @@ let NUIT_F = null;
 /* LA LUMIERE DES LANTERNES ET DES TORCHES DANS LA NUIT DE LA FORET (08/11/2026, « il faudra acheter des lampadaires », puis « rajoute aussi des lampes torches »,
    Mathieu, qui garde la nuit telle quelle) : chaque lanterne ou torche allumee perce le voile de la nuit d'une ellipse de lumiere sur l'herbe autour d'elle,
    les monstres y redeviennent visibles. Le voile garde ses calques de masque, un par lumiere, croises (mask-composite: intersect) */
-const TROU_NUIT = 2.6; /* (le rayon du cercle de lumiere, en lueurs de la lanterne : 1,6 m pour la petite, 2,6 pour celle sur pied, 3,2 pour la torche) */
+const TROU_NUIT = 3.5; /* (2,6 puis 3,5 : « les lampadaires n'eclairent pas trop trop en vrai », Mathieu, 08/11/2026) */ /* (le rayon du cercle de lumiere, en lueurs de la lanterne : 1,6 m pour la petite, 2,6 pour celle sur pied, 3,2 pour la torche) */
 /* (08/11/2026, « il faudrait que les monstres ressortent un tout petit peu plus dans le noir », puis « quoique non, juste la lumiere des lampes les revele un
    peu plus », Mathieu) : un monstre qui passe dans le cercle d'une lanterne ou d'une torche allumee s'eclaire (sa couleur relevee de ECLAT_LUMIERE au centre,
    rien au bord) ; ailleurs, la nuit reste entiere. Chaque monstre touche recoit ses propres matieres (elles etaient partagees entre monstres du meme type) */
@@ -1373,19 +1373,21 @@ function trousNuit(N) {
   L.forEach((A) => { const R = A.r * TROU_NUIT * A.a; p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
     q.copy(A.sol.position).addScaledVector(D, R).project(camera); const [x1, y1] = ecran(q); q.copy(A.sol.position).addScaledVector(D2, R).project(camera); const [x2, y2] = ecran(q);
     const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
-    g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 42%, #000 100%)'); });
-  Y.forEach(([x, y, r]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, transparent 0, transparent 40%, #000 100%)'));
+    g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 52%, #000 100%)'); });
+  Y.forEach(([x, y, r]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, transparent 0, transparent 55%, #000 100%)'));
   const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
 }
 /* les yeux dans la nuit (08/11/2026, « on a bien travaille les yeux, j'aimerais que ce soit toujours les memes, juste les rendre visibles », Mathieu, apres
    une premiere version en boules de lumiere) : le voile est perce d'un petit trou sur chaque oeil des monstres tournes vers la camera (poserYeux,
    22c-squelettes.js), comme pour les lampes : on voit le vrai oeil du modele, qui luit (son image d'emission). Il disparait le temps d'un clignement. */
 function yeuxNuit(N, k, fin) {
-  const L = N.trousYeux = []; if (fin || !(k > 0) || !combat) return;
+  const L = N.trousYeux = []; if (fin && typeof VERSIONS_P10 !== 'undefined') VERSIONS_P10.forEach((nom) => { if (MODELES[nom]) MODELES[nom].traverse((x) => { if (x.isSkinnedMesh && x.material && x.material.emissiveMap) x.material.emissiveIntensity = 1; }); }); /* (le jour revenu, leurs yeux reprennent leur eclat normal : les copies partagent les matieres du modele) */
+  if (fin || !(k > 0) || !combat) return;
   const W = innerWidth, H = innerHeight, vers = camera.getWorldDirection(new T.Vector3()).negate(), droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize(), p = new T.Vector3(), q = new T.Vector3(), nw = new T.Vector3(), sc = new T.Vector3(), t = performance.now() / 1000;
   combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort' || !o.m.visible) return;
     if (!o.yeux) { o.yeux = []; o.m.traverse((x) => { if (x.userData && x.userData.oeil) o.yeux.push(x); }); }
     if (!o.yeux.length) return;
+    if (!o.peauxYeux) { o.peauxYeux = []; o.m.traverse((x) => { if (x.isSkinnedMesh && x.material && x.material.emissiveMap) o.peauxYeux.push(x); }); } o.peauxYeux.forEach((x) => { x.material.emissiveIntensity = 1 + 1.8 * k; }); /* (« rends un peu plus lumineux leurs yeux », Mathieu, 08/11/2026 : la nuit, l'image d'emission luit 2,8 fois plus) */
     if (t > (o.clignSuivant || 0)) { o.clign = t; o.clignSuivant = t + 2.5 + Math.random() * 4; } if (t - (o.clign || -9) < 0.13) return; /* (il cligne) */
     o.yeux.forEach((e) => { const D = e.userData.oeil; e.getWorldPosition(p); nw.fromArray(D.n).transformDirection(e.matrixWorld); if (nw.dot(vers) < 0.05) return; /* (de dos, pas d'yeux) */
       e.getWorldScale(sc); q.copy(p).addScaledVector(droite, D.r * sc.x); p.project(camera); q.project(camera); if (p.z > 1) return;
@@ -1398,8 +1400,8 @@ function nuitForet() {
     v.innerHTML = Array.from({ length: 26 }, () => '<i style="position:absolute;left:' + (Math.random() * 100).toFixed(1) + '%;top:' + (20 + Math.random() * 75).toFixed(1) + '%;width:5px;height:5px;border-radius:50%;background:#e8ff9a;box-shadow:0 0 10px 3px rgba(214,255,120,.75);animation:luciole ' + (4 + Math.random() * 5).toFixed(1) + 's ease-in-out ' + (-Math.random() * 6).toFixed(1) + 's infinite alternate"></i>').join('');
     canvas.insertAdjacentElement('afterend', v);
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
-  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
-  effets.push((dt) => { N.t += dt; const vivant = combat === c0 && combat && !combat.fin; if (!vivant) fin += dt;
+  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; N.c0 = c0; N.fin = 0; if (N.actif) return; /* (deja la, d'une vague relancee en mode test : elle se rattache au nouveau combat, 08/11/2026) */ N.actif = true; N.t = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
+  effets.push((dt) => { N.t += dt; const vivant = combat === N.c0 && combat && !combat.fin; if (!vivant) N.fin += dt; const fin = N.fin;
     const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); yeuxNuit(N, k); trousNuit(N); eclaircirMonstres(N, k);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
     if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); yeuxNuit(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });

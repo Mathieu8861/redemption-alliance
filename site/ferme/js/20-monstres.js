@@ -204,7 +204,7 @@ const AJUST_COMPO = {};
    rapprochees (cadence x0,8), degats x1,35, temps de preparation des sorts x0,65 (le cercle annonce moins longtemps), sorts 15 % plus souvent. La tempete du
    Chene Mou en rage garde son rythme. Puis « ils etaient tellement lents, et vu qu'ils tapent au cac, c'etait super facile » : le perso court a 5,6 (8,4 un Cra
    botte), eux allaient a 2 ou 3 ; de vraies vitesses, selon leur gabarit (VITESSES_P10, en unites par seconde). Le Tronknyde 4,5 puis 4 (« les Tron, ils vont peut-etre un poil trop vite », Mathieu, 08/11/2026, en mode test a la ferme) */
-const REGLAGE_P10 = { cadence: 0.8, deg: 1.35, prepa: 0.65, periode: 0.85 };
+const REGLAGE_P10 = { cadence: 0.8, deg: 1.485, prepa: 0.65, periode: 0.85 }; /* (deg 1,35 puis x1,1 = 1,485 : « j'ai teste la vague 91, augmente les degats de tout le monde de 10 % et on est bon », Mathieu, 08/11/2026 ; les poisons a degats fixes ne bougent pas) */
 const VITESSES_P10 = { tronknyde: 3.5, abraknyde: 3.1, venerable: 2.6, sombre: 2.2, abrakne: 3.4, abrakneSombre: 4.4, araknotron: 5.0, abrakleur: 2.8, semeur: 2.6, ancestral: 2.8, cheneMou: 2.6 };
 /* (08/11/2026 au soir, « juste les arbres, je pense qu'ils devraient courir un peu moins vite et etre plus tanky », Mathieu, apres la vague 91 en mode test :
    les arbres de la troupe 15 % moins vite (Tronknyde 4 puis 3,5 ; l'Abraknyde Sombre 3,2 puis 2,2, « reduis de 1 sa vitesse ») et 25 % de vie en plus ; les araignees ne changent pas, l'Ancestral et le Chene Mou non plus.
