@@ -293,9 +293,11 @@ const SORTS_LEG = {
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
   corail: { nom: 'Corail', teinte: '#3aa6e0', recharge: 15, portee: 12, zone: 3, parClasse: { /* (les armes de la Tortue Corail, 05/11/2026 : un sort par classe ; instant : il part au clic, sans viser) */
     iop: { nom: 'Carapace de corail', teinte: '#f0604a', recharge: 16, instant: true }, cra: { nom: 'Geyser', teinte: '#3aa6e0', recharge: 12, portee: 12, zone: 3 }, osa: { nom: 'Galvanisation', teinte: '#5ccbf0', recharge: 15, instant: true } } },
+  chene: { nom: 'Chêne Mou', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4, parClasse: { /* (les armes du Chene Mou, 09/11/2026 : un sort par classe ; l'Osa d'abord, « Osa j'aime bien », Mathieu ; le Iop et le Cra a revoir) */
+    osa: { nom: 'Bouture', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4 } } },
 };
 const sortLeg = (cle) => { const S = SORTS_LEG[cle]; return S && S.parClasse ? Object.assign({}, S, S.parClasse[classeDe()]) : S; }; /* (le sort d'une piece legendaire, pour ta classe) */
-const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k); return o && o.leg && SORTS_LEG[o.leg] ? o.leg : null; };
+const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k), S = o && o.leg && SORTS_LEG[o.leg]; return S && !(S.parClasse && !S.parClasse[classeDe()]) ? o.leg : null; }; /* (un sort par classe pas encore fait : pas de bouton, 09/11/2026) */
 const cdLeg = (emp) => emp === 'coiffe' ? 'cdLegC' : 'cdLegA';
 function cibleLeg(portee) { const c = combat, pp = paysanMesh.position, d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z);
   if (c.cible && c.cible.etat === 'actif' && d(c.cible) <= portee) return c.cible;
@@ -308,7 +310,7 @@ function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
   const S = sortLeg(cle), pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
   if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || (cle === 'corail' && classeDe() !== 'iop'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || cle === 'chene' || (cle === 'corail' && classeDe() !== 'iop'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
       l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
       l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
     const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
@@ -334,6 +336,7 @@ function executerLeg(emp, pt, compter, tire) {
   else if (cle === 'bworker') hacheLancee(x, z, S.zone, st); /* la hache lancee : elle retombe la ou tu vises */
   else if (cle === 'moon') bondMoon(x, z, S.zone, st); /* le bond de Moon : le marteau abattu la ou tu vises */
   else if (cle === 'corail') sortCorail(x, y, z, S, st); /* les armes de la Corail : un sort par classe */
+  else if (cle === 'chene' && classeDe() === 'osa') boutureOsa(pt, st); /* les armes du Chene Mou : la Bouture de l'Osa */
   majCombatHud();
 }
 /* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
@@ -505,6 +508,52 @@ function majInvoc(dt) {
   iv.pas += v * dt * 6; let elan = 0; if (iv.frappe > 0) { iv.frappe -= dt; elan = Math.sin((1 - Math.max(0, iv.frappe) / 0.25) * Math.PI) * 0.4; }
   iv.m.position.set(iv.x + Math.sin(iv.ry) * elan, hauteurSol(iv.x, iv.z, caseIci(iv.x, iv.z)) + (1 - Math.cos(iv.pas * 2)) * 0.03 + haut, iv.z + Math.cos(iv.ry) * elan);
   iv.m.rotation.y = iv.ry; iv.m.rotation.z = Math.sin(iv.pas) * 0.05; iv.m.scale.setScalar(0.45 * (iv.gros || 1) * Math.min(1, iv.vie / 0.3)); /* (gros : la Galvanisation, x1,3) */
+}
+/* LA BOUTURE (le Fouet de l'Automne, arme legendaire du Chene Mou, 09/11/2026, « Osa j'aime bien », Mathieu) : un Tronknyde allie pousse la ou tu vises
+   (5 cases au plus), dans un jaillissement de racines et de feuilles. Pendant 10 s il marche au monstre le plus proche et le frappe (0,8 fois tes degats, un coup
+   par seconde) ; les monstres au contact a moins de 3 cases de lui le prennent pour cible au lieu de toi (pas les boss ni les demi-boss, pas les tireurs).
+   Il a tes PV max et n'encaisse que la moitie des coups (son ecorce) ; un anneau vert a ses pieds, une barre verte au-dessus : ses PV. Abattu ou a la fin, il
+   se fend en copeaux et en feuilles */
+const DUREE_BOUTURE = 10, RAYON_BOUTURE = 6, PORTEE_BOUTURE = 10, VEC_BOUTURE = new T.Vector3();
+function finBouture(c, abattu) {
+  const bo = c && c.bouture; if (!bo) return; c.bouture = null; if (bo.barre) bo.barre.remove();
+  if (bo.m) { const p = bo.m.position; pouf(p.x, p.y, p.z, 2, abattu ? '#6b4528' : '#86b84a'); feuillesVolantes(p.x, p.y + 0.6, p.z, 0.9, 10, false); mottes(p.x, p.y, p.z, 6, 0.7); jeter(bo.m); }
+}
+function boutureOsa(pt, st) {
+  const c0 = combat; finBouture(c0, false);
+  const q = pointSort(pt, PORTEE_BOUTURE), x = q.x, z = q.z, y = hauteurSol(x, z, caseIci(x, z)), pp = paysanMesh.position;
+  const bo = c0.bouture = { x, z, ry: Math.atan2(pp.x - x, pp.z - z), vie: DUREE_BOUTURE, pv: st.pvMax, pvMax: st.pvMax, cd: 0.8, pousse: 0, m: null, frappe: 0, eclat: 0 };
+  onde(x, y + 0.05, z, 1.8, '#86b84a', 0.45, 0.85); onde(x, y + 0.05, z, 1.1, '#f7c843', 0.35, 0.7); secousse(0.08, 0.2); mottes(x, y, z, 10, 1.0); poussiere(x, y, z, 8, 1.0, '#8a6a48');
+  for (let i = 0; i < 5; i++) { const a = i * 1.26 + 0.3; racineJaillit(x + Math.sin(a) * 1.0, y, z + Math.cos(a) * 1.0, i); }
+  feuillesVolantes(x, y + 0.6, z, 1.1, 16, true);
+  const barre = document.createElement('div'); barre.className = 'pv-monstre allie'; barre.innerHTML = '<i></i>'; $('combat-zone').appendChild(barre); bo.barre = barre;
+  const pousser = () => { if (combat !== c0 || c0.bouture !== bo || !MODELES.tronknyde) return;
+    const m = cloner('tronknyde'); m.traverse((o) => { o.raycast = () => {}; });
+    const anneau = new T.Mesh(new T.RingGeometry(0.75, 0.95, 32), new T.MeshBasicMaterial({ color: '#56d27a', transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false })); anneau.rotation.x = -Math.PI / 2; anneau.position.y = 0.06; m.add(anneau);
+    bo.echelle = m.scale.x; m.scale.setScalar(bo.echelle * 0.2); poser(m, x, y - 0.5, z, bo.ry); bo.m = m; };
+  if (MODELES.tronknyde) pousser(); else chargerSquelettes(['tronknyde']).then(pousser);
+  toast('Un Tronknyde allié pousse et attire les coups des monstres autour de lui pendant ' + DUREE_BOUTURE + ' s.', 'or');
+}
+function blesserBouture(bo, dg) {
+  if (!bo || bo.pv <= 0) return; const n = Math.max(1, Math.round(dg * 0.5)); bo.pv -= n; bo.eclat = 0.16;
+  if (bo.m) chiffre('-' + fmt(n), new T.Vector3(bo.x, bo.m.position.y + 1.5, bo.z));
+  if (bo.pv <= 0) finBouture(combat, true);
+}
+function majBouture(dt) {
+  const c = combat, bo = c && c.bouture; if (!bo) return;
+  bo.vie -= dt; if (bo.vie <= 0) { finBouture(c, false); return; }
+  if (!bo.m) return; const m = bo.m, an = m.userData.anim, st = statsPerso();
+  bo.pousse = Math.min(1, bo.pousse + dt / 0.6); const e = 1 - Math.pow(1 - bo.pousse, 3); /* (il sort de terre en 0,6 s) */
+  if (bo.barre) { bo.barre.firstChild.style.width = Math.max(0, Math.min(100, 100 * bo.pv / bo.pvMax)).toFixed(0) + '%'; versEcran(VEC_BOUTURE.set(bo.x, m.position.y + 1.7, bo.z), bo.barre); }
+  bo.cd -= dt; if (bo.frappe > 0) bo.frappe -= dt; let v = 0;
+  const cib = bo.pousse < 1 ? null : plusProcheMonstre(bo);
+  if (cib) { const d = Math.hypot(cib.x - bo.x, cib.z - bo.z);
+    if (d > 1.3 + 0.2 * (cib.d.ombre || 1)) { const w = prochainPas(bo, cib.x, cib.z, dt), dx = w.x - bo.x, dz = w.z - bo.z, L = Math.hypot(dx, dz) || 1; v = 2.6; bo.x += dx / L * Math.min(L, v * dt); bo.z += dz / L * Math.min(L, v * dt); tourner(bo, Math.atan2(dx, dz), dt); }
+    else { tourner(bo, Math.atan2(cib.x - bo.x, cib.z - bo.z), dt); if (bo.cd <= 0) { bo.cd = 1; bo.frappe = 0.4; if (an) { const a = jouerAnim(an, piocher(an, 'coup'), 0.1); if (a) a.timeScale = 1.4; }
+      const c0 = c; setTimeout(() => { if (combat !== c0 || c0.bouture !== bo || cib.etat !== 'actif') return; blesser(cib, Math.round(st.deg * 0.8)); etoileImpact(new T.Vector3(cib.x, cib.m.position.y + cib.haut * 0.5, cib.z), 0.8, '#86b84a'); feuillesVolantes(cib.x, cib.m.position.y + 0.6, cib.z, 0.5, 4, false); }, 250); } } }
+  if (an) { if (!(bo.frappe > 0)) { const fam = v > 0.1 ? 'marche' : 'repos'; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25); if (fam === 'marche' && an.A[an.cour]) an.A[an.cour].timeScale = 1.2; }
+    an.peau.forEach((p) => { const b0 = p.emissiveMap ? 1 : 0, k = Math.max(0, bo.eclat) / 0.16; p.emissive.setRGB(b0 + 0.3 * k, b0 + 0.05 * k, b0); }); bo.eclat = Math.max(0, bo.eclat - dt); an.mixer.update(dt); }
+  m.position.set(bo.x, hauteurSol(bo.x, bo.z, caseIci(bo.x, bo.z)) - 0.5 * (1 - e), bo.z); m.rotation.y = bo.ry; m.scale.setScalar(bo.echelle * (0.2 + 0.8 * e) * Math.min(1, bo.vie / 0.3 + 0.0001));
 }
 function majBarreBoss(mo) {
   const el = $('boss-barre'); if (!el) return;
