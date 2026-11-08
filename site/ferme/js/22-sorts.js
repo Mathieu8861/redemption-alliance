@@ -296,6 +296,8 @@ const SORTS_LEG = {
   chene: { nom: 'Chêne Mou', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4, parClasse: { /* (les armes du Chene Mou, 09/11/2026 : un sort par classe ; l'Osa d'abord, « Osa j'aime bien », Mathieu ; le Iop et le Cra a revoir) */
     iop: { nom: 'Étreinte du Chêne', teinte: '#86b84a', recharge: 13, instant: true }, cra: { nom: 'Tempête de feuilles', teinte: '#a8c24a', recharge: 14, portee: 12, zone: 2.2 }, /* (« ouais ok c'est bon », Mathieu, 09/11/2026) */
     osa: { nom: 'Bouture', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4 } } },
+  ancestral: { nom: 'Ancestral', teinte: '#a64dff', recharge: 13, portee: 10, zone: 3, parClasse: { /* (les armes de l'Ancestral maudit, 09/11/2026 : « pour les sorts je valide », Mathieu) */
+    iop: { nom: 'Enfouissement', teinte: '#a64dff', recharge: 13, portee: 10, zone: 3 }, cra: { nom: 'Flèche maudite', teinte: '#a64dff', recharge: 12, portee: 14, zone: 1.2 }, osa: { nom: 'Têtes de l\'Ancestral', teinte: '#a64dff', recharge: 15, instant: true } } },
 };
 const sortLeg = (cle) => { const S = SORTS_LEG[cle]; return S && S.parClasse ? Object.assign({}, S, S.parClasse[classeDe()]) : S; }; /* (le sort d'une piece legendaire, pour ta classe) */
 const legDe = (emp) => { const k = S_ && S_.equip && S_.equip[emp], o = k && obj(k), S = o && o.leg && SORTS_LEG[o.leg]; return S && !(S.parClasse && !S.parClasse[classeDe()]) ? o.leg : null; }; /* (un sort par classe pas encore fait : pas de bouton, 09/11/2026) */
@@ -311,7 +313,7 @@ function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
   const S = sortLeg(cle), pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
   if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop') || (cle === 'ancestral' && classeDe() === 'cra'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
       l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
       l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
     const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
@@ -338,6 +340,7 @@ function executerLeg(emp, pt, compter, tire) {
   else if (cle === 'moon') bondMoon(x, z, S.zone, st); /* le bond de Moon : le marteau abattu la ou tu vises */
   else if (cle === 'corail') sortCorail(x, y, z, S, st); /* les armes de la Corail : un sort par classe */
   else if (cle === 'chene') { const cl = classeDe(); if (cl === 'osa') boutureOsa(pt, st); else if (cl === 'cra') tempeteFeuilles(x, z, st); else etreinteChene(st); } /* les armes du Chene Mou : un sort par classe */
+  else if (cle === 'ancestral') { const cl = classeDe(); if (cl === 'osa') tetesOsa(st); else if (cl === 'cra') flecheMaudite(x, z, st); else enfouissementIop(pt, st); } /* les armes de l'Ancestral maudit */
   majCombatHud();
 }
 /* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
@@ -586,6 +589,77 @@ function tempeteFeuilles(x, z, st) {
     if ((fe += dt) > 0.1) { fe = 0; feuillesVolantes(x, y + 0.3, z, R * 0.7, 2, true); }
     if ((tic += dt) >= 0.5) { tic -= 0.5; c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > R + 0.25 * (o.d.ombre || 1)) return; o.ventT = 0.6; blesser(o, Math.round(st.deg * 0.8), true); }); }
     return false; });
+}
+/* LES SORTS DE L'ANCESTRAL MAUDIT (09/11/2026, « pour les sorts je valide », Mathieu) */
+/* L'ENFOUISSEMENT (la Lame Maudite, Iop) : comme l'Ancestral qui s'enfonce et ressurgit ailleurs, le Iop plonge sous terre (0,25 s), file sous le sol jusqu'au point
+   vise (5 cases au plus) en soulevant une trainee de terre et de lueurs violettes, et ressurgit d'un bond : 2,5 fois ses degats sur 1,5 case, les monstres projetes
+   de cote (pas les boss ni ce qui est plante) ; intouchable de la plongee au bond (0,8 s) */
+function enfouissementIop(pt, st) {
+  const c0 = combat, pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), fin = pointSort(pt, 10), R = 3, a = Math.atan2(fin.x - de.x, fin.z - de.z);
+  chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; u.enVol = true;
+  son('sort'); mottes(de.x, de.y, de.z, 10, 1.0); poussiere(de.x, de.y, de.z, 10, 1.1, '#8a6a48'); onde(de.x, de.y + 0.05, de.z, 1.4, '#a64dff', 0.35, 0.8); secousse(0.08, 0.2);
+  const PLONGE = 0.25, FILE = Math.max(0.3, Math.min(0.55, Math.hypot(fin.x - de.x, fin.z - de.z) / 18)), SORT = 0.2; let t = 0, trace = 0, frappe = false;
+  const finir = () => { u.charge = false; u.enVol = false; paysanMesh.visible = true; };
+  effets.push((dt) => { t += dt; if (combat !== c0) { finir(); return true; }
+    if (t < PLONGE) { const k = t / PLONGE; paysanMesh.position.set(de.x, de.y - 1.8 * k * k, de.z); paysanMesh.rotation.y = a; return false; } /* (il plonge) */
+    if (t < PLONGE + FILE) { paysanMesh.visible = false; const k = (t - PLONGE) / FILE, x = de.x + (fin.x - de.x) * k, z = de.z + (fin.z - de.z) * k, y = solA(x, z); paysanMesh.position.set(x, y - 1.8, z);
+      if ((trace += dt) > 0.04) { trace = 0; mottes(x, y, z, 2, 0.5); emettre(FX_VIF, 3, { x, y: y + 0.1, z, r: 0.3, dv: 1.6, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.04], c: ['#e3bcff', '#a64dff', '#4a1f73'], grav: 6 }); } /* (la trainee de terre et de lueurs) */
+      return false; }
+    const k = Math.min(1, (t - PLONGE - FILE) / SORT), y = solA(fin.x, fin.z); paysanMesh.visible = true; paysanMesh.position.set(fin.x, y - 1.8 * (1 - k) + Math.sin(k * Math.PI) * 0.9, fin.z); paysanMesh.rotation.y = a;
+    if (!frappe) { frappe = true; u.attaque = { t: 0, classe: 'iop', base: a, tour: true, surFrappe: () => {} };
+      secousse(0.18, 0.3); mottes(fin.x, y, fin.z, 16, 1.4); poussiere(fin.x, y, fin.z, 14, R, '#8a6a48'); onde(fin.x, y + 0.05, fin.z, R, '#a64dff', 0.45, 0.9); onde(fin.x, y + 0.05, fin.z, R * 0.6, '#e3bcff', 0.35, 0.7); solFendu(fin.x, y, fin.z, R * 0.8);
+      emettre(FX_VIF, 24, { x: fin.x, y: y + 0.3, z: fin.z, r: 0.6, dv: 4, haut: true, vie: [0.4, 0.7], taille: [0.16, 0.05], c: ['#e3bcff', '#a64dff', '#4a1f73'], grav: 7 });
+      if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - fin.x, o.z - fin.z) > R + 0.25 * (o.d.ombre || 1)) return;
+        etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.0, '#c77dff'); blesser(o, Math.round(st.deg * 2.5), true); if (o.etat !== 'actif') return;
+        o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.3 : 0.6); if (!o.d.boss && !o.d.demi && !o.d.plante && !o.d.totem) bousculer(o, Math.atan2(o.x - fin.x, o.z - fin.z) + Math.PI / 2, fin.x, fin.z); }); }
+    if (k < 1) return false; const cel = caseIci(fin.x, fin.z); u.y = y; paysanMesh.position.y = y; if (cel && praticable(cel)) u.cellule = cel; finir(); return true; });
+}
+/* LA FLECHE MAUDITE (l'Arc des Tetes Maudites, Cra) : la fleche part vers le point vise ; le monstre le plus proche de son arrivee (1,2 case) prend 1 fois tes degats et
+   reste maudit 6 s : il prend 25 % de degats en plus (blesser) ; s'il meurt maudit, la malediction saute sur les 2 monstres les plus proches (4 cases) */
+const DUREE_MAUDIT = 6;
+function maudire(o) {
+  const deja = o.maudit > 0; o.maudit = DUREE_MAUDIT; if (deja) return; const c0 = combat;
+  const R = 0.45 * (o.d.ombre || 1) + 0.3, an = sansClic(new T.Mesh(new T.RingGeometry(R * 0.8, R, 32), new T.MeshBasicMaterial({ color: '#a64dff', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false }))); an.rotation.x = -Math.PI / 2; scene.add(an);
+  chiffre('Maudit !', new T.Vector3(o.x, o.m.position.y + o.haut + 0.4, o.z), 'butin'); onde(o.x, o.m.position.y + 0.05, o.z, R * 1.6, '#a64dff', 0.35, 0.8);
+  let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || o.etat !== 'actif' || !(o.maudit > 0)) { jeter(an); return true; }
+    an.position.set(o.x, o.m.position.y + 0.07, o.z); an.rotation.z = t * 2; an.material.opacity = 0.6 + 0.25 * Math.sin(t * 6);
+    if (Math.random() < dt * 14) emettre(FX_VIF, 1, { x: o.x + (Math.random() - 0.5) * R * 1.6, y: o.m.position.y + 0.2, z: o.z + (Math.random() - 0.5) * R * 1.6, r: 0.05, v: [0, 1.4, 0], dv: 0.2, vie: [0.5, 0.9], taille: [0.13, 0.03], c: ['#e3bcff', '#a64dff'] });
+    return false; });
+}
+function propagerMalediction(mo) {
+  const c = combat; if (!c || c.fin) return; const L = c.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 8).sort((a, b) => Math.hypot(a.x - mo.x, a.z - mo.z) - Math.hypot(b.x - mo.x, b.z - mo.z)).slice(0, 2);
+  L.forEach((o) => { const de = new T.Vector3(mo.x, mo.m.position.y + mo.haut * 0.6, mo.z), vers = new T.Vector3(o.x, o.m.position.y + o.haut * 0.6, o.z), g = sansClic(new T.Mesh(new T.SphereGeometry(0.18, 8, 6), new T.MeshBasicMaterial({ color: '#c77dff' }))); scene.add(g);
+    let t = 0; effets.push((dt) => { t += dt / 0.35; if (combat !== c) { jeter(g); return true; } const k = Math.min(1, t); g.position.lerpVectors(de, vers, k); g.position.y += Math.sin(k * Math.PI) * 1.2; emettre(FX_VIF, 1, { x: g.position.x, y: g.position.y, z: g.position.z, r: 0.05, vie: [0.25, 0.4], taille: [0.12, 0.03], c: ['#e3bcff', '#a64dff'] });
+      if (k < 1) return false; jeter(g); if (o.etat === 'actif') maudire(o); return true; }); });
+}
+function flecheMaudite(x, z, st) {
+  const c = combat, cib = c.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < 2.4 + 0.25 * (o.d.ombre || 1)).sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0];
+  const y = solA(x, z); onde(x, y + 0.05, z, 1.2, '#a64dff', 0.35, 0.7); emettre(FX_VIF, 10, { x, y: y + 0.3, z, r: 0.3, dv: 2.5, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.04], c: ['#e3bcff', '#a64dff'], grav: 6 });
+  if (!cib) return; blesser(cib, Math.round(st.deg), true); if (cib.etat === 'actif') maudire(cib);
+}
+/* LES TETES DE L'ANCESTRAL (le Fouet de l'Orbe Maudit, Osa) : il part au clic. Deux tetes de l'Ancestral (son modele, teintees de violet) surgissent du sol de part et
+   d'autre de l'Osa et restent 6 s ; chacune mord le monstre le plus proche a sa portee (1,3 case), 0,8 fois tes degats, une morsure par seconde */
+const DUREE_TETES_OSA = 6, PORTEE_TETE_OSA = 2.6;
+function tetesOsa(st) {
+  const c0 = combat, pp = paysanMesh.position, u = paysanMesh.userData, a = u.angle || 0; u.attaque = { t: 0.08, classe: 'osa', base: a, tour: false, surFrappe: () => {} };
+  son('sort'); onde(pp.x, pp.y + 0.05, pp.z, 2.2, '#a64dff', 0.4, 0.8); chiffre('Têtes de l\'Ancestral', new T.Vector3(pp.x, pp.y + 2.6, pp.z), 'gros');
+  [-1, 1].forEach((s, n) => { const q = pointValide(pp.x, pp.z, pp.x + Math.cos(a) * s * 1.5, pp.z - Math.sin(a) * s * 1.5), y0 = solA(q.x, q.z), info = { x: q.x, z: q.z, y0, cd: 0.5 + n * 0.5, mord: 0, m: null, cible: null };
+    mottes(q.x, y0, q.z, 8, 1.0); poussiere(q.x, y0, q.z, 8, 1.1, '#8a6a48');
+    const faire = () => { if (combat !== c0 || c0.fin) return; const T0 = tetesAncestral(); if (!T0 || !T0[n * 2 + 1] || !T0[n * 2 + 1].tri) return; let src = null; MODELES.ancestral.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
+      const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#c77dff'), emissiveIntensity: 2.2, color: new T.Color('#d9c2ff'), gradientMap: grad, side: T.DoubleSide }); /* (les yeux luisent en violet : maudites) */
+      const h = new T.Mesh(T0[n * 2 + 1].geo, mat); h.scale.setScalar(1.7); h.castShadow = true; sansClic(h); scene.add(h); info.m = h; info.mat = mat; };
+    if (MODELES.ancestral) faire(); else chargerSquelettes(['ancestral']).then(faire);
+    let t = 0; effets.push((dt) => { t += dt; const fin = combat !== c0 || c0.fin || t >= DUREE_TETES_OSA + 0.4;
+      if (fin) { if (info.m) { scene.remove(info.m); info.mat.dispose(); mottes(info.x, info.y0, info.z, 6, 0.8); } return true; }
+      const monte = Math.min(1, t / 0.4), desc = t > DUREE_TETES_OSA ? Math.max(0, 1 - (t - DUREE_TETES_OSA) / 0.4) : 1, k = Math.min(monte, desc), H = 1.3;
+      info.cd -= dt; if (info.mord > 0) info.mord -= dt;
+      const cib = c0.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - info.x, o.z - info.z) < PORTEE_TETE_OSA + 0.3 * (o.d.ombre || 1)).sort((p1, p2) => Math.hypot(p1.x - info.x, p1.z - info.z) - Math.hypot(p2.x - info.x, p2.z - info.z))[0];
+      if (cib && info.cd <= 0 && monte >= 1 && t < DUREE_TETES_OSA) { info.cd = 1; info.mord = 0.3; info.cible = cib; const c1 = c0; setTimeout(() => { if (combat !== c1 || cib.etat !== 'actif') return; blesser(cib, Math.round(st.deg * 0.8), true); etoileImpact(new T.Vector3(cib.x, cib.m.position.y + cib.haut * 0.5, cib.z), 0.8, '#c77dff'); }, 150); }
+      if (info.m) { const vise = info.cible && info.cible.etat === 'actif' ? info.cible : cib, ang = vise ? Math.atan2(vise.x - info.x, vise.z - info.z) : Math.atan2(paysanMesh.position.x - info.x, paysanMesh.position.z - info.z) + Math.PI;
+        const l = info.mord > 0 ? Math.sin((1 - info.mord / 0.3) * Math.PI) * 0.9 : 0; /* (elle se detend vers sa proie) */
+        info.m.position.set(info.x + Math.sin(ang) * l, info.y0 - H + H * 1.5 * k + Math.sin(t * 3 + n) * 0.06, info.z + Math.cos(ang) * l); info.m.rotation.y = ang + Math.sin(t * 9 + n) * 0.05; }
+      if (Math.random() < dt * 6) emettre(FX_VIF, 1, { x: info.x + (Math.random() - 0.5) * 0.8, y: info.y0 + 0.1, z: info.z + (Math.random() - 0.5) * 0.8, r: 0.05, v: [0, 1.2, 0], dv: 0.2, vie: [0.5, 0.8], taille: [0.12, 0.03], c: ['#e3bcff', '#a64dff'] });
+      return false; }); });
 }
 function majBarreBoss(mo) {
   const el = $('boss-barre'); if (!el) return;
