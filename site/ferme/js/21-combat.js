@@ -388,6 +388,18 @@ function lancerVague(pBoss, difficile, charges) {
   fermerModale(); ouvrirHudCombat();
   toast(rejoueB ? leNom(MONSTRES[PALIERS_TOUS[pBoss].boss]) + (difficile ? ' revient en mode DIFFICILE : remis à ton niveau, bien plus coriace, plus vicieux, et deux fois plus de chances de lâcher sa pièce légendaire. Bonne chance !' : ' revient pour la revanche, remis à ton niveau !') : (combat.phases.length ? 'Vague ' + n + ' en ' + (combat.phases.length + 1) + ' temps : d\'abord la horde (' + file.length + ' monstres), puis ' + combat.phases.map((p) => p.nom).join(', puis ') + ' !' : 'Vague ' + n + ' : ' + file.length + ' monstres ' + (groupe ? 'arrivent par groupes, ' + groupe + ' d\'abord, les autres en renfort !' : 'arrivent par les bords de ta ferme !')), 'alerte'); majCombatHud(); son('vague');
 }
+/* LA FORET ARRIVE DE PARTOUT (08/11/2026, « pour les vagues d'Abraknydes, j'aimerais qu'on les voie apparaitre depuis les zones qu'on n'a pas debloquees, les
+   terrains pas encore achetes, histoire d'etre encore plus terrifie, ca arrive de partout », Mathieu) : un monstre du palier 10 qui entre par la friche part
+   de 5 a 14 de plus loin dans les hautes herbes, en biais, et traverse la friche en marchant jusqu'au bord (majMonstre), puis il saute sur la ferme comme
+   avant. Seulement si toute la route est en friche (ni la mer, ni la plage, ni une de tes cases) ; sinon il sort du bord, comme les autres. */
+const fricheIci = (x, z) => { const i = Math.round(x / S + (COLS - 1) / 2), j = Math.round(z / S + (ROWS - 1) / 2); if (caseAt(i, j)) return false; const c = codeIle(i, j); return !!c && c !== '~' && c !== ',' && c !== '='; };
+function departFriche(dep, b) {
+  const a0 = Math.atan2(b.di, b.dj);
+  for (let essai = 0; essai < 8; essai++) { const a = a0 + (Math.random() - 0.5) * 1.3, L = 5 + Math.random() * 9; let ok = true;
+    for (let s = 0.6; s <= L && ok; s += 0.6) ok = fricheIci(dep.x + Math.sin(a) * s, dep.z + Math.cos(a) * s);
+    if (ok) return { x: dep.x + Math.sin(a) * L, z: dep.z + Math.cos(a) * L, k: 0 }; }
+  return null;
+}
 /* les bords de la ferme : une case praticable dont un cote ne donne sur aucune de tes cases. L'ILE RONDE : sur la friche (un terrain pas encore achete),
    les monstres sortent des broussailles ; sur le vide, ils grimpent comme avant ; jamais par l'eau ni par la berge */
 function bordsFerme() {
@@ -436,6 +448,7 @@ function apparaitre(type, pres) {
   if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case ; ou il sort de la friche (les hautes herbes du terrain voisin), d'un bond */
     const le = (Math.random() - 0.5) * 1.2; x = q.x + b.di * 0.55 + (b.dj ? le : 0); z = q.z + b.dj * 0.55 + (b.di ? le : 0); ry = Math.atan2(-b.di, -b.dj);
     dep = b.friche ? { x: x + b.di * 1.9, y: q.y, z: z + b.dj * 1.9, friche: true } : { x: x + b.di * 1.1, y: q.y - 2.4, z: z + b.dj * 1.1 };
+    if (b.friche && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele) && !combat.arene && !combat.raid) dep.loin = departFriche(dep, b); /* (la Foret des Abraknydes arrive du fond des terrains pas encore achetes, 08/11/2026) */
   } else { /* les renforts sortent de terre, pres du boss */
     x = pres ? pres.x : q.x; z = pres ? pres.z : q.z; ry = Math.random() * 6.28; dep = d.parachute && combat.raid ? { x, y: q.y + HAUT_PARACHUTE, z, parachute: true } : { x, y: q.y - 1.6, z };
     if (pres && pres.porte) { ry = Math.atan2(ARENE.x - x, ARENE.z - z); dep = { x: pres.porte.ox, y: 0, z: pres.porte.oz, friche: true }; } /* (il bondit hors de la herse) */
@@ -1353,36 +1366,31 @@ function eclaircirMonstres(N, k, rendre) {
 }
 function trousNuit(N) {
   const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
-  if (!L.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
+  const Y = N.trousYeux || []; /* (les yeux des monstres, yeuxNuit) */
+  if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
   const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); D.y = 0; D.normalize(); const D2 = new T.Vector3(-D.z, 0, D.x), p = new T.Vector3(), q = new T.Vector3(), g = [];
   const ecran = (v) => [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
   L.forEach((A) => { const R = A.r * TROU_NUIT * A.a; p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
     q.copy(A.sol.position).addScaledVector(D, R).project(camera); const [x1, y1] = ecran(q); q.copy(A.sol.position).addScaledVector(D2, R).project(camera); const [x2, y2] = ecran(q);
     const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
     g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 42%, #000 100%)'); });
+  Y.forEach(([x, y, r]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, transparent 0, transparent 40%, #000 100%)'));
   const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
 }
-/* les yeux qui luisent dans la nuit (08/11/2026) : de petites lueurs posees au-dessus du voile, sur les yeux des monstres tournes vers la camera (poserYeux,
-   22c-squelettes.js) ; un clignement de temps en temps. Les lueurs sont reutilisees d'une image a l'autre */
-const YEUX_COUL = { j: ['#fffbe0', '#ffd23a', 'rgba(255,190,40,0)'], r: ['#ffe2d8', '#ff3a26', 'rgba(255,40,20,0)'] };
+/* les yeux dans la nuit (08/11/2026, « on a bien travaille les yeux, j'aimerais que ce soit toujours les memes, juste les rendre visibles », Mathieu, apres
+   une premiere version en boules de lumiere) : le voile est perce d'un petit trou sur chaque oeil des monstres tournes vers la camera (poserYeux,
+   22c-squelettes.js), comme pour les lampes : on voit le vrai oeil du modele, qui luit (son image d'emission). Il disparait le temps d'un clignement. */
 function yeuxNuit(N, k, fin) {
-  if (!N.yeux) { const d = document.createElement('div'); d.className = 'yeux-nuit'; d.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden'; N.v.insertAdjacentElement('afterend', d); N.yeux = { d, pool: [] }; }
-  const Y = N.yeux; let n = 0;
-  if (!fin && k > 0 && combat) {
-    const rc = canvas.getBoundingClientRect(), vers = camera.getWorldDirection(new T.Vector3()).negate(), droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize(), p = new T.Vector3(), q = new T.Vector3(), nw = new T.Vector3(), sc = new T.Vector3(), t = performance.now() / 1000;
-    combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort' || !o.m.visible) return;
-      if (!o.yeux) { o.yeux = []; o.m.traverse((x) => { if (x.userData && x.userData.oeil) o.yeux.push(x); }); }
-      if (!o.yeux.length) return;
-      if (t > (o.clignSuivant || 0)) { o.clign = t; o.clignSuivant = t + 2.5 + Math.random() * 4; } const ferme = t - (o.clign || -9) < 0.13;
-      o.yeux.forEach((e) => { const D = e.userData.oeil; e.getWorldPosition(p); nw.fromArray(D.n).transformDirection(e.matrixWorld); const f = nw.dot(vers); if (f < 0.05) return;
-        e.getWorldScale(sc); q.copy(p).addScaledVector(droite, D.r * sc.x); p.project(camera); q.project(camera); if (p.z > 1) return;
-        const x = rc.left + (p.x + 1) / 2 * rc.width, y = rc.top + (1 - p.y) / 2 * rc.height, r = Math.min(28, Math.max(2.2, Math.hypot((q.x - p.x) / 2 * rc.width, (q.y - p.y) / 2 * rc.height)) * (D.c === 'r' ? 1.6 : 1.15)); /* (les yeux rouges des araignees sont petits : plus gros) */
-        let el = Y.pool[n]; if (!el) { el = document.createElement('i'); el.style.cssText = 'position:absolute;left:0;top:0;border-radius:50%;will-change:transform,opacity'; Y.d.appendChild(el); Y.pool.push(el); }
-        if (el.dataset.c !== D.c) { const C = YEUX_COUL[D.c] || YEUX_COUL.j; el.dataset.c = D.c; el.style.background = 'radial-gradient(circle, ' + C[0] + ' 0%, ' + C[0] + ' 18%, ' + C[1] + ' 38%, ' + C[2] + ' 72%)'; }
-        const tl = r * 3.6; el.style.width = el.style.height = tl.toFixed(1) + 'px'; el.style.transform = 'translate(' + (x - tl / 2).toFixed(1) + 'px,' + (y - tl / 2).toFixed(1) + 'px) scaleY(' + (ferme ? 0.15 : 1) + ')';
-        el.style.opacity = String(Math.min(1, k * Math.min(1, (f - 0.05) / 0.3))); el.style.display = ''; n++; }); });
-  }
-  for (let i = n; i < Y.pool.length; i++) if (Y.pool[i].style.display !== 'none') Y.pool[i].style.display = 'none';
+  const L = N.trousYeux = []; if (fin || !(k > 0) || !combat) return;
+  const W = innerWidth, H = innerHeight, vers = camera.getWorldDirection(new T.Vector3()).negate(), droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize(), p = new T.Vector3(), q = new T.Vector3(), nw = new T.Vector3(), sc = new T.Vector3(), t = performance.now() / 1000;
+  combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort' || !o.m.visible) return;
+    if (!o.yeux) { o.yeux = []; o.m.traverse((x) => { if (x.userData && x.userData.oeil) o.yeux.push(x); }); }
+    if (!o.yeux.length) return;
+    if (t > (o.clignSuivant || 0)) { o.clign = t; o.clignSuivant = t + 2.5 + Math.random() * 4; } if (t - (o.clign || -9) < 0.13) return; /* (il cligne) */
+    o.yeux.forEach((e) => { const D = e.userData.oeil; e.getWorldPosition(p); nw.fromArray(D.n).transformDirection(e.matrixWorld); if (nw.dot(vers) < 0.05) return; /* (de dos, pas d'yeux) */
+      e.getWorldScale(sc); q.copy(p).addScaledVector(droite, D.r * sc.x); p.project(camera); q.project(camera); if (p.z > 1) return;
+      const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H, r = Math.min(46, Math.max(6, Math.hypot((q.x - p.x) / 2 * W, (q.y - p.y) / 2 * H) * 2.4));
+      if (x < -r || x > W + r || y < -r || y > H + r) return; L.push([x, y, r]); }); });
 }
 function nuitForet() {
   if (!NUIT_F) { const v = document.createElement('div'); v.className = 'nuit-foret'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(10,40,48,.16) 0%,rgba(6,22,30,.38) 45%,rgba(3,10,16,.66) 100%)'; /* (au-dessus de la scene, sous l'interface : la nuit lunaire, elle, ne teinte que le ciel) */
@@ -1392,7 +1400,7 @@ function nuitForet() {
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
   const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
   effets.push((dt) => { N.t += dt; const vivant = combat === c0 && combat && !combat.fin; if (!vivant) fin += dt;
-    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); trousNuit(N); eclaircirMonstres(N, k); yeuxNuit(N, k);
+    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); yeuxNuit(N, k); trousNuit(N); eclaircirMonstres(N, k);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
     if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); yeuxNuit(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
 }
@@ -2547,6 +2555,12 @@ function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
+  if (mo.etat === 'grimpe' && mo.dep && mo.dep.loin && mo.dep.loin.k < 1) { /* il traverse la friche jusqu'au bord, en marchant (departFriche) */
+    const dp = mo.dep, L = dp.loin, vx = dp.x - L.x, vz = dp.z - L.z, D = Math.max(0.1, Math.hypot(vx, vz)), v = Math.max(2, mo.d.vitesse || 2) * 0.9;
+    L.k = Math.min(1, L.k + dt * v / D); m.visible = true; m.position.set(L.x + vx * L.k, dp.y, L.z + vz * L.k); m.rotation.y = Math.atan2(vx, vz);
+    if (m.userData.anim) majSquelette(mo, v, dt); if (L.k >= 1) mo.t = 0.55; /* (arrive au bord : le petit bond sur la ferme, tout de suite) */
+    return;
+  }
   if (mo.etat === 'grimpe') { /* il se hisse : remonte de sous le bord, puis un petit saut pour passer la falaise */
     mo.t += dt / 0.9; const k = Math.max(0, Math.min(1, mo.t)), e = k * k * (3 - 2 * k), dp = mo.dep;
     m.position.set(dp.x + (mo.x - dp.x) * Math.max(0, (k - 0.55) / 0.45), dp.y + (mo.y - dp.y) * Math.min(1, e * 1.25) + Math.sin(Math.max(0, (k - 0.55) / 0.45) * Math.PI) * 0.45, dp.z + (mo.z - dp.z) * Math.max(0, (k - 0.55) / 0.45));
