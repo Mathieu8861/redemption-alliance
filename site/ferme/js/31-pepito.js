@@ -99,7 +99,7 @@ const LECONS = [ /* (les dernieres, « premiere fois », 22/10/2026 : en bas de 
   { id: 'tours', titre: 'Les tours de défense', ico: 'tour', resume: 'Les construire, les placer, les monter.', quand: () => niveau(S_.xp) >= NIV_TOUR && !nbTours(),
     pages: [() => `Niveau ${NIV_TOUR} : tu peux construire des <em>tours de défense</em>. ${toucherQ('une case d\'herbe libre').replace(/^./, (x) => x.toUpperCase())}, puis Tour de défense. Jusqu'à ${TOURS_MAX} tours.`,
       () => `Elles tirent seules sur les monstres et les voleurs, avec les <em>flèches</em> de ta réserve. Place-les près de la grange et des champs, là où passent les monstres. Chaque tour se monte de niveau à part (bouton Améliorer).`] },
-  { id: 'boss', titre: 'Les boss', ico: () => PALIERS[palierDe(vagueCourante())].icone, resume: 'Les zones rouges, sa troupe, la rage.', fenetre: 'vagues', quand: () => vagueBoss(vagueCourante()),
+  { id: 'boss', titre: 'Les boss', ico: () => PALIERS_TOUS[palierDe(vagueCourante())].icone, resume: 'Les zones rouges, sa troupe, la rage.', fenetre: 'vagues', quand: () => vagueBoss(vagueCourante()),
     pages: [() => `La prochaine vague est celle d'un <em>boss</em> : beaucoup de PV, et un <em>sort spécial</em> annoncé par une zone rouge au sol. Quand elle apparaît, sors-en vite !`,
       () => `Sa <em>troupe le protège</em> : chaque monstre près de lui retire 12 % de tes dégâts, jusqu'à 60 %. Et il en rappelle deux toutes les ${RAPPEL_TROUPE} s. Dégage la troupe, puis frappe le boss avant qu'elle revienne.`,
       () => `Sous 30 % de vie, il entre en <em>rage</em> : il frappe et lance son sort plus souvent. Garde ton ulti pour la fin. Bien préparé, ça passe : tours, arbalète, équipement, un bon repas.`] },

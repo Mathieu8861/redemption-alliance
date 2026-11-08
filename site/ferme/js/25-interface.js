@@ -36,7 +36,7 @@ function rendreHaut() {
     f.dataset.info = S_.fleches ? 'Flèches en réserve : l\'arbalète, les tours et l\'épouvantail en tirent une par tir. Touche pour en acheter' : 'Plus de flèches : ta défense ne tire plus. Touche pour en acheter à l\'HDV'; }
   const repos = S_.vague.repos - Date.now(), fini = S_.vague.num > VAGUES_TOTAL;
   const prepaV = fini ? 0 : (S_.vague.prepa || 0) - Date.now(), attenteV = Math.max(repos, prepaV);
-  { const ic = 'assets/icones/' + PALIERS[palierDe(Math.min(S_.vague.num, VAGUES_TOTAL))].icone + '.png?v=' + VERSION_MODELES, im = $('b-vagues').querySelector('img'); if (im && im.getAttribute('src') !== ic) im.src = ic; } /* « adapte le bouton aux vagues, tous les 10 » (Mathieu, 13/10/2026) : l'embleme du palier en cours */
+  { const ic = 'assets/icones/' + PALIERS_TOUS[palierDe(Math.min(S_.vague.num, VAGUES_TOTAL))].icone + '.png?v=' + VERSION_MODELES, im = $('b-vagues').querySelector('img'); if (im && im.getAttribute('src') !== ic) im.src = ic; } /* « adapte le bouton aux vagues, tous les 10 » (Mathieu, 13/10/2026) : l'embleme du palier en cours */
   $('vague-nb').textContent = attenteV > 0 ? dureeLisible(attenteV).replace(' min', 'm').replace(' s', 's') : fini ? '✓' : S_.vague.num; $('b-vagues').classList.toggle('repos', attenteV > 0);
   $('b-vagues').dataset.info = repos > 0 ? 'Ton perso se repose encore ' + dureeLisible(repos) : prepaV > 0 ? 'La vague ' + S_.vague.num + ' se prépare : ' + dureeLisible(prepaV) : fini ? 'Tous les paliers terminés' : 'La vague ' + S_.vague.num + ' (palier ' + (palierDe(S_.vague.num) + 1) + ') attend que tu la lances';
   $('mode-test').hidden = !RAPIDE;

@@ -115,7 +115,7 @@ function statsArene(t) {
 }
 /* un boss dans l'Arene : la force du dernier boss que tu as battu (nArene), quel que soit le boss tire ; avant, le Bouftou Royal y gardait sa fiche de
    la vague 10 et tombait en deux fleches (« je le tue plus vite que les monstres », Mathieu, 20/10/2026) */
-const statsBossArene = () => { const N = nArene(), R = PALIERS[palierDe(N)].boss; return { pv: pvMonstre(R, N), deg: degMonstre(R, N), sort: MONSTRES[R].degSort * 0.8 }; };
+const statsBossArene = () => { const N = nArene(), R = PALIERS_TOUS[palierDe(N)].boss; return { pv: pvMonstre(R, N), deg: degMonstre(R, N), sort: MONSTRES[R].degSort * 0.8 }; };
 const bossArene = () => PALIERS.slice(0, Math.max(1, Math.min(PALIERS.length, Math.floor((S_.vague.num - 1) / VAGUES_PALIER)))).map((p) => p.boss).filter((b) => MONSTRES[b]);
 function vagueArene(k) {
   const fam = famillesArene(); for (let i = fam.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fam[i], fam[j]] = [fam[j], fam[i]]; } /* (3 familles au hasard par vague) */

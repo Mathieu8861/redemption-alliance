@@ -45,7 +45,7 @@ function ouvrirAreneDev() {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague]'); if (!b || !estAdmin()) return;
   const E = etatDev();
-  if (b.dataset.devVague) { const n = +b.dataset.devVague; E.vague = n; E.n = n; E.liste = {}; (COMPO_ABRAK[n - 90] || []).forEach(([t, k]) => { E.liste[t] = (E.liste[t] || 0) + k; }); } /* (une vraie vague du palier 10, 08/11/2026) */
+  if (b.dataset.devVague) { const n = +b.dataset.devVague; E.vague = n; E.n = n; E.liste = {}; compoVague(n).forEach(([t, k]) => { E.liste[t] = (E.liste[t] || 0) + k; }); } /* (la vague telle qu'elle arrive a la ferme, horde comprise, 08/11/2026) */ /* (une vraie vague du palier 10, 08/11/2026) */
   else if (b.dataset.devPlus || b.dataset.devMoins || b.dataset.devGroupe) E.vague = null;
   if (b.dataset.devVague) { /* deja fait */ } else if (b.dataset.devPlus) E.liste[b.dataset.devPlus] = Math.min(NB_DEV_MAX, (E.liste[b.dataset.devPlus] || 0) + 1);
   else if (b.dataset.devMoins) E.liste[b.dataset.devMoins] = Math.max(0, (E.liste[b.dataset.devMoins] || 0) - 1);
@@ -64,7 +64,7 @@ async function partirDev() {
   areneSuite = true; fermerModale(); areneSuite = false;
   toast('Arène dev : chargement des monstres…');
   const suite = E.vague && PHASES_BOSS[E.vague] ? PHASES_BOSS[E.vague].map((p) => ({ nom: p.nom, f: [].concat(...p.L.map(([t, k]) => Array(k).fill(t))).filter((t) => MONSTRES[t]) })) : []; /* (les temps suivants de la vague 100) */
-  const avecRenforts = [].concat(...file.concat(...suite.map((p) => p.f)).map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : [], MONSTRES[t].invoque ? MONSTRES[t].invoque.types : [], MONSTRES[t].affaibli ? [MONSTRES[t].affaibli.invoque] : []))).filter((t) => MONSTRES[t]); /* (affaibli : les Gorilles de Moon, 31/10/2026) */
+  const avecRenforts = [].concat(...file.concat(...suite.map((p) => p.f)).map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : [], MONSTRES[t].invoque ? MONSTRES[t].invoque.types : [], MONSTRES[t].affaibli ? [MONSTRES[t].affaibli.invoque] : [], MONSTRES[t].enracine ? ['tronknyde', 'arbreCollant'] : []))).filter((t) => MONSTRES[t]); /* (affaibli : les Gorilles de Moon, 31/10/2026) */
   await chargerSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (et ceux qu'ils appellent : Ebil seul appelait des Jav jamais charges, et l'image se figeait, 26/10/2026) */
   prechaufferSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (leurs shaders prets avant le combat, 27/10/2026) */
   const manque = file.filter((t) => !MODELES[MONSTRES[t].modele]); if (manque.length) { toast('Arène dev : le modèle de ' + MONSTRES[manque[0]].nom + ' n\'a pas pu se charger.', 'alerte'); return; }
@@ -109,7 +109,7 @@ function bandeauTest() {
   let b = document.getElementById('bandeau-test'); if (!b) { b = document.createElement('div'); b.id = 'bandeau-test'; document.body.appendChild(b); }
   b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
 }
-function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; ETAT_TEST.n = Math.max(1, Math.min(VAGUES_TOTAL, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
+function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
 function vieAuMax() { const m = statsPerso().pvMax; S_.pv = m; if (combat && combat.pvMax) { combat.pv = combat.pvMax; majCombatHud(); } rendreHaut(); }
 function equiperTest(P) { /* la panoplie entiere au jet moyen, et l'arme de ta classe de cette panoplie */
   if (combat) return; const cl = classeDe(), t = ARMES[cl][0];
@@ -134,8 +134,8 @@ function ouvrirModeTest() {
     '<div class="hdv-section">Ton équipement</div><p class="hdv-aide">La panoplie entière au jet moyen, et l\'arme de ta classe de cette panoplie.</p><div class="puces dev-groupes">' + bouton('test-pano', '', 'Rien', !panoPortee && !arme) + PANOS.map((x) => bouton('test-pano', x.id, x.nom + ' (' + x.niv + ')', panoPortee === x.id)).join('') + '</div>' +
     '<p class="hdv-aide">Arme légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => x.arme && OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]]).map((x) => bouton('test-leg-arme', x.cle, OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]].nom, arme && arme.leg === x.cle)).join('') + '</div>' +
     '<p class="hdv-aide">Coiffe légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => !x.arme && OBJETS['leg-' + x.cle]).map((x) => bouton('test-leg-coiffe', x.cle, OBJETS['leg-' + x.cle].nom, coiffe && coiffe.leg === x.cle)).join('') + '</div>' +
-    '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS[P].boss].nom) + '</b>, ' + PALIERS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
-    '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
+    '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS_TOUS[P].boss].nom) + '</b>, ' + PALIERS_TOUS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (P >= PALIERS.length ? ', <b>en avant-première</b> (fermé aux joueurs)' : '') + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
+    '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER || P >= PALIERS.length ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
     '<div class="hdv-section">Tes défenses</div><p class="hdv-aide">Tes ' + nbTours() + ' tourelles : les tiennes, coupées, ou toutes au niveau de ton choix (6 : celles du château).</p><div class="puces dev-groupes">' + bouton('test-tours', 'tiennes', 'Les tiennes', ETAT_TEST.tours == null) + bouton('test-tours', '0', 'Coupées', ETAT_TEST.tours === 0) + [1, 2, 3, 4, 5, 6].map((k) => bouton('test-tours', String(k), 'Niveau ' + k, ETAT_TEST.tours === k)).join('') + '</div>' +
     '<div class="puces dev-groupes">' + bouton('test', 'sansdef', 'Arbalète de la grange et Pépito-Tron coupés', ETAT_TEST.sansDef) + '</div>' +
     '<div class="hdv-section">En combat</div><div class="puces dev-groupes">' + bouton('test', 'immortel', 'Immortel (les coups s\'affichent, tu ne tombes pas)', ETAT_TEST.immortel) + bouton('test', 'pv', 'Vie au max', false) + '</div>' +
@@ -164,6 +164,6 @@ document.addEventListener('click', (e) => {
   else if (d.testPano != null && b.hasAttribute('data-test-pano')) equiperTest(PANOS.find((x) => x.id === d.testPano) || null);
   else if (d.testLegArme) { if (combat) return; const id = 'leg-' + d.testLegArme + '-' + ARMES[classeDe()][0], o = S_.equip.arme && obj(S_.equip.arme); S_.equip.arme = o && o.leg === d.testLegArme ? null : id; rhabiller(); }
   else if (d.testLegCoiffe) { if (combat) return; const o = S_.equip.coiffe && obj(S_.equip.coiffe); S_.equip.coiffe = o && o.leg === d.testLegCoiffe ? null : 'leg-' + d.testLegCoiffe; rhabiller(); }
-  else if (d.testN) ETAT_TEST.n = Math.max(1, Math.min(VAGUES_TOTAL, ETAT_TEST.n + Number(d.testN)));
+  else if (d.testN) ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, ETAT_TEST.n + Number(d.testN)));
   vieAuMax(); ouvrirModeTest();
 });
