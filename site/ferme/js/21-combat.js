@@ -188,6 +188,7 @@ function ficheMonstre(t) {
   if (d.ralentit) met('ralentit', 'lenteur', 'Te ralentit', 'Chacun de ses coups te fait marcher plus lentement.', num(String(d.ralentit).replace('.', ',') + ' s', 'bleu'), 'bleu');
   if (d.menotte) met('menotte', 'assomme', 'Te menotte', 'Si sa charge te touche, tu restes sur place un instant. Tu peux encore frapper.', num(secondes(d.menotte), 'rouge'), 'or');
   if (d.assomme) met('assomme', 'assomme', 'T\'assomme', 'Touché, tu ne frappes plus un instant.', num(String(d.assomme).replace('.', ',') + ' s', 'rouge'), 'or');
+  if (d.poisonFixe) met('poisonFixe', 'poison', 'Morsure empoisonnée', 'Sa morsure t\'empoisonne ; une nouvelle morsure relance le poison.', num(d.poisonFixe[0] + ' par seconde', 'rouge') + num(d.poisonFixe[1] + ' s'), 'vert');
   if (d.poison) met('poison', 'poison', 'T\'empoisonne', 'Son coup t\'empoisonne quelques secondes.', num(d.poison[0] + ' % de ta vie par seconde', 'rouge') + num(d.poison[1] + ' s'), 'vert');
   if (d.soigne) met('soigne', 'soin', 'Soigne ses alliés', 'Il soigne les monstres autour de lui : abats-le en premier.', '', 'vert');
   if (d.protege) met('protege', 'protege', d.protegeNom || 'Bouclier de cristal', 'Il protège trois monstres autour de lui.', num('-40 % de dégâts') + num('4 s') + recup('protege'));
@@ -608,6 +609,7 @@ function effetsCoup(mo) { /* la Momie ralentit, la pomme de la Reinette assomme,
   const c = combat; if (!c || c.fin || !mo || c.deroute != null) return; const d = mo.d, p = paysanMesh.position.clone(); p.y += 2.1;
   if (d.ralentit) { if (!c.lenteurVu) { c.lenteurVu = true; toast(leNom(d) + ' te ralentit à chaque coup : éloigne-toi !', 'alerte'); } c.lenteur = d.ralentit; }
   if (d.assomme) { c.assomme = d.assomme; chiffre('Assommé !', p, 'vol'); }
+  if (d.poisonFixe) { const P = (c.poisons = c.poisons || []), e = P.find((x) => x.src === mo); if (e) e.t = d.poisonFixe[1]; else P.push({ pct: d.poisonFixe[0] / (c.pvMax || statsPerso().pvMax), t: d.poisonFixe[1], src: mo }); if (!c.poisonFixeVu) { c.poisonFixeVu = true; toast(leNom(d) + ' t\'a mordu : ' + d.poisonFixe[0] + ' dégâts de poison par seconde pendant ' + d.poisonFixe[1] + ' s !', 'alerte'); } } /* (l'Abrakne Sombre, 08/11/2026 : 32 par seconde pendant 4 s, chaque morsure relance les 4 s) */
   if (d.poison) { (c.poisons = c.poisons || []).push({ pct: d.poison[0], t: d.poison[1] }); if (!c.poisonVuB) { c.poisonVuB = true; toast((d.poisonObjet || 'La baie') + ' du ' + d.nom + ' t\'empoisonne quelques secondes !', 'alerte'); } }
 }
 function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre vert toutes les 0,6 s */
@@ -1102,11 +1104,12 @@ function capBond(mo, ctx) {
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
     const loin = mo.d.bonditLoin ? mo.d.portee * (mo.allonge || 1) + 0.6 : 1.5; /* (bonditLoin, le Gorille roi : il ne saute que pour revenir au corps a corps) */
     const vise = !!(mo.d.marteau || mo.d.poings); /* (Moon et le Gorille roi, 31/10/2026) */
-    if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < 11) { /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
+    if (mo.bonditT == null && mo.d.bonditMax) mo.bonditT = mo.d.bondit; /* (l'Abrakne Sombre saute des son arrivee : sinon elle etait deja au contact quand son premier saut etait pret, 08/11/2026) */
+    if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < (mo.d.bonditMax || 11)) { /* (bonditMax : l'Abrakne Sombre, 3 cases, 08/11/2026) */ /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
       if (vise && m.userData.anim) { mo.bonditT = 0; bondMarteau(mo, pp.x, pp.z); return; } /* (Moon, le Gorille : 22c-squelettes.js) */
       const EB = mo.d.bondPrepa || ESQUIVE.bond; /* (bondPrepa : le temps pour esquiver le bond, propre au boss, le Bworker 1,3 s, 31/10/2026) */
       mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = EB + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
-      const an = m.userData.anim, H = an ? 1.2 : 2.8; /* (un monstre a squelette : son geste de saut, recale pour retomber a la fin du cercle ; le saut du geste porte deja une partie de la hauteur, 27/10/2026) */
+      const an = m.userData.anim, H = mo.d.bonditH || (an ? 1.2 : 2.8); /* (un monstre a squelette : son geste de saut, recale pour retomber a la fin du cercle ; le saut du geste porte deja une partie de la hauteur, 27/10/2026) */
       const fb = gesteDe(mo, 'bondit', 'bond');
       if (an && an.F[fb]) { const nom = piocher(an, fb), D = an.A[nom].getClip().duration, imp = ((m.userData.impacts || {})[nom] || [])[0], ts = Math.max(0.6, (imp ? imp.t : D * 0.6) / EB), a = jouerAnim(an, nom, 0.1); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, EB + 0.5) }; }
       if (!combat.bonditVu) { combat.bonditVu = true; toast(leNom(mo.d) + ' va te sauter dessus : sors du cercle rouge !', 'alerte'); }
@@ -1122,7 +1125,7 @@ function capBond(mo, ctx) {
         if (t >= EB) { mo.hop = 0; mo.envol = false; if (ombre) jeter(ombre); if (lourd) { let r = 0; effets.push((d3) => { r += d3; if (mo.etat !== 'actif') { mo.penche = 0; return true; } mo.penche = 0.3 * Math.max(0, 1 - r / 0.4); mo.hop = -0.3 * Math.sin(Math.min(1, r / 0.4) * Math.PI); return r >= 0.4; }); } return true; } });
       zoneDanger({ mo, x: cx, z: cz, r: R, duree: EB, effet: (d) => { mo.frappe = 0.4; if (mo.d.element) { impactElement(mo.d.element, cx, cz, R * 1.1); secousse(0.3, 0.4); } else { pouf(cx, solA(cx, cz), cz, 7, '#8e7a5e'); pouf(cx, solA(cx, cz), cz, 3.5, '#c9b28a'); if (mo.d.marteau || lourd) impactMarteau(cx, solA(cx, cz), cz); } /* (l'impact de son element, 01/11/2026) */ /* (le Bworker s'ecrase comme Moon : choc, onde, sol fendu, cratere) */
         if (mo.d.bondVol) { const y = solA(cx, cz); secousse(0.42, 0.6); onde(cx, y, cz, R * 2.6, '#c9b28a', 0.7, 1); mottes(cx, y, cz, 16, 1.4); emettre(FX_VIF, 24, { x: cx, y: y + 0.3, z: cz, r: 0.6, dv: 6, haut: true, vie: [0.45, 0.8], taille: [0.2, 0.08], c: ['#6a4524', '#4a2f18', '#8e6640'], grav: 12, frein: 0.6 }); } /* (le Dragon Cochon : la terre tremble plus fort, la boue gicle) */
-        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); } });
+        const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.round(degSort(mo) * ((mo.d.sortsX || {}).bond || 1)), mo); if (mo.d.poisonFixe) effetsCoup(mo); } } }); /* (le saut de l'Abrakne Sombre mord : son poison) */
     }
   }
 }
@@ -1452,6 +1455,13 @@ function armeJet(type, k) {
     for (let i = 0; i < 6; i++) { const b = new T.Mesh(new T.CylinderGeometry(0.05 * k, 0.07 * k, (1.5 + (i % 3) * 0.2) * k, 6), mat(i % 2 ? '#8a6a48' : '#a5865f')), u = i * 1.05; b.position.set(Math.cos(u) * 0.11 * k, (i % 3) * 0.05 * k, Math.sin(u) * 0.11 * k); b.rotation.set(Math.sin(u) * 0.08, 0, Math.cos(u) * 0.08); g.add(b); }
     for (const y of [-0.35, 0.3]) { const l = new T.Mesh(new T.TorusGeometry(0.19 * k, 0.035 * k, 6, 14), mat('#4f7a2c')); l.rotation.x = Math.PI / 2; l.position.y = y * k; g.add(l); }
     g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g; }
+  if (type === 'lanceBois') { /* (la lance de l'Abrakleur, 08/11/2026, « une espece de branche pointue, comme une lance en bois », Mathieu : une longue branche droite,
+       l'ecorce, deux noeuds, une feuille, la pointe taillee en bois clair ; la pointe vers +Z, elle vole pointe en avant) */
+    const L = 2.4 * k, tige = new T.Mesh(new T.CylinderGeometry(0.05 * k, 0.075 * k, L, 7), mat('#7a5634')); tige.rotation.x = Math.PI / 2; g.add(tige);
+    const pointe = new T.Mesh(new T.ConeGeometry(0.075 * k, 0.55 * k, 7), mat('#dcbc8c')); pointe.rotation.x = Math.PI / 2; pointe.position.z = L / 2 + 0.27 * k; g.add(pointe);
+    for (const z of [-0.55, 0.3]) { const n = new T.Mesh(new T.SphereGeometry(0.08 * k, 6, 5), mat('#5e4128')); n.position.set(0.045 * k, 0, z * k); g.add(n); }
+    const f = new T.Mesh(new T.SphereGeometry(0.13 * k, 6, 4), mat('#5f9a3a')); f.scale.set(1, 0.3, 1.7); f.position.set(0.12 * k, 0, -L / 2 + 0.25 * k); g.add(f);
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g; }
   if (type === 'hache') { const manche = new T.Mesh(new T.CylinderGeometry(0.06 * k, 0.07 * k, 2.2 * k, 8), mat('#6a4528')); g.add(manche);
     const f = new T.Shape(); f.moveTo(0, -0.55); f.quadraticCurveTo(0.95, -0.6, 0.85, 0); f.quadraticCurveTo(0.95, 0.6, 0, 0.55); f.lineTo(0.1, 0); f.lineTo(0, -0.55);
     for (const s of [-1, 1]) { const l = new T.Mesh(new T.ExtrudeGeometry(f, { depth: 0.06, bevelEnabled: false }), mat('#9aa3ad')); l.geometry.translate(0, 0, -0.03); l.scale.set(s * k, k, k); l.position.y = 0.7 * k; g.add(l);
@@ -1464,20 +1474,21 @@ function armeJet(type, k) {
 function capJet(mo, ctx) {
   const { pp, sortPret } = ctx, J = mo.d.jet; if (!J || combat.deroute != null || mo.carapace > 0) return;
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('jetT', J.periode)) return; if (dP < J.loin || dP > 15) { mo.jetT = J.periode; return; } /* (pret, il attend que tu sois loin) */
-  mo.jetT = 0; const c0 = combat, cx = pp.x, cz = pp.z, a = Math.atan2(cx - mo.x, cz - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), arme = armeJet(J.arme, k), hache = J.arme === 'hache';
+  mo.jetT = 0; const c0 = combat, cx = pp.x, cz = pp.z, a = Math.atan2(cx - mo.x, cz - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), arme = armeJet(J.arme, k), hache = J.arme === 'hache', lanceB = J.arme === 'lanceBois';
   mo.ry = a; mo.bloqueT = J.prepa + 0.4; mo.frappe = 0.3; scene.add(arme);
-  if (!c0['jetVu' + J.arme]) { c0['jetVu' + J.arme] = true; toast(leNom(mo.d) + (hache ? ' lève sa grande hache pour te la lancer' : J.arme === 'fagot' ? ' arme son fagot pour te le lancer en cloche' : ' arrache un rocher du sol pour te le lancer') + ' : sors du cercle rouge !', 'alerte'); }
+  if (!c0['jetVu' + J.arme]) { c0['jetVu' + J.arme] = true; toast(leNom(mo.d) + (hache ? ' lève sa grande hache pour te la lancer' : J.arme === 'fagot' ? ' arme son fagot pour te le lancer en cloche' : lanceB ? ' arme sa lance de bois pour te la lancer en cloche' : ' arrache un rocher du sol pour te le lancer') + ' : sors du cercle rouge !', 'alerte'); }
   gesteSort(mo, gesteDe(mo, 'jet', 'sort'), Math.max(0.3, J.prepa - 0.5)); /* (un monstre a squelette : son geste de lancer, l'Abrakleur, 08/11/2026) */
-  if (!hache && J.arme !== 'fagot') { const y = solA(mo.x, mo.z); poussiere(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 10, 1, '#d8c6a0'); mottes(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 6, 0.9); }
+  if (!hache && !lanceB && J.arme !== 'fagot') { const y = solA(mo.x, mo.z); poussiere(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 10, 1, '#d8c6a0'); mottes(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 6, 0.9); }
   const vol = Math.max(0.45, Math.min(0.75, dP / 16)), tl = J.prepa - vol; let t = 0, de = null; const vers = new T.Vector3(cx, solA(cx, cz) + (hache ? 0.6 : 0.5) * k, cz), H = 2.5 + dP * 0.12;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(arme); mo.penche = 0; return true; }
     if (t < tl) { const u = Math.min(1, t / tl), h = mo.m.position.y + (mo.haut || 3) * (0.75 + 0.45 * u); /* (il l'arme au-dessus de sa tete, tire en arriere) */
-      arme.position.set(mo.x - Math.sin(a) * 0.6 * u, h, mo.z - Math.cos(a) * 0.6 * u); arme.rotation.set(-1.2 * u, a, 0); mo.penche = -0.22 * u; return false; }
+      arme.position.set(mo.x - Math.sin(a) * 0.6 * u, h, mo.z - Math.cos(a) * 0.6 * u); if (lanceB) arme.lookAt(arme.position.x + Math.sin(a), arme.position.y + 0.9 - 0.5 * u, arme.position.z + Math.cos(a)); else arme.rotation.set(-1.2 * u, a, 0); mo.penche = -0.22 * u; return false; } /* (la lance, tenue pointe en l'air vers toi) */
     if (!de) { de = arme.position.clone(); mo.penche = 0.3; secousse(0.06, 0.15); }
-    const u = Math.min(1, (t - tl) / vol); mo.penche = 0.3 * (1 - u); arme.position.lerpVectors(de, vers, u); arme.position.y += Math.sin(u * Math.PI) * H;
-    if (hache) arme.rotation.set(-1.2 - u * Math.PI * 4, a, 0); else arme.rotation.set(u * 9, a + u * 5, 0); traineeFleche(arme.position);
+    const u = Math.min(1, (t - tl) / vol), prevL = lanceB ? arme.position.clone() : null; mo.penche = 0.3 * (1 - u); arme.position.lerpVectors(de, vers, u); arme.position.y += Math.sin(u * Math.PI) * H;
+    if (hache) arme.rotation.set(-1.2 - u * Math.PI * 4, a, 0); else if (lanceB) { if (arme.position.distanceToSquared(prevL) > 1e-6) arme.lookAt(arme.position.clone().multiplyScalar(2).sub(prevL)); } else arme.rotation.set(u * 9, a + u * 5, 0); traineeFleche(arme.position); /* (la lance vole pointe en avant, sur sa courbe) */
     if (u < 1) return false;
-    if (hache) { arme.rotation.set(-2.3, a, 0); arme.position.y = vers.y - 0.2; let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.2) arme.position.y -= d3 * 2; if (s2 > 1.7) { pouf(cx, solA(cx, cz), cz, 1.5, '#9aa3ad'); jeter(arme); return true; } }); }
+    if (lanceB) { arme.position.y = vers.y - 0.35 * k; poussiere(cx, solA(cx, cz), cz, 8, 0.8, '#b89a72'); let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.0) arme.position.y -= d3 * 1.6; if (s2 > 1.6) { pouf(cx, solA(cx, cz), cz, 1.2, '#a5865f'); jeter(arme); return true; } }); } /* (plantee dans le sol un instant, puis elle s'enfonce) */
+    else if (hache) { arme.rotation.set(-2.3, a, 0); arme.position.y = vers.y - 0.2; let s2 = 0; effets.push((d3) => { s2 += d3; if (combat !== c0) { jeter(arme); return true; } if (s2 > 1.2) arme.position.y -= d3 * 2; if (s2 > 1.7) { pouf(cx, solA(cx, cz), cz, 1.5, '#9aa3ad'); jeter(arme); return true; } }); }
     else { jeter(arme); emettre(FX_VIF, 20, { x: cx, y: vers.y, z: cz, r: 0.5, dv: 5, haut: true, vie: [0.4, 0.8], taille: [0.16, 0.06], c: ['#8a8070', '#5f5850'], grav: 10, frein: 1 }); emettre(FX_FUM, 6, { x: cx, y: vers.y, z: cz, r: 0.4, v: [0, 0.8, 0], vie: [0.6, 0.9], taille: [0.5, 1.1], c: ['#b89a72', '#9a8262'], a: 0.55 }); } /* (de la poussiere, plus d'etincelles de lave) */
     return true; });
   zoneDanger({ mo, x: cx, z: cz, r: J.R, duree: J.prepa, effet: (d) => { const y = solA(cx, cz), el = J.element || mo.d.element; if (el) { impactElement(el, cx, cz, J.R * 1.1); secousse(0.2, 0.3); } else { impactMarteau(cx, y, cz); onde(cx, y, cz, J.R * 1.6, '#ffd27a', 0.5, 0.7); } /* (la hache : terre ; le rocher de lave : feu, 01/11/2026) */

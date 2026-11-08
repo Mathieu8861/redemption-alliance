@@ -9,7 +9,7 @@
 /* Le soir du 25/10 : les Kannibouls et les Tortues, rattaches a leur squelette Mixamo (blender/lier-squelette.py : masques, cheveux et carapace
    rigides) puis assembles avec leurs mouvements et leur arme (blender/monstre-anime.py). Leurs coups et leurs tirs partent a l'instant ou une main ou
    un pied va le plus vite, lu sur chaque animation (attaqueSquelette) ; leurs sorts jouent un geste (gesteSort). */
-const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 2.3], ['golem-lune', 3.4], ['tortue-corail', 3.0], ['abraknyde', 2.4], ['semeur', 3.2], ['tronknyde', 1.1], ['venerable', 2.4], ['sombre', 2.6], ['abrakne', 1.2], ['abrakne-sombre', 1.5], ['araknotron', 2.2], ['abrakleur', 3.2], ['arbre-collant', 2.0], ['ancestral', 3.6], ['chene-mou', 4.4]]
+const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 2.3], ['golem-lune', 3.4], ['tortue-corail', 3.0], ['abraknyde', 2.4], ['semeur', 3.2], ['tronknyde', 1.1], ['venerable', 2.4], ['sombre', 2.6], ['abrakne', 1.2], ['abrakne-sombre', 1.5], ['araknotron', 2.2], ['abrakleur', 4.1], ['arbre-collant', 2.0], ['ancestral', 3.6], ['chene-mou', 4.4]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
 /* (28/10/2026) le Lemurien tiki, anime a la main dans Blender (blender/lemurien-anime.py, lemurien-export.py), pas par Mixamo (« c'est des creatures,
    Mixamo c'est plus pour des humanoides », Mathieu) : son squelette n'a pas de hanches Mixamo, la vitesse naturelle de sa marche et de sa course
@@ -78,6 +78,30 @@ function surPlace(clip, hips) {
    balaye) ; a defaut, l'instant ou il va le plus vite */
 /* un clone du squelette sans recopier ses donnees (27/10/2026, « j'ai des petits freeze », Mathieu) : Object3D.copy recopie userData en JSON, et celui
    du modele porte toutes ses animations ; chaque arrivee de monstre les serialisait, 11 a 57 ms d'un bloc */
+/* L'ARC DE L'ARAKNOTRON (08/11/2026, « le petit bonhomme orange, je le vois bien avec un arc », Mathieu) : son cavalier n'a qu'un os par bras (cbras.G,
+   cbrasG une fois charge) ; sa main, c'est le bout du bras : la moyenne des points de la peau les plus eloignes de l'epaule parmi ceux que cet os porte.
+   On y accroche « mainG » (ses fleches en partent, mainSquelette) et un arc tenu droit, la courbe vers l'avant ; les copies du modele les gardent. */
+function arcCavalier(H) {
+  const g = new T.Group(), b = H * 0.3, P0 = new T.Vector3(0, -H / 2, -b), P2 = new T.Vector3(0, H / 2, -b);
+  const bois = new T.Mesh(new T.TubeGeometry(new T.QuadraticBezierCurve3(P0, new T.Vector3(0, 0, b), P2), 18, H * 0.045, 6, false), mat('#a0662e'));
+  const poignee = new T.Mesh(new T.CylinderGeometry(H * 0.065, H * 0.065, H * 0.18, 8), mat('#e8b84a'));
+  const corde = new T.Mesh(new T.CylinderGeometry(H * 0.012, H * 0.012, H, 4), mat('#fff4dc')); corde.position.z = -b;
+  const fl = new T.Group(), tige = new T.Mesh(new T.CylinderGeometry(H * 0.016, H * 0.016, H * 0.8, 5), mat('#e2d2a8')), pointe = new T.Mesh(new T.ConeGeometry(H * 0.05, H * 0.14, 5), mat('#b8bec8')), plume = new T.Mesh(new T.BoxGeometry(H * 0.012, H * 0.09, H * 0.14), mat('#e8413a'));
+  tige.rotation.x = Math.PI / 2; pointe.rotation.x = Math.PI / 2; pointe.position.z = H * 0.46; plume.position.z = -H * 0.32; fl.add(tige, pointe, plume); fl.position.z = -b + H * 0.36; g.add(fl); /* (une fleche encochee : on lit tout de suite un arc) */
+  g.add(bois, poignee, corde); g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g;
+}
+function armerAraknotron(g) {
+  g.updateMatrixWorld(true); let sk = null; g.traverse((o) => { if (o.isSkinnedMesh && !sk) sk = o; }); if (!sk) return;
+  const B = sk.skeleton.bones, i = B.findIndex((b) => b.name === 'cbrasG' || b.name === 'cbras.G'); if (i < 0) return; const os = B[i];
+  const geo = sk.geometry, P = geo.attributes.position, SI = geo.attributes.skinIndex, SW = geo.attributes.skinWeight, inv = sk.skeleton.boneInverses[i], L = [];
+  for (let k = 0; k < P.count; k++) { let m = 0, w = -1; for (let c = 0; c < 4; c++) { const x = SW.array[k * 4 + c]; if (x > w) { w = x; m = SI.array[k * 4 + c]; } } if (m !== i) continue;
+    L.push(new T.Vector3().fromBufferAttribute(P, k).applyMatrix4(sk.bindMatrix).applyMatrix4(inv)); }
+  if (L.length < 4) return; L.sort((a, b) => b.length() - a.length()); const n = Math.max(3, Math.round(L.length * 0.06)), main = new T.Vector3(); for (let k = 0; k < n; k++) main.add(L[k]); main.divideScalar(n);
+  const lien = new T.Object3D(); lien.name = 'mainG'; lien.position.copy(main); os.add(lien); g.updateMatrixWorld(true);
+  const sc = new T.Vector3(), q = new T.Quaternion(); lien.getWorldScale(sc); lien.getWorldQuaternion(q);
+  const voulu = new T.Quaternion().setFromEuler(new T.Euler(0, 1.05, -0.26, 'YXZ')); /* (la courbe vers l'avant et vers sa gauche, le haut un peu penche dehors : de face, on voit l'arc et pas sa tranche) */
+  const arc = arcCavalier(Math.max(0.6, main.length() * sc.x * 2.7)); arc.quaternion.copy(q.invert().multiply(voulu)); arc.scale.setScalar(1 / sc.x); lien.add(arc);
+}
 function cloneNu(M) { const ud = M.userData; M.userData = {}; try { return T.SkeletonUtils.clone(M); } finally { M.userData = ud; } }
 function instantsCoup(g, clip, poings) {
   const c = cloneNu(g), fr = frappeur(c, poings); if (!fr) return [{ t: clip.duration * 0.45, sol: true }];
@@ -138,6 +162,7 @@ async function chargerSquelette(nom, url, h) {
         gl.scene.userData.vols = vols; gl.scene.userData.bras = bras; } /* (le bond et le moulinet de Moon, et du Gorille) */
       /* sa portee : la ou tombent ses coups au sol, en moyenne (il ne frappe que si tu es dedans) */
       const D = vise ? [].concat(...Object.values(impacts)).filter((x) => x.sol && x.d).map((x) => x.d).sort((x, y) => x - y) : []; gl.scene.userData.portee = D.length ? D[Math.floor(D.length / 2)] : 0; /* (sans marteau : la portee de sa fiche) */
+      if (nom === 'araknotron') armerAraknotron(gl.scene); /* (son arc, 08/11/2026) */
       MODELES[nom] = gl.scene; if (VERSIONS_P10.has(nom)) { await texturesP10(nom); habillerP10(nom, peauxDe(gl.scene)); } } catch (err) { console.error('squelette', nom, err); }
   }
 }
