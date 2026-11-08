@@ -251,7 +251,7 @@ function ouvrirCourse(res) {
 /* LA COURSE SUR LA GRANDE PISTE (07/11/2026 : « un vrai hippodrome, plus grand, et une course un peu plus longue », Mathieu) : un tour complet du stade,
    depart et arrivee sous le portique d'or, devant la tribune ; le gagnant boucle le tour en COURSE_TOUR s, chacun dans son couloir ; le perso regarde
    depuis le passage de la tribune, la camera cadre toute la piste */
-const COURSE_TOUR = 22, COULOIRS = [-0.84, -0.28, 0.28, 0.84];
+const COURSE_TOUR = 14, COULOIRS = [-1.2, -0.4, 0.4, 1.2]; /* (14 s et non 22, quatre couloirs sur la piste de 3,4 m, 08/11/2026) */
 function lancerCourse() {
   if (course || !ileCasino) return; const m = casinoMise; if (!peutMiser(m)) return;
   miser(m); fermerModale();
@@ -271,7 +271,7 @@ function majCourse(dt) {
     const T_ = c.temps[i], t = Math.max(0, c.t), u = Math.min(1, t / T_);
     const f = u >= 1 ? 1 : Math.min(0.998, u + 0.03 * Math.sin(t * 0.9 + c.alea[i]) * u * (1 - u) * 4); /* (des remontees et des coups de mou, sans changer l'arrivee) */
     const p = stadePoint(S.a + f * tour), o = COULOIRS[i];
-    g.position.set(CASINO.x + p.x + p.nx * o, CASINO.y + (u < 1 && c.t > 0 ? Math.abs(Math.sin(c.t * 11 + i)) * 0.12 : 0), CASINO.z + p.z + p.nz * o);
+    g.position.set(CASINO.x + p.x + p.nx * o, CASINO.y + (u < 1 && c.t > 0 ? Math.abs(Math.sin(c.t * 13 + i)) * 0.18 : 0), CASINO.z + p.z + p.nz * o);
     g.rotation.y = Math.atan2(p.tx, p.tz);
   });
   if (c.t >= c.fin) {

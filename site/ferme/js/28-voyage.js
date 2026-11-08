@@ -12,7 +12,7 @@ async function chargerCasino() {
   fusionner(decor, { garder: (m) => ['eau', 'eau_canal', 'drapeau'].includes(nomBase(m)) }); casinoAnim = casinoVivant(T, decor);
   grilleCasino(); /* (les chemins du perso : la grille se calcule une fois) */
   versToon(drag, { normales: 0.01, sansContour: SC_MONSTRES });
-  DRAGOS.forEach((d) => { MODELES['course_' + d.id] = gabarit(drag, d.id, 1.25, 'y'); });
+  DRAGOS.forEach((d) => { MODELES['course_' + d.id] = gabarit(drag, d.id, 2.1, 'y'); }); /* (a leur vraie taille, 08/11/2026 : 1,25 avant, « elles sont toutes petites », Mathieu) */
   scene.add(g); ileCasino = g; scene.add(soleil.target);
 }
 function soleilVers(c) { soleil.position.set(c.x - 16, 28, c.z + 12); soleil.target.position.set(c.x, 0, c.z); soleil.target.updateMatrixWorld(); }

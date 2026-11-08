@@ -168,7 +168,7 @@ function casinoVivant(T, decor) {
 /* ---------- SE DEPLACER SUR L'ILE (07/11/2026 au soir, « il faut penser avec une logique humaine de deplacement », Mathieu) ----------
    Le perso suit un vrai chemin : une grille de 0,5 m sur l'ile, ou le decor de casino.py (decor_casino2) bouche ce qu'il occupe ; le chemin le plus court
    (A*), puis lisse en lignes droites tant qu'on voit le point suivant. Tout est donne sur l'ile (le jeu ajoute CASINO). */
-const STADE_CASINO = { cx: 0, cz: 19.5, a: 7, R: 4.6, L: 2.4 };
+const STADE_CASINO = { cx: 0, cz: 19.5, a: 7, R: 4.1, L: 3.4 }; /* (la piste elargie vers l'interieur le 08/11/2026 : le bord exterieur ne bouge pas) */
 function stadePoint(sv) { /* un point de la ligne du stade (la course) : sv, la distance depuis l'ouest de la ligne droite du nord ; x, z, la tangente tx, tz, la normale vers l'exterieur nx, nz */
   const S = STADE_CASINO, P = 4 * S.a + 2 * Math.PI * S.R; sv = ((sv % P) + P) % P;
   if (sv < 2 * S.a) return { x: S.cx - S.a + sv, z: S.cz - S.R, tx: 1, tz: 0, nx: 0, nz: -1 };
