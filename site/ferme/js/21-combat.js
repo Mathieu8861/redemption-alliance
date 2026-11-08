@@ -2152,7 +2152,7 @@ function tubeRacine(pts, rayon, T_SEG, R_SEG, noeuds) {
       uv.setXY(k, u0 + (u1 - u0) * (j / R_SEG), v0 + (v1 - v0) * w); } }
   pos.needsUpdate = true; uv.needsUpdate = true; geo.computeVertexNormals(); return { geo, courbe };
 }
-function racinesQuiSaisissent(x, y, z, pris, duree) {
+function racinesQuiSaisissent(x, y, z, pris, duree, echelle) { /* (echelle : autour d'un monstre, a sa taille ; l'Etreinte du Chene du Iop, 09/11/2026) */
   const c0 = combat, g = new T.Group(), n = pris ? 4 : 5, T_SEG = 40, R_SEG = 8, L = [], own = [], tex = texAbraknyde(), A = () => Math.random() - 0.5;
   const mt = tex ? new T.MeshToonMaterial({ map: tex, gradientMap: grad }) : mat('#6b4528'), mf = mat('#86b84a'); own.push(mt, mf);
   const ajouter = (pts, rayon, T2, noeuds, feuille) => { const { geo, courbe } = tubeRacine(pts, rayon, T2, R_SEG, noeuds), m = new T.Mesh(geo, mt), k2 = new T.Mesh(geo, contourMat(0.016)); m.castShadow = true; g.add(m, k2);
@@ -2167,7 +2167,7 @@ function racinesQuiSaisissent(x, y, z, pris, duree) {
     const { courbe } = ajouter(pts, 0.1 + Math.random() * 0.03, T_SEG, 2 + Math.floor(Math.random() * 2), true);
     if (i % 2 === 0) { const w = 0.35 + Math.random() * 0.2, b = courbe.getPointAt(w), tg = courbe.getTangentAt(w), dh = new T.Vector3(b.x, 0, b.z).normalize(); /* (une radicelle qui part vers l'exterieur) */
       ajouter([b.clone(), b.clone().addScaledVector(dh, 0.18).add(new T.Vector3(0, 0.12, 0)).addScaledVector(tg, 0.05), b.clone().addScaledVector(dh, 0.32).add(new T.Vector3(A() * 0.1, 0.3, A() * 0.1))], 0.045, 16, 1, true); } }
-  g.position.set(x, y, z); g.rotation.y = Math.random() * Math.PI * 2; scene.add(g); let s = 0;
+  g.position.set(x, y, z); g.rotation.y = Math.random() * Math.PI * 2; if (echelle) g.scale.setScalar(echelle); scene.add(g); let s = 0;
   const fin = () => { g.parent && g.parent.remove(g); L.forEach((o) => { o.geo.dispose(); if (o.f) o.f.geometry.dispose(); }); own.forEach((o) => o.dispose()); return true; }; /* (la texture reste : c'est celle de l'Abraknyde) */
   effets.push((dt) => { s += dt; if (combat !== c0 || s >= duree + 0.3) return fin();
     const k = s < 0.25 ? s / 0.25 : s > duree ? Math.max(0, 1 - (s - duree) / 0.3) : 1, e = 1 - Math.pow(1 - k, 2);
@@ -2661,7 +2661,7 @@ function majMonstre(mo, dt, s) {
   if (mo.etat === 'mort' && (mo.d.boss || mo.d.demi) && !mo.invoque && mo.pv <= 0) { mortLourde(mo, dt); return; } /* (un boss tombe de tout son poids, 01/11/2026) */
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
-  const lent = mo.lent > 0; if (lent) mo.lent -= dt; mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1) * (mo.danseV || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite ; danseV : la danse vaudou du Lemurien Tiki) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
+  const lent = mo.lent > 0; if (lent) mo.lent -= dt; if (mo.ventT > 0) mo.ventT -= dt; /* (ventT : dans la Tempete de feuilles du Cra, -30 % de vitesse, 09/11/2026) */ mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1) * (mo.danseV || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite ; danseV : la danse vaudou du Lemurien Tiki) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
   if (mo.bloqueT > 0) mo.bloqueT -= dt;
   mo.sautT = mo.sautT == null ? Math.random() * SAUT_RECHARGE * 0.75 : mo.sautT + dt; /* (le premier bond : entre 2 et 8 s apres son arrivee, pas tous en meme temps) */
   const pp = paysanMesh.position, bloque = mo.bloqueT > 0 || !!mo.vise || mo.carapace > 0; let v = 0; /* (un boss qui prepare son sort ne marche pas) */
@@ -2701,7 +2701,7 @@ function majMonstre(mo, dt, s) {
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
     const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1); /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.ventT > 0 ? 0.7 : 1); /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0 && !(versPerso && !bat && tropPresDuTireur(mo))) { /* (un tireur colle par le perso ne tire pas) */

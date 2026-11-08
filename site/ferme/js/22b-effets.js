@@ -605,10 +605,10 @@ function solVent(r, o = {}) { /* o : ombre (le sol assombri au centre, sous une 
   const m = sansClic(new T.Mesh(GEO_DISQUE_VENT, new T.ShaderMaterial({ uniforms: u, vertexShader: VS_PLAT, fragmentShader: FS_SOL_VENT, transparent: true, depthWrite: false })));
   m.rotation.x = -Math.PI / 2; m.scale.setScalar(r); m.renderOrder = 3; m.userData.u = u; return m;
 }
-function tornadeVent(R, H) { /* userData.maj(dt, f) : f, sa force de 0 a 1 (elle nait et se dissipe) */
-  const g = new T.Group(), coeur = entonnoirVent({ rb: R * 0.18, rh: R * 0.7, exp: 1.7, tord: 0.35, a: 0.9, vit: 4.4, monte: 1.6, c1: '#4f463b', c2: '#bfb19a', ordre: 7 }),
-    voile = entonnoirVent({ rb: R * 0.28, rh: R * 1.35, exp: 1.8, tord: 0.45, a: 0.55, vit: 2.7, monte: 1.0, c1: '#6e6352', c2: '#d9d2c4', ordre: 9 }),
-    jupe = entonnoirVent({ rb: R * 0.95, rh: R * 0.38, exp: 0.6, ond: 0.12, a: 0.75, vit: 5.2, monte: 2.4, c1: '#7a6448', c2: '#e3d0a8', ordre: 5 }), sol = solVent(R * 1.7, { ombre: 1 });
+function tornadeVent(R, H, C) { /* userData.maj(dt, f) : f, sa force de 0 a 1 (elle nait et se dissipe) ; C : ses couleurs (la Tempete de feuilles du Cra, verte, 09/11/2026) */
+  C = C || {}; const g = new T.Group(), coeur = entonnoirVent({ rb: R * 0.18, rh: R * 0.7, exp: 1.7, tord: 0.35, a: 0.9, vit: 4.4, monte: 1.6, c1: C.coeur1 || '#4f463b', c2: C.coeur2 || '#bfb19a', ordre: 7 }),
+    voile = entonnoirVent({ rb: R * 0.28, rh: R * 1.35, exp: 1.8, tord: 0.45, a: 0.55, vit: 2.7, monte: 1.0, c1: C.voile1 || '#6e6352', c2: C.voile2 || '#d9d2c4', ordre: 9 }),
+    jupe = entonnoirVent({ rb: R * 0.95, rh: R * 0.38, exp: 0.6, ond: 0.12, a: 0.75, vit: 5.2, monte: 2.4, c1: C.jupe1 || '#7a6448', c2: C.jupe2 || '#e3d0a8', ordre: 5 }), sol = solVent(R * 1.7, { ombre: 1, c1: C.sol1, c2: C.sol2 });
   coeur.scale.y = H; voile.scale.y = H * 1.04; sol.position.y = 0.04; g.add(sol, jupe, coeur, voile);
   const E = [coeur, voile, jupe].map((x) => [x.userData.u, x.userData.u.uA.value]), D = [];
   for (let i = 0; i < 18; i++) { const k = i % 3, m = sansClic(new T.Mesh(k === 0 ? GEO_FEUILLE : k === 1 ? GEO_BRIN : GEO_ECLAT, k === 0 ? MATS_FEUILLE[i % 4] : k === 1 ? MAT_BRIN : MATS_ECLAT[i % 4]));

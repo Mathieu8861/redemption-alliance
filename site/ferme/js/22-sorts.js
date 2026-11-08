@@ -294,6 +294,7 @@ const SORTS_LEG = {
   corail: { nom: 'Corail', teinte: '#3aa6e0', recharge: 15, portee: 12, zone: 3, parClasse: { /* (les armes de la Tortue Corail, 05/11/2026 : un sort par classe ; instant : il part au clic, sans viser) */
     iop: { nom: 'Carapace de corail', teinte: '#f0604a', recharge: 16, instant: true }, cra: { nom: 'Geyser', teinte: '#3aa6e0', recharge: 12, portee: 12, zone: 3 }, osa: { nom: 'Galvanisation', teinte: '#5ccbf0', recharge: 15, instant: true } } },
   chene: { nom: 'Chêne Mou', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4, parClasse: { /* (les armes du Chene Mou, 09/11/2026 : un sort par classe ; l'Osa d'abord, « Osa j'aime bien », Mathieu ; le Iop et le Cra a revoir) */
+    iop: { nom: 'Étreinte du Chêne', teinte: '#86b84a', recharge: 13, instant: true }, cra: { nom: 'Tempête de feuilles', teinte: '#a8c24a', recharge: 14, portee: 12, zone: 2.2 }, /* (« ouais ok c'est bon », Mathieu, 09/11/2026) */
     osa: { nom: 'Bouture', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4 } } },
 };
 const sortLeg = (cle) => { const S = SORTS_LEG[cle]; return S && S.parClasse ? Object.assign({}, S, S.parClasse[classeDe()]) : S; }; /* (le sort d'une piece legendaire, pour ta classe) */
@@ -310,7 +311,7 @@ function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
   const S = sortLeg(cle), pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
   if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || cle === 'chene' || (cle === 'corail' && classeDe() !== 'iop'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
       l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
       l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
     const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
@@ -336,7 +337,7 @@ function executerLeg(emp, pt, compter, tire) {
   else if (cle === 'bworker') hacheLancee(x, z, S.zone, st); /* la hache lancee : elle retombe la ou tu vises */
   else if (cle === 'moon') bondMoon(x, z, S.zone, st); /* le bond de Moon : le marteau abattu la ou tu vises */
   else if (cle === 'corail') sortCorail(x, y, z, S, st); /* les armes de la Corail : un sort par classe */
-  else if (cle === 'chene' && classeDe() === 'osa') boutureOsa(pt, st); /* les armes du Chene Mou : la Bouture de l'Osa */
+  else if (cle === 'chene') { const cl = classeDe(); if (cl === 'osa') boutureOsa(pt, st); else if (cl === 'cra') tempeteFeuilles(x, z, st); else etreinteChene(st); } /* les armes du Chene Mou : un sort par classe */
   majCombatHud();
 }
 /* LES SORTS DES COIFFES DU BOUFTOU ROYAL ET DU CHAFER CUIRASSE (02/11/2026, « faut rajouter un sort sur la coiffe du Chafer et du Bouftou, les sorts ultimes
@@ -554,6 +555,37 @@ function majBouture(dt) {
   if (an) { if (!(bo.frappe > 0)) { const fam = v > 0.1 ? 'marche' : 'repos'; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25); if (fam === 'marche' && an.A[an.cour]) an.A[an.cour].timeScale = 1.2; }
     an.peau.forEach((p) => { const b0 = p.emissiveMap ? 1 : 0, k = Math.max(0, bo.eclat) / 0.16; p.emissive.setRGB(b0 + 0.3 * k, b0 + 0.05 * k, b0); }); bo.eclat = Math.max(0, bo.eclat - dt); an.mixer.update(dt); }
   m.position.set(bo.x, hauteurSol(bo.x, bo.z, caseIci(bo.x, bo.z)) - 0.5 * (1 - e), bo.z); m.rotation.y = bo.ry; m.scale.setScalar(bo.echelle * (0.2 + 0.8 * e) * Math.min(1, bo.vie / 0.3 + 0.0001));
+}
+/* L'ETREINTE DU CHENE (la Lame d'Ambre, Iop, 09/11/2026 : « Iop c'est une classe cac, donc bof » pour une ligne de racines a distance, puis « ouais ok c'est bon »,
+   Mathieu) : il part au clic. Le Iop tourne sur lui-meme, des racines jaillissent tout autour de lui (1,5 case) ; chaque monstre dedans prend 2,5 fois ses degats,
+   est ramene colle a lui en 0,25 s (pas les boss, ni les demi-boss, ni ce qui est plante) et reste enracine 1,5 s (0,75 s un boss) : tout le monde groupe pour taper dedans */
+const R_ETREINTE = 3;
+function etreinteChene(st) {
+  const c0 = combat, pp = paysanMesh.position, u = paysanMesh.userData, y0 = pp.y, x0 = pp.x, z0 = pp.z;
+  u.attaque = { t: 0, classe: 'iop', base: u.angle, tour: true, surFrappe: () => {} }; /* (le geste : un tour sur lui-meme) */
+  son('sort'); secousse(0.16, 0.3); onde(x0, y0 + 0.05, z0, R_ETREINTE, '#86b84a', 0.45, 0.9); onde(x0, y0 + 0.05, z0, R_ETREINTE * 0.6, '#f7c843', 0.35, 0.7); mottes(x0, y0, z0, 14, R_ETREINTE * 0.5); poussiere(x0, y0, z0, 10, R_ETREINTE * 0.8, '#8a6a48');
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, r = R_ETREINTE * (i % 2 ? 0.95 : 0.6); racineJaillit(x0 + Math.sin(a) * r, y0, z0 + Math.cos(a) * r, i); }
+  feuillesVolantes(x0, y0 + 0.4, z0, R_ETREINTE * 0.6, 12, true); chiffre('Étreinte du Chêne', new T.Vector3(x0, y0 + 2.6, z0), 'gros');
+  c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - x0, o.z - z0); if (d > R_ETREINTE + 0.25 * (o.d.ombre || 1)) return;
+    blesser(o, Math.round(st.deg * 2.5), true); if (o.etat !== 'actif') return; const tenu = o.d.boss ? 0.75 : 1.5; o.bloqueT = Math.max(o.bloqueT || 0, tenu + 0.25);
+    const tire = !o.d.boss && !o.d.demi && !o.ancre && !o.d.totem && !o.d.plante && d > 1.3;
+    if (tire) { const a = Math.atan2(o.x - x0, o.z - z0), dm = 0.95 + 0.3 * (o.d.ombre || 1), X = x0 + Math.sin(a) * dm, Z = z0 + Math.cos(a) * dm, xa = o.x, za = o.z; let t = 0;
+      effets.push((dt) => { t += dt / 0.25; if (combat !== c0 || o.etat !== 'actif') return true; const k = Math.min(1, t), e = 1 - (1 - k) * (1 - k); o.x = xa + (X - xa) * e; o.z = za + (Z - za) * e; return k >= 1; }); }
+    setTimeout(() => { if (combat === c0 && !c0.fin && o.etat === 'actif') racinesQuiSaisissent(o.x, solA(o.x, o.z), o.z, true, tenu, Math.max(1, 1.6 * (o.d.ombre || 1))); }, tire ? 260 : 60); });
+}
+/* LA TEMPETE DE FEUILLES (l'Arc de Seve, Cra, 09/11/2026) : la fleche part vers le point vise (6 cases au plus) ; a son arrivee, une tornade de feuilles s'y leve
+   et tourne 4 s dans un cercle vert (1 case autour). Toutes les 0,5 s, chaque monstre dedans prend 0,8 fois tes degats et avance 30 % moins vite (6,4 fois en tout
+   s'il y reste) : une zone a poser sur le passage des monstres */
+const DUREE_TEMPETE_CRA = 4, R_TEMPETE_CRA = 2.2, COULEURS_TEMPETE = { coeur1: '#2f5a1c', coeur2: '#a8c24a', voile1: '#4f8a2a', voile2: '#dceab0', jupe1: '#6b4528', jupe2: '#c8d890', sol1: '#4a6a2a', sol2: '#d8e8b0' };
+function tempeteFeuilles(x, z, st) {
+  const c0 = combat, y = solA(x, z), R = R_TEMPETE_CRA, D = DUREE_TEMPETE_CRA, g = tornadeVent(R * 0.6, 3.4, COULEURS_TEMPETE); g.position.set(x, y, z); g.scale.set(0.5, 0.01, 0.5); scene.add(g);
+  const anneau = sansClic(new T.Mesh(new T.RingGeometry(R - 0.12, R, 40), new T.MeshBasicMaterial({ color: '#a8c24a', transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false }))); anneau.rotation.x = -Math.PI / 2; anneau.position.set(x, y + 0.07, z); scene.add(anneau);
+  son('sort'); onde(x, y + 0.05, z, R, '#86b84a', 0.45, 0.85); feuillesVolantes(x, y + 0.5, z, R * 0.6, 14, true); secousse(0.06, 0.15);
+  let t = 0, tic = 0.5, fe = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= D) { jeter(g, anneau); return true; }
+    const k = Math.min(1, t / 0.45), f = Math.min(1, (D - t) / 0.5), s = 0.5 + 0.5 * Math.min(k, f); g.scale.set(s, Math.max(0.01, k * (0.6 + 0.4 * f)), s); g.userData.maj(dt, Math.min(k, f)); anneau.material.opacity = 0.7 * Math.min(k, f);
+    if ((fe += dt) > 0.1) { fe = 0; feuillesVolantes(x, y + 0.3, z, R * 0.7, 2, true); }
+    if ((tic += dt) >= 0.5) { tic -= 0.5; c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > R + 0.25 * (o.d.ombre || 1)) return; o.ventT = 0.6; blesser(o, Math.round(st.deg * 0.8), true); }); }
+    return false; });
 }
 function majBarreBoss(mo) {
   const el = $('boss-barre'); if (!el) return;
