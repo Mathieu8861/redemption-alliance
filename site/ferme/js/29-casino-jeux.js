@@ -53,6 +53,7 @@ function clicCasino(hits) {
 }
 function majCasino(dt) {
   if (casinoAnim && !casinoDedans) casinoAnim.animer(dt, performance.now() / 1000);
+  if (casinoDedans) animerSalle(dt);
   majCourse(dt);
   const u = paysanMesh.userData, P = paysanMesh.position, sol = (x, z) => (casinoDedans ? SALLE_CASINO.y : CASINO.y + hauteurCasino(x - CASINO.x, z - CASINO.z));
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); }
@@ -79,14 +80,17 @@ function ouvrirSalle() {
    La porte du palais emmene dans une salle a part (blender/casino.py --salle), posee loin des iles, derriere le voile, comme un voyage : six machines a sous,
    la roulette, la table de blackjack, le bar, l'accueil et le coffre du jackpot ; les gros bras gardent la porte. On y marche comme sur l'ile (cheminSalle). */
 const SALLE_CASINO = new T.Vector3(-240, 0, 480); /* (loin de tout, et rien derriere elle dans l'axe de la camera : la ferme se voyait au fond du hall) */
-let salleCasino = null, casinoDedans = false, angleAvantSalle = null;
+let salleCasino = null, casinoDedans = false, angleAvantSalle = null, barman = null, gardesSalle = [];
 const origineCasino = () => (casinoDedans ? SALLE_CASINO : CASINO);
 async function chargerSalle() {
   if (salleCasino) return;
   const sc = await chargerGlb('assets/modeles/jeu/casino-salle.glb?v=' + VERSION_MODELES);
   versToon(sc, { normales: 0.012, souple: SOUPLE_CASINO, sansContour: SC_CASINO });
-  const g = new T.Group(); g.position.copy(SALLE_CASINO); g.add(sc); g.updateMatrixWorld(true); fusionner(sc);
-  try { await chargerGrosBras(); [['bouboule', -2.2], ['filou', 2.2]].forEach(([n, x]) => { const m = cloner(n); m.position.set(x, 0, 8.9); m.rotation.y = Math.PI; g.add(m); }); } catch (e) { /* (sans eux, la salle reste ouverte) */ }
+  const g = new T.Group(); g.position.copy(SALLE_CASINO); g.add(sc); g.updateMatrixWorld(true);
+  const piv = ['Barman', 'Barman_tete', 'Barman_bras', 'Barman_queue'].map((n) => sc.getObjectByName(n)).filter(Boolean); /* (le chat barman bouge : ses pivots restent a part, 08/11/2026) */
+  piv.forEach((p) => g.attach(p)); fusionner(sc); piv.forEach((p) => { fusionner(p); p.userData.r0 = p.rotation.clone(); p.userData.p0 = p.position.clone(); });
+  barman = piv.length === 4 ? { corps: piv[0], tete: piv[1], bras: piv[2], queue: piv[3], shake: 0, sert: false } : null; if (barman) barman.tete.userData.parole = { nom: 'Minou', genre: 'chat', cle: 'salle_barman' };
+  try { await chargerGrosBras(); gardesSalle = []; [['bouboule', -2.2, 'Bouboule'], ['filou', 2.2, 'Filou']].forEach(([n, x, nom]) => { const m = cloner(n); m.position.set(x, 0, 7.4); /* (deux pas dans le hall, de part et d'autre du tapis : contre la porte, le pilier et le rideau les cachaient, 08/11/2026) */ m.rotation.order = 'YXZ'; m.rotation.y = Math.PI; m.userData.garde = n; m.userData.parole = { nom, genre: 'garde', cle: 'salle_' + n }; g.add(m); gardesSalle.push(m); }); } catch (e) { /* (sans eux, la salle reste ouverte) */ }
   g.visible = false; scene.add(g); salleCasino = g; grilleSalle();
 }
 async function entrerPalais() {
@@ -100,7 +104,7 @@ async function entrerPalais() {
   toast('Bienvenue au Palais du Chat Doré ! Touche une machine, une table ou le bar pour y aller.', 'or');
 }
 async function sortirPalais() {
-  $('voile').classList.add('on'); fermerModale(); await attendreMs(600);
+  $('voile').classList.add('on'); fermerModale(); await attendreMs(600); taireSalle();
   casinoDedans = false; casinoMarche = null; montrerIles(); majBarreCasino();
   const u = paysanMesh.userData, [x, z] = SPOTS.casino; paysanMesh.position.set(CASINO.x + x, CASINO.y, CASINO.z + z); u.y = CASINO.y; u.angle = 0; paysanMesh.rotation.y = 0;
   if (angleAvantSalle != null) { angleCam = angleAvantSalle; angleAvantSalle = null; }
@@ -108,9 +112,11 @@ async function sortirPalais() {
   setTimeout(() => $('voile').classList.remove('on'), 120);
 }
 function clicSalle(hits) {
+  for (const h of hits.slice(0, 6)) { let o = h.object; while (o && !(o.userData && o.userData.garde)) o = o.parent; if (o) { parlerGarde(o); return; } } /* (un garde, meme a demi cache par le portail : on lui parle) */
   for (const h of hits) {
-    let o = h.object, perso = false, dans = false; while (o) { if (o === paysanMesh) perso = true; if (o === salleCasino) dans = true; o = o.parent; }
+    let o = h.object, perso = false, dans = false, garde = null; while (o) { if (o === paysanMesh) perso = true; if (o === salleCasino) dans = true; if (o.userData && o.userData.garde) garde = o; o = o.parent; }
     if (perso || !dans) continue;
+    if (garde) { parlerGarde(garde); return; } /* (on leur parle, 08/11/2026 : avant, les toucher faisait sortir du palais) */
     const lx = h.point.x - SALLE_CASINO.x, lz = h.point.z - SALLE_CASINO.z, ly = h.point.y - SALLE_CASINO.y;
     if (ly > 2.2) { const cm = curiosite(CURIOSITES_SALLE, lx, lz); if (cm) { aller(cm[0], cm[1], cm[0], cm[1], () => toast(cm[3])); return; } } /* (ce qui est accroche haut au mur passe avant ce qui est au sol dessous : le portrait au-dessus du coffre) */
     const j = zoneSalle(lx, lz);
@@ -127,8 +133,69 @@ function ouvrirJeuSalle(j) {
   else if (j === 'statue') toast('Le Chat Doré, fondateur du palais. On dit qu\'il n\'a jamais perdu une partie... sauf contre sa propre queue.');
   else if (j === 'coffre') toast('Le coffre du jackpot : ' + fmt(etatCasino().jackpot) + ' kamas. Il tombe avec trois Jackpots à la machine à sous.', 'or');
 }
+/* LE CHAT BARMAN ET LES GARDES (08/11/2026, « en barman, mets un chat en smoking, a qui on peut demander un cocktail, et il repond en mia mia miaou » ;
+   « on peut parler aux gardes en cliquant droit dessus, ca fait des petites interactions, les mecs sont glacials, un peu menacants », Mathieu).
+   Minou (blender/casino.py, barman) : quatre pivots animes ici ; on commande a la carte, il secoue son shaker, repond en miaou dans sa bulle et pose le
+   cocktail sur le comptoir, offert par la maison. Bouboule et Filou se tournent vers toi et repondent sec ; a force d'insister, ils te sortent du palais. */
+const COCKTAILS = [['Le Chat Doré', 'Lait doré, crème fouettée et paillettes d\'or.', '#f2c14e'], ['Le Double Six', 'Sirop de fraise et deux glaçons en forme de dés.', '#e2413a'],
+  ['Le Jackpot', 'Jus de Cawotte et trois cerises bien alignées.', '#ff9a2e'], ['La Queue du Dragon', 'Menthe givrée. Ça fume un peu, c\'est normal.', '#5cb85a']];
+const MIAOU = ['Mia mia miaou !', 'Miaou ? Mia-miaou.', 'Mrrrr... mia mia !', 'Miaou miaou, mia miaou.', 'Mia ! Miaouuu.', 'Mia mia... mrrraou.', 'Miaou-mia, mia !'];
+const REPLIQUES_GARDES = {
+  bouboule: ['...', 'Circule.', 'On se connaît ?', 'Joue. Ou sors.', 'Le patron n\'aime pas qu\'on traîne devant la porte.', 'J\'ai une très bonne mémoire des visages.', 'T\'as perdu quelque chose ? Pas ici.', 'Je suis pas payé pour causer.'],
+  filou: ['Tu cherches quoi, exactement ?', '...', 'Pas de gestes brusques.', 'Les mains là où je peux les voir.', 'On a l\'œil sur toi.', 'La sortie est derrière moi. Et j\'aime pas bouger.', 'Tu me fais perdre mon temps.', 'Souris. Tant que tu peux.'] };
+const gardesAgaces = { n: 0, t: 0 };
+function direSalle(m, texte, duree) { /* une replique dans une bulle au-dessus de lui (le point suit sa tete, animerSalle) */
+  const P = m && m.userData.parole; if (!P) return; let b = P.bulle;
+  if (!b) { b = P.bulle = document.createElement('div'); b.className = 'bulle parole ' + P.genre; b.dataset.ancre = P.cle; zoneBulles.appendChild(b); }
+  b.innerHTML = '<small>' + P.nom + '</small>' + texte; P.fin = performance.now() + (duree || 2800); ancres[P.cle] = ancres[P.cle] || new T.Vector3(); P.dit = texte;
+}
+function taireSalle() { [barman && barman.tete].concat(gardesSalle).forEach((m) => { const P = m && m.userData.parole; if (P) { P.fin = 0; delete ancres[P.cle]; } }); }
+function autreLigne(L, avant) { const r = L.filter((x) => x !== avant); return hasard(r.length ? r : L); }
+function parlerGarde(m) {
+  const t = performance.now(), A = gardesAgaces, n = m.userData.garde, autre = gardesSalle.find((x) => x !== m); if (t - A.t > 25000) A.n = 0; A.t = t; A.n++;
+  m.userData.regard = t + 4500; m.userData.penche = t;
+  if (A.n >= 6) { A.n = 0; direSalle(m, 'Dehors.', 1800); if (autre) { autre.userData.regard = t + 3000; setTimeout(() => direSalle(autre, 'Reviens quand tu seras calmé.', 2200), 700); }
+    setTimeout(() => { if (lieu === 'casino' && casinoDedans) { toast('Bouboule et Filou te raccompagnent dehors, sans un mot de plus.'); sortirPalais(); } }, 1900); return; }
+  if (A.n >= 4) { direSalle(m, A.n === 4 ? 'Encore une fois, et tu prends l\'air.' : 'Dernier avertissement.', 2600); return; }
+  direSalle(m, autreLigne(REPLIQUES_GARDES[n], m.userData.parole.dit), 2600);
+  if (autre && Math.random() < 0.3) setTimeout(() => { autre.userData.regard = performance.now() + 2500; direSalle(autre, n === 'bouboule' ? 'Il t\'embête, Bouboule ?' : 'Laisse, Filou. Il allait partir.', 2400); }, 1300);
+}
+function commanderCocktail(i) {
+  const C = COCKTAILS[i]; if (!C) return; fermerModale();
+  if (!barman) { toast('Minou te sert « ' + C[0] + ' ». Offert par la maison !', 'or'); return; }
+  if (barman.sert) return; barman.sert = true; barman.shake = 1.5; direSalle(barman.tete, hasard(MIAOU), 2000);
+  setTimeout(() => { barman.sert = false; if (lieu !== 'casino' || !casinoDedans) return; poserCocktail(C[2]); direSalle(barman.tete, autreLigne(MIAOU, barman.tete.userData.parole.dit), 2600);
+    toast('Minou pose devant toi « ' + C[0] + ' ». Tu n\'as pas compris un mot de ce qu\'il a dit, mais c\'est délicieux.', 'or'); compter('cocktails'); }, 1600);
+}
+function poserCocktail(coul) { /* la coupe glisse sur le comptoir devant toi, puis disparait au bout d'un moment */
+  if (!salleCasino) return; const v = new T.Group(), a = (o, y, x) => { o.position.set(x || 0, y, 0); v.add(o); return o; }, verre = '#d8ecff';
+  a(maille(new T.CylinderGeometry(0.06, 0.06, 0.014, 10), verre), 0.007); a(maille(new T.CylinderGeometry(0.011, 0.011, 0.1, 6), verre), 0.06);
+  a(maille(new T.CylinderGeometry(0.092, 0.013, 0.11, 12), verre), 0.165); a(maille(new T.CylinderGeometry(0.08, 0.022, 0.065, 12), coul), 0.18); a(maille(new T.SphereGeometry(0.026, 8, 6), '#c8323e'), 0.232, 0.03);
+  const x0 = 6.9, x1 = 6.35, z = -7.82; v.position.set(x0, 1.16, z); salleCasino.add(v); let t = 0;
+  effets.push((dt) => { t += dt; const k = Math.min(1, t / 0.5); v.position.x = x0 + (x1 - x0) * (1 - (1 - k) * (1 - k)); if (t > 12) v.scale.setScalar(Math.max(0.001, 1 - (t - 12) * 3));
+    if (t > 12.33 || !casinoDedans) { salleCasino.remove(v); return true; } });
+}
+function animerSalle(dt) { /* le barman respire, remue la queue, tourne la tete vers toi, secoue son shaker ; les gardes te fixent quand tu leur parles */
+  const t = performance.now() / 1000, now = performance.now(), pp = paysanMesh.position, O = SALLE_CASINO;
+  if (barman) {
+    const B = barman, r = (p) => p.userData.r0, q = (p) => p.userData.p0, sh = B.shake > 0, souffle = Math.sin(t * 1.5) * 0.01; if (sh) B.shake -= dt;
+    [B.corps, B.tete, B.bras, B.queue].forEach((p) => { p.position.y = q(p).y + souffle; });
+    const dx = pp.x - (O.x + q(B.tete).x), dz = pp.z - (O.z + q(B.tete).z), proche = Math.hypot(dx, dz) < 5.5, vise = proche ? Math.max(-0.7, Math.min(0.7, Math.atan2(dx, dz))) : Math.sin(t * 0.35) * 0.25;
+    B.tete.rotation.y += (r(B.tete).y + vise - B.tete.rotation.y) * Math.min(1, dt * 4); B.tete.rotation.z = r(B.tete).z + Math.sin(t * 0.9) * 0.06; B.tete.rotation.x = r(B.tete).x + (sh ? Math.sin(t * 22) * 0.05 : Math.sin(t * 0.6) * 0.03);
+    B.queue.rotation.y = r(B.queue).y + Math.sin(t * 1.7) * 0.35; B.queue.rotation.z = r(B.queue).z + Math.sin(t * 1.1) * 0.12;
+    if (sh) { B.bras.rotation.x = r(B.bras).x - 0.45 + Math.sin(t * 26) * 0.45; B.bras.position.y = q(B.bras).y + souffle + Math.sin(t * 26) * 0.05; }
+    else B.bras.rotation.x += (r(B.bras).x + Math.sin(t * 1.3) * 0.05 - B.bras.rotation.x) * Math.min(1, dt * 8);
+  }
+  gardesSalle.forEach((m) => { const u = m.userData, actif = u.regard && now < u.regard, cible = actif ? Math.atan2(pp.x - (O.x + m.position.x), pp.z - (O.z + m.position.z)) : Math.PI;
+    let e = cible - m.rotation.y; e = Math.atan2(Math.sin(e), Math.cos(e)); m.rotation.y += e * Math.min(1, dt * 5);
+    const k = u.penche ? (now - u.penche) / 1000 : 9; m.rotation.x = k < 1.2 ? Math.sin(Math.min(1, k / 1.2) * Math.PI) * 0.09 : 0; }); /* (il se penche vers toi, puis se redresse) */
+  [barman && barman.tete].concat(gardesSalle).forEach((m) => { const P = m && m.userData.parole; if (!P || !P.bulle) return; if (now > P.fin) { delete ancres[P.cle]; return; }
+    const a = ancres[P.cle] || (ancres[P.cle] = new T.Vector3()); m.getWorldPosition(a); a.y += P.genre === 'chat' ? 0.75 : 2.45; });
+}
 function ouvrirBar() {
-  ouvrirModale('bar', entete('Le bar du Chat Doré') + '<div class="art">' + ico('kama') + '<div><b>« Qu\'est-ce que je te sers, voyageur ? »</b><div class="desc">Minou, le barman, essuie un verre et te raconte l\'histoire de la maison.</div></div><div class="act"><button class="btn kamas" data-cas="bar:verre">Un lait doré</button></div></div>' +
+  if (barman && !barman.sert) direSalle(barman.tete, 'Mia ?', 1600);
+  ouvrirModale('bar', entete('Le bar du Chat Doré') + '<div class="art">' + ico('kama') + '<div><b>Minou, le barman</b><div class="desc">Un chat roux en smoking, nœud papillon rouge, l\'air blasé. Il essuie un verre et attend ta commande. Les cocktails sont offerts par la maison.</div></div><div></div></div>' +
+    '<div class="hdv-section">La carte</div>' + COCKTAILS.map(([n, d, c], i) => '<div class="art"><span class="pic" style="background:#26272b"><i style="display:block;width:20px;height:20px;border-radius:50% 50% 45% 45%;background:' + c + ';box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),0 0 0 3px #d8ecff"></i></span><div><b>' + n + '</b><div class="desc">' + d + '</div></div><div class="act"><button class="btn kamas" data-cas="bar:c' + i + '">Commander</button></div></div>').join('') +
     '<div class="hdv-section">La légende du Chat Doré</div><p class="hdv-aide" style="font-size:.84rem;line-height:1.45">' + LEGENDE_CHAT + '</p>');
 }
 
@@ -299,7 +366,7 @@ function actionCasino(b) {
   else if (a === 'bille') lancerBille();
   else if (a.startsWith('drago:')) { casinoDrago = +a.slice(6); ouvrirCourse(); }
   else if (a === 'bj:donner') bjDonner(); else if (a === 'bj:tirer') bjTirer(); else if (a === 'bj:rester') { if (bj && !bj.fini) bjFin(); } else if (a === 'bj:doubler') bjDoubler();
-  else if (a === 'bar:verre') toast('Minou pousse vers toi un lait doré, mousseux et tiède. « Offert par la maison ! »', 'or');
+  else if (a.startsWith('bar:c')) commanderCocktail(+a.slice(5));
   else if (a.startsWith('salle:')) { const j = a.slice(6); if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else ouvrirCasinoInfo(); }
   else if (a === 'course') lancerCourse();
 }

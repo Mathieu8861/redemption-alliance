@@ -9,7 +9,7 @@ const SOUPLE_CASINO = { tige: 1, feuille: 1, petale: 1, coeur: 1, fleur_buisson:
   palme: 0.22, palme_tige: 0.22, palme_stipe: 0.22, palme_coco: 0.22, papyrus: 0.6, cypres: 0.06 };
 const SC_CASINO_SOL = new Set(['pierre_fond', 'terre_dessous', 'terre', 'joint', 'pierre', 'pointe', 'ilot', 'racine', 'liane', 'herbe', 'fleur', 'caillou', 'galet']); /* (le sol de l'ile : contour seulement sur le dessus des cases, 08/11/2026) */
 const SC_CASINO = new Set(['palme', 'palme_tige', 'tige', 'feuille', 'petale', 'coeur', 'fleur_buisson', 'coeur_buisson', 'liane', 'lierre', 'rosier', 'haie_fleur', 'papyrus',
-  'nenuphar', 'lotus', 'eau', 'eau_canal', 'drapeau', 'incrustation', 'tapis_or', 'damier', 'kama_tas', 'fond', 'terreau', 'montant', 'balustre', 'tenture']);
+  'nenuphar', 'lotus', 'eau', 'eau_canal', 'drapeau', 'incrustation', 'tapis_or', 'damier', 'kama_tas', 'fond', 'terreau', 'montant', 'balustre', 'tenture', 'kama_signe', 'kama_cran', 'moustache']); /* (le symbole des petits kamas, la tranche des grands, les moustaches du barman : sans contour, 08/11/2026) */
 /* les cotes de blender/casino.py (fontaine_luxe, bassin_luxe, canal) */
 const FONTAINE_CASINO = { x: 0, z: 0, y: 0.56, r: 3.45, yV: 1.9, rV: 1.47, bordV: 1.625, hautV: 1.97, yH: 2.87, rH: 0.73, bordH: 0.865, hautH: 2.92,
   chats: [0, 1, 2, 3].map((k) => Math.PI / 4 + k * Math.PI / 2), rBouche: 2.47, yBouche: 1.6 };
@@ -184,14 +184,14 @@ function hauteurCasino(x, z) { /* le sol est plat, sauf le petit pont en dos d'a
 const OBST_CASINO = (() => { const R = [], C = [], sym = (x, z, r) => { C.push([x, z, r], [x, -z, r]); }, symX = (x, z, r) => { C.push([x, z, r], [-x, z, r]); };
   [[-21, -10.5], [-12, -20.5], [-22, 8.5], [-12.8, 22], [20, -12], [13, -21.5], [21, 9], [12, 24], [-10.2, 10.6], [10.2, 10.6], [24.5, 5.5], [-6.5, 26]].forEach(([x, z]) => C.push([x, z, 0.45])); /* les palmiers */
   R.push([-6.3, 6.3, -26.6, -15.3], [2.1, 2.3, -15.4, -9.4], [-2.3, -2.1, -15.4, -9.4]); /* le palais, son perron, les cordons du tapis */
-  symX(4.6, -15.2, 1.0); symX(8.6, -20.5, 1.8); symX(3.8, -9.8, 0.35); symX(3.8, -12.8, 0.35); symX(3.8, -11.3, 0.5); symX(7.2, -14.3, 0.5); symX(10.2, -14.3, 0.5); symX(9.5, -16.9, 0.8); symX(10.6, -18.3, 0.6);
+  symX(4.6, -15.2, 1.0); symX(8.6, -20.5, 1.8); symX(3.8, -12.8, 0.35); symX(3.8, -11.3, 0.5); symX(7.2, -14.3, 0.5); symX(10.2, -14.3, 0.5); symX(9.5, -16.9, 0.8); symX(10.6, -18.3, 0.6);
   C.push([0, 0, 5.05]); /* la fontaine et ses parterres */
-  for (let k = 0; k < 4; k++) { const d = Math.PI / 4 + k * Math.PI / 2; C.push([Math.cos(d) * 8.2, Math.sin(d) * 8.2, 0.55]); [-0.35, 0.35].forEach((e) => C.push([Math.cos(d + e) * 8.2, Math.sin(d + e) * 8.2, 0.35])); [-0.19, 0.19].forEach((e) => C.push([Math.cos(d + e) * 7.7, Math.sin(d + e) * 7.7, 0.9])); }
-  sym(-24, 3.3, 0.5); sym(-25.6, 4.0, 0.75); R.push([-20.9, -11.1, 4.4, 5.2], [-20.9, -11.1, -5.2, -4.4]); sym(-16, 3.9, 0.25); sym(-22, 3.9, 0.25); sym(-10.6, 3.6, 0.35); sym(-13.6, 3.6, 0.35); sym(-18.4, 3.6, 0.35); sym(-12.1, 4.0, 0.95); sym(-22.6, 4.3, 0.5);
+  for (let k = 0; k < 4; k++) { const d = Math.PI / 4 + k * Math.PI / 2; C.push([Math.cos(d) * 8.2, Math.sin(d) * 8.2, 0.55]); C.push([Math.cos(d - 0.35) * 8.2, Math.sin(d - 0.35) * 8.2, 0.35]); /* (un lampadaire sur deux, 08/11/2026 : « y en a trop », Mathieu) */ [-0.19, 0.19].forEach((e) => C.push([Math.cos(d + e) * 7.7, Math.sin(d + e) * 7.7, 0.9])); }
+  sym(-24, 3.3, 0.5); sym(-25.6, 4.0, 0.75); R.push([-20.9, -11.1, 4.4, 5.2], [-20.9, -11.1, -5.2, -4.4]); sym(-16, 3.9, 0.25); sym(-22, 3.9, 0.25); sym(-10.6, 3.6, 0.35); sym(-18.4, 3.6, 0.35); sym(-12.1, 4.0, 0.95); sym(-22.6, 4.3, 0.5);
   C.push([-14, -12, 3.0], [-21, -8, 1.1], [-15.6, -6.4, 0.45], [-12.4, -6.4, 0.45], [-17.5, 8, 0.7], [-16.2, 8.6, 0.7], [-19.6, 7.6, 0.95], [-18.6, 9.4, 0.75]); R.push([-11.4, -8.2, -6.2, -5.0]); /* l'ouest */
   R.push([-6.5, -1.1, 11.2, 13.7], [1.1, 6.5, 11.2, 13.7], [7.5, 8.5, 9.0, 11.0], [14.7, 17.3, 9.3, 14.7]); symX(3.2, 8.6, 0.5); C.push([-5.6, 10, 0.55], [14, 9, 0.55], [14, 15, 0.55]); /* l'hippodrome (le guichet au bout de l'esplanade, a l'est, 08/11/2026) */
   R.push([13.2, 20.8, -2.3, 2.3], [20.7, 21.5, -0.9, 0.9], [22.9, 27.4, -0.9, 0.9], [14.4, 19.6, 5.6, 6.8], [14.4, 19.6, -6.8, -5.6]); /* les jardins : bassin, canal (le pont reste libre), parterres */
-  sym(25.6, 1.35, 0.5); sym(24, 2.6, 0.45); sym(11.6, 4.4, 0.5); sym(22.6, 4.4, 0.5); sym(10, 3.6, 0.35); sym(14.5, 4.75, 0.35); sym(19.5, 4.75, 0.35); sym(17, 4.2, 0.95); C.push([15.5, -9.4, 0.8], [17.4, -9.8, 0.6], [19.5, -9, 0.5]);
+  sym(25.6, 1.35, 0.5); sym(24, 2.6, 0.45); sym(11.6, 4.4, 0.5); sym(22.6, 4.4, 0.5); C.push([14.5, -4.75, 0.35], [19.5, 4.75, 0.35]); sym(17, 4.2, 0.95); C.push([15.5, -9.4, 0.8], [17.4, -9.8, 0.6], [19.5, -9, 0.5]);
   return { R, C }; })();
 function libreCasino(x, z, marge) { /* sur l'ile, hors du decor (marge : la place du perso) */
   const m = marge == null ? 0.3 : marge, S = STADE_CASINO;
@@ -245,8 +245,8 @@ const SALLE_PLACES = { porte: [0, 9.3, 0, 11], roulette: [-3.5, 0.9, -3.5, -1.5]
 const MACHINES_SALLE = [0, 1, 2, 3, 4, 5].map((k) => -6.0 + k * 2.0); /* (le z des six machines, le long du mur ouest, x -11,7) */
 const OBST_SALLE = (() => { const R = [], C = [];
   R.push([-12.6, -10.9, -6.6, 4.6], [-11.9, -9.3, -9.3, -7.5], [-5.1, -2.15, -2.25, -0.75], [2.65, 6.35, 0.9, 2.85], [3.3, 10.7, -8.5, -7.55], [-7.9, -6.0, 5.0, 8.0], [-1.45, 1.45, -7.05, -6.75]);
-  C.push([-9.2, -8.9, 0.5], [-3.5, -0.1, 0.25], [-2.3, 0, 0.25], [-4.7, 0, 0.25], [4.5, 0.25, 0.6], [11.2, 6.6, 1.0], [9.0, 8.7, 1.0], [9.2, 6.6, 0.6], [-2.2, 5.4, 0.35], [2.2, 5.4, 0.35], [0, -8.4, 1.15], [-2.4, -8.6, 0.45], [2.4, -8.6, 0.45], [-11.9, 9.0, 0.45], [11.9, 9.0, 0.45], [11.9, -2.0, 0.45],
-    [-8.5, -4.8, 0.6], [8.5, -4.8, 0.6], [-8.5, 4.6, 0.6], [8.5, 4.6, 0.6], [-2.2, 8.9, 0.5], [2.2, 8.9, 0.5]);
+  C.push([-9.2, -8.9, 0.5], [-3.5, -0.1, 0.25], [-2.3, 0, 0.25], [-4.7, 0, 0.25], [4.5, 0.25, 0.6], [11.2, 6.6, 1.0], [9.0, 8.7, 1.0], [9.2, 6.6, 0.6], [0, -8.4, 1.15], [-2.4, -8.6, 0.45], [2.4, -8.6, 0.45], [-11.9, 9.0, 0.45], [11.9, 9.0, 0.45], [11.9, -2.0, 0.45],
+    [-8.5, -4.8, 0.6], [8.5, -4.8, 0.6], [-8.5, 4.6, 0.6], [8.5, 4.6, 0.6], [-2.2, 7.4, 0.5], [2.2, 7.4, 0.5]);
   for (let k = 0; k < 5; k++) C.push([4.4 + k * 1.3, -7.0, 0.3]);
   return { R, C }; })();
 function libreSalle(x, z, marge) {
