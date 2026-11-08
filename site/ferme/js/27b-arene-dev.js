@@ -5,7 +5,7 @@
    force (pas les regles de l'Arene). Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ;
    sa vie d'avant est gardee. Les modeles des monstres a squelette (palier 9, Moon) ne se chargent qu'ici (chargerSquelettes). */
 const estAdmin = () => ultiLibre();
-const AVANT_PREMIERE = ['venerable', 'semeur', 'tronknyde', 'abraknyde', 'lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille', 'crocabulia', 'royal', 'cuirasse', 'bworker', 'craqLegendaire', 'waWabbit', 'koulosse', 'dragonCochon']; /* (31/10/2026, par Discord, « mets-moi tous les nouveaux boss dans l'arene que je teste » : les boss des paliers 1 a 8 aux sorts refaits) */ /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */ /* (Crocabulia, qui vole sur ses grandes ailes, 31/10/2026 : « le croca est pas dispo en arene », Mathieu) */
+const AVANT_PREMIERE = ['sombre', 'venerable', 'semeur', 'tronknyde', 'abraknyde', 'lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille', 'crocabulia', 'royal', 'cuirasse', 'bworker', 'craqLegendaire', 'waWabbit', 'koulosse', 'dragonCochon']; /* (31/10/2026, par Discord, « mets-moi tous les nouveaux boss dans l'arene que je teste » : les boss des paliers 1 a 8 aux sorts refaits) */ /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */ /* (Crocabulia, qui vole sur ses grandes ailes, 31/10/2026 : « le croca est pas dispo en arene », Mathieu) */
 const GROUPES_DEV = {
   troupe: { nom: 'La troupe', liste: { tortueJaune: 1, tortueRouge: 1, kannibJav: 1, kannibSarbak: 1, kannibArk: 1, kannibTam: 1 } },
   tortues: { nom: 'Les 4 Tortues', liste: { tortueBleue: 1, tortueJaune: 1, tortueRouge: 1, tortueVerte: 1 } },
@@ -34,17 +34,20 @@ function ouvrirAreneDev() {
     '<div class="hdv-section">La force des monstres : vague ' + E.n + '</div><div class="act dev-nb"><button class="btn discret" data-dev-n="-1"' + (E.n > 1 ? '' : ' disabled') + '>−</button><b>vague ' + E.n + '</b><button class="btn discret" data-dev-n="1"' + (E.n < 90 ? '' : ' disabled') + '>+</button></div>' +
     '<div class="hdv-section">Vitesse des animations de Moon</div><p class="hdv-aide">Les Kannibouls sont réglés à ×1,75 et les Tortues à ×1,25, comme tu l\'as choisi. Reste Moon : choisis celle qui te paraît juste, elle sera mise pour tout le monde.</p><div class="puces dev-groupes">' +
       [1, 1.25, 1.5, 1.75].map((x) => '<button class="btn ' + (VITESSE_ANIM === x ? 'kamas' : 'discret') + '" data-dev-vit="' + x + '">×' + String(x).replace('.', ',') + '</button>').join('') + '</div>' +
+    '<div class="hdv-section">Les monstres du palier 10 : deux versions</div><p class="hdv-aide">A : la version réaliste (écorce détaillée). B : la version à la DA du jeu (aplats, couleurs franches, contours marqués). Même forme, mêmes mouvements ; ça change aussi les monstres déjà en combat.</p><div class="puces dev-groupes">' +
+      [['A', 'Version A (réaliste)'], ['B', 'Version B (DA du jeu)']].map(([v, t]) => '<button class="btn ' + (VERSION_P10 === v ? 'kamas' : 'discret') + '" data-dev-version="' + v + '">' + t + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version]'); if (!b || !estAdmin()) return;
   const E = etatDev();
   if (b.dataset.devPlus) E.liste[b.dataset.devPlus] = Math.min(NB_DEV_MAX, (E.liste[b.dataset.devPlus] || 0) + 1);
   else if (b.dataset.devMoins) E.liste[b.dataset.devMoins] = Math.max(0, (E.liste[b.dataset.devMoins] || 0) - 1);
   else if (b.dataset.devGroupe) E.liste = b.dataset.devGroupe === 'vider' ? {} : Object.assign({}, GROUPES_DEV[b.dataset.devGroupe].liste);
   else if (b.dataset.devN) E.n = Math.max(1, Math.min(90, E.n + Number(b.dataset.devN)));
   else if (b.dataset.devEssai) E.essai = E.essai === b.dataset.devEssai ? null : b.dataset.devEssai;
+  else if (b.dataset.devVersion) { choisirVersionP10(b.dataset.devVersion).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVit) { VITESSE_ANIM = Number(b.dataset.devVit); try { localStorage.setItem('ferme-vitesse-anim', String(VITESSE_ANIM)); } catch (err) { /* rien */ } }
   ouvrirAreneDev();
 });

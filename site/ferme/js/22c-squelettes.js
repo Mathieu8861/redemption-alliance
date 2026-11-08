@@ -9,12 +9,12 @@
 /* Le soir du 25/10 : les Kannibouls et les Tortues, rattaches a leur squelette Mixamo (blender/lier-squelette.py : masques, cheveux et carapace
    rigides) puis assembles avec leurs mouvements et leur arme (blender/monstre-anime.py). Leurs coups et leurs tirs partent a l'instant ou une main ou
    un pied va le plus vite, lu sur chaque animation (attaqueSquelette) ; leurs sorts jouent un geste (gesteSort). */
-const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 2.3], ['golem-lune', 3.4], ['tortue-corail', 3.0], ['abraknyde', 2.4], ['semeur', 3.2], ['tronknyde', 1.1], ['venerable', 2.4]]
+const SQUELETTES_A_CHARGER = [['moon', 4.6], ['jav', 2.1], ['sarbak', 1.7], ['ark', 2.2], ['tam', 1.9], ['ebil', 3.0], ['tortue-bleue', 1.8], ['tortue-jaune', 1.8], ['tortue-rouge', 1.8], ['tortue-verte', 1.8], ['lemurien', 2.3], ['gorille-roi', 2.3], ['golem-lune', 3.4], ['tortue-corail', 3.0], ['abraknyde', 2.4], ['semeur', 3.2], ['tronknyde', 1.1], ['venerable', 2.4], ['sombre', 2.6]]
   .map(([n, h]) => [n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); /* (charges a la demande : chargerSquelettes(noms), pour l'Arene dev) */
 /* (28/10/2026) le Lemurien tiki, anime a la main dans Blender (blender/lemurien-anime.py, lemurien-export.py), pas par Mixamo (« c'est des creatures,
    Mixamo c'est plus pour des humanoides », Mathieu) : son squelette n'a pas de hanches Mixamo, la vitesse naturelle de sa marche et de sa course
    (sur place) est donnee ici, en unites du jeu par seconde */
-const ALLURES = { lemurien: { marche: 0.97, course: 2.97 }, abraknyde: { marche: 0.317, course: 1.723 }, venerable: { marche: 0.393, course: 2.133 }, semeur: { marche: 0.52, course: 2.226 }, tronknyde: { marche: 0.478, course: 1.974 } }; /* (le Semeur et le Tronknyde, 05/11/2026 : semeur-export.py, tronknyde-export.py) */ /* (l'Abraknyde, 05/11/2026 : sa marche lourde et son pas presse, blender/palier10/abraknyde-export.py) */ /* (a 2,3 de haut, boss du 28/10/2026 : 0,8 et 2,45 a 1,9) */
+const ALLURES = { lemurien: { marche: 0.97, course: 2.97 }, abraknyde: { marche: 0.317, course: 1.723 }, venerable: { marche: 0.393, course: 2.133 }, sombre: { marche: 0.357, course: 1.939 }, semeur: { marche: 0.52, course: 2.226 }, tronknyde: { marche: 0.478, course: 1.974 } }; /* (le Semeur et le Tronknyde, 05/11/2026 : semeur-export.py, tronknyde-export.py) */ /* (l'Abraknyde, 05/11/2026 : sa marche lourde et son pas presse, blender/palier10/abraknyde-export.py) */ /* (a 2,3 de haut, boss du 28/10/2026 : 0,8 et 2,45 a 1,9) */
 const FAMILLES_BOUCLE = new Set(['repos', 'marche', 'course']);
 /* (26/10/2026, « les monstres sont au ralenti, t'as l'impression qu'ils sont en x0.5 », Mathieu : les mouvements de Mixamo ont le rythme d'un vrai
    corps, plus lent que nos monstres de dessin anime ; tous un peu plus vifs, et une course ou une marche jamais jouee sous 90 % de sa vitesse) */
@@ -23,7 +23,7 @@ const VIF = 1.2, ALLURE_MIN = 0.9, ALLURE_MAX = 1.8;
    les mouvements captures sur de vrais acteurs paraissent au ralenti sur nos petits monstres de dessin anime ; Mathieu la regle dans l'Arene dev */
 let VITESSE_ANIM = (() => { try { return +localStorage.getItem('ferme-vitesse-anim') || 1.25; } catch (e) { return 1.25; } })();
 /* (27/10/2026, apres ses essais : « les Kannibouls a x1,75, sinon ca fait l'effet de ralenti », les Tortues a x1,25 ; le reglage ne sert plus qu'a Moon) */
-const VITESSE_FAMILLE = { jav: 1.75, sarbak: 1.75, ark: 1.75, tam: 1.75, ebil: 1.75, 'tortue-bleue': 1.25, 'tortue-jaune': 1.25, 'tortue-rouge': 1.25, 'tortue-verte': 1.25, lemurien: 1.15, 'gorille-roi': 1.45, 'golem-lune': 1.25, 'tortue-corail': 1.4, abraknyde: 1.2, semeur: 1.2, tronknyde: 1.2, venerable: 1.1 }; /* (les 4 boss du 28/10/2026, « vifs », Mathieu ; le golem, de pierre, un peu plus lourd) */
+const VITESSE_FAMILLE = { jav: 1.75, sarbak: 1.75, ark: 1.75, tam: 1.75, ebil: 1.75, 'tortue-bleue': 1.25, 'tortue-jaune': 1.25, 'tortue-rouge': 1.25, 'tortue-verte': 1.25, lemurien: 1.15, 'gorille-roi': 1.45, 'golem-lune': 1.25, 'tortue-corail': 1.4, abraknyde: 1.2, semeur: 1.2, tronknyde: 1.2, venerable: 1.1, sombre: 1.0 }; /* (les 4 boss du 28/10/2026, « vifs », Mathieu ; le golem, de pierre, un peu plus lourd) */
 const vitAnim = (mo) => ((mo && mo.d && VITESSE_FAMILLE[mo.d.modele]) || VITESSE_ANIM) * ((mo && mo.d && mo.d.vivacite) || 1); /* (vivacite : un monstre plus vif que sa famille, Moon a +25 %, 30/10/2026) */
 const vif = (mo) => VIF * vitAnim(mo);
 const FAMILLES_COUP = ['coup', 'tourbillon'];
@@ -138,8 +138,30 @@ async function chargerSquelette(nom, url, h) {
         gl.scene.userData.vols = vols; gl.scene.userData.bras = bras; } /* (le bond et le moulinet de Moon, et du Gorille) */
       /* sa portee : la ou tombent ses coups au sol, en moyenne (il ne frappe que si tu es dedans) */
       const D = vise ? [].concat(...Object.values(impacts)).filter((x) => x.sol && x.d).map((x) => x.d).sort((x, y) => x - y) : []; gl.scene.userData.portee = D.length ? D[Math.floor(D.length / 2)] : 0; /* (sans marteau : la portee de sa fiche) */
-      MODELES[nom] = gl.scene; } catch (err) { console.error('squelette', nom, err); }
+      MODELES[nom] = gl.scene; if (VERSIONS_P10.has(nom)) { await texturesP10(nom); habillerP10(nom, peauxDe(gl.scene)); } } catch (err) { console.error('squelette', nom, err); }
   }
+}
+/* LES DEUX VERSIONS DES MONSTRES DU PALIER 10 (08/11/2026, par Discord : « ils font peut-etre trop realistes par rapport a notre jeu, fais les deux
+   versions, celle actuelle et une version plus adaptee a notre DA actuelle, je trancherai a la fin », Mathieu). La version A (realiste) est la texture du
+   glb ; la version B (a la DA du jeu : aplats, couleurs franches, contours a l'encre, blender/palier10/da-peindre.py) est une autre texture sur le meme
+   modele, assets/modeles/jeu/da/<nom>-da.jpg et son image d'emission <nom>-da-emission.png. On passe de l'une a l'autre dans l'Arene dev, en direct,
+   y compris sur les monstres deja en combat ; le choix est garde dans ce navigateur (localStorage). */
+const VERSIONS_P10 = new Set(['abraknyde', 'semeur', 'tronknyde', 'venerable', 'sombre']);
+let VERSION_P10 = (() => { try { return localStorage.getItem('ferme-version-p10') === 'B' ? 'B' : 'A'; } catch (err) { return 'A'; } })();
+const TEX_P10 = {}; /* nom -> { A: { map, emi }, B: { map, emi } } */
+const texDa = (url) => new Promise((ok) => new T.TextureLoader().load(url + '?v=' + VERSION_MODELES, (t) => { t.flipY = false; t.encoding = T.LinearEncoding; t.anisotropy = 4; ok(t); }, undefined, () => ok(null)));
+const peauxDe = (g) => { const L = []; g.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') L.push(o.material); }); return L; };
+async function texturesP10(nom) {
+  const M = MODELES[nom]; if (!M || !VERSIONS_P10.has(nom)) return null;
+  const T0 = TEX_P10[nom] = TEX_P10[nom] || {}; if (!T0.A) { const m = peauxDe(M)[0]; T0.A = { map: m && m.map, emi: m && m.emissiveMap }; }
+  if (VERSION_P10 === 'B' && !T0.B) { const [map, emi] = await Promise.all([texDa('assets/modeles/jeu/da/' + nom + '-da.jpg'), texDa('assets/modeles/jeu/da/' + nom + '-da-emission.png')]); T0.B = map ? { map, emi: emi || T0.A.emi } : null; }
+  return T0;
+}
+function habillerP10(nom, mats) { const t = TEX_P10[nom] && TEX_P10[nom][VERSION_P10]; if (!t || !t.map) return; mats.forEach((m) => { m.map = t.map; if (t.emi) m.emissiveMap = t.emi; m.needsUpdate = true; }); }
+async function choisirVersionP10(v) {
+  VERSION_P10 = v === 'B' ? 'B' : 'A'; try { localStorage.setItem('ferme-version-p10', VERSION_P10); } catch (err) { /* rien */ }
+  for (const nom of VERSIONS_P10) { if (!MODELES[nom]) continue; await texturesP10(nom); habillerP10(nom, peauxDe(MODELES[nom])); }
+  if (combat && combat.monstres) combat.monstres.forEach((o) => { const n = MONSTRES[o.type] && MONSTRES[o.type].modele; if (o.m && VERSIONS_P10.has(n)) habillerP10(n, peauxDe(o.m)); });
 }
 function clonerSquelette(nom) {
   const M = MODELES[nom], g = cloneNu(M); g.userData = Object.assign({}, M.userData);
