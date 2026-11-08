@@ -40,7 +40,7 @@ function elargirPerso(g, classe) {
 }
 /* les modeles des pieces portees (charges seulement quand une coiffe ou une cape est portee) */
 const VISUELS = {}; let visuelsPromesse = null;
-const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon', 'equipements-moon', 'equipements-kanniboul', 'equipements-corail', 'equipements-foret'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
+const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon', 'equipements-moon', 'equipements-kanniboul', 'equipements-corail', 'equipements-foret', 'equipements-chene'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
   .then(() => true).catch(() => { visuelsPromesse = null; return false; }));
 const visuelsPrets = () => !!VISUELS.equipements;
 const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit', cochon: 'Coiffe_DragonCochon' };
