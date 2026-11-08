@@ -609,7 +609,6 @@ function porteeSous(ev) {
     if (h.object.material && h.object.material.transparent && !(h.object.userData && h.object.userData.cellule)) continue;
     let o = h.object, cel = null; while (o) { if (typeof o.userData.cellule === 'string') { cel = o.userData.cellule; break; } o = o.parent; }
     const c = cel && S_.cases.find((x) => x.id === cel); if (!c) return null;
-    if (c.type === 'voliere') { if (tofusVoliere.length) montrerNomsTofus(2500); return null; } /* (les noms des Tofus, 08/11/2026) */
     if (c.type === 'tour') { const q = posCase(c); return { x: q.x, y: q.y, z: q.z, r: porteeTour(c), txt: 'Tour niveau ' + (nivTour(c) + 1) + ' · portée ' + enCases(porteeTour(c)) + ' cases · ' + fmt(S_.fleches) + ' flèches en réserve' }; }
     if (c.type === 'grange' && arbalete && niv('arbalete')) return { x: arbalete.position.x, y: posCase(c).y, z: arbalete.position.z, r: porteeArbalete(), txt: 'Arbalète niveau ' + niv('arbalete') + ' · portée ' + enCases(porteeArbalete()) + ' cases · ' + S_.carreaux + '/' + capaciteArbalete() + ' carreaux · ' + fmt(S_.fleches) + ' flèches en réserve' };
     if (c.type === 'epouvantail' && epou && niv('epouvantail') >= 3) { const n = niv('epouvantail'); return { x: epou.g.position.x, y: posCase(c).y, z: epou.g.position.z, r: n >= 4 ? 0 : EPOU[3].portee, txt: (n >= 5 ? 'PÉPITO-TRON · toute ta ferme · laser gratuit' : 'Épouvantail · ' + (n >= 4 ? 'toute ta ferme' : 'portée ' + enCases(EPOU[3].portee) + ' cases autour de lui') + ' · ' + fmt(S_.fleches) + ' flèches en réserve') }; }
