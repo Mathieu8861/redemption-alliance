@@ -1329,17 +1329,32 @@ function nuitTombe(duree) { /* la nuit tombe : les lumieres baissent et bleuisse
    palier 10 sort, la nuit tombe sur la ferme jusqu'a la fin du combat. Pas de lune comme la nuit lunaire du Golem : un voile bleu-vert profond, la lumiere
    baisse davantage et bleuit, des lucioles qui flottent ; les yeux des Abraknydes (leur image d'emission) ressortent dans le noir. Le jour revient a la fin */
 let NUIT_F = null;
+/* LA LUMIERE DES LANTERNES ET DES TORCHES DANS LA NUIT DE LA FORET (08/11/2026, « il faudra acheter des lampadaires », puis « rajoute aussi des lampes torches »,
+   Mathieu, qui garde la nuit telle quelle) : chaque lanterne ou torche allumee perce le voile de la nuit d'une ellipse de lumiere sur l'herbe autour d'elle,
+   les monstres y redeviennent visibles. Le voile garde ses calques de masque, un par lumiere, croises (mask-composite: intersect) */
+const TROU_NUIT = 2.6; /* (le rayon du cercle de lumiere, en lueurs de la lanterne : 1,6 m pour la petite, 2,6 pour celle sur pied, 3,2 pour la torche) */
+function trousNuit(N) {
+  const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
+  if (!L.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
+  const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); D.y = 0; D.normalize(); const D2 = new T.Vector3(-D.z, 0, D.x), p = new T.Vector3(), q = new T.Vector3(), g = [];
+  const ecran = (v) => [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
+  L.forEach((A) => { const R = A.r * TROU_NUIT * A.a; p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
+    q.copy(A.sol.position).addScaledVector(D, R).project(camera); const [x1, y1] = ecran(q); q.copy(A.sol.position).addScaledVector(D2, R).project(camera); const [x2, y2] = ecran(q);
+    const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
+    g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 42%, #000 100%)'); });
+  const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
+}
 function nuitForet() {
   if (!NUIT_F) { const v = document.createElement('div'); v.className = 'nuit-foret'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(10,40,48,.16) 0%,rgba(6,22,30,.38) 45%,rgba(3,10,16,.66) 100%)'; /* (au-dessus de la scene, sous l'interface : la nuit lunaire, elle, ne teinte que le ciel) */
     const st = document.createElement('style'); st.textContent = '@keyframes luciole{0%{transform:translate(0,0);opacity:.2}25%{opacity:1}50%{transform:translate(18px,-22px);opacity:.4}75%{opacity:.95}100%{transform:translate(-10px,8px);opacity:.2}}'; document.head.appendChild(st);
     v.innerHTML = Array.from({ length: 26 }, () => '<i style="position:absolute;left:' + (Math.random() * 100).toFixed(1) + '%;top:' + (20 + Math.random() * 75).toFixed(1) + '%;width:5px;height:5px;border-radius:50%;background:#e8ff9a;box-shadow:0 0 10px 3px rgba(214,255,120,.75);animation:luciole ' + (4 + Math.random() * 5).toFixed(1) + 's ease-in-out ' + (-Math.random() * 6).toFixed(1) + 's infinite alternate"></i>').join('');
     canvas.insertAdjacentElement('afterend', v);
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
-  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0;
+  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
   effets.push((dt) => { N.t += dt; const vivant = combat === c0 && combat && !combat.fin; if (!vivant) fin += dt;
-    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k);
+    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); trousNuit(N);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
-    if (fin >= 1.4) { N.v.style.opacity = '0'; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
+    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
 }
 function meteorite(mo, x, z, U, c0) { /* une meteorite : un cercle s'annonce, une pierre de lune tombe du ciel en biais dans une trainee, cratere et eclats a l'impact */
   const prepa = 1.25, g = rocherLune(), y = solA(x, z), de = new T.Vector3(x - 7, y + 20, z - 4); g.scale.setScalar(1.3); g.visible = false; scene.add(g); let t = 0;

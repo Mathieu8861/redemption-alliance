@@ -221,6 +221,7 @@ const DECOS = {
      bord d'une case (S_.clotures), juste decorative ; lumiere : la hauteur de son verre et la taille de sa lueur */
   route_pavee: { nom: 'Route pavée', prix: 250, niv: 1, pr: 'la', sol: true }, cloture: { nom: 'Petite clôture', prix: 150, niv: 1, pr: 'la', bord: true },
   lanterne_sol: { nom: 'Petite lanterne', prix: 1500, niv: 5, pr: 'la', lumiere: { y: 0.25, r: 0.6 } }, lanterne_pied: { nom: 'Lanterne sur pied', prix: 3500, niv: 12, pr: 'la', lumiere: { y: 1.77, r: 1.0 } },
+  torche: { nom: 'Torche', prix: 2500, niv: 10, pr: 'la', lumiere: { y: 1.78, r: 1.25 } }, /* (08/11/2026, « il faudra acheter des lampadaires » puis « rajoute aussi des lampes torches », Mathieu : pendant la nuit de la foret, lanternes et torches y percent un cercle de lumiere, 21-combat.js) */
 };
 const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
 const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
@@ -299,6 +300,7 @@ function lueurLanterne(m, L) {
 let LANTERNES_FORCE = null;
 function lanternesAllumees() {
   if (LANTERNES_FORCE != null) return LANTERNES_FORCE;
+  if (typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) return true; /* (la nuit de la foret les allume, 08/11/2026) */
   const t = new Date(), rad = Math.PI / 180, j = (Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()) - Date.UTC(t.getUTCFullYear(), 0, 0)) / 864e5;
   const B = 2 * Math.PI * (j - 81) / 365, eqt = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B); /* (l'equation du temps, en minutes : jusqu'a 16 min d'ecart en novembre) */
   const dec = -23.44 * Math.cos(2 * Math.PI / 365 * (j + 10)) * rad, lat = 48.85 * rad, H = (t.getUTCHours() + t.getUTCMinutes() / 60 + 2.35 / 15 + eqt / 60 - 12) * 15 * rad;
