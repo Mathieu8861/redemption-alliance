@@ -112,10 +112,16 @@ function bandeauTest() {
 function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
 /* RELANCER UNE VAGUE SANS QUITTER LE MODE TEST (08/11/2026, « je suis a chaque fois oblige de quitter et de relancer pour pouvoir relancer une vague comme je
    veux », Mathieu) : le combat en cours, gagne, perdu ou en plein milieu, s'arrete net, sans bilan ; la vie remonte, et la vague choisie (ou la revanche) repart */
+/* LES BOOSTS DU MODE TEST (08/11/2026, « rajoute-moi la possibilite de mettre les potions / fruits de boost », Mathieu) : les repas (Cawotte, Fraise, Bananagrume,
+   deux au plus comme en vrai) et les pots bus avant la vague (Menthe, Citron, Royale), coches une fois, repris a chaque vague lancee ou relancee */
+const BOOSTS_TEST = [['cawotte', 'repas', 'Cawotte', '+20 % de dégâts'], ['fraise', 'repas', 'Fraise', '+30 % de prospection'], ['bananagrume', 'repas', 'Bananagrume', 'sorts 20 % plus vite'],
+  ['menthe', 'pot', 'Pot de Menthe', 'te soigne pendant la vague'], ['citron', 'pot', 'Pot de Citron', 'tu cours 30 % plus vite'], ['royale', 'pot', 'Pot de Royale', '+20 Agilité']];
+function boostsTest() { const B = ETAT_TEST.boosts || {}; S_.mange = {}; BOOSTS_TEST.forEach(([id, g]) => { if (g === 'repas' && B[id]) S_.mange[id] = true; }); S_.mangeDeux = false;
+  S_.menthe = !!B.menthe; S_.citron = !!B.citron; S_.royale = B.royale ? POTS.royale.agi : 0; }
 function relancerTest(a) {
   if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme.'); return; }
   if (combat) nettoyerCombat(combat, true); fermerModale(); vieAuMax(); ETAT_TEST.dernier = a; const n = ETAT_TEST.n; bandeauTest();
-  setTimeout(() => { if (combat || !MODE_TEST) return; if (a === 'vague') { S_.vague.num = n; S_.vague.prepa = 0; S_.vague.repos = 0; lancerVague(); } else lancerVague(palierDe(n), a === 'difficile'); }, 250);
+  setTimeout(() => { if (combat || !MODE_TEST) return; boostsTest(); if (a === 'vague') { S_.vague.num = n; S_.vague.prepa = 0; S_.vague.repos = 0; lancerVague(); } else lancerVague(palierDe(n), a === 'difficile'); }, 250);
 }
 function vieAuMax() { const m = statsPerso().pvMax; S_.pv = m; if (combat && combat.pvMax) { combat.pv = combat.pvMax; majCombatHud(); } rendreHaut(); }
 function equiperTest(P) { /* la panoplie entiere au jet moyen, et l'arme de ta classe de cette panoplie */
@@ -141,6 +147,7 @@ function ouvrirModeTest() {
     '<div class="hdv-section">Ton équipement</div><p class="hdv-aide">La panoplie entière au jet moyen, et l\'arme de ta classe de cette panoplie.</p><div class="puces dev-groupes">' + bouton('test-pano', '', 'Rien', !panoPortee && !arme) + PANOS.map((x) => bouton('test-pano', x.id, x.nom + ' (' + x.niv + ')', panoPortee === x.id)).join('') + '</div>' +
     '<p class="hdv-aide">Arme légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => x.arme && OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]]).map((x) => bouton('test-leg-arme', x.cle, OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]].nom, arme && arme.leg === x.cle)).join('') + '</div>' +
     '<p class="hdv-aide">Coiffe légendaire, à la place de celle de la panoplie :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => !x.arme && OBJETS['leg-' + x.cle]).map((x) => bouton('test-leg-coiffe', x.cle, OBJETS['leg-' + x.cle].nom, coiffe && coiffe.leg === x.cle)).join('') + '</div>' +
+    '<div class="hdv-section">Tes boosts</div><p class="hdv-aide">Repris à chaque vague lancée ou relancée. Deux repas au plus, comme en vrai.</p><div class="puces dev-groupes">' + BOOSTS_TEST.map(([id, , nom, eff]) => bouton('test-boost', id, nom + ' (' + eff + ')', !!(ETAT_TEST.boosts || {})[id])).join('') + '</div>' +
     '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS_TOUS[P].boss].nom) + '</b>, ' + PALIERS_TOUS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (P >= PALIERS.length ? ', <b>en avant-première</b> (fermé aux joueurs)' : '') + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
     '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER || P >= PALIERS.length ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
     '<div class="hdv-section">Tes défenses</div><p class="hdv-aide">Tes ' + nbTours() + ' tourelles : les tiennes, coupées, ou toutes au niveau de ton choix (6 : celles du château).</p><div class="puces dev-groupes">' + bouton('test-tours', 'tiennes', 'Les tiennes', ETAT_TEST.tours == null) + bouton('test-tours', '0', 'Coupées', ETAT_TEST.tours === 0) + [1, 2, 3, 4, 5, 6].map((k) => bouton('test-tours', String(k), 'Niveau ' + k, ETAT_TEST.tours === k)).join('') + '</div>' +
@@ -149,7 +156,7 @@ function ouvrirModeTest() {
     '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost]'); if (!b || !estAdmin()) return;
   const d = b.dataset, a = d.test;
   if (a === 'ouvrir') { ouvrirModeTest(); return; }
   if (a === 'entrer') { entrerModeTest(); return; }
@@ -169,6 +176,8 @@ document.addEventListener('click', (e) => {
   else if (d.testPano != null && b.hasAttribute('data-test-pano')) equiperTest(PANOS.find((x) => x.id === d.testPano) || null);
   else if (d.testLegArme) { if (combat) return; const id = 'leg-' + d.testLegArme + '-' + ARMES[classeDe()][0], o = S_.equip.arme && obj(S_.equip.arme); S_.equip.arme = o && o.leg === d.testLegArme ? null : id; rhabiller(); }
   else if (d.testLegCoiffe) { if (combat) return; const o = S_.equip.coiffe && obj(S_.equip.coiffe); S_.equip.coiffe = o && o.leg === d.testLegCoiffe ? null : 'leg-' + d.testLegCoiffe; rhabiller(); }
+  else if (d.testBoost) { const B = ETAT_TEST.boosts = ETAT_TEST.boosts || {}, id = d.testBoost, g = (BOOSTS_TEST.find((x) => x[0] === id) || [])[1];
+    if (!B[id] && g === 'repas' && BOOSTS_TEST.filter(([x, gg]) => gg === 'repas' && B[x]).length >= REPAS) toast('Deux repas au plus, comme en vrai : décoche-en un.'); else B[id] = !B[id]; }
   else if (d.testN) { ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, ETAT_TEST.n + Number(d.testN))); bandeauTest(); }
   vieAuMax(); ouvrirModeTest();
 });
