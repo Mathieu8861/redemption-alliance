@@ -235,7 +235,7 @@ function modelesNiveaux(G) {
   [2, 3, 5].forEach((n) => { MODELES['portique' + n] = gabaritEchelle(Ge, 'Portique' + n, kc, O); });
   MODELES.abreuvoir = gabaritEchelle(Ge, 'Abreuvoir', kc, O); MODELES.mangeoire = gabaritEchelle(Ge, 'Mangeoire', kc, O);
   [4, 5].forEach((n) => { MODELES['bergerie' + n] = gabaritEchelle(Ge, 'Bergerie' + n, kc * 0.9, O); });
-  MODELES.grange = MODELES.grange1; MODELES.puits = MODELES.puits1; MODELES.hdv = MODELES.hdv1; MODELES.voliere = MODELES.voliere1;
+  MODELES.grange = MODELES.grange1; MODELES.puits = MODELES.puits1; MODELES.hdv = MODELES.hdv1; MODELES.voliere = MODELES.voliere1; MODELES.voliereK = kv; MODELES.voliereC = cv; /* (les Tofus se posent d'apres les cotes du modele, 08/11/2026) */
   MODELES.toitGrange = MODELES.grange1.userData.hauteur; MODELES.leveGrange = 0.55 * kg; /* le faitage du niveau 1, et de combien la grange monte au niveau 3 */
 }
 function gabarit(racine, nom, taille, axe) {

@@ -84,7 +84,7 @@ function boucle(t) {
     Object.values(casesDyn).forEach((g) => g.children.forEach((o) => { if (o.userData && o.userData.tofu) vieTofu(o, dtv, VIE_CHAMP); }));
     if (marchandMesh) { marchandMesh.rotation.y = (marchandMesh.userData.ry0 !== undefined ? marchandMesh.userData.ry0 : -0.5) + Math.sin(s * 0.45) * 0.3; marchandMesh.position.y = (marchandMesh.userData.y0 || 0) + Math.sin(s * 1.6) * 0.008; } /* il regarde autour de lui */
     animerGelees(Math.min(0.05, (t - (boucle.t1 || t)) / 1000), s);
-    tofusVoliere.forEach((o) => vieTofu(o, dtv, VIE_VOLIERE));
+    tofusVoliere.forEach((o) => vieTofu(o, dtv, VIE_VOLIERE)); majNomsTofus();
     if (sauvageMesh) vieTofu(sauvageMesh, dtv, VIE_SAUVAGE);
   }
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);

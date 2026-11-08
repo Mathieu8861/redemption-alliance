@@ -129,22 +129,51 @@ function appliquerVoliere() {
   else { /* un seul grand batiment, au milieu de ses cases, le long de leur axe, face a la camera */
     const P = B.map(posCase), mx = P.reduce((t, q) => t + q.x, 0) / P.length, mz = P.reduce((t, q) => t + q.z, 0) / P.length;
     let ry = B.length > 1 ? Math.atan2(-(P[1].z - P[0].z), P[1].x - P[0].x) : a; if (Math.sin(ry) + Math.cos(ry) < 0) ry += Math.PI;
-    const v = batiment('voliere' + nv, mx, P[0].y, mz, B[0].id, ry); v.userData.sol = [0.27, 0.27, 0.36, 0.38, 0.42][nv - 1]; v.userData.etendue = [1, 1.35, 1.6, 1.9, 2.3][nv - 1]; volieresMesh.push(v);
+    const v = batiment('voliere' + nv, mx, P[0].y, mz, B[0].id, ry); volieresMesh.push(v);
   }
   if (B.length) { const P = B.map(posCase); ancres.voliere = new T.Vector3(P.reduce((t, q) => t + q.x, 0) / P.length, P[0].y + (volieresMesh[0].userData.hauteur || 1.8) * k + 0.25, P.reduce((t, q) => t + q.z, 0) / P.length); }
   rendreTofusVoliere(); if (S_.bats) majFeu('voliere', true);
 }
-/* les Tofus captures sautillent dans la cage (sur son plancher surelevee, bien a l'interieur) : on voit tout de suite si elle est pleine */
-const PLACES_CAGE = [[-0.3, -0.28], [0.3, -0.28], [0, -0.05], [-0.3, 0.12], [0.3, 0.12]];
+/* LA VOLIERE-JARDIN (08/11/2026, « refais la voliere, qu'on voie a l'interieur les Tofus et leur nom ; on dirait une prison, on voit pas les Tofus », Mathieu) :
+   le modele n'a plus de toit (blender/voliere-niveaux.py, version 4) ; les vrais Tofus se posent sur la paille, repartis sur toute la voliere, hors de l'arbre,
+   de la mangeoire, de l'abreuvoir et des nichoirs (cotes du modele : VOLIERE_DIM = DIMS du script) ; chacun a un nom, montre au survol de la voliere */
+const VOLIERE_DIM = [null, [0.6, 0.45, 1.3], [1.0, 0.68, 1.6], [1.2, 0.8, 1.79], [1.45, 0.95, 1.98], [1.75, 1.1, 2.2]]; /* (W, D, hauteur du faite) */
+function placesVoliere(nv, n) {
+  const [W, D] = VOLIERE_DIM[nv] || VOLIERE_DIM[1], obst = [[W * 0.45, -D * 0.35, 0.2], [-W * 0.55, D * 0.55, Math.min(0.42, W * 0.45) / 2 + 0.1], [W * 0.6, D * 0.5, 0.17]];
+  if (nv >= 2) obst.push([-W + Math.min(0.95, W * 0.8), -D + 0.5, 0.08]); if (nv >= 3) obst.push([W * 0.85, -D + 0.2, 0.12]); if (nv >= 4) obst.push([-W * 0.15, -D + 0.18, 0.1]); if (nv >= 5) obst.push([W * 0.1, -D + 0.18, 0.1]);
+  const L = []; for (let x = -W + 0.16; x <= W - 0.16; x += 0.24) for (let z = -D + 0.15; z <= D - 0.15; z += 0.24) if (!obst.some(([a, b, r]) => Math.hypot(x - a, z - b) < r + 0.09)) L.push([x, z]);
+  if (!L.length) return Array.from({ length: n }, () => [0, 0]); /* (le plus au milieu d'abord, puis chaque fois la place la plus loin de toutes les autres : ils se repartissent sur toute l'herbe) */
+  const out = [L.reduce((m, p) => (Math.hypot(p[0], p[1]) < Math.hypot(m[0], m[1]) ? p : m))];
+  while (out.length < Math.min(n, L.length)) { let best = null, bd = -1; L.forEach((p) => { const d = Math.min(...out.map((q) => Math.hypot(p[0] - q[0], p[1] - q[1]))); if (d > bd) { bd = d; best = p; } }); out.push(best); }
+  while (out.length < n) out.push(out[out.length % L.length]); return out;
+}
+const NOMS_TOFUS = ['Pioupiou', 'Plumette', 'Cui-Cui', 'Picorette', 'Duvet', 'Biscotte', 'Piaf', 'Coco', 'Tofinou', 'Grainette', 'Tartine', 'Caramel', 'Choupette', 'Flan', 'Brioche', 'Moustique', 'Pompon', 'Cacahuète', 'Noisette', 'Patapouf', 'Bigoudi', 'Croquette', 'Gribouille', 'Pistache'];
+const NOMS_DORES = ['Pépite', 'Lingot', 'Doublon', 'Sou d\'or', 'Écu', 'Florin'];
+function nomTofu(k) { /* le meme nom pour la meme place de la voliere ; les dores d'abord */
+  const nD = Math.min(S_.tofusDores || 0, S_.tofus); if (k < nD) return NOMS_DORES[k % NOMS_DORES.length] + (k >= NOMS_DORES.length ? ' ' + (Math.floor(k / NOMS_DORES.length) + 1) : '');
+  const g = [...((S_.perso && S_.perso.nom) || 'x')].reduce((t, c) => t + c.charCodeAt(0), 0), i = k - nD; return NOMS_TOFUS[(g + i * 5) % NOMS_TOFUS.length] + (i >= NOMS_TOFUS.length ? ' ' + (Math.floor(i / NOMS_TOFUS.length) + 1) : '');
+}
 function rendreTofusVoliere() {
-  tofusVoliere.forEach((m) => scene.remove(m)); tofusVoliere = [];
+  tofusVoliere.forEach((m) => { scene.remove(m); if (m.userData.etiq) m.userData.etiq.remove(); }); tofusVoliere = []; Object.keys(ancres).filter((c) => /^tofu\d/.test(c)).forEach((c) => delete ancres[c]);
   if (!MODELES.tofu || !volieresMesh.length) return;
+  const nv = nivBat('voliere'), K = MODELES.voliereK || 1, C = nv === 1 && MODELES.voliereC ? MODELES.voliereC : { x: 0, z: 0 }, nb = volieresMesh.length, places = placesVoliere(nv, Math.ceil(S_.tofus / nb));
   for (let k = 0; k < S_.tofus; k++) {
-    const v = volieresMesh[k % volieresMesh.length], [px, pz] = PLACES_CAGE[Math.floor(k / volieresMesh.length) % PLACES_CAGE.length], e = v.scale.x;
-    const t = marquer(cloner('tofu'), v.userData.cellule || 'm2_0'); t.scale.setScalar(0.38); if (k < (S_.tofusDores || 0)) { dorerTofu(t); auraDoree(t, 0.45); } /* (les Tofus dores de la voliere et leur aura, 07/11/2026) */
-    const et = e * (v.userData.etendue || 1), [ox, oz] = tourne(px * et, pz * et, v.rotation.y); t.userData.base = { x: v.position.x + ox, y: v.position.y + (v.userData.sol || 0.27) * e + 0.02, z: v.position.z + oz };
+    const v = volieresMesh[k % nb], [mx, mz] = places[Math.floor(k / nb) % places.length], e = v.scale.x;
+    const t = marquer(cloner('tofu'), v.userData.cellule || 'm2_0'); t.scale.setScalar(0.42); if (k < (S_.tofusDores || 0)) { dorerTofu(t); auraDoree(t, 0.45); } /* (les Tofus dores de la voliere et leur aura, 07/11/2026) */
+    const [ox, oz] = tourne((mx - C.x) * K * e, (mz - C.z) * K * e, v.rotation.y); t.userData.base = { x: v.position.x + ox, y: v.position.y + 0.058 * K * e, z: v.position.z + oz }; t.userData.nomTofu = nomTofu(k);
     poser(t, t.userData.base.x, t.userData.base.y, t.userData.base.z, 0.6 + k * 1.3); tofusVoliere.push(t);
   }
+  if (nomsTofusFin) montrerNomsTofus(nomsTofusFin - performance.now());
+}
+let nomsTofusFin = 0;
+function montrerNomsTofus(ms) { /* les noms au-dessus des Tofus de la voliere, quelques secondes (au survol de la voliere, 12-perso.js) */
+  nomsTofusFin = performance.now() + Math.max(500, ms || 3000);
+  tofusVoliere.forEach((t, k) => { const cle = 'tofu' + k; if (!t.userData.etiq) { const b = document.createElement('div'); b.className = 'bulle nom-tofu' + (k < (S_.tofusDores || 0) ? ' dore' : ''); b.dataset.ancre = cle; b.textContent = (k < (S_.tofusDores || 0) ? '★ ' : '') + t.userData.nomTofu; zoneBulles.appendChild(b); t.userData.etiq = b; } ancres[cle] = ancres[cle] || new T.Vector3(); });
+}
+function majNomsTofus() {
+  if (!nomsTofusFin) return; const fini = performance.now() > nomsTofusFin || lieu !== 'ferme' || combat;
+  tofusVoliere.forEach((t, k) => { const cle = 'tofu' + k; if (fini) { delete ancres[cle]; if (t.userData.etiq) { t.userData.etiq.remove(); t.userData.etiq = null; } return; } const a = ancres[cle]; if (a) { t.getWorldPosition(a); a.y += 0.4 + (k % 2) * 0.16; } });
+  if (fini) nomsTofusFin = 0;
 }
 
 /* ---------- les batiments sont poses d'apres leurs cases : on les deplace avec Amenager ---------- */
