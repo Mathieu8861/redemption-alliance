@@ -419,6 +419,7 @@ function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colos
 }
 function apparaitre(type, pres) {
   const d = MONSTRES[type]; noterVu(type);
+  if (combat && !combat.nuitForet && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele)) { combat.nuitForet = true; nuitForet(); toast('La Forêt des Abraknydes plonge la ferme dans la nuit…', 'alerte'); } /* (la nuit de la foret, 08/11/2026) */
   if (!d.fabrique && !MODELES[d.modele]) { /* son modele n'est pas encore la (un monstre a squelette, charge a la demande) : il sort des qu'il est charge ; sans modele, il ne vient pas (26/10/2026 : cloner plantait et l'image se figeait) */
     const c0 = combat; chargerSquelettes([d.modele]).then(() => { if (combat !== c0 || c0.fin) return; if (MODELES[d.modele]) apparaitre(type, pres); else if (c0.total > 0) c0.total--; }); return; }
   if (combat.arene && !pres) { const g = hasard(PORTES_ARENE); pres = { x: g.x + (Math.random() - 0.5) * 1.4, z: g.z + (Math.random() - 0.5) * 1.4, porte: g }; } /* l'Arene : ils sortent des herses */
@@ -1321,6 +1322,22 @@ function nuitTombe(duree) { /* la nuit tombe : les lumieres baissent et bleuisse
   effets.push((dt) => { N.t += dt; const k = Math.min(1, N.t / 1.0) * Math.min(1, Math.max(0, (N.d - N.t) / 1.2)); N.v.style.opacity = String(k);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.55 * k); l.o.color.copy(l.c).lerp(bleu, 0.5 * k); });
     if (N.t >= N.d || !combat) { N.v.style.opacity = '0'; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } });
+}
+/* LA NUIT DE LA FORET (08/11/2026, par Discord : « les Abraknydes, ils nous plongent dans la nuit pendant les vagues », Mathieu) : des qu'un monstre du
+   palier 10 sort, la nuit tombe sur la ferme jusqu'a la fin du combat. Pas de lune comme la nuit lunaire du Golem : un voile bleu-vert profond, la lumiere
+   baisse davantage et bleuit, des lucioles qui flottent ; les yeux des Abraknydes (leur image d'emission) ressortent dans le noir. Le jour revient a la fin */
+let NUIT_F = null;
+function nuitForet() {
+  if (!NUIT_F) { const v = document.createElement('div'); v.className = 'nuit-foret'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(10,40,48,.16) 0%,rgba(6,22,30,.38) 45%,rgba(3,10,16,.66) 100%)'; /* (au-dessus de la scene, sous l'interface : la nuit lunaire, elle, ne teinte que le ciel) */
+    const st = document.createElement('style'); st.textContent = '@keyframes luciole{0%{transform:translate(0,0);opacity:.2}25%{opacity:1}50%{transform:translate(18px,-22px);opacity:.4}75%{opacity:.95}100%{transform:translate(-10px,8px);opacity:.2}}'; document.head.appendChild(st);
+    v.innerHTML = Array.from({ length: 26 }, () => '<i style="position:absolute;left:' + (Math.random() * 100).toFixed(1) + '%;top:' + (20 + Math.random() * 75).toFixed(1) + '%;width:5px;height:5px;border-radius:50%;background:#e8ff9a;box-shadow:0 0 10px 3px rgba(214,255,120,.75);animation:luciole ' + (4 + Math.random() * 5).toFixed(1) + 's ease-in-out ' + (-Math.random() * 6).toFixed(1) + 's infinite alternate"></i>').join('');
+    canvas.insertAdjacentElement('afterend', v);
+    const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
+  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0;
+  effets.push((dt) => { N.t += dt; const vivant = combat === c0 && combat && !combat.fin; if (!vivant) fin += dt;
+    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k);
+    N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
+    if (fin >= 1.4) { N.v.style.opacity = '0'; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
 }
 function meteorite(mo, x, z, U, c0) { /* une meteorite : un cercle s'annonce, une pierre de lune tombe du ciel en biais dans une trainee, cratere et eclats a l'impact */
   const prepa = 1.25, g = rocherLune(), y = solA(x, z), de = new T.Vector3(x - 7, y + 20, z - 4); g.scale.setScalar(1.3); g.visible = false; scene.add(g); let t = 0;
