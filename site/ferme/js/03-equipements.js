@@ -185,10 +185,15 @@ const gainRune = (R, a, b) => Math.max(1, Math.ceil(R.gain * (b - a) - 1e-9));
 function ouvrirChoixForge(k) {
   const B = OBJETS[baseObjet(k)], o = obj(k), R = RUNES.forge; if (!B || !o) return;
   const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v), cur = o.stats[c] != null ? o.stats[c] : v, apres = Math.min(b, cur + gainRune(R, a, b)), q = (x) => Math.round(100 * (b > a ? (x - a) / (b - a) : 1));
-    const C = CARACS[c] || [c, '', ''];
-    return '<div class="art"><span class="pic">' + (C[2] || '') + '</span><div><b>' + C[0] + '</b><div class="desc">' + (cur >= b ? 'Déjà au maximum (' + fmt(b) + C[1] + ').' : fmt(cur) + C[1] + ' (' + q(cur) + ' %) → <b>' + fmt(apres) + C[1] + '</b> (' + q(apres) + ' %)') + '</div></div><div class="act">' +
+    const C = CARACS[c] || [c, '', ''], qc = q(cur), qa = q(apres); /* (refaite le 08/11/2026, « on comprend rien, je voulais mettre une rune 20 %, je comprends que dalle », Mathieu : avant, deux pourcentages
+       mêlés, la valeur et le jet entre parentheses ; maintenant la valeur avant et apres, le gain, et la fourchette en barre : l'acquis en or, ce que la rune ajoute en vert) */
+    return '<div class="art fg-carac"><span class="pic">' + (C[2] || '') + '</span><div><b>' + C[0] + '</b>' + (cur >= b ? '<div class="desc">Déjà au maximum : ' + fmt(b) + C[1] + '.</div>' :
+      '<div class="fg-val"><span>' + fmt(cur) + '</span> → <b>' + fmt(apres) + '</b>' + C[1] + '<em>+' + fmt(apres - cur) + '</em></div>' +
+      '<div class="fg-barre"><i style="width:' + qc + '%"></i><u style="left:' + qc + '%;width:' + Math.max(0, qa - qc) + '%"></u></div>' +
+      '<div class="fg-bornes"><span>min ' + fmt(a) + '</span><span>jet ' + qc + ' % → ' + qa + ' %' + (apres >= b ? ', le maximum' : '') + '</span><span>max ' + fmt(b) + '</span></div>') + '</div><div class="act">' +
       (cur >= b ? '<span class="cadenas">✓ max</span>' : '<button class="btn kamas" data-forger-carac="' + k + '|' + c + '">Forger</button>') + '</div></div>'; }).join('');
-  ouvrirModale('forge-choix', entete('Quelle caractéristique ?') + '<p class="hdv-aide"><b>' + o.nom + '</b> : la rune de forgemagie ajoute 20 % de jet à la caractéristique de ton choix, jusqu\'à son maximum.</p>' + L +
+  const nb = runes().forge || 0;
+  ouvrirModale('forge-choix', entete('Quelle caractéristique ?') + '<p class="hdv-aide"><b>' + o.nom + '</b> : choisis la caractéristique à monter. Chacune a une fourchette, de son minimum à son maximum ; la rune la fait monter de 20 % de cette fourchette, sans dépasser le maximum. Il te reste <b>' + nb + ' rune' + (nb > 1 ? 's' : '') + '</b> de forgemagie.</p>' + L +
     '<div class="act-bas"><button class="btn discret" data-forge-retour>Retour à l\'atelier</button></div>');
 }
 function forgerObjet(k, t, carac) {
