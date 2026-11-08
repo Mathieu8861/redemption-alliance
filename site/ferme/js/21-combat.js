@@ -1399,6 +1399,10 @@ function epinesTouche(mo) { /* ses epines te renvoient le coup : elles etincelle
    du cercle (choc, onde, sol fendu) ; la hache reste plantee un instant, le rocher eclate. Fiche : jet: { nom, arme, periode, loin, R, prepa, x } */
 function armeJet(type, k) {
   const g = new T.Group();
+  if (type === 'fagot') { /* (le fagot de l'Abrakleur, 08/11/2026 : six branches liees de deux brins de lierre) */
+    for (let i = 0; i < 6; i++) { const b = new T.Mesh(new T.CylinderGeometry(0.05 * k, 0.07 * k, (1.5 + (i % 3) * 0.2) * k, 6), mat(i % 2 ? '#8a6a48' : '#a5865f')), u = i * 1.05; b.position.set(Math.cos(u) * 0.11 * k, (i % 3) * 0.05 * k, Math.sin(u) * 0.11 * k); b.rotation.set(Math.sin(u) * 0.08, 0, Math.cos(u) * 0.08); g.add(b); }
+    for (const y of [-0.35, 0.3]) { const l = new T.Mesh(new T.TorusGeometry(0.19 * k, 0.035 * k, 6, 14), mat('#4f7a2c')); l.rotation.x = Math.PI / 2; l.position.y = y * k; g.add(l); }
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g; }
   if (type === 'hache') { const manche = new T.Mesh(new T.CylinderGeometry(0.06 * k, 0.07 * k, 2.2 * k, 8), mat('#6a4528')); g.add(manche);
     const f = new T.Shape(); f.moveTo(0, -0.55); f.quadraticCurveTo(0.95, -0.6, 0.85, 0); f.quadraticCurveTo(0.95, 0.6, 0, 0.55); f.lineTo(0.1, 0); f.lineTo(0, -0.55);
     for (const s of [-1, 1]) { const l = new T.Mesh(new T.ExtrudeGeometry(f, { depth: 0.06, bevelEnabled: false }), mat('#9aa3ad')); l.geometry.translate(0, 0, -0.03); l.scale.set(s * k, k, k); l.position.y = 0.7 * k; g.add(l);
@@ -1413,8 +1417,9 @@ function capJet(mo, ctx) {
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('jetT', J.periode)) return; if (dP < J.loin || dP > 15) { mo.jetT = J.periode; return; } /* (pret, il attend que tu sois loin) */
   mo.jetT = 0; const c0 = combat, cx = pp.x, cz = pp.z, a = Math.atan2(cx - mo.x, cz - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), arme = armeJet(J.arme, k), hache = J.arme === 'hache';
   mo.ry = a; mo.bloqueT = J.prepa + 0.4; mo.frappe = 0.3; scene.add(arme);
-  if (!c0['jetVu' + J.arme]) { c0['jetVu' + J.arme] = true; toast(leNom(mo.d) + (hache ? ' lève sa grande hache pour te la lancer' : ' arrache un rocher du sol pour te le lancer') + ' : sors du cercle rouge !', 'alerte'); }
-  if (!hache) { const y = solA(mo.x, mo.z); poussiere(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 10, 1, '#d8c6a0'); mottes(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 6, 0.9); }
+  if (!c0['jetVu' + J.arme]) { c0['jetVu' + J.arme] = true; toast(leNom(mo.d) + (hache ? ' lève sa grande hache pour te la lancer' : J.arme === 'fagot' ? ' arme son fagot pour te le lancer en cloche' : ' arrache un rocher du sol pour te le lancer') + ' : sors du cercle rouge !', 'alerte'); }
+  gesteSort(mo, gesteDe(mo, 'jet', 'sort'), Math.max(0.3, J.prepa - 0.5)); /* (un monstre a squelette : son geste de lancer, l'Abrakleur, 08/11/2026) */
+  if (!hache && J.arme !== 'fagot') { const y = solA(mo.x, mo.z); poussiere(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 10, 1, '#d8c6a0'); mottes(mo.x + Math.sin(a) * 1.2, y, mo.z + Math.cos(a) * 1.2, 6, 0.9); }
   const vol = Math.max(0.45, Math.min(0.75, dP / 16)), tl = J.prepa - vol; let t = 0, de = null; const vers = new T.Vector3(cx, solA(cx, cz) + (hache ? 0.6 : 0.5) * k, cz), H = 2.5 + dP * 0.12;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(arme); mo.penche = 0; return true; }
     if (t < tl) { const u = Math.min(1, t / tl), h = mo.m.position.y + (mo.haut || 3) * (0.75 + 0.45 * u); /* (il l'arme au-dessus de sa tete, tire en arriere) */
@@ -1760,29 +1765,31 @@ function capBoue(mo, ctx) { /* le Crachat de boue du Dragon Cochon (le Bain de b
   const { pp, sortPret } = ctx;
   if (!mo.d.boue || combat.deroute != null || !sortPret('boueT', mo.d.boue)) return;
   mo.boueT = 0; mo.bloqueT = ESQUIVE.boue + 0.3; mo.frappe = 0.4; const x0 = pp.x, z0 = pp.z, c0 = combat;
-  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + ' te crache de la boue : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
+  /* (la toile de l'Abrakne, 08/11/2026 : le meme crachat, en blanc ; le geste « sort » des monstres a squelette, sa gueule qui crache) */
+  const C_ = mo.d.toile ? ['#e9ede4', '#ffffff', '#c7cfbf', '#f4f6f0', '#e3e8de', '#ffffff'] : ['#5a3a1e', '#7a5230', '#4a2f18', '#6a4524', '#9a7650', '#8e6640']; gesteSort(mo, gesteDe(mo, 'boue', 'sort'), 0.5);
+  if (!combat.boueVu) { combat.boueVu = true; toast(leNom(mo.d) + (mo.d.toile ? ' te crache une toile collante' : ' te crache de la boue') + ' : sors du cercle rouge, sinon tu restes collé !', 'alerte'); }
   const a = Math.atan2(x0 - mo.x, z0 - mo.z), k = Math.max(1, (mo.haut || 3) / 3.2), av = (mo.d.ombre || 2) * 0.45, R = mo.d.boueR || 1.6; mo.ry = a; /* (boueR : 2,6 pour le Dragon Cochon depuis le 07/11/2026) */
-  const boule = new T.Group(), coeur = new T.Mesh(new T.IcosahedronGeometry(0.5 * k, 1), mat('#5a3a1e')); boule.add(coeur);
-  for (let i = 0; i < 4; i++) { const b = new T.Mesh(new T.IcosahedronGeometry(0.22 * k, 0), mat(i % 2 ? '#7a5230' : '#4a2f18')), u = i * 1.7; b.position.set(Math.cos(u) * 0.4 * k, Math.sin(u * 1.3) * 0.3 * k, Math.sin(u) * 0.4 * k); boule.add(b); } /* (des grumeaux, pas une bille lisse) */
+  const boule = new T.Group(), coeur = new T.Mesh(new T.IcosahedronGeometry(0.5 * k, 1), mat(C_[0])); boule.add(coeur);
+  for (let i = 0; i < 4; i++) { const b = new T.Mesh(new T.IcosahedronGeometry(0.22 * k, 0), mat(i % 2 ? C_[1] : C_[2])), u = i * 1.7; b.position.set(Math.cos(u) * 0.4 * k, Math.sin(u * 1.3) * 0.3 * k, Math.sin(u) * 0.4 * k); boule.add(b); } /* (des grumeaux, pas une bille lisse) */
   boule.traverse((o) => { if (o.isMesh) o.castShadow = true; }); boule.scale.setScalar(0.01); scene.add(boule);
   const tg = 0.55, vol = ESQUIVE.boue - tg, dP = Math.hypot(x0 - mo.x, z0 - mo.z), H = 2 + dP * 0.15, vers = new T.Vector3(x0, solA(x0, z0) + 0.35 * k, z0);
   const bouche = () => new T.Vector3(mo.x + Math.sin(a) * av, mo.m.position.y + (mo.haut || 3) * 0.5, mo.z + Math.cos(a) * av);
   let t = 0, de = null, goutte = 0;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { jeter(boule); mo.penche = 0; mo.teteB = 0; return true; }
     if (t < tg) { const u = Math.min(1, t / tg); boule.position.copy(bouche()); boule.scale.setScalar(0.15 + 0.85 * u); boule.rotation.y += dt * 3; mo.penche = -0.25 * u; mo.teteB = -0.3 * u; /* (il se cabre, la boule gonfle dans sa gueule) */
-      if ((goutte += dt) > 0.08) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y - 0.3 * k, z: boule.position.z, r: 0.3 * k, dv: 0.6, vie: [0.3, 0.5], taille: [0.14, 0.06], c: ['#6a4524', '#4a2f18'], grav: 9 }); }
+      if ((goutte += dt) > 0.08) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y - 0.3 * k, z: boule.position.z, r: 0.3 * k, dv: 0.6, vie: [0.3, 0.5], taille: [0.14, 0.06], c: [C_[3], C_[2]], grav: 9 }); }
       return false; }
-    if (!de) { de = boule.position.clone(); mo.penche = 0.3; mo.teteB = 0.35; secousse(0.05, 0.12); poussiere(de.x, solA(de.x, de.z), de.z, 6, 0.8, '#9a7650'); }
+    if (!de) { de = boule.position.clone(); mo.penche = 0.3; mo.teteB = 0.35; secousse(0.05, 0.12); poussiere(de.x, solA(de.x, de.z), de.z, 6, 0.8, C_[4]); }
     const u = Math.min(1, (t - tg) / vol); mo.penche = 0.3 * (1 - u); mo.teteB = 0.35 * (1 - u); boule.position.lerpVectors(de, vers, u); boule.position.y += Math.sin(u * Math.PI) * H; boule.rotation.set(u * 7, a, u * 4); boule.scale.setScalar(1);
-    if ((goutte += dt) > 0.05) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.25 * k, dv: 0.8, vie: [0.35, 0.6], taille: [0.16, 0.06], c: ['#6a4524', '#4a2f18'], grav: 10 }); } /* (elle goutte en vol) */
+    if ((goutte += dt) > 0.05) { goutte = 0; emettre(FX_VIF, 2, { x: boule.position.x, y: boule.position.y, z: boule.position.z, r: 0.25 * k, dv: 0.8, vie: [0.35, 0.6], taille: [0.16, 0.06], c: [C_[3], C_[2]], grav: 10 }); } /* (elle goutte en vol) */
     if (u < 1) return false; jeter(boule); return true; });
-  zoneDanger({ mo, x: x0, z: z0, r: R, duree: ESQUIVE.boue, effet: (d) => { const y = solA(x0, z0); pouf(x0, y, z0, 4, '#6a4524'); pouf(x0, y, z0, 2.2, '#8e6640');
-    secousse(0.12, 0.22); onde(x0, y, z0, R + 0.8, '#8e6640', 0.45, 0.9); mottes(x0, y, z0, 14, 1.2); poussiere(x0, y, z0, 8, R, '#9a7650');
-    emettre(FX_VIF, 26, { x: x0, y: y + 0.3, z: z0, r: 0.5, dv: 6, haut: true, vie: [0.45, 0.8], taille: [0.2, 0.08], c: ['#6a4524', '#4a2f18', '#8e6640'], grav: 12, frein: 0.6 }); /* (la boue gicle) */
-    const mf = new T.MeshBasicMaterial({ color: '#5a3a1e', transparent: true, opacity: 0.8, depthWrite: false }), fl = new T.Mesh(new T.CircleGeometry(R * 0.9, 28), mf);
+  zoneDanger({ mo, x: x0, z: z0, r: R, duree: ESQUIVE.boue, effet: (d) => { const y = solA(x0, z0); pouf(x0, y, z0, 4, C_[3]); pouf(x0, y, z0, 2.2, C_[5]);
+    secousse(0.12, 0.22); onde(x0, y, z0, R + 0.8, C_[5], 0.45, 0.9); mottes(x0, y, z0, 14, 1.2); poussiere(x0, y, z0, 8, R, C_[4]);
+    emettre(FX_VIF, 26, { x: x0, y: y + 0.3, z: z0, r: 0.5, dv: 6, haut: true, vie: [0.45, 0.8], taille: [0.2, 0.08], c: [C_[3], C_[2], C_[5]], grav: 12, frein: 0.6 }); /* (la boue gicle) */
+    const mf = new T.MeshBasicMaterial({ color: C_[0], transparent: true, opacity: 0.8, depthWrite: false }), fl = new T.Mesh(new T.CircleGeometry(R * 0.9, 28), mf);
     fl.rotation.x = -Math.PI / 2; fl.position.set(x0, y + 0.05, z0); fl.renderOrder = 2; scene.add(fl); let s2 = 0, bulle = 0;
     effets.push((d2) => { s2 += d2; bulle += d2; if (combat !== c0 || c0.fin || s2 >= 3) { jeter(fl); return true; } mf.opacity = 0.8 * Math.min(1, (3 - s2) / 0.6); fl.scale.setScalar(Math.min(1, 0.6 + s2 * 2));
-      if (bulle >= 0.18 && s2 < 2.5) { bulle = 0; const b = fxAlea() * Math.PI * 2, r2 = fxAlea() * R * 0.8; lueur(new T.Vector3(x0 + Math.cos(b) * r2, y + 0.12, z0 + Math.sin(b) * r2), '#4a2f18', 1.6, 0.4); } }); /* (la flaque bouillonne puis seche) */
+      if (bulle >= 0.18 && s2 < 2.5) { bulle = 0; const b = fxAlea() * Math.PI * 2, r2 = fxAlea() * R * 0.8; lueur(new T.Vector3(x0 + Math.cos(b) * r2, y + 0.12, z0 + Math.sin(b) * r2), C_[2], 1.6, 0.4); } }); /* (la flaque bouillonne puis seche) */
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { if (mo.d.boss && (mo.d.sortsX || {}).boue) { blesserPerso(Math.max(1, Math.round(degSort(mo) * mo.d.sortsX.boue)), mo); effetsCoup(mo); if (!combat || combat.fin || combat !== c0) return; } coller(DUREE_COLLE, 'Collé !', true); } } }); /* (07/11/2026 : la boule de boue frappe aussi, sortsX.boue fois ses degats de sort) */
 }
 /* LE COUP D'AILE DE CROCABULIA (03/11/2026, « ouais coup d'aile vas y », Mathieu) : pendant l'arc rouge (ESQUIVE.brassard), une aile se leve et se tire en
