@@ -21,13 +21,14 @@ function peutMiser(m) {
   if (perteJour() + m > plafondPertes()) { toast('Plafond de pertes du jour atteint (' + fmt(plafondPertes()) + ' kamas) : le Casino te revoit demain.', 'alerte'); return false; }
   return true;
 }
+let mancheMise = 0; /* (la mise de la manche en cours : payer() en tire le gain ou la perte nette, pour les moqueries du hall, 08/11/2026) */
 function miser(m) {
-  const pris = Math.min(S_.kamas, m), credit = m - pris; S_.kamas -= pris;
+  mancheMise += m; const pris = Math.min(S_.kamas, m), credit = m - pris; S_.kamas -= pris;
   if (credit > 0) { S_.ardoise = S_.ardoise || { dette: 0, visites: 0 }; S_.ardoise.dette += credit; toast('Le croupier note ' + fmt(credit) + ' kamas sur ton ardoise.', 'alerte'); }
   etatCasino().pertes += m; compter('casinoMises', m); rendreHaut(); majBarreCasino(); }
 function payer(g) {
   if (g > 0) { const d = Math.min(dette(), g); if (d) { S_.ardoise.dette -= d; toast('Tes gains remboursent d\'abord ton ardoise : -' + fmt(d) + '.', 'or'); } S_.kamas += g - d; etatCasino().pertes -= g; compter('casinoGains', g); son('kamas'); }
-  rendreHaut(); majBarreCasino(); sauver();
+  rendreHaut(); majBarreCasino(); sauver(); const net = g - mancheMise; mancheMise = 0; if (typeof apresManche === 'function') apresManche(net);
   if (dette() > 0 && S_.kamas <= 0 && lieu === 'casino') setTimeout(expulser, 900); /* fini en negatif : les gros bras te raccompagnent */
 }
 function majBarreCasino() { if (!S_) return; const c = etatCasino(); $('casino-info').innerHTML = '<b>' + (typeof casinoDedans !== 'undefined' && casinoDedans ? 'Palais du Chat Doré' : 'Île du Casino') + '</b> · pertes du jour ' + fmt(perteJour()) + ' / ' + fmt(plafondPertes()) + ' ' + KAMA + ' · jackpot ' + fmt(c.jackpot) + ' ' + KAMA + (dette() ? ' · <span style="color:var(--rouge)">ardoise ' + fmt(dette()) + '</span>' : ''); }

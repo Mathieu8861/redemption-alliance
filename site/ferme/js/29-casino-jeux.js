@@ -94,6 +94,9 @@ async function chargerSalle() {
   g.visible = false; scene.add(g); salleCasino = g; grilleSalle();
 }
 async function entrerPalais() {
+  const ban = (etatCasino().banni || 0) - Date.now(); /* (trop embete les gardes : interdit de palais 30 min, 08/11/2026) */
+  if (ban > 0) { const mn = Math.ceil(ban / MIN); toast('Bouboule te barre la porte : « Toi, t\'es interdit. Reviens dans ' + mn + ' minute' + (mn > 1 ? 's' : '') + '. Calmé. »', 'alerte'); return; }
+  Object.assign(moquerie, { perte: 0, serie: 0, palier: 0, t: 0 });
   $('voile').classList.add('on'); fermerModale();
   try { await Promise.all([chargerSalle(), attendreMs(700)]); } catch (e) { $('voile').classList.remove('on'); ouvrirSalle(); return; } /* (le hall n'a pas pu se charger : le vestibule, comme avant) */
   casinoDedans = true; casinoMarche = null; montrerIles(); majBarreCasino();
@@ -154,11 +157,35 @@ function autreLigne(L, avant) { const r = L.filter((x) => x !== avant); return h
 function parlerGarde(m) {
   const t = performance.now(), A = gardesAgaces, n = m.userData.garde, autre = gardesSalle.find((x) => x !== m); if (t - A.t > 25000) A.n = 0; A.t = t; A.n++;
   m.userData.regard = t + 4500; m.userData.penche = t;
-  if (A.n >= 6) { A.n = 0; direSalle(m, 'Dehors.', 1800); if (autre) { autre.userData.regard = t + 3000; setTimeout(() => direSalle(autre, 'Reviens quand tu seras calmé.', 2200), 700); }
-    setTimeout(() => { if (lieu === 'casino' && casinoDedans) { toast('Bouboule et Filou te raccompagnent dehors, sans un mot de plus.'); sortirPalais(); } }, 1900); return; }
-  if (A.n >= 4) { direSalle(m, A.n === 4 ? 'Encore une fois, et tu prends l\'air.' : 'Dernier avertissement.', 2600); return; }
+  if (A.n >= 6) { A.n = 0; etatCasino().banni = Date.now() + 30 * MIN; sauver(); /* (« si on les harcele trop, ils nous sortent et on ne peut plus rentrer pendant 30 minutes », Mathieu) */
+    direSalle(m, 'Dehors.', 1800); if (autre) { autre.userData.regard = t + 3000; setTimeout(() => direSalle(autre, 'Et pas avant une demi-heure.', 2200), 700); }
+    setTimeout(() => { if (lieu === 'casino' && casinoDedans) { toast('Bouboule et Filou te jettent dehors : interdit de palais pendant 30 minutes.', 'alerte'); sortirPalais(); } }, 1900); return; }
+  if (A.n >= 4) { direSalle(m, A.n === 4 ? 'Encore une fois, et tu prends l\'air.' : 'Dernier avertissement. Après, c\'est dehors pour une demi-heure.', 2800); return; }
   direSalle(m, autreLigne(REPLIQUES_GARDES[n], m.userData.parole.dit), 2600);
   if (autre && Math.random() < 0.3) setTimeout(() => { autre.userData.regard = performance.now() + 2500; direSalle(autre, n === 'bouboule' ? 'Il t\'embête, Bouboule ?' : 'Laisse, Filou. Il allait partir.', 2400); }, 1300);
+}
+/* LES MOQUERIES DE LOIN (08/11/2026, « si dans le casino on ne fait que perdre, il se moque de nous de loin, en fonction des sommes perdues », Mathieu) :
+   payer() donne le gain net de chaque manche du hall ; a la 3e perte d'affilee (puis une sur deux) ou quand la perte de la visite passe un palier
+   (10, 30, 60 % du plafond du jour), un garde lance une pique depuis la porte, de plus en plus dure (parfois Minou ricane derriere son comptoir).
+   Une modale ouverte cache la porte : la pique passe aussi en message. {p} : la perte de la visite, {n} : les pertes d'affilee */
+const MOQUERIES = [
+  ['Hé hé. Ça commence.', 'La machine t\'aime pas, on dirait.', 'Encore un petit don pour le patron ?', '{p} kamas. C\'est un échauffement, ça.', '{n} de suite. Tu fais exprès ?'],
+  ['{p} kamas envolés. Le patron te dit merci.', 'Tu veux qu\'on t\'appelle un Tofu pour pleurer ?', 'T\'as une technique, ou tu donnes juste ?', '{n} perdues de suite. C\'est presque un record.'],
+  ['{p} kamas... Ta grange doit être bien vide.', 'Continue comme ça, on va accrocher ton portrait dans le hall.', 'Hé, regarde-moi le généreux, là-bas.', 'À ce rythme, tu dors à la belle étoile ce soir.'],
+  ['{p} kamas ! Même le Chat Doré a pitié.', 'On va finir par te passer l\'ardoise autour du cou.', 'Rentre chez toi, paysan. Tes Bouftous t\'attendent.', 'Le patron veut t\'offrir une statue. En carton.', '{n} d\'affilée. On parie combien sur la prochaine ?']];
+const RIRES_MINOU = ['Mia... hi hi hi !', 'Mrrr hé hé... miaou.', 'Miaou-ha ha ha !', 'Pfff... mia mia.'], CHANCE = ['Tiens, la chance tourne. Profite, ça va pas durer.', 'Hm. Coup de bol.', 'Le patron va pas aimer ça.'];
+const moquerie = { perte: 0, serie: 0, palier: 0, t: 0 };
+function moquer(L, sansChat) {
+  const M = moquerie, chat = !sansChat && barman && Math.random() < 0.25, m = chat ? barman.tete : hasard(gardesSalle); if (!m) return;
+  const ok = L.filter((x) => !x.includes('{n}') || M.serie >= 3), t = chat ? hasard(RIRES_MINOU) : hasard(ok.length ? ok : L).replace('{p}', fmt(Math.round(Math.max(0, M.perte)))).replace('{n}', M.serie);
+  if (!chat) m.userData.regard = performance.now() + 3500; direSalle(m, t, 3600);
+  if (modaleOuverte) toast(m.userData.parole.nom + (chat ? ', derrière son comptoir' : ', depuis la porte') + ' : « ' + t + ' »');
+}
+function apresManche(net) {
+  if (lieu !== 'casino' || !casinoDedans || !net) return; const M = moquerie, now = performance.now();
+  if (net > 0) { const s = M.serie; M.serie = 0; M.perte -= net; if (s >= 3 && Math.random() < 0.5 && now - M.t > 8000) { M.t = now; moquer(CHANCE, true); } return; }
+  M.perte -= net; M.serie++; const r = M.perte / Math.max(1, plafondPertes()), palier = r >= 0.6 ? 3 : r >= 0.3 ? 2 : r >= 0.1 ? 1 : 0, nouveau = palier > M.palier; if (nouveau) M.palier = palier;
+  if (now - M.t < 10000 || !(nouveau || (M.serie >= 3 && M.serie % 2 === 1))) return; M.t = now; moquer(MOQUERIES[palier]);
 }
 function commanderCocktail(i) {
   const C = COCKTAILS[i]; if (!C) return; fermerModale();
