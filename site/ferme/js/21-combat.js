@@ -1333,6 +1333,21 @@ let NUIT_F = null;
    Mathieu, qui garde la nuit telle quelle) : chaque lanterne ou torche allumee perce le voile de la nuit d'une ellipse de lumiere sur l'herbe autour d'elle,
    les monstres y redeviennent visibles. Le voile garde ses calques de masque, un par lumiere, croises (mask-composite: intersect) */
 const TROU_NUIT = 2.6; /* (le rayon du cercle de lumiere, en lueurs de la lanterne : 1,6 m pour la petite, 2,6 pour celle sur pied, 3,2 pour la torche) */
+/* (08/11/2026, « il faudrait que les monstres ressortent un tout petit peu plus dans le noir », puis « quoique non, juste la lumiere des lampes les revele un
+   peu plus », Mathieu) : un monstre qui passe dans le cercle d'une lanterne ou d'une torche allumee s'eclaire (sa couleur relevee de ECLAT_LUMIERE au centre,
+   rien au bord) ; ailleurs, la nuit reste entiere. Chaque monstre touche recoit ses propres matieres (elles etaient partagees entre monstres du meme type) */
+const ECLAT_LUMIERE = 1.1;
+function eclaircirMonstres(N, k, rendre) {
+  N.mats = N.mats || new Set();
+  if (rendre) { N.mats.forEach((M) => { if (M.userData.cNuit) M.color.copy(M.userData.cNuit); }); N.mats.clear(); return; }
+  if (!combat) return; const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
+  combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort') return; const p = o.m.position; let lum = 0;
+    L.forEach((A) => { const R = A.r * TROU_NUIT * A.a, d = Math.hypot(p.x - A.sol.position.x, p.z - A.sol.position.z); if (d < R) lum = Math.max(lum, 1 - (d / R) * (d / R)); });
+    if (!lum && !o.m.userData.eclaire) return; o.m.userData.eclaire = lum > 0; const f = 1 + ECLAT_LUMIERE * lum * k;
+    o.m.traverse((x) => { if (!x.isMesh || !x.material) return; const pro = (M) => { if (!M.userData.cNuit) { M = M.clone(); M.userData.cNuit = M.color.clone(); N.mats.add(M); } return M; };
+      if (Array.isArray(x.material)) { if (x.material.some((M) => !M.color || M.side === T.BackSide || M.transparent)) return; x.material = x.material.map(pro); x.material.forEach((M) => M.color.copy(M.userData.cNuit).multiplyScalar(f)); }
+      else { if (!x.material.color || x.material.side === T.BackSide || x.material.transparent) return; x.material = pro(x.material); x.material.color.copy(x.material.userData.cNuit).multiplyScalar(f); } }); });
+}
 function trousNuit(N) {
   const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
   if (!L.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
@@ -1352,9 +1367,9 @@ function nuitForet() {
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
   const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
   effets.push((dt) => { N.t += dt; const vivant = combat === c0 && combat && !combat.fin; if (!vivant) fin += dt;
-    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); trousNuit(N);
+    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); trousNuit(N); eclaircirMonstres(N, k);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
-    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
+    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
 }
 function meteorite(mo, x, z, U, c0) { /* une meteorite : un cercle s'annonce, une pierre de lune tombe du ciel en biais dans une trainee, cratere et eclats a l'impact */
   const prepa = 1.25, g = rocherLune(), y = solA(x, z), de = new T.Vector3(x - 7, y + 20, z - 4); g.scale.setScalar(1.3); g.visible = false; scene.add(g); let t = 0;
