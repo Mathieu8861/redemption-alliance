@@ -396,7 +396,7 @@ function bordsFerme() {
 function bordsDirects(L) {
   const pc = paysanMesh && caseIci(paysanMesh.position.x, paysanMesh.position.z); if (!pc) return L;
   const dist = new Map([[pc.id, 0]]), file = [pc];
-  while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (!dist.has(v.id) && PASSABLE[v.type]) { dist.set(v.id, dist.get(c.id) + 1); file.push(v); } }); }
+  while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (!dist.has(v.id) && praticable(v)) { dist.set(v.id, dist.get(c.id) + 1); file.push(v); } }); }
   const q0 = posCase(pc), ok = L.filter((b) => { const d = dist.get(b.c.id), q = posCase(b.c); return d != null && d <= Math.hypot(q.x - q0.x, q.z - q0.z) / S * 1.25 + 1; });
   return ok.length >= 3 ? ok : L;
 }
@@ -478,7 +478,7 @@ function cibler(id) { const o = combat && combat.monstres.find((x) => x.id === i
    Maintenant il va vers le monstre touche, comme sur un clic au sol */
 function allerTournoyant(o) {
   combat.ordre = true; combat.tenir = true; arrivee = null;
-  if (lieu === 'ferme' && !combat.arene) { const q = caseIci(o.x, o.z); if (q && PASSABLE[q.type]) { pointVise = { c: q.id, x: o.x, z: o.z }; allerPuis(q, () => {}); pointVise = null; return; } }
+  if (lieu === 'ferme' && !combat.arene) { const q = caseIci(o.x, o.z); if (q && praticable(q)) { pointVise = { c: q.id, x: o.x, z: o.z }; allerPuis(q, () => {}); pointVise = null; return; } }
   chemin = [{ c: paysanMesh.userData.cellule, x: o.x, z: o.z }];
 }
 const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
@@ -543,7 +543,7 @@ function butin(mo) {
 const dansDanger = (d, x, z) => { if (d.r && d.ouv != null) { const dx = x - d.x, dz = z - d.z; let e = Math.atan2(dx, dz) - d.a; e = Math.atan2(Math.sin(e), Math.cos(e)); return Math.hypot(dx, dz) < d.r && Math.abs(e) < d.ouv; } /* (un eventail : a, la direction ; ouv, le demi-angle) */
   if (d.r) return Math.hypot(x - d.x, z - d.z) < d.r; const ax = d.x2 - d.x, az = d.z2 - d.z, L2 = ax * ax + az * az || 1, k = Math.max(0, Math.min(1, ((x - d.x) * ax + (z - d.z) * az) / L2)); return Math.hypot(x - d.x - k * ax, z - d.z - k * az) < d.larg / 2; };
 const solA = (x, z) => { const c = caseIci(x, z); return c ? hauteurSol(x, z, c) : 0; };
-const pointValide = (x0, z0, x, z) => { const ok = (a, b) => { if (lieu === 'arene') return solSort(a, b); const q = caseIci(a, b); return q && PASSABLE[q.type]; }; /* (a l'Arene, son cercle : elle n'a pas de cases de ferme, tout y tombait a zero ; les Tortues roulaient sur place, « elles avancent pas », Mathieu, 29/10/2026) */ let k = 1; while (k > 0 && !ok(x0 + (x - x0) * k, z0 + (z - z0) * k)) k -= 0.05; k = Math.max(0, k); return { x: x0 + (x - x0) * k, z: z0 + (z - z0) * k }; };
+const pointValide = (x0, z0, x, z) => { const ok = (a, b) => { if (lieu === 'arene') return solSort(a, b); const q = caseIci(a, b); return q && praticable(q); }; /* (a l'Arene, son cercle : elle n'a pas de cases de ferme, tout y tombait a zero ; les Tortues roulaient sur place, « elles avancent pas », Mathieu, 29/10/2026) */ let k = 1; while (k > 0 && !ok(x0 + (x - x0) * k, z0 + (z - z0) * k)) k -= 0.05; k = Math.max(0, k); return { x: x0 + (x - x0) * k, z: z0 + (z - z0) * k }; };
 function zoneDanger(o) {
   const c0 = combat, g = new T.Group(), mat0 = (op) => new T.MeshBasicMaterial({ color: o.couleur || (o.mo && o.mo.d.couleurSorts && o.mo.d.couleurSorts[0]) || '#e2413a', transparent: true, opacity: Math.min(0.95, op * (o.fort || 1)), depthWrite: false, side: T.DoubleSide }); /* (fort : une zone plus opaque, la bande verte du Koulosse sur l'herbe, 31/10/2026) */
   const d = o.r ? { x: o.x, z: o.z, r: o.r, a: o.a, ouv: o.ouv } : { x: o.x, z: o.z, x2: o.x2, z2: o.z2, larg: o.larg }; let fond, plein;
@@ -1713,6 +1713,7 @@ function capSoin(mo, ctx) {
     if (mo.soinT >= mo.d.soigne) {
       mo.soinT = 0;
       const b = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax)[0];
+      if (b && mo.d.gesteSoin && !mo.geste) gesteSort(mo, 'sort', 0.5); /* (le Venerable leve son baton quand il soigne, 08/11/2026) */
       if (b) { const h = Math.max(1, Math.round(b.pvMax * (b.d.boss ? (mo.d.soinBoss || 0.025) : 0.12))); /* (soinBoss : la Tortue Verte, 1 % sur un boss, 07/11/2026) */ /* (un boss, 2,5 % : 12 % de ses PV, c'etait un boss increvable) */ b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.6, '#5fe0e8'); }
     }
   }

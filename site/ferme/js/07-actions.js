@@ -561,7 +561,7 @@ const ACTIONS = {
     if (combat || !enRuine(cle)) return; const cout = coutReconstruire(cle);
     if (S_.kamas < cout) { toast('La reconstruction coûte ' + fmt(cout) + ' kamas.'); return; }
     const z = zoneBat(cle); fermerModale();
-    const fini = () => { if (!enRuine(cle) || S_.kamas < cout) return; S_.kamas -= cout; delete S_.bats[cle]; majFeu(cle, true); majBarresBat(); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); if (z) { pouf(z.x, z.y, z.z, 4, '#fff3c4'); pouf(z.x, z.y, z.z, 2, '#f2b630'); } toast(Maj(nomBat(cle)) + ' est reconstruit' + (typeCle(cle) === 'grange' || typeCle(cle) === 'tour' ? 'e' : '') + ', tout neuf !', 'or'); gagnerXp(10); rendreHaut(); sauver(); };
+    const fini = () => { if (!enRuine(cle) || S_.kamas < cout) return; S_.kamas -= cout; delete S_.bats[cle]; majFeu(cle, true); ecarterPerso(casesDeCle(cle)); majBarresBat(); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); if (z) { pouf(z.x, z.y, z.z, 4, '#fff3c4'); pouf(z.x, z.y, z.z, 2, '#f2b630'); } toast(Maj(nomBat(cle)) + ' est reconstruit' + (typeCle(cle) === 'grange' || typeCle(cle) === 'tour' ? 'e' : '') + ', tout neuf !', 'or'); gagnerXp(10); rendreHaut(); sauver(); };
     if (z) allerPuis(z.cell, fini); else fini();
   },
   reparerDansBilan(cles) { /* depuis le bilan (vague, simu) : tout de suite, sur place, et la fenetre reste ouverte (le moins cher d'abord si les kamas manquent) */
@@ -571,7 +571,7 @@ const ACTIONS = {
     let faits = 0, paye = 0;
     L.forEach((x) => {
       if (S_.kamas < x.cout) return; S_.kamas -= x.cout; paye += x.cout; faits++;
-      if (x.ruine) { delete S_.bats[x.k]; majFeu(x.k, true); gagnerXp(10); if (typeCle(x.k) === 'grange') rendreArbaleteBulle(); } else { S_.bats[x.k].deg = 0; majFeu(x.k); }
+      if (x.ruine) { delete S_.bats[x.k]; majFeu(x.k, true); ecarterPerso(casesDeCle(x.k)); gagnerXp(10); if (typeCle(x.k) === 'grange') rendreArbaleteBulle(); } else { S_.bats[x.k].deg = 0; majFeu(x.k); }
       const z = zoneBat(x.k); if (z) pouf(z.x, z.y, z.z, 3, '#fff3c4');
       document.querySelectorAll('.modale [data-reparer="' + x.k + '"], .modale [data-reconstruire="' + x.k + '"]').forEach((e) => {
         const ligne = e.closest('.art'), d = ligne && ligne.querySelector('.desc'); if (d) d.textContent = (x.ruine ? 'Reconstruit : ' : 'Réparé : ') + fmt(pvMaxBat(x.k)) + ' PV sur ' + fmt(pvMaxBat(x.k)) + '.';
@@ -590,7 +590,7 @@ const ACTIONS = {
     let faits = 0, paye = 0;
     L.forEach((x) => {
       if (S_.kamas < x.cout) return; S_.kamas -= x.cout; paye += x.cout; faits++;
-      if (x.ruine) { delete S_.bats[x.k]; majFeu(x.k, true); gagnerXp(10); if (typeCle(x.k) === 'grange') rendreArbaleteBulle(); } else { S_.bats[x.k].deg = 0; majFeu(x.k); }
+      if (x.ruine) { delete S_.bats[x.k]; majFeu(x.k, true); ecarterPerso(casesDeCle(x.k)); gagnerXp(10); if (typeCle(x.k) === 'grange') rendreArbaleteBulle(); } else { S_.bats[x.k].deg = 0; majFeu(x.k); }
       const z = zoneBat(x.k); if (z) pouf(z.x, z.y, z.z, 3, '#fff3c4');
     });
     majBarresBat(); fermerModale(); rendreHaut(); sauver();

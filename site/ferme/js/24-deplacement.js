@@ -1,18 +1,23 @@
 'use strict';
 /* ----- le paysan marche jusqu'a la case touchee, puis agit ----- */
 const PASSABLE = { libre: true, champ: true, chemin: true }; /* on contourne le foin et l'epouvantail, comme les batiments */
+/* (08/11/2026, « les decos me bloquent de partout, les fleurs et tout ca comptent comme une case pleine », « un batiment en ruine, tu peux passer a travers »,
+   Mathieu) : on marche a travers les decorations (fleurs, lanternes, rochers, arbres de deco...) et a travers les gravats d'un batiment en ruine.
+   PASSABLE reste le sol vraiment libre : c'est la qu'on pose le perso, un monstre qui arrive, une montgolfiere */
+const sansObstacle = (c) => !!c && (!!PASSABLE[c.type] || c.type === 'deco'); /* (pour les acces : une ruine se reconstruit, elle ne compte pas comme un passage) */
+const praticable = (c) => sansObstacle(c) || (!!c && (c.type === 'tour' || BATS_PV.includes(c.type)) && enRuine(cleDeCase(c)));
 function voisins(p) { /* les quatre cases qui touchent celle-ci (l'ile ronde : une seule grille, plus de muret) */
   const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c) L.push(c); } return L;
 }
 const blocDe = (cible) => ['grange', 'hdv', 'enclos', 'voliere', 'geliere'].includes(cible.type) ? S_.cases.filter((c) => c.type === cible.type && c.terrain === cible.terrain) : [cible];
 function trajet(depart, cible) {
   /* BFS sur les cases, on s'arrete sur la cible si on peut y marcher, sinon sur une case voisine */
-  const but = PASSABLE[cible.type] ? cible : null, bloc = blocDe(cible); /* un batiment de plusieurs cases s'aborde par n'importe laquelle */
+  const but = praticable(cible) ? cible : null, bloc = blocDe(cible); /* un batiment de plusieurs cases s'aborde par n'importe laquelle */
   const file = [depart], vu = new Map([[depart.id, null]]);
   while (file.length) {
     const c = file.shift();
-    if (c === but || (!but && PASSABLE[c.type] && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let k = c; while (k) { ch.unshift(k); k = vu.get(k.id); } return ch; }
-    voisins(c).forEach((v) => { if (!vu.has(v.id) && PASSABLE[v.type]) { vu.set(v.id, c); file.push(v); } });
+    if (c === but || (!but && praticable(c) && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let k = c; while (k) { ch.unshift(k); k = vu.get(k.id); } return ch; }
+    voisins(c).forEach((v) => { if (!vu.has(v.id) && praticable(v)) { vu.set(v.id, c); file.push(v); } });
   }
   return trajetCoupe(depart, cible, but, bloc);
 }
@@ -23,9 +28,9 @@ function trajetCoupe(depart, cible, but, bloc) {
   while (ouverts.length) {
     let k = 0; ouverts.forEach((c, i) => { if (cout.get(c.id) < cout.get(ouverts[k].id)) k = i; });
     const c = ouverts.splice(k, 1)[0]; if (fait.has(c.id)) continue; fait.add(c.id);
-    if (c === but || (!but && PASSABLE[c.type] && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let x = c; while (x) { ch.unshift(x); x = prec.get(x.id); } return ch; }
+    if (c === but || (!but && praticable(c) && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let x = c; while (x) { ch.unshift(x); x = prec.get(x.id); } return ch; }
     voisins(c).forEach((v) => {
-      const d = cout.get(c.id) + (PASSABLE[v.type] ? 1 : (COUT_TRAVERSE[v.type] || 40));
+      const d = cout.get(c.id) + (praticable(v) ? 1 : (COUT_TRAVERSE[v.type] || 40));
       if (!fait.has(v.id) && d < (cout.has(v.id) ? cout.get(v.id) : Infinity)) { cout.set(v.id, d); prec.set(v.id, c); ouverts.push(v); }
     });
   }
@@ -35,19 +40,19 @@ function trajetCoupe(depart, cible, but, bloc) {
    fluidifie encore les deplacements », Mathieu) : son trajet passe par les huit cases voisines, une diagonale seulement si les deux cases qu'elle
    frole sont praticables (il ne coupe pas l'angle d'un batiment). Les monstres, les voleurs et le gardien gardent leur trajet en quatre directions */
 const COINS = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
-function coinLibre(a, b) { const di = b.i - a.i, dj = b.j - a.j; if (Math.abs(di) !== 1 || Math.abs(dj) !== 1) return false; const x = caseAt(a.i + di, a.j), y = caseAt(a.i, a.j + dj); return !!(x && y && PASSABLE[x.type] && PASSABLE[y.type]); }
+function coinLibre(a, b) { const di = b.i - a.i, dj = b.j - a.j; if (Math.abs(di) !== 1 || Math.abs(dj) !== 1) return false; const x = caseAt(a.i + di, a.j), y = caseAt(a.i, a.j + dj); return !!(x && y && praticable(x) && praticable(y)); }
 function voisinsMarche(p) {
-  const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c && PASSABLE[c.type]) L.push([c, 1]); }
-  for (const [di, dj] of COINS) { const c = caseAt(p.i + di, p.j + dj); if (c && PASSABLE[c.type] && coinLibre(p, c)) L.push([c, Math.SQRT2]); }
+  const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c && praticable(c)) L.push([c, 1]); }
+  for (const [di, dj] of COINS) { const c = caseAt(p.i + di, p.j + dj); if (c && praticable(c) && coinLibre(p, c)) L.push([c, Math.SQRT2]); }
   return L;
 }
 function trajetPerso(depart, cible) {
-  const but = PASSABLE[cible.type] ? cible : null, bloc = blocDe(cible);
+  const but = praticable(cible) ? cible : null, bloc = blocDe(cible);
   const cout = new Map([[depart.id, 0]]), prec = new Map([[depart.id, null]]), ouverts = [depart], fait = new Set();
   while (ouverts.length) {
     let k = 0; ouverts.forEach((c, i) => { if (cout.get(c.id) < cout.get(ouverts[k].id)) k = i; });
     const c = ouverts.splice(k, 1)[0]; if (fait.has(c.id)) continue; fait.add(c.id);
-    if (c === but || (!but && PASSABLE[c.type] && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let x = c; while (x) { ch.unshift(x); x = prec.get(x.id); } return ch; }
+    if (c === but || (!but && praticable(c) && voisins(c).some((v) => bloc.includes(v)))) { const ch = []; let x = c; while (x) { ch.unshift(x); x = prec.get(x.id); } return ch; }
     for (const [v, pas] of voisinsMarche(c)) { const d = cout.get(c.id) + pas; if (!fait.has(v.id) && d < (cout.has(v.id) ? cout.get(v.id) : Infinity)) { cout.set(v.id, d); prec.set(v.id, c); ouverts.push(v); } }
   }
   return trajetCoupe(depart, cible, but, bloc);
@@ -68,7 +73,7 @@ function ligneLibre(a, b) {
   for (let t = 0; t <= L + 0.001; t += 0.25) {
     for (const o of [0, -0.3, 0.3]) {
       const x = a.x + dx * Math.min(t, L) / L + nx * o, z = a.z + dz * Math.min(t, L) / L + nz * o, c = caseSous(x, z);
-      if (!c || !PASSABLE[c.type]) return false;
+      if (!c || !praticable(c)) return false;
       if (o === 0) { if (prec && c !== prec && !voisins(prec).includes(c) && !coinLibre(prec, c)) return false; prec = c; } /* (en diagonale par un coin : les deux cases a cote doivent etre praticables) */
     }
   }
@@ -76,11 +81,11 @@ function ligneLibre(a, b) {
 }
 function allerPuis(cible, fn) {
   const u = paysanMesh.userData, ici = caseSous(paysanMesh.position.x, paysanMesh.position.z);
-  let depart = (ici && PASSABLE[ici.type] && (u.cellule ? u.cellule.terrain === 'main' : true)) ? ici : (u.cellule || S_.cases[0]);
-  if (!PASSABLE[depart.type]) depart = voisins(depart).find((v) => PASSABLE[v.type]) || depart;
-  const vise = pointVise && pointVise.c === cible.id && PASSABLE[cible.type] ? pointDansCase(cible, pointVise) : null; pointVise = null;
+  let depart = (ici && praticable(ici) && (u.cellule ? u.cellule.terrain === 'main' : true)) ? ici : (u.cellule || S_.cases[0]);
+  if (!praticable(depart)) depart = voisins(depart).find((v) => praticable(v)) || depart;
+  const vise = pointVise && pointVise.c === cible.id && praticable(cible) ? pointDansCase(cible, pointVise) : null; pointVise = null;
   if (vise && depart === cible) { if (Math.hypot(vise.x - paysanMesh.position.x, vise.z - paysanMesh.position.z) > 0.05) { chemin = [{ c: cible, x: vise.x, z: vise.z }]; arrivee = { cible, fn, vise }; return; } }
-  if (depart === cible || (!PASSABLE[cible.type] && voisins(depart).some((v) => blocDe(cible).includes(v)) && !chemin.length)) { chemin = []; arrivee = null; u.cellule = depart; if (!vise) regarder(posCase(cible)); fn(); return; }
+  if (depart === cible || (!praticable(cible) && voisins(depart).some((v) => blocDe(cible).includes(v)) && !chemin.length)) { chemin = []; arrivee = null; u.cellule = depart; if (!vise) regarder(posCase(cible)); fn(); return; }
   const ch = trajetPerso(depart, cible), pc = posCase(cible);
   if (!ch) { chemin = []; arrivee = null; regarder(pc); fn(); return; } /* sans chemin (ne devrait plus arriver) : il agit d'ou il est, jamais a travers les batiments ou le vide */
   /* ou s'arreter : devant un batiment (un peu vers lui), au bord d'un champ (cote d'ou l'on vient), sinon au centre de la case */
@@ -128,7 +133,7 @@ function marcher(dt, s) {
   }
   { /* les virages s'arrondissent : pres d'un point de passage, des que le suivant se voit en ligne droite, il file directement vers lui (23/10/2026) */
     const px = paysanMesh.position.x, pz = paysanMesh.position.z;
-    if (chemin.length >= 2 && Math.hypot(chemin[0].x - px, chemin[0].z - pz) < 0.9 && ligneLibre({ x: px, z: pz }, chemin[1])) { const ici = caseSous(px, pz); if (ici && PASSABLE[ici.type]) u.cellule = ici; chemin.shift(); }
+    if (chemin.length >= 2 && Math.hypot(chemin[0].x - px, chemin[0].z - pz) < 0.9 && ligneLibre({ x: px, z: pz }, chemin[1])) { const ici = caseSous(px, pz); if (ici && praticable(ici)) u.cellule = ici; chemin.shift(); }
   }
   const e = chemin[0], px = paysanMesh.position.x, pz = paysanMesh.position.z, dx = e.x - px, dz = e.z - pz, d = Math.hypot(dx, dz);
   let reste = d; for (let k = 1; k < chemin.length; k++) reste += Math.hypot(chemin[k].x - chemin[k - 1].x, chemin[k].z - chemin[k - 1].z);

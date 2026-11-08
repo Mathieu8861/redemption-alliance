@@ -22,6 +22,7 @@ const coutReparer = (cle) => Math.max(1, Math.ceil(degatsBat(cle) * prixPv()));
 const coutReconstruire = (cle) => Math.ceil(pvMaxBat(cle) * prixPv() * 1.5);
 const clesBats = () => BATS_PV.filter((t) => S_.cases.some((c) => c.type === t)).concat(S_.cases.filter((c) => c.type === 'tour').map((c) => 'tour:' + c.id));
 const cleDeCase = (c) => !c ? null : c.type === 'tour' ? 'tour:' + c.id : BATS_PV.includes(c.type) ? c.type : null;
+const casesDeCle = (cle) => cle.startsWith('tour:') ? S_.cases.filter((c) => c.type === 'tour' && c.id === cle.slice(5)) : S_.cases.filter((c) => c.type === cle); /* (08/11/2026) */
 /* le rectangle au sol du batiment (les monstres frappent son bord) et ses maillages */
 function zoneBat(cle) {
   const t = typeCle(cle);

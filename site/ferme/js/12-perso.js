@@ -706,7 +706,7 @@ function majEffets(dt) { /* les effets animes ; un effet qui plante est retire e
 const porteeClasse = (classe) => (STATS_CLASSE[classe] || STATS_CLASSE.iop).portee;
 function caseAPortee(x, z, portee) { /* la case praticable la plus proche du perso d'ou il touche le point (x, z) ; aucune : null */
   const pp = paysanMesh.position; let best = null, bd = Infinity;
-  S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; const q = posCase(c); if (Math.hypot(q.x - x, q.z - z) > portee - 0.25) return; const d = Math.hypot(q.x - pp.x, q.z - pp.z); if (d < bd) { bd = d; best = c; } });
+  S_.cases.forEach((c) => { if (!praticable(c)) return; const q = posCase(c); if (Math.hypot(q.x - x, q.z - z) > portee - 0.25) return; const d = Math.hypot(q.x - pp.x, q.z - pp.z); if (d < bd) { bd = d; best = c; } });
   return best;
 }
 function attaquerVoleur() {
@@ -719,8 +719,8 @@ function attaquerVoleur() {
        sur un terrain achete (ou une case ou l'on ne marche pas), il ne courait pas et frappait de loin. Maintenant : la case du voleur,
        sinon la case libre la plus proche de lui, et jamais de coup hors de portee */
     const c = caseIci(pv.x, pv.z);
-    if (c && PASSABLE[c.type]) { allerPuis(c, () => attaquerVoleur()); return; }
-    const pres = S_.cases.filter((x) => PASSABLE[x.type]).map((x) => [x, posCase(x)]).sort((a, b) => Math.hypot(a[1].x - pv.x, a[1].z - pv.z) - Math.hypot(b[1].x - pv.x, b[1].z - pv.z))[0];
+    if (c && praticable(c)) { allerPuis(c, () => attaquerVoleur()); return; }
+    const pres = S_.cases.filter((x) => praticable(x)).map((x) => [x, posCase(x)]).sort((a, b) => Math.hypot(a[1].x - pv.x, a[1].z - pv.z) - Math.hypot(b[1].x - pv.x, b[1].z - pv.z))[0];
     if (pres && Math.hypot(pres[1].x - pp.x, pres[1].z - pp.z) > 0.5) { allerPuis(pres[0], () => attaquerVoleur()); return; }
     toast(classe === 'cra' ? 'Trop loin, même pour une flèche.' : 'Le voleur est hors de portée : attends qu\'il approche.'); return;
   }
@@ -739,8 +739,8 @@ function poursuivreVoleur(dt) {
   h.t -= dt; h.refait -= dt; if (h.t > 0) return; h.t = 0.2;
   const vx = h.prec ? (pv.x - h.prec.x) / 0.2 : 0, vz = h.prec ? (pv.z - h.prec.z) / 0.2 : 0; h.prec = { x: pv.x, z: pv.z };
   const avance = Math.min(1.2, d / Math.max(1, vitesse())), cx = pv.x + vx * avance, cz = pv.z + vz * avance, c = caseSous(cx, cz);
-  if (c && PASSABLE[c.type] && ligneLibre({ x: pp.x, z: pp.z }, { x: cx, z: cz })) { chemin = [{ c, x: cx, z: cz }]; arrivee = { cible: c, fn: () => attaquerVoleur(), vise: true }; return; } /* (en ligne droite vers ou il va) */
-  if (h.refait <= 0) { h.refait = 1; const cv = caseIci(pv.x, pv.z); if (cv && PASSABLE[cv.type]) allerPuis(cv, () => attaquerVoleur()); u.chasse = h; } /* (un obstacle entre eux : le chemin est refait chaque seconde vers sa case) */
+  if (c && praticable(c) && ligneLibre({ x: pp.x, z: pp.z }, { x: cx, z: cz })) { chemin = [{ c, x: cx, z: cz }]; arrivee = { cible: c, fn: () => attaquerVoleur(), vise: true }; return; } /* (en ligne droite vers ou il va) */
+  if (h.refait <= 0) { h.refait = 1; const cv = caseIci(pv.x, pv.z); if (cv && praticable(cv)) allerPuis(cv, () => attaquerVoleur()); u.chasse = h; } /* (un obstacle entre eux : le chemin est refait chaque seconde vers sa case) */
 }
 function animerAttaque(dt) {
   const u = paysanMesh && paysanMesh.userData, a = u && u.attaque;
@@ -800,7 +800,7 @@ function chasserDeLoin(p, fin, approche) {
   const classe = classeDe(), q = posCase(p), pp = paysanMesh.position;
   if (!approche && Math.hypot(q.x - pp.x, q.z - pp.z) > Math.max(porteeClasse(classe), 2.4)) { /* depuis une case voisine, tout le monde l'atteint ; le Cra, lui, s'arrete des qu'il est a portee */
     const loin = classe === 'cra' && caseAPortee(q.x, q.z, porteeClasse(classe)); if (loin) { allerPuis(loin, () => chasserDeLoin(p, fin, true)); return; }
-    const pres = voisins(p).filter((c) => PASSABLE[c.type]).sort((a, b) => Math.hypot(posCase(a).x - pp.x, posCase(a).z - pp.z) - Math.hypot(posCase(b).x - pp.x, posCase(b).z - pp.z))[0];
+    const pres = voisins(p).filter((c) => praticable(c)).sort((a, b) => Math.hypot(posCase(a).x - pp.x, posCase(a).z - pp.z) - Math.hypot(posCase(b).x - pp.x, posCase(b).z - pp.z))[0];
     allerPuis(pres || p, () => chasserDeLoin(p, fin, true)); return; /* une fois approche, il frappe d'ou il est */
   }
   chemin = []; arrivee = null; u.angle = Math.atan2(q.x - pp.x, q.z - pp.z);

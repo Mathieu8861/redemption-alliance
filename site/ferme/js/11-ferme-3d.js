@@ -458,9 +458,9 @@ function refuserSiBloque(deja, avant) {
 }
 function avertirAcces(deja) { const n = inaccessibles().filter((x) => !deja.includes(x)); if (n.length) toast('Attention : ton perso devra couper à travers pour aller jusqu\'à ' + n[0] + '.'); }
 function inaccessibles() {
-  const ici = paysanMesh && caseIci(paysanMesh.position.x, paysanMesh.position.z), dep = ici && PASSABLE[ici.type] ? ici : S_.cases.find((c) => c.id === 'm3_2' && PASSABLE[c.type]) || S_.cases.find((c) => PASSABLE[c.type]);
+  const ici = paysanMesh && caseIci(paysanMesh.position.x, paysanMesh.position.z), dep = ici && sansObstacle(ici) ? ici : S_.cases.find((c) => c.id === 'm3_2' && PASSABLE[c.type]) || S_.cases.find((c) => PASSABLE[c.type]); /* (les decos se traversent, 08/11/2026) */
   const vu = new Set([dep]), file = [dep];
-  while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (PASSABLE[v.type] && !vu.has(v)) { vu.add(v); file.push(v); } }); }
+  while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (sansObstacle(v) && !vu.has(v)) { vu.add(v); file.push(v); } }); }
   const manque = [];
   Object.keys(BATIS).filter((t) => t !== 'foin').concat(['enclos']).forEach((t) => { /* le foin n'est qu'un decor */ const B = S_.cases.filter((c) => c.type === t); if (B.length && !B.some((c) => voisins(c).some((v) => vu.has(v)))) manque.push(BATIS[t] || 'l\'enclos'); });
   if (S_.cases.some((c) => c.type === 'champ' && !vu.has(c))) manque.push('une de tes parcelles');

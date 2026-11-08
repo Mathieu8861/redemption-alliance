@@ -74,7 +74,7 @@ function annulerVisee() { if (marqueMono) marqueMono.style.display = 'none'; vis
    la souris et le Bouftou tombait plus pres ; le cercle de visee utilise maintenant ce meme point */
 /* le sol ou un sort peut tomber (24/10/2026, « en Arene et ile du boss, le Bouftou, peu importe ou tu mets le sort, il spawn sur toi » : seules les cases
    de la ferme comptaient ; l'Arene et l'ile n'en ont pas, le point reculait jusqu'au perso. Le bond du Iop y retombait aussi sur place) */
-const solSort = (a, b) => lieu === 'arene' ? Math.hypot(a - ARENE.x, b - ARENE.z) < R_ARENE - 0.5 : lieu === 'ile' && ileBoss ? dansIle(a, b) : (() => { const c = caseIci(a, b); return !!c && !!PASSABLE[c.type]; })();
+const solSort = (a, b) => lieu === 'arene' ? Math.hypot(a - ARENE.x, b - ARENE.z) < R_ARENE - 0.5 : lieu === 'ile' && ileBoss ? dansIle(a, b) : (() => { const c = caseIci(a, b); return !!c && !!praticable(c); })();
 function pointSort(pt, portee) {
   const pp = paysanMesh.position; let x = pt.x, z = pt.z; const L = Math.hypot(x - pp.x, z - pp.z);
   if (portee && L > portee) { x = pp.x + (x - pp.x) * portee / L; z = pp.z + (z - pp.z) * portee / L; }
@@ -108,7 +108,7 @@ function majVisee(s) {
 const DUREE_TEMPETE = 2, COUPS_TEMPETE = 4;
 function tempeteDeLames(pt) {
   const st = statsPerso(), u = paysanMesh.userData, pp = paysanMesh.position, R = 2.8, de = pp.clone(), m = u.membres || [], bras = m[3] || m[2];
-  let x = pt.x, z = pt.z; const ok = (a, b) => { const q = caseIci(a, b); return q && PASSABLE[q.type]; };
+  let x = pt.x, z = pt.z; const ok = (a, b) => { const q = caseIci(a, b); return q && praticable(q); };
   if (!ok(x, z)) { const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; x = pp.x + (x0 - pp.x) * Math.max(0, k); z = pp.z + (z0 - pp.z) * Math.max(0, k); }
   combat.cdUlti = rechargeUlti(); chemin = []; arrivee = null; combat.ordre = false; u.charge = true; u.tempete = true; toast(nomUlti('zone') + ' !', 'or');
   /* l'animation (23/10/2026) : un tourbillon autour de lui, trois lames qui tournent a hauteur d'epee, des rubans de vent a plusieurs hauteurs, l'anneau
@@ -132,7 +132,7 @@ function tempeteDeLames(pt) {
     const f = Math.min(1, t / 0.15, (dash + DUREE_TEMPETE - t) / 0.2); /* (le tourbillon se forme puis se defait) */
     lames.rotation.y = tour + 0.3; lames.scale.setScalar(0.6 + 0.4 * f); vents.forEach((g) => { g.rotation.z += dt * g.userData.v; g.material.opacity = 0.45 * f; }); sol.material.opacity = (0.35 + 0.2 * Math.sin(t * 12)) * f;
     lames.children.forEach((b3) => b3.children.forEach((l) => { l.material.uniforms.uA.value = l.userData.o * f; }));
-    if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); if (fant) { fant.fin(); fant = null; } u.charge = false; u.tempete = false; if (bras) { bras.rotation.x = 0; bras.rotation.z = 0; } if (cel && PASSABLE[cel.type]) u.cellule = cel; onde(p.x, p.y, p.z, R + 0.6, '#ffffff', 0.4, 0.8); poussiere(p.x, p.y, p.z, 12, R * 0.7); flashLumiere(p.x, p.y + 1, p.z, '#ffd27a', 2.5, 7, 0.3); return true; }
+    if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); if (fant) { fant.fin(); fant = null; } u.charge = false; u.tempete = false; if (bras) { bras.rotation.x = 0; bras.rotation.z = 0; } if (cel && praticable(cel)) u.cellule = cel; onde(p.x, p.y, p.z, R + 0.6, '#ffffff', 0.4, 0.8); poussiere(p.x, p.y, p.z, 12, R * 0.7); flashLumiere(p.x, p.y + 1, p.z, '#ffd27a', 2.5, 7, 0.3); return true; }
   });
 }
 function executerUlti(id, c, pt) {
@@ -199,7 +199,7 @@ function bondIop(pt) {
     fant.maj(dt, Math.sin(k * Math.PI));
     if (t >= 1) {
       jeter(roue); fant.fin(); corps.forEach(({ c, p, q }) => { c.position.copy(p); c.quaternion.copy(q); }); if (!combat || !combat.fin) { if (bras) bras.rotation.x = 0; }
-      u.charge = false; u.enVol = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; flashLumiere(fin.x, u.y + 1, fin.z, '#ffd27a', 3.5, 7, 0.35);
+      u.charge = false; u.enVol = false; if (cel && praticable(cel)) u.cellule = cel; flashLumiere(fin.x, u.y + 1, fin.z, '#ffd27a', 3.5, 7, 0.35);
       emettre(FX_VIF, 30, { x: fin.x, y: u.y + 0.2, z: fin.z, r: 0.5, plat: true, dv: 7, haut: true, vie: [0.25, 0.55], taille: [0.1, 0.02], c: ['#ffffff', '#ffd27a', '#ff8a2e'], grav: 9, frein: 1.5, etire: 0.04 });
       secousse(0.22, 0.32); onde(fin.x, u.y, fin.z, RAYON_BOND + 0.4, '#ffffff', 0.3, 0.95); onde(fin.x, u.y, fin.z, RAYON_BOND + 1.1, '#ffc24a', 0.55, 0.75);
       solFendu(fin.x, u.y, fin.z, RAYON_BOND); mottes(fin.x, u.y, fin.z, 12, 1.1); poussiere(fin.x, u.y, fin.z, 14, RAYON_BOND);
@@ -344,7 +344,7 @@ function chargeRoyale(pt, st) {
       etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.0, '#f6d27a'); secousse(0.1, 0.12); blesser(o, Math.round(st.deg * 2), true); if (o.etat !== 'actif') return;
       o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); if (!o.d.boss) bousculer(o, a, x, z); });
     if (k < 1) return false;
-    fant.fin(); u.charge = false; if (cel && PASSABLE[cel.type]) u.cellule = cel;
+    fant.fin(); u.charge = false; if (cel && praticable(cel)) u.cellule = cel;
     secousse(0.16, 0.25); onde(fin.x, u.y, fin.z, 1.8, '#ffffff', 0.3, 0.9); onde(fin.x, u.y, fin.z, 2.4, '#f0c96a', 0.5, 0.7); poussiere(fin.x, u.y, fin.z, 12, 1.4, '#d8c6a0'); mottes(fin.x, u.y, fin.z, 8, 0.9); return true; });
 }
 function bousculer(o, a, x, z) { /* le monstre est projete sur le cote de la charge, 1,6 plus loin en 0,2 s, s'il y a du sol */
@@ -409,7 +409,7 @@ function bondMoon(x0, z0, R, st) {
     const P = paysanMesh.position; mart.position.set(P.x + dx * 0.25, P.y + 1.0, P.z + dz * 0.25); mart.rotation.set(Math.min(1.75, sw), a, 0);
     if ((trace += dt) > 0.03 && k > 0.72 && !frappe) { trace = 0; lueur(mart.localToWorld(new T.Vector3(0, 1.17, 0)), '#ffd27a', 1.2, 0.25); }
     if (k < 1) return false;
-    if (!frappe) { frappe = true; u.charge = false; u.enVol = false; if (cel && PASSABLE[cel.type]) u.cellule = cel; P.y = u.y;
+    if (!frappe) { frappe = true; u.charge = false; u.enVol = false; if (cel && praticable(cel)) u.cellule = cel; P.y = u.y;
       impactMarteau(cible.x, y, cible.z); solFendu(cible.x, y, cible.z, R); mottes(cible.x, y, cible.z, 12, 1.2); poussiere(cible.x, y, cible.z, 14, R, '#d8c6a0');
       if (!c0.fin) c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - cible.x, o.z - cible.z) > R + 0.25 * (o.d.ombre || 1)) return;
         etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 1.1, '#ffd27a'); blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 0.5 : 1); }); }
