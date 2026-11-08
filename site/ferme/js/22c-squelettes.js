@@ -78,6 +78,38 @@ function surPlace(clip, hips) {
    balaye) ; a defaut, l'instant ou il va le plus vite */
 /* un clone du squelette sans recopier ses donnees (27/10/2026, « j'ai des petits freeze », Mathieu) : Object3D.copy recopie userData en JSON, et celui
    du modele porte toutes ses animations ; chaque arrivee de monstre les serialisait, 11 a 57 ms d'un bloc */
+/* LES YEUX QUI LUISENT DANS LA NUIT (08/11/2026, « les Abraknydes, on devrait plus voir leurs yeux jaunes dans la nuit, et les Abraknes des yeux rouges », Mathieu) :
+   le voile de la nuit (nuitForet) est pose sur l'ecran, au-dessus de la 3D : un oeil qui luit dans la scene s'y eteint comme le reste. Les yeux, reperes sur un
+   rendu de face puis touches par un rayon (blender : scratchpad yeux/face.py et rayons.py), sont des points accroches a l'os qui les porte ; la nuit, de petites
+   lueurs les suivent au-dessus du voile (yeuxNuit, 21-combat.js), seulement quand le monstre regarde vers toi. Par oeil : [x, y, z, normale x, y, z, rayon,
+   couleur] dans le repere du modele charge ; j : jaune (les arbres, le cavalier de l'Araknotron), r : rouge (les araignees, l'oeil du Chene Mou). L'Arbre Collant
+   n'a pas d'yeux. */
+const YEUX_P10 = {
+  'abraknyde': [[-0.17, 1.4042, 0.4956, -0.204, -0.101, 0.974, 0.0446, 'j'], [0.2035, 1.402, 0.4934, 0.159, -0.118, 0.98, 0.0446, 'j']],
+  'venerable': [[-0.1268, 1.6135, 0.3682, -0.245, 0.149, 0.958, 0.0357, 'j'], [0.1633, 1.6081, 0.3577, 0.277, 0.126, 0.952, 0.0357, 'j']],
+  'sombre': [[-0.217, 1.8305, 0.506, -0.149, -0.353, 0.924, 0.0378, 'j'], [0.2134, 1.8324, 0.5081, 0.155, -0.319, 0.935, 0.0378, 'j']],
+  'tronknyde': [[-0.1136, 0.6613, 0.2705, -0.167, -0.07, 0.983, 0.0221, 'j'], [0.1273, 0.6622, 0.2701, 0.272, 0.063, 0.96, 0.0221, 'j']],
+  'semeur': [[-0.1261, 2.5374, 0.8932, -0.491, -0.217, 0.844, 0.0372, 'j'], [0.1209, 2.5467, 0.8917, 0.357, -0.902, 0.243, 0.0372, 'j']],
+  'abrakleur': [[-0.0816, 2.886, 0.1512, -0.954, -0.11, 0.28, 0.0165, 'j'], [0.0672, 2.8916, 0.159, 0.871, 0.094, 0.482, 0.0165, 'j']],
+  'ancestral': [[-0.6585, 3.1595, -0.1775, -0.487, -0.681, 0.547, 0.0483, 'j'], [-0.4713, 3.1716, -0.1861, 0.485, -0.57, 0.664, 0.0483, 'j'], [0.7362, 3.2501, -0.0621, -0.29, 0.063, 0.955, 0.0483, 'j'], [0.9173, 3.2199, -0.0794, 0.357, 0.185, 0.916, 0.0483, 'j'], [-1.6305, 2.3686, 0.2868, -0.596, 0.143, 0.79, 0.0483, 'j'], [-1.4313, 2.3807, 0.2967, 0.285, 0.28, 0.917, 0.0483, 'j'], [1.4124, 2.423, 0.3233, -0.394, -0.402, 0.826, 0.0483, 'j'], [1.6298, 2.3928, 0.3234, 0.24, -0.432, 0.869, 0.0483, 'j']],
+  'chene-mou': [[-0.0147, 2.7285, 0.9929, -0.033, 0.146, 0.989, 0.2476, 'r']],
+  'abrakne': [[-0.112, 0.6896, 0.3365, -0.434, -0.036, 0.9, 0.0202, 'r'], [0.102, 0.6888, 0.3438, 0.554, -0.077, 0.829, 0.0202, 'r']],
+  'abrakne-sombre': [[-0.0938, 0.6871, 0.496, -0.288, 0.189, 0.939, 0.023, 'r'], [0.0932, 0.6884, 0.4968, 0.564, -0.329, 0.757, 0.023, 'r']],
+  'araknotron': [[-0.0923, 1.705, -0.2346, -0.546, -0.622, 0.562, 0.021, 'j'], [0.0581, 1.7021, -0.2107, 0.004, -0.568, 0.823, 0.021, 'j'], [-0.1435, 0.6143, 0.154, -0.266, -0.481, 0.836, 0.0252, 'r'], [0.132, 0.6223, 0.1566, 0.45, -0.37, 0.812, 0.0252, 'r']]
+};
+function poserYeux(nom, g) {
+  const L = YEUX_P10[nom]; if (!L) return; g.updateMatrixWorld(true); const sks = []; g.traverse((o) => { if (o.isSkinnedMesh) sks.push(o); }); if (!sks.length) return;
+  const v = new T.Vector3(), avant = new T.Vector3(0, 0, 1);
+  L.forEach(([x, y, z, nx, ny, nz, r, c]) => {
+    const P = new T.Vector3(x, y, z).applyMatrix4(g.matrixWorld); let os = null, bd = Infinity;
+    sks.forEach((sk) => { const pos = sk.geometry.attributes.position, SI = sk.geometry.attributes.skinIndex, SW = sk.geometry.attributes.skinWeight;
+      for (let k = 0; k < pos.count; k++) { v.fromBufferAttribute(pos, k).applyMatrix4(sk.matrixWorld); const d = v.distanceToSquared(P); if (d >= bd) continue; bd = d;
+        let m = 0, w = -1; for (let q = 0; q < 4; q++) { const ww = SW.array[k * 4 + q]; if (ww > w) { w = ww; m = SI.array[k * 4 + q]; } } os = sk.skeleton.bones[m]; } }); /* (l'os qui porte le point de la peau le plus proche) */
+    if (!os) return; const inv = new T.Matrix4().copy(os.matrixWorld).invert(), o = new T.Object3D(); o.name = 'oeilP10'; o.position.copy(P).applyMatrix4(inv);
+    const n = new T.Vector3(nx, ny, nz).add(avant).normalize().transformDirection(inv); /* (tiree vers l'avant : un rayon qui touche le bord d'une paupiere renvoie une normale de travers) */
+    o.userData.oeil = { n: n.toArray(), r, c }; os.add(o);
+  });
+}
 /* L'ARC DE L'ARAKNOTRON (08/11/2026, « le petit bonhomme orange, je le vois bien avec un arc », Mathieu) : son cavalier n'a qu'un os par bras (cbras.G,
    cbrasG une fois charge) ; sa main, c'est le bout du bras : la moyenne des points de la peau les plus eloignes de l'epaule parmi ceux que cet os porte.
    On y accroche « mainG » (ses fleches en partent, mainSquelette) et un arc tenu droit, la courbe vers l'avant ; les copies du modele les gardent. */
@@ -163,6 +195,7 @@ async function chargerSquelette(nom, url, h) {
       /* sa portee : la ou tombent ses coups au sol, en moyenne (il ne frappe que si tu es dedans) */
       const D = vise ? [].concat(...Object.values(impacts)).filter((x) => x.sol && x.d).map((x) => x.d).sort((x, y) => x - y) : []; gl.scene.userData.portee = D.length ? D[Math.floor(D.length / 2)] : 0; /* (sans marteau : la portee de sa fiche) */
       if (nom === 'araknotron') armerAraknotron(gl.scene); /* (son arc, 08/11/2026) */
+      poserYeux(nom, gl.scene); /* (ses yeux qui luisent dans la nuit, 08/11/2026) */
       MODELES[nom] = gl.scene; if (VERSIONS_P10.has(nom)) { await texturesP10(nom); habillerP10(nom, peauxDe(gl.scene)); } } catch (err) { console.error('squelette', nom, err); }
   }
 }

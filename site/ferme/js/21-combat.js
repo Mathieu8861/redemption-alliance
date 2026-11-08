@@ -1362,6 +1362,28 @@ function trousNuit(N) {
     g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 42%, #000 100%)'); });
   const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
 }
+/* les yeux qui luisent dans la nuit (08/11/2026) : de petites lueurs posees au-dessus du voile, sur les yeux des monstres tournes vers la camera (poserYeux,
+   22c-squelettes.js) ; un clignement de temps en temps. Les lueurs sont reutilisees d'une image a l'autre */
+const YEUX_COUL = { j: ['#fffbe0', '#ffd23a', 'rgba(255,190,40,0)'], r: ['#ffe2d8', '#ff3a26', 'rgba(255,40,20,0)'] };
+function yeuxNuit(N, k, fin) {
+  if (!N.yeux) { const d = document.createElement('div'); d.className = 'yeux-nuit'; d.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden'; N.v.insertAdjacentElement('afterend', d); N.yeux = { d, pool: [] }; }
+  const Y = N.yeux; let n = 0;
+  if (!fin && k > 0 && combat) {
+    const rc = canvas.getBoundingClientRect(), vers = camera.getWorldDirection(new T.Vector3()).negate(), droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize(), p = new T.Vector3(), q = new T.Vector3(), nw = new T.Vector3(), sc = new T.Vector3(), t = performance.now() / 1000;
+    combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort' || !o.m.visible) return;
+      if (!o.yeux) { o.yeux = []; o.m.traverse((x) => { if (x.userData && x.userData.oeil) o.yeux.push(x); }); }
+      if (!o.yeux.length) return;
+      if (t > (o.clignSuivant || 0)) { o.clign = t; o.clignSuivant = t + 2.5 + Math.random() * 4; } const ferme = t - (o.clign || -9) < 0.13;
+      o.yeux.forEach((e) => { const D = e.userData.oeil; e.getWorldPosition(p); nw.fromArray(D.n).transformDirection(e.matrixWorld); const f = nw.dot(vers); if (f < 0.05) return;
+        e.getWorldScale(sc); q.copy(p).addScaledVector(droite, D.r * sc.x); p.project(camera); q.project(camera); if (p.z > 1) return;
+        const x = rc.left + (p.x + 1) / 2 * rc.width, y = rc.top + (1 - p.y) / 2 * rc.height, r = Math.min(28, Math.max(2.2, Math.hypot((q.x - p.x) / 2 * rc.width, (q.y - p.y) / 2 * rc.height)) * (D.c === 'r' ? 1.6 : 1.15)); /* (les yeux rouges des araignees sont petits : plus gros) */
+        let el = Y.pool[n]; if (!el) { el = document.createElement('i'); el.style.cssText = 'position:absolute;left:0;top:0;border-radius:50%;will-change:transform,opacity'; Y.d.appendChild(el); Y.pool.push(el); }
+        if (el.dataset.c !== D.c) { const C = YEUX_COUL[D.c] || YEUX_COUL.j; el.dataset.c = D.c; el.style.background = 'radial-gradient(circle, ' + C[0] + ' 0%, ' + C[0] + ' 18%, ' + C[1] + ' 38%, ' + C[2] + ' 72%)'; }
+        const tl = r * 3.6; el.style.width = el.style.height = tl.toFixed(1) + 'px'; el.style.transform = 'translate(' + (x - tl / 2).toFixed(1) + 'px,' + (y - tl / 2).toFixed(1) + 'px) scaleY(' + (ferme ? 0.15 : 1) + ')';
+        el.style.opacity = String(Math.min(1, k * Math.min(1, (f - 0.05) / 0.3))); el.style.display = ''; n++; }); });
+  }
+  for (let i = n; i < Y.pool.length; i++) if (Y.pool[i].style.display !== 'none') Y.pool[i].style.display = 'none';
+}
 function nuitForet() {
   if (!NUIT_F) { const v = document.createElement('div'); v.className = 'nuit-foret'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(10,40,48,.16) 0%,rgba(6,22,30,.38) 45%,rgba(3,10,16,.66) 100%)'; /* (au-dessus de la scene, sous l'interface : la nuit lunaire, elle, ne teinte que le ciel) */
     const st = document.createElement('style'); st.textContent = '@keyframes luciole{0%{transform:translate(0,0);opacity:.2}25%{opacity:1}50%{transform:translate(18px,-22px);opacity:.4}75%{opacity:.95}100%{transform:translate(-10px,8px);opacity:.2}}'; document.head.appendChild(st);
@@ -1370,9 +1392,9 @@ function nuitForet() {
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
   const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; if (N.actif) return; N.actif = true; N.t = 0; let fin = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
   effets.push((dt) => { N.t += dt; const vivant = combat === c0 && combat && !combat.fin; if (!vivant) fin += dt;
-    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); trousNuit(N); eclaircirMonstres(N, k);
+    const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); trousNuit(N); eclaircirMonstres(N, k); yeuxNuit(N, k);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
-    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
+    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); yeuxNuit(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
 }
 function meteorite(mo, x, z, U, c0) { /* une meteorite : un cercle s'annonce, une pierre de lune tombe du ciel en biais dans une trainee, cratere et eclats a l'impact */
   const prepa = 1.25, g = rocherLune(), y = solA(x, z), de = new T.Vector3(x - 7, y + 20, z - 4); g.scale.setScalar(1.3); g.visible = false; scene.add(g); let t = 0;
