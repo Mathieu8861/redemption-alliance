@@ -32,7 +32,9 @@ function ouvrirAreneDev() {
     '<p class="hdv-aide">Réservée à ton compte. Les monstres en avant-première sortent des herses de l\'Arène avec leur propre force. Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ; tu rentres avec ta vie d\'avant.</p>' +
     '<div class="hdv-section">Les groupes</div><div class="puces dev-groupes">' + Object.entries(GROUPES_DEV).map(([id, g]) => '<button class="btn discret" data-dev-groupe="' + id + '">' + g.nom + '</button>').join('') + '<button class="btn discret" data-dev-groupe="vider">Vider</button></div>' +
     (() => { const L = LEGENDAIRES.find((x) => x.cle === 'moon'), o = L && OBJETS[idLeg(L)]; return o ? '<div class="hdv-section">Essayer une arme légendaire</div><p class="hdv-aide">Le temps du combat seulement : elle remplace ton arme, sort en touche 4, puis tu retrouves la tienne.</p><div class="puces dev-groupes"><button class="btn ' + (E.essai === 'moon' ? 'kamas' : 'discret') + '" data-dev-essai="moon">' + (E.essai === 'moon' ? '✓ ' : '') + o.nom + '</button></div>' : ''; })() + /* (« bouton admin Arene dev », choix de Mathieu, 02/11/2026) */
-    '<div class="hdv-section">La force des monstres : vague ' + E.n + '</div><div class="act dev-nb"><button class="btn discret" data-dev-n="-1"' + (E.n > 1 ? '' : ' disabled') + '>−</button><b>vague ' + E.n + '</b><button class="btn discret" data-dev-n="1"' + (E.n < 90 ? '' : ' disabled') + '>+</button></div>' +
+    "<div class=\"hdv-section\">Les vagues 91 à 100 : la Forêt des Abraknydes</div><p class=\"hdv-aide\">La vraie composition de chaque vague, à sa force (pas encore ouvertes aux joueurs). La 100 : la horde, puis l'Ancestral et sa garde, puis le Chêne Mou.</p><div class=\"puces dev-groupes\">" +
+      Array.from({ length: 10 }, (_, i) => 91 + i).map((n) => '<button class="btn ' + (E.vague === n ? 'kamas' : 'discret') + '" data-dev-vague="' + n + '">' + n + '</button>').join('') + '</div>' +
+    '<div class="hdv-section">La force des monstres : vague ' + E.n + '</div><div class="act dev-nb"><button class="btn discret" data-dev-n="-1"' + (E.n > 1 ? '' : ' disabled') + '>−</button><b>vague ' + E.n + '</b><button class="btn discret" data-dev-n="1"' + (E.n < 100 ? '' : ' disabled') + '>+</button></div>' +
     '<div class="hdv-section">Vitesse des animations de Moon</div><p class="hdv-aide">Les Kannibouls sont réglés à ×1,75 et les Tortues à ×1,25, comme tu l\'as choisi. Reste Moon : choisis celle qui te paraît juste, elle sera mise pour tout le monde.</p><div class="puces dev-groupes">' +
       [1, 1.25, 1.5, 1.75].map((x) => '<button class="btn ' + (VITESSE_ANIM === x ? 'kamas' : 'discret') + '" data-dev-vit="' + x + '">×' + String(x).replace('.', ',') + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres du palier 10 : deux versions</div><p class="hdv-aide">A : la version réaliste (écorce détaillée). B : la version à la DA du jeu (aplats, couleurs franches, contours marqués). Même forme, mêmes mouvements ; ça change aussi les monstres déjà en combat.</p><div class="puces dev-groupes">' +
@@ -41,12 +43,14 @@ function ouvrirAreneDev() {
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague]'); if (!b || !estAdmin()) return;
   const E = etatDev();
-  if (b.dataset.devPlus) E.liste[b.dataset.devPlus] = Math.min(NB_DEV_MAX, (E.liste[b.dataset.devPlus] || 0) + 1);
+  if (b.dataset.devVague) { const n = +b.dataset.devVague; E.vague = n; E.n = n; E.liste = {}; (COMPO_ABRAK[n - 90] || []).forEach(([t, k]) => { E.liste[t] = (E.liste[t] || 0) + k; }); } /* (une vraie vague du palier 10, 08/11/2026) */
+  else if (b.dataset.devPlus || b.dataset.devMoins || b.dataset.devGroupe) E.vague = null;
+  if (b.dataset.devVague) { /* deja fait */ } else if (b.dataset.devPlus) E.liste[b.dataset.devPlus] = Math.min(NB_DEV_MAX, (E.liste[b.dataset.devPlus] || 0) + 1);
   else if (b.dataset.devMoins) E.liste[b.dataset.devMoins] = Math.max(0, (E.liste[b.dataset.devMoins] || 0) - 1);
   else if (b.dataset.devGroupe) E.liste = b.dataset.devGroupe === 'vider' ? {} : Object.assign({}, GROUPES_DEV[b.dataset.devGroupe].liste);
-  else if (b.dataset.devN) E.n = Math.max(1, Math.min(90, E.n + Number(b.dataset.devN)));
+  else if (b.dataset.devN) E.n = Math.max(1, Math.min(100, E.n + Number(b.dataset.devN)));
   else if (b.dataset.devEssai) E.essai = E.essai === b.dataset.devEssai ? null : b.dataset.devEssai;
   else if (b.dataset.devVersion) { choisirVersionP10(b.dataset.devVersion).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVit) { VITESSE_ANIM = Number(b.dataset.devVit); try { localStorage.setItem('ferme-vitesse-anim', String(VITESSE_ANIM)); } catch (err) { /* rien */ } }
@@ -59,13 +63,14 @@ async function partirDev() {
   if (!peutPartir('arene')) return;
   areneSuite = true; fermerModale(); areneSuite = false;
   toast('Arène dev : chargement des monstres…');
-  const avecRenforts = [].concat(...file.map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : [], MONSTRES[t].invoque ? MONSTRES[t].invoque.types : [], MONSTRES[t].affaibli ? [MONSTRES[t].affaibli.invoque] : []))).filter((t) => MONSTRES[t]); /* (affaibli : les Gorilles de Moon, 31/10/2026) */
+  const suite = E.vague && PHASES_BOSS[E.vague] ? PHASES_BOSS[E.vague].map((p) => ({ nom: p.nom, f: [].concat(...p.L.map(([t, k]) => Array(k).fill(t))).filter((t) => MONSTRES[t]) })) : []; /* (les temps suivants de la vague 100) */
+  const avecRenforts = [].concat(...file.concat(...suite.map((p) => p.f)).map((t) => [t].concat(MONSTRES[t].renforts ? [MONSTRES[t].renforts[0]] : [], MONSTRES[t].renfortsRage ? [MONSTRES[t].renfortsRage[0]] : [], MONSTRES[t].invoque ? MONSTRES[t].invoque.types : [], MONSTRES[t].affaibli ? [MONSTRES[t].affaibli.invoque] : []))).filter((t) => MONSTRES[t]); /* (affaibli : les Gorilles de Moon, 31/10/2026) */
   await chargerSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (et ceux qu'ils appellent : Ebil seul appelait des Jav jamais charges, et l'image se figeait, 26/10/2026) */
   prechaufferSquelettes([...new Set(avecRenforts.map((t) => MONSTRES[t].modele))]); /* (leurs shaders prets avant le combat, 27/10/2026) */
   const manque = file.filter((t) => !MODELES[MONSTRES[t].modele]); if (manque.length) { toast('Arène dev : le modèle de ' + MONSTRES[manque[0]].nom + ' n\'a pas pu se charger.', 'alerte'); return; }
   if (lieu !== 'arene' && !(await allerSur('arene'))) { toast('Arène dev : le ballon n\'a pas pu décoller, réessaie.', 'alerte'); return; }
   const u = paysanMesh.userData; paysanMesh.position.set(ARENE.x + 0.6, 0, ARENE.z + 0.6); u.y = 0; u.angle = ROT_ARENE + Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false;
-  setTimeout(() => { if (lieu === 'arene' && !combat) lancerDev(file.sort(() => Math.random() - 0.5), E.n); }, 1200);
+  setTimeout(() => { if (lieu === 'arene' && !combat) lancerDev(file.sort(() => Math.random() - 0.5), E.n, suite); }, 1200);
 }
 /* L'ARME A L'ESSAI (02/11/2026) : portee le temps du combat ; S_.essaiArme garde la vraie, rendue a la fin (ou au prochain lancement du jeu si la page
    s'est fermee en plein combat). Si une autre arme a ete mise entre-temps, elle retourne au sac ; l'arme a l'essai rangee dans le sac en repart */
@@ -79,9 +84,9 @@ function rendreArmeEssai(sansRhabiller) {
   if ((sac[E.id] || 0) > (E.n0 || 0)) { sac[E.id]--; if (!sac[E.id]) delete sac[E.id]; }
   if (E.avant) S_.equip.arme = E.avant; else delete S_.equip.arme; delete S_.essaiArme; if (!sansRhabiller) rafraichirTenue();
 }
-function lancerDev(file, n) {
+function lancerDev(file, n, suite) {
   essayerArme(etatDev().essai);
-  nouveauCombat('arene', { dev: { t0: performance.now(), liste: file.slice() }, n, file: file.slice(), total: file.length, attente: 1.5, arene: { k: 1, tenues: 0, kamas: 0, xp: 0, objets: [], runes: {}, niv0: niveau(S_.xp), record: 0, recordSem: 0 }, regen: false, citron: false, agi: false });
+  nouveauCombat('arene', { dev: { t0: performance.now(), liste: file.slice(), suite: (suite || []).map((p) => ({ nom: p.nom, f: p.f.slice() })) }, n, file: file.slice(), total: file.length, attente: 1.5, arene: { k: 1, tenues: 0, kamas: 0, xp: 0, objets: [], runes: {}, niv0: niveau(S_.xp), record: 0, recordSem: 0 }, regen: false, citron: false, agi: false });
   ouvrirHudCombat(); son('vague'); toast('Arène dev, vague ' + n + ' : ' + file.length + ' monstre' + (file.length > 1 ? 's' : '') + ' !', 'alerte'); majCombatHud();
 }
 /* la fin : tous abattus, a terre ou en fuyant ; un bilan, puis relancer ou rentrer */

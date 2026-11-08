@@ -188,6 +188,23 @@ const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout en
 const AJUST_COMPO = {};
 /* les Tortues melangees (06/11/2026, « pourquoi 11 Tortues Bleues et pas un melange ? », Mathieu) : le complement d'effectif allait tout a la premiere de la liste ;
    la 86 et la 87 recoivent un vrai melange, avec les Jaunes des la 86 (le meme nombre de monstres au contact qu'avant) */
+/* LE REGLAGE COMMUN DU PALIER 10 (08/11/2026, « les mobs sont lents, leurs degats trop faibles, et pour lancer leurs sorts le cast est trop lent », Mathieu,
+   apres l'Arene dev) : sur les 12 monstres de la Foret des Abraknydes, d'un coup, pour pouvoir le regler en un seul endroit : vitesse x1,3, coups 20 % plus
+   rapprochees (cadence x0,8), degats x1,35, temps de preparation des sorts x0,65 (le cercle annonce moins longtemps), sorts 15 % plus souvent. La tempete du
+   Chene Mou en rage garde son rythme. Puis « ils etaient tellement lents, et vu qu'ils tapent au cac, c'etait super facile » : le perso court a 5,6 (8,4 un Cra
+   botte), eux allaient a 2 ou 3 ; de vraies vitesses, selon leur gabarit (VITESSES_P10, en unites par seconde). */
+const REGLAGE_P10 = { cadence: 0.8, deg: 1.35, prepa: 0.65, periode: 0.85 };
+const VITESSES_P10 = { tronknyde: 4.5, abraknyde: 3.6, venerable: 3.0, sombre: 3.2, abrakne: 4.2, abrakneSombre: 4.4, araknotron: 5.0, abrakleur: 3.4, semeur: 3.0, ancestral: 2.8, cheneMou: 2.6 };
+const MONSTRES_P10 = ['tronknyde', 'semeur', 'abraknyde', 'venerable', 'sombre', 'abrakne', 'abrakneSombre', 'araknotron', 'abrakleur', 'arbreCollant', 'ancestral', 'cheneMou'];
+MONSTRES_P10.forEach((k) => { const d = MONSTRES[k], R = REGLAGE_P10; if (!d) return;
+  if (d.vitesse > 0 && VITESSES_P10[k]) d.vitesse = VITESSES_P10[k]; d.cadence = +(d.cadence * R.cadence).toFixed(2);
+  const deg0 = d.deg; d.deg = (n) => Math.round(deg0(n) * R.deg);
+  ['seisme', 'brassard', 'boue', 'charge'].forEach((c) => { if (typeof d[c] === 'number') d[c] = +(d[c] * R.periode).toFixed(2); });
+  if (typeof d.seismeDuree === 'number') d.seismeDuree = +(d.seismeDuree * R.prepa).toFixed(2);
+  ['racines', 'jet', 'lianes', 'faille', 'avale', 'invoque', 'pluieGlands'].forEach((c) => { const o = d[c]; if (!o || typeof o !== 'object') return;
+    if (typeof o.periode === 'number') o.periode = +(o.periode * R.periode).toFixed(2);
+    ['prepa', 'coupPrepa'].forEach((x) => { if (typeof o[x] === 'number') o[x] = +(o[x] * R.prepa).toFixed(2); }); });
+});
 const COMPO_FIXE = { 86: { tortueBleue: 6, tortueVerte: 4, tortueJaune: 6 }, 87: { tortueBleue: 6, tortueVerte: 5, tortueJaune: 6 } };
 /* (06/11/2026, vagues 86 a 89 : « c'est du full cac ? pareil, equilibre : 60/65 % de cac et le reste de distance », Mathieu) : au moins 35 % de tireurs sur ces vagues ;
    le manque est pris au groupe au contact le plus nombreux et donne au groupe de tireurs le moins nombreux (pour garder la variete) */
@@ -297,7 +314,24 @@ const COMPO_MOON = [null,
   [['tortueBleue', 2], ['tortueJaune', 2], ['tortueRouge', 2], ['kannibSarbak', 1], ['kannibArk', 1]],
   [['tortueBleue', 2], ['tortueVerte', 2], ['tortueJaune', 2], ['tortueRouge', 2], ['kannibSarbak', 1], ['kannibArk', 1]],
   [['kannibJav', 3], ['kannibTam', 2], ['kannibSarbak', 2], ['kannibArk', 1], ['tortueBleue', 2], ['tortueRouge', 1], ['tortueVerte', 1]]]; /* (la 90, premier temps : la horde) */
-const PHASES_BOSS = { 90: [
+/* LA FORET DES ABRAKNYDES, vagues 91 a 100 (08/11/2026, « vas-y, fais ca, on verra par la suite en testant en arene », Mathieu) : en avant-premiere dans
+   l'Arene dev seulement (bouton par vague), pas encore ouvertes aux joueurs (PALIERS s'arrete a Moon). Un nouveau venu presque a chaque vague, comme au palier 9 ;
+   tireurs (Abrakne, Semeur, Abrakleur) sous les deux tiers ; l'Ancestral, demi-boss, a la 95 ; la 100 : la horde, puis l'Ancestral et sa garde (comme la
+   Tortue Corail avant Moon), puis le Chene Mou */
+const COMPO_ABRAK = [null,
+  [['tronknyde', 3], ['abraknyde', 2], ['abrakne', 1]],
+  [['tronknyde', 3], ['abraknyde', 2], ['abrakne', 2], ['venerable', 1]],
+  [['tronknyde', 2], ['abraknyde', 2], ['abrakne', 2], ['sombre', 1], ['arbreCollant', 1]],
+  [['tronknyde', 2], ['abraknyde', 2], ['abrakneSombre', 2], ['semeur', 1], ['venerable', 1]],
+  [['ancestral', 1], ['tronknyde', 2], ['abraknyde', 1], ['abrakne', 2]],
+  [['araknotron', 1], ['abraknyde', 2], ['abrakne', 2], ['abrakleur', 1], ['venerable', 1], ['tronknyde', 2]],
+  [['araknotron', 1], ['sombre', 2], ['abrakneSombre', 2], ['abrakleur', 2], ['semeur', 1], ['arbreCollant', 1]],
+  [['araknotron', 2], ['sombre', 1], ['abraknyde', 2], ['abrakne', 2], ['abrakleur', 1], ['venerable', 1], ['arbreCollant', 1]],
+  [['araknotron', 1], ['sombre', 2], ['abrakneSombre', 2], ['abrakne', 2], ['abrakleur', 2], ['semeur', 1], ['venerable', 1]],
+  [['tronknyde', 3], ['abraknyde', 2], ['abrakne', 2], ['abrakleur', 1], ['sombre', 1]]]; /* (la 100, premier temps : la horde) */
+const PHASES_BOSS = { 100: [
+  { nom: "l'Abraknyde Ancestral et sa garde", L: [['ancestral', 1], ['abrakleur', 2], ['abrakne', 2], ['sombre', 1], ['abraknyde', 1], ['araknotron', 1]] }, /* (sa garde : 4 a distance, 3 au contact, comme celle de la Tortue Corail) */
+  { nom: 'le Chêne Mou', L: [['cheneMou', 1]] }], 90: [
   { nom: 'la Tortue Corail et sa garde', L: [['tortueCorail', 1], ['kannibJav', 2], ['kannibSarbak', 2], ['kannibArk', 2], ['kannibTam', 2], ['tortueBleue', 1], ['tortueRouge', 1]] }, /* (elle appelle ses Tortues elle-meme ; sa garde depuis le 07/11/2026 au soir, « pendant sa vague d'autres monstres aussi, genre 6 distance et 4 cac », Mathieu : Jav, Sarbak et Ark tirent, Tam et les deux Tortues au contact) */
   { nom: 'Moon', L: [['moon', 1]] }], 80: [
   { nom: 'la Gorgouille et sa garde', L: [['gorgouille', 1], ['sanglier', 2], ['porsalu', 1]] },
