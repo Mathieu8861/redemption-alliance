@@ -203,9 +203,9 @@ const AJUST_COMPO = {};
    apres l'Arene dev) : sur les 12 monstres de la Foret des Abraknydes, d'un coup, pour pouvoir le regler en un seul endroit : vitesse x1,3, coups 20 % plus
    rapprochees (cadence x0,8), degats x1,35, temps de preparation des sorts x0,65 (le cercle annonce moins longtemps), sorts 15 % plus souvent. La tempete du
    Chene Mou en rage garde son rythme. Puis « ils etaient tellement lents, et vu qu'ils tapent au cac, c'etait super facile » : le perso court a 5,6 (8,4 un Cra
-   botte), eux allaient a 2 ou 3 ; de vraies vitesses, selon leur gabarit (VITESSES_P10, en unites par seconde). */
+   botte), eux allaient a 2 ou 3 ; de vraies vitesses, selon leur gabarit (VITESSES_P10, en unites par seconde). Le Tronknyde 4,5 puis 4 (« les Tron, ils vont peut-etre un poil trop vite », Mathieu, 08/11/2026, en mode test a la ferme) */
 const REGLAGE_P10 = { cadence: 0.8, deg: 1.35, prepa: 0.65, periode: 0.85 };
-const VITESSES_P10 = { tronknyde: 4.5, abraknyde: 3.6, venerable: 3.0, sombre: 3.2, abrakne: 4.2, abrakneSombre: 4.4, araknotron: 5.0, abrakleur: 3.4, semeur: 3.0, ancestral: 2.8, cheneMou: 2.6 };
+const VITESSES_P10 = { tronknyde: 4.0, abraknyde: 3.6, venerable: 3.0, sombre: 3.2, abrakne: 4.2, abrakneSombre: 4.4, araknotron: 5.0, abrakleur: 3.4, semeur: 3.0, ancestral: 2.8, cheneMou: 2.6 };
 const MONSTRES_P10 = ['tronknyde', 'semeur', 'abraknyde', 'venerable', 'sombre', 'abrakne', 'abrakneSombre', 'araknotron', 'abrakleur', 'arbreCollant', 'ancestral', 'cheneMou'];
 MONSTRES_P10.forEach((k) => { const d = MONSTRES[k], R = REGLAGE_P10; if (!d) return;
   if (d.vitesse > 0 && VITESSES_P10[k]) d.vitesse = VITESSES_P10[k]; d.cadence = +(d.cadence * R.cadence).toFixed(2);
