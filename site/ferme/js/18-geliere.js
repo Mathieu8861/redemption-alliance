@@ -136,18 +136,27 @@ function animerGelees(dt, s) {
   });
 }
 /* la fenetre de la Geliere */
+/* LES FICHES DES GELEES, refaites le 08/11/2026 (proposition A choisie par Mathieu : « parfait » ; avant : « les cases pour les gelees, le texte, ca va pas ») :
+   une ligne par Gelee, l'icone dans un anneau a sa couleur qui se remplit jusqu'au pot, le type en pastille, l'origine en petit ; l'etat en une ligne (pot
+   dans X, repos), le repas en icones et l'effet du pot en court ; a droite le bouton du moment, et la vente en petit lien dessous */
+const COULEUR_GELEE = { bleue: '#3a95d1', menthe: '#3fbf8a', fraise: '#e2556a', citron: '#f2cf3a', royale: '#b07ad6' };
+const EFFET_POT_COURT = { petit: '+25 % de vie', menthe: '+25 % de vie, soigne en vague', fraise: '+40 % de vie', citron: '+25 % de vie, +30 % de vitesse', royale: 'Toute ta vie, +20 Agilité' };
+const repasMini = (r) => Object.entries(r).map(([id, n]) => '<span class="gl-fr"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt="' + nomFruit(id, n) + '"><b>' + n + '</b></span>').join('');
 function ouvrirGeliere() {
   const nv = niv('geliere'); if (!nv) { ouvrirHdv('ameliorer'); return; } S_.gelees = S_.gelees || [];
   const L = S_.gelees, places = placesGeliere(), prets = potsPretsGeliere(), faim = L.filter((g) => etatGelee(g) === 'faim'), look = GAINS.geliere.looks[Math.min(4, nv)];
   const ligne = (g, k) => {
-    const G = GELEES[g.c], e = etatGelee(g), m = manqueRecette(G.recette);
-    const etat = e === 'pret' ? '<span class="puce bonne">son pot est prêt</span>' : e === 'prod' ? '<span class="puce">son pot dans ' + dureeLisible(g.fin - Date.now()) + '</span>' : '<span class="puce mauvaise">a faim</span>';
-    const repos = g.repos && Date.now() < g.repos ? '<span class="puce">se repose ' + dureeLisible(g.repos - Date.now()) + '</span>' : '';
-    const act = e === 'pret' ? '<button class="btn kamas" data-gelee-ramasser>Ramasser</button>' : e === 'faim' ? (m.length ? '<span class="a-manque">il manque ' + m.join(' et ') + '</span>' : '') + '<button class="btn kamas" data-gelee-nourrir="' + k + '"' + (m.length ? ' disabled' : '') + '>Nourrir</button>' : '';
-    const origine = g.achetee ? '<span class="puce">achetée</span>' : g.nee && g.c !== 'royale' ? '<span class="puce bonne">née ici</span>' : '', rel = peutRelacher(g);
-    const relache = g.c === 'royale' ? '' : '<button class="btn discret mini" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '"' + (rel ? ' disabled title="' + echapper(rel) + '"' : ' title="Elle part à l\'HDV : ' + fmt(prixReventeGelee(g)) + ' kamas"') + '>Vendre ' + fmt(prixReventeGelee(g)) + ' ' + KAMA + '</button>';
-    return '<div class="art gel">' + ico('gelee-' + g.c) + '<div><b>' + g.nom + '</b> <small>' + G.nom + '</small>' + /* (une ligne par sorte d'etiquette, et la colonne du bouton toujours la meme largeur : tout tombe au meme endroit, avec ou sans « Vendre », 07/11/2026) */
-      '<div class="puces">' + etat + repos + '</div><div class="puces"><span class="puce repas">mange ' + repasIcones(G.recette) + ' par pot</span></div><div class="puces"><span class="puce">' + BREF_POT[G.pot] + '</span>' + origine + '</div></div><div class="act">' + act + relache + '</div></div>';
+    const G = GELEES[g.c], e = etatGelee(g), m = manqueRecette(G.recette), now = Date.now(), rel = peutRelacher(g);
+    const prog = e === 'pret' ? 1 : e === 'prod' ? Math.max(0.04, 1 - (g.fin - now) / prodGelee(g)) : 0;
+    const etat = e === 'pret' ? '<span class="gl-pret">Pot prêt</span>' : e === 'prod' ? 'Pot dans <b>' + dureeLisible(g.fin - now) + '</b>' : '<span class="gl-faim">A faim' + (m.length ? ' : il manque ' + m.join(' et ') : '') + '</span>';
+    const repos = g.repos && now < g.repos ? ' · repos ' + dureeLisible(g.repos - now) : '';
+    const act = e === 'pret' ? '<button class="btn kamas" data-gelee-ramasser>Ramasser</button>' : e === 'faim' ? '<button class="btn kamas" data-gelee-nourrir="' + k + '"' + (m.length ? ' disabled' : '') + '>Nourrir</button>' : '';
+    const origine = g.achetee ? 'Achetée' : g.nee && g.c !== 'royale' ? 'Née ici' : '';
+    const vente = g.c === 'royale' ? '' : '<button class="gl-vendre" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '"' + (rel ? ' disabled title="' + echapper(rel) + '"' : ' title="Elle part à l\'HDV : ' + fmt(prixReventeGelee(g)) + ' kamas"') + '>Vendre ' + fmt(prixReventeGelee(g)) + ' ' + KAMA + '</button>';
+    return '<div class="gl-ligne" style="--c:' + (COULEUR_GELEE[g.c] || '#888') + ';--p:' + prog.toFixed(3) + '"><div class="gl-rond"><span><img src="assets/icones/gelee-' + g.c + '.png?v=' + VERSION_MODELES + '" alt=""></span></div>' +
+      '<div><div><span class="gl-nom">' + g.nom + '</span><span class="gl-type">' + G.nom.replace('Gelée ', '') + '</span>' + (origine ? '<span class="gl-orig">' + origine + '</span>' : '') + '</div>' +
+      '<div class="gl-etat">' + etat + repos + '</div><div class="gl-repas">' + repasMini(G.recette) + '<i>→</i><span>' + (EFFET_POT_COURT[G.pot] || BREF_POT[G.pot]) + '</span></div></div>' +
+      '<div class="gl-act">' + act + vente + '</div></div>';
   };
   const parents = parentsCroisement(), mc = manqueRecette(CROISEMENT);
   ouvrirModale('geliere', entete('La Gelière') + '<p class="hdv-aide">' + look[0].toUpperCase() + look.slice(1) + ', niveau ' + nv + '. Tes Gelées vivent au bord de l\'eau et te font des pots de leur couleur.</p>' +

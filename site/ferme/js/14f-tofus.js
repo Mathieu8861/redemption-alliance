@@ -70,6 +70,7 @@ const doresPris = () => (S_.stats && S_.stats.tofusDores) || 0;
 const seuilDore = () => (DORE_TOUTES[0] + Math.random() * (DORE_TOUTES[1] - DORE_TOUTES[0])) * 60000 * Math.pow(2, doresPris());
 function majTofuDore() {
   const t = performance.now(), d = Math.min(5000, Math.max(0, t - (majTofuDore.t || t))); majTofuDore.t = t;
+  if (S_ && S_.cadeauDoreVu === false && S_.perso && !enAccueil && !modaleOuverte) { S_.cadeauDoreVu = true; appliquerVoliere(); rendreHaut(); son('niveau'); toast('Cadeau : un TOFU DORÉ rejoint ta volière ! Il te donnera des Plumes dorées.', 'or'); sauver(); } /* (le cadeau du 08/11/2026, cadeauDoreMathieu) */
   if (!S_ || !S_.perso || enAccueil || enPause || MODE_TEST || document.hidden || Date.now() - derniereAction > 180000 || niveau(S_.xp) < NIV_TOFU_DORE) return;
   if (!(S_.doreSeuil > 0) || S_.doreN !== doresPris()) { S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); } S_.doreJeu = (S_.doreJeu || 0) + d;
   if (S_.doreJeu < S_.doreSeuil || S_.sauvage || combat || lieu !== 'ferme') return;

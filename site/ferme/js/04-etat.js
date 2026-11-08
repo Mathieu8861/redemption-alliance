@@ -108,7 +108,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres, cadeauRevancheMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -138,6 +138,13 @@ function cadeauRevancheMada(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso || p.perso.nom !== 'Madazezette' || p.perso.classe !== 'iop') return;
     p.cadeaux = p.cadeaux || {}; if (p.cadeaux.revancheKoulosse0711) return; p.cadeaux.revancheKoulosse0711 = true;
     if (p.bossRejoue && p.bossRejoue['6'] === 'Sat Nov 07 2026') delete p.bossRejoue['6']; });
+}
+/* (08/11/2026, « donne-moi un Tofu doré dans ma ferme, je me fais scam », Mathieu) : un Tofu doré offert une fois, directement dans la voliere de son Cra
+   (Rorschach) ; s'il n'y a pas de place, il prend celle d'un Tofu normal, comme a la capture ; annonce au chargement (majTofuDore, 14f-tofus.js) */
+function cadeauDoreMathieu(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso || p.perso.classe !== 'cra' || !/^Rorschach/.test(p.perso.nom || '')) return;
+    p.cadeaux = p.cadeaux || {}; if (p.cadeaux.tofuDore0811) return; p.cadeaux.tofuDore0811 = true;
+    const cap = 2 + 2 * ((p.amelio || {}).voliere || 0); if ((p.tofus || 0) < cap) p.tofus = (p.tofus || 0) + 1; p.tofusDores = Math.min(p.tofus || 0, (p.tofusDores || 0) + 1); p.cadeauDoreVu = false; });
 }
 function plafonnerArbres(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.graines || !Array.isArray(p.cases)) return;
