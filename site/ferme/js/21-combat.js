@@ -2009,14 +2009,14 @@ function capEnfouit(mo, ctx) {
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
     if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && caseIci(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
-  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
+  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
   if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : il ressort plus loin, et ses racines jaillissent là où il était !', 'alerte'); }
   let t = 0, sous = false;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { mo.hop = 0; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; return true; }
     if (t < TELL) { if (Math.random() < dt * 20) poussiere(x0 + (Math.random() - 0.5) * 3, y0, z0 + (Math.random() - 0.5) * 3, 1, 0.5, '#8a6a44'); return false; } /* (la terre fremit autour de lui) */
     if (t < TELL + DESC) { const k = (t - TELL) / DESC; mo.hop = -H * k * k; if (Math.random() < dt * 25) mottes(x0, y0, z0, 2, 1.6); return false; } /* (il s'enfonce) */
-    if (!sous) { sous = true; const vie = mo.pv / mo.pvMax; teteSurgit(mo, vie > 0.75 ? 0 : vie > 0.5 ? 1 : vie > 0.25 ? 2 : 3, c0); /* (une tete par quart de sa vie) */
+    if (!sous) { sous = true; { const a0 = Math.random() * Math.PI * 2; for (let k = 0; k <= nT; k++) teteSurgit(mo, k, c0, a0 + k * Math.PI * 2 / (nT + 1), k * 0.35); } /* (les tetes s'additionnent : une de plus par quart de vie perdu, chacune ailleurs autour de toi, l'une apres l'autre, 08/11/2026, « A oui », Mathieu) */
       mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.12, 0.3); mottes(x0, y0, z0, 10, 2); poussiere(x0, y0, z0, 12, 2.2, '#8a6a44');
       zoneDanger({ mo, x: x0, z: z0, r: E.Rr, duree: 0.9, effet: (d) => { const y = solA(x0, z0); impactElement('feuille', x0, z0, E.Rr); mottes(x0, y, z0, 10, E.Rr * 0.8);
         const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.0);
@@ -2028,6 +2028,7 @@ function capEnfouit(mo, ctx) {
 /* SES TETES SURGISSENT (08/11/2026, « quand il est sous terre, ses tetes ressortent, en fonction de ses HP, tous les 25 % : une premiere tete de 100 a 75, une autre
    de 75 a 50, etc., et elles font des choses differentes », Mathieu) : pendant qu'il est sous terre, une tete sort du sol pres de toi, agit, et replonge.
    Les tetes sont decoupees dans son vrai modele (tetesAncestral, autour de ses yeux), avec sa texture et ses yeux qui luisent ; elles sortent 1,8 fois plus grosses.
+   Puis (« A oui », Mathieu, 08/11/2026) elles s'additionnent : la seve seule, puis seve et feuilles, puis seve, feuilles et racines, sous 25 % les quatre, l'une apres l'autre.
    100-75 % la tete de seve (sous toi : degats et lenteur), 75-50 % la tete des feuilles (une tempete autour d'elle), 50-25 % la tete des racines (a cote de toi :
    degats et enracine 1,5 s), 25-0 % la tete qui hurle (la terre tremble, 2 Tronknydes sortent du sol) */
 const TETES_NOMS = ['la tête de sève', 'la tête des feuilles', 'la tête des racines', 'la tête qui hurle'];
@@ -2045,22 +2046,23 @@ function tetesAncestral() {
     return { geo: g, tri: L.length / 3 }; });
   return TETES_ANC;
 }
-function teteSurgit(mo, i, c0) {
+function teteSurgit(mo, i, c0, angle, retard) {
   const T0 = tetesAncestral(); if (!T0 || !T0[i] || !T0[i].tri) return;
   const pp = paysanMesh.position; let p = null;
-  for (let k = 0; k < 12 && !p; k++) { const a = Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (caseIci(q.x, q.z)) p = q; }
+  for (let k = 0; k < 12 && !p; k++) { const a = angle != null ? angle + (Math.random() - 0.5) * (k < 6 ? 0.5 : 3) : Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (caseIci(q.x, q.z)) p = q; }
   if (!p) return; const y0 = solA(p.x, p.z); let src = null; mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
   const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide });
   const h = new T.Mesh(T0[i].geo, mat), k = (mo.m.scale.x || 1) * 1.8, taille = 0.75 * k; h.scale.setScalar(k); h.castShadow = true; scene.add(h);
-  const info = { m: h, r: taille * 0.55 }; (c0.tetesAnc = c0.tetesAnc || []).push(info);
-  if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' !', 'alerte'); }
-  mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
-  const MONTE = 0.45, ACTE = 1.6, DESCEND = 0.45; let t = 0, fait = false;
+  const info = { m: h, r: taille * 0.55 }; h.visible = false;
+  const MONTE = 0.45, ACTE = 1.6, DESCEND = 0.45; let t = -(retard || 0), sortie = false;
   effets.push((dt) => { t += dt;
     if (combat !== c0 || c0.fin || t >= MONTE + ACTE + DESCEND) { scene.remove(h); mat.dispose(); c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== info); return true; }
+    if (t < 0) return false; /* (elle attend son tour : les tetes sortent l'une apres l'autre) */
+    if (!sortie) { sortie = true; h.visible = true; (c0.tetesAnc = c0.tetesAnc || []).push(info); mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
+      if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' !', 'alerte'); } }
     const u = t < MONTE ? t / MONTE : t < MONTE + ACTE ? 1 : 1 - (t - MONTE - ACTE) / DESCEND; h.position.set(p.x, y0 - taille + taille * 1.4 * u * (2 - u), p.z);
     h.rotation.y = Math.atan2(paysanMesh.position.x - p.x, paysanMesh.position.z - p.z) + Math.sin(t * 9) * 0.06; /* (elle te regarde, et frissonne) */
-    if (!fait && t >= MONTE) { fait = true; actionTete(mo, i, p, c0); }
+    if (!info.fait && t >= MONTE) { info.fait = true; actionTete(mo, i, p, c0); }
     return false; });
 }
 function actionTete(mo, i, p, c0) {
