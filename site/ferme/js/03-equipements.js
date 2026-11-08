@@ -59,24 +59,37 @@ const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id
   { id: 'kanniboul', nom: 'Kanniboul', de: 'du Kanniboul', niv: 81 }, /* (l'ile de Moon, 04/11/2026 : « j'aime bien la A, qu'on drop sur les Kannibouls, et la C sur les Tortues », Mathieu ; blender/equipements-kanniboul.py) */
   /* LES DEUX PANOPLIES DU PALIER 10 (08/11/2026, par Discord : « si jamais on fait 2 panoplies on pourrait faire quoi ? », puis la proposition validee : l'Ecorce, des
      arbres, pour tanker, l'Arakne, des araignees, pour les degats ; « les entraves durent 25 % moins longtemps, tanker et vie ok ; l'entrave en moins pareil sur la pano
-     Arakne », et des bonus propres a chaque palier de pieces pour pouvoir combiner les panoplies, « fais deja pour celles-la »). cache : pas encore de look (icones,
-     modeles) : ni butin, ni liste du mode test, tant que leur planche n'est pas validee */
-  { id: 'ecorce', nom: 'Écorce', de: 'de l\'Écorce', niv: 91, cache: true },
+     Arakne », et des bonus propres a chaque palier de pieces pour pouvoir combiner les panoplies, « fais deja pour celles-la »). Leur look : blender/equipements-foret.py,
+     choix de Mathieu « pano Ecorce : coiffe B, cape 1 ; pano Arakne : A et A ». (cache, plus utilise : une panoplie sans look, ni butin ni liste du mode test) */
+  { id: 'ecorce', nom: 'Écorce', de: 'de l\'Écorce', niv: 91 },
   /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
      une panoplie de palier se met avant elles (son indice doit rester celui de son palier) */
-  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, cache: true }];
+  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, sansArme: true }]; /* (sansArme : aucun boss ne la donne, 08/11/2026) */
 const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
 /* LE PROFIL D'UNE PANOPLIE (06/11/2026, « la Tortue c'est plus pour les cac, plus de vie, de tankiness ; le Kanniboul pour les distance, moins de vie mais plus de
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */
-const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, arakne: { vita: 0.6, puissance: 1.3, agilite: 1.25 } }; /* (l'Ecorce comme la Tortue, l'Arakne comme le Kanniboul, 08/11/2026) */
+const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.16, puissance: 1.2, agilite: 1.5 }, arakne: { vita: 1.15, puissance: 1.6 } }; /* (l'Ecorce et l'Arakne, 08/11/2026 : leur profil est deja dans
+   leurs pieces (MOTIF_PANO : 4 Vitalite sur 12 pour l'Ecorce, 4 Puissance et 3 Agilite pour l'Arakne) ; ces multiplicateurs calent la panoplie complete a +15 a 20 %
+   de la Tortue et du Kanniboul, le saut normal d'un palier : sans eux, l'Ecorce montait a 7 500 de Vitalite et l'Arakne tombait a 600) */
 const multPano = (k, c) => ((PROFIL_PANO[(PANOS[k] || {}).id] || {})[c] || 1);
 const BONUS_COMPLET = { tortue: { resCac: 5 }, kanniboul: { resLoin: 5 } }; /* (en plus du bonus des 6 pieces, 06/11/2026, « 5 % de reduction a distance pour le Kanniboul, 5 % de res au cac pour la Tortue », Mathieu) */
 const PANOS_PALIER = PANOS.filter((P) => P.bis == null); /* (une par palier, dans l'ordre des paliers) */
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
 const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500, 605], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44, 53], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28, 34], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46, 55], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55, 65] }; /* (le 10e rang, le palier 10, 08/11/2026 : la suite des ecarts) */ /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
+/* LES STATS PROPRES A UNE PANOPLIE (08/11/2026, « les anneaux donnent tous a peu pres la meme chose ; il faudrait que ce soit diversifie : des fois l'anneau qui donne
+   de la vie, des fois la coiffe qui donne de la puissance ; la ceinture, c'est tout le temps vita puissance, des fois ca pourrait etre prospection sagesse, ou full vita ;
+   comme ca tu peux switcher les items, te dire : la je prefere etre full puissance, ou full vita ; faut varier », Mathieu) : a la place de MOTIF, deux caracteristiques par
+   piece, propres a la panoplie ; la meme deux fois : le double (full vita). Pour l'instant les deux panoplies du palier 10 (les anciennes : les pieces deja tombees
+   garderaient leurs anciens jets, a convertir d'abord) */
+const MOTIF_PANO = {
+  ecorce: { coiffe: ['vita', 'vita'], cape: ['vita', 'prospection'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'puissance'], ceinture: ['prospection', 'sagesse'], bottes: ['agilite', 'sagesse'] },
+  arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'puissance'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] } };
+/* (chaque panoplie garde 12 caracteristiques sur ses 6 pieces, comme MOTIF ; l'Ecorce : 4 Vitalite, 3 Puissance, 2 Prospection, 2 Sagesse, 1 Agilite ; l'Arakne : 4 Puissance,
+   3 Agilite, 2 Vitalite, 2 Prospection, 1 Sagesse) */
+const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c)); }); return st; };
 const OBJETS = {};
-PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, Math.round(VALEURS[c][rangPano(k)] * multPano(k, c))])) }; })); /* (le profil de la panoplie, 06/11/2026) */
+PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: statsPiece(k, e) }; })); /* (le profil de la panoplie, 06/11/2026) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
    (plus avec la Prospection), deux fois les stats de la coiffe de sa panoplie, de la Puissance en plus, et un pouvoir. Elles ne comptent dans aucune panoplie. */
 const CHANCE_LEG = 0.02;
@@ -118,7 +131,7 @@ LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entr
   OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], fichier: L.fichier || 'equipements-wabbit', cale: L.cales[t], nom: L.noms[t], niv: Math.min(80, (PANOS[k] ? PANOS[k].niv : 81) + 9) /* (Moon, rang 8 sans panoplie : le niveau maximum, 80) */, pouvoir: (L.pouvoirs && L.pouvoirs[t]) || L.pouvoir, /* (pouvoirs : un sort par classe, la Corail) */
     stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5 * (L.force || 1)), agilite: Math.round(VALEURS.agilite[k] * 1.5 * (L.force || 1)), vita: Math.round(VALEURS.vita[k] * (L.force || 1)) } }; }); }); /* (force : la Corail, 85 % de Moon) */
 const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || classeDe()][0] : 'leg-' + L.cle); /* la piece legendaire d'un boss, pour ta classe */
-PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { /* (celles d'un palier tombent sur son boss ; L'ARME D'UNE PANOPLIE EN PLUS (07/11/2026, « faut faire la tortue aussi », Mathieu) :
+PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (P.sansArme) return; /* (celles d'un palier tombent sur son boss ; L'ARME D'UNE PANOPLIE EN PLUS (07/11/2026, « faut faire la tortue aussi », Mathieu) :
   celle de la Tortue tombe sur la Tortue Corail, et suit le profil de sa panoplie (moins de Puissance et d'Agilite, de la Vitalite en echange) ; les armes des paliers ne changent pas) */
   const id = 'arme-' + t + '-' + P.id, r = rangPano(k), bis = P.bis != null;
   const stats = bis ? Object.fromEntries(Object.entries({ puissance: VALEURS.puissance[r] * 2.5 * multPano(k, 'puissance'), agilite: VALEURS.agilite[r] * multPano(k, 'agilite'), vita: VALEURS.vita[r] * Math.max(0, multPano(k, 'vita') - 1) }).filter(([, v]) => v > 0).map(([c, v]) => [c, Math.round(v)]))

@@ -222,6 +222,10 @@ MONSTRES_P10.forEach((k) => { const d = MONSTRES[k], R = REGLAGE_P10; if (!d) re
     if (typeof o.periode === 'number') o.periode = +(o.periode * R.periode).toFixed(2);
     ['prepa', 'coupPrepa'].forEach((x) => { if (typeof o[x] === 'number') o[x] = +(o[x] * R.prepa).toFixed(2); }); });
 });
+/* LE BUTIN DE LA FORET (08/11/2026) : les arbres lachent l'Ecorce d'Abraknyde et les pieces de l'Ecorce (la panoplie du palier), les araignees la Soie d'Arakne
+   et les pieces de l'Arakne ; le Chene Mou et l'Ancestral donnent les armes de l'Ecorce */
+['tronknyde', 'semeur', 'abraknyde', 'venerable', 'sombre', 'abrakleur', 'arbreCollant', 'ancestral', 'cheneMou'].forEach((k) => { if (MONSTRES[k]) MONSTRES[k].res = 'ecorce_abraknyde'; });
+['abrakne', 'abrakneSombre', 'araknotron'].forEach((k) => { if (MONSTRES[k]) Object.assign(MONSTRES[k], { res: 'soie_arakne', pano: 'arakne' }); });
 const COMPO_FIXE = { 86: { tortueBleue: 6, tortueVerte: 4, tortueJaune: 6 }, 87: { tortueBleue: 6, tortueVerte: 5, tortueJaune: 6 } };
 /* (06/11/2026, vagues 86 a 89 : « c'est du full cac ? pareil, equilibre : 60/65 % de cac et le reste de distance », Mathieu) : au moins 35 % de tireurs sur ces vagues ;
    le manque est pris au groupe au contact le plus nombreux et donne au groupe de tireurs le moins nombreux (pour garder la variete) */

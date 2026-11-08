@@ -40,11 +40,11 @@ function elargirPerso(g, classe) {
 }
 /* les modeles des pieces portees (charges seulement quand une coiffe ou une cape est portee) */
 const VISUELS = {}; let visuelsPromesse = null;
-const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon', 'equipements-moon', 'equipements-kanniboul', 'equipements-corail'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
+const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon', 'equipements-moon', 'equipements-kanniboul', 'equipements-corail', 'equipements-foret'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
   .then(() => true).catch(() => { visuelsPromesse = null; return false; }));
 const visuelsPrets = () => !!VISUELS.equipements;
 const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit', cochon: 'Coiffe_DragonCochon' };
-const FICHIER_PANO = { wabbit: 'equipements-wabbit', boufcoul: 'equipements-boufcoul', dragoncochon: 'equipements-cochon', kanniboul: 'equipements-kanniboul', tortue: 'equipements-kanniboul' }; /* (les autres : equipements) */
+const FICHIER_PANO = { wabbit: 'equipements-wabbit', boufcoul: 'equipements-boufcoul', dragoncochon: 'equipements-cochon', kanniboul: 'equipements-kanniboul', tortue: 'equipements-kanniboul', ecorce: 'equipements-foret', arakne: 'equipements-foret' }; /* (les autres : equipements) */
 function noeudVisuel(id) {
   const o0 = obj(id); if (!o0 || !visuelsPrets()) return null; const o = o0.base ? OBJETS[o0.base] : o0;
   if (o.leg) { const L = LEGENDAIRES.find((x) => x.cle === o.leg), F = VISUELS[(L && L.fichier) || 'coiffes-legendaires']; return o.emp === 'coiffe' && F ? F.getObjectByName(NOEUD_LEG[o.leg]) || null : null; } /* (le Heaume du Dragon Cochon : dans equipements-cochon) */
