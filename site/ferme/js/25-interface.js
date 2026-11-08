@@ -588,15 +588,21 @@ function ouvrirTofu(p, sauvage) {
 function ouvrirPlanter(p, dispo) {
   ouvrirModale('planter', entete('Que planter ?') + '<div class="grille-graines">' + dispo.map((c) => carteGraine(c, 'data-planter="' + c.id + '" data-case="' + p.id + '"', true)).join('') + '</div>');
 }
+/* LA FICHE DE LA VOLIERE, refaite le 08/11/2026 (« c'est quoi cette fiche toute moche », Mathieu), dans le style de la Geliere : les plumes en tete (un anneau qui
+   se remplit jusqu'a la volière pleine, le bouton), puis les Tofus en vignettes avec leur nom (le dore en or), et les places libres en pointilles */
 function ouvrirVoliere() {
   const ameliorer = lignesAmelio(['voliere'], 'Agrandir la volière');
-  const nD = Math.min(S_.tofusDores || 0, S_.tofus), max = (S_.tofus - nD) * plumesParTofu(), v = S_.voliere;
-  ouvrirModale('voliere', entete('Volière à Tofus') + (degatsBat('voliere') ? artPv('voliere') : '') + (S_.tofus ?
-    '<div class="ligne"><div><b>' + S_.tofus + ' Tofu' + (S_.tofus > 1 ? 's' : '') + ' sur ' + capaciteVoliere() + ' places' + (nD ? ', dont ' + nD + ' doré' + (nD > 1 ? 's' : '') : '') + '</b><small>Chacun donne une Plume de Tofu toutes les ' + dureeLisible(CADENCE_PLUME) + ', ' + plumesParTofu() + ' en attente au plus' + (nD ? ' ; un Tofu doré donne des Plumes dorées (' + (v.plumesD || 0) + ' prête' + ((v.plumesD || 0) > 1 ? 's' : '') + ')' : '') + '.</small></div></div>' +
-    '<div class="tofu-noms">' + Array.from({ length: S_.tofus }, (_, k) => '<span class="puce' + (k < nD ? ' doree' : '') + '">' + (k < nD ? '★ ' : '') + nomTofu(k) + '</span>').join('') + '</div>' + /* (leurs noms, 08/11/2026) */
-    '<div class="ligne"><div><b>Plumes prêtes</b><small>' + v.plumes + '/' + max + (v.plumes < max ? ', la prochaine dans ' + dureeLisible((CADENCE_PLUME - v.accu) / S_.tofus) : ', la volière est pleine') + '. Elles se vendent à l\'HDV.</small></div><button class="btn kamas" data-plumes' + (v.plumes || v.plumesD ? '' : ' disabled') + '>Ramasser</button></div>' :
-    '<p style="font-size:.8rem;font-weight:600">La volière est vide. Achète des filets de capture à l\'HDV : quand un Tofu picore un champ ou se pose dans l\'herbe, touche-le pour l\'attraper.</p>') +
-    '<p style="font-size:.74rem;font-weight:600;margin:8px 0 0;color:#a9adb5">Plus tard, l\'Osamodas pourra invoquer ses Tofus en combat.</p>' + ameliorer);
+  const nD = Math.min(S_.tofusDores || 0, S_.tofus), max = Math.max(1, (S_.tofus - nD) * plumesParTofu()), v = S_.voliere, cap = capaciteVoliere(), ic = (n) => 'assets/icones/' + n + '.png?v=' + VERSION_MODELES, pD = v.plumesD || 0;
+  const suite = v.plumes >= max ? 'La volière est pleine : ramasse-les.' : 'La prochaine dans ' + dureeLisible((CADENCE_PLUME - v.accu) / Math.max(1, S_.tofus)) + '.';
+  const plumes = '<div class="vl-plumes" style="--p:' + Math.min(1, v.plumes / max).toFixed(3) + '"><div class="vl-rond"><span><img src="' + ic('plume') + '" alt=""></span></div><div><div><span class="vl-titre">Plumes de Tofu</span><b class="vl-nb">' + v.plumes + ' / ' + max + '</b></div>' +
+    '<div class="vl-l2">' + suite + '</div>' + (nD ? '<div class="vl-l2 vl-or"><img src="' + ic('plume_doree') + '" alt="">' + pD + ' Plume' + (pD > 1 ? 's' : '') + ' dorée' + (pD > 1 ? 's' : '') + ' prête' + (pD > 1 ? 's' : '') + '</div>' : '') +
+    '<div class="vl-l3">Une plume toutes les ' + dureeLisible(CADENCE_PLUME) + ' par Tofu, ' + plumesParTofu() + ' en attente au plus. Elles se vendent à l\'HDV.</div></div>' +
+    '<button class="btn kamas" data-plumes' + (v.plumes || pD ? '' : ' disabled') + '>Ramasser</button></div>';
+  const tuiles = Array.from({ length: cap }, (_, k) => k < S_.tofus ? '<div class="vl-tofu' + (k < nD ? ' dore' : '') + '"><span><img src="' + ic('tofu') + '" alt=""></span><b>' + nomTofu(k) + '</b>' + (k < nD ? '<small>doré</small>' : '') + '</div>' : '<div class="vl-tofu libre"><span></span><b>place libre</b></div>').join('');
+  ouvrirModale('voliere', entete('Volière à Tofus') + (degatsBat('voliere') ? artPv('voliere') : '') +
+    (S_.tofus ? plumes : '<p class="hdv-aide">La volière est vide. Achète des filets de capture à l\'HDV : quand un Tofu picore un champ ou se pose dans l\'herbe, touche-le pour l\'attraper.</p>') +
+    '<div class="hdv-section">Tes Tofus : ' + S_.tofus + ' sur ' + cap + ' places' + (nD ? ', dont ' + nD + ' doré' + (nD > 1 ? 's' : '') : '') + '</div><div class="vl-grille">' + tuiles + '</div>' +
+    '<p class="vl-note">Plus tard, l\'Osamodas pourra invoquer ses Tofus en combat.</p>' + ameliorer);
 }
 function ouvrirParcelle(p) {
   const rendu = Math.round((p.prixPaye || 50) / 2), culture = p.c ? PAR_ID[p.c].nom : null;
