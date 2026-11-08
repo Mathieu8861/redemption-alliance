@@ -53,21 +53,27 @@ const PICTOS = {
 };
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
 const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' % de vitesse d\'attaque', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')],
-  resCac: ['Résistance au corps à corps', ' % de dégâts en moins au corps à corps', picto('bouclier', '#3a9fb5')], resLoin: ['Résistance à distance', ' % de dégâts en moins à distance', picto('bouclier', '#d9762e')] }; /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
+  resCac: ['Résistance au corps à corps', ' % de dégâts en moins au corps à corps', picto('bouclier', '#3a9fb5')], resLoin: ['Résistance à distance', ' % de dégâts en moins à distance', picto('bouclier', '#d9762e')],
+  entrave: ['Entraves', ' % plus courtes (enraciné, collé, ralenti, assommé)', picto('bouclier', '#7a9a3a')], venin: ['Venin', ' % de tes dégâts en poison sur 3 s', picto('bouclier', '#6ab04c')], resPoison: ['Résistance aux poisons', ' % de poison en moins', picto('bouclier', '#4f9a6a')] }; /* (les panoplies du palier 10, 08/11/2026) */ /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 },
   { id: 'kanniboul', nom: 'Kanniboul', de: 'du Kanniboul', niv: 81 }, /* (l'ile de Moon, 04/11/2026 : « j'aime bien la A, qu'on drop sur les Kannibouls, et la C sur les Tortues », Mathieu ; blender/equipements-kanniboul.py) */
+  /* LES DEUX PANOPLIES DU PALIER 10 (08/11/2026, par Discord : « si jamais on fait 2 panoplies on pourrait faire quoi ? », puis la proposition validee : l'Ecorce, des
+     arbres, pour tanker, l'Arakne, des araignees, pour les degats ; « les entraves durent 25 % moins longtemps, tanker et vie ok ; l'entrave en moins pareil sur la pano
+     Arakne », et des bonus propres a chaque palier de pieces pour pouvoir combiner les panoplies, « fais deja pour celles-la »). cache : pas encore de look (icones,
+     modeles) : ni butin, ni liste du mode test, tant que leur planche n'est pas validee */
+  { id: 'ecorce', nom: 'Écorce', de: 'de l\'Écorce', niv: 91, cache: true },
   /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
      une panoplie de palier se met avant elles (son indice doit rester celui de son palier) */
-  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }];
+  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, cache: true }];
 const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
 /* LE PROFIL D'UNE PANOPLIE (06/11/2026, « la Tortue c'est plus pour les cac, plus de vie, de tankiness ; le Kanniboul pour les distance, moins de vie mais plus de
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */
-const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 } };
+const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, arakne: { vita: 0.6, puissance: 1.3, agilite: 1.25 } }; /* (l'Ecorce comme la Tortue, l'Arakne comme le Kanniboul, 08/11/2026) */
 const multPano = (k, c) => ((PROFIL_PANO[(PANOS[k] || {}).id] || {})[c] || 1);
 const BONUS_COMPLET = { tortue: { resCac: 5 }, kanniboul: { resLoin: 5 } }; /* (en plus du bonus des 6 pieces, 06/11/2026, « 5 % de reduction a distance pour le Kanniboul, 5 % de res au cac pour la Tortue », Mathieu) */
 const PANOS_PALIER = PANOS.filter((P) => P.bis == null); /* (une par palier, dans l'ordre des paliers) */
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
-const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55] }; /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
+const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500, 605], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44, 53], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28, 34], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46, 55], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55, 65] }; /* (le 10e rang, le palier 10, 08/11/2026 : la suite des ecarts) */ /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: Object.fromEntries(MOTIF[e].map((c) => [c, Math.round(VALEURS[c][rangPano(k)] * multPano(k, c))])) }; })); /* (le profil de la panoplie, 06/11/2026) */
@@ -130,14 +136,21 @@ const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce 
 /* les bonus de panoplie, renforces et par paliers : 2, 4 puis 6 pieces (avant : 3 et 6), chaque palier s'ajoute au precedent */
 const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];
 const bonusPalier = (f, k, brut, m) => Object.assign(Object.fromEntries(Object.entries(f(rangPano(k))).map(([c, v]) => [c, brut ? v : Math.round(v * multPano(k, c))])), !brut && m === EMPLACEMENTS.length ? BONUS_COMPLET[(PANOS[k] || {}).id] || {} : {}); /* (brut : sans le profil de la panoplie, pour le joueur de reference) */
-const bonusPano = (k, n, brut) => { const b = {}; PALIERS_PANO.forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
+/* LES BONUS PROPRES A UNE PANOPLIE (08/11/2026, « offrir aux gens la possibilite de combiner des panoplies, un bonus de 2 et un autre de 4, ou 3 de 2 », Mathieu) :
+   a la place des bonus communs, ses propres paliers de pieces, chacun avec sa couleur ; l'Ecorce : la vie, les entraves plus courtes, puis la resistance au contact ;
+   l'Arakne : l'agilite, les entraves plus courtes, puis le venin et la resistance aux poisons */
+const PALIERS_PROPRES = {
+  ecorce: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, () => ({ entrave: 25 })], [6, (k) => ({ resCac: 8, vita: Math.round(VALEURS.vita[k] / 2), prospection: 15, sagesse: 10 })]],
+  arakne: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ entrave: 25 })], [6, () => ({ venin: 10, resPoison: 30, prospection: 15, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
+const paliersDe = (k) => PALIERS_PROPRES[(PANOS[k] || {}).id] || PALIERS_PANO;
+const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
 /* L'ARME COMPTE DANS SA PANOPLIE (07/11/2026, « il faut que l'arme compte dans les panoplies aussi, mais au max ca reste toujours 6/6 : l'avantage, c'est que tu peux mettre
    l'epee en panoplie et avoir une coiffe legendaire, ou mettre l'arme legendaire et avoir le 6/6 tout de meme ; pas de 7/7 », Mathieu) : 7 emplacements, 6 pieces au plus */
 const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && o.pano != null) c[o.pano] = Math.min(EMPLACEMENTS.length, (c[o.pano] || 0) + 1); }); return c; };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
-const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + PALIERS_PANO.map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div></div>';
+const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div></div>';
 function caracs() {
-  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0 };
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
   try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; const b = bonusA(); if (b) { t.puissance += 10 * (b.puissance || 0); t.agilite += 10 * (b.agilite || 0); t.prospection += 20 * (b.butin || 0); } } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
@@ -224,10 +237,10 @@ const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
 const palierCourant = () => palierDe(Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL)));
-const panoDe = (p) => PANOS_PALIER[Math.max(0, Math.min(p, PANOS_PALIER.length - 1))], panoExiste = (p) => p < PANOS_PALIER.length;
+const panoDe = (p) => PANOS_PALIER[Math.max(0, Math.min(p, PANOS_PALIER.length - 1))], panoExiste = (p) => p < PANOS_PALIER.length && !PANOS_PALIER[p].cache; /* (cache : pas encore de look, 08/11/2026) */
 /* la panoplie que lache un monstre : la sienne s'il en a une (les Tortues : celle de la Tortue), sinon celle du palier ; un coffre : l'une des panoplies du palier */
 const panoMonstre = (t, p) => { const id = MONSTRES[t] && MONSTRES[t].pano; return (id && PANOS.find((P) => P.id === id)) || panoDe(p); };
-const panosDuPalier = (p) => [panoDe(p)].concat(panoExiste(p) ? PANOS.filter((P) => P.bis === p) : []), panoAuHasard = (p) => hasard(panosDuPalier(p)); /* (panoExiste : le palier a deja sa panoplie ; l'ile de Moon pas encore, 04/11/2026) */ /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
+const panosDuPalier = (p) => [panoDe(p)].concat(panoExiste(p) ? PANOS.filter((P) => P.bis === p && !P.cache) : []), panoAuHasard = (p) => hasard(panosDuPalier(p)); /* (panoExiste : le palier a deja sa panoplie ; l'ile de Moon pas encore, 04/11/2026) */ /* la panoplie d'un palier, ou la derniere qui existe (un palier sans panoplie a venir) */ /* (le palier ou en est le joueur ; apres le dernier boss, le dernier) */
 function marquerNeuf(id) { S_.nouveaux = (S_.nouveaux || 0) + 1; S_.neufs = S_.neufs || {}; S_.neufs[id] = (S_.neufs[id] || 0) + 1; } /* la pastille du bouton Perso, et le « Nouveau » de la fiche */
 /* une piece du sac face a celle qui est portee au meme endroit : l'ecart carac par carac, et « mieux » si elle ne perd rien et gagne quelque chose */
 function comparer(id) {

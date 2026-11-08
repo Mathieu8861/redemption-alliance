@@ -505,6 +505,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
   if (mo.faible || mo.ancre) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
   mo.recent = 1.2; /* (il vient d'etre touche : une Tortue peut rouler pour esquiver la suite) */
+  if (src == null && combat.venin == null) combat.venin = (caracs().venin || 0) / 100; if (src == null && combat.venin > 0) { const dps = n * combat.venin / 3; if (!mo.venin || mo.venin.dps < dps) mo.venin = { dps, t: 3, tic: 0 }; else mo.venin.t = 3; } /* (le venin de l'Arakne complete, 08/11/2026 : 10 % du coup en poison sur 3 s) */
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
   if (mo.bouclier > 0) n = Math.max(1, Math.round(n * 0.6)); /* bouclier de cristal */
   if (mo.d.boss && mo.protege > 0) n = Math.max(1, Math.round(n * (1 - mo.protege))); /* sa troupe le protege */
@@ -635,8 +636,9 @@ function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre ver
 }
 function majAfflictions(dt) {
   const c = combat; if (!c) return;
-  if (c.lenteur > 0) c.lenteur -= dt; if (c.assomme > 0) c.assomme -= dt; if (c.colle > 0) c.colle -= dt;
-  if (c.poisons && c.poisons.length) { c.poisons.forEach((p) => { p.t -= dt; }); c.poisons = c.poisons.filter((p) => p.t > 0); const pct = c.poisons.reduce((a, p) => a + p.pct, 0); if (pct) poisonPerso(pct, dt); }
+  const kE = c.kEntrave != null ? c.kEntrave : (c.kEntrave = 1 / (1 - Math.min(0.6, (caracs().entrave || 0) / 100))); /* (les entraves plus courtes des panoplies du palier 10, 08/11/2026 : -25 %, elles s'usent 1,33 fois plus vite) */
+  if (c.lenteur > 0) c.lenteur -= dt * kE; if (c.assomme > 0) c.assomme -= dt * kE; if (c.colle > 0) c.colle -= dt * kE;
+  if (c.poisons && c.poisons.length) { c.poisons.forEach((p) => { p.t -= dt; }); c.poisons = c.poisons.filter((p) => p.t > 0); const pct = c.poisons.reduce((a, p) => a + p.pct, 0); if (pct) poisonPerso(pct * (c.kPoison != null ? c.kPoison : (c.kPoison = 1 - Math.min(0.8, (caracs().resPoison || 0) / 100))), dt); } /* (la resistance aux poisons, l'Arakne complete) */
 }
 function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage (31/10/2026 : plus grosse, elle tourne, laisse une trainee et eclate) */
   const c0 = combat, vers = new T.Vector3(x, solA(x, z) + 0.4, z), gros = mo.d.boss ? 1.6 : 1;
@@ -2637,6 +2639,7 @@ function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
+  if (mo.venin && mo.etat === 'actif') { const V = mo.venin; V.t -= dt; V.tic += dt; if (V.tic >= 0.5) { V.tic = 0; blesser(mo, Math.max(1, Math.round(V.dps * 0.5)), false, 'venin'); } if (V.t <= 0) mo.venin = null; } /* (le venin, toutes les 0,5 s) */
   if (mo.etat === 'enfoui') { mo.barre.hidden = true; return; } /* (sous terre : son effet le deplace, capEnfouit) */
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.loin && mo.dep.loin.k < 1) { /* il traverse la friche jusqu'au bord, en marchant (departFriche) */
     const dp = mo.dep, L = dp.loin, vx = dp.x - L.x, vz = dp.z - L.z, D = Math.max(0.1, Math.hypot(vx, vz)), v = Math.max(2, mo.d.vitesse || 2) * 0.9;
