@@ -2423,7 +2423,7 @@ function majMonstre(mo, dt, s) {
   ctx.vSort = vSort; ctx.sortPret = sortPret;
   for (const cap of CAPACITES) { cap(mo, ctx); if (!combat || combat.fin) return; } /* (un sort qui acheve le perso clot le combat) */
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
-  if (!mo.d.totem) { /* (un totem est plante : rien ne le pousse, 01/11/2026) */
+  if (!mo.d.totem && !mo.d.plante) { /* (un totem est plante : rien ne le pousse, 01/11/2026 ; l'Arbre Collant non plus, 08/11/2026) */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
