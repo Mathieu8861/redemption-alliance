@@ -233,7 +233,8 @@ function ficheMonstre(t) {
   if (d.appel) met('appel', 'sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui' + (d.appelStun ? ', te frappe et t\'étourdit.' : '.'), (d.appelX ? num(fmt(Math.round(dSort * d.appelX)) + ' dégâts', 'rouge') + num('étourdi ' + secondes(d.appelStun)) : '') + recup('appel'), 'violet');
   if (d.geyser) met('geyser', 'sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge');
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
-  if (d.garde) met('garde', 'carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : elle recule pour lancer ses sorts de loin.', '', 'bleu');
+  if (d.enfouit) { const E0 = d.enfouit; met('enfouit', 'sort', 'S\'enfouit', 'Quand tu l\'approches, il s\'enfonce sous terre (on ne peut plus le viser), file sous le sol et ressort plus loin ; là où il était, un cercle, puis ses racines jaillissent et t\'enracinent 1 s.', num('toutes les ' + String(E0.periode).replace('.', ',') + ' s'), 'vert'); }
+  if (d.garde) met('garde', 'carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : ' + (d.fem ? 'elle' : 'il') + ' recule pour lancer ses sorts de loin.', '', 'bleu');
   if (d.invoque) met('invoque', 'renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' ' + (d.invoque.geste || 'lève son bâton de corail et invoque') + ' ' + d.invoque.n + ' ' + (d.invoque.noms || 'tortues') + ' toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus)' + (d.invoque.noms ? '.' : ' : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.'), '', 'vert'); /* (noms, geste : les Tronknydes de l'Ancestral et du Chene Mou, 08/11/2026) */
   if (d.renforts) met('renforts', 'renfort', 'Renforts', (d.fem ? 'Elle' : 'Il') + ' appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' + (d.fem ? 'e' : '') : '') + '. Sa troupe ' + (d.fem ? 'la' : 'le') + ' protège : chaque monstre près d\'' + (d.fem ? 'elle' : 'lui') + ' lui retire 12 % de tes dégâts.', '', 'vert'); /* (au feminin pour Crocabulia, 03/11/2026) */
   if (d.jet) met('jet', 'sort', d.jet.nom, 'Quand tu restes loin ' + (d.fem ? 'd\'elle' : 'de lui') + ', ' + (d.jet.arme === 'hache' ? 'il lève sa grande hache et te la lance' : 'il arrache un rocher du sol et te le lance') + ' : un grand cercle rouge sous toi, sors-en.', num(fmt(Math.round(dSort * d.jet.x)) + ' dégâts', 'rouge') + num(secondes(d.jet.prepa) + ' pour esquiver') + num('toutes les ' + d.jet.periode + ' s'), 'violet');
@@ -1995,6 +1996,32 @@ function capRacines(mo, ctx) {
     racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, R.duree);
     if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); if (combat && !combat.fin) coller(R.duree, 'Enraciné !'); } } });
 }
+/* IL S'ENFOUIT (08/11/2026, l'Abraknyde Ancestral, « sa mecanique est un poil trop simple », puis « on teste la B ? », Mathieu) : quand tu l'approches, il tremble,
+   s'enfonce sous terre (on ne peut plus le viser), une trainee de terre court sous le sol jusqu'a plus loin, a l'oppose de toi, il ressort de terre comme un monstre
+   qui grimpe, et la ou il etait, un cercle s'annonce puis ses racines jaillissent (degats, enracine 1 s). Fiche : enfouit: { periode, R (a moins de R de toi),
+   loin (il ressort a peu pres a cette distance de toi), Rr (le cercle des racines), x (leurs degats, fois ses sorts) } */
+function capEnfouit(mo, ctx) {
+  const { pp, sortPret } = ctx, E = mo.d.enfouit; if (!E || combat.deroute != null || mo.etat !== 'actif') return;
+  if (mo.enfouiT == null) mo.enfouiT = E.periode - 0.5; /* (pret presque des son arrivee : ses autres sorts retardaient sa recharge, il restait 7 s colle a toi) */
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('enfouiT', E.periode)) return; if (dP > E.R) { mo.enfouiT = E.periode; return; } /* (pret, il attend que tu l'approches) */
+  let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
+    if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && caseIci(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi) */
+  if (!f) { mo.enfouiT = E.periode - 2; return; }
+  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(1.0, Math.hypot(f.x - x0, f.z - z0) / 9);
+  mo.bloqueT = TELL + DESC + TRAJ + 1.3;
+  if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : il ressort plus loin, et ses racines jaillissent là où il était !', 'alerte'); }
+  let t = 0, sous = false;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { mo.hop = 0; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; return true; }
+    if (t < TELL) { if (Math.random() < dt * 20) poussiere(x0 + (Math.random() - 0.5) * 3, y0, z0 + (Math.random() - 0.5) * 3, 1, 0.5, '#8a6a44'); return false; } /* (la terre fremit autour de lui) */
+    if (t < TELL + DESC) { const k = (t - TELL) / DESC; mo.hop = -H * k * k; if (Math.random() < dt * 25) mottes(x0, y0, z0, 2, 1.6); return false; } /* (il s'enfonce) */
+    if (!sous) { sous = true; mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.12, 0.3); mottes(x0, y0, z0, 10, 2); poussiere(x0, y0, z0, 12, 2.2, '#8a6a44');
+      zoneDanger({ mo, x: x0, z: z0, r: E.Rr, duree: 0.9, effet: (d) => { const y = solA(x0, z0); impactElement('feuille', x0, z0, E.Rr); mottes(x0, y, z0, 10, E.Rr * 0.8);
+        const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.0);
+        if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * E.x)), mo); if (combat && !combat.fin) coller(1.0, 'Enraciné !'); } } }); }
+    if (t < TELL + DESC + TRAJ) { const k = (t - TELL - DESC) / TRAJ, x = x0 + (f.x - x0) * k, z = z0 + (f.z - z0) * k, y = solA(x, z); if (Math.random() < dt * 30) { mottes(x, y, z, 2, 0.7); poussiere(x, y, z, 2, 0.6, '#8a6a44'); } return false; } /* (la trainee sous le sol) */
+    mo.x = f.x; mo.z = f.z; mo.y = solA(f.x, f.z); mo.dep = { x: f.x, y: mo.y - H, z: f.z, friche: true }; mo.t = 0; mo.etat = 'grimpe'; mo.m.visible = true; mo.hop = 0; /* (il ressort de terre, comme un monstre qui grimpe) */
+    mo.ry = Math.atan2(paysanMesh.position.x - f.x, paysanMesh.position.z - f.z); mo.m.rotation.y = mo.ry; secousse(0.1, 0.25); mottes(f.x, mo.y, f.z, 12, 2); impactElement('feuille', f.x, f.z, 2.5); return true; });
+}
 /* LE MALEFICE (06/11/2026, la Wabbit Sorciere : « un sort qui te ralentit dans un cercle ») : quand tu es entre min et max d'elle, un cercle violet
    sous toi ; a la fin, le sort eclate : dedans, un peu de degats et ralenti (c.lenteur, comme la Momie Koalak) */
 function capMalefice(mo, ctx) {
@@ -2383,7 +2410,7 @@ const SORTS_CAC = { seisme: 'seismeT', brassard: 'brassardT', tourbillon: 'tourb
 const TRAITS_BOSS = new Set(['distance', 'casse', 'garde', 'ralentit', 'menotte', 'assomme', 'poison', 'soigne', 'protege', 'revit', 'demonte', 'grignote', 'bandit', 'fouisseur']); /* (ce qu'il fait, sans etiquette, en dernier dans sa fiche) */
 const cacBoss = (mo) => Math.min(porteeSur(mo, STATS_CLASSE.osa) - 0.5, Math.max(porteeSur(mo, STATS_CLASSE.iop) + 1.8, mo.d.portee * (mo.allonge || 1) + 0.3));
 const CAPACITES_AVANT = [capEnracine, capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon, capAvale, capTempete];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capEnfouit, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon, capAvale, capTempete];
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -2557,6 +2584,7 @@ function majMonstre(mo, dt, s) {
   if (!combat || combat.fin) return;
   const m = mo.m;
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
+  if (mo.etat === 'enfoui') { mo.barre.hidden = true; return; } /* (sous terre : son effet le deplace, capEnfouit) */
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.loin && mo.dep.loin.k < 1) { /* il traverse la friche jusqu'au bord, en marchant (departFriche) */
     const dp = mo.dep, L = dp.loin, vx = dp.x - L.x, vz = dp.z - L.z, D = Math.max(0.1, Math.hypot(vx, vz)), v = Math.max(2, mo.d.vitesse || 2) * 0.9;
     L.k = Math.min(1, L.k + dt * v / D); m.visible = true; m.position.set(L.x + vx * L.k, dp.y, L.z + vz * L.k); m.rotation.y = Math.atan2(vx, vz);
