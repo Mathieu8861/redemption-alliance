@@ -744,6 +744,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.forgerCarac) { const [k, c] = b.dataset.forgerCarac.split('|'); forgerObjet(k, 'forge', c); ouvrirForge(); }
   else if (b.hasAttribute('data-forge-retour')) ouvrirForge();
   else if (b.hasAttribute('data-ouvrir-forge')) ouvrirForge();
+  else if (b.hasAttribute('data-ouvrir-atelier')) ouvrirAtelier(); /* (la torche, depuis les decorations de l'HDV, 09/11/2026) */
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
   else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);

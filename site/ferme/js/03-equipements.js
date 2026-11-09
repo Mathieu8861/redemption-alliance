@@ -212,7 +212,10 @@ function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la 
    (2 Plumes de Tofu, 1 Soie d'Arakne et 1 Ecorce d'Abraknyde : 20 carreaux) ; c'est aussi la qu'on les charge dans la baliste d'acier, ou qu'on repasse aux carreaux normaux
    (S_.acierCharge). Charges, la baliste les tire avant ses carreaux normaux (12-perso.js, tirer) */
 const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 2], ['soie_arakne', 1], ['ecorce_abraknyde', 1]], ico: 'carreaux-acier', /* (« 2 Plumes de Tofu, une Soie d'Arakne, une Ecorce, et ca fait 20 carreaux », Mathieu, 09/11/2026 ; 1 Plume et 1 Soie avant) */
-  desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' }];
+  desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' },
+  /* (09/11/2026, « les torches : 10k, et il faut ca en ressources pour fabriquer : 4 ressources Abra, 2 couennes de cochon, 1 soie Arakne, 2 eclats du Craqueleur », Mathieu) */
+  { id: 'torche', nom: 'Torche', donne: 1, kamas: 10000, deco: 'torche', il: [['ecorce_abraknyde', 4], ['couenne', 2], ['soie_arakne', 1], ['eclat_craq', 2]], ico: 'deco-torche',
+    desc: 'Une décoration à poser sur ta ferme : la nuit, elle éclaire deux fois plus loin qu\'un lampadaire (2,2 cases autour). Elle va dans tes décorations.' }];
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
 /* L'INTERRUPTEUR DES CARREAUX D'ACIER (09/11/2026, « c'est nous qui decidons quand on les equipe ; si ca les tire sur un boss niveau 30, t'as le seum ;
    un petit bouton activer, desactiver, dans la grange et dans la vague », Mathieu) : le meme reglage dans la fenetre des vagues (et son onglet des boss),
@@ -232,19 +235,21 @@ document.addEventListener('click', (e) => {
 });
 function ouvrirAtelier() {
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
-  const G = S_.grange || {}, carte = (R) => { const peut = R.il.every(([id, k]) => (G[id] || 0) >= k), max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)));
-    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + ' ×' + R.donne + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)/, '$1s') : PAR_ID[id].nom) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
+  const G = S_.grange || {}, carte = (R) => { const ck = R.kamas || 0, peut = R.il.every(([id, k]) => (G[id] || 0) >= k) && S_.kamas >= ck, max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)), ck ? Math.floor(S_.kamas / ck) : Infinity);
+    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + (R.donne > 1 ? ' ×' + R.donne : '') + (R.deco && nbDecos(R.deco) ? ' (' + nbDecos(R.deco) + ' en réserve)' : '') + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + (ck ? '<span class="puce' + (S_.kamas >= ck ? '' : ' mauvaise') + '">' + fmt(ck) + ' kamas</span>' : '') + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)/, '$1s') : PAR_ID[id].nom) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
       '<div class="act"><button class="btn kamas" data-atelier-fab="' + R.id + '|1"' + (peut ? '' : ' disabled') + '>Fabriquer</button>' + (max >= 5 ? '<button class="btn discret" data-atelier-fab="' + R.id + '|5">×5</button>' : '') + '</div></div>'; };
   const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
   const baliste = n6 ? blocAcier()
     : '<p class="hdv-aide">Il te faut la baliste d\'acier pour tirer ces carreaux : l\'arbalète de la grange au niveau 6 (HDV, Améliorer, niveau 95).</p>';
-  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">Tu y fabriques avec les ressources de ta grange.</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
+  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">Tu y fabriques avec les ressources de ta grange (et parfois des kamas).</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
 }
 function fabriquer(id, fois) {
   const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier')) return; fois = Math.max(1, fois | 0);
   if (!R.il.every(([r, k]) => (G[r] || 0) >= k * fois)) { toast('Il te manque des ressources dans ta grange.'); return; }
-  R.il.forEach(([r, k]) => { G[r] -= k * fois; }); if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois;
-  son('niveau'); toast('+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
+  if (S_.kamas < (R.kamas || 0) * fois) { toast('Il te manque ' + fmt((R.kamas || 0) * fois - S_.kamas) + ' kamas.'); return; }
+  R.il.forEach(([r, k]) => { G[r] -= k * fois; }); S_.kamas -= (R.kamas || 0) * fois; if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois;
+  if (R.deco) { S_.decos = S_.decos || {}; S_.decos[R.deco] = nbDecos(R.deco) + R.donne * fois; assurerDecos(); }
+  son('niveau'); toast(R.deco ? '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + (fois > 1 ? 's' : '') + ' dans tes décorations : pose-' + (fois > 1 ? 'les' : 'la') + ' où tu veux (Aménager, Mes décorations).' : '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-atelier-fab]'); if (!b) return;

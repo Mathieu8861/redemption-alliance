@@ -464,6 +464,7 @@ const ACTIONS = {
   },
   acheterDeco(k, n) {
     const D = DECOS[k]; if (!D) return; n = Math.max(1, n || 1); /* (n : par dizaines, la route et la cloture) */
+    if (D.atelier) { toast(D.nom + ' : elle se fabrique à l\'atelier.'); return; } /* (la torche, 09/11/2026) */
     if (niveau(S_.xp) < D.niv) { toast(D.nom + ' : niveau ' + D.niv + '.'); return; }
     if (S_.kamas < D.prix * n) { toast('Il te manque ' + fmt(D.prix * n - S_.kamas) + ' kamas.'); return; }
     S_.kamas -= D.prix * n; S_.decos = S_.decos || {}; S_.decos[k] = nbDecos(k) + n; son('kamas'); assurerDecos();

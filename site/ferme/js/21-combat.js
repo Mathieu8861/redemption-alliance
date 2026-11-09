@@ -1405,7 +1405,7 @@ function eclaircirMonstres(N, k, rendre) {
   if (rendre) { N.mats.forEach((M) => { if (M.userData.cNuit) M.color.copy(M.userData.cNuit); }); N.mats.clear(); return; }
   if (!combat) return; const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
   combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort') return; const p = o.m.position; let lum = 0;
-    L.forEach((A) => { const R = A.r * TROU_NUIT * A.a, d = Math.hypot(p.x - A.sol.position.x, p.z - A.sol.position.z); if (d < R) lum = Math.max(lum, 1 - (d / R) * (d / R)); });
+    L.forEach((A) => { const R = A.portee * A.a, d = Math.hypot(p.x - A.sol.position.x, p.z - A.sol.position.z); if (d < R) lum = Math.max(lum, 1 - (d / R) * (d / R)); });
     if (!lum && !o.m.userData.eclaire) return; o.m.userData.eclaire = lum > 0; const f = 1 + ECLAT_LUMIERE * lum * k;
     o.m.traverse((x) => { if (!x.isMesh || !x.material) return; const pro = (M) => { if (!M.userData.cNuit) { M = M.clone(); M.userData.cNuit = M.color.clone(); N.mats.add(M); } return M; };
       if (Array.isArray(x.material)) { if (x.material.some((M) => !M.color || M.side === T.BackSide || M.transparent)) return; x.material = x.material.map(pro); x.material.forEach((M) => M.color.copy(M.userData.cNuit).multiplyScalar(f)); }
@@ -1417,7 +1417,7 @@ function trousNuit(N) {
   if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
   const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); D.y = 0; D.normalize(); const D2 = new T.Vector3(-D.z, 0, D.x), p = new T.Vector3(), q = new T.Vector3(), g = [];
   const ecran = (v) => [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
-  L.forEach((A) => { const R = A.r * TROU_NUIT * A.a; p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
+  L.forEach((A) => { const R = A.portee * A.a; p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
     q.copy(A.sol.position).addScaledVector(D, R).project(camera); const [x1, y1] = ecran(q); q.copy(A.sol.position).addScaledVector(D2, R).project(camera); const [x2, y2] = ecran(q);
     const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
     g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 52%, #000 100%)'); });

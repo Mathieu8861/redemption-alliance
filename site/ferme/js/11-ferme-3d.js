@@ -220,8 +220,12 @@ const DECOS = {
      deco par-dessus les paves », Mathieu, le meme soir) ; bord : la cloture se pose sur le
      bord d'une case (S_.clotures), juste decorative ; lumiere : la hauteur de son verre et la taille de sa lueur */
   route_pavee: { nom: 'Route pavée', prix: 250, niv: 1, pr: 'la', sol: true }, cloture: { nom: 'Petite clôture', prix: 150, niv: 1, pr: 'la', bord: true },
-  lanterne_sol: { nom: 'Petite lanterne', prix: 1500, niv: 5, pr: 'la', lumiere: { y: 0.25, r: 0.6 } }, lanterne_pied: { nom: 'Lanterne sur pied', prix: 3500, niv: 12, pr: 'la', lumiere: { y: 1.77, r: 1.0 } },
-  torche: { nom: 'Torche', prix: 2500, niv: 10, pr: 'la', lumiere: { y: 1.78, r: 1.25 } }, /* (08/11/2026, « il faudra acheter des lampadaires » puis « rajoute aussi des lampes torches », Mathieu : pendant la nuit de la foret, lanternes et torches y percent un cercle de lumiere, 21-combat.js) */
+  /* LA PORTEE DES LUMIERES ET LEUR PRIX (09/11/2026, « le lampadaire, ca reduit de 1, une zone comme celle que je t'envoie, et c'est 25k avec les decos ;
+     les lanternes au sol, cercle encore plus petit, 15k ; les torches, cercle 2 fois plus grand qu'un lampadaire, 10k et des ressources pour les fabriquer », Mathieu) :
+     portee = le rayon du cercle qu'elle eclaire la nuit, en unites (une case : 2). Le lampadaire passe de 4,2 (2,1 cases) a 2,2 (1,1 case), la petite lanterne
+     de 2,5 a 1,4, la torche de 5,25 a 4,4 (deux fois le lampadaire). La torche ne s'achete plus : elle se fabrique a l'atelier (RECETTES_ATELIER, 03-equipements.js) */
+  lanterne_sol: { nom: 'Petite lanterne', prix: 15000, niv: 5, pr: 'la', lumiere: { y: 0.25, r: 0.6, portee: 1.4 } }, lanterne_pied: { nom: 'Lanterne sur pied', prix: 25000, niv: 12, pr: 'la', lumiere: { y: 1.77, r: 1.0, portee: 2.2 } },
+  torche: { nom: 'Torche', prix: 10000, niv: 10, pr: 'la', atelier: true, lumiere: { y: 1.78, r: 1.25, portee: 4.4 } }, /* (08/11/2026, « il faudra acheter des lampadaires » puis « rajoute aussi des lampes torches », Mathieu : pendant la nuit de la foret, lanternes et torches y percent un cercle de lumiere, 21-combat.js) */
 };
 const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
 const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
@@ -291,7 +295,7 @@ let lanternesAnim = [], texHalo = null, texFlaqueLumiere = null, texPortee = nul
 function porteeLanterne(A) { /* le cercle de sa portee, cree a la premiere vague */
   texPortee = texPortee || texCanvas(256, (g, n) => { const c = n / 2; g.fillStyle = 'rgba(255,214,120,0.07)'; g.beginPath(); g.arc(c, c, c - 4, 0, Math.PI * 2); g.fill();
     g.strokeStyle = 'rgba(255,224,140,0.95)'; g.lineWidth = 5; g.setLineDash([16, 11]); g.beginPath(); g.arc(c, c, c - 5, 0, Math.PI * 2); g.stroke(); });
-  const R = A.r * TROU_NUIT, m = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshBasicMaterial({ map: texPortee, transparent: true, depthWrite: false }));
+  const R = A.portee, m = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshBasicMaterial({ map: texPortee, transparent: true, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.copy(A.sol.position); m.position.y += 0.02; m.renderOrder = 2; m.raycast = () => {}; scene.add(m); decosMesh.push(m); A.anneau = m; return m;
 }
 function lueurLanterne(m, L) {
@@ -301,7 +305,7 @@ function lueurLanterne(m, L) {
   const sol = new T.Mesh(new T.CircleGeometry(L.r * 2.5, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
   [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); });
   const verres = []; m.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { const M = o.material; if (!M.userData.allume) { M.userData.allume = M.color.clone(); M.userData.eteint = M.color.clone().lerp(new T.Color('#5d6466'), 0.65); } verres.push(M); } }); /* (le verre qui brille : sa couleur allumee et sa couleur eteinte) */
-  const a = lanternesAllumees() ? 1 : 0; lanternesAnim.push({ halo, sol, r: L.r, ph: Math.random() * 6, verres, a }); allumerLanterne(lanternesAnim[lanternesAnim.length - 1]);
+  const a = lanternesAllumees() ? 1 : 0; lanternesAnim.push({ halo, sol, r: L.r, portee: L.portee || L.r * TROU_NUIT, ph: Math.random() * 6, verres, a }); allumerLanterne(lanternesAnim[lanternesAnim.length - 1]);
 }
 /* LES LANTERNES SUIVENT LA NUIT DE LA CARTE (09/11/2026, « quand il fait jour sur la map, ils sont eteints ; s'il fait nuit, ils s'allument, tout simplement.
    Ils s'allumeront que pendant les vagues pour l'instant ; a un moment, on mettra un mode jour-nuit », Mathieu) : allumees pendant la nuit de la foret
@@ -410,8 +414,9 @@ function corpsDecoHdv() {
   return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux. La route pavée est un sol, comme l\'herbe : on pose ce qu\'on veut dessus ; la petite clôture se pose sur le bord d\'une case, pour séparer tes champs.</p>' +
     '<div class="deco-pied deco-tete"><button class="btn discret" data-mes-decos>Mes décorations' + (stock ? ' (' + stock + ')' : '') + '</button></div>' +
     ks.filter((k) => nv >= DECOS[k].niv).map((k) => { const D = DECOS[k], n = nbDecos(k), po = posees(k);
-      return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + '</div></div>' +
-        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n || ((D.sol || D.bord) && po) ? '<button class="btn discret mini" data-poser-deco="' + k + '">' + (n ? 'Poser' : 'Ranger') + '</button>' : '') + '</div></div>'; }).join('') +
+      return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + (D.lumiere ? '<span class="puce">La nuit, éclaire ' + String(Math.round(D.lumiere.portee / S * 10) / 10).replace('.', ',') + ' case' + (D.lumiere.portee / S >= 2 ? 's' : '') + ' autour</span>' : '') + '</div></div>' +
+        (D.atelier ? '<div class="act"><small>se fabrique</small>' + (niv('atelier') ? '<button class="btn kamas" data-ouvrir-atelier>À l\'atelier</button>' : '<span class="cadenas">' + picto('cadenas', '#a3957a') + 'L\'atelier</span>') + (n ? '<button class="btn discret mini" data-poser-deco="' + k + '">Poser</button>' : '') + '</div></div>' :
+        '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n || ((D.sol || D.bord) && po) ? '<button class="btn discret mini" data-poser-deco="' + k + '">' + (n ? 'Poser' : 'Ranger') + '</button>' : '') + '</div></div>'); }).join('') +
     (ks.some((k) => nv < DECOS[k].niv) ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + ks.filter((k) => nv < DECOS[k].niv).map((k) => '<div class="art verrou">' + ico('deco-' + k) + '<div><b>' + DECOS[k].nom + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + DECOS[k].niv + '</span></div></div>').join('') : '');
 }
 /* LE CHATEAU-GRANGE (02/11/2026, « une version niveau 6 de la grange qu'on peut fusionner avec les quatre tours, et ca devient un grand batiment qui fait
