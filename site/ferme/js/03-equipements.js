@@ -234,6 +234,7 @@ document.addEventListener('click', (e) => {
   if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'grange') ouvrirGrange(); else if (modaleOuverte === 'atelier') ouvrirAtelier();
 });
 function ouvrirAtelier() {
+  if (amelioCachee('atelier')) { toast('L\'atelier arrive bientôt.'); return; } /* (cache aux joueurs pour le moment, 09/11/2026) */
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
   const G = S_.grange || {}, carte = (R) => { const ck = R.kamas || 0, peut = R.il.every(([id, k]) => (G[id] || 0) >= k) && S_.kamas >= ck, max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)), ck ? Math.floor(S_.kamas / ck) : Infinity);
     return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + (R.donne > 1 ? ' ×' + R.donne : '') + (R.deco && nbDecos(R.deco) ? ' (' + nbDecos(R.deco) + ' en réserve)' : '') + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + (ck ? '<span class="puce' + (S_.kamas >= ck ? '' : ' mauvaise') + '">' + fmt(ck) + ' kamas</span>' : '') + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)/, '$1s') : PAR_ID[id].nom) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
@@ -244,7 +245,7 @@ function ouvrirAtelier() {
   ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">Tu y fabriques avec les ressources de ta grange (et parfois des kamas).</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
 }
 function fabriquer(id, fois) {
-  const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier')) return; fois = Math.max(1, fois | 0);
+  const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier') || amelioCachee('atelier')) return; fois = Math.max(1, fois | 0);
   if (!R.il.every(([r, k]) => (G[r] || 0) >= k * fois)) { toast('Il te manque des ressources dans ta grange.'); return; }
   if (S_.kamas < (R.kamas || 0) * fois) { toast('Il te manque ' + fmt((R.kamas || 0) * fois - S_.kamas) + ' kamas.'); return; }
   R.il.forEach(([r, k]) => { G[r] -= k * fois; }); S_.kamas -= (R.kamas || 0) * fois; if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois;

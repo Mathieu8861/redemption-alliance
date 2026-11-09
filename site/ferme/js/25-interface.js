@@ -208,7 +208,10 @@ const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Ton puits, ton étal de l\'HDV
    chacune se monte de niveau depuis sa propre fenetre). OUTILS : les achats qui rendent le travail plus facile, dans Acheter. */
 const CONSTRUCTIONS = ['arbalete', 'tours', 'geliere', 'forge', 'atelier', 'leurre', 'gardien'], OUTILS = ['engrais', 'semences', 'faux', 'bottes', 'cloche'];
 const construit = (id) => (id === 'gardien' ? !!S_.gardien : id === 'tours' ? nbTours() >= TOURS_MAX : niv(id) > 0);
-const aConstruire = () => CONSTRUCTIONS.filter((id) => !construit(id));
+/* L'ATELIER CACHE AUX JOUEURS (09/11/2026, « retire l'atelier pour le moment aux joueurs aussi, tant qu'on n'a pas tout fini », Mathieu) : seuls les testeurs
+   (TESTEURS_ULTI, comme le Casino) le voient a l'HDV et peuvent l'ouvrir ; aucun joueur ne l'avait construit (seul Rorschach, le compte de Mathieu) */
+const amelioCachee = (id) => id === 'atelier' && !ultiLibre();
+const aConstruire = () => CONSTRUCTIONS.filter((id) => !construit(id) && !amelioCachee(id));
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
   if (id === 'gardien') return etatGardien(); /* (le gardien n'est pas une amelioration : un choix, au niveau 60) */
@@ -273,16 +276,16 @@ function ouvrirHdv0(onglet) {
   if (onglet !== 'ameliorer' && onglet !== 'construire' && enRuine('hdv')) { ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv); return; }
   const carte = (id) => id === 'tours' ? artTour() : id === 'gardien' ? artGardien() : artAmelio(AMELIOS.find((a) => a.id === id));
   if (onglet === 'construire') {
-    const L = aConstruire(), par = (e) => L.filter((id) => etatAmelio(id).e === e), faits = CONSTRUCTIONS.filter((id) => !L.includes(id));
+    const L = aConstruire(), par = (e) => L.filter((id) => etatAmelio(id).e === e), faits = CONSTRUCTIONS.filter((id) => !L.includes(id) && !amelioCachee(id));
     ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + '<p class="hdv-aide">Les bâtiments que tu n\'as pas encore. Une fois construits, ils passent dans <b>Améliorer</b>, où ils montent de niveau. Ils se posent tout seuls sur une case libre, puis se déplacent avec Aménager.</p>' +
       par('dispo').map(carte).join('') + (par('bloque').length ? '<div class="hdv-section">À débloquer</div>' + par('bloque').map(carte).join('') : '') +
       (L.length ? '' : '<p class="hdv-aide">Tout est construit ! Leurs niveaux se montent dans Améliorer.</p>') +
       (faits.length ? '<p class="hdv-aide" style="margin-top:10px">Déjà construits : ' + faits.map((id) => ({ tours: 'tes ' + TOURS_MAX + ' tours', gardien: gardienDe() ? gardienDe().nom : '', arbalete: 'l\'arbalète de la grange', geliere: 'la Gelière', forge: 'l\'atelier de forgemagie', leurre: 'le leurre à Wabbits' })[id]).join(', ') + '.</p>' : '')); return;
   }
   if (onglet === 'ameliorer') {
-    const pretes = (L) => L.filter((id) => construit(id) || !CONSTRUCTIONS.includes(id)).filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
+    const pretes = (L) => L.filter((id) => !amelioCachee(id) && (construit(id) || !CONSTRUCTIONS.includes(id))).filter((id) => { const x = etatAmelio(id); return x.e === 'dispo' && x.ok; }).length;
     if (!ouvrirHdv.catA) ouvrirHdv.catA = (CATS_AMELIO.find((C) => pretes(C[4])) || CATS_AMELIO[0])[0]; /* (la premiere fois : la ou il y a quelque chose a acheter) */
-    const C = CATS_AMELIO.find(([k]) => k === ouvrirHdv.catA) || CATS_AMELIO[0], ici = C[4].filter((id) => !CONSTRUCTIONS.includes(id) || construit(id)), par = (e) => ici.filter((id) => etatAmelio(id).e === e);
+    const C = CATS_AMELIO.find(([k]) => k === ouvrirHdv.catA) || CATS_AMELIO[0], ici = C[4].filter((id) => !amelioCachee(id) && (!CONSTRUCTIONS.includes(id) || construit(id))), par = (e) => ici.filter((id) => etatAmelio(id).e === e);
     const versConstruire = nConstruire ? '<p class="hdv-aide">' + nConstruire + ' bâtiment' + (nConstruire > 1 ? 's' : '') + ' à construire : <button class="lien" data-hdv-onglet="construire">onglet Construire</button>.</p>' : '';
     const cats = '<div class="hdv-cats">' + CATS_AMELIO.map(([k, t, i, , L]) => { const n = pretes(L); return '<button data-hdv-cat-a="' + k + '" aria-pressed="' + (C[0] === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + (n ? '<span class="hdv-pret" title="' + n + ' à acheter tout de suite">' + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
     const bloque = par('bloque'), fini = par('fini');
