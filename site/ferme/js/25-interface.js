@@ -631,6 +631,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.id === 'b-journal') { basculerChat(); return; }
   if (b.dataset.bestiaire) { ouvrirBestiaire(b.dataset.bestiaire); return; }
+  if (b.dataset.vgPrep) { const [k, d] = b.dataset.vgPrep.split('|'); ouvrirVagues.prep = { k: +k, dur: d === '1' }; ouvrirVagues(); return; } /* (la preparation d'une revanche, 09/11/2026) */
   if (b.dataset.vgOnglet) { if (b.dataset.vgOnglet === 'bestiaire') { ouvrirBestiaire.retour = 'vagues'; ouvrirBestiaire('monstres'); } else ouvrirVagues(b.dataset.vgOnglet); return; } /* (les onglets de la fenetre des vagues, 09/11/2026) */
   if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
   if (b.dataset.revoirCombat) { revoirCombat(+b.dataset.revoirCombat); return; }

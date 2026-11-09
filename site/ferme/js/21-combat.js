@@ -159,20 +159,31 @@ ANNEAU.visible = false; scene.add(ANNEAU);
 function ouvrirVagues(onglet) {
   const fini = S_.vague.num > VAGUES_TOTAL, n = vagueCourante(), P = palierDe(n), base = P * VAGUES_PALIER, B = MONSTRES[PALIERS_TOUS[P].boss], st = statsPerso(), g = gainsVague(n, fini), repos = S_.vague.repos - Date.now();
   const battus = PALIERS.map((p, k) => k).filter((k) => S_.vague.num > (k + 1) * VAGUES_PALIER);
-  if (typeof onglet === 'string') ouvrirVagues.onglet = onglet; else if (modaleOuverte !== 'vagues') ouvrirVagues.onglet = fini ? 'boss' : 'vague';
+  if (typeof onglet === 'string') { ouvrirVagues.onglet = onglet; ouvrirVagues.prep = null; } else if (modaleOuverte !== 'vagues') { ouvrirVagues.onglet = fini ? 'boss' : 'vague'; ouvrirVagues.prep = null; }
   if (!battus.length) ouvrirVagues.onglet = 'vague'; const ong = ouvrirVagues.onglet;
   const img = (x) => '<img src="assets/icones/' + x + '.png?v=' + VERSION_MODELES + '" alt="">';
   const titre = entete(fini ? 'Tous les paliers terminés' : 'Vague ' + n + ' (' + (n - base) + ' sur ' + VAGUES_PALIER + ')') + blocVie(true) +
     '<div class="vg-onglets"><button class="' + (ong === 'vague' ? 'on' : '') + '" data-vg-onglet="vague">' + (fini ? 'Les vagues' : 'Vague ' + n) + '<small>' + PALIERS_TOUS[P].nom + '</small></button>' +
     '<button class="' + (ong === 'boss' ? 'on' : '') + '" data-vg-onglet="boss"' + (battus.length ? '' : ' disabled') + '>Refaire un boss<small>' + (battus.length ? battus.length + ' boss battu' + (battus.length > 1 ? 's' : '') : 'aucun boss battu') + '</small></button>' +
     '<button data-vg-onglet="bestiaire">Bestiaire<small>et butin</small></button></div>';
+  if (ouvrirVagues.prep && battus.includes(ouvrirVagues.prep.k)) { ouvrirModale('vagues', vueRevanche(ouvrirVagues.prep.k, ouvrirVagues.prep.dur, repos)); return; }
   if (ong === 'boss') { ouvrirModale('vagues', titre + ongletBoss(battus, repos)); return; }
-  if (fini) { ouvrirModale('vagues', titre + '<p class="vg-aide">' + leNom(B) + ' est tombé' + ac(B) + ' : tous les paliers sont terminés, la suite arrive bientôt. En attendant, chaque boss se rejoue une fois par jour (onglet Refaire un boss).</p>'); return; }
+  if (fini) { ouvrirModale('vagues', titre + '<p class="vg-aide">' + leNom(B) + ' est tombé' + ac(B) + ' : tous les paliers sont terminés, la suite arrive bientôt. En attendant, chaque boss se rejoue une fois par jour (onglet Refaire un boss).</p>' + avantBataille()); return; }
   const piste = Array.from({ length: VAGUES_PALIER - 1 }, (_, k) => { const v = base + k + 1; return '<i class="' + (v < S_.vague.num ? 'fait' : v === n ? 'ici' : '') + '">' + v + '</i>'; }).join('') + '<img class="' + (fini || S_.vague.num > base + VAGUES_PALIER ? 'fait' : n === base + VAGUES_PALIER ? 'ici' : '') + '" src="assets/icones/' + PALIERS_TOUS[P].icone + '.png" alt="' + B.nom + '" data-info="' + B.nom + '">';
   completerBestiaire(); const vusB = bestiaire(); /* (chaque monstre se touche : sa fiche s'ouvre ; « Nouveau ! » s'il n'a jamais ete croise) */
   const monstres = compoTotale(n).map(([t, k]) => { const M = MONSTRES[t], neuf = !vusB[t];
     return '<button class="vg-mon' + (M.boss ? ' boss' : '') + '" data-fiche-monstre="' + t + '" data-info="Sa fiche">' + (neuf ? '<em class="vg-neuf">Nouveau !</em>' : '') + img(M.icone) + '<b>× ' + k + '</b><span>' + M.nom + '</span><small>' + fmt(pvMonstre(t, n)) + ' PV · ' + fmt(Math.round(degMonstre(t, n) * multDegats(n) * multHautes(n) * autoFiche(M, t, n))) + ' par coup</small></button>'; }).join('');
-  /* les trois colonnes : ce qui est deja pris pour la prochaine vague est coche en vert */
+  /* en bas : les gains et le bouton, toujours visibles */
+  const prepa = (S_.vague.prepa || 0) - Date.now(), requis = niveauRequis(n);
+  const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : prepa > 0 ? '<button class="btn vg-lancer" disabled>La vague ' + n + ' se prépare : ' + dureeLisible(prepa) + '</button>' : st.niveau < requis ? '<button class="btn vg-lancer" disabled>Niveau ' + requis + ' requis (tu es niveau ' + st.niveau + ')</button>' : '<button class="btn kamas vg-lancer" data-lancer-vague>Lancer la vague ' + n + '</button>';
+  const pied = '<div class="vg-pied">' + img('kama') + '<span class="vg-gain">' + fmt(g.kamas) + ' kamas et ' + xpReel(g.xp) + ' XP à gagner' + (n === base + VAGUES_PALIER ? '<small>Battre ' + leNom(B, true) + ' termine le palier ' + PALIERS_TOUS[P].nom + (P + 1 < vaguesOuvertes() / VAGUES_PALIER ? ' et ouvre le suivant : ' + PALIERS_TOUS[P + 1].nom + '.' : '.') + '</small>' : '') + '</span>' + bouton + '</div>';
+  ouvrirModale('vagues', titre + '<div class="vg-entete"><span class="hdv-section">Ils arrivent</span><div class="vg-piste petite">' + piste + '</div></div><div class="vg-mons">' + monstres + '</div>' + (vagueBoss(n) ? '<p class="vg-boss">Sa troupe protège le boss : chaque monstre près de lui lui retire 12 % de tes dégâts (jusqu\'à 60 %), et il en rappelle deux toutes les ' + RAPPEL_TROUPE + ' s. Dégage sa troupe, puis frappe-le avant qu\'elle revienne.</p>' : '') +
+    avantBataille() + pied);
+}
+/* AVANT LA BATAILLE : manger, boire, la defense ; ce qui est deja pris pour la prochaine vague est coche en vert. Dans la vague, quand tous les paliers
+   sont termines, et avant chaque revanche (09/11/2026, « vu que je suis niveau 90, ca me propose pas les potions pour refaire les boss », Mathieu) */
+function avantBataille() {
+  const st = statsPerso(), img = (x) => '<img src="assets/icones/' + x + '.png?v=' + VERSION_MODELES + '" alt="">';
   S_.mange = S_.mange || {}; S_.pots = S_.pots || {};
   const ligne = (icone, nom, sous, act, pris) => '<div class="vg-ligne' + (pris ? ' pris' : '') + '">' + img(icone) + '<span>' + nom + '<small>' + sous + '</small></span>' + act + '</div>';
   const repas = CULTURES.filter((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)).map((c) => { const k = S_.grange[c.id] || 0, pris = !!S_.mange[c.id];
@@ -183,22 +194,29 @@ function ouvrirVagues(onglet) {
   const a = niv('arbalete'), cap = a ? capaciteArbalete() : 0;
   const defense = a ? ligne('arbalete', 'Arbalète de la grange', (S_.carreaux > 0 ? S_.carreaux + '/' + cap + ' chargée' + (rechargeAuto() ? ', se recharge seule' : '') : rechargeAuto() ? 'plus de flèches en réserve' : 'à recharger à la grange') + ', ' + degatsArbalete() + ' dégâts, ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : ''), '') + (a >= 6 ? blocAcier() : '')
     : '<p class="vg-vide">Pas encore d\'arbalète : elle se construit sur la grange (HDV, Améliorer).</p>';
-  /* en bas : les gains et le bouton, toujours visibles */
-  const prepa = (S_.vague.prepa || 0) - Date.now(), requis = niveauRequis(n);
-  const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : prepa > 0 ? '<button class="btn vg-lancer" disabled>La vague ' + n + ' se prépare : ' + dureeLisible(prepa) + '</button>' : st.niveau < requis ? '<button class="btn vg-lancer" disabled>Niveau ' + requis + ' requis (tu es niveau ' + st.niveau + ')</button>' : '<button class="btn kamas vg-lancer" data-lancer-vague>Lancer la vague ' + n + '</button>';
-  const pied = '<div class="vg-pied">' + img('kama') + '<span class="vg-gain">' + fmt(g.kamas) + ' kamas et ' + xpReel(g.xp) + ' XP à gagner' + (n === base + VAGUES_PALIER ? '<small>Battre ' + leNom(B, true) + ' termine le palier ' + PALIERS_TOUS[P].nom + (P + 1 < vaguesOuvertes() / VAGUES_PALIER ? ' et ouvre le suivant : ' + PALIERS_TOUS[P + 1].nom + '.' : '.') + '</small>' : '') + '</span>' + bouton + '</div>';
-  ouvrirModale('vagues', titre + '<div class="vg-entete"><span class="hdv-section">Ils arrivent</span><div class="vg-piste petite">' + piste + '</div></div><div class="vg-mons">' + monstres + '</div>' + (vagueBoss(n) ? '<p class="vg-boss">Sa troupe protège le boss : chaque monstre près de lui lui retire 12 % de tes dégâts (jusqu\'à 60 %), et il en rappelle deux toutes les ' + RAPPEL_TROUPE + ' s. Dégage sa troupe, puis frappe-le avant qu\'elle revienne.</p>' : '') +
-    '<div class="hdv-section">Avant la bataille</div><div class="vg-trois"><div class="vg-col"><h4>Manger</h4>' + repas + '</div><div class="vg-col"><h4>Boire</h4>' + pots + '</div><div class="vg-col"><h4>Défense</h4>' + defense + '</div></div>' + pied);
+  return '<div class="hdv-section">Avant la bataille</div><div class="vg-trois"><div class="vg-col"><h4>Manger</h4>' + repas + '</div><div class="vg-col"><h4>Boire</h4>' + pots + '</div><div class="vg-col"><h4>Défense</h4>' + defense + '</div></div>';
 }
 /* l'onglet Refaire un boss : chaque boss battu en carte, Normal ou Difficile, sans defiler toute la fenetre (09/11/2026) */
 function ongletBoss(battus, repos) {
   const ref = vagueRefDifficile(niveau(S_.xp)), Bref = MONSTRES[PALIERS_TOUS[palierDe(ref)].boss];
   return '<p class="vg-aide">Un boss battu se rejoue une fois par jour, remis à ton niveau. Ses kamas et son XP baissent de moitié à chaque nouvelle victoire, pas son butin. <b>Difficile</b> : la vie et les coups du boss de ton niveau (' + leNom(Bref, true) + ', vague ' + ref + ') avec ' + Math.round((DUR.pv - 1) * 100) + ' % de vie en plus, plus vicieux, et deux fois plus de chances sur sa pièce légendaire. Une seule revanche par jour et par boss.</p>' +
-    (repos > 0 ? '<p class="vg-repos">Ton perso se repose encore ' + dureeLisible(repos) + ' : les revanches attendent aussi.</p>' : '') + (niv('arbalete') >= 6 ? blocAcier() : '') +
+    (repos > 0 ? '<p class="vg-repos">Ton perso se repose encore ' + dureeLisible(repos) + ' : les revanches attendent aussi.</p>' : '') +
     '<div class="vg-bgrille">' + battus.map((k) => { const Bk = MONSTRES[PALIERS_TOUS[k].boss], leg = LEGENDAIRES.find((x) => x.boss === PALIERS_TOUS[k].boss), ok = bossRejouable(k), gk = gainsBoss(k);
       return '<div class="vg-bcarte' + (ok ? '' : ' fait') + '"><img src="assets/icones/' + Bk.icone + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + Bk.nom + '</b><small>Vague ' + ((k + 1) * VAGUES_PALIER) + ' · +' + fmt(gk.kamas) + ' kamas · +' + xpReel(gk.xp) + ' XP</small>' +
         (leg ? '<small class="vg-leg">✦ ' + (leg.nom || OBJETS[idLeg(leg)].nom) + ' : 2 %, 4 % en difficile' + (possede(idLeg(leg)) ? ' (déjà à toi)' : '') + '</small>' : '') +
-        '<span class="vg-btns">' + (ok ? '<button class="btn kamas mini" data-rejouer-boss="' + k + '">Normal</button><button class="btn mini dur" data-rejouer-dur="' + k + '">Difficile</button>' : '<span class="vg-zero">Déjà rejoué aujourd\'hui, reviens demain</span>') + '</span></div></div>'; }).join('') + '</div>';
+        '<span class="vg-btns">' + (ok ? '<button class="btn kamas mini" data-vg-prep="' + k + '|0">Normal</button><button class="btn mini dur" data-vg-prep="' + k + '|1">Difficile</button>' : '<span class="vg-zero">Déjà rejoué aujourd\'hui, reviens demain</span>') + '</span></div></div>'; }).join('') + '</div>';
+}
+/* LA PREPARATION D'UNE REVANCHE (09/11/2026, « quand tu cliques sur normal ou difficile, ca t'ouvre une pop-up ou tu selectionnes ce que tu veux avant de lancer »,
+   Mathieu) : le boss choisi, normal ou difficile, puis manger, boire et la defense, et le bouton qui lance ; Retour revient a la liste des boss */
+function vueRevanche(k, dur, repos) {
+  const Bk = MONSTRES[PALIERS_TOUS[k].boss], leg = LEGENDAIRES.find((x) => x.boss === PALIERS_TOUS[k].boss), ok = bossRejouable(k), gk = gainsBoss(k), ref = vagueRefDifficile(niveau(S_.xp));
+  const lancer = !ok ? '<button class="btn vg-lancer" disabled>Déjà rejoué aujourd\'hui</button>' : repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>'
+    : '<button class="btn ' + (dur ? 'dur' : 'kamas') + ' vg-lancer" data-rejouer-' + (dur ? 'dur' : 'boss') + '="' + k + '">' + (dur ? 'Lancer en difficile' : 'Lancer la revanche') + '</button>';
+  return entete('Revanche : ' + Bk.nom) + blocVie(true) +
+    '<div class="vg-revanche' + (dur ? ' dur' : '') + '"><img src="assets/icones/' + Bk.icone + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + Bk.nom + '<em>' + (dur ? 'Difficile' : 'Normal') + '</em></b>' +
+    '<small>Vague ' + ((k + 1) * VAGUES_PALIER) + ' · +' + fmt(gk.kamas) + ' kamas · +' + xpReel(gk.xp) + ' XP</small>' + (leg ? '<small class="vg-leg">✦ ' + (leg.nom || OBJETS[idLeg(leg)].nom) + ' : ' + (dur ? '4' : '2') + ' % de chances' + (possede(idLeg(leg)) ? ' (déjà à toi)' : '') + '</small>' : '') +
+    (dur ? '<small>La vie et les coups du boss de ton niveau (' + leNom(MONSTRES[PALIERS_TOUS[palierDe(ref)].boss], true) + ', vague ' + ref + ') avec ' + Math.round((DUR.pv - 1) * 100) + ' % de vie en plus, et plus vicieux.</small>' : '') + '</div></div>' +
+    avantBataille() + '<div class="vg-pied"><button class="btn discret" data-vg-onglet="boss">Retour</button><span class="vg-gain"></span>' + lancer + '</div>';
 }
 /* le Bestiaire et butin (valide le 11/10/2026) : chaque monstre avec ses PV, ses degats et ce qu'il lache (avec ta Prospection),
    chaque panoplie avec ses pieces, son arme, ses bonus et ou la trouver. Les paliers pas encore atteints restent a decouvrir. */

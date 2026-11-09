@@ -1211,3 +1211,11 @@ html, body { color: #e8eaed; }
 .vg-btns { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; } .vg-btns .btn.mini { padding: 3px 10px; font-size: .72rem; box-shadow: 0 2px 0 var(--bord); }
 .gr-carte .acier-bloc { margin: 4px 0 2px; }
 @media (max-width: 620px) { .vg-trois, .vg-bgrille { grid-template-columns: 1fr; } }
+/* (09/11/2026, « dans refaire un boss, c'est ecrit vraiment un peu petit », Mathieu) : les cartes des boss et les colonnes en plus grand ; la preparation d'une revanche */
+.vg-bcarte { padding: 8px 10px; } .vg-bcarte > img { width: 62px; height: 62px; } .vg-bcarte > div { font-size: .82rem; } .vg-bcarte b { font-size: 1.02rem; } .vg-bcarte small { font-size: .76rem; margin-top: 1px; }
+.vg-btns .btn.mini { padding: 4px 12px; font-size: .82rem; } .vg-aide { font-size: .84rem; } .vg-repos { font-size: .84rem; }
+.vg-ligne { font-size: .8rem; } .vg-ligne small { font-size: .7rem; } .vg-ligne .btn.mini { font-size: .74rem; } .vg-col h4 { font-size: .9rem; }
+.vg-revanche { display: flex; align-items: center; gap: 12px; margin: 2px 0 6px; padding: 10px 12px; border: 2px solid #8a6414; border-radius: 14px; background: #3d3222; }
+.vg-revanche.dur { border-color: #a3342b; background: #3d2422; } .vg-revanche > img { width: 72px; height: 72px; object-fit: contain; flex: none; } .vg-revanche > div { flex: 1; min-width: 0; font: 700 .84rem/1.3 var(--f-texte); }
+.vg-revanche b { display: flex; align-items: center; gap: 8px; font: 400 1.25rem var(--f-titre); } .vg-revanche b em { font: 800 .72rem var(--f-texte); font-style: normal; padding: 2px 8px; border-radius: 99px; background: var(--or); color: #1d1e22; }
+.vg-revanche.dur b em { background: #a3342b; color: #fff; } .vg-revanche small { display: block; font-size: .78rem; color: #c3c6cd; } .vg-revanche .vg-leg { color: #ad81d9; }
