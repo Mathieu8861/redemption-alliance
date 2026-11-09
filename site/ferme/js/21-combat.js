@@ -861,7 +861,7 @@ const COULEUR_CAC = '#25e3ff'; /* (05/11/2026 : la couleur des sorts au corps a 
 const ESQUIVE = { saut: 1.5, charge: 1.5, grandeCharge: 1.7, bond: 2, pluie: 1.4, cawotteRoyale: 0.8, boue: 1.1 /* (1,5 avant le 07/11/2026 : la boue part plus vite) */, brassard: 1.5, bourrasque: 1.1 }, /* (pluie et Cawotte royale du Wa Wabbit : 1,2 et 0,5 s avant le 19/10/2026) */ secondes = (x) => String(x).replace('.', ',') + ' s';
 const SAUT_PORTEE = 3 * S, SAUT_VOL = 0.6, SAUT_PREPA = ESQUIVE.saut - SAUT_VOL, AGRIPPE = 1.5; let SAUT_RECHARGE = 6; /* (let : les tests le mettent a Infinity pour comparer sans bond) */
 const peutSauter = (mo) => !mo.d.distance && !mo.d.boss && !mo.d.vole && !mo.d.bandit && !mo.d.roule && !mo.d.charge && !mo.d.pique && mo.d.vitesse < 2.5 && (!mo.d.grignote || mo.aggro); /* (les rapides n'en ont pas besoin ; ceux qui chargent ou piquent ont leur elan a eux) */
-const ELANS = { bouftou: 'charge', boufcoul: 'charge', craqueleur: 'charge', craqCristal: 'charge', chevaucheurKoalak: 'charge', dragNoir: 'pique', dragDore: 'pique' };
+const ELANS = { bouftou: 'charge', boufcoul: 'charge', craqueleur: 'charge', craqCristal: 'charge', chevaucheurKoalak: 'charge', sanglier: 'charge', sanglierFouisseur: 'charge', dragNoir: 'pique', dragDore: 'pique' }; /* (les sangliers chargent au lieu de sauter, 09/11/2026) */
 Object.entries(ELANS).forEach(([t, e]) => { const d = MONSTRES[t]; if (!d || d.charge || d.pique) return; Object.assign(d, e === 'charge' ? { charge: 7 } : { pique: 7 }, { chargeMax: SAUT_PORTEE, degSort: d.degSort || 1.5 }); });
 function sauterSurPerso(mo) {
   const x0 = mo.x, z0 = mo.z, pp0 = paysanMesh.position, cx = pp0.x, cz = pp0.z; let f = null, t = 0; /* (il vise la ou tu es quand il se ramasse : le rond rouge s'y pose tout de suite) */
@@ -1088,7 +1088,7 @@ function capCharge(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.charge || mo.d.pique) { /* le Bouftou Royal baisse la tete : une bande rouge jusqu'a toi (ESQUIVE.grandeCharge pour en sortir), puis il fonce et renverse tout sur son passage ;
        les petits monstres qui chargent, et les Dragoeufs qui piquent (15/10/2026), font pareil, de plus pres (3 cases), en ESQUIVE.charge */
-    const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? ESQUIVE.charge : (mo.d.chargePrepa || ESQUIVE.grandeCharge); /* (chargePrepa : le Royal, 31/10/2026) */
+    const piq = !!mo.d.pique, per = mo.d.charge || mo.d.pique, petit = !mo.d.boss && !!mo.d.chargeMax, prepa = petit ? (mo.d.chargePrepa || ESQUIVE.charge) : (mo.d.chargePrepa || ESQUIVE.grandeCharge); /* (chargePrepa des petits : les sangliers, 1,1 s, 09/11/2026) */ /* (chargePrepa : le Royal, 31/10/2026) */
     if (petit && mo.chargeT == null) mo.chargeT = Math.random() * per * 0.7; /* (pas tous en meme temps) */
     const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
     if (sortPret('chargeT', per) && dP > (petit ? mo.d.portee + 0.8 : 1.2) && dP < (mo.d.chargeMax || 10) && (!petit || mo.chasse) && !(combat.colle > 0)) { /* (jamais quand le perso est colle : il doit pouvoir sortir de la bande, 20/10/2026) */

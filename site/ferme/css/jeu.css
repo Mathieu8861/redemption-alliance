@@ -1219,3 +1219,4 @@ html, body { color: #e8eaed; }
 .vg-revanche.dur { border-color: #a3342b; background: #3d2422; } .vg-revanche > img { width: 72px; height: 72px; object-fit: contain; flex: none; } .vg-revanche > div { flex: 1; min-width: 0; font: 700 .84rem/1.3 var(--f-texte); }
 .vg-revanche b { display: flex; align-items: center; gap: 8px; font: 400 1.25rem var(--f-titre); } .vg-revanche b em { font: 800 .72rem var(--f-texte); font-style: normal; padding: 2px 8px; border-radius: 99px; background: var(--or); color: #1d1e22; }
 .vg-revanche.dur b em { background: #a3342b; color: #fff; } .vg-revanche small { display: block; font-size: .78rem; color: #c3c6cd; } .vg-revanche .vg-leg { color: #ad81d9; }
+.gl-vendre.attente { cursor: help; text-decoration: none; color: #e0b25a; } /* (le temps avant de pouvoir vendre une Gelee nee ici, 09/11/2026) */

@@ -177,7 +177,11 @@ function stadePoint(sv) { /* un point de la ligne du stade (la course) : sv, la 
   sv -= 2 * S.a; const t = Math.PI / 2 + sv / S.R; return { x: S.cx - S.a + S.R * Math.cos(t), z: S.cz + S.R * Math.sin(t), tx: -Math.sin(t), tz: Math.cos(t), nx: Math.cos(t), nz: Math.sin(t) };
 }
 const PONT_CASINO = { x0: 21.55, x1: 22.85, z: 1.3, rampe: 0.6 };
-function hauteurCasino(x, z) { /* le sol est plat, sauf le petit pont en dos d'ane sur le canal */
+/* LE KIOSQUE OU L'ON PASSE (09/11/2026, « qu'on puisse passer sous le kiosque », Mathieu) : on y monte par ses marches au sud (face a l'allee), on marche
+   sur son plancher ; ses colonnes, son garde-corps et les pupitres de l'orchestre restent pleins (le modele : kiosque() de blender/casino.py) */
+const KIOSQUE_CASINO = { x: -14, z: -12, R: 2.4, sol: 0.38, socle: 3.02, plancher: 2.72, entree: Math.PI / 2 };
+function hauteurCasino(x, z) { /* le sol est plat, sauf le petit pont en dos d'ane sur le canal et le kiosque */
+  { const K = KIOSQUE_CASINO, d = Math.hypot(x - K.x, z - K.z); if (d <= K.plancher) return K.sol; if (d <= K.socle || (Math.abs(x - K.x) <= 0.95 && z - K.z >= K.R + 0.57 && z - K.z <= K.R + 1.07)) return 0.18; }
   const P = PONT_CASINO; if (x < P.x0 || x > P.x1) return 0; const a = Math.abs(z);
   if (a <= P.z) return 0.44 + 0.3 * Math.cos(Math.PI * z / (2 * P.z)); if (a <= P.z + P.rampe) return 0.44 * (P.z + P.rampe - a) / P.rampe; return 0;
 }
@@ -187,8 +191,9 @@ const OBST_CASINO = (() => { const R = [], C = [], sym = (x, z, r) => { C.push([
   symX(4.6, -15.2, 1.0); symX(8.6, -20.5, 1.8); symX(3.8, -12.8, 0.35); symX(3.8, -11.3, 0.5); symX(7.2, -14.3, 0.5); symX(10.2, -14.3, 0.5); symX(9.5, -16.9, 0.8); symX(10.6, -18.3, 0.6);
   C.push([0, 0, 5.05]); /* la fontaine et ses parterres */
   for (let k = 0; k < 4; k++) { const d = Math.PI / 4 + k * Math.PI / 2; C.push([Math.cos(d) * 8.2, Math.sin(d) * 8.2, 0.55]); C.push([Math.cos(d - 0.35) * 8.2, Math.sin(d - 0.35) * 8.2, 0.35]); /* (un lampadaire sur deux, 08/11/2026 : « y en a trop », Mathieu) */ [-0.19, 0.19].forEach((e) => C.push([Math.cos(d + e) * 7.7, Math.sin(d + e) * 7.7, 0.9])); }
-  sym(-24, 3.3, 0.5); sym(-25.6, 4.0, 0.75); R.push([-20.9, -11.1, 4.4, 5.2], [-20.9, -11.1, -5.2, -4.4]); sym(-16, 3.9, 0.25); sym(-22, 3.9, 0.25); sym(-10.6, 3.6, 0.35); sym(-18.4, 3.6, 0.35); sym(-12.1, 4.0, 0.95); sym(-22.6, 4.3, 0.5);
-  C.push([-14, -12, 3.0], [-21, -8, 1.1], [-15.6, -6.4, 0.45], [-12.4, -6.4, 0.45], [-17.5, 8, 0.7], [-16.2, 8.6, 0.7], [-19.6, 7.6, 0.95], [-18.6, 9.4, 0.75]); R.push([-11.4, -8.2, -6.2, -5.0]); /* l'ouest */
+  sym(-24, 3.3, 0.5); sym(-25.6, 4.0, 0.75); R.push([-20.9, -14.85, 4.4, 5.2], [-13.15, -11.1, 4.4, 5.2], [-20.9, -14.85, -5.2, -4.4], [-13.15, -11.1, -5.2, -4.4]); /* (les haies, avec leur passage face au kiosque, 09/11/2026) */ sym(-16, 3.9, 0.25); sym(-22, 3.9, 0.25); sym(-10.6, 3.6, 0.35); sym(-18.4, 3.6, 0.35); sym(-12.1, 4.0, 0.95); sym(-22.6, 4.3, 0.5);
+  [-Math.PI / 2 - 0.75, -Math.PI / 2, -Math.PI / 2 + 0.75].forEach((t) => C.push([-14 + Math.cos(t) * 1.25, -12 + Math.sin(t) * 1.25, 0.28])); /* (les pupitres du kiosque ; le kiosque lui-meme : libreCasino) */
+  C.push([-21, -8, 1.1], [-15.6, -6.4, 0.45], [-12.4, -6.4, 0.45], [-17.5, 8, 0.7], [-16.2, 8.6, 0.7], [-19.6, 7.6, 0.95], [-18.6, 9.4, 0.75]); R.push([-11.4, -8.2, -6.2, -5.0]); /* l'ouest */
   R.push([-6.5, -1.1, 11.2, 13.7], [1.1, 6.5, 11.2, 13.7], [7.5, 8.5, 9.0, 11.0], [14.7, 17.3, 9.3, 14.7]); symX(3.2, 8.6, 0.5); C.push([-5.6, 10, 0.55], [14, 9, 0.55], [14, 15, 0.55]); /* l'hippodrome (le guichet au bout de l'esplanade, a l'est, 08/11/2026) */
   R.push([13.2, 20.8, -2.3, 2.3], [20.7, 21.5, -0.9, 0.9], [22.9, 27.4, -0.9, 0.9], [14.4, 19.6, 5.6, 6.8], [14.4, 19.6, -6.8, -5.6]); /* les jardins : bassin, canal (le pont reste libre), parterres */
   sym(25.6, 1.35, 0.5); sym(24, 2.6, 0.45); sym(11.6, 4.4, 0.5); sym(22.6, 4.4, 0.5); C.push([14.5, -4.75, 0.35], [19.5, 4.75, 0.35]); sym(17, 4.2, 0.95); C.push([15.5, -9.4, 0.8], [17.4, -9.8, 0.6], [19.5, -9, 0.5]);
@@ -199,6 +204,7 @@ function libreCasino(x, z, marge) { /* sur l'ile, hors du decor (marge : la plac
   if (Math.hypot(Math.max(Math.abs(x - S.cx) - S.a, 0), z - S.cz) <= S.R + S.L / 2 + 0.25 + m) return false; /* la piste, barrieres comprises */
   for (const [x0, x1, z0, z1] of OBST_CASINO.R) if (x > x0 - m && x < x1 + m && z > z0 - m && z < z1 + m) return false;
   for (const [cx, cz, r] of OBST_CASINO.C) if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < (r + m) * (r + m)) return false;
+  { const K = KIOSQUE_CASINO, dx = x - K.x, dz = z - K.z, d = Math.hypot(dx, dz); if (d > K.R - 0.2 - m && d < K.R + 0.2 + m) { let a = Math.atan2(dz, dx) - K.entree; a = Math.atan2(Math.sin(a), Math.cos(a)); if (Math.abs(a) > Math.PI / 8 - (0.15 + m) / K.R) return false; } } /* (le garde-corps du kiosque et ses colonnes, sauf l'entree) */
   return true;
 }
 function alleeCasino(x, z) { /* les allees de marbre (iles.py version 10, marbre) : le perso les prefere a la pelouse */
