@@ -209,15 +209,15 @@ function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la 
 }
 /* L'ATELIER (09/11/2026, « les carreaux d'acier, il faut les fabriquer avec l'atelier ; commence a travailler le design de l'atelier et ce qu'on met dedans »,
    puis « oui, nouveau batiment pour l'atelier », « A j'aime bien », Mathieu) : on y fabrique avec les ressources de la grange. D'abord les carreaux d'acier
-   (1 Plume de Tofu et 1 Soie d'Arakne : 20 carreaux) ; c'est aussi la qu'on les charge dans la baliste d'acier, ou qu'on repasse aux carreaux normaux
+   (2 Plumes de Tofu, 1 Soie d'Arakne et 1 Ecorce d'Abraknyde : 20 carreaux) ; c'est aussi la qu'on les charge dans la baliste d'acier, ou qu'on repasse aux carreaux normaux
    (S_.acierCharge). Charges, la baliste les tire avant ses carreaux normaux (12-perso.js, tirer) */
-const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 1], ['soie_arakne', 1]], ico: 'carreaux-acier',
+const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 2], ['soie_arakne', 1], ['ecorce_abraknyde', 1]], ico: 'carreaux-acier', /* (« 2 Plumes de Tofu, une Soie d'Arakne, une Ecorce, et ca fait 20 carreaux », Mathieu, 09/11/2026 ; 1 Plume et 1 Soie avant) */
   desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' }];
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
 function ouvrirAtelier() {
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
   const G = S_.grange || {}, carte = (R) => { const peut = R.il.every(([id, k]) => (G[id] || 0) >= k), max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)));
-    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + ' ×' + R.donne + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + PAR_ID[id].nom + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
+    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + ' ×' + R.donne + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)/, '$1s') : PAR_ID[id].nom) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
       '<div class="act"><button class="btn kamas" data-atelier-fab="' + R.id + '|1"' + (peut ? '' : ' disabled') + '>Fabriquer</button>' + (max >= 5 ? '<button class="btn discret" data-atelier-fab="' + R.id + '|5">×5</button>' : '') + '</div></div>'; };
   const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
   const baliste = n6 ? '<div class="art">' + ico('carreaux-acier') + '<div><b>Carreaux d\'acier : ' + fmt(nA) + '</b><div class="desc">' + (S_.acierCharge && nA ? 'Chargés : ta baliste tire ses carreaux d\'acier, puis repasse toute seule aux carreaux normaux quand il n\'y en a plus.' : 'Pas chargés : ta baliste tire ses carreaux normaux.') + '</div></div>' +
