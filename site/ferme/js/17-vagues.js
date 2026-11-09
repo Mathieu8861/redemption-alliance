@@ -91,7 +91,7 @@ function majVieHaut() {
   b.classList.toggle('moyen', pc < 60 && pc >= 40); b.classList.toggle('bas', pc < 40);
   majIconesEffets(); const bp = $('b-pots'), np = totalPots(), cle = np + '|' + (pc < 40 && !combat); if (bp && bp._c !== cle) { bp._c = cle; $('pots-nb').textContent = np; bp.classList.toggle('vide', !np); bp.classList.toggle('appel', np > 0 && pc < 40 && !combat); }
 }
-function blocVie() {
+function blocVie(sansPots) { /* (sansPots : la fenetre des vagues, ou les pots ont leur colonne, 09/11/2026) */
   const max = statsPerso().pvMax, pv = vieActuelle(); S_.pots = S_.pots || {}; if (pv >= max && !S_.menthe) return '';
   const pc = Math.round(100 * pv / max), dispo = Object.keys(POTS).filter((t) => S_.pots[t] > 0);
   const boutons = dispo.length ? dispo.map((t) => '<button class="btn mini-pot" data-boire="' + t + '" data-info="' + POTS[t].nom + ' : ' + POTS[t].effet + '"><img src="assets/icones/pot-' + t + '.png?v=' + VERSION_MODELES + '" alt="' + POTS[t].nom + '"><span>' + S_.pots[t] + '</span></button>').join('')
@@ -99,7 +99,7 @@ function blocVie() {
   /* (06/11/2026, « le message n'est pas tres beau », Mathieu : en colonne, le titre et les PV en tete, la barre sur toute la largeur, puis les pots) */
   return '<div class="vie-alerte empile' + (pc < 40 ? ' bas' : '') + '"><div class="va-tete"><b>' + (pv >= max ? 'Ta vie est pleine' : 'Tu pars avec ' + pc + ' % de vie') + '</b><span>' + fmt(Math.round(pv)) + ' / ' + fmt(max) + ' PV</span></div><div class="pvb"><i style="width:' + pc + '%"></i></div>' +
     '<small>' + (pv >= max ? '' : 'Elle remonte doucement toute seule, un pot va plus vite.') + (S_.menthe ? ' La Menthe te soignera pendant la vague.' : '') + '</small>' +
-    '<div class="va-pots"><span class="va-lib">' + (dispo.length ? 'Bois un pot :' : 'Tu n\'as plus de pot.') + '</span>' + boutons + '</div></div>';
+    (sansPots ? '' : '<div class="va-pots"><span class="va-lib">' + (dispo.length ? 'Bois un pot :' : 'Tu n\'as plus de pot.') + '</span>' + boutons + '</div>') + '</div>';
 }
 /* LA FENETRE DES POTS : la vie, le temps qu'il faut pour qu'elle remonte seule, et chaque pot (a boire, ou a acheter s'il n'y en a plus) */
 const PRIX_FUSION_POTS = 100; /* (05/11/2026, Mathieu : deux petits pots Bleus (+25 % chacun) se fondent en un grand (+60 %) pour 100 kamas) */

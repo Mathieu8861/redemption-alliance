@@ -392,7 +392,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .modale { position: fixed; inset: 0; background: rgba(36, 49, 28, .45); display: none; place-items: center; padding: 14px; pointer-events: auto; z-index: 5; }
 .modale.ouverte { display: grid; }
 .carte { width: min(100%, 460px); max-height: 86vh; overflow: auto; background: var(--papier); border: 3px solid var(--bord); border-radius: 18px; box-shadow: 0 6px 0 var(--bord); padding: 14px; }
-.carte.large { width: min(100%, 640px); }
+.carte.large { width: min(100%, 740px); } /* (740 depuis la fenetre des vagues en trois colonnes, 09/11/2026 ; 640 avant) */
 /* LA GRANGE (15/10/2026) : des cases a gauche, la grange elle-meme a droite */
 .carte.grange { width: min(100%, 920px); }
 /* LE BESTIAIRE (15/10/2026) */
@@ -1175,3 +1175,39 @@ html, body { color: #e8eaed; }
 .bj-carte b { font: 400 1.15rem/1 var(--f-titre); } .bj-carte i { font-style: normal; font-size: 1.15rem; line-height: 1.1; } .bj-carte.rouge { color: #d8263a; }
 .bj-carte.dos { background: repeating-linear-gradient(45deg, #9e1c2c 0 6px, #c8323e 6px 12px); border-color: #f2b630; }
 .bj-vide { font-size: .78rem; color: #8d877b; } .bj-actions { display: flex; gap: 8px; margin-top: 10px; } .bj-actions .btn { flex: 1; }
+/* LA FENETRE DES VAGUES (09/11/2026, la proposition 1) : onglets, monstres, trois colonnes avant la bataille, gains et bouton en bas */
+.vg-onglets { display: flex; gap: 6px; margin: 2px 0 10px; }
+.vg-onglets button { flex: 1; min-width: 0; font: 800 .9rem/1.15 var(--f-texte); padding: 8px 6px; border-radius: 12px; border: 2px solid #43464e; background: #2b2d31; color: #e8eaed; box-shadow: 0 3px 0 #1a1b1e; }
+.vg-onglets button small { display: block; font-size: .68rem; font-weight: 700; opacity: .75; }
+.vg-onglets button.on { background: var(--or); color: #1d1e22; border-color: var(--bord); box-shadow: 0 3px 0 var(--bord); }
+.vg-onglets button[disabled] { opacity: .45; cursor: default; }
+.vg-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 4px 0; } .vg-entete .hdv-section { margin: 0; }
+.vg-piste.petite { margin: 0; gap: 4px; } .vg-piste.petite i { width: 22px; height: 22px; font-size: .64rem; } .vg-piste.petite img { width: 30px; height: 30px; }
+.vg-mons { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; }
+.vg-mon { position: relative; display: grid; justify-items: center; gap: 1px; padding: 6px 4px; border: 2px solid #43464e; border-radius: 12px; background: #2b2d31; color: #e8eaed; text-align: center; font: 700 .72rem/1.2 var(--f-texte); cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.vg-mon:hover { transform: translateY(-1px); box-shadow: 0 3px 0 var(--bord); } .vg-mon.boss { background: #3d3222; border-color: #8a6414; }
+.vg-mon img { width: 46px; height: 46px; object-fit: contain; } .vg-mon b { font: 400 1rem var(--f-titre); } .vg-mon small { font-size: .66rem; font-weight: 700; color: #a9adb5; }
+.vg-trois { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vg-col { border: 2px solid #43464e; border-radius: 12px; background: #2b2d31; padding: 6px 8px; min-width: 0; }
+.vg-col h4 { margin: 0 0 4px; font: 800 .84rem var(--f-texte); color: var(--or); }
+.vg-ligne { display: flex; align-items: center; gap: 6px; margin: 4px 0; font: 700 .74rem/1.15 var(--f-texte); }
+.vg-ligne > img { width: 28px; height: 28px; object-fit: contain; flex: none; } .vg-ligne > span { flex: 1; min-width: 0; } .vg-ligne small { display: block; font-size: .66rem; font-weight: 700; color: #a9adb5; }
+.vg-ligne .btn.mini { flex: none; padding: 3px 8px; font-size: .7rem; box-shadow: 0 2px 0 var(--bord); } .vg-ligne.pris small { color: #92db80; }
+.vg-ok { flex: none; font-size: .7rem; font-weight: 800; color: #6fd38a; background: #2c4426; border: 2px solid #3f6b35; border-radius: 9px; padding: 2px 7px; white-space: nowrap; }
+.vg-zero { flex: none; font-size: .66rem; font-weight: 800; color: #8b8f97; white-space: nowrap; }
+.vg-vide { font-size: .72rem; font-weight: 700; color: #a9adb5; margin: 2px 0; }
+.vg-aide { font-size: .76rem; font-weight: 600; color: #c3c6cd; margin: 0 0 8px; line-height: 1.35; }
+.vg-repos { font-size: .76rem; font-weight: 800; color: #e97a72; margin: 0 0 8px; }
+.vg-pied { position: sticky; bottom: -14px; z-index: 2; display: flex; align-items: center; gap: 10px; margin: 10px -14px -14px; padding: 10px 14px; background: #232428; border-top: 3px solid #43464e; }
+.vg-pied > img { width: 30px; height: 30px; flex: none; } .vg-gain { flex: 1; min-width: 0; font: 800 .85rem/1.2 var(--f-texte); color: #f2d27a; } .vg-gain small { display: block; font-size: .7rem; color: #a9adb5; }
+.vg-pied .btn.vg-lancer { position: static; width: auto; margin: 0; font-size: 1.05rem; padding: 10px 18px; }
+.acier-bloc { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 5px 7px; border: 2px dashed #7fb0dc; border-radius: 10px; background: #22303c; font: 700 .74rem/1.15 var(--f-texte); color: #e8eaed; }
+.acier-bloc > img { width: 30px; height: 30px; object-fit: contain; flex: none; } .acier-bloc > span { flex: 1; min-width: 0; } .acier-bloc small { display: block; font-size: .66rem; color: #a9adb5; } .acier-bloc.on small { color: #6fd38a; }
+.acier-bloc .inter { flex: none; } .acier-bloc .inter[disabled] { opacity: .45; cursor: default; }
+.vg-bgrille { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.vg-bcarte { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 2px solid #43464e; border-radius: 12px; background: #2b2d31; }
+.vg-bcarte > img { width: 54px; height: 54px; object-fit: contain; flex: none; } .vg-bcarte > div { flex: 1; min-width: 0; font: 700 .7rem/1.25 var(--f-texte); }
+.vg-bcarte b { display: block; font-size: .86rem; } .vg-bcarte small { display: block; color: #a9adb5; font-weight: 700; } .vg-bcarte .vg-leg { color: #ad81d9; } .vg-bcarte.fait { opacity: .55; }
+.vg-btns { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; } .vg-btns .btn.mini { padding: 3px 10px; font-size: .72rem; box-shadow: 0 2px 0 var(--bord); }
+.gr-carte .acier-bloc { margin: 4px 0 2px; }
+@media (max-width: 620px) { .vg-trois, .vg-bgrille { grid-template-columns: 1fr; } }

@@ -435,9 +435,9 @@ function ouvrirGrange(choix) {
   /* a droite : la grange elle-meme */
   const nq = niv('qg'), arb = niv('arbalete'), cap = arb ? capaciteArbalete() : 0, abime = degatsBat('grange') || enRuine('grange');
   const pvG = abime ? artPv('grange') : '<div class="gr-pv"><i></i></div><p class="gr-aide">' + fmt(pvMaxBat('grange')) + ' / ' + fmt(pvMaxBat('grange')) + ' PV : intacte.</p>';
-  const arbal = arb ? '<div class="gr-arb">' + img('arbalete') + '<div><b>Arbalète ' + arb + '/5</b><br>' + degatsArbalete() + ' dégâts, ' + enCases(porteeArbalete()) + ' cases<div class="gr-jauge"><i style="width:' + Math.round(100 * S_.carreaux / cap) + '%"></i></div></div><div class="gr-arb-etat">' + S_.carreaux + '/' + cap + ' · ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : '') +
-    (rechargeAuto() ? '<br>' + (S_.fleches ? 'se recharge seule' : '<span style="color:var(--rouge)">réserve vide</span>') : S_.carreaux >= cap ? '' : '<br><button class="btn kamas mini" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div></div>' : '';
-  const ligneA = (id, icone) => { const a = AMELIOS.find((x) => x.id === id); if (!a) return ''; const n = niv(id), e = etatAmelio(id), bat = !!NIVBAT[id] || id === 'arbalete', total = bat ? (id === 'qg' ? 6 : 5) : a.couts.length, actuel = bat ? (id === 'arbalete' ? n : n + 1) : n;
+  const arbal = arb ? '<div class="gr-arb">' + img('arbalete') + '<div><b>Arbalète ' + arb + '/' + AMELIOS.find((x) => x.id === 'arbalete').couts.length + '</b><br>' + degatsArbalete() + ' dégâts, ' + enCases(porteeArbalete()) + ' cases<div class="gr-jauge"><i style="width:' + Math.round(100 * S_.carreaux / cap) + '%"></i></div></div><div class="gr-arb-etat">' + S_.carreaux + '/' + cap + ' · ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : '') +
+    (rechargeAuto() ? '<br>' + (S_.fleches ? 'se recharge seule' : '<span style="color:var(--rouge)">réserve vide</span>') : S_.carreaux >= cap ? '' : '<br><button class="btn kamas mini" data-recharger' + (S_.fleches ? '' : ' disabled') + '>Recharger</button>') + '</div></div>' + (arb >= 6 ? blocAcier() : '') : ''; /* (l'interrupteur des carreaux d'acier, 09/11/2026) */
+  const ligneA = (id, icone) => { const a = AMELIOS.find((x) => x.id === id); if (!a) return ''; const n = niv(id), e = etatAmelio(id), bat = !!NIVBAT[id] || id === 'arbalete', total = bat ? (id === 'qg' ? 6 : id === 'arbalete' ? a.couts.length : 5) : a.couts.length, actuel = bat ? (id === 'arbalete' ? n : n + 1) : n;
     const act = e.e === 'fini' ? '<span class="gr-aide">Niveau max</span>' : e.e === 'bloque' ? '<span class="gr-aide">' + picto('cadenas', GRIS_PICTO) + 'Niveau ' + nivRequis(a, n) + '</span>' : '<button class="btn kamas" data-amelio="' + id + '"' + (e.ok ? '' : ' disabled') + '>' + fmt(a.couts[n]) + ' ' + KAMA + '</button>';
     return '<div class="gr-amel">' + img(icone) + '<span>' + (id === 'qg' ? 'La grange' : 'L\'arbalète') + ' ' + actuel + '/' + total + '</span>' + act + '</div>'; };
   const nt = nbTours(), ct = PRIX_TOUR[Math.min(nt, PRIX_TOUR.length - 1)];
@@ -631,6 +631,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.id === 'b-journal') { basculerChat(); return; }
   if (b.dataset.bestiaire) { ouvrirBestiaire(b.dataset.bestiaire); return; }
+  if (b.dataset.vgOnglet) { if (b.dataset.vgOnglet === 'bestiaire') { ouvrirBestiaire.retour = 'vagues'; ouvrirBestiaire('monstres'); } else ouvrirVagues(b.dataset.vgOnglet); return; } /* (les onglets de la fenetre des vagues, 09/11/2026) */
   if (b.id === 'b-chat-fermer') { basculerChat(false); return; }
   if (b.dataset.revoirCombat) { revoirCombat(+b.dataset.revoirCombat); return; }
   if (b.id === 'b-bestiaire') { ouvrirBestiaire.retour = null; ouvrirBestiaire('monstres'); } else if (b.id === 'b-graine') ouvrirGraines(); else if (b.id === 'b-hdv') ouvrirHdv(); else if (b.id === 'b-amelio') ouvrirHdv('ameliorer'); else if (b.id === 'b-grange') ouvrirGrange();

@@ -214,14 +214,29 @@ function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la 
 const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 2], ['soie_arakne', 1], ['ecorce_abraknyde', 1]], ico: 'carreaux-acier', /* (« 2 Plumes de Tofu, une Soie d'Arakne, une Ecorce, et ca fait 20 carreaux », Mathieu, 09/11/2026 ; 1 Plume et 1 Soie avant) */
   desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' }];
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
+/* L'INTERRUPTEUR DES CARREAUX D'ACIER (09/11/2026, « c'est nous qui decidons quand on les equipe ; si ca les tire sur un boss niveau 30, t'as le seum ;
+   un petit bouton activer, desactiver, dans la grange et dans la vague », Mathieu) : le meme reglage dans la fenetre des vagues (et son onglet des boss),
+   la grange et l'atelier. Il reste tel quel d'une vague a l'autre, et se coupe tout seul quand il n'y a plus de carreaux. */
+function blocAcier() {
+  const nA = S_.acier || 0, on = !!S_.acierCharge && nA > 0;
+  return '<div class="acier-bloc' + (on ? ' on' : '') + '"><img src="assets/icones/carreaux-acier.png?v=' + VERSION_MODELES + '" alt=""><span><b>Carreaux d\'acier</b> (' + fmt(nA) + ')<small>' +
+    (!nA ? 'Plus aucun : fabrique-en à l\'atelier.' : on ? 'Activés : deux fois les dégâts, ils traversent' : 'Désactivés : la baliste tire ses carreaux normaux') + '</small></span>' +
+    '<button class="inter' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="Carreaux d\'acier" data-acier-bascule="' + (on ? '0' : '1') + '"' + (nA ? '' : ' disabled') + '></button></div>';
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-acier-bascule]'); if (!b || b.disabled) return;
+  S_.acierCharge = b.dataset.acierBascule === '1' && (S_.acier || 0) > 0;
+  toast(S_.acierCharge ? 'Carreaux d\'acier activés : ta baliste les tire, deux fois plus fort, et ils traversent.' : 'Carreaux d\'acier désactivés : ta baliste tire ses carreaux normaux.', 'or');
+  sauver(); if (typeof rendreArbaleteBulle === 'function') rendreArbaleteBulle();
+  if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'grange') ouvrirGrange(); else if (modaleOuverte === 'atelier') ouvrirAtelier();
+});
 function ouvrirAtelier() {
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
   const G = S_.grange || {}, carte = (R) => { const peut = R.il.every(([id, k]) => (G[id] || 0) >= k), max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)));
     return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + ' ×' + R.donne + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)/, '$1s') : PAR_ID[id].nom) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
       '<div class="act"><button class="btn kamas" data-atelier-fab="' + R.id + '|1"' + (peut ? '' : ' disabled') + '>Fabriquer</button>' + (max >= 5 ? '<button class="btn discret" data-atelier-fab="' + R.id + '|5">×5</button>' : '') + '</div></div>'; };
   const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
-  const baliste = n6 ? '<div class="art">' + ico('carreaux-acier') + '<div><b>Carreaux d\'acier : ' + fmt(nA) + '</b><div class="desc">' + (S_.acierCharge && nA ? 'Chargés : ta baliste tire ses carreaux d\'acier, puis repasse toute seule aux carreaux normaux quand il n\'y en a plus.' : 'Pas chargés : ta baliste tire ses carreaux normaux.') + '</div></div>' +
-      '<div class="act">' + (S_.acierCharge && nA ? '<button class="btn discret" data-atelier-acier="0">Repasser aux carreaux normaux</button>' : '<button class="btn kamas" data-atelier-acier="1"' + (nA ? '' : ' disabled') + '>Charger les carreaux d\'acier</button>') + '</div></div>'
+  const baliste = n6 ? blocAcier()
     : '<p class="hdv-aide">Il te faut la baliste d\'acier pour tirer ces carreaux : l\'arbalète de la grange au niveau 6 (HDV, Améliorer, niveau 95).</p>';
   ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">Tu y fabriques avec les ressources de ta grange.</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
 }
@@ -232,9 +247,8 @@ function fabriquer(id, fois) {
   son('niveau'); toast('+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-atelier-fab],[data-atelier-acier]'); if (!b) return;
-  if (b.dataset.atelierFab) { const [id, k] = b.dataset.atelierFab.split('|'); fabriquer(id, +k); }
-  else if (b.dataset.atelierAcier) { S_.acierCharge = b.dataset.atelierAcier === '1' && (S_.acier || 0) > 0; toast(S_.acierCharge ? 'Carreaux d\'acier chargés : ta baliste les tire, deux fois plus fort, et ils traversent.' : 'Ta baliste repasse aux carreaux normaux.', 'or'); sauver(); if (typeof rendreArbaleteBulle === 'function') rendreArbaleteBulle(); }
+  const b = e.target.closest('[data-atelier-fab]'); if (!b) return;
+  { const [id, k] = b.dataset.atelierFab.split('|'); fabriquer(id, +k); }
   ouvrirAtelier();
 });
 function ouvrirForge() {
