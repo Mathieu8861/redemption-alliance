@@ -360,10 +360,10 @@ canvas.addEventListener('pointerup', (e) => {
 let drag = null, pince = null;
 canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY, b: e.button }; });
 canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol(e); if (pt) visee.point = pt; return; } if (!drag || !e.isPrimary || e.buttons === 0) return;
-  if (drag.b === 1 || drag.b === 2) { tournerCamera((e.clientX - drag.x) * 0.007); drag = { x: e.clientX, y: e.clientY, b: drag.b }; return; } /* (clic droit ou molette maintenus : on tourne autour de la ferme, 29/10/2026 ; un clic droit sans glisser agit toujours) */
+  if (drag.b === 1 || drag.b === 2) { tournerCamera((e.clientX - drag.x) * 0.007); inclinerCamera((e.clientY - drag.y) * 0.005); drag = { x: e.clientX, y: e.clientY, b: drag.b }; return; } /* (et de haut en bas, l'inclinaison : la souris descend, la camera monte, 09/11/2026) */ /* (clic droit ou molette maintenus : on tourne autour de la ferme, 29/10/2026 ; un clic droit sans glisser agit toujours) */
   const k = (camera.right - camera.left) / innerWidth; const dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k; drag = { x: e.clientX, y: e.clientY }; /* « de haut en bas c'est pas inverse ? » (Mathieu, 11/10/2026) : si, la carte suivait la souris a l'horizontale mais fuyait a la verticale ;
      maintenant le point saisi reste sous le curseur dans les deux sens (1 / sinus de l'inclinaison de la camera pour la profondeur) */
-  const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = 27 / Math.hypot(27, 42.4);
+  const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = Math.sin(elevActuelle()); /* (l'inclinaison de la camera, 09/11/2026) */
   const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(dy / incl)); camera.position.add(dep); VISEE.add(dep); });
 canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
 canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), lieu === 'casino' ? 0.42 : ZOOM_MIN, 2.2); cadrer(); }, { passive: true });

@@ -21,7 +21,16 @@ function garderAngle() { try { localStorage.setItem('ferme-angle-camera', String
 const vueFixe = () => typeof casinoDedans !== 'undefined' && casinoDedans && lieu === 'casino'; /* (le hall du palais se regarde d'un seul cote : ses murs hauts cacheraient la salle, 08/11/2026) */
 function tournerCamera(da) { if (vueFixe()) return; angleVise = null; angleCam += da; placerCamera(); garderAngle(); }
 function tournerCameraVers(a) { if (vueFixe()) return; angleVise = a; garderAngle(); }
-function placerCamera() { const r = 42.4; camera.position.set(VISEE.x + Math.cos(angleCam) * r, VISEE.y + 27, VISEE.z + Math.sin(angleCam) * r); camera.lookAt(VISEE); }
+/* L'INCLINAISON (09/11/2026, « on peut pas faire glisser de haut en bas aussi ? », Mathieu) : le clic droit glisse de haut en bas incline la camera, de presque
+   a plat (ELEV_MIN) a presque vue du dessus (ELEV_MAX) ; la distance ne change pas. Elle est gardee comme l'angle ; R remet aussi l'inclinaison de depart.
+   Le hall du casino garde sa vue fixe */
+const DIST_CAM = Math.hypot(27, 42.4), ELEV_DEPART = Math.atan2(27, 42.4), ELEV_MIN = 0.3, ELEV_MAX = 1.2;
+let elevCam = (() => { try { const a = parseFloat(localStorage.getItem('ferme-elev-camera')); return isFinite(a) ? Math.min(ELEV_MAX, Math.max(ELEV_MIN, a)) : ELEV_DEPART; } catch (e) { return ELEV_DEPART; } })(), elevVise = null;
+function garderElev() { try { localStorage.setItem('ferme-elev-camera', String(elevVise != null ? elevVise : elevCam)); } catch (e) { /* rien */ } }
+function inclinerCamera(d) { if (vueFixe()) return; elevVise = null; elevCam = Math.min(ELEV_MAX, Math.max(ELEV_MIN, elevCam + d)); placerCamera(); garderElev(); }
+function inclinerCameraVers(e) { if (vueFixe()) return; elevVise = e; garderElev(); }
+const elevActuelle = () => (vueFixe() ? ELEV_DEPART : elevCam);
+function placerCamera() { const e = elevActuelle(), r = DIST_CAM * Math.cos(e); camera.position.set(VISEE.x + Math.cos(angleCam) * r, VISEE.y + DIST_CAM * Math.sin(e), VISEE.z + Math.sin(angleCam) * r); camera.lookAt(VISEE); }
 function cadrer() {
   const w = innerWidth, h = innerHeight, a = w / h;
   const d = (a < 1 ? 9.6 / a : 11.2) / zoom; /* en portrait l'ile deborde un peu, on glisse et on pince pour zoomer */

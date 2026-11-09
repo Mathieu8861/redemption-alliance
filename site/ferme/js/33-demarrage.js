@@ -54,6 +54,6 @@ addEventListener('keydown', (e) => {
   if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);
   /* tourner la camera (29/10/2026) : A et E sur un clavier azerty (Q et E en qwerty : la meme place), R pour revenir a la vue de depart */
   if (!enAccueil && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { const base = angleVise != null ? angleVise : angleCam;
-    if (e.code === 'KeyQ') tournerCameraVers(base - Math.PI / 2); else if (e.code === 'KeyE') tournerCameraVers(base + Math.PI / 2); else if (e.code === 'KeyR') tournerCameraVers(ANGLE_DEPART + Math.round((angleCam - ANGLE_DEPART) / (2 * Math.PI)) * 2 * Math.PI); }
+    if (e.code === 'KeyQ') tournerCameraVers(base - Math.PI / 2); else if (e.code === 'KeyE') tournerCameraVers(base + Math.PI / 2); else if (e.code === 'KeyR') { tournerCameraVers(ANGLE_DEPART + Math.round((angleCam - ANGLE_DEPART) / (2 * Math.PI)) * 2 * Math.PI); inclinerCameraVers(ELEV_DEPART); } }
 });
 demarrer();
