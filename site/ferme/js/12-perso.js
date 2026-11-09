@@ -907,6 +907,7 @@ function animerPattes(m, pas, f) {
   if (u.tete) u.tete.rotation.x = Math.sin(pas * 1.3 + 0.6) * 0.08;
 }
 function errer(dt, s) {
+  let grandi = false;
   bouftousMesh.forEach((m, k) => {
     const e = m.userData.erre; if (!e) return;
     const affame = S_.bouftous[k] && Date.now() >= S_.bouftous[k].rassasie;
@@ -929,10 +930,11 @@ function errer(dt, s) {
     e.pas += e.v * dt * 9;
     m.rotation.y = e.ry; m.rotation.z = Math.sin(e.pas) * 0.03 * Math.min(1, e.v * 1.5); /* un leger balancement de cote a cote, pas de sauts */
     animerPattes(m, e.pas, Math.min(1, e.v * 1.6));
-    if (S_.bouftous[k] && S_.bouftous[k].ne) { const t = tailleBouftou(S_.bouftous[k]); if (Math.abs(t - m.userData.taille) > 0.002) { m.userData.taille = t; m.scale.setScalar(t); } }
+    if (S_.bouftous[k] && S_.bouftous[k].ne) { const t = tailleBouftou(S_.bouftous[k]); if (Math.abs(t - m.userData.taille) > 0.002) { m.userData.taille = t; m.scale.setScalar(t); } if (m.userData.bebe && adulte(S_.bouftous[k])) grandi = true; } /* (devenu adulte : redessine en bouclettes) */
     const sol = caseIci(e.x, e.z); m.position.set(e.x, (sol ? posCase(sol).y : 0) + (1 - Math.cos(e.pas * 2)) * 0.012 * Math.min(1, e.v * 1.5), e.z);
     const b = bullesDyn.get('b' + k); if (b) b._point = [e.x, 0.4 + 2.4 * (m.userData.taille || 0.5), e.z]; /* (la bulle au-dessus de sa tete, quelle que soit sa taille, 09/11/2026) */
   });
+  if (grandi) rendreBouftous();
 }
 /* un Bouftou des vagues : le modele de la ferme, dans un groupe (le combat reecrit l'echelle du monstre a chaque image : celle du Bouftou reste dedans) */
 /* le Boufcoul, l'invocation du Koulosse (choisi par Mathieu le 15/10/2026) : notre Bouftou, la laine en trois bandes de l'arriere vers l'avant (rouge, jaune,
@@ -952,14 +954,15 @@ function emballerBouftou(b) { /* dans un groupe (le combat reecrit l'echelle du 
   const bo = new T.Box3().setFromObject(b); g.userData.hauteur = bo.max.y - bo.min.y; g.userData.pattes = b.userData.pattes; delete b.userData.pattes; return g;
 }
 /* LA TAILLE DES BOUFTOUS DE L'ENCLOS (09/11/2026, « un Bouftou taille adulte a peu pres de la taille d'un bebe, a la limite un petit peu plus gros que le bebe
-   actuel, et les bebes beaucoup plus petits », Mathieu) : avant, 0,275 a la naissance et 0,5 adulte ; maintenant 0,13 puis 0,32 */
-const TAILLE_BB = 0.13, TAILLE_ADULTE = 0.32, tailleBouftou = (b) => TAILLE_BB + (TAILLE_ADULTE - TAILLE_BB) * croissance(b);
+   actuel, et les bebes beaucoup plus petits », Mathieu) : avant, 0,275 a la naissance et 0,5 adulte ; maintenant 0,13 puis 0,32. Puis le bebe a son propre
+   modele, plus petit que l'adulte a taille egale : il nait a 0,22 (la taille entouree en rouge par Mathieu le 09/11/2026) */
+const TAILLE_BB = 0.22, TAILLE_ADULTE = 0.32, tailleBouftou = (b) => TAILLE_BB + (TAILLE_ADULTE - TAILLE_BB) * croissance(b);
 function rendreBouftous() {
   bouftousMesh.forEach((b) => scene.remove(b)); bouftousMesh = [];
   S_.bouftous.forEach((b, k) => {
     const [dx, dz, ry] = SLOTS_BOUFTOUS[k % SLOTS_BOUFTOUS.length];
     const e = erre[k] || (erre[k] = Object.assign(pointEnclos(), { ry, cible: null, pause: Math.random() * 3 })); /* on garde sa place quand on le redessine */
-    const m = fusionnerBouftou(creerBouftou(T, maille, b.noir ? { laine: '#3a3440', peau: '#4d4436', cornes: '#c9a34a', corneTip: '#f2d27a' } : {})); ombrePieds(m, 2.4); /* fusionne : 108 pieces -> une douzaine */ m.userData.taille = tailleBouftou(b); m.scale.setScalar(m.userData.taille); if (b.gestation) { m.scale.x *= 1.16; m.scale.z *= 1.16; m.userData.ronde = true; } /* la future maman s'arrondit */ poser(m, e.x, 0, e.z, e.ry); m.userData.erre = e;
+    const bebe = !adulte(b), m = fusionnerBouftou(creerBouftou(T, maille, Object.assign({ bebe }, b.noir ? { laine: '#3a3440', peau: '#4d4436', cornes: '#c9a34a', corneTip: '#f2d27a' } : {}))); ombrePieds(m, 2.4); m.userData.bebe = bebe; /* (le bebe garde le Bouftou d'avant, l'adulte est en bouclettes, 09/11/2026) */ /* fusionne : 108 pieces -> une douzaine */ m.userData.taille = tailleBouftou(b); m.scale.setScalar(m.userData.taille); if (b.gestation) { m.scale.x *= 1.16; m.scale.z *= 1.16; m.userData.ronde = true; } /* la future maman s'arrondit */ poser(m, e.x, 0, e.z, e.ry); m.userData.erre = e;
     m.traverse((o) => { o.userData.bouftou = k; }); m.userData.base = enclosDef.z + dz; bouftousMesh.push(m);
   });
   rendreEnclosBulles();
