@@ -6,7 +6,11 @@
    un boss toutes les 5 vagues, puis un souffle pour boire et manger. Chaque vague tenue rapporte de l'experience et un peu de kamas, chaque boss
    un coffre (des kamas, parfois une piece de ta panoplie, rarement des runes : voir vagueAreneTenue). Ton record de la semaine compte au classement de l'alliance (DAMOCLES/sql/068) ;
    pour l'honneur (le podium et ses primes retires le 14/10/2026). L'entree : un ticket, trois par jour. Pendant ce temps, ni vague ni simu VSA sur la ferme. */
-const NIV_ARENE = 50, ENTREES_ARENE = 1, /* (1 par jour depuis le 06/11/2026, « l'Arene maintenant on peut la faire 1 fois par jour », Mathieu ; 3 avant) */ TICKET_ARENE = 10000, ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 12.2; /* (9,2 avant le 30/10/2026 : « agrandis un peu l'arene, de quelques cases de diametre », Mathieu ; 3 cases de plus, blender/arene-ile.py) */ /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
+const NIV_ARENE = 50, ENTREES_ARENE = 1, /* (1 par jour depuis le 06/11/2026, « l'Arene maintenant on peut la faire 1 fois par jour », Mathieu ; 3 avant) */ ARENE = new T.Vector3(240, 0, 0), ROT_ARENE = Math.PI / 4, R_ARENE = 12.2; /* (9,2 avant le 30/10/2026 : « agrandis un peu l'arene, de quelques cases de diametre », Mathieu ; 3 cases de plus, blender/arene-ile.py) */ /* (le podium et ses primes retires le 14/10/2026 : « oublie-le, si on a personne Moon va gagner les 100k », Mathieu) */
+/* LE TICKET SELON LE NIVEAU (09/11/2026, « augmente le prix du ticket de l'Arene : 10k au niveau 50, 20k au 60, 35k au 70, 50k au 80, 70k au 90 », Mathieu ;
+   10 000 pour tous avant) : par tranche de 10 niveaux, au niveau du perso au moment d'entrer */
+const PALIERS_TICKET_ARENE = [[90, 70000], [80, 50000], [70, 35000], [60, 20000], [0, 10000]];
+const ticketArene = () => { const l = niveau(S_.xp); return PALIERS_TICKET_ARENE.find(([n]) => l >= n)[1]; };
 const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 11.9, z: ARENE.z + d.z * 11.9, ox: ARENE.x + d.x * 14.6, oz: ARENE.z + d.z * 14.6 }; }); /* les trois herses : le fond, la gauche, la droite */
 let ileArene = null, areneSuite = false;
 const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, ITEM_MONSTRE_ARENE = 0.0025, /* (0,5 avant le 19/10/2026) */ KAMAS_ARENE = 0.1, JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
@@ -462,36 +466,36 @@ async function afficherClassementArene() {
 }
 function ouvrirArene() {
   const l = niveau(S_.xp), reste = entreesRestantes(), a = etatArene(), sem = semaineJeu();
-  const raison = l < NIV_ARENE ? 'Il faut le niveau ' + NIV_ARENE + '.' : !reste ? entreesPrises() : S_.kamas < TICKET_ARENE ? 'Il te manque ' + fmt(TICKET_ARENE - S_.kamas) + ' kamas pour le ticket.' : '';
+  const raison = l < NIV_ARENE ? 'Il faut le niveau ' + NIV_ARENE + '.' : !reste ? entreesPrises() : S_.kamas < ticketArene() ? 'Il te manque ' + fmt(ticketArene() - S_.kamas) + ' kamas pour le ticket.' : '';
   ouvrirModale('arene', entete('L\'Arène') + '<div class="arene-tete"><img src="assets/icones/ile-arene.png?v=' + VERSION_MODELES + '" alt=""><div><b>Tiens le plus longtemps possible</b><p>Des vagues sans fin, de plus en plus dures, devant toute l\'alliance.</p></div></div>' +
-    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(TICKET_ARENE) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
+    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ARENE ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ARENE + '</span><span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' sur ' + ENTREES_ARENE + ' aujourd\'hui</span><span class="puce">ticket ' + fmt(ticketArene()) + ' kamas</span><span class="puce">record : ' + (a.record || 0) + ' vague' + ((a.record || 0) > 1 ? 's' : '') + '</span></div>' +
     '<ul class="arene-regles"><li><b>Vagues sans fin</b> : les monstres de tous tes paliers déjà battus, trois familles au hasard par vague, tous à la force du dernier boss que tu as battu (celui de la vague ' + nArene() + '), puis de plus en plus forts. Ils sortent des herses et foncent tous sur toi.</li>' +
     '<li><b>Un boss toutes les 5 vagues</b>, lui aussi à la force de ce boss, puis un souffle pour boire tes pots et manger (un repas vaut pour toute la partie, il ne se cumule pas avec lui-même).</li>' +
     '<li><b>Toutes les 10 vagues, un bonus au choix</b> parmi trois (Puissance, Agilité, esquive, vol de vie...), gardé jusqu\'à la fin de la partie.</li>' +
-    '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : à 10 vagues, tu récupères environ les deux tiers de ton ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
+    '<li><b>À chaque vague tenue</b> : de l\'expérience (10 vagues valent environ un sixième de ton niveau) et un peu de kamas. L\'Arène ne se fait pas pour l\'argent : ses kamas ne remboursent qu\'une part du ticket. On y vient pour le record, les pièces aux bons jets et les runes.</li>' +
     '<li><b>Les runes se méritent</b> : plus tu vas loin, plus les monstres en lâchent. Une <b>rune de forgemagie</b> (+20 % de jet sur la caractéristique de ton choix) tombe sur 0,1 % des monstres de la vague 3 à la 9, 0,25 % de la 10e à la 14e, 0,5 % dès la 15e.</li>' +
     '<li><b>Les monstres lâchent des pièces</b> : dès la 5e vague, 0,25 % de chance par monstre d\'une pièce de <b>sa</b> panoplie (un Bouftou, une pièce du Bouftou), avec un jet de 50 % au moins. De quoi revendre à l\'HDV.</li>' +
     '<li><b>Le coffre de chaque boss</b> (toutes les 5 vagues) : des kamas ; dès le boss de la 5e, 30 % de chance d\'une pièce de ta panoplie, <b>avec un jet jamais sous la moyenne</b> ; 2 % de chance de runes de forgemagie ; dès le boss de la 10e aussi, 2 % de chance de <b>rune parfaite</b> (jet maximum). Ici, seule la Prospection de la partie augmente ces chances (la carte Flair, le repas de Fraise) : celle de ton équipement ne compte pas dans l\'Arène.</li>' +
     '<li><b>Ton record de la semaine</b> compte au classement de l\'alliance, pour l\'honneur.</li>' +
     '<li>Tomber ne coûte rien de plus : tu gardes tout ce que tu as gagné et tu rentres avec la vie que tu avais en entrant. Le bouton Fuir arrête la partie quand tu veux.</li></ul>' + blocVie() + sectionRepas('arene') +
     '<div class="hdv-section">Classement de la semaine (' + sem.replace('-S', ', semaine ') + ')</div><div id="arene-classement"><p class="hdv-aide">Chargement…</p></div>' +
-    '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button><button class="btn kamas" data-montgolfiere="entrerArene"' + (raison ? ' disabled' : '') + '>Entrer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
+    '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button><button class="btn kamas" data-montgolfiere="entrerArene"' + (raison ? ' disabled' : '') + '>Entrer : ' + fmt(ticketArene()) + ' ' + KAMA + '</button></div>');
   afficherClassementArene();
 }
 async function partirArene() {
   const a = etatArene();
   if (niveau(S_.xp) < NIV_ARENE) { toast('L\'Arène ouvre au niveau ' + NIV_ARENE + '.'); return; }
   if (!entreesRestantes()) { toast(entreesPrises(), 'alerte'); return; }
-  if (S_.kamas < TICKET_ARENE) { toast('Il te faut ' + fmt(TICKET_ARENE) + ' kamas pour le ticket.', 'alerte'); return; }
+  if (S_.kamas < ticketArene()) { toast('Il te faut ' + fmt(ticketArene()) + ' kamas pour le ticket.', 'alerte'); return; }
   if (!peutPartir('arene')) return;
   areneSuite = true; fermerModale(); areneSuite = false;
-  S_.kamas -= TICKET_ARENE; a.entrees = (a.entrees || 0) + 1; rendreHaut(); sauver();
+  S_.kamas -= ticketArene(); a.entrees = (a.entrees || 0) + 1; rendreHaut(); sauver();
   if (lieu !== 'arene') {
-    if (!(await allerSur('arene'))) { S_.kamas += TICKET_ARENE; a.entrees--; rendreHaut(); sauver(); toast('Le ballon n\'a pas pu décoller (chargement de l\'Arène), réessaie : ton ticket t\'est rendu.', 'alerte'); return; }
+    if (!(await allerSur('arene'))) { S_.kamas += ticketArene(); a.entrees--; rendreHaut(); sauver(); toast('Le ballon n\'a pas pu décoller (chargement de l\'Arène), réessaie : ton ticket t\'est rendu.', 'alerte'); return; }
     compter('areneVisites');
   }
   const u = paysanMesh.userData; paysanMesh.position.set(ARENE.x + 0.6, 0, ARENE.z + 0.6); u.y = 0; u.angle = ROT_ARENE + Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false;
-  toast('Bienvenue dans l\'Arène ! Ticket payé : ' + fmt(TICKET_ARENE) + ' kamas. Tiens le plus longtemps possible.', 'or');
+  toast('Bienvenue dans l\'Arène ! Ticket payé : ' + fmt(ticketArene()) + ' kamas. Tiens le plus longtemps possible.', 'or');
   setTimeout(() => { if (lieu === 'arene' && !combat) lancerArene(); }, 1600);
 }
 function lancerArene() {
@@ -532,7 +536,7 @@ function finArene(abandon) {
   const a = etatArene(), A = c.arene, t = A.tenues, rec = t > A.record, recSem = !rec && t > A.recordSem; a.parties = (a.parties || 0) + 1; compter('arenes');
   son(rec || recSem ? 'victoire' : abandon ? 'gelee' : 'defaite'); if (rec) confettis(60);
   const objets = lignesButin(A.objets, false, true); /* (le jet, le tri par rarete, la ligne doree, 03/11/2026) */
-  const reste = entreesRestantes(), peut = reste > 0 && S_.kamas >= TICKET_ARENE;
+  const reste = entreesRestantes(), peut = reste > 0 && S_.kamas >= ticketArene();
   ouvrirModale('arene-fin', entete(abandon ? 'Tu quittes l\'Arène' : 'À terre dans l\'Arène !') +
     '<div class="arene-bilan"><div class="gros">' + t + '</div><div class="sous">vague' + (t > 1 ? 's' : '') + ' tenue' + (t > 1 ? 's' : '') + '</div>' + (rec ? '<div class="record">★ Nouveau record !</div>' : recSem ? '<div class="record">★ Record de la semaine !</div>' : '<div class="sous">record : ' + Math.max(A.record, t) + ', cette semaine : ' + Math.max(A.recordSem, t) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('kama', 'Kamas gagnés', fmt(A.kamas)) + ligneRecap('etoile', 'Expérience', fmt(A.xp)) +
@@ -540,7 +544,7 @@ function finArene(abandon) {
     (objets ? '<div class="hdv-section">Les pièces</div>' + objets : '') +
     (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce, à ton atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</div></div><div class="act"></div></div>').join('') : '') +
     '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
-    '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(TICKET_ARENE) + ' ' + KAMA + '</button></div>');
+    '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(ticketArene()) + ' ' + KAMA + '</button></div>');
   rendreHaut(); sauver();
 }
 
