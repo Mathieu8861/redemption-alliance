@@ -242,7 +242,7 @@ function ficheMonstre(t) {
   if (d.faille) met('faille', 'sort', d.faille.racines ? 'Racines en ligne' : 'Faille', d.faille.racines ? 'Il fait courir ses racines jusqu\'à toi : une bande, puis elles jaillissent du sol de lui vers toi. Sors-en par le côté.' : 'Il fend le sol jusqu\'à toi : une bande, puis le sol éclate de lui vers toi. Sors-en par le côté.', num(fmt(Math.round(dSort * d.faille.x)) + ' dégâts', 'rouge') + num('1 s pour esquiver') + num('toutes les ' + d.faille.periode + ' s'), 'violet');
   if (d.affaibli) { const A = d.affaibli, pc = Math.round(A.seuil * 100); met('affaibli', 'bouclier', 'Affaibli', 'Sous ' + pc + ' % de vie, il tombe à genoux : invulnérable, sa vie bloquée à ' + pc + ' %, il appelle ' + A.n + ' ' + A.noms + '. Tant qu\'un seul est debout, il regagne ' + Math.round(A.regen * 100) + ' % de sa vie toutes les ' + A.pas + ' s. Abats-les tous : il se relève enragé.', num(fmt(A.pv) + ' PV par Gorille') + num('+' + Math.round(A.regen * 100) + ' % toutes les ' + A.pas + ' s', 'vert'), 'violet'); }
   if (d.enracine) { const E = d.enracine; met('enracine', 'bouclier', 'Enraciné', 'Il arrive enfoncé dans le sol, invulnérable, et ' + E.noeuds + ' nœuds de racine sortent de terre autour de toi. Tant qu\'ils vivent, la forêt pousse autour d\'eux (des Tronknydes, des Arbres Collants) et lui fait jaillir ses racines sous toi. Chaque nœud coupé lui arrache un morceau d\'écorce ; le dernier tombe, il s\'arrache du sol et marche sur toi.' + (E.reSeuil ? ' À ' + Math.round(E.reSeuil * 100) + ' % de vie, il replonge une fois, avec ' + E.renoeuds + ' nouveaux nœuds.' : ''), num('-' + Math.round(E.ecorce * 100) + ' % de sa vie par nœud', 'rouge') + num('la forêt pousse toutes les ' + E.pousse + ' s', 'vert'), 'violet'); }
-  if (d.regard) met('regard', 'sort', 'Regard du Chêne', 'Toutes les ' + d.regard.periode + ' s, son œil rouge se charge, puis il tourne sur lui-même et son rayon balaie toute la carte. Cache-toi derrière un bâtiment ou derrière une des souches qui sortent de terre près de toi : le rayon s\'y arrête.', num(fmt(Math.round(dSort * d.regard.x)) + ' dégâts si le rayon te touche', 'rouge'), 'rouge');
+  if (d.regard) met('regard', 'sort', 'Regard du Chêne', 'Toutes les ' + d.regard.periode + ' s, il plante ses racines et s\'enfonce, son œil rouge se charge, puis il fait deux tours sur lui-même et le rayon de son œil balaie toute la carte. Cache-toi derrière un bâtiment ou derrière une des souches qui sortent de terre près de toi : le rayon s\'y arrête. Puis il arrache ses racines, bondit et retombe : un séisme dans le grand cercle rouge, plus fort près de lui.', num(fmt(Math.round(dSort * d.regard.x)) + ' dégâts à chaque tour qui te touche, séisme jusqu\'à ' + fmt(Math.round(dSort * d.regard.saut.x)), 'rouge'), 'rouge');
   if (d.lancer) met('lancer', 'sort', 'Lancer de Tronknyde', 'Il attrape un de ses Tronknydes, le hisse au-dessus de sa tête et te le jette dessus : sors du cercle rouge. Le Tronknyde se relève et t\'attaque. S\'il n\'en a pas, il en fait sortir un de terre.', num(fmt(Math.round(dSort * d.lancer.x)) + ' dégâts, sonné 0,5 s', 'rouge'), 'rouge');
   if (d.avale) met('avale', 'renfort', 'Il avale sa troupe', 'Toutes les ' + d.avale.periode + ' s, s\'il a un monstre de sa troupe à portée de bras, il l\'attrape et l\'avale pour se soigner. Abats sa troupe avant qu\'il ne la mange.', num('+' + Math.round(d.avale.soin * 100) + ' % de sa vie', 'vert'), 'vert');
   if (d.rage) met('rage', 'rage', 'Rage', (d.affaibli ? 'Une fois ses ' + d.affaibli.noms + ' abattus' : 'Sous 30 % de vie') + ', ' + (d.fem ? 'elle' : 'il') + ' frappe 1,7 fois plus vite et lance ses sorts plus souvent' + (d.tempete ? ', et déchaîne une tempête de feuilles : des tourbillons s\'abattent sans arrêt, un sur deux sous toi, chacun annoncé par un cercle rouge.' : '.'), d.tempete ? num(fmt(Math.round(dSort * d.tempete.x)) + ' dégâts par tourbillon', 'rouge') + num('toutes les ' + secondes(d.tempete.periode)) : '', 'rouge');
@@ -2410,7 +2410,7 @@ function capTempete(mo, ctx) {
   zoneDanger({ mo, x: q.x, z: q.z, r: TP.R, duree: prepa, effet: (d) => { impactElement('feuille', q.x, q.z, TP.R); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * TP.x)), mo); } });
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= prepa) return true; if ((f += dt) >= 0.12) { f = 0; feuillesVolantes(q.x, y + 3.2 - t * 2.4, q.z, TP.R * 0.5, 3, true); } return false; });
 }
-/* LE REGARD DU CHENE (09/11/2026, « le coup du rayon laser avec son oeil, j'aime beaucoup : qu'il fasse un 360 sur lui-meme et qu'il tire un rayon qui touche
+/* LE REGARD DU CHENE, premiere version (09/11/2026, « le coup du rayon laser avec son oeil, j'aime beaucoup : qu'il fasse un 360 sur lui-meme et qu'il tire un rayon qui touche
    toute la map ; il faut se cacher derriere un batiment, sinon tu perds environ 1 500 PV », Mathieu) : il rugit, son oeil rouge enfle et la lumiere s'y engouffre
    (RG.charge s) ; trois souches jaillissent pres de toi (a l'Arene, il n'y a pas de batiment) ; puis il tourne sur lui-meme en RG.tour s et son rayon balaie toute
    la carte. Le rayon s'arrete sur les batiments de la ferme et sur les souches : derriere, tu es a l'abri. Il part a l'oppose de toi : il te faut un demi-tour
@@ -2444,45 +2444,110 @@ function soucheRegard(c0, x, z) { /* une grosse souche qui jaillit du sol en 0,3
     if (!q.debout) { f += dt; const k = Math.min(1, f / 0.5); g.position.y = y - 2.1 * k * k; if (k >= 1) { jeter(g); c0.souches = (c0.souches || []).filter((x2) => x2 !== q); return true; } }
     return false; });
 }
+/* LE REGARD DU CHENE, refait le 09/11/2026 (« le laser doit partir que de son oeil, la il part de son dos et de son oeil ; il plante ses racines dans le sol,
+   il s'enfonce et il fait deux tours sur lui-meme, assez vite ; une fois fini, il ressort ses racines, fait un saut assez haut, et quand il retombe ca fait
+   comme un petit tremblement de terre : plus t'es proche, plus tu prends ; et le laser, rends-le plus epique, un truc de malade », Mathieu).
+   1. il plante ses racines (RG.plante s) : elles plongent dans le sol autour de lui, il s'enfonce en se vissant et se retrouve dos a toi ;
+   2. son oeil se charge (RG.charge s) : la lumiere s'y engouffre, le sol rougeoie sous lui, tout tremble ;
+   3. il fait RG.tours tours en RG.tour s : le rayon part de son oeil (sa direction est celle de l'oeil, plus jamais du centre du tronc), un coeur blanc,
+      une gaine orange, un halo rouge, des etincelles qui filent, le sol qui brule et noircit, l'ecran qui rougit ; il s'arrete sur les batiments et les
+      souches ; il te touche au plus une fois par tour (RG.x fois ses sorts) ;
+   4. il arrache ses racines, bondit tres haut (SA.H) et retombe : un seisme dans un cercle rouge de SA.R, SA.x fois ses sorts au centre, 20 % au bord.
+   Fiche : regard: { periode, plante, charge, tours, tour, x, souches, saut: { H, monte, chute, R, x } } */
+let VOILE_LASER = null, TEX_LUEUR_SOL = null;
+function texLueurSol() { /* un disque de lumiere : blanc-orange au centre, transparent au bord */
+  if (TEX_LUEUR_SOL) return TEX_LUEUR_SOL; const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,214,140,0.85)'); g.addColorStop(0.35, 'rgba(255,120,40,0.5)'); g.addColorStop(1, 'rgba(255,60,20,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); TEX_LUEUR_SOL = new T.CanvasTexture(cv); return TEX_LUEUR_SOL;
+}
+function voileLaser(op) {
+  if (!VOILE_LASER) { const v = document.createElement('div'); v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;transition:opacity .25s;background:radial-gradient(ellipse at center, rgba(255,90,40,0) 40%, rgba(190,20,10,.55) 100%)'; canvas.insertAdjacentElement('afterend', v); VOILE_LASER = v; }
+  VOILE_LASER.style.opacity = String(op);
+}
 function capRegard(mo, ctx) {
   const RG = mo.d.regard, { pp, sortPret } = ctx; if (!RG || mo.ancre || combat.deroute != null || mo.regard || mo.lance) return;
   if (mo.regardT == null) mo.regardT = RG.periode - 6; /* (le premier, 6 s apres qu'il s'est arrache du sol) */
   if (!sortPret('regardT', RG.periode)) return;
-  mo.regardT = 0; mo.regard = true; const c0 = combat, CH = RG.charge, TOUR = RG.tour, sens = Math.random() < 0.5 ? 1 : -1, an = mo.m.userData.anim;
-  mo.bloqueT = CH + TOUR + 0.35; mo.cd = Math.max(mo.cd || 0, CH + TOUR + 0.5);
-  const a0 = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a0; mo.tourne = 0;
-  if (an && geste(mo, 'rugir', true)) { const a = an.A[an.cour]; if (a) { a.timeScale = a.getClip().duration / CH; mo.geste.d = CH - 0.1; } }
-  mo.bloqueT = CH + TOUR + 0.35; toast(leNom(mo.d) + ' charge son œil rouge : son rayon va balayer toute la carte, cache-toi derrière un bâtiment ou une souche !', 'alerte');
-  for (let i = 0; i < RG.souches; i++) { const a = a0 + [0, 1.1, -1.1][i % 3], d = i ? 3.3 : 2.6, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * d, pp.z + Math.cos(a) * d); soucheRegard(c0, q.x, q.z); } /* (de l'autre cote de toi, par rapport a lui) */
-  const oeil = mo.m.getObjectByName('oeilP10'), E = new T.Vector3(), posOeil = () => (oeil ? oeil.getWorldPosition(E) : E.set(mo.x, mo.m.position.y + mo.haut * 0.6, mo.z));
-  const add = (m) => { m.material.blending = T.AdditiveBlending; sansClic(m); scene.add(m); return m; };
-  const boule = add(new T.Mesh(new T.SphereGeometry(0.28, 14, 10), fxMat('#ff3a22', 0.9))), halo0 = add(new T.Mesh(new T.SphereGeometry(0.5, 14, 10), fxMat('#ff7a4a', 0.35)));
-  const GEO_C = new T.CylinderGeometry(1, 1, 1, 10, 1, true); /* (le rayon : un coeur blanc et un halo rouge, en deux troncons : de l'oeil a hauteur de poitrine, puis a plat jusqu'au bout) */
-  const tr = [0, 1].map(() => ({ c: add(new T.Mesh(GEO_C, fxMat('#fff4ee', 0.95))), h: add(new T.Mesh(GEO_C, fxMat('#ff2a14', 0.5))) }));
-  tr.forEach((x) => { x.c.visible = x.h.visible = false; });
-  const UP = new T.Vector3(0, 1, 0), d3 = new T.Vector3(), poser = (x, A, B) => { d3.subVectors(B, A); const L = d3.length(); if (L < 0.05) { x.c.visible = x.h.visible = false; return; }
-    x.c.visible = x.h.visible = true; [x.c, x.h].forEach((m, i) => { m.position.copy(A).addScaledVector(d3, 0.5); m.quaternion.setFromUnitVectors(UP, d3.normalize()); const r = i ? 0.3 + Math.sin(performance.now() * 0.04) * 0.04 : 0.095; m.scale.set(r, L, r); }); };
-  let t = 0, touche = false, prev = null; const K = new T.Vector3(), P = new T.Vector3();
-  effets.push((dt) => { t += dt; const fin = combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.ancre || t >= CH + TOUR + 0.2;
-    if (fin) { [boule, halo0].forEach((m) => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }); tr.forEach((x) => { [x.c, x.h].forEach((m) => { scene.remove(m); m.material.dispose(); }); }); GEO_C.dispose();
-      if (mo.etat === 'actif') { mo.ry += mo.tourne || 0; } mo.tourne = 0; mo.regard = false; (c0.souches || []).forEach((q) => { q.debout = false; }); return true; }
+  const c0 = combat, SA = RG.saut, NT = RG.tours || 2, ENF = 0.9, APEX = 0.12;
+  const t1 = RG.plante, t2 = t1 + RG.charge, t3 = t2 + RG.tour, t4 = t3 + 0.3, t5 = t4 + 0.3, t6 = t5 + SA.monte + APEX + SA.chute;
+  mo.regardT = 0; mo.regard = true; mo.fixe = true; mo.geste = null; mo.tourne = 0;
+  const sens = Math.random() < 0.5 ? 1 : -1, x0 = mo.x, z0 = mo.z, y0 = mo.m.position.y; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z);
+  mo.bloqueT = t6 + 0.35; mo.cd = Math.max(mo.cd || 0, t6 + 0.5);
+  toast(leNom(mo.d) + ' plante ses racines : son œil va balayer toute la carte, deux fois. Cache-toi derrière un bâtiment ou une souche, puis éloigne-toi avant qu\'il ne retombe !', 'alerte');
+  const a0 = mo.ry; for (let i = 0; i < RG.souches; i++) { const a = a0 + [0, 1.1, -1.1][i % 3], d = i ? 3.3 : 2.6, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * d, pp.z + Math.cos(a) * d); soucheRegard(c0, q.x, q.z); } /* (de l'autre cote de toi, par rapport a lui) */
+  /* ses racines : 7 grosses racines courbes qui plongent dans le sol autour de lui */
+  const racines = new T.Group(); racines.position.set(x0, y0, z0); scene.add(racines); sansClic(racines);
+  const RAC = []; for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.3, r = maille(new T.ConeGeometry(0.36, 2.7, 7), i % 2 ? '#4a3220' : '#5a3e26'), piv = new T.Group(); piv.rotation.y = a; r.position.set(0, 0, 2.3); r.rotation.x = 2.2; piv.add(r); racines.add(piv); RAC.push(r); }
+  RAC.forEach((r) => { r.position.y = 1.7; }); /* (elles plongent a moitie : on les voit tenir le sol pendant qu'il tourne) */
+  /* l'oeil, le rayon et ses effets */
+  const oeil = mo.m.getObjectByName('oeilP10'), E = new T.Vector3(), posOeil = () => (oeil ? oeil.getWorldPosition(E) : E.set(mo.x + Math.sin(mo.ry + mo.tourne) * 1.2, mo.m.position.y + 2.7, mo.z + Math.cos(mo.ry + mo.tourne) * 1.2));
+  const add = (m) => { m.material.blending = T.AdditiveBlending; sansClic(m); m.renderOrder = 3; scene.add(m); return m; };
+  const boule = add(new T.Mesh(new T.SphereGeometry(0.28, 14, 10), fxMat('#ff3a22', 0.95))), halo0 = add(new T.Mesh(new T.SphereGeometry(0.5, 14, 10), fxMat('#ff7a4a', 0.35)));
+  const GEO_C = new T.CylinderGeometry(1, 1, 1, 12, 1, true), GEO_A = new T.RingGeometry(0.75, 1, 32);
+  const couches = [['#fffaf2', 0.98, 0.14], ['#ffb04a', 0.7, 0.36], ['#ff2a14', 0.24, 0.85], ['#ff4a20', 0.08, 1.6]].map(([c, o, r]) => { const m = add(new T.Mesh(GEO_C, fxMat(c, o))); m.visible = false; m.userData.r = r; return m; });
+  const anneaux = [0, 1].map((i) => { const m = add(new T.Mesh(GEO_A, fxMat(i ? '#ff7a3a' : '#ffd0a0', i ? 0.55 : 0.8))); m.visible = false; return m; });
+  const impact = add(new T.Mesh(new T.SphereGeometry(0.5, 12, 8), fxMat('#ffb04a', 0.8))); impact.visible = false;
+  const sol0 = add(new T.Mesh(new T.CircleGeometry(1, 40), new T.MeshBasicMaterial({ map: texLueurSol(), transparent: true, opacity: 0, depthWrite: false }))); sol0.rotation.x = -Math.PI / 2; sol0.position.set(x0, y0 + 0.06, z0); /* (un degrade orange doux : un disque rouge plein se prenait pour une zone de danger) */
+  const UP = new T.Vector3(0, 1, 0), d3 = new T.Vector3(), Q = new T.Quaternion();
+  const poserRayon = (A, B, t) => { d3.subVectors(B, A); const L = d3.length(); if (L < 0.05) return; const dir = d3.clone().normalize(); Q.setFromUnitVectors(UP, dir);
+    couches.forEach((m, i) => { m.visible = true; m.position.copy(A).addScaledVector(d3, 0.5); m.quaternion.copy(Q); const r = m.userData.r * (1 + Math.sin(t * (40 + i * 13)) * (0.06 + i * 0.05)); m.scale.set(r, L, r); });
+    anneaux.forEach((m, i) => { m.visible = true; m.position.copy(A).addScaledVector(dir, 0.35 + i * 0.6); m.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), dir); m.rotateZ(t * (i ? -9 : 7)); const s = (i ? 0.9 : 0.6) + Math.sin(t * 30 + i) * 0.08; m.scale.setScalar(s); }); };
+  const cacher = () => { couches.concat(anneaux, [impact]).forEach((m) => { m.visible = false; }); };
+  const pente = (O, L) => { const s = solA(x0, z0); return Math.max(s + 0.25, O.y - (O.y - s - 0.25) * Math.min(1, L / 22)); }; /* (le rayon descend doucement : a hauteur de poitrine a 8 cases, au ras du sol au loin) */
+  const angApres = (k) => sens * (Math.PI + NT * Math.PI * 2 * (0.25 * k * k * (3 - 2 * k) + 0.75 * k)); /* (il demarre a peine plus doucement, puis file) */
+  let t = 0, prev = null, cum = 0, dernier = -99, fb = 0, fs = 0, sautLance = false, arrache = false, decolle = false; const Pf = new T.Vector3();
+  const finir = () => { [boule, halo0, impact, sol0].concat(couches, anneaux).forEach((m) => { scene.remove(m); if (m.geometry !== GEO_C && m.geometry !== GEO_A) m.geometry.dispose(); m.material.dispose(); }); /* (material.dispose ne jette pas sa texture : la lueur du sol est partagee) */ GEO_C.dispose(); GEO_A.dispose(); jeter(racines);
+    voileLaser(0); if (mo.etat === 'actif') mo.ry += mo.tourne || 0; mo.tourne = 0; mo.hop = 0; mo.regard = false; mo.fixe = false; if (mo.ombreM) { mo.ombreM.position.y = 0.03; mo.ombreM.scale.setScalar(mo.d.ombre); }
+    (c0.souches || []).forEach((q) => { q.debout = false; }); return true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.ancre || t >= t6 + 0.25) return finir();
+    const sc = mo.m.scale.y || 1, ombre = (h) => { if (mo.ombreM) { mo.ombreM.position.y = (0.03 - h) / sc; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - 0.5 * Math.max(0, Math.min(1, h / SA.H)))); } };
     const O = posOeil(); boule.position.copy(O); halo0.position.copy(O);
-    if (t < CH) { const k = t / CH; boule.scale.setScalar(0.6 + 0.8 * k + Math.sin(t * 34) * 0.12 * k); halo0.scale.setScalar(0.5 + 1.0 * k);
-      if (Math.random() < dt * 45) { const a = Math.random() * 6.28, r = 1.3 + Math.random() * 0.8; emettre(FX_VIF, 1, { x: O.x + Math.sin(a) * r, y: O.y + (Math.random() - 0.5) * 1.2, z: O.z + Math.cos(a) * r, r: 0.05, v: [-Math.sin(a) * r * 3, 0, -Math.cos(a) * r * 3], dv: 0.1, vie: [0.28, 0.34], taille: [0.14, 0.02], c: ['#ffe0d4', '#ff3a22'] }); } /* (la lumiere s'engouffre dans l'oeil) */
-      if (t + dt >= CH) { secousse(0.1, TOUR); flashLumiere(O.x, O.y, O.z, '#ff3a22', 4, 10, 0.4); }
+    /* 1. il plante ses racines et s'enfonce en se vissant, dos a toi */
+    if (t < t1) { const k = t / t1, e = k * k * (3 - 2 * k); mo.hop = -ENF * e; ombre(mo.hop); mo.tourne = sens * Math.PI * e;
+      RAC.forEach((r, i) => { const ki = Math.max(0, Math.min(1, (k - i * 0.06) / 0.45)); r.position.y = 1.7 - 1.35 * ki * ki; if (ki > 0.6 && !r.userData.plante) { r.userData.plante = true; const p = r.getWorldPosition(new T.Vector3()); mottes(p.x, solA(p.x, p.z), p.z, 6, 0.9); } });
+      if ((fs += dt) > 0.12) { fs = 0; poussiere(x0, y0, z0, 4, 2.2, '#8a6a48'); secousse(0.08, 0.15); }
+      boule.scale.setScalar(0.4 + 0.4 * k); halo0.scale.setScalar(0.4 + 0.4 * k); return false; }
+    /* 2. son oeil se charge : la lumiere s'y engouffre, le sol rougeoie, tout tremble de plus en plus */
+    if (t < t2) { const k = (t - t1) / (t2 - t1); mo.tourne = sens * Math.PI; boule.scale.setScalar(0.8 + 1.0 * k + Math.sin(t * 34) * 0.15 * k); halo0.scale.setScalar(0.8 + 1.6 * k);
+      sol0.material.opacity = 0.9 * k; sol0.scale.setScalar(1.2 + 2.0 * k);
+      if (Math.random() < dt * 70) { const a = Math.random() * 6.28, r = 1.5 + Math.random() * 1.2; emettre(FX_VIF, 1, { x: O.x + Math.sin(a) * r, y: O.y + (Math.random() - 0.5) * 1.6, z: O.z + Math.cos(a) * r, r: 0.05, v: [-Math.sin(a) * r * 3.2, 0, -Math.cos(a) * r * 3.2], dv: 0.1, vie: [0.28, 0.34], taille: [0.16, 0.02], c: ['#ffe0d4', '#ff3a22'], etire: 0.02 }); }
+      if (Math.random() < dt * 25) { const a = Math.random() * 6.28, r = 1 + Math.random() * 3; emettre(FX_VIF, 1, { x: x0 + Math.sin(a) * r, y: y0 + 0.1, z: z0 + Math.cos(a) * r, r: 0.1, v: [0, 2.2, 0], dv: 0.6, vie: [0.5, 0.9], taille: [0.12, 0.02], c: ['#ffd27a', '#ff6a2a'], grav: -1 }); } /* (des braises montent des fentes du sol) */
+      if ((fs += dt) > 0.15) { fs = 0; secousse(0.05 + 0.12 * k, 0.2); flashLumiere(O.x, O.y, O.z, '#ff3a22', 2 + 3 * k, 8 + 6 * k, 0.2); }
+      if (t + dt >= t2) { secousse(0.35, 0.5); flashLumiere(O.x, O.y, O.z, '#ffffff', 6, 16, 0.35); voileLaser(1); onde(x0, y0, z0, 6, '#ff5a2a', 0.5, 0.8); }
       return false; }
-    const k = Math.min(1, (t - CH) / TOUR), ang = a0 + Math.PI + sens * k * Math.PI * 2; /* (il part a l'oppose de toi : un demi-tour pour te cacher) */
-    mo.tourne = ang - mo.ry; const dx = Math.sin(ang), dz = Math.cos(ang), y0 = mo.m.position.y + 1.1, obs = obstaclesRegard(c0);
-    const Lr = rayonObstacle(mo.x, mo.z, dx, dz, L_REGARD, obs), L1 = Math.min(Lr, 2.4);
-    K.set(mo.x + dx * L1, y0 + (Lr <= 2.4 ? 0.3 : 0), mo.z + dz * L1); P.set(mo.x + dx * Lr, y0, mo.z + dz * Lr); poser(tr[0], O, K); poser(tr[1], K, Lr > 2.4 ? P : K);
-    boule.scale.setScalar(1.25 + Math.sin(t * 40) * 0.12); halo0.scale.setScalar(1.4);
-    if (Lr > 2.6 && Math.random() < dt * 50) { const u = 2.4 + Math.random() * (Lr - 2.4); emettre(FX_VIF, 1, { x: mo.x + dx * u, y: y0 - 0.9, z: mo.z + dz * u, r: 0.15, v: [0, 1.6, 0], dv: 0.8, vie: [0.3, 0.6], taille: [0.12, 0.03], c: ['#ffd27a', '#ff6a2a', '#c8241a'], grav: -1 }); } /* (le sol brule sous le rayon) */
-    if (Lr < L_REGARD - 0.1 && Math.random() < dt * 60) emettre(FX_VIF, 2, { x: P.x, y: P.y, z: P.z, r: 0.1, dv: 3.5, vie: [0.2, 0.4], taille: [0.14, 0.03], c: ['#fff4d0', '#ff8a3a', '#e2413a'], grav: 6, etire: 0.03 }); /* (il bute sur un abri : des etincelles) */
-    if (!touche && prev != null) { const ap = Math.atan2(pp.x - mo.x, pp.z - mo.z), balaye = Math.abs(ang - prev); let e = ((ap - prev) * sens) % (Math.PI * 2); if (e < 0) e += Math.PI * 2;
-      if (e <= balaye) { const dp = Math.hypot(pp.x - mo.x, pp.z - mo.z), abri = rayonObstacle(mo.x, mo.z, Math.sin(ap), Math.cos(ap), dp, obs) < dp - 0.15; touche = true;
-        if (!abri) { blesserPerso(Math.max(1, Math.round(degSort(mo) * RG.x)), mo); flashLumiere(pp.x, pp.y + 1, pp.z, '#ff3a22', 4, 6, 0.3); const q = pp.clone(); q.y += 2; chiffre('Rayon !', q, 'perso'); }
-        else { const q = pp.clone(); q.y += 2; chiffre('À l\'abri !', q, 'or'); } } }
-    prev = ang; return false; });
+    /* 3. deux tours, le rayon part de son oeil */
+    if (t < t3) { const k = (t - t2) / (t3 - t2); mo.tourne = angApres(k); sol0.material.opacity = 0.9; sol0.scale.setScalar(3.2 + Math.sin(t * 20) * 0.25);
+      let dx = O.x - mo.x, dz = O.z - mo.z, l = Math.hypot(dx, dz); if (l < 0.2) { const f = mo.ry + mo.tourne; dx = Math.sin(f); dz = Math.cos(f); l = 1; } dx /= l; dz /= l; /* (la direction de l'oeil, vue d'en haut) */
+      const ang = Math.atan2(dx, dz), obs = obstaclesRegard(c0), Lr = rayonObstacle(O.x, O.z, dx, dz, L_REGARD, obs);
+      Pf.set(O.x + dx * Lr, pente(O, Lr), O.z + dz * Lr); poserRayon(O, Pf, t);
+      boule.scale.setScalar(1.6 + Math.sin(t * 40) * 0.15); halo0.scale.setScalar(2.4 + Math.sin(t * 25) * 0.2);
+      if (Lr < L_REGARD - 0.1) { impact.visible = true; impact.position.copy(Pf); impact.scale.setScalar(1 + Math.sin(t * 50) * 0.25); if (Math.random() < dt * 70) emettre(FX_VIF, 3, { x: Pf.x, y: Pf.y, z: Pf.z, r: 0.1, dv: 4.5, vie: [0.2, 0.45], taille: [0.16, 0.03], c: ['#fff4d0', '#ff8a3a', '#e2413a'], grav: 6, etire: 0.03 }); } else impact.visible = false; /* (il bute sur un abri : une gerbe d'etincelles) */
+      if (Math.random() < dt * 60) { const u = 0.5 + Math.random() * Math.min(Lr, 16); emettre(FX_VIF, 1, { x: O.x + dx * u, y: O.y + (Pf.y - O.y) * u / Lr, z: O.z + dz * u, r: 0.08, v: [dx * 22, 0, dz * 22], dv: 0.3, vie: [0.12, 0.2], taille: [0.2, 0.05], c: ['#ffffff', '#ffb04a'], etire: 0.05 }); } /* (des traits de lumiere filent dans le rayon) */
+      if (Math.random() < dt * 45) { const u = 2.5 + Math.random() * Math.min(Lr - 2.5, 14), gx = O.x + dx * u, gz = O.z + dz * u, gy = solA(gx, gz); if (Lr > 3) { emettre(FX_VIF, 2, { x: gx, y: gy + 0.1, z: gz, r: 0.2, v: [0, 1.8, 0], dv: 0.9, vie: [0.35, 0.7], taille: [0.14, 0.03], c: ['#ffd27a', '#ff6a2a', '#c8241a'], grav: -1 });
+        emettre(FX_FUM, 1, { x: gx, y: gy + 0.04, z: gz, r: 0.1, plat: true, v: [0, 0, 0], vie: [1.6, 2.4], taille: [0.7, 1.1], c: ['#2a160c', '#1a0e08'], a: 0.55, frein: 0 }); } } /* (le sol brule et noircit sous le rayon) */
+      if ((fb += dt) > 0.11) { fb = 0; flashLumiere(O.x, O.y, O.z, '#ff3a22', 5, 14, 0.18); if (impact.visible) flashLumiere(Pf.x, Pf.y + 0.5, Pf.z, '#ffa040', 3, 8, 0.15); secousse(0.1, 0.15); voileLaser(0.75 + Math.sin(t * 18) * 0.25); }
+      if (prev != null) { let d = ang - prev; d = Math.atan2(Math.sin(d), Math.cos(d)); const ap = Math.atan2(pp.x - O.x, pp.z - O.z); let e = (ap - prev) * Math.sign(d || 1); e = ((e % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        if (Math.abs(d) > 1e-4 && e <= Math.abs(d) && cum - dernier > Math.PI) { dernier = cum; const dp = Math.hypot(pp.x - O.x, pp.z - O.z), abri = rayonObstacle(O.x, O.z, Math.sin(ap), Math.cos(ap), dp, obs) < dp - 0.15, q = pp.clone(); q.y += 2;
+          if (!abri) { blesserPerso(Math.max(1, Math.round(degSort(mo) * RG.x)), mo); flashLumiere(pp.x, pp.y + 1, pp.z, '#ff3a22', 5, 7, 0.35); emettre(FX_VIF, 16, { x: pp.x, y: pp.y + 1, z: pp.z, r: 0.2, dv: 4, vie: [0.25, 0.5], taille: [0.16, 0.03], c: ['#fff4d0', '#ff6a2a'], grav: 5, etire: 0.03 }); chiffre('Rayon !', q, 'perso'); }
+          else chiffre('À l\'abri !', q, 'or'); }
+        cum += Math.abs(d); }
+      prev = ang; if (Math.random() < dt * 12) poussiere(x0, y0, z0, 2, 2.4, '#8a6a48'); return false; }
+    /* fin du rayon : il s'eteint en se resserrant */
+    if (t < t4) { const k = (t - t3) / (t4 - t3); cacher(); boule.scale.setScalar(1.6 * (1 - k) + 0.01); halo0.scale.setScalar(2.4 * (1 - k) + 0.01); sol0.material.opacity = 0.9 * (1 - k); voileLaser(0); return false; }
+    boule.visible = halo0.visible = false;
+    /* 4. il arrache ses racines, remonte, bondit tres haut et retombe : le seisme */
+    if (t < t5) { const k = (t - t4) / (t5 - t4); mo.hop = -ENF * (1 - k); ombre(mo.hop);
+      if (!arrache) { arrache = true; secousse(0.2, 0.3); RAC.forEach((r) => { const p = r.getWorldPosition(new T.Vector3()); mottes(p.x, solA(p.x, p.z), p.z, 8, 1.2); }); feuillesVolantes(x0, y0 + 1.5, z0, 2, 10); }
+      RAC.forEach((r) => { r.position.y = 0.35 + 1.6 * k; r.scale.setScalar(Math.max(0.01, 1 - k * k)); }); return false; }
+    racines.visible = false;
+    const tm = t - t5, H = SA.H;
+    if (!sautLance) { sautLance = true; mottes(x0, y0, z0, 18, 2.2); poussiere(x0, y0, z0, 14, 2.6, '#8a6a48'); onde(x0, y0, z0, 4, '#c8e08a', 0.4, 0.7); if (m0Anim(mo)) geste(mo, 'rugir', true);
+      zoneDanger({ mo, x: x0, z: z0, r: SA.R, duree: t6 - t5, effet: (d) => { if (mo.etat !== 'actif') return; const yy = solA(x0, z0);
+        seismeBoss({ d: { ombre: mo.d.ombre }, ry: mo.ry }, x0, yy, z0, Math.min(6, SA.R * 0.6)); impactElement('feuille', x0, z0, SA.R * 0.7); secousse(0.6, 0.9); onde(x0, yy, z0, SA.R * 1.05, '#ffb26a', 0.7, 0.9); onde(x0, yy, z0, SA.R * 0.6, '#7a5a3a', 0.9, 0.7, true);
+        const p2 = paysanMesh.position, dp = Math.hypot(p2.x - x0, p2.z - z0); if (dansDanger(d, p2.x, p2.z) && combat === c0 && !c0.fin) { const kl = 1 - 0.8 * Math.min(1, dp / SA.R); blesserPerso(Math.max(1, Math.round(degSort(mo) * SA.x * kl)), mo); } } }); }
+    if (tm < SA.monte) { const k = tm / SA.monte; mo.hop = H * (1 - (1 - k) * (1 - k)); }
+    else if (tm < SA.monte + APEX) mo.hop = H;
+    else { const k = Math.min(1, (tm - SA.monte - APEX) / SA.chute); mo.hop = H * (1 - k * k); }
+    ombre(mo.hop); return false; });
 }
 /* LE LANCER DE TRONKNYDE (09/11/2026, « il invoque des Tronknydes et il les jette, je trouve ca genial ; il faut des animations rapides, qu'on ait le temps
    d'esquiver mais que ce soit chaud patate », Mathieu) : il attrape un Tronknyde a lui (a moins de LA.R), le hisse au-dessus de sa tete (0,3 s) ; un cercle
@@ -2900,8 +2965,8 @@ function majMonstre(mo, dt, s) {
   ctx.vSort = vSort; ctx.sortPret = sortPret;
   for (const cap of CAPACITES) { cap(mo, ctx); if (!combat || combat.fin) return; } /* (un sort qui acheve le perso clot le combat) */
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
-  if (!mo.d.totem && !mo.d.plante && !mo.ancre) { /* (un totem est plante : rien ne le pousse, 01/11/2026 ; l'Arbre Collant non plus, ni le Chene Mou enracine, 08/11/2026) */
-  combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif') return; const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
+  if (!mo.d.totem && !mo.d.plante && !mo.ancre && !mo.fixe && !mo.attrape) { /* (un totem est plante : rien ne le pousse, 01/11/2026 ; l'Arbre Collant non plus, ni le Chene Mou enracine, 08/11/2026 ; ni pendant son Regard, ni le monstre qu'il tient, 09/11/2026) */
+  combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif' || o.attrape) return; /* (09/11/2026, « quand il lance le Tronknyde, ca le fait reculer, le Tronknyde part a l'autre bout de la map », Mathieu : le Tronknyde tenu au-dessus de sa tete etait a son centre, et l'ecart entre monstres repoussait le Chene de 13 cases en 0,3 s) */ const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
   { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
   if (mo.queueB && m.userData.queue) m.userData.queue.rotation.y += mo.queueB; /* (le coup de queue du Dragon Cochon, 01/11/2026) */
