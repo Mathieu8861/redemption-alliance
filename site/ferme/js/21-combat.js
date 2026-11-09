@@ -343,7 +343,7 @@ const AUTO_BOSS = [1, 1, 1.75, 2.04, 2.49, 1.82, 1.93, 2.04, 2.09, 1], AUTO_DIFF
 /* LES DEMI-BOSS AUSSI (07/11/2026 au soir, « augmente les degats, faut reequilibrer les demi-boss comme ce qu'on a fait pour les boss de base », Mathieu) : leur
    auto (coup ou tir) enlevait environ 1 % des PV d'un Iop de leur niveau (panoplie complete du palier, jet moyen) ; a 4 % comme les boss. Calcule sur leurs vagues :
    Gorgouille 29 aux vagues 75 et 80 (x4,1), Kanniboul Ebil 31 a la 85 (x3,5), Tortue Corail 32 a la 90 (x3,5). Leurs sorts ne bougent pas */
-const AUTO_DEMI = { gorgouille: 5.17, kannibEbil: 5.16, tortueCorail: 4.69, ancestral: 2.5 }; /* (l'Ancestral, 08/11/2026 : 178 par coup) */ /* (puis le meme soir, Mathieu : « Gorgouille a 150 les autos, Kanniboul a 160 et Tortue a 150 ») */
+const AUTO_DEMI = { gorgouille: 5.17, kannibEbil: 5.16, tortueCorail: 4.69, ancestral: 2.5, ancestralMaudit: 2.5 }; /* (l'Ancestral, 08/11/2026 : 178 par coup) */ /* (puis le meme soir, Mathieu : « Gorgouille a 150 les autos, Kanniboul a 160 et Tortue a 150 ») */
 const autoFiche = (d, t, n) => d.boss ? (d.demi ? AUTO_DEMI[t] || 1 : (AUTO_BOSS[palierDe(n)] || 1) * (d.autoX || 1)) : 1; /* (la fiche et la carte de la vague) */
 function autoBoss(mo) {
   if (!combat || combat.genre !== 'vague' || !mo || !mo.d.boss || mo.invoque) return 1;
@@ -446,7 +446,7 @@ function apparaitre(type, pres) {
   if (!pres && d.fouisseur && !combat.raid && !combat.arene) { pres = pointPresBat(); if (pres && !combat.fouisseurVu) { combat.fouisseurVu = true; toast('Un ' + d.nom + ' surgit de terre au pied de tes bâtiments, derrière tes défenses !', 'alerte'); } }
   const L0 = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), L = L0.length && !combat.raid ? bordsDirects(L0) : L0, b = !pres && combat.raid && combat.entrees && combat.entrees.length ? combat.entrees.shift() : L.length ? hasard(L) : null; /* (la simu VSA : chaque voleur par sa case rouge) */
   const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
-  const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
+  const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); if (d.teinte) teinterMonstre(m, d); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
   const zone = new T.Mesh(new T.SphereGeometry(Math.max(0.6, d.ombre * 0.5), 8, 6), CIBLE); zone.position.y = d.ombre * 0.4; zone.userData.monstre = id; m.add(zone); /* plus facile a toucher */
   let x, z, ry, dep;
   if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case ; ou il sort de la friche (les hautes herbes du terrain voisin), d'un bond */
@@ -579,7 +579,7 @@ function zoneDanger(o) {
   const fin = () => { jeter(g); const i = c0.dangers.indexOf(d); if (i >= 0) c0.dangers.splice(i, 1); return true; };
   effets.push((dt) => {
     t += dt; const k = Math.min(1, t / o.duree); if (o.r) plein.scale.setScalar(Math.max(0.01, k)); else plein.scale.y = Math.max(0.01, k); fond.material.opacity = Math.min(0.9, (0.22 + 0.2 * Math.abs(Math.sin(t * 9))) * (o.fort || 1));
-    if (combat !== c0 || c0.fin || (o.mo && o.mo.etat !== 'actif')) return fin();
+    if (combat !== c0 || c0.fin || (o.mo && o.mo.etat === 'mort')) return fin(); /* (09/11/2026 : seulement s'il est mort ; avant, tout etat autre qu'« actif » l'annulait, et l'Ancestral, « enfoui » pendant sa plongee, ne touchait jamais : ni ses racines au depart, ni ses tetes, « il n'a aucune strategie », Mathieu) */
     if (t >= o.duree) { fin(); o.effet(d); return true; }
   });
   return d;
@@ -790,6 +790,7 @@ function blesserPerso(n, mo) {
   if (combat.invincible > 0) { if ((blesserPerso.inv || 0) < performance.now()) { blesserPerso.inv = performance.now() + 400; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Invincible', p, 'perso'); } return; } /* l'ulti du Iop (18-geliere.js) */
   { const e = Math.min(0.5, 0.1 * nbBonus('esquive')); if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n) * multHautes(combat.n, combat.genre)));
+  if (combat.mauditJusque && performance.now() < combat.mauditJusque) n = Math.round(n * (combat.mauditX || 1.25)); /* (maudit par l'Ancestral Maudit, 09/11/2026) */
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
   if (combat.carapace > 0) n = Math.max(1, Math.round(n * 0.6)); /* (la Carapace de corail : -40 %) */
   { const ca = caracs(), r = Math.min(50, coupDeLoin(mo) ? ca.resLoin : ca.resCac); if (r > 0) n = Math.max(1, Math.round(n * (1 - r / 100))); } /* les resistances des panoplies completes : Tortue au corps a corps, Kanniboul a distance (06/11/2026) */
@@ -2012,11 +2013,15 @@ function capRacines(mo, ctx) {
 function capEnfouit(mo, ctx) {
   const { pp, sortPret } = ctx, E = mo.d.enfouit; if (!E || combat.deroute != null || mo.etat !== 'actif') return;
   if (mo.enfouiT == null) mo.enfouiT = E.periode - 0.5; /* (pret presque des son arrivee : ses autres sorts retardaient sa recharge, il restait 7 s colle a toi) */
-  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('enfouiT', E.periode)) return; if (dP > E.R) { mo.enfouiT = E.periode; return; } /* (pret, il attend que tu l'approches) */
+  if (E.maudit && mo.m.visible && Math.random() < ctx.dt * 12) { const a = Math.random() * 6.28, r = 0.8 + Math.random() * 1.6; emettre(FX_VIF, 1, { x: mo.x + Math.sin(a) * r, y: mo.m.position.y + Math.random() * (mo.haut || 4), z: mo.z + Math.cos(a) * r, r: 0.05, v: [0, 1.2, 0], dv: 0.3, vie: [0.6, 1.0], taille: [0.16, 0.02], c: ['#e6c2ff', '#8a3fc8'] }); } /* (l'aura de malefices de l'Ancestral Maudit) */
+  /* (09/11/2026, « l'Ancestral classique est nul, il n'a pas ses sorts ou il s'enterre », Mathieu : il attendait qu'on l'approche a moins de E.R, un Cra qui tire de loin
+     ne le voyait jamais plonger ; et sa recharge s'arretait pendant chacun de ses autres sorts, une plongee toutes les 15 a 20 s. Il plonge maintenant ou que tu sois,
+     E.periode secondes apres etre ressorti, la recharge tourne meme pendant ses autres sorts ; il attend seulement d'avoir fini celui en cours) */
+  mo.enfouiT += ctx.dt * (mo.enrage ? 1.3 : 1); if (mo.enfouiT < E.periode || mo.bloqueT > 0 || mo.vise) return;
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
     if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && solSort(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi ; solSort et non caseIci : a l'Arene, sans cases de ferme, il ne s'enfouissait jamais, ni ses tetes, « il s'est pas enfonce une seule fois », Mathieu, 09/11/2026) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
-  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
+  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = E.tetes ? E.tetes - 1 : vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, /* (E.tetes : l'Ancestral Maudit, ses quatre tetes a chaque fois) */ TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
   if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : il ressort plus loin, et ses racines jaillissent là où il était !', 'alerte'); }
   let t = 0, sous = false;
@@ -2027,10 +2032,30 @@ function capEnfouit(mo, ctx) {
       mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.12, 0.3); mottes(x0, y0, z0, 10, 2); poussiere(x0, y0, z0, 12, 2.2, '#8a6a44');
       zoneDanger({ mo, x: x0, z: z0, r: E.Rr, duree: 0.9, effet: (d) => { const y = solA(x0, z0); impactElement('feuille', x0, z0, E.Rr); mottes(x0, y, z0, 10, E.Rr * 0.8);
         const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.0);
-        if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * E.x)), mo); if (combat && !combat.fin) coller(1.0, 'Enraciné !'); } } }); }
+        if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * E.x)), mo); if (combat && !combat.fin) coller(1.0, 'Enraciné !'); if (E.maudit) maudirPerso(E.maudit.duree, E.maudit.x); } } });
+      if (E.maudit) mareMaudite(mo, x0, z0, E.Rr * 1.15, E.maudit.mare, c0); }
     if (t < TELL + DESC + TRAJ) { const k = (t - TELL - DESC) / TRAJ, x = x0 + (f.x - x0) * k, z = z0 + (f.z - z0) * k, y = solA(x, z); if (Math.random() < dt * 30) { mottes(x, y, z, 2, 0.7); poussiere(x, y, z, 2, 0.6, '#8a6a44'); } return false; } /* (la trainee sous le sol) */
     mo.x = f.x; mo.z = f.z; mo.y = solA(f.x, f.z); mo.dep = { x: f.x, y: mo.y - H, z: f.z, friche: true }; mo.t = 0; mo.etat = 'grimpe'; mo.m.visible = true; mo.hop = 0; /* (il ressort de terre, comme un monstre qui grimpe) */
     mo.ry = Math.atan2(paysanMesh.position.x - f.x, paysanMesh.position.z - f.z); mo.m.rotation.y = mo.ry; secousse(0.1, 0.25); mottes(f.x, mo.y, f.z, 12, 2); impactElement('feuille', f.x, f.z, 2.5); return true; });
+}
+/* LA MALEDICTION DE L'ANCESTRAL MAUDIT (09/11/2026) : maudit, tu prends E.maudit.x fois les degats (blesserPerso) tant que l'anneau violet tourne sous tes pieds */
+function teinterMonstre(m, d) { const L = d.lueur ? new T.Color(d.lueur) : null; m.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour' && o.material) { o.material.color.set(d.teinte); if (L && o.material.emissive) o.material.emissive.copy(L); } }); if (L && m.userData.anim) m.userData.anim.lueur = L; }
+function maudirPerso(duree, x) {
+  const c0 = combat; if (!c0 || c0.fin) return; const deja = performance.now() < (c0.mauditJusque || 0); c0.mauditJusque = Math.max(c0.mauditJusque || 0, performance.now() + duree * 1000); c0.mauditX = x || 1.25;
+  if (deja) return; { const p = paysanMesh.position.clone(); p.y += 2.2; chiffre('Maudit !', p, 'perso'); }
+  if (!c0.mauditVu) { c0.mauditVu = true; toast('Tu es maudit : tu prends ' + Math.round(((x || 1.25) - 1) * 100) + ' % de dégâts en plus tant que l\'anneau violet tourne sous tes pieds. Évite ses racines et ses mares violettes !', 'alerte'); }
+  const r = new T.Mesh(new T.RingGeometry(0.7, 0.95, 32), fxMat('#b05cff', 0.85)); r.rotation.x = -Math.PI / 2; r.material.blending = T.AdditiveBlending; sansClic(r); scene.add(r);
+  effets.push((dt) => { if (combat !== c0 || c0.fin || performance.now() >= c0.mauditJusque) { scene.remove(r); r.geometry.dispose(); r.material.dispose(); return true; }
+    const q = paysanMesh.position; r.position.set(q.x, solA(q.x, q.z) + 0.08, q.z); r.rotation.z += dt * 2;
+    if (Math.random() < dt * 8) emettre(FX_VIF, 1, { x: q.x, y: q.y + 0.3, z: q.z, r: 0.5, v: [0, 1.6, 0], dv: 0.3, vie: [0.5, 0.8], taille: [0.12, 0.02], c: ['#e0b0ff', '#8a3fc8'] }); return false; });
+}
+function mareMaudite(mo, x, z, R, duree, c0) { /* une mare violette la ou il a plonge : dedans, tu es maudit */
+  const y = solA(x, z) + 0.06, disque = new T.Mesh(new T.CircleGeometry(R, 32), fxMat('#7a2fc8', 0)), bord = new T.Mesh(new T.RingGeometry(R - 0.15, R, 40), fxMat('#c88cff', 0));
+  [disque, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); sansClic(m); scene.add(m); });
+  let t = 0; effets.push((dt) => { t += dt; const fin = combat !== c0 || c0.fin || t >= duree, k = Math.min(1, t / 0.4) * Math.max(0, Math.min(1, (duree - t) / 0.6)); disque.material.opacity = 0.35 * k; bord.material.opacity = 0.8 * k;
+    if (fin) { [disque, bord].forEach((m) => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }); return true; }
+    if (Math.random() < dt * 14) { const a = Math.random() * 6.28, r = Math.random() * R; emettre(FX_VIF, 1, { x: x + Math.cos(a) * r, y: y + 0.1, z: z + Math.sin(a) * r, r: 0.05, v: [0, 1.4, 0], dv: 0.3, vie: [0.5, 0.9], taille: [0.14, 0.02], c: ['#e0b0ff', '#7a2fc8'] }); }
+    const p = paysanMesh.position; if (t > 0.4 && Math.hypot(p.x - x, p.z - z) < R) maudirPerso(2.5, mo.d.enfouit.maudit.x); return false; });
 }
 /* SES TETES SURGISSENT (08/11/2026, « quand il est sous terre, ses tetes ressortent, en fonction de ses HP, tous les 25 % : une premiere tete de 100 a 75, une autre
    de 75 a 50, etc., et elles font des choses differentes », Mathieu) : pendant qu'il est sous terre, une tete sort du sol pres de toi, agit, et replonge.
@@ -2094,7 +2119,7 @@ function teteSurgit(mo, i, c0, angle, retard) {
   const pp = paysanMesh.position; let p = null;
   for (let k = 0; k < 12 && !p; k++) { const a = angle != null ? angle + (Math.random() - 0.5) * (k < 6 ? 0.5 : 3) : Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (solSort(q.x, q.z)) p = q; } /* (solSort : l'Arene aussi, 09/11/2026) */
   if (!p) return; const y0 = solA(p.x, p.z); let src = null; mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
-  const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide });
+  const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color(mo.d.lueur || '#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide, color: mo.d.teinte || '#ffffff' }); /* (violettes pour l'Ancestral Maudit) */
   const h = new T.Mesh(T0[i].geo, mat), k = (mo.m.scale.x || 1) * 1.8, taille = 0.75 * k; h.scale.setScalar(k); h.castShadow = true; scene.add(h);
   const info = { m: h, r: taille * 0.55 }; h.visible = false; const f = k / 1.7, cou = couAncestral(f); cou.m.visible = cou.b.visible = false; /* (09/11/2026 : sa branche, voir couAncestral) */
   const MONTE = 0.45, ACTE = 1.6, DESCEND = 0.45; let t = -(retard || 0), sortie = false;
@@ -2110,12 +2135,12 @@ function teteSurgit(mo, i, c0, angle, retard) {
     return false; });
 }
 function actionTete(mo, i, p, c0) {
-  const pp = paysanMesh.position, ds = degSort(mo);
+  const pp = paysanMesh.position, ds = degSort(mo), M = mo.d.enfouit && mo.d.enfouit.maudit, maud = () => { if (M) maudirPerso(M.duree, M.x); }; /* (les tetes de l'Ancestral Maudit maudissent) */
   if (i === 0) { const x = pp.x, z = pp.z; zoneDanger({ mo, x, z, r: 2.2, duree: 1.0, couleur: '#8fd14f', effet: (d) => { const y = solA(x, z); emettre(FX_VIF, 16, { x, y: y + 0.2, z, r: 0.6, dv: 3, haut: true, vie: [0.4, 0.7], taille: [0.2, 0.06], c: ['#d8ff8a', '#8fd14f', '#4f8a2a'], grav: 8 });
-      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.5)), mo); if (combat && !combat.fin) { combat.lenteur = 2.5; const q = p2.clone(); q.y += 2; chiffre('Sève collante !', q, 'perso'); } } } }); }
-  else if (i === 1) zoneDanger({ mo, x: p.x, z: p.z, r: 3.4, duree: 1.0, effet: (d) => { impactElement('feuille', p.x, p.z, 3.4); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(ds * 0.7)), mo); } });
+      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.5)), mo); maud(); if (combat && !combat.fin) { combat.lenteur = 2.5; const q = p2.clone(); q.y += 2; chiffre('Sève collante !', q, 'perso'); } } } }); }
+  else if (i === 1) zoneDanger({ mo, x: p.x, z: p.z, r: 3.4, duree: 1.0, effet: (d) => { impactElement('feuille', p.x, p.z, 3.4); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.7)), mo); maud(); } } });
   else if (i === 2) { const x = pp.x, z = pp.z; zoneDanger({ mo, x, z, r: 1.8, duree: 0.8, effet: (d) => { const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x, cz = pris ? p2.z : z; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.5);
-      if (pris) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); if (combat && !combat.fin) coller(1.5, 'Enraciné !'); } } }); }
+      if (pris) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); maud(); if (combat && !combat.fin) coller(1.5, 'Enraciné !'); } } }); }
   else { secousse(0.25, 0.5); onde(p.x, solA(p.x, p.z), p.z, 5, '#c8ff8a', 0.5, 0.8);
     for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, q = pointValide(p.x, p.z, p.x + Math.sin(a) * 2, p.z + Math.cos(a) * 2); apparaitre('tronknyde', { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; } }
 }

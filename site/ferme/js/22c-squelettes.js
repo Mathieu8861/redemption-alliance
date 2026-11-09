@@ -268,7 +268,7 @@ function majSquelette(mo, v, dt) {
     else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); an.repT = 5 + Math.random() * 5; }
   }
   const rage = mo.enrage && mo.d.auraRage && mo.etat === 'actif'; if (rage) auraRage(mo, an, dt);
-  if (an.eclat > 0 || rage) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16, g = rage ? 0.16 + 0.12 * Math.sin(performance.now() / 150) : 0; an.peau.forEach((m) => { const b0 = m.emissiveMap ? 1 : 0; m.emissive.setRGB(b0 + 0.32 * k + g, b0 + 0.06 * k + g * 0.3, b0 + 0.03 * k + g * 0.04); }); /* (b0 : un modele aux yeux qui luisent garde son image d'emission allumee ; a 0, le premier coup recu eteignait ses yeux pour tout le combat, 08/11/2026) */ /* (un eclat leger : plus fort, une Tortue jaune virait au rose ; enrage, Moon rougeoie en battant) */ }
+  if (an.eclat > 0 || rage) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16, g = rage ? 0.16 + 0.12 * Math.sin(performance.now() / 150) : 0; an.peau.forEach((m) => { const b0 = m.emissiveMap ? 1 : 0, Lu = an.lueur; m.emissive.setRGB((Lu ? Lu.r : b0) + 0.32 * k + g, (Lu ? Lu.g : b0) + 0.06 * k + g * 0.3, (Lu ? Lu.b : b0) + 0.03 * k + g * 0.04); }); /* (an.lueur : la lueur d'un monstre teinte, l'Ancestral Maudit, 09/11/2026) */ /* (b0 : un modele aux yeux qui luisent garde son image d'emission allumee ; a 0, le premier coup recu eteignait ses yeux pour tout le combat, 08/11/2026) */ /* (un eclat leger : plus fort, une Tortue jaune virait au rose ; enrage, Moon rougeoie en battant) */ }
   an.mixer.update(dt);
 }
 /* un coup recu : un eclat rouge, sans s'arreter (26/10/2026, « l'animation de degat pris ralentit le mob, du coup on prend 0 degat », Mathieu :
