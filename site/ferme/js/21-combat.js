@@ -2447,7 +2447,7 @@ function soucheRegard(c0, x, z) { /* une grosse souche qui jaillit du sol en 0,3
 /* LE REGARD DU CHENE, refait le 09/11/2026 (« le laser doit partir que de son oeil, la il part de son dos et de son oeil ; il plante ses racines dans le sol,
    il s'enfonce et il fait deux tours sur lui-meme, assez vite ; une fois fini, il ressort ses racines, fait un saut assez haut, et quand il retombe ca fait
    comme un petit tremblement de terre : plus t'es proche, plus tu prends ; et le laser, rends-le plus epique, un truc de malade », Mathieu).
-   1. il plante ses racines (RG.plante s) : elles plongent dans le sol autour de lui, il s'enfonce en se vissant et se retrouve dos a toi ;
+   1. il plante ses racines (RG.plante s) : ses huit pattes s'enfoncent dans le sol (mo.pattesMode), il s'enfonce en se vissant et se retrouve dos a toi ;
    2. son oeil se charge (RG.charge s) : la lumiere s'y engouffre, le sol rougeoie sous lui, tout tremble ;
    3. il fait RG.tours tours en RG.tour s : le rayon part de son oeil (sa direction est celle de l'oeil, plus jamais du centre du tronc), un coeur blanc,
       une gaine orange, un halo rouge, des etincelles qui filent, le sol qui brule et noircit, l'ecran qui rougit ; il s'arrete sur les batiments et les
@@ -2474,10 +2474,7 @@ function capRegard(mo, ctx) {
   mo.bloqueT = t6 + 0.35; mo.cd = Math.max(mo.cd || 0, t6 + 0.5);
   toast(leNom(mo.d) + ' plante ses racines : son œil va balayer toute la carte, deux fois. Cache-toi derrière un bâtiment ou une souche, puis éloigne-toi avant qu\'il ne retombe !', 'alerte');
   const a0 = mo.ry; for (let i = 0; i < RG.souches; i++) { const a = a0 + [0, 1.1, -1.1][i % 3], d = i ? 3.3 : 2.6, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * d, pp.z + Math.cos(a) * d); soucheRegard(c0, q.x, q.z); } /* (de l'autre cote de toi, par rapport a lui) */
-  /* ses racines : 7 grosses racines courbes qui plongent dans le sol autour de lui */
-  const racines = new T.Group(); racines.position.set(x0, y0, z0); scene.add(racines); sansClic(racines);
-  const RAC = []; for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.3, r = maille(new T.ConeGeometry(0.36, 2.7, 7), i % 2 ? '#4a3220' : '#5a3e26'), piv = new T.Group(); piv.rotation.y = a; r.position.set(0, 0, 2.3); r.rotation.x = 2.2; piv.add(r); racines.add(piv); RAC.push(r); }
-  RAC.forEach((r) => { r.position.y = 1.7; }); /* (elles plongent a moitie : on les voit tenir le sol pendant qu'il tourne) */
+  mo.pattesMode = 'plante'; /* (ce sont ses pattes qui se plantent dans le sol : « t'as pas besoin d'en recreer de nouvelles en forme de pique », Mathieu, 09/11/2026) */
   /* l'oeil, le rayon et ses effets */
   const oeil = mo.m.getObjectByName('oeilP10'), E = new T.Vector3(), posOeil = () => (oeil ? oeil.getWorldPosition(E) : E.set(mo.x + Math.sin(mo.ry + mo.tourne) * 1.2, mo.m.position.y + 2.7, mo.z + Math.cos(mo.ry + mo.tourne) * 1.2));
   const add = (m) => { m.material.blending = T.AdditiveBlending; sansClic(m); m.renderOrder = 3; scene.add(m); return m; };
@@ -2495,7 +2492,7 @@ function capRegard(mo, ctx) {
   const pente = (O, L) => { const s = solA(x0, z0); return Math.max(s + 0.25, O.y - (O.y - s - 0.25) * Math.min(1, L / 22)); }; /* (le rayon descend doucement : a hauteur de poitrine a 8 cases, au ras du sol au loin) */
   const angApres = (k) => sens * (Math.PI + NT * Math.PI * 2 * (0.25 * k * k * (3 - 2 * k) + 0.75 * k)); /* (il demarre a peine plus doucement, puis file) */
   let t = 0, prev = null, cum = 0, dernier = -99, fb = 0, fs = 0, sautLance = false, arrache = false, decolle = false; const Pf = new T.Vector3();
-  const finir = () => { [boule, halo0, impact, sol0].concat(couches, anneaux).forEach((m) => { scene.remove(m); if (m.geometry !== GEO_C && m.geometry !== GEO_A) m.geometry.dispose(); m.material.dispose(); }); /* (material.dispose ne jette pas sa texture : la lueur du sol est partagee) */ GEO_C.dispose(); GEO_A.dispose(); jeter(racines);
+  const finir = () => { [boule, halo0, impact, sol0].concat(couches, anneaux).forEach((m) => { scene.remove(m); if (m.geometry !== GEO_C && m.geometry !== GEO_A) m.geometry.dispose(); m.material.dispose(); }); /* (material.dispose ne jette pas sa texture : la lueur du sol est partagee) */ GEO_C.dispose(); GEO_A.dispose(); mo.pattesMode = null;
     voileLaser(0); if (mo.etat === 'actif') mo.ry += mo.tourne || 0; mo.tourne = 0; mo.hop = 0; mo.regard = false; mo.fixe = false; if (mo.ombreM) { mo.ombreM.position.y = 0.03; mo.ombreM.scale.setScalar(mo.d.ombre); }
     (c0.souches || []).forEach((q) => { q.debout = false; }); return true; };
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.ancre || t >= t6 + 0.25) return finir();
@@ -2503,7 +2500,6 @@ function capRegard(mo, ctx) {
     const O = posOeil(); boule.position.copy(O); halo0.position.copy(O);
     /* 1. il plante ses racines et s'enfonce en se vissant, dos a toi */
     if (t < t1) { const k = t / t1, e = k * k * (3 - 2 * k); mo.hop = -ENF * e; ombre(mo.hop); mo.tourne = sens * Math.PI * e;
-      RAC.forEach((r, i) => { const ki = Math.max(0, Math.min(1, (k - i * 0.06) / 0.45)); r.position.y = 1.7 - 1.35 * ki * ki; if (ki > 0.6 && !r.userData.plante) { r.userData.plante = true; const p = r.getWorldPosition(new T.Vector3()); mottes(p.x, solA(p.x, p.z), p.z, 6, 0.9); } });
       if ((fs += dt) > 0.12) { fs = 0; poussiere(x0, y0, z0, 4, 2.2, '#8a6a48'); secousse(0.08, 0.15); }
       boule.scale.setScalar(0.4 + 0.4 * k); halo0.scale.setScalar(0.4 + 0.4 * k); return false; }
     /* 2. son oeil se charge : la lumiere s'y engouffre, le sol rougeoie, tout tremble de plus en plus */
@@ -2515,7 +2511,7 @@ function capRegard(mo, ctx) {
       if (t + dt >= t2) { secousse(0.35, 0.5); flashLumiere(O.x, O.y, O.z, '#ffffff', 6, 16, 0.35); voileLaser(1); onde(x0, y0, z0, 6, '#ff5a2a', 0.5, 0.8); }
       return false; }
     /* 3. deux tours, le rayon part de son oeil */
-    if (t < t3) { const k = (t - t2) / (t3 - t2); mo.tourne = angApres(k); sol0.material.opacity = 0.9; sol0.scale.setScalar(3.2 + Math.sin(t * 20) * 0.25);
+    if (t < t3) { const k = (t - t2) / (t3 - t2); mo.pattesMode = 'vrille'; mo.tourne = angApres(k); sol0.material.opacity = 0.9; sol0.scale.setScalar(3.2 + Math.sin(t * 20) * 0.25);
       let dx = O.x - mo.x, dz = O.z - mo.z, l = Math.hypot(dx, dz); if (l < 0.2) { const f = mo.ry + mo.tourne; dx = Math.sin(f); dz = Math.cos(f); l = 1; } dx /= l; dz /= l; /* (la direction de l'oeil, vue d'en haut) */
       const ang = Math.atan2(dx, dz), obs = obstaclesRegard(c0), Lr = rayonObstacle(O.x, O.z, dx, dz, L_REGARD, obs);
       Pf.set(O.x + dx * Lr, pente(O, Lr), O.z + dz * Lr); poserRayon(O, Pf, t);
@@ -2536,18 +2532,82 @@ function capRegard(mo, ctx) {
     boule.visible = halo0.visible = false;
     /* 4. il arrache ses racines, remonte, bondit tres haut et retombe : le seisme */
     if (t < t5) { const k = (t - t4) / (t5 - t4); mo.hop = -ENF * (1 - k); ombre(mo.hop);
-      if (!arrache) { arrache = true; secousse(0.2, 0.3); RAC.forEach((r) => { const p = r.getWorldPosition(new T.Vector3()); mottes(p.x, solA(p.x, p.z), p.z, 8, 1.2); }); feuillesVolantes(x0, y0 + 1.5, z0, 2, 10); }
-      RAC.forEach((r) => { r.position.y = 0.35 + 1.6 * k; r.scale.setScalar(Math.max(0.01, 1 - k * k)); }); return false; }
-    racines.visible = false;
+      if (!arrache) { arrache = true; mo.pattesMode = 'arrache'; secousse(0.2, 0.3); if (mo.p8) mo.p8.L.forEach((l) => { if (l.pos) mottes(l.pos.x, solA(l.pos.x, l.pos.z), l.pos.z, 8, 1.2); }); feuillesVolantes(x0, y0 + 1.5, z0, 2, 10); }
+      return false; }
     const tm = t - t5, H = SA.H;
     if (!sautLance) { sautLance = true; mottes(x0, y0, z0, 18, 2.2); poussiere(x0, y0, z0, 14, 2.6, '#8a6a48'); onde(x0, y0, z0, 4, '#c8e08a', 0.4, 0.7); if (m0Anim(mo)) geste(mo, 'rugir', true);
       zoneDanger({ mo, x: x0, z: z0, r: SA.R, duree: t6 - t5, effet: (d) => { if (mo.etat !== 'actif') return; const yy = solA(x0, z0);
         seismeBoss({ d: { ombre: mo.d.ombre }, ry: mo.ry }, x0, yy, z0, Math.min(6, SA.R * 0.6)); impactElement('feuille', x0, z0, SA.R * 0.7); secousse(0.6, 0.9); onde(x0, yy, z0, SA.R * 1.05, '#ffb26a', 0.7, 0.9); onde(x0, yy, z0, SA.R * 0.6, '#7a5a3a', 0.9, 0.7, true);
         const p2 = paysanMesh.position, dp = Math.hypot(p2.x - x0, p2.z - z0); if (dansDanger(d, p2.x, p2.z) && combat === c0 && !c0.fin) { const kl = 1 - 0.8 * Math.min(1, dp / SA.R); blesserPerso(Math.max(1, Math.round(degSort(mo) * SA.x * kl)), mo); } } }); }
+    mo.pattesMode = tm < SA.monte + APEX + SA.chute - 0.03 ? 'saut' : null; /* (repliees en l'air, au sol a l'atterrissage) */
     if (tm < SA.monte) { const k = tm / SA.monte; mo.hop = H * (1 - (1 - k) * (1 - k)); }
     else if (tm < SA.monte + APEX) mo.hop = H;
     else { const k = Math.min(1, (tm - SA.monte - APEX) / SA.chute); mo.hop = H * (1 - k * k); }
     ombre(mo.hop); return false; });
+}
+/* LES HUIT PATTES DU CHENE MOU (09/11/2026, « il devrait avoir 8 pattes, un peu comme une araignee, mais ca reste un arbre ; il reste exactement comme il est,
+   il lui manque juste des pattes devant et derriere, et c'est ces pattes-la qui se plantent dans le sol », Mathieu). Huit pattes de bois faites ici, accrochees
+   au modele : la cuisse monte du bas du tronc, le genou en l'air, le bas de la patte redescend en pointe de racine. Elles marchent pas a pas comme celles
+   d'une araignee : chaque pied reste pose au sol et ne repart que quand le corps s'en est eloigne, quatre pattes a la fois en alternance (les deux groupes
+   ne se levent jamais ensemble). Le genou se place tout seul (deux segments, la loi des cosinus). Ses deux petites racines d'origine sont rentrees sous le tronc.
+   mo.pattesMode : 'plante' (les pieds s'enfoncent dans le sol), 'vrille' (plantees, elles tournent avec lui et labourent), 'saut' (repliees sous lui). */
+const PATTES8 = { hanche: 0.95, hy: 0.75, pied: 3.0, L1: 1.55, L2: 2.25, seuil: 0.75, pas: 0.24, haut: 0.7,
+  angles: [0.44, -0.44, 1.13, -1.13, 2.01, -2.01, 2.7, -2.7], groupes: [0, 1, 1, 0, 0, 1, 1, 0] }; /* (devant, puis vers l'arriere, a gauche et a droite ; les bras sont a +-90 degres) */
+let TEX_ECORCE = null;
+function texEcorce() { /* une ecorce sombre a stries, quelques taches de mousse, comme son tronc */
+  if (TEX_ECORCE) return TEX_ECORCE; const cv = document.createElement('canvas'); cv.width = 64; cv.height = 256; const x = cv.getContext('2d');
+  x.fillStyle = '#3d2b1d'; x.fillRect(0, 0, 64, 256);
+  for (let i = 0; i < 26; i++) { x.fillStyle = i % 3 ? '#2b1d13' : '#56402b'; x.fillRect(Math.random() * 64, Math.random() * 256, 1.5 + Math.random() * 3, 30 + Math.random() * 90); }
+  for (let i = 0; i < 9; i++) { x.fillStyle = i % 2 ? '#5f8a33' : '#7fb04a'; x.beginPath(); x.ellipse(Math.random() * 64, Math.random() * 256, 3 + Math.random() * 6, 5 + Math.random() * 9, 0, 0, Math.PI * 2); x.fill(); }
+  const t = new T.CanvasTexture(cv); t.wrapS = t.wrapT = T.RepeatWrapping; partager(t); TEX_ECORCE = t; return t;
+}
+function geoPatte(L, r0, r1, courbe) { /* un segment le long de +Y, de 0 a L, plus fin au bout, arque vers +X */
+  const g = new T.CylinderGeometry(r1, r0, L, 8, 6, false); g.translate(0, L / 2, 0); const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const k = p.getY(i) / L; p.setX(i, p.getX(i) + Math.sin(Math.PI * k) * courbe * L); }
+  g.computeVertexNormals(); return g;
+}
+function creerPattes8(mo) {
+  const P = PATTES8, M = new T.MeshToonMaterial({ map: texEcorce(), gradientMap: grad, color: '#ffffff' }), g = new T.Group(); g.name = 'pattes8'; mo.m.add(g);
+  const G1 = geoPatte(P.L1, 0.27, 0.19, 0.06), G2 = geoPatte(P.L2, 0.19, 0.035, -0.07), GK = new T.SphereGeometry(0.24, 9, 7);
+  const L = P.angles.map((a, i) => { const haut = maille(G1, M, 0.05), bas = maille(G2, M, 0.05), genou = maille(GK, M, 0.05); [haut, bas, genou].forEach((o) => { sansClic(o); g.add(o); o.traverse((x) => { if (x.isMesh) x.castShadow = true; }); });
+    return { a, grp: P.groupes[i], H: new T.Vector3(Math.sin(a) * P.hanche, P.hy, Math.cos(a) * P.hanche), out: new T.Vector3(Math.sin(a), 0, Math.cos(a)), haut, bas, genou, pos: null, de: new T.Vector3(), vers: new T.Vector3(), t: -1 }; });
+  const os = ['cuisseD', 'cuisseG'].map((n) => mo.m.getObjectByName(n)).filter(Boolean);
+  return { g, L, os, prev: null, mode: null };
+}
+const _p8 = { v: new T.Vector3(), w: new T.Vector3(), K: new T.Vector3(), F: new T.Vector3(), X: new T.Vector3(), Y: new T.Vector3(), Z: new T.Vector3(), M: new T.Matrix4(), inv: new T.Matrix4() };
+function poserSegment(o, A, B, indice, L0) { /* le segment o (fait le long de +Y, arque vers +X) de A a B, arque du cote d'indice */
+  const { X, Y, Z, M } = _p8; Y.subVectors(B, A); const L = Y.length() || 0.001; Y.multiplyScalar(1 / L);
+  X.copy(indice).addScaledVector(Y, -indice.dot(Y)); if (X.lengthSq() < 1e-6) X.set(1, 0, 0); X.normalize(); Z.crossVectors(X, Y);
+  M.makeBasis(X, Y, Z); o.quaternion.setFromRotationMatrix(M); o.position.copy(A); o.scale.set(1, L / L0, 1);
+}
+function majPattes8(mo, dt) {
+  const m = mo.m; if (!m) return; const P = PATTES8, S = mo.p8 || (mo.p8 = creerPattes8(mo));
+  S.os.forEach((o) => o.scale.setScalar(0.001)); /* (ses deux petites racines d'origine rentrent sous le tronc) */
+  const visible = !mo.racine || mo.racine.phase === 'libre'; S.g.visible = visible; if (!visible || mo.etat !== 'actif') { if (!visible) S.L.forEach((l) => { l.pos = null; }); return; }
+  m.updateMatrix(); m.matrixWorld.copy(m.matrix); _p8.inv.copy(m.matrixWorld).invert(); /* (le modele est pose directement dans la scene) */
+  const mode = mo.pattesMode || null, sc = m.scale.x || 1, x0 = m.position.x, z0 = m.position.z;
+  const vit = S.prev ? Math.hypot(x0 - S.prev.x, z0 - S.prev.z) / Math.max(dt, 1e-3) : 0; const dirx = S.prev && vit > 0.05 ? (x0 - S.prev.x) / (vit * Math.max(dt, 1e-3)) : 0, dirz = S.prev && vit > 0.05 ? (z0 - S.prev.z) / (vit * Math.max(dt, 1e-3)) : 0; S.prev = { x: x0, z: z0 };
+  const cible = (l, out) => { const r = mode === 'plante' || mode === 'vrille' ? P.pied * 1.08 : P.pied; out.set(Math.sin(l.a) * r, 0, Math.cos(l.a) * r).applyMatrix4(m.matrixWorld); out.y = solA(out.x, out.z) + (mode === 'plante' || mode === 'vrille' ? -0.75 * sc : 0); return out; };
+  if (mode !== S.mode) { const ancien = S.mode; S.mode = mode; S.L.forEach((l) => { if (l.pos && mode !== 'saut' && ancien !== 'saut') { l.de.copy(l.pos); l.t = 0; cible(l, l.vers); } if (ancien === 'saut' && l.pos) { cible(l, l.pos); l.t = -1; } }); /* (au changement de mode, chaque pied va a sa nouvelle place ; a l'atterrissage, il est deja au sol) */
+    if (ancien === 'saut') S.L.forEach((l) => { poussiere(l.pos.x, l.pos.y, l.pos.z, 3, 0.6, '#8a6a48'); }); }
+  const pasD = P.pas * (vit > 2 ? 0.75 : 1), haut = P.haut * sc; let leveA = 0, leveB = 0; S.L.forEach((l) => { if (l.t >= 0) { if (l.grp) leveB++; else leveA++; } });
+  S.L.forEach((l) => {
+    const T0 = cible(l, _p8.v);
+    if (!l.pos) { l.pos = T0.clone(); l.t = -1; }
+    if (mode === 'saut') { l.pos.set(Math.sin(l.a) * P.pied * 0.62, -0.9, Math.cos(l.a) * P.pied * 0.62).applyMatrix4(m.matrixWorld); l.t = -1; } /* (en l'air, repliees sous lui) */
+    else if (mode === 'vrille') { l.pos.copy(T0); l.t = -1; if (Math.random() < dt * 4) poussiere(T0.x, T0.y + 0.75 * sc, T0.z, 1, 0.5, '#8a6a48'); } /* (plantees, elles tournent avec lui et labourent le sol) */
+    else if (l.t >= 0) { l.t += dt / pasD; const k = Math.min(1, l.t), e = k * k * (3 - 2 * k); if (mode == null) cible(l, l.vers).addScaledVector(_p8.w.set(dirx, 0, dirz), Math.min(0.9, vit * 0.12) * sc);
+      l.pos.lerpVectors(l.de, l.vers, e); l.pos.y += Math.sin(Math.PI * k) * haut * (mode === 'plante' ? 0.6 : 1);
+      if (k >= 1) { l.t = -1; if (mode === 'plante') mottes(l.pos.x, l.pos.y + 0.75 * sc, l.pos.z, 5, 0.8); else if (Math.random() < 0.5) poussiere(l.pos.x, l.pos.y, l.pos.z, 2, 0.4, '#8a6a48'); } }
+    else if (mode == null) { const d = Math.hypot(l.pos.x - T0.x, l.pos.z - T0.z), libre = l.grp ? leveA === 0 : leveB === 0;
+      if ((d > P.seuil * sc && libre) || d > P.seuil * sc * 2.6) { l.de.copy(l.pos); l.vers.copy(T0); l.t = 0; if (l.grp) leveB++; else leveA++; } } /* (il ne repart que quand le corps s'en est eloigne, et jamais en meme temps que l'autre groupe) */
+    /* la patte : la hanche fixe, le pied ou il est, le genou en l'air (loi des cosinus) */
+    const H = l.H, F = _p8.F.copy(l.pos).applyMatrix4(_p8.inv), d3 = _p8.w.subVectors(F, H), D0 = d3.length() || 0.001, D = Math.min(P.L1 + P.L2 - 0.02, Math.max(Math.abs(P.L1 - P.L2) + 0.02, D0)); d3.multiplyScalar(1 / D0);
+    const indice = _p8.Z.copy(l.out).multiplyScalar(0.55).add(_p8.Y.set(0, 1, 0)), perp = indice.clone().addScaledVector(d3, -indice.dot(d3)).normalize();
+    const a = (P.L1 * P.L1 - P.L2 * P.L2 + D * D) / (2 * D), h = Math.sqrt(Math.max(0, P.L1 * P.L1 - a * a)), K = _p8.K.copy(H).addScaledVector(d3, a).addScaledVector(perp, h);
+    const Fv = F.clone(); if (D0 > D) Fv.copy(H).addScaledVector(d3, D0); /* (trop loin : le bas de la patte s'etire un peu plutot que de decrocher) */
+    poserSegment(l.haut, H, K, perp, P.L1); poserSegment(l.bas, K, Fv, l.out, P.L2); l.genou.position.copy(K);
+  });
 }
 /* LE LANCER DE TRONKNYDE (09/11/2026, « il invoque des Tronknydes et il les jette, je trouve ca genial ; il faut des animations rapides, qu'on ait le temps
    d'esquiver mais que ce soit chaud patate », Mathieu) : il attrape un Tronknyde a lui (a moins de LA.R), le hisse au-dessus de sa tete (0,3 s) ; un cercle
@@ -2985,6 +3045,7 @@ function majMonstre(mo, dt, s) {
   const vol = mo.d.vol ? mo.d.vol + (mo.d.battements ? -0.16 * Math.sin(bat) : Math.sin(s * 2.4 + mo.id) * 0.14) : 0; /* (avec des ailes qui battent, le corps monte quand elles s'abaissent) */ if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
   m.rotation.y = mo.ry + (mo.tourne || 0); m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
+  if (mo.d.pattes8) majPattes8(mo, dt); /* (les huit pattes du Chene Mou, 09/11/2026) */
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
     if (!mo.flamme) { mo.flamme = new T.Mesh(new T.ConeGeometry(0.18, 0.5, 6), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.85 })); m.add(mo.flamme); }
