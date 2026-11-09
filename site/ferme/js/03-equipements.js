@@ -214,7 +214,7 @@ function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la 
 const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 2], ['soie_arakne', 1], ['ecorce_abraknyde', 1]], ico: 'carreaux-acier', /* (« 2 Plumes de Tofu, une Soie d'Arakne, une Ecorce, et ca fait 20 carreaux », Mathieu, 09/11/2026 ; 1 Plume et 1 Soie avant) */
   desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' },
   /* (09/11/2026, « les torches : 10k, et il faut ca en ressources pour fabriquer : 4 ressources Abra, 2 couennes de cochon, 1 soie Arakne, 2 eclats du Craqueleur », Mathieu) */
-  { id: 'torche', nom: 'Torche', donne: 1, kamas: 10000, deco: 'torche', il: [['ecorce_abraknyde', 4], ['couenne', 2], ['soie_arakne', 1], ['eclat_craq', 2]], ico: 'deco-torche',
+  { id: 'torche', nom: 'Torche', donne: 1, kamas: 10000, deco: 'torche', il: [['ecorce_abraknyde', 8], ['couenne', 4], ['soie_arakne', 2], ['eclat_craq', 4]], ico: 'deco-torche', /* (« mets le double de ressources », Mathieu, 09/11/2026 : 4, 2, 1 et 2 avant) */
     desc: 'Une décoration à poser sur ta ferme : la nuit, elle éclaire deux fois plus loin qu\'un lampadaire (2,2 cases autour). Elle va dans tes décorations.' }];
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
 /* L'INTERRUPTEUR DES CARREAUX D'ACIER (09/11/2026, « c'est nous qui decidons quand on les equipe ; si ca les tire sur un boss niveau 30, t'as le seum ;
