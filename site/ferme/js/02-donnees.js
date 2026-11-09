@@ -37,7 +37,7 @@ const CULTURES = [
      (04/11/2026, « je voulais que ce soit un truc un peu rare », Mathieu : 3 bananiers lui donnaient 21 fruits, de quoi manger avant chaque vague) : 2 bananiers
      au plus par ferme (max), un régime de 2 que la Faux n'augmente pas ; il se plante aussi dans l'herbe (une parcelle labourée pour lui), et son XP divisée par 2
      (« un peu too much, divise par 2 », 224 au lieu de 447) */
-  { id: 'bananagrume', nom: 'Bananagrume', niv: 80, graine: 2400, temps: 220, rendement: 2, max: 2, prix: 560, xp: 224, couleur: '#f2bc3a', tige: '#4a8240', glb: 'cultures4', arbre: 0.46, mange: { recharge: 0.2, txt: 'tes sorts se rechargent 20 % plus vite' } },
+  { id: 'bananagrume', nom: 'Bananagrume', niv: 80, graine: 2400, temps: 110, /* (110 min, « reduis le temps pour faire pop les Bananagrumes, divise par deux », Mathieu, 09/11/2026 ; 220 avant : le premier regime en 1 h 50, puis un nouveau toutes les 51 min) */ rendement: 2, max: 2, prix: 560, xp: 224, couleur: '#f2bc3a', tige: '#4a8240', glb: 'cultures4', arbre: 0.46, mange: { recharge: 0.2, txt: 'tes sorts se rechargent 20 % plus vite' } },
   { id: 'sorgho', nom: 'Sorgho de Moon', niv: 80, graine: 2250, temps: 160, rendement: 9, prix: 520, xp: 481, couleur: '#a8402a', tige: '#b89a5a', glb: 'cultures4' }
 ];
 /* « reduis de 10 % la rentabilite de toutes les recoltes » (Mathieu, 14/10/2026) : le prix de vente des cultures baisse de 10 %.
