@@ -2554,23 +2554,34 @@ function capRegard(mo, ctx) {
 const PATTES8 = { hanche: 0.95, hy: 0.75, pied: 3.0, L1: 1.55, L2: 2.25, seuil: 0.75, pas: 0.24, haut: 0.7,
   angles: [0.44, -0.44, 1.13, -1.13, 2.01, -2.01, 2.7, -2.7], groupes: [0, 1, 1, 0, 0, 1, 1, 0] }; /* (devant, puis vers l'arriere, a gauche et a droite ; les bras sont a +-90 degres) */
 let TEX_ECORCE = null;
-function texEcorce() { /* une ecorce sombre a stries, quelques taches de mousse, comme son tronc */
-  if (TEX_ECORCE) return TEX_ECORCE; const cv = document.createElement('canvas'); cv.width = 64; cv.height = 256; const x = cv.getContext('2d');
-  x.fillStyle = '#3d2b1d'; x.fillRect(0, 0, 64, 256);
-  for (let i = 0; i < 26; i++) { x.fillStyle = i % 3 ? '#2b1d13' : '#56402b'; x.fillRect(Math.random() * 64, Math.random() * 256, 1.5 + Math.random() * 3, 30 + Math.random() * 90); }
-  for (let i = 0; i < 9; i++) { x.fillStyle = i % 2 ? '#5f8a33' : '#7fb04a'; x.beginPath(); x.ellipse(Math.random() * 64, Math.random() * 256, 3 + Math.random() * 6, 5 + Math.random() * 9, 0, 0, Math.PI * 2); x.fill(); }
+/* (09/11/2026, « des pattes en arbre : tu gardes le style et la forme, mais version bois, plus epaisses ; la ca fait trop arachnoide », Mathieu) : une ecorce
+   brune a sillons, des reliefs, des noeuds et de la mousse ; des segments epais aux sillons tordus et bosseles, un gros noeud au genou, la base evasee contre
+   le tronc, et au bout trois petites racines qui s'etalent sur le sol au lieu d'une pointe */
+function texEcorce() {
+  if (TEX_ECORCE) return TEX_ECORCE; const cv = document.createElement('canvas'); cv.width = 128; cv.height = 256; const x = cv.getContext('2d');
+  x.fillStyle = '#5a412c'; x.fillRect(0, 0, 128, 256);
+  for (let i = 0; i < 40; i++) { x.fillStyle = i % 2 ? '#74563a' : '#4a3424'; x.fillRect(Math.random() * 128, Math.random() * 256, 2 + Math.random() * 4, 10 + Math.random() * 30); } /* (les reliefs de l'ecorce) */
+  for (let i = 0; i < 14; i++) { const cx = (i + Math.random() * 0.5) / 14 * 128; x.strokeStyle = '#2f2117'; x.lineWidth = 2 + Math.random() * 2.5; x.beginPath(); x.moveTo(cx, 0); for (let y = 16; y <= 256; y += 16) x.lineTo(cx + Math.sin(y * 0.05 + i) * 3, y); x.stroke(); } /* (les sillons) */
+  for (let i = 0; i < 6; i++) { x.fillStyle = '#2a1d14'; x.beginPath(); x.ellipse(Math.random() * 128, Math.random() * 256, 4 + Math.random() * 4, 6 + Math.random() * 5, 0, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#7a5a3e'; x.lineWidth = 1.5; x.stroke(); } /* (des noeuds) */
+  for (let i = 0; i < 7; i++) { x.fillStyle = i % 2 ? '#5f8a33' : '#7fb04a'; x.beginPath(); x.ellipse(Math.random() * 128, Math.random() * 256, 5 + Math.random() * 8, 6 + Math.random() * 10, 0, 0, Math.PI * 2); x.fill(); } /* (la mousse) */
   const t = new T.CanvasTexture(cv); t.wrapS = t.wrapT = T.RepeatWrapping; partager(t); TEX_ECORCE = t; return t;
 }
-function geoPatte(L, r0, r1, courbe) { /* un segment le long de +Y, de 0 a L, plus fin au bout, arque vers +X */
-  const g = new T.CylinderGeometry(r1, r0, L, 8, 6, false); g.translate(0, L / 2, 0); const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) { const k = p.getY(i) / L; p.setX(i, p.getX(i) + Math.sin(Math.PI * k) * courbe * L); }
+function geoPatte(L, r0, r1, courbe, graine) { /* un segment de bois le long de +Y, de 0 a L, plus fin au bout, arque vers +X, aux sillons tordus et bosseles */
+  const g = new T.CylinderGeometry(r1, r0, L, 12, 8, false); g.translate(0, L / 2, 0); const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i), k = y / L, x = p.getX(i), z = p.getZ(i), th = Math.atan2(z, x);
+    const f = Math.hypot(x, z) < 1e-5 ? 1 : 1 + 0.1 * Math.sin(5 * th + k * 2.2 + graine) + 0.07 * Math.sin(k * 9 + graine * 2) * Math.sin(2 * th + graine);
+    p.setX(i, x * f + Math.sin(Math.PI * k) * courbe * L); p.setZ(i, z * f); }
   g.computeVertexNormals(); return g;
 }
+function geoNoeud(r, graine) { const g = new T.IcosahedronGeometry(r, 1), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const f = 1 + 0.14 * Math.sin(p.getX(i) * 9 + graine) * Math.cos(p.getZ(i) * 7 + p.getY(i) * 5); p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.9, p.getZ(i) * f); } g.computeVertexNormals(); return g; }
 function creerPattes8(mo) {
   const P = PATTES8, M = new T.MeshToonMaterial({ map: texEcorce(), gradientMap: grad, color: '#ffffff' }), g = new T.Group(); g.name = 'pattes8'; mo.m.add(g);
-  const G1 = geoPatte(P.L1, 0.27, 0.19, 0.06), G2 = geoPatte(P.L2, 0.19, 0.035, -0.07), GK = new T.SphereGeometry(0.24, 9, 7);
-  const L = P.angles.map((a, i) => { const haut = maille(G1, M, 0.05), bas = maille(G2, M, 0.05), genou = maille(GK, M, 0.05); [haut, bas, genou].forEach((o) => { sansClic(o); g.add(o); o.traverse((x) => { if (x.isMesh) x.castShadow = true; }); });
-    return { a, grp: P.groupes[i], H: new T.Vector3(Math.sin(a) * P.hanche, P.hy, Math.cos(a) * P.hanche), out: new T.Vector3(Math.sin(a), 0, Math.cos(a)), haut, bas, genou, pos: null, de: new T.Vector3(), vers: new T.Vector3(), t: -1 }; });
+  const L = P.angles.map((a, i) => { const G1 = geoPatte(P.L1, 0.44, 0.34, 0.06, i * 1.7), G2 = geoPatte(P.L2, 0.34, 0.16, -0.06, i * 2.3 + 1);
+    const haut = maille(G1, M, 0.04), bas = maille(G2, M, 0.04), genou = maille(geoNoeud(0.44, i), M, 0.04), base = maille(geoNoeud(0.52, i + 4), M, 0.04);
+    for (let r = 0; r < 3; r++) { const rad = maille(new T.ConeGeometry(0.1, 0.7, 6), M, 0.04), piv = new T.Group(); piv.position.y = P.L2 - 0.18; piv.rotation.y = r / 3 * Math.PI * 2 + i; rad.rotation.z = -1.25; rad.position.set(0.3, 0, 0); piv.add(rad); bas.add(piv); } /* (trois petites racines qui s'etalent sur le sol au bout de la patte) */
+    const H = new T.Vector3(Math.sin(a) * P.hanche, P.hy, Math.cos(a) * P.hanche); base.position.copy(H); base.scale.set(1, 0.8, 1); /* (la base evasee, contre le tronc) */
+    [haut, bas, genou, base].forEach((o) => { sansClic(o); g.add(o); o.traverse((x) => { if (x.isMesh) x.castShadow = true; }); });
+    return { a, grp: P.groupes[i], H, out: new T.Vector3(Math.sin(a), 0, Math.cos(a)), haut, bas, genou, pos: null, de: new T.Vector3(), vers: new T.Vector3(), t: -1 }; });
   const os = ['cuisseD', 'cuisseG'].map((n) => mo.m.getObjectByName(n)).filter(Boolean);
   return { g, L, os, prev: null, mode: null };
 }
