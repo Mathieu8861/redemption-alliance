@@ -209,9 +209,9 @@ function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la 
 }
 /* L'ATELIER (09/11/2026, « les carreaux d'acier, il faut les fabriquer avec l'atelier ; commence a travailler le design de l'atelier et ce qu'on met dedans »,
    puis « oui, nouveau batiment pour l'atelier », « A j'aime bien », Mathieu) : on y fabrique avec les ressources de la grange. D'abord les carreaux d'acier
-   (2 Plumes de Tofu, 1 Soie d'Arakne et 1 Ecorce d'Abraknyde : 20 carreaux) ; c'est aussi la qu'on les charge dans la baliste d'acier, ou qu'on repasse aux carreaux normaux
+   (5 Plumes de Tofu, 1 Soie d'Arakne et 1 Ecorce d'Abraknyde : 20 carreaux) ; c'est aussi la qu'on les charge dans la baliste d'acier, ou qu'on repasse aux carreaux normaux
    (S_.acierCharge). Charges, la baliste les tire avant ses carreaux normaux (12-perso.js, tirer) */
-const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 2], ['soie_arakne', 1], ['ecorce_abraknyde', 1]], ico: 'carreaux-acier', /* (« 2 Plumes de Tofu, une Soie d'Arakne, une Ecorce, et ca fait 20 carreaux », Mathieu, 09/11/2026 ; 1 Plume et 1 Soie avant) */
+const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 5], ['soie_arakne', 1], ['ecorce_abraknyde', 1]], ico: 'carreaux-acier', /* (5 Plumes de Tofu, « augmente a 5 le nombre de plumes de Tofu qu'il faut », Mathieu, 09/11/2026 ; 2 avant) */ /* (« 2 Plumes de Tofu, une Soie d'Arakne, une Ecorce, et ca fait 20 carreaux », Mathieu, 09/11/2026 ; 1 Plume et 1 Soie avant) */
   desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' },
   /* (09/11/2026, « les torches : 10k, et il faut ca en ressources pour fabriquer : 4 ressources Abra, 2 couennes de cochon, 1 soie Arakne, 2 eclats du Craqueleur », Mathieu) */
   { id: 'torche', nom: 'Torche', donne: 1, kamas: 10000, deco: 'torche', il: [['ecorce_abraknyde', 8], ['couenne', 4], ['soie_arakne', 2], ['eclat_craq', 4]], ico: 'deco-torche', /* (« mets le double de ressources », Mathieu, 09/11/2026 : 4, 2, 1 et 2 avant) */
