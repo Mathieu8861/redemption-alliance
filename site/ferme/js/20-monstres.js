@@ -196,7 +196,7 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
    jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
 const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout entre 60 et 65 % », Mathieu : les vagues 81 a 85 tombent a 62 %) */
 /* les retouches d'une vague precise, apres tout le reste (06/11/2026, vague 82 : « retire 2 Jav pour mettre 2 Tambours », Mathieu) */
-const AJUST_COMPO = {};
+const AJUST_COMPO = { 83: [['kannibJav', -3], ['kannibSarbak', -1], ['kannibArk', -1], ['kannibTam', 4]] }; /* (09/11/2026, « la vague 83 est impossible en Osamodas, tu te fais arracher la tete ; un peu moins de mecs a distance, un peu plus au corps a corps, et retire un monstre », Mathieu : 26 monstres dont 16 a distance, puis 25 dont 11) */
 /* les Tortues melangees (06/11/2026, « pourquoi 11 Tortues Bleues et pas un melange ? », Mathieu) : le complement d'effectif allait tout a la premiere de la liste ;
    la 86 et la 87 recoivent un vrai melange, avec les Jaunes des la 86 (le meme nombre de monstres au contact qu'avant) */
 /* LE REGLAGE COMMUN DU PALIER 10 (08/11/2026, « les mobs sont lents, leurs degats trop faibles, et pour lancer leurs sorts le cast est trop lent », Mathieu,

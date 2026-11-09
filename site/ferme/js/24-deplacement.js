@@ -63,7 +63,7 @@ const PLAN_LISSES = new T.Plane(new T.Vector3(0, 1, 0), -0.3), pointLisses = () 
 function pointDansCase(c, p) { const q = posCase(c), m = S / 2 - 0.35; return { x: Math.max(q.x - m, Math.min(q.x + m, p.x)), z: Math.max(q.z - m, Math.min(q.z + m, p.z)) }; }
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
-const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1) * (combat && combat.lenteur > 0 ? 0.55 : 1); /* (ralenti par une Momie Koalak) */ /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
+const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1) * (meuteActive() ? 1 + MEUTE : 1) * (combat && combat.lenteur > 0 ? 0.55 : 1); /* (la Meute de l'Osamodas, 09/11/2026) */ /* (ralenti par une Momie Koalak) */ /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
 function hauteurSol() { return 0; } /* l'ile ronde est plate */
 function caseSous(x, z) { return caseAt(Math.round(x / S + (COLS - 1) / 2), Math.round(z / S + (ROWS - 1) / 2)); }
 function ligneLibre(a, b) {
