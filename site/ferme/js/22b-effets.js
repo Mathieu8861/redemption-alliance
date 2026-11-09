@@ -367,7 +367,7 @@ const HALO_MEUTE = new T.Mesh(new T.RingGeometry(0.62, 0.78, 40), new T.MeshBasi
 HALO_MEUTE.rotation.x = -Math.PI / 2; HALO_MEUTE.raycast = () => {}; HALO_MEUTE.visible = false; partager(HALO_MEUTE); scene.add(HALO_MEUTE);
 function majMeute(s) {
   const oui = !!(paysanMesh && meuteActive());
-  if (combat && !combat.fin && combat.pvMax && !!combat.meuteVie !== oui) { const k = oui ? 1 + MEUTE : 1 / (1 + MEUTE); combat.meuteVie = oui; combat.pvMax = Math.round(combat.pvMax * k); combat.pv = Math.min(combat.pvMax, Math.round(combat.pv * k)); majCombatHud(); } /* (sa vie monte de 15 % avec la Meute, et redescend d'autant quand son Bouftou s'en va, 09/11/2026) */
+  if (combat && !combat.fin && combat.pvMax && !!combat.meuteVie !== oui) { const k = oui ? 1 + MEUTE : 1 / (1 + MEUTE); combat.meuteVie = oui; combat.pvMax = Math.round(combat.pvMax * k); combat.pv = Math.min(combat.pvMax, Math.round(combat.pv * k)); majCombatHud(); } /* (sa vie monte de MEUTE (10 % depuis le 09/11) avec la Meute, et redescend d'autant quand son Bouftou s'en va, 09/11/2026) */
   HALO_MEUTE.visible = oui; if (!oui) return;
   const p = paysanMesh.position; HALO_MEUTE.position.set(p.x, p.y + 0.06, p.z); HALO_MEUTE.material.opacity = 0.5 + 0.25 * Math.sin(s * 5); HALO_MEUTE.scale.setScalar(1 + 0.06 * Math.sin(s * 5));
   majMeute.t = (majMeute.t || 0) + 1; if (majMeute.t % 4 === 0) emettre(FX_LUM, 1, { x: p.x + Math.sin(s * 5) * 0.7, y: p.y + 0.15, z: p.z + Math.cos(s * 5) * 0.7, v: [0, 1.1, 0], vie: [0.5, 0.8], taille: [0.12, 0.02], c: ['#ffffff', '#b48cff'], a: 0.9 });

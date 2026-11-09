@@ -6,7 +6,7 @@
    20 min ; recette validee par Mathieu (« on valide comme ca, on ajustera par la suite ») : Bleue 4 Cawottes, Fraise 4 Fraises, Citron 3 Fraises et 3 Cawottes,
    Royale 6 Fraises et 4 Cawottes (Menthe 3 Cawottes et 2 Fraises, par defaut). Croiser deux couleurs fait parfois naitre une Gelee Royale. Effets des pots :
    la maquette du plan (Bleue +25 %, Menthe soigne pendant la vague, Citron +25 % et le perso court plus vite, Fraise +40 %, Royale toute la vie). */
-const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 30 * MIN, PROD_ROYALE = 4 * 60 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, ROYALES_MAX = 3, VITESSE_CITRON = 1.3;
+const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 30 * MIN, PROD_ROYALE = 4 * 60 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, ROYALES_MAX = 3, VITESSE_CITRON = 1.15; /* (09/11/2026, « nerf la potion citron a +15 % de vitesse de deplacement », Mathieu : avant +30 %) */
 const GELEES = {
   bleue: { nom: 'Gelée Bleue', pot: 'petit', recette: { cawotte: 4 }, prix: 2000 },
   menthe: { nom: 'Gelée Menthe', pot: 'menthe', recette: { cawotte: 3, fraise: 2 }, prix: 3500 },
@@ -140,7 +140,7 @@ function animerGelees(dt, s) {
    une ligne par Gelee, l'icone dans un anneau a sa couleur qui se remplit jusqu'au pot, le type en pastille, l'origine en petit ; l'etat en une ligne (pot
    dans X, repos), le repas en icones et l'effet du pot en court ; a droite le bouton du moment, et la vente en petit lien dessous */
 const COULEUR_GELEE = { bleue: '#3a95d1', menthe: '#3fbf8a', fraise: '#e2556a', citron: '#f2cf3a', royale: '#b07ad6' };
-const EFFET_POT_COURT = { petit: '+25 % de vie', menthe: '+25 % de vie, soigne en vague', fraise: '+40 % de vie', citron: '+25 % de vie, +30 % de vitesse', royale: 'Toute ta vie, +20 Agilité' };
+const EFFET_POT_COURT = { petit: '+25 % de vie', menthe: '+25 % de vie, soigne en vague', fraise: '+40 % de vie', citron: '+25 % de vie, +' + Math.round((VITESSE_CITRON - 1) * 100) + ' % de vitesse', royale: 'Toute ta vie, +20 Agilité' };
 const repasMini = (r) => Object.entries(r).map(([id, n]) => '<span class="gl-fr"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt="' + nomFruit(id, n) + '"><b>' + n + '</b></span>').join('');
 function ouvrirGeliere() {
   const nv = niv('geliere'); if (!nv) { ouvrirHdv('ameliorer'); return; } S_.gelees = S_.gelees || [];
