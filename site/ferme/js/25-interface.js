@@ -201,7 +201,7 @@ const GAINS = {
 /* « le systeme qu'on a fait a l'HDV dans Achat est super, on pourrait faire le meme principe pour les ameliorations ? » (Mathieu, 13/10/2026) : trois categories
    en haut, chacune avec le nombre d'ameliorations que tu peux acheter tout de suite ; dedans, une phrase sur leur role, ce qui s'achete d'abord, puis ce qui attend
    un niveau, puis ce qui est au maximum */
-const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Ton puits, ton étal de l\'HDV, ton atelier de forgemagie et ton atelier.', ['nivPuits', 'nivEtal', 'forge', 'atelier']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
+const CATS_AMELIO = [['ferme', 'Ferme', 'puits', 'Ton puits, ton étal de l\'HDV et tes ateliers.', ['nivPuits', 'nivEtal', 'forge', 'atelier']], /* (l'atelier de forgemagie ici depuis le 15/10/2026, « pas dans Défense », Mathieu) */
   ['animaux', 'Animaux', 'bouftou', 'Plus de place pour tes Bouftous, tes Tofus et tes Gelées : plus de laine, de plumes et de pots de gelée.', ['enclos', 'voliere', 'geliere']],
   ['defense', 'Défense', 'tour', 'Protéger ta ferme : la grange et son arbalète contre les voleurs de VSA, l\'épouvantail contre les Tofus, le leurre contre les Wabbits, et ton gardien.', ['qg', 'arbalete', 'epouvantail', 'leurre', 'gardien']]];
 /* CONSTRUIRE (22/10/2026) : ce qui se construit une premiere fois ; une fois construit, ca passe dans Ameliorer (les tours restent ici jusqu'a la derniere,
