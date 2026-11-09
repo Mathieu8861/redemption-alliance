@@ -69,7 +69,7 @@ const PANCARTES = [
   /* (le Pépito-tron n'a plus de pancarte : « retire la pancarte », Mathieu, 31/10/2026) */
   ['enclos', () => { const E = casesEnclos(); if (!E.length || !clotureMesh) return null; const P = E.map(posCase), xs = P.map((q) => q.x), zs = P.map((q) => q.z); /* plantee dans l'herbe le long du cote droit, qui regarde aussi
       la camera : le portillon est au milieu du devant, la pancarte le cachait (« enclos a Bouftous devant le portail, pas dingue », Mathieu) */
-    return [clotureMesh, 'Enclos à Bouftous', { h: 0.4, poteau: false, ry: 0, cotes: [1], sol: P[0].y, pied: 0.62, x: Math.max(...xs) + S * 0.62, z: (Math.min(...zs) + Math.max(...zs)) / 2, cellule: E[0].id }]; }],
+    return [clotureMesh, 'Enclos à Boufs', /* (« Enclos a Boufs, Bouf avec un S », Mathieu, 09/11/2026) */ { h: 0.4, poteau: false, ry: 0, cotes: [1], sol: P[0].y, pied: 0.62, x: Math.max(...xs) + S * 0.62, z: (Math.min(...zs) + Math.max(...zs)) / 2, cellule: E[0].id }]; }],
 ];
 let pancartesT = 0;
 function majPancartes(dt) { /* deux fois par seconde : un batiment refait (nouvel objet), un nom change ou la camera tournee d'un quart de tour, la pancarte est reposee */

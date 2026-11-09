@@ -263,7 +263,7 @@ function decosSurCases() { /* les pieces de l'ile (rochers, lanternes) deviennen
 }
 function construireDecos() {
   modeleFoin(); /* (les bottes de foin : faites des objets du jeu, deja la) */
-  lanternesAnim.forEach((A) => { jeter(A.sol); A.halo.material.dispose(); }); fontainesAnim.forEach((A) => jeter(A.g)); /* (leur lueur et leur eau sont faites ici : on les libere, 01/11/2026) */
+  lanternesAnim.forEach((A) => { jeter(A.sol); A.halo.material.dispose(); if (A.anneau) jeter(A.anneau); }); fontainesAnim.forEach((A) => jeter(A.g)); /* (leur lueur et leur eau sont faites ici : on les libere, 01/11/2026) */
   decosMesh.forEach((m) => scene.remove(m)); decosMesh = []; fontainesAnim = []; lanternesAnim = []; pavesMesh.clear(); let manque = false;
   S_.cases.forEach((c) => {
     if (c.type === 'route') { c.type = 'libre'; c.pave = c.deco || 'route_pavee'; if (c.rotD) c.paveRot = c.rotD; delete c.deco; delete c.rotD; } /* (la route posee comme une case, le 01/11 au soir : devenue un sol) */
@@ -284,12 +284,21 @@ function construireDecos() {
 }
 /* LES LANTERNES QUI LUISENT (01/11/2026) : le verre brille deja (matiere lumiere) ; autour, un halo chaud qui palpite comme une flamme, et une flaque de
    lumiere doree au sol (en couleur normale : en lumiere additive, elle virait au blanc sur l'herbe claire). La ferme n'a pas de nuit : elles suivent la vraie heure (plus bas) */
-let lanternesAnim = [], texHalo = null, texFlaqueLumiere = null;
+/* (09/11/2026, « ameliore un peu la luminosite des lampadaires, et qu'on voie aussi, quand on est dans une vague, leur portee d'efficacite », Mathieu) : un halo plus
+   grand et plus vif, une flaque de lumiere plus large ; pendant une vague a la ferme, un cercle pointille dore au sol montre jusqu'ou chaque lampe allumee eclaire
+   (le cercle de lumiere qu'elle perce dans la nuit de la foret, TROU_NUIT, 21-combat.js) */
+let lanternesAnim = [], texHalo = null, texFlaqueLumiere = null, texPortee = null;
+function porteeLanterne(A) { /* le cercle de sa portee, cree a la premiere vague */
+  texPortee = texPortee || texCanvas(256, (g, n) => { const c = n / 2; g.fillStyle = 'rgba(255,214,120,0.07)'; g.beginPath(); g.arc(c, c, c - 4, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(255,224,140,0.95)'; g.lineWidth = 5; g.setLineDash([16, 11]); g.beginPath(); g.arc(c, c, c - 5, 0, Math.PI * 2); g.stroke(); });
+  const R = A.r * TROU_NUIT, m = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshBasicMaterial({ map: texPortee, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.copy(A.sol.position); m.position.y += 0.02; m.renderOrder = 2; m.raycast = () => {}; scene.add(m); decosMesh.push(m); A.anneau = m; return m;
+}
 function lueurLanterne(m, L) {
-  texHalo = texHalo || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,240,190,0.9)'); r.addColorStop(0.35, 'rgba(255,200,90,0.45)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
-  texFlaqueLumiere = texFlaqueLumiere || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,214,120,0.55)'); r.addColorStop(0.6, 'rgba(255,190,90,0.18)'); r.addColorStop(1, 'rgba(255,170,60,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * 1.4); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
-  const sol = new T.Mesh(new T.CircleGeometry(L.r * 1.9, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
+  texHalo = texHalo || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,246,210,1)'); r.addColorStop(0.35, 'rgba(255,206,100,0.6)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  texFlaqueLumiere = texFlaqueLumiere || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,220,130,0.75)'); r.addColorStop(0.6, 'rgba(255,195,95,0.28)'); r.addColorStop(1, 'rgba(255,170,60,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * 1.9); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
+  const sol = new T.Mesh(new T.CircleGeometry(L.r * 2.5, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
   [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); });
   const verres = []; m.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { const M = o.material; if (!M.userData.allume) { M.userData.allume = M.color.clone(); M.userData.eteint = M.color.clone().lerp(new T.Color('#5d6466'), 0.65); } verres.push(M); } }); /* (le verre qui brille : sa couleur allumee et sa couleur eteinte) */
   const a = lanternesAllumees() ? 1 : 0; lanternesAnim.push({ halo, sol, r: L.r, ph: Math.random() * 6, verres, a }); allumerLanterne(lanternesAnim[lanternesAnim.length - 1]);
@@ -311,8 +320,9 @@ function animerLanternes(s) {
   if (!lanternesAnim.length || lieu === 'arene' || lieu === 'ile') return;
   const now = performance.now(); if (!animerLanternes.t || now - animerLanternes.t > 2000) { animerLanternes.t = now; animerLanternes.cible = lanternesAllumees() ? 1 : 0; } /* (l'heure, relue toutes les 2 s) */
   const c = animerLanternes.cible, dt = Math.min(0.1, (now - (animerLanternes.d || now)) / 1000); animerLanternes.d = now;
-  lanternesAnim.forEach((A) => { if (A.a !== c) { A.a = c > A.a ? Math.min(c, A.a + dt) : Math.max(c, A.a - dt); allumerLanterne(A); } if (A.a <= 0.01) return; /* (un fondu d'une seconde) */
-    const f = 1 + 0.07 * Math.sin(s * 7 + A.ph) + 0.04 * Math.sin(s * 13.3 + A.ph * 2); A.halo.scale.setScalar(A.r * 1.4 * f); A.sol.material.opacity = (0.85 + 0.15 * Math.sin(s * 5 + A.ph)) * A.a; });
+  lanternesAnim.forEach((A) => { if (A.a !== c) { A.a = c > A.a ? Math.min(c, A.a + dt) : Math.max(c, A.a - dt); allumerLanterne(A); } if (A.a <= 0.01) { if (A.anneau) A.anneau.visible = false; return; } /* (un fondu d'une seconde) */
+    const vague = !!combat && !combat.fin && lieu === 'ferme'; if (vague || A.anneau) { const an = A.anneau || porteeLanterne(A); an.visible = vague; if (vague) { an.material.opacity = A.a * (0.75 + 0.25 * Math.sin(s * 3 + A.ph)); an.rotation.z = s * 0.15 + A.ph; } } /* (sa portee, pendant une vague) */
+    const f = 1 + 0.07 * Math.sin(s * 7 + A.ph) + 0.04 * Math.sin(s * 13.3 + A.ph * 2); A.halo.scale.setScalar(A.r * 1.9 * f); A.sol.material.opacity = (0.85 + 0.15 * Math.sin(s * 5 + A.ph)) * A.a; });
 }
 /* LES PETITES CLOTURES (01/11/2026, « des petites clotures pour separer nos differents champs », Mathieu ; posees sur les bords des cases, juste decoratives) :
    un morceau par bord, S_.clotures[cle] ; 'x' + i + '_' + j : le bord entre la case (i, j) et sa voisine (i + 1, j) ; 'z' + i + '_' + j : entre (i, j) et

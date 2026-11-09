@@ -1357,11 +1357,11 @@ let NUIT_F = null;
 /* LA LUMIERE DES LANTERNES ET DES TORCHES DANS LA NUIT DE LA FORET (08/11/2026, « il faudra acheter des lampadaires », puis « rajoute aussi des lampes torches »,
    Mathieu, qui garde la nuit telle quelle) : chaque lanterne ou torche allumee perce le voile de la nuit d'une ellipse de lumiere sur l'herbe autour d'elle,
    les monstres y redeviennent visibles. Le voile garde ses calques de masque, un par lumiere, croises (mask-composite: intersect) */
-const TROU_NUIT = 3.5; /* (2,6 puis 3,5 : « les lampadaires n'eclairent pas trop trop en vrai », Mathieu, 08/11/2026) */ /* (le rayon du cercle de lumiere, en lueurs de la lanterne : 1,6 m pour la petite, 2,6 pour celle sur pied, 3,2 pour la torche) */
+const TROU_NUIT = 4.2; /* (3,5 puis 4,2 : « ameliore un peu la luminosite des lampadaires », Mathieu, 09/11/2026) */ /* (2,6 puis 3,5 : « les lampadaires n'eclairent pas trop trop en vrai », Mathieu, 08/11/2026) */ /* (le rayon du cercle de lumiere, en lueurs de la lanterne : 1,6 m pour la petite, 2,6 pour celle sur pied, 3,2 pour la torche) */
 /* (08/11/2026, « il faudrait que les monstres ressortent un tout petit peu plus dans le noir », puis « quoique non, juste la lumiere des lampes les revele un
    peu plus », Mathieu) : un monstre qui passe dans le cercle d'une lanterne ou d'une torche allumee s'eclaire (sa couleur relevee de ECLAT_LUMIERE au centre,
    rien au bord) ; ailleurs, la nuit reste entiere. Chaque monstre touche recoit ses propres matieres (elles etaient partagees entre monstres du meme type) */
-const ECLAT_LUMIERE = 1.1;
+const ECLAT_LUMIERE = 1.4; /* (1,1 puis 1,4, 09/11/2026) */
 function eclaircirMonstres(N, k, rendre) {
   N.mats = N.mats || new Set();
   if (rendre) { N.mats.forEach((M) => { if (M.userData.cNuit) M.color.copy(M.userData.cNuit); }); N.mats.clear(); return; }
