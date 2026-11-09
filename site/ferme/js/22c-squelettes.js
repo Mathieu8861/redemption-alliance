@@ -466,6 +466,9 @@ const RACINE = { a: 0.06, b: 0.5, souffle: 2.4 };
 function majRacine(mo, an, dt) {
   const R = mo.racine, nom = an.F.arrache && an.F.arrache[0], a = nom && an.A[nom]; if (!a) { if (R.phase === 'arrache') libererChene(mo); return; }
   if (an.cour !== nom) jouerAnim(an, nom, 0.15);
+  if (R.phase === 'replonge') { /* (il replonge a 25 % de vie, 09/11/2026 : arrache_1 a l'envers, jusqu'a sa pose enfoncee) */
+    if (!R.rp) { R.rp = true; a.time = a.getClip().duration - 0.05; a.timeScale = -1.6; a.paused = false; a.enabled = true; }
+    if (a.time <= RACINE.b) { R.phase = 'enfonce'; R.rp = false; R.s = RACINE.souffle / 2; } return; }
   if (R.phase === 'enfonce') { R.s = (R.s || 0) + dt; a.timeScale = 0; a.time = RACINE.a + (RACINE.b - RACINE.a) * (0.5 - 0.5 * Math.cos(R.s / RACINE.souffle * Math.PI * 2)); return; }
   if (!R.lance) { R.lance = true; a.timeScale = 1; a.paused = false; }
   if (a.time >= a.getClip().duration - 0.03) libererChene(mo);
