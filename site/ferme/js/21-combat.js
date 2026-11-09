@@ -2012,7 +2012,7 @@ function capEnfouit(mo, ctx) {
   if (mo.enfouiT == null) mo.enfouiT = E.periode - 0.5; /* (pret presque des son arrivee : ses autres sorts retardaient sa recharge, il restait 7 s colle a toi) */
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('enfouiT', E.periode)) return; if (dP > E.R) { mo.enfouiT = E.periode; return; } /* (pret, il attend que tu l'approches) */
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
-    if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && caseIci(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi) */
+    if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && solSort(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi ; solSort et non caseIci : a l'Arene, sans cases de ferme, il ne s'enfouissait jamais, ni ses tetes, « il s'est pas enfonce une seule fois », Mathieu, 09/11/2026) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
   mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
@@ -2090,7 +2090,7 @@ function tetesAncestral() {
 function teteSurgit(mo, i, c0, angle, retard) {
   const T0 = tetesAncestral(); if (!T0 || !T0[i] || !T0[i].tri) return;
   const pp = paysanMesh.position; let p = null;
-  for (let k = 0; k < 12 && !p; k++) { const a = angle != null ? angle + (Math.random() - 0.5) * (k < 6 ? 0.5 : 3) : Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (caseIci(q.x, q.z)) p = q; }
+  for (let k = 0; k < 12 && !p; k++) { const a = angle != null ? angle + (Math.random() - 0.5) * (k < 6 ? 0.5 : 3) : Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (solSort(q.x, q.z)) p = q; } /* (solSort : l'Arene aussi, 09/11/2026) */
   if (!p) return; const y0 = solA(p.x, p.z); let src = null; mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
   const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide });
   const h = new T.Mesh(T0[i].geo, mat), k = (mo.m.scale.x || 1) * 1.8, taille = 0.75 * k; h.scale.setScalar(k); h.castShadow = true; scene.add(h);
