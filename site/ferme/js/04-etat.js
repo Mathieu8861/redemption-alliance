@@ -22,7 +22,10 @@ const seuilAncien = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7)));
 const SEUILS = (() => { const t = []; let cout = 0; for (let n = 0; n <= 101; n++) { if (n <= 10) { t[n] = seuilAncien(n); cout = n ? t[n] - t[n - 1] : 0; } else { cout += Math.round(10 + 0.03324 * Math.pow(1.17, n - 11)); t[n] = t[n - 1] + cout; } } return t; })();
 const seuil = (n) => (n <= 1 ? 0 : SEUILS[Math.min(n, 101)]);
 const NIV_MAX = 90; /* (90 depuis l'ile de Moon, 02/11/2026 ; 80 depuis le palier du Dragon Cochon, 20/10/2026 ; 70 avant) */ /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
-const niveau = (xp) => { let n = 1; while (n < NIV_MAX && xp >= seuil(n + 1)) n++; return n; };
+/* (09/11/2026, « dans l'arene de test, mets les nouveaux items qui vont jusqu'au niveau 100 », Mathieu) NIV_PLAFOND : 100 en mode test ; NIV_ESSAI : le niveau choisi
+   pour un combat de l'Arene dev, rendu a la fin (ni l'un ni l'autre ne s'enregistre) */
+let NIV_PLAFOND = 0, NIV_ESSAI = 0;
+const niveau = (xp) => { const max = Math.max(NIV_MAX, NIV_PLAFOND); let n = 1; while (n < max && xp >= seuil(n + 1)) n++; return n; };
 const capNiveau = () => (S_ && S_.vague ? Math.min(NIV_MAX, 50 + 10 * Math.max(0, Math.floor((S_.vague.num - 41) / 10))) : 50); /* (14/10/2026 : 50, puis 60 apres Crocabulia, 70 apres le Wa Wabbit) */ /* Phase 1 : niveau 50 au plus tant que Crocabulia (vague 50) n'est pas battue ; puis le palier des Wabbits ouvre jusqu'au 60 (plus tard, un palier de 10 niveaux a la fois jusqu'au 100) */
 const texteCap = () => { const v = capNiveau(), P = v / 10 - 1, B = PALIERS_TOUS[P] && MONSTRES[PALIERS_TOUS[P].boss]; return (v === 50 ? 'le maximum de la Phase 1' : 'le maximum pour l\'instant') + (B && v < NIV_MAX ? '. Bats ' + leNom(B, true) + ' (vague ' + v + ') pour monter jusqu\'au niveau ' + Math.min(NIV_MAX, v + 10) : ''); }; /* (le plafond et le boss qui le leve : Crocabulia a la vague 50, le Wa Wabbit a la 60) */
 /* l'XP de la laine et des plumes (35 % de leur valeur) ; le frein d'avance sur les vagues a ete retire le 16/10/2026 (« pas de malus en fonction du niveau ») */

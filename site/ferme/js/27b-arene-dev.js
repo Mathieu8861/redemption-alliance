@@ -31,7 +31,13 @@ function ouvrirAreneDev() {
   ouvrirModale('arene-dev', entete('Arène dev') +
     '<p class="hdv-aide">Réservée à ton compte. Les monstres en avant-première sortent des herses de l\'Arène avec leur propre force. Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ; tu rentres avec ta vie d\'avant.</p>' +
     '<div class="hdv-section">Les groupes</div><div class="puces dev-groupes">' + Object.entries(GROUPES_DEV).map(([id, g]) => '<button class="btn discret" data-dev-groupe="' + id + '">' + g.nom + '</button>').join('') + '<button class="btn discret" data-dev-groupe="vider">Vider</button></div>' +
-    (() => { const L = LEGENDAIRES.find((x) => x.cle === 'moon'), o = L && OBJETS[idLeg(L)]; return o ? '<div class="hdv-section">Essayer une arme légendaire</div><p class="hdv-aide">Le temps du combat seulement : elle remplace ton arme, sort en touche 4, puis tu retrouves la tienne.</p><div class="puces dev-groupes"><button class="btn ' + (E.essai === 'moon' ? 'kamas' : 'discret') + '" data-dev-essai="moon">' + (E.essai === 'moon' ? '✓ ' : '') + o.nom + '</button></div>' : ''; })() + /* (« bouton admin Arene dev », choix de Mathieu, 02/11/2026) */
+    (() => { const T0 = E.tenue = E.tenue || {}, cl = classeDe(), bt = (attr, v, txt, on) => '<button class="btn ' + (on ? 'kamas' : 'discret') + '" data-' + attr + '="' + v + '">' + (on ? '✓ ' : '') + txt + '</button>', st = apercuEssai(E);
+      return '<div class="hdv-section">Un boss seul</div><p class="hdv-aide">Il sort seul des herses, à la force de sa vague (entre parenthèses). Touche-le : le combat part tout de suite, avec l\'équipement et le niveau choisis plus bas.</p><div class="puces dev-groupes">' + bossDev().map(([t, n]) => '<button class="btn discret" data-dev-boss="' + t + '" data-dev-boss-n="' + n + '">' + MONSTRES[t].nom + ' (' + n + ')</button>').join('') + '</div>' +
+        '<div class="hdv-section">Ton équipement pour le combat</div><p class="hdv-aide">Le temps du combat seulement : à la fin, tu retrouves ton vrai équipement et ton vrai niveau. La panoplie entière au jet moyen, avec l\'arme de ta classe de cette panoplie (sinon la tienne).</p><div class="puces dev-groupes">' + bt('dev-pano', '', 'Le tien', !tenueChoisie(E)) + PANOS.filter((x) => !x.cache).map((x) => bt('dev-pano', x.id, x.nom + ' (' + x.niv + ')', T0.pano === x.id)).join('') + '</div>' +
+        '<p class="hdv-aide">Arme légendaire, à la place :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => x.arme && OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]]).map((x) => bt('dev-leg-arme', x.cle, OBJETS['leg-' + x.cle + '-' + ARMES[cl][0]].nom, T0.arme === x.cle)).join('') + '</div>' +
+        '<p class="hdv-aide">Coiffe légendaire, à la place :</p><div class="puces dev-groupes">' + LEGENDAIRES.filter((x) => !x.arme && OBJETS['leg-' + x.cle]).map((x) => bt('dev-leg-coiffe', x.cle, OBJETS['leg-' + x.cle].nom, T0.coiffe === x.cle)).join('') + '</div>' +
+        '<p class="hdv-aide">Ton niveau pour le combat (jusqu\'à 100, celui des pièces du palier 10) :</p><div class="puces dev-groupes">' + bt('dev-niv', '', 'Le tien (' + niveau(S_.xp) + ')', !E.niv) + [90, 92, 94, 96, 98, 100].map((l) => bt('dev-niv', String(l), 'Niveau ' + l, E.niv === l)).join('') + '</div>' +
+        '<div class="hdv-aide"><b>Avec ce choix : ' + fmt(st.pvMax) + ' PV, ' + fmt(st.deg) + ' dégâts par coup</b></div>'; })() +
     "<div class=\"hdv-section\">Les vagues 91 à 100 : la Forêt des Abraknydes</div><p class=\"hdv-aide\">La vraie composition de chaque vague, à sa force (pas encore ouvertes aux joueurs). La 100 : la horde, puis l'Ancestral et sa garde, puis le Chêne Mou.</p><div class=\"puces dev-groupes\">" +
       Array.from({ length: 10 }, (_, i) => 91 + i).map((n) => '<button class="btn ' + (E.vague === n ? 'kamas' : 'discret') + '" data-dev-vague="' + n + '">' + n + '</button>').join('') + '</div>' +
     '<div class="hdv-section">La force des monstres : vague ' + E.n + '</div><div class="act dev-nb"><button class="btn discret" data-dev-n="-1"' + (E.n > 1 ? '' : ' disabled') + '>−</button><b>vague ' + E.n + '</b><button class="btn discret" data-dev-n="1"' + (E.n < 100 ? '' : ' disabled') + '>+</button></div>' +
@@ -43,8 +49,13 @@ function ouvrirAreneDev() {
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague]'); if (!b || !estAdmin()) return;
-  const E = etatDev();
+  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
+  const E = etatDev(), T0 = E.tenue = E.tenue || {};
+  if (b.dataset.devBoss) { E.liste = { [b.dataset.devBoss]: 1 }; E.n = +b.dataset.devBossN; E.vague = null; partirDev(); return; } /* (un boss seul : le combat part tout de suite) */
+  if (b.hasAttribute('data-dev-pano')) { T0.pano = b.dataset.devPano || null; if (!T0.pano) { T0.arme = null; T0.coiffe = null; } ouvrirAreneDev(); return; }
+  if (b.dataset.devLegArme) { T0.arme = T0.arme === b.dataset.devLegArme ? null : b.dataset.devLegArme; ouvrirAreneDev(); return; }
+  if (b.dataset.devLegCoiffe) { T0.coiffe = T0.coiffe === b.dataset.devLegCoiffe ? null : b.dataset.devLegCoiffe; ouvrirAreneDev(); return; }
+  if (b.hasAttribute('data-dev-niv')) { E.niv = b.dataset.devNiv ? +b.dataset.devNiv : null; ouvrirAreneDev(); return; }
   if (b.dataset.devVague) { const n = +b.dataset.devVague; E.vague = n; E.n = n; E.liste = {}; compoVague(n).forEach(([t, k]) => { E.liste[t] = (E.liste[t] || 0) + k; }); } /* (la vague telle qu'elle arrive a la ferme, horde comprise, 08/11/2026) */ /* (une vraie vague du palier 10, 08/11/2026) */
   else if (b.dataset.devPlus || b.dataset.devMoins || b.dataset.devGroupe) E.vague = null;
   if (b.dataset.devVague) { /* deja fait */ } else if (b.dataset.devPlus) E.liste[b.dataset.devPlus] = Math.min(NB_DEV_MAX, (E.liste[b.dataset.devPlus] || 0) + 1);
@@ -56,6 +67,34 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.devVit) { VITESSE_ANIM = Number(b.dataset.devVit); try { localStorage.setItem('ferme-vitesse-anim', String(VITESSE_ANIM)); } catch (err) { /* rien */ } }
   ouvrirAreneDev();
 });
+/* L'EQUIPEMENT ET LE NIVEAU D'ESSAI (09/11/2026, « dans l'arene de test, mets les nouveaux items qui vont jusqu'au niveau 100 ; sinon je ne peux pas savoir si
+   c'est facile ou non avec les stuffs : j'ai que mes stuffs niveau 90, et la difficulte n'est pas la meme qu'avec l'Arakne, l'Ecorce », Mathieu) : une panoplie
+   entiere au jet moyen (et l'arme de ta classe de cette panoplie, sinon la tienne), une arme et une coiffe legendaires, un niveau jusqu'a 100, le temps du
+   combat seulement. S_.essaiTenue garde ton vrai equipement, rendu a la fin (ou au prochain lancement si la page s'est fermee en plein combat). */
+function tenueEssai(E, base) {
+  const T0 = E.tenue || {}, eq = Object.assign({}, base), t = ARMES[classeDe()][0], P = T0.pano && PANOS.find((x) => x.id === T0.pano);
+  if (P) { EMPLACEMENTS.forEach(([e]) => { if (OBJETS[P.id + '-' + e]) eq[e] = P.id + '-' + e; }); if (OBJETS['arme-' + t + '-' + P.id]) eq.arme = 'arme-' + t + '-' + P.id; }
+  if (T0.arme && OBJETS['leg-' + T0.arme + '-' + t]) eq.arme = 'leg-' + T0.arme + '-' + t;
+  if (T0.coiffe && OBJETS['leg-' + T0.coiffe]) eq.coiffe = 'leg-' + T0.coiffe;
+  return eq;
+}
+const tenueChoisie = (E) => { const T0 = E.tenue || {}; return !!(T0.pano || T0.arme || T0.coiffe); };
+function apercuEssai(E) { const e0 = S_.equip, n0 = NIV_ESSAI; S_.equip = tenueEssai(E, (S_.essaiTenue && S_.essaiTenue.avant) || e0); NIV_ESSAI = E.niv || 0; try { return statsPerso(); } finally { S_.equip = e0; NIV_ESSAI = n0; } }
+function appliquerTenueEssai() {
+  const E = etatDev(); NIV_ESSAI = E.niv || 0; if (!tenueChoisie(E)) return;
+  if (!S_.essaiTenue) S_.essaiTenue = { avant: Object.assign({}, S_.equip) };
+  S_.equip = tenueEssai(E, S_.essaiTenue.avant); rafraichirTenue();
+}
+function rendreTenueEssai(sansRhabiller) {
+  NIV_ESSAI = 0; const T0 = S_ && S_.essaiTenue; if (!T0) return;
+  S_.equip = Object.assign({}, T0.avant); delete S_.essaiTenue; if (!sansRhabiller) rafraichirTenue();
+}
+/* UN BOSS SEUL (09/11/2026, « que je puisse aussi choisir un boss pour le tester directement », Mathieu) : chaque boss et demi-boss, a la force de sa vague */
+function bossDev() {
+  const L = []; const voir = (t, n) => { const d = MONSTRES[t]; if (d && (d.boss || d.demi) && !L.some((b) => b[0] === t)) L.push([t, n]); };
+  for (let n = 1; n <= VAGUES_MAX; n++) { compoVague(n).forEach(([t]) => voir(t, n)); (PHASES_BOSS[n] || []).forEach((p) => p.L.forEach(([t]) => voir(t, n))); }
+  return L;
+}
 async function partirDev() {
   if (!estAdmin() || combat) return;
   const E = etatDev(), file = []; Object.entries(E.liste).forEach(([t, k]) => { for (let i = 0; i < k; i++) if (MONSTRES[t]) file.push(t); });
@@ -85,14 +124,14 @@ function rendreArmeEssai(sansRhabiller) {
   if (E.avant) S_.equip.arme = E.avant; else delete S_.equip.arme; delete S_.essaiArme; if (!sansRhabiller) rafraichirTenue();
 }
 function lancerDev(file, n, suite) {
-  essayerArme(etatDev().essai);
+  appliquerTenueEssai(); essayerArme(etatDev().essai); /* (la tenue et le niveau d'essai, puis l'arme a l'essai par-dessus) */
   nouveauCombat('arene', { dev: { t0: performance.now(), liste: file.slice(), suite: (suite || []).map((p) => ({ nom: p.nom, f: p.f.slice() })) }, n, file: file.slice(), total: file.length, attente: 1.5, arene: { k: 1, tenues: 0, kamas: 0, xp: 0, objets: [], runes: {}, niv0: niveau(S_.xp), record: 0, recordSem: 0 }, regen: false, citron: false, agi: false });
   ouvrirHudCombat(); son('vague'); toast('Arène dev, vague ' + n + ' : ' + file.length + ' monstre' + (file.length > 1 ? 's' : '') + ' !', 'alerte'); majCombatHud();
 }
 /* la fin : tous abattus, a terre ou en fuyant ; un bilan, puis relancer ou rentrer */
 function finDev(abandon, gagne) {
   const c = combat; if (!c || c.fin || !c.dev) return;
-  const duree = Math.round((performance.now() - c.dev.t0) / 1000), tues = c.st.tues, total = c.dev.liste.length; nettoyerCombat(c, true); rendreArmeEssai();
+  const duree = Math.round((performance.now() - c.dev.t0) / 1000), tues = c.st.tues, total = c.dev.liste.length; nettoyerCombat(c, true); rendreArmeEssai(); rendreTenueEssai();
   son(gagne ? 'victoire' : abandon ? 'gelee' : 'defaite');
   ouvrirModale('arene-dev-fin', entete(gagne ? 'Tous abattus !' : abandon ? 'Tu quittes l\'Arène dev' : 'À terre dans l\'Arène dev') +
     '<div class="recap-combat">' + ligneRecap('tofu', 'Monstres abattus', tues + ' sur ' + total) + ligneRecap('degats', 'Dégâts infligés', fmt(Math.round(c.st.inflige))) +
@@ -109,7 +148,7 @@ function bandeauTest() {
   let b = document.getElementById('bandeau-test'); if (!b) { b = document.createElement('div'); b.id = 'bandeau-test'; document.body.appendChild(b); }
   b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="relancer">Relancer la vague ' + ETAT_TEST.n + '</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
 }
-function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
+function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; NIV_PLAFOND = 100; /* (jusqu'au niveau 100, pour les pieces du palier 10, 09/11/2026) */ ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
 /* RELANCER UNE VAGUE SANS QUITTER LE MODE TEST (08/11/2026, « je suis a chaque fois oblige de quitter et de relancer pour pouvoir relancer une vague comme je
    veux », Mathieu) : le combat en cours, gagne, perdu ou en plein milieu, s'arrete net, sans bilan ; la vie remonte, et la vague choisie (ou la revanche) repart */
 /* LES BOOSTS DU MODE TEST (08/11/2026, « rajoute-moi la possibilite de mettre les potions / fruits de boost », Mathieu) : les repas (Cawotte, Fraise, Bananagrume,
@@ -172,7 +211,7 @@ document.addEventListener('click', (e) => {
   }
   else if (d.testClasse) changerClasseTest(d.testClasse);
   else if (d.testSexe) { if (combat) return; S_.perso.sexe = d.testSexe; rhabiller(); }
-  else if (d.testNiv) { if (combat) return; S_.xp = seuil(Math.max(1, Math.min(NIV_MAX, niveau(S_.xp) + Number(d.testNiv)))); vieAuMax(); }
+  else if (d.testNiv) { if (combat) return; S_.xp = seuil(Math.max(1, Math.min(Math.max(NIV_MAX, NIV_PLAFOND), niveau(S_.xp) + Number(d.testNiv)))); vieAuMax(); }
   else if (d.testPano != null && b.hasAttribute('data-test-pano')) equiperTest(PANOS.find((x) => x.id === d.testPano) || null);
   else if (d.testLegArme) { if (combat) return; const id = 'leg-' + d.testLegArme + '-' + ARMES[classeDe()][0], o = S_.equip.arme && obj(S_.equip.arme); S_.equip.arme = o && o.leg === d.testLegArme ? null : id; rhabiller(); }
   else if (d.testLegCoiffe) { if (combat) return; const o = S_.equip.coiffe && obj(S_.equip.coiffe); S_.equip.coiffe = o && o.leg === d.testLegCoiffe ? null : 'leg-' + d.testLegCoiffe; rhabiller(); }
