@@ -511,7 +511,7 @@ function majInvoc(dt) {
   iv.cd -= dt; const c = iv.pose > 0 ? null : plusProcheMonstre(iv); let v = 0;
   if (c) {
     const d = Math.hypot(c.x - iv.x, c.z - iv.z);
-    if (d > 1.0) { const w = prochainPas(iv, c.x, c.z, dt), dx = w.x - iv.x, dz = w.z - iv.z, L = Math.hypot(dx, dz) || 1; v = VITESSE_BOUFTOU; iv.x += dx / L * Math.min(L, v * dt); iv.z += dz / L * Math.min(L, v * dt); tourner(iv, Math.atan2(dx, dz), dt); }
+    if (d > 1.0) { const w = ligneLibre({ x: iv.x, z: iv.z }, { x: c.x, z: c.z }) ? { x: c.x, z: c.z } : prochainPas(iv, c.x, c.z, dt), /* (en ligne droite quand rien ne bloque, 09/11/2026 : il passait par le centre des cases) */ dx = w.x - iv.x, dz = w.z - iv.z, L = Math.hypot(dx, dz) || 1; v = VITESSE_BOUFTOU; iv.x += dx / L * Math.min(L, v * dt); iv.z += dz / L * Math.min(L, v * dt); tourner(iv, Math.atan2(dx, dz), dt); }
     else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = cadenceBouftou() / (iv.galva > 0 ? 1.3 : 1); iv.frappe = 0.25; blesser(c, Math.round(degBouftou(statsPerso().niveau) * (iv.galva > 0 ? 1.5 : 1))); if (iv.galva > 0) { onde(c.x, c.m.position.y + 0.05, c.z, 0.9, '#9fe4ff', 0.25, 0.7); emettre(FX_VIF, 10, { x: c.x, y: c.m.position.y + 0.5, z: c.z, r: 0.3, dv: 2.6, haut: true, vie: [0.3, 0.5], taille: [0.13, 0.04], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], grav: 7 }); } } } /* (la Galvanisation : +30 % de vitesse, +50 % de degats, chaque coup eclabousse) */
   }
   iv.pas += v * dt * 6; let elan = 0; if (iv.frappe > 0) { iv.frappe -= dt; elan = Math.sin((1 - Math.max(0, iv.frappe) / 0.25) * Math.PI) * 0.4; }
