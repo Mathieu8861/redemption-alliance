@@ -137,7 +137,7 @@ function marcher(dt, s) {
   }
   const e = chemin[0], px = paysanMesh.position.x, pz = paysanMesh.position.z, dx = e.x - px, dz = e.z - pz, d = Math.hypot(dx, dz);
   let reste = d; for (let k = 1; k < chemin.length; k++) reste += Math.hypot(chemin[k].x - chemin[k - 1].x, chemin[k].z - chemin[k - 1].z);
-  u.marche = Math.min(1, (u.marche || 0) + dt * 3); /* il accelere au depart et ralentit a l'arrivee */
+  u.marche = Math.min(1, (u.marche || 0) + dt * 12); /* il accelere au depart (en 0,08 s : « je suis plus lent au debut de mon deplacement qu'a la fin, comme un chargement, c'est perturbant », Mathieu, 09/11/2026 ; 0,33 s avant, a chaque reprise apres un tir) et ralentit a l'arrivee */
   const v = vitesse() * (combat && combat.agrippe > 0 ? 0.5 : 1) * u.marche * Math.max(0.35, Math.min(1, reste / 0.7)) * dt;
   if (d > 0.001) u.angle = Math.atan2(dx, dz);
   let nx, nz;

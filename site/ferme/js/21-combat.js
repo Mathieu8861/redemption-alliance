@@ -110,6 +110,28 @@ function prochainPas(e, x, z, dt) {
   if (e.route) { const k = e.route.indexOf(a), nx = e.route[k >= 0 ? k + 1 : 1]; if (nx) { const q = posCase(nx); return { x: q.x, z: q.z }; } }
   return { x, z };
 }
+/* LE TRAJET VERS LA CIBLE (09/11/2026, « quand on selectionne un monstre, parfois il prend un chemin qui nous met grave en danger et qui n'est pas logique »,
+   Mathieu) : en ligne droite quand rien ne bloque (avant, il passait par le centre de chaque case) ; loin de sa cible, il evite les zones rouges ou il n'est pas
+   deja et les autres monstres : l'axe direct d'abord, puis des ecarts de 20 en 20 degres de chaque cote ; par les cases seulement si un batiment barre la route */
+const DEVIATIONS = [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05];
+function pasVersCible(e, c, dt) {
+  const dx = c.x - e.x, dz = c.z - e.z, D = Math.hypot(dx, dz);
+  if (!ligneLibre({ x: e.x, z: e.z }, { x: c.x, z: c.z })) return prochainPas(e, c.x, c.z, dt);
+  if (D < 3) return { x: c.x, z: c.z }; /* (tout pres : droit sur elle, meme au milieu de sa troupe) */
+  const Z = (combat.dangers || []).filter((d) => !dansDanger(d, e.x, e.z)), autres = combat.monstres.filter((o) => o !== c && o.etat === 'actif');
+  const risque = (x, z) => Z.some((d) => dansDanger(d, x, z)) || autres.some((o) => Math.hypot(o.x - x, o.z - z) < 0.9 + (o.d.ombre || 1) * 0.35);
+  const a0 = Math.atan2(dx, dz), L = Math.min(D, 1.6);
+  for (const da of DEVIATIONS) { const a = a0 + da, x = e.x + Math.sin(a) * L, z = e.z + Math.cos(a) * L;
+    if (risque(x, z) || risque(e.x + Math.sin(a) * L * 0.5, e.z + Math.cos(a) * L * 0.5) || !ligneLibre({ x: e.x, z: e.z }, { x, z })) continue;
+    return da === 0 ? { x: c.x, z: c.z } : { x, z }; }
+  return { x: c.x, z: c.z };
+}
+/* LES COUPS EN ROUTE (09/11/2026, « tres souvent mes auto-attaques partent alors que ma fleche precedente va le tuer, ca me fait perdre mon timing », Mathieu) :
+   chaque coup lance note ses degats prevus sur sa cible jusqu'a l'impact (2,5 s au plus) ; une cible deja condamnee par ce qui est en vol est laissee,
+   le perso passe a la suivante. Estimation prudente (90 %, les reductions du monstre comprises) : au pire il retire sur un monstre qui a survecu */
+const degatsPrevus = (mo, n) => n * (mo.d.armure ? 1 - mo.d.armure : 1) * (mo.bouclier > 0 ? 0.6 : 1) * (mo.d.boss && mo.protege > 0 ? 1 - mo.protege : 1) * (mo.carapace > 0 ? 0.2 : 1) * (mo.pierre > 0 ? 0.5 : 1) * 0.9;
+const prevuSur = (o) => { const L = o.prevus; if (!L || !L.length) return 0; const t = performance.now(); let n = 0; for (let i = L.length - 1; i >= 0; i--) { if (L[i].fin < t) L.splice(i, 1); else n += L[i].n; } return n; };
+const condamne = (o) => !!o.prevus && o.prevus.length > 0 && prevuSur(o) >= o.pv;
 function monstreAViser(p, max) { /* les tours et l'arbalete : d'abord un monstre qui s'en prend a un batiment (un casseur que le perso n'est pas venu chercher), sinon le plus proche */
   let best = null, bd = max || Infinity, cas = null, bc = max || Infinity;
   if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } if (o.casseur && !o.aggro && o.bat && d < bc) { bc = d; cas = o; } });
@@ -3166,9 +3188,12 @@ function majPerso(dt) {
   }
   let c = combat.cible; if (!c || c.etat !== 'actif') c = combat.cible = plusProcheMonstre(paysanMesh.position);
   if (!c) { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; }
+  if (condamne(c)) { /* ce qui est en vol va l'achever : le suivant, sans attendre (en tenant la position, seulement un monstre a portee) */
+    const p0 = paysanMesh.position, alt = combat.monstres.filter((o) => o.etat === 'actif' && o !== c && !condamne(o) && (!combat.tenir || Math.hypot(o.x - p0.x, o.z - p0.z) <= porteeSur(o, st))).sort((a, b) => Math.hypot(a.x - p0.x, a.z - p0.z) - Math.hypot(b.x - p0.x, b.z - p0.z))[0];
+    if (!alt) { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; } c = alt; }
   const pp = paysanMesh.position, d = Math.hypot(c.x - pp.x, c.z - pp.z);
   if (d > porteeSur(c, st)) {
-    const h = combat.heros; h.x = pp.x; h.z = pp.z; const w = prochainPas(h, c.x, c.z, dt);
+    const h = combat.heros; h.x = pp.x; h.z = pp.z; const w = pasVersCible(h, c, dt);
     chemin = [{ c: caseIci(w.x, w.z) || u.cellule, x: w.x, z: w.z }]; arrivee = null; combat.poursuite = true; return;
   }
   if (combat.poursuite) { chemin = []; combat.poursuite = false; }
@@ -3177,7 +3202,8 @@ function majPerso(dt) {
     const rage = legPorte('bworker') && combat.pv < combat.pvMax * 0.3; if (rage && !combat.rage) { combat.rage = true; toast('Casque du Bworker : tu entres en rage !', 'alerte'); pouf(pp.x, pp.y, pp.z, 2.5, '#e2413a'); }
     combat.cdAttaque = st.cadence * (rage ? 0.7 : 1); const cible = c; son(classe === 'cra' ? 'arc' : classe === 'osa' ? 'fouet' : 'epee'); /* (l'arme de la classe : l'arc du Cra, le fouet de l'Osamodas, l'epee du Iop) */
     combat.tirs = (combat.tirs || 0) + 1; const feu = classe === 'cra' && combat.tirs % TIR_FEU === 0; /* une fleche de feu toutes les 10 */
-    u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => { const p = new T.Vector3(cible.x, cible.m.position.y + cible.haut * 0.5, cible.z); effetFrappe(classe, p, () => { const epines = cible.carapace > 0 && classe !== 'cra', bk = classe === 'iop' && berserkerIop() ? BERSERKER_IOP : 1; blesser(cible, Math.round((feu ? st.deg * 2 : st.deg) * bk), feu); if (classe === 'iop') coupIop(cible, st, bk); /* (bk : le Berserker du Iop, sur ses coups d'epee seulement) */ if (epines && combat && !combat.fin) { blesserPerso(Math.max(1, Math.round(st.deg * 0.2 / multDegats(combat.n))), cible); epinesTouche(cible); } if (!combat || combat.fin) return; if (feu && cible.etat === 'actif') { cible.brule = 3; cible.bruleDeg = Math.max(1, Math.round(st.deg * 0.25)); pouf(cible.x, cible.m.position.y, cible.z, 2, '#ff7a1e'); } }, feu); } };
+    const prevu = { n: degatsPrevus(cible, feu ? st.deg * 2 : st.deg), fin: performance.now() + 2500 }; (cible.prevus = cible.prevus || []).push(prevu); /* (le coup en route, 09/11/2026) */
+    u.attaque = { t: 0, classe, base: u.angle, tour: false, surFrappe: () => { const p = new T.Vector3(cible.x, cible.m.position.y + cible.haut * 0.5, cible.z); effetFrappe(classe, p, () => { const ip = (cible.prevus || []).indexOf(prevu); if (ip >= 0) cible.prevus.splice(ip, 1); const epines = cible.carapace > 0 && classe !== 'cra', bk = classe === 'iop' && berserkerIop() ? BERSERKER_IOP : 1; blesser(cible, Math.round((feu ? st.deg * 2 : st.deg) * bk), feu); if (classe === 'iop') coupIop(cible, st, bk); /* (bk : le Berserker du Iop, sur ses coups d'epee seulement) */ if (epines && combat && !combat.fin) { blesserPerso(Math.max(1, Math.round(st.deg * 0.2 / multDegats(combat.n))), cible); epinesTouche(cible); } if (!combat || combat.fin) return; if (feu && cible.etat === 'actif') { cible.brule = 3; cible.bruleDeg = Math.max(1, Math.round(st.deg * 0.25)); pouf(cible.x, cible.m.position.y, cible.z, 2, '#ff7a1e'); } }, feu); } };
   }
 }
 function coupIop(cible, st, bk) { /* le balayage du Iop (18-geliere.js) ; bk : le Berserker, x2 sous 50 % de vie */
