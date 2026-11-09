@@ -201,12 +201,42 @@ function donnerObjet(id, plancher) { const k = creerObjet(id, plancher); S_.sac[
    la rune parfaite met la piece au jet maximum. Elles se gagnent dans l'Arene (blender/runes.py pour les icones). */
 const RUNES = { forge: { nom: 'Rune de forgemagie', court: 'Runes de forgemagie', gain: 0.2, bref: '+20 % de jet' }, parfaite: { nom: 'Rune parfaite', court: 'Runes parfaites', gain: 1, bref: 'jet maximum' } };
 const runes = () => (S_.runes = S_.runes || { forge: 0, parfaite: 0 });
-function caseLibreForge() { /* une case d'herbe libre, la plus proche de la grange, qui ne coupe aucun acces */
+function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la grange, qui ne coupe aucun acces (type : 'forge' ou 'atelier') */
   const deja = inaccessibles(), G = blocBati('grange'), d = (c) => (G ? Math.hypot(posCase(c).x - G.x, posCase(c).z - G.z) : 0);
   const L = S_.cases.filter((c) => c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id)).sort((a, b) => d(a) - d(b));
-  for (const c of L.slice(0, 80)) { c.type = 'forge'; const bloque = inaccessibles().some((x) => !deja.includes(x)); c.type = 'libre'; if (!bloque) return c; }
+  for (const c of L.slice(0, 80)) { c.type = type || 'forge'; const bloque = inaccessibles().some((x) => !deja.includes(x)); c.type = 'libre'; if (!bloque) return c; }
   return null;
 }
+/* L'ATELIER (09/11/2026, « les carreaux d'acier, il faut les fabriquer avec l'atelier ; commence a travailler le design de l'atelier et ce qu'on met dedans »,
+   puis « oui, nouveau batiment pour l'atelier », « A j'aime bien », Mathieu) : on y fabrique avec les ressources de la grange. D'abord les carreaux d'acier
+   (1 Plume de Tofu et 1 Soie d'Arakne : 20 carreaux) ; c'est aussi la qu'on les charge dans la baliste d'acier, ou qu'on repasse aux carreaux normaux
+   (S_.acierCharge). Charges, la baliste les tire avant ses carreaux normaux (12-perso.js, tirer) */
+const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il: [['plume', 1], ['soie_arakne', 1]], ico: 'carreaux-acier',
+  desc: 'Pour la baliste d\'acier (l\'arbalète de la grange au niveau 6) : un carreau d\'acier fait deux fois ses dégâts et traverse le premier monstre pour toucher celui derrière.' }];
+const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
+function ouvrirAtelier() {
+  if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
+  const G = S_.grange || {}, carte = (R) => { const peut = R.il.every(([id, k]) => (G[id] || 0) >= k), max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)));
+    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + ' ×' + R.donne + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + PAR_ID[id].nom + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
+      '<div class="act"><button class="btn kamas" data-atelier-fab="' + R.id + '|1"' + (peut ? '' : ' disabled') + '>Fabriquer</button>' + (max >= 5 ? '<button class="btn discret" data-atelier-fab="' + R.id + '|5">×5</button>' : '') + '</div></div>'; };
+  const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
+  const baliste = n6 ? '<div class="art">' + ico('carreaux-acier') + '<div><b>Carreaux d\'acier : ' + fmt(nA) + '</b><div class="desc">' + (S_.acierCharge && nA ? 'Chargés : ta baliste tire ses carreaux d\'acier, puis repasse toute seule aux carreaux normaux quand il n\'y en a plus.' : 'Pas chargés : ta baliste tire ses carreaux normaux.') + '</div></div>' +
+      '<div class="act">' + (S_.acierCharge && nA ? '<button class="btn discret" data-atelier-acier="0">Repasser aux carreaux normaux</button>' : '<button class="btn kamas" data-atelier-acier="1"' + (nA ? '' : ' disabled') + '>Charger les carreaux d\'acier</button>') + '</div></div>'
+    : '<p class="hdv-aide">Il te faut la baliste d\'acier pour tirer ces carreaux : l\'arbalète de la grange au niveau 6 (HDV, Améliorer, niveau 95).</p>';
+  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">Tu y fabriques avec les ressources de ta grange.</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
+}
+function fabriquer(id, fois) {
+  const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier')) return; fois = Math.max(1, fois | 0);
+  if (!R.il.every(([r, k]) => (G[r] || 0) >= k * fois)) { toast('Il te manque des ressources dans ta grange.'); return; }
+  R.il.forEach(([r, k]) => { G[r] -= k * fois; }); if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois;
+  son('niveau'); toast('+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-atelier-fab],[data-atelier-acier]'); if (!b) return;
+  if (b.dataset.atelierFab) { const [id, k] = b.dataset.atelierFab.split('|'); fabriquer(id, +k); }
+  else if (b.dataset.atelierAcier) { S_.acierCharge = b.dataset.atelierAcier === '1' && (S_.acier || 0) > 0; toast(S_.acierCharge ? 'Carreaux d\'acier chargés : ta baliste les tire, deux fois plus fort, et ils traversent.' : 'Ta baliste repasse aux carreaux normaux.', 'or'); sauver(); if (typeof rendreArbaleteBulle === 'function') rendreArbaleteBulle(); }
+  ouvrirAtelier();
+});
 function ouvrirForge() {
   if (!niv('forge')) { ouvrirHdv('ameliorer'); return; }
   const nr = runes(), eq = Object.values(S_.equip).filter(Boolean), cles = [...new Set(eq.concat(Object.keys(S_.sac).filter((k) => S_.sac[k] > 0 && obj(k) && obj(k).emp)))].filter((k) => obj(k) && OBJETS[baseObjet(k)]);

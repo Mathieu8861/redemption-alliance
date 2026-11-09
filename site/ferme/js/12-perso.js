@@ -570,8 +570,8 @@ function construireArbalete() {
 let toursMesh = [];
 /* une arbalete d'un niveau donne : tout le modele pivote pour viser (son socle est rond), la pointe est au bout du carreau */
 function arbaleteNiv(n) {
-  n = Math.max(1, Math.min(5, n)); const g = new T.Group(), tete = cloner('arbalete' + n); g.add(tete);
-  const L = n === 5 ? 1.0 : n >= 3 ? 0.86 + (n - 3) * 0.04 : 0.78 + (n - 1) * 0.04, pointe = new T.Object3D(); pointe.position.set(0, n === 5 ? 0.53 : 0.4, L / 2 + 0.2); tete.add(pointe);
+  n = Math.max(1, Math.min(MODELES.arbalete6 ? 6 : 5, n)); const g = new T.Group(), tete = cloner('arbalete' + n); g.add(tete);
+  const L = n === 6 ? 1.6 : n === 5 ? 1.0 : n >= 3 ? 0.86 + (n - 3) * 0.04 : 0.78 + (n - 1) * 0.04, pointe = new T.Object3D(); pointe.position.set(0, n === 6 ? 0.78 : n === 5 ? 0.53 : 0.4, L / 2 + 0.2); tete.add(pointe); /* (le niveau 6, la baliste d'acier : son carreau va jusqu'a z 1,14) */
   g.userData.tete = tete; g.userData.pointe = pointe; g.userData.fleche = new T.Group(); return g;
 }
 function modeleTourNiv(c) {
@@ -667,8 +667,8 @@ function rechargerSeule() {
 function rendreArbaleteBulle() {
   if (!arbalete) return;
   if (enRuine('grange')) { retirerBulle('arbalete'); return; }
-  arbalete.userData.fleche.visible = arbalete.userData.pointe.visible = S_.carreaux > 0;
-  if (S_.carreaux > 0) retirerBulle('arbalete');
+  arbalete.userData.fleche.visible = arbalete.userData.pointe.visible = S_.carreaux > 0 || acierPret();
+  if (S_.carreaux > 0 || acierPret()) retirerBulle('arbalete'); /* (chargee en carreaux d'acier, elle tire meme sans carreaux normaux) */
   else bulle('arbalete', icoB('fleches'), 'eau', [arbalete.position.x, arbalete.position.y + 1.1, arbalete.position.z], 'arbalete:1', S_.fleches || '0', rechargeAuto() ? 'Plus de flèches en réserve : achète-en à l\'HDV, elle se rechargera toute seule' : 'Arbalète à recharger : touche pour y envoyer le paysan');
 }
 function viserArbalete(dt, s) {
@@ -679,17 +679,30 @@ function viserArbalete(dt, s) {
   if (cible) ang = Math.atan2(cible.x - arbalete.position.x, cible.z - arbalete.position.z);
   let d = ang - t.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); t.rotation.y += d * Math.min(1, dt * (cible ? 6 : 1.5));
   arbalete.userData.cd = Math.max(0, (arbalete.userData.cd || 0) - dt); /* une seconde entre deux tirs */
-  if (cible && S_.carreaux > 0 && !arbalete.userData.cd && Math.hypot(cible.x - arbalete.position.x, cible.z - arbalete.position.z) < porteeArbalete() && Math.abs(d) < 0.15) tirer(mo);
+  if (cible && (S_.carreaux > 0 || (mo && acierPret())) && !arbalete.userData.cd && Math.hypot(cible.x - arbalete.position.x, cible.z - arbalete.position.z) < porteeArbalete() && Math.abs(d) < 0.15) tirer(mo);
   if (carreau) { /* la fleche file vers le voleur */
     carreau.t += dt / 0.3; const a = carreau.de, b = carreau.vers; carreau.m.position.set(a.x + (b.x - a.x) * carreau.t, a.y + (b.y - a.y) * carreau.t + Math.sin(carreau.t * Math.PI) * 0.4, a.z + (b.z - a.z) * carreau.t);
     if (carreau.t >= 1) { if (carreau.impact) carreau.impact(); jeter(carreau.m); carreau = null; }
   }
 }
+/* LES CARREAUX D'ACIER (09/11/2026, l'atelier, 03-equipements.js) : charges (acierPret), la baliste d'acier les tire avant ses carreaux normaux, sur les monstres
+   seulement (pas sur le voleur de VSA) : ACIER_X fois ses degats, et le carreau traverse le premier monstre pour toucher celui qui est derriere lui (a
+   ACIER_PERCE au plus, dans l'axe du tir). Le dernier tire, elle repasse toute seule aux carreaux normaux */
+const ACIER_X = 2, ACIER_PERCE = 3;
 function tirer(mo) {
-  son('arbalete'); S_.carreaux = Math.max(0, S_.carreaux - 1); arbalete.userData.cd = cadenceArbalete(); rechargerSeule(); rendreArbaleteBulle();
+  const acier = !!mo && acierPret();
+  son('arbalete'); if (acier) { S_.acier--; if (!S_.acier) { S_.acierCharge = false; toast('Plus de carreaux d\'acier : ta baliste repasse aux carreaux normaux. Fabrique-en d\'autres à l\'atelier.', 'alerte'); } } else S_.carreaux = Math.max(0, S_.carreaux - 1);
+  arbalete.userData.cd = cadenceArbalete(); rechargerSeule(); rendreArbaleteBulle();
   const de = new T.Vector3(); arbalete.userData.pointe.getWorldPosition(de); const vers = (mo ? mo.m.position : voleur.m.position).clone(); vers.y += mo ? 0.5 : 0.8;
-  const m = boite(0.04, 0.04, 0.5, '#d9c08a'); m.lookAt(vers.clone().sub(de)); scene.add(m); m.position.copy(de); m.lookAt(vers);
-  carreau = { m, de, vers, t: 0, impact: mo ? () => blesser(mo, degatsArbalete(), true, 'def') : () => blesserVoleur(degatsArbalete(), 'Tchac ! L\'arbalète de la grange fait fuir le voleur de VSA.' + (rechargeAuto() ? '' : ' Pense à la recharger.')) };
+  const m = acier ? new T.Group() : boite(0.04, 0.04, 0.5, '#d9c08a');
+  if (acier) { const f = boite(0.05, 0.05, 0.6, '#a9b4bc'); m.add(f); const pt = boite(0.08, 0.08, 0.14, '#7fb0dc'); pt.position.z = 0.34; m.add(pt); } /* (le carreau d'acier : fut d'acier, pointe bleue) */
+  scene.add(m); m.position.copy(de); m.lookAt(vers);
+  const deg = degatsArbalete() * (acier ? ACIER_X : 1);
+  const traverser = () => { const dx = vers.x - de.x, dz = vers.z - de.z, L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L; /* le monstre juste derriere, dans l'axe */
+    const o2 = combat && combat.monstres.filter((o) => o !== mo && o.etat === 'actif').map((o) => { const ax = o.x - mo.x, az = o.z - mo.z, av = ax * ux + az * uz, lat = Math.abs(ax * uz - az * ux); return { o, av, lat }; }).filter((q) => q.av > 0 && q.av < ACIER_PERCE && q.lat < 1.0).sort((a, b) => a.av - b.av)[0];
+    emettre(FX_VIF, 10, { x: mo.x, y: mo.m.position.y + 0.6, z: mo.z, r: 0.2, dv: 3, vie: [0.2, 0.4], taille: [0.12, 0.03], c: ['#e8f4ff', '#7fb0dc'], grav: 6, etire: 0.03 });
+    if (o2) { blesser(o2.o, deg, true, 'def'); emettre(FX_VIF, 8, { x: o2.o.x, y: o2.o.m.position.y + 0.6, z: o2.o.z, r: 0.2, dv: 2.5, vie: [0.2, 0.4], taille: [0.1, 0.03], c: ['#e8f4ff', '#7fb0dc'], grav: 6 }); } };
+  carreau = { m, de, vers, t: 0, impact: mo ? () => { blesser(mo, deg, true, 'def'); if (acier) traverser(); } : () => blesserVoleur(degatsArbalete(), 'Tchac ! L\'arbalète de la grange fait fuir le voleur de VSA.' + (rechargeAuto() ? '' : ' Pense à la recharger.')) };
   sauver();
 }
 /* chasser le voleur a la main : chaque classe a son geste. Le Cra tire une fleche de loin, le Iop court lui mettre un coup d'epee,

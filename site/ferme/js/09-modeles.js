@@ -171,7 +171,7 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261109c'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261109d'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
@@ -229,6 +229,7 @@ function modelesNiveaux(G) {
     MODELES['tour' + n] = gabaritEchelle(G.tours, 'Tour' + n, ECH_TOUR, new T.Vector3(0, 0, 0)); BAS_TOUR[n - 1] = ((bas || 2) - (MODELES['tour' + n].userData.solY || 0)) * ECH_TOUR;
     MODELES['arbalete' + n] = gabaritEchelle(G.arbaletes, 'Arbalete' + n, 1, new T.Vector3(0, 0, 0));
   }
+  if (G.arbaletes.getObjectByName('Arbalete6')) MODELES.arbalete6 = gabaritEchelle(G.arbaletes, 'Arbalete6', 1, new T.Vector3(0, 0, 0)); /* (la baliste d'acier, la tourelle blindee, 09/11/2026) */
   /* l'enclos : ses modules par niveau, a l'echelle de la cloture du jeu */
   const Ge = G['enclos-modules'], [kc] = kDe(Ge, 'Cloture1', 2.0), O = new T.Vector3(0, 0, 0);
   [1, 2, 3, 5].forEach((n) => { MODELES['cloture' + n] = gabaritEchelle(Ge, 'Cloture' + n, kc, O); });
@@ -314,7 +315,7 @@ async function chargerPersonnagesVsa0() {
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge', 'atelier'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -332,7 +333,8 @@ async function chargerModeles() {
   MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe() });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
   versToon(G.batiments, BATI); versToon(G.objets, BATI);
-  if (G['atelier-forge']) { versToon(G['atelier-forge'], BATI); MODELES.forge = gabaritEchelle(G['atelier-forge'], 'AtelierForge', 1, new T.Vector3(0, 0, 0)); } /* l'atelier de forgemagie (blender/atelier-forge.py), d'une case */
+  if (G['atelier-forge']) { versToon(G['atelier-forge'], BATI); MODELES.forge = gabaritEchelle(G['atelier-forge'], 'AtelierForge', 1, new T.Vector3(0, 0, 0)); }
+  if (G.atelier) { versToon(G.atelier, BATI); MODELES.atelier = gabaritEchelle(G.atelier, 'Atelier', 1, new T.Vector3(0, 0, 0)); } /* l'atelier (blender/atelier.py, la piste A, 09/11/2026), d'une case */ /* l'atelier de forgemagie (blender/atelier-forge.py), d'une case */
   versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
   modelesNiveaux(G); /* 11/10/2026 : les batiments du niveau 1 au niveau 5 */
   MODELES.epouvantail = gabarit(G.batiments, 'epouvantail', 2.6, 'y');
