@@ -177,7 +177,7 @@ function ouvrirGeliere() {
 }
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;
    l'Osamodas vise ou poser son Bouftou, qui retombe en frappant autour de lui, au lieu d'un Bouftou qui sortait tout seul et restait en permanence */
-let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, SOIN_BOND_MAX = 0.1 /* (le soin du Bond : 3 % par monstre touche, 10 % au plus depuis le 07/11/2026 au soir, 12 % avant ; « le bond du Iop qui regen au max 10 % des PV », Mathieu) */, RECHARGE_INVOC = 10, DUREE_INVOC = 12, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
+let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, SOIN_BOND_MAX = 0.1 /* (le soin du Bond : 3 % par monstre touche, 10 % au plus depuis le 07/11/2026 au soir, 12 % avant ; « le bond du Iop qui regen au max 10 % des PV », Mathieu) */, RECHARGE_INVOC = 10, DUREE_INVOC = 14 /* (12 puis 14 s, 09/11/2026) */, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
 /* le Iop au corps a corps (30/10/2026 au soir, « le Iop, faut absolument faire quelque chose, etre corps a corps ca pique trop », Mathieu) : son coup d'epee
    balaie aussi les monstres colles a sa cible (BALAYAGE_IOP de ses degats, a RAYON_BALAYAGE de la cible ; 21-combat.js, coupIop). Puis le kit voulu par
    Mathieu le meme soir, a la place d'un vol de vie de 8 % (« moi je mettrais pas du vol de vie, mais de la regeneration, +1 % toutes les 3 secondes ;
