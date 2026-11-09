@@ -151,7 +151,7 @@ const guideJeu = () => {
   return '<div class="hdv-section">Comment jouer</div><div class="guide-jeu"><div class="gj-cmds">' + (DOIGT
     ? cmd(DOIGT_SVG(false), 'Touche une case', 'Ton paysan y va et agit : il plante, arrose, récolte, nourrit…') + cmd(DOIGT_SVG(true), 'Reste appuyé', 'Il va seulement sur la case, sans rien y faire.')
     : cmd(SOURIS_SVG('gauche'), 'Clic gauche', 'Ton paysan se déplace, ou vise un monstre.') + cmd(SOURIS_SVG('droit'), 'Clic droit', 'Il agit sur la case : il plante, arrose, récolte, nourrit…')) +
-    '</div><p class="gj-vue">' + (DOIGT ? 'Glisse pour déplacer la vue, pince pour zoomer.' : 'Glisse pour déplacer la vue, molette pour zoomer.') + '</p><div class="gj-grille">' +
+    '</div><p class="gj-vue">' + (DOIGT ? 'Glisse pour déplacer la vue, pince pour zoomer.' : 'Glisse pour déplacer la vue, molette pour zoomer.<br><b>Ctrl + clic droit</b> en glissant : tourner et incliner la caméra. <b>A / E</b> : un quart de tour. <b>Z / S</b> : la caméra monte ou descend. <b>R</b> : la vue de départ.') + '</p><div class="gj-grille">' +
     carte('ble', 'Les cultures', 'Plante sur une parcelle libre, arrose quand c’est sec, récolte quand c’est mûr.') +
     carte('arrosoir', 'L’arrosoir', 'Il se remplit au puits : 10 arrosages par plein.') +
     carte('bouftou', 'Les bêtes', 'Nourris et tonds tes Bouftous, chasse les Tofus.') +

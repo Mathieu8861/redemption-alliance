@@ -21,7 +21,7 @@ function garderAngle() { try { localStorage.setItem('ferme-angle-camera', String
 const vueFixe = () => typeof casinoDedans !== 'undefined' && casinoDedans && lieu === 'casino'; /* (le hall du palais se regarde d'un seul cote : ses murs hauts cacheraient la salle, 08/11/2026) */
 function tournerCamera(da) { if (vueFixe()) return; angleVise = null; angleCam += da; placerCamera(); garderAngle(); }
 function tournerCameraVers(a) { if (vueFixe()) return; angleVise = a; garderAngle(); }
-/* L'INCLINAISON (09/11/2026, « on peut pas faire glisser de haut en bas aussi ? », Mathieu) : le clic droit glisse de haut en bas incline la camera, de presque
+/* L'INCLINAISON (09/11/2026, « on peut pas faire glisser de haut en bas aussi ? », Mathieu ; puis Ctrl + clic droit, le clic droit seul servant aux actions, et Z / S au clavier) : le glisser de haut en bas incline la camera, de presque
    a plat (ELEV_MIN) a presque vue du dessus (ELEV_MAX) ; la distance ne change pas. Elle est gardee comme l'angle ; R remet aussi l'inclinaison de depart.
    Le hall du casino garde sa vue fixe */
 const DIST_CAM = Math.hypot(27, 42.4), ELEV_DEPART = Math.atan2(27, 42.4), ELEV_MIN = 0.3, ELEV_MAX = 1.2;

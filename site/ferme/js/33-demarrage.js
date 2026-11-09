@@ -53,6 +53,7 @@ addEventListener('keydown', (e) => {
   if (lecon.ouverte) return;
   if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);
   /* tourner la camera (29/10/2026) : A et E sur un clavier azerty (Q et E en qwerty : la meme place), R pour revenir a la vue de depart */
+  if (!enAccueil && !e.ctrlKey && !e.metaKey && !e.altKey && (e.code === 'KeyW' || e.code === 'KeyS')) { const b = elevVise != null ? elevVise : elevCam; inclinerCameraVers(Math.min(ELEV_MAX, Math.max(ELEV_MIN, b + (e.code === 'KeyW' ? 0.16 : -0.16)))); } /* (Z et S en azerty, W et S en qwerty : la camera monte, ou descend ; maintenus, elle continue, 09/11/2026) */
   if (!enAccueil && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { const base = angleVise != null ? angleVise : angleCam;
     if (e.code === 'KeyQ') tournerCameraVers(base - Math.PI / 2); else if (e.code === 'KeyE') tournerCameraVers(base + Math.PI / 2); else if (e.code === 'KeyR') { tournerCameraVers(ANGLE_DEPART + Math.round((angleCam - ANGLE_DEPART) / (2 * Math.PI)) * 2 * Math.PI); inclinerCameraVers(ELEV_DEPART); } }
 });
