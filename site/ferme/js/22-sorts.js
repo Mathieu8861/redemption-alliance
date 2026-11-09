@@ -647,17 +647,18 @@ function tetesOsa(st) {
     mottes(q.x, y0, q.z, 8, 1.0); poussiere(q.x, y0, q.z, 8, 1.1, '#8a6a48');
     const faire = () => { if (combat !== c0 || c0.fin) return; const T0 = tetesAncestral(); if (!T0 || !T0[n * 2 + 1] || !T0[n * 2 + 1].tri) return; let src = null; MODELES.ancestral.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
       const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#c77dff'), emissiveIntensity: 2.2, color: new T.Color('#d9c2ff'), gradientMap: grad, side: T.DoubleSide }); /* (les yeux luisent en violet : maudites) */
-      const h = new T.Mesh(T0[n * 2 + 1].geo, mat); h.scale.setScalar(1.7); h.castShadow = true; sansClic(h); scene.add(h); info.m = h; info.mat = mat; };
+      const h = new T.Mesh(T0[n * 2 + 1].geo, mat); h.scale.setScalar(1.7); h.castShadow = true; sansClic(h); scene.add(h); info.m = h; info.mat = mat; info.cou = couAncestral(1); }; /* (09/11/2026 : sa branche qui sort de terre, voir couAncestral) */
     if (MODELES.ancestral) faire(); else chargerSquelettes(['ancestral']).then(faire);
     let t = 0; effets.push((dt) => { t += dt; const fin = combat !== c0 || c0.fin || t >= DUREE_TETES_OSA + 0.4;
-      if (fin) { if (info.m) { scene.remove(info.m); info.mat.dispose(); mottes(info.x, info.y0, info.z, 6, 0.8); } return true; }
-      const monte = Math.min(1, t / 0.4), desc = t > DUREE_TETES_OSA ? Math.max(0, 1 - (t - DUREE_TETES_OSA) / 0.4) : 1, k = Math.min(monte, desc), H = 1.3;
+      if (fin) { if (info.m) { scene.remove(info.m); info.mat.dispose(); info.cou.jeter(); mottes(info.x, info.y0, info.z, 6, 0.8); } return true; }
+      const monte = Math.min(1, t / 0.4), desc = t > DUREE_TETES_OSA ? Math.max(0, 1 - (t - DUREE_TETES_OSA) / 0.4) : 1, k = Math.min(monte, desc), e = k * (2 - k);
       info.cd -= dt; if (info.mord > 0) info.mord -= dt;
       const cib = c0.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - info.x, o.z - info.z) < PORTEE_TETE_OSA + 0.3 * (o.d.ombre || 1)).sort((p1, p2) => Math.hypot(p1.x - info.x, p1.z - info.z) - Math.hypot(p2.x - info.x, p2.z - info.z))[0];
       if (cib && info.cd <= 0 && monte >= 1 && t < DUREE_TETES_OSA) { info.cd = 1; info.mord = 0.3; info.cible = cib; const c1 = c0; setTimeout(() => { if (combat !== c1 || cib.etat !== 'actif') return; blesser(cib, Math.round(st.deg * 0.8), true); etoileImpact(new T.Vector3(cib.x, cib.m.position.y + cib.haut * 0.5, cib.z), 0.8, '#c77dff'); }, 150); }
       if (info.m) { const vise = info.cible && info.cible.etat === 'actif' ? info.cible : cib, ang = vise ? Math.atan2(vise.x - info.x, vise.z - info.z) : Math.atan2(paysanMesh.position.x - info.x, paysanMesh.position.z - info.z) + Math.PI;
         const l = info.mord > 0 ? Math.sin((1 - info.mord / 0.3) * Math.PI) * 0.9 : 0; /* (elle se detend vers sa proie) */
-        info.m.position.set(info.x + Math.sin(ang) * l, info.y0 - H + H * 1.5 * k + Math.sin(t * 3 + n) * 0.06, info.z + Math.cos(ang) * l); info.m.rotation.y = ang + Math.sin(t * 9 + n) * 0.05; }
+        info.m.position.set(info.x + Math.sin(ang) * l, info.y0 - 0.9 + 2.65 * e - l * 0.45 + Math.sin(t * 3 + n) * 0.06, info.z + Math.cos(ang) * l); info.m.rotation.y = ang + Math.sin(t * 9 + n) * 0.05; /* (la tete au bout de sa branche, 1,75 au-dessus du sol ; elle plonge un peu en mordant) */
+        info.cou.poser(info.x, info.y0, info.z, info.m.position, ang, e); }
       if (Math.random() < dt * 6) emettre(FX_VIF, 1, { x: info.x + (Math.random() - 0.5) * 0.8, y: info.y0 + 0.1, z: info.z + (Math.random() - 0.5) * 0.8, r: 0.05, v: [0, 1.2, 0], dv: 0.2, vie: [0.5, 0.8], taille: [0.12, 0.03], c: ['#e3bcff', '#a64dff'] });
       return false; }); });
 }

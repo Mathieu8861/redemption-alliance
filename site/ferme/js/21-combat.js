@@ -2038,6 +2038,42 @@ function capEnfouit(mo, ctx) {
    degats et enracine 1,5 s), 25-0 % la tete qui hurle (la terre tremble, 2 Tronknydes sortent du sol) */
 const TETES_NOMS = ['la tête de sève', 'la tête des feuilles', 'la tête des racines', 'la tête qui hurle'];
 let TETES_ANC = null;
+/* LE COU DES TETES DE L'ANCESTRAL (09/11/2026, « il faudrait que l'on voie aussi la branche qui sort du sol et que la tete soit un peu plus haute, la on
+   dirait une tete qui flotte ; elles sont rattachees au corps qui est sous terre », Mathieu) : une branche brune en S, comme sur le dessin de l'Ancestral,
+   sort d'une butte de terre et porte la tete par l'arriere. Le tube est recalcule a chaque image : il pousse avec la tete, ondule et la suit quand elle mord.
+   f : la taille (1 pour les tetes de l'Osa) */
+const NS_COU = 22, NR_COU = 10; let TEX_COU = null, GEO_BUTTE_COU = null;
+function texCou() {
+  if (TEX_COU) return TEX_COU;
+  TEX_COU = texCanvas(128, (x, n) => { x.fillStyle = '#9a6c48'; x.fillRect(0, 0, n, n); /* (l'ecorce : des sillons le long de la branche) */
+    for (let k = 0; k < 16; k++) { const u = (k + Math.random() * 0.6) / 16 * n; x.strokeStyle = k % 3 ? 'rgba(58,34,18,0.6)' : 'rgba(196,150,104,0.55)'; x.lineWidth = 1.5 + Math.random() * 3;
+      x.beginPath(); x.moveTo(u, 0); for (let v = 8; v <= n; v += 8) x.lineTo(u + Math.sin(v * 0.07 + k * 1.3) * 3, v); x.stroke(); } });
+  TEX_COU.wrapS = TEX_COU.wrapT = T.RepeatWrapping; return TEX_COU;
+}
+function couAncestral(f) {
+  const n = (NS_COU + 1) * (NR_COU + 1), g = new T.BufferGeometry(), uv = new Float32Array(n * 2), idx = [];
+  for (let i = 0; i <= NS_COU; i++) for (let j = 0; j <= NR_COU; j++) { const k = i * (NR_COU + 1) + j; uv[k * 2] = j / NR_COU; uv[k * 2 + 1] = i / NS_COU * 2.5; }
+  for (let i = 0; i < NS_COU; i++) for (let j = 0; j < NR_COU; j++) { const a = i * (NR_COU + 1) + j, b = a + NR_COU + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  g.setIndex(idx); g.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 3), 3)); g.setAttribute('normal', new T.BufferAttribute(new Float32Array(n * 3), 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2));
+  const m = new T.Mesh(g, new T.MeshToonMaterial({ map: texCou(), gradientMap: grad, side: T.DoubleSide })); m.frustumCulled = false; m.castShadow = true; sansClic(m);
+  const b = new T.Mesh(GEO_BUTTE_COU || (GEO_BUTTE_COU = partagerGabarit(new T.SphereGeometry(1, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2))), new T.MeshToonMaterial({ color: '#4e3826', gradientMap: grad })); b.receiveShadow = true; sansClic(b);
+  scene.add(m); scene.add(b);
+  const P = g.attributes.position.array, N = g.attributes.normal.array, pts = [0, 1, 2, 3].map(() => new T.Vector3()), v = new T.Vector3(), tg = new T.Vector3(), nv = new T.Vector3(), bv = new T.Vector3(), S = new T.Vector3(), F = new T.Vector3(), UP = new T.Vector3(0, 1, 0);
+  const bez = (s) => { const a = 1 - s; v.set(0, 0, 0).addScaledVector(pts[0], a * a * a).addScaledVector(pts[1], 3 * a * a * s).addScaledVector(pts[2], 3 * a * s * s).addScaledVector(pts[3], s * s * s);
+    tg.set(0, 0, 0).addScaledVector(pts[0], -3 * a * a).addScaledVector(pts[1], 3 * a * a - 6 * a * s).addScaledVector(pts[2], 6 * a * s - 3 * s * s).addScaledVector(pts[3], 3 * s * s).normalize(); };
+  return { m, b,
+    poser(x, y0, z, tete, ang, e) { /* x, z : le trou ; y0 : le sol ; tete : le centre de la tete ; ang : ou elle regarde ; e : sortie de terre, de 0 a 1 */
+      F.set(Math.sin(ang), 0, Math.cos(ang)); S.set(Math.cos(ang), 0, -Math.sin(ang));
+      pts[3].copy(tete).addScaledVector(F, -0.22 * f).addScaledVector(UP, -0.3 * f); /* (elle tient la tete par l'arriere, sous la nuque) */
+      pts[0].set(x, Math.min(y0 - 0.5 * f, pts[3].y - f), z); const L = pts[3].y - pts[0].y;
+      pts[1].copy(pts[0]).addScaledVector(UP, L * 0.45).addScaledVector(F, 0.35 * f); pts[2].copy(pts[3]).addScaledVector(F, -0.6 * f).addScaledVector(UP, -L * 0.3); /* (le S du dessin) */
+      for (let i = 0; i <= NS_COU; i++) { const s = i / NS_COU; bez(s); nv.crossVectors(tg, S).normalize(); bv.crossVectors(tg, nv); const r = f * (0.25 - 0.1 * s + 0.12 * Math.max(0, 1 - s * 5));
+        for (let j = 0; j <= NR_COU; j++) { const th = j / NR_COU * Math.PI * 2, c = Math.cos(th), sn = Math.sin(th), k = (i * (NR_COU + 1) + j) * 3, nx = nv.x * c + bv.x * sn, ny = nv.y * c + bv.y * sn, nz = nv.z * c + bv.z * sn;
+          P[k] = v.x + nx * r; P[k + 1] = v.y + ny * r; P[k + 2] = v.z + nz * r; N[k] = nx; N[k + 1] = ny; N[k + 2] = nz; } }
+      g.attributes.position.needsUpdate = true; g.attributes.normal.needsUpdate = true;
+      const eb = Math.max(0.05, Math.min(1, e * 1.6)); b.position.set(x, y0 - 0.02, z); b.scale.set(0.55 * f * eb, 0.2 * f * eb, 0.55 * f * eb); },
+    jeter() { scene.remove(m); scene.remove(b); g.dispose(); m.material.dispose(); b.material.dispose(); } };
+}
 function tetesAncestral() {
   if (TETES_ANC) return TETES_ANC; const M = MODELES.ancestral; if (!M || typeof YEUX_P10 === 'undefined') return null; M.updateMatrixWorld(true);
   let sk = null; M.traverse((o) => { if (!sk && o.isSkinnedMesh && o.name !== 'contour') sk = o; }); if (!sk) return null;
@@ -2058,15 +2094,16 @@ function teteSurgit(mo, i, c0, angle, retard) {
   if (!p) return; const y0 = solA(p.x, p.z); let src = null; mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
   const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color('#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide });
   const h = new T.Mesh(T0[i].geo, mat), k = (mo.m.scale.x || 1) * 1.8, taille = 0.75 * k; h.scale.setScalar(k); h.castShadow = true; scene.add(h);
-  const info = { m: h, r: taille * 0.55 }; h.visible = false;
+  const info = { m: h, r: taille * 0.55 }; h.visible = false; const f = k / 1.7, cou = couAncestral(f); cou.m.visible = cou.b.visible = false; /* (09/11/2026 : sa branche, voir couAncestral) */
   const MONTE = 0.45, ACTE = 1.6, DESCEND = 0.45; let t = -(retard || 0), sortie = false;
   effets.push((dt) => { t += dt;
-    if (combat !== c0 || c0.fin || t >= MONTE + ACTE + DESCEND) { scene.remove(h); mat.dispose(); c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== info); return true; }
+    if (combat !== c0 || c0.fin || t >= MONTE + ACTE + DESCEND) { scene.remove(h); mat.dispose(); cou.jeter(); c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== info); return true; }
     if (t < 0) return false; /* (elle attend son tour : les tetes sortent l'une apres l'autre) */
-    if (!sortie) { sortie = true; h.visible = true; (c0.tetesAnc = c0.tetesAnc || []).push(info); mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
+    if (!sortie) { sortie = true; h.visible = cou.m.visible = cou.b.visible = true; (c0.tetesAnc = c0.tetesAnc || []).push(info); mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
       if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' !', 'alerte'); } }
-    const u = t < MONTE ? t / MONTE : t < MONTE + ACTE ? 1 : 1 - (t - MONTE - ACTE) / DESCEND; h.position.set(p.x, y0 - taille + taille * 1.4 * u * (2 - u), p.z);
+    const u = t < MONTE ? t / MONTE : t < MONTE + ACTE ? 1 : 1 - (t - MONTE - ACTE) / DESCEND; const e = u * (2 - u); h.position.set(p.x, y0 - 0.9 * f + 2.65 * f * e, p.z); /* (au bout de sa branche, 1,75 fois f au-dessus du sol : avant, elle sortait a peine et semblait flotter) */
     h.rotation.y = Math.atan2(paysanMesh.position.x - p.x, paysanMesh.position.z - p.z) + Math.sin(t * 9) * 0.06; /* (elle te regarde, et frissonne) */
+    cou.poser(p.x, y0, p.z, h.position, h.rotation.y, e);
     if (!info.fait && t >= MONTE) { info.fait = true; actionTete(mo, i, p, c0); }
     return false; });
 }
