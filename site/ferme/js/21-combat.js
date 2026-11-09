@@ -1383,10 +1383,10 @@ function nuitTombe(duree) { /* la nuit tombe : les lumieres baissent et bleuisse
     canvas.insertAdjacentElement('afterend', v);
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT = { v, L, t: 0, d: 0 }; }
   NUIT.d = Math.max(NUIT.d - NUIT.t, duree); NUIT.t = 0; const N = NUIT, bleu = new T.Color('#8fa8ff');
-  if (N.actif) return; N.actif = true;
+  if (N.actif) return; N.actif = true; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite, 09/11/2026) */
   effets.push((dt) => { N.t += dt; const k = Math.min(1, N.t / 1.0) * Math.min(1, Math.max(0, (N.d - N.t) / 1.2)); N.v.style.opacity = String(k);
     N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.55 * k); l.o.color.copy(l.c).lerp(bleu, 0.5 * k); });
-    if (N.t >= N.d || !combat) { N.v.style.opacity = '0'; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } });
+    if (N.t >= N.d || !combat) { N.v.style.opacity = '0'; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; animerLanternes.t = 0; return true; } });
 }
 /* LA NUIT DE LA FORET (08/11/2026, par Discord : « les Abraknydes, ils nous plongent dans la nuit pendant les vagues », Mathieu) : des qu'un monstre du
    palier 10 sort, la nuit tombe sur la ferme jusqu'a la fin du combat. Pas de lune comme la nuit lunaire du Golem : un voile bleu-vert profond, la lumiere

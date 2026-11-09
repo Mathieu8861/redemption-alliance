@@ -283,7 +283,7 @@ function construireDecos() {
   if (manque) assurerDecos();
 }
 /* LES LANTERNES QUI LUISENT (01/11/2026) : le verre brille deja (matiere lumiere) ; autour, un halo chaud qui palpite comme une flamme, et une flaque de
-   lumiere doree au sol (en couleur normale : en lumiere additive, elle virait au blanc sur l'herbe claire). La ferme n'a pas de nuit : elles suivent la vraie heure (plus bas) */
+   lumiere doree au sol (en couleur normale : en lumiere additive, elle virait au blanc sur l'herbe claire). Allumees seulement quand il fait nuit sur la carte (plus bas) */
 /* (09/11/2026, « ameliore un peu la luminosite des lampadaires, et qu'on voie aussi, quand on est dans une vague, leur portee d'efficacite », Mathieu) : un halo plus
    grand et plus vif, une flaque de lumiere plus large ; pendant une vague a la ferme, un cercle pointille dore au sol montre jusqu'ou chaque lampe allumee eclaire
    (le cercle de lumiere qu'elle perce dans la nuit de la foret, TROU_NUIT, 21-combat.js) */
@@ -303,18 +303,14 @@ function lueurLanterne(m, L) {
   const verres = []; m.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { const M = o.material; if (!M.userData.allume) { M.userData.allume = M.color.clone(); M.userData.eteint = M.color.clone().lerp(new T.Color('#5d6466'), 0.65); } verres.push(M); } }); /* (le verre qui brille : sa couleur allumee et sa couleur eteinte) */
   const a = lanternesAllumees() ? 1 : 0; lanternesAnim.push({ halo, sol, r: L.r, ph: Math.random() * 6, verres, a }); allumerLanterne(lanternesAnim[lanternesAnim.length - 1]);
 }
-/* (05/11/2026, « les lampadaires, ils peuvent etre eteints le jour ? », Mathieu) : la ferme n'a pas de nuit, les lanternes suivent donc la vraie heure du
-   joueur : allumees quand le soleil est couche a Paris (hauteur sous -1 degre : declinaison du jour, angle horaire et equation du temps, a quelques
-   minutes pres), eteintes le jour. LANTERNES_FORCE (true ou false) les force, pour les tests. */
+/* LES LANTERNES SUIVENT LA NUIT DE LA CARTE (09/11/2026, « quand il fait jour sur la map, ils sont eteints ; s'il fait nuit, ils s'allument, tout simplement.
+   Ils s'allumeront que pendant les vagues pour l'instant ; a un moment, on mettra un mode jour-nuit », Mathieu) : allumees pendant la nuit de la foret
+   (NUIT_F, les vagues du palier 10) et la nuit lunaire du Golem (NUIT), eteintes le reste du temps. Du 05/11 au 09/11/2026, elles suivaient la vraie heure
+   de Paris (« les lampadaires, ils peuvent etre eteints le jour ? ») : la carte restait en plein jour avec ses lanternes allumees le soir. Le jour ou la ferme
+   aura son cycle jour-nuit, c'est ici qu'il se branche. LANTERNES_FORCE (true ou false) les force, pour les tests. */
 let LANTERNES_FORCE = null;
-function lanternesAllumees() {
-  if (LANTERNES_FORCE != null) return LANTERNES_FORCE;
-  if (typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) return true; /* (la nuit de la foret les allume, 08/11/2026) */
-  const t = new Date(), rad = Math.PI / 180, j = (Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()) - Date.UTC(t.getUTCFullYear(), 0, 0)) / 864e5;
-  const B = 2 * Math.PI * (j - 81) / 365, eqt = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B); /* (l'equation du temps, en minutes : jusqu'a 16 min d'ecart en novembre) */
-  const dec = -23.44 * Math.cos(2 * Math.PI / 365 * (j + 10)) * rad, lat = 48.85 * rad, H = (t.getUTCHours() + t.getUTCMinutes() / 60 + 2.35 / 15 + eqt / 60 - 12) * 15 * rad;
-  return Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H) < Math.sin(-1 * rad);
-}
+const nuitSurLaCarte = () => !!((typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif));
+function lanternesAllumees() { return LANTERNES_FORCE != null ? LANTERNES_FORCE : nuitSurLaCarte(); }
 function allumerLanterne(A) { A.halo.visible = A.sol.visible = A.a > 0.01; A.halo.material.opacity = A.a; A.verres.forEach((M) => M.color.copy(M.userData.eteint).lerp(M.userData.allume, A.a)); }
 function animerLanternes(s) {
   if (!lanternesAnim.length || lieu === 'arene' || lieu === 'ile') return;
