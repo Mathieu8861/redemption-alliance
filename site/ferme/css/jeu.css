@@ -917,6 +917,13 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .pano-bonus > b { display: block; font: 400 .9rem/1.1 var(--f-titre); color: var(--encre); margin-bottom: 4px; }
 .pano-bonus .paliers { display: grid; gap: 3px; } .pano-bonus .paliers span { background: #2b2d31; border: 1.5px solid #43464e; border-radius: 8px; padding: 2px 7px; color: #a9adb5; }
 .pano-bonus .paliers span.actif { background: #385922; border-color: #43464e; color: #92db80; }
+/* (10/11/2026 : le total actif d'une panoplie, le bouton vers sa fiche, et la fiche d'une panoplie dans la fiche du perso) */
+.pano-total { margin-top: 5px; padding: 4px 7px; border-radius: 8px; background: #22303c; border: 1.5px solid #3f6a8c; color: #bfe0ff; } .pano-total b { display: block; color: #fff; font-weight: 800; } .pano-total.seul { margin-top: 0; }
+.pano-bonus .pano-voir, .fp-pano .btn { display: block; margin-top: 6px; }
+.fp-pp-liste { display: grid; gap: 5px; margin: 10px 0 2px; }
+.fp-pp { display: flex; align-items: center; gap: 8px; text-align: left; padding: 5px 8px; border: 2px solid #43464e; border-radius: 10px; background: #313338; color: var(--encre); font: 700 .74rem/1.2 var(--f-texte); cursor: pointer; }
+.fp-pp:hover { border-color: #6b6f7a; } .fp-pp img { width: 40px; height: 40px; object-fit: contain; flex: none; } .fp-pp > span { flex: 1; min-width: 0; display: grid; gap: 3px; } .fp-pp b { font-weight: 800; } .fp-pp b .puce { margin-left: 4px; font-weight: 700; }
+.fp-pp .puces { display: flex; flex-wrap: wrap; gap: 3px; } .fp-pp .puce { display: inline-block; padding: 1px 7px; border-radius: 99px; background: #2b2d31; border: 1.5px solid #43464e; font-size: .66rem; color: #c9ccd3; } .fp-pp .puce.bonne { background: #385922; color: #92db80; } .fp-pp .puce.or { background: #4a3c14; color: #f2c95a; } .fp-pp.absent { opacity: .55; cursor: default; } .fp-pp.absent:hover { border-color: #43464e; }
 /* le butin de fin de combat (03/11/2026) : la ligne d'une piece rare doree, d'une legendaire violette, le badge avant le nom, le jet en couleur */
 .art.butin.rare { margin: 4px -8px; padding: 9px 8px; border: 2px solid var(--or); border-radius: 12px; background: linear-gradient(90deg, rgba(242, 182, 48, .22), rgba(242, 182, 48, .05)); box-shadow: 0 0 12px rgba(242, 182, 48, .45); }
 .art.butin.leg { margin: 4px -8px; padding: 9px 8px; border: 2px solid #9b6cff; border-radius: 12px; background: linear-gradient(90deg, rgba(155, 108, 255, .26), rgba(155, 108, 255, .06)); box-shadow: 0 0 12px rgba(155, 108, 255, .5); }

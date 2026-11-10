@@ -179,7 +179,9 @@ const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) 
    l'epee en panoplie et avoir une coiffe legendaire, ou mettre l'arme legendaire et avoir le 6/6 tout de meme ; pas de 7/7 », Mathieu) : 7 emplacements, 6 pieces au plus */
 const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && o.pano != null) c[o.pano] = Math.min(EMPLACEMENTS.length, (c[o.pano] || 0) + 1); }); return c; };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
-const blocPano = (k, n) => '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div></div>';
+/* (10/11/2026, « en bas a droite, le total des bonus cumules d'une pano », Mathieu : sous les paliers, la somme de ceux qui sont actifs ; voir : un bouton vers la fiche de la panoplie, dans la fiche du perso) */
+const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
+  (Object.keys(tot).length ? '<div class="pano-total"><b>Total actif</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
 function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });

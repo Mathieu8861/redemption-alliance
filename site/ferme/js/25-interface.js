@@ -510,8 +510,27 @@ function ouvrirBananier(p) {
   ouvrirModale('bananier', entete('Ton bananier') + '<div class="art">' + ico(c.id) + '<div><b>' + (premier ? 'Il grandit encore' : 'Un nouveau régime mûrit') + '</b><div class="desc">' + (premier ? 'Son premier régime' : 'Le prochain régime') + ' dans ' + dureeLisible(reste) + '. Ensuite, il reste en place et redonne un régime de ' + c.rendement + ' ' + c.nom + 's toutes les ' + dureeLisible(d * (1 - c.arbre)) + '.</div></div></div>' +
     '<p class="hdv-aide">Un Bananagrume se mange avant un combat : ' + c.mange.txt + '.</p><div class="act-bas"><button class="btn discret" data-arracher="' + p.id + '">Arracher le bananier</button><button class="btn kamas" data-fermer>OK</button></div>');
 }
+/* LA FICHE D'UNE PANOPLIE (10/11/2026, « quand on clique sur un item d'une panoplie, qu'on ait un bouton panoplie associee », Mathieu) : dans la fiche du perso, a la
+   place du detail de la piece : ses six pieces et l'arme de ta classe (portee, dans le sac ou a trouver ; on touche une piece qu'on a pour la voir), ses bonus par
+   palier avec leur total actif, et ou elle tombe. On y entre par « Voir la panoplie » (sur une piece, ou sous une panoplie portee), on en sort par « Retour » ou
+   en touchant une piece. */
+let persoPano = null;
+function fichePano(k, sacL) {
+  const P = PANOS[k], ar = ARMES[classeDe()], n = comptePanos()[k] || 0, rang = rangPano(k), base = rang * VAGUES_PALIER;
+  const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e).concat(ar && OBJETS['arme-' + ar[0] + '-' + P.id] ? ['arme-' + ar[0] + '-' + P.id] : []);
+  const lignes = ids.map((id) => { const o = OBJETS[id]; if (!o) return ''; const meme = (x) => { const b = baseObjet(x); return b === id || b === id + '-rare'; };
+    const porte = Object.values(S_.equip).find((x) => x && meme(x)), auSac = sacL.filter(meme).sort((x, y) => qualiteJet(y) - qualiteJet(x)), cle = porte || auSac[0];
+    const etat = porte ? '<span class="puce bonne">✓ portée</span>' : auSac.length ? '<span class="puce or">dans ton sac' + (auSac.length > 1 ? ' ×' + auSac.length : '') + '</span>' : '<span class="puce">à trouver</span>';
+    return '<button class="fp-pp' + (cle ? '' : ' absent') + '"' + (cle ? ' data-fp-sel="' + cle + '"' : ' disabled') + '><img src="assets/icones/' + iconeObjet(cle || id) + '.png?v=' + VERSION_MODELES + '" alt=""><span><b>' + o.nom + ' ' + etat + '</b><span class="puces">' + statsFourchette(o) + '</span></span></button>'; }).join('');
+  const qui = Object.values(MONSTRES).filter((M) => M.pano === P.id && !M.boss).map((M) => M.nom), vagues = 'des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER);
+  const ou = (qui.length ? 'Ses pièces tombent sur ' + [...new Set(qui)].join(', ') + ' (' + vagues.replace('des ', '') + ').' : 'Ses pièces tombent sur les monstres ' + vagues + '.') + (ids.length > EMPLACEMENTS.length ? ' L\'arme tombe sur le boss seulement, et compte comme une pièce (6 au plus).' : '');
+  return '<div class="fp-bloc fp-detail"><div class="fp-entete"><span class="fp-grosse"><img src="assets/icones/' + iconeObjet(ids[0]) + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><div class="fp-nom">Panoplie ' + P.de + '</div><div class="fp-pils"><span class="fp-pil">niveau ' + OBJETS[ids[0]].niv + '</span><span class="fp-pil' + (n ? ' porte' : '') + '">' + n + '/6 pièces portées</span></div></div></div>' +
+    '<div class="fp-pp-liste">' + lignes + '</div>' + blocPano(k, n) + '<p class="fp-aide">' + ou + ' Chaque pièce a ses propres stats, tirées dans la fourchette indiquée.</p>' +
+    '<div class="fp-actions"><button class="btn discret" data-fp-pano="">Retour</button></div></div>';
+}
 function ouvrirPerso(sel) {
-  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; }
+  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; persoPano = null; }
+  if (sel) persoPano = null;
   const dansSac = (k) => S_.sac[k] > 0 && obj(k), sacL = Object.keys(S_.sac).filter(dansSac), equipe = (k) => Object.values(S_.equip).includes(k);
   if (sel && NOMS_EMP[sel]) { persoSel = S_.equip[sel] || sacL.filter((k) => obj(k).emp === sel).sort((x, y) => qualiteJet(y) - qualiteJet(x))[0] || null; } /* un emplacement */
   else if (sel) persoSel = sel; /* une piece */
@@ -572,7 +591,7 @@ function ouvrirPerso(sel) {
     const nr = runes(), maxi = qj >= 0.999, aRunes = nr.forge > 0 || nr.parfaite > 0; /* la forgemagie : elle se fait a l'atelier (le lien est ici) */
     const forge = (niv('forge') || aRunes || niveau(S_.xp) >= NIV_ARENE) ? '<div class="fp-forge"><span class="fp-forge-t">Forgemagie</span><small>' + (maxi ? 'Jet maximum.' : niv('forge') ? 'Tes runes : ' + (nr.forge || 0) + ' de forgemagie, ' + (nr.parfaite || 0) + ' parfaite' + ((nr.parfaite || 0) > 1 ? 's' : '') + '.' : 'Construis l\'atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas) pour utiliser tes runes.') + '</small>' + (niv('forge') && !maxi ? '<button class="btn mini kamas" data-ouvrir-forge>À l\'atelier</button>' : '') + '</div>' : '';
     const pano = !o.leg && o.pano != null ? (() => { const n0 = comptePanos()[o.pano] || 0, n1 = porteeIci ? n0 : n0 + (q && q.pano === o.pano && !q.leg ? 0 : 1);
-      return '<div class="fp-pano">Panoplie ' + PANOS[o.pano].de + ' : ' + (porteeIci ? n0 + '/6 pièces portées.' : 'tu passes à ' + Math.min(6, n1) + '/6 pièces.') + (o.arme ? ' L\'arme compte comme une pièce : elle peut en remplacer une (6 au plus).' : '') + ((P) => P ? ' À ' + P[0] + ' : ' + texteBonus(bonusPalier(P[1], o.pano, false, P[0])) + '.' : ' Panoplie complète !')(paliersDe(o.pano).find(([m]) => m > n1)) + '</div>'; })() : '';
+      return '<div class="fp-pano">Panoplie ' + PANOS[o.pano].de + ' : ' + (porteeIci ? n0 + '/6 pièces portées.' : 'tu passes à ' + Math.min(6, n1) + '/6 pièces.') + (o.arme ? ' L\'arme compte comme une pièce : elle peut en remplacer une (6 au plus).' : '') + ((P) => P ? ' À ' + P[0] + ' : ' + texteBonus(bonusPalier(P[1], o.pano, false, P[0])) + '.' : ' Panoplie complète !')(paliersDe(o.pano).find(([m]) => m > n1)) + '<button class="btn mini discret" data-fp-pano="' + o.pano + '">Voir la panoplie</button></div>'; })() : '';
     const raison = !cmp.ok ? (o.classe && o.classe !== classeDe() ? 'Arme du ' + nomClasse(o.classe) + ' : tu peux seulement la revendre.' : 'Il faut le niveau ' + o.niv + ' pour la porter.') : '';
     const actions = porteeIci ? '<div class="fp-actions"><button class="btn discret" data-retirer="' + o.emp + '">Retirer</button></div><p class="fp-aide">Touche une pièce du sac pour la comparer à celle-ci.</p>'
       : '<div class="fp-actions"><button class="btn kamas fp-principal" data-equiper="' + k + '"' + (cmp.ok ? '' : ' disabled') + '>Équiper</button><button class="btn discret" data-revendre-objet="' + k + '">Revendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button></div>' +
@@ -580,6 +599,7 @@ function ouvrirPerso(sel) {
     milieu = '<div class="fp-bloc fp-detail"><div class="fp-entete"><span class="fp-grosse' + (o.rare ? ' rare' : '') + (o.leg ? ' leg' : '') + '"><img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><div class="fp-nom">' + o.nom + '</div><div class="fp-pils">' + pils + '</div></div></div>' +
       jet + forge + table + (o.pouvoir ? '<div class="fp-pouvoir">✦ ' + o.pouvoir + '</div>' : '') + pano + actions + '</div>';
   }
+  if (persoPano != null && PANOS[persoPano]) milieu = fichePano(persoPano, sacL);
   /* a droite : le sac en cases, et les panoplies */
   const presents = EMPLACEMENTS_PERSO.map(([e]) => e).filter((e) => sacL.some((k) => obj(k).emp === e));
   if (persoFiltre !== 'tout' && !presents.includes(persoFiltre) && !NOMS_EMP[persoFiltre]) persoFiltre = 'tout';
@@ -589,7 +609,7 @@ function ouvrirPerso(sel) {
   const panos = Object.entries(comptePanos()); const droite = '<div class="fp-bloc"><h3>Sac <small>' + sacL.length + ' pièce' + (sacL.length > 1 ? 's' : '') + '</small></h3>' +
     '<div class="fp-filtres">' + [['tout', 'Tout', sacL.length]].concat(presents.map((e) => [e, PLURIELS_EMP[e], sacL.filter((k) => obj(k).emp === e).length])).map(([f, t, n]) => '<button data-fp-filtre="' + f + '" aria-pressed="' + (persoFiltre === f) + '">' + t + ' <small>' + n + '</small></button>').join('') + '</div>' +
     blocRunes() + '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">Up</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +
-    (panos.length ? '<h4>Panoplies portées</h4>' + panos.map(([kk, n]) => blocPano(+kk, n)).join('') : '') + '</div>';
+    (panos.length ? '<h4>Panoplies portées</h4>' + panos.map(([kk, n]) => blocPano(+kk, n, true)).join('') + (() => { const T = {}; let nb = 0; panos.forEach(([kk, n]) => { const b = bonusPano(+kk, n); if (Object.keys(b).length) nb++; Object.entries(b).forEach(([c0, v]) => { T[c0] = (T[c0] || 0) + v; }); }); return nb > 1 ? '<div class="pano-bonus"><b>Total de tes panoplies</b><div class="pano-total seul">' + texteBonus(T) + '</div></div>' : ''; })() : '') + '</div>'; /* (le total de toutes les panoplies portees, des qu'il y en a deux qui donnent un bonus) */
   ouvrirModale('perso', tete + '<div class="fp-corps">' + gauche + milieu + droite + '</div>');
 }
 function ouvrirTofu(p, sauvage) {
@@ -741,6 +761,7 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-objectifs') { S_.objCache = !S_.objCache; rendreObjectif(); fermerModale(); }
   else if (b.id === 'b-perso') ouvrirPerso();
   else if (b.dataset.slot) ouvrirPerso(b.getAttribute('aria-pressed') === 'true' ? null : b.dataset.slot);
+  else if (b.dataset.fpPano != null) { persoPano = b.dataset.fpPano === '' ? null : +b.dataset.fpPano; ouvrirPerso(); }
   else if (b.dataset.fpSel) ouvrirPerso(b.dataset.fpSel);
   else if (b.dataset.fpSlot) { const k = S_.equip[b.dataset.fpSlot]; persoFiltre = 'tout'; persoEmp = b.dataset.fpSlot; ouvrirPerso(k || b.dataset.fpSlot); }
   else if (b.dataset.fpFiltre) { persoFiltre = b.dataset.fpFiltre; persoEmp = null; ouvrirPerso(); }
