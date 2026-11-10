@@ -191,9 +191,14 @@ const compoVague0 = (n) => { const L = compoBase(n), h = (n - 1) % VAGUES_PALIER
 /* « je rajouterais bien 1 mob par vague, sauf sur le premier palier : on laisse le debutant se faire au jeu » (Mathieu, 13/10/2026) : des la vague 11, un monstre
    de base de plus (le plus nombreux de la vague, jamais un boss). Il ne compte pas dans le lissage des renforts (forceBrute) : sinon ses PV seraient repris aux autres */
 const MOBS_EN_PLUS = 1;
+/* (11/11/2026, « tu peux mettre 28 mobs a la vague 91, et rajoutes-en 4 pour le Iop a chaque vague », Mathieu, qui a passe la 91 en Iop a 33 monstres mais pas en Cra) :
+   la foret (vagues 91 a 100) : un monstre de plus a la 91, et quatre de plus a chaque vague quand le perso est un Iop */
+const PLUS_FORET = { 91: 1 }, PLUS_IOP_FORET = 4, iopEnJeu = () => { try { return !!S_ && !!S_.perso && classeDe() === 'iop'; } catch (e) { return false; } }; /* (avant le chargement de la partie : non) */
 const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_MAX) return L;
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && !MONSTRES[t].unique && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS;
-  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique) y[1] = Math.round(y[1] * x); }); return ajusterCompo(n, plancherTireurs(n, plafonnerTireurs(L))).map((y) => (MONSTRES[y[0]].unique ? [y[0], Math.min(1, y[1])] : y)); }; /* (unique : un seul par vague, le Semeur, 08/11/2026) */
+  const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique) y[1] = Math.round(y[1] * x); });
+  if (n > 9 * VAGUES_PALIER && n <= VAGUES_MAX) { let plus = (PLUS_FORET[n] || 0) + (iopEnJeu() ? PLUS_IOP_FORET : 0); const M = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique); for (let j = 0; plus > 0 && M.length; j++, plus--) M[j % M.length][1]++; } /* (la foret : les monstres en plus, repartis sur la troupe) */
+  return ajusterCompo(n, plancherTireurs(n, plafonnerTireurs(L))).map((y) => (MONSTRES[y[0]].unique ? [y[0], Math.min(1, y[1])] : y)); }; /* (unique : un seul par vague, le Semeur, 08/11/2026) */
 /* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
    jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
 const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout entre 60 et 65 % », Mathieu : les vagues 81 a 85 tombent a 62 %) */
