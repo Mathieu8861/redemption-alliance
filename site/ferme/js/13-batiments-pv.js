@@ -143,6 +143,7 @@ function blesserBat(cle, n) {
   if (!S_ || enRuine(cle)) return; if (combat && combat.bouclierBat) n *= 1 - combat.bouclierBat; /* (le bouclier de carapace pose avant la vague, 10/11/2026) */ n = Math.max(1, Math.round(n)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
   const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
   if (z) { const bx = boiteBat(z); chiffre('-' + n, new T.Vector3(z.x, bx.max.y + 0.2, z.z), 'bat'); }
+  if (combat && combat.ecailles) combat.ecailles.coup[cle] = 0.35; /* (ses ecailles s'eclairent, poserEcailles) */
   if (combat) { combat.bats = combat.bats || {}; combat.bats[cle] = (combat.bats[cle] || 0) + n; if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); } }
   if (b.deg >= max) { b.ruine = true; if (z) { pouf(z.x, z.y, z.z, 4, '#8e8a85'); pouf(z.x, z.y, z.z, 2.5, '#ff7a1e'); } toast(Maj(nomBat(cle)) + ' s\'effondre en ruine ! ' + PERTE_RUINE[typeCle(cle)] + ' Reconstruis-le après la vague.', 'alerte'); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); }
   majFeu(cle); majBarresBat();
@@ -161,6 +162,30 @@ function cibleBatiment(mo, dt) {
   if (!mo.bat) return null;
   const z = zoneBat(mo.bat); if (!z) { mo.bat = null; return null; }
   return { cle: mo.bat, x: borne(mo.x, z.x - z.hw, z.x + z.hw), z: borne(mo.z, z.z - z.hd, z.z + z.hd), y: z.y };
+}
+/* LES ECAILLES DU BOUCLIER DE CARAPACE (10/11/2026, « est-ce qu'on verra quelque chose sur ou autour du chateau ? », Mathieu) : tant que la vague dure, des
+   ecailles de tortue bleues (l'hexagone de la ressource) tournent lentement autour de chaque batiment protege, a hauteur de mur, serrees contre lui (un carre
+   aux coins arrondis, pas un grand cercle qui deborderait sur les cases voisines). Un batiment touche : ses ecailles s'eclairent et s'ecartent un instant.
+   Un batiment en ruine perd les siennes. Rien de plus gros : le dome anti-VSA genait deja pendant les vagues. */
+let GEO_ECAILLE = null;
+function poserEcailles(c0) {
+  if (!GEO_ECAILLE) { const a = new T.CylinderGeometry(0.56, 0.56, 0.09, 6), b = new T.CylinderGeometry(0.32, 0.32, 0.13, 6); [a, b].forEach((g) => { g.rotateX(Math.PI / 2); g.rotateZ(Math.PI / 6); }); GEO_ECAILLE = [a, b]; } /* (l'hexagone debout, face vers l'exterieur, et son coeur plus clair) */
+  const racine = new T.Group(), L = []; c0.ecailles = { coup: {} };
+  clesBats().forEach((k) => { if (enRuine(k)) return; const z = zoneBat(k); if (!z) return;
+    const m1 = mat('#2f66dc', { transparent: true, opacity: 0.92, emissive: '#1b46c0', emissiveIntensity: 0.9 }), m2 = mat('#8cc0ff', { transparent: true, opacity: 0.95, emissive: '#5aa2ff', emissiveIntensity: 1.1 }), hw = z.hw + 0.7, hd = z.hd + 0.7, n = Math.max(4, Math.min(16, Math.round((hw + hd) * 2 / 2.2))); /* (elles luisent : la nuit de la foret les eteignait) */
+    const haut = Math.max(1.0, Math.min(2.4, (boiteBat(z).max.y - z.y) * 0.42)); /* (a mi-mur : 1 pour un petit batiment, 2,4 pour le chateau) */
+    const P = []; for (let i = 0; i < n; i++) { const g = new T.Group(), e = new T.Mesh(GEO_ECAILLE[0], m1), c = new T.Mesh(GEO_ECAILLE[1], m2); c.position.z = 0.04; g.add(e, c); racine.add(g); P.push(g); }
+    L.push({ k, z, hw, hd, P, m1, m2, n, haut, taille: z.hw < 0.8 ? 0.6 : z.hw < 2 ? 0.8 : 1 }); });
+  sansClic(racine); scene.add(racine); let t = 0, fin = 0;
+  const C0 = new T.Color('#2f66dc'), C1 = new T.Color('#8cc0ff'), BL = new T.Color('#ffffff');
+  effets.push((dt) => { t += dt; const vivant = combat === c0 && !c0.fin; if (!vivant) fin += dt; if (fin > 0.6) { racine.traverse((o) => { if (o.isMesh) o.material.dispose(); }); scene.remove(racine); return true; }
+    const monte = Math.min(1, t / 0.9) * (1 - fin / 0.6), E = c0.ecailles;
+    L.forEach((b) => { const ruine = enRuine(b.k), coup = Math.max(0, (E.coup[b.k] || 0) - dt); E.coup[b.k] = coup; const kc = coup / 0.35;
+      b.m1.color.copy(C0).lerp(BL, kc * 0.7); b.m2.color.copy(C1).lerp(BL, kc * 0.8); b.m1.opacity = 0.92 * monte; b.m2.opacity = 0.95 * monte;
+      b.P.forEach((g, i) => { g.visible = !ruine && monte > 0.02; if (!g.visible) return;
+        const a = t * 0.35 + i / b.n * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), ex = 0.55, ux = Math.sign(ca) * Math.pow(Math.abs(ca), ex), uz = Math.sign(sa) * Math.pow(Math.abs(sa), ex), ec = 1 + 0.12 * kc;
+        g.position.set(b.z.x + ux * b.hw * ec, b.z.y + 0.2 + (b.haut - 0.2) * monte + Math.sin(t * 1.3 + i * 1.7) * 0.1, b.z.z + uz * b.hd * ec); g.rotation.y = Math.atan2(ux * b.hd, uz * b.hw); g.scale.setScalar(b.taille * (0.4 + 0.6 * monte) * (1 + 0.25 * kc)); }); });
+    return false; });
 }
 /* la fenetre : reparer ou reconstruire */
 function artPv(cle) {

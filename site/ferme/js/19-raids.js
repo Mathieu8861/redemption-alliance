@@ -62,10 +62,12 @@ function majBouclier(dt, s) { /* le dome autour de la grange, tant que le boucli
   if (S_.bouclierVsa && Date.now() >= S_.bouclierVsa) { S_.bouclierVsa = 0; toast('Ton bouclier anti-VSA s\'est éteint : les voleurs de VSA peuvent revenir.', 'alerte'); sauver(); }
   if (!bouclierActif()) { if (domeBouclier) { jeter(domeBouclier); domeBouclier = null; } return; }
   if (!domeBouclier) domeBouclier = creerDome();
-  const D = domeBouclier, u = D.userData; u.t -= dt; u.f = Math.min(1, u.f + dt / 1.2); /* (il se leve en 1,2 s) */
-  if (u.t <= 0) { u.t = 1; const G = S_.cases.filter((c) => c.type === 'grange').map(posCase); D.visible = G.length > 0 && lieu === 'ferme';
+  const D = domeBouclier, u = D.userData, enVague = !!combat && !combat.raid; u.t -= dt; u.f = enVague ? Math.max(0, u.f - dt / 0.5) : Math.min(1, u.f + dt / 1.2); /* (il se leve en 1,2 s) */
+  /* (10/11/2026, « pendant les vagues contre des monstres, retire l'aspect visuel du bouclier simu, c'est chiant, c'est la pour rien », Mathieu : il s'efface en une demi-seconde au debut de la vague et revient apres ; il protege toujours des voleurs de VSA) */
+  if (u.t <= 0) { u.t = 1; const G = S_.cases.filter((c) => c.type === 'grange').map(posCase); u.vu = G.length > 0 && lieu === 'ferme';
     if (G.length) { const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length; u.R = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 1.0 * S; /* (plus pres du batiment, 07/11/2026 ; 1,4 case avant) */
       D.position.set(x, solA(x, z), z); D.children[0].scale.set(u.R, u.R * 1.15, u.R); /* (plus haut que large : serre au sol, il couvre la fleche de la grande tour) */ u.runes.scale.setScalar(u.R); u.halo.scale.setScalar(u.R); } }
+  D.visible = !!u.vu && u.f > 0.01;
   u.mat.uniforms.uT.value = s; u.mat.uniforms.uF.value = u.f; u.runes.rotation.z = s * 0.12; u.runes.material.opacity = (0.5 + 0.08 * Math.sin(s * 0.9)) * u.f; u.halo.material.opacity = (0.45 + 0.08 * Math.sin(s * 1.1 + 1)) * u.f; /* (des pulsations douces, 07/11/2026 : « ca clignote un peu trop de partout ») */
   if (D.visible && (u.etin += dt) > 0.3) { u.etin = 0; const a = Math.random() * Math.PI * 2, h = Math.random() * 0.85, rr = u.R * Math.sqrt(1 - h * h); /* (des etincelles qui montent le long du dome) */
     emettre(FX_LUM, 1, { x: D.position.x + Math.cos(a) * rr, y: D.position.y + h * u.R * 0.9, z: D.position.z + Math.sin(a) * rr, v: [0, 0.7, 0], vie: [1.2, 2.0], taille: [0.2, 0.03], c: [Math.random() < 0.5 ? '#bdf3ff' : '#d4c2ff', '#7a8cff'], a: 0.5, entree: 0.4 }); }

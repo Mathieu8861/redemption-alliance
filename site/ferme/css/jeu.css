@@ -934,6 +934,9 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .pv-bat .b { display: block; width: 52px; height: 8px; border: 1.5px solid var(--bord); border-radius: 99px; background: #3a3c42; overflow: hidden; }
 .pv-bat .b i { display: block; height: 100%; transition: width .2s; }
 .pv-bat.ruine { background: var(--rouge); color: #fff; }
+/* (10/11/2026, « agrandis un peu la visibilite de la barre de vie du chateau », Mathieu : la grange, plus grande que les autres, et presque a sa taille en combat) */
+.pv-bat[data-bat="grange"] { font-size: .8rem; padding: 3px 11px 3px 4px; border-width: 3px; z-index: 1; } .pv-bat[data-bat="grange"] img { width: 23px; height: 23px; } .pv-bat[data-bat="grange"] .b { width: 92px; height: 11px; border-width: 2px; }
+.hud.en-combat .pv-bat[data-bat="grange"] { transform: translate(-50%, -100%) scale(.9); opacity: 1; } .hud.en-combat .pv-bat[data-bat="grange"] .b { width: 92px; }
 .pv-bat.bouclier { border-color: #6fd0c4; box-shadow: 0 2px 0 var(--bord), 0 0 0 2px rgba(111, 208, 196, .45); } /* (le bouclier de carapace pose avant la vague, 10/11/2026) */
 .hud.en-combat .pv-bat { pointer-events: none; transform: translate(-50%, -100%) scale(.55); transform-origin: 50% 100%; opacity: .8; } /* (03/11/2026, « en combat, les notifications devraient etre beaucoup plus petites, et revenir normales apres », Mathieu : la barre, en petit et transparente aux clics) */
 .hud.en-combat .pv-bat img { display: none; } .hud.en-combat .pv-bat .b { width: 40px; }

@@ -223,7 +223,7 @@ const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il
   /* LE BOUCLIER DE CARAPACE (10/11/2026, « avec les carapaces de tortue et les branches d'eucalyptus, on peut faire un bouclier pour les vagues qui rajoute 20 % de
      tankiness a notre base ; un consommable, comme les carreaux, pour la base ; il faut 10 ecailles de tortue et 5 branches d'eucalyptus », Mathieu) : fabrique ici,
      pose avant une vague (la colonne Defense, avantBataille) ; pendant cette vague, les batiments prennent BOUCLIER_BASE de degats en moins (blesserBat) */
-  { id: 'bouclier', nom: 'Bouclier de carapace', donne: 1, stock: 'boucliers', il: [['ecaille_tortue', 10], ['kaliptus', 5]], ico: 'bouclier-carapace',
+  { id: 'bouclier', nom: 'Bouclier de carapace', donne: 1, stock: 'boucliers', il: [['ecaille_tortue', 10], ['kaliptus', 5]], ico: 'bouclier-ecailles', /* (l'icone B, choisie par Mathieu le 10/11/2026) */
     desc: 'Un consommable pour ta base : pose-le avant une vague (fenêtre Vagues, colonne Défense), et tes bâtiments prennent 20 % de dégâts en moins pendant toute cette vague. Un bouclier par vague.' }];
 const BOUCLIER_BASE = 0.2, bouclierPret = () => { const r = S_.bouclierPose ? BOUCLIER_BASE : 0; S_.bouclierPose = false; return r; }; /* (pose avant la vague : il part avec elle) */
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
