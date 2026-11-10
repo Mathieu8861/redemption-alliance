@@ -1620,8 +1620,10 @@ function capJet(mo, ctx) {
 function capFaille(mo, ctx) {
   const { pp, sortPret } = ctx, F = mo.d.faille; if (!F || mo.ancre || combat.deroute != null) return;
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('failleT', F.periode)) return; /* (31/10/2026, par Discord, « la faille, ca te touche peu importe ou tu es et ou est le Craqueleur, faut esquiver, pas de portee minimum », Mathieu : plus de portee mini ni maxi, elle court jusqu'a toi et un peu au-dela) */
-  mo.failleT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x + Math.sin(a) * 1.2, z0 = mo.z + Math.cos(a) * 1.2, L = Math.max(4, dP + 3), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L), prepa = 1.0;
+  mo.failleT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x + Math.sin(a) * 1.2, z0 = mo.z + Math.cos(a) * 1.2, L = Math.max(4, dP + 3), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L), prepa = F.poursuite ? 0.6 : 1.0;
   mo.ry = a; mo.bloqueT = prepa + 0.5; prepaSeisme(mo, mo.x, mo.z, 0.01, prepa);
+  if (F.poursuite) { if (!c0.poursuiteVu) { c0.poursuiteVu = true; toast(leNom(mo.d) + ' lance ses racines à ta poursuite : elles vont plus vite que toi mais tournent mal, esquive sur le côté au dernier moment !', 'alerte'); }
+    let tp = 0; effets.push((dt) => { tp += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return true; if (tp < prepa) return false; racinesPoursuite(mo, F); return true; }); return; }
   if (!c0.failleVu) { c0.failleVu = true; toast(leNom(mo.d) + (F.racines ? ' fait courir ses racines jusqu\'à toi : sors de la bande, elles jaillissent de lui vers toi !' : ' fend le sol jusqu\'à toi : sors de la bande, la faille éclate de lui vers toi !'), 'alerte'); }
   let touche = false; const dg = Math.max(1, Math.round(degSort(mo) * F.x));
   zoneDanger({ mo, x: x0, z: z0, x2: f.x, z2: f.z, larg: 1.6, duree: prepa, effet: () => {
@@ -1632,6 +1634,32 @@ function capFaille(mo, ctx) {
       else if (i % 2 === 0) { const r = new T.Mesh(new T.DodecahedronGeometry(0.3, 0), mat('#7d7468')); r.castShadow = true; fxVie(r, 0.7, (k) => { r.position.set(x + (k - 0.5) * 0.3, y + Math.sin(k * Math.PI) * 1.6, z); r.rotation.set(k * 8, k * 5, 0); }); }
       const p2 = paysanMesh.position; if (!touche && Math.hypot(p2.x - x, p2.z - z) < 1.1) { touche = true; blesserPerso(dg, mo); } }, i * 90); }
   } });
+}
+/* LES RACINES QUI TE POURSUIVENT (10/11/2026, « soit ca nous pourchasse, soit faut que ce soit moins simple a eviter comme c'est actuellement », Mathieu) : une butte
+   de terre et son cercle rouge partent de lui et filent vers toi (P.v unites par seconde, plus vite que toi), en braquant vers toi d'au plus P.tour radians par
+   seconde : on ne la distance pas, on l'esquive d'un pas de cote au dernier moment, puis elle fait demi-tour. Des racines jaillissent dans son sillage ; elle te
+   rattrape : ses degats (F.x fois ses sorts) et enracine P.colle s ; au bout de P.duree s, elle eclate sur place */
+function racinesPoursuite(mo, F) {
+  const c0 = combat, P = F.poursuite, dg = Math.max(1, Math.round(degSort(mo) * F.x)), p0 = paysanMesh.position;
+  let x = mo.x + Math.sin(mo.ry) * 1.4, z = mo.z + Math.cos(mo.ry) * 1.4, a = Math.atan2(p0.x - x, p0.z - z), t = 0, tr = 0, k = 0;
+  const g = new T.Group(), disque = new T.Mesh(new T.CircleGeometry(P.R, 28), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.3, depthWrite: false })),
+    bord = new T.Mesh(new T.RingGeometry(P.R - 0.12, P.R, 28), new T.MeshBasicMaterial({ color: '#e2413a', transparent: true, opacity: 0.95, depthWrite: false, side: T.DoubleSide }));
+  [disque, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 2; g.add(m); });
+  const butte = maille(new T.SphereGeometry(0.5, 9, 6), '#5a4030'); butte.scale.set(1, 0.35, 1); g.add(butte); scene.add(g);
+  const danger = { x, z, r: P.R }; (c0.dangers = c0.dangers || []).push(danger);
+  const fin = (touche) => { const y = solA(x, z); secousse(touche ? 0.3 : 0.15, 0.35); mottes(x, y, z, 10, 1.2); poussiere(x, y, z, 10, 1.2, '#8a6a48');
+    for (let i = 0; i < 5; i++) racineJaillit(x + Math.sin(i * 1.26) * 0.5, y, z + Math.cos(i * 1.26) * 0.5, i);
+    jeter(g); const j = c0.dangers ? c0.dangers.indexOf(danger) : -1; if (j >= 0) c0.dangers.splice(j, 1); };
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif') { jeter(g); const j = c0.dangers ? c0.dangers.indexOf(danger) : -1; if (j >= 0) c0.dangers.splice(j, 1); return true; }
+    t += dt; const pp = paysanMesh.position, d = Math.atan2(Math.sin(Math.atan2(pp.x - x, pp.z - z) - a), Math.cos(Math.atan2(pp.x - x, pp.z - z) - a));
+    a += Math.max(-P.tour * dt, Math.min(P.tour * dt, d)); const q = pointValide(x, z, x + Math.sin(a) * P.v * dt, z + Math.cos(a) * P.v * dt); x = q.x; z = q.z; danger.x = x; danger.z = z;
+    const y = solA(x, z); g.position.set(x, y + 0.06, z); butte.rotation.y += dt * 6;
+    if ((tr += dt) >= 0.1) { tr = 0; k++; mottes(x, y, z, 2, 0.5); poussiere(x, y, z, 2, 0.6, '#8a6a48'); racineJaillit(x - Math.sin(a) * 0.7, y, z - Math.cos(a) * 0.7, k); }
+    if (Math.hypot(pp.x - x, pp.z - z) < P.R) { blesserPerso(dg, mo); if (combat && !combat.fin) coller(P.colle || 0.6, 'Enraciné !'); fin(true); return true; }
+    if (t >= P.duree) { fin(false); return true; }
+    return false;
+  });
 }
 /* une racine du Chene Mou qui jaillit du sol, se dresse en se tordant et replonge (08/11/2026, ses racines en ligne) */
 function racineJaillit(x, y, z, i) {
@@ -2027,18 +2055,18 @@ function capBrassard(mo, ctx) { /* le coup de brassard de la Gorgouille (20/10/2
   const { dt, pp, sortPret } = ctx;
   if (!mo.d.brassard || mo.ancre || combat.deroute != null) return;
   if (!mo.viseB && Math.hypot(pp.x - mo.x, pp.z - mo.z) < Math.max(6, (mo.d.brassardR || 4.2) + 1) && sortPret('brassardT', mo.d.brassard)) {
-    mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = mo.d.brassardR || 4.2, OUV = 1.3, /* (brassardR : la Gorgouille, 5,2 depuis le 31/10/2026) */ c0 = combat; mo.ry = a; mo.bloqueT = ESQUIVE.brassard + 0.4;
+    mo.brassardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), R = mo.d.brassardR || 4.2, OUV = 1.3, /* (brassardR : la Gorgouille, 5,2 depuis le 31/10/2026) */ c0 = combat, ESQ = mo.d.brassardEsquive || ESQUIVE.brassard; /* (brassardEsquive : le Chene Mou, 1,2 s, 10/11/2026) */ mo.ry = a; mo.bloqueT = ESQ + 0.4;
     const c = new T.Mesh(new T.CircleGeometry(R, 24, Math.PI / 2 - OUV / 2, OUV), new T.MeshBasicMaterial({ color: COULEUR_CAC, transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide }));
     c.rotation.set(-Math.PI / 2, 0, a - Math.PI); c.position.set(mo.x, (mo.d.vol ? solA(mo.x, mo.z) : mo.m.position.y) + 0.07, mo.z); c.renderOrder = 2; scene.add(c);
     { const b = new T.Mesh(new T.RingGeometry(R - 0.16, R, 24, 1, Math.PI / 2 - OUV / 2, OUV), new T.MeshBasicMaterial({ color: COULEUR_CAC, transparent: true, opacity: 0.95, depthWrite: false, side: T.DoubleSide })); b.renderOrder = 2; c.add(b); } /* (un liseré vif au bout de l'arc, comme les cercles : l'arc seul etait pale, 05/11/2026) */ /* (au sol sous Crocabulia, qui vole : son arc flottait a 1,3 au-dessus, 03/11/2026) */
     if (mo.d.coupAile) mo.coupAile = { t: 0, cote: (mo.coteAile = -(mo.coteAile || -1)) }; /* (une aile puis l'autre, majMonstre) */
-    mo.viseB = { a, t: 0, c, R, OUV, x: mo.x, z: mo.z }; gesteSort(mo, gesteDe(mo, 'brassard', 'coup'), ESQUIVE.brassard); /* (un monstre a squelette arme son coup pendant que l'arc s'affiche, 28/10/2026) */
+    mo.viseB = { a, t: 0, c, R, OUV, x: mo.x, z: mo.z, esq: ESQ }; gesteSort(mo, gesteDe(mo, 'brassard', 'coup'), ESQ); /* (un monstre a squelette arme son coup pendant que l'arc s'affiche, 28/10/2026) */
     effets.push(() => { if (combat !== c0 || mo.etat !== 'actif' || !mo.viseB || mo.viseB.c !== c) { jeter(c); if (mo.viseB && mo.viseB.c === c) mo.viseB = null; return true; } }); /* (l'arc s'efface si elle tombe avant de frapper) */
     if (!combat.brassardVu) { combat.brassardVu = true; toast(leNom(mo.d) + ' ' + (mo.d.brassardNom || 'arme son brassard') + ' : sors de l\'arc bleu, sinon ' + (mo.d.fem ? 'elle' : 'il') + ' te repousse !', 'alerte'); }
   }
   const V = mo.viseB; if (!V) return;
   V.t += dt; V.c.material.opacity = 0.3 + 0.28 * Math.abs(Math.sin(V.t * 9));
-  if (V.t >= ESQUIVE.brassard) { mo.viseB = null; mo.frappe = 0.4; pouf(V.x + Math.sin(V.a) * 1.8, mo.m.position.y, V.z + Math.cos(V.a) * 1.8, 4, '#8e7a5e');
+  if (V.t >= (V.esq || ESQUIVE.brassard)) { mo.viseB = null; mo.frappe = 0.4; pouf(V.x + Math.sin(V.a) * 1.8, mo.m.position.y, V.z + Math.cos(V.a) * 1.8, 4, '#8e7a5e');
     const d = Math.hypot(pp.x - V.x, pp.z - V.z); let e = Math.atan2(pp.x - V.x, pp.z - V.z) - V.a; e = Math.atan2(Math.sin(e), Math.cos(e));
     if (mo.d.coupAile) { const y0 = solA(V.x, V.z); rafaleVent(V.x + Math.sin(V.a) * 3, y0, V.z + Math.cos(V.a) * 3, 1.6); flashLumiere(V.x + Math.sin(V.a) * 2.5, y0 + 2, V.z + Math.cos(V.a) * 2.5, '#ff8a2e', 2.2, 7, 0.35); secousse(0.05, 0.25); } /* (l'air balaye devant elle) */
     if (d < V.R && Math.abs(e) < V.OUV / 2) { blesserPerso(Math.max(1, Math.round(degSort(mo) * ((mo.d.sortsX || {}).brassard || 1))), mo); if (combat && !combat.fin && mo.d.repousse) repousserPerso(mo, mo.d.repousse); } }
@@ -2424,13 +2452,16 @@ function capEnracine(mo, ctx) {
     if (N.length) toast('Un nœud de racine tombe : ' + leNom(mo.d, true) + ' perd un morceau d\'écorce. Encore ' + N.length + ' !', 'or'); }
   if (R.phase !== 'enfonce') { if (R.phase === 'arrache' && !m0Anim(mo)) libererChene(mo); return; }
   if (R.t > 2.5 && R.liste.length && !N.length) { R.phase = 'arrache'; toast('Ses nœuds sont tombés : ' + leNom(mo.d, true) + ' s\'arrache du sol et marche sur toi !', 'alerte'); return; }
-  const A = N.filter((o) => o.etat === 'actif'); if ((R.pousse += ctx.dt) < E.pousse || !A.length) return; R.pousse = 0;
-  if (c0.monstres.filter((o) => o.pousseDe === mo.id && o.etat !== 'mort').length >= E.max) return;
-  const n = A[R.tour++ % A.length], types = R.tour % 3 === 0 ? ['arbreCollant'] : ['tronknyde']; /* (un monstre a la fois, 08/11/2026) */
-  types.forEach((ty) => { const a = Math.random() * Math.PI * 2, p = pointValide(n.x, n.z, n.x + Math.sin(a) * 1.9, n.z + Math.cos(a) * 1.9); cercleInvocation(p.x, solA(p.x, p.z), p.z, C_FORET);
+  /* (10/11/2026, « les noeuds invoquent pas tous des Tronknydes », Mathieu : chaque noeud fait pousser les siens toutes les E.pousse s, a tour de role ; E.max en vie au plus) */
+  const A = N.filter((o) => o.etat === 'actif'); if (!A.length) return; let place = E.max - c0.monstres.filter((o) => o.pousseDe === mo.id && o.etat !== 'mort').length;
+  A.forEach((nd, i) => { if (nd.pousseT == null) nd.pousseT = E.pousse - 3 - i * E.pousse / A.length; if ((nd.pousseT += ctx.dt) < E.pousse) return; if (place <= 0) { nd.pousseT = E.pousse - 1; return; }
+    nd.pousseT = 0; place--; R.tour++; pousserNoeud(mo, nd, R.tour % 3 === 0 ? 'arbreCollant' : 'tronknyde', c0); });
+  if (!c0.pousseVu && R.tour) { c0.pousseVu = true; toast('La forêt pousse autour des nœuds : des Tronknydes et des Arbres Collants en sortent tant qu\'ils vivent !', 'alerte'); }
+}
+function pousserNoeud(mo, n, ty, c0) { /* un monstre sort de terre pres d'un noeud */
+  [ty].forEach((ty) => { const a = Math.random() * Math.PI * 2, p = pointValide(n.x, n.z, n.x + Math.sin(a) * 1.9, n.z + Math.cos(a) * 1.9); cercleInvocation(p.x, solA(p.x, p.z), p.z, C_FORET);
     let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.8) return false; const y = solA(p.x, p.z); mottes(p.x, y, p.z, 6, 1); feuillesVolantes(p.x, y + 0.3, p.z, 0.5, 5);
       apparaitre(ty, { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.pousseDe = mo.id; } }); c0.total++; return true; }); }); /* (invoqueur : le Chene Mou, ils comptent avec ses Tronknydes une fois libre, 4 en tout) */
-  if (!c0.pousseVu) { c0.pousseVu = true; toast('La forêt pousse autour des nœuds : des Tronknydes et des Arbres Collants en sortent tant qu\'ils vivent !', 'alerte'); }
 }
 function sortirNoeuds(mo, c0, pp, n) { /* ses noeuds sortent de terre autour du perso (un cercle d'invocation, 0,9 s, puis le noeud) */
   const E = mo.d.enracine, a0 = Math.random() * Math.PI * 2, places = [];
@@ -2511,7 +2542,7 @@ function capTempete(mo, ctx) {
   const p = paysanMesh.position, n = mo.tempeteN = (mo.tempeteN || 0) + 1, a = Math.random() * Math.PI * 2, r = n % 2 ? 0 : 2 + Math.random() * 4, q = pointValide(p.x, p.z, p.x + Math.cos(a) * r, p.z + Math.sin(a) * r);
   const prepa = 1.1, y = solA(q.x, q.z); let t = 0, f = 0;
   zoneDanger({ mo, x: q.x, z: q.z, r: TP.R, duree: prepa, effet: (d) => { impactElement('feuille', q.x, q.z, TP.R); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * TP.x)), mo); } });
-  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= prepa) return true; if ((f += dt) >= 0.12) { f = 0; feuillesVolantes(q.x, y + 3.2 - t * 2.4, q.z, TP.R * 0.5, 3, true); } return false; });
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= prepa) return true; if ((f += dt) >= 0.1) { f = 0; feuillesVolantes(q.x, y + 3.2 - t * 2.4, q.z, TP.R * 0.6, 6, true); } return false; }); /* (plus de feuilles, 10/11/2026) */
 }
 /* LE REGARD DU CHENE, premiere version (09/11/2026, « le coup du rayon laser avec son oeil, j'aime beaucoup : qu'il fasse un 360 sur lui-meme et qu'il tire un rayon qui touche
    toute la map ; il faut se cacher derriere un batiment, sinon tu perds environ 1 500 PV », Mathieu) : il rugit, son oeil rouge enfle et la lumiere s'y engouffre
