@@ -778,6 +778,7 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-cas')) actionCasino(b);
   else if (b.hasAttribute('data-ardoise')) actionArdoise(b.dataset.ardoise);
   else if (b.dataset.arracher) ACTIONS.arracher(b.dataset.arracher); else if (b.dataset.arracherOk) ACTIONS.arracher(b.dataset.arracherOk, true); /* (le bananier, 03/11/2026) */
+  else if (b.hasAttribute('data-poser-bouclier')) { if ((S_.boucliers || 0) > 0 && !S_.bouclierPose) { S_.boucliers--; S_.bouclierPose = true; son('niveau'); toast('Bouclier de carapace posé : tes bâtiments prendront ' + Math.round(BOUCLIER_BASE * 100) + ' % de dégâts en moins pendant la prochaine vague.', 'or'); sauver(); } if (modaleOuverte === 'vagues') ouvrirVagues(); } /* (10/11/2026, l'atelier) */
   else if (b.hasAttribute('data-manger')) { const id = b.dataset.manger; if ((S_.grange[id] || 0) > 0 && !(S_.mange || {})[id]) { S_.grange[id]--; S_.mange = S_.mange || {}; S_.mange[id] = true; son('manger'); toast('Miam ! ' + PAR_ID[id].nom + ' : ' + PAR_ID[id].mange.txt + (modaleOuverte === 'arene' ? ' pendant toute ta partie d\'Arène.' : modaleOuverte === 'ileboss' ? ' pendant ton essai sur l\'île.' : ' pendant ta prochaine vague.'), 'or'); sauver(); rendreGrange(); rafraichirAvantCombat(); } }
   else if (b.id === 'b-sort') lancerSort();
   else if (b.id === 'b-ulti') lancerUlti();

@@ -125,7 +125,7 @@ function majBarresBat() {
     if (!degatsBat(k) && !enRuine(k)) return;
     let e = barresBat.get(k); if (!e) { e = document.createElement('div'); e.className = 'pv-bat'; e.dataset.bat = k; zone.appendChild(e); barresBat.set(k, e); e.addEventListener('click', () => { if (!combat && !enAccueil) ouvrirBatPv(k); }); }
     const r = pvBat(k) / pvMaxBat(k), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)';
-    e.classList.toggle('ruine', enRuine(k)); e.dataset.info = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
+    e.classList.toggle('ruine', enRuine(k)); e.classList.toggle('bouclier', !!(combat && combat.bouclierBat)); e.dataset.info = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
     e.innerHTML = '<img src="assets/icones/marteau.png?v=' + VERSION_MODELES + '" alt="">' + (enRuine(k) ? 'En ruine' : '<span class="b"><i style="width:' + (100 * r).toFixed(0) + '%;background:' + col + '"></i></span>' + fmt(pvBat(k)));
     const z = zoneBat(k); if (z) { const b = boiteBat(z); e._point = [z.x, enRuine(k) ? z.y + 1.1 : b.max.y + 0.3, z.z]; }
   });
@@ -140,7 +140,7 @@ const dpsBatiments = (n) => DPS_BATIMENT * Math.max(1, n);
 const degatsBatiment = (secondes, mo) => Math.max(1, Math.round(dpsBatiments(combat ? combat.n : S_.vague.num) * secondes * (mo ? facteurRejoue('deg', mo.type) : 1) * (mo && /^craq/.test(mo.type) ? 0.7 : 1))); /* (05/11/2026 : les Craqueleurs, -30 % sur les batiments) */
 /* un coup sur un batiment */
 function blesserBat(cle, n) {
-  if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
+  if (!S_ || enRuine(cle)) return; if (combat && combat.bouclierBat) n *= 1 - combat.bouclierBat; /* (le bouclier de carapace pose avant la vague, 10/11/2026) */ n = Math.max(1, Math.round(n)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
   const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
   if (z) { const bx = boiteBat(z); chiffre('-' + n, new T.Vector3(z.x, bx.max.y + 0.2, z.z), 'bat'); }
   if (combat) { combat.bats = combat.bats || {}; combat.bats[cle] = (combat.bats[cle] || 0) + n; if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); } }

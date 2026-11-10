@@ -216,7 +216,9 @@ function avantBataille() {
   const a = niv('arbalete'), cap = a ? capaciteArbalete() : 0;
   const defense = a ? ligne('arbalete', 'Arbalète de la grange', (S_.carreaux > 0 ? S_.carreaux + '/' + cap + ' chargée' + (rechargeAuto() ? ', se recharge seule' : '') : rechargeAuto() ? 'plus de flèches en réserve' : 'à recharger à la grange') + ', ' + degatsArbalete() + ' dégâts, ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : ''), '') + (a >= 6 ? blocAcier() : '')
     : '<p class="vg-vide">Pas encore d\'arbalète : elle se construit sur la grange (HDV, Améliorer).</p>';
-  return '<div class="hdv-section">Avant la bataille</div><div class="vg-trois"><div class="vg-col"><h4>Manger</h4>' + repas + '</div><div class="vg-col"><h4>Boire</h4>' + pots + '</div><div class="vg-col"><h4>Défense</h4>' + defense + '</div></div>';
+  /* (le bouclier de carapace, 10/11/2026 : fabrique a l'atelier, pose ici avant la vague, il part avec elle ; 03-equipements.js) */
+  const nB = S_.boucliers || 0, bouclier = nB || S_.bouclierPose || (niv('atelier') && !amelioCachee('atelier')) ? ligne('bouclier-carapace', 'Bouclier de carapace', 'tes bâtiments prennent ' + Math.round(BOUCLIER_BASE * 100) + ' % de dégâts en moins' + (S_.bouclierPose ? ', pendant cette vague' : ''), S_.bouclierPose ? '<b class="vg-ok">✓ Posé</b>' : nB ? '<button class="btn mini" data-poser-bouclier>Poser (' + fmt(nB) + ')</button>' : '<span class="vg-zero">0, à fabriquer à l\'atelier</span>', !!S_.bouclierPose) : '';
+  return '<div class="hdv-section">Avant la bataille</div><div class="vg-trois"><div class="vg-col"><h4>Manger</h4>' + repas + '</div><div class="vg-col"><h4>Boire</h4>' + pots + '</div><div class="vg-col"><h4>Défense</h4>' + defense + bouclier + '</div></div>';
 }
 /* l'onglet Refaire un boss : chaque boss battu en carte, Normal ou Difficile, sans defiler toute la fenetre (09/11/2026) */
 function ongletBoss(battus, repos) {
@@ -463,7 +465,8 @@ function lancerVague(pBoss, difficile, charges) {
   compoVague(n).forEach(([t, k]) => { for (let i = 0; i < k; i++) file.push(t); });
   file.sort(() => Math.random() - 0.5); file.sort((a, b) => (MONSTRES[a].boss ? 1 : 0) - (MONSTRES[b].boss ? 1 : 0)); /* le boss arrive en dernier */
   const groupe = multVague(n) > 1 ? Math.ceil(file.length / multVague(n)) : 0; /* (la horde de la Phase 2 : autant de monstres a la fois qu'avant, les autres en renfort, 04/11/2026) */
-  nouveauCombat('vague', { n, file, total: file.length, attente: 0.8, groupe, pv: vieActuelle(), ...potsDeVague(), rejoueBoss: rejoueB ? pBoss : null, difficile: rejoueB && !!difficile });
+  nouveauCombat('vague', { n, file, total: file.length, attente: 0.8, groupe, pv: vieActuelle(), ...potsDeVague(), bouclierBat: bouclierPret(), rejoueBoss: rejoueB ? pBoss : null, difficile: rejoueB && !!difficile });
+  if (combat.bouclierBat) setTimeout(() => toast('Bouclier de carapace posé : tes bâtiments prennent ' + Math.round(BOUCLIER_BASE * 100) + ' % de dégâts en moins pendant cette vague.', 'or'), 2200);
   combat.phases = (PHASES_BOSS[n] || []).map((p) => { const f = []; p.L.forEach(([t, k]) => { for (let i = 0; i < k; i++) f.push(t); }); f.sort(() => Math.random() - 0.5); return { nom: p.nom, f }; }); /* (la vague 70 : ses temps suivants) */
   if (rejoueB) { S_.bossRejoue = S_.bossRejoue || {}; S_.bossRejoue[pBoss] = jourJeu(); sauver(); }
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant la bataille : ' + texteRepas(repas) + ' pendant cette vague.', 'or'), 1200); }
