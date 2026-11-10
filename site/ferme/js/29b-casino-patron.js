@@ -162,7 +162,9 @@ async function entrerBureau() {
 }
 function accueilPatron() {
   if (!casinoBureau || !patronB) return; const P = etatPatron();
-  direPatron(P.gagne ? hasard(['Toi. Tu viens me narguer avec ma propre bague ?', 'Le joueur pro. Un cigare ? Non ? Tant pis.']) : (P.perdues || 0) > 0 ? hasard(['Revoilà mon paysan. Ponctuel. J\'aime ça.', 'Une revanche ? Assieds-toi.']) : 'Ah. Le paysan au million. Assieds-toi.', 4200);
+  direPatron(P.gagne ? pkTirer(['Toi. Tu viens me narguer avec ma propre bague ?', 'Le joueur pro. Un cigare ? Non ? Tant pis.', 'Encore toi. Tu ne me laisseras jamais oublier, hein ?', 'Elle te va bien, ma bague. Ça m\'énerve.', 'Je ne joue plus contre toi. Mais tu peux admirer le feu.'])
+    : (P.perdues || 0) > 0 ? pkTirer(['Revoilà mon paysan. Ponctuel. J\'aime ça.', 'Une revanche ? Assieds-toi.', 'Une semaine à t\'entraîner ? Montre-moi ça.', 'Tu reviens perdre ? J\'admire.', 'Ah. Le revenant. Les cartes t\'attendaient.'])
+      : pkTirer(['Ah. Le paysan au million. Assieds-toi.', 'Entre. Ferme derrière toi. On a à parler, toi et moi.', 'Alors c\'est toi, le paysan qui vide mes machines. Assieds-toi.']), 4200);
   if (!P.gagne) toast('Touche la table de poker pour t\'asseoir face à Doré III.');
 }
 function quitterBureau() {
@@ -201,6 +203,9 @@ function animerBureau(dt) { /* le patron respire, te suit des yeux, remue la que
     if (k >= 1) { bureauCasino.remove(f.m); f.m.geometry.dispose(); f.m.material.dispose(); fumeeB.splice(i, 1); } }
   if (feuB) { feuB.scale.y = 1 + Math.sin(t * 9) * 0.08 + Math.sin(t * 13.7) * 0.05; feuB.scale.x = 1 + Math.sin(t * 7.3) * 0.04; if (feuB.userData.lum) feuB.userData.lum.intensity = 1.05 + Math.sin(t * 11) * 0.12 + Math.sin(t * 17) * 0.08; }
   if (poissonsB) poissonsB.rotation.y = poissonsB.userData.r0.y + t * 0.55;
+  const K = poker; /* (tu tardes a jouer : il s'impatiente, toutes les 16 a 22 s) */
+  if (K && !K.fini && modaleOuverte === 'poker' && (K.phase === 'echange' || (K.phase === 'mise' && K.aParler === 'j')) && K.attente && now - K.attente > 16000) {
+    K.attente = now + Math.random() * 6000; const tx = pkTirer(PK_DIRE.attente); direPatron(tx, 2600); const d = document.querySelector('#carte .pk-dit'); if (d) d.innerHTML = '« ' + tx + ' »<small>Doré III</small>'; }
 }
 const _bout = new T.Vector3();
 function boufeeCigare() { /* une petite volute grise au bout du cigare, qui monte et s'efface */
@@ -269,36 +274,74 @@ function pkProba(K) { /* sa chance de gagner : il imagine des centaines de mains
   }
   return tot > 0 ? gagne / tot : 0.5;
 }
+/* SES REPLIQUES (10/11/2026, « rajoute-lui encore plein d'autres phrases, qu'il ne fasse pas que se repeter », Mathieu) : chaque moment a sa liste, et pkTirer
+   ne reprend jamais une phrase dite dans les 24 dernieres */
 const PK_DIRE = {
-  miser: ['Je mise.', 'Deux jetons. Pour voir.', 'Tu trembles ? Je mise.', 'Mise.'], parole: ['Parole.', 'Je passe.', 'À toi.'], relancer: ['Je relance.', 'Relance. Ta main tient le coup ?', 'Plus haut.'],
-  tapis: ['Tapis.', 'Tout. Maintenant.', 'Tapis. Montre-moi qui tu es.'], suivre: ['Je suis.', 'Je paie pour voir.', 'Montre.'], coucher: ['Garde-les. Je n\'en veux pas.', 'Je me couche. Profite.', 'Hm. Pas cette fois.'],
-  gagne: ['La maison gagne toujours.', 'Merci pour les jetons.', 'C\'est ça, le métier.'], perd: ['Hm. Joli.', 'Pas mal, paysan.', 'Profite. Ça ne dure jamais.'],
-  bluffReussi: ['Tu ne sauras jamais ce que j\'avais.', 'Sage décision. Ou pas.', 'Hé hé. Merci.'], couche: ['Prudent, le paysan.', 'Tu as bien fait. Peut-être.'],
-  bluffPris: ['Je le savais. Tu bluffes mal.', 'Trop facile. Je lis en toi comme dans un livre.', 'La prochaine fois, bluffe avec des cartes.'],
-  bluffRate: ['Hm. Tu as payé pour voir. Bien joué.', 'Tss. Une fois n\'est pas coutume.'], malchance: ['Impossible...', 'Avec ça ?! Tu as une chance insolente.', 'Ce paquet est truqué. Le mien, en plus.'],
-  grosPotB: ['Merci pour la contribution.', 'Le pot est à moi. Comme la bague.'], grosPotJ: ['...Joli coup.', 'Je m\'en souviendrai.'],
-  echange: [['Servi ? Tu me fais peur... ou pas.', 'Rien à changer ? Voyons ça.'], ['Une seule carte. Tu cherches une couleur ?', 'Une carte... Double paire, ou tu rêves d\'une quinte.'], ['Deux cartes. Un brelan, peut-être.'],
-    ['Trois cartes. Une petite paire, je parie.', 'Trois cartes. Je vois.'], ['Quatre cartes ? Ta main était si mauvaise ?', 'Tout changer... Courageux.'], ['Tout changer... Courageux.']] };
-const pkDire = (cle) => { const t = hasard(PK_DIRE[cle]); poker.ligne = t; direPatron(t, 2800); if (patronB && /miser|relancer|tapis|suivre/.test(cle)) patronB.geste = 0.9; return t; };
+  miser: ['Je mise.', 'Deux jetons. Pour voir.', 'Tu trembles ? Je mise.', 'Mise.', 'Deux. Et je ne cligne pas des yeux.', 'Allez, un peu de courage. Je mise.', 'Je mets deux jetons. Ta réponse ?',
+    'Mise. Le silence te va mal.', 'Deux jetons. C\'est cadeau.', 'On ne passe pas sa vie à passer. Je mise.', 'Deux jetons sur la table. Ils te regardent.', 'Je mise, et je savoure.'],
+  parole: ['Parole.', 'Je passe.', 'À toi.', 'Je te laisse parler.', 'Rien pour l\'instant.', 'Parole. Vas-y, surprends-moi.', 'Je regarde.', 'Hm. Parole.', 'Je passe. Pour l\'instant.', 'À toi de jouer, paysan.'],
+  relancer: ['Je relance.', 'Relance. Ta main tient le coup ?', 'Plus haut.', 'Et deux de plus.', 'Tu mises ? Je relance.', 'Relance. On va voir qui a froid aux yeux.', 'Petit joueur. Je relance.',
+    'Je monte. Suis si tu oses.', 'Mignon. Je relance.', 'Tu crois me faire peur ? Relance.'],
+  tapis: ['Tapis.', 'Tout. Maintenant.', 'Tapis. Montre-moi qui tu es.', 'Je pousse tout.', 'Tapis. C\'est l\'heure de vérité.', 'Tout sur la table. À toi de voir.', 'Tapis. Et je souris.',
+    'On arrête de jouer petit. Tapis.', 'Tout. Ma queue ne tremble pas, tu vois ?'],
+  suivre: ['Je suis.', 'Je paie pour voir.', 'Montre.', 'Je paie. Retourne tes cartes.', 'Suivi. Voyons ce que tu caches.', 'Je ne te crois pas. Je suis.', 'Ça m\'intrigue. Je paie.',
+    'D\'accord. Montre-moi ça.', 'Je paie. J\'adore les surprises.', 'Suivi. Ne me déçois pas.'],
+  coucher: ['Garde-les. Je n\'en veux pas.', 'Je me couche. Profite.', 'Hm. Pas cette fois.', 'Prends-les. Ça ne se reproduira pas.', 'Je jette. Tu as de la chance que je sois de bonne humeur.',
+    'Couché. Un bon joueur sait perdre petit.', 'Tss. Je passe mon tour.', 'Pas de ça. Je me couche.', 'Je te les laisse. Ne t\'y habitue pas.'],
+  gagne: ['La maison gagne toujours.', 'Merci pour les jetons.', 'C\'est ça, le métier.', 'Encore un pour moi.', 'Tu apprendras. Peut-être.', 'Mes jetons te disent au revoir. Enfin, les tiens.',
+    'Comme prévu.', 'Ne fais pas cette tête.', 'Je ramasse. Toujours un plaisir.', 'Joli effort. Inutile, mais joli.', 'Tu veux un mouchoir ? Minou en a au bar.', 'Et un de plus dans ma poche.'],
+  perd: ['Hm. Joli.', 'Pas mal, paysan.', 'Profite. Ça ne dure jamais.', 'Une main. Ça ne fait pas une partie.', 'Tiens. La chance des débutants.', 'Je te l\'ai laissée. Si, si.',
+    'Savoure. C\'est peut-être la dernière.', 'Bien joué. Je ne le dirai pas deux fois.', 'Ne t\'habitue pas.', 'Hm. Je note.', 'Range ces jetons, ils vont revenir.'],
+  bluffReussi: ['Tu ne sauras jamais ce que j\'avais.', 'Sage décision. Ou pas.', 'Hé hé. Merci.', 'Tu veux savoir ? Non. Jamais.', 'Tu as bien fait de te coucher. Ou très mal.',
+    'C\'est fou ce qu\'on peut gagner avec rien.', 'Un jour, je te dirai. Peut-être.'],
+  couche: ['Prudent, le paysan.', 'Tu as bien fait. Peut-être.', 'Sage. Ennuyeux, mais sage.', 'On a peur ?', 'Tu fuis déjà ?', 'Je prends ta mise, merci.', 'Couché ? Je m\'en souviendrai.'],
+  bluffPris: ['Je le savais. Tu bluffes mal.', 'Trop facile. Je lis en toi comme dans un livre.', 'La prochaine fois, bluffe avec des cartes.', 'Avec ça ? Tu me prends pour un Bouftou ?',
+    'Ton nez remue quand tu mens. Comme un Wabbit.', 'Joli bluff. Raté, mais joli.', 'On ne bluffe pas un chat, paysan.'],
+  bluffRate: ['Hm. Tu as payé pour voir. Bien joué.', 'Tss. Une fois n\'est pas coutume.', 'Tu m\'as eu. Profite, ça n\'arrive jamais.', 'Bon. Il fallait essayer.', 'Personne ne m\'a vu faire ça. Compris ?',
+    'Tu es plus têtu qu\'un Bouftou.'],
+  malchance: ['Impossible...', 'Avec ça ?! Tu as une chance insolente.', 'Ce paquet est truqué. Le mien, en plus.', 'Tu as tiré ça ? Sérieusement ?', 'Quelqu\'un a renversé du lait sur ma chance.',
+    'Je vais faire virer le croupier. Ah. C\'est moi.', 'La dernière carte... Évidemment.'],
+  grosPotB: ['Merci pour la contribution.', 'Le pot est à moi. Comme la bague.', 'Un beau pot. Il ira dans le coffre.', 'Ça, c\'est ce que j\'appelle une main.', 'Tu viens de financer ma prochaine statue.',
+    'Respire. Ce ne sont que des jetons. Les tiens.'],
+  grosPotJ: ['...Joli coup.', 'Je m\'en souviendrai.', 'Hm. Je n\'aime pas perdre autant.', 'Range ce sourire.', 'Ne crie pas victoire. Pas encore.', 'Tu viens de te faire un ennemi. Enfin, tu l\'avais déjà.'],
+  echange: [['Servi ? Tu me fais peur... ou pas.', 'Rien à changer ? Voyons ça.', 'Tu gardes tout. Courageux, ou menteur.', 'Servi. Hm. J\'ai déjà vu ce coup-là.'],
+    ['Une seule carte. Tu cherches une couleur ?', 'Une carte... Double paire, ou tu rêves d\'une quinte.', 'Une carte. Tu espères un miracle ?', 'Une seule. Je vois clair dans ton jeu.'],
+    ['Deux cartes. Un brelan, peut-être.', 'Deux cartes... Tu caches quelque chose.', 'Deux. Intéressant.'],
+    ['Trois cartes. Une petite paire, je parie.', 'Trois cartes. Je vois.', 'Trois. Une paire et beaucoup d\'espoir.', 'Trois cartes. Classique.'],
+    ['Quatre cartes ? Ta main était si mauvaise ?', 'Quatre cartes. Tu gardes un As, je parie.', 'Quatre ? Prie, paysan.'],
+    ['Tout changer... Courageux.', 'Cinq cartes ? Tu repars de zéro.', 'Tout jeter. C\'est presque touchant.']],
+  neutre: ['Main suivante.', 'Je distribue.', 'On continue.', 'Encore une.', 'Coupe.', 'Les cartes, s\'il te plaît. Merci.', 'Voyons ce que le paquet te réserve.', 'Nouvelle main, nouvelles larmes.'],
+  attente: ['Tic tac.', 'Je n\'ai pas toute la nuit.', 'Tu réfléchis, ou tu dors ?', 'Prends ton temps. Mes poissons vieillissent.', 'Même un Tofu jouerait plus vite.', 'Alors, paysan ?',
+    'Mon cigare va finir avant ta décision.', 'Je sens la peur d\'ici.', 'Tu comptes tes cartes ? Il y en a cinq.', 'Le feu s\'éteint. Joue.'],
+  serieJ: ['Trois mains de suite. Tu triches, ou quoi ?', 'Encore toi. Ça devient vexant.', 'Tu as volé la chance de quelqu\'un ?', 'Minou ! Vérifie ses manches.'],
+  serieB: ['La maison gagne toujours. Toujours.', 'Encore une ? Avec plaisir.', 'Tu veux qu\'on arrête ? Moi non.', 'Ça devient presque trop facile.'],
+  finMene: ['Dernière main. Je mène, et je compte bien le rester.', 'Dernière main. Prépare-toi à repasser dans une semaine.'],
+  finDerriere: ['Dernière main. Tout se joue maintenant.', 'Dernière main. Je ne perds jamais la dernière.'],
+  finEgal: ['Dernière main, à égalité. Enfin un peu de suspense.', 'Égalité, dernière main. Le destin a de l\'humour.'],
+  toiSec: ['Plus que {n}. Ta grange va pleurer.', 'Tu sens le vent tourner, paysan ?', 'Il te reste {n}. Je les compte avec toi ?', 'Bientôt à sec. Je t\'offrirai un cocktail.'],
+  luiSec: ['Ne t\'emballe pas. J\'ai déjà remonté pire.', 'Rien n\'est fini tant que j\'ai un jeton.', 'Hm. Je suis en train de te laisser espérer.', 'Un chat retombe toujours sur ses pattes.'],
+  meneFort: ['Tu veux que je te prête des jetons ?', 'Ma bague est bien au chaud.', 'Ça sent la fin, paysan.', 'Tu devrais garder tes kamas pour ta ferme.', 'Je commence à m\'ennuyer.', 'Déjà fini ? Dommage.'],
+  mene: ['Je mène. Comme d\'habitude.', 'Continue comme ça, ça me va très bien.', 'Tu joues pour moi, en fait.', 'Le vent souffle de mon côté.', 'Tout se passe comme prévu.', 'Hm. Tu progresses. Lentement.'],
+  perdFort: ['...', 'Tu commences à m\'agacer.', 'Personne ne me fait ça dans mon propre casino.', 'Filou va devoir m\'expliquer qui il a laissé entrer.', 'Je retiens ton visage.', 'Profite. Les murs ont des oreilles, ici.'],
+  perd2: ['Profite. La chance tourne vite, ici.', 'Hm. Tu as de la chance, ce soir.', 'Ne prends pas l\'habitude.', 'Un petit retard. Rien de grave.', 'Tu crois que ça va durer ?', 'Intéressant. Continue.'],
+  egal: ['Serré. J\'aime ça.', 'À égalité. Pas pour longtemps.', 'On s\'amuse enfin.', 'Ni toi ni moi. Pour l\'instant.', 'Un vrai duel. Ça faisait longtemps.', 'Égalité. Le tapis vert retient son souffle.'],
+  debut: ['Coupe. Je distribue.', 'Dix jetons chacun. Le premier à sec a perdu.', 'Que la meilleure main gagne. La mienne, donc.', 'Les cartes sont neuves. Pas ta chance.'],
+};
+const pkDits = [];
+function pkTirer(L) { const ok = L.filter((t) => !pkDits.includes(t)), t = hasard(ok.length ? ok : L); pkDits.push(t); if (pkDits.length > 24) pkDits.shift(); return t; }
+const pkDire = (cle) => { const t = pkTirer(PK_DIRE[cle]); poker.ligne = t; direPatron(t, 2800); if (patronB && /miser|relancer|tapis|suivre/.test(cle)) patronB.geste = 0.9; return t; };
 function pkSituation() { /* ce qu'il dit en distribuant, selon le score */
-  const K = poker, av = K.jetons.b - K.jetons.j, reste = MAINS_POKER - K.main;
-  if (K.serieJ >= 3) return 'Trois mains de suite. Tu triches, ou quoi ?';
-  if (K.serieB >= 3 && Math.random() < 0.5) return 'La maison gagne toujours. Toujours.';
-  if (reste === 0) return av > 0 ? 'Dernière main. Je mène, et je compte bien le rester.' : av < 0 ? 'Dernière main. Tout se joue maintenant.' : 'Dernière main, à égalité. Enfin un peu de suspense.';
-  if (K.jetons.j <= 3) return hasard(['Plus que ' + K.jetons.j + ' jeton' + (K.jetons.j > 1 ? 's' : '') + '. Ta grange va pleurer.', 'Tu sens le vent tourner, paysan ?']);
-  if (K.jetons.b <= 3) return hasard(['Ne t\'emballe pas. J\'ai déjà remonté pire.', 'Rien n\'est fini tant que j\'ai un jeton.']);
-  if (av >= 6) return hasard(['Tu veux que je te prête des jetons ?', 'Ma bague est bien au chaud.', 'Ça sent la fin, paysan.']);
-  if (av >= 2) return hasard(['Je mène. Comme d\'habitude.', 'Continue comme ça, ça me va très bien.', 'Tu joues pour moi, en fait.']);
-  if (av <= -6) return hasard(['...', 'Tu commences à m\'agacer.', 'Personne ne me fait ça dans mon propre casino.']);
-  if (av <= -2) return hasard(['Profite. La chance tourne vite, ici.', 'Hm. Tu as de la chance, ce soir.', 'Ne prends pas l\'habitude.']);
-  return hasard(['Serré. J\'aime ça.', 'À égalité. Pas pour longtemps.', 'On s\'amuse enfin.']);
+  const K = poker, av = K.jetons.b - K.jetons.j, reste = MAINS_POKER - K.main, D = PK_DIRE;
+  const L = K.serieJ >= 3 ? D.serieJ : K.serieB >= 3 && Math.random() < 0.5 ? D.serieB : reste === 0 ? (av > 0 ? D.finMene : av < 0 ? D.finDerriere : D.finEgal)
+    : K.jetons.j <= 3 ? D.toiSec : K.jetons.b <= 3 ? D.luiSec : av >= 6 ? D.meneFort : av >= 2 ? D.mene : av <= -6 ? D.perdFort : av <= -2 ? D.perd2 : D.egal;
+  return pkTirer(L).replace('{n}', K.jetons.j + ' jeton' + (K.jetons.j > 1 ? 's' : ''));
 }
 const pkAutre = (q) => (q === 'j' ? 'b' : 'j');
 const pkDu = (q) => poker.mises[pkAutre(q)] - poker.mises[q];
 function pkMettre(q, n) { n = Math.max(0, Math.min(n, poker.jetons[q])); poker.jetons[q] -= n; poker.mises[q] += n; poker.pot += n; }
 function ouvrirPoker() {
   const P = etatPatron(); if (patronB) patronB.tete.userData.regard = performance.now() + 3000;
-  if (P.gagne) { direPatron(hasard(['Tu as déjà ma bague. Je ne joue plus contre toi : question d\'honneur.', 'Non. Une fois m\'a suffi.']), 3600); return; }
+  if (P.gagne) { direPatron(pkTirer(['Tu as déjà ma bague. Je ne joue plus contre toi : question d\'honneur.', 'Non. Une fois m\'a suffi.', 'Range tes mains. La table est fermée pour toi.', 'Je ne rejoue pas contre quelqu\'un qui porte ma bague.', 'Va donc dépenser tes kamas ailleurs, joueur pro.']), 3600); return; }
   if (poker && !poker.fini) { pkRendu(); return; }
   ouvrirModale('poker', entete('La table du patron') + '<div class="pk-dit">« ' + ((P.perdues || 0) ? 'Revoilà mon paysan. Même table, même enjeu : ma bague.' : 'Le paysan au million. Ici, on ne joue pas des kamas : on joue ma bague.') + ' »<small>Doré III, dit l\'Ombre</small></div>' +
     '<div class="hdv-section">Les règles</div><ul class="pk-regles">' +
@@ -319,7 +362,7 @@ function pkNouvelleMain() {
   pkMettre('j', 1); pkMettre('b', 1); K.mises = { j: 0, b: 0 }; /* (la mise d'entree va au pot, elle ne compte pas dans le tour de parole) */
   K.cartes = { j: K.paquet.splice(0, 5), b: K.paquet.splice(0, 5) }; K.choix = new Set(); K.echJ = null; K.echB = null; K.jetesB = [];
   K.phase = 'echange'; K.premier = K.main % 2 ? 'b' : 'j'; K.parles = 0; K.relance = 0; K.actJ = []; K.agresJ = false; K.bluffB = false; K.piege = false; K.servi = false;
-  K.ligne = K.main === 1 ? 'Coupe. Je distribue.' : Math.random() < 0.75 ? pkSituation() : hasard(['Main suivante.', 'Je distribue.', 'On continue.', 'Encore une.']);
+  K.ligne = K.main === 1 ? pkTirer(PK_DIRE.debut) : Math.random() < 0.75 ? pkSituation() : pkTirer(PK_DIRE.neutre);
   direPatron(K.ligne, 3000); pkRendu();
 }
 function pkEchanger() {
@@ -328,7 +371,7 @@ function pkEchanger() {
   const jette = pkEchangeBoss(K.cartes.b); K.jetesB = jette.map((i) => K.cartes.b[i]); K.servi = !jette.length && pkEvaluer(K.cartes.b).cat === 0;
   jette.forEach((i) => { K.cartes.b[i] = K.paquet.shift(); }); K.echB = jette.length;
   K.phase = 'mise'; K.mises = { j: 0, b: 0 }; K.parles = 0; K.relance = 0; K.aParler = K.premier;
-  K.ligne = (K.echB ? 'J\'en prends ' + K.echB + '.' : 'Servi. Je garde tout.') + (Math.random() < 0.45 ? ' ' + hasard(PK_DIRE.echange[Math.min(5, K.echJ)]) : ''); direPatron(K.ligne, 3000);
+  K.ligne = (K.echB ? 'J\'en prends ' + K.echB + '.' : 'Servi. Je garde tout.') + (Math.random() < 0.45 ? ' ' + pkTirer(PK_DIRE.echange[Math.min(5, K.echJ)]) : ''); direPatron(K.ligne, 3000);
   if (!K.jetons.j || !K.jetons.b) { pkAbattage(); return; } /* (l'un des deux est deja a sec : on montre) */
   if (K.aParler === 'b') pkBoss(); else pkRendu();
 }
@@ -387,7 +430,7 @@ function pkFinMain(g, pourquoi, cle) {
   if (g) K.jetons[g] += pot; else { K.jetons.j += Math.floor(pot / 2); K.jetons.b += pot - Math.floor(pot / 2); } K.pot = 0;
   K.serieJ = g === 'j' ? K.serieJ + 1 : 0; K.serieB = g === 'b' ? K.serieB + 1 : 0;
   K.res = { gagne: g === 'j', html: (g === 'j' ? 'Main gagnée !' : g === 'b' ? 'Main perdue' : 'Égalité') + '<small>' + pourquoi + (g ? ' ' + (g === 'j' ? 'Tu' : 'Il') + ' ramasse ' + pot + ' jeton' + (pot > 1 ? 's' : '') + '.' : '') + '</small>' };
-  if (g && cle !== 'garder') { K.ligne = hasard(PK_DIRE[cle || (pot >= 8 ? (g === 'b' ? 'grosPotB' : 'grosPotJ') : g === 'b' ? 'gagne' : 'perd')]); direPatron(K.ligne, 3000); }
+  if (g && cle !== 'garder') { K.ligne = pkTirer(PK_DIRE[cle || (pot >= 8 ? (g === 'b' ? 'grosPotB' : 'grosPotJ') : g === 'b' ? 'gagne' : 'perd')]); direPatron(K.ligne, 3000); }
   if (g === 'j') son('kamas');
   if (!K.jetons.j || !K.jetons.b || (K.main >= MAINS_POKER && K.jetons.j !== K.jetons.b)) K.finale = K.jetons.j > K.jetons.b ? 'j' : 'b';
   pkRendu();
@@ -404,7 +447,7 @@ function pkFinPartie() {
   }
   P.rdv = Date.now() + SEMAINE; P.perdues = (P.perdues || 0) + 1; sauver(); son('defaite');
   direPatron('La maison gagne toujours. Une semaine, paysan.', 4500);
-  ouvrirModale('poker', entete('La table du patron') + '<div class="pk-dit">« Pas mal, pour un paysan. Mais la maison gagne toujours. »<small>Doré III ramasse les jetons sans te quitter des yeux.</small></div>' +
+  ouvrirModale('poker', entete('La table du patron') + '<div class="pk-dit">« ' + pkTirer(['Pas mal, pour un paysan. Mais la maison gagne toujours.', 'Tu t\'es bien battu. Pas assez, mais bien.', 'Ma bague reste à mon doigt. Comme prévu.', 'Joli combat. Inutile, mais joli.', 'Personne ne bat Doré III. Pas encore.']) + ' »<small>Doré III ramasse les jetons sans te quitter des yeux.</small></div>' +
     '<div class="art">' + ico('cadenas') + '<div><b>« Reviens dans une semaine. Même heure. Ma bague t\'attendra. »</b><div class="desc">Rendez-vous ' + quandRdv(P.rdv) + '. D\'ici là, le passage derrière le portrait reste fermé.</div></div><div></div></div>' +
     '<button class="btn kamas grand" data-cas="pk:sortir" style="width:100%">Retourner au hall</button>');
 }
@@ -415,7 +458,7 @@ function ouvrirAbandon() {
 const pkCarteHtml = (k, cachee, i, sel) => (cachee ? '<span class="bj-carte dos"></span>'
   : '<' + (i != null ? 'button data-cas="pk:c' + i + '"' : 'span') + ' class="bj-carte pk-carte' + PK_TEINTE[k.c] + (sel ? ' sel' : '') + '"><b>' + (PK_LETTRE[k.r] || k.r) + '</b><i>' + PK_COUL[k.c] + '</i></' + (i != null ? 'button' : 'span') + '>');
 function pkRendu() {
-  const K = poker; if (!K) return; const ech = K.phase === 'echange', ej = pkEvaluer(K.cartes.j), voir = K.phase === 'abattage' && K.abattage, du = pkDu('j'), o = K.jetons.b;
+  const K = poker; if (!K) return; K.attente = performance.now(); /* (il s'impatiente si tu tardes, animerBureau) */ const ech = K.phase === 'echange', ej = pkEvaluer(K.cartes.j), voir = K.phase === 'abattage' && K.abattage, du = pkDu('j'), o = K.jetons.b;
   const jet = (n) => '<span class="pk-jetons">' + '<i></i>'.repeat(Math.min(n, 20)) + '<b>' + n + '</b></span>';
   const tete = '<div class="pk-score"><span>Main ' + K.main + ' / ' + MAINS_POKER + '</span><span>Pot <b>' + K.pot + '</b></span></div>';
   const mainB = '<div class="bj-main"><div class="bj-titre">Doré III ' + jet(K.jetons.b) + (K.echB != null && !voir ? ' <small>a pris ' + K.echB + ' carte' + (K.echB > 1 ? 's' : '') + '</small>' : '') + (voir ? ' <b>' + K.nomB + '</b>' : '') + '</div><div class="bj-cartes">' + K.cartes.b.map((k) => pkCarteHtml(k, !voir)).join('') + '</div></div>';
