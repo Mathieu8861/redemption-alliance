@@ -313,7 +313,7 @@ function ficheMonstre(t) {
   if (d.appel) met('appel', 'sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui' + (d.appelStun ? ', te frappe et t\'étourdit.' : '.'), (d.appelX ? num(fmt(Math.round(dSort * d.appelX)) + ' dégâts', 'rouge') + num('étourdi ' + secondes(d.appelStun)) : '') + recup('appel'), 'violet');
   if (d.geyser) met('geyser', 'sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge');
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
-  if (d.enfouit) { const E0 = d.enfouit; met('enfouit', 'sort', 'S\'enfouit', 'Quand tu l\'approches, il s\'enfonce sous terre (on ne peut plus le viser), file sous le sol et ressort plus loin ; là où il était, un cercle, puis ses racines jaillissent et t\'enracinent 1 s.', num('toutes les ' + String(E0.periode).replace('.', ',') + ' s'), 'vert'); }
+  if (d.enfouit) { const E0 = d.enfouit; met('enfouit', 'sort', 'S\'enfouit', 'Quand tu l\'approches, il s\'enfonce sous terre (on ne peut plus le viser), file sous le sol et ressort plus loin ; là où il était, un cercle, puis ses racines jaillissent et t\'enracinent 1 s. Pendant qu\'il est sous terre, ses têtes surgissent près de toi, une de plus à chaque quart de vie perdu : la tête de sève crache un jet en ligne qui reste au sol et ralentit, la tête des feuilles lance deux éventails tranchants, la tête des racines les fait jaillir en croix sous tes pieds, la tête qui hurle repousse et étourdit dans un grand cercle violet.', num('toutes les ' + String(E0.periode).replace('.', ',') + ' s'), 'vert'); }
   if (d.garde) met('garde', 'carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : ' + (d.fem ? 'elle' : 'il') + ' recule pour lancer ses sorts de loin.', '', 'bleu');
   if (d.invoque) met('invoque', 'renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' ' + (d.invoque.geste || 'lève son bâton de corail et invoque') + ' ' + d.invoque.n + ' ' + (d.invoque.noms || 'tortues') + ' toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus)' + (d.invoque.noms ? '.' : ' : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.'), '', 'vert'); /* (noms, geste : les Tronknydes de l'Ancestral et du Chene Mou, 08/11/2026) */
   if (d.renforts) met('renforts', 'renfort', 'Renforts', (d.fem ? 'Elle' : 'Il') + ' appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' + (d.fem ? 'e' : '') : '') + '. Sa troupe ' + (d.fem ? 'la' : 'le') + ' protège : chaque monstre près d\'' + (d.fem ? 'elle' : 'lui') + ' lui retire 12 % de tes dégâts.', '', 'vert'); /* (au feminin pour Crocabulia, 03/11/2026) */
@@ -2240,22 +2240,55 @@ function teteSurgit(mo, i, c0, angle, retard) {
     if (combat !== c0 || c0.fin || t >= MONTE + ACTE + DESCEND) { scene.remove(h); mat.dispose(); cou.jeter(); c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== info); return true; }
     if (t < 0) return false; /* (elle attend son tour : les tetes sortent l'une apres l'autre) */
     if (!sortie) { sortie = true; h.visible = cou.m.visible = cou.b.visible = true; (c0.tetesAnc = c0.tetesAnc || []).push(info); mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
-      if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' !', 'alerte'); } }
+      if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' : ' + TETES_AIDE[i] + ' !', 'alerte'); } }
     const u = t < MONTE ? t / MONTE : t < MONTE + ACTE ? 1 : 1 - (t - MONTE - ACTE) / DESCEND; const e = u * (2 - u); h.position.set(p.x, y0 - 0.9 * f + 2.65 * f * e, p.z); /* (au bout de sa branche, 1,75 fois f au-dessus du sol : avant, elle sortait a peine et semblait flotter) */
     h.rotation.y = Math.atan2(paysanMesh.position.x - p.x, paysanMesh.position.z - p.z) + Math.sin(t * 9) * 0.06; /* (elle te regarde, et frissonne) */
     cou.poser(p.x, y0, p.z, h.position, h.rotation.y, e);
     if (!info.fait && t >= MONTE) { info.fait = true; actionTete(mo, i, p, c0); }
     return false; });
 }
+/* CE QUE FONT SES TETES, refait le 10/11/2026 (« on esquive trop facilement ce que font les tetes, on comprend pas trop, y'a des cercles de differentes tailles mais sans
+   plus », Mathieu) : avant, quatre cercles rouges d'une seconde. Chaque tete a maintenant sa forme, sa couleur et son nom affiche au-dessus d'elle quand elle agit :
+   - la tete de seve crache un JET DE SEVE en ligne, d'elle jusqu'au-dela de toi (une bande jaune-vert, 0,7 s) ; touche, tu es ralenti, et la seve reste au sol 4 s
+     (dedans, tu restes ralenti) ;
+   - la tete des feuilles lance deux EVENTAILS de feuilles tranchantes, l'un apres l'autre (0,7 s chacun), le second vise a nouveau : il faut passer sur le cote deux fois ;
+   - la tete des racines fait jaillir ses RACINES EN CROIX sous tes pieds (deux bandes qui se croisent, 0,75 s) : on en sort en diagonale ; touche, enracine 1,5 s ;
+   - la tete qui hurle pousse un CRI : un grand cercle violet autour d'elle (0,8 s), qui repousse, etourdit 0,4 s, et fait sortir 2 Tronknydes.
+   Celles de l'Ancestral Maudit maudissent en plus. */
+const TETES_ACTE = ['Jet de sève', 'Feuilles tranchantes', 'Racines en croix', 'Cri'];
+const TETES_AIDE = ['elle crache un jet de sève en ligne : sors de la bande, la sève reste au sol et te ralentit', 'elle lance deux éventails de feuilles tranchantes, l\'un après l\'autre : passe sur le côté, deux fois', 'ses racines jaillissent en croix sous tes pieds : sors en diagonale, sinon tu es enraciné', 'son cri te repousse et t\'étourdit dans le grand cercle violet, et des Tronknydes sortent du sol'];
 function actionTete(mo, i, p, c0) {
-  const pp = paysanMesh.position, ds = degSort(mo), M = mo.d.enfouit && mo.d.enfouit.maudit, maud = () => { if (M) maudirPerso(M.duree, M.x); }; /* (les tetes de l'Ancestral Maudit maudissent) */
-  if (i === 0) { const x = pp.x, z = pp.z; zoneDanger({ mo, x, z, r: 2.2, duree: 1.0, couleur: '#8fd14f', effet: (d) => { const y = solA(x, z); emettre(FX_VIF, 16, { x, y: y + 0.2, z, r: 0.6, dv: 3, haut: true, vie: [0.4, 0.7], taille: [0.2, 0.06], c: ['#d8ff8a', '#8fd14f', '#4f8a2a'], grav: 8 });
-      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.5)), mo); maud(); if (combat && !combat.fin) { combat.lenteur = 2.5; const q = p2.clone(); q.y += 2; chiffre('Sève collante !', q, 'perso'); } } } }); }
-  else if (i === 1) zoneDanger({ mo, x: p.x, z: p.z, r: 3.4, duree: 1.0, effet: (d) => { impactElement('feuille', p.x, p.z, 3.4); const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.7)), mo); maud(); } } });
-  else if (i === 2) { const x = pp.x, z = pp.z; zoneDanger({ mo, x, z, r: 1.8, duree: 0.8, effet: (d) => { const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x, cz = pris ? p2.z : z; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.5);
-      if (pris) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); maud(); if (combat && !combat.fin) coller(1.5, 'Enraciné !'); } } }); }
-  else { secousse(0.25, 0.5); onde(p.x, solA(p.x, p.z), p.z, 5, '#c8ff8a', 0.5, 0.8);
-    for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, q = pointValide(p.x, p.z, p.x + Math.sin(a) * 2, p.z + Math.cos(a) * 2); apparaitre('tronknyde', { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); combat.total++; } }
+  const pp = paysanMesh.position, ds = degSort(mo), M = mo.d.enfouit && mo.d.enfouit.maudit, maud = () => { if (M) maudirPerso(M.duree, M.x); }, yT = solA(p.x, p.z), vif = () => combat === c0 && !c0.fin; /* (les tetes de l'Ancestral Maudit maudissent) */
+  chiffre(TETES_ACTE[i] + ' !', new T.Vector3(p.x, yT + 3.6, p.z), 'butin');
+  const a = Math.atan2(pp.x - p.x, pp.z - p.z);
+  if (i === 0) { /* le jet de seve : une bande de la tete jusqu'au-dela du perso, puis la seve reste au sol */
+    const L = Math.max(6, Math.hypot(pp.x - p.x, pp.z - p.z) + 3.5), f = pointValide(p.x, p.z, p.x + Math.sin(a) * L, p.z + Math.cos(a) * L), Lr = Math.hypot(f.x - p.x, f.z - p.z) || 1, ux = (f.x - p.x) / Lr, uz = (f.z - p.z) / Lr, larg = 1.9;
+    zoneDanger({ mo, x: p.x, z: p.z, x2: f.x, z2: f.z, larg, duree: 0.7, couleur: '#b7dc3a', fort: 1.5, bord: true, effet: (d) => { if (!vif()) return;
+      for (let k = 0; k <= 10; k++) { const u = k / 10 * Lr, x = p.x + ux * u, z = p.z + uz * u; emettre(FX_VIF, 4, { x, y: solA(x, z) + 0.4, z, r: 0.5, v: [ux * 6, 1.5, uz * 6], dv: 2, vie: [0.3, 0.6], taille: [0.22, 0.05], c: ['#eaffb0', '#b7dc3a', '#6f9a2a'], grav: 7 }); }
+      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); maud(); if (vif()) { c0.lenteur = Math.max(c0.lenteur || 0, 2.5); const q = p2.clone(); q.y += 2; chiffre('Sève collante !', q, 'perso'); } }
+      /* la seve au sol, 4 s : une bande verte qui s'efface ; dedans, on reste ralenti */
+      const flaque = new T.Mesh(new T.PlaneGeometry(larg, Lr), new T.MeshBasicMaterial({ color: '#8fbf2e', transparent: true, opacity: 0.4, depthWrite: false })); flaque.geometry.translate(0, -Lr / 2, 0); flaque.rotation.x = -Math.PI / 2; const piv = new T.Group(); piv.add(flaque); piv.rotation.y = Math.atan2(f.x - p.x, f.z - p.z); piv.position.set(p.x, Math.max(yT, solA(f.x, f.z)) + 0.05, p.z); sansClic(piv); flaque.renderOrder = 2; scene.add(piv);
+      let t = 0; effets.push((dt) => { t += dt; if (!vif() || t >= 4) { scene.remove(piv); flaque.geometry.dispose(); flaque.material.dispose(); return true; } flaque.material.opacity = 0.4 * Math.min(1, (4 - t) / 0.8);
+        const q = paysanMesh.position, w = (q.x - p.x) * ux + (q.z - p.z) * uz, e = Math.abs((q.x - p.x) * uz - (q.z - p.z) * ux); if (w > 0 && w < Lr && e < larg / 2) c0.lenteur = Math.max(c0.lenteur || 0, 0.4);
+        if (Math.random() < dt * 8) { const u = Math.random() * Lr; emettre(FX_VIF, 1, { x: p.x + ux * u, y: yT + 0.15, z: p.z + uz * u, r: 0.5, v: [0, 0.8, 0], dv: 0.2, vie: [0.5, 0.9], taille: [0.14, 0.03], c: ['#eaffb0', '#8fbf2e'] }); } return false; }); } }); }
+  else if (i === 1) { /* les feuilles tranchantes : deux eventails, le second vise a nouveau */
+    const salve = (ang) => zoneDanger({ mo, x: p.x, z: p.z, r: 7, a: ang, ouv: 0.55, duree: 0.7, couleur: '#3fae4a', fort: 1.3, effet: (d) => { if (!vif()) return;
+      for (let k = 0; k < 14; k++) { const b = ang + (Math.random() - 0.5) * 1.1, u = 1 + Math.random() * 2; emettre(FX_VIF, 1, { x: p.x + Math.sin(b) * u, y: yT + 0.8 + Math.random() * 0.8, z: p.z + Math.cos(b) * u, r: 0.1, v: [Math.sin(b) * 13, 0.3, Math.cos(b) * 13], dv: 0.6, vie: [0.3, 0.45], taille: [0.3, 0.06], c: ['#d8ff9a', '#3fae4a', '#2a6a2a'], etire: 0.05 }); }
+      feuillesVolantes(p.x + Math.sin(ang) * 3.5, yT + 0.4, p.z + Math.cos(ang) * 3.5, 3, 8);
+      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.7)), mo); maud(); } } });
+    salve(a); let t = 0; effets.push((dt) => { t += dt; if (!vif()) return true; if (t < 0.6) return false; const q = paysanMesh.position; salve(Math.atan2(q.x - p.x, q.z - p.z)); return true; }); }
+  else if (i === 2) { /* les racines en croix, sous le perso : deux bandes qui se croisent */
+    const x0 = pp.x, z0 = pp.z, D = 5; let touche = false;
+    [a + Math.PI / 4, a - Math.PI / 4].forEach((b, k) => { const sx = Math.sin(b), sz = Math.cos(b), A = pointValide(x0, z0, x0 - sx * D, z0 - sz * D), B = pointValide(x0, z0, x0 + sx * D, z0 + sz * D);
+      zoneDanger({ mo, x: A.x, z: A.z, x2: B.x, z2: B.z, larg: 1.5, duree: 0.75, couleur: '#c9772e', fort: 1.4, bord: true, effet: (d) => { if (!vif()) return; const Lb = Math.hypot(B.x - A.x, B.z - A.z), n = Math.max(3, Math.round(Lb / 1.2));
+        for (let j = 0; j <= n; j++) { const x = A.x + (B.x - A.x) * j / n, z = A.z + (B.z - A.z) * j / n, y = solA(x, z); racineJaillit(x, y, z, j + k * 3); if (j % 2 === 0) mottes(x, y, z, 3, 0.8); }
+        if (!k) secousse(0.15, 0.3);
+        const p2 = paysanMesh.position; if (!touche && dansDanger(d, p2.x, p2.z)) { touche = true; racinesQuiSaisissent(p2.x, solA(p2.x, p2.z), p2.z, true, 1.5); blesserPerso(Math.max(1, Math.round(ds * 0.7)), mo); maud(); if (vif()) coller(1.5, 'Enraciné !'); } } }); }); }
+  else { /* le cri : un grand cercle violet autour d'elle, il repousse et etourdit ; 2 Tronknydes sortent du sol */
+    const Rc = 5.5; let tc = 0; effets.push((dt) => { tc += dt; if (!vif() || tc >= 0.8) return true; if (Math.random() < dt * 9) onde(p.x, yT, p.z, 1.5 + tc * 4, '#d9b8ff', 0.35, 0.4); return false; }); /* (elle prend son souffle) */
+    zoneDanger({ mo, x: p.x, z: p.z, r: Rc, duree: 0.8, couleur: '#a46cff', fort: 1.2, effet: (d) => { if (!vif()) return; secousse(0.3, 0.5); onde(p.x, yT, p.z, Rc * 1.1, '#e6d2ff', 0.7, 0.8); onde(p.x, yT, p.z, Rc * 0.6, '#a46cff', 0.6, 0.6, true);
+      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); maud(); if (vif()) { repousserPerso({ x: p.x, z: p.z }, 3.2); etourdir(0.4); } }
+      for (let k = 0; k < 2; k++) { const b = Math.random() * Math.PI * 2, q = pointValide(p.x, p.z, p.x + Math.sin(b) * 2, p.z + Math.cos(b) * 2); apparaitre('tronknyde', { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); c0.total++; } } }); }
 }
 /* LE MALEFICE (06/11/2026, la Wabbit Sorciere : « un sort qui te ralentit dans un cercle ») : quand tu es entre min et max d'elle, un cercle violet
    sous toi ; a la fin, le sort eclate : dedans, un peu de degats et ralenti (c.lenteur, comme la Momie Koalak) */
