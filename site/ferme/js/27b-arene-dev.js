@@ -154,7 +154,7 @@ function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = tr
 /* LES BOOSTS DU MODE TEST (08/11/2026, « rajoute-moi la possibilite de mettre les potions / fruits de boost », Mathieu) : les repas (Cawotte, Fraise, Bananagrume,
    deux au plus comme en vrai) et les pots bus avant la vague (Menthe, Citron, Royale), coches une fois, repris a chaque vague lancee ou relancee */
 const BOOSTS_TEST = [['cawotte', 'repas', 'Cawotte', '+20 % de dégâts'], ['fraise', 'repas', 'Fraise', '+30 % de prospection'], ['bananagrume', 'repas', 'Bananagrume', 'sorts 20 % plus vite'],
-  ['menthe', 'pot', 'Pot de Menthe', 'te soigne pendant la vague'], ['citron', 'pot', 'Pot de Citron', 'tu cours 15 % plus vite'], ['royale', 'pot', 'Pot de Royale', '+20 Agilité'], ['bouclier', 'base', 'Bouclier de carapace', 'bâtiments : 20 % de dégâts en moins']]; /* (le bouclier de la base, 10/11/2026) */
+  ['menthe', 'pot', 'Pot de Menthe', 'te soigne pendant la vague'], ['citron', 'pot', 'Pot de Citron', 'tu cours 15 % plus vite'], ['royale', 'pot', 'Pot de Royale', '+20 Agilité'], ['bouclier', 'base', 'Bouclier de carapace', 'grange : 20 % de dégâts en moins']]; /* (le bouclier de la base, 10/11/2026) */
 function boostsTest() { const B = ETAT_TEST.boosts || {}; S_.mange = {}; BOOSTS_TEST.forEach(([id, g]) => { if (g === 'repas' && B[id]) S_.mange[id] = true; }); S_.mangeDeux = false;
   S_.menthe = !!B.menthe; S_.citron = !!B.citron; S_.royale = B.royale ? POTS.royale.agi : 0; S_.bouclierPose = !!B.bouclier || !!S_.bouclierPose; } /* (un bouclier pose dans la fenetre des vagues reste pose) */
 function relancerTest(a) {
