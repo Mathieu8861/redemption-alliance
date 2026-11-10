@@ -515,7 +515,8 @@ function ouvrirPerso(sel) {
   const dansSac = (k) => S_.sac[k] > 0 && obj(k), sacL = Object.keys(S_.sac).filter(dansSac), equipe = (k) => Object.values(S_.equip).includes(k);
   if (sel && NOMS_EMP[sel]) { persoSel = S_.equip[sel] || sacL.filter((k) => obj(k).emp === sel).sort((x, y) => qualiteJet(y) - qualiteJet(x))[0] || null; } /* un emplacement */
   else if (sel) persoSel = sel; /* une piece */
-  if (persoSel && !dansSac(persoSel) && !equipe(persoSel)) persoSel = null;
+  const quete = typeof objetsQuete === 'function' ? objetsQuete() : []; /* (les objets de quete, non equipables : la cle du patron, 29b-casino-patron.js) */
+  if (persoSel && !(String(persoSel).startsWith('q:') && quete.some((q) => 'q:' + q.id === persoSel)) && !dansSac(persoSel) && !equipe(persoSel)) persoSel = null;
   const ordre = (x, y) => (persoNeufs[y] ? 1 : 0) - (persoNeufs[x] ? 1 : 0) || (comparer(y).mieux ? 1 : 0) - (comparer(x).mieux ? 1 : 0) || obj(y).niv - obj(x).niv || qualiteJet(y) - qualiteJet(x);
   if (!persoSel) persoSel = sacL.filter((k) => persoNeufs[k]).sort(ordre)[0] || sacL.filter((k) => comparer(k).mieux).sort(ordre)[0] || S_.equip.coiffe || Object.values(S_.equip).find(Boolean) || sacL.sort(ordre)[0] || null;
   const st = statsPerso(), c = st.c, cl = CLASSES.find((x) => x.id === classeDe()), l = st.niveau, a = seuil(l), b = seuil(l + 1); S_.nouveaux = 0; rendreHaut();
@@ -547,7 +548,10 @@ function ouvrirPerso(sel) {
     (persoCarac ? expliquerCarac(persoCarac, st) : '<p class="fp-astuce">Touche une caractéristique pour savoir à quoi elle sert.</p>') + '</div>';
   /* au milieu : la piece choisie, comparee a celle qui est portee */
   let milieu;
-  if (!persoSel) milieu = '<div class="fp-bloc fp-detail"><h3>Aucune pièce</h3><p class="fp-aide">Les monstres des vagues lâchent des pièces d\'équipement, chaque boss en lâche une à coup sûr la première fois. Elles arrivent ici.</p><div class="fp-actions"><button class="btn discret" data-bestiaire="panoplies">' + picto('livre') + ' Voir le butin possible</button></div></div>';
+  if (persoSel && String(persoSel).startsWith('q:')) { const q = quete.find((x) => 'q:' + x.id === persoSel);
+    milieu = '<div class="fp-bloc fp-detail"><div class="fp-entete"><span class="fp-grosse quete"><img src="assets/icones/' + q.icone + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><div class="fp-nom">' + q.nom + '</div><div class="fp-pils"><span class="fp-pil quete">objet de quête</span><span class="fp-pil">non équipable</span></div></div></div>' +
+      '<div class="fp-quete-desc">' + q.desc + '</div><p class="fp-aide">Elle ne s\'équipe pas et ne se revend pas : elle reste dans ton sac.</p></div>'; }
+  else if (!persoSel) milieu = '<div class="fp-bloc fp-detail"><h3>Aucune pièce</h3><p class="fp-aide">Les monstres des vagues lâchent des pièces d\'équipement, chaque boss en lâche une à coup sûr la première fois. Elles arrivent ici.</p><div class="fp-actions"><button class="btn discret" data-bestiaire="panoplies">' + picto('livre') + ' Voir le butin possible</button></div></div>';
   else {
     const k = persoSel, o = obj(k), porte = S_.equip[o.emp], porteeIci = porte === k, q = porte && !porteeIci ? obj(porte) : null, cmp = comparer(k), qj = qualiteJet(k), B = OBJETS[baseObjet(k)];
     const pils = (persoNeufs[k] ? '<span class="fp-pil neuf">nouveau</span>' : '') + (porteeIci ? '<span class="fp-pil porte">portée</span>' : cmp.mieux ? '<span class="fp-pil mieux"><b>Up</b> mieux que la tienne</span>' : '') +
@@ -579,9 +583,9 @@ function ouvrirPerso(sel) {
   /* a droite : le sac en cases, et les panoplies */
   const presents = EMPLACEMENTS_PERSO.map(([e]) => e).filter((e) => sacL.some((k) => obj(k).emp === e));
   if (persoFiltre !== 'tout' && !presents.includes(persoFiltre) && !NOMS_EMP[persoFiltre]) persoFiltre = 'tout';
-  const vus = sacL.filter((k) => persoFiltre === 'tout' || obj(k).emp === persoFiltre).sort((x, y) => (persoEmp ? (obj(y).emp === persoEmp) - (obj(x).emp === persoEmp) : 0) || ordre(x, y)), nCases = Math.max(20, Math.ceil((vus.length + 1) / 5) * 5);
-  const cases = vus.map((k) => { const o = obj(k); return '<button class="fp-case plein' + (k === persoSel ? ' choisi' : '') + (persoEmp && o.emp === persoEmp ? ' meme' : '') + (o.rare ? ' rare' : '') + (o.leg ? ' leg' : '') + (persoNeufs[k] ? ' nouveau' : '') + (comparer(k).ok ? '' : ' verrou') + '" data-fp-sel="' + k + '" data-info="' + echapper(o.nom) + '"><img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt="">' +
-    (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">Up</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length }, () => '<span class="fp-case"></span>').join('');
+  const vus = sacL.filter((k) => persoFiltre === 'tout' || obj(k).emp === persoFiltre).sort((x, y) => (persoEmp ? (obj(y).emp === persoEmp) - (obj(x).emp === persoEmp) : 0) || ordre(x, y)), vusQ = persoFiltre === 'tout' ? quete : [], nCases = Math.max(20, Math.ceil((vus.length + vusQ.length + 1) / 5) * 5);
+  const cases = vusQ.map((q) => '<button class="fp-case plein quete' + ('q:' + q.id === persoSel ? ' choisi' : '') + '" data-fp-sel="q:' + q.id + '" data-info="' + echapper(q.nom) + '"><img src="assets/icones/' + q.icone + '.png?v=' + VERSION_MODELES + '" alt=""></button>').join('') + vus.map((k) => { const o = obj(k); return '<button class="fp-case plein' + (k === persoSel ? ' choisi' : '') + (persoEmp && o.emp === persoEmp ? ' meme' : '') + (o.rare ? ' rare' : '') + (o.leg ? ' leg' : '') + (persoNeufs[k] ? ' nouveau' : '') + (comparer(k).ok ? '' : ' verrou') + '" data-fp-sel="' + k + '" data-info="' + echapper(o.nom) + '"><img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt="">' +
+    (S_.sac[k] > 1 ? '<span class="fp-nb">×' + S_.sac[k] + '</span>' : '') + (comparer(k).mieux ? '<i class="fp-mieux">Up</i>' : '') + '</button>'; }).join('') + Array.from({ length: nCases - vus.length - vusQ.length }, () => '<span class="fp-case"></span>').join('');
   const panos = Object.entries(comptePanos()); const droite = '<div class="fp-bloc"><h3>Sac <small>' + sacL.length + ' pièce' + (sacL.length > 1 ? 's' : '') + '</small></h3>' +
     '<div class="fp-filtres">' + [['tout', 'Tout', sacL.length]].concat(presents.map((e) => [e, PLURIELS_EMP[e], sacL.filter((k) => obj(k).emp === e).length])).map(([f, t, n]) => '<button data-fp-filtre="' + f + '" aria-pressed="' + (persoFiltre === f) + '">' + t + ' <small>' + n + '</small></button>').join('') + '</div>' +
     blocRunes() + '<div class="fp-sac">' + cases + '</div><div class="fp-legende"><span><i class="fp-n">N</i> nouvelle pièce</span><span><i class="fp-mieux">Up</i> mieux que celle que tu portes</span><span class="r">rare ★</span><span class="l">légendaire</span></div>' +

@@ -54,6 +54,16 @@ function donnerCle(m) {
   toast('Tu as reçu une petite clé dorée.', 'or');
 }
 
+/* LA CLE DANS LE SAC (10/11/2026, « mets-la dans les equipements, juste elle est non equipable, elle a une description ? », Mathieu) : un objet de quete,
+   affiche en tete du sac du perso (25-interface.js, ouvrirPerso) ; sa description suit l'histoire */
+function objetsQuete() {
+  const P = S_ && S_.casino && S_.casino.patron; if (!P || !P.cle) return [];
+  const suite = P.gagne ? 'Tu as battu Doré III à sa propre table. Le passage derrière le portrait de Doré Ier s\'ouvre toujours, mais le patron ne joue plus contre toi.'
+    : P.rdv && Date.now() < P.rdv ? 'Elle ouvre le passage secret derrière le portrait de Doré Ier. Doré III t\'attend ' + quandRdv(P.rdv) + ' : d\'ici là, la serrure refuse de tourner.'
+      : P.porte ? 'Elle ouvre le passage secret derrière le portrait de Doré Ier, jusqu\'au bureau de Doré III, le patron du Casino. Il t\'attend à sa table de poker.'
+        : 'Filou n\'a dit qu\'une chose : <i>« Il reçoit pas ici. Le premier de la famille sait où. »</i>';
+  return [{ id: 'cle', nom: 'Clé dorée du patron', icone: 'obj-cle-patron', desc: 'Une petite clé dorée, la tête en forme de kama. Filou te l\'a glissée dans la main au Palais du Chat Doré, sans même te regarder. ' + suite }];
+}
 /* ---------- le portrait du fondateur : la serrure, le pan de mur qui pivote ---------- */
 const porteTouchee = (x, z, y) => x > PORTE_FONDATEUR.xa - 0.1 && x < PORTE_FONDATEUR.xb + 0.1 && z < -9.2 && y > 0.25;
 function allerFondateur() { aller(PORTE_FONDATEUR.xm, -9.0, PORTE_FONDATEUR.xm, -10, toucherFondateur); }
