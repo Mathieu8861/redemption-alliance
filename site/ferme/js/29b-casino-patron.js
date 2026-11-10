@@ -190,7 +190,8 @@ function animerBureau(dt) { /* le patron respire, te suit des yeux, remue la que
     const dx = pp.x - (O.x + q(B.tete).x), dz = pp.z - (O.z + q(B.tete).z), vise = Math.max(-0.75, Math.min(0.75, Math.atan2(dx, dz)));
     B.tete.rotation.y += (r(B.tete).y + vise - B.tete.rotation.y) * Math.min(1, dt * 3);
     B.tete.rotation.z = r(B.tete).z + Math.sin(t * 0.7) * 0.035; B.tete.rotation.x = r(B.tete).x + Math.sin(t * 0.5) * 0.02;
-    B.queue.rotation.x = r(B.queue).x + Math.sin(t * 1.4) * 0.16; B.queue.rotation.y = r(B.queue).y + Math.sin(t * 0.9) * 0.12;
+    const agace = poker && !poker.fini ? pkLisse(poker.jetons.j - poker.jetons.b, 0, 10) : 0; /* (quand il perd, sa queue fouette l'air) */
+    B.queue.rotation.x = r(B.queue).x + Math.sin(t * (1.4 + 4 * agace)) * (0.16 + 0.18 * agace); B.queue.rotation.y = r(B.queue).y + Math.sin(t * (0.9 + 3 * agace)) * (0.12 + 0.1 * agace);
     if (B.geste > 0) { B.geste = Math.max(0, B.geste - dt); B.bras.rotation.x = r(B.bras).x - 0.28 * Math.sin((1 - B.geste / 0.9) * Math.PI); }
     else B.bras.rotation.x += (r(B.bras).x + Math.sin(t * 1.1) * 0.025 - B.bras.rotation.x) * Math.min(1, dt * 6);
     B.fume -= dt; if (B.fume <= 0) { B.fume = 0.55 + Math.random() * 0.4; boufeeCigare(); }
@@ -231,22 +232,67 @@ function pkEvaluer(m) {
   return { cat: 0, val: rs, nom: 'Carte haute : ' + (PK_NOM[rs[0]] || rs[0]) };
 }
 function pkComparer(a, b) { if (a.cat !== b.cat) return a.cat - b.cat; for (let i = 0; i < Math.max(a.val.length, b.val.length); i++) if ((a.val[i] || 0) !== (b.val[i] || 0)) return (a.val[i] || 0) - (b.val[i] || 0); return 0; }
-function pkEchangeBoss(m) { /* les cartes que le patron jette */
+const PK_CLE = (k) => k.r * 4 + k.c;
+function pkEchangeBoss(m, type) { /* les cartes que le patron jette ; type : la facon d'un joueur ordinaire, sans ruse ni hasard (pour deviner ta main) */
   const e = pkEvaluer(m); if (e.cat >= 4) return [];
   const n = {}; m.forEach((k) => { n[k.r] = (n[k.r] || 0) + 1; });
+  if (e.cat === 3 && !type && Math.random() < 0.3) { const kick = m.map((k, i) => [k.r, i]).filter(([r]) => n[r] === 1).sort((a, b) => b[0] - a[0])[0][1]; return m.map((k, i) => (n[k.r] === 1 && i !== kick ? i : -1)).filter((i) => i >= 0); } /* (un brelan deguise : il garde une carte en plus, il n'en prend qu'une) */
   if (e.cat >= 1) return m.map((k, i) => (n[k.r] >= 2 ? -1 : i)).filter((i) => i >= 0);
   const pc = {}; m.forEach((k) => { pc[k.c] = (pc[k.c] || 0) + 1; }); const cf = Object.keys(pc).find((c) => pc[c] === 4);
   if (cf != null) return m.map((k, i) => (k.c !== +cf ? i : -1)).filter((i) => i >= 0);
-  for (let i = 0; i < 5; i++) { const r = m.filter((_, j) => j !== i).map((k) => k.r); if (new Set(r).size === 4 && Math.max(...r) - Math.min(...r) <= 4 && Math.random() < 0.75) return [i]; }
+  for (let i = 0; i < 5; i++) { const r = m.filter((_, j) => j !== i).map((k) => k.r); if (new Set(r).size === 4 && Math.max(...r) - Math.min(...r) <= 4 && (type || Math.random() < 0.75)) return [i]; }
+  if (!type && Math.random() < 0.05) return []; /* (le bluff du servi : rien en main, il ne change rien pour faire peur, puis il mise) */
   const ord = m.map((k, i) => [k.r, i]).sort((a, b) => b[0] - a[0]); return ord.slice(ord[1][0] >= 11 ? 2 : 1).map(([, i]) => i);
 }
 const pkForce = (e) => { const r = e.val[0]; return [0.05 + 0.12 * (r - 2) / 12, 0.3 + 0.36 * (r - 2) / 12, 0.7 + 0.1 * (r - 2) / 12, 0.84 + 0.05 * (r - 2) / 12, 0.9, 0.93, 0.96, 0.99, 1][e.cat]; };
-const pkLecture = (n) => [0.78, 0.6, 0.66, 0.42, 0.22, 0.12][n]; /* (ce que ton echange lui dit de ta main) */
+/* CE QU'IL SAIT DE TOI (10/11/2026, « faut qu'il ait un bon niveau », Mathieu) : il retient, d'une main a l'autre, combien de fois tu as mise puis montre une
+   main faible (tes bluffs), combien de fois tu te couches quand il mise, et combien de mains tu joues a l'attaque. Au depart, il te croit un bluffeur sur cinq. */
+const pkTauxBluff = (L) => (L.bluffs + 0.6) / (L.montres + 3), pkTauxCouche = (L) => (L.couches + 1) / (L.faces + 3), pkTauxAttaque = (L) => (L.attaques + 1) / (L.mains + 3);
+const pkLisse = (x, a, b) => Math.max(0, Math.min(1, (x - a) / (b - a)));
+function pkPoids(K) { /* la vraisemblance de ce que tu as fait dans cette main, pour une main donnee : on mise plutot avec du jeu, on passe plutot sans */
+  const tb = pkTauxBluff(K.lu), acts = K.actJ;
+  return (e) => { const s = pkForce(e); let w = 1;
+    acts.forEach((a) => { if (a === 'miser' || a === 'relancer') w *= tb + (1 - tb) * pkLisse(s, 0.35, 0.75); else if (a === 'tapis') w *= tb * 0.8 + (1 - tb * 0.8) * pkLisse(s, 0.5, 0.88);
+      else if (a === 'parole') w *= 1 - 0.75 * pkLisse(s, 0.5, 0.85); else if (a === 'suivre') w *= 0.12 + 0.88 * pkLisse(s, 0.25, 0.6); });
+    return w; };
+}
+function pkProba(K) { /* sa chance de gagner : il imagine des centaines de mains pour toi, compatibles avec ton echange et ta facon de parler, et compte celles qu'il bat */
+  const eb = pkEvaluer(K.cartes.b), vus = new Set(K.cartes.b.concat(K.jetesB).map(PK_CLE)), reste = [];
+  for (let c = 0; c < 4; c++) for (let r = 2; r <= 14; r++) if (!vus.has(r * 4 + c)) reste.push({ r, c });
+  const n = K.echJ, poids = pkPoids(K); let pris = 0, tot = 0, gagne = 0;
+  for (let essai = 0; essai < 6000 && pris < 400; essai++) {
+    for (let i = 0; i < 10; i++) { const j = i + Math.floor(Math.random() * (reste.length - i)), t = reste[i]; reste[i] = reste[j]; reste[j] = t; }
+    const main = reste.slice(0, 5), jette = pkEchangeBoss(main, true);
+    if (n >= 4 ? jette.length < 4 : Math.abs(jette.length - n) > (essai > 3000 ? 1 : 0)) continue;
+    pris++; jette.forEach((i, k) => { main[i] = reste[5 + k]; });
+    const ej = pkEvaluer(main), w = poids(ej); if (!(w > 0)) continue; tot += w; const c = pkComparer(eb, ej); gagne += w * (c > 0 ? 1 : c === 0 ? 0.5 : 0);
+  }
+  return tot > 0 ? gagne / tot : 0.5;
+}
 const PK_DIRE = {
   miser: ['Je mise.', 'Deux jetons. Pour voir.', 'Tu trembles ? Je mise.', 'Mise.'], parole: ['Parole.', 'Je passe.', 'À toi.'], relancer: ['Je relance.', 'Relance. Ta main tient le coup ?', 'Plus haut.'],
   tapis: ['Tapis.', 'Tout. Maintenant.', 'Tapis. Montre-moi qui tu es.'], suivre: ['Je suis.', 'Je paie pour voir.', 'Montre.'], coucher: ['Garde-les. Je n\'en veux pas.', 'Je me couche. Profite.', 'Hm. Pas cette fois.'],
-  gagne: ['La maison gagne toujours.', 'Merci pour les jetons.', 'C\'est ça, le métier.'], perd: ['Hm. Joli.', 'Pas mal, paysan.', 'Profite. Ça ne dure jamais.'] };
+  gagne: ['La maison gagne toujours.', 'Merci pour les jetons.', 'C\'est ça, le métier.'], perd: ['Hm. Joli.', 'Pas mal, paysan.', 'Profite. Ça ne dure jamais.'],
+  bluffReussi: ['Tu ne sauras jamais ce que j\'avais.', 'Sage décision. Ou pas.', 'Hé hé. Merci.'], couche: ['Prudent, le paysan.', 'Tu as bien fait. Peut-être.'],
+  bluffPris: ['Je le savais. Tu bluffes mal.', 'Trop facile. Je lis en toi comme dans un livre.', 'La prochaine fois, bluffe avec des cartes.'],
+  bluffRate: ['Hm. Tu as payé pour voir. Bien joué.', 'Tss. Une fois n\'est pas coutume.'], malchance: ['Impossible...', 'Avec ça ?! Tu as une chance insolente.', 'Ce paquet est truqué. Le mien, en plus.'],
+  grosPotB: ['Merci pour la contribution.', 'Le pot est à moi. Comme la bague.'], grosPotJ: ['...Joli coup.', 'Je m\'en souviendrai.'],
+  echange: [['Servi ? Tu me fais peur... ou pas.', 'Rien à changer ? Voyons ça.'], ['Une seule carte. Tu cherches une couleur ?', 'Une carte... Double paire, ou tu rêves d\'une quinte.'], ['Deux cartes. Un brelan, peut-être.'],
+    ['Trois cartes. Une petite paire, je parie.', 'Trois cartes. Je vois.'], ['Quatre cartes ? Ta main était si mauvaise ?', 'Tout changer... Courageux.'], ['Tout changer... Courageux.']] };
 const pkDire = (cle) => { const t = hasard(PK_DIRE[cle]); poker.ligne = t; direPatron(t, 2800); if (patronB && /miser|relancer|tapis|suivre/.test(cle)) patronB.geste = 0.9; return t; };
+function pkSituation() { /* ce qu'il dit en distribuant, selon le score */
+  const K = poker, av = K.jetons.b - K.jetons.j, reste = MAINS_POKER - K.main;
+  if (K.serieJ >= 3) return 'Trois mains de suite. Tu triches, ou quoi ?';
+  if (K.serieB >= 3 && Math.random() < 0.5) return 'La maison gagne toujours. Toujours.';
+  if (reste === 0) return av > 0 ? 'Dernière main. Je mène, et je compte bien le rester.' : av < 0 ? 'Dernière main. Tout se joue maintenant.' : 'Dernière main, à égalité. Enfin un peu de suspense.';
+  if (K.jetons.j <= 3) return hasard(['Plus que ' + K.jetons.j + ' jeton' + (K.jetons.j > 1 ? 's' : '') + '. Ta grange va pleurer.', 'Tu sens le vent tourner, paysan ?']);
+  if (K.jetons.b <= 3) return hasard(['Ne t\'emballe pas. J\'ai déjà remonté pire.', 'Rien n\'est fini tant que j\'ai un jeton.']);
+  if (av >= 6) return hasard(['Tu veux que je te prête des jetons ?', 'Ma bague est bien au chaud.', 'Ça sent la fin, paysan.']);
+  if (av >= 2) return hasard(['Je mène. Comme d\'habitude.', 'Continue comme ça, ça me va très bien.', 'Tu joues pour moi, en fait.']);
+  if (av <= -6) return hasard(['...', 'Tu commences à m\'agacer.', 'Personne ne me fait ça dans mon propre casino.']);
+  if (av <= -2) return hasard(['Profite. La chance tourne vite, ici.', 'Hm. Tu as de la chance, ce soir.', 'Ne prends pas l\'habitude.']);
+  return hasard(['Serré. J\'aime ça.', 'À égalité. Pas pour longtemps.', 'On s\'amuse enfin.']);
+}
 const pkAutre = (q) => (q === 'j' ? 'b' : 'j');
 const pkDu = (q) => poker.mises[pkAutre(q)] - poker.mises[q];
 function pkMettre(q, n) { n = Math.max(0, Math.min(n, poker.jetons[q])); poker.jetons[q] -= n; poker.mises[q] += n; poker.pot += n; }
@@ -266,54 +312,82 @@ function ouvrirPoker() {
 function pkNouvellePartie() {
   const P = etatPatron(); if (P.gagne || (P.rdv && Date.now() < P.rdv)) return;
   P.enCours = Date.now(); P.parties = (P.parties || 0) + 1; P.rdv = 0; sauver(); compter('pokerPatron');
-  poker = { main: 0, jetons: { j: JETONS_POKER, b: JETONS_POKER }, fini: false }; pkNouvelleMain();
+  poker = { main: 0, jetons: { j: JETONS_POKER, b: JETONS_POKER }, fini: false, serieJ: 0, serieB: 0, lu: { bluffs: 0, montres: 0, couches: 0, faces: 0, attaques: 0, mains: 0 } }; pkNouvelleMain();
 }
 function pkNouvelleMain() {
   const K = poker; K.main++; K.paquet = pkPaquet(); K.pot = 0; K.mises = { j: 0, b: 0 }; K.res = null; K.abattage = false;
   pkMettre('j', 1); pkMettre('b', 1); K.mises = { j: 0, b: 0 }; /* (la mise d'entree va au pot, elle ne compte pas dans le tour de parole) */
-  K.cartes = { j: K.paquet.splice(0, 5), b: K.paquet.splice(0, 5) }; K.choix = new Set(); K.echJ = null; K.echB = null;
-  K.phase = 'echange'; K.premier = K.main % 2 ? 'b' : 'j'; K.parles = 0; K.relance = 0;
-  K.ligne = K.main === 1 ? 'Coupe. Je distribue.' : hasard(['Main suivante.', 'Je distribue.', 'On continue.', 'Encore une.']);
-  direPatron(K.ligne, 2200); pkRendu();
+  K.cartes = { j: K.paquet.splice(0, 5), b: K.paquet.splice(0, 5) }; K.choix = new Set(); K.echJ = null; K.echB = null; K.jetesB = [];
+  K.phase = 'echange'; K.premier = K.main % 2 ? 'b' : 'j'; K.parles = 0; K.relance = 0; K.actJ = []; K.agresJ = false; K.bluffB = false; K.piege = false; K.servi = false;
+  K.ligne = K.main === 1 ? 'Coupe. Je distribue.' : Math.random() < 0.75 ? pkSituation() : hasard(['Main suivante.', 'Je distribue.', 'On continue.', 'Encore une.']);
+  direPatron(K.ligne, 3000); pkRendu();
 }
 function pkEchanger() {
   const K = poker; if (!K || K.phase !== 'echange') return;
   [...K.choix].forEach((i) => { K.cartes.j[i] = K.paquet.shift(); }); K.echJ = K.choix.size; K.choix = new Set();
-  const jette = pkEchangeBoss(K.cartes.b); jette.forEach((i) => { K.cartes.b[i] = K.paquet.shift(); }); K.echB = jette.length;
+  const jette = pkEchangeBoss(K.cartes.b); K.jetesB = jette.map((i) => K.cartes.b[i]); K.servi = !jette.length && pkEvaluer(K.cartes.b).cat === 0;
+  jette.forEach((i) => { K.cartes.b[i] = K.paquet.shift(); }); K.echB = jette.length;
   K.phase = 'mise'; K.mises = { j: 0, b: 0 }; K.parles = 0; K.relance = 0; K.aParler = K.premier;
-  K.ligne = K.echB ? 'J\'en prends ' + K.echB + '.' : 'Servi. Je garde tout.'; direPatron(K.ligne, 2400);
+  K.ligne = (K.echB ? 'J\'en prends ' + K.echB + '.' : 'Servi. Je garde tout.') + (Math.random() < 0.45 ? ' ' + hasard(PK_DIRE.echange[Math.min(5, K.echJ)]) : ''); direPatron(K.ligne, 3000);
   if (!K.jetons.j || !K.jetons.b) { pkAbattage(); return; } /* (l'un des deux est deja a sec : on montre) */
   if (K.aParler === 'b') pkBoss(); else pkRendu();
 }
-function pkBoss() { /* le patron parle */
-  const K = poker, e = pkEvaluer(K.cartes.b), f = pkForce(e), L = pkLecture(K.echJ), du = pkDu('b'), r = Math.random(), riche = Math.min(K.jetons.b, K.jetons.j + du);
+/* LE JEU DU PATRON (10/11/2026) : sa chance de gagner (pkProba), la cote du pot (ce que suivre coute contre ce qu'il y a a gagner), et la situation :
+   devant de 6 jetons a 3 mains de la fin, il protege son avance ; a 3 jetons ou moins, ou derriere a la derniere main, il joue le tout pour le tout ;
+   quand tu es presque a sec, il te met la pression. Il bluffe surtout si tu te couches souvent, et tend des pieges (parole avec un gros jeu) aux joueurs
+   qui attaquent beaucoup. Avec rien en main, il garde parfois tout (le servi) puis mise pour faire peur. */
+function pkBoss() {
+  const K = poker, du = pkDu('b'), jb = K.jetons.b, jj = K.jetons.j, r = Math.random(), L = K.lu, tc = pkTauxCouche(L), tb = pkTauxBluff(L), p = pkProba(K);
+  const reste = MAINS_POKER - K.main, avance = jb - jj, desespoir = jb <= 3 || (reste <= 0 && avance < 0), prudence = avance >= 6 && reste <= 3 ? 0.08 : 0, presse = jj <= 3 ? 0.1 : 0;
   let a;
-  if (du === 0) a = f > 0.9 && r < 0.3 && riche > 2 ? 'tapis' : (f > 0.72 || f - L > 0.12) && r < 0.88 ? 'miser' : f < 0.3 && r < 0.17 + (K.echJ >= 3 ? 0.12 : 0) ? 'miser' : 'parole';
-  else if (K.relance) a = f - L > 0 || f > 0.7 || (f > 0.45 && r < 0.3) ? 'suivre' : 'coucher';
-  else { const engage = du / Math.max(1, K.jetons.b); a = f > 0.88 && r < 0.6 && K.jetons.b > du ? 'relancer' : f - L > -0.05 || f > 0.66 ? 'suivre' : f > 0.35 && r < 0.45 - engage * 0.3 ? 'suivre' : f < 0.2 && r < 0.07 && K.jetons.b > du ? 'relancer' : 'coucher'; }
-  pkAgir('b', a);
+  if (du === 0) {
+    if (K.servi && p < 0.5) { a = 'miser'; K.bluffB = true; }
+    else if (desespoir && p > 0.42) a = 'tapis';
+    else if (p > 0.85 && !K.actJ.length && pkTauxAttaque(L) > 0.4 && r < 0.35) { a = 'parole'; K.piege = true; }
+    else if (p > 0.88 && r < 0.3) a = 'tapis';
+    else if (p > 0.6 - presse) a = r < 0.9 ? 'miser' : 'parole';
+    else if (p < 0.35) { const pb = Math.max(0, 0.06 + 0.4 * tc * (K.echJ >= 3 ? 1.3 : 0.8) * (K.actJ.includes('parole') ? 1.3 : 1) - prudence); if (r < pb) { a = 'miser'; K.bluffB = true; } else a = 'parole'; }
+    else a = 'parole';
+  } else {
+    const cote = du / (K.pot + du), marge = p - cote - prudence;
+    if (K.relance) a = marge > 0 || (desespoir && p > 0.33) ? 'suivre' : 'coucher';
+    else if (K.piege || p > 0.8) a = r < 0.8 ? (desespoir || p > 0.92 ? 'tapis' : 'relancer') : 'suivre';
+    else if (marge > 0) a = p > 0.65 && r < 0.35 ? 'relancer' : 'suivre';
+    else if (p < 0.25 && tb < 0.3 && r < 0.05 + 0.08 * tc) { a = 'relancer'; K.bluffB = true; }
+    else a = r < 0.06 ? 'suivre' : 'coucher';
+  }
+  if (a === 'relancer' && (K.relance || jb <= du || !jj)) a = 'suivre';
+  if (a === 'tapis' && (jb <= du || (!du && !jj))) a = du ? 'suivre' : 'parole';
+  if (a === 'miser' && !jj) a = 'parole';
+  K.p = p; pkAgir('b', a);
 }
 function pkAgir(q, a) {
   const K = poker; if (!K || K.phase !== 'mise' || K.aParler !== q) return; const o = pkAutre(q), du = pkDu(q);
+  if (a === 'parole' && du) return; if ((a === 'relancer' && (!du || K.relance)) || (a === 'miser' && du)) return;
   if (q === 'b') pkDire(a);
-  if (a === 'coucher') { pkFinMain(o, (q === 'j' ? 'Tu te couches.' : 'Doré III se couche.'), q === 'b'); return; }
-  if (a === 'parole') { if (du) return; K.parles++; if (K.parles >= 2) { pkAbattage(); return; } }
+  else { K.actJ.push(a); if (du) { K.lu.faces++; if (a === 'coucher') K.lu.couches++; } if (/miser|relancer|tapis/.test(a)) K.agresJ = true; }
+  if (a === 'coucher') { pkFinMain(o, (q === 'j' ? 'Tu te couches.' : 'Doré III se couche.'), q === 'b' ? 'garder' : K.bluffB ? 'bluffReussi' : 'couche'); return; }
+  if (a === 'parole') { K.parles++; if (K.parles >= 2) { pkAbattage(); return; } }
   else if (a === 'suivre') { pkMettre(q, du); pkAbattage(); return; }
-  else if (a === 'miser') { if (du) return; pkMettre(q, Math.min(2, K.jetons[q], K.jetons[o])); }
-  else if (a === 'relancer') { if (!du || K.relance) return; pkMettre(q, du + Math.min(2, K.jetons[q] - du, K.jetons[o])); K.relance++; }
+  else if (a === 'miser') pkMettre(q, Math.min(2, K.jetons[q], K.jetons[o]));
+  else if (a === 'relancer') { pkMettre(q, du + Math.min(2, K.jetons[q] - du, K.jetons[o])); K.relance++; }
   else if (a === 'tapis') { pkMettre(q, du + Math.min(K.jetons[q] - du, K.jetons[o])); K.relance++; }
   if (q === 'j') son('kamas');
   K.aParler = o; if (o === 'b') { pkBoss(); return; } pkRendu();
 }
 function pkAbattage() {
   const K = poker, ej = pkEvaluer(K.cartes.j), eb = pkEvaluer(K.cartes.b), c = pkComparer(ej, eb); K.abattage = true;
-  K.nomB = eb.nom; pkFinMain(c > 0 ? 'j' : c < 0 ? 'b' : null, c ? 'Toi : ' + ej.nom + '. Lui : ' + eb.nom + '.' : 'Égalité parfaite (' + ej.nom + ') : le pot est partagé.');
+  if (K.agresJ) { K.lu.montres++; if (pkForce(ej) < 0.45) K.lu.bluffs++; } /* (il retient tes bluffs) */
+  const cle = c < 0 ? (K.agresJ && pkForce(ej) < 0.45 ? 'bluffPris' : null) : c > 0 ? (K.bluffB ? 'bluffRate' : eb.cat >= 3 ? 'malchance' : null) : null;
+  K.nomB = eb.nom; pkFinMain(c > 0 ? 'j' : c < 0 ? 'b' : null, c ? 'Toi : ' + ej.nom + '. Lui : ' + eb.nom + '.' : 'Égalité parfaite (' + ej.nom + ') : le pot est partagé.', cle);
 }
-function pkFinMain(g, pourquoi, garderLigne) {
+function pkFinMain(g, pourquoi, cle) {
   const K = poker, pot = K.pot; K.phase = 'abattage';
+  K.lu.mains++; if (K.agresJ) K.lu.attaques++;
   if (g) K.jetons[g] += pot; else { K.jetons.j += Math.floor(pot / 2); K.jetons.b += pot - Math.floor(pot / 2); } K.pot = 0;
+  K.serieJ = g === 'j' ? K.serieJ + 1 : 0; K.serieB = g === 'b' ? K.serieB + 1 : 0;
   K.res = { gagne: g === 'j', html: (g === 'j' ? 'Main gagnée !' : g === 'b' ? 'Main perdue' : 'Égalité') + '<small>' + pourquoi + (g ? ' ' + (g === 'j' ? 'Tu' : 'Il') + ' ramasse ' + pot + ' jeton' + (pot > 1 ? 's' : '') + '.' : '') + '</small>' };
-  if (g && !garderLigne) { K.ligne = hasard(PK_DIRE[g === 'b' ? 'gagne' : 'perd']); direPatron(K.ligne, 2800); }
+  if (g && cle !== 'garder') { K.ligne = hasard(PK_DIRE[cle || (pot >= 8 ? (g === 'b' ? 'grosPotB' : 'grosPotJ') : g === 'b' ? 'gagne' : 'perd')]); direPatron(K.ligne, 3000); }
   if (g === 'j') son('kamas');
   if (!K.jetons.j || !K.jetons.b || (K.main >= MAINS_POKER && K.jetons.j !== K.jetons.b)) K.finale = K.jetons.j > K.jetons.b ? 'j' : 'b';
   pkRendu();
