@@ -709,6 +709,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .pv-monstre { position: absolute; width: 46px; height: 8px; transform: translate(-50%, -100%); border: 2px solid var(--bord); border-radius: 99px; background: #2b2d31; overflow: hidden; }
 .pv-monstre i { display: block; height: 100%; background: var(--rouge); }
 .pv-monstre.cible { box-shadow: 0 0 0 3px var(--or); }
+.pv-monstre.traits { width: 54px; height: 11px; } .pv-monstre.traits i { background: #e9c35a; } /* (une tete de l'Ancestral : trois traits, un par coup, 10/11/2026) */
+.pv-monstre.traits::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent calc(33.33% - 1.5px), var(--bord) calc(33.33% - 1.5px), var(--bord) calc(33.33% + 1.5px), transparent calc(33.33% + 1.5px), transparent calc(66.66% - 1.5px), var(--bord) calc(66.66% - 1.5px), var(--bord) calc(66.66% + 1.5px), transparent calc(66.66% + 1.5px)); }
 .pv-monstre.allie { border-color: #2b6b38; } .pv-monstre.allie i { background: #4fc26a; } /* le Bouftou de l'Osa : le temps qui lui reste */
 .ouverture-coffre { text-align: center; }
 .scene-coffre { position: relative; width: 230px; height: 210px; margin: 0 auto 8px; }

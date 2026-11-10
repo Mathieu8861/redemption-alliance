@@ -134,7 +134,7 @@ const prevuSur = (o) => { const L = o.prevus; if (!L || !L.length) return 0; con
 const condamne = (o) => !!o.prevus && o.prevus.length > 0 && prevuSur(o) >= o.pv;
 function monstreAViser(p, max) { /* les tours et l'arbalete : d'abord un monstre qui s'en prend a un batiment (un casseur que le perso n'est pas venu chercher), sinon le plus proche */
   let best = null, bd = max || Infinity, cas = null, bc = max || Infinity;
-  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } if (o.casseur && !o.aggro && o.bat && d < bc) { bc = d; cas = o; } });
+  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.coups) return; /* (les tetes de l'Ancestral : seuls les coups du perso comptent, les defenses ne tirent pas dessus) */ const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } if (o.casseur && !o.aggro && o.bat && d < bc) { bc = d; cas = o; } });
   return cas || best;
 }
 function plusProcheMonstre(p, max) {
@@ -313,7 +313,7 @@ function ficheMonstre(t) {
   if (d.appel) met('appel', 'sort', 'Il t\'attire à lui', 'Une bande verte jusqu\'à toi, même de très loin : reste dedans et il te tire jusqu\'à lui' + (d.appelStun ? ', te frappe et t\'étourdit.' : '.'), (d.appelX ? num(fmt(Math.round(dSort * d.appelX)) + ' dégâts', 'rouge') + num('étourdi ' + secondes(d.appelStun)) : '') + recup('appel'), 'violet');
   if (d.geyser) met('geyser', 'sort', 'Geyser', 'Un cercle bleu sous tes pieds : l\'eau jaillit 1,4 s plus tard, sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts', 'rouge') + recup('geyser'), 'rouge');
   if (d.geyserRage) met('geyserRage', 'sort', 'Geysers de rage', 'Sous 30 % de vie : ' + d.geyserRage.n + ' cercles bleus au hasard sur le terrain toutes les ' + d.geyserRage.periode + ' s, l\'eau jaillit 1,4 s plus tard ; ils ne te visent pas, mais sors-en.', num(fmt(Math.round(dSort * ((d.sortsX || {}).geyser || 1))) + ' dégâts chacun', 'rouge'), 'rouge');
-  if (d.enfouit) { const E0 = d.enfouit; met('enfouit', 'sort', 'S\'enfouit', 'Quand tu l\'approches, il s\'enfonce sous terre (on ne peut plus le viser), file sous le sol et ressort plus loin ; là où il était, un cercle, puis ses racines jaillissent et t\'enracinent 1 s. Pendant qu\'il est sous terre, ses têtes surgissent près de toi, une de plus à chaque quart de vie perdu : la tête de sève crache un jet en ligne qui reste au sol et ralentit, la tête des feuilles lance deux éventails tranchants, la tête des racines les fait jaillir en croix sous tes pieds, la tête qui hurle repousse et étourdit dans un grand cercle violet.', num('toutes les ' + String(E0.periode).replace('.', ',') + ' s'), 'vert'); }
+  if (d.enfouit) { const E0 = d.enfouit; met('enfouit', 'sort', 'S\'enfouit', 'Quand tu l\'approches, il s\'enfonce sous terre (on ne peut plus le viser), file sous le sol et ressort plus loin ; là où il était, un cercle, puis ses racines jaillissent et t\'enracinent 1 s. Pendant qu\'il est sous terre (6,5 s), ses quatre têtes surgissent près de toi et lancent chacune leur sort toutes les 2,6 s. Frappe une tête : un trait de sa barre saute et elle replonge pour ressortir ailleurs ; au troisième coup elle éclate pour tout le combat. Moins il en reste, plus elles frappent fort (x1,3 à trois, x1,7 à deux, x2,2 pour la dernière) : la tête de sève crache un jet en ligne qui reste au sol et ralentit, la tête des feuilles lance deux éventails tranchants, la tête des racines les fait jaillir en croix sous tes pieds, la tête qui hurle repousse et étourdit dans un grand cercle violet.', num('toutes les ' + String(E0.periode).replace('.', ',') + ' s'), 'vert'); }
   if (d.garde) met('garde', 'carreaux', 'Garde ses distances', 'Approche-toi à moins de ' + casesDe(d.garde) + ' cases : ' + (d.fem ? 'elle' : 'il') + ' recule pour lancer ses sorts de loin.', '', 'bleu');
   if (d.invoque) met('invoque', 'renfort', 'Invocation', (d.fem ? 'Elle' : 'Il') + ' ' + (d.invoque.geste || 'lève son bâton de corail et invoque') + ' ' + d.invoque.n + ' ' + (d.invoque.noms || 'tortues') + ' toutes les ' + d.invoque.periode + ' s (' + d.invoque.max + ' au plus)' + (d.invoque.noms ? '.' : ' : des monstres de niveau 80 à 90 qui ' + (d.fem ? 'la' : 'le') + ' protègent comme une troupe.'), '', 'vert'); /* (noms, geste : les Tronknydes de l'Ancestral et du Chene Mou, 08/11/2026) */
   if (d.renforts) met('renforts', 'renfort', 'Renforts', (d.fem ? 'Elle' : 'Il') + ' appelle deux ' + d.renforts[1] + ' toutes les ' + RAPPEL_TROUPE + ' s (' + TROUPE_MAX + ' au plus)' + (d.renfortsRage ? ', puis des ' + d.renfortsRage[1] + ' une fois enragé' + (d.fem ? 'e' : '') : '') + '. Sa troupe ' + (d.fem ? 'la' : 'le') + ' protège : chaque monstre près d\'' + (d.fem ? 'elle' : 'lui') + ' lui retire 12 % de tes dégâts.', '', 'vert'); /* (au feminin pour Crocabulia, 03/11/2026) */
@@ -589,6 +589,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
   if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
   if (mo.faible || mo.ancre) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
+  if (mo.d.coups) { if (src != null || (mo.touchT || 0) > performance.now()) return; mo.touchT = performance.now() + 700; mo.touche = true; n = 1; gros = false; src = 'coup'; } /* (une tete de l'Ancestral : un trait par coup du perso, 0,7 s entre deux ; ni les defenses ni le venin ; src : ni venin ni record du plus gros coup) */
   mo.recent = 1.2; /* (il vient d'etre touche : une Tortue peut rouler pour esquiver la suite) */
   if (src == null && combat.venin == null) combat.venin = (caracs().venin || 0) / 100; if (src == null && combat.venin > 0) { const dps = n * combat.venin / 3; if (!mo.venin || mo.venin.dps < dps) mo.venin = { dps, t: 3, tic: 0 }; else mo.venin.t = 3; } /* (le venin de l'Arakne complete, 08/11/2026 : 10 % du coup en poison sur 3 s) */
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
@@ -600,7 +601,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
-  mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  if (mo.d.coups) n = 1; mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.d.affaibli && !mo.faible && !mo.faibleFini && m0Anim(mo) && mo.pv <= mo.pvMax * mo.d.affaibli.seuil) { mo.pv = Math.ceil(mo.pvMax * mo.d.affaibli.seuil); entrerFaible(mo); return; } /* (Moon, sa vie bloquee a 30 %, 31/10/2026) */
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre(mo.d.revitRage ? 'Il se relève, enragé !' : 'Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
@@ -2134,14 +2135,14 @@ function capEnfouit(mo, ctx) {
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
     if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && solSort(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi ; solSort et non caseIci : a l'Arene, sans cases de ferme, il ne s'enfouissait jamais, ni ses tetes, « il s'est pas enfonce une seule fois », Mathieu, 09/11/2026) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
-  mo.enfouiT = 0; mo.plonge = true; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = E.tetes ? E.tetes - 1 : vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, /* (E.tetes : l'Ancestral Maudit, ses quatre tetes a chaque fois) */ TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
+  mo.enfouiT = 0; mo.plonge = true; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = E.tetes ? E.tetes - 1 : vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, /* (E.tetes : l'Ancestral Maudit, ses quatre tetes a chaque fois) */ TELL = 0.5, DESC = 0.8, TRAJ = Math.max(tetesVivantes(mo) ? TETES_DUREE : 2.2, Math.hypot(f.x - x0, f.z - z0) / 9); /* (10/11/2026 : 6,5 s sous terre tant qu'il lui reste une tete, elles te harcelent pendant ce temps ; 2,2 s sans tete) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
-  if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : il ressort plus loin, et ses racines jaillissent là où il était !', 'alerte'); }
+  if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : ses racines jaillissent là où il était, et il ressort plus loin !', 'alerte'); }
   let t = 0, sous = false;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { mo.hop = 0; mo.plonge = false; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; return true; }
     if (t < TELL) { if (Math.random() < dt * 20) poussiere(x0 + (Math.random() - 0.5) * 3, y0, z0 + (Math.random() - 0.5) * 3, 1, 0.5, '#8a6a44'); return false; } /* (la terre fremit autour de lui) */
     if (t < TELL + DESC) { const k = (t - TELL) / DESC; mo.hop = -H * k * k; if (Math.random() < dt * 25) mottes(x0, y0, z0, 2, 1.6); return false; } /* (il s'enfonce) */
-    if (!sous) { sous = true; { const a0 = Math.random() * Math.PI * 2; for (let k = 0; k <= nT; k++) teteSurgit(mo, k, c0, a0 + k * Math.PI * 2 / (nT + 1), k * 0.35); } /* (les tetes s'additionnent : une de plus par quart de vie perdu, chacune ailleurs autour de toi, l'une apres l'autre, 08/11/2026, « A oui », Mathieu) */
+    if (!sous) { sous = true; lancerTetes(mo, c0); /* (ses tetes en vie sortent, creerTetes ; avant le 10/11/2026 : une de plus par quart de vie perdu) */
       mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.12, 0.3); mottes(x0, y0, z0, 10, 2); poussiere(x0, y0, z0, 12, 2.2, '#8a6a44');
       zoneDanger({ mo, x: x0, z: z0, r: E.Rr, duree: 0.9, effet: (d) => { const y = solA(x0, z0); impactElement('feuille', x0, z0, E.Rr); mottes(x0, y, z0, 10, E.Rr * 0.8);
         const p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), cx = pris ? p2.x : x0, cz = pris ? p2.z : z0; racinesQuiSaisissent(cx, solA(cx, cz), cz, pris, 1.0);
@@ -2227,25 +2228,61 @@ function tetesAncestral() {
     return { geo: g, tri: L.length / 3 }; });
   return TETES_ANC;
 }
-function teteSurgit(mo, i, c0, angle, retard) {
-  const T0 = tetesAncestral(); if (!T0 || !T0[i] || !T0[i].tri) return;
-  const pp = paysanMesh.position; let p = null;
-  for (let k = 0; k < 12 && !p; k++) { const a = angle != null ? angle + (Math.random() - 0.5) * (k < 6 ? 0.5 : 3) : Math.random() * Math.PI * 2, L = i === 2 ? 1.4 : 3 + Math.random() * 1.5, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (solSort(q.x, q.z)) p = q; } /* (solSort : l'Arene aussi, 09/11/2026) */
-  if (!p) return; const y0 = solA(p.x, p.z); let src = null; mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
-  const mat = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color(mo.d.lueur || '#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide, color: mo.d.teinte || '#ffffff' }); /* (violettes pour l'Ancestral Maudit) */
-  const h = new T.Mesh(T0[i].geo, mat), k = (mo.m.scale.x || 1) * 1.8, taille = 0.75 * k; h.scale.setScalar(k); h.castShadow = true; scene.add(h);
-  const info = { m: h, r: taille * 0.55 }; h.visible = false; const f = k / 1.7, cou = couAncestral(f); cou.m.visible = cou.b.visible = false; /* (09/11/2026 : sa branche, voir couAncestral) */
-  const MONTE = 0.45, ACTE = 1.6, DESCEND = 0.45; let t = -(retard || 0), sortie = false;
-  effets.push((dt) => { t += dt;
-    if (combat !== c0 || c0.fin || t >= MONTE + ACTE + DESCEND) { scene.remove(h); mat.dispose(); cou.jeter(); c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== info); return true; }
-    if (t < 0) return false; /* (elle attend son tour : les tetes sortent l'une apres l'autre) */
-    if (!sortie) { sortie = true; h.visible = cou.m.visible = cou.b.visible = true; (c0.tetesAnc = c0.tetesAnc || []).push(info); mottes(p.x, y0, p.z, 8, 1.2); poussiere(p.x, y0, p.z, 8, 1.4, '#8a6a44');
-      if (!c0['teteVu' + i]) { c0['teteVu' + i] = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ' + TETES_NOMS[i] + ' : ' + TETES_AIDE[i] + ' !', 'alerte'); } }
-    const u = t < MONTE ? t / MONTE : t < MONTE + ACTE ? 1 : 1 - (t - MONTE - ACTE) / DESCEND; const e = u * (2 - u); h.position.set(p.x, y0 - 0.9 * f + 2.65 * f * e, p.z); /* (au bout de sa branche, 1,75 fois f au-dessus du sol : avant, elle sortait a peine et semblait flotter) */
-    h.rotation.y = Math.atan2(paysanMesh.position.x - p.x, paysanMesh.position.z - p.z) + Math.sin(t * 9) * 0.06; /* (elle te regarde, et frissonne) */
-    cou.poser(p.x, y0, p.z, h.position, h.rotation.y, e);
-    if (!info.fait && t >= MONTE) { info.fait = true; actionTete(mo, i, p, c0); }
+/* LES QUATRE TETES, DE VRAIES CIBLES (10/11/2026, « les tetes disparaissent trop vite, elles devraient rester plus longtemps a te harceler de sorts ; j'ai jamais vu
+   4 tetes ; on devrait inverser la mecanique : 4 tetes, puis 3, puis 2, puis 1 ; il faut les toucher 3 fois, elles ont une barre avec 3 traits ; et moins il en
+   reste, plus les tetes font de degats », Mathieu). Avant : une tete de plus par quart de vie perdu, 2,5 s dehors, un sort, intouchables.
+   Maintenant l'Ancestral a ses quatre tetes des le debut. Ce sont des monstres a part entiere (teteAncestral, 20-monstres.js), caches sous terre tant qu'il est en
+   surface. Il plonge (TETES_DUREE s) : elles sortent pres de toi l'une apres l'autre et lancent chacune leur sort toutes les TETES_CYCLE s (actionTete). On les
+   vise et on les frappe comme un monstre : chaque coup du perso retire un trait a sa barre (3 traits, quelle que soit la force du coup ; ni les tours, ni
+   l'arbalete, ni le venin), la tete touchee replonge aussitot et ressort ailleurs une seconde plus tard ; au troisieme coup elle eclate, pour tout le combat.
+   Moins il en reste, plus celles qui restent frappent fort (TETES_FORCE). Sans tete, ses plongees sont courtes. Il ressort : elles replongent. */
+const TETES_COUPS = 3, TETES_CYCLE = 2.6, TETES_DUREE = 6.5, TETES_FORCE = [1, 2.2, 1.7, 1.3, 1]; /* (la force de leurs sorts selon le nombre de tetes en vie) */
+let TETE_A_FAIRE = null;
+const tetesVivantes = (mo) => (mo.tetes ? mo.tetes.filter((o) => o.etat !== 'mort').length : 4);
+function fabriquerTeteAncestral() { /* le modele d'une tete : decoupee dans le vrai modele de l'Ancestral, avec sa texture et ses yeux qui luisent (violette pour le Maudit) */
+  const env = new T.Group(), A = TETE_A_FAIRE, T0 = A && tetesAncestral(); if (!A || !T0 || !T0[A.i]) { env.userData.hauteur = 2; return env; }
+  let src = null; A.mo.m.traverse((o) => { if (!src && o.isSkinnedMesh && o.name !== 'contour') src = o.material; });
+  const mt = new T.MeshToonMaterial({ map: src && src.map, emissiveMap: src && src.emissiveMap, emissive: new T.Color(A.mo.d.lueur || '#ffffff'), emissiveIntensity: 2, gradientMap: grad, side: T.DoubleSide, color: A.mo.d.teinte || '#ffffff' });
+  const h = new T.Mesh(T0[A.i].geo, mt), k = (A.mo.m.scale.x || 1) * 1.8, f = k / 1.7; h.scale.setScalar(k); h.castShadow = true; env.add(h);
+  env.userData.tete = h; env.userData.k = k; env.userData.f = f; env.userData.hauteur = 1.75 * f + 0.45 * k; return env;
+}
+function creerTetes(mo, c0) {
+  mo.tetes = []; const T0 = tetesAncestral(); if (!T0) return;
+  for (let i = 0; i < 4; i++) { if (!T0[i] || !T0[i].tri) continue; TETE_A_FAIRE = { i, mo };
+    apparaitre('teteAncestral', { x: mo.x, z: mo.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.teteI = i; o.pv = o.pvMax = TETES_COUPS; o.deg = 0; o.aggro = true; o.casseur = false;
+      o.etat = 'enfoui'; o.m.visible = false; o.barre.hidden = true; o.barre.classList.add('traits'); if (o.ombreM) o.ombreM.visible = false;
+      o.phase = 'cachee'; o.e = 0; o.att = 1e9; o.cou = couAncestral(o.m.userData.f || 1); o.cou.m.visible = o.cou.b.visible = false; o.lum = { m: { position: new T.Vector3() }, r: 0.75 * (o.m.userData.k || 1.8) * 0.55 }; mo.tetes.push(o); } }); c0.total++; }
+  TETE_A_FAIRE = null; const pos = new T.Vector3();
+  const cacher = (o) => { o.phase = 'cachee'; o.etat = 'enfoui'; o.e = 0; o.m.visible = false; o.barre.hidden = true; if (o.cou) o.cou.m.visible = o.cou.b.visible = false; c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== o.lum); if (combat === c0 && c0.cible === o) c0.cible = null; };
+  const finir = (o) => { if (o.cou) { o.cou.jeter(); o.cou = null; } c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== o.lum); };
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin) { mo.tetes.forEach(finir); return true; }
+    if (mo.etat === 'mort') { mo.tetes.forEach((o) => { if (o.etat !== 'mort') { if (o.etat === 'actif') { const y = solA(o.x, o.z); eclatsRoche(o.x, y + 1.5, o.z, 10, 1.0, MATS_BOIS); } o.pv = 0; o.etat = 'mort'; o.t = 9; o.barre.remove(); o.m.visible = false; if (c0.cible === o) c0.cible = null; } finir(o); }); return true; } /* (il tombe : ses tetes avec lui) */
+    const sousTerre = mo.etat === 'enfoui', pp = paysanMesh.position, nV = tetesVivantes(mo);
+    mo.tetes.forEach((o) => {
+      if (o.etat === 'mort') { if (o.cou) { finir(o); if (nV) toast('Une tête de ' + leNom(mo.d, true) + ' éclate : il en reste ' + nV + ', ' + (nV > 1 ? 'elles frappent' : 'elle frappe') + ' plus fort !', 'or'); else toast(Maj(leNom(mo.d, true)) + ' n\'a plus de tête : ses plongées sont courtes, achève-le !', 'or'); } return; }
+      o.cd = 99; o.bloqueT = 99; /* (elle ne marche pas et ne frappe pas : seuls ses sorts comptent) */
+      if (o.phase === 'cachee') { if (!sousTerre || c0.deroute != null) return; if ((o.att -= dt) > 0) return;
+        let p = null; for (let k = 0; k < 12 && !p; k++) { const a = Math.random() * Math.PI * 2, L = o.teteI === 2 ? 2.4 : 3.2 + Math.random() * 1.6, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (solSort(q.x, q.z) && !mo.tetes.some((u) => u !== o && u.etat === 'actif' && Math.hypot(u.x - q.x, u.z - q.z) < 1.8)) p = q; }
+        if (!p) { o.att = 0.3; return; }
+        o.x = p.x; o.z = p.z; o.y = solA(p.x, p.z); o.m.position.set(o.x, o.y, o.z); o.etat = 'actif'; o.phase = 'monte'; o.e = 0; o.touche = false; o.m.visible = true; o.cou.m.visible = o.cou.b.visible = true; (c0.tetesAnc = c0.tetesAnc || []).push(o.lum);
+        mottes(p.x, o.y, p.z, 8, 1.2); poussiere(p.x, o.y, p.z, 8, 1.4, '#8a6a44');
+        if (!c0['teteVu' + o.teteI]) { c0['teteVu' + o.teteI] = true; toast(Maj(TETES_NOMS[o.teteI]) + ' : ' + TETES_AIDE[o.teteI] + '.', 'alerte'); } }
+      else if (o.phase === 'monte') { o.e = Math.min(1, o.e + dt / 0.45); if (o.e >= 1) { o.phase = 'dehors'; o.acteT = 0; } }
+      else if (o.phase === 'dehors') {
+        if (o.touche) { o.touche = false; o.phase = 'descend'; o.revient = 1.3; } /* (touchee : elle replonge et ressort ailleurs) */
+        else if (!sousTerre || c0.deroute != null) { o.phase = 'descend'; o.revient = 1e9; }
+        else if ((o.acteT -= dt) <= 0) { o.acteT = TETES_CYCLE; actionTete(mo, o.teteI, { x: o.x, z: o.z }, c0, TETES_FORCE[nV] || 1); } }
+      else if (o.phase === 'descend') { o.e = Math.max(0, o.e - dt / 0.3); if (o.e <= 0) { const r = o.revient; cacher(o); o.att = r; } }
+      if (o.etat !== 'actif') return;
+      const u = o.e * (2 - o.e), h = o.m.userData.tete, f = o.m.userData.f || 1; o.ry = Math.atan2(pp.x - o.x, pp.z - o.z); if (h) { h.position.y = -0.9 * f + 2.65 * f * u; h.rotation.y = Math.sin(performance.now() / 110 + o.teteI) * 0.06; h.getWorldPosition(pos); o.lum.m.position.copy(pos); o.cou.poser(o.x, o.y, o.z, pos, o.ry, u); }
+    });
     return false; });
+}
+function lancerTetes(mo, c0) { /* il vient de plonger : ses tetes en vie sortent, l'une apres l'autre */
+  if (!mo.tetes) creerTetes(mo, c0); let k = 0;
+  mo.tetes.forEach((o) => { if (o.etat === 'mort') return; if (o.phase === 'cachee') o.att = 0.15 + k * 0.45; k++; });
+  if (!c0.tetesVu && k) { c0.tetesVu = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ses ' + k + ' têtes : elles te harcèlent de sorts tant qu\'il y reste. Frappe chacune 3 fois pour la détruire ; moins il en reste, plus elles frappent fort.', 'alerte'); }
 }
 /* CE QUE FONT SES TETES, refait le 10/11/2026 (« on esquive trop facilement ce que font les tetes, on comprend pas trop, y'a des cercles de differentes tailles mais sans
    plus », Mathieu) : avant, quatre cercles rouges d'une seconde. Chaque tete a maintenant sa forme, sa couleur et son nom affiche au-dessus d'elle quand elle agit :
@@ -2256,9 +2293,9 @@ function teteSurgit(mo, i, c0, angle, retard) {
    - la tete qui hurle pousse un CRI : un grand cercle violet autour d'elle (0,8 s), qui repousse, etourdit 0,4 s, et fait sortir 2 Tronknydes.
    Celles de l'Ancestral Maudit maudissent en plus. */
 const TETES_ACTE = ['Jet de sève', 'Feuilles tranchantes', 'Racines en croix', 'Cri'];
-const TETES_AIDE = ['elle crache un jet de sève en ligne : sors de la bande, la sève reste au sol et te ralentit', 'elle lance deux éventails de feuilles tranchantes, l\'un après l\'autre : passe sur le côté, deux fois', 'ses racines jaillissent en croix sous tes pieds : sors en diagonale, sinon tu es enraciné', 'son cri te repousse et t\'étourdit dans le grand cercle violet, et des Tronknydes sortent du sol'];
-function actionTete(mo, i, p, c0) {
-  const pp = paysanMesh.position, ds = degSort(mo), M = mo.d.enfouit && mo.d.enfouit.maudit, maud = () => { if (M) maudirPerso(M.duree, M.x); }, yT = solA(p.x, p.z), vif = () => combat === c0 && !c0.fin; /* (les tetes de l'Ancestral Maudit maudissent) */
+const TETES_AIDE = ['elle crache un jet de sève en ligne, sors de la bande : la sève reste au sol et te ralentit', 'elle lance deux éventails de feuilles tranchantes, l\'un après l\'autre : passe sur le côté, deux fois', 'ses racines jaillissent en croix sous tes pieds : sors en diagonale, sinon tu es enraciné', 'son cri te repousse et t\'étourdit dans le grand cercle violet, et des Tronknydes sortent du sol'];
+function actionTete(mo, i, p, c0, force) { /* (force : fois ses degats, selon le nombre de tetes encore en vie) */
+  const pp = paysanMesh.position, ds = degSort(mo) * (force || 1), M = mo.d.enfouit && mo.d.enfouit.maudit, maud = () => { if (M) maudirPerso(M.duree, M.x); }, yT = solA(p.x, p.z), vif = () => combat === c0 && !c0.fin; /* (les tetes de l'Ancestral Maudit maudissent) */
   chiffre(TETES_ACTE[i] + ' !', new T.Vector3(p.x, yT + 3.6, p.z), 'butin');
   const a = Math.atan2(pp.x - p.x, pp.z - p.z);
   if (i === 0) { /* le jet de seve : une bande de la tete jusqu'au-dela du perso, puis la seve reste au sol */
@@ -2288,7 +2325,8 @@ function actionTete(mo, i, p, c0) {
     const Rc = 5.5; let tc = 0; effets.push((dt) => { tc += dt; if (!vif() || tc >= 0.8) return true; if (Math.random() < dt * 9) onde(p.x, yT, p.z, 1.5 + tc * 4, '#d9b8ff', 0.35, 0.4); return false; }); /* (elle prend son souffle) */
     zoneDanger({ mo, x: p.x, z: p.z, r: Rc, duree: 0.8, couleur: '#a46cff', fort: 1.2, effet: (d) => { if (!vif()) return; secousse(0.3, 0.5); onde(p.x, yT, p.z, Rc * 1.1, '#e6d2ff', 0.7, 0.8); onde(p.x, yT, p.z, Rc * 0.6, '#a46cff', 0.6, 0.6, true);
       const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(ds * 0.6)), mo); maud(); if (vif()) { repousserPerso({ x: p.x, z: p.z }, 3.2); etourdir(0.4); } }
-      for (let k = 0; k < 2; k++) { const b = Math.random() * Math.PI * 2, q = pointValide(p.x, p.z, p.x + Math.sin(b) * 2, p.z + Math.cos(b) * 2); apparaitre('tronknyde', { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); c0.total++; } } }); }
+      const deja = c0.monstres.filter((o) => o.type === 'tronknyde' && o.invoqueur === mo.id && o.etat !== 'mort').length; /* (4 Tronknydes a lui au plus : elle crie maintenant plusieurs fois par plongee) */
+      for (let k = 0; k < 2 && deja + k < 4; k++) { const b = Math.random() * Math.PI * 2, q = pointValide(p.x, p.z, p.x + Math.sin(b) * 2, p.z + Math.cos(b) * 2); apparaitre('tronknyde', { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; } }); c0.total++; } } }); }
 }
 /* LE MALEFICE (06/11/2026, la Wabbit Sorciere : « un sort qui te ralentit dans un cercle ») : quand tu es entre min et max d'elle, un cercle violet
    sous toi ; a la fin, le sort eclate : dedans, un peu de degats et ralenti (c.lenteur, comme la Momie Koalak) */
