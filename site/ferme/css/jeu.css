@@ -1172,9 +1172,19 @@ html, body { color: #e8eaed; }
 .bj-main { margin: 6px 0; } .bj-titre { font-size: .8rem; font-weight: 700; color: #cfc8b8; margin-bottom: 4px; } .bj-titre b { color: var(--kamas); font: 400 1rem/1 var(--f-titre); margin-left: 6px; }
 .bj-cartes { display: flex; gap: 6px; min-height: 66px; align-items: center; flex-wrap: wrap; }
 .bj-carte { width: 44px; height: 62px; border-radius: 7px; background: #fffaf0; border: 2px solid #d9c9a3; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #2a2230; box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
-.bj-carte b { font: 400 1.15rem/1 var(--f-titre); } .bj-carte i { font-style: normal; font-size: 1.15rem; line-height: 1.1; } .bj-carte.rouge { color: #d8263a; }
+.bj-carte b { font: 400 1.15rem/1 var(--f-titre); } .bj-carte i { font-style: normal; font-size: 1.15rem; line-height: 1.1; } .bj-carte.rouge { color: #d8263a; } .bj-carte.bleu { color: #2a64c8; } .bj-carte.vert { color: #1f8a4a; }
 .bj-carte.dos { background: repeating-linear-gradient(45deg, #9e1c2c 0 6px, #c8323e 6px 12px); border-color: #f2b630; }
 .bj-vide { font-size: .78rem; color: #8d877b; } .bj-actions { display: flex; gap: 8px; margin-top: 10px; } .bj-actions .btn { flex: 1; }
+/* le poker du patron (10/11/2026, 29b-casino-patron.js) */
+.pk-dit { background: #1d1a22; border: 2px solid #3a3242; border-radius: 10px; padding: 8px 12px; margin: 4px 0 8px; font: 400 1.02rem/1.25 var(--f-titre); color: #f2e6c8; }
+.pk-dit small { display: block; font: 700 .7rem/1.3 var(--f-texte); color: #9fd8b4; margin-top: 3px; }
+.pk-score { display: flex; justify-content: space-between; font-size: .76rem; font-weight: 700; color: #cfc8b8; } .pk-score b { color: var(--kamas); font: 400 1rem/1 var(--f-titre); }
+.pk-jetons { display: inline-flex; align-items: center; gap: 1px; margin-left: 6px; vertical-align: middle; } .pk-jetons i { width: 7px; height: 12px; border-radius: 2px; background: linear-gradient(#e2413a 0 30%, #fffaf0 30% 45%, #e2413a 45%); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+.pk-jetons b { margin-left: 5px !important; font: 400 .95rem/1 var(--f-titre) !important; color: #fffaf0 !important; } .bj-titre small { color: #8d877b; font-weight: 600; margin-left: 4px; }
+button.pk-carte { font: inherit; padding: 0; cursor: pointer; transition: transform .12s; } button.pk-carte:hover { transform: translateY(-3px); }
+.pk-carte.sel { transform: translateY(-9px); border-color: var(--kamas); box-shadow: 0 0 0 2px var(--kamas), 0 6px 0 rgba(0,0,0,.35); } button.pk-carte.sel:hover { transform: translateY(-9px); }
+.pk-aide { font-size: .7rem; color: #8d877b; margin-top: 3px; } .pk-quitter { width: 100%; margin-top: 8px; font-size: .74rem; }
+.pk-regles { margin: 4px 0 6px 18px; padding: 0; font-size: .8rem; line-height: 1.4; } .pk-regles li { margin: 3px 0; } .pk-ordre { font-size: .76rem; margin: 2px 0; color: #cfc8b8; }
 /* LA FENETRE DES VAGUES (09/11/2026, la proposition 1) : onglets, monstres, trois colonnes avant la bataille, gains et bouton en bas */
 .vg-onglets { display: flex; gap: 6px; margin: 2px 0 10px; }
 .vg-onglets button { flex: 1; min-width: 0; font: 800 .9rem/1.15 var(--f-texte); padding: 8px 6px; border-radius: 12px; border: 2px solid #43464e; background: #2b2d31; color: #e8eaed; box-shadow: 0 3px 0 #1a1b1e; }

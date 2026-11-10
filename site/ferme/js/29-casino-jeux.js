@@ -28,18 +28,18 @@ const CURIOSITES = [
 ];
 const CURIOSITES_SALLE = [
   [-12.9, -1.0, 4.8, 'La grande tapisserie : le Chat Doré lance ses dés face au dragon, et la fortune change de camp.'],
-  [-9.2, -9.6, 1.0, 'Doré Ier, le fondateur : un chat de gouttière qui gagna l\'île en un seul lancer de dés.'],
-  [-5.0, -9.6, 1.0, 'Doré II, dit le Magnifique : il fit couler la fontaine et creuser le canal.'],
+  [-4.4, -9.6, 1.0, 'Doré Ier, le fondateur : un chat de gouttière qui gagna l\'île en un seul lancer de dés.'], /* (sur le pan de mur qui pivote, 10/11/2026 : l'easter egg du million, 29b-casino-patron.js) */
+  [-9.2, -9.6, 1.0, 'Doré II, dit le Magnifique : il fit couler la fontaine et creuser le canal.'],
   [-12.9, 6.4, 1.0, 'Doré III, dit l\'Ombre : on raconte qu\'il n\'a jamais perdu à la roulette. Personne ne sait comment.'],
   [10.2, 7.6, 2.0, 'Un petit salon pour souffler entre deux parties. Les coussins sentent la menthe et l\'or.'],
 ];
 const curiosite = (L, x, z) => L.find(([a, b, r]) => Math.hypot(x - a, z - b) < r);
-function aller(x, z, lx, lz, fn) { /* marcher jusqu'a (x, z) de l'ile (ou de la salle du palais), par les allees, puis regarder (lx, lz) et faire fn */
-  const O = origineCasino(), px = paysanMesh.position.x - O.x, pz = paysanMesh.position.z - O.z, ch = (casinoDedans ? cheminSalle : cheminCasino)(px, pz, x, z) || [[x, z]];
+function aller(x, z, lx, lz, fn) { /* marcher jusqu'a (x, z) de l'ile (ou de la salle du palais, ou du bureau du patron), par les allees, puis regarder (lx, lz) et faire fn */
+  const O = origineCasino(), px = paysanMesh.position.x - O.x, pz = paysanMesh.position.z - O.z, ch = (casinoBureau ? cheminBureau : casinoDedans ? cheminSalle : cheminCasino)(px, pz, x, z) || [[x, z]];
   casinoMarche = { pts: ch, i: 0, vers: lx != null ? { x: O.x + lx, z: O.z + lz } : null, fn, O };
 }
 function clicCasino(hits) {
-  if (course) return; if (casinoDedans) { clicSalle(hits); return; }
+  if (course) return; if (casinoBureau) { clicBureau(hits); return; } if (casinoDedans) { clicSalle(hits); return; }
   for (const h of hits) {
     let o = h.object, perso = false, dansIle = false;
     while (o) { if (o === paysanMesh) perso = true; if (o === ileCasino) dansIle = true; o = o.parent; }
@@ -53,9 +53,10 @@ function clicCasino(hits) {
 }
 function majCasino(dt) {
   if (casinoAnim && !casinoDedans) casinoAnim.animer(dt, performance.now() / 1000);
-  if (casinoDedans) animerSalle(dt);
+  if (casinoBureau) animerBureau(dt); else if (casinoDedans) animerSalle(dt);
+  if (porteAnim) animerPorte(dt);
   majCourse(dt);
-  const u = paysanMesh.userData, P = paysanMesh.position, sol = (x, z) => (casinoDedans ? SALLE_CASINO.y : CASINO.y + hauteurCasino(x - CASINO.x, z - CASINO.z));
+  const u = paysanMesh.userData, P = paysanMesh.position, sol = (x, z) => (casinoBureau ? BUREAU_CASINO.y : casinoDedans ? SALLE_CASINO.y : CASINO.y + hauteurCasino(x - CASINO.x, z - CASINO.z));
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); }
   if (!casinoMarche) { animerPas(u, dt, 0); P.y += (sol(P.x, P.z) - P.y) * Math.min(1, dt * 12); return; }
   const m = casinoMarche, q = m.pts[m.i], tx = m.O.x + q[0], tz = m.O.z + q[1], dx = tx - P.x, dz = tz - P.z, d = Math.hypot(dx, dz), v = vitesse() * dt;
@@ -81,14 +82,15 @@ function ouvrirSalle() {
    la roulette, la table de blackjack, le bar, l'accueil et le coffre du jackpot ; les gros bras gardent la porte. On y marche comme sur l'ile (cheminSalle). */
 const SALLE_CASINO = new T.Vector3(-240, 0, 480); /* (loin de tout, et rien derriere elle dans l'axe de la camera : la ferme se voyait au fond du hall) */
 let salleCasino = null, casinoDedans = false, angleAvantSalle = null, barman = null, gardesSalle = [];
-const origineCasino = () => (casinoDedans ? SALLE_CASINO : CASINO);
+const origineCasino = () => (casinoBureau ? BUREAU_CASINO : casinoDedans ? SALLE_CASINO : CASINO);
 async function chargerSalle() {
   if (salleCasino) return;
   const sc = await chargerGlb('assets/modeles/jeu/casino-salle.glb?v=' + VERSION_MODELES);
   versToon(sc, { normales: 0.012, souple: SOUPLE_CASINO, sansContour: SC_CASINO });
   const g = new T.Group(); g.position.copy(SALLE_CASINO); g.add(sc); g.updateMatrixWorld(true);
   const piv = ['Barman', 'Barman_tete', 'Barman_bras', 'Barman_queue'].map((n) => sc.getObjectByName(n)).filter(Boolean); /* (le chat barman bouge : ses pivots restent a part, 08/11/2026) */
-  piv.forEach((p) => g.attach(p)); fusionner(sc); piv.forEach((p) => { fusionner(p); p.userData.r0 = p.rotation.clone(); p.userData.p0 = p.position.clone(); });
+  const porte = sc.getObjectByName('Porte_fondateur'); if (porte) piv.push(porte); /* (le pan de mur du portrait du fondateur, qui pivote : 29b-casino-patron.js, 10/11/2026) */
+  piv.forEach((p) => g.attach(p)); fusionner(sc); piv.forEach((p) => { fusionner(p); p.userData.r0 = p.rotation.clone(); p.userData.p0 = p.position.clone(); }); porteFondateur = porte || null; if (porte) piv.pop();
   barman = piv.length === 4 ? { corps: piv[0], tete: piv[1], bras: piv[2], queue: piv[3], shake: 0, sert: false } : null; if (barman) barman.tete.userData.parole = { nom: 'Minou', genre: 'chat', cle: 'salle_barman' };
   try { await chargerGrosBras(); gardesSalle = []; [['bouboule', -2.2, 'Bouboule'], ['filou', 2.2, 'Filou']].forEach(([n, x, nom]) => { const m = cloner(n); m.position.set(x, 0, 7.4); /* (deux pas dans le hall, de part et d'autre du tapis : contre la porte, le pilier et le rideau les cachaient, 08/11/2026) */ m.rotation.order = 'YXZ'; m.rotation.y = Math.PI; m.userData.garde = n; m.userData.parole = { nom, genre: 'garde', cle: 'salle_' + n }; g.add(m); gardesSalle.push(m); }); } catch (e) { /* (sans eux, la salle reste ouverte) */ }
   g.visible = false; scene.add(g); salleCasino = g; grilleSalle();
@@ -96,7 +98,7 @@ async function chargerSalle() {
 async function entrerPalais() {
   const ban = (etatCasino().banni || 0) - Date.now(); /* (trop embete les gardes : interdit de palais 30 min, 08/11/2026) */
   if (ban > 0) { const mn = Math.ceil(ban / MIN); toast('Bouboule te barre la porte : « Toi, t\'es interdit. Reviens dans ' + mn + ' minute' + (mn > 1 ? 's' : '') + '. Calmé. »', 'alerte'); return; }
-  Object.assign(moquerie, { perte: 0, serie: 0, palier: 0, t: 0 });
+  Object.assign(moquerie, { perte: 0, serie: 0, palier: 0, t: 0 }); appelFait = false;
   $('voile').classList.add('on'); fermerModale();
   try { await Promise.all([chargerSalle(), attendreMs(700)]); } catch (e) { $('voile').classList.remove('on'); ouvrirSalle(); return; } /* (le hall n'a pas pu se charger : le vestibule, comme avant) */
   casinoDedans = true; casinoMarche = null; montrerIles(); majBarreCasino();
@@ -105,6 +107,7 @@ async function entrerPalais() {
   zoom = innerWidth < innerHeight ? 0.6 : 0.8; cadrer(); VISEE.set(SALLE_CASINO.x + 0.6, 0.6, SALLE_CASINO.z + 1.0); /* (sur un telephone tenu droit, un peu plus loin : tout le hall tient dans l'ecran) */ placerCamera(); soleilVers(SALLE_CASINO); rendu.shadowMap.needsUpdate = true;
   setTimeout(() => $('voile').classList.remove('on'), 120); compter('palaisVisites');
   toast('Bienvenue au Palais du Chat Doré ! Touche une machine, une table ou le bar pour y aller.', 'or');
+  setTimeout(appelFilou, 2200); /* (le million est fait : Filou t'appelle, 29b-casino-patron.js) */
 }
 async function sortirPalais() {
   $('voile').classList.add('on'); fermerModale(); await attendreMs(600); taireSalle();
@@ -121,6 +124,7 @@ function clicSalle(hits) {
     if (perso || !dans) continue;
     if (garde) { parlerGarde(garde); return; } /* (on leur parle, 08/11/2026 : avant, les toucher faisait sortir du palais) */
     const lx = h.point.x - SALLE_CASINO.x, lz = h.point.z - SALLE_CASINO.z, ly = h.point.y - SALLE_CASINO.y;
+    if (porteTouchee(lx, lz, ly)) { allerFondateur(); return; } /* (le portrait du fondateur et son pan de mur : la serrure du patron) */
     if (ly > 2.2) { const cm = curiosite(CURIOSITES_SALLE, lx, lz); if (cm) { aller(cm[0], cm[1], cm[0], cm[1], () => toast(cm[3])); return; } } /* (ce qui est accroche haut au mur passe avant ce qui est au sol dessous : le portrait au-dessus du coffre) */
     const j = zoneSalle(lx, lz);
     if (j && j.startsWith('machine')) { const z = MACHINES_SALLE[+j.slice(7)]; aller(-10.7, z, -11.7, z, () => ouvrirJeuSalle('machine')); return; }
@@ -155,6 +159,7 @@ function direSalle(m, texte, duree) { /* une replique dans une bulle au-dessus d
 function taireSalle() { [barman && barman.tete].concat(gardesSalle).forEach((m) => { const P = m && m.userData.parole; if (P) { P.fin = 0; delete ancres[P.cle]; } }); }
 function autreLigne(L, avant) { const r = L.filter((x) => x !== avant); return hasard(r.length ? r : L); }
 function parlerGarde(m) {
+  if (parlerGardePatron(m)) return; /* (la cle du patron, et ce qu'ils en disent : ca ne compte pas pour les agacer) */
   const t = performance.now(), A = gardesAgaces, n = m.userData.garde, autre = gardesSalle.find((x) => x !== m); if (t - A.t > 25000) A.n = 0; A.t = t; A.n++;
   m.userData.regard = t + 4500; m.userData.penche = t;
   if (A.n >= 6) { A.n = 0; etatCasino().banni = Date.now() + 30 * MIN; sauver(); /* (« si on les harcele trop, ils nous sortent et on ne peut plus rentrer pendant 30 minutes », Mathieu) */
@@ -182,6 +187,7 @@ function moquer(L, sansChat) {
   if (modaleOuverte) toast(m.userData.parole.nom + (chat ? ', derrière son comptoir' : ', depuis la porte') + ' : « ' + t + ' »');
 }
 function apresManche(net) {
+  if (lieu === 'casino' && casinoDedans && !appelFait && cleAttendue()) setTimeout(appelFilou, 1500); /* (le million vient de tomber) */
   if (lieu !== 'casino' || !casinoDedans || !net) return; const M = moquerie, now = performance.now();
   if (net > 0) { const s = M.serie; M.serie = 0; M.perte -= net; if (s >= 3 && Math.random() < 0.5 && now - M.t > 8000) { M.t = now; moquer(CHANCE, true); } return; }
   M.perte -= net; M.serie++; const r = M.perte / Math.max(1, plafondPertes()), palier = r >= 0.6 ? 3 : r >= 0.3 ? 2 : r >= 0.1 ? 1 : 0, nouveau = palier > M.palier; if (nouveau) M.palier = palier;
@@ -381,7 +387,7 @@ function ouvrirCasinoInfo(titre) {
   const c = etatCasino(), st = S_.stats || {};
   ouvrirModale('casino', entete(titre || 'Le Casino') + '<div class="art">' + ico('kama') + '<div><b>Ton bilan</b><div class="puces"><span class="puce">misé en tout : ' + fmt(st.casinoMises || 0) + '</span><span class="puce">gagné en tout : ' + fmt(st.casinoGains || 0) + '</span><span class="puce">courses : ' + (st.courses || 0) + '</span></div></div><div></div></div>' +
     '<div class="art">' + ico('jackpot') + '<div><b>Le jackpot : ' + fmt(c.jackpot) + ' kamas</b><div class="desc">Il grossit de 5 % de chaque mise à la machine à sous, et tombe avec 3 Jackpots.</div></div><div></div></div>' +
-    '<div class="art">' + ico('cadenas') + '<div><b>Les règles de la maison</b><div class="desc">Mise maximale ' + fmt(miseMax()) + ' kamas (elle monte avec ton niveau). Pertes plafonnées à ' + fmt(plafondPertes()) + ' kamas par jour : aujourd\'hui ' + fmt(perteJour()) + '. Comme dans un vrai casino, la maison garde un petit avantage.</div></div><div></div></div>');
+    '<div class="art">' + ico('cadenas') + '<div><b>Les règles de la maison</b><div class="desc">Mise maximale ' + fmt(miseMax()) + ' kamas (elle monte avec ton niveau). Pertes plafonnées à ' + fmt(plafondPertes()) + ' kamas par jour : aujourd\'hui ' + fmt(perteJour()) + '. Comme dans un vrai casino, la maison garde un petit avantage.</div></div><div></div></div>' + testsPatron());
 }
 function actionCasino(b) {
   const a = b.dataset.cas;
@@ -396,5 +402,6 @@ function actionCasino(b) {
   else if (a.startsWith('bar:c')) commanderCocktail(+a.slice(5));
   else if (a.startsWith('salle:')) { const j = a.slice(6); if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else ouvrirCasinoInfo(); }
   else if (a === 'course') lancerCourse();
+  else if (a.startsWith('pk:')) actionPoker(a.slice(3)); else if (a.startsWith('patron:')) actionPatron(a.slice(7)); /* (le poker et la porte du patron, 29b-casino-patron.js) */
 }
 

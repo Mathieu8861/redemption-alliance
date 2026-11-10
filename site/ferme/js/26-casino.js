@@ -31,7 +31,7 @@ function payer(g) {
   rendreHaut(); majBarreCasino(); sauver(); const net = g - mancheMise; mancheMise = 0; if (typeof apresManche === 'function') apresManche(net);
   if (dette() > 0 && S_.kamas <= 0 && lieu === 'casino') setTimeout(expulser, 900); /* fini en negatif : les gros bras te raccompagnent */
 }
-function majBarreCasino() { if (!S_) return; const c = etatCasino(); $('casino-info').innerHTML = '<b>' + (typeof casinoDedans !== 'undefined' && casinoDedans ? 'Palais du Chat Doré' : 'Île du Casino') + '</b> · pertes du jour ' + fmt(perteJour()) + ' / ' + fmt(plafondPertes()) + ' ' + KAMA + ' · jackpot ' + fmt(c.jackpot) + ' ' + KAMA + (dette() ? ' · <span style="color:var(--rouge)">ardoise ' + fmt(dette()) + '</span>' : ''); }
+function majBarreCasino() { if (!S_) return; const c = etatCasino(); $('casino-info').innerHTML = '<b>' + (typeof casinoBureau !== 'undefined' && casinoBureau ? 'Bureau du patron' : typeof casinoDedans !== 'undefined' && casinoDedans ? 'Palais du Chat Doré' : 'Île du Casino') + '</b> · pertes du jour ' + fmt(perteJour()) + ' / ' + fmt(plafondPertes()) + ' ' + KAMA + ' · jackpot ' + fmt(c.jackpot) + ' ' + KAMA + (dette() ? ' · <span style="color:var(--rouge)">ardoise ' + fmt(dette()) + '</span>' : ''); }
 
 /* ---------- la montgolfiere de la ferme ---------- */
 function poserMontgolfiere() { /* sur sa case (type montgolfiere), tournee comme on l'a choisi dans Amenager ; POS_MONTGOLFIERE suit (retour du Casino, gros bras) */
