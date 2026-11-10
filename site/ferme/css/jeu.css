@@ -1237,3 +1237,13 @@ button.pk-carte { font: inherit; padding: 0; cursor: pointer; transition: transf
 .vg-revanche b { display: flex; align-items: center; gap: 8px; font: 400 1.25rem var(--f-titre); } .vg-revanche b em { font: 800 .72rem var(--f-texte); font-style: normal; padding: 2px 8px; border-radius: 99px; background: var(--or); color: #1d1e22; }
 .vg-revanche.dur b em { background: #a3342b; color: #fff; } .vg-revanche small { display: block; font-size: .78rem; color: #c3c6cd; } .vg-revanche .vg-leg { color: #ad81d9; }
 .gl-vendre.attente { cursor: help; text-decoration: none; color: #e0b25a; } /* (le temps avant de pouvoir vendre une Gelee nee ici, 09/11/2026) */
+/* le glisser-deposer de la fiche du perso (10/11/2026, 25-interface.js) : la vignette qui suit le pointeur, la case qui s'allume, la zone ou lacher */
+.fp-fantome { position: fixed; left: 0; top: 0; width: 60px; height: 60px; z-index: 9999; pointer-events: none; border: 2.5px solid #fff; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #26272b, #3a3c42); display: grid; place-items: center; box-shadow: 0 8px 18px rgba(0, 0, 0, .55); opacity: .96; }
+.fp-fantome img { width: 48px; height: 48px; object-fit: contain; } .fp-fantome.rare { border-color: var(--or); } .fp-fantome.leg { border-color: #9b6cff; }
+.fp-case.glisse, .fp-slot.glisse { opacity: .35; }
+.fp-poupee .fp-slot.cible { box-shadow: 0 0 0 3px #6fe07a, 0 0 14px rgba(111, 224, 122, .9); animation: fpCible .6s ease-in-out infinite alternate; }
+.fp-poupee .fp-slot.refus { box-shadow: 0 0 0 3px var(--rouge), 0 0 12px rgba(226, 65, 58, .8); }
+.fp-poupee.depot, .fp-sac.depot { outline: 2px dashed #5b5f69; outline-offset: 5px; border-radius: 14px; } .fp-poupee.depot.survol, .fp-sac.depot.survol { outline-color: #6fe07a; }
+body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-select: none; }
+.fp-sac .fp-case.plein, .fp-poupee .fp-slot { -webkit-touch-callout: none; user-select: none; } .fp-sac .fp-case img, .fp-poupee .fp-slot img { -webkit-user-drag: none; pointer-events: none; }
+@keyframes fpCible { from { transform: scale(1); } to { transform: scale(1.07); } }

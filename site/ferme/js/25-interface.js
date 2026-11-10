@@ -539,7 +539,7 @@ function ouvrirPerso(sel) {
   const virg = (x) => String(x).replace('.', ',');
   const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + Math.round(100 - 100 / (1 + c.agilite / 100)) + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
     ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite + ' %', ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
-  const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case</small></h3><div class="fp-poupee">' +
+  const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case, ou glisse une pièce du sac ici</small></h3><div class="fp-poupee">' +
     ['coiffe', 'cape', 'amulette'].map((e, k) => '<div style="grid-column:1;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
     '<div class="fp-perso"><img src="' + portraitPerso() + '" alt=""></div>' +
     ['anneau', 'ceinture', 'bottes'].map((e, k) => '<div style="grid-column:3;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
@@ -796,4 +796,47 @@ document.addEventListener('click', (e) => {
   else return;
   sauver();
 });
-
+/* GLISSER UNE PIECE DU SAC SUR L'EQUIPEMENT (10/11/2026, « qu'on puisse faire glisser un item de l'inventaire jusqu'a l'equipement, a gauche de mon personnage : tu cliques
+   et tu maintiens un objet, tu peux le faire glisser pour remplacer un autre item », Mathieu) : dans la fiche du perso, une piece du sac se prend a la souris (des qu'elle
+   bouge de 8 px) ou au doigt (un appui de 0,2 s, pour ne pas gener le defilement) ; une vignette suit le pointeur, la case ou elle ira s'allume en vert (en rouge si le
+   niveau ou la classe l'interdit) ; lachee n'importe ou sur le perso et ses cases, elle s'equipe a sa place et l'ancienne retourne au sac. Dans l'autre sens, une piece
+   portee glissee sur le sac se retire. Un simple clic choisit toujours la piece, comme avant. */
+let glisse = null, glisseFin = 0;
+const SEUIL_GLISSE = 8, APPUI_TACTILE = 220;
+function debutGlisse(g) {
+  const img = g.src.querySelector('img'); if (g.actif || !img || !document.body.contains(g.src)) { if (!g.actif) glisse = null; return; }
+  g.actif = true; const f = document.createElement('div'); f.className = 'fp-fantome' + (g.src.classList.contains('leg') ? ' leg' : g.src.classList.contains('rare') ? ' rare' : ''); f.innerHTML = '<img src="' + img.src + '" alt="">'; document.body.appendChild(f); g.fant = f;
+  g.src.classList.add('glisse'); document.body.classList.add('fp-en-glisse');
+  if (g.id) { const o = obj(g.id), s = o && document.querySelector('.fp-poupee .fp-slot[data-fp-slot="' + o.emp + '"]'); if (s) s.classList.add(comparer(g.id).ok ? 'cible' : 'refus'); }
+  const z = document.querySelector(g.id ? '.fp-poupee' : '.fp-sac'); if (z) z.classList.add('depot');
+  placerGlisse(g);
+}
+function placerGlisse(g) {
+  g.fant.style.transform = 'translate(' + (g.x - 30) + 'px,' + (g.y - 30) + 'px)';
+  const el = document.elementFromPoint(g.x, g.y); g.sur = !!(el && el.closest(g.id ? '.fp-poupee' : '.fp-sac'));
+  document.querySelectorAll('.depot').forEach((d) => d.classList.toggle('survol', g.sur));
+}
+function finGlisse(lacher) {
+  const g = glisse; glisse = null; if (!g) return; clearTimeout(g.minuterie); if (!g.actif) return;
+  g.fant.remove(); document.body.classList.remove('fp-en-glisse'); document.querySelectorAll('.fp-slot.cible, .fp-slot.refus, .depot, .glisse').forEach((e) => e.classList.remove('cible', 'refus', 'depot', 'survol', 'glisse'));
+  glisseFin = performance.now(); /* (le clic qui suit le lacher ne choisit pas une autre piece) */
+  if (lacher && g.sur && modaleOuverte === 'perso') { if (g.id) ACTIONS.equiper(g.id); else ACTIONS.retirer(g.emp); }
+}
+document.addEventListener('pointerdown', (e) => {
+  if (modaleOuverte !== 'perso' || e.button > 0 || glisse) return;
+  const c = e.target.closest('.fp-sac .fp-case.plein[data-fp-sel]'), s = c ? null : e.target.closest('.fp-poupee .fp-slot:not(.vide)');
+  if ((!c && !s) || (c && String(c.dataset.fpSel).startsWith('q:'))) return; /* (un objet de quete ne s'equipe pas) */
+  const g = glisse = { src: c || s, id: c ? c.dataset.fpSel : null, emp: s ? s.dataset.fpSlot : null, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, actif: false, tactile: e.pointerType === 'touch', pid: e.pointerId };
+  if (g.tactile) g.minuterie = setTimeout(() => { if (glisse === g) { debutGlisse(g); if (g.actif && navigator.vibrate) navigator.vibrate(12); } }, APPUI_TACTILE);
+});
+document.addEventListener('pointermove', (e) => {
+  const g = glisse; if (!g || e.pointerId !== g.pid) return; g.x = e.clientX; g.y = e.clientY; const d = Math.hypot(g.x - g.x0, g.y - g.y0);
+  if (!g.actif) { if (g.tactile) { if (d > 10) finGlisse(false); return; } /* (au doigt, bouger avant la fin de l'appui : c'est un defilement) */ if (d < SEUIL_GLISSE) return; debutGlisse(g); if (!g.actif) return; }
+  placerGlisse(g);
+});
+document.addEventListener('pointerup', (e) => { if (glisse && e.pointerId === glisse.pid) finGlisse(true); });
+document.addEventListener('pointercancel', (e) => { if (glisse && e.pointerId === glisse.pid) finGlisse(false); });
+document.addEventListener('touchmove', (e) => { if (glisse && glisse.actif) e.preventDefault(); }, { passive: false }); /* (la piece en main, la fenetre ne defile plus) */
+document.addEventListener('click', (e) => { if (performance.now() - glisseFin < 80) { e.stopPropagation(); e.preventDefault(); } }, true);
+document.addEventListener('dragstart', (e) => { if (e.target && e.target.closest && e.target.closest('.fp-corps')) e.preventDefault(); }); /* (pas l'image fantome du navigateur) */
+document.addEventListener('contextmenu', (e) => { if (glisse && glisse.actif) e.preventDefault(); });
