@@ -45,9 +45,9 @@ function majCombat(dt, s) {
   else if (c.groupe && c.file.length) { if (c.attente > 0 || c.deroute != null) {} else { /* la horde de la Phase 2 (04/11/2026) : un premier groupe, puis HORDE_RENFORT monstres toutes les HORDE_RYTHME s, qu'on les abatte ou non
        (05/11/2026, par Discord : « il faut en tuer pour qu'ils apparaissent ? c'est nul, trop facile de tempo », Mathieu ; avant, les renforts venaient a mesure
        qu'on les abattait) ; plus personne quand le perso est a terre */
-    const nb = !c.horde ? c.groupe : HORDE_RENFORT;
+    const foret = c.n > 9 * VAGUES_PALIER, nb = !c.horde ? c.groupe : foret ? RENFORT_FORET : HORDE_RENFORT; /* (la foret : ses renforts par 4 toutes les 3 s, 10/11/2026) */
     for (let i = 0; i < nb && c.file.length; i++) { const t = c.file.shift(); apparaitre(t); if (MONSTRES[t].boss) toast(leNom(MONSTRES[t]) + ' en personne débarque avec sa troupe !', 'alerte'); }
-    c.attente = HORDE_RYTHME; c.horde = true; } }
+    c.attente = foret ? RYTHME_FORET : HORDE_RYTHME; c.horde = true; } }
   else if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   majFumees(dt, s); majAfflictions(dt); if (combat !== c || c.fin) return;

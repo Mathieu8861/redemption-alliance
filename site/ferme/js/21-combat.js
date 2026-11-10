@@ -2125,15 +2125,16 @@ function capEnfouit(mo, ctx) {
   /* (09/11/2026, « l'Ancestral classique est nul, il n'a pas ses sorts ou il s'enterre », Mathieu : il attendait qu'on l'approche a moins de E.R, un Cra qui tire de loin
      ne le voyait jamais plonger ; et sa recharge s'arretait pendant chacun de ses autres sorts, une plongee toutes les 15 a 20 s. Il plonge maintenant ou que tu sois,
      E.periode secondes apres etre ressorti, la recharge tourne meme pendant ses autres sorts ; il attend seulement d'avoir fini celui en cours) */
+  if (mo.plonge) return; /* (10/11/2026 : sa recharge ne tourne plus pendant la plongee ; elle faisait 5,3 s sur les 6 de la recharge, il replongeait des qu'il ressortait et ne tirait jamais) */
   mo.enfouiT += ctx.dt * (mo.enrage ? 1.3 : 1); if (mo.enfouiT < E.periode || mo.bloqueT > 0 || mo.vise) return;
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
     if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && solSort(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi ; solSort et non caseIci : a l'Arene, sans cases de ferme, il ne s'enfouissait jamais, ni ses tetes, « il s'est pas enfonce une seule fois », Mathieu, 09/11/2026) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
-  mo.enfouiT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = E.tetes ? E.tetes - 1 : vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, /* (E.tetes : l'Ancestral Maudit, ses quatre tetes a chaque fois) */ TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
+  mo.enfouiT = 0; mo.plonge = true; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = E.tetes ? E.tetes - 1 : vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, /* (E.tetes : l'Ancestral Maudit, ses quatre tetes a chaque fois) */ TELL = 0.5, DESC = 0.8, TRAJ = Math.max(2.7 + 0.35 * nT, Math.hypot(f.x - x0, f.z - z0) / 9); /* (2,7 s au moins : le temps qu'une de ses tetes surgisse, agisse et replonge) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
   if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : il ressort plus loin, et ses racines jaillissent là où il était !', 'alerte'); }
   let t = 0, sous = false;
-  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { mo.hop = 0; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; return true; }
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { mo.hop = 0; mo.plonge = false; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; return true; }
     if (t < TELL) { if (Math.random() < dt * 20) poussiere(x0 + (Math.random() - 0.5) * 3, y0, z0 + (Math.random() - 0.5) * 3, 1, 0.5, '#8a6a44'); return false; } /* (la terre fremit autour de lui) */
     if (t < TELL + DESC) { const k = (t - TELL) / DESC; mo.hop = -H * k * k; if (Math.random() < dt * 25) mottes(x0, y0, z0, 2, 1.6); return false; } /* (il s'enfonce) */
     if (!sous) { sous = true; { const a0 = Math.random() * Math.PI * 2; for (let k = 0; k <= nT; k++) teteSurgit(mo, k, c0, a0 + k * Math.PI * 2 / (nT + 1), k * 0.35); } /* (les tetes s'additionnent : une de plus par quart de vie perdu, chacune ailleurs autour de toi, l'une apres l'autre, 08/11/2026, « A oui », Mathieu) */
@@ -2144,7 +2145,7 @@ function capEnfouit(mo, ctx) {
       if (E.maudit) mareMaudite(mo, x0, z0, E.Rr * 1.15, E.maudit.mare, c0); }
     if (t < TELL + DESC + TRAJ) { const k = (t - TELL - DESC) / TRAJ, x = x0 + (f.x - x0) * k, z = z0 + (f.z - z0) * k, y = solA(x, z); if (Math.random() < dt * 30) { mottes(x, y, z, 2, 0.7); poussiere(x, y, z, 2, 0.6, '#8a6a44'); } return false; } /* (la trainee sous le sol) */
     mo.x = f.x; mo.z = f.z; mo.y = solA(f.x, f.z); mo.dep = { x: f.x, y: mo.y - H, z: f.z, friche: true }; mo.t = 0; mo.etat = 'grimpe'; mo.m.visible = true; mo.hop = 0; /* (il ressort de terre, comme un monstre qui grimpe) */
-    mo.ry = Math.atan2(paysanMesh.position.x - f.x, paysanMesh.position.z - f.z); mo.m.rotation.y = mo.ry; secousse(0.1, 0.25); mottes(f.x, mo.y, f.z, 12, 2); impactElement('feuille', f.x, f.z, 2.5); return true; });
+    mo.ry = Math.atan2(paysanMesh.position.x - f.x, paysanMesh.position.z - f.z); mo.m.rotation.y = mo.ry; secousse(0.1, 0.25); mottes(f.x, mo.y, f.z, 12, 2); impactElement('feuille', f.x, f.z, 2.5); mo.plonge = false; mo.enfouiT = 0; mo.bloqueT = 0.3; mo.cd = Math.min(mo.cd || 0, 0.6); return true; }); /* (ressorti : sa recharge repart de la, et il tire presque aussitot ; bloqueT : il ne se decompte pas sous terre, il restait 4 s sans rien faire apres chaque sortie) */
 }
 /* LA MALEDICTION DE L'ANCESTRAL MAUDIT (09/11/2026) : maudit, tu prends E.maudit.x fois les degats (blesserPerso) tant que l'anneau violet tourne sous tes pieds */
 function teinterMonstre(m, d) { const L = d.lueur ? new T.Color(d.lueur) : null; m.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour' && o.material) { o.material.color.set(d.teinte); if (L && o.material.emissive) o.material.emissive.copy(L); } }); if (L && m.userData.anim) m.userData.anim.lueur = L; }
