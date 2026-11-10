@@ -118,15 +118,19 @@ function majFeux(force) { const C = clesBats(); C.forEach((k) => majFeu(k, force
 function animerFeux(dt) { Object.values(feux).forEach((f) => { if (f.grp && f.grp.userData.maj) f.grp.userData.maj(dt); }); }
 /* les barres de vie au-dessus des batiments touches */
 const barresBat = new Map();
+/* LE BOUCLIER SUR LA BARRE (10/11/2026, « une barre de shield : t'as 20 % de barre bleue, et une fois que le shield est crame, ca passe en barre verte, comme dans les
+   jeux classiques », Mathieu) : le bouclier de carapace est une reserve de points (BOUCLIER_BASE de la vie de la grange) que les coups entament avant sa vie ;
+   sur la barre, la vie en vert et le bouclier en bleu a sa suite, avec son chiffre ; la barre de la grange se montre des que le bouclier est pose */
+const bouclierDe = (k) => (k === 'grange' && combat && !combat.fin && combat.bouclierPv > 0 ? combat.bouclierPv : 0);
 function majBarresBat() {
   const C = clesBats(), zone = $('bats-pv');
-  barresBat.forEach((e, k) => { if (!C.includes(k) || (!degatsBat(k) && !enRuine(k))) { e.remove(); barresBat.delete(k); } });
+  barresBat.forEach((e, k) => { if (!C.includes(k) || (!degatsBat(k) && !enRuine(k) && !bouclierDe(k))) { e.remove(); barresBat.delete(k); } });
   C.forEach((k) => {
-    if (!degatsBat(k) && !enRuine(k)) return;
+    if (!degatsBat(k) && !enRuine(k) && !bouclierDe(k)) return;
     let e = barresBat.get(k); if (!e) { e = document.createElement('div'); e.className = 'pv-bat'; e.dataset.bat = k; zone.appendChild(e); barresBat.set(k, e); e.addEventListener('click', () => { if (!combat && !enAccueil) ouvrirBatPv(k); }); }
-    const r = pvBat(k) / pvMaxBat(k), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)';
-    e.classList.toggle('ruine', enRuine(k)); e.classList.toggle('bouclier', k === 'grange' && !!(combat && combat.bouclierBat)); e.dataset.info = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
-    e.innerHTML = '<img src="assets/icones/marteau.png?v=' + VERSION_MODELES + '" alt="">' + (enRuine(k) ? 'En ruine' : '<span class="b"><i style="width:' + (100 * r).toFixed(0) + '%;background:' + col + '"></i></span>' + fmt(pvBat(k)));
+    const r = pvBat(k) / pvMaxBat(k), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)', sh = bouclierDe(k), tot = Math.max(pvMaxBat(k), pvBat(k) + sh);
+    e.classList.toggle('ruine', enRuine(k)); e.classList.toggle('bouclier', sh > 0); e.dataset.info = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
+    e.innerHTML = '<img src="assets/icones/marteau.png?v=' + VERSION_MODELES + '" alt="">' + (enRuine(k) ? 'En ruine' : '<span class="b"><i style="width:' + (100 * pvBat(k) / tot).toFixed(1) + '%;background:' + col + '"></i>' + (sh ? '<i class="sh" style="width:' + (100 * sh / tot).toFixed(1) + '%"></i>' : '') + '</span>' + fmt(pvBat(k)) + (sh ? '<b class="sh">+' + fmt(sh) + '</b>' : ''));
     const z = zoneBat(k); if (z) { const b = boiteBat(z); e._point = [z.x, enRuine(k) ? z.y + 1.1 : k === 'grange' ? z.y + (b.max.y - z.y) * 0.5 : b.max.y + 0.3, z.z]; } /* (10/11/2026, « la barre de vie devrait etre plutot sur le chateau : au-dessus, elle cache ce qu'il y a derriere, et le chateau on ne clique pas a travers », Mathieu : celle de la grange a mi-hauteur du batiment) */
   });
 }
@@ -140,10 +144,16 @@ const dpsBatiments = (n) => DPS_BATIMENT * Math.max(1, n);
 const degatsBatiment = (secondes, mo) => Math.max(1, Math.round(dpsBatiments(combat ? combat.n : S_.vague.num) * secondes * (mo ? facteurRejoue('deg', mo.type) : 1) * (mo && /^craq/.test(mo.type) ? 0.7 : 1))); /* (05/11/2026 : les Craqueleurs, -30 % sur les batiments) */
 /* un coup sur un batiment */
 function blesserBat(cle, n) {
-  if (!S_ || enRuine(cle)) return; if (combat && combat.bouclierBat && cle === 'grange') n *= 1 - combat.bouclierBat; /* (le bouclier de carapace pose avant la vague, 10/11/2026 : la grange seulement, « le shield, c'est que sur la grange / le chateau », Mathieu) */ n = Math.max(1, Math.round(n)); S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
+  if (!S_ || enRuine(cle)) return; n = Math.max(1, Math.round(n));
+  if (combat && combat.bouclierPv > 0 && cle === 'grange') { /* (le bouclier de carapace, 10/11/2026 : la grange seulement ; ses points encaissent d'abord, le reste du coup passe sur la vie) */
+    const pris = Math.min(n, combat.bouclierPv), z0 = zoneBat(cle); combat.bouclierPv -= pris; n -= pris;
+    if (z0) chiffre('-' + pris, new T.Vector3(z0.x, boiteBat(z0).max.y + 0.2, z0.z), 'bat bouclier'); if (combat.carapace) combat.carapace.coup = 0.4;
+    if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); }
+    if (combat.bouclierPv <= 0) { secousse(0.25, 0.4); toast('Le bouclier de carapace a cédé : ' + nomQG() + ' encaisse de nouveau les coups.', 'alerte'); }
+    if (n <= 0) { majBarresBat(); return; } }
+  S_.bats = S_.bats || {}; const b = S_.bats[cle] || (S_.bats[cle] = { deg: 0 }), max = pvMaxBat(cle);
   const avant = b.deg || 0; b.deg = Math.min(max, avant + n); n = b.deg - avant; const z = zoneBat(cle);
   if (z) { const bx = boiteBat(z); chiffre('-' + n, new T.Vector3(z.x, bx.max.y + 0.2, z.z), 'bat'); }
-  if (combat && combat.carapace && cle === 'grange') combat.carapace.coup = 0.4; /* (sa carapace s'eclaire, poserCarapace) */
   if (combat) { combat.bats = combat.bats || {}; combat.bats[cle] = (combat.bats[cle] || 0) + n; if (!combat.alerteBat) combat.alerteBat = {}; if (!combat.alerteBat[cle]) { combat.alerteBat[cle] = true; toast('Des monstres attaquent ' + nomBat(cle) + ' ! Va les chasser.', 'alerte'); } }
   if (b.deg >= max) { b.ruine = true; if (z) { pouf(z.x, z.y, z.z, 4, '#8e8a85'); pouf(z.x, z.y, z.z, 2.5, '#ff7a1e'); } toast(Maj(nomBat(cle)) + ' s\'effondre en ruine ! ' + PERTE_RUINE[typeCle(cle)] + ' Reconstruis-le après la vague.', 'alerte'); if (typeCle(cle) === 'grange') rendreArbaleteBulle(); }
   majFeu(cle); majBarresBat();
@@ -199,8 +209,10 @@ function poserCarapace(c0) {
   for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, n = new T.Mesh(new T.TorusGeometry(0.27 / Rr, 0.07 / Rr, 5, 10), corde); n.position.set(Math.cos(a), 0, Math.sin(a)); n.rotation.y = -a + Math.PI / 2; socle.add(n); } /* (les noeuds de corde) */
   socle.scale.setScalar(Rr); socle.position.y = 0.16; g.add(socle);
   g.position.set(x, y, z); sansClic(g); scene.add(g); c0.carapace = { coup: 0 }; let t = 0, fin = 0;
-  effets.push((dt) => { t += dt; const tient = combat === c0 && !c0.fin && !enRuine('grange'); if (!tient) fin += dt;
-    if (fin > 0.7) { scene.remove(g); g.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); return true; }
+  let brisee = false;
+  effets.push((dt) => { t += dt; const tient = combat === c0 && !c0.fin && !enRuine('grange') && c0.bouclierPv > 0; if (!tient) fin += dt;
+    if (!tient && !brisee) { brisee = true; if (combat === c0 && !c0.fin) { for (let i = 0; i < 5; i++) { const a = i * 1.26; emettre(FX_VIF, 9, { x: x + Math.cos(a) * Rr * 0.6, y: y + H * 0.55, z: z + Math.sin(a) * Rr * 0.6, r: Rr * 0.3, dv: 5, vie: [0.4, 0.9], taille: [0.3, 0.06], c: ['#d6ecff', '#5aa2ff', '#2f66dc'], grav: 7 }); } } } /* (vide : elle vole en eclats bleus) */
+    if (fin > 0.7) { scene.remove(g); g.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); majBarresBat(); return true; }
     const k = Math.min(1, t / 1.0), e = 1 - (1 - k) * (1 - k), v = Math.max(0, 1 - fin / 0.7); c0.carapace.coup = Math.max(0, c0.carapace.coup - dt);
     dome.scale.y = Math.max(0.01, H * e * (0.35 + 0.65 * v)); mat0.uniforms.uF.value = Math.min(1, t / 0.5) * v; mat0.uniforms.uC.value = c0.carapace.coup / 0.4; mat0.uniforms.uT.value = t;
     socle.scale.setScalar(Rr * (0.6 + 0.4 * e) * (0.85 + 0.15 * v)); socle.visible = v > 0.05; return false; });

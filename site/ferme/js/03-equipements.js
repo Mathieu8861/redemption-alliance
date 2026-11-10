@@ -224,7 +224,7 @@ const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il
      tankiness a notre base ; un consommable, comme les carreaux, pour la base ; il faut 10 ecailles de tortue et 5 branches d'eucalyptus », Mathieu) : fabrique ici,
      pose avant une vague (la colonne Defense, avantBataille) ; pendant cette vague, les batiments prennent BOUCLIER_BASE de degats en moins (blesserBat) */
   { id: 'bouclier', nom: 'Bouclier de carapace', donne: 1, stock: 'boucliers', il: [['ecaille_tortue', 10], ['kaliptus', 5]], ico: 'bouclier-ecailles', /* (l'icone B, choisie par Mathieu le 10/11/2026) */
-    desc: 'Un consommable pour ta base : pose-le avant une vague (fenêtre Vagues, colonne Défense), et une carapace de tortue se referme sur ta grange (ton château au niveau 6), qui prend 20 % de dégâts en moins pendant toute cette vague. Un bouclier par vague.' }];
+    desc: 'Un consommable pour ta base : pose-le avant une vague (fenêtre Vagues, colonne Défense), et une carapace de tortue se referme sur ta grange (ton château au niveau 6) : un bouclier de 20 % de sa vie, que les coups entament avant elle (la part bleue de sa barre). Un bouclier par vague.' }];
 const BOUCLIER_BASE = 0.2, nomQG = () => (niv('qg') >= 5 ? 'ton château' : 'ta grange'), bouclierPret = () => { const r = S_.bouclierPose ? BOUCLIER_BASE : 0; S_.bouclierPose = false; return r; }; /* (pose avant la vague : il part avec elle) */
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
 /* L'INTERRUPTEUR DES CARREAUX D'ACIER (09/11/2026, « c'est nous qui decidons quand on les equipe ; si ca les tire sur un boss niveau 30, t'as le seum ;
