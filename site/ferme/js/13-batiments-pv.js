@@ -127,7 +127,7 @@ function majBarresBat() {
     const r = pvBat(k) / pvMaxBat(k), col = r > 0.6 ? 'var(--vert)' : r > 0.35 ? 'var(--or)' : 'var(--rouge)';
     e.classList.toggle('ruine', enRuine(k)); e.classList.toggle('bouclier', k === 'grange' && !!(combat && combat.bouclierBat)); e.dataset.info = Maj(nomBat(k)) + ' : touche pour ' + (enRuine(k) ? 'reconstruire' : 'réparer');
     e.innerHTML = '<img src="assets/icones/marteau.png?v=' + VERSION_MODELES + '" alt="">' + (enRuine(k) ? 'En ruine' : '<span class="b"><i style="width:' + (100 * r).toFixed(0) + '%;background:' + col + '"></i></span>' + fmt(pvBat(k)));
-    const z = zoneBat(k); if (z) { const b = boiteBat(z); e._point = [z.x, enRuine(k) ? z.y + 1.1 : b.max.y + 0.3, z.z]; }
+    const z = zoneBat(k); if (z) { const b = boiteBat(z); e._point = [z.x, enRuine(k) ? z.y + 1.1 : k === 'grange' ? z.y + (b.max.y - z.y) * 0.5 : b.max.y + 0.3, z.z]; } /* (10/11/2026, « la barre de vie devrait etre plutot sur le chateau : au-dessus, elle cache ce qu'il y a derriere, et le chateau on ne clique pas a travers », Mathieu : celle de la grange a mi-hauteur du batiment) */
   });
 }
 function placerBarresBat() { barresBat.forEach((e) => { const p = e._point; if (!p) return; vec.set(p[0], p[1], p[2]).project(camera); e.style.left = ((vec.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; e.style.top = ((1 - vec.y) / 2 * innerHeight).toFixed(1) + 'px'; }); }
@@ -190,7 +190,7 @@ const FS_CARAPACE = [
   '  gl_FragColor = vec4(col, al * uF); }'].join('\n');
 function poserCarapace(c0) {
   const G = S_.cases.filter((c) => c.type === 'grange').map(posCase), zb = zoneBat('grange'); if (!G.length || !zb || enRuine('grange')) return;
-  const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length, y = solA(x, z), Rr = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 0.95 * S, H = Math.max(Rr * 0.78, boiteBat(zb).max.y - y + 0.5); /* (assez haute pour la plus haute tour) */
+  const x = G.reduce((a, q) => a + q.x, 0) / G.length, z = G.reduce((a, q) => a + q.z, 0) / G.length, y = solA(x, z), Rr = Math.max(...G.map((q) => Math.hypot(q.x - x, q.z - z))) + 0.95 * S, H = Math.max(Rr * 0.7, (boiteBat(zb).max.y - y) * 0.84); /* (« fais-le un petit peu plus bas », Mathieu, 10/11/2026 : la pointe de la plus haute tour depasse un peu ; avant, 0,5 au-dessus d'elle) */
   const g = new T.Group(), mat0 = new T.ShaderMaterial({ uniforms: { uF: { value: 0 }, uC: { value: 0 }, uT: { value: 0 } }, vertexShader: VS_DOME, fragmentShader: FS_CARAPACE, transparent: true, depthWrite: false, side: T.FrontSide });
   const dome = new T.Mesh(new T.SphereGeometry(1, 64, 28, 0, Math.PI * 2, 0, Math.PI / 2), mat0); dome.renderOrder = 6; dome.scale.set(Rr, 0.01, Rr); g.add(dome);
   /* au sol : le cercle de branches de Kaliptus, noue de cordes */
