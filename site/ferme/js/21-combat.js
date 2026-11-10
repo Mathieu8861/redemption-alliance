@@ -2436,8 +2436,8 @@ function sortirNoeuds(mo, c0, pp, n) { /* ses noeuds sortent de terre autour du 
   const E = mo.d.enracine, a0 = Math.random() * Math.PI * 2, places = [];
   for (let k = 0; k < n; k++) { const a = a0 + k / n * Math.PI * 2, p = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * E.R, pp.z + Math.cos(a) * E.R); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, C_FORET); }
   let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.9) return false;
-    places.forEach((p) => { const y = solA(p.x, p.z); mottes(p.x, y, p.z, 10, 1.3); poussiere(p.x, y, p.z, 10, 1.2, '#8a6a48'); feuillesVolantes(p.x, y + 0.3, p.z, 0.8, 8);
-      apparaitre('noeudRacine', { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.noeudDe = mo.id; mo.racine.liste.push(o); sousBois(o, c0); } }); c0.total++; });
+    places.forEach((p, k) => { const y = solA(p.x, p.z); mottes(p.x, y, p.z, 10, 1.3); poussiere(p.x, y, p.z, 10, 1.2, '#8a6a48'); feuillesVolantes(p.x, y + 0.3, p.z, 0.8, 8);
+      apparaitre('noeudRacine', { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.noeudDe = mo.id; mo.racine.liste.push(o); sousBois(o, c0); const RN = o.d.racines; if (RN) o.racinesT = RN.periode - 3 - k * RN.periode / n; } }); c0.total++; }); /* (leurs racines a tour de role, pas toutes ensemble) */
     return true; });
 }
 /* IL S'ENRACINE A NOUVEAU (09/11/2026, « a 25 % de vie, j'aime bien l'idee qu'il puisse reinvoquer les trucs qu'il fait au debut ; deux ou quatre, c'est a toi
