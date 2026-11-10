@@ -2516,7 +2516,7 @@ const C_FORET = ['#6a8a3a', '#c8e08a', '#3e2c1e'];
 function capEnracine(mo, ctx) {
   const E = mo.d.enracine; if (!E || !mo.m) return;
   const c0 = combat;
-  if (!mo.racine) { const pp = ctx.pp; mo.racine = { t: 0, phase: 'enfonce', pousse: E.pousse - 4, tour: 0, liste: [], morts: 0 }; mo.ancre = true;
+  if (!mo.racine) { const pp = ctx.pp; mo.racine = { t: 0, phase: 'enfonce', pousse: E.pousse - 4, tour: 0, liste: [], morts: 0 }; mo.ancre = true; calmerChene(mo, 11, 15);
     toast(leNom(mo.d) + ' est enraciné, invulnérable tant que ses ' + E.noeuds + ' nœuds de racine vivent : coupe-les !', 'alerte');
     sortirNoeuds(mo, c0, pp, E.noeuds); secousse(0.25, 0.6);
     return; }
@@ -2532,7 +2532,7 @@ function capEnracine(mo, ctx) {
   if (R.t > 2.5 && R.liste.length && !N.length) { R.phase = 'arrache'; toast('Ses nœuds sont tombés : ' + leNom(mo.d, true) + ' s\'arrache du sol et marche sur toi !', 'alerte'); return; }
   /* (10/11/2026, « les noeuds invoquent pas tous des Tronknydes », Mathieu : chaque noeud fait pousser les siens toutes les E.pousse s, a tour de role ; E.max en vie au plus) */
   const A = N.filter((o) => o.etat === 'actif'); if (!A.length) return; let place = E.max - c0.monstres.filter((o) => o.pousseDe === mo.id && o.etat !== 'mort').length;
-  A.forEach((nd, i) => { if (nd.pousseT == null) nd.pousseT = E.pousse - 3 - i * E.pousse / A.length; if ((nd.pousseT += ctx.dt) < E.pousse) return; if (place <= 0) { nd.pousseT = E.pousse - 1; return; }
+  A.forEach((nd, i) => { if (nd.pousseT == null) nd.pousseT = E.pousse - 8 - R.liste.indexOf(nd) * E.pousse / R.liste.length; /* (le premier monstre 8 s apres la sortie des noeuds, et non 3 ; son rang parmi les noeuds, pas parmi ceux deja sortis de terre : sinon deux noeuds prenaient le meme rang et leurs monstres sortaient ensemble, 10/11/2026) */ if ((nd.pousseT += ctx.dt) < E.pousse) return; if (place <= 0) { nd.pousseT = E.pousse - 1; return; }
     nd.pousseT = 0; place--; R.tour++; pousserNoeud(mo, nd, E.types ? hasard(E.types) : R.tour % 3 === 0 ? 'arbreCollant' : 'tronknyde', c0); });
   if (!c0.pousseVu && R.tour) { c0.pousseVu = true; toast(E.types ? 'Toute la forêt sort des nœuds, un monstre au hasard à chaque fois' + (casseursNoeuds(c0, E) ? ', et la moitié file casser tes bâtiments' : '') + ' : coupe les nœuds !' : 'La forêt pousse autour des nœuds : des Tronknydes et des Arbres Collants en sortent tant qu\'ils vivent !', 'alerte'); }
 }
@@ -2547,22 +2547,26 @@ function sortirNoeuds(mo, c0, pp, n) { /* ses noeuds sortent de terre autour du 
   for (let k = 0; k < n; k++) { const a = a0 + k / n * Math.PI * 2, p = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * E.R, pp.z + Math.cos(a) * E.R); places.push(p); cercleInvocation(p.x, solA(p.x, p.z), p.z, C_FORET); }
   let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (t < 0.9) return false;
     places.forEach((p, k) => { const y = solA(p.x, p.z); mottes(p.x, y, p.z, 10, 1.3); poussiere(p.x, y, p.z, 10, 1.2, '#8a6a48'); feuillesVolantes(p.x, y + 0.3, p.z, 0.8, 8);
-      apparaitre('noeudRacine', { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.noeudDe = mo.id; mo.racine.liste.push(o); sousBois(o, c0); const RN = o.d.racines; if (RN) o.racinesT = RN.periode - 3 - k * RN.periode / n; } }); c0.total++; }); /* (leurs racines a tour de role, pas toutes ensemble) */
+      apparaitre('noeudRacine', { x: p.x, z: p.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.noeudDe = mo.id; mo.racine.liste.push(o); sousBois(o, c0); const RN = o.d.racines; if (RN) o.racinesT = RN.periode - 5 - k * RN.periode / n; } /* (les premieres racines 5 s apres leur sortie, et non 3 : son arrivee etalee, 10/11/2026) */ }); c0.total++; }); /* (leurs racines a tour de role, pas toutes ensemble) */
     return true; });
 }
 /* IL S'ENRACINE A NOUVEAU (09/11/2026, « a 25 % de vie, j'aime bien l'idee qu'il puisse reinvoquer les trucs qu'il fait au debut ; deux ou quatre, c'est a toi
    de decider », Mathieu : deux, pour garder un combat rapide) : sous E.reSeuil de sa vie, une seule fois, il replonge dans le sol (son geste arrache_1 a l'envers),
    invulnerable, et E.renoeuds noeuds sortent autour de toi ; la suite est celle du debut : la foret pousse, chaque noeud coupe lui arrache un morceau d'ecorce,
    le dernier tombe, il s'arrache du sol */
+/* SON ARRIVEE ETALEE (10/11/2026, « quand le CM pop, y'a tout qui nous tombe dessus d'un coup : les 4 machins invoquent, lancent leur sort, et le CM attaque », Mathieu) :
+   tout etait pret 3 s apres son arrivee. Maintenant : rien pendant 5 s, puis les racines des noeuds (a tour de role), le premier monstre a 8 s, ses racines sous
+   toi a tr s, ses racines qui te poursuivent a tf s. Pareil quand il replonge a 25 %, et quand il s'arrache du sol ses sorts repartent l'un apres l'autre. */
+function calmerChene(mo, tr, tf) { const d = mo.d; if (d.racines) mo.racinesT = d.racines.periode - tr; if (d.faille) mo.failleT = d.faille.periode - tf; }
 function reEnraciner(mo, ctx) {
-  const E = mo.d.enracine, R = mo.racine, c0 = combat; R.re = true; R.phase = 'replonge'; R.liste = []; R.morts = 0; R.t = 0; R.lance = false; R.rp = false; R.pousse = E.pousse - 4; R.tour = 0;
+  const E = mo.d.enracine, R = mo.racine, c0 = combat; R.re = true; calmerChene(mo, 11, 15); R.phase = 'replonge'; R.liste = []; R.morts = 0; R.t = 0; R.lance = false; R.rp = false; R.pousse = E.pousse - 4; R.tour = 0;
   mo.ancre = true; mo.geste = null; mo.tourne = 0; mo.bloqueT = 0; const y = mo.m.position.y;
   toast(leNom(mo.d) + ' replonge dans le sol : invulnérable tant que ses ' + E.renoeuds + ' nouveaux nœuds vivent, coupe-les !', 'alerte');
   secousse(0.3, 0.6); mottes(mo.x, y, mo.z, 16, 2.2); poussiere(mo.x, y, mo.z, 14, 2.6, '#8a6a48'); feuillesVolantes(mo.x, y + 1, mo.z, 2, 12); onde(mo.x, y, mo.z, 6, '#c8e08a', 0.5, 0.8);
   sortirNoeuds(mo, c0, ctx.pp, E.renoeuds); if (!m0Anim(mo)) R.phase = 'enfonce';
 }
 function libererChene(mo) { /* il est sorti du sol : il marche, frappe, et ses autres sorts reprennent */
-  mo.racine.phase = 'libre'; mo.ancre = false; mo.cd = 1.2; mo.bloqueT = 0.2; const y = mo.m.position.y;
+  mo.racine.phase = 'libre'; mo.ancre = false; mo.cd = 1.2; mo.bloqueT = 0.2; { const d = mo.d; if (d.faille) mo.failleT = Math.min(mo.failleT == null ? 0 : mo.failleT, d.faille.periode - 12); if (d.lianes) mo.lianesT = d.lianes.periode - 15; } /* (ses sorts l'un apres l'autre : le lancer a 3 s, le Regard a 6 s, la poursuite a 12 s, les lianes a 15 s) */ const y = mo.m.position.y;
   secousse(0.35, 0.6); mottes(mo.x, y, mo.z, 18, 2.2); poussiere(mo.x, y, mo.z, 16, 2.6, '#8a6a48'); feuillesVolantes(mo.x, y + 1, mo.z, 2, 14); onde(mo.x, y, mo.z, 6, '#c8e08a', 0.6, 0.8);
   if (m0Anim(mo)) { const pp = paysanMesh.position; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); geste(mo, 'rugir', true); }
 }
