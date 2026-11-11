@@ -46,8 +46,9 @@ function majCombat(dt, s) {
        (05/11/2026, par Discord : « il faut en tuer pour qu'ils apparaissent ? c'est nul, trop facile de tempo », Mathieu ; avant, les renforts venaient a mesure
        qu'on les abattait) ; plus personne quand le perso est a terre */
     const foret = c.n > 9 * VAGUES_PALIER, nb = !c.horde ? c.groupe : foret ? RENFORT_FORET : HORDE_RENFORT; /* (la foret : ses renforts par 4 toutes les 3 s, 10/11/2026) */
-    for (let i = 0; i < nb && c.file.length; i++) { const t = c.file.shift(); apparaitre(t); if (MONSTRES[t].boss) toast(leNom(MONSTRES[t]) + ' en personne débarque avec sa troupe !', 'alerte'); }
-    c.attente = foret ? RYTHME_FORET : HORDE_RYTHME; c.horde = true; } }
+    let sortis = 0; const regle = c.genre === 'vague' && BOSS_QUAND_IL_RESTE[c.n] != null; /* (vagues 95 et 100 : un boss attend dans la file, les autres monstres passent devant lui, bossRetenu ; ailleurs, l'ordre de la file comme avant) */
+    for (let i = 0; i < nb && c.file.length; i++) { let k = 0; if (regle) { k = c.file.findIndex((t) => !MONSTRES[t].boss); if (k < 0) k = c.file.findIndex((t) => !bossRetenu(c, t)); if (k < 0) break; } const t = c.file.splice(k, 1)[0]; apparaitre(t); sortis++; if (MONSTRES[t].boss) toast(leNom(MONSTRES[t]) + ' en personne débarque avec sa troupe !', 'alerte'); }
+    c.attente = sortis ? (foret ? RYTHME_FORET : HORDE_RYTHME) : 0.4; c.horde = true; } }
   else if (c.file.length && c.attente <= 0) { /* toute la vague tombe d'un coup */ const boss = c.file.find((t) => MONSTRES[t].boss); while (c.file.length) apparaitre(c.file.shift()); if (boss) toast(leNom(MONSTRES[boss]) + ' en personne débarque avec sa troupe !', 'alerte'); }
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   majFumees(dt, s); majAfflictions(dt); if (combat !== c || c.fin) return;
