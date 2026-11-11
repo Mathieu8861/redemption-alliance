@@ -174,18 +174,32 @@ function majLumieresBat(dt, s) { /* a chaque image ; les batiments sont relus un
   const c = majLumieresBat.cible || 0; if (!c && !lumieresBatA) return;
   lumieresBatA = c > lumieresBatA ? Math.min(c, lumieresBatA + dt) : Math.max(c, lumieresBatA - dt); allumerLumieresBat(lumieresBatA, s);
 }
-/* LA LUEUR DES NOCTIFLORES (11/11/2026) : la nuit, une parcelle de Noctiflore mure luit (le lys de lune de la planche, des clochettes qui brillent dans le noir) :
-   une lueur bleu pale au-dessus de ses clochettes, et un trou doux dans le voile. Rien le jour. Les parcelles sont relues toutes les secondes et demie. */
-let lueursLys = [], texLueurLys = null;
+/* LA LUEUR DES NOCTIFLORES (11/11/2026) : la nuit, les clochettes d'une Noctiflore mure luisent, comme sur la planche du lys de lune (« ca rend moins bien qu'en
+   image, le cote luminescent de la plante », Mathieu, apres une premiere version : une seule lueur pale au-dessus de la parcelle). Trois choses :
+   - les clochettes brillent d'elles-memes : leurs matieres (les pieces 'fleur' du modele mur) prennent leur propre couleur en emissif, selon la nuit ;
+   - chaque pied a son petit halo bleu pale, pose sur ses clochettes (trouvees dans le modele pose : grappesLumiere) ;
+   - le voile de la nuit ne se leve qu'a moitie sur la parcelle : la terre reste sombre, ce sont les fleurs qu'on voit.
+   Rien le jour. Les parcelles sont relues toutes les secondes et demie (une recolte, une repousse). */
+let lueursLys = [], matLueurLys = null, matsFleurLys = null;
+function fleursLys(c) { /* la piece des clochettes d'une parcelle posee (la plus fournie des pieces 'fleur') */
+  const g = casesDyn[c.id]; let m = null; if (!g) return null;
+  g.traverse((o) => { if (o.isMesh && o.name === 'fleur' && o.material && o.material.side !== T.BackSide && (!m || o.geometry.attributes.position.count > m.geometry.attributes.position.count)) m = o; });
+  return m;
+}
 function majLueursLys(k) { /* k : la nuit de la ferme, de 0 a 1 */
+  if (!PAR_ID.noctiflore || !MODELES.noctiflore2) return;
+  if (!matsFleurLys) { matsFleurLys = new Set(); MODELES.noctiflore2.traverse((o) => { if (o.isMesh && o.name === 'fleur' && o.material && o.material.side !== T.BackSide && o.material.emissive) matsFleurLys.add(o.material); }); }
+  matsFleurLys.forEach((M) => { M.emissive.copy(M.color); M.emissiveIntensity = 0.85 * k; });
   const now = performance.now();
   if (!majLueursLys.t || now - majLueursLys.t > 1500) { majLueursLys.t = now;
-    const L = k > 0 && PAR_ID.noctiflore ? S_.cases.filter((c) => c.type === 'champ' && c.c === 'noctiflore' && c.pousse >= duree(PAR_ID.noctiflore)) : [];
-    lueursLys.filter((x) => !L.includes(x.c)).forEach((x) => { scene.remove(x.s); x.s.material.dispose(); }); lueursLys = lueursLys.filter((x) => L.includes(x.c));
-    L.filter((c) => !lueursLys.some((x) => x.c === c)).forEach((c) => {
-      texLueurLys = texLueurLys || texCanvas(64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(225,244,255,0.9)'); r.addColorStop(0.35, 'rgba(150,205,255,0.4)'); r.addColorStop(1, 'rgba(110,170,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
-      const s = new T.Sprite(new T.SpriteMaterial({ map: texLueurLys, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })), q = posCase(c); s.position.set(q.x, q.y + 0.7, q.z); s.scale.setScalar(2.7); s.renderOrder = 6; s.raycast = () => {}; scene.add(s); lueursLys.push({ c, s }); }); }
-  lueursLys.forEach((x) => { x.s.visible = k > 0.01; x.s.material.opacity = 0.4 * k; });
+    const L = k > 0 ? S_.cases.filter((c) => c.type === 'champ' && c.c === 'noctiflore' && c.pousse >= duree(PAR_ID.noctiflore)) : [];
+    const jeter1 = (x) => { x.s.forEach((s) => scene.remove(s)); };
+    lueursLys.filter((x) => !L.includes(x.c) || fleursLys(x.c) !== x.m).forEach(jeter1); lueursLys = lueursLys.filter((x) => L.includes(x.c) && fleursLys(x.c) === x.m);
+    L.filter((c) => !lueursLys.some((x) => x.c === c)).forEach((c) => { const m = fleursLys(c); if (!m) return; m.updateWorldMatrix(true, false);
+      matLueurLys = matLueurLys || new T.SpriteMaterial({ map: texCanvas(64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(235,248,255,0.95)'); r.addColorStop(0.3, 'rgba(160,215,255,0.5)'); r.addColorStop(1, 'rgba(110,175,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); }), transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending });
+      const q = posCase(c), s = grappesLumiere(m, 0.1).map((G) => { const sp = new T.Sprite(matLueurLys); sp.position.copy(G.min).add(G.max).multiplyScalar(0.5); sp.scale.setScalar(Math.min(0.95, Math.max(0.6, G.min.distanceTo(G.max) * 2.6))); sp.renderOrder = 6; sp.raycast = () => {}; scene.add(sp); return sp; });
+      lueursLys.push({ c, m, s, p: new T.Vector3(q.x, q.y + 0.4, q.z) }); }); }
+  if (matLueurLys) matLueurLys.opacity = 0.62 * k; lueursLys.forEach((x) => x.s.forEach((s) => { s.visible = k > 0.01; }));
 }
 function trousBatiments(N) { /* les trous que ces lumieres percent dans le voile de la nuit de la ferme : [x, y, rayon] a l'ecran ; aucun dans une autre nuit */
   if (N !== NUIT_J) return [];
@@ -193,6 +207,6 @@ function trousBatiments(N) { /* les trous que ces lumieres percent dans le voile
   const trou = (c, rayon) => { p.copy(c).project(camera); if (p.z > 1) return; const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H;
     q.copy(c).addScaledVector(D, rayon).project(camera); const r = Math.max(3, Math.hypot((q.x + 1) / 2 * W - x, (1 - q.y) / 2 * H - y)); if (x < -r || x > W + r || y < -r || y > H + r) return; trous.push([x, y, r]); };
   if (lumieresBatA > 0.05) trousBat.forEach((g) => { if (g.hote.parent && g.hote.visible !== false) trou(g.c, g.r * lumieresBatA); });
-  lueursLys.forEach((x) => { if (x.s.visible) trou(x.s.position, 1.35 * N.k); }); /* (les Noctiflores mures) */
+  lueursLys.forEach((x) => { if (!(N.k > 0.01) || !x.s.length) return; const n0 = trous.length; trou(x.p, 1.5); if (trous.length > n0) trous[n0].push('rgba(0,0,0,.42) 0, rgba(0,0,0,.6) 50%, rgba(0,0,0,.85) 80%, #000 100%'); }); /* (les Noctiflores mures : le voile ne se leve qu'a moitie, la terre reste sombre) */
   return trous;
 }

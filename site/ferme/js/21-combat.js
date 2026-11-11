@@ -1470,7 +1470,7 @@ function trousNuit(N) {
     q.copy(A.sol.position).addScaledVector(D, R).project(camera); const [x1, y1] = ecran(q); q.copy(A.sol.position).addScaledVector(D2, R).project(camera); const [x2, y2] = ecran(q);
     const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
     g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, ' + (doux ? 'transparent 0, rgba(0,0,0,.1) 22%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.86) 86%, #000 100%' : 'transparent 0, transparent 52%, #000 100%') + ')'); });
-  Y.forEach(([x, y, r]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, transparent 0, transparent 55%, #000 100%)'));
+  Y.forEach(([x, y, r, degrade]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, ' + (degrade || 'transparent 0, transparent 55%, #000 100%') + ')')); /* (degrade : un trou qui ne leve le voile qu'en partie, les Noctiflores, 14i-nuit.js) */
   const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
 }
 /* les yeux dans la nuit (08/11/2026, « on a bien travaille les yeux, j'aimerais que ce soit toujours les memes, juste les rendre visibles », Mathieu, apres
