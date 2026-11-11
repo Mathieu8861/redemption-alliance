@@ -19,7 +19,7 @@ const CANNES = [null, { nom: 'Canne de bambou', desc: 'Cinq brins de bambou, une
   { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }];
 let ligneCabane = null, pontonActif = false, cabaneCharge = null, cabaneSalle = null, cabaneMarche = null, cabaneAvant = null, cannesRatelier = [];
 const cabaneLa = () => !!S_ && !!S_.terrains && !!S_.terrains[TERRAINS[CABANE_T].id];
-const etatPeche = () => { const P = S_.peche || (S_.peche = { cannes: [1], main: 0 }); if (!P.appats) P.appats = { ver: 0, mouche: 0, dore: 0 }; if (!P.appat) P.appat = 'ver'; if (!P.prises) P.prises = {}; return P; }; /* (appats : les reserves ; appat : celui qui est sur la ligne ; prises : le tonneau, par poisson ; 14h-peche.js) */
+const etatPeche = () => { const P = S_.peche || (S_.peche = { cannes: [1], main: 0 }); if (!P.appats) P.appats = { ver: 0, mouche: 0, dore: 0 }; if (!P.appat) P.appat = 'ver'; if (!P.prises) P.prises = {}; if (!P.vues) { P.vues = {}; Object.keys(P.prises).forEach((k) => { if (P.prises[k] > 0) P.vues[k] = 1; }); } return P; }; /* (appats : les reserves ; appat : celui qui est sur la ligne ; prises : le tonneau, par poisson ; 14h-peche.js) */
 const cannesEues = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST ? [1, 2, 3, 4] : etatPeche().cannes); /* (le mode test : les quatre, pour les voir) */
 /* ses cases : posees a l'achat du terrain et au chargement (une case deja occupee reste comme elle est) */
 function poserCasesCabane() {
@@ -65,12 +65,12 @@ function allerPorteCabane(entrer) {
 }
 /* ---------- la piece ---------- (coordonnees dans la piece : x de -3,2 a 3,2, z de -2,6 a 2,6, la porte au sud) */
 const RATELIER_X = (k) => -1.6 + (k - 1) * 0.8;
-const OBST_CABANE = [[-3.2, -2.15, -1.9, 1.05], [-2.2, -1.55, -0.95, -0.25], [-2.15, 1.3, -2.6, -1.95], [1.6, 3.2, -2.6, -1.45], [1.1, 1.75, -2.6, -1.8], [-3.2, -2.1, 1.5, 2.6], [-2.15, -1.25, 1.75, 2.6]]; /* l'etabli, le tabouret, le ratelier, le foyer, les buches, le tonneau, la caisse */
+const OBST_CABANE = [[-3.2, -2.15, -1.9, 1.05], [-2.2, -1.55, -0.95, -0.25], [-2.15, 1.3, -2.6, -1.95], [1.6, 3.2, -2.6, -1.45], [1.1, 1.75, -2.6, -1.8], [-3.2, -2.1, 1.5, 2.6], [-2.15, -1.25, 1.75, 2.6], [2.25, 3.2, -0.75, 1.85]]; /* l'etabli, le tabouret, le ratelier, le foyer, les buches, le tonneau, la caisse, l'aquarium */
 const libreCabane = (x, z, m = 0.3) => x > -3.2 + m && x < 3.2 - m && z > -2.6 + m && (z < 2.6 - m || (Math.abs(x) < 0.5 && z < 2.3)) && !OBST_CABANE.some(([x0, x1, z0, z1]) => x > x0 - m && x < x1 + m && z > z0 - m && z < z1 + m);
 function construireSalleCabane() {
   const g = new T.Group(); g.position.copy(CABANE_DEDANS); g.add(cloner('cabaneInterieur'));
   cannesRatelier = [1, 2, 3, 4].map((k) => { const c = cloner('canne' + k); c.position.set(RATELIER_X(k), 0.235, -2.3); c.rotation.x = -0.06; c.traverse((o) => { o.userData.canne = k; }); g.add(c); return c; });
-  allumerSalleCabane(g); g.visible = false; scene.add(g); cabaneSalle = g; majRatelier();
+  allumerSalleCabane(g); g.visible = false; scene.add(g); cabaneSalle = g; majRatelier(); assurerAquarium().then(majAquarium).catch(() => {});
 }
 /* LE FEU ET LES LAMPES DE LA PIECE (11/11/2026, « anime le feu et la lumiere dans la cabane », Mathieu) : dans l'atre, deux flammes qui dansent (le shader des
    incendies, FEU_FS, 13-batiments-pv.js) et des braises qui montent ; autour, une lueur qui tremble et une flaque de lumiere chaude sur le plancher ; la lanterne
@@ -133,7 +133,7 @@ function allerCabane(x, z, lx, lz, fn) {
   cabaneMarche = { pts: droit([px, pz], [x, z]) ? [[x, z]] : [M, [x, z]], i: 0, vers: lx != null ? [lx, lz] : null, fn };
 }
 function majCabane(dt) {
-  animerSalleCabane(dt); /* (le feu et les lampes) */
+  animerSalleCabane(dt); /* (le feu et les lampes) */ animerAquarium(dt);
   const u = paysanMesh.userData, P = paysanMesh.position, O = CABANE_DEDANS; tenirCanne();
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); }
   if (!cabaneMarche) { animerPas(u, dt, 0); P.y += (O.y - P.y) * Math.min(1, dt * 12); return; }
@@ -149,6 +149,7 @@ function zoneCabane(x, z, y) { /* ce qu'on touche dans la piece */
   if (x < -2.9 && z > 1.3 && y > 1.3) return 'trophee';
   if (x < -2.0 && z > -1.95 && z < 1.1) return 'etabli';
   if (x > 1.55 && z < -1.3) return 'foyer';
+  if (x > 2.15 && z > -0.85 && z < 1.95) return 'aquarium';
   if (x < -1.2 && z > 1.45) return 'tonneau';
   return null;
 }
@@ -162,6 +163,7 @@ function clicCabane(hits) {
     if (j === 'etabli') { allerCabane(-1.6, 0.4, -3, 0.4, ouvrirEtabliPecheur); return; }
     if (j === 'foyer') { allerCabane(1.9, -0.75, 2.4, -2.1, () => toast('Le feu crépite. De quoi fumer le poisson, un jour.')); return; }
     if (j === 'tonneau') { allerCabane(-1.75, 1.25, -2.6, 2.0, ouvrirPrises); return; }
+    if (j === 'aquarium') { allerCabane(1.8, 0.55, 3.0, 0.55, ouvrirAquarium); return; }
     if (j === 'trophee') { allerCabane(-2.4, 1.2, -3.2, 1.9, () => toast('Une belle prise, clouée au mur. Le pêcheur d\'avant devait être fier.')); return; }
     allerCabane(lx, lz, null, null, null); return;
   }
@@ -186,4 +188,51 @@ function tenirCanne() {
   c.traverse((o) => { o.raycast = () => {}; if (o.isMesh) o.castShadow = false; });
   c.scale.set(s * GROS_CANNE, s, s * GROS_CANNE); c.rotation.set(-BRAS_CANNE + 0.1, 0, 0); c.position.set(main.x, main.y - 0.2 * s, main.z + 0.03); /* (la poignee dans le poing ; le bras est leve de BRAS_CANNE, la canne reste presque droite) */
   bras.add(c); u.canneObj = c;
+}
+
+/* L'AQUARIUM (11/11/2026, par Discord : « on peut les vendre ouais, et on peut avoir un aquarium aussi ? Avec un nombre de poissons limite ? Et faut payer pour
+   l'agrandir ») : un bac de verre sur son meuble, a droite dans la piece, entre la cheminee et l'entree (blender/aquarium.py : le meuble, le bac, le sable, les
+   roches et les algues, en trois tailles). Le jeu y ajoute l'eau, sa surface, des bulles, et les poissons qu'on y a mis : chacun a la forme et la couleur de son
+   espece, il va et vient le long du bac, fait demi-tour au bout, ondule. 4 places, puis 8 (100 000 kamas), puis 12 (300 000). */
+const AQUARIUM = { places: [4, 8, 12], prix: [0, 100000, 300000], long: [1.2, 1.8, 2.4], x: 2.72, z: 0.55 };
+const FORME_POISSON = { carpe: 'poissonRond', lotte: 'poissonRond', chaton: 'poissonChat', 'chaton-dore': 'poissonChat', raie: 'poissonRaie' }, TAILLE_POISSON = [0.36, 0.44, 0.5, 0.48]; /* (leur longueur dans le bac ; plus gros qu'en vrai : a la taille de la piece, on doit les reconnaitre) */
+let aquariumCharge = null, aquariumObj = null, aquariumVie = null;
+const etatAquarium = () => { const P = etatPeche(); if (!P.aquarium) P.aquarium = { niv: 1, poissons: [] }; return P.aquarium; };
+function assurerAquarium() {
+  if (MODELES.aquarium1) return Promise.resolve(); if (aquariumCharge) return aquariumCharge;
+  aquariumCharge = chargerGlb('assets/modeles/jeu/aquarium.glb?v=' + VERSION_MODELES).then((G) => {
+    versToon(G, { normales: 0.012, sansContour: SC_BATI });
+    const brut = (nom) => { const env = new T.Group(), n = G.getObjectByName(nom); if (n) { const g = n.clone(true); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1); env.add(g); } return fusionner(env); };
+    [1, 2, 3].forEach((k) => { MODELES['aquarium' + k] = brut('Aquarium' + k); }); ['Fuseau', 'Rond', 'Chat', 'Raie'].forEach((f) => { MODELES['poisson' + f] = brut('Poisson' + f); });
+  }).catch((e) => { aquariumCharge = null; throw e; });
+  return aquariumCharge;
+}
+/* le poisson prend la couleur de son espece : le gris du corps et des nageoires la recoit, le ventre blanc et l'oeil noir restent ; le dore luit */
+function teinterPoisson(g, teinte, dore) {
+  const c = new T.Color(teinte).multiplyScalar(1.15), mats = [];
+  g.traverse((m) => { if (!m.isMesh || m.material.side === T.BackSide) return; const hsl = m.material.color.getHSL({ h: 0, s: 0, l: 0 }); if (hsl.l > 0.93 || hsl.l < 0.12) return;
+    const M = m.material.clone(); M.color.multiply(c); if (dore && M.emissive) { M.emissive.set('#a06a00'); M.emissiveIntensity = 0.55; } m.material = M; mats.push(M); });
+  return mats;
+}
+function majAquarium() { /* (re)pose le bac a sa taille et ses poissons : a l'entree, quand on en met ou en retire un, quand on l'agrandit */
+  if (!cabaneSalle || !MODELES.aquarium1) return;
+  if (aquariumObj) { cabaneSalle.remove(aquariumObj); aquariumVie.mats.forEach((m) => m.dispose()); aquariumObj.traverse((o) => { if (o.userData.aquaPropre) { if (o.geometry) o.geometry.dispose(); o.material.dispose(); } }); }
+  const A = etatAquarium(), L = AQUARIUM.long[A.niv - 1], g = new T.Group(), mats = []; g.position.set(AQUARIUM.x, 0, AQUARIUM.z); g.add(cloner('aquarium' + A.niv));
+  const propre = (o) => { o.userData.aquaPropre = true; g.add(o); return o; };
+  const eau = propre(new T.Mesh(new T.BoxGeometry(0.62, 0.64, L - 0.07), new T.MeshBasicMaterial({ color: '#4fc3ee', transparent: true, opacity: 0.36, depthWrite: false }))); eau.position.y = 1.0; eau.renderOrder = 5;
+  const surface = propre(new T.Mesh(new T.PlaneGeometry(0.62, L - 0.07), new T.MeshBasicMaterial({ color: '#e2f9ff', transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide }))); surface.rotation.x = -Math.PI / 2; surface.position.y = 1.31; surface.renderOrder = 5;
+  const rond = texCanvas(32, (x, n) => { x.strokeStyle = 'rgba(255,255,255,.95)'; x.lineWidth = 3; x.beginPath(); x.arc(n / 2, n / 2, n / 2 - 4, 0, 7); x.stroke(); x.fillStyle = 'rgba(255,255,255,.25)'; x.fill(); });
+  const bulles = [0, 1, 2, 3, 4].map((i) => { const b = propre(new T.Sprite(new T.SpriteMaterial({ map: rond, transparent: true, depthWrite: false }))); b.renderOrder = 6; b.raycast = () => {}; b.userData.aquaPropre = true; b.userData.b = { t: i / 5, x: -0.14 + (i % 3) * 0.03, z: -L / 2 + 0.3 + (i % 2) * 0.05, s: 0.028 + (i % 3) * 0.009 }; return b; });
+  const nage = A.poissons.map((id, i) => { const p = POISSONS.find((q) => q.id === id); if (!p) return null; const m = cloner(FORME_POISSON[id] || 'poissonFuseau'), t = TAILLE_POISSON[p.rang], raie = id === 'raie';
+    teinterPoisson(m, p.teinte, p.rang === 3).forEach((x) => mats.push(x)); m.scale.setScalar(t); g.add(m); const dir = i % 2 ? 1 : -1;
+    return { m, t, dir, ry: dir > 0 ? -Math.PI / 2 : Math.PI / 2, z: (Math.random() - 0.5) * (L - 0.5), y0: raie ? 0.8 : 0.84 + (i % 4) * 0.105 + Math.random() * 0.03, x0: -0.17 + ((i * 7) % 5) * 0.085, v: (raie ? 0.09 : 0.13) + Math.random() * 0.12, ph: Math.random() * 6.28 }; }).filter(Boolean);
+  cabaneSalle.add(g); aquariumObj = g; aquariumVie = { t: 0, L, nage, bulles, mats, rond }; animerAquarium(0);
+}
+function animerAquarium(dt) {
+  const V = aquariumVie; if (!V) return; V.t += dt;
+  V.nage.forEach((n) => { const lim = Math.max(0.05, V.L / 2 - 0.1 - n.t * 0.55); n.z += n.dir * n.v * dt; if (n.z > lim) { n.z = lim; n.dir = -1; } else if (n.z < -lim) { n.z = -lim; n.dir = 1; }
+    const cible = n.dir > 0 ? -Math.PI / 2 : Math.PI / 2; n.ry += (cible - n.ry) * Math.min(1, dt * 3.2);
+    n.m.rotation.y = n.ry + Math.sin(V.t * (3.5 + n.v * 14) + n.ph) * 0.13; /* (il ondule) */
+    n.m.position.set(n.x0 + Math.sin(V.t * 0.6 + n.ph) * 0.035, n.y0 + Math.sin(V.t * 0.9 + n.ph * 2) * 0.025, n.z); });
+  V.bulles.forEach((b) => { const u = b.userData.b; u.t += dt * 0.42; if (u.t > 1) u.t -= 1; b.position.set(u.x + Math.sin(u.t * 14 + u.s * 90) * 0.012, 0.74 + u.t * 0.55, u.z); b.scale.setScalar(u.s * (0.7 + 0.5 * u.t)); b.material.opacity = u.t > 0.9 ? (1 - u.t) * 10 : 0.85; });
 }

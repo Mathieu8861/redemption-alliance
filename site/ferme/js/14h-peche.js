@@ -107,7 +107,7 @@ function jaugePeche(p, dt, R, C) {
   if (p.p >= 1) prendrePoisson(p); else if (p.p <= 0) finPeche('Le poisson s\'est décroché.');
 }
 function prendrePoisson(p) {
-  const P = etatPeche(), F = p.poisson, neuf = !P.prises[F.id]; P.prises[F.id] = (P.prises[F.id] || 0) + 1; P.total = (P.total || 0) + 1;
+  const P = etatPeche(), F = p.poisson, neuf = !P.vues[F.id]; P.vues[F.id] = 1; P.prises[F.id] = (P.prises[F.id] || 0) + 1; /* (vues : les especes deja pechees, meme une fois vendues ou mises a l'aquarium) */ P.total = (P.total || 0) + 1;
   p.etat = 'prise'; p.t = 0; p.de = p.bouchon.position.clone(); p.bouchon.visible = false; p.fil.visible = false; /* (plus de poisson qui saute au-dessus de la tete : « une animation d'un poisson moche, ca sert a rien », Mathieu, 11/11/2026 ; la prise se lit sur la carte, avec son image) */
   eclaboussure(p.de.x, p.de.z, 1.1); son(F.rang >= 2 ? 'quete' : 'plouf'); const H = hudPeche(); H.jauge.hidden = true; H.avance.hidden = true; H.d.querySelector('button').hidden = true;
   direPeche((neuf ? 'Nouveau poisson : ' : '') + F.nom + ' !', true, 'poisson-' + F.id);
@@ -172,12 +172,41 @@ function ouvrirEtabliPecheur() {
     '<div class="hdv-section">Les appâts</div><div class="pe-grille">' + Object.entries(APPATS).map(appat).join('') + '</div>' +
     '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">Sur le râtelier, au mur du fond : touche une canne pour la prendre, touche sa place pour la reposer.</p><div class="pe-grille quatre">' + [1, 2, 3, 4].map(canne).join('') + '</div>');
 }
+/* LA VENTE DES POISSONS (11/11/2026, par Discord : « on peut les vendre ouais », puis « ouais nickel » sur les prix) : au tonneau, un bouton par espece.
+   Ce qui est affiche est ce qui est paye, la baisse de 10 % comprise (kamasGagnes) : 150, 500, 2 000, et 100 000 pour le Poisson-Chaton dore. */
+const VENTE_POISSON = [167, 556, 2222, 111111];
+const prixPoisson = (p) => kamasGagnes(VENTE_POISSON[p.rang]);
+function vendrePoisson(id, n) {
+  const P = etatPeche(), p = POISSONS.find((q) => q.id === id), a = P.prises[id] || 0; if (!p || !(a > 0)) return; n = Math.max(1, Math.min(n, a));
+  P.prises[id] = a - n; S_.kamas += prixPoisson(p) * n; son('kamas'); toast('Vendu : ' + (n > 1 ? n + ' × ' : '') + p.nom + ', +' + fmt(prixPoisson(p) * n) + ' kamas.'); rendreHaut(); sauver(); ouvrirPrises();
+}
 function ouvrirPrises() {
-  const P = etatPeche(), total = POISSONS.reduce((t, p) => t + (P.prises[p.id] || 0), 0), especes = POISSONS.filter((p) => P.prises[p.id]).length;
-  ouvrirModale('prises', entete('Le tonneau à poissons') + '<p class="hdv-aide">' + (total ? total + ' prise' + (total > 1 ? 's' : '') + ', ' + especes + ' espèce' + (especes > 1 ? 's' : '') + ' sur ' + POISSONS.length + '.' : 'Encore vide : prends une canne au râtelier et va pêcher au bout de la terrasse.') + '</p>' +
-    POISSONS.map((p) => { const n = P.prises[p.id] || 0; return '<div class="art">' + (n ? ico('poisson-' + p.id) : '<span class="pic img" style="filter:grayscale(1) brightness(.4) contrast(1.3)"><img src="assets/icones/poisson-' + p.id + '.png?v=' + VERSION_MODELES + '" alt=""></span>') + '<div><b>' + (n ? p.nom : '???') + '</b><div class="desc">' + RANGS_PECHE[p.rang].nom + '</div></div><div class="act"><span class="puce' + (n ? ' bonne' : '') + '">' + (n ? '× ' + n : 'pas encore pêché') + '</span></div></div>'; }).join(''));
+  const P = etatPeche(), total = POISSONS.reduce((t, p) => t + (P.prises[p.id] || 0), 0), especes = POISSONS.filter((p) => P.vues[p.id]).length;
+  ouvrirModale('prises', entete('Le tonneau à poissons') + '<p class="hdv-aide">' + (especes ? total + ' poisson' + (total > 1 ? 's' : '') + ' au tonneau, ' + especes + ' espèce' + (especes > 1 ? 's' : '') + ' pêchée' + (especes > 1 ? 's' : '') + ' sur ' + POISSONS.length + '. Vends-les ici, ou garde tes plus beaux dans l\'aquarium, à droite de la cheminée.' : 'Encore vide : prends une canne au râtelier et va pêcher au bout de la terrasse.') + '</p>' +
+    POISSONS.map((p) => { const n = P.prises[p.id] || 0, vu = !!P.vues[p.id], px = prixPoisson(p);
+      return '<div class="art">' + (vu ? ico('poisson-' + p.id) : '<span class="pic img" style="filter:grayscale(1) brightness(.4) contrast(1.3)"><img src="assets/icones/poisson-' + p.id + '.png?v=' + VERSION_MODELES + '" alt=""></span>') + '<div><b>' + (vu ? p.nom : '???') + '</b><div class="desc">' + RANGS_PECHE[p.rang].nom + (vu ? ' · ' + fmt(px) + ' kamas pièce' : '') + '</div></div><div class="act">' +
+        (n ? '<span class="puce bonne">× ' + n + '</span><button class="btn kamas mini" data-peche="vendre:' + p.id + ':1">Vendre ' + fmt(px) + ' ' + KAMA + '</button>' + (n > 1 ? '<button class="btn discret mini" data-peche="vendre:' + p.id + ':' + n + '">Tout : ' + fmt(px * n) + ' ' + KAMA + '</button>' : '') : '<span class="puce">' + (vu ? 'plus aucun' : 'pas encore pêché') + '</span>') + '</div></div>'; }).join(''));
+}
+/* LA FENETRE DE L'AQUARIUM : ses poissons (« Remettre au tonneau »), ceux du tonneau (« Mettre dans l'aquarium », tant qu'il reste une place), et l'agrandir */
+function ouvrirAquarium() {
+  const P = etatPeche(), A = etatAquarium(), cap = AQUARIUM.places[A.niv - 1], suiv = AQUARIUM.places[A.niv], prix = AQUARIUM.prix[A.niv], plein = A.poissons.length >= cap;
+  const ligne = (p, desc, bouton) => '<div class="art">' + ico('poisson-' + p.id) + '<div><b>' + p.nom + '</b><div class="desc">' + desc + '</div></div><div class="act">' + bouton + '</div></div>';
+  const dedans = A.poissons.map((id, i) => { const p = POISSONS.find((q) => q.id === id); return p ? ligne(p, RANGS_PECHE[p.rang].nom, '<button class="btn discret mini" data-peche="sortir:' + i + '">Remettre au tonneau</button>') : ''; }).join('');
+  const tonneau = POISSONS.filter((p) => P.prises[p.id] > 0).map((p) => ligne(p, RANGS_PECHE[p.rang].nom + ' · × ' + P.prises[p.id] + ' au tonneau', '<button class="btn kamas mini" data-peche="entrer:' + p.id + '"' + (plein ? ' disabled' : '') + '>Mettre dans l\'aquarium</button>')).join('');
+  ouvrirModale('aquarium', entete('L\'aquarium') + '<p class="hdv-aide">' + A.poissons.length + ' poisson' + (A.poissons.length > 1 ? 's' : '') + ' sur ' + cap + ' places. Garde ici tes plus belles prises : elles nagent dans le bac.</p>' +
+    (suiv ? '<div class="act" style="margin:0 0 10px"><button class="btn kamas" data-peche="agrandir"' + (S_.kamas >= prix ? '' : ' disabled') + '>Agrandir à ' + suiv + ' places · ' + fmt(prix) + ' ' + KAMA + '</button></div>' : '<p class="hdv-aide">L\'aquarium est à sa plus grande taille.</p>') +
+    '<div class="hdv-section">Dans l\'aquarium</div>' + (dedans || '<p class="hdv-aide">Encore vide.</p>') +
+    '<div class="hdv-section">Dans le tonneau</div>' + (tonneau || '<p class="hdv-aide">Rien au tonneau : va pêcher au bout de la terrasse.</p>'));
+}
+function actionAquarium(a, k) {
+  const P = etatPeche(), A = etatAquarium();
+  if (a === 'entrer') { if (!(P.prises[k] > 0) || A.poissons.length >= AQUARIUM.places[A.niv - 1]) return; P.prises[k]--; A.poissons.push(k); son('plouf'); }
+  else if (a === 'sortir') { const id = A.poissons[+k]; if (!id) return; A.poissons.splice(+k, 1); P.prises[id] = (P.prises[id] || 0) + 1; }
+  else if (a === 'agrandir') { const prix = AQUARIUM.prix[A.niv]; if (!AQUARIUM.places[A.niv] || S_.kamas < prix) return; S_.kamas -= prix; A.niv++; son('kamas'); rendreHaut(); toast('L\'aquarium est agrandi : ' + AQUARIUM.places[A.niv - 1] + ' places.', 'or'); }
+  sauver(); majAquarium(); ouvrirAquarium();
 }
 document.addEventListener('click', (e) => {
   const b = e.target && e.target.closest ? e.target.closest('[data-peche]') : null; if (!b) return; const [a, k, n] = b.dataset.peche.split(':');
   if (a === 'acheter') acheterAppat(k, +n); else if (a === 'appat' && APPATS[k]) { etatPeche().appat = k; sauver(); ouvrirEtabliPecheur(); }
+  else if (a === 'vendre') vendrePoisson(k, +n); else if (a === 'entrer' || a === 'sortir' || a === 'agrandir') actionAquarium(a, k);
 });
