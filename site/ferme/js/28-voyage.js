@@ -32,7 +32,7 @@ const VOYAGES = {
   arene: { centre: ARENE, charger: () => chargerArene(), zoom: () => 0.6 }, /* (0,72 avant l'agrandissement du 30/10/2026) */
   ile: { centre: ILE_BOSS, charger: () => chargerIleBoss(), zoom: () => 0.72 },
 };
-function montrerIles() { if (ileCasino) ileCasino.visible = lieu === 'casino' && !casinoDedans; if (salleCasino) salleCasino.visible = lieu === 'casino' && casinoDedans && !casinoBureau; if (bureauCasino) bureauCasino.visible = lieu === 'casino' && casinoBureau; /* (le bureau du patron, 10/11/2026) */ /* (le grand hall du palais, 08/11/2026) */ if (ileArene) ileArene.visible = lieu === 'arene'; if (ileBoss) ileBoss.visible = lieu === 'ile'; }
+function montrerIles() { if (cabaneSalle) cabaneSalle.visible = lieu === 'cabane'; /* (la piece de la cabane du pecheur, 14g-cabane.js) */ if (ileCasino) ileCasino.visible = lieu === 'casino' && !casinoDedans; if (salleCasino) salleCasino.visible = lieu === 'casino' && casinoDedans && !casinoBureau; if (bureauCasino) bureauCasino.visible = lieu === 'casino' && casinoBureau; /* (le bureau du patron, 10/11/2026) */ /* (le grand hall du palais, 08/11/2026) */ if (ileArene) ileArene.visible = lieu === 'arene'; if (ileBoss) ileBoss.visible = lieu === 'ile'; }
 function peutPartir(nom) { /* ce qui empeche tout voyage : une attaque en cours, ou etre deja sur une autre ile */
   if (combat || raidAnnonce || voleur || simuEnAttente || S_.simuDue) { toast('Impossible de partir pendant une attaque.'); return false; }
   if (lieu !== 'ferme' && lieu !== nom) { toast('Rentre d\'abord à la ferme.'); return false; }

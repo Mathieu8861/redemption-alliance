@@ -4,12 +4,12 @@ const PASSABLE = { libre: true, champ: true, chemin: true }; /* on contourne le 
 /* (08/11/2026, « les decos me bloquent de partout, les fleurs et tout ca comptent comme une case pleine », « un batiment en ruine, tu peux passer a travers »,
    Mathieu) : on marche a travers les decorations (fleurs, lanternes, rochers, arbres de deco...) et a travers les gravats d'un batiment en ruine.
    PASSABLE reste le sol vraiment libre : c'est la qu'on pose le perso, un monstre qui arrive, une montgolfiere */
-const sansObstacle = (c) => !!c && (!!PASSABLE[c.type] || c.type === 'deco'); /* (pour les acces : une ruine se reconstruit, elle ne compte pas comme un passage) */
+const sansObstacle = (c) => !!c && (!!PASSABLE[c.type] || c.type === 'deco' || c.type === 'ponton'); /* (la terrasse de la cabane du pecheur, 14g-cabane.js : on y marche, on n'y pose rien) */ /* (pour les acces : une ruine se reconstruit, elle ne compte pas comme un passage) */
 const praticable = (c) => sansObstacle(c) || (!!c && (c.type === 'tour' || BATS_PV.includes(c.type)) && enRuine(cleDeCase(c)));
 function voisins(p) { /* les quatre cases qui touchent celle-ci (l'ile ronde : une seule grille, plus de muret) */
   const L = []; for (const [di, dj] of COTES) { const c = caseAt(p.i + di, p.j + dj); if (c) L.push(c); } return L;
 }
-const blocDe = (cible) => ['grange', 'hdv', 'enclos', 'voliere', 'geliere'].includes(cible.type) ? S_.cases.filter((c) => c.type === cible.type && c.terrain === cible.terrain) : [cible];
+const blocDe = (cible) => ['grange', 'hdv', 'enclos', 'voliere', 'geliere', 'cabane'].includes(cible.type) ? S_.cases.filter((c) => c.type === cible.type && c.terrain === cible.terrain) : [cible];
 function trajet(depart, cible) {
   /* BFS sur les cases, on s'arrete sur la cible si on peut y marcher, sinon sur une case voisine */
   const but = praticable(cible) ? cible : null, bloc = blocDe(cible); /* un batiment de plusieurs cases s'aborde par n'importe laquelle */
@@ -60,11 +60,11 @@ function trajetPerso(depart, cible) {
 /* le point exact touche dans la case (un clic qui deplace seulement) : il y va, au lieu du centre de la case. Pose par le clic, lu par allerPuis */
 let pointVise = null, pointClic = null; /* (pointClic : le point touche en amenageant, a la hauteur des lisses d'une cloture (0,3), pour trouver la cloture ou le bord vise) */
 const PLAN_LISSES = new T.Plane(new T.Vector3(0, 1, 0), -0.3), pointLisses = () => ray.ray.intersectPlane(PLAN_LISSES, new T.Vector3());
-function pointDansCase(c, p) { const q = posCase(c), m = S / 2 - 0.35; return { x: Math.max(q.x - m, Math.min(q.x + m, p.x)), z: Math.max(q.z - m, Math.min(q.z + m, p.z)) }; }
+function pointDansCase(c, p) { const q = posCase(c), m = S / 2 - 0.35, z0 = c.type === 'ponton' ? CABANE_Z + 0.8 : q.z - m; /* (sur la terrasse : pas dans le mur de la cabane) */ return { x: Math.max(q.x - m, Math.min(q.x + m, p.x)), z: Math.max(z0, Math.min(q.z + m, p.z)) }; }
 function paysanAdjacent(cible) { const c = paysanMesh.userData.cellule, bloc = blocDe(cible); return c && (bloc.includes(c) || voisins(c).some((v) => bloc.includes(v))); }
 /* le trajet : chemin de cases (BFS), puis lisse en lignes droites quand rien ne bloque, arret au bord du champ ou devant le batiment */
 const VITESSE = 5.6, VITESSE_CRA = 1.15, vitesse = () => VITESSE * (niv('bottes') ? 1.3 : 1) * (combat && combat.citron ? VITESSE_CITRON : 1) * (classeDe() === 'cra' ? VITESSE_CRA : 1) * (meuteActive() ? 1 + MEUTE : 1) * (combat && combat.lenteur > 0 ? 0.55 : 1); /* (la Meute de l'Osamodas, 09/11/2026) */ /* (ralenti par une Momie Koalak) */ /* (le Cra court 15 % plus vite : plus fragile, il recule pour garder ses distances, c'est au joueur de le faire) */
-function hauteurSol() { return 0; } /* l'ile ronde est plate */
+function hauteurSol(x, z) { return pontonActif ? hauteurPonton(x, z) : 0; } /* l'ile ronde est plate, sauf la terrasse de la cabane du pecheur (14g-cabane.js) */
 function caseSous(x, z) { return caseAt(Math.round(x / S + (COLS - 1) / 2), Math.round(z / S + (ROWS - 1) / 2)); }
 function ligneLibre(a, b) {
   /* on avance par petits pas sur la ligne et de part et d'autre (la largeur du perso) : que des cases praticables, et jamais a travers le muret */
@@ -114,6 +114,7 @@ function animerPas(u, dt, cible) {
   if (m[2]) m[2].rotation.x = -Math.sin(ph - 0.3) * 0.48 * a; if (m[3]) m[3].rotation.x = Math.sin(ph - 0.3) * 0.48 * a;
   const g = u.genoux || []; if (g[0]) g[0].rotation.x = Math.pow(Math.max(0, -Math.cos(ph)), 1.3) * 0.95 * a; if (g[1]) g[1].rotation.x = Math.pow(Math.max(0, Math.cos(ph)), 1.3) * 0.95 * a;
   if (u.haut) u.haut.rotation.y = -Math.sin(ph) * 0.1 * a;
+  if (u.canneObj && m[3]) m[3].rotation.x = BRAS_CANNE; /* (une canne a peche en main : le bras droit la tient droite, il ne se balance plus, 14g-cabane.js) */
   paysanMesh.rotation.z = Math.sin(ph) * 0.03 * a; paysanMesh.rotation.x = 0.08 * a; /* leger balancement, penche un peu en avant en marchant */
 }
 function marcher(dt, s) {
@@ -123,6 +124,8 @@ function marcher(dt, s) {
   if (combat && combat.colle > 0) return; /* colle dans la boue du Dragon Cochon, ou menotte par le Don Dorgan : il ne marche plus, il frappe encore (20/10/2026) */
   if (!paysanMesh) return;
   if (lieu === 'casino') { majCasino(dt); return; }
+  if (lieu === 'cabane') { majCabane(dt); return; } /* (dans la cabane du pecheur) */
+  tenirCanne();
   const u = paysanMesh.userData;
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); } /* il tourne en douceur */
   if (!chemin.length) {
@@ -299,7 +302,7 @@ function verbeDroit(p) {
   const k = cleDeCase(p); if (k && enRuine(k)) return 'reconstruire';
   if (p.type === 'libre') return 'labourer ou construire';
   if (p.type === 'champ') { if (!p.c) return 'planter'; return p.pousse >= duree(PAR_ID[p.c]) ? 'récolter' : !p.arrose ? 'arroser' : ''; }
-  return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', leurre: S_.leurreWabbit ? (niv('leurre') >= 3 ? 'relâcher le Wabbit' : 'chasser le Wabbit') : 'ouvrir le leurre', tour: 'ouvrir la tour', voliere: 'ouvrir la volière', niche: 'voir ton gardien' })[p.type] || '';
+  return ({ enclos: 'ouvrir l\'enclos', hdv: 'ouvrir l\'HDV', grange: 'ouvrir la grange', puits: 'remplir l\'arrosoir', epouvantail: 'ouvrir l\'épouvantail', leurre: S_.leurreWabbit ? (niv('leurre') >= 3 ? 'relâcher le Wabbit' : 'chasser le Wabbit') : 'ouvrir le leurre', tour: 'ouvrir la tour', voliere: 'ouvrir la volière', niche: 'voir ton gardien', cabane: 'entrer dans la cabane' })[p.type] || '';
 }
 function rappelClicDroit(p) {
   if (tuto.actif || (S_.clicsDroits || 0) >= 6 || performance.now() - (rappelClicDroit.t || 0) < 4000) return; /* (pendant le tuto, Pepito explique deja) */ const v = verbeDroit(p); if (!v) return;
@@ -315,16 +318,18 @@ canvas.addEventListener('pointerup', (e) => {
   if (visee) { const pt = pointSol(e); if (!pt || tirerVisee(pt) !== false) return; } /* (un sort refuse : le clic deplace le perso, 07/11/2026) */ /* « des fois faut cliquer 2 fois » (Mathieu et les testeurs, 12/10/2026) : un clic qui bougeait de quelques pixels passait pour un glisser de la vue ; en visee, la vue ne bouge pas, on lance la ou on relache (au doigt : on glisse pour viser, on leve pour lancer) */
   if (bouge) return;
   if (paysanMesh) paysanMesh.userData.chasse = null; /* (un clic du joueur arrete la poursuite du voleur ; toucher le voleur la relance) */
-  if (!mode && lieu !== 'casino') { const c = cibleEcran(e); if (c === 'voleur') { attaquerVoleur(); return; } if (c !== null) { cibler(c); return; } }
+  if (!mode && lieu !== 'casino' && lieu !== 'cabane') { const c = cibleEcran(e); if (c === 'voleur') { attaquerVoleur(); return; } if (c !== null) { cibler(c); return; } }
   souris.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(souris, camera);
   if (lieu === 'casino') { clicCasino(ray.intersectObjects([casinoBureau ? bureauCasino : casinoDedans ? salleCasino : ileCasino, paysanMesh].filter(Boolean), true)); return; } /* (seulement l'ile ou le hall : la ferme, cachee, etait testee aussi, 08/11/2026) */
+  if (lieu === 'cabane') { clicCabane(ray.intersectObjects([cabaneSalle, paysanMesh].filter(Boolean), true)); return; }
   const hits = ray.intersectObjects(scene.children, true);
   if (agir && !mode && !combat) S_.clicsDroits = (S_.clicsDroits || 0) + 1; /* l'habitude du clic droit se prend : voir rappelClicDroit */
   for (const h of hits) {
     { let o = h.object; while (o && o !== paysanMesh) o = o.parent; if (o) continue; } /* le perso ne bloque pas le clic sur la case ou il se tient */
     if (h.object.userData.montgolfiere && combat) continue; /* (07/11/2026, « lors d'une vague on ne doit pas pouvoir cliquer sur la montgolfiere, un mauvais clic ouvre la page et t'es mort », Mathieu : pendant un combat, le ballon ne bloque plus le clic, on vise ce qu'il y a derriere) */
     if (h.object.userData.montgolfiere && !mode) { ouvrirMontgolfiere(); return; }
+    if (h.object.userData.cabane && !mode && !combat) { clicCabaneDehors(h.point, agir); sauver(); return; } /* (la cabane du pecheur : sa terrasse, sa porte) */
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }
       if (mid !== undefined) { cibler(mid); return; }

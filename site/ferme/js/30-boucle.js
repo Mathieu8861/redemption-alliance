@@ -227,6 +227,7 @@ function completerTerrains() {
   const ids = new Set(S_.cases.map((c) => c.id)), ajouter = (c) => { if (!ids.has(c.id)) { S_.cases.push(c); ids.add(c.id); } };
   casesDepart().forEach(ajouter);
   TERRAINS.forEach((t) => { if (S_.terrains[t.id]) t.cases.forEach(([i, j]) => ajouter({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' })); });
+  poserCasesCabane(); /* (la cabane du pecheur, avec le terrain du niveau 105 : 14g-cabane.js) */
   if (S_.sauvage && !ids.has(S_.sauvage.id)) S_.sauvage = null;
   if (!S_.cases.some((c) => c.type === 'montgolfiere')) { const x0 = (MONTGOLFIERE_CASE[0] - (COLS - 1) / 2) * S, z0 = (MONTGOLFIERE_CASE[1] - (ROWS - 1) / 2) * S;
     const c = S_.cases.filter((c) => c.type === 'libre' && codeIle(c.i, c.j) === '.' && !(S_.sauvage && S_.sauvage.id === c.id)).sort((a, b) => Math.hypot(cx(a.i) - x0, cz(a.j) - z0) - Math.hypot(cx(b.i) - x0, cz(b.j) - z0))[0]; if (c) c.type = 'montgolfiere'; }

@@ -421,7 +421,7 @@ const TERRAINS = ILE_PLAN.terrains.map((t, k) => { const cs = ILE.parT[k], X = (
   return Object.assign({}, t, { cases: cs, x: cs.reduce((a, [i]) => a + X(i), 0) / cs.length, z: cs.reduce((a, [, j]) => a + Z(j), 0) / cs.length }); });
 const prochainTerrain = () => TERRAINS.find((t) => !S_.terrains[t.id]) || null; /* on les achete dans l'ordre */
 const aVendre = (t) => prochainTerrain() === t;
-const nivTerrainOk = (t) => niveau(S_.xp) >= t.niv;
+const nivTerrainOk = (t) => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || niveau(S_.xp) >= t.niv; /* (le mode test de l'admin : a tout niveau, pour essayer le terrain du niveau 105 et sa cabane, 11/11/2026) */
 const MONTGOLFIERE_CASE = [-2, 0]; /* la case ou la montgolfiere du Casino est amarree, au bord gauche du depart (la ou elle etait deja) */
 /* les 8 terrains d'avant l'ile ronde : seulement pour convertir les anciennes sauvegardes (migrerIleRonde) */
 const ANCIENS_TERRAINS = { t0: { cols: 4, rows: 4, ox: -14, oz: 3 }, t1: { cols: 5, rows: 3, ox: -1, oz: 10 }, t2: { cols: 4, rows: 4, ox: 14, oz: -5 }, t3: { cols: 5, rows: 3, ox: -11, oz: 10 },

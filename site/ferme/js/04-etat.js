@@ -65,7 +65,7 @@ function etatInitial() {
   Object.assign(champs[0], { c: 'ble', pousse: 78 * SEC, arrose: true }); /* (presque mur : 78 s sur 1 min 30) */
   Object.assign(champs[1], { c: 'ble', pousse: 18 * SEC, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, panosProfil: 1, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, panosProfil: 1, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, peche: { cannes: [1], main: 0 }, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
   };
@@ -91,6 +91,7 @@ function convertirNiveaux(e) {
 function completerSauvegarde(e) {
   if (!e.graines) e.graines = { ble: 3 };
   if (!e.filets) e.filets = 0;
+  if (!e.peche) e.peche = { cannes: [1], main: 0 }; /* (la peche, 11/11/2026 : les cannes qu'on a (la canne de bambou vient avec la cabane), celle qu'on tient ; 14g-cabane.js) */
   if (!e.tofus) e.tofus = 0;
   if (!e.tofusDores) e.tofusDores = 0; /* (les Tofus dores de la voliere, comptes dans tofus, 07/11/2026) */
   if (e.gardien === undefined) e.gardien = null; /* le gardien de la ferme (niveau 60) : { type: 'chat' ou 'chien', rassasie, depuis } */

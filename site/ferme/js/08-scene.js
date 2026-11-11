@@ -18,7 +18,7 @@ const ANGLE_DEPART = Math.PI / 4;
 let angleVise = null;
 const angleSauve = () => { try { const a = parseFloat(localStorage.getItem('ferme-angle-camera')); return isFinite(a) ? a : ANGLE_DEPART; } catch (e) { return ANGLE_DEPART; } };
 function garderAngle() { try { localStorage.setItem('ferme-angle-camera', String(angleVise != null ? angleVise : angleCam)); } catch (e) { /* rien */ } }
-const vueFixe = () => typeof casinoDedans !== 'undefined' && casinoDedans && lieu === 'casino'; /* (le hall du palais se regarde d'un seul cote : ses murs hauts cacheraient la salle, 08/11/2026) */
+const vueFixe = () => (typeof casinoDedans !== 'undefined' && casinoDedans && lieu === 'casino') || (typeof lieu !== 'undefined' && lieu === 'cabane'); /* (le hall du palais se regarde d'un seul cote : ses murs hauts cacheraient la salle, 08/11/2026) */
 function tournerCamera(da) { if (vueFixe()) return; angleVise = null; angleCam += da; placerCamera(); garderAngle(); }
 function tournerCameraVers(a) { if (vueFixe()) return; angleVise = a; garderAngle(); }
 /* L'INCLINAISON (09/11/2026, « on peut pas faire glisser de haut en bas aussi ? », Mathieu ; puis Ctrl + clic droit, le clic droit seul servant aux actions, et Z / S au clavier) : le glisser de haut en bas incline la camera, de presque

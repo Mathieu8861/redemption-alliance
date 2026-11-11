@@ -14,6 +14,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 .pic.leg { background: radial-gradient(circle at 50% 45%, #592259, #3f2259) !important; box-shadow: 0 0 0 3px #8e44d6, 0 0 12px rgba(160, 80, 230, .55); }
 #hud.au-casino .actions, #hud.au-casino .commis { display: none !important; }
+#hud.en-cabane .actions, #hud.en-cabane .commis { display: none !important; } /* (dans la cabane du pecheur, 14g-cabane.js) */
+#cabane-sortir { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 6; } #cabane-sortir[hidden] { display: none; }
 .casino-barre { pointer-events: auto; /* (le HUD laisse passer les clics : sans ca, « Rentrer a la ferme » ne repondait pas, 07/11/2026) */ position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 4; display: flex; gap: 10px; align-items: center; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 6px 10px; font-size: .78rem; white-space: nowrap; }
 .voile { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0; background: radial-gradient(circle, #26272b, #224659); transition: opacity .7s; }
 .voile.on { opacity: 1; }

@@ -449,7 +449,7 @@ function sectionRejouerBoss() {
 }
 function lancerVague(pBoss, difficile, charges) {
   if (combat || enAccueil || !paysanMesh || lancerVague.charge) return;
-  if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme en montgolfière.'); return; }
+  if (lieu !== 'ferme') { toast(lieu === 'cabane' ? 'Sors d\'abord de la cabane.' : 'Rentre d\'abord à la ferme en montgolfière.'); return; }
   if (!MODE_TEST && Date.now() < S_.vague.repos) { toast('Ton perso se repose encore ' + dureeLisible(S_.vague.repos - Date.now()) + '.'); return; }
   const rejoueB = pBoss != null && pBoss >= 0;
   if (rejoueB && !bossRejouable(pBoss)) { toast('Tu as déjà rejoué ce boss aujourd\'hui : reviens demain.'); return; }

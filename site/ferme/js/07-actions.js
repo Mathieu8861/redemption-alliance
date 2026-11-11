@@ -42,6 +42,8 @@ const ACTIONS = {
     if (p.type === 'forge') { ouvrirForge(); return; }
     if (p.type === 'atelier') { ouvrirAtelier(); return; }
     if (p.type === 'niche') { ouvrirGardien(); return; }
+    if (p.type === 'cabane') { allerPorteCabane(true); return; } /* (la cabane du pecheur : on va a sa porte et on entre) */
+    if (p.type === 'ponton') return;
     if (p.type === 'leurre') { if (S_.leurreWabbit) ACTIONS.chasserLeurre(); else ouvrirLeurre(); return; }
     if (p.type === 'chemin') return;
     if (p.type !== 'champ') { toast(({ epouvantail: 'L\'épouvantail fait fuir une partie des Tofus.', foin: 'Des bottes de foin pour les Bouftous.', deco: 'Une décoration : passe par Aménager pour la déplacer, la tourner ou la ranger.' })[p.type] || ''); return; }
@@ -615,8 +617,9 @@ const ACTIONS = {
     if (S_.kamas < t.prix) { toast('Ce terrain (' + t.cases.length + ' cases, +' + t.parcelles + ' parcelles) coûte ' + fmt(t.prix) + ' kamas.'); return; }
     fermerModale(); S_.kamas -= t.prix; S_.terrains[t.id] = true; compter('terrains');
     t.cases.forEach(([i, j]) => { if (!caseAt(i, j)) S_.cases.push({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' }); });
+    const cabane = poserCasesCabane(); /* (le terrain du niveau 105 vient avec la cabane du pecheur, 14g-cabane.js) */
     toast('Terrain défriché : ' + t.cases.length + ' cases de plus, ' + quotaParcelles() + ' parcelles possibles au total.', 'or');
-    construireTerrain(k); if (combat) combat.bords = null; /* les monstres sortent maintenant du nouveau bord */
+    construireTerrain(k); if (cabane) { construireBatiments(); S_.cases.forEach((c) => { if (c.type === 'cabane' || c.type === 'ponton') rendreCase(c.id); }); toast('La cabane du pêcheur est à toi : monte sur sa terrasse, pousse sa porte.', 'or'); } if (combat) combat.bords = null; /* les monstres sortent maintenant du nouveau bord */
     rendreHaut(); placerBulles(); sauver();
   }
 };

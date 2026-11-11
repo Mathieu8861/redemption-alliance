@@ -468,6 +468,7 @@ function construireBatiments() {
   }
   o = blocBati('forge'); if (o && MODELES.forge) { pose('forge', o.x, o.y, o.z, o.c0.id, rotDe('forge')); ancres.forge = new T.Vector3(o.x, o.y + 3.2, o.z); } else delete ancres.forge;
   o = blocBati('atelier'); if (o && MODELES.atelier) { pose('atelier', o.x, o.y, o.z, o.c0.id, rotDe('atelier')); ancres.atelier = new T.Vector3(o.x, o.y + 3.0, o.z); } else delete ancres.atelier; /* (l'atelier, 09/11/2026) */
+  poserCabane(pose); /* (la cabane du pecheur, a sa place fixe : 14g-cabane.js) */
   o = blocBati('niche'); if (o && MODELES.maisonGardien) { pose('maisonGardien', o.x, o.y, o.z, o.c0.id, rotDe('niche')); ancres.niche = new T.Vector3(o.x, o.y + 2.3, o.z); } else delete ancres.niche; /* la maison du gardien (14c-gardien.js) */
   o = blocBati('puits'); if (o) pose('puits' + nivBat('nivPuits'), o.x, o.y, o.z, o.c0.id, -0.3 + rotDe('puits'));
   o = blocBati('epouvantail'); if (o) pose('epouvantail', o.x, o.y, o.z, o.c0.id, 0.4 + rotDe('epouvantail'));
