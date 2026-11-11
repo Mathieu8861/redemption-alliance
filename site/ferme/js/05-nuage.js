@@ -142,9 +142,10 @@ const quotaParcelles = () => QUOTA_ILE + TERRAINS.filter((t) => S_.terrains[t.id
 const parcelles = () => S_.cases.filter((c) => c.type === 'champ').length;
 /* LE PRIX D'UNE PARCELLE (11/11/2026, « le niveau 105, mets-la a 400k, et les prochaines toujours plus cheres, et le prix des parcelles aussi », Mathieu) : jusqu'aux
    parcelles de l'ile d'aujourd'hui (les terrains du niveau 90 et moins : 42), la grille PRIX_PARCELLE, comme avant ; au-dela (les terrains du niveau 105 et plus),
-   PARCELLE_HAUT : 25 000 pour la premiere, 5 000 de plus a chacune. */
-const PARCELLE_HAUT = { base: 25000, pas: 5000 }, parcellesIle90 = () => QUOTA_ILE + TERRAINS.filter((t) => t.niv <= 90).reduce((n, t) => n + t.parcelles, 0);
-const prixParcelle = () => { const r = parcelles() + 1 - parcellesIle90(); return r > 0 ? PARCELLE_HAUT.base + (r - 1) * PARCELLE_HAUT.pas : PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)]; };
+   PARCELLE_HAUT : 25 000 pour la premiere, puis 20 % de plus a chacune, arrondi a la centaine (« 25000 ok et a partir de celle-la +20 % en plus a chaque fois », Mathieu,
+   11/11/2026, par Discord ; ma premiere proposition ajoutait 5 000 a chaque fois) : 25 000, 30 000, 36 000, 43 200, 51 800, 62 200... */
+const PARCELLE_HAUT = { base: 25000, taux: 1.2 }, parcellesIle90 = () => QUOTA_ILE + TERRAINS.filter((t) => t.niv <= 90).reduce((n, t) => n + t.parcelles, 0);
+const prixParcelle = () => { const r = parcelles() + 1 - parcellesIle90(); return r > 0 ? Math.round(PARCELLE_HAUT.base * Math.pow(PARCELLE_HAUT.taux, r - 1) / 100) * 100 : PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)]; };
 let mode = null, aDeplacer = null, aPoser = null; /* (aPoser : la decoration a poser, en mode 'poserDeco') mode amenagement : 'choisir' une parcelle, puis 'deplacer' vers une case d'herbe */
 /* choisir un element a deplacer : une parcelle, un batiment, une tour, ou l'enclos (qu'on amenage) */
 function selectionner(p) {
