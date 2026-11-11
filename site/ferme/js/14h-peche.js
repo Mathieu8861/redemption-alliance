@@ -21,7 +21,7 @@ const APPATS = { ver: { nom: 'Ver de terre', prix: 40, poids: [80, 18, 2], desc:
   mouche: { nom: 'Mouche de mai', prix: 150, poids: [50, 38, 12], desc: 'Plus de poissons peu communs, quelques rares.' },
   dore: { nom: 'Appât doré', prix: 600, poids: [22, 40, 38], dore: 0.005, desc: 'Attire les poissons rares, et très rarement le Poisson-Chaton doré (0,5 % de chance).' } };
 /* les cannes : la largeur de la zone verte (sur 100), la portee du lancer, la longueur du modele */
-const CANNES_PECHE = [null, { zone: 26, portee: 4.5, long: 2.0, bouchon: '#d8402f' }, { zone: 29, portee: 6.5, long: 2.6, bouchon: '#f4efe2' }, { zone: 33, portee: 5.0, long: 2.2, bouchon: '#f2c53d' }, { zone: 38, portee: 5.5, long: 2.3, bouchon: '#f08a2e' }];
+const CANNES_PECHE = [null, { zone: 26, portee: 4.5, long: 2.0, bouchon: '#d8402f' }, { zone: 29, portee: 6.5, long: 2.6, bouchon: '#f4efe2' }, { zone: 33, portee: 5.0, long: 2.2, bouchon: '#f2c53d' }, { zone: 38, portee: 5.5, long: 2.3, bouchon: '#f08a2e' }, { zone: 44, portee: 6.0, long: 2.4, bouchon: '#f2c53d' }]; /* (5 : la Canne doree, la zone verte la plus large) */
 const MARE_Y = -0.05, FENETRE_FERRAGE = 1.0;
 let peche = null, pecheHud = null, pecheBouton = null;
 const dansMare = (x, z) => codeIle(Math.round(x / S + (COLS - 1) / 2), Math.round(z / S + (ROWS - 1) / 2)) === '~';
@@ -111,6 +111,7 @@ function prendrePoisson(p) {
   p.etat = 'prise'; p.t = 0; p.de = p.bouchon.position.clone(); p.bouchon.visible = false; p.fil.visible = false; /* (plus de poisson qui saute au-dessus de la tete : « une animation d'un poisson moche, ca sert a rien », Mathieu, 11/11/2026 ; la prise se lit sur la carte, avec son image) */
   eclaboussure(p.de.x, p.de.z, 1.1); son(F.rang >= 2 ? 'quete' : 'plouf'); const H = hudPeche(); H.jauge.hidden = true; H.avance.hidden = true; H.d.querySelector('button').hidden = true;
   direPeche((neuf ? 'Nouveau poisson : ' : '') + F.nom + ' !', true, 'poisson-' + F.id);
+  if (neuf) setTimeout(majSuccesPeche, 1400);
   toast((neuf ? 'Nouveau poisson ! ' : '') + 'Tu as pêché ' + unPoisson(F) + ' (' + RANGS_PECHE[F.rang].nom + '). ' + (F.fem ? 'Elle' : 'Il') + ' rejoint le tonneau de la cabane.', F.rang >= 2 ? 'or' : undefined);
 }
 function majPeche(dt) {
@@ -166,11 +167,31 @@ function ouvrirEtabliPecheur() {
       '<div class="pe-achats"><button class="btn kamas mini" data-peche="acheter:' + k + ':1"' + (S_.kamas >= A.prix ? '' : ' disabled') + '>Acheter ' + fmt(A.prix) + ' ' + KAMA + '</button><button class="btn kamas mini" data-peche="acheter:' + k + ':10"' + (S_.kamas >= A.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(A.prix * 10) + ' ' + KAMA + '</button></div>' + /* (comme a l'HDV : « Acheter 40 » et « ×10 : 400 », la piece a cote ; « le 1 - 40 c'est pas tres explicite », Mathieu, 11/11/2026) */
       (sur ? '<span class="pe-ligne">✓ Sur ta ligne</span>' : '<button class="btn discret mini" data-peche="appat:' + k + '">Mettre sur ma ligne</button>') + '</div>'; };
   const canne = (k) => { const a = E.includes(k), main = P.main === k, C = CANNES_PECHE[k];
-    return '<div class="pe-carte pe-canne' + (main ? ' choisi' : a ? '' : ' absent') + '">' + img('canne-' + k) + '<b class="pe-nom">' + CANNES[k].nom + '</b><span class="puce' + (main ? ' or' : a ? ' bonne' : '') + '">' + (main ? 'dans ta main' : a ? 'sur le râtelier' : 'pas encore à toi') + '</span>' +
+    return '<div class="pe-carte pe-canne' + (main ? ' choisi' : a ? '' : ' absent') + '">' + img('canne-' + k) + '<b class="pe-nom">' + CANNES[k].nom + '</b><span class="puce' + (main ? ' or' : a ? ' bonne' : '') + '">' + (main ? 'dans ta main' : a ? 'sur le râtelier' : CANNE_ESPECES[k] + ' espèces à pêcher') + '</span>' +
       '<div class="pe-legende"><span>Zone verte : ' + C.zone + ' %</span><span>Lancer : ' + String(Math.round(C.portee / S * 10) / 10).replace('.', ',') + ' cases</span></div></div>'; };
   ouvrirModale('pecheur', entete('L\'atelier du pêcheur') + '<p class="hdv-aide">Chaque lancer prend un appât. Choisis celui de ta ligne, puis va pêcher au bout de la terrasse, une canne en main.</p>' +
     '<div class="hdv-section">Les appâts</div><div class="pe-grille">' + Object.entries(APPATS).map(appat).join('') + '</div>' +
-    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">Sur le râtelier, au mur du fond : touche une canne pour la prendre, touche sa place pour la reposer.</p><div class="pe-grille quatre">' + [1, 2, 3, 4].map(canne).join('') + '</div>');
+    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">Sur le râtelier, au mur du fond : touche une canne pour la prendre, touche sa place pour la reposer. Les suivantes se gagnent en pêchant de nouvelles espèces.</p><div class="pe-grille cinq">' + [1, 2, 3, 4, 5].map(canne).join('') + '</div>');
+}
+/* LES SUCCES DE LA PECHE (11/11/2026, par Discord : « et si on peche tous les poissons ca fait un succes ? On gagne une recompense ? », « des kamas c'est bien mais
+   bof », « B ? Et un bonus de dps de +5 % sur les monstres de type eau ? », « on fait comme ca », Mathieu). Les neuf especes courantes comptent (le Poisson-Chaton
+   dore a part : son trophee est accroche au mur de la cabane, 14g-cabane.js) :
+     3 especes : la Longue perche ; 5 : la Canne vernie ; 7 : la Canne de mer ; 9 : la Canne doree et « Pecheur accompli », +5 % de degats du perso contre les
+     monstres d'eau (les Tortues, et tout monstre d'element eau ; pas les defenses), affiche dans la fiche du perso sous les panoplies (25-interface.js). */
+const CANNE_ESPECES = [0, 0, 3, 5, 7, 9], BONUS_EAU = 0.05, MONSTRES_EAU = new Set(['tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'tortueCorail']);
+const especesPechees = () => { const P = etatPeche(); return POISSONS.filter((q) => q.rang < 3 && P.vues[q.id]).length; };
+const pecheurAccompli = () => !!S_ && !!S_.peche && (S_.peche.cannes || []).includes(5);
+const monstreDEau = (mo) => !!mo && (MONSTRES_EAU.has(mo.type) || !!(mo.d && mo.d.element === 'eau'));
+function majSuccesPeche() { /* donne ce qui est du (sans risque de doublon) : a chaque nouvelle espece, et a l'ouverture du tonneau */
+  if (!S_ || !S_.peche) return; const P = etatPeche(), n = especesPechees(); let neuf = 0;
+  for (let k = 2; k <= 5; k++) if (n >= CANNE_ESPECES[k] && !P.cannes.includes(k)) { P.cannes.push(k); neuf = k;
+    toast(k === 5 ? 'Succès : Pêcheur accompli ! Les 9 espèces sont pêchées. La Canne dorée est à toi, et tu frappes 5 % plus fort les monstres d\'eau.' : n + ' espèces pêchées : la ' + CANNES[k].nom + ' t\'attend sur le râtelier.', 'or'); }
+  if (neuf) { son('quete'); if (typeof majRatelier === 'function' && cabaneSalle) majRatelier(); sauver(); }
+}
+const suiteSuccesPeche = () => { const n = especesPechees(), k = [2, 3, 4, 5].find((q) => n < CANNE_ESPECES[q]); return k ? ' À ' + CANNE_ESPECES[k] + ' espèces : la ' + CANNES[k].nom + '.' : ' Pêcheur accompli : les 9 espèces sont pêchées.'; };
+function blocSuccesPeche() { /* la ligne « Succes » de la fiche du perso */
+  if (!S_ || !cabaneLa()) return ''; const n = especesPechees(), ok = pecheurAccompli();
+  return '<h4>Succès</h4><div class="pano-bonus"><b>' + (ok ? '✓ Pêcheur accompli' : 'Pêcheur accompli : ' + n + '/9 espèces pêchées') + '</b><div class="paliers"><span class="' + (ok ? 'actif' : '') + '">' + (ok ? '✓ ' : '') + 'Dégâts contre les monstres d\'eau +' + Math.round(BONUS_EAU * 100) + ' % (les Tortues)</span></div></div>';
 }
 /* LA VENTE DES POISSONS (11/11/2026, par Discord : « on peut les vendre ouais », puis « ouais nickel » sur les prix) : au tonneau, un bouton par espece.
    Ce qui est affiche est ce qui est paye, la baisse de 10 % comprise (kamasGagnes) : 150, 500, 2 000, et 100 000 pour le Poisson-Chaton dore. */
@@ -181,8 +202,8 @@ function vendrePoisson(id, n) {
   P.prises[id] = a - n; S_.kamas += prixPoisson(p) * n; son('kamas'); toast('Vendu : ' + (n > 1 ? n + ' × ' : '') + p.nom + ', +' + fmt(prixPoisson(p) * n) + ' kamas.'); rendreHaut(); sauver(); ouvrirPrises();
 }
 function ouvrirPrises() {
-  const P = etatPeche(), total = POISSONS.reduce((t, p) => t + (P.prises[p.id] || 0), 0), especes = POISSONS.filter((p) => P.vues[p.id]).length;
-  ouvrirModale('prises', entete('Le tonneau à poissons') + '<p class="hdv-aide">' + (especes ? total + ' poisson' + (total > 1 ? 's' : '') + ' au tonneau, ' + especes + ' espèce' + (especes > 1 ? 's' : '') + ' pêchée' + (especes > 1 ? 's' : '') + ' sur ' + POISSONS.length + '. Vends-les ici, ou garde tes plus beaux dans l\'aquarium, à droite de la cheminée.' : 'Encore vide : prends une canne au râtelier et va pêcher au bout de la terrasse.') + '</p>' +
+  majSuccesPeche(); const P = etatPeche(), total = POISSONS.reduce((t, p) => t + (P.prises[p.id] || 0), 0), especes = POISSONS.filter((p) => P.vues[p.id]).length;
+  ouvrirModale('prises', entete('Le tonneau à poissons') + '<p class="hdv-aide">' + (especes ? total + ' poisson' + (total > 1 ? 's' : '') + ' au tonneau, ' + especes + ' espèce' + (especes > 1 ? 's' : '') + ' pêchée' + (especes > 1 ? 's' : '') + ' sur ' + POISSONS.length + '. Vends-les ici, ou garde tes plus beaux dans l\'aquarium, à droite de la cheminée.' + suiteSuccesPeche() : 'Encore vide : prends une canne au râtelier et va pêcher au bout de la terrasse.') + '</p>' +
     POISSONS.map((p) => { const n = P.prises[p.id] || 0, vu = !!P.vues[p.id], px = prixPoisson(p);
       return '<div class="art">' + (vu ? ico('poisson-' + p.id) : '<span class="pic img" style="filter:grayscale(1) brightness(.4) contrast(1.3)"><img src="assets/icones/poisson-' + p.id + '.png?v=' + VERSION_MODELES + '" alt=""></span>') + '<div><b>' + (vu ? p.nom : '???') + '</b><div class="desc">' + RANGS_PECHE[p.rang].nom + (vu ? ' · ' + fmt(px) + ' kamas pièce' : '') + '</div></div><div class="act">' +
         (n ? '<span class="puce bonne">× ' + n + '</span><button class="btn kamas mini" data-peche="vendre:' + p.id + ':1">Vendre ' + fmt(px) + ' ' + KAMA + '</button>' + (n > 1 ? '<button class="btn discret mini" data-peche="vendre:' + p.id + ':' + n + '">Tout : ' + fmt(px * n) + ' ' + KAMA + '</button>' : '') : '<span class="puce">' + (vu ? 'plus aucun' : 'pas encore pêché') + '</span>') + '</div></div>'; }).join(''));

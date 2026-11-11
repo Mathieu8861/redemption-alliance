@@ -1282,8 +1282,8 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
    et le mot « kamas » s'efface (la piece le dit) */
 .mode-dev .haut .kama.gros { width: 17px; height: 17px; } .mode-dev .haut .pastille:has(#kamas) { gap: 5px; } .mode-dev .haut .pastille:has(#kamas) .lib { display: none; }
 /* L'ATELIER DU PECHEUR, en cartes (11/11/2026 ; 14h-peche.js, ouvrirEtabliPecheur) */
-.pe-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 2px 0 14px; } .pe-grille.quatre { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 640px) { .pe-grille { grid-template-columns: 1fr; } .pe-grille.quatre { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pe-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 2px 0 14px; } .pe-grille.quatre { grid-template-columns: repeat(4, minmax(0, 1fr)); } .pe-grille.cinq { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+@media (max-width: 640px) { .pe-grille { grid-template-columns: 1fr; } .pe-grille.quatre, .pe-grille.cinq { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .pe-carte { display: grid; gap: 7px; justify-items: center; align-content: start; text-align: center; background: rgba(255, 255, 255, .04); border: 2px solid rgba(255, 255, 255, .1); border-radius: 14px; padding: 10px 8px; }
 .pe-carte.choisi { border-color: var(--or); box-shadow: 0 0 0 2px rgba(242, 182, 48, .22); } .pe-carte.absent { opacity: .5; }
 .pe-carte > img { width: 58px; height: 58px; object-fit: contain; } .pe-canne > img { width: 64px; height: 154px; border-radius: 12px; object-fit: cover; } /* (les appats : des icones du jeu, a fond transparent, et petites : « pas trop notre DA », « le ver de terre surtout bof, et trop gros », Mathieu, 11/11/2026) */

@@ -16,11 +16,11 @@ const CABANE_X = (14.5 - (COLS - 1) / 2) * S, CABANE_Z = (5.5 - (ROWS - 1) / 2) 
 const PONTON_Y = 0.38, PORTE_CABANE = [-0.55, 0.85]; /* le dessus de la terrasse ; ou l'on se tient devant la porte (dans le repere de la cabane) */
 const CABANE_DEDANS = new T.Vector3(300, 0, -300); /* la piece, loin de tout (rien derriere elle dans l'axe de la camera) */
 const CANNES = [null, { nom: 'Canne de bambou', desc: 'Cinq brins de bambou, une poignée de liège, un bouchon rouge et blanc.' }, { nom: 'Longue perche', desc: 'Un seul bambou très long, pour aller chercher le poisson au milieu de la mare.' },
-  { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }];
+  { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }, { nom: 'Canne dorée', desc: 'Tout en or, du talon à la pointe : la canne du Pêcheur accompli.' }];
 let ligneCabane = null, pontonActif = false, cabaneCharge = null, cabaneSalle = null, cabaneMarche = null, cabaneAvant = null, cannesRatelier = [];
 const cabaneLa = () => !!S_ && !!S_.terrains && !!S_.terrains[TERRAINS[CABANE_T].id];
 const etatPeche = () => { const P = S_.peche || (S_.peche = { cannes: [1], main: 0 }); if (!P.appats) P.appats = { ver: 0, mouche: 0, dore: 0 }; if (!P.appat) P.appat = 'ver'; if (!P.prises) P.prises = {}; if (!P.vues) { P.vues = {}; Object.keys(P.prises).forEach((k) => { if (P.prises[k] > 0) P.vues[k] = 1; }); } return P; }; /* (appats : les reserves ; appat : celui qui est sur la ligne ; prises : le tonneau, par poisson ; 14h-peche.js) */
-const cannesEues = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST ? [1, 2, 3, 4] : etatPeche().cannes); /* (le mode test : les quatre, pour les voir) */
+const cannesEues = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST ? [1, 2, 3, 4, 5] : etatPeche().cannes); /* (le mode test : toutes, pour les voir) */
 /* ses cases : posees a l'achat du terrain et au chargement (une case deja occupee reste comme elle est) */
 function poserCasesCabane() {
   if (!cabaneLa()) return false; invaliderIndex(); let change = false;
@@ -70,7 +70,7 @@ const libreCabane = (x, z, m = 0.3) => x > -3.2 + m && x < 3.2 - m && z > -2.6 +
 function construireSalleCabane() {
   const g = new T.Group(); g.position.copy(CABANE_DEDANS); g.add(cloner('cabaneInterieur'));
   cannesRatelier = [1, 2, 3, 4].map((k) => { const c = cloner('canne' + k); c.position.set(RATELIER_X(k), 0.235, -2.3); c.rotation.x = -0.06; c.traverse((o) => { o.userData.canne = k; }); g.add(c); return c; });
-  allumerSalleCabane(g); g.visible = false; scene.add(g); cabaneSalle = g; majRatelier(); assurerAquarium().then(majAquarium).catch(() => {});
+  allumerSalleCabane(g); g.visible = false; scene.add(g); cabaneSalle = g; majRatelier(); assurerAquarium().then(() => { poserExtrasPeche(); majAquarium(); }).catch(() => {});
 }
 /* LE FEU ET LES LAMPES DE LA PIECE (11/11/2026, « anime le feu et la lumiere dans la cabane », Mathieu) : dans l'atre, deux flammes qui dansent (le shader des
    incendies, FEU_FS, 13-batiments-pv.js) et des braises qui montent ; autour, une lueur qui tremble et une flaque de lumiere chaude sur le plancher ; la lanterne
@@ -107,7 +107,7 @@ async function entrerCabane() {
   entrerCabane.enCours = false;
   if (!MODELES.cabaneInterieur || combat || lieu !== 'ferme') { $('voile').classList.remove('on'); if (!MODELES.cabaneInterieur) toast('La porte est coincée (chargement de la cabane), réessaie.', 'alerte'); return; }
   if (!cabaneSalle) construireSalleCabane();
-  lieu = 'cabane'; cabaneMarche = null; montrerIles(); majRatelier(); barreCabane(true);
+  lieu = 'cabane'; cabaneMarche = null; montrerIles(); poserExtrasPeche(); majRatelier(); barreCabane(true);
   const u = paysanMesh.userData, O = CABANE_DEDANS; paysanMesh.position.set(O.x, O.y, O.z + 1.9); u.y = O.y; u.angle = Math.PI; paysanMesh.rotation.y = u.angle;
   cabaneAvant = { angle: angleCam, zoom }; angleCam = ANGLE_DEPART; /* (la piece se regarde du sud-est : ses murs hauts sont au nord et a l'ouest) */
   zoom = innerWidth < innerHeight ? 1.1 : 1.9; cadrer(); VISEE.set(O.x + 0.2, 0.6, O.z + 0.1); placerCamera(); soleilVers(O);
@@ -147,6 +147,7 @@ function zoneCabane(x, z, y) { /* ce qu'on touche dans la piece */
   if (z > 2.0 && Math.abs(x) < 0.95) return 'porte';
   if (z < -1.7 && x > -2.15 && x < 1.3) return 'ratelier';
   if (x < -2.9 && z > 1.3 && y > 1.3) return 'trophee';
+  if (x < -2.9 && z > 0.2 && z <= 1.3 && y > 1.45 && cabaneSalle && cabaneSalle.userData.trophee) return 'tropheeDore';
   if (x < -2.0 && z > -1.95 && z < 1.1) return 'etabli';
   if (x > 1.55 && z < -1.3) return 'foyer';
   if (x > 2.05 && z > -1.1 && z < 2.2) return 'aquarium';
@@ -158,12 +159,13 @@ function clicCabane(hits) {
     let o = h.object, perso = false, dans = false, canne = 0; while (o) { if (o === paysanMesh) perso = true; if (o === cabaneSalle) dans = true; if (o.userData && o.userData.canne && !canne) canne = o.userData.canne; o = o.parent; }
     if (perso || !dans) continue;
     const O = CABANE_DEDANS, lx = h.point.x - O.x, lz = h.point.z - O.z, ly = h.point.y - O.y, j = canne ? 'ratelier' : zoneCabane(lx, lz, ly);
-    if (j === 'ratelier') { const k = canne || Math.max(1, Math.min(4, Math.round((lx + 1.6) / 0.8) + 1)); allerCabane(RATELIER_X(k), -1.45, RATELIER_X(k), -2.6, () => toucherRatelier(k)); return; }
+    if (j === 'ratelier') { const k = canne || (ly > 2.42 ? 5 : Math.max(1, Math.min(4, Math.round((lx + 1.6) / 0.8) + 1))), xr = k === 5 ? -0.4 : RATELIER_X(k); allerCabane(xr, -1.45, xr, -2.6, () => toucherRatelier(k)); return; } /* (5 : la Canne doree, couchee sur ses crochets au-dessus du ratelier) */
     if (j === 'porte') { allerCabane(0, 1.9, 0, 3, sortirCabane); return; }
     if (j === 'etabli') { allerCabane(-1.6, 0.4, -3, 0.4, ouvrirEtabliPecheur); return; }
     if (j === 'foyer') { allerCabane(1.9, -0.75, 2.4, -2.1, () => toast('Le feu crépite. De quoi fumer le poisson, un jour.')); return; }
     if (j === 'tonneau') { allerCabane(-1.75, 1.25, -2.6, 2.0, ouvrirPrises); return; }
     if (j === 'aquarium') { allerCabane(1.65, 0.55, 3.0, 0.55, ouvrirAquarium); return; }
+    if (j === 'tropheeDore') { allerCabane(-2.3, 0.75, -3.2, 0.72, () => toast('Ton Poisson-Chaton doré. Une chance sur deux cents, et il est au mur.', 'or')); return; }
     if (j === 'trophee') { allerCabane(-2.4, 1.2, -3.2, 1.9, () => toast('Une belle prise, clouée au mur. Le pêcheur d\'avant devait être fier.')); return; }
     allerCabane(lx, lz, null, null, null); return;
   }
@@ -182,7 +184,7 @@ function tenirCanne() {
   if (!paysanMesh || !S_) return; const u = paysanMesh.userData, k = !combat && S_.peche ? S_.peche.main || 0 : 0, nue = !!k && !!peche && peche.etat !== 'marche', cle = k ? k + (nue ? 'n' : '') : 0; /* (nue : la ligne est lancee) */
   if ((u.canneMain || 0) === cle && (!k || (u.canneObj && u.canneObj.parent))) return;
   if (u.canneObj && u.canneObj.parent) u.canneObj.parent.remove(u.canneObj); u.canneObj = null; u.canneMain = cle; if (ligneCabane) ligneCabane.visible = !(S_.peche && S_.peche.main); if (!k) return;
-  if (!MODELES['canne' + k]) { u.canneMain = 0; assurerCabane().catch(() => {}); return; }
+  if (!MODELES['canne' + k]) { u.canneMain = 0; (k === 5 ? assurerAquarium() : assurerCabane()).catch(() => {}); return; }
   const bras = (u.membres || [])[3]; if (!bras) return;
   const c = cloner((nue ? 'canneNue' : 'canne') + k), e = bras.getWorldScale(new T.Vector3()), s = TAILLE_CANNE / (e.y || 1), main = mainCanne(bras);
   c.traverse((o) => { o.raycast = () => {}; if (o.isMesh) o.castShadow = false; });
@@ -200,10 +202,11 @@ let aquariumCharge = null, aquariumObj = null, aquariumVie = null;
 const etatAquarium = () => { const P = etatPeche(); if (!P.aquarium) P.aquarium = { niv: 1, poissons: [] }; return P.aquarium; };
 function assurerAquarium() {
   if (MODELES.aquarium1) return Promise.resolve(); if (aquariumCharge) return aquariumCharge;
-  aquariumCharge = chargerGlb('assets/modeles/jeu/aquarium.glb?v=' + VERSION_MODELES + '-2').then((G) => {
+  aquariumCharge = chargerGlb('assets/modeles/jeu/aquarium.glb?v=' + VERSION_MODELES + '-3').then((G) => {
     versToon(G, { normales: 0.012, sansContour: SC_BATI });
-    const brut = (nom) => { const env = new T.Group(), n = G.getObjectByName(nom); if (n) { const g = n.clone(true); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1); env.add(g); } return fusionner(env); };
+    const brut = (...noms) => { const env = new T.Group(); noms.forEach((nom) => { const n = G.getObjectByName(nom); if (!n) return; const g = n.clone(true); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1); env.add(g); }); return fusionner(env); };
     [1, 2, 3].forEach((k) => { MODELES['aquarium' + k] = brut('Aquarium' + k); }); ['Fuseau', 'Rond', 'Chat', 'Raie'].forEach((f) => { MODELES['poisson' + f] = brut('Poisson' + f); });
+    MODELES.canne5 = brut('Canne5', 'Canne5Fil'); MODELES.canneNue5 = brut('Canne5'); MODELES.supportCanne = brut('SupportCanne'); MODELES.tropheeDore = brut('TropheeDore'); /* (la Canne doree et le trophee du Poisson-Chaton dore, les succes de la peche) */
   }).catch((e) => { aquariumCharge = null; throw e; });
   return aquariumCharge;
 }
@@ -235,4 +238,14 @@ function animerAquarium(dt) {
     n.m.rotation.y = n.ry + Math.sin(V.t * (3.5 + n.v * 14) + n.ph) * 0.13; /* (il ondule) */
     n.m.position.set(n.x0 + Math.sin(V.t * 0.6 + n.ph) * 0.035, n.y0 + Math.sin(V.t * 0.9 + n.ph * 2) * 0.025, n.z); });
   V.bulles.forEach((b) => { const u = b.userData.b; u.t += dt * 0.42; if (u.t > 1) u.t -= 1; b.position.set(u.x + Math.sin(u.t * 14 + u.s * 90) * 0.014, 0.56 + u.t * 0.76, u.z); b.scale.setScalar(u.s * (0.7 + 0.5 * u.t)); b.material.opacity = u.t > 0.9 ? (1 - u.t) * 10 : 0.85; });
+}
+
+/* LA CANNE DOREE ET LE TROPHEE (les succes de la peche, 14h-peche.js) : la Canne doree repose couchee sur deux crochets de laiton, au mur nord, au-dessus du
+   ratelier (on la prend et on la repose comme les autres) ; le Poisson-Chaton dore, une fois peche, est accroche au mur ouest sur son ecusson. */
+function poserExtrasPeche() {
+  if (!cabaneSalle || !MODELES.canne5) return; const U = cabaneSalle.userData;
+  if (!U.canneDoree) { const s = cloner('supportCanne'); s.position.set(-1.65, 2.58, -2.5); cabaneSalle.add(s);
+    const c = cloner('canne5'); c.rotation.z = -Math.PI / 2; c.position.set(-1.6, 2.55, -2.44); c.traverse((o) => { o.userData.canne = 5; }); cabaneSalle.add(c); cannesRatelier[4] = c; U.canneDoree = true; majRatelier(); }
+  if (!U.trophee && etatPeche().vues['chaton-dore']) { const g = new T.Group(), pl = cloner('tropheeDore'), f = cloner('poissonChat'); pl.scale.z = 0.9; g.add(pl);
+    teinterPoisson(f, '#f2c53d', true); f.rotation.y = -Math.PI / 2; f.scale.set(0.78, 0.78, 0.45); f.position.set(0.1, 0, 0.02); g.add(f); g.position.set(-3.17, 1.86, 0.72); cabaneSalle.add(g); U.trophee = g; }
 }
