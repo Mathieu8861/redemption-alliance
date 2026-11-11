@@ -312,7 +312,8 @@ const parHorde = (v, t, n, brut) => { const h = brut || (typeof combat !== 'unde
 const pvMonstre = (t, n, brut) => parHorde(forceMonstre(t, n, 'pv'), t, n, brut), degMonstre = (t, n, brut) => parHorde(forceMonstre(t, n, 'deg') * (MONSTRES[t].boss && !MONSTRES[t].demi ? DEG_BOSS_X : 1), t, n, brut); /* (DEG_BOSS_X : les boss, 31/10/2026) */
 /* la vitesse de base des monstres (30/10/2026 au soir, « je pense vitesse de base des mobs a 2, on va super vite nous », Mathieu ; le perso marche a 5,6) :
    aucun ne marche sous 2, les plus rapides gardent la leur (let : les tests le mettent a 0 pour comparer avec avant) */
-let VITESSE_MIN_MONSTRES = 2; const vitesseMonstre = (d) => (d.totem || d.plante ? 0 : Math.max(VITESSE_MIN_MONSTRES, d.vitesse)); /* (un totem ne bouge pas ; un monstre plante non plus, l'Arbre Collant, 08/11/2026) */
+let VITESSE_MIN_MONSTRES = 2; const VITESSE_PLUS_MONSTRES = 0.2; /* (11/11/2026, « augmente de base la vitesse de tous les monstres, boss compris, de 0,2 », Mathieu, apres le tableau des vitesses des vagues 51 a 100 : presque tout le monde etait au plancher de 2 ; le plancher passe donc a 2,2 ; pas les voleurs de VSA, 19-raids.js) */
+const vitesseMonstre = (d) => (d.totem || d.plante ? 0 : +(Math.max(VITESSE_MIN_MONSTRES, d.vitesse) + VITESSE_PLUS_MONSTRES).toFixed(2)); /* (un totem ne bouge pas ; un monstre plante non plus, l'Arbre Collant, 08/11/2026) */
 /* (31/10/2026, « Gorille Roi, Golem Lunaire, Lemurien Tiki, Tortue Corail et Kanniboul Ebil, c'est des demi-boss, la Gorgouille aussi ; categorie a part », Mathieu) :
    demi, une categorie a part ; ils gardent tout ce que fait un boss (barre, sorts, rage), le bestiaire les marque « Demi-boss » */
 const teinteSorts = (d, fem) => (d.couleurNom ? d.couleurNom[fem ? 1 : 0] : 'rouge'); /* (le nom de la couleur de ses zones, pour les textes : « cercle violet », « bande violette », 31/10/2026) */
