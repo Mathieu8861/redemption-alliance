@@ -317,7 +317,7 @@ async function chargerPersonnagesVsa0() {
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'casino-jeu', 'montgolfiere', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge', 'atelier'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'cultures5', 'casino-jeu', 'montgolfiere', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge', 'atelier'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -350,7 +350,7 @@ async function chargerModeles() {
   versToon(G['ble-planche'], { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
   versToon(G.cultures, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
   versToon(G.cultures2, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* les cultures de haut niveau (12/10/2026) */
-  versToon(G.cultures3, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); versToon(G.cultures4, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* (le Sorgho de Moon, 02/11/2026) */ /* la Cawotte et la Fraise : oubliees jusqu'au 11/10/2026, leurs couleurs
+  versToon(G.cultures3, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); versToon(G.cultures4, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* (le Sorgho de Moon, 02/11/2026) */ versToon(G.cultures5, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* (la Noctiflore, 11/11/2026) */ /* la Cawotte et la Fraise : oubliees jusqu'au 11/10/2026, leurs couleurs
     restaient brutes (terre #280d03 au lieu de #6e3f20), d'ou des sillons presque noirs (« ca fait un truc bizarre nan ? », Mathieu) */
   CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { const n = c.id === 'ble' ? 'parcelle_A' + k : 'parcelle_' + (c.copie || c.id) + '_' + k; const src = (c.id === 'ble' ? G['ble-planche'] : G[c.glb || 'cultures']).getObjectByName(n); const g = src.clone(true); g.position.set(0, 0.02, 0); g.rotation.set(0, 0, 0);
     if (c.copie && c.teinte) { const t = new T.Color(c.teinte); g.traverse((o) => { const nom = (o.name || '').replace(/\.?\d+$/, ''); if (o.isMesh && o.material && o.material.color && nom !== 'terre' && nom !== 'sillon') { o.material = o.material.clone(); o.material.color.lerp(t, 0.72); } }); } /* (un modele d'attente : celui d'une autre culture, reteinte ; la plante de nuit, 11/11/2026) */

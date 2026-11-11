@@ -66,7 +66,7 @@ function teinterNuitFerme(N) { /* les lumieres de la scene, baissees et bleuies 
   N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.45 * N.k); l.o.color.copy(l.c).lerp(N.bleu, 0.45 * N.k); });
 }
 function couperNuitFerme() { /* tout de suite : un combat commence, ou l'on quitte la ferme (la nuit de la foret note alors les lumieres a leur plein jour) */
-  const N = NUIT_J; if (!N || !(N.k > 0)) return; N.k = 0; N.v.style.opacity = '0'; if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } teinterNuitFerme(N); animerLanternes.t = 0;
+  const N = NUIT_J; if (!N || !(N.k > 0)) return; N.k = 0; if (typeof majLueursLys === 'function') majLueursLys(0); N.v.style.opacity = '0'; if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } teinterNuitFerme(N); animerLanternes.t = 0;
 }
 function majNuitFerme(dt) { /* a chaque image */
   majPastilleNuit();
@@ -75,7 +75,7 @@ function majNuitFerme(dt) { /* a chaque image */
   const N = voileNuitFerme(), avant = N.k; N.k = veut ? Math.min(1, N.k + dt / JOUR_NUIT.fondu) : Math.max(0, N.k - dt / JOUR_NUIT.fondu);
   if (veut && !avant) { animerLanternes.t = 0; if (heureVraie() - nuitAnnoncee > 6 * HEURE_MS) { nuitAnnoncee = heureVraie(); /* (une fois par nuit, pas a chaque retour de combat) */ toast('Il fait nuit jusqu\'à ' + JOUR_NUIT.fin + ' h, heure française : tes cultures poussent deux fois moins vite, sauf la ' + (PAR_ID.noctiflore ? PAR_ID.noctiflore.nom : 'plante de nuit') + ' et les champs sous une lanterne UV.'); } }
   if (!veut && avant && !N.k) animerLanternes.t = 0;
-  N.v.style.opacity = String(N.k); teinterNuitFerme(N); if (typeof trousNuit === 'function') trousNuit(N); /* (les lanternes allumees percent le voile, comme dans la nuit de la foret) */
+  N.v.style.opacity = String(N.k); teinterNuitFerme(N); majLueursLys(N.k); if (typeof trousNuit === 'function') trousNuit(N); /* (les lanternes allumees percent le voile, comme dans la nuit de la foret) */
 }
 /* LE BOUTON DU JOUR ET DE LA NUIT (11/11/2026, « il faudrait un bouton pour savoir quand arrivent le jour et la nuit sur le jeu », « a cote du temps x1 ou x1,5,
    un truc dans le style », Mathieu) : dans la barre du haut, juste avant le bouton de la vitesse du temps et fait comme lui. Un soleil ou une lune (ce qu'il fait
@@ -174,10 +174,25 @@ function majLumieresBat(dt, s) { /* a chaque image ; les batiments sont relus un
   const c = majLumieresBat.cible || 0; if (!c && !lumieresBatA) return;
   lumieresBatA = c > lumieresBatA ? Math.min(c, lumieresBatA + dt) : Math.max(c, lumieresBatA - dt); allumerLumieresBat(lumieresBatA, s);
 }
+/* LA LUEUR DES NOCTIFLORES (11/11/2026) : la nuit, une parcelle de Noctiflore mure luit (le lys de lune de la planche, des clochettes qui brillent dans le noir) :
+   une lueur bleu pale au-dessus de ses clochettes, et un trou doux dans le voile. Rien le jour. Les parcelles sont relues toutes les secondes et demie. */
+let lueursLys = [], texLueurLys = null;
+function majLueursLys(k) { /* k : la nuit de la ferme, de 0 a 1 */
+  const now = performance.now();
+  if (!majLueursLys.t || now - majLueursLys.t > 1500) { majLueursLys.t = now;
+    const L = k > 0 && PAR_ID.noctiflore ? S_.cases.filter((c) => c.type === 'champ' && c.c === 'noctiflore' && c.pousse >= duree(PAR_ID.noctiflore)) : [];
+    lueursLys.filter((x) => !L.includes(x.c)).forEach((x) => { scene.remove(x.s); x.s.material.dispose(); }); lueursLys = lueursLys.filter((x) => L.includes(x.c));
+    L.filter((c) => !lueursLys.some((x) => x.c === c)).forEach((c) => {
+      texLueurLys = texLueurLys || texCanvas(64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(225,244,255,0.9)'); r.addColorStop(0.35, 'rgba(150,205,255,0.4)'); r.addColorStop(1, 'rgba(110,170,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
+      const s = new T.Sprite(new T.SpriteMaterial({ map: texLueurLys, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })), q = posCase(c); s.position.set(q.x, q.y + 0.7, q.z); s.scale.setScalar(2.7); s.renderOrder = 6; s.raycast = () => {}; scene.add(s); lueursLys.push({ c, s }); }); }
+  lueursLys.forEach((x) => { x.s.visible = k > 0.01; x.s.material.opacity = 0.4 * k; });
+}
 function trousBatiments(N) { /* les trous que ces lumieres percent dans le voile de la nuit de la ferme : [x, y, rayon] a l'ecran ; aucun dans une autre nuit */
-  if (N !== NUIT_J || !(lumieresBatA > 0.05) || !trousBat.length) return [];
+  if (N !== NUIT_J) return [];
   const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), p = new T.Vector3(), q = new T.Vector3(), trous = [];
-  trousBat.forEach((g) => { if (!g.hote.parent || g.hote.visible === false) return; p.copy(g.c).project(camera); if (p.z > 1) return; const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H;
-    q.copy(g.c).addScaledVector(D, g.r * lumieresBatA).project(camera); const r = Math.max(3, Math.hypot((q.x + 1) / 2 * W - x, (1 - q.y) / 2 * H - y)); if (x < -r || x > W + r || y < -r || y > H + r) return; trous.push([x, y, r]); });
+  const trou = (c, rayon) => { p.copy(c).project(camera); if (p.z > 1) return; const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H;
+    q.copy(c).addScaledVector(D, rayon).project(camera); const r = Math.max(3, Math.hypot((q.x + 1) / 2 * W - x, (1 - q.y) / 2 * H - y)); if (x < -r || x > W + r || y < -r || y > H + r) return; trous.push([x, y, r]); };
+  if (lumieresBatA > 0.05) trousBat.forEach((g) => { if (g.hote.parent && g.hote.visible !== false) trou(g.c, g.r * lumieresBatA); });
+  lueursLys.forEach((x) => { if (x.s.visible) trou(x.s.position, 1.35 * N.k); }); /* (les Noctiflores mures) */
   return trous;
 }
