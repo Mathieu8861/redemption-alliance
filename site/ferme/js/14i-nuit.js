@@ -68,11 +68,20 @@ function teinterNuitFerme(N) { /* les lumieres de la scene, baissees et bleuies 
 function couperNuitFerme() { /* tout de suite : un combat commence, ou l'on quitte la ferme (la nuit de la foret note alors les lumieres a leur plein jour) */
   const N = NUIT_J; if (!N || !(N.k > 0)) return; N.k = 0; if (typeof majLueursLys === 'function') majLueursLys(0); N.v.style.opacity = '0'; if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } teinterNuitFerme(N); animerLanternes.t = 0;
 }
+/* LA NUIT EST LA TOUT DE SUITE AU RETOUR (11/11/2026 au soir, « quand je sors d'un batiment (cabane du pecheur) il fait jour et ca repasse a la nuit en 2-3 secondes »,
+   Mathieu) : en quittant la ferme la nuit est coupee d'un coup (couperNuitFerme), et au retour elle rejouait son fondu de crepuscule depuis le plein jour. Le fondu
+   ne joue plus que si l'on a vu le jour sur la ferme juste avant (majNuitFerme.jourVu : le vrai coucher du soleil, ou le bouton du mode test) ; sinon (retour d'un
+   batiment, d'un combat, arrivee dans le jeu en pleine nuit) le voile, les lanternes et les lumieres des batiments sont poses a leur pleine nuit. */
+function nuitToutDeSuite(N) {
+  N.k = 1; animerLanternes.t = performance.now(); animerLanternes.cible = lanternesAllumees() ? 1 : 0; if (animerLanternes.cible) lanternesAnim.forEach((A) => { A.a = 1; allumerLanterne(A); });
+  majLumieresBat.t = 0; majLumieresBat.saut = true;
+}
 function majNuitFerme(dt) { /* a chaque image */
   majPastilleNuit();
-  const veut = nuitFermeLa(); if (!veut && !(NUIT_J && NUIT_J.k > 0)) return;
+  const veut = nuitFermeLa(), ici = typeof lieu !== 'undefined' && lieu === 'ferme' && !combat && !enAccueil; if (ici && !veut) majNuitFerme.jourVu = true; else if (!ici) majNuitFerme.jourVu = false;
+  if (!veut && !(NUIT_J && NUIT_J.k > 0)) return;
   if (!veut && (combat || lieu !== 'ferme')) { couperNuitFerme(); return; }
-  const N = voileNuitFerme(), avant = N.k; N.k = veut ? Math.min(1, N.k + dt / JOUR_NUIT.fondu) : Math.max(0, N.k - dt / JOUR_NUIT.fondu);
+  const N = voileNuitFerme(), avant = N.k; if (veut && !avant && !majNuitFerme.jourVu) nuitToutDeSuite(N); else N.k = veut ? Math.min(1, N.k + dt / JOUR_NUIT.fondu) : Math.max(0, N.k - dt / JOUR_NUIT.fondu);
   if (veut && !avant) { animerLanternes.t = 0; if (heureVraie() - nuitAnnoncee > 6 * HEURE_MS) { nuitAnnoncee = heureVraie(); /* (une fois par nuit, pas a chaque retour de combat) */ toast('Il fait nuit jusqu\'à ' + JOUR_NUIT.fin + ' h, heure française : tes cultures poussent deux fois moins vite, sauf la ' + (PAR_ID.noctiflore ? PAR_ID.noctiflore.nom : 'plante de nuit') + ' et les champs sous une lanterne UV.'); } }
   if (!veut && avant && !N.k) animerLanternes.t = 0;
   N.v.style.opacity = String(N.k); teinterNuitFerme(N); majLueursLys(N.k); if (typeof trousNuit === 'function') trousNuit(N); /* (les lanternes allumees percent le voile, comme dans la nuit de la foret) */
@@ -171,7 +180,7 @@ function majLumieresBat(dt, s) { /* a chaque image ; les batiments sont relus un
   const now = performance.now(); if (!majLumieresBat.t || now - majLumieresBat.t > 1000) { majLumieresBat.t = now; majLumieresBat.cible = MODE_TEST && lanternesAllumees() ? 1 : 0; /* (les lumieres d'appoint : en version dev seulement pour l'instant, la nuit etant du palier 10 ; les flammes des foyers, elles, brulent pour tout le monde) */
     const sig = hotesLumieres().map((m) => m.uuid + Math.round(m.position.x * 10) + '_' + Math.round(m.position.z * 10)).join('') + (S_ && S_.montgolfiere ? 'M' : '') + (MODE_TEST ? 'D' : ''); if (sig !== lumieresBatSig) { lumieresBatSig = sig; poserLumieresBat(); } }
   if (flammesBat.length) animerFlammesBat(dt);
-  const c = majLumieresBat.cible || 0; if (!c && !lumieresBatA) return;
+  const c = majLumieresBat.cible || 0; if (majLumieresBat.saut) { majLumieresBat.saut = false; if (c) { lumieresBatA = c; allumerLumieresBat(c, s); return; } } /* (au retour sur la ferme en pleine nuit : allumees d'un coup, nuitToutDeSuite) */ if (!c && !lumieresBatA) return;
   lumieresBatA = c > lumieresBatA ? Math.min(c, lumieresBatA + dt) : Math.max(c, lumieresBatA - dt); allumerLumieresBat(lumieresBatA, s);
 }
 /* LA LUEUR DES NOCTIFLORES (11/11/2026) : la nuit, les clochettes d'une Noctiflore mure luisent, comme sur la planche du lys de lune (« ca rend moins bien qu'en

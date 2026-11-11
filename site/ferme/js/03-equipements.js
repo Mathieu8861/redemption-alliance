@@ -250,19 +250,19 @@ document.addEventListener('click', (e) => {
 });
 /* un ingredient peut avoir un remplacant : [id, k, [id2, k2]] = k de l'un OU k2 de l'autre (la lanterne UV : 10 Plumes dorees ou 50 Plumes de Tofu, 11/11/2026).
    On paie avec le premier tant qu'on en a, puis avec le second. faisables : combien de fois la grange peut le fournir ; paieIngredient : ce qu'on retire pour n fois */
-const faisables = (G, [id, k, ou]) => Math.floor((G[id] || 0) / k) + (ou ? Math.floor((G[ou[0]] || 0) / ou[1]) : 0);
-const paieIngredient = (G, [id, k, ou], n) => { const a = Math.min(n, Math.floor((G[id] || 0) / k)); return ou ? [[id, k * a], [ou[0], ou[1] * (n - a)]] : [[id, k * n]]; };
+const faisables = (G, [id, k, ou]) => (MODE_TEST ? 99 : Math.floor((G[id] || 0) / k) + (ou ? Math.floor((G[ou[0]] || 0) / ou[1]) : 0)); /* (le mode test fabrique sans ressources, 11/11/2026) */
+const paieIngredient = (G, [id, k, ou], n) => { if (MODE_TEST) return []; const a = Math.min(n, Math.floor((G[id] || 0) / k)); return ou ? [[id, k * a], [ou[0], ou[1] * (n - a)]] : [[id, k * n]]; };
 const nomRessources = (id, k) => (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)( (?!de |du |d['’])\S+)?/, (m, a, b) => a + 's' + (b ? b + 's' : '')) : PAR_ID[id].nom); /* (Plumes dorees, Soies d'Arakne, Plumes de Tofu) */
 function ouvrirAtelier() {
   if (amelioCachee('atelier')) { toast('L\'atelier arrive bientôt.'); return; } /* (cache aux joueurs pour le moment, 09/11/2026) */
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
-  const G = S_.grange || {}, carte = (R) => { const ck = R.kamas || 0, peut = R.il.every((I) => faisables(G, I) >= 1) && S_.kamas >= ck, max = Math.min(...R.il.map((I) => faisables(G, I)), ck ? Math.floor(S_.kamas / ck) : Infinity), puce = (id, k, seul) => '<span class="puce' + ((G[id] || 0) >= k ? '' : seul ? ' mauvaise' : ' terne') + '">' + k + ' ' + nomRessources(id, k) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>'; /* (seul : sans remplacant, ou aucun des deux ne suffit : en rouge ; sinon celui qui manque est juste terni) */
+  const G = S_.grange || {}, carte = (R) => { const ck = R.kamas || 0, peut = R.il.every((I) => faisables(G, I) >= 1) && S_.kamas >= ck, max = Math.min(...R.il.map((I) => faisables(G, I)), ck ? Math.floor(S_.kamas / ck) : Infinity), puce = (id, k, seul) => '<span class="puce' + (MODE_TEST || (G[id] || 0) >= k ? '' : seul ? ' mauvaise' : ' terne') + '">' + k + ' ' + nomRessources(id, k) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>'; /* (seul : sans remplacant, ou aucun des deux ne suffit : en rouge ; sinon celui qui manque est juste terni) */
     return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + (R.donne > 1 ? ' ×' + R.donne : '') + (R.deco && nbDecos(R.deco) ? ' (' + nbDecos(R.deco) + ' en réserve)' : '') + (R.stock && S_[R.stock] ? ' (' + fmt(S_[R.stock]) + ' en réserve)' : '') + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + (ck ? '<span class="puce' + (S_.kamas >= ck ? '' : ' mauvaise') + '">' + fmt(ck) + ' kamas</span>' : '') + R.il.map((I) => (I[2] ? '<span class="puces-ou">' + puce(I[0], I[1], faisables(G, I) < 1) + '<i>ou</i>' + puce(I[2][0], I[2][1], faisables(G, I) < 1) + '</span>' : puce(I[0], I[1], true))).join('') + '</div></div>' +
       '<div class="act"><button class="btn kamas" data-atelier-fab="' + R.id + '|1"' + (peut ? '' : ' disabled') + '>Fabriquer</button>' + (max >= 5 ? '<button class="btn discret" data-atelier-fab="' + R.id + '|5">×5</button>' : '') + '</div></div>'; };
   const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
   const baliste = n6 ? blocAcier()
     : '<p class="hdv-aide">Il te faut la baliste d\'acier pour tirer ces carreaux : l\'arbalète de la grange au niveau 6 (HDV, Améliorer, niveau 95).</p>';
-  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">Tu y fabriques avec les ressources de ta grange (et parfois des kamas).</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
+  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">' + (MODE_TEST ? 'Mode test : tu fabriques tout librement, sans ressources ni kamas.' : 'Tu y fabriques avec les ressources de ta grange (et parfois des kamas).') + '</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
 }
 function fabriquer(id, fois) {
   const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier') || amelioCachee('atelier')) return; fois = Math.max(1, fois | 0);

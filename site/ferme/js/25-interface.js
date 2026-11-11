@@ -22,7 +22,7 @@ function rendreHaut() {
   { const h = document.querySelector('.haut'); if (h) document.documentElement.style.setProperty('--haut-hud', Math.round(h.getBoundingClientRect().bottom) + 'px'); } /* (la hauteur du bandeau du haut : la barre de combat se place dessous au telephone) */
   const n = niveau(S_.xp), a = seuil(n), b = seuil(n + 1), max = n >= capNiveau();
   majVieHaut();
-  $('kamas').textContent = fmt(S_.kamas); $('niv').textContent = n; $('xp').style.width = max ? '100%' : (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%';
+  if (MODE_TEST) S_.kamas = KAMAS_TEST; $('kamas').textContent = MODE_TEST ? '∞' : fmt(S_.kamas); $('niv').textContent = n; $('xp').style.width = max ? '100%' : (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%';
   $('xp-txt').textContent = max ? 'max' : Math.floor(100 * (S_.xp - a) / (b - a)) + ' %'; /* (11/11/2026, « reduis la taille de ca, ca prend trop de place pour pas grand-chose », Mathieu : une petite barre et un pourcentage ; les points exacts restent dans l'infobulle. « Niveau max » ou « 1 234 / 5 678 XP » dans une barre de 132 px avant) */
   $('xp-barre').parentNode.dataset.info = max ? (capNiveau() < NIV_MAX ? 'Niveau ' + capNiveau() + ' : ' + texteCap() + '.' : 'Niveau ' + NIV_MAX + ' : le niveau maximum de Paysan.') :'Niveau ' + n + ' : encore ' + fmt(b - S_.xp) + ' points d\'expérience pour passer niveau ' + (n + 1) + ' (' + Math.floor(100 * (S_.xp - a) / (b - a)) + ' %)';
   if (rendreHaut.xp !== undefined && S_.xp > rendreHaut.xp) { const e = $('xp-barre'); e.classList.remove('gagne'); void e.offsetWidth; e.classList.add('gagne'); } rendreHaut.xp = S_.xp;

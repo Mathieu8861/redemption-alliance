@@ -186,5 +186,9 @@ function convertirRythme(e) {
 }
 /* LE MODE TEST (05/11/2026, 27b-arene-dev.js) : tant qu'il dure, rien n'est enregistre, ni sur l'appareil ni en ligne (sauver ici, rpc et nuageEnvoyer dans 05-nuage.js) ;
    la vraie partie reste telle qu'elle etait, la page rechargee la reprend */
+/* LE MODE TEST EST LIBRE (11/11/2026 au soir, « mets-moi kamas infini en mode dev + atelier je peux craft ce que je veux + je peux reconstruire les batiments free aussi »,
+   Mathieu) : des kamas sans fond (KAMAS_TEST, remis a chaque rendu du bandeau, affiches « ∞ »), l'atelier fabrique sans ressources (faisables, paieIngredient,
+   03-equipements.js), reparer et reconstruire ne coutent rien (13-batiments-pv.js). Rien n'est enregistre en mode test : la vraie partie n'y gagne rien. */
+const KAMAS_TEST = 999999999;
 let MODE_TEST = false; const ETAT_TEST = { n: 1, immortel: false, tours: null, sansDef: false }; /* (tours : null les siennes, 0 coupees, 1 a 6 un niveau force ; sansDef : arbalete et Pepito-Tron coupes) */
 function sauver() { if (MODE_TEST) return; try { localStorage.setItem(CLE, JSON.stringify(S_)); } catch (err) { /* rien */ } nuageMarquer(); }
