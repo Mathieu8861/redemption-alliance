@@ -1280,7 +1280,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
    les maj pour les joueurs ») ; le corps de la page porte .mode-dev des qu'on entre en mode test. Une fois validee, une retouche perd son .mode-dev. */
 /* la pastille des kamas (« elle est pas plus large en hauteur que les autres ? et je la trouve un peu grande ») : sa piece de 22 px la rendait plus haute ; 17 px,
    et le mot « kamas » s'efface (la piece le dit) */
-.mode-dev .haut .kama.gros { width: 17px; height: 17px; } .mode-dev .haut .pastille:has(#kamas) { gap: 5px; } .mode-dev .haut .pastille:has(#kamas) .lib { display: none; }
+.haut .kama.gros { width: 17px; height: 17px; } .haut .pastille:has(#kamas) { gap: 5px; } .haut .pastille:has(#kamas) .lib { display: none; } /* (pour tous depuis le 11/11/2026 au soir : « oui tu peux », Mathieu, par Discord) */
 /* L'ATELIER DU PECHEUR, en cartes (11/11/2026 ; 14h-peche.js, ouvrirEtabliPecheur) */
 .pe-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 2px 0 14px; } .pe-grille.quatre { grid-template-columns: repeat(4, minmax(0, 1fr)); } .pe-grille.cinq { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
 @media (max-width: 640px) { .pe-grille { grid-template-columns: 1fr; } .pe-grille.quatre, .pe-grille.cinq { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
