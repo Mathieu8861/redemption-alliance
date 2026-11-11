@@ -39,6 +39,7 @@ function poserMontgolfiere() { /* sur sa case (type montgolfiere), tournee comme
   const c = S_ && S_.cases.find((x) => x.type === 'montgolfiere'); if (!c) { if (montgolfiereMesh) montgolfiereMesh.visible = false; return; }
   const q = posCase(c); POS_MONTGOLFIERE.set(q.x, 0, q.z);
   const g = montgolfiereMesh || MODELES.montgolfiere; g.visible = true; g.position.copy(POS_MONTGOLFIERE); g.rotation.set(0, Math.PI + rotDe('montgolfiere'), 0);
+  g.userData.modele = 'montgolfiere'; /* (son bruleur : un foyer, avec ses flammes ; 14i-nuit.js) */
   g.traverse((o) => { o.userData.montgolfiere = true; o.userData.cellule = c.id; }); if (!montgolfiereMesh) { scene.add(g); montgolfiereMesh = g; }
 }
 /* LE CASINO EN TRAVAUX (08/11/2026, « en attendant, ferme le casino aux visiteurs, sauf a moi ; dis que c'est ferme pour cause de travaux quand les gens veulent

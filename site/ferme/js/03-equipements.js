@@ -222,6 +222,9 @@ const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il
   /* (09/11/2026, « les torches : 10k, et il faut ca en ressources pour fabriquer : 4 ressources Abra, 2 couennes de cochon, 1 soie Arakne, 2 eclats du Craqueleur », Mathieu) */
   { id: 'torche', nom: 'Torche', donne: 1, kamas: 10000, deco: 'torche', il: [['ecorce_abraknyde', 8], ['couenne', 4], ['soie_arakne', 2], ['eclat_craq', 4]], ico: 'deco-torche', /* (« mets le double de ressources », Mathieu, 09/11/2026 : 4, 2, 1 et 2 avant) */
     desc: 'Une décoration à poser sur ta ferme : la nuit, elle éclaire deux fois plus loin qu\'un lampadaire (2,2 cases autour). Elle va dans tes décorations.' },
+  /* LA LANTERNE UV (11/11/2026, Mathieu : 14i-nuit.js) : la nuit, les champs autour d'elle poussent a plein. Recette : un premier jet, avec les ressources du palier 10 */
+  { id: 'lanterne_uv', nom: 'Lanterne UV', donne: 1, kamas: 30000, deco: 'lanterne_uv', il: [['soie_arakne', 8], ['ecorce_abraknyde', 8], ['plume_doree', 10, ['plume', 50]], ['eclat_craq', 6]], ico: 'deco-lanterne_uv', /* (« 10 plumes dorees ou 50 plumes tofus », Mathieu, 11/11/2026 ; 2 Plumes dorees avant) */
+    desc: 'Une décoration à poser près de tes champs : la nuit, les champs autour d\'elle poussent à pleine vitesse (12 cases : les 8 qui la touchent, et une de plus dans les quatre directions). Elle éclaire aussi, comme une lanterne sur pied.' },
   /* LE BOUCLIER DE CARAPACE (10/11/2026, « avec les carapaces de tortue et les branches d'eucalyptus, on peut faire un bouclier pour les vagues qui rajoute 20 % de
      tankiness a notre base ; un consommable, comme les carreaux, pour la base ; il faut 10 ecailles de tortue et 5 branches d'eucalyptus », Mathieu) : fabrique ici,
      pose avant une vague (la colonne Defense, avantBataille) ; pendant cette vague, les batiments prennent BOUCLIER_BASE de degats en moins (blesserBat) */
@@ -245,11 +248,16 @@ document.addEventListener('click', (e) => {
   sauver(); if (typeof rendreArbaleteBulle === 'function') rendreArbaleteBulle();
   if (modaleOuverte === 'vagues') ouvrirVagues(); else if (modaleOuverte === 'grange') ouvrirGrange(); else if (modaleOuverte === 'atelier') ouvrirAtelier();
 });
+/* un ingredient peut avoir un remplacant : [id, k, [id2, k2]] = k de l'un OU k2 de l'autre (la lanterne UV : 10 Plumes dorees ou 50 Plumes de Tofu, 11/11/2026).
+   On paie avec le premier tant qu'on en a, puis avec le second. faisables : combien de fois la grange peut le fournir ; paieIngredient : ce qu'on retire pour n fois */
+const faisables = (G, [id, k, ou]) => Math.floor((G[id] || 0) / k) + (ou ? Math.floor((G[ou[0]] || 0) / ou[1]) : 0);
+const paieIngredient = (G, [id, k, ou], n) => { const a = Math.min(n, Math.floor((G[id] || 0) / k)); return ou ? [[id, k * a], [ou[0], ou[1] * (n - a)]] : [[id, k * n]]; };
+const nomRessources = (id, k) => (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)( (?!de |du |d['’])\S+)?/, (m, a, b) => a + 's' + (b ? b + 's' : '')) : PAR_ID[id].nom); /* (Plumes dorees, Soies d'Arakne, Plumes de Tofu) */
 function ouvrirAtelier() {
   if (amelioCachee('atelier')) { toast('L\'atelier arrive bientôt.'); return; } /* (cache aux joueurs pour le moment, 09/11/2026) */
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
-  const G = S_.grange || {}, carte = (R) => { const ck = R.kamas || 0, peut = R.il.every(([id, k]) => (G[id] || 0) >= k) && S_.kamas >= ck, max = Math.min(...R.il.map(([id, k]) => Math.floor((G[id] || 0) / k)), ck ? Math.floor(S_.kamas / ck) : Infinity);
-    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + (R.donne > 1 ? ' ×' + R.donne : '') + (R.deco && nbDecos(R.deco) ? ' (' + nbDecos(R.deco) + ' en réserve)' : '') + (R.stock && S_[R.stock] ? ' (' + fmt(S_[R.stock]) + ' en réserve)' : '') + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + (ck ? '<span class="puce' + (S_.kamas >= ck ? '' : ' mauvaise') + '">' + fmt(ck) + ' kamas</span>' : '') + R.il.map(([id, k]) => '<span class="puce' + ((G[id] || 0) >= k ? '' : ' mauvaise') + '">' + k + ' ' + (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)/, '$1s') : PAR_ID[id].nom) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>').join('') + '</div></div>' +
+  const G = S_.grange || {}, carte = (R) => { const ck = R.kamas || 0, peut = R.il.every((I) => faisables(G, I) >= 1) && S_.kamas >= ck, max = Math.min(...R.il.map((I) => faisables(G, I)), ck ? Math.floor(S_.kamas / ck) : Infinity), puce = (id, k, seul) => '<span class="puce' + ((G[id] || 0) >= k ? '' : seul ? ' mauvaise' : ' terne') + '">' + k + ' ' + nomRessources(id, k) + ' (tu en as ' + fmt(G[id] || 0) + ')</span>'; /* (seul : sans remplacant, ou aucun des deux ne suffit : en rouge ; sinon celui qui manque est juste terni) */
+    return '<div class="art">' + ico(R.ico) + '<div><b>' + R.nom + (R.donne > 1 ? ' ×' + R.donne : '') + (R.deco && nbDecos(R.deco) ? ' (' + nbDecos(R.deco) + ' en réserve)' : '') + (R.stock && S_[R.stock] ? ' (' + fmt(S_[R.stock]) + ' en réserve)' : '') + '</b><div class="desc">' + R.desc + '</div><div class="puces">' + (ck ? '<span class="puce' + (S_.kamas >= ck ? '' : ' mauvaise') + '">' + fmt(ck) + ' kamas</span>' : '') + R.il.map((I) => (I[2] ? '<span class="puces-ou">' + puce(I[0], I[1], faisables(G, I) < 1) + '<i>ou</i>' + puce(I[2][0], I[2][1], faisables(G, I) < 1) + '</span>' : puce(I[0], I[1], true))).join('') + '</div></div>' +
       '<div class="act"><button class="btn kamas" data-atelier-fab="' + R.id + '|1"' + (peut ? '' : ' disabled') + '>Fabriquer</button>' + (max >= 5 ? '<button class="btn discret" data-atelier-fab="' + R.id + '|5">×5</button>' : '') + '</div></div>'; };
   const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
   const baliste = n6 ? blocAcier()
@@ -258,9 +266,9 @@ function ouvrirAtelier() {
 }
 function fabriquer(id, fois) {
   const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier') || amelioCachee('atelier')) return; fois = Math.max(1, fois | 0);
-  if (!R.il.every(([r, k]) => (G[r] || 0) >= k * fois)) { toast('Il te manque des ressources dans ta grange.'); return; }
+  if (!R.il.every((I) => faisables(G, I) >= fois)) { toast('Il te manque des ressources dans ta grange.'); return; }
   if (S_.kamas < (R.kamas || 0) * fois) { toast('Il te manque ' + fmt((R.kamas || 0) * fois - S_.kamas) + ' kamas.'); return; }
-  R.il.forEach(([r, k]) => { G[r] -= k * fois; }); S_.kamas -= (R.kamas || 0) * fois; if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois; if (R.stock) S_[R.stock] = (S_[R.stock] || 0) + R.donne * fois;
+  R.il.forEach((I) => paieIngredient(G, I, fois).forEach(([r, q]) => { if (q) G[r] -= q; })); S_.kamas -= (R.kamas || 0) * fois; if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois; if (R.stock) S_[R.stock] = (S_[R.stock] || 0) + R.donne * fois;
   if (R.deco) { S_.decos = S_.decos || {}; S_.decos[R.deco] = nbDecos(R.deco) + R.donne * fois; assurerDecos(); }
   son('niveau'); toast(R.deco ? '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + (fois > 1 ? 's' : '') + ' dans tes décorations : pose-' + (fois > 1 ? 'les' : 'la') + ' où tu veux (Aménager, Mes décorations).' : R.stock ? '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_[R.stock]) + '. Pose-le avant une vague (fenêtre Vagues, colonne Défense).' : '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
 }
@@ -397,13 +405,14 @@ const ILE_PLAN = { i0: -11, j0: -8, /* une ligne par j, un caractere par i : « 
     {id: 'T6', niv: 60, prix: 25000, parcelles: 4, anneau: 2},
     {id: 'T7', niv: 75, prix: 40000, parcelles: 4, anneau: 2},
     {id: 'T8', niv: 90, prix: 60000, parcelles: 4, anneau: 2},
-    {id: 'T9', niv: 105, prix: 85000, parcelles: 4, anneau: 2},
-    {id: 'T10', niv: 120, prix: 115000, parcelles: 4, anneau: 2},
-    {id: 'T11', niv: 135, prix: 150000, parcelles: 4, anneau: 2},
-    {id: 'T12', niv: 150, prix: 190000, parcelles: 4, anneau: 2},
-    {id: 'T13', niv: 165, prix: 240000, parcelles: 4, anneau: 2},
-    {id: 'T14', niv: 180, prix: 300000, parcelles: 4, anneau: 2},
-    {id: 'T15', niv: 195, prix: 370000, parcelles: 4, anneau: 2},
+    /* (11/11/2026, « le niveau 105, mets-la a 400k, et les prochaines toujours plus cheres », Mathieu : 85 000, 115 000, 150 000, 190 000, 240 000, 300 000 et 370 000 avant ; la meme pente, partie de 400 000) */
+    {id: 'T9', niv: 105, prix: 400000, parcelles: 4, anneau: 2},
+    {id: 'T10', niv: 120, prix: 550000, parcelles: 4, anneau: 2},
+    {id: 'T11', niv: 135, prix: 700000, parcelles: 4, anneau: 2},
+    {id: 'T12', niv: 150, prix: 900000, parcelles: 4, anneau: 2},
+    {id: 'T13', niv: 165, prix: 1150000, parcelles: 4, anneau: 2},
+    {id: 'T14', niv: 180, prix: 1450000, parcelles: 4, anneau: 2},
+    {id: 'T15', niv: 195, prix: 1800000, parcelles: 4, anneau: 2},
   ]
 };
 const idCase = (i, j) => 'm' + i + '_' + j;

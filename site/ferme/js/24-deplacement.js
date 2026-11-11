@@ -114,10 +114,11 @@ function animerPas(u, dt, cible) {
   if (m[2]) m[2].rotation.x = -Math.sin(ph - 0.3) * 0.48 * a; if (m[3]) m[3].rotation.x = Math.sin(ph - 0.3) * 0.48 * a;
   const g = u.genoux || []; if (g[0]) g[0].rotation.x = Math.pow(Math.max(0, -Math.cos(ph)), 1.3) * 0.95 * a; if (g[1]) g[1].rotation.x = Math.pow(Math.max(0, Math.cos(ph)), 1.3) * 0.95 * a;
   if (u.haut) u.haut.rotation.y = -Math.sin(ph) * 0.1 * a;
-  if (u.canneObj && m[3]) m[3].rotation.x = BRAS_CANNE; /* (une canne a peche en main : le bras droit la tient droite, il ne se balance plus, 14g-cabane.js) */
+  if (u.canneObj && m[3]) m[3].rotation.x = peche && peche.bras != null ? peche.bras : BRAS_CANNE; /* (une canne a peche en main : le bras droit la tient droite, il ne se balance plus, 14g-cabane.js) */
   paysanMesh.rotation.z = Math.sin(ph) * 0.03 * a; paysanMesh.rotation.x = 0.08 * a; /* leger balancement, penche un peu en avant en marchant */
 }
 function marcher(dt, s) {
+  majPeche(dt); /* (la peche depuis la terrasse de la cabane, 14h-peche.js) */
   if (combat && combat.agrippe > 0) combat.agrippe -= dt; /* agrippe par un monstre qui lui a saute dessus : il marche deux fois moins vite */
   if (combat && combat.deroute != null) return; /* a terre, il ne marche plus */
   if (combat && combat.assomme > 0) return; /* assomme : il ne bouge plus un instant */
@@ -329,7 +330,8 @@ canvas.addEventListener('pointerup', (e) => {
     { let o = h.object; while (o && o !== paysanMesh) o = o.parent; if (o) continue; } /* le perso ne bloque pas le clic sur la case ou il se tient */
     if (h.object.userData.montgolfiere && combat) continue; /* (07/11/2026, « lors d'une vague on ne doit pas pouvoir cliquer sur la montgolfiere, un mauvais clic ouvre la page et t'es mort », Mathieu : pendant un combat, le ballon ne bloque plus le clic, on vise ce qu'il y a derriere) */
     if (h.object.userData.montgolfiere && !mode) { ouvrirMontgolfiere(); return; }
-    if (h.object.userData.cabane && !mode && !combat) { clicCabaneDehors(h.point, agir); sauver(); return; } /* (la cabane du pecheur : sa terrasse, sa porte) */
+    if (h.object.userData.cabane && !mode && !combat) { clicCabaneDehors(h.point, agir); sauver(); return; }
+    if (pontonActif && !mode && !combat && h.point.y < 0.3 && S_.peche && S_.peche.main && dansMare(h.point.x, h.point.z)) { demarrerPeche(h.point); return; } /* (une canne en main, toucher l'eau de la mare : on y lance sa ligne) */ /* (la cabane du pecheur : sa terrasse, sa porte) */
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }
       if (mid !== undefined) { cibler(mid); return; }

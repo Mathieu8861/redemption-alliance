@@ -23,7 +23,7 @@ function rendreHaut() {
   const n = niveau(S_.xp), a = seuil(n), b = seuil(n + 1), max = n >= capNiveau();
   majVieHaut();
   $('kamas').textContent = fmt(S_.kamas); $('niv').textContent = n; $('xp').style.width = max ? '100%' : (100 * (S_.xp - a) / (b - a)).toFixed(1) + '%';
-  $('xp-txt').textContent = max ? 'Niveau max' : fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' XP';
+  $('xp-txt').textContent = max ? 'max' : Math.floor(100 * (S_.xp - a) / (b - a)) + ' %'; /* (11/11/2026, « reduis la taille de ca, ca prend trop de place pour pas grand-chose », Mathieu : une petite barre et un pourcentage ; les points exacts restent dans l'infobulle. « Niveau max » ou « 1 234 / 5 678 XP » dans une barre de 132 px avant) */
   $('xp-barre').parentNode.dataset.info = max ? (capNiveau() < NIV_MAX ? 'Niveau ' + capNiveau() + ' : ' + texteCap() + '.' : 'Niveau ' + NIV_MAX + ' : le niveau maximum de Paysan.') :'Niveau ' + n + ' : encore ' + fmt(b - S_.xp) + ' points d\'expérience pour passer niveau ' + (n + 1) + ' (' + Math.floor(100 * (S_.xp - a) / (b - a)) + ' %)';
   if (rendreHaut.xp !== undefined && S_.xp > rendreHaut.xp) { const e = $('xp-barre'); e.classList.remove('gagne'); void e.offsetWidth; e.classList.add('gagne'); } rendreHaut.xp = S_.xp;
   $('cases').innerHTML = 'Parcelles <b style="color:var(--kamas)">' + parcelles() + '/' + quotaParcelles() + '</b>'; { const n = parcelles(), q = quotaParcelles(); $('cases').dataset.info = 'Tes parcelles : ' + n + ' labourée' + (n > 1 ? 's' : '') + ' sur ' + q + ' possibles. Une parcelle, c\'est une case de terre où tu sèmes tes graines. Ton île en permet ' + QUOTA_ILE + ', chaque terrain acheté en ajoute. Pour en labourer une : touche une case d\'herbe libre.' + (n >= q ? ' Quota atteint : achète un terrain pour en avoir plus, ou déplace tes parcelles avec Aménager.' : ''); }
@@ -300,7 +300,7 @@ function ouvrirHdv0(onglet) {
     const cats = '<div class="hdv-cats q6">' + [['graines', 'Graines', 'ble'], ['animaux', 'Animaux', 'bouftou'], ['materiel', 'Matériel', 'fleches'], ['outils', 'Outils', 'faux'], ['gelees', 'Gelées', 'pot-petit'], ['deco', 'Déco', 'deco-lanterne']].map(([k, t, i]) => '<button data-hdv-cat="' + k + '" aria-pressed="' + (cat === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + '</button>').join('') + '</div>';
     let corps = '';
     if (cat === 'graines') {
-      const ouvertes = CULTURES.filter(debloquee), fermees = CULTURES.filter((c) => !debloquee(c));
+      const ouvertes = CULTURES.filter(debloquee), fermees = CULTURES.filter((c) => !debloquee(c) && !(c.nuit && !nuitDebloquee())); /* (la plante de nuit ne s'annonce pas avant le palier 10) */
       corps = '<p class="hdv-aide">Une graine plantée sur une parcelle donne une récolte à revendre. Les plus longues à pousser rapportent plus.</p>' + ouvertes.map((c) => {
         const p = prixGraine(c), st = S_.graines[c.id] || 0, opts = c.max ? [[1, '×1']] : [[1, '×1'], [10, '×10']], n = qteDe('g:' + c.id, opts), plein = c.max && arbresAchetables(c) <= 0; /* (le bananier : un a la fois, 2 au plus, 06/11/2026) */
         return '<div class="art">' + ico(c.id) + '<div><b>Graines ' + de(c.nom) + '</b><div class="puces">' + pc('vitesse', dureeLisible(duree(c))) + pc('epi', '×' + c.rendement + ' à la récolte') + '<span class="puce">' + st + ' en grange</span>' + (c.mange ? '<span class="puce bonne">repas : ' + c.mange.txt + '</span>' : '') + '</div>' +
@@ -646,7 +646,7 @@ function ouvrirParcelle(p) {
     '<div class="art">' + ico('cloture') + '<div><b>Remettre en herbe</b><div class="desc">La moitié du prix payé t\'est rendue' + (culture ? ', la culture est perdue' : '') + '.</div></div><div class="act"><small>+' + fmt(rendu) + ' ' + KAMA + '</small><button class="btn" data-herbe="' + p.id + '">Remettre en herbe</button></div></div>');
 }
 function ouvrirConstruire(p) {
-  const cout = PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)]; const plein = parcelles() >= quotaParcelles();
+  const cout = prixParcelle(); const plein = parcelles() >= quotaParcelles();
   ouvrirModale('construire', entete('Case d\'herbe libre') + '<p style="font-size:.8rem;font-weight:600">Parcelles : ' + parcelles() + ' sur ' + quotaParcelles() + '. Tu laboures où tu veux, dans la limite de ton quota. ' + (plein ? 'Quota atteint : déplace une parcelle (Aménager) ou achète un terrain.' : '') + '</p>' +
     '<div class="ligne"><div><b>Labourer une parcelle</b><small>Pour planter une culture de plus.</small></div><button class="btn kamas" data-parcelle="' + p.id + '"' + (plein || S_.kamas < cout ? ' disabled' : '') + '>' + fmt(cout) + ' ' + KAMA + '</button></div>' +
     (() => { const c = CULTURES.find((x) => x.arbre); if (!c || !debloquee(c)) return ''; const n = S_.cases.filter((x) => x.type === 'champ' && x.c === c.id).length, g = S_.graines[c.id] || 0, max = n >= c.max; /* (le bananier planté dans l'herbe, 04/11/2026) */

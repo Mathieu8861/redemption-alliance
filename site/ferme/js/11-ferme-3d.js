@@ -225,11 +225,14 @@ const DECOS = {
      portee = le rayon du cercle qu'elle eclaire la nuit, en unites (une case : 2). Le lampadaire passe de 4,2 (2,1 cases) a 2,2 (1,1 case), la petite lanterne
      de 2,5 a 1,4, la torche de 5,25 a 4,4 (deux fois le lampadaire). La torche ne s'achete plus : elle se fabrique a l'atelier (RECETTES_ATELIER, 03-equipements.js) */
   lanterne_sol: { nom: 'Petite lanterne', prix: 15000, niv: 5, pr: 'la', lumiere: { y: 0.25, r: 0.6, portee: 1.4 } }, lanterne_pied: { nom: 'Lanterne sur pied', prix: 25000, niv: 12, pr: 'la', lumiere: { y: 1.77, r: 1.0, portee: 2.2 } },
-  torche: { nom: 'Torche', prix: 10000, niv: 10, pr: 'la', atelier: true, lumiere: { y: 1.78, r: 1.25, portee: 4.4 } }, /* (08/11/2026, « il faudra acheter des lampadaires » puis « rajoute aussi des lampes torches », Mathieu : pendant la nuit de la foret, lanternes et torches y percent un cercle de lumiere, 21-combat.js) */
+  torche: { nom: 'Torche', prix: 10000, niv: 10, pr: 'la', atelier: true, lumiere: { y: 1.78, r: 1.25, portee: 4.4 } },
+  /* (11/11/2026, « a l'atelier on peut craft des lanternes UV qui permettent de faire pousser les champs la nuit a 100 % », Mathieu) : fabriquee a l'atelier ; la nuit,
+     les champs a une case et demie d'elle poussent a plein (UV_PORTEE, 14i-nuit.js). Son modele : celui de la lanterne sur pied, au verre violet, en attendant le sien */
+  lanterne_uv: { nom: 'Lanterne UV', prix: 30000, niv: 90, pr: 'la', atelier: true, copie: 'lanterne_pied', verre: '#b58cff', uv: true, lumiere: { y: 1.77, r: 1.0, portee: 2.2, teinte: '#b58cff' } }, /* (08/11/2026, « il faudra acheter des lampadaires » puis « rajoute aussi des lampes torches », Mathieu : pendant la nuit de la foret, lanternes et torches y percent un cercle de lumiere, 21-combat.js) */
 };
 const nbDecos = (k) => (S_ && S_.decos && S_.decos[k]) || 0;
 const accordDeco = (k, mot) => mot + ({ la: 'e', les: 's' }[DECOS[k].pr] || '');
-const texteDeco = (k) => { const D = DECOS[k] || { nom: 'Décoration', pr: 'la' }; return D.nom + ' : touche une case d\'herbe libre pour ' + D.pr + ' déplacer, Tourner pour ' + D.pr + ' pivoter, Ranger pour ' + D.pr + ' mettre dans tes décorations.'; };
+const texteDeco = (k) => { const D = DECOS[k] || { nom: 'Décoration', pr: 'la' }; return D.nom + ' : touche une case d\'herbe libre pour ' + D.pr + ' déplacer, Tourner pour ' + D.pr + ' pivoter, Ranger pour ' + D.pr + ' mettre dans tes décorations.' + (D.uv ? ' En violet : les cases qu\'elle couvre la nuit.' : ''); };
 let decosMesh = [], decosCharge = null; const pavesMesh = new Map();
 /* (01/11/2026, « il faudrait que ce soit a la meme hauteur que l'herbe », puis « rends les dalles plus detaillees, comme les batiments », Mathieu) : le lit de
    joints a 2,6 cm au-dessus de l'herbe, les paves bombes 2 a 3 cm plus haut. Dans blender/deco.py le lit va de -0,015 a 0,015 et les paves de -0,015 a
@@ -239,7 +242,8 @@ function assurerDecos() {
   if (MODELES.deco_rocher) return Promise.resolve(); if (decosCharge) return decosCharge;
   decosCharge = chargerGlb('assets/modeles/jeu/deco.glb?v=' + VERSION_MODELES).then((G) => {
     versToon(G, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true }); /* (au style de l'ile, faites avec les memes outils) */
-    Object.keys(DECOS).filter((k) => !DECOS[k].bottes).concat(['cloture_poteau']).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + k, 1); }); /* (le poteau d'un coin de cloture : pas a vendre) */
+    Object.keys(DECOS).filter((k) => !DECOS[k].bottes).concat(['cloture_poteau']).forEach((k) => { MODELES['deco_' + k] = gabaritEchelle(G, 'Deco_' + ((DECOS[k] || {}).copie || k), 1);
+      if (DECOS[k] && DECOS[k].verre) MODELES['deco_' + k].traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { o.material = o.material.clone(); o.material.color.set(DECOS[k].verre); } }); }); /* (copie et verre : un modele d'attente, celui d'une autre decoration au verre reteinte ; la lanterne UV, 11/11/2026) */ /* (le poteau d'un coin de cloture : pas a vendre) */
     modeleFoin();
     if (S_ && S_.perso) construireDecos();
   }).catch((e) => { console.warn('Décorations', e); decosCharge = null; });
@@ -303,6 +307,7 @@ function lueurLanterne(m, L) {
   texFlaqueLumiere = texFlaqueLumiere || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,220,130,0.75)'); r.addColorStop(0.6, 'rgba(255,195,95,0.28)'); r.addColorStop(1, 'rgba(255,170,60,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
   const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * 1.9); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
   const sol = new T.Mesh(new T.CircleGeometry(L.r * 2.5, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
+  if (L.teinte) { halo.material.color.set(L.teinte); sol.material.color.set(L.teinte); } /* (la lueur violette de la lanterne UV) */
   [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); });
   const verres = []; m.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { const M = o.material; if (!M.userData.allume) { M.userData.allume = M.color.clone(); M.userData.eteint = M.color.clone().lerp(new T.Color('#5d6466'), 0.65); } verres.push(M); } }); /* (le verre qui brille : sa couleur allumee et sa couleur eteinte) */
   const a = lanternesAllumees() ? 1 : 0; lanternesAnim.push({ halo, sol, r: L.r, portee: L.portee || L.r * TROU_NUIT, ph: Math.random() * 6, verres, a }); allumerLanterne(lanternesAnim[lanternesAnim.length - 1]);
@@ -313,7 +318,7 @@ function lueurLanterne(m, L) {
    de Paris (« les lampadaires, ils peuvent etre eteints le jour ? ») : la carte restait en plein jour avec ses lanternes allumees le soir. Le jour ou la ferme
    aura son cycle jour-nuit, c'est ici qu'il se branche. LANTERNES_FORCE (true ou false) les force, pour les tests. */
 let LANTERNES_FORCE = null;
-const nuitSurLaCarte = () => !!((typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif));
+const nuitSurLaCarte = () => !!((typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) || nuitFermeLa()); /* (nuitFermeLa : le jour et la nuit du palier 10, 14i-nuit.js) */
 function lanternesAllumees() { return LANTERNES_FORCE != null ? LANTERNES_FORCE : nuitSurLaCarte(); }
 function allumerLanterne(A) { A.halo.visible = A.sol.visible = A.a > 0.01; A.halo.material.opacity = A.a; A.verres.forEach((M) => M.color.copy(M.userData.eteint).lerp(M.userData.allume, A.a)); }
 function animerLanternes(s) {
@@ -410,11 +415,11 @@ function ouvrirDecos() {
 }
 /* la categorie Deco de l'HDV : ce qui s'achete a ton niveau, puis ce qui se debloque */
 function corpsDecoHdv() {
-  const nv = niveau(S_.xp), ks = Object.keys(DECOS), stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => (DECOS[k].bord ? Object.keys(S_.clotures || {}).length : DECOS[k].sol ? S_.cases.filter((c) => c.pave === k).length : S_.cases.filter((c) => c.type === 'deco' && c.deco === k).length);
+  const nv = niveau(S_.xp), ks = Object.keys(DECOS).filter((k) => !(DECOS[k].uv && !nuitDebloquee())) /* (la lanterne UV ne se montre pas avant le jour et la nuit du palier 10 : en version dev pour l'instant) */, stock = ks.reduce((t, k) => t + nbDecos(k), 0), posees = (k) => (DECOS[k].bord ? Object.keys(S_.clotures || {}).length : DECOS[k].sol ? S_.cases.filter((c) => c.pave === k).length : S_.cases.filter((c) => c.type === 'deco' && c.deco === k).length);
   return '<p class="hdv-aide">Des décorations pour ta ferme, juste pour le plaisir des yeux : une case chacune. Elles vont dans tes décorations, tu les poses où tu veux. La route pavée est un sol, comme l\'herbe : on pose ce qu\'on veut dessus ; la petite clôture se pose sur le bord d\'une case, pour séparer tes champs.</p>' +
     '<div class="deco-pied deco-tete"><button class="btn discret" data-mes-decos>Mes décorations' + (stock ? ' (' + stock + ')' : '') + '</button></div>' +
     ks.filter((k) => nv >= DECOS[k].niv).map((k) => { const D = DECOS[k], n = nbDecos(k), po = posees(k);
-      return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + (D.lumiere ? '<span class="puce">La nuit, éclaire ' + String(Math.round(D.lumiere.portee / S * 10) / 10).replace('.', ',') + ' case' + (D.lumiere.portee / S >= 2 ? 's' : '') + ' autour</span>' : '') + '</div></div>' +
+      return '<div class="art">' + ico('deco-' + k) + '<div><b>' + D.nom + '</b><div class="puces">' + (n ? '<span class="puce bonne">' + n + ' en réserve</span>' : '') + (po ? '<span class="puce">' + po + ' sur ta ferme</span>' : '') + (D.uv ? '<span class="puce or">La nuit, les champs des 12 cases autour poussent à plein</span>' : '') + (D.lumiere ? '<span class="puce">La nuit, éclaire ' + String(Math.round(D.lumiere.portee / S * 10) / 10).replace('.', ',') + ' case' + (D.lumiere.portee / S >= 2 ? 's' : '') + ' autour</span>' : '') + '</div></div>' +
         (D.atelier ? '<div class="act"><small>se fabrique</small>' + (niv('atelier') && !amelioCachee('atelier') ? '<button class="btn kamas" data-ouvrir-atelier>À l\'atelier</button>' : '<span class="cadenas">' + picto('cadenas', '#a3957a') + (amelioCachee('atelier') ? 'Bientôt' : 'L\'atelier') + '</span>') + (n ? '<button class="btn discret mini" data-poser-deco="' + k + '">Poser</button>' : '') + '</div></div>' :
         '<div class="act"><small>à l\'unité</small><button class="btn kamas" data-deco-achat="' + k + '"' + (S_.kamas >= D.prix ? '' : ' disabled') + '>Acheter ' + fmt(D.prix) + ' ' + KAMA + '</button>' + manque(D.prix) + (D.sol || D.bord ? '<button class="btn kamas mini" data-deco-achat="' + k + '" data-n="10"' + (S_.kamas >= D.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(D.prix * 10) + ' ' + KAMA + '</button>' : '') + /* (la route et la cloture vont par dizaines) */ (n || ((D.sol || D.bord) && po) ? '<button class="btn discret mini" data-poser-deco="' + k + '">' + (n ? 'Poser' : 'Ranger') + '</button>' : '') + '</div></div>'); }).join('') +
     (ks.some((k) => nv < DECOS[k].niv) ? '<div class="hdv-section">À débloquer en montant de niveau</div>' + ks.filter((k) => nv < DECOS[k].niv).map((k) => '<div class="art verrou">' + ico('deco-' + k) + '<div><b>' + DECOS[k].nom + '</b></div><div class="act"><span class="cadenas">' + picto('cadenas', '#a3957a') + 'Niveau ' + DECOS[k].niv + '</span></div></div>').join('') : '');
@@ -424,7 +429,58 @@ function corpsDecoHdv() {
    --jeu). Ses conditions : perso niveau 80, grange niveau 5, 4 tours niveau 5, 500 000 kamas ; on choisit ou le batir (4 x 4 cases d'herbe, la grange et les
    tours comptent comme libres). La grange devient 16 cases 'grange', les tours disparaissent : ses 4 tours d'angle tirent comme des tours niveau 6 (construireTours),
    la baliste de la grange passe sur la terrasse du donjon (construireArbalete) ; 12 000 PV a lui seul. */
-const Y_DONJON = 4.15, COIN_CHATEAU = 3.157, Y_TOURS_CHATEAU = 3.45; /* (la terrasse du donjon, le centre des balistes d'angle et leur estrade, en unites du jeu) */
+const Y_DONJON = 4.15, COIN_CHATEAU = 3.157, Y_TOURS_CHATEAU = 3.45; /* (la terrasse du donjon, le centre des balistes d'angle et leur estrade, en unites du jeu, pour le modele a sa taille d'origine : 4 x 4 cases ; a multiplier par echChateau()) */
+/* LE CHATEAU PASSE A 5 x 5 (11/11/2026, « on devrait agrandir la taille du chateau : la il fait 4 sur 4, il faudrait qu'il fasse 5 sur 5 et que sa porte d'entree
+   soit au milieu », Mathieu) : sur un nombre impair de cases, la porte (au milieu du rempart de devant) tombe en face d'une case, plus entre deux. Le modele est le
+   meme, agrandi d'un quart (ECH_CHATEAU) : tours, remparts, donjon et porte grandissent ensemble ; les balistes et leurs hauteurs suivent (echChateau).
+   Un chateau deja bati en 4 x 4 s'agrandit tout seul, une fois (agrandirChateau) : ce qui gene sur ses 9 cases de plus est deplace juste a cote ; si vraiment rien
+   ne passe (plus de place libre, un acces coupe), il reste tel quel, a son ancienne taille, et passe a 5 x 5 quand on le deplace (Amenager : deplacerBatiment). */
+const COTE_CHATEAU = 5, ECH_CHATEAU = COTE_CHATEAU / 4;
+/* EN VERSION DEV SEULEMENT pour l'instant (« le chateau en 5 x 5 : avec la maj du palier 10 », puis « push, mais que en version dev, pas pour la version joueur »,
+   Mathieu, 11/11/2026) : hors du mode test, un chateau se batit et se deplace en 4 x 4 comme avant, et aucun ne s'agrandit. Le jour de la sortie : coteChateau
+   rend toujours COTE_CHATEAU, et agrandirChateau perd son MODE_TEST. */
+const coteChateau = () => (MODE_TEST ? COTE_CHATEAU : 4);
+const echChateau = () => { const o = aChateau() && blocBati('grange'); return o && o.w >= COTE_CHATEAU && o.h >= COTE_CHATEAU ? ECH_CHATEAU : 1; }; /* (1 : un ancien chateau de 4 x 4 pas encore agrandi) */
+function agrandirChateau() {
+  if (!MODE_TEST || !aChateau() || S_.chateau5) return; const o = blocBati('grange'); if (!o) return; S_.chateau5 = 1; /* (une seule tentative ; en mode test rien n'est enregistre : la vraie ferme ne bouge pas) */
+  if (o.w !== 4 || o.h !== 4 || o.B.length !== 16) return;
+  /* (« ceux qui ont des batiments ou des cultures autour, ca va se passer comment ? [...] faut bien qu'elle soit deplacee », Mathieu, 11/11/2026) : le chateau grandit
+     dans tous les cas ; ce qui se trouve sur ses 9 cases de plus est deplace sur la place libre la plus proche : un champ garde sa culture et sa pousse, une
+     decoration et un arbre changent de case, un batiment demenage en entier. On prend, des quatre carres de 5 x 5 qui contiennent le chateau, celui qui derange le
+     moins (poidsCase). Tout se fait sur une photo de la ferme : si une chose ne trouve pas de place, ou si un acces se retrouve coupe, on remet la photo et on
+     essaie le carre suivant. L'enclos, l'eau et un Tofu sauvage ne se deplacent pas. Si aucun carre ne passe, le chateau reste en 4 x 4 (echChateau). */
+  const tofu = (c) => !!(S_.sauvage && S_.sauvage.id === c.id), CLES_CHAMP = ['c', 'pousse', 'arrose', 'pretDepuis', 'tofu', 'vole', 'tofuParti', 'picore', 'prixPaye'];
+  const poidsCase = (c) => (tofu(c) ? 1000 : c.type === 'libre' ? (c.pave ? 0.1 : 0) : c.type === 'deco' || c.type === 'arbre' ? 1 : c.type === 'champ' ? 3 : BATIS[c.type] ? 8 : 1000);
+  const dist = (a, b) => { const p = posCase(a), q = posCase(b); return Math.hypot(p.x - q.x, p.z - q.z); };
+  const carres = [[0, 0], [-1, 0], [0, -1], [-1, -1]].map(([di, dj]) => { const plus = [];
+    for (let x = 0; x < COTE_CHATEAU; x++) for (let y = 0; y < COTE_CHATEAU; y++) { const c = S_.cases.find((v) => v.terrain === o.c0.terrain && v.i === o.c0.i + di + x && v.j === o.c0.j + dj + y); if (!c || !memeNiveau(c, o.c0)) return null; if (c.type !== 'grange') plus.push(c); }
+    return { plus, cout: plus.reduce((t, c) => t + poidsCase(c), 0) }; }).filter((x) => x && x.cout < 1000).sort((a, b) => a.cout - b.cout);
+  for (const { plus } of carres) {
+    const photo = JSON.stringify({ cases: S_.cases, arbres: S_.arbres || {} }), deja = inaccessibles(), pris = new Set(o.B.concat(plus)), bouges = { champ: 0, deco: 0, arbre: 0, bat: [] };
+    const pres = (src) => S_.cases.filter((c) => c.type === 'libre' && !pris.has(c) && !tofu(c)).sort((a, b) => dist(a, src) - dist(b, src))[0]; /* la case d'herbe libre la plus proche, hors du chateau */
+    let bon = true;
+    for (const c of plus) {
+      if (c.type === 'libre') continue;
+      if (c.type === 'champ') { const d = pres(c); if (!d) { bon = false; break; } const champ = {}; CLES_CHAMP.forEach((k) => { if (c[k] !== undefined) champ[k] = c[k]; delete c[k]; }); c.type = 'libre'; Object.assign(d, { type: 'champ' }, champ); bouges.champ++; }
+      else if (c.type === 'deco') { const d = pres(c); if (!d) { bon = false; break; } ['deco', 'rotD', 'ile'].forEach((k) => { if (c[k] !== undefined) d[k] = c[k]; delete c[k]; }); delete c.orig; c.type = 'libre'; d.type = 'deco'; bouges.deco++; }
+      else if (c.type === 'arbre') { const d = pres(c); if (!d) { bon = false; break; } const nom = c.arbre; S_.arbres = S_.arbres || {}; const st = S_.arbres[nom] || (S_.arbres[nom] = {}); c.type = 'libre'; delete c.arbre; d.type = 'arbre'; d.arbre = nom; st.cell = d.id; delete st.orig; bouges.arbre++; }
+      else if (BATIS[c.type]) { /* un batiment : il demenage en entier, au plus pres, sur des cases libres (ou les siennes) hors du chateau */
+        const type = c.type, b = blocBati(type), ok = (v) => !!v && (v.type === 'libre' || v.type === type) && !pris.has(v) && !tofu(v); let cells = null;
+        for (const d of S_.cases.filter((v) => v.terrain === b.c0.terrain && memeNiveau(v, b.c0)).sort((p, q) => dist(p, b.c0) - dist(q, b.c0))) { const L = []; let tient = true;
+          for (let x = 0; x < b.w && tient; x++) for (let y = 0; y < b.h && tient; y++) { const v = S_.cases.find((u) => u.terrain === d.terrain && u.i === d.i + x && u.j === d.j + y); if (ok(v) && memeNiveau(v, d)) L.push(v); else tient = false; }
+          if (tient && L.length === b.B.length) { cells = L; break; } }
+        if (!cells) { bon = false; break; } b.B.forEach((v) => { v.type = 'libre'; }); cells.forEach((v) => { v.type = type; }); bouges.bat.push(BATIS[type]); }
+      else { bon = false; break; }
+    }
+    if (bon) { plus.forEach((c) => { c.type = 'grange'; }); if (inaccessibles().some((x) => !deja.includes(x))) bon = false; }
+    if (!bon) { const P = JSON.parse(photo); S_.cases.forEach((c, k) => { Object.keys(c).forEach((key) => { delete c[key]; }); Object.assign(c, P.cases[k]); }); S_.arbres = P.arbres; continue; } /* (on remet la photo : rien n'a bouge) */
+    S_.cases.forEach((c) => rendreCase(c.id)); if (bouges.arbre) construireArbres(); if (bouges.deco) construireDecos(); if (bouges.bat.includes(BATIS.voliere) && typeof appliquerVoliere === 'function') appliquerVoliere();
+    if (typeof paysanMesh !== 'undefined' && paysanMesh && paysanMesh.userData) { const u = paysanMesh.userData, ici = caseIci(paysanMesh.position.x, paysanMesh.position.z); if ((ici && !sansObstacle(ici)) || (u.cellule && !sansObstacle(u.cellule))) { const v = S_.cases.filter((x) => PASSABLE[x.type]).sort((p, q) => dist(p, ici || o.c0) - dist(q, ici || o.c0))[0]; if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } } } /* il s'ecarte */
+    const dits = [bouges.champ ? bouges.champ + ' champ' + (bouges.champ > 1 ? 's' : '') : '', bouges.deco ? bouges.deco + ' décoration' + (bouges.deco > 1 ? 's' : '') : '', bouges.arbre ? bouges.arbre + ' arbre' + (bouges.arbre > 1 ? 's' : '') : ''].concat(bouges.bat).filter(Boolean);
+    setTimeout(() => { if (typeof toast === 'function') toast('Ton château s\'est agrandi : 5 cases sur 5, et sa porte tombe en face d\'une case.' + (dits.length ? ' Pour lui faire de la place, on a déplacé juste à côté : ' + dits.join(', ') + '.' : ''), 'or'); }, 6000); return;
+  }
+  setTimeout(() => { if (typeof toast === 'function') toast('Ton château peut s\'agrandir à 5 cases sur 5 : fais-lui de la place, puis déplace-le avec Aménager.', 'or'); }, 6000);
+}
 let chateauCharge = null, chateauVise = null, apercuChateau = null; const TUILE_CHATEAU = new T.PlaneGeometry(S - 0.1, S - 0.1); partager(TUILE_CHATEAU);
 function assurerChateau() {
   if (MODELES.grange6) return Promise.resolve(); if (chateauCharge) return chateauCharge;
@@ -435,11 +491,13 @@ function assurerChateau() {
   return chateauCharge;
 }
 const manqueChateau = () => { const L = S_.cases.filter((c) => c.type === 'tour'); return L.length < TOURS_MAX ? 'Construis d\'abord tes ' + TOURS_MAX + ' tours de défense' : L.some((c) => nivTour(c) < 4) ? 'Monte d\'abord tes ' + TOURS_MAX + ' tours au niveau 5' : ''; };
-function essaiChateau(cible) { /* 4 x 4 cases autour de la case touchee (le carre le plus centre sur elle d'abord) : herbe libre, ou la grange et les tours, au meme niveau */
+function essaiChateau(cible) { /* 5 x 5 cases autour de la case touchee (le carre centre sur elle d'abord) : herbe libre, ou la grange et les tours, au meme niveau */
   const ok = (c) => c && (c.type === 'libre' || c.type === 'grange' || c.type === 'tour') && !(S_.sauvage && S_.sauvage.id === c.id) && memeNiveau(c, cible);
-  for (const [di, dj] of [[1, 1], [2, 1], [1, 2], [2, 2], [0, 1], [1, 0], [3, 1], [1, 3], [0, 2], [2, 0], [3, 2], [2, 3], [0, 0], [3, 0], [0, 3], [3, 3]]) {
+  const N = coteChateau(), m = (N - 1) / 2; let decal = []; for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) decal.push([a, b]); decal.sort((p, q) => Math.hypot(p[0] - m, p[1] - m) - Math.hypot(q[0] - m, q[1] - m));
+  if (N === 4) decal = [[1, 1], [2, 1], [1, 2], [2, 2], [0, 1], [1, 0], [3, 1], [1, 3], [0, 2], [2, 0], [3, 2], [2, 3], [0, 0], [3, 0], [0, 3], [3, 3]]; /* (le 4 x 4 des joueurs : l'ordre d'origine, rien ne change pour eux) */
+  for (const [di, dj] of decal) {
     const cells = []; let bon = true;
-    for (let x = 0; x < 4 && bon; x++) for (let y = 0; y < 4 && bon; y++) { const c = S_.cases.find((v) => v.terrain === cible.terrain && v.i === cible.i - di + x && v.j === cible.j - dj + y); if (ok(c)) cells.push(c); else bon = false; }
+    for (let x = 0; x < N && bon; x++) for (let y = 0; y < N && bon; y++) { const c = S_.cases.find((v) => v.terrain === cible.terrain && v.i === cible.i - di + x && v.j === cible.j - dj + y); if (ok(c)) cells.push(c); else bon = false; }
     if (bon) return cells;
   }
   return null;
@@ -454,12 +512,13 @@ const rotDe = (type) => ((S_.rot && S_.rot[type]) || 0) * Math.PI / 2;
 const tourne = (dx, dz, a) => [dx * Math.cos(a) + dz * Math.sin(a), -dx * Math.sin(a) + dz * Math.cos(a)]; /* un decalage, tourne avec le batiment */
 function construireBatiments() {
   batisMesh.forEach((m) => scene.remove(m)); batisMesh = []; fumeesCheminee = [];
-  const pose = (...a) => { const m = batiment(...a); batisMesh.push(m); return m; };
+  const pose = (...a) => { const m = batiment(...a); m.userData.modele = a[0]; /* (son modele : les foyers de la forgemagie et de l'atelier, 14i-nuit.js) */ batisMesh.push(m); return m; };
   if (montgolfiereMesh) poserMontgolfiere(); /* (deplacee ou tournee dans Amenager, ou une autre partie) */
   if (!S_.foinDeco && !S_.cases.some((c) => c.type === 'foin')) { const c = S_.cases.find((x) => x.id === 'm7_4'); if (c && c.type === 'enclos') c.type = 'foin'; } /* (anciennes sauvegardes : le foin etait passe dans l'enclos) */
   if (!S_.foinDeco) { S_.foinDeco = true; S_.cases.filter((c) => c.type === 'foin').forEach((c) => { c.type = 'deco'; c.deco = 'foin'; c.rotD = (S_.rot && S_.rot.foin) || 0; rendreCase(c.id); }); construireDecos(); } /* (05/11/2026 : le foin devient une decoration, une fois) */
+  agrandirChateau(); /* (un chateau de 4 x 4 passe a 5 x 5, une fois, s'il en a la place) */
   let o = blocBati('grange'); if (o) { const a = rotDe('grange'), [gx, gz] = tourne(0, -0.1, a); const ng = nivBat('qg');
-    if (ng >= 6) { if (MODELES.grange6) pose('grange6', o.x, o.y, o.z, o.c0.id, a); else assurerChateau(); ancres.grange = new T.Vector3(o.x, o.y + Y_DONJON + 0.4, o.z); } /* (le chateau-grange : sa baliste sur la terrasse du donjon) */
+    if (ng >= 6) { const k = echChateau(); if (MODELES.grange6) pose('grange6', o.x, o.y, o.z, o.c0.id, a).scale.setScalar(k); else assurerChateau(); ancres.grange = new T.Vector3(o.x, o.y + Y_DONJON * k + 0.4, o.z); } /* (le chateau-grange : sa baliste sur la terrasse du donjon) */
     else { fumerCheminee(pose('grange' + ng, o.x + gx, o.y, o.z + gz, o.c0.id, a), ng); ancres.grange = new T.Vector3(o.x, o.y + MODELES.toitGrange + (ng >= 3 ? MODELES.leveGrange : 0) + 0.3, o.z); } } /* au faitage, pas en haut de la tourelle */
   o = blocBati('hdv'); if (o) {
     const a = rotDe('hdv'), [hx, hz] = tourne(0, -0.15, a), [mx, mz] = tourne(1.75, 0.45, a); const h = pose('hdv' + nivBat('nivEtal'), o.x + hx, o.y, o.z + hz, o.c0.id, a); ancres.hdv = new T.Vector3(o.x, o.y + h.userData.hauteur + 0.3, o.z);
@@ -486,7 +545,7 @@ function essaiPose(type, cible, W, H) {
       const c = S_.cases.find((x) => x.terrain === cible.terrain && x.i === cible.i - di + a && x.j === cible.j - dj + b);
       if (!c || !(c.type === 'libre' || c.type === type) || (S_.sauvage && S_.sauvage.id === c.id) || !memeNiveau(c, cible)) ok = false; else cells.push(c);
     }
-    if (ok && o.B.every((c) => o.B.length === cells.length)) return cells;
+    if (ok && (W || o.B.every((c) => o.B.length === cells.length))) return cells; /* (W donne : la taille est voulue, le chateau qui passe de 4 x 4 a 5 x 5) */
   }
   return null;
 }

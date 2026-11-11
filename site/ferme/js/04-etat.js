@@ -33,7 +33,7 @@ const XP_FERME = 0.35; /* (14/10/2026, « faut nerf l'xp des plantes, j'suis dej
 function xpFerme(n) { return gagnerXp(Math.max(1, Math.round(n * XP_FERME))); }
 const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais')); /* (temps : en vraies minutes, 1,5 = 1 min 30) */
 const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
-const debloquee = (c) => { if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
+const debloquee = (c) => { if (c.nuit && !nuitDebloquee()) return false; /* (la plante de nuit : avec le jour et la nuit du palier 10, 14i-nuit.js) */ if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
 const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + (PAR_ID[p.c].arbre ? 0 : niv('faux')) - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes ; un arbre, le bananier : son regime ne grossit pas avec la Faux (04/11/2026) */
 /* (06/11/2026, « il a pu acheter 30 arbres banana, la limite devrait etre a 2 max et l'arbre coute 50k », Mathieu) : le bananier a un prix fixe, et on n'en possede

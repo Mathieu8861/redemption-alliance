@@ -304,7 +304,7 @@ const ACTIONS = {
     if (id === 'qg' && n === 4) { /* le chateau-grange : on choisit d'abord ou le batir, il se paie a la confirmation (batirChateau) */
       const m = manqueChateau(); if (m) { toast(m + '.', 'alerte'); return; }
       fermerModale(); aDeplacer = null; mode = 'poserChateau'; assurerChateau(); majBandeau(); rendreHaut();
-      toast('Touche l\'endroit où bâtir ton château : il prend 4 cases sur 4. Ta grange et tes 4 tours y fusionnent.', 'or'); return;
+      toast('Touche l\'endroit où bâtir ton château : il prend ' + coteChateau() + ' cases sur ' + coteChateau() + '. Ta grange et tes 4 tours y fusionnent.', 'or'); return;
     }
     if (id === 'voliere' && n === 0 && bloqueursVoliere().length) { toast('Pas la place : libère une case à côté de la volière (une parcelle se déplace avec Aménager).', 'alerte'); return; }
     const caseForge = (id === 'forge' || id === 'atelier') && n === 0 ? caseLibreForge(id) : null; /* (l'atelier se pose comme l'atelier de forgemagie, 09/11/2026) */
@@ -347,7 +347,7 @@ const ACTIONS = {
   construireParcelle(id) {
     const p = S_.cases.find((c) => c.id === id); if (!p || p.type !== 'libre') return;
     if (parcelles() >= quotaParcelles()) { toast('Quota atteint : ' + parcelles() + ' parcelles sur ' + quotaParcelles() + '. Déplace une parcelle, ou achète un terrain pour en labourer plus.', 'alerte'); return; }
-    const cout = PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)];
+    const cout = prixParcelle();
     if (S_.kamas < cout) { toast('Une parcelle coûte ' + fmt(cout) + ' kamas ici.'); return; }
     S_.kamas -= cout; S_.parcellesAchetees++; compter('parcelles'); Object.assign(p, { type: 'champ', prixPaye: cout }, champVide());
     toast('Nouvelle parcelle labourée.', 'or'); fermerModale(); rendreCase(p.id); rendreHaut();
@@ -398,7 +398,8 @@ const ACTIONS = {
       cible.prixPaye = src.prixPaye; delete src.prixPaye; cible.niv = src.niv; delete src.niv; rendreCase(src.id); rendreCase(cible.id); construireTours(); toast('La tour a déménagé.', 'or'); aDeplacer = { tour: cible }; majBandeau(); sauver(); return;
     }
     const type = aDeplacer && aDeplacer.bat; if (!type) return;
-    const o = blocBati(type), cells = essaiPose(type, cible);
+    const o = blocBati(type), cote = type === 'grange' && aChateau() && MODE_TEST ? COTE_CHATEAU : 0, cells = essaiPose(type, cible, cote, cote); /* (le chateau se pose toujours en 5 x 5 : un ancien de 4 x 4 s'agrandit en demenageant) */
+    if (!cells && cote) { toast('Pas la place ici : il faut ' + cote + ' x ' + cote + ' cases d\'herbe libres, au même niveau.', 'alerte'); return; }
     if (!cells) { toast('Pas la place ici : il faut ' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ', au même niveau.', 'alerte'); return; }
     const deja = inaccessibles(), anciennes = o.B.slice(), avant = avantCases(anciennes.concat(cells)); anciennes.forEach((c) => { c.type = 'libre'; }); cells.forEach((c) => { c.type = type; });
     if (refuserSiBloque(deja, avant)) return;
@@ -407,9 +408,9 @@ const ACTIONS = {
     construireBatiments(); if (type === 'voliere') appliquerVoliere(); rendreCasesBulles();
     toast(BATIS[type][0].toUpperCase() + BATIS[type].slice(1) + ' a déménagé.', 'or'); majBandeau(); sauver();
   },
-  poserChateau(p) { /* le carre de 4 x 4 cases autour de la case touchee : ses cases s'eclairent, puis on confirme */
+  poserChateau(p) { /* le carre de 5 x 5 cases autour de la case touchee : ses cases s'eclairent, puis on confirme */
     const cells = essaiChateau(p); majApercuChateau(cells); chateauVise = cells;
-    if (!cells) { toast('Pas la place ici : il faut 4 x 4 cases d\'herbe libres, au même niveau (ta grange et tes tours comptent comme libres : elles fusionnent).', 'alerte'); return; }
+    if (!cells) { toast('Pas la place ici : il faut ' + coteChateau() + ' x ' + coteChateau() + ' cases d\'herbe libres, au même niveau (ta grange et tes tours comptent comme libres : elles fusionnent).', 'alerte'); return; }
     const cout = AMELIOS.find((x) => x.id === 'qg').couts[4];
     ouvrirModale('chateau', entete('Le château de Redemption') + '<p class="hdv-aide">Ta grange et tes 4 tours de défense fusionnent ici, sur les cases en vert : 12 000 PV, et ses 4 tours tirent comme des tours niveau 6. Tu pourras le déplacer et le tourner avec Aménager.</p>' +
       '<div class="act-bas"><button class="btn discret" data-chateau="ailleurs">Choisir ailleurs</button><button class="btn kamas" data-chateau="batir"' + (S_.kamas < cout ? ' disabled' : '') + '>Bâtir · ' + fmt(cout) + ' ' + KAMA + '</button></div>');
@@ -421,7 +422,7 @@ const ACTIONS = {
     const deja = inaccessibles(), avant = avantCases(anciennes.concat(cells)); anciennes.forEach((c) => { c.type = 'libre'; }); cells.forEach((c) => { c.type = 'grange'; });
     if (refuserSiBloque(deja, avant)) { majApercuChateau(null); chateauVise = null; fermerModale(); return; }
     tours.forEach((c) => { delete c.niv; delete c.prixPaye; if (S_.bats) delete S_.bats['tour:' + c.id]; }); if (S_.bats) delete S_.bats.grange; /* (le chateau arrive intact) */
-    S_.kamas -= cout; S_.amelio.qg = 5; compter('amelios'); son('quete');
+    S_.kamas -= cout; S_.amelio.qg = 5; if (MODE_TEST) S_.chateau5 = 1; compter('amelios'); son('quete');
     const u = paysanMesh.userData; if (cells.includes(u.cellule) || cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } } /* il s'ecarte */
     anciennes.concat(cells).forEach((c) => rendreCase(c.id));
     mode = null; chateauVise = null; majApercuChateau(null); fermerModale(); majBandeau();

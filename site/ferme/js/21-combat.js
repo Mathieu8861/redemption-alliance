@@ -69,6 +69,7 @@ function comparaisonClasses(id) { /* les trois classes cote a cote, sans equipem
    Les pots bus avant la vague (Menthe, Citron, Royale) ne sont pris que par les combats qui les consomment (potsDeVague) : la simu VSA les laisse. */
 const potsDeVague = () => ({ regen: menthePrete(), citron: citronPret(), agi: royalePrete() });
 function nouveauCombat(genre, champs) {
+  couperNuitFerme(); /* (la nuit de la ferme laisse la place au combat : les lumieres reviennent a leur plein jour, 14i-nuit.js) */
   const st = statsPerso();
   return (combat = Object.assign({ genre, n: 0, file: [], total: 1, attente: 1, st: { inflige: 0, max: 0, recus: 0, soins: 0, menthe: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: st.pvMax, pvMax: st.pvMax,
     cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] }, champs));
@@ -1459,7 +1460,7 @@ function eclaircirMonstres(N, k, rendre) {
 }
 function trousNuit(N) {
   const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
-  const Y = N.trousYeux || []; /* (les yeux des monstres, yeuxNuit) */
+  const Y = (N.trousYeux || []).concat(typeof trousBatiments === 'function' ? trousBatiments(N) : []); /* (les yeux des monstres, yeuxNuit ; et les lumieres d'appoint des batiments, 14i-nuit.js) */
   if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
   const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); D.y = 0; D.normalize(); const D2 = new T.Vector3(-D.z, 0, D.x), p = new T.Vector3(), q = new T.Vector3(), g = [];
   const ecran = (v) => [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];

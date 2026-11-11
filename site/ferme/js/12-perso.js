@@ -556,7 +556,7 @@ function modeleArbalete() {
 function construireArbalete() {
   if (arbalete || !niv('arbalete') || !ancres.grange) return;
   const g = MODELES.arbalete1 ? arbaleteNiv(niv('arbalete')) : modeleArbalete(); g.scale.setScalar(2.2);
-  if (aChateau()) { const o = blocBati('grange'), [ax, az] = tourne(0, 0.15, rotDe('grange')); g.scale.setScalar(1.55); poser(g, o.x + ax, o.y + Y_DONJON, o.z + az); marquer(g, o.c0.id); arbalete = g; rendreArbaleteBulle(); return; } /* (sur l'estrade du donjon du chateau-grange, 02/11/2026) */
+  if (aChateau()) { const o = blocBati('grange'), k = echChateau(), [ax, az] = tourne(0, 0.15 * k, rotDe('grange')); g.scale.setScalar(1.55 * k); poser(g, o.x + ax, o.y + Y_DONJON * k, o.z + az); marquer(g, o.c0.id); arbalete = g; rendreArbaleteBulle(); return; } /* (sur l'estrade du donjon du chateau-grange, 02/11/2026) */
   /* une plateforme de bois sur pilotis entre l'arbalete et le toit : elle ne flotte plus */
   const sup = new T.Group(); g.add(sup); const bois = '#8a5a32', fonce = '#5e3b23';
   const plat = boite(0.6, 0.05, 0.6, bois); plat.position.y = -0.02; sup.add(plat);
@@ -594,8 +594,9 @@ function construireTours() {
   toursMesh.forEach((t) => scene.remove(t)); toursMesh = [];
   S_.cases.filter((c) => c.type === 'tour').forEach((c) => { const q = posCase(c), g = MODELES.tour1 ? modeleTourNiv(c) : modeleTour(); poser(g, q.x, q.y, q.z); marquer(g, c.id); g.userData.cd = Math.random() * CADENCE_TOUR; toursMesh.push(g); });
   const o = aChateau() && MODELES.arbalete5 && blocBati('grange'); /* les 4 tours du chateau-grange : une baliste niveau 5 sur chaque plate-forme, qui tire comme une tour niveau 6 (TOUR_CHATEAU) */
-  if (o) [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => { const [dx, dz] = tourne(sx * COIN_CHATEAU, sz * COIN_CHATEAU, rotDe('grange')), g = new T.Group(), ar = arbaleteNiv(5); ar.scale.setScalar(1.15); g.add(ar);
-    g.userData.tete = ar.userData.tete; g.userData.pointe = ar.userData.pointe; poser(g, o.x + dx, o.y + Y_TOURS_CHATEAU, o.z + dz); const c = caseIci(o.x + dx, o.z + dz); marquer(g, c ? c.id : o.c0.id);
+  const kc = o ? echChateau() : 1; /* (le chateau de 5 x 5 : tout est agrandi d'un quart) */
+  if (o) [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => { const [dx, dz] = tourne(sx * COIN_CHATEAU * kc, sz * COIN_CHATEAU * kc, rotDe('grange')), g = new T.Group(), ar = arbaleteNiv(5); ar.scale.setScalar(1.15 * kc); g.add(ar);
+    g.userData.tete = ar.userData.tete; g.userData.pointe = ar.userData.pointe; poser(g, o.x + dx, o.y + Y_TOURS_CHATEAU * kc, o.z + dz); const c = caseIci(o.x + dx, o.z + dz); marquer(g, c ? c.id : o.c0.id);
     g.userData.chateau = true; g.userData.cd = Math.random() * CADENCE_TOUR; toursMesh.push(g); });
   if (S_.bats) majFeux(true);
 }

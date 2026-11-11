@@ -6,13 +6,13 @@ function avancer(maintenant, enDirect) {
      moins de 5 s de jeu depuis le dernier passage ; avec le temps accelere, chaque passage en fait bien plus (x40 : 20 s), donc plus rien ne venait */
   const direct = enDirect && dt < 5000 * horlogeJeu.vitesse();
   S_.vu = maintenant; if (!combat) regenVie(dt / horlogeJeu.vitesse()); /* (la vie : en temps reel) */
-  const ch = new Set();
+  const ch = new Set(), pn = partNuit(maintenant - dt, maintenant), uv = pn > 0 ? champsUV() : null; /* (le jour et la nuit du palier 10 : la part de nuit de cet intervalle, les champs sous une lanterne UV ; 14i-nuit.js) */
   S_.cases.forEach((p) => {
     if (p.type !== 'champ' || !p.c) return;
     const c = PAR_ID[p.c], d = duree(c);
     if (p.pousse < d) {
       const avant = etape(p);
-      p.pousse = Math.min(d, p.pousse + dt * (p.arrose ? 1 : 0.4));
+      p.pousse = Math.min(d, p.pousse + dt * (p.arrose ? 1 : 0.4) * pousseNuit(c, pn, !!uv && uv(p)));
       if (p.pousse >= d) p.pretDepuis = maintenant;
       if (etape(p) !== avant) ch.add(p.id);
     }
@@ -64,7 +64,7 @@ function avancer(maintenant, enDirect) {
   }
   if (maintenant >= S_.prochainCours) {
     S_.coursAvant = Object.assign({}, S_.cours);
-    VENDABLES.forEach((v) => { S_.cours[v.id] = borne((S_.cours[v.id] || 1) + (Math.random() - 0.5) * 0.14, 0.8, 1.2); });
+    VENDABLES.forEach((v) => { if (v.nuit && !nuitDebloquee()) return; /* (la plante de nuit : pas de cours tant qu'elle n'existe pas pour cette ferme ; son tirage en plus decalait tous les autres, vu au banc le 11/11/2026) */ S_.cours[v.id] = borne((S_.cours[v.id] || 1) + (Math.random() - 0.5) * 0.14, 0.8, 1.2); });
     S_.prochainCours = maintenant + CADENCE_COURS; hdv = true;
   }
   if (S_.crise && maintenant >= S_.crise.fin) { S_.crise = null; hdv = true; }

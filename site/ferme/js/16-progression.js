@@ -13,7 +13,7 @@ function feterNiveau(n, nouveautes, avant) { /* (avant : le niveau d'avant ; les
   document.body.appendChild(f); const fin = () => f.remove(); f.querySelector('.btn').addEventListener('click', fin); setTimeout(fin, 8000);
 }
 function nouveautesNiveau(avant, apres) {
-  const L = CULTURES.filter((c) => c.niv > avant && c.niv <= apres && !(S_.cultAcquises || []).includes(c.id)).map((c) => 'Nouvelle culture : ' + c.nom); /* (pas celles deja acquises avant le 12/10) */
+  const L = CULTURES.filter((c) => c.niv > avant && c.niv <= apres && !(c.nuit && !nuitDebloquee()) && !(S_.cultAcquises || []).includes(c.id)).map((c) => 'Nouvelle culture : ' + c.nom); /* (pas celles deja acquises avant le 12/10) */
   AMELIOS.filter((a) => nivRequis(a, 0) > avant && nivRequis(a, 0) <= apres).forEach((a) => L.push('Amélioration débloquée : ' + a.nom));
   if (avant < NIV_TOUR && apres >= NIV_TOUR) L.push('Tours de défense débloquées');
   if (avant < NIV_ULTI && apres >= NIV_ULTI) L.push('Ton ulti est à choisir !');

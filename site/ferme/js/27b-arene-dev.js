@@ -4,7 +4,7 @@
    depuis les Options. Il choisit les monstres, leur nombre et leur vague, part a l'Arene : ils sortent des herses trois par trois, avec leur propre
    force (pas les regles de l'Arene). Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ;
    sa vie d'avant est gardee. Les modeles des monstres a squelette (palier 9, Moon) ne se chargent qu'ici (chargerSquelettes). */
-const estAdmin = () => ultiLibre();
+const estAdmin = () => ultiLibre() || TEST; /* (TEST : le jeu lance sur le PC, localhost ?test=1, 02-donnees.js ; « je fais comment pour activer le mode nuit en mode test ? », Mathieu, 11/11/2026 : l'Arene dev et le mode test s'y ouvrent aussi, sans compte. Jamais en ligne) */
 const AVANT_PREMIERE = ['cheneMou', 'ancestralMaudit', 'ancestral', 'abrakleur', 'arbreCollant', 'araknotron', 'abrakneSombre', 'abrakne', 'sombre', 'venerable', 'semeur', 'tronknyde', 'abraknyde', 'lemurienTiki', 'gorilleRoi', 'golemLune', 'tortueCorail', 'kannibJav', 'kannibSarbak', 'kannibArk', 'kannibTam', 'tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'kannibEbil', 'moon', 'gorgouille', 'crocabulia', 'royal', 'cuirasse', 'bworker', 'craqLegendaire', 'waWabbit', 'koulosse', 'dragonCochon']; /* (31/10/2026, par Discord, « mets-moi tous les nouveaux boss dans l'arene que je teste » : les boss des paliers 1 a 8 aux sorts refaits) */ /* (la Gorgouille refaite, 30/10/2026 au soir : a tester ici) */ /* (Crocabulia, qui vole sur ses grandes ailes, 31/10/2026 : « le croca est pas dispo en arene », Mathieu) */
 const GROUPES_DEV = {
   foret: { nom: 'La Forêt des Abraknydes', liste: { abraknyde: 1, sombre: 1, venerable: 1, abrakne: 1, abrakneSombre: 1, araknotron: 1 } }, /* (08/11/2026 : la troupe du palier 10, a montrer ensemble) */
@@ -148,7 +148,7 @@ function bandeauTest() {
   let b = document.getElementById('bandeau-test'); if (!b) { b = document.createElement('div'); b.id = 'bandeau-test'; document.body.appendChild(b); }
   b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="relancer">Relancer la vague ' + ETAT_TEST.n + '</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
 }
-function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; NIV_PLAFOND = 100; /* (jusqu'au niveau 100, pour les pieces du palier 10, 09/11/2026) */ ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
+function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; NIV_PLAFOND = 100; /* (jusqu'au niveau 100, pour les pieces du palier 10, 09/11/2026) */ ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); if (aChateau() && !S_.chateau5) construireBatiments(); /* (la version dev : le chateau passe a 5 x 5, agrandirChateau ; rien n'est enregistre) */ bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
 /* RELANCER UNE VAGUE SANS QUITTER LE MODE TEST (08/11/2026, « je suis a chaque fois oblige de quitter et de relancer pour pouvoir relancer une vague comme je
    veux », Mathieu) : le combat en cours, gagne, perdu ou en plein milieu, s'arrete net, sans bilan ; la vie remonte, et la vague choisie (ou la revanche) repart */
 /* LES BOOSTS DU MODE TEST (08/11/2026, « rajoute-moi la possibilite de mettre les potions / fruits de boost », Mathieu) : les repas (Cawotte, Fraise, Bananagrume,
@@ -181,6 +181,8 @@ function ouvrirModeTest() {
   const panoPortee = (() => { const o = E.coiffe && obj(E.coiffe), o2 = E.bottes && obj(E.bottes); return o && !o.leg ? PANOS[o.pano].id : o2 ? PANOS[o2.pano].id : null; })(), arme = E.arme && obj(E.arme), coiffe = E.coiffe && obj(E.coiffe);
   const pas = (attr, v) => '<div class="act dev-nb">' + [-10, -1].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">' + d + '</button>').join('') + '<b>' + v + '</b>' + [1, 10].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">+' + d + '</button>').join('') + '</div>';
   ouvrirModale('mode-test', entete('Mode test') + '<p class="hdv-aide">Plus rien n\'est enregistré. « Quitter le mode test » recharge la page et te rend ta vraie partie.</p>' +
+    /* (tout en haut : « je vois toujours pas le mode nuit en mode test », Mathieu, 11/11/2026 ; il etait en bas du panneau, apres les defenses) */
+    '<div class="hdv-section">Le jour et la nuit</div><p class="hdv-aide">Sur ta ferme, à partir de la vague 91 : la nuit va de 18 h à 7 h, heure française. Force l\'un ou l\'autre pour essayer à toute heure.</p><div class="puces dev-groupes">' + bouton('test-nuit', 'vraie', 'L\'heure vraie', !ETAT_TEST.nuit) + bouton('test-nuit', 'jour', 'Toujours le jour', ETAT_TEST.nuit === 'jour') + bouton('test-nuit', 'nuit', 'Toujours la nuit', ETAT_TEST.nuit === 'nuit') + '</div>' +
     '<div class="hdv-section">Ton perso</div><div class="puces dev-groupes">' + CLASSES.map((c) => bouton('test-classe', c.id, c.nom, c.id === cl)).join('') + bouton('test-sexe', 'm', 'Homme', sexeDe() === 'm') + bouton('test-sexe', 'f', 'Femme', sexeDe() === 'f') + '</div>' +
     '<div class="hdv-aide">Niveau ' + L + ', ' + fmt(statsPerso().pvMax) + ' PV avec ton équipement</div>' + pas('test-niv', L) +
     '<div class="hdv-section">Ton équipement</div><p class="hdv-aide">La panoplie entière au jet moyen, et l\'arme de ta classe de cette panoplie.</p><div class="puces dev-groupes">' + bouton('test-pano', '', 'Rien', !panoPortee && !arme) + PANOS.filter((x) => !x.cache).map((x) => bouton('test-pano', x.id, x.nom + ' (' + x.niv + ')', panoPortee === x.id)).join('') + '</div>' +
@@ -195,7 +197,7 @@ function ouvrirModeTest() {
     '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost],[data-test-nuit]'); if (!b || !estAdmin()) return;
   const d = b.dataset, a = d.test;
   if (a === 'ouvrir') { ouvrirModeTest(); return; }
   if (a === 'entrer') { entrerModeTest(); return; }
@@ -206,6 +208,7 @@ document.addEventListener('click', (e) => {
   if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
   else if (a === 'sansdef') ETAT_TEST.sansDef = !ETAT_TEST.sansDef;
   else if (d.testTours) ETAT_TEST.tours = d.testTours === 'tiennes' ? null : Number(d.testTours);
+  else if (d.testNuit) { ETAT_TEST.nuit = d.testNuit === 'vraie' ? null : d.testNuit; if (typeof majPastilleNuit === 'function') majPastilleNuit.t = 0; } /* (le jour et la nuit du palier 10, 14i-nuit.js) */
   else if (a === 'vague' || a === 'revanche' || a === 'difficile') {
     relancerTest(a); return; /* (un combat en cours s'arrete, la vague choisie repart) */
   }

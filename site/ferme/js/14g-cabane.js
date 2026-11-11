@@ -10,16 +10,16 @@
    - Dedans : une piece a part, posee loin de la ferme derriere le voile (lieu = 'cabane'), comme le hall du palais. On y marche librement (majCabane), on touche le
      ratelier pour prendre ou reposer une canne, l'etabli pour l'atelier du pecheur, la porte pour sortir.
    - La canne prise se voit dans la main droite du perso, a la ferme aussi (tenirCanne) ; pas pendant un combat.
-   Rien n'est encore peche : la peche elle-meme et ce qu'on fait des poissons restent a faire (IDEES-APRES-100.md). */
+   La peche elle-meme (le lancer, la touche, la jauge, les appats, les prises) : 14h-peche.js. Ce qu'on fait des poissons reste a decider (IDEES-APRES-100.md). */
 const CABANE_T = 9, CABANE_MAISON = [[14, 5], [15, 5]], CABANE_PONTON = [[14, 6], [15, 6]];
 const CABANE_X = (14.5 - (COLS - 1) / 2) * S, CABANE_Z = (5.5 - (ROWS - 1) / 2) * S; /* le centre de ses 2 x 2 cases (x 22, z 7) */
 const PONTON_Y = 0.38, PORTE_CABANE = [-0.55, 0.85]; /* le dessus de la terrasse ; ou l'on se tient devant la porte (dans le repere de la cabane) */
 const CABANE_DEDANS = new T.Vector3(300, 0, -300); /* la piece, loin de tout (rien derriere elle dans l'axe de la camera) */
 const CANNES = [null, { nom: 'Canne de bambou', desc: 'Cinq brins de bambou, une poignée de liège, un bouchon rouge et blanc.' }, { nom: 'Longue perche', desc: 'Un seul bambou très long, pour aller chercher le poisson au milieu de la mare.' },
   { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }];
-let pontonActif = false, cabaneCharge = null, cabaneSalle = null, cabaneMarche = null, cabaneAvant = null, cannesRatelier = [];
+let ligneCabane = null, pontonActif = false, cabaneCharge = null, cabaneSalle = null, cabaneMarche = null, cabaneAvant = null, cannesRatelier = [];
 const cabaneLa = () => !!S_ && !!S_.terrains && !!S_.terrains[TERRAINS[CABANE_T].id];
-const etatPeche = () => S_.peche || (S_.peche = { cannes: [1], main: 0 });
+const etatPeche = () => { const P = S_.peche || (S_.peche = { cannes: [1], main: 0 }); if (!P.appats) P.appats = { ver: 0, mouche: 0, dore: 0 }; if (!P.appat) P.appat = 'ver'; if (!P.prises) P.prises = {}; return P; }; /* (appats : les reserves ; appat : celui qui est sur la ligne ; prises : le tonneau, par poisson ; 14h-peche.js) */
 const cannesEues = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST ? [1, 2, 3, 4] : etatPeche().cannes); /* (le mode test : les quatre, pour les voir) */
 /* ses cases : posees a l'achat du terrain et au chargement (une case deja occupee reste comme elle est) */
 function poserCasesCabane() {
@@ -32,18 +32,20 @@ const hauteurPonton = (x, z) => { if (!pontonActif) return 0; const lx = Math.ab
 function assurerCabane() { /* le modele, au premier besoin */
   if (MODELES.cabanePecheur) return Promise.resolve(); if (cabaneCharge) return cabaneCharge;
   if (performance.now() < (assurerCabane.pause || 0)) return Promise.reject(new Error('cabane : nouvel essai plus tard')); /* (un chargement rate : on ne redemande pas le modele a chaque image, tenirCanne) */
-  cabaneCharge = chargerGlb('assets/modeles/jeu/cabane-pecheur.glb?v=' + VERSION_MODELES).then((G) => {
+  cabaneCharge = chargerGlb('assets/modeles/jeu/cabane-pecheur.glb?v=' + VERSION_MODELES + '-2').then( /* (-2 : le modele du 11/11/2026 au soir, avec les cannes nues et leurs fils ; son propre numero, pour ne pas faire recharger tous les autres modeles aux joueurs) */ (G) => {
     versToon(G, { normales: 0.012, sansContour: SC_BATI });
     const brut = (...noms) => { const env = new T.Group(); noms.forEach((nom) => { const n = G.getObjectByName(nom); if (!n) return; const g = n.clone(true); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1); env.add(g); }); return fusionner(env); }; /* (sans recalage : ses pilotis descendent sous le sol) */
-    MODELES.cabanePecheur = brut('CabanePecheur', 'CabaneLigne'); MODELES.cabaneInterieur = brut('CabaneInterieur'); [1, 2, 3, 4].forEach((k) => { MODELES['canne' + k] = brut('Canne' + k); });
+    MODELES.cabanePecheur = brut('CabanePecheur'); MODELES.cabaneLigne = brut('CabaneLigne'); /* (la canne posee sur la terrasse, a part : cachee quand le perso en tient une) */ MODELES.cabaneInterieur = brut('CabaneInterieur'); [1, 2, 3, 4].forEach((k) => { MODELES['canne' + k] = brut('Canne' + k, 'Canne' + k + 'Fil'); MODELES['canneNue' + k] = brut('Canne' + k); }); /* (canneNue : sans son fil ni son bouchon, quand la ligne est a l'eau) */
     if (S_ && lieu === 'ferme') construireBatiments();
   }).catch((e) => { cabaneCharge = null; assurerCabane.pause = performance.now() + 30000; throw e; });
   return cabaneCharge;
 }
 function poserCabane(pose) { /* appelee par construireBatiments (11-ferme-3d.js) */
-  const c0 = caseAt(CABANE_MAISON[0][0], CABANE_MAISON[0][1]); pontonActif = !!c0 && c0.type === 'cabane'; if (!pontonActif) return;
+  const c0 = caseAt(CABANE_MAISON[0][0], CABANE_MAISON[0][1]); pontonActif = !!c0 && c0.type === 'cabane'; ligneCabane = null; if (!pontonActif) return;
   if (!MODELES.cabanePecheur) { assurerCabane().catch(() => {}); return; }
-  pose('cabanePecheur', CABANE_X, 0, CABANE_Z, c0.id, 0).traverse((o) => { o.userData.cabane = true; });
+  const cab = pose('cabanePecheur', CABANE_X, 0, CABANE_Z, c0.id, 0); cab.traverse((o) => { o.userData.cabane = true; });
+  { const f = fumerCheminee(cab, 0, new T.Vector3(0.95, 4.16, -1.3)); if (f) { f.scale.setScalar(0.8); f.children.forEach((b) => { b.raycast = () => {}; }); } } /* (« fumee de la cheminee aussi », Mathieu, 11/11/2026 : les bouffees de la grange, au sommet de sa cheminee de pierre ; elles ne prennent pas les clics) */
+  ligneCabane = pose('cabaneLigne', CABANE_X, 0, CABANE_Z, c0.id, 0); ligneCabane.traverse((o) => { o.userData.cabane = true; }); ligneCabane.visible = !etatPeche().main;
 }
 /* un clic sur la cabane, dehors : la terrasse, on y marche (jusqu'au bout, au-dessus de l'eau) ; la maison, on va a la porte, et on entre si le clic agit */
 function clicCabaneDehors(pt, agir) {
@@ -68,7 +70,29 @@ const libreCabane = (x, z, m = 0.3) => x > -3.2 + m && x < 3.2 - m && z > -2.6 +
 function construireSalleCabane() {
   const g = new T.Group(); g.position.copy(CABANE_DEDANS); g.add(cloner('cabaneInterieur'));
   cannesRatelier = [1, 2, 3, 4].map((k) => { const c = cloner('canne' + k); c.position.set(RATELIER_X(k), 0.235, -2.3); c.rotation.x = -0.06; c.traverse((o) => { o.userData.canne = k; }); g.add(c); return c; });
-  g.visible = false; scene.add(g); cabaneSalle = g; majRatelier();
+  allumerSalleCabane(g); g.visible = false; scene.add(g); cabaneSalle = g; majRatelier();
+}
+/* LE FEU ET LES LAMPES DE LA PIECE (11/11/2026, « anime le feu et la lumiere dans la cabane », Mathieu) : dans l'atre, deux flammes qui dansent (le shader des
+   incendies, FEU_FS, 13-batiments-pv.js) et des braises qui montent ; autour, une lueur qui tremble et une flaque de lumiere chaude sur le plancher ; la lanterne
+   du mur et la lampe de l'etabli luisent et vacillent doucement. Tout est dans le groupe de la piece, sans vraie lampe (aucun eclairage de plus a calculer) et
+   sans prendre les clics. Les places viennent de blender/cabane-pecheur.py (le foyer XFo, ZFo ; la lanterne du mur ouest ; la lampe de l'etabli). */
+let cabaneFeu = null;
+function allumerSalleCabane(g) {
+  const tex = (stops) => texCanvas(64, (x, n) => { const r = x.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); stops.forEach(([p, col]) => r.addColorStop(p, col)); x.fillStyle = r; x.fillRect(0, 0, n, n); });
+  const chaud = tex([[0, 'rgba(255,236,190,0.95)'], [0.3, 'rgba(255,190,90,0.5)'], [1, 'rgba(255,140,30,0)']]), sol = tex([[0, 'rgba(255,190,100,0.6)'], [0.6, 'rgba(255,150,60,0.22)'], [1, 'rgba(255,120,30,0)']]);
+  const muet = (o) => { o.raycast = () => {}; g.add(o); return o; }, F = [2.42, 0.2, -1.6]; /* (F : le pied du feu, devant la gueule de l'atre) */
+  const flamme = (dx, hh) => { const m = muet(new T.Mesh(GEO_PLAN, new T.ShaderMaterial({ uniforms: { uT: { value: 0 }, uS: { value: Math.random() * 10 } }, vertexShader: FEU_VS, fragmentShader: FEU_FS, transparent: true, depthWrite: false, side: T.DoubleSide }))); m.scale.set(hh * 0.8, hh, 1); m.position.set(F[0] + dx, F[1] + hh * 0.42, F[2]); m.renderOrder = 6; return m; };
+  const halo = (x, y, z, t) => { const s = muet(new T.Sprite(new T.SpriteMaterial({ map: chaud, transparent: true, depthWrite: false, blending: T.AdditiveBlending }))); s.position.set(x, y, z); s.scale.setScalar(t); s.renderOrder = 6; s.userData.t = t; return s; };
+  const flaque = muet(new T.Mesh(new T.CircleGeometry(1.6, 32), new T.MeshBasicMaterial({ map: sol, transparent: true, depthWrite: false, blending: T.AdditiveBlending }))); flaque.rotation.x = -Math.PI / 2; flaque.position.set(F[0] - 0.3, 0.03, F[2] + 0.85); flaque.renderOrder = 2;
+  const braises = [0, 1, 2, 3, 4].map((i) => { const b = muet(new T.Mesh(GEO_PLAN, new T.MeshBasicMaterial({ color: i % 2 ? '#ffd04a' : '#ff7a1e', transparent: true, depthWrite: false, blending: T.AdditiveBlending }))); b.scale.setScalar(0.04); b.renderOrder = 6; b.userData = { t: Math.random(), a: Math.random() * 6.28 }; return b; });
+  cabaneFeu = { s: Math.random() * 10, F, flammes: [flamme(-0.1, 0.52), flamme(0.13, 0.38)], lueur: halo(F[0], F[1] + 0.28, F[2] + 0.12, 1.9), flaque, braises, lampes: [halo(-2.84, 2.12, -1.9, 1.5), halo(-2.9, 1.04, 0.55, 0.7)] };
+}
+function animerSalleCabane(dt) {
+  const A = cabaneFeu; if (!A) return; A.s += dt; const s = A.s, q = camera.quaternion, k = 0.82 + 0.12 * Math.sin(s * 9) + 0.07 * Math.sin(s * 23.3) + 0.05 * Math.sin(s * 3.1); /* (le feu qui tremble) */
+  A.flammes.forEach((m) => { m.material.uniforms.uT.value = s; m.quaternion.copy(q); });
+  A.lueur.material.opacity = 0.7 * k; A.lueur.scale.setScalar(A.lueur.userData.t * (0.9 + 0.16 * k)); A.flaque.material.opacity = 0.9 * k;
+  A.braises.forEach((b) => { const u = b.userData; u.t += dt * 0.55; if (u.t > 1) { u.t = 0; u.a = Math.random() * 6.28; } b.position.set(A.F[0] + Math.cos(u.a) * 0.14 + Math.sin(u.t * 9 + u.a) * 0.04, A.F[1] + 0.3 + u.t * 0.85, A.F[2] + Math.sin(u.a) * 0.05); b.quaternion.copy(q); b.material.opacity = 1 - u.t; });
+  A.lampes.forEach((l, i) => { const v = 0.9 + 0.06 * Math.sin(s * 5.3 + i * 2) + 0.04 * Math.sin(s * 12.7 + i); l.material.opacity = 0.8 * v; l.scale.setScalar(l.userData.t * v); });
 }
 function majRatelier() { const E = cannesEues(), main = etatPeche().main; cannesRatelier.forEach((c, i) => { c.visible = E.includes(i + 1) && main !== i + 1; }); }
 function barreCabane(on) {
@@ -89,7 +113,7 @@ async function entrerCabane() {
   zoom = innerWidth < innerHeight ? 1.1 : 1.9; cadrer(); VISEE.set(O.x + 0.2, 0.6, O.z + 0.1); placerCamera(); soleilVers(O);
   Object.assign(soleil.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, far: 100 }); soleil.shadow.camera.updateProjectionMatrix(); suivreOmbres.r = null; rendu.shadowMap.needsUpdate = true;
   setTimeout(() => $('voile').classList.remove('on'), 120);
-  toast('La cabane du pêcheur. Touche le râtelier pour prendre ou reposer une canne, l\'établi pour l\'atelier, la porte pour sortir.', 'or');
+  toast('La cabane du pêcheur. Le râtelier : prendre ou reposer une canne. L\'établi : les appâts. Le tonneau : tes prises. La porte : sortir.', 'or');
 }
 async function sortirCabane() {
   if (lieu !== 'cabane') return;
@@ -109,6 +133,7 @@ function allerCabane(x, z, lx, lz, fn) {
   cabaneMarche = { pts: droit([px, pz], [x, z]) ? [[x, z]] : [M, [x, z]], i: 0, vers: lx != null ? [lx, lz] : null, fn };
 }
 function majCabane(dt) {
+  animerSalleCabane(dt); /* (le feu et les lampes) */
   const u = paysanMesh.userData, P = paysanMesh.position, O = CABANE_DEDANS; tenirCanne();
   if (u.angle !== undefined) { let d = u.angle - paysanMesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); paysanMesh.rotation.y += d * Math.min(1, dt * 10); }
   if (!cabaneMarche) { animerPas(u, dt, 0); P.y += (O.y - P.y) * Math.min(1, dt * 12); return; }
@@ -136,7 +161,7 @@ function clicCabane(hits) {
     if (j === 'porte') { allerCabane(0, 1.9, 0, 3, sortirCabane); return; }
     if (j === 'etabli') { allerCabane(-1.6, 0.4, -3, 0.4, ouvrirEtabliPecheur); return; }
     if (j === 'foyer') { allerCabane(1.9, -0.75, 2.4, -2.1, () => toast('Le feu crépite. De quoi fumer le poisson, un jour.')); return; }
-    if (j === 'tonneau') { allerCabane(-1.75, 1.25, -2.6, 2.0, () => toast('Le tonneau à poissons : tes prises iront ici.')); return; }
+    if (j === 'tonneau') { allerCabane(-1.75, 1.25, -2.6, 2.0, ouvrirPrises); return; }
     if (j === 'trophee') { allerCabane(-2.4, 1.2, -3.2, 1.9, () => toast('Une belle prise, clouée au mur. Le pêcheur d\'avant devait être fier.')); return; }
     allerCabane(lx, lz, null, null, null); return;
   }
@@ -148,21 +173,16 @@ function toucherRatelier(k) {
   if (!E.includes(k)) { toast('Une place libre : cette canne (' + CANNES[k].nom + '), tu ne l\'as pas encore.'); return; }
   P.main = k; majRatelier(); tenirCanne(); son('poser'); toast(CANNES[k].nom + ' en main. ' + CANNES[k].desc, 'or'); sauver();
 }
-function ouvrirEtabliPecheur() {
-  const P = etatPeche(), E = cannesEues();
-  ouvrirModale('pecheur', entete('L\'atelier du pêcheur') + '<p class="hdv-aide">Tes cannes sont exposées sur le râtelier, au mur du fond : touche-en une pour la prendre, touche sa place pour la reposer. La pêche dans la mare arrive bientôt.</p>' +
-    [1, 2, 3, 4].map((k) => '<div class="art" style="grid-template-columns:minmax(0,1fr) auto"><div><b>' + CANNES[k].nom + '</b><div class="desc">' + CANNES[k].desc + '</div></div><div class="act"><span class="puce' + (P.main === k ? ' or' : E.includes(k) ? ' bonne' : '') + '">' + (P.main === k ? 'dans ta main' : E.includes(k) ? 'sur le râtelier' : 'pas encore à toi') + '</span></div></div>').join(''));
-}
 /* LA CANNE EN MAIN : celle qu'on a prise au ratelier, dans la main droite, tenue droite comme un baton (le bras ne se balance plus) ; rangee pendant un combat */
 const BRAS_CANNE = -0.32, TAILLE_CANNE = 0.82, GROS_CANNE = 1.5; /* (en main, elle fait a peu pres la taille du perso, et son bois est epaissi pour se lire de loin) */
 const mainCanne = (b) => { b.updateWorldMatrix(true, true); const P = []; b.traverse((o) => { if (o.isMesh && /^(paume|doigts|main)$/.test(nomP(o))) P.push(o); }); return P.length ? b.worldToLocal(unionDe(P).getCenter(new T.Vector3())) : new T.Vector3(0, -0.5, 0); }; /* (le poing, dans le repere du bras) */
 function tenirCanne() {
-  if (!paysanMesh || !S_) return; const u = paysanMesh.userData, k = !combat && S_.peche ? S_.peche.main || 0 : 0;
-  if ((u.canneMain || 0) === k && (!k || (u.canneObj && u.canneObj.parent))) return;
-  if (u.canneObj && u.canneObj.parent) u.canneObj.parent.remove(u.canneObj); u.canneObj = null; u.canneMain = k; if (!k) return;
+  if (!paysanMesh || !S_) return; const u = paysanMesh.userData, k = !combat && S_.peche ? S_.peche.main || 0 : 0, nue = !!k && !!peche && peche.etat !== 'marche', cle = k ? k + (nue ? 'n' : '') : 0; /* (nue : la ligne est lancee) */
+  if ((u.canneMain || 0) === cle && (!k || (u.canneObj && u.canneObj.parent))) return;
+  if (u.canneObj && u.canneObj.parent) u.canneObj.parent.remove(u.canneObj); u.canneObj = null; u.canneMain = cle; if (ligneCabane) ligneCabane.visible = !(S_.peche && S_.peche.main); if (!k) return;
   if (!MODELES['canne' + k]) { u.canneMain = 0; assurerCabane().catch(() => {}); return; }
   const bras = (u.membres || [])[3]; if (!bras) return;
-  const c = cloner('canne' + k), e = bras.getWorldScale(new T.Vector3()), s = TAILLE_CANNE / (e.y || 1), main = mainCanne(bras);
+  const c = cloner((nue ? 'canneNue' : 'canne') + k), e = bras.getWorldScale(new T.Vector3()), s = TAILLE_CANNE / (e.y || 1), main = mainCanne(bras);
   c.traverse((o) => { o.raycast = () => {}; if (o.isMesh) o.castShadow = false; });
   c.scale.set(s * GROS_CANNE, s, s * GROS_CANNE); c.rotation.set(-BRAS_CANNE + 0.1, 0, 0); c.position.set(main.x, main.y - 0.2 * s, main.z + 0.03); /* (la poignee dans le poing ; le bras est leve de BRAS_CANNE, la canne reste presque droite) */
   bras.add(c); u.canneObj = c;

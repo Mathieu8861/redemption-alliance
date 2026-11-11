@@ -140,6 +140,11 @@ const parcelleAjoutee = (p) => p.type === 'champ';
 const QUOTA_ILE = 8;
 const quotaParcelles = () => QUOTA_ILE + TERRAINS.filter((t) => S_.terrains[t.id]).reduce((n, t) => n + t.parcelles, 0); /* chaque terrain : beaucoup de cases, quelques parcelles */
 const parcelles = () => S_.cases.filter((c) => c.type === 'champ').length;
+/* LE PRIX D'UNE PARCELLE (11/11/2026, « le niveau 105, mets-la a 400k, et les prochaines toujours plus cheres, et le prix des parcelles aussi », Mathieu) : jusqu'aux
+   parcelles de l'ile d'aujourd'hui (les terrains du niveau 90 et moins : 42), la grille PRIX_PARCELLE, comme avant ; au-dela (les terrains du niveau 105 et plus),
+   PARCELLE_HAUT : 25 000 pour la premiere, 5 000 de plus a chacune. */
+const PARCELLE_HAUT = { base: 25000, pas: 5000 }, parcellesIle90 = () => QUOTA_ILE + TERRAINS.filter((t) => t.niv <= 90).reduce((n, t) => n + t.parcelles, 0);
+const prixParcelle = () => { const r = parcelles() + 1 - parcellesIle90(); return r > 0 ? PARCELLE_HAUT.base + (r - 1) * PARCELLE_HAUT.pas : PRIX_PARCELLE[Math.min(S_.parcellesAchetees, PRIX_PARCELLE.length - 1)]; };
 let mode = null, aDeplacer = null, aPoser = null; /* (aPoser : la decoration a poser, en mode 'poserDeco') mode amenagement : 'choisir' une parcelle, puis 'deplacer' vers une case d'herbe */
 /* choisir un element a deplacer : une parcelle, un batiment, une tour, ou l'enclos (qu'on amenage) */
 function selectionner(p) {
@@ -170,6 +175,7 @@ function destinationsValides() {
   });
 }
 function majSelection() { /* l'element choisi : ses cases en jaune */
+  if (typeof majZoneUV === 'function') majZoneUV(); /* (les cases couvertes par les lanternes UV, en violet : 14i-nuit.js) */
   if (selectionMesh) { scene.remove(selectionMesh); selectionMesh = null; }
   if (mode === 'poserTour' || mode === 'poserDeco') return; /* (retour de Mathieu : pas de cases vertes, on pose ou l'on veut) */
   if (!aDeplacer || !(mode === 'deplacer' || mode === 'deplacerBat')) return;
@@ -196,12 +202,12 @@ function majBandeau() {
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.piece !== undefined ? DECOS[MODELES.piecesIle[aDeplacer.piece].genre].nom + ' : touche une case d\'herbe libre pour la poser ailleurs, ou Ranger pour la mettre dans tes décorations.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.arbre ? 'Arbre choisi : touche une case d\'herbe libre pour le replanter, Tourner pour le pivoter, Ranger pour le mettre dans tes décorations, puis Terminer.'
     : mode === 'deplacerBat' && aDeplacer && aDeplacer.tour ? 'Tour choisie : touche une case d\'herbe libre pour la poser, autant de fois que tu veux, puis Terminer.'
-    : mode === 'deplacerBat' ? BATIS[aDeplacer.bat][0].toUpperCase() + BATIS[aDeplacer.bat].slice(1) + ' : touche où le poser, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer' + (o ? ' (' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ')' : '') + '.'
+    : mode === 'deplacerBat' ? BATIS[aDeplacer.bat][0].toUpperCase() + BATIS[aDeplacer.bat].slice(1) + ' : touche où le poser, autant de fois que tu veux, Tourner pour le pivoter, puis Terminer' + (o && aDeplacer.bat === 'grange' && aChateau() && MODE_TEST ? ' (' + COTE_CHATEAU + ' x ' + COTE_CHATEAU + ' cases d\'herbe libres, les siennes comprises)' + (o.w < COTE_CHATEAU ? '. Il s\'agrandira : 5 cases sur 5, sa porte en face d\'une case' : '') /* (le chateau se pose toujours en 5 x 5, 11/11/2026) */ : o ? ' (' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ')' : '') + '.'
     : mode === 'poserDeco' && DECOS[aPoser] && DECOS[aPoser].bord ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche près du bord d\'une case pour y poser un morceau, retouche un morceau pour le ranger, puis Terminer.'
     : mode === 'poserDeco' && DECOS[aPoser] && DECOS[aPoser].sol ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche des cases pour les paver (même sous un bâtiment ou une décoration), retouche une case pavée pour la ranger, puis Terminer.'
     : mode === 'poserDeco' && DECOS[aPoser] ? DECOS[aPoser].nom + ' (' + nbDecos(aPoser) + ' en réserve) : touche une case d\'herbe libre pour ' + DECOS[aPoser].pr + ' poser.'
     : mode === 'poserTour' ? 'Tour de défense (' + fmt(PRIX_TOUR[Math.min(nbTours(), PRIX_TOUR.length - 1)]) + ' kamas) : touche une case d\'herbe pour la construire.'
-    : mode === 'poserChateau' ? 'Le château de Redemption : touche l\'endroit où le bâtir (4 cases sur 4 : de l\'herbe libre, ta grange ou tes tours), ou Terminer pour annuler.'
+    : mode === 'poserChateau' ? 'Le château de Redemption : touche l\'endroit où le bâtir (' + coteChateau() + ' cases sur ' + coteChateau() + ' : de l\'herbe libre, ta grange ou tes tours), ou Terminer pour annuler.'
     : mode === 'enclos' ? texteEnclos()
     : mode === 'enclosDeplacer' ? 'Déplacer l\'enclos : touche une case d\'herbe, il s\'y installe autour, Bouftous compris' + (DOIGT ? '.' : ' (en vert : il rentre, en rouge : pas la place).')
     : 'Aménagement : touche une parcelle, un bâtiment, une tour, un arbre, une décoration ou l\'enclos pour le déplacer, une petite clôture pour la ranger.';

@@ -40,6 +40,7 @@ const SC_CULT = new Set(['barbe', 'pousse', 'ficelle', 'brin']);
 const SC_MONSTRES = new Set(['griffe', 'joue', 'gorge', 'bec_coin', 'pupille', 'reflet', 'iris', 'point_front', 'aile_coeur', 'fissure', 'dent', 'gueule', 'narine', 'orbite', 'gravure', 'lame_fil', 'bouche', 'sourcil', 'flamme_coeur', 'couronne_rouge', 'gemme', 'phalange']);
 const SANS_OMBRE = new Set(['cone', 'cone_bord', 'paille_nervure', 'paille_brin', 'eau', 'ecume', 'fumee', 'ecume_filet']);
 const BRILLE = new Set(['feu', 'flamme', 'lueur', 'etincelle', 'lanterne']);
+const VITRES = new Set(['vitre', 'fenetre', 'oeil_vitre', 'lampe_verre']); /* (les fenetres et les verres de lampe des batiments : leur matiere reste a part, marquee userData.vitre, pour s'eclairer la nuit ; 14i-nuit.js, 11/11/2026) */
 /* o : { normales: epaisseur du contour pousse, echelle: epaisseur du contour agrandi, souple: souplesses au vent, sansContour, eauIle, centre } */
 /* centre (02/11/2026, « l'ombre collee a l'arbre ca fait bizarre », Mathieu) : le contour agrandi l'etait autour de l'origine de la piece. Les pieces de l'ile
    et des decorations (blender/iles.py, deco.py) ont leur origine au centre de la scene Blender, a plusieurs metres : leur contour glissait d'autant sur le
@@ -57,6 +58,7 @@ function versToon(g, o) {
     if (nom === 'eau' && !o.eauIle) { m.material = new T.MeshBasicMaterial({ color: '#86ecbd' }); m.castShadow = false; return; }
     if (nom === 'reflet' && !o.eauIle && o.sansContour === SC_BATI) { m.material = new T.MeshBasicMaterial({ color: '#dcfff0' }); return; }
     m.material = toon(c, sp); m.castShadow = !SANS_OMBRE.has(nom); m.receiveShadow = true; m.userData.souple = sp;
+    if (VITRES.has(nom) && sp == null) { m.material = m.material.clone(); m.material.userData.vitre = true; }
     if (sp != null) m.customDepthMaterial = vent.ombre(sp);
     if (nom === 'eau') { m.material.transparent = true; m.material.opacity = 0.85; eauAnimee(m.material); return; }
     if (!(o.sansContour && o.sansContour.has(nom))) { const k = new T.Mesh(m.geometry, contourMat(o.normales || 0, sp)); k.userData.ep = o.normales || 0; if (o.echelle) { k.scale.setScalar(1 + o.echelle); if (o.centre) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); m.geometry.boundingBox.getCenter(k.position).multiplyScalar(-o.echelle); } } ajouts.push([m, k]); }
@@ -143,7 +145,7 @@ function fusionner(racine, o) {
     if (!m.isMesh || articule(m) || (o.garder && o.garder(m))) return; /* (garder : ce qui s'anime seul reste a part, l'eau et les drapeaux du Casino, 07/11/2026) */
     const contour = m.material.side === T.BackSide, porteur = contour && m.parent && m.parent.isMesh ? m.parent : m; /* un contour de maille() (frere de sa piece) se fusionne seul */
     const M = m.material, sp = porteur.userData.souple; /* meme apparence = meme paquet (chaque morceau avait son propre exemplaire de materiau) */
-    let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp, M.side].join('|'), cas = null; /* (le cote dessine compte : la cape portee est visible des deux cotes, 12/10/2026) */
+    let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp, M.side, M.userData && M.userData.vitre ? 'vitre' : ''].join('|'), cas = null; /* (le cote dessine compte : la cape portee est visible des deux cotes, 12/10/2026) */
     if (o.parNom) cle += '|' + base(porteur);
     if (o.caseDe) { let h = porteur; while (h && h !== racine && base(h) !== 'herbe') h = h.parent; if (h && h !== racine) { cas = o.caseDe(h); if (cas) cle += '|' + cas; } }
     if (!paquets.has(cle)) paquets.set(cle, { liste: [], contour, cas, ex: m, porteur });
@@ -195,11 +197,11 @@ const ARME_TOUR = new Set(['socle', 'pivot', 'fut', 'crosse', 'arc', 'corde', 'c
    les trois boules figees du modele sont remplacees par des bouffees qui sortent de la cheminee, montent en grossissant, partent avec le vent et s'effacent, en boucle */
 const FUMEE_FIGEE = new Set(['fumee']), FUMEE_GRANGE = [], N_BOUFFEES = 6;
 let fumeesCheminee = [];
-function fumerCheminee(bat, n) {
-  const p = FUMEE_GRANGE[n]; if (!p) return;
+function fumerCheminee(bat, n, ici) { /* (ici : une autre cheminee que celle de la grange, la cabane du pecheur ; rend le groupe des bouffees) */
+  const p = ici || FUMEE_GRANGE[n]; if (!p) return null;
   const g = new T.Group(); g.position.copy(p); bat.add(g);
   for (let k = 0; k < N_BOUFFEES; k++) { const m = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshToonMaterial({ color: '#f4f1ea', gradientMap: grad, transparent: true, depthWrite: false })); m.castShadow = false; m.userData.k = k; g.add(m); }
-  fumeesCheminee.push(g);
+  fumeesCheminee.push(g); return g;
 }
 function animerFumees(s) {
   fumeesCheminee.forEach((g) => g.children.forEach((m) => {
@@ -315,7 +317,7 @@ async function chargerPersonnagesVsa0() {
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'casino-jeu', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge', 'atelier'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'casino-jeu', 'montgolfiere', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge', 'atelier'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -335,7 +337,8 @@ async function chargerModeles() {
   versToon(G.batiments, BATI); versToon(G.objets, BATI);
   if (G['atelier-forge']) { versToon(G['atelier-forge'], BATI); MODELES.forge = gabaritEchelle(G['atelier-forge'], 'AtelierForge', 1, new T.Vector3(0, 0, 0)); }
   if (G.atelier) { versToon(G.atelier, BATI); MODELES.atelier = gabaritEchelle(G.atelier, 'Atelier', 1, new T.Vector3(0, 0, 0)); } /* l'atelier (blender/atelier.py, la piste A, 09/11/2026), d'une case */ /* l'atelier de forgemagie (blender/atelier-forge.py), d'une case */
-  versToon(G['casino-jeu'], BATI); MODELES.montgolfiere = G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
+  versToon(G['casino-jeu'], BATI); if (G.montgolfiere) versToon(G.montgolfiere, BATI); /* (la montgolfiere de la ferme, refaite a part le 11/11/2026 : nacelle creuse ; blender/casino.py --montgolfiere) */
+  MODELES.montgolfiere = (G.montgolfiere && G.montgolfiere.getObjectByName('MontgolfiereSol')) || G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */
   modelesNiveaux(G); /* 11/10/2026 : les batiments du niveau 1 au niveau 5 */
   MODELES.epouvantail = gabarit(G.batiments, 'epouvantail', 2.6, 'y');
   MODELES.kamaPiece = G.objets.getObjectByName('kama'); /* (le kama du jeu, pour le coffre en 3D : 16-progression.js, coffre3d) */
@@ -349,7 +352,9 @@ async function chargerModeles() {
   versToon(G.cultures2, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* les cultures de haut niveau (12/10/2026) */
   versToon(G.cultures3, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); versToon(G.cultures4, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT }); /* (le Sorgho de Moon, 02/11/2026) */ /* la Cawotte et la Fraise : oubliees jusqu'au 11/10/2026, leurs couleurs
     restaient brutes (terre #280d03 au lieu de #6e3f20), d'ou des sillons presque noirs (« ca fait un truc bizarre nan ? », Mathieu) */
-  CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { const n = c.id === 'ble' ? 'parcelle_A' + k : 'parcelle_' + c.id + '_' + k; const src = (c.id === 'ble' ? G['ble-planche'] : G[c.glb || 'cultures']).getObjectByName(n); const g = src.clone(true); g.position.set(0, 0.02, 0); g.rotation.set(0, 0, 0); MODELES[c.id + k] = g; }));
+  CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { const n = c.id === 'ble' ? 'parcelle_A' + k : 'parcelle_' + (c.copie || c.id) + '_' + k; const src = (c.id === 'ble' ? G['ble-planche'] : G[c.glb || 'cultures']).getObjectByName(n); const g = src.clone(true); g.position.set(0, 0.02, 0); g.rotation.set(0, 0, 0);
+    if (c.copie && c.teinte) { const t = new T.Color(c.teinte); g.traverse((o) => { const nom = (o.name || '').replace(/\.?\d+$/, ''); if (o.isMesh && o.material && o.material.color && nom !== 'terre' && nom !== 'sillon') { o.material = o.material.clone(); o.material.color.lerp(t, 0.72); } }); } /* (un modele d'attente : celui d'une autre culture, reteinte ; la plante de nuit, 11/11/2026) */
+    MODELES[c.id + k] = g; }));
   const nu = MODELES.ble0.clone(true); /* (la parcelle nue, avant la fusion du ble) */ const enlever = []; nu.children.forEach((o) => { const nom = o.name.replace(/\.?\d+$/, ''); if (nom !== 'terre' && nom !== 'sillon') enlever.push(o); }); enlever.forEach((o) => nu.remove(o)); MODELES.nu = fusionner(nu, { parNom: true });
   CULTURES.forEach((c) => [0, 1, 2].forEach((k) => { MODELES[c.id + k] = fusionner(MODELES[c.id + k], { parNom: true }); }));
   versToon(G.monstres, { normales: 0.01, sansContour: SC_MONSTRES });
