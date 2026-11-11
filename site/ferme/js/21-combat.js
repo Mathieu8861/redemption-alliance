@@ -134,7 +134,7 @@ const prevuSur = (o) => { const L = o.prevus; if (!L || !L.length) return 0; con
 const condamne = (o) => !!o.prevus && o.prevus.length > 0 && prevuSur(o) >= o.pv;
 function monstreAViser(p, max) { /* les tours et l'arbalete : d'abord un monstre qui s'en prend a un batiment (un casseur que le perso n'est pas venu chercher), sinon le plus proche */
   let best = null, bd = max || Infinity, cas = null, bc = max || Infinity;
-  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.coups) return; /* (les tetes de l'Ancestral : seuls les coups du perso comptent, les defenses ne tirent pas dessus) */ const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } if (o.casseur && !o.aggro && o.bat && d < bc) { bc = d; cas = o; } });
+  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.parCoups) return; /* (les tetes de l'Ancestral : seuls les coups du perso comptent, les defenses ne tirent pas dessus) */ const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } if (o.casseur && !o.aggro && o.bat && d < bc) { bc = d; cas = o; } });
   return cas || best;
 }
 function plusProcheMonstre(p, max) {
@@ -589,7 +589,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
   if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
   if (mo.faible || mo.ancre) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
-  if (mo.d.coups) { if (src != null || (mo.touchT || 0) > performance.now()) return; mo.touchT = performance.now() + 700; mo.touche = true; n = 1; gros = false; src = 'coup'; } /* (une tete de l'Ancestral : un trait par coup du perso, 0,7 s entre deux ; ni les defenses ni le venin ; src : ni venin ni record du plus gros coup) */
+  if (mo.d.parCoups) { if (src != null || (mo.touchT || 0) > performance.now()) return; mo.touchT = performance.now() + 700; mo.touche = true; n = 1; gros = false; src = 'coup'; } /* (une tete de l'Ancestral : un trait par coup du perso, 0,7 s entre deux ; ni les defenses ni le venin ; src : ni venin ni record du plus gros coup) */
   mo.recent = 1.2; /* (il vient d'etre touche : une Tortue peut rouler pour esquiver la suite) */
   if (src == null && combat.venin == null) combat.venin = (caracs().venin || 0) / 100; if (src == null && combat.venin > 0) { const dps = n * combat.venin / 3; if (!mo.venin || mo.venin.dps < dps) mo.venin = { dps, t: 3, tic: 0 }; else mo.venin.t = 3; } /* (le venin de l'Arakne complete, 08/11/2026 : 10 % du coup en poison sur 3 s) */
   if (mo.d.armure) n = Math.max(1, Math.round(n * (1 - mo.d.armure))); /* les boss encaissent moins */
@@ -601,7 +601,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
-  if (mo.d.coups) n = 1; mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  if (mo.d.parCoups) n = 1; mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.d.affaibli && !mo.faible && !mo.faibleFini && m0Anim(mo) && mo.pv <= mo.pvMax * mo.d.affaibli.seuil) { mo.pv = Math.ceil(mo.pvMax * mo.d.affaibli.seuil); entrerFaible(mo); return; } /* (Moon, sa vie bloquee a 30 %, 31/10/2026) */
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre(mo.d.revitRage ? 'Il se relève, enragé !' : 'Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');

@@ -111,7 +111,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -144,6 +144,14 @@ function cadeauRevancheMada(e) {
 }
 /* (08/11/2026, « donne-moi un Tofu doré dans ma ferme, je me fais scam », Mathieu) : un Tofu doré offert une fois, directement dans la voliere de son Cra
    (Rorschach) ; s'il n'y a pas de place, il prend celle d'un Tofu normal, comme a la capture ; annonce au chargement (majTofuDore, 14f-tofus.js) */
+/* (11/11/2026, « donne-moi le droit de refaire le Dragon Cochon, je lui tapais du 1, impossible de le finir », Mathieu) : du 10/11 a 20 h 55 au 11/11, le Dragon Cochon
+   ne prenait que 1 degat par coup (un reglage des tetes de l'Ancestral portait le meme nom qu'un des siens, 20-monstres.js) : personne ne pouvait le battre. La revanche
+   du Dragon Cochon (palier 7) faite le 11/11 est rendue une fois, a tous les joueurs ; marquee dans la partie pour ne jamais se rejouer */
+function rendreRevancheDragon(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso) return;
+    p.cadeaux = p.cadeaux || {}; if (p.cadeaux.revancheDragon1111) return; p.cadeaux.revancheDragon1111 = true;
+    if (p.bossRejoue && p.bossRejoue['7'] === 'Wed Nov 11 2026') delete p.bossRejoue['7']; });
+}
 function cadeauDoreMathieu(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso || p.perso.classe !== 'cra' || !/^Rorschach/.test(p.perso.nom || '')) return;
     p.cadeaux = p.cadeaux || {}; if (p.cadeaux.tofuDore0811) return; p.cadeaux.tofuDore0811 = true;
