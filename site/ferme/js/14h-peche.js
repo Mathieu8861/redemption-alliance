@@ -111,8 +111,9 @@ function prendrePoisson(p) {
   p.etat = 'prise'; p.t = 0; p.de = p.bouchon.position.clone(); p.bouchon.visible = false; p.fil.visible = false; /* (plus de poisson qui saute au-dessus de la tete : « une animation d'un poisson moche, ca sert a rien », Mathieu, 11/11/2026 ; la prise se lit sur la carte, avec son image) */
   eclaboussure(p.de.x, p.de.z, 1.1); son(F.rang >= 2 ? 'quete' : 'plouf'); const H = hudPeche(); H.jauge.hidden = true; H.avance.hidden = true; H.d.querySelector('button').hidden = true;
   direPeche((neuf ? 'Nouveau poisson : ' : '') + F.nom + ' !', true, 'poisson-' + F.id);
+  gagnerXp(XP_POISSON[F.rang]); const xpPrise = gagnerXp.dernier || 0;
   if (neuf) setTimeout(majSuccesPeche, 1400);
-  toast((neuf ? 'Nouveau poisson ! ' : '') + 'Tu as pêché ' + unPoisson(F) + ' (' + RANGS_PECHE[F.rang].nom + '). ' + (F.fem ? 'Elle' : 'Il') + ' rejoint le tonneau de la cabane.', F.rang >= 2 ? 'or' : undefined);
+  toast((neuf ? 'Nouveau poisson ! ' : '') + 'Tu as pêché ' + unPoisson(F) + ' (' + RANGS_PECHE[F.rang].nom + '). ' + (F.fem ? 'Elle' : 'Il') + ' rejoint le tonneau de la cabane.' + (xpPrise ? ' +' + fmt(xpPrise) + ' XP.' : ''), F.rang >= 2 ? 'or' : undefined);
 }
 function majPeche(dt) {
   if (!paysanMesh || !S_) return; majBoutonPeche();
@@ -194,8 +195,12 @@ function blocSuccesPeche() { /* la ligne « Succes » de la fiche du perso */
   return '<h4>Succès</h4><div class="pano-bonus"><b>' + (ok ? '✓ Pêcheur accompli' : 'Pêcheur accompli : ' + n + '/9 espèces pêchées') + '</b><div class="paliers"><span class="' + (ok ? 'actif' : '') + '">' + (ok ? '✓ ' : '') + 'Dégâts contre les monstres d\'eau +' + Math.round(BONUS_EAU * 100) + ' % (les Tortues)</span></div></div>';
 }
 /* LA VENTE DES POISSONS (11/11/2026, par Discord : « on peut les vendre ouais », puis « ouais nickel » sur les prix) : au tonneau, un bouton par espece.
-   Ce qui est affiche est ce qui est paye, la baisse de 10 % comprise (kamasGagnes) : 150, 500, 2 000, et 100 000 pour le Poisson-Chaton dore. */
-const VENTE_POISSON = [167, 556, 2222, 111111];
+   Ce qui est affiche est ce qui est paye, la baisse de 10 % comprise (kamasGagnes) : 600, 1 400, 2 500, et 100 000 pour le Poisson-Chaton dore
+   (« les poissons prix de vente : 600 / 1400 / 2500 », Mathieu, 11/11/2026 au soir ; d'abord 150, 500, 2 000). */
+const VENTE_POISSON = [667, 1556, 2778, 111111];
+/* L'XP D'UNE PRISE (« et faut que ca xp un peu aussi », Mathieu, 11/11/2026 au soir) : un peu, selon le rang ; elle passe par gagnerXp (la baisse de 10 % et la
+   Sagesse comprises). Au ver de terre, a peu pres 26 par lancer avant Sagesse : un appoint, loin derriere une recolte. */
+const XP_POISSON = [20, 45, 100, 1500];
 const prixPoisson = (p) => kamasGagnes(VENTE_POISSON[p.rang]);
 function vendrePoisson(id, n) {
   const P = etatPeche(), p = POISSONS.find((q) => q.id === id), a = P.prises[id] || 0; if (!p || !(a > 0)) return; n = Math.max(1, Math.min(n, a));
