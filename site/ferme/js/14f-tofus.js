@@ -66,6 +66,9 @@ function courirDore(m, depart) {
    que sur la ferme, hors vague, quand aucun Tofu sauvage n'y est deja. Vrai temps (performance.now), pas l'horloge du jeu qui va jusqu'a x2. */
 /* (07/11/2026 au soir, « a chaque Tofu dore capture, le prochain c'est 2 fois plus long », Mathieu : l'attente double a chaque capture, 1 h 30, 3 h, 6 h, 12 h...
    On compte les captures de la partie (stats.tofusDores) ; si ce compte change (une capture, ou une ferme d'avant la regle), l'attente est retiree, le temps deja joue reste) */
+/* LA FIN DU TOFU DORE (11/11/2026, annonce Discord de Mathieu : « ils ont jusqu'a ce soir minuit pour trouver et capturer le monstre, apres il sera trop tard » ;
+   « oui tu coupes a ce soir, ceux captures restent dans les fermes des gens ») : le 12/11/2026 a 0 h, heure de Paris */
+const FIN_TOFU_DORE = Date.parse('2026-11-12T00:00:00+01:00');
 const doresPris = () => (S_.stats && S_.stats.tofusDores) || 0;
 const seuilDore = () => (DORE_TOUTES[0] + Math.random() * (DORE_TOUTES[1] - DORE_TOUTES[0])) * 60000 * Math.pow(2, doresPris());
 function majTofuDore() {
@@ -73,6 +76,7 @@ function majTofuDore() {
   if (S_ && S_.cadeauDoreVu === false && S_.perso && !enAccueil && !modaleOuverte) { S_.cadeauDoreVu = true; appliquerVoliere(); rendreHaut(); son('niveau'); toast('Cadeau : un TOFU DORÉ rejoint ta volière ! Il te donnera des Plumes dorées.', 'or'); sauver(); } /* (le cadeau du 08/11/2026, cadeauDoreMathieu) */
   if (!S_ || !S_.perso || enAccueil || enPause || MODE_TEST || document.hidden || Date.now() - derniereAction > 180000 || niveau(S_.xp) < NIV_TOFU_DORE) return;
   if (!(S_.doreSeuil > 0) || S_.doreN !== doresPris()) { S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); } S_.doreJeu = (S_.doreJeu || 0) + d;
+  if (Date.now() >= FIN_TOFU_DORE) return; /* (11/11/2026 : plus aucun Tofu dore ne se pose apres minuit ; celui qui est deja dans l'herbe finit sa minute, ceux des volieres restent) */
   if (S_.doreJeu < S_.doreSeuil || S_.sauvage || combat || lieu !== 'ferme') return;
   const libres = S_.cases.filter((c) => c.type === 'libre'); if (!libres.length) return;
   S_.sauvage = { id: hasard(libres).id, fin: Date.now() + DUREE_SAUVAGE, dore: true }; S_.doreJeu = 0; S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); rendreSauvage(); son('niveau');
