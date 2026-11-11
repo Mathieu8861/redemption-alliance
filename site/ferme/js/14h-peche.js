@@ -38,12 +38,6 @@ function bouchonPeche(k) {
   haut.position.y = 0.06; bas.position.y = -0.04; tige.position.y = 0.04; g.add(haut, bas, tige); g.traverse((o) => { o.raycast = () => {}; }); return g;
 }
 function filPeche() { const l = new T.Line(new T.BufferGeometry().setAttribute('position', new T.BufferAttribute(new Float32Array(14 * 3), 3)), new T.LineBasicMaterial({ color: '#f5f0e0' })); l.frustumCulled = false; l.raycast = () => {}; return l; }
-function poissonPeche(p) { /* une silhouette simple, a sa couleur : elle ne se voit qu'une seconde, quand la prise saute hors de l'eau */
-  const g = new T.Group(), m = new T.MeshLambertMaterial({ color: p.teinte }), raie = p.id === 'raie', t = 1.5 + p.rang * 0.3;
-  const corps = new T.Mesh(new T.SphereGeometry(1, 12, 8), m); corps.scale.set(raie ? 0.3 : 0.11, raie ? 0.05 : 0.15, 0.34);
-  const queue = new T.Mesh(new T.ConeGeometry(0.13, 0.24, 4), m); queue.rotation.x = Math.PI / 2; queue.position.z = -0.42; queue.scale.set(0.5, 1, 1);
-  g.add(corps, queue); g.scale.setScalar(t); g.traverse((o) => { o.raycast = () => {}; }); return g;
-}
 function eclaboussure(x, z, r) { onde(x, MARE_Y + 0.03, z, r, '#e9f8ff', 0.6, 0.7); pouf(x, MARE_Y + 0.05, z, r * 0.9, '#cfeeff'); }
 const pointeCanne = (p) => { const c = paysanMesh.userData.canneObj; if (!c) return paysanMesh.position.clone().setY(paysanMesh.position.y + 1.6); c.updateWorldMatrix(true, false); return c.localToWorld(new T.Vector3(0, CANNES_PECHE[p.canne].long, 0.02)); };
 function majFil(p, mou) {
@@ -114,7 +108,7 @@ function jaugePeche(p, dt, R, C) {
 }
 function prendrePoisson(p) {
   const P = etatPeche(), F = p.poisson, neuf = !P.prises[F.id]; P.prises[F.id] = (P.prises[F.id] || 0) + 1; P.total = (P.total || 0) + 1;
-  p.etat = 'prise'; p.t = 0; p.de = p.bouchon.position.clone(); p.bouchon.visible = false; p.fil.visible = false; p.prise = poissonPeche(F); p.prise.position.copy(p.de); scene.add(p.prise);
+  p.etat = 'prise'; p.t = 0; p.de = p.bouchon.position.clone(); p.bouchon.visible = false; p.fil.visible = false; /* (plus de poisson qui saute au-dessus de la tete : « une animation d'un poisson moche, ca sert a rien », Mathieu, 11/11/2026 ; la prise se lit sur la carte, avec son image) */
   eclaboussure(p.de.x, p.de.z, 1.1); son(F.rang >= 2 ? 'quete' : 'plouf'); const H = hudPeche(); H.jauge.hidden = true; H.avance.hidden = true; H.d.querySelector('button').hidden = true;
   direPeche((neuf ? 'Nouveau poisson : ' : '') + F.nom + ' !', true, 'poisson-' + F.id);
   toast((neuf ? 'Nouveau poisson ! ' : '') + 'Tu as pêché ' + unPoisson(F) + ' (' + RANGS_PECHE[F.rang].nom + '). ' + (F.fem ? 'Elle' : 'Il') + ' rejoint le tonneau de la cabane.', F.rang >= 2 ? 'or' : undefined);
@@ -146,10 +140,9 @@ function majPeche(dt) {
     jaugePeche(p, dt, R, C); if (peche !== p) return; if (p.etat !== 'combat') return;
     const k = (p.f - 50) / 50; b.position.set(p.cx + k * 0.9, MARE_Y - 0.12 + Math.sin(p.t * 20) * 0.03, p.cz + Math.sin(p.t * 3) * 0.2); cible = p.dedans ? 0.55 : 0.95; mou = 0;
     if (Math.floor(p.t * 2.5) !== Math.floor((p.t - dt) * 2.5)) onde(b.position.x, MARE_Y + 0.03, b.position.z, 0.5, '#e9f8ff', 0.5, 0.5);
-  } else if (p.etat === 'prise') { /* la prise saute hors de l'eau, en cloche, jusque dans ses mains */
-    const a = Math.min(1, p.t / 0.8), vers = new T.Vector3(pp.x, pp.y + 2.25, pp.z); p.prise.position.lerpVectors(p.de, vers, a); p.prise.position.y += Math.sin(a * Math.PI) * 1.2; /* (elle retombe au-dessus de sa tete : il la brandit) */
-    p.prise.rotation.x = a < 1 ? a * 9.42 : 0; p.prise.rotation.y = a < 1 ? 0 : (p.t - 0.8) * 2.2 + Math.PI / 2; cible = 0.2; p.bras = a < 1 ? -0.7 : -2.4;
-    if (p.t > 2.4) { finPeche(null); return; }
+  } else if (p.etat === 'prise') { /* la prise : une eclaboussure, la carte dit le poisson, et il releve sa canne un instant */
+    cible = 0.2; p.bras = -0.9;
+    if (p.t > 1.8) { finPeche(null); return; }
   }
   p.theta += (cible - p.theta) * Math.min(1, dt * 12);
   if (u.canneObj) u.canneObj.rotation.x = p.theta - p.bras; /* (l'inclinaison de la canne dans le monde : celle du bras, plus la sienne) */
@@ -161,13 +154,23 @@ function acheterAppat(k, n) {
   if (S_.kamas < prix) { toast('Il te manque ' + fmt(prix - S_.kamas) + ' kamas.', 'alerte'); return; }
   S_.kamas -= prix; P.appats[k] = (P.appats[k] || 0) + n; if (!(P.appats[P.appat] > 0)) P.appat = k; son('kamas'); rendreHaut(); sauver(); ouvrirEtabliPecheur();
 }
+/* (11/11/2026, « a ameliorer ca », Mathieu, sur la premiere fenetre : des lignes sans image, des boutons « 1 : 40 ») : en cartes. Un appat : son image, ce qu'il en
+   reste, ses chances en barre (communs, peu communs, rares), deux boutons d'achat avec leur prix, et « Mettre sur ma ligne » ; celui de la ligne est borde d'or.
+   Une canne : son image, ou elle est, sa zone verte et son lancer. */
 function ouvrirEtabliPecheur() {
-  const P = etatPeche(), E = cannesEues(), deux = ' style="grid-template-columns:minmax(0,1fr) auto"';
-  ouvrirModale('pecheur', entete('L\'atelier du pêcheur') + '<p class="hdv-aide">Achète tes appâts ici, choisis celui que tu mets sur ta ligne, puis va pêcher au bout de la terrasse, une canne en main : chaque lancer prend un appât.</p><h4>Les appâts</h4>' +
-    Object.entries(APPATS).map(([k, A]) => '<div class="art"' + deux + '><div><b>' + A.nom + '</b> <span class="puce' + (P.appat === k ? ' or' : '') + '">' + (P.appats[k] || 0) + ' en réserve' + (P.appat === k ? ', sur ta ligne' : '') + '</span><div class="desc">' + A.desc + '</div></div><div class="act">' +
-      (P.appat === k ? '' : '<button class="btn discret mini" data-peche="appat:' + k + '">Utiliser</button>') + '<button class="btn kamas mini" data-peche="acheter:' + k + ':1">1 : ' + fmt(A.prix) + '</button><button class="btn kamas mini" data-peche="acheter:' + k + ':10">10 : ' + fmt(A.prix * 10) + '</button></div></div>').join('').replace(/<div class="act">/g, '<div class="act" style="display:flex;flex-direction:row;gap:6px;align-items:center">') +
-    '<h4>Tes cannes</h4><p class="hdv-aide">Elles sont exposées sur le râtelier, au mur du fond : touche-en une pour la prendre, touche sa place pour la reposer. Une meilleure canne élargit la zone verte de la jauge.</p>' +
-    [1, 2, 3, 4].map((k) => '<div class="art"' + deux + '><div><b>' + CANNES[k].nom + '</b><div class="desc">' + CANNES[k].desc + '</div></div><div class="act"><span class="puce' + (P.main === k ? ' or' : E.includes(k) ? ' bonne' : '') + '">' + (P.main === k ? 'dans ta main' : E.includes(k) ? 'sur le râtelier' : 'pas encore à toi') + '</span></div></div>').join(''));
+  const P = etatPeche(), E = cannesEues(), img = (n) => '<img src="assets/icones/' + n + '.png?v=' + VERSION_MODELES + '" alt="">', RANG = ['communs', 'peu communs', 'rares'];
+  const appat = ([k, A]) => { const n = P.appats[k] || 0, sur = P.appat === k, tot = A.poids.reduce((t, x) => t + x, 0);
+    return '<div class="pe-carte' + (sur ? ' choisi' : '') + '">' + img('appat-' + k) + '<b class="pe-nom">' + A.nom + '</b><span class="puce' + (n ? ' bonne' : '') + '">' + fmt(n) + ' en réserve</span>' +
+      '<div class="pe-chances">' + A.poids.map((x, i) => '<i class="r' + i + '" style="width:' + (x / tot * 100).toFixed(1) + '%"></i>').join('') + '</div>' +
+      '<div class="pe-legende">' + A.poids.map((x, i) => '<span class="r' + i + '">' + Math.round(x / tot * 100) + ' % ' + RANG[i] + '</span>').join('') + (A.dore ? '<span class="r3">' + String(A.dore * 100).replace('.', ',') + ' % Poisson-Chaton doré</span>' : '') + '</div>' +
+      '<div class="pe-achats"><button class="btn kamas mini" data-peche="acheter:' + k + ':1">+1 · ' + fmt(A.prix) + '</button><button class="btn kamas mini" data-peche="acheter:' + k + ':10">+10 · ' + fmt(A.prix * 10) + '</button></div>' +
+      (sur ? '<span class="pe-ligne">✓ Sur ta ligne</span>' : '<button class="btn discret mini" data-peche="appat:' + k + '">Mettre sur ma ligne</button>') + '</div>'; };
+  const canne = (k) => { const a = E.includes(k), main = P.main === k, C = CANNES_PECHE[k];
+    return '<div class="pe-carte pe-canne' + (main ? ' choisi' : a ? '' : ' absent') + '">' + img('canne-' + k) + '<b class="pe-nom">' + CANNES[k].nom + '</b><span class="puce' + (main ? ' or' : a ? ' bonne' : '') + '">' + (main ? 'dans ta main' : a ? 'sur le râtelier' : 'pas encore à toi') + '</span>' +
+      '<div class="pe-legende"><span>Zone verte : ' + C.zone + ' %</span><span>Lancer : ' + String(Math.round(C.portee / S * 10) / 10).replace('.', ',') + ' cases</span></div></div>'; };
+  ouvrirModale('pecheur', entete('L\'atelier du pêcheur') + '<p class="hdv-aide">Chaque lancer prend un appât. Choisis celui de ta ligne, puis va pêcher au bout de la terrasse, une canne en main. Prix en kamas.</p>' +
+    '<div class="hdv-section">Les appâts</div><div class="pe-grille">' + Object.entries(APPATS).map(appat).join('') + '</div>' +
+    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">Sur le râtelier, au mur du fond : touche une canne pour la prendre, touche sa place pour la reposer.</p><div class="pe-grille quatre">' + [1, 2, 3, 4].map(canne).join('') + '</div>');
 }
 function ouvrirPrises() {
   const P = etatPeche(), total = POISSONS.reduce((t, p) => t + (P.prises[p.id] || 0), 0), especes = POISSONS.filter((p) => P.prises[p.id]).length;

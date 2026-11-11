@@ -1281,3 +1281,15 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 /* la pastille des kamas (« elle est pas plus large en hauteur que les autres ? et je la trouve un peu grande ») : sa piece de 22 px la rendait plus haute ; 17 px,
    et le mot « kamas » s'efface (la piece le dit) */
 .mode-dev .haut .kama.gros { width: 17px; height: 17px; } .mode-dev .haut .pastille:has(#kamas) { gap: 5px; } .mode-dev .haut .pastille:has(#kamas) .lib { display: none; }
+/* L'ATELIER DU PECHEUR, en cartes (11/11/2026 ; 14h-peche.js, ouvrirEtabliPecheur) */
+.pe-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 2px 0 14px; } .pe-grille.quatre { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 640px) { .pe-grille { grid-template-columns: 1fr; } .pe-grille.quatre { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pe-carte { display: grid; gap: 7px; justify-items: center; align-content: start; text-align: center; background: rgba(255, 255, 255, .04); border: 2px solid rgba(255, 255, 255, .1); border-radius: 14px; padding: 10px 8px; }
+.pe-carte.choisi { border-color: var(--or); box-shadow: 0 0 0 2px rgba(242, 182, 48, .22); } .pe-carte.absent { opacity: .5; }
+.pe-carte img { width: 96px; height: 96px; border-radius: 12px; object-fit: cover; } .pe-canne img { width: 64px; height: 154px; }
+.pe-nom { font: 800 .95rem/1.1 var(--f-texte); }
+.pe-chances { display: flex; width: 100%; height: 9px; border-radius: 99px; overflow: hidden; background: #1c1d21; } .pe-chances i { display: block; height: 100%; }
+.pe-chances .r0, .pe-legende .r0::before { background: #9aa0aa; } .pe-chances .r1, .pe-legende .r1::before { background: #58a8f0; } .pe-chances .r2, .pe-legende .r2::before { background: #b77bf5; } .pe-legende .r3::before { background: var(--or); }
+.pe-legende { display: grid; gap: 2px; width: 100%; justify-items: start; font: 700 .72rem/1.25 var(--f-texte); color: #b9bcc4; } .pe-legende span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.pe-canne .pe-legende { justify-items: center; } .pe-canne .pe-legende span::before { display: none; }
+.pe-achats { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; } .pe-ligne { font: 800 .8rem/1 var(--f-texte); color: var(--or); padding: 7px 0; }

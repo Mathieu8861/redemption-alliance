@@ -189,7 +189,7 @@ function fleursLys(c) { /* la piece des clochettes d'une parcelle posee (la plus
 function majLueursLys(k) { /* k : la nuit de la ferme, de 0 a 1 */
   if (!PAR_ID.noctiflore || !MODELES.noctiflore2) return;
   if (!matsFleurLys) { matsFleurLys = new Set(); MODELES.noctiflore2.traverse((o) => { if (o.isMesh && o.name === 'fleur' && o.material && o.material.side !== T.BackSide && o.material.emissive) matsFleurLys.add(o.material); }); }
-  matsFleurLys.forEach((M) => { M.emissive.copy(M.color); M.emissiveIntensity = 0.85 * k; });
+  matsFleurLys.forEach((M) => { M.emissive.copy(M.color); M.emissiveIntensity = 0.55 * k; }); /* (0,85 : « un peu trop lumineux », Mathieu, 11/11/2026) */
   const now = performance.now();
   if (!majLueursLys.t || now - majLueursLys.t > 1500) { majLueursLys.t = now;
     const L = k > 0 ? S_.cases.filter((c) => c.type === 'champ' && c.c === 'noctiflore' && c.pousse >= duree(PAR_ID.noctiflore)) : [];
@@ -199,7 +199,7 @@ function majLueursLys(k) { /* k : la nuit de la ferme, de 0 a 1 */
       matLueurLys = matLueurLys || new T.SpriteMaterial({ map: texCanvas(64, (g, w) => { const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); r.addColorStop(0, 'rgba(235,248,255,0.95)'); r.addColorStop(0.3, 'rgba(160,215,255,0.5)'); r.addColorStop(1, 'rgba(110,175,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); }), transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending });
       const q = posCase(c), s = grappesLumiere(m, 0.1).map((G) => { const sp = new T.Sprite(matLueurLys); sp.position.copy(G.min).add(G.max).multiplyScalar(0.5); sp.scale.setScalar(Math.min(0.95, Math.max(0.6, G.min.distanceTo(G.max) * 2.6))); sp.renderOrder = 6; sp.raycast = () => {}; scene.add(sp); return sp; });
       lueursLys.push({ c, m, s, p: new T.Vector3(q.x, q.y + 0.4, q.z) }); }); }
-  if (matLueurLys) matLueurLys.opacity = 0.62 * k; lueursLys.forEach((x) => x.s.forEach((s) => { s.visible = k > 0.01; }));
+  if (matLueurLys) matLueurLys.opacity = 0.34 * k; /* (0,62 avant : trop lumineux) */ lueursLys.forEach((x) => x.s.forEach((s) => { s.visible = k > 0.01; }));
 }
 function trousBatiments(N) { /* les trous que ces lumieres percent dans le voile de la nuit de la ferme : [x, y, rayon] a l'ecran ; aucun dans une autre nuit */
   if (N !== NUIT_J) return [];
@@ -207,6 +207,6 @@ function trousBatiments(N) { /* les trous que ces lumieres percent dans le voile
   const trou = (c, rayon) => { p.copy(c).project(camera); if (p.z > 1) return; const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H;
     q.copy(c).addScaledVector(D, rayon).project(camera); const r = Math.max(3, Math.hypot((q.x + 1) / 2 * W - x, (1 - q.y) / 2 * H - y)); if (x < -r || x > W + r || y < -r || y > H + r) return; trous.push([x, y, r]); };
   if (lumieresBatA > 0.05) trousBat.forEach((g) => { if (g.hote.parent && g.hote.visible !== false) trou(g.c, g.r * lumieresBatA); });
-  lueursLys.forEach((x) => { if (!(N.k > 0.01) || !x.s.length) return; const n0 = trous.length; trou(x.p, 1.5); if (trous.length > n0) trous[n0].push('rgba(0,0,0,.42) 0, rgba(0,0,0,.6) 50%, rgba(0,0,0,.85) 80%, #000 100%'); }); /* (les Noctiflores mures : le voile ne se leve qu'a moitie, la terre reste sombre) */
+  lueursLys.forEach((x) => { if (!(N.k > 0.01) || !x.s.length) return; const n0 = trous.length; trou(x.p, 1.5); if (trous.length > n0) trous[n0].push('rgba(0,0,0,.58) 0, rgba(0,0,0,.72) 50%, rgba(0,0,0,.9) 80%, #000 100%'); }); /* (les Noctiflores mures : le voile ne se leve qu'a moitie, la terre reste sombre) */
   return trous;
 }
