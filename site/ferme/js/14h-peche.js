@@ -199,8 +199,8 @@ function blocSuccesPeche() { /* la ligne « Succes » de la fiche du perso */
    (« les poissons prix de vente : 600 / 1400 / 2500 », Mathieu, 11/11/2026 au soir ; d'abord 150, 500, 2 000). */
 const VENTE_POISSON = [667, 1556, 2778, 111111];
 /* L'XP D'UNE PRISE (« et faut que ca xp un peu aussi », Mathieu, 11/11/2026 au soir) : un peu, selon le rang ; elle passe par gagnerXp (la baisse de 10 % et la
-   Sagesse comprises). Au ver de terre, a peu pres 26 par lancer avant Sagesse : un appoint, loin derriere une recolte. */
-const XP_POISSON = [20, 45, 100, 1500];
+   Sagesse comprises). Triplee le soir meme (« triple l'xp gagnee des poissons », apres 20, 45, 100 et 1 500) : au ver de terre, a peu pres 78 par lancer avant Sagesse. */
+const XP_POISSON = [60, 135, 300, 4500];
 const prixPoisson = (p) => kamasGagnes(VENTE_POISSON[p.rang]);
 function vendrePoisson(id, n) {
   const P = etatPeche(), p = POISSONS.find((q) => q.id === id), a = P.prises[id] || 0; if (!p || !(a > 0)) return; n = Math.max(1, Math.min(n, a));
