@@ -118,7 +118,7 @@ function majPastilleNuit() {
    realiste pour l'atelier et la forgemagie », Mathieu, 11/11/2026) : sur le feu de la forgemagie et de l'atelier (FOYERS), de vraies flammes qui dansent (le
    shader des incendies, FEU_FS, 13-batiments-pv.js) et quelques braises qui montent. Elles brulent le jour comme la nuit ; la nuit s'y ajoute le halo. */
 let lumieresBat = [], vitresBat = [], trousBat = [], flammesBat = [], lumieresBatSig = '', lumieresBatA = 0, texLueurBat = null;
-const FOYERS = { forge: 1, atelier: 1, montgolfiere: 1 }, HEX_LANTERNE = 'ffe08a'; /* (la montgolfiere : « le feu aussi ici, de nuit et de jour », Mathieu, 11/11/2026 ; son bruleur, une fois qu'elle est reparee) */
+const FOYERS = { forge: 0.5, atelier: 0.24, montgolfiere: 0.8 } /* (la hauteur de flamme permise : a l'atelier, une petite flamme de brasero, « la, le feu brulerait le toit dans la vraie vie », Mathieu, 11/11/2026) */, HEX_LANTERNE = 'ffe08a'; /* (la montgolfiere : « le feu aussi ici, de nuit et de jour », Mathieu, 11/11/2026 ; son bruleur, une fois qu'elle est reparee) */
 const hotesLumieres = () => batisMesh.concat(typeof toursMesh !== 'undefined' ? toursMesh : [], typeof montgolfiereMesh !== 'undefined' && montgolfiereMesh && montgolfiereMesh.visible ? [montgolfiereMesh] : []);
 const foyerAllume = (hote) => !!FOYERS[hote.userData.modele] && (hote.userData.modele === 'montgolfiere' ? !!(S_ && S_.montgolfiere) : MODE_TEST); /* (la montgolfiere : pour tout le monde, une fois reparee (« la montgolfiere, tu peux le push pour les membres », Mathieu, 11/11/2026) ; les flammes de la forgemagie et de l'atelier : en version dev d'abord, il teste avant les joueurs) */
 /* (HEX_LANTERNE : la couleur des pieces 'lanterne', 09-modeles.js : une lanterne n'est pas un foyer) */
@@ -146,7 +146,7 @@ function poserLumieresBat() {
         lumieresBat.push({ halo, c, t, vitre, hote, ph: Math.random() * 6, min: g.min, max: g.max, foyer: !vitre && foyerAllume(hote) && M.color.getHexString() !== HEX_LANTERNE }); }); }); });
   /* les foyers : les pieces de feu voisines (le feu et son coeur clair) font un seul foyer, avec deux flammes et quatre braises */
   const foyers = []; lumieresBat.filter((L) => L.foyer).forEach((L) => { let F = foyers.find((x) => x.hote === L.hote && x.c.distanceTo(L.c) < 0.7); if (!F) { F = { hote: L.hote, c: L.c.clone(), min: L.min.clone(), max: L.max.clone() }; foyers.push(F); } else { F.min.min(L.min); F.max.max(L.max); F.c.copy(F.min).add(F.max).multiplyScalar(0.5); } });
-  foyers.forEach((F) => { const hh = Math.min(0.8, Math.max(0.46, (F.max.y - F.min.y) * 2.4)), y = F.min.y + 0.02;
+  foyers.forEach((F) => { const hh = Math.min(FOYERS[F.hote.userData.modele] || 0.5, Math.max(0.2, (F.max.y - F.min.y) * 2.4)), y = F.min.y + 0.02;
     const flamme = (dx, k) => { const m = new T.Mesh(GEO_PLAN, new T.ShaderMaterial({ uniforms: { uT: { value: 0 }, uS: { value: Math.random() * 10 } }, vertexShader: FEU_VS, fragmentShader: FEU_FS, transparent: true, depthWrite: false, side: T.DoubleSide }));
       m.scale.set(hh * k * 0.8, hh * k, 1); m.position.set(F.c.x + dx, y + hh * k * 0.42, F.c.z); m.renderOrder = 6; m.raycast = () => {}; scene.add(m); return m; };
     const b = [0, 1, 2, 3].map((i) => { const o = new T.Mesh(GEO_PLAN, new T.MeshBasicMaterial({ color: i % 2 ? '#ffd04a' : '#ff7a1e', transparent: true, depthWrite: false, blending: T.AdditiveBlending })); o.scale.setScalar(0.045); o.userData = { t: Math.random(), a: Math.random() * 6.28 }; o.raycast = () => {}; o.renderOrder = 6; scene.add(o); return o; });
@@ -164,7 +164,7 @@ function allumerLumieresBat(a, s) { /* a : de 0 (eteintes) a 1 */
 function animerFlammesBat(dt) { /* les flammes des foyers, le jour comme la nuit */
   const q = camera.quaternion;
   flammesBat.forEach((F) => { const vu = !!F.hote.parent && F.hote.visible !== false; F.s += dt; F.m.forEach((m) => { m.visible = vu; if (vu) { m.material.uniforms.uT.value = F.s; m.quaternion.copy(q); } });
-    F.b.forEach((o) => { o.visible = vu; if (!vu) return; const u = o.userData; u.t += dt * 0.6; if (u.t > 1) { u.t = 0; u.a = Math.random() * 6.28; } o.position.set(F.x + Math.cos(u.a) * 0.1 + Math.sin(u.t * 9 + u.a) * 0.04, F.y + F.hh * 0.45 + u.t * 0.75, F.z + Math.sin(u.a) * 0.1); o.quaternion.copy(q); o.material.opacity = 1 - u.t; }); });
+    F.b.forEach((o) => { o.visible = vu; if (!vu) return; const u = o.userData; u.t += dt * 0.6; if (u.t > 1) { u.t = 0; u.a = Math.random() * 6.28; } o.position.set(F.x + Math.cos(u.a) * 0.1 + Math.sin(u.t * 9 + u.a) * 0.04, F.y + F.hh * 0.45 + u.t * F.hh * 1.5 /* (les braises montent selon la flamme : pas jusqu'au toit de l'atelier) */, F.z + Math.sin(u.a) * 0.1); o.quaternion.copy(q); o.material.opacity = 1 - u.t; }); });
 }
 function majLumieresBat(dt, s) { /* a chaque image ; les batiments sont relus une fois par seconde (deplaces, ameliores : leurs lumieres suivent) */
   if (typeof lieu === 'undefined' || lieu !== 'ferme' || enAccueil) { if (lumieresBatA > 0) { lumieresBatA = 0; allumerLumieresBat(0, s); } return; }
