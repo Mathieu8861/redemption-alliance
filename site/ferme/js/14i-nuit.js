@@ -159,7 +159,7 @@ function allumerLumieresBat(a, s) { /* a : de 0 (eteintes) a 1 */
   vitresBat.forEach((M) => { M.emissiveIntensity = 0.85 * a; });
   if (!lumieresBat.length) return; const versCam = new T.Vector3(); camera.getWorldDirection(versCam).multiplyScalar(-0.3); /* (le halo d'une fenetre : un peu devant le mur) */
   lumieresBat.forEach((L) => { const vu = a > 0.01 && !!L.hote.parent && L.hote.visible !== false; L.halo.visible = vu; if (!vu) return;
-    L.halo.position.copy(L.c).add(versCam); L.halo.material.opacity = a * (L.vitre ? 0.5 : (L.foyer ? 0.32 : 0.8) * (0.9 + 0.1 * Math.sin((s || 0) * 6 + L.ph))); }); /* (un foyer : son halo se fait discret, on doit voir ses flammes) */
+    L.halo.position.copy(L.c).add(versCam); L.halo.material.opacity = a * (L.vitre ? 0.5 : (L.foyer ? 0.32 : 0.8) * (0.96 + 0.04 * Math.sin((s || 0) * 2.4 + L.ph))); }); /* (un foyer : son halo se fait discret, on doit voir ses flammes) */
 }
 function animerFlammesBat(dt) { /* les flammes des foyers, le jour comme la nuit */
   const q = camera.quaternion;

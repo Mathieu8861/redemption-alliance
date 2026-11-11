@@ -327,7 +327,11 @@ function animerLanternes(s) {
   const c = animerLanternes.cible, dt = Math.min(0.1, (now - (animerLanternes.d || now)) / 1000); animerLanternes.d = now;
   lanternesAnim.forEach((A) => { if (A.a !== c) { A.a = c > A.a ? Math.min(c, A.a + dt) : Math.max(c, A.a - dt); allumerLanterne(A); } if (A.a <= 0.01) { if (A.anneau) A.anneau.visible = false; return; } /* (un fondu d'une seconde) */
     const vague = !!combat && !combat.fin && lieu === 'ferme'; if (vague || A.anneau) { const an = A.anneau || porteeLanterne(A); an.visible = vague; if (vague) { an.material.opacity = A.a * (0.75 + 0.25 * Math.sin(s * 3 + A.ph)); an.rotation.z = s * 0.15 + A.ph; } } /* (sa portee, pendant une vague) */
-    const f = 1 + 0.07 * Math.sin(s * 7 + A.ph) + 0.04 * Math.sin(s * 13.3 + A.ph * 2); A.halo.scale.setScalar(A.r * 1.9 * f); A.sol.material.opacity = (0.85 + 0.15 * Math.sin(s * 5 + A.ph)) * A.a; });
+    { const large = MODE_TEST && typeof nuitFermeLa === 'function' && nuitFermeLa(); if (A.sol.userData.y0 == null) A.sol.userData.y0 = A.sol.position.y; A.sol.position.y = A.sol.userData.y0 + (large ? 0.1 : 0); A.sol.scale.setScalar(large ? (A.portee * 1.4) / (A.r * 2.5) : 1); }
+    /* (la flaque de lumiere, dans la nuit de la ferme : « ca eclaire d'un cote, mais il ne devrait pas y avoir d'ombre dans son rayon de portee », Mathieu, 11/11/2026 : posee au ras du sol, elle passait sous la terre des champs ;
+       elle monte de 10 cm, au-dessus des sillons, et va jusqu'au bord du cercle de lumiere, 1,4 fois la portee ; en version dev d'abord) */
+    const calme = MODE_TEST ? 0.25 : 1, lent = MODE_TEST ? 0.35 : 1; /* (la lumiere « vacille trop, faudrait que ca bouge moins », Mathieu, 11/11/2026 : quatre fois moins d'ecart, trois fois plus lent ; en version dev d'abord) */
+    const f = 1 + calme * (0.07 * Math.sin(s * 7 * lent + A.ph) + 0.04 * Math.sin(s * 13.3 * lent + A.ph * 2)); A.halo.scale.setScalar(A.r * 1.9 * f); A.sol.material.opacity = (1 - 0.15 * calme + 0.15 * calme * Math.sin(s * 5 * lent + A.ph)) * A.a; });
 }
 /* LES PETITES CLOTURES (01/11/2026, « des petites clotures pour separer nos differents champs », Mathieu ; posees sur les bords des cases, juste decoratives) :
    un morceau par bord, S_.clotures[cle] ; 'x' + i + '_' + j : le bord entre la case (i, j) et sa voisine (i + 1, j) ; 'z' + i + '_' + j : entre (i, j) et

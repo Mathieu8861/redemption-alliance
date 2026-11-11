@@ -1464,10 +1464,12 @@ function trousNuit(N) {
   if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
   const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); D.y = 0; D.normalize(); const D2 = new T.Vector3(-D.z, 0, D.x), p = new T.Vector3(), q = new T.Vector3(), g = [];
   const ecran = (v) => [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
-  L.forEach((A) => { const R = A.portee * A.a; p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
+  const doux = typeof NUIT_J !== 'undefined' && N === NUIT_J && MODE_TEST; /* (la nuit de la ferme, 11/11/2026 : « que ca eclaire un petit peu plus loin, que la lumiere se diffuse : plus c'est loin de la lanterne, moins c'est lumineux »,
+     Mathieu ; le cercle va 1,4 fois plus loin et s'estompe du centre au bord, au lieu d'un rond net ; en version dev d'abord. La nuit de la foret garde son rond : la portee y compte pour le combat) */
+  L.forEach((A) => { const R = A.portee * A.a * (doux ? 1.4 : 1); p.copy(A.sol.position).project(camera); const [x, y] = ecran(p);
     q.copy(A.sol.position).addScaledVector(D, R).project(camera); const [x1, y1] = ecran(q); q.copy(A.sol.position).addScaledVector(D2, R).project(camera); const [x2, y2] = ecran(q);
     const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
-    g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, transparent 0, transparent 52%, #000 100%)'); });
+    g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, ' + (doux ? 'transparent 0, rgba(0,0,0,.1) 22%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.86) 86%, #000 100%' : 'transparent 0, transparent 52%, #000 100%') + ')'); });
   Y.forEach(([x, y, r]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, transparent 0, transparent 55%, #000 100%)'));
   const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
 }
