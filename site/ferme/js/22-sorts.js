@@ -11,7 +11,7 @@ const ULTIS = {
 };
 const nomUlti = (id) => ULTIS[id].nom[classeDe()];
 const descUlti = (id) => (id === 'zone' && classeDe() === 'iop' ? 'Il fonce au point visé, puis tournoie ' + DUREE_TEMPETE + ' s épée tendue : ' + COUPS_TEMPETE + ' coups sur tous les monstres autour de lui, trois fois son attaque en tout. Tu peux le déplacer pendant qu\'il tournoie.' : ULTIS[id].desc) +
-  (classeDe() === 'iop' ? ' En la lançant, il devient invincible ' + String(INVINCIBLE_IOP).replace('.', ',') + ' s.' : ''); /* (l'invincibilite du Iop, 30/10/2026) */ /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
+  (classeDe() === 'iop' ? ' En la lançant, il devient invincible ' + String(INVINCIBLE_IOP).replace('.', ',') + ' s, puis il court ' + Math.round(ELAN_IOP * 100) + ' % plus vite pendant ' + DUREE_ELAN_IOP + ' s.' : ''); /* (l'invincibilite du Iop, 30/10/2026) */ /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
 /* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
    (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
 /* les icones 3D des ultis, une par classe, dans le style des sorts (23/10/2026) ; les autres Iop ont les leurs, avec leur tete

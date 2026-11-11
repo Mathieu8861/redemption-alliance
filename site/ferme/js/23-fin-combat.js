@@ -18,7 +18,8 @@ function majCombat(dt, s) {
   const c = combat;
   if (c.fin) return;
   if (classeDe() === 'iop') { /* le Iop (18-geliere.js) : sa regeneration, son invincibilite, son Berserker */
-    if (c.invincible > 0) c.invincible -= dt;
+    if (c.invincible > 0) { c.invincible -= dt; if (c.invincible <= 0) { c.elanIop = DUREE_ELAN_IOP; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Vitesse +' + Math.round(ELAN_IOP * 100) + ' %', p, 'soin'); } } /* (l'invincibilite s'arrete : l'elan commence, 11/11/2026) */
+    if (c.elanIop > 0) c.elanIop -= dt;
     if (c.deroute == null && c.pv > 0 && (c.regenIop = (c.regenIop || 0) + dt) >= PAS_REGEN_IOP) { c.regenIop -= PAS_REGEN_IOP;
       if (c.pv < c.pvMax) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * REGEN_IOP); if (c.st) c.st.soins += c.pv - a0; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('+' + Math.round(c.pv - a0), p, 'soin'); } }
     const col = berserkerIop(), p = paysanMesh.position;
