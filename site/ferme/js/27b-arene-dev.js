@@ -148,6 +148,26 @@ function bandeauTest() {
   let b = document.getElementById('bandeau-test'); if (!b) { b = document.createElement('div'); b.id = 'bandeau-test'; document.body.appendChild(b); }
   b.innerHTML = '<b>MODE TEST</b><span>rien n\'est enregistré</span><button class="btn mini" data-test="ouvrir">Réglages</button><button class="btn mini" data-test="relancer">Relancer la vague ' + ETAT_TEST.n + '</button><button class="btn mini" data-test="pv">Vie au max</button><button class="btn mini discret" data-test="quitter">Quitter</button>';
 }
+/* LE REEQUILIBRAGE DES VAGUES 61 A 79, A L'ESSAI (12/11/2026, par Discord, apres l'analyse des morts des joueurs et des vagues jouees par le bot sur la ferme de
+   Dyno : « faut reequilibrer les vagues, plus de distance, plus de vitesse etc. Et peut-etre un peu plus de degats », Mathieu). Constat : 2 morts pour 5 joueurs
+   sur les vagues 61 a 70, 5 sur les 71 a 80 ; les Koalaks et les Cochons tuent vite un perso immobile, mais 80 a 85 % tapent au corps a corps et presque tous
+   marchent au plancher (2,2, le perso court a 5,6) : un joueur qui bouge les evite. Trois leviers, chacun a cocher dans le mode test (coches au depart), poses
+   en memoire seulement : rien ne change pour les joueurs, et « Quitter » remet tout (la page se recharge).
+     - tireurs : dans chaque vague 61 a 69 et 71 a 79, un monstre de base en moins (Koalak Immature, Cochon de Farle) et un tireur de plus (celui de la vague,
+       sinon Koalak Griotte ou Porsalu) ; avec la horde, a peu pres 1 monstre sur 3 a distance au lieu de 1 sur 5 ;
+     - vitesse : les monstres de melee du plancher passent a 2,6, le Koalak Farouche a 3,1, le Cochon de Farle a 3 (EQUI_VITESSE : la vitesse finale) ;
+     - degats : +10 % sur les coups des monstres de ces deux paliers (DURCI.deg), pas sur les boss.
+   Les vagues de boss 70 et 80 ne changent pas. */
+const EQUI = { tireurs: true, vitesse: true, degats: true }, EQUI_BASE = {}, EQUI_DEGATS = 1.1;
+const EQUI_VITESSE = { guerrierKoalak: 2.6, mamaKoalak: 2.6, koalakForestier: 2.6, maitreKoalak: 2.6, momieKoalak: 2.6, koalakFossoyeur: 2.6, koalakFarouche: 3.1, cochonFarle: 3.0, donDussAng: 2.6, donDorgan: 2.6 };
+function equilibrageDev() {
+  if (!EQUI_BASE.fait) { EQUI_BASE.fait = true; EQUI_BASE.vit = {}; Object.keys(EQUI_VITESSE).forEach((t) => { EQUI_BASE.vit[t] = MONSTRES[t].vitesse; }); EQUI_BASE.koalaks = JSON.stringify(COMPO_KOALAKS); EQUI_BASE.cochons = JSON.stringify(COMPO_COCHONS); EQUI_BASE.deg = [DURCI.deg[6], DURCI.deg[7]]; EQUI_BASE.renforts = {}; for (let n = 8 * VAGUES_PALIER + 1; n <= VAGUES_MAX; n++) EQUI_BASE.renforts[n] = renfort(n); } /* (renforts : le lissage des vagues 81 et plus, garde tel quel ; il se cale sur la fin du palier d'avant, et l'ile de Moon ne doit pas bouger) */
+  Object.keys(EQUI_VITESSE).forEach((t) => { MONSTRES[t].vitesse = EQUI.vitesse ? +(EQUI_VITESSE[t] - VITESSE_PLUS_MONSTRES).toFixed(2) : EQUI_BASE.vit[t]; });
+  const remettre = (C, json) => { const B = JSON.parse(json); for (let i = 1; i < C.length; i++) C[i] = B[i]; }; remettre(COMPO_KOALAKS, EQUI_BASE.koalaks); remettre(COMPO_COCHONS, EQUI_BASE.cochons);
+  if (EQUI.tireurs) [[COMPO_KOALAKS, 'koalakImmature', 'koalakGriotte'], [COMPO_COCHONS, 'cochonFarle', 'porsalu']].forEach(([C, moins, defaut]) => { for (let i = 1; i <= 9; i++) { const L = C[i], m = L.find(([t]) => t === moins), tir = L.filter(([t]) => MONSTRES[t].distance).sort((a, b) => b[1] - a[1])[0]; if (m && m[1] > 1) m[1]--; if (tir) tir[1]++; else L.push([defaut, 1]); } });
+  [6, 7].forEach((p, i) => { DURCI.deg[p] = EQUI.degats ? +(EQUI_BASE.deg[i] * EQUI_DEGATS).toFixed(3) : EQUI_BASE.deg[i]; });
+  Object.keys(RENFORTS).forEach((k) => { delete RENFORTS[k]; }); Object.assign(RENFORTS, EQUI_BASE.renforts); /* (le lissage des debuts de palier se recalcule sur les nouvelles vagues 61 a 79 ; celui de l'ile de Moon et de la foret reste) */
+}
 /* LA FORGEMAGIE REFAITE (11/11/2026, « a refaire, c'est trop fouillis et je pige pas y'a quoi devant le feu », puis « forgemagie choix 4 », Mathieu) : la forge a runes
    (blender/forgemagie2.py : un foyer ouvert au centre, quatre piliers a runes, une hotte et sa cheminee, l'enclume sur le cote). En version dev d'abord : son
    modele n'est charge qu'en entrant en mode test, et remplace alors l'ancien ; les joueurs gardent l'ancienne forgemagie tant que Mathieu n'a pas valide. */
@@ -156,7 +176,7 @@ function forgeDev() {
   chargerGlb('assets/modeles/jeu/forgemagie2.glb?v=' + VERSION_MODELES).then((G) => { versToon(G, { normales: 0.012, sansContour: SC_BATI }); MODELES.forge = gabaritEchelle(G, 'AtelierForge2', 1, new T.Vector3(0, 0, 0)); MODELES.forge.userData.v2 = true;
     if (S_ && S_.perso && blocBati('forge')) construireBatiments(); }).catch((e) => { console.warn('Forgemagie', e); forgeDev.fait = false; });
 }
-function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; document.body.classList.add('mode-dev'); forgeDev(); /* (les retouches d'interface a l'essai : css/jeu.css, .mode-dev) */ NIV_PLAFOND = 100; /* (jusqu'au niveau 100, pour les pieces du palier 10, 09/11/2026) */ ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); if (aChateau() && !S_.chateau5) construireBatiments(); /* (la version dev : le chateau passe a 5 x 5, agrandirChateau ; rien n'est enregistre) */ S_.kamas = KAMAS_TEST; rendreHaut(); /* (kamas sans fond, 11/11/2026) */ bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. Kamas infinis, atelier et réparations gratuits. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
+function entrerModeTest() { if (!estAdmin() || MODE_TEST) return; MODE_TEST = true; document.body.classList.add('mode-dev'); forgeDev(); equilibrageDev(); /* (les vagues 61 a 79 reequilibrees, a l'essai) */ /* (les retouches d'interface a l'essai : css/jeu.css, .mode-dev) */ NIV_PLAFOND = 100; /* (jusqu'au niveau 100, pour les pieces du palier 10, 09/11/2026) */ ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, S_.vague.num)); if (aChateau() && !S_.chateau5) construireBatiments(); /* (la version dev : le chateau passe a 5 x 5, agrandirChateau ; rien n'est enregistre) */ S_.kamas = KAMAS_TEST; rendreHaut(); /* (kamas sans fond, 11/11/2026) */ bandeauTest(); son('niveau'); toast('Mode test : plus rien n\'est enregistré. Kamas infinis, atelier et réparations gratuits. « Quitter » te rend ta vraie partie.', 'or'); ouvrirModeTest(); }
 /* RELANCER UNE VAGUE SANS QUITTER LE MODE TEST (08/11/2026, « je suis a chaque fois oblige de quitter et de relancer pour pouvoir relancer une vague comme je
    veux », Mathieu) : le combat en cours, gagne, perdu ou en plein milieu, s'arrete net, sans bilan ; la vie remonte, et la vague choisie (ou la revanche) repart */
 /* LES BOOSTS DU MODE TEST (08/11/2026, « rajoute-moi la possibilite de mettre les potions / fruits de boost », Mathieu) : les repas (Cawotte, Fraise, Bananagrume,
@@ -199,13 +219,14 @@ function ouvrirModeTest() {
     '<div class="hdv-section">Tes boosts</div><p class="hdv-aide">Repris à chaque vague lancée ou relancée. Deux repas au plus, comme en vrai.</p><div class="puces dev-groupes">' + BOOSTS_TEST.map(([id, , nom, eff]) => bouton('test-boost', id, nom + ' (' + eff + ')', !!(ETAT_TEST.boosts || {})[id])).join('') + '</div>' +
     '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS_TOUS[P].boss].nom) + '</b>, ' + PALIERS_TOUS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (P >= PALIERS.length ? ', <b>en avant-première</b> (fermé aux joueurs)' : '') + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
     '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER || P >= PALIERS.length ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
+    '<div class="hdv-section">Vagues 61 à 79 : rééquilibrage à l\'essai</div><p class="hdv-aide">Seulement ici, les joueurs ne l\'ont pas. Décoche pour comparer avec les vagues d\'aujourd\'hui, puis relance la vague.</p><div class="puces dev-groupes">' + bouton('test-equi', 'tireurs', 'Plus de tireurs (1 monstre sur 3 au lieu de 1 sur 5)', EQUI.tireurs) + bouton('test-equi', 'vitesse', 'Monstres de mêlée plus rapides (2,6 au lieu de 2,2)', EQUI.vitesse) + bouton('test-equi', 'degats', 'Dégâts des monstres +10 %', EQUI.degats) + '</div>' +
     '<div class="hdv-section">Tes défenses</div><p class="hdv-aide">Tes ' + nbTours() + ' tourelles : les tiennes, coupées, ou toutes au niveau de ton choix (6 : celles du château).</p><div class="puces dev-groupes">' + bouton('test-tours', 'tiennes', 'Les tiennes', ETAT_TEST.tours == null) + bouton('test-tours', '0', 'Coupées', ETAT_TEST.tours === 0) + [1, 2, 3, 4, 5, 6].map((k) => bouton('test-tours', String(k), 'Niveau ' + k, ETAT_TEST.tours === k)).join('') + '</div>' +
     '<div class="puces dev-groupes">' + bouton('test', 'sansdef', 'Arbalète de la grange et Pépito-Tron coupés', ETAT_TEST.sansDef) + '</div>' +
     '<div class="hdv-section">En combat</div><div class="puces dev-groupes">' + bouton('test', 'immortel', 'Immortel (les coups s\'affichent, tu ne tombes pas)', ETAT_TEST.immortel) + bouton('test', 'pv', 'Vie au max', false) + '</div>' +
     '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost],[data-test-nuit]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost],[data-test-nuit],[data-test-equi]'); if (!b || !estAdmin()) return;
   const d = b.dataset, a = d.test;
   if (a === 'ouvrir') { ouvrirModeTest(); return; }
   if (a === 'entrer') { entrerModeTest(); return; }
@@ -220,6 +241,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'vague' || a === 'revanche' || a === 'difficile') {
     relancerTest(a); return; /* (un combat en cours s'arrete, la vague choisie repart) */
   }
+  else if (d.testEqui) { if (combat) { toast('Finis ou relance la vague d\'abord.'); return; } EQUI[d.testEqui] = !EQUI[d.testEqui]; equilibrageDev(); }
   else if (d.testClasse) changerClasseTest(d.testClasse);
   else if (d.testSexe) { if (combat) return; S_.perso.sexe = d.testSexe; rhabiller(); }
   else if (d.testNiv) { if (combat) return; S_.xp = seuil(Math.max(1, Math.min(Math.max(NIV_MAX, NIV_PLAFOND), niveau(S_.xp) + Number(d.testNiv)))); vieAuMax(); }
