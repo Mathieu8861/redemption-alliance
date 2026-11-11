@@ -15,8 +15,9 @@ const CABANE_T = 9, CABANE_MAISON = [[14, 5], [15, 5]], CABANE_PONTON = [[14, 6]
 const CABANE_X = (14.5 - (COLS - 1) / 2) * S, CABANE_Z = (5.5 - (ROWS - 1) / 2) * S; /* le centre de ses 2 x 2 cases (x 22, z 7) */
 const PONTON_Y = 0.38, PORTE_CABANE = [-0.55, 0.85]; /* le dessus de la terrasse ; ou l'on se tient devant la porte (dans le repere de la cabane) */
 const CABANE_DEDANS = new T.Vector3(300, 0, -300); /* la piece, loin de tout (rien derriere elle dans l'axe de la camera) */
+const PHRASE_CANNE_DOREE = '« Seule une légende de la pêche peut obtenir le droit de me posséder. »'; /* (la phrase du trophee de la Canne doree, Mathieu, 11/11/2026 au soir) */
 const CANNES = [null, { nom: 'Canne de bambou', desc: 'Cinq brins de bambou, une poignée de liège, un bouchon rouge et blanc.' }, { nom: 'Longue perche', desc: 'Un seul bambou très long, pour aller chercher le poisson au milieu de la mare.' },
-  { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }, { nom: 'Canne dorée', desc: 'Tout en or, du talon à la pointe : la canne du Pêcheur accompli.' }];
+  { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }, { nom: 'Canne dorée', desc: PHRASE_CANNE_DOREE }];
 let ligneCabane = null, pontonActif = false, cabaneCharge = null, cabaneSalle = null, cabaneMarche = null, cabaneAvant = null, cannesRatelier = [];
 const cabaneLa = () => !!S_ && !!S_.terrains && !!S_.terrains[TERRAINS[CABANE_T].id];
 const etatPeche = () => { const P = S_.peche || (S_.peche = { cannes: [1], main: 0 }); if (!P.appats) P.appats = { ver: 0, mouche: 0, dore: 0 }; if (!P.appat) P.appat = 'ver'; if (!P.prises) P.prises = {}; if (!P.vues) { P.vues = {}; Object.keys(P.prises).forEach((k) => { if (P.prises[k] > 0) P.vues[k] = 1; }); } return P; }; /* (appats : les reserves ; appat : celui qui est sur la ligne ; prises : le tonneau, par poisson ; 14h-peche.js) */
@@ -94,7 +95,7 @@ function animerSalleCabane(dt) {
   A.braises.forEach((b) => { const u = b.userData; u.t += dt * 0.55; if (u.t > 1) { u.t = 0; u.a = Math.random() * 6.28; } b.position.set(A.F[0] + Math.cos(u.a) * 0.14 + Math.sin(u.t * 9 + u.a) * 0.04, A.F[1] + 0.3 + u.t * 0.85, A.F[2] + Math.sin(u.a) * 0.05); b.quaternion.copy(q); b.material.opacity = 1 - u.t; });
   A.lampes.forEach((l, i) => { const v = 0.9 + 0.06 * Math.sin(s * 5.3 + i * 2) + 0.04 * Math.sin(s * 12.7 + i); l.material.opacity = 0.8 * v; l.scale.setScalar(l.userData.t * v); });
 }
-function majRatelier() { const E = cannesEues(), main = etatPeche().main; cannesRatelier.forEach((c, i) => { c.visible = E.includes(i + 1) && main !== i + 1; }); }
+function majRatelier() { const E = cannesEues(), main = etatPeche().main; cannesRatelier.forEach((c, i) => { c.visible = (i === 4 || E.includes(i + 1)) && main !== i + 1; }); } /* (la Canne doree reste au mur en trophee, meme quand on ne l'a pas encore) */
 function barreCabane(on) {
   let b = $('cabane-sortir');
   if (!b) { b = document.createElement('button'); b.id = 'cabane-sortir'; b.className = 'btn'; b.textContent = 'Sortir de la cabane'; b.addEventListener('click', () => { if (lieu === 'cabane') allerCabane(0, 1.9, 0, 3, sortirCabane); }); document.body.appendChild(b); }
@@ -159,7 +160,7 @@ function clicCabane(hits) {
     let o = h.object, perso = false, dans = false, canne = 0; while (o) { if (o === paysanMesh) perso = true; if (o === cabaneSalle) dans = true; if (o.userData && o.userData.canne && !canne) canne = o.userData.canne; o = o.parent; }
     if (perso || !dans) continue;
     const O = CABANE_DEDANS, lx = h.point.x - O.x, lz = h.point.z - O.z, ly = h.point.y - O.y, j = canne ? 'ratelier' : zoneCabane(lx, lz, ly);
-    if (j === 'ratelier') { const k = canne || (ly > 2.42 ? 5 : Math.max(1, Math.min(4, Math.round((lx + 1.6) / 0.8) + 1))), xr = k === 5 ? -0.4 : RATELIER_X(k); allerCabane(xr, -1.45, xr, -2.6, () => toucherRatelier(k)); return; } /* (5 : la Canne doree, couchee sur ses crochets au-dessus du ratelier) */
+    if (j === 'ratelier') { const k = canne || Math.max(1, Math.min(4, Math.round((lx + 1.6) / 0.8) + 1)); if (k === 5) allerCabane(1.9, -0.75, 2.5, -2.1, () => toucherRatelier(5)); else allerCabane(RATELIER_X(k), -1.45, RATELIER_X(k), -2.6, () => toucherRatelier(k)); return; } /* (5 : la Canne doree, en trophee au-dessus de la cheminee) */
     if (j === 'porte') { allerCabane(0, 1.9, 0, 3, sortirCabane); return; }
     if (j === 'etabli') { allerCabane(-1.6, 0.4, -3, 0.4, ouvrirEtabliPecheur); return; }
     if (j === 'foyer') { allerCabane(1.9, -0.75, 2.4, -2.1, () => toast('Le feu crépite. De quoi fumer le poisson, un jour.')); return; }
@@ -174,7 +175,7 @@ function clicCabane(hits) {
 function toucherRatelier(k) {
   const P = etatPeche(), E = cannesEues();
   if (P.main && (P.main === k || !E.includes(k))) { const nom = CANNES[P.main].nom; P.main = 0; majRatelier(); tenirCanne(); son('poser'); toast(nom + ' reposée sur le râtelier.'); sauver(); return; }
-  if (!E.includes(k)) { toast('Une place libre : cette canne (' + CANNES[k].nom + '), tu ne l\'as pas encore.'); return; }
+  if (!E.includes(k)) { toast(k === 5 ? PHRASE_CANNE_DOREE + ' La Canne dorée se gagne en pêchant les 9 espèces : tu en as ' + especesPechees() + '.' : 'Une place libre : cette canne (' + CANNES[k].nom + '), tu ne l\'as pas encore.', k === 5 ? 'or' : undefined); return; }
   P.main = k; majRatelier(); tenirCanne(); son('poser'); toast(CANNES[k].nom + ' en main. ' + CANNES[k].desc, 'or'); sauver();
 }
 /* LA CANNE EN MAIN : celle qu'on a prise au ratelier, dans la main droite, tenue droite comme un baton (le bras ne se balance plus) ; rangee pendant un combat */
@@ -202,7 +203,7 @@ let aquariumCharge = null, aquariumObj = null, aquariumVie = null;
 const etatAquarium = () => { const P = etatPeche(); if (!P.aquarium) P.aquarium = { niv: 1, poissons: [] }; return P.aquarium; };
 function assurerAquarium() {
   if (MODELES.aquarium1) return Promise.resolve(); if (aquariumCharge) return aquariumCharge;
-  aquariumCharge = chargerGlb('assets/modeles/jeu/aquarium.glb?v=' + VERSION_MODELES + '-3').then((G) => {
+  aquariumCharge = chargerGlb('assets/modeles/jeu/aquarium.glb?v=' + VERSION_MODELES + '-6').then((G) => {
     versToon(G, { normales: 0.012, sansContour: SC_BATI });
     const brut = (...noms) => { const env = new T.Group(); noms.forEach((nom) => { const n = G.getObjectByName(nom); if (!n) return; const g = n.clone(true); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1); env.add(g); }); return fusionner(env); };
     [1, 2, 3].forEach((k) => { MODELES['aquarium' + k] = brut('Aquarium' + k); }); ['Fuseau', 'Rond', 'Chat', 'Raie'].forEach((f) => { MODELES['poisson' + f] = brut('Poisson' + f); });
@@ -240,12 +241,13 @@ function animerAquarium(dt) {
   V.bulles.forEach((b) => { const u = b.userData.b; u.t += dt * 0.42; if (u.t > 1) u.t -= 1; b.position.set(u.x + Math.sin(u.t * 14 + u.s * 90) * 0.014, 0.56 + u.t * 0.76, u.z); b.scale.setScalar(u.s * (0.7 + 0.5 * u.t)); b.material.opacity = u.t > 0.9 ? (1 - u.t) * 10 : 0.85; });
 }
 
-/* LA CANNE DOREE ET LE TROPHEE (les succes de la peche, 14h-peche.js) : la Canne doree repose couchee sur deux crochets de laiton, au mur nord, au-dessus du
-   ratelier (on la prend et on la repose comme les autres) ; le Poisson-Chaton dore, une fois peche, est accroche au mur ouest sur son ecusson. */
+/* LA CANNE DOREE ET LE TROPHEE (les succes de la peche, 14h-peche.js) : la Canne doree est exposee en trophee au-dessus de la cheminee, dressee sur une planche a fond
+   de feutre vert, deux colliers de laiton, une plaque gravee ; elle y reste meme quand on ne l'a pas encore, et dit alors sa phrase (PHRASE_CANNE_DOREE) quand on
+   la touche (on la prend et on la repose comme les autres, une fois gagnee) ; le Poisson-Chaton dore, une fois peche, est accroche au mur ouest sur son ecusson. */
 function poserExtrasPeche() {
   if (!cabaneSalle || !MODELES.canne5) return; const U = cabaneSalle.userData;
-  if (!U.canneDoree) { const s = cloner('supportCanne'); s.position.set(-1.65, 2.58, -2.5); cabaneSalle.add(s);
-    const c = cloner('canne5'); c.rotation.z = -Math.PI / 2; c.position.set(-1.6, 2.55, -2.44); c.traverse((o) => { o.userData.canne = 5; }); cabaneSalle.add(c); cannesRatelier[4] = c; U.canneDoree = true; majRatelier(); }
+  if (!U.canneDoree) { const h = new T.Group(), s = cloner('supportCanne'), c = cloner('canne5'); h.position.set(2.5, 1.24, -1.965); /* (sur le conduit de la cheminee, face a la piece : la planche va de 1,14 a 2,76) */
+    c.scale.setScalar(0.6); c.position.set(0, 0, 0.012); h.add(s); h.add(c); h.traverse((o) => { o.userData.canne = 5; }); cabaneSalle.add(h); cannesRatelier[4] = c; U.canneDoree = true; majRatelier(); } /* (dressee, a 0,6 de sa taille ; la planche se touche comme la canne) */
   if (!U.trophee && etatPeche().vues['chaton-dore']) { const g = new T.Group(), pl = cloner('tropheeDore'), f = cloner('poissonChat'); pl.scale.z = 0.9; g.add(pl);
     teinterPoisson(f, '#f2c53d', true); f.rotation.y = -Math.PI / 2; f.scale.set(0.78, 0.78, 0.45); f.position.set(0.1, 0, 0.02); g.add(f); g.position.set(-3.17, 1.86, 0.72); cabaneSalle.add(g); U.trophee = g; }
 }
