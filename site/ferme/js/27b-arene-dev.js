@@ -211,6 +211,9 @@ function ouvrirModeTest() {
   const pas = (attr, v) => '<div class="act dev-nb">' + [-10, -1].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">' + d + '</button>').join('') + '<b>' + v + '</b>' + [1, 10].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">+' + d + '</button>').join('') + '</div>';
   ouvrirModale('mode-test', entete('Mode test') + '<p class="hdv-aide">Plus rien n\'est enregistré. « Quitter le mode test » recharge la page et te rend ta vraie partie.</p>' +
     /* (tout en haut : « je vois toujours pas le mode nuit en mode test », Mathieu, 11/11/2026 ; il etait en bas du panneau, apres les defenses) */
+    /* (l'ile des boss, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu, pour le Bworker de la semaine du 13/11 : le boss au choix, essais libres, rien ne compte) */
+    '<div class="hdv-section">L\'île des boss</div><p class="hdv-aide">Le boss de ton choix, autant d\'essais que tu veux : rien ne compte, ni tes essais ni la vie commune de l\'alliance. Le Bworker (semaine du 13 novembre) est <b>renforcé à l\'essai</b>, comme le Craqueleur Légendaire : décoche pour le comparer à celui d\'aujourd\'hui.</p><div class="puces dev-groupes">' + bouton('test-ile', 'semaine', 'Celui de la semaine', !ETAT_TEST.ileBoss) + ROTATION_ILE_BOSS.map((t) => bouton('test-ile', t, MONSTRES[t].nom, ETAT_TEST.ileBoss === t)).join('') + '</div>' +
+    '<div class="puces dev-groupes">' + bouton('test', 'ilerenfort', 'Bworker renforcé (à l\'essai)', !ETAT_TEST.ileSansRenfort) + bouton('test', 'ile', 'Partir sur l\'île', false) + '</div>' +
     '<div class="hdv-section">Le jour et la nuit</div><p class="hdv-aide">Sur ta ferme, à partir de la vague 91 : la nuit va de 18 h à 7 h, heure française. Force l\'un ou l\'autre pour essayer à toute heure.</p><div class="puces dev-groupes">' + bouton('test-nuit', 'vraie', 'L\'heure vraie', !ETAT_TEST.nuit) + bouton('test-nuit', 'jour', 'Toujours le jour', ETAT_TEST.nuit === 'jour') + bouton('test-nuit', 'nuit', 'Toujours la nuit', ETAT_TEST.nuit === 'nuit') + '</div>' +
     '<div class="puces dev-groupes">' + bouton('test', 'vraieslum', 'Vraies lumières (les lanternes éclairent le sol, les murs et ton perso)', !ETAT_TEST.sansLum) + '</div>' +
     '<div class="hdv-section">La pluie (palier 11, à l\'essai)</div><p class="hdv-aide">Une ambiance seulement, sur ta ferme : rien ne ralentit ni ne blesse. La mare déborde sur l\'herbe voisine, la foudre tombe là où un cercle l\'annonce ; la marée haute met l\'eau sur toute l\'herbe libre.</p><div class="puces dev-groupes">' + bouton('test-pluie', 'non', 'Pas de pluie', !ETAT_TEST.pluie) + bouton('test-pluie', 'pluie', 'Il pleut', ETAT_TEST.pluie === 'pluie') + bouton('test-pluie', 'maree', 'Orage et marée haute', ETAT_TEST.pluie === 'maree') + '</div>' +
@@ -229,7 +232,7 @@ function ouvrirModeTest() {
     '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost],[data-test-nuit],[data-test-equi],[data-test-pluie]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost],[data-test-nuit],[data-test-equi],[data-test-pluie],[data-test-ile]'); if (!b || !estAdmin()) return;
   const d = b.dataset, a = d.test;
   if (a === 'ouvrir') { ouvrirModeTest(); return; }
   if (a === 'entrer') { entrerModeTest(); return; }
@@ -237,7 +240,10 @@ document.addEventListener('click', (e) => {
   if (a === 'quitter') { location.reload(); return; }
   if (a === 'relancer') { relancerTest(ETAT_TEST.dernier || 'vague'); return; }
   if (a === 'pv') { vieAuMax(); if (modaleOuverte === 'mode-test') ouvrirModeTest(); return; }
-  if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
+  if (a === 'ile') { if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } partirIleBoss(); return; } /* (l'ile des boss du mode test) */
+  if (d.testIle) { if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } ETAT_TEST.ileBoss = d.testIle === 'semaine' ? null : d.testIle; }
+  else if (a === 'ilerenfort') ETAT_TEST.ileSansRenfort = !ETAT_TEST.ileSansRenfort;
+  else if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
   else if (a === 'sansdef') ETAT_TEST.sansDef = !ETAT_TEST.sansDef;
   else if (a === 'vraieslum') ETAT_TEST.sansLum = !ETAT_TEST.sansLum; /* (les vraies lumieres a l'essai, 14k-lumieres.js) */
   else if (d.testTours) ETAT_TEST.tours = d.testTours === 'tiennes' ? null : Number(d.testTours);

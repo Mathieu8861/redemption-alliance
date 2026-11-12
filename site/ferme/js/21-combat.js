@@ -516,7 +516,7 @@ function regleArene(o) { /* l'Arene : chacun remis a la force de l'Arene (statsA
 function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colossal (une fois et demie plus grand) a les PV de toute l'alliance */
   const L = niveau(S_.xp), Lb = niveauRequis(combat.n), a = forceRef(L), b = forceRef(Lb); o.aggro = true; o.casseur = false;
   const mR = 1 + ENRAGE_ILE.pas * (combat.arene.pas || 0); o.rageM = mR; /* (sa troupe arrive deja enragee comme lui) */
-  if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = pvIleBoss(o.type); o.pv = Math.max(1, o.pvMax - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; o.vitM = VITESSE_ILE[o.type] || 1;  renforcerIle(o); } /* (renforcerIle : le Craqueleur legendaire renforce sur l'ile, 07/11/2026) */
+  if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = pvIleBoss(o.type); o.pv = Math.max(1, o.pvMax - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; o.vitM = vitesseIle(o.type); renforcerIle(o); } /* (renforcerIle : le Craqueleur legendaire renforce sur l'ile, 07/11/2026) */
   else { o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * a.dps / b.dps * 0.6)); o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv * 0.6)); o.deg = Math.max(1, Math.round(o.deg0 * mR)); }
 }
 function apparaitre(type, pres) {

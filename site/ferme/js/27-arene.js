@@ -222,9 +222,19 @@ const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000 }, pvIleBoss = (t) => PV_ILE_B
    pour un Iop colle a lui ; « ok applique les changements, monte les autres stats aussi », Mathieu). d : ce qui remplace sa fiche (sur une copie, le boss de la vague 40
    ne change pas), deg : ses coups, vit : sa vitesse de marche, rappel : ses renforts (s) */
 const RENFORT_ILE = { craqLegendaire: { d: { seisme: 6, seismeDuree: 1.6, cadence: 1.7, armure: 0.45, sortsX: { seisme: 1.5 }, jet: { periode: 2.2, prepa: 0.85, R: 2.6, x: 0.65 }, faille: { periode: 8, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } };
+/* LE BWORKER RENFORCE, A L'ESSAI (12/11/2026, « tu me le up a la maniere du craqueleur ? », Mathieu, la veille de sa semaine sur l'ile) : les memes leviers que le
+   Craqueleur, dans les memes proportions. Sa Hache lancee (son ultime) : toutes les 5 s au lieu de 7, 0,9 s pour sortir du cercle au lieu de 1,2, cercle de 3,8 au
+   lieu de 3,2, x1,5. Son bond : toutes les 6,5 s au lieu de 9, 1 s au lieu de 1,3, cercle de 3 au lieu de 2,3, x1,3. Son tourbillon (contre un Iop colle a lui) :
+   toutes les 6 s au lieu de 8, 1 s au lieu de 1,2, cercle de 4,6 au lieu de 3,6 (il est une fois et demie plus grand sur l'ile), +29 %. Un coup toutes les 1,6 s
+   au lieu de 2, armure 40 % au lieu de 30, coups +30 %, marche +15 %, Bworks toutes les 12 s au lieu de 16. LU SEULEMENT DANS LE MODE TEST tant que Mathieu n'a
+   pas valide les chiffres : pour l'ouvrir aux joueurs, deplacer la ligne dans RENFORT_ILE (et VITESSE_ILE_ESSAI dans VITESSE_ILE) */
+const RENFORT_ILE_ESSAI = { bworker: { d: { bondit: 6.5, bondPrepa: 1, bonditR: 3.0, cadence: 1.6, armure: 0.4, sortsX: { bond: 1.3 }, jet: { periode: 5, prepa: 0.9, R: 3.8, x: 1.2 }, tourbillon: { periode: 6, prepa: 1, R: 4.6, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } };
+const VITESSE_ILE_ESSAI = { bworker: 1.25 };
+const essaiIleLa = () => MODE_TEST && !ETAT_TEST.ileSansRenfort; /* (le mode test : le renfort a l'essai, que l'on peut decocher pour comparer) */
+const renfortIle = (t) => RENFORT_ILE[t] || (essaiIleLa() ? RENFORT_ILE_ESSAI[t] : null), vitesseIle = (t) => VITESSE_ILE[t] || (essaiIleLa() ? VITESSE_ILE_ESSAI[t] : 0) || 1;
 function renforcerIle(o) {
-  const R = RENFORT_ILE[o.type]; if (!R) return; const d0 = o.d, d = Object.assign({}, d0, R.d);
-  ['jet', 'faille', 'sortsX'].forEach((k) => { if (R.d[k]) d[k] = Object.assign({}, d0[k] || {}, R.d[k]); }); o.d = d;
+  const R = renfortIle(o.type); if (!R) return; const d0 = o.d, d = Object.assign({}, d0, R.d);
+  ['jet', 'faille', 'tourbillon', 'sortsX'].forEach((k) => { if (R.d[k]) d[k] = Object.assign({}, d0[k] || {}, R.d[k]); }); o.d = d;
   if (R.deg) o.deg = o.deg0 = Math.max(1, Math.round(o.deg * R.deg)); if (R.vit) o.vitM = (o.vitM || 1) * R.vit; if (R.rappel) o.rappel = R.rappel;
 }
 const VITESSE_ILE = { craqLegendaire: 1.25 }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
@@ -237,12 +247,12 @@ const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return
    vendredi (le format que lit la base). Chaque vendredi : un nouveau boss (la rotation), une vie commune neuve, 3 essais neufs, et le coffre de la semaine finie. */
 const semaineIleBoss = (t) => { const d = new Date(t == null ? tempsReel() : t); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
 const finSemaineIle = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
-function bossDuJour(cle) { const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
+function bossDuJour(cle) { if (MODE_TEST && ETAT_TEST.ileBoss && MONSTRES[ETAT_TEST.ileBoss]) return ETAT_TEST.ileBoss; /* (le mode test : le boss de l'ile au choix, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu) */ const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
 const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (palierDuBoss(t) + 1) * VAGUES_PALIER;
 function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
 const partiesIle = () => [S_].concat(Object.values(S_.parties || {}).filter((e) => e && e.perso)); /* (la partie en cours et les autres du compte) */
 const jourIleDe = (e, cle) => (e.ileBoss && e.ileBoss.jours && e.ileBoss.jours[cle]) || null;
-const essaisCompte = (cle) => partiesIle().reduce((a, e) => a + ((jourIleDe(e, cle) || {}).essais || 0), 0); /* (3 essais par compte, toutes parties confondues) */
+const essaisCompte = (cle) => MODE_TEST ? 0 : partiesIle().reduce((a, e) => a + ((jourIleDe(e, cle) || {}).essais || 0), 0); /* (3 essais par compte, toutes parties confondues) */
 const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleDe(e, cle) || {}).meilleur || 0));
 const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS && k !== semaineIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
 const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
@@ -255,11 +265,11 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
   const cle = semaineIleBoss(), l = niveau(S_.xp), v = '?v=' + VERSION_MODELES, aReclamer = aReclamerIle();
   const t = bossDuJour(cle), B = MONSTRES[t], J = jourIle(cle), reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(cle));
   const raison = l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + ESSAIS_ILE_BOSS + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.' : '';
-  const total = ileBossTotal != null && cle ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / pvIleBoss(t)) : 0;
+  const total = ileBossTotal != null && cle && !MODE_TEST ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / pvIleBoss(t)) : 0;
   const R = RECOMPENSES_ILE, rec = (titre, txt) => '<div class="rc-l"><span>' + titre + '</span><b>' + txt + '</b></div>';
   ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque vendredi, avec une vie neuve. Toute l\'alliance tape sur la même vie.</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS + ' cette semaine</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' + '<span class="puce">gratuit</span></div>' +
-    ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, pvIleBoss(t) - total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
+    ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, pvIleBoss(t) - total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV' : MODE_TEST ? 'Mode test : boss au choix, essais libres, rien ne compte pour l\'alliance' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
     '<ul class="arene-regles"><li><b>' + ESSAIS_ILE_BOSS + ' essais par semaine, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse de déplacement et de vitesse d\'attaque, et leurs sorts reviennent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % plus vite. Toute l\'île est à toi : esquive tant que tu peux, et tape le plus fort possible.</li>' +
     '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
@@ -293,7 +303,7 @@ function lancerIleBoss() {
   const cle = semaineIleBoss(); if (combat || !paysanMesh || lieu !== 'ile') return; const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) return;
   J.essais++; sauver(); /* (l'essai compte des qu'il commence) */
   const t = J.boss = bossDuJour(cle), n = vagueDuBoss(t);
-  nouveauCombat('ile', { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, attente: 99, ...potsDeVague() }); /* (chaque essai part avec toute sa vie) */
+  nouveauCombat('ile', { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: MODE_TEST ? 0 : Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, attente: 99, ...potsDeVague() }); /* (chaque essai part avec toute sa vie) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant l\'essai : ' + texteRepas(repas) + '.', 'or'), 2600); }
   ouvrirHudCombat();
   const g = new T.Vector3(-6.4, 0, -6.4).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS); apparaitre(t, { x: g.x, z: g.z }); /* (il sort de l'arche-crane) */
@@ -303,7 +313,7 @@ function finIleBoss(abandon, tombe) {
   const c = combat; if (!c || c.fin || c.genre !== 'ile') return;
   nettoyerCombat(c, true);
   /* (la vie de la ferme reste celle d'avant le voyage : un essai rate ne te renvoie pas a 1 PV) */
-  const A = c.arene, J = jourIle(A.cle), d = Math.round(A.deg), mc = meilleurCompte(A.cle), record = d > mc; if (record && ileBossTotal != null) ileBossTotal += d - mc; if (d > J.meilleur) J.meilleur = d; /* (record : le meilleur du compte, toutes parties) */ compter('ileBossEssais');
+  const A = c.arene, J = jourIle(A.cle), d = Math.round(A.deg), mc = meilleurCompte(A.cle), record = d > mc; if (record && ileBossTotal != null && !MODE_TEST) ileBossTotal += d - mc; if (d > J.meilleur) J.meilleur = d; /* (record : le meilleur du compte, toutes parties) */ compter('ileBossEssais');
   son(tombe || record ? 'victoire' : 'defaite'); if (tombe || record) confettis(tombe ? 80 : 40);
   const reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
