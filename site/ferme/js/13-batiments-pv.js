@@ -162,13 +162,16 @@ function blesserBat(cle, n) {
 function batLePlusProche(mo) {
   let best = null, bd = 1e9; clesBats().forEach((k) => { if (enRuine(k)) return; const z = zoneBat(k); if (!z) return; const d = Math.hypot(z.x - mo.x, z.z - mo.z); if (d < bd) { bd = d; best = k; } }); return best;
 }
+/* casseur ou pas, tire une fois pour toutes a son premier pas ; casseUnSurDeux (les Tronknydes, 12/11/2026) : un sur deux dans l'ordre d'arrivee, pas au hasard */
+const estCasseur = (mo) => { if (mo.casseur === undefined) mo.casseur = !mo.d.boss && (mo.d.casseUnSurDeux && combat ? (combat.unSurDeux = (combat.unSurDeux || 0) + 1) % 2 === 1 : Math.random() < (mo.d.casse || 0)); return mo.casseur; };
 function cibleBatiment(mo, dt) {
-  if (mo.casseur === undefined) mo.casseur = !mo.d.boss && Math.random() < (mo.d.casse || 0);
+  estCasseur(mo);
   if (!mo.casseur || mo.aggro) return null;
   const pp = paysanMesh.position; if (combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) < (mo.d.aggroR || 2.2)) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend (pas quand il est a terre) ; aggroR : les Koalaks se retournent contre toi de plus loin (05/11/2026) */
   mo.batT = (mo.batT || 0) - dt;
   if (!mo.bat || enRuine(mo.bat) || mo.batT <= 0) { mo.batT = 1.5; mo.bat = batLePlusProche(mo);
     if (mo.d.bucheron) { const T0 = clesBats().filter((k) => /^tour:/.test(k) && !enRuine(k)).map((k) => [k, zoneBat(k)]).filter(([, z]) => z).sort((a, b) => Math.hypot(a[1].x - mo.x, a[1].z - mo.z) - Math.hypot(b[1].x - mo.x, b[1].z - mo.z))[0]; if (T0) mo.bat = T0[0]; } } /* (le Forestier : les tours d'abord) */
+    if (mo.d.casseUnSurDeux && zoneBat('grange') && !enRuine('grange')) mo.bat = 'grange'; /* (les Tronknydes casseurs : droit sur la grange, le chateau, tant qu'elle tient ; « y'a aucun mob qui tape la grange », Mathieu, 12/11/2026) */
   if (!mo.bat) return null;
   const z = zoneBat(mo.bat); if (!z) { mo.bat = null; return null; }
   return { cle: mo.bat, x: borne(mo.x, z.x - z.hw, z.x + z.hw), z: borne(mo.z, z.z - z.hd, z.z + z.hd), y: z.y };

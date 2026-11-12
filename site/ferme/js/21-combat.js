@@ -251,7 +251,7 @@ function ficheMonstre(t) {
   const d = MONSTRES[t], B = bestiaire()[t] || {}, V = vaguesDe(t), n = V.length ? Math.min(Math.max(S_.vague.num, V[0]), V[V.length - 1]) : Math.max(1, Math.min(S_.vague.num, VAGUES_TOTAL));
   const pv = pvMonstre(t, n), deg = Math.round(degMonstre(t, n) * multDegats(n) * multHautes(n) * autoFiche(d, t, n)), dSort = d.boss ? Math.round(degMonstre(t, n) / BOSS_DEG[palierDe(n)] * (d.degSort || 0) * multHautes(n)) : Math.round(deg * (d.degSort || 1.5));
   const P = V.length ? palierDe(V[0]) : null, pros = 1 + caracs().prospection / 100, pc = (x) => (Math.round(Math.min(1, x) * 1000) / 10).toString().replace('.', ',') + ' %';
-  const vis = d.grignote ? 'Tes cultures' : d.bandit ? 'Ta grange' : d.casse ? 'Toi ou tes bâtiments' : 'Toi', vM = vitesseMonstre(d), vit = vM <= VITESSE_MIN_MONSTRES + VITESSE_PLUS_MONSTRES ? 'lent' : vM < 2.7 + VITESSE_PLUS_MONSTRES ? 'moyen' : 'rapide';
+  const vis = d.grignote ? (d.casseUnSurDeux ? 'Tes cultures ou ta grange' : 'Tes cultures') : d.bandit ? 'Ta grange' : d.casse ? 'Toi ou tes bâtiments' : 'Toi', vM = vitesseMonstre(d), vit = vM <= VITESSE_MIN_MONSTRES + VITESSE_PLUS_MONSTRES ? 'lent' : vM < 2.7 + VITESSE_PLUS_MONSTRES ? 'moyen' : 'rapide';
   const tag = (p, t2, cl) => '<span class="puce ' + (cl || '') + '">' + picto(p) + t2 + '</span>', num = (t2, cl) => '<span class="puce ' + (cl || '') + '">' + t2 + '</span>';
   const tags = [d.boss && tag('couronne', d.demi ? 'Demi-boss' : 'Boss', 'or'), d.armure && tag('bouclier', 'Armure ' + Math.round(d.armure * 100) + ' %'), d.distance && tag('carreaux', 'Tire de loin'), d.casse && tag('casse', 'Casse les bâtiments'),
     !d.boss && d.charge && tag('charge', 'Charge', 'violet'), d.pique && tag('pique', 'Pique en vol', 'violet'), !d.boss && peutSauter({ d, aggro: true }) && tag('saut', 'Saute', 'violet'), d.vol && tag('vol', 'Vole'),
@@ -264,7 +264,7 @@ function ficheMonstre(t) {
   if (!d.boss && peutSauter({ d, aggro: true })) met('sauteP', 'saut', 'Saute sur toi', 'À moins de 3 cases, il se ramasse, puis bondit là où tu es. Reste dans le rond rouge et il t\'agrippe.', num('3 cases') + num(fmt(deg) + ' dégâts', 'rouge') + num('ralentit ' + String(AGRIPPE).replace('.', ',') + ' s', 'bleu') + num(secondes(ESQUIVE.saut) + ' pour esquiver') + num('toutes les ' + SAUT_RECHARGE + ' s'), 'violet');
   if (!d.boss && (d.charge || d.pique)) met('chargeP', d.pique ? 'pique' : 'charge', d.pique ? 'Vol en piqué' : 'Charge', d.pique ? 'À moins de 3 cases, il prend de la hauteur, puis plonge sur toi en ligne droite. Une bande rouge te prévient.' : 'Il baisse la tête et fonce sur toi en ligne droite. Une bande rouge te prévient.',
     num((d.chargeMax ? '3' : '5') + ' cases') + num(fmt(dSort) + ' dégâts', 'rouge') + num(secondes(d.chargeMax ? ESQUIVE.charge : ESQUIVE.grandeCharge) + ' pour esquiver') + num('toutes les ' + (d.charge || d.pique) + ' s') + num('un bâtiment sur sa route prend le coup', 'vert'), 'violet');
-  if (d.casse) met('casse', 'casse', 'Démolit les bâtiments', 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.' + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : ''), num(Math.round((d.casse || 0) * 100) + ' % de chances') + num(fmt(Math.round(dpsBatiments(n))) + ' dégâts par seconde sur un bâtiment', 'rouge'));
+  if (d.casse) met('casse', 'casse', 'Démolit les bâtiments', (d.casseUnSurDeux ? 'Une sur deux fonce taper ta grange au lieu de tes cultures (le bâtiment le plus proche si elle est en ruine). Frappe-la et elle te prend pour cible.' : 'Souvent, il fonce sur un bâtiment plutôt que sur toi. Frappe-le et il te prend pour cible.') + (d.bucheron ? ' Il tape deux fois plus fort sur les tours.' : ''), num(d.casseUnSurDeux ? 'Une sur deux' : Math.round((d.casse || 0) * 100) + ' % de chances') + num(fmt(Math.round(dpsBatiments(n))) + ' dégâts par seconde sur un bâtiment', 'rouge'));
   if (d.distance) met('distance', 'carreaux', 'Tire de loin', 'Il reste à distance et te tire dessus' + (d.casse ? ', ou sur tes bâtiments' : '') + '. Va le chercher : collé à lui (moins d\'1,5 case), il ne peut plus te toucher.', num(casesDe(d.portee) + ' cases') + num(fmt(deg) + ' dégâts', 'rouge'));
   if (d.ralentit) met('ralentit', 'lenteur', 'Te ralentit', 'Chacun de ses coups te fait marcher plus lentement.', num(String(d.ralentit).replace('.', ',') + ' s', 'bleu'), 'bleu');
   if (d.menotte) met('menotte', 'assomme', 'Te menotte', 'Si sa charge te touche, tu restes sur place un instant. Tu peux encore frapper.', num(secondes(d.menotte), 'rouge'), 'or');
@@ -3198,7 +3198,7 @@ function majMonstre(mo, dt, s) {
   if (!bloque && !mo.ancre) { /* (ancre : le Chene Mou enracine, 08/11/2026) */
   /* sa cible : un Tofu va picorer une culture tant qu'il en reste a voler, sinon (et pour les autres) c'est le perso */
   let tx, tz, versPerso = true;
-  if (mo.d.grignote && !mo.aggro) {
+  if (mo.d.grignote && !mo.aggro && !(mo.d.casseUnSurDeux && estCasseur(mo))) { /* (casseUnSurDeux : un Tronknyde casseur ne grignote pas, il va aux batiments) */
     if (mo.champ && !(mo.champ.type === 'champ' && mo.champ.c && recolte(mo.champ) > 1)) mo.champ = null;
     if (!mo.champ) {
       const libres = S_.cases.filter((c) => c.type === 'champ' && c.c && recolte(c) > 1);
@@ -3215,7 +3215,7 @@ function majMonstre(mo, dt, s) {
     else if (mo.butinK) { tx = mo.sortie.x; tz = mo.sortie.z; versPerso = false; bandit = true; if (Math.hypot(tx - mo.x, tz - mo.z) < 1.0) { fuiteBandit(mo); return; } }
   }
   let bat = null;
-  if (!mo.d.grignote && !bandit) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
+  if ((!mo.d.grignote || mo.d.casseUnSurDeux) && !bandit) { bat = cibleBatiment(mo, dt); if (bat) { tx = bat.x; tz = bat.z; versPerso = false; } } /* un casseur : direction le batiment */
   if (!versPerso && !bandit && !mo.d.distance && combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) <= mo.d.portee * (mo.allonge || 1)) { versPerso = true; bat = null; } /* passer a sa portee : il te frappe, meme s'il visait un batiment ou une culture */
   if (versPerso) { tx = pp.x; tz = pp.z; } mo.chasse = versPerso;
   const bo = combat.bouture, surBo = !!(bo && bo.m && bo.pv > 0 && versPerso && !mo.d.boss && !mo.d.demi && !mo.d.distance && combat.deroute == null && Math.hypot(bo.x - mo.x, bo.z - mo.z) < RAYON_BOUTURE); if (surBo) { tx = bo.x; tz = bo.z; } /* (LA BOUTURE de l'Osa, 09/11/2026 : a moins de 3 cases du Tronknyde allie, il le prend pour cible au lieu de toi) */
