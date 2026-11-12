@@ -392,7 +392,7 @@ const COMPO_ABRAK = [null,
   [['tronknyde', 3], ['abraknyde', 2], ['abrakne', 2], ['venerable', 1]],
   [['tronknyde', 2], ['abraknyde', 2], ['abrakne', 2], ['sombre', 1], ['arbreCollant', 1]],
   [['tronknyde', 2], ['abraknyde', 2], ['abrakneSombre', 2], ['semeur', 1], ['venerable', 1]],
-  [['ancestral', 1], ['tronknyde', 2], ['abraknyde', 1], ['abrakne', 2]],
+  [['ancestralMaudit', 1], ['tronknyde', 2], ['abraknyde', 1], ['abrakne', 2]], /* (l'Ancestral Maudit a la vague 95 aussi, 12/11/2026, Mathieu, le soir de la sortie du palier ; l'Ancestral classique n'est plus dans aucune vague) */
   [['araknotron', 1], ['abraknyde', 2], ['abrakne', 2], ['abrakleur', 1], ['venerable', 1], ['tronknyde', 2]],
   [['araknotron', 1], ['sombre', 2], ['abrakneSombre', 2], ['abrakleur', 2], ['semeur', 1], ['arbreCollant', 1]],
   [['araknotron', 2], ['sombre', 1], ['abraknyde', 2], ['abrakne', 2], ['abrakleur', 1], ['venerable', 1], ['arbreCollant', 1]],
