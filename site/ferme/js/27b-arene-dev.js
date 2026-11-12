@@ -211,6 +211,7 @@ function ouvrirModeTest() {
   ouvrirModale('mode-test', entete('Mode test') + '<p class="hdv-aide">Plus rien n\'est enregistré. « Quitter le mode test » recharge la page et te rend ta vraie partie.</p>' +
     /* (tout en haut : « je vois toujours pas le mode nuit en mode test », Mathieu, 11/11/2026 ; il etait en bas du panneau, apres les defenses) */
     '<div class="hdv-section">Le jour et la nuit</div><p class="hdv-aide">Sur ta ferme, à partir de la vague 91 : la nuit va de 18 h à 7 h, heure française. Force l\'un ou l\'autre pour essayer à toute heure.</p><div class="puces dev-groupes">' + bouton('test-nuit', 'vraie', 'L\'heure vraie', !ETAT_TEST.nuit) + bouton('test-nuit', 'jour', 'Toujours le jour', ETAT_TEST.nuit === 'jour') + bouton('test-nuit', 'nuit', 'Toujours la nuit', ETAT_TEST.nuit === 'nuit') + '</div>' +
+    '<div class="puces dev-groupes">' + bouton('test', 'vraieslum', 'Vraies lumières (les lanternes éclairent le sol, les murs et ton perso)', !ETAT_TEST.sansLum) + '</div>' +
     '<div class="hdv-section">La pluie (palier 11, à l\'essai)</div><p class="hdv-aide">Une ambiance seulement, sur ta ferme : rien ne ralentit ni ne blesse. La mare déborde sur l\'herbe voisine, la foudre tombe là où un cercle l\'annonce ; la marée haute met l\'eau sur toute l\'herbe libre.</p><div class="puces dev-groupes">' + bouton('test-pluie', 'non', 'Pas de pluie', !ETAT_TEST.pluie) + bouton('test-pluie', 'pluie', 'Il pleut', ETAT_TEST.pluie === 'pluie') + bouton('test-pluie', 'maree', 'Orage et marée haute', ETAT_TEST.pluie === 'maree') + '</div>' +
     '<div class="hdv-section">Ton perso</div><div class="puces dev-groupes">' + CLASSES.map((c) => bouton('test-classe', c.id, c.nom, c.id === cl)).join('') + bouton('test-sexe', 'm', 'Homme', sexeDe() === 'm') + bouton('test-sexe', 'f', 'Femme', sexeDe() === 'f') + '</div>' +
     '<div class="hdv-aide">Niveau ' + L + ', ' + fmt(statsPerso().pvMax) + ' PV avec ton équipement</div>' + pas('test-niv', L) +
@@ -237,6 +238,7 @@ document.addEventListener('click', (e) => {
   if (a === 'pv') { vieAuMax(); if (modaleOuverte === 'mode-test') ouvrirModeTest(); return; }
   if (a === 'immortel') ETAT_TEST.immortel = !ETAT_TEST.immortel;
   else if (a === 'sansdef') ETAT_TEST.sansDef = !ETAT_TEST.sansDef;
+  else if (a === 'vraieslum') ETAT_TEST.sansLum = !ETAT_TEST.sansLum; /* (les vraies lumieres a l'essai, 14k-lumieres.js) */
   else if (d.testTours) ETAT_TEST.tours = d.testTours === 'tiennes' ? null : Number(d.testTours);
   else if (d.testPluie) ETAT_TEST.pluie = d.testPluie === 'non' ? null : d.testPluie; /* (la pluie a l'essai du palier 11, 14j-pluie.js) */
   else if (d.testNuit) { ETAT_TEST.nuit = d.testNuit === 'vraie' ? null : d.testNuit; if (typeof majPastilleNuit === 'function') majPastilleNuit.t = 0; } /* (le jour et la nuit du palier 10, 14i-nuit.js) */
