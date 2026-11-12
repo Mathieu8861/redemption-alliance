@@ -69,7 +69,7 @@ function comparaisonClasses(id) { /* les trois classes cote a cote, sans equipem
    Les pots bus avant la vague (Menthe, Citron, Royale) ne sont pris que par les combats qui les consomment (potsDeVague) : la simu VSA les laisse. */
 const potsDeVague = () => ({ regen: menthePrete(), citron: citronPret(), agi: royalePrete() });
 function nouveauCombat(genre, champs) {
-  if (genre !== 'raid') couperNuitFerme(); /* (la nuit de la ferme laisse la place au combat : les lumieres reviennent a leur plein jour, 14i-nuit.js ; pas pour une simu VSA, qui garde la nuit de la ferme, 12/11/2026) */
+  if (genre !== 'raid' && !(genre === 'vague' && champs && champs.n > 9 * VAGUES_PALIER)) couperNuitFerme(); /* (une vague de la foret garde la nuit de la ferme jusqu'a sa propre nuit : nuitForet, 12/11/2026) */ /* (la nuit de la ferme laisse la place au combat : les lumieres reviennent a leur plein jour, 14i-nuit.js ; pas pour une simu VSA, qui garde la nuit de la ferme, 12/11/2026) */
   const st = statsPerso();
   return (combat = Object.assign({ genre, n: 0, file: [], total: 1, attente: 1, st: { inflige: 0, max: 0, recus: 0, soins: 0, menthe: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: st.pvMax, pvMax: st.pvMax,
     cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] }, champs));
@@ -1494,16 +1494,19 @@ function yeuxNuit(N, k, fin) {
     const x = (p.x + 1) / 2 * W, y = (1 - p.y) / 2 * H, r = Math.min(160, Math.max(14, Math.hypot((q.x - p.x) / 2 * W, (q.y - p.y) / 2 * H) * 2)); L.push([x, y, r]); });
 }
 function nuitForet() {
+  const deNuit = typeof NUIT_J !== 'undefined' && !!NUIT_J && NUIT_J.k > 0.5; if (typeof couperNuitFerme === 'function') couperNuitFerme(); /* (12/11/2026, « on passe vite fait pendant 1 s en jour et ca repasse en nuit », Mathieu : lancee de nuit, la vague gardait d'abord la nuit de la ferme coupee net, puis la nuit de la foret montait en fondu depuis le plein jour. Maintenant la nuit de la ferme tient jusqu'ici, rend les lumieres a leur plein jour (que NUIT_F note), et la nuit de la foret est posee d'un coup a sa pleine force) */
   if (!NUIT_F) { const v = document.createElement('div'); v.className = 'nuit-foret'; v.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:1;background:radial-gradient(ellipse at 50% 48%,rgba(10,40,48,.16) 0%,rgba(6,22,30,.38) 45%,rgba(3,10,16,.66) 100%)'; /* (au-dessus de la scene, sous l'interface : la nuit lunaire, elle, ne teinte que le ciel) */
     const st = document.createElement('style'); st.textContent = '@keyframes luciole{0%{transform:translate(0,0);opacity:.2}25%{opacity:1}50%{transform:translate(18px,-22px);opacity:.4}75%{opacity:.95}100%{transform:translate(-10px,8px);opacity:.2}}'; document.head.appendChild(st);
     v.innerHTML = Array.from({ length: 26 }, () => '<i style="position:absolute;left:' + (Math.random() * 100).toFixed(1) + '%;top:' + (20 + Math.random() * 75).toFixed(1) + '%;width:5px;height:5px;border-radius:50%;background:#e8ff9a;box-shadow:0 0 10px 3px rgba(214,255,120,.75);animation:luciole ' + (4 + Math.random() * 5).toFixed(1) + 's ease-in-out ' + (-Math.random() * 6).toFixed(1) + 's infinite alternate"></i>').join('');
     canvas.insertAdjacentElement('afterend', v);
     const L = []; scene.traverse((o) => { if (o.isLight) L.push({ o, i: o.intensity, c: o.color.clone() }); }); NUIT_F = { v, L, t: 0 }; }
-  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; N.c0 = c0; N.fin = 0; if (N.actif) return; /* (deja la, d'une vague relancee en mode test : elle se rattache au nouveau combat, 08/11/2026) */ N.actif = true; N.t = 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
+  const N = NUIT_F, bleu = new T.Color('#7fa6d8'), c0 = combat; N.c0 = c0; N.fin = 0; if (N.actif) return; /* (deja la, d'une vague relancee en mode test : elle se rattache au nouveau combat, 08/11/2026) */ N.actif = true; N.t = deNuit ? 1.6 : 0; animerLanternes.t = 0; /* (les lanternes s'allument tout de suite) */
+  if (deNuit) { N.v.style.opacity = '1'; N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62); l.o.color.copy(l.c).lerp(bleu, 0.55); }); } /* (de nuit : pas une image en plein jour avant le premier passage de l'effet) */
   effets.push((dt) => { N.t += dt; const vivant = combat === N.c0 && combat && !combat.fin; if (!vivant) N.fin += dt; const fin = N.fin;
     const k = Math.min(1, N.t / 1.6) * Math.max(0, 1 - fin / 1.4); N.v.style.opacity = String(k); yeuxNuit(N, k); trousNuit(N); eclaircirMonstres(N, k);
-    N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
-    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); yeuxNuit(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; return true; } return false; });
+    const nuitJ = fin > 0 && typeof NUIT_J !== 'undefined' && !!NUIT_J && NUIT_J.k > 0; /* (la vague finit en pleine nuit : la nuit de la ferme a repris, c'est elle qui regle les lumieres ; sinon elles remontaient presque au plein jour une demi-seconde, 12/11/2026) */
+    if (!nuitJ) N.L.forEach((l) => { l.o.intensity = l.i * (1 - 0.62 * k); l.o.color.copy(l.c).lerp(bleu, 0.55 * k); });
+    if (fin >= 1.4) { N.v.style.opacity = '0'; animerLanternes.t = 0; eclaircirMonstres(N, 0, true); yeuxNuit(N, 0, true); N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.L.forEach((l) => { l.o.intensity = l.i; l.o.color.copy(l.c); }); N.actif = false; if (nuitJ && typeof teinterNuitFerme === 'function') teinterNuitFerme(NUIT_J); /* (rendues a leur plein jour, puis reteintees par la nuit de la ferme dans la meme image) */ return true; } return false; });
 }
 function meteorite(mo, x, z, U, c0) { /* une meteorite : un cercle s'annonce, une pierre de lune tombe du ciel en biais dans une trainee, cratere et eclats a l'impact */
   const prepa = 1.25, g = rocherLune(), y = solA(x, z), de = new T.Vector3(x - 7, y + 20, z - 4); g.scale.setScalar(1.3); g.visible = false; scene.add(g); let t = 0;
