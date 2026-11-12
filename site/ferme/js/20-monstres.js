@@ -194,9 +194,14 @@ const MOBS_EN_PLUS = 1;
 /* (11/11/2026, « tu peux mettre 28 mobs a la vague 91, et rajoutes-en 4 pour le Iop a chaque vague », Mathieu, qui a passe la 91 en Iop a 33 monstres mais pas en Cra) :
    la foret (vagues 91 a 100) : un monstre de plus a la 91, et quatre de plus a chaque vague quand le perso est un Iop */
 const PLUS_FORET = { 91: 1 }, PLUS_IOP_FORET = 4, iopEnJeu = () => { try { return !!S_ && !!S_.perso && classeDe() === 'iop'; } catch (e) { return false; } }; /* (avant le chargement de la partie : non) */
+/* DES TIREURS EN PLUS (12/11/2026, « rajoute 1 a 4 mobs distance par vague en plus, du 70 au 80 », Mathieu, juste apres le reequilibrage des Cochons) : vagues 71 a 79,
+   de plus en plus au fil du palier. Comptes apres la horde : ce sont bien 1 a 4 monstres de plus a l'ecran, donnes au groupe de tireurs le plus nombreux de la vague
+   (le Porsalu, seul tireur de ce palier). Ils ne comptent pas dans le lissage des renforts (forceBrute lit compoVague0). La vague 80, l'escorte du Dragon Cochon, ne change pas */
+const TIREURS_EN_PLUS = { 71: 1, 72: 1, 73: 2, 74: 2, 75: 3, 76: 3, 77: 4, 78: 4, 79: 4 };
 const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_MAX) return L;
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && !MONSTRES[t].unique && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS;
   const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique) y[1] = Math.round(y[1] * x); });
+  if (TIREURS_EN_PLUS[n]) { const g = L.filter((y) => MONSTRES[y[0]].distance && !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique).sort((p, q) => q[1] - p[1])[0]; if (g) g[1] += TIREURS_EN_PLUS[n]; } /* (les tireurs en plus du palier des Cochons) */
   if (n > 9 * VAGUES_PALIER && n <= VAGUES_MAX) { let plus = (PLUS_FORET[n] || 0) + (iopEnJeu() ? PLUS_IOP_FORET : 0); const M = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique); for (let j = 0; plus > 0 && M.length; j++, plus--) M[j % M.length][1]++; } /* (la foret : les monstres en plus, repartis sur la troupe) */
   return ajusterCompo(n, plancherTireurs(n, plafonnerTireurs(L))).map((y) => (MONSTRES[y[0]].unique ? [y[0], Math.min(1, y[1])] : y)); }; /* (unique : un seul par vague, le Semeur, 08/11/2026) */
 /* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
