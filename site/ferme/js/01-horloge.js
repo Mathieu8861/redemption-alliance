@@ -20,5 +20,5 @@ const horlogeJeu = (() => {
   const jeu = () => { const t = vrai(); return t + avance + (t - ancre) * (vitesse - 1); };
   const fixer = () => { avance = jeu() - vrai(); ancre = vrai(); try { localStorage.setItem('ferme-avance', String(Math.round(avance))); } catch (e) { /* rien */ } };
   Date.now = jeu; setInterval(fixer, 2000); addEventListener('pagehide', fixer);
-  return { vitesse: () => vitesse, regler(v) { fixer(); vitesse = pasVitesse(v); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
+  return { reel: vrai, /* (la vraie horloge de l'appareil, sans l'avance du temps accelere : 30-boucle.js, reprendreTemps, 12/11/2026) */ vitesse: () => vitesse, regler(v) { fixer(); vitesse = pasVitesse(v); try { localStorage.setItem('ferme-vitesse', String(vitesse)); } catch (e) { /* rien */ } } };
 })();

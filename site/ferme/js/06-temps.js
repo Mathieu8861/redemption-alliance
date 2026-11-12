@@ -5,7 +5,7 @@ function avancer(maintenant, enDirect) {
   /* « y'a plus de Tofu qui apparaissent, meme en x40 » (Mathieu, 11/10/2026) : ce qui arrive en direct (Tofus, voleurs, raids, crises) exigeait
      moins de 5 s de jeu depuis le dernier passage ; avec le temps accelere, chaque passage en fait bien plus (x40 : 20 s), donc plus rien ne venait */
   const direct = enDirect && dt < 5000 * horlogeJeu.vitesse();
-  S_.vu = maintenant; if (!combat) regenVie(dt / horlogeJeu.vitesse()); /* (la vie : en temps reel) */
+  S_.vu = maintenant; S_.vuReel = Math.round(horlogeJeu.reel() / 1000); /* (vuReel : la vraie heure de ce passage, en secondes pour que les recalages de dates, qui ne touchent que les millisecondes, la laissent tranquille ; 30-boucle.js, reprendreTemps) */ if (!combat) regenVie(dt / horlogeJeu.vitesse()); /* (la vie : en temps reel) */
   const ch = new Set(), pn = partNuit(maintenant - dt, maintenant), uv = pn > 0 ? champsUV() : null; /* (le jour et la nuit du palier 10 : la part de nuit de cet intervalle, les champs sous une lanterne UV ; 14i-nuit.js) */
   S_.cases.forEach((p) => {
     if (p.type !== 'champ' || !p.c) return;

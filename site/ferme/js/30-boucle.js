@@ -6,11 +6,19 @@ let tours = 0; const t0 = performance.now();
    (repas et croissance des Bouftous, pousses, voleurs, raids, cours de l'HDV, vague en preparation, Casino...) sont decalees de la duree de
    la pause : rien n'a bouge entre-temps. Les defis du jour et la reprise des boss suivent le calendrier, eux. Le decalage marche dans les deux
    sens : une ferme jouee en temps accelere sur un autre appareil (horlogeJeu) se recale sur l'horloge d'ici au lieu d'arriver « dans le futur ». */
+/* LE TEMPS D'UN AUTRE APPAREIL (12/11/2026, signale par Yannick a Mathieu : « quand quelqu'un passe la version PC a la version mobile, ca accelere le temps de 15 minutes
+   environ, et apres tu repasses PC, et re mobile, etc., et du coup ca accelere la pousse de tes recoltes ») : chaque appareil a sa propre avance d'horloge (horlogeJeu,
+   le temps x1,5 joue sur cet appareil). Une ferme venue d'un appareil en retard arrivait « dans le passe » : l'ecart passait pour une absence, et la ferme poussait
+   (fermeSansToi, un vingtieme de l'ecart : 15 min pour 5 h d'avance), a chaque aller-retour. Maintenant une absence ne depasse jamais le vrai temps ecoule depuis
+   le dernier passage (S_.vuReel, la vraie heure en secondes, posee par avancer), fois la vitesse permise ; le reste de l'ecart est un simple recalage, comme une
+   pause. Sur un meme appareil rien ne change (l'ecart y vaut au plus le vrai temps fois la vitesse). Une ferme sans vuReel (d'avant ce correctif) : comme avant, une fois */
+const decalerDates = (o, x) => { for (const k in o) { if (k === 'parties') continue; const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + x; } else if (v && typeof v === 'object') decalerDates(v, x); } };
 function reprendreTemps(maintenant) {
-  const d = maintenant - S_.vu; if (!d) return;
+  let d = maintenant - S_.vu; if (!d) return;
+  if (d > 0 && S_.vuReel) { const permis = Math.max(0, horlogeJeu.reel() / 1000 - S_.vuReel) * 1000 * Math.max(horlogeJeu.vitesse(), vitesseMaxi()); if (d > permis) { const x = Math.round(d - permis); decalerDates(S_, x); if (raidAnnonce) raidAnnonce.fin += x; d = maintenant - S_.vu; if (d <= 0) { S_.vu = maintenant; S_.vuReel = Math.round(horlogeJeu.reel() / 1000); return; } } } /* (l'ecart d'horloge d'un autre appareil : un recalage, pas une absence) */
   if (d > 0 && !combat && S_.perso) { fermeSansToi(maintenant, d); return; } /* (13/10/2026 : une pause ou une absence, la ferme continue de pousser) */
   const decaler = (o) => { for (const k in o) { if (k === 'parties') continue; const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + d; } else if (v && typeof v === 'object') decaler(v); } }; /* (pas les parties rangees) */
-  decaler(S_); S_.vu = maintenant; if (raidAnnonce) raidAnnonce.fin += d;
+  decaler(S_); S_.vu = maintenant; S_.vuReel = Math.round(horlogeJeu.reel() / 1000); if (raidAnnonce) raidAnnonce.fin += d;
 }
 /* LA FERME VIT SANS TOI (13/10/2026, la « recompense du retour » de l'etude du rythme) : pendant une pause ou une absence, les cultures, la laine, les plumes,
    les bebes et la preparation de la vague continuent, 10 h au plus. Rien de dangereux en revanche : Tofus nuisibles, voleurs, raids, crises de l'HDV et
