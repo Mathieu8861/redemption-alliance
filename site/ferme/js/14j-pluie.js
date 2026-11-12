@@ -86,7 +86,10 @@ function majPluie(dt) { /* a chaque image */
   voilePluie(); gouttesPluie(); if (la && mode !== J.mode) { J.mode = mode; J.prochaine = 0; if (typeof animerLanternes === 'function') animerLanternes.t = 0; }
   const avant = J.k; J.k = la ? Math.min(1, J.k + dt / PLUIE.fondu) : Math.max(0, J.k - dt / PLUIE.fondu);
   if ((!avant && J.k) || (avant && !J.k)) { if (typeof animerLanternes === 'function') animerLanternes.t = 0; if (typeof majLumieresBat === 'function') majLumieresBat.t = 0; } /* (les lanternes et les fenetres s'allument avec la pluie) */
-  const maree = J.mode === 'maree'; J.v.style.background = maree ? '#5f7096' : '#7387aa'; if (J.eclair > 0) J.eclair -= dt; J.v.style.opacity = String((maree ? 0.92 : 0.88) * J.k * (J.eclair > 0 ? 0.3 : 1));
+  const maree = J.mode === 'maree'; J.v.style.background = maree ? '#5f7096' : '#7387aa'; if (J.eclair > 0) J.eclair -= dt;
+  const nuitK = Math.max(typeof NUIT_J !== 'undefined' && NUIT_J ? NUIT_J.k : 0, (typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) ? 1 : 0);
+  /* (la nuit assombrit deja tout : le voile de la pluie s'efface presque sous elle ; les deux ensemble, « sur ma map on voit rien », Mathieu, 12/11/2026) */
+  J.v.style.opacity = String((maree ? 0.92 : 0.88) * J.k * (1 - 0.85 * nuitK) * (J.eclair > 0 ? 0.3 : 1));
   animerGouttes(dt, J.k); majEauPluie(J.k > 0 ? J.mode : null, J.k);
   if (la && J.k >= 1) { J.t += dt; if (!J.prochaine) J.prochaine = J.t + 2.5;
     if (J.t >= J.prochaine) { J.prochaine = J.t + PLUIE.foudre[0] + Math.random() * (PLUIE.foudre[1] - PLUIE.foudre[0]) * (maree ? 0.5 : 1);
