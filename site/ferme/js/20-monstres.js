@@ -198,10 +198,16 @@ const PLUS_FORET = { 91: 1 }, PLUS_IOP_FORET = 4, iopEnJeu = () => { try { retur
    de plus en plus au fil du palier. Comptes apres la horde : ce sont bien 1 a 4 monstres de plus a l'ecran, donnes au groupe de tireurs le plus nombreux de la vague
    (le Porsalu, seul tireur de ce palier). Ils ne comptent pas dans le lissage des renforts (forceBrute lit compoVague0). La vague 80, l'escorte du Dragon Cochon, ne change pas */
 const TIREURS_EN_PLUS = { 71: 1, 72: 1, 73: 2, 74: 2, 75: 3, 76: 3, 77: 4, 78: 4, 79: 4 };
+/* UN EFFECTIF MINIMUM (12/11/2026, « augmente le nombre de monstres des la vague 1, 19 c'est trop peu », Mathieu, sur le debut du palier des Cochons : 19 monstres a la 71,
+   22 a la 72 et a la 75, contre 31 a la 69 et 26 a la 81) : le nombre de monstres ordinaires vise sur les premieres vagues, pour monter regulierement jusqu'aux 30 de la 76.
+   Le manque est reparti sur tous les monstres ordinaires de la vague, un par un dans l'ordre (jamais un boss ni un monstre unique), apres la horde et les tireurs en plus.
+   Il ne compte pas dans le lissage des renforts (forceBrute lit compoVague0) : ce sont des monstres en plus, pas des monstres plus faibles */
+const EFFECTIF_MIN = { 71: 26, 72: 27, 73: 28, 74: 29, 75: 27 };
 const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (n <= VAGUES_PALIER || n > VAGUES_MAX) return L;
   let k = -1; L.forEach(([t, nb], i) => { if (!MONSTRES[t].boss && !MONSTRES[t].unique && (k < 0 || nb > L[k][1])) k = i; }); if (k >= 0) L[k][1] += MOBS_EN_PLUS;
   const x = multVague(n); if (x > 1) L.forEach((y) => { if (!MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique) y[1] = Math.round(y[1] * x); });
   if (TIREURS_EN_PLUS[n]) { const g = L.filter((y) => MONSTRES[y[0]].distance && !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique).sort((p, q) => q[1] - p[1])[0]; if (g) g[1] += TIREURS_EN_PLUS[n]; } /* (les tireurs en plus du palier des Cochons) */
+  if (EFFECTIF_MIN[n]) { const M = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique); let manque = EFFECTIF_MIN[n] - M.reduce((t, y) => t + y[1], 0); for (let j = 0; manque > 0 && M.length; j++, manque--) M[j % M.length][1]++; } /* (l'effectif minimum du debut du palier des Cochons) */
   if (n > 9 * VAGUES_PALIER && n <= VAGUES_MAX) { let plus = (PLUS_FORET[n] || 0) + (iopEnJeu() ? PLUS_IOP_FORET : 0); const M = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique); for (let j = 0; plus > 0 && M.length; j++, plus--) M[j % M.length][1]++; } /* (la foret : les monstres en plus, repartis sur la troupe) */
   return ajusterCompo(n, plancherTireurs(n, plafonnerTireurs(L))).map((y) => (MONSTRES[y[0]].unique ? [y[0], Math.min(1, y[1])] : y)); }; /* (unique : un seul par vague, le Semeur, 08/11/2026) */
 /* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
