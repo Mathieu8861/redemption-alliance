@@ -327,10 +327,10 @@ function animerLanternes(s) {
   const c = animerLanternes.cible, dt = Math.min(0.1, (now - (animerLanternes.d || now)) / 1000); animerLanternes.d = now;
   lanternesAnim.forEach((A) => { if (A.a !== c) { A.a = c > A.a ? Math.min(c, A.a + dt) : Math.max(c, A.a - dt); allumerLanterne(A); } if (A.a <= 0.01) { if (A.anneau) A.anneau.visible = false; return; } /* (un fondu d'une seconde) */
     const vague = !!combat && !combat.fin && lieu === 'ferme'; if (vague || A.anneau) { const an = A.anneau || porteeLanterne(A); an.visible = vague; if (vague) { an.material.opacity = A.a * (0.75 + 0.25 * Math.sin(s * 3 + A.ph)); an.rotation.z = s * 0.15 + A.ph; } } /* (sa portee, pendant une vague) */
-    { const large = MODE_TEST && typeof nuitFermeLa === 'function' && nuitFermeLa(); if (A.sol.userData.y0 == null) A.sol.userData.y0 = A.sol.position.y; A.sol.position.y = A.sol.userData.y0 + (large ? 0.1 : 0); A.sol.scale.setScalar(large ? (A.portee * 1.4) / (A.r * 2.5) : 1); }
+    { const large = typeof nuitFermeLa === 'function' && nuitFermeLa(); if (A.sol.userData.y0 == null) A.sol.userData.y0 = A.sol.position.y; A.sol.position.y = A.sol.userData.y0 + (large ? 0.1 : 0); A.sol.scale.setScalar(large ? (A.portee * 1.4) / (A.r * 2.5) : 1); }
     /* (la flaque de lumiere, dans la nuit de la ferme : « ca eclaire d'un cote, mais il ne devrait pas y avoir d'ombre dans son rayon de portee », Mathieu, 11/11/2026 : posee au ras du sol, elle passait sous la terre des champs ;
        elle monte de 10 cm, au-dessus des sillons, et va jusqu'au bord du cercle de lumiere, 1,4 fois la portee ; en version dev d'abord) */
-    const calme = MODE_TEST ? 0.25 : 1, lent = MODE_TEST ? 0.35 : 1; /* (la lumiere « vacille trop, faudrait que ca bouge moins », Mathieu, 11/11/2026 : quatre fois moins d'ecart, trois fois plus lent ; en version dev d'abord) */
+    const calme = 0.25, lent = 0.35; /* (pour tous depuis le 12/11/2026) */ /* (la lumiere « vacille trop, faudrait que ca bouge moins », Mathieu, 11/11/2026 : quatre fois moins d'ecart, trois fois plus lent ; en version dev d'abord) */
     const f = 1 + calme * (0.07 * Math.sin(s * 7 * lent + A.ph) + 0.04 * Math.sin(s * 13.3 * lent + A.ph * 2)); A.halo.scale.setScalar(A.r * 1.9 * f); A.sol.material.opacity = (1 - 0.15 * calme + 0.15 * calme * Math.sin(s * 5 * lent + A.ph)) * A.a; });
 }
 /* LES PETITES CLOTURES (01/11/2026, « des petites clotures pour separer nos differents champs », Mathieu ; posees sur les bords des cases, juste decoratives) :
@@ -443,10 +443,10 @@ const COTE_CHATEAU = 5, ECH_CHATEAU = COTE_CHATEAU / 4;
 /* EN VERSION DEV SEULEMENT pour l'instant (« le chateau en 5 x 5 : avec la maj du palier 10 », puis « push, mais que en version dev, pas pour la version joueur »,
    Mathieu, 11/11/2026) : hors du mode test, un chateau se batit et se deplace en 4 x 4 comme avant, et aucun ne s'agrandit. Le jour de la sortie : coteChateau
    rend toujours COTE_CHATEAU, et agrandirChateau perd son MODE_TEST. */
-const coteChateau = () => (MODE_TEST ? COTE_CHATEAU : 4);
+const coteChateau = () => COTE_CHATEAU; /* (pour tous depuis le 12/11/2026, avec la mise a jour du palier 10 : « je valide tout », Mathieu) */
 const echChateau = () => { const o = aChateau() && blocBati('grange'); return o && o.w >= COTE_CHATEAU && o.h >= COTE_CHATEAU ? ECH_CHATEAU : 1; }; /* (1 : un ancien chateau de 4 x 4 pas encore agrandi) */
 function agrandirChateau() {
-  if (!MODE_TEST || !aChateau() || S_.chateau5) return; const o = blocBati('grange'); if (!o) return; S_.chateau5 = 1; /* (une seule tentative ; en mode test rien n'est enregistre : la vraie ferme ne bouge pas) */
+  if (!aChateau() || S_.chateau5) return; const o = blocBati('grange'); if (!o) return; S_.chateau5 = 1; /* (une seule tentative ; en mode test rien n'est enregistre : la vraie ferme ne bouge pas) */
   if (o.w !== 4 || o.h !== 4 || o.B.length !== 16) return;
   /* (« ceux qui ont des batiments ou des cultures autour, ca va se passer comment ? [...] faut bien qu'elle soit deplacee », Mathieu, 11/11/2026) : le chateau grandit
      dans tous les cas ; ce qui se trouve sur ses 9 cases de plus est deplace sur la place libre la plus proche : un champ garde sa culture et sa pousse, une

@@ -21,7 +21,7 @@ const niv = (id) => (DERIVE[id] ? DERIVE[id]() : (S_.amelio[id] || 0));
 const seuilAncien = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7))); /* (la courbe d'avant le 13/10 : celle du tutoriel, et la conversion des sauvegardes) */
 const SEUILS = (() => { const t = []; let cout = 0; for (let n = 0; n <= 101; n++) { if (n <= 10) { t[n] = seuilAncien(n); cout = n ? t[n] - t[n - 1] : 0; } else { cout += Math.round(10 + 0.03324 * Math.pow(1.17, n - 11)); t[n] = t[n - 1] + cout; } } return t; })();
 const seuil = (n) => (n <= 1 ? 0 : SEUILS[Math.min(n, 101)]);
-const NIV_MAX = 90; /* (90 depuis l'ile de Moon, 02/11/2026 ; 80 depuis le palier du Dragon Cochon, 20/10/2026 ; 70 avant) */ /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
+const NIV_MAX = 100; /* (100 depuis la Foret des Abraknydes, 12/11/2026 ; 90 depuis l'ile de Moon, 02/11/2026 ; 80 depuis le palier du Dragon Cochon, 20/10/2026 ; 70 avant) */ /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
 /* (09/11/2026, « dans l'arene de test, mets les nouveaux items qui vont jusqu'au niveau 100 », Mathieu) NIV_PLAFOND : 100 en mode test ; NIV_ESSAI : le niveau choisi
    pour un combat de l'Arene dev, rendu a la fin (ni l'un ni l'autre ne s'enregistre) */
 let NIV_PLAFOND = 0, NIV_ESSAI = 0;

@@ -12,7 +12,7 @@
      avoir mesure la fluidite sur une tablette (la nuit lunaire du Golem allume deja les lanternes des joueurs). */
 const VRAIES_LUMIERES = { n: 12, couleur: '#ffad55', force: 1.0, portee: 7.5, chute: 1.8, haut: 0.35, fondu: 2.5, relu: 0.4, verre: 0.5, bati: 0.55, jour: 0.35 };
 const LUM_J = { P: null, t: 0, actif: false, teinte: null };
-const vraiesLumieresLa = () => typeof MODE_TEST !== 'undefined' && MODE_TEST && !ETAT_TEST.sansLum && graphismes() !== 'leger' && typeof lieu !== 'undefined' && lieu === 'ferme' && !enAccueil;
+const vraiesLumieresLa = () => /* (pour tous depuis le 12/11/2026, « je valide tout », Mathieu ; la fluidite sur tablette n'a pas ete mesuree : en cas de souci, les graphismes legers les coupent) */ !ETAT_TEST.sansLum && graphismes() !== 'leger' && typeof lieu !== 'undefined' && lieu === 'ferme' && !enAccueil;
 function sourcesLumiere() { /* ce qui eclaire en ce moment : [cle, x, y, z, force, rang], dans un ordre qui ne depend pas de la camera */
   const L = [];
   lanternesAnim.forEach((A) => { if (A.a > 0.02 && A.halo && A.halo.parent && !(A.halo.material.color.b > A.halo.material.color.r)) { const p = A.halo.position; /* (pas la lanterne UV, violette) */ L.push(['l' + Math.round(p.x * 4) + '_' + Math.round(p.z * 4), p.x, p.y + VRAIES_LUMIERES.haut, p.z, A.a, 0]); } });

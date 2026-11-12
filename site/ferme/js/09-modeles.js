@@ -317,7 +317,7 @@ async function chargerPersonnagesVsa0() {
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'cultures5', 'casino-jeu', 'montgolfiere', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'atelier-forge', 'atelier'];
+  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'cultures5', 'casino-jeu', 'montgolfiere', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'forgemagie2', 'atelier'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -335,7 +335,7 @@ async function chargerModeles() {
   MODELES.ile = fusionner(ileT, { caseDe: caseDeTouffe() });
   const BATI = { normales: 0.012, sansContour: SC_BATI };
   versToon(G.batiments, BATI); versToon(G.objets, BATI);
-  if (G['atelier-forge']) { versToon(G['atelier-forge'], BATI); MODELES.forge = gabaritEchelle(G['atelier-forge'], 'AtelierForge', 1, new T.Vector3(0, 0, 0)); }
+  if (G.forgemagie2) { versToon(G.forgemagie2, BATI); MODELES.forge = gabaritEchelle(G.forgemagie2, 'AtelierForge2', 1, new T.Vector3(0, 0, 0)); MODELES.forge.userData.v2 = true; } /* (la forge a runes, blender/forgemagie2.py : pour tous depuis le 12/11/2026 ; l'ancienne, atelier-forge.glb, n'est plus chargee) */
   if (G.atelier) { versToon(G.atelier, BATI); MODELES.atelier = gabaritEchelle(G.atelier, 'Atelier', 1, new T.Vector3(0, 0, 0)); } /* l'atelier (blender/atelier.py, la piste A, 09/11/2026), d'une case */ /* l'atelier de forgemagie (blender/atelier-forge.py), d'une case */
   versToon(G['casino-jeu'], BATI); if (G.montgolfiere) versToon(G.montgolfiere, BATI); /* (la montgolfiere de la ferme, refaite a part le 11/11/2026 : nacelle creuse ; blender/casino.py --montgolfiere) */
   MODELES.montgolfiere = (G.montgolfiere && G.montgolfiere.getObjectByName('MontgolfiereSol')) || G['casino-jeu'].getObjectByName('MontgolfiereSol') || G['casino-jeu'].getObjectByName('Montgolfiere'); /* (l'ile ronde : posee dans l'herbe, amarree a ses piquets ; plus de ponton au-dessus du vide) */ MODELES.decorCasino = G['casino-jeu'].getObjectByName('DecorVisite'); /* (blender/casino.py --jeu) */

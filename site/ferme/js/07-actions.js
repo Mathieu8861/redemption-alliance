@@ -398,7 +398,7 @@ const ACTIONS = {
       cible.prixPaye = src.prixPaye; delete src.prixPaye; cible.niv = src.niv; delete src.niv; rendreCase(src.id); rendreCase(cible.id); construireTours(); toast('La tour a déménagé.', 'or'); aDeplacer = { tour: cible }; majBandeau(); sauver(); return;
     }
     const type = aDeplacer && aDeplacer.bat; if (!type) return;
-    const o = blocBati(type), cote = type === 'grange' && aChateau() && MODE_TEST ? COTE_CHATEAU : 0, cells = essaiPose(type, cible, cote, cote); /* (le chateau se pose toujours en 5 x 5 : un ancien de 4 x 4 s'agrandit en demenageant) */
+    const o = blocBati(type), cote = type === 'grange' && aChateau() ? COTE_CHATEAU : 0, cells = essaiPose(type, cible, cote, cote); /* (le chateau se pose toujours en 5 x 5 : un ancien de 4 x 4 s'agrandit en demenageant) */
     if (!cells && cote) { toast('Pas la place ici : il faut ' + cote + ' x ' + cote + ' cases d\'herbe libres, au même niveau.', 'alerte'); return; }
     if (!cells) { toast('Pas la place ici : il faut ' + o.w + ' x ' + o.h + ' case' + (o.w * o.h > 1 ? 's' : '') + ' d\'herbe libre' + (o.w * o.h > 1 ? 's' : '') + ', au même niveau.', 'alerte'); return; }
     const deja = inaccessibles(), anciennes = o.B.slice(), avant = avantCases(anciennes.concat(cells)); anciennes.forEach((c) => { c.type = 'libre'; }); cells.forEach((c) => { c.type = type; });
@@ -422,7 +422,7 @@ const ACTIONS = {
     const deja = inaccessibles(), avant = avantCases(anciennes.concat(cells)); anciennes.forEach((c) => { c.type = 'libre'; }); cells.forEach((c) => { c.type = 'grange'; });
     if (refuserSiBloque(deja, avant)) { majApercuChateau(null); chateauVise = null; fermerModale(); return; }
     tours.forEach((c) => { delete c.niv; delete c.prixPaye; if (S_.bats) delete S_.bats['tour:' + c.id]; }); if (S_.bats) delete S_.bats.grange; /* (le chateau arrive intact) */
-    S_.kamas -= cout; S_.amelio.qg = 5; if (MODE_TEST) S_.chateau5 = 1; compter('amelios'); son('quete');
+    S_.kamas -= cout; S_.amelio.qg = 5; S_.chateau5 = 1; compter('amelios'); son('quete');
     const u = paysanMesh.userData; if (cells.includes(u.cellule) || cells.includes(caseIci(paysanMesh.position.x, paysanMesh.position.z))) { const v = S_.cases.find((c) => PASSABLE[c.type] && voisins(c).some((x) => cells.includes(x))); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; u.y = q.y; chemin = []; } } /* il s'ecarte */
     anciennes.concat(cells).forEach((c) => rendreCase(c.id));
     mode = null; chateauVise = null; majApercuChateau(null); fermerModale(); majBandeau();

@@ -9,7 +9,7 @@
    - Le bureau est une salle a part, comme le hall (blender/casino.py --bureau) ; le patron : Dore III, dit l'Ombre.
    - Le poker : cinq cartes, un echange, dix jetons chacun, une mise d'entree d'un jeton ; le premier a sec perd, sinon le plus riche apres 12 mains.
    L'etat est dans S_.casino.patron : cle (date), porte (ouvertures), parties, perdues, enCours (une partie commencee), rdv (date), gagne (date). ---------- */
-const MILLION = 1000000, SEMAINE = 7 * 24 * 3600 * 1000, MAINS_POKER = 12, JETONS_POKER = 10;
+const MILLION = 10000000 /* (10 millions depuis le 12/11/2026, le choix de Mathieu au formulaire : avec la mise maximale a 50 000, le million tombait en une dizaine de paris gagnes ; le nom de la constante reste) */, SEMAINE = 7 * 24 * 3600 * 1000, MAINS_POKER = 12, JETONS_POKER = 10;
 const PORTE_FONDATEUR = { xa: -5.45, xb: -3.35, xm: -4.4, ouvert: 1.45 }; /* (blender/casino.py, PORTE_SECRETE ; ouvert : l'angle du pan de mur, vers le couloir) */
 const BUREAU_CASINO = new T.Vector3(-720, 0, 480); /* (loin du hall et des iles, rien derriere dans l'axe de la camera) */
 const BUREAU_PLACES = { entree: [-7.2, 2.7, -6.2, 2.7], table: [0, 2.2, 0, 0.6] };
@@ -48,7 +48,7 @@ function parlerGardePatron(m) { /* ce que les gardes disent du patron ; true : l
 function donnerCle(m) {
   const P = etatPatron(); P.cle = Date.now(); compter('clePatron'); sauver(); son('quete');
   m.userData.regard = performance.now() + 6000; m.userData.penche = performance.now(); direSalle(m, 'Tiens. T\'as rien vu.', 3200);
-  ouvrirModale('cle', entete('Filou') + '<div class="art">' + ico('cadenas') + '<div><b>« Un million. Le patron a entendu parler de toi. »</b><div class="desc">Filou jette un œil à Bouboule, puis à la salle. Sans te regarder, il te glisse quelque chose dans la main : une petite clé dorée, encore tiède, la tête en forme de kama.</div></div><div></div></div>' +
+  ouvrirModale('cle', entete('Filou') + '<div class="art">' + ico('cadenas') + '<div><b>« Dix millions. Le patron a entendu parler de toi. »</b><div class="desc">Filou jette un œil à Bouboule, puis à la salle. Sans te regarder, il te glisse quelque chose dans la main : une petite clé dorée, encore tiède, la tête en forme de kama.</div></div><div></div></div>' +
     '<div class="art">' + ico('kama') + '<div><b>« Il aime les gens qui gagnent. Il aime encore plus les faire perdre. »</b><div class="desc">« Il reçoit pas ici. Le premier de la famille sait où. Et on s\'est jamais parlé. »</div></div><div></div></div>' +
     '<button class="btn kamas grand" data-fermer style="width:100%">Ranger la clé</button>');
   toast('Tu as reçu une petite clé dorée.', 'or');
@@ -174,7 +174,7 @@ function accueilPatron() {
   if (!casinoBureau || !patronB) return; const P = etatPatron();
   direPatron(P.gagne ? pkTirer(['Toi. Tu viens me narguer avec ma propre bague ?', 'Le joueur pro. Un cigare ? Non ? Tant pis.', 'Encore toi. Tu ne me laisseras jamais oublier, hein ?', 'Elle te va bien, ma bague. Ça m\'énerve.', 'Je ne joue plus contre toi. Mais tu peux admirer le feu.'])
     : (P.perdues || 0) > 0 ? pkTirer(['Revoilà mon paysan. Ponctuel. J\'aime ça.', 'Une revanche ? Assieds-toi.', 'Une semaine à t\'entraîner ? Montre-moi ça.', 'Tu reviens perdre ? J\'admire.', 'Ah. Le revenant. Les cartes t\'attendaient.'])
-      : pkTirer(['Ah. Le paysan au million. Assieds-toi.', 'Entre. Ferme derrière toi. On a à parler, toi et moi.', 'Alors c\'est toi, le paysan qui vide mes machines. Assieds-toi.']), 4200);
+      : pkTirer(['Ah. Le paysan aux dix millions. Assieds-toi.', 'Entre. Ferme derrière toi. On a à parler, toi et moi.', 'Alors c\'est toi, le paysan qui vide mes machines. Assieds-toi.']), 4200);
   if (!P.gagne) toast('Touche la table de poker pour t\'asseoir face à Doré III.');
 }
 function quitterBureau() {
@@ -353,7 +353,7 @@ function ouvrirPoker() {
   const P = etatPatron(); if (patronB) patronB.tete.userData.regard = performance.now() + 3000;
   if (P.gagne) { direPatron(pkTirer(['Tu as déjà ma bague. Je ne joue plus contre toi : question d\'honneur.', 'Non. Une fois m\'a suffi.', 'Range tes mains. La table est fermée pour toi.', 'Je ne rejoue pas contre quelqu\'un qui porte ma bague.', 'Va donc dépenser tes kamas ailleurs, joueur pro.']), 3600); return; }
   if (poker && !poker.fini) { pkRendu(); return; }
-  ouvrirModale('poker', entete('La table du patron') + '<div class="pk-dit">« ' + ((P.perdues || 0) ? 'Revoilà mon paysan. Même table, même enjeu : ma bague.' : 'Le paysan au million. Ici, on ne joue pas des kamas : on joue ma bague.') + ' »<small>Doré III, dit l\'Ombre</small></div>' +
+  ouvrirModale('poker', entete('La table du patron') + '<div class="pk-dit">« ' + ((P.perdues || 0) ? 'Revoilà mon paysan. Même table, même enjeu : ma bague.' : 'Le paysan aux dix millions. Ici, on ne joue pas des kamas : on joue ma bague.') + ' »<small>Doré III, dit l\'Ombre</small></div>' +
     '<div class="hdv-section">Les règles</div><ul class="pk-regles">' +
     '<li><b>Poker à cinq cartes.</b> Tu reçois 5 cartes et tu peux en échanger autant que tu veux, une seule fois.</li>' +
     '<li><b>' + JETONS_POKER + ' jetons chacun</b>, 1 jeton de mise d\'entrée à chaque main. Après l\'échange, on parle : parole, miser 2, suivre, relancer, tapis ou se coucher.</li>' +
@@ -499,8 +499,8 @@ function actionPoker(a) {
 }
 function actionPatron(a) {
   if (a === 'ouvrir') ouvrirPassage();
-  else if (a === 'test-million' && ultiLibre()) { S_.stats = S_.stats || {}; S_.stats.casinoGains = Math.max(S_.stats.casinoGains || 0, MILLION); sauver(); appelFait = false; toast('Test : gains du Casino à 1 million.', 'or'); fermerModale(); setTimeout(appelFilou, 600); }
+  else if (a === 'test-million' && ultiLibre()) { S_.stats = S_.stats || {}; S_.stats.casinoGains = Math.max(S_.stats.casinoGains || 0, MILLION); sauver(); appelFait = false; toast('Test : gains du Casino à 10 millions.', 'or'); fermerModale(); setTimeout(appelFilou, 600); }
   else if (a === 'test-rdv' && ultiLibre()) { const P = etatPatron(); P.rdv = 0; P.enCours = 0; sauver(); toast('Test : rendez-vous du patron effacé.', 'or'); fermerModale(); }
   else if (a === 'test-zero' && ultiLibre()) { const c = etatCasino(); delete c.patron; poker = null; sauver(); toast('Test : clé, rendez-vous et victoire effacés.', 'or'); fermerModale(); }
 }
-const testsPatron = () => (ultiLibre() ? '<div class="hdv-section">Test (ton compte seulement)</div><div class="puces dev-groupes"><button class="btn discret" data-cas="patron:test-million">Gains à 1 million</button><button class="btn discret" data-cas="patron:test-rdv">Effacer le rendez-vous</button><button class="btn discret" data-cas="patron:test-zero">Tout remettre à zéro</button></div>' : '');
+const testsPatron = () => (ultiLibre() ? '<div class="hdv-section">Test (ton compte seulement)</div><div class="puces dev-groupes"><button class="btn discret" data-cas="patron:test-million">Gains à 10 millions</button><button class="btn discret" data-cas="patron:test-rdv">Effacer le rendez-vous</button><button class="btn discret" data-cas="patron:test-zero">Tout remettre à zéro</button></div>' : '');

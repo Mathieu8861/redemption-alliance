@@ -198,7 +198,7 @@ const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hi
 let raidAnnonce = null;
 /* LA SIMU VSA, UNE SEULE REGLE (17/10/2026, « trop aleatoire, je vois pas la limite », Mathieu) : elle suit ta vague, de la 20e (la premiere simu, niveau 20)
    a la 70e. 4 voleurs, un de plus toutes les 5 vagues, 12 au plus (vague 60), un sur trois sur Dragodinde ; 40 PV + 12 par vague a pied, le double monte. */
-const vagueSimu = () => Math.max(20, Math.min(VAGUES_TOTAL, S_.vague.num));
+const vagueSimu = () => Math.max(20, Math.min(9 * VAGUES_PALIER, S_.vague.num)); /* (12/11/2026 : la simu VSA reste a la vague 90 au plus, comme avant l'ouverture de la foret ; une simu sur les vagues 91 a 100 n'a jamais ete jouee) */
 const NIV_PARACHUTE = 80, PARACHUTISTES = 2; /* (le Parachutiste de VSA, des le niveau 80 du perso, 06/11/2026) */
 /* VSA qui continue de monter de la vague 60 a la 90 (06/11/2026, « entre la 60 et la 90, 100 PV de plus sur les mecs c'est pas un gros changement, c'est bof », Mathieu) :
    12 voleurs a la 60 puis +1 toutes les 5 vagues (18 a la 90, un tiers a dos de Dragodinde) ; Demenageurs 1 a la 30, 2 a la 50, 3 a la 70, 4 a la 85 ;

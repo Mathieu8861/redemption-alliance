@@ -8,12 +8,12 @@ const NIV_MONTGOLFIERE = 15, PRIX_MONTGOLFIERE = 3000;
 const CASINO = new T.Vector3(0, 0, 240), POS_MONTGOLFIERE = new T.Vector3((MONTGOLFIERE_CASE[0] - (COLS - 1) / 2) * S, 0, (MONTGOLFIERE_CASE[1] - (ROWS - 1) / 2) * S); /* (x -11, z -4 : sa case, au bord du depart) */
 let ileCasino = null, casinoMarche = null, montgolfiereMesh = null, course = null, casinoTourne = false, casinoAnim = null; /* (casinoAnim : l'eau, les nappes, les drapeaux du nouveau Casino) */
 let casinoMise = 100, casinoJeton = 10, casinoParis = {}, casinoRoue = 0, casinoDrago = 0;
-const miseMax = () => 100 + 15 * niveau(S_.xp);
-const plafondPertes = () => 1000 + 100 * niveau(S_.xp);
+const miseMax = () => 50000; /* (12/11/2026, « la mise max, tu la mets a 50k », Mathieu ; 100 + 15 par niveau avant, 1 450 au niveau 90) */
+const plafondPertes = () => 500000; /* (12/11/2026, « perte journaliere max a 500k », Mathieu ; 1 000 + 100 par niveau avant, 10 000 au niveau 90) */
 const attendreMs = (ms) => new Promise((r) => setTimeout(r, ms));
 function etatCasino() { S_.casino = S_.casino || { jackpot: 5000 }; const j = jourJeu(); if (S_.casino.jour !== j) Object.assign(S_.casino, { jour: j, pertes: 0 }); return S_.casino; }
 const perteJour = () => Math.max(0, etatCasino().pertes || 0);
-const creditMax = () => 3 * miseMax();
+const creditMax = () => 3 * (100 + 15 * niveau(S_.xp)); /* (l'ardoise garde ses montants d'avant : 3 fois l'ancienne mise maximale, 4 350 au niveau 90 ; a 3 fois 50 000, un joueur sans kamas pouvait devoir 150 000) */
 const dette = () => (S_.ardoise && S_.ardoise.dette) || 0;
 function peutMiser(m) {
   if (m <= 0) { toast('Pose d\'abord une mise.'); return false; }
@@ -44,7 +44,7 @@ function poserMontgolfiere() { /* sur sa case (type montgolfiere), tournee comme
 }
 /* LE CASINO EN TRAVAUX (08/11/2026, « en attendant, ferme le casino aux visiteurs, sauf a moi ; dis que c'est ferme pour cause de travaux quand les gens veulent
    aller dessus », Mathieu) : le temps de finir le nouveau Casino, seul son compte (TESTEURS_ULTI, 22-sorts.js) peut y aller */
-const casinoEnTravaux = () => !ultiLibre();
+const casinoEnTravaux = () => false; /* (rouvert a tous le 12/11/2026, « je valide tout », Mathieu) */
 function ouvrirMontgolfiere() {
   const l = niveau(S_.xp), ok = S_.montgolfiere;
   if (!ok) { ouvrirModale('montgolfiere', entete('La montgolfière') + '<div class="art">' + ico('kama') + '<div><b>Une vieille montgolfière, à réparer</b><div class="desc">Une fois réparée, elle t\'emmènera sur les îles autour de la ferme : le Casino pour jouer tes kamas, puis l\'Arène.</div><div class="puces">' +

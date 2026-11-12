@@ -278,7 +278,9 @@ function piedMise(sansMise) {
   return '<div class="cas-mise">' + (sansMise ? '<span>mise max ' + fmt(max) + ' ' + KAMA + '</span>' : '<div class="m"><button class="btn discret" data-cas="moins">−</button><b>' + fmt(casinoMise) + ' ' + KAMA + '</b><button class="btn discret" data-cas="plus">+</button></div><span>max ' + fmt(max) + '</span>') +
     '<span title="Tout ce que tu as misé aujourd\'hui, moins tout ce que les jeux t\'ont rendu">Pertes du jour (mises moins gains) : ' + fmt(p) + ' / ' + fmt(pl) + '<div class="cas-jauge"><i style="width:' + Math.min(100, 100 * p / pl).toFixed(0) + '%"></i></div></span></div>';
 }
-const pasMise = () => Math.max(10, Math.round(miseMax() / 10 / 10) * 10);
+/* les mises proposees par − et + (12/11/2026, la mise maximale a 50 000 : des paliers ronds, au lieu d'un pas fixe d'un dixieme) */
+const MISES = [10, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 30000, 40000, 50000];
+const miseVoisine = (m, plus) => { const L = MISES.filter((v) => v <= miseMax()); return plus ? (L.find((v) => v > m) || L[L.length - 1]) : (L.slice().reverse().find((v) => v < m) || L[0]); };
 
 /* ---------- la machine a sous du Bouftou ---------- */
 const SYMBOLES = [['couronne', 'jackpot', 1, 'Jackpots'], /* (05/11/2026 : une machine a sous doree a la place de la Couronne du Bouftou Royal, « j'ai cru qu'il avait gagne la coiffe Bouf legendaire », Mathieu ; l'id reste « couronne ») */ ['dragoeuf', 'drag-dore', 3, 'Dragoeufs'], ['kama', 'kama', 5, 'Kamas'], ['bouftou', 'bouftou', 7, 'Bouftous'], ['tofu', 'tofu', 9, 'Tofus']];
@@ -323,7 +325,7 @@ function ouvrirRoulette(res) {
     '<div style="flex:1"><div class="cas-res' + (res && res.gain ? ' gagne' : '') + '">' + (res ? res.html : 'Faites vos jeux !<small>Pose tes jetons puis lance la bille.</small>') + '</div><div style="font-size:.72rem;margin-top:6px">Mise posée : <b>' + fmt(totalParis()) + '</b> / ' + fmt(miseMax()) + ' ' + KAMA + '</div></div></div>' +
     '<div class="cas-tapis"><div class="cas-paris"><button class="cas-pari r" data-cas="pari:rouge">Rouge<small>×2</small>' + jet('rouge') + '</button><button class="cas-pari n" data-cas="pari:noir">Noir<small>×2</small>' + jet('noir') + '</button><button class="cas-pari c" data-cas="pari:pair">Pair<small>×2</small>' + jet('pair') + '</button><button class="cas-pari c" data-cas="pari:impair">Impair<small>×2</small>' + jet('impair') + '</button></div>' +
     '<div class="cas-numeros"><button class="z" data-cas="pari:n0" style="background:#2fae5a">0' + jet('n0') + '</button>' + nums + '</div></div>' +
-    '<div class="cas-jetons">' + [[10, '#5aa02c'], [50, '#3a95d1'], [100, '#c8323e'], [500, '#2a2630']].filter(([v]) => v <= miseMax()).map(([v, c]) => '<button data-cas="jeton:' + v + '" class="' + (casinoJeton === v ? 'sel' : '') + '" style="background:' + c + '">' + v + '</button>').join('') + '<button class="btn discret" data-cas="effacer">Effacer</button></div>' +
+    '<div class="cas-jetons">' + [[10, '#5aa02c'], [50, '#3a95d1'], [100, '#c8323e'], [500, '#2a2630'], [1000, '#7a4fc9'], [5000, '#c9781f'], [10000, '#a8872a']].filter(([v]) => v <= miseMax()).map(([v, c]) => '<button data-cas="jeton:' + v + '" class="' + (casinoJeton === v ? 'sel' : '') + '" style="background:' + c + '">' + (v >= 1000 ? v / 1000 + 'k' : v) + '</button>').join('') + '<button class="btn discret" data-cas="effacer">Effacer</button></div>' +
     '<div style="font-size:.7rem;text-align:center;margin-top:6px">Un numéro paie ×36 · sur le 0 vert, la maison gagne les chances simples</div>' +
     piedMise(true) + '<button class="btn kamas grand" data-cas="bille" style="width:100%;margin-top:8px"' + (casinoTourne ? ' disabled' : '') + '>Lancer la bille</button>');
 }
@@ -387,11 +389,11 @@ function ouvrirCasinoInfo(titre) {
   const c = etatCasino(), st = S_.stats || {};
   ouvrirModale('casino', entete(titre || 'Le Casino') + '<div class="art">' + ico('kama') + '<div><b>Ton bilan</b><div class="puces"><span class="puce">misé en tout : ' + fmt(st.casinoMises || 0) + '</span><span class="puce">gagné en tout : ' + fmt(st.casinoGains || 0) + '</span><span class="puce">courses : ' + (st.courses || 0) + '</span></div></div><div></div></div>' +
     '<div class="art">' + ico('jackpot') + '<div><b>Le jackpot : ' + fmt(c.jackpot) + ' kamas</b><div class="desc">Il grossit de 5 % de chaque mise à la machine à sous, et tombe avec 3 Jackpots.</div></div><div></div></div>' +
-    '<div class="art">' + ico('cadenas') + '<div><b>Les règles de la maison</b><div class="desc">Mise maximale ' + fmt(miseMax()) + ' kamas (elle monte avec ton niveau). Pertes plafonnées à ' + fmt(plafondPertes()) + ' kamas par jour : aujourd\'hui ' + fmt(perteJour()) + '. Comme dans un vrai casino, la maison garde un petit avantage.</div></div><div></div></div>' + testsPatron());
+    '<div class="art">' + ico('cadenas') + '<div><b>Les règles de la maison</b><div class="desc">Mise maximale ' + fmt(miseMax()) + ' kamas. Pertes plafonnées à ' + fmt(plafondPertes()) + ' kamas par jour : aujourd\'hui ' + fmt(perteJour()) + '. Comme dans un vrai casino, la maison garde un petit avantage.</div></div><div></div></div>' + testsPatron());
 }
 function actionCasino(b) {
   const a = b.dataset.cas;
-  if (a === 'moins' || a === 'plus') { casinoMise = Math.max(10, Math.min(miseMax(), casinoMise + (a === 'plus' ? 1 : -1) * pasMise())); ({ machine: ouvrirMachine, course: ouvrirCourse, blackjack: ouvrirBlackjack })[modaleOuverte] && ({ machine: ouvrirMachine, course: ouvrirCourse, blackjack: ouvrirBlackjack })[modaleOuverte](); }
+  if (a === 'moins' || a === 'plus') { casinoMise = miseVoisine(casinoMise, a === 'plus'); ({ machine: ouvrirMachine, course: ouvrirCourse, blackjack: ouvrirBlackjack })[modaleOuverte] && ({ machine: ouvrirMachine, course: ouvrirCourse, blackjack: ouvrirBlackjack })[modaleOuverte](); }
   else if (a === 'tirer') tirerMachine();
   else if (a.startsWith('jeton:')) { casinoJeton = +a.slice(6); ouvrirRoulette(); }
   else if (a.startsWith('pari:')) { if (casinoTourne) return; const k = a.slice(5); if (totalParis() + casinoJeton > miseMax()) { toast('Mise maximale : ' + fmt(miseMax()) + ' kamas par lancer.'); return; } casinoParis[k] = (casinoParis[k] || 0) + casinoJeton; ouvrirRoulette(); }

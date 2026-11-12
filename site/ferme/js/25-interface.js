@@ -210,7 +210,7 @@ const CONSTRUCTIONS = ['arbalete', 'tours', 'geliere', 'forge', 'atelier', 'leur
 const construit = (id) => (id === 'gardien' ? !!S_.gardien : id === 'tours' ? nbTours() >= TOURS_MAX : niv(id) > 0);
 /* L'ATELIER CACHE AUX JOUEURS (09/11/2026, « retire l'atelier pour le moment aux joueurs aussi, tant qu'on n'a pas tout fini », Mathieu) : seuls les testeurs
    (TESTEURS_ULTI, comme le Casino) le voient a l'HDV et peuvent l'ouvrir ; aucun joueur ne l'avait construit (seul Rorschach, le compte de Mathieu) */
-const amelioCachee = (id) => id === 'atelier' && !ultiLibre();
+const amelioCachee = (id) => false; /* (l'atelier : visible de tous depuis le 12/11/2026 ; la fonction reste pour la prochaine construction a cacher) */
 const aConstruire = () => CONSTRUCTIONS.filter((id) => !construit(id) && !amelioCachee(id));
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {
