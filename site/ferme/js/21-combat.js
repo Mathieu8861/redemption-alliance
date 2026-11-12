@@ -69,7 +69,7 @@ function comparaisonClasses(id) { /* les trois classes cote a cote, sans equipem
    Les pots bus avant la vague (Menthe, Citron, Royale) ne sont pris que par les combats qui les consomment (potsDeVague) : la simu VSA les laisse. */
 const potsDeVague = () => ({ regen: menthePrete(), citron: citronPret(), agi: royalePrete() });
 function nouveauCombat(genre, champs) {
-  couperNuitFerme(); /* (la nuit de la ferme laisse la place au combat : les lumieres reviennent a leur plein jour, 14i-nuit.js) */
+  if (genre !== 'raid') couperNuitFerme(); /* (la nuit de la ferme laisse la place au combat : les lumieres reviennent a leur plein jour, 14i-nuit.js ; pas pour une simu VSA, qui garde la nuit de la ferme, 12/11/2026) */
   const st = statsPerso();
   return (combat = Object.assign({ genre, n: 0, file: [], total: 1, attente: 1, st: { inflige: 0, max: 0, recus: 0, soins: 0, menthe: 0, sorts: 0, tues: 0 }, monstres: [], cible: null, pv: st.pvMax, pvMax: st.pvMax,
     cdAttaque: 0, cdSort: 0, cdUlti: 0, invoc: null, ordre: false, heros: {}, id: 0, fin: false, victoire: 0, phases: [] }, champs));

@@ -51,7 +51,7 @@ function majZoneUV() {
   S_.cases.forEach((c) => { if ((c.type !== 'champ' && c.type !== 'libre') || !sous(c)) return; const q = posCase(c), pl = new T.Mesh(geo, mat(c.type === 'champ' ? 0.55 : 0.22)); pl.rotation.x = -Math.PI / 2; pl.position.set(q.x, q.y + 0.12, q.z); pl.renderOrder = 3; g.add(pl); });
   scene.add(g); zoneUVMesh = g;
 }
-const nuitFermeLa = () => typeof lieu !== 'undefined' && lieu === 'ferme' && !combat && !enAccueil && ilFaitNuit(); /* (la nuit se voit : sur la ferme, hors combat) */
+const nuitFermeLa = () => typeof lieu !== 'undefined' && lieu === 'ferme' && (!combat || !!combat.raid) && !enAccueil && ilFaitNuit(); /* (la nuit se voit : sur la ferme, hors combat ; et pendant une simu VSA, qui se joue sur la ferme telle qu'elle est : 12/11/2026, Mathieu, la simu repassait en plein jour en pleine nuit) */
 /* ----- ce qu'on voit ----- */
 function voileNuitFerme() {
   if (NUIT_J) return NUIT_J;
