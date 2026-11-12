@@ -217,27 +217,29 @@ let JOUR_ILE_BOSS = 5; /* (le vendredi : chaque semaine de l'ile commence ce jou
 const ESSAIS_ILE_BOSS = 5 /* (5 depuis le 06/11/2026, « qu'on puisse le retry 5 fois au lieu de 3 », Mathieu) */, PV_ILE_BOSS = 1000000, /* (1 000 000 le 06/11/2026, « 500k c'est trop petit », Mathieu ; 500 000, Mathieu le 15/10/2026, apres son premier essai a 39 246 avec son Cra 38 ; 5 000 000 au depart, puis 100 000 « en attendant ») */ NIV_ILE_BOSS = 15, ENRAGE_ILE = { periode: 15 /* (15 s depuis le 07/11/2026 au soir, « mets l'enragement pour tous les boss toutes les 15 secondes », Mathieu ; 30 avant) */, pas: 0.05 }; /* (3 essais par compte et par semaine) */
 /* LA VIE D'UN BOSS DE L'ILE, BOSS PAR BOSS (07/11/2026, « rajoute 1 million de PV sur le Craqueleur legendaire, il est trop faible contre le Iop, Mada peut le tuer solo », Mathieu) :
    les autres gardent PV_ILE_BOSS. Pour une semaine deja passee, on lit le boss qu'elle avait (J.boss) */
-const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000 }, pvIleBoss = (t) => PV_ILE_BOSS_PAR[t] || PV_ILE_BOSS;
+const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000, bworker: 1500000 /* (12/11/2026, le choix de Mathieu au formulaire, la veille de sa semaine : l'alliance a fait 1 063 000 a 6 sur le Craqueleur) */ }, pvIleBoss = (t) => PV_ILE_BOSS_PAR[t] || PV_ILE_BOSS;
 /* UN BOSS DE L'ILE RENFORCE, SUR L'ILE SEULEMENT (07/11/2026, Craqueleur legendaire : « son cercle, il met combien de temps avant d'exploser ? » ; 2,6 s, trop confortable
    pour un Iop colle a lui ; « ok applique les changements, monte les autres stats aussi », Mathieu). d : ce qui remplace sa fiche (sur une copie, le boss de la vague 40
    ne change pas), deg : ses coups, vit : sa vitesse de marche, rappel : ses renforts (s) */
-const RENFORT_ILE = { craqLegendaire: { d: { seisme: 6, seismeDuree: 1.6, cadence: 1.7, armure: 0.45, sortsX: { seisme: 1.5 }, jet: { periode: 2.2, prepa: 0.85, R: 2.6, x: 0.65 }, faille: { periode: 8, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } };
-/* LE BWORKER RENFORCE, A L'ESSAI (12/11/2026, « tu me le up a la maniere du craqueleur ? », Mathieu, la veille de sa semaine sur l'ile) : les memes leviers que le
+const RENFORT_ILE = { craqLegendaire: { d: { seisme: 6, seismeDuree: 1.6, cadence: 1.7, armure: 0.45, sortsX: { seisme: 1.5 }, jet: { periode: 2.2, prepa: 0.85, R: 2.6, x: 0.65 }, faille: { periode: 8, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 },
+  bworker: { d: { bondit: 6.5, bondPrepa: 1, bonditR: 3.0, cadence: 1.6, armure: 0.4, sortsX: { bond: 1.3 }, jet: { periode: 5, prepa: 0.9, R: 3.8, x: 1.2 }, tourbillon: { periode: 6, prepa: 1, R: 4.6, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } }; /* (le Bworker, 12/11/2026 : voir ci-dessous) */
+/* LE BWORKER RENFORCE (12/11/2026, « tu me le up a la maniere du craqueleur ? », Mathieu, la veille de sa semaine sur l'ile) : les memes leviers que le
    Craqueleur, dans les memes proportions. Sa Hache lancee (son ultime) : toutes les 5 s au lieu de 7, 0,9 s pour sortir du cercle au lieu de 1,2, cercle de 3,8 au
    lieu de 3,2, x1,5. Son bond : toutes les 6,5 s au lieu de 9, 1 s au lieu de 1,3, cercle de 3 au lieu de 2,3, x1,3. Son tourbillon (contre un Iop colle a lui) :
    toutes les 6 s au lieu de 8, 1 s au lieu de 1,2, cercle de 4,6 au lieu de 3,6 (il est une fois et demie plus grand sur l'ile), +29 %. Un coup toutes les 1,6 s
-   au lieu de 2, armure 40 % au lieu de 30, coups +30 %, marche +15 %, Bworks toutes les 12 s au lieu de 16. LU SEULEMENT DANS LE MODE TEST tant que Mathieu n'a
-   pas valide les chiffres : pour l'ouvrir aux joueurs, deplacer la ligne dans RENFORT_ILE (et VITESSE_ILE_ESSAI dans VITESSE_ILE) */
-const RENFORT_ILE_ESSAI = { bworker: { d: { bondit: 6.5, bondPrepa: 1, bonditR: 3.0, cadence: 1.6, armure: 0.4, sortsX: { bond: 1.3 }, jet: { periode: 5, prepa: 0.9, R: 3.8, x: 1.2 }, tourbillon: { periode: 6, prepa: 1, R: 4.6, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } };
-const VITESSE_ILE_ESSAI = { bworker: 1.25 };
-const essaiIleLa = () => MODE_TEST && !ETAT_TEST.ileSansRenfort; /* (le mode test : le renfort a l'essai, que l'on peut decocher pour comparer) */
+   au lieu de 2, armure 40 % au lieu de 30, coups +30 %, marche +15 %, Bworks toutes les 12 s au lieu de 16. D'abord dans son mode test seulement, puis
+   « Oui, tel quel » au formulaire le meme jour : il est dans RENFORT_ILE et VITESSE_ILE, pour tous. RENFORT_ILE_ESSAI et VITESSE_ILE_ESSAI restent pour le prochain
+   boss a essayer : ce qu'on y met n'est lu que dans le mode test, tant que Mathieu n'a pas valide */
+const RENFORT_ILE_ESSAI = {};
+const VITESSE_ILE_ESSAI = {};
+const essaiIleLa = () => MODE_TEST; /* (le mode test : les renforts a l'essai) */
 const renfortIle = (t) => RENFORT_ILE[t] || (essaiIleLa() ? RENFORT_ILE_ESSAI[t] : null), vitesseIle = (t) => VITESSE_ILE[t] || (essaiIleLa() ? VITESSE_ILE_ESSAI[t] : 0) || 1;
 function renforcerIle(o) {
   const R = renfortIle(o.type); if (!R) return; const d0 = o.d, d = Object.assign({}, d0, R.d);
   ['jet', 'faille', 'tourbillon', 'sortsX'].forEach((k) => { if (R.d[k]) d[k] = Object.assign({}, d0[k] || {}, R.d[k]); }); o.d = d;
   if (R.deg) o.deg = o.deg0 = Math.max(1, Math.round(o.deg * R.deg)); if (R.vit) o.vitM = (o.vitM || 1) * R.vit; if (R.rappel) o.rappel = R.rappel;
 }
-const VITESSE_ILE = { craqLegendaire: 1.25 }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
+const VITESSE_ILE = { craqLegendaire: 1.25, bworker: 1.25 /* (12/11/2026, comme le Craqueleur) */ }; /* (05/11/2026, « rends-le un poil plus rapide que la normale, ca risque d'etre simple », Mathieu : le Craqueleur Legendaire de la semaine du 6/11 marche 25 % plus vite sur l'ile) */
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
 const RECOMPENSES_ILE = { participation: { kamas: kamasGagnes(10000), forge: 1, xp: 0.15 }, tombe: { kamas: kamasGagnes(40000), forge: 3, xp: 0.4, piece: 0.75, leg: 0.1 }, podium: [{ kamas: kamasGagnes(30000), parfaite: 1 }, { kamas: kamasGagnes(20000), forge: 3 }, { kamas: kamasGagnes(10000), forge: 2 }] };
