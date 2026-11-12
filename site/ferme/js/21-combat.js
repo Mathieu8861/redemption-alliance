@@ -2146,6 +2146,7 @@ function capEnfouit(mo, ctx) {
   let f = null; for (let k = 0; k < 16 && !f; k++) { const a = Math.atan2(mo.x - pp.x, mo.z - pp.z) + (Math.random() - 0.5) * (k < 8 ? 1.6 : 6), L = E.loin * (0.85 + Math.random() * 0.3), q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L);
     if (Math.hypot(q.x - pp.x, q.z - pp.z) > E.loin * 0.6 && solSort(q.x, q.z)) f = q; } /* (plutot de l'autre cote de lui, loin de toi ; solSort et non caseIci : a l'Arene, sans cases de ferme, il ne s'enfouissait jamais, ni ses tetes, « il s'est pas enfonce une seule fois », Mathieu, 09/11/2026) */
   if (!f) { mo.enfouiT = E.periode - 2; return; }
+  repousserTete(mo, combat); /* (une tete detruite repousse, avant la duree de la plongee, 12/11/2026) */
   mo.enfouiT = 0; mo.plonge = true; const c0 = combat, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0), H = (mo.haut || 4) * 1.05, vie0 = mo.pv / mo.pvMax, nT = E.tetes ? E.tetes - 1 : vie0 > 0.75 ? 0 : vie0 > 0.5 ? 1 : vie0 > 0.25 ? 2 : 3, /* (E.tetes : l'Ancestral Maudit, ses quatre tetes a chaque fois) */ TELL = 0.5, DESC = 0.8, TRAJ = Math.max(tetesVivantes(mo) ? TETES_DUREE : 2.2, Math.hypot(f.x - x0, f.z - z0) / 9); /* (10/11/2026 : 6,5 s sous terre tant qu'il lui reste une tete, elles te harcelent pendant ce temps ; 2,2 s sans tete) */
   mo.bloqueT = TELL + DESC + TRAJ + 1.3;
   if (!c0.enfouiVu) { c0.enfouiVu = true; toast(leNom(mo.d) + ' s\'enfonce sous terre : ses racines jaillissent là où il était, et il ressort plus loin !', 'alerte'); }
@@ -2257,13 +2258,24 @@ function fabriquerTeteAncestral() { /* le modele d'une tete : decoupee dans le v
   const h = new T.Mesh(T0[A.i].geo, mt), k = (A.mo.m.scale.x || 1) * 1.8, f = k / 1.7; h.scale.setScalar(k); h.castShadow = true; env.add(h);
   env.userData.tete = h; env.userData.k = k; env.userData.f = f; env.userData.hauteur = 1.75 * f + 0.45 * k; return env;
 }
-function creerTetes(mo, c0) {
-  mo.tetes = []; const T0 = tetesAncestral(); if (!T0) return;
-  for (let i = 0; i < 4; i++) { if (!T0[i] || !T0[i].tri) continue; TETE_A_FAIRE = { i, mo };
+function poserTete(mo, c0, i) { TETE_A_FAIRE = { i, mo }; /* (une tete, rangee au bout de mo.tetes ; creerTetes, puis repousserTete) */
     apparaitre('teteAncestral', { x: mo.x, z: mo.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.teteI = i; o.pv = o.pvMax = TETES_COUPS; o.deg = 0; o.aggro = true; o.casseur = false;
       o.etat = 'enfoui'; o.m.visible = false; o.barre.hidden = true; o.barre.classList.add('traits'); if (o.ombreM) o.ombreM.visible = false;
-      o.phase = 'cachee'; o.e = 0; o.att = 1e9; o.cou = couAncestral(o.m.userData.f || 1); o.cou.m.visible = o.cou.b.visible = false; o.lum = { m: { position: new T.Vector3() }, r: 0.75 * (o.m.userData.k || 1.8) * 0.55 }; mo.tetes.push(o); } }); c0.total++; }
-  TETE_A_FAIRE = null; const pos = new T.Vector3();
+      o.phase = 'cachee'; o.e = 0; o.att = 1e9; o.cou = couAncestral(o.m.userData.f || 1); o.cou.m.visible = o.cou.b.visible = false; o.lum = { m: { position: new T.Vector3() }, r: 0.75 * (o.m.userData.k || 1.8) * 0.55 }; mo.tetes.push(o); } }); c0.total++; TETE_A_FAIRE = null; }
+/* UNE TETE REPOUSSE A CHAQUE PLONGEE (12/11/2026 au soir, « la tete de l'Ancestral peut repousser ouais, mais je sais pas comment », Mathieu, puis au formulaire :
+   « une par plongee ») : avant, une tete detruite l'etait pour tout le combat. Maintenant, au debut de chaque plongee, une seule tete detruite repousse (la plus
+   ancienne), avant le calcul de la duree de la plongee : sans tete, il replonge donc en plongee longue avec celle qui revient. Taper vite fait toujours baisser
+   le nombre de tetes. La nouvelle repart a 3 traits, comme une tete neuve ; les autres frappent moins fort (TETES_FORCE suit le nombre en vie). */
+function repousserTete(mo, c0) {
+  if (!mo.tetes || mo.etat === 'mort' || !c0 || c0.fin) return; const j = mo.tetes.findIndex((o) => o.etat === 'mort'); if (j < 0) return;
+  const v = mo.tetes[j]; if (v.cou) { v.cou.jeter(); v.cou = null; } c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== v.lum);
+  const n0 = mo.tetes.length; poserTete(mo, c0, v.teteI); if (mo.tetes.length <= n0) return; mo.tetes[j] = mo.tetes.pop();
+  const nV = tetesVivantes(mo); toast(Maj(TETES_NOMS[v.teteI]) + ' repousse : ' + leNom(mo.d, true) + ' a de nouveau ' + nV + ' tête' + (nV > 1 ? 's' : '') + '. Une tête détruite repousse à chaque plongée.', 'alerte');
+}
+function creerTetes(mo, c0) {
+  mo.tetes = []; const T0 = tetesAncestral(); if (!T0) return;
+  for (let i = 0; i < 4; i++) { if (!T0[i] || !T0[i].tri) continue; poserTete(mo, c0, i); }
+  const pos = new T.Vector3();
   const cacher = (o) => { o.phase = 'cachee'; o.etat = 'enfoui'; o.e = 0; o.m.visible = false; o.barre.hidden = true; if (o.cou) o.cou.m.visible = o.cou.b.visible = false; c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== o.lum); if (combat === c0 && c0.cible === o) c0.cible = null; };
   const finir = (o) => { if (o.cou) { o.cou.jeter(); o.cou = null; } c0.tetesAnc = (c0.tetesAnc || []).filter((x) => x !== o.lum); };
   effets.push((dt) => {
@@ -2271,7 +2283,7 @@ function creerTetes(mo, c0) {
     if (mo.etat === 'mort') { mo.tetes.forEach((o) => { if (o.etat !== 'mort') { if (o.etat === 'actif') { const y = solA(o.x, o.z); eclatsRoche(o.x, y + 1.5, o.z, 10, 1.0, MATS_BOIS); } o.pv = 0; o.etat = 'mort'; o.t = 9; o.barre.remove(); o.m.visible = false; if (c0.cible === o) c0.cible = null; } finir(o); }); return true; } /* (il tombe : ses tetes avec lui) */
     const sousTerre = mo.etat === 'enfoui', pp = paysanMesh.position, nV = tetesVivantes(mo);
     mo.tetes.forEach((o) => {
-      if (o.etat === 'mort') { if (o.cou) { finir(o); if (nV) toast('Une tête de ' + leNom(mo.d, true) + ' éclate : il en reste ' + nV + ', ' + (nV > 1 ? 'elles frappent' : 'elle frappe') + ' plus fort !', 'or'); else toast(Maj(leNom(mo.d, true)) + ' n\'a plus de tête : ses plongées sont courtes, achève-le !', 'or'); } return; }
+      if (o.etat === 'mort') { if (o.cou) { finir(o); if (nV) toast('Une tête de ' + leNom(mo.d, true) + ' éclate : il en reste ' + nV + ', ' + (nV > 1 ? 'elles frappent' : 'elle frappe') + ' plus fort !', 'or'); else toast(Maj(leNom(mo.d, true)) + ' n\'a plus de tête : achève-le vite, une tête repousse à chaque plongée !', 'or'); } return; }
       o.cd = 99; o.bloqueT = 99; /* (elle ne marche pas et ne frappe pas : seuls ses sorts comptent) */
       if (o.phase === 'cachee') { if (!sousTerre || c0.deroute != null) return; if ((o.att -= dt) > 0) return;
         let p = null; for (let k = 0; k < 12 && !p; k++) { const a = Math.random() * Math.PI * 2, L = o.teteI === 2 ? 2.4 : 3.2 + Math.random() * 1.6, q = pointValide(pp.x, pp.z, pp.x + Math.sin(a) * L, pp.z + Math.cos(a) * L); if (solSort(q.x, q.z) && !mo.tetes.some((u) => u !== o && u.etat === 'actif' && Math.hypot(u.x - q.x, u.z - q.z) < 1.8)) p = q; }
@@ -2293,7 +2305,7 @@ function creerTetes(mo, c0) {
 function lancerTetes(mo, c0) { /* il vient de plonger : ses tetes en vie sortent, l'une apres l'autre */
   if (!mo.tetes) creerTetes(mo, c0); let k = 0;
   mo.tetes.forEach((o) => { if (o.etat === 'mort') return; if (o.phase === 'cachee') o.att = 0.15 + k * 0.45; k++; });
-  if (!c0.tetesVu && k) { c0.tetesVu = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ses ' + k + ' têtes : elles te harcèlent de sorts tant qu\'il y reste. Frappe chacune 3 fois pour la détruire ; moins il en reste, plus elles frappent fort.', 'alerte'); }
+  if (!c0.tetesVu && k) { c0.tetesVu = true; toast('Sous terre, ' + leNom(mo.d, true) + ' fait surgir ses ' + k + ' têtes : elles te harcèlent de sorts tant qu\'il y reste. Frappe chacune 3 fois pour la détruire ; moins il en reste, plus elles frappent fort, et une tête détruite repousse à chaque plongée.', 'alerte'); }
 }
 /* CE QUE FONT SES TETES, refait le 10/11/2026 (« on esquive trop facilement ce que font les tetes, on comprend pas trop, y'a des cercles de differentes tailles mais sans
    plus », Mathieu) : avant, quatre cercles rouges d'une seconde. Chaque tete a maintenant sa forme, sa couleur et son nom affiche au-dessus d'elle quand elle agit :

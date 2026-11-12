@@ -86,6 +86,17 @@ function recapCombat(c) {
     l('degats', 'Tes dégâts', fmt(Math.max(0, Math.round(st.inflige) - def))) + l('carreaux', 'Dégâts de tes défenses', fmt(def)) + l('puissance', 'Ton plus gros coup', fmt(Math.round(st.max))) +
     l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('soin', 'Soins reçus', fmt(Math.round(st.soins || 0)) + (st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(st.menthe)) + ')' : '')) + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>';
 }
+/* LA MOITIE DU BUTIN PERDUE (12/11/2026 au soir, « quand on perd une vague, on peut reduire le drop ? genre le diviser par deux ? », puis « je te laisse gerer »,
+   Mathieu) : le butin tombe pendant le combat ; vague perdue OU fuie (sinon on fuirait juste avant de tomber pour tout garder), on n'en garde que la moitie :
+   ressources (la moitie, et pile ou face pour l'impaire) et pieces de panoplie, rares comprises (la moitie, tirees au hasard). Les legendaires et les armes
+   des boss restent acquises (un boss abattu). Une piece deja sortie du sac (equipee entre-temps) est gardee. Pas la simu VSA, ni l'Arene ni l'ile (sans butin). */
+function perdreMoitieButin(c) {
+  const L = c.loot, P = { res: [], objets: [] }; if (!L) return P; const moitie = (n) => Math.floor(n / 2) + (n % 2 && Math.random() < 0.5 ? 1 : 0);
+  Object.keys(L.res).forEach((r) => { const n = L.res[r], x = Math.min(moitie(n), S_.grange[r] || 0); if (x <= 0) return; S_.grange[r] -= x; L.res[r] = n - x; if (!L.res[r]) delete L.res[r]; P.res.push([r, x]); });
+  const T0 = L.objets.filter((k) => obj(k) && !obj(k).leg && !/^arme-/.test(baseObjet(k)) && (S_.sac[k] || 0) > 0).sort(() => Math.random() - 0.5), x = moitie(T0.length);
+  T0.slice(0, x).forEach((k) => { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; if (S_.neufs && S_.neufs[k]) { S_.neufs[k]--; if (!S_.neufs[k]) delete S_.neufs[k]; S_.nouveaux = Math.max(0, (S_.nouveaux || 0) - 1); } const i = L.objets.indexOf(k); if (i >= 0) L.objets.splice(i, 1); P.objets.push(k); });
+  if (P.objets.length) rendreHaut(); return P;
+}
 function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }
   const c = combat; if (!fuite) son(gagne ? 'victoire' : 'defaite'); const n = c.n, rejoue = S_.vague.num > vaguesOuvertes() || c.rejoueBoss != null;
@@ -138,10 +149,15 @@ function finVague(gagne, fuite) {
     corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Ton perso n\'a pas besoin de repos : tu peux relancer quand tu veux.' : 'Ton perso se repose ' + dureeLisible(REPOS_VAGUE) + ' avant de pouvoir relancer, et revient à ' + Math.round(VIE_APRES_DEFAITE * 100) + ' % de vie au moins : bois un pot de gelée pour repartir plus fort. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
   }
   corps += recapCombat(c); /* « recap fin de combat » (testeurs, 12/10/2026) */
+  const perduB = !gagne && !c.raid ? perdreMoitieButin(c) : null; /* (la moitie du butin, vague perdue ou fuie, 12/11/2026) */
   if (c.loot && (Object.keys(c.loot.res).length || c.loot.objets.length)) corps += '<div class="hdv-section">Butin</div>' + /* une ligne par objet et par ressource, chacun avec son icone (demande de Mathieu, 11/10/2026) */
     lignesButin(c.loot.objets, true, true) + /* (l'etoile seulement sur les pieces rares : avant, toutes en avaient une, « c'est trompeur », Mathieu, 23/10/2026 ; le jet, le tri par rarete et la ligne doree : lignesButin, 03/11/2026) */
     Object.entries(c.loot.res).map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>' + n + ' ' + PAR_ID[r].nom + '</b><div class="desc">À la grange, se vend à l’HDV (' + fmt(Math.round(prix(r))) + ' ' + KAMA + ' pièce).</div></div>' +
       ((S_.grange[r] || 0) > 0 ? '<div class="act"><button class="btn discret" data-vendre-res="' + r + '" data-n="' + Math.min(n, S_.grange[r]) + '">Vendre ' + fmt(Math.round(Math.min(n, S_.grange[r]) * prix(r))) + ' ' + KAMA + '</button></div>' : '<div></div>') + '</div>').join(''); /* (vendre sur place ce qu'on vient de ramasser, 04/11/2026) */
+  if (perduB && (perduB.res.length || perduB.objets.length)) corps += '<div class="hdv-section">Butin perdu avec la vague</div><p style="font-size:.8rem;font-weight:600;margin:0 0 6px">' + (fuite ? 'Tu as fui' : 'Vague perdue') + ' : tu ne gardes que la moitié de ce qui est tombé (les légendaires et les armes de boss restent à toi).</p>' +
+    perduB.objets.map((k) => '<div class="art">' + icoObjet(k) + '<div><b>' + (obj(k).rare ? '<span class="badge-butin rare">★ Rare</span>' : '') + obj(k).nom + '</b><div class="desc">Perdue avec la vague.</div></div><div></div></div>').join('') +
+    perduB.res.map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>-' + n + ' ' + PAR_ID[r].nom + '</b><div class="desc">Perdu' + (n > 1 ? 's' : '') + ' avec la vague.</div></div><div></div></div>').join('');
+  if (perduB) perduB.objets.forEach((k) => { if (S_.jets && !(S_.sac[k] > 0) && !Object.values(S_.equip || {}).includes(k)) delete S_.jets[k]; }); /* (le jet de la piece perdue, une fois affichee) */
   { const V = Object.entries(c.cultures || {}); if (V.length || c.saccage) corps += '<div class="hdv-section">Cultures perdues</div>' + /* une ligne par culture, comme les batiments (19/10/2026) */
     V.map(([id, v]) => '<div class="art">' + ico(id) + '<div><b>' + PAR_ID[id].nom + ' : -' + v.n + ' récolte' + (v.n > 1 ? 's' : '') + '</b><div class="desc">' + (v.par.every((t) => t === 'tofu') ? 'Picorée' : 'Grignotée') + (v.n > 1 ? 's' : '') + ' par ' + v.par.map((t) => 'les ' + pluriel(MONSTRES[t].nom)).join(' et ') + ', soit environ ' + fmt(Math.round(v.n * prix(id))) + ' ' + KAMA + ' à l\'HDV.</div></div><div></div></div>').join('') +
     (c.saccage ? '<div class="art">' + ico(c.saccage.c) + '<div><b>Champ ' + de(PAR_ID[c.saccage.c].nom) + ' saccagé : -' + c.saccage.n + ' récolte' + (c.saccage.n > 1 ? 's' : '') + '</b><div class="desc">Tout le champ, en repartant après ta défaite, soit environ ' + fmt(Math.round(c.saccage.n * prix(c.saccage.c))) + ' ' + KAMA + ' à l\'HDV.</div></div><div></div></div>' : ''); }
