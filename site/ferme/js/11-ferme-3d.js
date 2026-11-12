@@ -318,7 +318,7 @@ function lueurLanterne(m, L) {
    de Paris (« les lampadaires, ils peuvent etre eteints le jour ? ») : la carte restait en plein jour avec ses lanternes allumees le soir. Le jour ou la ferme
    aura son cycle jour-nuit, c'est ici qu'il se branche. LANTERNES_FORCE (true ou false) les force, pour les tests. */
 let LANTERNES_FORCE = null;
-const nuitSurLaCarte = () => !!((typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) || nuitFermeLa()); /* (nuitFermeLa : le jour et la nuit du palier 10, 14i-nuit.js) */
+const nuitSurLaCarte = () => !!((typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) || nuitFermeLa() || (typeof pluieLa === 'function' && pluieLa())); /* (pluieLa : sous la pluie a l'essai du palier 11, les lanternes s'allument aussi ; 14j-pluie.js) */ /* (nuitFermeLa : le jour et la nuit du palier 10, 14i-nuit.js) */
 function lanternesAllumees() { return LANTERNES_FORCE != null ? LANTERNES_FORCE : nuitSurLaCarte(); }
 function allumerLanterne(A) { A.halo.visible = A.sol.visible = A.a > 0.01; A.halo.material.opacity = A.a; A.verres.forEach((M) => M.color.copy(M.userData.eteint).lerp(M.userData.allume, A.a)); }
 function animerLanternes(s) {

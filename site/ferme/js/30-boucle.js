@@ -91,7 +91,7 @@ function boucle(t) {
   surveillerFluidite((t - (boucle.t1 || t)) / 1000);
   let dtb = Math.min(0.05, (t - (boucle.t1 || t)) / 1000); if (ARRET.t > 0 && !enPause) { ARRET.t -= dtb; dtb /= 12; } /* (l'image figee d'un gros coup : le temps passe 12 fois moins vite, 22b-effets.js, 04/11/2026) */
   if (!enPause) { try { deplacerVoleur(dtb, s); viserArbalete(dtb, s); majTours(dtb, s); majEpouvantail(dtb, s); majBouclier(dtb, s); majTofuDore(); animerLeurre(s);
-    majCombat(dtb, s); marcher(dtb, s); majNuitFerme(dtb); majLumieresBat(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); animerFontaines(dtb, s); animerLanternes(s); }
+    majCombat(dtb, s); marcher(dtb, s); if (typeof majPluie === 'function') majPluie(dtb); /* (la pluie a l'essai du palier 11, 14j-pluie.js) */ majNuitFerme(dtb); majLumieresBat(dtb, s); tenirEpee(); majMeute(s); majPassifs(dtb); animerAttaque(dtb); majEffets(dtb); animerFeux(dtb); animerFumees(s); animerOmeho(dtb, s); majGardien(dtb, s); animerIleBoss(dtb); animerCascade(dtb); animerFontaines(dtb, s); animerLanternes(s); }
     catch (err) { erreurBoucle(err); } } boucle.t1 = t; /* (en pause : la scene reste affichee, plus rien ne bouge) */
   vent.mettreAJour(reduit ? 0 : s); dessinerCiel(reduit ? 0 : s);
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
