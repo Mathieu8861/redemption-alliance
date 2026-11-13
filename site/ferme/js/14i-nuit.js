@@ -22,6 +22,11 @@ const nuitDebloquee = () => !!S_ && !!S_.vague && ((S_.vague.num > VAGUE_NUIT &&
 const heureVraie = () => new Date().getTime(); /* (Date.now est l'horloge du jeu, 01-horloge.js : new Date() reste l'heure vraie) */
 const avanceJeu = () => Date.now() - heureVraie(); /* l'avance de l'horloge du jeu sur l'heure vraie (le curseur du temps) */
 const nuitForcee = () => (MODE_TEST && ETAT_TEST.nuit) || null; /* (le mode test : 'jour' ou 'nuit', pour essayer a toute heure) */
+/* LA NUIT DU PALIER 10 (13/11/2026) : « que de 91 a 100 ; a partir de la 101 on repart sur le cycle jour / nuit classique ; jour jusqu'a 90 », puis « pourquoi il fait
+   jour sur ma ferme ? » (Mathieu) : une ferme aux vagues 91 a 100 (la prochaine a jouer) est dans la nuit, a toute heure ; apres la vague 100, la nuit suit l'heure
+   (de 18 h a 7 h). Le mode test (ETAT_TEST.nuit) passe devant, pour essayer le jour */
+const nuitDuPalier = () => !!S_ && !!S_.vague && S_.vague.num > VAGUE_NUIT && S_.vague.num <= VAGUE_NUIT + VAGUES_PALIER;
+const nuitImposee = () => nuitForcee() || (nuitDuPalier() ? 'nuit' : null);
 function decalageParis(t) { /* l'avance de l'heure française sur l'heure universelle (une heure l'hiver, deux l'ete), recalculee une fois par heure */
   const h = Math.floor(t / HEURE_MS); if (decalageParis.h === h) return decalageParis.v;
   let v = HEURE_MS; try { const p = {}; new Intl.DateTimeFormat('en-US', { timeZone: JOUR_NUIT.fuseau, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }).formatToParts(new Date(t)).forEach((x) => { p[x.type] = +x.value; });
@@ -32,8 +37,8 @@ const heureLocale = (t) => { const L = t + decalageParis(t); return L - Math.flo
 const estNuitA = (r) => r >= JOUR_NUIT.debut * HEURE_MS || r < JOUR_NUIT.fin * HEURE_MS; /* (la nuit passe minuit) */
 const nuitEcoulee = (t) => { const L = t + decalageParis(t), n = Math.floor(L / JOURNEE_MS), r = L - n * JOURNEE_MS; return n * (24 - JOUR_NUIT.debut + JOUR_NUIT.fin) * HEURE_MS + Math.min(r, JOUR_NUIT.fin * HEURE_MS) + Math.max(0, r - JOUR_NUIT.debut * HEURE_MS); }; /* les millisecondes de nuit ecoulees a l'heure vraie t */
 /* la part de nuit de l'intervalle [a, b], donne a l'horloge du jeu (avancer, 06-temps.js) : on le ramene a l'heure vraie. Juste aussi au retour d'une absence */
-const partNuit = (a, b) => { if (!nuitDebloquee() || !(b > a)) return 0; const f = nuitForcee(); if (f) return f === 'nuit' ? 1 : 0; const av = avanceJeu(); return Math.min(1, Math.max(0, (nuitEcoulee(b - av) - nuitEcoulee(a - av)) / (b - a))); };
-const ilFaitNuit = () => { if (!nuitDebloquee()) return false; const f = nuitForcee(); return f ? f === 'nuit' : estNuitA(heureLocale(heureVraie())); };
+const partNuit = (a, b) => { if (!nuitDebloquee() || !(b > a)) return 0; const f = nuitImposee(); if (f) return f === 'nuit' ? 1 : 0; const av = avanceJeu(); return Math.min(1, Math.max(0, (nuitEcoulee(b - av) - nuitEcoulee(a - av)) / (b - a))); };
+const ilFaitNuit = () => { if (!nuitDebloquee()) return false; const f = nuitImposee(); return f ? f === 'nuit' : estNuitA(heureLocale(heureVraie())); };
 const avantBascule = () => { const r = heureLocale(heureVraie()), d = JOUR_NUIT.debut * HEURE_MS, f = JOUR_NUIT.fin * HEURE_MS; return r >= d ? JOURNEE_MS - r + f : r < f ? f - r : d - r; }; /* le temps vrai avant la nuit (de jour) ou avant le jour (de nuit) */
 /* la vitesse de pousse d'une culture sur un intervalle dont pn est la part de nuit ; uv : le champ est sous une lanterne UV */
 const pousseNuit = (c, pn, uv) => (c.nuit ? 1 - JOUR_NUIT.lent * (1 - pn) : 1 - JOUR_NUIT.lent * pn * (uv ? 0 : 1));
@@ -82,7 +87,7 @@ function majNuitFerme(dt) { /* a chaque image */
   if (!veut && !(NUIT_J && NUIT_J.k > 0)) return;
   if (!veut && (combat || lieu !== 'ferme')) { couperNuitFerme(); return; }
   const N = voileNuitFerme(), avant = N.k; if (veut && !avant && !majNuitFerme.jourVu) nuitToutDeSuite(N); else N.k = veut ? Math.min(1, N.k + dt / JOUR_NUIT.fondu) : Math.max(0, N.k - dt / JOUR_NUIT.fondu);
-  if (veut && !avant) { animerLanternes.t = 0; if (heureVraie() - nuitAnnoncee > 6 * HEURE_MS) { nuitAnnoncee = heureVraie(); /* (une fois par nuit, pas a chaque retour de combat) */ toast('Il fait nuit jusqu\'à ' + JOUR_NUIT.fin + ' h, heure française : tes cultures poussent deux fois moins vite, sauf la ' + (PAR_ID.noctiflore ? PAR_ID.noctiflore.nom : 'plante de nuit') + ' et les champs sous une lanterne UV.'); } }
+  if (veut && !avant) { animerLanternes.t = 0; if (heureVraie() - nuitAnnoncee > 6 * HEURE_MS) { nuitAnnoncee = heureVraie(); /* (une fois par nuit, pas a chaque retour de combat) */ toast((nuitDuPalier() && !nuitForcee() ? 'Au palier 10, il fait nuit jusqu\'à la fin de la vague 100' : 'Il fait nuit jusqu\'à ' + JOUR_NUIT.fin + ' h, heure française') + ' : tes cultures poussent deux fois moins vite, sauf la ' + (PAR_ID.noctiflore ? PAR_ID.noctiflore.nom : 'plante de nuit') + ' et les champs sous une lanterne UV.'); } }
   if (!veut && avant && !N.k) animerLanternes.t = 0;
   N.v.style.opacity = String(N.k); teinterNuitFerme(N); majLueursLys(N.k); if (typeof trousNuit === 'function') trousNuit(N); /* (les lanternes allumees percent le voile, comme dans la nuit de la foret) */
 }
@@ -98,10 +103,11 @@ function ouvrirJourNuit() {
   if (combat && !combat.fin) return; /* (pas de fenetre en pleine vague) */
   const nuit = ilFaitNuit(), f = nuitForcee(), D = JOUR_NUIT.debut, F = JOUR_NUIT.fin, ici = heureChezToi(D), ici2 = heureChezToi(F), ailleurs = ici !== D + ' h';
   const quand = f ? 'Mode test : ' + (nuit ? 'la nuit' : 'le jour') + ' est forcé' + (nuit ? 'e' : '') + '. Avec « L\'heure vraie », ' + (estNuitA(heureLocale(heureVraie())) ? 'il ferait nuit, et le jour se lèverait dans ' : 'il ferait jour, et la nuit tomberait dans ') + '<b>' + dureeCourte(avantBascule()) + '</b>.'
+    : nuitDuPalier() ? 'Il fait <b>nuit</b> : au palier 10, la nuit ne finit pas. Le jour revient quand tu as battu la vague 100.'
     : nuit ? 'Il fait <b>nuit</b>. Le jour se lève dans <b>' + dureeCourte(avantBascule()) + '</b>.' : 'Il fait <b>jour</b>. La nuit tombe dans <b>' + dureeCourte(avantBascule()) + '</b>.';
   const ligne = (nom, j, k) => '<tr><td>' + nom + '</td><td>' + j + '</td><td>' + k + '</td></tr>';
   ouvrirModale('jour-nuit', entete('Le jour et la nuit') + '<p class="hdv-aide">' + quand + '</p>' +
-    '<div class="hdv-section">Les heures</div><p class="hdv-aide">La nuit va de <b>' + D + ' h à ' + F + ' h</b>, heure française, tous les jours et pour tout le monde' + (ailleurs ? ' : de <b>' + ici + ' à ' + ici2 + '</b> à ta montre' : '') + '. Le reste du temps, il fait jour.</p>' +
+    '<div class="hdv-section">Les heures</div><p class="hdv-aide">Aux vagues 91 à 100, il fait <b>nuit tout le temps</b>. À partir de la vague 101, la nuit va de <b>' + D + ' h à ' + F + ' h</b>, heure française, tous les jours et pour tout le monde' + (ailleurs ? ' : de <b>' + ici + ' à ' + ici2 + '</b> à ta montre' : '') + '. Le reste du temps, il fait jour.</p>' +
     '<div class="hdv-section">La pousse des champs</div><table class="jn-table"><tr><th></th><th>Le jour</th><th>La nuit</th></tr>' + ligne('Une culture', '100 %', '50 %') + ligne('Une culture près d\'une lanterne UV', '100 %', '100 %') + ligne(PAR_ID.noctiflore ? PAR_ID.noctiflore.nom + ' (la plante de nuit)' : 'La plante de nuit', '50 %', '100 %') + '</table>' +
     '<p class="hdv-aide">La lanterne UV se fabrique à l\'atelier : la nuit, elle fait pousser à pleine vitesse les champs des 12 cases autour d\'elle. Les lumières de tes bâtiments, elles, ne changent rien aux cultures ni aux monstres.</p>');
 }
@@ -111,8 +117,8 @@ function majPastilleNuit() {
   if (!b) { const v = document.getElementById('b-vitesse'); if (!ok || !v) return; b = document.createElement('button'); b.type = 'button'; b.id = 'b-nuit'; b.className = 'pastille vitesse';
     b.innerHTML = '<i class="astre"></i><span class="lib"></span><span class="reste"></span>'; b.addEventListener('click', (e) => { e.stopPropagation(); ouvrirJourNuit(); }); v.insertAdjacentElement('beforebegin', b); }
   b.hidden = !ok; if (b.parentElement) b.parentElement.classList.toggle('avec-nuit', ok); /* (la barre replie ses libelles plus tot : tout tient sur une ligne, css/jeu.css) */ if (!ok) return; const nuit = ilFaitNuit(), f = nuitForcee(), reste = dureeCourte(avantBascule()); b.classList.toggle('nuit', nuit);
-  b.querySelector('.lib').textContent = nuit ? 'Nuit ' : 'Jour '; b.querySelector('.reste').textContent = f ? 'test' : reste;
-  b.dataset.info = f ? (nuit ? 'La nuit est forcée (mode test).' : 'Le jour est forcé (mode test).') + ' Touche pour tout savoir.' : (nuit ? 'Il fait nuit : le jour se lève dans ' : 'Il fait jour : la nuit tombe dans ') + reste + '. Touche pour tout savoir.';
+  b.querySelector('.lib').textContent = nuit ? 'Nuit ' : 'Jour '; b.querySelector('.reste').textContent = f ? 'test' : nuitDuPalier() ? 'palier 10' : reste;
+  b.dataset.info = f ? (nuit ? 'La nuit est forcée (mode test).' : 'Le jour est forcé (mode test).') + ' Touche pour tout savoir.' : nuitDuPalier() ? 'Au palier 10, il fait nuit tout le temps : le jour revient après la vague 100. Touche pour tout savoir.' : (nuit ? 'Il fait nuit : le jour se lève dans ' : 'Il fait jour : la nuit tombe dans ') + reste + '. Touche pour tout savoir.';
 }
 
 /* ---------- LES LUMIERES D'APPOINT DES BATIMENTS (11/11/2026) ----------
