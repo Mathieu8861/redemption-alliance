@@ -116,7 +116,13 @@ const LEGENDAIRES = [
     pouvoirs: { epee: 'Sort Carapace de corail (touche 4) : pendant 6 s, tu prends 40 % de dégâts en moins et tes coups font 30 % de plus. Recharge 16 s.',
       arc: 'Sort Geyser (touche 4) : tu vises un cercle (jusqu\'à 6 cases de toi) ; 0,6 s plus tard un geyser y jaillit, 2,5 fois tes dégâts sur 1,5 case autour, et les monstres touchés sont projetés et sonnés 1 s (0,5 s pour un boss). Recharge 12 s.',
       fouet: 'Sort Galvanisation (touche 4) : ton Bouftou invoqué frappe 50 % plus fort et 30 % plus vite pendant 8 s, et il reste 30 % plus longtemps. Recharge 15 s.' } },
-  { cle: 'cochon', boss: 'dragonCochon', rang: 7, fichier: 'equipements-cochon', nom: 'Heaume du Dragon Cochon', /* (le palier 8, 20/10/2026 ; son modele est dans equipements-cochon) */
+  { cle: 'dcochon', boss: 'dragonCochon', arme: true, rang: 7, fichier: 'equipements-dcochon', /* (13/11/2026 : « pourquoi le Dragon Cochon c'est une coiffe legendaire et pas des armes comme les autres du
+       palier 51 a 100 ? », puis « Remplacer par des armes », Mathieu ; variantes choisies : le Couperet (B) pour le Iop, retravaille (« il est pas tres bien fait »), les Defenses (A) pour le Cra,
+       la Queue (A) pour l'Osa ; « Bain de boue pour les 3 », le sort du Heaume ; blender/equipements-dcochon.py) */
+    noms: { epee: 'Couperet du Dragon Cochon', arc: 'Arc du Dragon Cochon', fouet: 'Fouet du Dragon Cochon' }, icone: 'dcochon', noeuds: { epee: 'Arme_epee_dcochonB', arc: 'Arme_arc_dcochon', fouet: 'Arme_fouet_dcochon' },
+    cales: { epee: { y0: 0.01, L: 1.65 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.02, L: 0.6, laniere: 'laniere', retirer: /^(laniere|rayure|pointe_dos|bout)$/ } }, /* (le modele : l'anneau du pommeau centre en y 0, haut de la lame en 1,66 ; arc de 0,05 a 1,65 ; sabot en 0,02, manche jusqu'a 0,62) */
+    pouvoir: 'Sort Bain de boue (touche 4) : une flaque de boue là où tu vises (jusqu\'à 5 cases de toi, sur 1,5 case autour), 2 fois tes dégâts, et les monstres dedans restent collés 2 s (1 s pour un boss). Recharge 12 s.' },
+  { cle: 'cochon', boss: null, rang: 7, fichier: 'equipements-cochon', nom: 'Heaume du Dragon Cochon', /* (le palier 8, 20/10/2026 ; son modele est dans equipements-cochon) */ /* (13/11/2026 : il ne tombe plus, le Dragon Cochon donne ses armes ; ceux qui l'ont le gardent, son sort marche toujours) */
     pouvoir: 'Sort Bain de boue (touche 3) : une flaque de boue là où tu vises (jusqu\'à 5 cases de toi, sur 1,5 case autour), 2 fois tes dégâts, et les monstres dedans restent collés 2 s (1 s pour un boss). Recharge 12 s.' },
   { cle: 'chene', boss: 'cheneMou', arme: true, rang: 9, niv: 90, fichier: 'equipements-chene', /* (le palier 10, 09/11/2026 : « commence a travailler les armes legendaires du Chene Mou » ; deuxieme planche,
        « Epee B, Arc B, fouet A », Mathieu : l'ambre pour l'epee et l'arc, l'automne pour le fouet ; blender/equipements-chene.py ; niv : le niveau maximum, 90) */

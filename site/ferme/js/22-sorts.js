@@ -296,6 +296,7 @@ const SORTS_LEG = {
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 2.2 },
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
+  dcochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 }, /* (les armes du Dragon Cochon, 13/11/2026 : « Bain de boue pour les 3 », Mathieu, le sort du Heaume) */
   corail: { nom: 'Corail', teinte: '#3aa6e0', recharge: 15, portee: 12, zone: 3, parClasse: { /* (les armes de la Tortue Corail, 05/11/2026 : un sort par classe ; instant : il part au clic, sans viser) */
     iop: { nom: 'Carapace de corail', teinte: '#f0604a', recharge: 16, instant: true }, cra: { nom: 'Geyser', teinte: '#3aa6e0', recharge: 12, portee: 12, zone: 3 }, osa: { nom: 'Galvanisation', teinte: '#5ccbf0', recharge: 15, instant: true } } },
   chene: { nom: 'Chêne Mou', teinte: '#86b84a', recharge: 16, portee: 10, zone: 1.4, parClasse: { /* (les armes du Chene Mou, 09/11/2026 : un sort par classe ; l'Osa d'abord, « Osa j'aime bien », Mathieu ; le Iop et le Cra a revoir) */
@@ -318,7 +319,7 @@ function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
   const S = sortLeg(cle), pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
   if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop') || (cle === 'ancestral' && classeDe() === 'cra'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || cle === 'dcochon' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop') || (cle === 'ancestral' && classeDe() === 'cra'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
       l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
       l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
     const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
@@ -338,7 +339,7 @@ function executerLeg(emp, pt, compter, tire) {
     for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.0 : 0, X = x + Math.cos(a) * r, Z = z + Math.sin(a) * r; pluieCawotte(X, y, Z, k * 0.06);
       actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
   } else if (cle === 'koulosse') nuageLeg(x, z); /* la fumee : un nuage la ou tu vises */
-  else if (cle === 'cochon') boueLeg(x, z, S.zone, st); /* le bain de boue : une flaque la ou tu vises, les monstres dedans restent colles */
+  else if (cle === 'cochon' || cle === 'dcochon') boueLeg(x, z, S.zone, st); /* le bain de boue : une flaque la ou tu vises, les monstres dedans restent colles */
   else if (cle === 'royal') chargeRoyale(pt, st); /* la charge : tete baissee vers ou tu vises */
   else if (cle === 'chafer') lanceOsPerso(pt, st); /* la lance d'os : en ligne droite, plus forte de loin */
   else if (cle === 'bworker') hacheLancee(x, z, S.zone, st); /* la hache lancee : elle retombe la ou tu vises */
