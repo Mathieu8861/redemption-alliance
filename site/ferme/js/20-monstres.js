@@ -216,7 +216,14 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
    jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
 const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout entre 60 et 65 % », Mathieu : les vagues 81 a 85 tombent a 62 %) */
 /* les retouches d'une vague precise, apres tout le reste (06/11/2026, vague 82 : « retire 2 Jav pour mettre 2 Tambours », Mathieu) */
-const AJUST_COMPO = { 83: [['kannibJav', -3], ['kannibSarbak', -1], ['kannibArk', -1], ['kannibTam', 4]] }; /* (09/11/2026, « la vague 83 est impossible en Osamodas, tu te fais arracher la tete ; un peu moins de mecs a distance, un peu plus au corps a corps, et retire un monstre », Mathieu : 26 monstres dont 16 a distance, puis 25 dont 11) */
+const AJUST_COMPO = { 83: [['kannibJav', -3], ['kannibSarbak', -1], ['kannibArk', -1], ['kannibTam', 4]],
+  /* (13/11/2026, « j'ai l'impression que les vagues 92 et 93 sont quand meme assez simples », Mathieu, puis « +2 / +4 / +4 » au formulaire, la 94 comprise : moins d'Abraknydes
+     qu'a la 91 (7 contre 10), beaucoup de Tronknydes a 1 900 PV, et a la 93 trois Arbres Collants qui ne bougent pas ; sans eux, la 93 etait plus faible que la 91.
+     Force (PV x degats, Arbres Collants exclus), en Iop : 91 553 ; 92 603 -> 721 ; 93 536 -> 759 ; 94 595 -> 762 ; 95 1 285. Le Iop garde ses 4 monstres en plus) */
+  92: [['abraknyde', 2]], 93: [['abraknyde', 2], ['sombre', 2]], 94: [['abraknyde', 1], ['abrakne', 3]],
+  /* (puis « check la 96 a 99 aussi », Mathieu : la 97 tombait a 787 a cause de ses trois Arbres Collants, la 98 sous la 96 ; « 97 : +5, 98 : +2 » au formulaire.
+     Force : 96 1 116 ; 97 787 -> 1 176 ; 98 1 027 -> 1 217 ; 99 1 277, inchangee) */
+  97: [['abraknyde', 3], ['sombre', 2]], 98: [['abraknyde', 2]] }; /* (09/11/2026, « la vague 83 est impossible en Osamodas, tu te fais arracher la tete ; un peu moins de mecs a distance, un peu plus au corps a corps, et retire un monstre », Mathieu : 26 monstres dont 16 a distance, puis 25 dont 11) */
 /* les Tortues melangees (06/11/2026, « pourquoi 11 Tortues Bleues et pas un melange ? », Mathieu) : le complement d'effectif allait tout a la premiere de la liste ;
    la 86 et la 87 recoivent un vrai melange, avec les Jaunes des la 86 (le meme nombre de monstres au contact qu'avant) */
 /* LE REGLAGE COMMUN DU PALIER 10 (08/11/2026, « les mobs sont lents, leurs degats trop faibles, et pour lancer leurs sorts le cast est trop lent », Mathieu,
