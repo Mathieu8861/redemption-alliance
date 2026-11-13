@@ -833,7 +833,7 @@ function fuiteBandit(mo) { pouf(mo.x, mo.m.position.y, mo.z, 1.6, '#d8c8a8'); mo
    est un peu petite », Mathieu) : avant, le nuage ne rongeait que les monstres restes dedans, or ils foncent sur le perso et en sortaient aussitot. Maintenant, tout monstre que
    le nuage touche est EMPOISONNE pour 4 s a compter de ce contact, meme s'il en sort (3 % de ses PV par seconde, 1 % un boss : 12 % au plus, comme avant pour un monstre
    reste dedans ; pas de cumul, un monstre deja empoisonne n'est pas relance). Nuage vert, flaque verte au sol qui montre la zone, rayon 3 au lieu de 2,2 (SORTS_LEG.koulosse.zone) */
-const FUMEE_LEG = { duree: 4, part: 0.03, partBoss: 0.01 };
+const FUMEE_LEG = { duree: 4, part: 0.03, partBoss: 0.01, max: 550 }; /* (max : 550 degats par seconde au plus, « il faudrait cap les degats a maximum 550 par seconde », Mathieu, 13/11/2026 ; sans lui, 1 % d'un boss de l'ile a 1 000 000 PV faisait 10 000 par seconde) */
 function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee verte sur ta cible ; les monstres qu'il touche sont empoisonnes 4 s */
   const c0 = combat, r = (SORTS_LEG.koulosse && SORTS_LEG.koulosse.zone) || 3, y0 = solA(x, z), g = new T.Group(), VERTS = ['#5fae3a', '#7cc34a', '#9ad65e'];
   const mats = VERTS.map((c) => new T.MeshToonMaterial({ color: c, gradientMap: grad, transparent: true, opacity: 0.6, depthWrite: false }));
@@ -3199,7 +3199,7 @@ function majMonstre(mo, dt, s) {
   const m = mo.m;
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
   if (mo.venin && mo.etat === 'actif') { const V = mo.venin; V.t -= dt; V.tic += dt; if (V.tic >= 0.5) { V.tic = 0; blesser(mo, Math.max(1, Math.round(V.dps * 0.5)), false, 'venin'); } if (V.t <= 0) mo.venin = null; } /* (le venin, toutes les 0,5 s) */
-  if (mo.fumee && mo.etat === 'actif') { const F = mo.fumee; F.t -= dt; F.tic += dt; if (F.tic >= 0.5) { F.tic = 0; blesser(mo, Math.max(1, Math.round(mo.pvMax * F.part * 0.5)), false, 'fumee'); if (mo.etat === 'actif') lueur(new T.Vector3(mo.x + (fxAlea() - 0.5) * 0.6, mo.m.position.y + (mo.haut || 2) * (0.5 + fxAlea() * 0.4), mo.z + (fxAlea() - 0.5) * 0.6), '#8fd84e', 1.2, 0.6); } if (F.t <= 0) mo.fumee = null; } /* (le poison de la Fumee du Koulosse, nuageLeg : toutes les 0,5 s, une bulle verte sur lui) */
+  if (mo.fumee && mo.etat === 'actif') { const F = mo.fumee; F.t -= dt; F.tic += dt; if (F.tic >= 0.5) { F.tic = 0; blesser(mo, Math.max(1, Math.round(Math.min(mo.pvMax * F.part, FUMEE_LEG.max) * 0.5)), false, 'fumee'); if (mo.etat === 'actif') lueur(new T.Vector3(mo.x + (fxAlea() - 0.5) * 0.6, mo.m.position.y + (mo.haut || 2) * (0.5 + fxAlea() * 0.4), mo.z + (fxAlea() - 0.5) * 0.6), '#8fd84e', 1.2, 0.6); } if (F.t <= 0) mo.fumee = null; } /* (le poison de la Fumee du Koulosse, nuageLeg : toutes les 0,5 s, une bulle verte sur lui) */
   if (mo.etat === 'enfoui') { mo.barre.hidden = true; return; } /* (sous terre : son effet le deplace, capEnfouit) */
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.loin && mo.dep.loin.k < 1) { /* il traverse la friche jusqu'au bord, en marchant (departFriche) */
     const dp = mo.dep, L = dp.loin, vx = dp.x - L.x, vz = dp.z - L.z, D = Math.max(0.1, Math.hypot(vx, vz)), v = Math.max(2, mo.d.vitesse || 2) * 0.9;
