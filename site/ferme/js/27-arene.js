@@ -222,7 +222,12 @@ const PV_ILE_BOSS_PAR = { craqLegendaire: 2000000, bworker: 1500000 /* (12/11/20
    pour un Iop colle a lui ; « ok applique les changements, monte les autres stats aussi », Mathieu). d : ce qui remplace sa fiche (sur une copie, le boss de la vague 40
    ne change pas), deg : ses coups, vit : sa vitesse de marche, rappel : ses renforts (s) */
 const RENFORT_ILE = { craqLegendaire: { d: { seisme: 6, seismeDuree: 1.6, cadence: 1.7, armure: 0.45, sortsX: { seisme: 1.5 }, jet: { periode: 2.2, prepa: 0.85, R: 2.6, x: 0.65 }, faille: { periode: 8, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 },
-  bworker: { d: { bondit: 6.5, bondPrepa: 1, bonditR: 3.0, cadence: 1.6, armure: 0.4, sortsX: { bond: 1.3 }, jet: { periode: 5, prepa: 0.9, R: 3.8, x: 1.2 }, tourbillon: { periode: 6, prepa: 1, R: 4.6, x: 0.9 } }, deg: 1.3, vit: 1.15, rappel: 12 } }; /* (le Bworker, 12/11/2026 : voir ci-dessous) */
+  bworker: { d: { bondit: 6.5, bondPrepa: 1, bonditR: 3.0, cadence: 1.6, armure: 0.4, sortsX: { bond: 1.3, brassard: 1 }, jet: { periode: 5, prepa: 0.9, R: 3.8, x: 1.2 }, tourbillon: { periode: 6, prepa: 1, R: 4.6, x: 0.9 },
+    brassard: 4, brassardR: 4.6, brassardEsquive: 0.8, repousse: 1.2, brassardTitre: 'Coup de hache', brassardNom: 'lève sa hache au-dessus de sa tête', brassardCoup: 'un grand coup de hache qui fend le sol' }, deg: 1.3, vit: 1.15, rappel: 12 } }; /* (le Bworker, 12/11/2026 : voir ci-dessous) */
+/* (13/11/2026, « faut modifier le Bworker, trop simple pour les mecs au cac : il jump et lance sa hache qui nous arrache le crane a distance, en melee tu prends rien », Mathieu.
+   Mesure sur l'ile, Iop 90 a 5 691 PV : au contact, des coups de 86 toutes les 1,6 s et le tourbillon (929, 1 s pour sortir, toutes les 6 s) ; de loin, le bond (1 342) et la
+   hache lancee (1 238). Il prend le coup frontal de la Gorgouille (capBrassard) en COUP DE HACHE : un arc bleu devant lui (4,6 de rayon), 0,8 s pour en sortir par le cote
+   ou dans son dos, 1 032 degats (ses degats de sort x1), un petit recul ; toutes les 4 s, 30 % plus vite au contact (SORTS_CAC). Le Bworker de la vague 30 ne change pas) */
 /* LE BWORKER RENFORCE (12/11/2026, « tu me le up a la maniere du craqueleur ? », Mathieu, la veille de sa semaine sur l'ile) : les memes leviers que le
    Craqueleur, dans les memes proportions. Sa Hache lancee (son ultime) : toutes les 5 s au lieu de 7, 0,9 s pour sortir du cercle au lieu de 1,2, cercle de 3,8 au
    lieu de 3,2, x1,5. Son bond : toutes les 6,5 s au lieu de 9, 1 s au lieu de 1,3, cercle de 3 au lieu de 2,3, x1,3. Son tourbillon (contre un Iop colle a lui) :
