@@ -83,7 +83,11 @@ function naissance(m) { /* la gestation finie : le petit nait, affame */
   return bebe;
 }
 const NOMS = ['Bêêrnard', 'Pompon', 'Flocon', 'Câlinou', 'Bouclette', 'Toison d\'Or', 'Biquette', 'Gros Bouffi', 'Laineur', 'Cotonnade', 'Pépito Junior', 'Rambouftou', 'Moumoute', 'Frisette'];
-const BOTTES = 0.2; /* les Bottes de cuir de Bouftou (300 kamas, niveau 2) : +20 % de vitesse, au lieu de +30 % (« nerf de 10 % », Mathieu, 13/11/2026) */
+const BOTTES = 0.2; /* les Bottes de cuir de Bouftou (des le niveau 2) : +20 % de vitesse, au lieu de +30 % (« nerf de 10 % », Mathieu, 13/11/2026) */
+/* leur prix (13/11/2026, Mathieu : « +1000 par niveau, a partir du niveau 10 ; jusqu'au niveau 10 c'est 2000, ensuite 3, 4, etc. ») : 2 000 kamas jusqu'au
+   niveau 10, puis 1 000 de plus a chaque niveau tant qu'elles ne sont pas achetees (3 000 au 11, 12 000 au 20, 42 000 au 50). Avant : 300 kamas */
+const BOTTES_PRIX = 2000, BOTTES_HAUSSE = 1000, BOTTES_PALIER = 10;
+const prixBottes = () => { let nv = 1; try { if (S_) nv = niveau(S_.xp); } catch (e) {} return BOTTES_PRIX + BOTTES_HAUSSE * Math.max(0, nv - BOTTES_PALIER); }; /* (S_ est declare plus loin, 04-etat.js) */
 const AMELIOS = [
   /* les batiments, du niveau 1 au niveau 5 (decision de Mathieu du 11/10/2026) : chaque niveau monte toutes les stats et change l'apparence.
      couts[k] : le prix pour passer au niveau k + 2 (l'arbalete, elle, s'achete d'abord : couts[0] = la construire) ; nivs[k] : le niveau de Paysan demande */
@@ -95,7 +99,7 @@ const AMELIOS = [
   { id: 'nivEtal', nom: 'L\'étal de l\'HDV', desc: 'Niveau 2 : la charrette, tu vends 10 % plus cher. Niveau 3 : graines et balance, les graines coûtent 15 % moins cher. Niveau 4 : le comptoir couvert, ventes +15 %. Niveau 5 : le comptoir de Redemption, ventes +20 % et graines 20 % moins chères.', couts: [900, 1800, 3500, 6000], nivs: [4, 5, 6, 7] },
   { id: 'engrais', nom: 'Engrais d\'Amakna', desc: 'Tes cultures poussent 15 % plus vite, à chaque niveau.', couts: [300, 900, 2500, 6000], niv: 3 },
   { id: 'epouvantail', nom: 'Épouvantail', desc: 'Niveau 1 : deux fois moins de Tofus. Niveau 2 : trois fois moins. Niveau 3 : une arbalète, il tire seul sur les Tofus qui picorent tes parcelles, peu après leur arrivée (8 cases autour de lui, 1 flèche par tir). Niveau 4 : il tire trois fois plus vite, partout sur ta ferme, et aussi sur le Tofu sauvage dans l\'herbe. Niveau 5 : le PÉPITO-TRON, un laser plus fort et plus rapide (les monstres des vagues, c\'est à toi) ; le laser est gratuit, et chaque Tofu abattu laisse sa Plume de Tofu. Niveau 6 : il tire aussi sur les voleurs de VSA, ceux des raids compris (90 dégâts par tir). Les Wabbits, eux, n\'en ont pas peur.', couts: [500, 1500, 4000, 9000, 20000, 200000], niv: 6 },
-  { id: 'bottes', nom: 'Bottes de cuir de Bouftou', desc: 'Le paysan marche ' + Math.round(BOTTES * 100) + ' % plus vite : moins de temps perdu en allers-retours.', couts: [300], niv: 2 },
+  { id: 'bottes', nom: 'Bottes de cuir de Bouftou', desc: 'Le paysan marche ' + Math.round(BOTTES * 100) + ' % plus vite : moins de temps perdu en allers-retours. Elles coûtent ' + BOTTES_PRIX.toLocaleString('fr-FR') + ' kamas jusqu\'au niveau ' + BOTTES_PALIER + ', puis ' + BOTTES_HAUSSE.toLocaleString('fr-FR') + ' de plus à chaque niveau : ne tarde pas.', get couts() { return [prixBottes()]; }, niv: 2 },
   { id: 'cloche', nom: 'Cloche d\'alarme', desc: 'Un Tofu ou un Wabbit met deux fois plus longtemps à voler une récolte : le temps de venir le chasser.', couts: [400], niv: 3 },
   { id: 'leurre', nom: 'Leurre à Wabbits', desc: 'Une fausse Cawotte posée dans l\'herbe, qui attire les Wabbits loin de tes Cawottes et de tes Fraises (pas ceux des vagues). Niveau 1 : en bois peint, un Wabbit sur deux y va, ronge du bois sans rien voler et repart au bout de 1 min 30. Niveau 2 : au caramel, trois sur quatre, et il y reste collé jusqu\'à ce que tu viennes le chasser. Niveau 3 : le panier à ressort, tous y vont et le panier leur tombe dessus : viens les relâcher.', couts: [10000, 20000, 40000], niv: 1, apresVague: 50 }, /* (js/14b-leurre.js) */
   { id: 'semences', nom: 'Semences sélectionnées', desc: 'Une chance sur quatre de récupérer la graine à la récolte.', couts: [1200], niv: 6 },
