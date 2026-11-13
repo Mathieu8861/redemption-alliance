@@ -232,6 +232,18 @@ function completerTerrains() {
   { const L = LEGENDAIRES.find((x) => x.cle === 'wa'), nv = L && idLeg(L, (S_.perso && S_.perso.classe) || 'iop'); /* (la Couronne du Wa Wabbit est devenue une arme, 14/10/2026) */
     if (nv && S_.sac && S_.sac['leg-wa']) { S_.sac[nv] = (S_.sac[nv] || 0) + S_.sac['leg-wa']; delete S_.sac['leg-wa']; }
     if (nv && S_.equip && S_.equip.coiffe === 'leg-wa') { delete S_.equip.coiffe; S_.sac = S_.sac || {}; S_.sac[nv] = (S_.sac[nv] || 0) + 1; } }
+  { /* LE HEAUME DU DRAGON COCHON DEVIENT LE COUPERET (13/11/2026, « et du coup pour Madazoo qui avait la coiffe ? », puis « Echanger contre le Couperet », Mathieu) : le Heaume
+       ne tombe plus, le Dragon Cochon donne ses armes. Chaque Heaume (dans le sac ou porte) devient l'arme du Dragon Cochon de sa classe, au meme jet (la meme part de
+       la fourchette, forgemagie comprise), rangee dans le sac et signalee ; un message le dit au joueur */
+    const L = LEGENDAIRES.find((x) => x.cle === 'dcochon'), nv = L && idLeg(L, (S_.perso && S_.perso.classe) || 'iop'), O = nv && OBJETS[nv]; let n0 = 0;
+    const echanger = (k) => { const q = qualiteJet(k); S_.jets = S_.jets || {}; S_.nInst = (S_.nInst || 0) + 1; const n = nv + '~' + S_.nInst.toString(36);
+      S_.jets[n] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v); return [c, Math.round(a + q * (b - a))]; })); delete S_.jets[k];
+      S_.sac = S_.sac || {}; S_.sac[n] = 1; marquerNeuf(n); n0++; };
+    if (O) {
+      Object.keys(S_.sac || {}).filter((k) => baseObjet(k) === 'leg-cochon').forEach((k) => { const nb = S_.sac[k]; delete S_.sac[k]; for (let i = 0; i < nb; i++) echanger(k); });
+      if (S_.equip && baseObjet(S_.equip.coiffe) === 'leg-cochon') { const k = S_.equip.coiffe; delete S_.equip.coiffe; echanger(k); }
+      if (n0) setTimeout(() => { if (typeof toast === 'function') toast('Le Heaume du Dragon Cochon ne tombe plus : le tien est devenu le ' + O.nom + ', au même jet. Il t\'attend dans ton sac.', 'or'); }, 6000);
+    } }
   const ids = new Set(S_.cases.map((c) => c.id)), ajouter = (c) => { if (!ids.has(c.id)) { S_.cases.push(c); ids.add(c.id); } };
   casesDepart().forEach(ajouter);
   TERRAINS.forEach((t) => { if (S_.terrains[t.id]) t.cases.forEach(([i, j]) => ajouter({ id: idCase(i, j), i, j, terrain: 'main', type: 'libre' })); });
