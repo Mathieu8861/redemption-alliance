@@ -829,14 +829,31 @@ function volerKamas(mo) { /* le Koalak Farouche a la grange : il prend des kamas
   toast('Un ' + mo.d.nom + ' a volé ' + fmt(n) + ' kamas dans ta grange : abats-le avant qu\'il s\'enfuie !', 'alerte');
 }
 function fuiteBandit(mo) { pouf(mo.x, mo.m.position.y, mo.z, 1.6, '#d8c8a8'); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (combat && combat.cible === mo) combat.cible = null; if (mo.butinK > 1) toast('Le ' + mo.d.nom + ' s\'est enfui avec ' + fmt(mo.butinK) + ' kamas.', 'alerte'); mo.butinK = 0; }
-function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee sur ta cible, qui ronge les monstres dedans pendant 4 s */
-  const c0 = combat, r = 2.2, g = new T.Group(), matN = new T.MeshToonMaterial({ color: '#dfe8cf', gradientMap: grad, transparent: true, opacity: 0.55, depthWrite: false });
-  for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, m = new T.Mesh(new T.IcosahedronGeometry(0.5 + Math.random() * 0.35, 1), matN); m.position.set(Math.cos(a) * r * 0.5, 0.5 + Math.random() * 0.3, Math.sin(a) * r * 0.5); g.add(m); }
-  g.position.set(x, solA(x, z), z); scene.add(g); let t = 0, tic = 0, bulle = 0; onde(x, solA(x, z), z, r + 0.4, '#a6d27a', 0.45, 0.8); /* (23/10/2026 : des bulles vertes montent du nuage, 22b-effets.js) */
-  effets.push((dt) => { t += dt; tic += dt; bulle += dt; if (combat !== c0 || c0.fin) { jeter(g); return true; } matN.opacity = 0.55 * Math.min(1, t / 0.3, Math.max(0, (4 - t) / 0.5)); g.rotation.y += dt * 0.4;
-    if (bulle >= 0.12 && t < 3.6) { bulle = 0; lueur(new T.Vector3(x + (fxAlea() - 0.5) * r * 1.4, g.position.y + 0.3 + fxAlea() * 0.8, z + (fxAlea() - 0.5) * r * 1.4), fxAlea() < 0.5 ? '#9be36a' : '#d8f5a8', 1.3, 0.7); }
-    if (tic >= 0.5) { tic = 0; c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < r) blesser(o, Math.max(1, Math.round(o.pvMax * (o.d.boss ? 0.01 : 0.03) * 0.5))); }); }
-    if (t >= 4) { jeter(g); return true; } });
+/* (13/11/2026, « le sort du Koulosse sur les items faut le revoir, le poison fonctionne pas bien je crois, et visuellement c'est un nuage blanc et pas vert, et la taille
+   est un peu petite », Mathieu) : avant, le nuage ne rongeait que les monstres restes dedans, or ils foncent sur le perso et en sortaient aussitot. Maintenant, tout monstre que
+   le nuage touche est EMPOISONNE pour 4 s a compter de ce contact, meme s'il en sort (3 % de ses PV par seconde, 1 % un boss : 12 % au plus, comme avant pour un monstre
+   reste dedans ; pas de cumul, un monstre deja empoisonne n'est pas relance). Nuage vert, flaque verte au sol qui montre la zone, rayon 3 au lieu de 2,2 (SORTS_LEG.koulosse.zone) */
+const FUMEE_LEG = { duree: 4, part: 0.03, partBoss: 0.01 };
+function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee verte sur ta cible ; les monstres qu'il touche sont empoisonnes 4 s */
+  const c0 = combat, r = (SORTS_LEG.koulosse && SORTS_LEG.koulosse.zone) || 3, y0 = solA(x, z), g = new T.Group(), VERTS = ['#5fae3a', '#7cc34a', '#9ad65e'];
+  const mats = VERTS.map((c) => new T.MeshToonMaterial({ color: c, gradientMap: grad, transparent: true, opacity: 0.6, depthWrite: false }));
+  const boule = (px, py, pz, s, i) => { const m = new T.Mesh(new T.IcosahedronGeometry(s, 1), mats[i % 3]); m.position.set(px, py, pz); m.userData.v = 0.6 + Math.random() * 0.8; g.add(m); };
+  boule(0, 0.75, 0, 0.95, 1); /* le coeur du nuage, puis deux couronnes de volutes qui couvrent toute la zone */
+  for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2; boule(Math.cos(a) * r * 0.45, 0.6 + Math.random() * 0.35, Math.sin(a) * r * 0.45, 0.7 + Math.random() * 0.25, k); }
+  for (let k = 0; k < 11; k++) { const a = (k + 0.5) / 11 * Math.PI * 2; boule(Math.cos(a) * r * 0.8, 0.35 + Math.random() * 0.25, Math.sin(a) * r * 0.8, 0.5 + Math.random() * 0.22, k + 1); }
+  const matS = new T.MeshBasicMaterial({ color: '#6fbf3e', transparent: true, opacity: 0.3, depthWrite: false }), sol = new T.Mesh(new T.CircleGeometry(r, 40), matS); /* la flaque verte : la zone du poison */
+  sol.rotation.x = -Math.PI / 2; sol.position.set(x, y0 + 0.05, z); sol.renderOrder = 2; scene.add(sol);
+  g.position.set(x, y0, z); scene.add(g); let t = 0, tic = 0, bulle = 0; onde(x, y0, z, r + 0.4, '#7cc34a', 0.45, 0.8); pouf(x, y0, z, r * 0.9, '#7cc34a'); /* (23/10/2026 : des bulles vertes montent du nuage, 22b-effets.js) */
+  const D = FUMEE_LEG.duree, finir = () => { jeter(g); jeter(sol); };
+  effets.push((dt) => { t += dt; tic += dt; bulle += dt; if (combat !== c0 || c0.fin) { finir(); return true; } const o = Math.min(1, t / 0.3, Math.max(0, (D - t) / 0.5)); mats.forEach((m) => { m.opacity = 0.6 * o; }); matS.opacity = 0.3 * o; g.rotation.y += dt * 0.4;
+    g.children.forEach((m, i) => { m.position.y += Math.sin(t * m.userData.v * 2 + i) * dt * 0.12; m.scale.setScalar(Math.min(1, t / 0.35) * (1 + 0.06 * Math.sin(t * 3 + i))); }); /* (les volutes gonflent a l'arrivee et ondulent) */
+    if (bulle >= 0.1 && t < D - 0.4) { bulle = 0; lueur(new T.Vector3(x + (fxAlea() - 0.5) * r * 1.5, y0 + 0.3 + fxAlea() * 0.9, z + (fxAlea() - 0.5) * r * 1.5), fxAlea() < 0.5 ? '#7fd04a' : '#b8ec7a', 1.3, 0.7); }
+    if (tic >= 0.2) { tic = 0; c0.monstres.forEach((m) => { if (m.etat === 'actif' && !m.fumee && Math.hypot(m.x - x, m.z - z) < r) empoisonnerFumee(m); }); }
+    if (t >= D) { finir(); return true; } });
+}
+function empoisonnerFumee(mo) { /* le poison de la Fumee : 4 s a compter du contact, tick toutes les 0,5 s dans majMonstre */
+  mo.fumee = { t: FUMEE_LEG.duree, tic: 0.5, part: mo.d.boss ? FUMEE_LEG.partBoss : FUMEE_LEG.part };
+  const p = mo.m.position.clone(); p.y += (mo.haut || 2) + 0.2; chiffre('Empoisonné', p, 'vol');
 }
 function boueLeg(x, z, r, st) { /* le Heaume du Dragon Cochon (20/10/2026) : une flaque de boue la ou tu vises, 2 fois tes degats, les monstres dedans collent 2 s (1 s un boss) */
   const c0 = combat, y = solA(x, z), mat = new T.MeshBasicMaterial({ color: '#6a4524', transparent: true, opacity: 0.75, depthWrite: false }), f = new T.Mesh(new T.CircleGeometry(r, 28), mat);
@@ -3182,6 +3199,7 @@ function majMonstre(mo, dt, s) {
   const m = mo.m;
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
   if (mo.venin && mo.etat === 'actif') { const V = mo.venin; V.t -= dt; V.tic += dt; if (V.tic >= 0.5) { V.tic = 0; blesser(mo, Math.max(1, Math.round(V.dps * 0.5)), false, 'venin'); } if (V.t <= 0) mo.venin = null; } /* (le venin, toutes les 0,5 s) */
+  if (mo.fumee && mo.etat === 'actif') { const F = mo.fumee; F.t -= dt; F.tic += dt; if (F.tic >= 0.5) { F.tic = 0; blesser(mo, Math.max(1, Math.round(mo.pvMax * F.part * 0.5)), false, 'fumee'); if (mo.etat === 'actif') lueur(new T.Vector3(mo.x + (fxAlea() - 0.5) * 0.6, mo.m.position.y + (mo.haut || 2) * (0.5 + fxAlea() * 0.4), mo.z + (fxAlea() - 0.5) * 0.6), '#8fd84e', 1.2, 0.6); } if (F.t <= 0) mo.fumee = null; } /* (le poison de la Fumee du Koulosse, nuageLeg : toutes les 0,5 s, une bulle verte sur lui) */
   if (mo.etat === 'enfoui') { mo.barre.hidden = true; return; } /* (sous terre : son effet le deplace, capEnfouit) */
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.loin && mo.dep.loin.k < 1) { /* il traverse la friche jusqu'au bord, en marchant (departFriche) */
     const dp = mo.dep, L = dp.loin, vx = dp.x - L.x, vz = dp.z - L.z, D = Math.max(0.1, Math.hypot(vx, vz)), v = Math.max(2, mo.d.vitesse || 2) * 0.9;

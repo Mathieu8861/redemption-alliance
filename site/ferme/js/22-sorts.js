@@ -294,7 +294,7 @@ const SORTS_LEG = {
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 10 }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
-  koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 2.2 },
+  koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 3 },
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
   dcochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 }, /* (les armes du Dragon Cochon, 13/11/2026 : « Bain de boue pour les 3 », Mathieu, le sort du Heaume) */
   corail: { nom: 'Corail', teinte: '#3aa6e0', recharge: 15, portee: 12, zone: 3, parClasse: { /* (les armes de la Tortue Corail, 05/11/2026 : un sort par classe ; instant : il part au clic, sans viser) */

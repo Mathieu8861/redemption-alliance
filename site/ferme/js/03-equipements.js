@@ -105,7 +105,7 @@ const LEGENDAIRES = [
   { cle: 'koulosse', boss: 'koulosse', arme: true, rang: 6, fichier: 'equipements-boufcoul', /* (le palier 7, 14/10/2026 ; variantes choisies par Mathieu : lame A, arc B, fouet B) */
     noms: { epee: 'Lame du Koulosse', arc: 'Arc du Koulosse', fouet: 'Fouet du Koulosse' }, icone: 'koulosse', noeuds: { epee: 'Arme_epee_koulosse', arc: 'Arme_arc_koulosseB', fouet: 'Arme_fouet_koulosseB' },
     cales: { epee: { y0: 0.02, L: 1.62 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0.03, L: 0.65, laniere: 'fumee', retirer: /^fumee$/ } },
-    pouvoir: 'Sort Fumée (touche 4) : un nuage là où tu vises (jusqu\'à 5 cases de toi, sur 1 case autour), les monstres dedans perdent 3 % de leurs PV par seconde pendant 4 s (1 % pour un boss). Recharge 13 s.' },
+    pouvoir: 'Sort Fumée (touche 4) : un nuage vert là où tu vises (jusqu\'à 5 cases de toi, sur 1,5 case autour) ; chaque monstre qu\'il touche est empoisonné 4 s, même s\'il en sort : 3 % de ses PV par seconde (1 % pour un boss). Recharge 13 s.' },
   { cle: 'moon', boss: 'moon', arme: true, rang: 8, fichier: 'equipements-moon', /* (le palier 9, 02/11/2026 : « fais l'item legendaire du Moon, c'est son marteau », Mathieu ; une arme par classe, variantes choisies : Iop A, Cra B, Osa A ; blender/equipements-moon.py) */
     noms: { epee: 'Marteau de Moon', arc: 'Arc de Moon', fouet: 'Fouet de Moon' }, icone: 'moon', noeuds: { epee: 'Arme_epee_moon', arc: 'Arme_arc_moonB', fouet: 'Arme_fouet_moon' },
     cales: { epee: { y0: 0, L: 1.41 }, arc: { mil: 0.85, L: 1.6 }, fouet: { y0: 0, L: 0.6, laniere: 'queue', retirer: /^(queue|bande|touffe)$/ } }, /* (le modele : pommeau en y 0, haut de la caisse en 1,41 ; arc de 0,05 a 1,65 ; manche jusqu'a 0,6) */
