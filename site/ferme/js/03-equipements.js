@@ -312,6 +312,23 @@ function ouvrirChoixForge(k) {
   ouvrirModale('forge-choix', entete('Quelle caractéristique ?') + '<p class="hdv-aide"><b>' + o.nom + '</b> : choisis la caractéristique à monter. Chacune a une fourchette, de son minimum à son maximum ; la rune la fait monter de 20 % de cette fourchette, sans dépasser le maximum. Il te reste <b>' + nb + ' rune' + (nb > 1 ? 's' : '') + '</b> de forgemagie.</p>' + L +
     '<div class="act-bas"><button class="btn discret" data-forge-retour>Retour à l\'atelier</button></div>');
 }
+/* LA CONFIRMATION AVANT UNE RUNE (13/11/2026, « on a un message de ce que fait la rune quelque part ? si tu l'utilises il faudrait que ca te redonne l'info de ce
+   qu'elle fait et un " es-tu sur de vouloir l'utiliser ? oui / non " », Mathieu) : la rune parfaite partait au premier clic. Avant de consommer une rune : la piece,
+   ce que fait la rune, chaque caracteristique avant et apres, le jet avant et apres, le stock restant, puis Oui ou Non (retour : la fenetre ou revenir) */
+function confirmerRune(k, t, carac, retour) {
+  const R = RUNES[t], B = OBJETS[baseObjet(k)], o = obj(k); if (!R || !B || !o) return;
+  const n = runes()[t] || 0; if (!(n > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return; }
+  let s0 = 0, s1 = 0, nb = 0; const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v), cur = o.stats[c] != null ? o.stats[c] : v, apres = R.gain >= 1 ? b : c === carac ? Math.min(b, cur + gainRune(R, a, b)) : cur, C = CARACS[c] || [c, '', ''];
+    if (b > a) { s0 += Math.max(0, Math.min(1, (cur - a) / (b - a))); s1 += Math.max(0, Math.min(1, (apres - a) / (b - a))); } else { s0 += 0.5; s1 += 0.5; } nb++;
+    if (R.gain < 1 && c !== carac) return ''; /* (la rune de forgemagie : la seule caracteristique choisie) */
+    return '<div class="fg-val">' + (C[2] || '') + ' ' + C[0] + ' : <span>' + fmt(cur) + '</span>' + (apres > cur ? ' → <b>' + fmt(apres) + '</b>' + C[1] + ' <em>+' + fmt(apres - cur) + '</em>' : C[1] + ' (déjà au maximum)') + '</div>'; }).join('');
+  const q0 = Math.round(100 * s0 / Math.max(1, nb)), q1 = Math.round(100 * s1 / Math.max(1, nb)), img = typeof ico === 'function' ? ico('rune-' + t) : '';
+  ouvrirModale('forge-confirme', entete('Utiliser une ' + R.nom.toLowerCase() + ' ?') +
+    '<div class="art rune-ce-quelle-fait">' + img + '<div><b>' + R.nom + '</b><div class="desc">' + (R.gain >= 1 ? 'Elle met d\'un coup toutes les caractéristiques de la pièce au maximum de leur fourchette : le jet passe à 100 %.' : 'Elle fait monter la caractéristique choisie de 20 % de sa fourchette, sans dépasser son maximum.') + ' La rune est consommée : on ne peut pas revenir en arrière.</div></div></div>' +
+    '<div class="art">' + icoObjet(k) + '<div><b>' + (o.leg ? '✦ ' : o.rare ? '★ ' : '') + o.nom + '</b>' + L + '<div class="desc">Jet de la pièce : ' + q0 + ' % → <b>' + q1 + ' %</b>.</div></div></div>' +
+    '<p class="hdv-aide">Il te reste <b>' + n + ' ' + (n > 1 ? R.court : R.nom).toLowerCase() + '</b>' + (n > 1 ? '' : ' : c\'est ta dernière') + '. <b>Es-tu sûr de vouloir l\'utiliser ?</b></p>' +
+    '<div class="act-bas"><button class="btn kamas" data-rune-oui="' + t + '|' + k + '|' + (carac || '') + '|' + retour + '">Oui, l\'utiliser</button><button class="btn discret" data-rune-non="' + retour + '|' + k + '">Non</button></div>');
+}
 function forgerObjet(k, t, carac) {
   if (!niv('forge')) { toast('Il te faut l\'atelier de forgemagie (HDV, onglet Construire, niveau ' + NIV_ARENE + ').'); return null; }
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;

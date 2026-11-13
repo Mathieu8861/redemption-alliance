@@ -769,8 +769,10 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.fpCarac) { persoCarac = persoCarac === b.dataset.fpCarac ? null : b.dataset.fpCarac; ouvrirPerso(); }
   else if (b.dataset.persoSel) ouvrirPerso(b.dataset.persoSel);
   else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);
-  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); if (t === 'forge') { ouvrirChoixForge(k); return; } const cle = forgerObjet(k, t); if (modaleOuverte === 'forge') ouvrirForge(); else ouvrirPerso(cle || k); } /* (la rune de forgemagie demande d'abord la caracteristique) */
-  else if (b.dataset.forgerCarac) { const [k, c] = b.dataset.forgerCarac.split('|'); forgerObjet(k, 'forge', c); ouvrirForge(); }
+  else if (b.dataset.forger) { const [t, k] = b.dataset.forger.split('|'); if (t === 'forge') { ouvrirChoixForge(k); return; } confirmerRune(k, t, null, modaleOuverte === 'forge' ? 'forge' : 'perso'); } /* (la rune de forgemagie demande d'abord la caracteristique ; toute rune demande confirmation, 13/11/2026, 03-equipements.js) */
+  else if (b.dataset.forgerCarac) { const [k, c] = b.dataset.forgerCarac.split('|'); confirmerRune(k, 'forge', c, 'choix'); }
+  else if (b.dataset.runeOui) { const [t, k, c, retour] = b.dataset.runeOui.split('|'); const cle = forgerObjet(k, t, c || undefined); if (retour === 'perso') ouvrirPerso(cle || k); else ouvrirForge(); }
+  else if (b.dataset.runeNon) { const [retour, k] = b.dataset.runeNon.split('|'); if (retour === 'choix') ouvrirChoixForge(k); else if (retour === 'perso') ouvrirPerso(k); else ouvrirForge(); }
   else if (b.hasAttribute('data-forge-retour')) ouvrirForge();
   else if (b.hasAttribute('data-ouvrir-forge')) ouvrirForge();
   else if (b.hasAttribute('data-ouvrir-atelier')) ouvrirAtelier(); /* (la torche, depuis les decorations de l'HDV, 09/11/2026) */
