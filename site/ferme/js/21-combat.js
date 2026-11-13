@@ -271,8 +271,8 @@ function ficheMonstre(t) {
   if (d.assomme) met('assomme', 'assomme', 'T\'assomme', 'Touché, tu ne frappes plus un instant.', num(String(d.assomme).replace('.', ',') + ' s', 'rouge'), 'or');
   if (d.poisonFixe) met('poisonFixe', 'poison', 'Morsure empoisonnée', 'Sa morsure t\'empoisonne ; une nouvelle morsure relance le poison.', num(d.poisonFixe[0] + ' par seconde', 'rouge') + num(d.poisonFixe[1] + ' s'), 'vert');
   if (d.poison) met('poison', 'poison', 'T\'empoisonne', 'Son coup t\'empoisonne quelques secondes.', num(d.poison[0] + ' % de ta vie par seconde', 'rouge') + num(d.poison[1] + ' s'), 'vert');
-  if (d.soigne) met('soigne', 'soin', 'Soigne ses alliés', 'Il soigne les monstres autour de lui : abats-le en premier.', '', 'vert');
-  if (d.protege) met('protege', 'protege', d.protegeNom || 'Bouclier de cristal', 'Il protège trois monstres autour de lui.', num('-40 % de dégâts') + num('4 s') + recup('protege'));
+  if (d.soigne) met('soigne', 'soin', d.soinZone ? 'Soin de pluie' : 'Soigne ses alliés', d.soinZone ? 'Il lève son bâton : un anneau bleu au sol, tous les monstres dedans reprennent de la vie. Abats-le en premier.' : 'Il soigne les monstres autour de lui : abats-le en premier.', d.soinZone ? num('+' + Math.round(d.soinZone.x * 100) + ' % de vie', 'vert') + num(casesDe(d.soinZone.R) + ' cases') + recup('soigne') : '', 'vert');
+  if (d.protege) met('protege', 'protege', d.protegeNom || (d.protegeN === 1 ? 'Bulle protectrice' : 'Bouclier de cristal'), d.protegeN === 1 ? 'Il pose une bulle d\'eau sur le monstre le plus blessé autour de lui.' : 'Il protège trois monstres autour de lui.', num('-40 % de dégâts') + num(secondes(d.protegeT || 4)) + recup('protege'));
   if (d.malefice && d.malefice.brule) met('malefice', 'rage', d.malefice.nom || 'Boule de feu', 'Un cercle orange sous toi, puis la boule de feu tombe. Dedans, tu brûles.', num(fmt(Math.round(dSort * d.malefice.x)) + ' dégâts', 'rouge') + num('brûle ' + secondes(d.malefice.brule[1]) + ' (' + String(d.malefice.brule[0] * 100).replace('.', ',') + ' % de ta vie par seconde)', 'rouge') + num(secondes(d.malefice.prepa) + ' pour esquiver') + num('toutes les ' + d.malefice.periode + ' s'), 'orange');
   else if (d.malefice) met('malefice', 'lenteur', 'Maléfice', 'Un cercle violet sous toi, puis le sort éclate. Dedans, tu es ralenti.', num(fmt(Math.round(dSort * d.malefice.x)) + ' dégâts', 'rouge') + num('ralenti ' + secondes(d.malefice.duree), 'bleu') + num(secondes(d.malefice.prepa) + ' pour esquiver') + num('toutes les ' + d.malefice.periode + ' s'), 'violet');
   if (d.galvanise) met('galvanise', 'galvanise', 'Galvanise la horde', 'Les monstres autour de lui frappent et courent plus vite.', num('4 s') + recup('galvanise'), 'or');
@@ -291,7 +291,12 @@ function ficheMonstre(t) {
   if (d.seisme) met('seisme', 'sort', d.seismeNom || 'Séisme', (d.poings ? 'Il saute et abat ses deux poings sur le sol' : 'Il frappe le sol') + ' : un ' + (d.seismeR && d.seismeR < 6 ? '' : 'grand ') + 'cercle bleu autour de lui' + (d.repousse ? ', qui te repousse' : '') + (d.seismeCentre ? ', et l\'onde frappe plus fort près de lui qu\'au bord' : '') + '. Tes bâtiments proches prennent aussi.', num(fmt(Math.round(dSort * ((d.sortsX || {}).seisme || 1))) + ' dégâts', 'rouge') + (d.seismeCentre ? num('×' + String(d.seismeCentre.centre).replace('.', ',') + ' au centre, ×' + String(d.seismeCentre.bord).replace('.', ',') + ' au bord', 'rouge') : '') + num(secondes(d.seismeDuree || 1.3) + ' pour esquiver') + recup('seisme'), 'violet');
   if (d.marteauMoon) met('marteauMoon', 'sort', 'Marteau de Moon', 'Il jette son marteau là où tu es : le cercle s\'annonce, plus foncé au centre, et l\'onde de choc fait d\'autant plus mal que tu es près de l\'impact. Il saute le ramasser, puis rebondit sur toi et frappe à deux mains, avec la même onde.', num('jusqu\'à ×' + String(d.marteauMoon.x).replace('.', ','), 'rouge') + num('toutes les ' + d.marteauMoon.periode + ' s'), 'rouge');
   if (d.boomerang) met('boomerang', 'sort', 'Boomerang lunaire', 'Il décroche le croissant de lune de sa tête et le lance : une bande s\'annonce vers toi, le croissant file en tournoyant et revient se poser sur sa tête. Il touche à l\'aller et au retour.', num('toutes les ' + d.boomerang.periode + ' s'), 'rouge');
-  if (d.lianes) met('lianes', 'lenteur', 'Lianes', 'De loin, une bande ' + (d.lianes.couleurNom || 'verte') + ' s\'annonce : ses lianes jaillissent. Si elles t\'attrapent, elles te tirent contre lui, puis il charge un gros coup tout autour de lui : sors du cercle.', num('coup ×' + String(d.lianes.x).replace('.', ','), 'rouge') + num('toutes les ' + String(+d.lianes.periode.toFixed(1)).replace('.', ',') + ' s'), 'bleu');
+  if (d.frenesie) met('frenesie', 'galvanise', 'Frénésie', 'Quand l\'un d\'eux meurt, ceux d\'à côté frappent et courent plus vite : tue-les vite, ou un par un.', num(secondes(d.frenesie.t)) + num(casesDe(d.frenesie.R) + ' cases'), 'rouge');
+  if (d.crachat) met('crachat', 'lenteur', 'Gros crachat', 'Il gonfle sa poche, puis crache ' + d.crachat.n + ' bulles de vase en éventail : un cercle sous chacune, sors-en. Là où elles tombent, une flaque de vase te ralentit.', num(fmt(Math.round(dSort * d.crachat.x)) + ' dégâts', 'rouge') + num('ralenti de 30 % dans la vase', 'bleu') + num(secondes(d.crachat.flaque)) + num('toutes les ' + d.crachat.periode + ' s'), 'bleu');
+  if (d.ponte) met('ponte', 'renfort', 'La Ponte', 'Elle projette ses œufs partout sur le terrain. Chacun a 1 PV : casse-les vite. Plus un œuf reste, plus ce qui en sort est fort : un Têtard, puis un Crapaud cracheur, puis un Fouette-langue.', num(d.ponte.n + ' œufs') + num('éclosion entre ' + d.ponte.eclos[0] + ' et ' + d.ponte.eclos[1] + ' s') + num('toutes les ' + d.ponte.periode + ' s'), 'violet');
+  if (d.hypnose) met('hypnose', 'lenteur', 'Regard hypnotique', 'Ses yeux s\'allument : un éventail violet devant elle. Reste dedans et tu es hypnotisé : tu marches vers elle sans pouvoir te diriger.', num(secondes(d.hypnose.duree) + ' hypnotisé', 'bleu') + num(secondes(d.hypnose.prepa) + ' pour sortir du regard') + num('toutes les ' + d.hypnose.periode + ' s'), 'violet');
+  if (d.eauSoin) met('eauSoin', 'soin', 'Les pattes dans l\'eau', 'Tant qu\'il a les pattes dans l\'eau, il se soigne : attire-le au sec.', num('+' + Math.round(d.eauSoin * 100) + ' % de vie par seconde', 'vert'), 'vert');
+  if (d.lianes) met('lianes', 'lenteur', d.lianes.langue ? 'Coup de langue' : 'Lianes', 'De loin, une bande ' + (d.lianes.couleurNom || 'verte') + ' s\'annonce : ' + (d.lianes.langue ? 'sa langue jaillit. Si elle t\'attrape, elle te tire' : 'ses lianes jaillissent. Si elles t\'attrapent, elles te tirent') + ' contre lui, puis il charge un gros coup tout autour de lui : sors du cercle.', num('coup ×' + String(d.lianes.x).replace('.', ','), 'rouge') + num('toutes les ' + String(+d.lianes.periode.toFixed(1)).replace('.', ',') + ' s'), 'bleu');
   if (d.ultime) met('ultime', 'sort', 'La nuit lunaire', 'Il lève les bras : la nuit tombe, et des météorites s\'abattent sur toute la zone pendant ' + secondes(d.ultime.duree) + ', chacune annoncée par un cercle.', num(d.ultime.n + ' météorites', 'rouge') + num('toutes les ' + d.ultime.periode + ' s'), 'rouge');
   if (d.lanceVent) met('lanceVent', 'sort', 'Lance de vent', 'De loin, un trait rouge part de lui jusqu\'à toi et finit par un petit cercle : sa lance quitte sa main et lévite au-dessus de lui, pointée sur toi, dans un tourbillon de vent. Puis elle part d\'un coup : portée par le vent, elle file très vite le long du trait et se plante dans le cercle. Sur son passage ou dans le cercle, la rafale te repousse. Le vent la lui ramène ensuite en main.', num(secondes(d.lanceVent.prepa) + ' pour esquiver') + num('toutes les ' + d.lanceVent.periode + ' s'), 'rouge');
   if (d.totems) met('totems', 'renfort', 'Totems-masques', 'Il plante ' + d.totems.n + ' totems-masques autour de toi : ils sortent de terre et te crachent des fléchettes. Casse-les ; ils tombent aussi avec lui.', num('toutes les ' + d.totems.periode + ' s'), 'rouge');
@@ -620,6 +625,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
     if (panoExiste(statsArene(mo.type).p) && Math.random() < ITEM_MONSTRE_ARENE * pros) { const P = panoMonstre(mo.type, statsArene(mo.type).p), id = tirerPiece(P, pros), cle = donnerObjet(id, JET_ARENE); combat.arene.objets.push(cle); son('niveau'); pouf(mo.x, mo.m.position.y, mo.z, 3, '#f2b630');
       chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
   if (mo.pv <= 0 && mo.maudit > 0) { mo.maudit = 0; propagerMalediction(mo); } /* (il meurt maudit : la malediction saute sur 2 voisins) */
+  if (mo.pv <= 0 && mo.d.frenesie && mo.etat === 'actif') frenesie(mo); /* (les Tetards voraces, 13/11/2026) */
   if (mo.pv <= 0) { if (combat.st && !mo.d.sansButin) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
 }
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
@@ -727,7 +733,7 @@ function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre ver
 function majAfflictions(dt) {
   const c = combat; if (!c) return;
   const kE = c.kEntrave != null ? c.kEntrave : (c.kEntrave = 1 / (1 - Math.min(0.6, (caracs().entrave || 0) / 100))); /* (les entraves plus courtes des panoplies du palier 10, 08/11/2026 : -25 %, elles s'usent 1,33 fois plus vite) */
-  if (c.lenteur > 0) c.lenteur -= dt * kE; if (c.assomme > 0) c.assomme -= dt * kE; if (c.colle > 0) c.colle -= dt * kE;
+  if (c.lenteur > 0) c.lenteur -= dt * kE; if (c.vase > 0) c.vase -= dt; if (c.assomme > 0) c.assomme -= dt * kE; if (c.colle > 0) c.colle -= dt * kE;
   if (c.poisons && c.poisons.length) { c.poisons.forEach((p) => { p.t -= dt; }); c.poisons = c.poisons.filter((p) => p.t > 0); const pct = c.poisons.reduce((a, p) => a + p.pct, 0); if (pct) poisonPerso(pct * (c.kPoison != null ? c.kPoison : (c.kPoison = 1 - Math.min(0.8, (caracs().resPoison || 0) / 100))), dt); } /* (la resistance aux poisons, l'Arakne complete) */
 }
 function cracherFumee(mo, x, z, r, duree, delai) { /* une boule de fumee part de sa bouche et s'ecrase au sol en nuage (31/10/2026 : plus grosse, elle tourne, laisse une trainee et eclate) */
@@ -907,7 +913,7 @@ const DUREE_COLLE = 1.5; /* colle dans la boue du Dragon Cochon (20/10/2026) */
 const COULEUR_CAC = '#25e3ff'; /* (05/11/2026 : la couleur des sorts au corps a corps des boss, bleu electrique, qui ressort sur l'anneau rouge de sa portee) */
 const ESQUIVE = { saut: 1.5, charge: 1.5, grandeCharge: 1.7, bond: 2, pluie: 1.4, cawotteRoyale: 0.8, boue: 1.1 /* (1,5 avant le 07/11/2026 : la boue part plus vite) */, brassard: 1.5, bourrasque: 1.1 }, /* (pluie et Cawotte royale du Wa Wabbit : 1,2 et 0,5 s avant le 19/10/2026) */ secondes = (x) => String(x).replace('.', ',') + ' s';
 const SAUT_PORTEE = 3 * S, SAUT_VOL = 0.6, SAUT_PREPA = ESQUIVE.saut - SAUT_VOL, AGRIPPE = 1.5; let SAUT_RECHARGE = 6; /* (let : les tests le mettent a Infinity pour comparer sans bond) */
-const peutSauter = (mo) => !mo.d.distance && !mo.d.boss && !mo.d.vole && !mo.d.bandit && !mo.d.roule && !mo.d.charge && !mo.d.pique && mo.d.vitesse < 2.5 && (!mo.d.grignote || mo.aggro); /* (les rapides n'en ont pas besoin ; ceux qui chargent ou piquent ont leur elan a eux) */
+const peutSauter = (mo) => !mo.d.distance && !mo.d.boss && !mo.d.oeuf && !mo.d.sansSaut && /* (oeuf, sansSaut : les oeufs de la Mere Crapaude et le Fouette-langue, qui a sa langue, 13/11/2026) */ !mo.d.vole && !mo.d.bandit && !mo.d.roule && !mo.d.charge && !mo.d.pique && mo.d.vitesse < 2.5 && (!mo.d.grignote || mo.aggro); /* (les rapides n'en ont pas besoin ; ceux qui chargent ou piquent ont leur elan a eux) */
 const ELANS = { bouftou: 'charge', boufcoul: 'charge', craqueleur: 'charge', craqCristal: 'charge', chevaucheurKoalak: 'charge', sanglier: 'charge', sanglierFouisseur: 'charge', dragNoir: 'pique', dragDore: 'pique' }; /* (les sangliers chargent au lieu de sauter, 09/11/2026) */
 Object.entries(ELANS).forEach(([t, e]) => { const d = MONSTRES[t]; if (!d || d.charge || d.pique) return; Object.assign(d, e === 'charge' ? { charge: 7 } : { pique: 7 }, { chargeMax: SAUT_PORTEE, degSort: d.degSort || 1.5 }); });
 function sauterSurPerso(mo) {
@@ -986,7 +992,7 @@ function capProtege(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.protege) { /* le Craqueleur de Cristal : un bouclier de cristal sur trois monstres autour de lui (-40 % de degats, 4 s) */
     mo.protT = (mo.protT || 0) + dt;
-    if (mo.protT >= mo.d.protege) { mo.protT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax).slice(0, 3).forEach((o) => { o.bouclier = 4; o.bouclierC = mo.d.protegeCouleur || null; pouf(o.x, o.m.position.y, o.z, 1.4, mo.d.protegeCouleur || '#6fe0e8'); }); }
+    if (mo.protT >= mo.d.protege) { mo.protT = 0; combat.monstres.filter((o) => o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 7).sort((a, c) => a.pv / a.pvMax - c.pv / c.pvMax).slice(0, mo.d.protegeN || 3).forEach((o) => { o.bouclier = mo.d.protegeT || 4; o.bouclierC = mo.d.protegeCouleur || null; /* (protegeN, protegeT : la bulle de l'Axolotl chaman, une seule, 5 s, 13/11/2026) */ pouf(o.x, o.m.position.y, o.z, 1.4, mo.d.protegeCouleur || '#6fe0e8'); }); }
   }
 }
 function capGalvanise(mo, ctx) {
@@ -1233,7 +1239,7 @@ function capBond(mo, ctx) {
     if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < (mo.d.bonditMax || 11)) { /* (bonditMax : l'Abrakne Sombre, 3 cases, 08/11/2026) */ /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
       if (vise && m.userData.anim) { mo.bonditT = 0; bondMarteau(mo, pp.x, pp.z); return; } /* (Moon, le Gorille : 22c-squelettes.js) */
       const EB = mo.d.bondPrepa || ESQUIVE.bond; /* (bondPrepa : le temps pour esquiver le bond, propre au boss, le Bworker 1,3 s, 31/10/2026) */
-      mo.bonditT = 0; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = EB + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
+      mo.bonditT = mo.d.bondDouble && mo.enrage && !mo.bondDeux ? mo.d.bondit - 0.6 : 0; mo.bondDeux = !!(mo.d.bondDouble && mo.enrage && !mo.bondDeux); /* (bondDouble : enragee, la Mere Crapaude enchaine deux bonds, 13/11/2026) */ const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = EB + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
       const an = m.userData.anim, H = mo.d.bonditH || (an ? 1.2 : 2.8); /* (un monstre a squelette : son geste de saut, recale pour retomber a la fin du cercle ; le saut du geste porte deja une partie de la hauteur, 27/10/2026) */
       const fb = gesteDe(mo, 'bondit', 'bond');
       if (an && an.F[fb]) { const nom = piocher(an, fb), D = an.A[nom].getClip().duration, imp = ((m.userData.impacts || {})[nom] || [])[0], ts = Math.max(0.6, (imp ? imp.t : D * 0.6) / EB), a = jouerAnim(an, nom, 0.1); a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts, EB + 0.5) }; }
@@ -1423,9 +1429,9 @@ function capLianes(mo, ctx) {
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('lianesT', L.periode) || mo.geste) return; if (dP < L.loin || dP > 13) { mo.lianesT = L.periode; return; }
   const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), f = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * (dP + 1.5), mo.z + Math.cos(a) * (dP + 1.5));
   mo.lianesT = 0; mo.ry = a; mo.bloqueT = L.prepa + 0.6; mo.cd = Math.max(mo.cd || 0, L.prepa + 0.8); gesteSort(mo, gesteDe(mo, 'lianes', 'tir'), L.prepa);
-  if (!c0.lianesVu) { c0.lianesVu = true; toast(leNom(mo.d) + ' lance ses lianes : sors de la bande ' + (L.couleurNom || 'verte') + ', sinon il te tire contre lui pour un gros coup !', 'alerte'); }
+  if (!c0.lianesVu) { c0.lianesVu = true; toast(leNom(mo.d) + (L.langue ? ' darde sa langue' : ' lance ses lianes') + ' : sors de la bande ' + (L.couleurNom || 'verte') + ', sinon il te tire contre lui pour un gros coup !', 'alerte'); }
   zoneDanger({ mo, x: mo.x, z: mo.z, x2: f.x, z2: f.z, larg: 1.3, duree: L.prepa, couleur: L.couleur || '#14501a', fort: L.couleur ? 1 : 1.7, bord: true, effet: (d) => {
-    const p2 = paysanMesh.position, prise = dansDanger(d, p2.x, p2.z), main = () => mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 3) * 0.6, mo.z), lv = lianeVolante(); scene.add(lv.g);
+    const p2 = paysanMesh.position, prise = dansDanger(d, p2.x, p2.z), main = () => (L.langue && boucheSquelette(mo)) || mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 3) * 0.6, mo.z), lv = L.langue ? langueVolante() : lianeVolante(); scene.add(lv.g); /* (langue : celle du Fouette-langue, de sa bouche, 13/11/2026) */
     const bout = prise ? null : new T.Vector3(f.x, solA(f.x, f.z) + 0.6, f.z); let t = 0, tire = false; const x0 = p2.x, z0 = p2.z, devant = 2.3 * Math.max(1, (mo.haut || 3) / 3.2);
     if (prise) { chemin = []; arrivee = null; const q = p2.clone(); q.y += 2.1; chiffre('Attrapé !', q, 'vol'); c0.colle = Math.max(c0.colle || 0, 0.8); }
     effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { jeter(lv.g); return true; } const h = main();
@@ -1958,6 +1964,12 @@ function capAuras(mo, ctx) {
   if (mo.galva > 0) { mo.galva -= dt; if (!mo.anneauG) { mo.anneauG = new T.Mesh(new T.RingGeometry(0.45, 0.62, 24), new T.MeshBasicMaterial({ color: '#f2b630', transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false })); mo.anneauG.rotation.x = -Math.PI / 2; mo.anneauG.position.y = 0.07; mo.anneauG.scale.setScalar(Math.max(1, mo.d.ombre * 0.8)); m.add(mo.anneauG); } mo.anneauG.visible = true; mo.anneauG.material.color.set(mo.galvaC || '#f2b630');
     if (mo.galvaC && Math.random() < dt * 6) emettre(FX_LUM, 1, { x: mo.x + (Math.random() - 0.5) * 0.9, y: m.position.y + 0.2, z: mo.z + (Math.random() - 0.5) * 0.9, v: [0, 1.7, 0], vie: [0.5, 0.8], taille: [0.15, 0.03], c: ['#ffffff', mo.galvaC], a: 0.85 }); } else if (mo.anneauG) mo.anneauG.visible = false;
 }
+function soinZone(mo) { /* le Soin de pluie de l'Axolotl chaman : il leve son baton, un anneau bleu au sol, tous les monstres dedans reprennent x de leur vie (soinBoss sur un boss) */
+  const Z = mo.d.soinZone, L = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && !o.d.oeuf && Math.hypot(o.x - mo.x, o.z - mo.z) < Z.R); if (!L.length) { mo.soinT = mo.d.soigne - 1; return; } /* (personne a soigner : il reessaie 1 s plus tard) */
+  if (!mo.geste) gesteSort(mo, 'sort', 0.5); const y = solA(mo.x, mo.z); onde(mo.x, y, mo.z, Z.R, '#6fd6ff', 0.6, 0.9); onde(mo.x, y, mo.z, Z.R * 0.6, '#e8faff', 0.4, 0.6);
+  L.forEach((b) => { const h = Math.max(1, Math.round(b.pvMax * (b.d.boss ? (mo.d.soinBoss || 0.025) : Z.x))); b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.4, '#6fd6ff'); });
+  if (!combat.soinZoneVu) { combat.soinZoneVu = true; toast(leNom(mo.d) + ' soigne tous les monstres autour de lui : abats-le en premier !', 'alerte'); }
+}
 function capSoin(mo, ctx) {
   const { m, dt, s, pp, bloque, vSort, sortPret } = ctx; /* (m : le modele du monstre, pp : la position du perso, bloque : il prepare un sort ou s'abrite) */
   if (mo.d.soigne) { /* le Mage soigne le Bwork le plus blesse autour de lui */
@@ -1965,6 +1977,7 @@ function capSoin(mo, ctx) {
     if (mo.soinT >= mo.d.soigne) {
       mo.soinT = 0;
       const b = combat.monstres.filter((o) => o.etat === 'actif' && o.pv < o.pvMax && Math.hypot(o.x - mo.x, o.z - mo.z) < 7 && !(o === mo && (mo.d.boss || mo.d.demi))).sort( /* (un boss ou un demi-boss qui soigne soigne sa troupe, pas lui-meme : l'Ancestral, 08/11/2026) */(a, c) => a.pv / a.pvMax - c.pv / c.pvMax)[0];
+      if (mo.d.soinZone) { soinZone(mo); return; } /* (l'Axolotl chaman : tous les monstres autour, 13/11/2026) */
       if (b && mo.d.gesteSoin && !mo.geste) gesteSort(mo, 'sort', 0.5); /* (le Venerable leve son baton quand il soigne, 08/11/2026) */
       if (b) { const h = Math.max(1, Math.round(b.pvMax * (b.d.boss ? (mo.d.soinBoss || 0.025) : 0.12))); /* (soinBoss : la Tortue Verte, 1 % sur un boss, 07/11/2026) */ /* (un boss, 2,5 % : 12 % de ses PV, c'etait un boss increvable) */ b.pv = Math.min(b.pvMax, b.pv + h); chiffre('+' + h, new T.Vector3(b.x, b.m.position.y + b.haut - 0.2, b.z), 'soin'); pouf(b.x, b.m.position.y, b.z, 1.6, '#5fe0e8'); }
     }
@@ -3023,8 +3036,127 @@ const SORTS_LOIN = { racines: 'racinesT', lance: 'lanceT', jet: 'jetT', faille: 
 const SORTS_CAC = { seisme: 'seismeT', brassard: 'brassardT', tourbillon: 'tourbillonT' }, LOIN_T = new Set(Object.values(SORTS_LOIN)), CAC_T = new Set(Object.values(SORTS_CAC));
 const TRAITS_BOSS = new Set(['distance', 'casse', 'garde', 'ralentit', 'menotte', 'assomme', 'poison', 'soigne', 'protege', 'revit', 'demonte', 'grignote', 'bandit', 'fouisseur']); /* (ce qu'il fait, sans etiquette, en dernier dans sa fiche) */
 const cacBoss = (mo) => Math.min(porteeSur(mo, STATS_CLASSE.osa) - 0.5, Math.max(porteeSur(mo, STATS_CLASSE.iop) + 1.8, mo.d.portee * (mo.allonge || 1) + 0.3));
+/* LES SORTS DES AMPHIBIENS DE LA SAISON DES PLUIES (palier 11, 13/11/2026, par Discord : « c'est bon, on peut partir la-dessus, faut voir apres dans la
+   realisation », Mathieu). En avant-premiere dans l'Arene dev. Les chiffres sont un depart, a regler en test. */
+const COULEUR_VASE = ['#5c6a2e', '#7a8a3a', '#3e4a1e', '#9aa85a'], COULEUR_HYPNOSE = '#b05cff', LENTEUR_VASE = 0.7;
+/* une bulle de vase (le Crapaud cracheur) : une boule verdatre luisante, avec des grumeaux */
+function bulleVase(k) {
+  const g = new T.Group(), c = new T.Mesh(new T.IcosahedronGeometry(0.24, 1), mat(COULEUR_VASE[0])); g.add(c);
+  for (let i = 0; i < 3; i++) { const b = new T.Mesh(new T.IcosahedronGeometry(0.11, 0), mat(COULEUR_VASE[1 + (i % 2)])), u = i * 2.1; b.position.set(Math.cos(u) * 0.2, Math.sin(u * 1.3) * 0.14, Math.sin(u) * 0.2); g.add(b); }
+  const reflet = new T.Mesh(new T.SphereGeometry(0.06, 6, 4), new T.MeshBasicMaterial({ color: '#e8f0c8' })); reflet.position.set(-0.1, 0.14, 0.12); g.add(reflet);
+  g.scale.setScalar(k || 1); g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g;
+}
+/* une flaque de vase verdatre (la flaque du Crapaud cracheur) : la meme forme que la flaque de boue du Dragon Cochon, en vert */
+function flaqueVase(x, z, r) { const f = flaqueBoue(x, z, r); f.mB.color.set('#8a9a4a'); f.mF.color.set('#3e4a1e'); return f; }
+/* le Gros crachat du Crapaud cracheur : il gonfle sa poche, puis crache n bulles en eventail (toi, et de part et d'autre) ; un cercle sous chacune ; la ou elles
+   tombent, des degats, puis une flaque de vase qui ralentit (combat.vase) pendant flaque secondes */
+function capCrachat(mo, ctx) {
+  const { pp, sortPret } = ctx, C = mo.d.crachat; if (!C || combat.deroute != null) return; const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (dP > 13 || !sortPret('crachatT', C.periode)) return;
+  mo.crachatT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a; mo.bloqueT = C.prepa + 0.5; mo.cd = Math.max(mo.cd || 0, C.prepa + 0.6);
+  gesteSort(mo, gesteDe(mo, 'crachat', 'tir'), C.prepa);
+  if (!c0.crachatVu) { c0.crachatVu = true; toast(leNom(mo.d) + ' gonfle sa poche : il va cracher ' + C.n + ' bulles de vase, sors des cercles ! La vase au sol te ralentit.', 'alerte'); }
+  const ux = Math.cos(a), uz = -Math.sin(a), P = []; for (let i = 0; i < C.n; i++) { const k = i - (C.n - 1) / 2, q = pointValide(pp.x, pp.z, pp.x + ux * k * C.ecart, pp.z + uz * k * C.ecart); P.push(q); }
+  P.forEach((q) => zoneDanger({ mo, x: q.x, z: q.z, r: C.R, duree: C.prepa + 0.35, couleur: '#6a7a2e', effet: (d) => {
+    const y = solA(q.x, q.z); pouf(q.x, y, q.z, C.R * 1.6, COULEUR_VASE[1]); emettre(FX_VIF, 14, { x: q.x, y: y + 0.2, z: q.z, r: 0.4, v: [0, 4, 0], dv: 2.5, vie: [0.4, 0.7], taille: [0.18, 0.06], c: COULEUR_VASE, grav: 11 });
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * C.x)), mo);
+    flaqueRalentit(q.x, q.z, C.R * 1.15, C.flaque, c0); } }));
+  /* les bulles volent de sa bouche aux cercles, et tombent juste a la fin du delai */
+  let t = 0; const B = P.map(() => { const b = bulleVase(1.3); b.visible = false; scene.add(b); return b; }), tg = C.prepa * 0.55, vol = C.prepa + 0.35 - tg; let de = null;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || (!de && mo.etat !== 'actif')) { B.forEach((b) => jeter(b)); return true; }
+    if (t < tg) return false; if (!de) { de = mainSquelette(mo) || new T.Vector3(mo.x, mo.m.position.y + 1.2, mo.z); B.forEach((b) => { b.visible = true; b.position.copy(de); }); pouf(de.x, de.y, de.z, 1.0, COULEUR_VASE[1]); }
+    const u = Math.min(1, (t - tg) / vol); B.forEach((b, i) => { const q = P[i]; b.position.set(de.x + (q.x - de.x) * u, de.y + (solA(q.x, q.z) + 0.2 - de.y) * u + Math.sin(u * Math.PI) * (2.2 + Math.hypot(q.x - de.x, q.z - de.z) * 0.12), de.z + (q.z - de.z) * u); b.rotation.x += dt * 8; });
+    if (u >= 1) { B.forEach((b) => jeter(b)); return true; } return false; });
+}
+/* une flaque qui ralentit tant qu'on est dedans (la vase du Crapaud cracheur) : combat.vase, sans immobiliser */
+function flaqueRalentit(x, z, r, duree, c0) {
+  const f = flaqueVase(x, z, r); let t = 0;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { jeter(f.g); return true; }
+    const k = Math.min(1, t / 0.4), fin = Math.min(1, (duree - t) / 0.6); f.g.scale.setScalar(Math.max(0.01, 1 - Math.pow(1 - k, 3))); f.mF.opacity = 0.8 * Math.max(0, fin); f.mB.opacity = 0.5 * Math.max(0, fin);
+    const p2 = paysanMesh.position; if (fin > 0.3 && Math.hypot(p2.x - x, p2.z - z) < r * 0.95) { if (!(c0.vase > 0) && !c0.vaseVu) { c0.vaseVu = true; const q = p2.clone(); q.y += 2.1; chiffre('Ralenti !', q, 'vol'); } c0.vase = Math.max(c0.vase || 0, 0.15); }
+    if (t >= duree) { jeter(f.g); return true; } return false; });
+}
+/* la frenesie des Tetards voraces : quand un tetard meurt, ceux d'a cote frappent et courent plus vite (la galvanisation, en rouge) */
+function frenesie(mo) {
+  const F = mo.d.frenesie, L = combat.monstres.filter((o) => o !== mo && o.type === mo.type && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < F.R); if (!L.length) return;
+  L.forEach((o) => { o.galva = Math.max(o.galva || 0, F.t); o.galvaC = '#e2413a'; pouf(o.x, o.m.position.y, o.z, 1.1, '#e2413a'); });
+  if (!combat.frenesieVu) { combat.frenesieVu = true; toast('Frénésie ! Quand un ' + mo.d.nom + ' meurt, ceux d\'à côté frappent et courent plus vite pendant ' + F.t + ' s : tue-les vite, ou un par un.', 'alerte'); }
+}
+/* la langue du Fouette-langue (ses « lianes ») : une langue rose et luisante, plus epaisse au bout, qu'on etire entre deux points comme une liane */
+function langueVolante() {
+  const g = new T.Group(), M = []; for (let i = 0; i < 16; i++) { const r = 0.07 + 0.05 * (i / 15), s = new T.Mesh(new T.CylinderGeometry(r, r, 1, 8), mat(i % 2 ? '#e8708c' : '#d85e7c')); g.add(s); M.push(s); }
+  const bout = new T.Mesh(new T.SphereGeometry(0.16, 10, 8), mat('#f08aa4')); M[M.length - 1].add(bout); bout.position.y = 0.5; g.traverse((o) => { o.raycast = () => {}; }); return { g, M };
+}
+const boucheSquelette = (mo) => { const b = mo.m && mo.m.getObjectByName('machoire'); return b ? b.getWorldPosition(new T.Vector3()) : null; };
+/* L'OEUF DE LA MERE CRAPAUDE : une grosse boule de gelee verte, translucide, un tetard sombre roule dedans ; il grossit et vire au jaune puis au rouge en vieillissant */
+function fabriquerOeuf() {
+  const g = new T.Group(), gelee = new T.Mesh(new T.SphereGeometry(0.42, 18, 14), new T.MeshLambertMaterial({ color: '#7cf08a', transparent: true, opacity: 0.72, emissive: '#2e7a3a' })), coeur = new T.Group();
+  const corps = new T.Mesh(new T.SphereGeometry(0.15, 10, 8), mat('#23301e')), queue = new T.Mesh(new T.ConeGeometry(0.07, 0.3, 6), mat('#23301e')); queue.rotation.z = Math.PI / 2; queue.position.x = -0.2; coeur.add(corps, queue);
+  const lueur = new T.Mesh(new T.SphereGeometry(0.52, 14, 10), new T.MeshBasicMaterial({ color: '#9cff7a', transparent: true, opacity: 0.18, depthWrite: false }));
+  gelee.position.y = coeur.position.y = lueur.position.y = 0.4; gelee.castShadow = true; g.add(gelee, coeur, lueur);
+  g.userData = { hauteur: 0.85, gelee, coeur, lueur }; g.traverse((o) => { if (o !== g) o.userData.oeuf = true; }); return g;
+}
+/* La Ponte : elle se ramasse et projette ses oeufs sur tout le terrain ; chacun devient un monstre « oeuf » a 1 PV, qui eclot au bout d'un temps au hasard ;
+   ce qui en sort depend de son age : un Tetard, puis un Crapaud, puis un Fouette-langue (stades : les ages de bascule) */
+function capPonte(mo, ctx) {
+  const { pp, sortPret } = ctx, P = mo.d.ponte; if (!P || combat.deroute != null) return; if (!sortPret('ponteT', P.periode)) return;
+  const c0 = combat, deja = c0.monstres.filter((o) => o.type === 'oeufCrapaud' && o.etat !== 'mort').length, n = Math.min(P.n, P.max - deja); if (n <= 0) { mo.ponteT = P.periode - 3; return; }
+  mo.ponteT = 0; mo.bloqueT = 1.3; mo.cd = Math.max(mo.cd || 0, 1.4); gesteSort(mo, gesteDe(mo, 'ponte', 'sort'), 0.8);
+  if (!c0.ponteVu) { c0.ponteVu = true; toast(leNom(mo.d) + ' projette ses œufs partout : casse-les vite (1 PV) ! Plus un œuf reste, plus ce qui en sort est fort.', 'alerte'); }
+  const C = combat.arene ? { x: ARENE.x, z: ARENE.z } : { x: (mo.x + pp.x) / 2, z: (mo.z + pp.z) / 2 }, Q = [];
+  for (let e = 0; e < 80 && Q.length < n; e++) { const a = fxAlea() * Math.PI * 2, d = 2 + Math.sqrt(fxAlea()) * (P.R - 2), q = pointValide(C.x, C.z, C.x + Math.cos(a) * d, C.z + Math.sin(a) * d); if (Q.every((o) => Math.hypot(o.x - q.x, o.z - q.z) > 2.2) && Math.hypot(q.x - mo.x, q.z - mo.z) > 2.5) Q.push(q); }
+  let t = 0; const de = () => new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 4) * 0.75, mo.z), V = [];
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { V.forEach((v) => jeter(v.m)); return true; }
+    if (t > 0.8 && !V.length && mo.etat === 'actif') { const o = de(); pouf(o.x, o.y, o.z, 3, '#7cf08a'); Q.forEach((q, i) => { const m = fabriquerOeuf(); m.scale.setScalar(0.8); m.position.copy(o); scene.add(m); V.push({ m, q, t0: i * 0.05, o: o.clone() }); }); }
+    let fini = V.length > 0; V.forEach((v) => { if (v.fait) return; const u = Math.min(1, Math.max(0, (t - 0.8 - v.t0) / 0.9)); fini = false;
+      v.m.position.set(v.o.x + (v.q.x - v.o.x) * u, v.o.y + (solA(v.q.x, v.q.z) - v.o.y) * u + Math.sin(u * Math.PI) * (3 + Math.hypot(v.q.x - v.o.x, v.q.z - v.o.z) * 0.25), v.o.z + (v.q.z - v.o.z) * u); v.m.rotation.x += dt * 5;
+      if (u >= 1) { v.fait = true; jeter(v.m); const y = solA(v.q.x, v.q.z); pouf(v.q.x, y, v.q.z, 1.2, '#7cf08a'); emettre(FX_VIF, 8, { x: v.q.x, y: y + 0.2, z: v.q.z, r: 0.3, v: [0, 2.5, 0], dv: 1.5, vie: [0.3, 0.5], taille: [0.12, 0.05], c: ['#9cff7a', '#7cf08a', '#e8ffd8'], grav: 9 });
+        apparaitre('oeufCrapaud', { x: v.q.x, z: v.q.z, apres: (o) => { o.pv = o.pvMax = 1; o.invoqueur = mo.id; o.invoque = true; o.dep = { x: v.q.x, y: o.y, z: v.q.z, friche: true }; o.age = 0; o.eclos = P.eclos[0] + fxAlea() * (P.eclos[1] - P.eclos[0]); o.stades = P.stades; } }); c0.total++; } });
+    return V.length > 0 && V.every((v) => v.fait); });
+}
+/* l'oeuf vieillit : il grossit, vire au jaune puis au rouge, bat de plus en plus vite, puis eclot (un Tetard, un Crapaud ou un Fouette-langue selon son age) */
+const STADES_OEUF = [['#7cf08a', '#2e7a3a', '#9cff7a'], ['#f0e07c', '#8a7a1e', '#fff17a'], ['#f08a7c', '#8a2e2e', '#ff9a7a']];
+function capOeuf(mo, ctx) {
+  if (!mo.d.oeuf || mo.etat !== 'actif' || mo.age == null) return; const dt = ctx.dt, u = mo.m.userData; mo.age += dt;
+  const st = mo.age < mo.stades[0] ? 0 : mo.age < mo.stades[1] ? 1 : 2, C = STADES_OEUF[st], bat = 0.5 + 0.5 * Math.sin(mo.age * (4 + 4 * st));
+  if (u.gelee) { u.gelee.material.color.set(C[0]); u.gelee.material.emissive.set(C[1]); u.lueur.material.color.set(C[2]); u.lueur.material.opacity = 0.12 + 0.15 * bat; u.coeur.rotation.y += dt * (1.5 + st); }
+  mo.m.scale.setScalar(mo.echelle * (1 + 0.12 * st + 0.04 * bat)); if (mo.stadeV !== st) { mo.stadeV = st; if (st) pouf(mo.x, mo.m.position.y + 0.4, mo.z, 1.1, C[2]); }
+  if (mo.age < mo.eclos) return;
+  const type = st === 0 ? 'tetard' : st === 1 ? 'crapaud' : 'fouette', c0 = combat, x = mo.x, z = mo.z, y = solA(x, z);
+  mo.pv = 0; mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (c0.cible === mo) c0.cible = null; mo.m.visible = false;
+  pouf(x, y + 0.4, z, 1.8, C[0]); emettre(FX_VIF, 16, { x, y: y + 0.4, z, r: 0.3, dv: 3.5, haut: true, vie: [0.35, 0.6], taille: [0.16, 0.05], c: [C[0], C[2], '#e8ffd8'], grav: 10 });
+  apparaitre(type, { x, z, apres: (o) => { o.invoque = true; o.invoqueur = mo.invoqueur; } }); c0.total++;
+}
+/* Le Regard hypnotique : ses yeux s'allument, un eventail violet devant elle (sors-en) ; dedans, tu es hypnotise : tu marches vers elle sans pouvoir
+   te diriger pendant duree secondes (combat.colle bloque ta marche, le regard te tire a v unites par seconde, jusqu'a sa portee) */
+function capHypnose(mo, ctx) {
+  const { pp, sortPret } = ctx, H = mo.d.hypnose; if (!H || combat.deroute != null || mo.geste) return; const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (dP > H.R || !sortPret('hypnoseT', H.periode)) return;
+  mo.hypnoseT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a; mo.bloqueT = H.prepa + 0.3; mo.cd = Math.max(mo.cd || 0, H.prepa + 0.5); gesteSort(mo, gesteDe(mo, 'hypnose', 'tir'), H.prepa);
+  if (!c0.hypnoseVu) { c0.hypnoseVu = true; toast(leNom(mo.d) + ' te fixe de son regard hypnotique : sors de l\'éventail violet, sinon tu marches vers elle sans pouvoir t\'arrêter !', 'alerte'); }
+  const yeux = () => new T.Vector3(mo.x + Math.sin(mo.ry) * (mo.d.ombre || 3) * 0.3, mo.m.position.y + (mo.haut || 4) * 0.62, mo.z + Math.cos(mo.ry) * (mo.d.ombre || 3) * 0.3); let tl = 0;
+  effets.push((dt) => { tl += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || tl > H.prepa) return true; if (Math.random() < dt * 14) { const q = yeux(); emettre(FX_LUM, 2, { x: q.x, y: q.y, z: q.z, r: 0.5, vie: [0.2, 0.35], taille: [0.6, 0.1], c: ['#ffffff', COULEUR_HYPNOSE], a: 0.9 }); } return false; });
+  zoneDanger({ mo, x: mo.x, z: mo.z, r: H.R, a, ouv: H.ouv, duree: H.prepa, couleur: COULEUR_HYPNOSE, effet: (d) => {
+    const q0 = yeux(); onde(q0.x, q0.y - 0.5, q0.z, 3, COULEUR_HYPNOSE, 0.5, 0.6); const p2 = paysanMesh.position; if (!dansDanger(d, p2.x, p2.z) || mo.etat !== 'actif') return;
+    c0.colle = Math.max(c0.colle || 0, H.duree); chemin = []; arrivee = null; const q = p2.clone(); q.y += 2.1; chiffre('Hypnotisé !', q, 'vol');
+    const S0 = [0, 1, 2].map(() => { const m = new T.Mesh(new T.RingGeometry(0.12, 0.2, 16), new T.MeshBasicMaterial({ color: COULEUR_HYPNOSE, transparent: true, depthWrite: false, side: T.DoubleSide })); m.renderOrder = 7; m.raycast = () => {}; scene.add(m); return m; });
+    let t = 0; effets.push((dt) => { t += dt; const p = paysanMesh.position; if (combat !== c0 || c0.fin || t > H.duree) { jeter(...S0); return true; }
+      const dx = mo.x - p.x, dz = mo.z - p.z, L = Math.hypot(dx, dz), arret = (mo.d.portee || 2) + (mo.d.ombre || 3) * 0.35;
+      if (L > arret && mo.etat === 'actif') { const pas = Math.min(L - arret, H.v * dt), f = pointValide(p.x, p.z, p.x + dx / L * pas, p.z + dz / L * pas); p.x = f.x; p.z = f.z; paysanMesh.rotation.y = Math.atan2(dx, dz); paysanMesh.userData.angle = paysanMesh.rotation.y; const c = caseIci(p.x, p.z); if (c) paysanMesh.userData.cellule = c; }
+      S0.forEach((m, i) => { m.position.set(p.x, p.y + 2.1 + 0.18 * i, p.z); m.lookAt(camera.position); m.scale.setScalar(1 + 0.4 * Math.sin(t * 8 + i)); m.material.opacity = 0.8 * Math.min(1, (H.duree - t) / 0.2); });
+      return false; }); } });
+}
+/* Les pattes dans l'eau (le Triton cuirasse) : il se soigne de eauSoin de sa vie par seconde tant qu'il est dans la mare de la ferme (ou, plus tard, sur une case
+   inondee par la pluie) ; un anneau bleu autour de lui le montre */
+const R_MARE_SOIN = 2.6, dansLEau = (x, z) => typeof MARE !== 'undefined' && (typeof lieu === 'undefined' || lieu === 'ferme') && Math.hypot(x - MARE[0], z - MARE[1]) < R_MARE_SOIN;
+function capEauSoin(mo, ctx) {
+  if (!mo.d.eauSoin || mo.etat !== 'actif') return; const dedans = dansLEau(mo.x, mo.z);
+  if (dedans && mo.pv < mo.pvMax) { mo.eauT = (mo.eauT || 0) + ctx.dt; if (mo.eauT >= 1) { mo.eauT = 0; const h = Math.max(1, Math.round(mo.pvMax * mo.d.eauSoin)); mo.pv = Math.min(mo.pvMax, mo.pv + h); chiffre('+' + h, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), 'soin'); onde(mo.x, solA(mo.x, mo.z), mo.z, 1.8, '#6fd6ff', 0.4, 0.6); }
+    if (!combat.eauSoinVu) { combat.eauSoinVu = true; toast(leNom(mo.d) + ' se soigne les pattes dans l\'eau : attire-le au sec !', 'alerte'); } }
+  else mo.eauT = 0;
+}
 const CAPACITES_AVANT = [capEnracine, capRage, capProtege, capGalvanise];
-const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capEnfouit, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon, capAvale, capTempete, capRegard, capLancer];
+const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, capBond, capEnfouit, capLance, capJet, capFaille, capCarapace, capSeisme, capSouffle, capPluie, capBourrasque, capLanceVent, capTornades, capBoomerang, capLianes, capUltime, capCawotteRoyale, capFumee, capAppel, capAuras, capSoin, capBoue, capBain, capBrassard, capTourbillon, capRacines, capSemis, capMalefice, capPierre, capRoulade, capTotems, capTotem, capDanse, capMalediction, capMarteauMoon, capAvale, capTempete, capRegard, capLancer, capCrachat, capPonte, capOeuf, capHypnose, capEauSoin]; /* (les amphibiens de la Saison des pluies, 13/11/2026) */
 /* l'archer tire de loin : une fleche vole jusqu'au perso (ou jusqu'au batiment qu'il vise) ; d'un monstre a squelette, elle part de sa main.
    Le Mage : magie ; le Lanceur : un rocher ; l'Ardoise : une boule de feu ; Jav : une sagaie ; Sarbak : une flechette */
 /* LES TIRS DES MONSTRES (refaits le 29/10/2026, « quand un mec te jette un caillou, on est cense voir le caillou partir et te toucher ; il y a pas
@@ -3033,12 +3165,13 @@ const CAPACITES = [capTroupe, capInvoque, capGeyser, capGeyserRage, capCharge, c
    batiment vise. Les briques sont celles des sorts du perso (22b-effets.js). */
 const TIRS = { /* v : vitesse (unites par seconde), arc : hauteur de la courbe (en plus d'une part de la distance), long : il pointe ou il va */
   fleche: { v: 15, arc: 0.3, parD: 0.03, long: true }, flechette: { v: 17, arc: 0.2, parD: 0.02, long: true }, sagaie: { v: 13, arc: 0.5, parD: 0.05, long: true },
-  rocher: { v: 9.5, arc: 0.8, parD: 0.12 }, fruit: { v: 10, arc: 0.7, parD: 0.1 }, feu: { v: 11, arc: 0.35, parD: 0.04 }, magie: { v: 12, arc: 0.25, parD: 0.02 }, gland: { v: 10.5, arc: 0.8, parD: 0.1 } }; /* (gland : le Semeur, 05/11/2026) */
+  rocher: { v: 9.5, arc: 0.8, parD: 0.12 }, fruit: { v: 10, arc: 0.7, parD: 0.1 }, feu: { v: 11, arc: 0.35, parD: 0.04 }, magie: { v: 12, arc: 0.25, parD: 0.02 }, gland: { v: 10.5, arc: 0.8, parD: 0.1 }, vase: { v: 9, arc: 0.9, parD: 0.12 } }; /* (vase : le Crapaud cracheur, 13/11/2026) */ /* (gland : le Semeur, 05/11/2026) */
 /* un gland qui luit (le Semeur, 05/11/2026) : le fruit orange clair, sa cupule brune, une petite queue ; k : sa taille */
 function glandVolant(k) { const g = new T.Group(), f = new T.Mesh(new T.SphereGeometry(0.15, 10, 8), new T.MeshBasicMaterial({ color: '#ffb53c' })), cu = new T.Mesh(new T.SphereGeometry(0.165, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat('#6e4a26')), q = boite(0.035, 0.09, 0.035, '#5a3a1e');
   f.scale.set(1, 1.3, 1); cu.position.y = 0.05; q.position.y = 0.2; g.add(f, cu, q); g.scale.setScalar(k || 1); return g; }
 function projectileMonstre(type, mo) {
   if (type === 'gland') return glandVolant(1.1);
+  if (type === 'vase') return bulleVase(1);
   if (type === 'magie') { const g = new T.Group(), c = new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: mo.d.couleurMagie || '#5fe0e8' })), b = new T.Mesh(new T.IcosahedronGeometry(0.11, 1), new T.MeshBasicMaterial({ color: '#ffffff' })); g.add(c, b); return g; }
   if (type === 'fruit') return new T.Mesh(new T.SphereGeometry(mo.d.grosFruit ? 0.28 : 0.17, 10, 8), mat(mo.d.fruit));
   if (type === 'rocher') return new T.Mesh(new T.DodecahedronGeometry(0.4, 0), mat('#9a948c'));
@@ -3054,6 +3187,7 @@ function traineeTir(type, p, mo) {
   if (type === 'feu') return traineeFleche(p, true);
   if (type === 'magie') { emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.2, 0.3], taille: [0.5, 0.1], c: ['#ffffff', mo.d.couleurMagie || '#5fe0e8'], a: 0.8 }); return; }
   if (type === 'gland') { emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.2, 0.35], taille: [0.5, 0.1], c: ['#fff1a8', '#ff9a2e'], a: 0.75 }); return; }
+  if (type === 'vase') { if (fxAlea() < 0.6) emettre(FX_VIF, 1, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 0.5, vie: [0.3, 0.5], taille: [0.12, 0.05], c: COULEUR_VASE, grav: 9 }); return; }
   if (type === 'rocher' || type === 'fruit') { if (fxAlea() < 0.5) emettre(FX_FUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.3, 0.45], taille: [0.25, 0.45], c: type === 'rocher' ? ['#c9b28a', '#d8c6a0'] : [mo.d.fruit, '#ffffff'], a: 0.4 }); return; }
   traineeFleche(p);
 }
@@ -3061,6 +3195,7 @@ function impactTir(type, p, mo, perso) {
   const y = solA(p.x, p.z);
   if (type === 'feu') { boule(p.x, p.y, p.z, 0.55 * (mo.d.feuTaille || 1), ['#ff9a2e', '#e8541e']); if (mo.d.boss && mo.d.element === 'feu') impactFeu(p.x, p.z, 1.0); return; } /* (Crocabulia : ses boules de feu brulent le sol, 01/11/2026) */
   if (type === 'magie') { etoileImpact(p, 0.8, mo.d.couleurMagie || '#5fe0e8'); onde(p.x, y, p.z, 1.4, mo.d.couleurMagie || '#5fe0e8', 0.35, 0.7); return; }
+  if (type === 'vase') { pouf(p.x, y, p.z, 1.3, COULEUR_VASE[1]); emettre(FX_VIF, 10, { x: p.x, y: p.y, z: p.z, r: 0.15, dv: 3, haut: true, vie: [0.3, 0.5], taille: [0.14, 0.05], c: COULEUR_VASE, grav: 10, frein: 1.2 }); return; }
   if (type === 'gland') { pouf(p.x, y, p.z, 1.2, '#ffb53c'); emettre(FX_VIF, 12, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.04], c: ['#fff1a8', '#ff9a2e', '#c8641e'], grav: 8, frein: 1.5 }); poussiere(p.x, y, p.z, 4, 0.5, '#8a6a44'); return; }
   if (type === 'rocher') { pouf(p.x, y, p.z, 1.8, '#9a948c'); poussiere(p.x, y, p.z, 8, 0.8, '#d8c6a0'); mottes(p.x, y, p.z, 5, 0.6); if (perso) secousse(0.08, 0.18); return; }
   if (type === 'fruit') { pouf(p.x, y, p.z, 1.4, mo.d.fruit); emettre(FX_VIF, 10, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.25, 0.45], taille: [0.12, 0.04], c: ['#ffffff', mo.d.fruit], grav: 9, frein: 1.5 }); return; }
