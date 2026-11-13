@@ -521,7 +521,7 @@ function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colos
 }
 function apparaitre(type, pres) {
   const d = MONSTRES[type]; noterVu(type);
-  if (combat && !combat.nuitForet && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele)) { combat.nuitForet = true; nuitForet(); toast('La Forêt des Abraknydes plonge la ferme dans la nuit…', 'alerte'); } /* (la nuit de la foret, 08/11/2026) */
+  if (combat && !combat.nuitForet && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele) && !(combat.genre === 'vague' && combat.n > 10 * VAGUES_PALIER)) { /* (13/11/2026, « que de 91 a 100 ; a partir de la 101 on repart sur le cycle jour / nuit classique », Mathieu : au-dela de la 100, meme avec des arbres de la foret, la nuit est celle de l'heure, nuitFermeLa) */ combat.nuitForet = true; nuitForet(); toast('La Forêt des Abraknydes plonge la ferme dans la nuit…', 'alerte'); } /* (la nuit de la foret, 08/11/2026) */
   if (!d.fabrique && !MODELES[d.modele]) { /* son modele n'est pas encore la (un monstre a squelette, charge a la demande) : il sort des qu'il est charge ; sans modele, il ne vient pas (26/10/2026 : cloner plantait et l'image se figeait) */
     const c0 = combat; chargerSquelettes([d.modele]).then(() => { if (combat !== c0 || c0.fin) return; if (MODELES[d.modele]) apparaitre(type, pres); else if (c0.total > 0) c0.total--; }); return; }
   if (combat.arene && !pres) { const g = hasard(PORTES_ARENE); pres = { x: g.x + (Math.random() - 0.5) * 1.4, z: g.z + (Math.random() - 0.5) * 1.4, porte: g }; } /* l'Arene : ils sortent des herses */
