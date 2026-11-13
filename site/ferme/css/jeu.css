@@ -1206,7 +1206,7 @@ html, body { color: #e8eaed; }
 .bj-carte { width: 44px; height: 62px; border-radius: 7px; background: #fffaf0; border: 2px solid #d9c9a3; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #2a2230; box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
 .bj-carte b { font: 400 1.15rem/1 var(--f-titre); } .bj-carte i { font-style: normal; font-size: 1.15rem; line-height: 1.1; } .bj-carte.rouge { color: #d8263a; } .bj-carte.bleu { color: #2a64c8; } .bj-carte.vert { color: #1f8a4a; }
 .bj-carte.dos { background: repeating-linear-gradient(45deg, #9e1c2c 0 6px, #c8323e 6px 12px); border-color: #f2b630; }
-.bj-main.active { border-left: 3px solid var(--kamas); padding-left: 8px; } .bj-main.attend { opacity: .6; } /* (les deux mains apres un partage, 13/11/2026) */
+.bj-main.active { border-left: 3px solid var(--kamas); padding-left: 8px; } .bj-carte.neuve { animation: bjDonne .32s ease-out; } @keyframes bjDonne { from { transform: translate(60px, -40px) rotate(14deg); opacity: 0; } to { transform: none; opacity: 1; } } .bj-attente { flex: 1; text-align: center; font-size: .82rem; font-weight: 700; color: #cfc8b8; padding: 9px 0; } /* (la donne carte par carte, 13/11/2026) */ .bj-main.attend { opacity: .6; } /* (les deux mains apres un partage, 13/11/2026) */
 .bj-vide { font-size: .78rem; color: #8d877b; } .bj-actions { display: flex; gap: 8px; margin-top: 10px; } .bj-actions .btn { flex: 1; }
 /* le poker du patron (10/11/2026, 29b-casino-patron.js) */
 .pk-dit { background: #1d1a22; border: 2px solid #3a3242; border-radius: 10px; padding: 8px 12px; margin: 4px 0 8px; font: 400 1.02rem/1.25 var(--f-titre); color: #f2e6c8; }

@@ -235,66 +235,92 @@ function ouvrirBar() {
 /* ---------- LE BLACKJACK (le plan du 07/11/2026, valide : le croupier tire jusqu'a 17, gagne : deux fois la mise, blackjack d'entree : deux fois et demie,
    egalite : la mise rendue ; Tirer, Rester, Doubler ; la meme mise maximale et le meme plafond de pertes que les autres jeux) ---------- */
 const BJ_RANGS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'V', 'D', 'R'], BJ_COULEURS = ['♠', '♥', '♦', '♣'];
-let bj = null; /* la main en cours : { mains: [{ c: cartes, mise, double, as }], i: la main jouee, croupier, fini } ; deux mains apres un partage */
-/* LES VRAIES REGLES (13/11/2026, « on respecte les regles du jeu ou pas ? », Mathieu, apres des retours de joueurs) : avant, le croupier ne regardait pas sa carte
-   cachee, on pouvait doubler contre son blackjack et perdre la mise doublee ; et on ne pouvait pas separer une paire. Maintenant, comme au casino :
-   - le croupier regarde sa carte cachee des la donne : s'il a un blackjack, la main s'arrete tout de suite (on ne perd que la mise de depart ; blackjack contre blackjack : rendue) ;
-   - une paire (deux cartes de meme valeur, les figures et le 10 comptent pareil) se separe en deux mains, une seule fois, avec une seconde mise egale ;
-     deux As separes recoivent une carte chacun et s'arretent ; 21 en deux cartes apres un partage n'est pas un blackjack (paye deux fois la mise) ;
-     on peut doubler sur chaque main separee (sauf les As).
-   Inchanges : le croupier tire jusqu'a 17 et reste sur tous les 17, blackjack d'entree a deux fois et demie, un sabot sans fin. Pas d'assurance. */
+let bj = null; /* la main en cours : { mains: [{ c: cartes, mise, double, as }], i: la main jouee, croupier, fini, anime, assurance, agi, neuve } */
+/* LE BLACKJACK DES CASINOS FRANCAIS (13/11/2026, « le croupier distribue toutes les cartes direct alors que normalement c'est pas comme ca, renseigne-toi a fond »,
+   Mathieu, apres des retours de joueurs). Le reglement du Casino de Monte-Carlo, a l'europeenne, sans carte cachee :
+   - la donne : une carte au joueur, une au croupier (visible), une deuxieme au joueur ; le croupier n'a qu'UNE carte tant que le joueur joue ;
+   - quand le joueur reste, le croupier tire ses cartes une a une : il tire a 16 ou moins, il reste a 17 ou plus (tous les 17) ;
+   - blackjack = 21 avec les deux premieres cartes, paye 3 pour 2 (deux fois et demie la mise rendue), sauf blackjack du croupier (coup nul) ;
+   - blackjack du croupier : toutes les mises perdues (doubles et separations comprises, pas de carte cachee), sauf contre un blackjack ;
+   - doubler sur les deux premieres cartes : une seule carte de plus ; separer deux cartes de meme valeur : jusqu'a trois mains ; deux As separes : une
+     carte chacun, sans autre separation, et un 10 sur un As separe fait 21, pas blackjack ;
+   - assurance quand la premiere carte du croupier est un As : au plus la moitie de la mise, payee 2 pour 1 s'il fait blackjack.
+   Les cartes arrivent l'une apres l'autre (BJ_PAS), sans bouton pendant la donne ; fenetre fermee pendant la donne : tout se joue d'un coup. */
+const BJ_PAS = 450;
 const bjCarte = () => ({ r: BJ_RANGS[Math.floor(Math.random() * 13)], c: BJ_COULEURS[Math.floor(Math.random() * 4)] }); /* (un sabot sans fin : chaque carte au hasard) */
 function bjTotal(main) { let t = 0, as = 0; main.forEach((k) => { if (k.r === 'A') { t += 11; as++; } else t += ['10', 'V', 'D', 'R'].includes(k.r) ? 10 : +k.r; }); while (t > 21 && as) { t -= 10; as--; } return t; }
 const bjNaturel = (main) => main.length === 2 && bjTotal(main) === 21;
 const bjCarteHtml = (k, cachee) => (cachee ? '<span class="bj-carte dos"></span>' : '<span class="bj-carte' + ('♥♦'.includes(k.c) ? ' rouge' : '') + '"><b>' + k.r + '</b><i>' + k.c + '</i></span>');
 function ouvrirBlackjack(res) {
-  const enCours = !!(bj && !bj.fini), b = bj || { mains: [], croupier: [] }, plus = b.mains.length > 1, h = enCours ? b.mains[b.i] : null;
-  const main = (titre, cartes, cache, cls) => '<div class="bj-main' + (cls || '') + '"><div class="bj-titre">' + titre + (cartes.length ? ' <b>' + (cache ? bjTotal([cartes[0]]) + ' + ?' : bjTotal(cartes)) + '</b>' : '') + '</div><div class="bj-cartes">' +
-    (cartes.length ? cartes.map((k, i) => bjCarteHtml(k, cache && i === 1)).join('') : '<span class="bj-vide">pas encore de carte</span>') + '</div></div>';
-  const joueur = b.mains.length ? b.mains.map((m, k) => main((plus ? 'Main ' + (k + 1) : 'Toi') + ' (mise ' + fmt(m.mise) + ')' + (enCours && plus && k === b.i ? ' <small>à toi de jouer</small>' : ''), m.c, false, enCours && plus ? (k === b.i ? ' active' : ' attend') : '')).join('') : main('Toi', [], false);
-  ouvrirModale('blackjack', entete('Le blackjack du Chat Doré') + '<p class="hdv-aide">Approche-toi de 21 sans le dépasser. Le croupier tire jusqu\'à 17, et s\'il a un blackjack la main s\'arrête aussitôt. Gagné : deux fois ta mise. Blackjack d\'entrée : deux fois et demie. Égalité : ta mise est rendue. Une paire se sépare en deux mains.</p>' +
-    main('Le croupier', b.croupier, enCours) + joueur +
-    '<div class="cas-res' + (res && res.gain ? ' gagne' : '') + '">' + (res ? res.html : '') + '</div>' +
-    (enCours ? '<div class="bj-actions"><button class="btn kamas" data-cas="bj:tirer">Tirer</button><button class="btn" data-cas="bj:rester">Rester</button>' + (h.c.length === 2 && !h.double && !h.as ? '<button class="btn discret" data-cas="bj:doubler">Doubler</button>' : '') + (peutSeparer() ? '<button class="btn discret" data-cas="bj:separer">Séparer</button>' : '') + '</div>'
-      : piedMise() + '<button class="btn kamas grand" data-cas="bj:donner" style="width:100%;margin-top:8px">' + (casinoMise > S_.kamas ? 'Distribuer à crédit' : 'Distribuer') + '</button>'));
+  const b = bj || { mains: [], croupier: [] }, enCours = !!(bj && !bj.fini), plus = b.mains.length > 1, h = enCours ? b.mains[b.i] : null;
+  const main = (titre, cartes, cls) => '<div class="bj-main' + (cls || '') + '"><div class="bj-titre">' + titre + (cartes.length ? ' <b>' + bjTotal(cartes) + '</b>' : '') + '</div><div class="bj-cartes">' +
+    (cartes.length ? cartes.map((k, i) => bjCarteHtml(k, false).replace('class="bj-carte', 'class="bj-carte' + (cartes === b.neuve && i === cartes.length - 1 ? ' neuve' : ''))).join('') : '<span class="bj-vide">pas encore de carte</span>') + '</div></div>';
+  const joueur = b.mains.length ? b.mains.map((m, k) => main((plus ? 'Main ' + (k + 1) : 'Toi') + ' (mise ' + fmt(m.mise) + ')' + (enCours && plus && k === b.i ? ' <small>à toi de jouer</small>' : ''), m.c, enCours && plus ? (k === b.i ? ' active' : ' attend') : '')).join('') : main('Toi', []);
+  const assurable = enCours && !b.anime && !b.agi && !b.assurance && b.croupier.length === 1 && b.croupier[0].r === 'A' && b.mains.length === 1 && Math.floor(b.mains[0].mise / 2) > 0;
+  const actions = !enCours ? piedMise() + '<button class="btn kamas grand" data-cas="bj:donner" style="width:100%;margin-top:8px">' + (casinoMise > S_.kamas ? 'Distribuer à crédit' : 'Distribuer') + '</button>'
+    : b.anime ? '<div class="bj-actions"><span class="bj-attente">' + (b.croupier.length >= 2 || h.c.length >= 2 ? 'Le croupier tire…' : 'Le croupier distribue…') + '</span></div>'
+    : '<div class="bj-actions"><button class="btn kamas" data-cas="bj:tirer">Tirer</button><button class="btn" data-cas="bj:rester">Rester</button>' + (h.c.length === 2 && !h.double && !h.as ? '<button class="btn discret" data-cas="bj:doubler">Doubler</button>' : '') + (peutSeparer() ? '<button class="btn discret" data-cas="bj:separer">Séparer</button>' : '') + '</div>' +
+      (assurable ? '<button class="btn discret" data-cas="bj:assurer" style="width:100%;margin-top:6px">Assurance : ' + fmt(Math.floor(b.mains[0].mise / 2)) + ' kamas (payée 2 pour 1 si le croupier fait blackjack)</button>' : '') + (b.assurance ? '<div class="bj-attente" style="margin-top:6px">Assuré pour ' + fmt(b.assurance) + ' kamas.</div>' : '');
+  ouvrirModale('blackjack', entete('Le blackjack du Chat Doré') + '<p class="hdv-aide">Tu reçois deux cartes, le croupier une seule. Approche-toi de 21 sans le dépasser ; quand tu restes, il tire jusqu\'à 16 et s\'arrête à 17. Blackjack (21 en deux cartes) : payé 3 pour 2. Gagné : deux fois ta mise. Égalité : ta mise est rendue. Doubler : une seule carte de plus. Une paire se sépare, jusqu\'à 3 mains (deux As : une carte chacun). As du croupier : assurance possible.</p>' +
+    main('Le croupier', b.croupier) + joueur + '<div class="cas-res' + (res && res.gain ? ' gagne' : '') + '">' + (res ? res.html : '') + '</div>' + actions);
+}
+const bjPoser = (L) => { L.push(bjCarte()); bj.neuve = L; };
+const bjVite = () => modaleOuverte !== 'blackjack' || document.hidden; /* (fenetre fermee ou onglet cache : plus d'attente entre les cartes) */
+function bjAnimer(etapes, fin) { /* une carte par etape, l'une apres l'autre, sans bouton pendant ce temps */
+  const b = bj; b.anime = true; let k = 0;
+  const pas = () => { if (bj !== b) return; if (k < etapes.length) { etapes[k++](); if (modaleOuverte === 'blackjack') ouvrirBlackjack(); setTimeout(pas, bjVite() ? 0 : BJ_PAS); return; } b.anime = false; b.neuve = null; fin(); };
+  pas();
 }
 function bjDonner() {
   if (bj && !bj.fini) return; const m = casinoMise; if (!peutMiser(m)) return; miser(m);
-  bj = { mains: [{ c: [bjCarte(), bjCarte()], mise: m, double: false }], i: 0, croupier: [bjCarte(), bjCarte()], fini: false }; compter('blackjack');
-  if (bjNaturel(bj.mains[0].c) || bjNaturel(bj.croupier)) { bjFin(); return; } /* (le croupier regarde sa carte cachee : un blackjack, d'un cote ou de l'autre, et la main s'arrete la) */
-  ouvrirBlackjack();
+  bj = { mains: [{ c: [], mise: m, double: false }], i: 0, croupier: [], fini: false, anime: true, assurance: 0, agi: false, neuve: null }; compter('blackjack');
+  const J = bj.mains[0];
+  bjAnimer([() => bjPoser(J.c), () => bjPoser(bj.croupier), () => bjPoser(J.c)], () => { if (bjNaturel(J.c)) bjFin(); else ouvrirBlackjack(); }); /* (ton blackjack d'entree : le croupier tire sa deuxieme carte pour voir s'il en fait un aussi) */
 }
 const bjValeur = (k) => (['10', 'V', 'D', 'R'].includes(k.r) ? '10' : k.r);
-const peutSeparer = () => !!(bj && !bj.fini && bj.mains.length === 1 && bj.mains[0].c.length === 2 && bjValeur(bj.mains[0].c[0]) === bjValeur(bj.mains[0].c[1]));
-function bjSuivante() { /* la main jouee est finie : la suivante apres un partage (elle recoit sa deuxieme carte), sinon le croupier joue */
-  if (bj.i < bj.mains.length - 1) { bj.i++; const h = bj.mains[bj.i]; if (h.c.length < 2) h.c.push(bjCarte()); if (h.as || bjTotal(h.c) >= 21) { bjSuivante(); return; } ouvrirBlackjack(); return; }
+const peutSeparer = () => { if (!bj || bj.fini || bj.anime || bj.mains.length >= 3) return false; const h = bj.mains[bj.i]; return h.c.length === 2 && !h.as && !h.double && bjValeur(h.c[0]) === bjValeur(h.c[1]); };
+const bjAgit = () => !!(bj && !bj.fini && !bj.anime);
+function bjSuivante() { /* la main jouee est finie : la suivante apres une separation (elle recoit sa deuxieme carte), sinon le croupier joue */
+  if (bj.i < bj.mains.length - 1) { bj.i++; const h = bj.mains[bj.i];
+    const apres = () => { if (h.as || bjTotal(h.c) >= 21) bjSuivante(); else ouvrirBlackjack(); };
+    if (h.c.length < 2) bjAnimer([() => bjPoser(h.c)], apres); else apres(); return; }
   bjFin();
 }
-function bjTirer() { if (!bj || bj.fini) return; const h = bj.mains[bj.i]; if (h.as) return; h.c.push(bjCarte()); if (bjTotal(h.c) >= 21) { bjSuivante(); return; } ouvrirBlackjack(); }
-function bjRester() { if (!bj || bj.fini) return; bjSuivante(); }
-function bjDoubler() { if (!bj || bj.fini) return; const h = bj.mains[bj.i]; if (h.c.length !== 2 || h.double || h.as || !peutMiser(h.mise)) return; miser(h.mise); h.mise *= 2; h.double = true; h.c.push(bjCarte()); bjSuivante(); }
+function bjTirer() { if (!bjAgit()) return; const h = bj.mains[bj.i]; if (h.as) return; bj.agi = true; bjAnimer([() => bjPoser(h.c)], () => { if (bjTotal(h.c) >= 21) bjSuivante(); else ouvrirBlackjack(); }); }
+function bjRester() { if (!bjAgit()) return; bj.agi = true; bjSuivante(); }
+function bjDoubler() { if (!bjAgit()) return; const h = bj.mains[bj.i]; if (h.c.length !== 2 || h.double || h.as || !peutMiser(h.mise)) return; bj.agi = true; miser(h.mise); h.mise *= 2; h.double = true; bjAnimer([() => bjPoser(h.c)], bjSuivante); }
 function bjSeparer() {
-  if (!peutSeparer()) return; const h = bj.mains[0]; if (!peutMiser(h.mise)) return; miser(h.mise); const as = h.c[0].r === 'A';
-  bj.mains = [{ c: [h.c[0], bjCarte()], mise: h.mise, double: false, as }, { c: [h.c[1]], mise: h.mise, double: false, as }]; bj.i = 0;
-  if (as || bjTotal(bj.mains[0].c) >= 21) { bjSuivante(); return; } ouvrirBlackjack();
+  if (!peutSeparer()) return; const h = bj.mains[bj.i]; if (!peutMiser(h.mise)) return; bj.agi = true; miser(h.mise); const as = h.c[0].r === 'A';
+  const a = { c: [h.c[0]], mise: h.mise, double: false, as }, z = { c: [h.c[1]], mise: h.mise, double: false, as }; bj.mains.splice(bj.i, 1, a, z);
+  bjAnimer([() => bjPoser(a.c)], () => { if (as || bjTotal(a.c) >= 21) bjSuivante(); else ouvrirBlackjack(); });
 }
-function bjFin() {
-  const b = bj; b.fini = true; const seul = b.mains.length === 1, natC = bjNaturel(b.croupier), natJ = (m) => seul && bjNaturel(m.c); /* (apres un partage, 21 en deux cartes n'est pas un blackjack) */
-  if (!natC && b.mains.some((m) => bjTotal(m.c) <= 21 && !natJ(m))) while (bjTotal(b.croupier) < 17) b.croupier.push(bjCarte()); /* (le croupier tire jusqu'a 17, et reste sur tous les 17 ; pas la peine si toutes les mains ont saute) */
-  const c = bjTotal(b.croupier); let gain = 0, mises = 0; const L = [];
+function bjAssurer() {
+  if (!bjAgit() || bj.agi || bj.assurance || bj.croupier[0].r !== 'A' || bj.mains.length !== 1) return; const a = Math.floor(bj.mains[0].mise / 2); if (!a || !peutMiser(a)) return;
+  miser(a); bj.assurance = a; ouvrirBlackjack();
+}
+function bjFin() { /* le croupier joue : ses cartes une a une, puis le reglement */
+  const b = bj; b.fini = true; b.anime = true; const seul = b.mains.length === 1, natJ = (m) => seul && bjNaturel(m.c);
+  const vivantes = b.mains.some((m) => bjTotal(m.c) <= 21 && !natJ(m)), dixOuAs = ['A', '10', 'V', 'D', 'R'].includes(b.croupier[0].r);
+  const doitTirer = () => (vivantes ? bjTotal(b.croupier) < 17 : b.croupier.length < 2 && ((natJ(b.mains[0]) && dixOuAs) || b.assurance > 0)); /* (tout le monde a saute : il ne tire que pour l'assurance ; contre ton blackjack, une carte s'il peut en faire un) */
+  const pas = () => { if (bj !== b) return; if (doitTirer()) { bjPoser(b.croupier); if (modaleOuverte === 'blackjack') ouvrirBlackjack(); setTimeout(pas, bjVite() ? 0 : BJ_PAS + 150); return; } b.anime = false; b.neuve = null; bjRegler(); };
+  if (modaleOuverte === 'blackjack') ouvrirBlackjack(); setTimeout(pas, bjVite() ? 0 : BJ_PAS);
+}
+function bjRegler() {
+  const b = bj, seul = b.mains.length === 1, natC = bjNaturel(b.croupier), natJ = (m) => seul && bjNaturel(m.c), c = bjTotal(b.croupier); let gain = 0, mises = b.assurance; const L = [];
   b.mains.forEach((m) => { const j = bjTotal(m.c), nat = natJ(m); let g = 0, t; mises += m.mise;
     if (j > 21) t = 'tu dépasses 21 (' + j + ')';
-    else if (nat && !natC) { g = Math.round(m.mise * 2.5); t = 'blackjack d\'entrée'; }
-    else if (nat && natC) { g = m.mise; t = 'deux blackjacks, ta mise est rendue'; }
+    else if (nat && !natC) { g = Math.round(m.mise * 2.5); t = 'blackjack d\'entrée, payé 3 pour 2'; }
+    else if (nat && natC) { g = m.mise; t = 'deux blackjacks, coup nul'; }
     else if (natC) t = 'blackjack du croupier';
     else if (c > 21 || j > c) { g = m.mise * 2; t = j + (c > 21 ? ', le croupier saute (' + c + ')' : ' contre ' + c); }
-    else if (j === c) { g = m.mise; t = j + ' partout, ta mise est rendue'; }
+    else if (j === c) { g = m.mise; t = j + ' partout, coup nul'; }
     else t = j + ' contre ' + c;
-    gain += g; L.push([g > m.mise ? 'gagnée' : g === m.mise ? 'égalité' : 'perdue', t]); });
+    gain += g; L.push([g > m.mise ? 'gagnée' : g === m.mise ? 'nulle' : 'perdue', t]); });
+  if (b.assurance) gain += natC ? b.assurance * 3 : 0;
   const net = gain - mises, titre = net > 0 ? (seul && natJ(b.mains[0]) && !natC ? 'Blackjack !' : 'Gagné !') : net === 0 ? 'Égalité' : 'Perdu...';
-  const detail = seul ? Maj(L[0][1]) : L.map(([r, t], k) => 'Main ' + (k + 1) + ' ' + r + ' (' + t + ')').join(' · ');
+  const detail = (seul ? Maj(L[0][1]) : L.map(([r, t], k) => 'Main ' + (k + 1) + ' ' + r + ' (' + t + ')').join(' · ')) + (b.assurance ? (natC ? ' · Assurance payée 2 pour 1' : ' · Assurance perdue') : '');
   const html = titre + '<small>' + detail + (net > 0 ? ' : +' + fmt(net) + ' kamas (' + fmt(gain) + ' rendus)' : net < 0 && gain > 0 ? ' : ' + fmt(gain) + ' kamas rendus' : '') + '.</small>';
-  payer(gain); ouvrirBlackjack({ gain: gain > mises ? gain : 0, html });
+  payer(gain); if (modaleOuverte === 'blackjack') ouvrirBlackjack({ gain: gain > mises ? gain : 0, html }); else toast('Blackjack : ' + titre.replace('...', '') + (net ? ' (' + (net > 0 ? '+' : '') + fmt(net) + ' kamas)' : '') + '.', net > 0 ? 'or' : '');
 }
 
 /* le pied commun des jeux : la mise, la mise maximale, la jauge des pertes du jour */
@@ -425,7 +451,7 @@ function actionCasino(b) {
   else if (a === 'effacer') { if (casinoTourne) return; casinoParis = {}; ouvrirRoulette(); }
   else if (a === 'bille') lancerBille();
   else if (a.startsWith('drago:')) { casinoDrago = +a.slice(6); ouvrirCourse(); }
-  else if (a === 'bj:donner') bjDonner(); else if (a === 'bj:tirer') bjTirer(); else if (a === 'bj:rester') bjRester(); else if (a === 'bj:doubler') bjDoubler(); else if (a === 'bj:separer') bjSeparer();
+  else if (a === 'bj:donner') bjDonner(); else if (a === 'bj:tirer') bjTirer(); else if (a === 'bj:rester') bjRester(); else if (a === 'bj:doubler') bjDoubler(); else if (a === 'bj:separer') bjSeparer(); else if (a === 'bj:assurer') bjAssurer();
   else if (a.startsWith('bar:c')) commanderCocktail(+a.slice(5));
   else if (a.startsWith('salle:')) { const j = a.slice(6); if (j === 'machine') ouvrirMachine(); else if (j === 'roulette') ouvrirRoulette(); else ouvrirCasinoInfo(); }
   else if (a === 'course') lancerCourse();
