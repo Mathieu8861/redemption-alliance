@@ -9,7 +9,7 @@
    Les reglages se font dans les Options (section visible du seul admin) et restent dans ce navigateur. Les potions ne sont pas en combat (elles ne s'y boivent pas). */
 const dgId = (id) => document.getElementById(id); /* (le $ du jeu est dans 25-interface, charge apres) */
 const DG_CLE = 'ferme-doigt-reglages';
-const DG_DEFAUT = { actif: 'auto', disp: 'a', joy: 'fixe', suivi: 'cadre', dist: 'moyenne', incl: 'normale', tour: true, fleches: true, haut: '0' }; /* (haut : le haut de l'ecran, 0 l'actuel, 1 a 3 les versions a choisir, 14/11/2026) */
+const DG_DEFAUT = { actif: 'auto', disp: 'a', joy: 'fixe', suivi: 'cadre', dist: 'moyenne', incl: 'normale', tour: true, fleches: true };
 const dgReglages = (() => { try { return Object.assign({}, DG_DEFAUT, JSON.parse(localStorage.getItem(DG_CLE) || '{}')); } catch (e) { return Object.assign({}, DG_DEFAUT); } })();
 const dgSauver = () => { try { localStorage.setItem(DG_CLE, JSON.stringify(dgReglages)); } catch (e) { /* rien */ } };
 const DG_ZOOM = { proche: 2.4, moyenne: 1.8, loin: 1.3 }, DG_ELEV = { plongee: 0.9, normale: ELEV_DEPART, rasante: 0.4 };
@@ -168,7 +168,7 @@ function dgFleches() {
 }
 
 /* ----- entrer et sortir du mode, chaque image ----- */
-function dgClasses() { const h = dgId('hud'); h.classList.toggle('doigt', dg.on); h.classList.toggle('dg-a', dg.on && dgReglages.disp !== 'c'); h.classList.toggle('dg-c', dg.on && dgReglages.disp === 'c'); h.classList.toggle('dg-flottant', dg.on && dgReglages.joy === 'flottant'); h.classList.toggle('dg-sans-tour', !dgReglages.tour); ['1', '2', '3'].forEach((n) => h.classList.toggle('dg-h' + n, dg.on && dgReglages.haut === n)); }
+function dgClasses() { const h = dgId('hud'); h.classList.toggle('doigt', dg.on); h.classList.toggle('dg-a', dg.on && dgReglages.disp !== 'c'); h.classList.toggle('dg-c', dg.on && dgReglages.disp === 'c'); h.classList.toggle('dg-flottant', dg.on && dgReglages.joy === 'flottant'); h.classList.toggle('dg-sans-tour', !dgReglages.tour); h.classList.toggle('dg-h1', dg.on); } /* (dg-h1 : le haut de l'ecran fin, la version 1 retenue par Mathieu le 14/11/2026) */
 function dgCamReglages() { dg.zoomJeu = DG_ZOOM[dgReglages.dist] || DG_ZOOM.moyenne; dg.retour = true; inclinerCameraVers(DG_ELEV[dgReglages.incl] != null ? DG_ELEV[dgReglages.incl] : ELEV_DEPART); }
 function dgEntrer() {
   dgCreer(); dg.on = true; dg.avant = { zoom, elev: elevCam }; dgClasses(); dgCamReglages(); const c = dgCentreJoy(); dgPlacerJoy(c.x, c.y);
@@ -197,7 +197,7 @@ function dgBoucle(t) { const dt = Math.min(0.05, Math.max(0, (t - dg.t) / 1000))
 function dgOptionsHtml() {
   const R = dgReglages, ch = (titre, cle, L) => '<div class="dg-opt-l"><b>' + titre + '</b><div class="musiques-opt">' + L.map(([v, t]) => '<button class="sexe" data-dg="' + cle + ':' + v + '" aria-pressed="' + (String(R[cle]) === String(v)) + '">' + t + '</button>').join('') + '</div></div>';
   return '<div id="dg-opt"><div class="hdv-section">Commandes au doigt en combat (essai, toi seul)</div><div class="dg-opt">' +
-    ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) + ch('Haut de l\'écran (A)', 'haut', [['0', 'Actuel'], ['1', '1'], ['2', '2'], ['3', '3']]) +
+    ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) +
     ch('Joystick', 'joy', [['fixe', 'Fixe'], ['flottant', 'Sous le doigt']]) + ch('Caméra', 'suivi', [['cadre', 'Avec un cadre'], ['centre', 'Toujours au centre'], ['libre', 'Libre']]) +
     ch('Distance', 'dist', [['proche', 'Proche'], ['moyenne', 'Moyenne'], ['loin', 'Loin']]) + ch('Inclinaison', 'incl', [['plongee', 'Plongée'], ['normale', 'Normale'], ['rasante', 'Rasante']]) +
     ch('Quart de tour', 'tour', [[true, 'Oui'], [false, 'Non']]) + ch('Flèches vers les monstres cachés', 'fleches', [[true, 'Oui'], [false, 'Non']]) +
