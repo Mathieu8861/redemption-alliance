@@ -855,7 +855,7 @@ function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee verte sur ta
   effets.push((dt) => { t += dt; tic += dt; bulle += dt; if (combat !== c0 || c0.fin) { finir(); return true; } const o = Math.min(1, t / 0.3, Math.max(0, (D - t) / 0.5)); mats.forEach((m) => { m.opacity = 0.6 * o; }); matS.opacity = 0.3 * o; g.rotation.y += dt * 0.4;
     g.children.forEach((m, i) => { m.position.y += Math.sin(t * m.userData.v * 2 + i) * dt * 0.12; m.scale.setScalar(Math.min(1, t / 0.35) * (1 + 0.06 * Math.sin(t * 3 + i))); }); /* (les volutes gonflent a l'arrivee et ondulent) */
     if (bulle >= 0.1 && t < D - 0.4) { bulle = 0; lueur(new T.Vector3(x + (fxAlea() - 0.5) * r * 1.5, y0 + 0.3 + fxAlea() * 0.9, z + (fxAlea() - 0.5) * r * 1.5), fxAlea() < 0.5 ? '#7fd04a' : '#b8ec7a', 1.3, 0.7); }
-    if (tic >= 0.2) { tic = 0; c0.monstres.forEach((m) => { if (m.etat === 'actif' && !m.fumee && Math.hypot(m.x - x, m.z - z) < r) empoisonnerFumee(m); }); }
+    if (tic >= 0.2) { tic = 0; c0.monstres.forEach((m) => { if (m.etat !== 'actif' || Math.hypot(m.x - x, m.z - z) >= r) return; if (m.fumee) m.fumee.t = FUMEE_LEG.duree; else empoisonnerFumee(m); }); } /* (14/11/2026, « ca force a essayer de les laisser dedans le plus longtemps possible », Mathieu : rester dans le nuage recharge le poison, 4 s pleines en sortant ; un monstre reste tout du long : 8 s, 24 %, 4 400 au plus) */
     if (t >= D) { finir(); return true; } });
 }
 function empoisonnerFumee(mo) { /* le poison de la Fumee : 4 s a compter du contact, tick toutes les 0,5 s dans majMonstre */
