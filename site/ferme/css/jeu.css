@@ -1294,3 +1294,95 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .pe-legende { display: grid; gap: 2px; width: 100%; justify-items: start; font: 700 .72rem/1.25 var(--f-texte); color: #b9bcc4; } .pe-legende span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .pe-canne .pe-legende { justify-items: center; } .pe-canne .pe-legende span::before { display: none; }
 .pe-achats { display: grid; gap: 6px; justify-items: center; } .pe-ligne { font: 800 .8rem/1 var(--f-texte); color: var(--or); padding: 7px 0; }
+
+/* LES COMMANDES AU DOIGT EN COMBAT (14/11/2026, ESSAI : le mode test de Mathieu, js/24b-doigt.js) : disposition A (sorts en eventail sur l'arene)
+   et C (deux bandes sur les cotes), joystick, anneau de visee, croix pour annuler, boutons de camera, fleches vers les monstres hors de l'ecran */
+.dg { display: none; }
+.hud.en-combat.doigt .dg { display: block; }
+.hud.en-combat.doigt .dg[hidden] { display: none; }
+.hud.en-combat.doigt.dg-a .dg-bande { display: none; }
+.hud.en-combat.doigt .haut > :not(#b-pause):not(#b-options) { display: none !important; }
+.hud.en-combat.doigt .haut { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); top: calc(6px + env(safe-area-inset-top, 0px)); gap: 6px; flex-wrap: nowrap; }
+.hud.en-combat.doigt .haut .pastille { padding: 2px 9px; font-size: .74rem; }
+.hud.en-combat.doigt .objectif, .hud.en-combat.doigt .b-journal, .hud.en-combat.doigt .chat { display: none !important; }
+.hud.en-combat.doigt .toasts { left: 50%; right: auto; top: calc(58px + env(safe-area-inset-top, 0px)); bottom: auto; transform: translateX(-50%); width: min(420px, 48vw); }
+.hud.en-combat.doigt .toast { font-size: .68rem; }
+.hud.en-combat.doigt .combat-perso { left: calc(8px + env(safe-area-inset-left, 0px)); top: calc(6px + env(safe-area-inset-top, 0px)); bottom: auto; padding: 4px 9px 4px 4px; gap: 7px; border-radius: 13px; }
+.hud.en-combat.doigt .combat-perso > img { display: block; width: 32px; height: 32px; border-radius: 9px; }
+.hud.en-combat.doigt .combat-perso b { font-size: .78rem; } .hud.en-combat.doigt .combat-perso small { font-size: .62rem; }
+.hud.en-combat.doigt .combat-perso .pvb { width: 110px; height: 9px; margin: 2px 0 1px; }
+.hud.en-combat.doigt .combat-haut { top: calc(6px + env(safe-area-inset-top, 0px)); width: min(300px, 38vw); padding: 4px 8px 6px 10px; gap: 3px 8px; }
+.hud.en-combat.doigt .combat-haut b { font-size: .82rem; } .hud.en-combat.doigt .combat-haut .btn { padding: 2px 10px; font-size: .72rem; }
+.hud.en-combat.doigt .combat-haut .barre { height: 8px; } .hud.en-combat.doigt .combat-haut .boss-barre b { font-size: .78rem; }
+/* les sorts : chacun centre sur sa place, comptee depuis le coin en bas a droite */
+.hud.en-combat.doigt .combat-sorts { left: auto; top: auto; right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); width: 0; height: 0; transform: none; display: block; gap: 0; }
+.hud.en-combat.doigt .combat-sort { position: absolute; width: auto; transform: translate(50%, 50%); touch-action: none; -webkit-user-select: none; user-select: none; }
+.hud.en-combat.doigt .combat-sort .rond { width: var(--t, 56px); height: var(--t, 56px); padding: 0; border-radius: 50%; }
+.hud.en-combat.doigt .combat-sort .rond img { width: 72%; height: 72%; margin: 0; }
+.hud.en-combat.doigt .combat-sort .rond img.trois-d, .hud.en-combat.doigt .combat-sort .rond:has(img.trois-d)::before { border-radius: 50%; }
+.hud.en-combat.doigt .combat-sort .rond span { display: none; }
+.hud.en-combat.doigt .combat-sort small { position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); font-size: .56rem; padding: 0 5px; }
+.hud.en-combat.doigt .combat-sort.appui .rond { transform: scale(.94); }
+.hud.en-combat.doigt.dg-a #b-sort { right: 76px; bottom: 76px; --t: 76px; }
+.hud.en-combat.doigt.dg-a #b-ulti { right: 166px; bottom: 58px; --t: 60px; }
+.hud.en-combat.doigt.dg-a #b-leg-coiffe { right: 152px; bottom: 142px; --t: 54px; }
+.hud.en-combat.doigt.dg-a #b-leg-arme { right: 76px; bottom: 176px; --t: 54px; }
+/* disposition C : deux bandes, le perso et la pause a gauche, la vague et la camera a droite */
+.dg-bande { position: absolute; top: 0; bottom: 0; z-index: 0; pointer-events: auto; background: radial-gradient(circle at 2px 2px, rgba(242, 182, 48, .12) 1.2px, transparent 1.6px) 0 0 / 14px 14px, linear-gradient(#1b1c20, #232429); }
+.dg-bande.g { left: 0; width: calc(132px + env(safe-area-inset-left, 0px)); border-right: 3px solid var(--bord); box-shadow: inset -2px 0 0 rgba(242, 182, 48, .35); }
+.dg-bande.d { right: 0; width: calc(132px + env(safe-area-inset-right, 0px)); border-left: 3px solid var(--bord); box-shadow: inset 2px 0 0 rgba(242, 182, 48, .35); }
+.hud.en-combat.doigt.dg-c .combat-perso { left: calc(6px + env(safe-area-inset-left, 0px)); width: 120px; flex-direction: column; gap: 3px; text-align: center; background: none; border: 0; box-shadow: none; padding: 0; z-index: 1; }
+.hud.en-combat.doigt.dg-c .combat-perso > img { width: 40px; height: 40px; } .hud.en-combat.doigt.dg-c .combat-perso .pvb { width: 104px; }
+.hud.en-combat.doigt.dg-c .haut { right: auto; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(112px + env(safe-area-inset-top, 0px)); }
+.hud.en-combat.doigt.dg-c .combat-haut { left: auto; right: calc(6px + env(safe-area-inset-right, 0px)); transform: none; width: 120px; display: block; background: none; border: 0; box-shadow: none; padding: 0; z-index: 1; }
+.hud.en-combat.doigt.dg-c .combat-haut b { display: block; font-size: .74rem; line-height: 1.15; margin-bottom: 3px; } .hud.en-combat.doigt.dg-c .combat-haut .btn { margin: 4px 0 0; }
+.hud.en-combat.doigt.dg-c .toasts { width: min(400px, calc(100vw - 300px)); }
+.hud.en-combat.doigt.dg-c #b-sort { right: 66px; bottom: 58px; --t: 70px; }
+.hud.en-combat.doigt.dg-c #b-ulti { right: 98px; bottom: 142px; --t: 54px; }
+.hud.en-combat.doigt.dg-c #b-leg-coiffe { right: 36px; bottom: 142px; --t: 54px; }
+.hud.en-combat.doigt.dg-c #b-leg-arme { right: 66px; bottom: 210px; --t: 50px; }
+/* le joystick */
+.dg-zone { position: absolute; left: 0; bottom: 0; width: calc(240px + env(safe-area-inset-left, 0px)); height: 230px; z-index: 3; pointer-events: auto; touch-action: none; }
+.hud.en-combat.doigt.dg-flottant .dg-zone { top: calc(64px + env(safe-area-inset-top, 0px)); height: auto; width: 46vw; }
+.hud.en-combat.doigt.dg-c .dg-zone { top: calc(160px + env(safe-area-inset-top, 0px)); height: auto; width: calc(132px + env(safe-area-inset-left, 0px)); }
+.dg-joy, .dg-joy-b { position: absolute; border-radius: 50%; pointer-events: none; z-index: 3; opacity: 0; transition: opacity .15s; }
+.dg-joy.vu, .dg-joy-b.vu { opacity: 1; }
+.dg-joy { width: 112px; height: 112px; margin: -56px 0 0 -56px; background: radial-gradient(circle, rgba(20, 21, 24, .12) 0 55%, rgba(20, 21, 24, .42) 100%); border: 3px solid rgba(242, 182, 48, .7); box-shadow: 0 0 0 3px rgba(11, 12, 15, .4); }
+.dg-joy::before { content: ''; position: absolute; inset: 22%; border-radius: 50%; border: 2px dashed rgba(255, 255, 255, .35); }
+.dg-joy-b { width: 50px; height: 50px; margin: -25px 0 0 -25px; background: radial-gradient(circle at 40% 35%, #ffe7a3, var(--or) 55%, #b47f14); border: 3px solid var(--bord); box-shadow: 0 4px 0 var(--bord), 0 0 12px rgba(242, 182, 48, .55); }
+.hud.en-combat.doigt.dg-c .dg-joy { width: 96px; height: 96px; margin: -48px 0 0 -48px; }
+/* la visee : l'anneau autour du doigt, le petit rond, la croix */
+.dg-anneau { position: absolute; z-index: 5; border-radius: 50%; border: 3px solid rgba(255, 225, 122, .9); background: rgba(255, 205, 70, .12); transform: translate(-50%, -50%); pointer-events: none; }
+.dg-tige { position: absolute; z-index: 6; width: 28px; height: 28px; border-radius: 50%; background: #ffe17a; border: 3px solid var(--bord); transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(255, 225, 122, .9); pointer-events: none; }
+.dg-croix { position: absolute; z-index: 5; width: 74px; height: 74px; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(217, 68, 58, .82); border: 3px solid var(--bord); box-shadow: 0 0 0 4px rgba(255, 255, 255, .5); color: #fff; font: 400 30px/66px var(--f-titre); text-align: center; pointer-events: none; text-shadow: 0 2px 0 var(--bord); }
+.dg-croix small { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 4px; font: 900 .62rem var(--f-texte); text-shadow: 0 1px 2px #000; }
+.dg-croix.sur { background: #d9443a; transform: translate(-50%, -50%) scale(1.15); }
+/* les boutons de camera */
+.dg-cam { position: absolute; right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 3; }
+.hud.en-combat.doigt .dg-cam { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
+.hud.en-combat.doigt.dg-c .dg-cam { flex-direction: row; top: calc(96px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); gap: 6px; }
+.hud.en-combat.doigt.dg-sans-tour .dg-cam [data-dg-cam="g"], .hud.en-combat.doigt.dg-sans-tour .dg-cam [data-dg-cam="d"] { display: none; }
+.dg-cam button { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border-radius: 11px; background: var(--fantome); color: var(--encre); border: 3px solid var(--bord); box-shadow: 0 3px 0 var(--bord); touch-action: none; }
+.dg-cam button svg { width: 20px; height: 20px; } .dg-cam .oeil { background: var(--or); color: #1e1f22; } .dg-cam .appui { transform: translateY(2px); box-shadow: 0 1px 0 var(--bord); }
+/* les fleches vers les monstres hors de l'ecran */
+.dg-fleches { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.dg-fl { position: absolute; transform: translate(-50%, -50%); }
+.dg-fl i { position: absolute; left: 50%; top: 50%; width: 46px; height: 0; margin-left: -23px; }
+.dg-fl i::after { content: ''; position: absolute; right: -12px; top: -9px; border-top: 9px solid transparent; border-bottom: 9px solid transparent; border-left: 12px solid var(--or); filter: drop-shadow(0 2px 0 var(--bord)); }
+.dg-fl span { position: relative; display: flex; align-items: center; gap: 4px; padding: 1px 7px 1px 2px; min-width: 22px; height: 24px; border-radius: 99px; background: var(--papier); border: 2px solid var(--bord); color: var(--encre); font: 400 .66rem var(--f-titre); }
+.dg-fl span b { font-weight: 400; } .dg-fl span img { width: 20px; height: 20px; border-radius: 50%; background: #3a3c42; }
+.dg-fl:not(.boss) span { padding: 1px 6px; justify-content: center; }
+.dg-fl.boss i::after { border-left-color: var(--rouge); } .dg-fl.boss span { border-color: var(--rouge); }
+/* la section des Options */
+.dg-opt { display: grid; gap: 8px; } .dg-opt-l b { display: block; font-size: .8rem; margin-bottom: 4px; } .dg-opt-p { margin: 2px 0 6px; font-size: .74rem; opacity: .8; }
+.hud.en-combat.doigt .combat-sorts { z-index: 2; } /* (au-dessus des bandes de la disposition C) */
+.hud.en-combat.doigt .boss-barre .bb-tete { flex-wrap: wrap; gap: 0 6px; align-items: center; }
+.hud.en-combat.doigt .boss-barre .bb-tete em { font: 800 .56rem/1.2 var(--f-texte); white-space: nowrap; }
+.hud.en-combat.doigt .boss-barre small { font-size: .6rem; } .hud.en-combat.doigt .boss-barre .bb { height: 10px; margin-top: 2px; }
+.hud.en-combat.doigt.dg-c .boss-barre .bb-tete { display: block; } .hud.en-combat.doigt.dg-c .boss-barre .bb-tete > * { display: block; } .hud.en-combat.doigt.dg-c .combat-haut .boss-barre b { font-size: .7rem; }
+.hud.en-combat.doigt.dg-c .dg-cam { right: auto; left: calc(10px + env(safe-area-inset-left, 0px)); top: calc(152px + env(safe-area-inset-top, 0px)); }
+.hud.en-combat.doigt.dg-c .dg-zone { top: calc(200px + env(safe-area-inset-top, 0px)); }
+@media (orientation: portrait) { /* (le telephone tenu debout : la barre de la vague sous la carte du perso, sur toute la largeur moins les boutons de camera) */
+  .hud.en-combat.doigt.dg-a .combat-haut { left: calc(8px + env(safe-area-inset-left, 0px)); transform: none; top: calc(60px + env(safe-area-inset-top, 0px)); width: calc(100% - 66px); }
+  .hud.en-combat.doigt .toasts { width: calc(100% - 80px); }
+}
