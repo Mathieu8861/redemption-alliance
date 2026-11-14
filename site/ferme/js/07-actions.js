@@ -136,9 +136,9 @@ const ACTIONS = {
     return true;
   },
   nourrirGelees() {
-    let n = 0, roy = 0; (S_.gelees || []).forEach((g, k) => { if (ACTIONS.nourrirGelee(k, true)) { n++; if (g.c === 'royale') roy++; } });
+    let n = 0, roy = 0; const nourries = []; (S_.gelees || []).forEach((g, k) => { if (ACTIONS.nourrirGelee(k, true)) { n++; nourries.push(g.c); if (g.c === 'royale') roy++; } });
     if (!n) { toast('Pas assez de fruits pour tes Gelées qui ont faim.', 'alerte'); return; }
-    son('gelee'); toast(n + ' Gelée' + (n > 1 ? 's mangent' : ' mange') + ' : pot' + (n > 1 ? 's' : '') + ' prêt' + (n > 1 ? 's' : '') + ' dans ' + dureeLisible(roy === n ? PROD_ROYALE : PROD_GELEE) + (roy && roy < n ? ' (' + dureeLisible(PROD_ROYALE) + ' pour la Royale)' : '') + '.');
+    son('gelee'); toast(n + ' Gelée' + (n > 1 ? 's mangent' : ' mange') + ' : pot' + (n > 1 ? 's' : '') + ' prêt' + (n > 1 ? 's' : '') + ' dans ' + (roy === n ? dureeLisible(PROD_ROYALE) : tempsPots(nourries.filter((c) => c !== 'royale'))) + (roy && roy < n ? ' (' + dureeLisible(PROD_ROYALE) + ' pour la Royale)' : '') + '.');
     rendreGrange(); rendreCasesBulles(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere();
   },
   ramasserPots() {

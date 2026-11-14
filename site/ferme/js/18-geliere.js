@@ -9,9 +9,9 @@
 const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 30 * MIN, PROD_ROYALE = 4 * 60 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, ROYALES_MAX = 3, VITESSE_CITRON = 1.15; /* (09/11/2026, « nerf la potion citron a +15 % de vitesse de deplacement », Mathieu : avant +30 %) */
 const GELEES = {
   bleue: { nom: 'Gelée Bleue', pot: 'petit', recette: { cawotte: 4 }, prix: 2000 },
-  menthe: { nom: 'Gelée Menthe', pot: 'menthe', recette: { cawotte: 3, fraise: 2 }, prix: 3500 },
-  fraise: { nom: 'Gelée Fraise', pot: 'fraise', recette: { fraise: 4 }, prix: 5000 },
-  citron: { nom: 'Gelée Citron', pot: 'citron', recette: { fraise: 3, cawotte: 3 }, prix: 6500 },
+  menthe: { nom: 'Gelée Menthe', pot: 'menthe', recette: { cawotte: 3, fraise: 2 }, prix: 3500, prod: 45 }, /* (prod : les minutes pour son pot ; 45 au lieu de 30 pour la Menthe, la Fraise et le Citron, « la bleue laisser a 30 min », Mathieu, 14/11/2026) */
+  fraise: { nom: 'Gelée Fraise', pot: 'fraise', recette: { fraise: 4 }, prix: 5000, prod: 45 },
+  citron: { nom: 'Gelée Citron', pot: 'citron', recette: { fraise: 3, cawotte: 3 }, prix: 6500, prod: 45 },
   royale: { nom: 'Gelée Royale', pot: 'royale', recette: { fraise: 6, cawotte: 4 }, rare: true }
 };
 const GELEES_HDV = ['bleue', 'menthe', 'fraise', 'citron'];
@@ -31,7 +31,7 @@ function blocRepasGeliere(L) { /* (07/11/2026 au soir, « le texte est bizarre, 
   const tient = ids.length ? Math.min(...ids.map((id) => (S_.grange[id] || 0) / parH[id])) : 0;
   const regle = (gros, petit) => '<div class="gr-r"><b>' + gros + '</b><small>' + petit + '</small></div>';
   return '<div class="gel-repas"><div class="gr-titre">Les repas de tes Gelées</div>' +
-    '<div class="gr-regles">' + regle('1 repas', 'donne 1 pot') + regle(dureeLisible(PROD_GELEE), 'pour faire son pot') + regle(dureeLisible(PROD_ROYALE), 'pour la Royale') + '</div>' +
+    '<div class="gr-regles">' + regle('1 repas', 'donne 1 pot') + regle(tempsPots(GELEES_HDV), 'pour faire son pot') + regle(dureeLisible(PROD_ROYALE), 'pour la Royale') + '</div>' +
     '<p class="gr-aide">Elle a de nouveau faim dès que tu ramasses son pot. Ce qu\'elle mange dépend de sa couleur : regarde l\'étiquette jaune de chacune.</p>' +
     (ids.length ? '<div class="gr-total"><span class="gr-lib">Par heure, tes ' + L.length + ' Gelée' + (L.length > 1 ? 's' : '') + ' mangent</span><div class="gr-fruits">' +
       ids.map((id) => '<span class="gr-fruit"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + nb(parH[id]) + '</b>' + nomFruit(id, parH[id]) + '</span>').join('') + '</div>' +
@@ -39,7 +39,8 @@ function blocRepasGeliere(L) { /* (07/11/2026 au soir, « le texte est bizarre, 
 }
 const manqueRecette = (r) => Object.entries(r).filter(([id, n]) => (S_.grange[id] || 0) < n).map(([id, n]) => (n - (S_.grange[id] || 0)) + ' ' + nomFruit(id, n - (S_.grange[id] || 0)));
 const nbRoyales = () => (S_.gelees || []).filter((g) => g.c === 'royale').length;
-const prodGelee = (g) => g.c === 'royale' ? PROD_ROYALE : PROD_GELEE; /* (14/10/2026 : 30 min par pot, 4 h pour la Royale ; 1 min avant, « n'importe quoi ») */
+const prodGelee = (g) => g.c === 'royale' ? PROD_ROYALE : GELEES[g.c] && GELEES[g.c].prod ? GELEES[g.c].prod * MIN : PROD_GELEE; /* (PROD_GELEE : la Bleue ; Menthe, Fraise et Citron : 45 min depuis le 14/11/2026) */
+const tempsPots = (L) => { const d = [...new Set(L.map((c) => prodGelee({ c })))].sort((a, b) => a - b); return d.length > 1 ? dureeLisible(d[0]) + ' à ' + dureeLisible(d[d.length - 1]) : dureeLisible(d[0] || PROD_GELEE); }; /* (14/10/2026 : 30 min par pot, 4 h pour la Royale ; 1 min avant, « n'importe quoi ») */
 const etatGelee = (g) => g.fin ? (Date.now() >= g.fin ? 'pret' : 'prod') : 'faim';
 const potsPretsGeliere = () => (S_.gelees || []).filter((g) => etatGelee(g) === 'pret').length;
 function nouveauNomGelee() { const pris = (S_.gelees || []).map((g) => g.nom), L = NOMS_GELEES.filter((n) => !pris.includes(n)); return L.length ? hasard(L) : hasard(NOMS_GELEES) + ' ' + ((S_.gelees || []).length + 1); }
@@ -156,7 +157,7 @@ function ouvrirGeliere() {
       : '<button class="gl-vendre" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '" title="Elle part à l\'HDV : ' + fmt(prixReventeGelee(g)) + ' kamas">Vendre ' + fmt(prixReventeGelee(g)) + ' ' + KAMA + '</button>';
     return '<div class="gl-ligne" style="--c:' + (COULEUR_GELEE[g.c] || '#888') + ';--p:' + prog.toFixed(3) + '"><div class="gl-rond"><span><img src="assets/icones/gelee-' + g.c + '.png?v=' + VERSION_MODELES + '" alt=""></span></div>' +
       '<div><div><span class="gl-nom">' + g.nom + '</span><span class="gl-type">' + G.nom.replace('Gelée ', '') + '</span>' + (origine ? '<span class="gl-orig">' + origine + '</span>' : '') + '</div>' +
-      '<div class="gl-etat">' + etat + repos + '</div><div class="gl-repas">' + repasMini(G.recette) + '<i>→</i><span>' + (EFFET_POT_COURT[G.pot] || BREF_POT[G.pot]) + '</span></div></div>' +
+      '<div class="gl-etat">' + etat + repos + '</div><div class="gl-repas">' + repasMini(G.recette) + '<i>→</i><span>' + (EFFET_POT_COURT[G.pot] || BREF_POT[G.pot]) + ' · ' + dureeLisible(prodGelee(g)) + '</span></div></div>' +
       '<div class="gl-act">' + act + vente + '</div></div>';
   };
   const parents = parentsCroisement(), mc = manqueRecette(CROISEMENT);
