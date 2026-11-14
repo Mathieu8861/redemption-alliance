@@ -1466,3 +1466,5 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .mf-carte > div { flex: 1; min-width: 0; }
 .mf-carte .a-gains dd { white-space: normal; max-width: 9.5em; } /* (une valeur longue, « +20 % de jet par rune », passe a la ligne au lieu de sortir de la carte) */
 .art .pic.img.gj-pic { display: grid; place-items: center; } .art .pic.img.gj-pic > svg { width: 64%; height: 64%; } /* (la ligne « Comment jouer » des Options : la souris ou le doigt dans le meme cadre que les autres icones, 14/11/2026) */
+.gj.gj-large { grid-column: 1 / -1; } /* (la carte « En combat » de Comment jouer, sur toute la largeur, 14/11/2026) */
+.gj span b { display: inline; font: inherit; font-weight: 900; color: var(--encre); } /* (une touche en gras dans le texte d'une carte : sur la ligne, pas comme un titre) */

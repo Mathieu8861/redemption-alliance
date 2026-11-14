@@ -145,11 +145,12 @@ const ico = (nom) => '<span class="pic img' + (/^obj-leg-/.test(nom) ? ' leg' : 
    (souris ou doigt) en deux cartes, puis six petites cartes d'une ligne, chacune avec son icone */
 const guideJeu = () => {
   const cmd = (svg, t, d) => '<div class="gj-cmd">' + svg + '<div><b>' + t + '</b><span>' + d + '</span></div></div>';
-  const carte = (i, t, d) => '<div class="gj">' + ico(i) + '<div><b>' + t + '</b><span>' + d + '</span></div></div>';
+  const carte = (i, t, d, large) => '<div class="gj' + (large ? ' gj-large' : '') + '">' + ico(i) + '<div><b>' + t + '</b><span>' + d + '</span></div></div>';
   return '<div class="guide-jeu"><div class="gj-cmds">' + (DOIGT
     ? cmd(DOIGT_SVG(false), 'Touche une case', 'Ton paysan y va et agit : il plante, arrose, récolte, nourrit…') + cmd(DOIGT_SVG(true), 'Reste appuyé', 'Il va seulement sur la case, sans rien y faire.')
     : cmd(SOURIS_SVG('gauche'), 'Clic gauche', 'Ton paysan se déplace, ou vise un monstre.') + cmd(SOURIS_SVG('droit'), 'Clic droit', 'Il agit sur la case : il plante, arrose, récolte, nourrit…')) +
-    '</div><p class="gj-vue">' + (DOIGT ? 'Glisse pour déplacer la vue, pince pour zoomer.' : 'Glisse pour déplacer la vue, molette pour zoomer.<br><b>Ctrl + clic droit</b> en glissant : tourner et incliner la caméra. <b>A / E</b> : un quart de tour. <b>Z / S</b> : la caméra monte ou descend. <b>R</b> : la vue de départ.') + '</p><div class="gj-grille">' +
+    '</div><p class="gj-vue">' + (DOIGT ? 'Glisse pour déplacer la vue, pince pour zoomer, tourne deux doigts pour faire pivoter la caméra.' : 'Glisse pour déplacer la vue, molette pour zoomer.<br><b>Ctrl + clic droit</b> ou <b>clic molette</b> en glissant : tourner et incliner la caméra. <b>A / E</b> : un quart de tour. <b>Z / S</b> : la caméra monte ou descend. <b>R</b> : la vue de départ.<br><b>P</b> : pause. <b>Échap</b> : fermer une fenêtre, annuler une visée ou quitter la pause.') + '</p><div class="gj-grille">' + /* (14/11/2026, « dans Comment jouer, y'a toutes les infos de commande ? », Mathieu : manquaient les touches des sorts, P, Echap, le clic molette, les deux doigts qui tournent et le combat) */
+    carte('bouftou-royal', 'En combat', DOIGT ? 'Touche un monstre pour le cibler, le sol pour t’y placer : ton paysan frappe ce qui est à portée. Touche un sort, puis le sol là où le lancer ; retouche le sort pour annuler.' : 'Clique un monstre pour le cibler, le sol pour t’y placer : ton paysan frappe ce qui est à portée. <b>1</b> : ton sort, <b>2</b> : ton ulti, <b>3</b> et <b>4</b> : tes légendaires ; puis clique là où le lancer (clic droit ou Échap pour annuler).', true) +
     carte('ble', 'Les cultures', 'Plante sur une parcelle libre, arrose quand c’est sec, récolte quand c’est mûr.') +
     carte('arrosoir', 'L’arrosoir', 'Il se remplit au puits : 10 arrosages par plein.') +
     carte('bouftou', 'Les bêtes', 'Nourris et tonds tes Bouftous, chasse les Tofus.') +
