@@ -1,4 +1,4 @@
-/* LES COMMANDES AU DOIGT EN COMBAT (14/11/2026, ESSAI : mode test de Mathieu seulement, estAdmin()).
+/* LES COMMANDES AU DOIGT EN COMBAT (14/11/2026 ; d'abord en essai pour Mathieu seul, puis ouvertes a tous le meme jour : « tu peux push aux joueurs aussi, ils vont tester egalement »).
    « Ok vas-y, je pense qu'on va tester ca dans un premier temps, on ajustera en fonction des retours » (Mathieu), apres les maquettes de maquettes/mobile/ :
    - un joystick a gauche (fixe ou sous le doigt) : le perso va dans la direction du pouce ; lache, il tient sa position et frappe ce qui est a portee ;
    - les sorts : appui court = le sort part tout seul (zone sur le plus gros groupe, ligne ou cone la ou ca touche le plus, coup unique sur la cible) ;
@@ -15,7 +15,7 @@ const dgSauver = () => { try { localStorage.setItem(DG_CLE, JSON.stringify(dgReg
 const DG_ZOOM = { proche: 2.4, moyenne: 1.8, loin: 1.3 }, DG_ELEV = { plongee: 0.9, normale: ELEV_DEPART, rasante: 0.4 };
 const DG_BOUTONS = { 'b-sort': 'sort', 'b-ulti': 'ulti', 'b-leg-coiffe': 'coiffe', 'b-leg-arme': 'arme' };
 const DG_PORTEE_LIBRE = 10, DG_SEUIL = 14, DG_RAYON = 52, DG_CADRE = 0.2; /* (une zone sans portee, l'ulti de zone : 5 cases autour du perso ; 14 px avant de viser ; l'anneau ; le cadre de la camera, 20 % de chaque cote) */
-const doigtActif = () => typeof estAdmin === 'function' && estAdmin() && (dgReglages.actif === 'toujours' || (dgReglages.actif === 'auto' && DOIGT));
+const doigtActif = () => dgReglages.actif === 'toujours' || (dgReglages.actif === 'auto' && DOIGT); /* (tous les joueurs : au telephone par defaut, « Toujours » ou « Jamais » dans les Options) */
 const dg = { on: false, el: null, joy: null, marche: false, sort: null, oeil: null, zoomJeu: null, avant: null, t: performance.now(), fl: [], k: 0 };
 
 /* ----- les elements de l'interface, crees une fois dans le cadre du combat ----- */
@@ -196,14 +196,14 @@ function dgBoucle(t) { const dt = Math.min(0.05, Math.max(0, (t - dg.t) / 1000))
 /* ----- les Options (section visible du seul admin) ----- */
 function dgOptionsHtml() {
   const R = dgReglages, ch = (titre, cle, L) => '<div class="dg-opt-l"><b>' + titre + '</b><div class="musiques-opt">' + L.map(([v, t]) => '<button class="sexe" data-dg="' + cle + ':' + v + '" aria-pressed="' + (String(R[cle]) === String(v)) + '">' + t + '</button>').join('') + '</div></div>';
-  return '<div id="dg-opt"><div class="hdv-section">Commandes au doigt en combat (essai, toi seul)</div><div class="dg-opt">' +
+  return '<div id="dg-opt"><div class="hdv-section">Commandes au doigt en combat</div><div class="dg-opt">' +
     ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) +
     ch('Joystick', 'joy', [['fixe', 'Fixe'], ['flottant', 'Sous le doigt']]) + ch('Caméra', 'suivi', [['cadre', 'Avec un cadre'], ['centre', 'Toujours au centre'], ['libre', 'Libre']]) +
     ch('Distance', 'dist', [['proche', 'Proche'], ['moyenne', 'Moyenne'], ['loin', 'Loin']]) + ch('Inclinaison', 'incl', [['plongee', 'Plongée'], ['normale', 'Normale'], ['rasante', 'Rasante']]) +
     ch('Quart de tour', 'tour', [[true, 'Oui'], [false, 'Non']]) + ch('Flèches vers les monstres cachés', 'fleches', [[true, 'Oui'], [false, 'Non']]) +
     '<p class="dg-opt-p">Joystick à gauche. Sorts : appui court, il part tout seul ; glisser depuis le bouton pour placer le cercle ; lâcher sur la croix pour annuler.</p></div></div>';
 }
-function dgOptions() { if (typeof modaleOuverte === 'undefined' || modaleOuverte !== 'options' || typeof estAdmin !== 'function' || !estAdmin()) return; const carte = dgId('carte'); if (!carte) return;
+function dgOptions() { if (typeof modaleOuverte === 'undefined' || modaleOuverte !== 'options') return; const carte = dgId('carte'); if (!carte) return;
   const ancien = dgId('dg-opt'); if (ancien) { ancien.outerHTML = dgOptionsHtml(); return; } const s = carte.querySelector('.hdv-section'); if (s) s.insertAdjacentHTML('beforebegin', dgOptionsHtml()); }
 window.addEventListener('click', (e) => { const b = e.target && e.target.closest ? e.target.closest('[data-dg]') : null; if (!b) return; e.stopPropagation(); e.preventDefault();
   const [k, v] = b.dataset.dg.split(':'); dgReglages[k] = v === 'true' ? true : v === 'false' ? false : v; dgSauver(); dgOptions();
