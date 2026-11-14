@@ -10,7 +10,7 @@ const NIV_ARENE = 50, ENTREES_ARENE = 1, /* (1 par jour depuis le 06/11/2026, «
 /* LE TICKET SELON LE NIVEAU (09/11/2026, « augmente le prix du ticket de l'Arene : 10k au niveau 50, 20k au 60, 35k au 70, 50k au 80, 70k au 90 », Mathieu ;
    10 000 pour tous avant) : par tranche de 10 niveaux, au niveau du perso au moment d'entrer */
 const PALIERS_TICKET_ARENE = [[90, 70000], [80, 50000], [70, 35000], [60, 20000], [0, 10000]];
-const ticketArene = () => { const l = niveau(S_.xp); return PALIERS_TICKET_ARENE.find(([n]) => l >= n)[1]; };
+const ticketArene = () => ticketDeNiveau(niveau(S_.xp)), ticketDeNiveau = (l) => PALIERS_TICKET_ARENE.find(([n]) => l >= n)[1];
 const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 11.9, z: ARENE.z + d.z * 11.9, ox: ARENE.x + d.x * 14.6, oz: ARENE.z + d.z * 14.6 }; }); /* les trois herses : le fond, la gauche, la droite */
 let ileArene = null, areneSuite = false;
 const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, ITEM_MONSTRE_ARENE = 0.0025, /* (0,5 avant le 19/10/2026) */ KAMAS_ARENE = 0.1, JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
@@ -20,6 +20,11 @@ const semaineJeu = (t) => { const d = new Date(t == null ? tempsReel() : t); d.s
 const recordSemaine = (sem) => etatArene().semaines[sem || semaineJeu()] || 0;
 const entreesPrises = () => (ENTREES_ARENE > 1 ? 'Tes ' + ENTREES_ARENE + ' entrées du jour sont prises' : 'Ton entrée du jour est prise') + ' : l\'Arène te rouvre demain.';
 const entreesRestantes = () => Math.max(0, ENTREES_ARENE - (etatArene().entrees || 0));
+/* (14/11/2026, « au prorata des niveaux », Mathieu : « 1 prix de ticket arrive a la vague 20 ». Le ticket monte avec le niveau (10 000 au 50, 70 000 au 90), les kamas
+   de l'Arene, eux, restaient ceux des vagues 51 a 69 : environ 15 000 pour 20 vagues a tous les niveaux. Maintenant chaque vague k rapporte 2,5 % du ticket de ton
+   niveau d'entree, +5 % par vague (apres la baisse de 10 %) ; avec les coffres des boss (deux fois la vague, toutes les 5), 20 vagues tenues rendent le ticket.
+   Jamais moins qu'avant : entre les niveaux 50 et 59, l'ancien calcul reste devant) */
+const PART_TICKET_ARENE = 0.0277;
 const multArene = (k) => 1 + 0.08 * Math.max(0, k - 20); /* au-dela de la vague 20, les monstres grossissent encore de 8 % par vague */
 let forceBossArene = 1; /* (20/10/2026, « les boss, je les ai trouves trop faciles », Mathieu : a pleine force ; la moitie datait du temps ou tout le monde affrontait le boss de la vague 55) */
 /* LES BONUS DE L'ARENE (20/10/2026, Mathieu : « tous les 10 niveaux de vague, qu'on puisse choisir un petit bonus : +10 agilite, +10 puissance, +10 esquive,
@@ -94,7 +99,7 @@ let forceArene = (k) => (0.35 + 0.045 * (k - 1)) * multArene(k); /* (19/10/2026,
 const nArene = () => Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.floor((Math.min(S_.vague.num, VAGUES_TOTAL + 1) - 1) / VAGUES_PALIER)); /* (20/10/2026, « au niveau du boss que t'as passe juste avant », Mathieu : la vague du dernier boss battu, 55 pour tous avant) */ /* leur base : la force d'une vague 55, toujours la meme (en montant de vague, le palier 7 faisait un saut brutal a la 11e) ; c'est forceArene qui monte, en douceur */
 const partNiveauArene = (k) => k <= 10 ? 0.15 * k / 55 : 0.03; /* la part d'un niveau que rapporte la vague k (15 % pour les 10 premieres, 3 % ensuite ; le double avant le 19/10/2026 : 0,84 niveau pour 19 vagues, 2,5 par jour) */
 function gainsArene(k, niv0) { const n = Math.min(69, 50 + k), b = gainsVagueBrut(n % VAGUES_PALIER === 0 ? n - 1 : n, false), L = niv0 || niveau(S_.xp);
-  return { kamas: kamasGagnes(b.kamas * KAMAS_ARENE * multArene(k)), xp: Math.max(1, Math.round((seuil(L + 1) - seuil(L)) * partNiveauArene(k))) }; } /* (kamas : 40 % d'une vague avant le 14/10/2026) */
+  return { kamas: Math.max(kamasGagnes(b.kamas * KAMAS_ARENE * multArene(k)), kamasGagnes(ticketDeNiveau(L) * PART_TICKET_ARENE * (1 + 0.05 * (k - 1)))), xp: Math.max(1, Math.round((seuil(L + 1) - seuil(L)) * partNiveauArene(k))) }; } /* (kamas : 40 % d'une vague avant le 14/10/2026) */
 /* L'ARENE PLUS VARIEE (20/10/2026, « je tombe que contre les memes monstres ; plus de diversite, mais adaptes au niveau », Mathieu) : les monstres de
    toutes les vagues battues (sans les boss, les voleurs ni les Boufcouls du Koulosse), par famille (un palier = une famille) ; avant, ceux des 30 dernieres
    vagues seulement. Chaque vague de l'Arene tire 3 familles au hasard, et statsArene remet chaque monstre a la force de l'Arene */

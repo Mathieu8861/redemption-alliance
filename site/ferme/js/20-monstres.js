@@ -473,6 +473,9 @@ const compoBase = (n) => {
 };
 /* « reduis de 15 % l'xp gagnee sur toutes les vagues du jeu » (Mathieu, 13/10/2026) : toutes les vagues, boss et vagues rejouees compris (gainsBoss en derive) */
 /* « un nerf de -20 % sur les kamas gagnes sur les vagues » (Mathieu, 13/10/2026) : toutes les vagues, boss et revanches compris */
+/* UNE VAGUE DE TON NIVEAU (14/11/2026, « ameliorer les systemes de recompenses en kamas au prorata des niveaux (defis du jour, Arene, etc.) », Mathieu) :
+   les kamas d'une vague normale (pas un boss) du numero de ton niveau, de 1 a 99 ; c'est l'etalon des defis du jour, du coffre et de la serie de connexion */
+const vagueDeNiveau = (l) => { const n = Math.max(1, Math.min(99, Math.round(l) || 1)); return gainsVague(n % VAGUES_PALIER === 0 ? n - 1 : n, false).kamas; };
 const XP_VAGUES = 0.85, KAMAS_VAGUES = 0.8, gainsVague = (n, rejoue) => { const g = gainsVagueBrut(n, rejoue); return Object.assign({}, g, { xp: Math.round(g.xp * XP_VAGUES), kamas: kamasGagnes(g.kamas * KAMAS_VAGUES) }); };
 const gainsVagueBrut = (n, rejoue) => {
   const k = rejoue ? 0.5 : 1, j = n - VAGUES_PALIER, h = n - 2 * VAGUES_PALIER, q = n - 3 * VAGUES_PALIER, r = n - 4 * VAGUES_PALIER, w = n - 5 * VAGUES_PALIER;
