@@ -154,10 +154,11 @@ function dgCamera(dt) {
 const dgVec = new T.Vector3();
 function dgFleches() {
   const box = dg.el.fleches; if (!dgReglages.fleches || dg.oeil) { box.hidden = true; return; } box.hidden = false;
-  const e = dgEncoche(), b = dgBande(), hb = document.querySelector('#combat .combat-haut'), x0 = e.g + b + 30, x1 = innerWidth - e.d - b - (b ? 30 : 74), y0 = (b ? e.h + 30 : Math.round((hb ? hb.getBoundingClientRect().bottom : 60) + 22)), y1 = innerHeight - e.b - 40, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, pp = paysanMesh.position, groupes = [];
+  const e = dgEncoche(), b = dgBande(), hb = document.querySelector('#combat .combat-haut'), x0 = e.g + b + 30, x1 = innerWidth - e.d - b - (b ? 30 : 74), bf = document.querySelector('#combat .combat-perso .buffs'), basBf = bf && bf.offsetParent ? bf.getBoundingClientRect().bottom : 0, y0 = (b ? e.h + 30 : Math.round(Math.max(hb ? hb.getBoundingClientRect().bottom : 60, basBf) + 22)), /* (sous la barre de la vague et sous les boosts) */ y1 = innerHeight - e.b - 40, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, pp = paysanMesh.position, groupes = [];
   dgActifs().forEach((o) => { if (o.d.oeuf || o.d.plante) return; dgVec.set(o.x, o.m.position.y + (o.haut || 1.5) * 0.5, o.z).project(camera); const sx = (dgVec.x + 1) / 2 * innerWidth, sy = (1 - dgVec.y) / 2 * innerHeight;
     if (sx > x0 - 20 && sx < x1 + 20 && sy > y0 - 30 && sy < y1 + 20 && dgVec.z < 1) return;
-    let dx = sx - cx, dy = sy - cy; if (dgVec.z > 1) { dx = -dx; dy = -dy; } const k = Math.min(Math.abs((x1 - cx) / (dx || 1e-6)), Math.abs((y1 - cy) / (dy || 1e-6))), px = cx + dx * k, py = cy + dy * k, ang = Math.atan2(dy, dx);
+    let dx = sx - cx, dy = sy - cy; if (dgVec.z > 1) { dx = -dx; dy = -dy; } const k = Math.min(Math.abs((x1 - cx) / (dx || 1e-6)), Math.abs((y1 - cy) / (dy || 1e-6))), py = cy + dy * k, ang = Math.atan2(dy, dx); let px = cx + dx * k;
+    if (!b && py > innerHeight - e.b - 235) { if (px > innerWidth - e.d - 245) px = innerWidth - e.d - 245; else if (px < e.g + 250) px = e.g + 250; } /* (en A, pas sur les sorts ni sur le joystick : la fleche glisse le long du bord) */
     const boss = !!(o.d.boss || o.d.demi), g = groupes.find((q) => Math.hypot(q.x - px, q.y - py) < 56 && q.boss === boss);
     if (g && !boss) g.n++; else groupes.push({ x: px, y: py, ang, n: 1, boss, o, d: Math.hypot(o.x - pp.x, o.z - pp.z) }); });
   while (dg.fl.length < groupes.length) { const d = document.createElement('div'); d.className = 'dg-fl'; d.innerHTML = '<i></i><span></span>'; box.appendChild(d); dg.fl.push(d); }

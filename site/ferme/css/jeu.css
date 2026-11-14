@@ -1468,3 +1468,10 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .art .pic.img.gj-pic { display: grid; place-items: center; } .art .pic.img.gj-pic > svg { width: 64%; height: 64%; } /* (la ligne « Comment jouer » des Options : la souris ou le doigt dans le meme cadre que les autres icones, 14/11/2026) */
 .gj.gj-large { grid-column: 1 / -1; } /* (la carte « En combat » de Comment jouer, sur toute la largeur, 14/11/2026) */
 .gj span b { display: inline; font: inherit; font-weight: 900; color: var(--encre); } /* (une touche en gras dans le texte d'une carte : sur la ligne, pas comme un titre) */
+/* les boosts de repas et de pots en combat au doigt (14/11/2026 : ils se posaient sur la barre de la vague) : sous la pilule de vie, en petit, sans titre ; en C, dans la bande gauche sous les boutons de camera */
+.hud.en-combat.doigt .combat-perso .buffs { left: 0; top: calc(100% + 6px); bottom: auto; padding: 3px 5px; border-width: 2px; border-radius: 11px; box-shadow: 0 2px 0 var(--bord); }
+.hud.en-combat.doigt .combat-perso .buffs-titre { display: none; }
+.hud.en-combat.doigt .combat-perso .buffs-liste { flex-wrap: wrap; gap: 4px; max-width: 200px; }
+.hud.en-combat.doigt .combat-perso .buff { width: 26px; height: 26px; border-radius: 8px; } .hud.en-combat.doigt .combat-perso .buff img { width: 20px; height: 20px; }
+.hud.en-combat.doigt.dg-c .combat-perso .buffs { top: 182px; left: 0; } .hud.en-combat.doigt.dg-c .combat-perso .buffs-liste { max-width: 112px; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-perso > .buffs { position: absolute; } /* (la regle de la pilule, « > div { position: relative } », les remettait dans le flux, derriere la barre de la vague) */
