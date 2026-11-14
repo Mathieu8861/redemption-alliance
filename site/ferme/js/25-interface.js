@@ -240,7 +240,7 @@ function artAmelio(a) {
   const nv = niveau(S_.xp), n = niv(a.id), fini = n >= a.couts.length, cout = fini ? 0 : a.couts[n], bloque = !fini && (nv < nivRequis(a, n) || verrouVague(a)), manqueReq = a.requiert && !niv(a.requiert), bat = NIVBAT[a.id] || a.id === 'arbalete';
   const place = fini ? '' : a.id === 'qg' && n === 4 && !bloque && manqueChateau() ? manqueChateau() : a.id === 'voliere' && n === 0 && bloqueursVoliere().length ? 'Libère une case à côté de la volière' : a.id === 'geliere' && n === 0 && !bloque && !blocLibreGeliere() ? 'Libère 6 cases d\'herbe d\'un seul tenant (3 sur 2)' : a.id === 'forge' && n === 0 && !bloque && !caseLibreForge() ? 'Libère une case d\'herbe' : a.id === 'leurre' && n === 0 && !bloque && !caseLibreLeurre() ? 'Libère une case d\'herbe' : '';
   const plusieurs = a.couts.length > 1, numSuiv = NIVBAT[a.id] ? n + 2 : n + 1, G = GAINS[a.id];
-  const total = bat ? (a.id === 'qg' ? 6 : 5) : plusieurs ? a.couts.length : 0, actuel = bat ? (a.id === 'arbalete' ? n : n + 1) : n; /* (la grange : 6 niveaux, le 6e est le chateau) */
+  const total = bat ? (a.id === 'qg' ? 6 : a.id === 'arbalete' ? a.couts.length : 5) : plusieurs ? a.couts.length : 0, actuel = bat ? (a.id === 'arbalete' ? n : n + 1) : n; /* (la grange : 6 niveaux, le 6e est le chateau ; l'arbalete : 6 avec la baliste d'acier, 14/11/2026, elle affichait « 5 sur 5 ») */
   const look = !fini && G && G.looks && G.looks[n + 1];
   const suiv = fini ? (plusieurs ? 'Niveau maximum' : 'Acquis') : plusieurs ? ((a.id === 'arbalete' || a.id === 'geliere') && !n ? 'En la construisant' : 'Au niveau ' + numSuiv + (look ? ', ' + look : '')) : 'En l\'achetant';
   const achat = fini ? '<span class="a-etat">' + (plusieurs ? 'Niveau maximum atteint' : 'Déjà acheté') + '</span>'
@@ -294,7 +294,7 @@ function ouvrirHdv0(onglet) {
     const cats = '<div class="hdv-cats">' + CATS_AMELIO.map(([k, t, i, , L]) => { const n = pretes(L); return '<button data-hdv-cat-a="' + k + '" aria-pressed="' + (C[0] === k) + '"><img src="assets/icones/' + i + '.png?v=' + VERSION_MODELES + '" alt="">' + t + (n ? '<span class="hdv-pret" title="' + n + ' à acheter tout de suite">' + n + '</span>' : '') + '</button>'; }).join('') + '</div>';
     const bloque = par('bloque'), fini = par('fini');
     ouvrirModale('hdv', entete('Hôtel de vente') + tete + cats + '<p class="hdv-aide">' + C[3] + '</p>' + versConstruire + (ici.length ? '' : '<p class="hdv-aide">Rien encore : construis d\'abord (onglet Construire).</p>') + par('dispo').map(carte).join('') +
-      (bloque.length ? '<div class="hdv-section">À débloquer</div>' + bloque.map(carte).join('') : '') + (fini.length ? '<div class="hdv-section">Déjà au maximum</div>' + fini.map(carte).join('') : '')); return;
+      (bloque.length ? '<div class="hdv-section">À débloquer</div>' + bloque.map(carte).join('') : '') + (fini.length ? renvoiMaFerme(fini.length, 'amélioration au maximum', 'améliorations au maximum') : '')); return;
   }
   if (onglet === 'acheter') {
     /* « le x1 ou x10, faudrait le mettre partout au meme endroit que le bouton d'achat ; pour les nouveaux joueurs, c'est pas intuitif de scroller pour voir
@@ -334,7 +334,7 @@ function ouvrirHdv0(onglet) {
     } else if (cat === 'outils') { /* (22/10/2026 : sortis d'Ameliorer, ce ne sont pas des batiments) */
       const par = (e) => OUTILS.filter((id) => etatAmelio(id).e === e);
       corps = '<p class="hdv-aide">Des outils pour travailler plus vite : tes cultures poussent plus vite, tu récoltes plus, tu cours plus vite. Achetés une fois, ils servent pour toujours.</p>' + par('dispo').map(carte).join('') +
-        (par('bloque').length ? '<div class="hdv-section">À débloquer</div>' + par('bloque').map(carte).join('') : '') + (par('fini').length ? '<div class="hdv-section">Déjà achetés</div>' + par('fini').map(carte).join('') : '');
+        (par('bloque').length ? '<div class="hdv-section">À débloquer</div>' + par('bloque').map(carte).join('') : '') + (par('fini').length ? renvoiMaFerme(par('fini').length, 'outil déjà acheté', 'outils déjà achetés') : '');
     } else if (cat === 'deco') { corps = corpsDecoHdv();
     } else {
       const oF = [[1, '×1'], [5, '×5']], nF = qteDe('filets', oF), oA = [[10, '×10'], [50, '×50'], [100, '×100']], nA = qteDe('fleches', oA); /* (×100 le 06/11/2026, « rajoute un x100 en achat pour les flèches », Mathieu) */
@@ -532,6 +532,24 @@ function fichePano(k, sacL) {
     '<div class="fp-pp-liste">' + lignes + '</div>' + blocPano(k, n) + '<p class="fp-aide">' + ou + ' Chaque pièce a ses propres stats, tirées dans la fourchette indiquée.</p>' +
     '<div class="fp-actions"><button class="btn discret" data-fp-pano="">Retour</button></div></div>';
 }
+/* MA FERME (14/11/2026, « dans l'HDV / Ameliorer, lorsque quelque chose est a son niveau maximum, il n'est plus necessaire de le laisser ici ; par contre les boosts
+   qu'on a grace a ces achats devraient etre visibles quelque part », Mathieu) : un onglet de la fiche du perso qui montre tout ce que la ferme a deja (ameliorations,
+   batiments, outils), son niveau et ce qu'il te donne aujourd'hui ; les cartes au maximum quittent l'HDV, qui y renvoie */
+const renvoiMaFerme = (n, un, des) => '<p class="hdv-aide mf-renvoi">' + n + ' ' + (n > 1 ? des : un) + ' : ' + (n > 1 ? 'leurs' : 'ses') + ' bonus sont dans ta fiche Perso, <button class="lien" data-ma-ferme>onglet Ma ferme</button>.</p>';
+function blocMaFerme() {
+  const carte = (img, nom, etat, corps) => '<div class="mf-carte"><img src="assets/icones/' + img + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>' + nom + '</b><small>' + etat + '</small>' + corps + '</div></div>';
+  const ligne = (id) => {
+    if (id === 'tours') { const n = nbTours(); return n ? carte('tour', 'Tours de défense', n + ' sur ' + TOURS_MAX + (n >= TOURS_MAX ? ' · toutes construites' : ''), '<p class="mf-desc">Elles tirent seules sur les monstres et les voleurs. Chacune monte de niveau depuis sa fenêtre.</p>') : ''; }
+    if (id === 'gardien') { const G = gardienDe(); return G ? carte(G.ico || 'gardiens', G.nom, 'Ton gardien', '<p class="mf-desc">' + G.nom + ' garde ta ferme et mord les voleurs de VSA.</p>') : ''; }
+    const a = AMELIOS.find((x) => x.id === id); if (!a) return ''; const n = niv(id); if (!n) return '';
+    const fini = n >= a.couts.length, plusieurs = a.couts.length > 1, bat = NIVBAT[id] || id === 'arbalete', total = bat ? (id === 'qg' ? 6 : id === 'arbalete' ? a.couts.length : 5) : plusieurs ? a.couts.length : 0, actuel = bat ? (id === 'arbalete' ? n : n + 1) : n;
+    const G = GAINS[id], gains = G ? lignesGain(G, n, true) : '';
+    return carte(ICONES[id] || 'coffre', a.nom, (total ? 'Niveau ' + actuel + ' sur ' + total : 'Acquis') + (fini && total ? ' · maximum' : ''), gains || '<p class="mf-desc">' + a.desc + '</p>');
+  };
+  const groupes = CATS_AMELIO.map(([, t, , , L]) => [t, L.concat(t === 'Défense' ? ['tours'] : [])]).concat([['Outils', OUTILS]]);
+  const html = groupes.map(([t, L]) => { const h = L.map(ligne).join(''); return h ? '<h4 class="fc-sorts">' + t + '</h4><div class="mf-grille">' + h + '</div>' : ''; }).join('');
+  return '<p class="hdv-aide">Tout ce que ta ferme a déjà, et ce que ça te donne aujourd\'hui. Les niveaux suivants s\'achètent à l\'HDV.</p>' + (html || '<p class="hdv-aide">Rien encore : améliore ta ferme à l\'HDV.</p>');
+}
 function ouvrirPerso(sel) {
   if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; persoPano = null; }
   if (sel) persoPano = null;
@@ -547,7 +565,7 @@ function ouvrirPerso(sel) {
   const tete = '<div class="fp-tete"><span class="fp-mini"><img src="assets/icones/' + icoClasse() + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><b>' + echapper(S_.perso.nom) + '</b><small>' + cl.nom + ' niveau ' + l + '</small></div>' +
     '<div class="fp-xp"><div class="barre"><i style="width:' + (l >= capNiveau() ? 100 : (100 * (S_.xp - a) / Math.max(1, b - a)).toFixed(1)) + '%"></i></div><small>' + (l >= capNiveau() ? (capNiveau() < NIV_MAX ? 'Niveau maximum pour l\'instant : ' + texteCap() : 'Niveau maximum') : fmt(S_.xp - a) + ' / ' + fmt(b - a) + ' XP vers le niveau ' + (l + 1)) + '</small></div>' +
     '<span class="fp-kamas">' + fmt(S_.kamas) + ' ' + KAMA + '</span><button class="fp-fermer" data-fermer aria-label="Fermer">✕</button></div>' +
-    '<div class="fp-onglets"><button data-fp-onglet="equip" aria-pressed="' + (persoOnglet === 'equip') + '">Équipement' + (nbNeufs ? '<em>' + nbNeufs + '</em>' : '') + '</button><button data-fp-onglet="sorts" aria-pressed="' + (persoOnglet === 'sorts') + '">Classe et sorts</button><button data-bestiaire="panoplies">Bestiaire</button></div>';
+    '<div class="fp-onglets"><button data-fp-onglet="equip" aria-pressed="' + (persoOnglet === 'equip') + '">Équipement' + (nbNeufs ? '<em>' + nbNeufs + '</em>' : '') + '</button><button data-fp-onglet="sorts" aria-pressed="' + (persoOnglet === 'sorts') + '">Classe et sorts</button><button data-fp-onglet="ferme" aria-pressed="' + (persoOnglet === 'ferme') + '">Ma ferme</button><button data-bestiaire="panoplies">Bestiaire</button></div>';
   const [att, sort] = SORTS[classeDe()], E = enBref(classeDe());
   const icoSort = (q) => { const m = modeleDe(classeDe(), S_.perso.look); return ICONES_3D.has('sort3d-' + m + '-' + q) ? icone3d('sort3d-' + m + '-' + q) : ico('sort-' + m + '-' + q); }; /* (le perso en train d'attaquer ou de lancer son sort, selon sa classe et son apparence) */
   const sorts = '<div class="art">' + icoSort('attaque') + '<div><b>' + att[0] + '</b><div class="puces"><span class="puce">' + picto('degats') + st.deg + ' dégâts</span><span class="puce">toutes les ' + String(st.cadence).replace('.', ',') + ' s</span></div><div class="desc">' + att[1] + '</div></div><div></div></div>' +
@@ -555,6 +573,7 @@ function ouvrirPerso(sel) {
     '<div class="art">' + icoSort('sort') + '<div><b>Sort : ' + sort[0] + '</b><div class="desc">' + sort[1] + '</div>' + (E.passifSort ? '<div class="desc passif-sort"><b>Passif du sort :</b> ' + E.passifSort + (classeDe() === 'osa' ? ' (' + degBouftou(niveau(S_.xp)) + ' au tien)' : '') + '.</div>' : '') + '</div><div></div></div>' +
     '<div class="art">' + (S_.ulti ? '<span class="pic img trois-d"><img src="' + srcUlti(S_.ulti) + '" alt=""></span>' : '<span class="pic img trois-d"><img src="' + srcUlti('zone') + '" alt=""></span>') + '<div><b>' + (S_.ulti ? 'Ulti : ' + nomUlti(S_.ulti) : 'Ulti') + '</b><div class="desc">' + (S_.ulti ? descUlti(S_.ulti) + ' Recharge ' + rechargeUlti() + ' s.' : l >= NIV_ULTI ? 'Débloqué : à choisir une fois pour toutes.' : 'Se débloque au niveau ' + NIV_ULTI + '.') + '</div></div><div class="act' + (peutChangerUlti() ? ' duo' : '') + '"><button class="btn discret" data-voir-ulti>' + (S_.ulti || l < NIV_ULTI ? 'Voir' : 'Choisir') + '</button>' + (peutChangerUlti() ? '<button class="btn kamas" data-changer-ulti>Changer d\'ulti (' + fmt(PRIX_CHANGE_ULTI) + ' ' + KAMA + ')</button>' : '') + '</div></div>'; /* (au niveau 90, 08/11/2026) */
   if (persoOnglet === 'sorts') { ouvrirModale('perso', tete + '<div class="fp-sorts">' + blocClasse() + '<h4 class="fc-sorts">Tes sorts</h4>' + sorts + '</div>'); return; }
+  if (persoOnglet === 'ferme') { ouvrirModale('perso', tete + '<div class="fp-sorts">' + blocMaFerme() + '</div>'); return; }
   /* a gauche : le perso au milieu de ses 7 emplacements, et ses caracteristiques */
   const slot = (e) => { const id = S_.equip[e], o = id && obj(id), mieux = sacL.some((k) => obj(k).emp === e && comparer(k).mieux), neuf = sacL.some((k) => obj(k).emp === e && persoNeufs[k]);
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
@@ -770,6 +789,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.fpSlot) { const k = S_.equip[b.dataset.fpSlot]; persoFiltre = 'tout'; persoEmp = b.dataset.fpSlot; ouvrirPerso(k || b.dataset.fpSlot); }
   else if (b.dataset.fpFiltre) { persoFiltre = b.dataset.fpFiltre; persoEmp = null; ouvrirPerso(); }
   else if (b.dataset.fpOnglet) { persoOnglet = b.dataset.fpOnglet; ouvrirPerso(); }
+  else if (b.hasAttribute('data-ma-ferme')) { ouvrirPerso(); persoOnglet = 'ferme'; ouvrirPerso(); }
   else if (b.dataset.fpCarac) { persoCarac = persoCarac === b.dataset.fpCarac ? null : b.dataset.fpCarac; ouvrirPerso(); }
   else if (b.dataset.persoSel) ouvrirPerso(b.dataset.persoSel);
   else if (b.dataset.persoSlot !== undefined) ouvrirPerso(b.dataset.persoSlot || null);

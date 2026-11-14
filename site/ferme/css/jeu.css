@@ -1453,3 +1453,15 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .cours { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: .7rem; font-weight: 900; background: #2b2d31; color: #c9ccd2; white-space: nowrap; }
 .cours.c-haut { background: #2f4a20; color: #a6e48f; } .cours.c-bas { background: #4a2420; color: #f0a39b; }
 .cours-aide { margin: 0 0 8px; }
+
+/* l'onglet Ma ferme de la fiche du perso (14/11/2026) */
+.mf-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; margin-bottom: 6px; }
+.mf-carte { display: flex; gap: 10px; align-items: flex-start; background: #2b2d31; border: 2px solid #43464e; border-radius: 12px; padding: 8px 10px; }
+.mf-carte > img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+.mf-carte b { display: block; font-size: .86rem; } .mf-carte small { display: block; font-size: .7rem; font-weight: 800; color: #f2b630; margin-bottom: 3px; }
+.mf-carte .a-gains { margin: 2px 0 0; } .mf-desc { margin: 2px 0 0; font-size: .72rem; opacity: .85; }
+.mf-renvoi { margin-top: 10px; }
+.mf-carte .a-gains { display: grid; grid-template-columns: 18px 1fr auto; gap: 3px 6px; align-items: center; margin: 4px 0 0; } /* (la grille des cartes d'Ameliorer, en petit : picto, libelle, valeur sur une ligne) */
+.mf-carte .a-gains dt svg.pc { width: 15px; height: 15px; } .mf-carte .a-gains .lib { font-size: .74rem; line-height: 1.15; } .mf-carte .a-gains dd { font-size: .76rem; }
+.mf-carte > div { flex: 1; min-width: 0; }
+.mf-carte .a-gains dd { white-space: normal; max-width: 9.5em; } /* (une valeur longue, « +20 % de jet par rune », passe a la ligne au lieu de sortir de la carte) */
