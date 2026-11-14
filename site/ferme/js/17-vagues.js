@@ -33,16 +33,21 @@ const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }
 const prixPot = (t) => Math.max(10, POTS[t].prix * niveau(S_.xp));
 const vieActuelle = () => { const max = statsPerso().pvMax; return S_.pv == null ? max : Math.max(0, Math.min(max, S_.pv)); };
 const menthePrete = () => { const r = S_.menthe ? REGEN_MENTHE : 0; S_.menthe = false; return r; }; /* (la Menthe bue avant la vague : elle soigne pendant celle-ci) */
+/* PLUSIEURS POTS DE MENTHE OU DE CITRON (14/11/2026, « avoir la possibilite d'utiliser plusieurs potions Menthe et Citron, bonus non cumulable, ca rajoute juste
+   les PV en plus de ce soin », Mathieu) : une fois la Menthe (ou le Citron) bue pour la prochaine vague, un autre pot de la meme couleur ne fait que soigner
+   (+25 % de vie), son bonus ne s'ajoute pas ; il ne se boit donc que si la vie n'est pas pleine. La Royale reste a un pot (elle rend deja toute la vie). */
+const bonusBu = (t) => !!((POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron) || (POTS[t].agi && S_.royale));
+const reboire = (t) => !!(POTS[t].menthe || POTS[t].citron) && bonusBu(t) && (S_.pots[t] || 0) > 0 && vieActuelle() < statsPerso().pvMax;
 function boirePot(t) {
   const P = POTS[t]; S_.pots = S_.pots || {}; if (!P || !(S_.pots[t] > 0) || combat) return;
   const max = statsPerso().pvMax, avant = vieActuelle();
-  if (P.menthe && S_.menthe) { toast('Tu as déjà bu un pot de Menthe pour la prochaine vague.'); return; }
-  if (P.citron && S_.citron) { toast('Tu as déjà bu un pot de Citron pour la prochaine vague.'); return; }
+  const deja = bonusBu(t) && !P.agi; /* (une Menthe ou un Citron de plus : le soin seul) */
+  if (deja && avant >= max) { toast('Ta vie est déjà pleine, et ' + (P.menthe ? 'la Menthe' : 'le Citron') + ' est déjà bu' + (P.menthe ? 'e' : '') + ' pour la prochaine vague.'); return; }
   if (P.agi && S_.royale) { toast('Tu as déjà bu un pot de Royale pour la prochaine vague.'); return; }
   if (avant >= max && !P.menthe && !P.citron && !P.agi) { toast('Ta vie est déjà pleine.'); return; }
   S_.pots[t]--; son('boire'); S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; if (P.citron) S_.citron = true; if (P.agi) S_.royale = P.agi; compter('pots');
   const quand = modaleOuverte === 'arene' ? 'la partie' : modaleOuverte === 'ileboss' ? 'l\'essai' : 'la vague'; /* (07/11/2026 : sur l'ile, « pendant la vague » etait faux) */
-  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (P.menthe ? '. La Menthe te soignera pendant ' + quand + '.' : P.citron ? '. Le Citron te fera courir plus vite pendant ' + quand + '.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant ' + quand + '.' : '.'), 'or');
+  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (deja ? '. ' + (P.menthe ? 'La Menthe était déjà bue' : 'Le Citron était déjà bu') + ' : son bonus ne se cumule pas, ce pot te soigne seulement.' : P.menthe ? '. La Menthe te soignera pendant ' + quand + '.' : P.citron ? '. Le Citron te fera courir plus vite pendant ' + quand + '.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant ' + quand + '.' : '.'), 'or');
   rendreGrange(); rendreHaut(); sauver();
   rafraichirAvantCombat();
 }
@@ -55,12 +60,12 @@ function rafraichirAvantCombat() {
 /* LES POTS A BONUS AVANT L'ILE DES BOSS (07/11/2026, « qu'on puisse aussi selectionner les autres boosts comme pour les vagues, pareil pour le boss de l'ile », Mathieu) :
    l'essai part toujours vie pleine, seuls la Menthe, le Citron et la Royale y servent ; ils valent pour l'essai qui suit (potsDeVague, 27-arene.js) */
 function sectionPotsBonus(quand) {
-  S_.pots = S_.pots || {}; const bu = (t) => (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron) || (POTS[t].agi && S_.royale);
+  S_.pots = S_.pots || {}; const bu = bonusBu;
   const L = Object.keys(POTS).filter((t) => (POTS[t].menthe || POTS[t].citron || POTS[t].agi) && ((S_.pots[t] || 0) > 0 || bu(t))); if (!L.length) return '';
   const effet = (t) => POTS[t].menthe ? 'te soigne de 1 % toutes les 4 s' : POTS[t].citron ? 'tu cours ' + Math.round((VITESSE_CITRON - 1) * 100) + ' % plus vite' : '+' + POTS[t].agi + ' Agilité';
   return '<div class="hdv-section">Avant ' + quand + ' : boire</div>' + L.map((t) => { const n = S_.pots[t] || 0, b = bu(t);
     return '<div class="art">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + (b ? ' : bu !' : '') + '</b><div class="puces"><span class="puce ' + (b ? 'bonne' : '') + '">' + effet(t) + ' pendant ' + quand + '</span><span class="puce">' + n + ' en grange</span></div></div><div class="act">' +
-      (b ? '<span class="cadenas">✓ Bu</span>' : '<button class="btn mini" data-boire="' + t + '"' + (n > 0 ? '' : ' disabled') + '>Boire</button>') + '</div></div>'; }).join('');
+      (b ? '<span class="cadenas">✓ Bu</span>' + (reboire(t) ? '<button class="btn mini" data-boire="' + t + '" data-info="Son bonus ne se cumule pas : juste +' + Math.round(POTS[t].soin * 100) + ' % de vie">+' + Math.round(POTS[t].soin * 100) + ' % de vie</button>' : '') : '<button class="btn mini" data-boire="' + t + '"' + (n > 0 ? '' : ' disabled') + '>Boire</button>') + '</div></div>'; }).join('');
 }
 /* l'alerte de la fenetre des vagues (« ok », Mathieu) : avec combien de vie tu pars, et tes pots */
 /* la pastille de vie du haut, toujours visible (« il faudrait la voir en tout temps », Mathieu, 13/10/2026) ; en combat, elle suit la vie du combat */
@@ -112,7 +117,7 @@ function ouvrirPots() {
   const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : ' + REGEN_PV + ' PV par minute, pleine dans ' + dureeLisible((max - pv) / REGEN_PV * REGEN_PAS) + '. Un pot fait gagner ce temps.';
   const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.royale ? ' La Royale est bue : +' + S_.royale + ' Agilité pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
   const types = POTS_HDV.concat(Object.keys(POTS).filter((t) => POTS[t].geliere && ((S_.pots[t] || 0) > 0 || niv('geliere'))));
-  const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron && !POTS[t].agi) || (POTS[t].menthe && S_.menthe) || (POTS[t].citron && S_.citron) || (POTS[t].agi && S_.royale);
+  const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron && !POTS[t].agi) || (POTS[t].agi && S_.royale) || (bonusBu(t) && plein); /* (une Menthe ou un Citron deja bu : un autre ne fait que soigner, 14/11/2026) */
     return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +
       (n ? '<button class="btn kamas" data-boire="' + t + '"' + (non ? ' disabled' : '') + '>Boire</button>' : POTS[t].geliere ? '<button class="btn discret" data-geliere>Gelière</button>' : '<button class="btn discret" data-hdv-cat="gelees">Acheter</button>') +
       (t === 'grand' ? '<button class="btn discret mini" data-pots-fusion title="Deux petits pots Bleus (+25 %) fondus en un grand (+60 %)"' + ((S_.pots.petit || 0) >= 2 && S_.kamas >= PRIX_FUSION_POTS ? '' : ' disabled') + '>2 petits + ' + PRIX_FUSION_POTS + ' ' + KAMA + ' = 1 grand</button>' : '') + '</div></div>'; }).join('');

@@ -1475,3 +1475,6 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .hud.en-combat.doigt .combat-perso .buff { width: 26px; height: 26px; border-radius: 8px; } .hud.en-combat.doigt .combat-perso .buff img { width: 20px; height: 20px; }
 .hud.en-combat.doigt.dg-c .combat-perso .buffs { top: 182px; left: 0; } .hud.en-combat.doigt.dg-c .combat-perso .buffs-liste { max-width: 112px; }
 .hud.en-combat.doigt.dg-a.dg-h1 .combat-perso > .buffs { position: absolute; } /* (la regle de la pilule, « > div { position: relative } », les remettait dans le flux, derriere la barre de la vague) */
+
+/* une Menthe ou un Citron deja bu : « ✓ Bu » et, dessous, le bouton du soin seul (14/11/2026) */
+.vg-act2 { display: flex; flex-direction: column; align-items: stretch; gap: 3px; flex: none; } .vg-act2 .vg-ok { text-align: center; }
