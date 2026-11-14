@@ -1386,3 +1386,79 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
   .hud.en-combat.doigt.dg-a .combat-haut { left: calc(8px + env(safe-area-inset-left, 0px)); transform: none; top: calc(60px + env(safe-area-inset-top, 0px)); width: calc(100% - 66px); }
   .hud.en-combat.doigt .toasts { width: calc(100% - 80px); }
 }
+
+/* (14/11/2026, retours de Mathieu sur les premieres captures : « des textes au milieu de l'ecran, on sait pas ce que c'est », « un gros bouton rouge
+   avec une croix, ca vient niquer tout l'ecran », « dans le format console, l'oeil depasse, ca deborde de partout, ca se chevauche ») */
+/* les alertes : une seule a la fois, sur une ligne, en bas entre les deux pouces ; le texte complet reste dans les Messages */
+.hud.en-combat.doigt .toasts { top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); left: 50%; right: auto; transform: translateX(-50%); width: min(440px, calc(100vw - 440px)); align-content: end; }
+.hud.en-combat.doigt #toasts > :not(:last-child) { display: none; }
+.hud.en-combat.doigt .toast { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .66rem; line-height: 1.2; padding: 4px 10px; border-width: 2px; box-shadow: 0 2px 0 var(--bord); opacity: .93; }
+.hud.en-combat.doigt .toast b.fois { display: none; }
+/* le decompte des sorts : le chiffre dans le bouton, plus d'etiquette dessous (le liseré dore dit deja « pret ») */
+.hud.en-combat.doigt .combat-sort small { display: none; }
+.dg-cd { display: none; }
+.hud.en-combat.doigt .dg-cd { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; font: 400 1.15rem var(--f-titre); color: #fff; text-shadow: 0 2px 0 var(--bord), 0 0 4px var(--bord); pointer-events: none; }
+.hud.en-combat.doigt .combat-sort .rond { box-shadow: 0 3px 0 var(--bord); }
+/* la visee : un anneau fin autour du doigt, une petite croix discrete au-dessus des sorts (rouge seulement quand le doigt est dessus) */
+.dg-anneau { border-width: 2px; border-color: rgba(255, 225, 122, .65); background: rgba(255, 205, 70, .07); }
+.dg-tige { width: 24px; height: 24px; }
+.dg-croix { width: 44px; height: 44px; background: rgba(30, 31, 34, .78); border: 2px solid rgba(255, 255, 255, .75); box-shadow: 0 2px 0 var(--bord); font: 400 20px/40px var(--f-titre); }
+.dg-croix small { display: none; }
+.dg-croix.sur { background: #d9443a; transform: translate(-50%, -50%) scale(1.2); }
+/* disposition C refaite : des bandes de 140, une grille de 2 x 2 sorts, tout tient dedans */
+.dg-bande.g { width: calc(140px + env(safe-area-inset-left, 0px)); } .dg-bande.d { width: calc(140px + env(safe-area-inset-right, 0px)); }
+.hud.en-combat.doigt.dg-c .combat-perso { left: calc(10px + env(safe-area-inset-left, 0px)); width: 120px; }
+.hud.en-combat.doigt.dg-c .combat-perso > img { width: 36px; height: 36px; } .hud.en-combat.doigt.dg-c .combat-perso b { font-size: .72rem; } .hud.en-combat.doigt.dg-c .combat-perso .pvb { width: 110px; }
+.hud.en-combat.doigt.dg-c .haut { left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(104px + env(safe-area-inset-top, 0px)); }
+.hud.en-combat.doigt.dg-c .dg-cam { left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(146px + env(safe-area-inset-top, 0px)); gap: 5px; }
+.hud.en-combat.doigt.dg-c .dg-cam button { width: 34px; height: 34px; border-radius: 10px; }
+.hud.en-combat.doigt.dg-c .dg-zone { top: calc(196px + env(safe-area-inset-top, 0px)); width: calc(140px + env(safe-area-inset-left, 0px)); }
+.hud.en-combat.doigt.dg-c .combat-haut { right: calc(8px + env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); width: 124px; }
+.hud.en-combat.doigt.dg-c .combat-haut b { font-size: .66rem; line-height: 1.2; } .hud.en-combat.doigt.dg-c .combat-haut .btn { padding: 1px 10px; font-size: .66rem; margin-top: 3px; }
+.hud.en-combat.doigt.dg-c .combat-haut .barre { margin-top: 5px; }
+.hud.en-combat.doigt.dg-c .combat-haut .boss-barre b { font-size: .64rem; } .hud.en-combat.doigt.dg-c .boss-barre .bb-tete em, .hud.en-combat.doigt.dg-c .boss-barre small { font-size: .54rem; }
+.hud.en-combat.doigt.dg-c .toasts { width: min(480px, calc(100vw - 320px)); }
+.hud.en-combat.doigt.dg-c #b-sort { right: 38px; bottom: 44px; --t: 60px; }
+.hud.en-combat.doigt.dg-c #b-ulti { right: 104px; bottom: 44px; --t: 54px; }
+.hud.en-combat.doigt.dg-c #b-leg-coiffe { right: 104px; bottom: 112px; --t: 50px; }
+.hud.en-combat.doigt.dg-c #b-leg-arme { right: 38px; bottom: 112px; --t: 50px; }
+@media (orientation: portrait) { .hud.en-combat.doigt .toasts { width: calc(100% - 80px); bottom: auto; } } /* (debout : sous la barre de la vague, placee par le jeu) */
+.hud.en-combat.doigt .combat-sort .rond img.trois-d { width: 100%; height: 100%; } /* (l'icone 3D remplit le rond, au centre) */
+.hud.en-combat.doigt.dg-a.dg-vise .dg-cam { visibility: hidden; } /* (pendant la visee, la croix prend la place des boutons de camera) */
+
+/* LE HAUT DE L'ECRAN AU DOIGT, trois versions a choisir (14/11/2026, « le Cra niveau 90, on s'en fout ; le 5311 sur 5311 avec l'encadre qui prend
+   beaucoup de place, on peut faire beaucoup plus fin ; a droite, l'etendre un peu plus sur la largeur que sur la hauteur », Mathieu) */
+/* 1 et 2 : le perso en fine pilule, son portrait et sa barre de vie avec le chiffre dedans */
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-perso, .hud.en-combat.doigt.dg-a.dg-h2 .combat-perso { background: rgba(20, 21, 24, .62); border: 0; box-shadow: none; padding: 3px 4px 3px 3px; border-radius: 99px; gap: 6px; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-perso > img, .hud.en-combat.doigt.dg-a.dg-h2 .combat-perso > img { width: 26px; height: 26px; border-radius: 50%; border-width: 2px; }
+.hud.en-combat.doigt.dg-a.dg-h1 #combat-nom, .hud.en-combat.doigt.dg-a.dg-h2 #combat-nom { display: none; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-perso > div, .hud.en-combat.doigt.dg-a.dg-h2 .combat-perso > div { position: relative; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-perso .pvb, .hud.en-combat.doigt.dg-a.dg-h2 .combat-perso .pvb { width: 150px; height: 16px; margin: 0; }
+.hud.en-combat.doigt.dg-a.dg-h1 #combat-pv-txt, .hud.en-combat.doigt.dg-a.dg-h2 #combat-pv-txt { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .6rem/1 var(--f-texte); color: #fff; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+/* 1 : la vague et le boss dans un bandeau fin et large, deux lignes */
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-haut, .hud.en-combat.doigt.dg-a.dg-h3 .combat-haut { grid-template-columns: auto 1fr auto; width: min(480px, 56vw); padding: 3px 5px 4px 12px; gap: 3px 10px; border-width: 2px; border-radius: 12px; box-shadow: 0 2px 0 var(--bord); }
+.hud.en-combat.doigt.dg-a.dg-h1 #combat-titre, .hud.en-combat.doigt.dg-a.dg-h3 #combat-titre { grid-column: 1; grid-row: 1; font-size: .72rem; white-space: nowrap; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-haut .barre, .hud.en-combat.doigt.dg-a.dg-h3 .combat-haut .barre { grid-column: 2; grid-row: 1; height: 7px; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-haut .btn, .hud.en-combat.doigt.dg-a.dg-h3 .combat-haut .btn { grid-column: 3; grid-row: 1; padding: 1px 9px; font-size: .64rem; }
+.hud.en-combat.doigt.dg-a.dg-h1 .boss-barre, .hud.en-combat.doigt.dg-a.dg-h3 .boss-barre { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; margin: 0; }
+.hud.en-combat.doigt.dg-a.dg-h1 .boss-barre[hidden], .hud.en-combat.doigt.dg-a.dg-h3 .boss-barre[hidden], .hud.en-combat.doigt.dg-a.dg-h2 .boss-barre[hidden] { display: none; }
+.hud.en-combat.doigt.dg-a.dg-h1 .boss-barre .bb-tete, .hud.en-combat.doigt.dg-a.dg-h3 .boss-barre .bb-tete { display: contents; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-haut .boss-barre b, .hud.en-combat.doigt.dg-a.dg-h3 .combat-haut .boss-barre b { order: 1; font-size: .68rem; white-space: nowrap; }
+.hud.en-combat.doigt.dg-a.dg-h1 .boss-barre .bb-tete em, .hud.en-combat.doigt.dg-a.dg-h3 .boss-barre .bb-tete em { order: 2; flex: none; font-size: .5rem; }
+.hud.en-combat.doigt.dg-a.dg-h1 .boss-barre .bb, .hud.en-combat.doigt.dg-a.dg-h3 .boss-barre .bb { order: 3; flex: 1; height: 9px; margin: 0; }
+.hud.en-combat.doigt.dg-a.dg-h1 .boss-barre small, .hud.en-combat.doigt.dg-a.dg-h3 .boss-barre small { order: 4; font-size: .56rem; white-space: nowrap; }
+/* 2 : sans cadre, une grande barre de boss facon jeu d'action (le nom et la vie ecrits dedans), la vague en petit au-dessus */
+.hud.en-combat.doigt.dg-a.dg-h2 .combat-haut { background: none; border: 0; box-shadow: none; width: min(500px, 58vw); padding: 0; grid-template-columns: 1fr auto; gap: 3px 8px; }
+.hud.en-combat.doigt.dg-a.dg-h2 #combat-titre { grid-column: 1; grid-row: 1; font-size: .74rem; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.hud.en-combat.doigt.dg-a.dg-h2 .combat-haut .btn { grid-column: 2; grid-row: 1; padding: 1px 9px; font-size: .64rem; }
+.hud.en-combat.doigt.dg-a.dg-h2 .combat-haut .barre { grid-column: 1 / -1; grid-row: 2; height: 6px; border-width: 1.5px; }
+.hud.en-combat.doigt.dg-a.dg-h2 .boss-barre { grid-column: 1 / -1; position: relative; margin-top: 2px; }
+.hud.en-combat.doigt.dg-a.dg-h2 .boss-barre .bb { height: 20px; margin: 0; border-width: 2px; }
+.hud.en-combat.doigt.dg-a.dg-h2 .boss-barre .bb-tete { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; gap: 6px; padding: 0 10px; pointer-events: none; }
+.hud.en-combat.doigt.dg-a.dg-h2 .combat-haut .boss-barre b { font-size: .7rem; color: #fff; text-shadow: 0 1px 2px #000; } .hud.en-combat.doigt.dg-a.dg-h2 .boss-barre .bb-tete em { flex: none; font-size: .5rem; color: #ffe9c9; text-shadow: 0 1px 2px #000; }
+.hud.en-combat.doigt.dg-a.dg-h2 .boss-barre small { margin-left: auto; font-size: .58rem; color: #fff; text-shadow: 0 1px 2px #000; }
+/* 3 : plus de cadre du perso du tout (sa barre au-dessus de la tete, en plus grand, avec le chiffre) ; le bandeau de la vague passe a gauche */
+.hud.en-combat.doigt.dg-a.dg-h3 .combat-perso { display: none; }
+.hud.en-combat.doigt.dg-a.dg-h3 .combat-haut { left: calc(8px + env(safe-area-inset-left, 0px)); transform: none; width: min(500px, 60vw); }
+.hud.en-combat.doigt.dg-a.dg-h3 .pv-perso { width: 80px; height: 12px; }
+.hud.en-combat.doigt.dg-a.dg-h1 .combat-haut, .hud.en-combat.doigt.dg-a.dg-h2 .combat-haut { left: calc(212px + env(safe-area-inset-left, 0px)); transform: none; width: min(480px, calc(100vw - 372px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); } /* (a droite de la pilule du perso, jusqu'a la pause) */

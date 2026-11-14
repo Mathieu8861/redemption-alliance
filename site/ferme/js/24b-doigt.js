@@ -9,12 +9,12 @@
    Les reglages se font dans les Options (section visible du seul admin) et restent dans ce navigateur. Les potions ne sont pas en combat (elles ne s'y boivent pas). */
 const dgId = (id) => document.getElementById(id); /* (le $ du jeu est dans 25-interface, charge apres) */
 const DG_CLE = 'ferme-doigt-reglages';
-const DG_DEFAUT = { actif: 'auto', disp: 'a', joy: 'fixe', suivi: 'cadre', dist: 'moyenne', incl: 'normale', tour: true, fleches: true };
+const DG_DEFAUT = { actif: 'auto', disp: 'a', joy: 'fixe', suivi: 'cadre', dist: 'moyenne', incl: 'normale', tour: true, fleches: true, haut: '0' }; /* (haut : le haut de l'ecran, 0 l'actuel, 1 a 3 les versions a choisir, 14/11/2026) */
 const dgReglages = (() => { try { return Object.assign({}, DG_DEFAUT, JSON.parse(localStorage.getItem(DG_CLE) || '{}')); } catch (e) { return Object.assign({}, DG_DEFAUT); } })();
 const dgSauver = () => { try { localStorage.setItem(DG_CLE, JSON.stringify(dgReglages)); } catch (e) { /* rien */ } };
 const DG_ZOOM = { proche: 2.4, moyenne: 1.8, loin: 1.3 }, DG_ELEV = { plongee: 0.9, normale: ELEV_DEPART, rasante: 0.4 };
 const DG_BOUTONS = { 'b-sort': 'sort', 'b-ulti': 'ulti', 'b-leg-coiffe': 'coiffe', 'b-leg-arme': 'arme' };
-const DG_PORTEE_LIBRE = 10, DG_SEUIL = 14, DG_RAYON = 64, DG_CADRE = 0.2; /* (une zone sans portee, l'ulti de zone : 5 cases autour du perso ; 14 px avant de viser ; l'anneau ; le cadre de la camera, 20 % de chaque cote) */
+const DG_PORTEE_LIBRE = 10, DG_SEUIL = 14, DG_RAYON = 52, DG_CADRE = 0.2; /* (une zone sans portee, l'ulti de zone : 5 cases autour du perso ; 14 px avant de viser ; l'anneau ; le cadre de la camera, 20 % de chaque cote) */
 const doigtActif = () => typeof estAdmin === 'function' && estAdmin() && (dgReglages.actif === 'toujours' || (dgReglages.actif === 'auto' && DOIGT));
 const dg = { on: false, el: null, joy: null, marche: false, sort: null, oeil: null, zoomJeu: null, avant: null, t: performance.now(), fl: [], k: 0 };
 
@@ -33,8 +33,8 @@ function dgCreer() {
   return el;
 }
 const dgEncoche = (() => { let p = null; return () => { if (!p) { p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)'; document.body.appendChild(p); } const s = getComputedStyle(p); return { h: parseFloat(s.paddingTop) || 0, d: parseFloat(s.paddingRight) || 0, b: parseFloat(s.paddingBottom) || 0, g: parseFloat(s.paddingLeft) || 0 }; }; })(); /* (l'encoche du telephone couche) */
-const dgBande = () => (dgReglages.disp === 'c' ? 132 : 0);
-function dgCentreJoy() { const e = dgEncoche(); return dgReglages.disp === 'c' ? { x: e.g + 66, y: innerHeight - e.b - 78 } : { x: e.g + 98, y: innerHeight - e.b - 92 }; }
+const dgBande = () => (dgReglages.disp === 'c' ? 140 : 0);
+function dgCentreJoy() { const e = dgEncoche(); return dgReglages.disp === 'c' ? { x: e.g + 70, y: innerHeight - e.b - 80 } : { x: e.g + 98, y: innerHeight - e.b - 92 }; }
 
 /* ----- le joystick ----- */
 function dgPlacerJoy(x, y, kx, ky) { const el = dg.el; el.base.style.left = x + 'px'; el.base.style.top = y + 'px'; el.bouton.style.left = (x + (kx || 0)) + 'px'; el.bouton.style.top = (y + (ky || 0)) + 'px'; }
@@ -104,14 +104,14 @@ function dgPointGlisse(v, nx, ny) { /* glisser : le petit rond dans l'anneau = l
   { const r = v.rayon < 1 ? 2.2 : 0.9; let m = null, md = r; dgActifs().forEach((o) => { const dd = Math.hypot(o.x - x, o.z - z); if (dd < md) { md = dd; m = o; } }); if (m) { x = m.x; z = m.z; } } /* (l'aimant : le cercle s'accroche au monstre qu'il frole) */
   return new T.Vector3(x, pp.y, z);
 }
-function dgPlacerCroix() { const el = dg.el, e = dgEncoche(), debout = innerHeight > innerWidth; const x = debout ? innerWidth - e.d - 52 : dgReglages.disp === 'c' ? innerWidth - e.d - dgBande() - 56 : innerWidth - e.d - 240, y = debout ? 232 + e.h : (dgReglages.disp === 'c' ? 70 : 96) + e.h; el.croix.style.left = x + 'px'; el.croix.style.top = y + 'px'; return { x, y }; }
+function dgPlacerCroix() { const el = dg.el, e = dgEncoche(), c = dgReglages.disp === 'c'; const x = innerWidth - e.d - (c ? 70 : 32), y = c ? innerHeight - e.b - 178 : e.h + 118; /* (en A : a la place des boutons de camera, caches pendant la visee) */ el.croix.style.left = x + 'px'; el.croix.style.top = y + 'px'; return { x, y }; }
 function dgBrancherSorts() {
   const z = dgId('combat-sorts');
   z.addEventListener('pointerdown', (e) => { if (!dg.on || dg.sort) return; const b = e.target.closest('.combat-sort'); if (!b || b.hidden || !DG_BOUTONS[b.id]) return; e.preventDefault();
     dg.sort = { id: e.pointerId, cle: DG_BOUTONS[b.id], b, x0: e.clientX, y0: e.clientY, vise: false }; try { b.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } b.classList.add('appui'); });
   z.addEventListener('pointermove', (e) => { const s = dg.sort; if (!s || e.pointerId !== s.id) return; const dx = e.clientX - s.x0, dy = e.clientY - s.y0;
     if (!s.vise) { if (Math.hypot(dx, dy) < DG_SEUIL) return; const v = dgArmer(s.cle); if (!v || v === 'instant') { dgFinSort(); return; } s.vise = true; const el = dg.el;
-      el.anneau.style.left = s.x0 + 'px'; el.anneau.style.top = s.y0 + 'px'; el.anneau.style.width = el.anneau.style.height = (DG_RAYON * 2) + 'px'; el.anneau.hidden = false; el.tige.hidden = false; el.croix.hidden = false; s.croix = dgPlacerCroix(); }
+      el.anneau.style.left = s.x0 + 'px'; el.anneau.style.top = s.y0 + 'px'; el.anneau.style.width = el.anneau.style.height = (DG_RAYON * 2) + 'px'; el.anneau.hidden = false; el.tige.hidden = false; el.croix.hidden = false; s.croix = dgPlacerCroix(); dgId('hud').classList.add('dg-vise'); }
     const l = Math.hypot(dx, dy), m = Math.min(l, DG_RAYON), kx = l ? dx / l * m : 0, ky = l ? dy / l * m : 0; dg.el.tige.style.left = (s.x0 + kx) + 'px'; dg.el.tige.style.top = (s.y0 + ky) + 'px';
     s.surCroix = Math.hypot(e.clientX - s.croix.x, e.clientY - s.croix.y) < 46; dg.el.croix.classList.toggle('sur', s.surCroix);
     if (visee && !s.surCroix) { const p = dgPointGlisse(visee, dx / DG_RAYON, dy / DG_RAYON); if (p) visee.point = p; } });
@@ -123,7 +123,7 @@ function dgBrancherSorts() {
   z.addEventListener('pointerup', fin); z.addEventListener('pointercancel', fin);
   window.addEventListener('click', (e) => { if (dg.on && e.target && e.target.closest && e.target.closest('#combat-sorts .combat-sort')) { e.stopPropagation(); e.preventDefault(); } }, true); /* (au doigt, le bouton ne passe plus par la visee a la souris) */
 }
-function dgFinSort() { const s = dg.sort; if (s && s.b) s.b.classList.remove('appui'); dg.sort = null; if (dg.el) { dg.el.anneau.hidden = true; dg.el.tige.hidden = true; dg.el.croix.hidden = true; dg.el.croix.classList.remove('sur'); } }
+function dgFinSort() { const s = dg.sort; if (s && s.b) s.b.classList.remove('appui'); dg.sort = null; dgId('hud').classList.remove('dg-vise'); if (dg.el) { dg.el.anneau.hidden = true; dg.el.tige.hidden = true; dg.el.croix.hidden = true; dg.el.croix.classList.remove('sur'); } }
 
 /* ----- la camera ----- */
 function dgBrancherCamera() {
@@ -154,7 +154,7 @@ function dgCamera(dt) {
 const dgVec = new T.Vector3();
 function dgFleches() {
   const box = dg.el.fleches; if (!dgReglages.fleches || dg.oeil) { box.hidden = true; return; } box.hidden = false;
-  const e = dgEncoche(), b = dgBande(), x0 = e.g + b + 30, x1 = innerWidth - e.d - b - 30, y0 = e.h + 58, y1 = innerHeight - e.b - 40, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, pp = paysanMesh.position, groupes = [];
+  const e = dgEncoche(), b = dgBande(), hb = document.querySelector('#combat .combat-haut'), x0 = e.g + b + 30, x1 = innerWidth - e.d - b - (b ? 30 : 74), y0 = (b ? e.h + 30 : Math.round((hb ? hb.getBoundingClientRect().bottom : 60) + 22)), y1 = innerHeight - e.b - 40, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, pp = paysanMesh.position, groupes = [];
   dgActifs().forEach((o) => { if (o.d.oeuf || o.d.plante) return; dgVec.set(o.x, o.m.position.y + (o.haut || 1.5) * 0.5, o.z).project(camera); const sx = (dgVec.x + 1) / 2 * innerWidth, sy = (1 - dgVec.y) / 2 * innerHeight;
     if (sx > x0 - 20 && sx < x1 + 20 && sy > y0 - 30 && sy < y1 + 20 && dgVec.z < 1) return;
     let dx = sx - cx, dy = sy - cy; if (dgVec.z > 1) { dx = -dx; dy = -dy; } const k = Math.min(Math.abs((x1 - cx) / (dx || 1e-6)), Math.abs((y1 - cy) / (dy || 1e-6))), px = cx + dx * k, py = cy + dy * k, ang = Math.atan2(dy, dx);
@@ -168,7 +168,7 @@ function dgFleches() {
 }
 
 /* ----- entrer et sortir du mode, chaque image ----- */
-function dgClasses() { const h = dgId('hud'); h.classList.toggle('doigt', dg.on); h.classList.toggle('dg-a', dg.on && dgReglages.disp !== 'c'); h.classList.toggle('dg-c', dg.on && dgReglages.disp === 'c'); h.classList.toggle('dg-flottant', dg.on && dgReglages.joy === 'flottant'); h.classList.toggle('dg-sans-tour', !dgReglages.tour); }
+function dgClasses() { const h = dgId('hud'); h.classList.toggle('doigt', dg.on); h.classList.toggle('dg-a', dg.on && dgReglages.disp !== 'c'); h.classList.toggle('dg-c', dg.on && dgReglages.disp === 'c'); h.classList.toggle('dg-flottant', dg.on && dgReglages.joy === 'flottant'); h.classList.toggle('dg-sans-tour', !dgReglages.tour); ['1', '2', '3'].forEach((n) => h.classList.toggle('dg-h' + n, dg.on && dgReglages.haut === n)); }
 function dgCamReglages() { dg.zoomJeu = DG_ZOOM[dgReglages.dist] || DG_ZOOM.moyenne; dg.retour = true; inclinerCameraVers(DG_ELEV[dgReglages.incl] != null ? DG_ELEV[dgReglages.incl] : ELEV_DEPART); }
 function dgEntrer() {
   dgCreer(); dg.on = true; dg.avant = { zoom, elev: elevCam }; dgClasses(); dgCamReglages(); const c = dgCentreJoy(); dgPlacerJoy(c.x, c.y);
@@ -187,15 +187,17 @@ function dgMaj(dt) {
   if (dgReglages.joy !== 'flottant' && !dg.joy) { const c = dgCentreJoy(); dgPlacerJoy(c.x, c.y); }
   if ((dg.k = (dg.k + 1) % 2) === 0) { dgFleches(); dgAlertes(); }
 }
-function dgAlertes() { /* les alertes juste sous la barre de la vague (elle grandit avec celle du boss) ; en C, en haut de l'arene */
-  const t = dgId('fil'), h = document.querySelector('#combat .combat-haut'); if (!t) return; t.style.top = (dgReglages.disp === 'c' ? 8 + dgEncoche().h : Math.round((h ? h.getBoundingClientRect().bottom : 50) + 6)) + 'px'; }
+function dgAlertes() { /* les alertes : couche, en bas entre les pouces (le CSS) ; debout, juste sous la barre de la vague (elle grandit avec celle du boss) */
+  const t = dgId('fil'), h = document.querySelector('#combat .combat-haut'); if (!t) return; t.style.top = innerHeight > innerWidth ? Math.round((h ? h.getBoundingClientRect().bottom : 50) + 6) + 'px' : '';
+  Object.keys(DG_BOUTONS).forEach((id) => { const b = dgId(id); if (!b || b.hidden) return; const r = b.querySelector('.rond'), sm = b.querySelector('small'); if (!r || !sm) return; let sp = r.querySelector('.dg-cd'); if (!sp) { sp = document.createElement('i'); sp.className = 'dg-cd'; r.appendChild(sp); }
+    const m = /(\d+)\s*s\b/.exec(sm.textContent || ''), txt = m && !b.classList.contains('pret') ? m[1] : ''; if (sp.textContent !== txt) sp.textContent = txt; }); /* (le decompte, en chiffre dans le bouton) */ }
 function dgBoucle(t) { const dt = Math.min(0.05, Math.max(0, (t - dg.t) / 1000)); dg.t = t; try { dgMaj(dt); } catch (e) { console.error(e); } requestAnimationFrame(dgBoucle); }
 
 /* ----- les Options (section visible du seul admin) ----- */
 function dgOptionsHtml() {
   const R = dgReglages, ch = (titre, cle, L) => '<div class="dg-opt-l"><b>' + titre + '</b><div class="musiques-opt">' + L.map(([v, t]) => '<button class="sexe" data-dg="' + cle + ':' + v + '" aria-pressed="' + (String(R[cle]) === String(v)) + '">' + t + '</button>').join('') + '</div></div>';
   return '<div id="dg-opt"><div class="hdv-section">Commandes au doigt en combat (essai, toi seul)</div><div class="dg-opt">' +
-    ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) +
+    ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) + ch('Haut de l\'écran (A)', 'haut', [['0', 'Actuel'], ['1', '1'], ['2', '2'], ['3', '3']]) +
     ch('Joystick', 'joy', [['fixe', 'Fixe'], ['flottant', 'Sous le doigt']]) + ch('Caméra', 'suivi', [['cadre', 'Avec un cadre'], ['centre', 'Toujours au centre'], ['libre', 'Libre']]) +
     ch('Distance', 'dist', [['proche', 'Proche'], ['moyenne', 'Moyenne'], ['loin', 'Loin']]) + ch('Inclinaison', 'incl', [['plongee', 'Plongée'], ['normale', 'Normale'], ['rasante', 'Rasante']]) +
     ch('Quart de tour', 'tour', [[true, 'Oui'], [false, 'Non']]) + ch('Flèches vers les monstres cachés', 'fleches', [[true, 'Oui'], [false, 'Non']]) +
