@@ -64,15 +64,10 @@ function avancer(maintenant, enDirect) {
   }
   if (maintenant >= S_.prochainCours) {
     S_.coursAvant = Object.assign({}, S_.cours);
-    VENDABLES.forEach((v) => { if (v.nuit && !nuitDebloquee()) return; /* (la plante de nuit : pas de cours tant qu'elle n'existe pas pour cette ferme ; son tirage en plus decalait tous les autres, vu au banc le 11/11/2026) */ S_.cours[v.id] = borne((S_.cours[v.id] || 1) + (Math.random() - 0.5) * 0.14, 0.8, 1.2); });
+    VENDABLES.forEach((v) => { if (v.nuit && !nuitDebloquee()) return; /* (la plante de nuit : pas de cours tant qu'elle n'existe pas pour cette ferme ; son tirage en plus decalait tous les autres, vu au banc le 11/11/2026) */ const c0 = S_.cours[v.id] || 1; S_.cours[v.id] = borne(c0 + (1 - c0) * RETOUR_COURS + (Math.random() - 0.5) * 0.14, 0.8, 1.2); }); /* (14/11/2026, « retour au prix normal » choisi par Mathieu : 15 % de l'ecart rattrape a chaque changement, plus le hasard de +/-7 % ; un prix tres bas remonte en 15 min environ au lieu de 50, et il est bas ou haut 15 % du temps chacun au lieu de 32) */
     S_.prochainCours = maintenant + CADENCE_COURS; hdv = true;
   }
-  if (S_.crise && maintenant >= S_.crise.fin) { S_.crise = null; hdv = true; }
-  if (direct && !S_.crise && maintenant >= S_.prochaineCrise) {
-    S_.prochaineCrise = maintenant + CADENCE_CRISE;
-    const visibles = VENDABLES.filter((v) => v.id === 'laine' ? S_.bouftous.length : v.id === 'plume' ? S_.tofus : v.id === 'plume_doree' ? S_.tofusDores : debloquee(v));
-    if (Math.random() < 0.3 && visibles.length) { const v = hasard(visibles); S_.crise = { id: v.id, fin: maintenant + DUREE_CRISE }; toast('Les bots de VSA inondent l\'HDV : le prix ' + de(v.nom) + ' chute pendant une minute.', 'alerte'); hdv = true; }
-  }
+  if (S_.crise) { S_.crise = null; hdv = true; } /* (la chute des bots de VSA a l'HDV est retiree le 14/11/2026 : « retirez tout simplement, on trouvera une autre mecanique », Mathieu ; une chute en cours dans une vieille sauvegarde s'arrete) */
   let voleur = false;
   if (direct && maintenant >= S_.prochainVoleur) {
     S_.prochainVoleur = maintenant + CADENCE_VOLEUR * (0.6 + Math.random() * 0.8);

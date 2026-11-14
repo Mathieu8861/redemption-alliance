@@ -191,14 +191,14 @@ const mangeWabbit = (c) => S_.vague.num > 5 * VAGUES_PALIER && WABBIT_MANGE.incl
 const wabbitsDehors = () => S_.cases.filter((x) => x.tofu && x.nuisible === 'wabbit').length + (S_.leurreWabbit ? 1 : 0), tofusDehors = () => S_.cases.filter((x) => x.tofu && x.nuisible !== 'wabbit').length;
 const verrouVague = (a) => !!a.apresVague && S_.vague.num <= a.apresVague; /* une amelioration qui attend une vague (le leurre : apres la vague 50) */
 const poilDeWabbit = () => { if (Math.random() >= CHANCE_POIL) return false; S_.grange.poil_wabbit = (S_.grange.poil_wabbit || 0) + 1; rendreGrange(); return true; }; /* un Wabbit chasse lache un Poil de Wabbit une fois sur deux */
-const RYTHME_TOFU = 9 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 1.5 * MIN, ACCALMIE_TOFU = 1 * MIN, CADENCE_COURS = 2 * MIN, CADENCE_CRISE = 5 * MIN, DUREE_CRISE = 60000; /* (rythme fixe : les cours bougent toutes les 2 min, une crise d'une vraie minute toutes les 5 min au plus) */
+const RYTHME_TOFU = 9 * MIN, TOFUS_MAX = 2, DUREE_PICORAGE = 1.5 * MIN, ACCALMIE_TOFU = 1 * MIN, CADENCE_COURS = 2 * MIN, RETOUR_COURS = 0.15; /* (rythme fixe : les cours bougent toutes les 2 min ; RETOUR_COURS : la part de l'ecart au prix normal rattrapee a chaque fois, 14/11/2026) */
 const PART_CONSTRUCTIBLE = 0.7; /* la regle de Mathieu : 70 % des cases au plus */
 const PEPITO = [
   'un Tofu dans le blé, c\'est comme VSA à l\'HDV : faut le chasser vite.',
   'arrose tes semis. un champ sec pousse aussi vite qu\'une maj d\'Ankama.',
   'je bosse pour des pépites, toi pour des kamas. on sait qui négocie le mieux.',
   'un Bouftou qui a faim ne donne rien. comme un perco à 1 pod.',
-  'vends ta laine quand les bots de VSA dorment, le cours remonte toujours.',
+  'un prix bas a l\'HDV remonte toujours. un prix haut redescend. vends au bon moment.',
   'laisse respirer ta ferme : une case vide, c\'est une case où les Tofus ne picorent rien.',
   'l\'Engrais d\'Amakna, c\'est le seul boost que personne ne nerfe.'
 ];

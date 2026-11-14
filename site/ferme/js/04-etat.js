@@ -46,7 +46,6 @@ const prixAchatBle = () => Math.max(5, Math.ceil(prix('ble') * 2)); /* le Ble ac
 function prix(id) {
   const v = PAR_ID[id];
   let p = v.prix * NERF_KAMAS * (S_.cours[id] || 1) * [1, 1.1, 1.1, 1.15, 1.2][nivBat('nivEtal') - 1];
-  if (S_.crise && S_.crise.id === id) p *= 0.6;
   return Math.max(1, Math.round(p));
 }
 function casesInitiales() { /* tout le depart en herbe, puis la ferme 8 x 5 au milieu */
@@ -67,7 +66,7 @@ function etatInitial() {
   return {
     kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, panosProfil: 1, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, peche: { cannes: [1], main: 0 }, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
-    amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, prochaineCrise: t + CADENCE_CRISE, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
+    amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
   };
 }
 /* 11/10/2026 : les ameliorations deja achetees deviennent le niveau equivalent du batiment (on ne perd rien) */

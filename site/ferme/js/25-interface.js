@@ -48,11 +48,9 @@ const icoGrange = (nom, graine) => '<span class="gi"><img src="assets/icones/' +
 function rendreGrange() {
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
   const corps = (lignes.length ? lignes.map((v) => '<div class="l"><span class="n">' + icoGrange(v.id) + v.nom + '</span><span>' + fmt(S_.grange[v.id]) + '</span></div>').join('') : '<div class="l"><span>Rien pour l\'instant</span></div>') + CULTURES.filter((c) => (S_.graines[c.id] || 0) > 0).map((c) => '<div class="l"><span class="n">' + icoGrange(c.id, true) + 'Graines ' + de(c.nom) + '</span><span>' + S_.graines[c.id] + '</span></div>').join('') + Object.keys(POTS).filter((t) => S_.pots && S_.pots[t] > 0).map((t) => '<div class="l"><span class="n">' + icoGrange('pot-' + t) + POTS[t].court + '</span><span>' + S_.pots[t] + '</span></div>').join('') + (S_.filets ? '<div class="l"><span class="n">' + icoGrange('filet') + 'Filets</span><span>' + S_.filets + '</span></div>' : '');
-  const crise = S_.crise ? '<div class="crise">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' à l\'HDV : -40 %</div>' : '';
   /* (06/11/2026) un titre qui replie le panneau, et la liste dans un bloc qui defile, reecrit seulement s'il change (sinon il remonterait en haut a chaque recolte) */
-  const g = $('panneau-grange'); if (!g.querySelector('.defile')) { g.innerHTML = '<h2 class="pli">Grange<span class="chev"></span></h2><div class="defile"></div><div class="crise-zone"></div>'; rendreGrange.dernier = rendreGrange.crise = null; }
+  const g = $('panneau-grange'); if (!g.querySelector('.defile')) { g.innerHTML = '<h2 class="pli">Grange<span class="chev"></span></h2><div class="defile"></div>'; rendreGrange.dernier = null; }
   if (corps !== rendreGrange.dernier) { rendreGrange.dernier = corps; g.querySelector('.defile').innerHTML = corps; }
-  if (crise !== rendreGrange.crise) { rendreGrange.crise = crise; g.querySelector('.crise-zone').innerHTML = crise; }
   rendreElevage();
 }
 function toast(msg, genre) {
@@ -263,6 +261,12 @@ function descAmelio(a, n, bat) {
 const lignesAmelio = (ids, titre) => '<div class="hdv-section">' + titre + '</div>' + ids.map((id) => AMELIOS.find((a) => a.id === id)).filter(Boolean).map(artAmelio).join('');
 const qteDe = (id, opts) => { const q = (ouvrirHdv.qtes || {})[id]; return opts.some(([v]) => v === q) ? q : opts[0][0]; }; /* la quantite choisie pour cet article */
 const segQte = (id, opts) => '<span class="seg mini">' + opts.map(([v, t]) => '<button data-qte-item="' + id + '" data-qte-v="' + v + '" aria-pressed="' + (qteDe(id, opts) === v) + '">' + t + '</button>').join('') + '</span>';
+/* LES PRIX DE L'HDV, EN CLAIR (14/11/2026, « revoir, rendre plus comprehensible le systeme de hausse et de baisse des ventes de ressources », Mathieu) :
+   chaque ressource dit l'ecart de son prix au prix normal, en pourcentage colore (vert : bon prix, gris : normal, rouge : prix bas ; « plus simple », sans jauge) ;
+   avant, « en hausse » ou « en baisse » ne comparait qu'au prix d'il y a 2 minutes, et le Ble en crise a -40 % pouvait s'afficher « en hausse » */
+function etatCours(id) { const pct = Math.round(((S_.cours[id] || 1) - 1) * 100);
+  return '<span class="cours ' + (pct >= 8 ? 'c-haut' : pct <= -8 ? 'c-bas' : 'c-normal') + '" title="Écart au prix normal">' + (pct > 0 ? '+' : pct < 0 ? '−' : '') + Math.abs(pct) + ' %</span>'; } /* (classes prefixees : .haut est la barre du haut de l'ecran) */
+const aideCours = () => '<p class="hdv-aide cours-aide">Le % donne l\'écart au prix normal. Toutes les 2 min, chaque prix bouge un peu et revient vers la normale : un prix bas remonte, un bon prix redescend. Prochain changement dans ' + dureeLisible(Math.max(0, (S_.prochainCours || 0) - Date.now())) + '.</p>';
 function ouvrirHdv(onglet) { /* (redessinee sur le meme onglet et la meme categorie : on reste au meme endroit de la liste) */
   const avant = modaleOuverte === 'hdv' ? { o: ouvrirHdv.dernier, c: ouvrirHdv.cat, y: $('carte').scrollTop } : null;
   ouvrirHdv0(onglet); if (avant && avant.o === ouvrirHdv.dernier && avant.c === ouvrirHdv.cat) $('carte').scrollTop = avant.y;
@@ -346,10 +350,10 @@ function ouvrirHdv0(onglet) {
   }
   /* seulement ce qu'on a en grange (« quand on a 0 de quelque chose, ca sert a rien de le mettre dans la liste », Mathieu, 15/10/2026) */
   const lignes = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0);
-  ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + (S_.crise ? '<div class="crise" style="background:#3d2624;border:2px solid var(--rouge);border-radius:10px;padding:5px 8px;font-size:.75rem;margin-bottom:8px">Les bots de VSA cassent le prix ' + de(PAR_ID[S_.crise.id].nom) + ' : -40 % jusqu\'à ce qu\'ils s\'en aillent.</div>' : '') +
+  ouvrirModale('hdv', entete('Hôtel de vente') + tete + etatHdv + aideCours() +
     (lignes.length ? lignes.map((v) => {
       const oV = [[1, '×1'], [10, '×10'], [0, 'Tout']], q = qteDe('v:' + v.id, oV), st = S_.grange[v.id] || 0, p = prix(v.id), avant = (S_.coursAvant && S_.coursAvant[v.id]) || 1, mtn = S_.cours[v.id] || 1, n = q === 0 ? st : Math.min(q, st);
-      const tend = mtn > avant + 0.005 ? '<span class="puce bonne">▲ en hausse</span>' : mtn < avant - 0.005 ? '<span class="puce mauvaise">▼ en baisse</span>' : '';
+      const tend = etatCours(v.id); /* (14/11/2026 : l'ecart au prix normal, plus « en hausse / en baisse » depuis 2 min) */
       return '<div class="art">' + ico(v.id) + '<div><b>' + v.nom + '</b><div class="puces"><span class="puce">' + fmt(st) + ' en grange</span>' + tend + '</div></div>' +
         '<div class="act"><small>' + p + ' ' + KAMA + ' l\'unité</small>' + segQte('v:' + v.id, oV) + '<button class="btn kamas" data-vendre="' + v.id + '" data-n="' + n + '"' + (n ? '' : ' disabled') + '>Vendre' + (n ? ' ×' + n + ' = ' + fmt(n * p) + ' ' + KAMA : '') + '</button></div></div>';
     }).join('') : '<p style="font-size:.8rem;font-weight:600">Rien à vendre pour l\'instant : récolte, tonds tes Bouftous, ramasse les plumes.</p>'));

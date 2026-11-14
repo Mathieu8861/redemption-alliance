@@ -30,7 +30,7 @@ const ABSENCE_MAX = 10 * 3600e3, VITESSE_ABSENCE = 1 / 20; /* (« quand la perso
 function fermeSansToi(maintenant, d) {
   const avant = photoFerme(), garde = Math.round(Math.min(d, ABSENCE_MAX) * VITESSE_ABSENCE); /* (le temps qui compte pour la ferme ; le reste est une pause) */
   if (d > garde) { const x = d - garde; const decaler = (o) => { for (const k in o) { if (k === 'parties') continue; const v = o[k]; if (typeof v === 'number') { if (v > 1.5e12 && v < 4e12) o[k] = v + x; } else if (v && typeof v === 'object') decaler(v); } }; decaler(S_); if (raidAnnonce) raidAnnonce.fin += x; } /* (ce qui ne compte pas : comme une pause, toutes les dates avancent d'autant) */
-  ['prochainRaid', 'prochainVoleur', 'prochaineCrise'].forEach((k) => { if (S_[k]) S_[k] += garde; });
+  ['prochainRaid', 'prochainVoleur'].forEach((k) => { if (S_[k]) S_[k] += garde; });
   if (S_.ardoise && S_.ardoise.prochaine) S_.ardoise.prochaine += garde;
   if (S_.sauvage && S_.sauvage.fin) S_.sauvage.fin += garde;
   S_.cases.forEach((p) => { if (p.tofu) p.tofu += garde; if (p.tofuParti) p.tofuParti += garde; });

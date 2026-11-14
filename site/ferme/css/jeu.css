@@ -325,8 +325,6 @@ ul.passifs { margin: 3px 0 0; padding-left: 16px; } ul.passifs li { margin: 2px 
 .panneau.replie h2.pli .chev { transform: rotate(-45deg); margin-bottom: 0; }
 .panneau.replie > :not(h2) { display: none !important; }
 .panneau .defile { pointer-events: auto; touch-action: pan-y; display: grid; gap: 5px; align-content: start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #5a5d66 transparent; margin-right: -6px; padding-right: 6px; }
-.panneau .crise-zone:empty { display: none; }
-.panneau .crise { background: #592922; border: 2px solid var(--rouge); border-radius: 10px; padding: 4px 7px; font-size: .72rem; color: #e97a72; }
 .hud:has(#toasts > .toast) .commis { opacity: 0; pointer-events: none; } /* (un message a l'ecran : la phrase de Pepito s'efface, un seul endroit qui parle a la fois, 07/11/2026) */
 .commis { transition: opacity .3s; position: absolute; left: 12px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--papier); border: 3px solid var(--bord); border-radius: 14px; padding: 7px 10px; box-shadow: 0 4px 0 var(--bord); font-size: .76rem; font-weight: 600; }
 .commis b { font-family: var(--f-titre); font-weight: 400; color: var(--kamas); }
@@ -1450,3 +1448,8 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .hud.en-combat.doigt.dg-a.dg-h1 .combat-haut { left: calc(212px + env(safe-area-inset-left, 0px)); transform: none; width: min(480px, calc(100vw - 372px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); } /* (a droite de la pilule du perso, jusqu'a la pause) */
 
 @media (orientation: portrait) { .hud.en-combat.doigt.dg-a.dg-h1 .combat-haut { left: calc(8px + env(safe-area-inset-left, 0px)); top: calc(46px + env(safe-area-inset-top, 0px)); width: calc(100% - 66px); } } /* (debout : le bandeau sous la pilule, sur la largeur) */
+
+/* les prix de l'HDV en clair (14/11/2026) : l'ecart au prix normal, en pourcentage colore */
+.cours { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: .7rem; font-weight: 900; background: #2b2d31; color: #c9ccd2; white-space: nowrap; }
+.cours.c-haut { background: #2f4a20; color: #a6e48f; } .cours.c-bas { background: #4a2420; color: #f0a39b; }
+.cours-aide { margin: 0 0 8px; }
