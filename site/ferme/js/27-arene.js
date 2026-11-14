@@ -265,6 +265,11 @@ const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)),
 function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
 const partiesIle = () => [S_].concat(Object.values(S_.parties || {}).filter((e) => e && e.perso)); /* (la partie en cours et les autres du compte) */
 const jourIleDe = (e, cle) => (e.ileBoss && e.ileBoss.jours && e.ileBoss.jours[cle]) || null;
+/* LES ESSAIS EN PLUS (14/11/2026, « rajoute 5 essais a tout le monde sur le boss de l'ile et met moi en mode infini sur le boss de l'ile », Mathieu) : 5 essais offerts
+   a tous la semaine du vendredi 13/11 (jusqu'au jeudi 19/11 inclus), et des essais sans limite pour son compte (TESTEURS_ULTI, 22-sorts.js) */
+const ESSAIS_BONUS_ILE = { '2026-11-13': 5 };
+const ileSansLimite = () => typeof ultiLibre === 'function' && ultiLibre();
+const essaisMax = (cle) => (ileSansLimite() ? Infinity : ESSAIS_ILE_BOSS + (ESSAIS_BONUS_ILE[cle] || 0));
 const essaisCompte = (cle) => MODE_TEST ? 0 : partiesIle().reduce((a, e) => a + ((jourIleDe(e, cle) || {}).essais || 0), 0); /* (3 essais par compte, toutes parties confondues) */
 const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleDe(e, cle) || {}).meilleur || 0));
 const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS && k !== semaineIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
@@ -276,14 +281,14 @@ async function classementIleBoss(cle) { /* le total et le classement de l'allian
 }
 function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, la vie commune, les recompenses, le classement */
   const cle = semaineIleBoss(), l = niveau(S_.xp), v = '?v=' + VERSION_MODELES, aReclamer = aReclamerIle();
-  const t = bossDuJour(cle), B = MONSTRES[t], J = jourIle(cle), reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(cle));
-  const raison = l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + ESSAIS_ILE_BOSS + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.' : '';
+  const t = bossDuJour(cle), B = MONSTRES[t], J = jourIle(cle), reste = Math.max(0, essaisMax(cle) - essaisCompte(cle));
+  const raison = l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + essaisMax(cle) + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.' : '';
   const total = ileBossTotal != null && cle && !MODE_TEST ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / pvIleBoss(t)) : 0;
   const R = RECOMPENSES_ILE, rec = (titre, txt) => '<div class="rc-l"><span>' + titre + '</span><b>' + txt + '</b></div>';
   ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque vendredi, avec une vie neuve. Toute l\'alliance tape sur la même vie.</p></div></div>' +
-    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + ESSAIS_ILE_BOSS + ' cette semaine</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' + '<span class="puce">gratuit</span></div>' +
+    '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">niveau ' + NIV_ILE_BOSS + '</span>' + '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + (reste === Infinity ? 'essais sans limite' : reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + essaisMax(cle) + ' cette semaine') + '</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' + '<span class="puce">gratuit</span></div>' +
     ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, pvIleBoss(t) - total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV' : MODE_TEST ? 'Mode test : boss au choix, essais libres, rien ne compte pour l\'alliance' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
-    '<ul class="arene-regles"><li><b>' + ESSAIS_ILE_BOSS + ' essais par semaine, seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
+    '<ul class="arene-regles"><li><b>' + ESSAIS_ILE_BOSS + ' essais par semaine' + (ESSAIS_BONUS_ILE[cle] ? ' (+' + ESSAIS_BONUS_ILE[cle] + ' offerts cette semaine)' : '') + ', seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il s\'adapte à ton niveau</b> et enrage de plus en plus : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse de déplacement et de vitesse d\'attaque, et leurs sorts reviennent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % plus vite. Toute l\'île est à toi : esquive tant que tu peux, et tape le plus fort possible.</li>' +
     '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
     '<div class="hdv-section">Les récompenses, le vendredi suivant (le coffre s\'ouvre tout seul à ta ferme)</div><div class="ib-rec">' + rec('Si tu as participé', fmt(R.participation.kamas) + ' kamas, 1 rune de forgemagie, ' + Math.round(R.participation.xp * 100) + ' % d\'un niveau') +
@@ -299,7 +304,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
 }
 async function partirIleBoss() {
   const cle = semaineIleBoss();
-  const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) { toast('Tes ' + ESSAIS_ILE_BOSS + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.', 'alerte'); return; }
+  const J = jourIle(cle); if (essaisCompte(cle) >= essaisMax(cle)) { toast('Tes ' + essaisMax(cle) + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.', 'alerte'); return; }
   if (niveau(S_.xp) < NIV_ILE_BOSS) { toast('L\'île des boss ouvre au niveau ' + NIV_ILE_BOSS + '.'); return; }
   if (!peutPartir('ile')) return;
   areneSuite = true; fermerModale(); areneSuite = false;
@@ -313,7 +318,7 @@ async function partirIleBoss() {
   setTimeout(() => { if (lieu === 'ile' && !combat) lancerIleBoss(); }, 1800);
 }
 function lancerIleBoss() {
-  const cle = semaineIleBoss(); if (combat || !paysanMesh || lieu !== 'ile') return; const J = jourIle(cle); if (essaisCompte(cle) >= ESSAIS_ILE_BOSS) return;
+  const cle = semaineIleBoss(); if (combat || !paysanMesh || lieu !== 'ile') return; const J = jourIle(cle); if (essaisCompte(cle) >= essaisMax(cle)) return;
   J.essais++; sauver(); /* (l'essai compte des qu'il commence) */
   const t = J.boss = bossDuJour(cle), n = vagueDuBoss(t);
   nouveauCombat('ile', { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: MODE_TEST ? 0 : Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, attente: 99, ...potsDeVague() }); /* (chaque essai part avec toute sa vie) */
@@ -328,12 +333,12 @@ function finIleBoss(abandon, tombe) {
   /* (la vie de la ferme reste celle d'avant le voyage : un essai rate ne te renvoie pas a 1 PV) */
   const A = c.arene, J = jourIle(A.cle), d = Math.round(A.deg), mc = meilleurCompte(A.cle), record = d > mc; if (record && ileBossTotal != null && !MODE_TEST) ileBossTotal += d - mc; if (d > J.meilleur) J.meilleur = d; /* (record : le meilleur du compte, toutes parties) */ compter('ileBossEssais');
   son(tombe || record ? 'victoire' : 'defaite'); if (tombe || record) confettis(tombe ? 80 : 40);
-  const reste = Math.max(0, ESSAIS_ILE_BOSS - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
+  const reste = Math.max(0, essaisMax(A.cle) - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
     '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) + '</div>' +
     '<p class="hdv-aide">Le coffre de la semaine s\'ouvre tout seul à ta ferme ' + prochainVendredi() + ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
-    '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
+    '<div class="act-bas"><small style="color:#a9adb5">' + (reste === Infinity ? 'Essais sans limite' : reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine') + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
   rendreHaut(); sauver();
 }
 /* LE COFFRE DE L'ILE, TOUT SEUL (02/11/2026, « on recoit a quel moment les recompenses de classement, de participation ? il faudrait un message ou une notif
