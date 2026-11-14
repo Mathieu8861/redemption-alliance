@@ -20,14 +20,14 @@ function majCombat(dt, s) {
   if (classeDe() === 'iop') { /* le Iop (18-geliere.js) : sa regeneration, son invincibilite, son Berserker */
     if (c.invincible > 0) { c.invincible -= dt; if (c.invincible <= 0) { c.elanIop = DUREE_ELAN_IOP; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Vitesse +' + Math.round(ELAN_IOP * 100) + ' %', p, 'soin'); } } /* (l'invincibilite s'arrete : l'elan commence, 11/11/2026) */
     if (c.elanIop > 0) c.elanIop -= dt;
-    if (c.deroute == null && c.pv > 0 && (c.regenIop = (c.regenIop || 0) + dt) >= PAS_REGEN_IOP) { c.regenIop -= PAS_REGEN_IOP;
+    if (c.deroute == null && c.pv > 0 && !c.entracte && (c.regenIop = (c.regenIop || 0) + dt) >= PAS_REGEN_IOP) { /* (!c.entracte : pas de regeneration pendant la pause entre deux phases d'une vague de boss ou deux vagues de l'Arene, 14/11/2026, « les PV peuvent se regenerer tout seuls si on attend », Mathieu) */ c.regenIop -= PAS_REGEN_IOP;
       if (c.pv < c.pvMax) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * REGEN_IOP); if (c.st) c.st.soins += c.pv - a0; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('+' + Math.round(c.pv - a0), p, 'soin'); } }
     const col = berserkerIop(), p = paysanMesh.position;
     if (col && !c.berserker) { pouf(p.x, p.y, p.z, 2.5, '#e2413a'); if (!c.berserkerVu) { c.berserkerVu = true; toast('Berserker : sous ' + Math.round(SEUIL_BERSERKER_IOP * 100) + ' % de vie, tes coups d\'épée font ' + Math.round((BERSERKER_IOP - 1) * 100) + ' % de dégâts en plus !', 'alerte'); } }
     if (col && (c.berserkerT = (c.berserkerT || 0) + dt) > 0.12) { c.berserkerT = 0; emettre(FX_VIF, 2, { x: p.x, y: p.y + 0.9, z: p.z, r: 0.5, dv: 1.4, vie: [0.35, 0.6], taille: [0.09, 0.02], c: ['#ff5a2a', '#ffb347'], a: 1 }); }
     c.berserker = col;
   }
-  if (c.regen && c.deroute == null && c.pv > 0) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * c.regen * dt); if (c.st) { c.st.soins += c.pv - a0; c.st.menthe += c.pv - a0; } } /* le pot de Menthe */
+  if (c.regen && c.deroute == null && c.pv > 0 && !c.entracte) { /* (pas pendant la pause entre deux phases, 14/11/2026) */ const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * c.regen * dt); if (c.st) { c.st.soins += c.pv - a0; c.st.menthe += c.pv - a0; } } /* le pot de Menthe */
   if (c.deroute != null) { /* a terre : le compte a rebours du saccage */
     c.deroute -= dt;
     /* (07/11/2026, « meme si tu meurs, si tes batiments finissent par tuer les monstres dans le temps imparti avant la fin de la manche, tu gagnes, tu ne perds
