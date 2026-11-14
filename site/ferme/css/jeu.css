@@ -1465,3 +1465,4 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .mf-carte .a-gains dt svg.pc { width: 15px; height: 15px; } .mf-carte .a-gains .lib { font-size: .74rem; line-height: 1.15; } .mf-carte .a-gains dd { font-size: .76rem; }
 .mf-carte > div { flex: 1; min-width: 0; }
 .mf-carte .a-gains dd { white-space: normal; max-width: 9.5em; } /* (une valeur longue, « +20 % de jet par rune », passe a la ligne au lieu de sortir de la carte) */
+.art .pic.img.gj-pic { display: grid; place-items: center; } .art .pic.img.gj-pic > svg { width: 64%; height: 64%; } /* (la ligne « Comment jouer » des Options : la souris ou le doigt dans le meme cadre que les autres icones, 14/11/2026) */
