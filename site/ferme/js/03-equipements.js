@@ -235,7 +235,12 @@ const RECETTES_ATELIER = [{ id: 'acier', nom: 'Carreaux d\'acier', donne: 20, il
      tankiness a notre base ; un consommable, comme les carreaux, pour la base ; il faut 10 ecailles de tortue et 5 branches d'eucalyptus », Mathieu) : fabrique ici,
      pose avant une vague (la colonne Defense, avantBataille) ; pendant cette vague, les batiments prennent BOUCLIER_BASE de degats en moins (blesserBat) */
   { id: 'bouclier', nom: 'Bouclier de carapace', donne: 1, stock: 'boucliers', il: [['ecaille_tortue', 10], ['kaliptus', 5]], ico: 'bouclier-ecailles', /* (l'icone B, choisie par Mathieu le 10/11/2026) */
-    desc: 'Un consommable pour ta base : pose-le avant une vague (fenêtre Vagues, colonne Défense), et une carapace de tortue se referme sur ta grange (ton château au niveau 6) : un bouclier de 20 % de sa vie, que les coups entament avant elle (la part bleue de sa barre). Un bouclier par vague.' }];
+    desc: 'Un consommable pour ta base : pose-le avant une vague (fenêtre Vagues, colonne Défense), et une carapace de tortue se referme sur ta grange (ton château au niveau 6) : un bouclier de 20 % de sa vie, que les coups entament avant elle (la part bleue de sa barre). Un bouclier par vague.' },
+  /* LE BOUCLIER ANTI-VSA FABRIQUE (15/11/2026, version dev, Mathieu au formulaire : « recette a l'atelier », « 10 brassards + d'autres ressources », l'achat a 50 000 kamas garde) :
+     le meme bouclier que celui de la grange (2 h sans simu ni voleur de VSA, 19-raids.js), mis en reserve ; il se leve depuis la grange */
+  { id: 'bouclier_vsa', nom: 'Bouclier anti-VSA', minuscule: 'bouclier anti-VSA', donne: 1, stock: 'boucliersVsa', dev: true, il: [['brassard_vsa', 10], ['soie_arakne', 4], ['ecorce_abraknyde', 4]], ico: 'bouclier-vsa',
+    apres: '. Lève-le depuis ta grange quand tu veux : 2 h sans simu ni voleur de VSA.',
+    desc: 'Le bouclier anti-VSA, sans payer 50 000 kamas : 2 h sans simu ni voleur de VSA. Il va dans ta réserve, et se lève depuis ta grange quand tu veux.' }];
 const BOUCLIER_BASE = 0.2, nomQG = () => (niv('qg') >= 5 ? 'ton château' : 'ta grange'), bouclierPret = () => { const r = S_.bouclierPose ? BOUCLIER_BASE : 0; S_.bouclierPose = false; return r; }; /* (pose avant la vague : il part avec elle) */
 const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier || 0) > 0;
 /* L'INTERRUPTEUR DES CARREAUX D'ACIER (09/11/2026, « c'est nous qui decidons quand on les equipe ; si ca les tire sur un boss niveau 30, t'as le seum ;
@@ -258,7 +263,7 @@ document.addEventListener('click', (e) => {
    On paie avec le premier tant qu'on en a, puis avec le second. faisables : combien de fois la grange peut le fournir ; paieIngredient : ce qu'on retire pour n fois */
 const faisables = (G, [id, k, ou]) => (MODE_TEST ? 99 : Math.floor((G[id] || 0) / k) + (ou ? Math.floor((G[ou[0]] || 0) / ou[1]) : 0)); /* (le mode test fabrique sans ressources, 11/11/2026) */
 const paieIngredient = (G, [id, k, ou], n) => { if (MODE_TEST) return []; const a = Math.min(n, Math.floor((G[id] || 0) / k)); return ou ? [[id, k * a], [ou[0], ou[1] * (n - a)]] : [[id, k * n]]; };
-const nomRessources = (id, k) => (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)( (?!de |du |d['’])\S+)?/, (m, a, b) => a + 's' + (b ? b + 's' : '')) : PAR_ID[id].nom); /* (Plumes dorees, Soies d'Arakne, Plumes de Tofu) */
+const nomRessources = (id, k) => (k > 1 ? PAR_ID[id].nom.replace(/^(\S+)( (?!de |du |d['’])\S+)?/, (m, a, b) => a + 's' + (b ? b + (/^ [A-Z]+$/.test(b) ? '' : 's') : '')) : PAR_ID[id].nom); /* (Plumes dorees, Soies d'Arakne, Plumes de Tofu) */
 function ouvrirAtelier() {
   if (amelioCachee('atelier')) { toast('L\'atelier arrive bientôt.'); return; } /* (cache aux joueurs pour le moment, 09/11/2026) */
   if (!niv('atelier')) { ouvrirHdv('ameliorer'); return; }
@@ -268,15 +273,15 @@ function ouvrirAtelier() {
   const n6 = niv('arbalete') >= 6, nA = S_.acier || 0;
   const baliste = n6 ? blocAcier()
     : '<p class="hdv-aide">Il te faut la baliste d\'acier pour tirer ces carreaux : l\'arbalète de la grange au niveau 6 (HDV, Améliorer, niveau 95).</p>';
-  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">' + (MODE_TEST ? 'Mode test : tu fabriques tout librement, sans ressources ni kamas.' : 'Tu y fabriques avec les ressources de ta grange (et parfois des kamas).') + '</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
+  ouvrirModale('atelier', entete('L\'atelier') + '<p class="hdv-aide">' + (MODE_TEST ? 'Mode test : tu fabriques tout librement, sans ressources ni kamas.' : 'Tu y fabriques avec les ressources de ta grange (et parfois des kamas).') + '</p><div class="hdv-section">Fabriquer</div>' + RECETTES_ATELIER.filter((x) => !x.dev || vsaDev()).map(carte).join('') + '<div class="hdv-section">Ta baliste</div>' + baliste);
 }
 function fabriquer(id, fois) {
-  const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || !niv('atelier') || amelioCachee('atelier')) return; fois = Math.max(1, fois | 0);
+  const R = RECETTES_ATELIER.find((x) => x.id === id), G = S_.grange || {}; if (!R || (R.dev && !vsaDev()) || !niv('atelier') || amelioCachee('atelier')) return; fois = Math.max(1, fois | 0);
   if (!R.il.every((I) => faisables(G, I) >= fois)) { toast('Il te manque des ressources dans ta grange.'); return; }
   if (S_.kamas < (R.kamas || 0) * fois) { toast('Il te manque ' + fmt((R.kamas || 0) * fois - S_.kamas) + ' kamas.'); return; }
   R.il.forEach((I) => paieIngredient(G, I, fois).forEach(([r, q]) => { if (q) G[r] -= q; })); S_.kamas -= (R.kamas || 0) * fois; if (id === 'acier') S_.acier = (S_.acier || 0) + R.donne * fois; if (R.stock) S_[R.stock] = (S_[R.stock] || 0) + R.donne * fois;
   if (R.deco) { S_.decos = S_.decos || {}; S_.decos[R.deco] = nbDecos(R.deco) + R.donne * fois; assurerDecos(); }
-  son('niveau'); toast(R.deco ? '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + (fois > 1 ? 's' : '') + ' dans tes décorations : pose-' + (fois > 1 ? 'les' : 'la') + ' où tu veux (Aménager, Mes décorations).' : R.stock ? '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_[R.stock]) + '. Pose-le avant une vague (fenêtre Vagues, colonne Défense).' : '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
+  son('niveau'); toast(R.deco ? '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + (fois > 1 ? 's' : '') + ' dans tes décorations : pose-' + (fois > 1 ? 'les' : 'la') + ' où tu veux (Aménager, Mes décorations).' : R.stock ? '+' + R.donne * fois + ' ' + (R.minuscule || R.nom.toLowerCase()) + ' : tu en as ' + fmt(S_[R.stock]) + (R.apres || '. Pose-le avant une vague (fenêtre Vagues, colonne Défense).') : '+' + R.donne * fois + ' ' + R.nom.toLowerCase() + ' : tu en as ' + fmt(S_.acier || 0) + '.' + (niv('arbalete') >= 6 && !S_.acierCharge ? ' Charge-les dans ta baliste juste en dessous.' : ''), 'or'); sauver(); rendreGrange(); rendreHaut();
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-atelier-fab]'); if (!b) return;

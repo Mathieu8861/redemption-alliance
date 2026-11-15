@@ -97,6 +97,13 @@ function perdreMoitieButin(c) {
   T0.slice(0, x).forEach((k) => { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; if (S_.neufs && S_.neufs[k]) { S_.neufs[k]--; if (!S_.neufs[k]) delete S_.neufs[k]; S_.nouveaux = Math.max(0, (S_.nouveaux || 0) - 1); } const i = L.objets.indexOf(k); if (i >= 0) L.objets.splice(i, 1); P.objets.push(k); });
   if (P.objets.length) rendreHaut(); return P;
 }
+/* ce que les voleurs de VSA avaient sur eux (15/11/2026) : les pieces, puis les ressources et les Brassards, comme le butin d'une vague */
+function trouveSurEux(L) {
+  if (!L || (!(L.objets || []).length && !Object.keys(L.res || {}).length)) return '';
+  return '<div class="hdv-section">Trouvé sur eux</div>' + lignesButin(L.objets || [], true, true) +
+    Object.entries(L.res || {}).map(([r, n]) => '<div class="art">' + ico(r) + '<div><b>' + n + ' ' + nomRessources(r, n) + '</b><div class="desc">À la grange, se vend à l\'HDV (' + fmt(Math.round(prix(r))) + ' ' + KAMA + ' pièce).</div></div>' +
+      ((S_.grange[r] || 0) > 0 ? '<div class="act"><button class="btn discret" data-vendre-res="' + r + '" data-n="' + Math.min(n, S_.grange[r]) + '">Vendre ' + fmt(Math.round(Math.min(n, S_.grange[r]) * prix(r))) + ' ' + KAMA + '</button></div>' : '<div></div>') + '</div>').join('');
+}
 function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }
   const c = combat; if (!fuite) son(gagne ? 'victoire' : 'defaite'); const n = c.n, rejoue = S_.vague.num > vaguesOuvertes() || c.rejoueBoss != null;
@@ -128,7 +135,7 @@ function finVague(gagne, fuite) {
        des recoltes volees au prix de l'HDV (les recoltes reprises reviennent dans la grange : elles ne comptent pas) */
     const bilan = prime + ((c.lootV && c.lootV.kamas) || 0) - vPerdu;
     const pied = '<div class="bv-pied"><div class="bv-bilan ' + (bilan >= 0 ? 'plus' : 'moins') + '"><img src="assets/icones/kama.png?v=' + VERSION_MODELES + '" alt=""><div class="bv-txt"><span>Bilan de l\'attaque</span>' + (vPerdu ? '<small>récoltes perdues au prix de l\'HDV</small>' : '') + '</div><b>' + (bilan >= 0 ? '+' : '−') + fmt(Math.abs(bilan)) + ' kamas</b></div><button class="btn kamas" data-fermer>Retour à la ferme</button></div>';
-    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + recapCombat(c) + pied); /* (le recap du combat, comme apres une vague, 16/10/2026) */ memoriserCombat();
+    ouvrirModale('vague-fin', entete(perdu.length ? 'Simu VSA terminée' : 'Simu VSA repoussée !') + vol + '<div class="bv-grille" style="--n:' + Math.min(4, V.length) + '">' + V.join('') + '</div>' + trouveSurEux(c.lootV) + recapCombat(c) + pied); /* (le recap du combat, comme apres une vague, 16/10/2026) */ memoriserCombat();
     rendreHaut(); rendreGrange(); sauver(); return;
   }
   { const max = statsPerso().pvMax, reste = Math.max(0, Math.min(max, Math.round(c.pv))); S_.pv = gagne || fuite ? Math.max(c.deroute != null ? Math.round(max * VIE_APRES_DEFAITE) : 1, reste) : Math.max(Math.round(max * VIE_APRES_DEFAITE), reste); } /* (gagnee a terre, 07/11/2026 : il se releve avec autant de vie qu'apres une defaite) */

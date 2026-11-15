@@ -199,11 +199,22 @@ const joueurPresent = () => Date.now() - derniereAction < 180000 && !document.hi
 let raidAnnonce = null;
 /* LA SIMU VSA, UNE SEULE REGLE (17/10/2026, « trop aleatoire, je vois pas la limite », Mathieu) : elle suit ta vague, de la 20e (la premiere simu, niveau 20)
    a la 70e. 4 voleurs, un de plus toutes les 5 vagues, 12 au plus (vague 60), un sur trois sur Dragodinde ; 40 PV + 12 par vague a pied, le double monte. */
-const vagueSimu = () => Math.max(20, Math.min(9 * VAGUES_PALIER, S_.vague.num)); /* (12/11/2026 : la simu VSA reste a la vague 90 au plus, comme avant l'ouverture de la foret ; une simu sur les vagues 91 a 100 n'a jamais ete jouee) */
+/* LA VERSION DEV DES SIMUS VSA (15/11/2026, « en version dev d'abord », Mathieu, au formulaire) : les voleurs malins, leur vie par palier, leur butin et le Brassard VSA
+   ne valent que dans le mode test de Mathieu (MODE_TEST) ; pour les joueurs, tout reste comme avant. Pour les sortir : vsaDev = () => true */
+const vsaDev = () => !!MODE_TEST;
+const vagueSimu = () => (vsaDev() ? Math.max(20, S_.vague.num) : Math.max(20, Math.min(9 * VAGUES_PALIER, S_.vague.num))); /* (version dev, 15/11/2026 : la simu suit de nouveau ta vague au-dela de la 90, « pareil entre le palier 9 et 10 », Mathieu ; bloquee a la 90 depuis le 12/11) */ /* (12/11/2026 : la simu VSA reste a la vague 90 au plus, comme avant l'ouverture de la foret ; une simu sur les vagues 91 a 100 n'a jamais ete jouee) */
 const NIV_PARACHUTE = 80, PARACHUTISTES = 2; /* (le Parachutiste de VSA, des le niveau 80 du perso, 06/11/2026) */
 /* VSA qui continue de monter de la vague 60 a la 90 (06/11/2026, « entre la 60 et la 90, 100 PV de plus sur les mecs c'est pas un gros changement, c'est bof », Mathieu) :
    12 voleurs a la 60 puis +1 toutes les 5 vagues (18 a la 90, un tiers a dos de Dragodinde) ; Demenageurs 1 a la 30, 2 a la 50, 3 a la 70, 4 a la 85 ;
    parachutistes 2 au niveau 80, 3 au 85, 4 au 90 ; vie +20 par vague au lieu de +12 a partir de la 60 */
 const parachutistesSimu = () => { const l = niveau(S_.xp); return l >= 90 ? 4 : l >= 85 ? 3 : l >= NIV_PARACHUTE ? PARACHUTISTES : 0; };
-const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(16, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3), demenageurs: v >= 75 ? 3 : v >= 50 ? 2 : v >= 30 ? 1 : 0, /* (un peu adouci le 06/11/2026, « peut-etre un peu too much » : 16 voleurs et 3 Demenageurs au plus, au lieu de 18 et 4) */ parachutistes: parachutistesSimu() }; }; /* (les Demenageurs en plus des voleurs, 19/10/2026) */
-const pvSimu = (monte) => (40 + 12 * vagueSimu() + 4 * Math.max(0, vagueSimu() - 60)) * (monte ? 2 : 1); /* (+16 par vague des la 60, 06/11/2026 ; +20 le temps d'un essai, juge trop dur) */
+/* LES VOLEURS MALINS (15/11/2026, « revoir les simus VSA a partir du niveau 80, elles sont trop simples », Mathieu ; au formulaire : « nouveaux voleurs malins »,
+   et viser « la moitie s'echappe » quand on ne joue pas) : des le niveau 80 du perso, une partie des voleurs a pied devient des Fumigenes et des Saboteurs
+   (19-raids.js) ; meme nombre de voleurs, meme vie. Mesure avant : 1 voleur sur 23 s'echappait sans jouer (Rorschach, Cra 95) */
+const NIV_MALINS = 80, MALINS = [[90, 5, 6], [85, 5, 5], [80, 4, 4]]; /* (niveau du perso, Fumigenes, Saboteurs) */
+const malinsSimu = () => { if (!vsaDev()) return { fumigenes: 0, saboteurs: 0 }; const l = niveau(S_.xp), m = MALINS.find(([n]) => l >= n); return m ? { fumigenes: m[1], saboteurs: m[2] } : { fumigenes: 0, saboteurs: 0 }; };
+const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(16, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3), demenageurs: v >= 75 ? 3 : v >= 50 ? 2 : v >= 30 ? 1 : 0, /* (un peu adouci le 06/11/2026, « peut-etre un peu too much » : 16 voleurs et 3 Demenageurs au plus, au lieu de 18 et 4) */ parachutistes: parachutistesSimu(), fumigenes: malinsSimu().fumigenes, saboteurs: malinsSimu().saboteurs }; }; /* (les Demenageurs en plus des voleurs, 19/10/2026) */
+/* LA VIE DES VOLEURS PAR PALIER (15/11/2026, « a partir du 80, +20 % de PV par rapport au 70, et pareil entre le palier 9 et 10 », Mathieu, au formulaire) : la regle
+   d'avant jusqu'a la vague 70 (920 PV a pied), puis +20 % tous les 10 vagues, en continu : 1 104 a la 80, 1 325 a la 90, 1 590 a la 100 */
+const VIE_VSA_PALIER = 1.2, pvSimuBase = (v) => 40 + 12 * v + 4 * Math.max(0, v - 60);
+const pvSimu = (monte) => { const v = vagueSimu(), b = v <= 70 || !vsaDev() ? pvSimuBase(v) : pvSimuBase(70) * Math.pow(VIE_VSA_PALIER, (v - 70) / 10); return Math.round(b * (monte ? 2 : 1)); }; /* (+16 par vague des la 60, 06/11/2026 ; +20 le temps d'un essai, juge trop dur) */

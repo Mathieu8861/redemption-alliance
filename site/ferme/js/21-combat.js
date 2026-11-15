@@ -140,7 +140,7 @@ function monstreAViser(p, max) { /* les tours et l'arbalete : d'abord un monstre
 }
 function plusProcheMonstre(p, max) {
   let best = null, bd = max || Infinity;
-  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } });
+  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.fume > 0) return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } }); /* (un Fumigene dans sa fumee : le perso en cherche un autre) */
   return best;
 }
 const tourner = (o, ang, dt) => { let d = ang - o.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); o.ry += d * Math.min(1, dt * 8); };
@@ -593,6 +593,7 @@ function allerTournoyant(o) {
 const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
 function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
+  if (mo.d.fumigene && !(mo.fume > 0) && !(mo.fumeCd > 0)) { lancerFumigene(mo); return; } /* (le Fumigene de VSA : le premier coup se perd dans sa fumee, 19-raids.js) */
   if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
   if (mo.faible || mo.ancre) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
   if (mo.d.parCoups) { if (src != null || (mo.touchT || 0) > performance.now()) return; mo.touchT = performance.now() + 700; mo.touche = true; n = 1; gros = false; src = 'coup'; } /* (une tete de l'Ancestral : un trait par coup du perso, 0,7 s entre deux ; ni les defenses ni le venin ; src : ni venin ni record du plus gros coup) */
@@ -627,7 +628,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
       chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.5, mo.z), 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %) : dans ton sac.', 'or'); } }
   if (mo.pv <= 0 && mo.maudit > 0) { mo.maudit = 0; propagerMalediction(mo); } /* (il meurt maudit : la malediction saute sur 2 voisins) */
   if (mo.pv <= 0 && mo.d.frenesie && mo.etat === 'actif') frenesie(mo); /* (les Tetards voraces, 13/11/2026) */
-  if (mo.pv <= 0) { if (combat.st && !mo.d.sansButin) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
+  if (mo.pv <= 0) { if (combat.st && !mo.d.sansButin) combat.st.tues++; if (!mo.d.sansButin) { noterTue(mo.type); compter('monstres'); } son('touche'); if (combat.raid) { combat.tues++; if (mo.porte) { S_.grange[mo.porte.id] = (S_.grange[mo.porte.id] || 0) + mo.porte.n; (combat.recup = combat.recup || []).push(mo.porte); chiffre('+' + mo.porte.n + ' ' + mo.porte.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.3, mo.z), 'butin'); mo.porte = null; rendreGrange(); } combat.lootV = butinVoleur(mo.d.vole || 1, combat.lootV, mo); } else if (!mo.d.sansButin) butin(mo); mo.etat = 'mort'; mo.t = 0; mo.barre.remove(); if (!((mo.d.boss || mo.d.demi) && !mo.invoque)) pouf(mo.x, mo.m.position.y, mo.z, 2.5); if (combat.cible === mo) combat.cible = null; } /* (un boss tombe, sans anneau, 01/11/2026) */
 }
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
 /* (le Bouftou des vagues 1 a 10 lache de la laine depuis le 14/10/2026 : « ouais applique », Mathieu ; il ne lachait aucune ressource) */
@@ -877,10 +878,27 @@ function souffleFeu(mo, a) {
   effets.push((dt) => { let fini = true; L.forEach((f) => { f.t += dt; if (f.t < 0) { f.m.visible = false; fini = false; return; } const d = f.t * f.v; if (d < 7) fini = false; f.m.visible = d < 7; f.m.position.set(mo.x + Math.sin(f.a) * d, y - d * 0.12, mo.z + Math.cos(f.a) * d); f.m.scale.setScalar(1 + d * 0.35); f.m.material.opacity = Math.max(0, 1 - d / 7); }); if (fini) { L.forEach((f) => jeter(f.m)); return true; } });
 }
 /* ce qu'un voleur de VSA abattu a sur lui : sa bourse */
-function butinVoleur(monte, L) {
-  L = L || { res: {}, objets: [], kamas: 0 };
-  /* « il faudrait que les mecs de VSA n'aient pas de loot sur eux, a part des kamas » (Mathieu, 12/10/2026) : plus de ressources ni de pieces, leur bourse seulement */
-  const bourse = kamasGagnes((3 + 1.2 * forceVoleur()) * (typeof monte === 'number' ? monte : monte ? 2 : 1) * (0.6 + Math.random() * 0.8)); /* (monte : vrai, faux, ou ce qu'il vole : 1, 2, 4 pour le Demenageur) */ S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
+/* LE BUTIN DES VOLEURS DE VSA (15/11/2026, Mathieu : « il faudrait qu'on gagne plus de kamas sur eux aussi, et qu'ils lachent une ressource qui leur est propre,
+   genre "brassard VSA" » ; « kamas c'est sur, + ils peuvent lacher des ressources, items du niveau auquel tu es, et des brassards ; juste faut mettre un ratio
+   de chance par mec : item 1 %, ressources 10 %, brassard 20 % ») : sa bourse a coup sur (sa part de BOURSE_VSA d'une vague de ton niveau, selon ce qu'il
+   vole : 1, 2 sur Dragodinde ou en parachute, 4 pour le Demenageur ; jamais moins que l'ancienne bourse), puis trois tirages a part. La ressource et l'objet
+   sont ceux du palier de ton niveau (l'objet : une piece d'une de ses panoplies). Avant, leur bourse seulement (« pas de loot sur eux, a part des kamas », 12/10/2026). */
+const BOURSE_VSA = 0.85, CHANCES_VSA = { objet: 0.01, res: 0.1, brassard: 0.2 };
+const RES_PALIER = [['laine'], ['os_chafer'], ['dent_bwork'], ['eclat_craq'], ['ecaille_drag'], ['poil_wabbit'], ['kaliptus'], ['couenne'], ['plume_kanniboul', 'ecaille_tortue'], ['ecorce_abraknyde', 'soie_arakne']];
+function butinVoleur(monte, L, mo) {
+  L = L || { res: {}, objets: [], kamas: 0 }; L.res = L.res || {}; L.objets = L.objets || [];
+  const poids = typeof monte === 'number' ? monte : monte ? 2 : 1, l = niveau(S_.xp), part = combat && combat.poidsVsa ? poids / combat.poidsVsa : 0;
+  const ancienne = kamasGagnes((3 + 1.2 * forceVoleur()) * poids * (0.6 + Math.random() * 0.8)), bourse = Math.max(ancienne, Math.round(vagueDeNiveau(l) * BOURSE_VSA * part * (0.8 + Math.random() * 0.4)));
+  if (!vsaDev()) { S_.kamas += ancienne; L.kamas = (L.kamas || 0) + ancienne; rendreGrange(); rendreHaut(); return L; } /* (les joueurs : leur bourse d'avant, rien d'autre, tant que c'est en version dev) */
+  S_.kamas += bourse; L.kamas = (L.kamas || 0) + bourse; /* sa bourse */
+  const ou = mo && mo.m ? new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 1.2) + 0.3, mo.z) : null, p = palierDe(Math.max(1, Math.min(l, vaguesOuvertes())));
+  const res = (id) => { S_.grange[id] = (S_.grange[id] || 0) + 1; L.res[id] = (L.res[id] || 0) + 1; if (ou) chiffre('+1 ' + PAR_ID[id].nom, ou, 'butin'); };
+  if (l >= NIV_MALINS && Math.random() < CHANCES_VSA.brassard) res('brassard_vsa'); /* (des le niveau 80 seulement, « des le niveau 80 », Mathieu, au formulaire) */
+  if (Math.random() < CHANCES_VSA.res) { const Rp = RES_PALIER[Math.min(p, RES_PALIER.length - 1)].filter((id) => PAR_ID[id]); if (Rp.length) res(hasard(Rp)); }
+  if (Math.random() < CHANCES_VSA.objet && panoExiste(p)) {
+    const P = [panoDe(p)].concat(PANOS.filter((x) => x.bis === p && !x.cache)), id = tirerPiece(hasard(P), 1); L.objets.push(donnerObjet(id));
+    if (ou) chiffre((OBJETS[id].rare ? '★ RARE : ' : '+ ') + OBJETS[id].nom, ou, 'butin'); toast((OBJETS[id].rare ? '★ PIÈCE RARE : ' : 'Butin : ') + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or');
+  }
   rendreGrange(); rendreHaut(); return L;
 }
 const texteButin = (L) => [L.kamas ? fmt(L.kamas) + ' kamas' : ''].concat(Object.entries(L.res || {}).map(([r, n]) => n + ' ' + PAR_ID[r].nom), (L.objets || []).map((id) => obj(id).nom)).filter(Boolean).join(', ');
@@ -3480,7 +3498,7 @@ function majPerso(dt) {
     if (!aPortee.length) { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; }
     if (!combat.cible || combat.cible.etat !== 'actif' || Math.hypot(combat.cible.x - pp0.x, combat.cible.z - pp0.z) > porteeSur(combat.cible, st)) combat.cible = aPortee[0];
   }
-  let c = combat.cible; if (!c || c.etat !== 'actif') c = combat.cible = plusProcheMonstre(paysanMesh.position);
+  let c = combat.cible; if (!c || c.etat !== 'actif' || c.fume > 0) c = combat.cible = plusProcheMonstre(paysanMesh.position);
   if (!c) { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; }
   if (condamne(c)) { /* ce qui est en vol va l'achever : le suivant, sans attendre (en tenant la position, seulement un monstre a portee) */
     const p0 = paysanMesh.position, alt = combat.monstres.filter((o) => o.etat === 'actif' && o !== c && !condamne(o) && (!combat.tenir || Math.hypot(o.x - p0.x, o.z - p0.z) <= porteeSur(o, st))).sort((a, b) => Math.hypot(a.x - p0.x, a.z - p0.z) - Math.hypot(b.x - p0.x, b.z - p0.z))[0];

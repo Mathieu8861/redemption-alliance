@@ -627,6 +627,7 @@ function majTours(dt, s) {
   if (MODE_TEST && ETAT_TEST.tours === 0) return; /* (le mode test : tourelles coupees, 27b-arene-dev.js) */
   toursMesh.forEach((g, k) => {
     if (enRuine(g.userData.chateau ? 'grange' : 'tour:' + g.userData.cellule)) return; /* (les tours du chateau-grange tombent avec lui) */
+    if (g.userData.sabote > 0) { if (majTourSabotee(g, dt)) return; } /* (un Saboteur de VSA l'a bloquee, 19-raids.js, 15/11/2026) */
     const t = g.userData.tete, pos = g.position, ct = MODE_TEST && ETAT_TEST.tours ? { niv: ETAT_TEST.tours } : g.userData.chateau ? TOUR_CHATEAU : caseTour(g.userData.cellule); /* (le mode test : un niveau force pour toutes) */
     g.userData.cd = Math.max(0, g.userData.cd - dt);
     const v = voleurCiblable() && Math.hypot(voleur.m.position.x - pos.x, voleur.m.position.z - pos.z) < porteeTour(ct) ? voleur : null;
@@ -829,7 +830,7 @@ function chasserVoleur(parArbalete) {
 }
 const voleurCiblable = () => voleur && (voleur.etat === 'approche' || voleur.etat === 'arrive' || (voleur.etat === 'fuite' && !!voleur.porte));
 function voler() {
-  const stocks = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0).sort((a, b) => S_.grange[b.id] * prix(b.id) - S_.grange[a.id] * prix(a.id));
+  const stocks = VENDABLES.filter((v) => v.id !== 'brassard_vsa' && (S_.grange[v.id] || 0) > 0).sort((a, b) => S_.grange[b.id] * prix(b.id) - S_.grange[a.id] * prix(a.id));
   if (stocks.length) {
     const v = stocks[0], f = forceVoleur(), n = Math.min(S_.grange[v.id], 12 + 4 * f, Math.max(1, Math.round(S_.grange[v.id] * Math.min(0.6, ((niv('cadenas') ? 0.15 : 0.3) + 0.004 * f) * (enRuine('grange') ? 2 : 1)))));
     S_.grange[v.id] -= n; toast('Le voleur de VSA a pris ' + n + ' ' + v.nom + ' dans ta grange : rattrape-le avant qu\'il quitte ta ferme !', 'alerte'); rendreGrange(); sauver();

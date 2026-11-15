@@ -7,12 +7,12 @@
    entoure la grange tant qu'il tient */
 const PRIX_BOUCLIER = 50000, DUREE_BOUCLIER = 120 * MIN, QG_BOUCLIER = 5; /* (niv('qg') 5 : la grange niveau 6) */
 const bouclierActif = (t) => !!(S_ && S_.bouclierVsa && (t || Date.now()) < S_.bouclierVsa);
-function acheterBouclier() {
+function acheterBouclier(reserve) { /* (reserve : un bouclier fabrique a l'atelier, a la place des 50 000 kamas, 15/11/2026) */
   if (niv('qg') < QG_BOUCLIER) { toast('Le bouclier anti-VSA demande la grange niveau 6.', 'alerte'); return; }
   if (bouclierActif()) { toast('Ton bouclier anti-VSA tient encore ' + dureeLisible(S_.bouclierVsa - Date.now()) + '.', 'alerte'); return; }
   if (simuEnAttente || raidAnnonce || (combat && combat.raid)) { toast('Trop tard : les voleurs de VSA sont déjà là. Le bouclier se lève après la simu.', 'alerte'); return; }
-  if (S_.kamas < PRIX_BOUCLIER) { toast('Il te faut ' + fmt(PRIX_BOUCLIER) + ' kamas pour le bouclier anti-VSA.', 'alerte'); return; }
-  S_.kamas -= PRIX_BOUCLIER; S_.bouclierVsa = Date.now() + DUREE_BOUCLIER; son('niveau'); compter('boucliers');
+  if (reserve) { if (!(S_.boucliersVsa > 0)) { toast('Plus de bouclier anti-VSA en réserve : fabrique-en à l\'atelier.', 'alerte'); return; } S_.boucliersVsa--; }
+  else { if (S_.kamas < PRIX_BOUCLIER) { toast('Il te faut ' + fmt(PRIX_BOUCLIER) + ' kamas pour le bouclier anti-VSA.', 'alerte'); return; } S_.kamas -= PRIX_BOUCLIER; } S_.bouclierVsa = Date.now() + DUREE_BOUCLIER; son('niveau'); compter('boucliers');
   toast('Bouclier anti-VSA levé autour de ta grange : pendant 2 h, aucune simu ni voleur de VSA.', 'or'); rendreHaut(); sauver();
 }
 let domeBouclier = null;
@@ -75,14 +75,14 @@ function majBouclier(dt, s) { /* le dome autour de la grange, tant que le boucli
 let simuEnAttente = false;
 function proposerSimu() {
   if (simuEnAttente || raidAnnonce || combat || enAccueil || enPause) return;
-  const { nb, montes, parachutistes } = tailleSimu(); simuEnAttente = true;
-  $('simu-txt').textContent = nb + ' voleurs de VSA' + (montes ? ', dont ' + montes + ' à dos de Dragodinde,' : '') + (parachutistes ? ' et ' + parachutistes + ' parachutistes' : '') + ' veulent piller ta grange. Le jeu attend ton accord : quand tu acceptes, ils arrivent 30 s plus tard, ou tout de suite avec « Lancer maintenant ». Recharge ton arbalète !';
+  const { nb, montes, parachutistes, fumigenes, saboteurs } = tailleSimu(); simuEnAttente = true;
+  $('simu-txt').textContent = nb + ' voleurs de VSA' + (montes ? ', dont ' + montes + ' à dos de Dragodinde,' : '') + (parachutistes ? ' et ' + parachutistes + ' parachutistes' : '') + (fumigenes || saboteurs ? ' (parmi eux, ' + [saboteurs ? saboteurs + ' Saboteurs qui bloquent tes tours' : '', fumigenes ? fumigenes + ' Fumigènes qui disparaissent dans leur fumée' : ''].filter(Boolean).join(' et ') + ')' : '') + ' veulent piller ta grange. Le jeu attend ton accord : quand tu acceptes, ils arrivent 30 s plus tard, ou tout de suite avec « Lancer maintenant ». Recharge ton arbalète !';
   if (visee) annulerVisee(); fermerModale(); mettrePause(true, true); $('simu-pop').hidden = false; son.der = {}; son('raid');
 }
 function accepterSimu() { if (!simuEnAttente) return; simuEnAttente = false; $('simu-pop').hidden = true; mettrePause(false); annoncerRaid(true); }
 function annoncerRaid(muet) {
   if (raidAnnonce || combat || enAccueil) return;
-  if (!personnagesVsaPrets() || !MODELES.omeho) chargerPersonnagesVsa(); /* (un modele rate au chargement : il a 30 s pour arriver) */
+  if (!personnagesVsaPrets() || !MODELES.omeho || (vsaDev() && !(MODELES.fumigene && MODELES.saboteur))) chargerPersonnagesVsa(); /* (un modele rate au chargement : il a 30 s pour arriver) */
   const { nb, montes } = tailleSimu(), dem = MODELES.demenageur ? tailleSimu().demenageurs : 0; /* (la taille : tailleSimu, 18-geliere.js ; sans son modele, pas de Demenageur) */
   const sortie = sortieVSA(), entrees = entreesVSA(sortie, nb + dem); /* (une case de bord par voleur, tout autour de la ferme, 18/10/2026) */
   const marques = new T.Group(); /* les cases par ou ils arriveront, en rouge */
@@ -93,7 +93,7 @@ function annoncerRaid(muet) {
     const l = new T.Mesh(new T.PlaneGeometry(b.di ? 0.3 : S - 0.15, b.dj ? 0.3 : S - 0.15), new T.MeshBasicMaterial({ color: '#a8231b', transparent: true, opacity: 0.6, depthWrite: false })); l.rotation.x = -Math.PI / 2; l.position.set(q.x + b.di * (S / 2 - 0.23), q.y + 0.09, q.z + b.dj * (S / 2 - 0.23)); l.renderOrder = 3; marques.add(l); });
   scene.add(marques);
   poserOmeho(sortie);
-  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, dem, para: MODELES.parachutiste ? tailleSimu().parachutistes : 0, entrees, marques, sortie }; if (!muet) son('raid');
+  raidAnnonce = { fin: Date.now() + ANNONCE_RAID, nb, montes, dem, para: MODELES.parachutiste ? tailleSimu().parachutistes : 0, fumi: tailleSimu().fumigenes, sabo: tailleSimu().saboteurs, /* (leurs modeles se chargent pendant l'annonce : verifies au depart, lancerRaid) */ entrees, marques, sortie }; if (!muet) son('raid');
   construireRaidAnnonce(); majRaidAnnonce(); /* (plus de message en plus : la carte dit tout) */
 }
 /* LA SORTIE DES VOLEURS, ET OMEHO QUI LES ATTEND (14/10/2026, Mathieu : « ils peuvent apparaitre de n'importe ou, mais pour repartir, ils doivent repartir vers
@@ -215,7 +215,7 @@ function construireRaidAnnonce() {
   const R = raidAnnonce; if (!R) return; const v = '?v=' + VERSION_MODELES;
   $('raid-annonce').innerHTML = '<div class="ra-tete"><img src="assets/icones/voleur.png' + v + '" alt=""><div><b>Simu VSA</b><span>Les voleurs de VSA arrivent sur ta grange</span></div>' +
     '<div class="ra-rebours"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="19"/><circle class="arc" id="ra-arc" cx="22" cy="22" r="19"/></svg><em id="ra-s">30</em></div></div>' +
-    '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') + (R.dem ? '<span>+ ' + R.dem + ' Déménageur' + (R.dem > 1 ? 's' : '') + ' : lent, coriace, il vide ta grange</span>' : '') +
+    '<div class="ra-puces"><span><img src="assets/icones/voleur.png' + v + '" alt="">' + R.nb + ' voleurs</span>' + (R.montes ? '<span>dont ' + R.montes + ' à dos de Dragodinde</span>' : '') + (R.dem ? '<span>+ ' + R.dem + ' Déménageur' + (R.dem > 1 ? 's' : '') + ' : lent, coriace, il vide ta grange</span>' : '') + (R.sabo ? '<span>dont ' + R.sabo + ' Saboteur' + (R.sabo > 1 ? 's' : '') + ' : ils bloquent tes tours 10 s</span>' : '') + (R.fumi ? '<span>dont ' + R.fumi + ' Fumigène' + (R.fumi > 1 ? 's' : '') + ' : touchés, ils disparaissent 2 s</span>' : '') +
     '<span class="rouge"><i></i>' + 'de tout autour, par les cases en rouge' + '</span>' + (R.sortie ? '<span class="violet"><i></i>ils repartent par Omeho, en violet</span>' : '') + '</div>' +
     '<div class="ra-actions"><span class="ra-arb" id="ra-arb"></span><button class="btn discret" data-recharger id="ra-recharger">Recharger</button><button class="btn kamas" data-raid-go>Lancer maintenant</button></div>';
 }
@@ -237,14 +237,16 @@ function lancerRaid() {
   }
   const R = raidAnnonce; raidAnnonce = null; if (R) jeter(R.marques); $('raid-annonce').hidden = true; $('raid-annonce').innerHTML = '';
   if (!R || combat || enAccueil || !paysanMesh) { retirerOmeho(); return; } son('vague');
-  const file = []; for (let k = 0; k < (R.dem || 0); k++) file.push('demenageur'); for (let k = 0; k < (R.para || 0); k++) file.push('parachutiste'); /* (les parachutistes tot : ils mettent quelques secondes a descendre) */ for (let k = 0; k < R.nb - R.montes; k++) file.push('voleurRaid'); for (let k = 0; k < R.montes; k++) file.push('monture'); /* (le Demenageur d'abord : il est lent) */
-  nouveauCombat('raid', { raid: true, file, total: file.length, attente: 0.3, butin: [], tues: 0, bords: null, entrees: (R.entrees || []).slice(), sortie: R.sortie || null }); /* (un par seconde, chacun par sa case rouge : 23-fin-combat.js et apparaitre) */ /* (ses stats comme tout combat : sorts, degats, coups recus, affichees sous son bilan, 16/10/2026) */
+  const file = []; for (let k = 0; k < (R.dem || 0); k++) file.push('demenageur'); for (let k = 0; k < (R.para || 0); k++) file.push('parachutiste'); /* (les parachutistes tot : ils mettent quelques secondes a descendre) */ { const pied = R.nb - R.montes, sa = Math.min(MODELES.saboteur ? R.sabo || 0 : 0, pied); let fu = Math.min(MODELES.fumigene ? R.fumi || 0 : 0, pied - sa); /* (les voleurs malins, des le niveau 80 : les Saboteurs en tete, ils vont aux tours ; les Fumigenes meles aux autres) */
+    for (let k = 0; k < sa; k++) file.unshift('saboteur');
+    for (let k = 0, n = pied - sa; k < n; k++) { if (fu > 0 && (k % 2 === 0 || n - k <= fu)) { file.push('fumigene'); fu--; } else file.push('voleurRaid'); } } for (let k = 0; k < R.montes; k++) file.push('monture'); /* (le Demenageur d'abord : il est lent) */
+  nouveauCombat('raid', { raid: true, file, total: file.length, poidsVsa: file.reduce((a, t) => a + ((MONSTRES[t] && MONSTRES[t].vole) || 1), 0), /* (la part de chacun dans les kamas de la simu, 21-combat.js, butinVoleur) */ attente: 0.3, butin: [], tues: 0, bords: null, entrees: (R.entrees || []).slice(), sortie: R.sortie || null }); /* (un par seconde, chacun par sa case rouge : 23-fin-combat.js et apparaitre) */ /* (ses stats comme tout combat : sorts, degats, coups recus, affichees sous son bilan, 16/10/2026) */
   fermerModale(); ouvrirHudCombat();
   toast('Simu VSA ! Ils foncent sur ta grange : abats-les avant qu\'ils rejoignent Omeho, sur la case violette.', 'alerte'); majCombatHud();
 }
 /* un voleur du raid : il va a la grange, prend sa part, et repart par ou il est venu */
 function volerRaid(mult) {
-  const stocks = VENDABLES.filter((v) => (S_.grange[v.id] || 0) > 0).sort((a, b) => S_.grange[b.id] * prix(b.id) - S_.grange[a.id] * prix(a.id));
+  const stocks = VENDABLES.filter((v) => v.id !== 'brassard_vsa' && (S_.grange[v.id] || 0) > 0).sort((a, b) => S_.grange[b.id] * prix(b.id) - S_.grange[a.id] * prix(a.id));
   if (!stocks.length) return null;
   const v = stocks[0], f = forceVoleur(), st = S_.grange[v.id], nb = Math.min(st, Math.max(1, Math.round(Math.min(st * 0.15, 3 + f) * mult * (niv('cadenas') ? 0.5 : 1) * (enRuine('grange') ? 2 : 1)))); /* chacun prend une part du stock, pas tout */
   S_.grange[v.id] -= nb; rendreGrange(); return { n: nb, nom: v.nom, id: v.id };
@@ -257,10 +259,11 @@ function cibleGrange(mo) {
 }
 function majVoleurRaid(mo, dt, s) {
   const m = mo.m, lent = mo.lent > 0; if (lent) mo.lent -= dt; if (mo.coince > 0) mo.coince -= dt; /* (la Gueule de fer de Masdog : coince, il ne bouge plus) */
-  const but = mo.fuite ? mo.sortie : cibleGrange(mo), d = Math.hypot(but.x - mo.x, but.z - mo.z); let v = 0;
+  majMalin(mo, dt); /* (le Fumigene et le Saboteur, plus bas) */
+  const but = mo.fuite ? mo.sortie : butSaboteur(mo) || cibleGrange(mo), d = Math.hypot(but.x - mo.x, but.z - mo.z); let v = 0;
   if (d > (mo.fuite ? 0.35 : 0.8)) {
     const w = prochainPas(mo, but.x, but.z, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = mo.d.vitesse * (mo.coince > 0 ? 0 : lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1) * (classeDe() === 'iop' ? 0.8 : 1); /* (05/11/2026 : -20 % pour le Iop, au corps a corps il devait courir apres tout le monde) */ /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
+    v = mo.d.vitesse * (mo.coince > 0 ? 0 : lent ? 0.4 : 1) * (mo.fuite ? (mo.porte ? 0.75 : 1.2) : 1) * (classeDe() === 'iop' ? 0.8 : 1) * (mo.fume > 0 ? FUMIGENE.vite : 1); /* (05/11/2026 : -20 % pour le Iop, au corps a corps il devait courir apres tout le monde) */ /* charge de butin, il repart moins vite */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt);
   } else if (!mo.fuite) {
     const r = volerRaid(mo.d.vole); mo.fuite = true; mo.cg = null;
     if (r) { mo.porte = r; if (mo.type !== 'demenageur') m.add(sacVole()); toast((mo.type === 'demenageur' ? 'Le Déménageur de VSA' : 'Un voleur de VSA') + ' a pris ' + r.n + ' ' + r.nom + ' : abats-le avant qu\'il rejoigne Omeho !', 'alerte'); } /* (le Demenageur a deja son gros sac) */
@@ -272,4 +275,61 @@ function majVoleurRaid(mo, dt, s) {
   m.position.set(mo.x, y + (1 - Math.cos(mo.pas * 2)) * (mo.type === 'monture' ? 0.08 : 0.03), mo.z); m.rotation.y = mo.ry; m.rotation.z = Math.sin(mo.pas) * 0.06; m.rotation.x = mo.type === 'monture' ? 0 : 0.2;
   if (mo.brule > 0) { mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); } }
   if (mo.coup > 0) { mo.coup -= dt; m.scale.setScalar((mo.echelle || 1) * (1 + Math.max(0, mo.coup) * 0.9)); } else m.scale.setScalar(mo.echelle || 1);
+}
+
+/* ===================== LES VOLEURS MALINS (15/11/2026) =====================
+   « revoir les simus VSA a partir du niveau 80, elles sont trop simples » (Mathieu), choix au formulaire : de nouveaux voleurs malins.
+   LE FUMIGENE : touche, il disparait 2 s dans un nuage de fumee (le coup est perdu, les suivants font « Esquive ! »), court un peu plus vite dedans,
+   puis il reapparait ; il peut recommencer 2,5 s apres etre ressorti. Le perso cherche une autre cible ; les tours, elles, continuent de tirer dans la fumee.
+   LE SABOTEUR : il file d'abord vers la tour de defense la plus proche (une seule par Saboteur), la bloque 10 s, et bloque aussi celles qu'il frole en passant,
+   puis il va piller la grange. Une tour sabotee ne tire plus, sa tete penche, elle fume et crache des etincelles. */
+const FUMIGENE = { duree: 2, recharge: 1.2, vite: 1.25, nuage: 3 }, /* (nuage : les voleurs a moins de 1,5 case de lui sont caches dans sa fumee aussi) */ SABOTAGE = { duree: 10, portee: 4.5 };
+function lancerFumigene(mo) {
+  mo.fume = FUMIGENE.duree; mo.fumeCd = FUMIGENE.duree + FUMIGENE.recharge; mo.esquive = FUMIGENE.duree; mo.m.visible = false; if (mo.barre) mo.barre.style.visibility = 'hidden';
+  const y = mo.m.position.y; poussiere(mo.x, y, mo.z, 14, 0.9, '#cfd3d9');
+  emettre(FX_FUM, 10, { x: mo.x, y: y + 0.7, z: mo.z, r: 0.5, v: [0, 0.6, 0], vie: [1.2, 1.8], taille: [0.8, 2.2], c: ['#e3e6ea', '#9aa0a8'], a: 0.75, frein: 1.5, entree: 0.1 });
+  const p = mo.m.position.clone(); p.y += mo.haut || 1.2; chiffre('Fumigène !', p, 'vol');
+  if (combat && !combat.fumiVu) { combat.fumiVu = true; toast('Un Fumigène de VSA disparaît dans sa fumée : pendant 2 s, tes coups et tes tours le manquent. Il ressort un peu plus loin !', 'alerte'); }
+}
+function majMalin(mo, dt) {
+  if (mo.esquive > 0) mo.esquive -= dt; if (mo.esquiveVu > 0) mo.esquiveVu -= dt; if (mo.fumeCd > 0) mo.fumeCd -= dt;
+  if (mo.fume > 0) { mo.fume -= dt;
+    combat.monstres.forEach((o) => { if (o !== mo && o.etat === 'actif' && o.d.vole && Math.hypot(o.x - mo.x, o.z - mo.z) < FUMIGENE.nuage) o.esquive = Math.max(o.esquive || 0, 0.15); }); /* (ses voisins dans le nuage : tes coups les manquent aussi) */
+    if ((mo.fumeT = (mo.fumeT || 0) - dt) <= 0) { mo.fumeT = 0.07; emettre(FX_FUM, 2, { x: mo.x, y: mo.m.position.y + 0.5, z: mo.z, r: 1.3, v: [0, 0.5, 0], vie: [0.9, 1.4], taille: [0.6, 1.6], c: ['#e3e6ea', '#9aa0a8'], a: 0.6, frein: 1.5, entree: 0.1 }); }
+    if (mo.fume <= 0) { mo.m.visible = true; if (mo.barre) mo.barre.style.visibility = ''; poussiere(mo.x, mo.m.position.y, mo.z, 8, 0.5, '#cfd3d9'); } }
+  if (mo.d.saboteur) saboterAutour(mo);
+}
+const tourSabotable = (g) => !!g.parent && !(g.userData.sabote > 0) && !enRuine(g.userData.chateau ? 'grange' : 'tour:' + g.userData.cellule);
+function tourASaboter(mo) {
+  const L = toursMesh.filter(tourSabotable); if (!L.length) return null;
+  const libres = L.filter((g) => !combat.monstres.some((o) => o !== mo && o.etat === 'actif' && o.tourVisee === g)), loin = (g) => Math.hypot(g.position.x - mo.x, g.position.z - mo.z);
+  return (libres.length ? libres : L).sort((a, b) => loin(a) - loin(b))[0];
+}
+function abordTour(g) { /* la case libre la plus proche de la tour : la tour elle-meme ne se traverse pas */
+  let best = null, bd = Infinity; S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; const q = posCase(c), d = Math.hypot(q.x - g.position.x, q.z - g.position.z); if (d < bd) { bd = d; best = q; } });
+  return best || { x: g.position.x, z: g.position.z };
+}
+function butSaboteur(mo) {
+  if (!mo.d.saboteur || mo.fuite || mo.saboFini) return null;
+  let g = mo.tourVisee; if (!g || !tourSabotable(g)) { if (g && g.userData.sabote > 0 && g.userData.saboPar === mo) { mo.saboFini = true; return null; } g = mo.tourVisee = tourASaboter(mo); mo.tourPt = null; }
+  if (!g) { mo.saboFini = true; return null; }
+  if (!mo.tourPt) mo.tourPt = abordTour(g);
+  if (Math.hypot(g.position.x - mo.x, g.position.z - mo.z) < SABOTAGE.portee || Math.hypot(mo.tourPt.x - mo.x, mo.tourPt.z - mo.z) < 1.0) { saboterTour(g, mo); mo.saboFini = true; return null; }
+  return mo.tourPt;
+}
+function saboterAutour(mo) { toursMesh.forEach((g) => { if (tourSabotable(g) && Math.hypot(g.position.x - mo.x, g.position.z - mo.z) < SABOTAGE.portee) saboterTour(g, mo); }); }
+function saboterTour(g, mo) {
+  if (!combat || !combat.raid || !tourSabotable(g)) return;
+  g.userData.sabote = SABOTAGE.duree; g.userData.saboT = 0; g.userData.saboPar = mo; combat.sabotages = (combat.sabotages || 0) + 1;
+  const t = g.userData.tete; if (t) t.rotation.z = 0.32;
+  const p = new T.Vector3(); (g.userData.pointe || g).getWorldPosition(p); poussiere(p.x, p.y - 0.4, p.z, 10, 0.6, '#6b6f78'); lueur(p, '#ffcf5a', 1.4, 0.35);
+  const h = p.clone(); h.y += 0.6; chiffre('Tour sabotée 10 s', h, 'vol');
+  if (!combat.saboVu) { combat.saboVu = true; toast('Un Saboteur de VSA bloque une de tes tours pendant 10 s : abats-le avant qu’il en bloque d’autres !', 'alerte'); }
+}
+function majTourSabotee(g, dt) { /* vrai : la tour ne tire pas (12-perso.js, majTours) */
+  if (!combat || !combat.raid) { g.userData.sabote = 0; if (g.userData.tete) g.userData.tete.rotation.z = 0; return false; }
+  g.userData.sabote -= dt; const p = new T.Vector3(); (g.userData.pointe || g).getWorldPosition(p);
+  if ((g.userData.saboT -= dt) <= 0) { g.userData.saboT = 0.12; emettre(FX_FUM, 2, { x: p.x, y: p.y, z: p.z, r: 0.35, v: [0, 1.1, 0], vie: [1.0, 1.6], taille: [0.6, 1.8], c: ['#3f4148', '#80858e'], a: 0.75, frein: 1, entree: 0.05 }); if (Math.random() < 0.5) lueur(p, '#ffcf5a', 1.0, 0.2); } /* (une fumee noire bien visible et des etincelles : la tour est en panne) */
+  if (g.userData.sabote <= 0) { g.userData.sabote = 0; if (g.userData.tete) g.userData.tete.rotation.z = 0; return false; }
+  return true;
 }
