@@ -1537,3 +1537,17 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .pano-bonus .pano-aide { font-size: .68rem; font-weight: 700; color: #8d929b; margin: -2px 0 5px; }
 .pano-bonus .paliers span > b { display: block; font-weight: 800; color: inherit; }
 .pano-bonus .bp, .pano-total .bp { display: block; font-style: normal; }
+
+/* le bandeau de combat compact sur ordinateur (15/11/2026, « l'affichage des PV du mob et le "vague 30", faut le faire comme sur mobile, ca prend trop de place »,
+   Mathieu) : comme au telephone (dg-h1), une ligne pour la vague (titre, barre, Fuir) et une ligne pour le boss (nom, etat, barre, PV) */
+.hud.en-combat:not(.doigt) .combat-haut { grid-template-columns: auto 1fr auto; width: min(560px, calc(100% - 24px)); padding: 4px 6px 5px 12px; gap: 4px 10px; border-width: 2.5px; border-radius: 12px; box-shadow: 0 3px 0 var(--bord); }
+.hud.en-combat:not(.doigt) #combat-titre { grid-column: 1; grid-row: 1; font-size: .86rem; white-space: nowrap; }
+.hud.en-combat:not(.doigt) .combat-haut .barre { grid-column: 2; grid-row: 1; height: 8px; }
+.hud.en-combat:not(.doigt) .combat-haut .btn { grid-column: 3; grid-row: 1; padding: 2px 11px; font-size: .74rem; }
+.hud.en-combat:not(.doigt) .boss-barre { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: 0; }
+.hud.en-combat:not(.doigt) .boss-barre[hidden] { display: none; }
+.hud.en-combat:not(.doigt) .boss-barre .bb-tete { display: contents; }
+.hud.en-combat:not(.doigt) .combat-haut .boss-barre b { order: 1; font-size: .82rem; white-space: nowrap; }
+.hud.en-combat:not(.doigt) .boss-barre .bb-tete em { order: 2; flex: none; font-size: .6rem; }
+.hud.en-combat:not(.doigt) .boss-barre .bb { order: 3; flex: 1; height: 11px; margin: 0; }
+.hud.en-combat:not(.doigt) .boss-barre small { order: 4; font-size: .68rem; white-space: nowrap; }
