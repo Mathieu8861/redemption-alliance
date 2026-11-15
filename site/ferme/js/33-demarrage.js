@@ -20,7 +20,7 @@ async function demarrer() {
   S_ = charger() || etatInitial(); completerTerrains(); const nuageP = identifier();
   try { await chargerModeles(); } catch (err) { document.getElementById('chargement-texte').textContent = 'Le chargement de l\'île a échoué, recharge la page.'; window.__erreur = String(err); throw err; }
   { const n = await nuageP; if (n) choisirVersion(n); } /* le compte et sa ferme en ligne, si elle est plus recente */
-  document.getElementById('chargement').hidden = true;
+  { const ch = document.getElementById('chargement'); ch.classList.add('fini'); setTimeout(() => { ch.hidden = true; }, 700); } /* (il s'efface en fondu, 15/11/2026) */
   if (graphismes() === 'leger') appliquerGraphismes(); /* le choix du joueur (ou la bascule automatique d'une visite precedente) */
   arbresSurCases(); construireStatique(); poserMontgolfiere(); /* la montgolfiere du Casino, au bord de la ferme */
   S_.cases.forEach((p) => construireCase(p));

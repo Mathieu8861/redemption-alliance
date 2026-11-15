@@ -316,11 +316,12 @@ async function chargerPersonnagesVsa0() {
   }
 }
 const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
+const ETAPES_CHARGEMENT = ['On réveille les Bouftous...', 'On arrose les cultures...', 'On cire les tours de défense...', 'On allume les lanternes...', 'On ouvre la grange...']; /* (les etapes du chargement, 15/11/2026) */
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
   const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'cultures5', 'casino-jeu', 'montgolfiere', 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'forgemagie2', 'atelier'];
   let faits = 0;
-  const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; texte.textContent = 'Chargement de l\'île... ' + Math.round(100 * faits / fichiers.length) + ' %'; document.getElementById('chargement-barre').style.width = Math.round(100 * faits / fichiers.length) + '%'; return sc; })));
+  const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; const pc = Math.round(100 * faits / fichiers.length), pct = document.getElementById('chargement-pct'); texte.textContent = ETAPES_CHARGEMENT[Math.min(ETAPES_CHARGEMENT.length - 1, Math.floor(pc / 100 * ETAPES_CHARGEMENT.length))]; if (pct) pct.textContent = pc + ' %'; else texte.textContent += ' ' + pc + ' %'; document.getElementById('chargement-barre').style.width = pc + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
   /* L'ILE RONDE (blender/ile-ronde-jeu.py) : chaque terrain existe en herbe (herbe_Tn) et en friche (friche_Tn), on montre l'un ou l'autre (majTerrains) ;
      le reste (le depart, le pourtour, l'eau, la roche du dessous) est fusionne en un seul modele. Plus d'arbres ni de pieces a extraire : ceux des

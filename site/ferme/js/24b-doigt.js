@@ -209,7 +209,7 @@ function dgChoixHtml() { /* (tous les choix, sur leur page : ouvrirDoigt) */
 const DG_NOMS = { actif: { auto: 'au téléphone', toujours: 'toujours', jamais: 'jamais' }, disp: { a: 'éventail', c: 'deux bandes' }, joy: { fixe: 'joystick fixe', flottant: 'joystick sous le doigt' }, suivi: { cadre: 'caméra avec un cadre', centre: 'caméra au centre', libre: 'caméra libre' } };
 function dgOptionsHtml() {
   const R = dgReglages, res = R.actif === 'jamais' ? 'Désactivées' : 'Activées ' + DG_NOMS.actif[R.actif] + ' · ' + ['disp', 'joy', 'suivi'].map((k) => DG_NOMS[k][R[k]]).filter(Boolean).join(' · ');
-  return '<div id="dg-opt"><div class="hdv-section">Au téléphone</div><div class="art">' + ico('app-192') + '<div><b>Commandes au doigt en combat</b><div class="desc">' + res + '</div></div><div class="act"><button class="btn discret" data-dg-ouvrir>Régler</button></div></div></div>';
+  return '<div id="dg-opt"><div class="hdv-section">Au téléphone</div><div class="art">' + ico('opt-doigt') + '<div><b>Commandes au doigt en combat</b><div class="desc">' + res + '</div></div><div class="act"><button class="btn discret" data-dg-ouvrir>Régler</button></div></div></div>';
 }
 function ouvrirDoigt() { ouvrirModale('doigt', entete('Commandes au doigt en combat') + dgChoixHtml() + '<div class="boutons" style="margin-top:12px"><button class="btn discret" data-retour-options>Retour aux Options</button></div>'); }
 function dgOptions() { if (typeof modaleOuverte !== 'undefined' && modaleOuverte === 'doigt') { ouvrirDoigt(); return; } if (typeof modaleOuverte === 'undefined' || modaleOuverte !== 'options') return; const carte = dgId('carte'); if (!carte) return;

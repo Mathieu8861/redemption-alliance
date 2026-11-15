@@ -172,9 +172,6 @@ button.stock { cursor: pointer; } .stock[hidden] { display: none; } .stock img {
 .bandeau { position: absolute; left: 50%; transform: translateX(-50%); top: calc(62px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 10px; background: var(--or); border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 4px 0 var(--bord); padding: 6px 8px 6px 12px; font-size: .8rem; pointer-events: auto; max-width: calc(100% - 24px); color: #1d1e22; }
 .bandeau[hidden] { display: none; } .bandeau { z-index: 5; } /* (au-dessus des etiquettes des batiments) */
 @media (max-width: 720px) { .bandeau { top: calc(var(--haut-hud, 140px) + 6px); z-index: 5; width: calc(100% - 24px); flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 6px 8px; font-size: .74rem; } #bandeau-texte { flex: 1 1 100%; } .bandeau .btn { padding: 5px 12px; font-size: .76rem; } } /* (13/10/2026, au telephone : sous la barre du haut, le texte sur toute la largeur et les boutons dessous ; avant, la barre le recouvrait) */
-.chargement { position: fixed; inset: 0; z-index: 8; display: grid; place-content: center; gap: 6px; text-align: center; background: linear-gradient(180deg, var(--ciel-haut), var(--ciel-bas)); }
-.chargement b { font: 400 2.4rem/1 var(--f-titre); color: var(--kamas); -webkit-text-stroke: 1.5px var(--bord); paint-order: stroke fill; text-shadow: 0 3px 0 var(--bord); }
-.chargement span { font-weight: 800; }
 .chargement[hidden] { display: none; }
 /* HDV : onglets, choix de la quantite, lignes d'articles (icone, nom, pastilles d'infos, un seul bouton) */
 .kama { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.24em; object-fit: contain; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10.5' fill='%23f2b630' stroke='%233b2a1a' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='7' fill='none' stroke='%23c98a12' stroke-width='1.4'/%3E%3Cpath d='M12 6.5L13.4 10.6L17.5 12L13.4 13.4L12 17.5L10.6 13.4L6.5 12L10.6 10.6Z' fill='%23fff3c4' stroke='%23c98a12' stroke-width='.8'/%3E%3C/svg%3E") center / contain no-repeat; }
@@ -802,8 +799,6 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes monte { from { transform: scale(.4) translateY(40px); opacity: 0; } }
 .confetti { position: fixed; top: -12px; width: 9px; height: 14px; border-radius: 2px; z-index: 7; pointer-events: none; animation: chute linear forwards; }
 @keyframes chute { to { transform: translateY(105vh) rotate(720deg); } }
-.chargement .barre-ch { width: min(70vw, 320px); height: 14px; border: 3px solid var(--bord); border-radius: 99px; background: #26272b; overflow: hidden; margin: 6px auto 0; } .chargement .barre-ch i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--or), var(--kamas)); transition: width .25s; }
-.chargement .astuce { max-width: min(86vw, 420px); margin: 10px auto 0; font-size: .8rem; font-weight: 700; color: #a9adb5; }
 .classe .ico img { width: 104px; height: 104px; object-fit: contain; transform: scale(1.3) translateY(4%); } /* (l'image a des marges vides : on zoome sur le perso) */
 /* le choix de la classe, plus lisible (12/10/2026) : carte plus large, le perso dans un medaillon, textes plus gros */
 .accueil .carte:has(.classes) { width: min(100%, 700px); max-height: calc(100vh - 24px); overflow-y: auto; }
@@ -1505,3 +1500,35 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .dc-table { width: calc(100% - 16px); margin: 0 8px 8px; border-collapse: collapse; font-size: .74rem; }
 .dc-table th, .dc-table td { padding: 3px 6px; border-bottom: 1px solid #3a3c42; text-align: right; } .dc-table th:first-child, .dc-table td:first-child { text-align: left; }
 .dc-table th { color: #a9adb5; font-weight: 800; }
+
+/* L'ECRAN DE CHARGEMENT (15/11/2026, « fais-moi un truc beaucoup plus stylé pour le chargement, il date de fou », Mathieu) : la ferme de nuit en fond
+   (assets/icones/chargement-fond.jpg, maquettes/discord-pp/chargement-nuit.js), qui avance doucement ; un voile sombre sur les bords, des lucioles, le titre en or,
+   une barre vitree qui brille, l'astuce de Pepito dans une bulle ; il s'efface en fondu (.fini, 33-demarrage.js) */
+.chargement { position: fixed; inset: 0; z-index: 8; overflow: hidden; background: #070a1f; color: #ffe9c8; transition: opacity .6s ease; }
+.chargement.fini { opacity: 0; pointer-events: none; }
+.chargement[hidden] { display: none; }
+.ch-fond { position: absolute; inset: -4%; background: url(../assets/icones/chargement-fond.jpg) center 62% / cover no-repeat; animation: ch-apparait 1.4s ease both, ch-avance 26s ease-in-out infinite alternate; }
+@keyframes ch-apparait { from { opacity: 0; } }
+@keyframes ch-avance { from { transform: scale(1); } to { transform: scale(1.09) translate(-1.2%, -1.6%); } }
+.ch-voile { position: absolute; inset: 0; background: radial-gradient(ellipse 75% 70% at 50% 55%, rgba(7,10,31,0) 35%, rgba(7,10,31,.78) 100%), linear-gradient(180deg, rgba(7,10,31,.82) 0%, rgba(7,10,31,.25) 30%, rgba(7,10,31,0) 50%, rgba(7,10,31,.35) 72%, rgba(7,10,31,.92) 100%); }
+.ch-lucioles i { position: absolute; left: var(--x); top: var(--y); width: 5px; height: 5px; border-radius: 50%; background: #fff0b8; box-shadow: 0 0 8px 3px rgba(255,200,90,.75), 0 0 22px 8px rgba(255,170,60,.25); opacity: 0; animation: ch-luciole var(--d) ease-in-out var(--t) infinite; }
+@keyframes ch-luciole { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 45% { transform: translate(26px, -38px); opacity: .55; } 70% { transform: translate(-14px, -70px); opacity: 1; } 100% { transform: translate(8px, -110px); opacity: 0; } }
+.ch-titre { position: absolute; left: 0; right: 0; top: max(6vh, 26px); text-align: center; animation: ch-monte 1s cubic-bezier(.2,.8,.2,1) .15s both; }
+.ch-titre b { display: block; font: 400 clamp(2.7rem, 8.4vw, 5.6rem)/.92 var(--f-titre); text-transform: uppercase; letter-spacing: .02em; color: transparent; background: linear-gradient(180deg, #fffaf0 0%, #ffe3a3 38%, #ffb347 72%, #f08a24 100%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(2px 0 0 #1a0b04) drop-shadow(-2px 0 0 #1a0b04) drop-shadow(0 2px 0 #1a0b04) drop-shadow(0 -2px 0 #1a0b04) drop-shadow(0 5px 0 #1a0b04) drop-shadow(0 0 26px rgba(255,170,60,.5)); }
+.ch-titre em { display: inline-block; margin-top: 12px; font: 800 clamp(.88rem, 1.9vw, 1.2rem) var(--f-texte); font-style: normal; letter-spacing: .06em; color: #ffe9c8; text-shadow: 0 2px 10px rgba(0,0,0,.8); }
+.ch-titre em::after { content: ''; display: block; height: 3px; margin: 9px auto 0; width: 70%; border-radius: 3px; background: linear-gradient(90deg, rgba(255,179,71,0), #ffb347, rgba(255,179,71,0)); }
+@keyframes ch-monte { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+.ch-bas { position: absolute; left: 50%; bottom: max(5vh, 22px); width: min(88vw, 540px); transform: translateX(-50%); animation: ch-monte 1s ease .35s both; }
+.ch-ligne { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 4px 8px; font: 800 .92rem var(--f-texte); text-shadow: 0 2px 8px rgba(0,0,0,.9); }
+#chargement-pct { font: 400 1.15rem var(--f-titre); color: #ffc56a; letter-spacing: .03em; }
+.chargement .barre-ch { position: relative; height: 16px; border: 2px solid rgba(255,214,140,.6); border-radius: 99px; background: rgba(8,10,28,.65); box-shadow: inset 0 2px 6px rgba(0,0,0,.7), 0 0 20px rgba(255,170,60,.22); overflow: hidden; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.chargement .barre-ch i { position: relative; display: block; height: 100%; width: 0; border-radius: 99px; overflow: hidden; background: linear-gradient(90deg, #f08a24, #ffb347 55%, #fff1c4); box-shadow: 0 0 14px rgba(255,190,90,.85); transition: width .35s ease; }
+.chargement .barre-ch i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.75) 50%, rgba(255,255,255,0) 70%); transform: translateX(-100%); animation: ch-reflet 1.6s ease-in-out infinite; }
+@keyframes ch-reflet { to { transform: translateX(100%); } }
+.ch-astuce { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 8px 14px 8px 8px; border: 1.5px solid rgba(255,214,140,.28); border-radius: 16px; background: rgba(10,12,32,.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+.ch-astuce:has(.astuce:empty) { visibility: hidden; }
+.ch-astuce img { flex: none; width: 46px; height: 46px; object-fit: contain; transform: scale(1.65); transform-origin: 50% 60%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); } /* (l'image a des marges vides : on zoome sur Pepito) */
+.ch-astuce .astuce { font-size: .82rem; font-weight: 700; line-height: 1.35; color: #e9e3d3; text-align: left; }
+@media (max-width: 720px) { .ch-titre { top: max(9vh, 40px); } .ch-fond { background-position: 50% 62%; } .ch-ligne { font-size: .82rem; } .ch-astuce .astuce { font-size: .76rem; } }
+@media (prefers-reduced-motion: reduce) { .ch-fond, .ch-lucioles i, .chargement .barre-ch i::after { animation: none; } .ch-lucioles i { opacity: .7; } }
