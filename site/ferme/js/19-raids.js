@@ -283,7 +283,7 @@ function majVoleurRaid(mo, dt, s) {
    puis il reapparait ; il peut recommencer 2,5 s apres etre ressorti. Le perso cherche une autre cible ; les tours, elles, continuent de tirer dans la fumee.
    LE SABOTEUR : il file d'abord vers la tour de defense la plus proche (une seule par Saboteur), la bloque 10 s, et bloque aussi celles qu'il frole en passant,
    puis il va piller la grange. Une tour sabotee ne tire plus, sa tete penche, elle fume et crache des etincelles. */
-const FUMIGENE = { duree: 2, recharge: 2.5, vite: 1.25, nuage: 2 }, /* (nuage : les voleurs a moins d'une case de lui sont caches dans sa fumee aussi) */ /* (un peu adouci le 15/11/2026, « peut-etre un chouille dur ? », Mathieu, apres 7 enfuis sur 23 en jouant : recharge 2,5 s au lieu de 1,2, nuage 1 case au lieu de 1,5) */ SABOTAGE = { duree: 10, portee: 4.5 };
+const FUMIGENE = { duree: 2, recharge: 2.5, vite: 1.25, nuage: 2, omeho: 6 }, /* (omeho : pas de fumee a moins de 3 cases d'Omeho, 15/11/2026, « quand il fout le fumigene a cote d'Omeho c'est foutu, aucune alternative », Mathieu, au formulaire « a moins de 3 cases ») */ /* (nuage : les voleurs a moins d'une case de lui sont caches dans sa fumee aussi) */ /* (un peu adouci le 15/11/2026, « peut-etre un chouille dur ? », Mathieu, apres 7 enfuis sur 23 en jouant : recharge 2,5 s au lieu de 1,2, nuage 1 case au lieu de 1,5) */ SABOTAGE = { duree: 10, portee: 4.5 };
 function lancerFumigene(mo) {
   mo.fume = FUMIGENE.duree; mo.fumeCd = FUMIGENE.duree + FUMIGENE.recharge; mo.esquive = FUMIGENE.duree; mo.m.visible = false; if (mo.barre) mo.barre.style.visibility = 'hidden';
   const y = mo.m.position.y; poussiere(mo.x, y, mo.z, 14, 0.9, '#cfd3d9');
@@ -291,10 +291,12 @@ function lancerFumigene(mo) {
   const p = mo.m.position.clone(); p.y += mo.haut || 1.2; chiffre('Fumigène !', p, 'vol');
   if (combat && !combat.fumiVu) { combat.fumiVu = true; toast('Un Fumigène de VSA disparaît dans sa fumée : pendant 2 s, tes coups et tes tours le manquent. Il ressort un peu plus loin !', 'alerte'); }
 }
+const presOmeho = (mo) => !!(mo && mo.sortie && Math.hypot(mo.x - mo.sortie.x, mo.z - mo.sortie.z) < FUMIGENE.omeho);
 function majMalin(mo, dt) {
   if (mo.esquive > 0) mo.esquive -= dt; if (mo.esquiveVu > 0) mo.esquiveVu -= dt; if (mo.fumeCd > 0) mo.fumeCd -= dt;
+  if (mo.fume > 0 && presOmeho(mo)) { mo.fume = Math.min(mo.fume, dt * 0.5); mo.esquive = 0; } /* (il entre dans la zone d'Omeho en pleine fumee : elle se dissipe, il redevient visible) */
   if (mo.fume > 0) { mo.fume -= dt;
-    combat.monstres.forEach((o) => { if (o !== mo && o.etat === 'actif' && o.d.vole && Math.hypot(o.x - mo.x, o.z - mo.z) < FUMIGENE.nuage) o.esquive = Math.max(o.esquive || 0, 0.15); }); /* (ses voisins dans le nuage : tes coups les manquent aussi) */
+    combat.monstres.forEach((o) => { if (o !== mo && o.etat === 'actif' && o.d.vole && !presOmeho(o) && Math.hypot(o.x - mo.x, o.z - mo.z) < FUMIGENE.nuage) o.esquive = Math.max(o.esquive || 0, 0.15); }); /* (ses voisins dans le nuage : tes coups les manquent aussi) */
     if ((mo.fumeT = (mo.fumeT || 0) - dt) <= 0) { mo.fumeT = 0.07; emettre(FX_FUM, 2, { x: mo.x, y: mo.m.position.y + 0.5, z: mo.z, r: 1.3, v: [0, 0.5, 0], vie: [0.9, 1.4], taille: [0.6, 1.6], c: ['#e3e6ea', '#9aa0a8'], a: 0.6, frein: 1.5, entree: 0.1 }); }
     if (mo.fume <= 0) { mo.m.visible = true; if (mo.barre) mo.barre.style.visibility = ''; poussiere(mo.x, mo.m.position.y, mo.z, 8, 0.5, '#cfd3d9'); } }
   if (mo.d.saboteur) saboterAutour(mo);

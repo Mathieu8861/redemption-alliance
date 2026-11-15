@@ -593,7 +593,7 @@ function allerTournoyant(o) {
 const m0Anim = (mo) => !!(mo.m && mo.m.userData.anim);
 function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tour, arbalete, epouvantail), compte a part dans le bilan */
   if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
-  if (mo.d.fumigene && !(mo.fume > 0) && !(mo.fumeCd > 0)) { lancerFumigene(mo); return; } /* (le Fumigene de VSA : le premier coup se perd dans sa fumee, 19-raids.js) */
+  if (mo.d.fumigene && !(mo.fume > 0) && !(mo.fumeCd > 0) && !presOmeho(mo)) { lancerFumigene(mo); return; } /* (le Fumigene de VSA : le premier coup se perd dans sa fumee, 19-raids.js) */
   if (mo.esquive > 0) { if (!(mo.esquiveVu > 0)) { mo.esquiveVu = 0.4; const p = mo.m.position.clone(); p.y += mo.haut; chiffre('Esquive !', p); } return; }
   if (mo.faible || mo.ancre) { if (!((mo.faibleVu || 0) > performance.now())) { mo.faibleVu = performance.now() + 450; const p = mo.m.position.clone(); p.y += mo.haut * 0.75; chiffre('Invulnérable', p); } return; } /* (Moon affaibli, 22c-squelettes.js) */ /* (une Tortue en pleine roulade : tes coups la manquent) */
   if (mo.d.parCoups) { if (src != null || (mo.touchT || 0) > performance.now()) return; mo.touchT = performance.now() + 700; mo.touche = true; n = 1; gros = false; src = 'coup'; } /* (une tete de l'Ancestral : un trait par coup du perso, 0,7 s entre deux ; ni les defenses ni le venin ; src : ni venin ni record du plus gros coup) */
