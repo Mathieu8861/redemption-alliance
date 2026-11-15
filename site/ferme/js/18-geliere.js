@@ -201,8 +201,9 @@ let raidAnnonce = null;
    a la 70e. 4 voleurs, un de plus toutes les 5 vagues, 12 au plus (vague 60), un sur trois sur Dragodinde ; 40 PV + 12 par vague a pied, le double monte. */
 /* LA VERSION DEV DES SIMUS VSA (15/11/2026, « en version dev d'abord », Mathieu, au formulaire) : les voleurs malins, leur vie par palier, leur butin et le Brassard VSA
    ne valent que dans le mode test de Mathieu (MODE_TEST) ; pour les joueurs, tout reste comme avant. Pour les sortir : vsaDev = () => true */
-const vsaDev = () => !!MODE_TEST;
-const vagueSimu = () => (vsaDev() ? Math.max(20, ETAT_TEST.n || S_.vague.num) : /* (en mode test : la vague choisie dans le panneau, pour essayer chaque palier) */ Math.max(20, Math.min(9 * VAGUES_PALIER, S_.vague.num))); /* (version dev, 15/11/2026 : la simu suit de nouveau ta vague au-dela de la 90, « pareil entre le palier 9 et 10 », Mathieu ; bloquee a la 90 depuis le 12/11) */ /* (12/11/2026 : la simu VSA reste a la vague 90 au plus, comme avant l'ouverture de la foret ; une simu sur les vagues 91 a 100 n'a jamais ete jouee) */
+const VSA_SORTI = true; /* (sorti aux joueurs le 15/11/2026 au soir, « oui, aux joueurs », Mathieu, pour avoir leurs retours) */
+const vsaDev = () => VSA_SORTI || !!MODE_TEST;
+const vagueSimu = () => (vsaDev() ? Math.max(20, (MODE_TEST && ETAT_TEST.n) || S_.vague.num) : /* (en mode test : la vague choisie dans le panneau, pour essayer chaque palier) */ Math.max(20, Math.min(9 * VAGUES_PALIER, S_.vague.num))); /* (version dev, 15/11/2026 : la simu suit de nouveau ta vague au-dela de la 90, « pareil entre le palier 9 et 10 », Mathieu ; bloquee a la 90 depuis le 12/11) */ /* (12/11/2026 : la simu VSA reste a la vague 90 au plus, comme avant l'ouverture de la foret ; une simu sur les vagues 91 a 100 n'a jamais ete jouee) */
 const NIV_PARACHUTE = 80, PARACHUTISTES = 2; /* (le Parachutiste de VSA, des le niveau 80 du perso, 06/11/2026) */
 /* VSA qui continue de monter de la vague 60 a la 90 (06/11/2026, « entre la 60 et la 90, 100 PV de plus sur les mecs c'est pas un gros changement, c'est bof », Mathieu) :
    12 voleurs a la 60 puis +1 toutes les 5 vagues (18 a la 90, un tiers a dos de Dragodinde) ; Demenageurs 1 a la 30, 2 a la 50, 3 a la 70, 4 a la 85 ;
