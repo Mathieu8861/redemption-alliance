@@ -94,6 +94,7 @@ const NERF_P10 = 0.9, nerfP10 = (niv, c) => (niv >= 91 && (c === 'vita' || c ===
 const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); return st; };
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: statsPiece(k, e) }; })); /* (le profil de la panoplie, 06/11/2026) */
+OBJETS['arakne-anneau'].stats.puissance = 104; /* (l'anneau de l'Arakne : 79 a 128 de Puissance, BORNES_JET ; sa valeur de reference, celle d'une piece sans jet, au milieu ; 156 en rare) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
    (plus avec la Prospection), deux fois les stats de la coiffe de sa panoplie, de la Puissance en plus, et un pouvoir. Elles ne comptent dans aucune panoplie. */
 const CHANCE_LEG = 0.02;
@@ -188,8 +189,10 @@ const bonusPalier = (f, k, brut, m) => Object.assign(Object.fromEntries(Object.e
    a la place des bonus communs, ses propres paliers de pieces, chacun avec sa couleur ; l'Ecorce : la vie, les entraves plus courtes, puis la resistance au contact ;
    l'Arakne : l'agilite, les entraves plus courtes, puis le venin et la resistance aux poisons */
 const PALIERS_PROPRES = {
-  ecorce: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, () => ({ entrave: 25 })], [6, (k) => ({ resCac: 8, vita: Math.round(VALEURS.vita[k] / 2), prospection: 15, sagesse: 10 })]],
-  arakne: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ entrave: 25 })], [6, () => ({ venin: 10, resPoison: 30, prospection: 15, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
+  /* (4 et 6 pieces melanges le 15/11/2026, « le bonus 4 pieces pour l'Ecorce et l'Arakne c'est pas top, faudrait apporter d'autres stats, enfin melanger le 4 et le 6 », Mathieu :
+     a 4 pieces, de vraies stats (la vie, la resistance au contact et le butin ; le venin et le butin) ; l'entrave passe a 6 ; le total des 6 pieces ne change pas) */
+  ecorce: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ vita: Math.round(VALEURS.vita[k] / 2), resCac: 4, prospection: 15 })], [6, () => ({ entrave: 25, resCac: 4, sagesse: 10 })]],
+  arakne: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ venin: 10, prospection: 15 })], [6, () => ({ entrave: 25, resPoison: 30, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
 const paliersDe = (k) => PALIERS_PROPRES[(PANOS[k] || {}).id] || PALIERS_PANO;
 const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
 /* L'ARME COMPTE DANS SA PANOPLIE (07/11/2026, « il faut que l'arme compte dans les panoplies aussi, mais au max ca reste toujours 6/6 : l'avantage, c'est que tu peux mettre
@@ -214,11 +217,13 @@ const reventeObjet = (id) => kamasGagnes(15 * obj(id).niv * (obj(id).rare ? 3 : 
    (une Coiffe du Bwork : de 60 a 100 PV). Les pieces d'avant gardent les valeurs de reference (un jet moyen). */
 const JET_MIN = 0.75, JET_MAX = 1.25;
 const baseObjet = (k) => String(k || '').split('~')[0];
-const fourchette = (v) => [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))];
+/* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
+const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] } }; /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
+const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
 function obj(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; }
 function creerObjet(id, plancher) { /* (plancher : le jet part de cette part de la fourchette ; 0,5 pour les pieces des coffres de l'Arene, jamais sous la moyenne) */
   const o = OBJETS[id]; S_.jets = S_.jets || {}; S_.nInst = (S_.nInst || 0) + 1; const k = id + '~' + S_.nInst.toString(36);
-  S_.jets[k] = Object.fromEntries(Object.entries(o.stats).map(([c, v]) => { const [a0, b] = fourchette(v), a = Math.round(a0 + (plancher || 0) * (b - a0)); return [c, a + Math.floor(Math.random() * (b - a + 1))]; })); return k;
+  S_.jets[k] = Object.fromEntries(Object.entries(o.stats).map(([c, v]) => { const [a0, b] = fourchette(v, id, c), a = Math.round(a0 + (plancher || 0) * (b - a0)); return [c, a + Math.floor(Math.random() * (b - a + 1))]; })); return k;
 }
 function donnerObjet(id, plancher) { const k = creerObjet(id, plancher); S_.sac[k] = 1; marquerNeuf(k); return k; } /* une piece tombee, tiree, rangee dans le sac et signalee */
 /* LES RUNES DE FORGEMAGIE (14/10/2026, Mathieu : « kamas et xp c'est bien, mais les gens veulent d'autres recompenses : des runes magiques qui
@@ -319,7 +324,7 @@ function ouvrirForge() {
 const gainRune = (R, a, b) => Math.max(1, Math.ceil(R.gain * (b - a) - 1e-9));
 function ouvrirChoixForge(k) {
   const B = OBJETS[baseObjet(k)], o = obj(k), R = RUNES.forge; if (!B || !o) return;
-  const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v), cur = o.stats[c] != null ? o.stats[c] : v, apres = Math.min(b, cur + gainRune(R, a, b)), q = (x) => Math.round(100 * (b > a ? (x - a) / (b - a) : 1));
+  const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v, B.id, c), cur = o.stats[c] != null ? o.stats[c] : v, apres = Math.min(b, cur + gainRune(R, a, b)), q = (x) => Math.round(100 * (b > a ? (x - a) / (b - a) : 1));
     const C = CARACS[c] || [c, '', ''], qc = q(cur), qa = q(apres); /* (refaite le 08/11/2026, « on comprend rien, je voulais mettre une rune 20 %, je comprends que dalle », Mathieu : avant, deux pourcentages
        mêlés, la valeur et le jet entre parentheses ; maintenant la valeur avant et apres, le gain, et la fourchette en barre : l'acquis en or, ce que la rune ajoute en vert) */
     return '<div class="art fg-carac"><span class="pic">' + (C[2] || '') + '</span><div><b>' + C[0] + '</b>' + (cur >= b ? '<div class="desc">Déjà au maximum : ' + fmt(b) + C[1] + '.</div>' :
@@ -337,7 +342,7 @@ function ouvrirChoixForge(k) {
 function confirmerRune(k, t, carac, retour) {
   const R = RUNES[t], B = OBJETS[baseObjet(k)], o = obj(k); if (!R || !B || !o) return;
   const n = runes()[t] || 0; if (!(n > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return; }
-  let s0 = 0, s1 = 0, nb = 0; const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v), cur = o.stats[c] != null ? o.stats[c] : v, apres = R.gain >= 1 ? b : c === carac ? Math.min(b, cur + gainRune(R, a, b)) : cur, C = CARACS[c] || [c, '', ''];
+  let s0 = 0, s1 = 0, nb = 0; const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v, B.id, c), cur = o.stats[c] != null ? o.stats[c] : v, apres = R.gain >= 1 ? b : c === carac ? Math.min(b, cur + gainRune(R, a, b)) : cur, C = CARACS[c] || [c, '', ''];
     if (b > a) { s0 += Math.max(0, Math.min(1, (cur - a) / (b - a))); s1 += Math.max(0, Math.min(1, (apres - a) / (b - a))); } else { s0 += 0.5; s1 += 0.5; } nb++;
     if (R.gain < 1 && c !== carac) return ''; /* (la rune de forgemagie : la seule caracteristique choisie) */
     return '<div class="fg-val">' + (C[2] || '') + ' ' + C[0] + ' : <span>' + fmt(cur) + '</span>' + (apres > cur ? ' → <b>' + fmt(apres) + '</b>' + C[1] + ' <em>+' + fmt(apres - cur) + '</em>' : C[1] + ' (déjà au maximum)') + '</div>'; }).join('');
@@ -353,25 +358,25 @@ function forgerObjet(k, t, carac) {
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
   if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
   if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }
-  if (R.gain < 1) { const v0 = B.stats[carac]; if (v0 == null) { ouvrirChoixForge(k); return null; } const [a0, b0] = fourchette(v0), cur0 = obj(k).stats[carac]; if (cur0 != null && cur0 >= b0) { toast('Cette caractéristique est déjà au maximum.'); return null; } } /* (sans caracteristique choisie : on la demande) */
+  if (R.gain < 1) { const v0 = B.stats[carac]; if (v0 == null) { ouvrirChoixForge(k); return null; } const [a0, b0] = fourchette(v0, B.id, carac), cur0 = obj(k).stats[carac]; if (cur0 != null && cur0 >= b0) { toast('Cette caractéristique est déjà au maximum.'); return null; } } /* (sans caracteristique choisie : on la demande) */
   S_.jets = S_.jets || {}; let cle = k; const emp = Object.keys(S_.equip).find((e) => S_.equip[e] === k);
   if (!S_.jets[k] || (S_.sac[k] || 0) > 1) { /* une piece d'avant les jets, ou en plusieurs exemplaires : on en sort un exemplaire a part, a son jet actuel */
     S_.nInst = (S_.nInst || 0) + 1; cle = base + '~' + S_.nInst.toString(36); S_.jets[cle] = Object.assign({}, obj(k).stats);
     if (emp) S_.equip[emp] = cle; else { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; S_.sac[cle] = 1; }
   }
   const q0 = qualiteJet(cle), J = S_.jets[cle];
-  Object.entries(B.stats).forEach(([c, v]) => { const [a, b] = fourchette(v), cur = J[c] != null ? J[c] : v; if (R.gain >= 1) J[c] = b; else if (c === carac) J[c] = Math.min(b, cur + gainRune(R, a, b)); }); /* (la rune de forgemagie : la seule caracteristique choisie, 19/10/2026) */
+  Object.entries(B.stats).forEach(([c, v]) => { const [a, b] = fourchette(v, B.id, c), cur = J[c] != null ? J[c] : v; if (R.gain >= 1) J[c] = b; else if (c === carac) J[c] = Math.min(b, cur + gainRune(R, a, b)); }); /* (la rune de forgemagie : la seule caracteristique choisie, 19/10/2026) */
   n[t]--; compter('runes'); son('niveau'); confettis(25);
   toast('Forgemagie réussie : ' + obj(cle).nom + ', jet ' + Math.round(q0 * 100) + ' % puis ' + Math.round(qualiteJet(cle) * 100) + ' %.', 'or'); rendreHaut(); sauver(); return cle;
 }
 /* la qualite du jet, de 0 (tout au minimum) a 1 (tout au maximum) */
 function qualiteJet(k) {
   const o = obj(k), b = OBJETS[baseObjet(k)]; if (!o || !b) return 0.5;
-  const L = Object.entries(b.stats).map(([c, v]) => { const [a, m] = fourchette(v); return m > a ? Math.max(0, Math.min(1, ((o.stats[c] || 0) - a) / (m - a))) : 0.5; });
+  const L = Object.entries(b.stats).map(([c, v]) => { const [a, m] = fourchette(v, b.id, c); return m > a ? Math.max(0, Math.min(1, ((o.stats[c] || 0) - a) / (m - a))) : 0.5; });
   return L.length ? L.reduce((x, y) => x + y, 0) / L.length : 0.5;
 }
 const nomJet = (q) => q >= 0.85 ? 'excellent' : q >= 0.6 ? 'bon' : q >= 0.35 ? 'moyen' : 'faible';
-const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v); return '<span class="puce">' + CARACS[c][2] + ' +' + a + ' à ' + b + CARACS[c][1] + '</span>'; }).join('') + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
+const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v, o.id, c); return '<span class="puce">' + CARACS[c][2] + ' +' + a + ' à ' + b + CARACS[c][1] + '</span>'; }).join('') + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* UNE PIECE TIREE (refonte du 16/10/2026) : une piece de la panoplie du palier P, de preference une qu'on n'a pas encore, parfois en version rare
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }

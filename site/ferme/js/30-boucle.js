@@ -238,7 +238,7 @@ function completerTerrains() {
        la fourchette, forgemagie comprise), rangee dans le sac et signalee ; un message le dit au joueur */
     const L = LEGENDAIRES.find((x) => x.cle === 'dcochon'), nv = L && idLeg(L, (S_.perso && S_.perso.classe) || 'iop'), O = nv && OBJETS[nv]; let n0 = 0;
     const echanger = (k) => { const q = qualiteJet(k); S_.jets = S_.jets || {}; S_.nInst = (S_.nInst || 0) + 1; const n = nv + '~' + S_.nInst.toString(36);
-      S_.jets[n] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v); return [c, Math.round(a + q * (b - a))]; })); delete S_.jets[k];
+      S_.jets[n] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v, O.id, c); return [c, Math.round(a + q * (b - a))]; })); delete S_.jets[k];
       S_.sac = S_.sac || {}; S_.sac[n] = 1; marquerNeuf(n); n0++; };
     if (O) {
       Object.keys(S_.sac || {}).filter((k) => baseObjet(k) === 'leg-cochon').forEach((k) => { const nb = S_.sac[k]; delete S_.sac[k]; for (let i = 0; i < nb; i++) echanger(k); });

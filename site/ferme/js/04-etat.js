@@ -173,7 +173,7 @@ function convertirPanos(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => {
     if (!p || p.panosProfil >= 1) return; p.panosProfil = 1;
     Object.entries(p.jets || {}).forEach(([k, j]) => { const o = OBJETS[baseObjet(k)]; if (!o || o.leg || o.arme || !j) return;
-      Object.keys(j).forEach((c) => { const m = multPano(o.pano, c); if (m === 1 || !o.stats[c]) return; const [a, b] = fourchette(o.stats[c]); j[c] = Math.min(b, Math.max(a, Math.round(j[c] * m))); }); });
+      Object.keys(j).forEach((c) => { const m = multPano(o.pano, c); if (m === 1 || !o.stats[c]) return; const [a, b] = fourchette(o.stats[c], o.id, c); j[c] = Math.min(b, Math.max(a, Math.round(j[c] * m))); }); });
   });
 }
 /* LES PIECES DU PALIER 10 DEJA TOMBEES (15/11/2026, la baisse du palier 10, NERF_P10, 03-equipements.js) : chaque piece garde la qualite de son jet, forgemagie comprise
@@ -186,12 +186,17 @@ const ANCIENNES_P10 = { 'ecorce-coiffe': { vita: 1404 }, 'ecorce-cape': { vita: 
   'leg-ancestral-epee': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-arc': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-fouet': { puissance: 158, agilite: 43, vita: 514 } };
 function convertirP10(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => {
-    if (!p || p.p10Dose >= 1) return; p.p10Dose = 1;
+    if (!p || p.p10Dose >= 2) return;
+    if (p.p10Dose === 1) { /* (deja convertie le 15/11 au soir, avec l'anneau de l'Arakne a 54-90 de Puissance, 81-135 en rare : seul l'anneau change encore, au meme jet) */
+      Object.entries(p.jets || {}).forEach(([k, j]) => { const id = baseObjet(k); if (!/^arakne-anneau(-rare)?$/.test(id) || !j || j.puissance == null) return;
+        const [a, b] = /-rare$/.test(id) ? [81, 135] : [54, 90], [a2, b2] = fourchette(OBJETS[id].stats.puissance, id, 'puissance'), q = Math.max(0, Math.min(1, (j.puissance - a) / (b - a))); j.puissance = Math.round(a2 + q * (b2 - a2)); });
+      p.p10Dose = 2; return; }
+    p.p10Dose = 2;
     Object.entries(p.jets || {}).forEach(([k, j]) => { const id = baseObjet(k), O = OBJETS[id], rare = /-rare$/.test(id), A0 = ANCIENNES_P10[id.replace(/-rare$/, '')]; if (!O || !A0 || !j) return;
       const A = rare ? Object.fromEntries(Object.entries(A0).map(([c, v]) => [c, Math.ceil(v * 1.5)])) : A0;
       const Q = {}; Object.entries(A).forEach(([c, v]) => { const [a, b] = fourchette(v); Q[c] = j[c] == null ? 0.5 : b > a ? Math.max(0, Math.min(1, (j[c] - a) / (b - a))) : 0.5; });
       const qs = Object.values(Q), moy = qs.length ? qs.reduce((x, y) => x + y, 0) / qs.length : 0.5;
-      p.jets[k] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v), q = Q[c] != null ? Q[c] : moy; return [c, Math.round(a + q * (b - a))]; })); });
+      p.jets[k] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v, O.id, c), q = Q[c] != null ? Q[c] : moy; return [c, Math.round(a + q * (b - a))]; })); });
   });
 }
 function convertirCultures(e) {

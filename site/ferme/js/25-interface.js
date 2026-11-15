@@ -604,7 +604,7 @@ function ouvrirPerso(sel) {
        tableau melait les caracteristiques des deux pieces, et celles de la piece portee s'affichaient « +0 » dans la colonne de la nouvelle, comme si elle les donnait.
        Deux blocs maintenant : ce que la piece donne, puis ce qui change si elle remplace la piece portee, gains d'abord) */
     const unite = (cc) => (CARACS[cc][1].trim().startsWith('%') ? ' %' : ''), nomC = (cc) => CARACS[cc][2] + ' ' + CARACS[cc][0];
-    const ligne = (cc) => { const v = o.stats[cc] || 0, [fa, fb] = B.stats[cc] ? fourchette(B.stats[cc]) : [v, v], u = unite(cc);
+    const ligne = (cc) => { const v = o.stats[cc] || 0, [fa, fb] = B.stats[cc] ? fourchette(B.stats[cc], B.id, cc) : [v, v], u = unite(cc);
       return '<div class="fp-ligne"><span>' + nomC(cc) + '<small>' + (B.stats[cc] ? 'de ' + fa + ' à ' + fb + u : '') + '</small></span><span><b>+' + v + u + '</b></span></div>'; };
     const ecarts = q ? [...new Set(Object.keys(o.stats).concat(Object.keys(q.stats)))].map((cc) => [cc, (o.stats[cc] || 0) - (q.stats[cc] || 0)]).filter(([, d]) => d).sort((x, y) => (y[1] > 0) - (x[1] > 0)) : [];
     const table = '<div class="fp-compare seule"><div class="fp-ligne th"><span>' + (porteeIci ? 'Ce qu\'elle te donne' : 'Ce qu\'elle donne') + '</span><span></span></div>' + Object.keys(o.stats).map(ligne).join('') + '</div>' +
