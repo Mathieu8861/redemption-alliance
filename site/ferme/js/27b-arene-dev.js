@@ -29,7 +29,7 @@ function ouvrirAreneDev() {
   const ligne = (t) => { const d = MONSTRES[t], k = E.liste[t] || 0; if (!d) return '';
     return '<div class="art">' + ico(d.icone) + '<div><b>' + d.nom + (d.boss ? ' <span class="puce">boss</span>' : '') + '</b><div class="desc">' + d.desc + '</div><div class="puces"><span class="puce">' + fmt(pvMonstre(t, E.n)) + ' PV</span><span class="puce">' + fmt(degMonstre(t, E.n)) + ' par coup</span><span class="puce">vitesse ' + String(vitesseMonstre(d)).replace('.', ',') + '</span></div></div>' +
       '<div class="act dev-nb"><button class="btn discret" data-dev-moins="' + t + '"' + (k ? '' : ' disabled') + '>−</button><b>' + k + '</b><button class="btn discret" data-dev-plus="' + t + '"' + (k < NB_DEV_MAX ? '' : ' disabled') + '>+</button></div></div>'; };
-  ouvrirModale('arene-dev', entete('Arène dev') +
+  ouvrirModale('arene-dev', rangerDev(entete('Arène dev') +
     '<p class="hdv-aide">Réservée à ton compte. Les monstres en avant-première sortent des herses de l\'Arène avec leur propre force. Rien ne se gagne ni ne se perd : ni XP, ni kamas, ni butin, ni record ; pas de ticket, de repas ni de potions ; tu rentres avec ta vie d\'avant.</p>' +
     '<div class="hdv-section">Les groupes</div><div class="puces dev-groupes">' + Object.entries(GROUPES_DEV).map(([id, g]) => '<button class="btn discret" data-dev-groupe="' + id + '">' + g.nom + '</button>').join('') + '<button class="btn discret" data-dev-groupe="vider">Vider</button></div>' +
     (() => { const T0 = E.tenue = E.tenue || {}, cl = classeDe(), bt = (attr, v, txt, on) => '<button class="btn ' + (on ? 'kamas' : 'discret') + '" data-' + attr + '="' + v + '">' + (on ? '✓ ' : '') + txt + '</button>', st = apercuEssai(E);
@@ -47,7 +47,7 @@ function ouvrirAreneDev() {
     '<div class="hdv-section">Les monstres du palier 10 : deux versions</div><p class="hdv-aide">A : la version réaliste (écorce détaillée). B : la version à la DA du jeu (aplats, couleurs franches, contours marqués). Même forme, mêmes mouvements ; ça change aussi les monstres déjà en combat.</p><div class="puces dev-groupes">' +
       [['A', 'Version A (réaliste)'], ['B', 'Version B (DA du jeu)']].map(([v, t]) => '<button class="btn ' + (VERSION_P10 === v ? 'kamas' : 'discret') + '" data-dev-version="' + v + '">' + t + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
-    '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>');
+    '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>', ONGLETS_DEV, ongletDev, 'onglet-dev'));
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
@@ -182,7 +182,7 @@ function ouvrirModeTest() {
   const cl = classeDe(), L = niveau(S_.xp), E = S_.equip || {}, n = ETAT_TEST.n, P = palierDe(n), bouton = (attr, v, txt, on) => '<button class="btn ' + (on ? 'kamas' : 'discret') + '" data-' + attr + '="' + v + '">' + (on ? '✓ ' : '') + txt + '</button>';
   const panoPortee = (() => { const o = E.coiffe && obj(E.coiffe), o2 = E.bottes && obj(E.bottes); return o && !o.leg ? PANOS[o.pano].id : o2 ? PANOS[o2.pano].id : null; })(), arme = E.arme && obj(E.arme), coiffe = E.coiffe && obj(E.coiffe);
   const pas = (attr, v) => '<div class="act dev-nb">' + [-10, -1].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">' + d + '</button>').join('') + '<b>' + v + '</b>' + [1, 10].map((d) => '<button class="btn discret" data-' + attr + '="' + d + '">+' + d + '</button>').join('') + '</div>';
-  ouvrirModale('mode-test', entete('Mode test') + '<p class="hdv-aide">Plus rien n\'est enregistré. « Quitter le mode test » recharge la page et te rend ta vraie partie.</p>' +
+  ouvrirModale('mode-test', rangerDev(entete('Mode test') + '<p class="hdv-aide">Plus rien n\'est enregistré. « Quitter le mode test » recharge la page et te rend ta vraie partie.</p>' +
     /* (tout en haut : « je vois toujours pas le mode nuit en mode test », Mathieu, 11/11/2026 ; il etait en bas du panneau, apres les defenses) */
     /* (l'ile des boss, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu, pour le Bworker de la semaine du 13/11 : le boss au choix, essais libres, rien ne compte) */
     '<div class="hdv-section">L\'île des boss</div><p class="hdv-aide">Le boss de ton choix, autant d\'essais que tu veux : rien ne compte, ni tes essais ni la vie commune de l\'alliance. Chaque boss est celui que les joueurs auront, renforts de l\'île compris.</p><div class="puces dev-groupes">' + bouton('test-ile', 'semaine', 'Celui de la semaine', !ETAT_TEST.ileBoss) + ROTATION_ILE_BOSS.map((t) => bouton('test-ile', t, MONSTRES[t].nom, ETAT_TEST.ileBoss === t)).join('') + '</div>' +
@@ -206,7 +206,7 @@ function ouvrirModeTest() {
     '<div class="hdv-section">Tes défenses</div><p class="hdv-aide">Tes ' + nbTours() + ' tourelles : les tiennes, coupées, ou toutes au niveau de ton choix (6 : celles du château).</p><div class="puces dev-groupes">' + bouton('test-tours', 'tiennes', 'Les tiennes', ETAT_TEST.tours == null) + bouton('test-tours', '0', 'Coupées', ETAT_TEST.tours === 0) + [1, 2, 3, 4, 5, 6].map((k) => bouton('test-tours', String(k), 'Niveau ' + k, ETAT_TEST.tours === k)).join('') + '</div>' +
     '<div class="puces dev-groupes">' + bouton('test', 'sansdef', 'Arbalète de la grange et Pépito-Tron coupés', ETAT_TEST.sansDef) + '</div>' +
     '<div class="hdv-section">En combat</div><div class="puces dev-groupes">' + bouton('test', 'immortel', 'Immortel (les coups s\'affichent, tu ne tombes pas)', ETAT_TEST.immortel) + bouton('test', 'pv', 'Vie au max', false) + '</div>' +
-    '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>');
+    '<div class="act-bas"><button class="btn discret" data-test="quitter">Quitter le mode test</button></div>', ONGLETS_TEST, ongletTest, 'onglet-test'));
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-test],[data-test-classe],[data-test-sexe],[data-test-niv],[data-test-pano],[data-test-leg-arme],[data-test-leg-coiffe],[data-test-n],[data-test-tours],[data-test-boost],[data-test-nuit],[data-test-equi],[data-test-pluie],[data-test-ile]'); if (!b || !estAdmin()) return;
@@ -284,3 +284,38 @@ function lancerEntrainement() {
     arene: { k: 1, tenues: 0, kamas: 0, xp: 0, objets: [], runes: {}, niv0: niveau(S_.xp), record: 0, recordSem: 0 }, regen: false, citron: false, agi: false });
   ouvrirHudCombat(); majCombatHud(); toast('Entra\u00eenement : un Poutch seul \u00e0 gauche, un groupe \u00e0 droite pour tes sorts de zone. \u00ab Fuir \u00bb pour finir.', 'or');
 }
+
+/* DES PANNEAUX PLUS LISIBLES (15/11/2026, « fais-moi un panneau plus lisible, ou il y a moins besoin de scroller, pour le mode test et l'Arene dev, c'est dur a force,
+   il y a trop de choses », Mathieu) : les memes sections, rangees en onglets, sur une fenetre plus large en deux colonnes (css/jeu.css, .carte.dev) ; les onglets et
+   le bouton du bas restent visibles en defilant. rangerDev decoupe le panneau a ses titres de section : ajouter une section, c'est l'ajouter a un onglet ici */
+const ONGLETS_TEST = [
+  { id: 'combat', nom: 'Combat', titres: ['La vague', 'Le Poutch', 'La simu VSA', 'Tes d\u00e9fenses', 'En combat'] },
+  { id: 'perso', nom: 'Perso', titres: ['Ton perso', 'Ton \u00e9quipement', 'Tes boosts'], plein: ['Ton \u00e9quipement'] },
+  { id: 'monde', nom: '\u00cele, jour et pluie', titres: ['L\'\u00eele des boss', 'Le jour et la nuit', 'La pluie'] },
+  { id: 'lien-dev', nom: 'Ar\u00e8ne dev \u2192', lien: true }];
+const ONGLETS_DEV = [
+  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'La force des monstres', 'Les vagues 91'] },
+  { id: 'liste', nom: 'Un par un', titres: ['Les monstres en avant-premi\u00e8re'], plein: ['Les monstres en avant-premi\u00e8re'], liste: ['Les monstres en avant-premi\u00e8re'] },
+  { id: 'boss', nom: 'Un boss seul', titres: ['Un boss seul'], plein: ['Un boss seul'] },
+  { id: 'equipement', nom: '\u00c9quipement', titres: ['Ton \u00e9quipement pour le combat'], plein: ['Ton \u00e9quipement pour le combat'] },
+  { id: 'reglages', nom: 'R\u00e9glages', titres: ['Vitesse des animations', 'Les monstres du palier 10'] },
+  { id: 'lien-test', nom: 'Mode test \u2192', lien: true }];
+let ongletTest = 'combat', ongletDev = 'monstres';
+function rangerDev(html, onglets, actif, attr) {
+  const i0 = html.indexOf('<div class="hdv-section">'), iBas = html.lastIndexOf('<div class="act-bas">'); if (i0 < 0) return html;
+  const tete = html.slice(0, i0), bas = iBas > i0 ? html.slice(iBas) : '', corps = html.slice(i0, iBas > i0 ? iBas : undefined);
+  const S = corps.split('<div class="hdv-section">').slice(1).map((p) => ({ titre: p.slice(0, p.indexOf('</div>')), html: '<div class="hdv-section">' + p }));
+  const rang = (O, t) => O.titres ? O.titres.findIndex((x) => t.startsWith(x)) : -1, O = onglets.find((o) => o.id === actif) || onglets[0];
+  const a = (t, L) => (L || []).some((x) => t.startsWith(x));
+  const blocs = S.map((s) => ({ s, k: rang(O, s.titre) })).filter((x) => x.k >= 0).sort((x, y) => x.k - y.k)
+    .map(({ s }) => '<div class="dev-bloc' + (a(s.titre, O.plein) ? ' plein' : '') + (a(s.titre, O.liste) ? ' liste' : '') + '">' + s.html + '</div>').join('');
+  const nav = '<div class="dev-onglets">' + onglets.map((o) => '<button data-' + attr + '="' + o.id + '" aria-pressed="' + (o.id === O.id) + '"' + (o.lien ? ' class="lien-onglet"' : '') + '>' + o.nom + '</button>').join('') + '</div>';
+  return tete.replace('<p class="hdv-aide">', '<p class="hdv-aide dev-intro">') + nav + '<div class="dev-cols">' + (blocs || '<p class="hdv-aide">Rien ici.</p>') + '</div>' + bas;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-onglet-test],[data-onglet-dev]'); if (!b || !estAdmin()) return;
+  const v = b.dataset.ongletTest || b.dataset.ongletDev;
+  if (v === 'lien-dev') { ouvrirAreneDev(); return; } if (v === 'lien-test') { ouvrirModeTest(); return; }
+  if (b.dataset.ongletTest) { ongletTest = v; ouvrirModeTest(); } else { ongletDev = v; ouvrirAreneDev(); }
+  $('carte').scrollTop = 0;
+});

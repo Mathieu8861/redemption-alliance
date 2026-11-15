@@ -195,19 +195,28 @@ function dgAlertes() { /* les alertes : couche, en bas entre les pouces (le CSS)
 function dgBoucle(t) { const dt = Math.min(0.05, Math.max(0, (t - dg.t) / 1000)); dg.t = t; try { dgMaj(dt); } catch (e) { console.error(e); } requestAnimationFrame(dgBoucle); }
 
 /* ----- les Options (section visible du seul admin) ----- */
-function dgOptionsHtml() {
+function dgChoixHtml() { /* (tous les choix, sur leur page : ouvrirDoigt) */
   const R = dgReglages, ch = (titre, cle, L) => '<div class="dg-opt-l"><b>' + titre + '</b><div class="musiques-opt">' + L.map(([v, t]) => '<button class="sexe" data-dg="' + cle + ':' + v + '" aria-pressed="' + (String(R[cle]) === String(v)) + '">' + t + '</button>').join('') + '</div></div>';
-  return '<div id="dg-opt"><div class="hdv-section">Commandes au doigt en combat</div><div class="dg-opt">' +
+  return '<div class="dg-opt">' +
     ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) +
     ch('Joystick', 'joy', [['fixe', 'Fixe'], ['flottant', 'Sous le doigt']]) + ch('Caméra', 'suivi', [['cadre', 'Avec un cadre'], ['centre', 'Toujours au centre'], ['libre', 'Libre']]) +
     ch('Distance', 'dist', [['proche', 'Proche'], ['moyenne', 'Moyenne'], ['loin', 'Loin']]) + ch('Inclinaison', 'incl', [['plongee', 'Plongée'], ['normale', 'Normale'], ['rasante', 'Rasante']]) +
     ch('Quart de tour', 'tour', [[true, 'Oui'], [false, 'Non']]) + ch('Flèches vers les monstres cachés', 'fleches', [[true, 'Oui'], [false, 'Non']]) +
-    '<p class="dg-opt-p">Joystick à gauche. Sorts : appui court, il part tout seul ; glisser depuis le bouton pour placer le cercle ; lâcher sur la croix pour annuler.</p></div></div>';
+    '<p class="dg-opt-p">Joystick à gauche. Sorts : appui court, il part tout seul ; glisser depuis le bouton pour placer le cercle ; lâcher sur la croix pour annuler.</p></div>';
 }
-function dgOptions() { if (typeof modaleOuverte === 'undefined' || modaleOuverte !== 'options') return; const carte = dgId('carte'); if (!carte) return;
+/* UNE SEULE LIGNE DANS LES OPTIONS (15/11/2026, « ca c'est pareil, fais-le tenir sur une ligne sur laquelle tu cliques pour ensuite modifier les options de jeu », Mathieu) :
+   le resume des reglages et un bouton « Regler », qui ouvre tous les choix sur leur page, avec un retour aux Options */
+const DG_NOMS = { actif: { auto: 'au téléphone', toujours: 'toujours', jamais: 'jamais' }, disp: { a: 'éventail', c: 'deux bandes' }, joy: { fixe: 'joystick fixe', flottant: 'joystick sous le doigt' }, suivi: { cadre: 'caméra avec un cadre', centre: 'caméra au centre', libre: 'caméra libre' } };
+function dgOptionsHtml() {
+  const R = dgReglages, res = R.actif === 'jamais' ? 'Désactivées' : 'Activées ' + DG_NOMS.actif[R.actif] + ' · ' + ['disp', 'joy', 'suivi'].map((k) => DG_NOMS[k][R[k]]).filter(Boolean).join(' · ');
+  return '<div id="dg-opt"><div class="hdv-section">Au téléphone</div><div class="art">' + ico('app-192') + '<div><b>Commandes au doigt en combat</b><div class="desc">' + res + '</div></div><div class="act"><button class="btn discret" data-dg-ouvrir>Régler</button></div></div></div>';
+}
+function ouvrirDoigt() { ouvrirModale('doigt', entete('Commandes au doigt en combat') + dgChoixHtml() + '<div class="boutons" style="margin-top:12px"><button class="btn discret" data-retour-options>Retour aux Options</button></div>'); }
+function dgOptions() { if (typeof modaleOuverte !== 'undefined' && modaleOuverte === 'doigt') { ouvrirDoigt(); return; } if (typeof modaleOuverte === 'undefined' || modaleOuverte !== 'options') return; const carte = dgId('carte'); if (!carte) return;
   const ancien = dgId('dg-opt'); if (ancien) { ancien.outerHTML = dgOptionsHtml(); return; } const s = carte.querySelector('.hdv-section'); if (s) s.insertAdjacentHTML('beforebegin', dgOptionsHtml()); }
 window.addEventListener('click', (e) => { const b = e.target && e.target.closest ? e.target.closest('[data-dg]') : null; if (!b) return; e.stopPropagation(); e.preventDefault();
   const [k, v] = b.dataset.dg.split(':'); dgReglages[k] = v === 'true' ? true : v === 'false' ? false : v; dgSauver(); dgOptions();
   if (dg.on) { if (!doigtActif()) dgSortir(); else { dgClasses(); dgCamReglages(); dg.el.base.classList.toggle('vu', dgReglages.joy !== 'flottant'); dg.el.bouton.classList.toggle('vu', dgReglages.joy !== 'flottant'); } } }, true);
-window.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('#b-options')) setTimeout(dgOptions, 0); }); /* (apres la fenetre des Options, construite par 25-interface.js) */
+window.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('#b-options')) setTimeout(dgOptions, 0); });
+window.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('[data-dg-ouvrir]')) ouvrirDoigt(); else if (e.target && e.target.closest && e.target.closest('[data-retour-options]')) setTimeout(dgOptions, 0); }); /* (la page des reglages, et le retour aux Options qui remet la ligne) */ /* (apres la fenetre des Options, construite par 25-interface.js) */
 dgBrancherSorts(); requestAnimationFrame(dgBoucle);
