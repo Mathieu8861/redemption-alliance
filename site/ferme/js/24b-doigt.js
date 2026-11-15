@@ -83,7 +83,7 @@ function dgPointAuto(v) { /* l'appui court : ou le sort part tout seul */
   const pp = paysanMesh.position, L = dgActifs(); if (!L.length) return null; const d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z), poids = (o) => (o.d.boss || o.d.demi ? 1.6 : 1);
   if (v.ligne || v.cone) { const P = v.portee || PORTEE_PERCANTE, larg = (v.largeur || LARGEUR_PERCANTE) + 0.45; let best = null;
     L.filter((o) => d(o) <= P + 1).forEach((o) => { const ux = (o.x - pp.x) / (d(o) || 1), uz = (o.z - pp.z) / (d(o) || 1); let s = 0;
-      L.forEach((m) => { const rx = m.x - pp.x, rz = m.z - pp.z, t = rx * ux + rz * uz; if (t < 0 || t > P + 0.5) return; if (v.cone ? Math.acos(Math.max(-1, Math.min(1, t / (Math.hypot(rx, rz) || 1)))) <= 0.6 : Math.abs(rx * uz - rz * ux) <= larg) s += poids(m); });
+      L.forEach((m) => { const rx = m.x - pp.x, rz = m.z - pp.z, t = rx * ux + rz * uz; if (t < 0 || t > P + 0.5) return; if (v.cone ? Math.acos(Math.max(-1, Math.min(1, t / (Math.hypot(rx, rz) || 1)))) <= (v.ouv || 0.55) + 0.05 : Math.abs(rx * uz - rz * ux) <= larg) s += poids(m); });
       if (!best || s > best.s + 0.01 || (Math.abs(s - best.s) <= 0.01 && d(o) < best.d)) best = { s, d: d(o), ux, uz }; });
     if (!best) { const o = L.sort((a, b) => d(a) - d(b))[0]; best = { ux: (o.x - pp.x) / (d(o) || 1), uz: (o.z - pp.z) / (d(o) || 1) }; }
     return new T.Vector3(pp.x + best.ux * P, pp.y, pp.z + best.uz * P); }

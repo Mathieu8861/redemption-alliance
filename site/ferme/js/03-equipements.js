@@ -138,9 +138,16 @@ const LEGENDAIRES = [
     pouvoirs: { epee: 'Sort Enfouissement (touche 4) : tu t\'enfonces sous terre, intouchable 0,8 s, et tu ressurgis là où tu vises (jusqu\'à 5 cases de toi) : 2,5 fois tes dégâts sur 1,5 case autour, et les monstres sont projetés. Recharge 13 s.',
       arc: 'Sort Flèche maudite (touche 4) : elle marque un monstre 6 s, il prend 25 % de dégâts en plus ; s\'il meurt marqué, la malédiction saute sur les 2 monstres les plus proches. Recharge 12 s.',
       fouet: 'Sort Têtes de l\'Ancestral (touche 4) : deux têtes de serpent surgissent du sol près de toi et mordent les monstres à portée pendant 6 s. Recharge 15 s.' } },
-  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Sort Souffle de feu (touche 3) : un cône de feu vers où tu vises, sur 5 cases, 3 fois tes dégâts, et les monstres touchés brûlent. Recharge 12 s.' }
+  { cle: 'croc', boss: 'crocabulia', rang: 4 /* (le palier du Dragoeuf : sans ce rang, elle prenait celui des Wabbits, niveau 60, corrige le 12/10/2026) */, nom: 'Heaume de Crocabulia', pouvoir: 'Sort Souffle de feu (touche 3) : un cône de feu vers où tu vises, 2 fois tes dégâts, et les monstres touchés brûlent. Recharge 12 s.',
+    /* UN SORT PAR CLASSE (15/11/2026, « faut refaire la coiffe Croca, faire un sort par classe ; elle est trop forte actuellement, faut revoir un peu », puis au formulaire : Iop « souffle de feu court »,
+       Cra « garde comme c'est la, juste reduis la largeur et augmente la portee », Osa « Dragonnet », et « des styles de DPS propres a chaque classe ») : avant, pour tous, 5 cases, 3 fois les degats et 3 s de brulure (environ 4,8 fois en tout) */
+    pouvoirs: { epee: 'Sort Souffle de feu (touche 3) : un cône de feu court devant toi (3 cases), 2 fois tes dégâts, puis les monstres touchés brûlent 2 s (0,2 fois tes dégâts toutes les demi-secondes). Recharge 12 s.',
+      arc: 'Sort Souffle de feu (touche 3) : un jet de feu étroit qui porte loin (7 cases), 1,8 fois tes dégâts, puis les monstres touchés brûlent 2 s (0,2 fois tes dégâts toutes les demi-secondes). Recharge 12 s.',
+      fouet: 'Sort Dragonnet (touche 3) : un petit dragon de feu apparaît là où tu vises (jusqu\'à 5 cases de toi) et vole 8 s ; chaque seconde, il crache une boule de feu sur le monstre le plus proche (4 cases), 0,35 fois tes dégâts à lui et autour. Recharge 16 s.' } }
 ];
 LEGENDAIRES.forEach((L, i) => { if (L.arme) return; const k = L.rang != null ? L.rang : i, id = 'leg-' + L.cle; OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'coiffe', nom: L.nom, niv: PANOS[k].niv + 9, pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; });
+/* (une coiffe avec un sort par classe, le Heaume de Crocabulia, 15/11/2026 : son texte suit la classe du perso) */
+LEGENDAIRES.forEach((L) => { if (L.arme || !L.pouvoirs) return; Object.defineProperty(OBJETS['leg-' + L.cle], 'pouvoir', { get: () => (typeof S_ !== 'undefined' && S_ && S_.perso && L.pouvoirs[ARMES[classeDe()][0]]) || L.pouvoir, enumerable: true }); });
 /* les armes : l'epee du Iop, l'arc du Cra, le fouet de l'Osamodas, aux couleurs de chaque panoplie (icones arme-<type>-<panoplie>, equipements.glb).
    Elles ne tombent que sur les boss, pour ta classe, et ne comptent dans aucune panoplie */
 const ARMES = { iop: ['epee', 'Épée'], cra: ['arc', 'Arc'], osa: ['fouet', 'Fouet'] };

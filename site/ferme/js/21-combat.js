@@ -94,7 +94,7 @@ function nettoyerCombat(c, releve) { /* les monstres et leurs effets disparaisse
   c.monstres.forEach((o) => { if (o.m.parent) { pouf(o.x, o.m.position.y, o.z, 1.5); jeter(o.m); } o.barre.remove(); });
   (c.fumees || []).forEach((f) => jeter(f.g)); (c.solsPara || []).forEach((g) => jeter(g)); /* (les cercles d'atterrissage des parachutistes) */ /* (les nuages du Koulosse se dissipent) */
   if (c.invoc) jeter(c.invoc.m);
-  if (c.bouture && c.bouture.m) jeter(c.bouture.m); /* (la Bouture de l'Osa, 09/11/2026) */
+  if (c.bouture && c.bouture.m) jeter(c.bouture.m); /* (la Bouture de l'Osa, 09/11/2026) */ if (c.dragonnet && c.dragonnet.m) jeter(c.dragonnet.m); /* (le Dragonnet, 15/11/2026) */
   combat = null; ANNEAU.visible = false; annulerVisee(); chemin = []; arrivee = null; const u = paysanMesh.userData; u.attaque = null; u.enVol = false; u.tempete = false; if (releve) { u.charge = false; paysanMesh.rotation.x = 0; } $('b-fuir').hidden = false;
   $('hud').classList.remove('en-combat'); $('combat').hidden = true; $('combat-zone').innerHTML = ''; $('boss-barre').hidden = true; $('boss-barre')._mo = null; if (modaleOuverte === 'entracte') fermerModale();
 }

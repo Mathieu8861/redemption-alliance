@@ -60,9 +60,9 @@ const viseurBord = new T.Mesh(new T.RingGeometry(0.93, 1, 56), new T.MeshBasicMa
 [viseurDisque, viseurBord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 3; VISEUR.add(m); });
 const geoLigne = new T.BoxGeometry(1, 0.02, 1); geoLigne.translate(0, 0, 0.5);
 const VISEE_LIGNE = new T.Mesh(geoLigne, new T.MeshBasicMaterial({ color: '#ffe08a', transparent: true, opacity: 0.4, depthWrite: false, depthTest: false })); VISEE_LIGNE.visible = false; VISEE_LIGNE.renderOrder = 3; scene.add(VISEE_LIGNE);
-const VISEE_CONE = new T.Group(); { const m = new T.Mesh(new T.CircleGeometry(1, 40, -Math.PI / 2 - 0.55, 1.1), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.35, depthWrite: false, depthTest: false, side: T.DoubleSide })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; VISEE_CONE.add(m);
-  const bord = new T.Mesh(new T.RingGeometry(0.95, 1, 40, 1, -Math.PI / 2 - 0.55, 1.1), new T.MeshBasicMaterial({ color: '#ff5a10', transparent: true, opacity: 0.9, depthWrite: false, depthTest: false, side: T.DoubleSide })); bord.rotation.x = -Math.PI / 2; bord.renderOrder = 4; VISEE_CONE.add(bord);
-  for (const t0 of [-Math.PI / 2 - 0.55, -Math.PI / 2 + 0.55]) { const l = new T.Mesh(new T.CircleGeometry(1, 1, t0 - 0.014, 0.028), bord.material); l.rotation.x = -Math.PI / 2; l.renderOrder = 4; VISEE_CONE.add(l); } } /* (les deux cotes : de fines parts, du perso au bord) */ VISEE_CONE.visible = false; /* (un bord net : l'arc et les deux cotes) */ scene.add(VISEE_CONE); /* (le cone du Souffle de feu, vers +z, mis a l'echelle de sa portee) */
+const VISEE_CONE = new T.Group(); function construireCone(ouv) { VISEE_CONE.children.slice().forEach((o) => VISEE_CONE.remove(o)); VISEE_CONE.userData.ouv = ouv; /* (la demi-ouverture du cone : 0,55 pour le Iop, plus etroit pour le Cra, 15/11/2026) */ const m = new T.Mesh(new T.CircleGeometry(1, 40, -Math.PI / 2 - ouv, 2 * ouv), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.35, depthWrite: false, depthTest: false, side: T.DoubleSide })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; VISEE_CONE.add(m);
+  const bord = new T.Mesh(new T.RingGeometry(0.95, 1, 40, 1, -Math.PI / 2 - ouv, 2 * ouv), new T.MeshBasicMaterial({ color: '#ff5a10', transparent: true, opacity: 0.9, depthWrite: false, depthTest: false, side: T.DoubleSide })); bord.rotation.x = -Math.PI / 2; bord.renderOrder = 4; VISEE_CONE.add(bord);
+  for (const t0 of [-Math.PI / 2 - ouv, -Math.PI / 2 + ouv]) { const l = new T.Mesh(new T.CircleGeometry(1, 1, t0 - 0.014, 0.028), bord.material); l.rotation.x = -Math.PI / 2; l.renderOrder = 4; VISEE_CONE.add(l); } } construireCone(0.55); /* (les deux cotes : de fines parts, du perso au bord) */ VISEE_CONE.visible = false; /* (un bord net : l'arc et les deux cotes) */ scene.add(VISEE_CONE); /* (le cone du Souffle de feu, vers +z, mis a l'echelle de sa portee) */
 const PORTEE_PERCANTE = 16, LARGEUR_PERCANTE = 0.5; /* (06/11/2026, « la bande plus fine mais plus longue, qu'on puisse toucher de plus loin », Mathieu : 8 cases et une demi-case de large ; avant, 10 et 0,9) */
 const solPlan = new T.Plane(new T.Vector3(0, 1, 0), 0);
 function pointSol(ev) { /* le point du sol sous la souris : la case touchee, sinon le plan du sol */
@@ -104,7 +104,7 @@ function monstreVise(pt, rayon) { let best = null, bd = rayon || 1.4; /* (rayon 
 function majVisee(s) {
   if (!visee || !combat) { if (visee) annulerVisee(); return; }
   const pp = paysanMesh.position, pt = visee.point;
-  if (visee.cone) { VISEUR.visible = false; VISEE_LIGNE.visible = false; PORTEE_VUE.visible = false; VISEE_CONE.visible = true; VISEE_CONE.position.set(pp.x, pp.y + 0.08, pp.z); VISEE_CONE.rotation.y = Math.atan2(pt.x - pp.x, pt.z - pp.z); VISEE_CONE.scale.setScalar(visee.portee); VISEE_CONE.children[0].material.opacity = 0.42 + Math.sin(s * 6) * 0.06; return; }
+  if (visee.cone) { if (VISEE_CONE.userData.ouv !== (visee.ouv || 0.55)) construireCone(visee.ouv || 0.55); VISEUR.visible = false; VISEE_LIGNE.visible = false; PORTEE_VUE.visible = false; VISEE_CONE.visible = true; VISEE_CONE.position.set(pp.x, pp.y + 0.08, pp.z); VISEE_CONE.rotation.y = Math.atan2(pt.x - pp.x, pt.z - pp.z); VISEE_CONE.scale.setScalar(visee.portee); VISEE_CONE.children[0].material.opacity = 0.42 + Math.sin(s * 6) * 0.06; return; }
   VISEE_CONE.visible = false;
   if (visee.ligne) {
     VISEUR.visible = false; VISEE_LIGNE.visible = true; VISEE_LIGNE.position.set(pp.x, pp.y + 0.08, pp.z); VISEE_LIGNE.rotation.y = Math.atan2(pt.x - pp.x, pt.z - pp.z);
@@ -292,7 +292,9 @@ const SORTS_LEG = {
   bworker: { nom: 'Hache lancée', teinte: '#c08a4a', recharge: 12, portee: 10, zone: 2.2 }, /* (« go bworker ouais », Mathieu, 02/11/2026) */
   moon: { nom: 'Bond de Moon', teinte: '#c98a52', recharge: 13, portee: 10, zone: 2.6 }, /* (l'arme de Moon, 02/11/2026) */
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
-  croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 10 }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
+  croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 10, parClasse: { /* (un sort par classe, 15/11/2026 : mult, les degats a l'impact ; ouv, la demi-ouverture du cone) */
+    iop: { nom: 'Souffle de feu', recharge: 12, portee: 6, ouv: 0.55, mult: 2 }, cra: { nom: 'Souffle de feu', recharge: 12, portee: 14, ouv: 0.26, mult: 1.8 },
+    osa: { nom: 'Dragonnet', recharge: 16, portee: 10, zone: 1.2 } } }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 3 },
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
@@ -330,11 +332,12 @@ function executerLeg(emp, pt, compter, tire) {
   if (cle === 'craq') { /* le seisme : la terre s'ouvre la ou tu vises */
     seisme(x, y, z, S.zone);
     actifs.forEach((o) => { if (Math.hypot(o.x - x, o.z - z) < S.zone) blesser(o, Math.round(st.deg * 2), true); });
-  } else if (cle === 'croc') { /* le souffle de feu : un cone vers ou tu vises, les monstres touches brulent */
-    const a = Math.atan2(x - pp.x, z - pp.z);
-    souffleDeFeu(pp, a, S.portee); /* (« pourquoi c'est des cercles au sol ? Faut que ce soit un souffle de feu, comme s'il crachait du feu de sa bouche », Mathieu : un jet de flammes, 22b-effets.js) */
-    actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
-      if (d < S.portee && Math.abs(e) < 0.55) { blesser(o, Math.round(st.deg * 3), true); if (o.etat === 'actif') { o.brule = 3; o.bruleDeg = Math.max(1, Math.round(st.deg * 0.3)); } } });
+  } else if (cle === 'croc') { /* le Heaume de Crocabulia, un sort par classe (15/11/2026) : le souffle de feu en cone (court pour le Iop, etroit et long pour le Cra), le Dragonnet pour l'Osamodas */
+    if (classeDe() === 'osa') dragonnet(pt, st);
+    else { const a = Math.atan2(x - pp.x, z - pp.z), ouv = S.ouv || 0.55;
+      souffleDeFeu(pp, a, S.portee, null, ouv); /* (« pourquoi c'est des cercles au sol ? Faut que ce soit un souffle de feu, comme s'il crachait du feu de sa bouche », Mathieu : un jet de flammes, 22b-effets.js) */
+      actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
+        if (d < S.portee && Math.abs(e) < ouv + Math.atan2(0.3 * (o.d.ombre || 1), Math.max(0.5, d))) { blesser(o, Math.round(st.deg * (S.mult || 2)), true); brulerCroc(o, st); } }); } /* (le corps du monstre compte : un gros monstre au bord du jet est touche) */
   } else if (cle === 'wa') { /* la pluie de cawottes : quatre cawottes dans la zone visee */
     for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.0 : 0, X = x + Math.cos(a) * r, Z = z + Math.sin(a) * r; pluieCawotte(X, y, Z, k * 0.06);
       actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
@@ -466,7 +469,7 @@ const viseeClasse = () => ({ osa: { id: 'invoc', rayon: RAYON_INVOC, teinte: '#b
   iop: { id: 'bond', rayon: RAYON_BOND, teinte: '#ffe08a', portee: PORTEE_BOND } })[classeDe()]; /* (iop : on vise ou sauter, « qu'on puisse nous-meme cibler ou on saute », Mathieu, 12/10/2026) */
 const boutonLeg = (emp) => ({ cd: cdLeg(emp), dispo: () => !!legDe(emp),
   refus: () => (legDe(emp) === 'corail' && classeDe() === 'osa' && !(combat && combat.invoc) ? 'Invoque d\'abord ton Bouftou : la Galvanisation le renforce.' : ''),
-  visee: () => { const cle = legDe(emp), S = sortLeg(cle); return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc', ligne: !!S.ligne, largeur: S.largeur, libre: true, instant: !!S.instant }; }, /* (la zone au sol, la portee autour du perso ; ligne : la bande de la charge ou de la lance) */
+  visee: () => { const cle = legDe(emp), S = sortLeg(cle); return { quoi: 'leg', emp, cle, rayon: S.zone || 1, portee: S.portee, teinte: S.teinte, cone: cle === 'croc' && !!S.ouv, ouv: S.ouv, ligne: !!S.ligne, largeur: S.largeur, libre: true, instant: !!S.instant }; }, /* (la zone au sol, la portee autour du perso ; ligne : la bande de la charge ou de la lance) */
   tirer: (v, pt) => { annulerVisee(); executerLeg(v.emp, v.instant ? { x: paysanMesh.position.x, z: paysanMesh.position.z } : v.cone || v.ligne ? { x: pt.x, z: pt.z } : pointLibre(pt, v.portee), true); } });
 /* la portee du coup fatal (Colere de Iop, Fleche fatale, Morsure du Dragoeuf) : celle de l'attaque de ta classe (06/11/2026, « on ne voit pas la portee, et ca te fait
    avancer vers la cible si tu n'as pas la PO », Mathieu : un cercle pendant la visee, et hors de portee le sort ne part pas au lieu de faire marcher le perso) */
@@ -525,6 +528,44 @@ function majInvoc(dt) {
    Il a tes PV max et n'encaisse que la moitie des coups (son ecorce) ; un anneau vert a ses pieds, une barre verte au-dessus : ses PV. Abattu ou a la fin, il
    se fend en copeaux et en feuilles */
 const DUREE_BOUTURE = 10, RAYON_BOUTURE = 6, PORTEE_BOUTURE = 10, VEC_BOUTURE = new T.Vector3();
+/* LE DRAGONNET (le Heaume de Crocabulia, Osamodas, 15/11/2026, « Dragonnet », Mathieu au formulaire, et « on va pas faire un dragonnet qui tape 2,5 fois les degats » : des degats
+   etales dans le temps, le style de l'invocateur) : un petit Crocabulia (son modele, a 30 %) vole 8 s la ou tu vises, les ailes battantes ; chaque seconde il crache une boule
+   de feu sur le monstre le plus proche (4 cases autour de lui) : 0,35 fois tes degats a lui et a ceux a moins d'une demi-case, et ils brulent 1 s. Il s'approche s'il n'y a rien a portee */
+const DRAGONNET = { duree: 8, cadence: 1, portee: 8, mult: 0.35, zone: 1.1, vitesse: 3.2, echelle: 0.3, haut: 1.3 }, BRULURE_CROC = { t: 2, part: 0.2 };
+function brulerCroc(o, st, t) { if (o.etat !== 'actif') return; o.brule = Math.max(o.brule || 0, t || BRULURE_CROC.t); o.bruleDeg = Math.max(o.bruleDeg && o.brule > 0 ? o.bruleDeg : 0, Math.max(1, Math.round(st.deg * BRULURE_CROC.part))); }
+function finDragonnet(c) { const dr = c && c.dragonnet; if (!dr) return; c.dragonnet = null; if (dr.m) { const p = dr.m.position; pouf(p.x, solA(p.x, p.z), p.z, 1.6, '#ff8a2e'); emettre(FX_FUM, 8, { x: p.x, y: p.y, z: p.z, r: 0.4, v: [0, 0.8, 0], vie: [0.7, 1.1], taille: [0.4, 1.4], c: ['#5a4a42', '#9a8a80'], a: 0.5, frein: 1.2, entree: 0.1 }); jeter(dr.m); } }
+function dragonnet(pt, st) {
+  const c0 = combat; finDragonnet(c0); if (!MODELES.crocabulia) return;
+  const q = pointSort(pt, PORTEE_BOUTURE), x = q.x, z = q.z, y = solA(x, z), pp = paysanMesh.position;
+  const m = cloner('crocabulia'); m.traverse((o) => { o.raycast = () => {}; }); const echelle = m.scale.x * DRAGONNET.echelle; m.scale.setScalar(echelle * 0.2);
+  const ry = Math.atan2(pp.x - x, pp.z - z); poser(m, x, y + DRAGONNET.haut, z, ry); m.rotation.order = 'YXZ';
+  c0.dragonnet = { x, z, ry, vie: DRAGONNET.duree, cd: 0.5, m, echelle, nait: 0, ph: 0, ailes: [m.getObjectByName('aile_pivot_G'), m.getObjectByName('aile_pivot_D')] };
+  flashLumiere(x, y + 1, z, '#ff8a2e', 3, 6, 0.5); onde(x, y + 0.05, z, 1.6, '#ff7a1e', 0.45, 0.85); emettre(FX_LUM, 18, { x, y: y + 1, z, r: 0.5, v: [0, 1.6, 0], dv: 1.4, vie: [0.4, 0.8], taille: [0.12, 0.02], c: ['#fff1a8', '#ff7a1e'], grav: 2, etire: 0.03 });
+  chiffre('Dragonnet', new T.Vector3(x, y + 2.4, z), 'gros');
+}
+function bouleDragonnet(dr, cib, st) {
+  const c0 = combat, de = new T.Vector3(dr.x + Math.sin(dr.ry) * 0.5, dr.m.position.y + 0.15, dr.z + Math.cos(dr.ry) * 0.5), vers = new T.Vector3(cib.x, cib.m.position.y + (cib.haut || 1) * 0.5, cib.z);
+  const b = new T.Mesh(GEO_BOULE_DRAG, MAT_BOULE_DRAG); b.position.copy(de); scene.add(b); let u = 0; const D = Math.max(1, de.distanceTo(vers)), duree = Math.min(0.45, D / 16);
+  effets.push((dt) => { if (combat !== c0) { jeter(b); return true; } u += dt / duree; b.position.lerpVectors(de, vers, Math.min(1, u)); b.position.y += Math.sin(Math.min(1, u) * Math.PI) * 0.4;
+    emettre(FX_LUM, 1, { x: b.position.x, y: b.position.y, z: b.position.z, v: [0, 0.3, 0], vie: [0.2, 0.32], taille: [0.35, 0.05], c: ['#ffd04a', '#ff5a1e'], a: 0.8 });
+    if (u < 1) return false; jeter(b); const X = vers.x, Z = vers.z, Y = solA(X, Z);
+    lueur(vers, '#ff7a1e', 1.2, 0.25); brulure(X, Y, Z, 0.5); emettre(FX_VIF, 8, { x: X, y: vers.y, z: Z, r: 0.2, v: [0, 1.4, 0], dv: 2, vie: [0.25, 0.45], taille: [0.25, 0.05], c: ['#fff1a8', '#ff8a1e', '#a02a08'], grav: 3, a: 0.9 });
+    c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < DRAGONNET.zone + 0.2 * (o.d.ombre || 1)) { blesser(o, Math.max(1, Math.round(st.deg * DRAGONNET.mult))); brulerCroc(o, st, 1); } });
+    return true; });
+}
+const GEO_BOULE_DRAG = new T.SphereGeometry(0.17, 12, 8), MAT_BOULE_DRAG = new T.MeshBasicMaterial({ color: '#ff9a3a' }); partager(GEO_BOULE_DRAG); partager(MAT_BOULE_DRAG);
+function majDragonnet(dt, s) {
+  const c = combat, dr = c && c.dragonnet; if (!dr) return;
+  dr.vie -= dt; if (dr.vie <= 0) { finDragonnet(c); return; }
+  const m = dr.m, st = statsPerso(); dr.nait = Math.min(1, dr.nait + dt / 0.4); dr.ph += dt * 1.6 * Math.PI * 2;
+  const cib = plusProcheMonstre(dr), d = cib ? Math.hypot(cib.x - dr.x, cib.z - dr.z) : Infinity;
+  if (cib && d > DRAGONNET.portee * 0.85) { const dx = cib.x - dr.x, dz = cib.z - dr.z, L = d || 1, pas = Math.min(L - DRAGONNET.portee * 0.7, DRAGONNET.vitesse * dt); dr.x += dx / L * pas; dr.z += dz / L * pas; }
+  if (cib) tourner(dr, Math.atan2(cib.x - dr.x, cib.z - dr.z), dt);
+  dr.cd -= dt; if (cib && d <= DRAGONNET.portee && dr.cd <= 0 && dr.nait >= 1) { dr.cd = DRAGONNET.cadence; bouleDragonnet(dr, cib, st); }
+  const th = 0.12 + 0.55 * Math.sin(dr.ph), av = 0.12 * Math.cos(dr.ph); if (dr.ailes[0]) dr.ailes[0].rotation.set(0, -av, -th); if (dr.ailes[1]) dr.ailes[1].rotation.set(0, av, th);
+  const fin = Math.min(1, dr.vie / 0.35), k = (0.2 + 0.8 * (1 - Math.pow(1 - dr.nait, 3))) * fin;
+  m.scale.setScalar(dr.echelle * k); m.position.set(dr.x, solA(dr.x, dr.z) + DRAGONNET.haut - 0.12 * Math.sin(dr.ph), dr.z); m.rotation.y = dr.ry; m.rotation.z = Math.sin(dr.ph * 0.5) * 0.04;
+}
 function finBouture(c, abattu) {
   const bo = c && c.bouture; if (!bo) return; c.bouture = null; if (bo.barre) bo.barre.remove();
   if (bo.m) { const p = bo.m.position; pouf(p.x, p.y, p.z, 2, abattu ? '#6b4528' : '#86b84a'); feuillesVolantes(p.x, p.y + 0.6, p.z, 0.9, 10, false); mottes(p.x, p.y, p.z, 6, 0.7); jeter(bo.m); }
