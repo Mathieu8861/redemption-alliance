@@ -15,12 +15,24 @@ function lancer(etat) {
   rendreHaut(); rendreObjectif(); setTimeout(placerPanneaux, 50); if (!tutoAuto) setTimeout(astuceClics, 4000); setTimeout(nuageEnvoyer, 1500);
   if (tutoAuto) setTimeout(() => demarrerTuto(S_.tutoEtape || 0), 700); else { if (absence) setTimeout(montrerAbsence, 400); setTimeout(cadeauDuJour, absence ? 2500 : 600); }
 }
+/* LA FIN DU CHARGEMENT (15/11/2026, « il y a un petit freeze quand le chargement finit, l'arriere-plan derriere la selection des persos freeze une demi-seconde »,
+   Mathieu ; mesure : environ 1 s saccadee, des images de 130 a 350 ms, la fin de demarrer puis le dessin des 3 portraits des parties) : l'ecran de chargement reste
+   devant tant que les portraits ne sont pas dessines et que la scene ne tourne pas de facon fluide (4 images de suite sous 70 ms), puis s'efface en fondu ;
+   6 s au plus, et tout de suite si une partie est lancee (enAccueil) */
+async function finirChargement() {
+  const ch = document.getElementById('chargement'), tx = document.getElementById('chargement-texte'), pct = document.getElementById('chargement-pct');
+  if (tx) tx.textContent = 'On prépare tes héros...'; if (pct) pct.textContent = '100 %';
+  const t0 = performance.now(), assez = () => !enAccueil || performance.now() - t0 > 6000, image = () => new Promise((r) => { requestAnimationFrame(r); setTimeout(r, 120); });
+  let prets = false; Promise.allSettled(PORTRAITS_ACCUEIL).then(() => { prets = true; });
+  while (!prets && !assez()) await image();
+  let calme = 0, t = performance.now(); while (calme < 4 && !assez()) { await image(); const n = performance.now(); calme = n - t < 70 ? calme + 1 : 0; t = n; }
+  ch.classList.add('fini'); setTimeout(() => { ch.hidden = true; }, 700);
+}
 async function demarrer() {
   { const a = document.getElementById('chargement-astuce'); if (a) a.textContent = 'Pépito : « ' + hasard(PEPITO) + ' »'; }
   S_ = charger() || etatInitial(); completerTerrains(); const nuageP = identifier();
   try { await chargerModeles(); } catch (err) { document.getElementById('chargement-texte').textContent = 'Le chargement de l\'île a échoué, recharge la page.'; window.__erreur = String(err); throw err; }
   { const n = await nuageP; if (n) choisirVersion(n); } /* le compte et sa ferme en ligne, si elle est plus recente */
-  { const ch = document.getElementById('chargement'); ch.classList.add('fini'); setTimeout(() => { ch.hidden = true; }, 700); } /* (il s'efface en fondu, 15/11/2026) */
   if (graphismes() === 'leger') appliquerGraphismes(); /* le choix du joueur (ou la bascule automatique d'une visite precedente) */
   arbresSurCases(); construireStatique(); poserMontgolfiere(); /* la montgolfiere du Casino, au bord de la ferme */
   S_.cases.forEach((p) => construireCase(p));
@@ -33,7 +45,7 @@ async function demarrer() {
   cadrer(); rendu.shadowMap.needsUpdate = true; rendu.render(scene, camera); placerBulles();
   placerCamera();
   ouvrirAccueil();
-  window.__pret = true; requestAnimationFrame(boucle); setTimeout(prechargerIcones, 4000); /* (les icones de la grange, en fond, 07/11/2026) */
+  window.__pret = true; requestAnimationFrame(boucle); finirChargement(); setTimeout(prechargerIcones, 4000); /* (les icones de la grange, en fond, 07/11/2026) */
 }
 window.addEventListener('error', (e) => { window.__erreur = e.message; });
 

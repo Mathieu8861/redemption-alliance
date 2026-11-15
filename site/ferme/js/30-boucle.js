@@ -158,6 +158,7 @@ const COUL_CLASSE = { iop: ['#d9443a', '#ffb347'], cra: ['#4f9a2c', '#c4ea6a'], 
 /* le decor vit (23/10/2026, « des petites animations dans le fond », Mathieu) : des braises qui montent chez le Iop, des feuilles qui tombent chez le Cra,
    des etincelles de magie chez l'Osamodas ; en CSS, rien a telecharger */
 const PARTICULES_HEROS = (classe) => '<span class="parts parts-' + classe + '">' + [8, 22, 35, 49, 61, 74, 88, 15, 67].map((x, k) => '<i style="left:' + x + '%;animation-delay:' + (-k * 0.73).toFixed(2) + 's;animation-duration:' + (4.2 + (k * 37 % 5) * 0.6).toFixed(1) + 's"></i>').join('') + '</span>';
+let PORTRAITS_ACCUEIL = []; /* (les portraits des parties en cours de dessin : l'ecran de chargement les attend, finirChargement, 33-demarrage.js) */
 function ouvrirAccueil() {
   const sauve = charger();
   let classe = (sauve && sauve.perso && sauve.perso.classe) || 'cra', look = (sauve && sauve.perso && sauve.perso.look) || 'classique', sexe = (sauve && sauve.perso && sauve.perso.sexe) || 'm';
@@ -179,7 +180,7 @@ function ouvrirAccueil() {
   const rendre = () => {
     const choix = !!(sauve && sauve.perso && creer == null); carte.classList.toggle('nuit', choix); /* (le ciel de nuit : l'ecran des parties seulement) */
     if (choix) { carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + '<p class="parties-titre">Tes parties (' + MAX_PARTIES + ' au plus)</p><div class="heros-grille">' + [1, 2, 3].map(ligneP).join('') + '</div>';
-      carte.querySelectorAll('img[data-portrait]').forEach((im) => { const e = partieDe(+im.dataset.portrait); if (e) portraitDePartie(e).then((src) => { if (!src || !im.isConnected) return; const n = new Image(); n.onload = () => { if (!im.isConnected) return; im.style.width = (n.naturalWidth * ECHELLE_HEROS).toFixed(1) + 'px'; im.src = src; im.classList.add('rendu'); }; n.src = src; }).catch(() => {}); });
+      carte.querySelectorAll('img[data-portrait]').forEach((im) => { const e = partieDe(+im.dataset.portrait); if (e) PORTRAITS_ACCUEIL[PORTRAITS_ACCUEIL.push(portraitDePartie(e)) - 1].then((src) => { if (!src || !im.isConnected) return; const n = new Image(); n.onload = () => { if (!im.isConnected) return; im.style.width = (n.naturalWidth * ECHELLE_HEROS).toFixed(1) + 'px'; im.src = src; im.classList.add('rendu'); }; n.src = src; }).catch(() => {}); });
       return; }
     carte.innerHTML = '<h1>Ferme d\'Incarnam</h1>' + bandeauCompte() + (creer != null ? '' : '<p>Une île de 40 cases dans le ciel d\'Incarnam. Cultive, élève des Bouftous, vends à l\'HDV, et défends ta ferme contre les Tofus et les vagues qui viendront.</p>') + /* (la presentation : seulement pour une premiere ferme) */
       (creer != null ? '<button class="retour-parties" data-retour-parties>← Mes parties</button><p class="parties-titre">Nouvelle partie, emplacement ' + creer + '</p>' : '') +
