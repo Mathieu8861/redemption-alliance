@@ -119,7 +119,7 @@ function finVague(gagne, fuite) {
     const perdu = somme(c.butin), enfuis = Math.max(0, (c.total || c.tues) - c.tues), vPerdu = valeur(perdu);
     /* « faut trop lire pour voir ce que l'on a gagne / perdu » (Mathieu, 13/10/2026) : la proposition C, en vignettes. Les tetes des voleurs (barrees : abattus,
        fleche : enfuis), puis une vignette par gain (vert), par recolte reprise (blanc) et par recolte volee (rouge), gros chiffres et presque pas de texte */
-    const tetes = Math.min(c.tues + enfuis, 14), abattus = Math.min(c.tues, tetes);
+    const tetes = Math.min(c.tues + enfuis, 27), abattus = Math.max(0, tetes - enfuis); /* (15/11/2026, « j'ai tout tue apparemment mais j'ai quand meme perdu des ressources », Mathieu : 14 tetes au plus, remplies d'abord par les abattus, et les enfuis n'apparaissaient plus des 14 voleurs abattus ; toutes les tetes, sur trois rangees, les enfuis toujours visibles) */
     const vol = '<div class="bv-vol">' + Array.from({ length: tetes }, (_, k) => '<span class="' + (k < abattus ? 'abattu' : 'enfui') + '"><img src="assets/icones/voleur.png?v=' + VERSION_MODELES + '" alt=""></span>').join('') + '</div><div class="bv-leg">' + c.tues + ' abattu' + (c.tues > 1 ? 's' : '') + ', ' + (enfuis ? enfuis + ' enfui' + (enfuis > 1 ? 's' : '') : 'aucun enfui') + '</div>';
     const vignette = (cls, icone, chiffre, texte) => '<div class="bv-t ' + cls + '"><img src="assets/icones/' + icone + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + chiffre + '</b><span>' + texte + '</span></div>';
     const V = [];
