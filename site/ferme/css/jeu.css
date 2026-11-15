@@ -1507,7 +1507,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .chargement { position: fixed; inset: 0; z-index: 8; overflow: hidden; background: #070a1f; color: #ffe9c8; transition: opacity .6s ease; }
 .chargement.fini { opacity: 0; pointer-events: none; }
 .chargement[hidden] { display: none; }
-.ch-fond { position: absolute; inset: -4%; background: url(../assets/icones/chargement-fond.jpg) center 62% / cover no-repeat; animation: ch-apparait 1.4s ease both, ch-avance 26s ease-in-out infinite alternate; }
+.ch-fond { position: absolute; inset: -4%; background: url(../assets/icones/chargement-fond.jpg?v=20261115b) center 62% / cover no-repeat; animation: ch-apparait 1.4s ease both, ch-avance 26s ease-in-out infinite alternate; }
 @keyframes ch-apparait { from { opacity: 0; } }
 @keyframes ch-avance { from { transform: scale(1); } to { transform: scale(1.09) translate(-1.2%, -1.6%); } }
 .ch-voile { position: absolute; inset: 0; background: radial-gradient(ellipse 75% 70% at 50% 55%, rgba(7,10,31,0) 35%, rgba(7,10,31,.78) 100%), linear-gradient(180deg, rgba(7,10,31,.82) 0%, rgba(7,10,31,.25) 30%, rgba(7,10,31,0) 50%, rgba(7,10,31,.35) 72%, rgba(7,10,31,.92) 100%); }
