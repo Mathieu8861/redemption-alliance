@@ -111,7 +111,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -174,6 +174,24 @@ function convertirPanos(e) {
     if (!p || p.panosProfil >= 1) return; p.panosProfil = 1;
     Object.entries(p.jets || {}).forEach(([k, j]) => { const o = OBJETS[baseObjet(k)]; if (!o || o.leg || o.arme || !j) return;
       Object.keys(j).forEach((c) => { const m = multPano(o.pano, c); if (m === 1 || !o.stats[c]) return; const [a, b] = fourchette(o.stats[c]); j[c] = Math.min(b, Math.max(a, Math.round(j[c] * m))); }); });
+  });
+}
+/* LES PIECES DU PALIER 10 DEJA TOMBEES (15/11/2026, la baisse du palier 10, NERF_P10, 03-equipements.js) : chaque piece garde la qualite de son jet, forgemagie comprise
+   (sa place dans la fourchette, caracteristique par caracteristique), recalculee sur les nouvelles valeurs ; une caracteristique nouvelle (l'Agilite de l'anneau de
+   l'Arakne) prend la qualite moyenne de la piece. Les anciennes valeurs de reference : */
+const ANCIENNES_P10 = { 'ecorce-coiffe': { vita: 1404 }, 'ecorce-cape': { vita: 702, prospection: 65 }, 'ecorce-amulette': { puissance: 128 }, 'ecorce-anneau': { vita: 702, puissance: 64 }, 'ecorce-bottes': { agilite: 51, sagesse: 55 },
+  'arakne-coiffe': { puissance: 85, agilite: 34 }, 'arakne-cape': { agilite: 34, prospection: 65 }, 'arakne-amulette': { vita: 696, puissance: 85 }, 'arakne-anneau': { puissance: 170 }, 'arakne-ceinture': { vita: 696, prospection: 65 }, 'arakne-bottes': { agilite: 34, sagesse: 55 },
+  'arme-epee-ecorce': { puissance: 133, agilite: 34 }, 'arme-arc-ecorce': { puissance: 133, agilite: 34 }, 'arme-fouet-ecorce': { puissance: 133, agilite: 34 },
+  'leg-chene-epee': { puissance: 186, agilite: 51, vita: 605 }, 'leg-chene-arc': { puissance: 186, agilite: 51, vita: 605 }, 'leg-chene-fouet': { puissance: 186, agilite: 51, vita: 605 },
+  'leg-ancestral-epee': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-arc': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-fouet': { puissance: 158, agilite: 43, vita: 514 } };
+function convertirP10(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => {
+    if (!p || p.p10Dose >= 1) return; p.p10Dose = 1;
+    Object.entries(p.jets || {}).forEach(([k, j]) => { const id = baseObjet(k), O = OBJETS[id], rare = /-rare$/.test(id), A0 = ANCIENNES_P10[id.replace(/-rare$/, '')]; if (!O || !A0 || !j) return;
+      const A = rare ? Object.fromEntries(Object.entries(A0).map(([c, v]) => [c, Math.ceil(v * 1.5)])) : A0;
+      const Q = {}; Object.entries(A).forEach(([c, v]) => { const [a, b] = fourchette(v); Q[c] = j[c] == null ? 0.5 : b > a ? Math.max(0, Math.min(1, (j[c] - a) / (b - a))) : 0.5; });
+      const qs = Object.values(Q), moy = qs.length ? qs.reduce((x, y) => x + y, 0) / qs.length : 0.5;
+      p.jets[k] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v), q = Q[c] != null ? Q[c] : moy; return [c, Math.round(a + q * (b - a))]; })); });
   });
 }
 function convertirCultures(e) {

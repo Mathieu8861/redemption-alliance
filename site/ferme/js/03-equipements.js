@@ -68,7 +68,7 @@ const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id
 const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
 /* LE PROFIL D'UNE PANOPLIE (06/11/2026, « la Tortue c'est plus pour les cac, plus de vie, de tankiness ; le Kanniboul pour les distance, moins de vie mais plus de
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */
-const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.16, puissance: 1.2, agilite: 1.5 }, arakne: { vita: 1.15, puissance: 1.6 } }; /* (l'Ecorce et l'Arakne, 08/11/2026 : leur profil est deja dans
+const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.16, puissance: 1.2, agilite: 1.5 }, arakne: { vita: 1.15, puissance: 1.5 } }; /* (Puissance 1,6 puis 1,5 le 15/11/2026, avec la baisse du palier 10 : NERF_P10) */ /* (l'Ecorce et l'Arakne, 08/11/2026 : leur profil est deja dans
    leurs pieces (MOTIF_PANO : 4 Vitalite sur 12 pour l'Ecorce, 4 Puissance et 3 Agilite pour l'Arakne) ; ces multiplicateurs calent la panoplie complete a +15 a 20 %
    de la Tortue et du Kanniboul, le saut normal d'un palier : sans eux, l'Ecorce montait a 7 500 de Vitalite et l'Arakne tombait a 600) */
 const multPano = (k, c) => ((PROFIL_PANO[(PANOS[k] || {}).id] || {})[c] || 1);
@@ -84,10 +84,14 @@ const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bott
    garderaient leurs anciens jets, a convertir d'abord) */
 const MOTIF_PANO = {
   ecorce: { coiffe: ['vita', 'vita'], cape: ['vita', 'prospection'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'puissance'], ceinture: ['prospection', 'sagesse'], bottes: ['agilite', 'sagesse'] },
-  arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'puissance'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] } };
+  arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] } }; /* (l'anneau de l'Arakne : Puissance et Agilite, et non plus deux fois la Puissance, 15/11/2026, « l'anneau du Kanniboul c'est de 42 a 71 %, la tu as triple, faut doser un peu », Mathieu) */
 /* (chaque panoplie garde 12 caracteristiques sur ses 6 pieces, comme MOTIF ; l'Ecorce : 4 Vitalite, 3 Puissance, 2 Prospection, 2 Sagesse, 1 Agilite ; l'Arakne : 4 Puissance,
    3 Agilite, 2 Vitalite, 2 Prospection, 1 Sagesse) */
-const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c)); }); return st; };
+/* LA BAISSE DU PALIER 10 (15/11/2026, « il faudrait reduire un peu la puissance des items du 90 a 100, surtout l'anneau Arakne », Mathieu) : -10 % de Vitalite, de Puissance et
+   d'Agilite sur les pieces de l'Ecorce et de l'Arakne, l'arme de l'Ecorce et les armes legendaires du Chene Mou et de l'Ancestral (pas les bonus de panoplie) ; les pieces deja
+   tombees gardent leur jet, recalcule sur ces valeurs (convertirP10, 04-etat.js, ANCIENNES_P10) */
+const NERF_P10 = 0.9, nerfP10 = (niv, c) => (niv >= 91 && (c === 'vita' || c === 'puissance' || c === 'agilite') ? NERF_P10 : 1);
+const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); return st; };
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: statsPiece(k, e) }; })); /* (le profil de la panoplie, 06/11/2026) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
@@ -156,7 +160,7 @@ const EMPLACEMENTS_PERSO = EMPLACEMENTS.concat([['arme', 'Arme']]);
    du boss ; plus forte qu'une arme de panoplie (Puissance x3,5 au lieu de x2,5, Agilite x1,5, et de la Vitalite). La premiere : le Wa Wabbit (14/10/2026) */
 LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entries(ARMES).forEach(([cl, [t]]) => { const id = 'leg-' + L.cle + '-' + t;
   OBJETS[id] = { id, pano: k, leg: L.cle, emp: 'arme', classe: cl, arme: true, type: t, icone: 'arme-' + t + '-' + L.icone, visuel: L.noeuds[t], fichier: L.fichier || 'equipements-wabbit', cale: L.cales[t], nom: L.noms[t], niv: L.niv || Math.min(80, (PANOS[k] ? PANOS[k].niv : 81) + 9) /* (Moon, rang 8 sans panoplie : le niveau maximum, 80 ; L.niv : le Chene Mou, 90) */, pouvoir: (L.pouvoirs && L.pouvoirs[t]) || L.pouvoir, /* (pouvoirs : un sort par classe, la Corail) */
-    stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5 * (L.force || 1)), agilite: Math.round(VALEURS.agilite[k] * 1.5 * (L.force || 1)), vita: Math.round(VALEURS.vita[k] * (L.force || 1)) } }; }); }); /* (force : la Corail, 85 % de Moon) */
+    stats: { puissance: Math.round(VALEURS.puissance[k] * 3.5 * (L.force || 1) * nerfP10(L.rang === 9 ? 91 : 0, 'puissance')), agilite: Math.round(VALEURS.agilite[k] * 1.5 * (L.force || 1) * nerfP10(L.rang === 9 ? 91 : 0, 'agilite')), vita: Math.round(VALEURS.vita[k] * (L.force || 1) * nerfP10(L.rang === 9 ? 91 : 0, 'vita')) } }; }); }); /* (force : la Corail, 85 % de Moon) */
 /* LA BAGUE DU JOUEUR PRO (10/11/2026, l'easter egg du million : « si on gagne, on obtient un anneau legendaire, la bague du joueur pro, qui donne des stats
    de fou en prospection », Mathieu) : elle ne tombe sur aucun monstre, Dore III la perd a sa table de poker (js/29b-casino-patron.js). Hors panoplie, comme
    les autres legendaires ; ses stats sont tirees comme toutes les pieces (de 75 a 125 %) : de 113 a 188 de Prospection */
@@ -166,7 +170,7 @@ PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (
   celle de la Tortue tombe sur la Tortue Corail, et suit le profil de sa panoplie (moins de Puissance et d'Agilite, de la Vitalite en echange) ; les armes des paliers ne changent pas) */
   const id = 'arme-' + t + '-' + P.id, r = rangPano(k), bis = P.bis != null;
   const stats = bis ? Object.fromEntries(Object.entries({ puissance: VALEURS.puissance[r] * 2.5 * multPano(k, 'puissance'), agilite: VALEURS.agilite[r] * multPano(k, 'agilite'), vita: VALEURS.vita[r] * Math.max(0, multPano(k, 'vita') - 1) }).filter(([, v]) => v > 0).map(([c, v]) => [c, Math.round(v)]))
-    : { puissance: Math.round(VALEURS.puissance[k] * 2.5), agilite: VALEURS.agilite[k] };
+    : { puissance: Math.round(VALEURS.puissance[k] * 2.5 * nerfP10(P.niv, 'puissance')), agilite: Math.round(VALEURS.agilite[k] * nerfP10(P.niv, 'agilite')) };
   OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats }; }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
@@ -191,10 +195,13 @@ const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) 
 /* L'ARME COMPTE DANS SA PANOPLIE (07/11/2026, « il faut que l'arme compte dans les panoplies aussi, mais au max ca reste toujours 6/6 : l'avantage, c'est que tu peux mettre
    l'epee en panoplie et avoir une coiffe legendaire, ou mettre l'arme legendaire et avoir le 6/6 tout de meme ; pas de 7/7 », Mathieu) : 7 emplacements, 6 pieces au plus */
 const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && o.pano != null) c[o.pano] = Math.min(EMPLACEMENTS.length, (c[o.pano] || 0) + 1); }); return c; };
-const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => CARACS[c][2] + ' +' + v + CARACS[c][1]).join(', ');
+/* (15/11/2026, « les bonus de la pano, on comprend pas », Mathieu : un bonus par ligne, en clair, le venin et la resistance aux poisons dits en phrases) */
+const PHRASES_BONUS = { resCac: (v) => v + ' % de dégâts en moins au corps à corps', resLoin: (v) => v + ' % de dégâts en moins à distance',
+  venin: (v) => 'tes coups empoisonnent : ' + v + ' % de leurs dégâts en plus, en poison sur 3 s', resPoison: (v) => 'les poisons te font ' + v + ' % de dégâts en moins' };
+const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' + CARACS[c][2] + ' ' + (PHRASES_BONUS[c] ? PHRASES_BONUS[c](v) : '+' + v + CARACS[c][1]) + '</i>').join('');
 /* (10/11/2026, « en bas a droite, le total des bonus cumules d'une pano », Mathieu : sous les paliers, la somme de ceux qui sont actifs ; voir : un bouton vers la fiche de la panoplie, dans la fiche du perso) */
-const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '">' + (n >= m ? '✓ ' : '') + m + ' pièces : ' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
-  (Object.keys(tot).length ? '<div class="pano-total"><b>Total actif</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
+const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="pano-aide">Les bonus s\'additionnent : avec 6 pièces, tu as ceux de 2, de 4 et de 6.</div><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '"><b>' + (n >= m ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
+  (Object.keys(tot).length ? '<div class="pano-total"><b>Tes bonus de panoplie en ce moment</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
 function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
