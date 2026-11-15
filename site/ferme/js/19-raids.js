@@ -283,7 +283,7 @@ function majVoleurRaid(mo, dt, s) {
    puis il reapparait ; il peut recommencer 2,5 s apres etre ressorti. Le perso cherche une autre cible ; les tours, elles, continuent de tirer dans la fumee.
    LE SABOTEUR : il file d'abord vers la tour de defense la plus proche (une seule par Saboteur), la bloque 10 s, et bloque aussi celles qu'il frole en passant,
    puis il va piller la grange. Une tour sabotee ne tire plus, sa tete penche, elle fume et crache des etincelles. */
-const FUMIGENE = { duree: 2, recharge: 1.2, vite: 1.25, nuage: 3 }, /* (nuage : les voleurs a moins de 1,5 case de lui sont caches dans sa fumee aussi) */ SABOTAGE = { duree: 10, portee: 4.5 };
+const FUMIGENE = { duree: 2, recharge: 2.5, vite: 1.25, nuage: 2 }, /* (nuage : les voleurs a moins d'une case de lui sont caches dans sa fumee aussi) */ /* (un peu adouci le 15/11/2026, « peut-etre un chouille dur ? », Mathieu, apres 7 enfuis sur 23 en jouant : recharge 2,5 s au lieu de 1,2, nuage 1 case au lieu de 1,5) */ SABOTAGE = { duree: 10, portee: 4.5 };
 function lancerFumigene(mo) {
   mo.fume = FUMIGENE.duree; mo.fumeCd = FUMIGENE.duree + FUMIGENE.recharge; mo.esquive = FUMIGENE.duree; mo.m.visible = false; if (mo.barre) mo.barre.style.visibility = 'hidden';
   const y = mo.m.position.y; poussiere(mo.x, y, mo.z, 14, 0.9, '#cfd3d9');

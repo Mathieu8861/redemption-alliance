@@ -211,7 +211,7 @@ const parachutistesSimu = () => { const l = niveau(S_.xp); return l >= 90 ? 4 : 
 /* LES VOLEURS MALINS (15/11/2026, « revoir les simus VSA a partir du niveau 80, elles sont trop simples », Mathieu ; au formulaire : « nouveaux voleurs malins »,
    et viser « la moitie s'echappe » quand on ne joue pas) : des le niveau 80 du perso, une partie des voleurs a pied devient des Fumigenes et des Saboteurs
    (19-raids.js) ; meme nombre de voleurs, meme vie. Mesure avant : 1 voleur sur 23 s'echappait sans jouer (Rorschach, Cra 95) */
-const NIV_MALINS = 80, MALINS = [[90, 5, 6], [85, 5, 5], [80, 4, 4]]; /* (niveau du perso, Fumigenes, Saboteurs) */
+const NIV_MALINS = 80, MALINS = [[90, 5, 5], [85, 5, 5], [80, 4, 4]]; /* (5 Saboteurs au lieu de 6 des le niveau 90, « un chouille dur », 15/11/2026) */ /* (niveau du perso, Fumigenes, Saboteurs) */
 const malinsSimu = () => { if (!vsaDev()) return { fumigenes: 0, saboteurs: 0 }; const l = niveau(S_.xp), m = MALINS.find(([n]) => l >= n); return m ? { fumigenes: m[1], saboteurs: m[2] } : { fumigenes: 0, saboteurs: 0 }; };
 const tailleSimu = () => { const v = vagueSimu(), nb = Math.min(16, 4 + Math.floor((v - 20) / 5)); return { v, nb, montes: Math.floor(nb / 3), demenageurs: v >= 75 ? 3 : v >= 50 ? 2 : v >= 30 ? 1 : 0, /* (un peu adouci le 06/11/2026, « peut-etre un peu too much » : 16 voleurs et 3 Demenageurs au plus, au lieu de 18 et 4) */ parachutistes: parachutistesSimu(), fumigenes: malinsSimu().fumigenes, saboteurs: malinsSimu().saboteurs }; }; /* (les Demenageurs en plus des voleurs, 19/10/2026) */
 /* LA VIE DES VOLEURS PAR PALIER (15/11/2026, « a partir du 80, +20 % de PV par rapport au 70, et pareil entre le palier 9 et 10 », Mathieu, au formulaire) : la regle
