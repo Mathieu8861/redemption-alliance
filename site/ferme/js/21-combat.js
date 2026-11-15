@@ -529,6 +529,7 @@ function apparaitre(type, pres) {
   if (combat && !combat.nuitForet && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele) && !(combat.genre === 'vague' && combat.n > 10 * VAGUES_PALIER)) { /* (13/11/2026, « que de 91 a 100 ; a partir de la 101 on repart sur le cycle jour / nuit classique », Mathieu : au-dela de la 100, meme avec des arbres de la foret, la nuit est celle de l'heure, nuitFermeLa) */ combat.nuitForet = true; nuitForet(); toast('La Forêt des Abraknydes plonge la ferme dans la nuit…', 'alerte'); } /* (la nuit de la foret, 08/11/2026) */
   if (!d.fabrique && !MODELES[d.modele]) { /* son modele n'est pas encore la (un monstre a squelette, charge a la demande) : il sort des qu'il est charge ; sans modele, il ne vient pas (26/10/2026 : cloner plantait et l'image se figeait) */
     const c0 = combat; chargerSquelettes([d.modele]).then(() => { if (combat !== c0 || c0.fin) return; if (MODELES[d.modele]) apparaitre(type, pres); else if (c0.total > 0) c0.total--; }); return; }
+  if (combat.arene && !pres && d.poutch) pres = placePoutch(); /* (le Poutch du mode test : pas par les herses, 15/11/2026) */
   if (combat.arene && !pres) { const g = hasard(PORTES_ARENE); pres = { x: g.x + (Math.random() - 0.5) * 1.4, z: g.z + (Math.random() - 0.5) * 1.4, porte: g }; } /* l'Arene : ils sortent des herses */
   if (!pres && d.parachute && combat.raid) pres = pointParachute(); /* (le Parachutiste de VSA se pose pres de la grange, 06/11/2026) */
   if (!pres && d.fouisseur && !combat.raid && !combat.arene) { pres = pointPresBat(); if (pres && !combat.fouisseurVu) { combat.fouisseurVu = true; toast('Un ' + d.nom + ' surgit de terre au pied de tes bâtiments, derrière tes défenses !', 'alerte'); } }
@@ -610,7 +611,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
-  if (mo.d.parCoups) n = 1; mo.pv -= n; mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  if (mo.d.parCoups) n = 1; mo.pv -= n; if (mo.d.poutch) poutchCoup(mo, n); mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.d.affaibli && !mo.faible && !mo.faibleFini && m0Anim(mo) && mo.pv <= mo.pvMax * mo.d.affaibli.seuil) { mo.pv = Math.ceil(mo.pvMax * mo.d.affaibli.seuil); entrerFaible(mo); return; } /* (Moon, sa vie bloquee a 30 %, 31/10/2026) */
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre(mo.d.revitRage ? 'Il se relève, enragé !' : 'Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
@@ -2563,6 +2564,21 @@ function fabriquerTotem() {
 }
 /* le noeud de racine du Chene Mou (08/11/2026) : une souche de grosses racines nouees qui sortent de terre en arcs, l'ecorce sombre, de la mousse, et au milieu une
    fente de seve rouge qui luit, de la couleur de l'oeil du Chene Mou ; une butte de terre au pied */
+function fabriquerPoutch() { /* le Poutch du mode test : un sac de toile ficele sur un poteau, une cible peinte sur la tete, des bras de bois (15/11/2026) */
+  const g = new T.Group(), a = (o, x, y, z) => { o.position.set(x, y, z); g.add(o); return o; }, TOILE = '#d8c07c', BOIS = '#7a5638', CORDE = '#a0783a';
+  a(maille(new T.CylinderGeometry(0.5, 0.58, 0.14, 14), '#8a6440'), 0, 0.07, 0); /* (le socle) */
+  a(maille(new T.CylinderGeometry(0.08, 0.09, 0.62, 8), BOIS), 0, 0.42, 0); /* (le poteau) */
+  const sac = a(maille(new T.CylinderGeometry(0.33, 0.38, 0.92, 14), TOILE), 0, 1.14, 0); sac.scale.set(1, 1, 0.9);
+  for (const y of [0.82, 1.42]) { const c = a(maille(new T.TorusGeometry(0.36, 0.035, 6, 18), CORDE), 0, y, 0); c.rotation.x = Math.PI / 2; c.scale.set(1, 0.9, 1); } /* (deux tours de corde) */
+  const bras = a(maille(new T.CylinderGeometry(0.06, 0.06, 1.25, 8), BOIS), 0, 1.36, 0); bras.rotation.z = Math.PI / 2; /* (les bras de bois) */
+  for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) { const p = a(maille(new T.ConeGeometry(0.05, 0.22, 5), '#e8d48e'), sx * 0.66, 1.36 + (i - 1) * 0.06, (i - 1) * 0.05); p.rotation.z = -sx * Math.PI / 2 + (i - 1) * 0.3; } /* (la paille qui depasse des manches) */
+  a(maille(new T.SphereGeometry(0.3, 14, 10), TOILE), 0, 1.86, 0);
+  [[0.22, '#f5f0e2'], [0.16, '#d9443a'], [0.1, '#f5f0e2'], [0.045, '#d9443a']].forEach(([r, c], i) => { const d = new T.Mesh(new T.CircleGeometry(r, 24), new T.MeshBasicMaterial({ color: c })); d.position.set(0, 1.88, 0.285 + i * 0.004); g.add(d); }); /* (la cible peinte) */
+  for (let i = 0; i < 5; i++) { const b = i / 5 * Math.PI * 2, p = a(maille(new T.ConeGeometry(0.05, 0.24, 5), '#e8d48e'), Math.cos(b) * 0.08, 2.17, Math.sin(b) * 0.08); p.rotation.set(Math.sin(b) * 0.5, 0, -Math.cos(b) * 0.5); } /* (une touffe de paille sur le dessus) */
+  const env = new T.Group(); env.add(g); env.userData.hauteur = 2.2; return env;
+}
+function placePoutch() { const k = (combat.poutchK = (combat.poutchK || 0) + 1) - 1, P = (combat.entrainement ? POUTCHS_ENTRAINEMENT : [[0, -4], [1.7, -4.4], [-1.7, -4.4], [3.3, -5.1], [-3.3, -5.1]])[k % 5]; return { x: ARENE.x + P[0], z: ARENE.z + P[1] }; } /* (en rang devant le perso, au milieu de l'arene ; a l'entrainement des membres : un seul a gauche, un groupe de 4 a droite) */
+const POUTCHS_ENTRAINEMENT = [[-4.6, -1.4], [4.2, -1.4], [5.3, -2.2], [3.2, -2.4], [4.5, -3.2]];
 function fabriquerNoeud() { /* (refait le 08/11/2026 : la premiere version, des arcs fins et sombres, faisait une araignee noire dans la nuit de la foret) */
   const g = new T.Group(), a = (o, x, y, z) => { o.position.set(x, y, z); g.add(o); return o; }, B = ['#8a6440', '#7a5638', '#946c46'];
   a(maille(new T.CylinderGeometry(0.85, 1.05, 0.2, 12), '#6b5236'), 0, 0.08, 0); /* (la butte de terre) */

@@ -134,7 +134,7 @@ function finDev(abandon, gagne) {
   const c = combat; if (!c || c.fin || !c.dev) return;
   const duree = Math.round((performance.now() - c.dev.t0) / 1000), tues = c.st.tues, total = c.dev.liste.length; nettoyerCombat(c, true); rendreArmeEssai(); rendreTenueEssai();
   son(gagne ? 'victoire' : abandon ? 'gelee' : 'defaite');
-  ouvrirModale('arene-dev-fin', entete(gagne ? 'Tous abattus !' : abandon ? 'Tu quittes l\'Arène dev' : 'À terre dans l\'Arène dev') +
+  ouvrirModale('arene-dev-fin', entete(gagne ? 'Tous abattus !' : abandon ? (c.entrainement ? 'Fin de l\'entraînement' : 'Tu quittes l\'Arène dev') : 'À terre dans l\'Arène dev') +
     '<div class="recap-combat">' + ligneRecap('tofu', 'Monstres abattus', tues + ' sur ' + total) + ligneRecap('degats', 'Dégâts infligés', fmt(Math.round(c.st.inflige))) +
     ligneRecap('degats', 'Dégâts reçus', fmt(Math.round(c.st.recus))) + ligneRecap('etoile', 'Durée', duree + ' s') + ligneRecap('etoile', 'Vie restante', fmt(Math.max(0, Math.round(c.pv))) + ' sur ' + fmt(c.pvMax)) + '</div>' +
     '<p class="hdv-aide">Rien n\'a été gagné ni perdu : ta vie, tes potions et ta ferme sont comme avant.</p>' +
@@ -199,6 +199,8 @@ function ouvrirModeTest() {
     /* LA SIMU VSA A LA DEMANDE (15/11/2026, « je peux tester comment ? y'a un mode pour declencher une simu ? », Mathieu) : en mode test, les simus ne tombent pas d'elles-memes */
     '<div class="hdv-section">La simu VSA</div><p class="hdv-aide">' + (() => { const t = tailleSimu(); return 'Réglée sur la vague choisie plus bas (' + t.v + ') et ton niveau (' + L + ') : ' + t.nb + ' voleurs, dont ' + t.montes + ' sur Dragodinde' + (t.saboteurs ? ', ' + t.saboteurs + ' Saboteurs' : '') + (t.fumigenes ? ' et ' + t.fumigenes + ' Fumigènes' : '') + (t.demenageurs ? ', + ' + t.demenageurs + ' Déménageurs' : '') + (t.parachutistes ? ' et ' + t.parachutistes + ' parachutistes' : '') + ' ; ' + fmt(pvSimu(false)) + ' PV à pied. Annoncée 30 s avant : « Lancer maintenant » pour ne pas attendre.'; })() + '</p>' +
     '<div class="puces dev-groupes">' + bouton('test', 'simu', 'Lancer une simu VSA', false) + '</div>' +
+    '<div class="hdv-section">Le Poutch</div><p class="hdv-aide">Des sacs d\'entraînement à l\'Arène dev, devant toi : ils ne bougent pas, ne frappent pas et ne tombent jamais. Sans armure ni élément, ils prennent tes dégâts bruts ; un compteur affiche les dégâts, les dégâts par seconde, le plus gros coup et le dernier. Plusieurs Poutchs pour les sorts de zone ; « Fuir » pour finir.</p>' +
+    '<div class="puces dev-groupes">' + bouton('test', 'poutch1', '1 Poutch', false) + bouton('test', 'poutch3', '3 Poutchs', false) + bouton('test', 'poutch5', '5 Poutchs', false) + '</div>' +
     '<div class="hdv-section">La vague</div><div class="hdv-aide"><b>Vague ' + n + (n % VAGUES_PALIER ? '' : ' : ' + MONSTRES[PALIERS_TOUS[P].boss].nom) + '</b>, ' + PALIERS_TOUS[P].nom + ' (vagues ' + (P * VAGUES_PALIER + 1) + ' à ' + ((P + 1) * VAGUES_PALIER) + ')' + (P >= PALIERS.length ? ', <b>en avant-première</b> (fermé aux joueurs)' : '') + (multVague(n) > 1 ? ', la horde : ' + String(multVague(n)).replace('.', ',') + ' fois plus de monstres' : '') + '</div>' + pas('test-n', n) +
     '<div class="puces dev-groupes">' + bouton('test', 'vague', 'Lancer la vague ' + n, false) + (n % VAGUES_PALIER || P >= PALIERS.length ? '' : bouton('test', 'revanche', 'Revanche normale', false) + bouton('test', 'difficile', 'Revanche difficile', false)) + '</div>' +
     '<div class="hdv-section">Tes défenses</div><p class="hdv-aide">Tes ' + nbTours() + ' tourelles : les tiennes, coupées, ou toutes au niveau de ton choix (6 : celles du château).</p><div class="puces dev-groupes">' + bouton('test-tours', 'tiennes', 'Les tiennes', ETAT_TEST.tours == null) + bouton('test-tours', '0', 'Coupées', ETAT_TEST.tours === 0) + [1, 2, 3, 4, 5, 6].map((k) => bouton('test-tours', String(k), 'Niveau ' + k, ETAT_TEST.tours === k)).join('') + '</div>' +
@@ -215,6 +217,7 @@ document.addEventListener('click', (e) => {
   if (a === 'quitter') { location.reload(); return; }
   if (a === 'relancer') { relancerTest(ETAT_TEST.dernier || 'vague'); return; }
   if (a === 'pv') { vieAuMax(); if (modaleOuverte === 'mode-test') ouvrirModeTest(); return; }
+  if (/^poutch[135]$/.test(a)) { if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } const avant = choixDev, E = etatDev(); choixDev = { n: E.n, liste: { poutch: +a.slice(6) } }; partirDev().finally(() => { choixDev = avant; }); return; } /* (le Poutch du mode test, 15/11/2026) */
   if (a === 'simu') { if (combat || raidAnnonce || simuEnAttente) { toast('Une attaque est déjà en cours.'); return; } if (lieu !== 'ferme') { toast('La simu VSA se lance sur ta ferme.'); return; }
     fermerModale(); derniereAction = Date.now(); annoncerRaid(); return; } /* (la simu VSA du mode test, 15/11/2026) */
   if (a === 'ile') { if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } partirIleBoss(); return; } /* (l'ile des boss du mode test) */
@@ -239,3 +242,45 @@ document.addEventListener('click', (e) => {
   else if (d.testN) { ETAT_TEST.n = Math.max(1, Math.min(VAGUES_MAX, ETAT_TEST.n + Number(d.testN))); bandeauTest(); }
   vieAuMax(); ouvrirModeTest();
 });
+
+/* LE COMPTEUR DU POUTCH (15/11/2026) : ce que prennent les Poutchs du mode test (21-combat.js, blesser) ; leur vie se remplit d'elle-meme. Le temps court du premier coup
+   au dernier ; « fois tes degats » : le coup divise par tes degats de base (la fiche du perso) */
+function poutchCoup(mo, n) {
+  const c = combat; if (!c) return; const P = c.poutch || (c.poutch = { total: 0, max: 0, coups: 0, t0: 0, t1: 0, dernier: 0 }), t = performance.now();
+  if (!P.coups) P.t0 = t; P.total += n; P.coups++; P.t1 = t; P.dernier = n; if (n > P.max) P.max = n;
+  if (c.entrainement) { if (mo.x < ARENE.x) P.seul = (P.seul || 0) + n; else P.groupe = (P.groupe || 0) + n; } /* (l'entrainement : le Poutch seul a gauche, le groupe a droite) */
+  if (mo.pv < mo.pvMax * 0.5) mo.pv = mo.pvMax;
+}
+function majPoutch() {
+  let e = document.getElementById('poutch-cpt'); const c = combat, actif = !!(c && c.dev && c.monstres.some((o) => o.d.poutch && o.etat !== 'mort'));
+  if (!actif) { if (e) e.hidden = true; return; }
+  if (!e) { e = document.createElement('div'); e.id = 'poutch-cpt'; e.style.cssText = 'position:fixed;left:50%;top:118px;transform:translateX(-50%);z-index:30;background:rgba(32,33,36,.94);border:2px solid #f2b630;border-radius:14px;padding:8px 14px;font:800 13px/1.35 Nunito,sans-serif;color:#e8eaed;text-align:center;pointer-events:auto;min-width:300px';
+    e.addEventListener('click', (ev) => { if (ev.target.closest('[data-poutch-zero]') && combat) { combat.poutch = null; majPoutch(); } }); document.body.appendChild(e); }
+  e.hidden = false; const P = c.poutch || { total: 0, max: 0, coups: 0, t0: 0, t1: 0, dernier: 0 }, d = Math.max(1, statsPerso().deg), duree = P.coups > 1 ? (P.t1 - P.t0) / 1000 : 0, fois = (x) => (x / d).toFixed(1).replace('.', ',');
+  const h = '<div style="font:400 15px/1.2 Lilita One,sans-serif;color:#f2b630">Poutch</div>' +
+    '<div><b>' + fmt(P.total) + '</b> d\u00e9g\u00e2ts' + (duree ? ' en ' + duree.toFixed(1).replace('.', ',') + ' s, <b>' + fmt(Math.round(P.total / duree)) + '</b> par seconde' : '') + '</div>' +
+    (c.entrainement ? '<div>Poutch seul <b>' + fmt(P.seul || 0) + '</b> \u00b7 groupe de 4 <b>' + fmt(P.groupe || 0) + '</b></div>' : '') +
+    '<div>Plus gros coup <b>' + fmt(P.max) + '</b> (' + fois(P.max) + ' fois tes d\u00e9g\u00e2ts) \u00b7 dernier <b>' + fmt(P.dernier) + '</b> (' + fois(P.dernier) + ')</div>' +
+    '<div style="margin-top:4px"><button class="btn discret" data-poutch-zero style="padding:3px 10px;font-size:12px">Remettre \u00e0 z\u00e9ro</button> <span style="color:#a9adb5;font-size:12px">tes d\u00e9g\u00e2ts de base : ' + fmt(d) + '</span></div>';
+  if (e.dataset.h !== h) { e.dataset.h = h; e.innerHTML = h; }
+}
+setInterval(majPoutch, 250);
+
+/* L'ENTRAINEMENT DES MEMBRES (15/11/2026, « rajoute-le aux membres aussi : ca te tp dans l'arene, avec un endroit ou il y a un Poutch et un endroit ou il y en a
+   plusieurs, dans la meme zone », Mathieu) : la ligne « L'entrainement » des Options (25-interface.js) emmene a l'Arene, sans ticket ni niveau ; un Poutch seul a
+   gauche, un groupe de 4 a droite (placePoutch, 21-combat.js), le compteur des degats par zone ; c'est un combat de l'Arene dev sans ses reglages d'essai : rien n'est
+   gagne ni perdu, « Fuir » pour finir */
+async function partirEntrainement() {
+  if (combat) { toast('Finis ton combat d\'abord.'); return; }
+  if (!peutPartir('arene')) return;
+  fermerModale();
+  if (lieu !== 'arene' && !(await allerSur('arene'))) { toast('Le voyage vers l\'Ar\u00e8ne a rat\u00e9, r\u00e9essaie.', 'alerte'); return; }
+  const u = paysanMesh.userData; paysanMesh.position.set(ARENE.x, 0, ARENE.z + 1.6); u.y = 0; u.angle = ROT_ARENE + Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false;
+  setTimeout(() => { if (lieu === 'arene' && !combat) lancerEntrainement(); }, 900);
+}
+function lancerEntrainement() {
+  const file = Array(POUTCHS_ENTRAINEMENT.length).fill('poutch');
+  nouveauCombat('arene', { dev: { t0: performance.now(), liste: file.slice(), suite: [] }, entrainement: true, n: Math.max(1, niveau(S_.xp)), file: file.slice(), total: file.length, attente: 0.2,
+    arene: { k: 1, tenues: 0, kamas: 0, xp: 0, objets: [], runes: {}, niv0: niveau(S_.xp), record: 0, recordSem: 0 }, regen: false, citron: false, agi: false });
+  ouvrirHudCombat(); majCombatHud(); toast('Entra\u00eenement : un Poutch seul \u00e0 gauche, un groupe \u00e0 droite pour tes sorts de zone. \u00ab Fuir \u00bb pour finir.', 'or');
+}
