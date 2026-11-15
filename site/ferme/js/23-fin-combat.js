@@ -84,7 +84,7 @@ function recapCombat(c) {
   const l = ligneRecap, def = Math.round(st.def || 0);
   return '<div class="hdv-section">Le combat</div><div class="recap-combat">' + l('vitesse', 'Durée', duree) + l('tofu', 'Monstres abattus', st.tues + ' sur ' + c.total) +
     l('degats', 'Tes dégâts', fmt(Math.max(0, Math.round(st.inflige) - def))) + l('carreaux', 'Dégâts de tes défenses', fmt(def)) + l('puissance', 'Ton plus gros coup', fmt(Math.round(st.max))) +
-    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('soin', 'Soins reçus', fmt(Math.round(st.soins || 0)) + (st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(st.menthe)) + ')' : '')) + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>';
+    l('vita', 'Dégâts reçus', fmt(Math.round(st.recus)) + ' (' + pv + ' % de PV en fin)') + l('soin', 'Soins reçus', fmt(Math.round(st.soins || 0)) + (st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(st.menthe)) + ')' : '')) + l('etoile', 'Sorts et ultis lancés', st.sorts) + (bats ? l('casse', 'Dégâts sur tes bâtiments', fmt(Math.round(bats))) : '') + '</div>' + detailCombat(c);
 }
 /* LA MOITIE DU BUTIN PERDUE (12/11/2026 au soir, « quand on perd une vague, on peut reduire le drop ? genre le diviser par deux ? », puis « je te laisse gerer »,
    Mathieu) : le butin tombe pendant le combat ; vague perdue OU fuie (sinon on fuirait juste avant de tomber pour tout garder), on n'en garde que la moitie :
@@ -175,3 +175,39 @@ function finVague(gagne, fuite) {
   rendreHaut(); rendreGrange(); rendreCasesBulles(); sauver();
 }
 
+
+/* L'HISTORIQUE DES DEGATS (15/11/2026, « ce serait bien d'avoir un historique aussi, que tu puisses cliquer pour voir le detail des degats recus (par qui, etc.) et des degats
+   qu'on a infliges (auto-attaque, sorts, etc.) », Mathieu) : sous « Le combat » de chaque bilan, un bloc qui s'ouvre d'un clic (un <details> : il marche aussi dans un bilan
+   relu depuis les messages). Chaque coup est range selon ce qui l'a lance : SRC_DEG, pose par les fonctions du perso, de ses invocations et de ses defenses (plus bas), et
+   transmis aux effets differes (effets, setTimeout) ; le venin et la fumee par leur src ; les coups recus, par monstre */
+let SRC_DEG = null;
+function noterDegats(src, n, nom) {
+  const c = combat; if (!c || !(n > 0)) return; const H = c.histo || (c.histo = { infl: {}, recu: {} });
+  const k = nom || (src === 'venin' ? 'Venin' : src === 'fumee' ? 'Fum\u00e9e du Koulosse' : SRC_DEG || (src === 'def' ? 'Tes d\u00e9fenses' : 'Autres')), h = H.infl[k] || (H.infl[k] = { n: 0, coups: 0, max: 0 });
+  h.n += n; h.coups++; if (n > h.max) h.max = n;
+}
+function noterRecu(mo, n) {
+  const c = combat; if (!c || !(n > 0)) return; const H = c.histo || (c.histo = { infl: {}, recu: {} });
+  const k = (mo && mo.d && mo.d.nom) || 'Autre', h = H.recu[k] || (H.recu[k] = { n: 0, coups: 0, max: 0 }); h.n += n; h.coups++; if (n > h.max) h.max = n;
+}
+function detailCombat(c) {
+  const H = c && c.histo; if (!H || (!Object.keys(H.infl).length && !Object.keys(H.recu).length)) return '';
+  const tab = (O, titre, col) => { const L = Object.entries(O).sort((a, b) => b[1].n - a[1].n), T = L.reduce((t, [, h]) => t + h.n, 0); if (!L.length) return '';
+    return '<div class="dc-titre">' + titre + ' : ' + fmt(Math.round(T)) + '</div><table class="dc-table"><tr><th>' + col + '</th><th>D\u00e9g\u00e2ts</th><th>Part</th><th>Coups</th><th>Plus gros</th></tr>' +
+      L.map(([k, h]) => '<tr><td>' + echapper(k) + '</td><td>' + fmt(Math.round(h.n)) + '</td><td>' + Math.round(100 * h.n / (T || 1)) + ' %</td><td>' + fmt(h.coups) + '</td><td>' + fmt(Math.round(h.max)) + '</td></tr>').join('') + '</table>'; };
+  return '<details class="detail-combat"><summary>Voir le d\u00e9tail des d\u00e9g\u00e2ts</summary>' + tab(H.infl, 'D\u00e9g\u00e2ts inflig\u00e9s', 'Source') + tab(H.recu, 'D\u00e9g\u00e2ts re\u00e7us', 'Monstre') + '</details>';
+}
+{ /* la source suit les effets differes : une fleche en vol, une boule de feu, un coup qui part au bout de l'elan */
+  const avecSource = (nom, f) => function (...a) { const p = SRC_DEG, s1 = SRC_DEG = typeof nom === 'function' ? nom.apply(this, a) : nom; try { return f.apply(this, a); } finally { SRC_DEG = p;
+    const A = typeof paysanMesh !== 'undefined' && paysanMesh && paysanMesh.userData.attaque; if (s1 && A && A.surFrappe && !A.surFrappe.srcDeg) { const g = avecSource(s1, A.surFrappe); g.srcDeg = s1; A.surFrappe = g; } } }; /* (le coup part au bout de l'elan, plus tard : sa source le suit) */
+  const push0 = effets.push; effets.push = function (...fs) { const s0 = SRC_DEG; return push0.apply(this, s0 ? fs.map((f) => (typeof f === 'function' ? avecSource(s0, f) : f)) : fs); };
+  const st0 = window.setTimeout; window.setTimeout = function (f, ...r) { const s0 = SRC_DEG; return st0.call(window, s0 && typeof f === 'function' ? avecSource(s0, f) : f, ...r); };
+  const NOMS_SORT = { cra: 'Fl\u00e8che per\u00e7ante', iop: 'Bond du Iop', osa: 'Invocation du Bouftou' };
+  majPerso = avecSource('Coups automatiques', majPerso);
+  BOUTONS_SORT.sort.tirer = avecSource(() => NOMS_SORT[classeDe()] || 'Sort de classe', BOUTONS_SORT.sort.tirer);
+  executerUlti = avecSource((id) => 'Ulti : ' + (ULTIS[id] ? nomUlti(id) : id), executerUlti);
+  executerLeg = avecSource((emp) => { const cle = legDe(emp), S = cle && sortLeg(cle); return 'Sort l\u00e9gendaire : ' + (S ? S.nom : emp); }, executerLeg);
+  majInvoc = avecSource('Bouftou invoqu\u00e9', majInvoc); majBouture = avecSource('Bouture', majBouture); majDragonnet = avecSource('Dragonnet', majDragonnet);
+  majTours = avecSource('Tours de d\u00e9fense', majTours); viserArbalete = avecSource('Arbal\u00e8te', viserArbalete); majEpouvantail = avecSource('P\u00e9pito-Tron', majEpouvantail);
+  if (typeof majGardien === 'function') majGardien = avecSource('Gardien', majGardien);
+}

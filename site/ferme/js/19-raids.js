@@ -273,7 +273,7 @@ function majVoleurRaid(mo, dt, s) {
   }
   mo.pas += v * dt * 5; const y = hauteurSol(mo.x, mo.z, caseIci(mo.x, mo.z));
   m.position.set(mo.x, y + (1 - Math.cos(mo.pas * 2)) * (mo.type === 'monture' ? 0.08 : 0.03), mo.z); m.rotation.y = mo.ry; m.rotation.z = Math.sin(mo.pas) * 0.06; m.rotation.x = mo.type === 'monture' ? 0 : 0.2;
-  if (mo.brule > 0) { mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); } }
+  if (mo.brule > 0) { mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; const p0 = SRC_DEG; SRC_DEG = 'Brûlure'; blesser(mo, mo.bruleDeg); SRC_DEG = p0; } }
   if (mo.coup > 0) { mo.coup -= dt; m.scale.setScalar((mo.echelle || 1) * (1 + Math.max(0, mo.coup) * 0.9)); } else m.scale.setScalar(mo.echelle || 1);
 }
 

@@ -570,7 +570,7 @@ function finArene(abandon) {
   ouvrirModale('arene-fin', entete(abandon ? 'Tu quittes l\'Arène' : 'À terre dans l\'Arène !') +
     '<div class="arene-bilan"><div class="gros">' + t + '</div><div class="sous">vague' + (t > 1 ? 's' : '') + ' tenue' + (t > 1 ? 's' : '') + '</div>' + (rec ? '<div class="record">★ Nouveau record !</div>' : recSem ? '<div class="record">★ Record de la semaine !</div>' : '<div class="sous">record : ' + Math.max(A.record, t) + ', cette semaine : ' + Math.max(A.recordSem, t) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('kama', 'Kamas gagnés', fmt(A.kamas)) + ligneRecap('etoile', 'Expérience', fmt(A.xp)) +
-    ligneRecap('tofu', 'Monstres abattus', c.st.tues) + ligneRecap('degats', 'Dégâts infligés', fmt(Math.round(c.st.inflige))) + '</div>' +
+    ligneRecap('tofu', 'Monstres abattus', c.st.tues) + ligneRecap('degats', 'Dégâts infligés', fmt(Math.round(c.st.inflige))) + '</div>' + detailCombat(c) +
     (objets ? '<div class="hdv-section">Les pièces</div>' + objets : '') +
     (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce, à ton atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</div></div><div class="act"></div></div>').join('') : '') +
     '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +

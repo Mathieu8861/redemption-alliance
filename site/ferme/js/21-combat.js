@@ -611,7 +611,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
-  if (mo.d.parCoups) n = 1; mo.pv -= n; if (mo.d.poutch) poutchCoup(mo, n); mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
+  if (mo.d.parCoups) n = 1; mo.pv -= n; if (mo.d.poutch) poutchCoup(mo, n); mo.coup = m0Anim(mo) ? 0 : 0.18; if (m0Anim(mo)) { eclatSquelette(mo); if (gros || n > mo.pvMax * 0.012) reactionSquelette(mo); } /* (un monstre a squelette rougit sous le coup, sans gonfler ni s'arreter ; un boss sursaute) */ if (combat.st) { noterDegats(src, n); combat.st.inflige += n; if (src === 'def') combat.st.def = (combat.st.def || 0) + n; else if (n > combat.st.max) combat.st.max = n; } chiffre('-' + n, new T.Vector3(mo.x, mo.m.position.y + mo.haut - 0.2, mo.z), gros ? 'gros' : '');
   if (mo.d.affaibli && !mo.faible && !mo.faibleFini && m0Anim(mo) && mo.pv <= mo.pvMax * mo.d.affaibli.seuil) { mo.pv = Math.ceil(mo.pvMax * mo.d.affaibli.seuil); entrerFaible(mo); return; } /* (Moon, sa vie bloquee a 30 %, 31/10/2026) */
   if (mo.pv <= 0 && mo.d.revit && !mo.revenu) { /* le Wabbit Squelette se releve une fois, a mi-vie */
     mo.revenu = true; mo.pv = Math.round(mo.pvMax * 0.5); pouf(mo.x, mo.m.position.y, mo.z, 2.2, '#ece0b8'); chiffre(mo.d.revitRage ? 'Il se relève, enragé !' : 'Il se relève !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.2, mo.z), 'butin');
@@ -924,7 +924,7 @@ function blesserPerso(n, mo) {
   if (combat.carapace > 0) n = Math.max(1, Math.round(n * 0.6)); /* (la Carapace de corail : -40 %) */
   { const ca = caracs(), r = Math.min(50, coupDeLoin(mo) ? ca.resLoin : ca.resCac); if (r > 0) n = Math.max(1, Math.round(n * (1 - r / 100))); } /* les resistances des panoplies completes : Tortue au corps a corps, Kanniboul a distance (06/11/2026) */
   if (classeDe() === 'iop' && coupDeLoin(mo)) { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins sur les coups recus de loin (06/11/2026 ; avant, tous les coups), et un bouclier dore qui s'eclaire (22b-effets.js) */
-  if (combat.st) combat.st.recus += Math.min(n, combat.pv); combat.pv = Math.max(0, combat.pv - n); if (MODE_TEST && ETAT_TEST.immortel) combat.pv = Math.max(1, combat.pv); /* (le mode test, « immortel » : les coups s'affichent, il ne tombe jamais) */ const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
+  if (combat.st) { combat.st.recus += Math.min(n, combat.pv); noterRecu(mo || blesserPerso.auteur, Math.min(n, combat.pv)); } combat.pv = Math.max(0, combat.pv - n); if (MODE_TEST && ETAT_TEST.immortel) combat.pv = Math.max(1, combat.pv); /* (le mode test, « immortel » : les coups s'affichent, il ne tombe jamais) */ const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');
   if (combat.pv <= 0) persoATerre(); /* a terre : les monstres saccagent la ferme avant de repartir */
   return true; /* (le coup a touche : la malediction du Lemurien s'en sert, 01/11/2026) */
 }
@@ -2613,7 +2613,7 @@ function capEnracine(mo, ctx) {
   const N = R.liste.filter((o) => o.etat !== 'mort'), morts = R.liste.length - N.length; /* (un noeud qui sort encore de terre est « grimpe », pas encore actif) */
   if (morts > R.morts) { /* des noeuds sont tombes : un morceau d'ecorce par noeud */
     const k = morts - R.morts, y = mo.m.position.y, perte = Math.min(mo.pv - 1, Math.round(mo.pvMax * E.ecorce * k)); R.morts = morts;
-    if (perte > 0) { mo.pv -= perte; if (c0.st) c0.st.inflige += perte; chiffre('-' + fmt(perte), new T.Vector3(mo.x, y + mo.haut * 0.8, mo.z), 'gros'); }
+    if (perte > 0) { mo.pv -= perte; if (c0.st) { c0.st.inflige += perte; noterDegats(null, perte, 'Racines du Chêne Mou'); } chiffre('-' + fmt(perte), new T.Vector3(mo.x, y + mo.haut * 0.8, mo.z), 'gros'); }
     eclatsRoche(mo.x, y + mo.haut * 0.5, mo.z, 16, 1.4, MATS_BOIS); feuillesVolantes(mo.x, y + mo.haut * 0.7, mo.z, 1.4, 10); secousse(0.15, 0.3);
     if (N.length) toast('Un nœud de racine tombe : ' + leNom(mo.d, true) + ' perd un morceau d\'écorce. Encore ' + N.length + ' !', 'or'); }
   if (R.phase !== 'enfonce') { if (R.phase === 'arrache' && !m0Anim(mo)) libererChene(mo); return; }
@@ -3246,7 +3246,7 @@ function tirMonstre(mo, bat) {
     fl.position.lerpVectors(de, vers, k); fl.position.y += Math.sin(k * Math.PI) * H;
     if (T0.long) { if (fl.position.distanceToSquared(avant) > 1e-6) fl.lookAt(fl.position.clone().multiplyScalar(2).sub(avant)); } else { fl.rotation.x += dt2 * 9; fl.rotation.y += dt2 * 6; } /* (une fleche suit sa courbe, un caillou tourne sur lui-meme) */
     traineeTir(type, fl.position, mo);
-    if (t >= 1) { jeter(fl); impactTir(type, vers, mo, !cleB); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso(deg); effetsCoup(mo); } } return true; } }); /* (le combat fini, le tir ne touche plus rien) */
+    if (t >= 1) { jeter(fl); impactTir(type, vers, mo, !cleB); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso.auteur = mo; blesserPerso(deg); blesserPerso.auteur = null; effetsCoup(mo); } /* (auteur : pour l'historique des degats seulement, 15/11/2026 ; sans mo, le tir reste un coup de loin) */ } return true; } }); /* (le combat fini, le tir ne touche plus rien) */
 }
 const sagaieVolante = () => { const g = new T.Group(), h = boite(0.05, 0.05, 1.3, '#8a5a30'), p = new T.Mesh(new T.ConeGeometry(0.07, 0.24, 5), mat('#a8a294')); p.rotation.x = Math.PI / 2; p.position.z = 0.75; g.add(h, p); return g; };
 /* la mort d'un monstre qui vole en battant des ailes (31/10/2026, « animation de sa mort pas top », Mathieu : Crocabulia tournait sur elle-meme en
@@ -3489,7 +3489,7 @@ function majMonstre(mo, dt, s) {
   m.rotation.y = mo.ry + (mo.tourne || 0); m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
   if (mo.d.pattes8) majPattes8(mo, dt); /* (les huit pattes du Chene Mou, 09/11/2026) */
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
-    mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; blesser(mo, mo.bruleDeg); }
+    mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; const p0 = SRC_DEG; SRC_DEG = 'Brûlure'; blesser(mo, mo.bruleDeg); SRC_DEG = p0; }
     if (!mo.flamme) { mo.flamme = new T.Mesh(new T.ConeGeometry(0.18, 0.5, 6), new T.MeshBasicMaterial({ color: '#ff7a1e', transparent: true, opacity: 0.85 })); m.add(mo.flamme); }
     mo.flamme.visible = true; mo.flamme.position.set(0, mo.haut - 0.1, 0); mo.flamme.scale.set(1, 0.8 + Math.abs(Math.sin(s * 14)) * 0.5, 1);
   } else if (mo.flamme) mo.flamme.visible = false;

@@ -1496,3 +1496,12 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .dev-bloc.liste .art { margin: 0; } .dev-bloc.liste .art .desc { display: none; }
 .carte.dev .act-bas { position: sticky; bottom: -14px; z-index: 3; background: var(--papier); padding: 8px 0; margin-top: 8px; border-top: 3px solid var(--bord); }
 @media (max-width: 900px) { .dev-bloc.liste { grid-template-columns: 1fr 1fr; } } @media (max-width: 720px) { .dev-cols, .dev-bloc.liste { grid-template-columns: 1fr; } }
+
+/* l'historique des degats d'un combat (15/11/2026) : un bloc qui s'ouvre sous « Le combat » */
+.detail-combat { margin: 8px 0 4px; border: 2.5px solid #43464e; border-radius: 12px; background: #26272b; }
+.detail-combat summary { cursor: pointer; padding: 7px 12px; font: 800 .82rem var(--f-texte); color: var(--or); list-style: none; }
+.detail-combat summary::-webkit-details-marker { display: none; } .detail-combat summary::before { content: '\25B8  '; } .detail-combat[open] summary::before { content: '\25BE  '; }
+.detail-combat .dc-titre { padding: 4px 12px 2px; font: 800 .78rem var(--f-texte); color: #e8eaed; }
+.dc-table { width: calc(100% - 16px); margin: 0 8px 8px; border-collapse: collapse; font-size: .74rem; }
+.dc-table th, .dc-table td { padding: 3px 6px; border-bottom: 1px solid #3a3c42; text-align: right; } .dc-table th:first-child, .dc-table td:first-child { text-align: left; }
+.dc-table th { color: #a9adb5; font-weight: 800; }
