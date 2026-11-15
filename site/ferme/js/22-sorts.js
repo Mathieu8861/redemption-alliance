@@ -531,8 +531,9 @@ const DUREE_BOUTURE = 10, RAYON_BOUTURE = 6, PORTEE_BOUTURE = 10, VEC_BOUTURE = 
 /* LE DRAGONNET (le Heaume de Crocabulia, Osamodas, 15/11/2026, « Dragonnet », Mathieu au formulaire, et « on va pas faire un dragonnet qui tape 2,5 fois les degats » : des degats
    etales dans le temps, le style de l'invocateur) : un petit Crocabulia (son modele, a 30 %) vole 8 s la ou tu vises, les ailes battantes ; chaque seconde il crache une boule
    de feu sur le monstre le plus proche (4 cases autour de lui) : 0,35 fois tes degats a lui et a ceux a moins d'une demi-case, et ils brulent 1 s. Il s'approche s'il n'y a rien a portee */
-const DRAGONNET = { duree: 8, cadence: 1, portee: 8, mult: 0.35, zone: 1.1, vitesse: 3.2, echelle: 0.3, haut: 1.3 }, BRULURE_CROC = { t: 2, part: 0.2 };
-function brulerCroc(o, st, t) { if (o.etat !== 'actif') return; o.brule = Math.max(o.brule || 0, t || BRULURE_CROC.t); o.bruleDeg = Math.max(o.bruleDeg && o.brule > 0 ? o.bruleDeg : 0, Math.max(1, Math.round(st.deg * BRULURE_CROC.part))); }
+const DRAGONNET = { duree: 8, cadence: 1, portee: 8, part: 0.2, zone: 1.1, vitesse: 3.2, echelle: 0.3, haut: 1.3 }, /* (part, 15/11/2026 : « le dragonnet, la meme formule que le Bouftou, juste peut-etre pas 35 % s'il tape en zone », Mathieu, au formulaire 20 % : le coup du Bouftou (degInvoc, Meute) avec 20 % de ta Puissance, et sa cadence avec 20 % de ton Agilite) */ BRULURE_CROC = { t: 2, part: 0.2 };
+function brulerCroc(o, st, t, tic) { if (o.etat !== 'actif') return; o.brule = Math.max(o.brule || 0, t || BRULURE_CROC.t); o.bruleDeg = Math.max(o.bruleDeg && o.brule > 0 ? o.bruleDeg : 0, Math.max(1, Math.round(tic || st.deg * BRULURE_CROC.part))); } /* (tic : les degats d'une demi-seconde de brulure, le Dragonnet : 20 % de sa boule) */
+const coupDragonnet = () => Math.round(degInvoc(niveau(S_.xp)) * (1 + DRAGONNET.part * caracs().puissance / 100) * (1 + MEUTE)), cadenceDragonnet = () => DRAGONNET.cadence / (1 + DRAGONNET.part * caracs().agilite / 100);
 function finDragonnet(c) { const dr = c && c.dragonnet; if (!dr) return; c.dragonnet = null; if (dr.m) { const p = dr.m.position; pouf(p.x, solA(p.x, p.z), p.z, 1.6, '#ff8a2e'); emettre(FX_FUM, 8, { x: p.x, y: p.y, z: p.z, r: 0.4, v: [0, 0.8, 0], vie: [0.7, 1.1], taille: [0.4, 1.4], c: ['#5a4a42', '#9a8a80'], a: 0.5, frein: 1.2, entree: 0.1 }); jeter(dr.m); } }
 function dragonnet(pt, st) {
   const c0 = combat; finDragonnet(c0); if (!MODELES.crocabulia) return;
@@ -550,7 +551,7 @@ function bouleDragonnet(dr, cib, st) {
     emettre(FX_LUM, 1, { x: b.position.x, y: b.position.y, z: b.position.z, v: [0, 0.3, 0], vie: [0.2, 0.32], taille: [0.35, 0.05], c: ['#ffd04a', '#ff5a1e'], a: 0.8 });
     if (u < 1) return false; jeter(b); const X = vers.x, Z = vers.z, Y = solA(X, Z);
     lueur(vers, '#ff7a1e', 1.2, 0.25); brulure(X, Y, Z, 0.5); emettre(FX_VIF, 8, { x: X, y: vers.y, z: Z, r: 0.2, v: [0, 1.4, 0], dv: 2, vie: [0.25, 0.45], taille: [0.25, 0.05], c: ['#fff1a8', '#ff8a1e', '#a02a08'], grav: 3, a: 0.9 });
-    c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < DRAGONNET.zone + 0.2 * (o.d.ombre || 1)) { blesser(o, Math.max(1, Math.round(st.deg * DRAGONNET.mult))); brulerCroc(o, st, 1); } });
+    const dg = coupDragonnet(); c0.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < DRAGONNET.zone + 0.2 * (o.d.ombre || 1)) { blesser(o, dg); brulerCroc(o, st, 1, dg * 0.2); } });
     return true; });
 }
 const GEO_BOULE_DRAG = new T.SphereGeometry(0.17, 12, 8), MAT_BOULE_DRAG = new T.MeshBasicMaterial({ color: '#ff9a3a' }); partager(GEO_BOULE_DRAG); partager(MAT_BOULE_DRAG);
@@ -561,7 +562,7 @@ function majDragonnet(dt, s) {
   const cib = plusProcheMonstre(dr), d = cib ? Math.hypot(cib.x - dr.x, cib.z - dr.z) : Infinity;
   if (cib && d > DRAGONNET.portee * 0.85) { const dx = cib.x - dr.x, dz = cib.z - dr.z, L = d || 1, pas = Math.min(L - DRAGONNET.portee * 0.7, DRAGONNET.vitesse * dt); dr.x += dx / L * pas; dr.z += dz / L * pas; }
   if (cib) tourner(dr, Math.atan2(cib.x - dr.x, cib.z - dr.z), dt);
-  dr.cd -= dt; if (cib && d <= DRAGONNET.portee && dr.cd <= 0 && dr.nait >= 1) { dr.cd = DRAGONNET.cadence; bouleDragonnet(dr, cib, st); }
+  dr.cd -= dt; if (cib && d <= DRAGONNET.portee && dr.cd <= 0 && dr.nait >= 1) { dr.cd = cadenceDragonnet(); bouleDragonnet(dr, cib, st); }
   const th = 0.12 + 0.55 * Math.sin(dr.ph), av = 0.12 * Math.cos(dr.ph); if (dr.ailes[0]) dr.ailes[0].rotation.set(0, -av, -th); if (dr.ailes[1]) dr.ailes[1].rotation.set(0, av, th);
   const fin = Math.min(1, dr.vie / 0.35), k = (0.2 + 0.8 * (1 - Math.pow(1 - dr.nait, 3))) * fin;
   m.scale.setScalar(dr.echelle * k); m.position.set(dr.x, solA(dr.x, dr.z) + DRAGONNET.haut - 0.12 * Math.sin(dr.ph), dr.z); m.rotation.y = dr.ry; m.rotation.z = Math.sin(dr.ph * 0.5) * 0.04;
