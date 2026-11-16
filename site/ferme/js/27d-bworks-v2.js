@@ -5,7 +5,8 @@
    un squelette Mixamo cale sans le site de Mixamo (blender/placer-squelette.py, lier-squelette.py), les mouvements des packs et leurs armes faites main
    (blender/monstre-anime.py, armes-bworks.py) : assets/modeles/jeu/<nom>-anime-v2.glb. Un choix dans l'Arene dev : ancienne version ou nouvelle (garde dans
    ce navigateur), pour le prochain combat ; les joueurs gardent l'ancienne tant que Mathieu n'a pas valide. Suivi : maquettes/bworks/BWORKS.md. */
-let VERSION_BWORKS = (() => { try { return localStorage.getItem('ferme-version-bworks') === 'nouvelle' ? 'nouvelle' : 'ancienne'; } catch (err) { return 'ancienne'; } })();
+/* (16/11/2026 au soir, « ok tu peux les push », Mathieu : la nouvelle version pour tous ; « ancienne » ne reste qu'au choix dans l'Arene dev, pour comparer) */
+let VERSION_BWORKS = (() => { try { return localStorage.getItem('ferme-version-bworks') === 'ancienne' ? 'ancienne' : 'nouvelle'; } catch (err) { return 'nouvelle'; } })();
 /* type du monstre -> [nom du modele, hauteur en jeu, vitesse de ses animations] */
 const BWORKS_V2 = { bwork: ['bwork', 2.8, 1.4], bworkArcher: ['bwork-archer', 2.5, 1.4], bworkMage: ['bwork-mage', 2.4, 1.35], bworkette: ['bworkette', 2.2, 1.6], /* (+35 % le 16/11 au soir : « ils sont limite plus petits que moi », Mathieu) */ bworker: ['bworker', 4.6, 1.3] }; /* (le Bworker : 3,3 puis 3,8, « fais-le un peu plus grand », puis 5,7 le soir par Discord, « fais-le 50 % plus grand », puis 4,6, « reduis de 20 % », et elargi de 20 %, Mathieu, 16/11/2026) */
 const NOMS_BW2 = new Set(Object.values(BWORKS_V2).map(([n]) => n + '-v2'));
@@ -40,7 +41,7 @@ const clonerSquelette1 = clonerSquelette; clonerSquelette = function (nom) { con
 /* la hache lancee du Bworker : la sienne (manche court), qui quitte sa main le temps du vol */
 const armeJet1 = armeJet; armeJet = function (type, k) {
   const M = MODELES['bworker-v2'], src = type === 'hache' && VERSION_BWORKS === 'nouvelle' && M && M.getObjectByName('hache-bworker'); if (!src) return armeJet1(type, k);
-  M.updateMatrixWorld(true); const s = src.getWorldScale(new T.Vector3()).x * 1.15, g = new T.Group(), c = src.clone(true); c.position.set(0, -0.12 * s, 0); c.rotation.set(0, 0, 0); c.scale.setScalar(s); g.add(c);
+  M.updateMatrixWorld(true); const s = src.getWorldScale(new T.Vector3()).x * 1.15 * (k || 1) / Math.max(1, (BWORKS_V2.bworker[1] + 0.35) / 3.2), g = new T.Group(), /* (k : sa taille ; le Bworker colossal de l'ile lance une hache une fois et demie plus grande) */ c = src.clone(true); c.position.set(0, -0.12 * s, 0); c.rotation.set(0, 0, 0); c.scale.setScalar(s); g.add(c);
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); g.visible = false; armeJet.derniere = g; return g; }; /* (cachee jusqu'au lacher : c'est la hache de sa main qu'on voit pendant l'elan) */
 /* (16/11/2026 : le lancer est repere au moment meme ou le sort part, dans capJet ; le reperer a la chute de son minuteur ratait des lancers, et sa hache
    restait dans sa main pendant que l'autre volait. Son geste de lancer passe aussi devant un coup deja commence, sinon il etait saute) */
@@ -53,7 +54,9 @@ const capJet1 = capJet; capJet = function (mo, ctx) { const avant = mo.jetT; cap
   mo.jetVol = 0; mo.hacheVol = armeJet.derniere || null; armeJet.derniere = null;
   const an = mo.m.userData.anim; if (an && an.F.jet) { mo.geste = null; gesteSort(mo, 'jet', Math.max(0.3, mo.jetTl + 0.2)); } }; /* (le coup du geste 0,2 s apres le lacher : la hache part bras en avant, pas au ras du sol) */
 { const i = CAPACITES.indexOf(capJet1); if (i >= 0) CAPACITES[i] = capJet; }
-const majSquelette1 = majSquelette; majSquelette = function (mo, v, dt) { majSquelette1(mo, v, dt);
+/* (16/11/2026, « qu'il soit comme celui actuel en termes de delai », Mathieu : un boss a squelette rugit a son arrivee et a sa rage, 1,35 s ou il ne fait rien ;
+   l'ancien Bworker ne rugissait pas, son premier sort venait 1,4 s plus tot sur l'ile. Les nouveaux Bworks ne rugissent donc pas d'eux-memes) */
+const majSquelette1 = majSquelette; majSquelette = function (mo, v, dt) { if (mo.d && NOMS_BW2.has(mo.d.modele)) { mo.rugiArrivee = true; mo.rugiRage = true; } majSquelette1(mo, v, dt);
   if (!mo.d || !mo.d.jet || !mo.m || !NOMS_BW2.has(mo.d.modele)) return; const h = mo.hacheMain || (mo.hacheMain = mo.m.getObjectByName('hache-bworker')); if (!h) return;
   if (mo.jetVol == null) { h.visible = true; return; } mo.jetVol += dt; const tl = mo.jetTl || 0, p = mo.hacheVol;
   h.visible = mo.jetVol < tl || mo.jetVol >= mo.d.jet.prepa + 0.5; /* (en main pendant l'elan, au sol pendant le vol et l'impact, puis rendue) */
@@ -78,12 +81,28 @@ const capTourbillon1 = capTourbillon; capTourbillon = function (mo, ctx) { const
   if (!mo.tourneB) { mo.tourneB = true; Object.defineProperty(mo, 'tourne', { get: () => 0, set: () => {}, configurable: true }); }
   const nom = piocher(an, 'tourbillon'), D = an.A[nom].getClip().duration, d = W.prepa + 0.75, a = jouerAnim(an, nom, 0.1); if (!a) return; a.timeScale = D / d; mo.geste = { t: 0, d }; };
 { const i = CAPACITES.indexOf(capTourbillon1); if (i >= 0) CAPACITES[i] = capTourbillon; } /* (la liste des capacites garde la fonction d'origine : on y met la nouvelle) */
+/* LEURS COUPS, COMME AVANT (16/11/2026 au soir, « qu'il soit comme celui actuel en termes de delai de recup, degats, etc. dans l'ile du boss », Mathieu) : un monstre
+   a squelette porte son coup a l'instant de son geste (jusqu'a 0,42 s plus tard, et rien si le perso a file entre-temps) ; les anciens Bworks frappaient tout de suite.
+   Les nouveaux frappent donc tout de suite, a la meme cadence, et leur geste est joue a partir de l'instant du coup (on voit la fin de l'elan) */
+const attaqueSquelette1 = attaqueSquelette; attaqueSquelette = function (mo, fam, frapper) {
+  if (!mo.d || !NOMS_BW2.has(mo.d.modele)) return attaqueSquelette1(mo, fam, frapper);
+  const an = mo.m && mo.m.userData.anim; if (an && !mo.geste) { if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
+    if (fam) { const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.06); if (a) { const d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t, k = 1.2 * vitAnim(mo);
+      a.time = Math.max(0, t0 - 0.12 * k); a.timeScale = k; mo.geste = { t: 0, d: Math.min(0.5, (d0 - a.time) / k) }; } } }
+  frapper(); };
+/* L'ILE DES BOSS (16/11/2026) : le boss y sort seul, sans chargement prealable ; un modele a squelette absent arrivait apres coup et le combat, vide, se terminait.
+   La semaine du Bworker, ses modeles (et ceux des Bworks qu'il appelle) sont charges avant l'essai, comme avant une vague */
+const lancerIleBoss1 = lancerIleBoss; lancerIleBoss = function () {
+  let manque = []; try { manque = VERSION_BWORKS === 'nouvelle' && bossDuJour(semaineIleBoss()) === 'bworker' ? ['bworker-v2', 'bwork-v2'].filter((n) => !MODELES[n]) : []; } catch (err) { manque = []; }
+  if (!manque.length) return lancerIleBoss1();
+  if (lancerIleBoss.charge) return; lancerIleBoss.charge = true; toast('Le Bworker colossal arrive…', 'or');
+  chargerSquelettes(manque).then(() => { prechaufferSquelettes(manque); }).catch(() => {}).finally(() => { lancerIleBoss.charge = false; lancerIleBoss1(); }); };
 /* le choix de version */
 async function preparerBworksV2() { await chargerSquelettes([...NOMS_BW2]); }
 function appliquerBworksV2() {
   const neuf = VERSION_BWORKS === 'nouvelle';
   Object.entries(BWORKS_V2).forEach(([t, [n]]) => { const d = MONSTRES[t]; if (!d) return; if (!('modeleV1' in d)) { d.modeleV1 = d.modele; d.gestesV1 = d.gestes; d.gesteSoinV1 = d.gesteSoin; }
-    const ok = neuf && MODELES[n + '-v2']; d.modele = ok ? n + '-v2' : d.modeleV1;
+    const ok = neuf; d.modele = ok ? n + '-v2' : d.modeleV1; /* (charge a la demande : apparaitre et lancerVague chargent un modele a squelette absent) */
     d.gestes = ok && d.jet ? Object.assign({}, d.gestesV1, { jet: 'jet' }) : d.gestesV1; d.gesteSoin = ok && d.soigne ? true : d.gesteSoinV1; });
 }
 async function choisirVersionBworks(v) {
@@ -91,4 +110,4 @@ async function choisirVersionBworks(v) {
   if (VERSION_BWORKS === 'nouvelle') { toast('Chargement de la nouvelle version des Bworks…'); await preparerBworksV2(); } appliquerBworksV2();
   toast(VERSION_BWORKS === 'nouvelle' ? 'Bworks : nouvelle version (animée, rendu B).' : 'Bworks : ancienne version.', 'or');
 }
-if (VERSION_BWORKS === 'nouvelle') setTimeout(() => { preparerBworksV2().then(appliquerBworksV2); }, 6500); /* (choisie a une visite precedente : chargee apres le demarrage) */
+appliquerBworksV2(); /* (au demarrage : la version choisie ; les modeles se chargent quand les Bworks arrivent, rien au lancement du jeu) */
