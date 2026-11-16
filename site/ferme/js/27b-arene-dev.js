@@ -14,6 +14,7 @@ const GROUPES_DEV = {
   kannibouls: { nom: 'Les Kannibouls', liste: { kannibJav: 2, kannibSarbak: 2, kannibArk: 1, kannibTam: 1 } },
   ebil: { nom: 'Ebil et sa garde', liste: { kannibEbil: 1, kannibJav: 1, tortueBleue: 1, tortueVerte: 1 } },
   moon: { nom: 'Moon', liste: { moon: 1 } },
+  bworks: { nom: 'La Horde des Bworks', liste: { bwork: 2, bworkArcher: 1, bworkMage: 1, bworkette: 1, bworker: 1 } }, /* (16/11/2026 : les Bworks refaits, a lancer en un clic avec « Nouvelle » choisie plus bas) */
   bossRefaits: { nom: 'Les boss refaits', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, waWabbit: 1, koulosse: 1 } }, /* (31/10/2026, sorts refaits par Discord) */
   lesBoss: { nom: 'Les 9 boss', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, crocabulia: 1, waWabbit: 1, koulosse: 1, dragonCochon: 1, moon: 1 } }, /* (01/11/2026, « mets-les tous en arène », Mathieu : un de chaque, dans l'ordre des paliers) */
   demiBoss: { nom: 'Les 5 demi-boss', liste: { gorgouille: 1, golemLune: 1, tortueCorail: 1, lemurienTiki: 1, kannibEbil: 1 } }, /* (le Gorille Roi n'en est plus un, 01/11/2026) */
@@ -300,11 +301,11 @@ const ONGLETS_TEST = [
   { id: 'monde', nom: '\u00cele, jour et pluie', titres: ['L\'\u00eele des boss', 'Le jour et la nuit', 'La pluie'] },
   { id: 'lien-dev', nom: 'Ar\u00e8ne dev \u2192', lien: true }];
 const ONGLETS_DEV = [
-  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'Les amphibiens', 'La force des monstres', 'Les vagues 91'] },
+  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'Les Bworks', 'Les amphibiens', 'La force des monstres', 'Les vagues 91'] }, /* (« Les Bworks » ajoute le 16/11/2026 : sans titre dans un onglet, la section restait cachee, « je les vois pas dans l'Arene dev », Mathieu) */
   { id: 'liste', nom: 'Un par un', titres: ['Les monstres en avant-premi\u00e8re'], plein: ['Les monstres en avant-premi\u00e8re'], liste: ['Les monstres en avant-premi\u00e8re'] },
   { id: 'boss', nom: 'Un boss seul', titres: ['Un boss seul'], plein: ['Un boss seul'] },
   { id: 'equipement', nom: '\u00c9quipement', titres: ['Ton \u00e9quipement pour le combat'], plein: ['Ton \u00e9quipement pour le combat'] },
-  { id: 'reglages', nom: 'R\u00e9glages', titres: ['Vitesse des animations', 'Les monstres du palier 10', 'Les amphibiens'] },
+  { id: 'reglages', nom: 'R\u00e9glages', titres: ['Vitesse des animations', 'Les monstres du palier 10', 'Les Bworks', 'Les amphibiens'] },
   { id: 'lien-test', nom: 'Mode test \u2192', lien: true }];
 let ongletTest = 'combat', ongletDev = 'monstres';
 function rangerDev(html, onglets, actif, attr) {
