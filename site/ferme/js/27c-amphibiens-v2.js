@@ -354,7 +354,7 @@ window.fabriquerMereJeu2 = function (v, anime) {
    (MONSTRES[t].fabrique) en attendant ; la Mere Crapaude est construite animee (fabriquerMereJeu2(2, true) : MODELES['mere-v2']). */
 let VERSION_AMPHI = (() => { try { return localStorage.getItem('ferme-version-amphi') === 'nouvelle' ? 'nouvelle' : 'ancienne'; } catch (err) { return 'ancienne'; } })();
 const AMPHI_V2 = { tetard: ['tetard', 1.1], crapaud: ['crapaud', 2.0], fouette: ['fouette', 2.5], triton: ['triton', 3.2], axolotl: ['axolotl', 2.2] }, PROTO_V2 = {}, PROTO_V2_EN_COURS = {};
-const ANIME_V2 = new Set(['tetard', 'crapaud', 'triton']); /* (les glb animes deja faits) */
+const ANIME_V2 = new Set(['tetard', 'crapaud', 'triton', 'fouette', 'axolotl']); /* (les glb animes ; un modele fixe reste prevu si l'un manquait) */
 for (const [n, h] of Object.values(AMPHI_V2)) if (ANIME_V2.has(n)) { SQUELETTES_A_CHARGER.push([n + '-v2', 'assets/modeles/jeu/' + n + '-anime-v2.glb', h]); ALLURES[n + '-v2'] = ALLURES[n]; VITESSE_FAMILLE[n + '-v2'] = VITESSE_FAMILLE[n]; }
 VITESSE_FAMILLE['mere-v2'] = VITESSE_FAMILLE.mere;
 /* la peau repeinte : sur le modele charge, puis sur chaque copie (la copie d'une matiere perd son melange) */
@@ -377,7 +377,7 @@ function appliquerAmphiV2() {
 async function choisirVersionAmphi(v) {
   VERSION_AMPHI = v === 'nouvelle' ? 'nouvelle' : 'ancienne'; try { localStorage.setItem('ferme-version-amphi', VERSION_AMPHI); } catch (err) { /* rien */ }
   if (VERSION_AMPHI === 'nouvelle') { toast('Chargement de la nouvelle version des amphibiens…'); await preparerAmphiV2(); } appliquerAmphiV2();
-  toast(VERSION_AMPHI === 'nouvelle' ? 'Amphibiens : nouvelle version (animée ; Fouette-langue et Axolotl encore fixes).' : 'Amphibiens : ancienne version.', 'or');
+  toast(VERSION_AMPHI === 'nouvelle' ? 'Amphibiens : nouvelle version (animée).' : 'Amphibiens : ancienne version.', 'or');
 }
 if (VERSION_AMPHI === 'nouvelle') setTimeout(() => { preparerAmphiV2().then(appliquerAmphiV2); }, 6000); /* (choisie a une visite precedente : chargee apres le demarrage, sans le ralentir) */
 /* LA FLEUR DE LA MERE CRAPAUDE (16/11/2026, « lorsqu'elle passe en rage, la fleur grossit et s'ouvre, ca degage un parfum enivrant qui booste les monstres
