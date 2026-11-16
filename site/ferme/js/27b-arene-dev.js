@@ -45,12 +45,12 @@ function ouvrirAreneDev() {
     '<div class="hdv-section">La force des monstres : vague ' + E.n + '</div><div class="act dev-nb"><button class="btn discret" data-dev-n="-1"' + (E.n > 1 ? '' : ' disabled') + '>−</button><b>vague ' + E.n + '</b><button class="btn discret" data-dev-n="1"' + (E.n < 100 ? '' : ' disabled') + '>+</button></div>' +
     '<div class="hdv-section">Vitesse des animations de Moon</div><p class="hdv-aide">Les Kannibouls sont réglés à ×1,75 et les Tortues à ×1,25, comme tu l\'as choisi. Reste Moon : choisis celle qui te paraît juste, elle sera mise pour tout le monde.</p><div class="puces dev-groupes">' +
       [1, 1.25, 1.5, 1.75].map((x) => '<button class="btn ' + (VITESSE_ANIM === x ? 'kamas' : 'discret') + '" data-dev-vit="' + x + '">×' + String(x).replace('.', ',') + '</button>').join('') + '</div>' +
-    '<div class="hdv-section">Les monstres du palier 10 : deux versions</div><p class="hdv-aide">A : la version réaliste (écorce détaillée). B : la version à la DA du jeu (aplats, couleurs franches, contours marqués). Même forme, mêmes mouvements ; ça change aussi les monstres déjà en combat.</p><div class="puces dev-groupes">' +
-      [['A', 'Version A (réaliste)'], ['B', 'Version B (DA du jeu)']].map(([v, t]) => '<button class="btn ' + (VERSION_P10 === v ? 'kamas' : 'discret') + '" data-dev-version="' + v + '">' + t + '</button>').join('') + '</div>' +
-    '<div class="hdv-section">Les amphibiens : deux versions</div><p class="hdv-aide">Ancienne : les modèles animés d\'aujourd\'hui. Nouvelle : les versions validées le 15/11 (variantes 2 à la peau repeinte, Mère Crapaude bleu-vert), <b>animées</b>. En rage, la fleur de la Mère s\'ouvre. Pour le prochain combat.</p><div class="puces dev-groupes">' +
-      [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']].map(([v, t]) => '<button class="btn ' + (VERSION_AMPHI === v ? 'kamas' : 'discret') + '" data-dev-amphi="' + v + '">' + t + '</button>').join('') + '</div>' +
-    '<div class="hdv-section">Les Bworks : deux versions</div><p class="hdv-aide">Ancienne : les modèles fixes d’aujourd’hui. Nouvelle : la refonte du 16/11 (rendu B, <b>animés</b>, massue, arc, bâton à cristal, lance à ruban, hache courte qu’il lance). Pour le prochain combat.</p><div class="puces dev-groupes">' +
-      [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']].map(([v, t]) => '<button class="btn ' + (VERSION_BWORKS === v ? 'kamas' : 'discret') + '" data-dev-bworks="' + v + '">' + t + '</button>').join('') + '</div>' +
+    /* (16/11/2026, « pas très clair le panneau, c'est un foutoir », Mathieu : les trois réglages « deux versions » regroupés dans un seul onglet, une ligne par famille) */
+    '<div class="hdv-section">Les nouvelles versions</div><p class="hdv-aide">Une ligne par famille de monstres : choisis la version qui sortira au prochain combat de l’Arène dev. Les joueurs gardent l’ancienne.</p>' +
+      [['bworker', 'Les Bworks', 'Refaits le 16/11 : animés, rendu B, armes tenues en main.', 'data-dev-bworks', VERSION_BWORKS, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
+        ['crapaud', 'Les amphibiens', 'Versions du 15/11 : peau repeinte, Mère Crapaude bleu-vert, animés.', 'data-dev-amphi', VERSION_AMPHI, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
+        ['abraknyde', 'La Forêt des Abraknydes', 'A : réaliste. B : aplats et contours, à la DA du jeu. Change aussi les monstres déjà en combat.', 'data-dev-version', VERSION_P10, [['A', 'A (réaliste)'], ['B', 'B (DA du jeu)']]]]
+        .map(([ic, nom, txt, attr, cur, V]) => '<div class="art">' + ico(ic) + '<div><b>' + nom + '</b><div class="desc">' + txt + '</div></div><div class="act">' + V.map(([v, l]) => '<button class="btn ' + (cur === v ? 'kamas' : 'discret') + '" ' + attr + '="' + v + '">' + l + '</button>').join('') + '</div></div>').join('') +
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>', ONGLETS_DEV, ongletDev, 'onglet-dev'));
 }
@@ -301,11 +301,12 @@ const ONGLETS_TEST = [
   { id: 'monde', nom: '\u00cele, jour et pluie', titres: ['L\'\u00eele des boss', 'Le jour et la nuit', 'La pluie'] },
   { id: 'lien-dev', nom: 'Ar\u00e8ne dev \u2192', lien: true }];
 const ONGLETS_DEV = [
-  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'Les Bworks', 'Les amphibiens', 'La force des monstres', 'Les vagues 91'] }, /* (« Les Bworks » ajoute le 16/11/2026 : sans titre dans un onglet, la section restait cachee, « je les vois pas dans l'Arene dev », Mathieu) */
+  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'La force des monstres', 'Les vagues 91'], plein: ['Les groupes'] }, /* (16/11/2026 : les versions ont leur onglet ; une section dont le titre n'est dans aucun onglet reste cachee) */
+  { id: 'versions', nom: 'Versions des monstres', titres: ['Les nouvelles versions'], plein: ['Les nouvelles versions'] },
   { id: 'liste', nom: 'Un par un', titres: ['Les monstres en avant-premi\u00e8re'], plein: ['Les monstres en avant-premi\u00e8re'], liste: ['Les monstres en avant-premi\u00e8re'] },
   { id: 'boss', nom: 'Un boss seul', titres: ['Un boss seul'], plein: ['Un boss seul'] },
   { id: 'equipement', nom: '\u00c9quipement', titres: ['Ton \u00e9quipement pour le combat'], plein: ['Ton \u00e9quipement pour le combat'] },
-  { id: 'reglages', nom: 'R\u00e9glages', titres: ['Vitesse des animations', 'Les monstres du palier 10', 'Les Bworks', 'Les amphibiens'] },
+  { id: 'reglages', nom: 'Réglages', titres: ['Vitesse des animations'] },
   { id: 'lien-test', nom: 'Mode test \u2192', lien: true }];
 let ongletTest = 'combat', ongletDev = 'monstres';
 function rangerDev(html, onglets, actif, attr) {
