@@ -293,7 +293,7 @@ const SORTS_LEG = {
   moon: { nom: 'Bond de Moon', teinte: '#c98a52', recharge: 13, portee: 10, zone: 2.6 }, /* (l'arme de Moon, 02/11/2026) */
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 10, parClasse: { /* (un sort par classe, 15/11/2026 : mult, les degats a l'impact ; ouv, la demi-ouverture du cone) */
-    iop: { nom: 'Souffle de feu', recharge: 12, portee: 6, ouv: 0.55, mult: 1.8 }, cra: { nom: 'Souffle de feu', recharge: 12, portee: 14, ouv: 0.26, mult: 2 }, /* (« 1,8 fois les degats Iop et 2 fois les degats Cra », Mathieu, 15/11/2026) */
+    iop: { nom: 'Souffle de feu', recharge: 12, portee: 6, ouv: 0.55, mult: 2.4 }, cra: { nom: 'Souffle de feu', recharge: 12, portee: 14, ouv: 0.26, mult: 2.4 }, /* (« 1,8 fois les degats Iop et 2 fois les degats Cra », Mathieu, 15/11/2026 ; puis 2,4 pour les deux le 16/11/2026, « met a 2,4 au lieu de 1,8 et 2 pour les degats en Cra et Iop », Mathieu) */
     osa: { nom: 'Dragonnet', recharge: 16, portee: 10, zone: 1.2 } } }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 3 },
