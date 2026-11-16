@@ -295,7 +295,9 @@ const SORTS_LEG = {
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 10, parClasse: { /* (un sort par classe, 15/11/2026 : mult, les degats a l'impact ; ouv, la demi-ouverture du cone) */
     iop: { nom: 'Souffle de feu', recharge: 12, portee: 6, ouv: 0.55, mult: 2.4 }, cra: { nom: 'Souffle de feu', recharge: 12, portee: 14, ouv: 0.26, mult: 2.4 }, /* (« 1,8 fois les degats Iop et 2 fois les degats Cra », Mathieu, 15/11/2026 ; puis 2,4 pour les deux le 16/11/2026, « met a 2,4 au lieu de 1,8 et 2 pour les degats en Cra et Iop », Mathieu) */
     osa: { nom: 'Dragonnet', recharge: 16, portee: 10, zone: 1.2 } } }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
-  wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4 },
+  wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4, parClasse: { /* (un sort par classe, 16/11/2026, « en Cra a semi-distance elle me saoule », Mathieu, au formulaire : Cra cawottes chercheuses, Iop pluie autour de lui, Osa sa Cawotte geante) */
+    iop: { nom: 'Pluie de cawottes', recharge: 13, portee: 5, instant: true }, cra: { nom: 'Cawottes chercheuses', recharge: 13, portee: 16, instant: true },
+    osa: { nom: 'Cawotte géante', recharge: 13, portee: 10, zone: 6 } } },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 3 },
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
   dcochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 }, /* (les armes du Dragon Cochon, 13/11/2026 : « Bain de boue pour les 3 », Mathieu, le sort du Heaume) */
@@ -319,9 +321,11 @@ function lancerLegAuto(emp) { /* (les bots de test : sur la cible, sans viser) *
 }
 function executerLeg(emp, pt, compter, tire) {
   const c = combat; if (!c || c.fin) return; const cle = legDe(emp); if (!cle) return;
+  if (cle === 'wa' && !tire && classeDe() === 'cra') { const L = ciblesCawottes(sortLeg('wa').portee); /* (les cawottes chercheuses : il tire vers le premier monstre, rien a portee et rien ne part) */
+    if (!L.length) { const q = paysanMesh.position.clone(); q.y += 2.1; chiffre('Aucun monstre à portée', q, 'vol'); return; } pt = { x: L[0].x, z: L[0].z }; }
   const S = sortLeg(cle), pp = paysanMesh.position, st = statsPerso(), actifs = c.monstres.filter((o) => o.etat === 'actif'), x = pt.x, z = pt.z, y = solA(x, z);
-  if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z);
-  if (emp === 'arme' && !tire && (cle === 'wa' || cle === 'koulosse' || cle === 'dcochon' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop') || (cle === 'ancestral' && classeDe() === 'cra'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
+  if (!tire) c[cdLeg(emp)] = S.recharge; if (compter && c.st) c.st.sorts++; if (Math.hypot(x - pp.x, z - pp.z) > 0.05) paysanMesh.userData.angle = Math.atan2(x - pp.x, z - pp.z); /* (un sort sur soi, au point du perso : il garde son cap, 16/11/2026) */
+  if (emp === 'arme' && !tire && ((cle === 'wa' && classeDe() !== 'iop') || cle === 'koulosse' || cle === 'dcochon' || ((cle === 'corail' || cle === 'chene') && classeDe() !== 'iop') || (cle === 'ancestral' && classeDe() === 'cra'))) { /* (la Corail : la fleche du Cra vers le geyser, le fouet de l'Osa vers son Bouftou) */ /* (04/11/2026, « il se sert de son arc aussi pour les autres sorts ? sauf la coiffe », puis « et pour les autres classes ? », Mathieu) :
       l'arme d'abord, le sort ensuite. Le Cra decoche (vers le ciel pour la pluie de cawottes, sur le point vise pour la fumee) et le sort part a l'arrivee de la fleche ;
       l'Iop tranche vers le point vise, l'Osamodas y fait claquer son fouet, et le sort part au coup */
     const u = paysanMesh.userData, a = u.angle, cl = classeDe(); chemin = []; arrivee = null; c.ordre = false; paysanMesh.rotation.y = a; son(cl === 'cra' ? 'arc' : cl === 'osa' ? 'fouet' : 'epee');
@@ -338,9 +342,16 @@ function executerLeg(emp, pt, compter, tire) {
       souffleDeFeu(pp, a, S.portee, null, ouv); /* (« pourquoi c'est des cercles au sol ? Faut que ce soit un souffle de feu, comme s'il crachait du feu de sa bouche », Mathieu : un jet de flammes, 22b-effets.js) */
       actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
         if (d < S.portee && Math.abs(e) < ouv + Math.atan2(0.3 * (o.d.ombre || 1), Math.max(0.5, d))) { blesser(o, Math.round(st.deg * (S.mult || 2)), true); brulerCroc(o, st); } }); } /* (le corps du monstre compte : un gros monstre au bord du jet est touche) */
-  } else if (cle === 'wa') { /* la pluie de cawottes : quatre cawottes dans la zone visee */
-    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.random(), r = k ? 0.6 + Math.random() * 1.0 : 0, X = x + Math.cos(a) * r, Z = z + Math.sin(a) * r; pluieCawotte(X, y, Z, k * 0.06);
-      actifs.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - X, o.z - Z) < 1.4) blesser(o, Math.round(st.deg * 2), true); }); }
+  } else if (cle === 'wa') { /* LA PLUIE DE CAWOTTES, un sort par classe (16/11/2026) : le Cra, quatre cawottes chercheuses, chacune sur un monstre different a 8 cases (elles se
+       partagent ceux qui sont la s'il y en a moins) ; le Iop, six cawottes en cercle autour de lui ; l'Osamodas, sa Cawotte geante (cawotteGeante). 2 fois tes degats par cawotte */
+    const cl = classeDe();
+    if (cl === 'osa') cawotteGeante(pt, st, S);
+    else { const L = cl === 'cra' ? ciblesCawottes(S.portee) : [], N = cl === 'cra' ? 4 : 6, c0 = c, dg = Math.round(st.deg * 2);
+      if (cl === 'iop') { onde(pp.x, solA(pp.x, pp.z) + 0.05, pp.z, 2.6, '#f08a24', 0.4, 0.7); chiffre('Pluie de cawottes', new T.Vector3(pp.x, pp.y + 2.4, pp.z), 'gros'); }
+      for (let k = 0; k < N && (cl !== 'cra' || L.length); k++) { const o = cl === 'cra' ? L[k % L.length] : null, a = k / N * Math.PI * 2 + Math.random() * 0.5, ret = k * (cl === 'cra' ? 0.12 : 0.07);
+        const X = o ? o.x : pp.x + Math.sin(a) * 2.2, Z = o ? o.z : pp.z + Math.cos(a) * 2.2; pluieCawotte(X, solA(X, Z), Z, ret);
+        setTimeout(() => { if (combat !== c0 || c0.fin) return; const R = 1.4; /* (chacune frappe autour de son point de chute ; la chercheuse touche toujours son monstre) */
+          c0.monstres.forEach((m) => { if (m.etat === 'actif' && (m === o || Math.hypot(m.x - X, m.z - Z) < R + 0.2 * (m.d.ombre || 1))) blesser(m, dg, true); }); }, (ret + 0.2) * 1000); } }
   } else if (cle === 'koulosse') nuageLeg(x, z); /* la fumee : un nuage la ou tu vises */
   else if (cle === 'cochon' || cle === 'dcochon') boueLeg(x, z, S.zone, st); /* le bain de boue : une flaque la ou tu vises, les monstres dedans restent colles */
   else if (cle === 'royal') chargeRoyale(pt, st); /* la charge : tete baissee vers ou tu vises */
@@ -585,6 +596,60 @@ function boutureOsa(pt, st) {
     bo.echelle = m.scale.x; m.scale.setScalar(bo.echelle * 0.2); poser(m, x, y - 0.5, z, bo.ry); bo.m = m; };
   if (MODELES.tronknyde) pousser(); else chargerSquelettes(['tronknyde']).then(pousser);
   toast('Un Tronknyde allié pousse et attire les coups des monstres autour de lui pendant ' + DUREE_BOUTURE + ' s.', 'or');
+}
+/* LES CAWOTTES CHERCHEUSES (le Cra, 16/11/2026) : les monstres a portee, du plus proche au plus loin, sans ceux caches dans une fumee */
+function ciblesCawottes(portee) { const pp = paysanMesh.position, d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z);
+  return combat ? combat.monstres.filter((o) => o.etat === 'actif' && !(o.fume > 0) && d(o) <= portee).sort((a, b) => d(a) - d(b)).slice(0, 4) : []; }
+/* LA CAWOTTE GEANTE (l'Osamodas, 16/11/2026, « tu cibles un endroit ou ca invoque une cawotte qui attire les monstres dans un certain rayon ; la cawotte a x % de tes PV,
+   et chaque monstre qui tape dessus se prend ses degats renvoyes x2 », Mathieu) : elle sort de terre la ou tu vises (5 cases au plus) ; pendant 8 s, les monstres a moins de
+   3 cases d'elle la frappent au lieu de toi (comme la Bouture : pas les boss, ni les demi-boss, ni les tireurs) et chacun se prend 2 fois les degats de son coup.
+   Elle a la moitie de tes PV max ; un anneau orange montre jusqu'ou elle attire, une barre ses PV */
+const CAWOTTE_GEANTE = { duree: 8, rayon: 6, pv: 0.5, renvoi: 2 }, VEC_CAWG = new T.Vector3();
+function fabriquerCawotteGeante() {
+  const g = new T.Group(), plat = (geo, c) => maille(geo, c, { flatShading: true });
+  /* (une vraie carotte : epaule arrondie, effilee vers la pointe enfoncee dans une butte de terre retournee, quelques stries courtes, de longues fanes ; un peu penchee) */
+  const butte = sphere(0.62, '#7a5232', 2); butte.scale.set(1, 0.28, 1); butte.position.y = 0.02; g.add(butte);
+  [[0.55, 0.2, 0.13], [-0.45, 0.4, 0.11], [0.15, -0.6, 0.12], [-0.5, -0.35, 0.1], [0.62, -0.3, 0.09]].forEach(([x, z, r], k) => { const m = sphere(r, k % 2 ? '#8e6640' : '#5e3d22', 1); m.scale.set(1, 0.6, 1); m.position.set(x, 0.06, z); g.add(m); }); /* (les mottes) */
+  const tige = new T.Group(); tige.rotation.z = 0.1; tige.rotation.x = -0.06; g.add(tige);
+  const prof = [[0.0, -0.45], [0.07, -0.3], [0.17, 0.05], [0.27, 0.45], [0.36, 0.85], [0.41, 1.1], [0.4, 1.22], [0.31, 1.31], [0.14, 1.35], [0.0, 1.36]].map(([x, y]) => new T.Vector2(x, y));
+  const corps = plat(new T.LatheGeometry(prof, 12), '#f08a24'); tige.add(corps);
+  const rr = (y) => { for (let k = 1; k < prof.length; k++) if (prof[k].y >= y) { const a = prof[k - 1], b = prof[k], u = (y - a.y) / (b.y - a.y); return a.x + (b.x - a.x) * u; } return 0.4; };
+  [[0.25, 0.4], [0.5, 2.3], [0.72, 4.1], [0.95, 1.2], [0.6, 5.4], [0.35, 3.0]].forEach(([y, a]) => { const b = new T.Mesh(new T.TorusGeometry(rr(y) * 1.0, 0.02, 4, 10, 1.1), mat('#c95d14')); b.rotation.set(Math.PI / 2, 0, a); b.position.y = y; tige.add(b); }); /* (des stries courtes, pas des anneaux) */
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.3, L = 0.75 + (i % 3) * 0.18, geo = new T.ConeGeometry(0.075, L, 5); geo.translate(0, L / 2, 0);
+    const f = new T.Mesh(geo, mat(i % 2 ? '#5fae3a' : '#4f9a2e')); f.position.set(Math.sin(a) * 0.08, 1.32, Math.cos(a) * 0.08); f.rotation.set(Math.cos(a) * 0.42, 0, -Math.sin(a) * 0.42); tige.add(f); } /* (les fanes) */
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; o.raycast = () => {}; });
+  const anneau = new T.Mesh(new T.RingGeometry(CAWOTTE_GEANTE.rayon - 0.12, CAWOTTE_GEANTE.rayon, 56), new T.MeshBasicMaterial({ color: '#f08a24', transparent: true, opacity: 0.35, side: T.DoubleSide, depthWrite: false }));
+  anneau.rotation.x = -Math.PI / 2; anneau.position.y = 0.06; anneau.renderOrder = 2; g.add(anneau); g.userData.anneau = anneau; /* (jusqu'ou elle attire) */
+  return g;
+}
+function finCawotteGeante(c, abattue) {
+  const ca = c && c.cawotteG; if (!ca) return; c.cawotteG = null; if (ca.barre) ca.barre.remove();
+  if (ca.m) { const p = ca.m.position; pouf(p.x, p.y + 0.4, p.z, 2, abattue ? '#c95d14' : '#f08a24'); mottes(p.x, p.y, p.z, 8, 0.8); jeter(ca.m); }
+}
+function cawotteGeante(pt, st, S) {
+  const c0 = combat; finCawotteGeante(c0, false);
+  const q = pointSort(pt, S.portee), x = q.x, z = q.z, y = hauteurSol(x, z, caseIci(x, z)), pp = paysanMesh.position, pv = Math.round(st.pvMax * CAWOTTE_GEANTE.pv);
+  const m = fabriquerCawotteGeante(); m.scale.setScalar(0.2); m.position.set(x, y - 0.6, z); m.rotation.y = Math.atan2(pp.x - x, pp.z - z); scene.add(m);
+  const ca = c0.cawotteG = { x, z, vie: CAWOTTE_GEANTE.duree, pv, pvMax: pv, m, pousse: 0, eclat: 0, ph: 0 };
+  onde(x, y + 0.05, z, 1.8, '#f08a24', 0.45, 0.85); onde(x, y + 0.05, z, CAWOTTE_GEANTE.rayon, '#f08a24', 0.35, 0.9); secousse(0.08, 0.2); mottes(x, y, z, 12, 1.0); poussiere(x, y, z, 8, 1.0, '#8a6a48');
+  const barre = document.createElement('div'); barre.className = 'pv-monstre allie'; barre.innerHTML = '<i></i>'; $('combat-zone').appendChild(barre); ca.barre = barre;
+  chiffre('Cawotte géante', new T.Vector3(x, y + 2.6, z), 'gros');
+  if (!c0.cawotteGVu) { c0.cawotteGVu = true; toast("La Cawotte géante attire les monstres autour d'elle pendant " + CAWOTTE_GEANTE.duree + ' s : qui la frappe se prend 2 fois ses dégâts.', 'or'); }
+}
+function blesserCawotteGeante(ca, dg, mo) {
+  if (!ca || ca.pv <= 0) return; const n = Math.max(1, Math.round(dg)); ca.pv -= n; ca.eclat = 0.16;
+  if (ca.m) chiffre('-' + fmt(n), new T.Vector3(ca.x, ca.m.position.y + 1.8, ca.z));
+  if (mo && mo.etat === 'actif') { blesser(mo, Math.round(n * CAWOTTE_GEANTE.renvoi)); etoileImpact(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 1) * 0.5, mo.z), 0.7, '#f08a24'); } /* (le renvoi : 2 fois son coup) */
+  if (ca.pv <= 0) finCawotteGeante(combat, true);
+}
+function majCawotteGeante(dt) {
+  const c = combat, ca = c && c.cawotteG; if (!ca) return;
+  ca.vie -= dt; if (ca.vie <= 0) { finCawotteGeante(c, false); return; }
+  const m = ca.m; ca.pousse = Math.min(1, ca.pousse + dt / 0.45); ca.ph += dt; const e = 1 - Math.pow(1 - ca.pousse, 3), choc = Math.max(0, ca.eclat) / 0.16; ca.eclat = Math.max(0, ca.eclat - dt);
+  const y = hauteurSol(ca.x, ca.z, caseIci(ca.x, ca.z)); m.position.set(ca.x, y - 0.6 * (1 - e), ca.z); m.scale.setScalar((0.2 + 0.8 * e) * (1 + 0.04 * Math.sin(ca.ph * 5) - 0.08 * choc) * Math.min(1, ca.vie / 0.3 + 0.0001));
+  m.rotation.z = 0.06 * choc * Math.sin(ca.ph * 40); m.userData.anneau.material.opacity = 0.22 + 0.13 * Math.sin(ca.ph * 4);
+  if (ca.barre) { ca.barre.firstChild.style.width = Math.max(0, Math.min(100, 100 * ca.pv / ca.pvMax)).toFixed(0) + '%'; versEcran(VEC_CAWG.set(ca.x, m.position.y + 2.1, ca.z), ca.barre); }
+  if (Math.random() < dt * 6) emettre(FX_LUM, 1, { x: ca.x + (Math.random() - 0.5) * 0.8, y: m.position.y + 1.2, z: ca.z + (Math.random() - 0.5) * 0.8, v: [0, 0.7, 0], vie: [0.6, 1.0], taille: [0.22, 0.05], c: ['#ffd08a', '#f08a24'], a: 0.6 }); /* (son odeur sucree) */
 }
 function blesserBouture(bo, dg) {
   if (!bo || bo.pv <= 0) return; const n = Math.max(1, Math.round(dg * 0.5)); bo.pv -= n; bo.eclat = 0.16;

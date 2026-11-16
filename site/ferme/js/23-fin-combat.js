@@ -54,7 +54,7 @@ function majCombat(dt, s) {
   c.monstres.forEach((o) => majMonstre(o, dt, s)); if (c.fin) return;
   majFumees(dt, s); majAfflictions(dt); if (combat !== c || c.fin) return;
   c.monstres = c.monstres.filter((o) => !(o.etat === 'mort' && !o.m.parent));
-  if (c.deroute == null) { majInvoc(dt); majBouture(dt); majDragonnet(dt); majLegendaire(dt); } if (combat !== c || c.fin) return; if (c.deroute == null) majPerso(dt); if (combat !== c || c.fin) return; majVisee(s);
+  if (c.deroute == null) { majInvoc(dt); majBouture(dt); majCawotteGeante(dt); majDragonnet(dt); majLegendaire(dt); } if (combat !== c || c.fin) return; if (c.deroute == null) majPerso(dt); if (combat !== c || c.fin) return; majVisee(s);
   const cb = c.cible && c.cible.etat === 'actif' ? c.cible : null; ANNEAU.visible = !!cb;
   if (cb) { ANNEAU.position.set(cb.x, cb.m.position.y + 0.04, cb.z); const rA = cb.d.distance ? Math.max(1, cb.d.ombre * 0.75) * 0.64 : cb.d.portee * (cb.allonge || 1); ANNEAU.scale.setScalar(rA * (1 + Math.sin(s * 4) * 0.02));
     const U = ANNEAU.userData, p = paysanMesh.position, dedans = !cb.d.distance && Math.hypot(p.x - cb.x, p.z - cb.z) <= rA; U.tirets.rotation.y = s * 0.5; U.fleches.rotation.y = -s * 0.3; U.fleches.children.forEach((o, k) => { const a = k / 4 * Math.PI * 2, r = 1.2 + Math.sin(s * 5) * 0.05; o.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); });
