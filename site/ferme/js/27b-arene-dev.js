@@ -48,11 +48,13 @@ function ouvrirAreneDev() {
       [['A', 'Version A (réaliste)'], ['B', 'Version B (DA du jeu)']].map(([v, t]) => '<button class="btn ' + (VERSION_P10 === v ? 'kamas' : 'discret') + '" data-dev-version="' + v + '">' + t + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les amphibiens : deux versions</div><p class="hdv-aide">Ancienne : les modèles animés d\'aujourd\'hui. Nouvelle : les versions validées le 15/11 (variantes 2 à la peau repeinte, Mère Crapaude bleu-vert), <b>animées</b>. En rage, la fleur de la Mère s\'ouvre. Pour le prochain combat.</p><div class="puces dev-groupes">' +
       [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']].map(([v, t]) => '<button class="btn ' + (VERSION_AMPHI === v ? 'kamas' : 'discret') + '" data-dev-amphi="' + v + '">' + t + '</button>').join('') + '</div>' +
+    '<div class="hdv-section">Les Bworks : deux versions</div><p class="hdv-aide">Ancienne : les modèles fixes d’aujourd’hui. Nouvelle : la refonte du 16/11 (rendu B, <b>animés</b>, massue, arc, bâton à cristal, lance à ruban, hache courte qu’il lance). Pour le prochain combat.</p><div class="puces dev-groupes">' +
+      [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']].map(([v, t]) => '<button class="btn ' + (VERSION_BWORKS === v ? 'kamas' : 'discret') + '" data-dev-bworks="' + v + '">' + t + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>', ONGLETS_DEV, ongletDev, 'onglet-dev'));
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-dev-bworks],[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
   const E = etatDev(), T0 = E.tenue = E.tenue || {};
   if (b.dataset.devBoss) { E.liste = { [b.dataset.devBoss]: 1 }; E.n = +b.dataset.devBossN; E.vague = null; partirDev(); return; } /* (un boss seul : le combat part tout de suite) */
   if (b.hasAttribute('data-dev-pano')) { T0.pano = b.dataset.devPano || null; if (!T0.pano) { T0.arme = null; T0.coiffe = null; } ouvrirAreneDev(); return; }
@@ -66,6 +68,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.devGroupe) E.liste = b.dataset.devGroupe === 'vider' ? {} : Object.assign({}, GROUPES_DEV[b.dataset.devGroupe].liste);
   else if (b.dataset.devN) E.n = Math.max(1, Math.min(100, E.n + Number(b.dataset.devN)));
   else if (b.dataset.devEssai) E.essai = E.essai === b.dataset.devEssai ? null : b.dataset.devEssai;
+  else if (b.dataset.devBworks) { choisirVersionBworks(b.dataset.devBworks).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devAmphi) { choisirVersionAmphi(b.dataset.devAmphi).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVersion) { choisirVersionP10(b.dataset.devVersion).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVit) { VITESSE_ANIM = Number(b.dataset.devVit); try { localStorage.setItem('ferme-vitesse-anim', String(VITESSE_ANIM)); } catch (err) { /* rien */ } }

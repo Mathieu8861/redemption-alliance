@@ -359,9 +359,9 @@ for (const [n, h] of Object.values(AMPHI_V2)) if (ANIME_V2.has(n)) { SQUELETTES_
 VITESSE_FAMILLE['mere-v2'] = VITESSE_FAMILLE.mere;
 /* la peau repeinte : sur le modele charge, puis sur chaque copie (la copie d'une matiere perd son melange) */
 const chargerSquelette0 = chargerSquelette; chargerSquelette = async function (nom, url, h) { await chargerSquelette0(nom, url, h); const n = nom.replace(/-v2$/, ''), M = MODELES[nom];
-  if (n !== nom && M && !M.userData.peint) { window.peindreV2(n, M); M.userData.peint = true; M.traverse((o) => { if (o.userData.peauV2) window.appliquerPeauV2(o.material, n); }); } };
+  if (n !== nom && ANIME_V2.has(n) && M && !M.userData.peint) { /* (seuls les amphibiens : les Bworks aussi finissent par -v2, 16/11/2026) */ window.peindreV2(n, M); M.userData.peint = true; M.traverse((o) => { if (o.userData.peauV2) window.appliquerPeauV2(o.material, n); }); } };
 const clonerSquelette0 = clonerSquelette; clonerSquelette = function (nom) { const g = clonerSquelette0(nom), n = nom.replace(/-v2$/, '');
-  if (n !== nom) g.traverse((o) => { if (o.isSkinnedMesh && o.userData.peauV2) window.appliquerPeauV2(o.material, n); }); return g; };
+  if (n !== nom && ANIME_V2.has(n)) g.traverse((o) => { if (o.isSkinnedMesh && o.userData.peauV2) window.appliquerPeauV2(o.material, n); }); return g; };
 function preparerMereV2() { if (MODELES['mere-v2']) return; const M = window.fabriquerMereJeu2(2, true), imp = {}; /* (l'instant de chaque geste, comme pour un glb : la main ou la machoire qui va le plus vite) */
   M.userData.clips.forEach((c) => { if (FAMILLES_GESTE.includes(familleDe(c.name))) imp[c.name] = instantGeste(M, c); }); M.userData.impacts = imp; MODELES['mere-v2'] = M; }
 async function preparerAmphiV2() {
