@@ -46,11 +46,13 @@ function ouvrirAreneDev() {
       [1, 1.25, 1.5, 1.75].map((x) => '<button class="btn ' + (VITESSE_ANIM === x ? 'kamas' : 'discret') + '" data-dev-vit="' + x + '">×' + String(x).replace('.', ',') + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres du palier 10 : deux versions</div><p class="hdv-aide">A : la version réaliste (écorce détaillée). B : la version à la DA du jeu (aplats, couleurs franches, contours marqués). Même forme, mêmes mouvements ; ça change aussi les monstres déjà en combat.</p><div class="puces dev-groupes">' +
       [['A', 'Version A (réaliste)'], ['B', 'Version B (DA du jeu)']].map(([v, t]) => '<button class="btn ' + (VERSION_P10 === v ? 'kamas' : 'discret') + '" data-dev-version="' + v + '">' + t + '</button>').join('') + '</div>' +
+    '<div class="hdv-section">Les amphibiens : deux versions</div><p class="hdv-aide">Ancienne : les modèles animés d\'aujourd\'hui. Nouvelle : les versions validées le 15/11 (variantes 2 à la peau repeinte, Mère Crapaude bleu-vert), <b>pas encore animées</b> : elles glissent et frappent sans bouger. Pour le prochain combat.</p><div class="puces dev-groupes">' +
+      [['ancienne', 'Ancienne (animée)'], ['nouvelle', 'Nouvelle (sans mouvement)']].map(([v, t]) => '<button class="btn ' + (VERSION_AMPHI === v ? 'kamas' : 'discret') + '" data-dev-amphi="' + v + '">' + t + '</button>').join('') + '</div>' +
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>', ONGLETS_DEV, ongletDev, 'onglet-dev'));
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
   const E = etatDev(), T0 = E.tenue = E.tenue || {};
   if (b.dataset.devBoss) { E.liste = { [b.dataset.devBoss]: 1 }; E.n = +b.dataset.devBossN; E.vague = null; partirDev(); return; } /* (un boss seul : le combat part tout de suite) */
   if (b.hasAttribute('data-dev-pano')) { T0.pano = b.dataset.devPano || null; if (!T0.pano) { T0.arme = null; T0.coiffe = null; } ouvrirAreneDev(); return; }
@@ -64,6 +66,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.devGroupe) E.liste = b.dataset.devGroupe === 'vider' ? {} : Object.assign({}, GROUPES_DEV[b.dataset.devGroupe].liste);
   else if (b.dataset.devN) E.n = Math.max(1, Math.min(100, E.n + Number(b.dataset.devN)));
   else if (b.dataset.devEssai) E.essai = E.essai === b.dataset.devEssai ? null : b.dataset.devEssai;
+  else if (b.dataset.devAmphi) { choisirVersionAmphi(b.dataset.devAmphi).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVersion) { choisirVersionP10(b.dataset.devVersion).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVit) { VITESSE_ANIM = Number(b.dataset.devVit); try { localStorage.setItem('ferme-vitesse-anim', String(VITESSE_ANIM)); } catch (err) { /* rien */ } }
   ouvrirAreneDev();
@@ -294,11 +297,11 @@ const ONGLETS_TEST = [
   { id: 'monde', nom: '\u00cele, jour et pluie', titres: ['L\'\u00eele des boss', 'Le jour et la nuit', 'La pluie'] },
   { id: 'lien-dev', nom: 'Ar\u00e8ne dev \u2192', lien: true }];
 const ONGLETS_DEV = [
-  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'La force des monstres', 'Les vagues 91'] },
+  { id: 'monstres', nom: 'Groupes et vagues', titres: ['Les groupes', 'Les amphibiens', 'La force des monstres', 'Les vagues 91'] },
   { id: 'liste', nom: 'Un par un', titres: ['Les monstres en avant-premi\u00e8re'], plein: ['Les monstres en avant-premi\u00e8re'], liste: ['Les monstres en avant-premi\u00e8re'] },
   { id: 'boss', nom: 'Un boss seul', titres: ['Un boss seul'], plein: ['Un boss seul'] },
   { id: 'equipement', nom: '\u00c9quipement', titres: ['Ton \u00e9quipement pour le combat'], plein: ['Ton \u00e9quipement pour le combat'] },
-  { id: 'reglages', nom: 'R\u00e9glages', titres: ['Vitesse des animations', 'Les monstres du palier 10'] },
+  { id: 'reglages', nom: 'R\u00e9glages', titres: ['Vitesse des animations', 'Les monstres du palier 10', 'Les amphibiens'] },
   { id: 'lien-test', nom: 'Mode test \u2192', lien: true }];
 let ongletTest = 'combat', ongletDev = 'monstres';
 function rangerDev(html, onglets, actif, attr) {
