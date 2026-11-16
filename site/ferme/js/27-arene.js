@@ -337,7 +337,7 @@ function finIleBoss(abandon, tombe) {
   son(tombe || record ? 'victoire' : 'defaite'); if (tombe || record) confettis(tombe ? 80 : 40);
   const reste = Math.max(0, essaisMax(A.cle) - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
-    '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
+    '<div class="arene-bilan"><div class="gros degats">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
     /* (16/11/2026, « rajoute le récapitulatif des dégâts faits aussi », Mathieu : les lignes du bilan des vagues, et le détail par source) */
     ligneRecap('degats', 'Tes dégâts (boss et troupe)', fmt(Math.round(c.st.inflige))) + ligneRecap('puissance', 'Ton plus gros coup', fmt(Math.round(c.st.max))) + ligneRecap('vita', 'Dégâts reçus', fmt(Math.round(c.st.recus))) +
