@@ -338,9 +338,12 @@ function finIleBoss(abandon, tombe) {
   const reste = Math.max(0, essaisMax(A.cle) - essaisCompte(A.cle)), B = MONSTRES[A.boss], m = Math.floor(A.t / 60), sec = Math.round(A.t % 60);
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
     '<div class="arene-bilan"><div class="gros">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
-    '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) + '</div>' +
+    '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
+    /* (16/11/2026, « rajoute le récapitulatif des dégâts faits aussi », Mathieu : les lignes du bilan des vagues, et le détail par source) */
+    ligneRecap('degats', 'Tes dégâts (boss et troupe)', fmt(Math.round(c.st.inflige))) + ligneRecap('puissance', 'Ton plus gros coup', fmt(Math.round(c.st.max))) + ligneRecap('vita', 'Dégâts reçus', fmt(Math.round(c.st.recus))) +
+    ligneRecap('soin', 'Soins reçus', fmt(Math.round(c.st.soins || 0)) + (c.st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(c.st.menthe)) + ')' : '')) + ligneRecap('etoile', 'Sorts et ultis lancés', c.st.sorts) + '</div>' + detailCombat(c) +
     '<p class="hdv-aide">Le coffre de la semaine s\'ouvre tout seul à ta ferme ' + prochainVendredi() + ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
-    '<div class="act-bas"><small style="color:#a9adb5">' + (reste === Infinity ? 'Essais sans limite' : reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine') + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="partirIleBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>');
+    '<div class="act-bas"><small style="color:#a9adb5">' + (reste === Infinity ? 'Essais sans limite' : reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine') + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="ileBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>'); /* (16/11/2026, « quand on veut réessayer direct, qu'on nous propose de manger nos fruits et boire nos potions », Mathieu : Réessayer rouvre la fiche de l'île, ses repas et ses pots, d'où l'on repart) */
   rendreHaut(); sauver();
 }
 /* LE COFFRE DE L'ILE, TOUT SEUL (02/11/2026, « on recoit a quel moment les recompenses de classement, de participation ? il faudrait un message ou une notif
@@ -574,7 +577,7 @@ function finArene(abandon) {
     (objets ? '<div class="hdv-section">Les pièces</div>' + objets : '') +
     (Object.keys(A.runes).length ? '<div class="hdv-section">Les runes</div>' + Object.entries(A.runes).map(([t, nb]) => '<div class="art">' + ico('rune-' + t) + '<div><b>' + nb + ' ' + (nb > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</b><div class="desc">' + RUNES[t].bref + ' sur une pièce, à ton atelier de forgemagie (Améliorer, ' + fmt(100000) + ' kamas).</div></div><div class="act"></div></div>').join('') : '') +
     '<div class="act-bas"><small style="color:#a9adb5">' + reste + ' entrée' + (reste > 1 ? 's' : '') + ' restante' + (reste > 1 ? 's' : '') + ' aujourd\'hui</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button>' +
-    '<button class="btn kamas" data-montgolfiere="entrerArene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(ticketArene()) + ' ' + KAMA + '</button></div>');
+    '<button class="btn kamas" data-montgolfiere="arene"' + (peut ? '' : ' disabled') + '>Rejouer : ' + fmt(ticketArene()) + ' ' + KAMA + '</button></div>'); /* (16/11/2026 : Rejouer rouvre la fiche de l'Arène, ses repas et ses pots, comme Réessayer sur l'île) */
   rendreHaut(); sauver();
 }
 
