@@ -602,9 +602,9 @@ function ciblesCawottes(portee) { const pp = paysanMesh.position, d = (o) => Mat
   return combat ? combat.monstres.filter((o) => o.etat === 'actif' && !(o.fume > 0) && d(o) <= portee).sort((a, b) => d(a) - d(b)).slice(0, 4) : []; }
 /* LA CAWOTTE GEANTE (l'Osamodas, 16/11/2026, « tu cibles un endroit ou ca invoque une cawotte qui attire les monstres dans un certain rayon ; la cawotte a x % de tes PV,
    et chaque monstre qui tape dessus se prend ses degats renvoyes x2 », Mathieu) : elle sort de terre la ou tu vises (5 cases au plus) ; pendant 8 s, les monstres a moins de
-   3 cases d'elle la frappent au lieu de toi (comme la Bouture : pas les boss, ni les demi-boss, ni les tireurs) et chacun se prend 2 fois les degats de son coup.
-   Elle a la moitie de tes PV max ; un anneau orange montre jusqu'ou elle attire, une barre ses PV */
-const CAWOTTE_GEANTE = { duree: 8, rayon: 6, pv: 0.5, renvoi: 2 }, VEC_CAWG = new T.Vector3();
+   3 cases d'elle la frappent au lieu de toi (tout le monde : boss, demi-boss et tireurs compris, ses sorts visent toujours le perso) et chacun se prend 2 fois les degats de son coup.
+   Elle a tes PV max ; un anneau orange montre jusqu'ou elle attire, une barre ses PV */
+const CAWOTTE_GEANTE = { duree: 8, rayon: 6, pv: 1, renvoi: 2 }, VEC_CAWG = new T.Vector3(); /* (au formulaire du 16/11/2026 : 100 % de tes PV au lieu de 50, « tout le monde » : boss, demi-boss et tireurs compris ; en essai, 6 monstres de la 91 la cassaient en moins de 4 s a 50 %) */
 function fabriquerCawotteGeante() {
   const g = new T.Group(), plat = (geo, c) => maille(geo, c, { flatShading: true });
   /* (une vraie carotte : epaule arrondie, effilee vers la pointe enfoncee dans une butte de terre retournee, quelques stries courtes, de longues fanes ; un peu penchee) */

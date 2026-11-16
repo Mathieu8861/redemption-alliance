@@ -3242,9 +3242,9 @@ function impactTir(type, p, mo, perso) {
   if (type === 'fruit') { pouf(p.x, y, p.z, 1.4, mo.d.fruit); emettre(FX_VIF, 10, { x: p.x, y: p.y, z: p.z, r: 0.1, dv: 4, haut: true, vie: [0.25, 0.45], taille: [0.12, 0.04], c: ['#ffffff', mo.d.fruit], grav: 9, frein: 1.5 }); return; }
   etoileImpact(p, type === 'sagaie' ? 0.9 : 0.65); poussiere(p.x, y, p.z, 4, 0.4);
 }
-function tirMonstre(mo, bat) {
+function tirMonstre(mo, bat, caw) { /* (caw : la Cawotte geante de l'Osa, sa cible a la place du perso) */
   const main = mainSquelette(mo), type = mo.d.magie ? 'magie' : TIRS[mo.d.projectile] ? mo.d.projectile : 'fleche', T0 = TIRS[type];
-  const de = main || new T.Vector3(mo.x, mo.m.position.y + Math.max(1.0, (mo.haut || 1.6) * 0.6), mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : paysanMesh.position.clone(); if (!bat) vers.y += 0.9; const deg = mo.deg * (bat ? 1 : autoBoss(mo)), cleB = bat && bat.cle, c0 = combat; /* (le tir de Crocabulia : une auto de boss, 07/11/2026) */
+  const de = main || new T.Vector3(mo.x, mo.m.position.y + Math.max(1.0, (mo.haut || 1.6) * 0.6), mo.z), vers = bat ? new T.Vector3(bat.x, bat.y + 1.0, bat.z) : caw ? new T.Vector3(caw.x, solA(caw.x, caw.z) + 1.0, caw.z) : paysanMesh.position.clone(); if (!bat && !caw) vers.y += 0.9; const deg = mo.deg * (bat ? 1 : autoBoss(mo)), cleB = bat && bat.cle, c0 = combat; /* (le tir de Crocabulia : une auto de boss, 07/11/2026) */
   const fl = projectileMonstre(type, mo); scene.add(fl); fl.position.copy(de); fl.lookAt(vers);
   if (T0.long) decocher(de, vers); else pouf(de.x, de.y - 0.3, de.z, 0.7, type === 'feu' ? '#ff9a2e' : '#d8c6a0');
   const dist = de.distanceTo(vers), duree = Math.min(0.9, Math.max(0.3, dist / T0.v)), H = T0.arc + dist * T0.parD, avant = new T.Vector3(); let t = 0;
@@ -3252,7 +3252,7 @@ function tirMonstre(mo, bat) {
     fl.position.lerpVectors(de, vers, k); fl.position.y += Math.sin(k * Math.PI) * H;
     if (T0.long) { if (fl.position.distanceToSquared(avant) > 1e-6) fl.lookAt(fl.position.clone().multiplyScalar(2).sub(avant)); } else { fl.rotation.x += dt2 * 9; fl.rotation.y += dt2 * 6; } /* (une fleche suit sa courbe, un caillou tourne sur lui-meme) */
     traineeTir(type, fl.position, mo);
-    if (t >= 1) { jeter(fl); impactTir(type, vers, mo, !cleB); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else { blesserPerso.auteur = mo; blesserPerso(deg); blesserPerso.auteur = null; effetsCoup(mo); } /* (auteur : pour l'historique des degats seulement, 15/11/2026 ; sans mo, le tir reste un coup de loin) */ } return true; } }); /* (le combat fini, le tir ne touche plus rien) */
+    if (t >= 1) { jeter(fl); impactTir(type, vers, mo, !cleB && !caw); if (combat === c0 && !c0.fin) { if (cleB) blesserBat(cleB, degatsBatiment(mo.d.cadence, mo)); else if (caw) { if (c0.cawotteG === caw && caw.pv > 0) blesserCawotteGeante(caw, deg, mo); } else { blesserPerso.auteur = mo; blesserPerso(deg); blesserPerso.auteur = null; effetsCoup(mo); } /* (auteur : pour l'historique des degats seulement, 15/11/2026 ; sans mo, le tir reste un coup de loin) */ } return true; } }); /* (le combat fini, le tir ne touche plus rien) */
 }
 const sagaieVolante = () => { const g = new T.Group(), h = boite(0.05, 0.05, 1.3, '#8a5a30'), p = new T.Mesh(new T.ConeGeometry(0.07, 0.24, 5), mat('#a8a294')); p.rotation.x = Math.PI / 2; p.position.z = 0.75; g.add(h, p); return g; };
 /* la mort d'un monstre qui vole en battant des ailes (31/10/2026, « animation de sa mort pas top », Mathieu : Crocabulia tournait sur elle-meme en
@@ -3425,7 +3425,7 @@ function majMonstre(mo, dt, s) {
   if (!versPerso && !bandit && !mo.d.distance && combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) <= mo.d.portee * (mo.allonge || 1)) { versPerso = true; bat = null; } /* passer a sa portee : il te frappe, meme s'il visait un batiment ou une culture */
   if (versPerso) { tx = pp.x; tz = pp.z; } mo.chasse = versPerso;
   const bo = combat.bouture, surBo = !!(bo && bo.m && bo.pv > 0 && versPerso && !mo.d.boss && !mo.d.demi && !mo.d.distance && combat.deroute == null && Math.hypot(bo.x - mo.x, bo.z - mo.z) < RAYON_BOUTURE); if (surBo) { tx = bo.x; tz = bo.z; }
-  const caG = combat.cawotteG, surCa = !surBo && !!(caG && caG.m && caG.pv > 0 && versPerso && !mo.d.boss && !mo.d.demi && !mo.d.distance && combat.deroute == null && Math.hypot(caG.x - mo.x, caG.z - mo.z) < CAWOTTE_GEANTE.rayon); if (surCa) { tx = caG.x; tz = caG.z; } /* (LA CAWOTTE GEANTE de l'Osa, 16/11/2026 : a moins de 3 cases d'elle, il la frappe au lieu de toi) */ /* (LA BOUTURE de l'Osa, 09/11/2026 : a moins de 3 cases du Tronknyde allie, il le prend pour cible au lieu de toi) */
+  const caG = combat.cawotteG, surCa = !surBo && !!(caG && caG.m && caG.pv > 0 && versPerso && combat.deroute == null && Math.hypot(caG.x - mo.x, caG.z - mo.z) < CAWOTTE_GEANTE.rayon); if (surCa) { tx = caG.x; tz = caG.z; } /* (LA CAWOTTE GEANTE de l'Osa, 16/11/2026 : a moins de 3 cases d'elle, il la frappe au lieu de toi) */ /* (LA BOUTURE de l'Osa, 09/11/2026 : a moins de 3 cases du Tronknyde allie, il le prend pour cible au lieu de toi) */
   let recule = false; /* garde : l'incantatrice (la Tortue Corail, 30/10/2026) recule quand le perso l'approche, pour lancer ses sorts de loin */
   if (mo.tientT > 0) mo.tientT -= dt; /* (apres 1,6 s de recul, elle se plante 2,5 s pour tirer : le perso court bien plus vite qu'elle, sinon elle ne ferait que fuir, essai du 30/10) */
   if (versPerso && mo.d.garde && !(mo.bloqueT > 0) && !(mo.tientT > 0)) { const dp = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (dp < mo.d.garde) { /* (dos au mur, elle file de cote : droit devant elle, puis de plus en plus de biais ; essai du 30/10 : arrivee par une herse, elle restait collee au bord) */
@@ -3444,7 +3444,7 @@ function majMonstre(mo, dt, s) {
       mo.cd = mo.d.cadence; mo.frappe = 0.25;
       const frapper = () => { /* (le coup lui-meme ; un monstre a squelette le porte a l'instant de son geste : s'il t'a vu filer, il frappe dans le vide) */
         if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
-        else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat); } /* (le perso s'est colle a lui pendant son geste : rien ne part) */
+        else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat, !bat && surCa ? caG : null); } /* (caG : un tireur attire par la Cawotte geante lui tire dessus, 16/11/2026) */ /* (le perso s'est colle a lui pendant son geste : rien ne part) */
         else if (surBo) { if (combat.bouture === bo && bo.pv > 0 && Math.hypot(bo.x - mo.x, bo.z - mo.z) <= portee + 1.0) blesserBouture(bo, mo.deg * autoBoss(mo)); }
         else if (surCa) { if (combat.cawotteG === caG && caG.pv > 0 && Math.hypot(caG.x - mo.x, caG.z - mo.z) <= portee + 1.0) blesserCawotteGeante(caG, mo.deg * autoBoss(mo), mo); } /* (la Cawotte geante encaisse et renvoie) */ /* (le Tronknyde de la Bouture encaisse a ta place) */
         else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg * autoBoss(mo), mo); effetsCoup(mo); } }; /* (autoBoss : les autos des boss, 07/11/2026) */
