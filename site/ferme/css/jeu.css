@@ -1583,3 +1583,4 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .ib-cl-l .deg { text-align: right; white-space: nowrap; font: 400 1rem/1 var(--f-titre); color: #f5b82e; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
 .ib-cl-l.r1 .deg { font-size: 1.08rem; }
 .ib-cl-sep { text-align: center; color: #6c7079; line-height: .6; }
+.buff { position: relative; } .buff-n { position: absolute; right: -7px; bottom: -6px; min-width: 18px; padding: 1px 4px; border-radius: 999px; background: #2f9e44; border: 2px solid var(--bord); color: #fff; font: 400 .62rem/1.1 var(--f-titre); text-align: center; pointer-events: none; } /* (le compteur de la Rafale du Cra, 17/11/2026) */

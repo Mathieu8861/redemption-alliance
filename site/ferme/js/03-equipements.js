@@ -212,7 +212,7 @@ function caracs() {
   const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0 };
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
-  try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; const b = bonusA(); if (b) { t.puissance += 10 * (b.puissance || 0); t.agilite += 10 * (b.agilite || 0); t.prospection += 20 * (b.butin || 0); } } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
+  try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; if (combat && combat.rafale) t.agilite += combat.rafale; /* (la Rafale du Cra, 21-combat.js) */ const b = bonusA(); if (b) { t.puissance += 10 * (b.puissance || 0); t.agilite += 10 * (b.agilite || 0); t.prospection += 20 * (b.butin || 0); } } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
   return t;
 }
 const reventeObjet = (id) => kamasGagnes(15 * obj(id).niv * (obj(id).rare ? 3 : 1)); /* « la revente devrait moins rapporter » (Mathieu, 12/10/2026) : 40 par niveau, soit les deux tiers d'une vague du meme niveau ; maintenant environ un quart */

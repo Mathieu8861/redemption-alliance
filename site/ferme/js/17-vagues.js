@@ -77,13 +77,15 @@ function effetsEnCours() {
   if (c ? c.regen : S_.menthe) L.push(['pot-menthe', 'Pot de Menthe : il te soigne pendant la vague' + (c ? '' : ' (la prochaine)')]);
   if (c ? c.citron : S_.citron) L.push(['pot-citron', 'Pot de Citron : tu cours ' + vite + ' % plus vite' + suite]);
   const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + agi + ' Agilité' + suite]);
+  if (c && c.rafale) L.push(['passif-' + modeleDe('cra', ''), 'Rafale (passif du Cra) : +' + RAFALE_CRA.pas + ' Agilité par flèche tirée, sans limite, jusqu’à la fin du combat', c.rafale]); /* (17/11/2026 : le chiffre en pastille, mis a jour sans redessiner les icones) */
   if (!c && bouclierActif()) L.push(['bouclier-vsa', 'Bouclier anti-VSA : ta grange est protégée encore ' + dureeLisible(S_.bouclierVsa - Date.now()) + ', aucune simu ni voleur de VSA']); /* (07/11/2026) */
   return L;
 }
 function majIconesEffets() { /* (renommee le 06/11/2026 : sous le nom majEffets, elle remplacait la boucle des effets animes de 12-perso.js, et plus rien ne s'animait) */
   const e = $(combat ? 'combat-buffs' : 'buffs-attente'), autre = $(combat ? 'buffs-attente' : 'combat-buffs'); if (!e) return; if (autre && autre._h) { autre.innerHTML = ''; autre._h = ''; }
-  const L = combat && combat.raid ? [] : effetsEnCours(), h = L.length ? '<div class="buffs-titre">Vos boosts actifs</div><div class="buffs-liste">' + L.map(([ic, t]) => '<span class="buff" data-info="' + t + '"><img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="' + t + '"></span>').join('') + '</div>' : ''; /* (dans un encart « Vos boosts actifs », 06/11/2026, Mathieu) */
+  const L = combat && combat.raid ? [] : effetsEnCours(), h = L.length ? '<div class="buffs-titre">Vos boosts actifs</div><div class="buffs-liste">' + L.map(([ic, t, n]) => '<span class="buff" data-info="' + t + '"><img src="assets/icones/' + ic + '.png?v=' + VERSION_MODELES + '" alt="' + t + '">' + (n != null ? '<b class="buff-n"></b>' : '') + '</span>').join('') + '</div>' : ''; /* (dans un encart « Vos boosts actifs », 06/11/2026, Mathieu) */
   if (e._h !== h) { e._h = h; e.innerHTML = h; e._t = 0; }
+  if (h) { const B = e.querySelectorAll('.buff'); L.forEach(([ic, t, n], i) => { const b = n != null && B[i] && B[i].querySelector('.buff-n'); if (b && b.textContent !== '+' + n) b.textContent = '+' + n; }); }
   if (e.id === 'buffs-attente' && h) { const now = performance.now(); if (!(e._t > now)) { e._t = now + 1000; e.classList.remove('au-dessus'); /* (07/11/2026 : a droite du pot, il cachait « Tes betes » ; s'il touche un panneau ou le bord, il passe au-dessus du pot) */
     const r = e.getBoundingClientRect(), touche = (p) => { if (!p || p.hidden || !p.offsetParent) return false; const q = p.getBoundingClientRect(); return r.right > q.left && r.left < q.right && r.bottom > q.top && r.top < q.bottom; };
     if (r.right > innerWidth - 6 || touche($('panneau-elevage')) || touche($('panneau-grange'))) e.classList.add('au-dessus'); } }
