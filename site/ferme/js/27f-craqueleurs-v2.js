@@ -5,9 +5,11 @@
    blender/craq-details.py), squelettes calés sans Mixamo (placer-squelette.py, lier-squelette.py ... epaules) et mouvements des brutes (monstre-anime.py) ;
    la Craqueboule, à quatre pattes, a son squelette fait main (blender/craqueboule.py). Rendu B des Bworks (ombre gris froid, contour fin), lueur des yeux
    et des runes en émission. Le combat ne change pas : mêmes coups, même cadence, pas de rugissement d'arrivée.
-   Version dev : choisie dans l'Arène dev (onglet Versions des monstres), gardée dans ce navigateur ; les joueurs gardent l'ancienne. Suivi :
+   EN JEU POUR TOUS depuis le 17/11/2026 ; « Ancienne » dans l'Arène dev (onglet Versions des monstres), jusqu'au rechargement. Suivi :
    maquettes/craqueleurs/CRAQUELEURS.md. */
-let VERSION_CRAQ = (() => { try { return localStorage.getItem('ferme-version-craq') === 'nouvelle' ? 'nouvelle' : 'ancienne'; } catch (err) { return 'ancienne'; } })();
+/* (17/11/2026, au formulaire, Mathieu : « oui, pour tous ») : la nouvelle version pour tout le monde ; « Ancienne » reste dans l'Arène dev pour comparer,
+   jusqu'au rechargement de la page (comme les Bworks : un choix gardé dans le navigateur faisait revoir l'ancienne version partout) */
+let VERSION_CRAQ = 'nouvelle'; try { localStorage.removeItem('ferme-version-craq'); } catch (err) { /* rien */ }
 /* type du monstre -> [nom du modèle, hauteur en jeu, vitesse de ses animations] (tailles de la planche validée le 17/11) */
 const CRAQ_V2 = { craqueleur: ['craqueleur', 3.1, 1.0], craqueboule: ['craqueboule', 1.55, 1.25], craqLanceur: ['craqLanceur', 3.35, 1.0], craqCristal: ['craqCristal', 3.1, 1.0], craqLegendaire: ['craqLegendaire', 5.0, 0.9] }; /* (17/11/2026, « ils sont tous un peu trop petits, le Légendaire plus large aussi », Mathieu : +20 %, le Légendaire élargi de 25 %) */
 const NOMS_CQ2 = new Set(Object.values(CRAQ_V2).map(([n]) => n + '-v2'));
@@ -53,7 +55,7 @@ function appliquerCraqV2() {
   Object.entries(CRAQ_V2).forEach(([t, [n]]) => { const d = MONSTRES[t]; if (!d) return; if (!('modeleV1' in d)) d.modeleV1 = d.modele; d.modele = neuf ? n + '-v2' : d.modeleV1; });
 }
 async function choisirVersionCraq(v) {
-  VERSION_CRAQ = v === 'nouvelle' ? 'nouvelle' : 'ancienne'; try { localStorage.setItem('ferme-version-craq', VERSION_CRAQ); } catch (err) { /* rien */ }
+  VERSION_CRAQ = v === 'nouvelle' ? 'nouvelle' : 'ancienne';
   if (VERSION_CRAQ === 'nouvelle') { toast('Chargement de la nouvelle version des Craqueleurs…'); await preparerCraqV2(); } appliquerCraqV2();
   toast(VERSION_CRAQ === 'nouvelle' ? 'Craqueleurs : nouvelle version (animée, rendu B).' : 'Craqueleurs : ancienne version.', 'or');
 }
