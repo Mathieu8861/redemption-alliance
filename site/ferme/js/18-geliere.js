@@ -63,8 +63,11 @@ const geleeFusionnable = (g) => g.c !== 'royale' && !g.achetee;
 const RELACHE_POTS = 5, AGE_RELACHE = 6 * 60 * MIN; /* (24 h puis 6 h le 17/11/2026, « réduis à 6 h le temps pour revendre une Gelée au lieu de 24 h », Mathieu) */
 /* (05/11/2026, « au lieu de relacher, qu'on puisse revendre assez facilement, que ce soit une Gelee achetee », Mathieu) : elle se vend la moitie de son prix
    a l'HDV (moins la baisse des kamas, NERF_KAMAS), achetee ou nee ici ; la Royale ne se vend pas ; une nee ici attend toujours 6 h (sinon croiser puis vendre) */
-const prixReventeGelee = (g) => GELEES[g.c] && GELEES[g.c].prix ? Math.round(GELEES[g.c].prix * 0.5 * NERF_KAMAS) : 0;
-const peutRelacher = (g) => g.c === 'royale' ? 'La Gelée Royale ne se vend pas.' : g.nee && g.arrivee && Date.now() - g.arrivee < AGE_RELACHE ? g.nom + ' est trop jeune : encore ' + dureeLisible(g.arrivee + AGE_RELACHE - Date.now()) + ' avant de pouvoir la vendre.' : '';
+/* (17/11/2026, « fais en sorte qu'on puisse vendre une Gelée Royale aussi », Mathieu) : la Royale se vend comme les quatre Gelées qui la font par la fusion
+   (Bleue, Menthe, Fraise, Citron), la moitié de leurs prix : fusionner puis vendre ne rapporte pas plus que vendre les quatre */
+const PRIX_ROYALE = GELEES_HDV.reduce((t, c) => t + GELEES[c].prix, 0);
+const prixReventeGelee = (g) => g.c === 'royale' ? Math.round(PRIX_ROYALE * 0.5 * NERF_KAMAS) : GELEES[g.c] && GELEES[g.c].prix ? Math.round(GELEES[g.c].prix * 0.5 * NERF_KAMAS) : 0;
+const peutRelacher = (g) => g.nee && g.arrivee && Date.now() - g.arrivee < AGE_RELACHE ? g.nom + ' est trop jeune : encore ' + dureeLisible(g.arrivee + AGE_RELACHE - Date.now()) + ' avant de pouvoir la vendre.' : '';
 function geleesFusion() {
   const L = (S_.gelees || []).filter(geleeFusionnable), rang = (g) => ({ faim: 0, pret: 1, prod: 2 })[etatGelee(g)];
   const choix = COULEURS_FUSION.map((c) => L.filter((g) => g.c === c).sort((a, b) => rang(a) - rang(b))[0]);
@@ -153,7 +156,7 @@ function ouvrirGeliere() {
     const repos = g.repos && now < g.repos ? ' · repos ' + dureeLisible(g.repos - now) : '';
     const act = e === 'pret' ? '<button class="btn kamas" data-gelee-ramasser>Ramasser</button>' : e === 'faim' ? '<button class="btn kamas" data-gelee-nourrir="' + k + '"' + (m.length ? ' disabled' : '') + '>Nourrir</button>' : '';
     const origine = g.achetee ? 'Achetée' : g.nee && g.c !== 'royale' ? 'Née ici' : '';
-    const vente = g.c === 'royale' ? '' : rel ? '<span class="gl-vendre attente" title="' + echapper(rel) + '">Vendable dans ' + dureeLisible(Math.max(0, (g.arrivee || 0) + AGE_RELACHE - now)) + '</span>' /* (09/11/2026, « au lieu de Vendre 2 250, le temps d'attente avant de pouvoir vendre, il y a des gens qui se demandent », Mathieu) */
+    const vente = rel ? '<span class="gl-vendre attente" title="' + echapper(rel) + '">Vendable dans ' + dureeLisible(Math.max(0, (g.arrivee || 0) + AGE_RELACHE - now)) + '</span>' /* (09/11/2026, « au lieu de Vendre 2 250, le temps d'attente avant de pouvoir vendre, il y a des gens qui se demandent », Mathieu) */
       : '<button class="gl-vendre" data-gelee-relacher="' + k + '" data-nom="' + echapper(g.nom) + '" title="Elle part à l\'HDV : ' + fmt(prixReventeGelee(g)) + ' kamas">Vendre ' + fmt(prixReventeGelee(g)) + ' ' + KAMA + '</button>';
     return '<div class="gl-ligne" style="--c:' + (COULEUR_GELEE[g.c] || '#888') + ';--p:' + prog.toFixed(3) + '"><div class="gl-rond"><span><img src="assets/icones/gelee-' + g.c + '.png?v=' + VERSION_MODELES + '" alt=""></span></div>' +
       '<div><div><span class="gl-nom">' + g.nom + '</span><span class="gl-type">' + G.nom.replace('Gelée ', '') + '</span>' + (origine ? '<span class="gl-orig">' + origine + '</span>' : '') + '</div>' +
