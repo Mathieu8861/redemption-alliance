@@ -9,7 +9,7 @@
    maquettes/craqueleurs/CRAQUELEURS.md. */
 let VERSION_CRAQ = (() => { try { return localStorage.getItem('ferme-version-craq') === 'nouvelle' ? 'nouvelle' : 'ancienne'; } catch (err) { return 'ancienne'; } })();
 /* type du monstre -> [nom du modèle, hauteur en jeu, vitesse de ses animations] (tailles de la planche validée le 17/11) */
-const CRAQ_V2 = { craqueleur: ['craqueleur', 2.6, 1.0], craqueboule: ['craqueboule', 1.3, 1.25], craqLanceur: ['craqLanceur', 2.8, 1.0], craqCristal: ['craqCristal', 2.6, 1.0], craqLegendaire: ['craqLegendaire', 4.2, 0.9] };
+const CRAQ_V2 = { craqueleur: ['craqueleur', 3.1, 1.0], craqueboule: ['craqueboule', 1.55, 1.25], craqLanceur: ['craqLanceur', 3.35, 1.0], craqCristal: ['craqCristal', 3.1, 1.0], craqLegendaire: ['craqLegendaire', 5.0, 0.9] }; /* (17/11/2026, « ils sont tous un peu trop petits, le Légendaire plus large aussi », Mathieu : +20 %, le Légendaire élargi de 25 %) */
 const NOMS_CQ2 = new Set(Object.values(CRAQ_V2).map(([n]) => n + '-v2'));
 for (const [n, h, v] of Object.values(CRAQ_V2)) { SQUELETTES_A_CHARGER.push([n + '-v2', 'assets/modeles/jeu/' + n + '-anime-v2.glb', h]); VITESSE_FAMILLE[n + '-v2'] = v; }
 ALLURES['craqueboule-v2'] = { marche: 0.6, course: 1.6 }; /* (son trot fait main n'a pas d'os des hanches : sa vitesse naturelle est donnée ici) */
