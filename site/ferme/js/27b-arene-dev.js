@@ -56,7 +56,7 @@ function ouvrirAreneDev() {
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>', ONGLETS_DEV, ongletDev, 'onglet-dev'));
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-bworks],[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-dev-bworks],[data-dev-craq],[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
   const E = etatDev(), T0 = E.tenue = E.tenue || {};
   if (b.dataset.devBoss) { E.liste = { [b.dataset.devBoss]: 1 }; E.n = +b.dataset.devBossN; E.vague = null; partirDev(); return; } /* (un boss seul : le combat part tout de suite) */
   if (b.hasAttribute('data-dev-pano')) { T0.pano = b.dataset.devPano || null; if (!T0.pano) { T0.arme = null; T0.coiffe = null; } ouvrirAreneDev(); return; }
