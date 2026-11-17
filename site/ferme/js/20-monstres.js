@@ -220,6 +220,9 @@ const MOBS_EN_PLUS = 1;
 /* (17/11/2026, « vague 96 et 97 pour Osa et Cra, retire 2/3 monstres, et pareil pour 98 et 99 si jamais il y a encore plus de monstres », Mathieu : ils
    etaient 30, 33, 35 et 34) : trois monstres de moins a ces vagues quand le perso n'est pas un Iop, pris un par un aux groupes les plus nombreux */
 const MOINS_FORET = { 96: 3, 97: 3, 98: 3, 99: 3 };
+/* (17/11/2026, « réduis les Abrakleurs à la 97 pour Osa et Cra », Mathieu, après l'analyse : au bot, l'Abrakleur faisait 29 à 38 % des dégâts reçus par
+   les Cra à la 97) : des monstres précis en moins, en plus de MOINS_FORET, quand le perso n'est pas un Iop */
+const MOINS_TYPE_FORET = { 97: { abrakleur: 3 } };
 const PLUS_FORET = { 91: 1 }, PLUS_IOP_FORET = 4, iopEnJeu = () => { try { return !!S_ && !!S_.perso && classeDe() === 'iop'; } catch (e) { return false; } }; /* (avant le chargement de la partie : non) */
 /* DES TIREURS EN PLUS (12/11/2026, « rajoute 1 a 4 mobs distance par vague en plus, du 70 au 80 », Mathieu, juste apres le reequilibrage des Cochons) : vagues 71 a 79,
    de plus en plus au fil du palier. Comptes apres la horde : ce sont bien 1 a 4 monstres de plus a l'ecran, donnes au groupe de tireurs le plus nombreux de la vague
@@ -237,7 +240,9 @@ const compoVague = (n) => { const L = compoVague0(n).map((x) => x.slice()); if (
   if (EFFECTIF_MIN[n]) { const M = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique); let manque = EFFECTIF_MIN[n] - M.reduce((t, y) => t + y[1], 0); for (let j = 0; manque > 0 && M.length; j++, manque--) M[j % M.length][1]++; } /* (l'effectif minimum du debut du palier des Cochons) */
   if (n > 9 * VAGUES_PALIER && n <= VAGUES_MAX) { let plus = (PLUS_FORET[n] || 0) + (iopEnJeu() ? PLUS_IOP_FORET : 0); const M = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique); for (let j = 0; plus > 0 && M.length; j++, plus--) M[j % M.length][1]++; } /* (la foret : les monstres en plus, repartis sur la troupe) */
   if (MOINS_FORET[n] && !iopEnJeu()) { for (let moins = MOINS_FORET[n]; moins > 0; moins--) { const g = L.filter((y) => !MONSTRES[y[0]].boss && !MONSTRES[y[0]].unique && y[1] > 1).sort((p, q) => q[1] - p[1])[0]; if (!g) break; g[1]--; } } /* (Osa et Cra : trois de moins de la 96 a la 99) */
-  return ajusterCompo(n, plancherTireurs(n, plafonnerTireurs(L))).map((y) => (MONSTRES[y[0]].unique ? [y[0], Math.min(1, y[1])] : y)); }; /* (unique : un seul par vague, le Semeur, 08/11/2026) */
+  const F = ajusterCompo(n, plancherTireurs(n, plafonnerTireurs(L))).map((y) => (MONSTRES[y[0]].unique ? [y[0], Math.min(1, y[1])] : y)); /* (unique : un seul par vague, le Semeur, 08/11/2026) */
+  if (MOINS_TYPE_FORET[n] && !iopEnJeu()) Object.entries(MOINS_TYPE_FORET[n]).forEach(([t, k]) => { const g = F.find((y) => y[0] === t); if (g) g[1] = Math.max(0, g[1] - k); }); /* (Osa et Cra : les Abrakleurs de la 97, retires apres le plancher de tireurs, sinon il les remplacait par un Araknotron) */
+  return MOINS_TYPE_FORET[n] ? F.filter((y) => y[1] > 0) : F; };
 /* (06/11/2026, « 21 mobs a distance pour 3 au corps a corps, au max du max 70-30 », Mathieu, apres la vague 81 : les Javelots des Kannibouls, qui comblent l'effectif) :
    jamais plus de 70 % de tireurs (hors boss) ; le surplus, pris au groupe de tireurs le plus nombreux, passe au monstre au corps a corps le plus nombreux de la vague */
 const PART_TIREURS_MAX = 0.65; /* (0,7 puis 0,65 le 06/11/2026, « passe tout entre 60 et 65 % », Mathieu : les vagues 81 a 85 tombent a 62 %) */
