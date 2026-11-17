@@ -59,10 +59,10 @@ const COULEURS_FUSION = ['bleue', 'menthe', 'fraise', 'citron'];
 const geleeFusionnable = (g) => g.c !== 'royale' && !g.achetee;
 /* RELACHER UNE GELEE (24/10/2026, « j'en ai 8, je peux pas en vendre, pas en retirer ; il faudrait pouvoir detruire une Gelee pour gagner x5 potions de son
    element, et racheter une autre couleur », Mathieu) : elle laisse 5 pots de sa couleur. Pas la Royale (5 pots qui rendent toute la vie, et une Royale se
-   refait par la fusion). Une Gelee nee ici attend 24 h : sinon croiser (10 fruits) puis relacher ferait 5 pots en 3 min, bien plus vite qu'en la nourrissant */
-const RELACHE_POTS = 5, AGE_RELACHE = 24 * 60 * MIN;
+   refait par la fusion). Une Gelee nee ici attend 6 h (24 h jusqu'au 17/11/2026) : sinon croiser (10 fruits) puis relacher ferait 5 pots en 3 min, bien plus vite qu'en la nourrissant */
+const RELACHE_POTS = 5, AGE_RELACHE = 6 * 60 * MIN; /* (24 h puis 6 h le 17/11/2026, « réduis à 6 h le temps pour revendre une Gelée au lieu de 24 h », Mathieu) */
 /* (05/11/2026, « au lieu de relacher, qu'on puisse revendre assez facilement, que ce soit une Gelee achetee », Mathieu) : elle se vend la moitie de son prix
-   a l'HDV (moins la baisse des kamas, NERF_KAMAS), achetee ou nee ici ; la Royale ne se vend pas ; une nee ici attend toujours 24 h (sinon croiser puis vendre) */
+   a l'HDV (moins la baisse des kamas, NERF_KAMAS), achetee ou nee ici ; la Royale ne se vend pas ; une nee ici attend toujours 6 h (sinon croiser puis vendre) */
 const prixReventeGelee = (g) => GELEES[g.c] && GELEES[g.c].prix ? Math.round(GELEES[g.c].prix * 0.5 * NERF_KAMAS) : 0;
 const peutRelacher = (g) => g.c === 'royale' ? 'La Gelée Royale ne se vend pas.' : g.nee && g.arrivee && Date.now() - g.arrivee < AGE_RELACHE ? g.nom + ' est trop jeune : encore ' + dureeLisible(g.arrivee + AGE_RELACHE - Date.now()) + ' avant de pouvoir la vendre.' : '';
 function geleesFusion() {
