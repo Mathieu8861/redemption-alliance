@@ -6,7 +6,9 @@
    (blender/monstre-anime.py, armes-bworks.py) : assets/modeles/jeu/<nom>-anime-v2.glb. Un choix dans l'Arene dev : ancienne version ou nouvelle (garde dans
    ce navigateur), pour le prochain combat ; les joueurs gardent l'ancienne tant que Mathieu n'a pas valide. Suivi : maquettes/bworks/BWORKS.md. */
 /* (16/11/2026 au soir, « ok tu peux les push », Mathieu : la nouvelle version pour tous ; « ancienne » ne reste qu'au choix dans l'Arene dev, pour comparer) */
-let VERSION_BWORKS = (() => { try { return localStorage.getItem('ferme-version-bworks') === 'ancienne' ? 'ancienne' : 'nouvelle'; } catch (err) { return 'nouvelle'; } })();
+/* (17/11/2026, « je viens de faire le Bworker dans les boss à refaire, ça me met l'ancien », Mathieu : son navigateur gardait « Ancienne », choisie un jour
+   pour comparer. Les Bworks sont sortis pour tous : chaque chargement repart sur la nouvelle version, « Ancienne » ne vaut que jusqu'au rechargement) */
+let VERSION_BWORKS = 'nouvelle'; try { localStorage.removeItem('ferme-version-bworks'); } catch (err) { /* rien */ }
 /* type du monstre -> [nom du modele, hauteur en jeu, vitesse de ses animations] */
 const BWORKS_V2 = { bwork: ['bwork', 2.8, 1.4], bworkArcher: ['bwork-archer', 2.5, 1.4], bworkMage: ['bwork-mage', 2.4, 1.35], bworkette: ['bworkette', 2.2, 1.6], /* (+35 % le 16/11 au soir : « ils sont limite plus petits que moi », Mathieu) */ bworker: ['bworker', 3.9, 1.3] }; /* (17/11/2026, « des jambes moins longues au Bworker », Mathieu : jambes raccourcies, haut du corps a la meme taille, 4,6 -> 3,9) */ /* (le Bworker : 3,3 puis 3,8, « fais-le un peu plus grand », puis 5,7 le soir par Discord, « fais-le 50 % plus grand », puis 4,6, « reduis de 20 % », et elargi de 20 %, Mathieu, 16/11/2026) */
 const NOMS_BW2 = new Set(Object.values(BWORKS_V2).map(([n]) => n + '-v2'));
@@ -107,7 +109,7 @@ function appliquerBworksV2() {
     d.gestes = ok && d.jet ? Object.assign({}, d.gestesV1, { jet: 'jet' }) : d.gestesV1; d.gesteSoin = ok && d.soigne ? true : d.gesteSoinV1; });
 }
 async function choisirVersionBworks(v) {
-  VERSION_BWORKS = v === 'nouvelle' ? 'nouvelle' : 'ancienne'; try { localStorage.setItem('ferme-version-bworks', VERSION_BWORKS); } catch (err) { /* rien */ }
+  VERSION_BWORKS = v === 'nouvelle' ? 'nouvelle' : 'ancienne';
   if (VERSION_BWORKS === 'nouvelle') { toast('Chargement de la nouvelle version des Bworks…'); await preparerBworksV2(); } appliquerBworksV2();
   toast(VERSION_BWORKS === 'nouvelle' ? 'Bworks : nouvelle version (animée, rendu B).' : 'Bworks : ancienne version.', 'or');
 }
