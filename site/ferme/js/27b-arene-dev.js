@@ -14,6 +14,7 @@ const GROUPES_DEV = {
   kannibouls: { nom: 'Les Kannibouls', liste: { kannibJav: 2, kannibSarbak: 2, kannibArk: 1, kannibTam: 1 } },
   ebil: { nom: 'Ebil et sa garde', liste: { kannibEbil: 1, kannibJav: 1, tortueBleue: 1, tortueVerte: 1 } },
   moon: { nom: 'Moon', liste: { moon: 1 } },
+  craqueleurs: { nom: 'Les Craqueleurs', liste: { craqueleur: 2, craqueboule: 2, craqLanceur: 1, craqCristal: 1, craqLegendaire: 1 } }, /* (17/11/2026, « je peux toujours pas lancer », Mathieu : les Craqueleurs refaits, a lancer en un clic) */
   bworks: { nom: 'La Horde des Bworks', liste: { bwork: 2, bworkArcher: 1, bworkMage: 1, bworkette: 1, bworker: 1 } }, /* (16/11/2026 : les Bworks refaits, a lancer en un clic avec « Nouvelle » choisie plus bas) */
   bossRefaits: { nom: 'Les boss refaits', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, waWabbit: 1, koulosse: 1 } }, /* (31/10/2026, sorts refaits par Discord) */
   lesBoss: { nom: 'Les 9 boss', liste: { royal: 1, cuirasse: 1, bworker: 1, craqLegendaire: 1, crocabulia: 1, waWabbit: 1, koulosse: 1, dragonCochon: 1, moon: 1 } }, /* (01/11/2026, « mets-les tous en arène », Mathieu : un de chaque, dans l'ordre des paliers) */
@@ -47,17 +48,18 @@ function ouvrirAreneDev() {
       [1, 1.25, 1.5, 1.75].map((x) => '<button class="btn ' + (VITESSE_ANIM === x ? 'kamas' : 'discret') + '" data-dev-vit="' + x + '">×' + String(x).replace('.', ',') + '</button>').join('') + '</div>' +
     /* (16/11/2026, « pas très clair le panneau, c'est un foutoir », Mathieu : les trois réglages « deux versions » regroupés dans un seul onglet, une ligne par famille) */
     '<div class="hdv-section">Les nouvelles versions</div><p class="hdv-aide">Une ligne par famille de monstres : choisis la version que tu verras au prochain combat (chez toi seulement).</p>' +
-      [['bworker', 'Les Bworks', 'En jeu pour tous depuis le 16/11 : animés, rendu B, armes en main. « Ancienne » pour comparer, jusqu\'au prochain rechargement de la page.', 'data-dev-bworks', VERSION_BWORKS, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
-        ['craqueleur', 'Les Craqueleurs', 'Version du 17/11 : golems refaits, animés, yeux et runes lumineux, Craqueboule à quatre pattes (pas encore pour les joueurs).', 'data-dev-craq', VERSION_CRAQ, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
-        ['crapaud', 'Les amphibiens', 'Versions du 15/11 : peau repeinte, Mère Crapaude bleu-vert, animés (pas encore pour les joueurs).', 'data-dev-amphi', VERSION_AMPHI, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
-        ['abraknyde', 'La Forêt des Abraknydes', 'A : réaliste. B : aplats et contours, à la DA du jeu. Change aussi les monstres déjà en combat.', 'data-dev-version', VERSION_P10, [['A', 'A (réaliste)'], ['B', 'B (DA du jeu)']]]]
-        .map(([ic, nom, txt, attr, cur, V]) => '<div class="art">' + ico(ic) + '<div><b>' + nom + '</b><div class="desc">' + txt + '</div></div><div class="act">' + V.map(([v, l]) => '<button class="btn ' + (cur === v ? 'kamas' : 'discret') + '" ' + attr + '="' + v + '">' + l + '</button>').join('') + '</div></div>').join('') +
+      [['bworker', 'Les Bworks', 'En jeu pour tous depuis le 16/11 : animés, rendu B, armes en main. « Ancienne » pour comparer, jusqu\'au prochain rechargement de la page.', 'data-dev-bworks', VERSION_BWORKS, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']], 'bworks'],
+        ['craqueleur', 'Les Craqueleurs', 'Version du 17/11 : golems refaits, animés, yeux et runes lumineux, Craqueboule à quatre pattes (pas encore pour les joueurs).', 'data-dev-craq', VERSION_CRAQ, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']], 'craqueleurs'],
+        ['crapaud', 'Les amphibiens', 'Versions du 15/11 : peau repeinte, Mère Crapaude bleu-vert, animés (pas encore pour les joueurs).', 'data-dev-amphi', VERSION_AMPHI, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']], 'mare'],
+        ['abraknyde', 'La Forêt des Abraknydes', 'A : réaliste. B : aplats et contours, à la DA du jeu. Change aussi les monstres déjà en combat.', 'data-dev-version', VERSION_P10, [['A', 'A (réaliste)'], ['B', 'B (DA du jeu)']], 'foret']]
+        .map(([ic, nom, txt, attr, cur, V, gr]) => '<div class="art">' + ico(ic) + '<div><b>' + nom + '</b><div class="desc">' + txt + '</div></div><div class="act">' + V.map(([v, l]) => '<button class="btn ' + (cur === v ? 'kamas' : 'discret') + '" ' + attr + '="' + v + '">' + l + '</button>').join('') + (gr ? '<button class="btn kamas" data-dev-essayer="' + gr + '">Essayer ▶</button>' : '') + '</div></div>').join('') + /* (« Essayer » : la famille lancee tout de suite, dans la version choisie ; le bouton Lancer restait grise a 0 monstre, 17/11/2026) */
     '<div class="hdv-section">Les monstres en avant-première</div>' + AVANT_PREMIERE.map(ligne).join('') +
     '<div class="act-bas"><small>' + total + ' monstre' + (total > 1 ? 's' : '') + '</small><button class="btn kamas" data-montgolfiere="lancerDev"' + (total ? '' : ' disabled') + '>Lancer</button></div>', ONGLETS_DEV, ongletDev, 'onglet-dev'));
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-dev-bworks],[data-dev-craq],[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
+  const b = e.target.closest('[data-dev-essayer],[data-dev-bworks],[data-dev-craq],[data-dev-amphi],[data-dev-plus],[data-dev-moins],[data-dev-groupe],[data-dev-n],[data-dev-vit],[data-dev-essai],[data-dev-version],[data-dev-vague],[data-dev-boss],[data-dev-pano],[data-dev-leg-arme],[data-dev-leg-coiffe],[data-dev-niv]'); if (!b || !estAdmin()) return;
   const E = etatDev(), T0 = E.tenue = E.tenue || {};
+  if (b.dataset.devEssayer && GROUPES_DEV[b.dataset.devEssayer]) { E.liste = Object.assign({}, GROUPES_DEV[b.dataset.devEssayer].liste); E.vague = null; partirDev(); return; } /* (la famille de la ligne, lancee tout de suite) */
   if (b.dataset.devBoss) { E.liste = { [b.dataset.devBoss]: 1 }; E.n = +b.dataset.devBossN; E.vague = null; partirDev(); return; } /* (un boss seul : le combat part tout de suite) */
   if (b.hasAttribute('data-dev-pano')) { T0.pano = b.dataset.devPano || null; if (!T0.pano) { T0.arme = null; T0.coiffe = null; } ouvrirAreneDev(); return; }
   if (b.dataset.devLegArme) { T0.arme = T0.arme === b.dataset.devLegArme ? null : b.dataset.devLegArme; ouvrirAreneDev(); return; }
