@@ -278,14 +278,14 @@ const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) =
 const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
 const prochainVendredi = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
 /* LE TABLEAU DU CLASSEMENT DE L'ILE (17/11/2026, « fais un tableau un peu plus joli et affiche le nombre de try », Mathieu) : une ligne par joueur, rang
-   (medailles pour le podium), joueur (icone de sa classe et son niveau), essais joues sur ceux de la semaine, degats de son meilleur essai, avec une jauge
+   (medailles pour le podium), joueur (icone de sa classe et son niveau), essais joues (sur ceux de la semaine quand ils sont limites), degats de son meilleur essai, avec une jauge
    rapportee au premier. Les 10 premiers ; si tu es plus loin, ta ligne s'ajoute en dessous avec ton vrai rang */
 function tableauIle(L, cle) {
   const max = Math.max(1, ...L.map((j) => +j.degats || 0)), nEss = ESSAIS_ILE_BOSS + (ESSAIS_BONUS_ILE[cle] || 0), CL = { iop: 'Iop', cra: 'Cra', osa: 'Osa' }; /* (Osa : « Osamodas, niv. 92 » ne tenait pas sur un telephone) */
   const ligne = (j, i) => '<div class="ib-cl-l' + (i < 3 ? ' r' + (i + 1) : '') + (j.moi ? ' moi' : '') + '"><i class="jauge" style="width:' + (100 * (+j.degats || 0) / max).toFixed(1) + '%"></i>' +
     '<span class="rg">' + (i + 1) + '</span>' +
     '<span class="qui">' + (CL[j.classe] ? '<img src="assets/icones/' + j.classe + '.png?v=' + VERSION_MODELES + '" alt="">' : '<em></em>') + '<span><span class="nom"><b>' + echapper(j.nom || '?') + '</b>' + (j.moi ? '<small class="toi">toi</small>' : '') + '</span><small>' + (CL[j.classe] || '') + (j.niveau ? (CL[j.classe] ? ', ' : '') + 'niv. ' + j.niveau : '') + '</small></span></span>' +
-    '<span class="ess"><b>' + (+j.essais || 0) + '</b><small>/' + nEss + '</small></span>' +
+    '<span class="ess"><b>' + ((+j.essais || 0) >= 99 ? '99+' : (+j.essais || 0)) + '</b>' + (ILE_ESSAIS_LIBRES ? '' : '<small>/' + nEss + '</small>') + '</span>' + /* (essais sans limite pour tous depuis le 15/11/2026 : le seul nombre joue ; la base le plafonne a 99, sql/086) */
     '<span class="deg">' + fmt(+j.degats || 0) + '</span></div>';
   const moi = L.findIndex((j) => j.moi);
   return '<div class="ib-cl"><div class="ib-cl-tete"><span>#</span><span>Joueur</span><span>Essais</span><span>Dégâts</span></div>' + L.slice(0, 10).map(ligne).join('') +
