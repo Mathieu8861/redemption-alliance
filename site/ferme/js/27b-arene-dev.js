@@ -48,6 +48,7 @@ function ouvrirAreneDev() {
     /* (16/11/2026, « pas très clair le panneau, c'est un foutoir », Mathieu : les trois réglages « deux versions » regroupés dans un seul onglet, une ligne par famille) */
     '<div class="hdv-section">Les nouvelles versions</div><p class="hdv-aide">Une ligne par famille de monstres : choisis la version que tu verras au prochain combat (chez toi seulement).</p>' +
       [['bworker', 'Les Bworks', 'En jeu pour tous depuis le 16/11 : animés, rendu B, armes en main. « Ancienne » pour comparer.', 'data-dev-bworks', VERSION_BWORKS, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
+        ['craqueleur', 'Les Craqueleurs', 'Version du 17/11 : golems refaits, animés, yeux et runes lumineux, Craqueboule à quatre pattes (pas encore pour les joueurs).', 'data-dev-craq', VERSION_CRAQ, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
         ['crapaud', 'Les amphibiens', 'Versions du 15/11 : peau repeinte, Mère Crapaude bleu-vert, animés (pas encore pour les joueurs).', 'data-dev-amphi', VERSION_AMPHI, [['ancienne', 'Ancienne'], ['nouvelle', 'Nouvelle']]],
         ['abraknyde', 'La Forêt des Abraknydes', 'A : réaliste. B : aplats et contours, à la DA du jeu. Change aussi les monstres déjà en combat.', 'data-dev-version', VERSION_P10, [['A', 'A (réaliste)'], ['B', 'B (DA du jeu)']]]]
         .map(([ic, nom, txt, attr, cur, V]) => '<div class="art">' + ico(ic) + '<div><b>' + nom + '</b><div class="desc">' + txt + '</div></div><div class="act">' + V.map(([v, l]) => '<button class="btn ' + (cur === v ? 'kamas' : 'discret') + '" ' + attr + '="' + v + '">' + l + '</button>').join('') + '</div></div>').join('') +
@@ -70,6 +71,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.devN) E.n = Math.max(1, Math.min(100, E.n + Number(b.dataset.devN)));
   else if (b.dataset.devEssai) E.essai = E.essai === b.dataset.devEssai ? null : b.dataset.devEssai;
   else if (b.dataset.devBworks) { choisirVersionBworks(b.dataset.devBworks).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
+  else if (b.dataset.devCraq) { choisirVersionCraq(b.dataset.devCraq).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devAmphi) { choisirVersionAmphi(b.dataset.devAmphi).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVersion) { choisirVersionP10(b.dataset.devVersion).then(() => { if (modaleOuverte === 'arene-dev') ouvrirAreneDev(); }); }
   else if (b.dataset.devVit) { VITESSE_ANIM = Number(b.dataset.devVit); try { localStorage.setItem('ferme-vitesse-anim', String(VITESSE_ANIM)); } catch (err) { /* rien */ } }
