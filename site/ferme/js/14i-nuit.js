@@ -165,7 +165,8 @@ function poserLumieresBat() {
     const flamme = (dx, k) => { const m = new T.Mesh(GEO_PLAN, new T.ShaderMaterial({ uniforms: { uT: { value: 0 }, uS: { value: Math.random() * 10 } }, vertexShader: FEU_VS, fragmentShader: FEU_FS, transparent: true, depthWrite: false, side: T.DoubleSide }));
       m.scale.set(hh * k * 0.8, hh * k, 1); m.position.set(F.c.x + dx, y + hh * k * 0.42, F.c.z); m.renderOrder = 6; m.raycast = () => {}; scene.add(m); return m; };
     const b = [0, 1, 2, 3].map((i) => { const o = new T.Mesh(GEO_PLAN, new T.MeshBasicMaterial({ color: i % 2 ? '#ffd04a' : '#ff7a1e', transparent: true, depthWrite: false, blending: T.AdditiveBlending })); o.scale.setScalar(0.045); o.userData = { t: Math.random(), a: Math.random() * 6.28 }; o.raycast = () => {}; o.renderOrder = 6; scene.add(o); return o; });
-    flammesBat.push({ hote: F.hote, m: [flamme(-0.05, 1), flamme(0.09, 0.68)], b, x: F.c.x, y, z: F.c.z, hh, s: Math.random() * 10 }); });
+    flammesBat.push({ hote: F.hote, m: [flamme(-0.05, 1), flamme(0.09, 0.68)], b, x: F.c.x, y, z: F.c.z, hh, s: Math.random() * 10 });
+    { const E = flammesBat[flammesBat.length - 1]; E.loc = F.hote.worldToLocal(new T.Vector3(E.x, E.y, E.z)); E.m.forEach((m) => { m.userData.loc = F.hote.worldToLocal(m.position.clone()); }); } }); /* (la montgolfiere se balance : ses flammes la suivent, 27e-decor-vivant.js, 17/11/2026) */
   /* leurs trous dans le voile : les lumieres voisines d'un meme batiment (a moins de 1,4 m) n'en font qu'un */
   lumieresBat.forEach((L) => { let g = trousBat.find((x) => x.hote === L.hote && x.c.distanceTo(L.c) < 1.4); if (!g) { g = { hote: L.hote, c: L.c.clone(), L: [], r: 0 }; trousBat.push(g); } g.L.push(L); g.c.set(0, 0, 0); g.L.forEach((x) => g.c.add(x.c)); g.c.multiplyScalar(1 / g.L.length); });
   trousBat.forEach((g) => { g.r = Math.max(...g.L.map((x) => x.c.distanceTo(g.c) + x.t * 0.45)) + 0.25; });
@@ -178,7 +179,8 @@ function allumerLumieresBat(a, s) { /* a : de 0 (eteintes) a 1 */
 }
 function animerFlammesBat(dt) { /* les flammes des foyers, le jour comme la nuit */
   const q = camera.quaternion;
-  flammesBat.forEach((F) => { const vu = !!F.hote.parent && F.hote.visible !== false; F.s += dt; F.m.forEach((m) => { m.visible = vu; if (vu) { m.material.uniforms.uT.value = F.s; m.quaternion.copy(q); } });
+  flammesBat.forEach((F) => { const vu = !!F.hote.parent && F.hote.visible !== false; F.s += dt;
+    if (vu && F.loc && F.hote.userData.balance) { F.hote.updateMatrixWorld(); const w = F.hote.localToWorld(F.loc.clone()); F.x = w.x; F.y = w.y; F.z = w.z; F.m.forEach((m) => { if (m.userData.loc) m.position.copy(F.hote.localToWorld(m.userData.loc.clone())); }); } F.m.forEach((m) => { m.visible = vu; if (vu) { m.material.uniforms.uT.value = F.s; m.quaternion.copy(q); } });
     F.b.forEach((o) => { o.visible = vu; if (!vu) return; const u = o.userData; u.t += dt * 0.6; if (u.t > 1) { u.t = 0; u.a = Math.random() * 6.28; } o.position.set(F.x + Math.cos(u.a) * 0.1 + Math.sin(u.t * 9 + u.a) * 0.04, F.y + F.hh * 0.45 + u.t * F.hh * 1.5 /* (les braises montent selon la flamme : pas jusqu'au toit de l'atelier) */, F.z + Math.sin(u.a) * 0.1); o.quaternion.copy(q); o.material.opacity = 1 - u.t; }); });
 }
 function majLumieresBat(dt, s) { /* a chaque image ; les batiments sont relus une fois par seconde (deplaces, ameliores : leurs lumieres suivent) */

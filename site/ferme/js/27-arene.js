@@ -178,7 +178,7 @@ async function chargerIleBoss() { /* l'ile des boss (blender/boss-ile.py), rendu
   [[6.2, 0.22], [3.0, 0.12]].forEach(([R, l], k) => { const m = add(new T.Mesh(new T.RingGeometry(R - l, R + l, 72), brille('#b98cff', 0.35))); m.rotation.x = -Math.PI / 2; m.position.y = 0.07 + k * 0.005; fx.cercles.push({ m, k }); });
   { const m = add(new T.Mesh(new T.CircleGeometry(6.0, 64), brille('#7a3fe0', 0.06))); m.rotation.x = -Math.PI / 2; m.position.y = 0.06; fx.cercles.push({ m, k: 2 }); }
   /* les flammes violettes des cranes */
-  reperes.filter((x) => /^repere_(grande)?flamme/.test(x.nom)).forEach((x) => { const gr = /grande/.test(x.nom) ? 2.4 : 1.15, f = new T.Group(); f.position.copy(x.p); add(f); /* (une goutte de flamme violette, douce, pas un cone blanc : « des animations bizarres », Mathieu) */
+  reperes.filter((x) => /^repere_flamme/.test(x.nom)).forEach((x) => { /* (les petits cranes ; les yeux du grand crane de l'arche ont de vraies flammes, 27e-decor-vivant.js, 17/11/2026) */ const gr = /grande/.test(x.nom) ? 2.4 : 1.15, f = new T.Group(); f.position.copy(x.p); add(f); /* (une goutte de flamme violette, douce, pas un cone blanc : « des animations bizarres », Mathieu) */
     const doux = (c, op) => new T.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false });
     const a = new T.Mesh(new T.SphereGeometry(0.075 * gr, 10, 8), doux('#8f55e0', 0.7)), b = new T.Mesh(new T.SphereGeometry(0.04 * gr, 8, 6), doux('#c9a2ff', 0.85));
     a.scale.set(1, 2.1, 1); b.scale.set(1, 1.7, 1); a.position.y = 0.13 * gr; b.position.y = 0.1 * gr; f.add(a, b);
@@ -188,13 +188,11 @@ async function chargerIleBoss() { /* l'ile des boss (blender/boss-ile.py), rendu
     const v = add(new T.Mesh(new T.CircleGeometry(0.7 * e, 20), brille('#8be05a', 0.3))); v.rotation.x = -Math.PI / 2; v.scale.set(1, 0.72, 1); v.position.set(x.p.x, 0.045, x.p.z); fx.flaques.push({ v, ph: Math.random() * 6 });
     for (let k = 0; k < 2; k++) { const m = add(new T.Mesh(new T.SphereGeometry(0.08 + Math.random() * 0.05, 8, 6), new T.MeshBasicMaterial({ color: k % 2 ? '#b6f27a' : '#c9a2ff', transparent: true, opacity: 0.9 })));
       fx.bulles.push({ m, x: x.p.x + (Math.random() - 0.5) * 0.6 * e, z: x.p.z + (Math.random() - 0.5) * 0.4 * e, t: Math.random() * 4, v: 0.8 + Math.random() * 0.4 }); } });
-  /* les bols de feu du bord */
-  reperes.filter((x) => /^repere_feu/.test(x.nom)).forEach((x) => { const f = new T.Group(); f.position.copy(x.p); add(f);
-    const a = new T.Mesh(new T.ConeGeometry(0.26, 0.7, 7), new T.MeshBasicMaterial({ color: '#ff8a1e' })), b = new T.Mesh(new T.ConeGeometry(0.14, 0.45, 6), new T.MeshBasicMaterial({ color: '#ffe07a' })); a.position.y = 0.32; b.position.y = 0.24; f.add(a, b);
-    fx.feux.push({ f, a, b, ph: Math.random() * 6 }); });
+  /* (les bols de feu du bord, les braseros violets, les bougies, les cristaux, la brume, les ames et le tourbillon de l'arche : 27e-decor-vivant.js, 17/11/2026 ;
+     les deux cones orange des bols sont partis) */
   fx.sceau = sceauIleBoss(VARIANTE_SCEAU); g.add(fx.sceau);
   g.userData.blocs = reperes.filter((x) => /^repere_bloc_/.test(x.nom)).map((x) => ({ x: x.p.x, z: x.p.z, r: (numRepere(x.nom) || 40) / 100 })); /* (les gros elements du decor, on bute dessus) */
-  g.userData.fx = fx; scene.add(g); ileBoss = g; if (!soleil.target.parent) scene.add(soleil.target); return g;
+  g.userData.fx = fx; decorIle(g, reperes); scene.add(g); ileBoss = g; if (!soleil.target.parent) scene.add(soleil.target); return g;
 }
 function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v : 'etoile', 'crane' ou 'oeil' */
   const g = new T.Group(), c = new T.Group(); g.add(c); c.rotation.x = -Math.PI / 2; g.rotation.y = 0; g.position.y = 0.035; g.userData.v = v; /* (le haut du dessin vers le haut de l'ecran) */
@@ -482,9 +480,12 @@ async function figerPublic(places, types) {
 async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), faite avec les outils de la ferme et rendue comme elle ; le fond est deja tourne loin de la camera */
   if (ileArene) return;
   await Promise.all([assurerVisuels(), assurerLook('feminin-iop'), assurerLook('feminin-cra'), assurerLook('feminin-osa')].map((p) => p.catch(() => false))); /* (les tenues et les versions feminines, pour les humains du public) */
-  const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES); versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
-  const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, {})); g.position.copy(ARENE);
-  if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(16, 0, 3.9); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); } /* (la montgolfiere de la ferme, posee a cote) */
+  const sc = await chargerGlb('assets/modeles/jeu/arene-ile.glb?v=' + VERSION_MODELES), reperes = [];
+  sc.updateMatrixWorld(true); sc.traverse((o) => { if (/^repere_/.test(o.name)) { const p = new T.Vector3(); o.getWorldPosition(p); reperes.push({ nom: o.name, p }); } }); /* (les flammes animees, 17/11/2026 : 27e-decor-vivant.js) */
+  versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
+  const drapeau = (m) => /^(drapeau_|grille)/.test(m.name) || !!(m.parent && /^(drapeau_|grille)/.test(m.parent.name)); /* (et les herses, qui se levent) */ /* (le tissu qui flotte et son contour restent a part) */
+  const g = new T.Group(); g.add(fusionner(sc.getObjectByName('AreneIle') || sc, { garder: drapeau })); g.position.copy(ARENE);
+  if (MODELES.montgolfiere) { const m = MODELES.montgolfiere.clone(true); m.traverse((o) => { delete o.userData.montgolfiere; }); m.position.set(16, 0, 3.9); m.rotation.set(0, -Math.PI / 2, 0); m.visible = true; g.add(m); g.userData.montgolfiere = m; } /* (la montgolfiere de la ferme, posee a cote) */
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   { /* le public, assis sur les trois gradins du fond (blender/arene-ile.py), tourne vers le sable : des aventuriers habilles comme le perso et des monstres
        du jeu a leur taille de combat (30/10/2026 : deux fois plus nombreux, plus varies, figes en decor, voir figerPublic) */
@@ -497,7 +498,8 @@ async function chargerArene() { /* l'ile de l'Arene (blender/arene-ile.py), fait
         const x = Math.cos(a) * rr, z = Math.sin(a) * rr; places.push({ x, y: y + 0.03, z, ry: Math.atan2(-x, -z) + (Math.random() - 0.5) * 0.4 });
       }
     });
-    const pub = await figerPublic(places, types); if (pub) g.add(pub); }
+    const pub = await figerPublic(places, types); if (pub) g.add(pub); g.userData.pub = pub; }
+  decorArene(g, reperes, g.userData.pub); /* (drapeaux qui flottent, flammes, public qui s'agite, poussieres : 27e-decor-vivant.js, 17/11/2026) */
   scene.add(g); ileArene = g; if (!soleil.target.parent) scene.add(soleil.target);
 }
 async function classementArene(sem) { /* le classement de l'alliance pour une semaine (il faut etre connecte ; DAMOCLES/sql/068) */
