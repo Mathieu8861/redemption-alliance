@@ -8,12 +8,13 @@
 /* (16/11/2026 au soir, « ok tu peux les push », Mathieu : la nouvelle version pour tous ; « ancienne » ne reste qu'au choix dans l'Arene dev, pour comparer) */
 let VERSION_BWORKS = (() => { try { return localStorage.getItem('ferme-version-bworks') === 'ancienne' ? 'ancienne' : 'nouvelle'; } catch (err) { return 'nouvelle'; } })();
 /* type du monstre -> [nom du modele, hauteur en jeu, vitesse de ses animations] */
-const BWORKS_V2 = { bwork: ['bwork', 2.8, 1.4], bworkArcher: ['bwork-archer', 2.5, 1.4], bworkMage: ['bwork-mage', 2.4, 1.35], bworkette: ['bworkette', 2.2, 1.6], /* (+35 % le 16/11 au soir : « ils sont limite plus petits que moi », Mathieu) */ bworker: ['bworker', 4.6, 1.3] }; /* (le Bworker : 3,3 puis 3,8, « fais-le un peu plus grand », puis 5,7 le soir par Discord, « fais-le 50 % plus grand », puis 4,6, « reduis de 20 % », et elargi de 20 %, Mathieu, 16/11/2026) */
+const BWORKS_V2 = { bwork: ['bwork', 2.8, 1.4], bworkArcher: ['bwork-archer', 2.5, 1.4], bworkMage: ['bwork-mage', 2.4, 1.35], bworkette: ['bworkette', 2.2, 1.6], /* (+35 % le 16/11 au soir : « ils sont limite plus petits que moi », Mathieu) */ bworker: ['bworker', 3.9, 1.3] }; /* (17/11/2026, « des jambes moins longues au Bworker », Mathieu : jambes raccourcies, haut du corps a la meme taille, 4,6 -> 3,9) */ /* (le Bworker : 3,3 puis 3,8, « fais-le un peu plus grand », puis 5,7 le soir par Discord, « fais-le 50 % plus grand », puis 4,6, « reduis de 20 % », et elargi de 20 %, Mathieu, 16/11/2026) */
 const NOMS_BW2 = new Set(Object.values(BWORKS_V2).map(([n]) => n + '-v2'));
 for (const [n, h, v] of Object.values(BWORKS_V2)) { SQUELETTES_A_CHARGER.push([n + '-v2', 'assets/modeles/jeu/' + n + '-anime-v2.glb', h]); VITESSE_FAMILLE[n + '-v2'] = v; }
 /* le rendu B : la matiere toon du jeu, dont seule la sortie change (l'ombre teintee a seuil net, calculee sur la normale vue de la camera : la lumiere vient
    toujours du haut a gauche de l'ecran, comme sur la planche validee) ; l'eclat rouge d'un coup et la lueur de rage (emissive) s'ajoutent par-dessus */
-const RENDU_B = { ombre: { value: new T.Vector3(0.44, 0.50, 0.36) }, dir: { value: new T.Vector3(-0.75, 0.6, 0.3).normalize() }, contour: '#2f3b1a', ep: 0.006 };
+/* (17/11/2026, « creux + ombre grise c'est mieux », Mathieu : l'ombre olive 0,44 / 0,50 / 0,36 se confondait avec la peau verte, gris froid ; les creux sont cuits dans la texture) */
+const RENDU_B = { ombre: { value: new T.Vector3(0.6, 0.59, 0.65) }, dir: { value: new T.Vector3(-0.75, 0.6, 0.3).normalize() }, contour: '#2f3b1a', ep: 0.006 };
 function matiereB(m) {
   m.onBeforeCompile = (sh) => { sh.uniforms.uOmbreB = RENDU_B.ombre; sh.uniforms.uDirB = RENDU_B.dir;
     sh.fragmentShader = 'uniform vec3 uOmbreB;\nuniform vec3 uDirB;\n' + sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
