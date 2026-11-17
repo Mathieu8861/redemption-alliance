@@ -10,7 +10,7 @@ const ULTIS = {
   mono: { nom: { iop: 'Colère de Iop', cra: 'Flèche fatale', osa: 'Morsure du Dragoeuf' }, genre: 'Coup fatal', teinte: '#d9443a', desc: 'Un seul monstre, mais cinq fois ton attaque : de quoi entamer sérieusement un boss.', chiffres: (d) => [5 * d + ' dégâts', 'une seule cible'] }
 };
 const nomUlti = (id) => ULTIS[id].nom[classeDe()];
-const descUlti = (id) => (id === 'zone' && classeDe() === 'iop' ? 'Il fonce au point visé, puis tournoie ' + DUREE_TEMPETE + ' s épée tendue : ' + COUPS_TEMPETE + ' coups sur tous les monstres autour de lui, trois fois son attaque en tout. Tu peux le déplacer pendant qu\'il tournoie.' : ULTIS[id].desc) +
+const descUlti = (id) => (id === 'zone' && classeDe() === 'iop' ? 'Il tournoie sur place dès que tu appuies, sans visée, ' + DUREE_TEMPETE + ' s épée tendue : ' + COUPS_TEMPETE + ' coups sur tous les monstres autour de lui, trois fois son attaque en tout. Tu peux le déplacer pendant qu\'il tournoie.' : ULTIS[id].desc) +
   (classeDe() === 'iop' ? ' En la lançant, il devient invincible ' + String(INVINCIBLE_IOP).replace('.', ',') + ' s, puis il court ' + Math.round(ELAN_IOP * 100) + ' % plus vite pendant ' + DUREE_ELAN_IOP + ' s.' : ''); /* (l'invincibilite du Iop, 30/10/2026) */ /* (la Tempete de lames du Iop n'est pas l'effet de zone commun) */
 /* « faut revoir l'esthetisme des sorts sur Osa et Iop, ca affiche les memes icones que Cra » (Mathieu, 11/10/2026) : chaque classe a ses icones
    (generer-ultis.html) ; celles du Cra gardent leur nom d'origine */
@@ -492,11 +492,11 @@ const BOUTONS_SORT = {
   sort: { cd: 'cdSort', visee: () => Object.assign({ quoi: 'sort' }, viseeClasse()),
     tirer: (v, pt) => { annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); if (v.id === 'invoc') { invoquer(pt); combat.cdSort = RECHARGE_INVOC; } else if (v.id === 'bond') bondIop(pt); else flechePercante(pt); } },
   ulti: { cd: 'cdUlti', refus: () => S_.ulti ? '' : niveau(S_.xp) >= NIV_ULTI ? 'Choisis ton ulti dans la fiche des vagues, après ce combat.' : 'L\'ulti se débloque au niveau ' + NIV_ULTI + ' de Paysan.',
-    visee: () => { const id = S_.ulti; return { quoi: 'ulti', id, rayon: id === 'mono' ? 0.75 : id === 'zone' ? 2.8 : 3, teinte: ULTIS[id].teinte, portee: id === 'mono' ? porteeMono() : undefined }; }, /* (le coup fatal montre sa portee, 06/11/2026) */
+    visee: () => { const id = S_.ulti; if (id === 'zone' && classeDe() === 'iop') return { quoi: 'ulti', id, instant: true }; /* (17/11/2026, « il veut plus avoir à cibler, quand il appuie sur la touche ça s'enclenche direct, sans que ça le déplace », Mathieu : la Tempête de lames part sur place) */ return { quoi: 'ulti', id, rayon: id === 'mono' ? 0.75 : id === 'zone' ? 2.8 : 3, teinte: ULTIS[id].teinte, portee: id === 'mono' ? porteeMono() : undefined }; }, /* (le coup fatal montre sa portee, 06/11/2026) */
     tirer: (v, pt) => { if (v.id === 'mono') { const m = monstreVise(pt, 2.2); if (!m) { toast('Vise un monstre.'); annulerVisee(); return false; }
         { const pp = paysanMesh.position; if (Math.hypot(m.x - pp.x, m.z - pp.z) > porteeMono()) { toast('Trop loin : ' + nomUlti('mono') + ' porte à ' + String(Math.round(porteeMono() / S * 2) / 2).replace('.', ',') + ' case' + (porteeMono() > S ? 's' : '') + '. Rapproche-toi.'); annulerVisee(); return false; } } /* (refuse : la visee s'annule et le clic deplace le perso, « des fois je peux pas bouger », Mathieu, 07/11/2026 ; avant, chaque clic retentait le sort) */ /* (avant : le perso marchait vers la cible, 06/11/2026) */
         annulerVisee(); if (combat.st) combat.st.sorts++; executerUlti('mono', m); return; } /* (le coup fatal : un monstre) */
-      annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); executerUlti(v.id, null, pt); } },
+      annulerVisee(); if (combat.st) combat.st.sorts++; son('sort'); executerUlti(v.id, null, pt || (v.instant ? paysanMesh.position.clone() : pt)); } }, /* (instant : sur place, la ou il est) */
   coiffe: boutonLeg('coiffe'), arme: boutonLeg('arme'),
 };
 function armerSort(bouton) {
