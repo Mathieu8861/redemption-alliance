@@ -181,7 +181,8 @@ const CHANCE_RARE = 0.01;
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
 const tirerRare = (id, pros) => (OBJETS[id + '-rare'] && Math.random() < CHANCE_RARE * (pros || 1) ? id + '-rare' : id);
 const iconeObjet = (k) => { const o = obj(k); return o ? o.icone || 'obj-' + (o.base || baseObjet(k)) : 'obj-' + baseObjet(k); };
-const icoObjet = (k) => { const h = ico(iconeObjet(k)), o = obj(k); return o && o.rare ? h.replace('class="pic img', 'class="pic img rare') : h; };
+const icoObjet = (k) => { const h = ico(iconeObjet(k)), o = obj(k); /* (17/11/2026, « quand on veut forger une arme, elles n'ont pas l'encadré violet », Mathieu : ico ne violettait que les coiffes obj-leg-, les armes légendaires aussi) */
+  if (o && o.leg) return /class="pic img leg/.test(h) ? h : h.replace('class="pic img', 'class="pic img leg'); return o && o.rare ? h.replace('class="pic img', 'class="pic img rare') : h; };
 const nomClasse = (id) => (CLASSES.find((c) => c.id === id) || {}).nom || id;
 const legPorte = (cle) => !!(S_ && S_.equip && [S_.equip.coiffe, S_.equip.arme].some((k) => { const o = k && obj(k); return !!o && o.leg === cle; })); /* (la coiffe ou l'arme legendaire) */
 const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
