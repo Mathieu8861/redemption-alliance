@@ -416,7 +416,10 @@ function lanceOsPerso(pt, st) {
 function hacheLancee(x, z, R, st) {
   const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, a = Math.atan2(x - pp.x, z - pp.z), d = Math.hypot(x - pp.x, z - pp.z), vol = Math.max(0.35, Math.min(0.6, d / 16));
   chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.attaque = { t: 0, classe: classeDe(), base: a, tour: false, surFrappe: () => {} }; /* (le geste de lancer) */
-  const arme = armeJet('hache', 0.6), de = new T.Vector3(pp.x + Math.sin(a) * 0.4, pp.y + 1.5, pp.z + Math.cos(a) * 0.4), y = solA(x, z), vers = new T.Vector3(x, y + 0.4, z), H = 1.6 + d * 0.12;
+  /* (17/11/2026 : la hache courte du nouveau Bworker, js/27d-bworks-v2.js ; sinon l'ancienne. Visible des le lancer : armeJet, quand les nouveaux Bworks
+     sont charges, rend la hache du Bworker cachee jusqu'a son geste, et celle du joueur restait invisible) */
+  const arme = (typeof hacheJoueurBw === 'function' && hacheJoueurBw()) || armeJet('hache', 0.6); arme.visible = true; if (armeJet.derniere === arme) armeJet.derniere = null;
+  const de = new T.Vector3(pp.x + Math.sin(a) * 0.4, pp.y + 1.5, pp.z + Math.cos(a) * 0.4), y = solA(x, z), vers = new T.Vector3(x, y + 0.4, z), H = 1.6 + d * 0.12;
   arme.position.copy(de); scene.add(arme); secousse(0.05, 0.12);
   let t = 0; effets.push((dt) => { t += dt; if (combat !== c0) { jeter(arme); return true; } const k = Math.min(1, t / vol);
     arme.position.lerpVectors(de, vers, k); arme.position.y += Math.sin(k * Math.PI) * H; arme.rotation.set(-1.2 - k * Math.PI * 4, a, 0); traineeFleche(arme.position); /* (elle tournoie en cloche) */

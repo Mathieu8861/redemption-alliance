@@ -277,6 +277,20 @@ const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleD
 const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS && k !== semaineIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
 const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
 const prochainVendredi = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
+/* LE TABLEAU DU CLASSEMENT DE L'ILE (17/11/2026, « fais un tableau un peu plus joli et affiche le nombre de try », Mathieu) : une ligne par joueur, rang
+   (medailles pour le podium), joueur (icone de sa classe et son niveau), essais joues sur ceux de la semaine, degats de son meilleur essai, avec une jauge
+   rapportee au premier. Les 10 premiers ; si tu es plus loin, ta ligne s'ajoute en dessous avec ton vrai rang */
+function tableauIle(L, cle) {
+  const max = Math.max(1, ...L.map((j) => +j.degats || 0)), nEss = ESSAIS_ILE_BOSS + (ESSAIS_BONUS_ILE[cle] || 0), CL = { iop: 'Iop', cra: 'Cra', osa: 'Osa' }; /* (Osa : « Osamodas, niv. 92 » ne tenait pas sur un telephone) */
+  const ligne = (j, i) => '<div class="ib-cl-l' + (i < 3 ? ' r' + (i + 1) : '') + (j.moi ? ' moi' : '') + '"><i class="jauge" style="width:' + (100 * (+j.degats || 0) / max).toFixed(1) + '%"></i>' +
+    '<span class="rg">' + (i + 1) + '</span>' +
+    '<span class="qui">' + (CL[j.classe] ? '<img src="assets/icones/' + j.classe + '.png?v=' + VERSION_MODELES + '" alt="">' : '<em></em>') + '<span><span class="nom"><b>' + echapper(j.nom || '?') + '</b>' + (j.moi ? '<small class="toi">toi</small>' : '') + '</span><small>' + (CL[j.classe] || '') + (j.niveau ? (CL[j.classe] ? ', ' : '') + 'niv. ' + j.niveau : '') + '</small></span></span>' +
+    '<span class="ess"><b>' + (+j.essais || 0) + '</b><small>/' + nEss + '</small></span>' +
+    '<span class="deg">' + fmt(+j.degats || 0) + '</span></div>';
+  const moi = L.findIndex((j) => j.moi);
+  return '<div class="ib-cl"><div class="ib-cl-tete"><span>#</span><span>Joueur</span><span>Essais</span><span>Dégâts</span></div>' + L.slice(0, 10).map(ligne).join('') +
+    (moi >= 10 ? '<div class="ib-cl-sep">…</div>' + ligne(L[moi], moi) : '') + '</div>';
+}
 async function classementIleBoss(cle) { /* le total et le classement de l'alliance ce jour-la (DAMOCLES/sql/069) */
   if (!ENLIGNE || !enLigneSv.compte) return null;
   try { const jeton = jetonInvite(), jwt = jeton ? null : (enLigneSv.jwt || await jetonSite()); const r = await rpc('ferme_ile_boss', { p_jeton: jeton, p_jour: cle }, jwt); return r && r.ok ? r : null; } catch (e) { return null; }
@@ -301,7 +315,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
     '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + '<button class="btn kamas" data-montgolfiere="partirIleBoss"' + (raison ? ' disabled' : '') + '>Partir</button></div>');
   classementIleBoss(cle).then((r) => { const e = document.getElementById('ileboss-classement'); if (!e) return; ileBossTotal = r ? r.total : null; ileBossListe = r ? r.joueurs : null;
     if (!r) { e.innerHTML = '<p class="hdv-aide">Le classement s\'affiche quand tu joues connecté à ton compte.</p>'; return; }
-    e.innerHTML = r.joueurs.length ? r.joueurs.slice(0, 10).map((j, i) => '<div class="rc-l' + (j.moi ? ' moi' : '') + '"><span>' + (i < 3 ? '<span class="rang r' + (i + 1) + '">' + (i + 1) + '</span>' : (i + 1) + '.') + ' ' + echapper(j.nom) + '</span><b>' + fmt(j.degats) + '</b></div>').join('') : '<p class="hdv-aide">Personne n\'a encore frappé : à toi l\'honneur !</p>';
+    e.innerHTML = r.joueurs.length ? tableauIle(r.joueurs, cle) : '<p class="hdv-aide">Personne n\'a encore frappé : à toi l\'honneur !</p>';
     const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / pvIleBoss(t)).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, pvIleBoss(t) - r.total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV'; } });
 }
 async function partirIleBoss() {

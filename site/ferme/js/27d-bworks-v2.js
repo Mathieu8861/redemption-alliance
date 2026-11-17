@@ -110,4 +110,16 @@ async function choisirVersionBworks(v) {
   if (VERSION_BWORKS === 'nouvelle') { toast('Chargement de la nouvelle version des Bworks…'); await preparerBworksV2(); } appliquerBworksV2();
   toast(VERSION_BWORKS === 'nouvelle' ? 'Bworks : nouvelle version (animée, rendu B).' : 'Bworks : ancienne version.', 'or');
 }
+/* LA HACHE LANCEE DU CASQUE DU BWORKER (17/11/2026, « la hache qu'on jette aussi », Mathieu) : le sort Hache lancee du joueur lance la hache courte du
+   nouveau Bworker (assets/modeles/jeu/hache-bworker.glb, 29 Ko, la meme que dans sa main), en toon comme les pieces du perso, aussi longue que l'ancienne
+   grande hache (1,4). Chargee des que le casque est porte ; tant qu'elle ne l'est pas, l'ancienne hache part a sa place */
+let hacheBwSc = null, hacheBwPromesse = null;
+const chargerHacheBw = () => hacheBwPromesse || (hacheBwPromesse = chargerGlb('assets/modeles/jeu/hache-bworker.glb?v=' + VERSION_MODELES)
+  .then((sc) => { hacheBwSc = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); try { partager(hacheBwSc); } catch (err) { /* rien */ } return true; }).catch(() => { hacheBwPromesse = null; return false; }));
+function hacheJoueurBw() {
+  const src = hacheBwSc && hacheBwSc.getObjectByName('hache-bworker'); if (!src) { chargerHacheBw(); return null; }
+  const s = 1.7, g = new T.Group(), c = src.clone(true); c.position.set(0, -0.12 * s, 0); c.rotation.set(0, 0, 0); c.scale.setScalar(s); g.add(c);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g;
+}
+const rafraichirTenueBw = rafraichirTenue; rafraichirTenue = function () { if (legPorte('bworker')) chargerHacheBw(); return rafraichirTenueBw.apply(this, arguments); };
 appliquerBworksV2(); /* (au demarrage : la version choisie ; les modeles se chargent quand les Bworks arrivent, rien au lancement du jeu) */
