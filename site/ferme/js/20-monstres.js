@@ -222,7 +222,7 @@ const MOBS_EN_PLUS = 1;
 const MOINS_FORET = { 96: 3, 97: 3, 98: 3, 99: 3 };
 /* (17/11/2026, « réduis les Abrakleurs à la 97 pour Osa et Cra », Mathieu, après l'analyse : au bot, l'Abrakleur faisait 29 à 38 % des dégâts reçus par
    les Cra à la 97) : des monstres précis en moins, en plus de MOINS_FORET, quand le perso n'est pas un Iop */
-const MOINS_TYPE_FORET = { 97: { abrakleur: 3 } };
+const MOINS_TYPE_FORET = { 97: { abrakleur: 3 }, 98: { abrakleur: 1 }, 99: { abrakleur: 3 }, 100: { abrakleur: 2 } }; /* (« mets à jour pour la 98/99/100 aussi », au formulaire : la moitié, comme à la 97 : 3 → 2, 6 → 3, 5 → 3) */
 const PLUS_FORET = { 91: 1 }, PLUS_IOP_FORET = 4, iopEnJeu = () => { try { return !!S_ && !!S_.perso && classeDe() === 'iop'; } catch (e) { return false; } }; /* (avant le chargement de la partie : non) */
 /* DES TIREURS EN PLUS (12/11/2026, « rajoute 1 a 4 mobs distance par vague en plus, du 70 au 80 », Mathieu, juste apres le reequilibrage des Cochons) : vagues 71 a 79,
    de plus en plus au fil du palier. Comptes apres la horde : ce sont bien 1 a 4 monstres de plus a l'ecran, donnes au groupe de tireurs le plus nombreux de la vague
