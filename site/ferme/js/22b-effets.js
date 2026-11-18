@@ -423,19 +423,26 @@ function souffleDeFeu(de, a, portee, o, ouvPerso) { /* (ouvPerso : la demi-ouver
   });
 }
 /* LE CERCLE DE FEU (18/11/2026, « coiffe Croca du Iop : un cercle de feu autour de lui, environ la portée qu'il a actuellement, mais tout autour de lui »,
-   Mathieu) : un anneau de flammes part du perso et s'étend jusqu'à R en 0,35 s, des flammes qui montent tout le long, puis le sol brûlé en cercle */
+   puis « tu vois le crachat de feu qu'on avait avant en cône, en termes d'animation ? Bah ça, mais tout autour de nous, un peu plus visible, et quand on
+   appuie sur la touche, qu'on voie le cercle de la zone d'impact aussi », Mathieu) : les jets de flammes du Souffle de feu (souffleDeFeu), crachés de sa
+   bouche dans dix directions qui tournent un peu, jusqu'à R ; au sol, la zone touchée (un disque et son bord orange) dès l'appui, qui s'efface à la fin ;
+   puis le sol brûlé en cercle */
 function cercleDeFeu(de, R) {
-  const y0 = solA(de.x, de.z); flashLumiere(de.x, y0 + 1, de.z, '#ff8a2e', 4, R * 1.8, 0.8); secousse(0.1, 0.5);
-  onde(de.x, y0 + 0.06, de.z, R, '#ff7a1e', 0.45, 0.65); onde(de.x, y0 + 0.06, de.z, R * 0.6, '#ffd04a', 0.35, 0.5);
+  const y0 = solA(de.x, de.z), N = 10; flashLumiere(de.x, y0 + 1, de.z, '#ff8a2e', 4.5, R * 2, 0.9); secousse(0.12, 0.6);
+  const zone = new T.Group(), disque = new T.Mesh(new T.CircleGeometry(R, 64), fxMat('#ff7a1e', 0.18)), bord = new T.Mesh(new T.RingGeometry(R - 0.14, R, 64), fxMat('#ffb84a', 0.85));
+  [disque, bord].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 3; zone.add(m); }); bord.position.y = 0.01; zone.position.set(de.x, y0 + 0.06, de.z); scene.add(zone);
   let t = 0;
   effets.push((dt) => {
-    t += dt;
-    if (t > 0.8) { for (let k = 0; k < 12; k++) { const th = k / 12 * Math.PI * 2; brulure(de.x + Math.sin(th) * R * 0.85, y0, de.z + Math.cos(th) * R * 0.85, 0.8); } return true; }
-    const r = R * Math.min(1, t / 0.35), n = t < 0.55 ? 16 : 4;
-    for (let i = 0; i < n; i++) { const th = fxAlea() * Math.PI * 2, rr = r * fxEntre(0.8, 1.02), sx = Math.sin(th), sz = Math.cos(th);
-      emettre(FX_VIF, 1, { x: de.x + sx * rr, y: y0 + 0.15, z: de.z + sz * rr, v: [sx * 1.2, fxEntre(2.2, 3.6), sz * 1.2], vie: [0.35, 0.55], taille: [0.25, 0.95], c: ['#fffbe0', '#ffd04a', '#ff6a1e', '#8a1a06'], a: 0.9, frein: 0.9, grav: -1.4, vrot: 3, entree: 0.03 });
-      if (i % 4 === 0) emettre(FX_LUM, 1, { x: de.x + sx * rr, y: y0 + 0.3, z: de.z + sz * rr, v: [sx * 0.8, 2, sz * 0.8], vie: [0.3, 0.45], taille: [0.3, 1.4], c: ['#ffb84a', '#ff5a1e'], a: 0.35, frein: 0.9, grav: -1.4 }); }
-    if (t > 0.15 && fxAlea() < 0.5) { const th = fxAlea() * Math.PI * 2; emettre(FX_FUM, 1, { x: de.x + Math.sin(th) * R * 0.8, y: y0 + 0.4, z: de.z + Math.cos(th) * R * 0.8, r: 0.5, v: [0, 1.6, 0], vie: [0.9, 1.3], taille: [0.6, 1.8], c: ['#3a2e28', '#7a706a'], a: 0.4, frein: 1.2, vrot: 1, entree: 0.25 }); }
+    t += dt; const f = Math.max(0, 1 - Math.max(0, t - 0.65) / 0.35); disque.material.opacity = 0.18 * f; bord.material.opacity = 0.85 * f; bord.scale.setScalar(1 + 0.03 * Math.sin(t * 18));
+    if (t > 1) { jeter(zone); for (let k = 0; k < 16; k++) { const th = k / 16 * Math.PI * 2; brulure(de.x + Math.sin(th) * R * 0.85, y0, de.z + Math.cos(th) * R * 0.85, 0.8); } return true; }
+    if (t < 0.7) {
+      const b = paysanMesh ? bouche(paysanMesh) : de.clone().add(new T.Vector3(0, 1.1, 0)), n = t < 0.55 ? 3 : 1, v = R * 1.85;
+      for (let j = 0; j < N; j++) { const a = j / N * Math.PI * 2 + t * 0.8, dx = Math.sin(a), dz = Math.cos(a);
+        for (let i = 0; i < n; i++) { const e = (fxAlea() - 0.5) * 0.55, ve = (fxAlea() - 0.45) * 0.22, ca = Math.cos(e), sa = Math.sin(e), vx = (dx * ca - dz * sa) * v * fxEntre(0.85, 1.1), vz = (dz * ca + dx * sa) * v * fxEntre(0.85, 1.1);
+          emettre(FX_VIF, 1, { x: b.x + dx * 0.3, y: b.y - 0.05, z: b.z + dz * 0.3, v: [vx, ve * v - 0.4, vz], vie: [0.42, 0.58], taille: [0.1, 1.15], c: ['#fffbe0', '#ffd04a', '#ff6a1e', '#8a1a06'], a: 0.95, frein: 0.9, grav: -1.4, vrot: 3, entree: 0.03 });
+          if (i === 0 && fxAlea() < 0.4) emettre(FX_LUM, 1, { x: b.x + dx * 0.3, y: b.y, z: b.z + dz * 0.3, v: [vx * 0.92, ve * v - 0.3, vz * 0.92], vie: [0.35, 0.5], taille: [0.15, 1.7], c: ['#ffb84a', '#ff5a1e'], a: 0.4, frein: 0.9, grav: -1.4 }); } }
+    }
+    if (t > 0.15 && fxAlea() < 0.7) { const th = fxAlea() * Math.PI * 2; emettre(FX_FUM, 1, { x: de.x + Math.sin(th) * R * 0.75, y: y0 + 0.6, z: de.z + Math.cos(th) * R * 0.75, r: 0.5, v: [Math.sin(th) * 1.5, 1.6, Math.cos(th) * 1.5], vie: [0.9, 1.4], taille: [0.7, 2.2], c: ['#3a2e28', '#7a706a'], a: 0.45, frein: 1.2, vrot: 1, entree: 0.25 }); }
     return false;
   });
 }
