@@ -14,7 +14,7 @@ MONSTRES.crocoVase = { element: 'eau', nom: 'Croco de la vase', modele: 'croco-v
    penchaient la tete et pliaient l'oeuf). Forces provisoires, sans sort ; idee de Mathieu pour son kit : « saignement, moins on a de PV plus les piranhas
    sont forts » (a regler avec lui) */
 SQUELETTES_A_CHARGER.push(['piranha', 'assets/modeles/jeu/piranha-anime.glb', 1.7]); NOMS_BW2.add('piranha'); VITESSE_FAMILLE['piranha'] = 1.3;
-MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha', icone: 'triton', /* (icone provisoire) */
+MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha', icone: 'piranha-guerre', /* (son icone, photographiee sur son modele en jeu, 18/11/2026) */
   desc: 'petit, rond et vorace, il arrive en bande et mord vite', pv: (n) => 2600 + 80 * (n - 100), deg: (n) => 55 + Math.round(2 * (n - 100)),
   cadence: 1.0, vitesse: 3.6, portee: 1.6, ombre: 1.6 };
 /* SON KIT (18/11/2026, idee de Mathieu : « saignement, moins on a de PV plus les piranhas sont forts ») : chaque morsure fait saigner (0,4 % de ta vie par
@@ -51,14 +51,14 @@ MONSTRES.crocoBoss = { element: 'eau', nom: 'Croco sauvage', modele: 'croco-boss
    comme un coup de lance. Forces provisoires, sans sort. (Le soir, « deforme a certains endroits », Mathieu : le haut des bras rendu au corps, plus de plaques
    sur le flanc ; amorti du dos et des epaules ; au coup, le poing descend, la main se retourne et la lance pique vers l'avant sous son museau) */
 SQUELETTES_A_CHARGER.push(['brochet', 'assets/modeles/jeu/brochet-anime.glb', 2.4]); NOMS_BW2.add('brochet'); VITESSE_FAMILLE['brochet'] = 1.3;
-MONSTRES.brochet = { element: 'eau', nom: 'Brochet enragé', modele: 'brochet', icone: 'triton', /* (icone provisoire) */
+MONSTRES.brochet = { element: 'eau', nom: 'Brochet enragé', modele: 'brochet', icone: 'brochet-enrage', /* (son icone, photographiee sur son modele en jeu, 18/11/2026) */
   desc: 'le guerrier de la tribu, sa lance à la main : il te harcèle de coups de lance', pv: (n) => 4400 + 130 * (n - 100), deg: (n) => 92 + Math.round(3 * (n - 100)),
   cadence: 1.5, vitesse: 3.0, portee: 2.6, ombre: 2.0 };
 /* LE SILURE CHAMAN (18/11/2026, fait pendant que Mathieu etait sur son telephone) : dessin fidele, Rodin, texture d'origine eclaircie vers le mauve, corps
    d'un bloc, les gestes de magie du Bwork mage (retouches pour qu'il reste de face) et son baton en main ; comme le Bwork mage, il tire de la magie de loin
    et soigne les siens. Forces provisoires. (Le soir, controle en grand : le haut des bras rendu au corps, le flanc ne se dechire plus quand il leve le bras) */
 SQUELETTES_A_CHARGER.push(['silure', 'assets/modeles/jeu/silure-anime.glb', 2.2]); NOMS_BW2.add('silure'); VITESSE_FAMILLE['silure'] = 1.2;
-MONSTRES.silure = { element: 'eau', nom: 'Silure chaman', modele: 'silure', icone: 'triton', /* (icone provisoire) */
+MONSTRES.silure = { element: 'eau', nom: 'Silure chaman', modele: 'silure', icone: 'silure-chaman', /* (son icone, photographiee sur son modele en jeu, 18/11/2026) */
   desc: 'le sorcier de la tribu, son bâton à la main : il te lance sa magie de loin et soigne les siens, abats-le en premier', pv: (n) => 3600 + 110 * (n - 100), deg: (n) => 70 + Math.round(2 * (n - 100)),
   cadence: 2.0, vitesse: 2.4, portee: 5, distance: true, magie: true, couleurMagie: '#5fe04a', soigne: 4, ombre: 2.0 }; /* (18/11/2026, « on peut lui faire un baton un peu different ? On dirait le meme que celui des Bworks », Mathieu : son baton a lui, une crosse de bois noueux autour d'une orbe verte, blender/armes-tribu.py ; sa magie prend le vert de l'orbe) */
 /* (18/11/2026, controle en grand : quand ils se plient, la coque du contour ressortait en plaques vert fonce aux jambes, au dos et pres de la bouche, comme sur

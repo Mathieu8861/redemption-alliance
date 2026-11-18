@@ -107,3 +107,19 @@ function capCrue(mo, ctx) {
     if (fin || L.every((f) => f.vie <= 0)) { L.forEach((f) => jeter(f.g)); if (c0.flaquesCrue === L) c0.flaquesCrue = null; return true; } return false; });
 }
 CAPACITES_AVANT.push(capOdeurSang); CAPACITES.push(capMachoire, capPlongeeVase, capCrue);
+
+/* DEUX ESSAIS DE COULEUR DU BOSS DANS L'ARENE DEV (18/11/2026, « tu peux me mettre l'albinos et l'ardoise dans l'arene du boss ? », Mathieu, apres cinq
+   couleurs essayees sur son image : maquettes/saison-des-pluies/croco-boss/couleurs/) : le meme modele, le meme kit, une autre texture
+   (outils/tribu/couleurs_croco.py), chargee seulement quand on les appelle */
+const COULEURS_CROCO = { 'croco-boss-albinos': ['crocoBossAlbinos', 'Croco sauvage albinos'], 'croco-boss-ardoise': ['crocoBossArdoise', 'Croco sauvage ardoise'] };
+for (const [m, [cle, nom]] of Object.entries(COULEURS_CROCO)) {
+  SQUELETTES_A_CHARGER.push([m, 'assets/modeles/jeu/croco-boss-anime.glb', 4.6]); NOMS_BW2.add(m); VITESSE_FAMILLE[m] = VITESSE_FAMILLE['croco-boss']; RENDU_B_PAR[m] = RENDU_B_PAR['croco-boss'];
+  MONSTRES[cle] = Object.assign({}, MONSTRES.crocoBoss, { nom, modele: m });
+  GROUPES_DEV[cle] = { nom: 'Le boss de la 110, ' + nom.split(' ').pop() + ' (essai de couleur)', liste: { [cle]: 1 } };
+}
+GROUPES_DEV.crocoBoss.nom = 'Le boss de la 110 (vert, la couleur actuelle)';
+const chargerSquelette3 = chargerSquelette; chargerSquelette = async function (nom, url, h) { await chargerSquelette3(nom, url, h); const M = MODELES[nom];
+  if (!COULEURS_CROCO[nom] || !M) return;
+  const t = await new Promise((ok) => new T.TextureLoader().load('assets/modeles/jeu/' + nom + '.jpg?v=' + VERSION_MODELES, ok, undefined, () => ok(null))); if (!t) return;
+  M.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour' && o.material && o.material.map) { const a = o.material.map; t.flipY = a.flipY; t.encoding = a.encoding; t.wrapS = a.wrapS; t.wrapT = a.wrapT; t.anisotropy = a.anisotropy;
+    o.material.map = t; o.material.needsUpdate = true; } }); };
