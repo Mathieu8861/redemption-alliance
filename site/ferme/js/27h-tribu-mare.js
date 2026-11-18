@@ -9,4 +9,12 @@ SQUELETTES_A_CHARGER.push(['croco-vase', 'assets/modeles/jeu/croco-vase-anime.gl
 MONSTRES.crocoVase = { element: 'eau', nom: 'Croco de la vase', modele: 'croco-vase', icone: 'triton', /* (icone provisoire : la sienne se fera d'apres son rendu en jeu) */
   desc: 'la bête de la vase, voûtée sur ses longs bras : elle fonce sur toi et lacère de ses griffes', pv: (n) => 4800 + 140 * (n - 100), deg: (n) => 88 + Math.round(3 * (n - 100)),
   cadence: 1.6, vitesse: 3.0, portee: 2.0, ombre: 2.2 };
-AVANT_PREMIERE.unshift('crocoVase'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 3 } };
+/* LE PIRANHA DE GUERRE (18/11/2026, « Piranha de guerre » choisi par Mathieu apres le Croco) : petit, rond et rapide, en nombre ; meme methode (dessin de face
+   sans son couteau d'os, Rodin, aplats, squelette des creatures) avec le corps d'un bloc (lier-squelette.py ... corps_rigide corps_bassin : les mutants
+   penchaient la tete et pliaient l'oeuf). Forces provisoires, sans sort ; idee de Mathieu pour son kit : « saignement, moins on a de PV plus les piranhas
+   sont forts » (a regler avec lui) */
+SQUELETTES_A_CHARGER.push(['piranha', 'assets/modeles/jeu/piranha-anime.glb', 1.7]); NOMS_BW2.add('piranha'); VITESSE_FAMILLE['piranha'] = 1.3;
+MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha', icone: 'triton', /* (icone provisoire) */
+  desc: 'petit, rond et vorace, il arrive en bande et mord vite', pv: (n) => 2600 + 80 * (n - 100), deg: (n) => 55 + Math.round(2 * (n - 100)),
+  cadence: 1.0, vitesse: 3.6, portee: 1.6, ombre: 1.6 };
+AVANT_PREMIERE.unshift('crocoVase', 'piranha'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4 } };
