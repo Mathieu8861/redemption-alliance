@@ -77,7 +77,7 @@ function effetsEnCours() {
   if (c ? c.regen : S_.menthe) L.push(['pot-menthe', 'Pot de Menthe : il te soigne pendant la vague' + (c ? '' : ' (la prochaine)')]);
   if (c ? c.citron : S_.citron) L.push(['pot-citron', 'Pot de Citron : tu cours ' + vite + ' % plus vite' + suite]);
   const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + agi + ' Agilité' + suite]);
-  if (c && c.rafale) L.push(['passif-' + modeleDe('cra', ''), 'Rafale (passif du Cra) : +' + RAFALE_CRA.pas + ' Agilité par flèche tirée, sans limite, jusqu’à la fin du combat', c.rafale]); /* (17/11/2026 : le chiffre en pastille, mis a jour sans redessiner les icones) */
+  if (c && c.rafale) L.push(['passif-' + modeleDe('cra', ''), 'Rafale (passif du Cra) : +' + RAFALE_CRA.pas + ' Agilité par flèche tirée, jusqu’à +' + RAFALE_CRA.max + ', gardée jusqu’à la fin du combat', c.rafale]); /* (17/11/2026 : le chiffre en pastille, mis a jour sans redessiner les icones) */
   if (!c && bouclierActif()) L.push(['bouclier-vsa', 'Bouclier anti-VSA : ta grange est protégée encore ' + dureeLisible(S_.bouclierVsa - Date.now()) + ', aucune simu ni voleur de VSA']); /* (07/11/2026) */
   return L;
 }

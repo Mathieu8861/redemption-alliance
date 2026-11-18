@@ -202,6 +202,8 @@ const STATS_CLASSE = {
 /* (le palier 10, 08/11/2026, « les vagues 91 a 100 doivent etre plus dures que 80 a 90, comme on fait a chaque fois qu'on rajoute un palier », Mathieu :
    regle pour que la force des vagues monte du palier 9 au 10 autant que du 8 au 9) */
 const DURETE_FORET = { pv: 1.6, deg: 1.55 };
+const PLUS_VAGUE = { 100: 1.15 }; /* (18/11/2026, « augmente de 15 % la difficulté sur la vague 100, que ce soit en normal ou en difficile », Mathieu : PV et dégâts de tous ses monstres, boss et renforts compris, à la vague comme à sa revanche, normale ou difficile ; pas l'Arène ni l'île) */
+const plusVague = () => (typeof combat !== 'undefined' && combat && !combat.arene && combat.genre !== 'ile' && PLUS_VAGUE[combat.n]) || 1;
 const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }, DURETE_FORET]; /* (l'ile de Moon, 02/11/2026 : comme le palier 8, la difference est dans les fiches) */ /* (les Koalaks, 14/10/2026 : 1,61 et 1,73 au premier jet, simule trop dur quand ils fonçaient tous sur le perso ; les Immatures vont maintenant aux champs, comme les Wabbits) */
 const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? { pv: 1, deg: 1 } : DURETE[palierDe(n)]; /* les voleurs des raids VSA ont leur propre equilibrage */
 /* « quand on reprend une nouvelle phase, les mobs sont nuls sur les premiers niveaux : la vague 19 est plus dure que la 22 » (Mathieu, 12/10/2026) :
