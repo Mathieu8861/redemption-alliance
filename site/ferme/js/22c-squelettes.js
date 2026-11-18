@@ -230,6 +230,8 @@ function clonerSquelette(nom) {
   g.userData.anim = { mixer, A, F, cour: null, fam: null, dernier: {}, repT: 0, caisse: trouverCaisse(g), frappe: frappeur(g, POINGS.has(nom)), peau, eclat: 0 };
   jouerAnim(g.userData.anim, piocher(g.userData.anim, 'repos'), 0); return g;
 }
+/* (18/11/2026) en frenesie, le Croco sauvage garde ses allures a quatre pattes (la 2e variante de chaque famille) */
+const choixAllure = (mo, an, fam) => (mo && mo.frenesie && an.F[fam] && an.F[fam][1]) || piocher(an, fam);
 function piocher(an, fam) { const L = an.F[fam] || an.F.repos || []; if (!L.length) return null; let n = L[Math.floor(Math.random() * L.length)]; if (L.length > 1 && n === an.dernier[fam]) n = L[(L.indexOf(n) + 1) % L.length]; an.dernier[fam] = n; return n; }
 function jouerAnim(an, nom, fondu) {
   const a = nom && an.A[nom]; if (!a) return null; if (an.cour === nom && FAMILLES_BOUCLE.has(an.fam)) return a;
@@ -263,10 +265,10 @@ function majSquelette(mo, v, dt) {
       const nat = (f) => { const L = an.F[f]; const x = L && mo.m.userData.vit[L[0]]; return x > 0.2 ? x : 0; };
       const C = ['marche', 'course'].map((f) => [f, nat(f)]).filter(([, x]) => x); if (!C.length) C.push(['marche', 1.4]);
       const ecart = ([, x]) => { const r = v / x; return r < ALLURE_MIN ? (ALLURE_MIN - r) * 3 : r > ALLURE_MAX ? r - ALLURE_MAX : Math.abs(Math.log(r / 1.15)) * 0.1; };
-      const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) { jouerAnim(an, piocher(an, fam), 0.25); an.varT = 8 + Math.random() * 6; }
-      else if (mo.d.varieAllure && (an.F[fam] || []).length > 1 && (an.varT = (an.varT || 0) - dt) <= 0) { jouerAnim(an, piocher(an, fam), 0.45); an.varT = 8 + Math.random() * 6; } /* (varieAllure : en marchant ou en courant, il change de variante toutes les 8 a 14 s ; le Croco sauvage passe a quatre pattes de temps en temps, 18/11/2026) */
+      const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) { jouerAnim(an, choixAllure(mo, an, fam), 0.25); an.varT = 8 + Math.random() * 6; }
+      else if (mo.d.varieAllure && (an.F[fam] || []).length > 1 && (an.varT = (an.varT || 0) - dt) <= 0) { jouerAnim(an, choixAllure(mo, an, fam), 0.45); an.varT = 8 + Math.random() * 6; } /* (varieAllure : en marchant ou en courant, il change de variante toutes les 8 a 14 s ; le Croco sauvage passe a quatre pattes de temps en temps, 18/11/2026) */
       if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)) * vitAnim(mo); }
-    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); an.repT = 5 + Math.random() * 5; }
+    else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, choixAllure(mo, an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); an.repT = 5 + Math.random() * 5; }
   }
   const rage = mo.enrage && mo.d.auraRage && mo.etat === 'actif'; if (rage) auraRage(mo, an, dt);
   if (an.eclat > 0 || rage) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16, g = rage ? 0.16 + 0.12 * Math.sin(performance.now() / 150) : 0; an.peau.forEach((m) => { const b0 = m.emissiveMap ? 1 : 0, Lu = an.lueur; m.emissive.setRGB((Lu ? Lu.r : b0) + 0.32 * k + g, (Lu ? Lu.g : b0) + 0.06 * k + g * 0.3, (Lu ? Lu.b : b0) + 0.03 * k + g * 0.04); }); /* (an.lueur : la lueur d'un monstre teinte, l'Ancestral Maudit, 09/11/2026) */ /* (b0 : un modele aux yeux qui luisent garde son image d'emission allumee ; a 0, le premier coup recu eteignait ses yeux pour tout le combat, 08/11/2026) */ /* (un eclat leger : plus fort, une Tortue jaune virait au rose ; enrage, Moon rougeoie en battant) */ }
