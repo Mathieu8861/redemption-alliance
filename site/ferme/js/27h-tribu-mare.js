@@ -36,5 +36,12 @@ SQUELETTES_A_CHARGER.push(['brochet', 'assets/modeles/jeu/brochet-anime.glb', 2.
 MONSTRES.brochet = { element: 'eau', nom: 'Brochet enragé', modele: 'brochet', icone: 'triton', /* (icone provisoire) */
   desc: 'le guerrier de la tribu, sa lance à la main : il te harcèle de coups de lance', pv: (n) => 4400 + 130 * (n - 100), deg: (n) => 92 + Math.round(3 * (n - 100)),
   cadence: 1.5, vitesse: 3.0, portee: 2.6, ombre: 2.0 };
-AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'brochet', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4, brochet: 2 } };
+/* LE SILURE CHAMAN (18/11/2026, fait pendant que Mathieu etait sur son telephone) : dessin fidele, Rodin, texture d'origine eclaircie vers le mauve, corps
+   d'un bloc, les gestes de magie du Bwork mage (retouches pour qu'il reste de face) et son baton en main ; comme le Bwork mage, il tire de la magie de loin
+   et soigne les siens. Forces provisoires */
+SQUELETTES_A_CHARGER.push(['silure', 'assets/modeles/jeu/silure-anime.glb', 2.2]); NOMS_BW2.add('silure'); VITESSE_FAMILLE['silure'] = 1.2;
+MONSTRES.silure = { element: 'eau', nom: 'Silure chaman', modele: 'silure', icone: 'triton', /* (icone provisoire) */
+  desc: 'le sorcier de la tribu, son bâton à la main : il te lance sa magie de loin et soigne les siens, abats-le en premier', pv: (n) => 3600 + 110 * (n - 100), deg: (n) => 70 + Math.round(2 * (n - 100)),
+  cadence: 2.0, vitesse: 2.4, portee: 5, distance: true, magie: true, soigne: 4, ombre: 2.0 };
+AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4, brochet: 2, silure: 1 } };
 GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };
