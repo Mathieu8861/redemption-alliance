@@ -19,7 +19,7 @@ for (const [n, h, v] of Object.values(BWORKS_V2)) { SQUELETTES_A_CHARGER.push([n
 const RENDU_B = { ombre: { value: new T.Vector3(0.6, 0.59, 0.65) }, dir: { value: new T.Vector3(-0.75, 0.6, 0.3).normalize() }, contour: '#2f3b1a', ep: 0.006 };
 /* (18/11/2026, le Croco sauvage : « un peu trop de contraste », Mathieu, et des traits noirs sur ses pics : son propre rendu B, ombre plus claire et plus douce,
    contour plus fin) */
-const RENDU_B_PAR = { 'croco-boss': { cle: 'croco', ombre: { value: new T.Vector3(0.76, 0.76, 0.8) }, dir: RENDU_B.dir, lisse: [-0.15, 0.3], contour: '#25331b', ep: 0.0035 } };
+const RENDU_B_PAR = { 'croco-boss': { cle: 'croco', ombre: { value: new T.Vector3(0.76, 0.76, 0.8) }, dir: RENDU_B.dir, lisse: [-0.15, 0.3], sansContour: true } }; /* (sansContour : entre ses pics fins et serres, la coque du contour ressortait en plaques vert fonce, « fais attention au vert qui ressort sur son dos », Mathieu) */
 function matiereB(m, R) { R = R || RENDU_B; const L = R.lisse || [0.02, 0.10];
   m.onBeforeCompile = (sh) => { sh.uniforms.uOmbreB = R.ombre; sh.uniforms.uDirB = R.dir;
     sh.fragmentShader = 'uniform vec3 uOmbreB;\nuniform vec3 uDirB;\n' + sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
@@ -35,7 +35,7 @@ function habillerB(M, R) { R = R || RENDU_B;
   M.updateMatrixWorld(true); const v = new T.Vector3(), peaux = [], armes = [];
   M.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') peaux.push(o); else if (o.isMesh && !o.isSkinnedMesh && o.name !== 'contour-b') armes.push(o); });
   peaux.forEach((o) => { const map = o.material.map; o.material = matiereB(new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, skinning: true, side: T.DoubleSide }), R);
-    const k = o.parent && o.parent.children.find((c) => c.name === 'contour' && c.isSkinnedMesh && c.geometry === o.geometry); if (k) k.material = contourB(R.ep / o.getWorldScale(v).x, true, R.contour); });
+    const k = o.parent && o.parent.children.find((c) => c.name === 'contour' && c.isSkinnedMesh && c.geometry === o.geometry); if (k) { if (R.sansContour) k.visible = false; else k.material = contourB(R.ep / o.getWorldScale(v).x, true, R.contour); } });
   armes.forEach((o) => { const c = (o.material.color || new T.Color('#888888')).clone().convertLinearToSRGB(); /* (le glb donne des couleurs lineaires, le jeu les affiche telles quelles) */
     o.material = matiereB(new T.MeshToonMaterial({ color: c, gradientMap: grad, side: T.DoubleSide })); o.castShadow = true;
     const k = new T.Mesh(o.geometry, contourB(RENDU_B.ep / o.getWorldScale(v).x, false)); k.name = 'contour-b'; o.add(k); });
