@@ -107,19 +107,100 @@ function capCrue(mo, ctx) {
     if (fin || L.every((f) => f.vie <= 0)) { L.forEach((f) => jeter(f.g)); if (c0.flaquesCrue === L) c0.flaquesCrue = null; return true; } return false; });
 }
 CAPACITES_AVANT.push(capOdeurSang); CAPACITES.push(capMachoire, capPlongeeVase, capCrue);
+/* (18/11/2026, « je garde l'ardoise », Mathieu : sa couleur est cuite dans son modele, gris-bleu sombre et crete rouge ; les essais albinos et ardoise de l'Arene
+   dev sont retires) */
 
-/* DEUX ESSAIS DE COULEUR DU BOSS DANS L'ARENE DEV (18/11/2026, « tu peux me mettre l'albinos et l'ardoise dans l'arene du boss ? », Mathieu, apres cinq
-   couleurs essayees sur son image : maquettes/saison-des-pluies/croco-boss/couleurs/) : le meme modele, le meme kit, une autre texture
-   (outils/tribu/couleurs_croco.py), chargee seulement quand on les appelle */
-const COULEURS_CROCO = { 'croco-boss-albinos': ['crocoBossAlbinos', 'Croco sauvage albinos'], 'croco-boss-ardoise': ['crocoBossArdoise', 'Croco sauvage ardoise'] };
-for (const [m, [cle, nom]] of Object.entries(COULEURS_CROCO)) {
-  SQUELETTES_A_CHARGER.push([m, 'assets/modeles/jeu/croco-boss-anime.glb', 4.6]); NOMS_BW2.add(m); VITESSE_FAMILLE[m] = VITESSE_FAMILLE['croco-boss']; RENDU_B_PAR[m] = RENDU_B_PAR['croco-boss'];
-  MONSTRES[cle] = Object.assign({}, MONSTRES.crocoBoss, { nom, modele: m });
-  GROUPES_DEV[cle] = { nom: 'Le boss de la 110, ' + nom.split(' ').pop() + ' (essai de couleur)', liste: { [cle]: 1 } };
+/* SES ATTAQUES ET SA RUEE (18/11/2026, « les autos il ne bouge meme pas ses bras ; 4 types d'auto : coup de griffe violent bras gauche avec elan, coup de griffe
+   de haut en bas qui tape vite, coup de queue a 360 degres, et une morsure. Quand il fonce en ligne, il glisse sur le sol : fais-le courir tres vite, ou sauter
+   en ligne depuis ses deux pattes et atterrir sur 4 pattes, avec mouvements de tete, de corps et de queue », puis « n'hesite pas sur les petits effets de vent,
+   de sol qui se fend sous ses sauts », Mathieu). Ses gestes sont dans son modele (blender/monstre-anime.py, crocoBoss2) : coup_1 la griffe avec elan, coup_2 la
+   griffe de haut en bas (bras gauche), coup_3 la morsure, queue (sa pose basse pour tourner), ruee (accroupi, bond, atterrissage a quatre pattes), secoue, plonge.
+   - ses autos : le jeu tire l'un des trois coups ; chacun a son effet (vent de la griffe, sol fendu sous la frappe d'en haut, il se jette en avant pour mordre) ;
+   - le coup de queue : de pres, un cercle bleu autour de lui, il arme puis tourne sur lui-meme, sa queue fauche tout le cercle et te repousse ;
+   - la ruee remplace la charge des boss : une bande rouge, il s'accroupit, bondit le long de la bande et retombe a quatre pattes, le sol se fend ; sur son
+     passage, tu es touche et repousse */
+Object.assign(KIT_CROCO, {
+  ruee: { periode: 4.5, prepa: 0.8, max: 12, vitesse: 17, decolle: 0.55, atterrit: 1.25, x: 1.2, repousse: 1.6, haut: 0.25 },
+  queue: { periode: 6, R: 3.6, prepa: 0.55, tour: 0.45, x: 1.1, repousse: 1.4 },
+});
+Object.assign(MONSTRES.crocoBoss, { charge: 0, ruee: KIT_CROCO.ruee, queue360: KIT_CROCO.queue,
+  desc: 'le chasseur de la mare, il ne te laisse pas respirer : griffes, morsures, et de près il fauche tout autour de lui avec sa queue (sors du cercle bleu). Dès que tu t\'éloignes, il bondit sur toi le long d\'une bande rouge. Plus tu es blessé plus il est rapide, et sous la moitié de sa vie ses coups le soignent. Il bondit pour te happer et te secouer (sors du cercle rouge), plonge dans la vase et jaillit sous toi, fait déborder la mare (les flaques te ralentissent, lui accélèrent), et sous 30 % de vie il passe à quatre pattes : la frénésie de sang' });
+GROUPES_DEV.crocoBoss.nom = 'Le boss de la 110 : le Croco sauvage';
+const devant = (mo, d) => ({ x: mo.x + Math.sin(mo.ry) * d, z: mo.z + Math.cos(mo.ry) * d });
+/* le vent d'une griffe : un croissant blanc qui balaie devant lui et s'efface (a plat pour la griffe de cote, debout pour celle d'en haut) */
+function griffeVent(mo, debout) {
+  const H = mo.haut || 4.6, g = new T.Group(), mats = [];
+  for (const [r, l, op] of [[2.2, 0.5, 0.75], [1.75, 0.3, 0.5]]) { const m = new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending });
+    const a = new T.Mesh(new T.RingGeometry(r - l * 0.5, r, 28, 1, -1.2, 2.4), m); mats.push(m); g.add(a); }
+  if (debout) { g.rotation.set(0, mo.ry + Math.PI / 2, 0); g.children.forEach((a) => { a.rotation.z = Math.PI / 2; }); g.position.set(mo.x + Math.sin(mo.ry) * 1.2, mo.m.position.y + H * 0.4, mo.z + Math.cos(mo.ry) * 1.2); }
+  else { g.children.forEach((a) => { a.rotation.x = -Math.PI / 2; }); g.rotation.y = mo.ry + Math.PI / 2; g.position.set(mo.x, mo.m.position.y + H * 0.42, mo.z); }
+  sansClic(g); scene.add(g); let t = 0;
+  effets.push((dt) => { t += dt; const k = t / 0.28; g.scale.setScalar(0.8 + 0.5 * k); g.rotation.y += dt * (debout ? 0 : -7); mats.forEach((m, i) => { m.opacity = (i ? 0.5 : 0.75) * Math.max(0, 1 - k); }); if (k >= 1) { jeter(g); return true; } return false; });
+  const p = devant(mo, 1.8); emettre(FX_VIF, 10, { x: p.x, y: mo.m.position.y + H * 0.4, z: p.z, r: 0.6, dv: 6, vie: [0.15, 0.3], taille: [0.09, 0.03], c: ['#ffffff', '#e8f4ff'], a: 0.9, etire: 0.05 });
 }
-GROUPES_DEV.crocoBoss.nom = 'Le boss de la 110 (vert, la couleur actuelle)';
-const chargerSquelette3 = chargerSquelette; chargerSquelette = async function (nom, url, h) { await chargerSquelette3(nom, url, h); const M = MODELES[nom];
-  if (!COULEURS_CROCO[nom] || !M) return;
-  const t = await new Promise((ok) => new T.TextureLoader().load('assets/modeles/jeu/' + nom + '.jpg?v=' + VERSION_MODELES, ok, undefined, () => ok(null))); if (!t) return;
-  M.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour' && o.material && o.material.map) { const a = o.material.map; t.flipY = a.flipY; t.encoding = a.encoding; t.wrapS = a.wrapS; t.wrapT = a.wrapT; t.anisotropy = a.anisotropy;
-    o.material.map = t; o.material.needsUpdate = true; } }); };
+/* chaque auto a son effet, a l'instant ou elle touche (le coup joue est celui du squelette a cet instant) */
+const blesserPersoCroco = blesserPerso; blesserPerso = function (n, mo) {
+  const an = mo && mo.d && mo.d.queue360 && mo.m && mo.m.userData.anim, cour = an ? String(an.cour || '') : '', ok = blesserPersoCroco(n, mo);
+  if (!an || !cour.startsWith('coup_') || !combat) return ok; const p = paysanMesh.position;
+  if (cour === 'coup_1') { griffeVent(mo, false); if (ok) pouf(p.x, p.y + 1.3, p.z, 0.8, '#b3261e'); }
+  else if (cour === 'coup_2') { griffeVent(mo, true); const q = devant(mo, 2.1), yq = solA(q.x, q.z); solFendu(q.x, yq, q.z, 1.3, false); poussiere(q.x, yq, q.z, 5, 0.7, '#9a8a70'); mottes(q.x, yq, q.z, 3, 0.9); secousse(0.06, 0.15); }
+  else if (cour === 'coup_3') { let t = 0; effets.push((dt) => { t += dt; const k = t / 0.32; mo.elanB = 1.0 * Math.sin(Math.min(1, k) * Math.PI); if (k >= 1) { mo.elanB = 0; return true; } return false; }); /* (il se jette en avant, gueule la premiere) */
+    if (ok) { pouf(p.x, p.y + 1.1, p.z, 1.0, '#b3261e'); emettre(FX_VIF, 8, { x: p.x, y: p.y + 1.1, z: p.z, r: 0.3, dv: 3, vie: [0.2, 0.35], taille: [0.1, 0.04], c: ['#ffffff', '#ff6a5a'], a: 0.9 }); } }
+  return ok;
+};
+/* le coup de queue a 360 degres */
+function capQueue(mo, ctx) {
+  const Q = mo.d.queue360; if (!Q || mo.etat !== 'actif' || mo.plonge || mo.geste || mo.rueeOn) return; const { pp, sortPret } = ctx;
+  if (!sortPret('queueT', Q.periode * (mo.frenesie ? mo.d.frenesie.sorts : 1)) || Math.hypot(pp.x - mo.x, pp.z - mo.z) > Q.R - 0.3) return; /* (pret, il attend que tu sois tout pres) */
+  const an = mo.m.userData.anim, c0 = combat, x0 = mo.x, z0 = mo.z; mo.queueT = 0; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z);
+  mo.bloqueT = Q.prepa + Q.tour + 0.3; mo.cd = Math.max(mo.cd || 0, Q.prepa + Q.tour + 0.2);
+  if (an && an.F.queue) { jouerAnim(an, an.F.queue[0], 0.12); mo.geste = { t: 0, d: Q.prepa + Q.tour + 0.2 }; }
+  if (!c0.queueVu) { c0.queueVu = true; toast(leNom(mo.d) + ' arme sa queue pour tout faucher autour de lui : sors du cercle bleu !', 'alerte'); }
+  let t = 0; const fin = () => { mo.tourne = 0; mo.hop = 0; return true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin();
+    if (t < Q.prepa) { const a = Math.min(1, t / Q.prepa), e = a * a * (3 - 2 * a); mo.tourne = -0.8 * e; return false; } /* (il arme, le corps tourne en arriere) */
+    const u = Math.min(1, (t - Q.prepa) / Q.tour), e = 1 - Math.pow(1 - u, 2); mo.tourne = -0.8 + e * (Math.PI * 2 + 0.8); mo.hop = 0.25 * Math.sin(u * Math.PI);
+    const b = mo.ry + mo.tourne + Math.PI, r = Q.R * 0.85, q = { x: mo.x + Math.sin(b) * r, z: mo.z + Math.cos(b) * r }, yq = solA(q.x, q.z); /* (le bout de la queue rase le sol) */
+    if (Math.random() < dt * 40) poussiere(q.x, yq, q.z, 2, 0.6, '#b8a888');
+    emettre(FX_VIF, 2, { x: q.x, y: yq + 0.6, z: q.z, r: 0.3, v: [Math.cos(b) * 7, 0.5, -Math.sin(b) * 7], vie: [0.15, 0.3], taille: [0.08, 0.03], c: ['#ffffff', '#dfefff'], a: 0.8, etire: 0.05 });
+    if (u >= 1) return fin(); return false; });
+  zoneDanger({ mo, x: x0, z: z0, r: Q.R, duree: Q.prepa, couleur: COULEUR_CAC, effet: (d) => { const y = solA(x0, z0);
+    onde(x0, y + 0.05, z0, Q.R, '#ffffff', 0.4, 0.8); onde(x0, y + 0.05, z0, Q.R * 0.8, COULEUR_CAC, 0.45, 0.5, true); secousse(0.08, 0.2);
+    const p = paysanMesh.position; if (dansDanger(d, p.x, p.z) && combat === c0 && !c0.fin) { blesserPerso(Math.max(1, Math.round(degSort(mo) * Q.x)), mo); repousserPerso(mo, Q.repousse); } } });
+}
+/* la ruee : accroupi pendant la bande, il bondit le long de la bande et retombe a quatre pattes ; son geste suit la ruee (decollage a la fin de la bande,
+   atterrissage au bout) */
+function capRuee(mo, ctx) {
+  const R = mo.d.ruee; if (!R || mo.etat !== 'actif' || mo.plonge || mo.geste || mo.rueeOn) return; const { pp, sortPret } = ctx;
+  const per = R.periode * (mo.frenesie ? mo.d.frenesie.sorts : 1), dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('rueeT', per)) return; if (dP < 3.2 || dP > R.max || combat.colle > 0) { mo.rueeT = per - 0.3; return; }
+  const c0 = combat, x0 = mo.x, z0 = mo.z, a = Math.atan2(pp.x - x0, pp.z - z0), L = Math.min(R.max + 2, dP + 2.5), f = pointValide(x0, z0, x0 + Math.sin(a) * L, z0 + Math.cos(a) * L);
+  const D = Math.max(0.45, Math.hypot(f.x - x0, f.z - z0) / R.vitesse), an = mo.m.userData.anim, nom = an && an.F.ruee && an.F.ruee[0];
+  mo.rueeT = 0; mo.rueeOn = true; mo.ry = a; mo.bloqueT = R.prepa + D + 0.45; mo.cd = Math.max(mo.cd || 0, R.prepa + D + 0.3);
+  const ac = nom ? jouerAnim(an, nom, 0.12) : null; if (ac) { ac.timeScale = R.decolle / R.prepa; mo.geste = { t: 0, d: R.prepa + D + 0.4 }; }
+  if (!c0.rueeVu) { c0.rueeVu = true; toast(leNom(mo.d) + ' s\'accroupit pour bondir sur toi : sors de la bande rouge !', 'alerte'); }
+  let t = 0, touche = false, parti = false; const fin = () => { mo.rueeOn = false; mo.hop = 0; return true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin(); const y = solA(mo.x, mo.z);
+    if (t < R.prepa) { if (Math.random() < dt * 12) poussiere(x0 - Math.sin(a) * 1.2, y, z0 - Math.cos(a) * 1.2, 1, 0.5, '#9a8a70'); return false; } /* (il gratte le sol, ramasse) */
+    if (!parti) { parti = true; if (ac) ac.timeScale = (R.atterrit - R.decolle) / D; poussiere(x0, y, z0, 8, 1.0, '#9a8a70'); mottes(x0, y, z0, 4, 1.2); secousse(0.05, 0.12); } /* (il decolle) */
+    const k = Math.min(1, (t - R.prepa) / D); mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k; mo.hop = R.haut * Math.sin(k * Math.PI);
+    for (const sgn of [-1, 1]) emettre(FX_VIF, 1, { x: mo.x + Math.cos(a) * 1.4 * sgn, y: y + 1 + Math.random() * 2, z: mo.z - Math.sin(a) * 1.4 * sgn, v: [-Math.sin(a) * 11, 0, -Math.cos(a) * 11], vie: [0.15, 0.25], taille: [0.08, 0.03], c: ['#ffffff', '#e4f0ff'], a: 0.85, etire: 0.05 }); /* (le vent de sa course) */
+    const p2 = paysanMesh.position; if (!touche && Math.hypot(p2.x - mo.x, p2.z - mo.z) < 1.9) { touche = true; blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); repousserPerso(mo, R.repousse); }
+    if (k >= 1) { const yf = solA(f.x, f.z); solFendu(f.x, yf, f.z, 2.4, false); poussiere(f.x, yf, f.z, 12, 1.4, '#9a8a70'); mottes(f.x, yf, f.z, 8, 1.6); onde(f.x, yf + 0.05, f.z, 2.6, '#ffffff', 0.35, 0.5); secousse(0.14, 0.3); /* (il retombe a quatre pattes : le sol se fend) */
+      if (ac) ac.timeScale = 1.3; return fin(); }
+    return false; });
+  zoneDanger({ mo, x: x0, z: z0, x2: f.x, z2: f.z, larg: 2.0, duree: R.prepa, effet: () => {} });
+}
+CAPACITES.unshift(capQueue, capRuee); /* (avec les sorts, apres la rage : leurs minuteurs viennent de ctx.sortPret) */
+/* la Machoire : il retombe sur toi, le sol se fend ; pendant qu'il te tient, il te secoue (son geste « secoue ») ; la Plongee : il plonge, buste en avant */
+const capMachoire0 = capMachoire; capMachoire = function (mo, ctx) { const avant = mo.machoireT; capMachoire0(mo, ctx); if (mo.machoireT !== 0 || avant === 0 || !mo.d.machoire) return;
+  const c0 = combat, M = mo.d.machoire, an = mo.m.userData.anim; let t = 0, tenu = false;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return true;
+    if (t >= M.prepa && !tenu) { tenu = true; const q = devant(mo, 1.1), y = solA(q.x, q.z); solFendu(q.x, y, q.z, 1.8, false); mottes(q.x, y, q.z, 5, 1.3); poussiere(q.x, y, q.z, 6, 0.9, '#9a8a70');
+      if (c0.colle > 0 && an && an.F.secoue) { mo.geste = null; const a2 = jouerAnim(an, an.F.secoue[0], 0.1); if (a2) { a2.timeScale = a2.getClip().duration / M.tenu; mo.geste = { t: 0, d: M.tenu }; } } return true; }
+    return false; }); };
+{ const i = CAPACITES.indexOf(capMachoire0); if (i >= 0) CAPACITES[i] = capMachoire; }
+const capPlongeeVase0 = capPlongeeVase; capPlongeeVase = function (mo, ctx) { const avant = mo.plonge; capPlongeeVase0(mo, ctx); if (avant || !mo.plonge) return;
+  const an = mo.m.userData.anim; if (an && an.F.plonge) { const a2 = jouerAnim(an, an.F.plonge[0], 0.12); if (a2) { a2.timeScale = a2.getClip().duration / 1.0; mo.geste = { t: 0, d: 1.0 }; } }
+  const c0 = combat; let t = 0, vu = false; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) return true; if (!vu && mo.etat === 'grimpe') { vu = true; const y = solA(mo.x, mo.z); solFendu(mo.x, y, mo.z, 2.6, false); mottes(mo.x, y, mo.z, 8, 1.8); return true; } return t > 8; }); };
+{ const i = CAPACITES.indexOf(capPlongeeVase0); if (i >= 0) CAPACITES[i] = capPlongeeVase; }
