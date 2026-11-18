@@ -1594,3 +1594,45 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 /* l'eveil des legendaires : avant / apres (18/11/2026, 27g-eveil-concasseur.js) */
 .eveil-tab { margin: 2px auto 10px; border-collapse: collapse; font-size: .84rem; font-weight: 700; } .eveil-tab th { font-size: .72rem; opacity: .7; padding: 2px 12px; }
 .eveil-tab td { padding: 4px 12px; border-top: 1px solid rgba(255,255,255,.08); text-align: right; } .eveil-tab td:first-child { text-align: left; opacity: .85; } .eveil-tab td:last-child { color: #8fd16a; font-weight: 900; }
+/* L'AUTEL DE L'EVEIL (18/11/2026, 27g-eveil-concasseur.js) : a gauche le cercle magique et sa case, au milieu l'offrande et le bouton, a droite les legendaires */
+.carte:has(.ev-autel) { width: min(100%, 940px); }
+.ev-autel { position: relative; display: grid; grid-template-columns: minmax(250px, 300px) 128px 1fr; gap: 14px; align-items: start; margin-top: 6px; }
+.ev-gauche { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ev-cercle { position: relative; width: 250px; height: 250px; display: grid; place-items: center; }
+.ev-cercle svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: ev-tourne 40s linear infinite; filter: drop-shadow(0 0 6px rgba(200, 144, 255, .55)); }
+.ev-cercle svg .inv { transform-origin: 100px 100px; animation: ev-tourne 22s linear infinite reverse; }
+@keyframes ev-tourne { to { transform: rotate(360deg); } }
+.ev-slot { position: relative; z-index: 1; width: 92px; height: 92px; border-radius: 14px; border: 3px dashed rgba(200, 144, 255, .7); background: rgba(40, 20, 70, .6); display: grid; place-items: center; text-align: center; font-size: .66rem; font-weight: 700; line-height: 1.2; color: #d7c2f5; padding: 4px; box-sizing: border-box; cursor: pointer; transition: box-shadow .2s, transform .2s; }
+.ev-slot.plein { border-style: solid; border-color: #a465e6; box-shadow: 0 0 18px rgba(200, 144, 255, .55), inset 0 0 12px rgba(200, 144, 255, .3); }
+.ev-slot.survol { transform: scale(1.08); box-shadow: 0 0 22px rgba(143, 209, 106, .8); border-color: #8fd16a; }
+.ev-slot .pic { width: 74px; height: 74px; } .ev-slot .pic img { width: 100%; height: 100%; object-fit: contain; }
+.ev-milieu { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 64px; text-align: center; }
+.ev-milieu .ev-slot { width: 80px; height: 80px; } .ev-milieu .ev-slot .pic { width: 64px; height: 64px; }
+.ev-milieu small { font-size: .7rem; opacity: .8; min-height: 1.2em; } .ev-fleche { color: #c890ff; font-size: 1.1rem; text-shadow: 0 0 8px rgba(200, 144, 255, .8); }
+.ev-milieu .btn[disabled] { opacity: .45; cursor: default; }
+.ev-apercu { width: 100%; } .ev-apercu > b { display: block; text-align: center; margin-bottom: 4px; } .ev-apercu .eveil-tab { margin-top: 2px; }
+.ev-plus { text-align: center; color: #8fd16a; font-weight: 900; font-size: 1.05rem; margin: 2px 0 4px; }
+.ev-droite { min-width: 0; } .ev-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px; max-height: 360px; overflow: auto; padding: 4px; }
+.ev-case { position: relative; aspect-ratio: 1; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 2px solid rgba(255, 255, 255, .1); display: grid; place-items: center; cursor: grab; user-select: none; -webkit-user-select: none; transition: opacity .2s, box-shadow .2s; }
+.ev-case .pic { width: 52px; height: 52px; } .ev-case .pic img { width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+.ev-case.eteinte { opacity: .32; } .ev-case.possible { border-color: #8fd16a; box-shadow: 0 0 10px rgba(143, 209, 106, .45); }
+.ev-case.au-centre, .ev-case.offerte { opacity: .4; border-style: dashed; border-color: #c890ff; } .ev-case.glisse { opacity: .3; }
+.ev-niv { position: absolute; right: 4px; bottom: 2px; font-size: .62rem; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.ev-porte { position: absolute; left: 3px; top: 3px; font-size: .52rem; font-weight: 800; background: #2e5a2a; color: #b8f08a; border-radius: 6px; padding: 0 4px; }
+.ev-astuce { font-size: .7rem; opacity: .75; margin-top: 6px; }
+.ev-fantome { position: fixed; left: 0; top: 0; width: 64px; height: 64px; pointer-events: none; z-index: 10000; filter: drop-shadow(0 0 10px rgba(200, 144, 255, .9)); }
+.ev-fantome img { width: 100%; height: 100%; object-fit: contain; }
+.ev-confirme { position: absolute; inset: -4px; z-index: 5; display: grid; place-items: center; background: rgba(14, 9, 24, .84); border-radius: 12px; text-align: center; }
+.ev-confirme > div { max-width: 360px; padding: 16px; border: 2px solid #a465e6; border-radius: 14px; background: var(--papier); box-shadow: 0 0 24px rgba(164, 101, 230, .5); }
+.ev-confirme p { font-size: .84rem; margin: 6px 0; } .ev-confirme .boutons { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+/* la transformation */
+.ev-fusion .ev-cercle svg { animation: ev-tourne 1.1s cubic-bezier(.4, 0, .9, 1) infinite; filter: drop-shadow(0 0 16px #d7b2ff) brightness(1.6); }
+.ev-fusion .ev-slot.sac > * { animation: ev-aspire .9s ease-in forwards; }
+@keyframes ev-aspire { 60% { opacity: 1; } to { transform: translate(var(--dx, 0), var(--dy, 0)) scale(.25) rotate(200deg); opacity: 0; } }
+.ev-fusion .ev-slot.cible { animation: ev-vibre .12s linear infinite alternate; }
+@keyframes ev-vibre { from { transform: translate(-1px, 1px) scale(1.02); } to { transform: translate(1px, -1px) scale(1.06); } }
+.ev-fusion .ev-cercle::after { content: ''; position: absolute; inset: 14%; border-radius: 50%; pointer-events: none; z-index: 2; background: radial-gradient(circle, #fff 0%, rgba(215, 178, 255, .85) 30%, rgba(164, 101, 230, 0) 70%); opacity: 0; animation: ev-eclair 1.5s ease-in forwards; }
+@keyframes ev-eclair { 0%, 62% { opacity: 0; transform: scale(.3); } 82% { opacity: 1; transform: scale(1.25); } 100% { opacity: 0; transform: scale(1.6); } }
+.ev-slot.eclat { animation: ev-eclat 1.3s ease-out; }
+@keyframes ev-eclat { 0% { transform: scale(1.45); box-shadow: 0 0 46px #fff, 0 0 24px #d7b2ff; } 100% { transform: scale(1); } }
+@media (max-width: 760px) { .ev-autel { grid-template-columns: 1fr; } .ev-milieu { padding-top: 0; flex-direction: row; flex-wrap: wrap; justify-content: center; } .ev-cercle { width: 220px; height: 220px; } }

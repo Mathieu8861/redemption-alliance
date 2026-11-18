@@ -38,25 +38,112 @@ const eveilDe = (k) => (S_.eveils && S_.eveils[k]) || 0;
 const exemplairesLeg = () => { /* chaque légendaire possédé, porté ou dans le sac (un exemplaire par entrée ; un sac à 2 du même exemplaire compte pour 2) */
   const L = []; Object.values(S_.equip || {}).forEach((k) => { if (k && objBrut(k) && objBrut(k).leg) L.push({ k, porte: true }); });
   Object.entries(S_.sac || {}).forEach(([k, n]) => { const o = objBrut(k); if (o && o.leg && rangLeg(o) != null) for (let i = 0; i < n; i++) L.push({ k, porte: false }); }); return L; };
+/* L'AUTEL DE L'EVEIL (18/11/2026, « sur la gauche, un endroit ou tu fais glisser l'item legendaire que tu veux modifier, une espece de cercle magique, et au
+   milieu le carre ou tu le deposes ; a droite ton inventaire avec les legendaires ; tu deposes une de celles-la dans une case aussi ; tu cliques au milieu sur
+   fusionner ; un message de confirmation ; une petite transformation animee, et ca te montre ta coiffe qui a pris 10 niveaux », Mathieu). Une piece se glisse
+   a la souris (des qu'elle bouge de 8 px) ou au doigt (un appui de 0,2 s, pour garder le defilement), ou se touche : la premiere va au centre du cercle, un
+   doublon qui lui correspond va dans la case de l'offrande ; toucher une case pleine la vide. */
+const EV = { cible: null, sac: null, fin: null }; /* (cible et sac : des cles d'exemplaire ; fin : la fusion qui vient d'avoir lieu, a montrer) */
+const evPortee = (k) => Object.values(S_.equip || {}).includes(k);
+const evPeutSac = (x) => !!EV.cible && !x.porte && baseObjet(x.k) === baseObjet(EV.cible) && (x.k !== EV.cible || (S_.sac[x.k] || 0) >= (evPortee(EV.cible) ? 1 : 2));
+const EV_CERCLE = '<svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="#c890ff" stroke-width="1.6"><circle cx="100" cy="100" r="96" stroke-width="2.4"/><circle cx="100" cy="100" r="88" stroke-dasharray="3 6"/>' +
+  '<circle cx="100" cy="100" r="70"/><polygon points="100,12 176,144 24,144"/><polygon points="100,188 24,56 176,56"/></g><g fill="#d7b2ff">' +
+  [0, 60, 120, 180, 240, 300].map((a) => { const r = a * Math.PI / 180; return '<circle cx="' + (100 + 92 * Math.sin(r)).toFixed(1) + '" cy="' + (100 - 92 * Math.cos(r)).toFixed(1) + '" r="4"/>'; }).join('') + '</g>' +
+  '<g class="inv" fill="none" stroke="#a465e6" stroke-width="1.2"><circle cx="100" cy="100" r="58" stroke-dasharray="14 5 2 5"/><circle cx="100" cy="100" r="50"/></g></svg>';
 function ouvrirEveil() {
-  const groupes = {}; exemplairesLeg().forEach((x) => { const b = baseObjet(x.k); (groupes[b] = groupes[b] || []).push(x); });
-  const lignes = Object.entries(groupes).map(([b, L]) => {
-    /* la pièce à monter : celle qui est portée, sinon la plus éveillée, puis le meilleur jet ; le sacrifice : un autre exemplaire, le moins éveillé, au moins bon jet */
-    L.sort((x, y) => (y.porte ? 1 : 0) - (x.porte ? 1 : 0) || eveilDe(y.k) - eveilDe(x.k) || qualiteJet(y.k) - qualiteJet(x.k));
-    const cible = L[0], autres = L.slice(1).filter((x) => !x.porte), sac = autres.sort((x, y) => eveilDe(x.k) - eveilDe(y.k) || qualiteJet(x.k) - qualiteJet(y.k))[0];
-    const o = obj(cible.k), reste = fusionsMax(cible.k) - eveilDe(cible.k), apres = reste > 0 ? eveillerObjet(objBrut(cible.k), eveilDe(cible.k) + 1) : null;
-    const st = (s) => statsTexte(s);
-    return '<div class="art">' + icoObjet(cible.k) + '<div><b>✦ ' + o.nom + (cible.porte ? ' <span class="puce bonne">portée</span>' : '') + '</b><div class="desc">Niveau ' + o.niv + (eveilDe(cible.k) ? ', éveillée ' + eveilDe(cible.k) + ' fois' : '') + '</div><div class="puces">' + st(o.stats) + '</div>' +
-      (apres ? '<div class="desc" style="margin-top:4px">Après la fusion : <b>niveau ' + apres.niv + '</b></div><div class="puces">' + st(apres.stats) + '</div>' : '<div class="desc">' + (reste <= 0 ? 'Au plus haut pour le moment : elle a atteint le dernier palier ouvert.' : '') + '</div>') +
-      '</div><div class="act">' + (apres ? (sac ? '<button class="btn kamas" data-eveil="' + cible.k + '|' + sac.k + '">Fusionner</button><small>' + (L.length - 1) + ' doublon' + (L.length > 2 ? 's' : '') + '</small>' : '<small>Il faut un doublon de cette pièce dans ton sac.</small>') : '<span class="cadenas">✓ max</span>') + '</div></div>';
-  });
-  ouvrirModale('eveil', entete('L\'éveil des légendaires') + '<p class="hdv-aide">Sacrifie un <b>doublon exact</b> d\'un légendaire (même pièce, même boss) pour le faire monter : <b>+10 niveaux</b> à chaque fusion, et ses stats passent à celles du palier suivant, en gardant les mêmes lignes et son jet. Pas au-delà du dernier palier ouvert (niveau ' + (10 * (rangMaxLeg() + 1)) + '). Le doublon est détruit.</p>' +
-    (lignes.length ? lignes.join('') : '<p class="hdv-aide">Tu n\'as aucune pièce légendaire pour l\'instant.</p>') + (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
+  const L = exemplairesLeg(), a = (k) => L.some((x) => x.k === k);
+  if (EV.cible && !a(EV.cible)) EV.cible = null; if (EV.sac && (!EV.cible || !L.some((x) => x.k === EV.sac && evPeutSac(x)))) EV.sac = null;
+  const c = EV.cible, s = EV.sac, oc = c && obj(c), max = !!c && eveilDe(c) >= fusionsMax(c), ap = c && !max ? eveillerObjet(objBrut(c), eveilDe(c) + 1) : null, F = EV.fin;
+  let vuC = false, vuS = false;
+  const tuiles = L.map((x) => { let e = '';
+    if (x.k === c && !vuC) { vuC = true; e = 'au-centre'; } else if (x.k === s && !vuS) { vuS = true; e = 'offerte'; } else if (c) e = evPeutSac(x) ? 'possible' : 'eteinte';
+    const o = obj(x.k); return '<div class="ev-case ' + e + '" data-ev-k="' + x.k + '" data-ev-porte="' + (x.porte ? 1 : 0) + '" data-ev-etat="' + e + '" title="' + o.nom.replace(/"/g, '') + ', niveau ' + o.niv + '">' + icoObjet(x.k) +
+      '<span class="ev-niv">' + o.niv + '</span>' + (x.porte ? '<span class="ev-porte">portée</span>' : '') + '</div>'; });
+  const slot = (k, quoi, vide, eclat) => '<div class="ev-slot ' + quoi + (k ? ' plein' : '') + (eclat ? ' eclat' : '') + '" data-ev-slot="' + quoi + '">' + (k ? icoObjet(k) : '<span>' + vide + '</span>') + '</div>';
+  const apercu = F ? '<div class="ev-apercu ev-resultat"><b>✦ ' + obj(F.k).nom + '</b><div class="ev-plus">Niveau ' + F.avant.niv + ' → ' + obj(F.k).niv + ' (+' + (obj(F.k).niv - F.avant.niv) + ')</div>' + tableEveil(F.avant, obj(F.k)) + '</div>'
+    : c ? '<div class="ev-apercu"><b>✦ ' + oc.nom + '</b>' + (ap ? tableEveil(oc, ap) : '<p class="hdv-aide">Elle a atteint le dernier palier ouvert (niveau ' + oc.niv + ') : elle ne peut plus monter pour le moment.</p>') + '</div>'
+    : '<div class="ev-apercu vide"><p class="hdv-aide">Chaque fusion donne <b>+10 niveaux</b> à la pièce du centre, et ses stats passent au palier suivant, en gardant ses lignes et son jet, sans dépasser le dernier palier ouvert (niveau ' + (10 * (rangMaxLeg() + 1)) + '). Le doublon est détruit.</p></div>';
+  const aide = !c ? 'Dépose une pièce au centre' : max ? 'Au plus haut pour le moment' : s ? 'Il sera détruit' : L.some((x) => evPeutSac(x)) ? 'Dépose un doublon' : 'Aucun doublon dans ton sac';
+  ouvrirModale('eveil', entete('L\'éveil des légendaires') + '<div class="ev-autel">' +
+    '<div class="ev-gauche"><div class="ev-cercle">' + EV_CERCLE + slot(c, 'cible', 'Glisse ici la pièce à éveiller', !!F) + '</div>' + apercu + '</div>' +
+    '<div class="ev-milieu"><div class="ev-fleche">◀</div>' + slot(s, 'sac', 'Le doublon') + '<small>' + aide + '</small>' +
+      (F ? '<button class="btn discret" data-ev-encore>Continuer</button>' : '<button class="btn kamas" data-ev-fusion' + (c && s && !max ? '' : ' disabled') + '>Fusionner</button>') + '</div>' +
+    '<div class="ev-droite"><div class="hdv-section">Tes légendaires</div>' + (L.length ? '<div class="ev-grille">' + tuiles.join('') + '</div>' : '<p class="hdv-aide">Tu n\'as aucune pièce légendaire pour l\'instant.</p>') +
+      '<p class="hdv-aide ev-astuce">Glisse une pièce dans une case, ou touche-la. Touche une case pleine pour la vider.</p></div></div>' +
+    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
 }
+function evPlacer(k, porte, ou) { /* ou : 'cible', 'sac', ou rien (un simple toucher) */
+  if (EV.fin) EV.fin = null; const x = { k, porte: !!porte };
+  if (ou === 'sac' || (!ou && EV.cible && evPeutSac(x))) {
+    if (!EV.cible) { toast('Dépose d\'abord la pièce à éveiller au centre du cercle.'); return; }
+    if (!evPeutSac(x)) { toast(x.porte ? 'Une pièce portée ne peut pas servir de doublon : retire-la d\'abord.' : 'Il faut un doublon exact de la pièce du centre (même pièce, même boss).'); return; }
+    EV.sac = k;
+  } else { EV.cible = k; EV.sac = null; }
+  son('poser'); ouvrirEveil();
+}
+function evConfirmer() {
+  const A = document.querySelector('.ev-autel'), c = EV.cible, s = EV.sac; if (!A || !c || !s || A.querySelector('.ev-confirme')) return;
+  const d = document.createElement('div'); d.className = 'ev-confirme';
+  d.innerHTML = '<div><p><b>Fusionner ?</b></p><p>' + obj(c).nom + ' passe du niveau ' + obj(c).niv + ' au <b>niveau ' + eveillerObjet(objBrut(c), eveilDe(c) + 1).niv + '</b>.</p><p>Le doublon est <b>détruit</b>' + (eveilDe(s) ? ' (avec ses ' + eveilDe(s) + ' éveils)' : '') + '. Tu ne pourras pas revenir en arrière.</p>' +
+    '<div class="boutons"><button class="btn discret" data-ev-non>Non</button><button class="btn kamas" data-ev-oui>Oui, fusionner</button></div></div>';
+  A.appendChild(d);
+}
+function evFusionner() { /* la transformation : le doublon est aspire au centre du cercle, le cercle s'emballe, un eclair, puis la piece eveillee */
+  const A = document.querySelector('.ev-autel'), c = EV.cible, s = EV.sac; if (!A || !c || !s || A.classList.contains('ev-fusion')) return;
+  const q = A.querySelector('.ev-confirme'); if (q) q.remove();
+  const cS = A.querySelector('.ev-slot.cible'), sS = A.querySelector('.ev-slot.sac'), r1 = cS.getBoundingClientRect(), r2 = sS.getBoundingClientRect(), p = sS.firstElementChild;
+  if (p) { p.style.setProperty('--dx', (r1.left + r1.width / 2 - r2.left - r2.width / 2) + 'px'); p.style.setProperty('--dy', (r1.top + r1.height / 2 - r2.top - r2.height / 2) + 'px'); }
+  A.classList.add('ev-fusion'); A.querySelectorAll('button').forEach((b) => { b.disabled = true; }); son('quete');
+  const avant = Object.assign({}, obj(c), { stats: Object.assign({}, obj(c).stats) });
+  setTimeout(() => {
+    const k = fusionnerLeg(c, s, true, true); if (!k) { EV.sac = null; ouvrirEveil(); return; }
+    EV.fin = { k, avant }; EV.cible = k; EV.sac = null; son('niveau'); confettis(50); ouvrirEveil();
+  }, 1500);
+}
+/* le glisser (souris ou doigt) */
+let evGlisse = null, evGlisseFin = 0;
+function evDebutGlisse(g) {
+  const img = g.src.querySelector('img'); if (g.actif || !img || !document.body.contains(g.src)) { if (!g.actif) evGlisse = null; return; }
+  g.actif = true; const f = document.createElement('div'); f.className = 'ev-fantome'; f.innerHTML = '<img src="' + img.src + '" alt="">'; document.body.appendChild(f); g.fant = f;
+  g.src.classList.add('glisse'); document.body.classList.add('fp-en-glisse'); evPlaceGlisse(g);
+}
+function evPlaceGlisse(g) {
+  g.fant.style.transform = 'translate(' + (g.x - 32) + 'px,' + (g.y - 32) + 'px)';
+  const el = document.elementFromPoint(g.x, g.y), sl = el && el.closest('[data-ev-slot]'); g.ou = sl ? sl.dataset.evSlot : null;
+  document.querySelectorAll('.ev-slot').forEach((d) => d.classList.toggle('survol', d === sl));
+}
+function evFinGlisse(lacher) {
+  const g = evGlisse; evGlisse = null; if (!g) return; clearTimeout(g.minuterie); if (!g.actif) return;
+  g.fant.remove(); document.body.classList.remove('fp-en-glisse'); document.querySelectorAll('.ev-slot.survol, .ev-case.glisse').forEach((e) => e.classList.remove('survol', 'glisse'));
+  evGlisseFin = performance.now(); if (lacher && g.ou && modaleOuverte === 'eveil') evPlacer(g.k, g.porte, g.ou);
+}
+document.addEventListener('pointerdown', (e) => {
+  if (modaleOuverte !== 'eveil' || e.button > 0 || evGlisse) return; const c = e.target.closest('.ev-case'); if (!c || document.querySelector('.ev-fusion')) return;
+  const g = evGlisse = { src: c, k: c.dataset.evK, porte: c.dataset.evPorte === '1', x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, actif: false, tactile: e.pointerType === 'touch', pid: e.pointerId };
+  if (g.tactile) g.minuterie = setTimeout(() => { if (evGlisse === g) { evDebutGlisse(g); if (g.actif && navigator.vibrate) navigator.vibrate(12); } }, 220);
+});
+document.addEventListener('pointermove', (e) => {
+  const g = evGlisse; if (!g || e.pointerId !== g.pid) return; g.x = e.clientX; g.y = e.clientY; const d = Math.hypot(g.x - g.x0, g.y - g.y0);
+  if (!g.actif) { if (g.tactile) { if (d > 10) evFinGlisse(false); return; } if (d < 8) return; evDebutGlisse(g); if (!g.actif) return; }
+  evPlaceGlisse(g);
+});
+document.addEventListener('pointerup', (e) => { if (evGlisse && e.pointerId === evGlisse.pid) evFinGlisse(true); });
+document.addEventListener('pointercancel', (e) => { if (evGlisse && e.pointerId === evGlisse.pid) evFinGlisse(false); });
+document.addEventListener('touchmove', (e) => { if (evGlisse && evGlisse.actif) e.preventDefault(); }, { passive: false });
+document.addEventListener('click', (e) => {
+  if (modaleOuverte !== 'eveil') return; if (performance.now() - evGlisseFin < 80) { e.stopPropagation(); e.preventDefault(); return; }
+  const t = e.target.closest('.ev-case,[data-ev-slot],[data-ev-fusion],[data-ev-oui],[data-ev-non],[data-ev-encore]'); if (!t || document.querySelector('.ev-fusion')) return;
+  if (t.matches('.ev-case')) { const et = t.dataset.evEtat; if (et === 'au-centre') { EV.cible = null; EV.sac = null; EV.fin = null; ouvrirEveil(); } else if (et === 'offerte') { EV.sac = null; ouvrirEveil(); } else evPlacer(t.dataset.evK, t.dataset.evPorte === '1'); return; }
+  if (t.dataset.evSlot) { if (t.dataset.evSlot === 'cible') { EV.cible = null; EV.sac = null; EV.fin = null; } else EV.sac = null; ouvrirEveil(); return; }
+  if (t.hasAttribute('data-ev-fusion')) { evConfirmer(); return; }
+  if (t.hasAttribute('data-ev-non')) { const q = document.querySelector('.ev-confirme'); if (q) q.remove(); return; }
+  if (t.hasAttribute('data-ev-oui')) { evFusionner(); return; }
+  if (t.hasAttribute('data-ev-encore')) { EV.fin = null; ouvrirEveil(); }
+});
 const tableEveil = (a, b) => { const u = (c, v) => '+' + v + (CARACS[c] && CARACS[c][1].startsWith(' %') ? ' %' : ''); /* (avant / après, une ligne par stat) */
   return '<table class="eveil-tab"><tr><th></th><th>Avant</th><th>Après</th></tr><tr><td>Niveau</td><td>' + a.niv + '</td><td>' + b.niv + '</td></tr>' +
     Object.keys(b.stats).map((c) => '<tr><td>' + (CARACS[c] ? CARACS[c][2] + CARACS[c][0] : c) + '</td><td>' + u(c, a.stats[c]) + '</td><td>' + u(c, b.stats[c]) + '</td></tr>').join('') + '</table>'; };
-function fusionnerLeg(cible, sacrifice, confirme) {
+function fusionnerLeg(cible, sacrifice, confirme, silencieux) { /* (silencieux : l'autel fait lui-meme le son, les confettis et l'affichage ; renvoie la cle de la piece eveillee) */
   if (combat) { toast('Pas pendant un combat.'); return; }
   const o = objBrut(cible), s = objBrut(sacrifice); if (!o || !s || baseObjet(cible) !== baseObjet(sacrifice) || !o.leg) return;
   const porte = (x) => Object.values(S_.equip || {}).includes(x), dispo = (S_.sac[sacrifice] || 0) - (cible === sacrifice && !porte(cible) ? 1 : 0); /* (un doublon dans le sac, en plus de la pièce qui monte) */
@@ -69,7 +156,8 @@ function fusionnerLeg(cible, sacrifice, confirme) {
   if (cible === sacrifice || !(S_.jets && S_.jets[k])) { S_.jets = S_.jets || {}; S_.nInst = (S_.nInst || 0) + 1; const nk = baseObjet(k) + '~' + S_.nInst.toString(36); S_.jets[nk] = Object.assign({}, o.stats); if (eveilDe(k)) (S_.eveils = S_.eveils || {})[nk] = eveilDe(k);
     const emp = Object.keys(S_.equip).find((e) => S_.equip[e] === k); if (emp) S_.equip[emp] = nk; else { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; S_.sac[nk] = 1; } k = nk; }
   S_.sac[sacrifice]--; if (!S_.sac[sacrifice]) { delete S_.sac[sacrifice]; if (!porte(sacrifice)) { if (S_.jets) delete S_.jets[sacrifice]; if (S_.eveils) delete S_.eveils[sacrifice]; } }
-  (S_.eveils = S_.eveils || {})[k] = eveilDe(k) + 1; compter('eveils'); son('niveau'); confettis(40); if (Object.values(S_.equip).includes(k)) rafraichirTenue();
+  (S_.eveils = S_.eveils || {})[k] = eveilDe(k) + 1; compter('eveils'); if (Object.values(S_.equip).includes(k)) rafraichirTenue();
+  if (silencieux) { sauver(); rendreHaut(); return k; } son('niveau'); confettis(40);
   toast(obj(k).nom + ' s\'éveille : niveau ' + obj(k).niv + ' !', 'or'); sauver(); rendreHaut(); ouvrirEveil();
 }
 const concassable = (k) => { const o = objBrut(k); return !!o && !o.leg && o.niv >= NIV_CONCASSE && !Object.values(S_.equip || {}).includes(k); };
