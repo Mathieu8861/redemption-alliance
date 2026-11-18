@@ -470,10 +470,10 @@ function expliquerCarac(k, st) {
   const TXT = {
     vita: ['Points de vie', 'Ta vie pendant les vagues et les simus VSA : à 0, la vague est perdue. Ils montent avec ton niveau (' + fmt(st.base.pv) + ' au niveau ' + st.niveau + '), et la Vitalité de tes équipements en ajoute.'],
     degats: ['Dégâts', 'Ce que fait chacun de tes coups, et la base de tes sorts. Ils montent avec ton niveau (' + st.base.deg + ' au niveau ' + st.niveau + '), puis ta Puissance les augmente de ' + c.puissance + ' %.'],
-    cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité te fait frapper ' + c.agilite + ' % plus souvent.'],
+    cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité (' + c.agilite + ') te fait frapper ' + pcAgi(c.agilite) + ' % plus souvent.'],
     portee: ['Portée', 'La distance à laquelle tu touches un monstre : 1 case pour le Iop au corps à corps, 3 cases pour le fouet de l\'Osamodas, 5 cases pour l\'arc du Cra. Elle dépend de ta classe, pas de ton équipement.'],
     puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
-    agilite: ['Agilité', 'Te fait attaquer plus vite : ' + c.agilite + ' % de coups en plus (' + virg(st.base.cadence) + ' s entre deux coups sans elle, ' + virg(st.cadence) + ' s avec).'],
+    agilite: ['Agilité', 'Te fait attaquer plus vite : chaque point donne ' + String(AGI_VITESSE).replace('.', ',') + ' % de coups en plus, soit ' + pcAgi(c.agilite) + ' % (' + virg(st.base.cadence) + ' s entre deux coups sans elle, ' + virg(st.cadence) + ' s avec).'],
     sagesse: ['Sagesse', 'Te fait gagner plus d\'expérience : +' + c.sagesse + ' % sur tout ce qui en rapporte (récoltes, vagues gagnées, défis, Tofus).'],
     prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %. Dans l\'Arène, celle de ton équipement ne compte pas : seules la Fraise et la carte Flair y comptent.']
   }[k];
@@ -581,7 +581,7 @@ function ouvrirPerso(sel) {
       (mieux ? '<i class="fp-mieux">Up</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
   const virg = (x) => String(x).replace('.', ',');
   const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + Math.round(100 - 100 / (1 + c.agilite / 100)) + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
-    ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite + ' %', ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
+    ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite, ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
   const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case, ou glisse une pièce du sac ici</small></h3><div class="fp-poupee">' +
     ['coiffe', 'cape', 'amulette'].map((e, k) => '<div style="grid-column:1;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
     '<div class="fp-perso"><img src="' + portraitPerso() + '" alt=""></div>' +

@@ -221,7 +221,7 @@ function prendreArc(g) {
 function majArcMain(g) {
   const u = g.userData, A = u.arcMain; if (!A) return; const m = u.membres, now = performance.now(), dt = Math.min(0.05, (now - (A.t || now)) / 1000); A.t = now;
   const a = u.attaque && u.attaque.classe === 'cra' ? u.attaque : null, P = u.tirPercant;
-  const tension = P ? P.tension : a ? (a.t < 0.25 ? Math.max(0, a.t) / 0.25 : Math.max(0, 1 - (a.t - 0.25) / 0.07)) : 0;
+  const tb = a ? 0.5 * (a.d || 0.5) : 0.25, tension = P ? P.tension : a ? (a.t < tb ? Math.max(0, a.t) / tb : Math.max(0, 1 - (a.t - tb) / Math.max(0.03, 0.14 * (a.d || 0.5)))) : 0; /* (le temps de bander suit la duree du geste, 18/11/2026) */
   const viseC = P || a || (combat && combat.cible && combat.cible.etat === 'actif' && !chemin.length) ? 1 : 0;
   A.vise += (viseC - A.vise) * Math.min(1, dt * 12); A.tension = tension; const e = A.vise * A.vise * (3 - 2 * A.vise), rec = P ? P.recul || 0 : 0;
   m[2].rotation.x = m[2].rotation.x * (1 - e) - (1.45 + 0.12 * rec) * e; /* le bras de l'arc tendu devant lui (et qui remonte un peu au lacher du Tir percant) */
@@ -761,12 +761,14 @@ function animerAttaque(dt) {
   const u = paysanMesh && paysanMesh.userData, a = u && u.attaque;
   if (u && u.chasse && !a) poursuivreVoleur(dt);
   if (!a) { if (u && u.reprise > 0) { u.reprise -= dt; if (u.reprise <= 0 && voleurCiblable() && !combat && !chemin.length) attaquerVoleur(); } return; }
-  a.t += dt; const k = Math.min(1, a.t / 0.5), m = u.membres || [], bras = m[3] || m[2];
-  if (a.classe === 'iop') { if (a.tour !== false) paysanMesh.rotation.y = a.base + Math.PI * 2 * Math.min(1, a.t / 0.4); if (bras) bras.rotation.x = -2.2 * Math.sin(k * Math.PI); } /* il tournoie (contre le voleur), epee en avant */
+  /* (18/11/2026, au formulaire, Mathieu : « débloquer toutes les classes ») : le geste d'attaque durait toujours 0,5 s et on ne refrappe qu'une fois fini ;
+     au-delà de 2 coups par seconde, l'Agilité et la Rafale du Cra ne servaient à rien. Sa durée suit maintenant la vitesse d'attaque (a.d, posée au coup) */
+  a.t += dt; const D = a.d || 0.5, k = Math.min(1, a.t / D), m = u.membres || [], bras = m[3] || m[2];
+  if (a.classe === 'iop') { if (a.tour !== false) paysanMesh.rotation.y = a.base + Math.PI * 2 * Math.min(1, a.t / (0.8 * D)); if (bras) bras.rotation.x = -2.2 * Math.sin(k * Math.PI); } /* il tournoie (contre le voleur), epee en avant */
   else if (a.classe === 'osa') { if (bras) bras.rotation.x = -2.0 * Math.sin(Math.min(1, k * 1.4) * Math.PI); } /* le bras monte devant lui puis claque (le fouet part de la main, 22b-effets.js) */
   else if (!u.arcMain) { if (m[3]) m[3].rotation.x = 0.9 * Math.sin(k * Math.PI); paysanMesh.rotation.x = -0.08 * Math.sin(k * Math.PI); } /* il bande l'arc (l'arc en main : majArcMain s'en charge) */
-  if (!a.frappe && a.t >= (a.classe === 'cra' ? 0.25 : 0.18)) { a.frappe = true; if (a.surFrappe) a.surFrappe(); else frapper(a.classe); }
-  if (a.t >= 0.5) { u.attaque = null; paysanMesh.rotation.y = a.base; paysanMesh.rotation.x = 0; if (a.contreVoleur) u.reprise = Math.max(0.05, statsPerso().cadence - 0.5); } /* il continue de frapper le voleur tant qu'il n'a pas fui */
+  if (!a.frappe && a.t >= (a.classe === 'cra' ? 0.5 : 0.36) * D) { a.frappe = true; if (a.surFrappe) a.surFrappe(); else frapper(a.classe); }
+  if (a.t >= D) { u.attaque = null; paysanMesh.rotation.y = a.base; paysanMesh.rotation.x = 0; if (a.contreVoleur) u.reprise = Math.max(0.05, statsPerso().cadence - D); } /* il continue de frapper le voleur tant qu'il n'a pas fui */
 }
 /* l'effet du geste de classe vers un point : fleche (Cra, l'impact a l'arrivee), arc d'epee (Iop), coup de fouet (Osamodas).
    style : '' (le coup normal), 'feu' (la fleche de feu, true accepte), 'gel' (les ultis de givre), 'fatal' (le coup fatal) ; chaque sort garde son ton

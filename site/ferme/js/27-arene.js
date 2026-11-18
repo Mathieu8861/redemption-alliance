@@ -36,7 +36,7 @@ const BONUS_ARENE = {
     svg: `<g ${TR_CARTE}><path d="M60 6 69 27 91 18 80 39 104 47 80 54 89 77 66 64 52 86 49 62 24 70 37 50 14 37 38 32 33 9 51 24Z" fill="#ffd04a"/>
       <path d="M68 12 45 50h15l-9 30 30-42H65l10-26Z" fill="#e07c0a"/></g><path d="M66 20 53 44" stroke="#fff3c4" stroke-width="3" stroke-linecap="round" opacity=".9"/>
       <g fill="#fff6d8" ${TR_CARTE}><circle cx="20" cy="18" r="3"/><circle cx="102" cy="76" r="3"/></g>` },
-  agilite: { nom: 'Mains rapides', c: ['#2f9a8a', '#1d6a5e', '#c9efe6'], effet: '+10 Agilité', txt: '+10 % de vitesse d\'attaque : tu tires plus vite',
+  agilite: { nom: 'Mains rapides', c: ['#2f9a8a', '#1d6a5e', '#c9efe6'], effet: '+10 Agilité', txt: '+5 % de vitesse d\'attaque : tu tires plus vite',
     svg: `<g ${TR_CARTE}><path d="M98 8C66 10 40 32 32 66l-6 16 12-8c32-6 56-32 60-66Z" fill="#9fe0d2"/><path d="M96 10 30 78" fill="none"/>
       <path d="M78 22l-10 3M66 34l-12 2M56 46l-12 1M84 30l-2 10M72 44l-2 10" fill="none" stroke-width="2.4"/></g>
       <g stroke="#2f9a8a" stroke-width="4.5" stroke-linecap="round"><path d="M10 30h20M4 46h22M12 62h14"/></g>` },
