@@ -745,11 +745,13 @@ function effetsCoup(mo) { /* la Momie ralentit, la pomme de la Reinette assomme,
   const c = combat; if (!c || c.fin || !mo || c.deroute != null) return; const d = mo.d, p = paysanMesh.position.clone(); p.y += 2.1;
   if (d.ralentit) { if (!c.lenteurVu) { c.lenteurVu = true; toast(leNom(d) + ' te ralentit à chaque coup : éloigne-toi !', 'alerte'); } c.lenteur = d.ralentit; }
   if (d.assomme) { c.assomme = d.assomme; chiffre('Assommé !', p, 'vol'); }
+  if (c.invincible > 0) return; /* (invincible : aucun poison ne s'accroche, 18/11/2026) */
   if (d.poisonFixe) { const P = (c.poisons = c.poisons || []), e = P.find((x) => x.src === mo); if (e) e.t = d.poisonFixe[1]; else P.push({ pct: d.poisonFixe[0] / (c.pvMax || statsPerso().pvMax), t: d.poisonFixe[1], src: mo }); if (!c.poisonFixeVu) { c.poisonFixeVu = true; toast(leNom(d) + ' t\'a mordu : ' + d.poisonFixe[0] + ' dégâts de poison par seconde pendant ' + d.poisonFixe[1] + ' s !', 'alerte'); } } /* (l'Abrakne Sombre, 08/11/2026 : 32 par seconde pendant 4 s, chaque morsure relance les 4 s) */
   if (d.poison) { (c.poisons = c.poisons || []).push({ pct: d.poison[0], t: d.poison[1] }); if (!c.poisonVuB) { c.poisonVuB = true; toast((d.poisonObjet || 'La baie') + ' du ' + d.nom + ' t\'empoisonne quelques secondes !', 'alerte'); } }
 }
 function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre vert toutes les 0,6 s */
   const c = combat; if (!c || c.fin || c.deroute != null) return;
+  if (c.invincible > 0) { c.poisonAcc = 0; return; } /* (18/11/2026, « pour le Iop, quand il est invulnerable, il continue de subir les effets du poison (Koulosse) ; a voir sur les autres mobs qui empoisonnent, brulent », Mathieu : invincible, ni poison ni brulure ; leur duree s'ecoule quand meme) */
   c.poisonAcc = (c.poisonAcc || 0) + c.pvMax * pct * dt; if (paysanMesh && paysanMesh.userData.enVol) return; /* (en l'air : le poison attend l'atterrissage) */ const n = Math.floor(c.poisonAcc); if (n < 1) return;
   c.poisonAcc -= n; c.pv = Math.max(MODE_TEST && ETAT_TEST.immortel ? 1 : 0, c.pv - n); /* (le mode test, « immortel » : le poison non plus ne le fait pas tomber, 10/11/2026) */ if (c.st) c.st.recus += n; c.poisonCumul = (c.poisonCumul || 0) + n;
   if (performance.now() - (c.poisonT || 0) > 600) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + c.poisonCumul, p, 'perso'); c.poisonCumul = 0; c.poisonT = performance.now(); }
@@ -801,7 +803,7 @@ function poserFumee(x, z, r, duree, suit) { /* un nuage vert au sol (duree 0 : i
 function retirerFumee(f) { if (!f) return; jeter(f.g); const c = combat; if (!c) return; c.fumees = (c.fumees || []).filter((x) => x !== f); const i = (c.dangers || []).indexOf(f.danger); if (i >= 0) c.dangers.splice(i, 1); }
 /* la fumee du Koulosse (06/11/2026, « les nuages restent 14 s, et tu perds 3 % de ta vie », Mathieu ; avant 24 s et 4 %) */
 const DUREE_FUMEE = 14, POISON_FUMEE = 0.03, CUMULS_FUMEE = 5, PAS_FUMEE = 2; /* (06/11/2026, « le max de stacks que tu prends, cape a 5 en simultane », Mathieu : chaque contact ou seconde dedans ajoute 2 s, jamais plus de 5 cumuls, 10 s de poison) */
-const poisonFumeePlus = (c) => { c.poisonFumee = Math.min(CUMULS_FUMEE * PAS_FUMEE, (c.poisonFumee || 0) + PAS_FUMEE); };
+const poisonFumeePlus = (c) => { if (c.invincible > 0) return; c.poisonFumee = Math.min(CUMULS_FUMEE * PAS_FUMEE, (c.poisonFumee || 0) + PAS_FUMEE); };
 function majFumees(dt, s) { /* toucher un nuage : 2 s de poison tout de suite, puis 2 s de plus par seconde passee dedans ; le poison court encore une fois sorti (2 % des PV par seconde) */
   const c = combat; if (!c) return;
   if (c.poisonFumee > 0) { poisonPerso(POISON_FUMEE * (c.genre === 'ile' ? 1 + ENRAGE_ILE.pas * c.arene.pas : 1), Math.min(dt, c.poisonFumee)); if (!combat || combat !== c) return; c.poisonFumee = Math.max(0, c.poisonFumee - dt); } /* (sur l'ile, la rage renforce aussi sa fumee) */
@@ -2437,7 +2439,7 @@ function capMalefice(mo, ctx) {
   zoneDanger({ mo, x: x0, z: z0, r: M.R, duree: M.prepa, couleur: C, effet: (d) => { const y = solA(x0, z0); etoileImpact(new T.Vector3(x0, y + 0.6, z0), 1.0, C); onde(x0, y + 0.05, z0, M.R * 1.2, C, 0.4, 0.6);
     emettre(FX_LUM, 14, { x: x0, y: y + 0.3, z: z0, r: M.R * 0.6, v: [0, 1.8, 0], dv: 1, vie: [0.5, 0.8], taille: [0.25, 0.05], c: ['#ffffff', C], a: 0.85 });
     const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z) && combat === c0 && !c0.fin) { blesserPerso(Math.max(1, Math.round(degSort(mo) * M.x)), mo); const q = p2.clone(); q.y += 2.1;
-      if (M.brule) { (c0.poisons = c0.poisons || []).push({ pct: M.brule[0], t: M.brule[1] }); chiffre('Tu brûles !', q, 'vol'); } else { c0.lenteur = Math.max(c0.lenteur || 0, M.duree); chiffre('Ralenti !', q, 'vol'); } } } });
+      if (M.brule) { if (!(c0.invincible > 0)) { (c0.poisons = c0.poisons || []).push({ pct: M.brule[0], t: M.brule[1] }); chiffre('Tu brûles !', q, 'vol'); } } else { c0.lenteur = Math.max(c0.lenteur || 0, M.duree); chiffre('Ralenti !', q, 'vol'); } } } });
 }
 /* LE SEMIS (05/11/2026, le Semeur : « seme des graines qui deviennent des Tronknydes si on ne les ecrase pas », le monstre propose a Mathieu et
    retenu) : il plonge la main droite dans sa coupe de glands et jette une poignee a la volee (son geste « sort ») ; les graines volent en cloche et
