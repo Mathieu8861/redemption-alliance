@@ -1645,3 +1645,29 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .ev-slot.eclat { animation: ev-eclat 1.3s ease-out; }
 @keyframes ev-eclat { 0% { transform: scale(1.45); box-shadow: 0 0 46px #fff, 0 0 24px #d7b2ff; } 100% { transform: scale(1); } }
 @media (max-width: 760px) { .ev-autel { grid-template-columns: 1fr; } .ev-milieu { padding-top: 0; flex-direction: row; flex-wrap: wrap; justify-content: center; } .ev-cercle { width: 240px; height: 240px; } .ev-grille { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); } }
+/* l'ile des boss : le boss vaincu et des recompenses en clair (18/11/2026, proposition A retenue, « le tampon ») */
+.carte:has(.ig-jetons) { width: min(100%, 880px); }
+.ig-jetons { display: flex; flex-wrap: wrap; gap: 7px; }
+.ig-jeton { display: grid; grid-template-columns: 38px 1fr; grid-template-rows: auto auto; column-gap: 9px; align-items: center; flex: 1 1 150px; min-width: 0; padding: 6px 9px; border-radius: 12px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); }
+.ig-jeton .ig-i { grid-row: span 2; width: 38px; height: 38px; display: grid; place-items: center; }
+.ig-i img { width: 100%; height: 100%; object-fit: contain; }
+.ig-jeton b { font-size: .98rem; font-weight: 900; color: #fff; line-height: 1.1; align-self: end; }
+.ig-jeton small { font-size: .68rem; font-weight: 700; color: #a9adb5; line-height: 1.2; align-self: start; }
+.ig-jeton.leg { border-color: rgba(200, 144, 255, .65); background: rgba(164, 101, 230, .15); } .ig-jeton.leg small { color: #d7b2ff; }
+.ig-xp { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 400 .72rem/1 var(--f-titre); letter-spacing: .02em; color: #fff; background: radial-gradient(circle at 35% 30%, #9be38a, #3f9a4a); box-shadow: inset 0 0 0 2px #23602b, 0 1px 3px rgba(0, 0, 0, .4); }
+.ig-jetons.mini { gap: 5px; } .ig-jetons.mini .ig-jeton { flex: 1 1 96px; padding: 4px 7px; grid-template-columns: 26px 1fr; column-gap: 6px; } .ig-jetons.mini .ig-i { width: 26px; height: 26px; } .ig-jetons.mini b { font-size: .82rem; } .ig-jetons.mini small { font-size: .62rem; }
+.ig-pod { display: flex; gap: 7px; align-items: center; padding: 4px; border-radius: 10px; } .ig-pod + .ig-pod { margin-top: 5px; } .ig-pod.moi { background: rgba(143, 209, 106, .16); } .ig-pod .ig-jetons { flex: 1; }
+.ig-med { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 400 .9rem/1 var(--f-titre); color: #3a2a05; background: #ffd34d; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .2); } .ig-med.m2 { background: #d6dbe2; } .ig-med.m3 { background: #d9955a; }
+.ig-rien { margin: 4px 0 10px; padding: 9px 12px; border-radius: 12px; font-size: .84rem; font-weight: 700; color: #e9b0a8; background: rgba(229, 103, 90, .12); border: 1px solid rgba(229, 103, 90, .4); }
+/* A : trois cartes */
+.ig-cartes { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 10px; margin: 4px 0 10px; align-items: start; }
+.ig-carte { border-radius: 14px; padding: 10px; background: #26282d; border: 2px solid #3a3d44; } .ig-carte .ig-jetons:not(.mini) { flex-direction: column; } .ig-carte .ig-jetons:not(.mini) .ig-jeton { flex: none; }
+.ig-carte-t { font: 400 1rem/1.1 var(--f-titre); margin-bottom: 8px; display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+.ig-carte.tombe { border-color: #c9a227; background: linear-gradient(180deg, rgba(255, 211, 77, .12), #26282d 55%); } .ig-carte.fini { opacity: .42; }
+.ig-badge { font: 800 .64rem/1 var(--f-texte); padding: 3px 7px; border-radius: 99px; background: #3a3d44; color: #d0d3d9; white-space: nowrap; } .ig-badge.ok { background: #2e5a2a; color: #b8f08a; }
+.ibv-a { display: grid; grid-template-columns: 180px 1fr; gap: 20px; align-items: center; margin: 6px 0 12px; }
+.ibv-img { position: relative; } .ibv-img img { display: block; width: 180px; filter: grayscale(1) brightness(.55) contrast(1.1); }
+.ibv-tampon { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%) rotate(-14deg); font: 400 2rem/1 var(--f-titre); color: #ff5a4a; border: 4px solid #ff5a4a; border-radius: 10px; padding: 5px 12px 3px; letter-spacing: .08em; text-transform: uppercase; background: rgba(40, 12, 10, .45); box-shadow: 0 0 18px rgba(255, 90, 74, .35); }
+.ibv-titre { font: 400 1.9rem/1.05 var(--f-titre); color: #ffd34d; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.ibv-a p { margin: 6px 0 0; font-size: .9rem; font-weight: 600; color: #c9ccd2; } .ibv-a .puces { margin-top: 9px; }
+@media (max-width: 640px) { .ig-cartes { grid-template-columns: 1fr; } .ibv-a { grid-template-columns: 1fr; justify-items: center; text-align: center; } .ibv-a .puces { justify-content: center; } .ibv-img img { width: 130px; } .ibv-titre { font-size: 1.5rem; } }
