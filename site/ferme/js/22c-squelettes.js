@@ -274,7 +274,7 @@ function majSquelette(mo, v, dt) {
     else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const garde = an.fam !== 'repos' && an.repT > 0 && mo.d.stable; const a = jouerAnim(an, garde ? garderAllure(mo, an, 'repos') : choixAllure(mo, an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); if (!garde) an.repT = 5 + Math.random() * 5; }
   }
   const rage = mo.enrage && mo.d.auraRage && mo.etat === 'actif'; if (rage) auraRage(mo, an, dt);
-  if (an.eclat > 0 || rage) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16, g = rage ? 0.16 + 0.12 * Math.sin(performance.now() / 150) : 0; an.peau.forEach((m) => { const b0 = m.emissiveMap ? 1 : 0, Lu = an.lueur; m.emissive.setRGB((Lu ? Lu.r : b0) + 0.32 * k + g, (Lu ? Lu.g : b0) + 0.06 * k + g * 0.3, (Lu ? Lu.b : b0) + 0.03 * k + g * 0.04); }); /* (an.lueur : la lueur d'un monstre teinte, l'Ancestral Maudit, 09/11/2026) */ /* (b0 : un modele aux yeux qui luisent garde son image d'emission allumee ; a 0, le premier coup recu eteignait ses yeux pour tout le combat, 08/11/2026) */ /* (un eclat leger : plus fort, une Tortue jaune virait au rose ; enrage, Moon rougeoie en battant) */ }
+  if (an.eclat > 0 || rage) { an.eclat = Math.max(0, an.eclat - dt); const k = an.eclat / 0.16 * (mo.d.stable ? 0.4 : 1), g = rage ? 0.16 + 0.12 * Math.sin(performance.now() / 150) : 0; an.peau.forEach((m) => { const b0 = m.emissiveMap ? 1 : 0, Lu = an.lueur; m.emissive.setRGB((Lu ? Lu.r : b0) + 0.32 * k + g, (Lu ? Lu.g : b0) + 0.06 * k + g * 0.3, (Lu ? Lu.b : b0) + 0.03 * k + g * 0.04); }); /* (an.lueur : la lueur d'un monstre teinte, l'Ancestral Maudit, 09/11/2026) */ /* (b0 : un modele aux yeux qui luisent garde son image d'emission allumee ; a 0, le premier coup recu eteignait ses yeux pour tout le combat, 08/11/2026) */ /* (un eclat leger : plus fort, une Tortue jaune virait au rose ; enrage, Moon rougeoie en battant) */ }
   an.mixer.update(dt);
 }
 /* un coup recu : un eclat rouge, sans s'arreter (26/10/2026, « l'animation de degat pris ralentit le mob, du coup on prend 0 degat », Mathieu :
@@ -289,7 +289,7 @@ function attaqueSquelette(mo, fam, frapper) {
   const an = mo.m.userData.anim; if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
   if (!fam || mo.geste) { frapper(); return; }
   const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.1), d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t;
-  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.distance ? 0.5 : 0.42))) * vitAnim(mo); a.timeScale = k; const ti = t0 / k, c0 = combat;
+  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.elanCoup || (mo.d.distance ? 0.5 : 0.42)))) * vitAnim(mo); /* (elanCoup : le temps de son elan, plus long pour un grand monstre dont on doit voir le bras partir, le Croco sauvage, 18/11/2026) */ a.timeScale = k; const ti = t0 / k, c0 = combat;
   mo.geste = { t: 0, d: Math.min(d0 / k - 0.1, ti + 0.4) }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
   effets.push((dt) => { t += dt; if (t < ti) return false; if (combat === c0 && !c0.fin && mo.etat === 'actif') frapper(); return true; });
 }

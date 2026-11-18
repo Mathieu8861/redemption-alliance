@@ -121,9 +121,9 @@ CAPACITES_AVANT.push(capOdeurSang); CAPACITES.push(capMachoire, capPlongeeVase, 
      passage, tu es touche et repousse */
 Object.assign(KIT_CROCO, {
   ruee: { periode: 4.5, prepa: 0.8, max: 12, vitesse: 17, decolle: 0.55, atterrit: 1.25, x: 1.2, repousse: 1.6, haut: 0.25 },
-  queue: { periode: 6, R: 3.6, prepa: 0.55, tour: 0.45, x: 1.1, repousse: 1.4 },
+  queue: { periode: 6, R: 3.8, prepa: 0.7, tour: 0.85, x: 1.1, repousse: 1.4 }, /* (tour : 0,45 s avant, illisible en 4 images, « analyse ta propre video », Mathieu) */
 });
-Object.assign(MONSTRES.crocoBoss, { charge: 0, ruee: KIT_CROCO.ruee, queue360: KIT_CROCO.queue,
+Object.assign(MONSTRES.crocoBoss, { charge: 0, ruee: KIT_CROCO.ruee, queue360: KIT_CROCO.queue, portee: 3.8, elanCoup: 0.75, /* (portee : il se tenait au-dessus du perso ; elanCoup : son elan durait une ou deux images, 18/11/2026) */
   desc: 'le chasseur de la mare, il ne te laisse pas respirer : griffes, morsures, et de près il fauche tout autour de lui avec sa queue (sors du cercle bleu). Dès que tu t\'éloignes, il bondit sur toi le long d\'une bande rouge. Plus tu es blessé plus il est rapide, et sous la moitié de sa vie ses coups le soignent. Il bondit pour te happer et te secouer (sors du cercle rouge), plonge dans la vase et jaillit sous toi, fait déborder la mare (les flaques te ralentissent, lui accélèrent), et sous 30 % de vie il passe à quatre pattes : la frénésie de sang' });
 GROUPES_DEV.crocoBoss.nom = 'Le boss de la 110 : le Croco sauvage';
 const devant = (mo, d) => ({ x: mo.x + Math.sin(mo.ry) * d, z: mo.z + Math.cos(mo.ry) * d });
@@ -158,8 +158,8 @@ function capQueue(mo, ctx) {
   if (!c0.queueVu) { c0.queueVu = true; toast(leNom(mo.d) + ' arme sa queue pour tout faucher autour de lui : sors du cercle bleu !', 'alerte'); }
   let t = 0; const fin = () => { mo.tourne = 0; mo.hop = 0; return true; };
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin();
-    if (t < Q.prepa) { const a = Math.min(1, t / Q.prepa), e = a * a * (3 - 2 * a); mo.tourne = -0.8 * e; return false; } /* (il arme, le corps tourne en arriere) */
-    const u = Math.min(1, (t - Q.prepa) / Q.tour), e = 1 - Math.pow(1 - u, 2); mo.tourne = -0.8 + e * (Math.PI * 2 + 0.8); mo.hop = 0.25 * Math.sin(u * Math.PI);
+    if (t < Q.prepa) { const a = Math.min(1, t / Q.prepa), e = a * a * (3 - 2 * a); mo.tourne = -1.2 * e; return false; } /* (il arme, le corps tourne en arriere) */
+    const u = Math.min(1, (t - Q.prepa) / Q.tour), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; mo.tourne = -1.2 + e * (Math.PI * 2 + 1.2); mo.hop = 0.3 * Math.sin(u * Math.PI); /* (il accelere puis freine : un vrai tour, lisible) */
     const b = mo.ry + mo.tourne + Math.PI, r = Q.R * 0.85, q = { x: mo.x + Math.sin(b) * r, z: mo.z + Math.cos(b) * r }, yq = solA(q.x, q.z); /* (le bout de la queue rase le sol) */
     if (Math.random() < dt * 40) poussiere(q.x, yq, q.z, 2, 0.6, '#b8a888');
     emettre(FX_VIF, 2, { x: q.x, y: yq + 0.6, z: q.z, r: 0.3, v: [Math.cos(b) * 7, 0.5, -Math.sin(b) * 7], vie: [0.15, 0.3], taille: [0.08, 0.03], c: ['#ffffff', '#dfefff'], a: 0.8, etire: 0.05 });
@@ -181,7 +181,7 @@ function capRuee(mo, ctx) {
   if (!c0.rueeVu) { c0.rueeVu = true; toast(leNom(mo.d) + ' s\'accroupit pour bondir sur toi : sors de la bande rouge !', 'alerte'); }
   let t = 0, touche = false, parti = false; const fin = () => { mo.rueeOn = false; mo.hop = 0; return true; };
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin(); const y = solA(mo.x, mo.z);
-    if (t < R.prepa) { if (Math.random() < dt * 12) poussiere(x0 - Math.sin(a) * 1.2, y, z0 - Math.cos(a) * 1.2, 1, 0.5, '#9a8a70'); return false; } /* (il gratte le sol, ramasse) */
+    if (t < R.prepa) { mo.ry = a; if (Math.random() < dt * 12) poussiere(x0 - Math.sin(a) * 1.2, y, z0 - Math.cos(a) * 1.2, 1, 0.5, '#9a8a70'); return false; } /* (il gratte le sol, ramasse) */
     if (!parti) { parti = true; if (ac) ac.timeScale = (R.atterrit - R.decolle) / D; poussiere(x0, y, z0, 8, 1.0, '#9a8a70'); mottes(x0, y, z0, 4, 1.2); secousse(0.05, 0.12); } /* (il decolle) */
     const k = Math.min(1, (t - R.prepa) / D); mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k; mo.hop = R.haut * Math.sin(k * Math.PI);
     for (const sgn of [-1, 1]) emettre(FX_VIF, 1, { x: mo.x + Math.cos(a) * 1.4 * sgn, y: y + 1 + Math.random() * 2, z: mo.z - Math.sin(a) * 1.4 * sgn, v: [-Math.sin(a) * 11, 0, -Math.cos(a) * 11], vie: [0.15, 0.25], taille: [0.08, 0.03], c: ['#ffffff', '#e4f0ff'], a: 0.85, etire: 0.05 }); /* (le vent de sa course) */
@@ -197,8 +197,9 @@ const capMachoire0 = capMachoire; capMachoire = function (mo, ctx) { const avant
   const c0 = combat, M = mo.d.machoire, an = mo.m.userData.anim; let t = 0, tenu = false;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return true;
     if (t >= M.prepa && !tenu) { tenu = true; const q = devant(mo, 1.1), y = solA(q.x, q.z); solFendu(q.x, y, q.z, 1.8, false); mottes(q.x, y, q.z, 5, 1.3); poussiere(q.x, y, q.z, 6, 0.9, '#9a8a70');
-      if (c0.colle > 0 && an && an.F.secoue) { mo.geste = null; const a2 = jouerAnim(an, an.F.secoue[0], 0.1); if (a2) { a2.timeScale = a2.getClip().duration / M.tenu; mo.geste = { t: 0, d: M.tenu }; } } return true; }
-    return false; }); };
+      if (c0.colle > 0 && an && an.F.secoue) { mo.geste = null; const a2 = jouerAnim(an, an.F.secoue[0], 0.1); if (a2) { a2.timeScale = a2.getClip().duration / M.tenu; mo.geste = { t: 0, d: M.tenu }; } } return false; }
+    if (tenu && t < M.prepa + M.tenu) { const u = t - M.prepa; mo.elanB = 0.35 * Math.sin(u * 22); if (an && an.F.secoue && an.cour !== an.F.secoue[0] && c0.colle > 0) { const a2 = jouerAnim(an, an.F.secoue[0], 0.08); if (a2) { a2.time = u * a2.getClip().duration / M.tenu; a2.timeScale = a2.getClip().duration / M.tenu; } mo.geste = { t: 0, d: M.prepa + M.tenu - t }; } return false; } /* (il te secoue toute la prise, le corps qui tire d'avant en arriere) */
+    if (tenu) { mo.elanB = 0; return true; } return false; }); };
 { const i = CAPACITES.indexOf(capMachoire0); if (i >= 0) CAPACITES[i] = capMachoire; }
 const capPlongeeVase0 = capPlongeeVase; capPlongeeVase = function (mo, ctx) { const avant = mo.plonge; capPlongeeVase0(mo, ctx); if (avant || !mo.plonge) return;
   const an = mo.m.userData.anim; if (an && an.F.plonge) { const a2 = jouerAnim(an, an.F.plonge[0], 0.12); if (a2) { a2.timeScale = a2.getClip().duration / 1.0; mo.geste = { t: 0, d: 1.0 }; } }

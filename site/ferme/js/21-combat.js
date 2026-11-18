@@ -757,6 +757,9 @@ function poisonPerso(pct, dt) { /* des PV qui fondent, montres en un chiffre ver
   if (performance.now() - (c.poisonT || 0) > 600) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + c.poisonCumul, p, 'perso'); c.poisonCumul = 0; c.poisonT = performance.now(); }
   if (c.pv <= 0) persoATerre();
 }
+/* (18/11/2026, « le mot d'ordre c'est fluidite », Mathieu, sur le Croco sauvage : apres sa ruee il faisait demi-tour en deux images) : son modele rejoint la
+   direction de ses yeux a 7 radians par seconde au plus, par le plus court chemin ; ses coups et ses zones gardent la direction exacte */
+function ryLisse(mo, dt) { if (mo.ryVu == null) mo.ryVu = mo.ry; let d = mo.ry - mo.ryVu; d = Math.atan2(Math.sin(d), Math.cos(d)); const pas = Math.min(Math.abs(d), Math.max(7 * dt, Math.abs(d) * Math.min(1, 10 * dt))); mo.ryVu += Math.sign(d) * pas; return mo.ryVu; }
 function majAfflictions(dt) {
   const c = combat; if (!c) return;
   const kE = c.kEntrave != null ? c.kEntrave : (c.kEntrave = 1 / (1 - Math.min(0.6, (caracs().entrave || 0) / 100))); /* (les entraves plus courtes des panoplies du palier 10, 08/11/2026 : -25 %, elles s'usent 1,33 fois plus vite) */
@@ -3517,7 +3520,7 @@ function majMonstre(mo, dt, s) {
     if (mo.coupAile) coupDAile(mo, A, dt); }
   const vol = mo.d.vol ? mo.d.vol + (mo.d.battements ? -0.16 * Math.sin(bat) : Math.sin(s * 2.4 + mo.id) * 0.14) : 0; /* (avec des ailes qui battent, le corps monte quand elles s'abaissent) */ if (vol && mo.ombreM) { mo.ombreM.position.y = 0.03 - vol; mo.ombreM.scale.setScalar(mo.d.ombre * (1 - vol * 0.15)); } /* il vole : ses ailes le portent, son ombre reste au sol */
   m.position.set(mo.x + Math.sin(mo.ry) * elan, y + vol + saut + (mo.hop || 0) + (mo.picore > 0 && mo.champ && mo.champ.c ? (etape(mo.champ) === 'mur' ? 0.75 : 0.25) + pique * 0.1 : 0), mo.z + Math.cos(mo.ry) * elan);
-  m.rotation.y = mo.ry + (mo.tourne || 0); m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
+  m.rotation.y = (mo.d.stable ? ryLisse(mo, dt) : mo.ry) + (mo.tourne || 0); /* (stable : il tourne en douceur, plus de demi-tour d'un coup, 18/11/2026) */ m.rotation.z = m.userData.anim ? 0 : mo.d.battements ? Math.sin(bat * 0.5) * 0.03 : Math.sin(mo.pas) * 0.07 * allure; /* (un monstre a squelette se dandine dans son animation) */ m.rotation.x = pique * 0.35 + (mo.d.battements ? 0.13 * allure : 0) + (m.userData.anim ? 0 : mo.penche || 0); /* (penche : il baisse la tete pour charger, 31/10/2026) */ /* (en volant vers toi, elle penche le nez) */
   if (mo.d.pattes8) majPattes8(mo, dt); /* (les huit pattes du Chene Mou, 09/11/2026) */
   if (mo.brule > 0) { /* il brule : des degats toutes les demi-secondes, une flamme au-dessus de lui */
     mo.brule -= dt; mo.bruleT = (mo.bruleT || 0) + dt; if (mo.bruleT >= 0.5) { mo.bruleT = 0; const p0 = SRC_DEG; SRC_DEG = 'Brûlure'; blesser(mo, mo.bruleDeg); SRC_DEG = p0; }
