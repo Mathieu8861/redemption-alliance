@@ -56,7 +56,7 @@ MONSTRES.brochet = { element: 'eau', nom: 'Brochet enragé', modele: 'brochet', 
   cadence: 1.5, vitesse: 3.0, portee: 2.6, ombre: 2.0 };
 /* LE SILURE CHAMAN (18/11/2026, fait pendant que Mathieu etait sur son telephone) : dessin fidele, Rodin, texture d'origine eclaircie vers le mauve, corps
    d'un bloc, les gestes de magie du Bwork mage (retouches pour qu'il reste de face) et son baton en main ; comme le Bwork mage, il tire de la magie de loin
-   et soigne les siens. Forces provisoires */
+   et soigne les siens. Forces provisoires. (Le soir, controle en grand : le haut des bras rendu au corps, le flanc ne se dechire plus quand il leve le bras) */
 SQUELETTES_A_CHARGER.push(['silure', 'assets/modeles/jeu/silure-anime.glb', 2.2]); NOMS_BW2.add('silure'); VITESSE_FAMILLE['silure'] = 1.2;
 MONSTRES.silure = { element: 'eau', nom: 'Silure chaman', modele: 'silure', icone: 'triton', /* (icone provisoire) */
   desc: 'le sorcier de la tribu, son bâton à la main : il te lance sa magie de loin et soigne les siens, abats-le en premier', pv: (n) => 3600 + 110 * (n - 100), deg: (n) => 70 + Math.round(2 * (n - 100)),
