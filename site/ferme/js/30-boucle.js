@@ -105,6 +105,7 @@ function boucle(t) {
   boucle.n = (boucle.n || 0) + 1; rendu.shadowMap.needsUpdate = boucle.n % 2 === 0; /* les ombres de ce qui bouge suivent a 30 images par seconde : invisible, et ~3 ms de gagnees par image */
   if (lieu === 'ferme') suivreOmbres();
   majPancartes(dtb); /* (meme en pause : un batiment pose ou refait recoit sa pancarte) */
+  if (typeof animerCouronnes === 'function') animerCouronnes(dtb); /* (la couronne du sanctuaire de l'eveil, 27g-eveil-concasseur.js) */
   if (SECOUSSE.v.lengthSq()) { camera.position.add(SECOUSSE.v); rendu.render(scene, camera); camera.position.sub(SECOUSSE.v); camera.updateMatrixWorld(); } else rendu.render(scene, camera); if (apercuDu()) envoyerApercu(); placerBulles(); /* (la secousse des gros coups : le temps du rendu seulement ; la matrice de la camera est remise d'aplomb, sinon les clics et la visee partaient de la vue secouee, 22b-effets.js) */ placerBarresBat(); requestAnimationFrame(boucle);
 }
 /* PLUSIEURS PARTIES (13/10/2026, « qu'un joueur puisse avoir plusieurs parties, la j'ai celle de l'Osa, si je veux faire une partie Iop que je ne sois pas

@@ -132,7 +132,10 @@ function majPastilleNuit() {
    LES FOYERS (« pour les fours et les fourneaux, il faut qu'on voie des flammes mouvantes, pour donner un peu de dynamisme ; la, juste une lumiere, ce n'est pas
    realiste pour l'atelier et la forgemagie », Mathieu, 11/11/2026) : sur le feu de la forgemagie et de l'atelier (FOYERS), de vraies flammes qui dansent (le
    shader des incendies, FEU_FS, 13-batiments-pv.js) et quelques braises qui montent. Elles brulent le jour comme la nuit ; la nuit s'y ajoute le halo. */
-let lumieresBat = [], vitresBat = [], trousBat = [], flammesBat = [], lumieresBatSig = '', lumieresBatA = 0, texLueurBat = null;
+let lumieresBat = [], vitresBat = [], trousBat = [], flammesBat = [], lumieresBatSig = '', lumieresBatA = 0, texLueurBat = null, texLueurMyst = null;
+/* LES BATIMENTS MYSTIQUES (18/11/2026, « tu peux rendre certaines parties luminescentes ou autre, pour la version nuit ? », Mathieu) : sur l'eveil et le concasseur,
+   les pieces violettes qui luisent (runes, cristaux, anneau, rayon, mortier) prennent la nuit un halo violet qui respire lentement, et percent le voile comme les fenetres */
+const MYST = new Set(['eveil', 'concasseur']);
 const FOYERS = { forge: 0.5, atelier: 0.24, montgolfiere: 0.8 } /* (la hauteur de flamme permise : a l'atelier, une petite flamme de brasero, « la, le feu brulerait le toit dans la vraie vie », Mathieu, 11/11/2026) */, HEX_LANTERNE = 'ffe08a'; /* (la montgolfiere : « le feu aussi ici, de nuit et de jour », Mathieu, 11/11/2026 ; son bruleur, une fois qu'elle est reparee) */
 const hotesLumieres = () => batisMesh.concat(typeof toursMesh !== 'undefined' ? toursMesh : [], typeof montgolfiereMesh !== 'undefined' && montgolfiereMesh && montgolfiereMesh.visible ? [montgolfiereMesh] : []);
 const foyerAllume = (hote) => !!FOYERS[hote.userData.modele] && (hote.userData.modele === 'montgolfiere' ? !!(S_ && S_.montgolfiere) : true); /* (la forgemagie et l'atelier : pour tous depuis le 12/11/2026) */ /* (la montgolfiere : pour tout le monde, une fois reparee (« la montgolfiere, tu peux le push pour les membres », Mathieu, 11/11/2026) ; les flammes de la forgemagie et de l'atelier : en version dev d'abord, il teste avant les joueurs) */
@@ -148,17 +151,19 @@ function grappesLumiere(mesh, pas) { /* les points d'une piece soudee, regroupes
 function poserLumieresBat() {
   lumieresBat.forEach((L) => { scene.remove(L.halo); L.halo.material.dispose(); }); lumieresBat = []; vitresBat = []; trousBat = [];
   flammesBat.forEach((F) => F.m.concat(F.b).forEach((o) => { scene.remove(o); o.material.dispose(); })); flammesBat = [];
+  texLueurMyst = texLueurMyst || texCanvas(64, (g, k) => { const r = g.createRadialGradient(k / 2, k / 2, 0, k / 2, k / 2, k / 2); r.addColorStop(0, 'rgba(245,225,255,0.95)'); r.addColorStop(0.3, 'rgba(190,120,255,0.5)'); r.addColorStop(1, 'rgba(140,70,230,0)'); g.fillStyle = r; g.fillRect(0, 0, k, k); }); /* (le halo violet des batiments mystiques) */
   texLueurBat = texLueurBat || texCanvas(64, (g, k) => { const r = g.createRadialGradient(k / 2, k / 2, 0, k / 2, k / 2, k / 2); r.addColorStop(0, 'rgba(255,240,200,0.95)'); r.addColorStop(0.3, 'rgba(255,200,95,0.5)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, k, k); });
   const hsl = {}, vues = new Set();
   hotesLumieres().forEach((hote) => { hote.updateMatrixWorld(true);
     hote.traverse((m) => { if (!m.isMesh || !m.material || Array.isArray(m.material) || m.material.side === T.BackSide || m.material.map || !m.geometry || !m.geometry.attributes.position) return;
       const M = m.material, vitre = !!(M.userData && M.userData.vitre);
-      if (!vitre) { if (!M.isMeshBasicMaterial) return; M.color.getHSL(hsl); if (!(hsl.h > 0.02 && hsl.h < 0.17 && hsl.s > 0.5)) return; } /* (les flammes et les lanternes : de l'orange au jaune ; l'eau et les reflets, en matiere lumiere eux aussi, restent dehors) */
+      let myst = false;
+      if (!vitre) { if (!M.isMeshBasicMaterial) return; M.color.getHSL(hsl); myst = MYST.has(hote.userData.modele) && hsl.h > 0.66 && hsl.h < 0.88 && hsl.s > 0.3; if (!myst && !(hsl.h > 0.02 && hsl.h < 0.17 && hsl.s > 0.5)) return; } /* (les flammes et les lanternes : de l'orange au jaune ; l'eau et les reflets, en matiere lumiere eux aussi, restent dehors) */
       else if (!vues.has(M)) { vues.add(M); if (M.emissive) { M.emissive.set(LUEUR_VITRE); M.emissiveIntensity = 0; vitresBat.push(M); } }
       grappesLumiere(m, 0.25).forEach((g) => { const c = g.min.clone().add(g.max).multiplyScalar(0.5), r = g.min.distanceTo(g.max) / 2; if (r > 1.6) return;
-        const halo = new T.Sprite(new T.SpriteMaterial({ map: texLueurBat, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })); halo.visible = false; halo.renderOrder = 6; halo.raycast = () => {};
-        const t = Math.min(2.2, Math.max(0.7, r * (vitre ? 3.2 : 4.2))); halo.scale.setScalar(t); halo.position.copy(c); scene.add(halo);
-        lumieresBat.push({ halo, c, t, vitre, hote, ph: Math.random() * 6, min: g.min, max: g.max, foyer: !vitre && foyerAllume(hote) && M.color.getHexString() !== HEX_LANTERNE }); }); }); });
+        const halo = new T.Sprite(new T.SpriteMaterial({ map: myst ? texLueurMyst : texLueurBat, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })); halo.visible = false; halo.renderOrder = 6; halo.raycast = () => {};
+        const t = Math.min(2.2, Math.max(myst ? 0.55 : 0.7, r * (vitre ? 3.2 : myst ? (hote.userData.modele === 'concasseur' ? 2.1 : 3.0) : 4.2))); halo.scale.setScalar(t); halo.position.copy(c); scene.add(halo);
+        lumieresBat.push({ halo, c, t, vitre, myst, hote, ph: Math.random() * 6, min: g.min, max: g.max, foyer: !myst && !vitre && foyerAllume(hote) && M.color.getHexString() !== HEX_LANTERNE }); }); }); });
   /* les foyers : les pieces de feu voisines (le feu et son coeur clair) font un seul foyer, avec deux flammes et quatre braises */
   const foyers = []; lumieresBat.filter((L) => L.foyer).forEach((L) => { let F = foyers.find((x) => x.hote === L.hote && x.c.distanceTo(L.c) < 0.7); if (!F) { F = { hote: L.hote, c: L.c.clone(), min: L.min.clone(), max: L.max.clone() }; foyers.push(F); } else { F.min.min(L.min); F.max.max(L.max); F.c.copy(F.min).add(F.max).multiplyScalar(0.5); } });
   foyers.forEach((F) => { const hh = Math.min(FOYERS[F.hote.userData.modele] || 0.5, Math.max(0.2, (F.max.y - F.min.y) * 2.4)), y = F.min.y + 0.02;
@@ -175,7 +180,7 @@ function allumerLumieresBat(a, s) { /* a : de 0 (eteintes) a 1 */
   vitresBat.forEach((M) => { M.emissiveIntensity = 0.85 * a; });
   if (!lumieresBat.length) return; const versCam = new T.Vector3(); camera.getWorldDirection(versCam).multiplyScalar(-0.3); /* (le halo d'une fenetre : un peu devant le mur) */
   lumieresBat.forEach((L) => { const vu = a > 0.01 && !!L.hote.parent && L.hote.visible !== false; L.halo.visible = vu; if (!vu) return;
-    L.halo.position.copy(L.c).add(versCam); L.halo.material.opacity = a * (L.vitre ? 0.5 : (L.foyer ? 0.32 : 0.8) * (0.96 + 0.04 * Math.sin((s || 0) * 2.4 + L.ph))); }); /* (un foyer : son halo se fait discret, on doit voir ses flammes) */
+    L.halo.position.copy(L.c).add(versCam); L.halo.material.opacity = a * (L.vitre ? 0.5 : L.myst ? (L.hote.userData.modele === 'concasseur' ? 0.38 : 0.5) * (0.72 + 0.28 * Math.sin((s || 0) * 1.3 + L.ph)) : (L.foyer ? 0.32 : 0.8) * (0.96 + 0.04 * Math.sin((s || 0) * 2.4 + L.ph))); }); /* (le violet respire lentement, chaque lueur a son rythme) */ /* (un foyer : son halo se fait discret, on doit voir ses flammes) */
 }
 function animerFlammesBat(dt) { /* les flammes des foyers, le jour comme la nuit */
   const q = camera.quaternion;

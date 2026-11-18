@@ -14,7 +14,9 @@ let chargeEC = null;
 function assurerEveilConcasseur() {
   if (chargeEC) return chargeEC;
   chargeEC = chargerGlb('assets/modeles/jeu/eveil-concasseur.glb?v=' + VERSION_MODELES).then((G) => { versToon(G, { normales: 0.012, sansContour: SC_BATI });
-    MODELES.eveil = gabaritEchelle(G, 'Eveil', 1, new T.Vector3(0, 0, 0)); MODELES.concasseur = gabaritEchelle(G, 'Concasseur', 1, new T.Vector3(0, 0, 0)); construireBatiments(); }).catch(() => { chargeEC = null; });
+    MODELES.eveil = gabaritEchelle(G, 'Eveil', 1, new T.Vector3(0, 0, 0)); MODELES.concasseur = gabaritEchelle(G, 'Concasseur', 1, new T.Vector3(0, 0, 0));
+    const n = G.getObjectByName('EveilCouronne'); if (n) { const y0 = new T.Box3().setFromObject(n).min.y, c = gabaritEchelle(G, 'EveilCouronne', 1, new T.Vector3(0, 0, 0)), w = new T.Group(); c.position.y += y0; w.add(c); MODELES.eveilCouronne = w; } /* (la couronne a sa hauteur : gabaritEchelle la pose au sol) */
+    construireBatiments(); }).catch(() => { chargeEC = null; });
   return chargeEC;
 }
 const CONCASSE = { normale: { forge: 1 / 40, parfaite: 1 / 100 }, rare: { forge: 1, parfaite: 1 / 5 } };
@@ -29,6 +31,9 @@ function eveillerObjet(o, n) { /* o : la pièce avec son jet ; n : ses fusions. 
   return Object.assign({}, o, { stats, niv: Math.min(NIV_EVEIL, o.niv + 10 * pas), eveil: pas, nom: o.nom + ' +' + pas });
 }
 const fusionsMax = (k) => { const o = objBrut(k), r = rangLeg(o); return r == null ? 0 : Math.max(0, rangMaxLeg() - r); };
+/* LA COURONNE QUI TOURNE (18/11/2026, « que la couronne tourne sur elle-même, lentement, genre vraiment lentement », Mathieu) : un tour en 40 s environ, et elle
+   monte et descend d'un rien ; ses deux anneaux d'eclats tournent avec elle (30-boucle.js l'appelle a chaque image) */
+function animerCouronnes(dt) { if (typeof batisMesh === 'undefined') return; for (const m of batisMesh) { const c = m.userData.couronne; if (!c) continue; const u = c.userData; u.t = (u.t || 0) + dt; c.rotation.y += dt * 0.16; c.position.y = 0.03 * Math.sin(u.t * 0.7); } }
 const eveilDe = (k) => (S_.eveils && S_.eveils[k]) || 0;
 const exemplairesLeg = () => { /* chaque légendaire possédé, porté ou dans le sac (un exemplaire par entrée ; un sac à 2 du même exemplaire compte pour 2) */
   const L = []; Object.values(S_.equip || {}).forEach((k) => { if (k && objBrut(k) && objBrut(k).leg) L.push({ k, porte: true }); });
