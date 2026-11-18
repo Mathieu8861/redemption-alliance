@@ -661,7 +661,7 @@ function ouvrirVoliere() {
   ouvrirModale('voliere', entete('Volière à Tofus') + (degatsBat('voliere') ? artPv('voliere') : '') +
     (S_.tofus ? plumes : '<p class="hdv-aide">La volière est vide. Achète des filets de capture à l\'HDV : quand un Tofu picore un champ ou se pose dans l\'herbe, touche-le pour l\'attraper.</p>') +
     '<div class="hdv-section">Tes Tofus : ' + S_.tofus + ' sur ' + cap + ' places' + (nD ? ', dont ' + nD + ' doré' + (nD > 1 ? 's' : '') : '') + '</div><div class="vl-grille">' + tuiles + '</div>' +
-    '<p class="vl-note">Plus tard, l\'Osamodas pourra invoquer ses Tofus en combat.</p>' + ameliorer);
+    ameliorer); /* (18/11/2026 : « Plus tard, l'Osamodas pourra invoquer ses Tofus en combat » retire, une promesse jamais tenue, signalee par Mathieu) */
 }
 function ouvrirParcelle(p) {
   const rendu = Math.round((p.prixPaye || 50) / 2), culture = p.c ? PAR_ID[p.c].nom : null;
