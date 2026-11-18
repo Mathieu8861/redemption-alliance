@@ -21,7 +21,7 @@
     var TRIS_CARTES = [['derniere_partie', 'Dernière partie'], ['niveau', 'Niveau'], ['vague', 'Vague'], ['kamas', 'Kamas'], ['temps_jeu', 'Temps de jeu']];
     var tri = { cle: 'derniere_partie', sens: -1 };
     var vue = 'dash', filtre = 'tous', triCartes = 'derniere_partie';
-    try { vue = localStorage.getItem('ferme-admin-vue') === 'cartes' ? 'cartes' : 'dash'; } catch (e) { /* rien */ }
+    try { vue = localStorage.getItem('ferme-admin-vue'); if (vue !== 'cartes' && vue !== 'vagues') vue = 'dash'; } catch (e) { vue = 'dash'; }
     var apercus = {}, apercusOk = true; /* (id -> { ferme, perso, le } ; apercusOk : la base a bien sql/085) */
 
     var EN_LIGNE = 180; /* (en ligne : une sauvegarde il y a moins de 3 min ; le jeu envoie toutes les 15 s quand il se passe quelque chose, 07/11/2026) */
@@ -112,6 +112,7 @@
         + '.fb-rang--3{background:linear-gradient(135deg,#e39a5a,#a8642c);color:#2a1300;}'
         + '.fb-podium .fb-ligne__droite{font-family:var(--font-title);font-weight:700;font-size:1rem;color:var(--fb-or);}'
         + '#ferme-joueurs{width:100%;border-collapse:collapse;}'
+        + '.fb-table{width:100%;border-collapse:collapse;}.fb-table th,.fb-table td{padding:7px 10px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--color-border);}.fb-table th{color:var(--color-text-muted);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;user-select:none;}.fb-table th:hover{color:var(--color-text-primary);}.fb-table tbody tr:hover{background:var(--color-bg-tertiary);}'
         + '#ferme-joueurs th,#ferme-joueurs td{padding:8px 10px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--color-border);white-space:nowrap;}'
         + '#ferme-joueurs th{color:var(--color-text-muted);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;user-select:none;}'
         + '#ferme-joueurs th:hover{color:var(--color-text-primary);}'
@@ -271,7 +272,7 @@
 
         var html = '<div class="fb"><div class="fb-tete"><div><div class="admin-panel__title" style="margin-bottom:4px;">Ferme d\'Incarnam : les joueurs</div>'
             + '<div class="admin-panel__desc" style="margin:0;">Qui joue, où en est chacun et combien de temps il a joué (compté depuis le 19/10/2026).</div></div>'
-            + '<div class="fb-vues"><button data-vue="dash"' + (vue === 'dash' ? ' class="on"' : '') + '>Tableau de bord</button><button data-vue="cartes"' + (vue === 'cartes' ? ' class="on"' : '') + '>Cartes joueurs</button></div></div>';
+            + '<div class="fb-vues"><button data-vue="dash"' + (vue === 'dash' ? ' class="on"' : '') + '>Tableau de bord</button><button data-vue="cartes"' + (vue === 'cartes' ? ' class="on"' : '') + '>Cartes joueurs</button><button data-vue="vagues"' + (vue === 'vagues' ? ' class="on"' : '') + '>Vagues</button></div></div>';
 
         /* qui peut jouer */
         html += '<div class="fb-barre"><label for="ferme-acces" style="font-weight:700;">Qui peut jouer</label><select id="ferme-acces" class="form-input" style="max-width:300px;">';
@@ -291,10 +292,83 @@
         html += kpi('kama.png', 'Sessions', nombre(sessions), 'kamas cumulés : ' + kamas(joueurs.reduce(function (n, j) { return n + (j.kamas || 0); }, 0)));
         html += '</div>';
 
-        html += vue === 'cartes' ? vueCartes(joueurs) : vueDash(joueurs, { enJeuL: enJeuL, dernier: dernier });
+        html += vue === 'vagues' ? vueVagues() : vue === 'cartes' ? vueCartes(joueurs) : vueDash(joueurs, { enJeuL: enJeuL, dernier: dernier });
         html += '</div>';
         container.innerHTML = html;
         brancher(container, data);
+        if (vue === 'vagues' && !vaguesData && !vaguesErr) chargerVagues(container, data);
+    }
+
+    /* LE TABLEAU DES VAGUES (18/11/2026, « un board côté admin avec toutes les vagues, le % de win rate, le nombre de try, le nombre de fois gagné / perdu,
+       pour savoir quelles ont été les vagues les plus simples et les plus dures, en fonction des classes », Mathieu). Les données : sql/087,
+       ferme_admin_vagues() (chaque perso, ses parties rangées comprises : sa classe, la vague où il en est, ses défaites par vague depuis le début, et son
+       journal des 50 dernières vagues depuis le 17/11/2026). Une vague passée compte une victoire (les revanches de boss sont à part), un essai = les
+       défaites + la victoire. Le journal ajoute les victoires et défaites récentes, la durée et le monstre qui fait le plus mal. */
+    var PALIERS_NOMS = ['Amakna', 'Chafers', 'Bworks', 'Craqueleurs', 'Dragoeufs', 'Wabbits', 'Koalaks', 'Dragon Cochon', 'Île de Moon', 'Forêt des Abraknydes'];
+    var vaguesData = null, vaguesErr = null, vaguesCharge = false, vf = { classe: 'toutes', palier: 'tous', tri: 'vague', sens: 1 };
+    try { var vfs = JSON.parse(localStorage.getItem('ferme-admin-vf') || 'null'); if (vfs) vf = Object.assign(vf, vfs); } catch (e) { /* rien */ }
+    async function chargerVagues(container, data) {
+        if (vaguesCharge) return; vaguesCharge = true;
+        var r = await window.REN.supabase.rpc('ferme_admin_vagues');
+        vaguesCharge = false;
+        if (r.error || !r.data || !r.data.ok) { vaguesErr = r.error ? r.error.message : (r.data && r.data.erreur) || '?'; vaguesData = null; }
+        else { vaguesErr = null; vaguesData = r.data.joueurs || []; }
+        if (container.isConnected && vue === 'vagues') rendre(container, data);
+    }
+    function persosVagues(joueurs) { /* chaque perso (la partie active et les parties rangees) : { nom, classe, vague, defaites, journal } */
+        var L = [];
+        joueurs.forEach(function (j) {
+            L.push({ nom: j.nom, classe: j.classe, vague: Number(j.vague) || 1, defaites: j.defaites || {}, journal: j.journal || [] });
+            (j.parties || []).forEach(function (p) { L.push({ nom: j.nom + ' (' + (CLASSES[p.classe] || p.classe || '?') + ')', classe: p.classe, vague: Number(p.vague) || 1, defaites: p.defaites || {}, journal: p.journal || [] }); });
+        });
+        return L;
+    }
+    function statsVagues(persos) {
+        var S = {}, get = function (n) { return S[n] || (S[n] = { n: n, arrives: 0, passes: 0, essais: 0, victoires: 0, defaites: 0, bloques: 0, jV: 0, jD: 0, jDuree: 0, jNbV: 0, mal: {} }); };
+        persos.forEach(function (p) {
+            var num = Math.min(101, p.vague);
+            for (var n = 1; n <= Math.min(100, num); n++) {
+                var s = get(n), d = Number(p.defaites[n]) || 0; s.arrives++; s.defaites += d; s.essais += d;
+                if (n < num) { s.passes++; s.victoires++; s.essais++; } else if (d > 0) s.bloques++;
+            }
+            p.journal.forEach(function (e) {
+                if (!e || !e.n || e.test || e.boss) return; var s = get(e.n);
+                if (e.issue === 'gagne') { s.jV++; s.jDuree += e.duree || 0; s.jNbV++; } else s.jD++;
+                (e.parMonstre || []).forEach(function (m) { s.mal[m[0]] = (s.mal[m[0]] || 0) + (m[1] || 0); });
+            });
+        });
+        return Object.keys(S).map(function (k) { var s = S[k]; s.taux = s.essais ? s.victoires / s.essais : null; return s; });
+    }
+    function vueVagues() {
+        var html = '';
+        if (vaguesErr) return html + '<div class="fb-carte" style="margin-top:14px;"><b>Le tableau des vagues n\'est pas encore branché.</b><p class="text-muted" style="margin:6px 0 0;">Il faut passer le fichier <code>sql/087-ferme-admin-vagues.sql</code> dans l\'éditeur SQL de Supabase (une seule fois). Réponse de la base : ' + esc(vaguesErr) + '</p></div>';
+        if (!vaguesData) return html + '<p class="text-muted" style="margin-top:14px;">Chargement des vagues…</p>';
+        var persos = persosVagues(vaguesData).filter(function (p) { return vf.classe === 'toutes' || p.classe === vf.classe; });
+        var stats = statsVagues(persos).filter(function (s) { return vf.palier === 'tous' || Math.ceil(s.n / 10) === Number(vf.palier); });
+        html += '<div class="fb-barre" style="margin-top:14px;"><span style="font-weight:700;">Classe</span><div class="fb-vues">'
+            + [['toutes', 'Toutes']].concat(Object.keys(CLASSES).map(function (c) { return [c, CLASSES[c]]; })).map(function (c) { return '<button data-vf-classe="' + c[0] + '"' + (vf.classe === c[0] ? ' class="on"' : '') + '>' + c[1] + '</button>'; }).join('')
+            + '</div><label for="vf-palier" style="font-weight:700;">Palier</label><select id="vf-palier" class="form-input" style="max-width:240px;"><option value="tous">Tous les paliers</option>'
+            + PALIERS_NOMS.map(function (nm, k) { return '<option value="' + (k + 1) + '"' + (String(vf.palier) === String(k + 1) ? ' selected' : '') + '>' + (k * 10 + 1) + ' à ' + (k * 10 + 10) + ' : ' + nm + '</option>'; }).join('') + '</select>'
+            + '<span class="text-muted" style="font-size:.8rem;">' + persos.length + ' perso' + (persos.length > 1 ? 's' : '') + ' compté' + (persos.length > 1 ? 's' : '') + ' (les parties rangées comprises)</span></div>';
+        var fiables = stats.filter(function (s) { return s.essais >= 3; });
+        var dures = fiables.slice().sort(function (a, b) { return a.taux - b.taux || b.defaites - a.defaites; }).slice(0, 5);
+        var simples = fiables.filter(function (s) { return s.passes >= 2; }).sort(function (a, b) { return b.taux - a.taux || b.n - a.n; }).slice(0, 5); /* (a egalite, les vagues les plus loin d'abord : les premieres vagues a 100 % ne disent rien) */
+        var pc = function (x) { return x == null ? '-' : Math.round(100 * x) + ' %'; };
+        var top = function (titre, L, coul) { return '<div class="fb-carte"><div style="font-weight:800;margin-bottom:6px;">' + titre + '</div>' + (L.length ? L.map(function (s) { return '<div class="fb-ligne"><span style="font-weight:800;min-width:74px;">Vague ' + s.n + '</span><span style="color:' + coul + ';font-weight:800;min-width:48px;">' + pc(s.taux) + '</span><span class="text-muted" style="font-size:.8rem;">' + s.essais + ' essais, ' + s.defaites + ' défaites</span></div>'; }).join('') : '<p class="text-muted">Pas assez d\'essais.</p>') + '</div>'; };
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px;">' + top('Les plus dures (taux de réussite le plus bas)', dures, '#e74c3c') + top('Les plus simples', simples, '#2ecc71') + '</div>';
+        var cols = [['vague', 'Vague'], ['arrives', 'Arrivés'], ['passes', 'Passée'], ['essais', 'Essais'], ['victoires', 'Victoires'], ['defaites', 'Défaites'], ['taux', 'Réussite'], ['bloques', 'Bloqués ici'], ['journal', 'Récentes (V / D)'], ['mal', 'Fait le plus mal (récent)']];
+        var val = function (s, k) { return k === 'vague' ? s.n : k === 'journal' ? s.jV + s.jD : k === 'mal' ? 0 : k === 'taux' ? (s.taux == null ? -1 : s.taux) : s[k]; };
+        stats.sort(function (a, b) { var x = val(a, vf.tri), y = val(b, vf.tri); return (x < y ? -1 : x > y ? 1 : a.n - b.n) * vf.sens; });
+        html += '<div class="fb-table-wrap" style="margin-top:12px;overflow-x:auto;"><table class="fb-table"><thead><tr>' + cols.map(function (c) { return '<th data-vf-tri="' + c[0] + '" style="cursor:pointer;white-space:nowrap;">' + c[1] + (vf.tri === c[0] ? (vf.sens > 0 ? ' ▲' : ' ▼') : '') + '</th>'; }).join('') + '</tr></thead><tbody>';
+        stats.forEach(function (s) {
+            var t = s.taux, coul = t == null ? 'var(--color-text-muted)' : t < 0.35 ? '#e74c3c' : t < 0.6 ? '#f39c12' : '#2ecc71', mal = Object.keys(s.mal).sort(function (a, b) { return s.mal[b] - s.mal[a]; })[0];
+            var tm = s.jNbV ? Math.round(s.jDuree / s.jNbV) : 0;
+            html += '<tr><td style="font-weight:800;white-space:nowrap;">' + s.n + (s.n % 10 === 0 ? ' <span class="text-muted" style="font-size:.75rem;">boss</span>' : '') + '</td><td>' + s.arrives + '</td><td>' + s.passes + '</td><td>' + s.essais + '</td><td>' + s.victoires + '</td><td>' + s.defaites + '</td>'
+                + '<td style="min-width:120px;"><div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:8px;border-radius:4px;background:var(--color-bg-input);overflow:hidden;"><div style="height:100%;width:' + (t == null ? 0 : Math.round(100 * t)) + '%;background:' + coul + ';"></div></div><b style="color:' + coul + ';min-width:38px;text-align:right;">' + pc(t) + '</b></div></td>'
+                + '<td>' + (s.bloques || '') + '</td><td style="white-space:nowrap;">' + (s.jV + s.jD ? s.jV + ' / ' + s.jD + (tm ? ' <span class="text-muted" style="font-size:.75rem;">(' + Math.floor(tm / 60) + ' min ' + (tm % 60) + ' s)</span>' : '') : '') + '</td><td>' + (mal ? esc(mal) : '') + '</td></tr>';
+        });
+        html += '</tbody></table></div><p class="text-muted" style="font-size:.78rem;margin-top:8px;">Réussite = victoires / essais. Une vague passée compte une victoire (les revanches de boss ne comptent pas), un essai = ses défaites + la victoire. « Récentes » vient du journal des 50 dernières vagues de chaque perso, tenu depuis le 17/11/2026 (durée moyenne d\'une victoire entre parenthèses).</p>';
+        return html;
     }
 
     function brancher(container, data) {
@@ -311,6 +385,10 @@
                 rendre(container, data);
             });
         });
+        var memoVf = function () { try { localStorage.setItem('ferme-admin-vf', JSON.stringify(vf)); } catch (e) { /* rien */ } };
+        container.querySelectorAll('[data-vf-classe]').forEach(function (b) { b.addEventListener('click', function () { vf.classe = b.getAttribute('data-vf-classe'); memoVf(); rendre(container, data); }); });
+        container.querySelectorAll('[data-vf-tri]').forEach(function (th) { th.addEventListener('click', function () { var c = th.getAttribute('data-vf-tri'); vf.sens = vf.tri === c ? -vf.sens : (c === 'vague' || c === 'taux' ? 1 : -1); vf.tri = c; memoVf(); rendre(container, data); }); });
+        var vp = document.getElementById('vf-palier'); if (vp) vp.addEventListener('change', function () { vf.palier = vp.value; memoVf(); rendre(container, data); });
         container.querySelectorAll('[data-filtre]').forEach(function (b) { b.addEventListener('click', function () { filtre = b.getAttribute('data-filtre'); rendre(container, data); }); });
         var tc = document.getElementById('fb-tri-cartes');
         if (tc) tc.addEventListener('change', function () { triCartes = tc.value; rendre(container, data); });
@@ -326,7 +404,7 @@
             if (r.error || !r.data || !r.data.ok) { alert('Le changement n\'est pas passé : ' + (r.error ? r.error.message : (r.data && r.data.erreur) || '?')); return; }
             data.acces = r.data.acces; b.textContent = 'Enregistré ✓'; setTimeout(function () { b.textContent = 'Enregistrer'; }, 1500);
         });
-        document.getElementById('ferme-rafraichir').addEventListener('click', function () { window.tabFerme(container); });
+        document.getElementById('ferme-rafraichir').addEventListener('click', function () { vaguesData = null; vaguesErr = null; window.tabFerme(container); });
     }
 
     /* les photos (sql/085) : chargees a part, seulement celles qui ont change depuis la derniere fois */
