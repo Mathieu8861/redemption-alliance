@@ -21,9 +21,13 @@ MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha'
    orange, ventre beige), squelette des creatures (placer-squelette.py : profondeur des jambes prise sur leur devant, sa queue passe derriere), queue au
    bassin. Pour l'instant un gros monstre sans ses sorts, a voir bouger dans l'Arene dev ; son kit (la traque, l'odeur du sang, la Machoire qui retient,
    la Plongee dans la vase, la Crue de la mare, la Frenesie de sang) est dans PALIER11.md, a chiffrer avec Mathieu */
-SQUELETTES_A_CHARGER.push(['croco-boss', 'assets/modeles/jeu/croco-boss-anime.glb', 3.6]); NOMS_BW2.add('croco-boss'); VITESSE_FAMILLE['croco-boss'] = 1.25;
+/* (18/11/2026 au soir, refait d'apres un dessin plus fidele : « il est pas tres ressemblant », « tres peu de details », « un peu petit », « pas tres menacant »,
+   « penche en avant, comme s'il reposait de temps a autre sur ses pattes avant », Mathieu) : voute, longs bras qui touchent presque le sol, tete de croco
+   qui montre les dents, crete dense, texture d'origine (pas d'aplats), 4,6 de haut comme Moon, son propre rendu B plus doux (RENDU_B_PAR, 27d), et plus
+   coriace en attendant son kit */
+SQUELETTES_A_CHARGER.push(['croco-boss', 'assets/modeles/jeu/croco-boss-anime.glb', 4.6]); NOMS_BW2.add('croco-boss'); VITESSE_FAMILLE['croco-boss'] = 1.25;
 MONSTRES.crocoBoss = { element: 'eau', nom: 'Croco sauvage', modele: 'croco-boss', icone: 'triton', /* (nom et icone provisoires) */
-  desc: 'le chasseur de la mare : rapide, il te traque et ne te laisse pas respirer', pv: (n) => 26000 + 600 * (n - 100), deg: (n) => 150 + Math.round(4 * (n - 100)),
-  cadence: 1.3, vitesse: 3.6, portee: 2.6, ombre: 3.2 };
+  desc: 'le chasseur de la mare : rapide, il te traque et ne te laisse pas respirer', pv: (n) => 160000 + 4000 * (n - 100), deg: (n) => 220 + Math.round(5 * (n - 100)),
+  cadence: 1.3, vitesse: 3.6, portee: 3.2, ombre: 4.2 };
 AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4 } };
 GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };

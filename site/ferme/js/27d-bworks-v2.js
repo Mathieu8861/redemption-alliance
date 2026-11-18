@@ -17,30 +17,33 @@ for (const [n, h, v] of Object.values(BWORKS_V2)) { SQUELETTES_A_CHARGER.push([n
    toujours du haut a gauche de l'ecran, comme sur la planche validee) ; l'eclat rouge d'un coup et la lueur de rage (emissive) s'ajoutent par-dessus */
 /* (17/11/2026, « creux + ombre grise c'est mieux », Mathieu : l'ombre olive 0,44 / 0,50 / 0,36 se confondait avec la peau verte, gris froid ; les creux sont cuits dans la texture) */
 const RENDU_B = { ombre: { value: new T.Vector3(0.6, 0.59, 0.65) }, dir: { value: new T.Vector3(-0.75, 0.6, 0.3).normalize() }, contour: '#2f3b1a', ep: 0.006 };
-function matiereB(m) {
-  m.onBeforeCompile = (sh) => { sh.uniforms.uOmbreB = RENDU_B.ombre; sh.uniforms.uDirB = RENDU_B.dir;
+/* (18/11/2026, le Croco sauvage : « un peu trop de contraste », Mathieu, et des traits noirs sur ses pics : son propre rendu B, ombre plus claire et plus douce,
+   contour plus fin) */
+const RENDU_B_PAR = { 'croco-boss': { cle: 'croco', ombre: { value: new T.Vector3(0.76, 0.76, 0.8) }, dir: RENDU_B.dir, lisse: [-0.15, 0.3], contour: '#25331b', ep: 0.0035 } };
+function matiereB(m, R) { R = R || RENDU_B; const L = R.lisse || [0.02, 0.10];
+  m.onBeforeCompile = (sh) => { sh.uniforms.uOmbreB = R.ombre; sh.uniforms.uDirB = R.dir;
     sh.fragmentShader = 'uniform vec3 uOmbreB;\nuniform vec3 uDirB;\n' + sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
-      'float lB = smoothstep(0.02, 0.10, dot(normal, uDirB));\ngl_FragColor = vec4(mix(diffuseColor.rgb * uOmbreB, diffuseColor.rgb, lB) + totalEmissiveRadiance, diffuseColor.a);'); };
-  m.customProgramCacheKey = () => 'rendu-b'; m.needsUpdate = true; return m;
+      'float lB = smoothstep(' + L[0].toFixed(3) + ', ' + L[1].toFixed(3) + ', dot(normal, uDirB));\ngl_FragColor = vec4(mix(diffuseColor.rgb * uOmbreB, diffuseColor.rgb, lB) + totalEmissiveRadiance, diffuseColor.a);'); };
+  m.customProgramCacheKey = () => 'rendu-b' + (R.cle || ''); m.needsUpdate = true; return m;
 }
 const CONTOURS_B = {}; /* (un contour par epaisseur : 0,006 en unites du jeu, quelle que soit l'echelle du modele) */
-function contourB(e, peau) { const cle = e.toFixed(5) + (peau ? 's' : ''); if (CONTOURS_B[cle]) return CONTOURS_B[cle];
-  const m = new T.MeshBasicMaterial({ color: RENDU_B.contour, side: T.BackSide, skinning: !!peau });
+function contourB(e, peau, couleur) { const cle = e.toFixed(5) + (peau ? 's' : '') + (couleur || ''); if (CONTOURS_B[cle]) return CONTOURS_B[cle];
+  const m = new T.MeshBasicMaterial({ color: couleur || RENDU_B.contour, side: T.BackSide, skinning: !!peau });
   m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(normal) * ' + e.toFixed(5) + ';'); };
   m.customProgramCacheKey = () => 'contour-b-' + cle; return (CONTOURS_B[cle] = m); }
-function habillerB(M) {
+function habillerB(M, R) { R = R || RENDU_B;
   M.updateMatrixWorld(true); const v = new T.Vector3(), peaux = [], armes = [];
   M.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') peaux.push(o); else if (o.isMesh && !o.isSkinnedMesh && o.name !== 'contour-b') armes.push(o); });
-  peaux.forEach((o) => { const map = o.material.map; o.material = matiereB(new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, skinning: true, side: T.DoubleSide }));
-    const k = o.parent && o.parent.children.find((c) => c.name === 'contour' && c.isSkinnedMesh && c.geometry === o.geometry); if (k) k.material = contourB(RENDU_B.ep / o.getWorldScale(v).x, true); });
+  peaux.forEach((o) => { const map = o.material.map; o.material = matiereB(new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, skinning: true, side: T.DoubleSide }), R);
+    const k = o.parent && o.parent.children.find((c) => c.name === 'contour' && c.isSkinnedMesh && c.geometry === o.geometry); if (k) k.material = contourB(R.ep / o.getWorldScale(v).x, true, R.contour); });
   armes.forEach((o) => { const c = (o.material.color || new T.Color('#888888')).clone().convertLinearToSRGB(); /* (le glb donne des couleurs lineaires, le jeu les affiche telles quelles) */
     o.material = matiereB(new T.MeshToonMaterial({ color: c, gradientMap: grad, side: T.DoubleSide })); o.castShadow = true;
     const k = new T.Mesh(o.geometry, contourB(RENDU_B.ep / o.getWorldScale(v).x, false)); k.name = 'contour-b'; o.add(k); });
 }
 const chargerSquelette1 = chargerSquelette; chargerSquelette = async function (nom, url, h) { await chargerSquelette1(nom, url, h); const M = MODELES[nom];
-  if (NOMS_BW2.has(nom) && M && !M.userData.habilleB) { habillerB(M); M.userData.habilleB = true; } };
+  if (NOMS_BW2.has(nom) && M && !M.userData.habilleB) { habillerB(M, RENDU_B_PAR[nom]); M.userData.habilleB = true; } };
 const clonerSquelette1 = clonerSquelette; clonerSquelette = function (nom) { const g = clonerSquelette1(nom); /* (la copie d'une matiere perd son onBeforeCompile) */
-  if (NOMS_BW2.has(nom)) g.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') matiereB(o.material); }); return g; };
+  if (NOMS_BW2.has(nom)) g.traverse((o) => { if (o.isSkinnedMesh && o.name !== 'contour') matiereB(o.material, RENDU_B_PAR[nom]); }); return g; };
 /* la hache lancee du Bworker : la sienne (manche court), qui quitte sa main le temps du vol */
 const armeJet1 = armeJet; armeJet = function (type, k) {
   const M = MODELES['bworker-v2'], src = type === 'hache' && VERSION_BWORKS === 'nouvelle' && M && M.getObjectByName('hache-bworker'); if (!src) return armeJet1(type, k);
