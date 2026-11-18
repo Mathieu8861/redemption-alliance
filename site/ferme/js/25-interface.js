@@ -580,7 +580,7 @@ function ouvrirPerso(sel) {
     return '<button class="fp-slot' + (o ? '' : ' vide') + (o && o.rare ? ' rare' : '') + (o && o.leg ? ' leg' : '') + (id && id === persoSel ? ' choisi' : '') + '" data-fp-slot="' + e + '" data-info="' + (o ? echapper(o.nom) : NOMS_EMP[e] + ' : vide') + '">' + (o ? '<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>' + NOMS_EMP[e] + '</span>') +
       (mieux ? '<i class="fp-mieux">Up</i>' : neuf ? '<i class="fp-n">N</i>' : '') + '<small>' + NOMS_EMP[e] + '</small></button>'; };
   const virg = (x) => String(x).replace('.', ',');
-  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + Math.round(100 - 100 / (1 + c.agilite / 100)) + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
+  const carac = [['vita', 'PV', fmt(st.pvMax), c.vita ? '+' + c.vita : ''], ['degats', 'Dégâts', st.deg, c.puissance ? '+' + c.puissance + ' %' : ''], ['cadence', 'Attaque', virg(st.cadence) + ' s', c.agilite ? '-' + Math.round(100 - 100 / (1 + AGI_VITESSE * c.agilite / 100)) + ' %' : ''], ['portee', 'Portée', (st.portee / S) + (st.portee / S > 1 ? ' cases' : ' case'), ''],
     ['puissance', 'Puissance', '+' + c.puissance + ' %', ''], ['agilite', 'Agilité', '+' + c.agilite, ''], ['sagesse', 'Sagesse', '+' + c.sagesse + ' %', ''], ['prospection', 'Prospection', '+' + c.prospection + ' %', '']];
   const gauche = '<div class="fp-bloc"><h3>Équipement <small>touche une case, ou glisse une pièce du sac ici</small></h3><div class="fp-poupee">' +
     ['coiffe', 'cape', 'amulette'].map((e, k) => '<div style="grid-column:1;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
@@ -588,7 +588,7 @@ function ouvrirPerso(sel) {
     ['anneau', 'ceinture', 'bottes'].map((e, k) => '<div style="grid-column:3;grid-row:' + (k + 1) + '">' + slot(e) + '</div>').join('') +
     '<div class="fp-arme">' + slot('arme') + '</div></div>' +
     '<div class="fp-carac">' + carac.map(([k, n, v, bo]) => '<button class="fp-cr' + (persoCarac === k ? ' choisi' : '') + '" data-fp-carac="' + k + '"><span class="rond" style="background:' + PICTOS[k][0] + '">' + picto(k, '#fff') + '</span><span class="nom">' + n + '</span><b>' + v + '</b></button>').join('') + '</div>' + /* (le detail des bonus est dans l'explication, au toucher) */
-    (persoCarac ? expliquerCarac(persoCarac, st) : '<p class="fp-astuce">Touche une caractéristique pour savoir à quoi elle sert.</p>') + '</div>';
+    (persoCarac ? expliquerCarac(persoCarac, st) : '<p class="fp-astuce">Touche une caractéristique pour savoir à quoi elle sert.</p>') + blocEnsembles() + '</div>'; /* (les ensembles, 25b-ensembles.js, 18/11/2026) */
   /* au milieu : la piece choisie, comparee a celle qui est portee */
   let milieu;
   if (persoSel && String(persoSel).startsWith('q:')) { const q = quete.find((x) => 'q:' + x.id === persoSel);
