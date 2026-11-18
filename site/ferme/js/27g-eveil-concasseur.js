@@ -9,6 +9,14 @@
      parfaite. Rare : une rune de forgemagie à coup sûr, et 1 chance sur 5 d'une parfaite. Les légendaires ne se concassent pas (elles servent à l'éveil).
    - OU : de nouveaux bâtiments débloqués au niveau 100 (à concevoir) ; en attendant, en version dev, depuis l'atelier de forgemagie, dans le mode test. */
 const NIV_EVEIL = 100, NIV_CONCASSE = 60;
+/* leurs batiments (blender/eveil-concasseur.py, 18/11/2026) : le modele ne se charge que si l'un d'eux est pose, pour ne pas alourdir le chargement de tous */
+let chargeEC = null;
+function assurerEveilConcasseur() {
+  if (chargeEC) return chargeEC;
+  chargeEC = chargerGlb('assets/modeles/jeu/eveil-concasseur.glb?v=' + VERSION_MODELES).then((G) => { versToon(G, { normales: 0.012, sansContour: SC_BATI });
+    MODELES.eveil = gabaritEchelle(G, 'Eveil', 1, new T.Vector3(0, 0, 0)); MODELES.concasseur = gabaritEchelle(G, 'Concasseur', 1, new T.Vector3(0, 0, 0)); construireBatiments(); }).catch(() => { chargeEC = null; });
+  return chargeEC;
+}
 const CONCASSE = { normale: { forge: 1 / 40, parfaite: 1 / 100 }, rare: { forge: 1, parfaite: 1 / 5 } };
 const eveilDev = () => !!MODE_TEST; /* (version dev : seulement dans le mode test de Mathieu, tant que les bâtiments ne sont pas faits) */
 const rangLeg = (o) => { const L = o && LEGENDAIRES.find((x) => x.cle === o.leg); return L ? (L.rang != null ? L.rang : o.pano) : null; };

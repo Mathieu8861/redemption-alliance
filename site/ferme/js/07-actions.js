@@ -41,6 +41,7 @@ const ACTIONS = {
     if (p.type === 'geliere') { if (potsPretsGeliere()) ACTIONS.ramasserPots(); ouvrirGeliere(); return; }
     if (p.type === 'forge') { ouvrirForge(); return; }
     if (p.type === 'atelier') { ouvrirAtelier(); return; }
+    if (p.type === 'eveil') { ouvrirEveil(); return; } if (p.type === 'concasseur') { ouvrirConcasseur(); return; } /* (les batiments du niveau 100, 18/11/2026) */
     if (p.type === 'niche') { ouvrirGardien(); return; }
     if (p.type === 'cabane') { allerPorteCabane(true); return; } /* (la cabane du pecheur : on va a sa porte et on entre) */
     if (p.type === 'ponton') return;
@@ -307,8 +308,8 @@ const ACTIONS = {
       toast('Touche l\'endroit où bâtir ton château : il prend ' + coteChateau() + ' cases sur ' + coteChateau() + '. Ta grange et tes 4 tours y fusionnent.', 'or'); return;
     }
     if (id === 'voliere' && n === 0 && bloqueursVoliere().length) { toast('Pas la place : libère une case à côté de la volière (une parcelle se déplace avec Aménager).', 'alerte'); return; }
-    const caseForge = (id === 'forge' || id === 'atelier') && n === 0 ? caseLibreForge(id) : null; /* (l'atelier se pose comme l'atelier de forgemagie, 09/11/2026) */
-    if ((id === 'forge' || id === 'atelier') && n === 0 && !caseForge) { toast('Pas la place : l\'atelier prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
+    const caseForge = BATIS_CASE.includes(id) && n === 0 ? caseLibreForge(id) : null; /* (l'atelier se pose comme l'atelier de forgemagie, 09/11/2026) */
+    if (BATIS_CASE.includes(id) && n === 0 && !caseForge) { toast('Pas la place : ' + (id === 'forge' || id === 'atelier' ? 'l\'atelier' : BATIS[id]) + ' prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
     const caseLeurre = id === 'leurre' && n === 0 ? caseLibreLeurre() : null;
     if (id === 'leurre' && n === 0 && !caseLeurre) { toast('Pas la place : le leurre prend une case d\'herbe libre. Libère-en une avec Aménager, ou achète un terrain.', 'alerte'); return; }
     const blocGel = id === 'geliere' && n === 0 ? blocLibreGeliere() : null;
@@ -321,9 +322,11 @@ const ACTIONS = {
       toast('L\'enclos s\'agrandit : +' + k + ' case' + (k > 1 ? 's' : '') + ', posée' + (k > 1 ? 's' : '') + ' toute' + (k > 1 ? 's' : '') + ' seule' + (k > 1 ? 's' : '') + ' à côté de lui. Pour changer sa forme : Aménager l\'enclos.', 'or');
     }
     if (id === 'voliere') { appliquerVoliere(); rendreCasesBulles(); }
-    if ((id === 'forge' || id === 'atelier') && caseForge) { /* construit : sur sa case, pres de la grange */
+    if (BATIS_CASE.includes(id) && caseForge) { /* construit : sur sa case, pres de la grange */
       caseForge.type = id; const u = paysanMesh.userData; if (u.cellule === caseForge || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseForge) { const v = voisins(caseForge).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } }
-      rendreCase(caseForge.id); construireBatiments(); sauver(); fermerModale(); rendreHaut(); if (id === 'atelier') { toast('L\'atelier est construit, près de ta grange : touche-le pour fabriquer.', 'or'); ouvrirAtelier(); return; } toast('L\'atelier de forgemagie est construit, près de ta grange : touche-le pour forger tes pièces avec tes runes.', 'or'); ouvrirForge(); return; }
+      rendreCase(caseForge.id); construireBatiments(); sauver(); fermerModale(); rendreHaut(); if (id === 'atelier') { toast('L\'atelier est construit, près de ta grange : touche-le pour fabriquer.', 'or'); ouvrirAtelier(); return; }
+      if (id === 'eveil') { toast('Le sanctuaire de l\'éveil est construit, près de ta grange : touche-le pour éveiller tes légendaires.', 'or'); ouvrirEveil(); return; }
+      if (id === 'concasseur') { toast('Le concasseur est construit, près de ta grange : touche-le pour broyer tes pièces contre des runes.', 'or'); ouvrirConcasseur(); return; } toast('L\'atelier de forgemagie est construit, près de ta grange : touche-le pour forger tes pièces avec tes runes.', 'or'); ouvrirForge(); return; }
     if (id === 'leurre') { /* pose a l'achat, pres de tes Cawottes et de tes Fraises ; puis a chaque niveau, son nouveau modele */
       if (caseLeurre) { caseLeurre.type = 'leurre'; const u = paysanMesh.userData; if (u.cellule === caseLeurre || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseLeurre) { const v = voisins(caseLeurre).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } } rendreCase(caseLeurre.id); }
       majLeurre(); rendreCasesBulles(); sauver();

@@ -177,7 +177,7 @@ function majNomsTofus() {
 }
 
 /* ---------- les batiments sont poses d'apres leurs cases : on les deplace avec Amenager ---------- */
-const BATIS = { forge: 'l\'atelier de forgemagie', atelier: 'l\'atelier', grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', leurre: 'le leurre à Wabbits', niche: 'la maison de ton gardien', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
+const BATIS = { forge: 'l\'atelier de forgemagie', atelier: 'l\'atelier', eveil: 'le sanctuaire de l\'éveil', concasseur: 'le concasseur', grange: 'la grange', hdv: 'l\'HDV', voliere: 'la volière', geliere: 'la Gelière', puits: 'le puits', epouvantail: 'l\'épouvantail', leurre: 'le leurre à Wabbits', niche: 'la maison de ton gardien', foin: 'le foin', montgolfiere: 'la montgolfière' }; /* (la montgolfiere depuis le 14/10/2026 : elle se deplace comme le reste) */
 function blocBati(type) {
   const B = S_.cases.filter((c) => c.type === type); if (!B.length) return null;
   const i0 = Math.min(...B.map((c) => c.i)), j0 = Math.min(...B.map((c) => c.j)), P = B.map(posCase);
@@ -531,6 +531,7 @@ function construireBatiments() {
   }
   o = blocBati('forge'); if (o && MODELES.forge) { pose('forge', o.x, o.y, o.z, o.c0.id, rotDe('forge')); ancres.forge = new T.Vector3(o.x, o.y + 3.2, o.z); } else delete ancres.forge;
   o = blocBati('atelier'); if (o && MODELES.atelier) { pose('atelier', o.x, o.y, o.z, o.c0.id, rotDe('atelier')); ancres.atelier = new T.Vector3(o.x, o.y + 3.0, o.z); } else delete ancres.atelier; /* (l'atelier, 09/11/2026) */
+  ['eveil', 'concasseur'].forEach((t) => { const b = blocBati(t); if (b && !MODELES[t]) assurerEveilConcasseur(); if (b && MODELES[t]) { pose(t, b.x, b.y, b.z, b.c0.id, rotDe(t)); ancres[t] = new T.Vector3(b.x, b.y + 3.0, b.z); } else delete ancres[t]; }); /* (les batiments du niveau 100, 18/11/2026 ; leur modele se charge a la demande, 27g-eveil-concasseur.js) */
   poserCabane(pose); /* (la cabane du pecheur, a sa place fixe : 14g-cabane.js) */
   o = blocBati('niche'); if (o && MODELES.maisonGardien) { pose('maisonGardien', o.x, o.y, o.z, o.c0.id, rotDe('niche')); ancres.niche = new T.Vector3(o.x, o.y + 2.3, o.z); } else delete ancres.niche; /* la maison du gardien (14c-gardien.js) */
   o = blocBati('puits'); if (o) pose('puits' + nivBat('nivPuits'), o.x, o.y, o.z, o.c0.id, -0.3 + rotDe('puits'));
