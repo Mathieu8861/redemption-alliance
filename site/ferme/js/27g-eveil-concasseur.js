@@ -45,6 +45,9 @@ const exemplairesLeg = () => { /* chaque légendaire possédé, porté ou dans l
    doublon qui lui correspond va dans la case de l'offrande ; toucher une case pleine la vide. */
 const EV = { cible: null, sac: null, fin: null }; /* (cible et sac : des cles d'exemplaire ; fin : la fusion qui vient d'avoir lieu, a montrer) */
 const evPortee = (k) => Object.values(S_.equip || {}).includes(k);
+/* le jet de chaque exemplaire, en pastille de couleur (« quand il y a 3 pieces, on ne sait pas c'est laquelle : celle qui a deja 100 % de jet et une autre a 20 %,
+   on n'arrive pas a voir la difference, pour pas qu'on brise une a 100 % sur une a 20 % », Mathieu, 18/11/2026) */
+const evJet = (k) => Math.round(qualiteJet(k) * 100), evJetPastille = (k) => { const q = qualiteJet(k); return '<span class="ev-jet j-' + nomJet(q) + '">' + Math.round(q * 100) + ' %</span>'; };
 const evPeutSac = (x) => !!EV.cible && !x.porte && baseObjet(x.k) === baseObjet(EV.cible) && (x.k !== EV.cible || (S_.sac[x.k] || 0) >= (evPortee(EV.cible) ? 1 : 2));
 const EV_CERCLE = '<svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="#c890ff" stroke-width="1.6"><circle cx="100" cy="100" r="96" stroke-width="2.4"/><circle cx="100" cy="100" r="88" stroke-dasharray="3 6"/>' +
   '<circle cx="100" cy="100" r="70"/><polygon points="100,12 176,144 24,144"/><polygon points="100,188 24,56 176,56"/></g><g fill="#d7b2ff">' +
@@ -57,16 +60,19 @@ function ouvrirEveil() {
   let vuC = false, vuS = false;
   const tuiles = L.map((x) => { let e = '';
     if (x.k === c && !vuC) { vuC = true; e = 'au-centre'; } else if (x.k === s && !vuS) { vuS = true; e = 'offerte'; } else if (c) e = evPeutSac(x) ? 'possible' : 'eteinte';
-    const o = obj(x.k); return '<div class="ev-case ' + e + '" data-ev-k="' + x.k + '" data-ev-porte="' + (x.porte ? 1 : 0) + '" data-ev-etat="' + e + '" title="' + o.nom.replace(/"/g, '') + ', niveau ' + o.niv + '">' + icoObjet(x.k) +
-      '<span class="ev-niv">' + o.niv + '</span>' + (x.porte ? '<span class="ev-porte">portée</span>' : '') + '</div>'; });
-  const slot = (k, quoi, vide, eclat) => '<div class="ev-slot ' + quoi + (k ? ' plein' : '') + (eclat ? ' eclat' : '') + '" data-ev-slot="' + quoi + '">' + (k ? icoObjet(k) : '<span>' + vide + '</span>') + '</div>';
+    const o = obj(x.k); return '<div class="ev-case ' + e + '" data-ev-k="' + x.k + '" data-ev-porte="' + (x.porte ? 1 : 0) + '" data-ev-etat="' + e + '" title="' + o.nom.replace(/"/g, '') + ', niveau ' + o.niv + ', jet ' + evJet(x.k) + ' %">' + icoObjet(x.k) +
+      '<span class="ev-niv">niv. ' + o.niv + '</span>' + evJetPastille(x.k) + '<i class="ev-jbar" style="width:' + evJet(x.k) + '%"></i>' + (x.porte ? '<span class="ev-porte">portée</span>' : '') + '</div>'; });
+  const slot = (k, quoi, vide, eclat) => '<div class="ev-slot ' + quoi + (k ? ' plein' : '') + (eclat ? ' eclat' : '') + '" data-ev-slot="' + quoi + '">' + (k ? icoObjet(k) + evJetPastille(k) : '<span>' + vide + '</span>') + '</div>';
   const apercu = F ? '<div class="ev-apercu ev-resultat"><b>✦ ' + obj(F.k).nom + '</b><div class="ev-plus">Niveau ' + F.avant.niv + ' → ' + obj(F.k).niv + ' (+' + (obj(F.k).niv - F.avant.niv) + ')</div>' + tableEveil(F.avant, obj(F.k)) + '</div>'
-    : c ? '<div class="ev-apercu"><b>✦ ' + oc.nom + '</b>' + (ap ? tableEveil(oc, ap) : '<p class="hdv-aide">Elle a atteint le dernier palier ouvert (niveau ' + oc.niv + ') : elle ne peut plus monter pour le moment.</p>') + '</div>'
+    : c ? '<div class="ev-apercu"><b>✦ ' + oc.nom + '</b><div class="ev-jet-ligne">Jet ' + nomJet(qualiteJet(c)) + ' : ' + evJet(c) + ' %</div>' + (ap ? tableEveil(oc, ap) : '<p class="hdv-aide">Elle a atteint le dernier palier ouvert (niveau ' + oc.niv + ') : elle ne peut plus monter pour le moment.</p>') + '</div>'
     : '<div class="ev-apercu vide"><p class="hdv-aide">Chaque fusion donne <b>+10 niveaux</b> à la pièce du centre, et ses stats passent au palier suivant, en gardant ses lignes et son jet, sans dépasser le dernier palier ouvert (niveau ' + (10 * (rangMaxLeg() + 1)) + '). Le doublon est détruit.</p></div>';
+  const mieux = c && s && !F && qualiteJet(s) > qualiteJet(c) + 0.005, echange = mieux && !evPortee(c) && eveilDe(c) <= eveilDe(s);
+  const alerte = mieux ? '<div class="ev-alerte"><b>Attention</b> : le doublon a un meilleur jet (' + evJet(s) + ' %) que la pièce du centre (' + evJet(c) + ' %). C\'est la pièce du centre qui garde son jet.' +
+    (echange ? '<button class="btn mini kamas" data-ev-echange>Échanger les deux</button>' : evPortee(c) ? ' Retire-la d\'abord pour pouvoir échanger.' : '') + '</div>' : '';
   const aide = !c ? 'Dépose une pièce au centre' : max ? 'Au plus haut pour le moment' : s ? 'Il sera détruit' : L.some((x) => evPeutSac(x)) ? 'Dépose un doublon' : 'Aucun doublon dans ton sac';
   ouvrirModale('eveil', entete('L\'éveil des légendaires') + '<div class="ev-autel">' +
     '<div class="ev-gauche"><div class="ev-cercle">' + EV_CERCLE + slot(c, 'cible', 'Glisse ici la pièce à éveiller', !!F) + '</div>' + apercu + '</div>' +
-    '<div class="ev-milieu"><div class="ev-fleche">◀</div>' + slot(s, 'sac', 'Le doublon') + '<small>' + aide + '</small>' +
+    '<div class="ev-milieu"><div class="ev-fleche">◀</div>' + slot(s, 'sac', 'Le doublon') + '<small>' + aide + '</small>' + alerte +
       (F ? '<button class="btn discret" data-ev-encore>Continuer</button>' : '<button class="btn kamas" data-ev-fusion' + (c && s && !max ? '' : ' disabled') + '>Fusionner</button>') + '</div>' +
     '<div class="ev-droite"><div class="hdv-section">Tes légendaires</div>' + (L.length ? '<div class="ev-grille">' + tuiles.join('') + '</div>' : '<p class="hdv-aide">Tu n\'as aucune pièce légendaire pour l\'instant.</p>') +
       '<p class="hdv-aide ev-astuce">Glisse une pièce dans une case, ou touche-la. Touche une case pleine pour la vider.</p></div></div>' +
@@ -84,7 +90,7 @@ function evPlacer(k, porte, ou) { /* ou : 'cible', 'sac', ou rien (un simple tou
 function evConfirmer() {
   const A = document.querySelector('.ev-autel'), c = EV.cible, s = EV.sac; if (!A || !c || !s || A.querySelector('.ev-confirme')) return;
   const d = document.createElement('div'); d.className = 'ev-confirme';
-  d.innerHTML = '<div><p><b>Fusionner ?</b></p><p>' + obj(c).nom + ' passe du niveau ' + obj(c).niv + ' au <b>niveau ' + eveillerObjet(objBrut(c), eveilDe(c) + 1).niv + '</b>.</p><p>Le doublon est <b>détruit</b>' + (eveilDe(s) ? ' (avec ses ' + eveilDe(s) + ' éveils)' : '') + '. Tu ne pourras pas revenir en arrière.</p>' +
+  d.innerHTML = '<div><p><b>Fusionner ?</b></p><p>' + obj(c).nom + ' passe du niveau ' + obj(c).niv + ' au <b>niveau ' + eveillerObjet(objBrut(c), eveilDe(c) + 1).niv + '</b>.</p><p>Elle garde son jet : <b>' + evJet(c) + ' %</b>.</p><p' + (qualiteJet(s) > qualiteJet(c) + 0.005 ? ' class="ev-perte"' : '') + '>Le doublon (jet ' + evJet(s) + ' %) est <b>détruit</b>' + (eveilDe(s) ? ' (avec ses ' + eveilDe(s) + ' éveils)' : '') + '. Tu ne pourras pas revenir en arrière.</p>' +
     '<div class="boutons"><button class="btn discret" data-ev-non>Non</button><button class="btn kamas" data-ev-oui>Oui, fusionner</button></div></div>';
   A.appendChild(d);
 }
@@ -132,13 +138,14 @@ document.addEventListener('pointercancel', (e) => { if (evGlisse && e.pointerId 
 document.addEventListener('touchmove', (e) => { if (evGlisse && evGlisse.actif) e.preventDefault(); }, { passive: false });
 document.addEventListener('click', (e) => {
   if (modaleOuverte !== 'eveil') return; if (performance.now() - evGlisseFin < 80) { e.stopPropagation(); e.preventDefault(); return; }
-  const t = e.target.closest('.ev-case,[data-ev-slot],[data-ev-fusion],[data-ev-oui],[data-ev-non],[data-ev-encore]'); if (!t || document.querySelector('.ev-fusion')) return;
+  const t = e.target.closest('.ev-case,[data-ev-slot],[data-ev-fusion],[data-ev-oui],[data-ev-non],[data-ev-encore],[data-ev-echange]'); if (!t || document.querySelector('.ev-fusion')) return;
   if (t.matches('.ev-case')) { const et = t.dataset.evEtat; if (et === 'au-centre') { EV.cible = null; EV.sac = null; EV.fin = null; ouvrirEveil(); } else if (et === 'offerte') { EV.sac = null; ouvrirEveil(); } else evPlacer(t.dataset.evK, t.dataset.evPorte === '1'); return; }
   if (t.dataset.evSlot) { if (t.dataset.evSlot === 'cible') { EV.cible = null; EV.sac = null; EV.fin = null; } else EV.sac = null; ouvrirEveil(); return; }
   if (t.hasAttribute('data-ev-fusion')) { evConfirmer(); return; }
   if (t.hasAttribute('data-ev-non')) { const q = document.querySelector('.ev-confirme'); if (q) q.remove(); return; }
   if (t.hasAttribute('data-ev-oui')) { evFusionner(); return; }
   if (t.hasAttribute('data-ev-encore')) { EV.fin = null; ouvrirEveil(); }
+  if (t.hasAttribute('data-ev-echange') && EV.cible && EV.sac && !evPortee(EV.cible)) { const c = EV.cible; EV.cible = EV.sac; EV.sac = c; son('poser'); ouvrirEveil(); }
 });
 const tableEveil = (a, b) => { const u = (c, v) => '+' + v + (CARACS[c] && CARACS[c][1].startsWith(' %') ? ' %' : ''); /* (avant / après, une ligne par stat) */
   return '<table class="eveil-tab"><tr><th></th><th>Avant</th><th>Après</th></tr><tr><td>Niveau</td><td>' + a.niv + '</td><td>' + b.niv + '</td></tr>' +
