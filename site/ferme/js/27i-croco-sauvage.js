@@ -12,12 +12,14 @@
 const KIT_CROCO = {
   traque: { periode: 4.5, prepa: 0.8, max: 12, vitesse: 24 },
   odeur: { vit: 0.4, cad: 0.6, vol: 0.3, seuilVol: 0.5 }, /* (vit et cad : en plus, PV du perso a 0 ; vol : la part des degats qui le soigne, sous seuilVol de sa vie) */
-  machoire: { periode: 9, min: 0, max: 10, prepa: 0.85, R: 1.4, tenu: 1.5, morsures: 3, x: 0.55, saut: 2.4 },
+  machoire: { periode: 9, min: 0, max: 10, prepa: 0.85, R: 1.4, tenu: 1.5, morsures: 3, x: 0.8, saut: 2.4 },
   plongee: { periode: 15, suit: 1.8, vBosse: 7.5, prepa: 1.0, R: 1.8, x: 1.6, assomme: 0.6 },
   crue: { periode: 22, n: 5, R: [1.8, 2.6], duree: 12, vit: 1.35 },
   frenesie: { seuil: 0.3, vit: 1.3, sorts: 0.7 },
 };
-Object.assign(MONSTRES.crocoBoss, { boss: true, poings: true, element: 'eau', couleurSorts: ['#e2413a', '#ffb3a8', '#8a1c14'], pv: () => pvBoss(11), deg: () => 66, degSort: 1.7, cadence: 1.2, vitesse: 3.4, portee: 3.0, ombre: 4.2, armure: 0.2,
+/* (« pas assez fluide et rapide dans ses mouvements, et il fait aucun degat », Mathieu : ses coups passaient par les poings du Gorille, 57 toutes les 3 s avec un
+   cercle a eviter ; ce sont maintenant des coups de griffes directs, a la cadence des boss (autoX : environ 290 par coup), plus vite, et sa ruee court a quatre pattes) */
+Object.assign(MONSTRES.crocoBoss, { boss: true, element: 'eau', couleurSorts: ['#e2413a', '#ffb3a8', '#8a1c14'], pv: () => pvBoss(11), deg: () => 66, autoX: 2.0, degSort: 1.7, cadence: 1.0, vitesse: 4.2, portee: 3.0, ombre: 4.2, armure: 0.2, gestes: { charge: 'charge' },
   charge: KIT_CROCO.traque.periode, chargePrepa: KIT_CROCO.traque.prepa, chargeMax: KIT_CROCO.traque.max, chargeVitesse: KIT_CROCO.traque.vitesse,
   machoire: KIT_CROCO.machoire, plongeeVase: KIT_CROCO.plongee, crue: KIT_CROCO.crue, odeurSang: KIT_CROCO.odeur, frenesie: KIT_CROCO.frenesie,
   desc: 'le chasseur de la mare, il ne te laisse pas respirer : il fonce sur toi dès que tu t\'éloignes (sors de la bande rouge), plus tu es blessé plus il est rapide, et sous la moitié de sa vie ses coups le soignent. Il bondit pour te happer et te secouer (sors du cercle rouge), plonge dans la vase et jaillit sous toi, fait déborder la mare (les flaques te ralentissent, lui accélèrent), et sous 30 % de vie il passe à quatre pattes : la frénésie de sang' });

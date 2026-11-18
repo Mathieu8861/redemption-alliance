@@ -25,7 +25,7 @@ MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha'
    « penche en avant, comme s'il reposait de temps a autre sur ses pattes avant », Mathieu) : voute, longs bras qui touchent presque le sol, tete de croco
    qui montre les dents, crete dense, texture d'origine (pas d'aplats), 4,6 de haut comme Moon, son propre rendu B plus doux (RENDU_B_PAR, 27d), et plus
    coriace en attendant son kit */
-SQUELETTES_A_CHARGER.push(['croco-boss', 'assets/modeles/jeu/croco-boss-anime.glb', 4.6]); NOMS_BW2.add('croco-boss'); VITESSE_FAMILLE['croco-boss'] = 1.25;
+SQUELETTES_A_CHARGER.push(['croco-boss', 'assets/modeles/jeu/croco-boss-anime.glb', 4.6]); NOMS_BW2.add('croco-boss'); VITESSE_FAMILLE['croco-boss'] = 1.5; /* (« pas assez fluide et rapide », Mathieu, 18/11/2026 : ses gestes plus vifs) */
 MONSTRES.crocoBoss = { element: 'eau', nom: 'Croco sauvage', modele: 'croco-boss', icone: 'triton', /* (nom et icone provisoires) */
   desc: 'le chasseur de la mare : rapide, il te traque et ne te laisse pas respirer', pv: (n) => 160000 + 4000 * (n - 100), deg: (n) => 220 + Math.round(5 * (n - 100)),
   cadence: 1.3, vitesse: 3.6, portee: 3.2, ombre: 4.2, varieAllure: true }; /* (varieAllure : sa marche et sa course a quatre pattes, en bonds, les deux bras ensemble, de temps en temps, 22c-squelettes.js) */

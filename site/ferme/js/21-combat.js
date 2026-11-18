@@ -442,7 +442,7 @@ const AUTO_BOSS = [1, 1, 1.75, 2.04, 2.49, 1.82, 1.93, 2.04, 2.09, 1], AUTO_DIFF
 const AUTO_DEMI = { gorgouille: 5.17, kannibEbil: 5.16, tortueCorail: 4.69, ancestral: 2.5, ancestralMaudit: 2.5 }; /* (l'Ancestral, 08/11/2026 : 178 par coup) */ /* (puis le meme soir, Mathieu : « Gorgouille a 150 les autos, Kanniboul a 160 et Tortue a 150 ») */
 const autoFiche = (d, t, n) => d.boss ? (d.demi ? AUTO_DEMI[t] || 1 : (AUTO_BOSS[palierDe(n)] || 1) * (d.autoX || 1)) : 1; /* (la fiche et la carte de la vague) */
 function autoBoss(mo) {
-  if (!combat || combat.genre !== 'vague' || !mo || !mo.d.boss || mo.invoque) return 1;
+  if (!combat || (combat.genre !== 'vague' && !combat.dev) || !mo || !mo.d.boss || mo.invoque) return 1; /* (combat.dev, 18/11/2026 : l'Arene dev montre les memes coups qu'en vague ; sans ca, un boss y tapait bien moins fort, « il fait aucun degat », Mathieu) */
   if (mo.d.demi) return (AUTO_DEMI[mo.type] || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1);
   const P = combat.difficile && combat.rejoueBoss != null ? palierDe(vagueRefDifficile(niveau(S_.xp))) : palierDe(combat.n);
   return (AUTO_BOSS[P] || 1) * (mo.d.autoX || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1); /* (autoX : Moon, ses coups directs a 220, 07/11/2026) */
