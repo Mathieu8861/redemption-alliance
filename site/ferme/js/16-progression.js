@@ -86,7 +86,7 @@ function rendreObjectif() {
   const e = $('objectif'); if (!e || !S_ || enAccueil) return;
   if (tuto.actif && ETAPES_TUTO[tuto.etape].id !== 'fin') { e.hidden = true; return; } /* pendant le tuto, Pepito parle dans sa carte */
   const o = objectifCourant(), J = jourCourant(), prets = J ? J.defis.filter((d) => d.fait >= d.but && !d.reclame).length : 0, faits = J ? J.defis.filter((d) => d.reclame).length : 0;
-  if (S_.objCache && !prets) { e.hidden = true; return; }
+  if (S_.objCache && !J) { e.hidden = true; return; } /* (18/11/2026, « le defi du jour ne s'affiche pas, on ne peut pas les faire », Mathieu : masquer l'objectif de Pepito, ou couper le tuto, cachait aussi les defis du jour ; seul l'objectif se masque maintenant) */
   e.hidden = false;
   let h = '';
   if (o && !S_.objCache) { const v = Math.min(o[1], valeurCompteur(o[0])), fini = v >= o[1];

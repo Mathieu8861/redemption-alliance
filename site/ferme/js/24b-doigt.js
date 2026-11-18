@@ -9,8 +9,11 @@
    Les reglages se font dans les Options (section visible du seul admin) et restent dans ce navigateur. Les potions ne sont pas en combat (elles ne s'y boivent pas). */
 const dgId = (id) => document.getElementById(id); /* (le $ du jeu est dans 25-interface, charge apres) */
 const DG_CLE = 'ferme-doigt-reglages';
-const DG_DEFAUT = { actif: 'auto', disp: 'a', joy: 'fixe', suivi: 'cadre', dist: 'moyenne', incl: 'normale', tour: true, fleches: true };
-const dgReglages = (() => { try { return Object.assign({}, DG_DEFAUT, JSON.parse(localStorage.getItem(DG_CLE) || '{}')); } catch (e) { return Object.assign({}, DG_DEFAUT); } })();
+const DG_DEFAUT = { actif: 'auto', disp: 'a', joy: 'fixe', suivi: 'cadre', dist: 'actuelle', incl: 'normale', tour: true, fleches: true };
+const dgReglages = (() => { try { const R = Object.assign({}, DG_DEFAUT, JSON.parse(localStorage.getItem(DG_CLE) || '{}')); if (!R.zoomLibre) { R.zoomLibre = true; R.dist = 'actuelle'; } return R; } catch (e) { return Object.assign({}, DG_DEFAUT); } })();
+/* PLUS DE ZOOM IMPOSE AU COMBAT (18/11/2026, « stop le zoom obligatoire quand on lance le combat », Mathieu, au telephone) : la distance « actuelle », par defaut
+   et pour tous (zoomLibre : une fois, meme pour ceux qui avaient enregistre « Moyenne »), garde le zoom que tu as en entrant en combat et ne le change plus,
+   ni a l'entree ni a la sortie ; l'oeil (toute la ferme) te rend ensuite le zoom que tu avais. Proche, Moyenne et Loin restent au choix dans les Options */
 const dgSauver = () => { try { localStorage.setItem(DG_CLE, JSON.stringify(dgReglages)); } catch (e) { /* rien */ } };
 const DG_ZOOM = { proche: 2.4, moyenne: 1.8, loin: 1.3 }, DG_ELEV = { plongee: 0.9, normale: ELEV_DEPART, rasante: 0.4 };
 const DG_BOUTONS = { 'b-sort': 'sort', 'b-ulti': 'ulti', 'b-leg-coiffe': 'coiffe', 'b-leg-arme': 'arme' };
@@ -129,7 +132,7 @@ function dgFinSort() { const s = dg.sort; if (s && s.b) s.b.classList.remove('ap
 function dgBrancherCamera() {
   dg.el.cam.addEventListener('pointerdown', (e) => { const b = e.target.closest('[data-dg-cam]'); if (!b || !dg.on) return; e.preventDefault(); const k = b.dataset.dgCam, base = angleVise != null ? angleVise : angleCam;
     if (k === 'g') tournerCameraVers(base - Math.PI / 2); else if (k === 'd') tournerCameraVers(base + Math.PI / 2);
-    else { dg.oeil = { id: e.pointerId }; try { b.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } b.classList.add('appui'); } });
+    else { if (!DG_ZOOM[dgReglages.dist]) dg.zoomJeu = zoom; dg.oeil = { id: e.pointerId }; try { b.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } b.classList.add('appui'); } });
   const fin = (e) => { if (dg.oeil && e.pointerId === dg.oeil.id) { dg.oeil = null; dg.retour = true; dg.el.cam.querySelector('.oeil').classList.remove('appui'); } };
   dg.el.cam.addEventListener('pointerup', fin); dg.el.cam.addEventListener('pointercancel', fin);
 }
@@ -170,7 +173,7 @@ function dgFleches() {
 
 /* ----- entrer et sortir du mode, chaque image ----- */
 function dgClasses() { const h = dgId('hud'); h.classList.toggle('doigt', dg.on); h.classList.toggle('dg-a', dg.on && dgReglages.disp !== 'c'); h.classList.toggle('dg-c', dg.on && dgReglages.disp === 'c'); h.classList.toggle('dg-flottant', dg.on && dgReglages.joy === 'flottant'); h.classList.toggle('dg-sans-tour', !dgReglages.tour); h.classList.toggle('dg-h1', dg.on); } /* (dg-h1 : le haut de l'ecran fin, la version 1 retenue par Mathieu le 14/11/2026) */
-function dgCamReglages() { dg.zoomJeu = DG_ZOOM[dgReglages.dist] || DG_ZOOM.moyenne; dg.retour = true; inclinerCameraVers(DG_ELEV[dgReglages.incl] != null ? DG_ELEV[dgReglages.incl] : ELEV_DEPART); }
+function dgCamReglages() { const libre = !DG_ZOOM[dgReglages.dist]; dg.zoomJeu = libre ? zoom : DG_ZOOM[dgReglages.dist]; dg.retour = !libre; inclinerCameraVers(DG_ELEV[dgReglages.incl] != null ? DG_ELEV[dgReglages.incl] : ELEV_DEPART); }
 function dgEntrer() {
   dgCreer(); dg.on = true; dg.avant = { zoom, elev: elevCam }; dgClasses(); dgCamReglages(); const c = dgCentreJoy(); dgPlacerJoy(c.x, c.y);
   dg.el.base.classList.toggle('vu', dgReglages.joy !== 'flottant'); dg.el.bouton.classList.toggle('vu', dgReglages.joy !== 'flottant');
@@ -178,7 +181,7 @@ function dgEntrer() {
 }
 function dgSortir() {
   dg.on = false; dg.joy = null; dgArreter(); dgFinSort(); dg.oeil = null; dgClasses(); { const t = dgId('fil'); if (t) t.style.top = ''; }
-  if (dg.avant) { zoom = dg.avant.zoom; cadrer(); inclinerCameraVers(dg.avant.elev); dg.avant = null; } dg.zoomJeu = null;
+  if (dg.avant) { if (DG_ZOOM[dgReglages.dist]) { zoom = dg.avant.zoom; cadrer(); } inclinerCameraVers(dg.avant.elev); dg.avant = null; } dg.zoomJeu = null;
 }
 function dgMaj(dt) {
   const veut = !!(combat && !combat.fin && paysanMesh && lieu !== 'casino' && lieu !== 'cabane' && doigtActif());
@@ -200,7 +203,7 @@ function dgChoixHtml() { /* (tous les choix, sur leur page : ouvrirDoigt) */
   return '<div class="dg-opt">' +
     ch('Activer', 'actif', [['auto', 'Au téléphone'], ['toujours', 'Toujours'], ['jamais', 'Jamais']]) + ch('Disposition', 'disp', [['a', 'A : éventail'], ['c', 'C : deux bandes']]) +
     ch('Joystick', 'joy', [['fixe', 'Fixe'], ['flottant', 'Sous le doigt']]) + ch('Caméra', 'suivi', [['cadre', 'Avec un cadre'], ['centre', 'Toujours au centre'], ['libre', 'Libre']]) +
-    ch('Distance', 'dist', [['proche', 'Proche'], ['moyenne', 'Moyenne'], ['loin', 'Loin']]) + ch('Inclinaison', 'incl', [['plongee', 'Plongée'], ['normale', 'Normale'], ['rasante', 'Rasante']]) +
+    ch('Distance', 'dist', [['actuelle', 'La mienne'], ['proche', 'Proche'], ['moyenne', 'Moyenne'], ['loin', 'Loin']]) + ch('Inclinaison', 'incl', [['plongee', 'Plongée'], ['normale', 'Normale'], ['rasante', 'Rasante']]) +
     ch('Quart de tour', 'tour', [[true, 'Oui'], [false, 'Non']]) + ch('Flèches vers les monstres cachés', 'fleches', [[true, 'Oui'], [false, 'Non']]) +
     '<p class="dg-opt-p">Joystick à gauche. Sorts : appui court, il part tout seul ; glisser depuis le bouton pour placer le cercle ; lâcher sur la croix pour annuler.</p></div>';
 }
