@@ -224,7 +224,8 @@ const baseObjet = (k) => String(k || '').split('~')[0];
 /* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
 const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] } }; /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
 const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
-function obj(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; }
+function objBrut(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; } /* (la piece a son jet, sans l'eveil : pour la forgemagie et la qualite du jet) */
+function obj(k) { const o = objBrut(k), e = o && o.leg && S_ && S_.eveils && S_.eveils[k]; return e && typeof eveillerObjet === 'function' ? eveillerObjet(o, e) : o; } /* (l'eveil d'un legendaire, 27g-eveil-concasseur.js, 18/11/2026) */
 function creerObjet(id, plancher) { /* (plancher : le jet part de cette part de la fourchette ; 0,5 pour les pieces des coffres de l'Arene, jamais sous la moyenne) */
   const o = OBJETS[id]; S_.jets = S_.jets || {}; S_.nInst = (S_.nInst || 0) + 1; const k = id + '~' + S_.nInst.toString(36);
   S_.jets[k] = Object.fromEntries(Object.entries(o.stats).map(([c, v]) => { const [a0, b] = fourchette(v, id, c), a = Math.round(a0 + (plancher || 0) * (b - a0)); return [c, a + Math.floor(Math.random() * (b - a + 1))]; })); return k;
@@ -322,12 +323,13 @@ function ouvrirForge() {
       (maxi ? '<span class="cadenas">✓ jet max</span>' : Object.keys(RUNES).map((t) => '<button class="btn mini ' + (nr[t] ? 'kamas' : 'discret') + '" data-forger="' + t + '|' + k + '"' + (nr[t] ? '' : ' disabled') + ' data-info="' + RUNES[t].nom + ' : ' + RUNES[t].bref + '">' + img(t) + RUNES[t].bref + '</button>').join('')) + '</div></div>'; };
   ouvrirModale('forge', entete('L\'atelier de forgemagie') + '<p class="hdv-aide">Une <b>rune de forgemagie</b> ajoute 20 % de jet à la caractéristique de ton choix, jusqu\'à son maximum. Une <b>rune parfaite</b> la met d\'un coup au jet maximum. Les runes se gagnent dans l\'Arène (la montgolfière).</p>' +
     '<div class="forge-stock">' + Object.keys(RUNES).map((t) => '<span class="puce">' + img(t) + '<b>' + (nr[t] || 0) + '</b> ' + ((nr[t] || 0) > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</span>').join('') + '</div>' +
+    (typeof eveilDev === 'function' && eveilDev() ? '<div class="act-bas" style="margin:6px 0"><small>Version dev (mode test) : les futurs bâtiments du niveau 100</small><button class="btn discret" data-ouvrir-eveil>L\'éveil des légendaires</button><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : '') + /* (18/11/2026, 27g-eveil-concasseur.js) */
     (cles.length ? '<div class="hdv-section">Tes pièces</div>' + cles.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce d\'équipement pour l\'instant : les monstres des vagues en lâchent.</p>'));
 }
 /* le choix de la caracteristique pour une rune de forgemagie : celles qui peuvent encore monter, avant -> apres */
 const gainRune = (R, a, b) => Math.max(1, Math.ceil(R.gain * (b - a) - 1e-9));
 function ouvrirChoixForge(k) {
-  const B = OBJETS[baseObjet(k)], o = obj(k), R = RUNES.forge; if (!B || !o) return;
+  const B = OBJETS[baseObjet(k)], o = objBrut(k), R = RUNES.forge; if (!B || !o) return;
   const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v, B.id, c), cur = o.stats[c] != null ? o.stats[c] : v, apres = Math.min(b, cur + gainRune(R, a, b)), q = (x) => Math.round(100 * (b > a ? (x - a) / (b - a) : 1));
     const C = CARACS[c] || [c, '', ''], qc = q(cur), qa = q(apres); /* (refaite le 08/11/2026, « on comprend rien, je voulais mettre une rune 20 %, je comprends que dalle », Mathieu : avant, deux pourcentages
        mêlés, la valeur et le jet entre parentheses ; maintenant la valeur avant et apres, le gain, et la fourchette en barre : l'acquis en or, ce que la rune ajoute en vert) */
@@ -344,7 +346,7 @@ function ouvrirChoixForge(k) {
    qu'elle fait et un " es-tu sur de vouloir l'utiliser ? oui / non " », Mathieu) : la rune parfaite partait au premier clic. Avant de consommer une rune : la piece,
    ce que fait la rune, chaque caracteristique avant et apres, le jet avant et apres, le stock restant, puis Oui ou Non (retour : la fenetre ou revenir) */
 function confirmerRune(k, t, carac, retour) {
-  const R = RUNES[t], B = OBJETS[baseObjet(k)], o = obj(k); if (!R || !B || !o) return;
+  const R = RUNES[t], B = OBJETS[baseObjet(k)], o = objBrut(k); if (!R || !B || !o) return;
   const n = runes()[t] || 0; if (!(n > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return; }
   let s0 = 0, s1 = 0, nb = 0; const L = Object.entries(B.stats).map(([c, v]) => { const [a, b] = fourchette(v, B.id, c), cur = o.stats[c] != null ? o.stats[c] : v, apres = R.gain >= 1 ? b : c === carac ? Math.min(b, cur + gainRune(R, a, b)) : cur, C = CARACS[c] || [c, '', ''];
     if (b > a) { s0 += Math.max(0, Math.min(1, (cur - a) / (b - a))); s1 += Math.max(0, Math.min(1, (apres - a) / (b - a))); } else { s0 += 0.5; s1 += 0.5; } nb++;
@@ -362,10 +364,10 @@ function forgerObjet(k, t, carac) {
   const R = RUNES[t], n = runes(), base = baseObjet(k), B = OBJETS[base]; if (!R || !B || !obj(k)) return null;
   if (!(n[t] > 0)) { toast('Il te faut une ' + R.nom.toLowerCase() + ' : elles se gagnent dans l\'Arène.'); return null; }
   if (qualiteJet(k) >= 0.999) { toast('Cette pièce est déjà au jet maximum.'); return null; }
-  if (R.gain < 1) { const v0 = B.stats[carac]; if (v0 == null) { ouvrirChoixForge(k); return null; } const [a0, b0] = fourchette(v0, B.id, carac), cur0 = obj(k).stats[carac]; if (cur0 != null && cur0 >= b0) { toast('Cette caractéristique est déjà au maximum.'); return null; } } /* (sans caracteristique choisie : on la demande) */
+  if (R.gain < 1) { const v0 = B.stats[carac]; if (v0 == null) { ouvrirChoixForge(k); return null; } const [a0, b0] = fourchette(v0, B.id, carac), cur0 = objBrut(k).stats[carac]; if (cur0 != null && cur0 >= b0) { toast('Cette caractéristique est déjà au maximum.'); return null; } } /* (sans caracteristique choisie : on la demande) */
   S_.jets = S_.jets || {}; let cle = k; const emp = Object.keys(S_.equip).find((e) => S_.equip[e] === k);
   if (!S_.jets[k] || (S_.sac[k] || 0) > 1) { /* une piece d'avant les jets, ou en plusieurs exemplaires : on en sort un exemplaire a part, a son jet actuel */
-    S_.nInst = (S_.nInst || 0) + 1; cle = base + '~' + S_.nInst.toString(36); S_.jets[cle] = Object.assign({}, obj(k).stats);
+    S_.nInst = (S_.nInst || 0) + 1; cle = base + '~' + S_.nInst.toString(36); S_.jets[cle] = Object.assign({}, objBrut(k).stats); if (S_.eveils && S_.eveils[k]) S_.eveils[cle] = S_.eveils[k]; /* (l'eveil suit l'exemplaire sorti) */
     if (emp) S_.equip[emp] = cle; else { S_.sac[k]--; if (!S_.sac[k]) delete S_.sac[k]; S_.sac[cle] = 1; }
   }
   const q0 = qualiteJet(cle), J = S_.jets[cle];
@@ -375,7 +377,7 @@ function forgerObjet(k, t, carac) {
 }
 /* la qualite du jet, de 0 (tout au minimum) a 1 (tout au maximum) */
 function qualiteJet(k) {
-  const o = obj(k), b = OBJETS[baseObjet(k)]; if (!o || !b) return 0.5;
+  const o = objBrut(k), b = OBJETS[baseObjet(k)]; if (!o || !b) return 0.5;
   const L = Object.entries(b.stats).map(([c, v]) => { const [a, m] = fourchette(v, b.id, c); return m > a ? Math.max(0, Math.min(1, ((o.stats[c] || 0) - a) / (m - a))) : 0.5; });
   return L.length ? L.reduce((x, y) => x + y, 0) / L.length : 0.5;
 }

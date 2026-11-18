@@ -1591,3 +1591,6 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .fp-ens-tete { display: flex; align-items: center; gap: 6px; font-size: .84rem; } .fp-ens-tete b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fp-ens-icos { display: flex; flex-wrap: wrap; gap: 3px; margin: 5px 0; } .fp-ens-icos img { width: 26px; height: 26px; object-fit: contain; background: #1f2125; border-radius: 6px; padding: 1px; }
 .fp-ens-act { display: flex; gap: 5px; flex-wrap: wrap; } .fp-ens-nouveau { display: flex; gap: 6px; } .fp-ens-nouveau input { flex: 1; min-width: 0; background: #1f2125; border: 1px solid #3a3d44; border-radius: 8px; color: #e8eaed; padding: 5px 8px; font: inherit; font-size: .8rem; }
+/* l'eveil des legendaires : avant / apres (18/11/2026, 27g-eveil-concasseur.js) */
+.eveil-tab { margin: 2px auto 10px; border-collapse: collapse; font-size: .84rem; font-weight: 700; } .eveil-tab th { font-size: .72rem; opacity: .7; padding: 2px 12px; }
+.eveil-tab td { padding: 4px 12px; border-top: 1px solid rgba(255,255,255,.08); text-align: right; } .eveil-tab td:first-child { text-align: left; opacity: .85; } .eveil-tab td:last-child { color: #8fd16a; font-weight: 900; }
