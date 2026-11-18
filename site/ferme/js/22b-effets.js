@@ -422,6 +422,23 @@ function souffleDeFeu(de, a, portee, o, ouvPerso) { /* (ouvPerso : la demi-ouver
     return false;
   });
 }
+/* LE CERCLE DE FEU (18/11/2026, « coiffe Croca du Iop : un cercle de feu autour de lui, environ la portée qu'il a actuellement, mais tout autour de lui »,
+   Mathieu) : un anneau de flammes part du perso et s'étend jusqu'à R en 0,35 s, des flammes qui montent tout le long, puis le sol brûlé en cercle */
+function cercleDeFeu(de, R) {
+  const y0 = solA(de.x, de.z); flashLumiere(de.x, y0 + 1, de.z, '#ff8a2e', 4, R * 1.8, 0.8); secousse(0.1, 0.5);
+  onde(de.x, y0 + 0.06, de.z, R, '#ff7a1e', 0.45, 0.65); onde(de.x, y0 + 0.06, de.z, R * 0.6, '#ffd04a', 0.35, 0.5);
+  let t = 0;
+  effets.push((dt) => {
+    t += dt;
+    if (t > 0.8) { for (let k = 0; k < 12; k++) { const th = k / 12 * Math.PI * 2; brulure(de.x + Math.sin(th) * R * 0.85, y0, de.z + Math.cos(th) * R * 0.85, 0.8); } return true; }
+    const r = R * Math.min(1, t / 0.35), n = t < 0.55 ? 16 : 4;
+    for (let i = 0; i < n; i++) { const th = fxAlea() * Math.PI * 2, rr = r * fxEntre(0.8, 1.02), sx = Math.sin(th), sz = Math.cos(th);
+      emettre(FX_VIF, 1, { x: de.x + sx * rr, y: y0 + 0.15, z: de.z + sz * rr, v: [sx * 1.2, fxEntre(2.2, 3.6), sz * 1.2], vie: [0.35, 0.55], taille: [0.25, 0.95], c: ['#fffbe0', '#ffd04a', '#ff6a1e', '#8a1a06'], a: 0.9, frein: 0.9, grav: -1.4, vrot: 3, entree: 0.03 });
+      if (i % 4 === 0) emettre(FX_LUM, 1, { x: de.x + sx * rr, y: y0 + 0.3, z: de.z + sz * rr, v: [sx * 0.8, 2, sz * 0.8], vie: [0.3, 0.45], taille: [0.3, 1.4], c: ['#ffb84a', '#ff5a1e'], a: 0.35, frein: 0.9, grav: -1.4 }); }
+    if (t > 0.15 && fxAlea() < 0.5) { const th = fxAlea() * Math.PI * 2; emettre(FX_FUM, 1, { x: de.x + Math.sin(th) * R * 0.8, y: y0 + 0.4, z: de.z + Math.cos(th) * R * 0.8, r: 0.5, v: [0, 1.6, 0], vie: [0.9, 1.3], taille: [0.6, 1.8], c: ['#3a2e28', '#7a706a'], a: 0.4, frein: 1.2, vrot: 1, entree: 0.25 }); }
+    return false;
+  });
+}
 /* la Bourrasque d'Ark (31/10/2026) : sa fleche de vent file droit devant, une spirale d'air autour d'elle ; derriere, trois fronts de vent en arc
    s'ecartent dans le cone, des filets d'air filent, la poussiere et des feuilles sont balayees au sol. En bleu ciel et en melange normal : en blanc
    et en lumiere, le vent disparaissait sur le sable clair de l'Arene */

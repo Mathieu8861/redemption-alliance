@@ -293,7 +293,7 @@ const SORTS_LEG = {
   moon: { nom: 'Bond de Moon', teinte: '#c98a52', recharge: 13, portee: 10, zone: 2.6 }, /* (l'arme de Moon, 02/11/2026) */
   craq: { nom: 'Séisme', teinte: '#a08a6a', recharge: 12, portee: 10, zone: 3 },
   croc: { nom: 'Souffle de feu', teinte: '#ff7a1e', recharge: 12, portee: 10, parClasse: { /* (un sort par classe, 15/11/2026 : mult, les degats a l'impact ; ouv, la demi-ouverture du cone) */
-    iop: { nom: 'Souffle de feu', recharge: 12, portee: 6, ouv: 0.55, mult: 2.4 }, cra: { nom: 'Souffle de feu', recharge: 12, portee: 14, ouv: 0.26, mult: 2.4 }, /* (« 1,8 fois les degats Iop et 2 fois les degats Cra », Mathieu, 15/11/2026 ; puis 2,4 pour les deux le 16/11/2026, « met a 2,4 au lieu de 1,8 et 2 pour les degats en Cra et Iop », Mathieu) */
+    iop: { nom: 'Cercle de feu', recharge: 12, portee: 6, mult: 2.4, instant: true, cercle: true }, /* (18/11/2026, « un cercle de feu autour de lui, environ la portée qu'il a actuellement, mais tout autour de lui », Mathieu : il part à l'appui, 3 cases tout autour) */ cra: { nom: 'Souffle de feu', recharge: 12, portee: 14, ouv: 0.26, mult: 2.4 }, /* (« 1,8 fois les degats Iop et 2 fois les degats Cra », Mathieu, 15/11/2026 ; puis 2,4 pour les deux le 16/11/2026, « met a 2,4 au lieu de 1,8 et 2 pour les degats en Cra et Iop », Mathieu) */
     osa: { nom: 'Dragonnet', recharge: 16, portee: 10, zone: 1.2 } } }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4, parClasse: { /* (un sort par classe, 16/11/2026, « en Cra a semi-distance elle me saoule », Mathieu, au formulaire : Cra cawottes chercheuses, Iop pluie autour de lui, Osa sa Cawotte geante) */
     iop: { nom: 'Pluie de cawottes', recharge: 13, portee: 5, instant: true }, cra: { nom: 'Cawottes chercheuses', recharge: 13, portee: 16, instant: true },
@@ -338,6 +338,8 @@ function executerLeg(emp, pt, compter, tire) {
     actifs.forEach((o) => { if (Math.hypot(o.x - x, o.z - z) < S.zone) blesser(o, Math.round(st.deg * 2), true); });
   } else if (cle === 'croc') { /* le Heaume de Crocabulia, un sort par classe (15/11/2026) : le souffle de feu en cone (court pour le Iop, etroit et long pour le Cra), le Dragonnet pour l'Osamodas */
     if (classeDe() === 'osa') dragonnet(pt, st);
+    else if (S.cercle) { cercleDeFeu(pp.clone(), S.portee); /* (le Iop : tout autour de lui, le corps des monstres compte) */
+      actifs.forEach((o) => { if (Math.hypot(o.x - pp.x, o.z - pp.z) < S.portee + 0.3 * (o.d.ombre || 1)) { blesser(o, Math.round(st.deg * (S.mult || 2)), true); brulerCroc(o, st); } }); }
     else { const a = Math.atan2(x - pp.x, z - pp.z), ouv = S.ouv || 0.55;
       souffleDeFeu(pp, a, S.portee, null, ouv); /* (« pourquoi c'est des cercles au sol ? Faut que ce soit un souffle de feu, comme s'il crachait du feu de sa bouche », Mathieu : un jet de flammes, 22b-effets.js) */
       actifs.forEach((o) => { const d = Math.hypot(o.x - pp.x, o.z - pp.z); let e = Math.atan2(o.x - pp.x, o.z - pp.z) - a; e = Math.atan2(Math.sin(e), Math.cos(e));
