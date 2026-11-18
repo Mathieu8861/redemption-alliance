@@ -414,8 +414,8 @@ const bossRejouable = (P) => MODE_TEST || (S_.vague.num > (P + 1) * VAGUES_PALIE
 const partRejoue = (P) => Math.max(0.05, Math.pow(0.5, ((S_.bossFois || {})[P] || 0) + 1));
 const gainsBoss = (P) => { const g = gainsVague((P + 1) * VAGUES_PALIER, false), k = partRejoue(P); return { kamas: Math.round(g.kamas * k), xp: Math.round(g.xp * k) }; };
 const DUR = { pv: 1.5, deg: 1, garde: 0.6, sorts: 1.1, rappel: 15, troupe: 6, rage: 0.35, leg: 2 }; /* (pv et deg : le boss ; garde : sa troupe, en plus du rapport de niveau. LA REVANCHE DIFFICILE, 15/10/2026, « ca s'adapte a ton niveau, tu doubles tes chances d'item legendaire, mais c'est beaucoup, beaucoup, beaucoup plus dur », Mathieu. Simule avec le bot attentif (esquive 7 fois sur 10) sur ses fermes niveau 52, Iop, Cra, Osamodas : remis au niveau seul, il gagnait 3 a 4 fois sur 4 les boss 1 et 3 ; avec PV x2 et coups x1,5, plus jamais ; avec sorts x1,15, renforts 14 s, rage 40 %, 0 a 15 % de victoires. Reglage retenu entre les deux) */
-function forceRef(l) { /* un joueur type de ce niveau : sa classe, la panoplie complete de son palier au jet moyen */
-  const st = STATS_CLASSE[classeDe()], k = palierDe(Math.min(9 * VAGUES_PALIER, l + 2)) /* (12/11/2026, a l'ouverture de la foret : le joueur de reference reste en panoplie du palier 9, comme dans les essais de Mathieu ; avec l'Ecorce, une panoplie de tank, sa vie montait de 23 % et ses degats baissaient de 25 % des le niveau 89 : sur l'ile des boss et en revanche difficile, le boss aurait tape 23 % plus fort. A revoir quand les joueurs porteront les panoplies du palier 10) */, V = (c) => VALEURS[c][k], b = bonusPano(k, EMPLACEMENTS.length, true);
+function forceRef(l, cl) { /* un joueur type de ce niveau : sa classe (ou celle donnee), la panoplie complete de son palier au jet moyen */
+  const st = STATS_CLASSE[cl || classeDe()], k = palierDe(Math.min(9 * VAGUES_PALIER, l + 2)) /* (12/11/2026, a l'ouverture de la foret : le joueur de reference reste en panoplie du palier 9, comme dans les essais de Mathieu ; avec l'Ecorce, une panoplie de tank, sa vie montait de 23 % et ses degats baissaient de 25 % des le niveau 89 : sur l'ile des boss et en revanche difficile, le boss aurait tape 23 % plus fort. A revoir quand les joueurs porteront les panoplies du palier 10) */, V = (c) => VALEURS[c][k], b = bonusPano(k, EMPLACEMENTS.length, true);
   return { pv: st.pv(l) + 3 * V('vita') + (b.vita || 0), dps: st.deg(l) * (1 + (3 * V('puissance') + (b.puissance || 0)) / 100) * (1 + (2 * V('agilite') + (b.agilite || 0)) / 100) / st.cadence };
 }
 const vagueRefDifficile = (L) => Math.min(9 * VAGUES_PALIER /* (12/11/2026 : la revanche difficile reste calee sur Moon au plus, comme dans les essais ; le Chene Mou en reference, du niveau 96 au 100, n'a jamais ete joue) */, Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.round((L - 0.5) / VAGUES_PALIER))); /* la vague de boss la plus proche de ton niveau (75 -> 70, 76 -> 80) */
@@ -528,8 +528,14 @@ function regleArene(o) { /* l'Arene : chacun remis a la force de l'Arene (statsA
   const mu = forceArene(combat.arene.k) * (o.d.boss ? forceBossArene : 1), s = o.d.boss ? statsBossArene() : statsArene(o.type); o.aggro = true; o.casseur = false;
   o.pv = o.pvMax = Math.max(1, Math.round(s.pv * mu)); o.deg = Math.max(1, Math.round(s.deg * mu)); if (o.d.boss) o.degSortA = Math.max(o.d.degSort || 0, s.sort); /* (20/10/2026) */
 }
-function regleIleBoss(o) { /* l'ile des boss : tout a ton niveau ; le boss colossal (une fois et demie plus grand) a les PV de toute l'alliance */
-  const L = niveau(S_.xp), Lb = niveauRequis(combat.n), a = forceRef(L), b = forceRef(Lb); o.aggro = true; o.casseur = false;
+/* LE NIVEAU DE L'ILE, LE MEME POUR TOUT LE MONDE (18/11/2026, « il faudrait que le boss de l'ile soit au meme niveau pour tout le monde, et le niveau du boss de
+   l'ile est base sur le palier le plus haut : la c'est le palier 10 (niveau 100), quand on passera au palier 11 ce sera le 11 », Mathieu) : avant, le boss et sa
+   troupe se calaient sur ton niveau et ta classe. Maintenant sur le niveau du dernier boss de palier ouvert aux joueurs (VAGUES_TOTAL : 100, puis 110), et sur un
+   joueur type moyen des trois classes : les memes PV et les memes coups pour tous, quels que soient ton niveau et ta classe */
+const niveauIle = () => VAGUES_TOTAL;
+const forceRefIle = (l) => { const L = Object.keys(STATS_CLASSE).map((c) => forceRef(l, c)); return { pv: L.reduce((x, f) => x + f.pv, 0) / L.length, dps: L.reduce((x, f) => x + f.dps, 0) / L.length }; };
+function regleIleBoss(o) { /* l'ile des boss : tout au niveau de l'ile (niveauIle) ; le boss colossal (une fois et demie plus grand) a les PV de toute l'alliance */
+  const L = niveauIle(), Lb = niveauRequis(combat.n), a = forceRefIle(L), b = forceRefIle(Lb); o.aggro = true; o.casseur = false;
   const mR = 1 + ENRAGE_ILE.pas * (combat.arene.pas || 0); o.rageM = mR; /* (sa troupe arrive deja enragee comme lui) */
   if (o.d.boss) { o.deg = o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv)); o.pvMax = pvIleBoss(o.type); o.pv = Math.max(1, o.pvMax - combat.arene.avant); o.echelle = (o.echelle || 1) * 1.5; o.m.scale.setScalar(o.echelle); o.haut *= 1.5; o.vitM = vitesseIle(o.type); renforcerIle(o); } /* (renforcerIle : le Craqueleur legendaire renforce sur l'ile, 07/11/2026) */
   else { o.pv = o.pvMax = Math.max(1, Math.round(o.pvMax * a.dps / b.dps * 0.6)); o.deg0 = Math.max(1, Math.round(o.deg * a.pv / b.pv * 0.6)); o.deg = Math.max(1, Math.round(o.deg0 * mR)); }
