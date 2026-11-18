@@ -61,5 +61,8 @@ SQUELETTES_A_CHARGER.push(['silure', 'assets/modeles/jeu/silure-anime.glb', 2.2]
 MONSTRES.silure = { element: 'eau', nom: 'Silure chaman', modele: 'silure', icone: 'triton', /* (icone provisoire) */
   desc: 'le sorcier de la tribu, son bâton à la main : il te lance sa magie de loin et soigne les siens, abats-le en premier', pv: (n) => 3600 + 110 * (n - 100), deg: (n) => 70 + Math.round(2 * (n - 100)),
   cadence: 2.0, vitesse: 2.4, portee: 5, distance: true, magie: true, couleurMagie: '#5fe04a', soigne: 4, ombre: 2.0 }; /* (18/11/2026, « on peut lui faire un baton un peu different ? On dirait le meme que celui des Bworks », Mathieu : son baton a lui, une crosse de bois noueux autour d'une orbe verte, blender/armes-tribu.py ; sa magie prend le vert de l'orbe) */
+/* (18/11/2026, controle en grand : quand ils se plient, la coque du contour ressortait en plaques vert fonce aux jambes, au dos et pres de la bouche, comme sur
+   le Croco sauvage ; sans contour, comme lui) */
+['croco-vase', 'piranha', 'brochet', 'silure'].forEach((n) => { RENDU_B_PAR[n] = Object.assign({}, RENDU_B, { sansContour: true }); });
 AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4, brochet: 2, silure: 1 } };
 GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };
