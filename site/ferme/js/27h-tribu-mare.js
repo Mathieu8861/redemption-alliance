@@ -17,4 +17,13 @@ SQUELETTES_A_CHARGER.push(['piranha', 'assets/modeles/jeu/piranha-anime.glb', 1.
 MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha', icone: 'triton', /* (icone provisoire) */
   desc: 'petit, rond et vorace, il arrive en bande et mord vite', pv: (n) => 2600 + 80 * (n - 100), deg: (n) => 55 + Math.round(2 * (n - 100)),
   cadence: 1.0, vitesse: 3.6, portee: 1.6, ombre: 1.6 };
-AVANT_PREMIERE.unshift('crocoVase', 'piranha'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4 } };
+/* LE CROCO SAUVAGE, BOSS DE LA VAGUE 110 (18/11/2026) : le dessin « croco sauvage B », de face bras ecartes, Rodin, aplats recales sur le dessin (vert, crete
+   orange, ventre beige), squelette des creatures (placer-squelette.py : profondeur des jambes prise sur leur devant, sa queue passe derriere), queue au
+   bassin. Pour l'instant un gros monstre sans ses sorts, a voir bouger dans l'Arene dev ; son kit (la traque, l'odeur du sang, la Machoire qui retient,
+   la Plongee dans la vase, la Crue de la mare, la Frenesie de sang) est dans PALIER11.md, a chiffrer avec Mathieu */
+SQUELETTES_A_CHARGER.push(['croco-boss', 'assets/modeles/jeu/croco-boss-anime.glb', 3.6]); NOMS_BW2.add('croco-boss'); VITESSE_FAMILLE['croco-boss'] = 1.25;
+MONSTRES.crocoBoss = { element: 'eau', nom: 'Croco sauvage', modele: 'croco-boss', icone: 'triton', /* (nom et icone provisoires) */
+  desc: 'le chasseur de la mare : rapide, il te traque et ne te laisse pas respirer', pv: (n) => 26000 + 600 * (n - 100), deg: (n) => 150 + Math.round(4 * (n - 100)),
+  cadence: 1.3, vitesse: 3.6, portee: 2.6, ombre: 3.2 };
+AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4 } };
+GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };
