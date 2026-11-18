@@ -263,7 +263,8 @@ function majSquelette(mo, v, dt) {
       const nat = (f) => { const L = an.F[f]; const x = L && mo.m.userData.vit[L[0]]; return x > 0.2 ? x : 0; };
       const C = ['marche', 'course'].map((f) => [f, nat(f)]).filter(([, x]) => x); if (!C.length) C.push(['marche', 1.4]);
       const ecart = ([, x]) => { const r = v / x; return r < ALLURE_MIN ? (ALLURE_MIN - r) * 3 : r > ALLURE_MAX ? r - ALLURE_MAX : Math.abs(Math.log(r / 1.15)) * 0.1; };
-      const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) jouerAnim(an, piocher(an, fam), 0.25);
+      const [fam, nv] = C.sort((a, b) => ecart(a) - ecart(b))[0]; if (an.fam !== fam) { jouerAnim(an, piocher(an, fam), 0.25); an.varT = 8 + Math.random() * 6; }
+      else if (mo.d.varieAllure && (an.F[fam] || []).length > 1 && (an.varT = (an.varT || 0) - dt) <= 0) { jouerAnim(an, piocher(an, fam), 0.45); an.varT = 8 + Math.random() * 6; } /* (varieAllure : en marchant ou en courant, il change de variante toutes les 8 a 14 s ; le Croco sauvage passe a quatre pattes de temps en temps, 18/11/2026) */
       if (an.A[an.cour]) an.A[an.cour].timeScale = Math.max(ALLURE_MIN, Math.min(ALLURE_MAX, v / nv)) * vitAnim(mo); }
     else if (an.fam !== 'repos' || (an.repT -= dt) <= 0) { const a = jouerAnim(an, piocher(an, 'repos'), 0.4); if (a) a.timeScale = vif(mo); an.repT = 5 + Math.random() * 5; }
   }
