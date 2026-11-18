@@ -351,6 +351,7 @@ function finIleBoss(abandon, tombe) {
   ouvrirModale('ileboss-fin', entete(tombe ? B.nom + ' est tombé !' : abandon ? 'Tu quittes l\'île' : 'À terre !') +
     '<div class="arene-bilan"><div class="gros degats">' + fmt(d) + '</div><div class="sous">dégâts sur ' + leNom(B, true) + '</div>' + (record ? '<div class="record">★ Ton meilleur essai de la semaine !</div>' : '<div class="sous">ton meilleur cette semaine : ' + fmt(meilleurCompte(A.cle)) + '</div>') + '</div>' +
     '<div class="recap-combat">' + ligneRecap('cadence', 'Tenu', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('rage', 'Sa rage', '+' + Math.round(A.pas * ENRAGE_ILE.pas * 100) + ' %') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
+    ligneRecap('degats', 'Dégâts par seconde (sur lui)', fmt(Math.round(d / Math.max(1, A.t)))) + /* (18/11/2026, « il faudrait indiquer aussi le DPS par seconde », Mathieu : ses dégâts divisés par le temps tenu) */
     /* (16/11/2026, « rajoute le récapitulatif des dégâts faits aussi », Mathieu : les lignes du bilan des vagues, et le détail par source) */
     ligneRecap('degats', 'Tes dégâts (boss et troupe)', fmt(Math.round(c.st.inflige))) + ligneRecap('puissance', 'Ton plus gros coup', fmt(Math.round(c.st.max))) + ligneRecap('vita', 'Dégâts reçus', fmt(Math.round(c.st.recus))) +
     ligneRecap('soin', 'Soins reçus', fmt(Math.round(c.st.soins || 0)) + (c.st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(c.st.menthe)) + ')' : '')) + ligneRecap('etoile', 'Sorts et ultis lancés', c.st.sorts) + '</div>' + detailCombat(c) +

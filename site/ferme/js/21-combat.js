@@ -639,10 +639,14 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
 /* le butin : une ressource du monstre (35 %), parfois une piece d'equipement de la panoplie du palier (7 %, le boss : toujours la premiere fois) */
 /* (le Bouftou des vagues 1 a 10 lache de la laine depuis le 14/10/2026 : « ouais applique », Mathieu ; il ne lachait aucune ressource) */
 const RES_MONSTRE = { bwork: 'dent_bwork', bworkArcher: 'dent_bwork', bworkMage: 'dent_bwork', bworkette: 'dent_bwork', bworker: 'dent_bwork', tofu: 'plume', bouftou: 'laine', chafer: 'os_chafer', fantassin: 'os_chafer', gardien: 'os_chafer', archer: 'os_chafer', cuirasse: 'os_chafer', royal: 'laine' };
+/* (18/11/2026, « augmenter le taux de drop des ressources zone 90/100, surtout les Soies d'Arakne », Mathieu) : dans la forêt (vagues 91 à 100), une ressource
+   tombe 1,5 fois plus souvent pour l'Écorce d'Abraknyde et 2,5 fois pour la Soie d'Arakne (seuls l'Abrakne, l'Abrakne Sombre et l'Araknotron la lâchent) ;
+   la horde partageait le butin entre trois fois plus de monstres */
+const RES_PLUS_FORET = { ecorce_abraknyde: 1.5, soie_arakne: 2.5 };
 function butin(mo) {
   if (combat.genre === 'ile' || combat.arene) return; /* (15/10/2026, « j'ai gagne 51 branches de Kaliptus, ca fait beaucoup non ? » : sur l'ile des boss, aucun butin ; les recompenses sont dans le coffre de la semaine. L'Arene aussi depuis le 19/10/2026 : « le fait de loot des ressources, il faut le retirer », Mathieu, 78 Poils de Wabbit en une partie ; ses runes tombent a part, ses pieces sont dans les coffres des boss) */
   const L = combat.loot || (combat.loot = { res: {}, objets: [] }), pros = 1 + caracs().prospection / 100, r = mo.d.res || RES_MONSTRE[mo.type], horde = mo.d.boss ? 1 : multVague(combat.n); /* (la horde de la Phase 2 : le meme butin par vague, partage entre plus de monstres, 04/11/2026) */
-  if (r && Math.random() < (mo.d.boss ? 1 : 0.35) * pros / horde) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
+  if (r && Math.random() < (mo.d.boss ? 1 : Math.min(1, 0.35 * (combat.n > 9 * VAGUES_PALIER ? RES_PLUS_FORET[r] || 1 : 1))) * pros / horde) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
   const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros / horde, aPano = panoExiste(palierDe(combat.n)); /* (un palier sans sa panoplie, l'ile de Moon : ni piece ni arme, plutot que celles du Dragon Cochon, 04/11/2026) */
   if (aPano && Math.random() < chance) {
     const id = tirerPiece(panoMonstre(mo.type, palierDe(combat.n)), pros); /* (les Tortues : la panoplie de la Tortue) */
