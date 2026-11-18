@@ -29,5 +29,12 @@ SQUELETTES_A_CHARGER.push(['croco-boss', 'assets/modeles/jeu/croco-boss-anime.gl
 MONSTRES.crocoBoss = { element: 'eau', nom: 'Croco sauvage', modele: 'croco-boss', icone: 'triton', /* (nom et icone provisoires) */
   desc: 'le chasseur de la mare : rapide, il te traque et ne te laisse pas respirer', pv: (n) => 160000 + 4000 * (n - 100), deg: (n) => 220 + Math.round(5 * (n - 100)),
   cadence: 1.3, vitesse: 3.6, portee: 3.2, ombre: 4.2, varieAllure: true }; /* (varieAllure : sa marche et sa course a quatre pattes, en bonds, les deux bras ensemble, de temps en temps, 22c-squelettes.js) */
-AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4 } };
+/* LE BROCHET ENRAGE (18/11/2026, modele B de Mathieu, fait pendant qu'il etait sur son telephone) : dessin fidele en trois quarts, Rodin, texture d'origine,
+   corps d'un bloc (corps_rigide corps_bassin), mains d'un bloc, la lance de la Bworkette en main ; sans course (il piquait du nez), un seul coup, vers l'avant,
+   comme un coup de lance. Forces provisoires, sans sort */
+SQUELETTES_A_CHARGER.push(['brochet', 'assets/modeles/jeu/brochet-anime.glb', 2.4]); NOMS_BW2.add('brochet'); VITESSE_FAMILLE['brochet'] = 1.3;
+MONSTRES.brochet = { element: 'eau', nom: 'Brochet enragé', modele: 'brochet', icone: 'triton', /* (icone provisoire) */
+  desc: 'le guerrier de la tribu, sa lance à la main : il te harcèle de coups de lance', pv: (n) => 4400 + 130 * (n - 100), deg: (n) => 92 + Math.round(3 * (n - 100)),
+  cadence: 1.5, vitesse: 3.0, portee: 2.6, ombre: 2.0 };
+AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'brochet', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4, brochet: 2 } };
 GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };
