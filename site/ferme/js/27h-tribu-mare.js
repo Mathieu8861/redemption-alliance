@@ -64,6 +64,6 @@ MONSTRES.silure = { element: 'eau', nom: 'Silure chaman', modele: 'silure', icon
 /* (18/11/2026, controle en grand : quand ils se plient, la coque du contour ressortait en plaques vert fonce aux jambes, au dos et pres de la bouche, comme sur
    le Croco sauvage ; sans contour, comme lui) */
 ['croco-vase', 'piranha', 'brochet', 'silure'].forEach((n) => { RENDU_B_PAR[n] = Object.assign({}, RENDU_B, { sansContour: true }); });
-['crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((t) => { MONSTRES[t].stable = true; }); /* (ils reprennent leur repos et leur marche apres un coup, 22c-squelettes.js, garderAllure) */
+['crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((t) => { MONSTRES[t].stable = true; if (!MONSTRES[t].coupDuree) MONSTRES[t].coupDuree = MONSTRES[t].cadence; }); /* (coupDuree : chaque coup dure sa cadence, ils enchainent, 22c-squelettes.js) */ /* (ils reprennent leur repos et leur marche apres un coup, 22c-squelettes.js, garderAllure) */
 AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'); GROUPES_DEV.tribu = { nom: 'La tribu de la mare', liste: { crocoVase: 2, piranha: 4, brochet: 2, silure: 1 } };
 GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };

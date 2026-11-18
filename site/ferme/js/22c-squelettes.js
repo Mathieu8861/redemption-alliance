@@ -287,10 +287,11 @@ function reactionSquelette(mo) { if (!mo.d.boss || mo.geste || mo.reactT > 0 || 
    peu apres et il repart. Sans ce geste, tout de suite */
 function attaqueSquelette(mo, fam, frapper) {
   const an = mo.m.userData.anim; if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
-  if (!fam || mo.geste) { frapper(); return; }
-  const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.1), d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t;
-  const k = Math.max(1, Math.min(2.4, t0 / (mo.d.elanCoup || (mo.d.distance ? 0.5 : 0.42)))) * vitAnim(mo); /* (elanCoup : le temps de son elan, plus long pour un grand monstre dont on doit voir le bras partir, le Croco sauvage, 18/11/2026) */ a.timeScale = k; const ti = t0 / k, c0 = combat;
-  mo.geste = { t: 0, d: Math.min(d0 / k - 0.1, ti + 0.4) }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
+  const enchaine = mo.d.coupDuree && mo.geste && mo.geste.coup && mo.geste.t > mo.geste.d * 0.6; /* (coupDuree : il enchaine ses coups, le suivant part sur la fin du precedent) */
+  if (!fam || (mo.geste && !enchaine)) { frapper(); return; }
+  const nom = piocher(an, fam), a = jouerAnim(an, nom, enchaine ? 0.18 : 0.1), d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t;
+  const k = mo.d.coupDuree ? Math.max(0.7, d0 / mo.d.coupDuree) : Math.max(1, Math.min(2.4, t0 / (mo.d.elanCoup || (mo.d.distance ? 0.5 : 0.42)))) * vitAnim(mo); /* (elanCoup : le temps de son elan, plus long pour un grand monstre dont on doit voir le bras partir ; coupDuree : chaque coup dure toute sa cadence, plus de retour au repos entre deux, le Croco sauvage, 18/11/2026, « le mot d'ordre c'est fluidite », Mathieu) */ a.timeScale = k; const ti = t0 / k, c0 = combat;
+  mo.geste = { t: 0, d: mo.d.coupDuree ? d0 / k - 0.05 : Math.min(d0 / k - 0.1, ti + 0.4), coup: true }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
   effets.push((dt) => { t += dt; if (t < ti) return false; if (combat === c0 && !c0.fin && mo.etat === 'actif') frapper(); return true; });
 }
 /* la roulade des Tortues (26/10/2026) : elle se tourne dans la direction a, culbute, et avance comme dans l'animation ; pendant la culbute, les coups

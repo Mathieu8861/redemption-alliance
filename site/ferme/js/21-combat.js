@@ -3503,7 +3503,7 @@ function majMonstre(mo, dt, s) {
   /* ils ne se marchent pas dessus et ne traversent pas le perso */
   if (!mo.d.totem && !mo.d.plante && !mo.ancre && !mo.fixe && !mo.attrape) { /* (un totem est plante : rien ne le pousse, 01/11/2026 ; l'Arbre Collant non plus, ni le Chene Mou enracine, 08/11/2026 ; ni pendant son Regard, ni le monstre qu'il tient, 09/11/2026) */
   combat.monstres.forEach((o) => { if (o === mo || o.etat !== 'actif' || o.attrape) return; /* (09/11/2026, « quand il lance le Tronknyde, ca le fait reculer, le Tronknyde part a l'autre bout de la map », Mathieu : le Tronknyde tenu au-dessus de sa tete etait a son centre, et l'ecart entre monstres repoussait le Chene de 13 cases en 0,3 s) */ const dx = mo.x - o.x, dz = mo.z - o.z, L = Math.hypot(dx, dz), mn = 0.35 * (mo.d.ombre + o.d.ombre); if (L > 0.001 && L < mn) { const k = (mn - L) * 0.5; mo.x += dx / L * k; mo.z += dz / L * k; } });
-  { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = 0.35 + mo.d.ombre * 0.3; if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } } }
+  { const dx = mo.x - pp.x, dz = mo.z - pp.z, L = Math.hypot(dx, dz), mn = mo.d.corps || (0.35 + mo.d.ombre * 0.3); if (L > 0.001 && L < mn) { mo.x += dx / L * (mn - L); mo.z += dz / L * (mn - L); } } }
   mo.pas += v * dt * 5; if (m.userData.pattes || m.userData.membres) animerPattes(m, mo.pas * 0.8, Math.min(1, v * 0.7)); /* (les Bouftous des vagues marchent sur leurs pattes) */
   if (mo.queueB && m.userData.queue) m.userData.queue.rotation.y += mo.queueB; /* (le coup de queue du Dragon Cochon, 01/11/2026) */
   if (mo.ailesVite && m.userData.ailes) m.userData.ailes.forEach((a, i) => { if (a) a.rotation.z = (i ? -1 : 1) * (0.2 + mo.ailesVite * 0.6 * Math.sin(s * 34)); }); /* (ses petites ailes battent a toute vitesse pour le porter, son envol) */
@@ -3535,7 +3535,7 @@ function majMonstre(mo, dt, s) {
 }
 /* la portee du perso sur un monstre : un gros monstre compte sa carrure (trouve le 12/10/2026 en simulant les boss : Crocabulia etait tenue a 1,55 case
    du perso par l'ecartement des corps, l'epee du Iop porte a 1,5, il lui tournait autour sans la toucher) */
-const porteeSur = (o, st) => st.portee + Math.max(0, 0.35 + o.d.ombre * 0.3 - 1);
+const porteeSur = (o, st) => st.portee + Math.max(0, (o.d.corps || (0.35 + o.d.ombre * 0.3)) - 1); /* (corps : la carrure d'un monstre tres large, le Croco sauvage, 18/11/2026 : « je suis entre ses bras, il est trop pres », Mathieu ; le perso reste devant ses mains et frappe de la) */
 /* le perso : il va vers sa cible (ou le monstre le plus proche) et frappe des qu'il est a portee */
 function majPerso(dt) {
   const u = paysanMesh.userData, st = statsPerso(), classe = classeDe();

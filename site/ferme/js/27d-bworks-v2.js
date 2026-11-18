@@ -91,7 +91,7 @@ const capTourbillon1 = capTourbillon; capTourbillon = function (mo, ctx) { const
    a squelette porte son coup a l'instant de son geste (jusqu'a 0,42 s plus tard, et rien si le perso a file entre-temps) ; les anciens Bworks frappaient tout de suite.
    Les nouveaux frappent donc tout de suite, a la meme cadence, et leur geste est joue a partir de l'instant du coup (on voit la fin de l'elan) */
 const attaqueSquelette1 = attaqueSquelette; attaqueSquelette = function (mo, fam, frapper) {
-  if (!mo.d || !NOMS_BW2.has(mo.d.modele)) return attaqueSquelette1(mo, fam, frapper);
+  if (!mo.d || !NOMS_BW2.has(mo.d.modele) || mo.d.coupDuree) return attaqueSquelette1(mo, fam, frapper); /* (coupDuree, la tribu de la mare, 18/11/2026 : leur geste entier, elan compris, le coup a l'impact ; « il ne bouge meme pas ses bras », Mathieu) */
   const an = mo.m && mo.m.userData.anim; if (an && !mo.geste) { if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
     if (fam) { const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.06); if (a) { const d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t, k = 1.2 * vitAnim(mo);
       a.time = Math.max(0, t0 - 0.12 * k); a.timeScale = k; mo.geste = { t: 0, d: Math.min(0.5, (d0 - a.time) / k) }; } } }
