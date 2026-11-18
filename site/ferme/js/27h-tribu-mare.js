@@ -17,6 +17,23 @@ SQUELETTES_A_CHARGER.push(['piranha', 'assets/modeles/jeu/piranha-anime.glb', 1.
 MONSTRES.piranha = { element: 'eau', nom: 'Piranha de guerre', modele: 'piranha', icone: 'triton', /* (icone provisoire) */
   desc: 'petit, rond et vorace, il arrive en bande et mord vite', pv: (n) => 2600 + 80 * (n - 100), deg: (n) => 55 + Math.round(2 * (n - 100)),
   cadence: 1.0, vitesse: 3.6, portee: 1.6, ombre: 1.6 };
+/* SON KIT (18/11/2026, idee de Mathieu : « saignement, moins on a de PV plus les piranhas sont forts ») : chaque morsure fait saigner (0,4 % de ta vie par
+   seconde pendant 4 s, jusqu'a 5 saignements a la fois, une morsure de plus relance le plus ancien), et ils mordent plus fort quand tu es blesse (jusqu'a
+   +50 % a 0 PV). Chiffres proposes, a valider avec lui. Rien ne saigne pendant l'invincibilite (le coup ne touche pas) */
+const KIT_PIRANHA = { saigne: { pct: 0.004, duree: 4, max: 5 }, sang: 0.5 };
+Object.assign(MONSTRES.piranha, { saigne: KIT_PIRANHA.saigne, sentLeSang: KIT_PIRANHA.sang,
+  desc: 'petit, rond et vorace, il arrive en bande : chaque morsure te fait saigner (cumulable), et plus tu es blessé, plus il mord fort' });
+const blesserPersoTribu = blesserPerso; blesserPerso = function (n, mo) {
+  const c = combat, d = mo && mo.d;
+  if (d && d.sentLeSang && c && c.pvMax) n = Math.max(1, Math.round(n * (1 + d.sentLeSang * Math.max(0, 1 - c.pv / c.pvMax))));
+  const ok = blesserPersoTribu(n, mo);
+  if (ok && d && d.saigne && combat === c && c && !c.fin && c.deroute == null && !(c.invincible > 0)) {
+    const S = d.saigne, P = (c.poisons = c.poisons || []), L = P.filter((x) => x.saigne);
+    if (L.length >= S.max) L.sort((x, y) => x.t - y.t)[0].t = S.duree; else P.push({ pct: S.pct, t: S.duree, saigne: true });
+    if (!c.saigneVu) { c.saigneVu = true; toast(leNom(d) + ' te fait saigner : chaque morsure te retire un peu de vie pendant 4 s, et plus tu es blessé, plus il mord fort !', 'alerte'); }
+  }
+  return ok;
+};
 /* LE CROCO SAUVAGE, BOSS DE LA VAGUE 110 (18/11/2026) : le dessin « croco sauvage B », de face bras ecartes, Rodin, aplats recales sur le dessin (vert, crete
    orange, ventre beige), squelette des creatures (placer-squelette.py : profondeur des jambes prise sur leur devant, sa queue passe derriere), queue au
    bassin. Pour l'instant un gros monstre sans ses sorts, a voir bouger dans l'Arene dev ; son kit (la traque, l'odeur du sang, la Machoire qui retient,
@@ -31,7 +48,8 @@ MONSTRES.crocoBoss = { element: 'eau', nom: 'Croco sauvage', modele: 'croco-boss
   cadence: 1.3, vitesse: 3.6, portee: 3.2, ombre: 4.2, varieAllure: true }; /* (varieAllure : sa marche et sa course a quatre pattes, en bonds, les deux bras ensemble, de temps en temps, 22c-squelettes.js) */
 /* LE BROCHET ENRAGE (18/11/2026, modele B de Mathieu, fait pendant qu'il etait sur son telephone) : dessin fidele en trois quarts, Rodin, texture d'origine,
    corps d'un bloc (corps_rigide corps_bassin), mains d'un bloc, la lance de la Bworkette en main ; sans course (il piquait du nez), un seul coup, vers l'avant,
-   comme un coup de lance. Forces provisoires, sans sort */
+   comme un coup de lance. Forces provisoires, sans sort. (Le soir, « deforme a certains endroits », Mathieu : le haut des bras rendu au corps, plus de plaques
+   sur le flanc ; amorti du dos et des epaules ; au coup, le poing descend, la main se retourne et la lance pique vers l'avant sous son museau) */
 SQUELETTES_A_CHARGER.push(['brochet', 'assets/modeles/jeu/brochet-anime.glb', 2.4]); NOMS_BW2.add('brochet'); VITESSE_FAMILLE['brochet'] = 1.3;
 MONSTRES.brochet = { element: 'eau', nom: 'Brochet enragé', modele: 'brochet', icone: 'triton', /* (icone provisoire) */
   desc: 'le guerrier de la tribu, sa lance à la main : il te harcèle de coups de lance', pv: (n) => 4400 + 130 * (n - 100), deg: (n) => 92 + Math.round(3 * (n - 100)),

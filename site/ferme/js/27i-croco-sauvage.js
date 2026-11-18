@@ -25,12 +25,13 @@ Object.assign(MONSTRES.crocoBoss, { boss: true, element: 'eau', couleurSorts: ['
   desc: 'le chasseur de la mare, il ne te laisse pas respirer : il fonce sur toi dès que tu t\'éloignes (sors de la bande rouge), plus tu es blessé plus il est rapide, et sous la moitié de sa vie ses coups le soignent. Il bondit pour te happer et te secouer (sors du cercle rouge), plonge dans la vase et jaillit sous toi, fait déborder la mare (les flaques te ralentissent, lui accélèrent), et sous 30 % de vie il passe à quatre pattes : la frénésie de sang' });
 
 /* ses coups le soignent : la part des degats qu'il vient de te faire, sous la moitie de sa vie (l'odeur du sang) */
-const blesserPerso0 = blesserPerso; blesserPerso = function (n, mo) {
-  const c = combat, avant = c && c.pv; blesserPerso0(n, mo);
-  const O = mo && mo.d && mo.d.odeurSang; if (!O || !c || avant == null || mo.etat === 'mort' || mo.pv >= mo.pvMax * O.seuilVol) return;
-  const pris = avant - c.pv; if (pris <= 0) return; const h = Math.max(1, Math.round(pris * O.vol)); mo.pv = Math.min(mo.pvMax, mo.pv + h);
+const blesserPerso0 = blesserPerso; blesserPerso = function (n, mo) { /* (renvoie le resultat du coup : la malediction du Lemurien ne s'accroche que si le coup touche ; oublie le 18/11/2026, corrige le soir meme) */
+  const c = combat, avant = c && c.pv, ok = blesserPerso0(n, mo);
+  const O = mo && mo.d && mo.d.odeurSang; if (!O || !c || avant == null || mo.etat === 'mort' || mo.pv >= mo.pvMax * O.seuilVol) return ok;
+  const pris = avant - c.pv; if (pris <= 0) return ok; const h = Math.max(1, Math.round(pris * O.vol)); mo.pv = Math.min(mo.pvMax, mo.pv + h);
   chiffre('+' + h, new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 4) - 0.2, mo.z), 'soin');
   if (!c.volCrocoVu) { c.volCrocoVu = true; toast(leNom(mo.d) + ' se nourrit de tes blessures : sous la moitié de sa vie, chacun de ses coups le soigne !', 'alerte'); }
+  return ok;
 };
 function capOdeurSang(mo, ctx) { /* le passif, et la frenesie sous 30 % */
   const O = mo.d.odeurSang; if (!O || mo.etat !== 'actif' || !combat) return; const c = combat, F = mo.d.frenesie;
