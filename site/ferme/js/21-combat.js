@@ -189,7 +189,7 @@ ANNEAU.visible = false; scene.add(ANNEAU);
    puis trois colonnes avant la bataille (manger, boire, la defense avec les carreaux d'acier), et le bouton Lancer reste en bas. Ce qui est deja mange ou bu
    pour la prochaine vague le dit (« pas juste mettre aucune ou boire/manger », Mathieu). La fiche du perso, l'ulti et la simu VSA restent dans leurs fenetres. */
 function ouvrirVagues(onglet) {
-  const fini = S_.vague.num > VAGUES_TOTAL, n = vagueCourante(), P = palierDe(n), base = P * VAGUES_PALIER, B = MONSTRES[PALIERS_TOUS[P].boss], st = statsPerso(), g = gainsVague(n, fini), repos = S_.vague.repos - Date.now();
+  const fini = S_.vague.num > vaguesOuvertes(), n = vagueCourante(), P = palierDe(n), base = P * VAGUES_PALIER, B = MONSTRES[PALIERS_TOUS[P].boss], st = statsPerso(), g = gainsVague(n, fini), repos = S_.vague.repos - Date.now();
   const battus = PALIERS.map((p, k) => k).filter((k) => S_.vague.num > (k + 1) * VAGUES_PALIER);
   if (typeof onglet === 'string') { ouvrirVagues.onglet = onglet; ouvrirVagues.prep = null; } else if (modaleOuverte !== 'vagues') { ouvrirVagues.onglet = fini ? 'boss' : 'vague'; ouvrirVagues.prep = null; }
   if (!battus.length) ouvrirVagues.onglet = 'vague'; const ong = ouvrirVagues.onglet;
