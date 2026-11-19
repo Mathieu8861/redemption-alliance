@@ -14,9 +14,9 @@ function caseTourFilet() { /* une case libre a deux cases du chateau, cote camer
 }
 async function poserTourFilet(piste) {
   if (tourFiletEssai) { jeter(tourFiletEssai.m); tourFiletEssai = null; } if (!piste) { toast('Tour à filets retirée.'); return; }
-  const sc = await chargerToursFilet(), m = gabaritEchelle(sc, 'TourFilet' + piste, ECH_TOUR * 1.3, new T.Vector3(0, 0, 0)), c = caseTourFilet(), q = posCase(c); poser(m, q.x, q.y, q.z); sansClic(m);
+  const sc = await chargerToursFilet(), m = gabaritEchelle(sc, 'TourFilet' + piste, ECH_TOUR * 1.3, new T.Vector3(0, 0, 0)), c = caseTourFilet(), q = posCase(c); poser(m, q.x, q.y, q.z, Math.PI / 4); sansClic(m); /* (un huitieme de tour : porte, hublots et barillet face a la camera) */
   tourFiletEssai = { piste, m, x: q.x, z: q.z, y: q.y, haut: (m.userData.hauteur || 4) * 0.82, cd: 2 };
-  toast('Tour à filets (piste ' + piste + ', essai) posée à côté du château. Lance une simu VSA dans les réglages du mode test pour la voir travailler.', 'or');
+  toast('Tour mécanique (essai) posée à côté du château. Lance une simu VSA dans les réglages du mode test pour la voir travailler.', 'or');
 }
 function lancerFilet(mo) { /* le filet part du haut de la tour, en cloche, et retombe sur le voleur */
   const T0 = tourFiletEssai, a = new T.Vector3(T0.x, T0.y + T0.haut, T0.z), c0 = combat, D = 0.55; let t = 0;
@@ -42,7 +42,8 @@ function majTourFilet(dt) { /* chaque image : pendant une simu VSA, un filet tou
   T0.cd = TOUR_FILET.cadence; lancerFilet(cible);
 }
 effets.push((dt) => { majTourFilet(dt); return false; });
-/* le bouton du bandeau du mode test : A, B, C, puis plus rien */
+/* le bouton du bandeau du mode test : la tour mecanique retravaillee (C2, choix de Mathieu le 19/11/2026 : « tour mecanique j'aime bien mais le design on peut
+   l'ameliorer un peu », puis « on dirait une grille au bout et pas un filet »), puis plus rien */
 const bandeauTestFilet = bandeauTest; bandeauTest = function () { bandeauTestFilet(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-tour-filet]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-tour-filet="1">Tour à filets</button>'); };
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-tour-filet]'); if (!b || !MODE_TEST || !estAdmin()) return; if (lieu !== 'ferme') { toast('Rentre d\'abord à la ferme.'); return; }
-  const suite = { '': 'A', A: 'B', B: 'C', C: '' }[tourFiletEssai ? tourFiletEssai.piste : ''], p = poserTourFilet(suite); b.textContent = suite ? 'Tour à filets : ' + suite : 'Tour à filets'; return p; });
+  const suite = tourFiletEssai ? '' : 'C2', p = poserTourFilet(suite); b.textContent = suite ? 'Tour à filets : retirer' : 'Tour à filets'; return p; });

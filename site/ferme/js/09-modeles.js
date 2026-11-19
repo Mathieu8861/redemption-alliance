@@ -173,7 +173,12 @@ const draco = new T.DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.ne
 const chargerGlbUneFois = (url) => new Promise((ok, ko) => chargeur.load(url, (gl) => ok(gl.scene), undefined, ko));
 const chargerGlb = (url, essais = 3) => chargerGlbUneFois(url).catch((e) => (essais > 1 ? new Promise((r) => setTimeout(r, 800)).then(() => chargerGlb(url, essais - 1)) : Promise.reject(e))); /* (trois essais : un modele rate ne fait plus planter le jeu plus tard, 16/10/2026) */
 const MODELES = {};
-const VERSION_MODELES = '20261119f'; /* a changer a chaque nouvel export des modeles : sinon le navigateur garde les anciens en cache */
+const VERSION_MODELES = '20261119f'; /* la version commune des modeles et des icones. NE PLUS LA CHANGER pour un seul modele (19/11/2026, « le jeu lag de malade,
+   meme le chargement », Mathieu) : chaque changement faisait retelecharger tous les modeles (27,6 Mo au demarrage, plus ceux charges a la demande). Un modele
+   qui change recoit sa propre version dans VERSIONS_FICHIERS, les autres restent dans le cache du navigateur */
+const VERSIONS_FICHIERS = { 'tour-filet-pistes.glb': '20261119g' };
+{ const charge0 = chargeur.load.bind(chargeur), re = new RegExp('([^/?]+\\.glb)\\?v=' + VERSION_MODELES + '(?![0-9a-z])'); /* (seulement les chargements normaux : un essai en ?v=Date.now() reste tel quel) */
+  chargeur.load = (url, ...r) => charge0(String(url).replace(re, (m, f) => f + '?v=' + (VERSIONS_FICHIERS[f] || VERSION_MODELES)), ...r); }
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
 /* comme gabarit, mais a une echelle donnee et centre sur un point donne (non mis a l'echelle) : les 5 niveaux d'un batiment gardent la meme echelle,
    le niveau 1 a la taille d'avant et les suivants grandissent vraiment */
