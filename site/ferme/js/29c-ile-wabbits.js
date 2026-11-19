@@ -60,7 +60,7 @@ function construireIleWabbits() {
   /* la plage et la barque */
   { const b = new T.Group(), coque = boite(1.3, 0.45, 3.0, '#8a5a32'); coque.position.y = -0.2; b.add(coque); const bord = boite(1.45, 0.12, 3.1, '#6b4528'); bord.position.y = 0.05; b.add(bord);
     const proue = cone(0.66, 0.9, '#8a5a32', 4); proue.rotation.x = Math.PI / 2; proue.rotation.y = Math.PI / 4; proue.position.set(0, -0.2, 1.9); proue.scale.set(1, 1, 0.5); b.add(proue);
-    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, -1.5, 8.5, -0.2, 0.3); g.userData.barque = b; }
+    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, -7.6, 5.55, -0.2, Math.PI / 2); g.userData.barque = b; }
   /* le champ de cawottes : des rangs de fanes et de cawottes qui depassent */
   for (let r = 0; r < 4; r++) for (let k = 0; k < 5; k++) { const x = -3.4 + k * 1.7, z = -9 - r * 1.6; if (Math.abs(x) < 1.6) continue;
     const ca = cone(0.16, 0.5, '#f08a24', 6); ca.rotation.x = Math.PI; ca.position.y = 0.1; const f = cone(0.18, 0.4, '#4f9e3a', 5); f.position.y = 0.48; const p = new T.Group(); p.add(ca, f); pose(p, x, z); }
@@ -84,6 +84,20 @@ function construireIleWabbits() {
   [[-3.5, 0], [3.8, -3], [6, -18], [24, -23], [30.5, -14], [21, 2], [5, 14], [13, 17], [19, 26], [4, 24]].forEach(([x, z], i) => {
     if (i % 3 === 2) { const r = new T.Mesh(new T.DodecahedronGeometry(0.8, 0), mat('#9a9488')); r.scale.set(1, 0.7, 1.1); pose(r, x, z, 0.3, i); bloc(x, z, 0.8); return; }
     const t = new T.Group(), tr = boite(0.3, 1.4, 0.3, '#7a5230'); tr.position.y = 0.7; t.add(tr); const f = new T.Mesh(new T.IcosahedronGeometry(1.15, 0), mat(i % 2 ? '#4f9e3a' : '#5aa844')); f.position.y = 2.0; t.add(f); pose(t, x, z); bloc(x, z, 0.5); });
+  /* l'ecume le long des plages : une bande claire sur les cases d'eau qui touchent le sable */
+  { const L = []; for (let i = -10; i <= 24; i++) for (let j = -19; j <= 26; j++) { const x = i * 2, z = j * 2, A = ARENE_WABBITS, d = Math.min(prochePiste(x, z)[0] - R_CHEMIN, Math.hypot(x - A.x, z - A.z) - A.r); if (d > 2.2 && d <= 3.6) L.push([x, z]); }
+    const ec = new T.InstancedMesh(new T.PlaneGeometry(2.1, 2.1), new T.MeshBasicMaterial({ color: '#f2fdff', transparent: true, opacity: 0.32, depthWrite: false }), L.length), M1 = new T.Matrix4(), R1 = new T.Matrix4().makeRotationX(-Math.PI / 2);
+    L.forEach(([x, z], k) => { M1.makeTranslation(x, -0.5, z).multiply(R1); ec.setMatrixAt(k, M1); }); ec.instanceMatrix.needsUpdate = true; g.add(ec); g.userData.ecume = ec; }
+  /* le ponton ou la barque accoste */
+  { const p = new T.Group(); for (let k = 0; k < 9; k++) { const pl = boite(0.34, 0.12, 1.6, k % 2 ? '#a87a4a' : '#9a6a3c'); pl.position.set(-5.0 - k * 0.4, -0.08, 0); p.add(pl); } /* (sur la cote ouest, face au large : le sable s'arrete vers x = -6,6) */
+    for (const s of [-1, 1]) for (const x of [-6.0, -8.0]) { const pi = boite(0.16, 1.1, 0.16, '#6b4528'); pi.position.set(x, -0.5, s * 0.72); p.add(pi); }
+    const bo = boite(0.18, 0.5, 0.18, '#6b4528'); bo.position.set(-8.3, 0.15, 0.85); p.add(bo); pose(p, 0, 4, 0); }
+  /* des buissons, des touffes d'herbe et des fleurs, places au hasard (toujours le meme) sur l'herbe, hors du chemin */
+  { let gr = 7; const rnd = () => (gr = (gr * 16807) % 2147483647) / 2147483647, FL = ['#f2b630', '#e8708c', '#ffffff', '#b98cff'];
+    for (let k = 0; k < 140; k++) { const x = -14 + rnd() * 58, z = -32 + rnd() * 76, [dP] = prochePiste(x, z), A = ARENE_WABBITS; if (dP > R_CHEMIN - 0.6 || dP < 1.8 || Math.hypot(x - A.x, z - A.z) < A.r + 0.5 || blocs.some((b) => Math.hypot(x - b.x, z - b.z) < b.r + 0.6)) continue;
+      const t = rnd(); if (t < 0.3) { const b = new T.Mesh(new T.IcosahedronGeometry(0.45 + rnd() * 0.25, 0), mat(rnd() < 0.5 ? '#5a9640' : '#679f48')); b.scale.y = 0.7; pose(b, x, z, 0.2); }
+      else if (t < 0.7) { const f = new T.Group(); for (let q = 0; q < 3; q++) { const h = cone(0.06, 0.35, '#5f9a3e', 3); h.position.set((q - 1) * 0.08, 0.17, (q % 2) * 0.06); h.rotation.z = (q - 1) * 0.3; f.add(h); } pose(f, x, z); }
+      else { const f = new T.Group(), tg = cone(0.025, 0.3, '#4f8a35', 3); tg.position.y = 0.15; f.add(tg); const fl = new T.Mesh(new T.IcosahedronGeometry(0.09, 0), mat(FL[Math.floor(rnd() * FL.length)])); fl.position.y = 0.32; f.add(fl); pose(f, x, z); } } }
   g.userData.blocs = blocs; g.userData.flaques = flaques; sansClic(g); mer.raycast = T.Mesh.prototype.raycast; /* (la mer reste cliquable : toucher l'eau, c'est viser le bord) */
   scene.add(g); return g;
 }
@@ -109,11 +123,12 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les zones 
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3); o.x = q[0]; o.z = q[1]; });
   if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (p.x - VISEE.x) * k; VISEE.z += (p.z - VISEE.z) * k; placerCamera(); } suivreOmbres();
   if (ileWabbits) ileWabbits.userData.flaques.forEach((f, i) => { f.material.opacity = 0.45 + 0.15 * Math.sin(E.t * 2.4 + i); });
+  if (ileWabbits && ileWabbits.userData.ecume) ileWabbits.userData.ecume.material.opacity = 0.26 + 0.1 * Math.sin(E.t * 1.3);
   return false;
 }
 async function partirDonjon() {
   if (!MODE_TEST) return; if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } if (lieu !== 'ferme' && lieu !== 'donjon') { toast('Rentre d\'abord à la ferme.'); return; }
-  fermerModale(); if (ileWabbits && ileWabbits.userData.barque) ileWabbits.userData.barque.position.set(0.6, -0.2, 24); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
+  fermerModale(); if (ileWabbits && ileWabbits.userData.barque) ileWabbits.userData.barque.position.set(-26, -0.2, 6.4); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
   const u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + 0.5, 0, DONJON.z + 2.5); u.y = 0; u.angle = Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
   VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); zoom = VOYAGES.donjon.zoom(); placerCamera(); cadrer();
   const n = Math.max(51, Math.min(VAGUES_TOTAL, Math.round(niveau(S_.xp)))); /* (les Wabbits a la force de ton niveau, jamais sous la vague 51) */
@@ -124,12 +139,12 @@ async function partirDonjon() {
 }
 /* L'ARRIVEE EN BARQUE : la barque vient du large avec le perso a bord, accoste, et il saute sur la plage (2,8 s ; les zones attendent qu'il ait pose le pied) */
 function debarquer() {
-  const b = ileWabbits && ileWabbits.userData.barque, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, A = { x: 0.6, z: 24 }, B = { x: 0.2, z: 9.2 }, S = { x: 0.4, z: 4.2 };
-  E.arrivee = true; b.rotation.y = Math.PI; let t = 0; const T1 = 2.2, T2 = 0.6;
+  const b = ileWabbits && ileWabbits.userData.barque, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, A = { x: -26, z: 6.4 }, B = { x: -7.6, z: 5.55 }, S = { x: -3.4, z: 4.4 }, cap = Math.atan2(B.x - A.x, B.z - A.z);
+  E.arrivee = true; b.rotation.y = cap; let t = 0; const T1 = 2.2, T2 = 0.6;
   effets.push((dt) => { t += dt; if (combat !== c0 || !donjonEtat) return true; const p = paysanMesh.position;
     if (t < T1) { const k = t / T1, e = 1 - Math.pow(1 - k, 2); b.position.set(A.x + (B.x - A.x) * e, -0.2 + Math.sin(t * 5) * 0.04, A.z + (B.z - A.z) * e); b.rotation.z = Math.sin(t * 3.2) * 0.04;
-      p.set(DONJON.x + b.position.x, 0.05 + Math.sin(t * 5) * 0.04, DONJON.z + b.position.z - 0.4); u.y = p.y; u.angle = Math.PI; paysanMesh.rotation.y = u.angle; chemin = []; arrivee = null; return false; }
-    const k = Math.min(1, (t - T1) / T2); p.set(DONJON.x + B.x + (S.x - B.x) * k, 0.05 + Math.sin(Math.PI * k) * 0.9, DONJON.z + B.z - 0.4 + (S.z - B.z + 0.4) * k); u.y = p.y; /* (le saut sur la plage) */
+      p.set(DONJON.x + b.position.x - Math.sin(cap) * 0.4, 0.05 + Math.sin(t * 5) * 0.04, DONJON.z + b.position.z - Math.cos(cap) * 0.4); u.y = p.y; u.angle = cap; paysanMesh.rotation.y = u.angle; chemin = []; arrivee = null; return false; }
+    const k = Math.min(1, (t - T1) / T2), x0 = B.x - Math.sin(cap) * 0.4, z0 = B.z - Math.cos(cap) * 0.4; p.set(DONJON.x + x0 + (S.x - x0) * k, 0.05 + Math.sin(Math.PI * k) * 0.9, DONJON.z + z0 + (S.z - z0) * k); u.y = p.y; /* (le saut sur le ponton, puis la plage) */
     if (k < 1) return false; p.y = 0; u.y = 0; E.arrivee = false; b.rotation.z = 0; poussiere(p.x, 0, p.z, 5, 0.6, '#d9c58e'); return true; });
 }
 function finDonjon(gagne) {
