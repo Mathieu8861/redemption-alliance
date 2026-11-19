@@ -33,6 +33,9 @@ function bornerDonjon(x, z, m) { /* le point le plus proche ou l'on peut se teni
   for (let n = 0; n < 2; n++) (ileWabbits ? ileWabbits.userData.blocs : []).forEach((o) => { const dx = lx - o.x, dz = lz - o.z, d = Math.hypot(dx, dz), R = o.r + m; if (d >= R) return; if (d < 0.001) lx = o.x + R; else { lx = o.x + dx / d * R; lz = o.z + dz / d * R; } });
   return [lx + DONJON.x, lz + DONJON.z];
 }
+/* une case aux bords arrondis, comme celles de la ferme : un carre a coins ronds extrude vers le bas, le dessus a y = 0 */
+function caseArrondie() { const f = new T.Shape(), r = 0.2, h = 0.9; f.moveTo(-h + r, -h); f.lineTo(h - r, -h); f.quadraticCurveTo(h, -h, h, -h + r); f.lineTo(h, h - r); f.quadraticCurveTo(h, h, h - r, h); f.lineTo(-h + r, h); f.quadraticCurveTo(-h, h, -h, h - r); f.lineTo(-h, -h + r); f.quadraticCurveTo(-h, -h, -h + r, -h);
+  const g = new T.ExtrudeGeometry(f, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.07, bevelSegments: 2, curveSegments: 3 }); g.rotateX(Math.PI / 2); g.translate(0, -0.07, 0); return g; }
 /* ---------- la carte : la mer, les cases du sol (herbe, chemin de terre, sable du bord), le decor de chaque zone ---------- */
 function construireIleWabbits() {
   const g = new T.Group(); g.position.copy(DONJON); const blocs = [];
@@ -45,9 +48,9 @@ function construireIleWabbits() {
   { const bord = []; for (let i = -10; i <= 24; i++) for (let j = -19; j <= 26; j++) { const x = i * 2, z = j * 2, A = ARENE_WABBITS, d = Math.min(prochePiste(x, z)[0] - R_CHEMIN, Math.hypot(x - A.x, z - A.z) - A.r); if (d > 2.2 && d <= 7) bord.push({ x, z, d }); }
     const eau = new T.InstancedMesh(new T.PlaneGeometry(2, 2), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false }), bord.length), M0 = new T.Matrix4(), R0 = new T.Matrix4().makeRotationX(-Math.PI / 2), C0 = new T.Color(), clair = new T.Color('#7fd6d6'), fonce = new T.Color('#2a7fa3');
     bord.forEach((b, k) => { M0.makeTranslation(b.x, -0.52, b.z).multiply(R0); eau.setMatrixAt(k, M0); eau.setColorAt(k, C0.copy(clair).lerp(fonce, (b.d - 2.2) / 4.8)); }); eau.instanceMatrix.needsUpdate = true; if (eau.instanceColor) eau.instanceColor.needsUpdate = true; g.add(eau); } /* (l'eau claire des hauts-fonds, plus foncee au large) */
-  const geo = new T.BoxGeometry(1.98, 1, 1.98), im = new T.InstancedMesh(geo, new T.MeshToonMaterial({ color: '#ffffff', gradientMap: grad }), cases.length), M = new T.Matrix4(), C = new T.Color();
+  const geo = caseArrondie(), im = new T.InstancedMesh(geo, new T.MeshToonMaterial({ color: '#ffffff', gradientMap: grad }), cases.length), M = new T.Matrix4(), C = new T.Color();
   const HERBE = ['#6b9a4c', '#719f50', '#66944a', '#6e9c4e', '#74a352'], TERRE = ['#a87a4a', '#a37548', '#ad7f4e'], SABLE = ['#d9c58e', '#d3bf88'], DALLE = ['#bdb5a3', '#b2aa98']; /* (les couleurs de la ferme, adoucies comme l'ile ronde : versToon douce) */
-  cases.forEach((c, k) => { const y = c.sable ? -0.32 : -0.5 + 0.02 * (c.v % 2); M.makeTranslation(c.x, y, c.z); im.setMatrixAt(k, M);
+  cases.forEach((c, k) => { const y = c.sable ? -0.16 : c.chemin ? -0.02 : 0.015 * (c.v % 3); M.makeTranslation(c.x, y, c.z); im.setMatrixAt(k, M); /* (le dessus de la case ; la plage un cran plus bas que l'herbe) */
     C.set(c.sable ? SABLE[c.v % 2] : c.arene ? DALLE[c.v % 2] : c.chemin ? TERRE[c.v % 3] : HERBE[c.v]); im.setColorAt(k, C); });
   im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.receiveShadow = true; g.add(im);
   /* le pied des falaises : un socle de terre sous les cases du bord, qui plonge dans la mer */

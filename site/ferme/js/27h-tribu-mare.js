@@ -6,7 +6,7 @@
    aplats (outils/tribu/cuire_aplats.py), squelette du Creature Pack (placer-squelette.py, lier-squelette.py ... epaules queue_bassin), mouvements des
    mutants (blender/monstre-anime.py crocoVase), au rendu B des Bworks (27d-bworks-v2.js). Forces provisoires, sans sort : a regler avec Mathieu. */
 SQUELETTES_A_CHARGER.push(['croco-vase', 'assets/modeles/jeu/croco-vase-anime.glb', 2.6]); NOMS_BW2.add('croco-vase'); VITESSE_FAMILLE['croco-vase'] = 1.35;
-MONSTRES.crocoVase = { element: 'eau', nom: 'Croco de la vase', modele: 'croco-vase', icone: 'triton', /* (icone provisoire : la sienne se fera d'apres son rendu en jeu) */
+MONSTRES.crocoVase = { element: 'eau', nom: 'Croco de la vase', modele: 'croco-vase', icone: 'croco-vase', /* (son icone, photographiee sur son modele en jeu, texture d'origine, choisie par Mathieu le 18/11/2026) */
   desc: 'la bête de la vase, voûtée sur ses longs bras : elle fonce sur toi et lacère de ses griffes', pv: (n) => 4800 + 140 * (n - 100), deg: (n) => 88 + Math.round(3 * (n - 100)),
   cadence: 1.6, vitesse: 3.0, portee: 2.0, ombre: 2.2 };
 /* LE PIRANHA DE GUERRE (18/11/2026, « Piranha de guerre » choisi par Mathieu apres le Croco) : petit, rond et rapide, en nombre ; meme methode (dessin de face
