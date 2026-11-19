@@ -12,10 +12,16 @@
      avoir mesure la fluidite sur une tablette (la nuit lunaire du Golem allume deja les lanternes des joueurs). */
 const VRAIES_LUMIERES = { n: 12, couleur: '#ffad55', force: 1.0, portee: 7.5, chute: 1.8, haut: 0.35, fondu: 2.5, relu: 0.4, verre: 0.5, bati: 0.55, jour: 0.35 };
 const LUM_J = { P: null, t: 0, actif: false, teinte: null };
+const PORTEE_LAMPADAIRE = 2.2, HAUT_LAMPADAIRE = 1.77 + VRAIES_LUMIERES.haut; /* (la lanterne sur pied, DECOS.lanterne_pied : sa portee et la hauteur de sa lumiere, la reference des autres) */
 const vraiesLumieresLa = () => /* (pour tous depuis le 12/11/2026, « je valide tout », Mathieu ; la fluidite sur tablette n'a pas ete mesuree : en cas de souci, les graphismes legers les coupent) */ !ETAT_TEST.sansLum && graphismes() !== 'leger' && typeof lieu !== 'undefined' && lieu === 'ferme' && !enAccueil;
 function sourcesLumiere() { /* ce qui eclaire en ce moment : [cle, x, y, z, force, rang], dans un ordre qui ne depend pas de la camera */
   const L = [];
-  lanternesAnim.forEach((A) => { if (A.a > 0.02 && A.halo && A.halo.parent && !(A.halo.material.color.b > A.halo.material.color.r)) { const p = A.halo.position; /* (pas la lanterne UV, violette) */ L.push(['l' + Math.round(p.x * 4) + '_' + Math.round(p.z * 4), p.x, p.y + VRAIES_LUMIERES.haut, p.z, A.a, 0]); } });
+  lanternesAnim.forEach((A) => { if (A.a > 0.02 && A.halo && A.halo.parent && !(A.halo.material.color.b > A.halo.material.color.r)) { const p = A.halo.position; /* (pas la lanterne UV, violette) */
+    /* (19/11/2026, « torche et lanterne au sol, faut les faire comme les lampadaires, mais avec leur propre rayon d'action », Mathieu) : la lumiere du lampadaire
+       (2,12 au-dessus du sol, VRAIES_LUMIERES.portee) agrandie ou reduite a la portee de chaque lampe : la petite lanterne (0,7 case) a 0,64 fois, la torche
+       (2,2 cases) a 2 fois ; la meme forme de rond, a sa taille (l'attenuation de three r128 est lineaire : a l'echelle, le rond garde son eclat) */
+    const k = (A.portee || PORTEE_LAMPADAIRE) / PORTEE_LAMPADAIRE, y = A.base != null ? A.base + HAUT_LAMPADAIRE * Math.pow(k, 0.5) : p.y + VRAIES_LUMIERES.haut;
+    L.push(['l' + Math.round(p.x * 4) + '_' + Math.round(p.z * 4), p.x, y, p.z, A.a * Math.pow(k, k > 1 ? -1.2 : -1.4), 0, 0, k]); } /* (la torche, moins haute et un peu moins forte : posee contre le chateau, elle en blanchissait les murs ; la petite lanterne un peu plus forte, son rond se voyait a peine) */ });
   if (typeof lumieresBatA !== 'undefined' && lumieresBatA > 0.02) { const B = new Map(); /* (un batiment : une seule lumiere, au milieu de ses fenetres) */
     trousBat.forEach((g) => { if (!g.hote.parent || g.hote.visible === false) return; let b = B.get(g.hote); if (!b) { b = { x: 0, y: 0, z: 0, n: 0 }; B.set(g.hote, b); } b.x += g.c.x; b.y += g.c.y; b.z += g.c.z; b.n++; });
     B.forEach((b, hote) => { const x = b.x / b.n, z = b.z / b.n, dx = x - hote.position.x, dz = z - hote.position.z, d = Math.hypot(dx, dz) || 1; /* (poussee un peu hors des murs, pour eclairer le sol devant) */
@@ -35,8 +41,8 @@ function majVraiesLumieres(dt) { /* a chaque image, apres les lanternes */
   /* chaque lumiere garde sa source tant qu'elle est voulue ; une lumiere libre (eteinte) prend une source pas encore servie */
   const sombre = Math.max(typeof NUIT_J !== 'undefined' && NUIT_J ? NUIT_J.k : 0, (typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) ? 1 : 0), F = V.force * (V.jour + (1 - V.jour) * sombre); /* (sous la pluie en plein jour, elles eclairent bien moins : le soleil est encore la) */
   const voulues = new Map(S0.map((s) => [s[0], s]));
-  J.P.forEach((p) => { const s = p.cle && voulues.get(p.cle); if (s) { p.cible = s[4] * F; p.o.position.set(s[1], s[2], s[3]); voulues.delete(p.cle); } else p.cible = 0; });
-  J.P.forEach((p) => { if (p.cible || p.o.intensity > 0.01 || !voulues.size) return; const [cle, s] = voulues.entries().next().value; voulues.delete(cle); p.cle = cle; p.o.position.set(s[1], s[2], s[3]); p.cible = s[4] * F; });
+  J.P.forEach((p) => { const s = p.cle && voulues.get(p.cle); if (s) { p.cible = s[4] * F; p.o.position.set(s[1], s[2], s[3]); p.o.distance = V.portee * (s[7] || 1); voulues.delete(p.cle); } else p.cible = 0; });
+  J.P.forEach((p) => { if (p.cible || p.o.intensity > 0.01 || !voulues.size) return; const [cle, s] = voulues.entries().next().value; voulues.delete(cle); p.cle = cle; p.o.position.set(s[1], s[2], s[3]); p.o.distance = V.portee * (s[7] || 1); p.cible = s[4] * F; });
   let allume = false;
   J.P.forEach((p) => { const i = p.o.intensity; p.o.intensity = p.cible > i ? Math.min(p.cible, i + dt * V.fondu) : Math.max(p.cible, i - dt * V.fondu); p.o.color.copy(J.teinte); /* (sa couleur : les nuits du jeu bleuissent toutes les lumieres de la scene) */
     if (p.o.intensity > 0.01) allume = true; else if (!p.cible) p.cle = null; });
