@@ -31,7 +31,7 @@ const gardienDe = () => (S_ && S_.gardien && GARDIENS[S_.gardien.type]) || null;
 const dureeRepasGardien = (G) => G.heures * 60 * MIN;
 const gardienAffame = () => !S_.gardien || Date.now() >= S_.gardien.rassasie;
 const repasGardien = () => { const G = gardienDe(); return G ? Math.max(0, Math.ceil((S_.gardien.rassasie - Date.now()) / dureeRepasGardien(G) - 1e-6)) : 0; };
-const degGardien = () => Math.max(1, Math.round(statsPerso().deg * gardienDe().deg));
+const degGardien = () => Math.max(1, Math.round(statsPerso().deg * gardienDe().deg * (1 + (typeof bonusArmureGardien === 'function' ? bonusArmureGardien() : 0)))); /* (son armure, js/29f-armure-gardien.js, 19/11/2026) */
 const SC_GARDIEN = new Set([...SC_P8, 'moustache', 'vibrisse', 'narine', 'nez_chat', 'museau_chat', 'chanfrein_chat', 'menton_chat', 'babine_chat', 'paupiere']);
 
 /* ---------- les modeles : charges seulement une fois le gardien choisi (le sien, pas l'autre) ---------- */
@@ -146,7 +146,7 @@ function creerGardien() {
   const mk = (k, ombre) => { const m = cloner(k); ombrePieds(m, ombre); m.traverse((o) => { o.userData.gardien = true; }); m.visible = false; scene.add(m); return m; };
   const p = porcheGardien(), bulle = document.createElement('div'); bulle.className = 'bulle ico rouge'; bulle.dataset.ancre = 'niche'; bulle.style.display = 'none'; /* (son nom est sur sa pancarte : la pastille ne sort que quand il a faim, et le toucher ouvre sa maison) */
   bulle.innerHTML = icoB(G.proie === 'Tofu' ? 'tofu' : 'bouftou'); bulle.dataset.info = G.nom + ' a faim : touche sa maison pour le nourrir'; bulle.dataset.cible = 'case:' + blocBati('niche').c0.id; zoneBulles.appendChild(bulle);
-  gard = { calme: mk('gardienCalme', G.ombre), assis: mk('gardienAssis', G.ombre), vsa: mk('gardienVsa', G.ombreVsa), x: p.x, y: p.y, z: p.z, ry: p.ry, etat: 'pause', t: 2 + Math.random() * 3, pas: 0, recharge: 0, mord: 0, joie: 0, coup: 0, forme: null, bulle, faimVue: false, horsVsa: 0 };
+  gard = { calme: mk('gardienCalme', G.ombre), assis: mk('gardienAssis', G.ombre), vsa: mk(MODELES.gardienVsaArmure && typeof niveauArmureGardien === 'function' && niveauArmureGardien() ? 'gardienVsaArmure' : 'gardienVsa', G.ombreVsa), x: p.x, y: p.y, z: p.z, ry: p.ry, etat: 'pause', t: 2 + Math.random() * 3, pas: 0, recharge: 0, mord: 0, joie: 0, coup: 0, forme: null, bulle, faimVue: false, horsVsa: 0 };
   montrerForme('assis'); placerGardien(p);
 }
 function porcheGardien() { /* devant la porte de sa maison (la porte regarde +z, tournee avec la maison) */
