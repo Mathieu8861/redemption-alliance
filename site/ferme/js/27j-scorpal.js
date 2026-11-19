@@ -22,6 +22,16 @@ MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone
   desc: 'le seigneur scorpion en armure : sa carapace encaisse 60 % de tes coups, sauf quand son dard reste planté au sol après une piqûre (frappe alors : x2,5). Son dard empoisonne (5 doses : paralysé), ses pinces t\'attirent et te tiennent, sa queue balaie tout autour de lui',
   pv: () => 60000, deg: () => 112, cadence: 1.5, vitesse: 2.6, portee: 3.0, ombre: 4.2, degSort: 3.2, scorpKit: KIT_SCORPAL, appelStun: KIT_SCORPAL.pinces.tenu };
 PV_ILE_BOSS_PAR.scorpal = 1500000;
+/* SCORPAL RENFORCE SUR L'ILE (20/11/2026, « vu que c'est l'ile du boss, boost-le comme pour le Bworker », Mathieu) : les memes leviers et les memes proportions que
+   le Bworker et le Craqueleur (RENFORT_ILE, 27-arene.js) : ses trois sorts reviennent plus souvent (dard toutes les 4,5 s au lieu de 6, pinces 6 au lieu de 8,
+   balayage 5,5 au lieu de 7,5), moins de temps pour sortir des cercles (0,9 / 0,7 / 0,75 s au lieu de 1,2 / 0,9 / 1), des cercles plus grands (+20 %), des sorts
+   qui tapent +30 %, un coup toutes les 1,2 s au lieu de 1,5, ses coups +30 %, une carapace de 65 % au lieu de 60 (comme l'armure du Bworker, +10 points sur 30),
+   la marche +15 % et 25 % plus vite sur l'ile (VITESSE_ILE). Le dard reste plante 2,5 s (le moment de taper ne raccourcit pas). Toujours sans troupe : un duel. */
+const KIT_SCORPAL_ILE = { carapace: 0.65, ouverture: 2.5,
+  dard: Object.assign({}, KIT_SCORPAL.dard, { periode: 4.5, prepa: 0.9, R: 2.65, x: 1.62, portee: 5.2 }),
+  pinces: Object.assign({}, KIT_SCORPAL.pinces, { periode: 6.0, prepa: 0.7, R: 5.0, x: 1.1 }),
+  balayage: Object.assign({}, KIT_SCORPAL.balayage, { periode: 5.5, prepa: 0.75, R: 4.2, x: 1.82 }) };
+RENFORT_ILE.scorpal = { d: { cadence: 1.2, scorpKit: KIT_SCORPAL_ILE }, deg: 1.3, vit: 1.15 }; VITESSE_ILE.scorpal = 1.25;
 GROUPES_DEV.scorpal = { nom: 'Scorpal (le boss de l\'île du 21/11)', liste: { scorpal: 1 } }; AVANT_PREMIERE.unshift('scorpal');
 /* sa semaine sur l'ile : celle qui commence le samedi 21/11/2026 (cle du vendredi 20/11) ; le Chafer Cuirasse reviendra a son tour dans la rotation */
 const SEMAINES_SCORPAL = { '2026-11-20': 'scorpal' }, BOSS_ILE_HORS_ROTATION = ['scorpal']; /* (et dans le choix du boss de l'ile du mode test) */
@@ -30,7 +40,7 @@ const bossDuJourScorpal = bossDuJour; bossDuJour = function (cle) { if (!(MODE_T
 const blesserScorpal = blesser; blesser = function (mo, n, gros, src) {
   if (mo && mo.d && mo.d.scorpKit && mo.etat === 'actif' && n > 0) {
     const K = mo.d.scorpKit, ouvert = mo.dardPlante > 0; n = Math.max(1, Math.round(n * (ouvert ? K.ouverture : 1 - K.carapace)));
-    const c = combat; if (c && !ouvert && !c.carapaceVu) { c.carapaceVu = true; toast('Sa carapace encaisse 60 % de tes coups : frappe quand son dard reste planté au sol (x2,5) !', 'alerte'); }
+    const c = combat; if (c && !ouvert && !c.carapaceVu) { c.carapaceVu = true; toast('Sa carapace encaisse ' + Math.round(K.carapace * 100) + ' % de tes coups : frappe quand son dard reste planté au sol (x' + String(K.ouverture).replace('.', ',') + ') !', 'alerte'); }
     if (!ouvert && (mo.carapaceVuT || 0) < performance.now()) { mo.carapaceVuT = performance.now() + 2500; const p = mo.m.position.clone(); p.y += (mo.haut || 3) * 0.7; chiffre('Carapace', p); }
   }
   return blesserScorpal.call(this, mo, n, gros, src);
