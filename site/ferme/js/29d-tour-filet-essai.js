@@ -34,10 +34,12 @@ function prendreAuFilet(mo) { /* il reste pris, un filet sur le dos, et lache la
     if (r.n <= 0) { mo.porte = null; if (mo.m) mo.m.children.filter((o) => o.userData && o.userData.sac).forEach((o) => mo.m.remove(o)); } rendreGrange(); }
 }
 function majTourFilet(dt) { /* chaque image : pendant une simu VSA, un filet toutes les 6 s */
-  const T0 = tourFiletEssai; if (!T0 || !MODE_TEST || !combat || !combat.raid || combat.fin) return; T0.cd -= dt; if (T0.cd > 0) return;
+  const T0 = tourFiletEssai; if (!T0 || !MODE_TEST || !combat || !combat.raid || combat.fin) return;
+  if (T0.piste === 'B') { if (!T0.sonne) { T0.sonne = true; toast('La cloche de la tour sonne : les voleurs de VSA vont 15 % moins vite près de la tour.', 'or'); } combat.monstres.forEach((o) => { o.cloche = o.etat === 'actif' && Math.hypot(o.x - T0.x, o.z - T0.z) <= TOUR_FILET.portee ? 0.3 : 0; }); } /* (la cloche de la piste B : 15 % plus lents a sa portee) */
+  T0.cd -= dt; if (T0.cd > 0) return;
   const L = combat.monstres.filter((o) => o.etat === 'actif' && !(o.coince > 0) && Math.hypot(o.x - T0.x, o.z - T0.z) <= TOUR_FILET.portee); if (!L.length) { T0.cd = 0.3; return; }
   const charges = L.filter((o) => o.porte), d = (o) => Math.hypot(o.x - T0.x, o.z - T0.z), cible = charges.length ? charges.reduce((a, b) => (b.porte.n > a.porte.n ? b : a)) : L.reduce((a, b) => (d(b) < d(a) ? b : a));
-  T0.cd = TOUR_FILET.cadence; lancerFilet(cible); /* (la cloche de la piste B n'est pas encore jouee : les trois pistes lancent le meme filet) */
+  T0.cd = TOUR_FILET.cadence; lancerFilet(cible);
 }
 effets.push((dt) => { majTourFilet(dt); return false; });
 /* le bouton du bandeau du mode test : A, B, C, puis plus rien */
