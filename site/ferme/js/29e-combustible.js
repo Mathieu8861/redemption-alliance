@@ -1,0 +1,53 @@
+'use strict';
+/* LE COMBUSTIBLE DE LA TOUR A FILETS (19/11/2026, version dev : mode test seulement). Mathieu : « la fumee qui s'en echappe c'est une vraie fumee ? j'aimerais
+   qu'il faille aussi l'alimenter avec une ressource, normalement ce serait du charbon, mais du charbon on en a pas », puis « qu'on puisse faire du charbon de
+   bois et de la tourbe des marais aussi, les deux ».
+   - le charbon de bois se fabrique a l'atelier (3 Ecorces d'Abraknyde et 2 Branches de Kaliptus pour 10) ;
+   - la tourbe des marais tombe sur la tribu de la mare (vagues 101 a 110), comme les autres ressources de monstres ;
+   - la tour a une reserve de feu (30) : un charbon de bois donne 1 feu, une motte de tourbe 2 (elle brule lentement) ; chaque filet tire brule 1 feu. Sans feu,
+     elle ne tire plus et sa cheminee ne fume plus ; avec du feu, une vraie fumee sort de sa cheminee (celle de la grange), plus noire a chaque tir.
+   Point de depart, chiffres a valider. */
+const COMBUSTIBLE = { max: 30, charbon: 1, tourbe: 2 };
+PAR_ID.tourbe = { id: 'tourbe', nom: 'Tourbe des marais', prix: 460, xp: 0 }; /* (dans PAR_ID seulement, pas dans les ressources vendues : elle n'existe que dans le mode test) */
+['tetard', 'crapaud', 'triton', 'fouette', 'axolotl', 'mereCrapaude', 'crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((k) => { if (MONSTRES[k]) MONSTRES[k].res = 'tourbe'; });
+RECETTES_ATELIER.push({ id: 'charbon', nom: 'Charbon de bois', donne: 10, stock: 'charbon', dev: true, il: [['ecorce_abraknyde', 3], ['kaliptus', 2]], ico: 'charbon-bois', minuscule: 'charbons de bois',
+  apres: '. Verse-les dans la tour à filets (bouton « Alimenter la tour » du mode test).',
+  desc: 'Le combustible de la tour à filets : un charbon de bois lui fait tirer un filet. La tourbe des marais, laissée par la tribu de la mare, brûle deux fois plus longtemps.' });
+const feuTour = () => S_.feuTour || 0;
+const K_TOUR_FILET = ECH_TOUR * 1.3, CHEMINEE_TOUR_FILET = [-0.58, 4.92, -0.5]; /* (le haut de la cheminee dans le modele, blender/tour-filet-pistes.py, apres elancer) */
+/* la fumee : celle des cheminees de la grange, sur la tour posee, visible seulement quand elle a du feu */
+const poserTourFiletFeu = poserTourFilet; poserTourFilet = async function (piste) {
+  const T0 = tourFiletEssai; if (T0 && T0.fumee) { const i = fumeesCheminee.indexOf(T0.fumee); if (i >= 0) fumeesCheminee.splice(i, 1); }
+  await poserTourFiletFeu(piste); const T1 = tourFiletEssai; if (!T1) return;
+  T1.fumee = fumerCheminee(T1.m, 0, new T.Vector3(...CHEMINEE_TOUR_FILET.map((v) => v * K_TOUR_FILET))); if (T1.fumee) { T1.fumee.children.forEach((b) => { b.raycast = () => {}; }); T1.fumee.visible = feuTour() > 0; }
+  if (!feuTour()) toast('La tour est froide : verse-lui du charbon de bois ou de la tourbe des marais (bouton « Alimenter la tour »).', 'alerte');
+};
+function bouffeeTir() { /* a chaque filet, la cheminee crache une bouffee plus noire */
+  const T0 = tourFiletEssai; if (!T0 || !T0.fumee) return; const p = T0.fumee.getWorldPosition(new T.Vector3());
+  for (let i = 0; i < 5; i++) emettre(FX_FUM, 1, { x: p.x + fxEntre(-0.08, 0.08), y: p.y + 0.05, z: p.z + fxEntre(-0.08, 0.08), v: [fxEntre(-0.3, 0.3), fxEntre(1.4, 2.2), fxEntre(-0.3, 0.3)], vie: [0.9, 1.4], taille: [0.35, 1.1], c: ['#4a4744', '#7d7873'], a: 0.6, frein: 1.4, vrot: 1.2, entree: 0.08 });
+}
+const lancerFiletFeu = lancerFilet; lancerFilet = function (mo) { S_.feuTour = Math.max(0, feuTour() - 1); bouffeeTir(); return lancerFiletFeu(mo); };
+const majTourFiletFeu = majTourFilet; majTourFilet = function (dt) {
+  const T0 = tourFiletEssai; if (T0 && T0.fumee) { T0.fumee.visible = feuTour() > 0; if (!fumeesCheminee.includes(T0.fumee)) fumeesCheminee.push(T0.fumee); } /* (la ferme reconstruite vide la liste des fumees : la sienne y revient) */
+  if (T0 && MODE_TEST && combat && combat.raid && !combat.fin && feuTour() <= 0) { if (!T0.vide) { T0.vide = true; toast('La tour à filets n\'a plus de combustible : elle ne tire plus.', 'alerte'); } return; }
+  if (T0) T0.vide = false; return majTourFiletFeu(dt);
+};
+/* alimenter la tour : la reserve de feu, le charbon de bois (atelier) et la tourbe des marais (grange) */
+function ouvrirFeuTour() {
+  const ch = S_.charbon || 0, tb = (S_.grange || {}).tourbe || 0, f = feuTour(), place = COMBUSTIBLE.max - f;
+  const nC = Math.min(ch, Math.floor(place / COMBUSTIBLE.charbon)), nT = Math.min(tb, Math.floor(place / COMBUSTIBLE.tourbe)), pl = (n, s) => n + ' ' + s + (n > 1 ? 's' : '');
+  ouvrirModale('feu-tour', entete('La tour à filets') + '<p class="hdv-aide">Réserve de feu : <b>' + f + ' / ' + COMBUSTIBLE.max + '</b>. Chaque filet tiré brûle 1 feu ; sans feu, la tour ne tire plus et ne fume plus.<br>Un charbon de bois donne 1 feu (atelier : 3 Écorces d\'Abraknyde et 2 Branches de Kaliptus pour 10), une motte de tourbe des marais 2 (laissée par la tribu de la mare).</p>' +
+    '<div class="act"><button class="btn" data-feu-verser="charbon"' + (nC ? '' : ' disabled') + '>Verser ' + pl(nC, 'charbon') + ' (tu en as ' + ch + ')</button> ' +
+    '<button class="btn" data-feu-verser="tourbe"' + (nT ? '' : ' disabled') + '>Verser ' + pl(nT, 'motte') + ' de tourbe (tu en as ' + tb + ')</button>' +
+    (MODE_TEST ? ' <button class="btn discret" data-feu-verser="essai">+10 charbons et +10 tourbes (essai)</button>' : '') + '</div>');
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-feu-verser]'), o = e.target.closest('[data-feu-tour]'); if (!(b || o) || !MODE_TEST || !estAdmin()) return;
+  if (o) { ouvrirFeuTour(); return; }
+  const k = b.dataset.feuVerser, place = COMBUSTIBLE.max - feuTour(); S_.grange = S_.grange || {};
+  if (k === 'essai') { S_.charbon = (S_.charbon || 0) + 10; S_.grange.tourbe = (S_.grange.tourbe || 0) + 10; }
+  else if (k === 'charbon') { const n = Math.min(S_.charbon || 0, Math.floor(place / COMBUSTIBLE.charbon)); S_.charbon -= n; S_.feuTour = feuTour() + n * COMBUSTIBLE.charbon; if (n) toast('+' + n * COMBUSTIBLE.charbon + ' feu : la tour fume.', 'or'); }
+  else if (k === 'tourbe') { const n = Math.min(S_.grange.tourbe || 0, Math.floor(place / COMBUSTIBLE.tourbe)); S_.grange.tourbe -= n; S_.feuTour = feuTour() + n * COMBUSTIBLE.tourbe; if (n) toast('+' + n * COMBUSTIBLE.tourbe + ' feu : la tour fume.', 'or'); }
+  const T0 = tourFiletEssai; if (T0 && T0.fumee) T0.fumee.visible = feuTour() > 0; sauver(); ouvrirFeuTour();
+});
+const bandeauTestFeu = bandeauTest; bandeauTest = function () { bandeauTestFeu(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-feu-tour]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-feu-tour="1">Alimenter la tour</button>'); };
