@@ -37,7 +37,7 @@ function capOdeurSang(mo, ctx) { /* le passif, et la frenesie sous 30 % */
   const O = mo.d.odeurSang; if (!O || mo.etat !== 'actif' || !combat) return; const c = combat, F = mo.d.frenesie;
   const f = Math.max(0, Math.min(1, 1 - c.pv / Math.max(1, c.pvMax)));
   if (F && !mo.frenesie && mo.pv < mo.pvMax * (c.difficile ? DUR.rage : F.seuil)) {
-    mo.frenesie = true; mo.enrage = true; auraRageCorps(mo); pouf(mo.x, mo.m.position.y, mo.z, 3.5, '#e2413a'); secousse(0.12, 0.4); gesteSort(mo, 'rugir', 0.6); mo.bloqueT = Math.max(mo.bloqueT || 0, 0.9);
+    mo.frenesie = true; mo.enrage = true; { const d0 = mo.d; mo.d = Object.assign({}, d0, { element: 'sang' }); auraRageCorps(mo); mo.d = d0; } /* (une aura de sang, pas celle de l'eau : en blanc-bleu, il devenait un monstre de glace, 19/11/2026) */ pouf(mo.x, mo.m.position.y, mo.z, 3.5, '#e2413a'); secousse(0.12, 0.4); gesteSort(mo, 'rugir', 0.6); mo.bloqueT = Math.max(mo.bloqueT || 0, 0.9);
     toast('Frénésie de sang ! ' + leNom(mo.d) + ' passe à quatre pattes : plus rapide, il mord bien plus souvent !', 'alerte'); }
   if (mo.vitBase == null) mo.vitBase = mo.vitM || 1;
   mo.vitM = mo.vitBase * (1 + O.vit * f) * (mo.dansCrue ? mo.d.crue.vit : 1) * (mo.frenesie ? F.vit : 1);
@@ -287,3 +287,5 @@ function capRode(mo, ctx) {
     return fin(d <= arret + 0.5); });
 }
 CAPACITES.unshift(sortCoupe(capRode));
+/* l'aura de la Frenesie de sang (19/11/2026) : rouge sombre, braises rouges, comme le sang que les Piranhas font couler */
+AURAS.sang = { ext: '#8a0f0a', int: '#ff4a3a', halo: '#c41e14', op: 0.4, c: ['#ff6a5a', '#c41e14', '#5a0806'], v: 1.6, t: 0.18 };
