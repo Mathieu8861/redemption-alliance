@@ -180,7 +180,7 @@ function capRuee(mo, ctx) {
   const ac = nom ? jouerAnim(an, nom, 0.12) : null; if (ac) { ac.timeScale = R.decolle / R.prepa; mo.geste = { t: 0, d: R.prepa + D + 0.4 }; }
   if (!c0.rueeVu) { c0.rueeVu = true; toast(leNom(mo.d) + ' s\'accroupit pour bondir sur toi : sors de la bande rouge !', 'alerte'); }
   let t = 0, touche = false, parti = false; const fin = () => { mo.rueeOn = false; mo.hop = 0; return true; };
-  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return fin(); const y = solA(mo.x, mo.z);
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.piegeT > 0) return fin(); /* (piegeT : pris dans un piege a dents, sa ruee s'arrete net, 29i-piege-dents.js) */ const y = solA(mo.x, mo.z);
     if (t < R.prepa) { mo.ry = a; if (Math.random() < dt * 12) poussiere(x0 - Math.sin(a) * 1.2, y, z0 - Math.cos(a) * 1.2, 1, 0.5, '#9a8a70'); return false; } /* (il gratte le sol, ramasse) */
     if (!parti) { parti = true; if (ac) ac.timeScale = (R.atterrit - R.decolle) / D; poussiere(x0, y, z0, 8, 1.0, '#9a8a70'); mottes(x0, y, z0, 4, 1.2); secousse(0.05, 0.12); } /* (il decolle) */
     const k = Math.min(1, (t - R.prepa) / D); mo.x = x0 + (f.x - x0) * k; mo.z = z0 + (f.z - z0) * k; mo.hop = R.haut * Math.sin(k * Math.PI);
