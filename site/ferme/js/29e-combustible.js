@@ -2,7 +2,8 @@
 /* LE COMBUSTIBLE DE LA TOUR A FILETS (19/11/2026, version dev : mode test seulement). Mathieu : « la fumee qui s'en echappe c'est une vraie fumee ? j'aimerais
    qu'il faille aussi l'alimenter avec une ressource, normalement ce serait du charbon, mais du charbon on en a pas », puis « qu'on puisse faire du charbon de
    bois et de la tourbe des marais aussi, les deux ».
-   - le charbon de bois se fabrique a l'atelier (3 Ecorces d'Abraknyde et 2 Branches de Kaliptus pour 10) ;
+   - le charbon de bois se fabrique a l'atelier (6 Ecorces d'Abraknyde, 4 Branches de Kaliptus et 5 000 kamas pour 10 : « il faut plus de ressources et de
+     kamas pour les crafts », Mathieu, 19/11/2026 ; 3 et 2 sans kamas avant) ;
    - la tourbe des marais tombe sur la tribu de la mare (vagues 101 a 110), comme les autres ressources de monstres ;
    - la tour a une reserve de feu (30) : un charbon de bois donne 1 feu, une motte de tourbe 2 (elle brule lentement) ; chaque filet tire brule 1 feu. Sans feu,
      elle ne tire plus et sa cheminee ne fume plus ; avec du feu, une vraie fumee sort de sa cheminee (celle de la grange), plus noire a chaque tir.
@@ -10,7 +11,12 @@
 const COMBUSTIBLE = { max: 30, charbon: 1, tourbe: 2 };
 PAR_ID.tourbe = { id: 'tourbe', nom: 'Tourbe des marais', prix: 460, xp: 0 }; /* (dans PAR_ID seulement, pas dans les ressources vendues : elle n'existe que dans le mode test) */
 ['tetard', 'crapaud', 'triton', 'fouette', 'axolotl', 'mereCrapaude', 'crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((k) => { if (MONSTRES[k]) MONSTRES[k].res = 'tourbe'; });
-RECETTES_ATELIER.push({ id: 'charbon', nom: 'Charbon de bois', donne: 10, stock: 'charbon', dev: true, il: [['ecorce_abraknyde', 3], ['kaliptus', 2]], ico: 'charbon-bois', minuscule: 'charbons de bois',
+/* LES RECETTES DE L'ATELIER EN COURS (19/11/2026) : le drapeau dev des recettes ne cache plus rien depuis que VSA est sorti aux joueurs (vsaDev() est
+   toujours vrai) ; celles-ci ne sont ajoutees a l'atelier que dans le mode test, le temps d'ouvrir la fenetre ou de fabriquer */
+const RECETTES_DEV_ATELIER = [];
+const ouvrirAtelierDev = ouvrirAtelier; ouvrirAtelier = function () { const n = RECETTES_ATELIER.length; if (MODE_TEST) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return ouvrirAtelierDev(); } finally { RECETTES_ATELIER.length = n; } };
+const fabriquerDev = fabriquer; fabriquer = function (id, fois) { const n = RECETTES_ATELIER.length; if (MODE_TEST) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return fabriquerDev(id, fois); } finally { RECETTES_ATELIER.length = n; } };
+RECETTES_DEV_ATELIER.push({ id: 'charbon', nom: 'Charbon de bois', donne: 10, stock: 'charbon', kamas: 5000, il: [['ecorce_abraknyde', 6], ['kaliptus', 4]], ico: 'charbon-bois', minuscule: 'charbons de bois',
   apres: '. Verse-les dans la tour à filets (bouton « Alimenter la tour » du mode test).',
   desc: 'Le combustible de la tour à filets : un charbon de bois lui fait tirer un filet. La tourbe des marais, laissée par la tribu de la mare, brûle deux fois plus longtemps.' });
 const feuTour = () => S_.feuTour || 0;
@@ -36,7 +42,7 @@ const majTourFiletFeu = majTourFilet; majTourFilet = function (dt) {
 function ouvrirFeuTour() {
   const ch = S_.charbon || 0, tb = (S_.grange || {}).tourbe || 0, f = feuTour(), place = COMBUSTIBLE.max - f;
   const nC = Math.min(ch, Math.floor(place / COMBUSTIBLE.charbon)), nT = Math.min(tb, Math.floor(place / COMBUSTIBLE.tourbe)), pl = (n, s) => n + ' ' + s + (n > 1 ? 's' : '');
-  ouvrirModale('feu-tour', entete('La tour à filets') + '<p class="hdv-aide">Réserve de feu : <b>' + f + ' / ' + COMBUSTIBLE.max + '</b>. Chaque filet tiré brûle 1 feu ; sans feu, la tour ne tire plus et ne fume plus.<br>Un charbon de bois donne 1 feu (atelier : 3 Écorces d\'Abraknyde et 2 Branches de Kaliptus pour 10), une motte de tourbe des marais 2 (laissée par la tribu de la mare).</p>' +
+  ouvrirModale('feu-tour', entete('La tour à filets') + '<p class="hdv-aide">Réserve de feu : <b>' + f + ' / ' + COMBUSTIBLE.max + '</b>. Chaque filet tiré brûle 1 feu ; sans feu, la tour ne tire plus et ne fume plus.<br>Un charbon de bois donne 1 feu (atelier : 6 Écorces d\'Abraknyde, 4 Branches de Kaliptus et 5 000 kamas pour 10), une motte de tourbe des marais 2 (laissée par la tribu de la mare).</p>' +
     '<div class="act"><button class="btn" data-feu-verser="charbon"' + (nC ? '' : ' disabled') + '>Verser ' + pl(nC, 'charbon') + ' (tu en as ' + ch + ')</button> ' +
     '<button class="btn" data-feu-verser="tourbe"' + (nT ? '' : ' disabled') + '>Verser ' + pl(nT, 'motte') + ' de tourbe (tu en as ' + tb + ')</button>' +
     (MODE_TEST ? ' <button class="btn discret" data-feu-verser="essai">+10 charbons et +10 tourbes (essai)</button>' : '') + '</div>');
