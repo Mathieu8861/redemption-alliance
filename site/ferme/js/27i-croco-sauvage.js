@@ -196,10 +196,10 @@ CAPACITES.unshift(capQueue, capRuee); /* (avec les sorts, apres la rage : leurs 
 const capMachoire0 = capMachoire; capMachoire = function (mo, ctx) { const avant = mo.machoireT; capMachoire0(mo, ctx); if (mo.machoireT !== 0 || avant === 0 || !mo.d.machoire) return;
   const c0 = combat, M = mo.d.machoire, an = mo.m.userData.anim; let t = 0, tenu = false;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') return true;
-    if (t >= M.prepa && !tenu) { tenu = true; const q = devant(mo, 1.1), y = solA(q.x, q.z); solFendu(q.x, y, q.z, 1.8, false); mottes(q.x, y, q.z, 5, 1.3); poussiere(q.x, y, q.z, 6, 0.9, '#9a8a70');
+    if (t >= M.prepa && !tenu) { tenu = true; if (!(c0.colle > 0)) { mo.cd = Math.min(mo.cd || 0, 0.25); mo.bloqueT = Math.min(mo.bloqueT || 0, 0.25); } /* (rate : il repart tout de suite, pas de temps mort) */ const q = devant(mo, 1.1), y = solA(q.x, q.z); solFendu(q.x, y, q.z, 1.8, false); mottes(q.x, y, q.z, 5, 1.3); poussiere(q.x, y, q.z, 6, 0.9, '#9a8a70');
       if (c0.colle > 0 && an && an.F.secoue) { mo.geste = null; const a2 = jouerAnim(an, an.F.secoue[0], 0.1); if (a2) { a2.timeScale = a2.getClip().duration / M.tenu; mo.geste = { t: 0, d: M.tenu }; } } return false; }
-    if (tenu && t < M.prepa + M.tenu) { const u = t - M.prepa; mo.elanB = 0.35 * Math.sin(u * 22); if (an && an.F.secoue && an.cour !== an.F.secoue[0] && c0.colle > 0) { const a2 = jouerAnim(an, an.F.secoue[0], 0.08); if (a2) { a2.time = u * a2.getClip().duration / M.tenu; a2.timeScale = a2.getClip().duration / M.tenu; } mo.geste = { t: 0, d: M.prepa + M.tenu - t }; } return false; } /* (il te secoue toute la prise, le corps qui tire d'avant en arriere) */
-    if (tenu) { mo.elanB = 0; return true; } return false; }); };
+    if (tenu && t < M.prepa + M.tenu) { const u = t - M.prepa; mo.elanB = 0.6 * Math.sin(u * 22); if (an && an.F.secoue && an.cour !== an.F.secoue[0] && c0.colle > 0) { const a2 = jouerAnim(an, an.F.secoue[0], 0.08); if (a2) { a2.time = u * a2.getClip().duration / M.tenu; a2.timeScale = a2.getClip().duration / M.tenu; } mo.geste = { t: 0, d: M.prepa + M.tenu - t }; } return false; } /* (il te secoue toute la prise, le corps qui tire d'avant en arriere) */
+    if (tenu) { mo.elanB = 0; mo.cd = Math.min(mo.cd || 0, 0.15); mo.bloqueT = Math.min(mo.bloqueT || 0, 0.15); return true; } return false; }); }; /* (la prise finie, il enchaine aussitot : « a partir de la seconde 9 il freeze sur nous », Mathieu) */
 { const i = CAPACITES.indexOf(capMachoire0); if (i >= 0) CAPACITES[i] = capMachoire; }
 const capPlongeeVase0 = capPlongeeVase; capPlongeeVase = function (mo, ctx) { const avant = mo.plonge; capPlongeeVase0(mo, ctx); if (avant || !mo.plonge) return;
   const an = mo.m.userData.anim; if (an && an.F.plonge) { const a2 = jouerAnim(an, an.F.plonge[0], 0.12); if (a2) { a2.timeScale = a2.getClip().duration / 1.0; mo.geste = { t: 0, d: 1.0 }; } }
@@ -218,3 +218,7 @@ function jaillir(mo) {
     mo.hop = 0; const y2 = solA(mo.x, mo.z); solFendu(mo.x, y2, mo.z, 2.6, false); mottes(mo.x, y2, mo.z, 8, 1.6); poussiere(mo.x, y2, mo.z, 12, 1.4, '#9a8a70'); onde(mo.x, y2 + 0.05, mo.z, 3, '#ffffff', 0.35, 0.5); secousse(0.12, 0.25); if (ac) ac.timeScale = 1.6; return true; });
 }
 { const i = CAPACITES.indexOf(capPlongeeVase0); if (i >= 0) CAPACITES[i] = capPlongeeVase; }
+/* (19/11/2026) ses sorts coupent ses coups : depuis que ses coups s'enchainent (coupDuree), il etait toujours « en geste » et aucun sort ne partait plus au
+   corps a corps (la Machoire forcee ne se declenchait jamais). Un sort peut interrompre un coup ; s'il ne part pas, le coup reprend ou il en etait */
+const sortCoupe = (fn) => function (mo, ctx) { const g = mo.geste; if (!g || !g.coup || !mo.d.coupDuree) return fn(mo, ctx); mo.geste = null; const r = fn(mo, ctx); if (!mo.geste && !mo.plonge && !mo.rueeOn) mo.geste = g; return r; };
+for (const f of [capQueue, capRuee, capMachoire, capPlongeeVase, capCrue]) { const i = CAPACITES.indexOf(f); if (i >= 0) CAPACITES[i] = sortCoupe(f); }
