@@ -20,7 +20,13 @@ const niv = (id) => (DERIVE[id] ? DERIVE[id]() : (S_.amelio[id] || 0));
    592 pour le 50, 1 089 pour le 60, 3 100 pour le 70. Les sauvegardes d'avant gardent leur niveau (convertirXp). */
 const seuilAncien = (n) => (n <= 1 ? 0 : Math.round(12 * Math.pow(n - 1, 1.7))); /* (la courbe d'avant le 13/10 : celle du tutoriel, et la conversion des sauvegardes) */
 const SEUILS = (() => { const t = []; let cout = 0; for (let n = 0; n <= 101; n++) { if (n <= 10) { t[n] = seuilAncien(n); cout = n ? t[n] - t[n - 1] : 0; } else { cout += Math.round(10 + 0.03324 * Math.pow(1.17, n - 11)); t[n] = t[n - 1] + cout; } } return t; })();
-const seuil = (n) => (n <= 1 ? 0 : SEUILS[Math.min(n, 101)]);
+/* LES NIVEAUX 101 A 110, le palier 11 (19/11/2026, « tu mets qu'il faut 30 % d'XP en plus au total pour monter du 100 au 110 par rapport au 90 a 100 », Mathieu) :
+   la formule doublait d'un palier a l'autre (4,8 fois plus) ; ici le total du 100 au 110 vaut 1,3 fois celui du 90 au 100 (1,91 million), reparti en couts qui
+   montent de 1,5 % par niveau (chacun un peu moins cher que le niveau 100 : c'est le prix de ce total). Seulement dans le mode test (NIV_PLAFOND au-dela de 100) :
+   pour les joueurs, le seuil du 101 ne bouge pas (l'XP de l'Arene et de l'ile en depend au niveau 100) */
+const SEUILS_P11 = (() => { const t = SEUILS.slice(0, 101), tot = 1.3 * (SEUILS[100] - SEUILS[90]), r = 1.015, c0 = tot / ((Math.pow(r, 10) - 1) / (r - 1));
+  for (let n = 101; n <= 111; n++) t[n] = t[n - 1] + Math.round(c0 * Math.pow(r, n - 101)); return t; })();
+const seuil = (n) => (n <= 1 ? 0 : n > 100 && NIV_PLAFOND > 100 ? SEUILS_P11[Math.min(n, 111)] : SEUILS[Math.min(n, 101)]);
 const NIV_MAX = 100; /* (100 depuis la Foret des Abraknydes, 12/11/2026 ; 90 depuis l'ile de Moon, 02/11/2026 ; 80 depuis le palier du Dragon Cochon, 20/10/2026 ; 70 avant) */ /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
 /* (09/11/2026, « dans l'arene de test, mets les nouveaux items qui vont jusqu'au niveau 100 », Mathieu) NIV_PLAFOND : 100 en mode test ; NIV_ESSAI : le niveau choisi
    pour un combat de l'Arene dev, rendu a la fin (ni l'un ni l'autre ne s'enregistre) */

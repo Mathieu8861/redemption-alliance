@@ -41,7 +41,7 @@ const partNuit = (a, b) => { if (!nuitDebloquee() || !(b > a)) return 0; const f
 const ilFaitNuit = () => { if (!nuitDebloquee()) return false; const f = nuitImposee(); return f ? f === 'nuit' : estNuitA(heureLocale(heureVraie())); };
 const avantBascule = () => { const r = heureLocale(heureVraie()), d = JOUR_NUIT.debut * HEURE_MS, f = JOUR_NUIT.fin * HEURE_MS; return r >= d ? JOURNEE_MS - r + f : r < f ? f - r : d - r; }; /* le temps vrai avant la nuit (de jour) ou avant le jour (de nuit) */
 /* la vitesse de pousse d'une culture sur un intervalle dont pn est la part de nuit ; uv : le champ est sous une lanterne UV */
-const pousseNuit = (c, pn, uv) => (c.nuit ? 1 - JOUR_NUIT.lent * (1 - pn) : 1 - JOUR_NUIT.lent * pn * (uv ? 0 : 1));
+const pousseNuit = (c, pn, uv) => (c.nuit ? 1 - JOUR_NUIT.lent * (1 - pn) : 1 - JOUR_NUIT.lent * pn * (uv ? 0 : 1)) * (c.pluie && typeof pluieVoulue === 'function' && pluieVoulue() ? c.pluie : 1); /* (c.pluie : le Lotus des marais pousse 30 % plus vite sous la pluie, 29g-cultures-p11.js, 19/11/2026) */
 function champsUV() { /* dit, pour un champ, s'il est a portee d'une lanterne UV posee ; null s'il n'y en a aucune */
   const L = S_.cases.filter((c) => c.type === 'deco' && c.deco === 'lanterne_uv').map(posCase); if (!L.length) return null;
   return (p) => { const q = posCase(p); return L.some((l) => Math.hypot(l.x - q.x, l.z - q.z) <= UV_PORTEE + 0.01); };
