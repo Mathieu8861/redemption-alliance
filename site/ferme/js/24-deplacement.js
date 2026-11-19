@@ -148,6 +148,7 @@ function marcher(dt, s) {
   if (d <= v) { nx = e.x; nz = e.z; u.cellule = e.c; chemin.shift(); } else { nx = px + dx / d * v; nz = pz + dz / d * v; }
   u.y = hauteurSol(nx, nz, e.c); u.pas = (u.pas || 0) + v * 4.6; /* une foulee complete tous les 1,4 de distance */
   animerPas(u, dt, Math.min(1, v / (vitesse() * dt)));
+  if (lieu === 'donjon' && typeof bornerDonjon === 'function') { const q = bornerDonjon(nx, nz); nx = q[0]; nz = q[1]; } /* (l'ile-donjon, 29c-ile-wabbits.js) */
   if (lieu === 'ile' && ileBoss) { const q = bornerIle(nx, nz); if (Math.hypot(q[0] - nx, q[1] - nz) > 0.001) { u.bute = Math.hypot(e.x - q[0], e.z - q[1]) > d - v * 0.3 ? (u.bute || 0) + dt : 0; if (u.bute > 0.35 && chemin.length) { chemin.shift(); u.bute = 0; } } else u.bute = 0; nx = q[0]; nz = q[1]; } /* (l'ile des boss : il bute sur le bord et glisse le long du decor ; bloque net, il s'arrete) */
   /* le bassin descend quand les jambes s'ecartent, juste de quoi garder le pied d'appui au sol (des jambes raides qui pivotent levaient les deux pieds),
      et remonte un peu quand elles se croisent (23/10/2026 : c'etait l'inverse, il flottait a chaque grand pas) */
@@ -335,6 +336,7 @@ canvas.addEventListener('pointerup', (e) => {
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }
       if (mid !== undefined) { cibler(mid); return; }
+      if (combat.genre === 'donjon') { const [x, z] = bornerDonjon(h.point.x, h.point.z); combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; return; }
       if (combat.genre === 'ile') { const [x, z] = bornerIle(h.point.x, h.point.z); combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; return; }
       if (combat.arene) { const x = h.point.x, z = h.point.z, C0 = ARENE, R0 = R_ARENE; if (Math.hypot(x - C0.x, z - C0.z) < R0) { combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; } return; }
       if (cel) { pointVise = { c: cel, x: h.point.x, z: h.point.z }; ACTIONS.toucherCase(cel); pointVise = null; return; } /* (il va au point touche, pas au centre de la case) */

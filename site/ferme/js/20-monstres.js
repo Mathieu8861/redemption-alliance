@@ -9,7 +9,10 @@ const nomPalier = (P) => P < 5 ? 'Palier ' + (P + 1) : 'Phase 2, palier ' + (P -
    ni le bestiaire, ni les panoplies. Pour l'ouvrir a tous, il suffira de passer ce palier dans PALIERS. */
 /* OUVERT A TOUS LE 12/11/2026 (« on push la maj globale », « je valide tout », Mathieu) : la Foret des Abraknydes est le 10e palier des joueurs (VAGUES_TOTAL = 100).
    PALIERS_TOUS reste le nom lu partout : la meme liste. Le prochain palier a l'essai se rangera de nouveau a part, comme celui-ci l'etait. */
-const PALIER_FORET = { nom: 'la Forêt des Abraknydes', boss: 'cheneMou', icone: 'chene-mou', phase: 2 }; PALIERS.push(PALIER_FORET); const PALIERS_TOUS = PALIERS;
+const PALIER_FORET = { nom: 'la Forêt des Abraknydes', boss: 'cheneMou', icone: 'chene-mou', phase: 2 }; PALIERS.push(PALIER_FORET);
+/* LE PALIER 11 A L'ESSAI (19/11/2026, « commencer a construire les vagues », Mathieu) : la Saison des pluies, vagues 101 a 110, rangee a part comme la foret l'etait
+   avant sa sortie : seul le mode test de l'admin y va (VAGUES_MAX, vaguesOuvertes) ; pour les joueurs, PALIERS et VAGUES_TOTAL ne changent pas */
+const PALIER_MARE = { nom: 'la Saison des pluies', boss: 'crocoBoss', icone: 'croco-boss', phase: 2, essai: true }; const PALIERS_TOUS = PALIERS.concat([PALIER_MARE]);
 const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length, VAGUES_MAX = VAGUES_PALIER * PALIERS_TOUS.length, vaguesOuvertes = () => (MODE_TEST ? VAGUES_MAX : VAGUES_TOTAL);
 const palierDe = (n) => Math.min(PALIERS_TOUS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, vaguesOuvertes());
 /* element (01/11/2026, par Discord, « je te valide tout », Mathieu) : l'impact de ses sorts au sol, un par element naturel (impactElement, 22b-effets.js) : terre, feu, eau,
@@ -204,7 +207,7 @@ const STATS_CLASSE = {
 const DURETE_FORET = { pv: 1.6, deg: 1.55 };
 const PLUS_VAGUE = { 100: 1.15 }; /* (18/11/2026, « augmente de 15 % la difficulté sur la vague 100, que ce soit en normal ou en difficile », Mathieu : PV et dégâts de tous ses monstres, boss et renforts compris, à la vague comme à sa revanche, normale ou difficile ; pas l'Arène ni l'île) */
 const plusVague = () => (typeof combat !== 'undefined' && combat && !combat.arene && combat.genre !== 'ile' && PLUS_VAGUE[combat.n]) || 1;
-const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }, DURETE_FORET]; /* (l'ile de Moon, 02/11/2026 : comme le palier 8, la difference est dans les fiches) */ /* (les Koalaks, 14/10/2026 : 1,61 et 1,73 au premier jet, simule trop dur quand ils fonçaient tous sur le perso ; les Immatures vont maintenant aux champs, comme les Wabbits) */
+const DURETE = [{ pv: 1, deg: 1.1 }, { pv: 1.265, deg: 1.46 }, { pv: 1.495, deg: 1.84 }, { pv: 1.61, deg: 1.97 }, { pv: 1.67, deg: 2.02 }, { pv: 1.61, deg: 1.73 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }, { pv: 1.6, deg: 1.55 }, DURETE_FORET, DURETE_FORET]; /* (le palier 11 a l'essai : comme la foret, ses fiches sont deja 1,5 fois plus fortes, 19/11/2026) */ /* (l'ile de Moon, 02/11/2026 : comme le palier 8, la difference est dans les fiches) */ /* (les Koalaks, 14/10/2026 : 1,61 et 1,73 au premier jet, simule trop dur quand ils fonçaient tous sur le perso ; les Immatures vont maintenant aux champs, comme les Wabbits) */
 const durete = (t, n) => MONSTRES[t].boss || t === 'voleurRaid' || !(n >= 1) ? { pv: 1, deg: 1 } : DURETE[palierDe(n)]; /* les voleurs des raids VSA ont leur propre equilibrage */
 /* « quand on reprend une nouvelle phase, les mobs sont nuls sur les premiers niveaux : la vague 19 est plus dure que la 22 » (Mathieu, 12/10/2026) :
    chaque palier repartait avec 3 ou 4 monstres, une force divisee par 5 d'une vague a l'autre. La force d'une vague = PV totaux x degats par seconde ;
@@ -329,10 +332,10 @@ function plafonnerTireurs(L) {
 }
 /* « il faudrait + de monstres, en vrai, et qui apparaissent au fur et a mesure », « voire tripler » (Mathieu, 04/11/2026) : sur l'ile de Moon d'abord, hors vague de boss,
    2,5 fois plus de monstres ordinaires, un peu moins forts chacun (FORCE_HORDE ; le lissage des renforts ne les compte pas). Ils arrivent par groupes (finVague, majCombat) */
-const HORDE = 2.5, HORDE_DRAGOEUFS = 1.5, HORDE_FORET = 3, /* (3,5 puis 3 le 10/11/2026 au soir, « mets le nombre de monstres a 27 plutot que 33 », Mathieu, pour la vague 91 : 27 a la 91, 34 a la 99) */ HORDE_RENFORT = 3, HORDE_RYTHME = 4, RENFORT_FORET = 4, RYTHME_FORET = 3, DEBUT_HORDE = 4 * VAGUES_PALIER, multVague = (n) => (n > DEBUT_HORDE && n <= VAGUES_MAX ? (n <= 5 * VAGUES_PALIER ? HORDE_DRAGOEUFS : n > 9 * VAGUES_PALIER ? HORDE_FORET : HORDE) : 1); /* (10/11/2026 au soir, la foret, « sur les vagues, il faut beaucoup plus de mobs, ils sont faibles, je les arrache ; peut-etre faut que ca pop en permanence », Mathieu : 3,5 fois au lieu de 2,5, et les renforts par 4 toutes les 3 s au lieu de 3 toutes les 4 s, finVague) */ /* (06/11/2026, les Dragoeufs 41 a 50 « comme le reste », Mathieu : une horde plus legere, x1,5) */ /* (06/11/2026 : les vagues de boss aussi, leur premier temps et la 60, « les vagues de boss on peut aussi laisser ce systeme », Mathieu ; les temps suivants gardent leur troupe) */ /* (d'abord l'ile de Moon, vagues 81 a 89 ; des la vague 61 depuis le 05/11/2026, par Discord : « fais demarrer a partir du lvl 60 », Mathieu ; des la vague 51 depuis le 06/11/2026, « mets a partir de la 51 » : l'ile des Wabbits, les Koalaks, le Dragon Cochon et l'ile de Moon, hors vagues de boss) */
+const HORDE = 2.5, HORDE_DRAGOEUFS = 1.5, HORDE_FORET = 3, HORDE_MARE = 2.5, /* (le palier 11 a l'essai, 19/11/2026) */ /* (3,5 puis 3 le 10/11/2026 au soir, « mets le nombre de monstres a 27 plutot que 33 », Mathieu, pour la vague 91 : 27 a la 91, 34 a la 99) */ HORDE_RENFORT = 3, HORDE_RYTHME = 4, RENFORT_FORET = 4, RYTHME_FORET = 3, DEBUT_HORDE = 4 * VAGUES_PALIER, multVague = (n) => (n > DEBUT_HORDE && n <= VAGUES_MAX ? (n <= 5 * VAGUES_PALIER ? HORDE_DRAGOEUFS : n > 10 * VAGUES_PALIER ? HORDE_MARE : n > 9 * VAGUES_PALIER ? HORDE_FORET : HORDE) : 1); /* (10/11/2026 au soir, la foret, « sur les vagues, il faut beaucoup plus de mobs, ils sont faibles, je les arrache ; peut-etre faut que ca pop en permanence », Mathieu : 3,5 fois au lieu de 2,5, et les renforts par 4 toutes les 3 s au lieu de 3 toutes les 4 s, finVague) */ /* (06/11/2026, les Dragoeufs 41 a 50 « comme le reste », Mathieu : une horde plus legere, x1,5) */ /* (06/11/2026 : les vagues de boss aussi, leur premier temps et la 60, « les vagues de boss on peut aussi laisser ce systeme », Mathieu ; les temps suivants gardent leur troupe) */ /* (d'abord l'ile de Moon, vagues 81 a 89 ; des la vague 61 depuis le 05/11/2026, par Discord : « fais demarrer a partir du lvl 60 », Mathieu ; des la vague 51 depuis le 06/11/2026, « mets a partir de la 51 » : l'ile des Wabbits, les Koalaks, le Dragon Cochon et l'ile de Moon, hors vagues de boss) */
 /* « durcis encore » (Mathieu, 12/10/2026) : les monstres des vagues normales prennent des PV et des degats en plus, davantage dans les paliers du haut
    (simulations : on finissait les vagues avec 65 a 95 % de PV, maintenant 30 a 70 %). Les vagues de boss et les voleurs des raids ne changent pas. */
-const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.925 /* (les Koalaks, +10 %, 12/11/2026) */, 1.925, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38, 1.38, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
+const DURCI = { deg: [1.1, 1.2, 1.3, 1.5, 1.5, 1.75, 1.925 /* (les Koalaks, +10 %, 12/11/2026) */, 1.925, 1.75, 1.75, 1.75], pv: [1.1, 1.1, 1.15, 1.2, 1.2, 1.38, 1.38, 1.38, 1.38, 1.38, 1.38] }; /* (les Wabbits, 12/10/2026 : « rassure-moi, la vague 51 est plus dure que 45 a 49 ? » ; elle etait entre la 46 et la 47, maintenant 10 % au-dessus de la 49) */
 const durci = (t, n, c) => (MONSTRES[t].boss || !(n >= 1) || n % VAGUES_PALIER === 0 ? 1 : DURCI[c][palierDe(n)] || 1);
 const forceBrute = (n) => { let pv = 0, dps = 0; compoVague0(n).forEach(([t, k]) => { if (MONSTRES[t].boss) return; const d = durete(t, n); /* (le mini-boss d'une vague normale ne compte pas dans le lissage, 20/10/2026) */ pv += k * MONSTRES[t].pv(n) * d.pv * durci(t, n, 'pv'); dps += k * MONSTRES[t].deg(n) * d.deg * durci(t, n, 'deg') * multDegats(n) / MONSTRES[t].cadence; }); return pv * dps; };
 const RENFORTS = { 71: 1.8, 72: 1.56, 73: 1.43, 74: 1.27, 75: 1.8, 76: 1.14, 77: 1.2, 78: 1, /* (12/11/2026 : le debut du palier des Cochons, fige a ses valeurs d'avant le reequilibrage des Koalaks, comme dans le mode test ou Mathieu l'a essaye) */ 81: 1.75, 82: 1.72, 83: 1.71, 84: 1.69, 85: 1.8, 86: 1.2, 87: 1.11, 88: 1.07 }; /* (12/11/2026 : le debut de l'ile de Moon, fige a ses valeurs d'avant le reequilibrage des Cochons ; « les morts a Moon, je les ai corrigees au fur et a mesure, c'est legit maintenant », Mathieu) */
@@ -343,7 +346,7 @@ const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1
    le boss ca doit vraiment etre un boss, un truc dur a tuer, il faudrait qu'il ait un sort special aussi » (Mathieu, 12/10/2026) :
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
    de PV (BOSS_PV, regle par simulation pour un long combat), des coups moderes (BOSS_DEG), et un sort special annonce au sol qu'on peut esquiver */
-const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62, 0.6, 0.6, 0.6], vagueBoss = (n) => n >= 1 && n <= VAGUES_MAX && n % VAGUES_PALIER === 0;
+const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62, 0.6, 0.6, 0.6, 0.6], vagueBoss = (n) => n >= 1 && n <= VAGUES_MAX && n % VAGUES_PALIER === 0;
 /* (31/10/2026, « entre chaque boss toutes les 10 vagues il faudrait un coef de vita et de degats », puis « pour la vie fais x1,6 mais en partant du Bouftou
    Royal a 1 200 », et « pour les degats mets x2 alors, pour voir », Mathieu) : la vie du boss du palier k (1 a 9) vaut 1 200 x 1,6^(k-1) a sa vague
    (1 200, 1 920, 3 072, 4 915, 7 864, 12 583, 20 133, 32 212, 51 540), le multiplicateur du palier (BOSS_PV) etant retire de la fiche ; et les 9 boss
@@ -353,7 +356,7 @@ const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62, 0.6, 0.6, 0.6], vagueBoss = (n
    (16 106), les demi-boss du palier 9 (Gorille Roi, Golem Lunaire, Lemurien Tiki, Tortue Corail, Kanniboul Ebil), moitie de Moon (25 770) */
 const pvBoss = (k) => 1200 * Math.pow(1.6, k - 1) / BOSS_PV[Math.min(k - 1, BOSS_PV.length - 1)];
 let DEG_BOSS_X = 2;
-const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68, 3.4, 3.3, 3.3, 3.3], BOSS_DEG = [0.3, 0.31, 0.35, 0.48, 0.5, 0.92, 0.95, 1, 1.05, 1.1]; /* (le Chene Mou, 08/11/2026 : pvBoss(10), 82 463 PV ; ses coups 81 x 1,1 x 2) */ /* (Moon, 02/11/2026 : sa vie vient de pvBoss(9), 51 540 ; ses coups 36 x 1,05 x 2) */ /* (le Dragon Cochon, 20/10/2026 : 5 900 x 3,3 = 19 500 PV, 33 par coup ; la Gorgouille, 2 750 x 3,3 = 9 075 PV, 28 par coup) */ /* (+15 % des le boss 20, 13/10/2026 au soir : 1,6, 1,2, 1,45, 1,7, 3,2 et 0,27, 0,3, 0,42, 0,5, 0,8 avant ; les sorts des boss n'en dependent pas, voir degSort. Sauf Crocabulia, le boss 50, garde a 1,7 et 0,5 : a +15 %, le bot Osamodas patient l'a perdu 14 fois de suite, et le Cra simule 3 victoires sur 6) */ /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
+const BOSS_PV = [2.6, 1.84, 1.38, 1.67, 1.7, 3.68, 3.4, 3.3, 3.3, 3.3, 3.3], BOSS_DEG = [0.3, 0.31, 0.35, 0.48, 0.5, 0.92, 0.95, 1, 1.05, 1.1, 1.15]; /* (le Chene Mou, 08/11/2026 : pvBoss(10), 82 463 PV ; ses coups 81 x 1,1 x 2) */ /* (Moon, 02/11/2026 : sa vie vient de pvBoss(9), 51 540 ; ses coups 36 x 1,05 x 2) */ /* (le Dragon Cochon, 20/10/2026 : 5 900 x 3,3 = 19 500 PV, 33 par coup ; la Gorgouille, 2 750 x 3,3 = 9 075 PV, 28 par coup) */ /* (+15 % des le boss 20, 13/10/2026 au soir : 1,6, 1,2, 1,45, 1,7, 3,2 et 0,27, 0,3, 0,42, 0,5, 0,8 avant ; les sorts des boss n'en dependent pas, voir degSort. Sauf Crocabulia, le boss 50, garde a 1,7 et 0,5 : a +15 %, le bot Osamodas patient l'a perdu 14 fois de suite, et le Cra simule 3 victoires sur 6) */ /* (le Wa Wabbit, 13/10/2026 : Moon l'ecrasait avec 65 a 76 % de vie, la vague 60 etait la plus facile de la fin du jeu ; 1,9 et 0,5 avant : 8 360 PV et 14 par coup, maintenant 14 080 et 22, simule : 50 a 62 % de vie avec tours, une defaite possible sur 4) */
 /* « il faut obliger le joueur a prendre une decision entre focus les mobs et le boss » (Mathieu, 12/10/2026) : sa troupe le protege (chaque monstre a moins
    de 6 cases lui retire 12 % des degats recus, jusqu'a -60 %), et il la rappelle toutes les 16 s tant qu'il est debout. Taper le boss au milieu de ses gardes
    ne sert presque a rien, nettoyer la troupe sans fin non plus : on degage, puis on tape le boss avant le retour des renforts */
@@ -447,9 +450,25 @@ const COMPO_ABRAK = [null,
 /* (11/11/2026, « a la vague 95, ou meme la vague 100, fais en sorte que les demi-boss / boss pop uniquement quand il ne reste plus que 6 monstres sur le terrain », Mathieu) :
    dans ces vagues, un boss ou un demi-boss attend dans la file tant qu'il reste plus de 6 monstres debout ; le reste de la vague arrive comme avant (23-fin-combat.js).
    A la 95, l'Ancestral ne tombe donc plus avec le dernier renfort ; a la 100, l'Ancestral Maudit arrive apres le premier garde abattu (sa garde en compte 7) */
-const BOSS_QUAND_IL_RESTE = { 95: 6, 100: 6 };
+/* LA SAISON DES PLUIES, vagues 101 a 110 (19/11/2026, a l'essai dans le mode test) : les amphibiens d'abord (101 a 105), la Mere Crapaude en demi-boss a la 105 ;
+   puis la tribu de la mare arrive (106 a 109) avec quelques amphibiens ; la 110 : la horde, puis la garde de la tribu et son Silure, puis le Croco sauvage.
+   Comme a la foret : un nouveau venu presque a chaque vague, les tireurs (Crapaud, Fouette-langue, Axolotl, Silure) sous la moitie */
+const COMPO_MARE = [null,
+  [['tetard', 3], ['crapaud', 2], ['triton', 1]],
+  [['tetard', 3], ['crapaud', 2], ['fouette', 1], ['triton', 1]],
+  [['tetard', 2], ['fouette', 2], ['crapaud', 2], ['axolotl', 1]],
+  [['tetard', 3], ['triton', 2], ['crapaud', 2], ['fouette', 1], ['axolotl', 1]],
+  [['mereCrapaude', 1], ['tetard', 3], ['crapaud', 2], ['axolotl', 1]],
+  [['crocoVase', 2], ['piranha', 3], ['tetard', 2], ['crapaud', 1]],
+  [['crocoVase', 2], ['piranha', 3], ['brochet', 1], ['crapaud', 2], ['axolotl', 1]],
+  [['crocoVase', 2], ['piranha', 2], ['brochet', 2], ['silure', 1], ['triton', 1], ['fouette', 1]],
+  [['crocoVase', 3], ['piranha', 3], ['brochet', 2], ['silure', 1], ['crapaud', 2]],
+  [['piranha', 3], ['crocoVase', 2], ['tetard', 3], ['crapaud', 2], ['brochet', 1]]]; /* (la 110, premier temps : la horde) */
+const BOSS_QUAND_IL_RESTE = { 95: 6, 100: 6, 105: 6, 110: 6 };
 const bossRetenu = (c, t) => !!MONSTRES[t].boss && c.genre === 'vague' && BOSS_QUAND_IL_RESTE[c.n] != null && c.monstres.filter((o) => o.etat !== 'mort' && !o.d.totem).length > BOSS_QUAND_IL_RESTE[c.n]; /* (tout monstre pas encore abattu compte, meme celui qui vient d'arriver) */
-const PHASES_BOSS = { 100: [
+const PHASES_BOSS = { 110: [
+  { nom: 'la garde de la tribu', L: [['silure', 1], ['brochet', 2], ['crocoVase', 2], ['piranha', 3], ['axolotl', 1]] },
+  { nom: 'le Croco sauvage', L: [['crocoBoss', 1]] }], 100: [
   { nom: "l'Ancestral Maudit et sa garde", L: [['ancestralMaudit', 1], ['abrakleur', 2], ['abrakne', 2], ['sombre', 1], ['abraknyde', 1], ['araknotron', 1]] }, /* (sa garde : 4 a distance, 3 au contact, comme celle de la Tortue Corail) */
   { nom: 'le Chêne Mou', L: [['cheneMou', 1]] }], 90: [
   { nom: 'la Tortue Corail et sa garde', L: [['tortueCorail', 1], ['kannibJav', 2], ['kannibSarbak', 2], ['kannibArk', 2], ['kannibTam', 2], ['tortueBleue', 1], ['tortueRouge', 1]] }, /* (elle appelle ses Tortues elle-meme ; sa garde depuis le 07/11/2026 au soir, « pendant sa vague d'autres monstres aussi, genre 6 distance et 4 cac », Mathieu : Jav, Sarbak et Ark tirent, Tam et les deux Tortues au contact) */
@@ -462,6 +481,7 @@ const compoTotale = (n) => compoVague(n).concat(...(PHASES_BOSS[n] || []).map((p
 const compoBase = (n) => {
   if (n === VAGUES_PALIER) return [['royal', 1], ['bouftou', 2], ['tofu', 3]];
   if (n < VAGUES_PALIER) return [['tofu', Math.min(8, 3 + Math.ceil(n * 0.6))]].concat(n >= 2 ? [['bouftou', Math.ceil(n / 3)]] : []);
+  if (n > 10 * VAGUES_PALIER) return COMPO_MARE[Math.min(VAGUES_PALIER, n - 10 * VAGUES_PALIER)].map((x) => x.slice()); /* la Saison des pluies, a l'essai */
   if (n > 9 * VAGUES_PALIER) return COMPO_ABRAK[Math.min(VAGUES_PALIER, n - 9 * VAGUES_PALIER)].map((x) => x.slice()); /* la Foret des Abraknydes */
   if (n > 8 * VAGUES_PALIER) return COMPO_MOON[Math.min(VAGUES_PALIER, n - 8 * VAGUES_PALIER)].map((x) => x.slice()); /* l'ile de Moon */
   if (n > 7 * VAGUES_PALIER) return COMPO_COCHONS[Math.min(VAGUES_PALIER, n - 7 * VAGUES_PALIER)].map((x) => x.slice()); /* le Repaire du Dragon Cochon */

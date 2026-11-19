@@ -90,7 +90,7 @@ function annulerVisee() { if (marqueMono) marqueMono.style.display = 'none'; vis
    la souris et le Bouftou tombait plus pres ; le cercle de visee utilise maintenant ce meme point */
 /* le sol ou un sort peut tomber (24/10/2026, « en Arene et ile du boss, le Bouftou, peu importe ou tu mets le sort, il spawn sur toi » : seules les cases
    de la ferme comptaient ; l'Arene et l'ile n'en ont pas, le point reculait jusqu'au perso. Le bond du Iop y retombait aussi sur place) */
-const solSort = (a, b) => lieu === 'arene' ? Math.hypot(a - ARENE.x, b - ARENE.z) < R_ARENE - 0.5 : lieu === 'ile' && ileBoss ? dansIle(a, b) : (() => { const c = caseIci(a, b); return !!c && !!praticable(c); })();
+const solSort = (a, b) => lieu === 'donjon' && typeof dansDonjon === 'function' ? dansDonjon(a, b) : lieu === 'arene' ? Math.hypot(a - ARENE.x, b - ARENE.z) < R_ARENE - 0.5 : lieu === 'ile' && ileBoss ? dansIle(a, b) : (() => { const c = caseIci(a, b); return !!c && !!praticable(c); })();
 function pointSort(pt, portee) {
   const pp = paysanMesh.position; let x = pt.x, z = pt.z; const L = Math.hypot(x - pp.x, z - pp.z);
   if (portee && L > portee) { x = pp.x + (x - pp.x) * portee / L; z = pp.z + (z - pp.z) * portee / L; }
@@ -793,7 +793,7 @@ function majBarreBoss(mo) {
 function majCombatHud() {
   const c = combat; if (!c) return;
   const rest = c.file.length + c.monstres.filter((o) => o.etat !== 'mort').length;
-  $('combat-titre').textContent = c.deroute != null ? 'À terre : ils saccagent ta ferme, ' + Math.max(0, Math.ceil(c.deroute)) + ' s' : c.raid ? 'Simu VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : c.arene ? (c.genre === 'ile' ? 'Île des boss : ' + MONSTRES[c.arene.boss].nom + ' colossal' + (MONSTRES[c.arene.boss].fem ? 'e' : '') : c.entrainement ? 'Entraînement au Poutch' : c.dev ? 'Arène dev, vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') : 'Arène, vague ' + c.arene.k + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '')) : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
+  $('combat-titre').textContent = c.genre === 'donjon' ? 'Île des Wabbits (essai) : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' en vue' : c.deroute != null ? 'À terre : ils saccagent ta ferme, ' + Math.max(0, Math.ceil(c.deroute)) + ' s' : c.raid ? 'Simu VSA : ' + rest + ' voleur' + (rest > 1 ? 's' : '') : c.arene ? (c.genre === 'ile' ? 'Île des boss : ' + MONSTRES[c.arene.boss].nom + ' colossal' + (MONSTRES[c.arene.boss].fem ? 'e' : '') : c.entrainement ? 'Entraînement au Poutch' : c.dev ? 'Arène dev, vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') : 'Arène, vague ' + c.arene.k + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '')) : 'Vague ' + c.n + ' : ' + rest + ' monstre' + (rest > 1 ? 's' : '') + ' restant' + (rest > 1 ? 's' : '');
   $('combat-barre').style.width = (100 * rest / c.total).toFixed(0) + '%'; $('b-fuir').hidden = c.deroute != null; /* (a terre, on ne fuit plus) */
   const f = c.pv / c.pvMax; $('combat-pv').style.width = (100 * f).toFixed(1) + '%'; $('combat-pv').style.background = f < 0.3 ? 'var(--rouge)' : '';
   $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV'; majVieHaut();

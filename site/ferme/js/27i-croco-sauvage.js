@@ -144,7 +144,7 @@ const blesserPersoCroco = blesserPerso; blesserPerso = function (n, mo) {
   if (!an || !cour.startsWith('coup_') || !combat) return ok; const p = paysanMesh.position;
   if (cour === 'coup_1') { griffeVent(mo, false); if (ok) pouf(p.x, p.y + 1.3, p.z, 0.8, '#b3261e'); }
   else if (cour === 'coup_2') { griffeVent(mo, true); const q = devant(mo, 2.1), yq = solA(q.x, q.z); solFendu(q.x, yq, q.z, 1.3, false); poussiere(q.x, yq, q.z, 5, 0.7, '#9a8a70'); mottes(q.x, yq, q.z, 3, 0.9); } /* (sans secousse de l'ecran : a chaque coup, ca faisait trembler l'image, 18/11/2026) */
-  else if (cour === 'coup_3') { let t = 0; effets.push((dt) => { t += dt; const k = t / 0.32; mo.elanB = 1.0 * Math.sin(Math.min(1, k) * Math.PI); if (k >= 1) { mo.elanB = 0; return true; } return false; }); /* (il se jette en avant, gueule la premiere) */
+  else if (cour === 'coup_3') { /* (il se jette en avant, gueule la premiere : voir allongeCroco) */
     if (ok) { pouf(p.x, p.y + 1.1, p.z, 1.0, '#b3261e'); emettre(FX_VIF, 8, { x: p.x, y: p.y + 1.1, z: p.z, r: 0.3, dv: 3, vie: [0.2, 0.35], taille: [0.1, 0.04], c: ['#ffffff', '#ff6a5a'], a: 0.9 }); } }
   return ok;
 };
@@ -222,3 +222,68 @@ function jaillir(mo) {
    corps a corps (la Machoire forcee ne se declenchait jamais). Un sort peut interrompre un coup ; s'il ne part pas, le coup reprend ou il en etait */
 const sortCoupe = (fn) => function (mo, ctx) { const g = mo.geste; if (!g || !g.coup || !mo.d.coupDuree) return fn(mo, ctx); mo.geste = null; const r = fn(mo, ctx); if (!mo.geste && !mo.plonge && !mo.rueeOn) mo.geste = g; return r; };
 for (const f of [capQueue, capRuee, capMachoire, capPlongeeVase, capCrue]) { const i = CAPACITES.indexOf(f); if (i >= 0) CAPACITES[i] = sortCoupe(f); }
+/* LA DISTANCE (19/11/2026, « je suis entre ses bras, il est trop pres par rapport a la reelle distance », Mathieu). Mesure dans le jeu, os par os : au repos
+   ses mains sont 2,0 a 3,1 devant son centre, ecartees de 2,3 de chaque cote, et sa tete a 1,6 seulement. Arrete a 3,8, le perso etait entre ses mains.
+   Il s'arrete maintenant a 4,6 (le perso devant ses mains) et ne peut plus etre colle a moins de 4. Chaque coup le porte en avant juste assez pour que sa
+   main ou sa gueule arrive sur le perso a l'instant de l'impact, puis il revient : il prend son elan, frappe, se replace */
+const ATTEINTE_CROCO = { coup_1: 3.3, coup_2: 3.4, coup_3: 1.7 }; /* (jusqu'ou porte la partie qui frappe, sans elan : main gauche, main gauche, tete) */
+Object.assign(MONSTRES.crocoBoss, { portee: 4.6, corps: 4.0 });
+function allongeCroco(mo, nom, a) {
+  const R = ATTEINTE_CROCO[nom]; if (!R || !a) return; const p = paysanMesh.position, dist = Math.hypot(p.x - mo.x, p.z - mo.z), L = Math.max(0, Math.min(2.9, dist - 0.45 - R));
+  const D = a.getClip().duration, ti = Math.min(D * 0.8, (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: D * 0.45 }).t), an = mo.m.userData.anim, c0 = combat, id = (mo.allongeId = (mo.allongeId || 0) + 1);
+  effets.push(() => { if (combat !== c0 || mo.etat !== 'actif' || mo.allongeId !== id || an.cour !== nom) { if (mo.allongeId === id) mo.elanB = 0; return true; }
+    const T = a.time, ar = ti * 0.3, tient = ti + D * 0.12; /* (il se ramasse un peu, part, touche, reste une fraction de seconde, revient) */
+    mo.elanB = T < ar ? -0.12 * L * lisse(T / ar) : T < ti ? L * (-0.12 + 1.12 * Math.pow((T - ar) / (ti - ar), 1.6)) : T < tient ? L : L * (1 - lisse(Math.min(1, (T - tient) / Math.max(0.05, D * 0.92 - tient))));
+    return false; });
+}
+/* (le coup suivant : la morsure forcee apres sa ronde, voir capRode) */
+const attaqueSquelette4 = attaqueSquelette; attaqueSquelette = function (mo, fam, frapper) {
+  const an = mo && mo.d && mo.d.queue360 && mo.m && mo.m.userData.anim; if (!an) return attaqueSquelette4(mo, fam, frapper);
+  const L = an.F.coup, avant = an.cour, ga = mo.geste; if (mo.forceCoup && L && L.includes(mo.forceCoup)) an.F.coup = [mo.forceCoup]; mo.forceCoup = null;
+  try { attaqueSquelette4(mo, fam, frapper); } finally { an.F.coup = L; }
+  if (an.cour !== avant || mo.geste !== ga) allongeCroco(mo, an.cour, an.A[an.cour]);
+};
+/* l'impact se sent : son geste se fige un vingtieme de seconde, des griffures restent au sol, la morsure te fait reculer */
+function griffures(x, y, z, a, n) {
+  const g = new T.Group(), mf = fxMat('#3d2a1b', 0.85); g.position.set(x, y + 0.05, z); g.rotation.y = a; const F = [];
+  for (let i = 0; i < n; i++) { const f = new T.Mesh(GEO_FENTE, mf); f.position.set(-0.75, 0, (i - (n - 1) / 2) * 0.24); f.scale.set(0.001, 1, 1.6); f.userData.L = 1.5 - Math.abs(i - (n - 1) / 2) * 0.2; g.add(f); F.push(f); }
+  fxVie(g, 2.6, (k) => { const pousse = Math.min(1, k / 0.04); F.forEach((f) => f.scale.set(Math.max(0.001, f.userData.L * pousse), 1, 1.6)); mf.opacity = 0.85 * (k < 0.65 ? 1 : 1 - (k - 0.65) / 0.35); });
+}
+const blesserPersoImpact = blesserPerso; blesserPerso = function (n, mo) {
+  const an = mo && mo.d && mo.d.queue360 && mo.m && mo.m.userData.anim, cour = an ? String(an.cour || '') : '', ok = blesserPersoImpact(n, mo);
+  if (!an || !/^coup_/.test(cour) || !combat) return ok; const a = an.A[cour], p = paysanMesh.position, c0 = combat;
+  if (a) { const ts = a.timeScale; a.timeScale = ts * 0.06; let t = 0; effets.push((dt) => { t += dt; if (t < 0.07 && combat === c0) return false; if (a.timeScale < ts) a.timeScale = ts; return true; }); }
+  if (cour !== 'coup_3') { const sens = cour === 'coup_1' ? mo.ry + Math.PI / 2 + 0.5 : mo.ry - Math.PI / 2; griffures(p.x, solA(p.x, p.z), p.z, sens, cour === 'coup_1' ? 3 : 4); }
+  else if (ok) repousserPerso(mo, 0.7);
+  return ok;
+};
+/* SON COMPORTEMENT DE PREDATEUR (19/11/2026 ; il restait plante devant toi a balancer les bras) : apres quelques coups, il recule d'un bond, te tourne
+   autour a quatre pattes en te fixant, puis fonce sur toi et mord */
+Object.assign(KIT_CROCO, { rode: { apres: 4, pause: 8, recul: 2.6, tRecul: 0.5, tour: [1.3, 2.0], R: 6.4, vTour: 0.95, vAssaut: 13 } });
+MONSTRES.crocoBoss.rode = KIT_CROCO.rode;
+const blesserPersoRode = blesserPerso; blesserPerso = function (n, mo) { const r = blesserPersoRode(n, mo); if (mo && mo.d && mo.d.rode && mo.m && /^coup_/.test(String(mo.m.userData.anim && mo.m.userData.anim.cour))) mo.serie = (mo.serie || 0) + 1; return r; };
+function capRode(mo, ctx) {
+  const R = mo.d.rode; if (!R) return; mo.rodePause = Math.max(0, (mo.rodePause || 0) - ctx.dt); /* (pas trop souvent : entre 4 et 6 coups, et 8 s au moins entre deux rondes) */
+  if (mo.etat !== 'actif' || mo.plonge || mo.rueeOn || mo.rodeOn || mo.rodePause > 0 || (mo.serie || 0) < (mo.rodeSeuil || R.apres) || combat.colle > 0) return;
+  if (mo.geste && !(mo.geste.coup && mo.geste.t > mo.geste.d * 0.85)) return; const { pp } = ctx; if (Math.hypot(pp.x - mo.x, pp.z - mo.z) > 7.5) { mo.serie = 0; return; }
+  const c0 = combat, an = mo.m.userData.anim, sens = Math.random() < 0.5 ? -1 : 1, T1 = R.tRecul, T2 = R.tour[0] + Math.random() * (R.tour[1] - R.tour[0]);
+  mo.serie = 0; mo.rodeSeuil = R.apres + Math.floor(Math.random() * 3); mo.rodePause = R.pause; mo.rodeOn = true; mo.bloqueT = 99; mo.cd = 99; mo.geste = { t: 0, d: 99 };
+  const a0 = Math.atan2(pp.x - mo.x, pp.z - mo.z), x0 = mo.x, z0 = mo.z, fb = pointValide(x0, z0, x0 - Math.sin(a0) * R.recul, z0 - Math.cos(a0) * R.recul);
+  const ru = an && an.F.ruee && an.F.ruee[0], A = ru ? jouerAnim(an, ru, 0.12) : null, RU = mo.d.ruee; if (A && RU) { A.time = RU.decolle; A.timeScale = (RU.atterrit - RU.decolle) / T1; }
+  let t = 0, phase = 0, th = 0, r0 = 0;
+  const fin = (mord) => { mo.rodeOn = false; mo.hop = 0; mo.geste = null; mo.bloqueT = 0; mo.cd = mord ? 0 : 0.3; if (mord) mo.forceCoup = 'coup_3'; return true; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.plonge) return fin(false); const p = paysanMesh.position;
+    if (t < T1) { const k = t / T1; mo.x = x0 + (fb.x - x0) * lisse(k); mo.z = z0 + (fb.z - z0) * lisse(k); mo.hop = 0.8 * Math.sin(Math.PI * k); mo.ry = Math.atan2(p.x - mo.x, p.z - mo.z); /* (il recule d'un bond en te fixant) */
+      if (Math.random() < dt * 10) poussiere(mo.x, solA(mo.x, mo.z), mo.z, 1, 0.5, '#9a8a70'); return false; }
+    if (phase === 0) { phase = 1; mo.hop = 0; const y = solA(mo.x, mo.z); poussiere(mo.x, y, mo.z, 6, 0.9, '#9a8a70'); solFendu(mo.x, y, mo.z, 1.4, false); th = Math.atan2(mo.x - p.x, mo.z - p.z); r0 = Math.hypot(mo.x - p.x, mo.z - p.z);
+      const mq = an && an.F.marche && (an.F.marche[1] || an.F.marche[0]), a2 = mq ? jouerAnim(an, mq, 0.3) : null; if (a2) a2.timeScale = 1.3;
+      if (!c0.rodeVu) { c0.rodeVu = true; toast(leNom(mo.d) + ' te tourne autour... puis se jette sur toi !', 'alerte'); } }
+    if (phase === 1 && t < T1 + T2) { const u = (t - T1) / T2; th += sens * R.vTour * dt; const r = r0 + (R.R - r0) * Math.min(1, u * 2.5), q = pointValide(mo.x, mo.z, p.x + Math.sin(th) * r, p.z + Math.cos(th) * r); mo.x = q.x; mo.z = q.z;
+      mo.ry = Math.atan2(p.x - mo.x, p.z - mo.z); /* (il te tourne autour en te fixant) */ return false; }
+    if (phase === 1) { phase = 2; const co = an && an.F.course && (an.F.course[1] || an.F.course[0]), a3 = co ? jouerAnim(an, co, 0.15) : null; if (a3) a3.timeScale = 1.6; }
+    const d = Math.hypot(p.x - mo.x, p.z - mo.z), arret = (mo.d.portee || 4.6) - 0.2; mo.ry = Math.atan2(p.x - mo.x, p.z - mo.z); /* (il fonce sur toi) */
+    if (d > arret && t < T1 + T2 + 1.2) { const pas = Math.min(d - arret, R.vAssaut * dt), q = pointValide(mo.x, mo.z, mo.x + Math.sin(mo.ry) * pas, mo.z + Math.cos(mo.ry) * pas); mo.x = q.x; mo.z = q.z;
+      if (Math.random() < dt * 14) poussiere(mo.x, solA(mo.x, mo.z), mo.z, 1, 0.6, '#9a8a70'); return false; }
+    return fin(d <= arret + 0.5); });
+}
+CAPACITES.unshift(sortCoupe(capRode));
