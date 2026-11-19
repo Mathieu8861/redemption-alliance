@@ -139,9 +139,9 @@ const REPERE_TEMPS = RAPIDE ? 60 : 20; /* le repere ecrit dans chaque sauvegarde
 const DUREE_GESTATION = 60 * MIN; /* (15/10/2026 : la gestation, 1 h) */
 const DUREE_CROISSANCE = 60 * MIN, DUREE_CROISSANCE_NOIR = 120 * MIN, /* (1 h le ventre plein, 2 h pour un noir, depuis le 14/10/2026 ; 12 min avant) */ REPOS_REPRO = 24 * MIN, COUT_REPRO = 15, CHANCE_NOIR = { aucun: 1 / 20, deja: 1 / 40, deuxParents: 1 / 2 }, REPAS_BEBE = 6; /* l'elevage (voir plus haut) ; COUT_REPRO en Houblon (15 depuis le 14/10/2026, « met 15 houblons au lieu de 10 », Mathieu ; 10 avant) */
 const CAPACITE_EAU = 10; /* l'arrosoir de depart : 10 arrosages, puis il faut retourner au puits */
-const capaciteCiterne = () => [0, 6, 12, 20, 32][Math.min(4, niv('arrosoir'))]; /* la citerne d'arrosage (amelioration 'arrosoir') */
+const capaciteCiterne = () => [0, 6, 12, 20, 32, 50][Math.min(5, niv('arrosoir'))]; /* (50 : le puits niveau 6, mode test, 29h-puits6.js) */ /* la citerne d'arrosage (amelioration 'arrosoir') */
 const citernePleine = () => !niv('arrosoir') || (S_.citerne || 0) >= capaciteCiterne();
-const capaciteEau = () => [10, 15, 20, 30, 45][niv('reservoir')] || CAPACITE_EAU;
+const capaciteEau = () => [10, 15, 20, 30, 45, 60][niv('reservoir')] || CAPACITE_EAU;
 const PRIX_FILET = 40, CHANCE_CAPTURE = 0.15, CHANCE_SAUVAGE = 0.35; /* filet de capture : chance faible sur un champ, meilleure sur un Tofu pose dans l'herbe */
 const CADENCE_PLUME = 4.5 * MIN, PLUMES_PAR_TOFU = 2, DUREE_SAUVAGE = 1 * MIN; /* a la voliere, chaque Tofu capture donne des plumes a vendre */
 const NERF_KAMAS = 0.9; /* (15/10/2026 : -10 % sur tout ce qui rapporte des kamas) */

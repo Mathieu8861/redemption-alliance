@@ -10,7 +10,7 @@ const NIVBAT = { qg: 'qg', nivPuits: 'nivPuits', enclos: 'enclos', voliere: 'vol
 const nivBat = (id) => 1 + (S_.amelio[id] || 0); /* le niveau d'un batiment, de 1 a 5 */
 const DERIVE = { /* les reglages d'avant le 11/10, deduits du niveau du batiment : le code des effets n'a pas bouge */
   murs: () => nivBat('qg') - 1, cadenas: () => (nivBat('qg') >= 2 ? 1 : 0),
-  reservoir: () => nivBat('nivPuits') - 1, poulie: () => (nivBat('nivPuits') >= 2 ? 1 : 0), arrosoir: () => [0, 0, 2, 3, 4][nivBat('nivPuits') - 1],
+  reservoir: () => nivBat('nivPuits') - 1, poulie: () => (nivBat('nivPuits') >= 2 ? 1 : 0), arrosoir: () => [0, 0, 2, 3, 4, 5][nivBat('nivPuits') - 1],
   abreuvoir: () => (nivBat('enclos') >= 2 ? 1 : 0), mangeoire: () => (nivBat('enclos') >= 3 ? 1 : 0), cisailles: () => [0, 0, 1, 2, 3][nivBat('enclos') - 1]
 };
 const niv = (id) => (DERIVE[id] ? DERIVE[id]() : (S_.amelio[id] || 0));
