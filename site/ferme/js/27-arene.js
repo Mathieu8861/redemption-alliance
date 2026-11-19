@@ -256,8 +256,12 @@ const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return
 /* L'ILE A LA SEMAINE (18/10/2026, « dispo du vendredi au vendredi, ca reset les PV ; 3 essais comme d'hab mais sur toute la semaine », Mathieu ; l'acces libre de
    test de son compte est retire, « remets-moi en mode joueur normal ») : la semaine de l'ile va du vendredi 0 h au jeudi 23 h 59 ; sa cle est la date de son
    vendredi (le format que lit la base). Chaque vendredi : un nouveau boss (la rotation), une vie commune neuve, 3 essais neufs, et le coffre de la semaine finie. */
-const semaineIleBoss = (t) => { const d = new Date(t == null ? tempsReel() : t); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
-const finSemaineIle = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
+/* LE DECALAGE D'UN JOUR (19/11/2026 au soir, « on va decaler d'un jour tout simplement pour se laisser le temps de finir le scorpion », Mathieu) : la semaine
+   de l'ile va desormais du samedi 0 h au vendredi 23 h 59 (le Bworker reste jusqu'au vendredi 20/11 au soir). Sa cle reste la date du vendredi qui la precede :
+   la base, les coffres et les essais offerts par semaine ne changent pas ; seule l'horloge de l'ile retarde d'un jour */
+const DECALAGE_ILE_J = 1, tIle = (t) => (t == null ? tempsReel() : t) - DECALAGE_ILE_J * 864e5;
+const semaineIleBoss = (t) => { const d = new Date(tIle(t)); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
+const finSemaineIle = () => { const d = new Date(tIle()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7) + DECALAGE_ILE_J); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
 function bossDuJour(cle) { if (MODE_TEST && ETAT_TEST.ileBoss && MONSTRES[ETAT_TEST.ileBoss]) return ETAT_TEST.ileBoss; /* (le mode test : le boss de l'ile au choix, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu) */ const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
 const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (palierDuBoss(t) + 1) * VAGUES_PALIER;
 function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
@@ -274,7 +278,7 @@ const essaisCompte = (cle) => MODE_TEST ? 0 : partiesIle().reduce((a, e) => a + 
 const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleDe(e, cle) || {}).meilleur || 0));
 const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS && k !== semaineIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
 const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
-const prochainVendredi = () => { const d = new Date(tempsReel()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
+const prochainVendredi = () => { const d = new Date(tIle()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7) + DECALAGE_ILE_J); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
 /* LE TABLEAU DU CLASSEMENT DE L'ILE (17/11/2026, « fais un tableau un peu plus joli et affiche le nombre de try », Mathieu) : une ligne par joueur, rang
    (medailles pour le podium), joueur (icone de sa classe et son niveau), essais joues (sur ceux de la semaine quand ils sont limites), degats de son meilleur essai, avec une jauge
    rapportee au premier. Les 10 premiers ; si tu es plus loin, ta ligne s'ajoute en dessous avec ton vrai rang */
@@ -302,7 +306,7 @@ async function classementIleBoss(cle) { /* le total et le classement de l'allian
    classement d'essai (ETAT_TEST.ileListe). */
 const ileVaincue = (t, total) => (MODE_TEST ? !!ETAT_TEST.ileVaincu : total != null && total >= pvIleBoss(t));
 const rangTxt = (i) => (i + 1) + (i ? 'e' : 'er');
-function avantVendredi() { const d = new Date(tempsReel()), f = new Date(d.getFullYear(), d.getMonth(), d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)), m = Math.max(0, f - d), j = Math.floor(m / 864e5), h = Math.floor((m % 864e5) / 36e5); return (j ? j + ' j ' : '') + h + ' h'; }
+function avantVendredi() { const d = new Date(tIle()), f = new Date(d.getFullYear(), d.getMonth(), d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)), m = Math.max(0, f - d), j = Math.floor(m / 864e5), h = Math.floor((m % 864e5) / 36e5); return (j ? j + ' j ' : '') + h + ' h'; }
 function gainsIle(t) { /* les recompenses, en « jetons » (image, chiffre, legende) : la participation, le boss tombe, le podium */
   const R = RECOMPENSES_ILE, l = niveau(S_.xp), xpDe = (f) => xpReel(Math.round((seuil(l + 1) - seuil(l)) * f)), v = '?v=' + VERSION_MODELES;
   const img = (n) => '<img src="assets/icones/' + n + '.png' + v + '" alt="">';
@@ -319,7 +323,7 @@ function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recom
   const G = gainsIle(t), rien = vaincu && !frappe ? '<p class="ig-rien">Tu n\'as pas frappé ce boss cette semaine : pas de coffre pour toi. Le prochain arrive ' + prochainVendredi() + '.</p>' : '';
   const podium = G.podium.map((L, i) => '<div class="ig-pod' + (rang === i ? ' moi' : '') + '"><span class="ig-med m' + (i + 1) + '">' + (i + 1) + '</span>' + jetonsIle(L, 'mini') + '</div>').join('');
   const carte = (titre, cl, L, badge, ok) => '<div class="ig-carte ' + cl + '"><div class="ig-carte-t"><span>' + titre + '</span>' + (badge ? '<span class="ig-badge' + (ok ? ' ok' : '') + '">' + badge + '</span>' : '') + '</div>' + L + '</div>';
-  return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le vendredi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + '<div class="ig-cartes">' +
+  return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + '<div class="ig-cartes">' +
     carte('S\'il tient', 'part' + (vaincu ? ' fini' : ''), jetonsIle(G.part), vaincu ? 'remplacé par mieux' : 'si tu as frappé') +
     carte(vaincu ? 'Il est tombé' : 'S\'il tombe', 'tombe', jetonsIle(G.tombe), vaincu ? (frappe ? '✓ gagné' : 'il fallait frapper') : 'si tu as frappé', vaincu && frappe) +
     carte('Le podium', 'podium', podium, 'en plus') + '</div>';
