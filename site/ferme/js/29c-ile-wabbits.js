@@ -60,7 +60,7 @@ function construireIleWabbits() {
   /* la plage et la barque */
   { const b = new T.Group(), coque = boite(1.3, 0.45, 3.0, '#8a5a32'); coque.position.y = -0.2; b.add(coque); const bord = boite(1.45, 0.12, 3.1, '#6b4528'); bord.position.y = 0.05; b.add(bord);
     const proue = cone(0.66, 0.9, '#8a5a32', 4); proue.rotation.x = Math.PI / 2; proue.rotation.y = Math.PI / 4; proue.position.set(0, -0.2, 1.9); proue.scale.set(1, 1, 0.5); b.add(proue);
-    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, -1.5, 8.5, -0.2, 0.3); }
+    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, -1.5, 8.5, -0.2, 0.3); g.userData.barque = b; }
   /* le champ de cawottes : des rangs de fanes et de cawottes qui depassent */
   for (let r = 0; r < 4; r++) for (let k = 0; k < 5; k++) { const x = -3.4 + k * 1.7, z = -9 - r * 1.6; if (Math.abs(x) < 1.6) continue;
     const ca = cone(0.16, 0.5, '#f08a24', 6); ca.rotation.x = Math.PI; ca.position.y = 0.1; const f = cone(0.18, 0.4, '#4f9e3a', 5); f.position.y = 0.48; const p = new T.Group(); p.add(ca, f); pose(p, x, z); }
@@ -102,7 +102,7 @@ function sortirZone(Z) { const c = combat; if (!c || c.genre !== 'donjon') retur
   toast(Z.boss ? 'Le Wa Wabbit transmuté sort de son terrier royal !' : 'Des Wabbits transmutés surgissent : ' + Z.nom + ' !', 'alerte'); if (Z.boss) son('vague'); }
 function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les zones qui se declenchent, les monstres sur l'ile, la camera, les flaques qui palpitent */
   const E = donjonEtat, c = combat; if (!E || lieu !== 'donjon') return true; if (!c || c.genre !== 'donjon' || c.fin) return false;
-  E.t += dt; const p = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z;
+  E.t += dt; const p = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z; if (E.arrivee) { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (p.x - VISEE.x) * k; VISEE.z += (p.z - VISEE.z) * k; placerCamera(); } return false; } /* (pendant la traversee : rien ne sort, la camera suit la barque) */
   ZONES_WABBITS.forEach((Z, k) => { if (E.zones[k]) return; const avant = ZONES_WABBITS.slice(0, k).every((z, j) => E.zones[j] && E.zones[j].fini); if (Math.hypot(lx - Z.x, lz - Z.z) > Z.r || (Z.boss && !avant)) return; E.zones[k] = { t: E.t, fini: false }; sortirZone(Z); });
   E.zones.forEach((z, k) => { if (z && !z.fini && E.t - z.t > 3 && !c.monstres.some((o) => o.etat !== 'mort')) { z.fini = true; const Z = ZONES_WABBITS[k]; if (Z.boss) { E.gagne = E.t; } else { toast(Z.nom.replace(/^./, (x) => x.toUpperCase()) + ' : nettoyé' + (Z.nom.startsWith('la') || Z.nom.startsWith('l\'') ? 'e' : '') + '. Avance !', 'or'); c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud(); } } });
   if (E.gagne != null && E.t - E.gagne > 1.6) { finDonjon(true); return true; }
@@ -113,14 +113,24 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les zones 
 }
 async function partirDonjon() {
   if (!MODE_TEST) return; if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } if (lieu !== 'ferme' && lieu !== 'donjon') { toast('Rentre d\'abord à la ferme.'); return; }
-  fermerModale(); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
+  fermerModale(); if (ileWabbits && ileWabbits.userData.barque) ileWabbits.userData.barque.position.set(0.6, -0.2, 24); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
   const u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + 0.5, 0, DONJON.z + 2.5); u.y = 0; u.angle = Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
   VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); zoom = VOYAGES.donjon.zoom(); placerCamera(); cadrer();
   const n = Math.max(51, Math.min(VAGUES_TOTAL, Math.round(niveau(S_.xp)))); /* (les Wabbits a la force de ton niveau, jamais sous la vague 51) */
   nouveauCombat('donjon', { n, attente: 1e9, total: ZONES_WABBITS.reduce((a, Z) => a + Z.L.reduce((b, [, k]) => b + k, 0), 0), ...potsDeVague() }); /* (attente : rien ne sort de la file, les zones font sortir leurs groupes) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant le donjon : ' + texteRepas(repas) + '.', 'or'), 2400); }
-  donjonEtat = { t: 0, zones: [], gagne: null, n }; ouvrirHudCombat(); majCombatHud(); effets.push(tickDonjon);
+  donjonEtat = { t: 0, zones: [], gagne: null, n }; ouvrirHudCombat(); majCombatHud(); effets.push(tickDonjon); debarquer();
   toast('L\'île des Wabbits ! Suis le chemin : les Wabbits transmutés t\'attendent dans chaque zone, le Wa Wabbit au bout.', 'or');
+}
+/* L'ARRIVEE EN BARQUE : la barque vient du large avec le perso a bord, accoste, et il saute sur la plage (2,8 s ; les zones attendent qu'il ait pose le pied) */
+function debarquer() {
+  const b = ileWabbits && ileWabbits.userData.barque, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, A = { x: 0.6, z: 24 }, B = { x: 0.2, z: 9.2 }, S = { x: 0.4, z: 4.2 };
+  E.arrivee = true; b.rotation.y = Math.PI; let t = 0; const T1 = 2.2, T2 = 0.6;
+  effets.push((dt) => { t += dt; if (combat !== c0 || !donjonEtat) return true; const p = paysanMesh.position;
+    if (t < T1) { const k = t / T1, e = 1 - Math.pow(1 - k, 2); b.position.set(A.x + (B.x - A.x) * e, -0.2 + Math.sin(t * 5) * 0.04, A.z + (B.z - A.z) * e); b.rotation.z = Math.sin(t * 3.2) * 0.04;
+      p.set(DONJON.x + b.position.x, 0.05 + Math.sin(t * 5) * 0.04, DONJON.z + b.position.z - 0.4); u.y = p.y; u.angle = Math.PI; paysanMesh.rotation.y = u.angle; chemin = []; arrivee = null; return false; }
+    const k = Math.min(1, (t - T1) / T2); p.set(DONJON.x + B.x + (S.x - B.x) * k, 0.05 + Math.sin(Math.PI * k) * 0.9, DONJON.z + B.z - 0.4 + (S.z - B.z + 0.4) * k); u.y = p.y; /* (le saut sur la plage) */
+    if (k < 1) return false; p.y = 0; u.y = 0; E.arrivee = false; b.rotation.z = 0; poussiere(p.x, 0, p.z, 5, 0.6, '#d9c58e'); return true; });
 }
 function finDonjon(gagne) {
   const c = combat, E = donjonEtat; if (!c || c.fin || c.genre !== 'donjon') return; nettoyerCombat(c, true); donjonEtat = null;
