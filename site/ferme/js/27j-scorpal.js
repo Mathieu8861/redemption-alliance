@@ -18,7 +18,7 @@ const KIT_SCORPAL = {
   pinces: { periode: 8.0, prepa: 0.9, R: 4.4, ouv: 0.55, x: 0.85, tenu: 2.0, impact: 0.47 },
   balayage: { periode: 7.5, prepa: 1.0, R: 3.6, x: 1.4, repousse: 2.4, tour: 0.6 },
 };
-MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone: 'scorpal', boss: true, vagueIle: 100, stable: true, coupDuree: 1.0,
+MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone: 'scorpal-v2', boss: true, vagueIle: 100, stable: true, coupDuree: 1.0,
   desc: 'le seigneur scorpion en armure : sa carapace encaisse 60 % de tes coups, sauf quand son dard reste planté au sol après une piqûre (frappe alors : x2,5). Son dard empoisonne (5 doses : paralysé), ses pinces t\'attirent et te tiennent, sa queue balaie tout autour de lui',
   pv: () => 60000, deg: () => 112, cadence: 1.5, vitesse: 2.6, portee: 3.0, ombre: 4.2, degSort: 3.2, scorpKit: KIT_SCORPAL, appelStun: KIT_SCORPAL.pinces.tenu };
 PV_ILE_BOSS_PAR.scorpal = 1500000;
