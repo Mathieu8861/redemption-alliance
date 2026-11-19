@@ -12,7 +12,7 @@ const nomPalier = (P) => P < 5 ? 'Palier ' + (P + 1) : 'Phase 2, palier ' + (P -
 const PALIER_FORET = { nom: 'la Forêt des Abraknydes', boss: 'cheneMou', icone: 'chene-mou', phase: 2 }; PALIERS.push(PALIER_FORET);
 /* LE PALIER 11 A L'ESSAI (19/11/2026, « commencer a construire les vagues », Mathieu) : la Saison des pluies, vagues 101 a 110, rangee a part comme la foret l'etait
    avant sa sortie : seul le mode test de l'admin y va (VAGUES_MAX, vaguesOuvertes) ; pour les joueurs, PALIERS et VAGUES_TOTAL ne changent pas */
-const PALIER_MARE = { nom: 'la Saison des pluies', boss: 'crocoBoss', icone: 'triton' /* (provisoire, comme sa fiche) */, phase: 2, essai: true }; const PALIERS_TOUS = PALIERS.concat([PALIER_MARE]);
+const PALIER_MARE = { nom: 'la Saison des pluies', boss: 'crocoBoss', icone: 'croco-sauvage', phase: 2, essai: true }; const PALIERS_TOUS = PALIERS.concat([PALIER_MARE]);
 const VAGUES_TOTAL = VAGUES_PALIER * PALIERS.length, VAGUES_MAX = VAGUES_PALIER * PALIERS_TOUS.length, vaguesOuvertes = () => (MODE_TEST ? VAGUES_MAX : VAGUES_TOTAL);
 const palierDe = (n) => Math.min(PALIERS_TOUS.length - 1, Math.floor((n - 1) / VAGUES_PALIER)), vagueCourante = () => Math.min(S_.vague.num, vaguesOuvertes());
 /* element (01/11/2026, par Discord, « je te valide tout », Mathieu) : l'impact de ses sorts au sol, un par element naturel (impactElement, 22b-effets.js) : terre, feu, eau,
