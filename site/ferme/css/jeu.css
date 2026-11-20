@@ -1559,7 +1559,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 /* en combat sur ordinateur, l'essentiel seulement (15/11/2026, « toute cette partie entouree en rouge, en combat elle sert a rien, fais-la sauter, et le truc de vague + PV
    en haut, mets-le vraiment en haut de l'ecran », Mathieu) : plus de pastilles en haut a droite (kamas, parcelles, niveau, temps, pause, options : la touche P met
    toujours en pause), plus de Grange ni de Betes ; le bandeau de la vague colle au haut de l'ecran (sous le titre sur un ecran etroit) */
-.hud.en-combat:not(.doigt) .haut > :not(.titre) { display: none !important; }
+.hud.en-combat:not(.doigt) .haut > :not(.titre):not(#b-pause) { display: none !important; } /* (sauf le bouton pause, remis le 20/11/2026 : « remettre le fait de pouvoir faire pause pendant un combat », Mathieu) */
 .hud.en-combat:not(.doigt) .panneau { display: none !important; }
 .hud.en-combat:not(.doigt) .combat-haut { top: calc(8px + env(safe-area-inset-top, 0px)); }
 @media (max-width: 1150px) { .hud.en-combat:not(.doigt) .combat-haut { top: calc(56px + env(safe-area-inset-top, 0px)); } }

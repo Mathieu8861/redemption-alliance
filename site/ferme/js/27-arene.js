@@ -393,7 +393,7 @@ function lancerIleBoss() {
   nouveauCombat('ile', { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: MODE_TEST ? 0 : Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, attente: 99, ...potsDeVague() }); /* (chaque essai part avec toute sa vie) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant l\'essai : ' + texteRepas(repas) + '.', 'or'), 2600); }
   ouvrirHudCombat();
-  const g = new T.Vector3(-6.4, 0, -6.4).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS); apparaitre(t, { x: g.x, z: g.z }); /* (il sort de l'arche-crane) */
+  const g = new T.Vector3(-6.4, 0, -6.4).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS); apparaitre(t, { x: g.x, z: g.z }); { const b = combat.monstres[combat.monstres.length - 1]; if (b && b.type === t && b.etat === 'grimpe') b.t = 0; } /* (il sort de l'arche-crane, tout de suite : plus d'attente au hasard jusqu'a 0,8 s avant qu'il monte, 20/11/2026) */
   son('vague'); toast(MONSTRES[t].nom + ' colossal' + (MONSTRES[t].fem ? 'e' : '') + ' ! Tape le plus fort possible : il enrage toutes les ' + ENRAGE_ILE.periode + ' s.', 'alerte'); majCombatHud();
 }
 function finIleBoss(abandon, tombe) {

@@ -57,13 +57,14 @@ $('b-simu').addEventListener('click', (e) => { e.stopPropagation(); accepterSimu
    Rien quand on ecrit dans un champ (sauf Echap sur une visee), et pendant une lecon de Pepito, c'est elle qui tient la pause. */
 const TOUCHES_SORT = { Digit1: () => lancerSort(), Numpad1: () => lancerSort(), Digit2: () => lancerUlti(), Numpad2: () => lancerUlti(),
   Digit3: () => legTouche(3), Numpad3: () => legTouche(3), Digit4: () => legTouche(4), Numpad4: () => legTouche(4) };
+addEventListener('keyup', (e) => { if (e.code === 'Space' && !(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) e.preventDefault(); }); /* (un bouton qui a le focus ne se reclique pas a la barre espace) */
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && visee) annulerVisee();
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   if (e.key === 'Escape' && !visee && !enPause && modaleOuverte && !lecon.ouverte) { fermerModale(); return; } /* (Echap ferme la fenetre ouverte, comme un clic a cote, 07/11/2026) */
   const sort = TOUCHES_SORT[e.code]; if (sort && combat && !combat.fin && !enPause && !e.repeat) { e.preventDefault(); sort(); }
   if (lecon.ouverte) return;
-  if (e.key === 'p' || e.key === 'P') mettrePause(!enPause); else if (e.key === 'Escape' && enPause) mettrePause(false);
+  if (e.key === 'p' || e.key === 'P' || (e.code === 'Space' && !e.repeat)) { if (e.code === 'Space') e.preventDefault(); mettrePause(!enPause); } else if (e.key === 'Escape' && enPause) mettrePause(false); /* (la barre espace met en pause aussi, combats compris, 20/11/2026, « mettre un raccourci sur la barre espace », Mathieu ; la peche garde la sienne, 14h-peche.js) */
   /* tourner la camera (29/10/2026) : A et E sur un clavier azerty (Q et E en qwerty : la meme place), R pour revenir a la vue de depart */
   if (!enAccueil && !e.ctrlKey && !e.metaKey && !e.altKey && (e.code === 'KeyW' || e.code === 'KeyS')) { const b = elevVise != null ? elevVise : elevCam; inclinerCameraVers(Math.min(ELEV_MAX, Math.max(ELEV_MIN, b + (e.code === 'KeyW' ? 0.16 : -0.16)))); } /* (Z et S en azerty, W et S en qwerty : la camera monte, ou descend ; maintenus, elle continue, 09/11/2026) */
   if (!enAccueil && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { const base = angleVise != null ? angleVise : angleCam;

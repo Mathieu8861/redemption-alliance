@@ -12,7 +12,10 @@
 FICHIERS_ILE.desert = 'boss-ile-desert.glb';
 let DESERT_POUR_TOUS = true; /* (20/11/2026 au soir, « oui, pour tous ce soir », Mathieu) */
 Object.defineProperty(MONSTRES.scorpal, 'carteIle', { get: () => (DESERT_POUR_TOUS || MODE_TEST ? 'desert' : null), configurable: true });
-const TORNADES = { periode: [8, 12], max: 2, annonce: 1.2, vie: 7, R: 1.35, ronde: 1.8, vitesse: 0.55, pct: 0, tic: 0.6, repousse: 3.0 }; /* (pct : 0, « elles mettent pas de degats les tornades », Mathieu, 20/11 au soir : elles repoussent seulement) */
+const TORNADES = { periode: [8, 12], max: 2, annonce: 1.2, vie: 7, R: 1.35, ronde: 1.8, vitesse: 0.55, pct: 0,
+  vol: { aspire: 0.25, monte: 1.0, haut: 4.2, chute: 0.6, ejecte: 3.0, repit: 1.2 } }; /* (pct : 0, « elles mettent pas de degats les tornades », Mathieu, 20/11 au soir ;
+   puis « il faut que la tornade elle fasse nous envoler en son centre et on retombe » : vol, aspire au centre en 0,25 s, monte a 4,2 en tournant en 1 s, retombe
+   a 3 de la tornade en 0,6 s, sans degats ; 1,2 s de repit avant qu'une tornade ne le reprenne) */
 HABILLER_ILE.desert = function (g, reperes) {
   const fx = g.userData.fx, ambre = new T.Color('#ffb347');
   fx.cercles.forEach(({ m, k }) => { m.material.color.copy(k === 2 ? new T.Color('#c9822e') : ambre); });
@@ -82,7 +85,7 @@ function lancerTornade(s, c0, mo) {
   if (!c0.tornadeVu) { c0.tornadeVu = true; toast('Une tornade de sable se lève : sors du cercle et ne reste pas dans son chemin !', 'alerte'); }
   zoneDanger({ x: cx, z: cz, r: T0.R + 0.4, duree: T0.annonce, couleur: '#e0a84a', effet: () => {} });
   const { g, L, debris } = corpsTornade(); g.position.set(cx, solA(cx, cz), cz); g.scale.setScalar(0.2); scene.add(g);
-  const ph = Math.random() * 6.28, sens = Math.random() < 0.5 ? -1 : 1; let t = -T0.annonce, tic = 0, pf = 0; const pos = { x: cx, z: cz };
+  const ph = Math.random() * 6.28, sens = Math.random() < 0.5 ? -1 : 1; let t = -T0.annonce, pf = 0; const pos = { x: cx, z: cz };
   const fin = () => { jeter(g); c0.tornades = Math.max(0, (c0.tornades || 1) - 1); c0.tornadesPos = (c0.tornadesPos || []).filter((q) => q !== s); return true; };
   effets.push((dt) => {
     if (combat !== c0 || c0.fin) return fin(); t += dt;
@@ -95,11 +98,33 @@ function lancerTornade(s, c0, mo) {
     L.forEach((m) => { m.rotation.y += dt * m.userData.v * 3; m.material.uniforms.uT.value += dt; m.material.uniforms.uA.value = e; });
     debris.forEach((d) => { const u = d.userData; u.a += dt * u.v; d.position.set(Math.cos(u.a) * u.r * (0.5 + u.y / 5), u.y, Math.sin(u.a) * u.r * (0.5 + u.y / 5)); d.rotation.x += dt * 4; });
     if ((pf += dt) > 0.08) { pf = 0; emettre(FX_FUM, 1, { x: pos.x + (Math.random() - 0.5) * 2.4, y: solA(pos.x, pos.z) + 0.15, z: pos.z + (Math.random() - 0.5) * 2.4, r: 0.4, v: [0, 0.8, 0], vie: [0.5, 0.9], taille: [0.6, 1.3], c: ['#e8cf9a', '#c99a62'], a: 0.45, frein: 1, vrot: 3 }); }
-    /* dedans : des degats et tu es repousse */
-    const p = paysanMesh.position; tic -= dt;
-    if (e > 0.6 && tic <= 0 && Math.hypot(p.x - pos.x, p.z - pos.z) < T0.R && !paysanMesh.userData.enVol) {
-      tic = T0.tic; if (T0.pct > 0) blesserPerso(Math.max(1, Math.round(c0.pvMax * T0.pct)), null); repousserPerso({ x: pos.x, z: pos.z }, T0.repousse); }
+    /* dedans : elle t'emporte */
+    const p = paysanMesh.position;
+    if (e > 0.6 && Math.hypot(p.x - pos.x, p.z - pos.z) < T0.R && !paysanMesh.userData.enVol && !(c0.tornadeRepit > performance.now())) { if (T0.pct > 0) blesserPerso(Math.max(1, Math.round(c0.pvMax * T0.pct)), null); emporterTornade(pos, c0, sens); }
     return false;
+  });
+}
+/* EMPORTE PAR LA TORNADE (20/11/2026) : aspire jusqu'a son centre, il monte en tournant sur lui-meme, puis retombe un peu plus loin dans un nuage de sable.
+   Pendant le vol, il ne marche ni ne frappe (assomme) et rien ne l'atteint (enVol, comme le bond du Iop) */
+function emporterTornade(pos, c0, sens) {
+  const u = paysanMesh.userData, V = TORNADES.vol, P = paysanMesh.position, x0 = P.x, z0 = P.z, sol = u.y || 0, rot0 = paysanMesh.rotation.y, D = V.aspire + V.monte + V.chute;
+  chemin = []; arrivee = null; u.charge = true; u.enVol = true; c0.assomme = Math.max(c0.assomme || 0, D); c0.tornadeRepit = performance.now() + (D + V.repit) * 1000;
+  const q = P.clone(); q.y += 2.1; chiffre('Emporté !', q, 'vol'); pouf(x0, sol + 0.2, z0, 1.6, '#e0bf86');
+  if (!c0.tornadeVolVu) { c0.tornadeVolVu = true; toast('La tornade t\'emporte : tu retombes un peu plus loin, sans dégâts, mais tu ne frappes plus pendant le vol.', 'alerte'); }
+  let t = 0, tour = 0, hx = 0, hz = 0, fx = 0, fz = 0, chute = false;
+  const finir = () => { u.charge = false; u.enVol = false; paysanMesh.rotation.z = 0; P.y = sol; u.angle = paysanMesh.rotation.y; };
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin) { finir(); return true; }
+    t += dt; tour += dt * (6 + 10 * Math.min(1, t / V.aspire)); paysanMesh.rotation.y = rot0 + sens * tour; /* (il tourne sur lui-meme, dans le sens de la tornade) */
+    if (t < V.aspire) { const k = t / V.aspire, e = k * k; P.x = x0 + (pos.x - x0) * e; P.z = z0 + (pos.z - z0) * e; P.y = sol + 0.6 * e; return false; } /* aspire au centre */
+    if (t < V.aspire + V.monte) { const k = (t - V.aspire) / V.monte, e = 1 - (1 - k) * (1 - k), a = tour * 0.5, r = 0.35 * e; /* il monte en spirale au coeur du tourbillon, qui l'emmene avec lui */
+      P.x = pos.x + Math.cos(a) * r; P.z = pos.z + Math.sin(a) * r; P.y = sol + 0.6 + (V.haut - 0.6) * e; paysanMesh.rotation.z = 0.25 * Math.sin(tour * 0.7) * e;
+      if (Math.random() < dt * 20) emettre(FX_FUM, 1, { x: P.x, y: P.y + 0.5, z: P.z, r: 0.5, v: [0, 0.4, 0], vie: [0.4, 0.7], taille: [0.4, 0.8], c: ['#e8cf9a', '#c99a62'], a: 0.4, frein: 1, vrot: 4 }); return false; }
+    if (!chute) { chute = true; hx = P.x; hz = P.z; const b = Math.random() * Math.PI * 2, w = pointValide(pos.x, pos.z, pos.x + Math.sin(b) * V.ejecte, pos.z + Math.cos(b) * V.ejecte), f = bornerIle(w.x, w.z, 0.5); fx = f[0]; fz = f[1]; } /* il est ejecte, et retombe a 3 de la tornade, sur le sol */
+    const k = Math.min(1, (t - V.aspire - V.monte) / V.chute); P.x = hx + (fx - hx) * k; P.z = hz + (fz - hz) * k; P.y = sol + V.haut * (1 - k * k) + Math.sin(k * Math.PI) * 0.6; paysanMesh.rotation.z *= 1 - Math.min(1, dt * 6);
+    if (k < 1) return false;
+    finir(); const c = caseIci(fx, fz); if (c) u.cellule = c; /* il retombe : un nuage de sable, la camera tremble */
+    poussiere(fx, sol, fz, 10, 1.2, '#d8b67a'); pouf(fx, sol + 0.2, fz, 2.0, '#e0bf86'); onde(fx, sol + 0.05, fz, 1.6, '#f3dca8', 0.4, 0.6); secousse(0.12, 0.22); return true;
   });
 }
 CAPACITES.unshift(capTornadesDesert); /* (capTornades existe deja : les tornades d'Ebil, 21-combat.js) */

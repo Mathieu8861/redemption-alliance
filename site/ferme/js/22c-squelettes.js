@@ -261,7 +261,7 @@ function majSquelette(mo, v, dt) {
   if (mo.reactT > 0) mo.reactT -= dt;
   if (mo.esquive > 0) mo.esquive -= dt; if (mo.recent > 0) mo.recent -= dt;
   const face = () => { const pp = paysanMesh.position; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); }; /* (il te fait face pour rugir) */
-  if (!mo.geste && !mo.rugiArrivee) { mo.rugiArrivee = true; if (mo.d.boss) { face(); geste(mo, 'rugir', true); } } /* (un boss rugit a son arrivee ; la horde fonce tout de suite) */
+  if (!mo.geste && !mo.rugiArrivee) { mo.rugiArrivee = true; if (mo.d.boss && !mo.d.sansCri) { face(); geste(mo, 'rugir', true); } } /* (un boss rugit a son arrivee ; la horde fonce tout de suite) */
   else if (!mo.geste && mo.enrage && !mo.rugiRage) { mo.rugiRage = true; face(); geste(mo, 'rugir', true); }
   if (!mo.geste) {
     if (v > 0.05) { /* l'allure qui colle a sa vitesse, jouee entre 90 % et 180 % : jamais de course au ralenti (une marche acceleree vaut mieux) */

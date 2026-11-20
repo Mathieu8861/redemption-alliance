@@ -4,7 +4,7 @@
    maquettes/boss-scorpion/SCORPION.md). Son nom : « Scorpal » (Mathieu). Boss de l'ile la semaine du samedi 21/11/2026 (« oui, samedi 21/11 »).
    Son kit (« comment on peut le rendre interessant comme boss de l'ile pour qu'il soit pas trop simple », puis au formulaire : la carapace, et le dard + venin,
    les pinces, le balayage de queue) :
-   - la CARAPACE : il encaisse 60 % de moins, sauf quand son dard reste plante dans le sol (2,5 s apres chaque piqure) : la, chaque coup compte x2,5. Le
+   - la CARAPACE : il encaisse 60 % de moins, sauf quand son dard reste plante dans le sol (1,5 s apres chaque piqure) : la, chaque coup compte x2,5. Le
      classement recompense celui qui esquive et punit au bon moment ;
    - le DARD : un cercle rouge sur toi (1,2 s), la queue s'abat ; touche, un venin qui s'empile (5 doses : paralyse 1,5 s) ; le dard reste plante : point faible ;
    - les PINCES : un eventail rouge devant lui (0,9 s) ; pris, il t'attire contre lui et te tient 2 s ;
@@ -14,12 +14,12 @@
 SQUELETTES_A_CHARGER.push(['scorpion', 'assets/modeles/jeu/scorpion-anime.glb', 3.4]); VITESSE_FAMILLE.scorpion = 1.1; ALLURES.scorpion = { marche: 1.39, course: 3.495 };
 const KIT_SCORPAL = {
   carapace: 0.6, ouverture: 2.5,
-  dard: { periode: 6.0, prepa: 1.2, R: 2.2, x: 1.25, plante: 2.5, portee: 4.4, venin: { pct: 0.005, duree: 6, max: 5 }, paralysie: 1.5, impact: 0.56 },
+  dard: { periode: 6.0, prepa: 1.2, R: 2.2, x: 1.25, plante: 1.5, portee: 4.4, venin: { pct: 0.005, duree: 6, max: 5 }, paralysie: 1.5, impact: 0.56 },
   pinces: { periode: 8.0, prepa: 0.9, R: 4.4, ouv: 0.55, x: 0.85, tenu: 2.0, impact: 0.47 },
   balayage: { periode: 7.5, prepa: 1.0, R: 3.6, x: 1.4, repousse: 2.4, tour: 0.6 },
   venin: { periode: 9, leve: 0.45, vol: 1.1, n: 3, R: 1.6, ecart: 2.6, portee: 8, x: 0.6, flaque: { duree: 6, R: 1.6, pct: 0.025 } }, /* (la pluie de venin, 20/11/2026) */
 };
-MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone: 'scorpal-v2', boss: true, vagueIle: 100, stable: true, coupDuree: 0.75, /* (20/11/2026, « ses attaques sont pas assez rapides » : 0,75 s par coup au lieu de 1, un coup toutes les 1,1 s au lieu de 1,5, 0,85 sur l'ile au lieu de 1,2) */
+MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone: 'scorpal-v2', boss: true, vagueIle: 100, stable: true, coupDuree: 0.75, sansCri: true, /* (sansCri : il fonce des qu'il sort du portail, sans son cri d'arrivee de 1,6 s sur place, 20/11/2026) */ /* (20/11/2026, « ses attaques sont pas assez rapides » : 0,75 s par coup au lieu de 1, un coup toutes les 1,1 s au lieu de 1,5, 0,85 sur l'ile au lieu de 1,2) */
   desc: 'le seigneur scorpion en armure : sa carapace encaisse 60 % de tes coups, sauf quand son dard reste planté au sol après une piqûre (frappe alors : x2,5). Son dard empoisonne (5 doses : paralysé), ses pinces t\'attirent et te tiennent, sa queue balaie tout autour de lui, et son dard crache du venin en l\'air qui retombe en flaques de poison',
   pv: () => 60000, deg: () => 112, cadence: 1.1, vitesse: 2.6, portee: 3.0, ombre: 4.2, degSort: 3.2, scorpKit: KIT_SCORPAL, appelStun: KIT_SCORPAL.pinces.tenu };
 PV_ILE_BOSS_PAR.scorpal = 1500000;
@@ -27,7 +27,7 @@ PV_ILE_BOSS_PAR.scorpal = 1500000;
    le Bworker et le Craqueleur (RENFORT_ILE, 27-arene.js) : ses trois sorts reviennent plus souvent (dard toutes les 4,5 s au lieu de 6, pinces 6 au lieu de 8,
    balayage 5,5 au lieu de 7,5), moins de temps pour sortir des cercles (0,9 / 0,7 / 0,75 s au lieu de 1,2 / 0,9 / 1), des cercles plus grands (+20 %), des sorts
    qui tapent +30 %, un coup toutes les 1,2 s au lieu de 1,5, ses coups +30 %, une carapace de 65 % au lieu de 60 (comme l'armure du Bworker, +10 points sur 30),
-   la marche +15 % et 25 % plus vite sur l'ile (VITESSE_ILE). Le dard reste plante 2,5 s (le moment de taper ne raccourcit pas). Toujours sans troupe : un duel. */
+   la marche +15 % et 25 % plus vite sur l'ile (VITESSE_ILE). Le dard reste plante 1,5 s (2,5 s jusqu'au 20/11/2026 : « il reste trop longtemps a ne plus rien faire », Mathieu). Toujours sans troupe : un duel. */
 const KIT_SCORPAL_ILE = { carapace: 0.65, ouverture: 2.5,
   dard: Object.assign({}, KIT_SCORPAL.dard, { periode: 4.5, prepa: 0.9, R: 2.65, x: 1.62, portee: 5.2 }),
   pinces: Object.assign({}, KIT_SCORPAL.pinces, { periode: 6.0, prepa: 0.7, R: 5.0, x: 1.1 }),
@@ -54,8 +54,8 @@ function capScorpDard(mo, ctx) {
   const K = mo.d.scorpKit; if (!K || mo.etat !== 'actif' || (mo.geste && !mo.geste.coup) || mo.dardPlante > 0 || mo.tourne) return; const D = K.dard, { pp, sortPret } = ctx, e = echelleS(mo);
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('scorpDardT', D.periode) || dP > D.portee * e + 2.5) return;
   const c0 = combat; mo.scorpDardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), r = Math.min(dP, D.portee * e), x = mo.x + Math.sin(a) * r, z = mo.z + Math.cos(a) * r;
-  mo.ry = a; mo.bloqueT = D.prepa + D.plante + 0.6; mo.cd = Math.max(mo.cd || 0, D.prepa + D.plante + 0.5);
-  const an = jouerGeste(mo, 'sort', D.prepa, D.impact); mo.geste = { t: 0, d: D.prepa + D.plante + 0.7 };
+  mo.ry = a; mo.bloqueT = D.prepa + D.plante + 0.15; mo.cd = Math.max(mo.cd || 0, D.prepa + D.plante + 0.1); /* (20/11/2026, « il reste trop longtemps a ne plus rien faire / bouger apres avoir lance un sort », Mathieu : dard plante 1,5 s au lieu de 2,5, il repart aussitot apres ; les autres sorts aussi) */
+  const an = jouerGeste(mo, 'sort', D.prepa, D.impact); mo.geste = { t: 0, d: D.prepa + D.plante + 0.2 };
   if (!c0.dardVu) { c0.dardVu = true; toast(leNom(mo.d) + ' lève son dard sur toi : sors du cercle rouge ! Après la piqûre, son dard reste planté : c\'est là qu\'il faut frapper.', 'alerte'); }
   zoneDanger({ mo, x, z, r: D.R * Math.min(1.3, e), duree: D.prepa, effet: (d) => {
     const y = solA(x, z); onde(x, y + 0.05, z, D.R * e, '#c7a2ff', 0.4, 0.7); poussiere(x, y, z, 10, 1.2, '#9a8a70'); secousse(0.1, 0.22);
@@ -91,8 +91,8 @@ function attirerScorpal(mo, dist) {
 function capScorpPinces(mo, ctx) {
   const K = mo.d.scorpKit; if (!K || mo.etat !== 'actif' || (mo.geste && !mo.geste.coup) || mo.dardPlante > 0 || mo.tourne) return; const P = K.pinces, { pp, sortPret } = ctx, e = echelleS(mo);
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('scorpPincesT', P.periode) || dP > P.R * e - 0.4) return;
-  const c0 = combat; mo.scorpPincesT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a; mo.bloqueT = P.prepa + 0.6; mo.cd = Math.max(mo.cd || 0, P.prepa + 0.5);
-  jouerGeste(mo, 'coup', P.prepa, P.impact); mo.geste = { t: 0, d: P.prepa + 0.5 };
+  const c0 = combat; mo.scorpPincesT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a; mo.bloqueT = P.prepa + 0.25; mo.cd = Math.max(mo.cd || 0, P.prepa + 0.2);
+  jouerGeste(mo, 'coup', P.prepa, P.impact); mo.geste = { t: 0, d: P.prepa + 0.3 };
   if (!c0.pincesVu) { c0.pincesVu = true; toast(leNom(mo.d) + ' ouvre ses pinces : sors de l\'éventail rouge, sinon il t\'attire et te tient 2 s !', 'alerte'); }
   zoneDanger({ mo, x: mo.x, z: mo.z, r: P.R * e, a, ouv: P.ouv, duree: P.prepa, effet: (d) => { const p = paysanMesh.position, c = combat; secousse(0.06, 0.15);
     if (dansDanger(d, p.x, p.z) && c === c0 && !c.fin && blesserPerso(Math.max(1, Math.round(degSort(mo) * P.x)), mo) && !(c.invincible > 0)) attirerScorpal(mo, 1.7 * e); } });
@@ -101,7 +101,7 @@ function capScorpPinces(mo, ctx) {
 function capScorpBalayage(mo, ctx) {
   const K = mo.d.scorpKit; if (!K || mo.etat !== 'actif' || (mo.geste && !mo.geste.coup) || mo.dardPlante > 0 || mo.tourne) return; const B = K.balayage, { pp, sortPret } = ctx, e = echelleS(mo);
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('scorpBalayageT', B.periode) || dP > B.R * e - 0.3) return;
-  const c0 = combat, x0 = mo.x, z0 = mo.z; mo.scorpBalayageT = 0; mo.bloqueT = B.prepa + B.tour + 0.3; mo.cd = Math.max(mo.cd || 0, B.prepa + B.tour + 0.2); mo.geste = { t: 0, d: B.prepa + B.tour + 0.2 };
+  const c0 = combat, x0 = mo.x, z0 = mo.z; mo.scorpBalayageT = 0; mo.bloqueT = B.prepa + B.tour + 0.1; mo.cd = Math.max(mo.cd || 0, B.prepa + B.tour + 0.1); mo.geste = { t: 0, d: B.prepa + B.tour + 0.1 };
   if (!c0.balayageVu) { c0.balayageVu = true; toast(leNom(mo.d) + ' arme sa queue pour tout balayer autour de lui : sors du cercle !', 'alerte'); }
   let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.tourne = 0; return true; }
     if (t < B.prepa) { const k = Math.min(1, t / B.prepa); mo.tourne = -0.6 * k * k; return false; }
@@ -128,8 +128,8 @@ function flaqueVenin(x, z, F, mo, c0) {
 function capScorpVenin(mo, ctx) {
   const K = mo.d.scorpKit; if (!K || !K.venin || mo.etat !== 'actif' || (mo.geste && !mo.geste.coup) || mo.dardPlante > 0 || mo.tourne) return; const V = K.venin, { pp, sortPret } = ctx, e = echelleS(mo);
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('scorpVeninT', V.periode) || dP > V.portee * e) return;
-  const c0 = combat; mo.scorpVeninT = 0; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = V.leve + 0.5; mo.cd = Math.max(mo.cd || 0, V.leve + 0.4);
-  jouerGeste(mo, 'sort', V.leve, (K.dard && K.dard.impact) || 0.56); mo.geste = { t: 0, d: V.leve + 0.45 };
+  const c0 = combat; mo.scorpVeninT = 0; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = V.leve + 0.2; mo.cd = Math.max(mo.cd || 0, V.leve + 0.15);
+  jouerGeste(mo, 'sort', V.leve, (K.dard && K.dard.impact) || 0.56); mo.geste = { t: 0, d: V.leve + 0.25 };
   if (!c0.veninVu) { c0.veninVu = true; toast(leNom(mo.d) + ' crache du venin en l\'air : sors des cercles verts, des flaques de poison vont y rester !', 'alerte'); }
   const R = V.R * Math.min(1.3, e), cibles = [{ x: pp.x, z: pp.z }];
   for (let k = 1; k < V.n; k++) { const a = Math.random() * Math.PI * 2, r = V.ecart * e * (0.7 + 0.5 * Math.random()), q = pointValide(pp.x, pp.z, pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r); cibles.push(q); }
