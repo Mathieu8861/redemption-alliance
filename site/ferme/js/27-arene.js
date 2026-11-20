@@ -318,7 +318,13 @@ const semaineIleBoss = (t) => { const d = new Date(tIle(t)); d.setDate(d.getDate
 const finSemaineIle = () => { const d = new Date(tIle()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7) + DECALAGE_ILE_J); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
 function bossDuJour(cle) { if (MODE_TEST && ETAT_TEST.ileBoss && MONSTRES[ETAT_TEST.ileBoss]) return ETAT_TEST.ileBoss; /* (le mode test : le boss de l'ile au choix, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu) */ const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
 const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (MONSTRES[t] && MONSTRES[t].vagueIle) || (palierDuBoss(t) + 1) * VAGUES_PALIER; /* (vagueIle : un boss de l'ile sans palier, Scorpal, 27j-scorpal.js) */
-function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; }); return S_.ileBoss; }
+/* UNE CORRECTION DE SCORE, UNE SEULE FOIS (20/11/2026 au soir, « tu peux remettre a 0 le score de yannick ? ca avait enregistre son ancien score sur le Chafer »,
+   Mathieu) : sa page, ouverte avant le passage a Scorpal, lui a fait jouer le Chafer Cuirasse (1 000 000 PV) sous la cle de la semaine du 20/11 ; son essai de la
+   semaine repart a zero (meilleur et essais) a la premiere lecture, la base est corrigee a part */
+const CORRECTIONS_ILE = [{ nom: 'yannick-jadot', cle: '2026-11-20', si: 1000000 }];
+function etatIleBoss() { S_.ileBoss = S_.ileBoss || { jours: {}, recus: {} }; const J = S_.ileBoss.jours; Object.keys(J).sort().slice(0, -8).forEach((k) => { delete J[k]; });
+  const nom = S_.perso && S_.perso.nom; if (nom) CORRECTIONS_ILE.forEach((c) => { const Jc = J[c.cle], fait = (S_.ileBoss.corrections = S_.ileBoss.corrections || {}); if (c.nom === nom && Jc && Jc.meilleur === c.si && !fait[c.nom + c.cle]) { Jc.meilleur = 0; Jc.essais = 0; fait[c.nom + c.cle] = true; } });
+  return S_.ileBoss; }
 const partiesIle = () => [S_].concat(Object.values(S_.parties || {}).filter((e) => e && e.perso)); /* (la partie en cours et les autres du compte) */
 const jourIleDe = (e, cle) => (e.ileBoss && e.ileBoss.jours && e.ileBoss.jours[cle]) || null;
 /* LES ESSAIS EN PLUS (14/11/2026, « rajoute 5 essais a tout le monde sur le boss de l'ile et met moi en mode infini sur le boss de l'ile », Mathieu) : 5 essais offerts
