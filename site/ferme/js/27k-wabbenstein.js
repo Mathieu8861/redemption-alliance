@@ -24,6 +24,7 @@ SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
   autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
+  phase: { seuil: 0.3, creatures: ['wabbitNoir', 'wabbitNoir', 'wabbitSquelette', 'wabbitSorciere'], puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 % : chiffres proposes, a valider par Mathieu) */
   saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
   harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
@@ -80,7 +81,7 @@ function tirerCawotte(mo, c, R, c0) {
     g.position.set(x, y, z); g.lookAt(x + ux, y - (y0 - yv) * ex / 1.3, z + uz); g.rotateZ(rot);
     const pp = paysanMesh.position;
     if (y < pp.y + 2.2 && Math.hypot(pp.x - x, pp.z - z) < R.toucher) { jeter(g); pouf(x, y, z, 0.9, '#ee7a26'); emettre(FX_VIF, 6, { x, y, z, r: 0.1, dv: 3, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
-      if (!c0.fin) blesserPerso(degatsFixes(c0.pvMax * R.pct), mo); return true; }
+      if (!c0.fin) blesserPerso(degWab(mo, c0.pvMax * R.pct), mo); return true; }
     if (s > L) { jeter(g); pouf(x, solA(x, z), z, 0.7, '#ee7a26'); return true; } return false;
   });
 }
@@ -145,7 +146,7 @@ function lancerHarpon(mo, O, H, a, ah, L0, c0) { /* (ah : la direction de la lig
         if (Math.hypot(p.x - pointe.x, p.z - pointe.z) < H.toucher && !(c0.invincible > 0)) { /* harponne : ramene contre lui */
           phase = 'tire'; t = 0; x0 = p.x; z0 = p.z; mo.wabTient = true; chemin = []; arrivee = null;
           const g = mo.ry + 0, fx = mo.x + Math.sin(g) * 1.7 * (mo.echelle || 1) + Math.cos(g) * 0.5, fz = mo.z + Math.cos(g) * 1.7 * (mo.echelle || 1) - Math.sin(g) * 0.5; f = pointValide(mo.x, mo.z, fx, fz);
-          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(degatsFixes(H.impact), mo); c0.assomme = Math.max(c0.assomme || 0, H.tire); /* (retenu le temps d'etre ramene seulement : le coup de poing s'esquive) */
+          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(degWab(mo, H.impact), mo); c0.assomme = Math.max(c0.assomme || 0, H.tire); /* (retenu le temps d'etre ramene seulement : le coup de poing s'esquive) */
           if (nomS(mo)) { const ac = mo.m.userData.anim.A[nomS(mo)]; if (ac) ac.timeScale = 2.2; } }
         else if (s >= H.R) phase = 'retour'; }
       if (phase === 'retour' && s <= 0) return fin();
@@ -169,17 +170,18 @@ function poingWab(mo, H, c0) { /* le coup de poing de la main mecanique, juste a
   zoneDanger({ mo, x: mo.x, z: mo.z, r: H.rPoing * e, a: a0, ouv: H.ouvPoing, duree: H.prepaPoing, couleur: COULEUR_CAC, effet: (d) => {
     mo.wabOccupe = false; const q = paysanMesh.position; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !dansDanger(d, q.x, q.z)) return;
     const z = q.clone(); z.y += 1.1; etoileImpact(z, 1.1); secousse(0.22, 0.3); const w = q.clone(); w.y += 2.1; chiffre('Coup de poing !', w, 'vol');
-    if (blesserPerso(degatsFixes(H.poing), mo)) repousserPerso(mo, H.repousse); } });
+    if (blesserPerso(degWab(mo, H.poing), mo)) repousserPerso(mo, H.repousse); } });
 }
 /* des degats fixes (les montants de Mathieu) : blesserPerso les multiplie par le bonus de degats du palier, on le retire avant */
+const degWab = (mo, v) => degatsFixes(v * ((mo && mo.wabPuissance) || 1)); /* (apres l'injection, sous 30 % : tous ses coups x1,25) */
 const degatsFixes = (v) => { const c = combat; if (!c || c.raid) return Math.max(1, Math.round(v)); return Math.max(1, v / (multDegats(c.n) * multHautes(c.n, c.genre))); };
 /* ---------------- ses coups automatiques ---------------- */
 function capWabAutos(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif') return; const A = K.autos, { pp, dt } = ctx;
-  mo.deg = degatsFixes(A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
+  mo.deg = degWab(mo, A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), cac = mo.d.portee * (mo.allonge || 1) + 0.6;
   if (mo.wabOccupe || mo.geste || dP <= cac || dP > A.portee || !osWab(mo)) { mo.wabTirT = Math.min(mo.wabTirT || 0, A.cadence * 0.6); return; } /* (revenu a portee de tir, il ne tire pas dans l'instant) */
-  mo.wabTirT = (mo.wabTirT || 0) + dt; if (mo.wabTirT < A.cadence) return; mo.wabTirT = 0;
+  mo.wabTirT = (mo.wabTirT || 0) + dt; if (mo.wabTirT < (mo.wabPuissance && K.phase ? K.phase.cadenceTir : A.cadence)) return; mo.wabTirT = 0;
   mo.wabTirC = mo.wabTirC === 'G' ? 'D' : 'G'; tirAutoWab(mo, mo.wabTirC, A, combat);
 }
 function tirAutoWab(mo, c, A, c0) { /* une cawotte part le long du canon de la tourelle, puis retombe sur toi (elle te suit : un coup automatique touche toujours) */
@@ -191,7 +193,7 @@ function tirAutoWab(mo, c, A, c0) { /* une cawotte part le long du canon de la t
     t += dt / duree; const k = Math.min(1, t), u = 1 - k; P2.copy(paysanMesh.position); P2.y += 0.9; av.copy(g.position);
     Q.copy(p).multiplyScalar(u * u).addScaledVector(P1, 2 * u * k).addScaledVector(P2, k * k); g.position.copy(Q); if (Q.distanceToSquared(av) > 1e-6) g.lookAt(Q.clone().multiplyScalar(2).sub(av));
     if (k >= 1) { jeter(g); pouf(P2.x, P2.y, P2.z, 1.0, '#ee7a26'); emettre(FX_VIF, 8, { x: P2.x, y: P2.y, z: P2.z, r: 0.1, dv: 3, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
-      if (mo.etat === 'actif' || mo.etat === 'mort') blesserPerso(degatsFixes(A.tir), mo); return true; }
+      if (mo.etat === 'actif' || mo.etat === 'mort') blesserPerso(degWab(mo, A.tir), mo); return true; }
     return false;
   });
 }
@@ -229,7 +231,7 @@ function tenirWab(mo, G, c0) { /* il te tient a bout de bras : 0,6 s puis l'inje
 function injecterWab(mo, G, c0) { /* le serum : 400 degats en 10 s (comme un poison, 40 par seconde) et 20 % de vitesse en moins les memes 10 s */
   const p = paysanMesh.position.clone(); p.y += 1.1; emettre(FX_VIF, 16, { x: p.x, y: p.y, z: p.z, r: 0.2, dv: 3, haut: true, vie: [0.3, 0.6], taille: [0.14, 0.04], c: ['#b6ff6a', '#5fe03a', '#e8ffd0'], grav: 6, frein: 1.4 }); etoileImpact(p, 0.8, '#7cff5a');
   if (combat !== c0 || c0.fin || c0.invincible > 0) return;
-  (c0.poisons = c0.poisons || []).push({ pct: G.degats / G.duree / c0.pvMax, t: G.duree, serumWab: true });
+  (c0.poisons = c0.poisons || []).push({ pct: G.degats * (mo.wabPuissance || 1) / G.duree / c0.pvMax, t: G.duree, serumWab: true });
   c0.serumLentJusque = performance.now() + G.duree * 1000; c0.serumLent = G.lent;
   const q = paysanMesh.position.clone(); q.y += 2.4; chiffre('Sérum !', q, 'vol'); auraSerum(c0, G.duree);
   if (!c0.wabSerumVu) { c0.wabSerumVu = true; toast('Le sérum du Docteur : ' + G.degats + ' dégâts en ' + G.duree + ' s, et ' + Math.round(G.lent * 100) + ' % de vitesse en moins pendant ce temps.', 'alerte'); }
@@ -241,3 +243,66 @@ function auraSerum(c0, duree) { /* un anneau vert sous tes pieds tant que le ser
     if (Math.random() < dt * 6) emettre(FX_VIF, 1, { x: q.x, y: q.y + 0.4, z: q.z, r: 0.45, v: [0, 1.4, 0], dv: 0.3, vie: [0.5, 0.8], taille: [0.1, 0.02], c: ['#d8ffb0', '#5fe03a'] }); return false; });
 }
 CAPACITES.unshift(capWabHarpon, capWabRafale, capWabSaisie, capWabAutos);
+/* ---------------- sous 30 % : ses creatures, puis sa derniere creation (20/11/2026, « fais la phase sous 30 % maintenant », Mathieu ; le kit : « sous 30 %,
+   il libere des creatures mutantes et s'injecte sa derniere creation, qui le rend surpuissant ») ----------------
+   Invulnerable le temps de la scene (4,6 s) : il ecarte les bras et appelle (des Wabbits transmutes sortent de terre autour de lui), puis une seringue verte
+   apparait dans sa main mecanique, il se la plante dans le cou, convulse, grossit, s'illumine de vert et rugit. Ensuite, surpuissant : tous ses coups x1,25,
+   25 % plus rapide, la rage du jeu (coups 1,7 fois plus rapides, sorts 1,3 fois plus frequents), une cawotte de tourelle toutes les 1,5 s au lieu de 2.
+   Ses creatures sont ses invocations : elles tombent avec lui (« a sa mort, les cages s'ouvrent, les Wabbits sont liberes »). */
+function capWabPhase(mo, ctx) {
+  const K = mo.d.wabKit, P = K && K.phase; if (!P || mo.wabPhase || mo.etat !== 'actif' || mo.wabOccupe || mo.pv >= mo.pvMax * P.seuil) return;
+  const an = mo.m.userData.anim, c0 = combat; if (!an || !osWab(mo)) return; mo.wabPhase = 'scene'; mo.wabOccupe = true; mo.wabInvuln = true; mo.rugiRage = true; /* (sa rage arrive avec l'injection, sans le rugissement du jeu) */
+  const nomA = an.F.appel && an.F.appel[0], nomI = an.F.injection && an.F.injection[0], dI = nomI ? an.A[nomI].getClip().duration : 3, dA = 1.6, tot = dA + dI;
+  mo.bloqueT = Math.max(mo.bloqueT || 0, tot); mo.cd = Math.max(mo.cd || 0, tot); const pp = paysanMesh.position; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z);
+  if (nomA) { const a = jouerAnim(an, nomA, 0.15); a.timeScale = a.getClip().duration / dA; } mo.geste = { t: 0, d: tot };
+  toast(leNom(mo.d) + ' libère ses créatures et s\'injecte sa dernière création !', 'alerte'); son('vague');
+  const e0 = mo.echelle || 1, h0 = mo.haut || 3.6, O = osWab(mo), cou = mo.m.getObjectByName('tete'), W = MODELES.wabbenstein.userData.wab, vert = new T.Color('#1e5a0e');
+  let t = 0, sortis = false, ser = null, pique = false, jete = null, aura = false;
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabInvuln = false; mo.wabOccupe = false; if (ser) jeter(ser); if (jete) jeter(jete.g); return true; }
+    t += dt; const ti = t - dA;
+    if (!sortis && t >= 0.6) { sortis = true; P.creatures.forEach((ty, i) => { if (!MONSTRES[ty]) return; const a = mo.ry + Math.PI * (0.35 + 1.3 * i / Math.max(1, P.creatures.length - 1)), r = 3.6 * e0, q = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r);
+      setTimeout(() => { if (combat !== c0 || c0.fin) return; pouf(q.x, solA(q.x, q.z), q.z, 2.0, '#7dff5a'); apparaitre(ty, { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.wabCreature = true; if (typeof transmuter === 'function') transmuter(o); } }); combat.total++; }, i * 180); }); }
+    if (ti >= 0 && !ser && !pique && nomI) { const a = jouerAnim(an, nomI, 0.12); a.timeScale = 1; ser = seringueWab(); scene.add(ser); }
+    if (ser) { /* la seringue dans la main, pointee vers son cou ; le serum se vide apres la piqure */
+      O.mG.updateMatrixWorld(true); const bout = W.axeMain.clone().multiplyScalar(0.26).applyMatrix4(O.mG.matrixWorld), c = cou.getWorldPosition(new T.Vector3()), d = c.clone().sub(bout); d.y *= 0.4; d.normalize();
+      const dist = c.distanceTo(bout), sc = Math.max(1.1 * e0, Math.min(1.9 * e0, dist / 0.78)), coup = ti < 0.5 ? 0 : ti < 0.65 ? (ti - 0.5) / 0.15 : 1; /* (assez grande pour que l'aiguille atteigne son cou ; elle s'y enfonce a la piqure) */
+      ser.position.copy(bout).addScaledVector(d, (0.05 + 0.14 * coup) * sc); ser.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d); ser.scale.setScalar(sc);
+      const k = Math.max(0, Math.min(1, (ti - 0.65) / 0.8)); ser.userData.liq.scale.y = Math.max(0.05, 1 - k); ser.userData.liq.position.y = 0.28 * k; ser.userData.pis.position.y = 0.45 * k; /* (le piston pousse vers l'aiguille, le serum se vide de son cote) */
+      if (!pique && ti >= 0.65) { pique = true; const p = c.clone(); emettre(FX_VIF, 22, { x: p.x, y: p.y, z: p.z, r: 0.2, dv: 4, haut: true, vie: [0.4, 0.7], taille: [0.16, 0.05], c: ['#e8ffd0', '#7dff5a', '#2fd12f'], grav: 5, frein: 1.2 }); flashLumiere(p.x, p.y, p.z, '#7dff5a', 4, 8, 0.4); secousse(0.12, 0.3); chiffre('Injection !', p.clone().setY(p.y + 1.2), 'vol'); }
+      if (ti >= 1.6) { jete = { g: ser, v: new T.Vector3((Math.random() - 0.5) * 3, 3.5, (Math.random() - 0.5) * 3), t: 0 }; ser = null; } }
+    if (jete) { jete.t += dt; jete.v.y -= 12 * dt; jete.g.position.addScaledVector(jete.v, dt); jete.g.rotation.x += dt * 9; jete.g.rotation.z += dt * 5;
+      if (jete.t > 0.7 || jete.g.position.y < solA(jete.g.position.x, jete.g.position.z)) { pouf(jete.g.position.x, solA(jete.g.position.x, jete.g.position.z), jete.g.position.z, 1.0, '#cfe8d0'); jeter(jete.g); jete = null; } }
+    if (pique) { const k = Math.max(0, Math.min(1, (ti - 0.65) / 1.2)), g = k * k * (3 - 2 * k); mo.echelle = e0 * (1 + (P.taille - 1) * g); mo.haut = h0 * (1 + (P.taille - 1) * g); mo.m.scale.setScalar(mo.echelle);
+      an.lueur = vert.clone().multiplyScalar(g * (0.45 + 0.12 * Math.sin(t * 9))); /* (une lueur discrete : plus forte, l'orange de l'armure virait au jaune) */ an.peau.forEach((m) => { if (m.emissive) m.emissive.copy(an.lueur); });
+      if (!aura && ti >= 1.75) { aura = true; const d0 = mo.d; mo.d = Object.assign({}, d0, { element: 'poison' }); auraRageCorps(mo); mo.d = d0; secousse(0.22, 0.5); onde(mo.x, solA(mo.x, mo.z) + 0.05, mo.z, 6 * e0, '#7dff5a', 0.5, 0.8); } }
+    if (t >= tot) { /* surpuissant */
+      mo.wabInvuln = false; mo.wabOccupe = false; mo.wabPhase = 'surpuissant'; mo.enrage = true; mo.wabPuissance = P.puissance; mo.vitM = (mo.vitM || 1) * P.vitesse; if (ser) jeter(ser);
+      toast(leNom(mo.d) + ' est surpuissant : ses coups font plus mal, il est plus rapide et frappe bien plus souvent !', 'alerte'); lueurWab(mo, c0); return true; }
+    return false;
+  });
+}
+function lueurWab(mo, c0) { /* la lueur verte qui pulse, jusqu'a sa mort */
+  const an = mo.m.userData.anim, vert = new T.Color('#1e5a0e'); let t = 0;
+  effets.push((dt) => { if (combat !== c0 || c0.fin || mo.etat === 'mort') return true; t += dt; an.lueur = vert.clone().multiplyScalar(0.45 + 0.12 * Math.sin(t * 4)); if (!(an.eclat > 0)) an.peau.forEach((m) => { if (m.emissive) m.emissive.copy(an.lueur); }); return false; });
+}
+let GEO_SER = null;
+function seringueWab() { /* une grosse seringue : le corps en verre, le serum vert, le piston de laiton, l'aiguille ; elle pointe vers +Y */
+  if (!GEO_SER) { GEO_SER = { verre: new T.CylinderGeometry(0.12, 0.12, 0.62, 14), liq: new T.CylinderGeometry(0.095, 0.095, 0.56, 12), aig: new T.CylinderGeometry(0.012, 0.02, 0.34, 6), embout: new T.CylinderGeometry(0.05, 0.1, 0.1, 12),
+      tige: new T.CylinderGeometry(0.025, 0.025, 0.5, 6), pouce: new T.CylinderGeometry(0.13, 0.13, 0.04, 14), ailes: new T.BoxGeometry(0.42, 0.04, 0.12),
+      mv: new T.MeshToonMaterial({ color: '#dff7ea', gradientMap: grad, transparent: true, opacity: 0.45, depthWrite: false }), ml: new T.MeshBasicMaterial({ color: '#6dff3a' }), ma: mat('#c9c4b8'), mo: mat('#c9a050') };
+    partager(...Object.values(GEO_SER)); }
+  const G = GEO_SER, g = new T.Group(), liq = new T.Mesh(G.liq, G.ml), verre = new T.Mesh(G.verre, G.mv), aig = new T.Mesh(G.aig, G.ma), emb = new T.Mesh(G.embout, G.ma), pis = new T.Group(), tige = new T.Mesh(G.tige, G.mo), pouce = new T.Mesh(G.pouce, G.mo), ailes = new T.Mesh(G.ailes, G.mo);
+  aig.position.y = 0.53; emb.position.y = 0.36; ailes.position.y = -0.3; tige.position.y = -0.25; pouce.position.y = -0.5; pis.add(tige, pouce); pis.position.y = 0; g.add(liq, verre, aig, emb, ailes, pis); g.userData = { liq, pis };
+  g.traverse((o) => { o.raycast = () => {}; }); return g;
+}
+/* invulnerable pendant la scene */
+const blesserWabP = blesser; blesser = function (mo, n) { if (mo && mo.wabInvuln && mo.etat === 'actif') { if (!((mo.wabInvT || 0) > performance.now())) { mo.wabInvT = performance.now() + 450; const p = mo.m.position.clone(); p.y += (mo.haut || 3.6) * 0.8; chiffre('Invulnérable', p); } return; } return blesserWabP.apply(this, arguments); };
+/* a sa mort, ses creatures sont liberees (« a sa mort, les cages s'ouvrent, les Wabbits sont liberes ») : un nuage vert, elles disparaissent */
+function capWabLibere(mo) {
+  if (!mo.wabCreature || mo.etat !== 'actif' || !combat) return; const inv = combat.monstres.find((o) => o.id === mo.invoqueur); if (inv && inv.etat !== 'mort') return;
+  const y = mo.m.position.y; pouf(mo.x, y + 0.4, mo.z, 1.8, '#7dff5a'); emettre(FX_VIF, 10, { x: mo.x, y: y + 0.6, z: mo.z, r: 0.3, dv: 2, haut: true, vie: [0.4, 0.7], taille: [0.12, 0.04], c: ['#e8ffd0', '#7dff5a'], grav: -1, frein: 1 });
+  chiffre('Libéré !', new T.Vector3(mo.x, y + (mo.haut || 1.6) + 0.4, mo.z), 'vol'); mo.pv = 0; mo.etat = 'mort'; mo.t = 0; mo.m.visible = false; if (mo.barre) mo.barre.remove(); if (combat.cible === mo) combat.cible = null;
+}
+CAPACITES.unshift(capWabPhase, capWabLibere);
+
