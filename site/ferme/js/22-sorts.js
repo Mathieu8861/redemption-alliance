@@ -297,7 +297,7 @@ const SORTS_LEG = {
     osa: { nom: 'Dragonnet', recharge: 16, portee: 10, zone: 1.2 } } }, /* (10/11/2026, « le cone un peu plus grand : c'est un sort limite au corps a corps, alors que Crocabulia tape de loin ; pas aussi loin qu'elle, mais plus que maintenant », Mathieu : 5 cases au lieu de 3,5 ; Crocabulia : 7) */
   wa: { nom: 'Pluie de cawottes', teinte: '#f08a24', recharge: 13, portee: 10, zone: 2.4, parClasse: { /* (un sort par classe, 16/11/2026, « en Cra a semi-distance elle me saoule », Mathieu, au formulaire : Cra cawottes chercheuses, Iop pluie autour de lui, Osa sa Cawotte geante) */
     iop: { nom: 'Pluie de cawottes', recharge: 13, portee: 5, instant: true }, cra: { nom: 'Cawottes chercheuses', recharge: 13, portee: 16, instant: true },
-    osa: { nom: 'Cawotte géante', recharge: 13, portee: 10, zone: 6 } } },
+    osa: { nom: 'Cawotte géante', recharge: 15, portee: 10, zone: 6 } } },
   koulosse: { nom: 'Fumée', teinte: '#79b54a', recharge: 13, portee: 10, zone: 3 },
   cochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 },
   dcochon: { nom: 'Bain de boue', teinte: '#8e6640', recharge: 12, portee: 10, zone: 3 }, /* (les armes du Dragon Cochon, 13/11/2026 : « Bain de boue pour les 3 », Mathieu, le sort du Heaume) */
@@ -609,7 +609,7 @@ function ciblesCawottes(portee) { const pp = paysanMesh.position, d = (o) => Mat
    et chaque monstre qui tape dessus se prend ses degats renvoyes x2 », Mathieu) : elle sort de terre la ou tu vises (5 cases au plus) ; pendant 8 s, les monstres a moins de
    3 cases d'elle la frappent au lieu de toi (tout le monde : boss, demi-boss et tireurs compris, ses sorts visent toujours le perso) et chacun se prend 2 fois les degats de son coup.
    Elle a tes PV max ; un anneau orange montre jusqu'ou elle attire, une barre ses PV */
-const CAWOTTE_GEANTE = { duree: 8, rayon: 6, pv: 1, renvoi: 2 }, VEC_CAWG = new T.Vector3(); /* (au formulaire du 16/11/2026 : 100 % de tes PV au lieu de 50, « tout le monde » : boss, demi-boss et tireurs compris ; en essai, 6 monstres de la 91 la cassaient en moins de 4 s a 50 %) */
+const CAWOTTE_GEANTE = { duree: 8, rayon: 6, pv: 0.7, renvoi: 1.35, max: 4, bossMax: 3 }, VEC_CAWG = new T.Vector3(); /* (NERF du 20/11/2026, Mathieu : les 4 monstres les plus proches seulement (max), un boss ou demi-boss 3 s au plus (bossMax), 70 % de tes PV au lieu de 100, le coup renvoye x1,35 au lieu de x2, recharge 15 s au lieu de 13) */ /* (au formulaire du 16/11/2026 : 100 % de tes PV au lieu de 50, « tout le monde » : boss, demi-boss et tireurs compris ; en essai, 6 monstres de la 91 la cassaient en moins de 4 s a 50 %) */
 function fabriquerCawotteGeante() {
   const g = new T.Group(), plat = (geo, c) => maille(geo, c, { flatShading: true });
   /* (une vraie carotte : epaule arrondie, effilee vers la pointe enfoncee dans une butte de terre retournee, quelques stries courtes, de longues fanes ; un peu penchee) */
@@ -639,17 +639,20 @@ function cawotteGeante(pt, st, S) {
   onde(x, y + 0.05, z, 1.8, '#f08a24', 0.45, 0.85); onde(x, y + 0.05, z, CAWOTTE_GEANTE.rayon, '#f08a24', 0.35, 0.9); secousse(0.08, 0.2); mottes(x, y, z, 12, 1.0); poussiere(x, y, z, 8, 1.0, '#8a6a48');
   const barre = document.createElement('div'); barre.className = 'pv-monstre allie'; barre.innerHTML = '<i></i>'; $('combat-zone').appendChild(barre); ca.barre = barre;
   chiffre('Cawotte géante', new T.Vector3(x, y + 2.6, z), 'gros');
-  if (!c0.cawotteGVu) { c0.cawotteGVu = true; toast("La Cawotte géante attire les monstres autour d'elle pendant " + CAWOTTE_GEANTE.duree + ' s : qui la frappe se prend 2 fois ses dégâts.', 'or'); }
+  if (!c0.cawotteGVu) { c0.cawotteGVu = true; toast('La Cawotte géante attire les ' + CAWOTTE_GEANTE.max + ' monstres les plus proches pendant ' + CAWOTTE_GEANTE.duree + ' s (un boss ' + CAWOTTE_GEANTE.bossMax + ' s au plus) : qui la frappe se prend 1,35 fois ses dégâts.', 'or'); }
 }
 function blesserCawotteGeante(ca, dg, mo) {
   if (!ca || ca.pv <= 0) return; const n = Math.max(1, Math.round(dg)); ca.pv -= n; ca.eclat = 0.16;
   if (ca.m) chiffre('-' + fmt(n), new T.Vector3(ca.x, ca.m.position.y + 1.8, ca.z));
-  if (mo && mo.etat === 'actif') { blesser(mo, Math.round(n * CAWOTTE_GEANTE.renvoi)); etoileImpact(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 1) * 0.5, mo.z), 0.7, '#f08a24'); } /* (le renvoi : 2 fois son coup) */
+  if (mo && mo.etat === 'actif') { blesser(mo, Math.round(n * CAWOTTE_GEANTE.renvoi)); etoileImpact(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 1) * 0.5, mo.z), 0.7, '#f08a24'); } /* (le renvoi : 1,35 fois son coup) */
   if (ca.pv <= 0) finCawotteGeante(combat, true);
 }
 function majCawotteGeante(dt) {
   const c = combat, ca = c && c.cawotteG; if (!ca) return;
   ca.vie -= dt; if (ca.vie <= 0) { finCawotteGeante(c, false); return; }
+  { const C = CAWOTTE_GEANTE, T0 = ca.tenus || (ca.tenus = {}), dist = (o) => Math.hypot(o.x - ca.x, o.z - ca.z), chef = (o) => o.d.boss || o.d.demi; /* qui elle attire : les 4 plus proches dans son anneau ; un boss, 3 s au plus (21-combat.js, surCa) */
+    const L = c.monstres.filter((o) => o.etat === 'actif' && dist(o) < C.rayon && !(chef(o) && (T0[o.id] || 0) >= C.bossMax)).sort((a, b) => dist(a) - dist(b)).slice(0, C.max);
+    ca.attires = new Set(L.map((o) => o.id)); L.forEach((o) => { if (chef(o)) T0[o.id] = (T0[o.id] || 0) + dt; }); }
   const m = ca.m; ca.pousse = Math.min(1, ca.pousse + dt / 0.45); ca.ph += dt; const e = 1 - Math.pow(1 - ca.pousse, 3), choc = Math.max(0, ca.eclat) / 0.16; ca.eclat = Math.max(0, ca.eclat - dt);
   const y = hauteurSol(ca.x, ca.z, caseIci(ca.x, ca.z)); m.position.set(ca.x, y - 0.6 * (1 - e), ca.z); m.scale.setScalar((0.2 + 0.8 * e) * (1 + 0.04 * Math.sin(ca.ph * 5) - 0.08 * choc) * Math.min(1, ca.vie / 0.3 + 0.0001));
   m.rotation.z = 0.06 * choc * Math.sin(ca.ph * 40); m.userData.anneau.material.opacity = 0.22 + 0.13 * Math.sin(ca.ph * 4);
