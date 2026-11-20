@@ -24,11 +24,11 @@ SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
   autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
-  saisie: { periode: 12, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 350, jet: 2.0, malus: { ralenti: 4, fragile: 6, poison: 6, affaibli: 6 }, fragileX: 1.25, poisonPct: 0.01, affaibliX: 0.7 }, /* (la main de manipulation et son serum : chiffres proposes, a valider par Mathieu) */
+  saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
   harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
-  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245)',
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
 GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, essai)', liste: { wabbenstein: 1 } };
 /* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
@@ -196,16 +196,15 @@ function tirAutoWab(mo, c, A, c0) { /* une cawotte part le long du canon de la t
   });
 }
 /* ---------------- la main de manipulation et son serum (20/11/2026, « fais la main de manipulation avec le serum », Mathieu) ----------------
-   Une zone bleue devant lui (0,8 s) pendant qu'il tend son bras mecanique ; dedans, il t'attrape, te souleve a bout de bras, t'injecte un serum (degats
-   et un malus tire au hasard : ralenti, fragile, empoisonne ou affaibli), puis te jette sur le cote. Hors de la zone, il referme la main sur le vide. */
-const MALUS_WAB = { ralenti: 'ralenti', fragile: 'fragile', poison: 'empoisonné', affaibli: 'affaibli' };
+   Une zone bleue devant lui (0,8 s) pendant qu'il tend son bras mecanique ; dedans, il t'attrape, te souleve a bout de bras sur le cote, t'injecte son serum
+   (400 degats en 10 s, et 20 % de vitesse en moins pendant ce temps), puis te jette. Hors de la zone, il referme la main sur le vide. Toutes les 8 s. */
 function capWabSaisie(mo, ctx) {
   const K = mo.d.wabKit; if (!K || !K.saisie || mo.etat !== 'actif' || mo.geste || mo.wabOccupe) return; const G = K.saisie, { pp, sortPret } = ctx, e = mo.echelle || 1;
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('wabSaisieT', G.periode) || dP > G.R * e - 0.3 || !osWab(mo)) return;
   const an = mo.m.userData.anim, nom = an.F.saisie && an.F.saisie[0]; if (!nom) return;
   const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.wabSaisieT = 0; mo.wabOccupe = true; mo.ry = a; mo.bloqueT = Math.max(mo.bloqueT || 0, G.prepa + 1.4); mo.cd = Math.max(mo.cd || 0, G.prepa + 1.5);
   const ac = jouerAnim(an, nom, 0.1), D = ac.getClip().duration; ac.timeScale = 0.48 / G.prepa; mo.geste = { t: 0, d: G.prepa + (D - 0.48) - 0.1 }; /* (la main se referme a la fin de l'annonce ; 0,48 s de son mouvement, image tenue du debut comprise) */
-  if (!c0.wabSaisieVu) { c0.wabSaisieVu = true; toast(leNom(mo.d) + ' tend sa main mécanique : sors de la zone bleue, sinon il t\'attrape et t\'injecte un sérum !', 'alerte'); }
+  if (!c0.wabSaisieVu) { c0.wabSaisieVu = true; toast(leNom(mo.d) + ' tend sa main mécanique : sors de la zone bleue, sinon il t\'attrape et t\'injecte son sérum !', 'alerte'); }
   zoneDanger({ mo, x: mo.x, z: mo.z, r: G.R * e, a, ouv: G.ouv, duree: G.prepa, couleur: COULEUR_CAC, effet: (d) => {
     const p = paysanMesh.position; ac.timeScale = 1;
     if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !dansDanger(d, p.x, p.z) || c0.invincible > 0 || paysanMesh.userData.enVol) { mo.geste = { t: 0, d: 0.25 }; mo.wabOccupe = false; return; } /* (rate : il referme la main sur le vide et repart) */
@@ -227,16 +226,13 @@ function tenirWab(mo, G, c0) { /* il te tient a bout de bras : 0,6 s puis l'inje
     return false;
   });
 }
-function injecterWab(mo, G, c0) {
+function injecterWab(mo, G, c0) { /* le serum : 400 degats en 10 s (comme un poison, 40 par seconde) et 20 % de vitesse en moins les memes 10 s */
   const p = paysanMesh.position.clone(); p.y += 1.1; emettre(FX_VIF, 16, { x: p.x, y: p.y, z: p.z, r: 0.2, dv: 3, haut: true, vie: [0.3, 0.6], taille: [0.14, 0.04], c: ['#b6ff6a', '#5fe03a', '#e8ffd0'], grav: 6, frein: 1.4 }); etoileImpact(p, 0.8, '#7cff5a');
-  blesserPerso(degatsFixes(G.degats), mo); if (combat !== c0 || c0.fin) return;
-  const L = Object.keys(G.malus), m = L[Math.floor(Math.random() * L.length)], d = G.malus[m], q = paysanMesh.position.clone(); q.y += 2.4; chiffre('Sérum : ' + MALUS_WAB[m] + ' !', q, 'vol');
-  if (m === 'ralenti') c0.lenteur = Math.max(c0.lenteur || 0, d);
-  else if (m === 'fragile') maudirPerso(d, G.fragileX);
-  else if (m === 'poison') (c0.poisons = c0.poisons || []).push({ pct: G.poisonPct, t: d });
-  else if (m === 'affaibli') c0.wabAffaibli = performance.now() + d * 1000;
-  c0.wabDernierMalus = m; auraSerum(c0, d);
-  if (!c0.wabSerumVu) { c0.wabSerumVu = true; toast('Le sérum du Docteur : un malus au hasard (ralenti, fragile, empoisonné ou affaibli) pendant quelques secondes.', 'alerte'); }
+  if (combat !== c0 || c0.fin || c0.invincible > 0) return;
+  (c0.poisons = c0.poisons || []).push({ pct: G.degats / G.duree / c0.pvMax, t: G.duree, serumWab: true });
+  c0.serumLentJusque = performance.now() + G.duree * 1000; c0.serumLent = G.lent;
+  const q = paysanMesh.position.clone(); q.y += 2.4; chiffre('Sérum !', q, 'vol'); auraSerum(c0, G.duree);
+  if (!c0.wabSerumVu) { c0.wabSerumVu = true; toast('Le sérum du Docteur : ' + G.degats + ' dégâts en ' + G.duree + ' s, et ' + Math.round(G.lent * 100) + ' % de vitesse en moins pendant ce temps.', 'alerte'); }
 }
 function auraSerum(c0, duree) { /* un anneau vert sous tes pieds tant que le serum agit */
   const r = new T.Mesh(new T.RingGeometry(0.6, 0.8, 32), fxMat('#7cff5a', 0.8)); r.rotation.x = -Math.PI / 2; r.material.blending = T.AdditiveBlending; sansClic(r); scene.add(r); let t = 0;
@@ -244,6 +240,4 @@ function auraSerum(c0, duree) { /* un anneau vert sous tes pieds tant que le ser
     const q = paysanMesh.position; r.position.set(q.x, solA(q.x, q.z) + 0.09, q.z); r.rotation.z -= dt * 2.5; r.material.opacity = 0.8 * Math.min(1, (duree - t) / 0.4);
     if (Math.random() < dt * 6) emettre(FX_VIF, 1, { x: q.x, y: q.y + 0.4, z: q.z, r: 0.45, v: [0, 1.4, 0], dv: 0.3, vie: [0.5, 0.8], taille: [0.1, 0.02], c: ['#d8ffb0', '#5fe03a'] }); return false; });
 }
-/* affaibli par le serum : tes coups font moins mal (seulement tes coups, pas ceux de tes defenses) */
-const blesserWab = blesser; blesser = function (mo, n, gros, src) { const c = combat; if (c && src == null && c.wabAffaibli > performance.now() && n > 1) n = Math.max(1, Math.round(n * KIT_WAB.saisie.affaibliX)); return blesserWab.call(this, mo, n, gros, src); };
 CAPACITES.unshift(capWabHarpon, capWabRafale, capWabSaisie, capWabAutos);
