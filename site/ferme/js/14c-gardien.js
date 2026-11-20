@@ -32,6 +32,8 @@ const dureeRepasGardien = (G) => G.heures * 60 * MIN;
 const gardienAffame = () => !S_.gardien || Date.now() >= S_.gardien.rassasie;
 const repasGardien = () => { const G = gardienDe(); return G ? Math.max(0, Math.ceil((S_.gardien.rassasie - Date.now()) / dureeRepasGardien(G) - 1e-6)) : 0; };
 const degGardien = () => Math.max(1, Math.round(statsPerso().deg * gardienDe().deg * (1 + (typeof bonusArmureGardien === 'function' ? bonusArmureGardien() : 0)))); /* (son armure, js/29f-armure-gardien.js, 19/11/2026) */
+const vitesseGardien = () => gardienDe().vitesse * (1 + (typeof statArmureGardien === 'function' ? statArmureGardien('vitesse') : 0)); /* (l'armure des niveaux 2 et 3, 29f-armure-gardien.js, 20/11/2026) */
+const rechargePouvoirGardien = () => RECHARGE_POUVOIR - (typeof statArmureGardien === 'function' ? statArmureGardien('recharge') : 0);
 const SC_GARDIEN = new Set([...SC_P8, 'moustache', 'vibrisse', 'narine', 'nez_chat', 'museau_chat', 'chanfrein_chat', 'menton_chat', 'babine_chat', 'paupiere']);
 
 /* ---------- les modeles : charges seulement une fois le gardien choisi (le sien, pas l'autre) ---------- */
@@ -107,7 +109,7 @@ function ouvrirGardien() {
   ouvrirModale('gardien', entete(G.nom) + '<div class="art">' + ico(G.ico) + '<div><b>' + G.nom + ', ton ' + G.espece + ' de garde</b><div class="desc">' + etat + ' Il mange 1 ' + G.proie + ' toutes les ' + G.heures + ' h, ' + RESERVE_GARDIEN + ' repas d\'avance au plus.' +
     (!plein && !P.ok ? ' <b>' + P.txt + '</b>' : '') + '</div></div><div class="act">' + bouton + '</div></div>' + choix +
     '<div class="art">' + ico(G.icoVsa) + '<div><b>En VSA, ' + G.forme + '</b><div class="desc">Quand un voleur de VSA ou une simu VSA débarque, il se transforme et mord les voleurs : ' + fmt(d) + ' de dégâts (' + Math.round(G.deg * 100) + ' % des tiens) toutes les ' + String(G.cadence).replace('.', ',') + ' s. Il vise ' + G.cible + '. ' +
-    G.pouvoirNom + ' : ' + G.pouvoirTxt + ' (toutes les ' + RECHARGE_POUVOIR + ' s).</div></div><div class="act"><button class="btn discret" data-gardien="caresser"' + (faim ? ' disabled' : '') + '>Caresser</button></div></div>');
+    G.pouvoirNom + ' : ' + G.pouvoirTxt + ' (toutes les ' + rechargePouvoirGardien() + ' s).' + (typeof niveauArmureGardien === 'function' && niveauArmureGardien() ? ' Il porte l\'armure ' + ARMURES_GARDIEN[niveauArmureGardien()].court + ' : ' + effetsArmure(ARMURES_GARDIEN[niveauArmureGardien()]) + '.' : '') + '</div></div><div class="act"><button class="btn discret" data-gardien="caresser"' + (faim ? ' disabled' : '') + '>Caresser</button></div></div>');
 }
 function nourrirGardien(type) {
   const G = gardienDe(); if (!G) return; if (repasGardien() >= RESERVE_GARDIEN) { toast(G.nom + ' a assez mangé pour l\'instant.'); return; }
@@ -223,13 +225,13 @@ function majVsa(dt, s, c) {
   const q = posCible(c), d = Math.hypot(q.x - gard.x, q.z - gard.z);
   if (G.pouvoir === 'bond' && !gard.recharge && combat && combat.raid) { /* le plus loin des voleurs, s'il est vraiment loin */
     const L = combat.monstres.filter((mo) => mo.etat === 'actif' && mo.d.vole), loin = L.reduce((a, b) => (Math.hypot(b.x - gard.x, b.z - gard.z) > Math.hypot(a.x - gard.x, a.z - gard.z) ? b : a), L[0]);
-    if (loin && Math.hypot(loin.x - gard.x, loin.z - gard.z) > 4) { gard.recharge = RECHARGE_POUVOIR; gard.saut = { c: { mo: loin }, x0: gard.x, z0: gard.z, t: 0, duree: 0.55 }; chiffre('Le Bond !', new T.Vector3(gard.x, gard.y + 2, gard.z), 'butin'); return; }
+    if (loin && Math.hypot(loin.x - gard.x, loin.z - gard.z) > 4) { gard.recharge = rechargePouvoirGardien(); gard.saut = { c: { mo: loin }, x0: gard.x, z0: gard.z, t: 0, duree: 0.55 }; chiffre('Le Bond !', new T.Vector3(gard.x, gard.y + 2, gard.z), 'butin'); return; }
   }
   if (d > 1.0) { /* il court sur le voleur */
-    const w = prochainPas(gard, q.x, q.z, dt), dx = w.x - gard.x, dz = w.z - gard.z, L = Math.hypot(dx, dz) || 1, pas = Math.min(L, G.vitesse * dt);
+    const w = prochainPas(gard, q.x, q.z, dt), dx = w.x - gard.x, dz = w.z - gard.z, L = Math.hypot(dx, dz) || 1, pas = Math.min(L, vitesseGardien() * dt);
     gard.x += dx / L * pas; gard.z += dz / L * pas; let a = Math.atan2(dx, dz) - gard.ry; a = Math.atan2(Math.sin(a), Math.cos(a)); gard.ry += a * Math.min(1, dt * 10);
     const sol = caseIci(gard.x, gard.z); if (sol) gard.y = posCase(sol).y;
-    gard.pas += G.vitesse * dt * 0.95; const P = galopGardien(gard.pas); gard.bond = P.bond; poseGardien(m, P);
+    gard.pas += vitesseGardien() * dt * 0.95; const P = galopGardien(gard.pas); gard.bond = P.bond; poseGardien(m, P);
   } else { /* a portee : il mord */
     let a = Math.atan2(q.x - gard.x, q.z - gard.z) - gard.ry; a = Math.atan2(Math.sin(a), Math.cos(a)); gard.ry += a * Math.min(1, dt * 12); gard.bond = 0;
     if (!gard.mord) { gard.mord = G.cadence; gard.coup = 0.35; mordre(c, false); }
@@ -238,7 +240,7 @@ function majVsa(dt, s, c) {
 }
 function mordre(c, bond) {
   const G = gardienDe(), n = degGardien(), pouvoir = G.pouvoir === 'gueule' && !gard.recharge;
-  if (pouvoir) { gard.recharge = RECHARGE_POUVOIR; chiffre('Gueule de fer !', new T.Vector3(gard.x, gard.y + 2, gard.z), 'butin'); }
+  if (pouvoir) { gard.recharge = rechargePouvoirGardien(); chiffre('Gueule de fer !', new T.Vector3(gard.x, gard.y + 2, gard.z), 'butin'); }
   son('touche');
   if (c.mo) { const mo = c.mo; if (mo.etat !== 'actif') return;
     if (pouvoir) mo.coince = 1.5;

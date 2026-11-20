@@ -1,29 +1,54 @@
 'use strict';
 /* L'ARMURE DU GARDIEN (19/11/2026, version dev : mode test seulement). Proposition de la nuit pour « booster notre gardien » contre VSA ; Mathieu : « ca se
    trouve on le fera evoluer plusieurs fois l'armure, donc faut y penser », puis « il faut plus de ressources et de kamas pour les crafts ».
-   Trois niveaux qui se suivent : 1 rustique (cuir clouté), 2 garde du chateau (acier et or, palier 11), 3 runique (avec l'eveil). Seul le niveau 1 existe :
-   - fabrique a l'atelier : 30 Couennes de Cochon, 20 Dents de Bwork, 10 Eclats de Craqueleur, 400 000 kamas (chiffres a valider) ;
-   - il la porte sur sa forme de combat (le Meulou : caparacon de cuir, criniere courte, jambieres ; la panthere : selle de cuir cloutee, epaulieres,
-     jambieres ; blender/gardiens.py, armure_rustique ; modeles a part, gardien-chien-r1.glb et gardien-chat-r1.glb, charges seulement quand il l'a) ;
-   - en VSA, +25 % de degats (degGardien, 14c-gardien.js). */
-const ARMURES_GARDIEN = [null, { nom: 'Armure rustique', bonus: 0.25, fichier: '-r1', noeud: '_R1' }];
-const niveauArmureGardien = () => (MODE_TEST ? Math.min(ARMURES_GARDIEN.length - 1, S_.armureGardien || 0) : 0);
-const bonusArmureGardien = () => { const n = niveauArmureGardien(); return n ? ARMURES_GARDIEN[n].bonus : 0; };
-RECETTES_DEV_ATELIER.push({ id: 'armure_gardien1', nom: 'Armure rustique du gardien', donne: 1, stock: 'armureGardien', kamas: 400000,
-  il: [['couenne', 30], ['dent_bwork', 20], ['eclat_craq', 10]], get ico() { const G = gardienDe(); return G && G.espece === 'chat' ? 'newton-vsa' : 'masdog-vsa'; },
-  minuscule: 'armure rustique', apres: ' : ton gardien la porte quand il se transforme en VSA (+25 % de dégâts).',
-  desc: 'Le niveau 1 de l\'armure de ton gardien : du cuir clouté, un caparaçon et des jambières. Il la porte quand VSA arrive : +25 % de dégâts. Elle évoluera (garde du château, puis runique).' });
+   Trois niveaux qui se suivent, fabriques l'un apres l'autre a l'atelier (une seule recette, qui propose toujours le niveau suivant) :
+   1 rustique (cuir cloute ; 19/11/2026), 2 garde du chateau (acier borde d'or, medaillon du chateau, cape orange), 3 runique (ardoise aux runes violettes qui
+   luisent, cristaux ; les niveaux 2 et 3 le 20/11/2026, « l'armure du gardien », Mathieu ; chiffres de depart, a valider).
+   - il la porte sur sa forme de combat (le Meulou, la panthere ; blender/gardiens.py, armure_rustique et armure_haut ; un fichier par niveau et par espece,
+     gardien-chien-r1.glb, gardien-chat-r2.glb..., charge seulement quand il l'a) ;
+   - en VSA : plus de degats (degGardien), et des le niveau 2 il court plus vite, au niveau 3 son pouvoir revient plus vite (14c-gardien.js). */
+const ARMURES_GARDIEN = [null,
+  { nom: 'Armure rustique', court: 'rustique', bonus: 0.25, vitesse: 0, recharge: 0, fichier: '-r1', noeud: '_R1', kamas: 400000, il: [['couenne', 30], ['dent_bwork', 20], ['eclat_craq', 10]],
+    look: 'du cuir clouté, un caparaçon et des jambières' },
+  { nom: 'Armure de la garde', court: 'de la garde', bonus: 0.5, vitesse: 0.1, recharge: 0, fichier: '-r2', noeud: '_R2', kamas: 1200000, il: [['soie_arakne', 15], ['ecorce_abraknyde', 15], ['ecaille_tortue', 20]],
+    look: 'l\'acier bordé d\'or des gardes du château, son médaillon et sa cape orange' },
+  { nom: 'Armure runique', court: 'runique', bonus: 0.75, vitesse: 0.15, recharge: 2, runes: 3, fichier: '-r3', noeud: '_R3', kamas: 3000000, il: [['soie_arakne', 25], ['ecorce_abraknyde', 25]],
+    look: 'des plaques d\'ardoise aux runes violettes qui luisent, et des cristaux' }];
+const NIV_ARMURE_MAX = ARMURES_GARDIEN.length - 1;
+const niveauArmureGardien = () => (MODE_TEST ? Math.min(NIV_ARMURE_MAX, S_.armureGardien || 0) : 0);
+const statArmureGardien = (k) => { const n = niveauArmureGardien(); return n ? ARMURES_GARDIEN[n][k] || 0 : 0; };
+const bonusArmureGardien = () => statArmureGardien('bonus');
+const effetsArmure = (A) => '+' + Math.round(A.bonus * 100) + ' % de dégâts' + (A.vitesse ? ', il court ' + Math.round(A.vitesse * 100) + ' % plus vite' : '') + (A.recharge ? ', son pouvoir revient ' + A.recharge + ' s plus tôt' : '');
+/* la recette : toujours le niveau suivant (au maximum, la derniere, qui refuse) */
+const armureSuivante = () => ARMURES_GARDIEN[Math.min(NIV_ARMURE_MAX, (S_.armureGardien || 0) + 1)];
+RECETTES_DEV_ATELIER.push({ id: 'armure_gardien', donne: 1, /* (pas de stock : c'est un niveau, pas une reserve ; fabriquee ici, plus bas) */
+  get nom() { const n = Math.min(NIV_ARMURE_MAX, (S_.armureGardien || 0) + 1); return armureSuivante().nom + ' du gardien (niveau ' + n + ')'; },
+  get kamas() { return armureSuivante().kamas; }, get il() { return armureSuivante().il; },
+  get ico() { const G = gardienDe(); return G && G.espece === 'chat' ? 'newton-vsa' : 'masdog-vsa'; },
+  get desc() { const n = S_.armureGardien || 0, A = armureSuivante();
+    if (n >= NIV_ARMURE_MAX) return 'Ton gardien porte déjà l\'armure runique, la plus haute.';
+    return 'Le niveau ' + (n + 1) + ' de l\'armure de ton gardien : ' + A.look + '. Il la porte quand VSA arrive : ' + effetsArmure(A) + '.' + (n ? ' Elle remplace l\'armure ' + ARMURES_GARDIEN[n].court + '.' : ' Elle évoluera ensuite (garde du château, puis runique).') +
+      (A.runes ? ' Il faut aussi ' + A.runes + ' runes de forgemagie (tu en as ' + runes().forge + ').' : ''); } });
 const fabriquerArmure = fabriquer; fabriquer = function (id, fois) {
-  if (id === 'armure_gardien1') { if (!gardienDe()) { toast('Il te faut d\'abord un gardien.'); return; } if ((S_.armureGardien || 0) >= 1) { toast('Ton gardien a déjà son armure rustique.'); return; } fois = 1; }
-  const r = fabriquerArmure(id, fois); if (id === 'armure_gardien1' && S_.armureGardien >= 1) { MODELES.gardienVsaArmure = null; armureChargee = null; } return r;
+  if (id !== 'armure_gardien') return fabriquerArmure(id, fois);
+  const G = S_.grange || {}, n = S_.armureGardien || 0; if (!niv('atelier') || amelioCachee('atelier') || !MODE_TEST) return;
+  if (!gardienDe()) { toast('Il te faut d\'abord un gardien.'); return; } if (n >= NIV_ARMURE_MAX) { toast('Ton gardien a déjà l\'armure la plus haute.'); return; }
+  const A = ARMURES_GARDIEN[n + 1];
+  if (!A.il.every((I) => faisables(G, I) >= 1)) { toast('Il te manque des ressources dans ta grange.'); return; }
+  if (S_.kamas < A.kamas) { toast('Il te manque ' + fmt(A.kamas - S_.kamas) + ' kamas.'); return; }
+  if (A.runes && !MODE_TEST && runes().forge < A.runes) { toast('Il te faut ' + A.runes + ' runes de forgemagie (tu en as ' + runes().forge + ').'); return; }
+  A.il.forEach((I) => paieIngredient(G, I, 1).forEach(([r, q]) => { if (q) G[r] -= q; })); S_.kamas -= A.kamas; if (A.runes && !MODE_TEST) runes().forge -= A.runes;
+  S_.armureGardien = n + 1; MODELES.gardienVsaArmure = null; armureChargee = null; if (gard) creerGardien(); chargerArmureGardien(); /* (le nouveau modele tout de suite, sans attendre la boucle) */
+  son('niveau'); toast(gardienDe().nom + ' a son ' + A.nom.toLowerCase() + ' : ' + effetsArmure(A) + ' en VSA.', 'or'); sauver(); rendreGrange(); rendreHaut();
 };
-/* le modele cuirasse : charge a la demande (le fichier de son espece, a part), puis le gardien est refait avec */
+/* le modele cuirasse : charge a la demande (le fichier de son espece et de son niveau, a part), puis le gardien est refait avec */
 let armureChargee = null;
 function chargerArmureGardien() {
   const G = gardienDe(), n = niveauArmureGardien(); if (!G || !n || armureChargee) return; const A = ARMURES_GARDIEN[n];
   armureChargee = chargerGlb('assets/modeles/jeu/' + G.fichier + A.fichier + '.glb?v=' + VERSION_MODELES).then((sc) => {
+    if (niveauArmureGardien() !== n) return; /* (une armure plus haute fabriquee pendant le chargement : la suivante se chargera) */
     sc.traverse((o) => { if (PIVOT_P8.test(o.name)) o.userData.articule = true; }); versToon(sc, { normales: 0.01, sansContour: SC_GARDIEN });
-    const m = gabaritEchelle(sc, G.vsa + A.noeud, ECHELLE_GARDIEN, new T.Vector3(0, 0, 0)); fusionnerPivots(m); m.userData.pivots = true; m.userData.type = S_.gardien.type;
+    const m = gabaritEchelle(sc, G.vsa + A.noeud, ECHELLE_GARDIEN, new T.Vector3(0, 0, 0)); fusionnerPivots(m); m.userData.pivots = true; m.userData.type = S_.gardien.type; m.userData.armure = n;
     MODELES.gardienVsaArmure = m; if (gard) creerGardien();
   }).catch(() => { armureChargee = null; });
 }
