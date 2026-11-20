@@ -37,6 +37,11 @@ function construireCoffreRarete(rar) {
     [-0.32, 0.32].forEach((u) => { rune(u * L, y0 + H * 0.5, P / 2 + R * 0.12, R * 0.05, fh * 0.55); rune(u * L, y0 + H * 0.5, P / 2 + R * 0.12, R * 0.35, R * 0.05); });
     [-1, 1].forEach((s) => rune(s * (L / 2 + R * 0.12), y0 + H * 0.5, 0, P * 0.4, R * 0.05, Math.PI / 2));
   }
+  /* l'interieur : un fond sombre, un tas de kamas et des gemmes de sa couleur (on les voit a l'ouverture) */
+  pose(BR(L * 0.9, R * 0.06, P * 0.84, '#1e1008', R * 0.02), 0, y0 + H * 0.985, 0);
+  { const tas = new T.Group(); tas.position.y = y0 + H * 0.9; g.add(tas); let s0 = 11 + niv; const h = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 26; i++) { const a = i * 2.4, r = R * 2.6 * Math.sqrt((i + 0.5) / 26), y = (1 - (r / (R * 2.6)) ** 2) * R * 1.0 + h() * R * 0.1, k = cofPiece(); if (!k) break; pose(k, Math.cos(a) * r * 1.05, y, Math.sin(a) * r * (P / (R * 9.5)), (h() - 0.5) * 0.9, h() * 6, (h() - 0.5) * 0.9, tas); }
+    [[-L * 0.25, R * 0.8, R * 0.2], [L * 0.2, R * 0.85, -R * 0.3], [L * 0.03, R * 1.1, R * 0.15], [-L * 0.08, R * 1.0, -R * 0.6]].slice(0, 1 + niv).forEach(([x, y, z], i) => pose(cofGemme(C.gemme, R * 0.38, i % 2 === 1), x, y, z, 0.3, i, 0.2, tas)); }
   /* les coins renforces, et leurs pommeaux */
   [-1, 1].forEach((s) => [-1, 1].forEach((t) => { pose(BR(R * 0.62, H * 1.04, R * 0.62, C.or, R * 0.08), s * (L / 2 - R * 0.1), y0 + H / 2, t * (P / 2 - R * 0.1));
     if (niv >= 2) pose(clou(R * 0.2, C.or), s * (L / 2 - R * 0.1), y0 + H + R * 0.16, t * (P / 2 - R * 0.1)); }));
@@ -52,14 +57,15 @@ function construireCoffreRarete(rar) {
     pose(cofGemme(C.gemme, R * (0.26 + niv * 0.04), true), 0, y0 + H * 0.7, P / 2 + R * 0.38); pose(M(new T.BoxGeometry(R * 0.12, R * 0.3, R * 0.08), '#2a1206', true), 0, y0 + H * 0.5, P / 2 + R * 0.3); }
   /* les cristaux des coins (epique) */
   if (niv === 2) [-1, 1].forEach((s) => [-1, 1].forEach((t) => { const k = new T.Group(); [[0, 0.32, 0], [0.12, 0.2, 0.5], [-0.1, 0.22, -0.4]].forEach(([dx, hh, a]) => { const c = M(new T.OctahedronGeometry(R * 0.16, 0), C.gemme); c.scale.set(0.7, hh / 0.16 * 0.6, 0.7); c.position.set(dx * R, hh * R * 0.6, 0); c.rotation.z = a * 0.6; k.add(c); });
-    pose(k, s * (L / 2 - R * 0.1), y0 + H + R * 0.32, t * (P / 2 - R * 0.1)); }));
+    k.scale.setScalar(1.7); pose(k, s * (L / 2 - R * 0.1), y0 + H + R * 0.32, t * (P / 2 - R * 0.1)); }));
   /* les pieds a griffes (legendaire) */
   if (niv >= 3) [-1, 1].forEach((s) => [-1, 1].forEach((t) => { const p = new T.Group(); p.add(clou(R * 0.3, C.or)); for (let i = -1; i <= 1; i++) { const gr = M(new T.ConeGeometry(R * 0.08, R * 0.28, 6), C.orF); gr.position.set(i * R * 0.15, -R * 0.18, R * 0.24); gr.rotation.x = Math.PI / 2 + 0.5; p.add(gr); }
     pose(p, s * (L / 2 - R * 0.05), R * 0.3, t * (P / 2 - R * 0.05), 0, t > 0 ? 0 : Math.PI, 0); }));
   /* ---------------- le couvercle, sur sa charniere a l'arriere ---------------- */
   const ch = new T.Group(); ch.position.set(0, y0 + H, -P / 2); g.add(ch);
   const dome = M(new T.CylinderGeometry(P / 2, P / 2, L * 0.98, 32, 1, false, 0, Math.PI), C.couv); dome.rotation.z = Math.PI / 2; dome.position.set(0, 0, P / 2); ch.add(dome);
-  pose(BR(L * 1.02, R * 0.2, P * 1.02, C.or, R * 0.05), 0, -R * 0.02, P / 2, 0, 0, 0, ch); /* (la levre du couvercle) */
+  pose(BR(L * 0.99, R * 0.14, P * 0.99, '#2a160a', R * 0.03), 0, -R * 0.02, P / 2, 0, 0, 0, ch); /* (le dessous du couvercle, sombre) */
+  [-1, 1].forEach((s) => { pose(BR(L * 1.02, R * 0.2, R * 0.16, C.or, R * 0.05), 0, -R * 0.03, P / 2 + s * (P / 2 + R * 0.01), 0, 0, 0, ch); pose(BR(R * 0.16, R * 0.2, P * 1.02, C.or, R * 0.05), s * (L / 2 + R * 0.01), -R * 0.03, P / 2, 0, 0, 0, ch); }); /* (la levre d'or, un cadre) */
   [-1, 1].forEach((s) => { /* les flasques des bouts : la couleur du couvercle, cerclees d'or */
     const f = M(new T.CylinderGeometry(P / 2 * 0.99, P / 2 * 0.99, R * 0.12, 32, 1, false, 0, Math.PI), C.couvF); f.rotation.z = Math.PI / 2; f.position.set(s * L * 0.495, 0, P / 2); ch.add(f);
     const cer = M(new T.TorusGeometry(P / 2, R * 0.08, 8, 32, Math.PI), C.or); cer.rotation.y = Math.PI / 2; cer.position.set(s * L * 0.5, 0, P / 2); ch.add(cer); });
@@ -76,18 +82,18 @@ function construireCoffreRarete(rar) {
   /* ---------------- le sommet ---------------- */
   if (niv === 2) { /* la couronne d'or qui tourne lentement, et son cristal (le sanctuaire du niveau 100) */
     const cr = new T.Group(); cr.position.set(0, P / 2 + R * 0.12, P / 2); ch.add(cr);
-    cr.add(M(new T.CylinderGeometry(R * 0.55, R * 0.7, R * 0.22, 18), C.or));
+    cr.scale.setScalar(1.45); cr.add(M(new T.CylinderGeometry(R * 0.55, R * 0.7, R * 0.22, 18), C.or));
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, pt = M(new T.ConeGeometry(R * 0.11, R * (i % 2 ? 0.32 : 0.48), 5), C.or); pt.position.set(Math.cos(a) * R * 0.56, R * 0.24, Math.sin(a) * R * 0.56); cr.add(pt); if (!(i % 2)) { const b = clou(R * 0.07, C.gemme); b.position.set(Math.cos(a) * R * 0.56, R * 0.5, Math.sin(a) * R * 0.56); cr.add(b); } }
     const cx = cofGemme(C.gemme, R * 0.34, false); cx.position.y = R * 0.5; cr.add(cx);
     anims.push((dt, t) => { cr.rotation.y += dt * (Math.PI * 2 / 40); cx.position.y = R * (0.5 + 0.04 * Math.sin(t * 2)); }); }
   if (niv >= 3) { /* le grand cristal turquoise qui flotte dans son anneau d'or, et le halo */
-    const haut = new T.Group(); haut.position.set(0, P / 2 + R * 0.95, P / 2); ch.add(haut);
+    const haut = new T.Group(); haut.position.set(0, P / 2 + R * 1.25, P / 2); haut.scale.setScalar(1.45); ch.add(haut);
     const support = M(new T.CylinderGeometry(R * 0.32, R * 0.55, R * 0.25, 16), C.or); support.position.y = -R * 0.78; haut.add(support);
     const cri = cofGemme(C.gemme, R * 0.55, false); cri.scale.y *= 1.25; haut.add(cri);
     const anneau = M(new T.TorusGeometry(R * 0.85, R * 0.07, 8, 40), C.or); anneau.rotation.x = Math.PI / 2 - 0.35; haut.add(anneau);
     const petites = [0, 1, 2].map((i) => { const p = clou(R * 0.09, C.gemme); haut.add(p); return p; });
     if (!TEX_HALO_COFFRE) TEX_HALO_COFFRE = texCanvas(64, (c2, n) => { const r = c2.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.35, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); c2.fillStyle = r; c2.fillRect(0, 0, n, n); });
-    const halo = new T.Sprite(new T.SpriteMaterial({ map: TEX_HALO_COFFRE, color: C.lueur, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(R * 3.2); halo.renderOrder = 5; haut.add(halo);
+    const halo = new T.Sprite(new T.SpriteMaterial({ map: TEX_HALO_COFFRE, color: C.lueur, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(R * 3.6); halo.renderOrder = 5; haut.add(halo);
     anims.push((dt, t) => { cri.rotation.y += dt * 0.9; cri.position.y = R * 0.08 * Math.sin(t * 1.8); anneau.rotation.z += dt * 0.6; halo.material.opacity = 0.75 + 0.2 * Math.sin(t * 2.4);
       petites.forEach((p, i) => { const a = t * 1.4 + i / 3 * Math.PI * 2; p.position.set(Math.cos(a) * R * 0.85, Math.sin(a * 2) * R * 0.12, Math.sin(a) * R * 0.85); }); }); }
   const lum = new T.PointLight(C.lueur, niv >= 2 ? 0.7 : 0, R * 18); lum.position.set(0, y0 + H + R * 1.6, R * 0.6); g.add(lum);
