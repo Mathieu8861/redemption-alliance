@@ -19,7 +19,7 @@ const KIT_SCORPAL = {
   balayage: { periode: 7.5, prepa: 1.0, R: 3.6, x: 1.4, repousse: 2.4, tour: 0.6 },
   venin: { periode: 9, leve: 0.45, vol: 1.1, n: 3, R: 1.6, ecart: 2.6, portee: 8, x: 0.6, flaque: { duree: 6, R: 1.6, pct: 0.025 } }, /* (la pluie de venin, 20/11/2026) */
 };
-MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone: 'scorpal-v2', boss: true, vagueIle: 100, stable: true, coupDuree: 0.75, sansCri: true, /* (sansCri : il fonce des qu'il sort du portail, sans son cri d'arrivee de 1,6 s sur place, 20/11/2026) */ /* (20/11/2026, « ses attaques sont pas assez rapides » : 0,75 s par coup au lieu de 1, un coup toutes les 1,1 s au lieu de 1,5, 0,85 sur l'ile au lieu de 1,2) */
+MONSTRES.scorpal = { element: 'terre', nom: 'Scorpal', modele: 'scorpion', icone: 'scorpal-v2', boss: true, vagueIle: 100, stable: true, coupDuree: 0.75, sansCri: true, coinceDelai: 2, surCoince: (mo) => fouirScorpal(mo), /* (coince 2 s contre le decor : il s'enfouit et te fonce dessus, 20/11/2026) */ /* (sansCri : il fonce des qu'il sort du portail, sans son cri d'arrivee de 1,6 s sur place, 20/11/2026) */ /* (20/11/2026, « ses attaques sont pas assez rapides » : 0,75 s par coup au lieu de 1, un coup toutes les 1,1 s au lieu de 1,5, 0,85 sur l'ile au lieu de 1,2) */
   desc: 'le seigneur scorpion en armure : sa carapace encaisse 60 % de tes coups, sauf quand son dard reste planté au sol après une piqûre (frappe alors : x2,5). Son dard empoisonne (5 doses : paralysé), ses pinces t\'attirent et te tiennent, sa queue balaie tout autour de lui, et son dard crache du venin en l\'air qui retombe en flaques de poison',
   pv: () => 60000, deg: () => 112, cadence: 1.1, vitesse: 2.6, portee: 3.0, ombre: 4.2, degSort: 3.2, scorpKit: KIT_SCORPAL, appelStun: KIT_SCORPAL.pinces.tenu };
 PV_ILE_BOSS_PAR.scorpal = 1500000;
@@ -50,15 +50,19 @@ const blesserScorpal = blesser; blesser = function (mo, n, gros, src) {
 const echelleS = (mo) => mo.echelle || 1;
 const jouerGeste = (mo, fam, prepa, impact) => { const an = mo.m && mo.m.userData.anim, nom = an && an.F[fam] && an.F[fam][0]; if (!nom) return null; const a = jouerAnim(an, nom, 0.1); if (a) a.timeScale = impact / prepa; return a; };
 /* ---------------- le dard ---------------- */
+/* LE DARD SOUTERRAIN (20/11/2026, « on voit pas d'animation ou il reste bloque a cause de son dard, les joueurs vont pas comprendre », Mathieu, puis
+   formulaire : « dard souterrain ») : sa queue est trop courte pour piquer le sol devant lui ; il la plonge dans le sable derriere lui (pique_1,
+   blender/palier11/scorpion-anime.py) et le dard jaillit du sol sous le cercle rouge. La queue reste enfoncee (coince_1) : il tire dessus deux fois, la
+   terre gicle, un anneau dore se vide autour (le temps qui reste pour frapper) ; puis il l'arrache (arrache_1) et le dard rentre sous terre */
 function capScorpDard(mo, ctx) {
   const K = mo.d.scorpKit; if (!K || mo.etat !== 'actif' || (mo.geste && !mo.geste.coup) || mo.dardPlante > 0 || mo.tourne) return; const D = K.dard, { pp, sortPret } = ctx, e = echelleS(mo);
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('scorpDardT', D.periode) || dP > D.portee * e + 2.5) return;
   const c0 = combat; mo.scorpDardT = 0; const a = Math.atan2(pp.x - mo.x, pp.z - mo.z), r = Math.min(dP, D.portee * e), x = mo.x + Math.sin(a) * r, z = mo.z + Math.cos(a) * r;
-  mo.ry = a; mo.bloqueT = D.prepa + D.plante + 0.15; mo.cd = Math.max(mo.cd || 0, D.prepa + D.plante + 0.1); /* (20/11/2026, « il reste trop longtemps a ne plus rien faire / bouger apres avoir lance un sort », Mathieu : dard plante 1,5 s au lieu de 2,5, il repart aussitot apres ; les autres sorts aussi) */
-  const an = jouerGeste(mo, 'sort', D.prepa, D.impact); mo.geste = { t: 0, d: D.prepa + D.plante + 0.2 };
-  if (!c0.dardVu) { c0.dardVu = true; toast(leNom(mo.d) + ' lève son dard sur toi : sors du cercle rouge ! Après la piqûre, son dard reste planté : c\'est là qu\'il faut frapper.', 'alerte'); }
+  mo.ry = a; mo.bloqueT = D.prepa + D.plante + 0.3; mo.cd = Math.max(mo.cd || 0, D.prepa + D.plante + 0.25); /* (le dard plante 1,5 s, puis 0,4 s pour l'arracher) */
+  const an = jouerGeste(mo, 'pique', D.prepa, D.impact) || jouerGeste(mo, 'sort', D.prepa, D.impact); mo.geste = { t: 0, d: D.prepa + D.plante + 0.4 };
+  if (!c0.dardVu) { c0.dardVu = true; toast(leNom(mo.d) + ' plante sa queue dans le sable : sors du cercle rouge, son dard va en jaillir ! Ensuite sa queue reste coincée : c\'est là qu\'il faut frapper.', 'alerte'); }
   zoneDanger({ mo, x, z, r: D.R * Math.min(1.3, e), duree: D.prepa, effet: (d) => {
-    const y = solA(x, z); onde(x, y + 0.05, z, D.R * e, '#c7a2ff', 0.4, 0.7); poussiere(x, y, z, 10, 1.2, '#9a8a70'); secousse(0.1, 0.22);
+    const y = solA(x, z); onde(x, y + 0.05, z, D.R * e, '#c7a2ff', 0.4, 0.7); secousse(0.1, 0.22);
     const p = paysanMesh.position, c = combat;
     if (dansDanger(d, p.x, p.z) && c === c0 && !c.fin) {
       if (blesserPerso(Math.max(1, Math.round(degSort(mo) * D.x)), mo) && !(c.invincible > 0)) {
@@ -67,19 +71,80 @@ function capScorpDard(mo, ctx) {
         else P.push({ pct: V.pct, t: V.duree, scorpVenin: true });
       }
     }
-    /* le dard reste plante : le point faible */
-    mo.dardPlante = D.plante; if (an) an.paused = true; const q = mo.m.position.clone(); q.y += (mo.haut || 3) * 0.6; chiffre('Point faible !', q, 'vol'); marquerPointFaible(mo, D.plante);
-    let t = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.dardPlante = 0; return true; } mo.dardPlante = Math.max(0, D.plante - t); if (t >= D.plante) { mo.dardPlante = 0; if (an) { an.paused = false; an.timeScale = 1; } return true; } return false; });
+    if (c0.fin || mo.etat !== 'actif') return;
+    /* le dard reste plante : la queue coincee, le point faible */
+    const dard = dardJaillit(x, z, e, c0, D.plante), Q = queueEnterree(mo), anim = mo.m.userData.anim, nomC = anim && anim.F.coince && anim.F.coince[0], tsC = (24 / 30 * 2) / D.plante;
+    if (nomC) { const ac = jouerAnim(anim, nomC, 0.1); if (ac) { ac.setLoop(T.LoopRepeat, Infinity); ac.clampWhenFinished = false; ac.timeScale = tsC; } } else if (an) an.paused = true;
+    const yq = solA(Q.x, Q.z); mottes(Q.x, yq, Q.z, 12, 1.3); poussiere(Q.x, yq, Q.z, 10, 1.2 * e, '#d8b67a'); onde(Q.x, yq + 0.05, Q.z, 1.4 * e, '#e8cf9a', 0.35, 0.8);
+    const anneau = anneauDard(Q, e), cratere = new T.Mesh(new T.CircleGeometry(0.75 * e, 24), fxMat('#7a5a34', 0.55)); cratere.rotation.x = -Math.PI / 2; cratere.position.set(Q.x, yq + 0.04, Q.z); cratere.renderOrder = 2; sansClic(cratere); scene.add(cratere);
+    mo.dardPlante = D.plante; const q = mo.m.position.clone(); q.y += (mo.haut || 3) * 0.6; chiffre('Queue coincée !', q, 'vol'); marquerPointFaible(mo, D.plante);
+    let t = 0, tir = 0.28 / tsC; const periode = 0.8 / tsC;
+    effets.push((dt) => { t += dt; const fini = combat !== c0 || c0.fin || mo.etat !== 'actif';
+      if (fini || t >= D.plante) { mo.dardPlante = 0; anneau.fin(); dard.rentrer();
+        if (!fini) { const nomA = anim && anim.F.arrache && anim.F.arrache[0]; if (nomA) jouerAnim(anim, nomA, 0.06); else if (an) { an.paused = false; an.timeScale = 1; }
+          mottes(Q.x, yq, Q.z, 16, 1.6); poussiere(Q.x, yq, Q.z, 14, 1.5 * e, '#d8b67a'); secousse(0.08, 0.18); }
+        let tc = 0; effets.push((d2) => { tc += d2; cratere.material.opacity = 0.55 * Math.max(0, 1 - tc / 2.5); if (tc >= 2.5 || combat !== c0) { jeter(cratere); return true; } return false; }); return true; }
+      mo.dardPlante = Math.max(0, D.plante - t); anneau.maj(1 - t / D.plante);
+      if (t >= tir) { tir += periode; mottes(Q.x, yq, Q.z, 5, 0.8); poussiere(Q.x, yq, Q.z, 4, 0.7 * e, '#d8b67a'); dard.secouer(); } /* (chaque traction : la terre gicle, le dard tremble) */
+      return false; });
   } });
+}
+/* ou la queue entre dans le sable : le bout de queue8 (sinon une longueur de corps derriere lui) */
+function queueEnterree(mo) { const o = mo.m.getObjectByName('queue8'), v = new T.Vector3(); if (o) { o.getWorldPosition(v); return { x: v.x, z: v.z }; } const L = 3.3 * (mo.m.scale.x || 1); return { x: mo.x - Math.sin(mo.ry) * L, z: mo.z - Math.cos(mo.ry) * L }; }
+/* le dard qui jaillit du sol sous le cercle : une pointe sombre et recourbee, une gerbe de sable ; il tremble a chaque traction, puis rentre sous terre */
+let GEO_DARD = null;
+function dardJaillit(x, z, e, c0, duree) {
+  if (!GEO_DARD) { const pts = []; for (let i = 0; i <= 10; i++) { const u = i / 10; pts.push(new T.Vector2(0.34 * Math.pow(1 - u, 0.8) + 0.02, u * 2.4)); } GEO_DARD = { g: new T.LatheGeometry(pts, 12), b: new T.CylinderGeometry(0.42, 0.5, 0.35, 12) }; partager(GEO_DARD.g, GEO_DARD.b); }
+  const y = solA(x, z), g = new T.Group(), pointe = new T.Mesh(GEO_DARD.g, mat('#2b3762')), bague = new T.Mesh(GEO_DARD.b, mat('#3b4a80')); pointe.position.y = 0.1; bague.position.y = 0.12; g.add(pointe, bague);
+  pointe.rotation.z = 0.18; g.rotation.y = Math.random() * 6.28; g.scale.setScalar(0.75 * Math.min(1.4, e)); g.position.set(x, y - 2.6, z); sansClic(g); scene.add(g);
+  mottes(x, y, z, 14, 1.6); poussiere(x, y, z, 12, 1.4, '#d8b67a'); pouf(x, y + 0.3, z, 2.2, '#c7a2ff');
+  let t = 0, sec = 0, sort = 1, rentre = false;
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { jeter(g); return true; }
+    if (!rentre) { const k = Math.min(1, t / 0.12); g.position.y = y - 2.6 * (1 - k); } else { sort -= dt / 0.25; g.position.y = y - 2.6 * (1 - Math.max(0, sort)); if (sort <= 0) { jeter(g); return true; } }
+    if (sec > 0) { sec -= dt; g.rotation.x = 0.12 * Math.sin(sec * 40) * sec / 0.3; } return false; });
+  return { secouer: () => { sec = 0.3; }, rentrer: () => { if (!rentre) { rentre = true; const yy = solA(x, z); mottes(x, yy, z, 8, 1.0); poussiere(x, yy, z, 6, 0.9, '#d8b67a'); } } };
+}
+/* l'anneau dore autour de la queue enfoncee : il se vide avec le temps qui reste pour frapper */
+function anneauDard(Q, e) {
+  const y = solA(Q.x, Q.z) + 0.07, R0 = 1.05 * Math.min(1.4, e), fond = new T.Mesh(new T.RingGeometry(R0, R0 + 0.16, 48), fxMat('#ffcf4a', 0.22)), arc = new T.Mesh(new T.RingGeometry(R0, R0 + 0.16, 48), fxMat('#ffd84a', 0.95));
+  [fond, arc].forEach((m) => { m.rotation.x = -Math.PI / 2; m.position.set(Q.x, y, Q.z); m.renderOrder = 4; sansClic(m); scene.add(m); }); let der = -1;
+  return { maj: (k) => { const n = Math.round(Math.max(0, k) * 48); if (n === der) return; der = n; arc.geometry.dispose(); arc.geometry = new T.RingGeometry(R0, R0 + 0.16, Math.max(1, n), 1, Math.PI / 2, Math.PI * 2 * Math.max(0.001, k)); },
+    fin: () => { jeter(fond); jeter(arc); } };
 }
 /* le point faible : une lueur doree qui pulse au bout de la queue, tant que le dard est plante */
 let texPointFaible = null;
 function marquerPointFaible(mo, duree) {
   texPointFaible = texPointFaible || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,250,200,1)'); r.addColorStop(0.4, 'rgba(255,200,60,0.7)'); r.addColorStop(1, 'rgba(255,140,0,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
   const s = new T.Sprite(new T.SpriteMaterial({ map: texPointFaible, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending })); s.renderOrder = 8; scene.add(s);
-  const os = mo.m.getObjectByName('queue8') || mo.m.getObjectByName('queue7'), v = new T.Vector3(), c0 = combat; let t = 0;
+  const os = mo.m.getObjectByName('queue6') || mo.m.getObjectByName('queue7'), v = new T.Vector3(), c0 = combat; let t = 0; /* (queue6 : le haut de la courbe, au-dessus du sable ou la queue s'enfonce) */
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || t >= duree) { scene.remove(s); s.material.dispose(); return true; }
     if (os) os.getWorldPosition(v); else v.set(mo.x, (mo.haut || 3) * 0.5, mo.z); s.position.copy(v); s.scale.setScalar((1.4 + 0.35 * Math.sin(t * 12)) * echelleS(mo)); return false; });
+}
+/* COINCE, IL S'ENFOUIT (20/11/2026, « plutot que de foncer en ligne betement, pour le scorpion, lorsqu'il reste bloque plus de 2 s contre un obstacle, il
+   s'enfouit sous terre et nous fonce dessus », Mathieu) : bloque 2 s (suivreCoince, 21-combat.js), il s'enfonce dans le sable, une trainee de sable file
+   sous terre vers toi (7 de vitesse, 3 s au plus), un cercle rouge s'allume 0,6 s sous tes pieds, puis il jaillit : des degats et tu es repousse */
+const FOUIR_SCORPAL = { desc: 0.6, vitesse: 7, max: 3, alerte: 0.6, R: 2.4, x: 1.2, repousse: 2.2 };
+function fouirScorpal(mo) {
+  if (mo.etat !== 'actif' || mo.dardPlante > 0 || mo.tourne || mo.plonge || (mo.geste && !mo.geste.coup)) return false;
+  const c0 = combat, F = FOUIR_SCORPAL, e = echelleS(mo), H = (mo.haut || 3) * 1.05, x0 = mo.x, z0 = mo.z, y0 = solA(x0, z0); mo.plonge = true; mo.bloqueT = 99; mo.cd = Math.max(mo.cd || 0, 1);
+  if (!c0.fouirVu) { c0.fouirVu = true; toast(leNom(mo.d) + ' s\'enfouit dans le sable et file vers toi : quand le cercle rouge s\'allume sous tes pieds, écarte-toi !', 'alerte'); }
+  let t = 0, sous = false, px = x0, pz = z0, alerte = null;
+  const fin = () => { mo.hop = 0; mo.plonge = false; if (mo.etat === 'enfoui') mo.etat = 'actif'; mo.m.visible = true; mo.bloqueT = 0.2; };
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat === 'mort') { fin(); return true; }
+    if (t < F.desc) { const k = t / F.desc; mo.hop = -H * k * k; if (Math.random() < dt * 25) mottes(x0, y0, z0, 2, 1.4); return false; } /* (il s'enfonce) */
+    if (!sous) { sous = true; mo.hop = 0; mo.etat = 'enfoui'; mo.m.visible = false; mo.barre.hidden = true; secousse(0.1, 0.25); mottes(x0, y0, z0, 10, 1.8); poussiere(x0, y0, z0, 12, 2, '#d8b67a'); }
+    const p = paysanMesh.position;
+    if (alerte == null) { const d = Math.hypot(p.x - px, p.z - pz);
+      if (d > 1.0 && t < F.desc + F.max) { const pas = Math.min(d, F.vitesse * dt); px += (p.x - px) / d * pas; pz += (p.z - pz) / d * pas; const y = solA(px, pz); if (Math.random() < dt * 30) { mottes(px, y, pz, 2, 0.8); poussiere(px, y, pz, 2, 0.8, '#d8b67a'); } return false; } /* (la trainee sous le sable, qui te suit) */
+      const q = combat.genre === 'ile' && ileBoss ? bornerIle(px, pz, 0.9) : [px, pz]; px = q[0]; pz = q[1]; alerte = t; /* arrive sous toi : le cercle rouge */
+      zoneDanger({ mo, x: px, z: pz, r: F.R * Math.min(1.3, e), duree: F.alerte, effet: (dz) => { const y = solA(px, pz), c = combat; mottes(px, y, pz, 16, 2.2); poussiere(px, y, pz, 14, 2.2, '#d8b67a'); onde(px, y + 0.05, pz, F.R * e, '#e8cf9a', 0.4, 0.8); secousse(0.14, 0.3);
+        const p2 = paysanMesh.position; if (c === c0 && !c.fin && dansDanger(dz, p2.x, p2.z) && blesserPerso(Math.max(1, Math.round(degSort(mo) * F.x)), mo)) repousserPerso({ x: px, z: pz }, F.repousse); } });
+      return false; }
+    if (t < alerte + F.alerte) { if (Math.random() < dt * 20) poussiere(px + (Math.random() - 0.5) * 2, solA(px, pz), pz + (Math.random() - 0.5) * 2, 1, 0.6, '#d8b67a'); return false; }
+    /* il jaillit, comme un monstre qui grimpe hors du sol */
+    mo.x = px; mo.z = pz; mo.y = solA(px, pz); mo.dep = { x: px, y: mo.y - H, z: pz, friche: true }; mo.t = 0.3; mo.etat = 'grimpe'; mo.m.visible = true; mo.hop = 0; mo.plonge = false;
+    mo.ry = Math.atan2(p.x - px, p.z - pz); mo.m.rotation.y = mo.ry; mo.bloqueT = 0.3; mo.cd = Math.min(mo.cd || 0, 0.5); mo.route = null; mo.routeIle = null; mo.coinceT = 0; return true; });
+  return true;
 }
 /* ---------------- les pinces ---------------- */
 function attirerScorpal(mo, dist) {

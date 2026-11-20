@@ -130,7 +130,8 @@ function suivreCoince(mo, dt) {
   const veut = mo.envie; mo.envie = false;
   if (veut && mo.horsAtteinte && !(mo.traverseT > 0)) mo.coinceT = (mo.coinceT || 0) + dt;
   else if (mo.px0 != null && mo.voulu > 0.0005) { const reel = Math.hypot(mo.x - mo.px0, mo.z - mo.pz0); mo.coinceT = reel < mo.voulu * 0.35 ? (mo.coinceT || 0) + dt : Math.max(0, (mo.coinceT || 0) - dt * 2); }
-  if (mo.coinceT > COINCE.delai && !(mo.traverseT > 0)) { mo.coinceT = 0; mo.traverseT = COINCE.traverse; mo.route = null; mo.routeIle = null; }
+  const lim = mo.d.coinceDelai || COINCE.delai; /* (coinceDelai, surCoince : Scorpal, au bout de 2 s, s'enfouit et te fonce dessus sous terre, 27j-scorpal.js) */
+  if (mo.coinceT > lim && !(mo.traverseT > 0)) { mo.coinceT = 0; mo.route = null; mo.routeIle = null; if (!mo.d.surCoince) mo.traverseT = COINCE.traverse; else if (!mo.d.surCoince(mo)) mo.coinceT = lim - 0.3; }
   mo.voulu = 0; mo.px0 = mo.x; mo.pz0 = mo.z;
 }
 /* LE TRAJET VERS LA CIBLE (09/11/2026, « quand on selectionne un monstre, parfois il prend un chemin qui nous met grave en danger et qui n'est pas logique »,
