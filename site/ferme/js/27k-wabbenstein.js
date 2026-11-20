@@ -15,14 +15,19 @@
    en 0,7 s on prend 570 ») : des montants fixes, avant les resistances des panoplies (comme tout coup recu), sans le bonus de degats des paliers ; 2 % des PV
    max du perso par cawotte. Apres le harpon, le perso n'est retenu que le temps d'etre ramene (0,28 s) : la zone du coup de poing (bleue, celle des coups au
    corps a corps des boss) dure 0,7 s, on peut en sortir. Le reste (vie, coups de base) : les chiffres de Scorpal, a regler. Pas encore dans le jeu des
-   joueurs : seulement dans l'Arene dev (GROUPES_DEV). */
+   joueurs : seulement dans l'Arene dev (GROUPES_DEV).
+   SES COUPS AUTOMATIQUES (20/11/2026, Mathieu : « il peut a la fois taper au corps a corps et a distance ? avec un de ses miniguns il frappe quelqu'un a
+   5 cases, une cawotte toutes les 2 secondes, 245 points de degats, et au cac coup classique 450 ») : au contact, son coup de poing normal fait 450 ; plus
+   loin, jusqu'a 5 cases (10 unites, une case = S = 2), une tourelle (l'une puis l'autre) tire une cawotte toutes les 2 s : elle part le long du canon,
+   puis retombe sur toi (245). Montants avant les resistances, comme ses sorts ; il continue d'avancer pendant qu'il tire. */
 SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.glb', 3.6]); ALLURES.wabbenstein = { marche: 0.635, course: 1.39 };
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
+  autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
   harpon: { periode: 9, prepa: 0.6, min: 3.2, R: 11, larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
-  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone',
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245)',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
 GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, essai)', liste: { wabbenstein: 1 } };
 /* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
@@ -167,4 +172,26 @@ function poingWab(mo, H, c0) { /* le coup de poing de la main mecanique, juste a
 }
 /* des degats fixes (les montants de Mathieu) : blesserPerso les multiplie par le bonus de degats du palier, on le retire avant */
 const degatsFixes = (v) => { const c = combat; if (!c || c.raid) return Math.max(1, Math.round(v)); return Math.max(1, v / (multDegats(c.n) * multHautes(c.n, c.genre))); };
-CAPACITES.unshift(capWabHarpon, capWabRafale);
+/* ---------------- ses coups automatiques ---------------- */
+function capWabAutos(mo, ctx) {
+  const K = mo.d.wabKit; if (!K || mo.etat !== 'actif') return; const A = K.autos, { pp, dt } = ctx;
+  mo.deg = degatsFixes(A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), cac = mo.d.portee * (mo.allonge || 1) + 0.6;
+  if (mo.wabOccupe || mo.geste || dP <= cac || dP > A.portee || !osWab(mo)) { mo.wabTirT = Math.min(mo.wabTirT || 0, A.cadence * 0.6); return; } /* (revenu a portee de tir, il ne tire pas dans l'instant) */
+  mo.wabTirT = (mo.wabTirT || 0) + dt; if (mo.wabTirT < A.cadence) return; mo.wabTirT = 0;
+  mo.wabTirC = mo.wabTirC === 'G' ? 'D' : 'G'; tirAutoWab(mo, mo.wabTirC, A, combat);
+}
+function tirAutoWab(mo, c, A, c0) { /* une cawotte part le long du canon de la tourelle, puis retombe sur toi (elle te suit : un coup automatique touche toujours) */
+  const { p, d } = boucheTourelle(mo, c), g = cawotteTir(); g.position.copy(p); scene.add(g); pouf(p.x, p.y, p.z, 0.6, '#d8c6a0');
+  emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.08, 0.12], taille: [1.0, 0.3], c: ['#fff1a8', '#ff9a2e'], a: 0.9 });
+  const P2 = new T.Vector3(), Q = new T.Vector3(), av = new T.Vector3(), dist = p.distanceTo(paysanMesh.position), P1 = p.clone().addScaledVector(d, Math.max(1.5, dist * 0.45)), duree = Math.max(0.45, dist / 13); let t = 0;
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin) { jeter(g); return true; }
+    t += dt / duree; const k = Math.min(1, t), u = 1 - k; P2.copy(paysanMesh.position); P2.y += 0.9; av.copy(g.position);
+    Q.copy(p).multiplyScalar(u * u).addScaledVector(P1, 2 * u * k).addScaledVector(P2, k * k); g.position.copy(Q); if (Q.distanceToSquared(av) > 1e-6) g.lookAt(Q.clone().multiplyScalar(2).sub(av));
+    if (k >= 1) { jeter(g); pouf(P2.x, P2.y, P2.z, 1.0, '#ee7a26'); emettre(FX_VIF, 8, { x: P2.x, y: P2.y, z: P2.z, r: 0.1, dv: 3, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
+      if (mo.etat === 'actif' || mo.etat === 'mort') blesserPerso(degatsFixes(A.tir), mo); return true; }
+    return false;
+  });
+}
+CAPACITES.unshift(capWabHarpon, capWabRafale, capWabAutos);
