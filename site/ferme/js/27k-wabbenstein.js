@@ -1,0 +1,164 @@
+'use strict';
+/* LE DOCTEUR WABBENSTEIN, LE BOSS DU LABORATOIRE DE LA CAWOTTE (20/11/2026, EN ESSAI DANS L'ARENE DEV SEULEMENT). Le savant fou du donjon de l'ile des
+   Wabbits (ILE-DONJON.md), modele fait d'apres la maquette 3 retenue par Mathieu, tete refaite, squelette et mouvements faits main (blender/labo/).
+   « tu as fait l'animation des cawottes qui partent en rafale minigun ? et le harpon qui peut t'attraper de loin ? hyper rapidement aussi pour t'attirer
+   au cac et ensuite il te met un coup de poing » (Mathieu). Ses deux sorts :
+   - la RAFALE DE CAWOTTES : ses deux tourelles montent et basculent par-dessus ses epaules, un eventail rouge devant lui, puis 3 s de tir : chaque tourelle
+     crache une cawotte toutes les 0,12 s, la ou elle pointe (elles balaient l'eventail, l'une vers la gauche quand l'autre va vers la droite). Chaque cawotte
+     touchee fait mal, on sort de l'eventail ; tout pres de lui, elles passent encore au-dessus de la tete ;
+   - le HARPON : une ligne rouge de lui jusqu'a toi (0,6 s), puis le harpon part tres vite le long de la ligne. Touche, tu es harponne, ramene au corps a
+     corps en un quart de seconde, et il t'assene un coup de poing de sa main mecanique qui te repousse. Rate, le harpon revient.
+   Les tourelles ont leurs propres mouvements (tourelles_sortie, tourelles_rafale, tourelles_rentree), joues PAR-DESSUS les autres : on ne garde, dans chaque
+   mouvement, que les pistes de ses os. Le harpon et sa chaine ne sont jamais animes par les mouvements : ce fichier les place a chaque image (la chaine du
+   modele, en U sous le canon au repos, est cachee pendant le tir et une chaine aussi longue que la ligne la remplace).
+   Chiffres de depart (ceux de Scorpal), a regler avec Mathieu. Pas encore dans le jeu des joueurs : seulement dans l'Arene dev (GROUPES_DEV). */
+SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.glb', 3.6]); ALLURES.wabbenstein = { marche: 0.635, course: 1.39 };
+const KIT_WAB = {
+  rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, x: 0.2, toucher: 0.65 },
+  harpon: { periode: 9, prepa: 0.6, min: 3.2, R: 11, larg: 1.1, vitesse: 34, retour: 26, x: 0.45, tire: 0.28, poing: 1.5, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
+};
+MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail, et son harpon t\'attrape de loin, te ramène contre lui et il t\'assène un coup de poing',
+  pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
+GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, essai)', liste: { wabbenstein: 1 } };
+/* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
+const OS_TOURELLES_WAB = /^(tourelle|barillet|fourreau|tige)[GD]\./, OS_HARPON_WAB = /^(harpon|maillon\d+)\./;
+const b2gWab = (x, y, z) => new T.Vector3(x, z, -y); /* (repere de Blender, il regarde -Y, vers celui du jeu) */
+const chargerSqueletteWab = chargerSquelette;
+chargerSquelette = async function (nom) { await chargerSqueletteWab.apply(this, arguments); const M = nom === 'wabbenstein' && MODELES.wabbenstein; if (M && !M.userData.wab) preparerWab(M); };
+function preparerWab(M) {
+  M.userData.clips.forEach((c) => { const tour = /^tourelles_/.test(c.name); c.tracks = c.tracks.filter((k) => tour ? OS_TOURELLES_WAB.test(k.name) : !OS_TOURELLES_WAB.test(k.name) && !OS_HARPON_WAB.test(k.name)); });
+  M.updateMatrixWorld(true);
+  const local = (nom, v) => { const b = M.getObjectByName(nom); return v.clone().normalize().applyQuaternion(b.getWorldQuaternion(new T.Quaternion()).invert()); };
+  const h = M.getObjectByName('harpon'), canon = h.parent, hW = h.getWorldPosition(new T.Vector3());
+  /* la sortie de la chaine, sous la bouche du canon (equipement_commun.py : BOUCHE et SORTIE), dans le repere du canon ; le modele est a l'echelle 2 */
+  const ax = new T.Vector3(-0.06, -0.966, -0.247).normalize(), bas = new T.Vector3(0, 0, -1).addScaledVector(ax, ax.z).normalize(), dS = ax.clone().multiplyScalar(-0.03).addScaledVector(bas, 0.105);
+  const sortieW = hW.clone().add(b2gWab(dS.x, dS.y, dS.z).multiplyScalar(2));
+  M.userData.wab = { axeG: local('tourelleG', b2gWab(0.60, 0.28, 0.75)), axeD: local('tourelleD', b2gWab(-0.60, 0.28, 0.75)), axeH: local('harpon', b2gWab(-0.06, -0.966, -0.247)),
+    sortie: canon.worldToLocal(sortieW.clone()) };
+}
+function osWab(mo) {
+  if (mo.wabOs) return mo.wabOs; const m = mo.m; if (!m) return null; const h = m.getObjectByName('harpon'); if (!h) return null;
+  const M = []; m.traverse((o) => { if (o.isBone && /^maillon\d+$/.test(o.name)) M.push(o); });
+  return (mo.wabOs = { tG: m.getObjectByName('tourelleG'), tD: m.getObjectByName('tourelleD'), h, canon: h.parent, hP: h.position.clone(), hQ: h.quaternion.clone(), maillons: M });
+}
+/* ---------------- les tourelles ---------------- */
+const NOMS_TOURELLES = ['tourelles_sortie_1', 'tourelles_rafale_1', 'tourelles_rentree_1'];
+function tourellesWab(mo, phase) {
+  const an = mo.m && mo.m.userData.anim, nom = 'tourelles_' + phase + '_1', a = an && an.A[nom]; if (!a) return 0;
+  NOMS_TOURELLES.forEach((n) => { if (n !== nom && an.A[n]) an.A[n].stop(); });
+  const boucle = phase === 'rafale'; a.reset(); a.setLoop(boucle ? T.LoopRepeat : T.LoopOnce, boucle ? Infinity : 1); a.clampWhenFinished = !boucle; a.timeScale = 1; a.setEffectiveWeight(1); a.play(); return a.getClip().duration;
+}
+const vW1 = new T.Vector3(), qW1 = new T.Quaternion(), qW2 = new T.Quaternion(), qW3 = new T.Quaternion(), mW1 = new T.Matrix4();
+function boucheTourelle(mo, c) { /* la bouche d'une tourelle (0,74 du pivot le long de son axe) et la direction ou elle pointe, dans le monde */
+  const O = osWab(mo), b = c === 'G' ? O.tG : O.tD, W = MODELES.wabbenstein.userData.wab, ax = c === 'G' ? W.axeG : W.axeD;
+  return { p: ax.clone().multiplyScalar(0.74).applyMatrix4(b.matrixWorld), d: ax.clone().applyQuaternion(b.getWorldQuaternion(qW1)) };
+}
+let GEO_CAW = null;
+function cawotteTir() {
+  if (!GEO_CAW) { const c = new T.ConeGeometry(0.14, 0.62, 8); c.rotateX(Math.PI / 2); const f = new T.ConeGeometry(0.08, 0.26, 5); f.rotateX(-Math.PI / 2); f.translate(0, 0, -0.4);
+    GEO_CAW = { c, f, mc: mat('#ee7a26'), mf: mat('#5fae3a') }; partager(c, f, GEO_CAW.mc, GEO_CAW.mf); }
+  const g = new T.Group(); g.add(new T.Mesh(GEO_CAW.c, GEO_CAW.mc), new T.Mesh(GEO_CAW.f, GEO_CAW.mf)); return g;
+}
+function tirerCawotte(mo, c, R, c0) {
+  const { p, d } = boucheTourelle(mo, c), h = Math.hypot(d.x, d.z) || 1, e = (Math.random() - 0.5) * 0.07, ux = (d.x * Math.cos(e) + d.z * Math.sin(e)) / h, uz = (-d.x * Math.sin(e) + d.z * Math.cos(e)) / h;
+  const g = cawotteTir(); g.position.copy(p); scene.add(g); emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.08, 0.12], taille: [0.9, 0.3], c: ['#fff1a8', '#ff9a2e'], a: 0.9 });
+  const y0 = p.y, yv = solA(p.x, p.z) + 1.0, L = R.R + 1; let s = 0, rot = Math.random() * 6;
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin) { jeter(g); return true; }
+    s += R.vitesse * dt; rot += dt * 16; const ex = Math.exp(-s / 1.3), x = p.x + ux * s, z = p.z + uz * s, y = yv + (y0 - yv) * ex; /* (elle plonge depuis la tourelle puis file a hauteur de poitrine) */
+    g.position.set(x, y, z); g.lookAt(x + ux, y - (y0 - yv) * ex / 1.3, z + uz); g.rotateZ(rot);
+    const pp = paysanMesh.position;
+    if (y < pp.y + 2.2 && Math.hypot(pp.x - x, pp.z - z) < R.toucher) { jeter(g); pouf(x, y, z, 0.9, '#ee7a26'); emettre(FX_VIF, 6, { x, y, z, r: 0.1, dv: 3, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
+      if (!c0.fin) blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); return true; }
+    if (s > L) { jeter(g); pouf(x, solA(x, z), z, 0.7, '#ee7a26'); return true; } return false;
+  });
+}
+function capWabRafale(mo, ctx) {
+  const K = mo.d.wabKit; if (!K || mo.etat !== 'actif' || mo.geste || mo.wabOccupe) return; const R = K.rafale, { pp, sortPret } = ctx;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('wabRafaleT', R.periode) || dP > R.R - 0.5 || !osWab(mo)) return;
+  const an = mo.m.userData.anim, dS = an.A[NOMS_TOURELLES[0]].getClip().duration, dR = 3 * an.A[NOMS_TOURELLES[1]].getClip().duration, dE = an.A[NOMS_TOURELLES[2]].getClip().duration;
+  const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), tot = dS + dR + dE; mo.wabRafaleT = 0; mo.wabOccupe = true; mo.ry = a; mo.bloqueT = Math.max(mo.bloqueT || 0, tot); mo.cd = Math.max(mo.cd || 0, tot);
+  if (!c0.wabRafaleVu) { c0.wabRafaleVu = true; toast(leNom(mo.d) + ' sort ses tourelles : sors de l\'éventail rouge, une rafale de cawottes arrive !', 'alerte'); }
+  zoneDanger({ mo, x: mo.x, z: mo.z, r: R.R, a, ouv: R.ouv, duree: dS + dR, effet: () => {} });
+  tourellesWab(mo, 'sortie'); let t = 0, phase = 'sortie'; const pret = { G: 0, D: R.cadence / 2 };
+  effets.push((dt) => {
+    t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { if (combat === c0 && mo.etat !== 'mort') tourellesWab(mo, 'rentree'); else if (an) NOMS_TOURELLES.forEach((n) => { if (an.A[n]) an.A[n].stop(); }); mo.wabOccupe = false; return true; } /* (mort en pleine rafale : les tourelles retombent en V au lieu de tourner sur son corps) */
+    mo.ry = a;
+    if (phase === 'sortie' && t >= dS) { phase = 'rafale'; t = 0; tourellesWab(mo, 'rafale'); }
+    else if (phase === 'rafale') { for (const c of ['G', 'D']) { pret[c] -= dt; if (pret[c] <= 0) { pret[c] += R.cadence; tirerCawotte(mo, c, R, c0); } }
+      if (t >= dR) { phase = 'rentree'; t = 0; tourellesWab(mo, 'rentree'); } }
+    else if (phase === 'rentree' && t >= dE) { mo.wabOccupe = false; return true; }
+    return false;
+  });
+}
+/* ---------------- le harpon ---------------- */
+let GEO_CHAINE = null;
+function chaineWab() {
+  if (!GEO_CHAINE) { const g = new T.TorusGeometry(0.072, 0.024, 5, 12); g.scale(1, 1.45, 1); g.rotateX(Math.PI / 2); GEO_CHAINE = { g, m: mat('#8f8a86') }; partager(g, GEO_CHAINE.m); }
+  const im = new T.InstancedMesh(GEO_CHAINE.g, GEO_CHAINE.m, 140); im.frustumCulled = false; im.count = 0; scene.add(im); return im;
+}
+const oW = new T.Object3D(), zW = new T.Vector3(0, 0, 1);
+function poserChaine(im, de, vers) {
+  const u = vW1.copy(vers).sub(de), L = u.length(); u.normalize(); const n = Math.min(140, Math.floor(L / 0.13)); im.count = n;
+  for (let i = 0; i < n; i++) { oW.position.copy(de).addScaledVector(u, (i + 0.5) * L / Math.max(1, n)); oW.quaternion.setFromUnitVectors(zW, u); if (i % 2) oW.rotateZ(Math.PI / 2); oW.updateMatrix(); im.setMatrixAt(i, oW.matrix); }
+  im.instanceMatrix.needsUpdate = true;
+}
+function poserHarponMonde(O, orig, dir) { /* le harpon (son os) pose dans le monde : son talon en orig, sa pointe vers dir */
+  const b = O.h, par = O.canon, W = MODELES.wabbenstein.userData.wab; par.updateMatrixWorld(true);
+  b.position.copy(orig).applyMatrix4(mW1.copy(par.matrixWorld).invert());
+  const qp = par.getWorldQuaternion(qW1), qr = qW2.copy(qp).multiply(O.hQ), ax = W.axeH.clone().applyQuaternion(qr), qd = qW3.setFromUnitVectors(ax, dir.clone().normalize());
+  b.quaternion.copy(qp.invert().multiply(qd.multiply(qr)));
+}
+function rangerHarpon(O) { O.h.position.copy(O.hP); O.h.quaternion.copy(O.hQ); O.maillons.forEach((b) => b.scale.setScalar(1)); }
+function capWabHarpon(mo, ctx) {
+  const K = mo.d.wabKit; if (!K || mo.etat !== 'actif' || mo.geste || mo.wabOccupe) return; const H = K.harpon, { pp, sortPret } = ctx;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('wabHarponT', H.periode) || dP < H.min || dP > H.R - 0.8) return; const O = osWab(mo); if (!O) return;
+  const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.wabHarponT = 0; mo.wabOccupe = true; mo.ry = a; mo.bloqueT = Math.max(mo.bloqueT || 0, H.prepa + 1.4); mo.cd = Math.max(mo.cd || 0, H.prepa + 1.4);
+  const e = mo.echelle || 1, B = versMonde(mo.x, mo.z, a, -1.19 * e, 0.69 * e), ah = Math.atan2(pp.x - B.x, pp.z - B.z), x2 = B.x + Math.sin(ah) * H.R, z2 = B.z + Math.cos(ah) * H.R; /* (la ligne part de la bouche du canon, vers toi ; la bouche calculee depuis sa place et sa direction, pas depuis le modele, qui n'a pas encore tourne vers toi a cette image) */
+  const an = mo.m.userData.anim, nomS = an.F.sort && an.F.sort[0]; if (nomS) { const s = jouerAnim(an, nomS, 0.1); if (s) s.timeScale = 0.48 / H.prepa; mo.geste = { t: 0, d: H.prepa + 0.9 }; } /* (il vise : le tir de son mouvement tombe a la fin de l'annonce) */
+  if (!c0.wabHarponVu) { c0.wabHarponVu = true; toast(leNom(mo.d) + ' te vise de son harpon : sors de la ligne rouge, sinon il te ramène contre lui !', 'alerte'); }
+  zoneDanger({ mo, x: B.x, z: B.z, x2, z2, larg: H.larg, bord: true, duree: H.prepa, effet: () => lancerHarpon(mo, O, H, a, ah, B, c0) });
+}
+function lancerHarpon(mo, O, H, a, ah, L0, c0) { /* (ah : la direction de la ligne rouge annoncee ; le harpon la suit, sortir de la ligne suffit a l'esquiver) */
+  if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabOccupe = false; return; }
+  const B0 = O.h.getWorldPosition(new T.Vector3()), dir = new T.Vector3(Math.sin(ah), 0, Math.cos(ah)), pp = paysanMesh.position, y1 = solA(pp.x, pp.z) + 1.0;
+  O.maillons.forEach((b) => b.scale.setScalar(0.001)); const ch = chaineWab(); secousse(0.06, 0.14); pouf(B0.x, B0.y, B0.z, 0.9, '#d8c6a0');
+  let s = 0, phase = 'aller', t = 0, x0 = 0, z0 = 0, f = null; const pointe = new T.Vector3(), talon = new T.Vector3(), anneau = new T.Vector3(), sortie = new T.Vector3(), vise = new T.Vector3();
+  const fin = () => { rangerHarpon(O); jeter(ch); mo.wabOccupe = false; return true; };
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif') { if (phase === 'tire') { mo.wabTient = false; } return fin(); }
+    mo.ry = a; const B = O.hP.clone().applyMatrix4(O.canon.matrixWorld); sortie.copy(MODELES.wabbenstein.userData.wab.sortie).applyMatrix4(O.canon.matrixWorld);
+    if (phase === 'aller' || phase === 'retour') {
+      s += (phase === 'aller' ? H.vitesse : -H.retour) * dt; pointe.set(L0.x, B.y, L0.z).addScaledVector(dir, s + 0.95); pointe.y = B.y + (y1 - B.y) * Math.min(1, s / 4); /* (le long de la ligne annoncee, depuis son depart) */
+      if (phase === 'aller') { const p = paysanMesh.position;
+        if (Math.hypot(p.x - pointe.x, p.z - pointe.z) < H.toucher && !(c0.invincible > 0)) { /* harponne : ramene contre lui */
+          phase = 'tire'; t = 0; x0 = p.x; z0 = p.z; mo.wabTient = true; chemin = []; arrivee = null;
+          const g = mo.ry + 0, fx = mo.x + Math.sin(g) * 1.7 * (mo.echelle || 1) + Math.cos(g) * 0.5, fz = mo.z + Math.cos(g) * 1.7 * (mo.echelle || 1) - Math.sin(g) * 0.5; f = pointValide(mo.x, mo.z, fx, fz);
+          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(Math.max(1, Math.round(degSort(mo) * H.x)), mo); etourdir(H.tire + 0.5);
+          if (nomS(mo)) { const ac = mo.m.userData.anim.A[nomS(mo)]; if (ac) ac.timeScale = 2.2; } }
+        else if (s >= H.R) phase = 'retour'; }
+      if (phase === 'retour' && s <= 0) return fin();
+      if (phase !== 'tire') { talon.copy(pointe).addScaledVector(dir, -0.95); vise.copy(pointe).sub(talon); poserHarponMonde(O, talon, vise); anneau.copy(talon).addScaledVector(vise.normalize(), 0.32); poserChaine(ch, sortie, anneau); return false; }
+    }
+    if (phase === 'tire') { /* il te ramene en un quart de seconde, le harpon plante dans toi */
+      t += dt; const k = Math.min(1, t / H.tire), e = 1 - (1 - k) * (1 - k), p = paysanMesh.position; p.x = x0 + (f.x - x0) * e; p.z = z0 + (f.z - z0) * e;
+      pointe.set(p.x, solA(p.x, p.z) + 1.0, p.z); vise.copy(pointe).sub(B); if (vise.lengthSq() < 0.01) vise.set(Math.sin(a), 0, Math.cos(a)); talon.copy(pointe).addScaledVector(vise.clone().normalize(), -0.95);
+      poserHarponMonde(O, talon, vise); anneau.copy(talon).addScaledVector(vise.clone().normalize(), 0.32); poserChaine(ch, sortie, anneau);
+      if (k >= 1) { const c = caseIci(f.x, f.z); if (c) paysanMesh.userData.cellule = c; mo.wabTient = false; poingWab(mo, H, c0); rangerHarpon(O); jeter(ch); return true; }
+    }
+    return false;
+  });
+}
+const nomS = (mo) => { const an = mo.m && mo.m.userData.anim; return an && an.F.sort && an.F.sort[0]; };
+function poingWab(mo, H, c0) { /* le coup de poing de la main mecanique, juste apres l'avoir ramene */
+  const an = mo.m.userData.anim, nom = an.F.coup && an.F.coup[0], p = paysanMesh.position; mo.ry = Math.atan2(p.x - mo.x, p.z - mo.z); mo.wabOccupe = true;
+  const a = nom && jouerAnim(an, nom, 0.06), D = a ? a.getClip().duration : 0.6, ts = 1.5; if (a) a.timeScale = ts;
+  const imp = ((((mo.m.userData.impacts || {})[nom] || [])[0] || { t: D * 0.45 }).t) / ts; mo.geste = { t: 0, d: D / ts - 0.05 }; mo.bloqueT = Math.max(mo.bloqueT || 0, D / ts); mo.cd = Math.max(mo.cd || 0, D / ts + 0.3);
+  let t = 0; effets.push((dt) => { t += dt; if (t < imp) return false;
+    if (combat === c0 && !c0.fin && mo.etat === 'actif') { const q = paysanMesh.position; if (Math.hypot(q.x - mo.x, q.z - mo.z) < 3.4 * (mo.echelle || 1)) {
+      const z = q.clone(); z.y += 1.1; etoileImpact(z, 1.1); secousse(0.22, 0.3); const w = q.clone(); w.y += 2.1; chiffre('Coup de poing !', w, 'vol');
+      if (blesserPerso(Math.max(1, Math.round(degSort(mo) * H.poing)), mo)) repousserPerso(mo, H.repousse); } }
+    mo.wabOccupe = false; return true; });
+}
+CAPACITES.unshift(capWabHarpon, capWabRafale);
