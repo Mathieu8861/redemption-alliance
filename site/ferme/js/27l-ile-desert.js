@@ -8,11 +8,11 @@
    - Ici : l'habillage (le cercle magique en ambre, le sceau du scorpion au milieu, la brume de sable, des poussieres dorees au lieu des ames violettes, les petites
      flammes des cranes en orange) et les tornades de sable du combat.
    Les tornades : toutes les 8 a 12 s (2 en meme temps au plus), l'un des six endroits de la carte, tire au hasard ; un cercle de sable au sol (1,2 s), puis la
-   tornade se leve et tourne autour de son endroit 7 s. Dedans : 3 % de ta vie toutes les 0,6 s et tu es repousse de 1,5 case. Chiffres a valider avec Mathieu. */
+   tornade se leve et tourne autour de son endroit 7 s. Dedans : tu es repousse de 1,5 case, sans degats (Mathieu, 20/11 au soir). */
 FICHIERS_ILE.desert = 'boss-ile-desert.glb';
-let DESERT_POUR_TOUS = false; /* (le nouveau visuel attend l'accord de Mathieu : en attendant, le desert n'est que dans son mode test) */
+let DESERT_POUR_TOUS = true; /* (20/11/2026 au soir, « oui, pour tous ce soir », Mathieu) */
 Object.defineProperty(MONSTRES.scorpal, 'carteIle', { get: () => (DESERT_POUR_TOUS || MODE_TEST ? 'desert' : null), configurable: true });
-const TORNADES = { periode: [8, 12], max: 2, annonce: 1.2, vie: 7, R: 1.35, ronde: 1.8, vitesse: 0.55, pct: 0.03, tic: 0.6, repousse: 3.0 };
+const TORNADES = { periode: [8, 12], max: 2, annonce: 1.2, vie: 7, R: 1.35, ronde: 1.8, vitesse: 0.55, pct: 0, tic: 0.6, repousse: 3.0 }; /* (pct : 0, « elles mettent pas de degats les tornades », Mathieu, 20/11 au soir : elles repoussent seulement) */
 HABILLER_ILE.desert = function (g, reperes) {
   const fx = g.userData.fx, ambre = new T.Color('#ffb347');
   fx.cercles.forEach(({ m, k }) => { m.material.color.copy(k === 2 ? new T.Color('#c9822e') : ambre); });
@@ -98,7 +98,7 @@ function lancerTornade(s, c0, mo) {
     /* dedans : des degats et tu es repousse */
     const p = paysanMesh.position; tic -= dt;
     if (e > 0.6 && tic <= 0 && Math.hypot(p.x - pos.x, p.z - pos.z) < T0.R && !paysanMesh.userData.enVol) {
-      tic = T0.tic; const n = Math.max(1, Math.round(c0.pvMax * T0.pct)); blesserPerso(n, null); repousserPerso({ x: pos.x, z: pos.z }, T0.repousse); }
+      tic = T0.tic; if (T0.pct > 0) blesserPerso(Math.max(1, Math.round(c0.pvMax * T0.pct)), null); repousserPerso({ x: pos.x, z: pos.z }, T0.repousse); }
     return false;
   });
 }
