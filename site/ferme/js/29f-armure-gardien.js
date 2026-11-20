@@ -3,16 +3,17 @@
    trouve on le fera evoluer plusieurs fois l'armure, donc faut y penser », puis « il faut plus de ressources et de kamas pour les crafts ».
    Trois niveaux qui se suivent, fabriques l'un apres l'autre a l'atelier (une seule recette, qui propose toujours le niveau suivant) :
    1 rustique (cuir cloute ; 19/11/2026), 2 garde du chateau (acier borde d'or, medaillon du chateau, cape orange), 3 runique (ardoise aux runes violettes qui
-   luisent, cristaux ; les niveaux 2 et 3 le 20/11/2026, « l'armure du gardien », Mathieu ; chiffres de depart, a valider).
+   luisent, cristaux ; les niveaux 2 et 3 le 20/11/2026, « l'armure du gardien », Mathieu ; look, effets et couts valides au formulaire le meme soir,
+   couts baisses a 800 000 et 2 000 000 kamas).
    - il la porte sur sa forme de combat (le Meulou, la panthere ; blender/gardiens.py, armure_rustique et armure_haut ; un fichier par niveau et par espece,
      gardien-chien-r1.glb, gardien-chat-r2.glb..., charge seulement quand il l'a) ;
    - en VSA : plus de degats (degGardien), et des le niveau 2 il court plus vite, au niveau 3 son pouvoir revient plus vite (14c-gardien.js). */
 const ARMURES_GARDIEN = [null,
   { nom: 'Armure rustique', court: 'rustique', bonus: 0.25, vitesse: 0, recharge: 0, fichier: '-r1', noeud: '_R1', kamas: 400000, il: [['couenne', 30], ['dent_bwork', 20], ['eclat_craq', 10]],
     look: 'du cuir clouté, un caparaçon et des jambières' },
-  { nom: 'Armure de la garde', court: 'de la garde', bonus: 0.5, vitesse: 0.1, recharge: 0, fichier: '-r2', noeud: '_R2', kamas: 1200000, il: [['soie_arakne', 15], ['ecorce_abraknyde', 15], ['ecaille_tortue', 20]],
+  { nom: 'Armure de la garde', court: 'de la garde', bonus: 0.5, vitesse: 0.1, recharge: 0, fichier: '-r2', noeud: '_R2', kamas: 800000, il: [['soie_arakne', 15], ['ecorce_abraknyde', 15], ['ecaille_tortue', 20]],
     look: 'l\'acier bordé d\'or des gardes du château, son médaillon et sa cape orange' },
-  { nom: 'Armure runique', court: 'runique', bonus: 0.75, vitesse: 0.15, recharge: 2, runes: 3, fichier: '-r3', noeud: '_R3', kamas: 3000000, il: [['soie_arakne', 25], ['ecorce_abraknyde', 25]],
+  { nom: 'Armure runique', court: 'runique', bonus: 0.75, vitesse: 0.15, recharge: 2, runes: 3, fichier: '-r3', noeud: '_R3', kamas: 2000000, il: [['soie_arakne', 25], ['ecorce_abraknyde', 25]],
     look: 'des plaques d\'ardoise aux runes violettes qui luisent, et des cristaux' }];
 const NIV_ARMURE_MAX = ARMURES_GARDIEN.length - 1;
 const niveauArmureGardien = () => (MODE_TEST ? Math.min(NIV_ARMURE_MAX, S_.armureGardien || 0) : 0);
