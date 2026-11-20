@@ -112,8 +112,8 @@ const AMELIOS = [
   { id: 'concasseur', nom: 'Le concasseur', desc: 'Le mortier et son pilon : tu y broies tes pièces de niveau 60 ou plus contre des runes (une rune de forgemagie à coup sûr pour une pièce rare). Il prend une case d\'herbe libre, près de la grange.', couts: [600000], niv: 100, dev: true },
   /* LA TOUR A FILETS (20/11/2026, « ok fais la tour à filets en vrai bâtiment », Mathieu) : la tour mecanique C2 (blender/tour-filet-pistes.py), contre les
      voleurs de VSA, au charbon de bois ou a la tourbe ; dev : seulement dans le mode test tant que le palier 11 n'est pas sorti (29d-tour-filet-essai.js,
-     29e-combustible.js) ; prix et niveau de depart, a valider */
-  { id: 'tourFilet', nom: 'La tour à filets', desc: 'La tour mécanique contre les voleurs de VSA : toutes les 6 s, elle lance un filet lesté sur le voleur le plus chargé à 10 cases autour d\'elle (sinon le plus proche). Il reste pris 2 s et lâche la moitié de son butin, qui revient à ta grange. Elle marche au feu : un charbon de bois (atelier) donne 1 filet, une motte de tourbe des marais 2. Elle prend une case d\'herbe libre, près de la grange, et se déplace avec Aménager.', couts: [800000], niv: 101, dev: true },
+     29e-combustible.js) */
+  { id: 'tourFilet', nom: 'La tour à filets', desc: 'La tour mécanique contre les voleurs de VSA : toutes les 6 s, elle lance un filet lesté sur le voleur le plus chargé à 10 cases autour d\'elle (sinon le plus proche). Il reste pris 2 s et lâche la moitié de son butin, qui revient à ta grange. Elle marche au feu : un charbon de bois (atelier) donne 1 filet, une motte de tourbe des marais 2. Elle prend une case d\'herbe libre, près de la grange, et se déplace avec Aménager.', couts: [600000], niv: 101, dev: true }, /* (600 000 au niveau 101 : choix de Mathieu le 20/11/2026) */
   { id: 'faux', nom: 'Faux affûtée', desc: 'Une récolte de plus sur chaque parcelle (3 Blé deviennent 4).', couts: [5000], niv: 9 },
 ];
 /* ce que donne chaque niveau d'un batiment (index = niveau - 1 ; l'arbalete : index = niveau, 0 = pas construite) */
