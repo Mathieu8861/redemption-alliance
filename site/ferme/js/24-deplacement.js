@@ -369,7 +369,7 @@ canvas.addEventListener('pointerup', (e) => {
 let drag = null, pince = null;
 /* (20/11/2026, « quand on clique gauche pour se deplacer, ca deplace la cam ; pour deplacer la cam il faut vraiment rester appuye plus de 0,8 s », Mathieu) : a la
    souris, le clic gauche ne fait glisser la vue qu'apres 0,8 s d'appui (le curseur devient une main) ; avant, le moindre tremblement pendant un clic la decalait. Au doigt, rien ne change */
-const PAN_SOURIS = 250, PAN_SEUIL = 12; /* (puis « 0,8 s c'est peut-etre un peu long, mets un reglage correct », Mathieu : la vue glisse des que le bouton est tenu 0,25 s ET que la souris a bouge de 12 pixels ; un clic, meme qui tremble, reste un clic) */
+const PAN_SOURIS = 200, PAN_SEUIL = 12; /* (0,2 s le 20/11/2026 au soir, « reduit a 0,2 », Mathieu ; 0,25 avant) */ /* (puis « 0,8 s c'est peut-etre un peu long, mets un reglage correct », Mathieu : la vue glisse des que le bouton est tenu 0,25 s ET que la souris a bouge de 12 pixels ; un clic, meme qui tremble, reste un clic) */
 canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY, b: e.button, ctrl: e.ctrlKey, t0: performance.now(), souris: e.pointerType === 'mouse', pan: e.pointerType !== 'mouse' }; });
 canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol(e); if (pt) visee.point = pt; return; } if (!drag || !e.isPrimary || e.buttons === 0) return;
   if (drag.b === 1 || (drag.b === 2 && (drag.ctrl || e.ctrlKey))) { tournerCamera((e.clientX - drag.x) * 0.007); inclinerCamera((e.clientY - drag.y) * 0.005); Object.assign(drag, { x: e.clientX, y: e.clientY, ctrl: true, tourne: true }); return; }
