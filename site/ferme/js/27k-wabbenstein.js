@@ -24,14 +24,21 @@ SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
   autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
-  phase: { seuil: 0.3, creatures: ['gwandWabbit', 'gwandWabbit', 'gwandWabbit', 'gwandWabbit'], vague: 20, max: 12, puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 %, Mathieu, 20/11 : « 4 Gwand Wabbits toutes les 20 secondes », +25 %, la rage et la vitesse ; max : 12 en vie au plus, mon garde-fou) */
+  vie: { base: 180000, parJoueur: 0.75 }, /* (20/11/2026, « regle sa vie pour le donjon » : 180 000 en solo, environ 3 min pour un perso de niveau 105 equipe (1 000 de degats par seconde en vrai combat, 1 715 sans bouger) ; +75 % par joueur en plus, x4 a 5 joueurs) */
+  phase: { seuil: 0.3, creatures: ['gwandWabbit', 'gwandWabbit', 'gwandWabbit', 'gwandWabbit'], parDeuxJoueurs: 2, vague: 20, max: 12, maxParJoueur: 3, puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 %, Mathieu, 20/11 : « 4 Gwand Wabbits toutes les 20 secondes », +25 %, la rage et la vitesse ; max : 12 en vie au plus, mon garde-fou) */
   saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
   harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
   desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
-GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, essai)', liste: { wabbenstein: 1 } };
+GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, solo)', liste: { wabbenstein: 1 } };
+/* LE DONJON A PLUSIEURS (20/11/2026, « le DJ doit s'adapter en fonction du nombre de participants, max 5 ») : sa vie x(1 + 0,75 par joueur en plus), 2 Gwand
+   Wabbits de plus par vague tous les 2 joueurs en plus, et le plafond de ses creatures monte. Le jeu n'a pas encore de donjon a plusieurs : combat.joueurs le dira ;
+   en attendant, deux variantes de l'Arene dev simulent 3 et 5 joueurs (meme Docteur, meme kit) */
+MONSTRES.wabbenstein3 = Object.assign({}, MONSTRES.wabbenstein, { joueursSimu: 3 }); MONSTRES.wabbenstein5 = Object.assign({}, MONSTRES.wabbenstein, { joueursSimu: 5 });
+GROUPES_DEV.wabbenstein3 = { nom: 'Docteur Wabbenstein (3 joueurs simulés)', liste: { wabbenstein3: 1 } }; GROUPES_DEV.wabbenstein5 = { nom: 'Docteur Wabbenstein (5 joueurs simulés)', liste: { wabbenstein5: 1 } };
+const joueursWab = (mo) => Math.max(1, Math.min(5, (combat && combat.joueurs) || (mo && mo.d && mo.d.joueursSimu) || 1));
 /* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
 const OS_TOURELLES_WAB = /^(tourelle|barillet|fourreau|tige)[GD]\./, OS_HARPON_WAB = /^(harpon|maillon\d+)\./;
 const b2gWab = (x, y, z) => new T.Vector3(x, z, -y); /* (repere de Blender, il regarde -Y, vers celui du jeu) */
@@ -178,6 +185,7 @@ const degatsFixes = (v) => { const c = combat; if (!c || c.raid) return Math.max
 /* ---------------- ses coups automatiques ---------------- */
 function capWabAutos(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif') return; const A = K.autos, { pp, dt } = ctx;
+  if (!mo.wabVie && K.vie) { mo.wabVie = true; const n = joueursWab(mo), v = Math.round(K.vie.base * (1 + K.vie.parJoueur * (n - 1))); mo.pvMax = mo.pv = v; } /* (sa vie du donjon, selon le nombre de joueurs) */
   mo.deg = degWab(mo, A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), cac = mo.d.portee * (mo.allonge || 1) + 0.6;
   if (mo.wabOccupe || mo.geste || dP <= cac || dP > A.portee || !osWab(mo)) { mo.wabTirT = Math.min(mo.wabTirT || 0, A.cadence * 0.6); return; } /* (revenu a portee de tir, il ne tire pas dans l'instant) */
@@ -282,8 +290,9 @@ function capWabPhase(mo, ctx) {
   });
 }
 function libererCreatures(mo, P, c0) { /* ses creatures sortent de terre en arc devant lui (transmutees, ses invocations) ; jamais plus de P.max en vie */
-  const vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length, n = Math.max(0, Math.min(P.creatures.length, P.max - vivantes)), e0 = mo.echelle || 1;
-  P.creatures.slice(0, n).forEach((ty, i) => { if (!MONSTRES[ty]) return; const a = mo.ry + Math.PI * (0.35 + 1.3 * i / Math.max(1, n - 1)), r = 3.6 * e0, q = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r);
+  const j = joueursWab(mo), L = P.creatures.concat(Array(Math.floor((j - 1) / 2) * (P.parDeuxJoueurs || 0)).fill(P.creatures[0])), max = P.max + (P.maxParJoueur || 0) * (j - 1);
+  const vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length, n = Math.max(0, Math.min(L.length, max - vivantes)), e0 = mo.echelle || 1;
+  L.slice(0, n).forEach((ty, i) => { if (!MONSTRES[ty]) return; const a = mo.ry + Math.PI * (0.35 + 1.3 * i / Math.max(1, n - 1)), r = 3.6 * e0, q = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r);
     setTimeout(() => { if (combat !== c0 || c0.fin || mo.etat !== 'actif') return; pouf(q.x, solA(q.x, q.z), q.z, 2.0, '#7dff5a'); apparaitre(ty, { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.wabCreature = true; if (typeof transmuter === 'function') transmuter(o); } }); combat.total++; }, i * 180); });
   return n;
 }
@@ -291,7 +300,7 @@ function libererCreatures(mo, P, c0) { /* ses creatures sortent de terre en arc 
 function capWabRenforts(mo, ctx) {
   const P = mo.d.wabKit && mo.d.wabKit.phase; if (!P || mo.wabPhase !== 'surpuissant' || mo.etat !== 'actif') return;
   mo.wabRenfortT = (mo.wabRenfortT || 0) + ctx.dt; if (mo.wabRenfortT < P.vague || mo.wabOccupe || mo.geste) return; mo.wabRenfortT = 0;
-  const c0 = combat, vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length; if (vivantes >= P.max) return;
+  const c0 = combat, vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length; if (vivantes >= P.max + (P.maxParJoueur || 0) * (joueursWab(mo) - 1)) return;
   const an = mo.m.userData.anim, nomA = an && an.F.appel && an.F.appel[0]; if (nomA) { const a = jouerAnim(an, nomA, 0.15); a.timeScale = a.getClip().duration / 1.2; mo.geste = { t: 0, d: 1.2 }; mo.bloqueT = Math.max(mo.bloqueT || 0, 1.2); }
   setTimeout(() => { if (combat === c0 && !c0.fin && mo.etat === 'actif') { libererCreatures(mo, P, c0); if (!c0.wabRenfortVu) { c0.wabRenfortVu = true; toast(leNom(mo.d) + ' libère de nouvelles créatures : toutes les 20 s tant qu\'il est debout !', 'alerte'); } } }, 450);
 }
