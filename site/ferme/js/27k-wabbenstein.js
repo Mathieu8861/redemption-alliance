@@ -24,7 +24,7 @@ SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
   autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
-  phase: { seuil: 0.3, creatures: ['wabbitNoir', 'wabbitNoir', 'wabbitSquelette', 'wabbitSorciere'], puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 % : chiffres proposes, a valider par Mathieu) */
+  phase: { seuil: 0.3, creatures: ['gwandWabbit', 'gwandWabbit', 'gwandWabbit', 'gwandWabbit'], vague: 20, max: 12, puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 %, Mathieu, 20/11 : « 4 Gwand Wabbits toutes les 20 secondes », +25 %, la rage et la vitesse ; max : 12 en vie au plus, mon garde-fou) */
   saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
   harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
@@ -244,7 +244,7 @@ function auraSerum(c0, duree) { /* un anneau vert sous tes pieds tant que le ser
 }
 CAPACITES.unshift(capWabHarpon, capWabRafale, capWabSaisie, capWabAutos);
 /* ---------------- sous 30 % : ses creatures, puis sa derniere creation (20/11/2026, « fais la phase sous 30 % maintenant », Mathieu ; le kit : « sous 30 %,
-   il libere des creatures mutantes et s'injecte sa derniere creation, qui le rend surpuissant ») ----------------
+   il libere des creatures mutantes et s'injecte sa derniere creation, qui le rend surpuissant » ; puis « 4 Gwand Wabbits toutes les 20 secondes ») ----------------
    Invulnerable le temps de la scene (4,6 s) : il ecarte les bras et appelle (des Wabbits transmutes sortent de terre autour de lui), puis une seringue verte
    apparait dans sa main mecanique, il se la plante dans le cou, convulse, grossit, s'illumine de vert et rugit. Ensuite, surpuissant : tous ses coups x1,25,
    25 % plus rapide, la rage du jeu (coups 1,7 fois plus rapides, sorts 1,3 fois plus frequents), une cawotte de tourelle toutes les 1,5 s au lieu de 2.
@@ -261,8 +261,7 @@ function capWabPhase(mo, ctx) {
   effets.push((dt) => {
     if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabInvuln = false; mo.wabOccupe = false; if (ser) jeter(ser); if (jete) jeter(jete.g); return true; }
     t += dt; const ti = t - dA;
-    if (!sortis && t >= 0.6) { sortis = true; P.creatures.forEach((ty, i) => { if (!MONSTRES[ty]) return; const a = mo.ry + Math.PI * (0.35 + 1.3 * i / Math.max(1, P.creatures.length - 1)), r = 3.6 * e0, q = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r);
-      setTimeout(() => { if (combat !== c0 || c0.fin) return; pouf(q.x, solA(q.x, q.z), q.z, 2.0, '#7dff5a'); apparaitre(ty, { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.wabCreature = true; if (typeof transmuter === 'function') transmuter(o); } }); combat.total++; }, i * 180); }); }
+    if (!sortis && t >= 0.6) { sortis = true; libererCreatures(mo, P, c0); }
     if (ti >= 0 && !ser && !pique && nomI) { const a = jouerAnim(an, nomI, 0.12); a.timeScale = 1; ser = seringueWab(); scene.add(ser); }
     if (ser) { /* la seringue dans la main, pointee vers son cou ; le serum se vide apres la piqure */
       O.mG.updateMatrixWorld(true); const bout = W.axeMain.clone().multiplyScalar(0.26).applyMatrix4(O.mG.matrixWorld), c = cou.getWorldPosition(new T.Vector3()), d = c.clone().sub(bout); d.y *= 0.4; d.normalize();
@@ -281,6 +280,20 @@ function capWabPhase(mo, ctx) {
       toast(leNom(mo.d) + ' est surpuissant : ses coups font plus mal, il est plus rapide et frappe bien plus souvent !', 'alerte'); lueurWab(mo, c0); return true; }
     return false;
   });
+}
+function libererCreatures(mo, P, c0) { /* ses creatures sortent de terre en arc devant lui (transmutees, ses invocations) ; jamais plus de P.max en vie */
+  const vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length, n = Math.max(0, Math.min(P.creatures.length, P.max - vivantes)), e0 = mo.echelle || 1;
+  P.creatures.slice(0, n).forEach((ty, i) => { if (!MONSTRES[ty]) return; const a = mo.ry + Math.PI * (0.35 + 1.3 * i / Math.max(1, n - 1)), r = 3.6 * e0, q = pointValide(mo.x, mo.z, mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r);
+    setTimeout(() => { if (combat !== c0 || c0.fin || mo.etat !== 'actif') return; pouf(q.x, solA(q.x, q.z), q.z, 2.0, '#7dff5a'); apparaitre(ty, { x: q.x, z: q.z, apres: (o) => { o.invoqueur = mo.id; o.invoque = true; o.wabCreature = true; if (typeof transmuter === 'function') transmuter(o); } }); combat.total++; }, i * 180); });
+  return n;
+}
+/* surpuissant : une nouvelle vague de creatures toutes les 20 s ; il les appelle bras ecartes (1,2 s), quand il n'est pas en plein sort */
+function capWabRenforts(mo, ctx) {
+  const P = mo.d.wabKit && mo.d.wabKit.phase; if (!P || mo.wabPhase !== 'surpuissant' || mo.etat !== 'actif') return;
+  mo.wabRenfortT = (mo.wabRenfortT || 0) + ctx.dt; if (mo.wabRenfortT < P.vague || mo.wabOccupe || mo.geste) return; mo.wabRenfortT = 0;
+  const c0 = combat, vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length; if (vivantes >= P.max) return;
+  const an = mo.m.userData.anim, nomA = an && an.F.appel && an.F.appel[0]; if (nomA) { const a = jouerAnim(an, nomA, 0.15); a.timeScale = a.getClip().duration / 1.2; mo.geste = { t: 0, d: 1.2 }; mo.bloqueT = Math.max(mo.bloqueT || 0, 1.2); }
+  setTimeout(() => { if (combat === c0 && !c0.fin && mo.etat === 'actif') { libererCreatures(mo, P, c0); if (!c0.wabRenfortVu) { c0.wabRenfortVu = true; toast(leNom(mo.d) + ' libère de nouvelles créatures : toutes les 20 s tant qu\'il est debout !', 'alerte'); } } }, 450);
 }
 function lueurWab(mo, c0) { /* la lueur verte qui pulse, jusqu'a sa mort */
   const an = mo.m.userData.anim, vert = new T.Color('#1e5a0e'); let t = 0;
@@ -304,5 +317,5 @@ function capWabLibere(mo) {
   const y = mo.m.position.y; pouf(mo.x, y + 0.4, mo.z, 1.8, '#7dff5a'); emettre(FX_VIF, 10, { x: mo.x, y: y + 0.6, z: mo.z, r: 0.3, dv: 2, haut: true, vie: [0.4, 0.7], taille: [0.12, 0.04], c: ['#e8ffd0', '#7dff5a'], grav: -1, frein: 1 });
   chiffre('Libéré !', new T.Vector3(mo.x, y + (mo.haut || 1.6) + 0.4, mo.z), 'vol'); mo.pv = 0; mo.etat = 'mort'; mo.t = 0; mo.m.visible = false; if (mo.barre) mo.barre.remove(); if (combat.cible === mo) combat.cible = null;
 }
-CAPACITES.unshift(capWabPhase, capWabLibere);
+CAPACITES.unshift(capWabPhase, capWabLibere, capWabRenforts);
 
