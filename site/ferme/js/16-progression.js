@@ -161,6 +161,7 @@ function animerCoffre(kamas, id) {
     '<div class="gains-coffre"><div class="gain-coffre"><img src="assets/icones/kama.png' + v + '" alt=""><b>+' + fmt(kamas) + ' kamas</b></div>' +
     (o ? '<div class="gain-coffre objet"><img src="assets/icones/' + iconeObjet(id) + '.png' + v + '" alt=""' + (o.rare ? ' class="rare"' : '') + '><div class="desc"><b>' + o.nom + '</b> <span class="puce neuf">nouveau</span><div class="puces">' + statsObjet(o) + '</div></div></div>' : '') + '</div>' +
     '<div class="boutons">' + (o ? '<button class="btn discret" data-coffre-fiche>Voir dans ma fiche</button>' : '') + '<button class="btn kamas" data-coffre-ok>Super !</button></div></div>');
+  $('modale').dataset.aLire = '1'; /* (il ne se ferme qu'avec ses boutons, 20/11/2026) */
   jouerCoffre('coffre');
 }
 /* LE COFFRE EN 3D (05/11/2026, « le coffre, c'est celui-la qu'on va prendre et animer quand on ouvre nos coffres en jeu ; on a un coffre trop fade »,

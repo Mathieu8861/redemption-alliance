@@ -61,7 +61,7 @@ addEventListener('keyup', (e) => { if (e.code === 'Space' && !(e.target && /^(IN
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && visee) annulerVisee();
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-  if (e.key === 'Escape' && !visee && !enPause && modaleOuverte && !lecon.ouverte) { fermerModale(); return; } /* (Echap ferme la fenetre ouverte, comme un clic a cote, 07/11/2026) */
+  if (e.key === 'Escape' && !visee && !enPause && modaleOuverte && !lecon.ouverte && !$('modale').dataset.aLire) { fermerModale(); return; } /* (Echap ferme la fenetre ouverte, comme un clic a cote, 07/11/2026) */
   const sort = TOUCHES_SORT[e.code]; if (sort && combat && !combat.fin && !enPause && !e.repeat) { e.preventDefault(); sort(); }
   if (lecon.ouverte) return;
   if (e.key === 'p' || e.key === 'P' || (e.code === 'Space' && !e.repeat)) { if (e.code === 'Space') e.preventDefault(); mettrePause(!enPause); } else if (e.key === 'Escape' && enPause) mettrePause(false); /* (la barre espace met en pause aussi, combats compris, 20/11/2026, « mettre un raccourci sur la barre espace », Mathieu ; la peche garde la sienne, 14h-peche.js) */

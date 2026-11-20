@@ -68,6 +68,7 @@ function actionMontgolfiere(a) {
   else if (a === 'ileBoss') ouvrirIleBoss();
   else if (a === 'partirIleBoss') partirIleBoss();
   else if (a === 'reclamerIleBoss') reclamerIleBoss();
+  else if (a === 'revoirCoffreIle') revoirCoffreIle();
   else if (a === 'entrerArene') partirArene();
   else if (a === 'areneDev') ouvrirAreneDev(); /* (l'Arene dev de Mathieu, 27b-arene-dev.js) */
   else if (a === 'lancerDev') partirDev();

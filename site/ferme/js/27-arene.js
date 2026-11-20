@@ -399,7 +399,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
     const frappe = meilleurCompte(cle) > 0 || rang >= 0, fin = 'Il est tombé : plus d\'essai cette semaine. Nouveau boss ' + prochainVendredi() + '.';
     ouvrirModale('ileboss', entete('L\'Île des boss') + teteIleVaincue(t, cle, liste, rang, frappe) + recompensesIle(t, true, rang, frappe) +
       '<div class="hdv-section">Le classement final de la semaine</div><div id="ileboss-classement">' + (liste ? (liste.length ? tableauIle(liste, cle) : '<p class="hdv-aide">Personne n\'a frappé.</p>') : '<p class="hdv-aide">Chargement…</p>') + '</div>' +
-      '<div class="act-bas"><small>' + fin + '</small><button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + '<button class="btn kamas" disabled>Partir</button></div>');
+      '<div class="act-bas"><small>' + fin + '</small><button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + (!aReclamer.length && etatIleBoss().dernierCoffre ? '<button class="btn discret" data-montgolfiere="revoirCoffreIle">Mon dernier coffre</button>' : '') + '<button class="btn kamas" disabled>Partir</button></div>');
     if (!ouvrirIleBoss.relu && !MODE_TEST) classementIleBoss(cle).then((r) => { if (!r || modaleOuverte !== 'ileboss') return; ileBossTotal = r.total; ileBossListe = r.joueurs; ouvrirIleBoss.relu = true; try { ouvrirIleBoss(); } finally { ouvrirIleBoss.relu = false; } });
     return; }
   ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque samedi, avec une vie neuve. Toute l\'alliance tape sur la même vie.</p></div></div>' +
@@ -411,7 +411,7 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
     recompensesIle(t, false, rang, false) +
     (raison ? '' : sectionPotsBonus('l\'essai') + sectionRepas('ile')) +
     '<div class="hdv-section">Le classement de la semaine</div><div id="ileboss-classement"><p class="hdv-aide">Chargement…</p></div>' +
-    '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + '<button class="btn kamas" data-montgolfiere="partirIleBoss"' + (raison ? ' disabled' : '') + '>Partir</button></div>');
+    '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + (!aReclamer.length && etatIleBoss().dernierCoffre ? '<button class="btn discret" data-montgolfiere="revoirCoffreIle">Mon dernier coffre</button>' : '') + '<button class="btn kamas" data-montgolfiere="partirIleBoss"' + (raison ? ' disabled' : '') + '>Partir</button></div>');
   classementIleBoss(cle).then((r0) => { const e = document.getElementById('ileboss-classement'); if (!e) return; if (!MODE_TEST) { ileBossTotal = r0 ? r0.total : null; ileBossListe = r0 ? r0.joueurs : null; }
     const r = r0 || (MODE_TEST && ETAT_TEST.ileListe ? { total: 0, joueurs: ETAT_TEST.ileListe } : null); /* (le classement d'essai du mode test) */
     if (r0 && !MODE_TEST && r0.total >= pvIleBoss(t) && modaleOuverte === 'ileboss') { ouvrirIleBoss.relu = true; try { ouvrirIleBoss(); } finally { ouvrirIleBoss.relu = false; } return; } /* (il vient de tomber : la fiche du vaincu) */
@@ -498,13 +498,19 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
       '<div class="hdv-section">Ce que tu reçois</div><div class="ib-rec">' + L2.join('') + '<div class="rc-l ib-total">' + picto('etoile', '#7a4fc9') + '<span>Au total</span><b>' + total + '</b></div></div>' + siTombe);
   }
   if (!lignes.length) return; /* (aucun classement lisible : le coffre attend) */
+  S0.dernierCoffre = { quand: tempsReel(), html: lignes.join('') }; /* (20/11/2026 : on peut le revoir depuis la fiche de l'ile, revoirCoffreIle) */
   rendreHaut(); sauver(); /* (le son et les confettis : a l'ouverture du coffre, jouerCoffre) */
   ouvrirModale('ileboss', entete('Le coffre de l\'île des boss') + '<p class="hdv-aide">La semaine de l\'île est finie : voici ce que tu gagnes. C\'est déjà ajouté : les kamas et l\'XP sur ta ferme, les runes et les pièces dans ton inventaire (Perso).</p>' +
     '<div class="ouverture-coffre">' + sceneCoffre() + '<div class="gains-coffre">' + lignes.map((l) => '<div class="gain-coffre bloc">' + l + '</div>').join('') + '</div>' +
     '<div class="boutons"><button class="btn discret" data-montgolfiere="ileBoss">Voir l\'île des boss</button><button class="btn kamas" data-fermer>Super !</button></div></div>');
+  $('modale').dataset.aLire = '1'; /* (il ne se ferme qu'avec ses boutons) */
   jouerCoffre('ileboss'); /* (le coffre en 3D, 05/11/2026) */
   } finally { reclamerIleBoss.enCours = false; }
 }
+/* REVOIR SON DERNIER COFFRE DE L'ILE (20/11/2026, « j'ai clique a cote et j'ai pas eu le temps de voir ce que j'ai gagne », Mathieu) : le detail garde a l'ouverture, sans rien redonner */
+function revoirCoffreIle() { const D = etatIleBoss().dernierCoffre; if (!D) return;
+  ouvrirModale('ileboss', entete('Ton dernier coffre de l\'île') + '<p class="hdv-aide">Ouvert le ' + new Date(D.quand).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + '. Tout a déjà été ajouté à ta ferme et à ton inventaire.</p><div class="gains-coffre"><div class="gain-coffre bloc">' + D.html + '</div></div>' +
+    '<div class="boutons"><button class="btn discret" data-montgolfiere="ileBoss">Retour à l\'île des boss</button><button class="btn kamas" data-fermer>Fermer</button></div>'); }
 function animerIleBoss(dt) { /* tout en douceur (« plus lent, tranquille, que ca ne bouille pas dans tous les sens, que ca ne clignote pas : leger, fluide, joli », Mathieu, 15/10/2026) */
   if (!ileBoss || !ileBoss.visible) return; const fx = ileBoss.userData.fx; fx.t += dt; const t = fx.t;
   fx.cercles.forEach(({ m, k }) => { m.material.opacity = k === 2 ? 0.06 + 0.015 * Math.sin(t * 0.8) : (k ? 0.24 : 0.3) + 0.05 * Math.sin(t * 0.9 + k * 1.3); if (k < 2) m.rotation.z = t * (k ? -0.025 : 0.018); }); /* (une respiration de 7 s, a peine) */
