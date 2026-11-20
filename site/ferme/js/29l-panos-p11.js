@@ -1,0 +1,46 @@
+'use strict';
+/* LE PALIER 11 : SES MONSTRES RENOMMES ET SES DEUX PANOPLIES (20/11/2026, version dev : le palier 11 n'est que dans le mode test).
+   Mathieu : « panoplie Amphibienne et Reptilienne. Mais faudrait trouver des noms aux mobs et au pano comme dans Dofus. La reptilienne pour tank / cac, l'amphibienne
+   dps dist, un peu comme d'hab mais tu peux mettre un peu plus de subtilite dans les bonus de pano » ; noms et bonus choisis au formulaire le meme soir.
+   - Les monstres, en jeux de mots : Tetaclaque, Crachopaud, Tritonnerre, Claquelangue, Axolutin, Mere Crapustule ; Croquevase, Piranhargne, Brocheroce, Silurmage,
+     et le boss de la 110, le Machefange.
+   - La panoplie du Crachopaud (amphibienne, degats a distance) tombe sur les amphibiens ; celle du Croquevase (reptilienne, tank au contact) sur la tribu de la mare.
+     Leurs pieces et leurs bonus : 03-equipements.js (PANOS, MOTIF_PANO, PALIERS_PROPRES) ; ici, ce que leurs bonus font en combat :
+       Croquevase : Sang-froid (sous la moitie de ta vie, -12 % de degats recus), Ecailles (15 % des coups recus au contact renvoyes), Mue (une fois par combat, sous
+       25 % de vie, +20 % de ta vie) ;
+       Crachopaud : Oeil de crapaud (+12 % de degats sur un monstre a plus de 4 cases), Bond (+25 % de vitesse 2 s quand on te frappe au contact, toutes les 6 s au
+       plus), Mucus (tes coups ralentissent le monstre de 20 % pendant 1,5 s) ;
+       Sang-mele (3 pieces de chacune) : +5 % de degats et +15 % de resistance a l'entrave.
+   - Sans look pour l'instant : les pieces prennent l'icone de leur monstre (le Croquevase, le Crachopaud). */
+const NOMS_P11 = { tetard: 'Têtaclaque', crapaud: 'Crachopaud', triton: 'Tritonnerre', fouette: 'Claquelangue', axolotl: 'Axolutin', mereCrapaude: 'Mère Crapustule',
+  crocoVase: 'Croquevase', piranha: 'Piranhargne', brochet: 'Brochéroce', silure: 'Silurmage', crocoBoss: 'Mâchefange' };
+Object.entries(NOMS_P11).forEach(([t, nom]) => { if (MONSTRES[t]) MONSTRES[t].nom = nom; });
+['tetard', 'crapaud', 'triton', 'fouette', 'axolotl', 'mereCrapaude'].forEach((t) => { if (MONSTRES[t]) MONSTRES[t].pano = 'crachopaud'; });
+['crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((t) => { if (MONSTRES[t]) MONSTRES[t].pano = 'croquevase'; });
+Object.values(OBJETS).forEach((o) => { const P = PANOS[o.pano]; if (!o.leg && P && (P.id === 'croquevase' || P.id === 'crachopaud')) o.icone = P.id === 'croquevase' ? 'croco-vase' : 'crapaud'; }); /* (en attendant leurs icones) */
+/* les reglages de leurs bonus en combat (les pourcentages viennent des bonus de panoplie, caracs()) */
+const P11_COMBAT = { oeilCases: 4, bondDuree: 2, bondRecharge: 6, mucusDuree: 1.5, mueSous: 0.25 };
+const p11 = () => { if (!combat) return {}; if (!combat.p11) { const c = caracs(); combat.p11 = { sangFroid: c.sangFroid, ecailles: c.ecailles, mue: c.mue, oeil: c.oeilCrapaud, bond: c.bond, mucus: c.mucus, mele: c.sangMele }; } return combat.p11; }; /* (une fois par combat : l'equipement ne change pas en plein combat) */
+/* tes coups : Oeil de crapaud, Sang-mele, puis le Mucus sur le monstre touche */
+const blesserP11 = blesser; blesser = function (mo, n, gros, src) {
+  if (src == null && combat && !combat.fin && mo && mo.etat === 'actif' && n > 1) { const B = p11();
+    if (B.oeil && paysanMesh && Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) > P11_COMBAT.oeilCases * S) n = Math.round(n * (1 + B.oeil / 100));
+    if (B.mele) n = Math.round(n * (1 + B.mele / 100));
+    if (B.mucus) { mo.mucus = P11_COMBAT.mucusDuree; mo.mucusV = 1 - B.mucus / 100; } }
+  return blesserP11(mo, n, gros, src);
+};
+/* les coups recus : Sang-froid avant, puis Ecailles, Bond et Mue */
+const blesserPersoP11 = blesserPerso; blesserPerso = function (n, mo) {
+  if (!combat || combat.fin) return blesserPersoP11(n, mo); const B = p11(), n0 = n;
+  if (B.sangFroid && combat.pv < combat.pvMax / 2) n = Math.max(1, Math.round(n * (1 - B.sangFroid / 100)));
+  const r = blesserPersoP11(n, mo); if (!r || !combat || combat.fin) return r;
+  const contact = !!mo && mo.etat === 'actif' && !coupDeLoin(mo), pp = paysanMesh.position;
+  if (B.ecailles && contact) { const k = Math.max(1, Math.round(n0 * B.ecailles / 100)); blesser(mo, k, false, 'def'); }
+  if (B.bond && contact && !(combat.bondCd > 0)) { combat.bondT = P11_COMBAT.bondDuree; combat.bondCd = P11_COMBAT.bondRecharge; combat.bondV = B.bond / 100; chiffre('Bond !', new T.Vector3(pp.x, pp.y + 2.1, pp.z), 'perso'); }
+  if (B.mue && !combat.mueFaite && combat.pv > 0 && combat.pv < combat.pvMax * P11_COMBAT.mueSous) { combat.mueFaite = true; const k = Math.round(combat.pvMax * B.mue / 100); combat.pv = Math.min(combat.pvMax, combat.pv + k); chiffre('Mue ! +' + k, new T.Vector3(pp.x, pp.y + 2.4, pp.z), 'soin'); }
+  return r;
+};
+effets.push((dt) => { if (!combat) return false; if (combat.bondT > 0) combat.bondT -= dt; if (combat.bondCd > 0) combat.bondCd -= dt;
+  combat.monstres.forEach((mo) => { if (mo.mucus > 0) mo.mucus -= dt; }); return false; });
+/* la tenue des spectateurs de l'Arene : pas les pieces sans look (le palier 11) */
+const tenueAuHasardP11 = tenueAuHasard; tenueAuHasard = function (classe) { const e = tenueAuHasardP11(classe); Object.keys(e).forEach((k) => { const o = OBJETS[e[k]]; if (o && PANOS[o.pano] && PANOS[o.pano].dev) delete e[k]; }); return e; };

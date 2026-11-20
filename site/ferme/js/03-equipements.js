@@ -54,7 +54,12 @@ const PICTOS = {
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
 const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' d\'Agilité', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')],
   resCac: ['Résistance au corps à corps', ' % de dégâts en moins au corps à corps', picto('bouclier', '#3a9fb5')], resLoin: ['Résistance à distance', ' % de dégâts en moins à distance', picto('bouclier', '#d9762e')],
-  entrave: ['Résistance à l\'entrave', ' % de résistance à l\'entrave (enraciné, collé, ralenti, assommé)', /* (10/11/2026, « + 25 % plus courtes, c'est pas tres clair : + 25 % de resistance a l'entrave, et les trucs entre parentheses, ca c'est tres bien », Mathieu) */ picto('bouclier', '#7a9a3a')], venin: ['Venin', ' % de tes dégâts en poison sur 3 s', picto('bouclier', '#6ab04c')], resPoison: ['Résistance aux poisons', ' % de poison en moins', picto('bouclier', '#4f9a6a')] }; /* (les panoplies du palier 10, 08/11/2026) */ /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
+  entrave: ['Résistance à l\'entrave', ' % de résistance à l\'entrave (enraciné, collé, ralenti, assommé)', /* (10/11/2026, « + 25 % plus courtes, c'est pas tres clair : + 25 % de resistance a l'entrave, et les trucs entre parentheses, ca c'est tres bien », Mathieu) */ picto('bouclier', '#7a9a3a')], venin: ['Venin', ' % de tes dégâts en poison sur 3 s', picto('bouclier', '#6ab04c')], resPoison: ['Résistance aux poisons', ' % de poison en moins', picto('bouclier', '#4f9a6a')],
+  /* (les bonus des panoplies du palier 11, 20/11/2026 ; leurs phrases : PHRASES_BONUS) */
+  sangFroid: ['Sang-froid', ' % de dégâts en moins sous la moitié de ta vie', picto('bouclier', '#2e7d6b')], ecailles: ['Écailles', ' % des coups au corps à corps renvoyés', picto('bouclier', '#5a8a3a')],
+  mue: ['Mue', ' % de vie rendus une fois sous 25 %', picto('soin', '#4caf50')], oeilCrapaud: ['Œil de crapaud', ' % de dégâts à plus de 4 cases', picto('degats', '#c0a020')],
+  bond: ['Bond', ' % de vitesse 2 s quand on te frappe au contact', picto('vitesse', '#2f9a8a')], mucus: ['Mucus', ' % de lenteur sur le monstre touché', picto('lenteur', '#6ab04c')],
+  sangMele: ['Sang-mêlé', ' % de dégâts', picto('rage', '#b8322a')] }; /* (les panoplies du palier 10, 08/11/2026) */ /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 },
   { id: 'kanniboul', nom: 'Kanniboul', de: 'du Kanniboul', niv: 81 }, /* (l'ile de Moon, 04/11/2026 : « j'aime bien la A, qu'on drop sur les Kannibouls, et la C sur les Tortues », Mathieu ; blender/equipements-kanniboul.py) */
   /* LES DEUX PANOPLIES DU PALIER 10 (08/11/2026, par Discord : « si jamais on fait 2 panoplies on pourrait faire quoi ? », puis la proposition validee : l'Ecorce, des
@@ -62,20 +67,27 @@ const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id
      Arakne », et des bonus propres a chaque palier de pieces pour pouvoir combiner les panoplies, « fais deja pour celles-la »). Leur look : blender/equipements-foret.py,
      choix de Mathieu « pano Ecorce : coiffe B, cape 1 ; pano Arakne : A et A ». (cache, plus utilise : une panoplie sans look, ni butin ni liste du mode test) */
   { id: 'ecorce', nom: 'Écorce', de: 'de l\'Écorce', niv: 91 },
+  /* LES DEUX PANOPLIES DU PALIER 11 (20/11/2026, « panoplie Amphibienne et Reptilienne ; des noms comme dans Dofus ; la reptilienne pour tank / cac, l'amphibienne dps dist,
+     un peu comme d'hab mais un peu plus de subtilite dans les bonus de pano », Mathieu ; noms et bonus choisis au formulaire) : la Croquevase (reptilienne, sur la tribu
+     de la mare, vagues 106 a 110) et la Crachopaud (amphibienne, sur les amphibiens, 101 a 105). dev : le palier 11 n'est que dans le mode test ; sans look pour
+     l'instant (icones de leurs monstres, pas d'arme de classe tant que l'arme n'est pas dessinee) ; leurs bonus de combat : 29l-panos-p11.js */
+  { id: 'croquevase', nom: 'Croquevase', de: 'du Croquevase', niv: 101, dev: true, sansArme: true },
   /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
      une panoplie de palier se met avant elles (son indice doit rester celui de son palier) */
-  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, sansArme: true }]; /* (sansArme : aucun boss ne la donne, 08/11/2026) */
+  { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, sansArme: true },
+  { id: 'crachopaud', nom: 'Crachopaud', de: 'du Crachopaud', niv: 101, bis: 10, sansArme: true, dev: true }]; /* (sansArme : aucun boss ne la donne, 08/11/2026) */
 const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
 /* LE PROFIL D'UNE PANOPLIE (06/11/2026, « la Tortue c'est plus pour les cac, plus de vie, de tankiness ; le Kanniboul pour les distance, moins de vie mais plus de
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */
-const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.16, puissance: 1.2, agilite: 1.5 }, arakne: { vita: 1.15, puissance: 1.5 } }; /* (Puissance 1,6 puis 1,5 le 15/11/2026, avec la baisse du palier 10 : NERF_P10) */ /* (l'Ecorce et l'Arakne, 08/11/2026 : leur profil est deja dans
+const PROFIL_PANO = { tortue: { vita: 1.6, puissance: 0.75, agilite: 0.75 }, kanniboul: { vita: 0.6, puissance: 1.3, agilite: 1.25 }, ecorce: { vita: 1.16, puissance: 1.2, agilite: 1.5 }, arakne: { vita: 1.15, puissance: 1.5 }, croquevase: { vita: 1.16, puissance: 1.2, agilite: 1.5 }, crachopaud: { vita: 1.15, puissance: 1.5 } }; /* (le palier 11, 20/11/2026 : les memes profils que le palier 10) */ /* (Puissance 1,6 puis 1,5 le 15/11/2026, avec la baisse du palier 10 : NERF_P10) */ /* (l'Ecorce et l'Arakne, 08/11/2026 : leur profil est deja dans
    leurs pieces (MOTIF_PANO : 4 Vitalite sur 12 pour l'Ecorce, 4 Puissance et 3 Agilite pour l'Arakne) ; ces multiplicateurs calent la panoplie complete a +15 a 20 %
    de la Tortue et du Kanniboul, le saut normal d'un palier : sans eux, l'Ecorce montait a 7 500 de Vitalite et l'Arakne tombait a 600) */
 const multPano = (k, c) => ((PROFIL_PANO[(PANOS[k] || {}).id] || {})[c] || 1);
+const SANG_MELE = { deg: 5, entrave: 15 }; /* (le Sang-mele du palier 11 : 3 pieces du Croquevase et 3 du Crachopaud, 20/11/2026) */
 const BONUS_COMPLET = { tortue: { resCac: 5 }, kanniboul: { resLoin: 5 } }; /* (en plus du bonus des 6 pieces, 06/11/2026, « 5 % de reduction a distance pour le Kanniboul, 5 % de res au cac pour la Tortue », Mathieu) */
 const PANOS_PALIER = PANOS.filter((P) => P.bis == null); /* (une par palier, dans l'ordre des paliers) */
 const MOTIF = { coiffe: ['vita', 'sagesse'], cape: ['vita', 'agilite'], amulette: ['puissance', 'sagesse'], anneau: ['puissance', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['agilite', 'prospection'] };
-const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500, 605], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44, 53], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28, 34], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46, 55], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55, 65] }; /* (le 10e rang, le palier 10, 08/11/2026 : la suite des ecarts) */ /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
+const VALEURS = { vita: [20, 45, 80, 125, 180, 245, 320, 405, 500, 605, 720], puissance: [4, 7, 10, 14, 18, 23, 29, 36, 44, 53, 63], agilite: [3, 5, 7, 9, 12, 15, 19, 23, 28, 34, 41], sagesse: [5, 8, 11, 15, 20, 25, 31, 38, 46, 55, 65], prospection: [8, 12, 16, 20, 25, 31, 38, 46, 55, 65, 76] }; /* (le 11e rang, le palier 11, 20/11/2026 : la suite des ecarts) */ /* (le 10e rang, le palier 10, 08/11/2026 : la suite des ecarts) */ /* (le palier 8, 20/10/2026 : la suite des ecarts ; le 9e rang, 02/11/2026 : les armes de Moon seulement, pas encore de panoplie) */
 const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bottes: 1 }; /* le niveau requis de chaque piece, dans son palier */
 /* LES STATS PROPRES A UNE PANOPLIE (08/11/2026, « les anneaux donnent tous a peu pres la meme chose ; il faudrait que ce soit diversifie : des fois l'anneau qui donne
    de la vie, des fois la coiffe qui donne de la puissance ; la ceinture, c'est tout le temps vita puissance, des fois ca pourrait etre prospection sagesse, ou full vita ;
@@ -84,7 +96,10 @@ const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bott
    garderaient leurs anciens jets, a convertir d'abord) */
 const MOTIF_PANO = {
   ecorce: { coiffe: ['vita', 'vita'], cape: ['vita', 'prospection'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'puissance'], ceinture: ['prospection', 'sagesse'], bottes: ['agilite', 'sagesse'] },
-  arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] } }; /* (l'anneau de l'Arakne : Puissance et Agilite, et non plus deux fois la Puissance, 15/11/2026, « l'anneau du Kanniboul c'est de 42 a 71 %, la tu as triple, faut doser un peu », Mathieu) */
+  arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] },
+  /* (le palier 11, 20/11/2026 : la Croquevase 4 Vitalite, 3 Puissance, 2 Prospection, 2 Sagesse, 1 Agilite ; la Crachopaud 3 Puissance, 4 Agilite, 2 Vitalite, 2 Prospection, 1 Sagesse) */
+  croquevase: { coiffe: ['vita', 'puissance'], cape: ['vita', 'vita'], amulette: ['puissance', 'sagesse'], anneau: ['vita', 'prospection'], ceinture: ['puissance', 'agilite'], bottes: ['prospection', 'sagesse'] },
+  crachopaud: { coiffe: ['agilite', 'prospection'], cape: ['puissance', 'agilite'], amulette: ['puissance', 'vita'], anneau: ['agilite', 'puissance'], ceinture: ['vita', 'sagesse'], bottes: ['agilite', 'prospection'] } }; /* (comme l'Arakne : 3 Puissance, 4 Agilite ; son anneau rehausse comme le sien, BORNES_JET) */ /* (l'anneau de l'Arakne : Puissance et Agilite, et non plus deux fois la Puissance, 15/11/2026, « l'anneau du Kanniboul c'est de 42 a 71 %, la tu as triple, faut doser un peu », Mathieu) */
 /* (chaque panoplie garde 12 caracteristiques sur ses 6 pieces, comme MOTIF ; l'Ecorce : 4 Vitalite, 3 Puissance, 2 Prospection, 2 Sagesse, 1 Agilite ; l'Arakne : 4 Puissance,
    3 Agilite, 2 Vitalite, 2 Prospection, 1 Sagesse) */
 /* LA BAISSE DU PALIER 10 (15/11/2026, « il faudrait reduire un peu la puissance des items du 90 a 100, surtout l'anneau Arakne », Mathieu) : -10 % de Vitalite, de Puissance et
@@ -94,7 +109,7 @@ const NERF_P10 = 0.9, nerfP10 = (niv, c) => (niv >= 91 && (c === 'vita' || c ===
 const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); return st; };
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: statsPiece(k, e) }; })); /* (le profil de la panoplie, 06/11/2026) */
-OBJETS['arakne-anneau'].stats.puissance = 104; /* (l'anneau de l'Arakne : 79 a 128 de Puissance, BORNES_JET ; sa valeur de reference, celle d'une piece sans jet, au milieu ; 156 en rare) */
+OBJETS['arakne-anneau'].stats.puissance = 104; OBJETS['crachopaud-anneau'].stats.puissance = 124; /* (le Crachopaud : 94 a 152, 20/11/2026) */ /* (l'anneau de l'Arakne : 79 a 128 de Puissance, BORNES_JET ; sa valeur de reference, celle d'une piece sans jet, au milieu ; 156 en rare) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
    (plus avec la Prospection), deux fois les stats de la coiffe de sa panoplie, de la Puissance en plus, et un pouvoir. Elles ne comptent dans aucune panoplie. */
 const CHANCE_LEG = 0.02;
@@ -168,7 +183,7 @@ LEGENDAIRES.filter((L) => L.arme).forEach((L) => { const k = L.rang; Object.entr
 /* LA BAGUE DU JOUEUR PRO (10/11/2026, l'easter egg du million : « si on gagne, on obtient un anneau legendaire, la bague du joueur pro, qui donne des stats
    de fou en prospection », Mathieu) : elle ne tombe sur aucun monstre, Dore III la perd a sa table de poker (js/29b-casino-patron.js). Hors panoplie, comme
    les autres legendaires ; ses stats sont tirees comme toutes les pieces (de 75 a 125 %) : de 113 a 188 de Prospection */
-OBJETS['leg-joueur'] = { id: 'leg-joueur', pano: PANOS.length - 1, leg: 'joueur', emp: 'anneau', nom: 'Bague du joueur pro', niv: 50, icone: 'obj-leg-joueur', stats: { prospection: 150, puissance: 20 } };
+OBJETS['leg-joueur'] = { id: 'leg-joueur', pano: PANOS.findIndex((P) => P.id === 'arakne'), /* (l'Arakne : la derniere panoplie avant celles du palier 11, 20/11/2026) */ leg: 'joueur', emp: 'anneau', nom: 'Bague du joueur pro', niv: 50, icone: 'obj-leg-joueur', stats: { prospection: 150, puissance: 20 } };
 const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || classeDe()][0] : 'leg-' + L.cle); /* la piece legendaire d'un boss, pour ta classe */
 PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (P.sansArme) return; /* (celles d'un palier tombent sur son boss ; L'ARME D'UNE PANOPLIE EN PLUS (07/11/2026, « faut faire la tortue aussi », Mathieu) :
   celle de la Tortue tombe sur la Tortue Corail, et suit le profil de sa panoplie (moins de Puissance et d'Agilite, de la Vitalite en echange) ; les armes des paliers ne changent pas) */
@@ -196,7 +211,10 @@ const PALIERS_PROPRES = {
   /* (4 et 6 pieces melanges le 15/11/2026, « le bonus 4 pieces pour l'Ecorce et l'Arakne c'est pas top, faudrait apporter d'autres stats, enfin melanger le 4 et le 6 », Mathieu :
      a 4 pieces, de vraies stats (la vie, la resistance au contact et le butin ; le venin et le butin) ; l'entrave passe a 6 ; le total des 6 pieces ne change pas) */
   ecorce: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ vita: Math.round(VALEURS.vita[k] / 2), resCac: 4, prospection: 15 })], [6, () => ({ entrave: 25, resCac: 4, sagesse: 10 })]],
-  arakne: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ venin: 10, prospection: 15 })], [6, () => ({ entrave: 25, resPoison: 30, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
+  arakne: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ venin: 10, prospection: 15 })], [6, () => ({ entrave: 25, resPoison: 30, sagesse: 10 })]],
+  /* (le palier 11, 20/11/2026, au formulaire : la Croquevase, Sang-froid puis Ecailles et Mue ; la Crachopaud, Oeil de crapaud puis Bond et Mucus ; 3 + 3 : Sang-mele) */
+  croquevase: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, () => ({ sangFroid: 12, prospection: 15 })], [6, () => ({ ecailles: 15, mue: 20, sagesse: 10 })]],
+  crachopaud: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ oeilCrapaud: 12, prospection: 15 })], [6, () => ({ bond: 25, mucus: 20, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
 const paliersDe = (k) => PALIERS_PROPRES[(PANOS[k] || {}).id] || PALIERS_PANO;
 const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
 /* L'ARME COMPTE DANS SA PANOPLIE (07/11/2026, « il faut que l'arme compte dans les panoplies aussi, mais au max ca reste toujours 6/6 : l'avantage, c'est que tu peux mettre
@@ -204,15 +222,20 @@ const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) 
 const comptePanos = () => { const c = {}; Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o && !o.leg && o.pano != null) c[o.pano] = Math.min(EMPLACEMENTS.length, (c[o.pano] || 0) + 1); }); return c; };
 /* (15/11/2026, « les bonus de la pano, on comprend pas », Mathieu : un bonus par ligne, en clair, le venin et la resistance aux poisons dits en phrases) */
 const PHRASES_BONUS = { resCac: (v) => v + ' % de dégâts en moins au corps à corps', resLoin: (v) => v + ' % de dégâts en moins à distance',
-  venin: (v) => 'chaque coup empoisonne le monstre : il perd encore ' + v + ' % des dégâts de ce coup, en 3 s (les poisons s\'additionnent)', resPoison: (v) => 'les poisons te font ' + v + ' % de dégâts en moins' };
+  venin: (v) => 'chaque coup empoisonne le monstre : il perd encore ' + v + ' % des dégâts de ce coup, en 3 s (les poisons s\'additionnent)', resPoison: (v) => 'les poisons te font ' + v + ' % de dégâts en moins',
+  sangFroid: (v) => 'Sang-froid : sous la moitié de ta vie, tu prends ' + v + ' % de dégâts en moins', ecailles: (v) => 'Écailles : ' + v + ' % des coups reçus au corps à corps sont renvoyés à l\'attaquant',
+  mue: (v) => 'Mue : une fois par combat, sous 25 % de vie, tu récupères ' + v + ' % de ta vie', oeilCrapaud: (v) => 'Œil de crapaud : +' + v + ' % de dégâts sur les monstres à plus de 4 cases',
+  bond: (v) => 'Bond : quand on te frappe au corps à corps, +' + v + ' % de vitesse pendant 2 s (toutes les 6 s au plus)', mucus: (v) => 'Mucus : tes coups ralentissent le monstre de ' + v + ' % pendant 1,5 s',
+  sangMele: (v) => 'Sang-mêlé (3 pièces du Croquevase et 3 du Crachopaud) : +' + v + ' % de dégâts' };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' + CARACS[c][2] + ' ' + (PHRASES_BONUS[c] ? PHRASES_BONUS[c](v) : '+' + v + CARACS[c][1]) + '</i>').join('');
 /* (10/11/2026, « en bas a droite, le total des bonus cumules d'une pano », Mathieu : sous les paliers, la somme de ceux qui sont actifs ; voir : un bouton vers la fiche de la panoplie, dans la fiche du perso) */
 const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="pano-aide">Les bonus s\'additionnent : avec 6 pièces, tu as ceux de 2, de 4 et de 6.</div><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '"><b>' + (n >= m ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
   (Object.keys(tot).length ? '<div class="pano-total"><b>Tes bonus de panoplie en ce moment</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
 function caracs() {
-  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0 };
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0 }; /* (les bonus du palier 11, 20/11/2026) */
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
+  { const C = comptePanos(), n = (id) => C[PANOS.findIndex((P) => P.id === id)] || 0; if (n('croquevase') >= 3 && n('crachopaud') >= 3) { t.sangMele += SANG_MELE.deg; t.entrave += SANG_MELE.entrave; } } /* (le Sang-mele : 3 pieces de chaque panoplie du palier 11, 20/11/2026) */
   try { if (combat && combat.boostPros) t.prospection += combat.boostPros; if (combat && combat.agi) t.agilite += combat.agi; if (combat && combat.rafale) t.agilite += combat.rafale; /* (la Rafale du Cra, 21-combat.js) */ const b = bonusA(); if (b) { t.puissance += 10 * (b.puissance || 0); t.agilite += 10 * (b.agilite || 0); t.prospection += 20 * (b.butin || 0); } } catch (e) { /* (avant la declaration de combat) */ } /* la Fraise mangee avant la vague, la Royale bue */
   return t;
 }
@@ -222,7 +245,7 @@ const reventeObjet = (id) => kamasGagnes(15 * obj(id).niv * (obj(id).rare ? 3 : 
 const JET_MIN = 0.75, JET_MAX = 1.25;
 const baseObjet = (k) => String(k || '').split('~')[0];
 /* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
-const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] } }; /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
+const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [94, 152] }, 'crachopaud-anneau-rare': { puissance: [141, 228] } }; /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
 const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
 function objBrut(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; } /* (la piece a son jet, sans l'eveil : pour la forgemagie et la qualite du jet) */
 function obj(k) { const o = objBrut(k), e = o && o.leg && S_ && S_.eveils && S_.eveils[k]; return e && typeof eveillerObjet === 'function' ? eveillerObjet(o, e) : o; } /* (l'eveil d'un legendaire, 27g-eveil-concasseur.js, 18/11/2026) */
