@@ -67,7 +67,7 @@ function corpsTornade() {
   const debris = []; for (let k = 0; k < 7; k++) { const d = new T.Mesh(new T.DodecahedronGeometry(0.08 + Math.random() * 0.08, 0), mat(Math.random() < 0.5 ? '#c99a62' : '#a8743f')); d.userData = { a: Math.random() * 6.28, y: 0.3 + Math.random() * 3.5, r: 0.6 + Math.random() * 1.2, v: 2 + Math.random() * 2 }; g.add(d); debris.push(d); }
   return { g, L, debris };
 }
-function capTornades(mo, ctx) {
+function capTornadesDesert(mo, ctx) {
   const c = combat; if (!c || c.fin || c.genre !== 'ile' || !mo.d.boss || mo.etat !== 'actif' || !ileBoss || ileBoss.userData.carte !== 'desert') return;
   const spots = ileBoss.userData.tornades || []; if (!spots.length) return; const T0 = TORNADES;
   if (c.tornadeT == null) { c.tornadeT = 0; c.tornadeProchaine = 5 + Math.random() * 3; c.tornades = 0; }
@@ -102,4 +102,4 @@ function lancerTornade(s, c0, mo) {
     return false;
   });
 }
-CAPACITES.unshift(capTornades);
+CAPACITES.unshift(capTornadesDesert); /* (capTornades existe deja : les tornades d'Ebil, 21-combat.js) */
