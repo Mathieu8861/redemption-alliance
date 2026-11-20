@@ -11,14 +11,18 @@
    Les tourelles ont leurs propres mouvements (tourelles_sortie, tourelles_rafale, tourelles_rentree), joues PAR-DESSUS les autres : on ne garde, dans chaque
    mouvement, que les pistes de ses os. Le harpon et sa chaine ne sont jamais animes par les mouvements : ce fichier les place a chaque image (la chaine du
    modele, en U sous le canon au repos, est cachee pendant le tir et une chaine aussi longue que la ligne la remplace).
-   Chiffres de depart (ceux de Scorpal), a regler avec Mathieu. Pas encore dans le jeu des joueurs : seulement dans l'Arene dev (GROUPES_DEV). */
+   DEGATS (20/11/2026, Mathieu : « chaque cawotte qui touche retire 2 % des hp de la personne ; harpon a l'impact -1400 et ensuite coup au cac, si on esquive pas
+   en 0,7 s on prend 570 ») : des montants fixes, avant les resistances des panoplies (comme tout coup recu), sans le bonus de degats des paliers ; 2 % des PV
+   max du perso par cawotte. Apres le harpon, le perso n'est retenu que le temps d'etre ramene (0,28 s) : la zone du coup de poing (bleue, celle des coups au
+   corps a corps des boss) dure 0,7 s, on peut en sortir. Le reste (vie, coups de base) : les chiffres de Scorpal, a regler. Pas encore dans le jeu des
+   joueurs : seulement dans l'Arene dev (GROUPES_DEV). */
 SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.glb', 3.6]); ALLURES.wabbenstein = { marche: 0.635, course: 1.39 };
 const KIT_WAB = {
-  rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, x: 0.2, toucher: 0.65 },
-  harpon: { periode: 9, prepa: 0.6, min: 3.2, R: 11, larg: 1.1, vitesse: 34, retour: 26, x: 0.45, tire: 0.28, poing: 1.5, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
+  rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
+  harpon: { periode: 9, prepa: 0.6, min: 3.2, R: 11, larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
-  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail, et son harpon t\'attrape de loin, te ramène contre lui et il t\'assène un coup de poing',
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
 GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, essai)', liste: { wabbenstein: 1 } };
 /* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
@@ -70,7 +74,7 @@ function tirerCawotte(mo, c, R, c0) {
     g.position.set(x, y, z); g.lookAt(x + ux, y - (y0 - yv) * ex / 1.3, z + uz); g.rotateZ(rot);
     const pp = paysanMesh.position;
     if (y < pp.y + 2.2 && Math.hypot(pp.x - x, pp.z - z) < R.toucher) { jeter(g); pouf(x, y, z, 0.9, '#ee7a26'); emettre(FX_VIF, 6, { x, y, z, r: 0.1, dv: 3, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
-      if (!c0.fin) blesserPerso(Math.max(1, Math.round(degSort(mo) * R.x)), mo); return true; }
+      if (!c0.fin) blesserPerso(degatsFixes(c0.pvMax * R.pct), mo); return true; }
     if (s > L) { jeter(g); pouf(x, solA(x, z), z, 0.7, '#ee7a26'); return true; } return false;
   });
 }
@@ -135,7 +139,7 @@ function lancerHarpon(mo, O, H, a, ah, L0, c0) { /* (ah : la direction de la lig
         if (Math.hypot(p.x - pointe.x, p.z - pointe.z) < H.toucher && !(c0.invincible > 0)) { /* harponne : ramene contre lui */
           phase = 'tire'; t = 0; x0 = p.x; z0 = p.z; mo.wabTient = true; chemin = []; arrivee = null;
           const g = mo.ry + 0, fx = mo.x + Math.sin(g) * 1.7 * (mo.echelle || 1) + Math.cos(g) * 0.5, fz = mo.z + Math.cos(g) * 1.7 * (mo.echelle || 1) - Math.sin(g) * 0.5; f = pointValide(mo.x, mo.z, fx, fz);
-          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(Math.max(1, Math.round(degSort(mo) * H.x)), mo); etourdir(H.tire + 0.5);
+          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(degatsFixes(H.impact), mo); c0.assomme = Math.max(c0.assomme || 0, H.tire); /* (retenu le temps d'etre ramene seulement : le coup de poing s'esquive) */
           if (nomS(mo)) { const ac = mo.m.userData.anim.A[nomS(mo)]; if (ac) ac.timeScale = 2.2; } }
         else if (s >= H.R) phase = 'retour'; }
       if (phase === 'retour' && s <= 0) return fin();
@@ -151,14 +155,16 @@ function lancerHarpon(mo, O, H, a, ah, L0, c0) { /* (ah : la direction de la lig
   });
 }
 const nomS = (mo) => { const an = mo.m && mo.m.userData.anim; return an && an.F.sort && an.F.sort[0]; };
-function poingWab(mo, H, c0) { /* le coup de poing de la main mecanique, juste apres l'avoir ramene */
-  const an = mo.m.userData.anim, nom = an.F.coup && an.F.coup[0], p = paysanMesh.position; mo.ry = Math.atan2(p.x - mo.x, p.z - mo.z); mo.wabOccupe = true;
-  const a = nom && jouerAnim(an, nom, 0.06), D = a ? a.getClip().duration : 0.6, ts = 1.5; if (a) a.timeScale = ts;
-  const imp = ((((mo.m.userData.impacts || {})[nom] || [])[0] || { t: D * 0.45 }).t) / ts; mo.geste = { t: 0, d: D / ts - 0.05 }; mo.bloqueT = Math.max(mo.bloqueT || 0, D / ts); mo.cd = Math.max(mo.cd || 0, D / ts + 0.3);
-  let t = 0; effets.push((dt) => { t += dt; if (t < imp) return false;
-    if (combat === c0 && !c0.fin && mo.etat === 'actif') { const q = paysanMesh.position; if (Math.hypot(q.x - mo.x, q.z - mo.z) < 3.4 * (mo.echelle || 1)) {
-      const z = q.clone(); z.y += 1.1; etoileImpact(z, 1.1); secousse(0.22, 0.3); const w = q.clone(); w.y += 2.1; chiffre('Coup de poing !', w, 'vol');
-      if (blesserPerso(Math.max(1, Math.round(degSort(mo) * H.poing)), mo)) repousserPerso(mo, H.repousse); } }
-    mo.wabOccupe = false; return true; });
+function poingWab(mo, H, c0) { /* le coup de poing de la main mecanique, juste apres l'avoir ramene : 0,7 s pour sortir de la zone */
+  const an = mo.m.userData.anim, nom = an.F.coup && an.F.coup[0], p = paysanMesh.position, a0 = Math.atan2(p.x - mo.x, p.z - mo.z), e = mo.echelle || 1; mo.ry = a0; mo.wabOccupe = true;
+  const ac = nom && jouerAnim(an, nom, 0.06), D = ac ? ac.getClip().duration : 0.6, imp0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: D * 0.45 }).t, ts = imp0 / H.prepaPoing;
+  if (ac) ac.timeScale = ts; mo.geste = { t: 0, d: D / ts - 0.05 }; mo.bloqueT = Math.max(mo.bloqueT || 0, D / ts); mo.cd = Math.max(mo.cd || 0, D / ts + 0.3);
+  if (!c0.wabPoingVu) { c0.wabPoingVu = true; toast(leNom(mo.d) + ' arme son poing : sors vite de la zone bleue !', 'alerte'); }
+  zoneDanger({ mo, x: mo.x, z: mo.z, r: H.rPoing * e, a: a0, ouv: H.ouvPoing, duree: H.prepaPoing, couleur: COULEUR_CAC, effet: (d) => {
+    mo.wabOccupe = false; const q = paysanMesh.position; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !dansDanger(d, q.x, q.z)) return;
+    const z = q.clone(); z.y += 1.1; etoileImpact(z, 1.1); secousse(0.22, 0.3); const w = q.clone(); w.y += 2.1; chiffre('Coup de poing !', w, 'vol');
+    if (blesserPerso(degatsFixes(H.poing), mo)) repousserPerso(mo, H.repousse); } });
 }
+/* des degats fixes (les montants de Mathieu) : blesserPerso les multiplie par le bonus de degats du palier, on le retire avant */
+const degatsFixes = (v) => { const c = combat; if (!c || c.raid) return Math.max(1, Math.round(v)); return Math.max(1, v / (multDegats(c.n) * multHautes(c.n, c.genre))); };
 CAPACITES.unshift(capWabHarpon, capWabRafale);
