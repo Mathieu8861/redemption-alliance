@@ -165,9 +165,14 @@ function bornerIle(x, z, m) { /* le point le plus proche ou l'on peut se tenir :
   return versMondeIle(lx, lz);
 }
 const dansIle = (x, z, m) => { const [lx, lz] = versLocalIle(x, z); if (!solIle(lx, lz, m == null ? 0.4 : m)) return false; return !((ileBoss && ileBoss.userData.blocs) || []).some((o) => Math.hypot(lx - o.x, lz - o.z) < o.r + (m == null ? 0.4 : m)); };
+/* LA CARTE DE L'ILE SELON LE BOSS DE LA SEMAINE (20/11/2026, le desert de Scorpal, 27l-ile-desert.js) : MONSTRES[t].carteIle, sinon l'ile de toujours ;
+   HABILLER_ILE[carte] la finit (couleurs, sceau, effets) apres le chargement */
+const FICHIERS_ILE = { base: 'boss-ile.glb' }, HABILLER_ILE = {};
+const carteIleBoss = () => { let t = null; try { t = bossDuJour(semaineIleBoss()); } catch (e) { t = null; } const c = t && MONSTRES[t] && MONSTRES[t].carteIle; return c && FICHIERS_ILE[c] ? c : 'base'; };
 async function chargerIleBoss() { /* l'ile des boss (blender/boss-ile.py), rendue comme la ferme, et ses effets animes */
-  if (ileBoss) return ileBoss;
-  const sc = await chargerGlb('assets/modeles/jeu/boss-ile.glb?v=' + VERSION_MODELES), reperes = [];
+  const carte = carteIleBoss(); if (ileBoss && ileBoss.userData.carte === carte) return ileBoss;
+  if (ileBoss) { scene.remove(ileBoss); ileBoss = null; } /* (le boss de la semaine a change de carte) */
+  const sc = await chargerGlb('assets/modeles/jeu/' + FICHIERS_ILE[carte] + '?v=' + VERSION_MODELES), reperes = [];
   sc.updateMatrixWorld(true); sc.traverse((o) => { if (/^repere_/.test(o.name)) { const p = new T.Vector3(); o.getWorldPosition(p); reperes.push({ nom: o.name, p }); } });
   versToon(sc, { echelle: 0.012, souple: SOUPLE_ILE, sansContour: SC_ILE, douce: true, centre: true });
   const g = new T.Group(); g.add(fusionner(sc.getObjectByName('BossIle') || sc, {})); g.position.copy(ILE_BOSS); g.rotation.y = ROT_ILE_BOSS;
@@ -192,7 +197,7 @@ async function chargerIleBoss() { /* l'ile des boss (blender/boss-ile.py), rendu
      les deux cones orange des bols sont partis) */
   fx.sceau = sceauIleBoss(VARIANTE_SCEAU); g.add(fx.sceau);
   g.userData.blocs = reperes.filter((x) => /^repere_bloc_/.test(x.nom)).map((x) => ({ x: x.p.x, z: x.p.z, r: (numRepere(x.nom) || 40) / 100 })); /* (les gros elements du decor, on bute dessus) */
-  g.userData.fx = fx; decorIle(g, reperes); scene.add(g); ileBoss = g; if (!soleil.target.parent) scene.add(soleil.target); return g;
+  g.userData.fx = fx; g.userData.carte = carte; decorIle(g, reperes); if (HABILLER_ILE[carte]) HABILLER_ILE[carte](g, reperes); scene.add(g); ileBoss = g; if (!soleil.target.parent) scene.add(soleil.target); return g;
 }
 function sceauIleBoss(v) { /* le sceau au milieu du cercle magique, a plat ; v : 'etoile', 'crane' ou 'oeil' */
   const g = new T.Group(), c = new T.Group(); g.add(c); c.rotation.x = -Math.PI / 2; g.rotation.y = 0; g.position.y = 0.035; g.userData.v = v; /* (le haut du dessin vers le haut de l'ecran) */

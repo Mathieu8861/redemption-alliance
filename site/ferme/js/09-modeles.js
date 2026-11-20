@@ -176,7 +176,7 @@ const MODELES = {};
 const VERSION_MODELES = '20261119f'; /* la version commune des modeles et des icones. NE PLUS LA CHANGER pour un seul modele (19/11/2026, « le jeu lag de malade,
    meme le chargement », Mathieu) : chaque changement faisait retelecharger tous les modeles (27,6 Mo au demarrage, plus ceux charges a la demande). Un modele
    qui change recoit sa propre version dans VERSIONS_FICHIERS, les autres restent dans le cache du navigateur */
-const VERSIONS_FICHIERS = { 'tour-filet-pistes.glb': '20261119h', 'scorpion-anime.glb': '20261120a', 'wabbenstein-anime.glb': '20261120c' }; /* (scorpion-anime : les pinces de Scorpal refaites d'apres le dessin, 20/11/2026) */
+const VERSIONS_FICHIERS = { 'tour-filet-pistes.glb': '20261119h', 'scorpion-anime.glb': '20261120a', 'wabbenstein-anime.glb': '20261120c', 'boss-ile-desert.glb': '20261120a' }; /* (scorpion-anime : les pinces de Scorpal refaites d'apres le dessin, 20/11/2026) */
 { const charge0 = chargeur.load.bind(chargeur), re = new RegExp('([^/?]+\\.glb)\\?v=' + VERSION_MODELES + '(?![0-9a-z])'); /* (seulement les chargements normaux : un essai en ?v=Date.now() reste tel quel) */
   chargeur.load = (url, ...r) => charge0(String(url).replace(re, (m, f) => f + '?v=' + (VERSIONS_FICHIERS[f] || VERSION_MODELES)), ...r); }
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */
