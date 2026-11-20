@@ -17,16 +17,14 @@ const RECETTES_DEV_ATELIER = [];
 const ouvrirAtelierDev = ouvrirAtelier; ouvrirAtelier = function () { const n = RECETTES_ATELIER.length; if (MODE_TEST) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return ouvrirAtelierDev(); } finally { RECETTES_ATELIER.length = n; } };
 const fabriquerDev = fabriquer; fabriquer = function (id, fois) { const n = RECETTES_ATELIER.length; if (MODE_TEST) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return fabriquerDev(id, fois); } finally { RECETTES_ATELIER.length = n; } };
 RECETTES_DEV_ATELIER.push({ id: 'charbon', nom: 'Charbon de bois', donne: 10, stock: 'charbon', kamas: 5000, il: [['ecorce_abraknyde', 6], ['kaliptus', 4]], ico: 'charbon-bois', minuscule: 'charbons de bois',
-  apres: '. Verse-les dans la tour à filets (bouton « Alimenter la tour » du mode test).',
+  apres: '. Verse-les dans ta tour à filets : touche-la.',
   desc: 'Le combustible de la tour à filets : un charbon de bois lui fait tirer un filet. La tourbe des marais, laissée par la tribu de la mare, brûle deux fois plus longtemps.' });
 const feuTour = () => S_.feuTour || 0;
 const K_TOUR_FILET = ECH_TOUR * 1.3, CHEMINEE_TOUR_FILET = [-0.58, 4.92, -0.5]; /* (le haut de la cheminee dans le modele, blender/tour-filet-pistes.py, apres elancer) */
-/* la fumee : celle des cheminees de la grange, sur la tour posee, visible seulement quand elle a du feu */
-const poserTourFiletFeu = poserTourFilet; poserTourFilet = async function (piste) {
-  const T0 = tourFiletEssai; if (T0 && T0.fumee) { const i = fumeesCheminee.indexOf(T0.fumee); if (i >= 0) fumeesCheminee.splice(i, 1); }
-  await poserTourFiletFeu(piste); const T1 = tourFiletEssai; if (!T1) return;
+/* la fumee : celle des cheminees de la grange, sur la tour posee, visible seulement quand elle a du feu (construireBatiments vide les fumees et refait la tour) */
+const poserTourFiletBatiFeu = poserTourFiletBati; poserTourFiletBati = function (pose) {
+  poserTourFiletBatiFeu(pose); const T1 = tourFiletEssai; if (!T1) return;
   T1.fumee = fumerCheminee(T1.m, 0, new T.Vector3(...CHEMINEE_TOUR_FILET.map((v) => v * K_TOUR_FILET))); if (T1.fumee) { T1.fumee.children.forEach((b) => { b.raycast = () => {}; }); T1.fumee.visible = feuTour() > 0; }
-  if (!feuTour()) toast('La tour est froide : verse-lui du charbon de bois ou de la tourbe des marais (bouton « Alimenter la tour »).', 'alerte');
 };
 function bouffeeTir() { /* a chaque filet, la cheminee crache une bouffee plus noire */
   const T0 = tourFiletEssai; if (!T0 || !T0.fumee) return; const p = T0.fumee.getWorldPosition(new T.Vector3());
@@ -35,25 +33,25 @@ function bouffeeTir() { /* a chaque filet, la cheminee crache une bouffee plus n
 const lancerFiletFeu = lancerFilet; lancerFilet = function (mo) { S_.feuTour = Math.max(0, feuTour() - 1); bouffeeTir(); return lancerFiletFeu(mo); };
 const majTourFiletFeu = majTourFilet; majTourFilet = function (dt) {
   const T0 = tourFiletEssai; if (T0 && T0.fumee) { T0.fumee.visible = feuTour() > 0; if (!fumeesCheminee.includes(T0.fumee)) fumeesCheminee.push(T0.fumee); } /* (la ferme reconstruite vide la liste des fumees : la sienne y revient) */
-  if (T0 && MODE_TEST && combat && combat.raid && !combat.fin && feuTour() <= 0) { if (!T0.vide) { T0.vide = true; toast('La tour à filets n\'a plus de combustible : elle ne tire plus.', 'alerte'); } return; }
+  if (T0 && !amelioCachee('tourFilet') && combat && combat.raid && !combat.fin && feuTour() <= 0) { if (!T0.vide) { T0.vide = true; toast('La tour à filets n\'a plus de combustible : elle ne tire plus.', 'alerte'); } return; }
   if (T0) T0.vide = false; return majTourFiletFeu(dt);
 };
 /* alimenter la tour : la reserve de feu, le charbon de bois (atelier) et la tourbe des marais (grange) */
 function ouvrirFeuTour() {
   const ch = S_.charbon || 0, tb = (S_.grange || {}).tourbe || 0, f = feuTour(), place = COMBUSTIBLE.max - f;
   const nC = Math.min(ch, Math.floor(place / COMBUSTIBLE.charbon)), nT = Math.min(tb, Math.floor(place / COMBUSTIBLE.tourbe)), pl = (n, s) => n + ' ' + s + (n > 1 ? 's' : '');
-  ouvrirModale('feu-tour', entete('La tour à filets') + '<p class="hdv-aide">Réserve de feu : <b>' + f + ' / ' + COMBUSTIBLE.max + '</b>. Chaque filet tiré brûle 1 feu ; sans feu, la tour ne tire plus et ne fume plus.<br>Un charbon de bois donne 1 feu (atelier : 6 Écorces d\'Abraknyde, 4 Branches de Kaliptus et 5 000 kamas pour 10), une motte de tourbe des marais 2 (laissée par la tribu de la mare).</p>' +
+  ouvrirModale('feu-tour', entete('La tour à filets') + '<p class="hdv-aide">Pendant une simu VSA, toutes les ' + TOUR_FILET.cadence + ' s, elle lance un filet sur le voleur le plus chargé à ' + TOUR_FILET.portee + ' cases autour d\'elle : il reste pris ' + TOUR_FILET.pris + ' s et lâche la moitié de son butin, qui revient à ta grange.</p>' +
+    '<p class="hdv-aide">Réserve de feu : <b>' + f + ' / ' + COMBUSTIBLE.max + '</b>' + (f ? '' : ' (elle est froide)') + '. Chaque filet tiré brûle 1 feu ; sans feu, la tour ne tire plus et ne fume plus.<br>Un charbon de bois donne 1 feu (atelier : 6 Écorces d\'Abraknyde, 4 Branches de Kaliptus et 5 000 kamas pour 10), une motte de tourbe des marais 2 (laissée par la tribu de la mare).</p>' +
     '<div class="act"><button class="btn" data-feu-verser="charbon"' + (nC ? '' : ' disabled') + '>Verser ' + pl(nC, 'charbon') + ' (tu en as ' + ch + ')</button> ' +
     '<button class="btn" data-feu-verser="tourbe"' + (nT ? '' : ' disabled') + '>Verser ' + pl(nT, 'motte') + ' de tourbe (tu en as ' + tb + ')</button>' +
-    (MODE_TEST ? ' <button class="btn discret" data-feu-verser="essai">+10 charbons et +10 tourbes (essai)</button>' : '') + '</div>');
+    (MODE_TEST ? ' <button class="btn discret" data-feu-verser="essai">+10 charbons et +10 tourbes (essai)</button>' : '') + '</div>' +
+    '<p class="hdv-aide" style="margin-top:8px">Pour la déplacer ou la tourner : Aménager.</p>' + (MODE_TEST ? '<div class="act-bas"><small>Version dev (mode test)</small></div>' : ''));
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-feu-verser]'), o = e.target.closest('[data-feu-tour]'); if (!(b || o) || !MODE_TEST || !estAdmin()) return;
-  if (o) { ouvrirFeuTour(); return; }
+  const b = e.target.closest('[data-feu-verser]'); if (!b || amelioCachee('tourFilet') || !niv('tourFilet')) return;
   const k = b.dataset.feuVerser, place = COMBUSTIBLE.max - feuTour(); S_.grange = S_.grange || {};
-  if (k === 'essai') { S_.charbon = (S_.charbon || 0) + 10; S_.grange.tourbe = (S_.grange.tourbe || 0) + 10; }
+  if (k === 'essai') { if (!MODE_TEST) return; S_.charbon = (S_.charbon || 0) + 10; S_.grange.tourbe = (S_.grange.tourbe || 0) + 10; }
   else if (k === 'charbon') { const n = Math.min(S_.charbon || 0, Math.floor(place / COMBUSTIBLE.charbon)); S_.charbon -= n; S_.feuTour = feuTour() + n * COMBUSTIBLE.charbon; if (n) toast('+' + n * COMBUSTIBLE.charbon + ' feu : la tour fume.', 'or'); }
   else if (k === 'tourbe') { const n = Math.min(S_.grange.tourbe || 0, Math.floor(place / COMBUSTIBLE.tourbe)); S_.grange.tourbe -= n; S_.feuTour = feuTour() + n * COMBUSTIBLE.tourbe; if (n) toast('+' + n * COMBUSTIBLE.tourbe + ' feu : la tour fume.', 'or'); }
   const T0 = tourFiletEssai; if (T0 && T0.fumee) T0.fumee.visible = feuTour() > 0; sauver(); ouvrirFeuTour();
 });
-const bandeauTestFeu = bandeauTest; bandeauTest = function () { bandeauTestFeu(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-feu-tour]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-feu-tour="1">Alimenter la tour</button>'); };

@@ -237,7 +237,7 @@ function donnerObjet(id, plancher) { const k = creerObjet(id, plancher); S_.sac[
    la rune parfaite met la piece au jet maximum. Elles se gagnent dans l'Arene (blender/runes.py pour les icones). */
 const RUNES = { forge: { nom: 'Rune de forgemagie', court: 'Runes de forgemagie', gain: 0.2, bref: '+20 % de jet' }, parfaite: { nom: 'Rune parfaite', court: 'Runes parfaites', gain: 1, bref: 'jet maximum' } };
 const runes = () => (S_.runes = S_.runes || { forge: 0, parfaite: 0 });
-const BATIS_CASE = ['forge', 'atelier', 'eveil', 'concasseur']; /* (les batiments d'une case qui se posent tout seuls pres de la grange ; l'eveil et le concasseur, 18/11/2026) */
+const BATIS_CASE = ['forge', 'atelier', 'eveil', 'concasseur', 'tourFilet']; /* (les batiments d'une case qui se posent tout seuls pres de la grange ; l'eveil et le concasseur, 18/11/2026 ; la tour a filets, 20/11/2026) */
 function caseLibreForge(type) { /* une case d'herbe libre, la plus proche de la grange, qui ne coupe aucun acces (type : 'forge' ou 'atelier') */
   const deja = inaccessibles(), G = blocBati('grange'), d = (c) => (G ? Math.hypot(posCase(c).x - G.x, posCase(c).z - G.z) : 0);
   const L = S_.cases.filter((c) => c.type === 'libre' && !(S_.sauvage && S_.sauvage.id === c.id)).sort((a, b) => d(a) - d(b));

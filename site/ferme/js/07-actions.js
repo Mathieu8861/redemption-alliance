@@ -42,6 +42,7 @@ const ACTIONS = {
     if (p.type === 'forge') { ouvrirForge(); return; }
     if (p.type === 'atelier') { ouvrirAtelier(); return; }
     if (p.type === 'eveil') { ouvrirEveil(); return; } if (p.type === 'concasseur') { ouvrirConcasseur(); return; } /* (les batiments du niveau 100, 18/11/2026) */
+    if (p.type === 'tourFilet') { ouvrirFeuTour(); return; } /* (la tour a filets : sa reserve de feu, 29e-combustible.js, 20/11/2026) */
     if (p.type === 'niche') { ouvrirGardien(); return; }
     if (p.type === 'cabane') { allerPorteCabane(true); return; } /* (la cabane du pecheur : on va a sa porte et on entre) */
     if (p.type === 'ponton') return;
@@ -326,7 +327,8 @@ const ACTIONS = {
       caseForge.type = id; const u = paysanMesh.userData; if (u.cellule === caseForge || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseForge) { const v = voisins(caseForge).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } }
       rendreCase(caseForge.id); construireBatiments(); sauver(); fermerModale(); rendreHaut(); if (id === 'atelier') { toast('L\'atelier est construit, près de ta grange : touche-le pour fabriquer.', 'or'); ouvrirAtelier(); return; }
       if (id === 'eveil') { toast('Le sanctuaire de l\'éveil est construit, près de ta grange : touche-le pour éveiller tes légendaires.', 'or'); ouvrirEveil(); return; }
-      if (id === 'concasseur') { toast('Le concasseur est construit, près de ta grange : touche-le pour broyer tes pièces contre des runes.', 'or'); ouvrirConcasseur(); return; } toast('L\'atelier de forgemagie est construit, près de ta grange : touche-le pour forger tes pièces avec tes runes.', 'or'); ouvrirForge(); return; }
+      if (id === 'concasseur') { toast('Le concasseur est construit, près de ta grange : touche-le pour broyer tes pièces contre des runes.', 'or'); ouvrirConcasseur(); return; }
+      if (id === 'tourFilet') { toast('La tour à filets est construite, près de ta grange. Elle est froide : touche-la pour lui verser du charbon de bois ou de la tourbe. Tu peux la déplacer avec Aménager.', 'or'); ouvrirFeuTour(); return; } toast('L\'atelier de forgemagie est construit, près de ta grange : touche-le pour forger tes pièces avec tes runes.', 'or'); ouvrirForge(); return; }
     if (id === 'leurre') { /* pose a l'achat, pres de tes Cawottes et de tes Fraises ; puis a chaque niveau, son nouveau modele */
       if (caseLeurre) { caseLeurre.type = 'leurre'; const u = paysanMesh.userData; if (u.cellule === caseLeurre || caseIci(paysanMesh.position.x, paysanMesh.position.z) === caseLeurre) { const v = voisins(caseLeurre).find((c) => PASSABLE[c.type]); if (v) { const q = posCase(v); paysanMesh.position.set(q.x, q.y, q.z); u.cellule = v; } } rendreCase(caseLeurre.id); }
       majLeurre(); rendreCasesBulles(); sauver();
