@@ -310,7 +310,10 @@ const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return
 /* LE DECALAGE D'UN JOUR (19/11/2026 au soir, « on va decaler d'un jour tout simplement pour se laisser le temps de finir le scorpion », Mathieu) : la semaine
    de l'ile va desormais du samedi 0 h au vendredi 23 h 59 (le Bworker reste jusqu'au vendredi 20/11 au soir). Sa cle reste la date du vendredi qui la precede :
    la base, les coffres et les essais offerts par semaine ne changent pas ; seule l'horloge de l'ile retarde d'un jour */
-const DECALAGE_ILE_J = 1, tIle = (t) => (t == null ? tempsReel() : t) - DECALAGE_ILE_J * 864e5;
+/* SCORPAL OUVERT DES LE VENDREDI 20/11/2026 AU SOIR (« on peut push des maintenant le nouveau boss », Mathieu, 20 h) : de 20 h a minuit ce soir-la, l'ile vit deja
+   le samedi (la semaine du Bworker se ferme et son coffre se distribue comme d'habitude) ; les semaines suivantes repartent du samedi 0 h */
+const OUVERTURE_AVANCEE = [Date.parse('2026-11-20T20:00:00+01:00'), Date.parse('2026-11-21T00:00:00+01:00')];
+const DECALAGE_ILE_J = 1, tIle = (t) => { let x = t == null ? tempsReel() : t; if (x >= OUVERTURE_AVANCEE[0] && x < OUVERTURE_AVANCEE[1]) x = OUVERTURE_AVANCEE[1]; return x - DECALAGE_ILE_J * 864e5; };
 const semaineIleBoss = (t) => { const d = new Date(tIle(t)); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
 const finSemaineIle = () => { const d = new Date(tIle()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7) + DECALAGE_ILE_J); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
 function bossDuJour(cle) { if (MODE_TEST && ETAT_TEST.ileBoss && MONSTRES[ETAT_TEST.ileBoss]) return ETAT_TEST.ileBoss; /* (le mode test : le boss de l'ile au choix, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu) */ const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
