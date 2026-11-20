@@ -113,12 +113,25 @@ function persoATerre() { /* la vie du perso tombe a 0 : la simu VSA s'arrete, l'
 const caseIci = (x, z) => caseSous(x, z);
 /* le prochain point vers lequel marcher : en ligne droite si la cible est sur la meme case ou une voisine, sinon par les cases (muret, batiments) */
 function prochainPas(e, x, z, dt) {
+  if (combat && combat.genre === 'ile' && lieu === 'ile' && typeof ileBoss !== 'undefined' && ileBoss) return pasIle(e, x, z, dt); /* (l'ile des boss : un chemin autour du decor, 27-arene.js) */
   const a = caseIci(e.x, e.z), b = caseIci(x, z);
   if (!a || !b || a === b || voisins(a).includes(b)) return { x, z };
   e.routeT = (e.routeT || 0) - dt;
   if (!e.route || e.routeT <= 0 || e.routeB !== b.id) { e.route = trajet(a, b); /* une cible sur un batiment : le trajet s'arrete a cote */ e.routeB = b.id; e.routeT = 0.5; }
   if (e.route) { const k = e.route.indexOf(a), nx = e.route[k >= 0 ? k + 1 : 1]; if (nx) { const q = posCase(nx); return { x: q.x, z: q.z }; } }
   return { x, z };
+}
+/* UN BOSS COINCE SE DEBLOQUE (20/11/2026, « peu importe le boss, s'il reste coince plus de 3 s il se debloque obligatoirement, il peut passer a travers », Mathieu) :
+   il voulait marcher mais n'a presque pas avance (moins d'un tiers du pas voulu), ou sa cible est dans un recoin ou il ne passe pas (horsAtteinte, pasIle),
+   pendant 3 s : 2,5 s a traverser le decor, droit sur sa cible */
+const COINCE = { delai: 3, traverse: 2.5 };
+function suivreCoince(mo, dt) {
+  if (mo.traverseT > 0) mo.traverseT -= dt;
+  const veut = mo.envie; mo.envie = false;
+  if (veut && mo.horsAtteinte && !(mo.traverseT > 0)) mo.coinceT = (mo.coinceT || 0) + dt;
+  else if (mo.px0 != null && mo.voulu > 0.0005) { const reel = Math.hypot(mo.x - mo.px0, mo.z - mo.pz0); mo.coinceT = reel < mo.voulu * 0.35 ? (mo.coinceT || 0) + dt : Math.max(0, (mo.coinceT || 0) - dt * 2); }
+  if (mo.coinceT > COINCE.delai && !(mo.traverseT > 0)) { mo.coinceT = 0; mo.traverseT = COINCE.traverse; mo.route = null; mo.routeIle = null; }
+  mo.voulu = 0; mo.px0 = mo.x; mo.pz0 = mo.z;
 }
 /* LE TRAJET VERS LA CIBLE (09/11/2026, « quand on selectionne un monstre, parfois il prend un chemin qui nous met grave en danger et qui n'est pas logique »,
    Mathieu) : en ligne droite quand rien ne bloque (avant, il passait par le centre de chaque case) ; loin de sa cible, il evite les zones rouges ou il n'est pas
@@ -3423,6 +3436,7 @@ function majMonstre(mo, dt, s) {
   if (mo.etat === 'mort') { mo.t += dt / 0.35; m.scale.setScalar(Math.max(0.001, 1 - mo.t)); m.rotation.y += dt * 12; if (mo.t >= 1 && m.parent) jeter(m); return; }
   if (mo.d.vole) { majVoleurRaid(mo, dt, s); return; }
   const lent = mo.lent > 0; if (lent) mo.lent -= dt; if (mo.ventT > 0) mo.ventT -= dt; if (mo.maudit > 0) mo.maudit -= dt; /* (maudit : la Fleche maudite du Cra) */ /* (ventT : dans la Tempete de feuilles du Cra, -30 % de vitesse, 09/11/2026) */ mo.cd -= dt * (lent ? 0.5 : 1) * (mo.enrage ? 1.7 : 1) * (mo.galva > 0 ? 1.5 : 1) * (mo.rageM || 1) * (mo.danseV || 1); /* (rageM : la rage de l'ile des boss, il frappe plus vite ; danseV : la danse vaudou du Lemurien Tiki) */ /* gele : il frappe deux fois moins vite ; enrage : bien plus vite */
+  if (mo.d.boss) suivreCoince(mo, dt); /* (coince plus de 3 s : il traverse le decor) */
   if (mo.bloqueT > 0) mo.bloqueT -= dt;
   mo.sautT = mo.sautT == null ? Math.random() * SAUT_RECHARGE * 0.75 : mo.sautT + dt; /* (le premier bond : entre 2 et 8 s apres son arrivee, pas tous en meme temps) */
   const pp = paysanMesh.position, bloque = mo.bloqueT > 0 || !!mo.vise || mo.carapace > 0; let v = 0; /* (un boss qui prepare son sort ne marche pas) */
@@ -3462,8 +3476,8 @@ function majMonstre(mo, dt, s) {
   if (versPerso && !surBo && !surCa && !combat.raid && d > portee + 0.8 && d <= SAUT_PORTEE && mo.sautT >= SAUT_RECHARGE && peutSauter(mo)) sauterSurPerso(mo); /* le bond : a moins de 3 cases, il te saute dessus */
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
-    const w = prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1;
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.ventT > 0 ? 0.7 : 1); /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    const w = mo.traverseT > 0 ? { x: tx, z: tz } : prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1; /* (traverse : un boss qui etait coince va droit sur sa cible) */
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.ventT > 0 ? 0.7 : 1); /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; mo.voulu = pas; mo.envie = true; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0 && !(versPerso && !bat && tropPresDuTireur(mo))) { /* (un tireur colle par le perso ne tire pas) */

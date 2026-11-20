@@ -157,14 +157,60 @@ const SOL_ILE = 65; /* (le sol : les cases (i, j) de 2 de cote, i * i + j * j <=
 const versLocalIle = (x, z) => { const dx = x - ILE_BOSS.x, dz = z - ILE_BOSS.z, c = Math.cos(ROT_ILE_BOSS), s = Math.sin(ROT_ILE_BOSS); return [dx * c - dz * s, dx * s + dz * c]; };
 const versMondeIle = (lx, lz) => { const c = Math.cos(ROT_ILE_BOSS), s = Math.sin(ROT_ILE_BOSS); return [lx * c + lz * s + ILE_BOSS.x, -lx * s + lz * c + ILE_BOSS.z]; };
 const solIle = (lx, lz, m) => [[-m, -m], [m, -m], [-m, m], [m, m]].every(([a, b]) => { const i = Math.round((lx + a) / 2), j = Math.round((lz + b) / 2); return i * i + j * j <= SOL_ILE; });
-function bornerIle(x, z, m) { /* le point le plus proche ou l'on peut se tenir : sur le sol, hors des piliers, braseros, arbres, carcasses */
+function bornerIle(x, z, m, sansDecor) { /* le point le plus proche ou l'on peut se tenir : sur le sol, hors des piliers, braseros, arbres, carcasses (sansDecor : le sol seulement) */
   m = m == null ? 0.4 : m; let [lx, lz] = versLocalIle(x, z);
   if (!solIle(lx, lz, m)) { const L = Math.hypot(lx, lz) || 1; let a = 0, b = 1; for (let k = 0; k < 14; k++) { const t = (a + b) / 2; if (solIle(lx * t, lz * t, m)) a = t; else b = t; } lx *= a; lz *= a; }
-  const blocs = (ileBoss && ileBoss.userData.blocs) || [];
+  const blocs = (!sansDecor && ileBoss && ileBoss.userData.blocs) || [];
   for (let n = 0; n < 2; n++) blocs.forEach((o) => { const dx = lx - o.x, dz = lz - o.z, d = Math.hypot(dx, dz), R = o.r + m; if (d >= R) return; if (d < 0.001) lx = o.x + R; else { lx = o.x + dx / d * R; lz = o.z + dz / d * R; } });
   return versMondeIle(lx, lz);
 }
 const dansIle = (x, z, m) => { const [lx, lz] = versLocalIle(x, z); if (!solIle(lx, lz, m == null ? 0.4 : m)) return false; return !((ileBoss && ileBoss.userData.blocs) || []).some((o) => Math.hypot(lx - o.x, lz - o.z) < o.r + (m == null ? 0.4 : m)); };
+/* LE CHEMIN SUR L'ILE (20/11/2026, « il reste coince », Mathieu : Scorpal fonçait droit sur le perso et restait pris entre un brasero et un cactus du desert) :
+   en ligne droite quand rien ne barre la route ; sinon le plus court chemin sur une grille de 0,5 autour du decor (A*), refait toutes les 0,4 s ou quand la
+   cible a bouge, et il vise le point le plus loin de ce chemin qu'il voit en ligne droite */
+const GRILLE_ILE = { pas: 0.5, R: 18, cache: new Map() };
+function libreIle(lx, lz, m) { if (!solIle(lx, lz, m)) return false; const B = (ileBoss && ileBoss.userData.blocs) || []; for (const o of B) if (Math.hypot(lx - o.x, lz - o.z) < o.r + m) return false; return true; }
+function grilleIle(m) {
+  const cle = ileBoss.uuid + ':' + m; let G = GRILLE_ILE.cache.get(cle); if (G) return G;
+  const p = GRILLE_ILE.pas, o = -GRILLE_ILE.R, n = Math.round(GRILLE_ILE.R * 2 / p) + 1, L = new Uint8Array(n * n);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) L[i * n + j] = libreIle(o + i * p, o + j * p, m) ? 1 : 0;
+  G = { n, o, p, L }; GRILLE_ILE.cache.set(cle, G); return G;
+}
+function segmentLibreIle(ax, az, bx, bz, m) { const D = Math.hypot(bx - ax, bz - az), k = Math.max(1, Math.ceil(D / 0.25)); for (let i = 1; i <= k; i++) { const t = i / k; if (!libreIle(ax + (bx - ax) * t, az + (bz - az) * t, m)) return false; } return true; }
+function caseLibreIle(G, lx, lz) { /* la case libre la plus proche d'un point */
+  const n = G.n; let i = Math.max(0, Math.min(n - 1, Math.round((lx - G.o) / G.p))), j = Math.max(0, Math.min(n - 1, Math.round((lz - G.o) / G.p))); if (G.L[i * n + j]) return [i, j];
+  for (let r = 1; r < n; r++) { let best = null, bd = Infinity;
+    for (let a = i - r; a <= i + r; a++) for (let b = j - r; b <= j + r; b++) { if (Math.max(Math.abs(a - i), Math.abs(b - j)) !== r || a < 0 || b < 0 || a >= n || b >= n || !G.L[a * n + b]) continue; const d = (a - i) * (a - i) + (b - j) * (b - j); if (d < bd) { bd = d; best = [a, b]; } }
+    if (best) return best; }
+  return [i, j];
+}
+function cheminGrilleIle(G, si, sj, gi, gj) { /* A* sur 8 voisins, sans couper les coins ; cible hors d'atteinte : le point atteint le plus proche d'elle */
+  const n = G.n, L = G.L, N = n * n, g = new Float32Array(N).fill(Infinity), de = new Int32Array(N).fill(-1), ferme = new Uint8Array(N), tas = [];
+  const h = (i, j) => { const a = Math.abs(i - gi), b = Math.abs(j - gj); return Math.max(a, b) + 0.414 * Math.min(a, b); };
+  const pousser = (k, f) => { tas.push([f, k]); let c = tas.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (tas[p][0] <= tas[c][0]) break; const x = tas[p]; tas[p] = tas[c]; tas[c] = x; c = p; } };
+  const tirer = () => { const r = tas[0], d = tas.pop(); if (tas.length) { tas[0] = d; let c = 0; for (;;) { const a = 2 * c + 1, b = a + 1; let m = c; if (a < tas.length && tas[a][0] < tas[m][0]) m = a; if (b < tas.length && tas[b][0] < tas[m][0]) m = b; if (m === c) break; const x = tas[m]; tas[m] = tas[c]; tas[c] = x; c = m; } } return r; };
+  const s = si * n + sj; let but = gi * n + gj, mieux = s, hm = h(si, sj); g[s] = 0; pousser(s, hm);
+  while (tas.length) { const k = tirer()[1]; if (ferme[k]) continue; ferme[k] = 1; if (k === but) break; const i = (k / n) | 0, j = k % n, hk = h(i, j); if (hk < hm) { hm = hk; mieux = k; }
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= n || b >= n) continue; const q = a * n + b; if (!L[q] || ferme[q]) continue;
+      if (di && dj && (!L[i * n + b] || !L[a * n + j])) continue;
+      const c = g[k] + (di && dj ? 1.414 : 1); if (c < g[q]) { g[q] = c; de[q] = k; pousser(q, c + h(a, b)); } } }
+  if (but !== s && de[but] < 0) but = mieux;
+  const P = []; for (let k = but; k >= 0; k = de[k]) { P.push(k); if (k === s) break; } return P.reverse();
+}
+function pasIle(e, x, z, dt) {
+  const m = e.d ? (e.d.boss ? 0.9 : 0.3) : 0.4, [ax, az] = versLocalIle(e.x, e.z), [bx, bz] = versLocalIle(x, z);
+  if (segmentLibreIle(ax, az, bx, bz, m * 0.9)) { e.routeIle = null; e.horsAtteinte = false; return { x, z }; } /* rien ne barre la route : tout droit */
+  e.routeIleT = (e.routeIleT || 0) - dt; let R = e.routeIle;
+  if (!R || e.routeIleT <= 0 || Math.hypot(bx - R.bx, bz - R.bz) > 1.5) {
+    const G = grilleIle(m), [si, sj] = caseLibreIle(G, ax, az), [gi, gj] = caseLibreIle(G, bx, bz), P = cheminGrilleIle(G, si, sj, gi, gj);
+    R = e.routeIle = { pts: P.map((k) => [G.o + ((k / G.n) | 0) * G.p, G.o + (k % G.n) * G.p]), bx, bz, w: null }; e.routeIleT = 0.4;
+    const fin = R.pts[R.pts.length - 1], porte = e.d && e.d.portee ? e.d.portee * (e.allonge || 1) * 0.8 : 1; e.horsAtteinte = !fin || Math.hypot(fin[0] - bx, fin[1] - bz) > porte; } /* (horsAtteinte : sa cible est dans un recoin ou il ne passe pas ; 3 s plus tard, il traverse, suivreCoince) */
+  if (R.pts.length < 2) return { x, z };
+  if (!R.w || Math.hypot(R.w[0] - ax, R.w[1] - az) < 0.8) { R.w = null; /* le point le plus loin du chemin qu'il voit en ligne droite */
+    for (let k = R.pts.length - 1; k >= 1; k--) if (segmentLibreIle(ax, az, R.pts[k][0], R.pts[k][1], m * 0.9)) { R.w = R.pts[k]; break; }
+    if (!R.w) R.w = R.pts[1]; }
+  const [wx, wz] = versMondeIle(R.w[0], R.w[1]); return { x: wx, z: wz };
+}
 /* LA CARTE DE L'ILE SELON LE BOSS DE LA SEMAINE (20/11/2026, le desert de Scorpal, 27l-ile-desert.js) : MONSTRES[t].carteIle, sinon l'ile de toujours ;
    HABILLER_ILE[carte] la finit (couleurs, sceau, effets) apres le chargement */
 const FICHIERS_ILE = { base: 'boss-ile.glb' }, HABILLER_ILE = {};
