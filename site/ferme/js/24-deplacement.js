@@ -313,7 +313,7 @@ function rappelClicDroit(p) {
 canvas.addEventListener('pointerup', (e) => {
   if (performance.now() - (lancer.t || 0) < 700) { pDown = null; return; } /* le clic qui a lance la partie ne touche pas l'ile */
   if (visee && e.button === 2) { annulerVisee(); pDown = null; return; } /* le clic droit annule une visee en cours */
-  cacherAppui(); if (!pDown) return; const dx = e.clientX - pDown.x, dy = e.clientY - pDown.y; const bouge = Math.hypot(dx, dy) > TOLERANCE(e);
+  cacherAppui(); if (!pDown) return; const dx = e.clientX - pDown.x, dy = e.clientY - pDown.y; const bouge = e.pointerType === 'mouse' ? !!(drag && (drag.pan || drag.tourne)) : Math.hypot(dx, dy) > TOLERANCE(e); /* (a la souris, un clic n'est un glisser que si la vue a vraiment bouge : 0,8 s d'appui d'abord, PAN_SOURIS) */
   const doigt = e.pointerType === 'touch' || e.pointerType === 'pen', long = doigt && performance.now() - pDown.t >= APPUI_LONG;
   const agir = e.button === 2 || (doigt && !long); pDown = null; /* au doigt : toucher = agir, appui long = seulement se deplacer */
   if (long && navigator.vibrate) navigator.vibrate(15);
@@ -367,15 +367,19 @@ canvas.addEventListener('pointerup', (e) => {
 });
 /* glisser pour deplacer la vue, molette et pincement pour zoomer */
 let drag = null, pince = null;
-canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY, b: e.button, ctrl: e.ctrlKey }; });
+/* (20/11/2026, « quand on clique gauche pour se deplacer, ca deplace la cam ; pour deplacer la cam il faut vraiment rester appuye plus de 0,8 s », Mathieu) : a la
+   souris, le clic gauche ne fait glisser la vue qu'apres 0,8 s d'appui (le curseur devient une main) ; avant, le moindre tremblement pendant un clic la decalait. Au doigt, rien ne change */
+const PAN_SOURIS = 800;
+canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) drag = { x: e.clientX, y: e.clientY, b: e.button, ctrl: e.ctrlKey, t0: performance.now(), souris: e.pointerType === 'mouse', pan: e.pointerType !== 'mouse' }; });
 canvas.addEventListener('pointermove', (e) => { if (visee) { const pt = pointSol(e); if (pt) visee.point = pt; return; } if (!drag || !e.isPrimary || e.buttons === 0) return;
-  if (drag.b === 1 || (drag.b === 2 && (drag.ctrl || e.ctrlKey))) { tournerCamera((e.clientX - drag.x) * 0.007); inclinerCamera((e.clientY - drag.y) * 0.005); drag = { x: e.clientX, y: e.clientY, b: drag.b, ctrl: true }; return; }
+  if (drag.b === 1 || (drag.b === 2 && (drag.ctrl || e.ctrlKey))) { tournerCamera((e.clientX - drag.x) * 0.007); inclinerCamera((e.clientY - drag.y) * 0.005); Object.assign(drag, { x: e.clientX, y: e.clientY, ctrl: true, tourne: true }); return; }
   if (drag.b === 2) return; /* (09/11/2026, « on utilise le clic droit pour faire des actions : tu deplaces la camera involontairement a chaque clic droit ; Ctrl + clic droit pour la deplacer », Mathieu : le clic droit seul ne bouge plus rien) */ /* (et de haut en bas, l'inclinaison : la souris descend, la camera monte, 09/11/2026) */ /* (clic droit ou molette maintenus : on tourne autour de la ferme, 29/10/2026 ; un clic droit sans glisser agit toujours) */
-  const k = (camera.right - camera.left) / innerWidth; const dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k; drag = { x: e.clientX, y: e.clientY }; /* « de haut en bas c'est pas inverse ? » (Mathieu, 11/10/2026) : si, la carte suivait la souris a l'horizontale mais fuyait a la verticale ;
+  if (!drag.pan) { if (performance.now() - drag.t0 < PAN_SOURIS) return; drag.pan = true; drag.x = e.clientX; drag.y = e.clientY; canvas.style.cursor = 'grabbing'; return; } /* (la vue part d'ici, sans saut) */
+  const k = (camera.right - camera.left) / innerWidth; const dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k; drag.x = e.clientX; drag.y = e.clientY; /* « de haut en bas c'est pas inverse ? » (Mathieu, 11/10/2026) : si, la carte suivait la souris a l'horizontale mais fuyait a la verticale ;
      maintenant le point saisi reste sous le curseur dans les deux sens (1 / sinus de l'inclinaison de la camera pour la profondeur) */
   const avant = new T.Vector3(-Math.cos(angleCam), 0, -Math.sin(angleCam)), droite = new T.Vector3(Math.sin(angleCam), 0, -Math.cos(angleCam)), incl = Math.sin(elevActuelle()); /* (l'inclinaison de la camera, 09/11/2026) */
   const dep = droite.multiplyScalar(-dx).add(avant.multiplyScalar(dy / incl)); camera.position.add(dep); VISEE.add(dep); });
-canvas.addEventListener('pointerup', () => { drag = null; }); canvas.addEventListener('pointercancel', () => { drag = null; });
+canvas.addEventListener('pointerup', () => { if (drag && drag.pan && drag.souris) canvas.style.cursor = ''; drag = null; }); canvas.addEventListener('pointercancel', () => { if (drag && drag.souris) canvas.style.cursor = ''; drag = null; });
 canvas.addEventListener('wheel', (e) => { zoom = borne(zoom * (e.deltaY > 0 ? 0.9 : 1.1), lieu === 'casino' ? 0.42 : ZOOM_MIN, 2.2); cadrer(); }, { passive: true });
 const angleDoigts = (e) => Math.atan2(e.touches[1].clientY - e.touches[0].clientY, e.touches[1].clientX - e.touches[0].clientX); let tourDoigts = null; /* (deux doigts qui tournent : la camera tourne autour de la ferme, 29/10/2026) */
 canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { pince = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); tourDoigts = angleDoigts(e); } }, { passive: true });
