@@ -24,7 +24,7 @@ SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
   autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
-  harpon: { periode: 9, prepa: 0.6, min: 3.2, R: 11, larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
+  harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
   desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245)',
@@ -122,7 +122,7 @@ function poserHarponMonde(O, orig, dir) { /* le harpon (son os) pose dans le mon
 function rangerHarpon(O) { O.h.position.copy(O.hP); O.h.quaternion.copy(O.hQ); O.maillons.forEach((b) => b.scale.setScalar(1)); }
 function capWabHarpon(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif' || mo.geste || mo.wabOccupe) return; const H = K.harpon, { pp, sortPret } = ctx;
-  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('wabHarponT', H.periode) || dP < H.min || dP > H.R - 0.8) return; const O = osWab(mo); if (!O) return;
+  const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('wabHarponT', H.periode) || dP < H.min || dP > H.max) return; const O = osWab(mo); if (!O) return;
   const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.wabHarponT = 0; mo.wabOccupe = true; mo.ry = a; mo.bloqueT = Math.max(mo.bloqueT || 0, H.prepa + 1.4); mo.cd = Math.max(mo.cd || 0, H.prepa + 1.4);
   const e = mo.echelle || 1, B = versMonde(mo.x, mo.z, a, -1.19 * e, 0.69 * e), ah = Math.atan2(pp.x - B.x, pp.z - B.z), x2 = B.x + Math.sin(ah) * H.R, z2 = B.z + Math.cos(ah) * H.R; /* (la ligne part de la bouche du canon, vers toi ; la bouche calculee depuis sa place et sa direction, pas depuis le modele, qui n'a pas encore tourne vers toi a cette image) */
   const an = mo.m.userData.anim, nomS = an.F.sort && an.F.sort[0]; if (nomS) { const s = jouerAnim(an, nomS, 0.1); if (s) s.timeScale = 0.48 / H.prepa; mo.geste = { t: 0, d: H.prepa + 0.9 }; } /* (il vise : le tir de son mouvement tombe a la fin de l'annonce) */
