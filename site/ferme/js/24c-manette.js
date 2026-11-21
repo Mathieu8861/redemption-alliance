@@ -13,7 +13,11 @@
      Dans toutes les fenetres (et l'accueil, la pause, les lecons de Pepito, la simu VSA) : la croix ou le stick gauche passent d'un bouton a l'autre, A clique,
      B ferme, le stick droit fait defiler, LB et RB changent d'onglet.
    - Les touches des quatre sorts (le sort de classe, l'ulti, la 1re et la 2e legendaire) se reglent dans Options > Commandes, au clavier pour « Souris et clavier »
-     et aux boutons pour « Manette ». Le choix et les touches restent dans ce navigateur. Les touches de la camera et de la pause ne bougent pas. */
+     et aux boutons pour « Manette ». Les touches restent dans ce navigateur.
+   - Le passage de l'un a l'autre est automatique (21/11/2026, « ca peut detecter automatiquement quand on a branche une manette ? », puis « ouais fais ca »,
+     Mathieu) : un bouton ou un stick de la manette, et le jeu passe a la manette ; un clic, un doigt ou une touche du clavier, et il revient a la souris et au
+     clavier (les libelles des sorts suivent). Le navigateur ne montre une manette qu'apres un premier appui sur l'un de ses boutons : c'est cet appui qui la
+     fait reconnaitre. Les onglets de la fenetre Commandes ne choisissent plus le mode : ils montrent les touches de l'un ou de l'autre. Les touches de la camera et de la pause ne bougent pas. */
 const CMD_CLE = 'ferme-commandes';
 const CMD_DEFAUT = { mode: 'souris', clavier: { sort: ['Digit1', '1'], ulti: ['Digit2', '2'], leg3: ['Digit3', '3'], leg4: ['Digit4', '4'] }, manette: { sort: 0, ulti: 1, leg3: 2, leg4: 3 } };
 const CMD_ACTIONS = [['sort', 'Le sort de classe'], ['ulti', 'L\'ulti'], ['leg3', 'La 1re légendaire'], ['leg4', 'La 2e légendaire']];
@@ -22,11 +26,12 @@ const TOUCHES_RESERVEES = ['KeyQ', 'KeyE', 'KeyR', 'KeyW', 'KeyS', 'KeyP', 'Spac
 const commandesJeu = (() => { let c = null; try { c = JSON.parse(localStorage.getItem(CMD_CLE) || 'null'); } catch (e) { c = null; }
   const d = JSON.parse(JSON.stringify(CMD_DEFAUT)); if (!c) return Object.assign(d, { choisi: false });
   return { mode: c.mode === 'manette' ? 'manette' : 'souris', clavier: Object.assign(d.clavier, c.clavier || {}), manette: Object.assign(d.manette, c.manette || {}), choisi: true }; })();
+commandesJeu.mode = 'souris'; /* (au chargement : le navigateur ne montre une manette qu'au premier appui sur l'un de ses boutons, et c'est cet appui qui fait basculer) */
 function cmdSauver() { commandesJeu.choisi = true; try { localStorage.setItem(CMD_CLE, JSON.stringify({ mode: commandesJeu.mode, clavier: commandesJeu.clavier, manette: commandesJeu.manette })); } catch (e) { /* rien */ } majToucheSorts(); }
 const mnPad = () => { let L = []; try { L = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { L = []; } for (const p of L || []) if (p && p.connected) return p; return null; };
 const manetteEnJeu = () => commandesJeu.mode === 'manette' && !!mnPad();
 /* les libelles des touches, sur les boutons de sort (data-touche, css : le petit rond) */
-const libelleTouche = (a) => (commandesJeu.mode === 'manette' ? NOMS_BOUTONS[commandesJeu.manette[a]] || '?' : (commandesJeu.clavier[a] || [])[1] || '?');
+const libelleTouche = (a, m) => ((m || commandesJeu.mode) === 'manette' ? NOMS_BOUTONS[commandesJeu.manette[a]] || '?' : (commandesJeu.clavier[a] || [])[1] || '?');
 function majToucheSorts() {
   const co = !!(typeof combat !== 'undefined' && combat && legDe('coiffe')), r = (id) => document.getElementById(id);
   if (r('sort-rond')) r('sort-rond').dataset.touche = libelleTouche('sort'); if (r('ulti-rond')) r('ulti-rond').dataset.touche = libelleTouche('ulti');
@@ -42,6 +47,11 @@ function actionTouche(code) { /* (dans les deux modes : le clavier reste branche
 /* ---------- la manette en combat ---------- */
 const mnEtat = { avant: [], vise: null, t: performance.now(), annonce: false };
 const cleAction = (a) => (a === 'sort' ? 'sort' : a === 'ulti' ? 'ulti' : typeof empTouche === 'function' ? empTouche(a === 'leg3' ? 3 : 4) : null);
+function cmdBascule(m) { /* le mode suit la derniere chose touchee : la manette, ou la souris et le clavier */
+  if (commandesJeu.mode === m) return; commandesJeu.mode = m; cmdSauver();
+  if (m !== 'manette') { mnHorsJeu(); if (mnEtat.vise) mnLacherVisee(true); if (dg.joy && dg.joy.id === 'manette') dg.joy = null; }
+  if (typeof modaleOuverte !== 'undefined' && modaleOuverte === 'options') cmdOptions(); /* (la ligne Commandes des Options suit) */
+}
 function mnHorsJeu() { if (mnEtat.marche) mnStopMarche(); mnCurseur(false); mnCadreVu(false); mnFocus(null); mnEtat.hud = false; mnEtat.couche = null; }
 function mnLacherVisee(sansTir) { /* le bouton du sort lache : le cercle vise au stick droit part tel quel ; sinon, visee automatique (+15 % de recharge) */
   const V = mnEtat.vise; mnEtat.vise = null; if (!V || sansTir || !visee || visee.bouton !== V.cle) return;
@@ -51,10 +61,13 @@ function mnLacherVisee(sansTir) { /* le bouton du sort lache : le cercle vise au
 }
 function mnMaj(dt) {
   const p = mnPad(); if (!p) { if (mnEtat.vise) mnEtat.vise = null; mnHorsJeu(); return; }
-  if (!mnEtat.annonce) { mnEtat.annonce = true; if (!commandesJeu.choisi) { commandesJeu.mode = 'manette'; cmdSauver(); } if (typeof toast === 'function') toast(commandesJeu.mode === 'manette' ? 'Manette détectée : stick gauche pour marcher, A pour agir sur la case devant toi, Y pour les boutons du jeu, X pour le curseur ; en combat, ' + ['sort', 'ulti', 'leg3', 'leg4'].map((a) => libelleTouche(a)).join(', ') + ' pour les sorts. Options > Commandes pour régler.' : 'Manette détectée : choisis « Manette » dans Options > Commandes pour jouer avec.'); }
-  if (commandesJeu.mode !== 'manette') { mnHorsJeu(); return; }
   const B = p.buttons.map((b) => !!(b && (b.pressed || b.value > 0.5))), prec = mnEtat.avant, appui = (i) => B[i] && !prec[i], lache = (i) => !B[i] && prec[i]; mnEtat.avant = B; /* (l'etat d'avant, garde a part : sinon aucun appui n'etait vu) */
-  if (mnEtat.capture) { const i = B.findIndex((b, k) => b && !mnEtat.capture.avant[k]); mnEtat.capture.avant = B; if (i >= 0) cmdCapturer(i); return; } /* (Options > Commandes : un bouton a regler) */
+  const Ax = p.axes.map((v) => v || 0), Ax0 = mnEtat.axesAvant || Ax; mnEtat.axesAvant = Ax;
+  if (mnEtat.capture && mnEtat.capture.manette) { const i = B.findIndex((b, k) => b && !mnEtat.capture.avant[k]); mnEtat.capture.avant = B; if (i >= 0) cmdCapturer(i); return; } /* (Options > Commandes : un bouton a regler) */
+  /* la bascule automatique : un bouton qu'on enfonce, ou un stick qu'on pousse (un stick qui part du centre, pas un axe qui reste penche au repos sur certaines manettes) */
+  const touche = B.some((b, i) => b && !prec[i]) || Ax.some((v, i) => Math.abs(v) > 0.5 && Math.abs(Ax0[i] || 0) < 0.5);
+  if (commandesJeu.mode !== 'manette') { if (!touche || mnEtat.capture) { mnHorsJeu(); return; } cmdBascule('manette'); }
+  if (!mnEtat.annonce) { mnEtat.annonce = true; if (typeof toast === 'function') toast('Manette : stick gauche pour marcher, A pour agir sur la case devant toi, Y pour les boutons du jeu, X pour le curseur ; en combat, ' + ['sort', 'ulti', 'leg3', 'leg4'].map((a) => libelleTouche(a)).join(', ') + ' pour les sorts. Un clic ou le clavier te remet à la souris. Options > Commandes pour régler.'); }
   if (appui(9) && typeof mettrePause === 'function' && !(typeof lecon !== 'undefined' && lecon.ouverte)) mettrePause(!enPause);
   const ax = (i) => { const v = p.axes[i] || 0; return Math.abs(v) < 0.12 ? 0 : v; }, lx = ax(0), ly = ax(1), rx = ax(2), ry = ax(3);
   /* hors combat, le cadre et le bouton entoure ne se montrent que si la manette a servi depuis 90 s (un joueur a la souris, manette branchee, ne les voit pas) ;
@@ -175,7 +188,8 @@ function mnFerme(dt, B, appui, lx, ly, rx, ry) {
   if (appui(3)) { mnStopMarche(); mnEtat.hud = true; mnEtat.hudDepuis = performance.now(); if ((mnEtat.aideHud = (mnEtat.aideHud || 0) + 1) <= 2) toast('Boutons du jeu : la croix pour choisir, A pour ouvrir, B pour revenir à la ferme.'); }
   mnCamera(dt, rx, ry, appui);
 }
-addEventListener('pointerdown', (e) => { if (e.isTrusted && e.pointerType === 'mouse') { mnEtat.dir = null; mnEtat.actif = null; } }, true); /* (un vrai clic de souris : le perso ne vise plus la ou pointait le stick, et le cadre se range) */ /* (un vrai clic de souris : le perso ne vise plus la ou pointait le stick) */
+addEventListener('pointerdown', (e) => { if (!e.isTrusted) return; if (e.pointerType === 'mouse') { mnEtat.dir = null; mnEtat.actif = null; } cmdBascule('souris'); }, true); /* (un vrai clic ou un doigt : retour a la souris, le perso ne vise plus la ou pointait le stick, et le cadre se range) */
+addEventListener('keydown', (e) => { if (e.isTrusted && !mnEtat.capture) cmdBascule('souris'); }, true); /* (une touche du clavier : retour au clavier) */ /* (un vrai clic de souris : le perso ne vise plus la ou pointait le stick) */
 /* ---------- les fenetres : la croix passe d'un bouton a l'autre ---------- */
 const mnVu = (el) => !!(el && !el.hidden && !el.closest('[hidden]') && el.getClientRects().length);
 function mnCouche() { /* la fenetre au premier plan, ou rien (la ferme) */
@@ -252,36 +266,37 @@ function mnFenetre(C, B, appui, lx, ly, ry, dt) {
 function mnBoucle(t) { const dt = Math.min(0.05, Math.max(0, (t - mnEtat.t) / 1000)); mnEtat.t = t; try { mnMaj(dt); } catch (e) { console.error(e); } requestAnimationFrame(mnBoucle); }
 addEventListener('gamepadconnected', () => { mnEtat.annonce = false; });
 /* ---------- Options > Commandes ---------- */
-const cmdResume = () => (commandesJeu.mode === 'manette' ? 'Manette' + (mnPad() ? ' (branchée)' : ' (aucune manette branchée)') : 'Souris et clavier') + ' · sorts : ' + CMD_ACTIONS.map(([a]) => libelleTouche(a)).join(', ');
+const cmdResume = () => 'Automatique, en ce moment : ' + (commandesJeu.mode === 'manette' ? 'manette' : 'souris et clavier') + ' · sorts : ' + CMD_ACTIONS.map(([a]) => libelleTouche(a)).join(', ');
 function cmdOptionsHtml() { return '<div id="cmd-opt"><div class="hdv-section">Commandes</div><div class="art">' + ico('opt-doigt') + '<div><b>Souris et clavier, ou manette</b><div class="desc">' + cmdResume() + '</div></div><div class="act"><button class="btn discret" data-cmd-ouvrir>Régler</button></div></div></div>'; }
 function cmdOptions() { if (typeof modaleOuverte === 'undefined' || modaleOuverte !== 'options') return; const carte = document.getElementById('carte'); if (!carte) return;
   const ancien = document.getElementById('cmd-opt'); if (ancien) { ancien.outerHTML = cmdOptionsHtml(); return; }
   const dgo = document.getElementById('dg-opt'); if (dgo) { dgo.insertAdjacentHTML('afterend', cmdOptionsHtml()); return; } const s = carte.querySelector('.hdv-section'); if (s) s.insertAdjacentHTML('beforebegin', cmdOptionsHtml()); }
 function ouvrirCommandes(msg) {
-  const m = commandesJeu.mode, tab = (v, t) => '<button class="sexe" data-cmd-mode="' + v + '" aria-pressed="' + (m === v) + '">' + t + '</button>';
-  const lignes = CMD_ACTIONS.map(([a, nom]) => '<div class="art" style="grid-template-columns:1fr auto"><div><b>' + nom + '</b><div class="desc">' + (mnEtat.capture && mnEtat.capture.action === a ? (m === 'manette' ? 'Appuie sur un bouton de la manette…' : 'Appuie sur une touche…') : (m === 'manette' ? 'Bouton' : 'Touche') + ' : <span class="puce" style="font-weight:800">' + libelleTouche(a) + '</span>') + '</div></div><div class="act"><button class="btn discret" data-cmd-changer="' + a + '">Changer</button></div></div>').join('');
+  const m = mnEtat.onglet || commandesJeu.mode, tab = (v, t) => '<button class="sexe" data-cmd-mode="' + v + '" aria-pressed="' + (m === v) + '">' + t + '</button>';
+  const lignes = CMD_ACTIONS.map(([a, nom]) => '<div class="art" style="grid-template-columns:1fr auto"><div><b>' + nom + '</b><div class="desc">' + (mnEtat.capture && mnEtat.capture.action === a ? (m === 'manette' ? 'Appuie sur un bouton de la manette…' : 'Appuie sur une touche…') : (m === 'manette' ? 'Bouton' : 'Touche') + ' : <span class="puce" style="font-weight:800">' + libelleTouche(a, m) + '</span>') + '</div></div><div class="act"><button class="btn discret" data-cmd-changer="' + a + '">Changer</button></div></div>').join('');
   const aide = m === 'manette' ? '<p class="hdv-aide">Sur la ferme : <b>stick gauche</b> pour marcher ; un cadre doré montre la case devant toi, <b>A</b> y agit (labourer, planter, récolter, ouvrir un bâtiment). <b>Y</b> passe sur les boutons du jeu (la barre du bas, Options), <b>X</b> sort un curseur pour tout le reste (A agit, Y déplace, B le range), <b>B</b> termine l\'aménagement. Dans les fenêtres : la croix pour choisir, <b>A</b> pour cliquer, <b>B</b> pour fermer, le stick droit pour défiler, <b>LB</b> et <b>RB</b> pour changer d\'onglet.</p><p class="hdv-aide">En combat : <b>stick gauche</b> pour marcher (10 % moins vite qu\'au clic, comme le joystick du téléphone). Appuie puis lâche un bouton de sort : il vise tout seul (recharge +15 %). Garde-le appuyé et vise au <b>stick droit</b> : il part au lâcher, sans malus. <b>LT</b> annule. Hors visée, le stick droit tourne la caméra, <b>LB</b> et <b>RB</b> font un quart de tour, <b>View</b> la remet, <b>Menu</b> met en pause.' + (mnPad() ? '' : ' <b>Aucune manette détectée</b> : branche-la et appuie sur un bouton.') + '</p>'
     : '<p class="hdv-aide">En combat : clique pour marcher et viser, et lance les sorts avec ces touches (les chiffres marchent aussi au pavé numérique). <b>A</b> et <b>E</b> tournent la caméra, <b>Z</b> et <b>S</b> l\'inclinent, <b>R</b> la remet, <b>P</b> ou <b>Espace</b> met en pause.</p>';
-  ouvrirModale('commandes', entete('Commandes') + '<div class="musiques-opt" style="margin-bottom:8px">' + tab('souris', 'Souris et clavier') + tab('manette', 'Manette') + '</div>' + aide +
+  ouvrirModale('commandes', entete('Commandes') + '<p class="hdv-aide">Le jeu passe tout seul de l\'un à l\'autre : touche la manette, il se joue à la manette ; clique ou tape au clavier, il revient à la souris et au clavier. En ce moment : <b>' + (commandesJeu.mode === 'manette' ? 'manette' : 'souris et clavier') + '</b>. Ici, règle les touches de chacun.</p>' +
+    '<div class="musiques-opt" style="margin-bottom:8px">' + tab('souris', 'Souris et clavier') + tab('manette', 'Manette') + '</div>' + aide +
     '<div class="hdv-section">Les touches des sorts</div>' + lignes + (msg ? '<p class="hdv-aide" style="color:var(--rouge)">' + msg + '</p>' : '') +
     '<div class="boutons" style="margin-top:12px"><button class="btn discret" data-cmd-defaut>Touches par défaut</button><button class="btn discret" data-retour-options>Retour aux Options</button></div>');
 }
 function cmdCapturer(x) { /* x : le code d'une touche [code, libelle], ou l'indice d'un bouton de manette */
-  const C = mnEtat.capture; if (!C) return; const a = C.action, m = commandesJeu.mode; let msg = '';
+  const C = mnEtat.capture; if (!C) return; const a = C.action, m = C.manette ? 'manette' : 'souris'; let msg = '';
   if (m === 'manette') { if (BOUTONS_RESERVES.includes(x)) msg = NOMS_BOUTONS[x] + ' sert déjà à la caméra, à annuler ou à la pause : choisis un autre bouton.';
     else { const autre = CMD_ACTIONS.find(([b]) => b !== a && commandesJeu.manette[b] === x); if (autre) commandesJeu.manette[autre[0]] = commandesJeu.manette[a]; commandesJeu.manette[a] = x; } } /* (deja pris : les deux echangent) */
   else { if (TOUCHES_RESERVEES.includes(x[0])) msg = 'Cette touche sert déjà à la caméra ou à la pause : choisis-en une autre.';
     else { const autre = CMD_ACTIONS.find(([b]) => b !== a && (commandesJeu.clavier[b] || [])[0] === x[0]); if (autre) commandesJeu.clavier[autre[0]] = commandesJeu.clavier[a]; commandesJeu.clavier[a] = x; } }
   mnEtat.capture = null; cmdSauver(); ouvrirCommandes(msg);
 }
-addEventListener('keydown', (e) => { if (!mnEtat.capture || commandesJeu.mode === 'manette') return; e.preventDefault(); e.stopImmediatePropagation(); if (e.code === 'Escape') { mnEtat.capture = null; ouvrirCommandes(); return; }
+addEventListener('keydown', (e) => { if (!mnEtat.capture || mnEtat.capture.manette) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.code === 'Escape') { mnEtat.capture = null; ouvrirCommandes(); return; }
   const lib = /^Digit\d$/.test(e.code) ? e.code.slice(5) : /^Numpad\d$/.test(e.code) ? e.code.slice(6) : e.key && e.key.length === 1 ? e.key.toUpperCase() : e.code.replace(/^Key/, ''); cmdCapturer([e.code, lib]); }, true);
 window.addEventListener('click', (e) => { const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   if (t.closest('#b-options') || t.closest('[data-retour-options]')) { mnEtat.capture = null; setTimeout(cmdOptions, 0); return; }
   const b = t.closest('[data-cmd-ouvrir],[data-cmd-mode],[data-cmd-changer],[data-cmd-defaut]'); if (!b) return;
-  if (b.hasAttribute('data-cmd-ouvrir')) { ouvrirCommandes(); return; }
-  if (b.dataset.cmdMode) { commandesJeu.mode = b.dataset.cmdMode; mnEtat.capture = null; cmdSauver(); ouvrirCommandes(); return; }
-  if (b.dataset.cmdChanger) { mnEtat.capture = { action: b.dataset.cmdChanger, avant: (mnPad() || { buttons: [] }).buttons.map((x) => !!(x && x.pressed)) }; ouvrirCommandes(); return; }
+  if (b.hasAttribute('data-cmd-ouvrir')) { mnEtat.onglet = commandesJeu.mode; ouvrirCommandes(); return; }
+  if (b.dataset.cmdMode) { mnEtat.onglet = b.dataset.cmdMode; mnEtat.capture = null; ouvrirCommandes(); return; }
+  if (b.dataset.cmdChanger) { mnEtat.capture = { action: b.dataset.cmdChanger, manette: (mnEtat.onglet || commandesJeu.mode) === 'manette', avant: (mnPad() || { buttons: [] }).buttons.map((x) => !!(x && x.pressed)) }; ouvrirCommandes(); return; }
   if (b.hasAttribute('data-cmd-defaut')) { const d = JSON.parse(JSON.stringify(CMD_DEFAUT)); commandesJeu.clavier = d.clavier; commandesJeu.manette = d.manette; mnEtat.capture = null; cmdSauver(); ouvrirCommandes(); }
 });
 majToucheSorts(); requestAnimationFrame(mnBoucle);
