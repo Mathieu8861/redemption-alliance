@@ -22,10 +22,10 @@ function omCreer() {
   const el = document.createElement('div'); el.id = 'ouv-mobile'; el.className = 'om'; el.hidden = true;
   el.innerHTML = '<button class="om-toucher" aria-label="Toucher le coffre"></button><div class="om-fond"></div><div class="om-rayons"></div><div class="om-scene"></div>' +
     '<div class="om-titre"><small>Ton coffre</small><b></b></div><div class="om-compte"></div><div class="om-indice"></div><div class="om-cartes"></div><div class="om-recap"></div><div class="om-flash"></div>' +
-    '<button class="btn discret om-passer">Passer</button>';
+    '<button class="btn discret om-passer">Passer</button><button class="btn kamas om-tout">Voir le total</button>';
   document.body.appendChild(el); OM.el = el;
   el.addEventListener('click', (e) => { const t = e.target;
-    if (t.closest('.om-passer')) { omPasser(); return; } if (t.closest('[data-om-fin]')) { omFin(); return; } omToucher(); });
+    if (t.closest('.om-passer') || t.closest('.om-tout')) { omPasser(); return; } /* (« Voir le total » : 21/11/2026, « un petit bouton quand le coffre s'ouvre, pour passer l'animation des items et afficher direct le total », Mathieu) */ if (t.closest('[data-om-fin]')) { omFin(); return; } omToucher(); });
   addEventListener('keydown', (e) => { if (!OM.el || OM.el.hidden) return;
     if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) omToucher(); }
     else if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); omPasser(); } }, true);

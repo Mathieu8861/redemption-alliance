@@ -1734,5 +1734,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .om-continuer { position: relative; z-index: 5; animation: om-mini .4s .3s both; }
 .om-passer { position: absolute; top: 14px; right: 14px; z-index: 5; }
 .om.recap .om-passer { display: none; }
+.om-tout { position: absolute; left: 50%; bottom: max(6%, 26px); transform: translateX(-50%); z-index: 5; display: none; padding: 10px 22px; font-size: 1rem; box-shadow: 0 0 0 3px #111015, 0 6px 18px rgba(0, 0, 0, .5); animation: om-mini .35s .5s both; }
+.om.ouvert:not(.recap) .om-tout { display: block; } /* (pendant les cartes : droit au total) */
 .om-toucher { position: absolute; inset: 0; width: 100%; height: 100%; background: none; border: 0; padding: 0; z-index: 2; cursor: pointer; }
 .om-toucher.mn-focus { outline: none !important; box-shadow: none !important; }
