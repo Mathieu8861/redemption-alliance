@@ -146,10 +146,10 @@ function ouvrirCoffre() {
 /* la scene du coffre (le coffre 3D, et les images si la 3D manque) et son ouverture, pour toute fenetre : le coffre du jour, celui de l'ile des boss,
    ceux des boss de l'Arene (05/11/2026) ; cle : la fenetre ouverte (l'ouverture s'arrete si on la ferme) */
 const sceneCoffre = () => { const v = '?v=' + VERSION_MODELES; return '<div class="scene-coffre"><div class="rayons"></div><img class="c-ferme" src="assets/icones/coffre-ferme.png' + v + '" alt=""><img class="c-ouvert" src="assets/icones/coffre-ouvert.png' + v + '" alt=""><canvas class="coffre3d" width="520" height="460"></canvas><div class="eclair"></div></div>'; };
-function jouerCoffre(cle) {
+function jouerCoffre(cle, base) { /* (base : un autre coffre que celui du jour, deja construit : les coffres du podium de l'ile, 29k-coffres-podium.js) */
   const z = document.querySelector('.ouverture-coffre'), sc = z && z.querySelector('.scene-coffre'); if (!sc) return; const plus = (f, ms) => setTimeout(() => { if (modaleOuverte === cle && z.isConnected) f(); }, ms);
   const gains = [...z.querySelectorAll('.gain-coffre')];
-  try { if (coffre3d(sc.querySelector('canvas.coffre3d'))) sc.classList.add('avec3d'); } catch (e) { console.warn('coffre 3D', e); }
+  try { if (coffre3d(sc.querySelector('canvas.coffre3d'), base)) sc.classList.add('avec3d'); } catch (e) { console.warn('coffre 3D', e); }
   plus(() => sc.classList.add('tremble'), 450);
   plus(() => { sc.classList.remove('tremble'); sc.classList.add('flash', 'ouvert'); son('niveau'); confettis(50); }, 1450);
   gains.forEach((g, k) => plus(() => { g.classList.add('vu'); son('kamas'); }, 1850 + k * 450));
@@ -209,14 +209,14 @@ function construireCoffre3d() {
   const lum = new T.PointLight('#ffc845', 0, R * 14); lum.position.set(0, H + R * 1.2, 0); g.add(lum);
   return { g, ch, lum, L, P, H, R };
 }
-function coffre3d(cv) {
+function coffre3d(cv, base) {
   if (!cv || !MODELES.kamaPiece) return false;
   const C = COFFRE3D;
   if (!C.r) { C.r = new T.WebGLRenderer({ canvas: document.createElement('canvas'), antialias: true, alpha: true }); C.r.setPixelRatio(1); C.r.setClearColor(0x000000, 0);
     C.sc = new T.Scene(); C.sc.add(new T.HemisphereLight('#fff1d6', '#7f5a2e', 0.5)); const d = new T.DirectionalLight('#fff0d0', 0.8); d.position.set(-3, 6, 5); C.sc.add(d); const r = new T.DirectionalLight('#ffd27a', 0.35); r.position.set(4, 2, -5); C.sc.add(r);
     C.cam = new T.PerspectiveCamera(30, cv.width / cv.height, 0.05, 50); }
   if (C.base) C.sc.remove(C.base.g);
-  const B = construireCoffre3d(); if (!B) return false; C.base = B; C.sc.add(B.g);
+  const B = base || construireCoffre3d(); if (!B) return false; C.base = B; C.sc.add(B.g);
   C.r.setSize(cv.width, cv.height, false); C.cam.aspect = cv.width / cv.height; C.cam.updateProjectionMatrix();
   C.cam.position.set(B.L * 1.35, B.H * 4.4, B.L * 3.3); C.cam.lookAt(0, B.H * 1.15, 0);   /* (assez de recul pour le couvercle ouvert et les kamas qui sautent) */
   const ctx = cv.getContext('2d'), sauts = [], debut = performance.now(), G = 3.2;
@@ -234,9 +234,9 @@ function coffre3d(cv) {
     if (t >= 0.45 && t < 1.45) { const k = (t - 0.45) / 1.0; g.rotation.z = Math.sin(t * 62) * 0.045 * (0.4 + k); g.position.x = Math.sin(t * 47) * B.R * 0.12 * k; ang = -0.16 * Math.abs(Math.sin(t * 24)) * k; }   /* (il tremble, le couvercle claque) */
     if (t >= 1.45) { const k = t - 1.45; ang = -1.92 - 0.35 * Math.exp(-k * 5) * Math.cos(k * 16); if (k < 0.12) ang = -1.92 * (k / 0.12) - 0.1; /* (il s'ouvre d'un coup et rebondit sur sa charniere) */
       if (!lance) { lance = true; lancer(); }
-      B.lum.intensity = 2.6 * Math.exp(-k * 1.6) + 0.6;
+      B.lum.intensity = (2.6 * Math.exp(-k * 1.6) + 0.6) * (B.ia ? 0.35 : 1); /* (les coffres generes : leur image est deja peinte avec sa lumiere, 21/11/2026) */
       g.rotation.y = Math.sin(k * 0.7) * 0.32 * Math.min(1, k / 1.5); }
-    B.ch.rotation.x = ang;
+    B.ch.rotation.x = ang; if (B.anim) B.anim(dt); /* (le cristal qui flotte, la couronne : les coffres du podium) */
     sauts.forEach((s) => { if (s.pose) return; s.v.y -= G * dt; s.o.position.addScaledVector(s.v, dt); s.o.rotation.x += s.w.x * dt; s.o.rotation.y += s.w.y * dt; s.o.rotation.z += s.w.z * dt;
       if (s.o.position.y <= B.R * 0.04 && s.v.y < 0) { if (Math.abs(s.v.y) > 0.6) { s.v.y *= -0.35; s.v.x *= 0.5; s.v.z *= 0.5; s.w.multiplyScalar(0.4); } else { s.o.position.y = B.R * 0.04; s.o.rotation.set(-Math.PI / 2 * 0 + (Math.random() - 0.5) * 0.3, s.o.rotation.y, (Math.random() - 0.5) * 0.3); s.pose = true; } } });
     C.r.render(C.sc, C.cam); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(C.r.domElement, 0, 0);

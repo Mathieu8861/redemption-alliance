@@ -1686,3 +1686,5 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .cmd-tuile { display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 0; padding: 8px 4px 7px; background: #2b2d31; border: 3px solid var(--bord); border-radius: 14px; box-shadow: 0 3px 0 var(--bord); color: var(--encre); font: 800 .8rem/1.15 var(--f-texte); text-align: center; transition: transform .12s; }
 .cmd-tuile:hover { transform: translateY(-2px); } .cmd-tuile img { width: 62px; height: 62px; object-fit: contain; } .cmd-tuile small { font-size: .66rem; font-weight: 700; opacity: .7; }
 .cmd-tuile[aria-pressed="true"] { border-color: var(--or); } .cmd-tuile[aria-pressed="true"] small { color: var(--or); opacity: 1; }
+/* les ressources au choix du coffre de l'ile (29k-coffres-podium.js, 21/11/2026) */
+.choix-ile { text-align: left; } .choix-ile .ci-act { display: flex; align-items: center; gap: 4px; } .choix-ile .ci-act b { display: inline-block; min-width: 24px; text-align: center; }
