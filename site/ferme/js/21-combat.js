@@ -538,9 +538,15 @@ function completerBestiaire() { /* les sauvegardes d'avant : les monstres des va
   const B = bestiaire(); for (let n = 1; n < Math.min(S_.vague.num, VAGUES_TOTAL + 1); n++) compoTotale(n).forEach(([t]) => { if (!B[t]) B[t] = { vus: 1, tues: 0 }; });
 }
 /* LES REGLES D'ARRIVEE (refonte du 16/10/2026) : l'Arene et l'ile des boss changent la force d'un monstre a son arrivee, et ils s'en prennent tous au perso */
+/* LE COUP ENGAGE DES BOSS (21/11/2026, retour de Dinomight-Knight : « faudrait qu'il ne puisse pas cancel ses autos, le boss, tu peux le kite a l'infini sinon »,
+   Scorpal tombe seul en 11 min face a un Cra qui recule ; « coup engage », choix de Mathieu au formulaire) : le coup d'un monstre a squelette part a l'instant
+   de son geste et tombait dans le vide si le perso etait a plus d'une demi-case au-dela de sa portee. Un boss qui a lance son geste touche jusqu'a 2 cases
+   au-dela de sa portee : reculer au dernier moment ne suffit plus. Les autres monstres gardent la demi-case */
+const ENGAGE_BOSS = 2 * S;
 function regleArene(o) { /* l'Arene : chacun remis a la force de l'Arene (statsArene, le boss a celle du boss de reference), puis tous plus forts au fil des vagues (forceArene), le boss a moitie */
   const mu = forceArene(combat.arene.k) * (o.d.boss ? forceBossArene : 1), s = o.d.boss ? statsBossArene() : statsArene(o.type); o.aggro = true; o.casseur = false;
-  o.pv = o.pvMax = Math.max(1, Math.round(s.pv * mu)); o.deg = Math.max(1, Math.round(s.deg * mu)); if (o.d.boss) o.degSortA = Math.max(o.d.degSort || 0, s.sort); /* (20/10/2026) */
+  const kf = !o.d.boss && s.p === PALIERS_TOUS.indexOf(PALIER_FORET) ? ARENE_FORET : 1; /* (la famille de la foret, adoucie dans l'Arene, voir ARENE_FORET) */
+  o.pv = o.pvMax = Math.max(1, Math.round(s.pv * mu * kf)); o.deg = Math.max(1, Math.round(s.deg * mu * kf)); if (o.d.boss) o.degSortA = Math.max(o.d.degSort || 0, s.sort); /* (20/10/2026) */
 }
 /* LE NIVEAU DE L'ILE, LE MEME POUR TOUT LE MONDE (18/11/2026, « il faudrait que le boss de l'ile soit au meme niveau pour tout le monde, et le niveau du boss de
    l'ile est base sur le palier le plus haut : la c'est le palier 10 (niveau 100), quand on passera au palier 11 ce sera le 11 », Mathieu) : avant, le boss et sa
@@ -556,7 +562,7 @@ function regleIleBoss(o) { /* l'ile des boss : tout au niveau de l'ile (niveauIl
 }
 function apparaitre(type, pres) {
   const d = MONSTRES[type]; noterVu(type);
-  if (combat && !combat.nuitForet && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele) && !(combat.genre === 'vague' && combat.n > 10 * VAGUES_PALIER)) { /* (13/11/2026, « que de 91 a 100 ; a partir de la 101 on repart sur le cycle jour / nuit classique », Mathieu : au-dela de la 100, meme avec des arbres de la foret, la nuit est celle de l'heure, nuitFermeLa) */ combat.nuitForet = true; nuitForet(); toast('La Forêt des Abraknydes plonge la ferme dans la nuit…', 'alerte'); } /* (la nuit de la foret, 08/11/2026) */
+  if (combat && !combat.nuitForet && !(combat.genre === 'arene' && !combat.dev) && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele) && !(combat.genre === 'vague' && combat.n > 10 * VAGUES_PALIER)) { /* (pas de nuit dans l'Arene des joueurs, 21/11/2026 : « en arene quand la nuit spawn tu passes a 10 FPS », retour de Yannick ; voir ARENE_FORET ; l'Arene dev la garde pour les essais) */ /* (13/11/2026, « que de 91 a 100 ; a partir de la 101 on repart sur le cycle jour / nuit classique », Mathieu : au-dela de la 100, meme avec des arbres de la foret, la nuit est celle de l'heure, nuitFermeLa) */ combat.nuitForet = true; nuitForet(); toast('La Forêt des Abraknydes plonge la ferme dans la nuit…', 'alerte'); } /* (la nuit de la foret, 08/11/2026) */
   if (!d.fabrique && !MODELES[d.modele]) { /* son modele n'est pas encore la (un monstre a squelette, charge a la demande) : il sort des qu'il est charge ; sans modele, il ne vient pas (26/10/2026 : cloner plantait et l'image se figeait) */
     const c0 = combat; chargerSquelettes([d.modele]).then(() => { if (combat !== c0 || c0.fin) return; if (MODELES[d.modele]) apparaitre(type, pres); else if (c0.total > 0) c0.total--; }); return; }
   if (combat.arene && !pres && d.poutch) pres = placePoutch(); /* (le Poutch du mode test : pas par les herses, 15/11/2026) */
@@ -1545,10 +1551,16 @@ function eclaircirMonstres(N, k, rendre) {
       if (Array.isArray(x.material)) { if (x.material.some((M) => !M.color || M.side === T.BackSide || M.transparent)) return; x.material = x.material.map(pro); x.material.forEach((M) => M.color.copy(M.userData.cNuit).multiplyScalar(f)); }
       else { if (!x.material.color || x.material.side === T.BackSide || x.material.transparent) return; x.material = pro(x.material); x.material.color.copy(x.material.userData.cNuit).multiplyScalar(f); } }); });
 }
+/* LA NUIT PLUS LEGERE (21/11/2026, retour de Yannick : « la nuit rend le jeu suuuper lent, en arene quand la nuit spawn tu passes a 10 FPS ») : le voile de la
+   nuit est un calque de l'ecran perce d'un trou par lanterne et par oeil ; il etait redessine a chaque image avec un trou par oeil de chaque monstre (40 trous
+   et plus a la foret), tres lourd sur telephone. Maintenant : les yeux des 8 monstres les plus proches du perso seulement (YEUX_NUIT_MAX), pas d'yeux en
+   graphismes legers, et le calque n'est refait qu'au plus 20 fois par seconde quand il a plus de 6 trous, et seulement s'il a bouge d'au moins 2 pixels */
+const YEUX_NUIT_MAX = 8;
 function trousNuit(N) {
+  const maintenant = performance.now(); if ((N.nTrous || 0) > 6 && N.masqueT && maintenant - N.masqueT < 50) return; N.masqueT = maintenant; /* (peu de trous, quelques lanternes : a chaque image, comme avant ; au-dela de 6, 20 fois par seconde) */
   const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
   const Y = (N.trousYeux || []).concat(typeof trousBatiments === 'function' ? trousBatiments(N) : []); /* (les yeux des monstres, yeuxNuit ; et les lumieres d'appoint des batiments, 14i-nuit.js) */
-  if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; } return; }
+  if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.masqueTxt = ''; } return; }
   const W = innerWidth, H = innerHeight, D = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); D.y = 0; D.normalize(); const D2 = new T.Vector3(-D.z, 0, D.x), p = new T.Vector3(), q = new T.Vector3(), g = [];
   const ecran = (v) => [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
   const doux = typeof NUIT_J !== 'undefined' && N === NUIT_J; /* (la nuit de la ferme, 11/11/2026 : « que ca eclaire un petit peu plus loin, que la lumiere se diffuse : plus c'est loin de la lanterne, moins c'est lumineux »,
@@ -1558,16 +1570,17 @@ function trousNuit(N) {
     const rx = Math.hypot(x1 - x, y1 - y), ry = Math.max(4, Math.hypot(x2 - x, y2 - y)); if (x < -rx || x > W + rx || y < -ry || y > H + ry) return;
     g.push('radial-gradient(' + rx.toFixed(0) + 'px ' + ry.toFixed(0) + 'px at ' + x.toFixed(0) + 'px ' + y.toFixed(0) + 'px, ' + (doux ? 'transparent 0, rgba(0,0,0,.1) 22%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.62) 68%, rgba(0,0,0,.86) 86%, #000 100%' : 'transparent 0, transparent 52%, #000 100%') + ')'); });
   Y.forEach(([x, y, r, degrade]) => g.push('radial-gradient(' + r.toFixed(1) + 'px ' + r.toFixed(1) + 'px at ' + x.toFixed(1) + 'px ' + y.toFixed(1) + 'px, ' + (degrade || 'transparent 0, transparent 55%, #000 100%') + ')')); /* (degrade : un trou qui ne leve le voile qu'en partie, les Noctiflores, 14i-nuit.js) */
-  const m = g.join(','); N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
+  const m = g.join(',').replace(/(\d+\.?\d*)px/g, (x, v) => (Math.round(v / 2) * 2) + 'px'); N.nTrous = g.length; if (m === N.masqueTxt && N.masque === !!m) return; N.masqueTxt = m; /* (arrondi a 2 pixels : un calque immobile n'est pas redessine) */
+  N.v.style.webkitMaskImage = N.v.style.maskImage = m; N.v.style.webkitMaskComposite = 'source-in'; N.v.style.maskComposite = 'intersect'; N.masque = !!m;
 }
 /* les yeux dans la nuit (08/11/2026, « on a bien travaille les yeux, j'aimerais que ce soit toujours les memes, juste les rendre visibles », Mathieu, apres
    une premiere version en boules de lumiere) : le voile est perce d'un petit trou sur chaque oeil des monstres tournes vers la camera (poserYeux,
    22c-squelettes.js), comme pour les lampes : on voit le vrai oeil du modele, qui luit (son image d'emission). Il disparait le temps d'un clignement. */
 function yeuxNuit(N, k, fin) {
   const L = N.trousYeux = []; if (fin && typeof VERSIONS_P10 !== 'undefined') VERSIONS_P10.forEach((nom) => { if (MODELES[nom]) MODELES[nom].traverse((x) => { if (x.isSkinnedMesh && x.material && x.material.emissiveMap) x.material.emissiveIntensity = 1; }); }); /* (le jour revenu, leurs yeux reprennent leur eclat normal : les copies partagent les matieres du modele) */
-  if (fin || !(k > 0) || !combat) return;
+  if (fin || !(k > 0) || !combat || (typeof graphismes === 'function' && graphismes() === 'leger')) return; /* (graphismes legers : pas de trous pour les yeux) */
   const W = innerWidth, H = innerHeight, vers = camera.getWorldDirection(new T.Vector3()).negate(), droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize(), p = new T.Vector3(), q = new T.Vector3(), nw = new T.Vector3(), sc = new T.Vector3(), t = performance.now() / 1000;
-  combat.monstres.forEach((o) => { if (!o.m || o.etat === 'mort' || !o.m.visible) return;
+  const pp0 = paysanMesh.position; combat.monstres.filter((o) => o.m && o.etat !== 'mort' && o.m.visible).sort((a, b) => Math.hypot(a.x - pp0.x, a.z - pp0.z) - Math.hypot(b.x - pp0.x, b.z - pp0.z)).slice(0, YEUX_NUIT_MAX).forEach((o) => { /* (les 8 plus proches) */
     if (!o.yeux) { o.yeux = []; o.m.traverse((x) => { if (x.userData && x.userData.oeil) o.yeux.push(x); }); }
     if (!o.yeux.length) return;
     if (!o.peauxYeux) { o.peauxYeux = []; o.m.traverse((x) => { if (x.isSkinnedMesh && x.material && x.material.emissiveMap) o.peauxYeux.push(x); }); } o.peauxYeux.forEach((x) => { x.material.emissiveIntensity = 1 + 1.8 * k; }); /* (« rends un peu plus lumineux leurs yeux », Mathieu, 08/11/2026 : la nuit, l'image d'emission luit 2,8 fois plus) */
@@ -3488,7 +3501,7 @@ function majMonstre(mo, dt, s) {
         else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat, !bat && surCa ? caG : null); } /* (caG : un tireur attire par la Cawotte geante lui tire dessus, 16/11/2026) */ /* (le perso s'est colle a lui pendant son geste : rien ne part) */
         else if (surBo) { if (combat.bouture === bo && bo.pv > 0 && Math.hypot(bo.x - mo.x, bo.z - mo.z) <= portee + 1.0) blesserBouture(bo, mo.deg * autoBoss(mo)); }
         else if (surCa) { if (combat.cawotteG === caG && caG.pv > 0 && Math.hypot(caG.x - mo.x, caG.z - mo.z) <= portee + 1.0) blesserCawotteGeante(caG, mo.deg * autoBoss(mo), mo); } /* (la Cawotte geante encaisse et renvoie) */ /* (le Tronknyde de la Bouture encaisse a ta place) */
-        else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + 1.0) { blesserPerso(mo.deg * autoBoss(mo), mo); effetsCoup(mo); } }; /* (autoBoss : les autos des boss, 07/11/2026) */
+        else if (!m.userData.anim || Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) <= portee + (mo.d.boss ? ENGAGE_BOSS : 1.0)) { blesserPerso(mo.deg * autoBoss(mo), mo); effetsCoup(mo); } }; /* (ENGAGE_BOSS : le coup engage des boss) */ /* (autoBoss : les autos des boss, 07/11/2026) */
       if ((mo.d.marteau || mo.d.poings) && m.userData.anim && !bat && !(mo.d.coupDirect && (mo.direct = !mo.direct))) coupMarteau(mo); /* (coupDirect : une attaque sur deux, Moon frappe direct, sans cercle, 07/11/2026) */ /* (Moon, et le Gorille roi avec ses poings : le coup tombe a l'impact, 22c-squelettes.js) */
       else if (m.userData.anim) attaqueSquelette(mo, mo.d.distance ? 'tir' : 'coup', frapper); /* (les Kannibouls et les Tortues : a l'instant de leur geste) */
       else if (mo.d.coups && !bat) coupLourd(mo, portee, frapper); /* (le Dragon Cochon : ses trois coups, 01/11/2026) */

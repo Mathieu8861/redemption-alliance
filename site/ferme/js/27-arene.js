@@ -26,6 +26,10 @@ const entreesRestantes = () => Math.max(0, ENTREES_ARENE - (etatArene().entrees 
 const PART_TICKET_ARENE = 0.0132, pasArene = (k) => 1 + 0.05 * (Math.min(k, 20) - 1) + 0.1 * Math.max(0, k - 20); /* (puis, le meme jour : « vague 20 met 0,5 pas 1 ; reflechis jusqu'a la vague 60, les gens commencent a etre niveau 90 full stuff », Mathieu, courbe B choisie au formulaire :
    1,2 % du ticket a la vague 1 (apres la baisse de 10 %), +5 % par vague jusqu'a la 20e, puis +10 % par vague. Coffres compris : 0,5 ticket a la 20e, rembourse vers la 31e,
    1,5 ticket a la 40e, 3,2 a la 60e. La meme regle pour tous les niveaux : l'ancien calcul (les vagues 51 a 69, KAMAS_ARENE) ne sert plus) */
+/* LA FORET ADOUCIE DANS L'ARENE (21/11/2026, retour de Yannick : « tu te retrouves a aller plus loin en arene avec des vieux Bworks qu'au niveau 100 quand la
+   famille de l'Ancestral vient te peter les rotules », « foret adoucie », choix de Mathieu au formulaire) : dans l'Arene seulement, la famille du palier 10
+   (la Foret des Abraknydes) a 25 % de vie et de degats en moins, une seule famille de la foret par vague, et la nuit de la foret ne tombe plus (21-combat.js) */
+const ARENE_FORET = 0.75;
 const multArene = (k) => 1 + 0.08 * Math.max(0, k - 20); /* au-dela de la vague 20, les monstres grossissent encore de 8 % par vague */
 let forceBossArene = 1; /* (20/10/2026, « les boss, je les ai trouves trop faciles », Mathieu : a pleine force ; la moitie datait du temps ou tout le monde affrontait le boss de la vague 55) */
 /* LES BONUS DE L'ARENE (20/10/2026, Mathieu : « tous les 10 niveaux de vague, qu'on puisse choisir un petit bonus : +10 agilite, +10 puissance, +10 esquive,
@@ -109,7 +113,7 @@ function famillesArene() {
   const F = new Map();
   for (let n = 1; n <= hautArene(); n++) { if (n % VAGUES_PALIER === 0) continue; const p = palierDe(n);
     compoVague(n).forEach(([t]) => { const d = MONSTRES[t]; if (d && !d.boss && !d.vole && !d.fabrique) { if (!F.has(p)) F.set(p, new Set()); F.get(p).add(t); } }); }
-  return F.size ? [...F.values()].map((s) => [...s]) : [['bouftou']];
+  return F.size ? [...F.entries()].map(([p, s]) => Object.assign([...s], { p })) : [['bouftou']]; /* (p : le palier de la famille) */
 }
 /* la force d'un monstre dans l'Arene : celle de sa vague d'origine (la derniere battue ou il vient), multipliee par le rapport entre la moyenne d'une
    vague 55 et la moyenne de sa vague d'origine ; il garde son role dans sa famille (costaud, fragile), au niveau de l'Arene */
@@ -129,7 +133,8 @@ const statsBossArene = () => { const N = nArene(), R = PALIERS_TOUS[palierDe(N)]
 const bossArene = () => PALIERS.slice(0, Math.max(1, Math.min(PALIERS.length, Math.floor((S_.vague.num - 1) / VAGUES_PALIER)))).map((p) => p.boss).filter((b) => MONSTRES[b]);
 function vagueArene(k) {
   const fam = famillesArene(); for (let i = fam.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fam[i], fam[j]] = [fam[j], fam[i]]; } /* (3 familles au hasard par vague) */
-  const choix = fam.slice(0, 3), boss = k % 5 === 0, nb = Math.min(20, 6 + Math.floor(k * 0.7)) - (boss ? 2 : 0), f = [];
+  const pf = PALIERS_TOUS.indexOf(PALIER_FORET), choix = []; fam.forEach((F) => { if (choix.length < 3 && !(F.p === pf && choix.some((G) => G.p === pf))) choix.push(F); }); /* (une seule famille de la foret par vague) */
+  const boss = k % 5 === 0, nb = Math.min(20, 6 + Math.floor(k * 0.7)) - (boss ? 2 : 0), f = [];
   for (let i = 0; i < nb; i++) f.push(hasard(hasard(choix)));
   if (boss) f.push(hasard(bossArene()));
   return { k, n: nArene(k), f, nom: 'la vague ' + k };
