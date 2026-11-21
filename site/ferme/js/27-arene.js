@@ -319,7 +319,13 @@ const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return
    le samedi (la semaine du Bworker se ferme et son coffre se distribue comme d'habitude) ; les semaines suivantes repartent du samedi 0 h */
 const OUVERTURE_AVANCEE = [Date.parse('2026-11-20T20:00:00+01:00'), Date.parse('2026-11-21T00:00:00+01:00')];
 const DECALAGE_ILE_J = 1, tIle = (t) => { let x = t == null ? tempsReel() : t; if (x >= OUVERTURE_AVANCEE[0] && x < OUVERTURE_AVANCEE[1]) x = OUVERTURE_AVANCEE[1]; return x - DECALAGE_ILE_J * 864e5; };
-const semaineIleBoss = (t) => { const d = new Date(tIle(t)); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
+/* LA REMISE A ZERO DE SCORPAL (21/11/2026, « il va falloir modifier le boss et reset les scores, sur tel les mecs font 3M5 en Cra, moi en Cra sur PC au mieux je fais
+   1M », « oui, a zero, 6M », Mathieu, apres les correctifs contre le kite : Scorpal plus rapide sur l'ile, ses tirs et ses pinces, le joystick moins rapide) : la semaine
+   en cours prend une nouvelle cle (le 21/11 au lieu du 20/11). La base additionne les meilleurs essais de la nouvelle cle : Scorpal repart a 6 millions et les anciens
+   essais ne comptent plus, sans toucher aux sauvegardes. L'ancienne cle est annulee (pas de coffre pour elle) ; la nouvelle donne le coffre la semaine prochaine.
+   Dino et Yannick, qui avaient abattu Scorpal, recoivent une compensation (COMPENSATION_ILE) */
+const REMISE_ILE = { '2026-11-20': '2026-11-21' }, ILE_ANNULEES = new Set(Object.keys(REMISE_ILE)), ILE_EN_PLUS = new Set(Object.values(REMISE_ILE));
+const semaineIleBoss = (t) => { const d = new Date(tIle(t)); d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); const k = cleJour(d.getTime()); return REMISE_ILE[k] || k; };
 const finSemaineIle = () => { const d = new Date(tIle()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - 1 - d.getDay() + 7) % 7) + DECALAGE_ILE_J); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }; /* (le jeudi, dernier jour) */
 function bossDuJour(cle) { if (MODE_TEST && ETAT_TEST.ileBoss && MONSTRES[ETAT_TEST.ileBoss]) return ETAT_TEST.ileBoss; /* (le mode test : le boss de l'ile au choix, 12/11/2026, « tu peux me le mettre en mode test que je vois ? », Mathieu) */ const [y, m, d] = cle.split('-').map(Number), sem = parseInt(semaineJeu(new Date(y, m - 1, d, 12).getTime()).split('-S')[1], 10); const L = ROTATION_ILE_BOSS.length; return ROTATION_ILE_BOSS[(((sem - 42) % L) + L) % L]; } /* (le Koulosse le vendredi 16/10/2026, puis la rotation) */
 const palierDuBoss = (t) => Math.max(0, PALIERS.findIndex((p) => p.boss === t)), vagueDuBoss = (t) => (MONSTRES[t] && MONSTRES[t].vagueIle) || (palierDuBoss(t) + 1) * VAGUES_PALIER; /* (vagueIle : un boss de l'ile sans palier, Scorpal, 27j-scorpal.js) */
@@ -341,7 +347,7 @@ const ileSansLimite = () => ILE_ESSAIS_LIBRES || (typeof ultiLibre === 'function
 const essaisMax = (cle) => (ileSansLimite() ? Infinity : ESSAIS_ILE_BOSS + (ESSAIS_BONUS_ILE[cle] || 0));
 const essaisCompte = (cle) => MODE_TEST ? 0 : partiesIle().reduce((a, e) => a + ((jourIleDe(e, cle) || {}).essais || 0), 0); /* (3 essais par compte, toutes parties confondues) */
 const meilleurCompte = (cle) => Math.max(0, ...partiesIle().map((e) => (jourIleDe(e, cle) || {}).meilleur || 0));
-const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS && k !== semaineIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
+const aReclamerIle = () => Object.entries(etatIleBoss().jours).filter(([k, J]) => (new Date(k + 'T12:00:00').getDay() === JOUR_ILE_BOSS || ILE_EN_PLUS.has(k)) && !ILE_ANNULEES.has(k) && k !== semaineIleBoss() && J.meilleur > 0 && J.meilleur >= meilleurCompte(k) && !etatIleBoss().recus[k]); /* (le coffre va a la partie du meilleur essai) */
 const jourIle = (cle) => (etatIleBoss().jours[cle] = etatIleBoss().jours[cle] || { essais: 0, meilleur: 0, boss: bossDuJour(cle) });
 const prochainVendredi = () => { const d = new Date(tIle()); d.setDate(d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7) + DECALAGE_ILE_J); return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
 /* LE TABLEAU DU CLASSEMENT DE L'ILE (17/11/2026, « fais un tableau un peu plus joli et affiche le nombre de try », Mathieu) : une ligne par joueur, rang
@@ -478,7 +484,40 @@ function finIleBoss(abandon, tombe) {
    avec les gains quand on les recoit », Mathieu) : avant, il fallait penser a rouvrir la fiche de l'ile et toucher « Ouvrir le coffre de la semaine ». Maintenant,
    des que la semaine est finie (le vendredi), il s'ouvre de lui-meme a la ferme, connecte, sans fenetre ni combat en cours, et sa fenetre detaille les gains.
    Le bouton de la fiche reste. Un classement illisible : un nouvel essai toutes les 5 min, sans message. */
+/* LA COMPENSATION (21/11/2026, « on donne a Dino et Yannick une recompense de compensation a leur prochaine connexion ? 10 ressources de leur choix parmi une liste
+   + 2 runes de forgemagie +20 % », Mathieu) : a leur prochaine connexion, a la ferme, une fenetre : ils repartissent 10 ressources comme ils veulent dans la liste, et
+   recoivent 2 runes de forgemagie. Une fois par compte (toutes ses parties). « Plus tard » la referme jusqu'a la connexion suivante */
+const COMPENSATION_ILE = { cle: 'scorpal-2026-11-21', comptes: ['dinomight-kight', 'yannick-jadot'], n: 10, forge: 2,
+  liste: ['ecorce_abraknyde', 'soie_arakne', 'ecaille_tortue', 'plume_kanniboul', 'couenne', 'kaliptus', 'poil_wabbit', 'ecaille_drag', 'eclat_craq', 'dent_bwork'] };
+const choixCompensation = {};
+const compensationDue = () => typeof enLigneSv !== 'undefined' && COMPENSATION_ILE.comptes.includes(String(enLigneSv.pseudo || '').toLowerCase()) && !partiesIle().some((e) => e.compensations && e.compensations[COMPENSATION_ILE.cle]);
+function ouvrirCompensation() {
+  const C = COMPENSATION_ILE, total = C.liste.reduce((t, r) => t + (choixCompensation[r] || 0), 0), reste = C.n - total;
+  ouvrirModale('compensation-ile', entete('Une compensation pour toi') + '<p class="hdv-aide">Scorpal a été corrigé (il se laissait distancer à l\'infini) et les scores de la semaine repartent de zéro. Tu l\'avais abattu : choisis <b>' + C.n + ' ressources</b> dans la liste, et reçois <b>' + C.forge + ' runes de forgemagie</b> (+20 % de jet).</p>' +
+    '<div class="hdv-section">Tes ' + C.n + ' ressources : encore ' + reste + ' à choisir</div>' +
+    C.liste.map((r) => { const n = choixCompensation[r] || 0; return '<div class="art"><img src="assets/icones/' + r + '.png?v=' + VERSION_MODELES + '" alt="" style="width:40px;height:40px"><div><b>' + PAR_ID[r].nom + '</b><div class="desc">Tu en as ' + fmt(S_.grange[r] || 0) + '</div></div>' +
+      '<div class="act" style="display:flex;flex-direction:row;gap:6px;align-items:center"><button class="btn mini discret" data-comp-moins="' + r + '"' + (n ? '' : ' disabled') + '>−</button> <b style="display:inline-block;min-width:26px;text-align:center">' + n + '</b> <button class="btn mini discret" data-comp-plus="' + r + '"' + (reste ? '' : ' disabled') + '>+</button></div></div>'; }).join('') +
+    '<div class="act-bas"><button class="btn discret" data-comp-tard>Plus tard</button><button class="btn kamas" data-comp-ok' + (reste ? ' disabled' : '') + '>Recevoir</button></div>');
+}
+function recevoirCompensation() {
+  const C = COMPENSATION_ILE; if (!compensationDue()) return; const L = C.liste.filter((r) => choixCompensation[r] > 0), total = L.reduce((t, r) => t + choixCompensation[r], 0); if (total !== C.n) return;
+  L.forEach((r) => { S_.grange[r] = (S_.grange[r] || 0) + choixCompensation[r]; delete choixCompensation[r]; }); runes().forge = (runes().forge || 0) + C.forge;
+  (S_.compensations = S_.compensations || {})[C.cle] = true; sauver(); rendreHaut(); fermerModale(); son('niveau'); confettis(40);
+  toast('Compensation reçue : ' + C.n + ' ressources et ' + C.forge + ' runes de forgemagie. Merci d\'avoir joué le jeu !', 'or');
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-comp-plus],[data-comp-moins],[data-comp-ok],[data-comp-tard]'); if (!b) return; const C = COMPENSATION_ILE;
+  if (b.dataset.compPlus) { const total = C.liste.reduce((t, r) => t + (choixCompensation[r] || 0), 0); if (total < C.n) choixCompensation[b.dataset.compPlus] = (choixCompensation[b.dataset.compPlus] || 0) + 1; ouvrirCompensation(); return; }
+  if (b.dataset.compMoins) { choixCompensation[b.dataset.compMoins] = Math.max(0, (choixCompensation[b.dataset.compMoins] || 0) - 1); ouvrirCompensation(); return; }
+  if (b.hasAttribute('data-comp-ok')) { recevoirCompensation(); return; }
+  if (b.hasAttribute('data-comp-tard')) { compensationAuto.plusTard = true; fermerModale(); }
+});
+function compensationAuto() { /* (a la ferme, connecte, sans fenetre ni combat ; une fois par seconde au plus) */
+  if (compensationAuto.plusTard || !S_ || !S_.perso || enAccueil || combat || modaleOuverte || lieu !== 'ferme' || lecon.ouverte || !ENLIGNE || !enLigneSv.compte) return;
+  if (compensationAuto.t && Date.now() - compensationAuto.t < 1000) return; compensationAuto.t = Date.now(); if (compensationDue()) ouvrirCompensation();
+}
 function coffreIleAuto() {
+  compensationAuto();
   if (!S_ || !S_.perso || enAccueil || combat || modaleOuverte || lieu !== 'ferme' || lecon.ouverte || reclamerIleBoss.enCours || !ENLIGNE || !enLigneSv.compte) return;
   if (coffreIleAuto.t && Date.now() - coffreIleAuto.t < 5 * 60000) return;
   if (!aReclamerIle().length) return; coffreIleAuto.t = Date.now(); reclamerIleBoss(true);

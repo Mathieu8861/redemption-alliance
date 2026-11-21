@@ -28,15 +28,20 @@ PV_ILE_BOSS_PAR.scorpal = 6000000; /* (6 000 000 le 20/11/2026 vers 21 h, « met
    balayage 5,5 au lieu de 7,5), moins de temps pour sortir des cercles (0,9 / 0,7 / 0,75 s au lieu de 1,2 / 0,9 / 1), des cercles plus grands (+20 %), des sorts
    qui tapent +30 %, un coup toutes les 1,2 s au lieu de 1,5, ses coups +30 %, une carapace de 65 % au lieu de 60 (comme l'armure du Bworker, +10 points sur 30),
    la marche +15 % et 25 % plus vite sur l'ile (VITESSE_ILE). Le dard reste plante 1,5 s (2,5 s jusqu'au 20/11/2026 : « il reste trop longtemps a ne plus rien faire », Mathieu). Toujours sans troupe : un duel. */
+/* CONTRE LE KITE (21/11/2026, « sur tel les mecs font 3M5 en Cra, moi en Cra sur PC au mieux je pense je fais 1M », « rapidite a 5, et faut booster ses tirs a distance :
+   que ca se lance plus rapidement, plus souvent, et plus large zone », « pinces plus souvent », Mathieu) : un Cra courait 60 a 85 % plus vite que lui sur l'ile et
+   le tenait a distance sans fin. Sur l'ile : il marche a 5 (4 avant, VITESSE_ILE), son dard porte a 7 (5,2), toutes les 3,5 s (4,5), prepare en 0,75 s (0,9), cercle
+   de 3,2 (2,65) ; sa pluie de venin toutes les 4,5 s (7), levee en 0,35 s (0,45), qui retombe en 0,8 s (1), 4 boules (3) de 2,4 (1,9) jusqu'a 12 (8) ; ses pinces
+   toutes les 4 s (6), jusqu'a 7 (5) */
 const KIT_SCORPAL_ILE = { carapace: 0.65, ouverture: 2.5,
-  dard: Object.assign({}, KIT_SCORPAL.dard, { periode: 4.5, prepa: 0.9, R: 2.65, x: 1.62, portee: 5.2 }),
-  pinces: Object.assign({}, KIT_SCORPAL.pinces, { periode: 6.0, prepa: 0.7, R: 5.0, x: 1.1 }),
+  dard: Object.assign({}, KIT_SCORPAL.dard, { periode: 3.5, prepa: 0.75, R: 3.2, x: 1.62, portee: 7.0 }),
+  pinces: Object.assign({}, KIT_SCORPAL.pinces, { periode: 4.0, prepa: 0.65, R: 7.0, x: 1.1 }),
   balayage: Object.assign({}, KIT_SCORPAL.balayage, { periode: 5.5, prepa: 0.75, R: 4.2, x: 1.82 }),
-  venin: Object.assign({}, KIT_SCORPAL.venin, { periode: 7, vol: 1.0, R: 1.9, x: 0.78, flaque: { duree: 6, R: 1.9, pct: 0.03 } }) }; /* (sur l'ile : plus souvent, plus grand, plus fort, comme ses autres sorts) */
-RENFORT_ILE.scorpal = { d: { cadence: 0.85, scorpKit: KIT_SCORPAL_ILE }, deg: 1.3, vit: 1.15 }; VITESSE_ILE.scorpal = 1.25;
+  venin: Object.assign({}, KIT_SCORPAL.venin, { periode: 4.5, leve: 0.35, vol: 0.8, n: 4, R: 2.4, ecart: 3.0, portee: 12, x: 0.78, flaque: { duree: 6, R: 2.4, pct: 0.03 } }) }; /* (sur l'ile : plus souvent, plus grand, plus fort, comme ses autres sorts) */
+RENFORT_ILE.scorpal = { d: { cadence: 0.85, scorpKit: KIT_SCORPAL_ILE }, deg: 1.3, vit: 1.15 }; VITESSE_ILE.scorpal = 1.55; /* (1,55 : 5 de vitesse sur l'ile, 2,8 x 1,15 x 1,55 ; 1,25 avant le 21/11/2026, soit 4) */
 GROUPES_DEV.scorpal = { nom: 'Scorpal (le boss de l\'île du 21/11)', liste: { scorpal: 1 } }; AVANT_PREMIERE.unshift('scorpal');
 /* sa semaine sur l'ile : celle qui commence le samedi 21/11/2026 (cle du vendredi 20/11) ; le Chafer Cuirasse reviendra a son tour dans la rotation */
-const SEMAINES_SCORPAL = { '2026-11-20': 'scorpal' }, BOSS_ILE_HORS_ROTATION = ['scorpal']; /* (et dans le choix du boss de l'ile du mode test) */
+const SEMAINES_SCORPAL = { '2026-11-20': 'scorpal', '2026-11-21': 'scorpal' /* (la semaine remise a zero, REMISE_ILE, 27-arene.js) */ }, BOSS_ILE_HORS_ROTATION = ['scorpal']; /* (et dans le choix du boss de l'ile du mode test) */
 const bossDuJourScorpal = bossDuJour; bossDuJour = function (cle) { if (!(MODE_TEST && ETAT_TEST.ileBoss) && SEMAINES_SCORPAL[cle]) return SEMAINES_SCORPAL[cle]; return bossDuJourScorpal.apply(this, arguments); };
 /* ---------------- la carapace ---------------- */
 const blesserScorpal = blesser; blesser = function (mo, n, gros, src) {
