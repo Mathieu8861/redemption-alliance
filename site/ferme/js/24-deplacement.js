@@ -336,7 +336,7 @@ canvas.addEventListener('pointerup', (e) => {
     if (combat) { /* pendant la vague : un monstre se cible, une case sert a se deplacer */
       let o = h.object, mid, cel; while (o) { if (o.userData.monstre !== undefined && mid === undefined) mid = o.userData.monstre; if (typeof o.userData.cellule === 'string' && !cel) cel = o.userData.cellule; o = o.parent; }
       if (mid !== undefined) { cibler(mid); return; }
-      if (combat.genre === 'donjon') { const [x, z] = bornerDonjon(h.point.x, h.point.z); combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; return; }
+      if (combat.genre === 'donjon') { combat.ordre = true; combat.tenir = true; arrivee = null; if (typeof cheminDonjon === 'function') { chemin = cheminDonjon(h.point); return; } const [x, z] = bornerDonjon(h.point.x, h.point.z); chemin = [{ c: paysanMesh.userData.cellule, x, z }]; return; } /* (cheminDonjon : sur la passerelle du labo, le chemin suit la spirale, 22/11/2026) */
       if (combat.genre === 'ile') { const [x, z] = bornerIle(h.point.x, h.point.z); combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; return; }
       if (combat.arene) { const x = h.point.x, z = h.point.z, C0 = ARENE, R0 = R_ARENE; if (Math.hypot(x - C0.x, z - C0.z) < R0) { combat.ordre = true; combat.tenir = true; chemin = [{ c: paysanMesh.userData.cellule, x, z }]; arrivee = null; } return; }
       if (cel) { pointVise = { c: cel, x: h.point.x, z: h.point.z }; ACTIONS.toucherCase(cel); pointVise = null; return; } /* (il va au point touche, pas au centre de la case) */

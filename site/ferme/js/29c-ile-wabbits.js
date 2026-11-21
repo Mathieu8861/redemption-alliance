@@ -1,108 +1,137 @@
 'use strict';
-/* L'ILE DES WABBITS, PREMIERE ILE-DONJON (prototype du 19/11/2026, version dev : mode test seulement). Demande de Mathieu, la nuit du 18 au 19/11 :
-   « une ile mais cette fois au sol, en mer, ou c'est un donjon : on se balade sur une map, on avance, des monstres attaquent au fur et a mesure qu'on
-   avance sur l'ile jusqu'a arriver au boss ; tu peux commencer par l'ile des Wabbits pour tester, ce sera des Wabbits transmutes ».
-   L'ile est un long chemin de terre qui serpente dans la mer (sol : tout point a moins de R_CHEMIN du trace, et l'arene du boss au bout). On debarque de
-   la barque sur la plage ; a chaque zone (champ de cawottes, terriers, ferme en ruine, marais de mutation, porte), un groupe de Wabbits transmutes (les
-   Wabbits du jeu, verdis et luisants) sort de terre quand on approche et attaque ; le Wa Wabbit attend dans l'arene. Tout se joue dans un seul combat
-   (genre 'donjon') qui dure tant qu'on est sur l'ile. Le perso a terre ou le boss abattu : le bilan, puis retour a la ferme. Les tests se lancent par le
-   bandeau du mode test (bouton « Île des Wabbits »). */
-const DONJON = new T.Vector3(0, 0, -300), R_CHEMIN = 4.4;
-/* le trace du chemin (coordonnees locales) et l'arene du boss au bout */
-const TRACE_WABBITS = [[0, 4], [0, -6], [2, -14], [10, -21], [20, -20], [27, -12], [26, -2], [18, 5], [10, 11], [8, 21], [15, 29], [25, 33]];
-const ARENE_WABBITS = { x: 33, z: 37, r: 9 };
-/* les zones : un groupe par zone, qui sort quand le perso arrive a moins de 'r' ; leur nom s'affiche */
-const ZONES_WABBITS = [
-  { nom: 'le champ de cawottes', x: 1, z: -11, r: 9, L: [['wabbit', 3], ['wabbitFonceur', 2]] },
-  { nom: 'les terriers', x: 15, z: -21, r: 9, L: [['wabbitNoir', 2], ['wabbit', 2], ['wabbitSorciere', 1]] },
-  { nom: 'la ferme en ruine', x: 27, z: -6, r: 9, L: [['wabbitSquelette', 2], ['woWabbit', 1], ['wabbitNoir', 2]] },
-  { nom: 'le marais de mutation', x: 14, z: 8, r: 9, L: [['gwandWabbit', 1], ['wabbitSorciere', 2], ['wabbitFonceur', 2]] },
-  { nom: 'la porte du terrier royal', x: 10, z: 23, r: 9, L: [['gwandWabbit', 2], ['woWabbit', 1], ['wabbitSquelette', 2]] },
-  { nom: 'l\'arène du Wa Wabbit', x: ARENE_WABBITS.x, z: ARENE_WABBITS.z, r: 10, L: [['waWabbit', 1], ['woWabbit', 2]], boss: true }];
-let ileWabbits = null, donjonEtat = null;
-const distSeg = (px, pz, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], L = dx * dx + dz * dz, t = L ? Math.max(0, Math.min(1, ((px - a[0]) * dx + (pz - a[1]) * dz) / L)) : 0, x = a[0] + dx * t, z = a[1] + dz * t; return [Math.hypot(px - x, pz - z), x, z]; };
-function prochePiste(lx, lz) { /* le point du trace le plus proche, sa distance */
-  let best = [1e9, 0, 0]; for (let i = 0; i < TRACE_WABBITS.length - 1; i++) { const d = distSeg(lx, lz, TRACE_WABBITS[i], TRACE_WABBITS[i + 1]); if (d[0] < best[0]) best = d; } return best;
-}
-const solWabbits = (lx, lz, m) => { const A = ARENE_WABBITS; return prochePiste(lx, lz)[0] <= R_CHEMIN - m || Math.hypot(lx - A.x, lz - A.z) <= A.r - m; };
-const dansDonjon = (x, z, m) => { const lx = x - DONJON.x, lz = z - DONJON.z; if (!solWabbits(lx, lz, m == null ? 0.4 : m)) return false; return !(ileWabbits ? ileWabbits.userData.blocs : []).some((o) => Math.hypot(lx - o.x, lz - o.z) < o.r + (m == null ? 0.4 : m)); };
-function bornerDonjon(x, z, m) { /* le point le plus proche ou l'on peut se tenir */
-  m = m == null ? 0.4 : m; let lx = x - DONJON.x, lz = z - DONJON.z;
-  if (!solWabbits(lx, lz, m)) { const A = ARENE_WABBITS, dA = Math.hypot(lx - A.x, lz - A.z), [dP, px, pz] = prochePiste(lx, lz);
-    if (dA - A.r < dP - R_CHEMIN) { const k = (A.r - m) / dA; lx = A.x + (lx - A.x) * k; lz = A.z + (lz - A.z) * k; } else { const k = (R_CHEMIN - m) / (dP || 1); lx = px + (lx - px) * k; lz = pz + (lz - pz) * k; } }
-  for (let n = 0; n < 2; n++) (ileWabbits ? ileWabbits.userData.blocs : []).forEach((o) => { const dx = lx - o.x, dz = lz - o.z, d = Math.hypot(dx, dz), R = o.r + m; if (d >= R) return; if (d < 0.001) lx = o.x + R; else { lx = o.x + dx / d * R; lz = o.z + dz / d * R; } });
+/* L'ILE DES WABBITS, PREMIERE ILE-DONJON (version dev : mode test seulement).
+   Prototype du 19/11/2026 (un chemin qui serpente dans la mer), remplace le 22/11/2026 par le LABORATOIRE DE LA CAWOTTE choisi par Mathieu le 20/11
+   (ILE-DONJON.md) : une ile ronde et, au milieu, la tour du Docteur Wabbenstein, une cawotte geante de cuivre (piste A « cuivre industriel »,
+   modele blender/ile-labo.py -> assets/modeles/jeu/ile-labo.glb). On debarque au ponton ; au pied de la tour, des Wabbits mutants gardent leur coin et
+   attaquent quiconque entre dans leur perimetre (ils rentrent chez eux si on s'eloigne) ; une passerelle en spirale monte autour de la tour, on y marche
+   pour de vrai (hauteurSol) ; cinq portes, une par etage, menent chacune a une salle ; une grille ferme la passerelle apres chacune des quatre premieres
+   et s'ouvre quand sa salle est nettoyee (chaque salle donne la cle de la suivante). En attendant les salles interieures, les mutants de la salle sortent
+   par la porte sur la passerelle ; la 5e porte (le labo de Wabbenstein) termine l'essai. Tout se joue dans un seul combat (genre 'donjon').
+   Les tests se lancent par le bandeau du mode test (bouton « Île des Wabbits »). */
+const DONJON = new T.Vector3(0, 0, -300);
+/* la passerelle : les memes mesures que blender/ile-labo.py (RAMPE) ; une spirale de A0 sur TOURS tours, de 0 a H, entre R_IN et R_OUT */
+const LABO = { A0: -0.55, TOURS: 2.0, H: 13.6, R_IN: 4.95, R_OUT: 7.35, PORTES: [2.4, 5.0, 7.6, 10.2, 12.8], GRILLE_APRES: 0.42, PALIER: 0.27 };
+LABO.DA = LABO.TOURS * Math.PI * 2; LABO.K = LABO.H / LABO.DA;
+const TAU_L = Math.PI * 2, hautRampe = (t) => Math.max(0, Math.min(LABO.H, (t - LABO.A0) * LABO.K)), angleRampe = (h) => LABO.A0 + h / LABO.K;
+const rIle = (a) => 21.2 + 1.3 * Math.sin(3 * a + 0.5) + 0.8 * Math.sin(5 * a + 1.3); /* le bord de l'herbe ; le sable va 1,9 plus loin */
+const PONTON_L = { x0: 17.2, x1: 23.6, z: 9.2, w: 0.95 };
+/* les camps des mutants au pied de la tour (le decor est dans le modele : cages, caisses) ; r : leur perimetre */
+const CAMPS_LABO = [
+  { nom: 'les caisses du quai', x: 10.0, z: 8.4, r: 6.5, L: [['wabbit', 3], ['wabbitFonceur', 1]] },
+  { nom: 'les cages', x: -10.6, z: 0.4, r: 7.5, L: [['wabbitNoir', 2], ['wabbit', 2], ['wabbitSorciere', 1]] },
+  { nom: 'la réserve', x: 3.4, z: -12.6, r: 6.5, L: [['wabbitSquelette', 2], ['wabbitFonceur', 2]] },
+  { nom: 'le dépôt', x: 12.2, z: -4.6, r: 6.5, L: [['woWabbit', 1], ['wabbitNoir', 2], ['wabbitSorciere', 1]] }];
+/* les salles (ILE-DONJON.md, validees le 20/11) ; en attendant les salles interieures, leurs mutants sortent par la porte */
+const SALLES_LABO = [
+  { nom: 'les cages', L: [['wabbitFonceur', 3], ['wabbit', 2]] },
+  { nom: 'la serre à mutagène', L: [['wabbitSorciere', 2], ['wabbit', 3]] },
+  { nom: 'la salle de chirurgie', L: [['woWabbit', 2], ['wabbitSquelette', 2]] },
+  { nom: 'la salle des cuves', L: [['wabbitNoir', 3], ['gwandWabbit', 1]] },
+  { nom: 'le labo du Docteur Wabbenstein', L: [] }];
+/* les obstacles au sol (les cages et les caisses du modele) */
+const BLOCS_LABO = [[-11.5, -3.0, 0.95], [-13.2, 0.6, 0.95], [-9.4, 4.6, 0.95], [10.8, -6.6, 0.95], [12.4, 6.8, 0.95], [4.0, -12.5, 0.95],
+  [-8.2, -8.0, 1.1], [13.6, -2.6, 0.75], [8.6, 10.2, 0.75], [9.7, 11.0, 0.62], [-3.0, 12.4, 0.68], [2.6, -14.4, 0.66]].map(([x, z, r]) => ({ x, z, r }));
+let ileWabbits = null, donjonEtat = null, donjonEntite = null;
+const angDiff = (a, b) => { let d = (a - b) % TAU_L; if (d > Math.PI) d -= TAU_L; if (d < -Math.PI) d += TAU_L; return d; };
+const surPonton = (lx, lz, m) => lx >= PONTON_L.x0 && lx <= PONTON_L.x1 - m && Math.abs(lz - PONTON_L.z) <= PONTON_L.w - m * 0.5;
+/* jusqu'ou monte la passerelle : la premiere grille fermee */
+function rampeMax() { const E = donjonEtat; for (let i = 0; i < 4; i++) if (!(E && E.grilles && E.grilles[i])) return angleRampe(LABO.PORTES[i]) + LABO.GRILLE_APRES - 0.12; return LABO.A0 + LABO.DA + LABO.PALIER; }
+const etatPerso = () => (donjonEtat ? donjonEtat.perso : (bornerDonjon.libre || (bornerDonjon.libre = { mode: 'sol', theta: LABO.A0 })));
+/* LE SOL ET LA PASSERELLE : ou l'on peut se tenir. E (l'etat de celui qui bouge : le perso, ou un monstre) dit s'il est au sol ou sur la passerelle, et
+   a quel angle deroule (la spirale passe deux fois au-dessus du meme point : c'est l'angle deroule qui dit sur quel tour on est) */
+function bornerDonjon(x, z, m, E) {
+  m = m == null ? 0.4 : m; E = E || etatPerso(); let lx = x - DONJON.x, lz = z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx);
+  if (E.mode === 'rampe') {
+    let t = a + TAU_L * Math.round((E.theta - a) / TAU_L);
+    if (t >= LABO.A0 - 0.02) { t = Math.min(t, rampeMax()); const rr = Math.max(LABO.R_IN + m, Math.min(LABO.R_OUT - m, r)); E.theta = t; return [DONJON.x + rr * Math.cos(t), DONJON.z + rr * Math.sin(t)]; }
+    E.mode = 'sol'; /* (redescendu par le bas de la passerelle) */
+  }
+  const d = angDiff(a, LABO.A0);
+  if (r < LABO.R_OUT + m) {
+    if (d > 0 && d < 0.35 && r >= LABO.R_IN + m * 0.5 && r <= LABO.R_OUT) { E.mode = 'rampe'; E.theta = LABO.A0 + d; return [x, z]; } /* (le pied de la passerelle) */
+    if (d >= -0.65 && d <= 0) { if (r < LABO.R_IN + m) { const k = (LABO.R_IN + m) / (r || 1); lx *= k; lz *= k; } } /* (le petit coin devant le pied de la passerelle) */
+    else { const k = (LABO.R_OUT + m) / (r || 1); lx *= k; lz *= k; }
+  }
+  r = Math.hypot(lx, lz); a = Math.atan2(lz, lx); const R = rIle(a) + 1.9 - m;
+  if (r > R && !surPonton(lx, lz, m)) { if (lx > PONTON_L.x0 - 1 && Math.abs(lz - PONTON_L.z) < PONTON_L.w + 0.6) { lz = Math.max(PONTON_L.z - PONTON_L.w + m * 0.5, Math.min(PONTON_L.z + PONTON_L.w - m * 0.5, lz)); lx = Math.min(lx, PONTON_L.x1 - m); } else { const k = R / r; lx *= k; lz *= k; } }
+  for (let n = 0; n < 2; n++) BLOCS_LABO.forEach((o) => { const dx = lx - o.x, dz = lz - o.z, dd = Math.hypot(dx, dz), Rb = o.r + m; if (dd >= Rb) return; if (dd < 0.001) lx = o.x + Rb; else { lx = o.x + dx / dd * Rb; lz = o.z + dz / dd * Rb; } });
   return [lx + DONJON.x, lz + DONJON.z];
+}
+const dansDonjon = (x, z, m) => { const lx = x - DONJON.x, lz = z - DONJON.z, r = Math.hypot(lx, lz); if (r >= LABO.R_IN && r <= LABO.R_OUT) return true; const E = { mode: 'sol', theta: LABO.A0 }, q = bornerDonjon(x, z, m, E); return E.mode === 'sol' && Math.hypot(q[0] - x, q[1] - z) < 0.05; };
+/* la hauteur du sol : la passerelle pour qui est dessus (le perso, ou le monstre qu'on est en train de bouger), le ponton, sinon l'herbe */
+const hauteurSolDonjon0 = hauteurSol;
+hauteurSol = function (x, z) {
+  if (lieu !== 'donjon' || !ileWabbits) return hauteurSolDonjon0.apply(this, arguments);
+  const E = donjonEntite ? donjonEntite.lab : etatPerso(); if (E && E.mode === 'rampe') { const a = Math.atan2(z - DONJON.z, x - DONJON.x); return hautRampe(Math.min(a + TAU_L * Math.round((E.theta - a) / TAU_L), rampeMax())); }
+  return surPonton(x - DONJON.x, z - DONJON.z, 0) ? -0.06 : 0;
+};
+const majMonstreDonjon0 = majMonstre; majMonstre = function (mo) { if (lieu !== 'donjon') return majMonstreDonjon0.apply(this, arguments); donjonEntite = mo; try { return majMonstreDonjon0.apply(this, arguments); } finally { donjonEntite = null; } };
+/* UN CLIC : sur la passerelle, le chemin suit la spirale (en ligne droite, on butait contre la tour) */
+function cheminDonjon(p) {
+  const E = etatPerso(), pp = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx), surRampe = r >= LABO.R_IN - 0.2 && r <= LABO.R_OUT + 0.2 && p.y > 0.25;
+  const pts = []; const spirale = (t0, t1, rr) => { const n = Math.max(1, Math.ceil(Math.abs(t1 - t0) / 0.3)); for (let k = 1; k <= n; k++) { const t = t0 + (t1 - t0) * k / n; pts.push({ x: DONJON.x + rr * Math.cos(t), z: DONJON.z + rr * Math.sin(t) }); } };
+  const rm = (LABO.R_IN + LABO.R_OUT) / 2;
+  if (surRampe) { /* l'angle deroule vise : celui dont la hauteur colle au point touche */
+    let tv = a + TAU_L * Math.round((angleRampe(Math.max(0, p.y - 0.05)) - a) / TAU_L); tv = Math.max(LABO.A0 + 0.05, Math.min(rampeMax(), tv));
+    if (E.mode === 'rampe') spirale(E.theta, tv, rm);
+    else { const d0 = { x: DONJON.x + rm * Math.cos(LABO.A0 - 0.35), z: DONJON.z + rm * Math.sin(LABO.A0 - 0.35) }, R0 = LABO.R_OUT + 1.2, ap = Math.atan2(pp.z - DONJON.z, pp.x - DONJON.x);
+      if (Math.hypot(pp.x - DONJON.x, pp.z - DONJON.z) > LABO.R_OUT) { const t0 = ap + angDiff(LABO.A0 - 0.35, ap); spirale(ap, t0, Math.max(R0, Math.hypot(pp.x - DONJON.x, pp.z - DONJON.z))); }
+      pts.push(d0); spirale(LABO.A0 - 0.35, tv, rm); }
+  } else if (E.mode === 'rampe') { spirale(E.theta, LABO.A0 - 0.3, rm); pts.push({ x: DONJON.x + (LABO.R_OUT + 1.2) * Math.cos(LABO.A0 - 0.5), z: DONJON.z + (LABO.R_OUT + 1.2) * Math.sin(LABO.A0 - 0.5) }); const [x, z] = bornerDonjon(p.x, p.z, 0.4, { mode: 'sol', theta: LABO.A0 }); pts.push({ x, z }); }
+  else { /* au sol, de l'autre cote de la tour : on la contourne */
+    const ap = Math.atan2(pp.z - DONJON.z, pp.x - DONJON.x), [x, z] = bornerDonjon(p.x, p.z, 0.4, { mode: 'sol', theta: LABO.A0 }), at = Math.atan2(z - DONJON.z, x - DONJON.x), rp = Math.hypot(pp.x - DONJON.x, pp.z - DONJON.z);
+    const coupe = Math.abs(angDiff(at, ap)) > 1.2 && Math.min(rp, Math.hypot(x - DONJON.x, z - DONJON.z)) < 14; if (coupe) spirale(ap, ap + angDiff(at, ap), Math.max(LABO.R_OUT + 1.4, Math.min(rp, 12))); pts.push({ x, z }); }
+  return pts.map((q) => ({ c: paysanMesh.userData.cellule, x: q.x, z: q.z }));
 }
 /* une case aux bords arrondis, comme celles de la ferme : un carre a coins ronds extrude vers le bas, le dessus a y = 0 */
 function caseArrondie() { const f = new T.Shape(), r = 0.2, h = 0.9; f.moveTo(-h + r, -h); f.lineTo(h - r, -h); f.quadraticCurveTo(h, -h, h, -h + r); f.lineTo(h, h - r); f.quadraticCurveTo(h, h, h - r, h); f.lineTo(-h + r, h); f.quadraticCurveTo(-h, h, -h, h - r); f.lineTo(-h, -h + r); f.quadraticCurveTo(-h, -h, -h + r, -h);
   const g = new T.ExtrudeGeometry(f, { depth: 0.9, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.07, bevelSegments: 2, curveSegments: 3 }); g.rotateX(Math.PI / 2); g.translate(0, -0.07, 0); return g; }
-/* ---------- la carte : la mer, les cases du sol (herbe, chemin de terre, sable du bord), le decor de chaque zone ---------- */
-function construireIleWabbits() {
-  const g = new T.Group(); g.position.copy(DONJON); const blocs = [];
+/* ---------- la carte : la mer, les cases du sol (herbe, sable), la tour et son decor, les flaques de mutagene, quelques buissons ---------- */
+async function construireIleWabbits() {
+  const g = new T.Group(); g.position.copy(DONJON);
   const mer = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshToonMaterial({ color: '#2a7fa3', gradientMap: grad })); mer.rotation.x = -Math.PI / 2; mer.position.y = -0.55; mer.receiveShadow = true; g.add(mer);
   const haut = new T.Mesh(new T.PlaneGeometry(420, 420), new T.MeshBasicMaterial({ color: '#7fe0ee', transparent: true, opacity: 0.18, depthWrite: false })); haut.rotation.x = -Math.PI / 2; haut.position.y = -0.5; g.add(haut);
-  /* les cases : une boite par case de 2, en une seule maille instanciee (une couleur par case) */
-  const cases = [];
-  for (let i = -8; i <= 22; i++) for (let j = -17; j <= 24; j++) { const x = i * 2, z = j * 2, A = ARENE_WABBITS, dA = Math.hypot(x - A.x, z - A.z) - A.r, [dP] = prochePiste(x, z), d = Math.min(dP - R_CHEMIN, dA);
-    if (d > 2.2) continue; const sable = d > 0.3, chemin = !sable && dP < 1.5 && dA > -1, arene = dA < -1.5; cases.push({ x, z, sable, chemin, arene, v: ((i * 7 + j * 13) % 5 + 5) % 5 }); }
-  { const bord = []; for (let i = -10; i <= 24; i++) for (let j = -19; j <= 26; j++) { const x = i * 2, z = j * 2, A = ARENE_WABBITS, d = Math.min(prochePiste(x, z)[0] - R_CHEMIN, Math.hypot(x - A.x, z - A.z) - A.r); if (d > 2.2 && d <= 7) bord.push({ x, z, d }); }
-    const eau = new T.InstancedMesh(new T.PlaneGeometry(2, 2), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false }), bord.length), M0 = new T.Matrix4(), R0 = new T.Matrix4().makeRotationX(-Math.PI / 2), C0 = new T.Color(), clair = new T.Color('#7fd6d6'), fonce = new T.Color('#2a7fa3');
-    bord.forEach((b, k) => { M0.makeTranslation(b.x, -0.52, b.z).multiply(R0); eau.setMatrixAt(k, M0); eau.setColorAt(k, C0.copy(clair).lerp(fonce, (b.d - 2.2) / 4.8)); }); eau.instanceMatrix.needsUpdate = true; if (eau.instanceColor) eau.instanceColor.needsUpdate = true; g.add(eau); } /* (l'eau claire des hauts-fonds, plus foncee au large) */
+  const bordIle = (x, z) => Math.hypot(x, z) - (rIle(Math.atan2(z, x)) + 1.9); /* (negatif : sur l'ile) */
+  const cases = [], bord = [], ecume = [];
+  for (let i = -15; i <= 15; i++) for (let j = -15; j <= 15; j++) { const x = i * 2, z = j * 2, d = bordIle(x, z);
+    if (d <= 0.3) { if (Math.hypot(x, z) < 2.6) continue; cases.push({ x, z, sable: d > -1.9, v: ((i * 7 + j * 13) % 5 + 5) % 5 }); } else if (d <= 5.2) { bord.push({ x, z, d }); if (d <= 1.6) ecume.push([x, z]); } }
+  { const eau = new T.InstancedMesh(new T.PlaneGeometry(2, 2), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false }), bord.length), M0 = new T.Matrix4(), R0 = new T.Matrix4().makeRotationX(-Math.PI / 2), C0 = new T.Color(), clair = new T.Color('#7fd6d6'), fonce = new T.Color('#2a7fa3');
+    bord.forEach((b, k) => { M0.makeTranslation(b.x, -0.52, b.z).multiply(R0); eau.setMatrixAt(k, M0); eau.setColorAt(k, C0.copy(clair).lerp(fonce, Math.min(1, b.d / 5.2))); }); eau.instanceMatrix.needsUpdate = true; if (eau.instanceColor) eau.instanceColor.needsUpdate = true; g.add(eau);
+    const ec = new T.InstancedMesh(new T.PlaneGeometry(2.1, 2.1), new T.MeshBasicMaterial({ color: '#f2fdff', transparent: true, opacity: 0.32, depthWrite: false }), ecume.length);
+    ecume.forEach(([x, z], k) => { M0.makeTranslation(x, -0.5, z).multiply(R0); ec.setMatrixAt(k, M0); }); ec.instanceMatrix.needsUpdate = true; g.add(ec); g.userData.ecume = ec; }
   const geo = caseArrondie(), im = new T.InstancedMesh(geo, new T.MeshToonMaterial({ color: '#ffffff', gradientMap: grad }), cases.length), M = new T.Matrix4(), C = new T.Color();
-  const HERBE = ['#6b9a4c', '#719f50', '#66944a', '#6e9c4e', '#74a352'], TERRE = ['#a87a4a', '#a37548', '#ad7f4e'], SABLE = ['#d9c58e', '#d3bf88'], DALLE = ['#bdb5a3', '#b2aa98']; /* (les couleurs de la ferme, adoucies comme l'ile ronde : versToon douce) */
-  cases.forEach((c, k) => { const y = c.sable ? -0.16 : c.chemin ? -0.02 : 0.015 * (c.v % 3); M.makeTranslation(c.x, y, c.z); im.setMatrixAt(k, M); /* (le dessus de la case ; la plage un cran plus bas que l'herbe) */
-    C.set(c.sable ? SABLE[c.v % 2] : c.arene ? DALLE[c.v % 2] : c.chemin ? TERRE[c.v % 3] : HERBE[c.v]); im.setColorAt(k, C); });
+  const HERBE = ['#6b9a4c', '#719f50', '#66944a', '#6e9c4e', '#74a352'], SABLE = ['#d9c58e', '#d3bf88'];
+  cases.forEach((c, k) => { M.makeTranslation(c.x, c.sable ? -0.16 : 0.015 * (c.v % 3), c.z); im.setMatrixAt(k, M); C.set(c.sable ? SABLE[c.v % 2] : HERBE[c.v]); im.setColorAt(k, C); });
   im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.receiveShadow = true; g.add(im);
-  /* le pied des falaises : un socle de terre sous les cases du bord, qui plonge dans la mer */
   const socle = new T.InstancedMesh(new T.BoxGeometry(2.0, 1.4, 2.0), new T.MeshToonMaterial({ color: '#8a6a44', gradientMap: grad }), cases.length); cases.forEach((c, k) => { M.makeTranslation(c.x, -1.6, c.z); socle.setMatrixAt(k, M); }); socle.instanceMatrix.needsUpdate = true; g.add(socle);
   const pose = (o, x, z, y, ry) => { o.position.set(x, y || 0, z); if (ry) o.rotation.y = ry; o.traverse((q) => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; } }); g.add(o); return o; };
-  const bloc = (x, z, r) => blocs.push({ x, z, r });
-  /* la plage et la barque */
-  { const b = new T.Group(), coque = boite(1.3, 0.45, 3.0, '#8a5a32'); coque.position.y = -0.2; b.add(coque); const bord = boite(1.45, 0.12, 3.1, '#6b4528'); bord.position.y = 0.05; b.add(bord);
+  /* la tour, la passerelle, les grilles, les portes et le decor du pied (le modele) : soudes par matiere, groupe par groupe ; la tour et ses portes ont leurs
+     propres matieres (on les rend transparentes quand le perso passe derriere) */
+  const sc = await chargerGlb('assets/modeles/jeu/ile-labo.glb?v=' + (VERSIONS_FICHIERS['ile-labo.glb'] || VERSION_MODELES)); versToon(sc, { normales: 0.03, sansContour: SC_BATI });
+  const prendre = (nom) => { const n = sc.getObjectByName(nom); if (!n) return null; n.parent.remove(n); n.position.set(0, 0, 0); const e = new T.Group(); e.name = nom; e.add(n); fusionner(e); e.traverse((q) => { if (q.isMesh) { q.material = q.material.clone(); q.castShadow = true; q.receiveShadow = true; } }); g.add(e); return e; };
+  g.userData.tour = prendre('Labo_tour'); g.userData.passerelle = prendre('Labo_passerelle'); prendre('Labo_decor');
+  g.userData.portes = [1, 2, 3, 4, 5].map((i) => prendre('Labo_porte_' + i)); g.userData.grilles = [1, 2, 3, 4].map((i) => prendre('Labo_grille_' + i));
+  /* la barque */
+  { const b = new T.Group(), coque = boite(1.3, 0.45, 3.0, '#8a5a32'); coque.position.y = -0.2; b.add(coque); const bo = boite(1.45, 0.12, 3.1, '#6b4528'); bo.position.y = 0.05; b.add(bo);
     const proue = cone(0.66, 0.9, '#8a5a32', 4); proue.rotation.x = Math.PI / 2; proue.rotation.y = Math.PI / 4; proue.position.set(0, -0.2, 1.9); proue.scale.set(1, 1, 0.5); b.add(proue);
-    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, -7.6, 5.55, -0.2, Math.PI / 2); g.userData.barque = b; }
-  /* le champ de cawottes : des rangs de fanes et de cawottes qui depassent */
-  for (let r = 0; r < 4; r++) for (let k = 0; k < 5; k++) { const x = -3.4 + k * 1.7, z = -9 - r * 1.6; if (Math.abs(x) < 1.6) continue;
-    const ca = cone(0.16, 0.5, '#f08a24', 6); ca.rotation.x = Math.PI; ca.position.y = 0.1; const f = cone(0.18, 0.4, '#4f9e3a', 5); f.position.y = 0.48; const p = new T.Group(); p.add(ca, f); pose(p, x, z); }
-  /* les terriers : des buttes de terre et leur trou sombre */
-  [[12, -24.5], [17, -24], [20.5, -16.5], [10.5, -17]].forEach(([x, z], i) => { const b = new T.Group(), t = new T.Mesh(new T.SphereGeometry(1.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat('#9a6b3c')); t.scale.set(1, 0.6, 1); b.add(t);
-    const h = new T.Mesh(new T.CircleGeometry(0.42, 14), new T.MeshBasicMaterial({ color: '#2a1a10' })); h.position.set(0, 0.3, 0.95); h.rotation.x = -0.5; b.add(h); pose(b, x, z, 0, i); bloc(x, z, 1.0); });
-  /* la ferme en ruine : des pans de mur de pierre et une charrette */
-  [[24.5, -9, 0, 2.6], [29.5, -4, 1.57, 2.2], [23.5, -2.5, 0.4, 1.4]].forEach(([x, z, ry, L]) => { const m = new T.Group(); for (let k = 0; k < Math.round(L / 0.55); k++) { const p = boite(0.5, 0.9 + Math.random() * 0.8, 0.5, k % 2 ? '#c9c1b0' : '#a89f8c'); p.position.set(-L / 2 + k * 0.55, 0.45, 0); m.add(p); } pose(m, x, z, 0, ry); bloc(x, z, L / 2); });
-  /* le marais de mutation : des flaques vertes qui luisent, des roseaux */
-  const flaques = []; [[12, 5], [17, 9.5], [9, 10], [16, 3.5]].forEach(([x, z]) => { const f = new T.Mesh(new T.CircleGeometry(1.2, 20), new T.MeshBasicMaterial({ color: '#8bff4a', transparent: true, opacity: 0.55, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.03, z); f.scale.set(1, 0.7, 1); g.add(f); flaques.push(f);
-    for (let k = 0; k < 4; k++) { const r = cone(0.05, 0.9, '#4a7a2e', 4); pose(r, x + Math.cos(k * 1.7) * 1.4, z + Math.sin(k * 1.7) * 1.0, 0.45); } });
-  /* la porte du terrier royal : deux piliers de pierre et une arche ornee d'une cawotte */
-  { const p = new T.Group(); for (const s of [-1, 1]) { const c = boite(0.7, 3.0, 0.7, '#c9c1b0'); c.position.set(s * 2.4, 1.5, 0); p.add(c); const o = boite(0.8, 0.2, 0.8, '#f2b630'); o.position.set(s * 2.4, 3.05, 0); p.add(o); }
-    const a = boite(5.6, 0.5, 0.7, '#a89f8c'); a.position.y = 3.3; p.add(a); const ca = cone(0.45, 1.2, '#f08a24', 6); ca.rotation.z = Math.PI; ca.position.y = 4.1; p.add(ca); const fa = cone(0.4, 0.6, '#4f9e3a', 5); fa.position.y = 4.9; p.add(fa);
-    pose(p, 9, 26.5, 0, 0.35); bloc(9 - 2.25, 26.5 + 0.8, 0.5); bloc(9 + 2.25, 26.5 - 0.8, 0.5); }
-  /* l'arene du Wa Wabbit : un cercle de dalles, des piliers, la grande cawotte de pierre au fond */
-  { const A = ARENE_WABBITS; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + 0.2, x = A.x + Math.cos(a) * (A.r - 0.8), z = A.z + Math.sin(a) * (A.r - 0.8); if (Math.hypot(x - 25, z - 33) < 4) continue; const c = boite(0.7, 2.2, 0.7, '#c9c1b0'); c.position.y = 1.1; const o = boite(0.85, 0.2, 0.85, '#f2b630'); o.position.y = 2.25; const pi = new T.Group(); pi.add(c, o); pose(pi, x, z); bloc(x, z, 0.5); }
-    const st = new T.Group(), ca = cone(1.3, 4.2, '#e07a20', 8); ca.rotation.z = Math.PI; ca.position.y = 2.6; st.add(ca); for (let k = 0; k < 3; k++) { const f = cone(0.45, 1.6, '#3f8f3a', 5); f.position.set(Math.cos(k * 2.1) * 0.4, 5.3, Math.sin(k * 2.1) * 0.4); f.rotation.z = Math.cos(k * 2.1) * 0.4; st.add(f); }
-    const so = boite(2.4, 0.5, 2.4, '#a89f8c'); so.position.y = 0.25; st.add(so); pose(st, A.x + 5, A.z + 5); bloc(A.x + 5, A.z + 5, 1.5); }
-  /* des arbres et des rochers sur les bords */
-  [[-3.5, 0], [3.8, -3], [6, -18], [24, -23], [30.5, -14], [21, 2], [5, 14], [13, 17], [19, 26], [4, 24]].forEach(([x, z], i) => {
-    if (i % 3 === 2) { const r = new T.Mesh(new T.DodecahedronGeometry(0.8, 0), mat('#9a9488')); r.scale.set(1, 0.7, 1.1); pose(r, x, z, 0.3, i); bloc(x, z, 0.8); return; }
-    const t = new T.Group(), tr = boite(0.3, 1.4, 0.3, '#7a5230'); tr.position.y = 0.7; t.add(tr); const f = new T.Mesh(new T.IcosahedronGeometry(1.15, 0), mat(i % 2 ? '#4f9e3a' : '#5aa844')); f.position.y = 2.0; t.add(f); pose(t, x, z); bloc(x, z, 0.5); });
-  /* l'ecume le long des plages : une bande claire sur les cases d'eau qui touchent le sable */
-  { const L = []; for (let i = -10; i <= 24; i++) for (let j = -19; j <= 26; j++) { const x = i * 2, z = j * 2, A = ARENE_WABBITS, d = Math.min(prochePiste(x, z)[0] - R_CHEMIN, Math.hypot(x - A.x, z - A.z) - A.r); if (d > 2.2 && d <= 3.6) L.push([x, z]); }
-    const ec = new T.InstancedMesh(new T.PlaneGeometry(2.1, 2.1), new T.MeshBasicMaterial({ color: '#f2fdff', transparent: true, opacity: 0.32, depthWrite: false }), L.length), M1 = new T.Matrix4(), R1 = new T.Matrix4().makeRotationX(-Math.PI / 2);
-    L.forEach(([x, z], k) => { M1.makeTranslation(x, -0.5, z).multiply(R1); ec.setMatrixAt(k, M1); }); ec.instanceMatrix.needsUpdate = true; g.add(ec); g.userData.ecume = ec; }
-  /* le ponton ou la barque accoste */
-  { const p = new T.Group(); for (let k = 0; k < 9; k++) { const pl = boite(0.34, 0.12, 1.6, k % 2 ? '#a87a4a' : '#9a6a3c'); pl.position.set(-5.0 - k * 0.4, -0.08, 0); p.add(pl); } /* (sur la cote ouest, face au large : le sable s'arrete vers x = -6,6) */
-    for (const s of [-1, 1]) for (const x of [-6.0, -8.0]) { const pi = boite(0.16, 1.1, 0.16, '#6b4528'); pi.position.set(x, -0.5, s * 0.72); p.add(pi); }
-    const bo = boite(0.18, 0.5, 0.18, '#6b4528'); bo.position.set(-8.3, 0.15, 0.85); p.add(bo); pose(p, 0, 4, 0); }
-  /* des buissons, des touffes d'herbe et des fleurs, places au hasard (toujours le meme) sur l'herbe, hors du chemin */
-  { let gr = 7; const rnd = () => (gr = (gr * 16807) % 2147483647) / 2147483647, FL = ['#f2b630', '#e8708c', '#ffffff', '#b98cff'];
-    for (let k = 0; k < 140; k++) { const x = -14 + rnd() * 58, z = -32 + rnd() * 76, [dP] = prochePiste(x, z), A = ARENE_WABBITS; if (dP > R_CHEMIN - 0.6 || dP < 1.8 || Math.hypot(x - A.x, z - A.z) < A.r + 0.5 || blocs.some((b) => Math.hypot(x - b.x, z - b.z) < b.r + 0.6)) continue;
-      const t = rnd(); if (t < 0.3) { const b = new T.Mesh(new T.IcosahedronGeometry(0.45 + rnd() * 0.25, 0), mat(rnd() < 0.5 ? '#5a9640' : '#679f48')); b.scale.y = 0.7; pose(b, x, z, 0.2); }
-      else if (t < 0.7) { const f = new T.Group(); for (let q = 0; q < 3; q++) { const h = cone(0.06, 0.35, '#5f9a3e', 3); h.position.set((q - 1) * 0.08, 0.17, (q % 2) * 0.06); h.rotation.z = (q - 1) * 0.3; f.add(h); } pose(f, x, z); }
+    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, 25.0, 7.6, -0.2, -Math.PI / 2); g.userData.barque = b; }
+  /* les flaques de mutagene qui luisent, pres des camps et au pied de la tour */
+  const flaques = []; [[-8.5, -1.5, 1.4], [-11.8, 3.2, 0.9], [7.5, 6.6, 1.1], [1.0, -10.4, 1.2], [13.0, -8.4, 0.9], [-5.6, 9.4, 1.3], [-3.4, -12.0, 0.8], [15.0, 2.0, 0.7]].forEach(([x, z, s]) => {
+    const f = new T.Mesh(new T.CircleGeometry(1.2 * s, 22), new T.MeshBasicMaterial({ color: '#8bff4a', transparent: true, opacity: 0.55, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.035, z); f.scale.set(1, 0.68, 1); g.add(f); flaques.push(f);
+    const p = new T.Mesh(new T.CircleGeometry(0.42 * s, 14), f.material); p.rotation.x = -Math.PI / 2; p.position.set(x + 1.3 * s, 0.035, z + 0.6 * s); g.add(p); });
+  /* des buissons, des touffes et des fleurs au bord de l'herbe (toujours les memes) */
+  { let gr = 11; const rnd = () => (gr = (gr * 16807) % 2147483647) / 2147483647, FL = ['#f2b630', '#e8708c', '#ffffff'];
+    for (let k = 0; k < 160; k++) { const a = rnd() * TAU_L, r = 9 + rnd() * 12, x = Math.cos(a) * r, z = Math.sin(a) * r; if (r > rIle(a) - 0.4 || BLOCS_LABO.some((b) => Math.hypot(x - b.x, z - b.z) < b.r + 0.8) || CAMPS_LABO.some((c) => Math.hypot(x - c.x, z - c.z) < 2.2) || (x > 15 && Math.abs(z - PONTON_L.z) < 2.4)) continue;
+      const t = rnd(); if (t < 0.22) { const b = new T.Mesh(new T.IcosahedronGeometry(0.45 + rnd() * 0.3, 0), mat(rnd() < 0.5 ? '#5a9640' : '#679f48')); b.scale.y = 0.7; pose(b, x, z, 0.2); }
+      else if (t < 0.75) { const f = new T.Group(); for (let q = 0; q < 3; q++) { const h = cone(0.06, 0.35, '#5f9a3e', 3); h.position.set((q - 1) * 0.08, 0.17, (q % 2) * 0.06); h.rotation.z = (q - 1) * 0.3; f.add(h); } pose(f, x, z); }
       else { const f = new T.Group(), tg = cone(0.025, 0.3, '#4f8a35', 3); tg.position.y = 0.15; f.add(tg); const fl = new T.Mesh(new T.IcosahedronGeometry(0.09, 0), mat(FL[Math.floor(rnd() * FL.length)])); fl.position.y = 0.32; f.add(fl); pose(f, x, z); } } }
-  g.userData.blocs = blocs; g.userData.flaques = flaques; sansClic(g); mer.raycast = T.Mesh.prototype.raycast; /* (la mer reste cliquable : toucher l'eau, c'est viser le bord) */
+  g.userData.flaques = flaques; sansClic(g); mer.raycast = im.raycast = T.Mesh.prototype.raycast; if (g.userData.passerelle) g.userData.passerelle.traverse((q) => { if (q.isMesh) delete q.raycast; }); /* (la mer, le sol et la passerelle restent cliquables : on y va) */
+  im.raycast = T.InstancedMesh.prototype.raycast;
   scene.add(g); return g;
 }
-async function chargerIleWabbits() { if (!ileWabbits) ileWabbits = construireIleWabbits(); return ileWabbits; }
-VOYAGES.donjon = { centre: DONJON, charger: () => chargerIleWabbits(), zoom: () => 1.1 };
+let ileWabbitsPromesse = null;
+async function chargerIleWabbits() { if (!ileWabbits) ileWabbits = await (ileWabbitsPromesse || (ileWabbitsPromesse = construireIleWabbits())); return ileWabbits; }
+VOYAGES.donjon = { centre: DONJON, charger: () => chargerIleWabbits(), zoom: () => 1.25 };
 const montrerIles0 = montrerIles; montrerIles = function () { montrerIles0(); if (ileWabbits) ileWabbits.visible = lieu === 'donjon'; };
 /* ---------- le donjon ---------- */
 /* les Wabbits transmutes : la peau verdit et luit un peu, ils ne grignotent ni ne cassent rien ici (sans ca, ils filaient vers les champs de la ferme) */
@@ -110,54 +139,92 @@ function transmuter(o) {
   o.aggro = true; o.casseur = false; o.d = Object.assign({}, o.d, { grignote: false, casseur: false, bucheron: false, nom: o.d.nom + ' transmuté' + (o.d.fem ? 'e' : '') });
   const vert = new T.Color('#7dff5a'); o.m.traverse((q) => { if (!q.isMesh || !q.material || q.name === 'contour' || q.material.isMeshBasicMaterial) return; q.material = q.material.clone(); if (q.material.color) q.material.color.lerp(vert, 0.28); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.22; } });
 }
-function sortirZone(Z) { const c = combat; if (!c || c.genre !== 'donjon') return; const L = []; Z.L.forEach(([t, k]) => { for (let i = 0; i < k; i++) L.push(t); });
-  L.forEach((t, i) => { const a = i / L.length * Math.PI * 2 + Math.random() * 0.4, r = MONSTRES[t].boss ? 0 : 2.2 + Math.random() * 1.6, q = bornerDonjon(DONJON.x + Z.x + Math.cos(a) * r, DONJON.z + Z.z + Math.sin(a) * r, 0.6);
-    setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: transmuter }); }, i * 220); });
-  toast(Z.boss ? 'Le Wa Wabbit transmuté sort de son terrier royal !' : 'Des Wabbits transmutés surgissent : ' + Z.nom + ' !', 'alerte'); if (Z.boss) son('vague'); }
-function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les zones qui se declenchent, les monstres sur l'ile, la camera, les flaques qui palpitent */
+/* les camps : leurs mutants attendent chez eux, immobiles, jusqu'a ce que le perso entre dans leur perimetre */
+function posterCamps(c) {
+  CAMPS_LABO.forEach((K, k) => { const L = []; K.L.forEach(([t, n]) => { for (let i = 0; i < n; i++) L.push(t); });
+    L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 2) * 1.2, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 });
+      setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] }; } }); }, 200 + (k * 6 + i) * 120); }); });
+}
+/* une salle : ses mutants sortent par la porte, sur la passerelle (en attendant les salles interieures) */
+function ouvrirSalleLabo(i) {
+  const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || E.salles[i]) return; E.salles[i] = { t: E.t, fini: false };
+  if (i === 4) { toast('La porte du labo du Docteur Wabbenstein ! Sa salle arrive à la prochaine étape : fin de l\'essai.', 'or'); E.gagne = E.t; return; }
+  const h = LABO.PORTES[i], ta = angleRampe(h), L = []; S.L.forEach(([t, n]) => { for (let k = 0; k < n; k++) L.push(t); });
+  toast('La porte s\'ouvre : ' + S.nom + ' ! Ses mutants surgissent.', 'alerte'); son('vague', null, 2);
+  L.forEach((t, k) => { const tt = Math.min(rampeMax() - 0.05, ta + 0.08 + (k % 3) * 0.14 - (k > 2 ? 0.32 : 0)), rr = LABO.R_IN + 0.7 + (k % 2) * 0.9;
+    setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x: DONJON.x + rr * Math.cos(tt), z: DONJON.z + rr * Math.sin(tt), apres: (o) => { transmuter(o); o.lab = { mode: 'rampe', theta: tt }; o.salle = i; o.y = hautRampe(tt);
+      if (o.dep) { o.dep.x = DONJON.x + (LABO.R_IN - 0.3) * Math.cos(ta); o.dep.z = DONJON.z + (LABO.R_IN - 0.3) * Math.sin(ta); o.dep.y = hautRampe(ta); o.dep.friche = true; } } }); }, 300 + k * 260); });
+}
+function ouvrirGrille(i) { const E = donjonEtat; if (!E || E.grilles[i]) return; E.grilles[i] = true; const G = ileWabbits && ileWabbits.userData.grilles[i]; son('quete');
+  toast('Salle nettoyée (' + SALLES_LABO[i].nom + ') : tu trouves la clé, la grille de la passerelle s\'ouvre. Monte !', 'or');
+  if (G) { let t = 0; effets.push((dt) => { t += dt; G.position.y = -Math.min(1, t / 1.1) * 2.6; if (t >= 1.1) { G.visible = false; return true; } return false; }); } }
+function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps, les portes et les grilles, les monstres sur l'ile, la camera, la tour qui s'efface */
   const E = donjonEtat, c = combat; if (!E || lieu !== 'donjon') return true; if (!c || c.genre !== 'donjon' || c.fin) return false;
-  E.t += dt; const p = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z; if (E.arrivee) { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (p.x - VISEE.x) * k; VISEE.z += (p.z - VISEE.z) * k; placerCamera(); } return false; } /* (pendant la traversee : rien ne sort, la camera suit la barque) */
-  ZONES_WABBITS.forEach((Z, k) => { if (E.zones[k]) return; const avant = ZONES_WABBITS.slice(0, k).every((z, j) => E.zones[j] && E.zones[j].fini); if (Math.hypot(lx - Z.x, lz - Z.z) > Z.r || (Z.boss && !avant)) return; E.zones[k] = { t: E.t, fini: false }; sortirZone(Z); });
-  E.zones.forEach((z, k) => { if (z && !z.fini && E.t - z.t > 3 && !c.monstres.some((o) => o.etat !== 'mort')) { z.fini = true; const Z = ZONES_WABBITS[k]; if (Z.boss) { E.gagne = E.t; } else { toast(Z.nom.replace(/^./, (x) => x.toUpperCase()) + ' : nettoyé' + (Z.nom.startsWith('la') || Z.nom.startsWith('l\'') ? 'e' : '') + '. Avance !', 'or'); c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud(); } } });
+  E.t += dt; const p = paysanMesh.position, P = E.perso, hP = P.mode === 'rampe' ? hautRampe(P.theta) : 0;
+  const suivre = () => { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (p.x - VISEE.x) * k; VISEE.z += (p.z - VISEE.z) * k; VISEE.y += (0.6 + hP - VISEE.y) * Math.min(1, dt * 3); placerCamera(); } };
+  if (E.arrivee) { suivre(); return false; } /* (pendant la traversee : rien ne bouge, la camera suit la barque) */
+  /* les camps : ils attendent ; le perso entre dans leur perimetre (au sol), ils attaquent ; il s'eloigne ou monte, ils rentrent chez eux */
+  CAMPS_LABO.forEach((K, k) => { const d = Math.hypot(p.x - DONJON.x - K.x, p.z - DONJON.z - K.z), st = E.camps[k];
+    const blesse = !st.actif && c.monstres.some((o) => o.camp === k && o.etat === 'actif' && o.pv < o.pvMax); /* (un mutant touche de loin reveille tout son camp) */
+    if (!st.actif && ((P.mode === 'sol' && d < K.r) || blesse)) { st.actif = true; st.force = blesse; toast('Des Wabbits mutants gardent ' + K.nom + ' : ils t\'attaquent !', 'alerte'); }
+    else if (st.actif && (d > K.r + (st.force ? 16 : 9) || hP > 2.2)) { st.actif = false; st.force = false; } });
+  c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.camp == null || E.camps[o.camp].actif) return; o.bloqueT = Math.max(o.bloqueT || 0, 0.25); const dx = o.maison.x - o.x, dz = o.maison.z - o.z, d = Math.hypot(dx, dz);
+    if (d > 0.3) { const v = Math.min(d, 3.2 * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); } });
+  /* les portes : on arrive devant, la salle s'ouvre ; une salle nettoyee rend 25 % de vie et ouvre la grille */
+  if (P.mode === 'rampe') LABO.PORTES.forEach((h, i) => { if (E.salles[i] || (i > 0 && !E.grilles[i - 1])) return; const ta = angleRampe(h), r = Math.hypot(p.x - DONJON.x, p.z - DONJON.z); if (Math.abs(P.theta - ta) < 0.3 && r < LABO.R_IN + 1.3) ouvrirSalleLabo(i); });
+  E.salles.forEach((s, i) => { if (!s || s.fini || i === 4 || E.t - s.t < 2.5) return; if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud(); ouvrirGrille(i); });
   if (E.gagne != null && E.t - E.gagne > 1.6) { finDonjon(true); return true; }
-  c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3); o.x = q[0]; o.z = q[1]; });
-  if ((E.lueurT = (E.lueurT || 0) - dt) <= 0) { E.lueurT = 0.12; c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.m) return; const h = o.d.boss ? 2.4 : 1.2; emettre(FX_LUM, 2, { x: o.x + (Math.random() - 0.5) * 0.8, y: o.m.position.y + Math.random() * h, z: o.z + (Math.random() - 0.5) * 0.8, r: 0.1, v: [0, 1.1, 0], dv: 0.3, vie: [0.7, 1.2], taille: [0.2, 0.03], c: ['#d8ffb0', '#7dff5a', '#2fd12f'], a: 0.9, frein: 1 }); }); } /* (les lueurs vertes de la mutation) */
-  if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (p.x - VISEE.x) * k; VISEE.z += (p.z - VISEE.z) * k; placerCamera(); } suivreOmbres();
+  c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; if (!o.lab) o.lab = { mode: 'sol', theta: LABO.A0 }; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3, o.lab); o.x = q[0]; o.z = q[1]; });
+  if ((E.lueurT = (E.lueurT || 0) - dt) <= 0) { E.lueurT = 0.14; c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.m) return; const h = o.d.boss ? 2.4 : 1.2; emettre(FX_LUM, 2, { x: o.x + (Math.random() - 0.5) * 0.8, y: o.m.position.y + Math.random() * h, z: o.z + (Math.random() - 0.5) * 0.8, r: 0.1, v: [0, 1.1, 0], dv: 0.3, vie: [0.7, 1.2], taille: [0.2, 0.03], c: ['#d8ffb0', '#7dff5a', '#2fd12f'], a: 0.9, frein: 1 }); }); }
+  suivre(); suivreOmbres(); effacerTour(dt, hP);
+  if ((E.fumeeT = (E.fumeeT || 0) - dt) <= 0) { E.fumeeT = 0.22; const a = 2.85; emettre(FX_LUM, 1, { x: DONJON.x + 3.3 * Math.cos(a), y: 20.7, z: DONJON.z + 3.3 * Math.sin(a), r: 0.25, v: [0.25, 1.6, 0], dv: 0.3, vie: [2.2, 3], taille: [0.6, 1.6], c: ['#9a9a9a', '#c8c8c8', '#7a7a7a'], a: 0.45, frein: 0.6 }); } /* (la fumee de la cheminee) */
   if (ileWabbits) ileWabbits.userData.flaques.forEach((f, i) => { f.material.opacity = 0.45 + 0.15 * Math.sin(E.t * 2.4 + i); });
   if (ileWabbits && ileWabbits.userData.ecume) ileWabbits.userData.ecume.material.opacity = 0.26 + 0.1 * Math.sin(E.t * 1.3);
   return false;
 }
+/* LA TOUR QUI S'EFFACE : quand le perso passe derriere elle (vu de la camera), le corps de la tour devient transparent */
+function effacerTour(dt, hP) {
+  const T0 = ileWabbits && ileWabbits.userData.tour; if (!T0) return; const p = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z, r = Math.hypot(lx, lz);
+  const cx = camera.position.x - DONJON.x, cz = camera.position.z - DONJON.z, cr = Math.hypot(cx, cz) || 1, derriere = r > 0.1 && r < 16 && (lx * cx + lz * cz) / (r * cr) < 0.15 && hP < 21;
+  const E = donjonEtat; E.voile = (E.voile || 0) + ((derriere ? 1 : 0) - (E.voile || 0)) * Math.min(1, dt * 5); const op = 1 - 0.72 * E.voile;
+  [T0].concat(ileWabbits.userData.portes || []).forEach((G) => G && G.traverse((q) => { if (!q.isMesh || !q.material) return; const tr = op < 0.99; if (q.material.transparent !== tr) { q.material.transparent = tr; q.material.needsUpdate = true; } q.material.opacity = op; q.material.depthWrite = !tr; }));
+}
 async function partirDonjon() {
   if (!MODE_TEST) return; if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } if (lieu !== 'ferme' && lieu !== 'donjon') { toast('Rentre d\'abord à la ferme.'); return; }
-  fermerModale(); if (ileWabbits && ileWabbits.userData.barque) ileWabbits.userData.barque.position.set(-26, -0.2, 6.4); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
-  const u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + 0.5, 0, DONJON.z + 2.5); u.y = 0; u.angle = Math.PI; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
+  fermerModale(); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
+  const I = ileWabbits.userData; if (I.barque) I.barque.position.set(44, -0.2, 7.6); (I.grilles || []).forEach((G) => { if (G) { G.visible = true; G.position.y = 0; } });
+  const u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + 22.6, 0, DONJON.z + 9.2); u.y = 0; u.angle = -Math.PI / 2; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
   VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); zoom = VOYAGES.donjon.zoom(); placerCamera(); cadrer();
   const n = Math.max(51, Math.min(VAGUES_TOTAL, Math.round(niveau(S_.xp)))); /* (les Wabbits a la force de ton niveau, jamais sous la vague 51) */
-  nouveauCombat('donjon', { n, attente: 1e9, total: ZONES_WABBITS.reduce((a, Z) => a + Z.L.reduce((b, [, k]) => b + k, 0), 0), ...potsDeVague() }); /* (attente : rien ne sort de la file, les zones font sortir leurs groupes) */
+  const total = CAMPS_LABO.concat(SALLES_LABO).reduce((a, Z) => a + Z.L.reduce((b, [, k]) => b + k, 0), 0);
+  nouveauCombat('donjon', { n, attente: 1e9, total, ...potsDeVague() }); /* (attente : rien ne sort de la file, les camps et les salles font sortir leurs mutants) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant le donjon : ' + texteRepas(repas) + '.', 'or'), 2400); }
-  donjonEtat = { t: 0, zones: [], gagne: null, n }; ouvrirHudCombat(); majCombatHud(); effets.push(tickDonjon); debarquer();
-  toast('L\'île des Wabbits ! Suis le chemin : les Wabbits transmutés t\'attendent dans chaque zone, le Wa Wabbit au bout.', 'or');
+  donjonEtat = { t: 0, camps: CAMPS_LABO.map(() => ({ actif: false })), salles: [], grilles: [], gagne: null, n, perso: { mode: 'sol', theta: LABO.A0 } };
+  ouvrirHudCombat(); majCombatHud(); effets.push(tickDonjon); posterCamps(combat); debarquer();
+  toast('L\'île des Wabbits ! La tour du Docteur Wabbenstein t\'attend : monte la passerelle, chaque porte mène à une salle.', 'or');
 }
-/* L'ARRIVEE EN BARQUE : la barque vient du large avec le perso a bord, accoste, et il saute sur la plage (2,8 s ; les zones attendent qu'il ait pose le pied) */
+/* L'ARRIVEE EN BARQUE : la barque vient du large avec le perso a bord, accoste au bout du ponton, et il saute dessus (2,8 s) */
 function debarquer() {
-  const b = ileWabbits && ileWabbits.userData.barque, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, A = { x: -26, z: 6.4 }, B = { x: -7.6, z: 5.55 }, S = { x: -3.4, z: 4.4 }, cap = Math.atan2(B.x - A.x, B.z - A.z);
+  const b = ileWabbits && ileWabbits.userData.barque, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, A = { x: 44, z: 7.6 }, B = { x: 25.0, z: 7.6 }, S = { x: 22.6, z: 9.2 }, cap = Math.atan2(B.x - A.x, B.z - A.z);
   E.arrivee = true; b.rotation.y = cap; let t = 0; const T1 = 2.2, T2 = 0.6;
   effets.push((dt) => { t += dt; if (combat !== c0 || !donjonEtat) return true; const p = paysanMesh.position;
     if (t < T1) { const k = t / T1, e = 1 - Math.pow(1 - k, 2); b.position.set(A.x + (B.x - A.x) * e, -0.2 + Math.sin(t * 5) * 0.04, A.z + (B.z - A.z) * e); b.rotation.z = Math.sin(t * 3.2) * 0.04;
       p.set(DONJON.x + b.position.x - Math.sin(cap) * 0.4, 0.05 + Math.sin(t * 5) * 0.04, DONJON.z + b.position.z - Math.cos(cap) * 0.4); u.y = p.y; u.angle = cap; paysanMesh.rotation.y = u.angle; chemin = []; arrivee = null; return false; }
-    const k = Math.min(1, (t - T1) / T2), x0 = B.x - Math.sin(cap) * 0.4, z0 = B.z - Math.cos(cap) * 0.4; p.set(DONJON.x + x0 + (S.x - x0) * k, 0.05 + Math.sin(Math.PI * k) * 0.9, DONJON.z + z0 + (S.z - z0) * k); u.y = p.y; /* (le saut sur le ponton, puis la plage) */
-    if (k < 1) return false; p.y = 0; u.y = 0; E.arrivee = false; b.rotation.z = 0; poussiere(p.x, 0, p.z, 5, 0.6, '#d9c58e'); return true; });
+    const k = Math.min(1, (t - T1) / T2), x0 = B.x - Math.sin(cap) * 0.4, z0 = B.z - Math.cos(cap) * 0.4; p.set(DONJON.x + x0 + (S.x - x0) * k, Math.sin(Math.PI * k) * 0.9, DONJON.z + z0 + (S.z - z0) * k); u.y = p.y;
+    if (k < 1) return false; p.y = -0.06; u.y = -0.06; E.arrivee = false; b.rotation.z = 0; poussiere(p.x, 0, p.z, 5, 0.6, '#d9c58e'); return true; });
 }
 function finDonjon(gagne) {
   const c = combat, E = donjonEtat; if (!c || c.fin || c.genre !== 'donjon') return; nettoyerCombat(c, true); donjonEtat = null;
-  const m = Math.floor(E.t / 60), sec = Math.round(E.t % 60), faites = E.zones.filter((z) => z && z.fini).length;
+  const m = Math.floor(E.t / 60), sec = Math.round(E.t % 60), salles = E.salles.filter((s) => s && s.fini).length;
+  if (ileWabbits) effacerTourReset();
   son(gagne ? 'victoire' : 'defaite'); if (gagne) confettis(60);
-  ouvrirModale('donjon-fin', entete(gagne ? 'Le Wa Wabbit transmuté est tombé !' : 'À terre !') +
-    '<div class="recap-combat">' + ligneRecap('cadence', 'Temps', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('renfort', 'Zones nettoyées', faites + ' sur ' + ZONES_WABBITS.length) + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
+  ouvrirModale('donjon-fin', entete(gagne ? 'Fin de l\'essai : la porte du labo !' : 'À terre !') +
+    '<div class="recap-combat">' + ligneRecap('cadence', 'Temps', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('renfort', 'Salles nettoyées', salles + ' sur 4') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
     ligneRecap('degats', 'Tes dégâts', fmt(Math.round(c.st.inflige))) + ligneRecap('vita', 'Dégâts reçus', fmt(Math.round(c.st.recus))) + '</div>' + detailCombat(c) +
-    '<p class="hdv-aide">Prototype (version dev) : pas encore de coffre ni de record. Ce qui est prévu : un coffre à la fin, un record de temps, des pauses pour boire un pot entre les zones.</p>' +
+    '<p class="hdv-aide">Essai (version dev) : la tour et sa passerelle, les camps du pied, les portes et les grilles. Prochaine étape : les cinq salles intérieures, le Docteur Wabbenstein dans son labo, un coffre à la fin.</p>' +
     '<div class="act-bas"><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-donjon="partir">Recommencer</button></div>');
 }
+function effacerTourReset() { const I = ileWabbits.userData; [I.tour].concat(I.portes || []).forEach((G) => G && G.traverse((q) => { if (q.isMesh && q.material) { q.material.transparent = false; q.material.opacity = 1; q.material.depthWrite = true; q.material.needsUpdate = true; } })); }
 /* le perso a terre sur l'ile : le bilan (sans deroute de la ferme) */
 const persoATerreDonjon = persoATerre; persoATerre = function () { if (combat && combat.genre === 'donjon') { finDonjon(false); return; } persoATerreDonjon(); };
 /* le bouton du bandeau du mode test, et ceux du bilan */
