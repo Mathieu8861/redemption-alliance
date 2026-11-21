@@ -57,11 +57,13 @@ function versToon(g, o) {
     if (nom.startsWith('lumiere') || (BRILLE.has(nom) && !o.eauIle)) { /* sur l'ile, 'lanterne' est la lanterne de pierre : elle reste en pierre */ m.material = new T.MeshBasicMaterial({ color: nom === 'lanterne' ? '#ffe08a' : c }); m.castShadow = false; return; }
     if (nom === 'eau' && !o.eauIle) { m.material = new T.MeshBasicMaterial({ color: '#86ecbd' }); m.castShadow = false; return; }
     if (nom === 'reflet' && !o.eauIle && o.sansContour === SC_BATI) { m.material = new T.MeshBasicMaterial({ color: '#dcfff0' }); return; }
-    m.material = toon(c, sp); m.castShadow = !SANS_OMBRE.has(nom); m.receiveShadow = true; m.userData.souple = sp;
+    if (o.textures && nom === 'calotte' && !m.material.map) { m.visible = false; m.castShadow = false; m.userData.gabarit = true; return; } /* (le gabarit invisible d'une coiffe generee : le jeu le mesure pour la caler, on ne le voit pas) */
+    if (o.textures && m.material.map) { const map = m.material.map; map.encoding = T.LinearEncoding; map.needsUpdate = true; m.material = new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, side: T.DoubleSide }); m.castShadow = true; m.receiveShadow = true; } /* (o.textures : une piece generee en 3D d'apres un dessin garde son image, comme les monstres ; les panoplies du palier 11, 21/11/2026) */
+    else m.material = toon(c, sp); m.castShadow = !SANS_OMBRE.has(nom); m.receiveShadow = true; m.userData.souple = sp;
     if (VITRES.has(nom) && sp == null) { m.material = m.material.clone(); m.material.userData.vitre = true; }
     if (sp != null) m.customDepthMaterial = vent.ombre(sp);
     if (nom === 'eau') { m.material.transparent = true; m.material.opacity = 0.85; eauAnimee(m.material); return; }
-    if (!(o.sansContour && o.sansContour.has(nom))) { const k = new T.Mesh(m.geometry, contourMat(o.normales || 0, sp)); k.userData.ep = o.normales || 0; if (o.echelle) { k.scale.setScalar(1 + o.echelle); if (o.centre) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); m.geometry.boundingBox.getCenter(k.position).multiplyScalar(-o.echelle); } } ajouts.push([m, k]); }
+    if (!(o.sansContour && o.sansContour.has(nom)) && !(o.textures && m.material.map)) { const k = new T.Mesh(m.geometry, contourMat(o.normales || 0, sp)); k.userData.ep = o.normales || 0; if (o.echelle) { k.scale.setScalar(1 + o.echelle); if (o.centre) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); m.geometry.boundingBox.getCenter(k.position).multiplyScalar(-o.echelle); } } ajouts.push([m, k]); }
   });
   retirer.forEach((m) => m.parent.remove(m));
   ajouts.forEach(([m, k]) => m.add(k)); return g;
@@ -142,7 +144,9 @@ function fusionner(racine, o) {
   const base = (x) => ((x && x.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, ''), paquets = new Map(), porteurs = new Set();
   const articule = (m) => { for (let x = m.parent; x && x !== racine; x = x.parent) if (x.userData && x.userData.articule) return true; return false; }; /* (une patte de Bouftou : elle bouge, on ne la soude pas au corps) */
   racine.traverse((m) => {
-    if (!m.isMesh || articule(m) || (o.garder && o.garder(m))) return; /* (garder : ce qui s'anime seul reste a part, l'eau et les drapeaux du Casino, 07/11/2026) */
+    if (!m.isMesh || articule(m) || (o.garder && o.garder(m))) return;
+    if (m.userData.gabarit || m.material.map || (m.material.side === T.BackSide && m.parent && m.parent.isMesh && m.parent.material && m.parent.material.map)) return; /* (le gabarit cache d'une coiffe generee reste cache, la fusion le rendait visible en noir ; une piece texturee et son contour restent a part : la fusion ne garde pas les coordonnees de texture, la piece sortait d'une seule couleur ; les panoplies du palier 11, 21/11/2026) */
+    /* (garder : ce qui s'anime seul reste a part, l'eau et les drapeaux du Casino, 07/11/2026) */
     const contour = m.material.side === T.BackSide, porteur = contour && m.parent && m.parent.isMesh ? m.parent : m; /* un contour de maille() (frere de sa piece) se fusionne seul */
     const M = m.material, sp = porteur.userData.souple; /* meme apparence = meme paquet (chaque morceau avait son propre exemplaire de materiau) */
     let cle = contour ? M.uuid + '|c|' + sp : [M.type, M.color ? M.color.getHexString() : '', M.transparent ? 't' : '', M.onBeforeCompile && M.customProgramCacheKey ? M.customProgramCacheKey() : '', sp, M.side, M.userData && M.userData.vitre ? 'vitre' : ''].join('|'), cas = null; /* (le cote dessine compte : la cape portee est visible des deux cotes, 12/10/2026) */
@@ -176,7 +180,7 @@ const MODELES = {};
 const VERSION_MODELES = '20261119f'; /* la version commune des modeles et des icones. NE PLUS LA CHANGER pour un seul modele (19/11/2026, « le jeu lag de malade,
    meme le chargement », Mathieu) : chaque changement faisait retelecharger tous les modeles (27,6 Mo au demarrage, plus ceux charges a la demande). Un modele
    qui change recoit sa propre version dans VERSIONS_FICHIERS, les autres restent dans le cache du navigateur */
-const VERSIONS_FICHIERS = { 'tour-filet-pistes.glb': '20261119h', 'scorpion-anime.glb': '20261120b', 'wabbenstein-anime.glb': '20261120c', 'boss-ile-desert.glb': '20261120a' }; /* (scorpion-anime : les pinces de Scorpal refaites d'apres le dessin, 20/11/2026) */
+const VERSIONS_FICHIERS = { 'tour-filet-pistes.glb': '20261119h', 'scorpion-anime.glb': '20261120b', 'wabbenstein-anime.glb': '20261120c', 'boss-ile-desert.glb': '20261120a', 'equipements-mare.glb': '20261122a' }; /* (scorpion-anime : les pinces de Scorpal refaites d'apres le dessin, 20/11/2026) */
 { const charge0 = chargeur.load.bind(chargeur), re = new RegExp('([^/?]+\\.glb)\\?v=' + VERSION_MODELES + '(?![0-9a-z])'); /* (seulement les chargements normaux : un essai en ?v=Date.now() reste tel quel) */
   chargeur.load = (url, ...r) => charge0(String(url).replace(re, (m, f) => f + '?v=' + (VERSIONS_FICHIERS[f] || VERSION_MODELES)), ...r); }
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */

@@ -132,7 +132,7 @@ function sansPartieActive(sauve) { /* effacer la partie en cours : la premiere d
 let herosR = null; const PORTRAIT_HEROS = { w: 360, h: 460, corps: 0.56 };
 async function portraitDePartie(e) {
   const eq = e.equip || {}, m = modeleDe(e.perso.classe, e.perso.look, e.perso.sexe === 'f' ? 'f' : 'm');
-  await assurerLook(m); if (eq.coiffe || eq.cape || eq.arme) await assurerVisuels();
+  await assurerLook(m); if (eq.coiffe || eq.cape || eq.arme) { await assurerVisuels(); await assurerTardifsDe(eq); }
   const S0 = S_; S_ = e.equip ? e : Object.assign({}, e, { equip: {} }); let g;
   try { g = paysan(0, 0, 0, e.perso.classe); } finally { S_ = S0; }
   scene.remove(g); g.rotation.set(0, 0, 0); g.traverse((o) => { if ((o.userData && o.userData.ombre) || o.material === OMBRE_PIEDS) o.visible = false; }); g.updateMatrixWorld(true);

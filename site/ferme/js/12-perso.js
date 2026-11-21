@@ -8,7 +8,8 @@ const LARGEUR_PERSO = { iop: [1, 1], cra: [1, 1], osa: [1, 1], 'feminin-iop': [1
 const P_CHAPEAU = /^(cone|paille|chapeau)/, P_RIGIDE = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|fleche_queue)/, /* (la sangle tient l'epee : elle bouge avec elle, sans s'etirer) */
   P_ARME_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage)/, P_DOS = /^(lame|gorge|garde|poignee|pommeau|pointe|sangle|carquois|fleche|empennage|arc|corde|bout_arc|queue|fouet|baudrier|cape|col|barbe|moustache|tresse|anneau_barbe|criniere|favoris|meche_folle)/, /* (la barbe et les cheveux longs ne comptent pas dans le torse) */
   P_SAILLIE = /^(nasal|corne|anneau_corne|queue|crin|cristal|lueur|plume|feuille|museau|couvre_nuque|garde_joue|crete|dent|oreille|cawotte|cercle|noeud|embleme|gemme|clou|orbite|arcade|fente|visiere|touffe|couronne_pointe|couronne_boule|sillon|couture|roc)/, EP_CAPE = 0.16;
-const P_PEND = /^(dread|dread_bout|anneau_dread)$/; /* ce qui pend sous une coiffe (les dreadlocks du Boufcoul) : hors des mesures et du calage (19/10/2026) */
+const P_PEND = /^(dread|dread_bout|anneau_dread|croc_pend)$/; /* (croc_pend : les crocs qui pendent aux tempes du casque du Croquevase, 21/11/2026) */
+const P_DRESSE = /^(voile|voile_rayon|voile_bord)$/; /* ce qui se dresse au-dessus d'une coiffe (les cretes du palier 11) : hors des mesures, sinon la coiffe, trop haute, etait ecrasee (21/11/2026) */ /* ce qui pend sous une coiffe (les dreadlocks du Boufcoul) : hors des mesures et du calage (19/10/2026) */
 const nomP = (o) => ((o && o.name) || '').replace(/\.?\d+$/, '').replace(/_\d+$/, '');
 const boiteDe = (o) => new T.Box3().setFromObject(o), unionDe = (L) => { const b = new T.Box3(); L.forEach((o) => b.union(boiteDe(o))); return b; };
 function elargirPerso(g, classe) {
@@ -40,24 +41,50 @@ function elargirPerso(g, classe) {
 }
 /* les modeles des pieces portees (charges seulement quand une coiffe ou une cape est portee) */
 const VISUELS = {}; let visuelsPromesse = null;
-const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'coiffe-bworker', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon', 'equipements-moon', 'equipements-kanniboul', 'equipements-corail', 'equipements-foret', 'equipements-chene', 'equipements-ancestral', 'equipements-dcochon'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
+const assurerVisuels = () => visuelsPromesse || (visuelsPromesse = Promise.all(['equipements', 'coiffes-legendaires', 'coiffe-bworker', 'equipements-wabbit', 'equipements-boufcoul', 'equipements-cochon', 'equipements-moon', 'equipements-kanniboul', 'equipements-corail', 'equipements-foret', 'equipements-chene', 'equipements-ancestral', 'equipements-dcochon'].map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + (VERSIONS_FICHIERS[f + '.glb'] || VERSION_MODELES)).then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI }); })))
   .then(() => true).catch(() => { visuelsPromesse = null; return false; }));
 const visuelsPrets = () => !!VISUELS.equipements;
 const NOEUD_LEG = { royal: 'Coiffe_Royal', chafer: 'Coiffe_Chafer', bworker: 'Coiffe_Bworker', craq: 'Coiffe_Craq', croc: 'Coiffe_Croc', wa: 'Coiffe_WaWabbit', cochon: 'Coiffe_DragonCochon' };
-const FICHIER_PANO = { wabbit: 'equipements-wabbit', boufcoul: 'equipements-boufcoul', dragoncochon: 'equipements-cochon', kanniboul: 'equipements-kanniboul', tortue: 'equipements-kanniboul', ecorce: 'equipements-foret', arakne: 'equipements-foret' }; /* (les autres : equipements) */
+const FICHIER_PANO = { croquevase: 'equipements-mare', crachopaud: 'equipements-mare', wabbit: 'equipements-wabbit', boufcoul: 'equipements-boufcoul', dragoncochon: 'equipements-cochon', kanniboul: 'equipements-kanniboul', tortue: 'equipements-kanniboul', ecorce: 'equipements-foret', arakne: 'equipements-foret' }; /* (les autres : equipements) */
+/* LES FICHIERS CHARGES A LA DEMANDE (22/11/2026) : equipements-mare (les panoplies du palier 11, pieces generees en 3D d'apres les dessins, avec leurs images,
+   2,7 Mo) ne se charge que quand l'une de ses pieces est portee, puis le perso se rhabille ; il garde ses images (textures) */
+const VISUELS_TARDIFS = new Set(['equipements-mare']), visuelsTardifs = {};
+function chargerVisuelTardif(f) {
+  if (visuelsTardifs[f]) return visuelsTardifs[f];
+  return (visuelsTardifs[f] = chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + (VERSIONS_FICHIERS[f + '.glb'] || VERSION_MODELES))
+    .then((sc) => { VISUELS[f] = versToon(sc, { normales: 0.012, sansContour: SC_BATI, textures: true }); try { rhabiller(); } catch (e) { /* (pas encore de perso) */ } return true; })
+    .catch(() => { visuelsTardifs[f] = null; return false; }));
+}
+const assurerTardifsDe = (eq) => Promise.all([eq && eq.coiffe, eq && eq.cape].map((id) => { const o0 = id && obj(id), o = o0 && (o0.base ? OBJETS[o0.base] : o0), P = o && PANOS[o.pano] && PANOS[o.pano].id, f = P && FICHIER_PANO[P];
+  return f && VISUELS_TARDIFS.has(f) && !VISUELS[f] ? chargerVisuelTardif(f) : null; })); /* (un portrait attend les fichiers a la demande de sa tenue) */
 function noeudVisuel(id) {
   const o0 = obj(id); if (!o0 || !visuelsPrets()) return null; const o = o0.base ? OBJETS[o0.base] : o0;
   if (o.leg) { const L = LEGENDAIRES.find((x) => x.cle === o.leg), F = VISUELS[(L && L.fichier) || 'coiffes-legendaires']; return o.emp === 'coiffe' && F ? F.getObjectByName(NOEUD_LEG[o.leg]) || null : null; } /* (le Heaume du Dragon Cochon : dans equipements-cochon) */
   const P = PANOS[o.pano] && PANOS[o.pano].id; if (!P) return null;
-  return VISUELS[FICHIER_PANO[P] || 'equipements'].getObjectByName('Obj_' + P + '_' + o.emp) || null;
+  const f = FICHIER_PANO[P] || 'equipements'; if (!VISUELS[f]) { if (VISUELS_TARDIFS.has(f)) chargerVisuelTardif(f); return null; }
+  return VISUELS[f].getObjectByName('Obj_' + P + '_' + o.emp) || null;
 }
 function porterCapeSur(eq, cape, o) { /* la cape du modele (nappe autour de l'axe vertical, rayon 0,3 a 0,62, angle -1,25 a 1,25) enroulee autour du torse, relief garde */
   const r = cape.clone(true); r.position.set(0, 0, 0); r.rotation.set(0, 0, 0); r.scale.set(1, 1, 1); r.updateMatrixWorld(true);
   const inv = new T.Matrix4().copy(r.matrixWorld).invert(), pieces = []; r.traverse((m) => { if (m.isMesh && !(m.material && m.material.side === T.BackSide)) pieces.push(m); });
   const geos = pieces.map((m) => m.geometry.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv, m.matrixWorld)));
-  let sz = 0; geos.forEach((g) => { const P = g.attributes.position; for (let i = 0; i < P.count; i++) sz += P.getZ(i); }); const sgn = sz < 0 ? -1 : 1;
+  let sz = 0; geos.forEach((g, n) => { if (/^(epaule|collier)/.test(nomP(pieces[n]))) return; const P = g.attributes.position; for (let i = 0; i < P.count; i++) sz += P.getZ(i); }); const sgn = sz < 0 ? -1 : 1; /* (sans les epaulieres ni le collier : les cranes generes du Croquevase, 16 000 sommets cote poitrine, retournaient toute la cape, 21/11/2026) */
+  /* LES EPAULIERES ET LE COLLIER D'UNE CAPE (21/11/2026, les cranes de croco du Croquevase et le nenuphar du Crachopaud) : enroulees comme le reste, elles etaient
+     ecrasees en traits (l'angle autour du torse est resserre de 20 a 40 %). Une piece « epaule... » est posee d'un bloc, sans deformation, a l'angle exact de son
+     modele (un cote par signe de x, ancre a son centre) ; une piece « collier... » suit l'enroulement mais sans resserrer l'angle (elle fait le tour du cou) */
+  const rig = pieces.map((m) => /^epaule/.test(nomP(m))), col = pieces.map((m) => /^collier/.test(nomP(m))), anc = {};
+  const placer = (x, y, z, a) => { const t = Math.min(1, Math.max(0, (1.45 - y) / 1.35)), off = (Math.hypot(x, z) - (0.3 + 0.32 * t)) * o.k; return [o.cx + Math.sin(a) * (o.rx + o.fl * t + off), o.haut0 - (1.45 - y) * o.k, o.cz - o.avant * Math.cos(a) * (o.rz + o.fl * 0.6 * t + off)]; };
+  const cote = {}; /* (le cote d'une piece se lit a son centre, pas sommet par sommet : le nenuphar genere passe un peu de l'autre cote du cou et se coupait en deux, 22/11/2026) */
+  geos.forEach((g, n) => { if (!rig[n]) return; const P = g.attributes.position; let cx = 0; for (let i = 0; i < P.count; i++) cx += P.getX(i); const sd = cote[n] = cx >= 0 ? 1 : -1, A = anc[sd] || (anc[sd] = { x: 0, y: 0, z: 0, n: 0 }); for (let i = 0; i < P.count; i++) { A.x += P.getX(i); A.y += P.getY(i); A.z += P.getZ(i) * sgn; A.n++; } });
+  Object.values(anc).forEach((A) => { A.x /= A.n; A.y /= A.n; A.z /= A.n; A.a = Math.atan2(A.x, A.z); A.W = placer(A.x, A.y, A.z, A.a); });
   geos.forEach((g, n) => { const P = g.attributes.position;
-    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i) * sgn, t = Math.min(1, Math.max(0, (1.45 - y) / 1.35)), a = Math.atan2(x, z) * (0.62 + 0.18 * t), off = (Math.hypot(x, z) - (0.3 + 0.32 * t)) * o.k;
+    if (rig[n]) { for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i) * sgn, A = anc[cote[n]], sa = Math.sin(A.a), ca = Math.cos(A.a), dx = x - A.x, dy = y - A.y, dz = z - A.z, dr = dx * sa + dz * ca, dt = dx * ca - dz * sa;
+        P.setXYZ(i, A.W[0] + (sa * dr + ca * dt) * o.k, A.W[1] + dy * o.k, A.W[2] + (-o.avant * ca * dr + o.avant * sa * dt) * o.k); }
+      P.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
+      const m = pieces[n]; m.children.forEach((k) => { if (k.isMesh && k.material && k.material.side === T.BackSide) k.geometry = g; });
+      m.geometry = g; if (m.material && m.material.isMeshToonMaterial) { m.material = m.material.clone(); m.material.side = T.DoubleSide; }
+      m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1); eq.add(m); return; }
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i) * sgn, t = Math.min(1, Math.max(0, (1.45 - y) / 1.35)), a = Math.atan2(x, z) * (col[n] ? 1 : 0.62 + 0.18 * t), off = (Math.hypot(x, z) - (0.3 + 0.32 * t)) * o.k;
       P.setXYZ(i, o.cx + Math.sin(a) * (o.rx + o.fl * t + off), o.haut0 - (1.45 - y) * o.k, o.cz - o.avant * Math.cos(a) * (o.rz + o.fl * 0.6 * t + off)); }
     P.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
     const m = pieces[n]; m.children.forEach((k) => { if (k.isMesh && k.material && k.material.side === T.BackSide) k.geometry = g; });
@@ -264,7 +291,7 @@ function habillerTenue(g) {
       const pend = bB ? pc.filter((m) => /^(os|dent)$/.test(nomP(m)) && boiteDe(m).max.y < bB.max.y + 0.1 && boiteDe(m).min.y < bB.min.y - 0.1) : [];
       if (pend.length) { const dy = bB.min.y - 0.09 - Math.min(...pend.map((m) => boiteDe(m).min.y)); pend.forEach((m) => { m.position.y += dy; }); c.updateMatrixWorld(true); }
     }
-    const pcH = pc.filter((m) => !P_PEND.test(nomP(m))), B0 = pcH.length ? unionDe(pcH) : boiteDe(c), h0 = B0.max.y - B0.min.y || 1; /* (sans ce qui pend dessous) */
+    const pcH = pc.filter((m) => !P_PEND.test(nomP(m)) && !P_DRESSE.test(nomP(m))), B0 = pcH.length ? unionDe(pcH) : boiteDe(c), h0 = B0.max.y - B0.min.y || 1; /* (sans ce qui pend dessous) */
     const corpsC = pcH.filter((m) => !P_SAILLIE.test(nomP(m))), bas = corpsC.filter((m) => (boiteDe(m).min.y - B0.min.y) / h0 <= 0.35);
     const pied = (m) => { const z = boiteDe(m).getSize(new T.Vector3()); return z.x * z.z; }, rebord = bas.sort((a, b) => pied(b) - pied(a))[0];
     const r0 = rebord ? boiteDe(rebord).getSize(new T.Vector3()) : B0.getSize(new T.Vector3()), t0 = B0.getSize(new T.Vector3());
@@ -275,12 +302,13 @@ function habillerTenue(g) {
     if (dome) { const d0 = boiteDe(dome).getSize(new T.Vector3()); k = Math.max(k, lx * 1.04 / Math.max(d0.x, d0.z)); }
     /* « en format bonnet c'est parfait, fais pareil avec les coiffes legendaires » (Mathieu, 15/10/2026) : couronnes, casques et coussin couvrent tout le crane */
     const oC = obj(idC), estLeg = !!(oC && (oC.base ? OBJETS[oC.base] : oC).leg); if (estLeg) k = Math.max(k, lx * 1.04 / Math.max(r0.x, r0.z));
-    c.scale.multiplyScalar(k); if (t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
+    const rondC = !!(oC && (oC.base ? OBJETS[oC.base] : oC).rond); /* (une coiffe ronde, enfoncee sur la tete : jamais ecrasee, le bord descend plus bas ; les panoplies du palier 11, « enfonce-la sur la tete, la tu la poses dessus », Mathieu, 21/11/2026) */
+    c.scale.multiplyScalar(k); if (!rondC && t0.y / Math.max(t0.x, t0.z) > 0.6) c.scale.y *= 0.7; if (avant < 0) c.rotation.y = Math.PI; c.updateMatrixWorld(true);
     const b1 = unionDe(corpsC.length ? corpsC : [c]), c1 = b1.getCenter(new T.Vector3()), h1 = b1.max.y - b1.min.y, machoire = pc.some((m) => /^museau/.test(nomP(m))),
       /* le bord de la coiffe se pose juste au-dessus des sourcils (ils s'arretent a 55 % de la tete, sur les quatre persos) ; une coiffe trop basse pour couvrir
          le dessus de la chevelure ne remonte plus (elle laissait une bande de cheveux entre elle et le visage : « genre la tu trouves que c'est corrige ? »,
          Mathieu, 15/10/2026), c'est la chevelure qui s'aplatit dessous. Un casque a machoire (Crocabulia) s'arrete un peu plus haut, pour laisser les yeux */
-      bas0 = bt.min.y + st.y * (machoire ? 0.62 : 0.56),
+      bas0 = bt.min.y + st.y * (machoire ? 0.62 : rondC ? 0.45 : 0.56),
       /* le nasal d'un casque (Bworker) ne compte pas : il pend sur le nez, il ne doit pas soulever le casque ; bord0 : le bas du bord visible de la coiffe */
       dents = pc.filter((m) => /^dent$/.test(nomP(m))), basC = dents.length ? Math.min(b1.min.y, unionDe(dents).min.y) : b1.min.y, /* (les dents du crane du Chafer restent sur le front, pas sur les yeux) */
       decal = bas0 - basC, sommet = b1.max.y + decal, bord0 = (rebord ? boiteDe(rebord).min.y : b1.min.y) + decal;

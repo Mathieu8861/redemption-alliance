@@ -18,6 +18,7 @@ Object.entries(NOMS_P11).forEach(([t, nom]) => { if (MONSTRES[t]) MONSTRES[t].no
 ['tetard', 'crapaud', 'triton', 'fouette', 'axolotl', 'mereCrapaude'].forEach((t) => { if (MONSTRES[t]) MONSTRES[t].pano = 'crachopaud'; });
 ['crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((t) => { if (MONSTRES[t]) MONSTRES[t].pano = 'croquevase'; });
 Object.values(OBJETS).forEach((o) => { const P = PANOS[o.pano]; if (!o.leg && P && (P.id === 'croquevase' || P.id === 'crachopaud')) o.icone = P.id === 'croquevase' ? 'croco-vase' : 'crapaud'; }); /* (en attendant leurs icones) */
+['croquevase-coiffe', 'crachopaud-coiffe'].forEach((id) => { if (OBJETS[id]) OBJETS[id].rond = true; }); /* (des coiffes rondes, enfoncees sur la tete, jamais ecrasees : 12-perso.js, 21/11/2026) */
 /* les reglages de leurs bonus en combat (les pourcentages viennent des bonus de panoplie, caracs()) */
 const P11_COMBAT = { oeilCases: 4, bondDuree: 2, bondRecharge: 6, mucusDuree: 1.5, mueSous: 0.25 };
 const p11 = () => { if (!combat) return {}; if (!combat.p11) { const c = caracs(); combat.p11 = { sangFroid: c.sangFroid, ecailles: c.ecailles, mue: c.mue, oeil: c.oeilCrapaud, bond: c.bond, mucus: c.mucus, mele: c.sangMele }; } return combat.p11; }; /* (une fois par combat : l'equipement ne change pas en plein combat) */
