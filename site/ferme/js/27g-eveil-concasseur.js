@@ -76,7 +76,7 @@ function ouvrirEveil() {
       (F ? '<button class="btn discret" data-ev-encore>Continuer</button>' : '<button class="btn kamas" data-ev-fusion' + (c && s && !max ? '' : ' disabled') + '>Fusionner</button>') + '</div>' +
     '<div class="ev-droite"><div class="hdv-section">Tes légendaires</div>' + (L.length ? '<div class="ev-grille">' + tuiles.join('') + '</div>' : '<p class="hdv-aide">Tu n\'as aucune pièce légendaire pour l\'instant.</p>') +
       '<p class="hdv-aide ev-astuce">Glisse une pièce dans une case, ou touche-la. Touche une case pleine pour la vider.</p></div></div>' +
-    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
+    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-fusion-pieces>La fusion des pièces</button><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
 }
 function evPlacer(k, porte, ou) { /* ou : 'cible', 'sac', ou rien (un simple toucher) */
   if (EV.fin) EV.fin = null; const x = { k, porte: !!porte };
@@ -178,7 +178,7 @@ function ouvrirConcasseur() {
     '<div class="forge-stock">' + Object.keys(RUNES).map((t) => '<span class="puce"><img src="assets/icones/rune-' + t + '.png?v=' + VERSION_MODELES + '" alt=""><b>' + (nr[t] || 0) + '</b> ' + ((nr[t] || 0) > 1 ? RUNES[t].court : RUNES[t].nom).toLowerCase() + '</span>').join('') + '</div>' + /* (comme à la forgemagie) */
     (nbN > 1 ? '<div class="act-bas" style="margin:6px 0"><small>' + nbN + ' pièces normales</small><button class="btn discret" data-concasser-tout>Concasser toutes les normales</button></div>' : '') +
     (L.length ? '<div class="hdv-section">Tes pièces de niveau ' + NIV_CONCASSE + ' et plus</div>' + L.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce de niveau ' + NIV_CONCASSE + ' ou plus dans ton sac.</p>') +
-    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-eveil>L\'éveil des légendaires</button></div>' : ''));
+    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-eveil>L\'éveil des légendaires</button><button class="btn discret" data-ouvrir-fusion-pieces>La fusion des pièces</button></div>' : ''));
 }
 function concasser(liste, confirme) {
   if (combat) { toast('Pas pendant un combat.'); return; }
@@ -199,4 +199,45 @@ document.addEventListener('click', (e) => {
   if (b.dataset.concasser) { concasser([b.dataset.concasser], false); return; }
   if (b.hasAttribute('data-concasser-tout')) { concasser(Object.keys(S_.sac || {}).filter((k) => concassable(k) && !objBrut(k).rare), false); return; }
   if (b.dataset.concasserOk) { concasser(b.dataset.concasserOk.split(','), true); return; }
+});
+
+/* LA FUSION DES PIECES (21/11/2026, idee de Yannick : « une feature pourrait permettre de fusionner X objets identiques (ex : 10) pour les transformer en ce
+   meme item rare, ca permet de recompenser le farming et de ne pas compter que sur la chance » ; Mathieu : 10 identiques, « avec les nouveaux batiments du
+   niveau 100, celui qui permet de fusionner des items legendaires ») : a l'autel de l'eveil, 10 exemplaires normaux de la meme piece (dans le sac, pas portes)
+   donnent la meme piece en rare ★ (stats +50 %), contre 10 fois son prix de revente. Les 10 meilleurs jets servent, et le jet de la ★ est leur moyenne (les
+   autres exemplaires restent dans le sac). Version dev, comme l'autel. */
+const FUSION_PIECES = { n: 10, prix: 10 };
+function piecesFusionnables() { /* piece -> ses exemplaires normaux du sac, du meilleur jet au moins bon (un exemplaire par entree ; une entree a 3 compte pour 3) */
+  const M = new Map(); Object.entries(S_.sac || {}).forEach(([k, n]) => { const o = objBrut(k), b = baseObjet(k); if (!o || o.leg || o.rare || !OBJETS[b + '-rare'] || !(n > 0)) return; if (!M.has(b)) M.set(b, []); for (let i = 0; i < n; i++) M.get(b).push(k); });
+  M.forEach((L) => L.sort((a, b) => qualiteJet(b) - qualiteJet(a))); return M; }
+const prixFusionPieces = (b) => FUSION_PIECES.prix * reventeObjet(b);
+const jetFusion = (L) => L.slice(0, FUSION_PIECES.n).reduce((t, k) => t + qualiteJet(k), 0) / Math.min(FUSION_PIECES.n, L.length || 1);
+function ouvrirFusionPieces() {
+  const M = piecesFusionnables(), N = FUSION_PIECES.n, L = [...M.entries()].sort((a, b) => (b[1].length >= N) - (a[1].length >= N) || b[1].length - a[1].length || OBJETS[b[0]].niv - OBJETS[a[0]].niv);
+  const ligne = ([b, ex]) => { const n = ex.length, ok = n >= N, prix = prixFusionPieces(b), q = jetFusion(ex), r = OBJETS[b + '-rare'];
+    return '<div class="art">' + icoObjet(b) + '<div><b>' + OBJETS[b].nom + ' <span class="puce' + (ok ? ' bonne' : '') + '">' + Math.min(n, N) + ' / ' + N + '</span></b>' +
+      '<div class="desc">Niveau ' + OBJETS[b].niv + (n > N ? ' · tu en as ' + n + ', les ' + N + ' meilleures servent' : '') + (ok ? ' · donne <b>' + r.nom + '</b>, jet ' + nomJet(q) + ' (' + Math.round(q * 100) + ' %)' : ' · encore ' + (N - n) + ' à trouver') + '</div>' +
+      '<i style="display:block;height:5px;border-radius:3px;margin-top:4px;background:linear-gradient(90deg,#e0b52c ' + Math.min(100, 100 * n / N) + '%,rgba(255,255,255,.12) 0)"></i></div>' +
+      '<div class="act"><button class="btn ' + (ok ? 'kamas' : 'discret') + '" data-fusion-pieces="' + b + '"' + (ok && S_.kamas >= prix ? '' : ' disabled') + '>Fusionner · ' + fmt(prix) + ' kamas</button></div></div>'; };
+  ouvrirModale('fusion-pieces', entete('La fusion des pièces') + '<p class="hdv-aide"><b>' + N + ' exemplaires normaux</b> de la même pièce (dans ton sac, pas portés) donnent cette pièce en <b>rare ★</b> (stats +50 %), contre ' + FUSION_PIECES.prix + ' fois son prix de revente. Les ' + N + ' meilleurs jets servent : le jet de la ★ est leur moyenne.</p>' +
+    (L.length ? '<div class="hdv-section">Tes pièces</div>' + L.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce normale dans ton sac pour l\'instant.</p>') +
+    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-eveil>L\'éveil des légendaires</button><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
+}
+function fusionnerPieces(b, confirme) {
+  if (combat) { toast('Pas pendant un combat.'); return; }
+  const ex = piecesFusionnables().get(b) || [], N = FUSION_PIECES.n, prix = prixFusionPieces(b), r = OBJETS[b + '-rare']; if (!r || ex.length < N) { toast('Il te faut ' + N + ' exemplaires de cette pièce.'); return; }
+  if (S_.kamas < prix) { toast('Il te faut ' + fmt(prix) + ' kamas.', 'alerte'); return; }
+  const L = ex.slice(0, N), q = jetFusion(ex);
+  if (!confirme) { ouvrirModale('fusion-pieces', entete('Fusionner ?') + '<div class="confirme"><div class="gros">' + icoObjet(b) + '</div><p><b>' + N + ' × ' + OBJETS[b].nom + '</b> (tes ' + N + ' meilleurs jets) deviennent <b>' + r.nom + '</b>, jet ' + nomJet(q) + ' (' + Math.round(q * 100) + ' %), pour <b>' + fmt(prix) + ' kamas</b>.</p><p>Les ' + N + ' pièces sont détruites. Tu ne pourras pas revenir en arrière.</p>' +
+    '<div class="boutons"><button class="btn discret" data-ouvrir-fusion-pieces>Non</button><button class="btn kamas" data-fusion-pieces-ok="' + b + '">Oui, fusionner</button></div></div>'); return; }
+  L.forEach((k) => { S_.sac[k]--; if (!(S_.sac[k] > 0)) { delete S_.sac[k]; if (!Object.values(S_.equip || {}).includes(k)) { if (S_.jets) delete S_.jets[k]; if (S_.eveils) delete S_.eveils[k]; } } });
+  const k = creerObjet(r.id); S_.jets[k] = Object.fromEntries(Object.entries(r.stats).map(([c, v]) => { const [a, m] = fourchette(v, r.id, c); return [c, Math.round(a + q * (m - a))]; })); /* (le jet : la moyenne des 10) */
+  S_.sac[k] = 1; marquerNeuf(k); S_.kamas -= prix; compter('fusionsPieces');
+  son('niveau'); confettis(40); toast(r.nom + ' ! Les ' + N + ' pièces ont fusionné (jet ' + Math.round(qualiteJet(k) * 100) + ' %).', 'or'); sauver(); rendreHaut(); ouvrirFusionPieces();
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ouvrir-fusion-pieces],[data-fusion-pieces],[data-fusion-pieces-ok]'); if (!b) return;
+  if (b.hasAttribute('data-ouvrir-fusion-pieces')) { ouvrirFusionPieces(); return; }
+  if (b.dataset.fusionPieces) { fusionnerPieces(b.dataset.fusionPieces, false); return; }
+  if (b.dataset.fusionPiecesOk) fusionnerPieces(b.dataset.fusionPiecesOk, true);
 });
