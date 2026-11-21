@@ -199,7 +199,7 @@ async function essaiCoffreIle(rang) {
   ouvrirModale('ileboss', entete(titreCoffreIle(rang) + ' (essai)') + '<p class="hdv-aide">Essai du mode test : rien n\'est donné.</p><div class="ouverture-coffre' + (om ? ' fini' : '') + '">' + (om ? '' : sceneCoffre()) +
     '<div class="gains-coffre"><div class="gain-coffre bloc' + (om ? ' vu' : '') + '">' + blocChoixIle() + '</div></div><div class="boutons"><button class="btn kamas" data-fermer>Fermer</button></div></div>');
   majChoixIle(); const base = rar ? coffrePodium(rang) : null;
-  if (typeof ouvertureMobile === 'function') { const S = rang < 3 ? [36000, 27000, 18000][rang] : 9000;
+  if (typeof ouvertureMobile === 'function') { const S = rang < 3 ? [209000, 109000, 59000][rang] : 9000; /* (la part s'il tient, 9 000, plus le podium : 200 000, 100 000, 50 000) */
     if (ouvertureMobile({ rar: rar || 'normal', base, sousTitre: 'Essai du mode test', cartes: cartesCoffreIle({ k: S, f: rang < 3 ? [1, 4, 3][rang] : 1, p: rang === 0 ? 1 : 0, xp: 2400, objets: rang === 0 ? [{ ico: 'obj-ecorce-coiffe', t: 'Coiffe d\'Écorce, jet 82 %', son: 'quete' }] : [], res: ESSAI_COFFRE_ILE.n }) })) return; }
   if (om) document.querySelectorAll('#carte .ouverture-coffre').forEach((z) => z.insertAdjacentHTML('afterbegin', sceneCoffre())); /* (sans WebGL : le petit coffre, comme avant) */
   jouerCoffre('ileboss', base);
