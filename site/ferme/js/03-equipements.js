@@ -71,11 +71,11 @@ const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id
      un peu comme d'hab mais un peu plus de subtilite dans les bonus de pano », Mathieu ; noms et bonus choisis au formulaire) : la Croquevase (reptilienne, sur la tribu
      de la mare, vagues 106 a 110) et la Crachopaud (amphibienne, sur les amphibiens, 101 a 105). dev : le palier 11 n'est que dans le mode test ; sans look pour
      l'instant (icones de leurs monstres, pas d'arme de classe tant que l'arme n'est pas dessinee) ; leurs bonus de combat : 29l-panos-p11.js */
-  { id: 'croquevase', nom: 'Croquevase', de: 'du Croquevase', niv: 101, dev: true, sansArme: true },
+  { id: 'croquevase', nom: 'Croquevase', de: 'du Croquevase', niv: 101, dev: true }, /* (ses armes de classe, 22/11/2026 : sur le Mâchefange) */
   /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
      une panoplie de palier se met avant elles (son indice doit rester celui de son palier) */
   { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, sansArme: true },
-  { id: 'crachopaud', nom: 'Crachopaud', de: 'du Crachopaud', niv: 101, bis: 10, sansArme: true, dev: true }]; /* (sansArme : aucun boss ne la donne, 08/11/2026) */
+  { id: 'crachopaud', nom: 'Crachopaud', de: 'du Crachopaud', niv: 101, bis: 10, dev: true }]; /* (sansArme : aucun boss ne la donne, 08/11/2026 ; le Crachopaud a ses armes depuis le 22/11/2026, sur la Mère Crapustule) */
 const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
 /* LE PROFIL D'UNE PANOPLIE (06/11/2026, « la Tortue c'est plus pour les cac, plus de vie, de tankiness ; le Kanniboul pour les distance, moins de vie mais plus de
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */
@@ -188,7 +188,10 @@ const idLeg = (L, classe) => (L.arme ? 'leg-' + L.cle + '-' + ARMES[classe || cl
 PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (P.sansArme) return; /* (celles d'un palier tombent sur son boss ; L'ARME D'UNE PANOPLIE EN PLUS (07/11/2026, « faut faire la tortue aussi », Mathieu) :
   celle de la Tortue tombe sur la Tortue Corail, et suit le profil de sa panoplie (moins de Puissance et d'Agilite, de la Vitalite en echange) ; les armes des paliers ne changent pas) */
   const id = 'arme-' + t + '-' + P.id, r = rangPano(k), bis = P.bis != null;
-  const stats = bis ? Object.fromEntries(Object.entries({ puissance: VALEURS.puissance[r] * 2.5 * multPano(k, 'puissance'), agilite: VALEURS.agilite[r] * multPano(k, 'agilite'), vita: VALEURS.vita[r] * Math.max(0, multPano(k, 'vita') - 1) }).filter(([, v]) => v > 0).map(([c, v]) => [c, Math.round(v)]))
+  const haut = bis && P.niv >= 91, ref = P.bis; /* (L'ARME DU CRACHOPAUD, 22/11/2026 : a partir du palier 10, une arme « bis » se calcule par rapport a celle du palier (rapport des
+     profils des deux panoplies) et prend la baisse du palier 10 ; avec l'ancien calcul, 236 de Puissance et 108 de Vitalite contre 142 au Croquevase. La Tortue, deja en jeu, ne change pas) */
+  const stats = haut ? Object.fromEntries(Object.entries({ puissance: VALEURS.puissance[r] * 2.5 * multPano(k, 'puissance') / multPano(ref, 'puissance') * nerfP10(P.niv, 'puissance'), agilite: VALEURS.agilite[r] * multPano(k, 'agilite') / multPano(ref, 'agilite') * nerfP10(P.niv, 'agilite'), vita: VALEURS.vita[r] * Math.max(0, multPano(k, 'vita') - multPano(ref, 'vita')) }).filter(([, v]) => v > 0).map(([c, v]) => [c, Math.round(v)]))
+    : bis ? Object.fromEntries(Object.entries({ puissance: VALEURS.puissance[r] * 2.5 * multPano(k, 'puissance'), agilite: VALEURS.agilite[r] * multPano(k, 'agilite'), vita: VALEURS.vita[r] * Math.max(0, multPano(k, 'vita') - 1) }).filter(([, v]) => v > 0).map(([c, v]) => [c, Math.round(v)]))
     : { puissance: Math.round(VALEURS.puissance[k] * 2.5 * nerfP10(P.niv, 'puissance')), agilite: Math.round(VALEURS.agilite[k] * nerfP10(P.niv, 'agilite')) };
   OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats }; }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
