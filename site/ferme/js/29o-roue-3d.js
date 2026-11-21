@@ -91,7 +91,7 @@ function roue3dLancer() {
   R.anim = { r0, r1, t: 0, d: 6.0, id, cle, essai, idx: null }; roue3dPanneau('<p class="r3-tourne">La roue tourne...</p>');
 }
 function roue3dAnimer(dt) {
-  const R = ROUE3D; if (!R.g) return; const t = performance.now() / 1000;
+  const R = ROUE3D; if (!R.g) return; const t = performance.now() / 1000; R.g.visible = roueDispo(); if (!R.g.visible) { if (R.ouvert) roue3dQuitter(true); return; } /* (version dev : seulement dans le mode test) */
   if (R.ouvert && !R.anim && paysanMesh) { const [px, pz] = roue3dPlace(), P = paysanMesh.position; if (Math.hypot(P.x - SALLE_CASINO.x - px, P.z - SALLE_CASINO.z - pz) > 2.2) roue3dQuitter(); } /* (le perso s'en va : le panneau se ferme) */
   /* les ampoules qui defilent (plus vite quand elle tourne, en eclairs quand elle s'arrete) */
   const vit = R.anim ? 14 : 3, fl = R.flash > 0; if (fl) R.flash -= dt;
@@ -108,15 +108,16 @@ function roue3dFin(A) {
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-r3-lancer],[data-r3-quitter]'); if (!b) return; if (b.hasAttribute('data-r3-lancer')) roue3dLancer(); else roue3dQuitter(); });
 /* son coin du hall : un obstacle, une zone qu'on touche, une place devant elle (26b-casino-decor.js, 29-casino-jeux.js) */
-OBST_SALLE.C.push([ROUE3D.x, ROUE3D.z, 1.4]);
+if (ROUE_SORTIE) OBST_SALLE.C.push([ROUE3D.x, ROUE3D.z, 1.4]); /* (en version dev, pas d'obstacle invisible pour les joueurs : on la traverse dans le mode test) */
 SALLE_PLACES.roue = roue3dPlace().concat([ROUE3D.x, ROUE3D.z]);
-{ const zs = zoneSalle; zoneSalle = function (x, z) { return Math.hypot(x - ROUE3D.x, z - ROUE3D.z) < 1.6 ? 'roue' : zs(x, z); }; }
+{ const zs = zoneSalle; zoneSalle = function (x, z) { return roueDispo() && Math.hypot(x - ROUE3D.x, z - ROUE3D.z) < 1.6 ? 'roue' : zs(x, z); }; }
 { const oj = ouvrirJeuSalle; ouvrirJeuSalle = function (j) { if (j === 'roue') { roue3dOuvrir(); return; } oj(j); }; }
 { const cs = chargerSalle; chargerSalle = async function () { await cs(); construireRoue3d(); }; }
 { const as = animerSalle; animerSalle = function (dt) { as(dt); roue3dAnimer(dt); }; }
 { const sp = sortirPalais; sortirPalais = async function () { ROUE3D.anim = null; roue3dQuitter(true); return sp.apply(this, arguments); }; } /* (en sortant du palais, le panneau se ferme) */
 /* le bouton « Roue legendaire » de la barre du Casino : il emmene a la roue */
 function allerRoue3d() {
+  if (!roueDispo()) return;
   if (lieu !== 'casino') { toast('La roue légendaire est au Casino, dans le hall du palais, près de l\'entrée.'); return; }
   const go = () => { const [x, z] = SALLE_PLACES.roue; aller(x, z, ROUE3D.x, ROUE3D.z, roue3dOuvrir); };
   if (casinoDedans) go(); else entrerPalais().then(() => { if (casinoDedans) setTimeout(go, 300); });

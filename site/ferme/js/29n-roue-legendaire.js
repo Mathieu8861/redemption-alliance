@@ -8,6 +8,10 @@
      chance », choisi au formulaire) : une case par legendaire de son palier ou d'avant (une arme : celle de sa classe), toutes a la meme chance ;
      le resultat est tire et donne au lancer (rien ne se perd si on ferme pendant qu'elle tourne), la roue montre ensuite ou elle s'arrete.
    La roue s'ouvre par le bouton « Roue legendaire » de la barre du Casino (quand on a un jeton) et en essai dans le mode test (rien n'est donne). */
+/* EN VERSION DEV JUSQU'AU PALIER 11 (21/11/2026, « on le mettra avec la maj du palier 11, ca », Mathieu) : la roue (celle du hall, son bouton du Casino)
+   et les jetons legendaires des coffres n'existent que dans le mode test ; la piece rare ★ des coffres, elle, reste pour tous. ROUE_SORTIE = true a la sortie */
+const ROUE_SORTIE = false;
+const roueDispo = () => ROUE_SORTIE || (typeof MODE_TEST !== 'undefined' && MODE_TEST);
 const CHANCES_ILE = {
   rare: (r) => (r === 0 ? 0.35 : r === 1 ? 0.2 : r === 2 ? 0.1 : r < 10 ? 0.05 : r < 25 ? 0.02 : r < 50 ? 0.01 : 0.005),
   jeton: (r) => (r === 0 ? 0.1 : r === 1 ? 0.05 : r === 2 ? 0.02 : 0.005) };
@@ -21,7 +25,7 @@ function butinRareIle(rang) {
   const r = rang >= 0 ? rang : 99, out = { objets: [], jeton: 0 };
   if (Math.random() < CHANCES_ILE.rare(r)) { const P = panoAuHasard(palierCourant()), ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e).filter((id) => OBJETS[id + '-rare']);
     if (ids.length) { const id = hasard(ids) + '-rare', k = donnerObjet(id); out.objets.push({ ico: iconeObjet(k), t: OBJETS[id].nom, brille: true, nom: OBJETS[id].nom }); } } /* (le nom d'une piece rare porte deja son etoile) */
-  if (Math.random() < CHANCES_ILE.jeton(r)) { S_.jetonsLeg = jetonsLeg() + 1; out.jeton = 1; }
+  if (ROUE_SORTIE && Math.random() < CHANCES_ILE.jeton(r)) { S_.jetonsLeg = jetonsLeg() + 1; out.jeton = 1; } /* (pas avant la sortie de la roue) */
   return out;
 }
 /* ---------- la roue ---------- */
@@ -82,6 +86,6 @@ document.addEventListener('click', (e) => { const b = e.target.closest('[data-ro
 function majBoutonRoue() {
   const barre = document.getElementById('casino-barre'); if (!barre) return; let b = document.getElementById('b-roue-leg'); const n = jetonsLeg();
   if (!b) { b = document.createElement('button'); b.id = 'b-roue-leg'; b.className = 'btn roue-btn'; const r = document.getElementById('b-rentrer'); barre.insertBefore(b, r || null); }
-  b.hidden = !(n > 0); b.innerHTML = '<img src="assets/icones/jeton-legendaire.png?v=' + VERSION_MODELES + '" alt=""> Roue légendaire (' + n + ')';
+  b.hidden = !(n > 0) || !roueDispo(); b.innerHTML = '<img src="assets/icones/jeton-legendaire.png?v=' + VERSION_MODELES + '" alt=""> Roue légendaire (' + n + ')';
 }
 if (typeof majBarreCasino === 'function') { const avant = majBarreCasino; majBarreCasino = function () { avant.apply(this, arguments); majBoutonRoue(); }; } /* (la barre du Casino, 26-casino.js) */

@@ -403,8 +403,9 @@ function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recom
     carte('S\'il tient', 'part' + (vaincu ? ' fini' : ''), jetonsIle(G.part), vaincu ? 'remplacé par mieux' : 'si tu as frappé') +
     carte(vaincu ? 'Il est tombé' : 'S\'il tombe', 'tombe', jetonsIle(G.tombe), vaincu ? (frappe ? '✓ gagné' : 'il fallait frapper') : 'si tu as frappé', vaincu && frappe) +
     carte('Le podium', 'podium', podium, 'en plus') + '</div>' +
-    '<p class="ig-note ig-chance"><img src="assets/icones/jeton-legendaire.png?v=' + VERSION_MODELES + '" alt="">Chaque coffre peut aussi cacher une pièce rare ★ ou un jeton légendaire, à jouer à la roue du Casino : plus tu finis haut au classement, plus tu as de chances.' +
-    (jetonsLeg() > 0 ? ' <b>Tu as ' + jetonsLeg() + ' jeton' + (jetonsLeg() > 1 ? 's' : '') + ' : la roue t\'attend au Casino.</b>' : '') + '</p>';
+    (ROUE_SORTIE ? '<p class="ig-note ig-chance"><img src="assets/icones/jeton-legendaire.png?v=' + VERSION_MODELES + '" alt="">Chaque coffre peut aussi cacher une pièce rare ★ ou un jeton légendaire, à jouer à la roue du Casino : plus tu finis haut au classement, plus tu as de chances.' +
+    (jetonsLeg() > 0 ? ' <b>Tu as ' + jetonsLeg() + ' jeton' + (jetonsLeg() > 1 ? 's' : '') + ' : la roue t\'attend au Casino.</b>' : '') + '</p>'
+    : '<p class="ig-note">Chaque coffre peut aussi cacher une pièce rare ★ : plus tu finis haut au classement, plus tu as de chances.</p>'); /* (la roue et ses jetons : avec le palier 11, 29n) */
 }
 function teteIleVaincue(t, cle, liste, rang, frappe) { /* le haut de la fiche : le boss en gris sous le tampon, le titre en grand, la suite, ton essai */
   const B = MONSTRES[t], nom = B.nom + ' colossal' + (B.fem ? 'e' : ''), e = B.fem ? 'e' : '';
