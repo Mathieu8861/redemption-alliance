@@ -200,6 +200,7 @@ addEventListener('keydown', (e) => { if (e.isTrusted && !mnEtat.capture) cmdBasc
 const mnVu = (el) => !!(el && !el.hidden && !el.closest('[hidden]') && el.getClientRects().length);
 function mnCouche() { /* la fenetre au premier plan, ou rien (la ferme) */
   const $$ = (id) => document.getElementById(id);
+  if (mnVu($$('ouv-mobile'))) return { el: [$$('ouv-mobile')], genre: 'coffre-mobile' }; /* (l'ouverture des coffres facon jeux mobiles, 29m) */
   if (mnVu($$('simu-pop'))) return { el: [$$('simu-pop')], genre: 'simu' };
   if (typeof lecon !== 'undefined' && lecon.ouverte && mnVu(lecon.el)) return { el: [lecon.el], genre: 'lecon' };
   const m = $$('modale'); if (m && m.classList.contains('ouverte')) return { el: [$$('carte')], genre: 'modale:' + (modaleOuverte || '') };
@@ -253,6 +254,7 @@ function mnOnglet(L, sens) { /* LB et RB : l'onglet d'a cote (le premier groupe 
   const sg = mnSig(G[j]); mnFocus(null); G[j].click(); mnEtat.sig = sg;
 }
 function mnFermer(C) { /* B */
+  if (C.genre === 'coffre-mobile') { if (typeof omPasser === 'function') omPasser(); return; }
   if (C.genre.startsWith('modale')) { const x = document.querySelector('#carte [data-fermer]'); if (x && mnVu(x)) x.click(); else if (!document.getElementById('modale').dataset.aLire) fermerModale(); return; }
   if (C.genre === 'pause') { mettrePause(false); return; }
   if (C.genre === 'hud') { mnEtat.hud = false; return; }

@@ -195,7 +195,23 @@ document.addEventListener('click', (e) => {
 async function essaiCoffreIle(rang) {
   const rar = RANG_COFFRE[rang]; if (rar) { try { await Promise.race([chargerCoffreIA(rar), new Promise((ok) => setTimeout(ok, 4000))]); } catch (e) { /* (le coffre construit) */ } }
   Object.keys(choixResIle).forEach((r) => delete choixResIle[r]); ESSAI_COFFRE_ILE.n = rang < 3 ? RESSOURCES_ILE.podium[rang] : RESSOURCES_ILE.participation;
-  ouvrirModale('ileboss', entete(titreCoffreIle(rang) + ' (essai)') + '<p class="hdv-aide">Essai du mode test : rien n\'est donné.</p><div class="ouverture-coffre">' + sceneCoffre() +
-    '<div class="gains-coffre"><div class="gain-coffre bloc">' + blocChoixIle() + '</div></div><div class="boutons"><button class="btn kamas" data-fermer>Fermer</button></div></div>');
-  majChoixIle(); jouerCoffre('ileboss', rar ? coffrePodium(rang) : null);
+  const om = typeof ouvertureMobile === 'function' && !!(OM.r || !OM.el); /* (l'ecran d'ouverture par-dessus : la fenetre, dessous, sans son petit coffre et deja ouverte) */
+  ouvrirModale('ileboss', entete(titreCoffreIle(rang) + ' (essai)') + '<p class="hdv-aide">Essai du mode test : rien n\'est donné.</p><div class="ouverture-coffre' + (om ? ' fini' : '') + '">' + (om ? '' : sceneCoffre()) +
+    '<div class="gains-coffre"><div class="gain-coffre bloc' + (om ? ' vu' : '') + '">' + blocChoixIle() + '</div></div><div class="boutons"><button class="btn kamas" data-fermer>Fermer</button></div></div>');
+  majChoixIle(); const base = rar ? coffrePodium(rang) : null;
+  if (typeof ouvertureMobile === 'function') { const S = rang < 3 ? [36000, 27000, 18000][rang] : 9000;
+    if (ouvertureMobile({ rar: rar || 'normal', base, sousTitre: 'Essai du mode test', cartes: cartesCoffreIle({ k: S, f: rang < 3 ? [1, 4, 3][rang] : 1, p: rang === 0 ? 1 : 0, xp: 2400, objets: rang === 0 ? [{ ico: 'obj-ecorce-coiffe', t: 'Coiffe d\'Écorce, jet 82 %', son: 'quete' }] : [], res: ESSAI_COFFRE_ILE.n }) })) return; }
+  if (om) document.querySelectorAll('#carte .ouverture-coffre').forEach((z) => z.insertAdjacentHTML('afterbegin', sceneCoffre())); /* (sans WebGL : le petit coffre, comme avant) */
+  jouerCoffre('ileboss', base);
+}
+/* les cartes de l'ouverture facon jeux mobiles (29m-ouverture-coffre.js) : kamas, XP, runes, runes parfaites, pieces, ressources au choix */
+function cartesCoffreIle(c) {
+  const L = [];
+  if (c.k) L.push({ ico: 'kama', n: c.k, t: 'kamas', son: 'kamas' });
+  if (c.xp) L.push({ svg: picto('etoile', '#e0a31e'), n: c.xp, t: 'XP', son: 'quete' });
+  if (c.f) L.push({ ico: 'rune-forge', n: c.f, t: 'rune' + (c.f > 1 ? 's' : '') + ' de forgemagie', son: 'quete' });
+  if (c.p) L.push({ ico: 'rune-parfaite', n: c.p, t: 'rune' + (c.p > 1 ? 's' : '') + ' parfaite' + (c.p > 1 ? 's' : ''), brille: true });
+  (c.objets || []).forEach((o) => L.push(o));
+  if (c.res) L.push({ svg: picto('epi', '#d9a21e'), n: c.res, t: 'ressources au choix', plus: false, son: 'quete' });
+  return L;
 }

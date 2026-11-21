@@ -528,6 +528,7 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
   reclamerIleBoss.enCours = true; /* (un double clic ne paie plus deux fois) */
   try {
   const lignes = []; let rangCoffre = 3; /* (la meilleure place du podium parmi les semaines : le coffre montre, 29k-coffres-podium.js) */
+  const cumul = { k: 0, f: 0, p: 0, xp: 0, objets: [], res: 0 }; /* (les cartes de l'ouverture facon jeux mobiles, 29m-ouverture-coffre.js) */
   for (const [k, J] of L) {
     const r = await classementIleBoss(k); if (!r) { if (!auto) toast('Le classement de l\'île n\'est pas lisible pour l\'instant (hors connexion ?) : ton coffre t\'attend, réessaie dans un moment.', 'alerte'); continue; } /* (avant le 16/10/2026 : la participation, et la recompense du boss tombe perdue) */
     const tombe = !!(r && r.total >= pvIleBoss(J.boss)), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
@@ -538,12 +539,14 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
     const base = [fmt(R.kamas) + ' kamas', runesTxt(R.forge, 0), fmt(xp) + ' XP'];
     let totK = R.kamas, totF = R.forge, totP = 0; const objets = [];
     if (tombe) { const id = tirerPiece(panoAuHasard(palierCourant()), 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
-      const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg); donnerObjet(idl); objets.push('✦ ' + OBJETS[idl].nom); } }
+      cumul.objets.push({ ico: iconeObjet(cle), t: OBJETS[id].nom + ', jet ' + Math.round(100 * qualiteJet(cle)) + ' %', brille: !!OBJETS[id].rare, son: 'quete' });
+      const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg), cl = donnerObjet(idl); objets.push('✦ ' + OBJETS[idl].nom); cumul.objets.push({ ico: iconeObjet(cl || idl), t: '✦ ' + OBJETS[idl].nom, brille: true }); } }
     const L2 = [ligneRecap('kama', tombe ? 'Le boss est tombé' : 'Ta participation', base.concat(objets).join(', '))];
     if (rang >= 0 && rang < 3) { const Pd = RECOMPENSES_ILE.podium[rang]; S_.kamas += Pd.kamas; if (Pd.parfaite) runes().parfaite = (runes().parfaite || 0) + Pd.parfaite; if (Pd.forge) runes().forge += Pd.forge;
       totK += Pd.kamas; totF += Pd.forge || 0; totP += Pd.parfaite || 0; L2.push(ligneRecap('couronne', 'Bonus ' + (rang + 1) + (rang ? 'e' : 'er') + ' du classement', '+' + fmt(Pd.kamas) + ' kamas, ' + runesTxt(Pd.forge || 0, Pd.parfaite || 0))); rangCoffre = Math.min(rangCoffre, rang); }
     const nRes = r ? (rang >= 0 && rang < 3 ? RESSOURCES_ILE.podium[rang] : (J.meilleur || 0) > 0 ? RESSOURCES_ILE.participation : 0) : 0; /* (les ressources au choix, 21/11/2026 : 30, 20, 10 au podium, 5 aux autres participants) */
     if (nRes) { S0.aChoisir = (S0.aChoisir || 0) + nRes; L2.push(ligneRecap('epi', 'Ressources au choix', nRes + ', à choisir ci-dessous')); }
+    cumul.k += totK; cumul.f += totF; cumul.p += totP; cumul.xp += xp; cumul.res += nRes;
     const total = [fmt(totK) + ' kamas', runesTxt(totF, totP), fmt(xp) + ' XP'].concat(objets).concat(nRes ? [nRes + ' ressources au choix'] : []).join(', ');
     const T2 = RECOMPENSES_ILE.tombe, siTombe = !tombe && r ? '<p class="hdv-aide">S’il était tombé, chacun aurait reçu ' + fmt(T2.kamas) + ' kamas au lieu de ' + fmt(R.kamas) + ', ' + T2.forge + ' runes au lieu d’une, une pièce de sa panoplie (jet de ' + Math.round(T2.piece * 100) + ' % ou plus) et ' + Math.round(T2.leg * 100) + ' % de chance d’avoir sa pièce légendaire.</p>' : '';
     const etat = r ? (tombe ? 'Tombé ! L’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.' : 'Il a tenu : l’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.') : 'Classement non disponible hors connexion.';
@@ -555,11 +558,14 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
   rendreHaut(); sauver(); /* (le son et les confettis : a l'ouverture du coffre, jouerCoffre) */
   if (rangCoffre < 3) { try { await Promise.race([chargerCoffreIA(RANG_COFFRE[rangCoffre]), new Promise((ok) => setTimeout(ok, 4000))]); } catch (e) { /* (le coffre construit le remplace) */ } }
   ESSAI_COFFRE_ILE.n = null; Object.keys(choixResIle).forEach((r) => delete choixResIle[r]);
+  const om = typeof ouvertureMobile === 'function', gc = 'gain-coffre bloc' + (om ? ' vu' : ''); /* (avec l'ouverture facon jeux mobiles, la fenetre est deja ouverte dessous, sans son petit coffre) */
   ouvrirModale('ileboss', entete(titreCoffreIle(rangCoffre)) + '<p class="hdv-aide">La semaine de l\'île est finie : voici ce que tu gagnes. C\'est déjà ajouté : les kamas et l\'XP sur ta ferme, les runes et les pièces dans ton inventaire (Perso).' + ((S0.aChoisir || 0) > 0 ? ' Il te reste à choisir tes ressources, tout en bas.' : '') + '</p>' +
-    '<div class="ouverture-coffre">' + sceneCoffre() + '<div class="gains-coffre">' + lignes.map((l) => '<div class="gain-coffre bloc">' + l + '</div>').join('') + ((S0.aChoisir || 0) > 0 ? '<div class="gain-coffre bloc">' + blocChoixIle() + '</div>' : '') + '</div>' +
+    '<div class="ouverture-coffre' + (om ? ' fini' : '') + '">' + (om ? '' : sceneCoffre()) + '<div class="gains-coffre">' + lignes.map((l) => '<div class="' + gc + '">' + l + '</div>').join('') + ((S0.aChoisir || 0) > 0 ? '<div class="' + gc + '">' + blocChoixIle() + '</div>' : '') + '</div>' +
     '<div class="boutons"><button class="btn discret" data-montgolfiere="ileBoss">Voir l\'île des boss</button><button class="btn kamas" data-fermer>Super !</button></div></div>');
   $('modale').dataset.aLire = '1'; /* (il ne se ferme qu'avec ses boutons) */
-  majChoixIle(); jouerCoffre('ileboss', rangCoffre < 3 ? coffrePodium(rangCoffre) : null); /* (le coffre en 3D, 05/11/2026 ; celui du podium, 21/11/2026) */
+  majChoixIle(); const base = rangCoffre < 3 ? coffrePodium(rangCoffre) : null;
+  if (!(om && ouvertureMobile({ rar: rangCoffre < 3 ? RANG_COFFRE[rangCoffre] : 'normal', base, cartes: cartesCoffreIle(cumul), sousTitre: rangCoffre < 3 ? (rangCoffre + 1) + (rangCoffre ? 'e' : 'er') + ' du classement' : 'Ta participation' }))) {
+    if (om) document.querySelectorAll('#carte .ouverture-coffre').forEach((z) => z.insertAdjacentHTML('afterbegin', sceneCoffre())); jouerCoffre('ileboss', base); } /* (sans WebGL : le petit coffre de la fenetre, comme avant) */ /* (le coffre en 3D, 05/11/2026 ; celui du podium, 21/11/2026) */
   } finally { reclamerIleBoss.enCours = false; }
 }
 /* REVOIR SON DERNIER COFFRE DE L'ILE (20/11/2026, « j'ai clique a cote et j'ai pas eu le temps de voir ce que j'ai gagne », Mathieu) : le detail garde a l'ouverture, sans rien redonner */
