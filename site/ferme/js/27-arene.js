@@ -393,9 +393,11 @@ function gainsIle(t) { /* les recompenses, en « jetons » (image, chiffre, lege
 const jetonsIle = (L, cl) => '<div class="ig-jetons' + (cl ? ' ' + cl : '') + '">' + L.map((j) => '<div class="ig-jeton' + (j.leg ? ' leg' : '') + '"><span class="ig-i">' + j.i + '</span><b>' + j.g + '</b><small>' + j.p + '</small></div>').join('') + '</div>';
 function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recompenses */
   const G = gainsIle(t), rien = vaincu && !frappe ? '<p class="ig-rien">Tu n\'as pas frappé ce boss cette semaine : pas de coffre pour toi. Le prochain arrive ' + prochainVendredi() + '.</p>' : '';
-  const podium = G.podium.map((L, i) => '<div class="ig-pod' + (rang === i ? ' moi' : '') + '"><span class="ig-med m' + (i + 1) + '">' + (i + 1) + '</span>' +
-    '<span class="ig-coffre ' + RANG_COFFRE[i] + '"><img src="assets/icones/coffre-' + RANG_COFFRE[i] + '.png?v=' + VERSION_MODELES + '" alt=""><small>' + ['Légendaire', 'Épique', 'Rare'][i] + '</small></span>' + jetonsIle(L, 'mini') + '</div>').join('') +
-    '<p class="ig-note">Son coffre remplace les 5 ressources des participants.</p>'; /* (les coffres du podium, 21/11/2026, « on les met visuellement du coup pour le podium ? », Mathieu) */
+  /* (les coffres du podium, 21/11/2026, « on les met visuellement du coup pour le podium ? », puis « c'est pas tres propre, affiche pas ce que ca donne, reste
+     vague », Mathieu : les trois coffres en grand, leur nom et leur place, sans le detail ; le contenu se decouvre a l'ouverture) */
+  const podium = '<div class="ig-pods">' + RANG_COFFRE.map((rar, i) => '<div class="ig-pod2 ' + rar + (rang === i ? ' moi' : '') + '"><span class="ig-med m' + (i + 1) + '">' + (i + 1) + '</span>' +
+    '<img src="assets/icones/coffre-' + rar + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>Coffre ' + ['légendaire', 'épique', 'rare'][i] + '</b><small>' + ['1re', '2e', '3e'][i] + ' place</small></div></div>').join('') + '</div>' +
+    '<p class="ig-note">Des kamas, des runes et des ressources au choix, en plus de ta part. Plus la place est haute, plus le coffre est riche.</p>';
   const carte = (titre, cl, L, badge, ok) => '<div class="ig-carte ' + cl + '"><div class="ig-carte-t"><span>' + titre + '</span>' + (badge ? '<span class="ig-badge' + (ok ? ' ok' : '') + '">' + badge + '</span>' : '') + '</div>' + L + '</div>';
   return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + '<div class="ig-cartes">' +
     carte('S\'il tient', 'part' + (vaincu ? ' fini' : ''), jetonsIle(G.part), vaincu ? 'remplacé par mieux' : 'si tu as frappé') +
