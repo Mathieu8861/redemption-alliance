@@ -514,7 +514,7 @@ document.addEventListener('click', (e) => {
 });
 function compensationAuto() { /* (a la ferme, connecte, sans fenetre ni combat ; une fois par seconde au plus) */
   if (compensationAuto.plusTard || !S_ || !S_.perso || enAccueil || combat || modaleOuverte || lieu !== 'ferme' || lecon.ouverte || !ENLIGNE || !enLigneSv.compte) return;
-  if (compensationAuto.t && Date.now() - compensationAuto.t < 1000) return; compensationAuto.t = Date.now(); if (compensationDue()) ouvrirCompensation();
+  if (compensationAuto.t && Date.now() - compensationAuto.t < 1000) return; compensationAuto.t = Date.now(); if (compensationDue()) { compensationAuto.plusTard = true; ouvrirCompensation(); } /* (une fois par connexion : fermee a la croix ou a Echap, elle ne revient qu'a la connexion suivante, 21/11/2026) */
 }
 function coffreIleAuto() {
   compensationAuto();
