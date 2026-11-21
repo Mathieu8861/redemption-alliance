@@ -212,6 +212,6 @@ function cartesCoffreIle(c) {
   if (c.f) L.push({ ico: 'rune-forge', n: c.f, t: 'rune' + (c.f > 1 ? 's' : '') + ' de forgemagie', son: 'quete' });
   if (c.p) L.push({ ico: 'rune-parfaite', n: c.p, t: 'rune' + (c.p > 1 ? 's' : '') + ' parfaite' + (c.p > 1 ? 's' : ''), brille: true });
   (c.objets || []).forEach((o) => L.push(o));
-  if (c.res) L.push({ svg: picto('epi', '#d9a21e'), n: c.res, t: 'ressources au choix', plus: false, son: 'quete' });
+  if (c.res) L.push({ ico: 'ressources-choix', n: c.res, t: 'ressources au choix', plus: false, son: 'quete' });
   return L;
 }

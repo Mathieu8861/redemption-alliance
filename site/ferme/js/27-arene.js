@@ -386,13 +386,16 @@ function gainsIle(t) { /* les recompenses, en « jetons » (image, chiffre, lege
   const P = panosDuPalier(palierCourant()), pid = P[0].id + '-' + EMPLACEMENTS[0][0], leg = LEGENDAIRES.find((L) => L.boss === t), idl = leg && idLeg(leg);
   const piece = { i: img(iconeObjet(pid)), g: '1 pièce', p: 'de la panoplie ' + P.map((p) => p.nom).join(' ou ') + ', jet de ' + Math.round(R.tombe.piece * 100) + ' % ou plus' };
   const lg = idl && OBJETS[idl] ? { i: img(iconeObjet(idl)), g: '1 chance sur ' + Math.round(1 / R.tombe.leg), p: '✦ ' + OBJETS[idl].nom, leg: true } : null;
-  return { part: [k(R.participation.kamas), ru(R.participation.forge), x(R.participation.xp)].filter(Boolean), tombe: [k(R.tombe.kamas), ru(R.tombe.forge), x(R.tombe.xp), piece, lg].filter(Boolean),
-    podium: R.podium.map((p) => [k(p.kamas), p.parfaite ? ru(p.parfaite, true) : ru(p.forge)]) };
+  const res = (n) => ({ i: img('ressources-choix'), g: String(n), p: 'ressources au choix' }); /* (les ressources du coffre, 21/11/2026 : 5 pour chaque participant, 30, 20, 10 au podium, dont le coffre remplace les 5) */
+  return { part: [k(R.participation.kamas), ru(R.participation.forge), x(R.participation.xp), res(RESSOURCES_ILE.participation)].filter(Boolean), tombe: [k(R.tombe.kamas), ru(R.tombe.forge), x(R.tombe.xp), piece, lg, res(RESSOURCES_ILE.participation)].filter(Boolean),
+    podium: R.podium.map((p, i) => [k(p.kamas), p.parfaite ? ru(p.parfaite, true) : ru(p.forge), res(RESSOURCES_ILE.podium[i])]) };
 }
 const jetonsIle = (L, cl) => '<div class="ig-jetons' + (cl ? ' ' + cl : '') + '">' + L.map((j) => '<div class="ig-jeton' + (j.leg ? ' leg' : '') + '"><span class="ig-i">' + j.i + '</span><b>' + j.g + '</b><small>' + j.p + '</small></div>').join('') + '</div>';
 function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recompenses */
   const G = gainsIle(t), rien = vaincu && !frappe ? '<p class="ig-rien">Tu n\'as pas frappé ce boss cette semaine : pas de coffre pour toi. Le prochain arrive ' + prochainVendredi() + '.</p>' : '';
-  const podium = G.podium.map((L, i) => '<div class="ig-pod' + (rang === i ? ' moi' : '') + '"><span class="ig-med m' + (i + 1) + '">' + (i + 1) + '</span>' + jetonsIle(L, 'mini') + '</div>').join('');
+  const podium = G.podium.map((L, i) => '<div class="ig-pod' + (rang === i ? ' moi' : '') + '"><span class="ig-med m' + (i + 1) + '">' + (i + 1) + '</span>' +
+    '<span class="ig-coffre ' + RANG_COFFRE[i] + '"><img src="assets/icones/coffre-' + RANG_COFFRE[i] + '.png?v=' + VERSION_MODELES + '" alt=""><small>' + ['Légendaire', 'Épique', 'Rare'][i] + '</small></span>' + jetonsIle(L, 'mini') + '</div>').join('') +
+    '<p class="ig-note">Son coffre remplace les 5 ressources des participants.</p>'; /* (les coffres du podium, 21/11/2026, « on les met visuellement du coup pour le podium ? », Mathieu) */
   const carte = (titre, cl, L, badge, ok) => '<div class="ig-carte ' + cl + '"><div class="ig-carte-t"><span>' + titre + '</span>' + (badge ? '<span class="ig-badge' + (ok ? ' ok' : '') + '">' + badge + '</span>' : '') + '</div>' + L + '</div>';
   return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + '<div class="ig-cartes">' +
     carte('S\'il tient', 'part' + (vaincu ? ' fini' : ''), jetonsIle(G.part), vaincu ? 'remplacé par mieux' : 'si tu as frappé') +
