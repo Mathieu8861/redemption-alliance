@@ -3567,11 +3567,11 @@ const porteeSur = (o, st) => st.portee + Math.max(0, (o.d.corps || (0.35 + o.d.o
 /* L'AIDE AU CONTACT SUR TELEPHONE (21/11/2026, madar937 : « jouer une classe corps a corps sur telephone est tout bonnement impossible » ; Mathieu : « sur tel
    tu attaques en auto, tu as que le deplacement a gerer, alors qu'au cac c'est chaud patate » ; « il va au contact », choix de Mathieu au formulaire) : joystick
    lache, le perso tient sa position et frappe ce qui est a sa portee ; le Cra touche ainsi tout ce qui est a 5 cases, le Iop et l'Osa seulement ce qui les colle.
-   Avec les commandes au doigt, un perso au corps a corps (pas le Cra) qui n'a rien a portee va seul frapper le monstre le plus proche dans un rayon de 4 cases,
+   Avec les commandes au doigt, le Iop (seulement lui : « Osa doit pas aller au contact », Mathieu, 21/11/2026) qui n'a rien a portee va seul frapper le monstre le plus proche dans un rayon de 4 cases,
    sauf s'il est dans un cercle rouge ; le trajet evite les cercles rouges (pasVersCible). Le joystick reprend la main des qu'on le touche. Degats inchanges */
 const AIDE_CONTACT = 4 * S;
 function aideContact(p, classe) {
-  if (classe === 'cra' || typeof dg === 'undefined' || !dg.on || dg.joy || dg.marche || !combat || combat.deroute != null) return null;
+  if (classe !== 'iop' || typeof dg === 'undefined' || !dg.on || dg.joy || dg.marche || !combat || combat.deroute != null) return null;
   const Z = combat.dangers || []; let best = null, bd = AIDE_CONTACT;
   combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.fume > 0 || o.d.vole) return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd && !Z.some((z) => dansDanger(z, o.x, o.z))) { bd = d; best = o; } });
   return best;
@@ -3586,7 +3586,7 @@ function majPerso(dt) {
   if (combat.ordre) { if (chemin.length) return; combat.ordre = false; }
   if (combat.tenir) { /* il tient la position ou on l'a envoye : il frappe ce qui passe a portee, sans courir apres (toucher un monstre le relance) */
     const pp0 = paysanMesh.position, aPortee = combat.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - pp0.x, o.z - pp0.z) <= porteeSur(o, st)).sort((a, b) => Math.hypot(a.x - pp0.x, a.z - pp0.z) - Math.hypot(b.x - pp0.x, b.z - pp0.z));
-    if (!aPortee.length) { const aide = aideContact(pp0, classe); if (aide) combat.cible = aide; /* (au doigt, le Iop et l'Osa vont au contact) */ else { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; } }
+    if (!aPortee.length) { const aide = aideContact(pp0, classe); if (aide) combat.cible = aide; /* (au doigt, le Iop va au contact) */ else { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; } }
     else if (!combat.cible || combat.cible.etat !== 'actif' || Math.hypot(combat.cible.x - pp0.x, combat.cible.z - pp0.z) > porteeSur(combat.cible, st)) combat.cible = aPortee[0];
   }
   let c = combat.cible; if (!c || c.etat !== 'actif' || c.fume > 0) c = combat.cible = plusProcheMonstre(paysanMesh.position);
