@@ -17,7 +17,7 @@ const NOMS_P11 = { tetard: 'Têtaclaque', crapaud: 'Crachopaud', triton: 'Triton
 Object.entries(NOMS_P11).forEach(([t, nom]) => { if (MONSTRES[t]) MONSTRES[t].nom = nom; });
 ['tetard', 'crapaud', 'triton', 'fouette', 'axolotl', 'mereCrapaude'].forEach((t) => { if (MONSTRES[t]) MONSTRES[t].pano = 'crachopaud'; });
 ['crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((t) => { if (MONSTRES[t]) MONSTRES[t].pano = 'croquevase'; });
-Object.values(OBJETS).forEach((o) => { const P = PANOS[o.pano]; if (!o.leg && P && (P.id === 'croquevase' || P.id === 'crachopaud')) o.icone = P.id === 'croquevase' ? 'croco-vase' : 'crapaud'; }); /* (en attendant leurs icones) */
+/* (les icones des 12 pieces, 22/11/2026 : obj-croquevase-* et obj-crachopaud-*, photographiees par icones-palier11-objets.html ; plus d'icone d'attente) */
 ['croquevase-coiffe', 'crachopaud-coiffe'].forEach((id) => { if (OBJETS[id]) OBJETS[id].rond = true; }); /* (des coiffes rondes, enfoncees sur la tete, jamais ecrasees : 12-perso.js, 21/11/2026) */
 /* les reglages de leurs bonus en combat (les pourcentages viennent des bonus de panoplie, caracs()) */
 const P11_COMBAT = { oeilCases: 4, bondDuree: 2, bondRecharge: 6, mucusDuree: 1.5, mueSous: 0.25 };
