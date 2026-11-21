@@ -72,6 +72,10 @@ function dgMarcher() {
 }
 
 /* ----- les sorts : appui court, glisser, croix ----- */
+/* LE MALUS DE LA VISEE AUTOMATIQUE (21/11/2026, « sur telephone peut-etre avoir des cooldowns de sort plus longs aussi ? vu que ca cible auto c'est plus facile,
+   mettre un petit malus », Mathieu ; « +15 % en visee auto », au formulaire) : un sort, l'ulti ou un sort legendaire lance d'un appui court (le jeu vise tout seul)
+   recharge 15 % plus longtemps ; glisser pour viser soi-meme reste sans malus, comme a la souris. L'anneau du bouton suit la recharge allongee (cdMaxDoigt) */
+const RECHARGE_AUTO_DOIGT = 1.15;
 function dgArmer(cle) { /* les memes refus qu'armerSort, sans le message de visee a la souris */
   const c = combat; if (!c || c.fin || c.deroute != null) return null; const B = BOUTONS_SORT[cle]; if (!B) return null;
   if (B.dispo && !B.dispo()) return null;
@@ -120,7 +124,7 @@ function dgBrancherSorts() {
     s.surCroix = Math.hypot(e.clientX - s.croix.x, e.clientY - s.croix.y) < 46; dg.el.croix.classList.toggle('sur', s.surCroix);
     if (visee && !s.surCroix) { const p = dgPointGlisse(visee, dx / DG_RAYON, dy / DG_RAYON); if (p) visee.point = p; } });
   const fin = (e) => { const s = dg.sort; if (!s || e.pointerId !== s.id) return;
-    if (e.type === 'pointerup') { if (!s.vise) { const v = dgArmer(s.cle); if (v && v !== 'instant') { const p = dgPointAuto(v); if (p) { visee.point = p; tirerVisee(p); } else annulerVisee(); } }
+    if (e.type === 'pointerup') { if (!s.vise) { const v = dgArmer(s.cle); if (v && v !== 'instant') { const p = dgPointAuto(v); if (p) { visee.point = p; const B = BOUTONS_SORT[s.cle], c = combat, avant = c && B ? c[B.cd] || 0 : 0; tirerVisee(p); if (c && B && (c[B.cd] || 0) > avant) { c[B.cd] *= RECHARGE_AUTO_DOIGT; (c.cdMaxDoigt = c.cdMaxDoigt || {})[B.cd] = c[B.cd]; } } else annulerVisee(); } } /* (l'appui court : visee automatique, recharge +15 %) */
       else if (s.surCroix || !visee) annulerVisee(); else tirerVisee(visee.point); }
     else if (s.vise) annulerVisee();
     dgFinSort(); };

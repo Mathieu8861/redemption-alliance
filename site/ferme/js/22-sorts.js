@@ -800,9 +800,10 @@ function majCombatHud() {
   $('combat-barre').style.width = (100 * rest / c.total).toFixed(0) + '%'; $('b-fuir').hidden = c.deroute != null; /* (a terre, on ne fuit plus) */
   const f = c.pv / c.pvMax; $('combat-pv').style.width = (100 * f).toFixed(1) + '%'; $('combat-pv').style.background = f < 0.3 ? 'var(--rouge)' : '';
   $('combat-pv-txt').textContent = Math.ceil(c.pv) + ' / ' + c.pvMax + ' PV'; majVieHaut();
+  const maxD = (k, r) => { const M = c.cdMaxDoigt; if (M && M[k] && c[k] <= 0) M[k] = 0; return Math.max(r, (M && M[k]) || 0); }; /* (la recharge allongee de la visee automatique au doigt, 24b-doigt.js) */
   if (!S_.ulti) { $('ulti-rond').style.setProperty('--cd', '100%'); $('ulti-etat').textContent = niveau(S_.xp) >= NIV_ULTI ? 'à choisir' : 'niveau ' + NIV_ULTI; $('ulti-etat')._t = null; }
-  else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / rechargeUlti()).toFixed(1) + '%'); majEtatSort('ulti-etat', c.cdUlti); }
-  { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / rechargeSort()).toFixed(1) + '%'); majEtatSort('sort-etat', c.cdSort); }
+  else { $('ulti-rond').style.setProperty('--cd', (100 * c.cdUlti / maxD('cdUlti', rechargeUlti())).toFixed(1) + '%'); majEtatSort('ulti-etat', c.cdUlti); }
+  { $('sort-rond').style.setProperty('--cd', (100 * c.cdSort / maxD('cdSort', rechargeSort())).toFixed(1) + '%'); majEtatSort('sort-etat', c.cdSort); }
   $('b-sort').classList.toggle('pret', c.cdSort <= 0); $('b-ulti').classList.toggle('pret', !!S_.ulti && c.cdUlti <= 0); /* (le liseré dore : pret) */
   majBoutonsLeg();
   { let b = majCombatHud.barrePerso; /* la barre de vie au-dessus de la tete du perso, comme celles des monstres */
