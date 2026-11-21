@@ -3571,7 +3571,7 @@ const porteeSur = (o, st) => st.portee + Math.max(0, (o.d.corps || (0.35 + o.d.o
    sauf s'il est dans un cercle rouge ; le trajet evite les cercles rouges (pasVersCible). Le joystick reprend la main des qu'on le touche. Degats inchanges */
 const AIDE_CONTACT = 4 * S;
 function aideContact(p, classe) {
-  if (classe !== 'iop' || typeof dg === 'undefined' || !dg.on || dg.joy || dg.marche || !combat || combat.deroute != null) return null;
+  if (classe !== 'iop' || typeof dg === 'undefined' || !(dg.on || (typeof manetteEnJeu === 'function' && manetteEnJeu())) || dg.joy || dg.marche || !combat || combat.deroute != null) return null;
   const Z = combat.dangers || []; let best = null, bd = AIDE_CONTACT;
   combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.fume > 0 || o.d.vole) return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd && !Z.some((z) => dansDanger(z, o.x, o.z))) { bd = d; best = o; } });
   return best;

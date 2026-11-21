@@ -473,7 +473,7 @@ function majEtatSort(id, cd) { /* sous un bouton : « prêt », ou « prêt dans
 const empTouche = (k) => { const co = !!(combat && legDe('coiffe')), ar = !!(combat && legDe('arme')); return k === 3 ? (co ? 'coiffe' : ar ? 'arme' : null) : (co && ar ? 'arme' : null); };
 const legTouche = (k) => { const e = empTouche(k); if (e) lancerLeg(e); };
 function majBoutonsLeg() { /* les boutons 3 et 4 : seulement si on porte une coiffe ou une arme legendaire a sort */
-  const c = combat; { const co = !!(c && legDe('coiffe')); $('leg-coiffe-rond').dataset.touche = '3'; $('leg-arme-rond').dataset.touche = co ? '4' : '3'; } [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
+  const c = combat; if (typeof majToucheSorts === 'function') majToucheSorts(); else { const co = !!(c && legDe('coiffe')); $('leg-coiffe-rond').dataset.touche = '3'; $('leg-arme-rond').dataset.touche = co ? '4' : '3'; } /* (les touches reglees dans Options > Commandes) */ [['coiffe', 'cdLegC'], ['arme', 'cdLegA']].forEach(([emp, cd]) => { const b = $('b-leg-' + emp), cle = c && legDe(emp); b.hidden = !cle; if (!cle) return;
     const S = sortLeg(cle), r = $('leg-' + emp + '-rond'), k = S_.equip[emp];
     if (r.dataset.cle !== k + classeDe()) { r.dataset.cle = k + classeDe(); r.innerHTML = '<img src="assets/icones/' + iconeObjet(k) + '.png?v=' + VERSION_MODELES + '" alt=""><span>' + S.nom + '</span>'; r.style.setProperty('--teinte', S.teinte); }
     r.style.setProperty('--cd', (100 * (c[cd] || 0) / S.recharge).toFixed(1) + '%'); b.classList.toggle('pret', !(c[cd] > 0)); majEtatSort('leg-' + emp + '-etat', c[cd] || 0); });
