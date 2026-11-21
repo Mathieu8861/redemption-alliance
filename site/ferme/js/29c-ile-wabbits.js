@@ -21,13 +21,16 @@ const CAMPS_LABO = [
   { nom: 'les cages', x: -10.6, z: 0.4, r: 7.5, L: [['wabbitNoir', 2], ['wabbit', 2], ['wabbitSorciere', 1]] },
   { nom: 'la réserve', x: 3.4, z: -12.6, r: 6.5, L: [['wabbitSquelette', 2], ['wabbitFonceur', 2]] },
   { nom: 'le dépôt', x: 12.2, z: -4.6, r: 6.5, L: [['woWabbit', 1], ['wabbitNoir', 2], ['wabbitSorciere', 1]] }];
-/* les salles (ILE-DONJON.md, validees le 20/11) ; en attendant les salles interieures, leurs mutants sortent par la porte */
+/* LES SALLES INTERIEURES (ILE-DONJON.md, validees le 20/11 ; 22/11/2026) : on passe la porte, on est dans la salle (une piece ronde sous l'ile, a Y_SALLE,
+   loin de la tour : x, z locaux) ; ses mutants l'attendent ; nettoyee, une sortie verte s'allume a l'entree : elle ramene sur la passerelle et ouvre la grille.
+   La 5e, le labo : le Docteur Wabbenstein ; il tombe, fin du donjon. theme : le decor (sallesLabo) */
+const Y_SALLE = -40;
 const SALLES_LABO = [
-  { nom: 'les cages', L: [['wabbitFonceur', 3], ['wabbit', 2]] },
-  { nom: 'la serre à mutagène', L: [['wabbitSorciere', 2], ['wabbit', 3]] },
-  { nom: 'la salle de chirurgie', L: [['woWabbit', 2], ['wabbitSquelette', 2]] },
-  { nom: 'la salle des cuves', L: [['wabbitNoir', 3], ['gwandWabbit', 1]] },
-  { nom: 'le labo du Docteur Wabbenstein', L: [] }];
+  { nom: 'les cages', theme: 'cages', x: 70, z: 70, R: 9, L: [['wabbitFonceur', 3], ['wabbit', 2]] },
+  { nom: 'la serre à mutagène', theme: 'serre', x: 140, z: 70, R: 9, L: [['wabbitSorciere', 2], ['wabbit', 3]] },
+  { nom: 'la salle de chirurgie', theme: 'chirurgie', x: 210, z: 70, R: 9, L: [['woWabbit', 2], ['wabbitSquelette', 2]] },
+  { nom: 'la salle des cuves', theme: 'cuves', x: 70, z: 140, R: 9, L: [['wabbitNoir', 3], ['gwandWabbit', 1]] },
+  { nom: 'le labo du Docteur Wabbenstein', theme: 'labo', x: 140, z: 140, R: 11.5, L: [['wabbenstein', 1]] }];
 /* les obstacles au sol (les cages et les caisses du modele) */
 const BLOCS_LABO = [[-11.5, -3.0, 0.95], [-13.2, 0.6, 0.95], [-9.4, 4.6, 0.95], [10.8, -6.6, 0.95], [12.4, 6.8, 0.95], [4.0, -12.5, 0.95],
   [-8.2, -8.0, 1.1], [13.6, -2.6, 0.75], [8.6, 10.2, 0.75], [9.7, 11.0, 0.62], [-3.0, 12.4, 0.68], [2.6, -14.4, 0.66]].map(([x, z, r]) => ({ x, z, r }));
@@ -41,6 +44,10 @@ const etatPerso = () => (donjonEtat ? donjonEtat.perso : (bornerDonjon.libre || 
    a quel angle deroule (la spirale passe deux fois au-dessus du meme point : c'est l'angle deroule qui dit sur quel tour on est) */
 function bornerDonjon(x, z, m, E) {
   m = m == null ? 0.4 : m; E = E || etatPerso(); let lx = x - DONJON.x, lz = z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx);
+  if (E.mode === 'salle') { /* (dans une salle : son cercle, et ses meubles) */
+    const S = SALLES_LABO[E.i]; let sx = lx - S.x, sz = lz - S.z; const d = Math.hypot(sx, sz), R = S.R - 0.7 - m; if (d > R) { sx *= R / d; sz *= R / d; }
+    for (let n = 0; n < 2; n++) (S.blocs || []).forEach((o) => { const dx = sx - o.x, dz = sz - o.z, dd = Math.hypot(dx, dz), Rb = o.r + m; if (dd >= Rb) return; if (dd < 0.001) sx = o.x + Rb; else { sx = o.x + dx / dd * Rb; sz = o.z + dz / dd * Rb; } });
+    return [DONJON.x + S.x + sx, DONJON.z + S.z + sz]; }
   if (E.mode === 'rampe') {
     let t = a + TAU_L * Math.round((E.theta - a) / TAU_L);
     if (t >= LABO.A0 - 0.02) { t = Math.min(t, rampeMax()); const rr = Math.max(LABO.R_IN + m, Math.min(LABO.R_OUT - m, r)); E.theta = t; return [DONJON.x + rr * Math.cos(t), DONJON.z + rr * Math.sin(t)]; }
@@ -62,12 +69,13 @@ const dansDonjon = (x, z, m) => { const lx = x - DONJON.x, lz = z - DONJON.z, r 
 const hauteurSolDonjon0 = hauteurSol;
 hauteurSol = function (x, z) {
   if (lieu !== 'donjon' || !ileWabbits) return hauteurSolDonjon0.apply(this, arguments);
-  const E = donjonEntite ? donjonEntite.lab : etatPerso(); if (E && E.mode === 'rampe') { const a = Math.atan2(z - DONJON.z, x - DONJON.x); return hautRampe(Math.min(a + TAU_L * Math.round((E.theta - a) / TAU_L), rampeMax())); }
+  const E = donjonEntite ? donjonEntite.lab : etatPerso(); if (E && E.mode === 'salle') return Y_SALLE; if (E && E.mode === 'rampe') { const a = Math.atan2(z - DONJON.z, x - DONJON.x); return hautRampe(Math.min(a + TAU_L * Math.round((E.theta - a) / TAU_L), rampeMax())); }
   return surPonton(x - DONJON.x, z - DONJON.z, 0) ? -0.06 : 0;
 };
 const majMonstreDonjon0 = majMonstre; majMonstre = function (mo) { if (lieu !== 'donjon') return majMonstreDonjon0.apply(this, arguments); donjonEntite = mo; try { return majMonstreDonjon0.apply(this, arguments); } finally { donjonEntite = null; } };
 /* UN CLIC : sur la passerelle, le chemin suit la spirale (en ligne droite, on butait contre la tour) */
 function cheminDonjon(p) {
+  if (etatPerso().mode === 'salle') { const [x, z] = bornerDonjon(p.x, p.z); return [{ c: paysanMesh.userData.cellule, x, z }]; }
   const E = etatPerso(), pp = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx), surRampe = r >= LABO.R_IN - 0.2 && r <= LABO.R_OUT + 0.2 && p.y > 0.25;
   const pts = []; const spirale = (t0, t1, rr) => { const n = Math.max(1, Math.ceil(Math.abs(t1 - t0) / 0.3)); for (let k = 1; k <= n; k++) { const t = t0 + (t1 - t0) * k / n; pts.push({ x: DONJON.x + rr * Math.cos(t), z: DONJON.z + rr * Math.sin(t) }); } };
   const rm = (LABO.R_IN + LABO.R_OUT) / 2;
@@ -125,7 +133,8 @@ async function construireIleWabbits() {
       const t = rnd(); if (t < 0.22) { const b = new T.Mesh(new T.IcosahedronGeometry(0.45 + rnd() * 0.3, 0), mat(rnd() < 0.5 ? '#5a9640' : '#679f48')); b.scale.y = 0.7; pose(b, x, z, 0.2); }
       else if (t < 0.75) { const f = new T.Group(); for (let q = 0; q < 3; q++) { const h = cone(0.06, 0.35, '#5f9a3e', 3); h.position.set((q - 1) * 0.08, 0.17, (q % 2) * 0.06); h.rotation.z = (q - 1) * 0.3; f.add(h); } pose(f, x, z); }
       else { const f = new T.Group(), tg = cone(0.025, 0.3, '#4f8a35', 3); tg.position.y = 0.15; f.add(tg); const fl = new T.Mesh(new T.IcosahedronGeometry(0.09, 0), mat(FL[Math.floor(rnd() * FL.length)])); fl.position.y = 0.32; f.add(fl); pose(f, x, z); } } }
-  g.userData.flaques = flaques; sansClic(g); mer.raycast = im.raycast = T.Mesh.prototype.raycast; if (g.userData.passerelle) g.userData.passerelle.traverse((q) => { if (q.isMesh) delete q.raycast; }); /* (la mer, le sol et la passerelle restent cliquables : on y va) */
+  g.userData.salles = construireSalles(g);
+  g.userData.flaques = flaques; sansClic(g); g.userData.salles.forEach((S) => { if (S.grp.userData.sol) delete S.grp.userData.sol.raycast; }); /* (le sol des salles reste cliquable) */ mer.raycast = im.raycast = T.Mesh.prototype.raycast; if (g.userData.passerelle) g.userData.passerelle.traverse((q) => { if (q.isMesh) delete q.raycast; }); /* (la mer, le sol et la passerelle restent cliquables : on y va) */
   im.raycast = T.InstancedMesh.prototype.raycast;
   scene.add(g); return g;
 }
@@ -145,22 +154,84 @@ function posterCamps(c) {
     L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 2) * 1.2, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 });
       setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] }; } }); }, 200 + (k * 6 + i) * 120); }); });
 }
-/* une salle : ses mutants sortent par la porte, sur la passerelle (en attendant les salles interieures) */
+/* le passage d'une porte : un fondu au noir, le perso de l'autre cote */
+function fonduDonjon(fn) { let d = document.getElementById('fondu-donjon'); if (!d) { d = document.createElement('div'); d.id = 'fondu-donjon'; d.style.cssText = 'position:fixed;inset:0;background:#05070a;opacity:0;pointer-events:none;transition:opacity .28s;z-index:60'; document.body.appendChild(d); }
+  d.style.opacity = '1'; setTimeout(() => { try { fn(); } finally { setTimeout(() => { d.style.opacity = '0'; }, 140); } }, 300); }
+function placerPersoDonjon(x, y, z) { const u = paysanMesh.userData; paysanMesh.position.set(x, y, z); u.y = y; chemin = []; arrivee = null; if (combat) { combat.tenir = true; combat.ordre = false; combat.poursuite = false; combat.cible = null; } /* (de l'autre cote de la porte, il tient sa position : sinon il repartait vers un mutant reste au pied de la tour) */ VISEE.set(x, y + 0.6, z); placerCamera(); suivreOmbres(); }
+const ENTREE_SALLE = Math.PI / 4; /* (l'entree de chaque salle : du cote de la camera de depart, la salle s'etend derriere) */
+/* on passe la porte i : la salle, ses mutants (ou le Docteur) qui attendent au fond */
 function ouvrirSalleLabo(i) {
-  const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || E.salles[i]) return; E.salles[i] = { t: E.t, fini: false };
-  if (i === 4) { toast('La porte du labo du Docteur Wabbenstein ! Sa salle arrive à la prochaine étape : fin de l\'essai.', 'or'); E.gagne = E.t; return; }
-  const h = LABO.PORTES[i], ta = angleRampe(h), L = []; S.L.forEach(([t, n]) => { for (let k = 0; k < n; k++) L.push(t); });
-  toast('La porte s\'ouvre : ' + S.nom + ' ! Ses mutants surgissent.', 'alerte'); son('vague', null, 2);
-  L.forEach((t, k) => { const tt = Math.min(rampeMax() - 0.05, ta + 0.08 + (k % 3) * 0.14 - (k > 2 ? 0.32 : 0)), rr = LABO.R_IN + 0.7 + (k % 2) * 0.9;
-    setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x: DONJON.x + rr * Math.cos(tt), z: DONJON.z + rr * Math.sin(tt), apres: (o) => { transmuter(o); o.lab = { mode: 'rampe', theta: tt }; o.salle = i; o.y = hautRampe(tt);
-      if (o.dep) { o.dep.x = DONJON.x + (LABO.R_IN - 0.3) * Math.cos(ta); o.dep.z = DONJON.z + (LABO.R_IN - 0.3) * Math.sin(ta); o.dep.y = hautRampe(ta); o.dep.friche = true; } } }); }, 300 + k * 260); });
+  const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || E.salles[i]) return; E.salles[i] = { t: E.t, fini: false, dedans: true };
+  const L = []; S.L.forEach(([t, n]) => { for (let k = 0; k < n; k++) L.push(t); });
+  fonduDonjon(() => {
+    const P = E.perso; P.mode = 'salle'; P.i = i; const re = S.R - 3.0; placerPersoDonjon(DONJON.x + S.x + Math.cos(ENTREE_SALLE) * re, Y_SALLE, DONJON.z + S.z + Math.sin(ENTREE_SALLE) * re);
+    paysanMesh.userData.angle = Math.atan2(-Math.cos(ENTREE_SALLE), -Math.sin(ENTREE_SALLE)); paysanMesh.rotation.y = paysanMesh.userData.angle;
+    toast(i === 4 ? 'Le labo ! Le Docteur Wabbenstein se retourne vers toi.' : 'Tu entres dans ' + S.nom + ' : ses mutants t\'attendent !', 'alerte'); son('vague', null, 2);
+    L.forEach((t, k) => { const a = ENTREE_SALLE + Math.PI + (L.length > 1 ? (k / (L.length - 1) - 0.5) * 1.6 : 0), rr = i === 4 ? 2.5 : 2.6 + (k % 2) * 2.0, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
+      setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x, z, apres: (o) => { if (t !== 'wabbenstein') transmuter(o); o.lab = { mode: 'salle', i }; o.salle = i; o.y = Y_SALLE; o.ry = Math.atan2(Math.cos(ENTREE_SALLE), Math.sin(ENTREE_SALLE)); if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE - 1.4; } } }); }, 450 + k * 240); });
+  });
+}
+/* la salle nettoyee : on ressort par la sortie verte, sur la passerelle devant la porte, et la grille s'ouvre */
+function sortirSalleLabo(i) { const E = donjonEtat; if (!E || E.sortie) return; E.sortie = true;
+  fonduDonjon(() => { const P = E.perso, ta = angleRampe(LABO.PORTES[i]) + 0.05, rr = LABO.R_IN + 0.9; P.mode = 'rampe'; P.theta = ta; P.i = null; E.salles[i].dedans = false; E.sortie = false;
+    placerPersoDonjon(DONJON.x + rr * Math.cos(ta), hautRampe(ta), DONJON.z + rr * Math.sin(ta)); const S = ileWabbits.userData.salles[i]; if (S && S.sortie) S.sortie.visible = false; ouvrirGrille(i); }); }
+/* LES SALLES : une piece ronde chacune, sous l'ile ; sol de toles, murets de cuivre cercles de laiton, tuyaux, la porte d'entree et sa sortie verte, et le decor
+   de son theme (les cages, la serre, la chirurgie, les cuves, le labo) ; chaque meuble est un obstacle (S.blocs, en coordonnees de la salle) */
+function construireSalles(g) {
+  const T_ = (o, x, y, z) => { o.position.set(x, y, z); o.traverse((q) => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; } }); return o; };
+  const cyl = (r, h, c, seg) => new T.Mesh(new T.CylinderGeometry(r, r, h, seg || 16), mat(c)), lum = (c, o) => new T.MeshBasicMaterial({ color: c, transparent: o != null, opacity: o == null ? 1 : o, depthWrite: o == null });
+  return SALLES_LABO.map((S, i) => {
+    const s = new T.Group(), R = S.R, blocs = []; s.position.set(S.x, Y_SALLE, S.z); const bloc = (x, z, r) => blocs.push({ x, z, r });
+    const vide = new T.Mesh(new T.CircleGeometry(R + 30, 40), lum('#0b0d12')); vide.rotation.x = -Math.PI / 2; vide.position.y = -0.3; s.add(vide);
+    const sol = cyl(R, 0.4, '#5a5d64', 56); sol.position.y = -0.2; sol.receiveShadow = true; s.add(sol); s.userData.sol = sol;
+    for (let k = 1; k <= 3; k++) { const a = new T.Mesh(new T.RingGeometry(R * k / 4 - 0.05, R * k / 4 + 0.05, 56), lum('#43464d')); a.rotation.x = -Math.PI / 2; a.position.y = 0.012; s.add(a); }
+    for (let k = 0; k < 8; k++) { const b = boite(R * 0.75, 0.02, 0.09, '#43464d'); b.position.set(Math.cos(k / 8 * Math.PI * 2) * R * 0.625, 0.012, Math.sin(k / 8 * Math.PI * 2) * R * 0.625); b.rotation.y = -k / 8 * Math.PI * 2; s.add(b); }
+    const mur = new T.Mesh(new T.CylinderGeometry(R + 0.3, R + 0.3, 1.7, 56, 1, true), new T.MeshToonMaterial({ color: '#b5602a', gradientMap: grad, side: T.DoubleSide })); mur.position.y = 0.85; s.add(mur);
+    const cercle = new T.Mesh(new T.TorusGeometry(R + 0.3, 0.15, 8, 56), mat('#b38d35')); cercle.rotation.x = Math.PI / 2; cercle.position.y = 1.72; s.add(cercle);
+    for (let k = 0; k < 10; k++) { const a = ENTREE_SALLE + Math.PI + (k / 9 - 0.5) * 3.6, t = cyl(0.22, 4.2, k % 3 ? '#a8562e' : '#7a3b1e', 10); s.add(T_(t, Math.cos(a) * (R + 0.55), 2.1, Math.sin(a) * (R + 0.55))); if (k % 3 === 1) { const v = cyl(0.3, 0.12, '#b38d35', 12); s.add(T_(v, Math.cos(a) * (R + 0.55), 3.2, Math.sin(a) * (R + 0.55))); } }
+    /* la porte d'entree, et la sortie verte devant elle */
+    { const ca = Math.cos(ENTREE_SALLE), sa = Math.sin(ENTREE_SALLE), p = new T.Group(); const cad = boite(2.2, 2.6, 0.35, '#3e4046'); cad.position.y = 1.3; p.add(cad); const po = boite(1.6, 2.2, 0.4, '#62656d'); po.position.y = 1.1; p.add(po);
+      const vo = new T.Mesh(new T.TorusGeometry(0.36, 0.05, 6, 16), mat('#8b8f98')); vo.position.set(0, 1.4, 0.22); p.add(vo); p.rotation.y = Math.atan2(ca, sa); s.add(T_(p, ca * (R + 0.25), 0, sa * (R + 0.25))); }
+    const sortie = new T.Mesh(new T.RingGeometry(0.8, 1.15, 32), lum('#7dff5a', 0.75)); sortie.rotation.x = -Math.PI / 2; sortie.position.set(Math.cos(ENTREE_SALLE) * (R - 1.0), 0.04, Math.sin(ENTREE_SALLE) * (R - 1.0)); sortie.visible = false; /* (contre la porte, loin de l'arrivee : on ressort quand on veut) */ s.add(sortie);
+    const fond = (k, n, rr) => { const a = ENTREE_SALLE + Math.PI + (n > 1 ? (k / (n - 1) - 0.5) * 2.6 : 0); return [Math.cos(a) * rr, Math.sin(a) * rr]; }; /* (le fond de la salle, face a l'entree) */
+    const cote = (k, rr) => { const a = ENTREE_SALLE + (k % 2 ? 1 : -1) * (1.25 + Math.floor(k / 2) * 0.42); return [Math.cos(a) * rr, Math.sin(a) * rr]; };
+    if (S.theme === 'cages') { /* les cages : des cages de fer le long du mur, certaines enfoncees */
+      for (let k = 0; k < 9; k++) { const [x, z] = k < 5 ? fond(k, 5, R - 1.3) : cote(k - 5, R - 1.3), c = new T.Group(); const sk = boite(1.3, 0.1, 1.3, '#2f3035'); sk.position.y = 0.05; c.add(sk); const tt = boite(1.3, 0.1, 1.3, '#2f3035'); tt.position.y = 1.6; c.add(tt);
+        for (let b = 0; b < 12; b++) { const a2 = b / 12 * Math.PI * 2, br = boite(0.05, 1.55, 0.05, '#4a4c52'); br.position.set(Math.cos(a2) * 0.6, 0.8, Math.sin(a2) * 0.6); if (!(k % 3 === 2 && b < 3)) c.add(br); }
+        c.rotation.y = k * 0.7; s.add(T_(c, x, 0, z)); bloc(x, z, 0.85); } }
+    else if (S.theme === 'serre') { /* la serre a mutagene : des bacs de terre ou poussent des plantes vertes qui luisent, des flaques */
+      for (let k = 0; k < 6; k++) { const [x, z] = k < 4 ? fond(k, 4, R - 1.6) : cote(k - 4, R - 1.8), b = new T.Group(); const bac = boite(1.8, 0.5, 1.0, '#6b4528'); bac.position.y = 0.25; b.add(bac); const te = boite(1.7, 0.08, 0.9, '#3d2f20'); te.position.y = 0.52; b.add(te);
+        for (let q = 0; q < 3; q++) { const tg = cone(0.07, 1.1 + q * 0.25, '#3f8f3a', 5); tg.position.set(-0.55 + q * 0.55, 1.0 + q * 0.12, 0); b.add(tg); const bu = new T.Mesh(new T.IcosahedronGeometry(0.2, 0), lum('#8dff6a')); bu.position.set(-0.55 + q * 0.55, 1.55 + q * 0.25, 0); b.add(bu); }
+        b.rotation.y = -Math.atan2(z, x) + Math.PI / 2; s.add(T_(b, x, 0, z)); bloc(x, z, 1.0); }
+      for (const [x, z, r] of [[-1.8, 2.4, 1.1], [2.6, -1.4, 0.8], [0.4, -3.8, 0.9]]) { const f = new T.Mesh(new T.CircleGeometry(r, 18), lum('#8bff4a', 0.5)); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.03, z); s.add(f); } }
+    else if (S.theme === 'chirurgie') { /* la salle de chirurgie : deux tables d'operation sous leurs lampes, des chariots d'outils, un bras mecanique */
+      for (let k = 0; k < 2; k++) { const [x, z] = fond(k, 2, R - 3.4), t = new T.Group(); const pl = boite(2.2, 0.16, 1.0, '#d8dde2'); pl.position.y = 0.95; t.add(pl); const pi = cyl(0.12, 0.9, '#62656d', 8); pi.position.y = 0.45; t.add(pi); const pied = boite(1.0, 0.1, 0.6, '#43464d'); pied.position.y = 0.05; t.add(pied);
+        const tige = cyl(0.05, 1.6, '#43464d', 6); tige.position.set(0, 2.4, 0); t.add(tige); const lampe = cone(0.5, 0.4, '#62656d', 12); lampe.position.y = 3.2; t.add(lampe); const ampoule = new T.Mesh(new T.SphereGeometry(0.22, 10, 8), lum('#fff6c8')); ampoule.position.y = 3.0; t.add(ampoule);
+        t.rotation.y = -Math.atan2(z, x); s.add(T_(t, x, 0, z)); bloc(x, z, 1.15); }
+      for (let k = 0; k < 4; k++) { const [x, z] = cote(k, R - 1.5), ch = new T.Group(); const pl = boite(1.0, 0.08, 0.6, '#9aa3ad'); pl.position.y = 0.9; ch.add(pl); const pl2 = boite(1.0, 0.08, 0.6, '#9aa3ad'); pl2.position.y = 0.45; ch.add(pl2);
+        for (const [dx, dz] of [[-0.45, -0.25], [0.45, -0.25], [-0.45, 0.25], [0.45, 0.25]]) { const pi = cyl(0.03, 0.9, '#62656d', 6); pi.position.set(dx, 0.45, dz); ch.add(pi); } const sc = new T.Mesh(new T.ConeGeometry(0.06, 0.4, 5), lum('#d8ffb0')); sc.rotation.z = Math.PI / 2; sc.position.set(0.1, 1.0, 0); ch.add(sc);
+        s.add(T_(ch, x, 0, z)); bloc(x, z, 0.65); }
+      { const [x, z] = fond(0, 1, R - 1.2), br = new T.Group(); const so = cyl(0.5, 0.5, '#43464d', 12); so.position.y = 0.25; br.add(so); const b1 = cyl(0.16, 2.2, '#c9682a', 10); b1.position.set(0, 1.5, 0); br.add(b1); const b2 = cyl(0.13, 1.8, '#c9682a', 10); b2.rotation.z = 1.1; b2.position.set(0.75, 2.8, 0); br.add(b2); const pince = cone(0.18, 0.4, '#62656d', 6); pince.position.set(1.55, 3.0, 0); pince.rotation.z = -1.6; br.add(pince); s.add(T_(br, x, 0, z)); bloc(x, z, 0.7); } }
+    else if (S.theme === 'cuves') { /* la salle des cuves : de grandes cuves de verre vert, cerclees de laiton, des Wabbits en suspension */
+      for (let k = 0; k < 5; k++) { const [x, z] = k < 3 ? fond(k, 3, R - 1.8) : cote(k - 3, R - 2.0), cu = new T.Group(); const pied = cyl(0.95, 0.4, '#b38d35', 18); pied.position.y = 0.2; cu.add(pied); const verre = new T.Mesh(new T.CylinderGeometry(0.85, 0.85, 2.6, 18), lum('#7dff5a', 0.42)); verre.position.y = 1.7; cu.add(verre);
+        const toit = cyl(0.95, 0.35, '#b38d35', 18); toit.position.y = 3.15; cu.add(toit); const lap = new T.Mesh(new T.SphereGeometry(0.4, 10, 8), mat('#d8d2c4')); lap.scale.set(1, 1.3, 1); lap.position.y = 1.7; cu.add(lap); const t2 = cyl(0.12, 1.2, '#a8562e', 8); t2.position.y = 3.9; cu.add(t2);
+        s.add(T_(cu, x, 0, z)); bloc(x, z, 1.05); } }
+    else { /* le labo du Docteur : la grande cuve de sa derniere creation, son pupitre aux ecrans verts, deux bobines qui crepitent, des cawottes a l'etude */
+      { const [x, z] = fond(0, 1, R - 2.2), cu = new T.Group(); const pied = cyl(1.6, 0.5, '#b38d35', 22); pied.position.y = 0.25; cu.add(pied); const verre = new T.Mesh(new T.CylinderGeometry(1.4, 1.4, 3.6, 22), lum('#8dff6a', 0.45)); verre.position.y = 2.3; cu.add(verre); const toit = cyl(1.6, 0.4, '#b38d35', 22); toit.position.y = 4.3; cu.add(toit);
+        const ca = cone(0.5, 1.6, '#e07a20', 8); ca.rotation.z = Math.PI; ca.position.y = 2.4; cu.add(ca); s.add(T_(cu, x, 0, z)); bloc(x, z, 1.7); }
+      for (let k = 0; k < 2; k++) { const [x, z] = fond(k, 2, R - 2.0).map((v, j) => v + (j ? 1 : -1) * 0), [x2, z2] = cote(k, R - 2.2), bo = new T.Group(); const so = cyl(0.45, 0.4, '#43464d', 10); so.position.y = 0.2; bo.add(so);
+        for (let q = 0; q < 6; q++) { const an = new T.Mesh(new T.TorusGeometry(0.32, 0.06, 6, 16), mat('#c98a3c')); an.rotation.x = Math.PI / 2; an.position.y = 0.6 + q * 0.28; bo.add(an); } const bou = new T.Mesh(new T.SphereGeometry(0.4, 12, 10), lum('#c9f2ff')); bou.position.y = 2.6; bo.add(bou); s.add(T_(bo, x2, 0, z2)); bloc(x2, z2, 0.6); void x; void z; }
+      { const [x, z] = cote(2, R - 1.6), pu = new T.Group(); const b = boite(2.4, 1.0, 0.9, '#62656d'); b.position.y = 0.5; pu.add(b); for (let q = 0; q < 3; q++) { const e = new T.Mesh(new T.PlaneGeometry(0.6, 0.45), lum('#7dff5a')); e.position.set(-0.75 + q * 0.75, 1.35, 0.1); const ec = boite(0.7, 0.55, 0.1, '#3e4046'); ec.position.set(-0.75 + q * 0.75, 1.35, 0.02); pu.add(ec, e); }
+        pu.rotation.y = -Math.atan2(z, x) - Math.PI / 2; s.add(T_(pu, x, 0, z)); bloc(x, z, 1.2); } }
+    S.blocs = blocs; g.add(s); return { grp: s, sortie };
+  });
 }
 function ouvrirGrille(i) { const E = donjonEtat; if (!E || E.grilles[i]) return; E.grilles[i] = true; const G = ileWabbits && ileWabbits.userData.grilles[i]; son('quete');
-  toast('Salle nettoyée (' + SALLES_LABO[i].nom + ') : tu trouves la clé, la grille de la passerelle s\'ouvre. Monte !', 'or');
+  toast('Tu ressors avec la clé : la grille de la passerelle s\'ouvre. Monte !', 'or');
   if (G) { let t = 0; effets.push((dt) => { t += dt; G.position.y = -Math.min(1, t / 1.1) * 2.6; if (t >= 1.1) { G.visible = false; return true; } return false; }); } }
 function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps, les portes et les grilles, les monstres sur l'ile, la camera, la tour qui s'efface */
   const E = donjonEtat, c = combat; if (!E || lieu !== 'donjon') return true; if (!c || c.genre !== 'donjon' || c.fin) return false;
-  E.t += dt; const p = paysanMesh.position, P = E.perso, hP = P.mode === 'rampe' ? hautRampe(P.theta) : 0;
+  E.t += dt; const p = paysanMesh.position, P = E.perso, hP = P.mode === 'rampe' ? hautRampe(P.theta) : P.mode === 'salle' ? Y_SALLE : 0;
   const suivre = () => { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (p.x - VISEE.x) * k; VISEE.z += (p.z - VISEE.z) * k; VISEE.y += (0.6 + hP - VISEE.y) * Math.min(1, dt * 3); placerCamera(); } };
   if (E.arrivee) { suivre(); return false; } /* (pendant la traversee : rien ne bouge, la camera suit la barque) */
   /* les camps : ils attendent ; le perso entre dans leur perimetre (au sol), ils attaquent ; il s'eloigne ou monte, ils rentrent chez eux */
@@ -172,7 +243,11 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
     if (d > 0.3) { const v = Math.min(d, 3.2 * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); } });
   /* les portes : on arrive devant, la salle s'ouvre ; une salle nettoyee rend 25 % de vie et ouvre la grille */
   if (P.mode === 'rampe') LABO.PORTES.forEach((h, i) => { if (E.salles[i] || (i > 0 && !E.grilles[i - 1])) return; const ta = angleRampe(h), r = Math.hypot(p.x - DONJON.x, p.z - DONJON.z); if (Math.abs(P.theta - ta) < 0.3 && r < LABO.R_IN + 1.3) ouvrirSalleLabo(i); });
-  E.salles.forEach((s, i) => { if (!s || s.fini || i === 4 || E.t - s.t < 2.5) return; if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud(); ouvrirGrille(i); });
+  E.salles.forEach((s, i) => { if (!s || s.fini || E.t - s.t < 3) return; if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud();
+    if (i === 4) { E.gagne = E.t; toast('Le Docteur Wabbenstein est tombé ! Les cages s\'ouvrent, les Wabbits sont libres.', 'or'); return; }
+    const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); });
+  if (P.mode === 'salle' && P.i != null && P.i < 4 && E.salles[P.i] && E.salles[P.i].fini) { const S = SALLES_LABO[P.i], sx = DONJON.x + S.x + Math.cos(ENTREE_SALLE) * (S.R - 1.0), sz = DONJON.z + S.z + Math.sin(ENTREE_SALLE) * (S.R - 1.0); if (Math.hypot(p.x - sx, p.z - sz) < 1.05) sortirSalleLabo(P.i);
+    const So = ileWabbits.userData.salles[P.i]; if (So && So.sortie.visible) { So.sortie.material.opacity = 0.55 + 0.3 * Math.sin(E.t * 5); So.sortie.scale.setScalar(1 + 0.06 * Math.sin(E.t * 5)); } }
   if (E.gagne != null && E.t - E.gagne > 1.6) { finDonjon(true); return true; }
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; if (!o.lab) o.lab = { mode: 'sol', theta: LABO.A0 }; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3, o.lab); o.x = q[0]; o.z = q[1]; });
   if ((E.lueurT = (E.lueurT || 0) - dt) <= 0) { E.lueurT = 0.14; c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.m) return; const h = o.d.boss ? 2.4 : 1.2; emettre(FX_LUM, 2, { x: o.x + (Math.random() - 0.5) * 0.8, y: o.m.position.y + Math.random() * h, z: o.z + (Math.random() - 0.5) * 0.8, r: 0.1, v: [0, 1.1, 0], dv: 0.3, vie: [0.7, 1.2], taille: [0.2, 0.03], c: ['#d8ffb0', '#7dff5a', '#2fd12f'], a: 0.9, frein: 1 }); }); }
@@ -218,10 +293,10 @@ function finDonjon(gagne) {
   const m = Math.floor(E.t / 60), sec = Math.round(E.t % 60), salles = E.salles.filter((s) => s && s.fini).length;
   if (ileWabbits) effacerTourReset();
   son(gagne ? 'victoire' : 'defaite'); if (gagne) confettis(60);
-  ouvrirModale('donjon-fin', entete(gagne ? 'Fin de l\'essai : la porte du labo !' : 'À terre !') +
-    '<div class="recap-combat">' + ligneRecap('cadence', 'Temps', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('renfort', 'Salles nettoyées', salles + ' sur 4') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
+  ouvrirModale('donjon-fin', entete(gagne ? 'Le Docteur Wabbenstein est tombé !' : 'À terre !') +
+    '<div class="recap-combat">' + ligneRecap('cadence', 'Temps', (m ? m + ' min ' : '') + sec + ' s') + ligneRecap('renfort', 'Salles nettoyées', salles + ' sur 5') + ligneRecap('renfort', 'Monstres abattus', c.st.tues) +
     ligneRecap('degats', 'Tes dégâts', fmt(Math.round(c.st.inflige))) + ligneRecap('vita', 'Dégâts reçus', fmt(Math.round(c.st.recus))) + '</div>' + detailCombat(c) +
-    '<p class="hdv-aide">Essai (version dev) : la tour et sa passerelle, les camps du pied, les portes et les grilles. Prochaine étape : les cinq salles intérieures, le Docteur Wabbenstein dans son labo, un coffre à la fin.</p>' +
+    '<p class="hdv-aide">Essai (version dev) : la tour, sa passerelle, les camps du pied et les cinq salles. Prochaine étape : un coffre et un record de temps à la fin, les Wabbits mutants redessinés.</p>' +
     '<div class="act-bas"><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-donjon="partir">Recommencer</button></div>');
 }
 function effacerTourReset() { const I = ileWabbits.userData; [I.tour].concat(I.portes || []).forEach((G) => G && G.traverse((q) => { if (q.isMesh && q.material) { q.material.transparent = false; q.material.opacity = 1; q.material.depthWrite = true; q.material.needsUpdate = true; } })); }
