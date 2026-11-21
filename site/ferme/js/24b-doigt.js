@@ -216,6 +216,7 @@ function dgChoixHtml() { /* (tous les choix, sur leur page : ouvrirDoigt) */
    le resume des reglages et un bouton « Regler », qui ouvre tous les choix sur leur page, avec un retour aux Options */
 const DG_NOMS = { actif: { auto: 'au téléphone', toujours: 'toujours', jamais: 'jamais' }, disp: { a: 'éventail', c: 'deux bandes' }, joy: { fixe: 'joystick fixe', flottant: 'joystick sous le doigt' }, suivi: { cadre: 'caméra avec un cadre', centre: 'caméra au centre', libre: 'caméra libre' } };
 function dgOptionsHtml() {
+  if (typeof commandesOptionsHtml === 'function') return commandesOptionsHtml(); /* (21/11/2026 : une seule ligne, telephone, manette, souris, 24c-manette.js) */
   const R = dgReglages, res = R.actif === 'jamais' ? 'Désactivées' : 'Activées ' + DG_NOMS.actif[R.actif] + ' · ' + ['disp', 'joy', 'suivi'].map((k) => DG_NOMS[k][R[k]]).filter(Boolean).join(' · ');
   return '<div id="dg-opt"><div class="hdv-section">Au téléphone</div><div class="art">' + ico('opt-doigt') + '<div><b>Commandes au doigt en combat</b><div class="desc">' + res + '</div></div><div class="act"><button class="btn discret" data-dg-ouvrir>Régler</button></div></div></div>';
 }
