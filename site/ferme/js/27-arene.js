@@ -308,6 +308,17 @@ const VITESSE_ILE = { craqLegendaire: 1.25, bworker: 1.25 /* (12/11/2026, comme 
 const ROTATION_ILE_BOSS = ['koulosse', 'waWabbit', 'crocabulia', 'craqLegendaire', 'bworker', 'cuirasse', 'royal', 'dragonCochon']; /* (le Dragon Cochon en dernier, 20/10/2026 : la semaine en cours garde son boss, il arrive la semaine du vendredi 4/12/2026) */
 let ileBossTotal = null, ileBossListe = null; /* (le total de l'alliance, lu dans la base) */
 const RECOMPENSES_ILE = { participation: { kamas: kamasGagnes(10000), forge: 1, xp: 0.15 }, tombe: { kamas: 100000, forge: 2, xp: 0, piece: 0.75, leg: 0.1 } /* (21/11/2026, « retire l'XP, mets le nombre de runes a 2, mets les kamas a 100 000, la piece reste », Mathieu : 100 000 tels quels, deja nets ; 36 000, 3 runes et 40 % d'un niveau avant) */, podium: [{ kamas: 200000, parfaite: 1 }, { kamas: 100000, forge: 3 }, { kamas: 50000, forge: 2 }] }; /* (le podium, 21/11/2026, « mets a 200 000 le 1er, 100 000 le 2e, 50 000 le 3e », Mathieu : tels quels, nets ; 27 000, 18 000 et 9 000 avant) */
+/* LES PALIERS DE L'ALLIANCE (21/11/2026, « on va changer le systeme du boss de l'ile : que le boss ait des PV infinis, on ne fonctionne plus avec un systeme ou il
+   faut le faire tomber ; un systeme par paliers realises par l'ensemble des joueurs, qui remplace celui ou on doit le faire tomber pour recuperer des recompenses ;
+   et toujours le classement par joueur avec les coffres, ca ne bouge pas », Mathieu ; au formulaire : les paliers « plus haut », les recompenses proposees, des
+   cette semaine). Des la semaine du 21/11 (Scorpal), le boss de l'ile ne tombe plus : sa vie revient a chaque coup, l'essai dure tant que tu tiens. Le total de
+   l'alliance (le meilleur essai de chaque compte, additionne, comme la vie commune avant, sql/086) franchit des paliers ; chaque joueur qui l'a frappe recoit au
+   coffre de la semaine les recompenses de TOUS les paliers atteints, en plus du podium (ses ressources s'ajoutent a celles des paliers). Montants tels quels,
+   nets, comme le podium. Les semaines d'avant gardent l'ancien coffre (la participation, ou mieux s'il est tombe) */
+const ILE_PALIERS_DES = '2026-11-21', ileInfinie = (cle) => !!cle && cle >= ILE_PALIERS_DES;
+const PALIERS_ILE = [{ seuil: 500000, kamas: 20000, forge: 1, res: 5 }, { seuil: 1000000, kamas: 30000, forge: 1 }, { seuil: 2000000, kamas: 40000, piece: 0.75 },
+  { seuil: 4000000, kamas: 50000, forge: 1, res: 5 }, { seuil: 6000000, kamas: 60000, leg: 0.1 }];
+const palierIleAtteint = (total) => PALIERS_ILE.filter((p) => (total || 0) >= p.seuil).length; /* (de 0 a 5) */
 const cleJour = (t) => { const d = new Date(t == null ? tempsReel() : t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 /* L'ILE A LA SEMAINE (18/10/2026, « dispo du vendredi au vendredi, ca reset les PV ; 3 essais comme d'hab mais sur toute la semaine », Mathieu ; l'acces libre de
    test de son compte est retire, « remets-moi en mode joueur normal ») : la semaine de l'ile va du vendredi 0 h au jeudi 23 h 59 ; sa cle est la date de son
@@ -387,11 +398,24 @@ function gainsIle(t) { /* les recompenses, en « jetons » (image, chiffre, lege
   const piece = { i: img(iconeObjet(pid)), g: '1 pièce', p: 'de la panoplie ' + P.map((p) => p.nom).join(' ou ') + ', jet de ' + Math.round(R.tombe.piece * 100) + ' % ou plus' };
   const lg = idl && OBJETS[idl] ? { i: img(iconeObjet(idl)), g: '1 chance sur ' + Math.round(1 / R.tombe.leg), p: '✦ ' + OBJETS[idl].nom, leg: true } : null;
   const res = (n) => ({ i: img('ressources-choix'), g: String(n), p: 'ressources au choix' }); /* (les ressources du coffre, 21/11/2026 : 5 pour chaque participant, 30, 20, 10 au podium, dont le coffre remplace les 5) */
-  return { part: [k(R.participation.kamas), ru(R.participation.forge), x(R.participation.xp), res(RESSOURCES_ILE.participation)].filter(Boolean), tombe: [k(R.tombe.kamas), ru(R.tombe.forge), x(R.tombe.xp), piece, lg, res(RESSOURCES_ILE.participation)].filter(Boolean),
+  const pcP = (q) => Object.assign({}, piece, { p: 'de la panoplie ' + P.map((p) => p.nom).join(' ou ') + ', jet de ' + Math.round(q * 100) + ' % ou plus' }), lgP = (q) => (lg ? Object.assign({}, lg, { g: '1 chance sur ' + Math.round(1 / q) }) : null);
+  return { paliers: PALIERS_ILE.map((p) => [p.kamas && k(p.kamas), p.forge && ru(p.forge), p.res && res(p.res), p.piece && pcP(p.piece), p.leg && lgP(p.leg)].filter(Boolean)), /* (les paliers de l'alliance, 21/11/2026) */
+    part:[k(R.participation.kamas), ru(R.participation.forge), x(R.participation.xp), res(RESSOURCES_ILE.participation)].filter(Boolean), tombe: [k(R.tombe.kamas), ru(R.tombe.forge), x(R.tombe.xp), piece, lg, res(RESSOURCES_ILE.participation)].filter(Boolean),
     podium: R.podium.map((p, i) => [k(p.kamas), p.parfaite ? ru(p.parfaite, true) : ru(p.forge), res(RESSOURCES_ILE.podium[i])]) };
 }
 const jetonsIle = (L, cl) => '<div class="ig-jetons' + (cl ? ' ' + cl : '') + '">' + L.map((j) => '<div class="ig-jeton' + (j.leg ? ' leg' : '') + '"><span class="ig-i">' + j.i + '</span><b>' + j.g + '</b><small>' + j.p + '</small></div>').join('') + '</div>';
-function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recompenses */
+/* LA JAUGE ET LA LISTE DES PALIERS (21/11/2026) : la jauge de la fiche, ses cinq reperes places a leur vrai seuil (jusqu'a 6 M, ou plus loin si l'alliance depasse),
+   et une ligne par palier : son seuil, ce qu'il donne a chacun, coche quand il est atteint, le suivant mis en avant */
+function jaugeIleHtml(total) {
+  const n = palierIleAtteint(total), haut = Math.max(PALIERS_ILE[PALIERS_ILE.length - 1].seuil, total || 0) * 1.04, suiv = PALIERS_ILE[n];
+  const txt = total == null ? (MODE_TEST ? 'Mode test : rien ne compte pour l\'alliance' : 'Connecte-toi pour voir le total de l\'alliance') : fmt(total) + ' dégâts' + (suiv ? ' · encore ' + fmt(suiv.seuil - total) + ' pour le palier ' + (n + 1) : ' · tous les paliers !');
+  return '<div class="ib-barre ip-jauge"><i style="width:' + (100 * Math.min(1, (total || 0) / haut)).toFixed(1) + '%"></i>' + PALIERS_ILE.map((p, i) => '<s class="' + (i < n ? 'ok' : '') + '" style="left:' + (100 * p.seuil / haut).toFixed(1) + '%"><em>' + (i + 1) + '</em></s>').join('') + '<span>' + txt + '</span></div>';
+}
+function paliersIleHtml(t, total) {
+  const G = gainsIle(t), n = palierIleAtteint(total);
+  return '<div class="ip-liste">' + PALIERS_ILE.map((p, i) => '<div class="ip-l' + (i < n ? ' ok' : i === n && total != null ? ' suiv' : '') + '"><span class="ip-n">' + (i < n ? '✓' : i + 1) + '</span><div class="ip-s"><b>' + fmt(p.seuil) + '</b><small>' + (i < n ? 'atteint' : 'dégâts') + '</small></div>' + jetonsIle(G.paliers[i], 'mini') + '</div>').join('') + '</div>';
+}
+function recompensesIle(t, vaincu, rang, frappe, inf, total) { /* les trois cartes des recompenses ; inf : la semaine a paliers (21/11/2026), deux cartes : les paliers, le podium */
   const G = gainsIle(t), rien = vaincu && !frappe ? '<p class="ig-rien">Tu n\'as pas frappé ce boss cette semaine : pas de coffre pour toi. Le prochain arrive ' + prochainVendredi() + '.</p>' : '';
   /* (les coffres du podium, 21/11/2026, « on les met visuellement du coup pour le podium ? », puis « c'est pas tres propre, affiche pas ce que ca donne, reste
      vague », Mathieu : les trois coffres en grand, leur nom et leur place, sans le detail ; le contenu se decouvre a l'ouverture) */
@@ -399,10 +423,12 @@ function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recom
     '<img src="assets/icones/coffre-' + rar + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>Coffre ' + ['légendaire', 'épique', 'rare'][i] + '</b><small>' + ['1re', '2e', '3e'][i] + ' place</small></div></div>').join('') + '</div>' +
     '<p class="ig-note">Des kamas, des runes et des ressources au choix, en plus de ta part. Plus la place est haute, plus le coffre est riche.</p>';
   const carte = (titre, cl, L, badge, ok) => '<div class="ig-carte ' + cl + '"><div class="ig-carte-t"><span>' + titre + '</span>' + (badge ? '<span class="ig-badge' + (ok ? ' ok' : '') + '">' + badge + '</span>' : '') + '</div>' + L + '</div>';
-  return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + '<div class="ig-cartes">' +
+  return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + (inf ? '<div class="ig-cartes deux">' +
+    carte('Les paliers de l\'alliance', 'paliers', '<p class="ig-note ip-note">Chaque palier atteint par l\'alliance ajoute ses gains à ton coffre, pourvu que tu aies frappé le boss.</p>' + paliersIleHtml(t, total), palierIleAtteint(total) ? palierIleAtteint(total) + ' sur ' + PALIERS_ILE.length : 'si tu as frappé', palierIleAtteint(total) > 0) +
+    carte('Le podium', 'podium', podium, 'en plus') + '</div>' : '<div class="ig-cartes">' +
     carte('S\'il tient', 'part' + (vaincu ? ' fini' : ''), jetonsIle(G.part), vaincu ? 'remplacé par mieux' : 'si tu as frappé') +
     carte(vaincu ? 'Il est tombé' : 'S\'il tombe', 'tombe', jetonsIle(G.tombe), vaincu ? (frappe ? '✓ gagné' : 'il fallait frapper') : 'si tu as frappé', vaincu && frappe) +
-    carte('Le podium', 'podium', podium, 'en plus') + '</div>' +
+    carte('Le podium', 'podium', podium, 'en plus') + '</div>') +
     (ROUE_SORTIE ? '<p class="ig-note ig-chance"><img src="assets/icones/jeton-legendaire.png?v=' + VERSION_MODELES + '" alt="">Chaque coffre peut aussi cacher une pièce rare ★ ou un jeton légendaire, à jouer à la roue du Casino : plus tu finis haut au classement, plus tu as de chances.' +
     (jetonsLeg() > 0 ? ' <b>Tu as ' + jetonsLeg() + ' jeton' + (jetonsLeg() > 1 ? 's' : '') + ' : la roue t\'attend au Casino.</b>' : '') + '</p>'
     : '<p class="ig-note">Chaque coffre peut aussi cacher une pièce rare ★ : plus tu finis haut au classement, plus tu as de chances.</p>'); /* (la roue et ses jetons : avec le palier 11, 29n) */
@@ -420,33 +446,37 @@ function ouvrirIleBoss() { /* la fiche de l'ile : le boss du jour, tes essais, l
   const raison = l < NIV_ILE_BOSS ? 'Il faut le niveau ' + NIV_ILE_BOSS + '.' : !reste ? 'Tes ' + essaisMax(cle) + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.' : '';
   const total = ileBossTotal != null && cle && !MODE_TEST ? ileBossTotal : null, pc = total != null ? Math.min(100, 100 * total / pvIleBoss(t)) : 0;
   const liste = MODE_TEST ? ETAT_TEST.ileListe || null : ileBossListe, rang = liste ? liste.findIndex((j) => j.moi) : -1;
-  if (ileVaincue(t, total)) { /* le boss est tombe : sa fiche de vaincu, plus d'essai (18/11/2026) */
+  const inf = ileInfinie(cle), totP = MODE_TEST ? (ETAT_TEST.ileTotal != null ? ETAT_TEST.ileTotal : null) : total; /* (les paliers de l'alliance, 21/11/2026 ; le mode test peut prendre un total d'essai) */
+  if (!inf && ileVaincue(t, total)) { /* le boss est tombe : sa fiche de vaincu, plus d'essai (18/11/2026) */
     const frappe = meilleurCompte(cle) > 0 || rang >= 0, fin = 'Il est tombé : plus d\'essai cette semaine. Nouveau boss ' + prochainVendredi() + '.';
     ouvrirModale('ileboss', entete('L\'Île des boss') + teteIleVaincue(t, cle, liste, rang, frappe) + recompensesIle(t, true, rang, frappe) +
       '<div class="hdv-section">Le classement final de la semaine</div><div id="ileboss-classement">' + (liste ? (liste.length ? tableauIle(liste, cle) : '<p class="hdv-aide">Personne n\'a frappé.</p>') : '<p class="hdv-aide">Chargement…</p>') + '</div>' +
       '<div class="act-bas"><small>' + fin + '</small><button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + (!aReclamer.length && etatIleBoss().dernierCoffre ? '<button class="btn discret" data-montgolfiere="revoirCoffreIle">Mon dernier coffre</button>' : '') + '<button class="btn kamas" disabled>Partir</button></div>');
     if (!ouvrirIleBoss.relu && !MODE_TEST) classementIleBoss(cle).then((r) => { if (!r || modaleOuverte !== 'ileboss') return; ileBossTotal = r.total; ileBossListe = r.joueurs; ouvrirIleBoss.relu = true; try { ouvrirIleBoss(); } finally { ouvrirIleBoss.relu = false; } });
     return; }
-  ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque samedi, avec une vie neuve. Toute l\'alliance tape sur la même vie.</p></div></div>' +
+  ouvrirModale('ileboss', entete('L\'Île des boss') + '<div class="arene-tete"><img src="assets/icones/' + B.icone + '.png' + v + '" alt=""><div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ' est là</b><p>Toute la semaine, jusqu\'à ' + finSemaineIle() + ' à 23 h 59 : un nouveau boss chaque samedi' + (inf ? '. <b>Sa vie est sans fin</b> : chacun tape tant qu\'il tient, et les dégâts de toute l\'alliance s\'additionnent pour franchir des paliers.' : ', avec une vie neuve. Toute l\'alliance tape sur la même vie.') + '</p></div></div>' +
     '<div class="puces arene-puces"><span class="puce ' + (l >= NIV_ILE_BOSS ? 'bonne' : 'mauvaise') + '">ouvert dès le niveau ' + NIV_ILE_BOSS + '</span><span class="puce">boss niveau ' + niveauIle() + ' pour tous</span>' + '<span class="puce ' + (reste ? 'bonne' : 'mauvaise') + '">' + (reste === Infinity ? 'essais sans limite' : reste + ' essai' + (reste > 1 ? 's' : '') + ' sur ' + essaisMax(cle) + ' cette semaine') + '</span><span class="puce">ton meilleur : ' + fmt(meilleurCompte(cle)) + '</span>' + '<span class="puce">gratuit</span></div>' +
-    ('<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, pvIleBoss(t) - total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV' : MODE_TEST ? 'Mode test : boss au choix, essais libres, rien ne compte pour l\'alliance' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
+    (inf ? '<div class="hdv-section">Les paliers de l\'alliance</div>' + jaugeIleHtml(totP) : '<div class="hdv-section">La vie du boss, pour toute l\'alliance</div><div class="ib-barre"><i style="width:' + (100 - pc).toFixed(1) + '%"></i><span>' + (total != null ? fmt(Math.max(0, pvIleBoss(t) - total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV' : MODE_TEST ? 'Mode test : boss au choix, essais libres, rien ne compte pour l\'alliance' : 'Connecte-toi pour voir la vie commune') + '</span></div>') +
     '<ul class="arene-regles"><li><b>' + (ILE_ESSAIS_LIBRES ? 'Essais sans limite' : ESSAIS_ILE_BOSS + ' essais par semaine' + (ESSAIS_BONUS_ILE[cle] ? ' (+' + ESSAIS_BONUS_ILE[cle] + ' offerts cette semaine)' : '')) + ', seul le meilleur compte</b> : tes dégâts sur le boss pendant ton meilleur essai s\'ajoutent à ceux de l\'alliance. Les essais sont par compte, toutes tes parties confondues.</li>' +
     '<li><b>Il est au niveau ' + niveauIle() + ' pour tout le monde</b> (celui du dernier palier ouvert), quels que soient ton niveau et ta classe, et enrage de plus en plus : toutes les ' + ENRAGE_ILE.periode + ' s, lui et sa troupe gagnent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % de dégâts, de vitesse de déplacement et de vitesse d\'attaque, et leurs sorts reviennent ' + Math.round(ENRAGE_ILE.pas * 100) + ' % plus vite. Toute l\'île est à toi : esquive tant que tu peux, et tape le plus fort possible.</li>' +
     '<li><b>Sa troupe le protège</b>, comme sur ta ferme : dégage-la pour bien le toucher. Ni tours ni arbalète ici, ton perso seul.</li></ul>' +
-    recompensesIle(t, false, rang, false) +
+    recompensesIle(t, false, rang, false, inf, totP) +
     (raison ? '' : sectionPotsBonus('l\'essai') + sectionRepas('ile')) +
     '<div class="hdv-section">Le classement de la semaine</div><div id="ileboss-classement"><p class="hdv-aide">Chargement…</p></div>' +
     '<div class="act-bas">' + (raison ? '<small>' + raison + '</small>' : '') + '<button class="btn discret" data-montgolfiere="carte">La carte des vents</button>' + (aReclamer.length ? '<button class="btn kamas" data-montgolfiere="reclamerIleBoss">Ouvrir le coffre de la semaine</button>' : '') + (!aReclamer.length && etatIleBoss().dernierCoffre ? '<button class="btn discret" data-montgolfiere="revoirCoffreIle">Mon dernier coffre</button>' : '') + '<button class="btn kamas" data-montgolfiere="partirIleBoss"' + (raison ? ' disabled' : '') + '>Partir</button></div>');
   classementIleBoss(cle).then((r0) => { const e = document.getElementById('ileboss-classement'); if (!e) return; if (!MODE_TEST) { ileBossTotal = r0 ? r0.total : null; ileBossListe = r0 ? r0.joueurs : null; }
     const r = r0 || (MODE_TEST && ETAT_TEST.ileListe ? { total: 0, joueurs: ETAT_TEST.ileListe } : null); /* (le classement d'essai du mode test) */
-    if (r0 && !MODE_TEST && r0.total >= pvIleBoss(t) && modaleOuverte === 'ileboss') { ouvrirIleBoss.relu = true; try { ouvrirIleBoss(); } finally { ouvrirIleBoss.relu = false; } return; } /* (il vient de tomber : la fiche du vaincu) */
+    if (!inf && r0 && !MODE_TEST && r0.total >= pvIleBoss(t) && modaleOuverte === 'ileboss') { ouvrirIleBoss.relu = true; try { ouvrirIleBoss(); } finally { ouvrirIleBoss.relu = false; } return; } /* (il vient de tomber : la fiche du vaincu) */
     if (!r) { e.innerHTML = '<p class="hdv-aide">Le classement s\'affiche quand tu joues connecté à ton compte.</p>'; return; }
     e.innerHTML = r.joueurs.length ? tableauIle(r.joueurs, cle) : '<p class="hdv-aide">Personne n\'a encore frappé : à toi l\'honneur !</p>';
-    const b = document.querySelector('.ib-barre'); if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / pvIleBoss(t)).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, pvIleBoss(t) - r.total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV'; } });
+    const b = document.querySelector('.ib-barre');
+    if (inf) { if (!MODE_TEST && r0) { const n = palierIleAtteint(r0.total), li = document.querySelector('.ip-liste'), bg = document.querySelector('.ig-carte.paliers .ig-badge'); if (b) b.outerHTML = jaugeIleHtml(r0.total); if (li) li.outerHTML = paliersIleHtml(t, r0.total);
+      if (bg) { bg.textContent = n ? n + ' sur ' + PALIERS_ILE.length : 'si tu as frappé'; bg.classList.toggle('ok', n > 0); } } } /* (les paliers a jour avec le total lu, 21/11/2026) */
+    else if (b) { b.querySelector('i').style.width = Math.max(0, 100 - 100 * r.total / pvIleBoss(t)).toFixed(1) + '%'; b.querySelector('span').textContent = fmt(Math.max(0, pvIleBoss(t) - r.total)) + ' / ' + fmt(pvIleBoss(t)) + ' PV'; } });
 }
 async function partirIleBoss() {
   const cle = semaineIleBoss();
-  const J = jourIle(cle); if (ileVaincue(bossDuJour(cle), MODE_TEST ? null : ileBossTotal)) { toast(MONSTRES[bossDuJour(cle)].nom + ' est déjà tombé : plus d\'essai cette semaine. Nouveau boss ' + prochainVendredi() + '.', 'alerte'); return; } /* (18/11/2026 : plus d'essai sur un boss a 0 PV) */
+  const J = jourIle(cle); if (!ileInfinie(cle) && ileVaincue(bossDuJour(cle), MODE_TEST ? null : ileBossTotal)) { toast(MONSTRES[bossDuJour(cle)].nom + ' est déjà tombé : plus d\'essai cette semaine. Nouveau boss ' + prochainVendredi() + '.', 'alerte'); return; } /* (18/11/2026 : plus d'essai sur un boss a 0 PV) */
   if (essaisCompte(cle) >= essaisMax(cle)) { toast('Tes ' + essaisMax(cle) + ' essais de la semaine sont pris : un nouveau boss arrive ' + prochainVendredi() + '.', 'alerte'); return; }
   if (niveau(S_.xp) < NIV_ILE_BOSS) { toast('L\'île des boss ouvre au niveau ' + NIV_ILE_BOSS + '.'); return; }
   if (!peutPartir('ile')) return;
@@ -464,7 +494,7 @@ function lancerIleBoss() {
   const cle = semaineIleBoss(); if (combat || !paysanMesh || lieu !== 'ile') return; const J = jourIle(cle); if (essaisCompte(cle) >= essaisMax(cle)) return;
   J.essais++; sauver(); /* (l'essai compte des qu'il commence) */
   const t = J.boss = bossDuJour(cle), n = vagueDuBoss(t);
-  nouveauCombat('ile', { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: MODE_TEST ? 0 : Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)) }, attente: 99, ...potsDeVague() }); /* (chaque essai part avec toute sa vie) */
+  nouveauCombat('ile', { n, arene: { k: 0, ileBoss: true, cle, boss: t, deg: 0, t: 0, pas: 0, avant: MODE_TEST ? 0 : Math.max(0, (ileBossTotal || 0) - meilleurCompte(cle)), infini: ileInfinie(cle), meilleur0: MODE_TEST ? 0 : meilleurCompte(cle) }, attente: 99, ...potsDeVague() }); /* (chaque essai part avec toute sa vie) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant l\'essai : ' + texteRepas(repas) + '.', 'or'), 2600); }
   ouvrirHudCombat();
   const g = new T.Vector3(-6.4, 0, -6.4).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ILE_BOSS).add(ILE_BOSS); apparaitre(t, { x: g.x, z: g.z }); { const b = combat.monstres[combat.monstres.length - 1]; if (b && b.type === t && b.etat === 'grimpe') b.t = 0; } /* (il sort de l'arche-crane, tout de suite : plus d'attente au hasard jusqu'a 0,8 s avant qu'il monte, 20/11/2026) */
@@ -484,7 +514,8 @@ function finIleBoss(abandon, tombe) {
     /* (16/11/2026, « rajoute le récapitulatif des dégâts faits aussi », Mathieu : les lignes du bilan des vagues, et le détail par source) */
     ligneRecap('degats', 'Tes dégâts (boss et troupe)', fmt(Math.round(c.st.inflige))) + ligneRecap('puissance', 'Ton plus gros coup', fmt(Math.round(c.st.max))) + ligneRecap('vita', 'Dégâts reçus', fmt(Math.round(c.st.recus))) +
     ligneRecap('soin', 'Soins reçus', fmt(Math.round(c.st.soins || 0)) + (c.st.menthe >= 1 ? ' (dont Menthe ' + fmt(Math.round(c.st.menthe)) + ')' : '')) + ligneRecap('etoile', 'Sorts et ultis lancés', c.st.sorts) + '</div>' + detailCombat(c) +
-    '<p class="hdv-aide">Le coffre de la semaine s\'ouvre tout seul à ta ferme ' + prochainVendredi() + ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.</p>' +
+    (A.infini && !MODE_TEST && ileBossTotal != null ? '<div class="hdv-section">Les paliers de l\'alliance</div>' + jaugeIleHtml(ileBossTotal) : '') + /* (21/11/2026 : ou en est l'alliance apres ton essai) */
+    '<p class="hdv-aide">Le coffre de la semaine s\'ouvre tout seul à ta ferme ' + prochainVendredi() + (A.infini ? ', avec les gains de chaque palier atteint par l\'alliance, et un coffre en plus si tu finis sur le podium.' : ', selon ton meilleur essai et si l\'alliance l\'a fait tomber.') + '</p>' +
     '<div class="act-bas"><small style="color:#a9adb5">' + (reste === Infinity ? 'Essais sans limite' : reste + ' essai' + (reste > 1 ? 's' : '') + ' restant' + (reste > 1 ? 's' : '') + ' cette semaine') + '</small><button class="btn discret" data-montgolfiere="rentrer">Rentrer à la ferme</button><button class="btn kamas" data-montgolfiere="ileBoss"' + (reste ? '' : ' disabled') + '>Réessayer</button></div>'); /* (16/11/2026, « quand on veut réessayer direct, qu'on nous propose de manger nos fruits et boire nos potions », Mathieu : Réessayer rouvre la fiche de l'île, ses repas et ses pots, d'où l'on repart) */
   rendreHaut(); sauver();
 }
@@ -539,28 +570,30 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
   const cumul = { k: 0, f: 0, p: 0, xp: 0, objets: [], res: 0 }; /* (les cartes de l'ouverture facon jeux mobiles, 29m-ouverture-coffre.js) */
   for (const [k, J] of L) {
     const r = await classementIleBoss(k); if (!r) { if (!auto) toast('Le classement de l\'île n\'est pas lisible pour l\'instant (hors connexion ?) : ton coffre t\'attend, réessaie dans un moment.', 'alerte'); continue; } /* (avant le 16/10/2026 : la participation, et la recompense du boss tombe perdue) */
-    const tombe = !!(r && r.total >= pvIleBoss(J.boss)), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, R = tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation, B = MONSTRES[J.boss] || MONSTRES.koulosse;
+    const inf = ileInfinie(k), nP = inf ? palierIleAtteint(r.total) : 0, GP = PALIERS_ILE.slice(0, nP), somme = (f) => GP.reduce((a, p) => a + (p[f] || 0), 0); /* (les paliers de l'alliance, 21/11/2026 : tous ceux atteints s'additionnent) */
+    const tombe = !inf && !!(r && r.total >= pvIleBoss(J.boss)), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, B = MONSTRES[J.boss] || MONSTRES.koulosse,
+      R = inf ? { kamas: somme('kamas'), forge: somme('forge'), xp: 0, piece: (GP.find((p) => p.piece) || {}).piece || 0, leg: (GP.find((p) => p.leg) || {}).leg || 0 } : tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation;
     S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; let xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp); xp = gagnerXp.dernier; /* (le vrai gain, affiche) */
     /* « on pourrait etre plus explicite sur les gains, c'est pas tres clair » (Mathieu, 17/10/2026) : ce qui s'est passe, puis ce que tu recois ligne par
        ligne (la participation ou le boss tombe, le bonus du classement), le total, et ce que le boss tombe aurait donne */
     const runesTxt = (n, parf) => [n ? n + ' rune' + (n > 1 ? 's' : '') + ' de forgemagie' : '', parf ? parf + ' rune' + (parf > 1 ? 's' : '') + ' parfaite' + (parf > 1 ? 's' : '') : ''].filter(Boolean).join(', ');
     const base = [fmt(R.kamas) + ' kamas', runesTxt(R.forge, 0), xp ? fmt(xp) + ' XP' : ''].filter(Boolean); /* (sans XP quand le boss tombe, 21/11/2026) */
     let totK = R.kamas, totF = R.forge, totP = 0; const objets = [];
-    if (tombe) { const id = tirerPiece(panoAuHasard(palierCourant()), 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
+    if (tombe || R.piece) { const id = tirerPiece(panoAuHasard(palierCourant()), 1 + caracs().prospection / 100), cle = donnerObjet(id, R.piece); /* (une piece neuve en priorite, parfois rare, comme les autres coffres : 16/10/2026) */ objets.push(OBJETS[id].nom + ' (jet ' + Math.round(100 * qualiteJet(cle)) + ' %)');
       cumul.objets.push({ ico: iconeObjet(cle), t: OBJETS[id].nom + ', jet ' + Math.round(100 * qualiteJet(cle)) + ' %', brille: !!OBJETS[id].rare, son: 'quete' });
-      const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && Math.random() < R.leg) { const idl = idLeg(leg), cl = donnerObjet(idl); objets.push('✦ ' + OBJETS[idl].nom); cumul.objets.push({ ico: iconeObjet(cl || idl), t: '✦ ' + OBJETS[idl].nom, brille: true }); } }
-    const L2 = [ligneRecap('kama', tombe ? 'Le boss est tombé' : 'Ta participation', base.concat(objets).join(', '))];
+      const leg = LEGENDAIRES.find((x) => x.boss === J.boss); if (leg && R.leg && Math.random() < R.leg) { const idl = idLeg(leg), cl = donnerObjet(idl); objets.push('✦ ' + OBJETS[idl].nom); cumul.objets.push({ ico: iconeObjet(cl || idl), t: '✦ ' + OBJETS[idl].nom, brille: true }); } }
+    const L2 = [inf ? ligneRecap('kama', nP ? 'Paliers de l\'alliance (' + nP + ' sur ' + PALIERS_ILE.length + ')' : 'Paliers de l\'alliance', nP ? base.concat(objets).join(', ') : 'aucun palier atteint cette semaine') : ligneRecap('kama', tombe ? 'Le boss est tombé' : 'Ta participation', base.concat(objets).join(', '))];
     if (rang >= 0 && rang < 3) { const Pd = RECOMPENSES_ILE.podium[rang]; S_.kamas += Pd.kamas; if (Pd.parfaite) runes().parfaite = (runes().parfaite || 0) + Pd.parfaite; if (Pd.forge) runes().forge += Pd.forge;
       totK += Pd.kamas; totF += Pd.forge || 0; totP += Pd.parfaite || 0; L2.push(ligneRecap('couronne', 'Bonus ' + (rang + 1) + (rang ? 'e' : 'er') + ' du classement', '+' + fmt(Pd.kamas) + ' kamas, ' + runesTxt(Pd.forge || 0, Pd.parfaite || 0))); rangCoffre = Math.min(rangCoffre, rang); }
-    const nRes = r ? (rang >= 0 && rang < 3 ? RESSOURCES_ILE.podium[rang] : (J.meilleur || 0) > 0 ? RESSOURCES_ILE.participation : 0) : 0; /* (les ressources au choix, 21/11/2026 : 30, 20, 10 au podium, 5 aux autres participants) */
+    const nRes = r ? (rang >= 0 && rang < 3 ? RESSOURCES_ILE.podium[rang] : !inf && (J.meilleur || 0) > 0 ? RESSOURCES_ILE.participation : 0) + (inf ? somme('res') : 0) : 0; /* (semaine a paliers : celles des paliers, en plus du podium) */ /* (les ressources au choix, 21/11/2026 : 30, 20, 10 au podium, 5 aux autres participants) */
     if (nRes) { S0.aChoisir = (S0.aChoisir || 0) + nRes; L2.push(ligneRecap('epi', 'Ressources au choix', nRes + ', à choisir ci-dessous')); }
     const br = butinRareIle(rang); /* (une piece rare et un jeton legendaire, selon le rang : 29n-roue-legendaire.js, 21/11/2026) */
     br.objets.forEach((o) => { objets.push(o.nom); cumul.objets.push(o); L2.push(ligneRecap('etoile', 'Pièce rare', o.nom)); });
     if (br.jeton) { cumul.jetons = (cumul.jetons || 0) + 1; L2.push(ligneRecap('etoile', 'Jeton légendaire', '1, à jouer à la roue du Casino')); }
-    cumul.k += totK; cumul.f += totF; cumul.p += totP; cumul.xp += xp; cumul.res += nRes;
+    if (inf) cumul.paliers = true; cumul.k += totK; cumul.f += totF; cumul.p += totP; cumul.xp += xp; cumul.res += nRes;
     const total = [fmt(totK) + ' kamas', runesTxt(totF, totP), xp ? fmt(xp) + ' XP' : ''].filter(Boolean).concat(objets).concat(nRes ? [nRes + ' ressources au choix'] : []).concat(br.jeton ? ['1 jeton légendaire'] : []).join(', ');
-    const T2 = RECOMPENSES_ILE.tombe, siTombe = !tombe && r ? '<p class="hdv-aide">S’il était tombé, chacun aurait reçu ' + fmt(T2.kamas) + ' kamas au lieu de ' + fmt(R.kamas) + ', ' + T2.forge + ' runes au lieu d’une, une pièce de sa panoplie (jet de ' + Math.round(T2.piece * 100) + ' % ou plus) et ' + Math.round(T2.leg * 100) + ' % de chance d’avoir sa pièce légendaire.</p>' : '';
-    const etat = r ? (tombe ? 'Tombé ! L’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.' : 'Il a tenu : l’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.') : 'Classement non disponible hors connexion.';
+    const T2 = RECOMPENSES_ILE.tombe, PS = inf ? PALIERS_ILE[nP] : null, siTombe = inf ? (PS ? '<p class="hdv-aide">Au palier ' + (nP + 1) + ' (' + fmt(PS.seuil) + ' dégâts pour l\'alliance), chacun aurait reçu en plus ' + [fmt(PS.kamas) + ' kamas', PS.forge ? PS.forge + ' rune' + (PS.forge > 1 ? 's' : '') + ' de forgemagie' : '', PS.res ? PS.res + ' ressources au choix' : '', PS.piece ? 'une pièce de la panoplie (jet de ' + Math.round(PS.piece * 100) + ' % ou plus)' : '', PS.leg ? Math.round(PS.leg * 100) + ' % de chance d\'avoir sa pièce légendaire' : ''].filter(Boolean).join(', ') + '.</p>' : '') : !tombe && r ? '<p class="hdv-aide">S’il était tombé, chacun aurait reçu ' + fmt(T2.kamas) + ' kamas au lieu de ' + fmt(R.kamas) + ', ' + T2.forge + ' runes au lieu d’une, une pièce de sa panoplie (jet de ' + Math.round(T2.piece * 100) + ' % ou plus) et ' + Math.round(T2.leg * 100) + ' % de chance d’avoir sa pièce légendaire.</p>' : '';
+    const etat = r && inf ? 'L’alliance lui a fait ' + fmt(r.total) + ' dégâts : ' + (nP ? 'palier ' + nP + ' sur ' + PALIERS_ILE.length + ' atteint.' : 'aucun palier atteint (le premier est à ' + fmt(PALIERS_ILE[0].seuil) + ').') : r ? (tombe ? 'Tombé ! L’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.' : 'Il a tenu : l’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.') : 'Classement non disponible hors connexion.';
     lignes.push('<div class="art">' + ico(B.icone) + '<div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ', semaine du ' + k.split('-').reverse().join('/') + '</b><div class="desc">' + etat + ' Ton meilleur essai : ' + fmt(J.meilleur) + ' dégâts' + (rang >= 0 && r ? ', ' + (rang + 1) + (rang ? 'e' : 'er') + ' sur ' + r.joueurs.length + ' joueur' + (r.joueurs.length > 1 ? 's' : '') : '') + '.</div></div><div></div></div>' +
       '<div class="hdv-section">Ce que tu reçois</div><div class="ib-rec">' + L2.join('') + '<div class="rc-l ib-total">' + picto('etoile', '#7a4fc9') + '<span>Au total</span><b>' + total + '</b></div></div>' + siTombe);
   }
@@ -575,7 +608,7 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
     '<div class="boutons"><button class="btn discret" data-montgolfiere="ileBoss">Voir l\'île des boss</button><button class="btn kamas" data-fermer>Super !</button></div></div>');
   $('modale').dataset.aLire = '1'; /* (il ne se ferme qu'avec ses boutons) */
   majChoixIle(); const base = rangCoffre < 3 ? coffrePodium(rangCoffre) : null;
-  if (!(om && ouvertureMobile({ rar: rangCoffre < 3 ? RANG_COFFRE[rangCoffre] : 'normal', base, cartes: cartesCoffreIle(cumul), sousTitre: rangCoffre < 3 ? (rangCoffre + 1) + (rangCoffre ? 'e' : 'er') + ' du classement' : 'Ta participation' }))) {
+  if (!(om && ouvertureMobile({ rar: rangCoffre < 3 ? RANG_COFFRE[rangCoffre] : 'normal', base, cartes: cartesCoffreIle(cumul), sousTitre: rangCoffre < 3 ? (rangCoffre + 1) + (rangCoffre ? 'e' : 'er') + ' du classement' : cumul.paliers ? 'Les paliers de l\'alliance' : 'Ta participation' }))) {
     if (om) document.querySelectorAll('#carte .ouverture-coffre').forEach((z) => z.insertAdjacentHTML('afterbegin', sceneCoffre())); jouerCoffre('ileboss', base); } /* (sans WebGL : le petit coffre de la fenetre, comme avant) */ /* (le coffre en 3D, 05/11/2026 ; celui du podium, 21/11/2026) */
   } finally { reclamerIleBoss.enCours = false; }
 }

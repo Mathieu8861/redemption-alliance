@@ -786,11 +786,16 @@ function tetesOsa(st) {
 function majBarreBoss(mo) {
   const el = $('boss-barre'); if (!el) return;
   if (mo.etat === 'mort') { if (el._mo === mo) el.hidden = true; return; } /* (01/11/2026 : son corps reste jusqu'a la fin du combat ; il ne cache plus la barre d'un autre boss encore debout) */
-  if (el.hidden || el._mo !== mo) { el.hidden = false; el._mo = mo; el._w = el._e = null; $('boss-nom').textContent = mo.d.nom; } /* (un nouveau boss : tout se redessine) */
-  const pv = Math.max(0, Math.ceil(mo.pv)), w = (100 * pv / mo.pvMax).toFixed(1) + '%';
-  if (el._w !== w) { el._w = w; $('boss-pv').style.width = w; $('boss-pv-txt').textContent = fmt(pv) + ' / ' + fmt(mo.pvMax) + ' PV'; }
+  if (el.hidden || el._mo !== mo) { el.hidden = false; el._mo = mo; el._w = el._e = el._t = null; $('boss-nom').textContent = mo.d.nom; el.classList.toggle('paliers', !!mo.infini); } /* (un nouveau boss : tout se redessine) */
+  if (mo.infini && combat && combat.arene && typeof PALIERS_ILE !== 'undefined') { /* LE BOSS DE L'ILE A LA VIE SANS FIN (21/11/2026) : sa barre suit les paliers de l'alliance, le total d'avant ton essai plus ton essai s'il bat ton meilleur */
+    const A = combat.arene, tot = (A.avant || 0) + Math.max(A.meilleur0 || 0, Math.round(A.deg)), n = palierIleAtteint(tot), bas = n ? PALIERS_ILE[n - 1].seuil : 0, P = PALIERS_ILE[n];
+    const w = (P ? 100 * (tot - bas) / (P.seuil - bas) : 100).toFixed(1) + '%', txt = P ? 'Palier ' + (n + 1) + ' : ' + fmt(tot) + ' / ' + fmt(P.seuil) : 'Tous les paliers : ' + fmt(tot);
+    if (el._w !== w || el._t !== txt) { el._w = w; el._t = txt; $('boss-pv').style.width = w; $('boss-pv-txt').textContent = txt; }
+    if (A.palierVu == null) A.palierVu = n; else if (n > A.palierVu) { A.palierVu = n; son('niveau'); toast('Palier ' + n + ' de l\'alliance atteint : ' + fmt(PALIERS_ILE[n - 1].seuil) + ' dégâts !', 'or'); chiffre('Palier ' + n + ' !', new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.6, mo.z), 'gros'); }
+  } else { const pv = Math.max(0, Math.ceil(mo.pv)), w = (100 * pv / mo.pvMax).toFixed(1) + '%';
+  if (el._w !== w) { el._w = w; $('boss-pv').style.width = w; $('boss-pv-txt').textContent = fmt(pv) + ' / ' + fmt(mo.pvMax) + ' PV'; } }
   el.classList.toggle('rage', !!mo.enrage); el.classList.toggle('carapace', mo.carapace > 0); el.classList.toggle('protege', mo.protege > 0);
-  const etat = mo.faible ? 'affaibli, invulnérable' : mo.carapace > 0 ? 'sous sa carapace' : mo.pierre > 0 ? 'en pierre' : mo.protege > 0 ? 'protégé' + ac(mo.d) + ' à ' + Math.round(100 * mo.protege) + ' %' : mo.enrage ? 'en rage' : ''; /* (« protégée » pour la Gorgouille, et sa peau de pierre, 20/10/2026) */
+  const etat = mo.faible ? 'affaibli, invulnérable' : mo.carapace > 0 ? 'sous sa carapace' : mo.pierre > 0 ? 'en pierre' : mo.protege > 0 ? 'protégé' + ac(mo.d) + ' à ' + Math.round(100 * mo.protege) + ' %' : mo.enrage ? 'en rage' : mo.infini ? 'vie sans fin' : ''; /* (« protégée » pour la Gorgouille, et sa peau de pierre, 20/10/2026) */
   if (el._e !== etat) { el._e = etat; $('boss-etat').textContent = etat; }
 }
 function majCombatHud() {

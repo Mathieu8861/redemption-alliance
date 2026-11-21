@@ -679,6 +679,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .boss-barre .bb s { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(43, 32, 22, .5); }
 .boss-barre.rage .bb i { background: linear-gradient(#ff8a2a, #d9443a); animation: rageBoss .6s ease-in-out infinite alternate; } @keyframes rageBoss { to { filter: brightness(1.3); } }
 .boss-barre.carapace .bb i { background: linear-gradient(#3a3c42, #c9a34a); }
+.boss-barre.paliers .bb i, .boss-barre.paliers.rage .bb i { background: linear-gradient(#ffd965, #c98a1e); } .boss-barre.paliers .bb s { display: none; } .boss-barre.paliers small { color: #ffd965; } /* (le boss de l'ile a la vie sans fin : la barre des paliers de l'alliance, 21/11/2026) */
 .boss-barre .bb-tete em { flex: 1; font: 800 .7rem/1 inherit; font-style: normal; color: #a9adb5; text-transform: uppercase; letter-spacing: .02em; } .boss-barre.protege .bb { box-shadow: 0 0 0 2px #f2d27a; }
 .combat-perso { position: absolute; left: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center; background: var(--papier); border: 3px solid var(--bord); border-radius: 16px; box-shadow: 0 4px 0 var(--bord); padding: 8px 12px; }
 .combat-perso > img { width: 52px; height: 52px; object-fit: contain; border: 2px solid var(--bord); border-radius: 12px; background: radial-gradient(circle at 50% 40%, #26272b, #3a3c42); }
@@ -1767,3 +1768,16 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .r3-boutons { display: flex; justify-content: flex-end; gap: 8px; }
 .r3-gain { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 8px 10px; border-radius: 12px; background: rgba(255, 210, 74, .12); border: 2px solid #ffd24a; } .r3-gain img { width: 58px; height: 58px; object-fit: contain; }
 .r3-gain small { display: block; font: 800 .7rem var(--f-texte); opacity: .8; } .r3-gain b { display: block; font: 400 1.1rem/1.15 var(--f-titre); color: #ffd24a; } .r3-gain span { font: 700 .74rem var(--f-texte); }
+/* LES PALIERS DE L'ALLIANCE SUR L'ILE DES BOSS (21/11/2026) : la jauge et ses reperes numerotes, la liste des paliers dans la carte des recompenses */
+.ip-jauge { overflow: visible; margin-bottom: 18px; } .ip-jauge i { border-radius: 999px; background: linear-gradient(90deg, #c98a1e, #ffd965); }
+.ip-jauge s { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: rgba(255, 255, 255, .45); }
+.ip-jauge s em { position: absolute; top: 100%; left: 50%; transform: translate(-50%, 3px); width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font: 400 .66rem/1 var(--f-titre); font-style: normal; color: #d0d3d9; background: #3a3d44; border: 2px solid var(--bord); }
+.ip-jauge s.ok { background: #ffe9a3; } .ip-jauge s.ok em { color: #3a2a05; background: #ffd34d; }
+.ip-jauge span { z-index: 1; }
+.ig-cartes.deux { grid-template-columns: 1.7fr 1fr; } .ig-carte.paliers { border-color: #c9a227; background: linear-gradient(180deg, rgba(255, 211, 77, .1), #26282d 45%); }
+.ip-note { margin: 0 0 8px; } .ip-liste { display: grid; gap: 6px; }
+.ip-l { display: grid; grid-template-columns: 26px 78px 1fr; gap: 8px; align-items: center; padding: 6px; border-radius: 12px; background: rgba(255, 255, 255, .03); border: 1px solid #3a3d44; }
+.ip-l.ok { background: rgba(143, 209, 106, .1); border-color: rgba(143, 209, 106, .45); } .ip-l.suiv { border-color: #c9a227; box-shadow: 0 0 0 1px rgba(255, 211, 77, .35); }
+.ip-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 400 .85rem/1 var(--f-titre); color: #d0d3d9; background: #3a3d44; } .ip-l.ok .ip-n { color: #17320d; background: #8fd16a; } .ip-l.suiv .ip-n { color: #3a2a05; background: #ffd34d; }
+.ip-s { display: grid; line-height: 1.1; } .ip-s b { font-size: .86rem; font-weight: 900; color: #fff; } .ip-s small { font-size: .64rem; font-weight: 700; color: #a9adb5; } .ip-l.ok .ip-s small { color: #b8f08f; }
+@media (max-width: 640px) { .ig-cartes.deux { grid-template-columns: 1fr; } .ip-l { grid-template-columns: 26px 1fr; } .ip-l .ig-jetons { grid-column: 1 / -1; } }
