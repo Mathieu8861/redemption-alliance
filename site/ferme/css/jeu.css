@@ -1759,3 +1759,11 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .roue-jetons { display: inline-flex; align-items: center; gap: 6px; font: 800 .92rem var(--f-texte); margin-right: auto; } .roue-jetons img { width: 30px; height: 30px; }
 .roue-btn img { width: 22px; height: 22px; vertical-align: middle; margin: -3px 4px 0 0; } .roue-btn[hidden] { display: none; }
 .ig-chance { display: flex; align-items: center; gap: 8px; font-size: .74rem; opacity: .9; } .ig-chance img { width: 30px; height: 30px; flex: none; }
+/* le panneau de la roue legendaire du hall (29o-roue-3d.js, 21/11/2026) */
+.roue3d-ui { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 4; width: min(460px, calc(100% - 24px)); padding: 12px 14px; border-radius: 16px; background: rgba(30, 22, 44, .94); border: 3px solid #f2c14a; box-shadow: 0 0 0 3px #111015, 0 10px 26px rgba(0, 0, 0, .55); color: var(--encre); font-family: var(--f-texte); animation: om-mini .35s cubic-bezier(.2, 1.5, .4, 1) both; }
+.roue3d-ui[hidden] { display: none; }
+.r3-tete { display: flex; align-items: center; gap: 10px; } .r3-tete img { width: 42px; height: 42px; } .r3-tete b { display: block; font: 400 1.2rem/1.1 var(--f-titre); color: #ffd24a; } .r3-tete small { font: 700 .78rem var(--f-texte); opacity: .85; }
+.roue3d-ui p { margin: 8px 0; font: 700 .82rem/1.35 var(--f-texte); } .r3-tourne { text-align: center; color: #ffd24a; animation: om-pulse 1s ease-in-out infinite; }
+.r3-boutons { display: flex; justify-content: flex-end; gap: 8px; }
+.r3-gain { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 8px 10px; border-radius: 12px; background: rgba(255, 210, 74, .12); border: 2px solid #ffd24a; } .r3-gain img { width: 58px; height: 58px; object-fit: contain; }
+.r3-gain small { display: block; font: 800 .7rem var(--f-texte); opacity: .8; } .r3-gain b { display: block; font: 400 1.1rem/1.15 var(--f-titre); color: #ffd24a; } .r3-gain span { font: 700 .74rem var(--f-texte); }

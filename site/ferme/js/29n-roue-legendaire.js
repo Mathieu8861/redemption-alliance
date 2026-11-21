@@ -76,6 +76,7 @@ function roueResultat(id, cle) {
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-roue-lancer],#b-roue-leg,[data-roue-essai],[data-roue-ouvrir]'); if (!b) return;
   if (b.hasAttribute('data-roue-lancer')) { roueLancer(); return; }
   if (b.hasAttribute('data-roue-essai')) { ouvrirRoueLeg(true); return; }
+  if (b.id === 'b-roue-leg' && typeof allerRoue3d === 'function') { allerRoue3d(); return; } /* (la barre du Casino : la vraie roue, dans le hall, 29o-roue-3d.js) */
   ouvrirRoueLeg(false); });
 /* le bouton de la barre du Casino, quand on a un jeton */
 function majBoutonRoue() {
