@@ -220,9 +220,18 @@ function mnCibles(C) { /* les elements cliquables visibles de la fenetre (bouton
   return L;
 }
 const mnSig = (el) => el.tagName + '|' + el.id + '|' + [...el.attributes].filter((a) => a.name.startsWith('data-') || a.name === 'name').map((a) => a.name + '=' + a.value).join(',') + '|' + (el.textContent || '').trim().slice(0, 40);
+/* LE BOUTON CHOISI RESTE A SA PLACE (21/11/2026, « quand je clique sur un bouton comme Manger, ca me renvoie a la selection d'un bouton plus haut, plutot que de
+   me laisser sur celui ou je suis », Mathieu) : une fenetre qui se redessine apres un clic reprend le meme bouton ; s'il a disparu (« Manger » devenu « Prete »),
+   le bouton le plus proche de l'endroit ou l'on etait (dans la fenetre, defilement compris), et plus jamais le premier de la fenetre */
+const mnSigC = (el) => { const d = [...el.attributes].filter((a) => a.name.startsWith('data-')).map((a) => a.name + '=' + a.value).join(','); return el.id || d ? el.tagName + '|' + el.id + '|' + d : null; }; /* (sans le texte, seulement si le bouton a de quoi le reconnaitre) */
+const mnDefil = (el) => { let x = el && el.parentElement; while (x && x !== document.body) { if (x.scrollHeight > x.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(x).overflowY)) return x; x = x.parentElement; } return null; };
+const mnPos = (el) => { const r = el.getBoundingClientRect(), sc = mnDefil(el); return { x: r.left + r.width / 2, y: r.top + r.height / 2 + (sc ? sc.scrollTop : 0) }; };
+function mnPres(L) { const P = mnEtat.pos; if (!P) return null; let best = null, bs = Infinity;
+  for (const el of L) { if (el.hasAttribute('data-fermer')) continue; const q = mnPos(el), dy = q.y - P.y, d = Math.hypot((q.x - P.x) * 0.5, dy * (dy < 0 ? 1.25 : 1)); if (d < bs) { bs = d; best = el; } } /* (a egalite, plutot en dessous : la suite de la fenetre) */
+  return best; }
 function mnFocus(el) {
   const a = mnEtat.focus; if (a === el) return; if (a) a.classList.remove('mn-focus'); mnEtat.focus = el || null;
-  if (el) { el.classList.add('mn-focus'); mnEtat.sig = mnSig(el); try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* rien */ } }
+  if (el) { el.classList.add('mn-focus'); mnEtat.sig = mnSig(el); mnEtat.sigC = mnSigC(el); try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* rien */ } mnEtat.pos = mnPos(el); }
 }
 function mnDepart(C, L) { /* le premier bouton d'une fenetre : pas la croix qui la ferme */
   if (C.genre === 'hud') return document.getElementById('b-graine') && L.includes(document.getElementById('b-graine')) ? document.getElementById('b-graine') : L[0];
@@ -252,9 +261,9 @@ function mnFermer(C) { /* B */
 function mnFenetre(C, B, appui, lx, ly, ry, dt) {
   const t = performance.now(), neuve = mnEtat.couche !== C.genre; mnEtat.couche = C.genre;
   let L = null; const cibles = () => L || (L = mnCibles(C));
-  if (neuve) { mnFocus(null); mnEtat.sig = null; mnEtat.essai = 0; }
+  if (neuve) { mnFocus(null); mnEtat.sig = null; mnEtat.sigC = null; mnEtat.pos = null; mnEtat.essai = 0; }
   if (!mnEtat.focus || !mnEtat.focus.isConnected || !mnVu(mnEtat.focus)) { /* la fenetre vient de s'ouvrir, ou s'est redessinee : le meme bouton qu'avant, sinon le premier */
-    if (t - (mnEtat.essai || 0) > 200 || neuve) { mnEtat.essai = t; const l = cibles(); if (l.length) { const m = mnEtat.sig && l.find((el) => mnSig(el) === mnEtat.sig); mnEtat.focus = null; mnFocus(m || mnDepart(C, l)); } } }
+    if (t - (mnEtat.essai || 0) > 200 || neuve) { mnEtat.essai = t; const l = cibles(); if (l.length) { const m = (mnEtat.sig && l.find((el) => mnSig(el) === mnEtat.sig)) || (mnEtat.sigC && l.find((el) => mnSigC(el) === mnEtat.sigC)) || mnPres(l); mnEtat.focus = null; mnFocus(m || mnDepart(C, l)); } } }
   /* la croix ou le stick gauche : un pas, puis ca defile si on tient */
   const s = Math.abs(lx) > Math.abs(ly) ? [Math.abs(lx) > 0.6 ? Math.sign(lx) : 0, 0] : [0, Math.abs(ly) > 0.6 ? Math.sign(ly) : 0];
   const dir = B[12] ? [0, -1] : B[13] ? [0, 1] : B[14] ? [-1, 0] : B[15] ? [1, 0] : s, cle = dir.join(',');
@@ -262,7 +271,7 @@ function mnFenetre(C, B, appui, lx, ly, ry, dt) {
   else if (mnEtat.dirF !== cle || t > mnEtat.rep) { const premier = mnEtat.dirF !== cle; mnEtat.dirF = cle; mnEtat.rep = t + (premier ? 380 : 110); const f = mnEtat.focus;
     if (f && f.matches('input[type="range"]') && dir[0]) { const st = parseFloat(f.step) || 1; f.value = Math.max(parseFloat(f.min) || 0, Math.min(parseFloat(f.max) || 100, (parseFloat(f.value) || 0) + st * dir[0])); f.dispatchEvent(new Event('input', { bubbles: true })); f.dispatchEvent(new Event('change', { bubbles: true })); }
     else { const l = cibles(); if (l.length) mnBouger(l, dir[0], dir[1]); } }
-  if (appui(0) && mnEtat.focus && mnEtat.focus.isConnected) { const f = mnEtat.focus; if (f.matches('input[type="text"], input:not([type]), textarea')) f.focus(); else f.click(); }
+  if (appui(0) && mnEtat.focus && mnEtat.focus.isConnected) { const f = mnEtat.focus; mnEtat.pos = mnPos(f); if (f.matches('input[type="text"], input:not([type]), textarea')) f.focus(); else f.click(); }
   if (appui(1)) mnFermer(C);
   if (appui(4) || appui(5)) { const l = cibles(); if (l.length) mnOnglet(l, appui(5) ? 1 : -1); }
   if (Math.abs(ry) > 0.2) { let sc = mnEtat.focus; while (sc && !C.el.includes(sc) && !(sc.scrollHeight > sc.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
