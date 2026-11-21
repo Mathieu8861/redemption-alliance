@@ -402,7 +402,9 @@ function recompensesIle(t, vaincu, rang, frappe) { /* les trois cartes des recom
   return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + '<div class="ig-cartes">' +
     carte('S\'il tient', 'part' + (vaincu ? ' fini' : ''), jetonsIle(G.part), vaincu ? 'remplacé par mieux' : 'si tu as frappé') +
     carte(vaincu ? 'Il est tombé' : 'S\'il tombe', 'tombe', jetonsIle(G.tombe), vaincu ? (frappe ? '✓ gagné' : 'il fallait frapper') : 'si tu as frappé', vaincu && frappe) +
-    carte('Le podium', 'podium', podium, 'en plus') + '</div>';
+    carte('Le podium', 'podium', podium, 'en plus') + '</div>' +
+    '<p class="ig-note ig-chance"><img src="assets/icones/jeton-legendaire.png?v=' + VERSION_MODELES + '" alt="">Chaque coffre peut aussi cacher une pièce rare ★ ou un jeton légendaire, à jouer à la roue du Casino : plus tu finis haut au classement, plus tu as de chances.' +
+    (jetonsLeg() > 0 ? ' <b>Tu as ' + jetonsLeg() + ' jeton' + (jetonsLeg() > 1 ? 's' : '') + ' : la roue t\'attend au Casino.</b>' : '') + '</p>';
 }
 function teteIleVaincue(t, cle, liste, rang, frappe) { /* le haut de la fiche : le boss en gris sous le tampon, le titre en grand, la suite, ton essai */
   const B = MONSTRES[t], nom = B.nom + ' colossal' + (B.fem ? 'e' : ''), e = B.fem ? 'e' : '';
@@ -551,8 +553,11 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
       totK += Pd.kamas; totF += Pd.forge || 0; totP += Pd.parfaite || 0; L2.push(ligneRecap('couronne', 'Bonus ' + (rang + 1) + (rang ? 'e' : 'er') + ' du classement', '+' + fmt(Pd.kamas) + ' kamas, ' + runesTxt(Pd.forge || 0, Pd.parfaite || 0))); rangCoffre = Math.min(rangCoffre, rang); }
     const nRes = r ? (rang >= 0 && rang < 3 ? RESSOURCES_ILE.podium[rang] : (J.meilleur || 0) > 0 ? RESSOURCES_ILE.participation : 0) : 0; /* (les ressources au choix, 21/11/2026 : 30, 20, 10 au podium, 5 aux autres participants) */
     if (nRes) { S0.aChoisir = (S0.aChoisir || 0) + nRes; L2.push(ligneRecap('epi', 'Ressources au choix', nRes + ', à choisir ci-dessous')); }
+    const br = butinRareIle(rang); /* (une piece rare et un jeton legendaire, selon le rang : 29n-roue-legendaire.js, 21/11/2026) */
+    br.objets.forEach((o) => { objets.push(o.nom); cumul.objets.push(o); L2.push(ligneRecap('etoile', 'Pièce rare', o.nom)); });
+    if (br.jeton) { cumul.jetons = (cumul.jetons || 0) + 1; L2.push(ligneRecap('etoile', 'Jeton légendaire', '1, à jouer à la roue du Casino')); }
     cumul.k += totK; cumul.f += totF; cumul.p += totP; cumul.xp += xp; cumul.res += nRes;
-    const total = [fmt(totK) + ' kamas', runesTxt(totF, totP), xp ? fmt(xp) + ' XP' : ''].filter(Boolean).concat(objets).concat(nRes ? [nRes + ' ressources au choix'] : []).join(', ');
+    const total = [fmt(totK) + ' kamas', runesTxt(totF, totP), xp ? fmt(xp) + ' XP' : ''].filter(Boolean).concat(objets).concat(nRes ? [nRes + ' ressources au choix'] : []).concat(br.jeton ? ['1 jeton légendaire'] : []).join(', ');
     const T2 = RECOMPENSES_ILE.tombe, siTombe = !tombe && r ? '<p class="hdv-aide">S’il était tombé, chacun aurait reçu ' + fmt(T2.kamas) + ' kamas au lieu de ' + fmt(R.kamas) + ', ' + T2.forge + ' runes au lieu d’une, une pièce de sa panoplie (jet de ' + Math.round(T2.piece * 100) + ' % ou plus) et ' + Math.round(T2.leg * 100) + ' % de chance d’avoir sa pièce légendaire.</p>' : '';
     const etat = r ? (tombe ? 'Tombé ! L’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.' : 'Il a tenu : l’alliance lui a fait ' + fmt(r.total) + ' dégâts sur ' + fmt(pvIleBoss(J.boss)) + '.') : 'Classement non disponible hors connexion.';
     lignes.push('<div class="art">' + ico(B.icone) + '<div><b>' + B.nom + ' colossal' + (B.fem ? 'e' : '') + ', semaine du ' + k.split('-').reverse().join('/') + '</b><div class="desc">' + etat + ' Ton meilleur essai : ' + fmt(J.meilleur) + ' dégâts' + (rang >= 0 && r ? ', ' + (rang + 1) + (rang ? 'e' : 'er') + ' sur ' + r.joueurs.length + ' joueur' + (r.joueurs.length > 1 ? 's' : '') : '') + '.</div></div><div></div></div>' +
