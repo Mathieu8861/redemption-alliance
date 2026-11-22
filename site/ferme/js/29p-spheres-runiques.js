@@ -8,7 +8,7 @@
    halo a sa couleur, des gouttes (Marees) ou des bulles (Couvee) qui s'en echappent. Modeles : Rodin d'apres les dessins 1 (maquettes/spheres-runiques/),
    blender/sphere-ia-preparer.py. Mode test : « Sphere runique (apercu) » dans le panneau. */
 const SPHERES_RUNIQUES = {
-  marees: { nom: 'Sphère des Marées', fichier: 'sphere-marees.glb', couleur: '#3ff0e2', part: '#9ff6ff', taille: 0.62 },
+  marees: { nom: 'Sphère des Marées', fichier: 'sphere-marees.glb', fichierB: 'sphere-marees-b.glb', fichierC: 'sphere-marees-c.glb', couleur: '#3ff0e2', part: '#9ff6ff', taille: 0.62 },
   couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', fichierB: 'sphere-couvee-eclose-b.glb', fichierC: 'sphere-couvee-eclose-c.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72, grenouille: 'dedans' } }; /* (22/11/2026 : la version « grenouille assise sur la sphere fermee » a ete essayee a cote ; « eclose c'est niquel », Mathieu) */
 /* LA DA DU JEU, EN ESSAI (22/11/2026, « tout est plutot bien realise, juste tu trouves que c'est notre DA ou pas ? Teste de modifier un peu en aplat / toon /
    contraste pour voir », Mathieu) : la version B, comme les Bworks et la tribu de la mare (27d-bworks-v2.js) : aplats cuits dans la texture
