@@ -345,12 +345,12 @@ const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1
 /* LES VAGUES 101 A 109 (22/11/2026, equilibrage au bot, voir CLASSE_MARE) : renforts fixes au lieu du lissage, qui laissait le debut du palier sous la
    fin de la foret (101 a 105 : 0,5 a 0,75 fois les vies de la 99). Cible : 1,15 fois la 99 a la 101, puis +0,2 vie par vague jusqu'a 1,5 fois a la 109
    (« faut que ce soit quand meme dur au debut, quitte a reduire apres », Mathieu) */
-Object.assign(RENFORTS, { 101: 1.96, 102: 1.9, 103: 2.12, 104: 1.8, 105: 1.65, 106: 1.98, 107: 1.59, 108: 1.21, 109: 1.18 }); /* (2e reglage, 22/11/2026 : la 105 a 11 vies au 1er reglage, ramenee) */
+Object.assign(RENFORTS, { 101: 1.96, 102: 2.07, 103: 2.12, 104: 1.88, 105: 1.93, 106: 2.1, 107: 1.59, 108: 1.14, 109: 1.18 }); /* (3e reglage, 22/11/2026, sur 4 essais par vague) */ /* (2e reglage, 22/11/2026 : la 105 a 11 vies au 1er reglage, ramenee) */
 /* « je viens de faire le boss craqueleur, il est bidon a mort » puis « tu peux mettre x1,3 pour les monstres par rapport a la vague precedente, par contre
    le boss ca doit vraiment etre un boss, un truc dur a tuer, il faudrait qu'il ait un sort special aussi » (Mathieu, 12/10/2026) :
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
    de PV (BOSS_PV, regle par simulation pour un long combat), des coups moderes (BOSS_DEG), et un sort special annonce au sol qu'on peut esquiver */
-const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62, 0.6, 0.6, 0.6, 0.6], vagueBoss = (n) => n >= 1 && n <= VAGUES_MAX && n % VAGUES_PALIER === 0;
+const ESCORTE = [1, 1, 0.8, 0.9, 0.85, 0.7, 0.62, 0.6, 0.6, 0.6, 0.9], /* (la 110 a 0,9 le 22/11/2026 : a 0,6, sa horde et sa garde la rendaient deux fois plus facile que la 109 au bot, 3,4 vies contre 7) */ vagueBoss = (n) => n >= 1 && n <= VAGUES_MAX && n % VAGUES_PALIER === 0;
 /* (31/10/2026, « entre chaque boss toutes les 10 vagues il faudrait un coef de vita et de degats », puis « pour la vie fais x1,6 mais en partant du Bouftou
    Royal a 1 200 », et « pour les degats mets x2 alors, pour voir », Mathieu) : la vie du boss du palier k (1 a 9) vaut 1 200 x 1,6^(k-1) a sa vague
    (1 200, 1 920, 3 072, 4 915, 7 864, 12 583, 20 133, 32 212, 51 540), le multiplicateur du palier (BOSS_PV) etant retire de la fiche ; et les 9 boss
@@ -377,7 +377,7 @@ const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOS
    fermes niveau 100 (Madazezette Iop, Rorschach Cra, yannick Osamodas), en vies qu'il lui faut pour finir chaque vague (outils/banc/series/eq11.sh,
    bilan_vies.py). Les monstres des vagues 101 a 110 (pas les boss) prennent un coefficient de vie et de degats selon la classe du perso :
    a pour les vagues 101 a 105 (les amphibiens, beaucoup de tireurs), b pour 106 a 110 (la tribu, au corps a corps) */
-const CLASSE_MARE = { a: { iop: 0.96, cra: 1.19, osa: 0.9 }, b: { iop: 0.945, cra: 1.19, osa: 0.96 } }; /* (2e reglage, 22/11/2026) */ /* (1er reglage du 22/11/2026 : sur 3 a 4 essais par vague, le Cra finissait avec 35 % de vies en moins que la moyenne, l'Osamodas 20 % de plus) */
+const CLASSE_MARE = { a: { iop: 0.96, cra: 1.24, osa: 0.9 }, b: { iop: 0.945, cra: 1.16, osa: 0.96 } }; /* (2e reglage, 22/11/2026) */ /* (1er reglage du 22/11/2026 : sur 3 a 4 essais par vague, le Cra finissait avec 35 % de vies en moins que la moyenne, l'Osamodas 20 % de plus) */
 const classeMare = (n) => { if (!(n > 10 * VAGUES_PALIER && n <= VAGUES_MAX)) return 1; let cl; try { cl = classeDe(); } catch (e) { return 1; } const g = CLASSE_MARE[n <= 10 * VAGUES_PALIER + 5 ? 'a' : 'b']; return (g && g[cl]) || 1; };
 const forceMonstre = (t, n, c) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(forceMonstre(t, n - 1, c) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t][c](n) * durete(t, n)[c] * durci(t, n, c) * (MONSTRES[t].boss ? 1 : renfort(n) * classeMare(n)) * forceBoss(t, n, c === 'deg' ? 1 : 0))); /* (un boss garde sa force : le lissage des debuts de palier ne touche que les monstres ; avant le mini-boss de la vague 75, ca ne changeait rien) */
 const FORCE_HORDE = 1, forceHorde = (t, n) => (!MONSTRES[t].boss && multVague(n) > 1 ? FORCE_HORDE : 1); /* (06/11/2026 : remis a 100 %, « remets tout a 100 %, meme les monstres a Moon », Mathieu ; la horde de la Phase 2, 04/11/2026 : chaque monstre avait 55 % de ses PV et de ses degats ; sans pot en combat, 2,5 fois plus de monstres de meme force tuaient le bot a la vague 81) */
