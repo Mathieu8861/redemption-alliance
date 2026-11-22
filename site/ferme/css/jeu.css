@@ -1806,3 +1806,15 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .vente-confirme { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(226, 65, 58, .12); border: 2px solid rgba(226, 65, 58, .55); font: 700 .78rem/1.3 var(--f-texte); }
 .vente-confirme b { font-weight: 800; }
 .vente-oui-non { display: flex; gap: 8px; } .vente-oui-non .btn { flex: 1; }
+/* la serie d'essais de la vague 101 (22/11/2026, 29q-essai-101.js) : la carte dans la fenetre des vagues, le bloc du bilan */
+.essai-carte { margin: 8px 0 10px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(160deg, #1f3a44, #232a33); border: 2px solid #3fb6c9; }
+.essai-t { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
+.essai-t b { font: 400 1.05rem/1.15 var(--f-titre); color: #8fe8f2; } .essai-t span { font: 800 .78rem var(--f-texte); color: #f2b630; }
+.essai-carte > p { margin: 6px 0; font: 600 .76rem/1.35 var(--f-texte); color: #d7dbe0; }
+.essai-pistes { display: flex; gap: 6px; margin: 6px 0 8px; } .essai-pistes i { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 99px; font: 800 .78rem var(--f-texte); font-style: normal; background: #33373e; color: #9aa0a8; border: 2px solid #4a4f57; }
+.essai-pistes i.fait { background: #2f5d3a; color: #9ff0a8; border-color: #4caf5f; } .essai-pistes i.ici { background: #f2b630; color: #3a2a08; border-color: #ffd36a; }
+.essai-pied { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font: 700 .74rem/1.3 var(--f-texte); color: #d7dbe0; }
+.essai-pied span { display: flex; align-items: center; gap: 6px; flex: 1 1 200px; } .essai-pied img { width: 20px; height: 20px; }
+.essai-bilan { margin: 8px 0; padding: 8px 10px; border-radius: 12px; background: rgba(63, 182, 201, .12); border: 2px solid rgba(63, 182, 201, .5); font: 700 .8rem/1.3 var(--f-texte); }
+.essai-bilan p { margin: 4px 0; font-weight: 600; } .essai-bilan small { opacity: .75; }
+.essai-ressenti { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; } .essai-ressenti span { flex: 1 1 100%; font-weight: 700; }

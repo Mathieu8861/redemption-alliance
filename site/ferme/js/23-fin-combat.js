@@ -108,7 +108,7 @@ function trouveSurEux(L) {
 }
 function finVague(gagne, fuite) {
   if (!combat || combat.fin) return; if (combat.arene) { finArene(true); return; }
-  const c = combat; if (!fuite) son(gagne ? 'victoire' : 'defaite'); const n = c.n, rejoue = S_.vague.num > vaguesOuvertes() || c.rejoueBoss != null;
+  const c = combat; if (!fuite) son(gagne ? 'victoire' : 'defaite'); const n = c.n, rejoue = S_.vague.num > vaguesOuvertes() || c.rejoueBoss != null || !!c.essai101; /* (un essai de la vague 101 ne fait pas avancer, 22/11/2026) */
   nettoyerCombat(c, c.deroute != null); /* (le perso ne se releve que s'il etait a terre ; en pleine charge, sa charge finit d'elle-meme) */
   if (c.raid) { S_.simuDue = false; partirOmeho((c.butin || []).length > 0); } /* (Omeho s'en va avec sa troupe : ravi s'ils ont vole quelque chose, vexe sinon) */
   if (c.raid) { /* le Raid VSA : une prime par voleur abattu ; si on fuit, chaque voleur encore la emporte sa part */
