@@ -1781,3 +1781,16 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .ip-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 400 .85rem/1 var(--f-titre); color: #d0d3d9; background: #3a3d44; } .ip-l.ok .ip-n { color: #17320d; background: #8fd16a; } .ip-l.suiv .ip-n { color: #3a2a05; background: #ffd34d; }
 .ip-s { display: grid; line-height: 1.1; } .ip-s b { font-size: .86rem; font-weight: 900; color: #fff; } .ip-s small { font-size: .64rem; font-weight: 700; color: #a9adb5; } .ip-l.ok .ip-s small { color: #b8f08f; }
 @media (max-width: 640px) { .ig-cartes.deux { grid-template-columns: 1fr; } .ip-l { grid-template-columns: 26px 1fr; } .ip-l .ig-jetons { grid-column: 1 / -1; } }
+/* LA FUSION DES PIECES, L'AUTEL EN JAUNE (22/11/2026, « au lieu que tout soit violet comme les legendaires, on fait en jaune comme en rare », Mathieu) */
+.ev-autel.fp .ev-cercle svg { filter: drop-shadow(0 0 6px rgba(255, 211, 77, .55)); }
+.ev-autel.fp .ev-slot { border-color: rgba(255, 211, 77, .7); background: rgba(70, 52, 12, .55); color: #f5e6b8; }
+.ev-autel.fp .ev-slot.plein { border-color: #e0a31e; box-shadow: 0 0 18px rgba(255, 211, 77, .55), inset 0 0 12px rgba(255, 211, 77, .3); }
+.ev-autel.fp .ev-fleche { color: #ffd34d; text-shadow: 0 0 8px rgba(255, 211, 77, .8); }
+.ev-autel.fp .ev-case.au-centre, .ev-autel.fp .ev-case.offerte { border-color: #ffd34d; }
+.ev-autel.fp .ev-jbar { background: linear-gradient(90deg, #e0a31e, #ffd34d); }
+.ev-autel.fp .ev-jet-ligne { color: #f5e6b8; }
+.ev-autel.fp .ev-confirme > div { border-color: #e0a31e; box-shadow: 0 0 24px rgba(224, 163, 30, .5); }
+.ev-autel.fp.ev-fusion .ev-cercle svg { filter: drop-shadow(0 0 16px #ffe9a3) brightness(1.6); }
+.ev-autel.fp.ev-fusion .ev-cercle::after { background: radial-gradient(circle, #fff 0%, rgba(255, 233, 163, .85) 30%, rgba(224, 163, 30, 0) 70%); }
+.fp-pile { position: relative; display: grid; place-items: center; } .fp-n { position: absolute; right: -14px; top: -10px; white-space: nowrap; font: 900 .78rem/1 var(--f-texte); padding: 4px 7px; border-radius: 99px; background: #3a3d44; color: #f5e6b8; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); } .fp-n.ok { background: #ffd34d; color: #3a2a05; }
+.fp-fond { position: absolute; left: 3px; top: 3px; font-size: .52rem; font-weight: 800; background: #7a5a12; color: #ffe9a3; border-radius: 6px; padding: 0 4px; }

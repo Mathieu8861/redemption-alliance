@@ -121,10 +121,10 @@ function evPlaceGlisse(g) {
 function evFinGlisse(lacher) {
   const g = evGlisse; evGlisse = null; if (!g) return; clearTimeout(g.minuterie); if (!g.actif) return;
   g.fant.remove(); document.body.classList.remove('fp-en-glisse'); document.querySelectorAll('.ev-slot.survol, .ev-case.glisse').forEach((e) => e.classList.remove('survol', 'glisse'));
-  evGlisseFin = performance.now(); if (lacher && g.ou && modaleOuverte === 'eveil') evPlacer(g.k, g.porte, g.ou);
+  evGlisseFin = performance.now(); if (lacher && g.ou && modaleOuverte === 'eveil') evPlacer(g.k, g.porte, g.ou); else if (lacher && g.ou && modaleOuverte === 'fusion-pieces') fpPlacer(g.k);
 }
 document.addEventListener('pointerdown', (e) => {
-  if (modaleOuverte !== 'eveil' || e.button > 0 || evGlisse) return; const c = e.target.closest('.ev-case'); if (!c || document.querySelector('.ev-fusion')) return;
+  if ((modaleOuverte !== 'eveil' && modaleOuverte !== 'fusion-pieces') || e.button > 0 || evGlisse) return; /* (la fusion des pieces glisse pareil, 22/11/2026) */ const c = e.target.closest('.ev-case'); if (!c || document.querySelector('.ev-fusion')) return;
   const g = evGlisse = { src: c, k: c.dataset.evK, porte: c.dataset.evPorte === '1', x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, actif: false, tactile: e.pointerType === 'touch', pid: e.pointerId };
   if (g.tactile) g.minuterie = setTimeout(() => { if (evGlisse === g) { evDebutGlisse(g); if (g.actif && navigator.vibrate) navigator.vibrate(12); } }, 220);
 });
@@ -203,41 +203,85 @@ document.addEventListener('click', (e) => {
 
 /* LA FUSION DES PIECES (21/11/2026, idee de Yannick : « une feature pourrait permettre de fusionner X objets identiques (ex : 10) pour les transformer en ce
    meme item rare, ca permet de recompenser le farming et de ne pas compter que sur la chance » ; Mathieu : 10 identiques, « avec les nouveaux batiments du
-   niveau 100, celui qui permet de fusionner des items legendaires ») : a l'autel de l'eveil, 10 exemplaires normaux de la meme piece (dans le sac, pas portes)
-   donnent la meme piece en rare ★ (stats +50 %), contre 10 fois son prix de revente. Les 10 meilleurs jets servent, et le jet de la ★ est leur moyenne (les
-   autres exemplaires restent dans le sac). Version dev, comme l'autel. */
+   niveau 100, celui qui permet de fusionner des items legendaires »). Version dev, comme l'autel.
+   (22/11/2026, par Discord : « on fait comme pour une legendaire ? meme concept ? juste on met un item a gauche et il en fait 9 a fusionner pour garder la piece
+   qu'on veut pour la passer en rare ; au lieu que tout soit violet comme les legendaires, on fait en jaune comme en rare », Mathieu) : le meme autel que l'eveil,
+   en jaune. La piece a garder va au centre du cercle (portee ou dans le sac, glissee ou touchee) ; les 9 autres exemplaires normaux de la meme piece sont pris
+   tout seuls dans le sac, les moins bons jets d'abord ; la piece du centre passe en rare ★ (stats +50 %) en GARDANT SON JET, contre 10 fois son prix de revente. */
 const FUSION_PIECES = { n: 10, prix: 10 };
-function piecesFusionnables() { /* piece -> ses exemplaires normaux du sac, du meilleur jet au moins bon (un exemplaire par entree ; une entree a 3 compte pour 3) */
-  const M = new Map(); Object.entries(S_.sac || {}).forEach(([k, n]) => { const o = objBrut(k), b = baseObjet(k); if (!o || o.leg || o.rare || !OBJETS[b + '-rare'] || !(n > 0)) return; if (!M.has(b)) M.set(b, []); for (let i = 0; i < n; i++) M.get(b).push(k); });
-  M.forEach((L) => L.sort((a, b) => qualiteJet(b) - qualiteJet(a))); return M; }
+const FP = { cible: null, fin: null };
+const fusionnable = (k) => { const o = objBrut(k); return !!o && !o.leg && !o.rare && !!OBJETS[baseObjet(k) + '-rare']; };
+const exemplairesNormaux = () => { /* chaque piece normale qui a sa version rare, portee ou dans le sac (un exemplaire par entree), rangees par piece puis du meilleur jet au moins bon */
+  const L = []; Object.values(S_.equip || {}).forEach((k) => { if (k && fusionnable(k)) L.push({ k, porte: true }); });
+  Object.entries(S_.sac || {}).forEach(([k, n]) => { if (fusionnable(k)) for (let i = 0; i < n; i++) L.push({ k, porte: false }); });
+  const nb = {}; L.forEach((x) => { const b = baseObjet(x.k); nb[b] = (nb[b] || 0) + 1; });
+  return L.sort((a, b) => nb[baseObjet(b.k)] - nb[baseObjet(a.k)] || (baseObjet(a.k) < baseObjet(b.k) ? -1 : baseObjet(a.k) > baseObjet(b.k) ? 1 : qualiteJet(b.k) - qualiteJet(a.k))); };
+function sacrificesFusion(c) { /* les 9 exemplaires du sac qui fondent dans la piece c : les moins bons jets d'abord, sans compter c elle-meme */
+  const b = baseObjet(c), L = []; Object.entries(S_.sac || {}).forEach(([k, n]) => { if (baseObjet(k) !== b || !fusionnable(k)) return; const m = n - (k === c && !evPortee(c) ? 1 : 0); for (let i = 0; i < m; i++) L.push(k); });
+  return L.sort((x, y) => qualiteJet(x) - qualiteJet(y)).slice(0, FUSION_PIECES.n - 1); }
 const prixFusionPieces = (b) => FUSION_PIECES.prix * reventeObjet(b);
-const jetFusion = (L) => L.slice(0, FUSION_PIECES.n).reduce((t, k) => t + qualiteJet(k), 0) / Math.min(FUSION_PIECES.n, L.length || 1);
+function statsRares(c) { const r = OBJETS[baseObjet(c) + '-rare'], q = qualiteJet(c); return Object.fromEntries(Object.entries(r.stats).map(([s, v]) => { const [a, m] = fourchette(v, r.id, s); return [s, Math.round(a + q * (m - a))]; })); }
+const FP_CERCLE = EV_CERCLE.replace(/#c890ff/g, '#ffd34d').replace(/#d7b2ff/g, '#ffe9a3').replace(/#a465e6/g, '#e0a31e');
 function ouvrirFusionPieces() {
-  const M = piecesFusionnables(), N = FUSION_PIECES.n, L = [...M.entries()].sort((a, b) => (b[1].length >= N) - (a[1].length >= N) || b[1].length - a[1].length || OBJETS[b[0]].niv - OBJETS[a[0]].niv);
-  const ligne = ([b, ex]) => { const n = ex.length, ok = n >= N, prix = prixFusionPieces(b), q = jetFusion(ex), r = OBJETS[b + '-rare'];
-    return '<div class="art">' + icoObjet(b) + '<div><b>' + OBJETS[b].nom + ' <span class="puce' + (ok ? ' bonne' : '') + '">' + Math.min(n, N) + ' / ' + N + '</span></b>' +
-      '<div class="desc">Niveau ' + OBJETS[b].niv + (n > N ? ' · tu en as ' + n + ', les ' + N + ' meilleures servent' : '') + (ok ? ' · donne <b>' + r.nom + '</b>, jet ' + nomJet(q) + ' (' + Math.round(q * 100) + ' %)' : ' · encore ' + (N - n) + ' à trouver') + '</div>' +
-      '<i style="display:block;height:5px;border-radius:3px;margin-top:4px;background:linear-gradient(90deg,#e0b52c ' + Math.min(100, 100 * n / N) + '%,rgba(255,255,255,.12) 0)"></i></div>' +
-      '<div class="act"><button class="btn ' + (ok ? 'kamas' : 'discret') + '" data-fusion-pieces="' + b + '"' + (ok && S_.kamas >= prix ? '' : ' disabled') + '>Fusionner · ' + fmt(prix) + ' kamas</button></div></div>'; };
-  ouvrirModale('fusion-pieces', entete('La fusion des pièces') + '<p class="hdv-aide"><b>' + N + ' exemplaires normaux</b> de la même pièce (dans ton sac, pas portés) donnent cette pièce en <b>rare ★</b> (stats +50 %), contre ' + FUSION_PIECES.prix + ' fois son prix de revente. Les ' + N + ' meilleurs jets servent : le jet de la ★ est leur moyenne.</p>' +
-    (L.length ? '<div class="hdv-section">Tes pièces</div>' + L.map(ligne).join('') : '<p class="hdv-aide">Aucune pièce normale dans ton sac pour l\'instant.</p>') +
+  const L = exemplairesNormaux(), N = FUSION_PIECES.n; if (FP.cible && !L.some((x) => x.k === FP.cible)) FP.cible = null;
+  const c = FP.cible, F = FP.fin, oc = c && obj(c), sac = c ? sacrificesFusion(c) : [], ok = sac.length >= N - 1, prix = c ? prixFusionPieces(baseObjet(c)) : 0, r = c && OBJETS[baseObjet(c) + '-rare'];
+  const pris = {}; sac.forEach((k) => { pris[k] = (pris[k] || 0) + 1; }); let vuC = false;
+  const tuiles = L.map((x) => { let e = '';
+    if (x.k === c && !vuC && x.porte === evPortee(c)) { vuC = true; e = 'au-centre'; } else if (c && !x.porte && pris[x.k] > 0) { pris[x.k]--; e = 'offerte'; } else if (c) e = baseObjet(x.k) === baseObjet(c) ? 'possible' : 'eteinte';
+    const o = obj(x.k); return '<div class="ev-case ' + e + '" data-ev-k="' + x.k + '" data-ev-porte="' + (x.porte ? 1 : 0) + '" data-ev-etat="' + e + '" title="' + o.nom.replace(/"/g, '') + ', niveau ' + o.niv + ', jet ' + evJet(x.k) + ' %">' + icoObjet(x.k) +
+      '<span class="ev-niv">niv. ' + o.niv + '</span>' + evJetPastille(x.k) + '<i class="ev-jbar" style="width:' + evJet(x.k) + '%"></i>' + (x.porte ? '<span class="ev-porte">portée</span>' : '') + (e === 'offerte' ? '<span class="fp-fond">fond</span>' : '') + '</div>'; });
+  const cible = '<div class="ev-slot cible' + (c || F ? ' plein' : '') + (F ? ' eclat' : '') + '" data-ev-slot="cible">' + (F ? icoObjet(F.k) + evJetPastille(F.k) : c ? icoObjet(c) + evJetPastille(c) : '<span>Glisse ici la pièce à garder</span>') + '</div>';
+  const pile = '<div class="ev-slot sac' + (c ? ' plein' : '') + '" data-ev-slot="sac">' + (c ? '<div class="fp-pile">' + icoObjet(c) + '<span class="fp-n' + (ok ? ' ok' : '') + '">' + Math.min(sac.length, N - 1) + ' / ' + (N - 1) + '</span></div>' : '<span>Les 9 autres</span>') + '</div>';
+  const apercu = F ? '<div class="ev-apercu ev-resultat"><b>' + obj(F.k).nom + '</b><div class="ev-plus">Pièce rare : stats +50 %</div>' + tableEveil(F.avant, obj(F.k)) + '</div>'
+    : c ? '<div class="ev-apercu"><b>' + oc.nom + ' → ★</b><div class="ev-jet-ligne">Elle garde son jet ' + nomJet(qualiteJet(c)) + ' : ' + evJet(c) + ' %</div>' + tableEveil(oc, { niv: r.niv, stats: statsRares(c) }) + '</div>'
+    : '<div class="ev-apercu vide"><p class="hdv-aide">Mets au centre la pièce que tu veux garder : <b>' + (N - 1) + ' autres exemplaires</b> de la même pièce, pris dans ton sac (les moins bons jets d\'abord), fondent dedans et elle passe <b>rare ★</b> (stats +50 %), en gardant son jet. Prix : ' + FUSION_PIECES.prix + ' fois sa revente.</p></div>';
+  const mieux = c && !F && sac.some((k) => qualiteJet(k) > qualiteJet(c) + 0.005);
+  const alerte = mieux ? '<div class="ev-alerte"><b>Attention</b> : parmi les ' + (N - 1) + ' qui fondent, il y en a avec un meilleur jet que la pièce du centre. Mets plutôt ta meilleure au centre.</div>' : '';
+  const aide = !c ? 'Dépose une pièce au centre' : ok ? 'Les ' + (N - 1) + ' moins bons jets fondent dedans' : 'Encore ' + (N - 1 - sac.length) + ' exemplaire' + (N - 1 - sac.length > 1 ? 's' : '') + ' à trouver';
+  ouvrirModale('fusion-pieces', entete('La fusion des pièces') + '<div class="ev-autel fp">' +
+    '<div class="ev-gauche"><div class="ev-cercle">' + FP_CERCLE + cible + '</div>' + apercu + '</div>' +
+    '<div class="ev-milieu"><div class="ev-fleche">◀</div>' + pile + '<small>' + aide + '</small>' + alerte +
+      (F ? '<button class="btn discret" data-fp-encore>Continuer</button>' : '<button class="btn kamas" data-fp-fusion' + (c && ok && S_.kamas >= prix ? '' : ' disabled') + '>Fusionner' + (c ? ' · ' + fmt(prix) + ' kamas' : '') + '</button>') + '</div>' +
+    '<div class="ev-droite"><div class="hdv-section">Tes pièces</div>' + (L.length ? '<div class="ev-grille">' + tuiles.join('') + '</div>' : '<p class="hdv-aide">Aucune pièce normale pour l\'instant.</p>') +
+      '<p class="hdv-aide ev-astuce">Glisse une pièce au centre, ou touche-la. Touche le centre pour le vider.</p></div></div>' +
     (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-eveil>L\'éveil des légendaires</button><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
 }
-function fusionnerPieces(b, confirme) {
-  if (combat) { toast('Pas pendant un combat.'); return; }
-  const ex = piecesFusionnables().get(b) || [], N = FUSION_PIECES.n, prix = prixFusionPieces(b), r = OBJETS[b + '-rare']; if (!r || ex.length < N) { toast('Il te faut ' + N + ' exemplaires de cette pièce.'); return; }
-  if (S_.kamas < prix) { toast('Il te faut ' + fmt(prix) + ' kamas.', 'alerte'); return; }
-  const L = ex.slice(0, N), q = jetFusion(ex);
-  if (!confirme) { ouvrirModale('fusion-pieces', entete('Fusionner ?') + '<div class="confirme"><div class="gros">' + icoObjet(b) + '</div><p><b>' + N + ' × ' + OBJETS[b].nom + '</b> (tes ' + N + ' meilleurs jets) deviennent <b>' + r.nom + '</b>, jet ' + nomJet(q) + ' (' + Math.round(q * 100) + ' %), pour <b>' + fmt(prix) + ' kamas</b>.</p><p>Les ' + N + ' pièces sont détruites. Tu ne pourras pas revenir en arrière.</p>' +
-    '<div class="boutons"><button class="btn discret" data-ouvrir-fusion-pieces>Non</button><button class="btn kamas" data-fusion-pieces-ok="' + b + '">Oui, fusionner</button></div></div>'); return; }
-  L.forEach((k) => { S_.sac[k]--; if (!(S_.sac[k] > 0)) { delete S_.sac[k]; if (!Object.values(S_.equip || {}).includes(k)) { if (S_.jets) delete S_.jets[k]; if (S_.eveils) delete S_.eveils[k]; } } });
-  const k = creerObjet(r.id); S_.jets[k] = Object.fromEntries(Object.entries(r.stats).map(([c, v]) => { const [a, m] = fourchette(v, r.id, c); return [c, Math.round(a + q * (m - a))]; })); /* (le jet : la moyenne des 10) */
-  S_.sac[k] = 1; marquerNeuf(k); S_.kamas -= prix; compter('fusionsPieces');
-  son('niveau'); confettis(40); toast(r.nom + ' ! Les ' + N + ' pièces ont fusionné (jet ' + Math.round(qualiteJet(k) * 100) + ' %).', 'or'); sauver(); rendreHaut(); ouvrirFusionPieces();
+function fpPlacer(k) { FP.fin = null; FP.cible = k; son('poser'); ouvrirFusionPieces(); }
+function fpConfirmer() {
+  const A = document.querySelector('.ev-autel.fp'), c = FP.cible; if (!A || !c || A.querySelector('.ev-confirme')) return;
+  const sac = sacrificesFusion(c), r = OBJETS[baseObjet(c) + '-rare'], j = sac.map(evJet), d = document.createElement('div'); d.className = 'ev-confirme';
+  d.innerHTML = '<div><p><b>Fusionner ?</b></p><p>' + obj(c).nom + ' devient <b>' + r.nom + '</b> (stats +50 %).</p><p>Elle garde son jet : <b>' + evJet(c) + ' %</b>.</p><p' + (sac.some((k) => qualiteJet(k) > qualiteJet(c) + 0.005) ? ' class="ev-perte"' : '') + '>Les ' + sac.length + ' autres (jets de ' + Math.min(...j) + ' à ' + Math.max(...j) + ' %) sont <b>détruits</b>, pour <b>' + fmt(prixFusionPieces(baseObjet(c))) + ' kamas</b>. Tu ne pourras pas revenir en arrière.</p>' +
+    '<div class="boutons"><button class="btn discret" data-fp-non>Non</button><button class="btn kamas" data-fp-oui>Oui, fusionner</button></div></div>';
+  A.appendChild(d);
+}
+function fpFusionner() { /* comme l'eveil : la pile est aspiree au centre du cercle, le cercle s'emballe, un eclair, puis la piece rare */
+  const A = document.querySelector('.ev-autel.fp'), c = FP.cible; if (!A || !c || A.classList.contains('ev-fusion')) return;
+  const q = A.querySelector('.ev-confirme'); if (q) q.remove();
+  const cS = A.querySelector('.ev-slot.cible'), sS = A.querySelector('.ev-slot.sac'), r1 = cS.getBoundingClientRect(), r2 = sS.getBoundingClientRect(), p = sS.firstElementChild;
+  if (p) { p.style.setProperty('--dx', (r1.left + r1.width / 2 - r2.left - r2.width / 2) + 'px'); p.style.setProperty('--dy', (r1.top + r1.height / 2 - r2.top - r2.height / 2) + 'px'); }
+  A.classList.add('ev-fusion'); A.querySelectorAll('button').forEach((b) => { b.disabled = true; }); son('quete');
+  const avant = Object.assign({}, obj(c), { stats: Object.assign({}, obj(c).stats) });
+  setTimeout(() => { const k = fusionnerPieces(c); if (!k) { ouvrirFusionPieces(); return; } FP.fin = { k, avant }; FP.cible = null; son('niveau'); confettis(50); ouvrirFusionPieces(); }, 1500);
+}
+function fusionnerPieces(c) { /* la piece c passe rare a son jet ; les 9 autres du sac sont detruites ; renvoie la cle de la piece rare */
+  if (combat) { toast('Pas pendant un combat.'); return null; }
+  const r = OBJETS[baseObjet(c) + '-rare'], sac = sacrificesFusion(c), N = FUSION_PIECES.n, prix = prixFusionPieces(baseObjet(c)), porte = evPortee(c);
+  if (!r || sac.length < N - 1) { toast('Il te faut ' + N + ' exemplaires de cette pièce.'); return null; }
+  if (S_.kamas < prix) { toast('Il te faut ' + fmt(prix) + ' kamas.', 'alerte'); return null; }
+  const jets = statsRares(c), parti = (k) => { if (!(S_.sac[k] > 0) && !Object.values(S_.equip || {}).includes(k)) { if (S_.jets) delete S_.jets[k]; if (S_.eveils) delete S_.eveils[k]; } };
+  sac.forEach((k) => { S_.sac[k]--; if (!(S_.sac[k] > 0)) delete S_.sac[k]; parti(k); });
+  const k2 = creerObjet(r.id); S_.jets = S_.jets || {}; S_.jets[k2] = jets;
+  if (porte) { const emp = Object.keys(S_.equip).find((e) => S_.equip[e] === c); S_.equip[emp] = k2; } else { S_.sac[c]--; if (!(S_.sac[c] > 0)) delete S_.sac[c]; S_.sac[k2] = 1; marquerNeuf(k2); }
+  parti(c); S_.kamas -= prix; compter('fusionsPieces'); if (porte) rafraichirTenue(); sauver(); rendreHaut(); return k2;
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-ouvrir-fusion-pieces],[data-fusion-pieces],[data-fusion-pieces-ok]'); if (!b) return;
-  if (b.hasAttribute('data-ouvrir-fusion-pieces')) { ouvrirFusionPieces(); return; }
-  if (b.dataset.fusionPieces) { fusionnerPieces(b.dataset.fusionPieces, false); return; }
-  if (b.dataset.fusionPiecesOk) fusionnerPieces(b.dataset.fusionPiecesOk, true);
+  const o = e.target.closest('[data-ouvrir-fusion-pieces]'); if (o) { ouvrirFusionPieces(); return; }
+  if (modaleOuverte !== 'fusion-pieces') return; if (performance.now() - evGlisseFin < 80) { e.stopPropagation(); e.preventDefault(); return; }
+  const t = e.target.closest('.ev-case,[data-ev-slot],[data-fp-fusion],[data-fp-oui],[data-fp-non],[data-fp-encore]'); if (!t || document.querySelector('.ev-fusion')) return;
+  if (t.matches('.ev-case')) { if (t.dataset.evEtat === 'au-centre') { FP.cible = null; FP.fin = null; ouvrirFusionPieces(); } else fpPlacer(t.dataset.evK); return; }
+  if (t.dataset.evSlot) { FP.cible = null; FP.fin = null; ouvrirFusionPieces(); return; }
+  if (t.hasAttribute('data-fp-fusion')) { fpConfirmer(); return; }
+  if (t.hasAttribute('data-fp-non')) { const q = document.querySelector('.ev-confirme'); if (q) q.remove(); return; }
+  if (t.hasAttribute('data-fp-oui')) { fpFusionner(); return; }
+  if (t.hasAttribute('data-fp-encore')) { FP.fin = null; ouvrirFusionPieces(); }
 });
