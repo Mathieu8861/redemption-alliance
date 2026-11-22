@@ -1,8 +1,10 @@
 'use strict';
 /* LES SPHERES RUNIQUES, LES LEGENDAIRES DU PALIER 11 (21/11/2026, « est-ce qu'on ne ferait pas des spheres runiques ? », puis « les designs 1 sont bien, faut voir
    comment on arrive a les rendre en jeu », Mathieu). Un nouvel emplacement (la Relique de IDEES-APRES-100.md) : pas de stats, un effet permanent.
-   - Sphere des Marees (le Croco, vague 110) : une bulle d'eau absorbe un coup, toutes les 15 s a distance (Cra, Osamodas) et toutes les 10 s au corps a corps (Iop) ;
-   - Sphere de la Couvee (la Mere Crapustule, vague 105) : une petite grenouille crache des bulles a distance, 15 % des degats du perso, un coup par seconde.
+   - Sphere des Marees (le Croco, vague 110) : une bulle d'eau absorbe un coup, toutes les 12 s a distance (Cra, Osamodas) et toutes les 8 s au corps a corps (Iop)
+     (22/11/2026, Mathieu ; 15 et 10 s avant) ;
+   - Sphere de la Couvee (la Mere Crapustule, vague 105) : une petite grenouille crache a distance (portee du Cra), 20 % des degats de son porteur, a sa vitesse
+     d'attaque (22/11/2026, Mathieu ; 15 % et un coup par seconde avant).
    ICI, POUR L'INSTANT, SEULEMENT LEUR RENDU (version dev). La sphere SUIT le perso (22/11/2026, « la sphere nous suit, mais elle ne tourne pas autour de nous »,
    Mathieu) : elle flotte a cote de son epaule (celle qui ne tient pas l'arc du Cra), un peu en arriere, le rattrape en douceur quand il bouge et se balance ; son
    halo a sa couleur, des gouttes (Marees) ou des bulles (Couvee) qui s'en echappent. Modeles : Rodin d'apres les dessins 1 (maquettes/spheres-runiques/),
@@ -102,10 +104,10 @@ function accrocherGrenouille() { /* sur le nenuphar de la Couvee eclose (la gren
    qui retombent et une tache de bave au sol qui seche en 1,6 s. Toujours sans degats (l'effet viendra avec l'emplacement Relique) */
 const CRACHAT = { prepa: 0.14, geo: null, cone: null, mat: null, matF: null, matR: null, contour: null, texGoutte: null, texTache: null };
 function cibleCrachat() { /* le monstre le plus proche (en combat, a la portee du Cra), sinon un point au sol devant elle ; null en combat sans cible */
-  const dep = GREN.corps.localToWorld(new T.Vector3(0, HAUT_GREN * 0.55, HAUT_GREN * 0.35)); let fin = null, sol = 0;
-  if (combat && combat.monstres) { let best = STATS_CLASSE.cra.portee; /* (la portee du Cra, 5 cases : « mets-lui la meme portee d'attaque que le Cra », Mathieu, 22/11/2026) */ combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - dep.x, o.z - dep.z); if (d < best) { best = d; fin = new T.Vector3(o.x, o.m.position.y + (o.haut || 1) * 0.45, o.z); sol = o.m.position.y; } }); }
+  const dep = GREN.corps.localToWorld(new T.Vector3(0, HAUT_GREN * 0.55, HAUT_GREN * 0.35)); let fin = null, sol = 0, mo = null;
+  if (combat && combat.monstres) { let best = STATS_CLASSE.cra.portee; /* (la portee du Cra, 5 cases : « mets-lui la meme portee d'attaque que le Cra », Mathieu, 22/11/2026) */ combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - dep.x, o.z - dep.z); if (d < best) { best = d; mo = o; fin = new T.Vector3(o.x, o.m.position.y + (o.haut || 1) * 0.45, o.z); sol = o.m.position.y; } }); }
   if (!fin) { if (combat) return null; fin = GREN.corps.localToWorld(new T.Vector3(0, 0, 2.4 * HAUT_GREN / TAILLE_GREN)); fin.y = sol = (paysanMesh ? paysanMesh.position.y : 0) + 0.03; }
-  return { dep, fin, sol };
+  return { dep, fin, sol, mo };
 }
 function crachatGrenouille() { /* elle se ramasse : le crachat part au bout de CRACHAT.prepa (animerGrenouille) */
   const g = GREN.g; if (!g || !g.parent || GREN.tir) return; g.updateMatrixWorld(true); const C = cibleCrachat(); if (!C) return;
@@ -132,7 +134,7 @@ function lancerCrachat() {
   [[0.38, 0.12, -0.05, -2.5], [0.24, -0.1, 0.06, -3.2]].forEach(([s, x, y, z]) => { const p = new T.Mesh(CRACHAT.geo, CRACHAT.matF); p.scale.setScalar(s); p.position.set(x, y, z); corps.add(p); }); /* (deux petits paquets de bave qui suivent) */
   const r = new T.Mesh(CRACHAT.geo, CRACHAT.matR); r.scale.set(0.16, 0.1, 0.32); r.position.set(-0.32, 0.5, 0.3); corps.add(r); /* (un reflet discret) */
   b.scale.setScalar(0.075); b.position.copy(C.dep); scene.add(b);
-  GREN.bulles.push({ b, corps, dep: C.dep, fin: C.fin, sol: C.sol, t: 0, d: Math.max(0.3, Math.min(0.6, C.dep.distanceTo(C.fin) / 10)), trace: 0.05 });
+  GREN.bulles.push({ b, corps, mo: C.mo, dep: C.dep, fin: C.fin, sol: C.sol, t: 0, d: Math.max(0.3, Math.min(0.6, C.dep.distanceTo(C.fin) / 10)), trace: 0.05 });
 }
 function goutteCrachat(p, v, vie, taille, grav) { /* une goutte de bave (sprite) : celles qui tombent en vol et celles de l'impact */
   preparerCrachat(); const s = new T.Sprite(new T.SpriteMaterial({ map: CRACHAT.texGoutte, transparent: true, depthWrite: false }));
@@ -153,11 +155,12 @@ function animerGrenouille(dt) {
     if (f.grandit) f.s.scale.setScalar(f.taille + f.grandit * Math.sqrt(k)); else f.s.scale.setScalar(f.taille * (1 - 0.4 * k));
     f.s.material.opacity = 1 - k * k; return true; });
   GREN.bulles = GREN.bulles.filter((b) => { b.t += dt; const k = Math.min(1, b.t / b.d), av = b.b.position.clone();
+    if (b.mo && b.mo.etat === 'actif') { b.fin.set(b.mo.x, b.mo.m.position.y + (b.mo.haut || 1) * 0.45, b.mo.z); b.sol = b.mo.m.position.y; } /* (il suit sa cible) */
     b.b.position.lerpVectors(b.dep, b.fin, k); b.b.position.y += Math.sin(k * Math.PI) * Math.min(0.9, 0.25 + b.dep.distanceTo(b.fin) * 0.12); /* (un petit arc) */
     if (b.b.position.distanceToSquared(av) > 1e-8) b.b.lookAt(b.b.position.clone().multiplyScalar(2).sub(av)); /* (etiree dans le sens du vol) */
     const w1 = Math.sin(b.t * 29), w2 = Math.sin(b.t * 17 + 1); b.corps.scale.set(1 + 0.12 * w1, 1 - 0.1 * w1, 1 + 0.15 * w2); /* (elle se deforme) */
     b.trace -= dt; if (b.trace <= 0 && k < 0.9) { b.trace = 0.07; goutteCrachat(b.b.position, new T.Vector3(0, -0.2, 0), 0.4, 0.035, 5); } /* (quelques gouttes qui tombent) */
-    if (k < 1) return true; eclaboussureCrachat(b); scene.remove(b.b); return false; });
+    if (k < 1) return true; toucherCrachat(b); eclaboussureCrachat(b); scene.remove(b.b); return false; });
   if (!GREN.g || !paysanMesh) return; if (GREN.g.parent !== SPH.g) accrocherGrenouille(); if (!GREN.g.parent) return;
   GREN.g.rotation.y = paysanMesh.rotation.y; /* (elle regarde dans le sens du perso) */
   GREN.t += dt; const t = GREN.t, c = GREN.corps; GREN.viseT = Math.max(0, GREN.viseT - dt);
@@ -168,9 +171,55 @@ function animerGrenouille(dt) {
       sx = 1 - 0.1 * e; sy = 1 + 0.18 * e; pench = 0.42 * e; if (k >= 1) GREN.tir = null; } } /* (elle se detend en avant en crachant, puis revient) */
   c.scale.set(sx, sy, sx); c.rotation.x = pench;
   const regard = GREN.viseT > 0 ? GREN.vise : Math.sin(t * 0.45) * 0.5 + Math.sin(t * 1.7) * 0.08; c.rotation.y += (regard - c.rotation.y) * Math.min(1, dt * (GREN.viseT > 0 ? 14 : 8)); /* (elle regarde autour d'elle, ou sa cible) */
-  GREN.crache -= dt; if (GREN.crache <= 0) { GREN.crache = combat ? 1 : 3 + Math.random() * 2; crachatGrenouille(); }
+  GREN.crache -= dt; if (GREN.crache <= 0) { GREN.crache = combat ? (typeof statsPerso === 'function' ? statsPerso().cadence : 1) : 3 + Math.random() * 2; crachatGrenouille(); } /* (en combat, au rythme des coups de son porteur : « elle reprend la vitesse d'attaque du porteur », Mathieu, 22/11/2026) */
 }
-(function boucleSphere(now) { const dt = Math.min(0.05, Math.max(0, (now - SPH.prec) / 1000)); SPH.prec = now; try { animerSphere(dt); } catch (e) { /* rien */ } try { animerGrenouille(dt); } catch (e) { /* rien */ } requestAnimationFrame(boucleSphere); })(performance.now());
+/* LES EFFETS DES SPHERES (22/11/2026, « 20 % des degats et elle reprend la vitesse d'attaque du porteur ; la sphere d'eau, au final, pour les cac reduit une
+   attaque toutes les 8 secondes, et a distance 12 secondes », Mathieu). Version dev : ils marchent quand la sphere est portee dans le mode test, en attendant
+   l'emplacement Relique de la fiche du perso.
+   - Couvee : chaque crachat qui touche un monstre lui fait 20 % des degats d'un coup du perso (« Grenouille de la Couvee » dans le detail des degats) ; le crachat
+     suit sa cible en vol.
+   - Marees : une bulle d'eau entoure le perso ; elle absorbe entierement le prochain coup recu, eclate, puis se reforme au bout de 8 s pour le Iop (au corps a
+     corps), 12 s pour le Cra et l'Osamodas. Pleine au debut de chaque combat. */
+const EFFETS_SPH = { couvee: { part: 0.2 }, marees: { cac: 8, distance: 12 } };
+const spherePortee = (cle) => !!(typeof MODE_TEST !== 'undefined' && MODE_TEST && SPH.cle === cle && SPH.g); /* (plus tard : la sphere de l'emplacement Relique) */
+const delaiBulle = () => (classeDe() === 'iop' ? EFFETS_SPH.marees.cac : EFFETS_SPH.marees.distance);
+const BULLE_MAR = { prete: true, charge: 0, combat: null, m: null, pop: null, n: 0 };
+function meshBulle() { /* une bulle d'eau : transparente au centre, son bord bleu qui brille (le bord est calcule face a la camera) */
+  const mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uC: { value: new T.Color('#6fe6ff') }, uA: { value: 1 } },
+    vertexShader: 'varying vec3 vN; varying vec3 vV; void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 uC; uniform float uA; varying vec3 vN; varying vec3 vV; void main() { float f = pow(1.0 - abs(dot(vN, vV)), 2.2); gl_FragColor = vec4(mix(uC, vec3(1.0), f * 0.35), (0.07 + 0.7 * f) * uA); }' });
+  const g = new T.Group(), m = new T.Mesh(new T.SphereGeometry(1, 28, 20), mat); g.add(m);
+  const r = new T.Sprite(new T.SpriteMaterial({ map: texHaloSph(), color: '#ffffff', transparent: true, depthWrite: false, opacity: 0.55 })); r.scale.setScalar(0.35); r.position.set(-0.45, 0.5, 0.55); g.add(r); /* (un reflet) */
+  g.userData.mat = mat; g.userData.reflet = r; return g;
+}
+function eclaterBulle() { /* elle absorbe le coup : elle grossit, s'efface, des gouttes partent */
+  const B = BULLE_MAR.m; if (!B) return; B.visible = false; const p = B.position.clone();
+  const e = meshBulle(); e.position.copy(p); e.scale.copy(B.scale); scene.add(e); BULLE_MAR.pop = { g: e, t: 0 };
+  preparerCrachat(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, s = new T.Sprite(new T.SpriteMaterial({ map: texHaloSph(), color: '#9ff2ff', transparent: true, depthWrite: false }));
+    s.position.copy(p).add(new T.Vector3(Math.cos(a) * 0.8, (Math.random() - 0.3) * 0.8, Math.sin(a) * 0.8)); s.scale.setScalar(0.12); scene.add(s); GREN.fx.push({ s, v: new T.Vector3(Math.cos(a) * 1.6, 1 + Math.random(), Math.sin(a) * 1.6), t: 0, d: 0.5, taille: 0.12, grav: 6 }); }
+  const q = paysanMesh.position.clone(); q.y += 1.7; chiffre('Bulle !', q, 'perso'); son('boire');
+}
+function animerBulle(dt) {
+  if (BULLE_MAR.pop) { const P = BULLE_MAR.pop; P.t += dt; const k = P.t / 0.28; P.g.scale.multiplyScalar(1 + dt * 1.6); P.g.userData.mat.uniforms.uA.value = Math.max(0, 1 - k); P.g.userData.reflet.material.opacity = Math.max(0, 0.55 * (1 - k)); if (k >= 1) { scene.remove(P.g); BULLE_MAR.pop = null; } }
+  const actif = spherePortee('marees') && combat && !combat.fin && paysanMesh;
+  if (!actif) { if (BULLE_MAR.m) BULLE_MAR.m.visible = false; return; }
+  if (BULLE_MAR.combat !== combat) { BULLE_MAR.combat = combat; BULLE_MAR.prete = true; BULLE_MAR.charge = 0; } /* (pleine au debut de chaque combat) */
+  if (!BULLE_MAR.prete) { BULLE_MAR.charge += dt; if (BULLE_MAR.charge >= delaiBulle()) { BULLE_MAR.prete = true; BULLE_MAR.charge = 0; BULLE_MAR.nait = 0; } }
+  if (!BULLE_MAR.m) { BULLE_MAR.m = meshBulle(); scene.add(BULLE_MAR.m); }
+  const B = BULLE_MAR.m, h = paysanMesh.userData.hanche || 0.5; B.visible = BULLE_MAR.prete && paysanMesh.visible !== false;
+  if (B.visible) { BULLE_MAR.nait = Math.min(1, (BULLE_MAR.nait == null ? 1 : BULLE_MAR.nait) + dt * 4); const t = performance.now() / 1000, s = 0.95 * (0.4 + 0.6 * BULLE_MAR.nait);
+    B.position.set(paysanMesh.position.x, paysanMesh.position.y + h + 0.35, paysanMesh.position.z); B.scale.set(s * (1 + 0.03 * Math.sin(t * 3.3)), s * (1.05 + 0.03 * Math.sin(t * 2.7 + 1)), s * (1 + 0.03 * Math.sin(t * 3.1 + 2))); } /* (elle se forme en 0,25 s, puis ondule) */
+}
+const blesserPersoSph = blesserPerso; blesserPerso = function (n, mo) { /* la bulle de la Marees prend le coup a sa place */
+  if (combat && !combat.fin && combat.deroute == null && !(combat.invincible > 0) && !(paysanMesh && paysanMesh.userData.enVol) && spherePortee('marees') && BULLE_MAR.prete && BULLE_MAR.combat === combat) {
+    BULLE_MAR.prete = false; BULLE_MAR.charge = 0; BULLE_MAR.n++; eclaterBulle(); return; }
+  return blesserPersoSph(n, mo);
+};
+function toucherCrachat(b) { /* le crachat arrive sur son monstre : 20 % des degats d'un coup du perso */
+  if (!b.mo || !combat || combat.fin || b.mo.etat !== 'actif' || !spherePortee('couvee')) return;
+  const n = Math.max(1, Math.round(EFFETS_SPH.couvee.part * statsPerso().deg)), p0 = SRC_DEG; SRC_DEG = 'Grenouille de la Couvée'; blesser(b.mo, n, false, 'sphere'); SRC_DEG = p0;
+}
+(function boucleSphere(now) { const dt = Math.min(0.05, Math.max(0, (now - SPH.prec) / 1000)); SPH.prec = now; try { animerSphere(dt); } catch (e) { /* rien */ } try { animerGrenouille(dt); } catch (e) { /* rien */ } try { animerBulle(dt); } catch (e) { /* rien */ } requestAnimationFrame(boucleSphere); })(performance.now());
 /* l'apercu du mode test (27b-arene-dev.js) */
 document.addEventListener('click', (e) => { const d = e.target.closest('[data-test-sphere-da]'); if (d) { ETAT_TEST.sphDA = d.dataset.testSphereDa; if (ETAT_TEST.sphere) porterSphere(ETAT_TEST.sphere).catch(() => {}); if (typeof ouvrirModeTest === 'function' && modaleOuverte === 'mode-test') ouvrirModeTest(); return; } /* (la DA A ou B, 22/11/2026) */
   const b = e.target.closest('[data-test-sphere]'); if (!b) return; const c = b.dataset.testSphere;
