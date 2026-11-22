@@ -2,6 +2,21 @@
 /* ===================== INTERFACE ===================== */
 const $ = (id) => document.getElementById(id);
 /* BETA : le curseur de vitesse du temps (voir horlogeJeu tout en haut) */
+/* LA CONFIRMATION AVANT DE REVENDRE UNE PIECE RARE OU LEGENDAIRE (22/11/2026, « si quelqu'un clique par inadvertance sur revendre pour un item rare ou
+   legendaire, ce serait bien qu'il y ait un petit message du genre : etes-vous sur de vouloir vendre cet item ? oui / non », Mathieu) : sur place, sans fermer
+   la fenetre (la fiche du perso, la grange, le bilan d'un combat), les boutons de la piece laissent la place a la question, Oui revend, Non remet les boutons.
+   Une piece ordinaire se revend toujours d'un clic. faire : la revente */
+function confirmerVente(b, k, faire) {
+  const o = typeof obj === 'function' ? obj(k) : null; if (!o || !(o.rare || o.leg)) { faire(); return; }
+  const zone = b.parentElement; if (!zone || (zone.nextElementSibling && zone.nextElementSibling.classList.contains('vente-confirme'))) return;
+  const q = document.createElement('div'); q.className = 'vente-confirme';
+  q.innerHTML = '<span>Es-tu sûr de vouloir revendre <b>' + (o.leg ? '✦ ' : '★ ') + o.nom + '</b> ? C\'est une pièce ' + (o.leg ? 'légendaire' : 'rare') + ', on ne peut pas la racheter.</span>' +
+    '<div class="vente-oui-non"><button class="btn kamas" type="button">Oui, revendre</button><button class="btn discret" type="button">Non</button></div>';
+  const [oui, non] = q.querySelectorAll('button'), fermer = () => { q.remove(); zone.style.display = ''; };
+  oui.addEventListener('click', (e) => { e.stopPropagation(); fermer(); faire(); });
+  non.addEventListener('click', (e) => { e.stopPropagation(); fermer(); });
+  zone.style.display = 'none'; zone.insertAdjacentElement('afterend', q);
+}
 function majVitesse() { if (horlogeJeu.vitesse() > vitesseMaxi()) horlogeJeu.regler(vitesseMaxi()); /* (x1,5 au plus a partir du niveau 51, 06/11/2026) */ const v = horlogeJeu.vitesse(), b = $('b-vitesse'), t = 'x' + String(v).replace('.', ','); /* (« x1 » au lieu de « normal », 07/11/2026) */ /* (virgule() n'est pas encore definie ici) */ b.innerHTML = '<span class="lib">Temps </span>' + t; b.classList.toggle('rapide', v > 1); $('vitesse').max = vitesseMaxi(); $('vitesse').value = v; $('vitesse-val').textContent = t; }
 $('b-vitesse').addEventListener('click', (e) => { e.stopPropagation(); $('vitesse-panneau').hidden = !$('vitesse-panneau').hidden; majVitesse(); });
 $('vitesse').addEventListener('input', (e) => { horlogeJeu.regler(+e.target.value); majVitesse(); });
@@ -808,8 +823,8 @@ document.addEventListener('click', (e) => {
   else if (b.hasAttribute('data-ouvrir-atelier')) ouvrirAtelier(); /* (la torche, depuis les decorations de l'HDV, 09/11/2026) */
   else if (b.dataset.equiper) ACTIONS.equiper(b.dataset.equiper);
   else if (b.dataset.retirer) ACTIONS.retirer(b.dataset.retirer);
-  else if (b.dataset.revendreObjet) ACTIONS.revendreObjet(b.dataset.revendreObjet);
-  else if (b.dataset.vendreButin) { const k = b.dataset.vendreButin; ACTIONS.revendreObjet(k, true); if (!(S_.sac[k] > 0)) { b.closest('.act').querySelectorAll('button').forEach((y) => { y.disabled = true; }); b.textContent = 'Vendu'; } } /* (le butin d'un bilan, vendu sur place, 04/11/2026) */
+  else if (b.dataset.revendreObjet) { const k = b.dataset.revendreObjet; confirmerVente(b, k, () => ACTIONS.revendreObjet(k)); }
+  else if (b.dataset.vendreButin) { const k = b.dataset.vendreButin; confirmerVente(b, k, () => { ACTIONS.revendreObjet(k, true); if (!(S_.sac[k] > 0)) { b.closest('.act').querySelectorAll('button').forEach((y) => { y.disabled = true; }); b.textContent = 'Vendu'; } }); } /* (le butin d'un bilan, vendu sur place, 04/11/2026) */
   else if (b.dataset.vendreRes) { ACTIONS.vendre(b.dataset.vendreRes, +b.dataset.n); b.disabled = true; b.textContent = 'Vendu'; sauver(); }
   else if (b.dataset.reconstruire) { if (modaleOuverte === 'vague-fin') ACTIONS.reparerDansBilan([b.dataset.reconstruire]); else ACTIONS.reconstruire(b.dataset.reconstruire); }
   else if (b.id === 'b-amenager') { mode = mode ? null : 'choisir'; aDeplacer = null; majBandeau(); rendreHaut(); }

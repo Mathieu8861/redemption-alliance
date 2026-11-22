@@ -13,7 +13,7 @@
    « Passer » (ou Echap, ou B a la manette) va droit au recapitulatif. Au clavier : espace ou entree pour toucher. Si WebGL manque, rien ne s'affiche et la
    fenetre du coffre reste comme avant. Utilise pour les coffres de l'ile des boss (27-arene.js) et l'essai du mode test. */
 const OM = { el: null, r: null, sc: null, cam: null, fx: null, etat: null, raf: 0 };
-const OM_COUL = { legendaire: ['#3ff0e2', '#0b4f4c', 'Coffre légendaire'], epique: ['#c08cff', '#2e1260', 'Coffre épique'], rare: ['#ff7a4a', '#6a160f', 'Coffre rare'], normal: ['#ffc845', '#5a3410', 'Coffre de l\'île'] };
+const OM_COUL = { legendaire: ['#c08cff', '#2e1260', 'Coffre légendaire'], epique: ['#3ff0e2', '#0b4f4c', 'Coffre épique'], /* (violet et turquoise echanges le 22/11/2026, avec les coffres : LOOK_COFFRE, 29k) */ rare: ['#ff7a4a', '#6a160f', 'Coffre rare'], normal: ['#ffc845', '#5a3410', 'Coffre de l\'île'] };
 function omTexDegrade() { /* un degrade vertical, opaque en bas, transparent en haut : le faisceau */
   return texCanvas(64, (c, n) => { const g = c.createLinearGradient(0, n, 0, 0); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,0.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, n, n); });
 }

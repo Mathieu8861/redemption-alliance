@@ -1231,11 +1231,11 @@ button.pk-carte { font: inherit; padding: 0; cursor: pointer; transition: transf
 .vg-mon { position: relative; display: grid; justify-items: center; gap: 1px; padding: 6px 4px; border: 2px solid #43464e; border-radius: 12px; background: #2b2d31; color: #e8eaed; text-align: center; font: 700 .72rem/1.2 var(--f-texte); cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
 .vg-mon:hover { transform: translateY(-1px); box-shadow: 0 3px 0 var(--bord); } .vg-mon.boss { background: #3d3222; border-color: #8a6414; }
 .vg-mon img { width: 46px; height: 46px; object-fit: contain; } .vg-mon b { font: 400 1rem var(--f-titre); } .vg-mon small { font-size: .66rem; font-weight: 700; color: #a9adb5; }
-.vg-trois { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vg-trois { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 8px; } /* (la Defense, plus de texte, un peu plus large, 22/11/2026) */
 .vg-col { border: 2px solid #43464e; border-radius: 12px; background: #2b2d31; padding: 6px 8px; min-width: 0; }
 .vg-col h4 { margin: 0 0 4px; font: 800 .84rem var(--f-texte); color: var(--or); }
-.vg-ligne { display: flex; align-items: center; gap: 6px; margin: 4px 0; font: 700 .74rem/1.15 var(--f-texte); }
-.vg-ligne > img { width: 28px; height: 28px; object-fit: contain; flex: none; } .vg-ligne > span { flex: 1; min-width: 0; } .vg-ligne small { display: block; font-size: .66rem; font-weight: 700; color: #a9adb5; }
+.vg-ligne { display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 3px; margin: 5px 0; font: 700 .74rem/1.15 var(--f-texte); } /* (22/11/2026, « le texte depasse, c'est tout compresse », Mathieu : le texte prend la place, le bouton passe a la ligne s'il en manque) */
+.vg-ligne > img { width: 28px; height: 28px; object-fit: contain; flex: none; } .vg-ligne > .vg-txt { flex: 1 1 80px; min-width: 0; } .vg-ligne > :not(img):not(.vg-txt) { flex: none; margin-left: auto; } .vg-ligne small { display: block; font-size: .66rem; font-weight: 700; color: #a9adb5; }
 .vg-ligne .btn.mini { flex: none; padding: 3px 8px; font-size: .7rem; box-shadow: 0 2px 0 var(--bord); } .vg-ligne.pris small { color: #92db80; }
 .vg-ok { flex: none; font-size: .7rem; font-weight: 800; color: #6fd38a; background: #2c4426; border: 2px solid #3f6b35; border-radius: 9px; padding: 2px 7px; white-space: nowrap; }
 .vg-zero { flex: none; font-size: .66rem; font-weight: 800; color: #8b8f97; white-space: nowrap; }
@@ -1245,8 +1245,8 @@ button.pk-carte { font: inherit; padding: 0; cursor: pointer; transition: transf
 .vg-pied { position: sticky; bottom: -14px; z-index: 2; display: flex; align-items: center; gap: 10px; margin: 10px -14px -14px; padding: 10px 14px; background: #232428; border-top: 3px solid #43464e; }
 .vg-pied > img { width: 30px; height: 30px; flex: none; } .vg-gain { flex: 1; min-width: 0; font: 800 .85rem/1.2 var(--f-texte); color: #f2d27a; } .vg-gain small { display: block; font-size: .7rem; color: #a9adb5; }
 .vg-pied .btn.vg-lancer { position: static; width: auto; margin: 0; font-size: 1.05rem; padding: 10px 18px; }
-.acier-bloc { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 5px 7px; border: 2px dashed #7fb0dc; border-radius: 10px; background: #22303c; font: 700 .74rem/1.15 var(--f-texte); color: #e8eaed; }
-.acier-bloc > img { width: 30px; height: 30px; object-fit: contain; flex: none; } .acier-bloc > span { flex: 1; min-width: 0; } .acier-bloc small { display: block; font-size: .66rem; color: #a9adb5; } .acier-bloc.on small { color: #6fd38a; }
+.acier-bloc { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px; margin-top: 6px; padding: 5px 7px; border: 2px dashed #7fb0dc; border-radius: 10px; background: #22303c; font: 700 .74rem/1.15 var(--f-texte); color: #e8eaed; }
+.acier-bloc > img { width: 30px; height: 30px; object-fit: contain; flex: none; } .acier-bloc > .vg-txt { flex: 1 1 100px; min-width: 0; } .acier-bloc > .inter { margin-left: auto; } .acier-bloc small { display: block; font-size: .66rem; color: #a9adb5; } .acier-bloc.on small { color: #6fd38a; }
 .acier-bloc .inter { flex: none; } .acier-bloc .inter[disabled] { opacity: .45; cursor: default; }
 .vg-bgrille { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .vg-bcarte { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 2px solid #43464e; border-radius: 12px; background: #2b2d31; }
@@ -1748,7 +1748,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .ig-pod2 { display: grid; grid-template-columns: 26px 64px 1fr; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 12px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); }
 .ig-pod2 img { width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .45)); }
 .ig-pod2 b { display: block; font: 400 1rem/1.1 var(--f-titre); } .ig-pod2 small { font: 800 .68rem var(--f-texte); opacity: .75; }
-.ig-pod2.legendaire b { color: #3ff0e2; } .ig-pod2.epique b { color: #c08cff; } .ig-pod2.rare b { color: #ff8a5a; }
+.ig-pod2.legendaire b { color: #c08cff; } .ig-pod2.epique b { color: #3ff0e2; } /* (22/11/2026 : le legendaire violet, l'epique turquoise) */ .ig-pod2.rare b { color: #ff8a5a; }
 .ig-pod2.moi { background: rgba(143, 209, 106, .16); border-color: rgba(143, 209, 106, .4); }
 /* la roue legendaire du Casino (29n-roue-legendaire.js, 21/11/2026) */
 .roue-zone { position: relative; width: min(340px, 78vw); aspect-ratio: 1; margin: 14px auto 10px; }
@@ -1797,3 +1797,12 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 /* LA RELIQUE (22/11/2026) : sa case ronde a droite de l'arme, et le choix de la relique */
 .fp-relique { grid-column: 3; grid-row: 4; } .fp-slot.relique { border-radius: 50%; } .fp-slot.relique:not(.vide) { box-shadow: 0 0 0 2px #6fe6ff, 0 0 10px rgba(111, 230, 255, .75); }
 .relique-art .pic.img img { width: 100%; height: 100%; object-fit: contain; } .relique-art.portee { box-shadow: inset 0 0 0 2px rgba(111, 230, 255, .6); border-radius: 12px; } .relique-src { opacity: .75; font-size: .72rem; }
+/* le bandeau de mise a jour (22/11/2026, 29j-mise-a-jour.js) : une nouvelle version publiee pour les joueurs, recharger quand on veut */
+.maj-bandeau { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9000; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 24px); box-sizing: border-box; padding: 7px 8px 7px 14px; border-radius: 14px; background: rgba(30, 26, 22, .95); border: 2px solid #f2b630; color: #fff; font: 800 .84rem var(--f-texte); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); pointer-events: auto; }
+.maj-bandeau .btn { padding: 5px 12px; font-size: .8rem; white-space: nowrap; }
+.maj-fermer { background: none; border: 0; color: rgba(255, 255, 255, .7); font: 700 1.25rem/1 var(--f-texte); padding: 0 4px; cursor: pointer; }
+.maj-fermer:hover { color: #fff; }
+/* la confirmation avant de revendre une piece rare ou legendaire (22/11/2026, 25-interface.js, confirmerVente) */
+.vente-confirme { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(226, 65, 58, .12); border: 2px solid rgba(226, 65, 58, .55); font: 700 .78rem/1.3 var(--f-texte); }
+.vente-confirme b { font-weight: 800; }
+.vente-oui-non { display: flex; gap: 8px; } .vente-oui-non .btn { flex: 1; }

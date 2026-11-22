@@ -231,7 +231,7 @@ function ouvrirVagues(onglet) {
 function avantBataille() {
   const st = statsPerso(), img = (x) => '<img src="assets/icones/' + x + '.png?v=' + VERSION_MODELES + '" alt="">';
   S_.mange = S_.mange || {}; S_.pots = S_.pots || {};
-  const ligne = (icone, nom, sous, act, pris) => '<div class="vg-ligne' + (pris ? ' pris' : '') + '">' + img(icone) + '<span>' + nom + '<small>' + sous + '</small></span>' + act + '</div>';
+  const ligne = (icone, nom, sous, act, pris) => '<div class="vg-ligne' + (pris ? ' pris' : '') + '">' + img(icone) + '<span class="vg-txt">' + nom + '<small>' + sous + '</small></span>' + act + '</div>';
   const repas = CULTURES.filter((c) => c.mange && (niveau(S_.xp) >= c.niv || (S_.grange[c.id] || 0) > 0)).map((c) => { const k = S_.grange[c.id] || 0, pris = !!S_.mange[c.id];
     return ligne(c.id, c.nom, c.mange.txt + (pris ? ', pendant cette vague' : ''), pris ? '<b class="vg-ok">✓ ' + (c.id === 'bananagrume' ? 'Mangé' : 'Mangée') + '</b>' : k ? '<button class="btn mini" data-manger="' + c.id + '">Manger (' + fmt(k) + ')</button>' : '<span class="vg-zero">0 en grange</span>', pris); }).join('') || '<p class="vg-vide">Pas encore de récolte à manger : la Cawotte se plante au niveau ' + PAR_ID.cawotte.niv + '.</p>';
   const bu = bonusBu, plein = vieActuelle() >= st.pvMax;
@@ -241,7 +241,7 @@ function avantBataille() {
   const defense = a ? ligne('arbalete', 'Arbalète de la grange', (S_.carreaux > 0 ? S_.carreaux + '/' + cap + ' chargée' + (rechargeAuto() ? ', se recharge seule' : '') : rechargeAuto() ? 'plus de flèches en réserve' : 'à recharger à la grange') + ', ' + degatsArbalete() + ' dégâts, ' + fmt(S_.fleches) + ' flèche' + (S_.fleches > 1 ? 's' : ''), '') + (a >= 6 ? blocAcier() : '')
     : '<p class="vg-vide">Pas encore d\'arbalète : elle se construit sur la grange (HDV, Améliorer).</p>';
   /* (le bouclier de carapace, 10/11/2026 : fabrique a l'atelier, pose ici avant la vague, il part avec elle ; 03-equipements.js) */
-  const nB = S_.boucliers || 0, bouclier = nB || S_.bouclierPose || (niv('atelier') && !amelioCachee('atelier')) ? ligne('bouclier-ecailles', 'Bouclier de carapace', nomQG() + ' gagne ' + fmt(Math.round(pvMaxBat('grange') * BOUCLIER_BASE)) + ' PV de bouclier (' + Math.round(BOUCLIER_BASE * 100) + ' % de sa vie)' + (S_.bouclierPose ? ', pendant cette vague' : ''), S_.bouclierPose ? '<b class="vg-ok">✓ Posé</b>' : nB ? '<button class="btn mini" data-poser-bouclier>Poser (' + fmt(nB) + ')</button>' : '<span class="vg-zero">0, à fabriquer à l\'atelier</span>', !!S_.bouclierPose) : '';
+  const nB = S_.boucliers || 0, bouclier = nB || S_.bouclierPose || (niv('atelier') && !amelioCachee('atelier')) ? ligne('bouclier-ecailles', 'Bouclier de carapace', nomQG() + ' gagne ' + fmt(Math.round(pvMaxBat('grange') * BOUCLIER_BASE)) + ' PV de bouclier (' + Math.round(BOUCLIER_BASE * 100) + ' % de sa vie)' + (S_.bouclierPose ? ', pendant cette vague' : ''), S_.bouclierPose ? '<b class="vg-ok">✓ Posé</b>' : nB ? '<button class="btn mini" data-poser-bouclier>Poser (' + fmt(nB) + ')</button>' : '<button class="btn mini discret" data-ouvrir-atelier>Fabriquer</button>', !!S_.bouclierPose) : '';
   return '<div class="hdv-section">Avant la bataille</div><div class="vg-trois"><div class="vg-col"><h4>Manger</h4>' + repas + '</div><div class="vg-col"><h4>Boire</h4>' + pots + '</div><div class="vg-col"><h4>Défense</h4>' + defense + bouclier + '</div></div>';
 }
 /* l'onglet Refaire un boss : chaque boss battu en carte, Normal ou Difficile, sans defiler toute la fenetre (09/11/2026) */

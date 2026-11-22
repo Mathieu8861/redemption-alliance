@@ -107,13 +107,16 @@ function construireCoffreRarete(rar) {
    construits plus haut (construireCoffreRarete), qui restent la roue de secours si le modele ne se charge pas. Le legendaire retrouve ici son grand cristal
    flottant dans un anneau d'or (le modele l'avait soude en un plateau gris : il est retire a la decoupe) ; le cristal de la couronne de l'epique flotte. */
 const RANG_COFFRE = ['legendaire', 'epique', 'rare'], COFFRES_IA = {}, COFFRES_IA_PRETS = {};
+/* LE LOOK DE CHAQUE COFFRE (22/11/2026, « le coffre violet c'est le legendaire et l'epique le bleu ? », Mathieu : les legendaires du jeu sont violettes) :
+   le rang et le nom ne changent pas (1er legendaire, 2e epique), le 1er prend le coffre violet (modele, image, couleurs), le 2e le turquoise */
+const LOOK_COFFRE = { legendaire: 'epique', epique: 'legendaire', rare: 'rare' }, lookCoffre = (rar) => LOOK_COFFRE[rar] || rar;
 function chargerCoffreIA(rar) {
-  if (!COFFRES_IA[rar]) COFFRES_IA[rar] = chargerGlb('assets/modeles/jeu/coffre-podium-' + rar + '.glb?v=' + VERSION_MODELES).then((sc) => (COFFRES_IA_PRETS[rar] = sc)).catch((e) => { delete COFFRES_IA[rar]; throw e; });
+  if (!COFFRES_IA[rar]) COFFRES_IA[rar] = chargerGlb('assets/modeles/jeu/coffre-podium-' + lookCoffre(rar) + '.glb?v=' + VERSION_MODELES).then((sc) => (COFFRES_IA_PRETS[rar] = sc)).catch((e) => { delete COFFRES_IA[rar]; throw e; });
   return COFFRES_IA[rar];
 }
 function coffreIA(rar) { /* -> { g, ch, lum, L, P, H, R, couleur, niv, anim }, comme construireCoffreRarete ; null si le modele n'est pas encore charge */
   const src = COFFRES_IA_PRETS[rar]; if (!src) return null;
-  const C = PAL_COFFRES[rar] || PAL_COFFRES.rare, niv = { rare: 1, epique: 2, legendaire: 3 }[rar] || 1, R = 0.1, s = src.clone(true), g = new T.Group(), anims = [];
+  const look = lookCoffre(rar), C = PAL_COFFRES[look] || PAL_COFFRES.rare, niv = { rare: 1, epique: 2, legendaire: 3 }[rar] || 1, R = 0.1, s = src.clone(true), g = new T.Group(), anims = [];
   s.traverse((m) => { if (!m.isMesh) return; const map = m.material.map;
     if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; m.material = new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, side: T.DoubleSide }); } /* (comme les monstres generes : l'image telle quelle, en lineaire) */
     else m.material = new T.MeshBasicMaterial({ color: m.material.color.clone().convertLinearToSRGB(), side: T.DoubleSide }); }); /* (le dedans, sombre) */
@@ -124,7 +127,7 @@ function coffreIA(rar) { /* -> { g, ch, lum, L, P, H, R, couleur, niv, anim }, c
   const versCouvercle = (o, x, y, z) => { ch.add(o); o.position.copy(ch.worldToLocal(new T.Vector3(x, y, z))); o.scale.multiplyScalar(1 / k); return o; }; /* (pose un objet du jeu, en unites du jeu, sur le couvercle) */
   if (!TEX_HALO_COFFRE) TEX_HALO_COFFRE = texCanvas(64, (c2, n) => { const r = c2.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.35, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); c2.fillStyle = r; c2.fillRect(0, 0, n, n); });
   const halo = (t) => { const h = new T.Sprite(new T.SpriteMaterial({ map: TEX_HALO_COFFRE, color: C.lueur, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); h.scale.setScalar(t); h.renderOrder = 5; return h; };
-  if (niv >= 3) { /* le grand cristal turquoise qui flotte dans son anneau d'or, au-dessus du couvercle */
+  if (look === 'legendaire') { /* le grand cristal turquoise qui flotte dans son anneau d'or, au-dessus du couvercle (le coffre turquoise) */
     const haut = new T.Group(); haut.scale.setScalar(1.45); versCouvercle(haut, 0, bc.max.y + R * 1.25, (bc.min.z + bc.max.z) / 2);
     const cri = cofGemme(C.gemme, R * 0.55, false); cri.scale.y *= 1.25; haut.add(cri);
     const anneau = cofMaille(new T.TorusGeometry(R * 0.85, R * 0.07, 8, 40), C.or); anneau.rotation.x = Math.PI / 2 - 0.35; haut.add(anneau);
@@ -144,7 +147,7 @@ function coffreIA(rar) { /* -> { g, ch, lum, L, P, H, R, couleur, niv, anim }, c
   return { g, ch, lum, L, P, H, R, couleur: C.lueur, niv, anim, ia: true };
 }
 /* le coffre d'une place du podium : le modele genere s'il est la, sinon le coffre construit */
-const coffrePodium = (rang) => { const rar = RANG_COFFRE[rang]; return rar ? coffreIA(rar) || construireCoffreRarete(rar) : null; };
+const coffrePodium = (rang) => { const rar = RANG_COFFRE[rang]; return rar ? coffreIA(rar) || construireCoffreRarete(lookCoffre(rar)) : null; };
 const titreCoffreIle = (rang) => ['Le coffre légendaire de l\'île', 'Le coffre épique de l\'île', 'Le coffre rare de l\'île'][rang] || 'Le coffre de l\'île des boss';
 /* LES RESSOURCES AU CHOIX DU COFFRE DE L'ILE (21/11/2026, « pour les coffres, on va donner le droit aussi de recuperer des ressources dedans, ressources au
    choix : epique 30, legendaire 20, rare 10, et participant en dessous 5 au choix », Mathieu ; au formulaire : 1er 30, 2e 20, 3e 10, et le coffre remplace

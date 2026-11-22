@@ -425,7 +425,7 @@ function recompensesIle(t, vaincu, rang, frappe, inf, total) { /* les trois cart
   /* (les coffres du podium, 21/11/2026, « on les met visuellement du coup pour le podium ? », puis « c'est pas tres propre, affiche pas ce que ca donne, reste
      vague », Mathieu : les trois coffres en grand, leur nom et leur place, sans le detail ; le contenu se decouvre a l'ouverture) */
   const podium = '<div class="ig-pods">' + RANG_COFFRE.map((rar, i) => '<div class="ig-pod2 ' + rar + (rang === i ? ' moi' : '') + '"><span class="ig-med m' + (i + 1) + '">' + (i + 1) + '</span>' +
-    '<img src="assets/icones/coffre-' + rar + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>Coffre ' + ['légendaire', 'épique', 'rare'][i] + '</b><small>' + ['1re', '2e', '3e'][i] + ' place</small></div></div>').join('') + '</div>' +
+    '<img src="assets/icones/coffre-' + (typeof lookCoffre === 'function' ? lookCoffre(rar) : rar) + '.png?v=' + VERSION_MODELES + '" alt=""><div><b>Coffre ' + ['légendaire', 'épique', 'rare'][i] + '</b><small>' + ['1re', '2e', '3e'][i] + ' place</small></div></div>').join('') + '</div>' +
     '<p class="ig-note">Des kamas, des runes et des ressources au choix, en plus de ta part. Plus la place est haute, plus le coffre est riche.</p>';
   const carte = (titre, cl, L, badge, ok) => '<div class="ig-carte ' + cl + '"><div class="ig-carte-t"><span>' + titre + '</span>' + (badge ? '<span class="ig-badge' + (ok ? ' ok' : '') + '">' + badge + '</span>' : '') + '</div>' + L + '</div>';
   return '<div class="hdv-section">Les récompenses' + (vaincu ? '' : ', le samedi suivant (le coffre s\'ouvre tout seul à ta ferme)') + '</div>' + rien + (inf ? '<div class="ig-cartes deux">' +

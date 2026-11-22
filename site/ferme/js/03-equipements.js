@@ -299,7 +299,7 @@ const acierPret = () => niv('arbalete') >= 6 && !!S_.acierCharge && (S_.acier ||
    la grange et l'atelier. Il reste tel quel d'une vague a l'autre, et se coupe tout seul quand il n'y a plus de carreaux. */
 function blocAcier() {
   const nA = S_.acier || 0, on = !!S_.acierCharge && nA > 0;
-  return '<div class="acier-bloc' + (on ? ' on' : '') + '"><img src="assets/icones/carreaux-acier.png?v=' + VERSION_MODELES + '" alt=""><span><b>Carreaux d\'acier</b> (' + fmt(nA) + ')<small>' +
+  return '<div class="acier-bloc' + (on ? ' on' : '') + '"><img src="assets/icones/carreaux-acier.png?v=' + VERSION_MODELES + '" alt=""><span class="vg-txt"><b>Carreaux d\'acier</b> (' + fmt(nA) + ')<small>' +
     (!nA ? 'Plus aucun : fabrique-en à l\'atelier.' : on ? 'Activés : deux fois les dégâts, ils traversent' : 'Désactivés : la baliste tire ses carreaux normaux') + '</small></span>' +
     '<button class="inter' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="Carreaux d\'acier" data-acier-bascule="' + (on ? '0' : '1') + '"' + (nA ? '' : ' disabled') + '></button></div>';
 }
