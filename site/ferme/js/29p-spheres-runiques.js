@@ -9,8 +9,7 @@
    blender/sphere-ia-preparer.py. Mode test : « Sphere runique (apercu) » dans le panneau. */
 const SPHERES_RUNIQUES = {
   marees: { nom: 'Sphère des Marées', fichier: 'sphere-marees.glb', couleur: '#3ff0e2', part: '#9ff6ff', taille: 0.62 },
-  couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72, grenouille: 'dedans' },
-  couvee_dessus: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.62, grenouille: 'dessus' } }; /* (22/11/2026, « sur la sphère c'est pas mal, essaie de réaliser mes demandes et on fait un choix », Mathieu : les deux versions, éclose ou grenouille assise dessus, au choix dans le mode test) */
+  couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72, grenouille: 'dedans' } }; /* (22/11/2026 : la version « grenouille assise sur la sphere fermee » a ete essayee a cote ; « eclose c'est niquel », Mathieu) */
 const SPH = { cle: null, g: null, modele: null, halo: null, parts: [], t: 0, prec: performance.now(), charge: {}, suivi: null };
 const texHaloSph = () => TEX_HALO_COFFRE || (TEX_HALO_COFFRE = texCanvas(64, (c2, n) => { const r = c2.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.35, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); c2.fillStyle = r; c2.fillRect(0, 0, n, n); }));
 function chargerSphere(cle) {
