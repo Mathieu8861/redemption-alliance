@@ -35,8 +35,12 @@
       '  return wp;',
       '}'
     ].join('\n');
-    const PROJECTION = [
+    const PROJECTION = [ /* (USE_INSTANCING : les champs dessines en instances, 22/11/2026, js/29r-perf.js ; sans instances, rien ne change) */
+      '#ifdef USE_INSTANCING',
+      'vec4 ventWp = modelMatrix * instanceMatrix * vec4( transformed, 1.0 );',
+      '#else',
       'vec4 ventWp = modelMatrix * vec4( transformed, 1.0 );',
+      '#endif',
       'ventWp = ventDeplacer( ventWp );',
       'vec4 mvPosition = viewMatrix * ventWp;',
       'gl_Position = projectionMatrix * mvPosition;'
