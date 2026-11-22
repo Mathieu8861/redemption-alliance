@@ -467,8 +467,8 @@ const COMPO_MARE = [null,
 const BOSS_QUAND_IL_RESTE = { 95: 6, 100: 6, 105: 6, 110: 6 };
 const bossRetenu = (c, t) => !!MONSTRES[t].boss && c.genre === 'vague' && BOSS_QUAND_IL_RESTE[c.n] != null && c.monstres.filter((o) => o.etat !== 'mort' && !o.d.totem).length > BOSS_QUAND_IL_RESTE[c.n]; /* (tout monstre pas encore abattu compte, meme celui qui vient d'arriver) */
 const PHASES_BOSS = { 110: [
-  { nom: 'la garde de la tribu', L: [['silure', 1], ['brochet', 2], ['crocoVase', 2], ['piranha', 3], ['axolotl', 1]] },
-  { nom: 'le Croco sauvage', L: [['crocoBoss', 1]] }], 100: [
+  { nom: 'la Mère Crapustule et la garde de la tribu', L: [['mereCrapaude', 1], ['silure', 1], ['brochet', 2], ['crocoVase', 2], ['piranha', 3], ['axolotl', 1]] }, /* (22/11/2026, par Discord : « la Mère Crapaude, on la retrouve au niveau 110 aussi, avant le vrai boss », Mathieu : comme la Tortue Corail a la 90 et l'Ancestral Maudit a la 100) */
+  { nom: 'le Mâchefange', L: [['crocoBoss', 1]] }], 100: [
   { nom: "l'Ancestral Maudit et sa garde", L: [['ancestralMaudit', 1], ['abrakleur', 2], ['abrakne', 2], ['sombre', 1], ['abraknyde', 1], ['araknotron', 1]] }, /* (sa garde : 4 a distance, 3 au contact, comme celle de la Tortue Corail) */
   { nom: 'le Chêne Mou', L: [['cheneMou', 1]] }], 90: [
   { nom: 'la Tortue Corail et sa garde', L: [['tortueCorail', 1], ['kannibJav', 2], ['kannibSarbak', 2], ['kannibArk', 2], ['kannibTam', 2], ['tortueBleue', 1], ['tortueRouge', 1]] }, /* (elle appelle ses Tortues elle-meme ; sa garde depuis le 07/11/2026 au soir, « pendant sa vague d'autres monstres aussi, genre 6 distance et 4 cac », Mathieu : Jav, Sarbak et Ark tirent, Tam et les deux Tortues au contact) */
