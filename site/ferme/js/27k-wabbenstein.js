@@ -27,10 +27,10 @@ const KIT_WAB = {
   vie: { base: 180000, parJoueur: 0.75 }, /* (20/11/2026, « regle sa vie pour le donjon » : 180 000 en solo, environ 3 min pour un perso de niveau 105 equipe (1 000 de degats par seconde en vrai combat, 1 715 sans bouger) ; +75 % par joueur en plus, x4 a 5 joueurs) */
   phase: { seuil: 0.3, creatures: ['gwandWabbit', 'gwandWabbit', 'gwandWabbit', 'gwandWabbit'], parDeuxJoueurs: 2, vague: 20, max: 12, maxParJoueur: 3, puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 %, Mathieu, 20/11 : « 4 Gwand Wabbits toutes les 20 secondes », +25 %, la rage et la vitesse ; max : 12 en vie au plus, mon garde-fou) */
   saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
-  harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 1400, tire: 0.28, poing: 570, prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
+  harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 0.233, tire: 0.28, poing: 0.095, /* (22/11/2026 : en part des PV max, 1 400 et 570 sur un perso de 6 000 PV ; en montants fixes, le harpon prenait la moitie de la vie de l'Osamodas, 3 900 PV, qu'il vise sans cesse a distance, et le bot tombait 12 fois avec le Cra ou l'Osa contre 7 avec le Iop) */ prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
-  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (1 400), te ramène contre lui et arme un coup de poing (570) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (23 % de tes PV), te ramène contre lui et arme un coup de poing (9,5 % de tes PV) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
 GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, solo)', liste: { wabbenstein: 1 } };
 /* LE DONJON A PLUSIEURS (20/11/2026, « le DJ doit s'adapter en fonction du nombre de participants, max 5 ») : sa vie x(1 + 0,75 par joueur en plus), 2 Gwand
@@ -153,7 +153,7 @@ function lancerHarpon(mo, O, H, a, ah, L0, c0) { /* (ah : la direction de la lig
         if (Math.hypot(p.x - pointe.x, p.z - pointe.z) < H.toucher && !(c0.invincible > 0)) { /* harponne : ramene contre lui */
           phase = 'tire'; t = 0; x0 = p.x; z0 = p.z; mo.wabTient = true; chemin = []; arrivee = null;
           const g = mo.ry + 0, fx = mo.x + Math.sin(g) * 1.7 * (mo.echelle || 1) + Math.cos(g) * 0.5, fz = mo.z + Math.cos(g) * 1.7 * (mo.echelle || 1) - Math.sin(g) * 0.5; f = pointValide(mo.x, mo.z, fx, fz);
-          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(degWab(mo, H.impact), mo); c0.assomme = Math.max(c0.assomme || 0, H.tire); /* (retenu le temps d'etre ramene seulement : le coup de poing s'esquive) */
+          const q = p.clone(); q.y += 2.1; chiffre('Harponné !', q, 'vol'); etoileImpact(pointe, 0.8); blesserPerso(degWab(mo, c0.pvMax * H.impact), mo); c0.assomme = Math.max(c0.assomme || 0, H.tire); /* (retenu le temps d'etre ramene seulement : le coup de poing s'esquive) */
           if (nomS(mo)) { const ac = mo.m.userData.anim.A[nomS(mo)]; if (ac) ac.timeScale = 2.2; } }
         else if (s >= H.R) phase = 'retour'; }
       if (phase === 'retour' && s <= 0) return fin();
@@ -177,7 +177,7 @@ function poingWab(mo, H, c0) { /* le coup de poing de la main mecanique, juste a
   zoneDanger({ mo, x: mo.x, z: mo.z, r: H.rPoing * e, a: a0, ouv: H.ouvPoing, duree: H.prepaPoing, couleur: COULEUR_CAC, effet: (d) => {
     mo.wabOccupe = false; const q = paysanMesh.position; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !dansDanger(d, q.x, q.z)) return;
     const z = q.clone(); z.y += 1.1; etoileImpact(z, 1.1); secousse(0.22, 0.3); const w = q.clone(); w.y += 2.1; chiffre('Coup de poing !', w, 'vol');
-    if (blesserPerso(degWab(mo, H.poing), mo)) repousserPerso(mo, H.repousse); } });
+    if (blesserPerso(degWab(mo, c0.pvMax * H.poing), mo)) repousserPerso(mo, H.repousse); } });
 }
 /* des degats fixes (les montants de Mathieu) : blesserPerso les multiplie par le bonus de degats du palier, on le retire avant */
 const degWab = (mo, v) => degatsFixes(v * ((mo && mo.wabPuissance) || 1)); /* (apres l'injection, sous 30 % : tous ses coups x1,25) */
