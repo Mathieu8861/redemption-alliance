@@ -23,14 +23,14 @@
 SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.glb', 3.6]); ALLURES.wabbenstein = { marche: 0.635, course: 1.39 };
 const KIT_WAB = {
   rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
-  autos: { cac: 450, tir: 245, portee: 5 * S, cadence: 2.0 }, /* (portee : 5 cases) */
+  autos: { cac: 0.075, tir: 0.041, portee: 5 * S, cadence: 2.0 }, /* (22/11/2026 : en part des PV max, 450 et 245 sur un perso de 6 000 PV ; en montants fixes, ses coups au contact, 3/4 de ses degats, rattrapaient aussi le Cra et l'Osamodas et pesaient 11,5 % de la vie de l'Osa contre 7,5 % du Iop : le bot tombait 12 fois a distance contre 7 au Iop) */ /* (portee : 5 cases) */
   vie: { base: 180000, parJoueur: 0.75 }, /* (20/11/2026, « regle sa vie pour le donjon » : 180 000 en solo, environ 3 min pour un perso de niveau 105 equipe (1 000 de degats par seconde en vrai combat, 1 715 sans bouger) ; +75 % par joueur en plus, x4 a 5 joueurs) */
   phase: { seuil: 0.3, creatures: ['gwandWabbit', 'gwandWabbit', 'gwandWabbit', 'gwandWabbit'], parDeuxJoueurs: 2, vague: 20, max: 12, maxParJoueur: 3, puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 %, Mathieu, 20/11 : « 4 Gwand Wabbits toutes les 20 secondes », +25 %, la rage et la vitesse ; max : 12 en vie au plus, mon garde-fou) */
   saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
   harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 0.233, tire: 0.28, poing: 0.095, /* (22/11/2026 : en part des PV max, 1 400 et 570 sur un perso de 6 000 PV ; en montants fixes, le harpon prenait la moitie de la vie de l'Osamodas, 3 900 PV, qu'il vise sans cesse a distance, et le bot tombait 12 fois avec le Cra ou l'Osa contre 7 avec le Iop) */ prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
-  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (23 % de tes PV), te ramène contre lui et arme un coup de poing (9,5 % de tes PV) : 0,7 s pour sortir de la zone. Ses coups normaux : 450 au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (245). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (23 % de tes PV), te ramène contre lui et arme un coup de poing (9,5 % de tes PV) : 0,7 s pour sortir de la zone. Ses coups normaux : 7,5 % de tes PV au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (4 % de tes PV). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
 GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, solo)', liste: { wabbenstein: 1 } };
 /* LE DONJON A PLUSIEURS (20/11/2026, « le DJ doit s'adapter en fonction du nombre de participants, max 5 ») : sa vie x(1 + 0,75 par joueur en plus), 2 Gwand
@@ -186,7 +186,7 @@ const degatsFixes = (v) => { const c = combat; if (!c || c.raid) return Math.max
 function capWabAutos(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif') return; const A = K.autos, { pp, dt } = ctx;
   if (!mo.wabVie && K.vie) { mo.wabVie = true; const n = joueursWab(mo), v = Math.round(K.vie.base * (1 + K.vie.parJoueur * (n - 1))); mo.pvMax = mo.pv = v; } /* (sa vie du donjon, selon le nombre de joueurs) */
-  mo.deg = degWab(mo, A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
+  mo.deg = degWab(mo, ((combat && combat.pvMax) || 6000) * A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), cac = mo.d.portee * (mo.allonge || 1) + 0.6;
   if (mo.wabOccupe || mo.geste || dP <= cac || dP > A.portee || !osWab(mo)) { mo.wabTirT = Math.min(mo.wabTirT || 0, A.cadence * 0.6); return; } /* (revenu a portee de tir, il ne tire pas dans l'instant) */
   mo.wabTirT = (mo.wabTirT || 0) + dt; if (mo.wabTirT < (mo.wabPuissance && K.phase ? K.phase.cadenceTir : A.cadence)) return; mo.wabTirT = 0;
@@ -201,7 +201,7 @@ function tirAutoWab(mo, c, A, c0) { /* une cawotte part le long du canon de la t
     t += dt / duree; const k = Math.min(1, t), u = 1 - k; P2.copy(paysanMesh.position); P2.y += 0.9; av.copy(g.position);
     Q.copy(p).multiplyScalar(u * u).addScaledVector(P1, 2 * u * k).addScaledVector(P2, k * k); g.position.copy(Q); if (Q.distanceToSquared(av) > 1e-6) g.lookAt(Q.clone().multiplyScalar(2).sub(av));
     if (k >= 1) { jeter(g); pouf(P2.x, P2.y, P2.z, 1.0, '#ee7a26'); emettre(FX_VIF, 8, { x: P2.x, y: P2.y, z: P2.z, r: 0.1, dv: 3, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
-      if (mo.etat === 'actif' || mo.etat === 'mort') blesserPerso(degWab(mo, A.tir), mo); return true; }
+      if (mo.etat === 'actif' || mo.etat === 'mort') blesserPerso(degWab(mo, c0.pvMax * A.tir), mo); return true; }
     return false;
   });
 }
