@@ -181,7 +181,7 @@ function animerGrenouille(dt) {
    - Marees : une bulle d'eau entoure le perso ; elle absorbe entierement le prochain coup recu, eclate, puis se reforme au bout de 8 s pour le Iop (au corps a
      corps), 12 s pour le Cra et l'Osamodas. Pleine au debut de chaque combat. */
 const EFFETS_SPH = { couvee: { part: 0.2 }, marees: { cac: 8, distance: 12 } };
-const spherePortee = (cle) => !!(typeof MODE_TEST !== 'undefined' && MODE_TEST && SPH.cle === cle && SPH.g); /* (plus tard : la sphere de l'emplacement Relique) */
+const spherePortee = (cle) => !!(sphereVoulue() === cle && SPH.cle === cle && SPH.g); /* (la relique portee, ou celle du mode test) */
 const delaiBulle = () => (classeDe() === 'iop' ? EFFETS_SPH.marees.cac : EFFETS_SPH.marees.distance);
 const BULLE_MAR = { prete: true, charge: 0, combat: null, m: null, pop: null, n: 0 };
 function meshBulle() { /* une bulle d'eau : transparente au centre, son bord bleu qui brille (le bord est calcule face a la camera) */
@@ -219,9 +219,37 @@ function toucherCrachat(b) { /* le crachat arrive sur son monstre : 20 % des deg
   if (!b.mo || !combat || combat.fin || b.mo.etat !== 'actif' || !spherePortee('couvee')) return;
   const n = Math.max(1, Math.round(EFFETS_SPH.couvee.part * statsPerso().deg)), p0 = SRC_DEG; SRC_DEG = 'Grenouille de la Couvée'; blesser(b.mo, n, false, 'sphere'); SRC_DEG = p0;
 }
-(function boucleSphere(now) { const dt = Math.min(0.05, Math.max(0, (now - SPH.prec) / 1000)); SPH.prec = now; try { animerSphere(dt); } catch (e) { /* rien */ } try { animerGrenouille(dt); } catch (e) { /* rien */ } try { animerBulle(dt); } catch (e) { /* rien */ } requestAnimationFrame(boucleSphere); })(performance.now());
+/* LA RELIQUE (22/11/2026, « ok ! », Mathieu, a « je fais l'emplacement Relique dans la fiche du perso ? ») : un 8e emplacement, a part de l'equipement (ni stats,
+   ni panoplie, ni revente, ni forgemagie : les pieces n'en savent rien) : S_.reliques (les spheres gagnees) et S_.relique (celle qui est portee). Une case ronde
+   « Relique » dans la fiche du perso, a droite de l'arme, ouvre le choix. Visible seulement dans le mode test, ou pour un joueur qui a deja une sphere (version
+   dev : personne pour l'instant). Icones : rendues depuis les modeles du jeu (blender/icone-glb.py), la grenouille posee dans la Couvee. */
+const INFOS_RELIQUES = { marees: { boss: 'le Croco, vague 110', effet: () => 'Une bulle d\'eau t\'entoure et absorbe entièrement le prochain coup reçu, puis se reforme ' + EFFETS_SPH.marees.cac + ' s après au corps à corps (Iop), ' + EFFETS_SPH.marees.distance + ' s à distance (Cra, Osamodas).' },
+  couvee: { boss: 'la Mère Crapustule, vague 105', effet: () => 'Une petite grenouille crache sur le monstre le plus proche, à la portée du Cra : ' + Math.round(EFFETS_SPH.couvee.part * 100) + ' % des dégâts de tes coups, à ta vitesse d\'attaque.' } };
+const reliquesDe = () => ((typeof S_ !== 'undefined' && S_ && S_.reliques) || []).filter((c) => SPHERES_RUNIQUES[c]);
+const reliqueVisible = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || reliquesDe().length > 0;
+const sphereVoulue = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST && ETAT_TEST.sphere) || (typeof S_ !== 'undefined' && S_ && S_.relique && reliquesDe().includes(S_.relique) ? S_.relique : null);
+function htmlCaseRelique() { const c = S_.relique && reliquesDe().includes(S_.relique) ? S_.relique : null;
+  return '<div class="fp-relique"><button class="fp-slot relique' + (c ? '' : ' vide') + '" data-relique data-info="' + (c ? SPHERES_RUNIQUES[c].nom : 'Relique : vide') + '">' + (c ? '<img src="assets/icones/relique-' + c + '.png?v=' + VERSION_MODELES + '" alt="">' : '<span>Relique</span>') +
+    (reliquesDe().length && !c ? '<i class="fp-n">!</i>' : '') + '<small>Relique</small></button></div>'; }
+function ouvrirReliques() {
+  const L = reliquesDe(), porte = S_.relique;
+  const carte = (c) => '<div class="art relique-art' + (c === porte ? ' portee' : '') + '"><span class="pic img"><img src="assets/icones/relique-' + c + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><b>' + SPHERES_RUNIQUES[c].nom + (c === porte ? ' <span class="puce bonne">portée</span>' : '') + '</b>' +
+    '<div class="desc">' + INFOS_RELIQUES[c].effet() + '</div><div class="desc relique-src">Tombe sur ' + INFOS_RELIQUES[c].boss + '.</div></div><div class="act"><button class="btn ' + (c === porte ? 'discret' : 'kamas') + '" data-relique-porter="' + (c === porte ? '' : c) + '">' + (c === porte ? 'Retirer' : 'Porter') + '</button></div></div>';
+  ouvrirModale('reliques', entete('La relique') + '<p class="hdv-aide">Une sphère runique se porte à part de ton équipement : pas de caractéristiques, mais un effet permanent en combat. Elle flotte à côté de toi. Une seule à la fois.</p>' +
+    (L.length ? L.map(carte).join('') : '<p class="hdv-aide">Tu n\'as encore aucune sphère runique. Elles tombent sur les boss du palier 11.</p>') +
+    '<div class="act-bas">' + (MODE_TEST ? '<small>Version dev (mode test)</small>' : '') + '<button class="btn discret" data-relique-retour>Retour à la fiche</button></div>');
+}
+const ouvrirPersoRel = ouvrirPerso; ouvrirPerso = function (sel) { ouvrirPersoRel(sel); /* la case Relique, a droite de l'arme */
+  try { if (persoOnglet === 'equip' && reliqueVisible()) { const p = document.querySelector('#carte .fp-poupee'); if (p && !p.querySelector('.fp-relique')) p.insertAdjacentHTML('beforeend', htmlCaseRelique()); } } catch (e) { /* rien */ } };
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-relique]')) { ouvrirReliques(); return; }
+  if (e.target.closest('[data-relique-retour]')) { ouvrirPerso(); return; }
+  const b = e.target.closest('[data-relique-porter]'); if (b) { if (combat) { toast('Pas pendant un combat.'); return; } const c = b.dataset.reliquePorter || null; S_.relique = c; sauver(); son('poser'); if (c) toast(SPHERES_RUNIQUES[c].nom + ' : elle te suit.', 'or'); ouvrirReliques(); return; }
+  if (e.target.closest('[data-test-reliques]')) { S_.reliques = Array.from(new Set(reliquesDe().concat(Object.keys(SPHERES_RUNIQUES)))); sauver(); toast('Les deux sphères runiques sont dans ta collection : fiche du perso, case Relique.', 'or'); }
+});
+(function boucleSphere(now) { const dt = Math.min(0.05, Math.max(0, (now - SPH.prec) / 1000)); SPH.prec = now; try { const v = sphereVoulue(); if (v !== SPH.voulu) { SPH.voulu = v; porterSphere(v).catch(() => {}); } } catch (e) { /* rien */ } /* (la sphere portee suit la relique, ou le choix du mode test) */ try { animerSphere(dt); } catch (e) { /* rien */ } try { animerGrenouille(dt); } catch (e) { /* rien */ } try { animerBulle(dt); } catch (e) { /* rien */ } requestAnimationFrame(boucleSphere); })(performance.now());
 /* l'apercu du mode test (27b-arene-dev.js) */
 document.addEventListener('click', (e) => { const d = e.target.closest('[data-test-sphere-da]'); if (d) { ETAT_TEST.sphDA = d.dataset.testSphereDa; if (ETAT_TEST.sphere) porterSphere(ETAT_TEST.sphere).catch(() => {}); if (typeof ouvrirModeTest === 'function' && modaleOuverte === 'mode-test') ouvrirModeTest(); return; } /* (la DA A ou B, 22/11/2026) */
   const b = e.target.closest('[data-test-sphere]'); if (!b) return; const c = b.dataset.testSphere;
-  ETAT_TEST.sphere = c === 'aucune' || ETAT_TEST.sphere === c ? null : c; porterSphere(ETAT_TEST.sphere).catch(() => toast('La sphère n\'a pas pu se charger.'));
+  ETAT_TEST.sphere = c === 'aucune' || ETAT_TEST.sphere === c ? null : c; /* (la boucle la pose : sphereVoulue) */
   if (typeof ouvrirModeTest === 'function' && modaleOuverte === 'mode-test') ouvrirModeTest(); });
