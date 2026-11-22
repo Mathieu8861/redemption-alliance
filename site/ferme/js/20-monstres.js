@@ -460,10 +460,10 @@ const COMPO_MARE = [null,
   [['tetard', 3], ['triton', 2], ['crapaud', 2], ['fouette', 1], ['axolotl', 1]],
   [['mereCrapaude', 1], ['tetard', 3], ['crapaud', 2], ['axolotl', 1]],
   [['crocoVase', 2], ['piranha', 3], ['tetard', 2], ['crapaud', 1]],
-  [['crocoVase', 2], ['piranha', 3], ['brochet', 1], ['crapaud', 2], ['axolotl', 1]],
-  [['crocoVase', 2], ['piranha', 2], ['brochet', 2], ['silure', 1], ['triton', 1], ['fouette', 1]],
-  [['crocoVase', 3], ['piranha', 3], ['brochet', 2], ['silure', 1], ['crapaud', 2]],
-  [['piranha', 3], ['crocoVase', 2], ['tetard', 3], ['crapaud', 2], ['brochet', 1]]]; /* (la 110, premier temps : la horde) */
+  [['crocoVase', 2], ['piranha', 3], ['brochet', 1], ['crapaud', 2], ['axolotl', 1], ['libeclair', 1]],
+  [['crocoVase', 2], ['piranha', 2], ['brochet', 2], ['silure', 1], ['triton', 1], ['fouette', 1], ['libeclair', 2]],
+  [['crocoVase', 3], ['piranha', 3], ['brochet', 2], ['silure', 1], ['crapaud', 2], ['libeclair', 2]],
+  [['piranha', 3], ['crocoVase', 2], ['tetard', 3], ['crapaud', 2], ['brochet', 1], ['libeclair', 2]]]; /* (la 110, premier temps : la horde) */ /* (Libeclair dans les vagues 107 a 110, 22/11/2026) */
 const BOSS_QUAND_IL_RESTE = { 95: 6, 100: 6, 105: 6, 110: 6 };
 const bossRetenu = (c, t) => !!MONSTRES[t].boss && c.genre === 'vague' && BOSS_QUAND_IL_RESTE[c.n] != null && c.monstres.filter((o) => o.etat !== 'mort' && !o.d.totem).length > BOSS_QUAND_IL_RESTE[c.n]; /* (tout monstre pas encore abattu compte, meme celui qui vient d'arriver) */
 const PHASES_BOSS = { 110: [
