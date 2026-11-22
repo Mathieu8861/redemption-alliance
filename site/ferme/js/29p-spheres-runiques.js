@@ -100,9 +100,9 @@ function accrocherGrenouille() { /* sur le nenuphar de la Couvee eclose (la gren
    comme le reste du jeu, qui tremblote en vol sur un petit arc et laisse une trainee de gouttelettes ; a l'impact, un eclat, un anneau qui s'ouvre au sol et
    des gouttes qui retombent. Toujours sans degats (l'effet viendra avec l'emplacement Relique) */
 const CRACHAT = { prepa: 0.14, geo: null, mat: null, contour: null, reflet: null };
-function cibleCrachat() { /* le monstre le plus proche (en combat, 7 cases au plus), sinon un point au sol devant elle ; null en combat sans cible */
+function cibleCrachat() { /* le monstre le plus proche (en combat, a la portee du Cra), sinon un point au sol devant elle ; null en combat sans cible */
   const dep = GREN.corps.localToWorld(new T.Vector3(0, HAUT_GREN * 0.55, HAUT_GREN * 0.35)); let fin = null, sol = 0;
-  if (combat && combat.monstres) { let best = 7; combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - dep.x, o.z - dep.z); if (d < best) { best = d; fin = new T.Vector3(o.x, o.m.position.y + (o.haut || 1) * 0.45, o.z); sol = o.m.position.y; } }); }
+  if (combat && combat.monstres) { let best = STATS_CLASSE.cra.portee; /* (la portee du Cra, 5 cases : « mets-lui la meme portee d'attaque que le Cra », Mathieu, 22/11/2026) */ combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - dep.x, o.z - dep.z); if (d < best) { best = d; fin = new T.Vector3(o.x, o.m.position.y + (o.haut || 1) * 0.45, o.z); sol = o.m.position.y; } }); }
   if (!fin) { if (combat) return null; fin = GREN.corps.localToWorld(new T.Vector3(0, 0, 2.4 * HAUT_GREN / TAILLE_GREN)); fin.y = sol = (paysanMesh ? paysanMesh.position.y : 0) + 0.03; }
   return { dep, fin, sol };
 }
