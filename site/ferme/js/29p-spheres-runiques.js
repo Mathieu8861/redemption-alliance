@@ -80,7 +80,7 @@ function animerSphere(dt) {
    etroite (« nos epaules sont pas tres larges ») : elle est maintenant assise sur le nenuphar de la sphere eclose, regarde dans le sens du perso et autour d'elle,
    respire, et crache une bulle verte : en combat sur le monstre le plus proche, une par seconde (son effet viendra avec l'emplacement Relique : 15 % des degats du
    perso), sinon devant elle de temps en temps. Modele : Rodin d'apres maquettes/spheres-runiques/grenouille/g1-punk-face-net.png, blender/sphere-ia-preparer.py */
-const GREN = { g: null, corps: null, charge: null, oui: false, t: 0, crache: 2, squash: 0, vise: 0, viseT: 0, bulles: [] };
+const GREN = { g: null, corps: null, charge: null, oui: false, t: 0, crache: 2, squash: 0, vise: 0, viseT: 0, bulles: [], fx: [] };
 const HAUT_GREN = 0.8, ROT_GREN = 0, TAILLE_GREN = 0.3; /* (HAUT_GREN : sa hauteur dans son groupe ; TAILLE_GREN : 30 cm en jeu, assise dans la sphere ; ROT_GREN : de quel cote le modele regarde) */
 async function porterGrenouille(oui) {
   if (GREN.g) { if (GREN.g.parent) GREN.g.parent.remove(GREN.g); GREN.g = null; } GREN.oui = !!oui; if (!oui) return;
@@ -89,33 +89,67 @@ async function porterGrenouille(oui) {
   const src = await GREN.chargeDe[f]; if (!GREN.oui || GREN.g) return; const mats = new Set();
   const m = src.clone(true); m.traverse((o) => { if (!o.isMesh) return; const map = o.material.map; if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; } o.material = new T.MeshToonMaterial({ color: '#ffffff', map: map || null, gradientMap: grad }); mats.add(o.material); o.castShadow = true; });
   const b = new T.Box3().setFromObject(m), s = HAUT_GREN / Math.max(0.001, b.max.y - b.min.y); m.scale.setScalar(s); m.position.y = -b.min.y * s; m.rotation.y = ROT_GREN; /* (les pattes posees sur le nenuphar) */
-  const g = new T.Group(), corps = new T.Group(); corps.add(m); g.add(corps); g.scale.setScalar(TAILLE_GREN / HAUT_GREN); if (B) habillerSphB(g, mats, da === 'C' ? RENDU_SPH_C : RENDU_SPH); GREN.g = g; GREN.corps = corps; accrocherGrenouille();
+  const g = new T.Group(), corps = new T.Group(); corps.rotation.order = 'YXZ'; corps.add(m); /* (YXZ : elle se penche vers ou elle regarde) */ g.add(corps); g.scale.setScalar(TAILLE_GREN / HAUT_GREN); if (B) habillerSphB(g, mats, da === 'C' ? RENDU_SPH_C : RENDU_SPH); GREN.g = g; GREN.corps = corps; accrocherGrenouille();
 }
 function accrocherGrenouille() { /* sur le nenuphar de la Couvee eclose (la grenouille et la sphere se chargent chacune de leur cote : la premiere arrivee attend l'autre) */
   if (!GREN.g || !SPH.g || !(SPH.dedans || SPH.dessus) || GREN.g.parent === SPH.g) return;
   SPH.g.add(GREN.g); GREN.g.position.set(0, SPH.dessus ? 0.47 * SPH.taille : (NIV_LIQUIDE + 0.025) * SPH.taille, 0); /* (dessus : sur les bouts de la cage) */
 }
-function crachatGrenouille() { /* une bulle verte, de sa bouche vers le monstre le plus proche (en combat), sinon devant elle */
-  const g = GREN.g; if (!g || !g.parent) return; g.updateMatrixWorld(true);
-  const dep = GREN.corps.localToWorld(new T.Vector3(0, HAUT_GREN * 0.55, HAUT_GREN * 0.35)); let fin = null;
-  if (combat && combat.monstres) { let best = 7; combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - dep.x, o.z - dep.z); if (d < best) { best = d; fin = new T.Vector3(o.x, o.m.position.y + (o.haut || 1) * 0.5, o.z); } }); }
-  if (!fin) { if (combat) return; fin = GREN.corps.localToWorld(new T.Vector3(0, HAUT_GREN * 0.4, 2.2 * HAUT_GREN / TAILLE_GREN)); fin.y = Math.max(0.15, fin.y - 1.2); }
-  const loc = g.worldToLocal(fin.clone()); GREN.vise = Math.atan2(loc.x, loc.z); GREN.viseT = 0.9; GREN.squash = 1;
-  if (!GREN.texBulle) GREN.texBulle = texCanvas(64, (c2, n) => { const r = n / 2 - 3, g2 = c2.createRadialGradient(n * 0.42, n * 0.4, 2, n / 2, n / 2, r); g2.addColorStop(0, '#f2ffc4'); g2.addColorStop(0.55, '#b4ff3c'); g2.addColorStop(1, '#3f9a12');
-    c2.fillStyle = g2; c2.beginPath(); c2.arc(n / 2, n / 2, r, 0, Math.PI * 2); c2.fill(); c2.lineWidth = 3; c2.strokeStyle = '#1f5c0a'; c2.stroke(); c2.fillStyle = 'rgba(255,255,255,0.85)'; c2.beginPath(); c2.arc(n * 0.36, n * 0.33, n * 0.09, 0, Math.PI * 2); c2.fill(); }); /* (une vraie bulle : verte, bord sombre, reflet blanc ; en lueur seule, on ne la voyait pas sur l'herbe) */
-  const s = new T.Sprite(new T.SpriteMaterial({ map: GREN.texBulle, transparent: true, depthWrite: false })); s.scale.setScalar(0.24); s.position.copy(dep); scene.add(s);
-  GREN.bulles.push({ s, dep, fin, t: 0, d: Math.max(0.25, Math.min(0.55, dep.distanceTo(fin) / 12)), pop: 0 });
+/* SON ATTAQUE, REFAITE (22/11/2026, par Discord : « pour la petite grenouille qu'on vient de faire, refais son attaque visuellement », Mathieu) : elle se ramasse
+   (0,14 s), puis se detend en avant en crachant, la tete basculee vers sa cible ; le crachat est une vraie bulle en 3D, verte et luisante, cerclee de vert fonce
+   comme le reste du jeu, qui tremblote en vol sur un petit arc et laisse une trainee de gouttelettes ; a l'impact, un eclat, un anneau qui s'ouvre au sol et
+   des gouttes qui retombent. Toujours sans degats (l'effet viendra avec l'emplacement Relique) */
+const CRACHAT = { prepa: 0.14, geo: null, mat: null, contour: null, reflet: null };
+function cibleCrachat() { /* le monstre le plus proche (en combat, 7 cases au plus), sinon un point au sol devant elle ; null en combat sans cible */
+  const dep = GREN.corps.localToWorld(new T.Vector3(0, HAUT_GREN * 0.55, HAUT_GREN * 0.35)); let fin = null, sol = 0;
+  if (combat && combat.monstres) { let best = 7; combat.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - dep.x, o.z - dep.z); if (d < best) { best = d; fin = new T.Vector3(o.x, o.m.position.y + (o.haut || 1) * 0.45, o.z); sol = o.m.position.y; } }); }
+  if (!fin) { if (combat) return null; fin = GREN.corps.localToWorld(new T.Vector3(0, 0, 2.4 * HAUT_GREN / TAILLE_GREN)); fin.y = sol = (paysanMesh ? paysanMesh.position.y : 0) + 0.03; }
+  return { dep, fin, sol };
+}
+function crachatGrenouille() { /* elle se ramasse : le crachat part au bout de CRACHAT.prepa (animerGrenouille) */
+  const g = GREN.g; if (!g || !g.parent || GREN.tir) return; g.updateMatrixWorld(true); const C = cibleCrachat(); if (!C) return;
+  const loc = g.worldToLocal(C.fin.clone()); GREN.vise = Math.atan2(loc.x, loc.z); GREN.viseT = 1; GREN.tir = { t: 0, lance: false };
+}
+function lancerCrachat() {
+  GREN.g.updateMatrixWorld(true); const C = cibleCrachat(); if (!C) return;
+  if (!CRACHAT.geo) { CRACHAT.geo = new T.SphereGeometry(1, 18, 14); CRACHAT.mat = new T.MeshToonMaterial({ color: '#86e02e', emissive: '#2f7a0c', emissiveIntensity: 0.5, gradientMap: grad }); /* (plus vert : a #a8f23e elle sortait jaune, une balle de tennis) */
+    CRACHAT.contour = typeof contourB === 'function' ? contourB(0.07, false, '#1f5c0a') : null; CRACHAT.reflet = new T.SpriteMaterial({ map: texHaloSph(), color: '#ffffff', transparent: true, depthWrite: false, opacity: 0.95 }); }
+  const b = new T.Group(), m = new T.Mesh(CRACHAT.geo, CRACHAT.mat); b.add(m); if (CRACHAT.contour) b.add(new T.Mesh(CRACHAT.geo, CRACHAT.contour));
+  const r = new T.Sprite(CRACHAT.reflet); r.scale.setScalar(0.75); r.position.set(-0.32, 0.38, 0.55); b.add(r); /* (le reflet blanc en haut a gauche) */
+  b.scale.setScalar(0.11); b.position.copy(C.dep); scene.add(b);
+  GREN.bulles.push({ b, dep: C.dep, fin: C.fin, sol: C.sol, t: 0, d: Math.max(0.3, Math.min(0.6, C.dep.distanceTo(C.fin) / 10)), trace: 0, prec: C.dep.clone() });
+}
+function goutteCrachat(p, v, vie, taille, grav) { /* une gouttelette (sprite) : la trainee et l'eclaboussure */
+  const s = new T.Sprite(new T.SpriteMaterial({ map: GREN.texBulle || (GREN.texBulle = texCanvas(32, (c2, n) => { const g2 = c2.createRadialGradient(n * 0.4, n * 0.38, 1, n / 2, n / 2, n / 2 - 1); g2.addColorStop(0, '#f2ffc4'); g2.addColorStop(0.6, '#86e02e'); g2.addColorStop(1, '#2f7a0c'); c2.fillStyle = g2; c2.beginPath(); c2.arc(n / 2, n / 2, n / 2 - 1, 0, Math.PI * 2); c2.fill(); })), transparent: true, depthWrite: false }));
+  s.position.copy(p); s.scale.setScalar(taille); scene.add(s); GREN.fx.push({ s, v: v.clone(), t: 0, d: vie, taille, grav: grav || 0 });
+}
+function eclaboussureCrachat(C) { /* l'impact : un eclat, des gouttes qui partent en couronne et retombent, un anneau qui s'ouvre au sol */
+  const e = new T.Sprite(new T.SpriteMaterial({ map: texHaloSph(), color: '#a8f05a', transparent: true, depthWrite: false, blending: T.AdditiveBlending })); e.position.copy(C.fin); e.scale.setScalar(0.3); scene.add(e);
+  GREN.fx.push({ s: e, v: new T.Vector3(), t: 0, d: 0.22, taille: 0.3, grandit: 3.2, grav: 0 });
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2 + Math.random() * 0.4; goutteCrachat(C.fin, new T.Vector3(Math.cos(a) * (1.2 + Math.random()), 1.6 + Math.random() * 1.4, Math.sin(a) * (1.2 + Math.random())), 0.45 + Math.random() * 0.2, 0.06 + Math.random() * 0.04, 7); }
+  const an = new T.Mesh(new T.RingGeometry(0.7, 1, 28), new T.MeshBasicMaterial({ color: '#86e02e', transparent: true, opacity: 0.8, depthWrite: false, side: T.DoubleSide }));
+  an.rotation.x = -Math.PI / 2; an.position.set(C.fin.x, C.sol + 0.03, C.fin.z); an.scale.setScalar(0.12); scene.add(an); GREN.fx.push({ s: an, v: new T.Vector3(), t: 0, d: 0.4, taille: 0.12, grandit: 0.75, anneau: true, grav: 0 });
 }
 function animerGrenouille(dt) {
+  GREN.fx = (GREN.fx || []).filter((f) => { f.t += dt; const k = f.t / f.d; if (k >= 1) { scene.remove(f.s); f.s.material.dispose(); if (f.anneau) f.s.geometry.dispose(); return false; }
+    if (f.grav) f.v.y -= f.grav * dt; f.s.position.addScaledVector(f.v, dt);
+    if (f.grandit) f.s.scale.setScalar(f.taille + f.grandit * Math.sqrt(k)); else f.s.scale.setScalar(f.taille * (1 - 0.5 * k));
+    f.s.material.opacity = (f.anneau ? 0.8 : 1) * (1 - k * k); return true; });
   GREN.bulles = GREN.bulles.filter((b) => { b.t += dt; const k = Math.min(1, b.t / b.d);
-    if (k < 1) { b.s.position.lerpVectors(b.dep, b.fin, k); b.s.position.y += Math.sin(k * Math.PI) * 0.6; return true; } /* (un petit arc) */
-    b.pop += dt; b.s.position.copy(b.fin); b.s.scale.setScalar(0.24 + b.pop * 2.6); b.s.material.opacity = Math.max(0, 1 - b.pop / 0.18); /* (elle eclate) */
-    if (b.pop < 0.18) return true; scene.remove(b.s); b.s.material.dispose(); return false; });
+    b.b.position.lerpVectors(b.dep, b.fin, k); b.b.position.y += Math.sin(k * Math.PI) * Math.min(0.9, 0.25 + b.dep.distanceTo(b.fin) * 0.12); /* (un petit arc) */
+    const w = Math.sin(b.t * 38) * 0.14; b.b.scale.set(0.11 * (1 + w), 0.11 * (1 - w), 0.11 * (1 + w)); /* (elle tremblote) */
+    b.trace -= dt; if (b.trace <= 0 && k < 0.95) { b.trace = 0.03; goutteCrachat(b.b.position, new T.Vector3(0, -0.3, 0), 0.32, 0.06, 0); } /* (la trainee) */
+    if (k < 1) return true; eclaboussureCrachat(b); scene.remove(b.b); return false; });
   if (!GREN.g || !paysanMesh) return; if (GREN.g.parent !== SPH.g) accrocherGrenouille(); if (!GREN.g.parent) return;
   GREN.g.rotation.y = paysanMesh.rotation.y; /* (elle regarde dans le sens du perso) */
-  GREN.t += dt; const t = GREN.t, c = GREN.corps; GREN.squash = Math.max(0, GREN.squash - dt * 5); GREN.viseT = Math.max(0, GREN.viseT - dt);
-  const resp = 1 + 0.04 * Math.sin(t * 3.1), q = GREN.squash; c.scale.set(1 + q * 0.2, resp * (1 - q * 0.25), 1 + q * 0.2); /* (elle respire, et s'ecrase un peu en crachant) */
-  const regard = GREN.viseT > 0 ? GREN.vise : Math.sin(t * 0.45) * 0.5 + Math.sin(t * 1.7) * 0.08; c.rotation.y += (regard - c.rotation.y) * Math.min(1, dt * 8); /* (elle regarde autour d'elle, ou sa cible) */
+  GREN.t += dt; const t = GREN.t, c = GREN.corps; GREN.viseT = Math.max(0, GREN.viseT - dt);
+  let sx = 1, sy = 1 + 0.04 * Math.sin(t * 3.1), pench = 0; /* (elle respire) */
+  if (GREN.tir) { const T0 = GREN.tir.t += dt, P = CRACHAT.prepa;
+    if (T0 < P) { const k = T0 / P; sx = 1 + 0.16 * k; sy = 1 - 0.2 * k; pench = -0.12 * k; } /* (elle se ramasse, un peu en arriere) */
+    else { if (!GREN.tir.lance) { GREN.tir.lance = true; lancerCrachat(); } const k = Math.min(1, (T0 - P) / 0.32), e = Math.sin(k * Math.PI);
+      sx = 1 - 0.1 * e; sy = 1 + 0.18 * e; pench = 0.42 * e; if (k >= 1) GREN.tir = null; } } /* (elle se detend en avant en crachant, puis revient) */
+  c.scale.set(sx, sy, sx); c.rotation.x = pench;
+  const regard = GREN.viseT > 0 ? GREN.vise : Math.sin(t * 0.45) * 0.5 + Math.sin(t * 1.7) * 0.08; c.rotation.y += (regard - c.rotation.y) * Math.min(1, dt * (GREN.viseT > 0 ? 14 : 8)); /* (elle regarde autour d'elle, ou sa cible) */
   GREN.crache -= dt; if (GREN.crache <= 0) { GREN.crache = combat ? 1 : 3 + Math.random() * 2; crachatGrenouille(); }
 }
 (function boucleSphere(now) { const dt = Math.min(0.05, Math.max(0, (now - SPH.prec) / 1000)); SPH.prec = now; try { animerSphere(dt); } catch (e) { /* rien */ } try { animerGrenouille(dt); } catch (e) { /* rien */ } requestAnimationFrame(boucleSphere); })(performance.now());
