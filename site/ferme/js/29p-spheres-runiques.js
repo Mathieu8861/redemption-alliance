@@ -223,7 +223,7 @@ function toucherCrachat(b) { /* le crachat arrive sur son monstre : 20 % des deg
    ni panoplie, ni revente, ni forgemagie : les pieces n'en savent rien) : S_.reliques (les spheres gagnees) et S_.relique (celle qui est portee). Une case ronde
    « Relique » dans la fiche du perso, a droite de l'arme, ouvre le choix. Visible seulement dans le mode test, ou pour un joueur qui a deja une sphere (version
    dev : personne pour l'instant). Icones : rendues depuis les modeles du jeu (blender/icone-glb.py), la grenouille posee dans la Couvee. */
-const INFOS_RELIQUES = { marees: { boss: 'le Croco, vague 110', effet: () => 'Une bulle d\'eau t\'entoure et absorbe entièrement le prochain coup reçu, puis se reforme ' + EFFETS_SPH.marees.cac + ' s après au corps à corps (Iop), ' + EFFETS_SPH.marees.distance + ' s à distance (Cra, Osamodas).' },
+const INFOS_RELIQUES = { marees: { boss: 'le Mâchefange, vague 110', effet: () => 'Une bulle d\'eau t\'entoure et absorbe entièrement le prochain coup reçu, puis se reforme ' + EFFETS_SPH.marees.cac + ' s après au corps à corps (Iop), ' + EFFETS_SPH.marees.distance + ' s à distance (Cra, Osamodas).' },
   couvee: { boss: 'la Mère Crapustule, vague 105', effet: () => 'Une petite grenouille crache sur le monstre le plus proche, à la portée du Cra : ' + Math.round(EFFETS_SPH.couvee.part * 100) + ' % des dégâts de tes coups, à ta vitesse d\'attaque.' } };
 const reliquesDe = () => ((typeof S_ !== 'undefined' && S_ && S_.reliques) || []).filter((c) => SPHERES_RUNIQUES[c]);
 const reliqueVisible = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || reliquesDe().length > 0;
@@ -234,7 +234,7 @@ function htmlCaseRelique() { const c = S_.relique && reliquesDe().includes(S_.re
 function ouvrirReliques() {
   const L = reliquesDe(), porte = S_.relique;
   const carte = (c) => '<div class="art relique-art' + (c === porte ? ' portee' : '') + '"><span class="pic img"><img src="assets/icones/relique-' + c + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><b>' + SPHERES_RUNIQUES[c].nom + (c === porte ? ' <span class="puce bonne">portée</span>' : '') + '</b>' +
-    '<div class="desc">' + INFOS_RELIQUES[c].effet() + '</div><div class="desc relique-src">Tombe sur ' + INFOS_RELIQUES[c].boss + '.</div></div><div class="act"><button class="btn ' + (c === porte ? 'discret' : 'kamas') + '" data-relique-porter="' + (c === porte ? '' : c) + '">' + (c === porte ? 'Retirer' : 'Porter') + '</button></div></div>';
+    '<div class="desc">' + INFOS_RELIQUES[c].effet() + '</div><div class="desc relique-src">Tombe sur ' + INFOS_RELIQUES[c].boss + ' : ' + Math.round(CHANCE_SPHERE * 100) + ' % de chance, ' + Math.round(CHANCE_SPHERE * DUR.leg * 100) + ' % en revanche difficile.</div></div><div class="act"><button class="btn ' + (c === porte ? 'discret' : 'kamas') + '" data-relique-porter="' + (c === porte ? '' : c) + '">' + (c === porte ? 'Retirer' : 'Porter') + '</button></div></div>';
   ouvrirModale('reliques', entete('La relique') + '<p class="hdv-aide">Une sphère runique se porte à part de ton équipement : pas de caractéristiques, mais un effet permanent en combat. Elle flotte à côté de toi. Une seule à la fois.</p>' +
     (L.length ? L.map(carte).join('') : '<p class="hdv-aide">Tu n\'as encore aucune sphère runique. Elles tombent sur les boss du palier 11.</p>') +
     '<div class="act-bas">' + (MODE_TEST ? '<small>Version dev (mode test)</small>' : '') + '<button class="btn discret" data-relique-retour>Retour à la fiche</button></div>');
@@ -253,3 +253,17 @@ document.addEventListener('click', (e) => { const d = e.target.closest('[data-te
   const b = e.target.closest('[data-test-sphere]'); if (!b) return; const c = b.dataset.testSphere;
   ETAT_TEST.sphere = c === 'aucune' || ETAT_TEST.sphere === c ? null : c; /* (la boucle la pose : sphereVoulue) */
   if (typeof ouvrirModeTest === 'function' && modaleOuverte === 'mode-test') ouvrirModeTest(); });
+
+/* LA CHUTE DES SPHERES (22/11/2026, par Discord : « oui c'est bon et 4 % en difficile », Mathieu, sur 2 % proposes) : la Mere Crapustule lache la Sphere
+   de la Couvee (a la 105, et a la 110 ou elle ouvre le combat), le Machefange la Sphere des Marees (110) ; 2 % comme les legendaires (la Prospection
+   compte), 4 % en revanche difficile (DUR.leg). Ni sur l'ile des boss ni a l'Arene (le butin n'y tombe pas). Une sphere deja dans la collection ne
+   retombe pas (une relique ne se revend pas, un double ne servirait a rien) */
+const SPHERE_DU_BOSS = { mereCrapaude: 'couvee', crocoBoss: 'marees' }, CHANCE_SPHERE = 0.02;
+function tomberSphere(mo) {
+  const c = mo && SPHERE_DU_BOSS[mo.type]; if (!c || !combat || combat.genre === 'ile' || combat.arene || mo.invoque || reliquesDe().includes(c)) return;
+  const pros = 1 + caracs().prospection / 100; if (Math.random() >= CHANCE_SPHERE * pros * (combat.difficile ? DUR.leg : 1)) return;
+  S_.reliques = reliquesDe().concat(c); const I = SPHERES_RUNIQUES[c]; compter('legendaires');
+  chiffre('✦ ' + I.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.6, mo.z), 'butin'); pouf(mo.x, mo.m.position.y, mo.z, 4, I.couleur); son('niveau');
+  toast('✦ RELIQUE : ' + I.nom + ' ! Porte-la dans la fiche du perso, case Relique. ' + INFOS_RELIQUES[c].effet(), 'or'); rendreHaut(); sauver();
+}
+const butinSph = butin; butin = function (mo) { butinSph(mo); try { tomberSphere(mo); } catch (e) { /* rien */ } };
