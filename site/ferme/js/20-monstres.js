@@ -342,6 +342,10 @@ const RENFORTS = { 71: 1.8, 72: 1.56, 73: 1.43, 74: 1.27, 75: 1.8, 76: 1.14, 77:
 const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1) % VAGUES_PALIER + 1; let f = 1;
   if (n > VAGUES_PALIER && n <= VAGUES_MAX && h < VAGUES_PALIER - 1) { const a = forceBrute(n - h - 1), b = forceBrute(n - h + VAGUES_PALIER - 1), cible = a * Math.pow(b / a, h / (VAGUES_PALIER - 1)); f = Math.min(1.8, Math.max(1, Math.sqrt(cible / forceBrute(n)))); } /* (plafonne : au-dela, des coups trop gros) */
   return (RENFORTS[n] = Math.round(f * 100) / 100); };
+/* LES VAGUES 101 A 109 (22/11/2026, equilibrage au bot, voir CLASSE_MARE) : renforts fixes au lieu du lissage, qui laissait le debut du palier sous la
+   fin de la foret (101 a 105 : 0,5 a 0,75 fois les vies de la 99). Cible : 1,15 fois la 99 a la 101, puis +0,2 vie par vague jusqu'a 1,5 fois a la 109
+   (« faut que ce soit quand meme dur au debut, quitte a reduire apres », Mathieu) */
+Object.assign(RENFORTS, { 101: 2.03, 102: 1.82, 103: 2.14, 104: 1.87, 105: 2.2, 106: 1.91, 107: 1.59, 108: 1.22, 109: 1.16 });
 /* « je viens de faire le boss craqueleur, il est bidon a mort » puis « tu peux mettre x1,3 pour les monstres par rapport a la vague precedente, par contre
    le boss ca doit vraiment etre un boss, un truc dur a tuer, il faudrait qu'il ait un sort special aussi » (Mathieu, 12/10/2026) :
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
@@ -368,7 +372,14 @@ const forceBoss = (t, n, k) => (MONSTRES[t].boss && n >= 1 ? (k ? BOSS_DEG : BOS
    x les vagues normales durcies (DURCI), x le lissage des debuts de palier (renfort), x le boss (BOSS_PV, BOSS_DEG) ; l'escorte d'un boss vaut le
    meme monstre de la vague d'avant (ESCORTE). A son arrivee, la regle du combat s'ajoute : la revanche (facteurRejoue), l'Arene (regleArene),
    l'ile des boss (regleIleBoss). Sur le perso, ses coups prennent encore multDegats (DEGATS_MONSTRES), au moment du coup. */
-const forceMonstre = (t, n, c) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(forceMonstre(t, n - 1, c) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t][c](n) * durete(t, n)[c] * durci(t, n, c) * (MONSTRES[t].boss ? 1 : renfort(n)) * forceBoss(t, n, c === 'deg' ? 1 : 0))); /* (un boss garde sa force : le lissage des debuts de palier ne touche que les monstres ; avant le mini-boss de la vague 75, ca ne changeait rien) */
+/* L'EQUILIBRAGE DU PALIER 11 PAR CLASSE (22/11/2026, par Discord : « equilibre proprement, faut que ce soit quand meme dur au debut quitte a reduire
+   la difficulte apres, et pense a equilibrer pour que ce soit la meme difficulte au cac et a distance », Mathieu) : mesure au bot sur trois vraies
+   fermes niveau 100 (Madazezette Iop, Rorschach Cra, yannick Osamodas), en vies qu'il lui faut pour finir chaque vague (outils/banc/series/eq11.sh,
+   bilan_vies.py). Les monstres des vagues 101 a 110 (pas les boss) prennent un coefficient de vie et de degats selon la classe du perso :
+   a pour les vagues 101 a 105 (les amphibiens, beaucoup de tireurs), b pour 106 a 110 (la tribu, au corps a corps) */
+const CLASSE_MARE = { a: { iop: 0.98, cra: 1.16, osa: 0.9 }, b: { iop: 0.945, cra: 1.25, osa: 0.895 } }; /* (1er reglage du 22/11/2026 : sur 3 a 4 essais par vague, le Cra finissait avec 35 % de vies en moins que la moyenne, l'Osamodas 20 % de plus) */
+const classeMare = (n) => { if (!(n > 10 * VAGUES_PALIER && n <= VAGUES_MAX)) return 1; let cl; try { cl = classeDe(); } catch (e) { return 1; } const g = CLASSE_MARE[n <= 10 * VAGUES_PALIER + 5 ? 'a' : 'b']; return (g && g[cl]) || 1; };
+const forceMonstre = (t, n, c) => (!MONSTRES[t].boss && vagueBoss(n) ? Math.round(forceMonstre(t, n - 1, c) * ESCORTE[palierDe(n)]) : Math.round(MONSTRES[t][c](n) * durete(t, n)[c] * durci(t, n, c) * (MONSTRES[t].boss ? 1 : renfort(n) * classeMare(n)) * forceBoss(t, n, c === 'deg' ? 1 : 0))); /* (un boss garde sa force : le lissage des debuts de palier ne touche que les monstres ; avant le mini-boss de la vague 75, ca ne changeait rien) */
 const FORCE_HORDE = 1, forceHorde = (t, n) => (!MONSTRES[t].boss && multVague(n) > 1 ? FORCE_HORDE : 1); /* (06/11/2026 : remis a 100 %, « remets tout a 100 %, meme les monstres a Moon », Mathieu ; la horde de la Phase 2, 04/11/2026 : chaque monstre avait 55 % de ses PV et de ses degats ; sans pot en combat, 2,5 fois plus de monstres de meme force tuaient le bot a la vague 81) */
 const parHorde = (v, t, n, brut) => { const h = brut || (typeof combat !== 'undefined' && combat && (combat.genre !== 'vague' || combat.sansHorde)) ? 1 : forceHorde(t, n); /* (sansHorde : les temps suivants d'une vague de boss, pas plus nombreux, gardent leur pleine force, 06/11/2026) */ /* (06/11/2026 : seulement dans les vagues ; l'ile des boss et l'Arene dev gardent la force pleine de la troupe) */ return h === 1 ? v : Math.max(1, Math.round(v * h)); }; /* (brut : la force sans la horde, pour l'Arene) */
 const pvMonstre = (t, n, brut) => parHorde(forceMonstre(t, n, 'pv'), t, n, brut), degMonstre = (t, n, brut) => parHorde(forceMonstre(t, n, 'deg') * (MONSTRES[t].boss && !MONSTRES[t].demi ? DEG_BOSS_X : 1), t, n, brut); /* (DEG_BOSS_X : les boss, 31/10/2026) */
@@ -458,7 +469,7 @@ const COMPO_MARE = [null,
   [['tetard', 3], ['crapaud', 2], ['fouette', 1], ['triton', 1]],
   [['tetard', 2], ['fouette', 2], ['crapaud', 2], ['axolotl', 1]],
   [['tetard', 3], ['triton', 2], ['crapaud', 2], ['fouette', 1], ['axolotl', 1]],
-  [['mereCrapaude', 1], ['tetard', 3], ['crapaud', 2], ['axolotl', 1]],
+  [['mereCrapaude', 1], ['tetard', 3], ['crapaud', 2], ['triton', 1], ['fouette', 1], ['axolotl', 1]], /* (+1 Tritonnerre, +1 Claquelangue le 22/11/2026 : la 105 etait la plus facile du palier, 2,2 vies contre 4,7 a la 99) */
   [['crocoVase', 2], ['piranha', 3], ['tetard', 2], ['crapaud', 1]],
   [['crocoVase', 2], ['piranha', 3], ['brochet', 1], ['crapaud', 2], ['axolotl', 1], ['libeclair', 1]],
   [['crocoVase', 2], ['piranha', 2], ['brochet', 2], ['silure', 1], ['triton', 1], ['fouette', 1], ['libeclair', 2]],
