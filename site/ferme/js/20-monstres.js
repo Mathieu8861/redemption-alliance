@@ -345,7 +345,7 @@ const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1
 /* LES VAGUES 101 A 109 (22/11/2026, equilibrage au bot, voir CLASSE_MARE) : renforts fixes au lieu du lissage, qui laissait le debut du palier sous la
    fin de la foret (101 a 105 : 0,5 a 0,75 fois les vies de la 99). Cible : 1,15 fois la 99 a la 101, puis +0,2 vie par vague jusqu'a 1,5 fois a la 109
    (« faut que ce soit quand meme dur au debut, quitte a reduire apres », Mathieu) */
-Object.assign(RENFORTS, { 101: 1.96, 102: 2.0, 103: 2.12, 104: 1.86, 105: 1.93, 106: 2.05, 107: 1.59, 108: 1.12, 109: 1.18 }); /* (4e reglage, 22/11/2026, sur 4 a 6 essais par vague) */ /* (2e reglage, 22/11/2026 : la 105 a 11 vies au 1er reglage, ramenee) */
+Object.assign(RENFORTS, { 101: 1.96, 102: 2.0, 103: 2.12, 104: 1.86, 105: 1.93, 106: 2.05, 107: 1.66, 108: 1.165, 109: 1.21 }); /* (4e reglage, 22/11/2026, sur 4 a 6 essais par vague ; 107 a 109 un peu remontes avec la baisse du Libeclair) */ /* (2e reglage, 22/11/2026 : la 105 a 11 vies au 1er reglage, ramenee) */
 /* « je viens de faire le boss craqueleur, il est bidon a mort » puis « tu peux mettre x1,3 pour les monstres par rapport a la vague precedente, par contre
    le boss ca doit vraiment etre un boss, un truc dur a tuer, il faudrait qu'il ait un sort special aussi » (Mathieu, 12/10/2026) :
    l'escorte du boss : chaque monstre vaut le meme monstre de la vague d'avant (un peu moins dans les derniers paliers, ESCORTE), c'est leur nombre et les rappels qui font la difficulte. Le boss : beaucoup
