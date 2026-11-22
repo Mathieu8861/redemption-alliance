@@ -9,7 +9,8 @@
    blender/sphere-ia-preparer.py. Mode test : « Sphere runique (apercu) » dans le panneau. */
 const SPHERES_RUNIQUES = {
   marees: { nom: 'Sphère des Marées', fichier: 'sphere-marees.glb', couleur: '#3ff0e2', part: '#9ff6ff', taille: 0.62 },
-  couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72 } };
+  couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72, grenouille: 'dedans' },
+  couvee_dessus: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.62, grenouille: 'dessus' } }; /* (22/11/2026, « sur la sphère c'est pas mal, essaie de réaliser mes demandes et on fait un choix », Mathieu : les deux versions, éclose ou grenouille assise dessus, au choix dans le mode test) */
 const SPH = { cle: null, g: null, modele: null, halo: null, parts: [], t: 0, prec: performance.now(), charge: {}, suivi: null };
 const texHaloSph = () => TEX_HALO_COFFRE || (TEX_HALO_COFFRE = texCanvas(64, (c2, n) => { const r = c2.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.35, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); c2.fillStyle = r; c2.fillRect(0, 0, n, n); }));
 function chargerSphere(cle) {
@@ -33,16 +34,17 @@ function garnirCouvee(m) {
   veines.rotation.x = -Math.PI / 2; veines.rotation.z = 0; veines.position.y = NIV_LIQUIDE + 0.026; m.add(veines);
 }
 async function porterSphere(cle) { /* montre (ou retire, cle = null) la sphere qui suit le perso */
-  if (SPH.g) { scene.remove(SPH.g); SPH.g = null; SPH.parts.forEach((p) => scene.remove(p.s)); SPH.parts = []; } SPH.cle = cle || null; SPH.suivi = null; porterGrenouille(cle === 'couvee').catch(() => {}); if (!cle) return;
+  if (SPH.g) { scene.remove(SPH.g); SPH.g = null; SPH.parts.forEach((p) => scene.remove(p.s)); SPH.parts = []; } SPH.cle = cle || null; SPH.suivi = null; porterGrenouille(!!(SPHERES_RUNIQUES[cle] && SPHERES_RUNIQUES[cle].grenouille)).catch(() => {}); if (!cle) return;
   const S = SPHERES_RUNIQUES[cle], src = await chargerSphere(cle); if (SPH.cle !== cle) return;
-  const g = new T.Group(), m = src.clone(true), dedans = cle === 'couvee';
+  const g = new T.Group(), m = src.clone(true), dedans = S.grenouille === 'dedans', dessus = S.grenouille === 'dessus';
   m.traverse((o) => { if (!o.isMesh) return; const map = o.material.map; if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; } o.material = new T.MeshToonMaterial({ color: '#ffffff', map: map || null, gradientMap: grad, emissive: '#ffffff', emissiveMap: map || null, emissiveIntensity: 0.38, side: dedans ? T.DoubleSide : T.FrontSide }); o.castShadow = true; }); /* (une lueur propre : c'est un objet magique ; la Couvee ouverte montre aussi son dedans) */
   m.scale.setScalar(S.taille); g.add(m);
   if (dedans) garnirCouvee(m);
+  if (dessus) m.add(new T.Mesh(new T.SphereGeometry(0.435, 32, 24), new T.MeshBasicMaterial({ color: '#b4ff3c', transparent: true, opacity: 0.42, depthWrite: false }))); /* (la sphère fermee : sa poche de liquide vert vif, la grenouille assise sur le dessus) */
   const plus = { transparent: true, depthWrite: false, blending: T.AdditiveBlending };
   const halo = new T.Sprite(new T.SpriteMaterial(Object.assign({ map: texHaloSph(), color: S.couleur, opacity: 0.55 }, plus))); halo.scale.setScalar(dedans ? 1.25 : 1.35); g.add(halo);
   SPH.parts = []; for (let i = 0; i < 7; i++) { const p = new T.Sprite(new T.SpriteMaterial(Object.assign({ map: texHaloSph(), color: S.part, opacity: 0 }, plus))); p.scale.setScalar(0.1); scene.add(p); SPH.parts.push({ s: p, vie: Math.random() * 1.2, d: 1.2, v: new T.Vector3() }); }
-  scene.add(g); SPH.g = g; SPH.modele = m; SPH.halo = halo; SPH.dedans = dedans; accrocherGrenouille();
+  scene.add(g); SPH.g = g; SPH.modele = m; SPH.halo = halo; SPH.dedans = dedans; SPH.dessus = dessus; SPH.taille = S.taille; accrocherGrenouille();
 }
 function coteLibre() { /* le cote du perso qui ne tient pas l'arc du Cra (1 ou -1, dans son repere) */
   const arc = paysanMesh.getObjectByName('arc'); if (!arc) return 1;
@@ -57,7 +59,7 @@ function animerSphere(dt) {
   if (!SPH.suivi) SPH.suivi = cible.clone(); else SPH.suivi.lerp(cible, 1 - Math.exp(-dt * 4)); /* (elle le rattrape en douceur) */
   g.position.copy(SPH.suivi); g.position.y += Math.sin(t * 2.3) * 0.06;
   g.rotation.z = Math.sin(t * 1.3) * (SPH.dedans ? 0.06 : 0.1); g.rotation.x = Math.sin(t * 1.1 + 1) * (SPH.dedans ? 0.05 : 0.08); /* (elle se balance) */
-  if (!SPH.dedans) SPH.modele.rotation.y += dt * 0.8; /* (les anneaux de la Marees tournent ; la Couvee ouverte reste droite) */
+  if (!SPH.dedans && !SPH.dessus) SPH.modele.rotation.y += dt * 0.8; /* (les anneaux de la Marees tournent ; la Couvee ouverte reste droite) */
   SPH.halo.material.opacity = (SPH.dedans ? 0.25 : 0.45) + 0.12 * Math.sin(t * 3);
   SPH.parts.forEach((p) => { p.vie -= dt; if (p.vie <= 0) { p.vie = p.d = 0.8 + Math.random() * 0.7; p.s.position.copy(g.position).add(new T.Vector3((Math.random() - 0.5) * 0.25, SPH.dedans ? 0.05 : (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.25));
       p.v.set((Math.random() - 0.5) * 0.25, SPH.cle === 'marees' ? -0.35 - Math.random() * 0.3 : 0.25 + Math.random() * 0.3, (Math.random() - 0.5) * 0.25); } /* (des gouttes qui tombent, ou des bulles qui montent du liquide) */
@@ -79,8 +81,8 @@ async function porterGrenouille(oui) {
   const g = new T.Group(), corps = new T.Group(); corps.add(m); g.add(corps); g.scale.setScalar(TAILLE_GREN / HAUT_GREN); GREN.g = g; GREN.corps = corps; accrocherGrenouille();
 }
 function accrocherGrenouille() { /* sur le nenuphar de la Couvee eclose (la grenouille et la sphere se chargent chacune de leur cote : la premiere arrivee attend l'autre) */
-  if (!GREN.g || !SPH.g || !SPH.dedans || GREN.g.parent === SPH.g) return;
-  SPH.g.add(GREN.g); GREN.g.position.set(0, (NIV_LIQUIDE + 0.025) * SPHERES_RUNIQUES.couvee.taille, 0);
+  if (!GREN.g || !SPH.g || !(SPH.dedans || SPH.dessus) || GREN.g.parent === SPH.g) return;
+  SPH.g.add(GREN.g); GREN.g.position.set(0, SPH.dessus ? 0.47 * SPH.taille : (NIV_LIQUIDE + 0.025) * SPH.taille, 0); /* (dessus : sur les bouts de la cage) */
 }
 function crachatGrenouille() { /* une bulle verte, de sa bouche vers le monstre le plus proche (en combat), sinon devant elle */
   const g = GREN.g; if (!g || !g.parent) return; g.updateMatrixWorld(true);
