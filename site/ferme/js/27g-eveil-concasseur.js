@@ -49,10 +49,22 @@ const evPortee = (k) => Object.values(S_.equip || {}).includes(k);
    on n'arrive pas a voir la difference, pour pas qu'on brise une a 100 % sur une a 20 % », Mathieu, 18/11/2026) */
 const evJet = (k) => Math.round(qualiteJet(k) * 100), evJetPastille = (k) => { const q = qualiteJet(k); return '<span class="ev-jet j-' + nomJet(q) + '">' + Math.round(q * 100) + ' %</span>'; };
 const evPeutSac = (x) => !!EV.cible && !x.porte && baseObjet(x.k) === baseObjet(EV.cible) && (x.k !== EV.cible || (S_.sac[x.k] || 0) >= (evPortee(EV.cible) ? 1 : 2));
-const EV_CERCLE = '<svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="#c890ff" stroke-width="1.6"><circle cx="100" cy="100" r="96" stroke-width="2.4"/><circle cx="100" cy="100" r="88" stroke-dasharray="3 6"/>' +
+const CERCLE_ETOILE = '<svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="#c890ff" stroke-width="1.6"><circle cx="100" cy="100" r="96" stroke-width="2.4"/><circle cx="100" cy="100" r="88" stroke-dasharray="3 6"/>' +
   '<circle cx="100" cy="100" r="70"/><polygon points="100,12 176,144 24,144"/><polygon points="100,188 24,56 176,56"/></g><g fill="#d7b2ff">' +
   [0, 60, 120, 180, 240, 300].map((a) => { const r = a * Math.PI / 180; return '<circle cx="' + (100 + 92 * Math.sin(r)).toFixed(1) + '" cy="' + (100 - 92 * Math.cos(r)).toFixed(1) + '" r="4"/>'; }).join('') + '</g>' +
   '<g class="inv" fill="none" stroke="#a465e6" stroke-width="1.2"><circle cx="100" cy="100" r="58" stroke-dasharray="14 5 2 5"/><circle cx="100" cy="100" r="50"/></g></svg>';
+/* LE CERCLE DES LEGENDAIRES (22/11/2026, par Discord : « le pentagramme, la, ca colle bien [a la fusion] car les rares ont une etoile ; mais celui des legendaires,
+   modifie le cercle derriere », Mathieu) : l'etoile a six branches reste a la fusion des pieces (rare ★, en jaune) ; l'eveil prend le signe des legendaires, ✦ :
+   une grande etoile a quatre branches, une plus petite en travers, des losanges autour de l'anneau, un anneau de runes qui tourne en sens inverse */
+const EV_CERCLE = (() => { const C = 100, pt = (a, r) => (C + r * Math.sin(a)).toFixed(1) + ',' + (C - r * Math.cos(a)).toFixed(1);
+  const etoile4 = (R, r, dec) => { const L = []; for (let i = 0; i < 8; i++) { const a = dec + i * Math.PI / 4; L.push(pt(a, i % 2 ? r : R)); } return '<polygon points="' + L.join(' ') + '"/>'; };
+  const losange = (a, r, t) => { const x = C + r * Math.sin(a), y = C - r * Math.cos(a), u = [Math.sin(a), -Math.cos(a)], v = [Math.cos(a), Math.sin(a)];
+    return '<polygon points="' + [[u[0] * t * 1.6, u[1] * t * 1.6], [v[0] * t, v[1] * t], [-u[0] * t * 1.6, -u[1] * t * 1.6], [-v[0] * t, -v[1] * t]].map(([dx, dy]) => (x + dx).toFixed(1) + ',' + (y + dy).toFixed(1)).join(' ') + '"/>'; };
+  const runes = []; for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12 + Math.PI / 24, r1 = 61, r2 = i % 3 === 0 ? 51 : 55; runes.push('<line x1="' + pt(a, r1).split(',')[0] + '" y1="' + pt(a, r1).split(',')[1] + '" x2="' + pt(a, r2).split(',')[0] + '" y2="' + pt(a, r2).split(',')[1] + '"/>'); }
+  return '<svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="#c890ff" stroke-width="1.6"><circle cx="100" cy="100" r="96" stroke-width="2.4"/><circle cx="100" cy="100" r="88" stroke-dasharray="1 5"/>' +
+    '<circle cx="100" cy="100" r="74"/>' + etoile4(86, 22, 0) + etoile4(62, 18, Math.PI / 4) + '</g>' +
+    '<g fill="#d7b2ff">' + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => losange(i * Math.PI / 4 + Math.PI / 8, 92, 3.2)).join('') + '</g>' +
+    '<g class="inv" fill="none" stroke="#a465e6" stroke-width="1.2"><circle cx="100" cy="100" r="62"/><circle cx="100" cy="100" r="49" stroke-dasharray="10 4 2 4"/>' + runes.join('') + '</g></svg>'; })();
 function ouvrirEveil() {
   const L = exemplairesLeg(), a = (k) => L.some((x) => x.k === k);
   if (EV.cible && !a(EV.cible)) EV.cible = null; if (EV.sac && (!EV.cible || !L.some((x) => x.k === EV.sac && evPeutSac(x)))) EV.sac = null;
@@ -221,7 +233,7 @@ function sacrificesFusion(c) { /* les 9 exemplaires du sac qui fondent dans la p
   return L.sort((x, y) => qualiteJet(x) - qualiteJet(y)).slice(0, FUSION_PIECES.n - 1); }
 const prixFusionPieces = (b) => FUSION_PIECES.prix * reventeObjet(b);
 function statsRares(c) { const r = OBJETS[baseObjet(c) + '-rare'], q = qualiteJet(c); return Object.fromEntries(Object.entries(r.stats).map(([s, v]) => { const [a, m] = fourchette(v, r.id, s); return [s, Math.round(a + q * (m - a))]; })); }
-const FP_CERCLE = EV_CERCLE.replace(/#c890ff/g, '#ffd34d').replace(/#d7b2ff/g, '#ffe9a3').replace(/#a465e6/g, '#e0a31e');
+const FP_CERCLE = CERCLE_ETOILE.replace(/#c890ff/g, '#ffd34d').replace(/#d7b2ff/g, '#ffe9a3').replace(/#a465e6/g, '#e0a31e');
 function ouvrirFusionPieces() {
   const L = exemplairesNormaux(), N = FUSION_PIECES.n; if (FP.cible && !L.some((x) => x.k === FP.cible)) FP.cible = null;
   const c = FP.cible, F = FP.fin, oc = c && obj(c), sac = c ? sacrificesFusion(c) : [], ok = sac.length >= N - 1, prix = c ? prixFusionPieces(baseObjet(c)) : 0, r = c && OBJETS[baseObjet(c) + '-rare'];
