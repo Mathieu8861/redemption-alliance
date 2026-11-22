@@ -9,21 +9,22 @@
    blender/sphere-ia-preparer.py. Mode test : « Sphere runique (apercu) » dans le panneau. */
 const SPHERES_RUNIQUES = {
   marees: { nom: 'Sphère des Marées', fichier: 'sphere-marees.glb', couleur: '#3ff0e2', part: '#9ff6ff', taille: 0.62 },
-  couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', fichierB: 'sphere-couvee-eclose-b.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72, grenouille: 'dedans' } }; /* (22/11/2026 : la version « grenouille assise sur la sphere fermee » a ete essayee a cote ; « eclose c'est niquel », Mathieu) */
+  couvee: { nom: 'Sphère de la Couvée', fichier: 'sphere-couvee-eclose.glb', fichierB: 'sphere-couvee-eclose-b.glb', fichierC: 'sphere-couvee-eclose-c.glb', couleur: '#8fe03a', part: '#d8ff8a', taille: 0.72, grenouille: 'dedans' } }; /* (22/11/2026 : la version « grenouille assise sur la sphere fermee » a ete essayee a cote ; « eclose c'est niquel », Mathieu) */
 /* LA DA DU JEU, EN ESSAI (22/11/2026, « tout est plutot bien realise, juste tu trouves que c'est notre DA ou pas ? Teste de modifier un peu en aplat / toon /
    contraste pour voir », Mathieu) : la version B, comme les Bworks et la tribu de la mare (27d-bworks-v2.js) : aplats cuits dans la texture
    (outils/spheres/cuire_aplats.py, blender/remplacer-texture.py), ombre teintee a seuil net (matiereB) et contour fin vert fonce (contourB). A : la texture de Rodin.
    Au choix dans le mode test, B par defaut le temps que Mathieu tranche. */
-const daSph = () => ((typeof ETAT_TEST !== 'undefined' && ETAT_TEST.sphDA) || 'B');
+const daSph = () => ((typeof ETAT_TEST !== 'undefined' && ETAT_TEST.sphDA) || 'C'); /* (C, l'entre-deux : texture a moitie en aplats, ombre plus douce, contour plus fin ; « un entre deux ? », Mathieu, 22/11/2026) */
 const RENDU_SPH = { ombre: { value: new T.Vector3(0.74, 0.75, 0.78) }, dir: RENDU_B.dir, cle: 'sph', contour: '#1f3a12', ep: 0.007 };
-function habillerSphB(racine, mats) { /* la matiere B et le contour, sur les morceaux du modele (apres sa mise a l'echelle : l'epaisseur du contour est en unites du jeu) */
+const RENDU_SPH_C = { ombre: { value: new T.Vector3(0.8, 0.81, 0.84) }, dir: RENDU_B.dir, cle: 'sphc', lisse: [-0.12, 0.32], contour: '#2a4a1a', ep: 0.0045 };
+function habillerSphB(racine, mats, R) { R = R || RENDU_SPH; /* la matiere B et le contour, sur les morceaux du modele (apres sa mise a l'echelle : l'epaisseur du contour est en unites du jeu) */
   racine.updateMatrixWorld(true); const v = new T.Vector3(), L = []; racine.traverse((o) => { if (o.isMesh && o.name !== 'contour-b' && mats.has(o.material)) L.push(o); });
-  L.forEach((o) => { matiereB(o.material, RENDU_SPH); const k = new T.Mesh(o.geometry, contourB(RENDU_SPH.ep / o.getWorldScale(v).x, false, RENDU_SPH.contour)); k.name = 'contour-b'; o.add(k); }); }
+  L.forEach((o) => { matiereB(o.material, R); const k = new T.Mesh(o.geometry, contourB(R.ep / o.getWorldScale(v).x, false, R.contour)); k.name = 'contour-b'; o.add(k); }); }
 const SPH = { cle: null, g: null, modele: null, halo: null, parts: [], t: 0, prec: performance.now(), charge: {}, suivi: null };
 const texHaloSph = () => TEX_HALO_COFFRE || (TEX_HALO_COFFRE = texCanvas(64, (c2, n) => { const r = c2.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(0.35, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); c2.fillStyle = r; c2.fillRect(0, 0, n, n); }));
 function chargerSphere(cle) {
   const S = SPHERES_RUNIQUES[cle]; if (!S) return Promise.reject(new Error('sphere ' + cle));
-  const f = daSph() === 'B' && S.fichierB ? S.fichierB : S.fichier;
+  const f = daSph() === 'B' && S.fichierB ? S.fichierB : daSph() === 'C' && S.fichierC ? S.fichierC : S.fichier;
   if (!SPH.charge[f]) SPH.charge[f] = chargerGlb('assets/modeles/jeu/' + f + '?v=' + VERSION_MODELES).catch((e) => { delete SPH.charge[f]; throw e; });
   return SPH.charge[f];
 }
@@ -45,9 +46,9 @@ function garnirCouvee(m) {
 async function porterSphere(cle) { /* montre (ou retire, cle = null) la sphere qui suit le perso */
   if (SPH.g) { scene.remove(SPH.g); SPH.g = null; SPH.parts.forEach((p) => scene.remove(p.s)); SPH.parts = []; } SPH.cle = cle || null; SPH.suivi = null; porterGrenouille(!!(SPHERES_RUNIQUES[cle] && SPHERES_RUNIQUES[cle].grenouille)).catch(() => {}); if (!cle) return;
   const S = SPHERES_RUNIQUES[cle], src = await chargerSphere(cle); if (SPH.cle !== cle) return;
-  const g = new T.Group(), m = src.clone(true), dedans = S.grenouille === 'dedans', dessus = S.grenouille === 'dessus', B = daSph() === 'B' && !!S.fichierB, mats = new Set();
+  const g = new T.Group(), m = src.clone(true), dedans = S.grenouille === 'dedans', dessus = S.grenouille === 'dessus', da = daSph(), B = (da === 'B' && !!S.fichierB) || (da === 'C' && !!S.fichierC), mats = new Set();
   m.traverse((o) => { if (!o.isMesh) return; const map = o.material.map; if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; } o.material = new T.MeshToonMaterial({ color: '#ffffff', map: map || null, gradientMap: grad, emissive: '#ffffff', emissiveMap: map || null, emissiveIntensity: B ? 0.22 : 0.38, side: dedans ? T.DoubleSide : T.FrontSide }); mats.add(o.material); o.castShadow = true; }); /* (une lueur propre : c'est un objet magique ; la Couvee ouverte montre aussi son dedans) */
-  m.scale.setScalar(S.taille); g.add(m); if (B) habillerSphB(g, mats);
+  m.scale.setScalar(S.taille); g.add(m); if (B) habillerSphB(g, mats, da === 'C' ? RENDU_SPH_C : RENDU_SPH);
   if (dedans) garnirCouvee(m);
   if (dessus) m.add(new T.Mesh(new T.SphereGeometry(0.435, 32, 24), new T.MeshBasicMaterial({ color: '#b4ff3c', transparent: true, opacity: 0.42, depthWrite: false }))); /* (la sphère fermee : sa poche de liquide vert vif, la grenouille assise sur le dessus) */
   const plus = { transparent: true, depthWrite: false, blending: T.AdditiveBlending };
@@ -83,12 +84,12 @@ const GREN = { g: null, corps: null, charge: null, oui: false, t: 0, crache: 2, 
 const HAUT_GREN = 0.8, ROT_GREN = 0, TAILLE_GREN = 0.3; /* (HAUT_GREN : sa hauteur dans son groupe ; TAILLE_GREN : 30 cm en jeu, assise dans la sphere ; ROT_GREN : de quel cote le modele regarde) */
 async function porterGrenouille(oui) {
   if (GREN.g) { if (GREN.g.parent) GREN.g.parent.remove(GREN.g); GREN.g = null; } GREN.oui = !!oui; if (!oui) return;
-  const B = daSph() === 'B', f = B ? 'grenouille-couvee-b.glb' : 'grenouille-couvee.glb'; GREN.chargeDe = GREN.chargeDe || {};
+  const da = daSph(), B = da !== 'A', f = 'grenouille-couvee' + (da === 'A' ? '' : '-' + da.toLowerCase()) + '.glb'; GREN.chargeDe = GREN.chargeDe || {};
   if (!GREN.chargeDe[f]) GREN.chargeDe[f] = chargerGlb('assets/modeles/jeu/' + f + '?v=' + VERSION_MODELES).catch((e) => { delete GREN.chargeDe[f]; throw e; });
   const src = await GREN.chargeDe[f]; if (!GREN.oui || GREN.g) return; const mats = new Set();
   const m = src.clone(true); m.traverse((o) => { if (!o.isMesh) return; const map = o.material.map; if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; } o.material = new T.MeshToonMaterial({ color: '#ffffff', map: map || null, gradientMap: grad }); mats.add(o.material); o.castShadow = true; });
   const b = new T.Box3().setFromObject(m), s = HAUT_GREN / Math.max(0.001, b.max.y - b.min.y); m.scale.setScalar(s); m.position.y = -b.min.y * s; m.rotation.y = ROT_GREN; /* (les pattes posees sur le nenuphar) */
-  const g = new T.Group(), corps = new T.Group(); corps.add(m); g.add(corps); g.scale.setScalar(TAILLE_GREN / HAUT_GREN); if (B) habillerSphB(g, mats); GREN.g = g; GREN.corps = corps; accrocherGrenouille();
+  const g = new T.Group(), corps = new T.Group(); corps.add(m); g.add(corps); g.scale.setScalar(TAILLE_GREN / HAUT_GREN); if (B) habillerSphB(g, mats, da === 'C' ? RENDU_SPH_C : RENDU_SPH); GREN.g = g; GREN.corps = corps; accrocherGrenouille();
 }
 function accrocherGrenouille() { /* sur le nenuphar de la Couvee eclose (la grenouille et la sphere se chargent chacune de leur cote : la premiere arrivee attend l'autre) */
   if (!GREN.g || !SPH.g || !(SPH.dedans || SPH.dessus) || GREN.g.parent === SPH.g) return;
