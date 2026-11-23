@@ -148,7 +148,8 @@ function creerGardien() {
   const mk = (k, ombre) => { const m = cloner(k); ombrePieds(m, ombre); m.traverse((o) => { o.userData.gardien = true; }); m.visible = false; scene.add(m); return m; };
   const p = porcheGardien(), bulle = document.createElement('div'); bulle.className = 'bulle ico rouge'; bulle.dataset.ancre = 'niche'; bulle.style.display = 'none'; /* (son nom est sur sa pancarte : la pastille ne sort que quand il a faim, et le toucher ouvre sa maison) */
   bulle.innerHTML = icoB(G.proie === 'Tofu' ? 'tofu' : 'bouftou'); bulle.dataset.info = G.nom + ' a faim : touche sa maison pour le nourrir'; bulle.dataset.cible = 'case:' + blocBati('niche').c0.id; zoneBulles.appendChild(bulle);
-  gard = { calme: mk('gardienCalme', G.ombre), assis: mk('gardienAssis', G.ombre), vsa: mk(MODELES.gardienVsaArmure && typeof niveauArmureGardien === 'function' && niveauArmureGardien() ? 'gardienVsaArmure' : 'gardienVsa', G.ombreVsa), x: p.x, y: p.y, z: p.z, ry: p.ry, etat: 'pause', t: 2 + Math.random() * 3, pas: 0, recharge: 0, mord: 0, joie: 0, coup: 0, forme: null, bulle, faimVue: false, horsVsa: 0 };
+  const arme = !!(MODELES.gardienVsaArmure && typeof niveauArmureGardien === 'function' && niveauArmureGardien()); /* (son armure aussi sur la ferme, debout et assis, 23/11/2026, 29f-armure-gardien.js) */
+  gard = { calme: mk(arme && MODELES.gardienCalmeArmure ? 'gardienCalmeArmure' : 'gardienCalme', G.ombre), assis: mk(arme && MODELES.gardienAssisArmure ? 'gardienAssisArmure' : 'gardienAssis', G.ombre), vsa: mk(arme ? 'gardienVsaArmure' : 'gardienVsa', G.ombreVsa), x: p.x, y: p.y, z: p.z, ry: p.ry, etat: 'pause', t: 2 + Math.random() * 3, pas: 0, recharge: 0, mord: 0, joie: 0, coup: 0, forme: null, bulle, faimVue: false, horsVsa: 0 };
   montrerForme('assis'); placerGardien(p);
 }
 function porcheGardien() { /* devant la porte de sa maison (la porte regarde +z, tournee avec la maison) */

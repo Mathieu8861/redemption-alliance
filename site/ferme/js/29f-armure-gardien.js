@@ -40,7 +40,7 @@ const fabriquerArmure = fabriquer; fabriquer = function (id, fois) {
   if (S_.kamas < A.kamas) { toast('Il te manque ' + fmt(A.kamas - S_.kamas) + ' kamas.'); return; }
   if (A.runes && !MODE_TEST && runes().forge < A.runes) { toast('Il te faut ' + A.runes + ' runes de forgemagie (tu en as ' + runes().forge + ').'); return; }
   A.il.forEach((I) => paieIngredient(G, I, 1).forEach(([r, q]) => { if (q) G[r] -= q; })); S_.kamas -= A.kamas; if (A.runes && !MODE_TEST) runes().forge -= A.runes;
-  S_.armureGardien = n + 1; MODELES.gardienVsaArmure = null; armureChargee = null; if (gard) creerGardien(); chargerArmureGardien(); /* (le nouveau modele tout de suite, sans attendre la boucle) */
+  S_.armureGardien = n + 1; MODELES.gardienVsaArmure = MODELES.gardienCalmeArmure = MODELES.gardienAssisArmure = null; armureChargee = null; if (gard) creerGardien(); chargerArmureGardien(); /* (le nouveau modele tout de suite, sans attendre la boucle) */
   son('niveau'); toast(gardienDe().nom + ' a son ' + A.nom.toLowerCase() + ' : ' + effetsArmure(A) + ' en VSA.', 'or'); sauver(); rendreGrange(); rendreHaut();
 };
 /* le modele cuirasse : charge a la demande (le fichier de son espece et de son niveau, a part), puis le gardien est refait avec */
@@ -50,8 +50,10 @@ function chargerArmureGardien() {
   armureChargee = chargerGlb('assets/modeles/jeu/' + G.fichier + A.fichier + '.glb?v=' + VERSION_MODELES).then((sc) => {
     if (niveauArmureGardien() !== n) return; /* (une armure plus haute fabriquee pendant le chargement : la suivante se chargera) */
     sc.traverse((o) => { if (PIVOT_P8.test(o.name)) o.userData.articule = true; }); versToon(sc, { normales: 0.01, sansContour: SC_GARDIEN });
-    const m = gabaritEchelle(sc, G.vsa + A.noeud, ECHELLE_GARDIEN, new T.Vector3(0, 0, 0)); fusionnerPivots(m); m.userData.pivots = true; m.userData.type = S_.gardien.type; m.userData.armure = n;
-    MODELES.gardienVsaArmure = m; if (gard) creerGardien();
+    const mk = (nom) => { if (!sc.getObjectByName(nom)) return null; const m = gabaritEchelle(sc, nom, ECHELLE_GARDIEN, new T.Vector3(0, 0, 0)); fusionnerPivots(m); m.userData.pivots = true; m.userData.type = S_.gardien.type; m.userData.armure = n; return m; };
+    /* (23/11/2026, « la meme, en petit », Mathieu : le meme fichier porte aussi sa forme de tous les jours, debout et assise, en armure ; blender/gardiens.py, armure_calme) */
+    MODELES.gardienCalmeArmure = mk(G.calme + A.noeud); MODELES.gardienAssisArmure = mk(G.assis + A.noeud);
+    MODELES.gardienVsaArmure = mk(G.vsa + A.noeud); if (gard) creerGardien();
   }).catch(() => { armureChargee = null; });
 }
 effets.push(() => { if (MODE_TEST && niveauArmureGardien() && !MODELES.gardienVsaArmure && MODELES.gardienCalme) chargerArmureGardien();
