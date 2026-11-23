@@ -77,7 +77,7 @@ function avancer(maintenant, enDirect) {
   let raid = false; /* la simu VSA : un groupe de voleurs, annonce 30 s avant (des le niveau 20) */
   if (enDirect) verifierRecouvreurs(maintenant); /* l'ardoise du Casino (meme en temps accelere) */
   if (niveau(S_.xp) < NIV_SIMU) S_.prochainRaid = Math.max(S_.prochainRaid || 0, maintenant + CADENCE_RAID); /* (avant le niveau 20, pas de simu ; la premiere, 30 min apres) */
-  else if (direct && !raidAnnonce && maintenant >= S_.prochainRaid && joueurPresent()) { /* absent : le raid attend son retour */
+  else if (direct && !raidAnnonce && maintenant >= S_.prochainRaid && joueurPresent() && !MODE_TEST) { /* absent : le raid attend son retour */ /* (!MODE_TEST, 23/11/2026, « en mode dev, retire-moi les simus de base, si je veux une simu je la declenche moi-meme », Mathieu : le bouton « Lancer une simu VSA » du mode test) */
     S_.prochainRaid = maintenant + CADENCE_RAID;
     if (valeurGrange() >= 150 && !bouclierActif(maintenant)) { raid = true; S_.simuDue = true; } /* (le bouclier anti-VSA : pas de simu, 07/11/2026) */
   }

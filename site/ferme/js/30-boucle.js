@@ -60,6 +60,7 @@ function tick() {
      la fenetre de la simu revient 10 s apres (et en attendant, pas de voyage) */
   if (!enAccueil && !repriseSimuT0) repriseSimuT0 = performance.now();
   if (S_.simuDue && !combat && !simuEnAttente && !raidAnnonce && !enAccueil && !enPause && !MODE_TEST && lieu === 'ferme' && repriseSimuT0 && performance.now() - repriseSimuT0 > 10000) proposerSimu();
+  if (MODE_TEST && S_.vague && (S_.vague.repos || S_.vague.prepa)) { S_.vague.repos = 0; S_.vague.prepa = 0; } /* (23/11/2026, « en mode dev, retire-moi les timers, le fait que je dois attendre », Mathieu : ni repos du perso ni preparation de la vague ; rien n'est enregistre) */
   if (rechargerSeule()) { rendreGrange(); if (modaleOuverte === 'grange') ouvrirGrange(); } /* l'arbalete se recharge seule a partir du niveau 3 */
   if (raidAnnonce) { if (Date.now() >= raidAnnonce.fin) { if (combat) raidAnnonce.fin = Date.now() + 10000; else lancerRaid(); } else majRaidAnnonce(); }
   if (ch.hdv) { rendreGrange(); if (modaleOuverte === 'hdv') ouvrirHdv(); }
