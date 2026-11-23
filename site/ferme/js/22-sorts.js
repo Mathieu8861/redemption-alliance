@@ -348,7 +348,7 @@ function executerLeg(emp, pt, compter, tire) {
        partagent ceux qui sont la s'il y en a moins) ; le Iop, six cawottes en cercle autour de lui ; l'Osamodas, sa Cawotte geante (cawotteGeante). 2 fois tes degats par cawotte */
     const cl = classeDe();
     if (cl === 'osa') cawotteGeante(pt, st, S);
-    else { const L = cl === 'cra' ? ciblesCawottes(S.portee) : [], N = cl === 'cra' ? 4 : 6, c0 = c, dg = Math.round(st.deg * 2);
+    else { const L = cl === 'cra' ? ciblesCawottes(S.portee) : [], N = cl === 'cra' ? CAWOTTES_CRA : 6, c0 = c, dg = Math.round(st.deg * 2);
       if (cl === 'iop') { onde(pp.x, solA(pp.x, pp.z) + 0.05, pp.z, 2.6, '#f08a24', 0.4, 0.7); chiffre('Pluie de cawottes', new T.Vector3(pp.x, pp.y + 2.4, pp.z), 'gros'); }
       for (let k = 0; k < N && (cl !== 'cra' || L.length); k++) { const o = cl === 'cra' ? L[k % L.length] : null, a = k / N * Math.PI * 2 + Math.random() * 0.5, ret = k * (cl === 'cra' ? 0.12 : 0.07);
         const X = o ? o.x : pp.x + Math.sin(a) * 2.2, Z = o ? o.z : pp.z + Math.cos(a) * 2.2; pluieCawotte(X, solA(X, Z), Z, ret);
@@ -603,8 +603,9 @@ function boutureOsa(pt, st) {
   toast('Un Tronknyde allié pousse et attire les coups des monstres autour de lui pendant ' + DUREE_BOUTURE + ' s.', 'or');
 }
 /* LES CAWOTTES CHERCHEUSES (le Cra, 16/11/2026) : les monstres a portee, du plus proche au plus loin, sans ceux caches dans une fumee */
+const CAWOTTES_CRA = 2; /* (23/11/2026, « divise par 2 ce qu'elle fait de base, pas les degats mais le nombre envoye », Mathieu : 2 cawottes chercheuses au lieu de 4, toujours 2 fois tes degats chacune) */
 function ciblesCawottes(portee) { const pp = paysanMesh.position, d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z);
-  return combat ? combat.monstres.filter((o) => o.etat === 'actif' && !(o.fume > 0) && d(o) <= portee).sort((a, b) => d(a) - d(b)).slice(0, 4) : []; }
+  return combat ? combat.monstres.filter((o) => o.etat === 'actif' && !(o.fume > 0) && d(o) <= portee).sort((a, b) => d(a) - d(b)).slice(0, CAWOTTES_CRA) : []; }
 /* LA CAWOTTE GEANTE (l'Osamodas, 16/11/2026, « tu cibles un endroit ou ca invoque une cawotte qui attire les monstres dans un certain rayon ; la cawotte a x % de tes PV,
    et chaque monstre qui tape dessus se prend ses degats renvoyes x2 », Mathieu) : elle sort de terre la ou tu vises (5 cases au plus) ; pendant 8 s, les monstres a moins de
    3 cases d'elle la frappent au lieu de toi (tout le monde : boss, demi-boss et tireurs compris, ses sorts visent toujours le perso) et chacun se prend 2 fois les degats de son coup.
