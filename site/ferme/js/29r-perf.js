@@ -14,12 +14,19 @@ function typesDeVague(n) {
   [...T0].forEach((t) => { const M = MONSTRES[t]; if (!M) return; [].concat(M.renforts ? [M.renforts[0]] : [], M.renfortsRage ? [M.renfortsRage[0]] : [], M.invoque ? M.invoque.types || [] : [], M.affaibli ? [M.affaibli.invoque] : [], M.enracine ? (M.enracine.types || []) : []).forEach((x) => { if (MONSTRES[x]) T0.add(x); }); });
   return [...T0];
 }
+const PRECH_FEU = { fait: false };
 function prechaufferVague(types) {
   if (typeof rendu === 'undefined' || !rendu || !camera) return 0; const t0 = performance.now(), g = new T.Group(), noms = new Set();
   types.forEach((t) => { const d = MONSTRES[t]; if (!d) return;
     if (d.fabrique) { try { g.add(d.fabrique()); } catch (e) { /* rien */ } return; }
     [d.modele, d.modele + '-v2'].forEach((nm) => { if (MODELES[nm] && !noms.has(nm)) { noms.add(nm); try { g.add(cloner(nm)); } catch (e) { /* rien */ } } }); });
   if (types.includes('libeclair') && typeof orbeFoudre === 'function') { try { g.add(orbeFoudre()); if (typeof spriteEclair === 'function') g.add(spriteEclair(1, 0.3)); } catch (e) { /* rien */ } }
+  if (!PRECH_FEU.fait) { PRECH_FEU.fait = true; /* une fois par partie, ce qui se dessinait pour la premiere fois en plein combat (mesure le 23/11/2026, traces/chargement/plans-feu-premier.js) : les flammes d'un
+       batiment qui brule (premiere : une image de 35 ms), l'onde au sol et la trainee de l'epee des coups du perso. On ne les libere pas : leur programme
+       resterait sinon lie a elles et partirait avec */
+    try { if (typeof foyer === 'function') { const f = foyer([[0, 0, 0, 0.5]], true); if (f.parent) f.parent.remove(f); g.add(f); } } catch (e) { /* rien */ }
+    try { if (typeof FS_ONDE === 'string') [T.AdditiveBlending, T.NormalBlending].forEach((bl) => g.add(new T.Mesh(GEO_ONDE_P, new T.ShaderMaterial({ uniforms: { uCol: { value: new T.Color('#ffffff') }, uR: { value: 0.5 }, uL: { value: 0.14 }, uA: { value: 0.9 } }, vertexShader: VS_ONDE, fragmentShader: FS_ONDE, transparent: true, depthWrite: false, blending: bl })))); } catch (e) { /* rien */ }
+    try { if (typeof matTranche === 'function') [true, false].forEach((pl) => g.add(new T.Mesh(GEO_RUBAN_LARGE, matTranche('#ffffff', '#ffe27a', pl)))); } catch (e) { /* rien */ } }
   if (!g.children.length) return 0;
   const dir = new T.Vector3(); camera.getWorldDirection(dir); g.position.copy(camera.position).addScaledVector(dir, 10); g.children.forEach((o, i) => { o.position.set((i % 6) * 1.5 - 4, 0, Math.floor(i / 6) * 1.5); });
   scene.add(g); g.updateMatrixWorld(true);
@@ -161,3 +168,39 @@ if (!/[?&]sansfusion=1/.test(location.search) && !window.__sansFusionPerso) {
     if (g && !PERSO_FUSIONNES.has(g)) { const u = g.userData; if (!u.epeeMain && !u.fouetMain && !u.arcMain) { PERSO_FUSIONNES.add(g); try { fusionnerPerso(g); ancien = g; } catch (e) { console.warn('fusion du perso', e); } } }
     return marcherF.apply(this, arguments); };
 }
+/* 4. LES FLAMMES DES BATIMENTS SANS A-COUP (23/11/2026, « vas-y » pour creuser l'a-coup de 58 ms dans le coup d'un monstre, Mathieu) : quand un batiment
+      prend feu, pointsSur cherche ou poser les flammes en lancant des rayons du ciel sur tous ses triangles, au hasard sur son toit ; jusqu'a 70 rayons au
+      stade fort, 30 a 100 ms d'un coup sur le chateau ou la voliere (mesure sur la ferme de Madazezette, traces/chargement/plans-feu-batiments.js), en plein
+      combat. Maintenant, la carte graphique photographie le batiment vu du dessus, sur la meme zone (18 % a 82 % de sa largeur), en une seule image de
+      profondeur : chaque point de l'image donne la hauteur du toit a cet endroit, comme un rayon. Memes regles (les contours et ce qui est transparent ne
+      comptent pas, assez haut au-dessus du sol), memes tirages au hasard avec le meme ecart entre les flammes ; la photo est gardee tant que le batiment ne
+      change pas (deplace, ameliore). Le feu a le meme rendu. Si la photo echoue : l'ancien calcul. window.__sansToits = true : l'ancien calcul toujours. */
+const TOITS = new Map(); /* signature du batiment -> points de son toit [x, y, z] */
+const signatureToit = (z) => z.meshes.map((m) => m.uuid).join(',') + '|' + [z.x, z.y, z.z].map((v) => Math.round(v * 100)).join(',');
+const PHOTO_TOIT = { N: 48, rt: null, mat: null, px: null, cam: null, couche: 31 };
+function photoToit(z, b) { /* la hauteur du toit sur une grille N x N, vue du dessus par la carte graphique */
+  const P = PHOTO_TOIT, N = P.N;
+  if (!P.rt) { P.rt = new T.WebGLRenderTarget(N, N); P.mat = [T.FrontSide, T.BackSide, T.DoubleSide].map((side) => new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking, side })); P.px = new Uint8Array(N * N * 4); P.cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.01, 100); P.cam.layers.set(P.couche); }
+  const x0 = b.min.x + 0.18 * (b.max.x - b.min.x), x1 = b.min.x + 0.82 * (b.max.x - b.min.x), z0 = b.min.z + 0.18 * (b.max.z - b.min.z), z1 = b.min.z + 0.82 * (b.max.z - b.min.z);
+  const haut = b.max.y + 2, loin = haut - b.min.y + 1, cam = P.cam; cam.left = -(x1 - x0) / 2; cam.right = (x1 - x0) / 2; cam.top = (z1 - z0) / 2; cam.bottom = -(z1 - z0) / 2; cam.near = 0.01; cam.far = loin;
+  cam.position.set((x0 + x1) / 2, haut, (z0 + z1) / 2); cam.up.set(0, 0, -1); cam.lookAt((x0 + x1) / 2, b.min.y - 1, (z0 + z1) / 2); cam.updateProjectionMatrix(); cam.updateMatrixWorld(true);
+  const pris = [], cote = (M) => P.mat[M && M.side] || P.mat[0];
+  z.meshes.forEach((m) => m.traverse((o) => { if (o.isMesh && o.material && !(o.material.side === T.BackSide || o.material.transparent)) { o.layers.enable(P.couche); pris.push([o, o.material]); o.material = Array.isArray(o.material) ? o.material.map(cote) : cote(o.material); } })); /* (les memes pieces que les rayons : ni contours ni transparents, une piece a plusieurs matieres comptant toujours (le toit de la voliere) ; chacune vue du meme cote que le rayon la voit) */
+  const avant = rendu.getRenderTarget(), cc = rendu.getClearColor(new T.Color()), ca = rendu.getClearAlpha(), au = rendu.shadowMap.autoUpdate;
+  try { rendu.shadowMap.autoUpdate = false; rendu.setRenderTarget(P.rt); rendu.setClearColor(0xffffff, 1); rendu.clear(); rendu.render(scene, cam); rendu.readRenderTargetPixels(P.rt, 0, 0, N, N, P.px); }
+  finally { rendu.shadowMap.autoUpdate = au; rendu.setRenderTarget(avant); rendu.setClearColor(cc, ca); pris.forEach(([o, m]) => { o.material = m; o.layers.disable(P.couche); }); }
+  const R = [], px = P.px, k = 255 / 256;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const o = (j * N + i) * 4, d = k * (px[o] / 255 / 16777216 + px[o + 1] / 255 / 65536 + px[o + 2] / 255 / 256 + px[o + 3] / 255); if (d > 0.999) continue;
+    const y = haut - (cam.near + d * (cam.far - cam.near)); if (y <= b.min.y + 0.25) continue;
+    R.push([x0 + ((i + 0.5) / N) * (x1 - x0), y, z1 - ((j + 0.5) / N) * (z1 - z0)]); } /* (la ligne 0 de l'image est en bas : le cote +z, la camera ayant -z vers le haut) */
+  return R;
+}
+{ const pointsSurA = pointsSur; pointsSur = function (z, b, n) {
+    if (window.__sansToits || typeof rendu === 'undefined' || !rendu) return pointsSurA.apply(this, arguments);
+    const sig = signatureToit(z); let R = TOITS.get(sig);
+    if (!R) { try { R = photoToit(z, b); } catch (e) { R = null; } if (!R || !R.length) return pointsSurA.apply(this, arguments); TOITS.set(sig, R); if (TOITS.size > 40) TOITS.delete(TOITS.keys().next().value); }
+    const pts = []; for (let e = 0; e < n * 14 && pts.length < n; e++) { const p = R[Math.floor(Math.random() * R.length)]; if (pts.every((q) => Math.hypot(q.x - p[0], q.z - p[2]) > 0.45)) pts.push(new T.Vector3(p[0], p[1], p[2])); }
+    return pts; }; }
+function photosToits() { /* les photos des toits, prises au lancement d'une vague (le moment « les monstres arrivent ») : le premier feu n'a plus rien a calculer */
+  clesBats().forEach((cle) => { const z = zoneBat(cle); if (!z || !z.meshes.some((m) => m.visible)) return; const sig = signatureToit(z); if (TOITS.has(sig)) return; try { const R = photoToit(z, boiteBat(z)); if (R.length) TOITS.set(sig, R); } catch (e) { /* (le feu fera l'ancien calcul) */ } }); }
+{ const lancerVagueT = lancerVague; lancerVague = function () { const avant = combat, r = lancerVagueT.apply(this, arguments); if (combat && combat !== avant && combat.genre === 'vague' && !window.__sansToits) { try { photosToits(); } catch (e) { /* rien */ } } return r; }; }
