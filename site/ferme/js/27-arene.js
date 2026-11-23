@@ -394,7 +394,7 @@ const ileVaincue = (t, total) => (MODE_TEST ? !!ETAT_TEST.ileVaincu : total != n
 const rangTxt = (i) => (i + 1) + (i ? 'e' : 'er');
 function avantVendredi() { const d = new Date(tIle()), f = new Date(d.getFullYear(), d.getMonth(), d.getDate() + ((JOUR_ILE_BOSS - d.getDay() + 7) % 7 || 7)), m = Math.max(0, f - d), j = Math.floor(m / 864e5), h = Math.floor((m % 864e5) / 36e5); return (j ? j + ' j ' : '') + h + ' h'; }
 function gainsIle(t) { /* les recompenses, en « jetons » (image, chiffre, legende) : la participation, le boss tombe, le podium */
-  const R = RECOMPENSES_ILE, l = niveau(S_.xp), xpDe = (f) => xpReel(Math.round((seuil(l + 1) - seuil(l)) * f)), v = '?v=' + VERSION_MODELES;
+  const R = RECOMPENSES_ILE, l = niveau(S_.xp), xpDe = (f) => xpReel(Math.round((seuil(l + 1) - seuil(l)) * f), true), v = '?v=' + VERSION_MODELES;
   const img = (n) => '<img src="assets/icones/' + n + '.png' + v + '" alt="">';
   const k = (n) => ({ i: img('kama'), g: fmt(n), p: 'kamas' }), ru = (n, parf) => ({ i: img(parf ? 'rune-parfaite' : 'rune-forge'), g: String(n), p: parf ? 'rune' + (n > 1 ? 's' : '') + ' parfaite' + (n > 1 ? 's' : '') : 'rune' + (n > 1 ? 's' : '') + ' de forgemagie' });
   const x = (f) => { const n = xpDe(f); return n > 0 ? { i: '<span class="ig-xp">XP</span>', g: '+' + fmt(n), p: 'XP (selon ton niveau)' } : null; };
@@ -578,7 +578,7 @@ async function reclamerIleBoss(auto) { /* le coffre de la semaine finie : la par
     const inf = ileInfinie(k), nP = inf ? palierIleAtteint(r.total) : 0, GP = PALIERS_ILE.slice(0, nP), somme = (f) => GP.reduce((a, p) => a + (p[f] || 0), 0); /* (les paliers de l'alliance, 21/11/2026 : tous ceux atteints s'additionnent) */
     const tombe = !inf && !!(r && r.total >= pvIleBoss(J.boss)), rang = r ? r.joueurs.findIndex((j) => j.moi) : -1, B = MONSTRES[J.boss] || MONSTRES.koulosse,
       R = inf ? { kamas: somme('kamas'), forge: somme('forge'), xp: 0, piece: (GP.find((p) => p.piece) || {}).piece || 0, leg: (GP.find((p) => p.leg) || {}).leg || 0 } : tombe ? RECOMPENSES_ILE.tombe : RECOMPENSES_ILE.participation;
-    S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; let xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp); xp = gagnerXp.dernier; /* (le vrai gain, affiche) */
+    S0.recus[k] = true; S_.kamas += R.kamas; runes().forge = (runes().forge || 0) + R.forge; let xp = Math.round((seuil(niveau(S_.xp) + 1) - seuil(niveau(S_.xp))) * R.xp); gagnerXp(xp, false, true); xp = gagnerXp.dernier; /* (le vrai gain, affiche) */
     /* « on pourrait etre plus explicite sur les gains, c'est pas tres clair » (Mathieu, 17/10/2026) : ce qui s'est passe, puis ce que tu recois ligne par
        ligne (la participation ou le boss tombe, le bonus du classement), le total, et ce que le boss tombe aurait donne */
     const runesTxt = (n, parf) => [n ? n + ' rune' + (n > 1 ? 's' : '') + ' de forgemagie' : '', parf ? parf + ' rune' + (parf > 1 ? 's' : '') + ' parfaite' + (parf > 1 ? 's' : '') : ''].filter(Boolean).join(', ');
@@ -779,7 +779,7 @@ function lancerArene() {
 }
 function vagueAreneTenue(c) { /* une vague nettoyee : ses gains, le coffre du boss, le record ; puis la suivante (apres un souffle, si c'etait un boss) */
   const k = c.arene.k, g = gainsArene(k, c.arene.niv0), a = etatArene(), sem = semaineJeu(), soin = soinArene + 0.06 * nbBonus('foule'); c.arene.tenues = k; { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * soin); if (c.st) c.st.soins += c.pv - a0; }
-  S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp); c.arene.xp += gagnerXp.dernier; const xpV = gagnerXp.dernier; /* (le vrai gain, affiche) */
+  S_.kamas += g.kamas; c.arene.kamas += g.kamas; gagnerXp(g.xp, false, true); c.arene.xp += gagnerXp.dernier; const xpV = gagnerXp.dernier; /* (le vrai gain, affiche) */
   if (k > (a.record || 0)) a.record = k; if (k > (a.semaines[sem] || 0)) a.semaines[sem] = k;
   Object.keys(a.semaines).sort().slice(0, -8).forEach((x) => { delete a.semaines[x]; }); /* (les 8 dernieres semaines) */
   let coffre = '', pieceCoffre = null;

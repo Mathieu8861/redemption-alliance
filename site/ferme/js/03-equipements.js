@@ -52,7 +52,7 @@ const PICTOS = {
   livre: ['#8a5634', '<path d="M3 4.6c3.4-.8 6.4-.2 9 1.8v14.4c-2.6-2-5.6-2.6-9-1.8z"/><path d="M21 4.6c-3.4-.8-6.4-.2-9 1.8v14.4c2.6-2 5.6-2.6 9-1.8z" opacity=".75"/>']
 };
 const picto = (k, couleur) => '<svg class="pc" viewBox="0 0 24 24" style="color:' + (couleur || PICTOS[k][0]) + '" aria-hidden="true">' + PICTOS[k][1] + '</svg>';
-const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' d\'Agilité', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')],
+const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissance', ' % de dégâts', picto('puissance')], agilite: ['Agilité', ' d\'Agilité', picto('agilite')], sagesse: ['Sagesse', ' % d\'expérience en combat', picto('sagesse')], prospection: ['Prospection', ' % de butin', picto('prospection')],
   resCac: ['Résistance au corps à corps', ' % de dégâts en moins au corps à corps', picto('bouclier', '#3a9fb5')], resLoin: ['Résistance à distance', ' % de dégâts en moins à distance', picto('bouclier', '#d9762e')],
   entrave: ['Résistance à l\'entrave', ' % de résistance à l\'entrave (enraciné, collé, ralenti, assommé)', /* (10/11/2026, « + 25 % plus courtes, c'est pas tres clair : + 25 % de resistance a l'entrave, et les trucs entre parentheses, ca c'est tres bien », Mathieu) */ picto('bouclier', '#7a9a3a')], venin: ['Venin', ' % de tes dégâts en poison sur 3 s', picto('bouclier', '#6ab04c')], resPoison: ['Résistance aux poisons', ' % de poison en moins', picto('bouclier', '#4f9a6a')],
   /* (les bonus des panoplies du palier 11, 20/11/2026 ; leurs phrases : PHRASES_BONUS) */
@@ -196,6 +196,13 @@ PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (
   OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats }; }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
+/* LA PROSPECTION DES PIECES DIVISEE PAR DEUX (23/11/2026, « est-ce qu'on nerferait pas la prospection que donnent les items plutot ? », puis au formulaire « divisee par
+   2 », « la Bague du joueur pro a 120 », « on nerfe tous les items, pas que ceux du palier 10, revoir aussi ceux du palier 11 », Mathieu ; un equipement full
+   Prospection montait a 393 % chez Dino, 20 % de chance de legendaire en revanche difficile) : toutes les pieces, du palier 1 au palier 11, armes et legendaires
+   compris, avant la creation des rares (qui suivent, x1,5). PROS_AVANT garde l'ancienne valeur, pour convertir les pieces deja tombees en gardant leur jet
+   (convertirProspection, plus bas). Les bonus de panoplie (+15) et la Fraise (+30) ne changent pas */
+const PROS_AVANT = {};
+Object.values(OBJETS).forEach((o) => { if (!o.stats || !o.stats.prospection) return; PROS_AVANT[o.id] = o.stats.prospection; o.stats.prospection = o.id === 'leg-joueur' ? 120 : Math.max(1, Math.round(o.stats.prospection / 2)); });
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
 const tirerRare = (id, pros) => (OBJETS[id + '-rare'] && Math.random() < CHANCE_RARE * (pros || 1) ? id + '-rare' : id);
 const iconeObjet = (k) => { const o = obj(k); return o ? o.icone || 'obj-' + (o.base || baseObjet(k)) : 'obj-' + baseObjet(k); };

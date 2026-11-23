@@ -70,7 +70,7 @@ function etatInitial() {
   Object.assign(champs[0], { c: 'ble', pousse: 78 * SEC, arrose: true }); /* (presque mur : 78 s sur 1 min 30) */
   Object.assign(champs[1], { c: 'ble', pousse: 18 * SEC, arrose: false });
   return {
-    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, panosProfil: 1, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, peche: { cannes: [1], main: 0 }, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
+    kamas: 100, xp: 0, graine: 'ble', vu: t, rythme: REPERE_TEMPS, courbeXp: 3, cultures: 2, panosProfil: 1, prosDose: 1 /* (nee apres la Prospection divisee par deux : rien a convertir, 23/11/2026) */, pots: { petit: POTS_DEPART }, gelees: [], cases, terrains: {}, graines: { ble: 5 }, filets: 0, tofus: 0, peche: { cannes: [1], main: 0 }, gardien: null, perso: null, eau: CAPACITE_EAU, voliere: { plumes: 0, accu: 0 }, sauvage: null, prochainVoleur: t + 1.5 * MIN, prochainRaid: t + 6 * MIN, fleches: 0, arbaleteArmee: false, carreaux: 0, vague: { num: 1, repos: 0 },
     grange: { ble: 4 }, bouftous: [{ nom: 'Bêêrnard', rassasie: t, laine: 1, accu: 0 }],
     amelio: {}, citerne: 0, bats: {}, equip: {}, sac: {}, cours, coursAvant: Object.assign({}, cours), prochainCours: t + CADENCE_COURS, crise: null, parcellesAchetees: 0, ileRonde: 1, niveauxBat: 1, cultAcquises: [] /* (nee sur l'ile ronde, aux niveaux de batiments et aux cultures d'aujourd'hui : rien a convertir ; sans niveauxBat, le premier rechargement remettait les batiments ameliores au niveau 1, bug corrige le 16/10/2026) */
   };
@@ -117,7 +117,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, convertirProspection, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -210,6 +210,17 @@ function convertirP10(e) {
    de Dino, tirees avant une petite retouche de leurs valeurs) : a chaque chargement, chaque caracteristique d'une piece revient dans la fourchette affichee
    aujourd'hui (fourchette, 03-equipements.js) ; une caracteristique ajoutee depuis prend la qualite moyenne de la piece, une retiree disparait. Une piece deja dans
    sa fourchette ne bouge pas. A chaque retouche future des valeurs d'une panoplie, rien a faire de plus */
+/* LA PROSPECTION DIVISEE PAR DEUX (23/11/2026, 03-equipements.js, PROS_AVANT) : chaque piece deja tombee garde sa place dans la fourchette (une Cape a 80 % de son
+   ancienne fourchette de Prospection reste a 80 % de la nouvelle). Une seule fois par partie (prosDose) ; une ferme neuve nait avec prosDose */
+function convertirProspection(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => {
+    if (!p || p.prosDose >= 1) return; p.prosDose = 1;
+    Object.entries(p.jets || {}).forEach(([k, j]) => { const id = baseObjet(k), O = OBJETS[id]; if (!O || !O.stats || !O.stats.prospection || !j || j.prospection == null) return;
+      const v0 = O.rare ? (PROS_AVANT[O.base] != null ? Math.ceil(PROS_AVANT[O.base] * 1.5) : null) : PROS_AVANT[id]; if (v0 == null) return;
+      const [a, b] = fourchette(v0), [a2, b2] = fourchette(O.stats.prospection, id, 'prospection'), q = b > a ? Math.max(0, Math.min(1, (j.prospection - a) / (b - a))) : 0.5;
+      j.prospection = Math.round(a2 + q * (b2 - a2)); });
+  });
+}
 function jetsDansFourchette(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => {
     if (!p || !p.jets) return;

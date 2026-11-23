@@ -85,12 +85,12 @@ function avancer(maintenant, enDirect) {
 }
 const valeurGrange = () => VENDABLES.reduce((t, v) => t + (S_.grange[v.id] || 0) * prix(v.id), 0);
 function etape(p) { if (!p.c) return 'vide'; const d = duree(PAR_ID[p.c]); const r = p.pousse / d; return r >= 1 ? 'mur' : r >= 0.45 ? 'pousse' : 'graine'; }
-const xpReel = (n) => n > 0 ? Math.max(1, Math.round(n * NERF_XP * (1 + caracs().sagesse / 100))) : n; /* ce que rapporte vraiment n points, la baisse de 10 % et la Sagesse comprises (le chiffre a afficher) */
+const xpReel = (n, sag) => n > 0 ? Math.max(1, Math.round(n * NERF_XP * (1 + (sag ? caracs().sagesse : 0) / 100))) : n; /* (sag : un gain de combat. 23/11/2026, « il faudrait que la Sagesse n'influe pas sur la ferme, que ce soit que sur les combats », Mathieu : vagues, revanches, simus VSA, Arene et ile des boss ; plus sur les recoltes, l'elevage, les Tofus, les defis ni la peche) */ /* ce que rapporte vraiment n points, la baisse de 10 % et la Sagesse comprises (le chiffre a afficher) */
 function xpParRecolte(c) { return c.xp * NERF_XP; } /* l'XP d'une recolte : celle de la culture, fixe (16/10/2026 : plus de baisse selon le niveau ni de plafond) */
 const xpRecolteReel = (c) => { /* ce que rapporte vraiment une recolte, Sagesse comprise ; la fraction se tire au sort (1,4 XP : 2 quatre fois sur dix, 1 sinon) */
-  const x = xpParRecolte(c) * (1 + caracs().sagesse / 100); return Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0); };
-function gagnerXp(n, exact) { /* toute l'XP du jeu passe par ici (exact : deja calcule, une recolte) */
-  if (n > 0 && !exact) n = xpReel(n);
+  const x = xpParRecolte(c); return Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0); };
+function gagnerXp(n, exact, sag) { /* toute l'XP du jeu passe par ici (exact : deja calcule, une recolte) */
+  if (n > 0 && !exact) n = xpReel(n, sag);
   const avant = niveau(S_.xp), x0 = S_.xp; S_.xp = Math.min(S_.xp + n, Math.max(S_.xp, seuil(capNiveau()))); const apres = niveau(S_.xp); gagnerXp.dernier = S_.xp - x0; /* plus rien a gagner au niveau maximum (de la phase) */
   if (apres > avant) { if (!combat && !enAccueil) feterNiveau(apres, nouveautesNiveau(avant, apres), avant); else toast('Niveau ' + apres + ' de Paysan !', 'or'); rendreObjectif(); }
   { const t = prochainTerrain(); if (t && avant < t.niv && apres >= t.niv) { const k = TERRAINS.indexOf(t), b = document.querySelector('[data-vente="' + k + '"]'); if (b) b.remove(); bulleVente(t, k); toast('Un nouveau terrain est à vendre : ' + t.cases.length + ' cases de plus pour ta ferme !', 'or'); } }
