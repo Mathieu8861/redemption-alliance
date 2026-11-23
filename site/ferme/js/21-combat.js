@@ -433,9 +433,10 @@ function forceRef(l, cl) { /* un joueur type de ce niveau : sa classe (ou celle 
   return { pv: st.pv(l) + 3 * V('vita') + (b.vita || 0), dps: st.deg(l) * (1 + (3 * V('puissance') + (b.puissance || 0)) / 100) * (1 + (2 * V('agilite') + (b.agilite || 0)) / 100) / st.cadence };
 }
 const vagueRefDifficile = (L) => Math.min(vaguesOuvertes() - VAGUES_PALIER /* (12/11/2026 : la revanche difficile reste calee sur Moon au plus, comme dans les essais ; le Chene Mou en reference, du niveau 96 au 100, n'a jamais ete joue. 23/11/2026 : la meme regle, un boss derriere le dernier palier ouvert, ecrite pour suivre les sorties : 90 pour les joueurs aujourd'hui, 100 dans le mode test et a la sortie du palier 11 ; avant, Moon au plus, meme au niveau 110) */, Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.round((L - 0.5) / VAGUES_PALIER))); /* la vague de boss la plus proche de ton niveau (75 -> 70, 76 -> 80) */
-/* la reference d'un boss donne (vague n) : jamais un boss plus faible que lui-meme pour les boss au-dela du 100 (23/11/2026 : le Croco de la 110, refait au niveau 110 en
-   difficile, prenait la vie de Moon, 77 000 PV contre 180 000 en revanche normale) */
-const vagueRefBoss = (L, n) => Math.max(vagueRefDifficile(L), n > PALIERS_TOUS.indexOf(PALIER_MARE) * VAGUES_PALIER ? n : 0);
+/* la reference d'un boss donne (vague n) : jamais un boss plus faible que lui-meme (23/11/2026 : le Croco de la 110, refait au niveau 110 en difficile, prenait la vie
+   de Moon, 77 000 PV contre 180 000 en revanche normale ; et le Chene Mou des joueurs, au niveau 100, 77 000 contre 87 000 en normal. « Oui, pour tous », Mathieu :
+   il garde sa propre force x1,5 en difficile, 124 000 PV) */
+const vagueRefBoss = (L, n) => Math.max(vagueRefDifficile(L), n);
 const facteurRejoue = (quoi, t) => { if (!combat || combat.rejoueBoss == null) return 1; const L = niveau(S_.xp), Lb = niveauRequis(combat.n);
   const boss = t && MONSTRES[t] && MONSTRES[t].boss, normale = Math.min(1.5, 1 + 0.025 * Math.max(0, L - Lb)); /* (la revanche normale : +2,5 % par niveau d'avance, x1,5 au plus) */
   if (combat.difficile && boss) { /* (06/11/2026, « il aura les memes PV que le boss du niveau 70, et les degats qui se rapprochent du boss 70 ; ca se calque sur le boss dont le niveau
