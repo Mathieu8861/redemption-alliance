@@ -23,7 +23,7 @@ function majCombat(dt, s) {
     if (c.sangChaud > 0) { /* Sang chaud (18-geliere.js) : rien ne bouge quand aucun monstre n'est la (entre deux vagues de l'Arene, un entracte, l'arrivee d'une vague) */
       const enCombat = !c.entracte && c.deroute == null && c.pv > 0 && c.monstres.some((o) => o.etat === 'actif');
       if (enCombat && (c.sangChaudT = (c.sangChaudT || 0) + dt) >= SANG_CHAUD.oubli) { c.sangChaud = 0; c.sangChaudT = 0; c.sangChaudR = 0; }
-      else if (enCombat && c.pv < c.pvMax) { c.sangChaudR = (c.sangChaudR || 0) + c.pvMax * SANG_CHAUD.regen * c.sangChaud * dt; c.sangChaudS = (c.sangChaudS || 0) + dt;
+      else if (enCombat && c.pv < c.pvMax) { c.sangChaudR = (c.sangChaudR || 0) + c.pvMax * sangChaudRegen(c.sangChaud) * dt; c.sangChaudS = (c.sangChaudS || 0) + dt;
         if (c.sangChaudS >= 1) { c.sangChaudS = 0; const n = Math.floor(c.sangChaudR); if (n >= 1) { c.sangChaudR -= n; const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + n); if (c.st) c.st.soins += c.pv - a0; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('+' + Math.round(c.pv - a0), p, 'soin'); } } } }
     if (REGEN_IOP > 0 && c.deroute == null && c.pv > 0 && !c.entracte && (c.regenIop = (c.regenIop || 0) + dt) >= PAS_REGEN_IOP) { /* (!c.entracte : pas de regeneration pendant la pause entre deux phases d'une vague de boss ou deux vagues de l'Arene, 14/11/2026, « les PV peuvent se regenerer tout seuls si on attend », Mathieu) */ c.regenIop -= PAS_REGEN_IOP;
       if (c.pv < c.pvMax) { const a0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * REGEN_IOP); if (c.st) c.st.soins += c.pv - a0; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('+' + Math.round(c.pv - a0), p, 'soin'); } }

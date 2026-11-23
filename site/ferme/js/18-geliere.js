@@ -187,7 +187,9 @@ function ouvrirGeliere() {
    mette en pause lorsque t'es pas en combat ») : chaque coup d'epee qui touche donne un cumul (max au plus) ; par cumul, +vitesse de deplacement et regen de sa vie
    par seconde ; tout retombe apres oubli s sans toucher. Le compte s'arrete (et la regen aussi) quand aucun monstre n'est la : entre deux vagues de l'Arene,
    pendant un entracte, avant l'arrivee d'une vague. 23-fin-combat.js (majCombat), 24-deplacement.js (vitesse), 21-combat.js (le coup) */
-const SANG_CHAUD = { max: 10, vitesse: 0.0025, regen: 0.0001, oubli: 6 };
+const SANG_CHAUD = { max: 40, vitesse: 0.005, vitesseMax: 0.2, regen: 0.0015, regenMax: 0.015, oubli: 6 }; /* (le meme soir, « met +0,5 % en vitesse de deplacement et 0,15 % de vie par seconde, et plafonne au max a 20 % de vitesse et 1,5 % de regen par seconde », Mathieu : la regen plafonne a 10 cumuls, la vitesse a 40 ; avant 0,25 % et 0,01 %, 10 cumuls) */
+const pcSang = (x) => String(Math.round(x * 10000) / 100).replace('.', ','); /* (0,0015 -> « 0,15 », sans les restes de virgule flottante) */
+const sangChaudVitesse = (n) => Math.min(SANG_CHAUD.vitesseMax, SANG_CHAUD.vitesse * (n || 0)), sangChaudRegen = (n) => Math.min(SANG_CHAUD.regenMax, SANG_CHAUD.regen * (n || 0));
 let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, SOIN_BOND_MAX = 0.1 /* (le soin du Bond : 3 % par monstre touche, 10 % au plus depuis le 07/11/2026 au soir, 12 % avant ; « le bond du Iop qui regen au max 10 % des PV », Mathieu) */, RECHARGE_INVOC = 10, DUREE_INVOC = 14 /* (12 puis 14 s, 09/11/2026) */, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
 /* le Iop au corps a corps (30/10/2026 au soir, « le Iop, faut absolument faire quelque chose, etre corps a corps ca pique trop », Mathieu) : son coup d'epee
    balaie aussi les monstres colles a sa cible (BALAYAGE_IOP de ses degats, a RAYON_BALAYAGE de la cible ; 21-combat.js, coupIop). Puis le kit voulu par
