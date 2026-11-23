@@ -17,14 +17,16 @@ function chargerPiege() {
   return (piegeCharge = chargerGlb('assets/modeles/jeu/piege-dents.glb?v=' + VERSION_MODELES).then((sc) => {
     versToon(sc, { normales: 0.01, sansContour: new Set(['dent', 'maillon', 'brin', 'signe']) });
     MODELES.deco_piege_dents = gabaritEchelle(sc, 'Deco_piege_dents', 1); MODELES.deco_piege_dents_ferme = gabaritEchelle(sc, 'Deco_piege_dents_ferme', 1);
-    if (S_.cases.some((c) => c.type === 'deco' && c.deco === 'piege_dents')) construireDecos();
+    if (S_ && S_.cases.some((c) => c.type === 'deco' && c.deco === 'piege_dents')) construireDecos();
   }).catch(() => { piegeCharge = null; }));
 }
 const entrerModeTestPiege = entrerModeTest; entrerModeTest = function () {
   const r = entrerModeTestPiege.apply(this, arguments);
-  if (MODE_TEST) { DECOS.piege_dents = DECOS.piege_dents || { nom: 'Piège à dents', prix: 0, niv: 90, pr: 'le', atelier: true }; chargerPiege(); }
+  if (MODE_TEST) ouvrirPiege();
   return r;
 };
+function ouvrirPiege() { DECOS.piege_dents = DECOS.piege_dents || { nom: 'Piège à dents', prix: 0, niv: 90, pr: 'le', atelier: true }; chargerPiege(); }
+if (SORTIE_P11) ouvrirPiege(); /* (la sortie du palier 11 : avant le chargement de la partie, sinon ses pieges poses seraient perdus) */
 /* le declenchement : toutes les 0,1 s pendant une vague a la ferme */
 let piegesFermes = [], piegeCombat = null;
 function rearmerPieges() { piegesFermes.forEach(({ m, o }) => { scene.remove(m); if (o) o.visible = true; }); piegesFermes = []; }
@@ -35,7 +37,7 @@ function fermerPiege(k) {
 setInterval(() => {
   try {
     const c = combat; if (piegeCombat && piegeCombat !== c) { piegeCombat = null; rearmerPieges(); } /* (la vague finie : tous se rearment) */
-    if (!MODE_TEST || !c || c.fin || c.genre !== 'vague' || lieu !== 'ferme' || enPause) return;
+    if (!p11Ouvert() || !c || c.fin || c.genre !== 'vague' || lieu !== 'ferme' || enPause) return;
     piegeCombat = c; const P = c.pieges || (c.pieges = { pris: new Set(), n: 0 }); if (P.n >= PIEGE.parVague) return;
     S_.cases.forEach((k) => {
       if (P.n >= PIEGE.parVague || k.type !== 'deco' || k.deco !== 'piege_dents' || P.pris.has(k.id)) return; const q = posCase(k);

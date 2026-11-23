@@ -17,16 +17,17 @@ function activerCulturesP11() {
   [LOTUS, COURGE_PLUIE].forEach((c) => { c.prix = +(c.prix * RENTA_RECOLTES).toFixed(2); });
   const iN = CULTURES.findIndex((c) => c.id === 'noctiflore'); CULTURES.splice(iN >= 0 ? iN + 1 : CULTURES.length, 0, LOTUS, COURGE_PLUIE);
   VENDABLES.push(LOTUS, COURGE_PLUIE); PAR_ID.lotus = LOTUS; PAR_ID.courge_pluie = COURGE_PLUIE;
-  S_.cours = S_.cours || {}; [LOTUS, COURGE_PLUIE].forEach((c) => { if (!S_.cours[c.id]) S_.cours[c.id] = 1; });
+  if (S_) { S_.cours = S_.cours || {}; [LOTUS, COURGE_PLUIE].forEach((c) => { if (!S_.cours[c.id]) S_.cours[c.id] = 1; }); } /* (a la sortie, appelee avant le chargement de la partie : le cours manquant vaut 1) */
   if (!BOOSTS_TEST.some((b) => b[0] === 'courge_pluie')) BOOSTS_TEST.push(['courge_pluie', 'repas', 'Courge de pluie', 'entraves, poisons et saignements -20 %']);
   return (culturesP11 = chargerGlb('assets/modeles/jeu/cultures6.glb?v=' + VERSION_MODELES).then((sc) => {
     versToon(sc, { normales: 0.008, souple: SOUPLE_CULTURES, sansContour: SC_CULT });
     [LOTUS, COURGE_PLUIE].forEach((c) => [0, 1, 2].forEach((k) => { const src = sc.getObjectByName('parcelle_' + c.id + '_' + k); if (!src) return;
       const g = src.clone(true); g.position.set(0, 0.02, 0); g.rotation.set(0, 0, 0); MODELES[c.id + k] = fusionner(g, { parNom: true }); }));
-    S_.cases.filter((p) => p.type === 'champ' && (p.c === 'lotus' || p.c === 'courge_pluie')).forEach((p) => rendreCase(p.id));
+    if (S_) S_.cases.filter((p) => p.type === 'champ' && (p.c === 'lotus' || p.c === 'courge_pluie')).forEach((p) => rendreCase(p.id));
   }).catch(() => { culturesP11 = null; }));
 }
 const entrerModeTestP11 = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestP11.apply(this, arguments); if (MODE_TEST) activerCulturesP11(); return r; };
+if (SORTIE_P11) activerCulturesP11(); /* (la sortie du palier 11 : pour tous, avant le chargement de la partie, sinon ses champs de Lotus seraient perdus) */
 /* la Courge au bord de l'eau : une case de champ qui touche (meme en diagonale) une case d'eau de l'ile ; planter tout un champ n'en remplit que ces cases */
 const bordDeLEau = (p) => { for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) { if ((di || dj) && codeIle(p.i + di, p.j + dj) === '~') return true; } return false; };
 let toastEauT = 0;

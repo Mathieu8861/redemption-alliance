@@ -26,8 +26,8 @@ const SEUILS = (() => { const t = []; let cout = 0; for (let n = 0; n <= 101; n+
    pour les joueurs, le seuil du 101 ne bouge pas (l'XP de l'Arene et de l'ile en depend au niveau 100) */
 const SEUILS_P11 = (() => { const t = SEUILS.slice(0, 101), tot = 1.3 * (SEUILS[100] - SEUILS[90]), r = 1.015, c0 = tot / ((Math.pow(r, 10) - 1) / (r - 1));
   for (let n = 101; n <= 111; n++) t[n] = t[n - 1] + Math.round(c0 * Math.pow(r, n - 101)); return t; })();
-const seuil = (n) => (n <= 1 ? 0 : n > 100 && NIV_PLAFOND > 100 ? SEUILS_P11[Math.min(n, 111)] : SEUILS[Math.min(n, 101)]);
-const NIV_MAX = 100; /* (100 depuis la Foret des Abraknydes, 12/11/2026 ; 90 depuis l'ile de Moon, 02/11/2026 ; 80 depuis le palier du Dragon Cochon, 20/10/2026 ; 70 avant) */ /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
+const seuil = (n) => (n <= 1 ? 0 : n > 100 && (SORTIE_P11 || NIV_PLAFOND > 100) ? SEUILS_P11[Math.min(n, 111)] : SEUILS[Math.min(n, 101)]); /* (SORTIE_P11 : pour tous a la sortie du palier 11) */
+const NIV_MAX = SORTIE_P11 ? 110 : 100; /* (110 a la sortie du palier 11, SORTIE_P11) */ /* (100 depuis la Foret des Abraknydes, 12/11/2026 ; 90 depuis l'ile de Moon, 02/11/2026 ; 80 depuis le palier du Dragon Cochon, 20/10/2026 ; 70 avant) */ /* le niveau maximum de Paysan (la vague 60 demande le niveau 58) ; Phase 1 : niveaux 1 a 50, Phase 2 : de 50 a 100, un palier de 10 niveaux a la fois (11/10/2026) */
 /* (09/11/2026, « dans l'arene de test, mets les nouveaux items qui vont jusqu'au niveau 100 », Mathieu) NIV_PLAFOND : 100 en mode test ; NIV_ESSAI : le niveau choisi
    pour un combat de l'Arene dev, rendu a la fin (ni l'un ni l'autre ne s'enregistre) */
 let NIV_PLAFOND = 0, NIV_ESSAI = 0;

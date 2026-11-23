@@ -352,7 +352,9 @@ window.fabriquerMereJeu2 = function (v, anime) {
    les amphibiens dont le glb anime est fait (assets/modeles/jeu/<nom>-anime-v2.glb, blender/palier11/<nom>-v2.py, memes os et memes mouvements que
    l'ancienne version) sortent en monstres a squelette, sous le nom <nom>-v2, leur peau repeinte sur chaque copie ; les autres restent en modele fixe
    (MONSTRES[t].fabrique) en attendant ; la Mere Crapaude est construite animee (fabriquerMereJeu2(2, true) : MODELES['mere-v2']). */
-let VERSION_AMPHI = (() => { try { return localStorage.getItem('ferme-version-amphi') === 'nouvelle' ? 'nouvelle' : 'ancienne'; } catch (err) { return 'ancienne'; } })();
+/* (23/11/2026, « nouvelle pour tous », Mathieu : la nouvelle version est celle de tout le monde ; l'ancienne reste au choix dans l'Arene dev) */
+const AMPHI_CHOISIE = (() => { try { return localStorage.getItem('ferme-version-amphi'); } catch (err) { return null; } })();
+let VERSION_AMPHI = AMPHI_CHOISIE === 'ancienne' ? 'ancienne' : 'nouvelle';
 const AMPHI_V2 = { tetard: ['tetard', 1.1], crapaud: ['crapaud', 2.0], fouette: ['fouette', 2.5], triton: ['triton', 3.2], axolotl: ['axolotl', 2.2] }, PROTO_V2 = {}, PROTO_V2_EN_COURS = {};
 const ANIME_V2 = new Set(['tetard', 'crapaud', 'triton', 'fouette', 'axolotl']); /* (les glb animes ; un modele fixe reste prevu si l'un manquait) */
 for (const [n, h] of Object.values(AMPHI_V2)) if (ANIME_V2.has(n)) { SQUELETTES_A_CHARGER.push([n + '-v2', 'assets/modeles/jeu/' + n + '-anime-v2.glb', h]); ALLURES[n + '-v2'] = ALLURES[n]; VITESSE_FAMILLE[n + '-v2'] = VITESSE_FAMILLE[n]; }
@@ -379,7 +381,21 @@ async function choisirVersionAmphi(v) {
   if (VERSION_AMPHI === 'nouvelle') { toast('Chargement de la nouvelle version des amphibiens…'); await preparerAmphiV2(); } appliquerAmphiV2();
   toast(VERSION_AMPHI === 'nouvelle' ? 'Amphibiens : nouvelle version (animée).' : 'Amphibiens : ancienne version.', 'or');
 }
-if (VERSION_AMPHI === 'nouvelle') setTimeout(() => { preparerAmphiV2().then(appliquerAmphiV2); }, 6000); /* (choisie a une visite precedente : chargee apres le demarrage, sans le ralentir) */
+if (AMPHI_CHOISIE === 'nouvelle') setTimeout(() => { preparerAmphiV2().then(appliquerAmphiV2); }, 6000); /* (choisie a une visite precedente : chargee apres le demarrage, sans le ralentir) */
+/* POUR TOUS, A LA DEMANDE (23/11/2026) : un joueur ne les charge que juste avant une vague du palier 11 (la serie d'essais de la 101, puis les vagues 101 a 110) ;
+   le mode test les charge en entrant (pour l'Arene dev). Un chargement rate : la vague part avec l'ancienne version, sans reessayer en boucle */
+const amphiV2Prets = () => [...ANIME_V2].every((n) => MODELES[n + '-v2']) && !!MODELES['mere-v2'];
+let amphiV2Rate = false;
+const lancerVagueAmphi = lancerVague; lancerVague = function (pBoss, difficile, charges) {
+  try {
+    if (!charges && !combat && !lancerVague.charge && !amphiV2Rate && VERSION_AMPHI === 'nouvelle' && !amphiV2Prets()) {
+      const rejoueB = pBoss != null && pBoss >= 0, essai = !rejoueB && typeof ESSAI101 !== 'undefined' ? ESSAI101.lance : null, n = rejoueB ? (pBoss + 1) * VAGUES_PALIER : essai ? essai.n : vagueCourante();
+      if (n > 10 * VAGUES_PALIER) { lancerVague.charge = true; toast('Les monstres de la Saison des pluies arrivent…', 'or');
+        preparerAmphiV2().then(appliquerAmphiV2).catch(() => { amphiV2Rate = true; }).finally(() => { if (!amphiV2Prets()) amphiV2Rate = true; lancerVague.charge = false; lancerVague(pBoss, difficile); }); return; } }
+  } catch (e) { /* (rien : la vague part comme avant) */ }
+  return lancerVagueAmphi.apply(this, arguments);
+};
+const entrerModeTestAmphi = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestAmphi.apply(this, arguments); if (MODE_TEST && VERSION_AMPHI === 'nouvelle' && !amphiV2Prets()) setTimeout(() => { preparerAmphiV2().then(appliquerAmphiV2).catch(() => {}); }, 1500); return r; };
 /* LA FLEUR DE LA MERE CRAPAUDE (16/11/2026, « lorsqu'elle passe en rage, la fleur grossit et s'ouvre, ca degage un parfum enivrant qui booste les monstres
    qu'elle fait naitre », Mathieu) : en rage, la fleur de son nenuphar grossit et ses petales s'ouvrent en 1,5 s, un nuage rose en sort ; ce qui eclot de
    ses oeufs pendant sa rage est galvanise (capOeuf, 21-combat.js) */

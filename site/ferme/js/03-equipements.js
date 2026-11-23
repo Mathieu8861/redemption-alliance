@@ -71,11 +71,11 @@ const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id
      un peu comme d'hab mais un peu plus de subtilite dans les bonus de pano », Mathieu ; noms et bonus choisis au formulaire) : la Croquevase (reptilienne, sur la tribu
      de la mare, vagues 106 a 110) et la Crachopaud (amphibienne, sur les amphibiens, 101 a 105). dev : le palier 11 n'est que dans le mode test ; sans look pour
      l'instant (icones de leurs monstres, pas d'arme de classe tant que l'arme n'est pas dessinee) ; leurs bonus de combat : 29l-panos-p11.js */
-  { id: 'croquevase', nom: 'Croquevase', de: 'du Croquevase', niv: 101, dev: true }, /* (ses armes de classe, 22/11/2026 : sur le Mâchefange) */
+  { id: 'croquevase', nom: 'Croquevase', de: 'du Croquevase', niv: 101, dev: !SORTIE_P11 }, /* (ses armes de classe, 22/11/2026 : sur le Mâchefange) */
   /* LES PANOPLIES EN PLUS d'un palier (bis : le palier, et le rang de ses stats) : elles tombent sur leurs monstres (MONSTRES[t].pano), pas d'arme ; toujours EN FIN de liste,
      une panoplie de palier se met avant elles (son indice doit rester celui de son palier) */
   { id: 'tortue', nom: 'Tortue', de: 'de la Tortue', niv: 81, bis: 8 }, { id: 'arakne', nom: 'Arakne', de: 'de l\'Arakne', niv: 91, bis: 9, sansArme: true },
-  { id: 'crachopaud', nom: 'Crachopaud', de: 'du Crachopaud', niv: 101, bis: 10, dev: true }]; /* (sansArme : aucun boss ne la donne, 08/11/2026 ; le Crachopaud a ses armes depuis le 22/11/2026, sur la Mère Crapustule) */
+  { id: 'crachopaud', nom: 'Crachopaud', de: 'du Crachopaud', niv: 101, bis: 10, dev: !SORTIE_P11 }]; /* (sansArme : aucun boss ne la donne, 08/11/2026 ; le Crachopaud a ses armes depuis le 22/11/2026, sur la Mère Crapustule) */
 const rangPano = (k) => (PANOS[k] && PANOS[k].bis != null ? PANOS[k].bis : k); /* le rang des stats d'une panoplie (celui de son palier) */
 /* LE PROFIL D'UNE PANOPLIE (06/11/2026, « la Tortue c'est plus pour les cac, plus de vie, de tankiness ; le Kanniboul pour les distance, moins de vie mais plus de
    degats », Mathieu) : un multiplicateur par caracteristique, sur ses pieces et ses bonus. Les pieces deja tombees sont converties une fois (convertirPanos, 04-etat.js) */

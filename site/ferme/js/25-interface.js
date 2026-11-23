@@ -224,7 +224,7 @@ const CONSTRUCTIONS = ['arbalete', 'tours', 'tourFilet', 'geliere', 'forge', 'at
 const construit = (id) => (id === 'gardien' ? !!S_.gardien : id === 'tours' ? nbTours() >= TOURS_MAX : niv(id) > 0);
 /* L'ATELIER CACHE AUX JOUEURS (09/11/2026, « retire l'atelier pour le moment aux joueurs aussi, tant qu'on n'a pas tout fini », Mathieu) : seuls les testeurs
    (TESTEURS_ULTI, comme le Casino) le voient a l'HDV et peuvent l'ouvrir ; aucun joueur ne l'avait construit (seul Rorschach, le compte de Mathieu) */
-const amelioCachee = (id) => (id === 'eveil' || id === 'concasseur' || id === 'tourFilet') && !MODE_TEST; /* (la tour a filets aussi, 20/11/2026) */ /* (les batiments du niveau 100, 18/11/2026 : seulement dans le mode test tant qu'ils ne sont pas sortis) */ /* (l'atelier : visible de tous depuis le 12/11/2026 ; la fonction reste pour la prochaine construction a cacher) */
+const amelioCachee = (id) => (id === 'eveil' || id === 'concasseur' || id === 'tourFilet') && !p11Ouvert(); /* (p11Ouvert : sortis avec le palier 11, 02-donnees.js) */ /* (la tour a filets aussi, 20/11/2026) */ /* (les batiments du niveau 100, 18/11/2026 : seulement dans le mode test tant qu'ils ne sont pas sortis) */ /* (l'atelier : visible de tous depuis le 12/11/2026 ; la fonction reste pour la prochaine construction a cacher) */
 const aConstruire = () => CONSTRUCTIONS.filter((id) => !construit(id) && !amelioCachee(id));
 /* ou en est une amelioration : 'dispo' (ok : assez de kamas), 'bloque' (un niveau ou une amelioration d'abord), 'fini' */
 function etatAmelio(id) {

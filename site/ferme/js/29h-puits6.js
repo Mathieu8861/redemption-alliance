@@ -16,7 +16,7 @@ function chargerPuits6() {
     const o = sc.getObjectByName('Puits1').clone(true); o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrixWorld(true); /* (la meme mesure que les niveaux 1 a 5, kDe de 09-modeles.js) */
     const b = new T.Box3().setFromObject(o), d = new T.Vector3(); b.getSize(d);
     MODELES.puits6 = gabaritEchelle(sc, 'Puits6', 1.75 / Math.max(d.x, d.z), b.getCenter(new T.Vector3()));
-    if (nivBat('nivPuits') >= 6) construireBatiments();
+    if (S_ && nivBat('nivPuits') >= 6) construireBatiments();
   }).catch(() => { puits6Charge = null; }));
 }
 function activerPuits6() {
@@ -29,6 +29,7 @@ function activerPuits6() {
   chargerPuits6();
 }
 const entrerModeTestPuits6 = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestPuits6.apply(this, arguments); if (MODE_TEST) activerPuits6(); return r; };
+if (SORTIE_P11) activerPuits6(); /* (la sortie du palier 11 : avant le chargement de la partie, sinon un puits niveau 6 serait ramene au 5) */
 /* l'irrigation : un champ a une case du puits (diagonales comprises) */
 const irrigue = (p) => nivBat('nivPuits') >= 6 && !enRuine('puits') && S_.cases.some((c) => c.type === 'puits' && Math.max(Math.abs(c.i - p.i), Math.abs(c.j - p.j)) <= PUITS6.portee);
 function irriguer() { /* les champs plantes et pas arroses, autour du puits : arroses (a chaque semis, et toutes les 2 s pour ceux d'avant l'achat) */

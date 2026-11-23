@@ -10,7 +10,7 @@
    La roue s'ouvre par le bouton « Roue legendaire » de la barre du Casino (quand on a un jeton) et en essai dans le mode test (rien n'est donne). */
 /* EN VERSION DEV JUSQU'AU PALIER 11 (21/11/2026, « on le mettra avec la maj du palier 11, ca », Mathieu) : la roue (celle du hall, son bouton du Casino)
    et les jetons legendaires des coffres n'existent que dans le mode test ; la piece rare ★ des coffres, elle, reste pour tous. ROUE_SORTIE = true a la sortie */
-const ROUE_SORTIE = false;
+const ROUE_SORTIE = SORTIE_P11; /* (avec le palier 11, 02-donnees.js) */
 const roueDispo = () => ROUE_SORTIE || (typeof MODE_TEST !== 'undefined' && MODE_TEST);
 const CHANCES_ILE = {
   rare: (r) => (r === 0 ? 0.35 : r === 1 ? 0.2 : r === 2 ? 0.1 : r < 10 ? 0.05 : r < 25 ? 0.02 : r < 50 ? 0.01 : 0.005),

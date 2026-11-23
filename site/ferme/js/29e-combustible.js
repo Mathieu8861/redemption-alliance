@@ -23,8 +23,8 @@ const entrerModeTestTourbe = entrerModeTest; entrerModeTest = function () { cons
 /* LES RECETTES DE L'ATELIER EN COURS (19/11/2026) : le drapeau dev des recettes ne cache plus rien depuis que VSA est sorti aux joueurs (vsaDev() est
    toujours vrai) ; celles-ci ne sont ajoutees a l'atelier que dans le mode test, le temps d'ouvrir la fenetre ou de fabriquer */
 const RECETTES_DEV_ATELIER = [];
-const ouvrirAtelierDev = ouvrirAtelier; ouvrirAtelier = function () { const n = RECETTES_ATELIER.length; if (MODE_TEST) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return ouvrirAtelierDev(); } finally { RECETTES_ATELIER.length = n; } };
-const fabriquerDev = fabriquer; fabriquer = function (id, fois) { const n = RECETTES_ATELIER.length; if (MODE_TEST) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return fabriquerDev(id, fois); } finally { RECETTES_ATELIER.length = n; } };
+const ouvrirAtelierDev = ouvrirAtelier; ouvrirAtelier = function () { const n = RECETTES_ATELIER.length; if (p11Ouvert()) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return ouvrirAtelierDev(); } finally { RECETTES_ATELIER.length = n; } };
+const fabriquerDev = fabriquer; fabriquer = function (id, fois) { const n = RECETTES_ATELIER.length; if (p11Ouvert()) RECETTES_ATELIER.push(...RECETTES_DEV_ATELIER); try { return fabriquerDev(id, fois); } finally { RECETTES_ATELIER.length = n; } };
 RECETTES_DEV_ATELIER.push({ id: 'charbon', nom: 'Charbon de bois', donne: 10, stock: 'charbon', kamas: 5000, il: [['ecorce_abraknyde', 6], ['kaliptus', 4]], ico: 'charbon-bois', minuscule: 'charbons de bois',
   apres: '. Verse-les dans ta tour à filets : touche-la.',
   desc: 'Le combustible de la tour à filets : un charbon de bois lui fait tirer un filet. La tourbe des marais, laissée par la tribu de la mare, brûle deux fois plus longtemps.' });

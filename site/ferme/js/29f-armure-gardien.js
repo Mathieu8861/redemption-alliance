@@ -16,7 +16,7 @@ const ARMURES_GARDIEN = [null,
   { nom: 'Armure runique', court: 'runique', bonus: 0.75, vitesse: 0.15, recharge: 2, runes: 3, fichier: '-r3', noeud: '_R3', kamas: 2000000, il: [['soie_arakne', 25], ['ecorce_abraknyde', 25]],
     look: 'des plaques d\'ardoise aux runes violettes qui luisent, et des cristaux' }];
 const NIV_ARMURE_MAX = ARMURES_GARDIEN.length - 1;
-const niveauArmureGardien = () => (MODE_TEST ? Math.min(NIV_ARMURE_MAX, S_.armureGardien || 0) : 0);
+const niveauArmureGardien = () => (p11Ouvert() ? Math.min(NIV_ARMURE_MAX, S_.armureGardien || 0) : 0); /* (p11Ouvert : sortie avec le palier 11) */
 const statArmureGardien = (k) => { const n = niveauArmureGardien(); return n ? ARMURES_GARDIEN[n][k] || 0 : 0; };
 const bonusArmureGardien = () => statArmureGardien('bonus');
 const effetsArmure = (A) => '+' + Math.round(A.bonus * 100) + ' % de dégâts' + (A.vitesse ? ', il court ' + Math.round(A.vitesse * 100) + ' % plus vite' : '') + (A.recharge ? ', son pouvoir revient ' + A.recharge + ' s plus tôt' : '');
@@ -33,7 +33,7 @@ RECETTES_DEV_ATELIER.push({ id: 'armure_gardien', donne: 1, unique: true, /* (pa
       (A.runes ? ' Il faut aussi ' + A.runes + ' runes de forgemagie (tu en as ' + runes().forge + ').' : ''); } });
 const fabriquerArmure = fabriquer; fabriquer = function (id, fois) {
   if (id !== 'armure_gardien') return fabriquerArmure(id, fois);
-  const G = S_.grange || {}, n = S_.armureGardien || 0; if (!niv('atelier') || amelioCachee('atelier') || !MODE_TEST) return;
+  const G = S_.grange || {}, n = S_.armureGardien || 0; if (!niv('atelier') || amelioCachee('atelier') || !p11Ouvert()) return;
   if (!gardienDe()) { toast('Il te faut d\'abord un gardien.'); return; } if (n >= NIV_ARMURE_MAX) { toast('Ton gardien a déjà l\'armure la plus haute.'); return; }
   const A = ARMURES_GARDIEN[n + 1];
   if (!A.il.every((I) => faisables(G, I) >= 1)) { toast('Il te manque des ressources dans ta grange.'); return; }
@@ -56,7 +56,7 @@ function chargerArmureGardien() {
     MODELES.gardienVsaArmure = mk(G.vsa + A.noeud); if (gard) creerGardien();
   }).catch(() => { armureChargee = null; });
 }
-effets.push(() => { if (MODE_TEST && niveauArmureGardien() && !MODELES.gardienVsaArmure && MODELES.gardienCalme) chargerArmureGardien();
-  if (gard && !MODE_TEST && gard.vsa && MODELES.gardienVsaArmure && gard.vsa.userData.armure) creerGardien(); /* (sorti du mode test : sa forme sans armure) */
+effets.push(() => { if (p11Ouvert() && niveauArmureGardien() && !MODELES.gardienVsaArmure && MODELES.gardienCalme) chargerArmureGardien();
+  if (gard && !p11Ouvert() && gard.vsa && MODELES.gardienVsaArmure && gard.vsa.userData.armure) creerGardien(); /* (sorti du mode test : sa forme sans armure) */
   return false; });
 const creerGardienArmure = creerGardien; creerGardien = function () { creerGardienArmure(); if (gard && gard.vsa) gard.vsa.userData.armure = !!(MODELES.gardienVsaArmure && niveauArmureGardien()); };

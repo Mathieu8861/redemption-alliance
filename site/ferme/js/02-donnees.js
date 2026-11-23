@@ -1,4 +1,13 @@
 'use strict';
+/* LA SORTIE DU PALIER 11 (23/11/2026, « verifie / corrige ce qui est necessaire pour la sortie du palier 11 et tout ce que ca englobe », puis « on sort tout en
+   meme temps, mais attention pas maintenant », Mathieu) : UN SEUL INTERRUPTEUR. SORTIE_P11 = true ouvre a tous la Saison des pluies (vagues 101 a 110, niveaux
+   101 a 110) et tout ce qui vient avec : la tour a filets, le charbon de bois et la Tourbe, le Lotus et la Courge de pluie, le puits niveau 6, le piege a dents,
+   l'armure du gardien, l'eveil, le concasseur et la fusion des pieces, les panoplies du Croquevase et du Crachopaud, les spheres runiques, la roue legendaire et
+   ses jetons, le terrain du niveau 105 (la cabane et la peche) ; la serie d'essais de la 101 s'en va d'elle-meme. Restent dans le mode test : la pluie et la
+   maree (aucune regle pour les joueurs), le donjon de l'ile des Wabbits. p11Ouvert() : sorti, ou dans le mode test de Mathieu (pour l'essayer avant).
+   Puis : outils/copier_vers_site.py --joueurs, et la page des nouveautes. */
+const SORTIE_P11 = false;
+const p11Ouvert = () => SORTIE_P11 || (typeof MODE_TEST !== 'undefined' && !!MODE_TEST);
 /* ===================== DONNEES DU JEU ===================== */
 /* LES CULTURES A VENDRE (16/10/2026, refaites comme la courbe d'XP ; « plus tu montes plus tu fais des gains, mais plus c'est long a pousser, mais les
    gains par minute sont quand meme de mieux en mieux », Mathieu). Trois regles, de la 1re (Ble) a la 12e (Frostiz) :
