@@ -34,7 +34,7 @@ function fabriquerLibeclair() {
   return g;
 }
 MONSTRES.libeclair = { element: 'vent', nom: 'Libéclair', fem: true, icone: 'libeclair', modele: 'chafer' /* (comme les autres monstres faits ici : le chargement de l'Arene dev demande un modele connu) */, fabrique: () => fabriquerLibeclair(),
-  desc: 'la libellule-foudre de la tribu : elle vole au-dessus de la mêlée et te foudroie de loin', pv: (n) => 2800 + 85 * (n - 100), deg: (n) => 50 + Math.round(1.5 * (n - 100)), /* (22/11/2026, equilibrage : 66 + 2 par vague avant ; 3 a 5 Libeclairs faisaient 22 a 34 % des degats des vagues 107 a 110 au bot, 2 a 3 fois un Crachopaud chacun) */
+  desc: 'la libellule-foudre de la tribu : elle vole au-dessus de la mêlée et te foudroie de loin', pv: (n) => 1990 + 60 * (n - 100), /* (23/11/2026 : 2 800 + 85 avant ; l'Araknotron x1,12, tireur volant) */ deg: (n) => 50 + Math.round(1.5 * (n - 100)), /* (22/11/2026, equilibrage : 66 + 2 par vague avant ; 3 a 5 Libeclairs faisaient 22 a 34 % des degats des vagues 107 a 110 au bot, 2 a 3 fois un Crachopaud chacun) */
   cadence: 2.9 /* (2,2 avant le 22/11/2026 : ses tirs, qui touchent toujours, faisaient le tiers des degats recus par le Cra et l'Osamodas, 14 % pour le Iop) */, vitesse: 3.4, portee: 6, distance: true, magie: true, couleurMagie: '#d8ff3a', ombre: 1.6, sansSaut: true }; /* (forces provisoires, sur le Silurmage : a regler en jouant) */
 AVANT_PREMIERE.unshift('libeclair'); GROUPES_DEV.libeclair = { nom: 'Libéclair (essai)', liste: { libeclair: 3 } };
 /* SON ATTAQUE, UNE PETITE CHARGE ELECTRIQUE (22/11/2026, par Discord : « elles font pas des petites attaques comme celle que tu viens de faire [la grenouille],

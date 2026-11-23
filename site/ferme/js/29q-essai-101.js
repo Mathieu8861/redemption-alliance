@@ -20,6 +20,9 @@
 const ESSAI101 = { joueurs: false, serie: 'joueurs-1', n: 101, ordre: ['B', 'A', 'C', 'D', 'E'], lance: null,
   versions: { A: { f: Math.sqrt(0.85) }, B: { f: 1 }, C: { f: Math.sqrt(1.15) },
     D: { L: [['tetard', 2], ['crapaud', 4], ['triton', 1]] }, E: { L: [['tetard', 3], ['crapaud', 1], ['triton', 2]] } } };
+/* LE COMMENTAIRE DU BILAN (23/11/2026, « laisse la possibilite a la personne de mettre un commentaire au besoin aussi », Mathieu, par Discord) : facultatif,
+   sous les trois boutons du ressenti, garde dans la ligne du journal (essai.commentaire) ; outils/essai101.py les affiche */
+const COMMENTAIRE101 = 300;
 const essaiBase101 = () => COMPO_MARE[1].map((x) => x.slice());
 function forceCompo101(L) { const n = ESSAI101.n; let pv = 0, dps = 0; L.forEach(([t, k]) => { const M = MONSTRES[t]; if (!M || M.unique) return; pv += k * M.pv(n); dps += k * M.deg(n) / (M.cadence || 1); }); return pv * dps; }
 function versionEssai101(v) { const V = ESSAI101.versions[v], L = V.L || essaiBase101(), f = V.f || Math.sqrt(forceCompo101(essaiBase101()) / forceCompo101(L)); return { v, f, L }; } /* (D et E : la meme force que B, vie et coups x racine du rapport) */
@@ -74,15 +77,18 @@ function apresEssai101(es, gagne, fuite) {
   const rang = ESSAI101.ordre.indexOf(v) + 1, suite = gagne ? (serieFinie101() ? 'Série terminée, merci ! Chaque version reste rejouable : choisis-la dans la fenêtre des vagues.' : 'Choisis la suivante dans la fenêtre des vagues.') : fuite ? '' : 'Tu peux la retenter après ton repos.';
   const bloc = '<div class="essai-bilan"><b>' + nomEssai101(rang - 1) + (gagne ? ' réussie' : fuite ? ' abandonnée' : ' perdue') + '</b>' + (fois > 1 ? ' <small>(tentative ' + fois + ')</small>' : '') +
     (bonus ? '<p>+' + fmt(bonus) + ' kamas pour ta première victoire de cette version.</p>' : '') + (suite ? '<p>' + suite + '</p>' : '') +
-    '<div class="essai-ressenti"><span>Ton ressenti sur cette vague :</span><button class="btn mini" data-ressenti="facile">Trop facile</button><button class="btn mini" data-ressenti="correct">Correcte</button><button class="btn mini" data-ressenti="dur">Trop dure</button></div></div>';
+    '<div class="essai-ressenti"><span>Ton ressenti sur cette vague :</span><button class="btn mini" data-ressenti="facile">Trop facile</button><button class="btn mini" data-ressenti="correct">Correcte</button><button class="btn mini" data-ressenti="dur">Trop dure</button></div>' +
+    '<div class="essai-com"><textarea maxlength="' + COMMENTAIRE101 + '" rows="2" placeholder="Un commentaire ? (facultatif) : ce qui t\'a gêné, un monstre trop fort, une idée…"></textarea><button class="btn mini" data-essai-com>Envoyer</button></div></div>'; /* (le commentaire, 23/11/2026) */
   carte.querySelectorAll('p').forEach((p) => { if (p.textContent.includes('tous les paliers sont termin')) p.remove(); }); /* (le bilan d'une vague rejouee disait « le Machefange est tombe » : faux pour un essai) */
   const art = carte.querySelector('.art'); if (art) art.insertAdjacentHTML('afterend', bloc); else carte.insertAdjacentHTML('beforeend', bloc);
 }
 document.addEventListener('click', (ev) => {
-  const b = ev.target.closest('[data-essai101], [data-essai101-choix], [data-ressenti]'); if (!b) return;
+  const b = ev.target.closest('[data-essai101], [data-essai101-choix], [data-ressenti], [data-essai-com]'); if (!b) return;
   if (b.hasAttribute('data-essai101')) { lancerEssai101(); return; }
   if (b.hasAttribute('data-essai101-choix')) { etatEssai101().choix = +b.dataset.essai101Choix; ouvrirVagues('vague'); return; } /* (la version choisie, 23/11/2026) */
   const J = S_.journalVagues, e = Array.isArray(J) ? J[J.length - 1] : null, z = b.closest('.essai-ressenti');
+  if (b.hasAttribute('data-essai-com')) { const boite = b.closest('.essai-com'), ta = boite && boite.querySelector('textarea'), v = ta ? ta.value.trim().slice(0, COMMENTAIRE101) : ''; if (!v) { if (ta) ta.focus(); return; }
+    if (e && e.essai) { e.essai.commentaire = v; sauver(); } boite.innerHTML = '<span>Merci, ton commentaire est noté !</span>'; return; } /* (le commentaire, 23/11/2026) */
   if (e && e.essai) { e.essai.ressenti = b.dataset.ressenti; sauver(); }
   if (z) z.innerHTML = '<span>Merci, c\'est noté !</span>';
 });

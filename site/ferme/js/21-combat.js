@@ -462,6 +462,12 @@ const facteurRejoue = (quoi, t) => { if (!combat || combat.rejoueBoss == null) r
   if (combat.difficile && boss) { /* (06/11/2026, « il aura les memes PV que le boss du niveau 70, et les degats qui se rapprochent du boss 70 ; ca se calque sur le boss dont le niveau
      est le plus proche du tien : a 75 ca prend le 70, au 76 le 80 », Mathieu) : le boss prend la vie et les coups du boss de palier le plus proche de ton niveau, puis DUR */
     const nr = vagueRefBoss(L, combat.n), ref = PALIERS_TOUS[palierDe(nr)].boss;
+    /* LES DEMI-BOSS (24/11/2026, « l'Ancestral me mettait du 900 en difficile », Mathieu, par Discord) : ils prenaient la vie et les coups du boss de reference lui-meme
+       (l'Ancestral Maudit avait les 142 000 PV du Chene Mou, et ses coups x2 de boss, puis son x2,5 de demi-boss et le x1,5 du difficile : 869 par tir) ; ils gardent
+       maintenant les leurs, montes dans la meme proportion que leur boss (le boss de reference sur celui de leur vague), puis DUR comme lui */
+    if (MONSTRES[t].demi) { const own = PALIERS_TOUS[palierDe(combat.n)].boss;
+      if (quoi === 'deg') return degMonstre(ref, nr) * multDegats(nr) * multHautes(nr) / Math.max(1, degMonstre(own, combat.n) * multDegats(combat.n) * multHautes(combat.n, combat.genre)) * DUR.deg;
+      return pvMonstre(ref, nr) / Math.max(1, pvMonstre(own, combat.n)) * DUR.pv; }
     if (quoi === 'deg') return degMonstre(ref, nr) * multDegats(nr) * multHautes(nr) / Math.max(1, degMonstre(t, combat.n) * multDegats(combat.n) * multHautes(combat.n, combat.genre)) * DUR.deg; /* (les coups recus prennent ensuite multDegats et multHautes de SA vague : on les compense) */
     return pvMonstre(ref, nr) / Math.max(1, pvMonstre(t, combat.n)) * DUR.pv; }
   if (combat.difficile) { const a = forceRef(Math.max(L, Lb)), b = forceRef(Lb), r = quoi === 'deg' ? a.pv / b.pv : a.dps / b.dps; return Math.max(normale, r * DUR.garde); } /* sa troupe, remise a ton niveau */
@@ -3518,7 +3524,7 @@ function majMonstre(mo, dt, s) {
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
     const w = mo.traverseT > 0 ? { x: tx, z: tz } : prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1; /* (traverse : un boss qui etait coince va droit sur sa cible) */
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.ventT > 0 ? 0.7 : 1) * (mo.mucus > 0 ? mo.mucusV || 0.8 : 1); /* (mucus : le Mucus de la panoplie du Crachopaud, 29l-panos-p11.js, 20/11/2026) */ /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; mo.voulu = pas; mo.envie = true; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.rampeV || 1) * (mo.ventT > 0 ? 0.7 : 1) * (mo.mucus > 0 ? mo.mucusV || 0.8 : 1); /* (mucus : le Mucus de la panoplie du Crachopaud, 29l-panos-p11.js, 20/11/2026) */ /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; mo.voulu = pas; mo.envie = true; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0 && !(versPerso && !bat && tropPresDuTireur(mo))) { /* (un tireur colle par le perso ne tire pas) */
