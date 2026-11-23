@@ -490,7 +490,7 @@ function expliquerCarac(k, st) {
     puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
     agilite: ['Agilité', 'Te fait attaquer plus vite : chaque point donne ' + String(AGI_VITESSE).replace('.', ',') + ' % de coups en plus, soit ' + pcAgi(c.agilite) + ' % (' + virg(st.base.cadence) + ' s entre deux coups sans elle, ' + virg(st.cadence) + ' s avec).'],
     sagesse: ['Sagesse', 'Te fait gagner plus d\'expérience en combat : +' + c.sagesse + ' % sur les vagues gagnées, les revanches, les simus VSA, l\'Arène et l\'île des boss. Elle ne compte pas sur la ferme (récoltes, élevage, Tofus, défis, pêche).'],
-    prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %. Dans l\'Arène, celle de ton équipement ne compte pas : seules la Fraise et la carte Flair y comptent.']
+    prospection: ['Prospection', 'Augmente tes chances de butin sur les monstres : ressources, pièces d\'équipement et pièces rares (+' + c.prospection + ' %). Une Fraise mangée avant une vague en ajoute 30 %. Dans l\'Arène, celle de ton équipement ne compte pas : seules la Fraise et la carte Flair y comptent. Plafonds : elle multiplie au plus par ' + String(PLAFOND_PROS.rare).replace('.', ',') + ' la chance d\'une pièce rare, et au plus par ' + String(PLAFOND_PROS.leg).replace('.', ',') + ' celle d\'un légendaire.']
   }[k];
   const src = [];
   if (['vita', 'puissance', 'agilite', 'sagesse', 'prospection'].includes(cle)) {

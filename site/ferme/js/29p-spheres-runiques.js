@@ -261,7 +261,7 @@ document.addEventListener('click', (e) => { const d = e.target.closest('[data-te
 const SPHERE_DU_BOSS = { mereCrapaude: 'couvee', crocoBoss: 'marees' }, CHANCE_SPHERE = 0.02;
 function tomberSphere(mo) {
   const c = mo && SPHERE_DU_BOSS[mo.type]; if (!c || !combat || combat.genre === 'ile' || combat.arene || mo.invoque || reliquesDe().includes(c)) return;
-  const pros = 1 + caracs().prospection / 100; if (Math.random() >= CHANCE_SPHERE * pros * (combat.difficile ? DUR.leg : 1)) return;
+  const pros = 1 + caracs().prospection / 100; if (Math.random() >= CHANCE_SPHERE * prosLeg(pros) * (combat.difficile ? DUR.leg : 1)) return; /* (le plafond des legendaires, 23/11/2026) */
   S_.reliques = reliquesDe().concat(c); const I = SPHERES_RUNIQUES[c]; compter('legendaires');
   chiffre('✦ ' + I.nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.6, mo.z), 'butin'); pouf(mo.x, mo.m.position.y, mo.z, 4, I.couleur); son('niveau');
   toast('✦ RELIQUE : ' + I.nom + ' ! Porte-la dans la fiche du perso, case Relique. ' + INFOS_RELIQUES[c].effet(), 'or'); rendreHaut(); sauver();

@@ -395,7 +395,7 @@ function ficheMonstre(t) {
     Pn && !d.vole ? drop('<img src="assets/icones/' + iconeObjet(Pn.id + '-cape') + '.png?v=' + VERSION_MODELES + '" alt="">', 'Une pièce ' + Pn.de + ' · ' + (d.boss ? 'à coup sûr la 1re fois, puis 40 %' : pc((t === 'tofu' ? 0.02 : 0.07) * pros))) : '',
     (() => { const ar = d.boss && Pn && ARMES[classeDe()], id = ar && 'arme-' + ar[0] + '-' + Pn.id; /* (l'arme de ta classe : la Tortue Corail donne celle de la Tortue, 07/11/2026) */
       return id && OBJETS[id] ? drop('<img src="assets/icones/' + iconeObjet(id) + '.png?v=' + VERSION_MODELES + '" alt="">', OBJETS[id].nom + ' · à coup sûr la 1re fois, puis ' + pc(0.25 * pros)) : ''; })(),
-    leg ? drop('<img src="assets/icones/' + iconeObjet(idLeg(leg)) + '.png?v=' + VERSION_MODELES + '" alt="">', '✦ ' + OBJETS[idLeg(leg)].nom + ' · ' + pc(CHANCE_LEG * pros)) : ''].filter(Boolean).join('');
+    leg ? drop('<img src="assets/icones/' + iconeObjet(idLeg(leg)) + '.png?v=' + VERSION_MODELES + '" alt="">', '✦ ' + OBJETS[idLeg(leg)].nom + ' · ' + pc(CHANCE_LEG * prosLeg(pros))) : ''].filter(Boolean).join('');
   const ou = P != null ? PALIERS_TOUS[P].nom.replace(/^./, (c) => c.toUpperCase()) + ' · vague' + (V.length > 1 ? 's ' + V[0] + ' à ' + V[V.length - 1] : ' ' + V[0]) : 'Hors des paliers';
   return '<div class="bx-fiche"><div class="bx-tete"><div class="bx-portrait' + (d.boss ? ' boss' : '') + '"><img src="assets/icones/' + d.icone + '.png?v=' + VERSION_MODELES + '" alt=""></div><div><h3>' + d.nom + '</h3><p>' + ou + (B.tues ? ' · abattu ' + fmt(B.tues) + ' fois' : '') + '</p><div class="puces">' + tags + '</div></div></div>' +
     '<div class="bx-stats">' + stats + '</div><h4>' + (d.boss ? 'Ses sorts et ce qu\'il fait' : 'Ce qu\'il fait') + '</h4>' + (d.boss ? '<p class="bx-note">Colle-toi à ' + (d.fem ? 'elle' : 'lui') + ' : ses sorts « de loin » ne partent plus, mais ses sorts au corps à corps reviennent plus vite.</p>' : '') + L.join('') + (drops ? '<h4>Butin</h4><div class="bx-drops">' + drops + '</div>' : '') + '</div>';
@@ -427,7 +427,7 @@ function ouvrirPanoplies(onglet) {
   const atteint = (P) => S_.vague.num > P * VAGUES_PALIER;
   const leN = (M) => leNom(M, true); /* « sur le Bouftou Royal », « sur Moon » (le nom propre garde sa majuscule, 05/11/2026 : « sur moon ») */
   const tete = '<div class="hdv-tete">' + [['monstres', 'Monstres'], ['panoplies', 'Panoplies']].map(([k, t]) => '<button class="btn" data-bestiaire="' + k + '" aria-pressed="' + (onglet === k) + '">' + t + '</button>').join('') + '</div>' +
-    '<p class="best-note">Les chances tiennent compte de ta Prospection (+' + c.prospection + ' %). Chaque pièce tombe avec ses propres stats, tirées dans la fourchette indiquée. Une sur 100 sort <b>rare ★</b> : stats +50 %.</p>';
+    '<p class="best-note">Les chances tiennent compte de ta Prospection (+' + c.prospection + ' %). Chaque pièce tombe avec ses propres stats, tirées dans la fourchette indiquée. Une sur 100 sort <b>rare ★</b> : stats +50 %. Ta Prospection multiplie au plus par ' + String(PLAFOND_PROS.rare).replace('.', ',') + ' la chance d\'une rare, et au plus par ' + String(PLAFOND_PROS.leg).replace('.', ',') + ' celle d\'un légendaire.</p>';
   const corps = paliersOuverts().map((Pa, P) => {
     const base = P * VAGUES_PALIER, titre = '<div class="hdv-section">' + nomPalier(P) + ' : ' + Pa.nom + ' (vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ')</div>';
     if (!atteint(P)) return titre + '<p class="best-verrou">' + picto('cadenas') + 'À découvrir en atteignant la vague ' + (base + 1) + '.</p>';
@@ -437,7 +437,7 @@ function ouvrirPanoplies(onglet) {
     return titre + pieces.map((id) => { const o = OBJETS[id], eu = possede(id) || possede(id + '-rare'); /* (les stats : la fourchette des jets) */
       return '<div class="art' + (eu ? '' : ' pas-eu') + '">' + icoObjet(id) + '<div><b>' + o.nom + (eu ? ' <span class="puce bonne">✓ obtenue</span>' : '') + '</b><div class="puces">' + statsFourchette(o) + '<span class="puce">niveau ' + o.niv + '</span></div>' +
         '<div class="desc">' + (o.arme ? 'Sur ' + (PANOS[o.pano].bis != null ? Object.values(MONSTRES).filter((M) => M.pano === PANOS[o.pano].id && M.boss).map((M) => leN(M)).join(', ') : leN(B)) + ' seulement, pour ta classe.' : PANOS[o.pano].bis != null ? 'Sur ' + dequi(PANOS[o.pano]) + ', des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + '.' : 'Sur les monstres des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER) + ', et sur ' + leN(B) + '.') + '</div></div><div></div></div>'; }).join('') +
-      blocPano(P, comptePanos()[P] || 0) + bis.map((x) => { const k = PANOS.indexOf(x); return blocPano(k, comptePanos()[k] || 0); }).join('') + (leg ? '<div class="art">' + icoObjet(idLeg(leg)) + '<div><b>✦ ' + OBJETS[idLeg(leg)].nom + '</b><div class="puces">' + statsFourchette(OBJETS[idLeg(leg)]) + '</div><div class="desc">' + pc(CHANCE_LEG * pros) + ' sur ' + leN(B) + (leg.arme ? ', l\'arme de ta classe' : '') + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
+      blocPano(P, comptePanos()[P] || 0) + bis.map((x) => { const k = PANOS.indexOf(x); return blocPano(k, comptePanos()[k] || 0); }).join('') + (leg ? '<div class="art">' + icoObjet(idLeg(leg)) + '<div><b>✦ ' + OBJETS[idLeg(leg)].nom + '</b><div class="puces">' + statsFourchette(OBJETS[idLeg(leg)]) + '</div><div class="desc">' + pc(CHANCE_LEG * prosLeg(pros)) + ' sur ' + leN(B) + (leg.arme ? ', l\'arme de ta classe' : '') + '. Elle ne compte dans aucune panoplie.</div></div><div></div></div>' : '');
   }).join('');
   ouvrirModale('bestiaire', entete('Bestiaire et butin') + tete + corps); /* (l'onglet Panoplies) */
 }
@@ -717,7 +717,7 @@ function butin(mo) {
     chiffre('Arme : ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.9, mo.z), 'butin'); toast('Arme : ' + OBJETS[id].nom + ' ! Équipe-la dans la fiche du perso.', 'or'); rendreHaut();
   }
   const leg = mo.d.boss && LEGENDAIRES.find((x) => x.boss === mo.type);
-  if (leg && Math.random() < CHANCE_LEG * pros * (combat.difficile ? DUR.leg : 1)) { /* la piece legendaire du boss (coiffe, ou l'arme de ta classe) ; deux fois plus de chances en revanche difficile */
+  if (leg && Math.random() < CHANCE_LEG * prosLeg(pros) * (combat.difficile ? DUR.leg : 1)) { /* la piece legendaire du boss (coiffe, ou l'arme de ta classe) ; deux fois plus de chances en revanche difficile */
     const id = idLeg(leg); L.objets.unshift(donnerObjet(id)); compter('legendaires');
     chiffre('✦ ' + OBJETS[id].nom, new T.Vector3(mo.x, mo.m.position.y + mo.haut + 0.6, mo.z), 'butin'); pouf(mo.x, mo.m.position.y, mo.z, 4, '#b57cf0'); son('niveau');
     toast('✦ LÉGENDAIRE : ' + OBJETS[id].nom + ' ! ' + OBJETS[id].pouvoir, 'or'); rendreHaut();

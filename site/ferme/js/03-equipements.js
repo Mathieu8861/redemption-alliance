@@ -204,7 +204,11 @@ const CHANCE_RARE = 0.01;
 const PROS_AVANT = {};
 Object.values(OBJETS).forEach((o) => { if (!o.stats || !o.stats.prospection) return; PROS_AVANT[o.id] = o.stats.prospection; o.stats.prospection = o.id === 'leg-joueur' ? 120 : Math.max(1, Math.round(o.stats.prospection / 2)); });
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
-const tirerRare = (id, pros) => (OBJETS[id + '-rare'] && Math.random() < CHANCE_RARE * (pros || 1) ? id + '-rare' : id);
+/* LES PLAFONDS DE LA PROSPECTION (23/11/2026, « mettre une restriction sur le drop des legendes et des items rares, un plafond max », puis au formulaire « x2,5 » et « x3 »,
+   Mathieu) : la Prospection (Fraise comprise) multiplie la chance d'un legendaire (et d'une sphere runique) au plus par 2,5, celle d'une piece rare au plus par 3 ;
+   le x2 de la revanche difficile s'ajoute ensuite. Les ressources et les pieces normales n'ont pas de plafond */
+const PLAFOND_PROS = { leg: 2.5, rare: 3 }, prosLeg = (pros) => Math.min(PLAFOND_PROS.leg, pros || 1), prosRare = (pros) => Math.min(PLAFOND_PROS.rare, pros || 1);
+const tirerRare = (id, pros) => (OBJETS[id + '-rare'] && Math.random() < CHANCE_RARE * prosRare(pros) ? id + '-rare' : id);
 const iconeObjet = (k) => { const o = obj(k); return o ? o.icone || 'obj-' + (o.base || baseObjet(k)) : 'obj-' + baseObjet(k); };
 const icoObjet = (k) => { const h = ico(iconeObjet(k)), o = obj(k); /* (17/11/2026, « quand on veut forger une arme, elles n'ont pas l'encadré violet », Mathieu : ico ne violettait que les coiffes obj-leg-, les armes légendaires aussi) */
   if (o && o.leg) return /class="pic img leg/.test(h) ? h : h.replace('class="pic img', 'class="pic img leg'); return o && o.rare ? h.replace('class="pic img', 'class="pic img rare') : h; };
