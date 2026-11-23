@@ -15,7 +15,9 @@
    de chacun a zero et seules les parties de cette serie comptent dans outils/essai101.py ; a changer en ouvrant aux joueurs) */
 /* OUVERTE AUX JOUEURS LE 23/11/2026 (« sortir aux joueurs les vagues 101.1, .2, .3 etc., sans leur mettre le reste de la maj a disposition », Mathieu) : serie
    joueurs-1 (outils/essai101.py --serie=joueurs-1) ; le reste du palier 11 attend SORTIE_P11 (02-donnees.js) */
-const ESSAI101 = { joueurs: true, serie: 'joueurs-1', n: 101, ordre: ['B', 'A', 'C', 'D', 'E'], lance: null,
+/* (RETIREE LE MEME SOIR, 23/11/2026, « oui retire-la en attendant le nouvel equilibrage », Mathieu : les vagues 101 a 110 sont refaites (pas de x2 des PV par palier) ;
+   aucune partie jouee entre-temps. A remettre avec joueurs: true une fois l'equilibrage fait) */
+const ESSAI101 = { joueurs: false, serie: 'joueurs-1', n: 101, ordre: ['B', 'A', 'C', 'D', 'E'], lance: null,
   versions: { A: { f: Math.sqrt(0.85) }, B: { f: 1 }, C: { f: Math.sqrt(1.15) },
     D: { L: [['tetard', 2], ['crapaud', 4], ['triton', 1]] }, E: { L: [['tetard', 3], ['crapaud', 1], ['triton', 2]] } } };
 const essaiBase101 = () => COMPO_MARE[1].map((x) => x.slice());
