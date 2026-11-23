@@ -182,6 +182,12 @@ function ouvrirGeliere() {
 }
 /* equilibrage des classes (11/10/2026, « faut equilibrer les classes ») : le Iop encaisse mieux (Peau de Iop) et sa Charge le soigne ;
    l'Osamodas vise ou poser son Bouftou, qui retombe en frappant autour de lui, au lieu d'un Bouftou qui sortait tout seul et restait en permanence */
+/* SANG CHAUD, passif du Iop (23/11/2026, Mathieu : « a chaque auto-attaque touchee sur un ennemi, il augmente sa vitesse de deplacement et sa regen, mais faudrait pas
+   un truc abuse », puis au formulaire : +0,25 % de vitesse par coup, 0,1 % de vie par seconde a cumuls pleins, perdus apres 6 s sans toucher, « faudrait que ca le
+   mette en pause lorsque t'es pas en combat ») : chaque coup d'epee qui touche donne un cumul (max au plus) ; par cumul, +vitesse de deplacement et regen de sa vie
+   par seconde ; tout retombe apres oubli s sans toucher. Le compte s'arrete (et la regen aussi) quand aucun monstre n'est la : entre deux vagues de l'Arene,
+   pendant un entracte, avant l'arrivee d'une vague. 23-fin-combat.js (majCombat), 24-deplacement.js (vitesse), 21-combat.js (le coup) */
+const SANG_CHAUD = { max: 10, vitesse: 0.0025, regen: 0.0001, oubli: 6 };
 let PEAU_IOP = 0.15; const SOIN_CHARGE = 0.03, SOIN_BOND_MAX = 0.1 /* (le soin du Bond : 3 % par monstre touche, 10 % au plus depuis le 07/11/2026 au soir, 12 % avant ; « le bond du Iop qui regen au max 10 % des PV », Mathieu) */, RECHARGE_INVOC = 10, DUREE_INVOC = 14 /* (12 puis 14 s, 09/11/2026) */, RAYON_INVOC = 1.8, PORTEE_INVOC = 8;
 /* le Iop au corps a corps (30/10/2026 au soir, « le Iop, faut absolument faire quelque chose, etre corps a corps ca pique trop », Mathieu) : son coup d'epee
    balaie aussi les monstres colles a sa cible (BALAYAGE_IOP de ses degats, a RAYON_BALAYAGE de la cible ; 21-combat.js, coupIop). Puis le kit voulu par
