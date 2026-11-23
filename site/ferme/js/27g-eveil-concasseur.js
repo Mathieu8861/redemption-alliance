@@ -65,6 +65,10 @@ const EV_CERCLE = (() => { const C = 100, pt = (a, r) => (C + r * Math.sin(a)).t
     '<circle cx="100" cy="100" r="74"/>' + etoile4(86, 22, 0) + etoile4(62, 18, Math.PI / 4) + '</g>' +
     '<g fill="#d7b2ff">' + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => losange(i * Math.PI / 4 + Math.PI / 8, 92, 3.2)).join('') + '</g>' +
     '<g class="inv" fill="none" stroke="#a465e6" stroke-width="1.2"><circle cx="100" cy="100" r="62"/><circle cx="100" cy="100" r="49" stroke-dasharray="10 4 2 4"/>' + runes.join('') + '</g></svg>'; })();
+/* LES DEUX ONGLETS DU SANCTUAIRE (23/11/2026, « faut faire un truc un peu plus explicite et visible, qu'on sache qu'on puisse faire les deux », Mathieu : la fusion
+   des pieces n'etait qu'un petit bouton en bas de la fenetre de l'eveil) : en haut des deux fenetres, comme les onglets de la fenetre des vagues */
+const ongletsSanctuaire = (ici) => '<div class="vg-onglets ev-onglets"><button class="' + (ici === 'eveil' ? 'on' : '') + '" data-ouvrir-eveil>✦ L\'éveil des légendaires<small>Un doublon fait monter un légendaire de 10 niveaux</small></button>' +
+  '<button class="' + (ici === 'fusion' ? 'on' : '') + '" data-ouvrir-fusion-pieces>★ La fusion des pièces<small>' + FUSION_PIECES.n + ' pièces identiques donnent une pièce rare</small></button></div>';
 function ouvrirEveil() {
   const L = exemplairesLeg(), a = (k) => L.some((x) => x.k === k);
   if (EV.cible && !a(EV.cible)) EV.cible = null; if (EV.sac && (!EV.cible || !L.some((x) => x.k === EV.sac && evPeutSac(x)))) EV.sac = null;
@@ -82,13 +86,13 @@ function ouvrirEveil() {
   const alerte = mieux ? '<div class="ev-alerte"><b>Attention</b> : le doublon a un meilleur jet (' + evJet(s) + ' %) que la pièce du centre (' + evJet(c) + ' %). C\'est la pièce du centre qui garde son jet.' +
     (echange ? '<button class="btn mini kamas" data-ev-echange>Échanger les deux</button>' : evPortee(c) ? ' Retire-la d\'abord pour pouvoir échanger.' : '') + '</div>' : '';
   const aide = !c ? 'Dépose une pièce au centre' : max ? 'Au plus haut pour le moment' : s ? 'Il sera détruit' : L.some((x) => evPeutSac(x)) ? 'Dépose un doublon' : 'Aucun doublon dans ton sac';
-  ouvrirModale('eveil', entete('L\'éveil des légendaires') + '<div class="ev-autel">' +
+  ouvrirModale('eveil', entete('Le sanctuaire de l\'éveil') + ongletsSanctuaire('eveil') + '<div class="ev-autel">' +
     '<div class="ev-gauche"><div class="ev-cercle">' + EV_CERCLE + slot(c, 'cible', 'Glisse ici la pièce à éveiller', !!F) + '</div>' + apercu + '</div>' +
     '<div class="ev-milieu"><div class="ev-fleche">◀</div>' + slot(s, 'sac', 'Le doublon') + '<small>' + aide + '</small>' + alerte +
       (F ? '<button class="btn discret" data-ev-encore>Continuer</button>' : '<button class="btn kamas" data-ev-fusion' + (c && s && !max ? '' : ' disabled') + '>Fusionner</button>') + '</div>' +
     '<div class="ev-droite"><div class="hdv-section">Tes légendaires</div>' + (L.length ? '<div class="ev-grille">' + tuiles.join('') + '</div>' : '<p class="hdv-aide">Tu n\'as aucune pièce légendaire pour l\'instant.</p>') +
       '<p class="hdv-aide ev-astuce">Glisse une pièce dans une case, ou touche-la. Touche une case pleine pour la vider.</p></div></div>' +
-    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-fusion-pieces>La fusion des pièces</button><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
+    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
 }
 function evPlacer(k, porte, ou) { /* ou : 'cible', 'sac', ou rien (un simple toucher) */
   if (EV.fin) EV.fin = null; const x = { k, porte: !!porte };
@@ -250,13 +254,13 @@ function ouvrirFusionPieces() {
   const mieux = c && !F && sac.some((k) => qualiteJet(k) > qualiteJet(c) + 0.005);
   const alerte = mieux ? '<div class="ev-alerte"><b>Attention</b> : parmi les ' + (N - 1) + ' qui fondent, il y en a avec un meilleur jet que la pièce du centre. Mets plutôt ta meilleure au centre.</div>' : '';
   const aide = !c ? 'Dépose une pièce au centre' : ok ? 'Les ' + (N - 1) + ' moins bons jets fondent dedans' : 'Encore ' + (N - 1 - sac.length) + ' exemplaire' + (N - 1 - sac.length > 1 ? 's' : '') + ' à trouver';
-  ouvrirModale('fusion-pieces', entete('La fusion des pièces') + '<div class="ev-autel fp">' +
+  ouvrirModale('fusion-pieces', entete('Le sanctuaire de l\'éveil') + ongletsSanctuaire('fusion') + '<div class="ev-autel fp">' +
     '<div class="ev-gauche"><div class="ev-cercle">' + FP_CERCLE + cible + '</div>' + apercu + '</div>' +
     '<div class="ev-milieu"><div class="ev-fleche">◀</div>' + pile + '<small>' + aide + '</small>' + alerte +
       (F ? '<button class="btn discret" data-fp-encore>Continuer</button>' : '<button class="btn kamas" data-fp-fusion' + (c && ok && S_.kamas >= prix ? '' : ' disabled') + '>Fusionner' + (c ? ' · ' + fmt(prix) + ' kamas' : '') + '</button>') + '</div>' +
     '<div class="ev-droite"><div class="hdv-section">Tes pièces</div>' + (L.length ? '<div class="ev-grille">' + tuiles.join('') + '</div>' : '<p class="hdv-aide">Aucune pièce normale pour l\'instant.</p>') +
       '<p class="hdv-aide ev-astuce">Glisse une pièce au centre, ou touche-la. Touche le centre pour le vider.</p></div></div>' +
-    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-eveil>L\'éveil des légendaires</button><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
+    (eveilDev() ? '<div class="act-bas"><small>Version dev (mode test)</small><button class="btn discret" data-ouvrir-concasseur>Le concasseur</button></div>' : ''));
 }
 function fpPlacer(k) { FP.fin = null; FP.cible = k; son('poser'); ouvrirFusionPieces(); }
 function fpConfirmer() {
