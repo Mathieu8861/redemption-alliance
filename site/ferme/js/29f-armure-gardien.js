@@ -22,13 +22,14 @@ const bonusArmureGardien = () => statArmureGardien('bonus');
 const effetsArmure = (A) => '+' + Math.round(A.bonus * 100) + ' % de dégâts' + (A.vitesse ? ', il court ' + Math.round(A.vitesse * 100) + ' % plus vite' : '') + (A.recharge ? ', son pouvoir revient ' + A.recharge + ' s plus tôt' : '');
 /* la recette : toujours le niveau suivant (au maximum, la derniere, qui refuse) */
 const armureSuivante = () => ARMURES_GARDIEN[Math.min(NIV_ARMURE_MAX, (S_.armureGardien || 0) + 1)];
-RECETTES_DEV_ATELIER.push({ id: 'armure_gardien', donne: 1, /* (pas de stock : c'est un niveau, pas une reserve ; fabriquee ici, plus bas) */
+RECETTES_DEV_ATELIER.push({ id: 'armure_gardien', donne: 1, unique: true, /* (pas de stock : c'est un niveau, pas une reserve ; fabriquee ici, plus bas) */
+  get fini() { return (S_.armureGardien || 0) >= NIV_ARMURE_MAX; }, get bouton() { return S_.armureGardien ? 'Faire évoluer' : 'Fabriquer'; }, /* (23/11/2026, « on peut en fabriquer qu'une, une fois fabriquee elle disparait de l'atelier », Mathieu : pas de ×5, et une fois l'armure runique faite, la recette s'en va) */
   get nom() { const n = Math.min(NIV_ARMURE_MAX, (S_.armureGardien || 0) + 1); return armureSuivante().nom + ' du gardien (niveau ' + n + ')'; },
   get kamas() { return armureSuivante().kamas; }, get il() { return armureSuivante().il; },
   get ico() { const G = gardienDe(); return G && G.espece === 'chat' ? 'newton-vsa' : 'masdog-vsa'; },
   get desc() { const n = S_.armureGardien || 0, A = armureSuivante();
     if (n >= NIV_ARMURE_MAX) return 'Ton gardien porte déjà l\'armure runique, la plus haute.';
-    return 'Le niveau ' + (n + 1) + ' de l\'armure de ton gardien : ' + A.look + '. Il la porte quand VSA arrive : ' + effetsArmure(A) + '.' + (n ? ' Elle remplace l\'armure ' + ARMURES_GARDIEN[n].court + '.' : ' Elle évoluera ensuite (garde du château, puis runique).') +
+    return (n ? 'Ton gardien porte l\'armure ' + ARMURES_GARDIEN[n].court + '. ' : '') + 'Le niveau ' + (n + 1) + ' de l\'armure de ton gardien : ' + A.look + '. Il la porte quand VSA arrive : ' + effetsArmure(A) + '.' + (n ? ' Elle remplace l\'armure ' + ARMURES_GARDIEN[n].court + '.' : ' Elle évoluera ensuite (garde du château, puis runique).') +
       (A.runes ? ' Il faut aussi ' + A.runes + ' runes de forgemagie (tu en as ' + runes().forge + ').' : ''); } });
 const fabriquerArmure = fabriquer; fabriquer = function (id, fois) {
   if (id !== 'armure_gardien') return fabriquerArmure(id, fois);

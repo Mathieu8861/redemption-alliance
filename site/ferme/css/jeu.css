@@ -1275,7 +1275,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .fp-sac .fp-case.plein, .fp-poupee .fp-slot { -webkit-touch-callout: none; user-select: none; } .fp-sac .fp-case img, .fp-poupee .fp-slot img { -webkit-user-drag: none; pointer-events: none; }
 @keyframes fpCible { from { transform: scale(1); } to { transform: scale(1.07); } }
 /* l'atelier : un ingredient au choix (10 Plumes dorees ou 50 Plumes de Tofu) */
-.puces-ou { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; } .puces-ou i { font-style: normal; font-weight: 800; font-size: .72rem; color: #f2b630; } .puce.terne { opacity: .5; }
+.puces-ou { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; } .puces-ou i, .puces .puce-et { font-style: normal; font-weight: 800; font-size: .72rem; color: #f2b630; } .puces .puce-et { align-self: center; } .puce.terne { opacity: .5; }
 /* LES RETOUCHES D'INTERFACE A L'ESSAI (11/11/2026) : Mathieu teste d'abord dans son mode test (« pars du principe que tu me mets tout en dev pour que je teste avant
    les maj pour les joueurs ») ; le corps de la page porte .mode-dev des qu'on entre en mode test. Une fois validee, une retouche perd son .mode-dev. */
 /* la pastille des kamas (« elle est pas plus large en hauteur que les autres ? et je la trouve un peu grande ») : sa piece de 22 px la rendait plus haute ; 17 px,
