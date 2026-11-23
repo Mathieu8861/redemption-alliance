@@ -706,6 +706,7 @@ function butin(mo) {
   if (combat.genre === 'ile' || combat.arene) return; /* (15/10/2026, « j'ai gagne 51 branches de Kaliptus, ca fait beaucoup non ? » : sur l'ile des boss, aucun butin ; les recompenses sont dans le coffre de la semaine. L'Arene aussi depuis le 19/10/2026 : « le fait de loot des ressources, il faut le retirer », Mathieu, 78 Poils de Wabbit en une partie ; ses runes tombent a part, ses pieces sont dans les coffres des boss) */
   const L = combat.loot || (combat.loot = { res: {}, objets: [] }), pros = 1 + caracs().prospection / 100, r = mo.d.res || RES_MONSTRE[mo.type], horde = mo.d.boss ? 1 : multVague(combat.n); /* (la horde de la Phase 2 : le meme butin par vague, partage entre plus de monstres, 04/11/2026) */
   if (r && Math.random() < (mo.d.boss ? 1 : Math.min(1, 0.35 * (combat.n > 9 * VAGUES_PALIER ? RES_PLUS_FORET[r] || 1 : 1))) * pros / horde) { const n = mo.d.boss ? 5 : 1; S_.grange[r] = (S_.grange[r] || 0) + n; L.res[r] = (L.res[r] || 0) + n; }
+  if (combat.sansObjets) return; /* (la serie d'essais de la 101 : des ressources, aucune piece, 29q-essai-101.js) */
   const deja = S_.vague.num > combat.n, chance = mo.d.boss ? (deja ? 0.4 : 1) : (mo.type === 'tofu' ? 0.02 : 0.07) * pros / horde, aPano = panoExiste(palierDe(combat.n)); /* (un palier sans sa panoplie, l'ile de Moon : ni piece ni arme, plutot que celles du Dragon Cochon, 04/11/2026) */
   if (aPano && Math.random() < chance) {
     const id = tirerPiece(panoMonstre(mo.type, palierDe(combat.n)), pros); /* (les Tortues : la panoplie de la Tortue) */

@@ -21,7 +21,8 @@ const srcUlti = (id) => { const m = modeleDe(classeDe(), S_.perso.look); return 
 /* LES ULTIS AU CHOIX POUR LES TESTS (23/10/2026, « sur mon truc a moi, Rorschach, laisse-moi la possibilite de changer d'ultimate comme je veux, pour faire
    des tests », Mathieu) : le compte de Mathieu change d'ulti quand il veut, sans confirmation ; pour tous les autres, le choix reste definitif */
 const TESTEURS_ULTI = ['9a67160a-0234-46dc-aeb3-f52e3d03408b']; /* (son compte de ferme, le meme que l'ancien acces libre de l'ile) */
-const ultiLibre = () => !!(enLigneSv.compte && TESTEURS_ULTI.includes(enLigneSv.compte));
+const compteTest = () => !!(enLigneSv.compte && TESTEURS_ULTI.includes(enLigneSv.compte)); /* (le compte de Mathieu : il peut ouvrir le mode test, estAdmin) */
+const ultiLibre = () => compteTest() && typeof MODE_TEST !== 'undefined' && !!MODE_TEST; /* (23/11/2026, « mets-moi comme les joueurs classiques, juste moi j'ai le mode dev », Mathieu : ulti libre, essais de l'ile sans limite, tests du patron du Casino, seulement dans le mode test ; hors mode test, son compte joue comme les autres) */
 /* CHANGER D'ULTI (08/11/2026, « a partir du niveau 90, on peut laisser les gens changer leur ultimate s'ils veulent, en echange de 1 M de kamas ; a cote du bouton
    Voir, changer d'ulti pour 1 M de kamas », Mathieu) : niveau 90 et un ulti deja pris ; on choisit l'un des deux autres, on confirme, 1 000 000 de kamas partent */
 /* (09/11/2026, « le 1 M de kamas pour changer de sort : en fait tu peux acheter le sort, et swap apres si t'en as envie », Mathieu) : le million achete l'ulti pour
