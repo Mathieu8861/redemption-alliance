@@ -257,7 +257,7 @@ function ongletBoss(battus, repos) {
 /* LA PREPARATION D'UNE REVANCHE (09/11/2026, « quand tu cliques sur normal ou difficile, ca t'ouvre une pop-up ou tu selectionnes ce que tu veux avant de lancer »,
    Mathieu) : le boss choisi, normal ou difficile, puis manger, boire et la defense, et le bouton qui lance ; Retour revient a la liste des boss */
 function vueRevanche(k, dur, repos) {
-  const Bk = MONSTRES[PALIERS_TOUS[k].boss], leg = LEGENDAIRES.find((x) => x.boss === PALIERS_TOUS[k].boss), ok = bossRejouable(k), gk = gainsBoss(k), ref = vagueRefDifficile(niveau(S_.xp));
+  const Bk = MONSTRES[PALIERS_TOUS[k].boss], leg = LEGENDAIRES.find((x) => x.boss === PALIERS_TOUS[k].boss), ok = bossRejouable(k), gk = gainsBoss(k), ref = vagueRefBoss(niveau(S_.xp), (k + 1) * VAGUES_PALIER);
   const lancer = !ok ? '<button class="btn vg-lancer" disabled>Déjà rejoué aujourd\'hui</button>' : repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>'
     : '<button class="btn ' + (dur ? 'dur' : 'kamas') + ' vg-lancer" data-rejouer-' + (dur ? 'dur' : 'boss') + '="' + k + '">' + (dur ? 'Lancer en difficile' : 'Lancer la revanche') + '</button>';
   return entete('Revanche : ' + Bk.nom) + blocVie(true) +
@@ -432,12 +432,15 @@ function forceRef(l, cl) { /* un joueur type de ce niveau : sa classe (ou celle 
   const st = STATS_CLASSE[cl || classeDe()], k = palierDe(Math.min(9 * VAGUES_PALIER, l + 2)) /* (12/11/2026, a l'ouverture de la foret : le joueur de reference reste en panoplie du palier 9, comme dans les essais de Mathieu ; avec l'Ecorce, une panoplie de tank, sa vie montait de 23 % et ses degats baissaient de 25 % des le niveau 89 : sur l'ile des boss et en revanche difficile, le boss aurait tape 23 % plus fort. A revoir quand les joueurs porteront les panoplies du palier 10) */, V = (c) => VALEURS[c][k], b = bonusPano(k, EMPLACEMENTS.length, true);
   return { pv: st.pv(l) + 3 * V('vita') + (b.vita || 0), dps: st.deg(l) * (1 + (3 * V('puissance') + (b.puissance || 0)) / 100) * (1 + (2 * V('agilite') + (b.agilite || 0)) / 100) / st.cadence };
 }
-const vagueRefDifficile = (L) => Math.min(9 * VAGUES_PALIER /* (12/11/2026 : la revanche difficile reste calee sur Moon au plus, comme dans les essais ; le Chene Mou en reference, du niveau 96 au 100, n'a jamais ete joue) */, Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.round((L - 0.5) / VAGUES_PALIER))); /* la vague de boss la plus proche de ton niveau (75 -> 70, 76 -> 80) */
+const vagueRefDifficile = (L) => Math.min(vaguesOuvertes() - VAGUES_PALIER /* (12/11/2026 : la revanche difficile reste calee sur Moon au plus, comme dans les essais ; le Chene Mou en reference, du niveau 96 au 100, n'a jamais ete joue. 23/11/2026 : la meme regle, un boss derriere le dernier palier ouvert, ecrite pour suivre les sorties : 90 pour les joueurs aujourd'hui, 100 dans le mode test et a la sortie du palier 11 ; avant, Moon au plus, meme au niveau 110) */, Math.max(VAGUES_PALIER, VAGUES_PALIER * Math.round((L - 0.5) / VAGUES_PALIER))); /* la vague de boss la plus proche de ton niveau (75 -> 70, 76 -> 80) */
+/* la reference d'un boss donne (vague n) : jamais un boss plus faible que lui-meme pour les boss au-dela du 100 (23/11/2026 : le Croco de la 110, refait au niveau 110 en
+   difficile, prenait la vie de Moon, 77 000 PV contre 180 000 en revanche normale) */
+const vagueRefBoss = (L, n) => Math.max(vagueRefDifficile(L), n > PALIERS_TOUS.indexOf(PALIER_MARE) * VAGUES_PALIER ? n : 0);
 const facteurRejoue = (quoi, t) => { if (!combat || combat.rejoueBoss == null) return 1; const L = niveau(S_.xp), Lb = niveauRequis(combat.n);
   const boss = t && MONSTRES[t] && MONSTRES[t].boss, normale = Math.min(1.5, 1 + 0.025 * Math.max(0, L - Lb)); /* (la revanche normale : +2,5 % par niveau d'avance, x1,5 au plus) */
   if (combat.difficile && boss) { /* (06/11/2026, « il aura les memes PV que le boss du niveau 70, et les degats qui se rapprochent du boss 70 ; ca se calque sur le boss dont le niveau
      est le plus proche du tien : a 75 ca prend le 70, au 76 le 80 », Mathieu) : le boss prend la vie et les coups du boss de palier le plus proche de ton niveau, puis DUR */
-    const nr = vagueRefDifficile(L), ref = PALIERS_TOUS[palierDe(nr)].boss;
+    const nr = vagueRefBoss(L, combat.n), ref = PALIERS_TOUS[palierDe(nr)].boss;
     if (quoi === 'deg') return degMonstre(ref, nr) * multDegats(nr) * multHautes(nr) / Math.max(1, degMonstre(t, combat.n) * multDegats(combat.n) * multHautes(combat.n, combat.genre)) * DUR.deg; /* (les coups recus prennent ensuite multDegats et multHautes de SA vague : on les compense) */
     return pvMonstre(ref, nr) / Math.max(1, pvMonstre(t, combat.n)) * DUR.pv; }
   if (combat.difficile) { const a = forceRef(Math.max(L, Lb)), b = forceRef(Lb), r = quoi === 'deg' ? a.pv / b.pv : a.dps / b.dps; return Math.max(normale, r * DUR.garde); } /* sa troupe, remise a ton niveau */
@@ -458,7 +461,7 @@ const autoFiche = (d, t, n) => d.boss ? (d.demi ? AUTO_DEMI[t] || 1 : (AUTO_BOSS
 function autoBoss(mo) {
   if (!combat || (combat.genre !== 'vague' && !combat.dev) || !mo || !mo.d.boss || mo.invoque) return 1; /* (combat.dev, 18/11/2026 : l'Arene dev montre les memes coups qu'en vague ; sans ca, un boss y tapait bien moins fort, « il fait aucun degat », Mathieu) */
   if (mo.d.demi) return (AUTO_DEMI[mo.type] || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1);
-  const P = combat.difficile && combat.rejoueBoss != null ? palierDe(vagueRefDifficile(niveau(S_.xp))) : palierDe(combat.n);
+  const P = combat.difficile && combat.rejoueBoss != null ? palierDe(vagueRefBoss(niveau(S_.xp), combat.n)) : palierDe(combat.n);
   return (AUTO_BOSS[P] || 1) * (mo.d.autoX || 1) * (combat.difficile && combat.rejoueBoss != null ? AUTO_DIFFICILE : 1); /* (autoX : Moon, ses coups directs a 220, 07/11/2026) */
 }
 /* la Cawotte et la Fraise (« une nouvelle recolte qui donne un boost », Mathieu, 11/10/2026) : on en mange une avant de lancer, pour cette vague seulement */
@@ -933,7 +936,7 @@ function souffleFeu(mo, a) {
    vole : 1, 2 sur Dragodinde ou en parachute, 4 pour le Demenageur ; jamais moins que l'ancienne bourse), puis trois tirages a part. La ressource et l'objet
    sont ceux du palier de ton niveau (l'objet : une piece d'une de ses panoplies). Avant, leur bourse seulement (« pas de loot sur eux, a part des kamas », 12/10/2026). */
 const BOURSE_VSA = 0.85, CHANCES_VSA = { objet: 0.01, res: 0.1, brassard: 0.2 };
-const RES_PALIER = [['laine'], ['os_chafer'], ['dent_bwork'], ['eclat_craq'], ['ecaille_drag'], ['poil_wabbit'], ['kaliptus'], ['couenne'], ['plume_kanniboul', 'ecaille_tortue'], ['ecorce_abraknyde', 'soie_arakne']];
+const RES_PALIER = [['laine'], ['os_chafer'], ['dent_bwork'], ['eclat_craq'], ['ecaille_drag'], ['poil_wabbit'], ['kaliptus'], ['couenne'], ['plume_kanniboul', 'ecaille_tortue'], ['ecorce_abraknyde', 'soie_arakne'], ['tourbe']]; /* (la Tourbe des marais pour le palier 11, 23/11/2026 : avant, au-dela du niveau 100, la ressource de la foret) */
 function butinVoleur(monte, L, mo) {
   L = L || { res: {}, objets: [], kamas: 0 }; L.res = L.res || {}; L.objets = L.objets || [];
   const poids = typeof monte === 'number' ? monte : monte ? 2 : 1, l = niveau(S_.xp), part = combat && combat.poidsVsa ? poids / combat.poidsVsa : 0;

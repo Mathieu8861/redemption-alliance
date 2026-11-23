@@ -9,7 +9,16 @@
      elle ne tire plus et sa cheminee ne fume plus ; avec du feu, une vraie fumee sort de sa cheminee (celle de la grange), plus noire a chaque tir.
    Point de depart, chiffres a valider. */
 const COMBUSTIBLE = { max: 30, charbon: 1, tourbe: 2 };
-PAR_ID.tourbe = { id: 'tourbe', nom: 'Tourbe des marais', prix: 460, xp: 0 }; /* (dans PAR_ID seulement, pas dans les ressources vendues : elle n'existe que dans le mode test) */
+PAR_ID.tourbe = { id: 'tourbe', nom: 'Tourbe des marais', prix: 460, xp: 0 };
+/* (23/11/2026, avant la sortie du palier 11 : elle n'etait que dans PAR_ID, donc invisible dans la grange et absente de l'HDV.) Elle rejoint les ressources de
+   monstres, apres la Soie d'Arakne, des que le palier 11 est ouvert pour cette partie : a l'entree du mode test, et pour tous des la sortie (PALIERS.push(PALIER_MARE)),
+   sans rien d'autre a changer. Avant, rien ne bouge pour les joueurs (pas de cours tire en plus : celui des autres ressources reste le meme) */
+function ouvrirTourbe() {
+  const t = PAR_ID.tourbe; if (VENDABLES.includes(t)) return; [RES_MONSTRES, VENDABLES].forEach((L) => { const i = L.indexOf(PAR_ID.brassard_vsa); L.splice(i >= 0 ? i : L.length, 0, t); });
+  if (S_ && S_.cours && !S_.cours.tourbe) S_.cours.tourbe = 1;
+}
+if (PALIERS.includes(PALIER_MARE)) ouvrirTourbe();
+const entrerModeTestTourbe = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestTourbe.apply(this, arguments); if (MODE_TEST) ouvrirTourbe(); return r; };
 ['tetard', 'crapaud', 'triton', 'fouette', 'axolotl', 'mereCrapaude', 'crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss'].forEach((k) => { if (MONSTRES[k]) MONSTRES[k].res = 'tourbe'; });
 /* LES RECETTES DE L'ATELIER EN COURS (19/11/2026) : le drapeau dev des recettes ne cache plus rien depuis que VSA est sorti aux joueurs (vsaDev() est
    toujours vrai) ; celles-ci ne sont ajoutees a l'atelier que dans le mode test, le temps d'ouvrir la fenetre ou de fabriquer */
