@@ -117,7 +117,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -203,6 +203,20 @@ function convertirP10(e) {
       const Q = {}; Object.entries(A).forEach(([c, v]) => { const [a, b] = fourchette(v); Q[c] = j[c] == null ? 0.5 : b > a ? Math.max(0, Math.min(1, (j[c] - a) / (b - a))) : 0.5; });
       const qs = Object.values(Q), moy = qs.length ? qs.reduce((x, y) => x + y, 0) / qs.length : 0.5;
       p.jets[k] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v, O.id, c), q = Q[c] != null ? Q[c] : moy; return [c, Math.round(a + q * (b - a))]; })); });
+  });
+}
+/* LES JETS TOUJOURS DANS LEUR FOURCHETTE (23/11/2026, « verifie que les stats des items qu'on a modifies, Arakne et Abra, soient bien les bonnes en jeu ; certains
+   items on peut aller au-dessous / dessus de ce qui est affiche », Mathieu ; dans les sauvegardes des joueurs : 2 pieces sur 978, l'anneau et les bottes de l'Ecorce
+   de Dino, tirees avant une petite retouche de leurs valeurs) : a chaque chargement, chaque caracteristique d'une piece revient dans la fourchette affichee
+   aujourd'hui (fourchette, 03-equipements.js) ; une caracteristique ajoutee depuis prend la qualite moyenne de la piece, une retiree disparait. Une piece deja dans
+   sa fourchette ne bouge pas. A chaque retouche future des valeurs d'une panoplie, rien a faire de plus */
+function jetsDansFourchette(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => {
+    if (!p || !p.jets) return;
+    Object.entries(p.jets).forEach(([k, j]) => { const id = baseObjet(k), O = OBJETS[id]; if (!O || !O.stats || !j) return; const F = {}; Object.entries(O.stats).forEach(([c, v]) => { F[c] = fourchette(v, id, c); });
+      const qs = Object.keys(F).filter((c) => j[c] != null).map((c) => { const [a, b] = F[c]; return b > a ? Math.max(0, Math.min(1, (j[c] - a) / (b - a))) : 0.5; }), moy = qs.length ? qs.reduce((x, y) => x + y, 0) / qs.length : 0.5;
+      Object.keys(j).forEach((c) => { if (!F[c]) delete j[c]; });
+      Object.entries(F).forEach(([c, [a, b]]) => { j[c] = j[c] == null ? Math.round(a + moy * (b - a)) : Math.max(a, Math.min(b, j[c])); }); });
   });
 }
 function convertirCultures(e) {
