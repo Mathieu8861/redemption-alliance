@@ -44,9 +44,13 @@ function carteEssai101() {
     '<div class="essai-pistes">' + pistes + '</div><div class="vg-mons">' + mons + '</div>' +
     '<div class="essai-pied"><span>' + img('kama') + fmt(g.kamas) + ' kamas' + (!dejaV && !fin ? ', +' + fmt(bonus) + ' à ta première victoire de cette version' : '') + '. Pas de butin du nouveau palier.</span>' + bouton + '</div></div>';
 }
+/* (23/11/2026, « en mode test, t'as pas mis le fait de pouvoir tester la vague 101.1 jusqu'a 101.5 ; toutes les choses qu'on va push apres pour les joueurs, il
+   faut les mettre », Mathieu : le mode test ouvre les vagues 101 a 110, donc « tous les paliers termines » n'y arrivait jamais ; la carte s'y montre aussi, en haut
+   de l'onglet de la vague, tant que sa vraie partie a fini le dernier palier des joueurs) */
+const essaiIci101 = () => essaiVisible101() && (S_.vague.num > vaguesOuvertes() || MODE_TEST);
 { const ouvrirVaguesE = ouvrirVagues; ouvrirVagues = function (onglet) {
     const r = ouvrirVaguesE.call(this, typeof onglet !== 'string' && modaleOuverte !== 'vagues' && S_.vague.num > vaguesOuvertes() && essaiVisible101() ? 'vague' : onglet); /* (la serie ouverte : la fenetre s'ouvre sur Les vagues, pas sur Refaire un boss) */
-    try { const a = document.querySelector('#carte .vg-aide'); if (modaleOuverte === 'vagues' && ouvrirVagues.onglet === 'vague' && S_.vague.num > vaguesOuvertes() && essaiVisible101() && a) a.insertAdjacentHTML('afterend', carteEssai101()); } catch (e) { /* (la fenetre reste comme avant) */ }
+    try { const a = document.querySelector('#carte .vg-aide') || document.querySelector('#carte .vg-entete'); if (modaleOuverte === 'vagues' && ouvrirVagues.onglet === 'vague' && essaiIci101() && a) a.insertAdjacentHTML(a.classList.contains('vg-aide') ? 'afterend' : 'beforebegin', carteEssai101()); } catch (e) { /* (la fenetre reste comme avant) */ }
     return r; }; }
 /* apres la vague : le compte de la serie, la ligne du journal completee, et le ressenti dans le bilan */
 { const finVagueE = finVague; finVague = function (gagne, fuite) {

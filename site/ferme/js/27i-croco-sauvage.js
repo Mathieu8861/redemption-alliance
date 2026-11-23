@@ -289,3 +289,4 @@ function capRode(mo, ctx) {
 CAPACITES.unshift(sortCoupe(capRode));
 /* l'aura de la Frenesie de sang (19/11/2026) : rouge sombre, braises rouges, comme le sang que les Piranhas font couler */
 AURAS.sang = { ext: '#8a0f0a', int: '#ff4a3a', halo: '#c41e14', op: 0.4, c: ['#ff6a5a', '#c41e14', '#5a0806'], v: 1.6, t: 0.18 };
+KITS_BOSS.crocoBoss = { ultime: 'crue', sort: 'machoire' }; /* (sa fiche, 23/11/2026 : la Crue en ultime, la Machoire en petit sort ; la Frenesie de sang a la place de la rage, 21-combat.js) */
