@@ -120,3 +120,29 @@ function ouvrirCoffreLabo(C) {
         if (R.grp.visible) { R.lueur.material.opacity = 0.35 + 0.25 * Math.sin(t * 3 + R.ph); if (Math.hypot(R.x - lx, R.z - lz) < RECOLTE_LABO.contact && !(R.pret > t)) recolterLabo(R); } });
       butinLabo.coffres.forEach((C) => { if (!C.ouvert && Math.hypot(C.x - lx, C.z - lz) < 1.55) ouvrirCoffreLabo(C); }); } catch (e) { /* rien */ }
     return r; }; }
+/* ---------- 4. LES POTIONS DE SOIN DU LABO (24/11/2026 au soir, « on fait comment pour finir tout le donjon ? on ne peut pas se soigner une seule fois ? est-ce qu'on met
+   une limite, genre le droit a X potions de soin ? », puis « Potions limitees », Mathieu, formulaire) : 3 par partie, 40 % de la vie chacune, 10 s entre deux ;
+   un bouton dans le bandeau du combat (« 🧪 Potion »), la touche H ; elles sont offertes avec la partie, elles ne viennent pas de ton stock ---------- */
+const POTIONS_LABO = { n: 3, soin: 0.4, recharge: 10, touche: 'h' };
+function potionsLabo() { const E = donjonEtat; if (!E) return 0; if (E.potions == null) E.potions = POTIONS_LABO.n; return E.potions; }
+function boirePotionLabo() {
+  const c = combat, E = donjonEtat; if (!c || c.genre !== 'donjon' || c.fin || !E || E.arrivee) return;
+  if (potionsLabo() <= 0) { toast('Plus de potion de soin pour cette partie du labo.', 'alerte'); return; }
+  const reste = POTIONS_LABO.recharge - (E.t - (E.potionT == null ? -1e9 : E.potionT)); if (reste > 0) { toast('Ta potion agit encore : attends ' + Math.ceil(reste) + ' s.'); return; }
+  if (c.pv >= c.pvMax) { toast('Ta vie est déjà pleine.'); return; }
+  const avant = c.pv; E.potions--; E.potionT = E.t; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * POTIONS_LABO.soin); if (c.st) c.st.soins += c.pv - avant; son('boire');
+  const p = paysanMesh.position; if (typeof chiffre === 'function') chiffre('+' + Math.round(c.pv - avant), new T.Vector3(p.x, p.y + 2.2, p.z), 'soin');
+  emettre(FX_LUM, 22, { x: p.x, y: p.y + 0.4, z: p.z, r: 0.6, v: [0, 2.2, 0], dv: 0.5, vie: [0.5, 0.9], taille: [0.2, 0.04], c: ['#ffffff', '#8dff6a', '#3fd14a'], a: 0.9, frein: 0.4 });
+  toast('🧪 Potion de soin : +' + Math.round(POTIONS_LABO.soin * 100) + ' % de vie. Il t\'en reste ' + E.potions + '.', 'or'); majCombatHud();
+}
+function majBoutonPotionLabo() {
+  const haut = document.querySelector('#hud .combat-haut') || document.querySelector('.combat-haut'); if (!haut) return; let b = document.getElementById('b-potion-labo');
+  const ici = !!(combat && combat.genre === 'donjon' && donjonEtat && !combat.fin);
+  if (!ici) { if (b) b.hidden = true; return; }
+  if (!b) { const f = document.getElementById('b-fuir'); f.insertAdjacentHTML('beforebegin', '<button class="btn discret" id="b-potion-labo" style="position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); grid-row: auto; grid-column: auto" data-info="Une potion de soin du labo : +40 % de vie (touche H)"></button>'); b = document.getElementById('b-potion-labo'); b.addEventListener('click', (e) => { e.stopPropagation(); boirePotionLabo(); }); }
+  const n = potionsLabo(); b.hidden = false; b.disabled = n <= 0; b.textContent = '🧪 ' + n;
+}
+{ const majHudPotion = majCombatHud; majCombatHud = function () { const r = majHudPotion.apply(this, arguments); try { majBoutonPotionLabo(); } catch (e) { /* rien */ } return r; }; }
+document.addEventListener('keydown', (e) => { if (e.repeat || !(combat && combat.genre === 'donjon')) return; const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  if ((e.key || '').toLowerCase() === POTIONS_LABO.touche) { e.preventDefault(); boirePotionLabo(); } });
+{ const st = document.createElement('style'); st.textContent = '@media (max-width: 720px) { #b-potion-labo { left: auto !important; right: 0 !important; top: calc(100% + 6px) !important; transform: none !important; } }'; document.head.appendChild(st); } /* (au telephone, le bandeau prend toute la largeur : le bouton passe dessous, a droite) */
