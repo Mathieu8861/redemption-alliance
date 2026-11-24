@@ -134,6 +134,6 @@ CAPACITES.push(capObusMut, capBombardMut, capCrachatMut, capPinceMut, capGrappin
 /* les renforts ne donnent rien (ni poil, ni cristal) ; la flaque du fluo tombe quand meme */
 { const butinMut2 = butin; butin = function (mo) { if (mo && mo.renfort && combat && combat.genre === 'donjon') { try { if (mo.d && mo.d.flaqueMort) flaqueFluo(mo); } catch (e) { /* rien */ } return; } return butinMut2.apply(this, arguments); }; }
 /* ---------------- le Docteur, plus dur (« le meme delire que les boss de l'ile, voire plus dur vu qu'on est plusieurs ») ---------------- */
-const KIT_WAB_DIFFICILE = { rafale: 8, harpon: 7, saisie: 6.5, vague: 16, vie: 300000, parJoueur: 0.9 };
+const KIT_WAB_DIFFICILE = { rafale: 8, harpon: 7, saisie: 6.5, vague: 16, vie: 500000, parJoueur: 0.9 }; /* (vie : 500 000 en solo, choisi par Mathieu au formulaire le 24/11/2026 ; vie des mutants et boss x5 gardes) */
 if (typeof KIT_WAB !== 'undefined') { KIT_WAB.rafale.periode = KIT_WAB_DIFFICILE.rafale; KIT_WAB.harpon.periode = KIT_WAB_DIFFICILE.harpon; KIT_WAB.saisie.periode = KIT_WAB_DIFFICILE.saisie; KIT_WAB.phase.vague = KIT_WAB_DIFFICILE.vague;
   KIT_WAB.vie.base = KIT_WAB_DIFFICILE.vie; KIT_WAB.vie.parJoueur = KIT_WAB_DIFFICILE.parJoueur; }
