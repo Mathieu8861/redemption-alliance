@@ -501,7 +501,7 @@ async function construireSallesLabo(g, F) {
         blocs.push({ x: q.x, z: q.z, r: 0.85 }); cages.push({ x: q.x, z: q.z, ry, grp: cg, wab: w, type, ouverte: false, ph: Math.random() * 6 }); } }
     /* LA LUMIERE DES LAMPES SUSPENDUES (24/11/2026, la salle des cages refaite : « plus de profondeur, plus de realisme ») : sous chaque repere_lampe, un faisceau
        doux (un cone ouvert qui s'efface vers le bas) et une flaque de lumiere au sol, en lumiere ajoutee */
-    const TEINTES_LAMPE = { repere_lampe: ['#ffe2a6', '#ffd994'], repere_lampe_violet: ['#d29bff', '#c27dff'] }; /* (les lampes de culture de la serre, violettes) */
+    const TEINTES_LAMPE = { repere_lampe: ['#ffe2a6', '#ffd994'], repere_lampe_violet: ['#d29bff', '#c27dff'], repere_lampe_froid: ['#dff6ff', '#cfeefa'] }; /* (les lampes de culture de la serre, violettes) */
     reperes.filter((q) => TEINTES_LAMPE[q.nom]).forEach((q) => { const T2 = texturesLampeLabo(), h = Math.max(1, q.y), [c1, c2] = TEINTES_LAMPE[q.nom];
       const cone = new T.Mesh(new T.CylinderGeometry(0.2, 2.1, h, 24, 1, true), new T.MeshBasicMaterial({ map: T2.faisceau, color: c1, transparent: true, opacity: 0.22, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
       cone.position.set(q.x, h / 2, q.z); cone.renderOrder = 3; cone.raycast = () => {}; s.add(cone);
