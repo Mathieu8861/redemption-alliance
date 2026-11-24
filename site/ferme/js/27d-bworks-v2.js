@@ -23,7 +23,7 @@ const RENDU_B_PAR = { 'croco-boss': { cle: 'croco', ombre: { value: new T.Vector
 function matiereB(m, R) { R = R || RENDU_B; const L = R.lisse || [0.02, 0.10];
   m.onBeforeCompile = (sh) => { sh.uniforms.uOmbreB = R.ombre; sh.uniforms.uDirB = R.dir;
     sh.fragmentShader = 'uniform vec3 uOmbreB;\nuniform vec3 uDirB;\n' + sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
-      'float lB = smoothstep(' + L[0].toFixed(3) + ', ' + L[1].toFixed(3) + ', dot(normal, uDirB));\ngl_FragColor = vec4(mix(diffuseColor.rgb * uOmbreB, diffuseColor.rgb, lB) + totalEmissiveRadiance, diffuseColor.a);'); };
+      (R.sat != null || R.lum != null ? 'vec3 cB = diffuseColor.rgb; cB = mix(vec3(dot(cB, vec3(0.299, 0.587, 0.114))), cB, ' + (R.sat != null ? R.sat : 1).toFixed(3) + ') * ' + (R.lum != null ? R.lum : 1).toFixed(3) + '; diffuseColor.rgb = cB;\n' : '') + 'float lB = smoothstep(' + L[0].toFixed(3) + ', ' + L[1].toFixed(3) + ', dot(normal, uDirB));\ngl_FragColor = vec4(mix(diffuseColor.rgb * uOmbreB, diffuseColor.rgb, lB) + totalEmissiveRadiance, diffuseColor.a);'); }; /* (sat et lum, 24/11/2026 : une couleur trop vive calmee sans toucher a la texture, le Wabbit fluo) */
   m.customProgramCacheKey = () => 'rendu-b' + (R.cle || ''); m.needsUpdate = true; return m;
 }
 const CONTOURS_B = {}; /* (un contour par epaisseur : 0,006 en unites du jeu, quelle que soit l'echelle du modele) */

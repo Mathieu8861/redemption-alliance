@@ -16,6 +16,9 @@
 const MUTANTS_LABO = [['wab-garde', 2.6], ['wab-enrage', 2.0], ['wab-fluo', 2.3], ['wab-greffe', 2.4], ['wab-vampire', 2.3], ['wab-garou', 3.1]];
 MUTANTS_LABO.forEach(([n, h]) => { SQUELETTES_A_CHARGER.push([n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); NOMS_BW2.add(n); VITESSE_FAMILLE[n] = 1.3;
   RENDU_B_PAR[n] = Object.assign({}, RENDU_B, { ombre: { value: new T.Vector3(0.8, 0.81, 0.84) }, lisse: [-0.12, 0.32], cle: 'wabc', sansContour: true }); }); /* (le dosage C : ombre douce a 80 %, sans la coque du contour) */
+/* (24/11/2026, le Wabbit fluo « baisse la lueur », Mathieu : vert citron d'un bout a l'autre, il ressemblait a une boule de salade sur l'ile et on ne voyait pas
+   le lapin ; couleur moins saturee et moins claire, ombre plus marquee pour lire sa forme) */
+Object.assign(RENDU_B_PAR['wab-fluo'], { cle: 'wabc-fluo', sat: 0.68, lum: 0.88, ombre: { value: new T.Vector3(0.58, 0.6, 0.62) } });
 const fW = (t, c, k) => (n) => Math.max(1, Math.round(MONSTRES[t][c](n) * k)); /* (la force d'un mutant : celle d'un Wabbit du jeu, a la meme vague, fois k) */
 Object.assign(MONSTRES, {
   wabGarde: { element: 'feu', nom: 'Garde lapin-machine', modele: 'wab-garde', icone: 'wab-garde', desc: 'le robot de cuivre du Docteur, armure (-30 %) : il monte la garde et te tire des cawottes de son canon, de loin',
