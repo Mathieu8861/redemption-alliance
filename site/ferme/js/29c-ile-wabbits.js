@@ -620,7 +620,8 @@ CAMPS_LABO.forEach((K) => { K.x0 = K.x; K.z0 = K.z; });
 function posterCamp(c, k, delai, repop) { /* repop : le camp revient, sans son chef (son coffre ne tombe qu'une fois) */
   const K = CAMPS_LABO[k], L = []; K.L.forEach(([t, n, ch]) => { if (repop && ch === 'chef') return; for (let i = 0; i < n; i++) L.push(t); });
   if (repop) c.total += L.length;
-  L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 3) * 1.1, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 }), chef = !repop && K.L.some(([t2, , ch]) => ch === 'chef' && t2 === t) && L.indexOf(t) === i;
+  const libre = (q) => { if (libreSolLabo(q[0] - DONJON.x, q[1] - DONJON.z, 0.55)) return q; for (let n = 1; n < 40; n++) { const b = n * 2.4, d = n * 0.3, x = q[0] + Math.cos(b) * d, z = q[1] + Math.sin(b) * d; if (libreSolLabo(x - DONJON.x, z - DONJON.z, 0.55)) return [x, z]; } return q; }; /* (24/11/2026 : un enrage du champ naissait dans un obstacle : la place libre la plus proche) */
+  L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 3) * 1.1, q = libre(bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 })), chef = !repop && K.L.some(([t2, , ch]) => ch === 'chef' && t2 === t) && L.indexOf(t) === i;
     setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] };
       if (K.patrouille != null) o.off = { x: q[0] - DONJON.x - K.x, z: q[1] - DONJON.z - K.z }; /* (une patrouille : sa place dans le groupe, qui avance) */
       if (repop) pouf(o.x, hTerrainLabo(o.x - DONJON.x, o.z - DONJON.z), o.z, 1.0, '#8dff6a');

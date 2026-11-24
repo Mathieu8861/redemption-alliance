@@ -64,7 +64,8 @@ async function poserButinLabo(g) {
   const P0 = g.userData.protos || {};
   /* les Cawottes mures, dans les rangs des champs */
   CHAMPS_LABO.forEach((F) => { const c = Math.cos(F.a), s = Math.sin(F.a), en = (u, v) => ({ x: F.x + c * u - s * v, z: F.z + s * u + c * v });
-    for (let k = 0; k < RECOLTE_LABO.parChamp; k++) { const q = en(-2.6 + k * 1.75, k % 2 ? 1.0 : -1.0); if (!P0.cawotte) break;
+    for (let k = 0; k < RECOLTE_LABO.parChamp; k++) { let q = en(-2.6 + k * 1.75, k % 2 ? 1.0 : -1.0); if (!P0.cawotte) break;
+      if (!libreSolLabo(q.x, q.z, 0.35)) { let ok = null; for (let n = 1; n < 30 && !ok; n++) { const b = n * 2.4, d = n * 0.2, x = q.x + Math.cos(b) * d, z = q.z + Math.sin(b) * d; if (libreSolLabo(x, z, 0.35)) ok = { x, z }; } if (!ok) continue; q = ok; } /* (24/11/2026 : deux cawottes mures tombaient dans un obstacle, impossibles a recolter) */
       const grp = new T.Group(), m = new T.Group(), f = P0.cawotte.clone(true); f.position.set(0, 0.05, 0); f.rotation.set(0, 0, 0); f.scale.setScalar(2.1); m.add(f); fusionner(m); grp.add(m); /* (soudee : 14 dessins par cawotte, 280 pour les 20 de l'ile, la moitie du lag du 24/11/2026) */ /* (les fanes sur la racine ; la piece garde sinon sa place dans le fichier) */
       const lueur = new T.Mesh(new T.RingGeometry(0.28, 0.45, 20), new T.MeshBasicMaterial({ color: '#b6ff7a', transparent: true, opacity: 0.55, depthWrite: false, side: T.DoubleSide })); lueur.rotation.x = -Math.PI / 2; lueur.position.y = 0.05; lueur.raycast = () => {}; grp.add(lueur);
       grp.position.set(q.x, hTerrainLabo(q.x, q.z) + 0.04, q.z); grp.rotation.y = k * 1.3; g.add(grp); butinLabo.recoltes.push({ x: q.x, z: q.z, grp, m, lueur, ph: k * 0.9 }); } });
