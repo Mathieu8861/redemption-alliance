@@ -416,6 +416,7 @@ function ouvrirSalleLabo(i) {
     const P = E.perso; P.mode = 'salle'; P.i = i; const re = S.R - 3.4; zoom = i === 4 ? 0.7 : 0.82; cadrer(); placerPersoDonjon(DONJON.x + S.x + Math.cos(ENTREE_SALLE) * re, Y_SALLE, DONJON.z + S.z + Math.sin(ENTREE_SALLE) * re);
     paysanMesh.userData.angle = Math.atan2(-Math.cos(ENTREE_SALLE), -Math.sin(ENTREE_SALLE)); paysanMesh.rotation.y = paysanMesh.userData.angle;
     toast(i === 4 ? 'Le labo ! Le Docteur Wabbenstein lâche ses fioles et se retourne vers toi.' : 'Tu entres dans ' + S.nom + ' : ses mutants t\'attendent !', 'alerte'); son('vague', null, 2);
+    if (i < 4) cuveSpecimenLabo(i); /* (le specimen dans sa cuve, au fond, 24/11/2026) */
     L.forEach((t, k) => { const a = ENTREE_SALLE + Math.PI + (L.length > 1 ? (k / (L.length - 1) - 0.5) * 1.6 : 0), rr = i === 4 ? 6.5 : 3.6 + (k % 2) * 2.4, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
       setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x, z, apres: (o) => { if (t !== 'wabbenstein') transmuter(o); o.lab = { mode: 'salle', i }; o.salle = i; o.y = Y_SALLE; o.ry = Math.atan2(Math.cos(ENTREE_SALLE), Math.sin(ENTREE_SALLE)); if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE - 1.4; } } }); }, 450 + k * 240); });
   });
@@ -423,12 +424,27 @@ function ouvrirSalleLabo(i) {
 /* LE SPECIMEN D'UNE CUVE (24/11/2026, « dans chaque salle un lapin mutant qui est dans une cuve et qui sort a un certain moment de la vague », Mathieu) : la moitie
    des mutants de la salle abattue, la cuve du fond se brise (eclats de verre, flot vert) et le specimen du theme en sort : le meme mutant, plus grand et bien plus
    fort ; il donne des kamas et des Poils de Wabbit (27n-mutants-labo.js) */
+function cuveSpecimenLabo(i) {
+  const E = donjonEtat, S = SALLES_LABO[i], t = S.L[0][0], a = ENTREE_SALLE + Math.PI, rr = S.R - 3.2, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
+  if (!E || !E.salles[i] || E.salles[i].cuveG) return; const g = new T.Group(); g.position.set(x, Y_SALLE, z);
+  const cuivre = new T.MeshLambertMaterial({ color: '#b8743a' }), verre = new T.MeshLambertMaterial({ color: '#9fffd2', transparent: true, opacity: 0.26, depthWrite: false }), jus = new T.MeshBasicMaterial({ color: '#5dff7a', transparent: true, opacity: 0.16, depthWrite: false });
+  const socle = new T.Mesh(new T.CylinderGeometry(1.75, 1.9, 0.5, 24), cuivre); socle.position.y = 0.25; g.add(socle);
+  const cap = new T.Mesh(new T.CylinderGeometry(1.6, 1.75, 0.45, 24), cuivre); cap.position.y = 4.35; g.add(cap);
+  const tube = new T.Mesh(new T.CylinderGeometry(1.55, 1.55, 3.7, 28, 1, true), verre); tube.position.y = 2.35; tube.renderOrder = 4; g.add(tube);
+  const liq = new T.Mesh(new T.CylinderGeometry(1.48, 1.48, 3.5, 24), jus); liq.position.y = 2.3; liq.renderOrder = 3; g.add(liq);
+  [1.2, 3.4].forEach((y) => { const r = new T.Mesh(new T.TorusGeometry(1.58, 0.07, 6, 28), cuivre); r.rotation.x = Math.PI / 2; r.position.y = y; g.add(r); });
+  try { const m = clonerSquelette(MONSTRES[t].modele); if (m) { m.scale.multiplyScalar(0.85); m.position.y = 0.6; m.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a)); m.traverse((q) => { if (q.isMesh && q.material) { q.material = q.material.clone(); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.25; } } }); g.add(m); g.userData.mutant = m; } } catch (e) { /* (sans modele : la cuve seule) */ }
+  scene.add(g); E.salles[i].cuveG = g;
+  g.userData.bulles = setInterval(() => { if (!g.parent) { clearInterval(g.userData.bulles); return; } if (enPause || typeof emettre !== 'function') return; emettre(FX_LUM, 1, { x: x + (Math.random() - 0.5) * 2.2, y: Y_SALLE + 0.7, z: z + (Math.random() - 0.5) * 2.2, r: 0.05, v: [0, 1.3, 0], dv: 0.15, vie: [1.6, 2.4], taille: [0.12, 0.05], c: ['#c8ffd8', '#7dff5a'], a: 0.6, frein: 0 });
+    if (g.userData.mutant) g.userData.mutant.position.y = 0.6 + 0.08 * Math.sin(performance.now() / 700); }, 120);
+}
+function briserCuveLabo(i) { const E = donjonEtat, s = E && E.salles[i], g = s && s.cuveG; if (!g) return; clearInterval(g.userData.bulles); scene.remove(g); g.traverse((q) => { if (q.isMesh && !q.isSkinnedMesh) { q.geometry.dispose(); } }); s.cuveG = null; }
 function specimenLabo(i) {
   const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || !E.salles[i] || E.salles[i].specimen) return; E.salles[i].specimen = true;
   const t = S.L[0][0], a = ENTREE_SALLE + Math.PI, rr = S.R - 3.2, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
   if (typeof emettre === 'function') { emettre(FX_LUM, 40, { x, y: Y_SALLE + 1.4, z, r: 0.8, v: [0, 2.2, 0], dv: 3.2, vie: [0.5, 1.1], taille: [0.22, 0.06], c: ['#d8fff4', '#9fffd0', '#ffffff'], a: 0.9, frein: 0.6 });
     emettre(FX_LUM, 30, { x, y: Y_SALLE + 0.2, z, r: 1.2, v: [0, 0.6, 0], dv: 2.0, vie: [0.8, 1.4], taille: [0.4, 0.1], c: ['#7dff5a', '#3fd14a'], a: 0.7, frein: 0.4 }); }
-  if (typeof secousse === 'function') secousse(0.25, 0.4); son('vague', null, 2);
+  briserCuveLabo(i); if (typeof secousse === 'function') secousse(0.25, 0.4); son('vague', null, 2);
   toast('Crac ! La cuve du fond se brise : le spécimen n°' + (i + 1) + ' s\'en échappe !', 'alerte');
   apparaitre(t, { x, z, apres: (o) => { transmuter(o); if (typeof grandirMutant === 'function') grandirMutant(o, SPECIMEN, '#7dff5a', 'Spécimen n°' + (i + 1) + ' (' + MONSTRES[t].nom + ')'); o.specimen = true; o.lab = { mode: 'salle', i }; o.salle = i; o.y = Y_SALLE; o.ry = Math.atan2(-Math.cos(a), -Math.sin(a)); if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE - 1.4; } } });
 }
@@ -503,6 +519,7 @@ function debarquer() {
     if (k < 1) return false; p.y = -0.06; u.y = -0.06; E.arrivee = false; b.rotation.z = 0; poussiere(p.x, -0.06, p.z, 5, 0.6, '#b9ae92'); return true; });
 }
 function finDonjon(gagne) {
+  try { (donjonEtat && donjonEtat.salles || []).forEach((s, i) => { if (s && s.cuveG) briserCuveLabo(i); }); } catch (e) { /* rien */ } /* (les cuves des specimens, 24/11/2026) */
   const c = combat, E = donjonEtat; if (!c || c.fin || c.genre !== 'donjon') return; nettoyerCombat(c, true); donjonEtat = null;
   const m = Math.floor(E.t / 60), sec = Math.round(E.t % 60), salles = E.salles.filter((s) => s && s.fini).length;
   if (ileWabbits) effacerTourReset();
