@@ -1,0 +1,139 @@
+'use strict';
+/* LES KITS DES MUTANTS DU LABO (24/11/2026, Mathieu : « passe aux animations et degats des mutants ; il faut vraiment que ce soit difficile, niveau de
+   difficulte d'une vague 35 pour nous, et le meme delire que les boss de l'ile pour les boss, voire plus dur vu qu'on est plusieurs », puis « juste faudra
+   ajuster les degats et les pv, mais la rapidite d'execution des sorts des monstres ca doit etre ca, et que ce soit diversifie »). Version dev (le labo n'existe
+   que dans le mode test).
+   Chaque mutant a maintenant son kit, annonce au sol et rapide (0,7 a 0,9 s pour sortir d'une zone, un sort toutes les 4 a 9 s, comme les Craqueleurs de la
+   vague 35), et des coups automatiques plus vifs (cadence et elan raccourcis) :
+   - le garde lapin-machine : ses cawottes de loin, et l'OBUS-CAWOTTE tire en cloche sur toi (cercle rouge) ;
+   - le Wabbit enrage : il RUGIT puis CHARGE en ligne droite (bande rouge), griffe en continu ; quand l'un tombe, ceux d'a cote entrent en FRENESIE ;
+   - le Wabbit fluo : il CRACHE DU MUTAGENE (deux cercles verts : la flaque reste et empoisonne), et laisse sa flaque en mourant ;
+   - le Wabbit greffe : le COUP DE PINCE (un eventail devant lui : repousse et assomme) et le GRAPPIN (une ligne : il te ramene contre lui et t'assomme) ;
+   - le Wabbit vampire : il vole, te VOLE LA VIE, et fond sur toi en PIQUE (cercle rouge, d'assez loin) ;
+   - le Wabbit garou : le BOND (cercle rouge) et la FRAPPE DU GAROU (il abat ses poings : cercle autour de lui) ;
+   - le drone : ses cawottes de loin, et le BOMBARDEMENT (trois cercles orange : des cawottes tombent du ciel).
+   LES BOSS DU LABO (« le meme delire que les boss de l'ile ») : les chefs des camps (Chef des gardes, Garou alpha) et les specimens des cuves gardent le kit de
+   leur type, plus vite (sorts x0,7), avec un sort de boss en plus, LA RAGE sous 30 % (sorts +30 %, il rugit) et des RENFORTS de leur type toutes les 16 s
+   (2 a la fois, 4 au plus, sans butin) : BOSS_MUT. Le Docteur : KIT_WAB plus rapide, plus de vie (KIT_WAB_DIFFICILE). Les chiffres (vie, degats) : a regler
+   avec Mathieu apres ses essais. */
+const KITS_MUT = {
+  wabGarde: { cadence: 1.5, elanCoup: 0.3, obus: { periode: 4.5, prepa: 0.85, R: 1.8, x: 1.0, loin: 2.5 } },
+  wabEnrage: { cadence: 0.8, elanCoup: 0.28, charge: 3.5, chargePrepa: 0.7, chargeMax: 10, gestes: { charge: 'rugir' }, frenesie: { R: 8, t: 4 } },
+  wabFluo: { cadence: 1.3, elanCoup: 0.3, crachatMut: { periode: 5, prepa: 0.85, n: 2, ecart: 2.4, R: 1.3, x: 0.8, flaque: { duree: 3, pct: 0.01 } } },
+  wabGreffe: { cadence: 1.5, elanCoup: 0.3, pince: { periode: 5, prepa: 0.7, R: 3.0, ouv: 0.8, x: 1.1, repousse: 1.6, assomme: 0.35 }, grappin: { periode: 8, prepa: 0.75, min: 3.5, max: 12, larg: 1.2, x: 0.6 }, appelStun: 0.45 },
+  wabVampire: { cadence: 1.0, elanCoup: 0.28, bondit: 3.5, bonditLoin: true, bonditMax: 9, bondPrepa: 0.75, bonditR: 1.4, bonditH: 1.2, gestes: { bondit: 'bond' }, sortsX: { bond: 0.9 } },
+  wabGarou: { cadence: 1.6, elanCoup: 0.34, bondit: 5, bondPrepa: 0.8, bonditR: 2.4, seisme: 6.5, seismeR: 3.4, seismeDuree: 0.9, seismeProche: 0.6, seismeNom: 'Frappe du garou', gestes: { bondit: 'bond', seisme: 'coup' }, sortsX: { seisme: 1.2 } },
+  wabDrone: { cadence: 1.4, bombardement: { periode: 9, prepa: 1.1, n: 3, ecart: 3.2, R: 1.3, x: 0.8 } },
+};
+const DESC_MUT = {
+  wabGarde: 'le robot de cuivre du Docteur, armure (-30 %) : il te tire des cawottes de son canon, de loin, et toutes les 4,5 s un obus-cawotte en cloche sur toi (cercle rouge, 0,85 s pour en sortir)',
+  wabEnrage: 'échappé des cages, l\'œil rouge : il griffe vite et sans s\'arrêter, rugit puis te charge en ligne droite toutes les 3,5 s (bande rouge, 0,7 s pour en sortir) ; quand un enragé tombe, ceux d\'à côté entrent en frénésie 4 s',
+  wabFluo: 'gorgé de mutagène qui luit : il te crache du mutagène toutes les 5 s (deux cercles verts, 0,85 s pour en sortir), la flaque reste 3 s et empoisonne (1 % de ta vie par seconde) ; en mourant, il laisse une grande flaque',
+  wabGreffe: 'cousu de partout et blindé, armure (-35 %) : coup de pince devant lui toutes les 5 s (éventail rouge, 0,7 s : il repousse et assomme), et de loin son grappin toutes les 8 s (une ligne : il te ramène contre lui et t\'assomme)',
+  wabVampire: 'sorti des cuves, les oreilles en ailes : il vole, chaque morsure le soigne de la moitié des dégâts, et toutes les 3,5 s il fond sur toi d\'assez loin (cercle rouge, 0,75 s pour en sortir)',
+  wabGarou: 'la créature la plus forte du Docteur, armure (-15 %) : il te bondit dessus toutes les 5 s (cercle rouge, 0,8 s) et abat ses poings toutes les 6,5 s (cercle autour de lui, 0,9 s pour en sortir)',
+  wabDrone: 'un petit robot volant du Docteur : il te tire des cawottes de loin, et toutes les 9 s il bombarde (trois cercles orange, des cawottes tombent du ciel, 1,1 s pour en sortir)',
+};
+Object.keys(KITS_MUT).forEach((t) => { if (MONSTRES[t]) Object.assign(MONSTRES[t], KITS_MUT[t], { desc: DESC_MUT[t] || MONSTRES[t].desc }); });
+/* ---------------- les boss du labo : chefs des camps et specimens des cuves ---------------- */
+const BOSS_MUT = {
+  wabGarde: { obus: { periode: 3.8, prepa: 0.8, R: 2.0, x: 1.1, loin: 2 }, bombardement: { periode: 7, prepa: 1.0, n: 4, ecart: 3.4, R: 1.4, x: 0.9 }, renfortsMut: ['wabGarde', 'gardes'] },
+  wabGarou: { bondit: 3.5, bondDouble: true, seisme: 4.5, seismeR: 4.0, galvanise: 11, galvaCouleurs: ['#ff5a3a', '#ffb02e'], gestes: { bondit: 'bond', seisme: 'coup', galvanise: 'appel' }, renfortsMut: ['wabEnrage', 'Wabbits enragés'] },
+  wabEnrage: { charge: 2.4, chargePrepa: 0.65, galvanise: 10, galvaCouleurs: ['#ff5a3a', '#ffb02e'], gestes: { charge: 'rugir', galvanise: 'rugir' }, renfortsMut: ['wabEnrage', 'Wabbits enragés'] },
+  wabFluo: { crachatMut: { periode: 3.5, prepa: 0.8, n: 4, ecart: 2.6, R: 1.4, x: 0.9, flaque: { duree: 4, pct: 0.012 } }, flaqueMort: { R: 2.6, duree: 6, pct: 0.015 }, renfortsMut: ['wabFluo', 'Wabbits fluo'] },
+  wabGreffe: { pince: { periode: 3.5, prepa: 0.65, R: 3.6, ouv: 0.9, x: 1.2, repousse: 2, assomme: 0.4 }, grappin: { periode: 6, prepa: 0.7, min: 3.5, max: 13, larg: 1.3, x: 0.7 }, seisme: 7, seismeR: 3.6, seismeDuree: 0.85, seismeProche: 0.6, seismeNom: 'Pince au sol', gestes: { seisme: 'coup' }, renfortsMut: ['wabGreffe', 'Wabbits greffés'] },
+  wabVampire: { bondit: 2.5, bondPrepa: 0.7, volVie: 0.8, drain: { periode: 8, prepa: 0.9, R: 3.6, x: 1.0, soin: 3 }, renfortsMut: ['wabVampire', 'Wabbits vampires'] },
+};
+const RENFORTS_MUT = { periode: 16, n: 2, max: 4 };
+/* LEUR VIE (24/11/2026, « le meme delire que les boss de l'ile ») : le specimen tombait en 10 s sous les coups d'un Iop de niveau 100 ; vie x5 (specimen, avant 2,4)
+   et x5 (chef, avant 3), soit 25 a 60 s de frappe pour un perso de niveau 100 (le boss du palier 4 pour un perso de niveau 35 : 25 s), +75 % par joueur en plus
+   (comme le Docteur, quand le donjon se jouera a plusieurs : joueursWab) */
+SPECIMEN.pv = 5; CHEF_LABO.pv = 5; const BOSS_MUT_PAR_JOUEUR = 0.75;
+{ const grandir0 = grandirMutant; grandirMutant = function (o, k, couleur, nom) { grandir0.apply(this, arguments); /* (le meme mutant, plus grand et plus fort : son kit de boss par-dessus, et la rage) */
+    try { const nJ = typeof joueursWab === 'function' ? joueursWab(o) : 1; if (nJ > 1) { o.pvMax = o.pv = Math.round(o.pvMax * (1 + BOSS_MUT_PAR_JOUEUR * (nJ - 1))); } const B = BOSS_MUT[o.type]; if (B) o.d = Object.assign({}, o.d, B, { rage: true, bossMut: true }); else o.d = Object.assign({}, o.d, { rage: true, bossMut: true }); o.renfortMT = RENFORTS_MUT.periode - 6; } catch (e) { /* rien */ } }; }
+/* ---------------- les sorts ---------------- */
+const solMut = () => (paysanMesh ? paysanMesh.position.y : 0); /* (le sol sous le perso : dans une salle comme sur l'ile, le perso est debout dessus) */
+function capObusMut(mo, ctx) { /* l'obus-cawotte du garde : tire en cloche sur toi, cercle rouge */
+  const O = mo.d.obus; if (!O || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('obusT', O.periode)) return; if (dP < O.loin || dP > 14) { mo.obusT = O.periode; return; }
+  mo.obusT = 0; const c0 = combat, x = pp.x, z = pp.z, y = solMut(); mo.ry = Math.atan2(x - mo.x, z - mo.z); mo.bloqueT = O.prepa + 0.3; mo.frappe = 0.3;
+  mo.geste = null; gesteSort(mo, 'tir', O.prepa); if (!c0.obusVu) { c0.obusVu = true; toast(leNom(mo.d) + ' tire un obus-cawotte en cloche sur toi : sors du cercle rouge !', 'alerte'); }
+  cawotteVolante(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.7, mo.z), x, y, z, 0.12, O.prepa, 1.5, false);
+  zoneDanger({ mo, x, z, r: O.R, duree: O.prepa, effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * O.x)), mo); } });
+}
+function capBombardMut(mo, ctx) { /* le bombardement du drone (et du chef des gardes) : des cawottes tombent du ciel sur toi et autour */
+  const B = mo.d.bombardement; if (!B || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('bombT', B.periode)) return; if (dP > 16) { mo.bombT = B.periode; return; }
+  mo.bombT = 0; const c0 = combat, y = solMut(); mo.bloqueT = 0.5; mo.frappe = 0.3; mo.geste = null; gesteSort(mo, 'tir', 0.4);
+  if (!c0.bombVu) { c0.bombVu = true; toast(leNom(mo.d) + ' bombarde : des cawottes tombent du ciel, sors des cercles orange !', 'alerte'); }
+  const P = [[pp.x, pp.z]]; for (let i = 1; i < B.n; i++) { const a = Math.random() * Math.PI * 2, r = B.ecart * (0.6 + Math.random() * 0.5); P.push([pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]); }
+  P.forEach(([x, z], i) => { cawotteVolante(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.8, mo.z), x, y, z, 0.05 + i * 0.06, B.prepa, 1.3, false);
+    zoneDanger({ mo, x, z, r: B.R, duree: B.prepa, couleur: '#f08a24', effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * B.x)), mo); } }); });
+}
+/* le crachat de mutagene du fluo : des bulles vertes vers toi, la flaque reste et empoisonne */
+function flaqueMut(x, z, y, R, duree, pct) {
+  const m = new T.Mesh(new T.CircleGeometry(R, 26), new T.MeshBasicMaterial({ color: '#8dff4a', transparent: true, opacity: 0.55, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, y + 0.04, z); m.renderOrder = 3; scene.add(m);
+  FLAQUES_FLUO.push({ m, x, z, y: y + 0.04, R, fin: performance.now() + duree * 1000, pct, c: combat });
+}
+const GEO_BULLE_MUT = new T.SphereGeometry(0.28, 12, 9), MAT_BULLE_MUT = new T.MeshBasicMaterial({ color: '#8dff4a' });
+function capCrachatMut(mo, ctx) {
+  const C = mo.d.crachatMut; if (!C || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('crachatMT', C.periode)) return; if (dP > 12) { mo.crachatMT = C.periode; return; }
+  mo.crachatMT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), y = solMut(); mo.ry = a; mo.bloqueT = C.prepa + 0.3; mo.frappe = 0.3;
+  mo.geste = null; gesteSort(mo, 'rugir', C.prepa + 0.2); if (!c0.crachatMVu) { c0.crachatMVu = true; toast(leNom(mo.d) + ' crache du mutagène : sors des cercles verts, la flaque qui reste empoisonne !', 'alerte'); }
+  const ux = Math.cos(a), uz = -Math.sin(a), P = []; for (let i = 0; i < C.n; i++) { const k = i - (C.n - 1) / 2; P.push([pp.x + ux * k * C.ecart, pp.z + uz * k * C.ecart]); } /* (en travers de la ligne : on en sort en avancant ou en reculant) */
+  const de = new T.Vector3(mo.x + Math.sin(a) * 0.5, mo.m.position.y + (mo.haut || 2) * 0.7, mo.z + Math.cos(a) * 0.5), tg = C.prepa * 0.45;
+  P.forEach(([x, z]) => { const b = new T.Mesh(GEO_BULLE_MUT, MAT_BULLE_MUT); b.visible = false; b.raycast = () => {}; scene.add(b); let t = 0;
+    effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { jeter(b); return true; } if (t < tg) return false; b.visible = true; const u = Math.min(1, (t - tg) / (C.prepa - tg));
+      b.position.set(de.x + (x - de.x) * u, de.y + (y + 0.2 - de.y) * u + Math.sin(u * Math.PI) * 2.2, de.z + (z - de.z) * u); if (Math.random() < 0.5) emettre(FX_LUM, 1, { x: b.position.x, y: b.position.y, z: b.position.z, r: 0.05, vie: [0.2, 0.35], taille: [0.22, 0.05], c: ['#c8ff7a', '#8dff4a'], a: 0.8 });
+      if (u >= 1) { jeter(b); return true; } return false; });
+    zoneDanger({ mo, x, z, r: C.R, duree: C.prepa, couleur: '#3fae2a', effet: (d) => { pouf(x, y, z, C.R * 1.5, '#8dff4a'); emettre(FX_VIF, 12, { x, y: y + 0.2, z, r: 0.4, v: [0, 3.5, 0], dv: 2.5, vie: [0.35, 0.6], taille: [0.16, 0.05], c: ['#c8ff7a', '#8dff4a', '#3fae2a'], grav: 10 });
+      const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * C.x)), mo); flaqueMut(x, z, y, C.R * 1.1, C.flaque.duree, C.flaque.pct); } }); });
+}
+function capPinceMut(mo, ctx) { /* le coup de pince du greffe : un eventail devant lui, il repousse et assomme */
+  const P = mo.d.pince; if (!P || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('pinceT', P.periode)) return; if (dP > P.R + 0.6) { mo.pinceT = P.periode; return; }
+  mo.pinceT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.ry = a; mo.bloqueT = P.prepa + 0.35; mo.frappe = 0.3;
+  mo.geste = null; gesteSort(mo, 'coup', P.prepa); if (!c0.pinceVu) { c0.pinceVu = true; toast(leNom(mo.d) + ' arme sa pince : sors de l\'éventail rouge, il repousse et assomme !', 'alerte'); }
+  zoneDanger({ mo, x: mo.x, z: mo.z, r: P.R, a, ouv: P.ouv, duree: P.prepa, effet: (d) => { const y = mo.m.position.y; secousse(0.12, 0.2); emettre(FX_VIF, 14, { x: mo.x + Math.sin(a) * P.R * 0.6, y: y + 0.8, z: mo.z + Math.cos(a) * P.R * 0.6, r: 0.5, dv: 5, vie: [0.25, 0.45], taille: [0.12, 0.04], c: ['#ffffff', '#ffd27a', '#9aa3ad'], grav: 8, frein: 1 });
+    const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) { blesserPerso(Math.max(1, Math.round(degSort(mo) * P.x)), mo); if (combat && !combat.fin) { repousserPerso(mo, P.repousse); etourdir(P.assomme); } } } });
+}
+function capGrappinMut(mo, ctx) { /* le grappin du greffe : une ligne jusqu'a toi, il te ramene contre lui et t'assomme */
+  const G = mo.d.grappin; if (!G || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('grappinT', G.periode)) return; if (dP < G.min || dP > G.max) { mo.grappinT = G.periode; return; }
+  mo.grappinT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), L = dP + 1.5, x2 = mo.x + Math.sin(a) * L, z2 = mo.z + Math.cos(a) * L; mo.ry = a; mo.bloqueT = G.prepa + 0.5; mo.frappe = 0.3;
+  mo.geste = null; gesteSort(mo, 'coup', G.prepa); if (!c0.grappinVu) { c0.grappinVu = true; toast(leNom(mo.d) + ' lance son grappin : sors de la ligne, ou il te ramène contre lui et t\'assomme !', 'alerte'); }
+  zoneDanger({ mo, x: mo.x, z: mo.z, x2, z2, larg: G.larg, duree: G.prepa, couleur: '#8a95a5', fort: 1.4, bord: true, effet: (d) => {
+    const y0 = mo.m.position.y + (mo.haut || 2) * 0.55, p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), bout = pris ? new T.Vector3(p2.x, p2.y + 1, p2.z) : new T.Vector3(x2, solMut() + 0.5, z2);
+    const geo = new T.BufferGeometry().setFromPoints([new T.Vector3(mo.x, y0, mo.z), bout]), l = new T.Line(geo, new T.LineBasicMaterial({ color: '#cfd4da' })); l.raycast = () => {}; scene.add(l); setTimeout(() => { jeter(l); }, 320);
+    if (pris) { blesserPerso(Math.max(1, Math.round(degSort(mo) * G.x)), mo); if (combat && !combat.fin) attirerPerso(mo); } } });
+}
+function capDrainMut(mo, ctx) { /* le specimen vampire : un cercle autour de lui, il aspire ta vie et se soigne de trois fois ce qu'il prend */
+  const D = mo.d.drain; if (!D || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
+  if (!sortPret('drainT', D.periode)) return; if (dP > D.R + 1.5) { mo.drainT = D.periode; return; }
+  mo.drainT = 0; const c0 = combat, x0 = mo.x, z0 = mo.z; mo.bloqueT = D.prepa + 0.3; mo.geste = null; gesteSort(mo, 'rugir', D.prepa + 0.2);
+  if (!c0.drainVu) { c0.drainVu = true; toast(leNom(mo.d) + ' va aspirer ta vie : sors du cercle, il se soigne de ce qu\'il te prend !', 'alerte'); }
+  zoneDanger({ mo, x: x0, z: z0, r: D.R, duree: D.prepa, couleur: '#9a1030', effet: (d) => { const p2 = paysanMesh.position, y = mo.m.position.y;
+    emettre(FX_LUM, 26, { x: x0, y: y + 0.3, z: z0, r: D.R * 0.8, plat: true, v: [0, 1.6, 0], dv: 0.6, vie: [0.4, 0.7], taille: [0.2, 0.05], c: ['#ff3a5a', '#9a1030'], a: 0.85 });
+    if (dansDanger(d, p2.x, p2.z)) { const a0 = combat.pv; blesserPerso(Math.max(1, Math.round(degSort(mo) * D.x)), mo); const pris = Math.max(0, a0 - (combat ? combat.pv : a0)), h = Math.round(pris * D.soin);
+      if (h > 0) { mo.pv = Math.min(mo.pvMax, mo.pv + h); chiffre('+' + h, new T.Vector3(mo.x, y + (mo.haut || 2), mo.z), 'soin'); } } } });
+}
+function capRenfortsMut(mo, ctx) { /* les boss du labo appellent des mutants de leur type toutes les 16 s (2 a la fois, 4 au plus, sans butin) */
+  const rf = mo.d.renfortsMut; if (!rf || mo.etat !== 'actif' || !(combat && combat.genre === 'donjon')) return; const { sortPret } = ctx;
+  if (!sortPret('renfortMT', RENFORTS_MUT.periode)) return; mo.renfortMT = 0;
+  const vivants = combat.monstres.filter((o) => o.renfortDe === mo && o.etat !== 'mort').length; if (vivants >= RENFORTS_MUT.max) return;
+  const c0 = combat, n = Math.min(RENFORTS_MUT.n, RENFORTS_MUT.max - vivants); gesteSort(mo, gesteDe(mo, 'renforts', 'rugir'), 0.8); secousse(0.1, 0.2);
+  if (!c0.renfortsMutVu) { c0.renfortsMutVu = true; toast(leNom(mo.d) + ' appelle des ' + rf[1] + ' : il en rappellera toutes les ' + RENFORTS_MUT.periode + ' s tant qu\'il sera debout !', 'alerte'); }
+  else chiffre('Renforts !', new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) + 0.4, mo.z), 'butin');
+  for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, r = 2.2 + Math.random() * 1.2, x = mo.x + Math.cos(a) * r, z = mo.z + Math.sin(a) * r; combat.total++;
+    setTimeout(() => { if (combat !== c0 || c0.fin) return; apparaitre(rf[0], { x, z, apres: (o) => { if (typeof transmuter === 'function') transmuter(o); o.renfort = true; o.renfortDe = mo; o.aggro = true;
+      if (mo.lab) o.lab = Object.assign({}, mo.lab); if (mo.salle != null) o.salle = mo.salle; if (mo.camp != null) { o.camp = mo.camp; o.maison = { x, z }; } o.y = mo.y; if (o.dep && mo.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = mo.dep.y; }
+      pouf(x, solMut(), z, 1.2, '#8dff6a'); } }); }, 250 + k * 200); }
+}
+CAPACITES.push(capObusMut, capBombardMut, capCrachatMut, capPinceMut, capGrappinMut, capDrainMut, capRenfortsMut);
+/* les renforts ne donnent rien (ni poil, ni cristal) ; la flaque du fluo tombe quand meme */
+{ const butinMut2 = butin; butin = function (mo) { if (mo && mo.renfort && combat && combat.genre === 'donjon') { try { if (mo.d && mo.d.flaqueMort) flaqueFluo(mo); } catch (e) { /* rien */ } return; } return butinMut2.apply(this, arguments); }; }
+/* ---------------- le Docteur, plus dur (« le meme delire que les boss de l'ile, voire plus dur vu qu'on est plusieurs ») ---------------- */
+const KIT_WAB_DIFFICILE = { rafale: 8, harpon: 7, saisie: 6.5, vague: 16, vie: 300000, parJoueur: 0.9 };
+if (typeof KIT_WAB !== 'undefined') { KIT_WAB.rafale.periode = KIT_WAB_DIFFICILE.rafale; KIT_WAB.harpon.periode = KIT_WAB_DIFFICILE.harpon; KIT_WAB.saisie.periode = KIT_WAB_DIFFICILE.saisie; KIT_WAB.phase.vague = KIT_WAB_DIFFICILE.vague;
+  KIT_WAB.vie.base = KIT_WAB_DIFFICILE.vie; KIT_WAB.vie.parJoueur = KIT_WAB_DIFFICILE.parJoueur; }
