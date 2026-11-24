@@ -50,6 +50,6 @@ function majVraiesLumieres(dt) { /* a chaque image, apres les lanternes */
      sources que de lumieres, la ferme vue de loin) garde son halo et son rond, sinon elle parait eteinte (« sur ma map on voit rien », Mathieu, 12/11/2026) */
   const servie = new Map(); J.P.forEach((p) => { if (p.cle) servie.set(p.cle, Math.min(1, p.o.intensity / Math.max(0.01, F))); });
   lanternesAnim.forEach((A) => { const q = A.halo.position, t = la ? servie.get('l' + Math.round(q.x * 4) + '_' + Math.round(q.z * 4)) || 0 : 0;
-    A.halo.scale.setScalar(A.r * 1.9 * (1 - (1 - V.verre) * t)); if (A.sol) { A.sol.material.opacity = 1 - t; A.sol.visible = A.a > 0.01 && t < 0.99; } });
+    A.halo.scale.setScalar(A.r * HALO_LANTERNE.taille * (1 - (1 - V.verre) * t)); if (A.sol) { const j = SOL_JOUR * (1 - nuitLanternes()); A.sol.material.opacity = Math.max(1 - t, j) * A.a; A.sol.visible = A.a > 0.01 && (t < 0.99 || j > 0.01); } });
   J.actif = la || allume;
 }

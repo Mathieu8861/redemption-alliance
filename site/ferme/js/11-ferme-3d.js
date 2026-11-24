@@ -296,6 +296,14 @@ function construireDecos() {
    grand et plus vif, une flaque de lumiere plus large ; pendant une vague a la ferme, un cercle pointille dore au sol montre jusqu'ou chaque lampe allumee eclaire
    (le cercle de lumiere qu'elle perce dans la nuit de la foret, TROU_NUIT, 21-combat.js) */
 let lanternesAnim = [], texHalo = null, texFlaqueLumiere = null, texPortee = null;
+/* PLUS DE BOULE DE LUMIERE (24/11/2026, « la sphere lumineuse qui pete les yeux, c'est pas possible ; ca fait des boules de lumiere sur la map ; ca doit eclairer oui,
+   mais pas eblouir en un point precis, faut que ca ait de la portee, mais que ce soit diffuse », Mathieu) : le halo autour du verre n'est plus qu'une petite lueur
+   douce (taille r x 0,75 au lieu de 1,9, sans coeur blanc, plus pale le jour) ; la lumiere se voit a ce qu'elle eclaire autour (la vraie lumiere, 14k-lumieres.js,
+   et la flaque doree au sol) */
+const HALO_LANTERNE = { taille: 0.8, jour: 0.55, nuit: 0.55 };
+const nuitLanternes = () => { try { return Math.max(typeof NUIT_J !== 'undefined' && NUIT_J ? NUIT_J.k : 0, (typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) ? 1 : 0); } catch (e) { return 0; } }; /* (0 en plein jour, sous la pluie par exemple ; 1 la nuit) */
+const haloForce = () => HALO_LANTERNE.jour + (HALO_LANTERNE.nuit - HALO_LANTERNE.jour) * nuitLanternes();
+const SOL_JOUR = 0.75; /* (de jour, la vraie lumiere se voit a peine sur l'herbe claire : la flaque doree reste, pale, pour qu'on voie que la lampe eclaire autour) */
 function porteeLanterne(A) { /* le cercle de sa portee, cree a la premiere vague */
   texPortee = texPortee || texCanvas(256, (g, n) => { const c = n / 2; g.fillStyle = 'rgba(255,214,120,0.07)'; g.beginPath(); g.arc(c, c, c - 4, 0, Math.PI * 2); g.fill();
     g.strokeStyle = 'rgba(255,224,140,0.95)'; g.lineWidth = 5; g.setLineDash([16, 11]); g.beginPath(); g.arc(c, c, c - 5, 0, Math.PI * 2); g.stroke(); });
@@ -303,9 +311,9 @@ function porteeLanterne(A) { /* le cercle de sa portee, cree a la premiere vague
   m.rotation.x = -Math.PI / 2; m.position.copy(A.sol.position); m.position.y += 0.02; m.renderOrder = 2; m.raycast = () => {}; scene.add(m); decosMesh.push(m); A.anneau = m; return m;
 }
 function lueurLanterne(m, L) {
-  texHalo = texHalo || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,246,210,1)'); r.addColorStop(0.35, 'rgba(255,206,100,0.6)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
+  texHalo = texHalo || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,232,180,0.85)'); r.addColorStop(0.25, 'rgba(255,205,120,0.45)'); r.addColorStop(0.6, 'rgba(255,180,80,0.12)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
   texFlaqueLumiere = texFlaqueLumiere || texCanvas(64, (g, n) => { const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, 'rgba(255,220,130,0.75)'); r.addColorStop(0.6, 'rgba(255,195,95,0.28)'); r.addColorStop(1, 'rgba(255,170,60,0)'); g.fillStyle = r; g.fillRect(0, 0, n, n); });
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * 1.9); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: texHalo, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); halo.scale.setScalar(L.r * HALO_LANTERNE.taille); halo.position.set(m.position.x, m.position.y + L.y, m.position.z); halo.renderOrder = 6;
   const rSol = (L.portee || L.r * 2.2) * 2.5 / 2.2, sol = new T.Mesh(new T.CircleGeometry(rSol, 32), new T.MeshBasicMaterial({ map: texFlaqueLumiere, transparent: true, depthWrite: false })); sol.rotation.x = -Math.PI / 2; sol.position.set(m.position.x, m.position.y + 0.03, m.position.z); sol.renderOrder = 2;
   if (L.teinte) { halo.material.color.set(L.teinte); sol.material.color.set(L.teinte); } /* (la lueur violette de la lanterne UV) */
   [halo, sol].forEach((o) => { o.raycast = () => {}; scene.add(o); decosMesh.push(o); });
@@ -320,7 +328,7 @@ function lueurLanterne(m, L) {
 let LANTERNES_FORCE = null;
 const nuitSurLaCarte = () => !!((typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) || nuitFermeLa() || (typeof pluieLa === 'function' && pluieLa())); /* (pluieLa : sous la pluie a l'essai du palier 11, les lanternes s'allument aussi ; 14j-pluie.js) */ /* (nuitFermeLa : le jour et la nuit du palier 10, 14i-nuit.js) */
 function lanternesAllumees() { return LANTERNES_FORCE != null ? LANTERNES_FORCE : nuitSurLaCarte(); }
-function allumerLanterne(A) { A.halo.visible = A.sol.visible = A.a > 0.01; A.halo.material.opacity = A.a; A.verres.forEach((M) => M.color.copy(M.userData.eteint).lerp(M.userData.allume, A.a)); }
+function allumerLanterne(A) { A.halo.visible = A.sol.visible = A.a > 0.01; A.halo.material.opacity = A.a * haloForce(); A.verres.forEach((M) => M.color.copy(M.userData.eteint).lerp(M.userData.allume, A.a)); }
 function animerLanternes(s) {
   if (!lanternesAnim.length || lieu === 'arene' || lieu === 'ile') return;
   const now = performance.now(); if (!animerLanternes.t || now - animerLanternes.t > 2000) { animerLanternes.t = now; animerLanternes.cible = lanternesAllumees() ? 1 : 0; } /* (l'heure, relue toutes les 2 s) */
@@ -331,7 +339,7 @@ function animerLanternes(s) {
     /* (la flaque de lumiere, dans la nuit de la ferme : « ca eclaire d'un cote, mais il ne devrait pas y avoir d'ombre dans son rayon de portee », Mathieu, 11/11/2026 : posee au ras du sol, elle passait sous la terre des champs ;
        elle monte de 10 cm, au-dessus des sillons, et va jusqu'au bord du cercle de lumiere, 1,4 fois la portee ; en version dev d'abord) */
     const calme = 0.25, lent = 0.35; /* (pour tous depuis le 12/11/2026) */ /* (la lumiere « vacille trop, faudrait que ca bouge moins », Mathieu, 11/11/2026 : quatre fois moins d'ecart, trois fois plus lent ; en version dev d'abord) */
-    const f = 1 + calme * (0.07 * Math.sin(s * 7 * lent + A.ph) + 0.04 * Math.sin(s * 13.3 * lent + A.ph * 2)); A.halo.scale.setScalar(A.r * 1.9 * f); A.sol.material.opacity = (1 - 0.15 * calme + 0.15 * calme * Math.sin(s * 5 * lent + A.ph)) * A.a; });
+    const f = 1 + calme * (0.07 * Math.sin(s * 7 * lent + A.ph) + 0.04 * Math.sin(s * 13.3 * lent + A.ph * 2)); A.halo.scale.setScalar(A.r * HALO_LANTERNE.taille * f); A.halo.material.opacity = A.a * haloForce(); A.sol.material.opacity = (1 - 0.15 * calme + 0.15 * calme * Math.sin(s * 5 * lent + A.ph)) * A.a; });
 }
 /* LES PETITES CLOTURES (01/11/2026, « des petites clotures pour separer nos differents champs », Mathieu ; posees sur les bords des cases, juste decoratives) :
    un morceau par bord, S_.clotures[cle] ; 'x' + i + '_' + j : le bord entre la case (i, j) et sa voisine (i + 1, j) ; 'z' + i + '_' + j : entre (i, j) et
