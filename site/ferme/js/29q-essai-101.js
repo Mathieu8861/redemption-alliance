@@ -16,6 +16,7 @@
    Premier reglage au bot le 24/11/2026 (outils/banc/series/calib_essai.py, lot e8a, 72 parties) ; les brutes : vie x2,2 et coups x6 plutot que coups x8.
    Passe de controle (lot e8b, 72 parties) : 4,4 a 6 vies pour une cible de 5,15, dernier reglage applique ; cl : un coefficient par classe propre a la version
    (les brutes : 11,9 vies pour le Iop au contact, 3,2 pour l'Osamodas ; vie et coups x cl, les vies x cl au carre).
+   3e passe (lot e8c, 71 parties) : les huit entre 4,7 et 5,6 vies pour 5,15 ; derniere retouche des coups et des classes (Iop un peu plus a l'aise, Osamodas un peu plus en peine).
    La note de difficulte de 0 a 10 (24/11/2026, « est-ce qu'on ne ferait pas noter la difficulte aux membres de 0 a 10 ? 10 etant hardcore / impossible », Mathieu)
    remplace les trois boutons du ressenti ; le commentaire facultatif reste (23/11/2026). */
 /* (OUVERTE AUX JOUEURS, 24/11/2026 dans la nuit, apres le reglage au bot des huit versions : « sortir aux joueurs les vagues 101.1, .2, .3 », Mathieu) */
@@ -23,13 +24,13 @@ const ESSAI101 = { joueurs: true, serie: 'joueurs-2', n: 101, lance: null,
   ordre: ['melange', 'essaim', 'brutes', 'rapides', 'sacs', 'tireurs', 'entraves', 'sorts'],
   versions: {
     melange: { nom: 'Le mélange', desc: 'un peu plus de monstres, des coups plus forts, un peu plus vifs', horde: 3.5, pv: 1.12, deg: 3.38, vit: 1.1 },
-    essaim: { nom: 'L\'essaim', desc: 'beaucoup plus de monstres, chacun plus faible', horde: 5.5, pv: 0.7, deg: 3.35, vit: 1.1 },
-    brutes: { nom: 'Les brutes', desc: 'peu de monstres, mais ils tapent très fort', horde: 2, pv: 2.2, deg: 5.31, cl: { iop: 0.7, cra: 0.96, osa: 1.25 } },
-    rapides: { nom: 'Les rapides', desc: 'ils courent et frappent plus vite, des coups plus légers', horde: 3.5, pv: 1, deg: 3.2, vit: 1.35, cad: 0.7 },
-    sacs: { nom: 'Les sacs à PV', desc: 'comme avant : beaucoup de vie, des coups normaux', horde: 2.5, pv: 5.6, deg: 1, regle: 'pv' },
+    essaim: { nom: 'L\'essaim', desc: 'beaucoup plus de monstres, chacun plus faible', horde: 5.5, pv: 0.7, deg: 3.55, vit: 1.1 },
+    brutes: { nom: 'Les brutes', desc: 'peu de monstres, mais ils tapent très fort', horde: 2, pv: 2.2, deg: 5.31, cl: { iop: 0.8, cra: 0.96, osa: 1.12 } },
+    rapides: { nom: 'Les rapides', desc: 'ils courent et frappent plus vite, des coups plus légers', horde: 3.5, pv: 1, deg: 2.97, vit: 1.35, cad: 0.7 },
+    sacs: { nom: 'Les sacs à PV', desc: 'comme avant : beaucoup de vie, des coups normaux', horde: 2.5, pv: 5.86, deg: 1, regle: 'pv' },
     tireurs: { nom: 'Les tireurs', desc: 'moitié de Crachopauds : ça tire de partout', L: [['tetard', 2], ['crapaud', 3], ['triton', 1]], horde: 3.5, pv: 1.12, deg: 2.4, vit: 1.1 },
-    entraves: { nom: 'Les entraves', desc: 'plus de Claquelangues et de flaques qui ralentissent', L: [['tetard', 2], ['fouette', 3], ['crapaud', 2]], horde: 3.5, pv: 1.12, deg: 3.71, vit: 1.1 },
-    sorts: { nom: 'Les sorts', desc: 'bonds, salves et coups au sol deux fois plus souvent', horde: 3.5, pv: 1.12, deg: 3.43, vit: 1.1, sorts: 0.5 } } };
+    entraves: { nom: 'Les entraves', desc: 'plus de Claquelangues et de flaques qui ralentissent', L: [['tetard', 2], ['fouette', 3], ['crapaud', 2]], horde: 3.5, pv: 1.12, deg: 3.93, vit: 1.1 },
+    sorts: { nom: 'Les sorts', desc: 'bonds, salves et coups au sol deux fois plus souvent', horde: 3.5, pv: 1.12, deg: 3.3, vit: 1.1, sorts: 0.5 } } };
 const COMMENTAIRE101 = 300;
 /* LE COFFRE DE LA SERIE (24/11/2026, « on ferait pas gagner un coffre aux gens qui ont repondu a tout, coffre qui regroupe tous leurs drops des vagues gagnees + un
    bonus ? kamas et runes ? », puis « tres bien », Mathieu, par Discord) : les ressources gagnees dans une version reussie s'empilent dans le coffre (rien ne va dans
