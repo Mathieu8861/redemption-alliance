@@ -90,3 +90,24 @@ function grandirMutant(o, k, couleur, nom) {
   if (o.m) o.m.traverse((q) => { if (!q.isMesh || !q.material || q.name === 'contour') return; q.material = q.material.clone(); if (q.material.emissive) { q.material.emissive.set(couleur); q.material.emissiveIntensity = 0.28; } });
 }
 const SPECIMEN = { pv: 3, deg: 1.3, taille: 1.35 }, CHEF_LABO = { pv: 5, deg: 1.5, taille: 1.5 };
+/* LE DRONE DU DOCTEUR (24/11/2026, Mathieu par Discord : « des drones de surveillance sur la passerelle : oui carrement ») : un petit robot volant de cuivre,
+   l'oeil vert, deux oreilles de lapin en tole, deux rotors qui tournent et un canon a cawottes sous le ventre ; fait en formes simples par le jeu (fabrique).
+   Il patrouille sur la passerelle de la tour (29s-fin-labo.js) et tire des cawottes de loin. Version dev */
+function fabriquerDrone() {
+  const g = new T.Group(), Y = 0.5, cu = mat('#c9682a'), cuF = mat('#9a4c1e'), la = mat('#b38d35'), fer = mat('#62656d'), ferF = mat('#43464d'), ferC = mat('#8b8f98'), lum = new T.MeshBasicMaterial({ color: '#8dff6a' });
+  const add = (m, x, y, z) => { m.position.set(x, y + Y, z); g.add(m); return m; };
+  add(new T.Mesh(new T.SphereGeometry(0.42, 18, 14), cu), 0, 0, 0);
+  { const c = add(new T.Mesh(new T.TorusGeometry(0.43, 0.045, 8, 28), la), 0, -0.02, 0); c.rotation.x = Math.PI / 2; }
+  { const v = add(new T.Mesh(new T.CylinderGeometry(0.19, 0.19, 0.08, 18), ferF), 0, 0.04, 0.36); v.rotation.x = Math.PI / 2; add(new T.Mesh(new T.SphereGeometry(0.13, 14, 10), lum), 0, 0.04, 0.4); }
+  [-1, 1].forEach((s) => { const o = add(new T.Mesh(new T.SphereGeometry(0.1, 12, 10), ferC), s * 0.19, 0.66, -0.04); o.scale.set(0.8, 2.9, 0.32); o.rotation.z = -s * 0.32; /* (les oreilles en tole : plates et longues, comme des oreilles de lapin) */
+    const oi = add(new T.Mesh(new T.SphereGeometry(0.1, 10, 8), mat('#e08a8a')), s * 0.19 + s * 0.02, 0.68, -0.01); oi.scale.set(0.45, 2.2, 0.2); oi.rotation.z = -s * 0.32;
+    const b = add(new T.Mesh(new T.BoxGeometry(0.5, 0.06, 0.07), fer), s * 0.62, 0.1, 0); b.rotation.z = s * 0.12;
+    add(new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 0.14, 10), ferF), s * 0.86, 0.17, 0);
+    const r = new T.Group(); r.position.set(s * 0.86, 0.26 + Y, 0); g.add(r); [0, Math.PI / 2].forEach((a) => { const p = new T.Mesh(new T.BoxGeometry(0.62, 0.018, 0.09), ferC); p.rotation.y = a; r.add(p); }); (g.userData.rotors = g.userData.rotors || []).push(r); });
+  { const c = add(new T.Mesh(new T.CylinderGeometry(0.07, 0.08, 0.36, 10), ferF), 0, -0.36, 0.12); c.rotation.x = Math.PI / 2 - 0.25; const tip = add(new T.Mesh(new T.ConeGeometry(0.07, 0.2, 8), mat('#ee7a26')), 0, -0.4, 0.33); tip.rotation.x = Math.PI / 2 - 0.25; }
+  add(new T.Mesh(new T.CylinderGeometry(0.1, 0.16, 0.1, 12), cuF), 0, -0.4, 0);
+  g.traverse((q) => { if (q.isMesh) { q.castShadow = true; } }); return g;
+}
+MONSTRES.wabDrone = { element: 'feu', nom: 'Drone du Docteur', modele: 'wabDrone', icone: 'wab-drone', fabrique: fabriquerDrone, desc: 'un petit robot volant du Docteur : il patrouille sur la passerelle de la tour et te tire des cawottes de loin',
+  pv: fW('wabbitNoir', 'pv', 0.7), deg: fW('wabbitSorciere', 'deg', 0.9), cadence: 1.7, vitesse: 2.4, portee: 4.5, distance: true, projectile: 'cawotte', vol: 1.3, armure: 0.2, ombre: 1.0 };
+{ const majMonstreDrone = majMonstre; majMonstre = function (mo, dt) { const r = majMonstreDrone.apply(this, arguments); try { const R = mo.m && mo.m.userData.rotors; if (R) R.forEach((q, i) => { q.rotation.y += (dt || 0.016) * (i ? -30 : 30); }); } catch (e) { /* rien */ } return r; }; } /* (les rotors tournent) */

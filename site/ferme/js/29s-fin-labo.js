@@ -98,3 +98,16 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
       if (typeof ouvertureMobile === 'function') ouvertureMobile({ rar: premier ? 'legendaire' : 'epique', cartes, titre: 'Le coffre du labo', sousTitre: nouveau ? 'Nouveau record : ' + duree(t) : 'Les Wabbits sont libres !' });
     } catch (e) { console.warn('fin du labo', e); }
     return r; }; }
+/* LES DRONES DE LA PASSERELLE (24/11/2026, « oui carrement », Mathieu) : la passerelle de la tour est coupee en cinq troncons (du pied a la porte 1, puis d'une
+   porte a l'autre) ; quand le perso entre dans un troncon, deux drones du Docteur (27n-mutants-labo.js) apparaissent un peu plus haut et l'attaquent de loin */
+const DRONES_RAMPE = { parTroncon: 2, avance: 1.0, ecart: 0.35 };
+function dronesRampe() {
+  const E = donjonEtat, c = combat; if (!E || !c || c.fin || c.genre !== 'donjon' || E.gagne != null) return; const P = E.perso; if (!P || P.mode !== 'rampe') return;
+  E.drones = E.drones || {};
+  for (let k = 0; k < 5; k++) { if (E.drones[k]) continue; const t0 = k === 0 ? LABO.A0 : angleRampe(LABO.PORTES[k - 1]), t1 = angleRampe(LABO.PORTES[k]); if (P.theta < t0 - 0.05 || P.theta > t1 - 0.3) continue;
+    E.drones[k] = true;
+    for (let j = 0; j < DRONES_RAMPE.parTroncon; j++) { const t = Math.min(t1 - 0.25, P.theta + DRONES_RAMPE.avance + j * DRONES_RAMPE.ecart), rr = (LABO.R_IN + LABO.R_OUT) / 2, x = DONJON.x + rr * Math.cos(t), z = DONJON.z + rr * Math.sin(t);
+      apparaitre('wabDrone', { x, z, apres: (o) => { o.lab = { mode: 'rampe', theta: t }; o.drone = true; o.aggro = true; pouf(o.x, hautRampe(t) + 1.6, o.z, 1.1, '#8dff6a'); } }); }
+    if (!E.dronesVus) { E.dronesVus = true; toast('Des drones du Docteur patrouillent sur la passerelle : ils tirent des cawottes !', 'alerte'); } }
+}
+{ const tickDonjonDrones = tickDonjon; tickDonjon = function () { const r = tickDonjonDrones.apply(this, arguments); try { dronesRampe(); } catch (e) { /* rien */ } return r; }; }
