@@ -730,14 +730,25 @@ function etreinteChene(st) {
    et tourne 4 s dans un cercle vert (1 case autour). Toutes les 0,5 s, chaque monstre dedans prend 0,8 fois tes degats et avance 30 % moins vite (6,4 fois en tout
    s'il y reste) : une zone a poser sur le passage des monstres */
 const DUREE_TEMPETE_CRA = 4, R_TEMPETE_CRA = 2.2, COULEURS_TEMPETE = { coeur1: '#2f5a1c', coeur2: '#a8c24a', voile1: '#4f8a2a', voile2: '#dceab0', jupe1: '#6b4528', jupe2: '#c8d890', sol1: '#4a6a2a', sol2: '#d8e8b0' };
+/* (24/11/2026, « la tornade, comme on joue au telephone ou a la manette, elle se place pas au bon endroit ; sur les boss elle est vraiment inutile : sur un boss,
+   400 000 de degats, la tempete de feuilles 17 000 en tout », Mathieu) : la tornade s'accroche a un monstre et le suit pendant 4 s (VITESSE_TEMPETE) : celui qui
+   est pres du point vise, sinon ta cible, sinon le plus proche a 12 cases ; s'il tombe, elle passe au plus proche d'elle. Toujours 0,8 fois tes degats toutes les
+   0,5 s a tout ce qui est dedans : 6,4 fois sur un boss qu'elle suit du debut a la fin (avant, il en sortait des qu'il bougeait) */
+const VITESSE_TEMPETE = 9;
 function tempeteFeuilles(x, z, st) {
-  const c0 = combat, y = solA(x, z), R = R_TEMPETE_CRA, D = DUREE_TEMPETE_CRA, g = tornadeVent(R * 0.6, 3.4, COULEURS_TEMPETE); g.position.set(x, y, z); g.scale.set(0.5, 0.01, 0.5); scene.add(g);
-  const anneau = sansClic(new T.Mesh(new T.RingGeometry(R - 0.12, R, 40), new T.MeshBasicMaterial({ color: '#a8c24a', transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false }))); anneau.rotation.x = -Math.PI / 2; anneau.position.set(x, y + 0.07, z); scene.add(anneau);
-  son('sort'); onde(x, y + 0.05, z, R, '#86b84a', 0.45, 0.85); feuillesVolantes(x, y + 0.5, z, R * 0.6, 14, true); secousse(0.06, 0.15);
+  const c0 = combat, R = R_TEMPETE_CRA, D = DUREE_TEMPETE_CRA, vise = (o) => o && o.etat === 'actif' && !o.d.totem && !o.d.plante, pres = (o, X, Z) => Math.hypot(o.x - X, o.z - Z);
+  let cib = c0.monstres.filter(vise).sort((a, b) => pres(a, x, z) - pres(b, x, z))[0]; if (cib && pres(cib, x, z) > 3 + 0.3 * (cib.d.ombre || 1)) cib = null;
+  if (!cib && vise(c0.cible)) cib = c0.cible; if (!cib) { const o = cibleLeg(12); if (vise(o)) cib = o; }
+  let px = cib ? cib.x : x, pz = cib ? cib.z : z; const y0 = solA(px, pz), g = tornadeVent(R * 0.6, 3.4, COULEURS_TEMPETE); g.position.set(px, y0, pz); g.scale.set(0.5, 0.01, 0.5); scene.add(g);
+  const anneau = sansClic(new T.Mesh(new T.RingGeometry(R - 0.12, R, 40), new T.MeshBasicMaterial({ color: '#a8c24a', transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false }))); anneau.rotation.x = -Math.PI / 2; anneau.position.set(px, y0 + 0.07, pz); scene.add(anneau);
+  son('sort'); onde(px, y0 + 0.05, pz, R, '#86b84a', 0.45, 0.85); feuillesVolantes(px, y0 + 0.5, pz, R * 0.6, 14, true); secousse(0.06, 0.15);
   let t = 0, tic = 0.5, fe = 0; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= D) { jeter(g, anneau); return true; }
-    const k = Math.min(1, t / 0.45), f = Math.min(1, (D - t) / 0.5), s = 0.5 + 0.5 * Math.min(k, f); g.scale.set(s, Math.max(0.01, k * (0.6 + 0.4 * f)), s); g.userData.maj(dt, Math.min(k, f)); anneau.material.opacity = 0.7 * Math.min(k, f);
-    if ((fe += dt) > 0.1) { fe = 0; feuillesVolantes(x, y + 0.3, z, R * 0.7, 2, true); }
-    if ((tic += dt) >= 0.5) { tic -= 0.5; c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > R + 0.25 * (o.d.ombre || 1)) return; o.ventT = 0.6; blesser(o, Math.round(st.deg * 0.8), true); }); }
+    if (!vise(cib)) { const L = c0.monstres.filter(vise).filter((o) => pres(o, px, pz) < 5).sort((a, b) => pres(a, px, pz) - pres(b, px, pz)); cib = L[0] || null; } /* (sa proie tombee : la plus proche d'elle) */
+    if (cib) { const dx = cib.x - px, dz = cib.z - pz, d = Math.hypot(dx, dz), pas = Math.min(d, VITESSE_TEMPETE * dt); if (d > 0.01) { px += dx / d * pas; pz += dz / d * pas; } }
+    const y = solA(px, pz); g.position.set(px, y, pz); anneau.position.set(px, y + 0.07, pz);
+    const k = Math.min(1, t / 0.45), f = Math.min(1, (D - t) / 0.5), s2 = 0.5 + 0.5 * Math.min(k, f); g.scale.set(s2, Math.max(0.01, k * (0.6 + 0.4 * f)), s2); g.userData.maj(dt, Math.min(k, f)); anneau.material.opacity = 0.7 * Math.min(k, f);
+    if ((fe += dt) > 0.1) { fe = 0; feuillesVolantes(px, y + 0.3, pz, R * 0.7, 2, true); }
+    if ((tic += dt) >= 0.5) { tic -= 0.5; c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - px, o.z - pz) > R + 0.25 * (o.d.ombre || 1)) return; o.ventT = 0.6; blesser(o, Math.round(st.deg * 0.8), true); }); }
     return false; });
 }
 /* LES SORTS DE L'ANCESTRAL MAUDIT (09/11/2026, « pour les sorts je valide », Mathieu) */
