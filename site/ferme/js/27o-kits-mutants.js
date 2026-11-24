@@ -166,7 +166,7 @@ if (typeof KIT_WAB !== 'undefined') { KIT_WAB.rafale.periode = KIT_WAB_DIFFICILE
 /* ILS CONTOURNENT (24/11/2026, « le mini-boss etait bugge dans un mur invisible en bord de map », Mathieu) : sur l'ile, un mutant lance a ta poursuite allait tout
    droit et restait colle contre un rocher, un arbre ou le bord de l'eau. Toutes les 0,7 s, s'il ne te voit pas en ligne droite (la grille des chemins du perso,
    29c), il prend le chemin le plus court (cheminGrille) et le suit jusqu'a te revoir. Aussi s'il n'a presque pas bouge depuis 1,5 s */
-const CONTOURNE_MUT = { tous: 0.7, coince: 1.5, bouge: 0.4 };
+const CONTOURNE_MUT = { tous: 0.7, coince: 1.5, bouge: 0.4, ecart: 0.06, dernier: 0 };
 function voitLabo(ax, az, bx, bz) { const G = grilleCh('sol'), n = G.n, L = Math.hypot(bx - ax, bz - az), N = Math.ceil(L / 0.25);
   for (let s2 = 1; s2 < N; s2++) { const x = ax + (bx - ax) * s2 / N, z = az + (bz - az) * s2 / N, i = Math.floor((x - G.x0) / PAS_CH), j = Math.floor((z - G.z0) / PAS_CH); if (i < 0 || j < 0 || i >= n || j >= n || G.ok[j * n + i] !== 1) return false; } return true; }
 { const majMonstreContourne = majMonstre; majMonstre = function (mo, dt) {
@@ -174,7 +174,7 @@ function voitLabo(ax, az, bx, bz) { const G = grilleCh('sol'), n = G.n, L = Math
         const now = performance.now() / 1000, p = paysanMesh.position, ax = mo.x - DONJON.x, az = mo.z - DONJON.z, bx = p.x - DONJON.x, bz = p.z - DONJON.z, d = Math.hypot(bx - ax, bz - az);
         const T0 = mo.contourne || (mo.contourne = { t: 0, x: mo.x, z: mo.z, tb: now, ch: null });
         if (now - T0.tb > CONTOURNE_MUT.coince) { const coince = Math.hypot(mo.x - T0.x, mo.z - T0.z) < CONTOURNE_MUT.bouge && d > (mo.d.portee || 1.5) + 1.5; T0.x = mo.x; T0.z = mo.z; T0.tb = now; if (coince) T0.t = 0; }
-        if (now - T0.t > CONTOURNE_MUT.tous) { T0.t = now; T0.ch = d > (mo.d.portee || 1.5) + 1.2 && !voitLabo(ax, az, bx, bz) ? cheminGrille('sol', ax, az, bx, bz) : null; }
+        if (now - T0.t > CONTOURNE_MUT.tous && now - (CONTOURNE_MUT.dernier || 0) > CONTOURNE_MUT.ecart) { T0.t = now; const bloque = d > (mo.d.portee || 1.5) + 1.2 && !voitLabo(ax, az, bx, bz); if (bloque) CONTOURNE_MUT.dernier = now; T0.ch = bloque ? cheminGrille('sol', ax, az, bx, bz) : null; } /* (un seul chemin calcule toutes les 0,06 s pour toute l'ile : avec vingt mutants a ta poursuite, les recherches s'empilaient) */
         if (T0.ch && T0.ch.length && !(mo.bloqueT > 0) && !mo.geste) { let w = T0.ch[0]; if (Math.hypot(w.x - ax, w.z - az) < 0.5) { T0.ch.shift(); w = T0.ch[0]; }
           if (w) { const wx = w.x - ax, wz = w.z - az, L = Math.hypot(wx, wz) || 1, v = Math.min(L, vitesseMonstre(mo.d) * (dt || 0.016)); mo.x += wx / L * v; mo.z += wz / L * v; mo.ry = Math.atan2(wx, wz); mo.vLabo = v / Math.max(dt || 0.016, 1e-3);
             return majMonstreContourne.call(this, mo, 0, arguments[2]); } } } } catch (e) { /* rien */ }

@@ -21,7 +21,7 @@
    remplace les trois boutons du ressenti ; le commentaire facultatif reste (23/11/2026). */
 /* (OUVERTE AUX JOUEURS, 24/11/2026 dans la nuit, apres le reglage au bot des huit versions : « sortir aux joueurs les vagues 101.1, .2, .3 », Mathieu) */
 const ESSAI101 = { joueurs: true, serie: 'joueurs-2', n: 101, lance: null,
-  ordre: ['melange', 'essaim', 'brutes', 'rapides', 'sacs', 'tireurs', 'entraves', 'sorts'],
+  ordre: ['melange', 'essaim', 'brutes', 'rapides', 'sacs', 'tireurs', 'entraves', 'sorts', 'deferlante', 'assaut'],
   versions: {
     melange: { nom: 'Le mélange', desc: 'un peu plus de monstres, des coups plus forts, un peu plus vifs', horde: 3.5, pv: 1.12, deg: 3.38, vit: 1.1 },
     essaim: { nom: 'L\'essaim', desc: 'beaucoup plus de monstres, chacun plus faible', horde: 5.5, pv: 0.7, deg: 3.55, vit: 1.1 },
@@ -30,7 +30,12 @@ const ESSAI101 = { joueurs: true, serie: 'joueurs-2', n: 101, lance: null,
     sacs: { nom: 'Les sacs à PV', desc: 'comme avant : beaucoup de vie, des coups normaux', horde: 2.5, pv: 5.86, deg: 1, regle: 'pv' },
     tireurs: { nom: 'Les tireurs', desc: 'moitié de Crachopauds : ça tire de partout', L: [['tetard', 2], ['crapaud', 3], ['triton', 1]], horde: 3.5, pv: 1.12, deg: 2.4, vit: 1.1 },
     entraves: { nom: 'Les entraves', desc: 'plus de Claquelangues et de flaques qui ralentissent', L: [['tetard', 2], ['fouette', 3], ['crapaud', 2]], horde: 3.5, pv: 1.12, deg: 3.93, vit: 1.1 },
-    sorts: { nom: 'Les sorts', desc: 'bonds, salves et coups au sol deux fois plus souvent', horde: 3.5, pv: 1.12, deg: 3.3, vit: 1.1, sorts: 0.5 } } };
+    sorts: { nom: 'Les sorts', desc: 'bonds, salves et coups au sol deux fois plus souvent', horde: 3.5, pv: 1.12, deg: 3.3, vit: 1.1, sorts: 0.5 },
+    /* (24/11/2026 au soir, « cree une vague 101.9 et 101.10 avec les retours qu'on t'a donnes, on laisse les autres jouer dessus », Mathieu. Les retours des huit :
+       la pression vient du nombre et des coups qui tombent vite (l'essaim 6,3, le melange 6), les monstres lents se kitent (« pas de pression », « facile a
+       kiter »), les sacs a PV sont longs et desagreables, les rapides a coups legers trop faciles ; reglees au bot plus dures que les huit) */
+    deferlante: { nom: 'La déferlante', desc: 'beaucoup de monstres, rapides, qui tapent fort : impossible de les semer', horde: 5, pv: 0.85, deg: 3.46, vit: 1.3 }, /* (reglee au bot, lot e9a : 6,9 vies pour une cible de 6,6, soit 1,6 fois la 99 ; les huit : 1,25) */
+    assaut: { nom: 'L\'assaut', desc: 'un peu de tout et plus vite : Claquelangues qui attirent, Crachopauds qui tirent, Têtaclaques au contact, sorts plus fréquents', L: [['tetard', 3], ['fouette', 2], ['crapaud', 2]], horde: 4, pv: 1, deg: 3.6, vit: 1.25, cad: 0.85, sorts: 0.7, cl: { iop: 1, cra: 0.88, osa: 1.15 } } } }; /* (lot e9a : Iop 6,4, Cra 9,4, Osamodas 3,9 vies pour 6,6 : les tireurs et les langues pesent sur le Cra, d'ou cl) */
 const COMMENTAIRE101 = 300;
 /* LE COFFRE DE LA SERIE (24/11/2026, « on ferait pas gagner un coffre aux gens qui ont repondu a tout, coffre qui regroupe tous leurs drops des vagues gagnees + un
    bonus ? kamas et runes ? », puis « tres bien », Mathieu, par Discord) : les ressources gagnees dans une version reussie s'empilent dans le coffre (rien ne va dans
@@ -44,7 +49,9 @@ const etatEssai101 = () => (S_.essai101 && S_.essai101.serie === ESSAI101.serie 
 const nomEssai101 = (j) => 'Vague ' + ESSAI101.n + '.' + (j + 1); /* (j : le rang dans la serie, de 0 a 7) */
 const rangEssai101 = () => { const E = etatEssai101(), O = ESSAI101.ordre; if (E.choix != null && E.choix >= 0 && E.choix < O.length) return E.choix; const j = O.findIndex((v) => !E.gagnes[v]); return j >= 0 ? j : 0; };
 const versionCourante101 = () => ESSAI101.ordre[rangEssai101()];
-const serieFinie101 = () => ESSAI101.ordre.every((v) => etatEssai101().gagnes[v]);
+const VERSIONS_COFFRE101 = ESSAI101.ordre.slice(0, 8); /* (le coffre : les huit premieres ; la 101.9 et la 101.10, ajoutees le 24/11/2026 au soir, sont en plus) */
+const serieFinie101 = () => VERSIONS_COFFRE101.every((v) => etatEssai101().gagnes[v]);
+const toutFini101 = () => ESSAI101.ordre.every((v) => etatEssai101().gagnes[v]);
 const essaiVisible101 = () => { try { return !!S_ && !!S_.perso && (ESSAI101.joueurs || MODE_TEST) && S_.vague.num > VAGUES_TOTAL && niveau(S_.xp) >= ESSAI101.n - 2; } catch (e) { return false; } };
 /* LES SORTS PLUS FREQUENTS : le temps entre deux sorts des monstres de la version, divise le temps du combat, puis rendu */
 const CLES_SORTS101 = ['bondit', 'seisme', 'charge', 'soigne'];
@@ -70,7 +77,7 @@ function lancerEssai101() {
 }
 /* la carte de la serie, dans la fenetre des vagues (onglet Les vagues, quand tous les paliers sont termines) */
 function carteEssai101() {
-  const E = etatEssai101(), tot = ESSAI101.ordre.length, fin = serieFinie101(), k = rangEssai101(), V = versionEssai101(versionCourante101()), n = ESSAI101.n, repos = S_.vague.repos - Date.now(), nbOk = ESSAI101.ordre.filter((v) => E.gagnes[v]).length;
+  const E = etatEssai101(), tot = ESSAI101.ordre.length, fin = toutFini101(), k = rangEssai101(), V = versionEssai101(versionCourante101()), n = ESSAI101.n, repos = S_.vague.repos - Date.now(), nbOk = ESSAI101.ordre.filter((v) => E.gagnes[v]).length;
   const img = (x) => '<img src="assets/icones/' + x + '.png?v=' + VERSION_MODELES + '" alt="">';
   const pistes = ESSAI101.ordre.map((v, j) => '<i class="' + (j === k ? 'ici' : E.gagnes[v] ? 'fait' : '') + '" style="cursor:pointer" data-essai101-choix="' + j + '" data-info="' + nomEssai101(j) + ' : ' + ESSAI101.versions[v].nom + (E.gagnes[v] ? ', réussie' : '') + '. Touche pour la choisir">' + (E.gagnes[v] && j !== k ? '✓' : '.' + (j + 1)) + '</i>').join('');
   const mons = compoEssai101(V.L, V.P.horde).map(([t, nb]) => { const M = MONSTRES[t];
@@ -78,17 +85,21 @@ function carteEssai101() {
   const g = gainsVague(n, true), plein = gainsVague(n, false), bonus = Math.max(0, plein.kamas - g.kamas), dejaV = !!E.gagnes[V.v];
   const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : '<button class="btn kamas vg-lancer" data-essai101>' + (E.gagnes[V.v] ? 'Rejouer la ' : 'Lancer la ') + nomEssai101(k).toLowerCase() + '</button>';
   return '<div class="essai-carte"><div class="essai-t"><b>Vague 101 : la saison des pluies, en avant-première</b><span>' + (fin ? 'série terminée, merci !' : nbOk + ' sur ' + tot + ' réussie' + (nbOk > 1 ? 's' : '')) + '</span></div>' +
-    '<p>Aide-nous à régler le prochain palier : ' + tot + ' versions de la vague 101, aussi dures les unes que les autres, mais chacune à sa façon. Joue-les dans l\'ordre que tu veux (touche un numéro), et à la fin de chaque vague donne-lui une note de difficulté de 0 à 10. Une vague perdue se retente après ton repos. Les ressources gagnées vont dans le coffre de la série, et les bâtiments touchés sont réparés gratuitement à la fin de la vague.</p>' +
+    '<p>Aide-nous à régler le prochain palier : ' + tot + ' versions de la vague 101, chacune dure à sa façon (la 101.9 et la 101.10, les dernières venues, sont plus dures). Joue-les dans l\'ordre que tu veux (touche un numéro), et à la fin de chaque vague donne-lui une note de difficulté de 0 à 10. Une vague perdue se retente après ton repos. Les ressources gagnées vont dans le coffre de la série, et les bâtiments touchés sont réparés gratuitement à la fin de la vague.</p>' +
     '<div class="essai-pistes">' + pistes + '</div>' + ligneCoffre101() + '<p class="essai-v"><b>' + nomEssai101(k) + ' · ' + V.P.nom + '</b> : ' + V.P.desc + '.</p><div class="vg-mons">' + mons + '</div>' +
     '<div class="essai-pied"><span>' + img('kama') + fmt(g.kamas) + ' kamas' + (!dejaV && !fin ? ', +' + fmt(bonus) + ' à ta première victoire de cette version' : '') + '. Des ressources, mais aucune pièce d\'équipement.</span>' + bouton + '</div></div>';
 }
 function ligneCoffre101() {
-  const E = etatEssai101(), C = coffre101(), n = nbCoffre101(), notes = ESSAI101.ordre.filter((v) => (E.notes || {})[v] != null).length, gagnes = ESSAI101.ordre.filter((v) => E.gagnes[v]).length;
+  const E = etatEssai101(), C = coffre101(), n = nbCoffre101(), notes = VERSIONS_COFFRE101.filter((v) => (E.notes || {})[v] != null).length, gagnes = VERSIONS_COFFRE101.filter((v) => E.gagnes[v]).length;
   const detail = Object.keys(C).filter((k) => C[k] > 0 && PAR_ID[k]).map((k) => C[k] + ' ' + PAR_ID[k].nom).join(', ') || 'rien pour l\'instant';
-  if (E.coffreOuvert) return '<p class="essai-coffre ouvert">' + img101('coffre-ouvert') + '<span><b>Le coffre de la série est ouvert.</b> Merci pour tes huit notes !</span></p>';
-  const aNoter = ESSAI101.ordre.map((v, j) => [v, j]).filter(([v]) => E.gagnes[v] && (E.notes || {})[v] == null); /* (24/11/2026, « j'ai fini les 8 vagues, je fais comment pour recuperer le coffre ? », Mathieu : une note oubliee dans le bilan ne pouvait plus se donner ; elle se donne ici) */
-  const rattrape = aNoter.length ? '<div class="essai-bilan"><b>Il te manque ' + (aNoter.length > 1 ? aNoter.length + ' notes' : 'une note') + ' pour ouvrir le coffre :</b>' + aNoter.map(([v, j]) => '<div class="essai-note"><span>' + nomEssai101(j) + ' · ' + ESSAI101.versions[v].nom + ' :</span><div class="essai-notes">' + Array.from({ length: 11 }, (x, i) => '<button class="btn mini" data-note101="' + i + '" data-note101v="' + v + '">' + i + '</button>').join('') + '</div></div>').join('') + '<small>0 : trop facile · 5 : correcte · 10 : hardcore, impossible</small></div>' : '';
-  return rattrape + '<p class="essai-coffre" data-info="Dans le coffre : ' + detail + '">' + img101('coffre-legendaire') + '<span><b>Le coffre de la série :</b> ' + n + ' ressource' + (n > 1 ? 's' : '') + ' gagnée' + (n > 1 ? 's' : '') + ' dans tes vagues réussies, plus ' + fmt(COFFRE101.kamas) + ' kamas, ' + COFFRE101.forge + ' runes de forgemagie et 1 rune parfaite. Il s\'ouvre quand les ' + ESSAI101.ordre.length + ' versions sont gagnées et notées (' + gagnes + ' gagnées, ' + notes + ' notées).</span></p>';
+  const rattrape0 = notesManquantes101(E); if (E.coffreOuvert) return rattrape0 + '<p class="essai-coffre ouvert">' + img101('coffre-ouvert') + '<span><b>Le coffre de la série est ouvert.</b> Merci pour tes notes ! La 101.9 et la 101.10 sont en plus : leurs ressources vont directement dans ta grange.</span></p>';
+  return notesManquantes101(E) + ligneCoffreFin101(E, n, detail, notes, gagnes); }
+function notesManquantes101(E) {
+  const aNoter = ESSAI101.ordre.map((v, j) => [v, j]).filter(([v]) => E.gagnes[v] && (E.notes || {})[v] == null), pourCoffre = !E.coffreOuvert && aNoter.some(([v]) => VERSIONS_COFFRE101.includes(v)); /* (24/11/2026, « j'ai fini les 8 vagues, je fais comment pour recuperer le coffre ? », Mathieu : une note oubliee dans le bilan ne pouvait plus se donner ; elle se donne ici) */
+  return aNoter.length ? '<div class="essai-bilan"><b>Il te manque ' + (aNoter.length > 1 ? aNoter.length + ' notes' : 'une note') + (pourCoffre ? ' pour ouvrir le coffre :' : ' :') + '</b>' + aNoter.map(([v, j]) => '<div class="essai-note"><span>' + nomEssai101(j) + ' · ' + ESSAI101.versions[v].nom + ' :</span><div class="essai-notes">' + Array.from({ length: 11 }, (x, i) => '<button class="btn mini" data-note101="' + i + '" data-note101v="' + v + '">' + i + '</button>').join('') + '</div></div>').join('') + '<small>0 : trop facile · 5 : correcte · 10 : hardcore, impossible</small></div>' : '';
+}
+function ligneCoffreFin101(E, n, detail, notes, gagnes) {
+  return '<p class="essai-coffre" data-info="Dans le coffre : ' + detail + '">' + img101('coffre-legendaire') + '<span><b>Le coffre de la série :</b> ' + n + ' ressource' + (n > 1 ? 's' : '') + ' gagnée' + (n > 1 ? 's' : '') + ' dans tes vagues réussies, plus ' + fmt(COFFRE101.kamas) + ' kamas, ' + COFFRE101.forge + ' runes de forgemagie et 1 rune parfaite. Il s\'ouvre quand les ' + VERSIONS_COFFRE101.length + ' premières versions sont gagnées et notées (' + gagnes + ' gagnées, ' + notes + ' notées).</span></p>';
 }
 const img101 = (x) => '<img src="assets/icones/' + x + '.png?v=' + VERSION_MODELES + '" alt="">';
 /* (23/11/2026 : dans le mode test, la carte se montre aussi en haut de l'onglet de la vague, tant que sa vraie partie a fini le dernier palier des joueurs) */
@@ -170,13 +181,13 @@ document.addEventListener('click', (ev) => {
   if (serieFinie101() && serieNotee101() && !etatEssai101().coffreOuvert) setTimeout(ouvrirCoffre101, 600); /* (le coffre de la serie : la huitieme note donnee) */
 });
 /* le butin d'un essai : les ressources seulement, aucune piece (23/11/2026, « donne pas de loot d'item, que des ressources », Mathieu) */
-{ const butinE = butin; butin = function (mo) { const c = combat; if (!(c && c.essai101)) return butinE(mo); c.sansObjets = true;
+{ const butinE = butin; butin = function (mo) { const c = combat; if (!(c && c.essai101)) return butinE(mo); c.sansObjets = true; if (etatEssai101().coffreOuvert) return butinE(mo); /* (le coffre deja ouvert : directement dans la grange) */
     const avant = Object.assign({}, S_.grange || {}); let r; try { r = butinE(mo); } finally { /* (le coffre de la serie : ce qui vient d'arriver dans la grange passe dans la reserve du combat) */
       try { const G = S_.grange || {}; c.coffre101 = c.coffre101 || {}; Object.keys(G).forEach((k) => { const d = (G[k] || 0) - (avant[k] || 0); if (d > 0 && PAR_ID[k]) { G[k] -= d; c.coffre101[k] = (c.coffre101[k] || 0) + d; } }); } catch (e) { /* rien */ } }
     return r; }; }
 const coffre101 = () => { const E = etatEssai101(); return (E.coffre = E.coffre || {}); };
 const nbCoffre101 = () => Object.values(coffre101()).reduce((t, n) => t + n, 0);
-const serieNotee101 = () => ESSAI101.ordre.every((v) => (etatEssai101().notes || {})[v] != null);
+const serieNotee101 = () => VERSIONS_COFFRE101.every((v) => (etatEssai101().notes || {})[v] != null);
 function ouvrirCoffre101() {
   const E = etatEssai101(); if (E.coffreOuvert || !serieFinie101() || !serieNotee101()) return; E.coffreOuvert = true;
   const C = coffre101(), G = S_.grange = S_.grange || {}; Object.keys(C).forEach((k) => { G[k] = (G[k] || 0) + C[k]; });
