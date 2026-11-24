@@ -20,21 +20,44 @@ const KITS_MUT = {
   wabGarde: { cadence: 1.5, elanCoup: 0.3, obus: { periode: 4.5, prepa: 0.85, R: 1.8, x: 1.0, loin: 2.5 } },
   wabEnrage: { cadence: 0.8, elanCoup: 0.28, charge: 3.5, chargePrepa: 0.7, chargeMax: 10, gestes: { charge: 'rugir' }, frenesie: { R: 8, t: 4 } },
   wabFluo: { cadence: 1.3, elanCoup: 0.3, crachatMut: { periode: 5, prepa: 0.85, n: 2, ecart: 2.4, R: 1.3, x: 0.8, flaque: { duree: 3, pct: 0.01 } } },
-  wabGreffe: { cadence: 1.5, elanCoup: 0.3, pince: { periode: 5, prepa: 0.7, R: 3.0, ouv: 0.8, x: 1.1, repousse: 1.6, assomme: 0.35 }, grappin: { periode: 8, prepa: 0.75, min: 3.5, max: 12, larg: 1.2, x: 0.6 }, appelStun: 0.45 },
-  wabVampire: { cadence: 1.0, elanCoup: 0.28, bondit: 3.5, bonditLoin: true, bonditMax: 9, bondPrepa: 0.75, bonditR: 1.4, bonditH: 1.2, gestes: { bondit: 'bond' }, sortsX: { bond: 0.9 } },
+  wabGreffe: { cadence: 1.5, elanCoup: 0.3, pince: { periode: 5, prepa: 0.7, R: 3.0, ouv: 0.8, x: 1.1, repousse: 1.6, assomme: 0.35 }, grappin: { periode: 6.5, prepa: 0.75, min: 3.5, max: 12, larg: 1.5, x: 0.6 }, appelStun: 0.45 },
+  wabVampire: { cadence: 1.0, elanCoup: 0.28, bondit: 3.5, bonditLoin: true, bonditMax: 9, bondPrepa: 0.75, bonditR: 1.7, bonditH: 1.2, gestes: { bondit: 'bond' }, sortsX: { bond: 0.9 } },
   wabGarou: { cadence: 1.6, elanCoup: 0.34, bondit: 5, bondPrepa: 0.8, bonditR: 2.4, seisme: 6.5, seismeR: 3.4, seismeDuree: 0.9, seismeProche: 0.6, seismeNom: 'Frappe du garou', gestes: { bondit: 'bond', seisme: 'coup' }, sortsX: { seisme: 1.2 } },
   wabDrone: { cadence: 1.4, bombardement: { periode: 9, prepa: 1.1, n: 3, ecart: 3.2, R: 1.3, x: 0.8 } },
 };
 const DESC_MUT = {
   wabGarde: 'le robot de cuivre du Docteur, armure (-30 %) : il te tire des cawottes de son canon, de loin, et toutes les 4,5 s un obus-cawotte en cloche sur toi (cercle rouge, 0,85 s pour en sortir)',
-  wabEnrage: 'échappé des cages, l\'œil rouge : il griffe vite et sans s\'arrêter, rugit puis te charge en ligne droite toutes les 3,5 s (bande rouge, 0,7 s pour en sortir) ; quand un enragé tombe, ceux d\'à côté entrent en frénésie 4 s',
+  wabEnrage: 'échappé des cages, l\'œil rouge : il court plus vite que toi, griffe vite et sans s\'arrêter, rugit puis te charge en ligne droite toutes les 3,5 s (bande rouge, 0,7 s pour en sortir) ; quand un enragé tombe, ceux d\'à côté entrent en frénésie 4 s',
   wabFluo: 'gorgé de mutagène qui luit : il te crache du mutagène toutes les 5 s (deux cercles verts, 0,85 s pour en sortir), la flaque reste 3 s et empoisonne (1 % de ta vie par seconde) ; en mourant, il laisse une grande flaque',
-  wabGreffe: 'cousu de partout et blindé, armure (-35 %) : coup de pince devant lui toutes les 5 s (éventail rouge, 0,7 s : il repousse et assomme), et de loin son grappin toutes les 8 s (une ligne : il te ramène contre lui et t\'assomme)',
+  wabGreffe: 'cousu de partout et blindé, armure (-35 %) : coup de pince devant lui toutes les 5 s (éventail rouge, 0,7 s : il repousse et assomme), et de loin son grappin toutes les 6,5 s (une ligne : il te ramène contre lui et t\'assomme)',
   wabVampire: 'sorti des cuves, les oreilles en ailes : il vole, chaque morsure le soigne de la moitié des dégâts, et toutes les 3,5 s il fond sur toi d\'assez loin (cercle rouge, 0,75 s pour en sortir)',
   wabGarou: 'la créature la plus forte du Docteur, armure (-15 %) : il te bondit dessus toutes les 5 s (cercle rouge, 0,8 s) et abat ses poings toutes les 6,5 s (cercle autour de lui, 0,9 s pour en sortir)',
   wabDrone: 'un petit robot volant du Docteur : il te tire des cawottes de loin, et toutes les 9 s il bombarde (trois cercles orange, des cawottes tombent du ciel, 1,1 s pour en sortir)',
 };
 Object.keys(KITS_MUT).forEach((t) => { if (MONSTRES[t]) Object.assign(MONSTRES[t], KITS_MUT[t], { desc: DESC_MUT[t] || MONSTRES[t].desc }); });
+/* QU'ILS FASSENT PEUR (24/11/2026, « faut qu'ils nous fassent peur, que ce soit vraiment dur, parce que si les mobs sont lents, nous touchent jamais, ca va etre
+   nul », Mathieu). Mesure (traces/chargement/plans-kite-mutants.js, 3 mutants, le perso qui court en rond a 5,6, la vitesse du Iop) : aucun coup ni aucun sort
+   des mutants au corps a corps ne touchait (ils allaient a 2,8 a 4,6, et leurs sorts visaient la ou l'on etait). Trois corrections :
+   - leur vitesse pres de la tienne : l'enrage 6,6 (plus vite que tous les persos : Iop 5,6, Osamodas 5,3, Cra 6,4), le vampire 5,4, le garou 4,6,
+     le fluo 4,4, le greffe 4,4 (son grappin te ramene), le drone 4,4, le garde 3,6 (il tire de loin) ;
+   - leurs sorts visent la ou tu vas : ta course des derniers instants, prolongee sur le temps du sort (a 85 %, 5 cases au plus) ; en ligne droite tu es pris,
+     il faut changer de direction ;
+   - leur coup te rattrape : il touche encore a 1,8 au-dela de sa portee (1 pour un monstre ordinaire), comme le coup engage des boss */
+const PEUR_MUT = { wabEnrage: 6.4, wabVampire: 5.2, wabGarou: 4.4, wabFluo: 4.2, wabDrone: 4.2, wabGreffe: 4.2, wabGarde: 3.4 }, ENGAGE_MUT = 1.8, VISE_MUT = { avance: 0.85, max: 10 };
+Object.keys(PEUR_MUT).forEach((t) => { const d = MONSTRES[t]; if (!d) return; d.vitesse = PEUR_MUT[t]; d.viseAvance = true; if (!d.distance) d.engage = ENGAGE_MUT; });
+MONSTRES.wabEnrage.engage = 2.4; /* (l'enrage, la meute qui court : plus vite que tous les persos, 6,6 contre 6,4 au Cra, et son coup te rattrape de plus loin) */
+/* la course du perso : sa vitesse lissee, mesuree d'une image a l'autre */
+const COURSE_PERSO = { x: 0, z: 0, vx: 0, vz: 0, t: 0 };
+function majCoursePerso() { const now = performance.now(), C = COURSE_PERSO; if (now - C.t < 25 || !paysanMesh || !combat) return; const p = paysanMesh.position, dt = (now - C.t) / 1000;
+  if (C.t && dt < 0.5) { const k = Math.min(1, dt * 6), vx = (p.x - C.x) / dt, vz = (p.z - C.z) / dt; if (Math.hypot(vx, vz) < 20) { C.vx += (vx - C.vx) * k; C.vz += (vz - C.vz) * k; } } else { C.vx = 0; C.vz = 0; }
+  C.x = p.x; C.z = p.z; C.t = now; }
+function visePerso(prepa) { majCoursePerso(); const p = paysanMesh.position, C = COURSE_PERSO; let dx = C.vx * prepa * VISE_MUT.avance, dz = C.vz * prepa * VISE_MUT.avance; const L = Math.hypot(dx, dz);
+  if (L > VISE_MUT.max) { dx *= VISE_MUT.max / L; dz *= VISE_MUT.max / L; } return { x: p.x + dx, z: p.z + dz, y: p.y }; }
+CAPACITES.unshift(function capCoursePerso() { majCoursePerso(); }); /* (mesuree a chaque image, pas seulement au moment du sort : sinon sa vitesse retombait a zero) */
+/* le bond et la charge des mutants visent aussi la ou tu vas : leur fonction recoit ta position a venir (le temps de leur annonce) */
+{ const prepaDe = (mo, cap) => cap === capBond ? (mo.d.bondPrepa || ESQUIVE.bond) : (mo.d.chargePrepa || ESQUIVE.charge) + 0.25;
+  [capBond, capCharge].forEach((cap) => { const i = CAPACITES.indexOf(cap); if (i < 0) return;
+    CAPACITES[i] = function (mo, ctx) { if (!mo.d.viseAvance) return cap(mo, ctx); const q = visePerso(prepaDe(mo, cap)), pp = new T.Vector3(q.x, q.y, q.z); return cap(mo, Object.assign({}, ctx, { pp })); }; }); }
 /* ---------------- les boss du labo : chefs des camps et specimens des cuves ---------------- */
 const BOSS_MUT = {
   wabGarde: { obus: { periode: 3.8, prepa: 0.8, R: 2.0, x: 1.1, loin: 2 }, bombardement: { periode: 7, prepa: 1.0, n: 4, ecart: 3.4, R: 1.4, x: 0.9 }, renfortsMut: ['wabGarde', 'gardes'] },
@@ -56,7 +79,7 @@ const solMut = () => (paysanMesh ? paysanMesh.position.y : 0); /* (le sol sous l
 function capObusMut(mo, ctx) { /* l'obus-cawotte du garde : tire en cloche sur toi, cercle rouge */
   const O = mo.d.obus; if (!O || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
   if (!sortPret('obusT', O.periode)) return; if (dP < O.loin || dP > 14) { mo.obusT = O.periode; return; }
-  mo.obusT = 0; const c0 = combat, x = pp.x, z = pp.z, y = solMut(); mo.ry = Math.atan2(x - mo.x, z - mo.z); mo.bloqueT = O.prepa + 0.3; mo.frappe = 0.3;
+  mo.obusT = 0; const c0 = combat, q = visePerso(O.prepa), x = q.x, z = q.z, y = solMut(); mo.ry = Math.atan2(x - mo.x, z - mo.z); mo.bloqueT = O.prepa + 0.3; mo.frappe = 0.3;
   mo.geste = null; gesteSort(mo, 'tir', O.prepa); if (!c0.obusVu) { c0.obusVu = true; toast(leNom(mo.d) + ' tire un obus-cawotte en cloche sur toi : sors du cercle rouge !', 'alerte'); }
   cawotteVolante(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.7, mo.z), x, y, z, 0.12, O.prepa, 1.5, false);
   zoneDanger({ mo, x, z, r: O.R, duree: O.prepa, effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * O.x)), mo); } });
@@ -66,7 +89,7 @@ function capBombardMut(mo, ctx) { /* le bombardement du drone (et du chef des ga
   if (!sortPret('bombT', B.periode)) return; if (dP > 16) { mo.bombT = B.periode; return; }
   mo.bombT = 0; const c0 = combat, y = solMut(); mo.bloqueT = 0.5; mo.frappe = 0.3; mo.geste = null; gesteSort(mo, 'tir', 0.4);
   if (!c0.bombVu) { c0.bombVu = true; toast(leNom(mo.d) + ' bombarde : des cawottes tombent du ciel, sors des cercles orange !', 'alerte'); }
-  const P = [[pp.x, pp.z]]; for (let i = 1; i < B.n; i++) { const a = Math.random() * Math.PI * 2, r = B.ecart * (0.6 + Math.random() * 0.5); P.push([pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]); }
+  const q0 = visePerso(B.prepa), P = [[q0.x, q0.z]]; for (let i = 1; i < B.n; i++) { const a = Math.random() * Math.PI * 2, r = B.ecart * (0.6 + Math.random() * 0.5); P.push([pp.x + Math.cos(a) * r, pp.z + Math.sin(a) * r]); }
   P.forEach(([x, z], i) => { cawotteVolante(new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 2) * 0.8, mo.z), x, y, z, 0.05 + i * 0.06, B.prepa, 1.3, false);
     zoneDanger({ mo, x, z, r: B.R, duree: B.prepa, couleur: '#f08a24', effet: (d) => { const p2 = paysanMesh.position; if (dansDanger(d, p2.x, p2.z)) blesserPerso(Math.max(1, Math.round(degSort(mo) * B.x)), mo); } }); });
 }
@@ -81,7 +104,7 @@ function capCrachatMut(mo, ctx) {
   if (!sortPret('crachatMT', C.periode)) return; if (dP > 12) { mo.crachatMT = C.periode; return; }
   mo.crachatMT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), y = solMut(); mo.ry = a; mo.bloqueT = C.prepa + 0.3; mo.frappe = 0.3;
   mo.geste = null; gesteSort(mo, 'rugir', C.prepa + 0.2); if (!c0.crachatMVu) { c0.crachatMVu = true; toast(leNom(mo.d) + ' crache du mutagène : sors des cercles verts, la flaque qui reste empoisonne !', 'alerte'); }
-  const ux = Math.cos(a), uz = -Math.sin(a), P = []; for (let i = 0; i < C.n; i++) { const k = i - (C.n - 1) / 2; P.push([pp.x + ux * k * C.ecart, pp.z + uz * k * C.ecart]); } /* (en travers de la ligne : on en sort en avancant ou en reculant) */
+  const q0 = visePerso(C.prepa), ux = Math.cos(a), uz = -Math.sin(a), P = []; for (let i = 0; i < C.n; i++) { const k = i - (C.n - 1) / 2; P.push([q0.x + ux * k * C.ecart, q0.z + uz * k * C.ecart]); } /* (en travers de la ligne : on en sort en avancant ou en reculant) */
   const de = new T.Vector3(mo.x + Math.sin(a) * 0.5, mo.m.position.y + (mo.haut || 2) * 0.7, mo.z + Math.cos(a) * 0.5), tg = C.prepa * 0.45;
   P.forEach(([x, z]) => { const b = new T.Mesh(GEO_BULLE_MUT, MAT_BULLE_MUT); b.visible = false; b.raycast = () => {}; scene.add(b); let t = 0;
     effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { jeter(b); return true; } if (t < tg) return false; b.visible = true; const u = Math.min(1, (t - tg) / (C.prepa - tg));
@@ -101,7 +124,7 @@ function capPinceMut(mo, ctx) { /* le coup de pince du greffe : un eventail deva
 function capGrappinMut(mo, ctx) { /* le grappin du greffe : une ligne jusqu'a toi, il te ramene contre lui et t'assomme */
   const G = mo.d.grappin; if (!G || mo.etat !== 'actif' || combat.deroute != null) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
   if (!sortPret('grappinT', G.periode)) return; if (dP < G.min || dP > G.max) { mo.grappinT = G.periode; return; }
-  mo.grappinT = 0; const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), L = dP + 1.5, x2 = mo.x + Math.sin(a) * L, z2 = mo.z + Math.cos(a) * L; mo.ry = a; mo.bloqueT = G.prepa + 0.5; mo.frappe = 0.3;
+  mo.grappinT = 0; const c0 = combat, q0 = visePerso(G.prepa), a = Math.atan2(q0.x - mo.x, q0.z - mo.z), L = Math.hypot(q0.x - mo.x, q0.z - mo.z) + 1.5, x2 = mo.x + Math.sin(a) * L, z2 = mo.z + Math.cos(a) * L; mo.ry = a; mo.bloqueT = G.prepa + 0.5; mo.frappe = 0.3;
   mo.geste = null; gesteSort(mo, 'coup', G.prepa); if (!c0.grappinVu) { c0.grappinVu = true; toast(leNom(mo.d) + ' lance son grappin : sors de la ligne, ou il te ramène contre lui et t\'assomme !', 'alerte'); }
   zoneDanger({ mo, x: mo.x, z: mo.z, x2, z2, larg: G.larg, duree: G.prepa, couleur: '#8a95a5', fort: 1.4, bord: true, effet: (d) => {
     const y0 = mo.m.position.y + (mo.haut || 2) * 0.55, p2 = paysanMesh.position, pris = dansDanger(d, p2.x, p2.z), bout = pris ? new T.Vector3(p2.x, p2.y + 1, p2.z) : new T.Vector3(x2, solMut() + 0.5, z2);
