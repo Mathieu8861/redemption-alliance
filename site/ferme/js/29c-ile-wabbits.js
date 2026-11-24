@@ -486,6 +486,8 @@ async function construireSallesLabo(g, F) {
       retirer.forEach((m) => m.parent.remove(m));
       versToon(n, { normales: 0.02, sansContour: SC_FLORE });
       n.traverse((m) => { if (m.isMesh && /^verre/.test(nomB(m))) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.32; m.material.depthWrite = false; m.castShadow = false; m.children.forEach((k) => { k.visible = false; }); } });
+      /* le verre des cuves (« verre_vert », la salle des cuves refaite le 24/11/2026) : un vert lumineux a moitie transparent, la silhouette du Wabbit se voit dedans */
+      n.traverse((m) => { if (m.isMesh && nomB(m) === 'verre_vert') { m.material = new T.MeshBasicMaterial({ color: '#4cff6a', transparent: true, opacity: 0.55, depthWrite: false }); m.renderOrder = 3; } });
       s.add(n); fusionner(n); }
     const vide = new T.Mesh(new T.CircleGeometry(S.R + 40, 40), new T.MeshBasicMaterial({ color: '#07080b' })); vide.rotation.x = -Math.PI / 2; vide.position.y = -0.4; s.add(vide);
     const clic = new T.Mesh(new T.CircleGeometry(S.R, 48), new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false })); clic.rotation.x = -Math.PI / 2; clic.position.y = 0.02; s.add(clic);
