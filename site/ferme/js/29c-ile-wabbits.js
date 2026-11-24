@@ -479,11 +479,11 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
   E.salles.forEach((s, i) => { if (!s || s.fini || E.t - s.t < 3) return;
     if (i < 4 && !s.specimen) { if (c.monstres.filter((o) => o.salle === i && o.etat !== 'mort').length <= Math.ceil((s.n || 1) / 2)) specimenLabo(i); return; } /* (le specimen de la cuve : a mi-chemin, et la salle n'est finie qu'apres lui) */
     if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud();
-    if (i === 4) { E.gagne = E.t; toast('Le Docteur Wabbenstein est tombé ! Les cages s\'ouvrent, les Wabbits sont libres.', 'or'); return; }
+    if (i === 4) { E.gagne = E.t; toast('Le Docteur Wabbenstein est tombé !', 'or'); if (typeof liberationLabo === 'function') liberationLabo(); return; } /* (la liberation des Wabbits, puis le coffre : 29s-fin-labo.js) */
     const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); });
   if (P.mode === 'salle' && P.i != null && P.i < 4 && E.salles[P.i] && E.salles[P.i].fini) { const S = SALLES_LABO[P.i], sx = DONJON.x + S.x + Math.cos(ENTREE_SALLE) * (S.R - 1.1), sz = DONJON.z + S.z + Math.sin(ENTREE_SALLE) * (S.R - 1.1); if (Math.hypot(p.x - sx, p.z - sz) < 1.1) sortirSalleLabo(P.i);
     const So = ileWabbits.userData.salles[P.i]; if (So && So.sortie.visible) { So.sortie.material.opacity = 0.55 + 0.3 * Math.sin(E.t * 5); So.sortie.scale.setScalar(1 + 0.06 * Math.sin(E.t * 5)); } }
-  if (E.gagne != null && E.t - E.gagne > 1.6) { finDonjon(true); return true; }
+  if (E.gagne != null && E.t - E.gagne > (typeof FIN_LABO !== 'undefined' ? FIN_LABO.duree : 1.6)) { finDonjon(true); return true; }
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; if (!o.lab) o.lab = { mode: 'sol', theta: LABO.A0 }; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3, o.lab); o.x = q[0]; o.z = q[1]; });
   if ((E.lueurT = (E.lueurT || 0) - dt) <= 0) { E.lueurT = 0.14; c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.m) return; const h = o.d.boss ? 2.4 : 1.2; emettre(FX_LUM, 2, { x: o.x + (Math.random() - 0.5) * 0.8, y: o.m.position.y + Math.random() * h, z: o.z + (Math.random() - 0.5) * 0.8, r: 0.1, v: [0, 1.1, 0], dv: 0.3, vie: [0.7, 1.2], taille: [0.2, 0.03], c: ['#d8ffb0', '#7dff5a', '#2fd12f'], a: 0.9, frein: 1 }); }); }
   suivre(); suivreOmbres(); effacerTour(dt, hP);
