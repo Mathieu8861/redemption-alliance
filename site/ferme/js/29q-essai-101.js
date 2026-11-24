@@ -78,7 +78,7 @@ function carteEssai101() {
   const g = gainsVague(n, true), plein = gainsVague(n, false), bonus = Math.max(0, plein.kamas - g.kamas), dejaV = !!E.gagnes[V.v];
   const bouton = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : '<button class="btn kamas vg-lancer" data-essai101>' + (E.gagnes[V.v] ? 'Rejouer la ' : 'Lancer la ') + nomEssai101(k).toLowerCase() + '</button>';
   return '<div class="essai-carte"><div class="essai-t"><b>Vague 101 : la saison des pluies, en avant-première</b><span>' + (fin ? 'série terminée, merci !' : nbOk + ' sur ' + tot + ' réussie' + (nbOk > 1 ? 's' : '')) + '</span></div>' +
-    '<p>Aide-nous à régler le prochain palier : ' + tot + ' versions de la vague 101, aussi dures les unes que les autres, mais chacune à sa façon. Joue-les dans l\'ordre que tu veux (touche un numéro), et à la fin de chaque vague donne-lui une note de difficulté de 0 à 10. Une vague perdue se retente après ton repos. Les ressources gagnées vont dans le coffre de la série.</p>' +
+    '<p>Aide-nous à régler le prochain palier : ' + tot + ' versions de la vague 101, aussi dures les unes que les autres, mais chacune à sa façon. Joue-les dans l\'ordre que tu veux (touche un numéro), et à la fin de chaque vague donne-lui une note de difficulté de 0 à 10. Une vague perdue se retente après ton repos. Les ressources gagnées vont dans le coffre de la série, et les bâtiments touchés sont réparés gratuitement à la fin de la vague.</p>' +
     '<div class="essai-pistes">' + pistes + '</div>' + ligneCoffre101() + '<p class="essai-v"><b>' + nomEssai101(k) + ' · ' + V.P.nom + '</b> : ' + V.P.desc + '.</p><div class="vg-mons">' + mons + '</div>' +
     '<div class="essai-pied"><span>' + img('kama') + fmt(g.kamas) + ' kamas' + (!dejaV && !fin ? ', +' + fmt(bonus) + ' à ta première victoire de cette version' : '') + '. Des ressources, mais aucune pièce d\'équipement.</span>' + bouton + '</div></div>';
 }
@@ -118,6 +118,39 @@ function apresEssai101(es, gagne, fuite) {
     '<div class="essai-com"><textarea maxlength="' + COMMENTAIRE101 + '" rows="2" placeholder="Un commentaire ? (facultatif) : ce qui t\'a gêné, un monstre trop fort, une idée…"></textarea><button class="btn mini" data-essai-com>Envoyer</button></div></div>';
   carte.querySelectorAll('p').forEach((p) => { if (p.textContent.includes('tous les paliers sont termin')) p.remove(); }); /* (le bilan d'une vague rejouee disait « le Machefange est tombe » : faux pour un essai) */
   const art = carte.querySelector('.art'); if (art) art.insertAdjacentHTML('afterend', bloc); else carte.insertAdjacentHTML('beforeend', bloc);
+}
+/* LES BATIMENTS REPARES GRATUITEMENT APRES UNE VAGUE D'ESSAI (24/11/2026, « les degats de batiment qu'ils prennent et qu'il faut repayer sur les tests de la
+   vague 101, ca ne leur coute 0 ? ils peuvent reparer free ? », Mathieu) : a la fin de la vague (gagnee, perdue ou abandonnee), chaque batiment perd exactement
+   les degats pris pendant la vague (combat.bats, tenu par blesserBat), ruine comprise ; ce qu'il avait deja avant la vague reste a reparer, comme avant.
+   Les degats en cours sont aussi notes dans la sauvegarde (essai101.batsEnCours) : une page fermee en pleine vague les rend au chargement suivant. */
+function rendreBatsEssai101(s, D) {
+  const L = []; if (!s || !s.bats || !D) return L;
+  Object.keys(D).forEach((k) => { const b = s.bats[k], d = Math.round(D[k] || 0); if (!b || d <= 0) return;
+    L.push({ k, ruine: !!b.ruine }); b.deg = Math.max(0, (b.deg || 0) - d); delete b.ruine; if (!b.deg) delete s.bats[k]; });
+  return L;
+}
+{ const blesserBatE = blesserBat; blesserBat = function () { const r = blesserBatE.apply(this, arguments);
+    try { if (combat && combat.essai101 && !combat.fin && combat.bats) etatEssai101().batsEnCours = Object.assign({}, combat.bats); } catch (e) { /* rien */ } return r; }; }
+{ const chargerE = charger; charger = function () { const s = chargerE.apply(this, arguments);
+    try { const E = s && s.essai101; if (E && E.batsEnCours) { rendreBatsEssai101(s, E.batsEnCours); delete E.batsEnCours; } } catch (e) { /* (la sauvegarde reste comme elle est) */ } return s; }; }
+{ const finVagueE = finVague; finVague = function (gagne, fuite) {
+    const c = combat, es = c && !c.fin && c.essai101, r = finVagueE.apply(this, arguments);
+    if (es) { try { reparerApresEssai101(c); } catch (e) { /* (le bilan reste comme avant) */ } }
+    return r; }; }
+function reparerApresEssai101(c) {
+  delete etatEssai101().batsEnCours; const L = rendreBatsEssai101(S_, c.bats); if (!L.length) { sauver(); return; }
+  L.forEach((x) => { majFeu(x.k, true); if (x.ruine) { ecarterPerso(casesDeCle(x.k)); if (typeCle(x.k) === 'grange') rendreArbaleteBulle(); } });
+  majBarresBat(); rendreHaut(); sauver();
+  const carte = $('carte'); if (!carte || modaleOuverte !== 'vague-fin') return;
+  L.forEach((x) => carte.querySelectorAll('[data-reparer="' + x.k + '"], [data-reconstruire="' + x.k + '"]').forEach((e) => {
+    const ligne = e.closest('.art'), d = ligne && ligne.querySelector('.desc'), reste = degatsBat(x.k) || enRuine(x.k), cout = enRuine(x.k) ? coutReconstruire(x.k) : coutReparer(x.k);
+    if (d) d.textContent = reste ? 'Les dégâts de la vague d\'essai sont réparés gratuitement. Restent ceux d\'avant : ' + fmt(pvBat(x.k)) + ' PV sur ' + fmt(pvMaxBat(x.k)) + '.' : 'Vague d\'essai : réparé gratuitement, ' + fmt(pvMaxBat(x.k)) + ' PV sur ' + fmt(pvMaxBat(x.k)) + '.';
+    e.outerHTML = reste ? '<button class="btn kamas" data-reparer="' + x.k + '">Réparer ' + fmt(cout) + ' ' + KAMA + '</button>' : '<span class="cadenas">✓ Gratuit</span>'; }));
+  const tb = carte.querySelector('[data-tout-reparer]');
+  if (tb) { const reste = tb.dataset.toutReparer.split(',').filter((k) => degatsBat(k) || enRuine(k)), total = reste.reduce((t, k) => t + (enRuine(k) ? coutReconstruire(k) : coutReparer(k)), 0);
+    if (reste.length < 2) tb.parentNode.remove(); else { tb.dataset.toutReparer = reste.join(','); tb.innerHTML = 'Tout réparer ' + fmt(total) + ' ' + KAMA; } }
+  carte.querySelectorAll('b').forEach((b) => { if (b.textContent.includes('répare avant la prochaine vague')) b.textContent = b.textContent.replace('répare avant la prochaine vague', 'c\'est réparé gratuitement, c\'est une vague d\'essai'); });
+  const bloc = carte.querySelector('.essai-bilan'); if (bloc) { const p = bloc.querySelector('.essai-note'); if (p) p.insertAdjacentHTML('beforebegin', '<p>Tes bâtiments touchés pendant la vague sont réparés gratuitement.</p>'); }
 }
 document.addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-essai101], [data-essai101-choix], [data-note101], [data-essai-com]'); if (!b) return;
