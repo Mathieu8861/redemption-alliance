@@ -232,6 +232,11 @@ function placerFloreLabo() {
   semer(3, 5.0, 5.9, 22, 44, (x, z) => { if (!libre(x, z, { ecart: 0.9, chemin: 1.6, mare: 1.2 })) return false; const P = poser('oeil_tige', x, z, { s: 1.0 + rnd() * 0.3, bloc: 0.3, gros: 0.6 }); yeux.push(P); return true; });
   /* LA BUTTE : le mat radio au sommet, rochers, cristaux, arbres morts */
   { const B = BUTTE_LABO; poser('mat_radio', B.x - 2.2, B.z - 2.0, { ry: 0.4, bloc: 0.8, gros: 1.5 }); poser('panneau', B.x + 1.4, B.z - 3.2, { ry: 2.2, gros: 0.3 }); }
+  /* LES COINS DES MINI-BOSS (24/11/2026, « des endroits de mini-boss », Mathieu) : on les repere de loin. L'antre du Garou alpha, au sommet de la butte : des os de
+     proies et des cristaux de mutagene en cercle ; le poste du Chef des gardes, au pied de la tour : caisses, tonneaux et deux lampadaires */
+  { const K = CAMPS_LABO[4]; for (let k = 0; k < 7; k++) { const a = k / 7 * TAU_L + 0.3, r = K.r * 0.95; poser(k % 2 ? 'cristaux' : 'os_wabbit', K.x + Math.cos(a) * r, K.z + Math.sin(a) * r, { ry: a, s: k % 2 ? 0.75 : 0.5, bloc: k % 2 ? 0.4 : 0, gros: 0.5 }); } }
+  { const K = CAMPS_LABO[3]; [['caisse_cawottes', 0.4], ['caisse_p', 1.3], ['tonneau', 2.4], ['caisse_p', 3.6], ['tonneau_couche', 4.6]].forEach(([p, a]) => poser(p, K.x + Math.cos(a) * K.r * 0.95, K.z + Math.sin(a) * K.r * 0.95, { ry: a * 1.7, bloc: 0.5, gros: 0.7 }));
+    [0.9, 4.1].forEach((a) => poser('lampadaire', K.x + Math.cos(a) * (K.r + 0.6), K.z + Math.sin(a) * (K.r + 0.6), { ry: a, gros: 0.4 })); }
   semer(16, 3.65, 5.05, 21, 47, (x, z) => { if (!libre(x, z, { ecart: 1.2, chemin: 2.4, camp: 3 })) return false; const t = choisir(['rochers_1', 'rochers_2', 'rochers_3', 'rochers_1']), s = 0.8 + rnd() * 0.6; poser(t, x, z, { s, bloc: { rochers_1: 1.25, rochers_2: 0.95, rochers_3: 1.7 }[t], gros: { rochers_1: 1.6, rochers_2: 1.2, rochers_3: 2.2 }[t], dy: -0.15 }); return true; });
   semer(7, 3.8, 4.95, 22, 44, (x, z) => { if (!libre(x, z, { ecart: 1.0, chemin: 2.0, camp: 2.5 })) return false; poser('cristaux', x, z, { s: 0.8 + rnd() * 0.6, bloc: 0.85, gros: 1.2, dy: -0.1 }); return true; });
   semer(6, 3.4, 5.0, 22, 46, (x, z) => { if (!libre(x, z, { ecart: 2.0, chemin: 2.2, camp: 2.5 })) return false; poser(rnd() < 0.5 ? 'arbre_mort_1' : 'arbre_mort_2', x, z, { s: 0.8 + rnd() * 0.35, bloc: 0.45, gros: 1.0 }); return true; });
