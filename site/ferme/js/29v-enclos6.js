@@ -7,7 +7,7 @@
      est de la Laine fine, soyeuse ou doree, qui se vend plus cher. La ration se choisit pour tout l'enclos dans sa fenetre ; la mangeoire la sert seule, et
      revient au Ble quand il n'y en a plus. Les Bouftous noirs (leur laine noire) et les bebes mangent toujours du Ble.
    - chaque repas a ration est note sur le Bouftou (debut, fin, laine) : une laine prend la qualite du repas pendant lequel elle pousse.
-   Chiffres de depart, a valider par Mathieu. */
+   Chiffres valides par Mathieu le 24/11/2026 au formulaire : 300 000 au niveau 100, laines a 130 / 220 / 360, les cultures telles quelles (pas de rations a fabriquer). */
 const ENCLOS6 = { cout: 300000, niv: 100, cases: 16, bouftous: 7, laines: 11 };
 const LAINES_RATION = [
   { id: 'laine_fine', nom: 'Laine fine', prix: 130, xp: 6 },
