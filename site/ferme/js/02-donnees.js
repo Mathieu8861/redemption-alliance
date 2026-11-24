@@ -97,8 +97,8 @@ const BOTTES = 0.2; /* les Bottes de cuir de Bouftou (des le niveau 2) : +20 % d
    niveau 10, puis 1 000 de plus a chaque niveau tant qu'elles ne sont pas achetees (3 000 au 11, 12 000 au 20, 42 000 au 50). Avant : 300 kamas */
 const BOTTES_PRIX = 2000, BOTTES_HAUSSE = 1000, BOTTES_PALIER = 10;
 const prixBottes = () => { let nv = 1; try { if (S_) nv = niveau(S_.xp); } catch (e) {} return BOTTES_PRIX + BOTTES_HAUSSE * Math.max(0, nv - BOTTES_PALIER); }; /* (S_ est declare plus loin, 04-etat.js) */
-/* LA FORGEMAGIE NIVEAU 2 (24/11/2026, version dev : seulement dans le mode test tant que le donjon des Wabbits n'est pas sorti ; prix et niveau proposes a Mathieu) */
-const PRIX_FORGE2 = 1000000, NIV_FORGE2 = 100, CRISTAL_PLAFOND = 20;
+/* LA FORGEMAGIE NIVEAU 2 (24/11/2026, version dev : seulement dans le mode test tant que le donjon des Wabbits n'est pas sorti ; prix : 500 000, choisi par Mathieu le 24/11) */
+const PRIX_FORGE2 = 500000, NIV_FORGE2 = 100, CRISTAL_PLAFOND = 20;
 const forge2Ouverte = () => typeof MODE_TEST !== 'undefined' && !!MODE_TEST;
 const AMELIOS = [
   /* les batiments, du niveau 1 au niveau 5 (decision de Mathieu du 11/10/2026) : chaque niveau monte toutes les stats et change l'apparence.

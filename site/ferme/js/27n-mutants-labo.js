@@ -19,17 +19,17 @@ MUTANTS_LABO.forEach(([n, h]) => { SQUELETTES_A_CHARGER.push([n, 'assets/modeles
 const fW = (t, c, k) => (n) => Math.max(1, Math.round(MONSTRES[t][c](n) * k)); /* (la force d'un mutant : celle d'un Wabbit du jeu, a la meme vague, fois k) */
 Object.assign(MONSTRES, {
   wabGarde: { element: 'feu', nom: 'Garde lapin-machine', modele: 'wab-garde', icone: 'wab-garde', desc: 'le robot de cuivre du Docteur, armure (-30 %) : il monte la garde et te tire des cawottes de son canon, de loin',
-    pv: fW('woWabbit', 'pv', 1.2), deg: fW('wabbitSorciere', 'deg', 1.2), cadence: 2.0, vitesse: 1.8, portee: 5, distance: true, projectile: 'cawotte', armure: 0.3, ombre: 2.0 }, /* (projectile cawotte, 24/11/2026 : il tirait une fleche de son canon) */
+    pv: fW('woWabbit', 'pv', 1.2), deg: fW('wabbitSorciere', 'deg', 1.2), cadence: 2.0, vitesse: 2.6, portee: 5, distance: true, projectile: 'cawotte', armure: 0.3, ombre: 2.0 }, /* (projectile cawotte, 24/11/2026 : il tirait une fleche de son canon) */
   wabEnrage: { element: 'terre', nom: 'Wabbit enragé', modele: 'wab-enrage', icone: 'wab-enrage', desc: 'échappé des cages, l\'œil rouge : il court très vite, te charge et griffe vite, en meute',
-    pv: fW('wabbitFonceur', 'pv', 1), deg: fW('wabbitFonceur', 'deg', 1.1), cadence: 0.8, vitesse: 3.6, portee: 1.3, ombre: 1.4, charge: 6, chargeMax: typeof SAUT_PORTEE !== 'undefined' ? SAUT_PORTEE : 6, degSort: 1.3 }, /* (sa charge, 24/11/2026 : une bande rouge jusqu'a toi, comme le Dragoeuf Blanc) */
+    pv: fW('wabbitFonceur', 'pv', 1), deg: fW('wabbitFonceur', 'deg', 1.1), cadence: 0.8, vitesse: 4.4, portee: 1.3, ombre: 1.4, charge: 6, chargeMax: typeof SAUT_PORTEE !== 'undefined' ? SAUT_PORTEE : 6, degSort: 1.3 }, /* (sa charge, 24/11/2026 : une bande rouge jusqu'a toi, comme le Dragoeuf Blanc) */
   wabFluo: { element: 'poison', nom: 'Wabbit fluo', modele: 'wab-fluo', icone: 'wab-fluo', desc: 'gorgé de mutagène qui luit : en mourant, il laisse une flaque verte qui empoisonne (sors-en)',
-    pv: fW('wabbitNoir', 'pv', 1.1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.8, vitesse: 2.0, portee: 1.6, ombre: 1.8, flaqueMort: { R: 1.9, duree: 5, pct: 0.012 } },
+    pv: fW('wabbitNoir', 'pv', 1.1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.8, vitesse: 3.0, portee: 1.6, ombre: 1.8, flaqueMort: { R: 1.9, duree: 5, pct: 0.012 } },
   wabGreffe: { element: 'terre', nom: 'Wabbit greffé', modele: 'wab-greffe', icone: 'wab-greffe', desc: 'cousu de partout et blindé, armure (-35 %) : sa pince mécanique frappe fort et t\'assomme un instant',
-    pv: fW('woWabbit', 'pv', 1), deg: fW('gwandWabbit', 'deg', 0.9), cadence: 2.0, vitesse: 1.6, portee: 1.7, armure: 0.35, ombre: 1.9, assomme: 0.45 }, /* (assomme, 24/11/2026 : sa pince te bloque 0,45 s) */
+    pv: fW('woWabbit', 'pv', 1), deg: fW('gwandWabbit', 'deg', 0.9), cadence: 2.0, vitesse: 2.6, portee: 1.7, armure: 0.35, ombre: 1.9, assomme: 0.45 }, /* (assomme, 24/11/2026 : sa pince te bloque 0,45 s) */
   wabVampire: { element: 'esprit', nom: 'Wabbit vampire', modele: 'wab-vampire', icone: 'wab-vampire', desc: 'sorti des cuves, les oreilles en ailes : il vole au-dessus du sol et te vole la vie, chaque morsure le soigne de la moitié des dégâts',
-    pv: fW('wabbitNoir', 'pv', 1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.3, vitesse: 2.8, portee: 1.4, ombre: 1.6, volVie: 0.5, vol: 1.0 }, /* (vol, 24/11/2026 : « les wabbit vampire faudrait qu'ils volent nan ? plus sympa », Mathieu ; ses ailes battent dans ses mouvements, blender/ailes-os.py) */
+    pv: fW('wabbitNoir', 'pv', 1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.3, vitesse: 3.8, portee: 1.4, ombre: 1.6, volVie: 0.5, vol: 1.0 }, /* (vol, 24/11/2026 : « les wabbit vampire faudrait qu'ils volent nan ? plus sympa », Mathieu ; ses ailes battent dans ses mouvements, blender/ailes-os.py) */
   wabGarou: { element: 'terre', nom: 'Wabbit garou', modele: 'wab-garou', icone: 'wab-garou', desc: 'la créature la plus forte du Docteur, armure (-15 %) : énorme, il te bondit dessus et cogne très fort',
-    pv: fW('gwandWabbit', 'pv', 1.6), deg: fW('gwandWabbit', 'deg', 1.3), cadence: 2.0, vitesse: 2.2, portee: 2.0, armure: 0.15, ombre: 2.6, bondit: 8, bonditR: 2.4, degSort: 1.6, bonditNom: 'Bond du garou' } }); /* (son bond, 24/11/2026 : un cercle rouge la ou tu es, il saute et ecrase) */
+    pv: fW('gwandWabbit', 'pv', 1.6), deg: fW('gwandWabbit', 'deg', 1.3), cadence: 2.0, vitesse: 3.2, portee: 2.0, armure: 0.15, ombre: 2.6, bondit: 8, bonditR: 2.4, degSort: 1.6, bonditNom: 'Bond du garou' } }); /* (son bond, 24/11/2026 : un cercle rouge la ou tu es, il saute et ecrase) */
 /* LA CAWOTTE DU GARDE (24/11/2026) : la cawotte des tourelles du Docteur (cawotteTir, 27k) en projectile, qui eclate en orange */
 TIRS.cawotte = { v: 14, arc: 0.3, parD: 0.03, long: true };
 { const projMut = projectileMonstre; projectileMonstre = function (type) { return type === 'cawotte' ? cawotteTir() : projMut.apply(this, arguments); }; }
@@ -133,10 +133,11 @@ function fabriquerDroneSimple() { /* (le drone en formes simples du 24/11 au mat
   g.traverse((q) => { if (q.isMesh) { q.castShadow = true; } }); return g;
 }
 MONSTRES.wabDrone = { element: 'feu', nom: 'Drone du Docteur', modele: 'wabDrone', icone: 'wab-drone', fabrique: fabriquerDrone, desc: 'un petit robot volant du Docteur : il patrouille sur la passerelle de la tour et te tire des cawottes de loin',
-  pv: fW('wabbitNoir', 'pv', 0.7), deg: fW('wabbitSorciere', 'deg', 0.9), cadence: 1.7, vitesse: 2.4, portee: 4.5, distance: true, projectile: 'cawotte', vol: 1.3, armure: 0.2, ombre: 1.0 };
+  pv: fW('wabbitNoir', 'pv', 0.7), deg: fW('wabbitSorciere', 'deg', 0.9), cadence: 1.7, vitesse: 3.3, portee: 4.5, distance: true, projectile: 'cawotte', vol: 1.3, armure: 0.2, ombre: 1.0 };
 { const majMonstreDrone = majMonstre; majMonstre = function (mo, dt) { const r = majMonstreDrone.apply(this, arguments); try { const R = mo.m && mo.m.userData.rotors; if (R) R.forEach((q, i) => { q.rotation.y += (dt || 0.016) * (i ? -30 : 30); }); } catch (e) { /* rien */ } return r; }; } /* (les rotors tournent) */
 /* LA DIFFICULTE DU LABO (24/11/2026, « la difficulte est trop simple, je les one-shot avec un sort », Mathieu) : a la vague 100, les mutants avaient 1 600 a 5 900 PV
    (un Abraknyde de la foret : 5 500) pour 1 077 de degats par coup d'un Iop niveau 100. Leur vie passe a celle d'un monstre de la foret ou un peu plus (fois pv),
    leurs coups montent de 35 % ; les chefs, les specimens et le Docteur gardent leurs multiplicateurs par-dessus (CHEF_LABO, SPECIMEN). A regler avec Mathieu */
+/* (leur marche aussi, 24/11/2026, « leurs deplacements » sont lents, Mathieu : +0,8 a +1 de vitesse chacun, garde 2,6, enrage 4,4, fluo 3, greffe 2,6, vampire 3,8, garou 3,2, drone 3,3) */
 const DUR_LABO = { wabEnrage: 3.2, wabFluo: 2.8, wabVampire: 3.1, wabGreffe: 2.9, wabGarde: 2.2, wabGarou: 2.7, wabDrone: 2.75 }, DEG_LABO = 1.35;
 Object.keys(DUR_LABO).forEach((t) => { const D = MONSTRES[t]; if (!D) return; const p0 = D.pv, d0 = D.deg; D.pv = (n) => Math.round(p0(n) * DUR_LABO[t]); D.deg = (n) => Math.round(d0(n) * DEG_LABO); });
