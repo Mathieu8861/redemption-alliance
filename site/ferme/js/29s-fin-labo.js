@@ -17,6 +17,7 @@ function liberationLabo() {
   c.monstres.forEach((o) => { if (o.etat === 'actif' && !o.d.boss) { try { blesser(o, o.pv + 10, true); } catch (e) { /* rien */ } } }); /* (ses creatures tombent avec lui) */
   const S = SALLES_LABO[4];
   let cages = cagesLabo(); if (!cages.length) cages = [0, 1, 2, 3].map((k) => { const a = ENTREE_SALLE + Math.PI + (k - 1.5) * 0.5; return { x: Math.cos(a) * (S.R - 1.4), z: Math.sin(a) * (S.R - 1.4) }; });
+  (S.prisonniers || []).forEach((w) => { w.visible = false; }); /* (ceux des cages en sortent, 29c) */
   libererWabbits(4, cages, FIN_LABO.parCage, CAGES_LABO.types[4]); /* (les Gwand Wabbits, prisonniers du labo) */
   toast('Les cages s\'ouvrent : les Wabbits sont libres ! Ils viennent te remercier.', 'or'); son('quete');
 }

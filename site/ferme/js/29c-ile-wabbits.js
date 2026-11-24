@@ -501,6 +501,12 @@ async function construireSallesLabo(g, F) {
         if (!q) continue; const ry = Math.atan2(-q.x, -q.z), cg = F.cage.clone(true); cg.position.set(q.x, 0, q.z); cg.rotation.set(0, ry, 0); s.add(cg);
         const w = cloner(type), b = new T.Box3().setFromObject(w), d = new T.Vector3(); b.getSize(d); w.scale.multiplyScalar(Math.min(1.2 / d.y, 1.05 / Math.max(d.x, d.z))); w.position.set(q.x, 0.06, q.z); w.rotation.y = ry; s.add(w); w.traverse((m) => { if (m.isMesh) saufTrou.push(m); });
         blocs.push({ x: q.x, z: q.z, r: 0.85 }); cages.push({ x: q.x, z: q.z, ry, grp: cg, wab: w, type, ouverte: false, ph: Math.random() * 6 }); } }
+    /* les prisonniers du labo (24/11/2026, le labo refait : ses cages sont vides dans le modele) : un vrai Gwand Wabbit dans chaque cage (les obstacles de rayon 1
+       a R - 1,2, comme cagesLabo), cache a la liberation (29s) */
+    if (i === 4) { const type = MODELES[CAGES_LABO.types[4]] ? CAGES_LABO.types[4] : 'wabbit'; S.prisonniers = [];
+      blocs.filter((b) => Math.abs(b.r - 1.0) < 0.1 && Math.abs(Math.hypot(b.x, b.z) - (S.R - 1.2)) < 0.3).forEach((b) => { try {
+        const w = cloner(type), bb = new T.Box3().setFromObject(w), d = new T.Vector3(); bb.getSize(d); w.scale.multiplyScalar(Math.min(1.3 / d.y, 1.1 / Math.max(d.x, d.z)));
+        w.position.set(b.x, 0.08, b.z); w.rotation.y = Math.atan2(-b.x, -b.z); s.add(w); w.traverse((m) => { if (m.isMesh) saufTrou.push(m); }); S.prisonniers.push(w); } catch (e) { /* (sans modele : la cage vide) */ } }); }
     /* LA LUMIERE DES LAMPES SUSPENDUES (24/11/2026, la salle des cages refaite : « plus de profondeur, plus de realisme ») : sous chaque repere_lampe, un faisceau
        doux (un cone ouvert qui s'efface vers le bas) et une flaque de lumiere au sol, en lumiere ajoutee */
     const TEINTES_LAMPE = { repere_lampe: ['#ffe2a6', '#ffd994'], repere_lampe_violet: ['#d29bff', '#c27dff'], repere_lampe_froid: ['#dff6ff', '#cfeefa'] }; /* (les lampes de culture de la serre, violettes) */
