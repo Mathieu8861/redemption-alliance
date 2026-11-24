@@ -458,7 +458,7 @@ async function construireIleWabbits() {
     [[5.3, 27, '#c8f0b0'], [5.55, 34, '#c8f0b0'], [5.2, 38, '#c8f0b0'], [5.75, 31, '#c8f0b0'], [5.45, 24, '#d8f5c8'], [2.1, 30, '#b9a0d8'], [2.5, 38, '#b9a0d8'], [2.0, 41, '#c4b0e0'], [2.75, 33, '#b9a0d8'], [1.75, 35, '#b9a0d8'], [3.0, 42, '#b9a0d8'], [4.2, 38, '#cfc8d8'], [0.9, 37, '#d8e8c8']].forEach(([a, r, c], k) => {
       const q = polL(a, r), m = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: tx, color: c, transparent: true, opacity: 0.3, depthWrite: false })); m.rotation.x = -Math.PI / 2; const s = 9 + (k % 3) * 3; m.scale.set(s, s * 0.7, 1);
       m.position.set(q.x, Math.max(-0.1, hTerrainLabo(q.x, q.z)) + 0.45, q.z); m.renderOrder = 2; g.add(m); brumes.push({ m, x: q.x, z: q.z, ph: k * 1.3 }); }); }
-  g.userData.protos = { cage: F.cage, cageOuverte: F.cage_ouverte }; g.userData.salles = await construireSallesLabo(g, F);
+  g.userData.protos = { cage: F.cage, cageOuverte: F.cage_ouverte, cawotte: F.cawotte }; /* (cawotte : les Cawottes mures a recolter, 29u-labo-ile.js) */ g.userData.salles = await construireSallesLabo(g, F);
   g.userData.flaques = flaques; g.userData.brumes = brumes; sansClic(g);
   g.userData.salles.forEach((S) => { if (S.clic) delete S.clic.raycast; (S.cages || []).forEach((C) => [C.grp, C.wab].forEach((o) => o.traverse((q) => { if (q.isMesh) delete q.raycast; }))); }); /* (les cages des salles se touchent : on les ouvre, 29s-fin-labo.js) */ sol.raycast = T.Mesh.prototype.raycast; mer.raycast = T.Mesh.prototype.raycast;
   if (g.userData.passerelle) g.userData.passerelle.traverse((q) => { if (q.isMesh) delete q.raycast; }); /* (la mer, le sol, la passerelle et le sol des salles restent cliquables : on y va) */
@@ -514,18 +514,30 @@ function persoCacheLabo() {
     for (const m of L) T.Mesh.prototype.raycast.call(m, rcTrou, touchesTrou); if (touchesTrou.some((t) => t.distance > 0.35 && t.point.y > p.y + 1.2)) return true; }
   return false;
 }
-/* LE PERSO EN TRANSPARENCE (24/11/2026) : cache par un arbre ou un meuble, vu de la camera, il est redessine par-dessus, a moitie transparent ; chaque piece du
-   perso recoit une copie (meme forme, matiere sans profondeur, dessinee en dernier) qui suit ses gestes ; les copies se font une fois, puis s'allument et s'eteignent */
-const MATS_FANTOME = new Map();
+/* LE PERSO EN TRANSPARENCE (24/11/2026) : cache par un arbre ou un meuble, vu de la camera, il est redessine par-dessus, a moitie transparent. (24/11/2026 au soir,
+   « notre tete passe a travers notre coiffe, la coiffe passe en arriere-plan », Mathieu : chaque piece copiee sans profondeur se dessinait dans le desordre.) Le perso
+   entier est maintenant dessine a part, dans une image (ses pieces dans le bon ordre, comme d'habitude : la coiffe devant la tete), puis cette image est posee a
+   moitie transparente par-dessus la scene ; la ou il se voit deja, rien ne change. Le calque 2 (layers) ne porte que lui et les lumieres */
+const FANTOME = { on: false, rt: null, quad: null, sceneQ: null, camQ: null, opacite: 0.5, calque: 2 };
 function fantomePerso(on) {
-  if (!paysanMesh || fantomePerso.on === on) return; fantomePerso.on = on; /* (rien a faire tant que ca ne change pas) */
-  const L = []; paysanMesh.traverse((m) => { if (m.isMesh && !m.userData.estFantome) L.push(m); });
-  L.forEach((m) => { let f = m.userData.fantome;
-    if (!f && on) { if (!m.material || m.material.side === T.BackSide || !m.visible) return; const m0 = m.material;
-      if (!MATS_FANTOME.has(m0)) { const k = m0.clone(); k.transparent = true; k.opacity = 0.45; k.depthTest = false; k.depthWrite = false; MATS_FANTOME.set(m0, k); }
-      f = new T.Mesh(m.geometry, MATS_FANTOME.get(m0)); f.userData.estFantome = true; f.renderOrder = 999; f.raycast = () => {}; f.castShadow = false; f.frustumCulled = false; m.add(f); m.userData.fantome = f; }
-    if (f) f.visible = on && m.visible; });
+  if (!paysanMesh || FANTOME.on === on) return; FANTOME.on = on;
+  if (on) { paysanMesh.traverse((o) => o.layers.enable(FANTOME.calque)); scene.traverse((o) => { if (o.isLight) o.layers.enable(FANTOME.calque); }); }
 }
+{ const rendre0 = rendu.render.bind(rendu), taille = new T.Vector2();
+  rendu.render = function (sc, cam) {
+    rendre0(sc, cam);
+    if (!FANTOME.on || sc !== scene || lieu !== 'donjon' || rendu.getRenderTarget() !== null) return;
+    try {
+      rendu.getDrawingBufferSize(taille);
+      if (!FANTOME.rt || FANTOME.rt.width !== taille.x || FANTOME.rt.height !== taille.y) { if (FANTOME.rt) FANTOME.rt.dispose(); FANTOME.rt = new T.WebGLRenderTarget(taille.x, taille.y, { format: T.RGBAFormat }); if (FANTOME.quad) FANTOME.quad.material.map = FANTOME.rt.texture; }
+      if (!FANTOME.quad) { FANTOME.camQ = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1); FANTOME.sceneQ = new T.Scene();
+        FANTOME.quad = new T.Mesh(new T.PlaneGeometry(2, 2), new T.MeshBasicMaterial({ map: FANTOME.rt.texture, transparent: true, opacity: FANTOME.opacite, depthTest: false, depthWrite: false })); FANTOME.sceneQ.add(FANTOME.quad); }
+      paysanMesh.traverse((o) => o.layers.enable(FANTOME.calque)); /* (une piece d'equipement changee en route) */
+      const fond = rendu.getClearColor(new T.Color()), alpha = rendu.getClearAlpha(), auto = rendu.autoClear, calques = cam.layers.mask;
+      rendu.setRenderTarget(FANTOME.rt); rendu.setClearColor(0x000000, 0); rendu.clear(true, true, true); cam.layers.set(FANTOME.calque); rendre0(scene, cam); cam.layers.mask = calques;
+      rendu.setRenderTarget(null); rendu.setClearColor(fond, alpha); rendu.autoClear = false; rendre0(FANTOME.sceneQ, FANTOME.camQ); rendu.autoClear = auto;
+    } catch (e) { FANTOME.on = false; }
+  }; }
 { const montrerFantome0 = montrerIles; montrerIles = function () { montrerFantome0.apply(this, arguments); if (lieu !== 'donjon') fantomePerso(false); }; } /* (hors du labo, jamais) */
 /* L'AMBIANCE BIZARRE : un voile sur l'ecran (le vert-gris qui ternit, le violet sur les bords), seulement sur l'ile */
 function voileLabo() {
@@ -691,7 +703,9 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
      etes-vous sur de vouloir rentrer ? et il valide », Mathieu) : contre la porte (le tiers de la passerelle cote mur), une question, Oui ou Non (A a la manette,
      le doigt ou la souris) ; le jeu est en pause pendant la question ; Non : elle ne revient qu'une fois le perso eloigne de la porte */
   if (P.mode === 'rampe') LABO.PORTES.forEach((h, i) => { if (E.salles[i] || (i > 0 && !E.grilles[i - 1])) return; const ta = angleRampe(h), r = Math.hypot(p.x - DONJON.x, p.z - DONJON.z), devant = Math.abs(P.theta - ta) < 0.22 && r < LABO.R_IN + 1.4;
-    if (E.porteNon === i && Math.abs(P.theta - ta) > 0.45) E.porteNon = null; if (devant && E.porteNon !== i) demanderPorteLabo(i); });
+    if (E.porteNon === i && Math.abs(P.theta - ta) > 0.45) E.porteNon = null;
+    if (i === 0 && !E.cleLabo) { if (devant && E.porteNon !== 0) { E.porteNon = 0; toast('🔒 La porte est fermée à clé. Le Garou alpha garde la clé du labo, au sommet de la butte, au fond de l\'île.', 'alerte'); } return; } /* (la cle du labo, 29u-labo-ile.js) */
+    if (devant && E.porteNon !== i) demanderPorteLabo(i); });
   if (E.porteQ != null && modaleOuverte !== 'porte-labo') { E.porteNon = E.porteQ; E.porteQ = null; mettrePause(false); } /* (fenetre fermee sans repondre : c'est non) */
   E.salles.forEach((s, i) => { if (!s || s.fini || E.t - s.t < 3) return;
     if (i < 4 && !s.specimen) { if (c.monstres.filter((o) => o.salle === i && o.etat !== 'mort').length <= Math.ceil((s.n || 1) / 2)) specimenLabo(i); return; } /* (le specimen de la cuve : a mi-chemin, et la salle n'est finie qu'apres lui) */
