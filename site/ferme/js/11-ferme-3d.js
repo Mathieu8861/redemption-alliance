@@ -5,7 +5,7 @@ const COTES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const caseGrille = (c, di, dj) => caseAt(c.i + di, c.j + dj);
 const memeNiveau = (a, b) => Math.abs(posCase(a).y - posCase(b).y) < 0.1;
 const casesEnclos = () => S_.cases.filter((c) => c.type === 'enclos');
-const maxCasesEnclos = () => [6, 8, 10, 12, 14][nivBat('enclos') - 1];
+const maxCasesEnclos = () => [6, 8, 10, 12, 14, 16][nivBat('enclos') - 1]; /* (16 : le niveau 6, mode test, 29v-enclos6.js) */
 const enclosVoisin = (c, di, dj) => { const v = caseGrille(c, di, dj); return !!v && v.type === 'enclos' && memeNiveau(v, c); };
 function connexe(cells) { /* d'un seul tenant, au meme niveau */
   if (!cells.length) return true; const vu = new Set([cells[0]]), file = [cells[0]];
@@ -22,7 +22,7 @@ function appliquerEnclos() {
   const bords = [];
   E.forEach((c) => { const q = posCase(c); COTES.forEach(([di, dj]) => { if (!enclosVoisin(c, di, dj)) bords.push({ c, di, dj, x: q.x + di * S / 2, y: q.y, z: q.z + dj * S / 2 }); }); });
   const devant = bords.filter((b) => b.dj === 1), zMax = Math.max(...devant.map((b) => b.z)), rang = devant.filter((b) => Math.abs(b.z - zMax) < 0.1).sort((a, b) => a.x - b.x), porte = rang[Math.floor((rang.length - 1) / 2)];
-  const ne = nivBat('enclos'), style = MODELES.cloture1 ? 'cloture' + [1, 2, 3, 3, 5][ne - 1] : 'cloture'; /* la cloture et ses pieces suivent le niveau de l'enclos */
+  const ne = nivBat('enclos'), style = MODELES.cloture1 ? 'cloture' + [1, 2, 3, 3, 5, 5][ne - 1] : 'cloture'; /* la cloture et ses pieces suivent le niveau de l'enclos */
   bords.forEach((b) => clotureMesh.add(batiment(b === porte ? 'portillon' : style, b.x, b.y, b.z, b.c.id, b.di ? Math.PI / 2 : 0)));
   if (MODELES.portique2 && ne >= 2 && porte) clotureMesh.add(batiment('portique' + (ne >= 5 ? 5 : ne >= 3 ? 3 : 2), porte.x, porte.y, porte.z, porte.c.id, porte.di ? Math.PI / 2 : 0));
   const fond = E.slice().sort((a, b) => a.j - b.j || b.i - a.i)[0], qf = posCase(fond); augePos = { x: qf.x + 0.05, z: qf.z - 0.25 };

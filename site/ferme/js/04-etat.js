@@ -11,7 +11,7 @@ const nivBat = (id) => 1 + (S_.amelio[id] || 0); /* le niveau d'un batiment, de 
 const DERIVE = { /* les reglages d'avant le 11/10, deduits du niveau du batiment : le code des effets n'a pas bouge */
   murs: () => nivBat('qg') - 1, cadenas: () => (nivBat('qg') >= 2 ? 1 : 0),
   reservoir: () => nivBat('nivPuits') - 1, poulie: () => (nivBat('nivPuits') >= 2 ? 1 : 0), arrosoir: () => [0, 0, 2, 3, 4, 5][nivBat('nivPuits') - 1],
-  abreuvoir: () => (nivBat('enclos') >= 2 ? 1 : 0), mangeoire: () => (nivBat('enclos') >= 3 ? 1 : 0), cisailles: () => [0, 0, 1, 2, 3][nivBat('enclos') - 1]
+  abreuvoir: () => (nivBat('enclos') >= 2 ? 1 : 0), mangeoire: () => (nivBat('enclos') >= 3 ? 1 : 0), cisailles: () => [0, 0, 1, 2, 3, 4][nivBat('enclos') - 1]
 };
 const niv = (id) => (DERIVE[id] ? DERIVE[id]() : (S_.amelio[id] || 0));
 /* LA COURBE D'XP (16/10/2026, le tableau valide par Mathieu ; « des niveaux avec 4 d'XP d'ecart et d'autres avec 150 », la courbe d'avant s'aplatissait
@@ -38,7 +38,7 @@ const texteCap = () => { const v = capNiveau(), P = v / 10 - 1, B = PALIERS_TOUS
 const XP_FERME = 0.35; /* (14/10/2026, « faut nerf l'xp des plantes, j'suis deja 65 », Moonsbir : 0,6 et un frein de 1/2, 1/4, 1/10 avant ; ses 28 parcelles de Frostiz donnaient 1 700 XP par heure, trois fois les vagues ; maintenant environ 650, autant que les vagues) */
 function xpFerme(n) { return gagnerXp(Math.max(1, Math.round(n * XP_FERME))); }
 const duree = (c) => c.temps * MIN * Math.pow(0.85, niv('engrais')); /* (temps : en vraies minutes, 1,5 = 1 min 30) */
-const capacite = () => Math.min([2, 3, 4, 5, 6][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
+const capacite = () => Math.min([2, 3, 4, 5, 6, 7][nivBat('enclos') - 1], Math.floor(S_.cases.filter((c) => c.type === 'enclos').length / 2)); /* et 2 cases d'enclos par Bouftou */
 const debloquee = (c) => { if (c.nuit && !nuitDebloquee()) return false; /* (la plante de nuit : avec le jour et la nuit du palier 10, 14i-nuit.js) */ if (niveau(S_.xp) >= c.niv) return true; if (!S_.cultAcquises) S_.cultAcquises = Object.keys(ANCIEN_NIV).filter((id) => niveau(S_.xp) >= ANCIEN_NIV[id]); return S_.cultAcquises.includes(c.id); };
 const champVide = () => ({ c: null, pousse: 0, arrose: false, pretDepuis: 0, tofu: 0, vole: 0, tofuParti: 0, picore: false });
 const recolte = (p) => Math.max(1, PAR_ID[p.c].rendement + (PAR_ID[p.c].arbre ? 0 : niv('faux')) - (p.vole || 0) - (p.picore ? Math.floor(PAR_ID[p.c].rendement / 2) : 0)); /* picore : anciennes sauvegardes ; un arbre, le bananier : son regime ne grossit pas avec la Faux (04/11/2026) */
