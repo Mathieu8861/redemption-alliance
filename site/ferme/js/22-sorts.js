@@ -712,7 +712,7 @@ function majBouture(dt) {
 /* L'ETREINTE DU CHENE (la Lame d'Ambre, Iop, 09/11/2026 : « Iop c'est une classe cac, donc bof » pour une ligne de racines a distance, puis « ouais ok c'est bon »,
    Mathieu) : il part au clic. Le Iop tourne sur lui-meme, des racines jaillissent tout autour de lui (1,5 case) ; chaque monstre dedans prend 2,5 fois ses degats,
    est ramene colle a lui en 0,25 s (pas les boss, ni les demi-boss, ni ce qui est plante) et reste enracine 1,5 s (0,75 s un boss) : tout le monde groupe pour taper dedans */
-const R_ETREINTE = 4, X_ETREINTE = 4; /* (24/11/2026, « faut up le cac du Chene Mou », Mathieu, au formulaire « plus fort et plus large » : 4 fois tes degats au lieu de 2,5, sur 2 cases au lieu de 1,5 ; R en unites du monde, 2 par case) */
+const R_ETREINTE = 3;
 function etreinteChene(st) {
   const c0 = combat, pp = paysanMesh.position, u = paysanMesh.userData, y0 = pp.y, x0 = pp.x, z0 = pp.z;
   u.attaque = { t: 0, classe: 'iop', base: u.angle, tour: true, surFrappe: () => {} }; /* (le geste : un tour sur lui-meme) */
@@ -720,7 +720,7 @@ function etreinteChene(st) {
   for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, r = R_ETREINTE * (i % 2 ? 0.95 : 0.6); racineJaillit(x0 + Math.sin(a) * r, y0, z0 + Math.cos(a) * r, i); }
   feuillesVolantes(x0, y0 + 0.4, z0, R_ETREINTE * 0.6, 12, true); chiffre('Étreinte du Chêne', new T.Vector3(x0, y0 + 2.6, z0), 'gros');
   c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif') return; const d = Math.hypot(o.x - x0, o.z - z0); if (d > R_ETREINTE + 0.25 * (o.d.ombre || 1)) return;
-    blesser(o, Math.round(st.deg * X_ETREINTE), true); if (o.etat !== 'actif') return; const tenu = o.d.boss ? 0.75 : 1.5; o.bloqueT = Math.max(o.bloqueT || 0, tenu + 0.25);
+    blesser(o, Math.round(st.deg * 2.5), true); if (o.etat !== 'actif') return; const tenu = o.d.boss ? 0.75 : 1.5; o.bloqueT = Math.max(o.bloqueT || 0, tenu + 0.25);
     const tire = !o.d.boss && !o.d.demi && !o.ancre && !o.d.totem && !o.d.plante && d > 1.3;
     if (tire) { const a = Math.atan2(o.x - x0, o.z - z0), dm = 0.95 + 0.3 * (o.d.ombre || 1), X = x0 + Math.sin(a) * dm, Z = z0 + Math.cos(a) * dm, xa = o.x, za = o.z; let t = 0;
       effets.push((dt) => { t += dt / 0.25; if (combat !== c0 || o.etat !== 'actif') return true; const k = Math.min(1, t), e = 1 - (1 - k) * (1 - k); o.x = xa + (X - xa) * e; o.z = za + (Z - za) * e; return k >= 1; }); }
