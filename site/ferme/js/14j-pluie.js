@@ -28,16 +28,16 @@ function gouttesPluie() {
   J.mesh = new T.LineSegments(g, new T.LineBasicMaterial({ color: '#dcebff', transparent: true, opacity: 0, depthWrite: false })); J.mesh.frustumCulled = false; J.mesh.renderOrder = 5; J.mesh.raycast = () => {};
   scene.add(J.mesh);
 }
-function animerGouttes(dt, k) {
+function animerGouttes(dt, k, part) { part = part || 1;
   const J = PLUIE_J, n = PLUIE.gouttes, R = Math.min(60, 27 / Math.max(0.36, zoom)), v = PLUIE.vent, L = PLUIE.long / Math.hypot(v[0], PLUIE.chute, v[2]), P = J.pos, G = J.G;
   const dx = v[0] * L, dy = -PLUIE.chute * L, dz = v[2] * L;
   for (let i = 0; i < n; i++) { const a = i * 3;
     G[a + 1] -= PLUIE.chute * dt; G[a] += v[0] * dt / R; G[a + 2] += v[2] * dt / R;
-    if (G[a + 1] < 0) { if (Math.random() < 0.016 * k) onde(VISEE.x + G[a] * R, 0.06, VISEE.z + G[a + 2] * R, 0.34, '#e6f2ff', 0.42, 0.55); /* (son rond au sol, pour une goutte sur soixante) */
+    if (G[a + 1] < 0) { if (i < n * part && Math.random() < 0.016 * k) onde(VISEE.x + G[a] * R, 0.06, VISEE.z + G[a + 2] * R, 0.34, '#e6f2ff', 0.42, 0.55); /* (son rond au sol, pour une goutte sur soixante) */
       G[a] = Math.random() * 2 - 1; G[a + 1] = PLUIE.haut * (0.75 + 0.5 * Math.random()); G[a + 2] = Math.random() * 2 - 1; }
     const x = VISEE.x + G[a] * R, y = G[a + 1], z = VISEE.z + G[a + 2] * R, b = i * 6;
     P[b] = x; P[b + 1] = y; P[b + 2] = z; P[b + 3] = x + dx; P[b + 4] = y + dy; P[b + 5] = z + dz; }
-  J.mesh.geometry.attributes.position.needsUpdate = true; J.mesh.material.opacity = 0.72 * k; J.mesh.visible = k > 0.01;
+  J.mesh.geometry.attributes.position.needsUpdate = true; J.mesh.geometry.setDrawRange(0, 2 * Math.round(n * part)); J.mesh.material.opacity = 0.72 * k * (part < 1 ? 0.75 : 1); J.mesh.visible = k > 0.01;
 }
 /* les cases inondees : l'herbe libre pres de la mare ('pluie'), ou toute l'herbe libre de l'ile ('maree'). Une seule piece, refaite quand la ferme change */
 function casesInondees(mode) {
@@ -81,6 +81,7 @@ function couperPluie() { /* tout de suite : on quitte la ferme (un batiment, l'A
 }
 function majPluie(dt) { /* a chaque image */
   const J = PLUIE_J, mode = pluieVoulue(), la = pluieLa();
+  const enCombat = typeof combat !== 'undefined' && !!combat && !combat.fin; /* (24/11/2026, Dino sur la vague 101 : « la pluie rend le combat difficilement lisible » ; « allege la pluie en combat », Mathieu) : en combat, 40 % des gouttes, plus pales, un voile deux fois plus leger, et pas de foudre (son cercle au sol se confondait avec les zones des monstres) */
   if (!la && !(J.k > 0)) return;
   if (!la && typeof lieu !== 'undefined' && lieu !== 'ferme') { couperPluie(); return; }
   voilePluie(); gouttesPluie(); if (la && mode !== J.mode) { J.mode = mode; J.prochaine = 0; if (typeof animerLanternes === 'function') animerLanternes.t = 0; }
@@ -89,9 +90,9 @@ function majPluie(dt) { /* a chaque image */
   const maree = J.mode === 'maree'; J.v.style.background = maree ? '#5f7096' : '#7387aa'; if (J.eclair > 0) J.eclair -= dt;
   const nuitK = Math.max(typeof NUIT_J !== 'undefined' && NUIT_J ? NUIT_J.k : 0, (typeof NUIT_F !== 'undefined' && NUIT_F && NUIT_F.actif) || (typeof NUIT !== 'undefined' && NUIT && NUIT.actif) ? 1 : 0);
   /* (la nuit assombrit deja tout : le voile de la pluie s'efface presque sous elle ; les deux ensemble, « sur ma map on voit rien », Mathieu, 12/11/2026) */
-  J.v.style.opacity = String((maree ? 0.92 : 0.88) * J.k * (1 - 0.85 * nuitK) * (J.eclair > 0 ? 0.3 : 1));
-  animerGouttes(dt, J.k); majEauPluie(J.k > 0 ? J.mode : null, J.k);
-  if (la && J.k >= 1) { J.t += dt; if (!J.prochaine) J.prochaine = J.t + 2.5;
+  J.v.style.opacity = String((maree ? 0.92 : 0.88) * J.k * (1 - 0.85 * nuitK) * (J.eclair > 0 ? 0.3 : 1) * (enCombat ? 0.45 : 1));
+  animerGouttes(dt, J.k, enCombat ? 0.4 : 1); majEauPluie(J.k > 0 ? J.mode : null, J.k);
+  if (la && J.k >= 1 && !enCombat) { J.t += dt; if (!J.prochaine) J.prochaine = J.t + 2.5;
     if (J.t >= J.prochaine) { J.prochaine = J.t + PLUIE.foudre[0] + Math.random() * (PLUIE.foudre[1] - PLUIE.foudre[0]) * (maree ? 0.5 : 1);
       const R = 8 / Math.max(0.6, zoom), i = Math.round((VISEE.x + (Math.random() * 2 - 1) * R) / S + (COLS - 1) / 2), j = Math.round((VISEE.z + (Math.random() * 2 - 1) * R) / S + (ROWS - 1) / 2);
       if (codeIle(i, j)) foudrePluie(cx(i), cz(j)); } }
