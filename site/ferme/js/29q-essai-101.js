@@ -86,7 +86,9 @@ function ligneCoffre101() {
   const E = etatEssai101(), C = coffre101(), n = nbCoffre101(), notes = ESSAI101.ordre.filter((v) => (E.notes || {})[v] != null).length, gagnes = ESSAI101.ordre.filter((v) => E.gagnes[v]).length;
   const detail = Object.keys(C).filter((k) => C[k] > 0 && PAR_ID[k]).map((k) => C[k] + ' ' + PAR_ID[k].nom).join(', ') || 'rien pour l\'instant';
   if (E.coffreOuvert) return '<p class="essai-coffre ouvert">' + img101('coffre-ouvert') + '<span><b>Le coffre de la série est ouvert.</b> Merci pour tes huit notes !</span></p>';
-  return '<p class="essai-coffre" data-info="Dans le coffre : ' + detail + '">' + img101('coffre-legendaire') + '<span><b>Le coffre de la série :</b> ' + n + ' ressource' + (n > 1 ? 's' : '') + ' gagnée' + (n > 1 ? 's' : '') + ' dans tes vagues réussies, plus ' + fmt(COFFRE101.kamas) + ' kamas, ' + COFFRE101.forge + ' runes de forgemagie et 1 rune parfaite. Il s\'ouvre quand les ' + ESSAI101.ordre.length + ' versions sont gagnées et notées (' + gagnes + ' gagnées, ' + notes + ' notées).</span></p>';
+  const aNoter = ESSAI101.ordre.map((v, j) => [v, j]).filter(([v]) => E.gagnes[v] && (E.notes || {})[v] == null); /* (24/11/2026, « j'ai fini les 8 vagues, je fais comment pour recuperer le coffre ? », Mathieu : une note oubliee dans le bilan ne pouvait plus se donner ; elle se donne ici) */
+  const rattrape = aNoter.length ? '<div class="essai-bilan"><b>Il te manque ' + (aNoter.length > 1 ? aNoter.length + ' notes' : 'une note') + ' pour ouvrir le coffre :</b>' + aNoter.map(([v, j]) => '<div class="essai-note"><span>' + nomEssai101(j) + ' · ' + ESSAI101.versions[v].nom + ' :</span><div class="essai-notes">' + Array.from({ length: 11 }, (x, i) => '<button class="btn mini" data-note101="' + i + '" data-note101v="' + v + '">' + i + '</button>').join('') + '</div></div>').join('') + '<small>0 : trop facile · 5 : correcte · 10 : hardcore, impossible</small></div>' : '';
+  return rattrape + '<p class="essai-coffre" data-info="Dans le coffre : ' + detail + '">' + img101('coffre-legendaire') + '<span><b>Le coffre de la série :</b> ' + n + ' ressource' + (n > 1 ? 's' : '') + ' gagnée' + (n > 1 ? 's' : '') + ' dans tes vagues réussies, plus ' + fmt(COFFRE101.kamas) + ' kamas, ' + COFFRE101.forge + ' runes de forgemagie et 1 rune parfaite. Il s\'ouvre quand les ' + ESSAI101.ordre.length + ' versions sont gagnées et notées (' + gagnes + ' gagnées, ' + notes + ' notées).</span></p>';
 }
 const img101 = (x) => '<img src="assets/icones/' + x + '.png?v=' + VERSION_MODELES + '" alt="">';
 /* (23/11/2026 : dans le mode test, la carte se montre aussi en haut de l'onglet de la vague, tant que sa vraie partie a fini le dernier palier des joueurs) */
@@ -159,6 +161,9 @@ document.addEventListener('click', (ev) => {
   const J = S_.journalVagues, e = Array.isArray(J) ? J[J.length - 1] : null;
   if (b.hasAttribute('data-essai-com')) { const boite = b.closest('.essai-com'), ta = boite && boite.querySelector('textarea'), v = ta ? ta.value.trim().slice(0, COMMENTAIRE101) : ''; if (!v) { if (ta) ta.focus(); return; }
     if (e && e.essai) { e.essai.commentaire = v; sauver(); } boite.innerHTML = '<span>Merci, ton commentaire est noté !</span>'; return; }
+  if (b.dataset.note101v) { const v = b.dataset.note101v, E = etatEssai101(), note = Math.max(0, Math.min(10, +b.dataset.note101 || 0)); if (!ESSAI101.versions[v]) return;
+    E.notes = E.notes || {}; E.notes[v] = note; if (Array.isArray(J)) { for (let i = J.length - 1; i >= 0; i--) { const x = J[i]; if (x && x.essai && x.essai.v === v) { if (x.essai.note == null) x.essai.note = note; break; } } } /* (la derniere partie de cette version, pour outils/essai101.py) */
+    sauver(); if (serieFinie101() && serieNotee101() && !E.coffreOuvert) { fermerModale(); setTimeout(ouvrirCoffre101, 300); } else ouvrirVagues('vague'); return; }
   const note = Math.max(0, Math.min(10, +b.dataset.note101 || 0)), z = b.closest('.essai-note');
   if (e && e.essai) { e.essai.note = note; const E = etatEssai101(); E.notes = E.notes || {}; E.notes[e.essai.v] = note; sauver(); }
   if (z) z.innerHTML = '<span>Merci, noté ' + note + ' sur 10 !</span>';
