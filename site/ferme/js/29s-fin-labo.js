@@ -17,17 +17,36 @@ function liberationLabo() {
   c.monstres.forEach((o) => { if (o.etat === 'actif' && !o.d.boss) { try { blesser(o, o.pv + 10, true); } catch (e) { /* rien */ } } }); /* (ses creatures tombent avec lui) */
   const S = SALLES_LABO[4];
   let cages = cagesLabo(); if (!cages.length) cages = [0, 1, 2, 3].map((k) => { const a = ENTREE_SALLE + Math.PI + (k - 1.5) * 0.5; return { x: Math.cos(a) * (S.R - 1.4), z: Math.sin(a) * (S.R - 1.4) }; });
-  libererWabbits(4, cages, FIN_LABO.parCage);
+  libererWabbits(4, cages, FIN_LABO.parCage, CAGES_LABO.types[4]); /* (les Gwand Wabbits, prisonniers du labo) */
   toast('Les cages s\'ouvrent : les Wabbits sont libres ! Ils viennent te remercier.', 'or'); son('quete');
 }
-/* une salle nettoyee (1 a 4) : trois Wabbits prisonniers s'echappent du fond de la salle */
-function libererSalle(i) { const S = SALLES_LABO[i]; if (!S) return; libererWabbits(i, [-1, 0, 1].map((k) => { const a = ENTREE_SALLE + Math.PI + k * 0.55; return { x: Math.cos(a) * (S.R - 2.4), z: Math.sin(a) * (S.R - 2.4) }; }), 1); }
+/* LES CAGES DES SALLES (24/11/2026, « plutot des cages sur les cotes qu'on libere en cliquant dessus, des Wabbits differents a chaque etage », Mathieu ; avant, trois
+   Wabbits sortaient tout seuls du fond de chaque salle nettoyee) : on touche une cage, le perso y va ; la salle nettoyee, elle s'ouvre et ses Wabbits (le type de
+   l'etage, CAGES_LABO de 29c) sautent de joie puis filent par la porte. Le bilan compte les Wabbits liberes */
+function cageVisee(p) { const E = donjonEtat, P = E && E.perso; if (!P || P.mode !== 'salle' || !(P.i < 4) || !ileWabbits) return null; const S = SALLES_LABO[P.i], I = ileWabbits.userData.salles[P.i]; if (!I || !I.cages) return null;
+  const lx = p.x - DONJON.x - S.x, lz = p.z - DONJON.z - S.z; let k0 = null, bd = 1.9; I.cages.forEach((C, k) => { if (C.ouverte) return; const d = Math.hypot(C.x - lx, C.z - lz); if (d < bd) { bd = d; k0 = k; } }); return k0; }
+{ const cheminCage = cheminDonjon; cheminDonjon = function (p) { const E = donjonEtat, k = cageVisee(p); if (E) E.cage = null; if (k == null) return cheminCage.apply(this, arguments);
+    const i = E.perso.i, S = SALLES_LABO[i], C = ileWabbits.userData.salles[i].cages[k], d = Math.hypot(C.x, C.z) || 1, f = Math.max(0, 1 - 1.6 / d);
+    E.cage = { i, k }; return cheminCage.call(this, { x: DONJON.x + S.x + C.x * f, y: Y_SALLE, z: DONJON.z + S.z + C.z * f }); }; }
+function ouvrirCageLabo(i, k) {
+  const E = donjonEtat, I = ileWabbits && ileWabbits.userData.salles[i], C = I && I.cages[k]; if (!E || !C || C.ouverte) return; C.ouverte = true; E.cage = null;
+  const P0 = ileWabbits.userData.protos; if (P0 && P0.cageOuverte) { const o = P0.cageOuverte.clone(true); o.position.copy(C.grp.position); o.rotation.copy(C.grp.rotation); o.traverse((q) => { q.raycast = () => {}; }); C.grp.parent.add(o); C.grp.parent.remove(C.grp); C.grp = o; }
+  if (C.wab.parent) C.wab.parent.remove(C.wab);
+  libererWabbits(i, [{ x: C.x, z: C.z }], FIN_LABO.parCage, C.type); E.wabLiberes = (E.wabLiberes || 0) + FIN_LABO.parCage; son('quete');
+  toast('La cage s\'ouvre : ' + FIN_LABO.parCage + ' ' + (CAGES_LABO.noms[C.type] || 'Wabbits') + ' sont libres !', 'or');
+}
+{ const tickDonjonCages = tickDonjon; tickDonjon = function () { const r = tickDonjonCages.apply(this, arguments);
+    try { const E = donjonEtat, p = paysanMesh.position; if (E && E.cage && E.perso.mode === 'salle' && E.perso.i === E.cage.i) { const S = SALLES_LABO[E.cage.i], C = ileWabbits.userData.salles[E.cage.i].cages[E.cage.k];
+        if (C && Math.hypot(p.x - DONJON.x - S.x - C.x, p.z - DONJON.z - S.z - C.z) < 2.2) { if (E.salles[E.cage.i] && E.salles[E.cage.i].fini) ouvrirCageLabo(E.cage.i, E.cage.k); else { toast('Les mutants gardent les cages : débarrasse-toi d\'eux d\'abord.', 'alerte'); E.cage = null; } } }
+      /* les prisonniers dans leurs cages : un petit sautillement de temps en temps */
+      const P = E && E.perso, I = P && P.mode === 'salle' && ileWabbits.userData.salles[P.i]; if (I && I.cages) { const t = E.t; I.cages.forEach((C) => { if (C.ouverte) return; const h = Math.max(0, Math.sin(t * 2.2 + C.ph)); C.wab.position.y = 0.06 + (h > 0.92 ? (h - 0.92) * 3 : 0); C.wab.rotation.y = C.ry + Math.sin(t * 0.7 + C.ph) * 0.4; }); } } catch (e) { /* rien */ }
+    return r; }; }
 /* des Wabbits prisonniers liberes dans la salle i : ils sortent de leurs cages (sources, en coordonnees de la salle), sautent de joie autour du perso, filent par
    la porte. Aussi a chaque salle nettoyee (24/11/2026, 3 Wabbits : des cages de la salle 1, du fond des autres) */
-function libererWabbits(i, sources, parSource) {
+function libererWabbits(i, sources, parSource, type) {
   const S = SALLES_LABO[i], cx = DONJON.x + S.x, cz = DONJON.z + S.z, sortie = { x: cx + Math.cos(ENTREE_SALLE) * (S.R - 1.1), z: cz + Math.sin(ENTREE_SALLE) * (S.R - 1.1) }, p = paysanMesh.position;
   sources.forEach((g, k) => { for (let j = 0; j < parSource; j++) {
-    const m = cloner('wabbit'), x0 = cx + g.x * 0.9, z0 = cz + g.z * 0.9; m.position.set(x0, Y_SALLE, z0); m.traverse((q) => { q.raycast = () => {}; }); scene.add(m);
+    const m = cloner(type && MODELES[type] ? type : 'wabbit'), x0 = cx + g.x * 0.9, z0 = cz + g.z * 0.9; m.position.set(x0, Y_SALLE, z0); m.traverse((q) => { q.raycast = () => {}; }); scene.add(m);
     const a = Math.random() * Math.PI * 2, rr = 1.6 + Math.random() * 1.8; /* (sa place pour sauter de joie, autour du perso) */
     wabbitsLibres.push({ m, x: x0, z: z0, ry: 0, t: -(k * 0.35 + j * 0.2), joie: { x: p.x + Math.cos(a) * rr, z: p.z + Math.sin(a) * rr }, sortie, coeur: Math.random(), ech: m.scale.x });
     pouf(x0, Y_SALLE, z0, 1.0, '#cfeaff'); } });
@@ -84,6 +103,7 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
 { const finDonjonLabo = finDonjon; finDonjon = function (gagne) {
     const E = donjonEtat, c = combat, t = E ? E.t : 0, enJeu = !!(c && !c.fin && c.genre === 'donjon');
     retirerWabbitsLibres(); const r = finDonjonLabo.apply(this, arguments);
+    try { const recap0 = document.querySelector('#carte .recap-combat'); if (recap0 && E && enJeu) recap0.insertAdjacentHTML('beforeend', ligneRecap('renfort', 'Wabbits libérés', (E.wabLiberes || 0) + ' des cages' + (gagne ? ', et ceux du labo' : ''))); } catch (e) { /* rien */ }
     if (!gagne || !enJeu) return r;
     try {
       const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t);
@@ -100,15 +120,19 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
     return r; }; }
 /* LES DRONES DE LA PASSERELLE (24/11/2026, « oui carrement », Mathieu) : la passerelle de la tour est coupee en cinq troncons (du pied a la porte 1, puis d'une
    porte a l'autre) ; quand le perso entre dans un troncon, deux drones du Docteur (27n-mutants-labo.js) apparaissent un peu plus haut et l'attaquent de loin */
-const DRONES_RAMPE = { parTroncon: 2, avance: 1.0, ecart: 0.35 };
+/* (24/11/2026, « sur les passerelles, qu'on se batte contre des gardes et des drones un peu plus souvent, sinon c'est trop simple », Mathieu : deux patrouilles par
+   troncon, a l'entree et a mi-chemin, des drones, des gardes et des enrages, un de plus de chaque tous les deux etages ; elles marchent vers le perso le long de la
+   spirale, 29c-ile-wabbits.js) */
+const DRONES_RAMPE = { points: [0.05, 0.55], drones: 2, gardes: 1, enrages: 1, avance: 1.0, ecart: 0.28 };
 function dronesRampe() {
   const E = donjonEtat, c = combat; if (!E || !c || c.fin || c.genre !== 'donjon' || E.gagne != null) return; const P = E.perso; if (!P || P.mode !== 'rampe') return;
-  E.drones = E.drones || {};
-  for (let k = 0; k < 5; k++) { if (E.drones[k]) continue; const t0 = k === 0 ? LABO.A0 : angleRampe(LABO.PORTES[k - 1]), t1 = angleRampe(LABO.PORTES[k]); if (P.theta < t0 - 0.05 || P.theta > t1 - 0.3) continue;
-    E.drones[k] = true;
-    for (let j = 0; j < DRONES_RAMPE.parTroncon; j++) { const t = Math.min(t1 - 0.25, P.theta + DRONES_RAMPE.avance + j * DRONES_RAMPE.ecart), rr = (LABO.R_IN + LABO.R_OUT) / 2, x = DONJON.x + rr * Math.cos(t), z = DONJON.z + rr * Math.sin(t);
-      apparaitre('wabDrone', { x, z, apres: (o) => { o.lab = { mode: 'rampe', theta: t }; o.drone = true; o.aggro = true; pouf(o.x, hautRampe(t) + 1.6, o.z, 1.1, '#8dff6a'); } }); }
-    if (!E.dronesVus) { E.dronesVus = true; toast('Des drones du Docteur patrouillent sur la passerelle : ils tirent des cawottes !', 'alerte'); } }
+  E.drones = E.drones || {}; const rm = (LABO.R_IN + LABO.R_OUT) / 2;
+  for (let k = 0; k < 5; k++) { const t0 = k === 0 ? LABO.A0 : angleRampe(LABO.PORTES[k - 1]), t1 = angleRampe(LABO.PORTES[k]);
+    DRONES_RAMPE.points.forEach((f, j) => { const cle = k + '-' + j, tf = t0 + (t1 - t0) * f; if (E.drones[cle] || P.theta < tf - 0.05 || P.theta > t1 - 0.3) return; E.drones[cle] = true; const plus = Math.floor(k / 2);
+      const L = [].concat(Array(DRONES_RAMPE.drones + plus).fill('wabDrone'), Array(DRONES_RAMPE.gardes + plus).fill('wabGarde'), Array(DRONES_RAMPE.enrages + plus).fill('wabEnrage')); c.total += L.length;
+      L.forEach((t, i) => { const th = Math.min(t1 - 0.25 - i * 0.06, P.theta + DRONES_RAMPE.avance + i * DRONES_RAMPE.ecart), rr = t === 'wabDrone' ? rm : LABO.R_IN + 1.0 + (i % 2) * 1.3, x = DONJON.x + rr * Math.cos(th), z = DONJON.z + rr * Math.sin(th);
+        setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x, z, apres: (o) => { if (t !== 'wabDrone') transmuter(o); o.lab = { mode: 'rampe', theta: th }; o.drone = t === 'wabDrone'; o.aggro = true; pouf(o.x, hautRampe(th) + (t === 'wabDrone' ? 1.6 : 0.4), o.z, 1.1, '#8dff6a'); } }); }, i * 160); }); });
+    if (!E.dronesVus && Object.keys(E.drones).length) { E.dronesVus = true; toast('Les gardes et les drones du Docteur patrouillent sur la passerelle !', 'alerte'); } }
 }
 { const tickDonjonDrones = tickDonjon; tickDonjon = function () { const r = tickDonjonDrones.apply(this, arguments); try { dronesRampe(); } catch (e) { /* rien */ } return r; }; }
 /* le modele du drone, charge au depart pour l'ile (24/11/2026, 27n-mutants-labo.js) */

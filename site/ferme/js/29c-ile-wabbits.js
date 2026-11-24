@@ -22,7 +22,7 @@
 const DONJON = new T.Vector3(0, 0, -300);
 /* la passerelle : les memes mesures que blender/ile-labo.py (RAMPE) ; une spirale de A0 sur TOURS tours, de 0 a H, entre R_IN et R_OUT */
 const LABO = { A0: -0.55, TOURS: 2.0, H: 21.0, R_IN: 7.65, R_OUT: 10.85, PORTES: [3.4, 7.4, 11.4, 15.4, 19.0], GRILLE_APRES: 0.42, PALIER: 0.22, ECH: 1.5 };
-LABO.DA = LABO.TOURS * Math.PI * 2; LABO.K = LABO.H / LABO.DA;
+LABO.DA = LABO.TOURS * Math.PI * 2; LABO.K = LABO.H / LABO.DA; LABO.FIN = LABO.A0 + LABO.PORTES[4] / LABO.K + 0.4;
 const TAU_L = Math.PI * 2, hautRampe = (t) => Math.max(0, Math.min(LABO.H, (t - LABO.A0) * LABO.K)), angleRampe = (h) => LABO.A0 + h / LABO.K;
 const lisse01 = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 const polL = (a, r) => ({ x: Math.cos(a) * r, z: Math.sin(a) * r });
@@ -32,6 +32,7 @@ const angDiff = (a, b) => { let d = (a - b) % TAU_L; if (d > Math.PI) d -= TAU_L
 const DOCK_LABO = { a: 0.62, L: 7.2, w: 0.95 }; DOCK_LABO.r0 = rIle(DOCK_LABO.a) - 2.2; DOCK_LABO.c = Math.cos(DOCK_LABO.a); DOCK_LABO.s = Math.sin(DOCK_LABO.a);
 const surPontonL = (lx, lz, m) => { const D = DOCK_LABO, u = lx * D.c + lz * D.s - D.r0, v = -lx * D.s + lz * D.c; return u >= 0 && u <= D.L - m && Math.abs(v) <= D.w - m * 0.5; };
 const versDock = (u, v) => ({ x: DOCK_LABO.c * (DOCK_LABO.r0 + u) - DOCK_LABO.s * v, z: DOCK_LABO.s * (DOCK_LABO.r0 + u) + DOCK_LABO.c * v }); /* (u le long du ponton, v en travers) */
+const BALLON_LABO = { u: DOCK_LABO.L - 1.0, haut: 16, T: 3.2 }; /* (la montgolfiere, amarree au bout du ponton : u, sa nacelle de 1,7 tient sur les planches ; elle descend de haut en T secondes) */
 const leLongDuChemin = (s, l) => ({ x: DOCK_LABO.c * s - DOCK_LABO.s * l, z: DOCK_LABO.s * s + DOCK_LABO.c * l }); /* (s depuis le centre, dans l'axe du ponton ; l sur le cote) */
 /* ---------- les biomes ---------- */
 const BUTTE_LABO = Object.assign(polL(4.4, 33), { h: 8.5, s: 9.5 }); /* (derriere a droite : pile derriere la tour, vue de la camera de depart, elle etait cachee) */
@@ -41,11 +42,21 @@ const CHAMPS_LABO = [[27, 7.2], [35, 8.2], [27, -7.2], [36, -8.6], [40, 7.6]].ma
 const CAMPS_LABO = [
 /* (24/11/2026, les mutants du labo, 27n-mutants-labo.js : les Wabbits du jeu verdis laissent la place aux gardes lapins-machines et aux mutants ; un 3e terme
    'chef' : le mini-boss du camp, plus grand et bien plus fort, et son coffre a sa mort, « des endroits de mini-boss ou on gagne des recompenses exceptionnelles », Mathieu) */
-  Object.assign(leLongDuChemin(33, 0), { nom: 'le champ de cawottes', r: 5.5, L: [['wabEnrage', 3], ['wabGarde', 1]] }),
-  Object.assign(polL(2.2, 27), { nom: 'la lisière de la forêt', r: 6, L: [['wabFluo', 2], ['wabVampire', 2]] }),
-  Object.assign(polL(5.35, 22.5), { nom: 'le marais', r: 6, L: [['wabFluo', 3], ['wabEnrage', 1]] }),
-  Object.assign(polL(0.3, 14.8), { nom: 'le pied de la tour', r: 5, L: [['wabGarde', 1, 'chef'], ['wabGarde', 2], ['wabGreffe', 1]] }),
-  Object.assign({ x: BUTTE_LABO.x, z: BUTTE_LABO.z }, { nom: 'le sommet de la butte', r: 5.5, L: [['wabGarou', 1, 'chef'], ['wabEnrage', 2]] })];
+/* (24/11/2026, « ca manque enormement de monstres ; des groupes un peu plus longs, un peu plus de monstres un peu partout, qui reapparaissent », Mathieu : les camps
+   grossissent, quatre camps de plus (index 5 a 8), deux patrouilles qui marchent sur les chemins (patrouille : l'index du chemin, CHEMINS_LABO), et un camp vide
+   se repeuple quand le perso s'en est eloigne (REPOP_LABO). L'ordre des 5 premiers compte : placerFloreLabo decore le 3 et le 4) */
+  Object.assign(leLongDuChemin(33, 0), { nom: 'le champ de cawottes', r: 6, L: [['wabEnrage', 5], ['wabGarde', 2]] }),
+  Object.assign(polL(2.2, 27), { nom: 'la lisière de la forêt', r: 6, L: [['wabFluo', 3], ['wabVampire', 3]] }),
+  Object.assign(polL(5.35, 22.5), { nom: 'le marais', r: 6, L: [['wabFluo', 4], ['wabEnrage', 2]] }),
+  Object.assign(polL(0.3, 15.4), { nom: 'le pied de la tour', r: 5, L: [['wabGarde', 1, 'chef'], ['wabGarde', 3], ['wabGreffe', 2]] }),
+  Object.assign({ x: BUTTE_LABO.x, z: BUTTE_LABO.z }, { nom: 'le sommet de la butte', r: 5.5, L: [['wabGarou', 1, 'chef'], ['wabEnrage', 3], ['wabGreffe', 1]] }),
+  Object.assign(polL(2.9, 38), { nom: 'le cœur de la forêt', r: 6, L: [['wabVampire', 3], ['wabGarou', 1], ['wabFluo', 2]] }),
+  Object.assign(polL(6.15, 31), { nom: 'les mares de mutagène', r: 6, L: [['wabFluo', 4], ['wabGreffe', 2]] }),
+  Object.assign(polL(3.55, 45), { nom: 'la plage aux os', r: 6, L: [['wabEnrage', 4], ['wabGarde', 2]] }),
+  Object.assign(leLongDuChemin(23, -11.5), { nom: 'les champs du bas', r: 5.5, L: [['wabEnrage', 3], ['wabFluo', 2], ['wabVampire', 1]] }),
+  Object.assign(leLongDuChemin(44, 0), { nom: 'une patrouille de gardes', r: 7, patrouille: 0, L: [['wabGarde', 2], ['wabEnrage', 2]] }),
+  Object.assign(polL(1.0, 16.6), { nom: 'une patrouille autour de la tour', r: 7, patrouille: 4, L: [['wabGarde', 1], ['wabGreffe', 1], ['wabFluo', 2]] })];
+const REPOP_LABO = { apres: 75, loin: 22 }; /* (un camp vide revient au bout de 75 s, si le perso est a plus de 22 de lui) */
 /* les chemins (seulement la couleur du sol) */
 const CHEMINS_LABO = [
   [[49, 0], [44, 0.8], [38, -0.5], [31, 0.4], [24, -0.3], [17, 0]].map(([s, l]) => leLongDuChemin(s, l)),
@@ -75,20 +86,54 @@ function hTerrainLabo(x, z) { /* (en coordonnees de l'ile) */
 }
 { const plat = (x, z, R, w, h) => APLATS_LABO.push({ h, k: (px, pz) => lisse01((R + w - Math.hypot(px - x, pz - z)) / w) });
   CHAMPS_LABO.forEach((F) => { const c = Math.cos(F.a), s = Math.sin(F.a), h = hBrutLabo(F.x, F.z); APLATS_LABO.push({ h, k: (px, pz) => { const u = (px - F.x) * c + (pz - F.z) * s, v = -(px - F.x) * s + (pz - F.z) * c, d = Math.hypot(Math.max(0, Math.abs(u) - F.hl), Math.max(0, Math.abs(v) - F.hw)); return lisse01(1 - d / 2.2); } }); });
-  CAMPS_LABO.forEach((K, k) => { if (k === 4) return; plat(K.x, K.z, K.r * 0.8, 3.0, hBrutLabo(K.x, K.z)); });
+  CAMPS_LABO.forEach((K, k) => { if (k === 4 || K.patrouille != null) return; plat(K.x, K.z, K.r * 0.8, 3.0, hBrutLabo(K.x, K.z)); });
   { const B = BUTTE_LABO, hs = hBrutLabo(B.x + 3.5, B.z); plat(B.x, B.z, 5.0, 4.0, hs); }
 }
 /* LES OBSTACLES : arbres, rochers, cages, mares... rangés par cases de 8 (on ne teste que ceux de la case ou l'on est) */
 const BLOCS_LABO = new Map(), CASE_BL = 8;
-function ajouterBlocLabo(x, z, r) { const o = { x, z, r }, m = r + 1.6; for (let i = Math.floor((x - m) / CASE_BL); i <= Math.floor((x + m) / CASE_BL); i++) for (let j = Math.floor((z - m) / CASE_BL); j <= Math.floor((z + m) / CASE_BL); j++) { const k = i + ',' + j; if (!BLOCS_LABO.has(k)) BLOCS_LABO.set(k, []); BLOCS_LABO.get(k).push(o); } }
+function ajouterBlocLabo(x, z, r, b) { const o = { x, z, r }, m = r + 1.6; if (b) o.b = b; for (let i = Math.floor((x - m) / CASE_BL); i <= Math.floor((x + m) / CASE_BL); i++) for (let j = Math.floor((z - m) / CASE_BL); j <= Math.floor((z + m) / CASE_BL); j++) { const k = i + ',' + j; if (!BLOCS_LABO.has(k)) BLOCS_LABO.set(k, []); BLOCS_LABO.get(k).push(o); } return o; }
+/* LES COLLISIONS A LA FORME DU DECOR (24/11/2026, « a travers la plupart des elements de decor, on passe a travers, ou ca nous teleporte », Mathieu) : chaque piece
+   solide a son obstacle, un rond (troncs, poteaux) ou une boite tournee comme elle (caisses, rochers, clotures, cuves...), tiree du pied du modele (ses sommets sous
+   0,9 de haut, PIED_LABO, mesure au chargement) et reduite de f ; les herbes, fougeres, roseaux, cultures et sillons restent traversables */
+const COLL_LABO = { arbre_1: ['rond', 0.62], arbre_2: ['rond', 0.62], arbre_3: ['rond', 0.66], arbre_mort_1: ['boite', 0.62], arbre_mort_2: ['boite', 0.62], bois_mort: ['boite', 0.85],
+  buisson_s: ['rond', 0.5], buisson_v: ['rond', 0.6], bulbe_c: ['rond', 0.42], bulbe_v: ['rond', 0.42], cage: ['boite', 1], cage_ouverte: ['boite', 1], caisse: ['boite', 1], caisse_cawottes: ['boite', 1],
+  caisse_mutagene: ['boite', 1], caisse_p: ['boite', 1], carnivore: ['rond', 0.5], cawotte_geante: ['boite', 0.7], champi_geant: ['rond', 0.85], champis_1: ['boite', 0.75], champis_2: ['boite', 0.75],
+  cloture: ['boite', 1], cristaux: ['boite', 0.85], cuve_brisee: ['boite', 0.9], epouvantail: ['rond', 0.3], ferraille: ['boite', 0.9], generateur: ['boite', 0.95], lampadaire: ['rond', 0.25],
+  mat_radio: ['boite', 0.55], oeil_tige: ['rond', 0.4], os_wabbit: ['boite', 0.8], panneau: ['rond', 0.22], poteau_cable: ['rond', 0.2], racines: ['boite', 0.75], rochers_1: ['boite', 0.85],
+  rochers_2: ['boite', 0.85], rochers_3: ['boite', 0.85], tonneau: ['boite', 0.95], tonneau_couche: ['boite', 0.95], tuyau_sol: ['boite', 0.95] };
+let PIED_LABO = {}; /* (nom -> [x0, x1, z0, z1] du pied, dans le repere du modele) */
+function obstacleLabo(P) { /* l'obstacle d'une piece posee (placerFloreLabo) : null si elle est traversable */
+  const C = COLL_LABO[P.p]; if (!C) return null; if (C[0] === 'rond') return ajouterBlocLabo(P.x, P.z, C[1] * P.s);
+  const B = PIED_LABO[P.p]; if (!B) return ajouterBlocLabo(P.x, P.z, 0.6 * P.s);
+  const c = Math.cos(P.ry), s = Math.sin(P.ry), ox = (B[0] + B[1]) / 2 * P.s, oz = (B[2] + B[3]) / 2 * P.s, hx = Math.max(0.12, (B[1] - B[0]) / 2 * P.s * C[1]), hz = Math.max(0.12, (B[3] - B[2]) / 2 * P.s * C[1]);
+  return ajouterBlocLabo(P.x + ox * c + oz * s, P.z - ox * s + oz * c, Math.hypot(hx, hz), { c, s, hx, hz });
+}
+function piedsLabo(F) { /* le pied de chaque modele du decor : la boite de ses sommets sous 0,9 de haut, dans son repere */
+  const R = {}, v = new T.Vector3(); Object.keys(F).forEach((nom) => { const o = F[nom]; o.updateMatrixWorld(true); const inv = new T.Matrix4().copy(o.matrixWorld).invert(), b = new T.Box3();
+    o.traverse((m) => { if (!m.isMesh || m.material.side === T.BackSide) return; const p = m.geometry.attributes.position, M = new T.Matrix4().multiplyMatrices(inv, m.matrixWorld); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(M); if (v.y < 0.9) b.expandByPoint(v); } });
+    if (!b.isEmpty()) R[nom] = [b.min.x, b.max.x, b.min.z, b.max.z]; }); return R; }
+/* la distance d'un point au bord d'un obstacle (negative dedans) */
+const distObsLabo = (o, x, z) => { if (!o.b) return Math.hypot(x - o.x, z - o.z) - o.r; const dx = x - o.x, dz = z - o.z, lx = dx * o.b.c - dz * o.b.s, lz = dx * o.b.s + dz * o.b.c, ex = Math.abs(lx) - o.b.hx, ez = Math.abs(lz) - o.b.hz;
+  return ex > 0 || ez > 0 ? Math.hypot(Math.max(ex, 0), Math.max(ez, 0)) : Math.max(ex, ez); };
 const blocsLabo = (x, z) => BLOCS_LABO.get(Math.floor(x / CASE_BL) + ',' + Math.floor(z / CASE_BL)) || [];
 MARES_LABO.forEach((M) => ajouterBlocLabo(M.x, M.z, M.R - 0.4));
 ajouterBlocLabo(Math.cos(2.6) * 12.05, Math.sin(2.6) * 12.05, 1.5); /* (la pompe du gros tuyau) */
-const repousser = (x, z, L, m) => { for (let n = 0; n < 2; n++) for (const o of L) { const dx = x - o.x, dz = z - o.z, dd = Math.hypot(dx, dz), Rb = o.r + m; if (dd >= Rb) continue; if (dd < 0.001) { x = o.x + Rb; continue; } const ux = dx / dd, uz = dz / dd, c = 0.94, s = 0.34; x = o.x + (ux * c - uz * s) * Rb; z = o.z + (ux * s + uz * c) * Rb; } return [x, z]; }; /* (repousse un peu de biais : on glisse autour de l'obstacle au lieu d'y rester colle quand on arrive en plein dessus) */
+{ const q = versDock(BALLON_LABO.u, 0); ajouterBlocLabo(q.x, q.z, 0.8); } /* (la montgolfiere amarree au bout du ponton) */
+/* repousse un point hors des obstacles, au plus court (24/11/2026 : avant, il tournait de 20 degres autour de l'obstacle a chaque image, soit 30 cases par seconde
+   sur un gros rocher : le perso semblait se teleporter). glisse : un monstre, qui fonce droit sur le perso, glisse doucement de cote (au plus 0,05 par image) */
+const repousser = (x, z, L, m, glisse) => { for (let n = 0; n < 3; n++) { let bouge = false; for (const o of L) {
+    if (o.b) { const dx = x - o.x, dz = z - o.z, B = o.b; let lx = dx * B.c - dz * B.s, lz = dx * B.s + dz * B.c; const qx = Math.max(-B.hx, Math.min(B.hx, lx)), qz = Math.max(-B.hz, Math.min(B.hz, lz)), ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
+      if (d >= m) continue; if (d > 1e-4) { lx = qx + ex / d * m; lz = qz + ez / d * m; } else if (B.hx - Math.abs(lx) < B.hz - Math.abs(lz)) lx = (lx < 0 ? -1 : 1) * (B.hx + m); else lz = (lz < 0 ? -1 : 1) * (B.hz + m);
+      if (glisse) { const t = 0.05; if (d > 1e-4) { const tx = -ez / d, tz = ex / d; lx += tx * t; lz += tz * t; } }
+      x = o.x + lx * B.c + lz * B.s; z = o.z - lx * B.s + lz * B.c; bouge = true; continue; }
+    const dx = x - o.x, dz = z - o.z, dd = Math.hypot(dx, dz), Rb = o.r + m; if (dd >= Rb) continue; bouge = true; if (dd < 0.001) { x = o.x + Rb; continue; }
+    let ux = dx / dd, uz = dz / dd; if (glisse) { const a = Math.min(0.35, 0.05 / Rb), c = Math.cos(a), s = Math.sin(a); [ux, uz] = [ux * c - uz * s, ux * s + uz * c]; }
+    x = o.x + ux * Rb; z = o.z + uz * Rb; } if (!bouge) break; } return [x, z]; };
 /* LES SALLES INTERIEURES : on passe la porte, on est dans la salle (une piece ronde au niveau du sol, loin de l'ile : x, z locaux) ; ses mutants
    l'attendent ; nettoyee, une sortie verte s'allume contre la porte : elle ramene sur la passerelle et ouvre la grille. La 5e, le labo : le Docteur
    Wabbenstein ; il tombe, fin du donjon. theme : le decor (Salle_<theme> dans ile-labo-salles.glb ; R comme dans blender/ile-labo-salles.py) */
 const Y_SALLE = 0;
+const CAGES_LABO = { types: ['wabbit', 'wabbitSorciere', 'wabbitNoir', 'woWabbit', 'gwandWabbit'], noms: { wabbit: 'Wabbits', wabbitSorciere: 'Wabbits Sorcières', wabbitNoir: 'Wabbits Noirs', woWabbit: 'Wo Wabbits', gwandWabbit: 'Gwand Wabbits' } }; /* (les prisonniers de chaque etage : la salle 1, 2, 3, 4, puis le labo) */
 const SALLES_LABO = [
   /* (24/11/2026, les mutants du labo : un mutant par salle, celui de son theme valide le 20/11 ; a mi-chemin, son specimen brise sa cuve et s'en echappe, specimenLabo) */
   { nom: 'les cages', theme: 'cages', x: -220, z: -400, R: 13, L: [['wabEnrage', 5]] },
@@ -99,15 +144,18 @@ const SALLES_LABO = [
 const ENTREE_SALLE = Math.PI / 4; /* (l'entree de chaque salle : du cote de la camera de depart, la salle s'etend derriere) */
 let ileWabbits = null, donjonEtat = null, donjonEntite = null;
 /* jusqu'ou monte la passerelle : la premiere grille fermee */
-function rampeMax() { const E = donjonEtat; for (let i = 0; i < 4; i++) if (!(E && E.grilles && E.grilles[i])) return angleRampe(LABO.PORTES[i]) + LABO.GRILLE_APRES - 0.12; return LABO.A0 + LABO.DA + LABO.PALIER; }
+function rampeMax() { const E = donjonEtat; for (let i = 0; i < 4; i++) if (!(E && E.grilles && E.grilles[i])) return angleRampe(LABO.PORTES[i]) + LABO.GRILLE_APRES - 0.12; return LABO.FIN - 0.18; } /* (la passerelle s'arrete juste apres la derniere porte, fermee d'une rambarde, 24/11/2026 : LABO.FIN, FIN_RAMPE de blender/ile-labo.py) */
 const etatPerso = () => (donjonEtat ? donjonEtat.perso : (bornerDonjon.libre || (bornerDonjon.libre = { mode: 'sol', theta: LABO.A0 })));
 /* LE SOL ET LA PASSERELLE : ou l'on peut se tenir. E (l'etat de celui qui bouge : le perso, ou un monstre) dit s'il est au sol, sur la passerelle ou dans
    une salle, et a quel angle deroule (la spirale passe deux fois au-dessus du meme point : c'est l'angle deroule qui dit sur quel tour on est) */
 function bornerDonjon(x, z, m, E) {
-  m = m == null ? 0.4 : m; E = E || etatPerso(); let lx = x - DONJON.x, lz = z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx);
-  if (E.mode === 'salle') { /* (dans une salle : son cercle, et ses meubles) */
-    const S = SALLES_LABO[E.i]; let sx = lx - S.x, sz = lz - S.z; const d = Math.hypot(sx, sz), R = S.R - 0.7 - m; if (d > R) { sx *= R / d; sz *= R / d; }
-    [sx, sz] = repousser(sx, sz, S.blocs || [], m); return [DONJON.x + S.x + sx, DONJON.z + S.z + sz]; }
+  m = m == null ? 0.4 : m; E = E || etatPerso(); let lx = x - DONJON.x, lz = z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx); const glisse = !(donjonEtat && E === donjonEtat.perso);
+  if (E.mode === 'salle') { /* (dans une salle : son cercle, et ses meubles ; 24/11/2026 : « je suis coince dans le mur » entre une cage et le mur, le mur le ramenait,
+     la cage le repoussait vers le mur : on recommence trois fois, et s'il reste coince, il sort vers le milieu de la salle) */
+    const S = SALLES_LABO[E.i], R = S.R - 0.7 - m; let sx = lx - S.x, sz = lz - S.z;
+    for (let n = 0; n < 3; n++) { const d = Math.hypot(sx, sz); if (d > R) { sx *= R / d; sz *= R / d; } [sx, sz] = repousser(sx, sz, S.blocs || [], m, glisse); }
+    { const d = Math.hypot(sx, sz); if (d > R + 0.01 || (S.blocs || []).some((o) => distObsLabo(o, sx, sz) < m - 0.02)) { const ux = -sx / (d || 1), uz = -sz / (d || 1); for (let k = 1; k < 80; k++) { const qx = sx + ux * k * 0.25, qz = sz + uz * k * 0.25; if (Math.hypot(qx, qz) <= R && !(S.blocs || []).some((o) => distObsLabo(o, qx, qz) < m)) { sx = qx; sz = qz; break; } } } }
+    return [DONJON.x + S.x + sx, DONJON.z + S.z + sz]; }
   if (E.mode === 'rampe') {
     let t = a + TAU_L * Math.round((E.theta - a) / TAU_L);
     if (t >= LABO.A0 - 0.02) { t = Math.min(t, rampeMax()); const rr = Math.max(LABO.R_IN + m, Math.min(LABO.R_OUT - m, r)); E.theta = t; return [DONJON.x + rr * Math.cos(t), DONJON.z + rr * Math.sin(t)]; }
@@ -124,8 +172,43 @@ function bornerDonjon(x, z, m, E) {
     const D = DOCK_LABO, u = lx * D.c + lz * D.s - D.r0, v = -lx * D.s + lz * D.c;
     if (u > -0.5 && Math.abs(v) < D.w + 0.6) { const vv = Math.max(-D.w + m * 0.5, Math.min(D.w - m * 0.5, v)), uu = Math.min(u, D.L - m); lx = D.c * (D.r0 + uu) - D.s * vv; lz = D.s * (D.r0 + uu) + D.c * vv; }
     else { const k = R / r; lx *= k; lz *= k; } }
-  [lx, lz] = repousser(lx, lz, blocsLabo(lx, lz), m);
+  [lx, lz] = repousser(lx, lz, blocsLabo(lx, lz), m, glisse);
   return [lx + DONJON.x, lz + DONJON.z];
+}
+/* ---------- LES CHEMINS (24/11/2026) : un clic au sol ou dans une salle, le perso contourne les obstacles (une grille de 0,5, recherche A*, puis le chemin est tire
+   au plus droit) ; avant, il allait tout droit et se faisait repousser par chaque obstacle. Une grille par zone : l'ile, et chaque salle ---------- */
+const PAS_CH = 0.5, MARGE_CH = 0.45, GRILLES_CH = {};
+function libreSolLabo(lx, lz, m) { /* (en coordonnees de l'ile) */
+  const r = Math.hypot(lx, lz), a = Math.atan2(lz, lx), d = angDiff(a, LABO.A0);
+  if (r < LABO.R_OUT + m && !(d >= -0.6 && d <= 0.05 && r >= LABO.R_IN + m)) return false; /* (la tour et la passerelle ; le petit coin devant son pied reste libre) */
+  if (r > rIle(a) - 1.0 - m && !surPontonL(lx, lz, m)) return false;
+  for (const o of blocsLabo(lx, lz)) if (distObsLabo(o, lx, lz) < m) return false; return true;
+}
+function grilleCh(cle) {
+  if (GRILLES_CH[cle]) return GRILLES_CH[cle];
+  let G; if (cle === 'sol') { const n = Math.ceil(124 / PAS_CH); G = { x0: -62, z0: -62, n, libre: (x, z) => libreSolLabo(x, z, MARGE_CH) }; }
+  else { const S = SALLES_LABO[+cle.slice(1)], n = Math.ceil((2 * S.R + 2) / PAS_CH); G = { x0: S.x - S.R - 1, z0: S.z - S.R - 1, n, libre: (x, z) => Math.hypot(x - S.x, z - S.z) <= S.R - 0.7 - MARGE_CH && !(S.blocs || []).some((o) => distObsLabo(o, x - S.x, z - S.z) < MARGE_CH) }; }
+  G.ok = new Uint8Array(G.n * G.n); for (let j = 0; j < G.n; j++) for (let i = 0; i < G.n; i++) G.ok[j * G.n + i] = G.libre(G.x0 + (i + 0.5) * PAS_CH, G.z0 + (j + 0.5) * PAS_CH) ? 1 : 0;
+  return (GRILLES_CH[cle] = G);
+}
+function cheminGrille(cle, ax, az, bx, bz) { /* (coordonnees de l'ile) -> la liste des points, sans le depart ; null si rien */
+  const G = grilleCh(cle), n = G.n, cell = (x, z) => [Math.floor((x - G.x0) / PAS_CH), Math.floor((z - G.z0) / PAS_CH)], dans = (i, j) => i >= 0 && j >= 0 && i < n && j < n, ok = (i, j) => dans(i, j) && G.ok[j * n + i] === 1;
+  const proche = ([i0, j0]) => { if (ok(i0, j0)) return [i0, j0]; for (let r = 1; r < 24; r++) { let best = null, bd = 1e9; for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r || !ok(i0 + di, j0 + dj)) continue; const dd = di * di + dj * dj; if (dd < bd) { bd = dd; best = [i0 + di, j0 + dj]; } } if (best) return best; } return null; };
+  const A = proche(cell(ax, az)), B = proche(cell(bx, bz)); if (!A || !B) return null; const ia = A[1] * n + A[0], ib = B[1] * n + B[0];
+  const g = new Float32Array(n * n).fill(1e9), de = new Int32Array(n * n).fill(-1), ferme = new Uint8Array(n * n), tas = [], h = (k) => { const dx = Math.abs(k % n - B[0]), dz = Math.abs(Math.floor(k / n) - B[1]); return Math.max(dx, dz) + 0.414 * Math.min(dx, dz); };
+  const pousser = (k, f) => { tas.push([f, k]); let i = tas.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (tas[p][0] <= tas[i][0]) break; [tas[p], tas[i]] = [tas[i], tas[p]]; i = p; } };
+  const tirer = () => { const t = tas[0], d = tas.pop(); if (tas.length) { tas[0] = d; let i = 0; for (;;) { const l = 2 * i + 1, r2 = l + 1; let m = i; if (l < tas.length && tas[l][0] < tas[m][0]) m = l; if (r2 < tas.length && tas[r2][0] < tas[m][0]) m = r2; if (m === i) break; [tas[m], tas[i]] = [tas[i], tas[m]]; i = m; } } return t; };
+  g[ia] = 0; pousser(ia, h(ia)); let vus = 0;
+  while (tas.length && vus < 60000) { const [, k] = tirer(); if (ferme[k]) continue; ferme[k] = 1; vus++; if (k === ib) break; const i = k % n, j = Math.floor(k / n);
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const ni = i + di, nj = j + dj; if (!ok(ni, nj) || (di && dj && (!ok(i + di, j) || !ok(i, j + dj)))) continue; const nk = nj * n + ni, ng = g[k] + (di && dj ? 1.414 : 1); if (ng < g[nk]) { g[nk] = ng; de[nk] = k; pousser(nk, ng + h(nk)); } } }
+  if (!ferme[ib]) return null;
+  const cellules = []; for (let k = ib; k !== -1; k = de[k]) cellules.push(k); cellules.reverse();
+  const centre = (k) => ({ x: G.x0 + (k % n + 0.5) * PAS_CH, z: G.z0 + (Math.floor(k / n) + 0.5) * PAS_CH });
+  const vue = (p, q) => { const L = Math.hypot(q.x - p.x, q.z - p.z), N = Math.ceil(L / (PAS_CH * 0.5)); for (let s = 1; s < N; s++) { const x = p.x + (q.x - p.x) * s / N, z = p.z + (q.z - p.z) * s / N, [i, j] = cell(x, z); if (!ok(i, j)) return false; } return true; };
+  const [bi, bj] = cell(bx, bz), fin = ok(bi, bj) ? { x: bx, z: bz } : centre(ib); /* (un clic sur un obstacle : on va au plus pres) */
+  const pts = [{ x: ax, z: az }].concat(cellules.slice(1, -1).map(centre), [fin]), out = []; let a0 = pts[0];
+  for (let k = 1; k < pts.length; k++) { if (k === pts.length - 1 || !vue(a0, pts[k + 1])) { out.push(pts[k]); a0 = pts[k]; } } /* (tire au plus droit : on saute les points qu'on voit deja) */
+  return out;
 }
 const dansDonjon = (x, z, m) => { /* (un point ou l'on peut se tenir : dans la salle ou est le perso, ou sur l'ile) */
   const P = etatPerso(), lx = x - DONJON.x, lz = z - DONJON.z;
@@ -141,21 +224,19 @@ hauteurSol = function (x, z) {
 const majMonstreDonjon0 = majMonstre; majMonstre = function (mo) { if (lieu !== 'donjon') return majMonstreDonjon0.apply(this, arguments); donjonEntite = mo; try { return majMonstreDonjon0.apply(this, arguments); } finally { donjonEntite = null; } };
 /* UN CLIC : sur la passerelle, le chemin suit la spirale (en ligne droite, on butait contre la tour) */
 function cheminDonjon(p) {
-  if (etatPerso().mode === 'salle') { const [x, z] = bornerDonjon(p.x, p.z); return [{ c: paysanMesh.userData.cellule, x, z }]; }
-  const E = etatPerso(), pp = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx), surRampe = r >= LABO.R_IN - 0.2 && r <= LABO.R_OUT + 0.2 && p.y > 0.25;
+  const E = etatPerso(), pp = paysanMesh.position, c0 = paysanMesh.userData.cellule, monde = (L) => L.map((q) => ({ c: c0, x: q.x + DONJON.x, z: q.z + DONJON.z }));
+  if (E.mode === 'salle') { const L = cheminGrille('s' + E.i, pp.x - DONJON.x, pp.z - DONJON.z, p.x - DONJON.x, p.z - DONJON.z); if (L && L.length) return monde(L); const [x, z] = bornerDonjon(p.x, p.z); return [{ c: c0, x, z }]; } /* (24/11/2026 : contourne les meubles) */
+  const lx = p.x - DONJON.x, lz = p.z - DONJON.z, r = Math.hypot(lx, lz), a = Math.atan2(lz, lx), surRampe = r >= LABO.R_IN - 0.2 && r <= LABO.R_OUT + 0.2 && p.y > 0.25;
   const pts = []; const spirale = (t0, t1, rr) => { const n = Math.max(1, Math.ceil(Math.abs(t1 - t0) / 0.25)); for (let k = 1; k <= n; k++) { const t = t0 + (t1 - t0) * k / n; pts.push({ x: DONJON.x + rr * Math.cos(t), z: DONJON.z + rr * Math.sin(t) }); } };
+  const auSol = (ax, az, bx, bz) => { const L = cheminGrille('sol', ax - DONJON.x, az - DONJON.z, bx - DONJON.x, bz - DONJON.z); if (L && L.length) pts.push(...monde(L)); else { const [x, z] = bornerDonjon(bx, bz, 0.4, { mode: 'sol', theta: LABO.A0 }); pts.push({ x, z }); } }; /* (24/11/2026 : au sol, le chemin contourne le decor et la tour) */
   const rm = (LABO.R_IN + LABO.R_OUT) / 2;
   if (surRampe) { /* l'angle deroule vise : celui dont la hauteur colle au point touche */
     let tv = a + TAU_L * Math.round((angleRampe(Math.max(0, p.y - 0.05)) - a) / TAU_L); tv = Math.max(LABO.A0 + 0.05, Math.min(rampeMax(), tv));
     if (E.mode === 'rampe') spirale(E.theta, tv, rm);
-    else { const d0 = { x: DONJON.x + rm * Math.cos(LABO.A0 - 0.3), z: DONJON.z + rm * Math.sin(LABO.A0 - 0.3) }, R0 = LABO.R_OUT + 1.2, ap = Math.atan2(pp.z - DONJON.z, pp.x - DONJON.x);
-      if (Math.hypot(pp.x - DONJON.x, pp.z - DONJON.z) > LABO.R_OUT) { const t0 = ap + angDiff(LABO.A0 - 0.3, ap); spirale(ap, t0, Math.max(R0, Math.min(17, Math.hypot(pp.x - DONJON.x, pp.z - DONJON.z)))); }
-      pts.push(d0); spirale(LABO.A0 - 0.3, tv, rm); }
-  } else if (E.mode === 'rampe') { spirale(E.theta, LABO.A0 - 0.3, rm); pts.push({ x: DONJON.x + (LABO.R_OUT + 1.2) * Math.cos(LABO.A0 - 0.45), z: DONJON.z + (LABO.R_OUT + 1.2) * Math.sin(LABO.A0 - 0.45) }); const [x, z] = bornerDonjon(p.x, p.z, 0.4, { mode: 'sol', theta: LABO.A0 }); pts.push({ x, z }); }
-  else { /* au sol, de l'autre cote de la tour : on la contourne */
-    const ap = Math.atan2(pp.z - DONJON.z, pp.x - DONJON.x), [x, z] = bornerDonjon(p.x, p.z, 0.4, { mode: 'sol', theta: LABO.A0 }), at = Math.atan2(z - DONJON.z, x - DONJON.x), rp = Math.hypot(pp.x - DONJON.x, pp.z - DONJON.z);
-    const coupe = Math.abs(angDiff(at, ap)) > 1.0 && Math.min(rp, Math.hypot(x - DONJON.x, z - DONJON.z)) < 20; if (coupe) spirale(ap, ap + angDiff(at, ap), Math.max(LABO.R_OUT + 1.6, Math.min(rp, 16))); pts.push({ x, z }); }
-  return pts.map((q) => ({ c: paysanMesh.userData.cellule, x: q.x, z: q.z }));
+    else { const d0 = { x: DONJON.x + rm * Math.cos(LABO.A0 - 0.3), z: DONJON.z + rm * Math.sin(LABO.A0 - 0.3) }; auSol(pp.x, pp.z, d0.x, d0.z); spirale(LABO.A0 - 0.3, tv, rm); }
+  } else if (E.mode === 'rampe') { spirale(E.theta, LABO.A0 - 0.3, rm); const s0 = { x: DONJON.x + (LABO.R_OUT + 1.2) * Math.cos(LABO.A0 - 0.45), z: DONJON.z + (LABO.R_OUT + 1.2) * Math.sin(LABO.A0 - 0.45) }; pts.push(s0); auSol(s0.x, s0.z, p.x, p.z); }
+  else auSol(pp.x, pp.z, p.x, p.z);
+  return pts.map((q) => ({ c: c0, x: q.x, z: q.z }));
 }
 /* ---------- la carte ---------- */
 const SC_FLORE = new Set(['feuille', 'tige', 'brin', 'fil_cosse', 'strie', 'rivet', 'sillon', 'veine', 'treillis', 'hauban', 'cage_barreau', 'fil', 'chaine', 'corde', 'antenne', 'pupilleO', 'iris', 'reflet', 'dent', 'cawotte_strie', 'massette', 'bouton', 'cercle', 'volant', 'cage', 'piquet', 'lisse', 'planche', 'caisse_planche', 'caisse_coin', 'poutre']);
@@ -193,11 +274,11 @@ function placerFloreLabo() {
   const loin = (x, z, d) => occupe.every((o) => Math.hypot(o.x - x, o.z - z) >= d + o.r);
   const sDe = (x, z) => rIle(Math.atan2(z, x)) - Math.hypot(x, z);
   const dansChamp = (x, z, m) => CHAMPS_LABO.some((F) => { const c = Math.cos(F.a), s = Math.sin(F.a), u = (x - F.x) * c + (z - F.z) * s, v = -(x - F.x) * s + (z - F.z) * c; return Math.abs(u) < F.hl + m && Math.abs(v) < F.hw + m; });
-  const dansCamp = (x, z, m) => CAMPS_LABO.some((K) => Math.hypot(x - K.x, z - K.z) < K.r * 0.75 + m);
+  const dansCamp = (x, z, m) => CAMPS_LABO.some((K) => K.patrouille == null && Math.hypot(x - K.x, z - K.z) < K.r * 0.75 + m);
   const dansMare = (x, z, m) => MARES_LABO.some((M) => Math.hypot(x - M.x, z - M.z) < M.R + m);
   const presDuPonton = (x, z) => { const D = DOCK_LABO, u = x * D.c + z * D.s - D.r0, v = -x * D.s + z * D.c; return u > -5 && u < D.L + 2 && Math.abs(v) < 3.6; };
   const libre = (x, z, o) => { o = o || {}; const r = Math.hypot(x, z); return r > (o.rMin || 19) && !presDuPonton(x, z) && sDe(x, z) > (o.sMin == null ? 7.5 : o.sMin) && dChemin(x, z) > (o.chemin == null ? 1.8 : o.chemin) && !dansChamp(x, z, o.champ == null ? 1.0 : o.champ) && !dansCamp(x, z, o.camp == null ? 1.5 : o.camp) && !dansMare(x, z, o.mare == null ? 0.8 : o.mare) && loin(x, z, o.ecart == null ? 0.6 : o.ecart); };
-  const poser = (p, x, z, o) => { o = o || {}; const P = { p, x, z, ry: o.ry == null ? rnd() * TAU_L : o.ry, s: o.s || 1, dy: o.dy || 0 }; L.push(P); if (o.bloc) ajouterBlocLabo(x, z, o.bloc * P.s); if (o.gros) occupe.push({ x, z, r: o.gros * P.s }); return P; };
+  const poser = (p, x, z, o) => { o = o || {}; const P = { p, x, z, ry: o.ry == null ? rnd() * TAU_L : o.ry, s: o.s || 1, dy: o.dy || 0 }; L.push(P); if (o.gros) occupe.push({ x, z, r: o.gros * P.s }); return P; }; /* (l'obstacle de chaque piece se pose a la fin, d'apres sa forme : obstacleLabo) */
   const semer = (n, a0, a1, r0, r1, f) => { for (let k = 0, m = 0; m < n && k < n * 40; k++) { const a = a0 + (a1 - a0) * rnd(), r = Math.sqrt(r0 * r0 + (r1 * r1 - r0 * r0) * rnd()), x = Math.cos(a) * r, z = Math.sin(a) * r; if (f(x, z, a, r)) m++; } };
   const choisir = (T_) => T_[Math.floor(rnd() * T_.length)];
   /* le ponton */
@@ -211,7 +292,7 @@ function placerFloreLabo() {
   [leLongDuChemin(30.5, 12.8), leLongDuChemin(41, -12), leLongDuChemin(21.5, 13.5)].forEach((q, k) => poser('cawotte_geante', q.x, q.z, { ry: 1.7 + k * 2.1, s: 0.85 + k * 0.15, bloc: 1.4, gros: 2.2 }));
   { const q = leLongDuChemin(31, 3.4); poser('epouvantail', q.x, q.z, { ry: -DOCK_LABO.a + Math.PI / 2 + 0.3, bloc: 0.35, gros: 0.6 }); }
   { const q = leLongDuChemin(23.5, -4.2); poser('caisse_cawottes', q.x, q.z, { ry: 0.4, bloc: 0.7, gros: 0.9 }); const q2 = leLongDuChemin(24.6, -4.8); poser('caisse_p', q2.x, q2.z, { ry: 0.9, bloc: 0.55, gros: 0.7 }); }
-  const tuyau = (q, ry) => { poser('tuyau_sol', q.x, q.z, { ry, gros: 1.8 }); for (const k of [-1.5, 1.5]) ajouterBlocLabo(q.x + Math.cos(ry) * k, q.z - Math.sin(ry) * k, 0.35); }; /* (ses deux pieds : l'axe x du modele, tourne de ry) */
+  const tuyau = (q, ry) => { poser('tuyau_sol', q.x, q.z, { ry, gros: 1.8 }); };
   tuyau(leLongDuChemin(38.5, 3.6), -DOCK_LABO.a + Math.PI / 2);
   [[46.5, 2.3], [40, -2.2], [33.5, 2.3], [27, -2.2], [20.5, 2.3]].forEach(([s, l]) => { const q = leLongDuChemin(s, l); poser('lampadaire', q.x, q.z, { ry: -DOCK_LABO.a + (l > 0 ? -Math.PI / 2 : Math.PI / 2) + Math.PI, bloc: 0.25, gros: 0.4 }); });
   { const q = leLongDuChemin(47.5, -2.6); poser('panneau', q.x, q.z, { ry: -DOCK_LABO.a + Math.PI / 2, gros: 0.3 }); }
@@ -276,8 +357,16 @@ function placerFloreLabo() {
   generateurs.slice(0, 2).forEach((G0) => { const q = { x: G0.x + 2.2 * Math.cos(G0.ry + 1), z: G0.z - 2.2 * Math.sin(G0.ry + 1) }; if (loin(q.x, q.z, 0.6) && dChemin(q.x, q.z) > 1.2) poser('caisse_mutagene', q.x, q.z, { ry: rnd() * 2, bloc: 0.65, gros: 0.8 }); });
   semer(1, 3.5, 4.6, 21, 36, (x, z) => { if (!libre(x, z, { ecart: 1.4, chemin: 2.0, camp: 2 })) return false; poser('ferraille', x, z, { bloc: 1.0, gros: 1.6 }); return true; });
   semer(1, 0, TAU_L, 32, 50, (x, z) => { const s = sDe(x, z); if (s < 3.0 || !libre(x, z, { sMin: 3.0, ecart: 2.0, rMin: 26, champ: 2, chemin: 2.0 })) return false; poser('ferraille', x, z, { bloc: 1.0, gros: 1.6, dy: -0.1 }); return true; });
-  CAMPS_LABO.forEach((K) => { const d = Math.hypot(K.x, K.z) || 1, ux = -K.x / d, uz = -K.z / d, x = K.x + ux * (K.r + 1.3), z = K.z + uz * (K.r + 1.3); if (dChemin(x, z) < 0.9) return; poser('panneau', x, z, { ry: Math.atan2(ux, uz), gros: 0.3 }); });
-  return { L, yeux, machines: { poteaux, generateurs, autres: L.filter((P) => P.p === 'cuve_brisee' || P.p === 'ferraille') } };
+  CAMPS_LABO.forEach((K) => { if (K.patrouille != null) return; const d = Math.hypot(K.x, K.z) || 1, ux = -K.x / d, uz = -K.z / d, x = K.x + ux * (K.r + 1.3), z = K.z + uz * (K.r + 1.3); if (dChemin(x, z) < 0.9) return; poser('panneau', x, z, { ry: Math.atan2(ux, uz), gros: 0.3 }); });
+  /* LE MENAGE (24/11/2026, « attention aux elements de decor qui traversent d'autres elements de decor : un panneau passe a travers la passerelle », Mathieu) :
+     on retire les pieces qui mordent l'anneau de la tour et de la passerelle (le camp du pied de la tour en posait trois) et les clotures qui traversent une autre
+     piece ; puis chaque piece gardee pose son obstacle */
+  const rayonP = (P) => { const B = PIED_LABO[P.p]; return B ? Math.hypot((B[1] - B[0]) / 2, (B[3] - B[2]) / 2) * P.s : 0.5 * P.s; };
+  const solides = L.filter((P) => COLL_LABO[P.p] && P.p !== 'cloture'), retires = new Set();
+  L.forEach((P) => { if (P.p === 'ponton' || !COLL_LABO[P.p]) return; if (Math.hypot(P.x, P.z) - rayonP(P) < LABO.R_OUT + 0.9) retires.add(P); });
+  L.forEach((P) => { if (P.p !== 'cloture') return; if (solides.some((Q) => !retires.has(Q) && Math.hypot(Q.x - P.x, Q.z - P.z) < rayonP(P) * 0.9 + rayonP(Q) * 0.7)) retires.add(P); });
+  const garde = L.filter((P) => !retires.has(P)); garde.forEach((P) => obstacleLabo(P));
+  return { L: garde, yeux: yeux.filter((P) => !retires.has(P)), machines: { poteaux: poteaux.filter((P) => !retires.has(P)), generateurs: generateurs.filter((P) => !retires.has(P)), autres: garde.filter((P) => P.p === 'cuve_brisee' || P.p === 'ferraille') }, retires: [...retires].map((P) => P.p) };
 }
 /* VOIR A TRAVERS LES ARBRES : les pieces du dehors (cimes, rochers, champignons geants...) s'ouvrent autour du perso, entre lui et la camera, au-dessus de
    1,5 de haut (un trou au bord tramé) ; sinon, dans la foret, le perso disparaissait sous les cimes. Les uniformes sont mis a jour a chaque image (vieIleLabo) */
@@ -325,6 +414,7 @@ async function construireIleWabbits() {
   g.userData.portes = [1, 2, 3, 4, 5].map((i) => prendre('Labo_porte_' + i)); g.userData.grilles = [1, 2, 3, 4].map((i) => prendre('Labo_grille_' + i));
   /* les pieces du dehors */
   versToon(fl, { normales: 0.02, sansContour: SC_FLORE }); const F = {}; fl.children.slice().forEach((o) => { F[o.name.replace(/^Fl_/, '')] = o; });
+  PIED_LABO = piedsLabo(F); /* (le pied de chaque piece, pour ses collisions : obstacleLabo) */
   [F.cuve_brisee, F.caisse_mutagene].forEach((pr) => pr && pr.traverse((m) => { if (m.isMesh && /^(verre|fiole)/.test(m.name)) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.4; m.material.depthWrite = false; m.castShadow = false; } })); /* (le verre des cuves et des fioles, 24/11/2026) */
   const { L, yeux, machines } = placerFloreLabo(), morceaux = new Map();
   L.forEach((P) => { const pr = F[P.p]; if (!pr) return; const o = pr.clone(); const y = P.p === 'ponton' ? 0 : hTerrainLabo(P.x, P.z) + P.dy; o.position.set(P.x, y, P.z); o.rotation.set(0, P.ry, 0); o.scale.setScalar(P.s);
@@ -345,11 +435,9 @@ async function construireIleWabbits() {
       const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(new Float32Array(8 * 3), 3)); const l = new T.Line(geo, matArc); l.visible = false; l.raycast = () => {}; g.add(l); return { A, B, l, ph: Math.random() * 3 }; }); }
   /* les yeux : un globe par plante, qui suit le perso */
   g.userData.yeux = yeux.map((P) => { const o = F.oeil_globe.clone(), s = P.s, c = Math.cos(P.ry), sn = Math.sin(P.ry), tx = 0.085, tz = 0.135; o.position.set(P.x + (tx * c + tz * sn) * s, hTerrainLabo(P.x, P.z) + 1.86 * s, P.z + (-tx * sn + tz * c) * s); o.scale.setScalar(s * 0.95); g.add(o); return o; }); /* (au bout de la tige : 0,085 ; 1,59 ; 0,135 dans le modele) */
-  /* la barque */
-  { const b = new T.Group(), coque = boite(1.3, 0.45, 3.0, '#6b4e36'); coque.position.y = -0.2; b.add(coque); const bo = boite(1.45, 0.12, 3.1, '#4f3826'); bo.position.y = 0.05; b.add(bo);
-    const proue = cone(0.66, 0.9, '#6b4e36', 4); proue.rotation.x = Math.PI / 2; proue.rotation.y = Math.PI / 4; proue.position.set(0, -0.2, 1.9); proue.scale.set(1, 1, 0.5); b.add(proue);
-    const lant = new T.Mesh(new T.SphereGeometry(0.14, 10, 8), new T.MeshBasicMaterial({ color: '#8dff6a' })); lant.position.set(0, 0.62, -1.15); b.add(lant); const mt = boite(0.05, 0.6, 0.05, '#3a3a3a'); mt.position.set(0, 0.32, -1.15); b.add(mt);
-    for (const s of [-1, 1]) { const r = boite(0.08, 0.08, 1.6, '#c9a86a'); r.position.set(s * 0.9, 0.1, 0.3); r.rotation.y = s * 0.4; b.add(r); } pose(b, 0, 0, -0.2); b.visible = false; g.userData.barque = b; }
+  /* LA MONTGOLFIERE (24/11/2026, « dans l'ideal, arriver avec la montgolfiere, puisque c'est elle qu'on prend pour aller au donjon ; elle se pose au niveau du
+     ponton, on oublie le bateau », Mathieu) : celle de la ferme, posee au bout du ponton ; elle descend du ciel a l'arrivee (debarquer) */
+  if (MODELES.montgolfiere) { const b = MODELES.montgolfiere.clone(true), q = versDock(BALLON_LABO.u, 0); b.traverse((o) => { delete o.userData.montgolfiere; }); b.visible = true; pose(b, q.x, q.z, 0); b.rotation.set(0, -DOCK_LABO.a, 0); g.userData.ballon = b; } /* (rotation.set : le modele garde une rotation que la ferme remet a zero, sinon il etait a l'envers) */
   /* les mares de mutagene qui luisent (et leurs bords plus sombres) */
   const flaques = []; MARES_LABO.forEach((M) => {
     const f = new T.Mesh(new T.CircleGeometry(M.R + 0.6, 30), new T.MeshBasicMaterial({ color: '#7dff5a', transparent: true, opacity: 0.55, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.position.set(M.x, -0.18, M.z); g.add(f); flaques.push(f);
@@ -359,20 +447,21 @@ async function construireIleWabbits() {
     [[5.3, 27, '#c8f0b0'], [5.55, 34, '#c8f0b0'], [5.2, 38, '#c8f0b0'], [5.75, 31, '#c8f0b0'], [5.45, 24, '#d8f5c8'], [2.1, 30, '#b9a0d8'], [2.5, 38, '#b9a0d8'], [2.0, 41, '#c4b0e0'], [2.75, 33, '#b9a0d8'], [1.75, 35, '#b9a0d8'], [3.0, 42, '#b9a0d8'], [4.2, 38, '#cfc8d8'], [0.9, 37, '#d8e8c8']].forEach(([a, r, c], k) => {
       const q = polL(a, r), m = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: tx, color: c, transparent: true, opacity: 0.3, depthWrite: false })); m.rotation.x = -Math.PI / 2; const s = 9 + (k % 3) * 3; m.scale.set(s, s * 0.7, 1);
       m.position.set(q.x, Math.max(-0.1, hTerrainLabo(q.x, q.z)) + 0.45, q.z); m.renderOrder = 2; g.add(m); brumes.push({ m, x: q.x, z: q.z, ph: k * 1.3 }); }); }
-  g.userData.salles = await construireSallesLabo(g);
+  g.userData.protos = { cage: F.cage, cageOuverte: F.cage_ouverte }; g.userData.salles = await construireSallesLabo(g, F);
   g.userData.flaques = flaques; g.userData.brumes = brumes; sansClic(g);
-  g.userData.salles.forEach((S) => { if (S.clic) delete S.clic.raycast; }); sol.raycast = T.Mesh.prototype.raycast; mer.raycast = T.Mesh.prototype.raycast;
+  g.userData.salles.forEach((S) => { if (S.clic) delete S.clic.raycast; (S.cages || []).forEach((C) => [C.grp, C.wab].forEach((o) => o.traverse((q) => { if (q.isMesh) delete q.raycast; }))); }); /* (les cages des salles se touchent : on les ouvre, 29s-fin-labo.js) */ sol.raycast = T.Mesh.prototype.raycast; mer.raycast = T.Mesh.prototype.raycast;
   if (g.userData.passerelle) g.userData.passerelle.traverse((q) => { if (q.isMesh) delete q.raycast; }); /* (la mer, le sol, la passerelle et le sol des salles restent cliquables : on y va) */
   g.traverse((o) => { if (o.isMesh && o.parent && /^flore_/.test(o.parent.name) && o.material && o.material.side !== T.BackSide) o.castShadow = true; });
+  grilleCh('sol'); /* (la grille des chemins de l'ile, calculee pendant le chargement) */
   scene.add(g); effets.push(vieIleLabo); return g;
 }
 /* ---------- LES SALLES (blender/ile-labo-salles.py) : leurs meubles sont des obstacles (les pieces « bloc » du modele : un cylindre par meuble, lu puis
    retire), les reperes « repere_bobine » (le haut d'une bobine qui crepite) et « repere_bulles » (une cuve qui bouillonne) ; les verres « verre » sont
    transparents ; autour de chaque salle, du noir ; un disque invisible pour cliquer au sol, la sortie verte contre la porte ---------- */
-async function construireSallesLabo(g) {
+async function construireSallesLabo(g, F) {
   const sc = await chargerGlb('assets/modeles/jeu/ile-labo-salles.glb?v=' + (VERSIONS_FICHIERS['ile-labo-salles.glb'] || VERSION_MODELES));
   const nomB = (m) => m.name.replace(/\.?\d+$/, '').replace(/_\d+$/, '');
-  return SALLES_LABO.map((S) => {
+  return SALLES_LABO.map((S, i) => {
     const n = sc.getObjectByName('Salle_' + S.theme), s = new T.Group(); s.position.set(S.x, Y_SALLE, S.z); g.add(s); const blocs = [], reperes = [];
     if (n) { n.parent.remove(n); n.position.set(0, 0, 0); const retirer = [];
       n.traverse((m) => { if (!m.isMesh) return; const b = nomB(m); if (b !== 'bloc' && !b.startsWith('repere')) return; m.geometry.computeBoundingBox(); const B = m.geometry.boundingBox, c = B.getCenter(new T.Vector3()); if (b === 'bloc') blocs.push({ x: c.x, z: c.z, r: (B.max.x - B.min.x) / 2 }); else reperes.push({ nom: b, x: c.x, y: c.y, z: c.z }); retirer.push(m); });
@@ -383,16 +472,37 @@ async function construireSallesLabo(g) {
     const vide = new T.Mesh(new T.CircleGeometry(S.R + 40, 40), new T.MeshBasicMaterial({ color: '#07080b' })); vide.rotation.x = -Math.PI / 2; vide.position.y = -0.4; s.add(vide);
     const clic = new T.Mesh(new T.CircleGeometry(S.R, 48), new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false })); clic.rotation.x = -Math.PI / 2; clic.position.y = 0.02; s.add(clic);
     const sortie = new T.Mesh(new T.RingGeometry(0.85, 1.25, 32), new T.MeshBasicMaterial({ color: '#7dff5a', transparent: true, opacity: 0.75, depthWrite: false })); sortie.rotation.x = -Math.PI / 2; sortie.position.set(Math.cos(ENTREE_SALLE) * (S.R - 1.1), 0.05, Math.sin(ENTREE_SALLE) * (S.R - 1.1)); sortie.visible = false; s.add(sortie);
-    const lueurs = trouGroupe(s, [vide, clic, sortie]); /* (les meubles entre le perso et la camera s'ouvrent aussi : la porte cachait le perso a l'entree) */
+    /* LES CAGES DES PRISONNIERS (24/11/2026, « plutot des cages sur les cotes, qu'on libere en cliquant dessus ; des Wabbits differents a chaque etage », Mathieu) :
+       quatre cages contre les murs de cote, chacune avec un Wabbit du type de l'etage (CAGES_LABO), un obstacle ; on les ouvre une fois la salle nettoyee */
+    const cages = [], saufTrou = [vide, clic, sortie];
+    if (i < 4 && F && F.cage) { const type = MODELES[CAGES_LABO.types[i]] ? CAGES_LABO.types[i] : 'wabbit', rc = S.R - 2.0;
+      for (const base of [Math.PI / 2 - 0.32, Math.PI / 2 + 0.32, -Math.PI / 2 + 0.32, -Math.PI / 2 - 0.32]) { let q = null;
+        for (const dk of [0, 0.15, -0.15, 0.3, -0.3, 0.45, -0.45]) { const a = ENTREE_SALLE + base + dk, x = Math.cos(a) * rc, z = Math.sin(a) * rc; if (blocs.every((o) => distObsLabo(o, x, z) > 1.15) && cages.every((C) => Math.hypot(C.x - x, C.z - z) > 2.1)) { q = { x, z }; break; } }
+        if (!q) continue; const ry = Math.atan2(-q.x, -q.z), cg = F.cage.clone(true); cg.position.set(q.x, 0, q.z); cg.rotation.set(0, ry, 0); s.add(cg);
+        const w = cloner(type), b = new T.Box3().setFromObject(w), d = new T.Vector3(); b.getSize(d); w.scale.multiplyScalar(Math.min(1.2 / d.y, 1.05 / Math.max(d.x, d.z))); w.position.set(q.x, 0.06, q.z); w.rotation.y = ry; s.add(w); w.traverse((m) => { if (m.isMesh) saufTrou.push(m); });
+        blocs.push({ x: q.x, z: q.z, r: 0.85 }); cages.push({ x: q.x, z: q.z, ry, grp: cg, wab: w, type, ouverte: false, ph: Math.random() * 6 }); } }
+    const lueurs = trouGroupe(s, saufTrou); /* (les meubles entre le perso et la camera s'ouvrent aussi : la porte cachait le perso a l'entree) */
     /* les arcs des bobines : une ligne brisee qui saute d'une bobine a l'autre, ou vers le sol */
     const bobines = reperes.filter((q) => q.nom === 'repere_bobine').map((q) => new T.Vector3(q.x, q.y, q.z)), arcs = [];
     bobines.forEach(() => { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(new Float32Array(10 * 3), 3)); const l = new T.Line(geo, new T.LineBasicMaterial({ color: '#d8f6ff', transparent: true, opacity: 0.9 })); l.visible = false; s.add(l); arcs.push(l); });
-    S.blocs = blocs; return { grp: s, sortie, clic, lueurs, bobines, arcs, bulles: reperes.filter((q) => q.nom === 'repere_bulles') };
+    S.blocs = blocs; return { grp: s, sortie, clic, lueurs, bobines, arcs, cages, bulles: reperes.filter((q) => q.nom === 'repere_bulles') };
   });
 }
 let ileWabbitsPromesse = null;
 async function chargerIleWabbits() { if (!ileWabbits) ileWabbits = await (ileWabbitsPromesse || (ileWabbitsPromesse = construireIleWabbits())); return ileWabbits; }
 VOYAGES.donjon = { centre: DONJON, charger: () => chargerIleWabbits(), zoom: () => 1.0 };
+/* le perso est-il cache, vu de la camera ? deux rayons, de sa poitrine et de sa tete vers la camera, contre le decor proche (les morceaux du dehors a moins de 30,
+   ou les meubles de la salle) */
+const rcTrou = new T.Raycaster(), touchesTrou = [], oTrou = new T.Vector3();
+function persoCacheLabo() {
+  if (!ileWabbits) return false; const I = ileWabbits.userData, p = paysanMesh.position, P = etatPerso(), dir = TROU_LABO.uDir.value, L = [], px = p.x - DONJON.x, pz = p.z - DONJON.z;
+  const prendre = (g, sauf) => g.traverse((m) => { if (m.isMesh && m.visible && m.material && m.material.side !== T.BackSide && !(sauf && sauf.includes(m))) L.push(m); });
+  if (P.mode === 'salle') { const S = I.salles[P.i]; if (S) prendre(S.grp, [S.clic, S.sortie]); }
+  else ileWabbits.children.forEach((g) => { const k = /^flore_(-?\d+),(-?\d+)$/.exec(g.name); if (k && Math.hypot((+k[1] + 0.5) * 24 - px, (+k[2] + 0.5) * 24 - pz) < 30) prendre(g); });
+  for (const h of [0.9, 1.7]) { oTrou.set(p.x, p.y + h, p.z); rcTrou.set(oTrou, dir); rcTrou.far = 40; touchesTrou.length = 0;
+    for (const m of L) T.Mesh.prototype.raycast.call(m, rcTrou, touchesTrou); if (touchesTrou.some((t) => t.distance > 0.35 && t.point.y > p.y + 1.2)) return true; }
+  return false;
+}
 /* L'AMBIANCE BIZARRE : un voile sur l'ecran (le vert-gris qui ternit, le violet sur les bords), seulement sur l'ile */
 function voileLabo() {
   let v = document.getElementById('voile-labo'); if (v) return v;
@@ -405,7 +515,11 @@ const montrerIles0 = montrerIles; montrerIles = function () { montrerIles0(); if
    la fumee de la cheminee ; dans une salle : ses lueurs, les arcs des bobines, les bulles des cuves */
 function vieIleLabo(dt) {
   if (lieu !== 'donjon' || !ileWabbits) return false; const I = ileWabbits.userData, V = vieIleLabo.v || (vieIleLabo.v = { t: 0, spore: 0, fumee: 0, arc: 0, bulle: 0 }); V.t += dt; const t = V.t, p = paysanMesh.position, P = etatPerso();
-  TROU_LABO.uPerso.value.copy(p); TROU_LABO.uDir.value.copy(camera.position).sub(VISEE).normalize(); TROU_LABO.uTrou.value = 2.7;
+  TROU_LABO.uPerso.value.copy(p); TROU_LABO.uDir.value.copy(camera.position).sub(VISEE).normalize();
+  /* (24/11/2026, « un rond autour de nous qui vient effacer les elements de decor », Mathieu : le trou ne s'ouvre plus que si le perso est vraiment cache, vu de la
+     camera, et plus petit, 1,7 au lieu de 2,7 ; on regarde 6 fois par seconde) */
+  if ((V.cache = (V.cache || 0) - dt) <= 0) { V.cache = 0.16; V.cacheVu = persoCacheLabo(); }
+  TROU_LABO.uTrou.value += ((V.cacheVu ? 1.7 : 0) - TROU_LABO.uTrou.value) * Math.min(1, dt * 8); if (TROU_LABO.uTrou.value < 0.05) TROU_LABO.uTrou.value = 0;
   if (P.mode === 'salle') { const S = I.salles[P.i]; if (!S) return false;
     S.lueurs.forEach((L) => { L.m.color.copy(L.c).multiplyScalar(0.82 + 0.22 * Math.sin(t * 2.3 + L.ph)); });
     if ((V.arc -= dt) <= 0) { V.arc = 0.07; S.arcs.forEach((l, k) => { if (Math.random() < 0.45) { l.visible = false; return; } const A = S.bobines[k], B = k + 1 < S.bobines.length && Math.random() < 0.6 ? S.bobines[k + 1] : new T.Vector3(A.x + (Math.random() - 0.5) * 5, 0.1, A.z + (Math.random() - 0.5) * 5), a = l.geometry.attributes.position;
@@ -435,11 +549,27 @@ function transmuter(o) {
   const vert = new T.Color('#7dff5a'); o.m.traverse((q) => { if (!q.isMesh || !q.material || q.name === 'contour' || q.material.isMeshBasicMaterial) return; q.material = q.material.clone(); if (q.material.color) q.material.color.lerp(vert, 0.28); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.22; } });
 }
 /* les camps : leurs mutants attendent chez eux, immobiles, jusqu'a ce que le perso entre dans leur perimetre */
-function posterCamps(c) {
-  CAMPS_LABO.forEach((K, k) => { const L = []; K.L.forEach(([t, n]) => { for (let i = 0; i < n; i++) L.push(t); });
-    L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 2) * 1.4, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 }), chef = K.L.some(([t2, , ch]) => ch === 'chef' && t2 === t) && L.indexOf(t) === i;
-      setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] };
-        if (chef && typeof grandirMutant === 'function') { grandirMutant(o, CHEF_LABO, '#ffb02e', t === 'wabGarou' ? 'Garou alpha' : 'Chef des gardes'); o.chef = true; } } }); }, 200 + (k * 6 + i) * 120); }); }); /* (chef : le premier de son type dans le camp) */
+CAMPS_LABO.forEach((K) => { K.x0 = K.x; K.z0 = K.z; });
+function posterCamp(c, k, delai, repop) { /* repop : le camp revient, sans son chef (son coffre ne tombe qu'une fois) */
+  const K = CAMPS_LABO[k], L = []; K.L.forEach(([t, n, ch]) => { if (repop && ch === 'chef') return; for (let i = 0; i < n; i++) L.push(t); });
+  if (repop) c.total += L.length;
+  L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 3) * 1.1, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 }), chef = !repop && K.L.some(([t2, , ch]) => ch === 'chef' && t2 === t) && L.indexOf(t) === i;
+    setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] };
+      if (K.patrouille != null) o.off = { x: q[0] - DONJON.x - K.x, z: q[1] - DONJON.z - K.z }; /* (une patrouille : sa place dans le groupe, qui avance) */
+      if (repop) pouf(o.x, hTerrainLabo(o.x - DONJON.x, o.z - DONJON.z), o.z, 1.0, '#8dff6a');
+      if (chef && typeof grandirMutant === 'function') { grandirMutant(o, CHEF_LABO, '#ffb02e', t === 'wabGarou' ? 'Garou alpha' : 'Chef des gardes'); o.chef = true; } } }); }, delai + i * 120); }); /* (chef : le premier de son type dans le camp) */
+}
+function posterCamps(c) { CAMPS_LABO.forEach((K, k) => { K.x = K.x0; K.z = K.z0; K.s = K.patrouille === 0 ? 14 : 0; posterCamp(c, k, 200 + k * 6 * 120, false); }); }
+/* les patrouilles avancent sur leur chemin, aller et retour, tant qu'elles n'ont pas vu le perso ; un camp vide se repeuple (REPOP_LABO) */
+function vieCampsLabo(dt, c, E, p) {
+  CAMPS_LABO.forEach((K, k) => { const st = E.camps[k];
+    if (K.patrouille != null && !st.actif) { const C = CHEMINS_LABO[K.patrouille]; let tot = 0; for (let i = 1; i < C.length; i++) tot += Math.hypot(C[i].x - C[i - 1].x, C[i].z - C[i - 1].z);
+      K.s = (K.s || 0) + dt * 1.3; let u = K.s % (2 * tot); if (u > tot) u = 2 * tot - u; if (K.patrouille === 4) u = K.s % tot; /* (le chemin autour de la tour : en rond) */
+      for (let i = 1; i < C.length; i++) { const L = Math.hypot(C[i].x - C[i - 1].x, C[i].z - C[i - 1].z); if (u <= L || i === C.length - 1) { const f = Math.min(1, u / (L || 1)); K.x = C[i - 1].x + (C[i].x - C[i - 1].x) * f; K.z = C[i - 1].z + (C[i].z - C[i - 1].z) * f; break; } u -= L; }
+      c.monstres.forEach((o) => { if (o.camp === k && o.off && o.etat === 'actif') o.maison = { x: DONJON.x + K.x + o.off.x, z: DONJON.z + K.z + o.off.z }; }); }
+    const vivants = c.monstres.some((o) => o.camp === k && o.etat !== 'mort');
+    if (vivants) { st.vide = null; return; } if (st.vide == null) { st.vide = E.t; return; }
+    if (E.t - st.vide > REPOP_LABO.apres && Math.hypot(p.x - DONJON.x - K.x, p.z - DONJON.z - K.z) > REPOP_LABO.loin && E.gagne == null) { st.vide = null; st.actif = false; posterCamp(c, k, 0, true); } });
 }
 /* le passage d'une porte : un fondu au noir, le perso de l'autre cote */
 function fonduDonjon(fn) { let d = document.getElementById('fondu-donjon'); if (!d) { d = document.createElement('div'); d.id = 'fondu-donjon'; d.style.cssText = 'position:fixed;inset:0;background:#05070a;opacity:0;pointer-events:none;transition:opacity .28s;z-index:60'; document.body.appendChild(d); }
@@ -498,12 +628,13 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
   E.t += dt; const p = paysanMesh.position, P = E.perso, hP = hauteurPerso(P, p);
   const S0 = P.mode === 'salle' ? SALLES_LABO[P.i] : null, CV = E.cameraVers, vx = CV ? CV.x : S0 ? p.x + (DONJON.x + S0.x - p.x) * 0.35 : p.x, vz = CV ? CV.z : S0 ? p.z + (DONJON.z + S0.z - p.z) * 0.35 : p.z; /* (dans une salle, la camera regarde un peu vers le milieu : on voit la salle, pas le noir derriere la porte ; cameraVers : une scene, l'entree du Docteur, 29s-fin-labo.js) */
   const suivre = () => { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (vx - VISEE.x) * k; VISEE.z += (vz - VISEE.z) * k; VISEE.y += (0.6 + hP - VISEE.y) * Math.min(1, dt * 3); placerCamera(); } };
-  if (E.arrivee) { suivre(); return false; } /* (pendant la traversee : rien ne bouge, la camera suit la barque) */
+  if (E.arrivee) { suivre(); return false; } /* (pendant l arrivee en montgolfiere : rien ne bouge, la camera suit le ballon) */
   /* les camps : ils attendent ; le perso entre dans leur perimetre (au sol), ils attaquent ; il s'eloigne ou monte la passerelle, ils rentrent chez eux */
   CAMPS_LABO.forEach((K, k) => { const d = Math.hypot(p.x - DONJON.x - K.x, p.z - DONJON.z - K.z), st = E.camps[k];
     const blesse = !st.actif && c.monstres.some((o) => o.camp === k && o.etat === 'actif' && o.pv < o.pvMax); /* (un mutant touche de loin reveille tout son camp) */
-    if (!st.actif && ((P.mode === 'sol' && d < K.r) || blesse)) { st.actif = true; st.force = blesse; toast('Des Wabbits mutants gardent ' + K.nom + ' : ils t\'attaquent !', 'alerte'); }
+    if (!st.actif && ((P.mode === 'sol' && d < K.r) || blesse)) { st.actif = true; st.force = blesse; toast(K.patrouille != null ? 'Une patrouille du Docteur t\'a repéré : elle t\'attaque !' : 'Des Wabbits mutants gardent ' + K.nom + ' : ils t\'attaquent !', 'alerte'); }
     else if (st.actif && (d > K.r + (st.force ? 16 : 9) || P.mode !== 'sol')) { st.actif = false; st.force = false; } });
+  vieCampsLabo(dt, c, E, p); /* (les patrouilles et les camps qui se repeuplent, 24/11/2026) */
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.camp == null || E.camps[o.camp].actif) return; o.bloqueT = Math.max(o.bloqueT || 0, 0.25); const dx = o.maison.x - o.x, dz = o.maison.z - o.z, d = Math.hypot(dx, dz);
     if (d > 0.3) { const v = Math.min(d, 3.2 * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); } });
   /* les portes : on arrive devant, la salle s'ouvre ; une salle nettoyee rend 25 % de vie et ouvre la grille */
@@ -512,10 +643,15 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
     if (i < 4 && !s.specimen) { if (c.monstres.filter((o) => o.salle === i && o.etat !== 'mort').length <= Math.ceil((s.n || 1) / 2)) specimenLabo(i); return; } /* (le specimen de la cuve : a mi-chemin, et la salle n'est finie qu'apres lui) */
     if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud();
     if (i === 4) { E.gagne = E.t; toast('Le Docteur Wabbenstein est tombé !', 'or'); if (typeof liberationLabo === 'function') liberationLabo(); return; } /* (la liberation des Wabbits, puis le coffre : 29s-fin-labo.js) */
-    const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); if (typeof libererSalle === 'function') libererSalle(i); }); /* (des Wabbits prisonniers liberes, 29s-fin-labo.js) */
+    const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Touche les cages pour libérer les Wabbits, puis ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); }); /* (24/11/2026 : les Wabbits ne sortent plus tout seuls du fond de la salle, on ouvre les cages, 29s-fin-labo.js) */
   if (P.mode === 'salle' && P.i != null && P.i < 4 && E.salles[P.i] && E.salles[P.i].fini) { const S = SALLES_LABO[P.i], sx = DONJON.x + S.x + Math.cos(ENTREE_SALLE) * (S.R - 1.1), sz = DONJON.z + S.z + Math.sin(ENTREE_SALLE) * (S.R - 1.1); if (Math.hypot(p.x - sx, p.z - sz) < 1.1) sortirSalleLabo(P.i);
     const So = ileWabbits.userData.salles[P.i]; if (So && So.sortie.visible) { So.sortie.material.opacity = 0.55 + 0.3 * Math.sin(E.t * 5); So.sortie.scale.setScalar(1 + 0.06 * Math.sin(E.t * 5)); } }
   if (E.gagne != null && E.t - E.gagne > (typeof FIN_LABO !== 'undefined' ? FIN_LABO.duree : 1.6)) { finDonjon(true); return true; }
+  /* sur la passerelle, un monstre suit la spirale vers le perso (24/11/2026, « les monstres apparaissent en dessous de la passerelle », Mathieu : en ligne droite,
+     ceux du tour d'en dessous venaient se planter juste sous le perso) */
+  c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.lab || o.lab.mode !== 'rampe') return; const vise = P.mode === 'rampe' ? P.theta : LABO.A0 - 0.25, d = vise - o.lab.theta; if (Math.abs(d) < 0.35) return;
+    const rr = Math.max(LABO.R_IN + 0.5, Math.min(LABO.R_OUT - 0.5, Math.hypot(o.x - DONJON.x, o.z - DONJON.z))), sg = Math.sign(d), t = Math.min(rampeMax(), o.lab.theta + sg * Math.min(Math.abs(d), vitesseMonstre(o.d) * dt / rr));
+    o.lab.theta = t; o.x = DONJON.x + rr * Math.cos(t); o.z = DONJON.z + rr * Math.sin(t); o.ry = Math.atan2(-Math.sin(t) * sg, Math.cos(t) * sg); });
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; if (!o.lab) o.lab = { mode: 'sol', theta: LABO.A0 }; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3, o.lab); o.x = q[0]; o.z = q[1]; });
   if ((E.lueurT = (E.lueurT || 0) - dt) <= 0) { E.lueurT = 0.14; c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.m) return; const h = o.d.boss ? 2.4 : 1.2; emettre(FX_LUM, 2, { x: o.x + (Math.random() - 0.5) * 0.8, y: o.m.position.y + Math.random() * h, z: o.z + (Math.random() - 0.5) * 0.8, r: 0.1, v: [0, 1.1, 0], dv: 0.3, vie: [0.7, 1.2], taille: [0.2, 0.03], c: ['#d8ffb0', '#7dff5a', '#2fd12f'], a: 0.9, frein: 1 }); }); }
   suivre(); suivreOmbres(); effacerTour(dt, hP);
@@ -534,7 +670,7 @@ async function partirDonjon() {
   if (!MODE_TEST) return; if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } if (lieu !== 'ferme' && lieu !== 'donjon') { toast('Rentre d\'abord à la ferme.'); return; }
   fermerModale(); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
   const I = ileWabbits.userData; (I.grilles || []).forEach((G) => { if (G) { G.visible = true; G.position.y = 0; } });
-  const q0 = versDock(6.6, 0), u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + q0.x, 0, DONJON.z + q0.z); u.y = 0; u.angle = -Math.PI / 2; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
+  const q0 = versDock(BALLON_LABO.u, 0), u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + q0.x, BALLON_LABO.haut, DONJON.z + q0.z); u.y = BALLON_LABO.haut; /* (dans la nacelle, la montgolfiere descend : debarquer) */ u.angle = -Math.PI / 2; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
   VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); zoom = VOYAGES.donjon.zoom(); placerCamera(); cadrer();
   const n = Math.max(51, Math.min(VAGUES_TOTAL, Math.round(niveau(S_.xp)))); /* (les Wabbits a la force de ton niveau, jamais sous la vague 51) */
   if (typeof MUTANTS_LABO !== 'undefined') { const N = MUTANTS_LABO.map(([m]) => m).filter((m) => !MODELES[m]); if (N.length) { toast('Les mutants du labo se réveillent…', 'or'); try { await chargerSquelettes(N); prechaufferSquelettes(N); } catch (e) { /* rien */ } } } /* (24/11/2026 : charges avant les camps ; sinon les premiers demandes, pendant le chargement, se perdaient) */
@@ -543,17 +679,20 @@ async function partirDonjon() {
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant le donjon : ' + texteRepas(repas) + '.', 'or'), 2400); }
   donjonEtat = { t: 0, camps: CAMPS_LABO.map(() => ({ actif: false })), salles: [], grilles: [], gagne: null, n, perso: { mode: 'sol', theta: LABO.A0 } };
   ouvrirHudCombat(); majCombatHud(); effets.push(tickDonjon); posterCamps(combat); debarquer();
-  toast('L\'île des Wabbits ! La tour du Docteur Wabbenstein t\'attend : traverse l\'île, monte la passerelle, chaque porte mène à une salle.', 'or');
+  toast('Le laboratoire du Docteur Wabbenstein ! Sa tour t\'attend : traverse l\'île, monte la passerelle, chaque porte mène à une salle.', 'or');
 }
-/* L'ARRIVEE EN BARQUE : la barque vient du large le long du ponton, le perso a bord, accoste au bout, et il saute dessus (2,8 s) */
+/* L'ARRIVEE EN MONTGOLFIERE (24/11/2026, a la place de la barque) : le ballon descend du ciel, le perso debout dans la nacelle, se pose au bout du ponton, et
+   le perso saute sur les planches, cote ile (environ 4 s) ; le ballon reste amarre la */
 function debarquer() {
-  const b = ileWabbits && ileWabbits.userData.barque, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, A = versDock(DOCK_LABO.L + 24, -1.9), B = versDock(DOCK_LABO.L + 0.6, -1.9), S = versDock(DOCK_LABO.L - 0.8, 0), cap = Math.atan2(B.x - A.x, B.z - A.z);
-  E.arrivee = true; b.visible = true; b.rotation.y = cap; let t = 0; const T1 = 2.4, T2 = 0.6;
-  effets.push((dt) => { t += dt; if (combat !== c0 || !donjonEtat) return true; const p = paysanMesh.position;
-    if (t < T1) { const k = t / T1, e = 1 - Math.pow(1 - k, 2); b.position.set(A.x + (B.x - A.x) * e, -0.2 + Math.sin(t * 5) * 0.04, A.z + (B.z - A.z) * e); b.rotation.z = Math.sin(t * 3.2) * 0.04;
-      p.set(DONJON.x + b.position.x - Math.sin(cap) * 0.4, 0.05 + Math.sin(t * 5) * 0.04, DONJON.z + b.position.z - Math.cos(cap) * 0.4); u.y = p.y; u.angle = cap; paysanMesh.rotation.y = u.angle; chemin = []; arrivee = null; return false; }
-    const k = Math.min(1, (t - T1) / T2), x0 = B.x - Math.sin(cap) * 0.4, z0 = B.z - Math.cos(cap) * 0.4; p.set(DONJON.x + x0 + (S.x - x0) * k, Math.sin(Math.PI * k) * 0.9, DONJON.z + z0 + (S.z - z0) * k); u.y = p.y;
-    if (k < 1) return false; p.y = -0.06; u.y = -0.06; E.arrivee = false; b.rotation.z = 0; poussiere(p.x, -0.06, p.z, 5, 0.6, '#b9ae92'); return true; });
+  const b = ileWabbits && ileWabbits.userData.ballon, E = donjonEtat; if (!b || !E) return; const c0 = combat, u = paysanMesh.userData, B = versDock(BALLON_LABO.u, 0), S = versDock(BALLON_LABO.u - 1.8, 0), cap = Math.atan2(S.x - B.x, S.z - B.z);
+  E.arrivee = true; let t = 0; const T1 = BALLON_LABO.T, T2 = 0.45, T3 = 0.6, yN = 0.35; /* (yN : le perso debout dans la nacelle) */
+  effets.push((dt) => { t += dt; const p = paysanMesh.position; if (combat !== c0 || !donjonEtat) { b.position.set(B.x, 0, B.z); b.rotation.z = 0; return true; }
+    if (t < T1) { const k = t / T1, e = 1 - Math.pow(1 - k, 3), y = BALLON_LABO.haut * (1 - e); b.position.set(B.x + Math.sin(t * 1.3) * 0.3 * (1 - k), y, B.z); b.rotation.z = Math.sin(t * 1.7) * 0.05 * (1 - k);
+      p.set(DONJON.x + b.position.x, y + yN, DONJON.z + b.position.z); u.y = p.y; u.angle = cap; paysanMesh.rotation.y = cap; chemin = []; arrivee = null; return false; }
+    b.position.set(B.x, 0, B.z); b.rotation.z = 0;
+    if (t < T1 + T2) { if (!E.ballonPose) { E.ballonPose = true; poussiere(DONJON.x + B.x, 0, DONJON.z + B.z, 8, 1.0, '#b9ae92'); } p.set(DONJON.x + B.x, yN, DONJON.z + B.z); u.y = yN; return false; }
+    const k = Math.min(1, (t - T1 - T2) / T3); p.set(DONJON.x + B.x + (S.x - B.x) * k, yN * (1 - k) - 0.06 * k + Math.sin(Math.PI * k) * 0.8, DONJON.z + B.z + (S.z - B.z) * k); u.y = p.y;
+    if (k < 1) return false; p.y = -0.06; u.y = -0.06; E.arrivee = false; poussiere(p.x, -0.06, p.z, 5, 0.6, '#b9ae92'); if (combat) { combat.tenir = true; combat.ordre = false; } return true; }); /* (il tient sa position a l'arrivee : sinon il fonçait seul sur le premier camp) */
 }
 function finDonjon(gagne) {
   try { (donjonEtat && donjonEtat.salles || []).forEach((s, i) => { if (s && s.cuveG) briserCuveLabo(i); }); } catch (e) { /* rien */ } /* (les cuves des specimens, 24/11/2026) */
@@ -571,5 +710,5 @@ function effacerTourReset() { const I = ileWabbits.userData; [I.tour, I.passerel
 /* le perso a terre sur l'ile : le bilan (sans deroute de la ferme) */
 const persoATerreDonjon = persoATerre; persoATerre = function () { if (combat && combat.genre === 'donjon') { finDonjon(false); return; } persoATerreDonjon(); };
 /* le bouton du bandeau du mode test, et ceux du bilan */
-const bandeauTestDonjon = bandeauTest; bandeauTest = function () { bandeauTestDonjon(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-donjon]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-donjon="partir">Île des Wabbits</button>'); };
+const bandeauTestDonjon = bandeauTest; bandeauTest = function () { bandeauTestDonjon(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-donjon]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-donjon="partir">Labo de Wabbenstein</button>'); };
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-donjon]'); if (!b || !MODE_TEST || !estAdmin()) return; if (b.dataset.donjon === 'partir') { if (combat && combat.genre === 'donjon') return; partirDonjon(); } });

@@ -91,7 +91,7 @@ function grandirMutant(o, k, couleur, nom) {
   o.haut = (o.haut || 2) * k.taille; o.d = Object.assign({}, o.d, { nom }); o.aggro = true;
   if (o.m) o.m.traverse((q) => { if (!q.isMesh || !q.material || q.name === 'contour') return; q.material = q.material.clone(); if (q.material.emissive) { q.material.emissive.set(couleur); q.material.emissiveIntensity = 0.28; } });
 }
-const SPECIMEN = { pv: 3, deg: 1.3, taille: 1.35 }, CHEF_LABO = { pv: 5, deg: 1.5, taille: 1.5 };
+const SPECIMEN = { pv: 2.4, deg: 1.3, taille: 1.35 }, CHEF_LABO = { pv: 3, deg: 1.5, taille: 1.5 }; /* (24/11/2026 : 3 et 5 avant que la vie de base des mutants monte, DUR_LABO) */
 /* LE DRONE DU DOCTEUR (24/11/2026, Mathieu par Discord : « des drones de surveillance sur la passerelle : oui carrement ») : un petit robot volant de cuivre,
    l'oeil vert, deux oreilles de lapin en tole, deux rotors qui tournent et un canon a cawottes sous le ventre ; fait en formes simples par le jeu (fabrique).
    Il patrouille sur la passerelle de la tour (29s-fin-labo.js) et tire des cawottes de loin. Version dev */
@@ -135,3 +135,8 @@ function fabriquerDroneSimple() { /* (le drone en formes simples du 24/11 au mat
 MONSTRES.wabDrone = { element: 'feu', nom: 'Drone du Docteur', modele: 'wabDrone', icone: 'wab-drone', fabrique: fabriquerDrone, desc: 'un petit robot volant du Docteur : il patrouille sur la passerelle de la tour et te tire des cawottes de loin',
   pv: fW('wabbitNoir', 'pv', 0.7), deg: fW('wabbitSorciere', 'deg', 0.9), cadence: 1.7, vitesse: 2.4, portee: 4.5, distance: true, projectile: 'cawotte', vol: 1.3, armure: 0.2, ombre: 1.0 };
 { const majMonstreDrone = majMonstre; majMonstre = function (mo, dt) { const r = majMonstreDrone.apply(this, arguments); try { const R = mo.m && mo.m.userData.rotors; if (R) R.forEach((q, i) => { q.rotation.y += (dt || 0.016) * (i ? -30 : 30); }); } catch (e) { /* rien */ } return r; }; } /* (les rotors tournent) */
+/* LA DIFFICULTE DU LABO (24/11/2026, « la difficulte est trop simple, je les one-shot avec un sort », Mathieu) : a la vague 100, les mutants avaient 1 600 a 5 900 PV
+   (un Abraknyde de la foret : 5 500) pour 1 077 de degats par coup d'un Iop niveau 100. Leur vie passe a celle d'un monstre de la foret ou un peu plus (fois pv),
+   leurs coups montent de 35 % ; les chefs, les specimens et le Docteur gardent leurs multiplicateurs par-dessus (CHEF_LABO, SPECIMEN). A regler avec Mathieu */
+const DUR_LABO = { wabEnrage: 3.2, wabFluo: 2.8, wabVampire: 3.1, wabGreffe: 2.9, wabGarde: 2.2, wabGarou: 2.7, wabDrone: 2.75 }, DEG_LABO = 1.35;
+Object.keys(DUR_LABO).forEach((t) => { const D = MONSTRES[t]; if (!D) return; const p0 = D.pv, d0 = D.deg; D.pv = (n) => Math.round(p0(n) * DUR_LABO[t]); D.deg = (n) => Math.round(d0(n) * DEG_LABO); });

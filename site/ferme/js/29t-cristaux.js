@@ -31,12 +31,12 @@ function ligneCristal(k) {
 { const ouvrirForgeCristal = ouvrirForge; ouvrirForge = function () { const r = ouvrirForgeCristal.apply(this, arguments);
     try { if (!cristauxVisibles() || modaleOuverte !== 'forge') return r; const st = document.querySelector('#carte .forge-stock'), n = runes().cristal || 0;
       if (st) st.insertAdjacentHTML('beforeend', '<span class="puce">' + imgCristal() + '<b>' + n + '</b> ' + (n > 1 ? CRISTAL.court : CRISTAL.nom).toLowerCase() + '</span>');
-      const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.insertAdjacentHTML('beforeend', ' Un <b>cristal runique</b> (version dev, donjon des Wabbits) se pose ' + (forgeRunique() ? 'ici' : 'à la <b>forge runique</b> (cet atelier au niveau 2, Améliorer)') + ', sur une pièce déjà au jet maximum : de +1 à +5 % au hasard à toutes ses caractéristiques, jusqu\'à +' + CRISTAL.plafond + ' %.'); } catch (e) { /* rien */ }
+      const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.insertAdjacentHTML('beforeend', ' Un <b>cristal runique</b> (version dev, laboratoire du Docteur Wabbenstein) se pose ' + (forgeRunique() ? 'ici' : 'à la <b>forge runique</b> (cet atelier au niveau 2, Améliorer)') + ', sur une pièce déjà au jet maximum : de +1 à +5 % au hasard à toutes ses caractéristiques, jusqu\'à +' + CRISTAL.plafond + ' %.'); } catch (e) { /* rien */ }
     return r; }; }
 function confirmerCristal(k) {
   const o = obj(k), B = OBJETS[baseObjet(k)], C = cristauxDe(k), stock = runes().cristal || 0; if (!o || !B) return;
   if (!forgeRunique()) { toast('Il te faut la forge runique : l\'atelier de forgemagie au niveau 2 (Améliorer, onglet Ferme).'); return; }
-  if (!(stock > 0)) { toast('Il te faut un cristal runique : il y en a dans le donjon des Wabbits.'); return; }
+  if (!(stock > 0)) { toast('Il te faut un cristal runique : il y en a dans le laboratoire du Docteur Wabbenstein.'); return; }
   if (qualiteJet(k) < 0.999) { toast('Un cristal ne se pose que sur une pièce au jet maximum (100 %).'); return; }
   if (C.p >= CRISTAL.plafond) { toast('Cette pièce est déjà à +' + CRISTAL.plafond + ' %, le plafond.'); return; }
   const G = gainsCristal(k), avec = (p) => { S_.cristaux = S_.cristaux || {}; const avant = S_.cristaux[k]; S_.cristaux[k] = { p, n: C.n + 1 }; const r = obj(k); if (avant === undefined) delete S_.cristaux[k]; else S_.cristaux[k] = avant; return r; };
