@@ -38,7 +38,7 @@ async function poserButinLabo(g) {
   /* les Cawottes mures, dans les rangs des champs */
   CHAMPS_LABO.forEach((F) => { const c = Math.cos(F.a), s = Math.sin(F.a), en = (u, v) => ({ x: F.x + c * u - s * v, z: F.z + s * u + c * v });
     for (let k = 0; k < RECOLTE_LABO.parChamp; k++) { const q = en(-2.6 + k * 1.75, k % 2 ? 1.0 : -1.0); if (!P0.cawotte) break;
-      const grp = new T.Group(), m = P0.cawotte.clone(true); m.scale.setScalar(1.7); grp.add(m);
+      const grp = new T.Group(), m = new T.Group(), f = P0.cawotte.clone(true); f.position.set(0, 0.05, 0); f.rotation.set(0, 0, 0); f.scale.setScalar(2.1); m.add(f); grp.add(m); /* (les fanes sur la racine ; la piece garde sinon sa place dans le fichier) */
       const lueur = new T.Mesh(new T.RingGeometry(0.28, 0.45, 20), new T.MeshBasicMaterial({ color: '#b6ff7a', transparent: true, opacity: 0.55, depthWrite: false, side: T.DoubleSide })); lueur.rotation.x = -Math.PI / 2; lueur.position.y = 0.05; lueur.raycast = () => {}; grp.add(lueur);
       grp.position.set(q.x, hTerrainLabo(q.x, q.z) + 0.04, q.z); grp.rotation.y = k * 1.3; g.add(grp); butinLabo.recoltes.push({ x: q.x, z: q.z, grp, m, lueur, ph: k * 0.9 }); } });
   /* les coffres */
@@ -50,7 +50,7 @@ async function poserButinLabo(g) {
     ajouterBlocLabo(ok.x, ok.z, 0.55); butinLabo.coffres.push({ rang, x: ok.x, z: ok.z, grp, ch: C.ch, ouvert: false }); });
 }
 /* une nouvelle partie : tout repousse, les coffres se referment */
-{ const partirButin = partirDonjon; partirDonjon = async function () { butinLabo.recoltes.forEach((R) => { R.pret = 0; R.grp.visible = true; R.m.scale.setScalar(1.7); });
+{ const partirButin = partirDonjon; partirDonjon = async function () { butinLabo.recoltes.forEach((R) => { R.pret = 0; R.grp.visible = true; R.m.scale.setScalar(1); });
     butinLabo.coffres.forEach((C) => { C.ouvert = false; if (C.ch) C.ch.rotation.x = 0; }); return partirButin.apply(this, arguments); }; }
 /* ---------- 3. RECOLTER ET OUVRIR : au contact, ou en les touchant (le perso y va) ---------- */
 const prosLabo = () => 1 + (caracs().prospection || 0) / 100;
@@ -59,7 +59,7 @@ function recolterLabo(R) {
   const G = S_.grange = S_.grange || {}; G.cawotte = (G.cawotte || 0) + n; const y = hTerrainLabo(R.x, R.z);
   if (typeof chiffre === 'function') chiffre('+' + n + ' ' + nomRessources('cawotte', n), new T.Vector3(DONJON.x + R.x, y + 1.6, DONJON.z + R.z), 'butin');
   mottes(DONJON.x + R.x, y, DONJON.z + R.z, 6, 0.5); son('fauchage'); rendreGrange();
-  let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 0.35); R.m.position.y = k * 0.9; R.m.scale.setScalar(1.7 * (1 - k)); if (k < 1) return false; R.grp.visible = false; R.m.position.y = 0; return true; }); /* (elle saute hors de terre, puis disparait) */
+  let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 0.35); R.m.position.y = k * 0.9; R.m.scale.setScalar(1 - k); if (k < 1) return false; R.grp.visible = false; R.m.position.y = 0; return true; }); /* (elle saute hors de terre, puis disparait) */
 }
 function tirerCoffreLabo(rang) {
   const T0 = COFFRES_ILE_LABO[rang], pros = prosLabo(), G = S_.grange = S_.grange || {}, txt = [], hasard = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -88,7 +88,8 @@ function ouvrirCoffreLabo(C) {
     return cheminButin.apply(this, arguments); }; }
 { const tickButin = tickDonjon; tickDonjon = function (dt) { const r = tickButin.apply(this, arguments);
     try { const E = donjonEtat; if (!E || lieu !== 'donjon' || E.arrivee || !E.perso || E.perso.mode !== 'sol') return r; const p = paysanMesh.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z, t = E.t;
-      butinLabo.recoltes.forEach((R) => { if (!R.grp.visible && !(R.pret > t)) { R.grp.visible = true; R.m.scale.setScalar(1.7); } /* (repousse) */
+      butinLabo.recoltes.forEach((R) => { if (!R.grp.visible && !(R.pret > t)) { R.grp.visible = true; R.m.scale.setScalar(1); } /* (repousse) */
+        if (R.grp.visible && Math.random() < dt * 1.5 && Math.abs(R.x - lx) + Math.abs(R.z - lz) < 30) emettre(FX_LUM, 1, { x: DONJON.x + R.x + (Math.random() - 0.5) * 0.5, y: hTerrainLabo(R.x, R.z) + 0.4, z: DONJON.z + R.z + (Math.random() - 0.5) * 0.5, r: 0.05, v: [0, 0.9, 0], dv: 0.2, vie: [0.6, 1.0], taille: [0.12, 0.03], c: ['#fff3a0', '#b6ff7a'], a: 0.9, frein: 0.5 }); /* (des etincelles : elle est mure) */
         if (R.grp.visible) { R.lueur.material.opacity = 0.35 + 0.25 * Math.sin(t * 3 + R.ph); if (Math.hypot(R.x - lx, R.z - lz) < RECOLTE_LABO.contact && !(R.pret > t)) recolterLabo(R); } });
       butinLabo.coffres.forEach((C) => { if (!C.ouvert && Math.hypot(C.x - lx, C.z - lz) < 1.55) ouvrirCoffreLabo(C); }); } catch (e) { /* rien */ }
     return r; }; }
