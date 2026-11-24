@@ -420,7 +420,7 @@ function ouvrirSalleLabo(i) {
   fonduDonjon(() => {
     const P = E.perso; P.mode = 'salle'; P.i = i; const re = S.R - 3.4; zoom = i === 4 ? 0.7 : 0.82; cadrer(); placerPersoDonjon(DONJON.x + S.x + Math.cos(ENTREE_SALLE) * re, Y_SALLE, DONJON.z + S.z + Math.sin(ENTREE_SALLE) * re);
     paysanMesh.userData.angle = Math.atan2(-Math.cos(ENTREE_SALLE), -Math.sin(ENTREE_SALLE)); paysanMesh.rotation.y = paysanMesh.userData.angle;
-    toast(i === 4 ? 'Le labo ! Le Docteur Wabbenstein lâche ses fioles et se retourne vers toi.' : 'Tu entres dans ' + S.nom + ' : ses mutants t\'attendent !', 'alerte'); son('vague', null, 2);
+    toast(i === 4 ? 'Le labo du Docteur Wabbenstein. Il ne t\'a pas encore vu...' : 'Tu entres dans ' + S.nom + ' : ses mutants t\'attendent !', 'alerte'); son('vague', null, 2);
     if (i < 4) cuveSpecimenLabo(i); /* (le specimen dans sa cuve, au fond, 24/11/2026) */
     L.forEach((t, k) => { const a = ENTREE_SALLE + Math.PI + (L.length > 1 ? (k / (L.length - 1) - 0.5) * 1.6 : 0), rr = i === 4 ? 6.5 : 3.6 + (k % 2) * 2.4, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
       setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x, z, apres: (o) => { if (t !== 'wabbenstein') transmuter(o); o.lab = { mode: 'salle', i }; o.salle = i; o.y = Y_SALLE; o.ry = Math.atan2(Math.cos(ENTREE_SALLE), Math.sin(ENTREE_SALLE)); if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE - 1.4; } } }); }, 450 + k * 240); });
@@ -464,7 +464,7 @@ const hauteurPerso = (P, p) => (P.mode === 'rampe' ? hautRampe(P.theta) : P.mode
 function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps, les portes et les grilles, les monstres sur l'ile, la camera, la tour qui s'efface */
   const E = donjonEtat, c = combat; if (!E || lieu !== 'donjon') return true; if (!c || c.genre !== 'donjon' || c.fin) return false;
   E.t += dt; const p = paysanMesh.position, P = E.perso, hP = hauteurPerso(P, p);
-  const S0 = P.mode === 'salle' ? SALLES_LABO[P.i] : null, vx = S0 ? p.x + (DONJON.x + S0.x - p.x) * 0.35 : p.x, vz = S0 ? p.z + (DONJON.z + S0.z - p.z) * 0.35 : p.z; /* (dans une salle, la camera regarde un peu vers le milieu : on voit la salle, pas le noir derriere la porte) */
+  const S0 = P.mode === 'salle' ? SALLES_LABO[P.i] : null, CV = E.cameraVers, vx = CV ? CV.x : S0 ? p.x + (DONJON.x + S0.x - p.x) * 0.35 : p.x, vz = CV ? CV.z : S0 ? p.z + (DONJON.z + S0.z - p.z) * 0.35 : p.z; /* (dans une salle, la camera regarde un peu vers le milieu : on voit la salle, pas le noir derriere la porte ; cameraVers : une scene, l'entree du Docteur, 29s-fin-labo.js) */
   const suivre = () => { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (vx - VISEE.x) * k; VISEE.z += (vz - VISEE.z) * k; VISEE.y += (0.6 + hP - VISEE.y) * Math.min(1, dt * 3); placerCamera(); } };
   if (E.arrivee) { suivre(); return false; } /* (pendant la traversee : rien ne bouge, la camera suit la barque) */
   /* les camps : ils attendent ; le perso entre dans leur perimetre (au sol), ils attaquent ; il s'eloigne ou monte la passerelle, ils rentrent chez eux */
