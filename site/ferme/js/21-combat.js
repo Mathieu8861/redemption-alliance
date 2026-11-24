@@ -1,12 +1,16 @@
 'use strict';
 function boostDegats() { try { return combat && combat.boostDeg ? 1 + combat.boostDeg : 1; } catch (e) { return 1; } } /* la Cawotte mangee avant la vague */
+/* LES ARMES DE LA TORTUE CORAIL (24/11/2026, « nerf un peu le Iop et l'Osa, c'est trop fume », Mathieu, au formulaire) : la Carapace du Iop passe de 6 s,
+   -40 % recus, +30 % donnes, a 3 s, -30 % et +20 % ; la Galvanisation de l'Osa, de +50 % de degats et +30 % de vitesse a +30 % et +15 % (8 s, son Bouftou reste 30 % plus
+   longtemps, inchange) */
+const CORAIL_LEG = { duree: 3, recus: 0.7, donnes: 1.2, galvaDeg: 1.3, galvaVit: 1.15 };
 function carapaceActive() { try { return !!(combat && combat.carapace > 0); } catch (e) { return false; } } /* (statsPerso peut tourner avant la declaration de combat) */
 /* L'AGILITE EN VITESSE D'ATTAQUE (18/11/2026) : le geste d'attaque durait toujours 0,5 s, et l'on ne refrappait qu'une fois fini ; tous les persos de fin de
    jeu frappaient donc toutes les 0,5 s, quelle que soit leur Agilité. Le geste suit maintenant la vitesse d'attaque (« débloquer toutes les classes », au
    formulaire), et chaque point d'Agilité vaut 0,5 % de coups en plus au lieu de 1 % (« suffisamment pour que ça revienne un peu comme avant en gros »,
    Mathieu) : les persos d'aujourd'hui retrouvent à peu près leur rythme, la Rafale du Cra compte de moitié */
 const AGI_VITESSE = 0.5, pcAgi = (a) => Math.round(AGI_VITESSE * a);
-const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = NIV_ESSAI || niveau(S_.xp), c = caracs(); /* (NIV_ESSAI : le niveau d'essai de l'Arene dev, 09/11/2026) */ const mt = meuteActive() ? 1 + MEUTE : 1; return { pvMax: Math.round((st.pv(l) + c.vita) * mt), deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats() * mt * (carapaceActive() ? 1.3 : 1)), /* (la Carapace de corail du Iop : +30 %, 05/11/2026) */ cadence: +(st.cadence / (1 + AGI_VITESSE * c.agilite / 100) / mt).toFixed(2), /* (AGI_VITESSE, 18/11/2026) */ /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee * mt, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
+const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = NIV_ESSAI || niveau(S_.xp), c = caracs(); /* (NIV_ESSAI : le niveau d'essai de l'Arene dev, 09/11/2026) */ const mt = meuteActive() ? 1 + MEUTE : 1; return { pvMax: Math.round((st.pv(l) + c.vita) * mt), deg: Math.round(st.deg(l) * (1 + c.puissance / 100) * boostDegats() * mt * (carapaceActive() ? CORAIL_LEG.donnes : 1)), /* (la Carapace de corail du Iop : +30 %, 05/11/2026) */ cadence: +(st.cadence / (1 + AGI_VITESSE * c.agilite / 100) / mt).toFixed(2), /* (AGI_VITESSE, 18/11/2026) */ /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: st.portee * mt, niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
 /* LES CLASSES EN CHIFFRES (22/10/2026) : la fenetre du passage de niveau, la page Perso et le choix du personnage lisent tout ici, d'apres STATS_CLASSE
    (rien n'est recopie a la main : une classe reequilibree s'affiche juste partout) */
@@ -1001,7 +1005,7 @@ function blesserPerso(n, mo) {
   if (combat.mauditJusque && performance.now() < combat.mauditJusque) n = Math.round(n * (combat.mauditX || 1.25)); /* (maudit par l'Ancestral Maudit, 09/11/2026) */
   if (meuteActive()) n = Math.max(1, Math.round(n / (1 + MEUTE))); /* (la Meute : l'Osamodas encaisse mieux tant que son Bouftou est la, 09/11/2026) */
   if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
-  if (combat.carapace > 0) n = Math.max(1, Math.round(n * 0.6)); /* (la Carapace de corail : -40 %) */
+  if (combat.carapace > 0) n = Math.max(1, Math.round(n * CORAIL_LEG.recus)); /* (la Carapace de corail : -30 %, -40 % avant le 24/11/2026) */
   { const ca = caracs(), r = Math.min(50, coupDeLoin(mo) ? ca.resLoin : ca.resCac); if (r > 0) n = Math.max(1, Math.round(n * (1 - r / 100))); } /* les resistances des panoplies completes : Tortue au corps a corps, Kanniboul a distance (06/11/2026) */
   if (classeDe() === 'iop' && coupDeLoin(mo)) { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins sur les coups recus de loin (06/11/2026 ; avant, tous les coups), et un bouclier dore qui s'eclaire (22b-effets.js) */
   if (combat.st) { combat.st.recus += Math.min(n, combat.pv); noterRecu(mo || blesserPerso.auteur, Math.min(n, combat.pv)); } combat.pv = Math.max(0, combat.pv - n); if (MODE_TEST && ETAT_TEST.immortel) combat.pv = Math.max(1, combat.pv); /* (le mode test, « immortel » : les coups s'affichent, il ne tombe jamais) */ const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('-' + n, p, 'perso');

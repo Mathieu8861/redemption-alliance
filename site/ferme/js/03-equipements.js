@@ -136,9 +136,9 @@ const LEGENDAIRES = [
   { cle: 'corail', boss: 'tortueCorail', arme: true, rang: 8, force: 0.85, fichier: 'equipements-corail', /* (05/11/2026 : « on peut faire une arme, un peu moins forte que celle de Moon », Mathieu ; 85 % de ses stats ; un sort par classe ; blender/equipements-corail.py, variantes choisies : l'epee tourbillon sur son socle, l'arc et le fouet B) */
     noms: { epee: 'Lame du Tourbillon', arc: 'Arc de Corail', fouet: 'Fouet de la Marée' }, icone: 'corail', noeuds: { epee: 'Arme_epee_corail', arc: 'Arme_arc_corail', fouet: 'Arme_fouet_corail' },
     cales: { epee: { y0: 0.03, L: 1.84 }, arc: { mil: 0.85, L: 1.7 }, fouet: { y0: 0.02, L: 0.6, laniere: 'laniere', retirer: /^(laniere|laniere_coeur|ecume|gerbe|goutte|tourbillon)$/ } }, /* (le modele : pommeau en y 0,03, pointe en 1,87 ; arc de 0,08 a 1,62 ; manche jusqu'a 0,6) */
-    pouvoirs: { epee: 'Sort Carapace de corail (touche 4) : pendant 6 s, tu prends 40 % de dégâts en moins et tes coups font 30 % de plus. Recharge 16 s.',
+    pouvoirs: { epee: 'Sort Carapace de corail (touche 4) : pendant 3 s, tu prends 30 % de dégâts en moins et tes coups font 20 % de plus. Recharge 16 s.',
       arc: 'Sort Geyser (touche 4) : tu vises un cercle (jusqu\'à 6 cases de toi) ; 0,6 s plus tard un geyser y jaillit, 2,5 fois tes dégâts sur 1,5 case autour, et les monstres touchés sont projetés et sonnés 1 s (0,5 s pour un boss). Recharge 12 s.',
-      fouet: 'Sort Galvanisation (touche 4) : ton Bouftou invoqué frappe 50 % plus fort et 30 % plus vite pendant 8 s, et il reste 30 % plus longtemps. Recharge 15 s.' } },
+      fouet: 'Sort Galvanisation (touche 4) : ton Bouftou invoqué frappe 30 % plus fort et 15 % plus vite pendant 8 s, et il reste 30 % plus longtemps. Recharge 15 s.' } },
   { cle: 'dcochon', boss: 'dragonCochon', arme: true, rang: 7, fichier: 'equipements-dcochon', /* (13/11/2026 : « pourquoi le Dragon Cochon c'est une coiffe legendaire et pas des armes comme les autres du
        palier 51 a 100 ? », puis « Remplacer par des armes », Mathieu ; variantes choisies : le Couperet (B) pour le Iop, retravaille (« il est pas tres bien fait »), les Defenses (A) pour le Cra,
        la Queue (A) pour l'Osa ; « Bain de boue pour les 3 », le sort du Heaume ; blender/equipements-dcochon.py) */

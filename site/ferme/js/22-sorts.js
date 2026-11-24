@@ -560,7 +560,7 @@ function majInvoc(dt) {
   if (c) {
     const d = Math.hypot(c.x - iv.x, c.z - iv.z);
     if (d > 1.0) { const w = ligneLibre({ x: iv.x, z: iv.z }, { x: c.x, z: c.z }) ? { x: c.x, z: c.z } : prochainPas(iv, c.x, c.z, dt), /* (en ligne droite quand rien ne bloque, 09/11/2026 : il passait par le centre des cases) */ dx = w.x - iv.x, dz = w.z - iv.z, L = Math.hypot(dx, dz) || 1; v = VITESSE_BOUFTOU; iv.x += dx / L * Math.min(L, v * dt); iv.z += dz / L * Math.min(L, v * dt); tourner(iv, Math.atan2(dx, dz), dt); }
-    else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = cadenceBouftou() / (iv.galva > 0 ? 1.3 : 1); iv.frappe = 0.25; blesser(c, Math.round(degBouftou(statsPerso().niveau) * (iv.galva > 0 ? 1.5 : 1))); if (iv.galva > 0) { onde(c.x, c.m.position.y + 0.05, c.z, 0.9, '#9fe4ff', 0.25, 0.7); emettre(FX_VIF, 10, { x: c.x, y: c.m.position.y + 0.5, z: c.z, r: 0.3, dv: 2.6, haut: true, vie: [0.3, 0.5], taille: [0.13, 0.04], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], grav: 7 }); } } } /* (la Galvanisation : +30 % de vitesse, +50 % de degats, chaque coup eclabousse) */
+    else { tourner(iv, Math.atan2(c.x - iv.x, c.z - iv.z), dt); if (iv.cd <= 0) { iv.cd = cadenceBouftou() / (iv.galva > 0 ? CORAIL_LEG.galvaVit : 1); iv.frappe = 0.25; blesser(c, Math.round(degBouftou(statsPerso().niveau) * (iv.galva > 0 ? CORAIL_LEG.galvaDeg : 1))); if (iv.galva > 0) { onde(c.x, c.m.position.y + 0.05, c.z, 0.9, '#9fe4ff', 0.25, 0.7); emettre(FX_VIF, 10, { x: c.x, y: c.m.position.y + 0.5, z: c.z, r: 0.3, dv: 2.6, haut: true, vie: [0.3, 0.5], taille: [0.13, 0.04], c: ['#ffffff', '#9fe4ff', '#3aa6e0'], grav: 7 }); } } } /* (la Galvanisation : +30 % de vitesse, +50 % de degats, chaque coup eclabousse) */
   }
   iv.pas += v * dt * 6; let elan = 0; if (iv.frappe > 0) { iv.frappe -= dt; elan = Math.sin((1 - Math.max(0, iv.frappe) / 0.25) * Math.PI) * 0.4; }
   iv.m.position.set(iv.x + Math.sin(iv.ry) * elan, hauteurSol(iv.x, iv.z, caseIci(iv.x, iv.z)) + (1 - Math.cos(iv.pas * 2)) * 0.03 + haut, iv.z + Math.cos(iv.ry) * elan);
@@ -866,9 +866,9 @@ function majCombatHud() {
    un geyser a distance », Mathieu) : la Carapace de corail (Iop), le Geyser (Cra), la Galvanisation (Osamodas) */
 function sortCorail(x, y, z, S, st) {
   const c = combat, cl = classeDe(), pp = paysanMesh.position;
-  if (cl === 'iop') { /* la carapace : 6 s, -40 % recus, +30 % donnes. L'eau monte en spirale autour de lui, une bulle de carapace a facettes se forme
+  if (cl === 'iop') { /* la carapace : 3 s, -30 % recus, +20 % donnes (CORAIL_LEG ; 6 s, -40 % et +30 % avant le 24/11/2026). L'eau monte en spirale autour de lui, une bulle de carapace a facettes se forme
        (bleu lagon, aretes de corail), enfle et tourne, des ecailles en orbite ; a la fin elle eclate en eclats (05/11/2026, « tres leger », Mathieu) */
-    c.carapace = 6; const c0 = c, u = paysanMesh.userData; u.attaque = { t: 0, classe: 'iop', base: u.angle, tour: true, surFrappe: () => {} }; /* (le geste seul : un tour sur lui-meme, sans coup) */
+    c.carapace = CORAIL_LEG.duree; const c0 = c, u = paysanMesh.userData; u.attaque = { t: 0, classe: 'iop', base: u.angle, tour: true, surFrappe: () => {} }; /* (le geste seul : un tour sur lui-meme, sans coup) */
     son('sort'); secousse(0.06, 0.2); onde(pp.x, pp.y + 0.06, pp.z, 2.2, '#5cc8f0', 0.45, 0.85); onde(pp.x, pp.y + 0.06, pp.z, 1.4, '#ffffff', 0.3, 0.7);
     chiffre('Carapace de corail', new T.Vector3(pp.x, pp.y + 2.6, pp.z), 'gros');
     let ts = 0; effets.push((dt) => { ts += dt; if (combat !== c0) return true; const P = paysanMesh.position; /* la spirale d'eau qui monte (0,6 s) */
