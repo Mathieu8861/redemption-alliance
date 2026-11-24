@@ -17,9 +17,9 @@ const POTS = {
   menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % toutes les 4 s pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' },
   fraise: { nom: 'Pot de gelée Fraise', court: 'Pots de Fraise', soin: 0.4, effet: '+40 % de vie', desc: 'Fait à ta Gelière par tes Gelées Fraise.', geliere: true },
   citron: { nom: 'Pot de gelée Citron', court: 'Pots de Citron', soin: 0.25, prix: 60, citron: true, effet: '+25 % de vie, et ton perso court 15 % plus vite pendant la vague', desc: 'À boire juste avant de lancer la vague. Ta Gelière en fait aussi, avec une Gelée Citron.', geliere: true }, /* (en vente a l'HDV le 23/11/2026, idee de Yannick, « 60 x niveau », Mathieu : plus cher que le Grand pot, la Geliere reste plus rentable) */
-  royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 10, effet: 'Toute ta vie, et +10 % d\'Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +10 % de toute ton Agilité (des coups plus rapides), même celle gagnée en combat, pendant la prochaine vague.', geliere: true }
+  royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 20, effet: 'Toute ta vie, et +20 % d\'Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +20 % de toute ton Agilité (des coups plus rapides), même celle gagnée en combat, pendant la prochaine vague.', geliere: true }
 };
-const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % toutes les 4 s en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 15 % plus vite', royale: 'toute ta vie, et +10 % d\'Agilité en vague' };
+const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % toutes les 4 s en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 15 % plus vite', royale: 'toute ta vie, et +20 % d\'Agilité en vague' };
 const POTS_HDV = ['petit', 'grand', 'menthe', 'citron'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01 / 4; /* (1 % de la vie toutes les 4 s ; 1 % par seconde avant le 24/10/2026, « les potions Menthe c'est clairement trop broken » : a la vague 70, Moon soignait 22 PV/s pour 19 PV/s recus, il ne descendait presque plus) */
 /* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
    « met pas 1 %, mais 1 PV par minute ; et une vraie minute, sinon les gelees perdent tout leur interet » (Mathieu, 13/10/2026) : 1 PV par VRAIE minute,
@@ -29,7 +29,7 @@ const REGEN_PV = 1, REGEN_PAS = 60000;
 function regenVie(dtReel) { if (!S_ || S_.pv == null || combat || !S_.perso || !(dtReel > 0)) return; const max = statsPerso().pvMax; S_.pv = Math.min(max, S_.pv + REGEN_PV * dtReel / REGEN_PAS); if (S_.pv >= max) S_.pv = null; }
 const totalPots = () => Object.keys(POTS).reduce((t, k) => t + ((S_.pots && S_.pots[k]) || 0), 0);
 const citronPret = () => { const r = !!S_.citron; S_.citron = false; return r; };
-const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }; /* (la Royale bue avant la vague : +10 % d'Agilite pendant celle-ci, ROYALE_AGI) */ /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
+const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }; /* (la Royale bue avant la vague : +20 % d'Agilite pendant celle-ci, ROYALE_AGI) */ /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
 const prixPot = (t) => Math.max(10, POTS[t].prix * niveau(S_.xp));
 const vieActuelle = () => { const max = statsPerso().pvMax; return S_.pv == null ? max : Math.max(0, Math.min(max, S_.pv)); };
 const menthePrete = () => { const r = S_.menthe ? REGEN_MENTHE : 0; S_.menthe = false; return r; }; /* (la Menthe bue avant la vague : elle soigne pendant celle-ci) */

@@ -155,7 +155,7 @@ const ACTIONS = {
     Object.entries(CROISEMENT).forEach(([id, n]) => { S_.grange[id] -= n; }); const [a, b] = L; a.repos = b.repos = Date.now() + REPOS_CROISEMENT;
     const royale = nbRoyales() < ROYALES_MAX && Math.random() < CHANCE_ROYALE, c = royale ? 'royale' : hasard([a.c, b.c]), g = { c, nom: nouveauNomGelee(), fin: 0, nee: true, arrivee: Date.now() }; S_.gelees.push(g); compter('croisements');
     son(royale ? 'niveau' : 'gelee'); if (royale) { compter('royales'); confettis(40); }
-    toast(royale ? 'Incroyable : ' + a.nom + ' et ' + b.nom + ' donnent naissance à ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +10 % d\'Agilité pour la vague.' : a.nom + ' et ' + b.nom + ' ont un petit : ' + g.nom + ', ' + GELEES[c].nom.toLowerCase() + '.', 'or');
+    toast(royale ? 'Incroyable : ' + a.nom + ' et ' + b.nom + ' donnent naissance à ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 % d\'Agilité pour la vague.' : a.nom + ' et ' + b.nom + ' ont un petit : ' + g.nom + ', ' + GELEES[c].nom.toLowerCase() + '.', 'or');
     rendreGrange(); rendreGelees(); sauver(); if (modaleOuverte === 'geliere') ouvrirGeliere();
   },
   fusionnerGelees(confirme) { /* quatre Gelees, une de chaque couleur, donnent une Gelee Royale (voir geleesFusion) */
@@ -166,7 +166,7 @@ const ACTIONS = {
       (L.some((g) => etatGelee(g) === 'pret') ? ' Les pots prêts sont ramassés avant.' : '') + (enRoute.length ? '<br><b>' + listeNoms(enRoute) + (enRoute.length > 1 ? ' perdent leur pot' : ' perd son pot') + ' en route.</b>' : '') + '</p><div class="boutons"><button class="btn discret" data-gelee-retour>Retour</button><button class="btn kamas" data-gelee-fusion-ok>Fusionner</button></div></div>'); return; }
     if (L.some((g) => etatGelee(g) === 'pret')) ACTIONS.ramasserPots();
     S_.gelees = S_.gelees.filter((g) => !L.includes(g)); const g = { c: 'royale', nom: nouveauNomGelee(), fin: 0, nee: true, arrivee: Date.now() }; S_.gelees.push(g); compter('fusions'); compter('royales');
-    son('niveau'); confettis(40); toast(noms + ' fusionnent : voici ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +10 % d\'Agilité pour la vague.', 'or');
+    son('niveau'); confettis(40); toast(noms + ' fusionnent : voici ' + g.nom + ', une GELÉE ROYALE ! Son pot rend toute ta vie et donne +20 % d\'Agilité pour la vague.', 'or');
     rendreGelees(); rendreCasesBulles(); sauver(); ouvrirGeliere();
   },
   relacherGelee(k, nom, confirme) { /* (05/11/2026) elle se vend a l'HDV, la moitie de son prix (prixReventeGelee) ; avant le 05/11, on la relachait contre 5 pots */
