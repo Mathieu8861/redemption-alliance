@@ -7,7 +7,7 @@
    - le coffre du labo s'ouvre (l'ecran des coffres, 29m) : kamas, Poils de Wabbit, runes ; la premiere victoire ajoute une rune parfaite sure ;
    - le bilan garde le record de temps (S_.donjons.wabbits : record en secondes, nombre de victoires).
    Et, plus bas, la scene d'entree du Docteur dans son labo. */
-const FIN_LABO = { duree: 6.2, parCage: 2, coffre: { kamas: kamasGagnes(100000), poils: 12, forge: 2, parfaite: 0.35 } };
+const FIN_LABO = { duree: 6.2, parCage: 2, coffre: { kamas: kamasGagnes(100000), poils: 12, forge: 2, parfaite: 0.35, cristal: 3 } }; /* (cristal : les cristaux runiques, 29t) */
 const etatDonjons = () => (S_.donjons = S_.donjons || {}), etatDonjonWab = () => (etatDonjons().wabbits = etatDonjons().wabbits || { record: 0, fois: 0 });
 let wabbitsLibres = [], boucleLibres = false;
 /* les cages du labo : les obstacles ronds de rayon 1 contre le mur, a R - 1,2 du centre (ile-labo-salles.py, salle_labo) */
@@ -88,13 +88,13 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
     try {
       const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t);
       const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = premier || Math.random() < C.parfaite ? 1 : 0;
-      S_.kamas += C.kamas; G.poil_wabbit = (G.poil_wabbit || 0) + C.poils; runes().forge = (runes().forge || 0) + C.forge; if (parfaite) runes().parfaite = (runes().parfaite || 0) + 1;
+      S_.kamas += C.kamas; G.poil_wabbit = (G.poil_wabbit || 0) + C.poils; if (typeof gagnerCristaux === 'function') gagnerCristaux(C.cristal); runes().forge = (runes().forge || 0) + C.forge; if (parfaite) runes().parfaite = (runes().parfaite || 0) + 1;
       sauver(); rendreHaut(); rendreGrange();
       const duree = (s) => { s = Math.round(s); const m = Math.floor(s / 60); return (m ? m + ' min ' : '') + (s % 60) + ' s'; };
       const recap = document.querySelector('#carte .recap-combat');
       if (recap) recap.insertAdjacentHTML('beforeend', ligneRecap('etoile', 'Record', nouveau ? duree(t) + (ancien ? ' (nouveau record ! avant : ' + duree(ancien) + ')' : ' (ton premier)') : duree(ancien) + ' (cette fois : ' + duree(t) + ')'));
-      const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.textContent = 'Essai (version dev) : les Wabbits sont libres ! Coffre du labo : ' + fmt(C.kamas) + ' kamas, ' + C.poils + ' Poils de Wabbit, ' + C.forge + ' runes de forgemagie' + (parfaite ? ', 1 rune parfaite' : '') + '. Victoire n° ' + W.fois + '.';
-      const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: premier ? 'rune parfaite (première victoire)' : 'rune parfaite', brille: true }] : []);
+      const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.textContent = 'Essai (version dev) : les Wabbits sont libres ! Coffre du labo : ' + fmt(C.kamas) + ' kamas, ' + C.poils + ' Poils de Wabbit, ' + C.forge + ' runes de forgemagie, ' + C.cristal + ' cristaux runiques' + (parfaite ? ', 1 rune parfaite' : '') + '. Victoire n° ' + W.fois + '.';
+      const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(C.cristal ? [{ ico: 'rune-cristal', n: C.cristal, t: 'cristaux runiques', brille: true }] : []).concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: premier ? 'rune parfaite (première victoire)' : 'rune parfaite', brille: true }] : []);
       if (typeof ouvertureMobile === 'function') ouvertureMobile({ rar: premier ? 'legendaire' : 'epique', cartes, titre: 'Le coffre du labo', sousTitre: nouveau ? 'Nouveau record : ' + duree(t) : 'Les Wabbits sont libres !' });
     } catch (e) { console.warn('fin du labo', e); }
     return r; }; }

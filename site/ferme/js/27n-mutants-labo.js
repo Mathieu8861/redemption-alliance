@@ -64,13 +64,14 @@ setInterval(() => {
 }, 200);
 /* LES RECOMPENSES DU DONJON (24/11/2026, « du loot a certains, des endroits de mini-boss ou on gagne des recompenses exceptionnelles ») : chaque mutant a
    une chance de lacher un Poil de Wabbit ; un specimen d'une cuve et un mini-boss du dehors donnent plus (kamas, runes, a la fin un coffre). Version dev */
-const LOOT_LABO = { poil: 0.35, specimen: { kamas: kamasGagnes(20000), poils: 4 }, chef: { kamas: kamasGagnes(50000), poils: 8, forge: 1, parfaite: 0.2 } };
+const LOOT_LABO = { poil: 0.35, specimen: { kamas: kamasGagnes(20000), poils: 4, cristal: 1 }, chef: { kamas: kamasGagnes(50000), poils: 8, forge: 1, parfaite: 0.2, cristal: 2 } }; /* (cristal : les cristaux runiques, 29t-cristaux.js, 24/11/2026) */
 function gagnerLabo(mo, R, titre) {
   const G = S_.grange = S_.grange || {}; let txt = [];
   if (R.kamas) { S_.kamas += R.kamas; txt.push(fmt(R.kamas) + ' kamas'); }
   if (R.poils) { G.poil_wabbit = (G.poil_wabbit || 0) + R.poils; txt.push(R.poils + ' Poils de Wabbit'); }
   if (R.forge) { runes().forge = (runes().forge || 0) + R.forge; txt.push(R.forge + ' rune de forgemagie'); }
   if (R.parfaite && Math.random() < R.parfaite) { runes().parfaite = (runes().parfaite || 0) + 1; txt.push('une rune parfaite !'); }
+  if (R.cristal && typeof gagnerCristaux === 'function') { gagnerCristaux(R.cristal); txt.push(R.cristal + (R.cristal > 1 ? ' cristaux runiques' : ' cristal runique')); }
   if (typeof chiffre === 'function') chiffre('✦ ' + titre, new T.Vector3(mo.x, (mo.m ? mo.m.position.y : 0) + (mo.haut || 2) + 0.6, mo.z), 'butin');
   toast('✦ ' + titre + ' : ' + txt.join(', ') + '.', 'or'); rendreHaut(); rendreGrange(); son('quete');
 }
@@ -80,7 +81,8 @@ function gagnerLabo(mo, R, titre) {
       if (mo.d && mo.d.flaqueMort) flaqueFluo(mo);
       if (mo.specimen) gagnerLabo(mo, LOOT_LABO.specimen, mo.d.nom + ' vaincu');
       else if (mo.chef) gagnerLabo(mo, LOOT_LABO.chef, 'Coffre de ' + mo.d.nom);
-      else if (Math.random() < LOOT_LABO.poil) { const G = S_.grange = S_.grange || {}; G.poil_wabbit = (G.poil_wabbit || 0) + 1; if (typeof chiffre === 'function') chiffre('+ Poil de Wabbit', new T.Vector3(mo.x, (mo.m ? mo.m.position.y : 0) + (mo.haut || 2), mo.z), 'butin'); rendreGrange(); }
+      else { if (typeof CRISTAL !== 'undefined' && Math.random() < CRISTAL.mutant) { gagnerCristaux(1); if (typeof chiffre === 'function') chiffre('✦ Cristal runique', new T.Vector3(mo.x, (mo.m ? mo.m.position.y : 0) + (mo.haut || 2) + 0.5, mo.z), 'butin'); toast('✦ Un cristal runique !', 'or'); } } /* (3 % sur un mutant ou un drone) */
+      if (!mo.specimen && !mo.chef && Math.random() < LOOT_LABO.poil) { const G = S_.grange = S_.grange || {}; G.poil_wabbit = (G.poil_wabbit || 0) + 1; if (typeof chiffre === 'function') chiffre('+ Poil de Wabbit', new T.Vector3(mo.x, (mo.m ? mo.m.position.y : 0) + (mo.haut || 2), mo.z), 'butin'); rendreGrange(); }
     } catch (e) { /* rien */ }
     return butinMut(mo); }; }
 /* LE SPECIMEN D'UNE CUVE et LE MINI-BOSS d'un camp : le meme mutant, plus grand et plus fort (vie x3, coups x1,3, taille x1,35), une lueur a lui */
