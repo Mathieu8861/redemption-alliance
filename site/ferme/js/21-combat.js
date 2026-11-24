@@ -526,7 +526,7 @@ function lancerVague(pBoss, difficile, charges) {
   (essai ? essai.compo() : compoVague(n)).forEach(([t, k]) => { for (let i = 0; i < k; i++) file.push(t); });
   file.sort(() => Math.random() - 0.5); file.sort((a, b) => (MONSTRES[a].boss ? 1 : 0) - (MONSTRES[b].boss ? 1 : 0)); /* le boss arrive en dernier */
   const groupe = multVague(n) > 1 ? Math.ceil(file.length / multVague(n)) : 0; /* (la horde de la Phase 2 : autant de monstres a la fois qu'avant, les autres en renfort, 04/11/2026) */
-  nouveauCombat('vague', { n, file, total: file.length, attente: 0.8, groupe, pv: vieActuelle(), ...potsDeVague(), bouclierBat: bouclierPret(), rejoueBoss: rejoueB ? pBoss : null, difficile: rejoueB && !!difficile, essai101: essai ? { v: essai.v, f: essai.f, k: essai.k } : null }); if (essai) ESSAI101.lance = null;
+  nouveauCombat('vague', { n, file, total: file.length, attente: 0.8, groupe, pv: vieActuelle(), ...potsDeVague(), bouclierBat: bouclierPret(), rejoueBoss: rejoueB ? pBoss : null, difficile: rejoueB && !!difficile, essai101: essai ? { v: essai.v, f: essai.f, k: essai.k, P: essai.P } : null }); if (essai) ESSAI101.lance = null;
   if (combat.bouclierBat && !enRuine('grange')) { combat.bouclierMax = combat.bouclierPv = Math.round(pvMaxBat('grange') * BOUCLIER_BASE); poserCarapace(combat); majBarresBat(); /* (la carapace se referme sur la grange, sa reserve de points sur la barre, 13-batiments-pv.js) */
     const pts = combat.bouclierMax; setTimeout(() => toast('Bouclier de carapace : ' + fmt(pts) + ' PV de bouclier sur ' + nomQG() + ', les coups l\'entament avant sa vie.', 'or'), 2200); }
   combat.phases = (PHASES_BOSS[n] || []).map((p) => { const f = []; p.L.forEach(([t, k]) => { for (let i = 0; i < k; i++) f.push(t); }); f.sort(() => Math.random() - 0.5); return { nom: p.nom, f }; }); /* (la vague 70 : ses temps suivants) */
@@ -3528,7 +3528,7 @@ function majMonstre(mo, dt, s) {
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0 && !(versPerso && !bat && tropPresDuTireur(mo))) { /* (un tireur colle par le perso ne tire pas) */
-      mo.cd = mo.d.cadence; mo.frappe = 0.25;
+      mo.cd = mo.d.cadence * (mo.cadM || 1); mo.frappe = 0.25; /* (cadM : une version de la serie d'essais de la 101, 24/11/2026) */
       const frapper = () => { /* (le coup lui-meme ; un monstre a squelette le porte a l'instant de son geste : s'il t'a vu filer, il frappe dans le vide) */
         if (bat && !mo.d.distance) blesserBat(bat.cle, degatsBatiment(mo.d.cadence, mo) * (mo.d.bucheron && /^tour:/.test(bat.cle) ? mo.d.bucheron : 1)); /* il cogne le batiment : un coup, ses degats par seconde de la vague fois l'intervalle entre deux coups (le Forestier : double sur les tours) */
         else if (mo.d.distance) { if (!bat && tropPresDuTireur(mo)) return; tirMonstre(mo, bat, !bat && surCa ? caG : null); } /* (caG : un tireur attire par la Cawotte geante lui tire dessus, 16/11/2026) */ /* (le perso s'est colle a lui pendant son geste : rien ne part) */

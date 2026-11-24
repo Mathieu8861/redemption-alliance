@@ -69,5 +69,5 @@ AVANT_PREMIERE.unshift('crocoVase', 'piranha', 'brochet', 'silure', 'crocoBoss')
 GROUPES_DEV.crocoBoss = { nom: 'Le boss de la 110 (essai, sans ses sorts)', liste: { crocoBoss: 1 } };
 /* LA VITESSE DU PALIER 11, vague par vague (23/11/2026, VITESSE_MARE de 20-monstres.js) : les monstres des vagues 101 a 110, pas les boss */
 { const apparaitreMare = apparaitre; apparaitre = function (type, pres) { const n0 = combat ? combat.monstres.length : 0, r = apparaitreMare.apply(this, arguments);
-    try { const c = combat; if (c && c.genre === 'vague' && c.monstres.length > n0) { const o = c.monstres[c.monstres.length - 1], v = vitesseMare(c.n); if (v !== 1 && !o.d.boss) o.rampeV = v; } } catch (e) { /* rien */ }
+    try { const c = combat; if (c && c.genre === 'vague' && c.monstres.length > n0) { const o = c.monstres[c.monstres.length - 1], P = c.essai101 && c.essai101.P, v = vitesseMare(c.n) * ((P && P.vit) || 1); if (!o.d.boss) { if (v !== 1) o.rampeV = v; if (P && P.cad) o.cadM = P.cad; } } } catch (e) { /* rien */ }
     return r; }; }

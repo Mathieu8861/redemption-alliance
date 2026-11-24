@@ -39,11 +39,13 @@ const MARES_LABO = [[5.2, 28, 3.0], [5.5, 32.5, 4.0], [5.1, 36.5, 2.6], [5.85, 2
 const CHAMPS_LABO = [[27, 7.2], [35, 8.2], [27, -7.2], [36, -8.6], [40, 7.6]].map(([s, l]) => Object.assign(leLongDuChemin(s, l), { a: DOCK_LABO.a, hl: 4.4, hw: 3.4 }));
 /* les camps des mutants : r, leur perimetre */
 const CAMPS_LABO = [
-  Object.assign(leLongDuChemin(33, 0), { nom: 'le champ de cawottes', r: 5.5, L: [['wabbit', 3], ['wabbitFonceur', 1]] }),
-  Object.assign(polL(2.2, 27), { nom: 'la lisière de la forêt', r: 6, L: [['wabbitNoir', 2], ['wabbit', 2], ['wabbitSorciere', 1]] }),
-  Object.assign(polL(5.35, 22.5), { nom: 'le marais', r: 6, L: [['wabbitSquelette', 2], ['wabbitFonceur', 2]] }),
-  Object.assign(polL(0.3, 14.8), { nom: 'le pied de la tour', r: 5, L: [['woWabbit', 1], ['wabbitNoir', 2], ['wabbitSorciere', 1]] }),
-  Object.assign({ x: BUTTE_LABO.x, z: BUTTE_LABO.z }, { nom: 'le sommet de la butte', r: 5.5, L: [['wabbitNoir', 2], ['wabbitSquelette', 1], ['wabbitSorciere', 1]] })];
+/* (24/11/2026, les mutants du labo, 27n-mutants-labo.js : les Wabbits du jeu verdis laissent la place aux gardes lapins-machines et aux mutants ; un 3e terme
+   'chef' : le mini-boss du camp, plus grand et bien plus fort, et son coffre a sa mort, « des endroits de mini-boss ou on gagne des recompenses exceptionnelles », Mathieu) */
+  Object.assign(leLongDuChemin(33, 0), { nom: 'le champ de cawottes', r: 5.5, L: [['wabEnrage', 3], ['wabGarde', 1]] }),
+  Object.assign(polL(2.2, 27), { nom: 'la lisière de la forêt', r: 6, L: [['wabFluo', 2], ['wabVampire', 2]] }),
+  Object.assign(polL(5.35, 22.5), { nom: 'le marais', r: 6, L: [['wabFluo', 3], ['wabEnrage', 1]] }),
+  Object.assign(polL(0.3, 14.8), { nom: 'le pied de la tour', r: 5, L: [['wabGarde', 1, 'chef'], ['wabGarde', 2], ['wabGreffe', 1]] }),
+  Object.assign({ x: BUTTE_LABO.x, z: BUTTE_LABO.z }, { nom: 'le sommet de la butte', r: 5.5, L: [['wabGarou', 1, 'chef'], ['wabEnrage', 2]] })];
 /* les chemins (seulement la couleur du sol) */
 const CHEMINS_LABO = [
   [[49, 0], [44, 0.8], [38, -0.5], [31, 0.4], [24, -0.3], [17, 0]].map(([s, l]) => leLongDuChemin(s, l)),
@@ -88,10 +90,11 @@ const repousser = (x, z, L, m) => { for (let n = 0; n < 2; n++) for (const o of 
    Wabbenstein ; il tombe, fin du donjon. theme : le decor (Salle_<theme> dans ile-labo-salles.glb ; R comme dans blender/ile-labo-salles.py) */
 const Y_SALLE = 0;
 const SALLES_LABO = [
-  { nom: 'les cages', theme: 'cages', x: -220, z: -400, R: 13, L: [['wabbitFonceur', 3], ['wabbit', 2]] },
-  { nom: 'la serre à mutagène', theme: 'serre', x: -110, z: -400, R: 13, L: [['wabbitSorciere', 2], ['wabbit', 3]] },
-  { nom: 'la salle de chirurgie', theme: 'chirurgie', x: 0, z: -400, R: 12.5, L: [['woWabbit', 2], ['wabbitSquelette', 2]] },
-  { nom: 'la salle des cuves', theme: 'cuves', x: 110, z: -400, R: 13.5, L: [['wabbitNoir', 3], ['gwandWabbit', 1]] },
+  /* (24/11/2026, les mutants du labo : un mutant par salle, celui de son theme valide le 20/11 ; a mi-chemin, son specimen brise sa cuve et s'en echappe, specimenLabo) */
+  { nom: 'les cages', theme: 'cages', x: -220, z: -400, R: 13, L: [['wabEnrage', 5]] },
+  { nom: 'la serre à mutagène', theme: 'serre', x: -110, z: -400, R: 13, L: [['wabFluo', 4], ['wabEnrage', 1]] },
+  { nom: 'la salle de chirurgie', theme: 'chirurgie', x: 0, z: -400, R: 12.5, L: [['wabGreffe', 3], ['wabGarde', 1]] },
+  { nom: 'la salle des cuves', theme: 'cuves', x: 110, z: -400, R: 13.5, L: [['wabVampire', 4]] },
   { nom: 'le labo du Docteur Wabbenstein', theme: 'labo', x: 220, z: -400, R: 18, L: [['wabbenstein', 1]] }];
 const ENTREE_SALLE = Math.PI / 4; /* (l'entree de chaque salle : du cote de la camera de depart, la salle s'etend derriere) */
 let ileWabbits = null, donjonEtat = null, donjonEntite = null;
@@ -390,14 +393,16 @@ function vieIleLabo(dt) {
 /* ---------- le donjon ---------- */
 /* les Wabbits transmutes : la peau verdit et luit un peu, ils ne grignotent ni ne cassent rien ici (sans ca, ils filaient vers les champs de la ferme) */
 function transmuter(o) {
+  if (/^wab-/.test(o.d.modele || '')) { o.aggro = true; o.casseur = false; o.d = Object.assign({}, o.d, { grignote: false, casseur: false, bucheron: false }); return; } /* (les mutants du labo, 24/11/2026 : leur propre look) */
   o.aggro = true; o.casseur = false; o.d = Object.assign({}, o.d, { grignote: false, casseur: false, bucheron: false, nom: o.d.nom + ' transmuté' + (o.d.fem ? 'e' : '') });
   const vert = new T.Color('#7dff5a'); o.m.traverse((q) => { if (!q.isMesh || !q.material || q.name === 'contour' || q.material.isMeshBasicMaterial) return; q.material = q.material.clone(); if (q.material.color) q.material.color.lerp(vert, 0.28); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.22; } });
 }
 /* les camps : leurs mutants attendent chez eux, immobiles, jusqu'a ce que le perso entre dans leur perimetre */
 function posterCamps(c) {
   CAMPS_LABO.forEach((K, k) => { const L = []; K.L.forEach(([t, n]) => { for (let i = 0; i < n; i++) L.push(t); });
-    L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 2) * 1.4, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 });
-      setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] }; } }); }, 200 + (k * 6 + i) * 120); }); });
+    L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 2) * 1.4, q = bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 }), chef = K.L.some(([t2, , ch]) => ch === 'chef' && t2 === t) && L.indexOf(t) === i;
+      setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] };
+        if (chef && typeof grandirMutant === 'function') { grandirMutant(o, CHEF_LABO, '#ffb02e', t === 'wabGarou' ? 'Garou alpha' : 'Chef des gardes'); o.chef = true; } } }); }, 200 + (k * 6 + i) * 120); }); }); /* (chef : le premier de son type dans le camp) */
 }
 /* le passage d'une porte : un fondu au noir, le perso de l'autre cote */
 function fonduDonjon(fn) { let d = document.getElementById('fondu-donjon'); if (!d) { d = document.createElement('div'); d.id = 'fondu-donjon'; d.style.cssText = 'position:fixed;inset:0;background:#05070a;opacity:0;pointer-events:none;transition:opacity .28s;z-index:60'; document.body.appendChild(d); }
@@ -405,8 +410,8 @@ function fonduDonjon(fn) { let d = document.getElementById('fondu-donjon'); if (
 function placerPersoDonjon(x, y, z) { const u = paysanMesh.userData; paysanMesh.position.set(x, y, z); u.y = y; chemin = []; arrivee = null; if (combat) { combat.tenir = true; combat.ordre = false; combat.poursuite = false; combat.cible = null; } /* (de l'autre cote de la porte, il tient sa position : sinon il repartait vers un mutant reste au pied de la tour) */ VISEE.set(x, y + 0.6, z); placerCamera(); suivreOmbres(); }
 /* on passe la porte i : la salle, ses mutants (ou le Docteur) qui attendent au fond */
 function ouvrirSalleLabo(i) {
-  const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || E.salles[i]) return; E.salles[i] = { t: E.t, fini: false, dedans: true };
-  const L = []; S.L.forEach(([t, n]) => { for (let k = 0; k < n; k++) L.push(t); });
+  const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || E.salles[i]) return;
+  const L = []; S.L.forEach(([t, n]) => { for (let k = 0; k < n; k++) L.push(t); }); E.salles[i] = { t: E.t, fini: false, dedans: true, n: L.length };
   fonduDonjon(() => {
     const P = E.perso; P.mode = 'salle'; P.i = i; const re = S.R - 3.4; zoom = i === 4 ? 0.7 : 0.82; cadrer(); placerPersoDonjon(DONJON.x + S.x + Math.cos(ENTREE_SALLE) * re, Y_SALLE, DONJON.z + S.z + Math.sin(ENTREE_SALLE) * re);
     paysanMesh.userData.angle = Math.atan2(-Math.cos(ENTREE_SALLE), -Math.sin(ENTREE_SALLE)); paysanMesh.rotation.y = paysanMesh.userData.angle;
@@ -414,6 +419,18 @@ function ouvrirSalleLabo(i) {
     L.forEach((t, k) => { const a = ENTREE_SALLE + Math.PI + (L.length > 1 ? (k / (L.length - 1) - 0.5) * 1.6 : 0), rr = i === 4 ? 6.5 : 3.6 + (k % 2) * 2.4, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
       setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x, z, apres: (o) => { if (t !== 'wabbenstein') transmuter(o); o.lab = { mode: 'salle', i }; o.salle = i; o.y = Y_SALLE; o.ry = Math.atan2(Math.cos(ENTREE_SALLE), Math.sin(ENTREE_SALLE)); if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE - 1.4; } } }); }, 450 + k * 240); });
   });
+}
+/* LE SPECIMEN D'UNE CUVE (24/11/2026, « dans chaque salle un lapin mutant qui est dans une cuve et qui sort a un certain moment de la vague », Mathieu) : la moitie
+   des mutants de la salle abattue, la cuve du fond se brise (eclats de verre, flot vert) et le specimen du theme en sort : le meme mutant, plus grand et bien plus
+   fort ; il donne des kamas et des Poils de Wabbit (27n-mutants-labo.js) */
+function specimenLabo(i) {
+  const c = combat, E = donjonEtat, S = SALLES_LABO[i]; if (!c || !E || !E.salles[i] || E.salles[i].specimen) return; E.salles[i].specimen = true;
+  const t = S.L[0][0], a = ENTREE_SALLE + Math.PI, rr = S.R - 3.2, x = DONJON.x + S.x + Math.cos(a) * rr, z = DONJON.z + S.z + Math.sin(a) * rr;
+  if (typeof emettre === 'function') { emettre(FX_LUM, 40, { x, y: Y_SALLE + 1.4, z, r: 0.8, v: [0, 2.2, 0], dv: 3.2, vie: [0.5, 1.1], taille: [0.22, 0.06], c: ['#d8fff4', '#9fffd0', '#ffffff'], a: 0.9, frein: 0.6 });
+    emettre(FX_LUM, 30, { x, y: Y_SALLE + 0.2, z, r: 1.2, v: [0, 0.6, 0], dv: 2.0, vie: [0.8, 1.4], taille: [0.4, 0.1], c: ['#7dff5a', '#3fd14a'], a: 0.7, frein: 0.4 }); }
+  if (typeof secousse === 'function') secousse(0.25, 0.4); son('vague', null, 2);
+  toast('Crac ! La cuve du fond se brise : le spécimen n°' + (i + 1) + ' s\'en échappe !', 'alerte');
+  apparaitre(t, { x, z, apres: (o) => { transmuter(o); if (typeof grandirMutant === 'function') grandirMutant(o, SPECIMEN, '#7dff5a', 'Spécimen n°' + (i + 1) + ' (' + MONSTRES[t].nom + ')'); o.specimen = true; o.lab = { mode: 'salle', i }; o.salle = i; o.y = Y_SALLE; o.ry = Math.atan2(-Math.cos(a), -Math.sin(a)); if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE - 1.4; } } });
 }
 /* la salle nettoyee : on ressort par la sortie verte, sur la passerelle devant la porte, et la grille s'ouvre */
 function sortirSalleLabo(i) { const E = donjonEtat; if (!E || E.sortie) return; E.sortie = true;
@@ -438,7 +455,9 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
     if (d > 0.3) { const v = Math.min(d, 3.2 * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); } });
   /* les portes : on arrive devant, la salle s'ouvre ; une salle nettoyee rend 25 % de vie et ouvre la grille */
   if (P.mode === 'rampe') LABO.PORTES.forEach((h, i) => { if (E.salles[i] || (i > 0 && !E.grilles[i - 1])) return; const ta = angleRampe(h), r = Math.hypot(p.x - DONJON.x, p.z - DONJON.z); if (Math.abs(P.theta - ta) < 0.22 && r < LABO.R_IN + 2.0) ouvrirSalleLabo(i); }); /* (la moitie de la passerelle cote mur, devant la porte) */
-  E.salles.forEach((s, i) => { if (!s || s.fini || E.t - s.t < 3) return; if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud();
+  E.salles.forEach((s, i) => { if (!s || s.fini || E.t - s.t < 3) return;
+    if (i < 4 && !s.specimen) { if (c.monstres.filter((o) => o.salle === i && o.etat !== 'mort').length <= Math.ceil((s.n || 1) / 2)) specimenLabo(i); return; } /* (le specimen de la cuve : a mi-chemin, et la salle n'est finie qu'apres lui) */
+    if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud();
     if (i === 4) { E.gagne = E.t; toast('Le Docteur Wabbenstein est tombé ! Les cages s\'ouvrent, les Wabbits sont libres.', 'or'); return; }
     const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); });
   if (P.mode === 'salle' && P.i != null && P.i < 4 && E.salles[P.i] && E.salles[P.i].fini) { const S = SALLES_LABO[P.i], sx = DONJON.x + S.x + Math.cos(ENTREE_SALLE) * (S.R - 1.1), sz = DONJON.z + S.z + Math.sin(ENTREE_SALLE) * (S.R - 1.1); if (Math.hypot(p.x - sx, p.z - sz) < 1.1) sortirSalleLabo(P.i);
@@ -465,7 +484,8 @@ async function partirDonjon() {
   const q0 = versDock(6.6, 0), u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + q0.x, 0, DONJON.z + q0.z); u.y = 0; u.angle = -Math.PI / 2; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
   VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); zoom = VOYAGES.donjon.zoom(); placerCamera(); cadrer();
   const n = Math.max(51, Math.min(VAGUES_TOTAL, Math.round(niveau(S_.xp)))); /* (les Wabbits a la force de ton niveau, jamais sous la vague 51) */
-  const total = CAMPS_LABO.concat(SALLES_LABO).reduce((a, Z) => a + Z.L.reduce((b, [, k]) => b + k, 0), 0);
+  if (typeof MUTANTS_LABO !== 'undefined') { const N = MUTANTS_LABO.map(([m]) => m).filter((m) => !MODELES[m]); if (N.length) { toast('Les mutants du labo se réveillent…', 'or'); try { await chargerSquelettes(N); prechaufferSquelettes(N); } catch (e) { /* rien */ } } } /* (24/11/2026 : charges avant les camps ; sinon les premiers demandes, pendant le chargement, se perdaient) */
+  const total = CAMPS_LABO.concat(SALLES_LABO).reduce((a, Z) => a + Z.L.reduce((b, [, k]) => b + k, 0), 0) + 4; /* (+4 : les specimens des cuves, 24/11/2026) */
   nouveauCombat('donjon', { n, attente: 1e9, total, ...potsDeVague() }); /* (attente : rien ne sort de la file, les camps et les salles font sortir leurs mutants) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant le donjon : ' + texteRepas(repas) + '.', 'or'), 2400); }
   donjonEtat = { t: 0, camps: CAMPS_LABO.map(() => ({ actif: false })), salles: [], grilles: [], gagne: null, n, perso: { mode: 'sol', theta: LABO.A0 } };

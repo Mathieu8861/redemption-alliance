@@ -1819,5 +1819,9 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .essai-bilan { margin: 8px 0; padding: 8px 10px; border-radius: 12px; background: rgba(63, 182, 201, .12); border: 2px solid rgba(63, 182, 201, .5); font: 700 .8rem/1.3 var(--f-texte); }
 .essai-bilan p { margin: 4px 0; font-weight: 600; } .essai-bilan small { opacity: .75; }
 .essai-ressenti { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; } .essai-ressenti span { flex: 1 1 100%; font-weight: 700; }
+.essai-note { margin-top: 6px; } .essai-note > span { display: block; font-weight: 700; margin-bottom: 4px; } .essai-note small { display: block; opacity: .75; margin-top: 4px; font-weight: 600; } /* (la note de 0 a 10, 24/11/2026) */
+.essai-notes { display: flex; flex-wrap: wrap; gap: 4px; } .essai-notes .btn.mini { min-width: 30px; padding-left: 0; padding-right: 0; justify-content: center; }
+.essai-v { margin: 6px 0 2px; } .essai-v b { color: #7fd4e2; }
+.essai-coffre { display: flex; gap: 8px; align-items: center; margin: 6px 0; padding: 6px 8px; border-radius: 10px; background: rgba(192, 140, 255, .12); border: 1px solid rgba(192, 140, 255, .45); font-weight: 600; cursor: help; } .essai-coffre img { width: 34px; height: 34px; } .essai-coffre b { color: #d7b8ff; } /* (le coffre de la serie, 24/11/2026) */
 .essai-com { display: flex; gap: 6px; align-items: flex-end; margin-top: 6px; } .essai-com span { font-weight: 700; } /* (le commentaire de la serie 101, 23/11/2026) */
 .essai-com textarea { flex: 1; min-height: 38px; resize: vertical; padding: 6px 8px; border-radius: 10px; border: 2px solid rgba(63, 182, 201, .5); background: rgba(0, 0, 0, .25); color: inherit; font: 600 .78rem/1.3 var(--f-texte); }
