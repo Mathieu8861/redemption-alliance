@@ -10,7 +10,7 @@
    du palier 10 et la nuit de la foret notent leurs valeurs de plein jour : le voile suffit, pose en « multiplie » par-dessus l'image). */
 const PLUIE = { gouttes: 1400, haut: 16, chute: 26, vent: [-3.2, 0, 2.1], long: 0.95, fondu: 2.5, foudre: [7, 12], annonce: 1.2 };
 const PLUIE_J = { k: 0, v: null, flash: null, mesh: null, pos: null, G: null, eau: null, eauSig: '', mode: null, t: 0, prochaine: 0, eclair: 0 };
-const pluieVoulue = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST && ETAT_TEST.pluie) || null;
+const pluieVoulue = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST && ETAT_TEST.pluie) || (typeof combat !== 'undefined' && combat && !combat.fin && combat.essai101 ? 'pluie' : null); /* (24/11/2026, « on a pas la pluie avec la vague 101 ? meme en test c'est plus sympa », Mathieu : il pleut sur toutes les vagues de la serie d'essais, pour tous) */
 const pluieLa = () => !!pluieVoulue() && typeof lieu !== 'undefined' && lieu === 'ferme' && !enAccueil; /* (sur la ferme, en vague comme au calme) */
 
 function voilePluie() {
