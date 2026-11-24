@@ -9,23 +9,31 @@
    Et, plus bas, la scene d'entree du Docteur dans son labo. */
 const FIN_LABO = { duree: 6.2, parCage: 2, coffre: { kamas: kamasGagnes(100000), poils: 12, forge: 2, parfaite: 0.35 } };
 const etatDonjons = () => (S_.donjons = S_.donjons || {}), etatDonjonWab = () => (etatDonjons().wabbits = etatDonjons().wabbits || { record: 0, fois: 0 });
-let wabbitsLibres = [];
+let wabbitsLibres = [], boucleLibres = false;
 /* les cages du labo : les obstacles ronds de rayon 1 contre le mur, a R - 1,2 du centre (ile-labo-salles.py, salle_labo) */
 function cagesLabo() { const S = SALLES_LABO[4]; return (S.blocs || []).filter((b) => Math.abs(b.r - 1.0) < 0.1 && Math.abs(Math.hypot(b.x, b.z) - (S.R - 1.2)) < 0.3); } /* (les cages sont a R - 1,2 ; les paillasses, de meme rayon, a R - 2) */
 function liberationLabo() {
   const c = combat, E = donjonEtat; if (!c || !E || E.liberes) return; E.liberes = true; adieuDocteur();
   c.monstres.forEach((o) => { if (o.etat === 'actif' && !o.d.boss) { try { blesser(o, o.pv + 10, true); } catch (e) { /* rien */ } } }); /* (ses creatures tombent avec lui) */
-  const S = SALLES_LABO[4], cx = DONJON.x + S.x, cz = DONJON.z + S.z, sortie = { x: cx + Math.cos(ENTREE_SALLE) * (S.R - 1.1), z: cz + Math.sin(ENTREE_SALLE) * (S.R - 1.1) };
+  const S = SALLES_LABO[4];
   let cages = cagesLabo(); if (!cages.length) cages = [0, 1, 2, 3].map((k) => { const a = ENTREE_SALLE + Math.PI + (k - 1.5) * 0.5; return { x: Math.cos(a) * (S.R - 1.4), z: Math.sin(a) * (S.R - 1.4) }; });
-  const p = paysanMesh.position;
-  cages.forEach((g, k) => { for (let j = 0; j < FIN_LABO.parCage; j++) {
+  libererWabbits(4, cages, FIN_LABO.parCage);
+  toast('Les cages s\'ouvrent : les Wabbits sont libres ! Ils viennent te remercier.', 'or'); son('quete');
+}
+/* une salle nettoyee (1 a 4) : trois Wabbits prisonniers s'echappent du fond de la salle */
+function libererSalle(i) { const S = SALLES_LABO[i]; if (!S) return; libererWabbits(i, [-1, 0, 1].map((k) => { const a = ENTREE_SALLE + Math.PI + k * 0.55; return { x: Math.cos(a) * (S.R - 2.4), z: Math.sin(a) * (S.R - 2.4) }; }), 1); }
+/* des Wabbits prisonniers liberes dans la salle i : ils sortent de leurs cages (sources, en coordonnees de la salle), sautent de joie autour du perso, filent par
+   la porte. Aussi a chaque salle nettoyee (24/11/2026, 3 Wabbits : des cages de la salle 1, du fond des autres) */
+function libererWabbits(i, sources, parSource) {
+  const S = SALLES_LABO[i], cx = DONJON.x + S.x, cz = DONJON.z + S.z, sortie = { x: cx + Math.cos(ENTREE_SALLE) * (S.R - 1.1), z: cz + Math.sin(ENTREE_SALLE) * (S.R - 1.1) }, p = paysanMesh.position;
+  sources.forEach((g, k) => { for (let j = 0; j < parSource; j++) {
     const m = cloner('wabbit'), x0 = cx + g.x * 0.9, z0 = cz + g.z * 0.9; m.position.set(x0, Y_SALLE, z0); m.traverse((q) => { q.raycast = () => {}; }); scene.add(m);
     const a = Math.random() * Math.PI * 2, rr = 1.6 + Math.random() * 1.8; /* (sa place pour sauter de joie, autour du perso) */
     wabbitsLibres.push({ m, x: x0, z: z0, ry: 0, t: -(k * 0.35 + j * 0.2), joie: { x: p.x + Math.cos(a) * rr, z: p.z + Math.sin(a) * rr }, sortie, coeur: Math.random(), ech: m.scale.x });
     pouf(x0, Y_SALLE, z0, 1.0, '#cfeaff'); } });
-  toast('Les cages s\'ouvrent : les Wabbits sont libres ! Ils viennent te remercier.', 'or'); son('quete');
+  if (boucleLibres) return; boucleLibres = true; /* (une seule boucle pour tous) */
   effets.push((dt) => {
-    if (!wabbitsLibres.length) return true;
+    if (!wabbitsLibres.length) { boucleLibres = false; return true; }
     wabbitsLibres.forEach((W) => { W.t += dt; if (W.t < 0) return;
       const vise = W.t < 3.4 ? W.joie : W.sortie, dx = vise.x - W.x, dz = vise.z - W.z, d = Math.hypot(dx, dz), v = W.t < 3.4 ? 2.6 : 4.2;
       if (d > 0.25) { const pas = Math.min(d, v * dt); W.x += dx / d * pas; W.z += dz / d * pas; W.ry = Math.atan2(dx, dz); }
@@ -36,7 +44,7 @@ function liberationLabo() {
       if (W.t >= 3.4 && d < 0.6 && !W.parti) { W.parti = true; pouf(W.x, Y_SALLE, W.z, 0.8, '#d9ffd0'); } /* (il passe la porte) */
       if (W.parti) { W.fin = (W.fin || 0) + dt; W.m.scale.setScalar(W.ech * Math.max(0.01, 1 - W.fin * 3)); } });
     wabbitsLibres = wabbitsLibres.filter((W) => { if (W.fin > 0.35 || !combat) { scene.remove(W.m); return false; } return true; });
-    return !wabbitsLibres.length;
+    if (!wabbitsLibres.length) { boucleLibres = false; return true; } return false;
   });
 }
 /* LA SCENE D'ENTREE DU DOCTEUR (24/11/2026) : on entre dans le labo, il est dos a nous, penche sur sa grande cuve ; trois repliques dans sa bulle, il se
@@ -71,7 +79,7 @@ function sceneDocteur() {
 /* sa derniere replique, quand il tombe */
 function adieuDocteur() { const doc = combat && combat.monstres.find((o) => o.type === 'wabbenstein'); if (!doc || !doc.m) return; direDoc('Non... mes créations... mes petits...', 2.4); let t = 0;
   effets.push((dt) => { t += dt; majBulleDoc(doc); return t > 2.6 || !bulleDoc; }); }
-function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)); wabbitsLibres = []; }
+function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)); wabbitsLibres = []; boucleLibres = false; }
 /* le coffre et le record, au bilan d'une victoire */
 { const finDonjonLabo = finDonjon; finDonjon = function (gagne) {
     const E = donjonEtat, c = combat, t = E ? E.t : 0, enJeu = !!(c && !c.fin && c.genre === 'donjon');
