@@ -719,6 +719,15 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .confirme .gros img { width: 86px; height: 86px; object-fit: contain; }
 .confirme p { font-size: .84rem; font-weight: 600; margin: 6px 0 12px; } .confirme .boutons { display: flex; gap: 8px; justify-content: center; }
 .confirme p.note { font-size: .74rem; font-weight: 500; opacity: .75; margin-top: -4px; } /* (achat d'un terrain : ce que l'achat ne fait pas) */
+/* le lot des trois ultis (24/11/2026) : un seul achat, les trois icones cote a cote */
+.ulti-lot { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin: 8px 0 4px; padding: 10px; border: 2px solid #c98a2b; border-radius: 12px; background: linear-gradient(180deg, rgba(242, 182, 48, .16), rgba(242, 182, 48, .05)); }
+.ulti-lot-ic, .ulti-lot-gros { display: flex; justify-content: center; }
+.ulti-lot-ic span, .ulti-lot-gros span { display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--bord); overflow: hidden; }
+.ulti-lot-ic span { width: 34px; height: 34px; margin-left: -8px; } .ulti-lot-ic span:first-child { margin-left: 0; } .ulti-lot-ic img { width: 34px; height: 34px; object-fit: cover; }
+.ulti-lot-gros { gap: 10px; margin: 4px 0 8px; } .ulti-lot-gros span { width: 74px; height: 74px; box-shadow: 0 3px 0 var(--bord); } .ulti-lot-gros img { width: 74px; height: 74px; object-fit: cover; }
+.ulti-lot-ic span.a-toi, .ulti-lot-gros span.a-toi { outline: 2px solid #7fd36b; outline-offset: 1px; }
+.ulti-lot-txt > b { display: block; font-size: .92rem; color: #f2c04a; } .ulti-lot-txt > span { display: block; font-size: .74rem; font-weight: 600; color: #d6d8dc; margin-top: 2px; } .ulti-lot-txt > span b { color: #fff; }
+@media (max-width: 520px) { .ulti-lot { grid-template-columns: 1fr; text-align: center; } }
 .ulti-carte b { display: block; font-size: .95rem; } .ulti-carte .desc { font-size: .74rem; font-weight: 600; color: #a9adb5; margin-top: 2px; }
 #combat-zone { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .pv-monstre { position: absolute; width: 46px; height: 8px; transform: translate(-50%, -100%); border: 2px solid var(--bord); border-radius: 99px; background: #2b2d31; overflow: hidden; }
