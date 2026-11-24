@@ -262,7 +262,22 @@ function placerFloreLabo() {
   [[5.6, 13.0, 'tonneau'], [1.05, 14.4, 'tonneau_couche']].forEach(([a, r, t]) => { const q = polL(a, r); poser(t, q.x, q.z, { bloc: 0.45, gros: 0.8 }); });
   for (let k = 0; k < 8; k++) { const a = k / 8 * TAU_L + 0.2, q = polL(a, 18.2); if (Math.abs(angDiff(a, DOCK_LABO.a)) < 0.25) continue; poser('lampadaire', q.x, q.z, { ry: -a + Math.PI, bloc: 0.25, gros: 0.4 }); }
   { const q = polL(-0.05, 12.6); poser('panneau', q.x, q.z, { ry: 1.6, gros: 0.3 }); }
-  return { L, yeux };
+  /* LES MACHINES DU DOCTEUR (24/11/2026, « continue de construire : monstres, animations, decors », Mathieu) : la ligne electrique le long du chemin, du ponton
+     a la tour (poteaux, cables tendus par le jeu) ; trois groupes electrogenes qui crachent des arcs (vieIleLabo) ; des cuves brisees qui fuient ; des caisses
+     de mutagene ; des tas de ferraille ; un panneau « danger » a l'entree de chaque camp, du cote de la tour */
+  const poteaux = [46, 41.5, 36.5, 31.5, 24.5, 18.5].map((sv) => { const q = leLongDuChemin(sv, -2.9); return poser('poteau_cable', q.x, q.z, { ry: -DOCK_LABO.a, bloc: 0.22, gros: 0.45 }); });
+  const generateurs = []; const gen = (n, a0, a1, r0, r1, o) => semer(n, a0, a1, r0, r1, (x, z) => { if (!libre(x, z, Object.assign({ ecart: 1.6, chemin: 2.4, camp: 2.0, mare: 1.2 }, o))) return false; generateurs.push(poser('generateur', x, z, { ry: rnd() * TAU_L, bloc: 1.0, gros: 1.6 })); return true; });
+  { const q = leLongDuChemin(45, -6.6); generateurs.push(poser('generateur', q.x, q.z, { ry: -DOCK_LABO.a + 0.3, bloc: 1.0, gros: 1.6 })); }
+  gen(1, 4.95, 6.0, 21, 30); gen(1, 1.6, 2.3, 20, 27);
+  semer(1, 4.95, 6.05, 24, 44, (x, z) => { if (!libre(x, z, { ecart: 1.6, chemin: 2.0, mare: 0.6, camp: 2 })) return false; poser('cuve_brisee', x, z, { bloc: 0.8, gros: 1.8 }); return true; });
+  semer(1, 1.6, 3.2, 22, 44, (x, z) => { if (!libre(x, z, { ecart: 1.6, chemin: 2.0, camp: 2 })) return false; poser('cuve_brisee', x, z, { bloc: 0.8, gros: 1.8 }); return true; });
+  semer(1, 3.4, 4.9, 22, 40, (x, z) => { if (!libre(x, z, { ecart: 1.6, chemin: 2.0, camp: 2 })) return false; poser('cuve_brisee', x, z, { bloc: 0.8, gros: 1.8 }); return true; });
+  [[2.6, 14.9], [4.75, 13.0]].forEach(([a, r]) => { const q = polL(a, r); if (loin(q.x, q.z, 0.6)) poser('caisse_mutagene', q.x, q.z, { ry: rnd() * 2, bloc: 0.65, gros: 0.8 }); });
+  generateurs.slice(0, 2).forEach((G0) => { const q = { x: G0.x + 2.2 * Math.cos(G0.ry + 1), z: G0.z - 2.2 * Math.sin(G0.ry + 1) }; if (loin(q.x, q.z, 0.6) && dChemin(q.x, q.z) > 1.2) poser('caisse_mutagene', q.x, q.z, { ry: rnd() * 2, bloc: 0.65, gros: 0.8 }); });
+  semer(1, 3.5, 4.6, 21, 36, (x, z) => { if (!libre(x, z, { ecart: 1.4, chemin: 2.0, camp: 2 })) return false; poser('ferraille', x, z, { bloc: 1.0, gros: 1.6 }); return true; });
+  semer(1, 0, TAU_L, 32, 50, (x, z) => { const s = sDe(x, z); if (s < 3.0 || !libre(x, z, { sMin: 3.0, ecart: 2.0, rMin: 26, champ: 2, chemin: 2.0 })) return false; poser('ferraille', x, z, { bloc: 1.0, gros: 1.6, dy: -0.1 }); return true; });
+  CAMPS_LABO.forEach((K) => { const d = Math.hypot(K.x, K.z) || 1, ux = -K.x / d, uz = -K.z / d, x = K.x + ux * (K.r + 1.3), z = K.z + uz * (K.r + 1.3); if (dChemin(x, z) < 0.9) return; poser('panneau', x, z, { ry: Math.atan2(ux, uz), gros: 0.3 }); });
+  return { L, yeux, machines: { poteaux, generateurs, autres: L.filter((P) => P.p === 'cuve_brisee' || P.p === 'ferraille') } };
 }
 /* VOIR A TRAVERS LES ARBRES : les pieces du dehors (cimes, rochers, champignons geants...) s'ouvrent autour du perso, entre lui et la camera, au-dessus de
    1,5 de haut (un trou au bord tramé) ; sinon, dans la foret, le perso disparaissait sous les cimes. Les uniformes sont mis a jour a chaque image (vieIleLabo) */
@@ -310,12 +325,24 @@ async function construireIleWabbits() {
   g.userData.portes = [1, 2, 3, 4, 5].map((i) => prendre('Labo_porte_' + i)); g.userData.grilles = [1, 2, 3, 4].map((i) => prendre('Labo_grille_' + i));
   /* les pieces du dehors */
   versToon(fl, { normales: 0.02, sansContour: SC_FLORE }); const F = {}; fl.children.slice().forEach((o) => { F[o.name.replace(/^Fl_/, '')] = o; });
-  const { L, yeux } = placerFloreLabo(), morceaux = new Map();
+  [F.cuve_brisee, F.caisse_mutagene].forEach((pr) => pr && pr.traverse((m) => { if (m.isMesh && /^(verre|fiole)/.test(m.name)) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.4; m.material.depthWrite = false; m.castShadow = false; } })); /* (le verre des cuves et des fioles, 24/11/2026) */
+  const { L, yeux, machines } = placerFloreLabo(), morceaux = new Map();
   L.forEach((P) => { const pr = F[P.p]; if (!pr) return; const o = pr.clone(); const y = P.p === 'ponton' ? 0 : hTerrainLabo(P.x, P.z) + P.dy; o.position.set(P.x, y, P.z); o.rotation.set(0, P.ry, 0); o.scale.setScalar(P.s);
     if (P.p === 'sillons' || P.p === 'passerelle_marais') o.position.y = hTerrainLabo(P.x, P.z) + (P.p === 'sillons' ? 0.06 : 0.05) + P.dy;
     const cle = Math.floor(P.x / 24) + ',' + Math.floor(P.z / 24); if (!morceaux.has(cle)) { const mg = new T.Group(); mg.name = 'flore_' + cle; morceaux.set(cle, mg); } morceaux.get(cle).add(o); });
   const lueurs = []; morceaux.forEach((mg) => { g.add(mg); fusionner(mg); lueurs.push(...trouGroupe(mg)); });
   g.userData.lueurs = lueurs;
+  /* les cables de la ligne electrique (24/11/2026) : deux par portee, d'un isolateur a l'autre (Fl_poteau_cable : -0,64 et 0,76 ; 4,55 de haut), qui pendent ;
+     le dernier poteau rejoint le mur de la tour. Et les boules des groupes electrogenes, ou les arcs claquent (vieIleLabo) */
+  { const anc = (P, xl) => { const c = Math.cos(P.ry), sn = Math.sin(P.ry); return new T.Vector3(P.x + xl * c * P.s, hTerrainLabo(P.x, P.z) + P.dy + 4.55 * P.s, P.z - xl * sn * P.s); };
+    const matC = new T.MeshBasicMaterial({ color: '#1f1b18' }), cable = (A, B, pend) => { const pts = []; for (let i = 0; i <= 12; i++) { const u = i / 12; pts.push(new T.Vector3(A.x + (B.x - A.x) * u, A.y + (B.y - A.y) * u - pend * 4 * u * (1 - u), A.z + (B.z - A.z) * u)); }
+      const m = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 16, 0.03, 4, false), matC); m.raycast = () => {}; g.add(m); };
+    const Pt = machines.poteaux; for (let k = 1; k < Pt.length; k++) [-0.64, 0.76].forEach((xl) => cable(anc(Pt[k - 1], xl), anc(Pt[k], xl), 0.55));
+    const last = Pt[Pt.length - 1], mur = polL(DOCK_LABO.a - 0.08, LABO.R_OUT + 0.4); [-0.64, 0.76].forEach((xl, k) => cable(anc(last, xl), new T.Vector3(mur.x, 6.0 + k * 0.5, mur.z + k * 0.3), 0.7));
+    const matArc = new T.LineBasicMaterial({ color: '#d8f6ff', transparent: true, opacity: 0.95 });
+    g.userData.machinesAutres = machines.autres.map((P) => ({ p: P.p, x: P.x, z: P.z }));
+    g.userData.generateurs = machines.generateurs.map((P) => { const c = Math.cos(P.ry), sn = Math.sin(P.ry), y = hTerrainLabo(P.x, P.z) + P.dy + 2.02 * P.s, A = new T.Vector3(P.x - 0.45 * c * P.s, y, P.z + 0.45 * sn * P.s), B = new T.Vector3(P.x + 0.45 * c * P.s, y, P.z - 0.45 * sn * P.s);
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(new Float32Array(8 * 3), 3)); const l = new T.Line(geo, matArc); l.visible = false; l.raycast = () => {}; g.add(l); return { A, B, l, ph: Math.random() * 3 }; }); }
   /* les yeux : un globe par plante, qui suit le perso */
   g.userData.yeux = yeux.map((P) => { const o = F.oeil_globe.clone(), s = P.s, c = Math.cos(P.ry), sn = Math.sin(P.ry), tx = 0.085, tz = 0.135; o.position.set(P.x + (tx * c + tz * sn) * s, hTerrainLabo(P.x, P.z) + 1.86 * s, P.z + (-tx * sn + tz * c) * s); o.scale.setScalar(s * 0.95); g.add(o); return o; }); /* (au bout de la tige : 0,085 ; 1,59 ; 0,135 dans le modele) */
   /* la barque */
@@ -388,6 +415,11 @@ function vieIleLabo(dt) {
     return false; }
   (I.lueurs || []).forEach((L) => { L.m.color.copy(L.c).multiplyScalar(0.8 + 0.25 * Math.sin(t * 1.9 + L.ph)); });
   (I.flaques || []).forEach((f, i) => { f.material.opacity = 0.45 + 0.15 * Math.sin(t * 2.0 + i); });
+  if ((V.gen = (V.gen || 0) - dt) <= 0) { V.gen = 0.08; (I.generateurs || []).forEach((G0) => { const l = G0.l; /* (les arcs des groupes electrogenes, 24/11/2026 : entre les deux boules, un trait brise qui saute ; parfois des etincelles) */
+      if (Math.hypot(G0.A.x + DONJON.x - p.x, G0.A.z + DONJON.z - p.z) > 45 || Math.random() < 0.35) { l.visible = false; return; } const a = l.geometry.attributes.position;
+      for (let i = 0; i < 8; i++) { const u = i / 7, j = i === 0 || i === 7 ? 0 : 0.2; a.setXYZ(i, G0.A.x + (G0.B.x - G0.A.x) * u + (Math.random() - 0.5) * j, G0.A.y + Math.sin(u * Math.PI) * 0.35 + (Math.random() - 0.5) * j, G0.A.z + (G0.B.z - G0.A.z) * u + (Math.random() - 0.5) * j); }
+      a.needsUpdate = true; l.visible = true;
+      if (Math.random() < 0.12) emettre(FX_VIF, 4, { x: DONJON.x + (G0.A.x + G0.B.x) / 2, y: G0.A.y + 0.25, z: DONJON.z + (G0.A.z + G0.B.z) / 2, r: 0.1, dv: 2.5, haut: true, vie: [0.2, 0.4], taille: [0.08, 0.03], c: ['#ffffff', '#bfe8ff'], grav: 9, frein: 1 }); }); }
   if (I.ecume) I.ecume.material.opacity = 0.24 + 0.1 * Math.sin(t * 1.3);
   (I.brumes || []).forEach((B) => { B.m.material.opacity = 0.22 + 0.1 * Math.sin(t * 0.5 + B.ph); B.m.rotation.z = Math.sin(t * 0.07 + B.ph) * 0.6; B.m.position.x = B.x + Math.sin(t * 0.11 + B.ph) * 1.2; });
   const cible = new T.Vector3(p.x, p.y + 1.0, p.z); (I.yeux || []).forEach((o) => { if (Math.abs(o.position.x + DONJON.x - p.x) + Math.abs(o.position.z + DONJON.z - p.z) < 40) o.lookAt(cible); });
