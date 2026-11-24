@@ -448,7 +448,7 @@ async function construireIleWabbits() {
   g.userData.yeux = yeux.map((P) => { const o = F.oeil_globe.clone(), s = P.s, c = Math.cos(P.ry), sn = Math.sin(P.ry), tx = 0.085, tz = 0.135; o.position.set(P.x + (tx * c + tz * sn) * s, hTerrainLabo(P.x, P.z) + 1.86 * s, P.z + (-tx * sn + tz * c) * s); o.scale.setScalar(s * 0.95); g.add(o); return o; }); /* (au bout de la tige : 0,085 ; 1,59 ; 0,135 dans le modele) */
   /* LA MONTGOLFIERE (24/11/2026, « dans l'ideal, arriver avec la montgolfiere, puisque c'est elle qu'on prend pour aller au donjon ; elle se pose au niveau du
      ponton, on oublie le bateau », Mathieu) : celle de la ferme, posee au bout du ponton ; elle descend du ciel a l'arrivee (debarquer) */
-  if (MODELES.montgolfiere) { const b = MODELES.montgolfiere.clone(true), q = versDock(BALLON_LABO.u, 0); b.traverse((o) => { delete o.userData.montgolfiere; }); b.visible = true; pose(b, q.x, q.z, 0); b.rotation.set(0, -DOCK_LABO.a, 0); g.userData.ballon = b; } /* (rotation.set : le modele garde une rotation que la ferme remet a zero, sinon il etait a l'envers) */
+  if (MODELES.montgolfiere) { const b = MODELES.montgolfiere.clone(true), q = versDock(BALLON_LABO.u, 0); b.traverse((o) => { delete o.userData.montgolfiere; }); fusionner(b); b.visible = true; /* (soudee : 50 a 90 dessins de moins, 24/11/2026) */ pose(b, q.x, q.z, 0); b.rotation.set(0, -DOCK_LABO.a, 0); g.userData.ballon = b; } /* (rotation.set : le modele garde une rotation que la ferme remet a zero, sinon il etait a l'envers) */
   /* les mares de mutagene qui luisent (et leurs bords plus sombres) */
   const flaques = []; MARES_LABO.forEach((M) => {
     const f = new T.Mesh(new T.CircleGeometry(M.R + 0.6, 30), new T.MeshBasicMaterial({ color: '#7dff5a', transparent: true, opacity: 0.55, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.position.set(M.x, -0.18, M.z); g.add(f); flaques.push(f);
@@ -765,12 +765,14 @@ function effacerTour(dt, hP) {
 }
 async function partirDonjon() {
   if (!MODE_TEST) return; if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; } if (lieu !== 'ferme' && lieu !== 'donjon') { toast('Rentre d\'abord à la ferme.'); return; }
-  fermerModale(); if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
+  fermerModale();
+  if (typeof MUTANTS_LABO !== 'undefined') { const N = MUTANTS_LABO.map(([m]) => m).filter((m) => !MODELES[m]); if (N.length) { toast('Les mutants du labo se réveillent…', 'or'); try { await chargerSquelettes(N); prechaufferSquelettes(N); } catch (e) { /* rien */ } } } /* (24/11/2026 : charges AVANT le voyage ; pendant leur chargement, apres, le perso retombait sur le ponton puis remontait dans la montgolfiere, « ca n'a pas de sens », Mathieu) */
+  if (lieu !== 'donjon' && !(await allerSur('donjon'))) { toast('L\'île n\'a pas pu se charger, réessaie.', 'alerte'); return; }
+  { const bl = ileWabbits.userData.ballon, B0 = versDock(BALLON_LABO.u, 0); if (bl) bl.position.set(B0.x, BALLON_LABO.haut, B0.z); } /* (le ballon deja dans le ciel quand le voile se leve) */
   const I = ileWabbits.userData; (I.grilles || []).forEach((G) => { if (G) { G.visible = true; G.position.y = 0; } });
   const q0 = versDock(BALLON_LABO.u, 0), u = paysanMesh.userData; paysanMesh.position.set(DONJON.x + q0.x, BALLON_LABO.haut, DONJON.z + q0.z); u.y = BALLON_LABO.haut; /* (dans la nacelle, la montgolfiere descend : debarquer) */ u.angle = -Math.PI / 2; paysanMesh.rotation.set(0, u.angle, 0); u.charge = false; chemin = []; arrivee = null;
   VISEE.set(paysanMesh.position.x, 0.6, paysanMesh.position.z); zoom = VOYAGES.donjon.zoom(); placerCamera(); cadrer();
   const n = Math.max(51, Math.min(VAGUES_TOTAL, Math.round(niveau(S_.xp)))); /* (les Wabbits a la force de ton niveau, jamais sous la vague 51) */
-  if (typeof MUTANTS_LABO !== 'undefined') { const N = MUTANTS_LABO.map(([m]) => m).filter((m) => !MODELES[m]); if (N.length) { toast('Les mutants du labo se réveillent…', 'or'); try { await chargerSquelettes(N); prechaufferSquelettes(N); } catch (e) { /* rien */ } } } /* (24/11/2026 : charges avant les camps ; sinon les premiers demandes, pendant le chargement, se perdaient) */
   const total = CAMPS_LABO.concat(SALLES_LABO).reduce((a, Z) => a + Z.L.reduce((b, [, k]) => b + k, 0), 0) + 4; /* (+4 : les specimens des cuves, 24/11/2026) */
   nouveauCombat('donjon', { n, attente: 1e9, total, ...potsDeVague() }); /* (attente : rien ne sort de la file, les camps et les salles font sortir leurs mutants) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant le donjon : ' + texteRepas(repas) + '.', 'or'), 2400); }
@@ -807,5 +809,13 @@ function effacerTourReset() { const I = ileWabbits.userData; [I.tour, I.passerel
 /* le perso a terre sur l'ile : le bilan (sans deroute de la ferme) */
 const persoATerreDonjon = persoATerre; persoATerre = function () { if (combat && combat.genre === 'donjon') { finDonjon(false); return; } persoATerreDonjon(); };
 /* le bouton du bandeau du mode test, et ceux du bilan */
-const bandeauTestDonjon = bandeauTest; bandeauTest = function () { bandeauTestDonjon(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-donjon]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-donjon="partir">Labo de Wabbenstein</button>'); };
-document.addEventListener('click', (e) => { const b = e.target.closest('[data-donjon]'); if (!b || !MODE_TEST || !estAdmin()) return; if (b.dataset.donjon === 'partir') { if (combat && combat.genre === 'donjon') return; partirDonjon(); } });
+const bandeauTestDonjon = bandeauTest; bandeauTest = function () { bandeauTestDonjon(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-donjon]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-donjon="prepa">Labo de Wabbenstein</button>'); };
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-donjon]'); if (!b || !MODE_TEST || !estAdmin()) return; if (b.dataset.donjon === 'partir') { if (combat && combat.genre === 'donjon') return; partirDonjon(); } else if (b.dataset.donjon === 'prepa') ouvrirPrepaLabo(); });
+/* AVANT LE DEPART (24/11/2026 au soir, « on ne nous demande pas si on peut manger quelque chose avant », Mathieu) : la fenetre « Avant la bataille » des vagues et
+   des revanches (manger, boire, la defense), puis « Partir » ; ce qui est pris vaut pour toute la partie du labo (potsDeVague, appliquerRepas, partirDonjon) */
+function ouvrirPrepaLabo() {
+  if (combat) { toast('Finis ou quitte le combat d\'abord.'); return; }
+  ouvrirModale('labo-prepa', entete('Le laboratoire du Docteur Wabbenstein') + '<p class="hdv-aide">Avant de monter dans la montgolfière : mange, bois tes potions et prépare ta défense. Ce que tu prends vaut pour toute ta partie du labo.</p>' +
+    avantBataille() + '<div class="act-bas"><button class="btn discret" data-fermer>Pas maintenant</button><button class="btn kamas" data-donjon="partir">Partir pour le labo</button></div>');
+}
+{ const rafraichirLabo = rafraichirAvantCombat; rafraichirAvantCombat = function () { if (modaleOuverte === 'labo-prepa') { ouvrirPrepaLabo(); return; } return rafraichirLabo.apply(this, arguments); }; }

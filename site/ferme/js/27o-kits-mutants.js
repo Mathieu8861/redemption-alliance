@@ -52,7 +52,9 @@ function majCoursePerso() { const now = performance.now(), C = COURSE_PERSO; if 
   if (C.t && dt < 0.5) { const k = Math.min(1, dt * 6), vx = (p.x - C.x) / dt, vz = (p.z - C.z) / dt; if (Math.hypot(vx, vz) < 20) { C.vx += (vx - C.vx) * k; C.vz += (vz - C.vz) * k; } } else { C.vx = 0; C.vz = 0; }
   C.x = p.x; C.z = p.z; C.t = now; }
 function visePerso(prepa) { majCoursePerso(); const p = paysanMesh.position, C = COURSE_PERSO; let dx = C.vx * prepa * VISE_MUT.avance, dz = C.vz * prepa * VISE_MUT.avance; const L = Math.hypot(dx, dz);
-  if (L > VISE_MUT.max) { dx *= VISE_MUT.max / L; dz *= VISE_MUT.max / L; } return { x: p.x + dx, z: p.z + dz, y: p.y }; }
+  if (L > VISE_MUT.max) { dx *= VISE_MUT.max / L; dz *= VISE_MUT.max / L; }
+  if (typeof lieu !== 'undefined' && lieu === 'donjon' && typeof bornerDonjon === 'function' && typeof etatPerso === 'function') { const q = bornerDonjon(p.x + dx, p.z + dz, 0.6, Object.assign({}, etatPerso())); return { x: q[0], z: q[1], y: p.y }; } /* (au labo, jamais au-dela du bord de l'ile ni dans un obstacle : le Garou alpha y bondissait et restait colle au bord, Mathieu, 24/11/2026) */
+  return { x: p.x + dx, z: p.z + dz, y: p.y }; }
 CAPACITES.unshift(function capCoursePerso() { majCoursePerso(); }); /* (mesuree a chaque image, pas seulement au moment du sort : sinon sa vitesse retombait a zero) */
 /* le bond et la charge des mutants visent aussi la ou tu vas : leur fonction recoit ta position a venir (le temps de leur annonce) */
 { const prepaDe = (mo, cap) => cap === capBond ? (mo.d.bondPrepa || ESQUIVE.bond) : (mo.d.chargePrepa || ESQUIVE.charge) + 0.25;
@@ -160,3 +162,33 @@ CAPACITES.push(capObusMut, capBombardMut, capCrachatMut, capPinceMut, capGrappin
 const KIT_WAB_DIFFICILE = { rafale: 8, harpon: 7, saisie: 6.5, vague: 16, vie: 500000, parJoueur: 0.9 }; /* (vie : 500 000 en solo, choisi par Mathieu au formulaire le 24/11/2026 ; vie des mutants et boss x5 gardes) */
 if (typeof KIT_WAB !== 'undefined') { KIT_WAB.rafale.periode = KIT_WAB_DIFFICILE.rafale; KIT_WAB.harpon.periode = KIT_WAB_DIFFICILE.harpon; KIT_WAB.saisie.periode = KIT_WAB_DIFFICILE.saisie; KIT_WAB.phase.vague = KIT_WAB_DIFFICILE.vague;
   KIT_WAB.vie.base = KIT_WAB_DIFFICILE.vie; KIT_WAB.vie.parJoueur = KIT_WAB_DIFFICILE.parJoueur; }
+
+/* ILS CONTOURNENT (24/11/2026, « le mini-boss etait bugge dans un mur invisible en bord de map », Mathieu) : sur l'ile, un mutant lance a ta poursuite allait tout
+   droit et restait colle contre un rocher, un arbre ou le bord de l'eau. Toutes les 0,7 s, s'il ne te voit pas en ligne droite (la grille des chemins du perso,
+   29c), il prend le chemin le plus court (cheminGrille) et le suit jusqu'a te revoir. Aussi s'il n'a presque pas bouge depuis 1,5 s */
+const CONTOURNE_MUT = { tous: 0.7, coince: 1.5, bouge: 0.4 };
+function voitLabo(ax, az, bx, bz) { const G = grilleCh('sol'), n = G.n, L = Math.hypot(bx - ax, bz - az), N = Math.ceil(L / 0.25);
+  for (let s2 = 1; s2 < N; s2++) { const x = ax + (bx - ax) * s2 / N, z = az + (bz - az) * s2 / N, i = Math.floor((x - G.x0) / PAS_CH), j = Math.floor((z - G.z0) / PAS_CH); if (i < 0 || j < 0 || i >= n || j >= n || G.ok[j * n + i] !== 1) return false; } return true; }
+{ const majMonstreContourne = majMonstre; majMonstre = function (mo, dt) {
+    try { if (lieu === 'donjon' && combat && combat.genre === 'donjon' && donjonEtat && mo.etat === 'actif' && mo.lab && mo.lab.mode === 'sol' && !mo.d.vol && !mo.d.boss && (mo.aggro || mo.chasse) && donjonEtat.perso.mode === 'sol' && !(mo.camp != null && donjonEtat.camps[mo.camp] && !donjonEtat.camps[mo.camp].actif)) {
+        const now = performance.now() / 1000, p = paysanMesh.position, ax = mo.x - DONJON.x, az = mo.z - DONJON.z, bx = p.x - DONJON.x, bz = p.z - DONJON.z, d = Math.hypot(bx - ax, bz - az);
+        const T0 = mo.contourne || (mo.contourne = { t: 0, x: mo.x, z: mo.z, tb: now, ch: null });
+        if (now - T0.tb > CONTOURNE_MUT.coince) { const coince = Math.hypot(mo.x - T0.x, mo.z - T0.z) < CONTOURNE_MUT.bouge && d > (mo.d.portee || 1.5) + 1.5; T0.x = mo.x; T0.z = mo.z; T0.tb = now; if (coince) T0.t = 0; }
+        if (now - T0.t > CONTOURNE_MUT.tous) { T0.t = now; T0.ch = d > (mo.d.portee || 1.5) + 1.2 && !voitLabo(ax, az, bx, bz) ? cheminGrille('sol', ax, az, bx, bz) : null; }
+        if (T0.ch && T0.ch.length && !(mo.bloqueT > 0) && !mo.geste) { let w = T0.ch[0]; if (Math.hypot(w.x - ax, w.z - az) < 0.5) { T0.ch.shift(); w = T0.ch[0]; }
+          if (w) { const wx = w.x - ax, wz = w.z - az, L = Math.hypot(wx, wz) || 1, v = Math.min(L, vitesseMonstre(mo.d) * (dt || 0.016)); mo.x += wx / L * v; mo.z += wz / L * v; mo.ry = Math.atan2(wx, wz); mo.vLabo = v / Math.max(dt || 0.016, 1e-3);
+            return majMonstreContourne.call(this, mo, 0, arguments[2]); } } } } catch (e) { /* rien */ }
+    return majMonstreContourne.apply(this, arguments); }; }
+/* PLUS SOLIDES ET PLUS DE PROJECTILES (24/11/2026 au soir, apres l'essai de Mathieu : « en solo, leurs PV sont vraiment trop faibles ; je mets a peu pres 10-15 000
+   en zone avec mes doubles legendaires et mes doubles sorts, si tout le monde fait ca on one-shot les vagues ; les degats ca va, meme si je trouve qu'il n'y a pas
+   assez de projectiles, surtout si on est plusieurs ») : la vie des mutants x3 (15 000 a 48 000 au niveau 100 : il faut 2 a 4 passages de sorts de zone par
+   groupe), +60 % par joueur en plus ; le garde tire 3 cawottes a la suite (la moitie chacune), le drone 2 (60 % chacune), une de plus par joueur en plus.
+   Les boss du labo (x5) et le Docteur partent de la. Quand le donjon se jouera a plusieurs, combat.joueurs le dira (joueursWab, 27k) */
+const PV_PEUR = 3, PV_PEUR_PAR_JOUEUR = 0.6;
+['wabGarde', 'wabEnrage', 'wabFluo', 'wabGreffe', 'wabVampire', 'wabGarou', 'wabDrone'].forEach((t) => { const D = MONSTRES[t]; if (!D) return; const p0 = D.pv;
+  D.pv = (n) => Math.round(p0(n) * PV_PEUR * (1 + PV_PEUR_PAR_JOUEUR * (Math.max(1, (combat && combat.joueurs) || 1) - 1))); });
+if (MONSTRES.wabGarde) MONSTRES.wabGarde.salve = { n: 3, x: 0.5, ecart: 0.14 };
+if (MONSTRES.wabDrone) MONSTRES.wabDrone.salve = { n: 2, x: 0.6, ecart: 0.18 };
+{ const tirMut0 = tirMonstre; tirMonstre = function (mo, bat, caw) { const S = mo && mo.d && mo.d.salve; if (!S || bat || caw) return tirMut0.apply(this, arguments);
+    const n = S.n + Math.max(0, ((combat && combat.joueurs) || 1) - 1), c0 = combat, un = () => { const dd = mo.deg; mo.deg = Math.max(1, Math.round(dd * S.x)); try { tirMut0.call(this, mo, null, null); } finally { mo.deg = dd; } };
+    un(); let t = 0, k = 1; effets.push((dt) => { t += dt; if (combat !== c0 || !c0 || c0.fin || mo.etat !== 'actif') return true; while (k < n && t >= k * S.ecart) { un(); k++; } return k >= n; }); }; }
