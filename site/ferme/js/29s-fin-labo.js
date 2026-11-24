@@ -111,3 +111,5 @@ function dronesRampe() {
     if (!E.dronesVus) { E.dronesVus = true; toast('Des drones du Docteur patrouillent sur la passerelle : ils tirent des cawottes !', 'alerte'); } }
 }
 { const tickDonjonDrones = tickDonjon; tickDonjon = function () { const r = tickDonjonDrones.apply(this, arguments); try { dronesRampe(); } catch (e) { /* rien */ } return r; }; }
+/* le modele du drone, charge au depart pour l'ile (24/11/2026, 27n-mutants-labo.js) */
+{ const partirDonjonDrone = partirDonjon; partirDonjon = async function () { try { if (typeof chargerDrone === 'function') chargerDrone(); } catch (e) { /* rien */ } return partirDonjonDrone.apply(this, arguments); }; }

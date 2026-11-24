@@ -95,7 +95,29 @@ const SPECIMEN = { pv: 3, deg: 1.3, taille: 1.35 }, CHEF_LABO = { pv: 5, deg: 1.
 /* LE DRONE DU DOCTEUR (24/11/2026, Mathieu par Discord : « des drones de surveillance sur la passerelle : oui carrement ») : un petit robot volant de cuivre,
    l'oeil vert, deux oreilles de lapin en tole, deux rotors qui tournent et un canon a cawottes sous le ventre ; fait en formes simples par le jeu (fabrique).
    Il patrouille sur la passerelle de la tour (29s-fin-labo.js) et tire des cawottes de loin. Version dev */
+/* (24/11/2026, « il est plutot rigolo ton drone, mais esthetiquement il est en dessous des autres designs ; faut le voir comme un monstre », Mathieu) : le vrai
+   modele, comme les mutants (dessin dans le style du garde lapin-machine, Rodin, texture au dosage C, blender/drone-jeu.py -> assets/modeles/jeu/wab-drone.glb),
+   rendu doux sans contour comme eux ; une helice qui tourne dans chacun de ses deux carenages (mesures par drone-jeu.py). Charge au depart pour l'ile
+   (29s-fin-labo.js) ; tant qu'il n'est pas la, le drone en formes simples d'avant le remplace */
+const DRONE_HELICES = [[0.78, 0.27, -0.03], [-0.777, 0.272, -0.037]], DRONE_ECH = 1.15;
+let DRONE_GLB = null;
+function chargerDrone() {
+  if (chargerDrone.p) return chargerDrone.p;
+  chargerDrone.p = chargerGlb('assets/modeles/jeu/wab-drone.glb?v=' + (VERSIONS_FICHIERS['wab-drone.glb'] || VERSION_MODELES)).then((sc) => { const R = RENDU_B_PAR['wab-garde'] || RENDU_B;
+    sc.traverse((o) => { if (!o.isMesh) return; const map = o.material.map; if (map) { map.encoding = T.LinearEncoding; map.needsUpdate = true; } o.material = matiereB(new T.MeshToonMaterial({ color: '#ffffff', map, gradientMap: grad, side: T.DoubleSide }), R); o.castShadow = true; o.receiveShadow = true; });
+    DRONE_GLB = sc; }).catch(() => { chargerDrone.p = null; });
+  return chargerDrone.p;
+}
+const MAT_HELICE = new T.MeshBasicMaterial({ color: '#cfd4da', transparent: true, opacity: 0.35, depthWrite: false, side: T.DoubleSide }), MAT_PALE = new T.MeshBasicMaterial({ color: '#6a6f76' });
 function fabriquerDrone() {
+  if (DRONE_GLB) { const g = new T.Group(), m = DRONE_GLB.clone(true); m.scale.setScalar(DRONE_ECH); g.add(m); /* (son oeil regarde vers +z, comme tout monstre : le dessin est de face, Blender -y donne +z) */
+    g.userData.rotors = DRONE_HELICES.map(([x, y, z]) => { const r = new T.Group(); r.position.set(x * DRONE_ECH, y * DRONE_ECH + 0.04, z * DRONE_ECH);
+      const disque = new T.Mesh(new T.CircleGeometry(0.21 * DRONE_ECH, 24), MAT_HELICE); disque.rotation.x = -Math.PI / 2; r.add(disque);
+      [0, Math.PI / 2].forEach((a) => { const p = new T.Mesh(new T.BoxGeometry(0.4 * DRONE_ECH, 0.012, 0.05), MAT_PALE); p.rotation.y = a; r.add(p); }); g.add(r); return r; });
+    g.traverse((q) => { q.raycast = () => {}; }); return g; }
+  return fabriquerDroneSimple();
+}
+function fabriquerDroneSimple() { /* (le drone en formes simples du 24/11 au matin, en attendant le modele) */
   const g = new T.Group(), Y = 0.5, cu = mat('#c9682a'), cuF = mat('#9a4c1e'), la = mat('#b38d35'), fer = mat('#62656d'), ferF = mat('#43464d'), ferC = mat('#8b8f98'), lum = new T.MeshBasicMaterial({ color: '#8dff6a' });
   const add = (m, x, y, z) => { m.position.set(x, y + Y, z); g.add(m); return m; };
   add(new T.Mesh(new T.SphereGeometry(0.42, 18, 14), cu), 0, 0, 0);
