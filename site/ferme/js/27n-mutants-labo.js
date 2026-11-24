@@ -26,14 +26,18 @@ Object.assign(MONSTRES, {
     pv: fW('wabbitNoir', 'pv', 1.1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.8, vitesse: 2.0, portee: 1.6, ombre: 1.8, flaqueMort: { R: 1.9, duree: 5, pct: 0.012 } },
   wabGreffe: { element: 'terre', nom: 'Wabbit greffé', modele: 'wab-greffe', icone: 'wab-greffe', desc: 'cousu de partout et blindé, armure (-35 %) : sa pince mécanique frappe fort',
     pv: fW('woWabbit', 'pv', 1), deg: fW('gwandWabbit', 'deg', 0.9), cadence: 2.0, vitesse: 1.6, portee: 1.7, armure: 0.35, ombre: 1.9 },
-  wabVampire: { element: 'esprit', nom: 'Wabbit vampire', modele: 'wab-vampire', icone: 'wab-vampire', desc: 'sorti des cuves, les oreilles en ailes : il te vole la vie, chaque morsure le soigne de la moitié des dégâts',
-    pv: fW('wabbitNoir', 'pv', 1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.3, vitesse: 2.8, portee: 1.4, ombre: 1.6, volVie: 0.5 },
+  wabVampire: { element: 'esprit', nom: 'Wabbit vampire', modele: 'wab-vampire', icone: 'wab-vampire', desc: 'sorti des cuves, les oreilles en ailes : il vole au-dessus du sol et te vole la vie, chaque morsure le soigne de la moitié des dégâts',
+    pv: fW('wabbitNoir', 'pv', 1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.3, vitesse: 2.8, portee: 1.4, ombre: 1.6, volVie: 0.5, vol: 1.0 }, /* (vol, 24/11/2026 : « les wabbit vampire faudrait qu'ils volent nan ? plus sympa », Mathieu ; ses ailes battent dans ses mouvements, blender/ailes-os.py) */
   wabGarou: { element: 'terre', nom: 'Wabbit garou', modele: 'wab-garou', icone: 'wab-garou', desc: 'la créature la plus forte du Docteur, armure (-15 %) : énorme, il cogne très fort',
     pv: fW('gwandWabbit', 'pv', 1.6), deg: fW('gwandWabbit', 'deg', 1.3), cadence: 2.0, vitesse: 2.2, portee: 2.0, armure: 0.15, ombre: 2.6 } });
 /* LE VOL DE VIE du vampire : il se soigne de la moitie de ce qu'il t'enleve */
 { const blesserPersoMut = blesserPerso; blesserPerso = function (n, mo) { const c = combat, a0 = c ? c.pv : 0, ok = blesserPersoMut.apply(this, arguments);
     try { if (mo && mo.d && mo.d.volVie && c && mo.etat === 'actif') { const pris = Math.max(0, a0 - c.pv); if (pris > 0) { const h = Math.round(pris * mo.d.volVie); mo.pv = Math.min(mo.pvMax, mo.pv + h); if (typeof chiffre === 'function') chiffre('+' + h, new T.Vector3(mo.x, (mo.m ? mo.m.position.y : 0) + (mo.haut || 2), mo.z), 'soin'); } } } catch (e) { /* rien */ }
     return ok; }; }
+/* LE VAMPIRE QUI VOLE (vol, 24/11/2026) : mort en l'air, il tombe jusqu'au sol pendant son geste de mort, au lieu de rester suspendu puis de s'enfoncer dans le vide */
+{ const mortSquelettePlane = mortSquelette; mortSquelette = function (mo, dt) {
+    try { if (mo.d && mo.d.vol && !mo.d.battements && mo.m) { const sol = solA(mo.x, mo.z); if (mo.m.position.y > sol + 0.01 && !(mo.chute && mo.chute.t > mo.chute.d + 0.6)) { mo.vChute = (mo.vChute || 0) + 14 * dt; mo.m.position.y = Math.max(sol, mo.m.position.y - mo.vChute * dt); } } } catch (e) { /* rien */ }
+    return mortSquelettePlane.apply(this, arguments); }; }
 /* LA FLAQUE DU FLUO : un disque vert au sol, 5 s, qui empoisonne qui s'y tient (1,2 % de la vie par seconde) */
 const FLAQUES_FLUO = [];
 function flaqueFluo(mo) {
