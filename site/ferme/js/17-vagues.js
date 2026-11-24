@@ -17,9 +17,9 @@ const POTS = {
   menthe: { nom: 'Pot de gelée Menthe', court: 'Pots de Menthe', soin: 0.25, prix: 42, menthe: true, effet: '+25 % de vie, puis 1 % toutes les 4 s pendant la vague', desc: 'À boire juste avant de lancer la vague : il continue de te soigner pendant le combat.' },
   fraise: { nom: 'Pot de gelée Fraise', court: 'Pots de Fraise', soin: 0.4, effet: '+40 % de vie', desc: 'Fait à ta Gelière par tes Gelées Fraise.', geliere: true },
   citron: { nom: 'Pot de gelée Citron', court: 'Pots de Citron', soin: 0.25, prix: 60, citron: true, effet: '+25 % de vie, et ton perso court 15 % plus vite pendant la vague', desc: 'À boire juste avant de lancer la vague. Ta Gelière en fait aussi, avec une Gelée Citron.', geliere: true }, /* (en vente a l'HDV le 23/11/2026, idee de Yannick, « 60 x niveau », Mathieu : plus cher que le Grand pot, la Geliere reste plus rentable) */
-  royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 20, effet: 'Toute ta vie, et +20 Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +20 Agilité (des coups plus rapides) pendant la prochaine vague.', geliere: true }
+  royale: { nom: 'Pot de gelée Royale', court: 'Pots de Royale', soin: 1, agi: 10, effet: 'Toute ta vie, et +10 % d\'Agilité pendant la vague', desc: 'Le plus rare : seule la Gelée Royale le fait. Toute ta vie, et +10 % de toute ton Agilité (des coups plus rapides), même celle gagnée en combat, pendant la prochaine vague.', geliere: true }
 };
-const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % toutes les 4 s en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 15 % plus vite', royale: 'toute ta vie, et +20 Agilité en vague' };
+const BREF_POT = { petit: '+25 % de vie', grand: '+60 % de vie', menthe: '+25 % de vie, puis 1 % toutes les 4 s en vague', fraise: '+40 % de vie', citron: '+25 % de vie, et tu cours 15 % plus vite', royale: 'toute ta vie, et +10 % d\'Agilité en vague' };
 const POTS_HDV = ['petit', 'grand', 'menthe', 'citron'], VIE_APRES_DEFAITE = 0.3, POTS_DEPART = 3, REGEN_MENTHE = 0.01 / 4; /* (1 % de la vie toutes les 4 s ; 1 % par seconde avant le 24/10/2026, « les potions Menthe c'est clairement trop broken » : a la vague 70, Moon soignait 22 PV/s pour 19 PV/s recus, il ne descendait presque plus) */
 /* LA VIE REMONTE DOUCEMENT (« faudrait faire regagner un PV toutes les x minutes, genre au debut si t'as pas de potion bah tu attends », Mathieu, 13/10/2026) :
    « met pas 1 %, mais 1 PV par minute ; et une vraie minute, sinon les gelees perdent tout leur interet » (Mathieu, 13/10/2026) : 1 PV par VRAIE minute,
@@ -29,7 +29,7 @@ const REGEN_PV = 1, REGEN_PAS = 60000;
 function regenVie(dtReel) { if (!S_ || S_.pv == null || combat || !S_.perso || !(dtReel > 0)) return; const max = statsPerso().pvMax; S_.pv = Math.min(max, S_.pv + REGEN_PV * dtReel / REGEN_PAS); if (S_.pv >= max) S_.pv = null; }
 const totalPots = () => Object.keys(POTS).reduce((t, k) => t + ((S_.pots && S_.pots[k]) || 0), 0);
 const citronPret = () => { const r = !!S_.citron; S_.citron = false; return r; };
-const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }; /* (la Royale bue avant la vague : +20 Agilite pendant celle-ci) */ /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
+const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }; /* (la Royale bue avant la vague : +10 % d'Agilite pendant celle-ci, ROYALE_AGI) */ /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */
 const prixPot = (t) => Math.max(10, POTS[t].prix * niveau(S_.xp));
 const vieActuelle = () => { const max = statsPerso().pvMax; return S_.pv == null ? max : Math.max(0, Math.min(max, S_.pv)); };
 const menthePrete = () => { const r = S_.menthe ? REGEN_MENTHE : 0; S_.menthe = false; return r; }; /* (la Menthe bue avant la vague : elle soigne pendant celle-ci) */
@@ -47,7 +47,7 @@ function boirePot(t) {
   if (avant >= max && !P.menthe && !P.citron && !P.agi) { toast('Ta vie est déjà pleine.'); return; }
   S_.pots[t]--; son('boire'); S_.pv = Math.min(max, Math.round(avant + max * P.soin)); if (P.menthe) S_.menthe = true; if (P.citron) S_.citron = true; if (P.agi) S_.royale = P.agi; compter('pots');
   const quand = modaleOuverte === 'arene' ? 'la partie' : modaleOuverte === 'ileboss' ? 'l\'essai' : 'la vague'; /* (07/11/2026 : sur l'ile, « pendant la vague » etait faux) */
-  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (deja ? '. ' + (P.menthe ? 'La Menthe était déjà bue' : 'Le Citron était déjà bu') + ' : son bonus ne se cumule pas, ce pot te soigne seulement.' : P.menthe ? '. La Menthe te soignera pendant ' + quand + '.' : P.citron ? '. Le Citron te fera courir plus vite pendant ' + quand + '.' : P.agi ? '. La Royale te donnera +' + P.agi + ' Agilité pendant ' + quand + '.' : '.'), 'or');
+  toast('Glou glou : ' + Math.round(100 * avant / max) + ' % de vie, puis ' + Math.round(100 * S_.pv / max) + ' %' + (deja ? '. ' + (P.menthe ? 'La Menthe était déjà bue' : 'Le Citron était déjà bu') + ' : son bonus ne se cumule pas, ce pot te soigne seulement.' : P.menthe ? '. La Menthe te soignera pendant ' + quand + '.' : P.citron ? '. Le Citron te fera courir plus vite pendant ' + quand + '.' : P.agi ? '. La Royale te donnera +' + Math.round(ROYALE_AGI * 100) + ' % d\'Agilité pendant ' + quand + '.' : '.'), 'or');
   rendreGrange(); rendreHaut(); sauver();
   rafraichirAvantCombat();
 }
@@ -62,7 +62,7 @@ function rafraichirAvantCombat() {
 function sectionPotsBonus(quand) {
   S_.pots = S_.pots || {}; const bu = bonusBu;
   const L = Object.keys(POTS).filter((t) => (POTS[t].menthe || POTS[t].citron || POTS[t].agi) && ((S_.pots[t] || 0) > 0 || bu(t))); if (!L.length) return '';
-  const effet = (t) => POTS[t].menthe ? 'te soigne de 1 % toutes les 4 s' : POTS[t].citron ? 'tu cours ' + Math.round((VITESSE_CITRON - 1) * 100) + ' % plus vite' : '+' + POTS[t].agi + ' Agilité';
+  const effet = (t) => POTS[t].menthe ? 'te soigne de 1 % toutes les 4 s' : POTS[t].citron ? 'tu cours ' + Math.round((VITESSE_CITRON - 1) * 100) + ' % plus vite' : '+' + Math.round(ROYALE_AGI * 100) + ' % d\'Agilité';
   return '<div class="hdv-section">Avant ' + quand + ' : boire</div>' + L.map((t) => { const n = S_.pots[t] || 0, b = bu(t);
     return '<div class="art">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + (b ? ' : bu !' : '') + '</b><div class="puces"><span class="puce ' + (b ? 'bonne' : '') + '">' + effet(t) + ' pendant ' + quand + '</span><span class="puce">' + n + ' en grange</span></div></div><div class="act">' +
       (b ? '<span class="cadenas">✓ Bu</span>' + (reboire(t) ? '<button class="btn mini" data-boire="' + t + '" data-info="Son bonus ne se cumule pas : juste +' + Math.round(POTS[t].soin * 100) + ' % de vie">+' + Math.round(POTS[t].soin * 100) + ' % de vie</button>' : '') : '<button class="btn mini" data-boire="' + t + '"' + (n > 0 ? '' : ' disabled') + '>Boire</button>') + '</div></div>'; }).join('');
@@ -76,7 +76,7 @@ function effetsEnCours() {
   Object.keys((c ? c.repasActifs : S_.mange) || {}).forEach((id) => { const cu = PAR_ID[id]; if (cu && cu.mange && (c || S_.mange[id])) L.push([id, cu.nom + ' : ' + cu.mange.txt + suite]); });
   if (c ? c.regen : S_.menthe) L.push(['pot-menthe', 'Pot de Menthe : il te soigne pendant la vague' + (c ? '' : ' (la prochaine)')]);
   if (c ? c.citron : S_.citron) L.push(['pot-citron', 'Pot de Citron : tu cours ' + vite + ' % plus vite' + suite]);
-  const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + agi + ' Agilité' + suite]);
+  const agi = c ? c.agi : S_.royale; if (agi) L.push(['pot-royale', 'Pot de Royale : +' + Math.round(ROYALE_AGI * 100) + ' % d\'Agilité' + suite]);
   if (c && c.rafale) L.push(['passif-' + modeleDe('cra', ''), 'Rafale (passif du Cra) : +' + RAFALE_CRA.pas + ' Agilité par flèche tirée, jusqu’à +' + RAFALE_CRA.max + ', gardée jusqu’à la fin du combat', c.rafale]); /* (17/11/2026 : le chiffre en pastille, mis a jour sans redessiner les icones) */
   if (c && c.sangChaud) { const m = 'passif-' + modeleDe('iop', S_.perso.look), ic = ICONES_3D.has(m) ? m : sexeDe() === 'f' ? 'passif-feminin-iop' : 'passif-iop3'; /* (Sang chaud du Iop, 23/11/2026 : le nombre de cumuls en pastille) */
     L.push([ic, 'Sang chaud (passif du Iop) : par cumul, +' + pcSang(SANG_CHAUD.vitesse) + ' % de vitesse (' + pcSang(SANG_CHAUD.vitesseMax) + ' % au plus) et ' + pcSang(SANG_CHAUD.regen) + ' % de vie par seconde (' + pcSang(SANG_CHAUD.regenMax) + ' % au plus) ; après ' + SANG_CHAUD.oubli + ' s sans toucher, un de perdu par seconde', c.sangChaud]); } /* (le texte ne bouge pas : seul le chiffre de la pastille change, sans redessiner les icones) */
@@ -119,7 +119,7 @@ function fusionnerPetitsPots() {
 function ouvrirPots() {
   const max = statsPerso().pvMax, pv = vieActuelle(), pc = Math.round(100 * pv / max), plein = pv >= max; S_.pots = S_.pots || {};
   const seule = plein ? 'Ta vie est pleine.' : 'Elle remonte doucement toute seule : ' + REGEN_PV + ' PV par minute, pleine dans ' + dureeLisible((max - pv) / REGEN_PV * REGEN_PAS) + '. Un pot fait gagner ce temps.';
-  const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.royale ? ' La Royale est bue : +' + S_.royale + ' Agilité pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
+  const tete = '<div class="vie-alerte' + (pc < 40 ? ' bas' : '') + '"><div><b>' + (plein ? 'Ta vie est pleine' : 'Ta vie : ' + pc + ' %') + '</b><div class="pvb"><i style="width:' + pc + '%"></i></div><small>' + Math.floor(pv) + ' / ' + max + ' PV. ' + seule + (S_.menthe ? ' La Menthe est bue : elle te soignera pendant la prochaine vague.' : '') + (S_.royale ? ' La Royale est bue : +' + Math.round(ROYALE_AGI * 100) + ' % d\'Agilité pendant la prochaine vague.' : '') + (S_.citron ? ' Le Citron est bu : tu courras plus vite pendant la prochaine vague.' : '') + '</small></div></div>';
   const types = POTS_HDV.concat(Object.keys(POTS).filter((t) => POTS[t].geliere && !POTS_HDV.includes(t) && ((S_.pots[t] || 0) > 0 || niv('geliere')))); /* (le Citron, aussi a l'HDV depuis le 23/11/2026 : une seule ligne) */
   const lignes = types.map((t) => { const n = S_.pots[t] || 0, non = (plein && !POTS[t].menthe && !POTS[t].citron && !POTS[t].agi) || (POTS[t].agi && S_.royale) || (bonusBu(t) && plein); /* (une Menthe ou un Citron deja bu : un autre ne fait que soigner, 14/11/2026) */
     return '<div class="art' + (n ? '' : ' pas-eu') + '">' + ico('pot-' + t) + '<div><b>' + POTS[t].nom + ' ×' + n + '</b><div class="puces"><span class="puce bonne">' + BREF_POT[t] + '</span></div><div class="desc">' + POTS[t].desc + '</div></div><div class="act">' +

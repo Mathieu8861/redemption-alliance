@@ -6,7 +6,7 @@
    20 min ; recette validee par Mathieu (« on valide comme ca, on ajustera par la suite ») : Bleue 4 Cawottes, Fraise 4 Fraises, Citron 3 Fraises et 3 Cawottes,
    Royale 6 Fraises et 4 Cawottes (Menthe 3 Cawottes et 2 Fraises, par defaut). Croiser deux couleurs fait parfois naitre une Gelee Royale. Effets des pots :
    la maquette du plan (Bleue +25 %, Menthe soigne pendant la vague, Citron +25 % et le perso court plus vite, Fraise +40 %, Royale toute la vie). */
-const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 30 * MIN, PROD_ROYALE = 4 * 60 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, ROYALES_MAX = 3, VITESSE_CITRON = 1.15; /* (09/11/2026, « nerf la potion citron a +15 % de vitesse de deplacement », Mathieu : avant +30 %) */
+const NIV_GELIERE = 25, PLACES_GELIERE = [0, 2, 4, 6, 8], PROD_GELEE = 30 * MIN, PROD_ROYALE = 4 * 60 * MIN, CROISEMENT = { fraise: 5, cawotte: 5 }, REPOS_CROISEMENT = 3 * MIN, CHANCE_ROYALE = 0.18, ROYALES_MAX = 3, VITESSE_CITRON = 1.15, ROYALE_AGI = 0.10; /* (09/11/2026, « nerf la potion citron a +15 % de vitesse de deplacement », Mathieu : avant +30 %) */
 const GELEES = {
   bleue: { nom: 'Gelée Bleue', pot: 'petit', recette: { cawotte: 4 }, prix: 2000 },
   menthe: { nom: 'Gelée Menthe', pot: 'menthe', recette: { cawotte: 3, fraise: 2 }, prix: 3500, prod: 45 }, /* (prod : les minutes pour son pot ; 45 au lieu de 30 pour la Menthe, la Fraise et le Citron, « la bleue laisser a 30 min », Mathieu, 14/11/2026) */
@@ -144,7 +144,7 @@ function animerGelees(dt, s) {
    une ligne par Gelee, l'icone dans un anneau a sa couleur qui se remplit jusqu'au pot, le type en pastille, l'origine en petit ; l'etat en une ligne (pot
    dans X, repos), le repas en icones et l'effet du pot en court ; a droite le bouton du moment, et la vente en petit lien dessous */
 const COULEUR_GELEE = { bleue: '#3a95d1', menthe: '#3fbf8a', fraise: '#e2556a', citron: '#f2cf3a', royale: '#b07ad6' };
-const EFFET_POT_COURT = { petit: '+25 % de vie', menthe: '+25 % de vie, soigne en vague', fraise: '+40 % de vie', citron: '+25 % de vie, +' + Math.round((VITESSE_CITRON - 1) * 100) + ' % de vitesse', royale: 'Toute ta vie, +20 Agilité' };
+const EFFET_POT_COURT = { petit: '+25 % de vie', menthe: '+25 % de vie, soigne en vague', fraise: '+40 % de vie', citron: '+25 % de vie, +' + Math.round((VITESSE_CITRON - 1) * 100) + ' % de vitesse', royale: 'Toute ta vie, +10 % d\'Agilité' };
 const repasMini = (r) => Object.entries(r).map(([id, n]) => '<span class="gl-fr"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt="' + nomFruit(id, n) + '"><b>' + n + '</b></span>').join('');
 function ouvrirGeliere() {
   const nv = niv('geliere'); if (!nv) { ouvrirHdv('ameliorer'); return; } S_.gelees = S_.gelees || [];
@@ -170,7 +170,7 @@ function ouvrirGeliere() {
     blocRepasGeliere(L) +
     '<div class="hdv-section">Tes Gelées : ' + L.length + ' sur ' + places + ' place' + (places > 1 ? 's' : '') + '</div>' +
     (L.length ? L.map(ligne).join('') : '<p class="hdv-aide">Aucune Gelée pour l\'instant : achète ta première à l\'HDV, catégorie Gelées.</p>') +
-    '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +20 Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + ', ' + ROYALES_MAX + ' Royales au plus' + (nbRoyales() >= ROYALES_MAX ? ' : tu les as, les croisements n\'en donnent plus' : ', tu en as ' + nbRoyales()) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
+    '<div class="hdv-section">Croiser deux Gelées</div><p class="hdv-aide">Deux Gelées de couleurs différentes et ' + recetteTxt(CROISEMENT) + ' : un petit de la couleur d\'un parent, et parfois (environ une fois sur ' + Math.round(1 / CHANCE_ROYALE) + ') une <b>Gelée Royale</b>, dont le pot rend toute ta vie et donne +10 % d\'Agilité pour la vague (un pot toutes les ' + dureeLisible(PROD_ROYALE) + ', ' + ROYALES_MAX + ' Royales au plus' + (nbRoyales() >= ROYALES_MAX ? ' : tu les as, les croisements n\'en donnent plus' : ', tu en as ' + nbRoyales()) + '). Les parents se reposent ensuite ' + dureeLisible(REPOS_CROISEMENT) + '.</p>' +
     '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">' + (!parents ? '<small class="gel-note">' + (L.length >= places ? 'La Gelière est pleine.' : 'Il faut deux Gelées de couleurs différentes, reposées.') + '</small>' : mc.length ? '<small class="gel-note">Il manque ' + mc.join(' et ') + '.</small>' : '') +
     '<button class="btn discret" data-hdv-cat="animaux" data-hdv-voir="[data-gelee-achat]">Acheter une Gelée</button><button class="btn kamas" data-gelee-croiser' + (parents && !mc.length ? '' : ' disabled') + '>' + (parents ? 'Croiser ' + parents[0].nom + ' et ' + parents[1].nom : 'Croiser') + '</button></div>' +
     (() => { const fus = geleesFusion(), plein = nbRoyales() >= ROYALES_MAX, manque = COULEURS_FUSION.filter((c) => !L.some((g) => g.c === c && geleeFusionnable(g)));

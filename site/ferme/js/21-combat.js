@@ -781,7 +781,7 @@ function ouvrirEntracte() {
 function boireEntracte(t) {
   const c = combat, P = POTS[t]; S_.pots = S_.pots || {}; if (!c || !c.entracte || !c.arene || !P || !(S_.pots[t] > 0)) return; /* (pas de pot entre les temps d'une vague de boss, 05/11/2026) */
   const avant = c.pv; S_.pots[t]--; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * P.soin); if (c.st) c.st.soins += c.pv - avant; if (P.menthe) c.regen = REGEN_MENTHE; if (P.citron) c.citron = true; if (P.agi) c.agi = P.agi; son('boire'); compter('pots');
-  toast('Glou glou : ' + Math.round(100 * avant / c.pvMax) + ' % de vie, puis ' + Math.round(100 * c.pv / c.pvMax) + ' %' + (P.menthe ? ', et la Menthe te soigne jusqu\'à la fin.' : P.citron ? ', et tu cours plus vite jusqu\'à la fin.' : P.agi ? ', et +' + P.agi + ' Agilité jusqu\'à la fin.' : '.'), 'or'); rendreHaut(); sauver(); ouvrirEntracte();
+  toast('Glou glou : ' + Math.round(100 * avant / c.pvMax) + ' % de vie, puis ' + Math.round(100 * c.pv / c.pvMax) + ' %' + (P.menthe ? ', et la Menthe te soigne jusqu\'à la fin.' : P.citron ? ', et tu cours plus vite jusqu\'à la fin.' : P.agi ? ', et +' + Math.round(ROYALE_AGI * 100) + ' % d\'Agilité jusqu\'à la fin.' : '.'), 'or'); rendreHaut(); sauver(); ouvrirEntracte();
 }
 function mangerEntracte(id) {
   const c = combat, cu = PAR_ID[id]; if (!c || !c.entracte || !cu || !cu.mange || (c.repasActifs || {})[id] || !((S_.grange[id] || 0) > 0)) return;
