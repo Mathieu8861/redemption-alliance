@@ -469,6 +469,13 @@ async function construireIleWabbits() {
 /* ---------- LES SALLES (blender/ile-labo-salles.py) : leurs meubles sont des obstacles (les pieces « bloc » du modele : un cylindre par meuble, lu puis
    retire), les reperes « repere_bobine » (le haut d'une bobine qui crepite) et « repere_bulles » (une cuve qui bouillonne) ; les verres « verre » sont
    transparents ; autour de chaque salle, du noir ; un disque invisible pour cliquer au sol, la sortie verte contre la porte ---------- */
+function texturesLampeLabo() { /* le faisceau (fort en haut, nul en bas) et la flaque (ronde, douce), dessines une fois */
+  if (texturesLampeLabo.t) return texturesLampeLabo.t; const fais = document.createElement('canvas'); fais.width = 4; fais.height = 64; let x = fais.getContext('2d'), d = x.createLinearGradient(0, 0, 0, 64);
+  d.addColorStop(0, 'rgba(255,255,255,0.9)'); d.addColorStop(0.5, 'rgba(255,255,255,0.35)'); d.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = d; x.fillRect(0, 0, 4, 64);
+  const fl = document.createElement('canvas'); fl.width = fl.height = 128; x = fl.getContext('2d'); d = x.createRadialGradient(64, 64, 2, 64, 64, 63);
+  d.addColorStop(0, 'rgba(255,255,255,0.85)'); d.addColorStop(0.45, 'rgba(255,255,255,0.35)'); d.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = d; x.fillRect(0, 0, 128, 128);
+  return (texturesLampeLabo.t = { faisceau: new T.CanvasTexture(fais), flaque: new T.CanvasTexture(fl) });
+}
 async function construireSallesLabo(g, F) {
   const sc = await chargerGlb('assets/modeles/jeu/ile-labo-salles.glb?v=' + (VERSIONS_FICHIERS['ile-labo-salles.glb'] || VERSION_MODELES));
   const nomB = (m) => m.name.replace(/\.?\d+$/, '').replace(/_\d+$/, '');
@@ -492,6 +499,13 @@ async function construireSallesLabo(g, F) {
         if (!q) continue; const ry = Math.atan2(-q.x, -q.z), cg = F.cage.clone(true); cg.position.set(q.x, 0, q.z); cg.rotation.set(0, ry, 0); s.add(cg);
         const w = cloner(type), b = new T.Box3().setFromObject(w), d = new T.Vector3(); b.getSize(d); w.scale.multiplyScalar(Math.min(1.2 / d.y, 1.05 / Math.max(d.x, d.z))); w.position.set(q.x, 0.06, q.z); w.rotation.y = ry; s.add(w); w.traverse((m) => { if (m.isMesh) saufTrou.push(m); });
         blocs.push({ x: q.x, z: q.z, r: 0.85 }); cages.push({ x: q.x, z: q.z, ry, grp: cg, wab: w, type, ouverte: false, ph: Math.random() * 6 }); } }
+    /* LA LUMIERE DES LAMPES SUSPENDUES (24/11/2026, la salle des cages refaite : « plus de profondeur, plus de realisme ») : sous chaque repere_lampe, un faisceau
+       doux (un cone ouvert qui s'efface vers le bas) et une flaque de lumiere au sol, en lumiere ajoutee */
+    reperes.filter((q) => q.nom === 'repere_lampe').forEach((q) => { const T2 = texturesLampeLabo(), h = Math.max(1, q.y);
+      const cone = new T.Mesh(new T.CylinderGeometry(0.2, 2.1, h, 24, 1, true), new T.MeshBasicMaterial({ map: T2.faisceau, color: '#ffe2a6', transparent: true, opacity: 0.22, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+      cone.position.set(q.x, h / 2, q.z); cone.renderOrder = 3; cone.raycast = () => {}; s.add(cone);
+      const flaque = new T.Mesh(new T.CircleGeometry(2.4, 32), new T.MeshBasicMaterial({ map: T2.flaque, color: '#ffd994', transparent: true, opacity: 0.5, depthWrite: false, blending: T.AdditiveBlending }));
+      flaque.rotation.x = -Math.PI / 2; flaque.position.set(q.x, 0.04, q.z); flaque.renderOrder = 2; flaque.raycast = () => {}; s.add(flaque); saufTrou.push(cone, flaque); });
     const lueurs = trouGroupe(s, saufTrou); /* (les meubles entre le perso et la camera s'ouvrent aussi : la porte cachait le perso a l'entree) */
     /* les arcs des bobines : une ligne brisee qui saute d'une bobine a l'autre, ou vers le sol */
     const bobines = reperes.filter((q) => q.nom === 'repere_bobine').map((q) => new T.Vector3(q.x, q.y, q.z)), arcs = [];
