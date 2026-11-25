@@ -484,7 +484,7 @@ function expliquerCarac(k, st) {
   const c = st.c, virg = (x) => String(x).replace('.', ','), cle = { vita: 'vita', degats: 'puissance', cadence: 'agilite' }[k] || k, cl = CLASSES.find((x) => x.id === classeDe());
   const TXT = {
     vita: ['Points de vie', 'Ta vie pendant les vagues et les simus VSA : à 0, la vague est perdue. Ils montent avec ton niveau (' + fmt(st.base.pv) + ' au niveau ' + st.niveau + '), et la Vitalité de tes équipements en ajoute.'],
-    degats: ['Dégâts', 'Ce que fait chacun de tes coups, et la base de tes sorts. Ils montent avec ton niveau (' + st.base.deg + ' au niveau ' + st.niveau + '), puis ta Puissance les augmente de ' + c.puissance + ' %.'],
+    degats: ['Dégâts', 'Ce que fait chacun de tes coups, et la base de tes sorts. Ils montent avec ton niveau (' + st.base.deg + ' au niveau ' + st.niveau + ')' + (c.degBonus ? ', plus tes ' + c.degBonus + ' de dégâts bonus' : '') + ', puis ta Puissance les augmente de ' + c.puissance + ' %.' + (c.degFixe ? ' Tes dégâts fixes (+' + c.degFixe + ') s\'ajoutent ensuite à chaque coup, sans la Puissance.' : '')],
     cadence: ['Attaque', 'Le temps entre deux attaques : plus il est court, plus tu frappes souvent. Pour un ' + cl.nom + ', c\'est ' + virg(st.base.cadence) + ' s de base ; ton Agilité (' + c.agilite + ') te fait frapper ' + pcAgi(c.agilite) + ' % plus souvent.'],
     portee: ['Portée', 'La distance à laquelle tu touches un monstre : 1 case pour le Iop au corps à corps, 3 cases pour le fouet de l\'Osamodas, 5 cases pour l\'arc du Cra. Elle dépend de ta classe, pas de ton équipement.'],
     puissance: ['Puissance', 'Augmente tes dégâts : +' + c.puissance + ' % sur chacun de tes coups et sur tes sorts.'],
@@ -537,7 +537,8 @@ function ouvrirBananier(p) {
 let persoPano = null, persoPanoN = 6;
 /* CE QUE FONT LES STATS DE COMBAT, SOUS LEUR LIGNE DANS LA FICHE D'UNE PIECE (25/11/2026, « faudrait expliquer quelque part que les degats fixes marchent sur les autos et
    les sorts, et que la Puissance n'agit pas dessus », Mathieu) */
-const AIDE_STAT_PIECE = { degFixe: 'Ajoutés à chaque coup de tes attaques et de tes sorts, à la fin : la Puissance ne les augmente pas. Pas sur tes invocations.',
+const AIDE_STAT_PIECE = { degFixe: 'Ajoutés à chaque coup de tes attaques et de tes sorts, après tout le reste : la Puissance ne les augmente pas. Pas sur tes invocations.',
+  degBonus: 'S\'ajoutent à tes Dégâts de base, et ta Puissance les multiplie ensuite : sur tes attaques et tes sorts. Ce ne sont pas des dégâts fixes.',
   resFixe: 'Retirée de chaque coup reçu, jamais plus de la moitié du coup.', resPct: 'S\'ajoute à ta résistance au contact et à distance (50 % au plus).', vitDep: 'En combat et sur ta ferme.' };
 /* LES BONUS D'UNE PANOPLIE, AU CHOIX DU NOMBRE DE PIECES (25/11/2026, « explique comment fonctionnent les bonus de panoplie, deja est-ce qu'ils se cumulent 2 + 4 + 6 ?
    il faudrait que ce soit explique et qu'on puisse voir les bonus totaux d'une pano full equipee en fonction du nombre de pieces selectionne », Mathieu) : dans la fiche

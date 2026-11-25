@@ -61,7 +61,11 @@ const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissan
   bond: ['Bond', ' % de vitesse 2 s quand on te frappe au contact', picto('vitesse', '#2f9a8a')], mucus: ['Mucus', ' % de lenteur sur le monstre touché', picto('lenteur', '#6ab04c')],
   sangMele: ['Sang-mêlé', ' % de dégâts', picto('rage', '#b8322a')],
   /* (les stats de combat du palier 11, 25/11/2026 : STATS_COMBAT_P11 plus bas ; ce qu'elles font : blesserPerso et l'attaque de base, 21-combat.js, la Ruee, 29l-panos-p11.js) */
-  degFixe: ['Dégâts fixes', ' de dégâts sur chaque coup (attaques et sorts)', picto('degats', '#c0392b')], resFixe: ['Résistance fixe', ' de dégâts en moins sur chaque coup reçu', picto('bouclier', '#8a6a3a')],
+  degFixe: ['Dégâts fixes', ' de dégâts sur chaque coup (attaques et sorts)', picto('degats', '#c0392b')],
+  /* (LES DEGATS BONUS, 25/11/2026 au soir, « degats bonus = stats de degats supplementaires qui beneficient de la Puissance : +10 degats avec 300 de Puissance, ca fait
+     plus sur tous tes sorts et attaques ; degats bonus n'est pas egal aux degats fixes, qui se rajoutent en plus des stats », Mathieu : ils s'ajoutent aux Degats de base
+     du perso, avant la Puissance, statsPerso dans 21-combat.js) */
+  degBonus: ['Dégâts bonus', ' de dégâts de base (ta Puissance les augmente)', picto('degats', '#e07c0a')], resFixe: ['Résistance fixe', ' de dégâts en moins sur chaque coup reçu', picto('bouclier', '#8a6a3a')],
   resPct: ['Résistance', ' % de dégâts en moins (au contact et à distance)', picto('bouclier', '#5a6f8a')], ruee: ['Ruée', ' % de vitesse 3 s après un monstre abattu', picto('vitesse', '#d9762e')],
   vitDep: ['Vitesse de déplacement', ' % de vitesse de déplacement', picto('vitesse', '#2f9a8a')] }; /* (les bottes du Croquevase, 25/11/2026 ; 24-deplacement.js, vitDepEquip dans 29l-panos-p11.js) */ /* (les panoplies du palier 10, 08/11/2026) */ /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 },
@@ -211,7 +215,7 @@ PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (
   OBJETS[id] = { id, pano: k, emp: 'arme', classe: cl, arme: true, icone: id, nom: nom + ' ' + P.de, niv: P.niv + 9, stats }; }));
 /* L'ARME DU CROQUEVASE (25/11/2026, « l'arme du Croquevase, mets-lui de la vita, retire l'agilite et donne des degats bonus », Mathieu) : sa Puissance gardee,
    l'Agilite remplacee par la Vitalite d'une case de la panoplie (celle de l'anneau, 752) et des degats fixes (42 a 78, comme la coiffe du Crachopaud, BORNES_JET) ; avant les rares */
-Object.keys(ARMES).forEach((cl) => { const o = OBJETS['arme-' + ARMES[cl][0] + '-croquevase']; if (!o) return; delete o.stats.agilite; o.stats.vita = OBJETS['croquevase-anneau'].stats.vita; o.stats.degFixe = 60; });
+Object.keys(ARMES).forEach((cl) => { const o = OBJETS['arme-' + ARMES[cl][0] + '-croquevase']; if (!o) return; delete o.stats.agilite; o.stats.vita = OBJETS['croquevase-anneau'].stats.vita; o.stats.degBonus = 20; }); /* (des degats bonus et non des degats fixes, 25/11/2026 au soir : 15 a 25, 23 a 38 en rare ; au niveau 105, environ +9 % sur chaque coup, avant la Puissance) */
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
 /* LA PROSPECTION DES PIECES DIVISEE PAR DEUX (23/11/2026, « est-ce qu'on nerferait pas la prospection que donnent les items plutot ? », puis au formulaire « divisee par
@@ -267,14 +271,15 @@ const PHRASES_BONUS = { resCac: (v) => v + ' % de dégâts en moins au corps à 
   mue: (v) => 'Mue : une fois par combat, sous 25 % de vie, tu récupères ' + v + ' % de ta vie', oeilCrapaud: (v) => 'Œil de crapaud : +' + v + ' % de dégâts sur les monstres à plus de 4 cases',
   bond: (v) => 'Bond : quand on te frappe au corps à corps, +' + v + ' % de vitesse pendant 2 s (toutes les 6 s au plus)', mucus: (v) => 'Mucus : tes coups ralentissent le monstre de ' + v + ' % pendant 1,5 s',
   sangMele: (v) => 'Sang-mêlé (3 pièces du Croquevase et 3 du Crachopaud) : +' + v + ' % de dégâts',
-  degFixe: (v) => '+' + v + ' de dégâts sur chaque coup de tes attaques et de tes sorts (ajoutés à la fin : la Puissance ne les augmente pas)', resFixe: (v) => 'chaque coup reçu te fait ' + v + ' de dégâts en moins (jamais plus de la moitié du coup)',
+  degFixe: (v) => '+' + v + ' de dégâts sur chaque coup de tes attaques et de tes sorts (ajoutés à la fin : la Puissance ne les augmente pas)',
+  degBonus: (v) => '+' + v + ' de dégâts de base, que ta Puissance augmente (sur tes attaques et tes sorts)', resFixe: (v) => 'chaque coup reçu te fait ' + v + ' de dégâts en moins (jamais plus de la moitié du coup)',
   resPct: (v) => v + ' % de dégâts en moins, au contact et à distance', ruee: (v) => 'Ruée : quand tu abats un monstre, +' + v + ' % de vitesse pendant 3 s' };
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' + CARACS[c][2] + ' ' + (PHRASES_BONUS[c] ? PHRASES_BONUS[c](v) : '+' + v + CARACS[c][1]) + '</i>').join('');
 /* (10/11/2026, « en bas a droite, le total des bonus cumules d'une pano », Mathieu : sous les paliers, la somme de ceux qui sont actifs ; voir : un bouton vers la fiche de la panoplie, dans la fiche du perso) */
 const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="pano-aide">Les bonus s\'additionnent : avec 6 pièces, tu as ceux de 2, de 4 et de 6.</div><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '"><b>' + (n >= m ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
   (Object.keys(tot).length ? '<div class="pano-total"><b>Tes bonus de panoplie en ce moment</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
 function caracs() {
-  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0, degFixe: 0, resFixe: 0, resPct: 0, ruee: 0, vitDep: 0 }; /* (les bonus du palier 11, 20/11/2026) */
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0, degFixe: 0, resFixe: 0, resPct: 0, ruee: 0, vitDep: 0, degBonus: 0 }; /* (les bonus du palier 11, 20/11/2026) */
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
   { const C = comptePanos(), n = (id) => C[PANOS.findIndex((P) => P.id === id)] || 0; if (n('croquevase') >= 3 && n('crachopaud') >= 3) { t.sangMele += SANG_MELE.deg; t.entrave += SANG_MELE.entrave; } } /* (le Sang-mele : 3 pieces de chaque panoplie du palier 11, 20/11/2026) */
@@ -292,7 +297,6 @@ const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-r
   'crachopaud-ceinture': { vita: [240, 420], degFixe: [4, 8], prospection: [18, 34] }, 'crachopaud-ceinture-rare': { vita: [360, 630], degFixe: [6, 12], prospection: [27, 51] },
   'crachopaud-coiffe': { degFixe: [42, 78] }, 'crachopaud-coiffe-rare': { degFixe: [63, 117] },
   'croquevase-bottes': { puissance: [51, 80], vitDep: [2, 2] }, 'croquevase-bottes-rare': { puissance: [77, 120], vitDep: [3, 3] } }; /* (la ceinture du Crachopaud et les bottes du Croquevase, 25/11/2026, PIECES_P11) */ /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
-Object.values(ARMES).forEach(([t]) => { BORNES_JET['arme-' + t + '-croquevase'] = { degFixe: [42, 78] }; BORNES_JET['arme-' + t + '-croquevase-rare'] = { degFixe: [63, 117] }; }); /* (l'arme du Croquevase, 25/11/2026) */
 const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
 function objBrut(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; } /* (la piece a son jet, sans l'eveil : pour la forgemagie et la qualite du jet) */
 function obj(k) { const o = objBrut(k), e = o && o.leg && S_ && S_.eveils && S_.eveils[k]; return e && typeof eveillerObjet === 'function' ? eveillerObjet(o, e) : o; } /* (l'eveil d'un legendaire, 27g-eveil-concasseur.js, 18/11/2026) */
