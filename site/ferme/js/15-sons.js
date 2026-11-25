@@ -28,8 +28,9 @@ function volumes(vs, vm) { if (!ac) return; busSons.gain.setTargetAtTime(BASE_SO
 /* ---------- les briques ---------- */
 const G = (v, dest) => { const g = ac.createGain(); g.gain.value = v; if (dest) g.connect(dest); return g; };
 const F = (type, f, q, dest) => { const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q != null) b.Q.value = q; if (dest) b.connect(dest); return b; };
-function bruit(t, dur, dest) { const s = ac.createBufferSource(); s.buffer = BRUIT; s.loop = true; s.connect(dest); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05); return s; }
-function osc(type, f, t, dur, dest) { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (dest) o.connect(dest); o.start(t); o.stop(t + dur + 0.05); return o; }
+let DECALE = 0; /* (25/11/2026, la fleche du Cra « juicy » : un son joue un peu plus haut ou plus bas a chaque fois, en cents ; 0 par defaut) */
+function bruit(t, dur, dest) { const s = ac.createBufferSource(); s.buffer = BRUIT; s.loop = true; if (DECALE) s.playbackRate.value = Math.pow(2, DECALE / 1200); s.connect(dest); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05); return s; }
+function osc(type, f, t, dur, dest) { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (DECALE) o.detune.value = DECALE; if (dest) o.connect(dest); o.start(t); o.stop(t + dur + 0.05); return o; }
 function env(g, t, a, tenu, r, v) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + a); if (tenu) g.gain.setValueAtTime(v, t + a + tenu); g.gain.exponentialRampToValueAtTime(0.0001, t + a + tenu + r); }
 const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 function swish(t, dur, f0, f1, v, dest) { /* un objet qui fend l'air : du bruit filtre dont la couleur glisse */
@@ -239,13 +240,18 @@ Object.assign(SONS, {
   defaite(t) { [[67, 0, 0.32], [65, 0.3, 0.32], [62, 0.6, 0.8]].forEach(([m, d, du], k) => { const g = G(0, busSons), lp = F('lowpass', 1500, 1, g), o = osc('triangle', hz(m), t + d, du, lp); if (k === 2) o.frequency.exponentialRampToValueAtTime(hz(m) * 0.94, t + d + du); const g2 = G(0.35, lp); osc('square', hz(m), t + d, du, g2); env(g, t + d, 0.02, du * 0.4, du * 0.6, 0.22); }); },
   cueillette(t) { /* un fruit qu'on cueille : les feuilles, un petit pop */ craquements(t, 0.14, 8, 0.4, 1200, 4000); const g = G(0, busSons), o = osc('sine', 320, t + 0.12, 0.1, g); o.frequency.exponentialRampToValueAtTime(760, t + 0.19); env(g, t + 0.12, 0.004, 0, 0.08, 0.6); cloche(t + 0.24, hz(88), 0.12); },
   manger(t) { croque(t, 3); cloche(t + 0.6, hz(84), 0.16); cloche(t + 0.7, hz(88), 0.13); },
+  impactFleche(t) { /* la fleche du Cra qui se plante (25/11/2026) : un claquement sec, un petit coup sourd, un tintement tres court */
+    const g = G(0, busSons), bp = F('bandpass', 2300, 1.4, g); bruit(t, 0.04, bp); env(g, t, 0.001, 0, 0.035, 1.0);
+    const g2 = G(0, busSons), o = osc('sine', 150, t, 0.1, g2); o.frequency.exponentialRampToValueAtTime(70, t + 0.08); env(g2, t, 0.002, 0, 0.08, 0.9);
+    clic(t + 0.004, 3400, 0.18);
+  },
   sort(t) { /* un sort : un souffle qui monte et des etincelles */ swish(t, 0.35, 800, 4200, 0.5); const g = G(0, busSons), o = osc('sine', 380, t, 0.4, g); o.frequency.exponentialRampToValueAtTime(1250, t + 0.32); env(g, t, 0.02, 0.1, 0.25, 0.22); [96, 100, 103].forEach((m, k) => cloche(t + 0.18 + k * 0.06, hz(m), 0.08, null, 0.5)); }
 });
 /* le niveau de chaque son, mesure hors ligne (mesure-sons.mjs) pour qu'ils sonnent tous a peu pres aussi fort (en dB) */
-const NIVEAU_SON = { fauchage: 3, arrosage: 1, puits: -1.5, planter: 3, arc: 3.5, arbalete: 4, fouet: 1, epee: 2.5, touche: 0, tofu: 3, nourri: -2, tonte: 0.5, bebe: 4, royal: -6, boire: -12, gelee: -9, kamas: 4, niveau: -1, victoire: -6, quete: 0, alerte: -2, plouf: 5, vague: -7, raid: -6, defaite: -3, cueillette: 0, manger: 2.5, sort: -1 };
-function jouer(nom, variante, db) {
-  if (!ac || !SONS[nom]) return; const vrai = busSons, trim = G(Math.pow(10, ((NIVEAU_SON[nom] || 0) + (db || 0)) / 20), vrai); busSons = trim;
-  try { SONS[nom](ac.currentTime + 0.02, variante); } finally { busSons = vrai; }
+const NIVEAU_SON = { fauchage: 3, arrosage: 1, puits: -1.5, planter: 3, arc: 3.5, arbalete: 4, fouet: 1, epee: 2.5, touche: 0, tofu: 3, nourri: -2, tonte: 0.5, bebe: 4, royal: -6, boire: -12, gelee: -9, kamas: 4, niveau: -1, victoire: -6, quete: 0, alerte: -2, plouf: 5, vague: -7, raid: -6, defaite: -3, cueillette: 0, manger: 2.5, sort: -1, impactFleche: -1 };
+function jouer(nom, variante, db, cents) {
+  if (!ac || !SONS[nom]) return; const vrai = busSons, trim = G(Math.pow(10, ((NIVEAU_SON[nom] || 0) + (db || 0)) / 20), vrai); busSons = trim; DECALE = cents || 0;
+  try { SONS[nom](ac.currentTime + 0.02, variante); } finally { busSons = vrai; DECALE = 0; }
   setTimeout(() => { try { trim.disconnect(); } catch (e) { /* rien */ } }, 4000);
 }
 let lecture = null;
@@ -285,8 +291,8 @@ function deverrouillerSon() { /* au premier geste (et apres une interruption), o
 document.addEventListener('input', (e) => { const id = e.target && e.target.id; if (id !== 'vol-sons' && id !== 'vol-musique') return; ecrireReglage(id === 'vol-sons' ? 'ferme-vol-sons2' : 'ferme-vol-musique2', e.target.value); if (allumerAudio()) SON.volumes(volSons(), volMusique()); });
 document.addEventListener('change', (e) => { if (e.target && e.target.id === 'vol-sons') { son.der = {}; son('kamas'); } }); /* (un son pour entendre le nouveau volume) */
 document.addEventListener('visibilitychange', () => { if (!audio) return; try { if (document.hidden) audio.suspend(); else if (sonActif() && !pauseEcran()) audio.resume(); } catch (e) { /* rien */ } });
-function son(nom, variante, db) {
+function son(nom, variante, db, cents) {
   if (window.silence || !sonActif() || pauseEcran()) return;
   const t = performance.now(); son.der = son.der || {}; if (t - (son.der[nom] || 0) < 120) return; son.der[nom] = t; /* jamais le meme son en rafale */
-  if (!allumerAudio()) return; if (audio.state === 'suspended') audio.resume(); SON.jouer(nom, variante, db);
+  if (!allumerAudio()) return; if (audio.state === 'suspended') audio.resume(); SON.jouer(nom, variante, db, cents);
 }
