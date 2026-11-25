@@ -1342,7 +1342,7 @@ function capBond(mo, ctx) {
     const loin = mo.d.bonditLoin ? mo.d.portee * (mo.allonge || 1) + 0.6 : 1.5; /* (bonditLoin, le Gorille roi : il ne saute que pour revenir au corps a corps) */
     const vise = !!(mo.d.marteau || mo.d.poings); /* (Moon et le Gorille roi, 31/10/2026) */
     if (mo.bonditT == null && mo.d.bonditMax) mo.bonditT = mo.d.bondit; /* (l'Abrakne Sombre saute des son arrivee : sinon elle etait deja au contact quand son premier saut etait pret, 08/11/2026) */
-    if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < (mo.d.bonditMax || 11)) { /* (bonditMax : l'Abrakne Sombre, 3 cases, 08/11/2026) */ /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
+    if (sortPret('bonditT', mo.d.bondit) && dP > (vise ? Math.max(loin, 4.5) : loin) && dP < (mo.d.bonditMax || mo.d.bonditPortee || 11)) { /* (bonditMax : l'Abrakne Sombre, 3 cases, 08/11/2026) */ /* (Moon ne bondit plus de pres : il atterrit a la longueur de son marteau du point vise) */
       if (vise && m.userData.anim) { mo.bonditT = 0; bondMarteau(mo, pp.x, pp.z); return; } /* (Moon, le Gorille : 22c-squelettes.js) */
       const EB = mo.d.bondPrepa || ESQUIVE.bond; /* (bondPrepa : le temps pour esquiver le bond, propre au boss, le Bworker 1,3 s, 31/10/2026) */
       mo.bonditT = mo.d.bondDouble && mo.enrage && !mo.bondDeux ? mo.d.bondit - 0.6 : 0; mo.bondDeux = !!(mo.d.bondDouble && mo.enrage && !mo.bondDeux); /* (bondDouble : enragee, la Mere Crapaude enchaine deux bonds, 13/11/2026) */ const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, R = mo.d.bonditR || (mo.d.marteau ? 2.8 : 2.3); mo.ry = Math.atan2(cx - x0, cz - z0); mo.bloqueT = EB + 0.3; /* (bonditR : le pique de la Gorgouille, 31/10/2026) */
@@ -3126,7 +3126,7 @@ function envoutement(duree) {
 function degatsOnde(mo, cx, cz, R, x) { const p = paysanMesh.position, d = Math.hypot(p.x - cx, p.z - cz); if (d > R) return 0; return Math.max(1, Math.round(degSort(mo) * x * (0.3 + 0.7 * (1 - d / R)))); }
 function capMarteauMoon(mo, ctx) {
   const MM = mo.d.marteauMoon, an = mo.m && mo.m.userData.anim; if (!MM || !an || mo.faible || combat.deroute != null) return;
-  const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (dP < 3.5 || dP > 14 || !sortPret('marteauMoonT', MM.periode)) return;
+  const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (dP < 3.5 || dP > (MM.portee || 14) || !sortPret('marteauMoonT', MM.periode)) return; /* (MM.portee : 16 pour Moon depuis le 25/11/2026) */
   const mart = mo.m.getObjectByName('marteau'); if (!mart) return;
   mo.marteauMoonT = 0; const c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'], TA = 1.0 / (mo.d.vivacite || 1), TV = 0.55, TJ = 0.85;
   const c = pointValide(mo.x, mo.z, pp.x, pp.z), ry = Math.atan2(c.x - mo.x, c.z - mo.z); recaler(mo, mo.x, mo.z, ry, 0.15);

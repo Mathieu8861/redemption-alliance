@@ -1,7 +1,7 @@
 'use strict';
 /* QUATRE SORTS LEGENDAIRES REFAITS (25/11/2026, au formulaire : « Bain de boue, Lance d'os, Pluies de cawottes, Fleche maudite », Mathieu, apres la recette
-   commune de 29zb-juice-leg.js) : l'effet lui-meme refait. Version dev : seulement dans le mode test tant que Mathieu ne les a pas valides
-   (juiceSort('boue' | 'lance' | 'cawottes' | 'maudite'), 29z-juice-sorts.js ; JUICE_SORTS.force pour comparer avant et apres).
+   commune de 29zb-juice-leg.js) : l'effet lui-meme refait. Ouverts a tous le 25/11/2026 (« Ouvrir aux joueurs », Mathieu au formulaire ;
+   juiceSort('boue' | 'lance' | 'cawottes' | 'maudite'), 29z-juice-sorts.js ; JUICE_SORTS.force pour comparer avant et apres).
    Les degats, les zones et le moment ou ils tombent ne changent pas : chaque fonction reprend a l'identique le calcul de l'ancienne. */
 
 /* ---- LE BAIN DE BOUE (Heaume et armes du Dragon Cochon) : la boue gicle en couronne, des paquets retombent et rebondissent, une flaque luisante aux bords

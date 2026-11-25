@@ -12,8 +12,8 @@
    Comment on reconnait un coup de sort legendaire : SRC_DEG commence par « Sort legendaire » (23-fin-combat.js : la source suit la fleche en vol, les setTimeout et
    les effets). Les brulures, la fumee, le venin, les defenses, le Dragonnet et la Bouture ont leur propre source : ils ne changent pas. */
 const JL = { recul: 0.26, son: 70, arret: 0.035, gerbe: 9, salve: 60, max: 8, horde: 20 };
-/* LA VERSION PLUS MARQUEE (25/11/2026, « je vois pas de grosses differences », Mathieu devant la video) : en mode test seulement (juiceSort('legfort')) tant qu'il
-   ne l'a pas validee. Le blanc dure presque deux fois plus, le monstre fait un petit bond (pas les boss), recule deux fois plus, une etoile d'impact et un anneau
+/* LA VERSION PLUS MARQUEE (25/11/2026, « je vois pas de grosses differences », Mathieu devant la video) : ouverte a tous le 25/11/2026 (juiceSort('legfort'),
+   « Ouvrir aux joueurs », Mathieu au formulaire). Le blanc dure presque deux fois plus, le monstre fait un petit bond (pas les boss), recule deux fois plus, une etoile d'impact et un anneau
    au sol a la couleur du sort sur chaque monstre touche, plus d'etincelles et plus grandes, un temps fort de 55 ms et une petite secousse au premier coup */
 const JL_FORT = { force: null, flash: 0.11, recul: 0.5, saut: 0.35, gerbe: 14, etoile: 0.8, arret: 0.055 }; /* (force : true / false pour comparer dans les essais) */
 const LEG_LANCERS = {}; /* (par sort : son centre, sa forme, sa teinte, son premier coup) */
