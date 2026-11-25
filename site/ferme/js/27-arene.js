@@ -44,11 +44,11 @@ let forceBossArene = 1; /* (20/10/2026, « les boss, je les ai trouves trop faci
    +1 % de vol de vie ») : apres le boss de la 10e, de la 20e..., trois bonus au hasard ; tu en choisis un, il dure jusqu'a la fin de la partie et se cumule */
 const TR_CARTE = 'stroke="#3b2a1a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"'; /* (le trait des dessins des cartes) */
 const BONUS_ARENE = {
-  puissance: { nom: 'Rage de l\'arène', c: ['#e07c0a', '#9a4f06', '#ffe2b8'], effet: '+10 Puissance', txt: '+10 % de dégâts sur tes coups et tes sorts',
+  puissance: { nom: 'Rage de l\'arène', c: ['#e07c0a', '#9a4f06', '#ffe2b8'], effet: '+10 Puissance', txt: '1 Puissance = 1 % de dégâts : +10 % sur tes coups et tes sorts', /* (le lien dit sur la carte, 26/11/2026) */
     svg: `<g ${TR_CARTE}><path d="M60 6 69 27 91 18 80 39 104 47 80 54 89 77 66 64 52 86 49 62 24 70 37 50 14 37 38 32 33 9 51 24Z" fill="#ffd04a"/>
       <path d="M68 12 45 50h15l-9 30 30-42H65l10-26Z" fill="#e07c0a"/></g><path d="M66 20 53 44" stroke="#fff3c4" stroke-width="3" stroke-linecap="round" opacity=".9"/>
       <g fill="#fff6d8" ${TR_CARTE}><circle cx="20" cy="18" r="3"/><circle cx="102" cy="76" r="3"/></g>` },
-  agilite: { nom: 'Mains rapides', c: ['#2f9a8a', '#1d6a5e', '#c9efe6'], effet: '+10 Agilité', txt: '+5 % de vitesse d\'attaque : tu tires plus vite',
+  agilite: { nom: 'Mains rapides', c: ['#2f9a8a', '#1d6a5e', '#c9efe6'], effet: '+10 Agilité', txt: '1 Agilité = 0,5 % de vitesse d\'attaque : +5 %, tu frappes plus vite',
     svg: `<g ${TR_CARTE}><path d="M98 8C66 10 40 32 32 66l-6 16 12-8c32-6 56-32 60-66Z" fill="#9fe0d2"/><path d="M96 10 30 78" fill="none"/>
       <path d="M78 22l-10 3M66 34l-12 2M56 46l-12 1M84 30l-2 10M72 44l-2 10" fill="none" stroke-width="2.4"/></g>
       <g stroke="#2f9a8a" stroke-width="4.5" stroke-linecap="round"><path d="M10 30h20M4 46h22M12 62h14"/></g>` },
@@ -77,7 +77,7 @@ const BONUS_ARENE = {
       <path d="M50 24h20c-2 8-8 11-10 14-2-3-8-6-10-14Z" fill="#f2b630"/><path d="M48 72c2-8 8-10 12-12 4 2 10 4 12 12Z" fill="#f2b630"/>
       <path d="M40 12h40v7H40ZM40 73h40v7H40Z" fill="#8a5634"/></g>
       <g fill="#fff6d8" ${TR_CARTE} stroke-width="2.2"><path d="M100 60l2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/><path d="M18 76l1.6 4.4 4.4 1.6-4.4 1.6L18 88l-1.6-4.4L12 82l4.4-1.6Z"/></g>` },
-  butin: { nom: 'Flair', c: ['#3f8a22', '#275a14', '#d6efc6'], effet: '+20 Prospection', txt: '+20 % de butin : pièces, runes et ressources',
+  butin: { nom: 'Flair', c: ['#3f8a22', '#275a14', '#d6efc6'], effet: '+20 Prospection', txt: '1 Prospection = 1 % de butin : +20 % de pièces, runes et ressources',
     svg: `<g ${TR_CARTE}><path d="M50 44c-2 14-8 26-18 36" fill="none" stroke-width="4.5"/>
       <g transform="translate(50 42)">${[45, 135, 225, 315].map((r, i) => '<path transform="rotate(' + r + ')" d="M0 0C-4-6-17-9-17-18a8.5 8.5 0 0 1 17-3 8.5 8.5 0 0 1 17 3C17-9 4-6 0 0Z" fill="' + (i % 2 ? '#4fa32e' : '#5fb73a') + '"/>').join('')}</g>
       <circle cx="50" cy="42" r="3.5" fill="#3f8a22"/></g>
