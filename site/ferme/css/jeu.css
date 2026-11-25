@@ -1553,6 +1553,8 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 
 /* des bonus de panoplie qui se comprennent (15/11/2026) : un bonus par ligne, le palier de pieces en titre, une phrase qui dit qu'ils s'additionnent */
 .pano-bonus .pano-aide { font-size: .68rem; font-weight: 700; color: #8d929b; margin: -2px 0 5px; }
+.pano-bonus .pano-choix { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0 0 6px; } .pano-bonus .pano-choix > span { color: #c9cdd4; margin-right: 2px; } /* (le choix 2 / 4 / 6 pieces de la fiche d'une panoplie, 25/11/2026) */
+.pano-bonus .pano-total + .pano-total { border-color: #c9a227; background: #2f2a1c; color: #ffe7a3; }
 .pano-bonus .paliers span > b { display: block; font-weight: 800; color: inherit; }
 .pano-bonus .bp, .pano-total .bp { display: block; font-style: normal; }
 

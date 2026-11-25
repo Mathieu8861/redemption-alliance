@@ -534,7 +534,20 @@ function ouvrirBananier(p) {
    place du detail de la piece : ses six pieces et l'arme de ta classe (portee, dans le sac ou a trouver ; on touche une piece qu'on a pour la voir), ses bonus par
    palier avec leur total actif, et ou elle tombe. On y entre par « Voir la panoplie » (sur une piece, ou sous une panoplie portee), on en sort par « Retour » ou
    en touchant une piece. */
-let persoPano = null;
+let persoPano = null, persoPanoN = 6;
+/* LES BONUS D'UNE PANOPLIE, AU CHOIX DU NOMBRE DE PIECES (25/11/2026, « explique comment fonctionnent les bonus de panoplie, deja est-ce qu'ils se cumulent 2 + 4 + 6 ?
+   il faudrait que ce soit explique et qu'on puisse voir les bonus totaux d'une pano full equipee en fonction du nombre de pieces selectionne », Mathieu) : dans la fiche
+   d'une panoplie, on choisit 2, 4 ou 6 pieces ; les paliers compris s'allument et leur total s'affiche ; a 6, en plus, la panoplie entiere (pieces au jet moyen et bonus) */
+function blocPanoChoix(k, n) {
+  const L = paliersDe(k), X = L.some(([m]) => m === persoPanoN) ? persoPanoN : L[L.length - 1][0], tot = bonusPano(k, X), P = PANOS[k];
+  const choix = L.map(([m]) => '<button class="btn mini ' + (m === X ? 'kamas' : 'discret') + '" data-fp-pano-n="' + m + '">' + m + ' pièces</button>').join('');
+  const paliers = L.map(([m, f]) => '<span class="' + (m <= X ? 'actif' : '') + '"><b>' + (m <= X ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('');
+  let entiere = ''; if (X === EMPLACEMENTS.length) { const t = {}; EMPLACEMENTS.forEach(([e]) => { const o = OBJETS[P.id + '-' + e]; if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] = (t[c] || 0) + v; }); });
+    Object.entries(tot).forEach(([c, v]) => { t[c] = (t[c] || 0) + v; }); entiere = '<div class="pano-total"><b>La panoplie entière : ses 6 pièces au jet moyen et ses bonus</b>' + texteBonus(t) + '</div>'; }
+  return '<div class="pano-bonus"><b>Ses bonus</b><div class="pano-aide">Ils s\'additionnent : avec 4 pièces, tu as ceux de 2 et ceux de 4 ; avec 6 pièces, ceux de 2, de 4 et de 6. Une 3e ou une 5e pièce n\'ajoute pas de bonus (seulement ses stats). L\'arme compte comme une pièce. Tu en portes ' + n + '.</div>' +
+    '<div class="pano-choix"><span>Voir avec</span>' + choix + '</div><div class="paliers">' + paliers + '</div>' +
+    '<div class="pano-total"><b>En tout, les bonus de ' + X + ' pièces</b>' + texteBonus(tot) + '</div>' + entiere + '</div>';
+}
 function fichePano(k, sacL) {
   const P = PANOS[k], ar = ARMES[classeDe()], n = comptePanos()[k] || 0, rang = rangPano(k), base = rang * VAGUES_PALIER;
   const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e).concat(ar && OBJETS['arme-' + ar[0] + '-' + P.id] ? ['arme-' + ar[0] + '-' + P.id] : []);
@@ -545,7 +558,7 @@ function fichePano(k, sacL) {
   const qui = Object.values(MONSTRES).filter((M) => M.pano === P.id && !M.boss).map((M) => M.nom), vagues = 'des vagues ' + (base + 1) + ' à ' + (base + VAGUES_PALIER);
   const ou = (qui.length ? 'Ses pièces tombent sur ' + [...new Set(qui)].join(', ') + ' (' + vagues.replace('des ', '') + ').' : 'Ses pièces tombent sur les monstres ' + vagues + '.') + (ids.length > EMPLACEMENTS.length ? ' L\'arme tombe sur le boss seulement, et compte comme une pièce (6 au plus).' : '');
   return '<div class="fp-bloc fp-detail"><div class="fp-entete"><span class="fp-grosse"><img src="assets/icones/' + iconeObjet(ids[0]) + '.png?v=' + VERSION_MODELES + '" alt=""></span><div><div class="fp-nom">Panoplie ' + P.de + '</div><div class="fp-pils"><span class="fp-pil">niveau ' + OBJETS[ids[0]].niv + '</span><span class="fp-pil' + (n ? ' porte' : '') + '">' + n + '/6 pièces portées</span></div></div></div>' +
-    '<div class="fp-pp-liste">' + lignes + '</div>' + blocPano(k, n) + '<p class="fp-aide">' + ou + ' Chaque pièce a ses propres stats, tirées dans la fourchette indiquée.</p>' +
+    '<div class="fp-pp-liste">' + lignes + '</div>' + blocPanoChoix(k, n) + '<p class="fp-aide">' + ou + ' Chaque pièce a ses propres stats, tirées dans la fourchette indiquée.</p>' +
     '<div class="fp-actions"><button class="btn discret" data-fp-pano="">Retour</button></div></div>';
 }
 /* MA FERME (14/11/2026, « dans l'HDV / Ameliorer, lorsque quelque chose est a son niveau maximum, il n'est plus necessaire de le laisser ici ; par contre les boosts
@@ -567,7 +580,7 @@ function blocMaFerme() {
   return '<p class="hdv-aide">Tout ce que ta ferme a déjà, et ce que ça te donne aujourd\'hui. Les niveaux suivants s\'achètent à l\'HDV.</p>' + (html || '<p class="hdv-aide">Rien encore : améliore ta ferme à l\'HDV.</p>');
 }
 function ouvrirPerso(sel) {
-  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; persoPano = null; }
+  if (modaleOuverte !== 'perso') { persoNeufs = Object.assign({}, S_.neufs || {}); S_.neufs = {}; persoOnglet = 'equip'; persoFiltre = 'tout'; persoSel = null; persoCarac = null; persoEmp = null; persoPano = null; persoPanoN = 6; }
   if (sel) persoPano = null;
   const dansSac = (k) => S_.sac[k] > 0 && obj(k), sacL = Object.keys(S_.sac).filter(dansSac), equipe = (k) => Object.values(S_.equip).includes(k);
   if (sel && NOMS_EMP[sel]) { persoSel = S_.equip[sel] || sacL.filter((k) => obj(k).emp === sel).sort((x, y) => qualiteJet(y) - qualiteJet(x))[0] || null; } /* un emplacement */
@@ -809,6 +822,7 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'b-objectifs') { S_.objCache = !S_.objCache; rendreObjectif(); fermerModale(); }
   else if (b.id === 'b-perso') ouvrirPerso();
   else if (b.dataset.slot) ouvrirPerso(b.getAttribute('aria-pressed') === 'true' ? null : b.dataset.slot);
+  else if (b.dataset.fpPanoN) { persoPanoN = +b.dataset.fpPanoN; ouvrirPerso(); } /* (le nombre de pieces de la fiche d'une panoplie, 25/11/2026) */
   else if (b.dataset.fpPano != null) { persoPano = b.dataset.fpPano === '' ? null : +b.dataset.fpPano; ouvrirPerso(); }
   else if (b.dataset.fpSel) ouvrirPerso(b.dataset.fpSel);
   else if (b.dataset.fpSlot) { const k = S_.equip[b.dataset.fpSlot]; persoFiltre = 'tout'; persoEmp = b.dataset.fpSlot; ouvrirPerso(k || b.dataset.fpSlot); }
