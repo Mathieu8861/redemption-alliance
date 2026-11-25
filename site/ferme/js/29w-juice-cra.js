@@ -55,7 +55,8 @@ function reactionJuicy(mo, fort) {
 }
 { const majSqJC = majSquelette; majSquelette = function (mo, v, dt) { const r = majSqJC.apply(this, arguments);
   const an = mo.m && mo.m.userData.anim;
-  if (mo.flashB > 0 && an && an.peau) { mo.flashB -= dt; const k = Math.max(0, mo.flashB) / JC.flash > 0.35 ? 1 : 0.5; an.peau.forEach((m) => { if (m.emissive) m.emissive.setRGB(0.95 * k, 0.95 * k, 0.9 * k); }); }
+  if (mo.flashB > 0 && an && an.peau) { mo.flashB -= dt; if (mo.flashB <= 0) an.eclat = Math.max(an.eclat || 0, 1e-4); /* (la fin du flash : la couleur d'origine revient a l'image suivante (22c-squelettes.js) ; sans eclat en cours, le monstre restait pale, vu au fouet de l'Osa le 25/11) */
+    else { const k = mo.flashB / JC.flash > 0.35 ? 1 : 0.5; an.peau.forEach((m) => { if (m.emissive) m.emissive.setRGB(0.95 * k, 0.95 * k, 0.9 * k); }); } }
   if (mo.ecraseT != null && mo.m) { mo.ecraseT += dt; const t = mo.ecraseT, b = mo.ecraseB || 1;
     if (t >= JC.ecrase || mo.etat !== 'actif') { mo.m.scale.setScalar(b); mo.ecraseT = null; }
     else { const s = mo.ecraseA * Math.exp(-t * 16) * Math.cos(t * 38); mo.m.scale.set(b * (1 + s * 0.6), b * (1 - s), b * (1 + s * 0.6)); } }
