@@ -5,21 +5,25 @@
      rations (son auge a trois cases : avoine, mais, quisnoa) et le sechoir a laines (quatre echeveaux, un panier de pelotes) ;
    - les rations : a la place du Ble, un Bouftou blanc adulte peut manger de l'Avoine, du Mais ou du Quisnoa de la grange ; tant que ce repas dure, sa laine
      est de la Laine fine, soyeuse ou doree, qui se vend plus cher. La ration se choisit pour tout l'enclos dans sa fenetre ; la mangeoire la sert seule, et
-     revient au Ble quand il n'y en a plus. Les Bouftous noirs (leur laine noire) et les bebes mangent toujours du Ble.
+     revient au Ble quand il n'y en a plus. Les bebes mangent toujours du Ble.
+   - les Bouftous noirs (25/11/2026, au formulaire : « Noirs aux rations : Laine d'ebene », Mathieu) : ils mangent aussi les rations ; nourris, leur laine
+     est de la Laine d'ebene (600), quelle que soit la ration ; au Ble, elle reste de la laine noire (300).
    - chaque repas a ration est note sur le Bouftou (debut, fin, laine) : une laine prend la qualite du repas pendant lequel elle pousse.
    Chiffres valides par Mathieu le 24/11/2026 au formulaire : 300 000 au niveau 100, laines a 130 / 220 / 360, les cultures telles quelles (pas de rations a fabriquer). */
 const ENCLOS6 = { cout: 300000, niv: 100, cases: 16, bouftous: 7, laines: 11 };
 const LAINES_RATION = [
   { id: 'laine_fine', nom: 'Laine fine', prix: 130, xp: 6 },
   { id: 'laine_soyeuse', nom: 'Laine soyeuse', prix: 220, xp: 9 },
-  { id: 'laine_doree', nom: 'Laine dorée', prix: 360, xp: 14 }];
+  { id: 'laine_doree', nom: 'Laine dorée', prix: 360, xp: 14 },
+  { id: 'laine_ebene', nom: 'Laine d\'ébène', prix: 600, xp: 30 }]; /* (celle des Bouftous noirs nourris aux rations, 25/11/2026) */
 const RATIONS = [
   { id: 'ble', culture: 'ble', n: REPAS, laine: 'laine' },
   { id: 'avoine', culture: 'avoine', n: 2, laine: 'laine_fine' },
   { id: 'mais', culture: 'mais', n: 1, laine: 'laine_soyeuse' },
   { id: 'quisnoa', culture: 'quisnoa', n: 1, laine: 'laine_doree' }];
 const enclos6 = () => !!S_ && nivBat('enclos') >= 6;
-const peutRation = (b) => !!b && adulte(b) && !b.noir;
+const peutRation = (b) => !!b && adulte(b);
+const laineRation = (b, R) => (b.noir ? 'laine_ebene' : R.laine); /* (un noir nourri : de la Laine d'ebene, quelle que soit la ration) */
 const rationChoisie = () => { if (!enclos6()) return null; const R = RATIONS.find((x) => x.id === S_.ration); return R && R.id !== 'ble' ? R : null; };
 const nomRation = (R) => R.n + ' ' + PAR_ID[R.culture].nom;
 function segmentRation(b, debut, fin, laine) { if (fin <= debut) return; b.rq = (b.rq || []).filter((s) => s[1] > debut - 1); b.rq.push([debut, fin, laine]); }
@@ -54,7 +58,7 @@ function chargerEnclos6() {
 function activerEnclos6() {
   const a = AMELIOS.find((x) => x.id === 'enclos'); if (!a || a.couts.length >= 5) return;
   a.couts.push(ENCLOS6.cout); a.nivs.push(ENCLOS6.niv);
-  a.desc += ' Niveau 6 : le domaine lainier, ' + ENCLOS6.cases + ' cases, ' + ENCLOS6.bouftous + ' Bouftous, ' + ENCLOS6.laines + ' laines, avec le silo à rations et le séchoir à laines : nourris tes Bouftous à l\'Avoine, au Maïs ou au Quisnoa pour de la Laine fine, soyeuse ou dorée, bien plus chère.';
+  a.desc += ' Niveau 6 : le domaine lainier, ' + ENCLOS6.cases + ' cases, ' + ENCLOS6.bouftous + ' Bouftous, ' + ENCLOS6.laines + ' laines, avec le silo à rations et le séchoir à laines : nourris tes Bouftous à l\'Avoine, au Maïs ou au Quisnoa pour de la Laine fine, soyeuse ou dorée, bien plus chère ; tes noirs nourris donnent de la Laine d\'ébène.';
   PALIERS_BAT.enclos.push('Le domaine lainier : ' + ENCLOS6.cases + ' cases, ' + ENCLOS6.bouftous + ' Bouftous, ' + ENCLOS6.laines + ' laines, le silo à rations et le séchoir à laines.');
   const G = GAINS.enclos; G.looks.push('le domaine lainier, son silo et son séchoir'); G.stats[0][2].push(ENCLOS6.bouftous); G.stats[1][2].push(ENCLOS6.cases); G.stats[2][2].push(ENCLOS6.laines);
   G.stats[3][2].push(Math.round(DUREE_REPAS * 1.5 / MIN)); G.neufs = G.neufs || {}; G.neufs[5] = [['laine', 'Les rations du silo : Avoine, Maïs ou Quisnoa pour de la laine fine, soyeuse ou dorée']];
@@ -69,9 +73,9 @@ if (SORTIE_P11) activerEnclos6(); /* (comme le puits niveau 6 : avant le chargem
   if (!enclos6()) return avancerEnclos6.apply(this, arguments);
   const R = rationChoisie(), t0 = Math.max(maintenant - borne(maintenant - S_.vu, 0, 10 * 3600e3), 0);
   if (R && niv('mangeoire')) S_.bouftous.forEach((b) => { if (peutRation(b) && maintenant >= b.rassasie && (S_.grange[R.culture] || 0) >= R.n) {
-    S_.grange[R.culture] -= R.n; const d = dureeRepasDe(b); segmentRation(b, maintenant, maintenant + d, R.laine); b.rassasie = maintenant + d; } });
+    S_.grange[R.culture] -= R.n; const d = dureeRepasDe(b); segmentRation(b, maintenant, maintenant + d, laineRation(b, R)); b.rassasie = maintenant + d; } });
   const avant = new Map(S_.bouftous.map((b) => [b, b.laine])), r = avancerEnclos6.apply(this, arguments);
-  S_.bouftous.forEach((b) => { const n = b.laine - (avant.has(b) ? avant.get(b) : b.laine); if (n > 0 && !b.noir && b.rq && b.rq.length) {
+  S_.bouftous.forEach((b) => { const n = b.laine - (avant.has(b) ? avant.get(b) : b.laine); if (n > 0 && b.rq && b.rq.length) {
       const z = Math.min(maintenant, b.rassasie), a = Math.min(t0, z); b.lq = b.lq || {};
       for (let i = 0; i < n; i++) { const L = laineDuMoment(b, a + (i + 0.5) / n * (z - a)); if (L && L !== 'laine') b.lq[L] = (b.lq[L] || 0) + 1; } }
     if (b.rq && b.rq.length) b.rq = b.rq.filter((s) => s[1] > maintenant); });
@@ -83,15 +87,15 @@ if (SORTIE_P11) activerEnclos6(); /* (comme le puits niveau 6 : avant le chargem
   if ((S_.grange[R.culture] || 0) < R.n) { toast('Plus assez de ' + PAR_ID[R.culture].nom + ' dans la grange : ' + b.nom + ' mange du Blé.'); return nourrirEnclos6.apply(this, arguments); }
   const d = dureeRepasDe(b), t = Date.now(), debut = Math.max(t, b.rassasie), fin = Math.min(debut + d, t + 3 * d);
   if (fin <= debut) { toast(b.nom + ' est repu pour ' + dureeLisible(b.rassasie - t) + ' : garde ta ration pour plus tard.'); return; }
-  S_.grange[R.culture] -= R.n; segmentRation(b, debut, fin, R.laine); compter('repas'); son('nourri'); b.rassasie = fin; b.affame = false;
-  toast(b.nom + ' mange ' + nomRation(R) + ' : sa laine sera de la ' + PAR_ID[R.laine].nom + ' tant que ce repas dure.'); rendreBouftous(); rendreGrange(); }; }
+  S_.grange[R.culture] -= R.n; segmentRation(b, debut, fin, laineRation(b, R)); compter('repas'); son('nourri'); b.rassasie = fin; b.affame = false;
+  toast(b.nom + ' mange ' + nomRation(R) + ' : sa laine sera de la ' + PAR_ID[laineRation(b, R)].nom + ' tant que ce repas dure.'); rendreBouftous(); rendreGrange(); }; }
 
 /* ---- la tonte : chaque qualite dans la grange ---- */
 { const tondreEnclos6 = ACTIONS.tondre; ACTIONS.tondre = function (j) {
-  const b = S_.bouftous[j]; if (!b || !b.laine || b.noir || !b.lq || !Object.keys(b.lq).length) return tondreEnclos6.apply(this, arguments);
+  const b = S_.bouftous[j]; if (!b || !b.laine || !b.lq || !Object.keys(b.lq).length) return tondreEnclos6.apply(this, arguments);
   const parts = []; let total = 0, xp = 0;
   LAINES_RATION.slice().reverse().forEach((L) => { const n = Math.min(b.lq[L.id] || 0, b.laine - total); if (n > 0) { S_.grange[L.id] = (S_.grange[L.id] || 0) + n; total += n; xp += L.xp * n; parts.push('+' + n + ' ' + L.nom); } });
-  const reste = b.laine - total; if (reste > 0) { S_.grange.laine = (S_.grange.laine || 0) + reste; xp += LAINE.xp * reste; parts.push('+' + reste + ' ' + LAINE.nom); }
+  const reste = b.laine - total, LB = b.noir ? LAINE_NOIRE : LAINE; if (reste > 0) { S_.grange[LB.id] = (S_.grange[LB.id] || 0) + reste; xp += LB.xp * reste; parts.push('+' + reste + ' ' + LB.nom); } /* (le reste, pousse au Ble : laine noire pour un noir) */
   compter('laines', b.laine); son('tonte'); xpFerme(xp); b.laine = 0; b.lq = {};
   toast(parts.join(', ') + ' grâce à ' + b.nom + '.', 'or'); rendreBouftous(); rendreGrange(); }; }
 
@@ -101,7 +105,7 @@ function decorerEnclos6() {
   const boutons = RATIONS.map((R) => { const st = S_.grange[R.culture] || 0, L = PAR_ID[R.laine], ok = st >= R.n;
     return '<button class="btn mini ' + (R.id === choisi ? 'kamas' : 'discret') + '" data-ration="' + R.id + '" title="' + fmt(st) + ' en grange">' + nomRation(R) + ' → ' + L.nom + ' (' + prix(L.id) + ' ' + KAMA + ')' + (ok ? '' : ' · plus en grange') + '</button>'; }).join('');
   const bloc = document.createElement('div'); bloc.className = 'art'; bloc.dataset.rations = '1';
-  bloc.innerHTML = ico('laine_doree') + '<div><b>Les rations du silo</b><div class="desc">Ce que mangent tes Bouftous blancs adultes, à la main comme à la mangeoire. Tant que le repas dure, leur laine prend sa qualité. Plus de ration en grange : retour au Blé. Les noirs et les bébés mangent toujours du Blé.</div><div class="puces" style="flex-wrap:wrap;gap:6px">' + boutons + '</div></div>';
+  bloc.innerHTML = ico('laine_doree') + '<div><b>Les rations du silo</b><div class="desc">Ce que mangent tes Bouftous adultes, à la main comme à la mangeoire. Tant que le repas dure, leur laine prend sa qualité ; un Bouftou noir nourri donne de la Laine d\'ébène, quelle que soit la ration. Plus de ration en grange : retour au Blé. Les bébés mangent toujours du Blé.</div><div class="puces" style="flex-wrap:wrap;gap:6px">' + boutons + '</div></div>';
   const premier = M.querySelector('.art.eb'); if (premier) premier.parentNode.insertBefore(bloc, premier); else { const h = M.querySelector('h2'); if (h) h.insertAdjacentElement('afterend', bloc); }
   M.querySelectorAll('[data-nourrir]').forEach((x) => { const b = S_.bouftous[+x.dataset.nourrir]; if (R0 && peutRation(b) && (S_.grange[R0.culture] || 0) >= R0.n) x.textContent = 'Nourrir · ' + nomRation(R0);
     const L = b && b.lq && LAINES_RATION.filter((q) => b.lq[q.id]).map((q) => b.lq[q.id] + ' ' + q.nom.replace('Laine ', '') + (b.lq[q.id] > 1 ? 's' : '')); const info = x.closest('.art') && x.closest('.art').children[1];
@@ -109,4 +113,4 @@ function decorerEnclos6() {
 }
 { const ouvrirEnclosE6 = ouvrirEnclos; ouvrirEnclos = function () { const r = ouvrirEnclosE6.apply(this, arguments); try { if (enclos6()) decorerEnclos6(); } catch (e) { /* rien */ } return r; }; }
 document.addEventListener('click', (e) => { const x = e.target.closest && e.target.closest('[data-ration]'); if (!x || !S_) return;
-  S_.ration = x.dataset.ration; sauver(); ouvrirEnclos(); toast(x.dataset.ration === 'ble' ? 'Tes Bouftous mangent du Blé.' : 'Tes Bouftous blancs mangeront ' + nomRation(RATIONS.find((R) => R.id === x.dataset.ration)) + ' par repas.'); });
+  S_.ration = x.dataset.ration; sauver(); ouvrirEnclos(); toast(x.dataset.ration === 'ble' ? 'Tes Bouftous mangent du Blé.' : 'Tes Bouftous mangeront ' + nomRation(RATIONS.find((R) => R.id === x.dataset.ration)) + ' par repas.'); });
