@@ -56,7 +56,9 @@ const CAMPS_LABO = [
   Object.assign(leLongDuChemin(23, -11.5), { nom: 'les champs du bas', r: 5.5, L: [['wabEnrage', 3], ['wabFluo', 2], ['wabVampire', 1]] }),
   Object.assign(leLongDuChemin(44, 0), { nom: 'une patrouille de gardes', r: 7, patrouille: 0, L: [['wabGarde', 2], ['wabEnrage', 2]] }),
   Object.assign(polL(1.0, 16.6), { nom: 'une patrouille autour de la tour', r: 7, patrouille: 4, L: [['wabGarde', 1], ['wabGreffe', 1], ['wabFluo', 2]] })];
-const REPOP_LABO = { apres: 420, loin: 22 }; /* (un camp vide revient au bout de 7 min, si le perso est a plus de 22 de lui ; 75 s avant le 24/11/2026 : « c'est trop rapide, multiplie par 5 ou 6 », Mathieu) */
+const REPOP_LABO = { apres: 180, loin: 22 }; /* (25/11/2026, « les mobs reapparaissent beaucoup trop vite, mets un temps de reapparition de 3 minutes », Mathieu : 3 min de vrai jeu ;
+   ils revenaient plus vite quand on relancait le labo sans quitter l'ile : chaque entree ajoutait une boucle du donjon, qui faisait avancer le temps une fois de plus, partirDonjon) */
+/* (avant : un camp vide revenait au bout de 7 min, si le perso est a plus de 22 de lui ; 75 s avant le 24/11/2026 : « c'est trop rapide, multiplie par 5 ou 6 », Mathieu) */
 /* les chemins (seulement la couleur du sol) */
 const CHEMINS_LABO = [
   [[49, 0], [44, 0.8], [38, -0.5], [31, 0.4], [24, -0.3], [17, 0]].map(([s, l]) => leLongDuChemin(s, l)),
@@ -778,7 +780,7 @@ async function partirDonjon() {
   nouveauCombat('donjon', { n, attente: 1e9, total, ...potsDeVague() }); /* (attente : rien ne sort de la file, les camps et les salles font sortir leurs mutants) */
   { const repas = appliquerRepas(); if (repas.length) setTimeout(() => toast('Repas avant le donjon : ' + texteRepas(repas) + '.', 'or'), 2400); }
   donjonEtat = { t: 0, camps: CAMPS_LABO.map(() => ({ actif: false })), salles: [], grilles: [], gagne: null, n, perso: { mode: 'sol', theta: LABO.A0 } };
-  ouvrirHudCombat(); majCombatHud(); effets.push(tickDonjon); posterCamps(combat); debarquer();
+  ouvrirHudCombat(); majCombatHud(); { const E0 = donjonEtat; effets.push((dt) => (donjonEtat !== E0 ? true : tickDonjon(dt))); } /* (une boucle par entree : celle d'avant s'arrete, 25/11/2026) */ posterCamps(combat); debarquer();
   toast('Le laboratoire du Docteur Wabbenstein ! Sa tour t\'attend : traverse l\'île, monte la passerelle, chaque porte mène à une salle.', 'or');
 }
 /* L'ARRIVEE EN MONTGOLFIERE (24/11/2026, a la place de la barque) : le ballon descend du ciel, le perso debout dans la nacelle, se pose au bout du ponton, et

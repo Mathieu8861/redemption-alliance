@@ -43,7 +43,7 @@ Object.keys(KITS_MUT).forEach((t) => { if (MONSTRES[t]) Object.assign(MONSTRES[t
    - leurs sorts visent la ou tu vas : ta course des derniers instants, prolongee sur le temps du sort (a 85 %, 5 cases au plus) ; en ligne droite tu es pris,
      il faut changer de direction ;
    - leur coup te rattrape : il touche encore a 1,8 au-dela de sa portee (1 pour un monstre ordinaire), comme le coup engage des boss */
-const PEUR_MUT = { wabEnrage: 6.4, wabVampire: 5.2, wabGarou: 4.4, wabFluo: 4.2, wabDrone: 4.2, wabGreffe: 4.2, wabGarde: 3.4 }, ENGAGE_MUT = 1.8, VISE_MUT = { avance: 0.85, max: 10 };
+const PEUR_MUT = { wabEnrage: 5.6, /* (6,4 avant le 25/11/2026, « ils courent beaucoup trop vite, plus vite que moi en Cra, reduis un peu », Mathieu : 5,8 avec le +0,2 de tous, sous le Cra a 6,4) */ wabVampire: 4.5, wabGarou: 3.8, wabFluo: 3.6, wabDrone: 3.8, wabGreffe: 3.6, wabGarde: 3.0 }, /* (puis, le meme soir, « tous un poil trop rapides », Mathieu : vampire 5,2, garou 4,4, fluo 4,2, drone 4,2, greffe 4,2, garde 3,4 avant) */ ENGAGE_MUT = 1.8, VISE_MUT = { avance: 0.85, max: 10 };
 Object.keys(PEUR_MUT).forEach((t) => { const d = MONSTRES[t]; if (!d) return; d.vitesse = PEUR_MUT[t]; d.viseAvance = true; if (!d.distance) d.engage = ENGAGE_MUT; });
 MONSTRES.wabEnrage.engage = 2.4; /* (l'enrage, la meute qui court : plus vite que tous les persos, 6,6 contre 6,4 au Cra, et son coup te rattrape de plus loin) */
 /* la course du perso : sa vitesse lissee, mesuree d'une image a l'autre */

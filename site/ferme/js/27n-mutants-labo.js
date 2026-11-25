@@ -13,8 +13,8 @@
    - le Wabbit garou (5, le labo, et les appels du Docteur) : enorme, il cogne tres fort.
    Icones rendues depuis leurs modeles (blender/icone-glb.py, recadrees : assets/icones/wab-<nom>.png), a faire valider par Mathieu.
    Leurs forces partent des Wabbits du jeu (meme vague que le donjon, la vague du niveau du joueur, 51 au moins) : a regler avec Mathieu. */
-const MUTANTS_LABO = [['wab-garde', 2.6], ['wab-enrage', 2.0], ['wab-fluo', 2.3], ['wab-greffe', 2.4], ['wab-vampire', 2.3], ['wab-garou', 3.1]];
-MUTANTS_LABO.forEach(([n, h]) => { SQUELETTES_A_CHARGER.push([n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); NOMS_BW2.add(n); VITESSE_FAMILLE[n] = 1.3;
+const MUTANTS_LABO = [['wab-garde', 3.12], ['wab-enrage', 2.4], /* (25/11/2026, « les petits Wabbits noirs, trop pres du sol : 20 % plus grands », puis « agrandis les gardes aussi », Mathieu : 2,6 et 2,0 avant) */ ['wab-fluo', 2.3], ['wab-greffe', 2.4], ['wab-vampire', 2.3], ['wab-garou', 3.1]];
+MUTANTS_LABO.forEach(([n, h]) => { SQUELETTES_A_CHARGER.push([n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); NOMS_BW2.add(n); VITESSE_FAMILLE[n] = 1.3; ALLURE_MAX_PAR[n] = 3.2; /* (leurs pieds suivent leur vitesse, 22c) */
   RENDU_B_PAR[n] = Object.assign({}, RENDU_B, { ombre: { value: new T.Vector3(0.8, 0.81, 0.84) }, lisse: [-0.12, 0.32], cle: 'wabc', sansContour: true }); }); /* (le dosage C : ombre douce a 80 %, sans la coque du contour) */
 /* (24/11/2026, le Wabbit fluo « baisse la lueur », Mathieu : vert citron d'un bout a l'autre, il ressemblait a une boule de salade sur l'ile et on ne voyait pas
    le lapin ; couleur moins saturee et moins claire, ombre plus marquee pour lire sa forme) */
@@ -22,9 +22,9 @@ Object.assign(RENDU_B_PAR['wab-fluo'], { cle: 'wabc-fluo', sat: 0.68, lum: 0.88,
 const fW = (t, c, k) => (n) => Math.max(1, Math.round(MONSTRES[t][c](n) * k)); /* (la force d'un mutant : celle d'un Wabbit du jeu, a la meme vague, fois k) */
 Object.assign(MONSTRES, {
   wabGarde: { element: 'feu', nom: 'Garde lapin-machine', modele: 'wab-garde', icone: 'wab-garde', desc: 'le robot de cuivre du Docteur, armure (-30 %) : il monte la garde et te tire des cawottes de son canon, de loin',
-    pv: fW('woWabbit', 'pv', 1.2), deg: fW('wabbitSorciere', 'deg', 1.2), cadence: 2.0, vitesse: 2.6, portee: 5, distance: true, projectile: 'cawotte', armure: 0.3, ombre: 2.0 }, /* (projectile cawotte, 24/11/2026 : il tirait une fleche de son canon) */
+    pv: fW('woWabbit', 'pv', 1.2), deg: fW('wabbitSorciere', 'deg', 1.2), cadence: 2.0, vitesse: 2.6, portee: 5, distance: true, projectile: 'cawotte', armure: 0.3, ombre: 2.4 }, /* (projectile cawotte, 24/11/2026 : il tirait une fleche de son canon) */
   wabEnrage: { element: 'terre', nom: 'Wabbit enragé', modele: 'wab-enrage', icone: 'wab-enrage', desc: 'échappé des cages, l\'œil rouge : il court très vite, te charge et griffe vite, en meute',
-    pv: fW('wabbitFonceur', 'pv', 1), deg: fW('wabbitFonceur', 'deg', 1.1), cadence: 0.8, vitesse: 4.4, portee: 1.3, ombre: 1.4, charge: 6, chargeMax: typeof SAUT_PORTEE !== 'undefined' ? SAUT_PORTEE : 6, degSort: 1.3 }, /* (sa charge, 24/11/2026 : une bande rouge jusqu'a toi, comme le Dragoeuf Blanc) */
+    pv: fW('wabbitFonceur', 'pv', 1), deg: fW('wabbitFonceur', 'deg', 1.1), cadence: 0.8, vitesse: 4.4, portee: 1.3, ombre: 1.7, charge: 6, chargeMax: typeof SAUT_PORTEE !== 'undefined' ? SAUT_PORTEE : 6, degSort: 1.3 }, /* (sa charge, 24/11/2026 : une bande rouge jusqu'a toi, comme le Dragoeuf Blanc) */
   wabFluo: { element: 'poison', nom: 'Wabbit fluo', modele: 'wab-fluo', icone: 'wab-fluo-b', /* (wab-fluo-b, 24/11/2026 : l'icone recolorée comme le fluo en jeu, un nouveau nom pour passer le cache) */ desc: 'gorgé de mutagène qui luit : en mourant, il laisse une flaque verte qui empoisonne (sors-en)',
     pv: fW('wabbitNoir', 'pv', 1.1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.8, vitesse: 3.0, portee: 1.6, ombre: 1.8, flaqueMort: { R: 1.9, duree: 5, pct: 0.012 } },
   wabGreffe: { element: 'terre', nom: 'Wabbit greffé', modele: 'wab-greffe', icone: 'wab-greffe', desc: 'cousu de partout et blindé, armure (-35 %) : sa pince mécanique frappe fort et t\'assomme un instant',
