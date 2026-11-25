@@ -1844,3 +1844,8 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
    s'elargissent plus au-dela du cadre, le nom de la ligne passe a la ligne plutot que de pousser le chiffre dehors ; une ligne longue prend toute la largeur */
 .recap-combat { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } @media (max-width: 520px) { .recap-combat { grid-template-columns: minmax(0, 1fr); } }
 .rc-l span { min-width: 0; } .rc-l.large { grid-column: 1 / -1; }
+/* (26/11/2026) les cartes LEGENDAIRES de l'Arene (28d-cartes-arene.js) : un cadre dore qui luit, le mot « Legendaire » en bandeau */
+.bca.leg .bca-face:first-child { border-color: #b8862a; box-shadow: 0 .36em 0 #6e4a10, 0 0 0 .28em #ffd65a, 0 0 1.6em .3em rgba(255,200,70,.55); animation: bcaLueur 1.8s ease-in-out infinite alternate; }
+.bca.leg .bca-face:first-child::after { border-color: rgba(184,134,42,.55); } .bca.leg .bca-effet { color: #ffd65a; }
+.bca-leg { position: absolute; top: 3.05em; left: 50%; transform: translateX(-50%) rotate(-3deg); z-index: 3; background: linear-gradient(180deg, #ffe27a, #e0a830); border: .16em solid var(--bord); border-radius: .5em; font: 400 .78em/1 var(--f-titre); color: #3b2a1a; padding: .22em .6em; letter-spacing: .04em; white-space: nowrap; box-shadow: 0 .16em 0 var(--bord); }
+@keyframes bcaLueur { from { box-shadow: 0 .36em 0 #6e4a10, 0 0 0 .28em #ffd65a, 0 0 1em .1em rgba(255,200,70,.35); } to { box-shadow: 0 .36em 0 #6e4a10, 0 0 0 .28em #ffe9a0, 0 0 2em .5em rgba(255,200,70,.7); } }
