@@ -17,11 +17,11 @@ const PONTON_Y = 0.38, PORTE_CABANE = [-0.55, 0.85]; /* le dessus de la terrasse
 const CABANE_DEDANS = new T.Vector3(300, 0, -300); /* la piece, loin de tout (rien derriere elle dans l'axe de la camera) */
 const PHRASE_CANNE_DOREE = '« Seule une légende de la pêche peut obtenir le droit de me posséder. »'; /* (la phrase du trophee de la Canne doree, Mathieu, 11/11/2026 au soir) */
 const CANNES = [null, { nom: 'Canne de bambou', desc: 'Cinq brins de bambou, une poignée de liège, un bouchon rouge et blanc.' }, { nom: 'Longue perche', desc: 'Un seul bambou très long, pour aller chercher le poisson au milieu de la mare.' },
-  { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne de mer', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }, { nom: 'Canne dorée', desc: PHRASE_CANNE_DOREE }];
+  { nom: 'Canne vernie', desc: 'Bois verni, moulinet de laiton, anneaux dorés.' }, { nom: 'Canne à moulinet', desc: 'Bois sombre et gros moulinet d\'acier : pour les grosses prises.' }, { nom: 'Canne dorée', desc: PHRASE_CANNE_DOREE }];
 let ligneCabane = null, pontonActif = false, cabaneCharge = null, cabaneSalle = null, cabaneMarche = null, cabaneAvant = null, cannesRatelier = [];
 const cabaneLa = () => !!S_ && !!S_.terrains && !!S_.terrains[TERRAINS[CABANE_T].id];
 const etatPeche = () => { const P = S_.peche || (S_.peche = { cannes: [1], main: 0 }); if (!P.appats) P.appats = { ver: 0, mouche: 0, dore: 0 }; if (!P.appat) P.appat = 'ver'; if (!P.prises) P.prises = {}; if (!P.vues) { P.vues = {}; Object.keys(P.prises).forEach((k) => { if (P.prises[k] > 0) P.vues[k] = 1; }); } return P; }; /* (appats : les reserves ; appat : celui qui est sur la ligne ; prises : le tonneau, par poisson ; 14h-peche.js) */
-const cannesEues = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST ? [1, 2, 3, 4, 5] : etatPeche().cannes); /* (le mode test : toutes, pour les voir) */
+const cannesEues = () => etatPeche().cannes; /* (25/11/2026 : le mode test ne les donne plus toutes, les cannes se fabriquent ; il ouvre toutes les recettes, gratuites, 14h-peche.js) */
 /* ses cases : posees a l'achat du terrain et au chargement (une case deja occupee reste comme elle est) */
 function poserCasesCabane() {
   if (!cabaneLa()) return false; invaliderIndex(); let change = false;
@@ -175,7 +175,7 @@ function clicCabane(hits) {
 function toucherRatelier(k) {
   const P = etatPeche(), E = cannesEues();
   if (P.main && (P.main === k || !E.includes(k))) { const nom = CANNES[P.main].nom; P.main = 0; majRatelier(); tenirCanne(); son('poser'); toast(nom + ' reposée sur le râtelier.'); sauver(); return; }
-  if (!E.includes(k)) { toast(k === 5 ? PHRASE_CANNE_DOREE + ' La Canne dorée se gagne en pêchant les 9 espèces : tu en as ' + especesPechees() + '.' : 'Une place libre : cette canne (' + CANNES[k].nom + '), tu ne l\'as pas encore.', k === 5 ? 'or' : undefined); return; }
+  if (!E.includes(k)) { toast(k === 5 ? PHRASE_CANNE_DOREE + ' La Canne dorée se fabrique à l\'atelier du pêcheur, une fois les 9 espèces pêchées : tu en as ' + especesPechees() + '.' : 'Une place libre : cette canne (' + CANNES[k].nom + '), tu ne l\'as pas encore. Elle se fabrique à l\'atelier du pêcheur.', k === 5 ? 'or' : undefined); return; }
   P.main = k; majRatelier(); tenirCanne(); son('poser'); toast(CANNES[k].nom + ' en main. ' + CANNES[k].desc, 'or'); sauver();
 }
 /* LA CANNE EN MAIN : celle qu'on a prise au ratelier, dans la main droite, tenue droite comme un baton (le bras ne se balance plus) ; rangee pendant un combat */

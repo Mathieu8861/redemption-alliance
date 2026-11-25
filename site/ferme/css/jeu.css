@@ -1303,6 +1303,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .pe-chances .r0, .pe-legende .r0::before { background: #9aa0aa; } .pe-chances .r1, .pe-legende .r1::before { background: #58a8f0; } .pe-chances .r2, .pe-legende .r2::before { background: #b77bf5; } .pe-legende .r3::before { background: var(--or); }
 .pe-legende { display: grid; gap: 2px; width: 100%; justify-items: start; font: 700 .72rem/1.25 var(--f-texte); color: #b9bcc4; } .pe-legende span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .pe-canne .pe-legende { justify-items: center; } .pe-canne .pe-legende span::before { display: none; }
+.pe-canne .pe-recette { margin: 4px 0 6px; font-size: .66rem; color: #d7d9de; } .pe-canne .pe-recette span.manque { color: #ff8a7a; } /* (la recette d'une canne : ce qui manque en rouge, 25/11/2026) */
 .pe-achats { display: grid; gap: 6px; justify-items: center; } .pe-ligne { font: 800 .8rem/1 var(--f-texte); color: var(--or); padding: 7px 0; }
 
 /* LES COMMANDES AU DOIGT EN COMBAT (14/11/2026, ESSAI : le mode test de Mathieu, js/24b-doigt.js) : disposition A (sorts en eventail sur l'arene)

@@ -15,7 +15,7 @@
    - un monstre tue par le sort part en braises et en cendres (pas les boss ni les demi-boss, leur corps reste au sol). */
 const JUICE_SORTS = { force: null };
 const SORTS_OUVERTS = new Set(['flammes', 'givre', 'fatal', 'tempete', 'ruee', 'leg']); /* (les sorts legendaires, recette commune 29zb, ouverts a tous le 25/11/2026, « Ouvrir aux joueurs », Mathieu au formulaire) */ /* (les Fleches enflammees, le givre puis les coups fatals ouverts a tous le 25/11/2026, « ouvre-le aux joueurs », « ok tres bien », Mathieu) */
-const juiceSort = (id) => (JUICE_SORTS.force != null ? JUICE_SORTS.force : SORTS_OUVERTS.has(id) || (typeof MODE_TEST !== 'undefined' && !!MODE_TEST));
+const juiceSort = (id) => (JUICE_SORTS.eteints && JUICE_SORTS.eteints.has(id) ? false : JUICE_SORTS.force != null ? JUICE_SORTS.force : SORTS_OUVERTS.has(id) || (typeof MODE_TEST !== 'undefined' && !!MODE_TEST)); /* (eteints : un Set de sorts a montrer comme avant dans les essais) */
 const JS_FEU = { n: 9, depart: 0.14, chute: 0.3, ecart: 0.045, haut: 6, plantee: 1.4, brule: 1.3, arret: 0.07 };
 
 /* des flammes qui courent sur un monstre un instant */

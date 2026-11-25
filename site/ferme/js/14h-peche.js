@@ -17,18 +17,34 @@ const POISSONS = [{ id: 'goujon', nom: 'Goujon', rang: 0, teinte: '#a08a62' }, {
 const RANGS_PECHE = [{ nom: 'commun', tire: 0.65, tenir: 3.0 }, { nom: 'peu commun', tire: 0.95, tenir: 3.6 }, { nom: 'rare', tire: 1.3, tenir: 4.4 }, { nom: 'légendaire', tire: 1.7, tenir: 5.2 }];
 /* les appats : leur prix a l'etabli, les chances de chaque rang (commun, peu commun, rare), et dore : la chance du Poisson-Chaton dore, tiree a part
    (11/11/2026, « mets le taux de chance a 0,5 sur les poissons-chats dores », Mathieu : 0,5 % par lancer a l'appat dore, 2 % au premier jet ; aucune canne ne la change) */
-const APPATS = { ver: { nom: 'Ver de terre', prix: 40, poids: [80, 18, 2], desc: 'L\'appât de tous les jours : surtout des poissons communs.' },
-  mouche: { nom: 'Mouche de mai', prix: 150, poids: [50, 38, 12], desc: 'Plus de poissons peu communs, quelques rares.' },
-  dore: { nom: 'Appât doré', prix: 600, poids: [22, 40, 38], dore: 0.005, desc: 'Attire les poissons rares, et très rarement le Poisson-Chaton doré (0,5 % de chance).' } };
-/* les cannes : la largeur de la zone verte (sur 100), la portee du lancer, la longueur du modele */
-const CANNES_PECHE = [null, { zone: 26, portee: 4.5, long: 2.0, bouchon: '#d8402f' }, { zone: 29, portee: 6.5, long: 2.6, bouchon: '#f4efe2' }, { zone: 33, portee: 5.0, long: 2.2, bouchon: '#f2c53d' }, { zone: 38, portee: 5.5, long: 2.3, bouchon: '#f08a2e' }, { zone: 44, portee: 6.0, long: 2.4, bouchon: '#f2c53d' }]; /* (5 : la Canne doree, la zone verte la plus large) */
+/* (25/11/2026, « pour les appats, ca booste pas les chances de rarete, mais c'est un prerequis pour avoir le droit de pecher certains types de poisson », Mathieu) :
+   rangs, ceux qui mordent a cet appat ; les chances de chaque rang viennent de la canne (CANNES_PECHE) */
+const APPATS = { ver: { nom: 'Ver de terre', prix: 40, rangs: [0], desc: 'L\'appât de tous les jours : seuls les poissons communs y mordent.' },
+  mouche: { nom: 'Mouche de mai', prix: 150, rangs: [0, 1], desc: 'Les poissons communs et peu communs y mordent.' },
+  dore: { nom: 'Appât doré', prix: 600, rangs: [0, 1, 2], dore: 0.005, desc: 'Tous les poissons y mordent, les rares compris, et très rarement le Poisson-Chaton doré (0,5 % de chance).' } };
+/* les cannes : la largeur de la zone verte (sur 100), les chances de chaque rang (commun, peu commun, rare), la portee du lancer, la longueur du modele.
+   (25/11/2026, « chaque canne elargit la zone verte et augmente la chance de poissons peu communs et rares, rends pas tout trop facile », Mathieu : la zone
+   verte de 26 a 36 % (44 avant), les peu communs et rares +10 / +20 / +35 / +50 % ; le lancer n'est plus affiche, la mare est a deux pas) */
+const CANNES_PECHE = [null, { zone: 26, rangs: [80, 17, 3], portee: 4.5, long: 2.0, bouchon: '#d8402f' }, { zone: 28, rangs: [78, 18, 4], portee: 6.5, long: 2.6, bouchon: '#f4efe2' }, { zone: 30, rangs: [76, 19, 5], portee: 5.0, long: 2.2, bouchon: '#f2c53d' }, { zone: 33, rangs: [73, 21, 6], portee: 5.5, long: 2.3, bouchon: '#f08a2e' }, { zone: 36, rangs: [70, 22, 8], portee: 6.0, long: 2.4, bouchon: '#f2c53d' }];
+const RARETE_CANNES = [0, 0, 10, 20, 35, 50];
+/* LES CANNES SE FABRIQUENT (25/11/2026, « que la canne a peche ce soit un craft, avec plein de ressources differentes, surtout celles qu'on n'utilise pas trop,
+   et qui ont du sens », « fabrication debloquee par especes », « poisson et ressources », Mathieu) : la recette s'ouvre a 3, 5, 7 et 9 especes pechees (CANNE_ESPECES),
+   a l'atelier du pecheur ; les ressources viennent de la grange, les poissons du tonneau. */
+const RECETTES_CANNES = [null, null,
+  { res: [['kaliptus', 6], ['poil_wabbit', 8], ['plume', 10]], poissons: [['goujon', 3]] }, /* (le bois souple du Kaliptus, la ligne tressee en poil de Wabbit, les bouchons en plume de Tofu) */
+  { res: [['ecaille_drag', 6], ['os_chafer', 10], ['laine_fine', 6]], poissons: [['brochet', 3]] }, /* (le vernis d'ecaille de Dragoeuf, les anneaux en os de Chafer, la ligne en laine fine) */
+  { res: [['dent_bwork', 8], ['ecaille_tortue', 6], ['plume_kanniboul', 8], ['laine_soyeuse', 6]], poissons: [['raie', 2]] }, /* (les engrenages du moulinet en dents de Bwork, la poignee en ecaille de Tortue, la mouche en plume de Kanniboul, la ligne en laine soyeuse) */
+  { res: [['plume_doree', 4], ['laine_doree', 4], ['brassard_vsa', 2]], poissons: [['lotte', 1]] }]; /* (l'or des plumes et de la laine doree, deux brassards de la VSA) */
+const NOMS_RES_CANNES = { kaliptus: ['Branche de Kaliptus', 'Branches de Kaliptus'], poil_wabbit: ['Poil de Wabbit', 'Poils de Wabbit'], plume: ['Plume de Tofu', 'Plumes de Tofu'], ecaille_drag: ['Écaille de Dragoeuf', 'Écailles de Dragoeuf'], os_chafer: ['Os de Chafer', 'Os de Chafer'], laine_fine: ['Laine fine', 'Laines fines'], dent_bwork: ['Dent de Bwork', 'Dents de Bwork'], ecaille_tortue: ['Écaille de Tortue', 'Écailles de Tortue'], plume_kanniboul: ['Plume de Kanniboul', 'Plumes de Kanniboul'], laine_soyeuse: ['Laine soyeuse', 'Laines soyeuses'], plume_doree: ['Plume dorée', 'Plumes dorées'], laine_doree: ['Laine dorée', 'Laines dorées'], brassard_vsa: ['Brassard VSA', 'Brassards VSA'] };
+const nomResCanne = (id, q) => { const N = NOMS_RES_CANNES[id]; return N ? N[q > 1 ? 1 : 0] : id; };
+const nomPoissonCanne = (id, q) => { const p = POISSONS.find((x) => x.id === id); return p ? (q > 1 ? p.nom.replace(/^(\S+)/, '$1s') : p.nom) : id; }; /* (5 : la Canne doree, la zone verte la plus large) */
 const MARE_Y = -0.05, FENETRE_FERRAGE = 1.0;
 let peche = null, pecheHud = null, pecheBouton = null;
 const dansMare = (x, z) => codeIle(Math.round(x / S + (COLS - 1) / 2), Math.round(z / S + (ROWS - 1) / 2)) === '~';
 const unPoisson = (p) => (p.fem ? 'une ' : 'un ') + p.nom;
 function tirerPoisson() {
-  const P = etatPeche(), A = APPATS[P.appat]; if (Math.random() < (A.dore || 0)) return POISSONS.find((p) => p.rang === 3); /* (le Poisson-Chaton dore : sa chance fixe, d'abord) */
-  const W = A.poids.slice(); if (P.main === 4) W[2] *= 1.3; /* (la canne de mer : plus de poissons rares) */
+  const P = etatPeche(), A = APPATS[P.appat], C = CANNES_PECHE[P.main] || CANNES_PECHE[1]; if (Math.random() < (A.dore || 0)) return POISSONS.find((p) => p.rang === 3); /* (le Poisson-Chaton dore : sa chance fixe, d'abord) */
+  const W = C.rangs.map((w, i) => (A.rangs.includes(i) ? w : 0)); /* (la canne fait les chances, l'appat dit qui mord) */
   let r = Math.random() * W.reduce((a, b) => a + b, 0), rang = 0; for (let k = 0; k < W.length; k++) { r -= W[k]; if (r <= 0) { rang = k; break; } }
   return hasard(POISSONS.filter((p) => p.rang === rang));
 }
@@ -158,38 +174,55 @@ function acheterAppat(k, n) {
 }
 /* (11/11/2026, « a ameliorer ca », Mathieu, sur la premiere fenetre : des lignes sans image, des boutons « 1 : 40 ») : en cartes. Un appat : son image, ce qu'il en
    reste, ses chances en barre (communs, peu communs, rares), deux boutons d'achat avec leur prix, et « Mettre sur ma ligne » ; celui de la ligne est borde d'or.
-   Une canne : son image, ou elle est, sa zone verte et son lancer. */
+   Une canne : son image, ou elle est, sa zone verte et sa rarete ; pas encore a toi : sa recette et « Fabriquer », ou les especes qu'il reste a pecher. */
 function ouvrirEtabliPecheur() {
-  const P = etatPeche(), E = cannesEues(), img = (n) => '<img src="assets/icones/' + n + '.png?v=' + VERSION_MODELES + '" alt="">', RANG = ['communs', 'peu communs', 'rares'];
-  const appat = ([k, A]) => { const n = P.appats[k] || 0, sur = P.appat === k, tot = A.poids.reduce((t, x) => t + x, 0);
+  const P = etatPeche(), E = cannesEues(), img = (n) => '<img src="assets/icones/' + n + '.png?v=' + VERSION_MODELES + '" alt="">', RANG = ['Communs', 'Peu communs', 'Rares'];
+  const appat = ([k, A]) => { const n = P.appats[k] || 0, sur = P.appat === k;
     return '<div class="pe-carte' + (sur ? ' choisi' : '') + '">' + img('appat-' + k) + '<b class="pe-nom">' + A.nom + '</b><span class="puce' + (n ? ' bonne' : '') + '">' + fmt(n) + ' en réserve</span>' +
-      '<div class="pe-chances">' + A.poids.map((x, i) => '<i class="r' + i + '" style="width:' + (x / tot * 100).toFixed(1) + '%"></i>').join('') + '</div>' +
-      '<div class="pe-legende">' + A.poids.map((x, i) => '<span class="r' + i + '">' + Math.round(x / tot * 100) + ' % ' + RANG[i] + '</span>').join('') + (A.dore ? '<span class="r3">' + String(A.dore * 100).replace('.', ',') + ' % Poisson-Chaton doré</span>' : '') + '</div>' +
+      '<div class="pe-legende"><span>Mordent à cet appât :</span>' + A.rangs.map((i) => '<span class="r' + i + '">' + RANG[i] + '</span>').join('') + (A.dore ? '<span class="r3">' + String(A.dore * 100).replace('.', ',') + ' % Poisson-Chaton doré</span>' : '') + '</div>' +
       '<div class="pe-achats"><button class="btn kamas mini" data-peche="acheter:' + k + ':1"' + (S_.kamas >= A.prix ? '' : ' disabled') + '>Acheter ' + fmt(A.prix) + ' ' + KAMA + '</button><button class="btn kamas mini" data-peche="acheter:' + k + ':10"' + (S_.kamas >= A.prix * 10 ? '' : ' disabled') + '>×10 : ' + fmt(A.prix * 10) + ' ' + KAMA + '</button></div>' + /* (comme a l'HDV : « Acheter 40 » et « ×10 : 400 », la piece a cote ; « le 1 - 40 c'est pas tres explicite », Mathieu, 11/11/2026) */
       (sur ? '<span class="pe-ligne">✓ Sur ta ligne</span>' : '<button class="btn discret mini" data-peche="appat:' + k + '">Mettre sur ma ligne</button>') + '</div>'; };
-  const canne = (k) => { const a = E.includes(k), main = P.main === k, C = CANNES_PECHE[k];
-    return '<div class="pe-carte pe-canne' + (main ? ' choisi' : a ? '' : ' absent') + '">' + img('canne-' + k) + '<b class="pe-nom">' + CANNES[k].nom + '</b><span class="puce' + (main ? ' or' : a ? ' bonne' : '') + '">' + (main ? 'dans ta main' : a ? 'sur le râtelier' : CANNE_ESPECES[k] + ' espèces à pêcher') + '</span>' +
-      '<div class="pe-legende"><span>Zone verte : ' + C.zone + ' %</span><span>Lancer : ' + String(Math.round(C.portee / S * 10) / 10).replace('.', ',') + ' cases</span></div></div>'; };
+  const G = S_.grange || {}, canne = (k) => { const a = E.includes(k), main = P.main === k, C = CANNES_PECHE[k], R = RECETTES_CANNES[k];
+    let bas = '';
+    if (a) bas = '<span class="puce' + (main ? ' or' : ' bonne') + '">' + (main ? 'dans ta main' : 'sur le râtelier') + '</span>';
+    else if (!recetteCanneOuverte(k)) bas = '<span class="puce">Recette à ' + CANNE_ESPECES[k] + ' espèces pêchées</span>';
+    else { const ok = (q, n) => MODE_TEST || n >= q;
+      bas = '<div class="pe-legende pe-recette">' + R.res.map(([id, q]) => '<span' + (ok(q, G[id] || 0) ? '' : ' class="manque"') + '>' + q + ' ' + nomResCanne(id, q) + ' (' + fmt(G[id] || 0) + ')</span>').join('') +
+        R.poissons.map(([id, q]) => '<span' + (ok(q, P.prises[id] || 0) ? '' : ' class="manque"') + '>' + q + ' ' + nomPoissonCanne(id, q) + ' (' + fmt(P.prises[id] || 0) + ')</span>').join('') + '</div>' +
+        '<button class="btn kamas mini" data-peche="fabriquer:' + k + '"' + (peutFabriquerCanne(k) ? '' : ' disabled') + '>Fabriquer</button>'; }
+    return '<div class="pe-carte pe-canne' + (main ? ' choisi' : a ? '' : ' absent') + '">' + img('canne-' + k) + '<b class="pe-nom">' + CANNES[k].nom + '</b>' + bas +
+      '<div class="pe-legende"><span>Zone verte : ' + C.zone + ' %</span><span>' + (RARETE_CANNES[k] ? 'Rareté +' + RARETE_CANNES[k] + ' %' : 'Rareté de base') + '</span></div></div>'; };
   ouvrirModale('pecheur', entete('L\'atelier du pêcheur') + '<p class="hdv-aide">Chaque lancer prend un appât. Choisis celui de ta ligne, puis va pêcher au bout de la terrasse, une canne en main.</p>' +
     '<div class="hdv-section">Les appâts</div><div class="pe-grille">' + Object.entries(APPATS).map(appat).join('') + '</div>' +
-    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">Sur le râtelier, au mur du fond : touche une canne pour la prendre, touche sa place pour la reposer. Les suivantes se gagnent en pêchant de nouvelles espèces.</p><div class="pe-grille cinq">' + [1, 2, 3, 4, 5].map(canne).join('') + '</div>');
+    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">La canne fait les chances : plus elle est belle, plus les poissons peu communs et rares mordent souvent (l\'appât, lui, dit lesquels peuvent mordre). Sa zone verte, c\'est la bande de la jauge où garder le poisson : plus elle est large, plus il est facile à remonter. Les cannes se fabriquent ici : chaque recette s\'ouvre à 3, 5, 7 et 9 espèces pêchées. Sur le râtelier, au mur du fond : touche une canne pour la prendre, touche sa place pour la reposer.' + (MODE_TEST ? ' Mode test : toutes les recettes sont ouvertes et se fabriquent sans rien payer.' : '') + '</p><div class="pe-grille cinq">' + [1, 2, 3, 4, 5].map(canne).join('') + '</div>');
 }
 /* LES SUCCES DE LA PECHE (11/11/2026, par Discord : « et si on peche tous les poissons ca fait un succes ? On gagne une recompense ? », « des kamas c'est bien mais
    bof », « B ? Et un bonus de dps de +5 % sur les monstres de type eau ? », « on fait comme ca », Mathieu). Les neuf especes courantes comptent (le Poisson-Chaton
    dore a part : son trophee est accroche au mur de la cabane, 14g-cabane.js) :
-     3 especes : la Longue perche ; 5 : la Canne vernie ; 7 : la Canne de mer ; 9 : la Canne doree et « Pecheur accompli », +5 % de degats du perso contre les
-     monstres d'eau (les Tortues, et tout monstre d'element eau ; pas les defenses), affiche dans la fiche du perso sous les panoplies (25-interface.js). */
+     3 especes : la recette de la Longue perche ; 5 : celle de la Canne vernie ; 7 : celle de la Canne a moulinet ; 9 : celle de la Canne doree et « Pecheur
+     accompli », +5 % de degats du perso contre les monstres d'eau (les Tortues, et tout monstre d'element eau ; pas les defenses), affiche dans la fiche du perso
+     sous les panoplies (25-interface.js). (25/11/2026 : les cannes ne se donnent plus, elles se fabriquent ; « Pecheur accompli » tient aux 9 especes.) */
 const CANNE_ESPECES = [0, 0, 3, 5, 7, 9], BONUS_EAU = 0.05, MONSTRES_EAU = new Set(['tortueBleue', 'tortueJaune', 'tortueRouge', 'tortueVerte', 'tortueCorail']);
 const especesPechees = () => { const P = etatPeche(); return POISSONS.filter((q) => q.rang < 3 && P.vues[q.id]).length; };
-const pecheurAccompli = () => !!S_ && !!S_.peche && (S_.peche.cannes || []).includes(5);
+const pecheurAccompli = () => !!S_ && !!S_.peche && especesPechees() >= 9;
 const monstreDEau = (mo) => !!mo && (MONSTRES_EAU.has(mo.type) || !!(mo.d && mo.d.element === 'eau'));
 function majSuccesPeche() { /* donne ce qui est du (sans risque de doublon) : a chaque nouvelle espece, et a l'ouverture du tonneau */
-  if (!S_ || !S_.peche) return; const P = etatPeche(), n = especesPechees(); let neuf = 0;
-  for (let k = 2; k <= 5; k++) if (n >= CANNE_ESPECES[k] && !P.cannes.includes(k)) { P.cannes.push(k); neuf = k;
-    toast(k === 5 ? 'Succès : Pêcheur accompli ! Les 9 espèces sont pêchées. La Canne dorée est à toi, et tu frappes 5 % plus fort les monstres d\'eau.' : n + ' espèces pêchées : la ' + CANNES[k].nom + ' t\'attend sur le râtelier.', 'or'); }
-  if (neuf) { son('quete'); if (typeof majRatelier === 'function' && cabaneSalle) majRatelier(); sauver(); }
+  if (!S_ || !S_.peche) return; const P = etatPeche(), n = especesPechees(); let neuf = 0; P.recettes = P.recettes || [];
+  for (let k = 2; k <= 5; k++) if (n >= CANNE_ESPECES[k] && !P.recettes.includes(k)) { P.recettes.push(k); if (P.cannes.includes(k)) continue; neuf = k;
+    toast(k === 5 ? 'Succès : Pêcheur accompli ! Les 9 espèces sont pêchées : tu frappes 5 % plus fort les monstres d\'eau, et la recette de la Canne dorée est à l\'atelier du pêcheur.' : n + ' espèces pêchées : la recette de la ' + CANNES[k].nom + ' est à l\'atelier du pêcheur.', 'or'); }
+  if (neuf) { son('quete'); sauver(); }
 }
-const suiteSuccesPeche = () => { const n = especesPechees(), k = [2, 3, 4, 5].find((q) => n < CANNE_ESPECES[q]); return k ? ' À ' + CANNE_ESPECES[k] + ' espèces : la ' + CANNES[k].nom + '.' : ' Pêcheur accompli : les 9 espèces sont pêchées.'; };
+const suiteSuccesPeche = () => { const n = especesPechees(), k = [2, 3, 4, 5].find((q) => n < CANNE_ESPECES[q]); return k ? ' À ' + CANNE_ESPECES[k] + ' espèces : la recette de la ' + CANNES[k].nom + '.' : ' Pêcheur accompli : les 9 espèces sont pêchées.'; };
+const recetteCanneOuverte = (k) => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || especesPechees() >= CANNE_ESPECES[k];
+function peutFabriquerCanne(k) { const P = etatPeche(), R = RECETTES_CANNES[k], G = S_.grange || {}; if (!R || P.cannes.includes(k) || !recetteCanneOuverte(k)) return false; if (MODE_TEST) return true;
+  return R.res.every(([id, q]) => (G[id] || 0) >= q) && R.poissons.every(([id, q]) => (P.prises[id] || 0) >= q); }
+function fabriquerCanne(k) {
+  if (!peutFabriquerCanne(k)) { toast('Il te manque des ressources ou des poissons.'); return; }
+  const P = etatPeche(), R = RECETTES_CANNES[k], G = S_.grange || (S_.grange = {});
+  if (!MODE_TEST) { R.res.forEach(([id, q]) => { G[id] -= q; }); R.poissons.forEach(([id, q]) => { P.prises[id] -= q; }); }
+  P.cannes.push(k); son('niveau'); toast('Tu as fabriqué la ' + CANNES[k].nom + ' : elle t\'attend sur le râtelier.', 'or');
+  if (typeof majRatelier === 'function' && cabaneSalle) majRatelier(); sauver(); ouvrirEtabliPecheur();
+}
 function blocSuccesPeche() { /* la ligne « Succes » de la fiche du perso */
   if (!S_ || !cabaneLa()) return ''; const n = especesPechees(), ok = pecheurAccompli();
   return '<h4>Succès</h4><div class="pano-bonus"><b>' + (ok ? '✓ Pêcheur accompli' : 'Pêcheur accompli : ' + n + '/9 espèces pêchées') + '</b><div class="paliers"><span class="' + (ok ? 'actif' : '') + '">' + (ok ? '✓ ' : '') + 'Dégâts contre les monstres d\'eau +' + Math.round(BONUS_EAU * 100) + ' % (les Tortues)</span></div></div>';
@@ -233,6 +266,6 @@ function actionAquarium(a, k) {
 }
 document.addEventListener('click', (e) => {
   const b = e.target && e.target.closest ? e.target.closest('[data-peche]') : null; if (!b) return; const [a, k, n] = b.dataset.peche.split(':');
-  if (a === 'acheter') acheterAppat(k, +n); else if (a === 'appat' && APPATS[k]) { etatPeche().appat = k; sauver(); ouvrirEtabliPecheur(); }
+  if (a === 'acheter') acheterAppat(k, +n); else if (a === 'appat' && APPATS[k]) { etatPeche().appat = k; sauver(); ouvrirEtabliPecheur(); } else if (a === 'fabriquer') fabriquerCanne(+k);
   else if (a === 'vendre') vendrePoisson(k, +n); else if (a === 'entrer' || a === 'sortir' || a === 'agrandir') actionAquarium(a, k);
 });
