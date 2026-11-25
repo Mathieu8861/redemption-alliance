@@ -361,10 +361,15 @@ function cuveGeantWab(x, y, z, a) { /* la cuve de verre ou flotte le garou geant
   const liq = new T.Mesh(new T.CylinderGeometry(1.72, 1.72, 4.6, 26), jus); liq.position.y = 2.9; liq.renderOrder = 3; g.add(liq);
   [1.4, 4.4].forEach((yy) => { const r = new T.Mesh(new T.TorusGeometry(1.83, 0.08, 6, 30), cuivre); r.rotation.x = Math.PI / 2; r.position.y = yy; g.add(r); });
   for (let k = 0; k < 2; k++) { const tu = new T.Mesh(new T.CylinderGeometry(0.14, 0.14, 1.4, 8), cuivre); tu.position.set((k ? 0.6 : -0.6), 6.4, 0); g.add(tu); }
-  try { const m = clonerSquelette('wab-garou'); if (m) { m.scale.multiplyScalar(1.05); m.position.y = 0.75; m.rotation.y = a; m.traverse((q) => { q.raycast = () => {}; if (q.isMesh && q.material) { q.material = q.material.clone(); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.3; } } }); g.add(m); g.userData.garou = m; } } catch (e) { /* (sans modele : la cuve seule) */ }
+  /* le garou, vegetatif (25/11/2026, « le mob depasse du verre, mets-le dans une autre forme, comme s'il etait vegetatif », Mathieu : sans mouvement, il restait en
+     pose de liaison, bras ecartes a travers le verre) : affaisse, la tete basse, les bras le long du corps, il respire tres lentement ; deux tuyaux le branchent au toit */
+  try { const m = clonerSquelette('wab-garou'); if (m) { m.scale.multiplyScalar(0.92); m.position.set(0, 0.85, 0); m.rotation.set(0.16, a, 0, 'YXZ'); m.traverse((q) => { q.raycast = () => {}; if (q.isMesh && q.material) { q.material = q.material.clone(); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.3; } } }); g.add(m); g.userData.garou = m;
+      const clips = (MODELES['wab-garou'] && MODELES['wab-garou'].userData.clips) || [], cl = clips.find((c) => /^repos/.test(c.name)) || clips.find((c) => /^touche/.test(c.name));
+      if (cl) { const mx = new T.AnimationMixer(m), ac = mx.clipAction(cl); ac.play(); ac.timeScale = 0.18; mx.update(0.4); g.userData.mixer = mx; }
+      const tuyau = new T.MeshLambertMaterial({ color: '#4d7a3a' }); [-0.45, 0.45].forEach((dx) => { const c = new T.CatmullRomCurve3([new T.Vector3(dx * 0.9, 5.3, 0.1), new T.Vector3(dx * 1.3, 4.6, 0.35), new T.Vector3(dx * 0.7, 3.55, 0.42)]), tu = new T.Mesh(new T.TubeGeometry(c, 12, 0.06, 6), tuyau); g.add(tu); }); } } catch (e) { /* (sans modele : la cuve seule) */ }
   g.traverse((q) => { q.raycast = q.raycast || (() => {}); }); scene.add(g);
   g.userData.bulles = setInterval(() => { if (!g.parent) { clearInterval(g.userData.bulles); return; } if (enPause || typeof emettre !== 'function') return; emettre(FX_LUM, 1, { x: x + (Math.random() - 0.5) * 2.6, y: y + 0.8, z: z + (Math.random() - 0.5) * 2.6, r: 0.05, v: [0, 1.4, 0], dv: 0.15, vie: [1.8, 2.6], taille: [0.14, 0.05], c: ['#c8ffd8', '#7dff5a'], a: 0.6, frein: 0 });
-    if (g.userData.garou) g.userData.garou.position.y = 0.75 + 0.1 * Math.sin(performance.now() / 650); }, 120);
+    if (g.userData.garou) g.userData.garou.position.y = 0.85 + 0.1 * Math.sin(performance.now() / 650); if (g.userData.mixer) g.userData.mixer.update(0.12); }, 120);
   return g;
 }
 function pupitreArene(x, y, z, a) { /* a l'Arene dev : un pupitre de fer a ecrans et gros bouton rouge, sorti du sol */

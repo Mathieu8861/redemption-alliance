@@ -33,12 +33,13 @@ function ouvrirCageLabo(i, k) {
   const E = donjonEtat, I = ileWabbits && ileWabbits.userData.salles[i], C = I && I.cages[k]; if (!E || !C || C.ouverte) return; C.ouverte = true; E.cage = null;
   const P0 = ileWabbits.userData.protos; if (P0 && P0.cageOuverte) { const o = P0.cageOuverte.clone(true); o.position.copy(C.grp.position); o.rotation.copy(C.grp.rotation); o.traverse((q) => { q.raycast = () => {}; }); C.grp.parent.add(o); C.grp.parent.remove(C.grp); C.grp = o; }
   if (C.wab.parent) C.wab.parent.remove(C.wab);
-  libererWabbits(i, [{ x: C.x, z: C.z }], FIN_LABO.parCage, C.type); E.wabLiberes = (E.wabLiberes || 0) + FIN_LABO.parCage; son('quete');
+  libererWabbits(i, [{ x: C.x, z: C.z }], FIN_LABO.parCage, C.type); E.wabLiberes = (E.wabLiberes || 0) + FIN_LABO.parCage; son('quete'); E.cagesOuvertes = (E.cagesOuvertes || 0) + 1; majSuccesWabbits(E);
   toast('La cage s\'ouvre : ' + FIN_LABO.parCage + ' ' + (CAGES_LABO.noms[C.type] || 'Wabbits') + ' sont libres !', 'or');
 }
 { const tickDonjonCages = tickDonjon; tickDonjon = function () { const r = tickDonjonCages.apply(this, arguments);
     try { const E = donjonEtat, p = paysanMesh.position; if (E && E.cage && E.perso.mode === 'salle' && E.perso.i === E.cage.i) { const S = SALLES_LABO[E.cage.i], C = ileWabbits.userData.salles[E.cage.i].cages[E.cage.k];
-        if (C && Math.hypot(p.x - DONJON.x - S.x - C.x, p.z - DONJON.z - S.z - C.z) < 2.2) { if (E.salles[E.cage.i] && E.salles[E.cage.i].fini) ouvrirCageLabo(E.cage.i, E.cage.k); else { toast('Les mutants gardent les cages : débarrasse-toi d\'eux d\'abord.', 'alerte'); E.cage = null; } } }
+        if (C && Math.hypot(p.x - DONJON.x - S.x - C.x, p.z - DONJON.z - S.z - C.z) < 2.2) { if (E.salles[E.cage.i] && E.salles[E.cage.i].fini) ouvrirCageLabo(E.cage.i, E.cage.k); else { const n = combat.monstres.filter((o) => o.etat === 'actif' && o.salle === E.cage.i).length; chiffre('Verrouillée', new T.Vector3(DONJON.x + S.x + C.x, Y_SALLE + 2.2, DONJON.z + S.z + C.z));
+          toast('Cage verrouillée : ' + (n ? 'encore ' + n + ' mutant' + (n > 1 ? 's' : '') + ' dans la salle. ' : '') + 'Abats tous les mutants, la clé de la salle ouvre les cages : touche-les ensuite pour libérer les Wabbits.', 'alerte'); E.cage = null; } } } /* (25/11/2026, au formulaire : « salle nettoyee d'abord », Mathieu ; le message dit combien il en reste) */
       /* les prisonniers dans leurs cages : un petit sautillement de temps en temps */
       const P = E && E.perso, I = P && P.mode === 'salle' && ileWabbits.userData.salles[P.i]; if (I && I.cages) { const t = E.t; I.cages.forEach((C) => { if (C.ouverte) return; const h = Math.max(0, Math.sin(t * 2.2 + C.ph)); C.wab.position.y = 0.06 + (h > 0.92 ? (h - 0.92) * 3 : 0); C.wab.rotation.y = C.ry + Math.sin(t * 0.7 + C.ph) * 0.4; }); } } catch (e) { /* rien */ }
     return r; }; }
@@ -138,3 +139,18 @@ function dronesRampe() {
 { const tickDonjonDrones = tickDonjon; tickDonjon = function () { const r = tickDonjonDrones.apply(this, arguments); try { dronesRampe(); } catch (e) { /* rien */ } return r; }; }
 /* le modele du drone, charge au depart pour l'ile (24/11/2026, 27n-mutants-labo.js) */
 { const partirDonjonDrone = partirDonjon; partirDonjon = async function () { try { if (typeof chargerDrone === 'function') chargerDrone(); } catch (e) { /* rien */ } return partirDonjonDrone.apply(this, arguments); }; }
+
+/* LE SUCCES « LIBERER TOUS LES WABBITS » (25/11/2026, Mathieu : « on pourrait avoir un succes "liberer tous les Wabbits" qui donne un bonus de 5 % d'XP pour ton
+   perso, infini » ; au formulaire : « toutes les cages, une partie ») : les cages des quatre salles ouvertes pendant une meme partie du labo (16 cages) ; pour
+   toujours, toute l'XP du perso +5 % (gagnerXp : les recoltes, les combats, tout). Affiche dans la fiche du perso, avec les succes de la peche. */
+const SUCCES_WAB = { bonusXp: 0.05 };
+const succesWabbits = () => !!(S_ && S_.succes && S_.succes.wabbits);
+const cagesTotalLabo = () => { const L = (ileWabbits && ileWabbits.userData.salles) || []; let n = 0; for (let i = 0; i < 4; i++) n += ((L[i] && L[i].cages) || []).length; return n; };
+function majSuccesWabbits(E) {
+  if (!E || succesWabbits()) return; const total = cagesTotalLabo(); if (!total || (E.cagesOuvertes || 0) < total) return;
+  S_.succes = S_.succes || {}; S_.succes.wabbits = true; son('niveau'); sauver();
+  toast('Succès : Libérer tous les Wabbits ! Les ' + total + ' cages sont ouvertes : toute l\'XP de ton perso monte de ' + Math.round(SUCCES_WAB.bonusXp * 100) + ' %, pour toujours.', 'or');
+}
+{ const gagnerXpWab = gagnerXp; gagnerXp = function (n, exact, sag) { if (n > 0 && succesWabbits()) n = exact ? Math.round(n * (1 + SUCCES_WAB.bonusXp)) : n * (1 + SUCCES_WAB.bonusXp); return gagnerXpWab.call(this, n, exact, sag); }; } /* (gagnerXp.dernier se pose sur celle-ci : le vrai gain) */
+{ const blocSuccesWab = blocSuccesPeche; blocSuccesPeche = function () { const a = blocSuccesWab.apply(this, arguments); if (!S_ || !(succesWabbits() || (S_.donjons && S_.donjons.wabbits))) return a; const ok = succesWabbits();
+  return (a || '<h4>Succès</h4>') + '<div class="pano-bonus"><b>' + (ok ? '✓ Libérer tous les Wabbits' : 'Libérer tous les Wabbits : ouvre les cages des 4 salles du labo en une partie') + '</b><div class="paliers"><span class="' + (ok ? 'actif' : '') + '">' + (ok ? '✓ ' : '') + 'Toute ton XP +' + Math.round(SUCCES_WAB.bonusXp * 100) + ' %</span></div></div>'; }; }
