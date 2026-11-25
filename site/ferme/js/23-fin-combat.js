@@ -159,9 +159,9 @@ function finVague(gagne, fuite) {
     const champs = S_.cases.filter((x) => x.type === 'champ' && x.c).sort((a, b) => recolte(b) * prix(b.c) - recolte(a) * prix(a.c));
     let perte = 'Ils n\'ont trouvé aucune culture à saccager.';
     if (champs.length) { const p = champs[0], nom = PAR_ID[p.c].nom; c.saccage = { c: p.c, n: recolte(p) }; Object.assign(p, champVide()); rendreCase(p.id); perte = 'Ils ont saccagé ton champ ' + de(nom) + ' en repartant.'; }
-    if (!fuite) S_.vague.repos = Date.now() + REPOS_VAGUE;
+    S_.vague.repos = 0; /* (plus de repos apres une vague perdue, 25/11/2026) */
     if (c.deroute != null) { const touches = Object.keys(c.bats || {}).filter((k) => c.bats[k] > 0); perte += touches.length ? ' Pendant que tu étais à terre, ils ont frappé ' + touches.map((k) => nomBat(k) + (enRuine(k) ? ' (en ruine)' : '')).join(', ') + ' : répare avant la prochaine vague.' : ' Pendant que tu étais à terre, ta défense les a tenus loin de tes bâtiments.'; }
-    corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Ton perso n\'a pas besoin de repos : tu peux relancer quand tu veux.' : 'Ton perso se repose ' + dureeLisible(REPOS_VAGUE) + ' avant de pouvoir relancer, et revient à ' + Math.round(VIE_APRES_DEFAITE * 100) + ' % de vie au moins : bois un pot de gelée pour repartir plus fort. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
+    corps = entete(fuite ? 'Tu as fui la vague ' + n : 'Vague ' + n + ' perdue') + '<div class="art">' + ico(classeDe()) + '<div><b>' + perte + '</b><div class="desc">' + (fuite ? 'Tu peux relancer quand tu veux.' : 'Tu peux relancer tout de suite ; ton perso revient à ' + Math.round(VIE_APRES_DEFAITE * 100) + ' % de vie au moins : bois un pot de gelée pour repartir plus fort. Monte de niveau en cultivant, ou équipe la grange d\'une arbalète.') + '</div></div><div></div></div>';
   }
   corps += recapCombat(c); /* « recap fin de combat » (testeurs, 12/10/2026) */
   const perduB = !gagne && !c.raid ? perdreMoitieButin(c) : null; /* (la moitie du butin, vague perdue ou fuie, 12/11/2026) */

@@ -5,7 +5,7 @@
    les Chafers et le Royal foncent sur le perso. Le perso frappe tout seul le monstre cible (on touche un monstre pour le cibler,
    une case pour se deplacer), son sort de classe se recharge, l'arbalete de la grange tire aussi.
    Gagne : kamas et experience, la vague suivante s'ouvre. Perdu : une culture saccagee et 1 h de repos avant de relancer. */
-const VAGUES_PALIER = 10, REPOS_VAGUE = 3 * MIN, RECHARGE_SORT = 8;
+const VAGUES_PALIER = 10, REPOS_VAGUE = 0, RECHARGE_SORT = 8; /* (REPOS_VAGUE : 3 min de repos apres une vague perdue, retire le 25/11/2026, « retire-le », Mathieu) */
 /* LES POTS DE GELEE (13/10/2026, idee de Mathieu) : la vie ne remonte plus d'un coup entre les vagues (S_.pv garde ce qui reste de la precedente ; absent :
    vie pleine). On se soigne avec des pots, achetes a l'HDV (categorie Gelees), bus depuis leur fenetre (le bouton potion a cote de la vie, ou en touchant la vie :
    « j'aime pas que ce soit associe a la grange », Mathieu) ou depuis la fenetre des vagues, jamais en combat. Sans pot, on attend : la vie remonte doucement (REGEN_PV). Le filet de securite : 3 petits pots au depart, et apres une defaite le perso revient a 30 % de vie. Les pots de la Geliere viendront ensuite.
