@@ -438,3 +438,85 @@ function dragoeufSurgit(suivre, impact) {
   if (classe === 'iop') return epeeDuCiel(suivre, impact);
   return dragoeufSurgit(suivre, impact);
 }; }
+
+/* LA TEMPETE DE LAMES (25/11/2026, « fais la tempete de lames », Mathieu) : l'ulti de zone du Iop. Le jeu ne change pas (meme elan, 2 s de tournoiement,
+   4 coups sur tout ce qui est a 2,8 cases, memes degats, la copie de tempeteDeLames de 22-sorts.js en garde chaque regle) ; ce qui change, c'est ce qu'on voit :
+   - au depart, un souffle part de lui et souleve la poussiere ;
+   - une vraie tornade : trois spirales de vent qui montent autour de lui en tournant, des traits de vent qui defilent dessus ;
+   - la pointe de l'epee laisse un cercle de lumiere ;
+   - a chaque coup, un anneau tranchant s'ouvre tout autour de lui ; chaque monstre touche blanchit, recule vers l'exterieur, et les etincelles partent dans
+     le sens de rotation ; le sol garde des entailles ; un court temps fort quand il touche ;
+   - le 4e coup marque plus : temps fort plus long, secousse, anneau plus grand, chiffres plus gros. */
+const VS_VENT = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const FS_VENT = `uniform vec3 uC; uniform float uT, uA; varying vec2 vUv;
+void main() { float s = fract(vUv.x * 4.0 - uT * 2.4); float trait = 0.35 + 0.65 * smoothstep(0.0, 0.2, s) * (1.0 - smoothstep(0.4, 0.95, s)); /* (un fond continu et des traits qui defilent : en traits seuls, la tornade ne se voyait pas) */
+  float bords = 1.0 - pow(abs(vUv.y - 0.5) * 2.0, 2.0); float bout = smoothstep(0.0, 0.15, vUv.x) * (1.0 - smoothstep(0.8, 1.0, vUv.x)); gl_FragColor = vec4(uC, trait * bords * bout * uA); }`;
+function geoHelice(r0, r1, h0, h1, tours, larg, n) { /* un ruban debout qui monte en spirale (uv.x le long, uv.y en travers) */
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= n; i++) { const u = i / n, a = u * tours * Math.PI * 2, r = r0 + (r1 - r0) * u, y = h0 + (h1 - h0) * u, l = larg * (0.6 + 0.4 * u);
+    pos.push(Math.cos(a) * r, y - l / 2, Math.sin(a) * r, Math.cos(a) * r, y + l / 2, Math.sin(a) * r); uv.push(u, 0, u, 1); if (i < n) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g;
+}
+const GEO_HELICE = (() => { const g = geoHelice(0.85, 1.8, 0.05, 2.5, 1.15, 0.75, 72); partager(g); return g; })();
+const matVent = (c, a, additif) => new T.ShaderMaterial({ uniforms: { uC: { value: new T.Color(c) }, uT: { value: 0 }, uA: { value: a } }, vertexShader: VS_VENT, fragmentShader: FS_VENT, transparent: true, depthWrite: false, side: T.DoubleSide, blending: additif ? T.AdditiveBlending : T.NormalBlending });
+
+function entailleSol(x, y, z, a, long) { /* une entaille laissee au sol par la lame : doree un instant, puis sombre, puis elle s'efface */
+  const g = new T.Group(), m = new T.Mesh(GEO_TRAIT_SOL, fxMat('#ffe9a8', 0.9)); m.scale.set(0.07, 1, long); m.renderOrder = 3; g.add(m); g.position.set(x, y + 0.05, z); g.rotation.y = a;
+  fxVie(g, 1.6, (k) => { m.material.color.lerpColors(new T.Color('#ffe9a8'), new T.Color('#5a3c22'), Math.min(1, k * 6)); m.material.opacity = 0.85 * (k < 0.6 ? 1 : (1 - k) / 0.4); });
+}
+function anneauTranchant(p, R, fort) { /* l'anneau tranchant d'un coup : un cercle de lumiere a hauteur d'epee qui s'ouvre jusqu'au bord de la zone */
+  const g = new T.Group(), or = new T.Mesh(new T.RingGeometry(0.9, 1, 64), fxMat('#ffb52e', 0.95)), blanc = new T.Mesh(new T.RingGeometry(0.955, 1, 64), fxMat('#ffffff', 1)); blanc.material.blending = T.AdditiveBlending;
+  [or, blanc].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 7; g.add(m); }); g.position.set(p.x, p.y + 0.78, p.z);
+  fxVie(g, fort ? 0.28 : 0.2, (k) => { const e = 1 - Math.pow(1 - k, 3); g.scale.setScalar(R * (0.45 + 0.6 * e) * (fort ? 1.12 : 1)); or.material.opacity = 0.95 * (1 - k * k); blanc.material.opacity = 1 - k; });
+}
+function coupDeTempete(p, R, touches, dernier, tour) {
+  anneauTranchant(p, R, dernier); onde(p.x, p.y, p.z, R, '#fff3c4', 0.3, 0.7); son('epee', undefined, dernier ? 2 : -1, hasardCents(120));
+  for (let i = 0; i < (dernier ? 7 : 4); i++) { const a = fxAlea() * Math.PI * 2, d = fxEntre(0.9, R), x = p.x + Math.cos(a) * d, z = p.z + Math.sin(a) * d, cel = caseIci(x, z); if (lieu === 'ferme' && !cel) continue; /* (les entailles, en travers du rayon : le sens de la lame) */
+    entailleSol(x, cel ? posCase(cel).y : solA(x, z), z, Math.atan2(Math.cos(a), -Math.sin(a)) + Math.PI / 2 + fxEntre(-0.3, 0.3), fxEntre(0.5, 0.95)); }
+  touches.forEach((mo) => { if (!mo.m) return; const q = new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 1.5) * 0.5, mo.z), out = new T.Vector3(mo.x - p.x, 0, mo.z - p.z); if (out.lengthSq() < 1e-6) out.set(1, 0, 0); out.normalize();
+    const tg = new T.Vector3(out.z, 0, -out.x); /* (le sens de rotation : il tourne dans le sens de tour croissant) */
+    reactionJuicy(mo, dernier); flashSansSquelette(mo); etoileImpact(q, dernier ? 1.0 : 0.7, '#ffd36a');
+    emettre(FX_VIF, dernier ? 12 : 7, { x: q.x, y: q.y, z: q.z, r: 0.08, v: [tg.x * 7 + out.x * 2, 1, tg.z * 7 + out.z * 2], dv: 2.4, vie: [0.15, 0.3], taille: [0.09, 0.02], c: ['#ffffff', '#ffd36a', '#e8601a'], grav: 9, frein: 2.4, etire: 0.05 });
+    if (mo.etat === 'actif' && mo.pv > 0 && typeof reculVisuel === 'function') reculVisuel(mo, out, dernier ? 0.55 : 0.28); });
+  if (touches.length) { arretImage(dernier ? 0.07 : 0.025); secousse(dernier ? 0.14 : 0.05, dernier ? 0.25 : 0.12); son('impactFleche', undefined, dernier ? 3 : 0, -500 + hasardCents(120)); }
+  if (dernier) { anneauSouffle(new T.Vector3(p.x, p.y + 0.4, p.z), new T.Vector3(0, 1, 0), 0.5, R * 1.25, 0.35, '#fff3c4', 0.8); poussiere(p.x, p.y, p.z, 14, R * 0.9); flashLumiere(p.x, p.y + 1, p.z, '#ffd27a', 3.5, 8, 0.35); }
+}
+
+function tempeteJuicy(pt) {
+  /* le jeu : exactement celui de tempeteDeLames (22-sorts.js) */
+  const st = statsPerso(), u = paysanMesh.userData, pp = paysanMesh.position, R = 2.8, de = pp.clone(), m = u.membres || [], bras = m[3] || m[2];
+  let x = pt.x, z = pt.z; const ok = (a, b) => { const q = caseIci(a, b); return q && praticable(q); };
+  if (!ok(x, z)) { const x0 = x, z0 = z; let k = 1; while (k > 0 && !ok(pp.x + (x0 - pp.x) * k, pp.z + (z0 - pp.z) * k)) k -= 0.05; x = pp.x + (x0 - pp.x) * Math.max(0, k); z = pp.z + (z0 - pp.z) * Math.max(0, k); }
+  combat.cdUlti = rechargeUlti(); chemin = []; arrivee = null; combat.ordre = false; u.charge = true; u.tempete = true; toast(nomUlti('zone') + ' !', 'or');
+  const dash = Math.min(0.4, Math.hypot(x - pp.x, z - pp.z) / 18);
+  /* ce qu'on voit */
+  const fx = new T.Group(), lames = new T.Group(), tornade = new T.Group(); scene.add(fx); fx.add(lames, tornade); lames.position.y = 0.78;
+  for (let i = 0; i < 2; i++) { const b3 = new T.Group(); b3.rotation.y = i * Math.PI; lames.add(b3); [['#ffffff', '#ffe9a8', 0.95, 1.45, true], ['#ffd27a', '#ff7a1e', 0.6, 1.6, false]].forEach(([c, b, o, s, plein]) => { const l = new T.Mesh(GEO_RUBAN, matRuban(c, b, o, plein)); l.material.uniforms.uP.value = 1; l.material.uniforms.uQ.value = 0.95; l.userData.o = o; l.rotation.x = Math.PI / 2; l.scale.set(-s, s, 1); b3.add(l); }); }
+  const mVentA = matVent('#ffffff', 0.85, true), mVentN = matVent('#d9a84a', 0.6, false), helices = []; /* (le vent dore en couleur pleine : en blanc seul, il disparaissait sur le sable) */
+  for (let i = 0; i < 3; i++) { const a = new T.Mesh(GEO_HELICE, mVentA), n = new T.Mesh(GEO_HELICE, mVentN); a.rotation.y = n.rotation.y = i * Math.PI * 2 / 3; n.scale.set(1.06, 1, 1.06); a.renderOrder = 8; n.renderOrder = 6; tornade.add(n, a); helices.push(a, n); }
+  const sol = new T.Group(), bord = new T.Mesh(new T.RingGeometry(R - 0.12, R, 64), fxMat('#ee8a34', 0.6)), bord2 = new T.Mesh(new T.RingGeometry(R + 0.06, R + 0.12, 64), fxMat('#fff3c4', 0.5)); [bord, bord2].forEach((m2) => { m2.rotation.x = -Math.PI / 2; m2.renderOrder = 3; sol.add(m2); }); sol.position.y = 0.05; fx.add(sol);
+  fx.traverse((o) => { o.raycast = () => {}; });
+  let fant = dash > 0.05 ? fantomes(paysanMesh, 3, '#ffd27a', 1.4) : null;
+  let t = 0, coups = 0, tour = u.angle || 0, souffle = 0, trace = 0, parti = false;
+  effets.push((dt) => {
+    t += dt; const p = paysanMesh.position;
+    if (t < dash) { const k = t / dash; p.x = de.x + (x - de.x) * k; p.z = de.z + (z - de.z) * k; trace += dt; if (trace > 0.02) { trace = 0; lueur(new T.Vector3(p.x, p.y + 0.8, p.z), '#ffd24a', 1.2, 0.25); } }
+    else { tour += dt * 17; paysanMesh.rotation.y = tour; if (bras) { bras.rotation.x = -0.25; bras.rotation.z = -1.25; }
+      if (!parti) { parti = true; anneauSouffle(new T.Vector3(p.x, p.y + 0.3, p.z), new T.Vector3(0, 1, 0), 0.4, R * 1.1, 0.3, '#fff3c4', 0.85); poussiere(p.x, p.y, p.z, 12, 1.2); son('epee', undefined, 1, -300); } /* (le souffle du depart) */
+      while (combat && !combat.fin && coups < COUPS_TEMPETE && t - dash >= coups * (DUREE_TEMPETE / COUPS_TEMPETE)) { coups++; const dernier = coups === COUPS_TEMPETE, touches = [], C = { style: '', gros: dernier, mos: [] };
+        JUICE_CRA.coup = C; try { combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - p.x, o.z - p.z) <= R) { touches.push(o); blesser(o, Math.round(st.deg * 3 / COUPS_TEMPETE), true); } }); } finally { JUICE_CRA.coup = null; }
+        coupDeTempete(p, R, touches, dernier, tour); }
+      souffle += dt; if (souffle > 0.06) { souffle = 0; const b = tour * 0.7; poussiere(p.x + Math.sin(b) * R * 0.85, p.y, p.z + Math.cos(b) * R * 0.85, 1, 0.6); }
+      for (let w = 0; w < 2; w++) { const a = tour + 0.3 + w * Math.PI + Math.PI / 2; emettre(FX_VIF, 1, { x: p.x + Math.sin(a) * 1.4, y: p.y + 0.78, z: p.z + Math.cos(a) * 1.4, v: [Math.cos(a) * 6, 0, -Math.sin(a) * 6], vie: [0.1, 0.16], taille: [0.1, 0.03], c: ['#ffffff', '#ffd36a'], a: 1, etire: 0.03 }); } /* (le cercle de lumiere de la pointe de l'epee) */
+      for (let w = 0; w < 3; w++) { const th = tour * 0.6 + w * 2.09 + t * 3, rr = 1.0 + ((w * 0.37 + t * 1.7) % 1.6), h = 0.2 + ((w * 0.41 + t * 2.3) % 1.9); /* (des filets de vent qui tournent) */
+        emettre(FX_LUM, 1, { x: p.x + Math.sin(th) * rr, y: p.y + h, z: p.z + Math.cos(th) * rr, v: [Math.cos(th) * 9, 1.2, -Math.sin(th) * 9], vie: [0.16, 0.24], taille: [0.08, 0.03], c: ['#ffffff', '#fff1c0'], a: 0.6, etire: 0.045 }); } }
+    const cel = caseIci(p.x, p.z); u.y = hauteurSol(p.x, p.z, cel); p.y = u.y; fx.position.set(p.x, p.y, p.z);
+    if (fant) { if (t < dash + 0.12) fant.maj(dt, Math.min(1, (dash + 0.12 - t) / 0.12)); else { fant.fin(); fant = null; } }
+    const f = Math.min(1, Math.max(0, t - dash) / 0.15, (dash + DUREE_TEMPETE - t) / 0.2); /* (la tornade se forme puis se defait) */
+    lames.rotation.y = tour + 0.3; lames.scale.setScalar(0.6 + 0.4 * f); lames.children.forEach((b3) => b3.children.forEach((l) => { l.material.uniforms.uA.value = l.userData.o * f; }));
+    tornade.rotation.y += dt * 9; tornade.scale.set(0.7 + 0.3 * f, 0.4 + 0.6 * f, 0.7 + 0.3 * f); [mVentA, mVentN].forEach((mm, i) => { mm.uniforms.uT.value = t; mm.uniforms.uA.value = (i ? 0.6 : 0.85) * f; });
+    bord.material.opacity = (0.45 + 0.2 * Math.sin(t * 12)) * f; bord2.material.opacity = 0.5 * f;
+    if (t >= dash + DUREE_TEMPETE || !combat) { jeter(fx); if (fant) { fant.fin(); fant = null; } u.charge = false; u.tempete = false; if (bras) { bras.rotation.x = 0; bras.rotation.z = 0; } if (cel && praticable(cel)) u.cellule = cel; onde(p.x, p.y, p.z, R + 0.6, '#ffffff', 0.4, 0.8); poussiere(p.x, p.y, p.z, 12, R * 0.7); flashLumiere(p.x, p.y + 1, p.z, '#ffd27a', 2.5, 7, 0.3); return true; }
+  });
+}
+{ const tempeteJS = tempeteDeLames; tempeteDeLames = function (pt) { if (!juiceSort('tempete')) return tempeteJS.apply(this, arguments); return tempeteJuicy(pt); }; }
