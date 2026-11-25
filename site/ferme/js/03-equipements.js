@@ -122,7 +122,7 @@ PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '
    Crachopaud « tel quel », la Ruee a 6 pieces du Crachopaud a la place du Bond, Mathieu) : sur quatre pieces, une stat de confort (Prospection ou Sagesse) laisse sa
    place a une stat de combat, a petite dose (coups recus du palier : 120 a 350 ; coups du perso a panoplie complete : 600 a 870). Les pieces deja tombees se recalent
    au chargement (jetsDansFourchette, 04-etat.js : la nouvelle stat prend la qualite moyenne de la piece) */
-const STATS_COMBAT_P11 = { 'croquevase-anneau': ['prospection', { resFixe: 15 }], 'crachopaud-coiffe': ['prospection', { degFixe: 60 }] }; /* (la coiffe du Crachopaud : 42 a 78 de degats fixes, BORNES_JET, 25/11/2026 au soir, « tu peux mettre de 42 a 78 degats fixes », Mathieu) */ /* (les deux ceintures et les bottes du Croquevase : PIECES_P11, plus bas) */
+const STATS_COMBAT_P11 = { 'croquevase-anneau': ['prospection', { resFixe: 10 }], /* (l'anneau du Croquevase : 8 a 12 de resistance fixe, BORNES_JET, 26/11/2026, « anneau au plus haut a +12 », Mathieu ; 11 a 19 avant) */ 'crachopaud-coiffe': ['prospection', { degFixe: 60 }] }; /* (la coiffe du Crachopaud : 42 a 78 de degats fixes, BORNES_JET, 25/11/2026 au soir, « tu peux mettre de 42 a 78 degats fixes », Mathieu) */ /* (les deux ceintures et les bottes du Croquevase : PIECES_P11, plus bas) */
 Object.entries(STATS_COMBAT_P11).forEach(([id, [sans, avec]]) => { const o = OBJETS[id]; if (!o) return; delete o.stats[sans]; Object.assign(o.stats, avec); });
 /* LES BOTTES DE L'ECORCE (25/11/2026, « mets les bottes Ecorce avec un bonus en vitalite a la place de l'agilite, et un bonus en resistance », Mathieu) : la Vitalite
    d'une case (632, comme la cape et l'anneau, MOTIF_PANO) et 2 % de Resistance (2 a 3 %, au contact et a distance : le dosage de la ceinture du Croquevase, palier 11) ;
@@ -267,8 +267,10 @@ const PALIERS_PROPRES = {
   /* (le palier 11, 20/11/2026, au formulaire : la Croquevase, Sang-froid puis Ecailles et Mue ; la Crachopaud, Oeil de crapaud puis Bond et Mucus ; 3 + 3 : Sang-mele) */
   /* (les stats de combat, 25/11/2026, STATS_COMBAT_P11 : la Croquevase prend 20 de resistance fixe a 6 pieces ; la Crachopaud 30 de degats fixes a 4 pieces (la Prospection passe a 6)
      et la Ruee a la place du Bond a 6 pieces) */
-  croquevase: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, () => ({ sangFroid: 12, prospection: 15 })], [6, () => ({ ecailles: 15, mue: 20, resFixe: 20, sagesse: 10 })]],
-  crachopaud: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ oeilCrapaud: 12, degFixe: 30 })], [6, () => ({ ruee: 15, mucus: 20, prospection: 15, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
+  /* (26/11/2026, par Discord, Mathieu : « Mucus 15 % et uniquement sur les auto-attaques, pas les sorts ; Ruee +7 % ; resistance de la Croquevase a 20 ; Oeil +10 au lieu de 12 ;
+     Ecailles 12 % » ; avant : Ecailles 15, Oeil 12, Ruee 15, Mucus 20) */
+  croquevase: [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, () => ({ sangFroid: 12, prospection: 15 })], [6, () => ({ ecailles: 12, mue: 20, resFixe: 20, sagesse: 10 })]],
+  crachopaud: [[2, (k) => ({ agilite: Math.round(VALEURS.agilite[k] * 1.2) })], [4, () => ({ oeilCrapaud: 10, degFixe: 30 })], [6, () => ({ ruee: 7, mucus: 15, prospection: 15, sagesse: 10 })]] }; /* (la prospection et la sagesse des 6 pieces, comme toutes les panoplies) */
 const paliersDe = (k) => PALIERS_PROPRES[(PANOS[k] || {}).id] || PALIERS_PANO;
 const bonusPano = (k, n, brut) => { const b = {}; paliersDe(k).forEach(([m, f]) => { if (n >= m) Object.entries(bonusPalier(f, k, brut, m)).forEach(([c, v]) => { b[c] = (b[c] || 0) + v; }); }); return b; };
 /* L'ARME COMPTE DANS SA PANOPLIE (07/11/2026, « il faut que l'arme compte dans les panoplies aussi, mais au max ca reste toujours 6/6 : l'avantage, c'est que tu peux mettre
@@ -279,7 +281,7 @@ const PHRASES_BONUS = { resCac: (v) => v + ' % de dégâts en moins au corps à 
   venin: (v) => 'chaque coup empoisonne le monstre : il perd encore ' + v + ' % des dégâts de ce coup, en 3 s (les poisons s\'additionnent)', resPoison: (v) => 'les poisons te font ' + v + ' % de dégâts en moins',
   sangFroid: (v) => 'Sang-froid : sous la moitié de ta vie, tu prends ' + v + ' % de dégâts en moins', ecailles: (v) => 'Écailles : ' + v + ' % des coups reçus au corps à corps sont renvoyés à l\'attaquant',
   mue: (v) => 'Mue : une fois par combat, sous 25 % de vie, tu récupères ' + v + ' % de ta vie', oeilCrapaud: (v) => 'Œil de crapaud : +' + v + ' % de dégâts sur les monstres à plus de 4 cases',
-  bond: (v) => 'Bond : quand on te frappe au corps à corps, +' + v + ' % de vitesse pendant 2 s (toutes les 6 s au plus)', mucus: (v) => 'Mucus : tes coups ralentissent le monstre de ' + v + ' % pendant 1,5 s',
+  bond: (v) => 'Bond : quand on te frappe au corps à corps, +' + v + ' % de vitesse pendant 2 s (toutes les 6 s au plus)', mucus: (v) => 'Mucus : tes attaques de base (pas les sorts) ralentissent le monstre de ' + v + ' % pendant 1,5 s',
   sangMele: (v) => 'Sang-mêlé (3 pièces du Croquevase et 3 du Crachopaud) : +' + v + ' % de dégâts',
   degFixe: (v) => '+' + v + ' de dégâts sur chaque coup de tes attaques et de tes sorts (ajoutés à la fin : la Puissance ne les augmente pas)',
   degBonus: (v) => '+' + v + ' de dégâts de base, que ta Puissance augmente (sur tes attaques et tes sorts)', resFixe: (v) => 'chaque coup reçu te fait ' + v + ' de dégâts en moins (jamais plus de la moitié du coup)',
@@ -307,7 +309,7 @@ const baseObjet = (k) => String(k || '').split('~')[0];
 /* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
 const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [79, 128] }, 'crachopaud-anneau-rare': { puissance: [119, 192] } /* (25/11/2026 au soir, PUIS_P11 : comme l'Arakne ; avant 94 a 152) */,
   'crachopaud-ceinture': { vita: [240, 420], degFixe: [4, 8], prospection: [18, 34] }, 'crachopaud-ceinture-rare': { vita: [360, 630], degFixe: [6, 12], prospection: [27, 51] },
-  'crachopaud-coiffe': { degFixe: [42, 78] }, 'crachopaud-coiffe-rare': { degFixe: [63, 117] },
+  'crachopaud-coiffe': { degFixe: [42, 78] }, 'crachopaud-coiffe-rare': { degFixe: [63, 117] }, 'croquevase-anneau': { resFixe: [8, 12] }, 'croquevase-anneau-rare': { resFixe: [12, 18] },
   'croquevase-bottes': { puissance: [51, 80], vitDep: [2, 2] }, 'croquevase-bottes-rare': { puissance: [77, 120], vitDep: [3, 3] } }; /* (la ceinture du Crachopaud et les bottes du Croquevase, 25/11/2026, PIECES_P11) */ /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
 const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
 function objBrut(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; } /* (la piece a son jet, sans l'eveil : pour la forgemagie et la qualite du jet) */

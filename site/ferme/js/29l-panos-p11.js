@@ -38,7 +38,7 @@ const blesserP11 = blesser; blesser = function (mo, n, gros, src) {
   if (src == null && combat && !combat.fin && mo && mo.etat === 'actif' && n > 1) { const B = p11();
     if (B.oeil && paysanMesh && Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) > P11_COMBAT.oeilCases * S) n = Math.round(n * (1 + B.oeil / 100));
     if (B.mele) n = Math.round(n * (1 + B.mele / 100));
-    if (B.mucus) { mo.mucus = P11_COMBAT.mucusDuree; mo.mucusV = 1 - B.mucus / 100; }
+    if (B.mucus && SRC_DEG === 'Coups automatiques') { mo.mucus = P11_COMBAT.mucusDuree; mo.mucusV = 1 - B.mucus / 100; } /* (le Mucus : les attaques de base seulement, pas les sorts, 26/11/2026, Mathieu) */
     if (B.degFixe && coupDirectP11()) n += B.degFixe; } /* (les degats fixes, a la fin : apres la Puissance et les pourcentages, avant l'armure du monstre) */
   const vivant = !!combat && !combat.fin && !!mo && mo.etat === 'actif' && mo.pv > 0, r = blesserP11(mo, n, gros, src);
   if (vivant && src !== 'def' && mo.pv <= 0 && combat && !combat.fin) { const B = p11(); if (B.ruee) { const neuf = !(combat.rueeP11T > 0); combat.rueeP11T = P11_COMBAT.rueeDuree; combat.rueeP11V = B.ruee / 100; /* (la Ruee : un monstre abattu, +15 % de vitesse 3 s ; un autre relance les 3 s) */
