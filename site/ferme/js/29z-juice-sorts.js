@@ -210,7 +210,7 @@ function traitsEclat(p, couleur, o) {
 /* le temps fort facon anime : image figee, silhouettes, negatif, puis zoom qui revient (en temps reel : l'image figee ralentit le jeu, pas ceci) */
 let FATAL_ANIME = false;
 function tempsFortAnime(p, couleur, o) {
-  arretImage(JS_FATAL.arret); traitsEclat(p, couleur, o);
+  arretImage(JS_FATAL.arret); if (!(o && o.sansTraits)) traitsEclat(p, couleur, o); /* (sansTraits : la Morsure du Dragoeuf, 25/11/2026) */
   if (animationsReduites() || FATAL_ANIME) return; FATAL_ANIME = true;
   const cv = rendu.domElement, f0 = cv.style.filter || '', t0 = performance.now(), fin = () => { camera.zoom = 1; camera.updateProjectionMatrix(); cv.style.filter = f0; FATAL_ANIME = false; };
   const pas = () => { try { const t = performance.now() - t0, tz = t - JS_FATAL.silhouette - JS_FATAL.negatif;
@@ -459,7 +459,7 @@ const animFatale = (classe, suivre, direct) => (classe === 'cra' ? mireFatale(su
   const suivre = P ? P.suivre : suivreCible(pv), de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
   const impact = () => { const p = suivre().clone(), sauf = classe === 'iop' ? 'coupFatal' : classe === 'osa' ? 'morsure' : null, f0 = sauf && window[sauf]; if (sauf) window[sauf] = () => {}; /* (l'ancien effet de la classe ne se rejoue pas : le sort l'a remplace) */
     JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; if (sauf) window[sauf] = f0; }
-    tempsFortAnime(p, coul, classe === 'cra' ? { n: 9, long: 220, duree: 170 } : null); cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
+    tempsFortAnime(p, coul, classe === 'cra' ? { n: 9, long: 220, duree: 170 } : classe === 'osa' ? { sansTraits: true } : null); /* (la Morsure du Dragoeuf sans traits a l'ecran, 25/11/2026 au soir : « ca fait les pics rouges dans tous les sens », Mathieu ; le dragon et son impact restent sur la cible) */ cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
   (P ? P.anim : animFatale(classe, suivre, true)).declencher(impact); /* (Iop et Osamodas : les degats tout de suite, comme avant ; Cra : a l'arrivee de la fleche, 0,28 s, comme avant) */
 }; }
 
