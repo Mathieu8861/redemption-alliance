@@ -89,7 +89,7 @@ async function chargerCarteArene(C) {
   g.visible = false; scene.add(g); C.g = g; if (!soleil.target.parent) scene.add(soleil.target);
   return g;
 }
-CARTES_ARENE.temple = { nom: 'temple', sortie: false, fichier: 'arene-temple.glb', racine: 'AreneTemple', libre: libreTemple, borner: bornerLocalTemple };
+CARTES_ARENE.temple = { nom: 'temple', sortie: 'p11', fichier: 'arene-temple.glb', racine: 'AreneTemple', libre: libreTemple, borner: bornerLocalTemple };
 Object.defineProperty(window, 'ileTemple', { get: () => CARTES_ARENE.temple.g || null, configurable: true }); /* (le nom d'avant, pour les essais) */
 
 /* ---------- les crochets de 27-arene.js : la carte tiree, le colisee sinon ---------- */
@@ -102,8 +102,10 @@ Object.defineProperty(window, 'ileTemple', { get: () => CARTES_ARENE.temple.g ||
 
 /* ---------- le tirage, le chargement, l'affichage ---------- */
 function decorDeLaCarte() { if (typeof DV === 'undefined') return; const C = carteDuJour(), g = C ? C.g : ileArene; if (g) DV.arene = g; } /* (les herses et les flammes animees : celles de la carte du jour) */
+/* (26/11/2026, « les nouvelles maps sortent a la maj palier 11 avec le reste », Mathieu : sortie 'p11' suit l'interrupteur SORTIE_P11, 02-donnees.js) */
+const carteSortie = (K) => (K.sortie === 'p11' ? typeof SORTIE_P11 !== 'undefined' && !!SORTIE_P11 : !!K.sortie);
 function tirerCarteArene() {
-  const L = ['colisee'].concat(Object.keys(CARTES_ARENE).filter((k) => CARTES_ARENE[k].sortie || MODE_TEST)), f = ARENE_CARTE.force;
+  const L = ['colisee'].concat(Object.keys(CARTES_ARENE).filter((k) => carteSortie(CARTES_ARENE[k]) || MODE_TEST)), f = ARENE_CARTE.force;
   ARENE_CARTE.ici = f && L.includes(f) ? f : L[Math.floor(Math.random() * L.length)];
 }
 { const chargerAreneC = chargerArene; chargerArene = async function () { const C = carteDuJour(); if (C) await chargerCarteArene(C); else await chargerAreneC.apply(this, arguments); decorDeLaCarte(); }; }

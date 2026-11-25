@@ -44,5 +44,5 @@ function decorVolcan(g, reperes) {
     for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, rr = 4 + Math.random() * 12; /* des braises qui montent de partout */
       emettre(FX_VIF, 1, { x: O.x + Math.cos(a) * rr, y: O.y + 0.2, z: O.z + Math.sin(a) * rr, v: [0, 1.0, 0], dv: 0.4, vie: [1.4, 2.4], taille: [0.05, 0.02], c: ['#ffb84a', '#ff6a1e'], a: 0.9, grav: -0.3, frein: 0.2 }); } }, 100);
 }
-CARTES_ARENE.volcan = { nom: 'volcan', sortie: false, fichier: 'arene-volcan.glb', racine: 'AreneVolcan', libre: libreVolcan, borner: bornerLocalVolcan, depart: [0, 8.5],
+CARTES_ARENE.volcan = { nom: 'volcan', sortie: 'p11', /* (avec le palier 11, SORTIE_P11) */ fichier: 'arene-volcan.glb', racine: 'AreneVolcan', libre: libreVolcan, borner: bornerLocalVolcan, depart: [0, 8.5],
   garder: /^(drapeau_|grille|lave_mer|lave_chute|lave_douve)/, decor: decorVolcan };
