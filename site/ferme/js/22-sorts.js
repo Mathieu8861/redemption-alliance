@@ -464,8 +464,12 @@ function hacheLancee(x, z, R, st) {
    marteau-caisse leve au-dessus de la tete, et tu l'abats en retombant : sa caisse s'ecrase au centre du cercle vise (tu retombes juste avant), 3 fois tes
    degats autour, les monstres touches sonnes 1 s (0,5 s un boss). Le marteau : celui du Iop (equipements-moon), en grand, pour les trois classes */
 const PORTEE_BOND_MOON = 10;
+/* (25/11/2026, « le marteau de Moon, accelere un peu le saut, on a l'impression de faire un saut au ralenti », Mathieu) : 0,45 s au lieu de 0,65, et il ne monte
+   plus en arc regulier (un sinus) : il monte vite, plane a peine au sommet (aux 42 % du saut) et retombe en accelerant sur son marteau */
+const BOND_MOON = { duree: 0.45, haut: 2.4, sommet: 0.42 };
+const hauteurBondMoon = (k) => { const a = BOND_MOON.sommet; if (a === 0.5) return Math.sin(k * Math.PI); const u = k < a ? (a - k) / a : (k - a) / (1 - a); return 1 - u * u; }; /* (sommet 0,5 : l'ancien saut, pour comparer) */
 function bondMoon(x0, z0, R, st) {
-  const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, cible = pointSort({ x: x0, z: z0 }, PORTEE_BOND_MOON), de = pp.clone(), D = 0.65;
+  const pp = paysanMesh.position, u = paysanMesh.userData, c0 = combat, cible = pointSort({ x: x0, z: z0 }, PORTEE_BOND_MOON), de = pp.clone(), D = BOND_MOON.duree;
   const L0 = Math.hypot(cible.x - de.x, cible.z - de.z), a = L0 > 0.05 ? Math.atan2(cible.x - de.x, cible.z - de.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a), recul = Math.min(2.0, L0);
   const x = cible.x - dx * recul, z = cible.z - dz * recul, y = solA(cible.x, cible.z); /* (il retombe un peu avant : c'est la caisse du marteau qui tombe au centre) */
   chemin = []; arrivee = null; combat.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; u.enVol = true; /* (en l'air : rien ne l'atteint, 07/11/2026) */
@@ -476,7 +480,7 @@ function bondMoon(x0, z0, R, st) {
   let t = 0, frappe = false, trace = 0;
   effets.push((dt) => { t += dt; if (combat !== c0) { ranger(); u.charge = false; u.enVol = false; return true; }
     const k = Math.min(1, t / D), X = de.x + (x - de.x) * k, Z = de.z + (z - de.z) * k, cel = caseIci(X, Z); u.y = hauteurSol(X, Z, cel);
-    if (!frappe) { paysanMesh.position.set(X, u.y + Math.sin(k * Math.PI) * 2.4, Z); paysanMesh.rotation.y = a; }
+    if (!frappe) { paysanMesh.position.set(X, u.y + hauteurBondMoon(k) * BOND_MOON.haut, Z); paysanMesh.rotation.y = a; }
     const sw = k < 0.72 ? -0.45 - 0.25 * Math.sin(k / 0.72 * Math.PI) : -0.45 + 2.2 * Math.min(1, (k - 0.72) / 0.28) ** 2; /* (leve au-dessus de la tete, un peu en arriere, puis abattu vers l'avant) */
     const P = paysanMesh.position; mart.position.set(P.x + dx * 0.25, P.y + 1.0, P.z + dz * 0.25); mart.rotation.set(Math.min(1.75, sw), a, 0);
     if ((trace += dt) > 0.03 && k > 0.72 && !frappe) { trace = 0; lueur(mart.localToWorld(new T.Vector3(0, 1.17, 0)), '#ffd27a', 1.2, 0.25); }
