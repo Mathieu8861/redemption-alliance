@@ -139,7 +139,7 @@ function flecheMauditeVol(pv, auImpact) {
   for (const s of [-1, 1]) { const pl = boite(0.14, 0.006, 0.12, '#6a2a9a'); pl.position.set(0, 0, -0.26); pl.rotation.z = s * 0.8; fl.add(pl); }
   sansClic(fl); fl.scale.z = 1.35; scene.add(fl); fl.position.copy(de); fl.lookAt(pv);
   decocher(de, pv); flashLumiere(de.x, de.y, de.z, '#a64dff', 1.6, 4, 0.25); anneauSouffle(de.clone().addScaledVector(d0, 0.3), d0, 0.05, 0.5, 0.14, '#c77dff', 0.85);
-  const vol = 0.32, prec = de.clone(), suiv = new T.Vector3(), bout = new T.Vector3(); let t = 0, ame = 0;
+  const vol = JC.vol, prec = de.clone(), suiv = new T.Vector3(), bout = new T.Vector3(); let t = 0, ame = 0; /* (0,28 s, le vol de la fleche d'avant : « le delai d'envoi doit etre comme avant », Mathieu) */
   effets.push((dt) => { t += dt / vol; const k = Math.min(1, t); prec.copy(fl.position); posFleche(de, pv, k, fl.position); posFleche(de, pv, Math.min(1, k + 0.04), suiv); if (k < 1) fl.lookAt(suiv);
     fl.updateMatrixWorld(); bout.set(0, 0, 0.36).applyMatrix4(fl.matrixWorld);
     emettre(FX_LUM, 1, { x: bout.x, y: bout.y, z: bout.z, vie: [0.04, 0.05], taille: [0.6, 0.35], c: ['#f3e0ff', '#a64dff'], a: 0.9 });

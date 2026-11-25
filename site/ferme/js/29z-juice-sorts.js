@@ -261,15 +261,16 @@ function sceauDore() { /* le sceau dore au sol : deux cercles, huit rayons */
   for (let i = 0; i < 8; i++) { const b = new T.Group(), t = new T.Mesh(GEO_TRAIT_SOL, fxMat(i % 2 ? '#ffe08a' : '#ff8a12', 1)); t.scale.set(0.08, 1, 0.24); t.position.z = 0.77; t.renderOrder = 3; b.rotation.y = i / 8 * Math.PI * 2; b.add(t); g.add(b); }
   g.traverse((o) => { o.raycast = () => {}; }); scene.add(g); return g;
 }
-function epeeDuCiel(suivre, impact) {
-  const k = Math.min(2.2, Math.max(1, suivre.haut / 1.6)), T_APPEL = 0.32, T_CHUTE = 0.2, T_TENUE = 0.55, T_FIN = 0.25, pp = paysanMesh.position;
+function epeeDuCiel(suivre, direct) { /* (25/11/2026, « il met 8 ans a se lancer », un joueur, puis « le delai d'envoi doit etre comme avant », Mathieu : l'epee tombe pendant le geste du Iop,
+     0,18 s, et elle est plantee quand les degats tombent, au meme instant qu'avant ; direct : sans geste, elle s'abat tout de suite) */
+  const k = Math.min(2.2, Math.max(1, suivre.haut / 1.6)), T_APPEL = direct ? 0 : 0.06, T_CHUTE = direct ? 0.05 : 0.12, T_TENUE = 0.55, T_FIN = 0.25, pp = paysanMesh.position;
   /* l'appel : une colonne de lumiere monte de l'epee du Iop */
   emettre(FX_LUM, 26, { x: pp.x, y: pp.y + 1.2, z: pp.z, r: 0.15, v: [0, 16, 0], dv: 1, vie: [0.25, 0.4], taille: [0.25, 0.05], c: ['#ffffff', '#ffd36a'], a: 0.9, etire: 0.02 });
   emettre(FX_VIF, 12, { x: pp.x, y: pp.y + 1.2, z: pp.z, r: 0.1, v: [0, 12, 0], dv: 1.5, vie: [0.2, 0.35], taille: [0.08, 0.02], c: ['#ffffff', '#ffd36a'], frein: 1, etire: 0.03 }); flashLumiere(pp.x, pp.y + 1.5, pp.z, '#ffd36a', 2.5, 6, 0.3);
   const sceau = sceauDore(), epee = modeleEpeeCiel(), yaw = new T.Quaternion(), pench = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), 0.12), retourne = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI), vib = new T.Quaternion(), AX = new T.Vector3(1, 0, 0);
-  epee.visible = false; scene.add(epee); let t = 0, frappe = false, P = suivre().clone(), y0 = solSous(P);
+  epee.visible = false; scene.add(epee); let t = 0, frappe = false, force = false, P = suivre().clone(), y0 = solSous(P);
   const rai = faisceau(new T.Vector3(P.x, y0 + 12, P.z), new T.Vector3(P.x, y0, P.z), [['#ffd36a', '#ff9a1e', 0.55 * k, false], ['#ffffff', '#ffd36a', 0.18 * k, true]]); /* (un rai de lumiere tombe du ciel la ou l'epee va tomber) */
-  effets.push((dt) => { t += dt;
+  effets.push((dt) => { t += dt; if (force && !frappe) t = Math.max(t, T_APPEL + T_CHUTE); /* (les degats sont tombes : elle se plante maintenant) */
     if (!frappe) { P.copy(suivre()); y0 = solSous(P); }
     /* le sceau : il s'ouvre en tournant, eclate a l'impact, puis s'efface */
     const ks = t < T_APPEL + T_CHUTE ? Math.min(1, t / (T_APPEL + T_CHUTE)) : 1, fs = t < T_APPEL + T_CHUTE ? 1 : Math.max(0, 1 - (t - T_APPEL - T_CHUTE) / 0.45);
@@ -290,12 +291,13 @@ function epeeDuCiel(suivre, impact) {
         if (fxAlea() < 0.9) emettre(FX_LUM, 2, { x: P.x, y: yImpact - fxAlea() * 2.75 * k, z: P.z, r: 0.15 * k, v: [0, 1.4, 0], dv: 0.6, vie: [0.4, 0.7], taille: [0.12, 0.02], c: ['#ffffff', '#ffd36a'], a: 1, frein: 1 }); }
       vib.setFromAxisAngle(AX, a); epee.quaternion.copy(yaw).multiply(pench).multiply(vib).multiply(retourne); epee.position.set(P.x, y, P.z);
       if (u < 1) for (let i = 0; i < 4; i++) { const h = fxAlea() * 2.75 * k; emettre(FX_LUM, 1, { x: P.x + (fxAlea() - 0.5) * 0.3 * k, y: y - h, z: P.z + (fxAlea() - 0.5) * 0.3 * k, v: [0, 22, 0], vie: [0.08, 0.14], taille: [0.3, 0.1], c: ['#ffffff', '#ffd36a'], a: 0.8, etire: 0.012 }); } /* (les traits de vitesse le long de la lame) */
-      if (u >= 1 && !frappe) { frappe = true; impact(); const ys = y0;
+      if (u >= 1 && !frappe) { frappe = true; const ys = y0;
         onde(P.x, ys, P.z, 2.6 * k, '#fff3c4', 0.3, 0.95); onde(P.x, ys, P.z, 1.8 * k, '#ffc23a', 0.5, 0.85); solFendu(P.x, ys, P.z, 1.8 * k, true); mottes(P.x, ys, P.z, 12, 1.2); poussiere(P.x, ys, P.z, 14, 1.6 * k, '#e8d8b8');
         secousse(0.3, 0.4); flashLumiere(P.x, ys + 1, P.z, '#ffd36a', 4.5, 9, 0.5); etoileImpact(new T.Vector3(P.x, ys + 0.3, P.z), 1.6 * k, '#ffd36a');
         emettre(FX_VIF, 30, { x: P.x, y: ys + 0.2, z: P.z, r: 0.3, v: [0, 2, 0], dv: 7, haut: true, vie: [0.3, 0.6], taille: [0.1, 0.02], c: ['#ffffff', '#ffd36a', '#e8a21e'], grav: 9, frein: 1.4, etire: 0.04, sol: ys + 0.04, rebond: 0.3 });
         son('impactFleche', undefined, 6, -1150 + hasardCents(60)); } }
     if (t >= T_APPEL + T_CHUTE + T_TENUE + T_FIN) { jeter(epee, sceau, rai.g); return true; } return false; });
+  return { declencher(fn) { force = true; fn(); } }; /* (les degats, a l'instant du coup d'avant) */
 }
 
 /* ---- FLECHE FATALE : le tir de precision ---- */
@@ -320,12 +322,14 @@ function mireRouge() { /* la mire qui se resserre sur la cible : un cercle et qu
   const point = new T.Mesh(new T.CircleGeometry(0.07, 12), fxMat('#ffffff', 0.95, true)); point.renderOrder = 12; g.add(point);
   g.traverse((o) => { o.raycast = () => {}; }); scene.add(g); return g;
 }
-function flecheFataleJuicy(de0, suivre, impact) {
-  const T_VISE = 0.32, VITESSE = 42, mire = mireRouge(), visee = faisceau(de0, suivre(), [['#ff6a4a', '#ff3b2e', 0.05, true]]), k = Math.min(1.8, Math.max(1, suivre.haut / 1.6));
-  let t = 0, fl = null, F = null, de = de0.clone(), dir = new T.Vector3(), L = 1, fait = 0, frappe = false, fini = 0;
+function mireFatale(suivre, direct) { /* (25/11/2026, « le delai d'envoi doit etre comme avant », Mathieu) : la mire se resserre pendant que le Cra bande l'arc (0,25 s,
+     le geste d'avant) ; au lacher, la fleche vole 0,28 s, comme la fleche fatale d'avant, et les degats tombent a son arrivee ; direct : sans geste, elle part tout de suite */
+  const T_VISE = direct ? 0.01 : 0.25, T_VOL = 0.28, mire = mireRouge(), visee = faisceau(pointeArc(paysanMesh), suivre(), [['#ff6a4a', '#ff3b2e', 0.05, true]]), k = Math.min(1.8, Math.max(1, suivre.haut / 1.6));
+  let t = 0, fl = null, F = null, de = new T.Vector3(), dir = new T.Vector3(), L = 1, fait = 0, frappe = false, fini = 0, tir = null, tv = 0;
   effets.push((dt) => { t += dt; const P = suivre(), arc = pointeArc(paysanMesh);
-    if (t < T_VISE) { /* la visee : la mire se resserre en tournant, un fin trait rouge relie l'arc a la cible, la fleche se charge */
-      const u = t / T_VISE, e = 1 - Math.pow(1 - u, 3); versCamera(mire); mire.position.copy(P); mire.scale.setScalar(k * (1.45 - 0.9 * e)); /* (plus petite : « fais-le quand meme un peu plus petit », Mathieu, 25/11) */ mire.quaternion.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), (1 - e) * 1.6));
+    if (!tir) { /* la visee : la mire se resserre en tournant, un fin trait rouge relie l'arc a la cible, la fleche se charge */
+      if (t > 2.5) { jeter(mire, visee.g); return true; } /* (le tir n'est jamais parti : rien ne reste) */
+      const u = Math.min(1, t / T_VISE), e = 1 - Math.pow(1 - u, 3); versCamera(mire); mire.position.copy(P); mire.scale.setScalar(k * (1.45 - 0.9 * e)); mire.quaternion.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), (1 - e) * 1.6));
       visee.g.position.copy(arc); visee.g.lookAt(P); visee.g.scale.z = Math.max(0.01, arc.distanceTo(P)); visee.maj(1, 0.35 + 0.35 * Math.sin(t * 70), t);
       for (let i = 0; i < 3; i++) { const o = new T.Vector3(fxAlea() - 0.5, fxAlea() - 0.5, fxAlea() - 0.5).normalize().multiplyScalar(0.7);
         emettre(FX_VIF, 1, { x: arc.x + o.x, y: arc.y + o.y, z: arc.z + o.z, v: [-o.x * 4.5, -o.y * 4.5, -o.z * 4.5], vie: [0.14, 0.16], taille: [0.07, 0.03], c: ['#ffd0c4', '#ff3b2e'], a: 1, etire: 0.03 }); }
@@ -337,13 +341,14 @@ function flecheFataleJuicy(de0, suivre, impact) {
       anneauSouffle(de.clone().addScaledVector(dir, 0.4), dir, 0.1, 0.9, 0.18, '#ffd0c4', 0.9); flashLumiere(de.x, de.y, de.z, '#ff3b2e', 2.5, 5, 0.2);
       mire.children.forEach((c) => { (c.isGroup ? c.children : [c]).forEach((m) => m.material.color.set('#ffffff')); }); } /* (la mire se verrouille : elle blanchit) */
     if (!frappe) { versCamera(mire); mire.position.copy(P); mire.scale.setScalar(k * 0.55); }
-    fait = Math.min(L + 2.5, fait + VITESSE * dt); fl.position.copy(de).addScaledVector(dir, fait); F.maj(fait / (L + 2.5), 1 - fini, t);
+    tv += dt; fait = Math.min(L + 2.5, frappe ? fait + (L / T_VOL) * dt : L * Math.min(1, tv / T_VOL)); fl.position.copy(de).addScaledVector(dir, fait); F.maj(fait / (L + 2.5), 1 - fini, t); /* (elle touche 0,28 s apres le lacher, comme avant) */
     emettre(FX_LUM, 1, { x: fl.position.x, y: fl.position.y, z: fl.position.z, vie: [0.06, 0.08], taille: [1.2, 0.4], c: ['#ffffff', '#ff3b2e'], a: 0.95 });
     emettre(FX_VIF, 3, { x: fl.position.x, y: fl.position.y, z: fl.position.z, r: 0.06, v: [-dir.x * 5, 0.6, -dir.z * 5], dv: 2.5, vie: [0.15, 0.3], taille: [0.1, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 4, frein: 2, etire: 0.05 });
-    if (!frappe && fait >= L) { frappe = true; impact(); jeter(mire); anneauSouffle(P.clone(), dir, 0.15, 1.6 * k, 0.25, '#ff8a6a', 0.9); son('impactFleche', undefined, 4, -650 + hasardCents(60));
+    if (!frappe && tv >= T_VOL) { frappe = true; tir(); jeter(mire); anneauSouffle(P.clone(), dir, 0.15, 1.6 * k, 0.25, '#ff8a6a', 0.9); son('impactFleche', undefined, 4, -650 + hasardCents(60));
       emettre(FX_VIF, 12, { x: P.x, y: P.y, z: P.z, r: 0.1, v: [dir.x * 7, 0.5, dir.z * 7], dv: 2.5, vie: [0.2, 0.45], taille: [0.12, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 5, frein: 2, etire: 0.05 }); } /* (la gerbe part a travers la cible) */
-    if (fait >= L + 2.5) { fini = Math.min(1, fini + dt / 0.25); fl.visible = false; F.maj(1, 1 - fini, t); if (fini >= 1) { jeter(fl, F.g); if (!frappe) { frappe = true; impact(); jeter(mire); } return true; } }
+    if (fait >= L + 2.5) { fini = Math.min(1, fini + dt / 0.25); fl.visible = false; F.maj(1, 1 - fini, t); if (fini >= 1) { jeter(fl, F.g); return true; } }
     return false; });
+  return { declencher(fn) { tir = fn; } }; /* (le lacher : la fleche part, les degats a son arrivee) */
 }
 
 function portailDeFeu() {
@@ -382,10 +387,10 @@ function modeleTeteDragon() {
   }
   return TETE_DRAGON.clone();
 }
-function dragoeufSurgit(suivre, impact) {
+function dragoeufSurgit(suivre, direct) { /* (25/11/2026, « le delai d'envoi doit etre comme avant », Mathieu : il sort et mord pendant le geste, 0,18 s, au meme instant qu'avant) */
   const P0 = suivre().clone(), pp = paysanMesh.position, d0 = new T.Vector3(pp.x - P0.x, 0, pp.z - P0.z); if (d0.lengthSq() < 1e-6) d0.set(-1, 0, 0); d0.normalize();
   const recul = Math.min(1.8, Math.max(1.1, Math.hypot(pp.x - P0.x, pp.z - P0.z) * 0.6)), Q = P0.clone().addScaledVector(d0, recul); Q.y = solSous(Q);
-  const k = Math.min(1.6, Math.max(1, suivre.haut / 1.8)), T_OUVRE = 0.22, T_VOL = 0.44, T_TIENT = 0.16, T_FIN = 0.3, CORPS = 0.42, R = 0.16 * k, KT = 0.72 * k; /* (corps fin, couvert de flammes, et tete plus petite : en tuyau plein et grosse tete, il faisait jouet, 25/11) */
+  const k = Math.min(1.6, Math.max(1, suivre.haut / 1.8)), T_OUVRE = direct ? 0 : 0.03, T_VOL = direct ? 0.06 : 0.15, T_TIENT = 0.16, T_FIN = 0.3, CORPS = 0.42, R = 0.16 * k, KT = 0.72 * k; /* (corps fin, couvert de flammes, et tete plus petite : en tuyau plein et grosse tete, il faisait jouet, 25/11) */
   coupDeFouet(mainDe(paysanMesh), Q.clone().setY(Q.y + 0.1), paysanMesh, 'fatal'); /* (le fouet claque au sol : il ouvre le portail) */
   const portail = portailDeFeu(), tete = modeleTeteDragon(), bas = tete.getObjectByName('machoire'); tete.scale.setScalar(KT); tete.visible = false; scene.add(tete);
   const coeur = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ vertexColors: true })), halo = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ color: '#ff8a2e', transparent: true, opacity: 0.35, blending: T.AdditiveBlending, depthWrite: false }));
@@ -406,37 +411,42 @@ function dragoeufSurgit(suivre, impact) {
       if (col) g.setAttribute('color', new T.BufferAttribute(col, 3)); m.geometry.dispose(); m.geometry = g; m.visible = true; });
     for (let i = 0; i < 18; i++) { const w = Math.pow(fxAlea(), 0.6); courbe.getPointAt(w, pt); emettre(FX_VIF, 1, { x: pt.x, y: pt.y + R * 0.4, z: pt.z, r: R * 1.2, v: [0, 1.4, 0], dv: 0.4, vie: [0.12, 0.24], taille: [(0.2 + 0.32 * w) * k, 0.04], c: ['#ffe08a', '#ff7a12', '#c8300a'], a: 1, frein: 1.2 }); } /* (le corps : des flammes serrees autour d'un fil de braise, plus grosses vers la tete) */
     return courbe; };
-  let t = 0, frappe = false, P = P0.clone(), feu = 0, fini = false, derniere = null; trajet(P);
-  effets.push((dt) => { t += dt; if (!frappe) { P.copy(suivre()); trajet(P); }
+  let t = 0, frappe = false, force = false, P = P0.clone(), feu = 0, fini = false, derniere = null; trajet(P);
+  effets.push((dt) => { t += dt; if (force && !frappe) t = Math.max(t, T_OUVRE + T_VOL); /* (les degats sont tombes : il mord maintenant) */ if (!frappe) { P.copy(suivre()); trajet(P); }
     /* le portail : il s'ouvre au claquement, crache des flammes, se referme a la fin */
-    const ouv = t < 0.12 ? 0 : Math.min(1, (t - 0.12) / 0.12), ferme = Math.max(0, (t - T_OUVRE - T_VOL - T_TIENT) / T_FIN), r = 0.85 * k * (1 - Math.pow(1 - ouv, 3)) * (1 - ferme);
+    const ouv = Math.min(1, t / 0.05), ferme = Math.max(0, (t - T_OUVRE - T_VOL - T_TIENT) / T_FIN), r = 0.85 * k * (1 - Math.pow(1 - ouv, 3)) * (1 - ferme);
     portail.position.set(Q.x, Q.y + 0.05, Q.z); portail.scale.setScalar(Math.max(1e-3, r)); portail.rotation.y = t * 3;
     if (ouv > 0 && ferme < 1) { feu += dt * 36; while (feu >= 1) { feu -= 1; const a = fxAlea() * Math.PI * 2; emettre(FX_VIF, 1, { x: Q.x + Math.cos(a) * r, y: Q.y + 0.1, z: Q.z + Math.sin(a) * r, v: [0, 2.2, 0], dv: 0.4, vie: [0.25, 0.45], taille: [0.34, 0.05], c: ['#ffd25a', '#ff6a12', '#c8300a'], a: 1, frein: 1.2 }); } }
-    if (t > 0.12 && t - dt <= 0.12) { onde(Q.x, Q.y, Q.z, 1.4 * k, '#ff8a2e', 0.35, 0.8); emettre(FX_VIF, 16, { x: Q.x, y: Q.y + 0.1, z: Q.z, r: 0.3, v: [0, 4, 0], dv: 2.5, haut: true, vie: [0.3, 0.6], taille: [0.08, 0.02], c: ['#fff1a8', '#ff8a1e'], grav: 6, frein: 1, etire: 0.03 }); }
+    if (t > 0.01 && t - dt <= 0.01) { onde(Q.x, Q.y, Q.z, 1.4 * k, '#ff8a2e', 0.35, 0.8); emettre(FX_VIF, 16, { x: Q.x, y: Q.y + 0.1, z: Q.z, r: 0.3, v: [0, 4, 0], dv: 2.5, haut: true, vie: [0.3, 0.6], taille: [0.08, 0.02], c: ['#fff1a8', '#ff8a1e'], grav: 6, frein: 1, etire: 0.03 }); }
     const s = t - T_OUVRE; if (s < 0) return false;
     if (!fini) { const u = Math.min(1, Math.pow(Math.min(1, s / T_VOL), 1.35)); tete.visible = true; b(u, tete.position); b(Math.min(1, u + 0.02), pt); if (u < 1 && pt.distanceToSquared(tete.position) > 1e-8) tete.lookAt(pt);
       /* la gueule s'ouvre en plongeant, claque sur la cible */
       const ap = s - T_VOL; bas.rotation.x = ap < 0 ? 0.95 * Math.min(1, Math.max(0, (u - 0.45) / 0.45)) : Math.max(0, 0.95 * (1 - ap / 0.04)) + 0.05 * Math.exp(-ap * 20) * Math.sin(ap * 60);
       derniere = corps(u); emettre(FX_LUM, 1, { x: tete.position.x, y: tete.position.y, z: tete.position.z, vie: [0.06, 0.08], taille: [1.1 * k, 0.7 * k], c: ['#ffd25a', '#ff6a1e'], a: 0.5 }); /* (la lueur autour de la tete) */
       tete.updateMatrixWorld(); for (let i = 0; i < 4; i++) { pt.set((fxAlea() - 0.5) * 0.4, 0.3 + fxAlea() * 0.25, -0.3 - fxAlea() * 0.35).applyMatrix4(tete.matrixWorld); emettre(FX_VIF, 1, { x: pt.x, y: pt.y, z: pt.z, v: [0, 1.6, 0], dv: 0.5, vie: [0.14, 0.26], taille: [0.36 * k, 0.05], c: ['#ffe08a', '#ff7a12', '#c8300a'], a: 1, frein: 1.2 }); } /* (la criniere de flammes) */
-      if (ap >= 0 && !frappe) { frappe = true; impact(); boule(P.x, P.y, P.z, 0.7, ['#ffb02e', '#e8541e', '#7a1e0a'], false); etoileImpact(P, 1.3, '#ff6a1e'); secousse(0.14, 0.25); son('impactFleche', undefined, 4, -900 + hasardCents(80)); }
+      if (ap >= 0 && !frappe) { frappe = true; boule(P.x, P.y, P.z, 0.7, ['#ffb02e', '#e8541e', '#7a1e0a'], false); etoileImpact(P, 1.3, '#ff6a1e'); secousse(0.14, 0.25); son('impactFleche', undefined, 4, -900 + hasardCents(80)); }
       if (ap >= T_TIENT) { fini = true; /* il se defait en braises, d'un coup */
         tete.visible = false; coeur.visible = halo.visible = false; const c = derniere;
         for (let i = 0; i < 24; i++) { c.getPointAt(i / 23, pt); emettre(FX_VIF, 2, { x: pt.x, y: pt.y, z: pt.z, r: R, v: [0, 1.6, 0], dv: 2.2, vie: [0.35, 0.7], taille: [0.3 * k, 0.04], c: ['#ffd25a', '#ff6a12', '#c8300a'], a: 1, frein: 1.4 }); emettre(FX_VIF, 1, { x: pt.x, y: pt.y, z: pt.z, r: R, dv: 3, vie: [0.4, 0.8], taille: [0.07, 0.02], c: ['#fff1a8', '#ff8a1e'], grav: 3, frein: 1, etire: 0.03 }); }
         emettre(FX_LUM, 1, { x: tete.position.x, y: tete.position.y, z: tete.position.z, vie: [0.14, 0.16], taille: [2.2 * k, 3 * k], c: ['#ffffff', '#ffb04a'], a: 0.8, entree: 0.01 });
         emettre(FX_FUM, 8, { x: tete.position.x, y: tete.position.y, z: tete.position.z, r: 0.5 * k, v: [0, 1.2, 0], dv: 0.8, vie: [0.6, 1.0], taille: [0.4, 1.2], c: ['#4a3c34', '#9a908a'], a: 0.35, frein: 1.4, entree: 0.12 }); } }
     if (ferme >= 1) { jeter(tete, portail, coeur, halo); return true; } return false; });
+  return { declencher(fn) { force = true; fn(); } };
 }
 
+let FATAL_PREP = null; /* (l'animation du coup fatal, partie a l'appel de l'ulti : elle remplit le temps du geste au lieu de s'y ajouter) */
+const animFatale = (classe, suivre, direct) => (classe === 'cra' ? mireFatale(suivre, direct) : classe === 'iop' ? epeeDuCiel(suivre, direct) : dragoeufSurgit(suivre, direct));
+{ const executerUltiFP = executerUlti; executerUlti = function (id, c, pt) { const r = executerUltiFP.apply(this, arguments);
+  if (id === 'mono' && c && c.m && combat && juiceSort('fatal')) { const classe = classeDe(), suivre = suivreCible(new T.Vector3(c.x, c.m.position.y + (c.haut || 1.6) * 0.5, c.z)); FATAL_PREP = { classe, suivre, t0: performance.now(), anim: animFatale(classe, suivre, false) }; }
+  return r; }; }
 { const effetFrappeJF = effetFrappe; effetFrappe = function (classe, pv, auImpact, feu) {
   if (feu !== 'fatal' || !juiceSort('fatal')) return effetFrappeJF.apply(this, arguments);
-  const suivre = suivreCible(pv), de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
+  const P = FATAL_PREP && FATAL_PREP.classe === classe && performance.now() - FATAL_PREP.t0 < 2000 ? FATAL_PREP : null; FATAL_PREP = null;
+  const suivre = P ? P.suivre : suivreCible(pv), de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
   const impact = () => { const p = suivre().clone(), sauf = classe === 'iop' ? 'coupFatal' : classe === 'osa' ? 'morsure' : null, f0 = sauf && window[sauf]; if (sauf) window[sauf] = () => {}; /* (l'ancien effet de la classe ne se rejoue pas : le sort l'a remplace) */
     JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; if (sauf) window[sauf] = f0; }
     tempsFortAnime(p, coul, classe === 'cra' ? { n: 9, long: 220, duree: 170 } : null); cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
-  if (classe === 'cra') return flecheFataleJuicy(de, suivre, impact);
-  if (classe === 'iop') return epeeDuCiel(suivre, impact);
-  return dragoeufSurgit(suivre, impact);
+  (P ? P.anim : animFatale(classe, suivre, true)).declencher(impact); /* (Iop et Osamodas : les degats tout de suite, comme avant ; Cra : a l'arrivee de la fleche, 0,28 s, comme avant) */
 }; }
 
 /* LA TEMPETE DE LAMES (25/11/2026, « fais la tempete de lames », Mathieu) : l'ulti de zone du Iop. Le jeu ne change pas (meme elan, 2 s de tournoiement,
@@ -529,7 +539,8 @@ function tempeteJuicy(pt) {
    - au bout de la course, les Bouftous disparaissent dans un nuage de laine.
    Comment : la ruee lancee par l'ulti (executerUlti) met de cote les coups de la zone (blesser est mis de cote le temps de l'impact) et les donne au
    troupeau, qui les porte au passage ; tout coup pas encore porte a la fin de la course est porte a ce moment-la. */
-let RUEE_ULTI = false, RUEE_ACTIVE = null, RUEE_ULTI_IMPACT = false;
+let RUEE_ULTI = false, RUEE_PREP = null, RUEE_ULTI_IMPACT = false; /* (25/11/2026, « le delai d'envoi doit etre comme avant, si tu mets du delai les gens vont raler », Mathieu : les degats tombent de nouveau tous ensemble, au coup de fouet, comme avant ;
+   le troupeau part des l'appel de l'ulti et entre dans la zone a cet instant, chaque monstre reagit quand il lui passe dessus) */
 const JS_RUEE = { n: 5, vitesse: 13, avant: 2.2, apres: 1.6, echelle: 0.55 };
 { const majMonstreRU = majMonstre; majMonstre = function (mo, dt) { const r = majMonstreRU.apply(this, arguments); const S = mo && mo.sautV; /* (le saut d'un monstre bouscule, a l'image) */
   if (S && mo.m) { S.t += dt || 0; const k = S.t / 0.36; if (k >= 1 || mo.etat !== 'actif') mo.sautV = null; else mo.m.position.y += Math.sin(k * Math.PI) * S.h; } return r; }; }
@@ -542,9 +553,8 @@ function rueeJuicy(x, y, z, r) {
   for (let i = 0; i < n; i++) { const lat = (i - (n - 1) / 2) * r * 0.6, retard = Math.abs(lat) * 0.03 + fxAlea() * 0.03; maxRetard = Math.max(maxRetard, retard);
     const m = modeleBouftouInvoque(); m.rotation.order = 'YXZ'; m.scale.setScalar(0.001); poser(m, depart.x + cx * lat, solA(depart.x + cx * lat, depart.z + cz * lat), depart.z + cz * lat, Math.atan2(dx, dz)); m.traverse((o) => { o.raycast = () => {}; });
     bouf.push({ m, lat, retard, poudre: 0, pas: 0, ph0: fxAlea() * 3 }); } /* (en V : ceux du milieu partent devant) */
-  const S = { coups: [], b0: null, recevoir(pris, b0) { this.b0 = b0; pris.forEach(([mo, nb, rest]) => this.coups.push({ mo, nb, rest, s: (mo.x - x) * dx + (mo.z - z) * dz, fait: false })); } };
+  const S = { coups: (combat ? combat.monstres : []).filter((o) => o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) <= r).map((mo) => ({ mo, s: (mo.x - x) * dx + (mo.z - z) * dz, fait: false })) }; /* (les monstres de la zone : chacun reagit quand le troupeau lui passe dessus) */
   const porter = (c, fort) => { c.fait = true; const mo = c.mo; if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
-    JUICE_CRA.coup = { style: '', gros: true, mos: [] }; try { S.b0(mo, c.nb, ...c.rest); } finally { JUICE_CRA.coup = null; }
     if (!fort || !mo.m) return; const h = mo.haut || 1.5, q = new T.Vector3(mo.x, mo.m.position.y + h * 0.5, mo.z), boss = mo.d && (mo.d.boss || mo.d.stable);
     reactionJuicy(mo, true); flashSansSquelette(mo); etoileImpact(q, 0.9, '#fff3c4'); poussiere(mo.x, solA(mo.x, mo.z), mo.z, 5, 0.7, '#e9dcc0');
     emettre(FX_VIF, 9, { x: q.x, y: q.y, z: q.z, r: 0.1, v: [dx * 6, 2, dz * 6], dv: 2.5, vie: [0.2, 0.4], taille: [0.09, 0.02], c: ['#ffffff', '#fff3c4', '#d9c49a'], grav: 9, frein: 2, etire: 0.04 });
@@ -564,13 +574,13 @@ function rueeJuicy(x, y, z, r) {
     if (t >= TC + maxRetard + 0.05) { S.coups.forEach((c) => { if (!c.fait) porter(c, true); }); jeter(...bouf.map((b) => b.m)); return true; } return false; });
   return S;
 }
-{ const rueeJS = rueeTroupeau; rueeTroupeau = function (x, y, z, r) { if (!RUEE_ULTI_IMPACT || !juiceSort('ruee')) return rueeJS.apply(this, arguments); RUEE_ACTIVE = rueeJuicy(x, y, z, r); }; }
+{ const rueeJS = rueeTroupeau; rueeTroupeau = function (x, y, z, r) { if (!RUEE_ULTI_IMPACT || !juiceSort('ruee')) return rueeJS.apply(this, arguments); if (RUEE_PREP) { RUEE_PREP = null; return; } rueeJuicy(x, y, z, r); }; } /* (deja parti a l'appel) */
 { const executerUltiRU = executerUlti; executerUlti = function (id, c, pt) { const r = executerUltiRU.apply(this, arguments);
-  if (id === 'zone' && classeDe() === 'osa' && juiceSort('ruee')) { const A = paysanMesh.userData.attaque; if (A && A.surFrappe) { const sf = A.surFrappe; A.surFrappe = () => { RUEE_ULTI = true; try { return sf(); } finally { RUEE_ULTI = false; } }; } }
+  if (id === 'zone' && classeDe() === 'osa' && juiceSort('ruee') && pt && combat) { RUEE_PREP = rueeJuicy(pt.x, solA(pt.x, pt.z), pt.z, 2.8); /* (le troupeau part tout de suite : il entre dans la zone au coup de fouet) */
+    const A = paysanMesh.userData.attaque; if (A && A.surFrappe) { const sf = A.surFrappe; A.surFrappe = () => { RUEE_ULTI = true; try { return sf(); } finally { RUEE_ULTI = false; } }; } }
   return r; }; }
 { const effetFrappeRU = effetFrappe; effetFrappe = function (classe, pv, auImpact, feu) {
   if (!RUEE_ULTI || classe !== 'osa') return effetFrappeRU.apply(this, arguments);
-  const a0 = auImpact; return effetFrappeRU.call(this, classe, pv, () => { /* l'impact de la ruee : les coups de la zone sont mis de cote et donnes au troupeau */
-    const b0 = blesser, pris = []; blesser = function (mo, nb, ...rest) { pris.push([mo, nb, rest]); }; RUEE_ACTIVE = null; RUEE_ULTI_IMPACT = true;
-    try { a0(); } finally { blesser = b0; RUEE_ULTI_IMPACT = false; }
-    if (RUEE_ACTIVE) { RUEE_ACTIVE.recevoir(pris, b0); RUEE_ACTIVE = null; } else pris.forEach(([mo, nb, rest]) => b0(mo, nb, ...rest)); }, feu); }; }
+  const a0 = auImpact; return effetFrappeRU.call(this, classe, pv, () => { /* l'impact de la ruee : les degats tout de suite, comme avant, chiffres en arc */
+    RUEE_ULTI_IMPACT = true; JUICE_CRA.coup = { style: '', gros: true, mos: [], pop: 1.4, taille: 0.9 };
+    try { a0(); } finally { JUICE_CRA.coup = null; RUEE_ULTI_IMPACT = false; RUEE_PREP = null; } }, feu); }; }

@@ -2,8 +2,8 @@
 /* LES SORTS DE CLASSE « JUICY » (25/11/2026, au formulaire « les sorts de classe », puis « travaille-les a fond, prends ton temps, je veux un truc de fou
    malade », Mathieu) : la touche 2 des trois classes, refaite d'apres les videos (IDEES-JUICE.md). Ouverts a tous le 25/11/2026 (« Ouvrir aux joueurs », Mathieu ;
    juiceSort('percante' | 'bondiop' | 'invoc'), 29z-juice-sorts.js ; JUICE_SORTS.eteints pour comparer avant et apres).
-   Les degats, les zones et la duree des gestes ne changent pas, sauf l'Invocation : ses degats tombent quand le Bouftou touche le sol (0,22 s apres l'appel),
-   et non plus pendant qu'il est encore dans le ciel.
+   Les degats, les zones, la duree des gestes et le moment ou les degats tombent ne changent pas (« le delai d'envoi doit etre comme avant », Mathieu, 25/11/2026 :
+   l'Invocation frappe a l'appel, quand le portail eclate sous les monstres).
    - TIR PERCANT (Cra) : une lance de lumiere (coeur blanc, pointe doree, deux anneaux qui vrillent), un faisceau plus large, trois ondes de choc au depart, une
      gerbe de traits vers l'avant, un coup de zoom ; en vol, une double spirale autour du trait, des eclairs qui crepitent pres de la pointe, la poussiere chassee
      des deux cotes, des cailloux souleves ; chaque monstre transperce blanchit, s'ecrase, est repousse dans le sens du tir et fait un petit bond, un grand anneau
@@ -207,19 +207,21 @@ function invoquerJuicy(pt) {
   if (!u.attaque) u.attaque = { t: 0.08, classe: 'osa', base: u.angle, tour: false, surFrappe: () => { if (combat) coupDeFouet(mainDe(paysanMesh), new T.Vector3(x, y + 0.5, z), paysanMesh, ''); } };
   combat.invoc = { m, x, z, ry: u.angle, vie: DUREE_INVOC, cd: 0.4, pas: 0, frappe: 0, pose: 0.6, barre, chute: CHUTE_INVOC_JUICY, juicy: { st, atterri: false, src: SRC_DEG, y, sorti: false } }; pouf(x, y, z, 3.2, '#d9c2ff'); cercleInvocation(x, y, z);
   portailInvoc(x, y, z); /* (le Bouftou jaillit du portail, majInvoc) */
+  eclatPortail(combat.invoc, x, y, z); /* (les degats a l'appel, comme avant : le portail eclate sous les monstres) */
   toast('Un Bouftou retombe sur les monstres et se bat pendant ' + DUREE_INVOC + ' s.', 'or'); /* (ses degats autour : a l'atterrissage, atterrissageInvoc) */
 }
-function atterrissageInvoc(iv, x, y, z) { /* il s'ecrase au sol : la laine explose, un dome violet, les monstres autour prennent ses degats (2 fois les tiens, comme a l'appel avant) */
-  const J = iv.juicy; secousse(0.18, 0.28); arretImage(0.045); zoomPunch(1.05, 220); son('impactFleche', undefined, 2, -1000 + hasardCents(100));
-  onde(x, y, z, 2.6, '#c9a6ff', 0.38, 0.9); onde(x, y, z, 1.6, '#ffffff', 0.25, 0.8); domeChoc(x, y, z, RAYON_INVOC + 0.4, '#b48cff', 0.3); poussiere(x, y, z, 12, 1.7); mottes(x, y, z, 8, 0.9); solFendu(x, y, z, 1.2);
+function eclatPortail(iv, x, y, z) { /* le portail s'ouvre en eclatant : un dome violet, les monstres autour prennent les degats de l'appel (2 fois les tiens, au meme instant qu'avant) */
+  const J = iv.juicy; secousse(0.14, 0.24); arretImage(0.04); son('impactFleche', undefined, 2, -900 + hasardCents(100)); domeChoc(x, y, z, RAYON_INVOC + 0.4, '#b48cff', 0.3); onde(x, y, z, 2.6, '#c9a6ff', 0.38, 0.9); solFendu(x, y, z, 1.2);
+  let n = 0; combat.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) >= RAYON_INVOC) return; const d = new T.Vector3(o.x - x, 0, o.z - z); if (d.lengthSq() < 1e-4) d.set(1, 0, 0); d.normalize();
+    blesserArc(o, Math.round(J.st.deg * 2), true, n > 0); coupClasse(o, d, { recul: 0.6, saut: 0.45, fort: n === 0, couleur: '#c9a6ff', n: 10 }); etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 0.9, '#c9a6ff'); n++; });
+}
+function atterrissageInvoc(iv, x, y, z) { /* il s'ecrase au sol en rebondissant : la laine explose, une onde (les degats sont deja tombes a l'appel) */
+  secousse(0.12, 0.22); zoomPunch(1.04, 200); son('impactFleche', undefined, 0, -1100 + hasardCents(100));
+  onde(x, y, z, 2.2, '#c9a6ff', 0.35, 0.85); onde(x, y, z, 1.4, '#ffffff', 0.25, 0.8); poussiere(x, y, z, 12, 1.7); mottes(x, y, z, 8, 0.9);
   emettre(FX_FUM, 14, { x, y: y + 0.5, z, r: 0.5, dv: 3.2, haut: true, vie: [0.5, 0.9], taille: [0.5, 1.4], c: ['#ffffff', '#f2ead8'], a: 0.85, frein: 2.6, entree: 0.03 }); /* (la laine qui explose) */
   emettre(FX_VIF, 22, { x, y: y + 0.6, z, r: 0.4, dv: 4.5, haut: true, vie: [0.4, 0.8], taille: [0.13, 0.07], c: ['#ffffff', '#f2ead8'], grav: 5, frein: 1.6 });
   emettre(FX_LUM, 20, { x, y: y + 0.2, z, r: 0.6, dv: 4, haut: true, vie: [0.3, 0.6], taille: [0.12, 0.02], c: ['#ffffff', '#c9a6ff'], grav: 6, etire: 0.03 });
   iv.ecrase = 0;
-  const p0 = SRC_DEG; SRC_DEG = J.src || 'Invocation du Bouftou'; let n = 0; /* (les degats restent ranges sous l'Invocation dans le detail du combat) */
-  try { combat.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) >= RAYON_INVOC) return; const d = new T.Vector3(o.x - x, 0, o.z - z); if (d.lengthSq() < 1e-4) d.set(1, 0, 0); d.normalize();
-    blesserArc(o, Math.round(J.st.deg * 2), true, n > 0); coupClasse(o, d, { recul: 0.6, saut: 0.45, fort: n === 0, couleur: '#c9a6ff', n: 10 }); etoileImpact(new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), 0.9, '#c9a6ff'); n++; }); }
-  finally { SRC_DEG = p0; }
 }
 { const atterrirJS = atterrirBouftou; atterrirBouftou = function (x, y, z) { const iv = combat && combat.invoc; if (!iv || !iv.juicy || iv.juicy.atterri) return atterrirJS.apply(this, arguments); iv.juicy.atterri = true; return atterrissageInvoc(iv, x, y, z); }; }
 function finInvocJuicy(iv) { /* il repart en laine et en paillettes violettes qui montent en spirale */
@@ -250,3 +252,17 @@ function finInvocJuicy(iv) { /* il repart en laine et en paillettes violettes qu
   const maint = performance.now(); if (maint - SON_BOUFTOU_T > 150) { SON_BOUFTOU_T = maint; son('impactFleche', undefined, -3, -600 + hasardCents(150)); }
   return r; }; }
 { const invoquerJS = invoquer; invoquer = function (pt) { if (!juiceSort('invoc')) return invoquerJS.apply(this, arguments); return invoquerJuicy(pt); }; }
+
+/* LE PRECHAUFFAGE DES NOUVEAUX SORTS (25/11/2026, « le delai d'envoi doit etre comme avant, et la fluidite », Mathieu) : la premiere Colere de Iop d'une partie
+   partait 0,12 s plus tard (mesure : traces/chargement/plans-delais-*.js), le temps que la carte graphique prepare l'epee geante. Au premier combat de la partie,
+   l'epee, la tete du dragon, la fleche fatale, les jets de lumiere et le portail sont dessines une fois hors de l'ecran (comme prechaufferVague, 29r-perf.js) */
+const PRECH_JUICE = { fait: false };
+function prechaufferJuice() {
+  if (PRECH_JUICE.fait || typeof rendu === 'undefined' || !rendu || !camera) return; PRECH_JUICE.fait = true; const g = new T.Group();
+  [() => modeleEpeeCiel(), () => modeleTeteDragon(), () => modeleFlecheFatale(), () => new T.Mesh(GEO_PILIER, matPilier('#ffd27a')),
+    () => new T.Mesh(new T.CircleGeometry(1, 8), new T.MeshBasicMaterial({ map: TEX_PORTAIL_INVOC, transparent: true, depthWrite: false, side: T.DoubleSide }))].forEach((f) => { try { g.add(f()); } catch (e) { /* rien */ } });
+  if (!g.children.length) return; const dir = new T.Vector3(); camera.getWorldDirection(dir); g.position.copy(camera.position).addScaledVector(dir, 10); g.children.forEach((o, i) => { o.position.set(i * 1.5 - 3, 0, 0); });
+  scene.add(g); g.updateMatrixWorld(true); const rt = new T.WebGLRenderTarget(64, 64), avant = rendu.getRenderTarget();
+  try { rendu.compile(scene, camera); rendu.setRenderTarget(rt); rendu.render(scene, camera); } catch (e) { /* rien */ } finally { rendu.setRenderTarget(avant); scene.remove(g); rt.dispose(); }
+}
+{ const nouveauCombatPJ = nouveauCombat; nouveauCombat = function () { const r = nouveauCombatPJ.apply(this, arguments); try { if (!window.__sansPrechauffage) prechaufferJuice(); } catch (e) { /* (le jeu continue sans) */ } return r; }; }
