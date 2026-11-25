@@ -1,7 +1,7 @@
 'use strict';
 /* LES SORTS DE CLASSE « JUICY » (25/11/2026, au formulaire « les sorts de classe », puis « travaille-les a fond, prends ton temps, je veux un truc de fou
-   malade », Mathieu) : la touche 2 des trois classes, refaite d'apres les videos (IDEES-JUICE.md). Version dev : seulement dans le mode test tant que Mathieu
-   ne les a pas valides (juiceSort('percante' | 'bondiop' | 'invoc'), 29z-juice-sorts.js ; JUICE_SORTS.eteints pour comparer avant et apres).
+   malade », Mathieu) : la touche 2 des trois classes, refaite d'apres les videos (IDEES-JUICE.md). Ouverts a tous le 25/11/2026 (« Ouvrir aux joueurs », Mathieu ;
+   juiceSort('percante' | 'bondiop' | 'invoc'), 29z-juice-sorts.js ; JUICE_SORTS.eteints pour comparer avant et apres).
    Les degats, les zones et la duree des gestes ne changent pas, sauf l'Invocation : ses degats tombent quand le Bouftou touche le sol (0,22 s apres l'appel),
    et non plus pendant qu'il est encore dans le ciel.
    - TIR PERCANT (Cra) : une lance de lumiere (coeur blanc, pointe doree, deux anneaux qui vrillent), un faisceau plus large, trois ondes de choc au depart, une
