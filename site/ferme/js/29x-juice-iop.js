@@ -10,7 +10,7 @@
    - les chiffres sautent en arc (29w-juice-cra.js), plus gros et dores sous le Berserker (degats x2 sous 50 % de vie) ;
    - le coup qui abat un boss ou un demi-boss marque un temps de plus. */
 const JUICE_IOP = { force: null };
-const juiceIop = () => (JUICE_IOP.force != null ? JUICE_IOP.force : typeof MODE_TEST !== 'undefined' && !!MODE_TEST);
+const juiceIop = () => (JUICE_IOP.force != null ? JUICE_IOP.force : true); /* (ouverte a tous le 25/11/2026, « Ouvrir les deux », Mathieu au formulaire ; mode test seulement avant) */
 const JI = { delai: 0.06, recul: 0.3, reculVoisin: 0.16, reculD: 0.18 };
 
 /* le recul a l'image : pose apres la mise a jour du monstre, il ne touche jamais sa vraie position */

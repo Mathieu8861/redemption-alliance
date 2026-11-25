@@ -11,7 +11,7 @@
    Les degats tombent au claquement (0,13 s apres le depart du coup, comme la fleche du Cra a l'arrivee) et non plus au depart : le chiffre, l'eclat jaune
    et le flash blanc arrivent ensemble, sur l'image ou la laniere touche. */
 const JUICE_OSA = { force: null };
-const juiceOsa = () => (JUICE_OSA.force != null ? JUICE_OSA.force : typeof MODE_TEST !== 'undefined' && !!MODE_TEST);
+const juiceOsa = () => (JUICE_OSA.force != null ? JUICE_OSA.force : true); /* (ouvert a tous le 25/11/2026, « Ouvrir les deux », Mathieu au formulaire ; mode test seulement avant) */
 const JO = { file: 0.13, recul: 0.22 };
 
 { const effetFrappeJO = effetFrappe; effetFrappe = function (classe, pv, auImpact, feu) {
