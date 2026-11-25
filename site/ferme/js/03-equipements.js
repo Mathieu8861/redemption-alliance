@@ -220,6 +220,12 @@ Object.keys(ARMES).forEach((cl) => { const o = OBJETS['arme-' + ARMES[cl][0] + '
    formulaire « a la place de l'Agilite » : 15 a 25 de degats bonus a la place de ses 25 d'Agilite, sa Puissance gardee ; degats presque inchanges, Cra +45 % et Iop +29 % de degats
    par seconde sur l'Arakne du palier 10, contre +43 % et +25 % avant ; traces/chargement/plans-compare-dps.js) */
 Object.keys(ARMES).forEach((cl) => { const o = OBJETS['arme-' + ARMES[cl][0] + '-crachopaud']; if (o) { delete o.stats.agilite; o.stats.degBonus = 20; } });
+/* LA PUISSANCE DU PALIER 11 (25/11/2026 au soir, « fais en sorte que les nouvelles panos, en Puissance, ne soient pas beaucoup plus fortes que celles du palier d'avant ;
+   on compense deja pas mal avec les autres bonus », Mathieu) : la Puissance d'une panoplie complete, arme comprise, a environ +8 % de sa voisine du palier 10 (avant :
+   Croquevase 344 contre 290 a l'Ecorce, +19 % ; Crachopaud 471 contre 367 a l'Arakne avec l'arme de l'Ecorce, +28 %). Apres : Croquevase 312 (coiffe et amulette 60,
+   arme 126, les bottes gardent les 51 a 80 de Mathieu, PIECES_P11), Crachopaud 395 (cape et amulette 71, anneau 104 de 79 a 128 comme l'Arakne, arme 149). Avant les rares */
+const PUIS_P11 = { croquevase: 0.888, crachopaud: 0.84 };
+Object.entries(PUIS_P11).forEach(([pa, f]) => EMPLACEMENTS.map(([e]) => pa + '-' + e).concat(Object.values(ARMES).map(([t]) => 'arme-' + t + '-' + pa)).forEach((id) => { const o = OBJETS[id]; if (o && o.stats.puissance) o.stats.puissance = Math.round(o.stats.puissance * f); }));
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
 /* LA PROSPECTION DES PIECES DIVISEE PAR DEUX (23/11/2026, « est-ce qu'on nerferait pas la prospection que donnent les items plutot ? », puis au formulaire « divisee par
@@ -297,7 +303,7 @@ const reventeObjet = (id) => kamasGagnes(15 * obj(id).niv * (obj(id).rare ? 3 : 
 const JET_MIN = 0.75, JET_MAX = 1.25;
 const baseObjet = (k) => String(k || '').split('~')[0];
 /* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
-const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [94, 152] }, 'crachopaud-anneau-rare': { puissance: [141, 228] },
+const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [79, 128] }, 'crachopaud-anneau-rare': { puissance: [119, 192] } /* (25/11/2026 au soir, PUIS_P11 : comme l'Arakne ; avant 94 a 152) */,
   'crachopaud-ceinture': { vita: [240, 420], degFixe: [4, 8], prospection: [18, 34] }, 'crachopaud-ceinture-rare': { vita: [360, 630], degFixe: [6, 12], prospection: [27, 51] },
   'crachopaud-coiffe': { degFixe: [42, 78] }, 'crachopaud-coiffe-rare': { degFixe: [63, 117] },
   'croquevase-bottes': { puissance: [51, 80], vitDep: [2, 2] }, 'croquevase-bottes-rare': { puissance: [77, 120], vitDep: [3, 3] } }; /* (la ceinture du Crachopaud et les bottes du Croquevase, 25/11/2026, PIECES_P11) */ /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
