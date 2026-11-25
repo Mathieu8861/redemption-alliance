@@ -520,3 +520,57 @@ function tempeteJuicy(pt) {
   });
 }
 { const tempeteJS = tempeteDeLames; tempeteDeLames = function (pt) { if (!juiceSort('tempete')) return tempeteJS.apply(this, arguments); return tempeteJuicy(pt); }; }
+
+/* LA RUEE DU TROUPEAU (25/11/2026, « fais la ruee du troupeau », Mathieu) : l'ulti de zone de l'Osamodas. Les degats ne changent pas, mais chaque monstre les
+   prend quand le troupeau lui passe dessus (et non plus tous d'un coup avant que les Bouftous n'arrivent) :
+   - le fouet claque, un nuage de poussiere se leve derriere l'Osamodas, le sol gronde ;
+   - 5 Bouftous chargent en V, au galop (ils s'ecrasent a chaque foulee et s'etirent en l'air), tete baissee, dans la poussiere, en laissant des traces de sabots ;
+   - chaque monstre touche blanchit, saute, recule dans le sens de la charge, ses degats sautent a ce moment-la ;
+   - au bout de la course, les Bouftous disparaissent dans un nuage de laine.
+   Comment : la ruee lancee par l'ulti (executerUlti) met de cote les coups de la zone (blesser est mis de cote le temps de l'impact) et les donne au
+   troupeau, qui les porte au passage ; tout coup pas encore porte a la fin de la course est porte a ce moment-la. */
+let RUEE_ULTI = false, RUEE_ACTIVE = null, RUEE_ULTI_IMPACT = false;
+const JS_RUEE = { n: 5, vitesse: 13, avant: 2.2, apres: 1.6, echelle: 0.55 };
+{ const majMonstreRU = majMonstre; majMonstre = function (mo, dt) { const r = majMonstreRU.apply(this, arguments); const S = mo && mo.sautV; /* (le saut d'un monstre bouscule, a l'image) */
+  if (S && mo.m) { S.t += dt || 0; const k = S.t / 0.36; if (k >= 1 || mo.etat !== 'actif') mo.sautV = null; else mo.m.position.y += Math.sin(k * Math.PI) * S.h; } return r; }; }
+function rueeJuicy(x, y, z, r) {
+  const pp = paysanMesh.position, L = Math.hypot(x - pp.x, z - pp.z) || 1, dx = (x - pp.x) / L, dz = (z - pp.z) / L, cx = -dz, cz = dx, n = JS_RUEE.n;
+  const s0 = -(r + JS_RUEE.avant), s1 = r + JS_RUEE.apres, D = s1 - s0, TC = D / JS_RUEE.vitesse;
+  secousse(0.07, TC + 0.35); onde(x, y, z, r + 0.3, '#e9dcc0', 0.6, 0.6, true);
+  const depart = { x: x + dx * s0, z: z + dz * s0 }; poussiere(depart.x, solA(depart.x, depart.z), depart.z, 16, r * 0.9, '#e9dcc0'); /* (le nuage d'ou sort le troupeau) */
+  const bouf = []; let maxRetard = 0;
+  for (let i = 0; i < n; i++) { const lat = (i - (n - 1) / 2) * r * 0.6, retard = Math.abs(lat) * 0.03 + fxAlea() * 0.03; maxRetard = Math.max(maxRetard, retard);
+    const m = modeleBouftouInvoque(); m.rotation.order = 'YXZ'; m.scale.setScalar(0.001); poser(m, depart.x + cx * lat, solA(depart.x + cx * lat, depart.z + cz * lat), depart.z + cz * lat, Math.atan2(dx, dz)); m.traverse((o) => { o.raycast = () => {}; });
+    bouf.push({ m, lat, retard, poudre: 0, pas: 0, ph0: fxAlea() * 3 }); } /* (en V : ceux du milieu partent devant) */
+  const S = { coups: [], b0: null, recevoir(pris, b0) { this.b0 = b0; pris.forEach(([mo, nb, rest]) => this.coups.push({ mo, nb, rest, s: (mo.x - x) * dx + (mo.z - z) * dz, fait: false })); } };
+  const porter = (c, fort) => { c.fait = true; const mo = c.mo; if (!combat || combat.fin || !mo || mo.etat !== 'actif') return;
+    JUICE_CRA.coup = { style: '', gros: true, mos: [] }; try { S.b0(mo, c.nb, ...c.rest); } finally { JUICE_CRA.coup = null; }
+    if (!fort || !mo.m) return; const h = mo.haut || 1.5, q = new T.Vector3(mo.x, mo.m.position.y + h * 0.5, mo.z), boss = mo.d && (mo.d.boss || mo.d.stable);
+    reactionJuicy(mo, true); flashSansSquelette(mo); etoileImpact(q, 0.9, '#fff3c4'); poussiere(mo.x, solA(mo.x, mo.z), mo.z, 5, 0.7, '#e9dcc0');
+    emettre(FX_VIF, 9, { x: q.x, y: q.y, z: q.z, r: 0.1, v: [dx * 6, 2, dz * 6], dv: 2.5, vie: [0.2, 0.4], taille: [0.09, 0.02], c: ['#ffffff', '#fff3c4', '#d9c49a'], grav: 9, frein: 2, etire: 0.04 });
+    if (mo.etat === 'actif' && mo.pv > 0) { reculVisuel(mo, { x: dx, z: dz }, 0.75); if (!boss) mo.sautV = { t: 0, h: 0.5 }; }
+    son('impactFleche', undefined, 1, -800 + hasardCents(150)); if (!S.premier) { S.premier = true; arretImage(0.03); } };
+  let t = 0;
+  effets.push((dt) => { t += dt; let front = -1e9;
+    bouf.forEach((b) => { const tb = t - b.retard; if (tb < 0 || b.fini) return; const k = Math.min(1, tb / TC), s = s0 + D * k, X = x + dx * s + cx * b.lat, Z = z + dz * s + cz * b.lat, ys = solA(X, Z), ph = b.ph0 + tb * 22, saut = Math.abs(Math.sin(ph));
+      front = Math.max(front, s); const e = JS_RUEE.echelle * Math.min(1, tb / 0.08);
+      b.m.position.set(X, ys + saut * 0.3, Z); b.m.rotation.x = 0.2 + Math.cos(ph) * 0.14; b.m.scale.set(e * (1 + 0.1 * (1 - saut)), e * (0.82 + 0.28 * saut), e * (0.92 + 0.18 * saut)); /* (il s'ecrase en touchant le sol, s'etire en l'air) */
+      b.poudre += dt; if (b.poudre > 0.035) { b.poudre = 0; emettre(FX_FUM, 1, { x: X - dx * 0.5, y: ys + 0.15, z: Z - dz * 0.5, v: [-dx * 0.8, fxEntre(0.3, 0.9), -dz * 0.8], vie: [0.4, 0.7], taille: [0.35, 1.0], c: ['#e9dcc0', '#e9dcc0'], a: 0.45, frein: 3, vrot: 1.5, entree: 0.08 });
+        if (fxAlea() < 0.4) emettre(FX_VIF, 2, { x: X, y: ys + 0.05, z: Z, r: 0.15, v: [-dx * 2, 2.2, -dz * 2], dv: 1, vie: [0.3, 0.5], taille: [0.07, 0.04], c: ['#8a6a44', '#6a4a2a'], grav: 9, sol: ys + 0.03, rebond: 0.3 }); } /* (la poussiere et les mottes soulevees) */
+      b.pas += dt; if (b.pas > 0.11 && saut < 0.3) { b.pas = 0; tacheSol(X, ys, Z, 0.16, '#6a4a2a', 0.45, 1.4); } /* (les traces de sabots) */
+      if (k >= 1) { b.fini = true; b.m.visible = false; emettre(FX_FUM, 7, { x: X, y: ys + 0.4, z: Z, r: 0.4, v: [dx, 0.8, dz], dv: 1.2, vie: [0.4, 0.7], taille: [0.4, 1.0], c: ['#ffffff', '#f2ead8'], a: 0.75, frein: 2.5, entree: 0.05 });
+        emettre(FX_VIF, 8, { x: X, y: ys + 0.4, z: Z, r: 0.3, dv: 2.5, haut: true, vie: [0.3, 0.6], taille: [0.1, 0.05], c: ['#ffffff', '#f2ead8'], grav: 4, frein: 1.5 }); } }); /* (il disparait dans un nuage de laine) */
+    S.coups.forEach((c) => { if (!c.fait && front >= c.s - 0.3) porter(c, true); });
+    if (t >= TC + maxRetard + 0.05) { S.coups.forEach((c) => { if (!c.fait) porter(c, true); }); jeter(...bouf.map((b) => b.m)); return true; } return false; });
+  return S;
+}
+{ const rueeJS = rueeTroupeau; rueeTroupeau = function (x, y, z, r) { if (!RUEE_ULTI_IMPACT || !juiceSort('ruee')) return rueeJS.apply(this, arguments); RUEE_ACTIVE = rueeJuicy(x, y, z, r); }; }
+{ const executerUltiRU = executerUlti; executerUlti = function (id, c, pt) { const r = executerUltiRU.apply(this, arguments);
+  if (id === 'zone' && classeDe() === 'osa' && juiceSort('ruee')) { const A = paysanMesh.userData.attaque; if (A && A.surFrappe) { const sf = A.surFrappe; A.surFrappe = () => { RUEE_ULTI = true; try { return sf(); } finally { RUEE_ULTI = false; } }; } }
+  return r; }; }
+{ const effetFrappeRU = effetFrappe; effetFrappe = function (classe, pv, auImpact, feu) {
+  if (!RUEE_ULTI || classe !== 'osa') return effetFrappeRU.apply(this, arguments);
+  const a0 = auImpact; return effetFrappeRU.call(this, classe, pv, () => { /* l'impact de la ruee : les coups de la zone sont mis de cote et donnes au troupeau */
+    const b0 = blesser, pris = []; blesser = function (mo, nb, ...rest) { pris.push([mo, nb, rest]); }; RUEE_ACTIVE = null; RUEE_ULTI_IMPACT = true;
+    try { a0(); } finally { blesser = b0; RUEE_ULTI_IMPACT = false; }
+    if (RUEE_ACTIVE) { RUEE_ACTIVE.recevoir(pris, b0); RUEE_ACTIVE = null; } else pris.forEach(([mo, nb, rest]) => b0(mo, nb, ...rest)); }, feu); }; }
