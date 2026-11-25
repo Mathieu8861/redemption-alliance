@@ -122,6 +122,13 @@ function sceauVise(x, y, z, R, duree) { /* le point de chute se verrouille : un 
   fxVie(g, duree, (k) => { const o = Math.min(1, k / 0.25); mats.forEach(([m, o0]) => { m.opacity = o0 * o; }); runes.rotation.y = k * 2.4; g.scale.setScalar(R * (1.25 - 0.25 * k)); pointes.forEach((m) => { m.position.set(0, 0.02, -(1.5 - 0.6 * k)); }); });
 }
 const TEX_CRATERE_IOP = TEX_CRAQUELE;
+function empreinteDoree(x, y, z, R) { /* l'empreinte du coup au sol, dans le rayon du saut : deux cercles et huit rayons courts, blancs a l'impact, qui dorent et s'eteignent */
+  const g = new T.Group(), mats = [], plat = (geo, o) => { const m = new T.Mesh(geo, fxMat('#ffffff', o)); m.rotation.x = -Math.PI / 2; m.renderOrder = 4; mats.push([m.material, o]); g.add(m); return m; };
+  plat(new T.RingGeometry(0.9, 1, 56), 1); plat(new T.RingGeometry(0.52, 0.58, 48), 0.9); plat(GEO_DISQUE, 0.3);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + 0.2, m = plat(new T.PlaneGeometry(0.05, 0.26), 0.95); m.position.set(Math.cos(a) * 0.74, 0.001, Math.sin(a) * 0.74); m.rotation.z = -a + Math.PI / 2; }
+  g.position.set(x, y + 0.08, z); const blanc = new T.Color('#ffffff'), or = new T.Color('#ffb52e');
+  fxVie(g, 0.6, (k) => { const o = k < 0.08 ? k / 0.08 : 1 - (k - 0.08) / 0.92; g.scale.setScalar(R * (0.9 + 0.1 * Math.min(1, k * 4))); mats.forEach(([m, o0]) => { m.opacity = o0 * o; m.color.lerpColors(blanc, or, Math.min(1, k * 2.5)); }); });
+}
 function bondIopJuicy(pt) {
   const st = statsPerso(), pp = paysanMesh.position, u = paysanMesh.userData;
   const q0 = pointSort(pt, PORTEE_BOND); let x = q0.x, z = q0.z;
@@ -135,8 +142,8 @@ function bondIopJuicy(pt) {
   const fant = fantomes(paysanMesh, 3, '#ffd27a', 1.6);
   /* le decollage : le sol se fend sous lui, une onde monte, des traits filent vers le haut ; le point de chute se verrouille */
   const ySol0 = solA(de.x, de.z), yFin = solA(fin.x, fin.z); sceauVise(fin.x, yFin, fin.z, RAYON_BOND, 0.32);
-  poussiere(de.x, de.y, de.z, 10, 1.1); onde(de.x, de.y, de.z, 1.6, '#fff3c4', 0.3, 0.8); solFendu(de.x, ySol0, de.z, 0.9); mottes(de.x, ySol0, de.z, 6, 0.9); secousse(0.08, 0.14);
-  anneauSouffle(new T.Vector3(de.x, ySol0 + 0.4, de.z), new T.Vector3(0, 1, 0), 0.3, 1.9, 0.28, '#fff1c0', 0.9);
+  poussiere(de.x, de.y, de.z, 8, 0.9); onde(de.x, de.y, de.z, 1.4, '#fff3c4', 0.3, 0.8); mottes(de.x, ySol0, de.z, 5, 0.8); secousse(0.06, 0.12);
+  anneauSouffle(new T.Vector3(de.x, ySol0 + 0.4, de.z), new T.Vector3(0, 1, 0), 0.3, 1.4, 0.26, '#fff1c0', 0.9);
   emettre(FX_VIF, 18, { x: de.x, y: ySol0 + 0.3, z: de.z, r: 0.5, v: [0, 9, 0], dv: 1.5, vie: [0.16, 0.3], taille: [0.09, 0.02], c: ['#ffffff', '#ffd27a'], frein: 3, etire: 0.09 });
   let t = 0, trace = 0, feu = 0; u.charge = true; u.enVol = true;
   effets.push((dt) => {
@@ -154,17 +161,17 @@ function bondIopJuicy(pt) {
       jeter(roue); fant.fin(); corps.forEach(({ c, p, q }) => { c.position.copy(p); c.quaternion.copy(q); }); if (!combat || !combat.fin) { if (bras) bras.rotation.x = 0; }
       u.charge = false; u.enVol = false; if (cel && praticable(cel)) u.cellule = cel; flashLumiere(fin.x, u.y + 1, fin.z, '#ffd27a', 4.5, 9, 0.4);
       const centre = new T.Vector3(fin.x, u.y + 0.6, fin.z);
-      /* l'impact : l'image se fige, la camera encaisse, des traits d'eclat, un dome de choc dore, huit piliers de lumiere, des eclats de roche, un cratere */
-      arretImage(0.08); secousse(0.26, 0.36); zoomPunch(1.1, 300); traitsEclat(centre, '#ffc24a', { n: 12, long: 300, duree: 220 }); son('impactFleche', undefined, 4, -900 + hasardCents(80));
-      domeChoc(fin.x, u.y, fin.z, RAYON_BOND + 0.6, '#ffd27a', 0.34);
-      for (let i = 0; i < 6; i++) { const an = i / 6 * Math.PI * 2 + a + 0.5, r = RAYON_BOND * 0.85; pilierLumiere(fin.x + Math.sin(an) * r, u.y, fin.z + Math.cos(an) * r, 1.8 + (i % 2) * 0.7, '#ffc24a', i * 0.02); }
-      pilierLumiere(fin.x, u.y, fin.z, 3.6, '#ffe08a', 0);
-      emettre(FX_VIF, 34, { x: fin.x, y: u.y + 0.2, z: fin.z, r: 0.5, plat: true, dv: 8, haut: true, vie: [0.25, 0.6], taille: [0.11, 0.02], c: ['#ffffff', '#ffd27a', '#ff8a2e'], grav: 9, frein: 1.5, etire: 0.05 });
-      onde(fin.x, u.y, fin.z, RAYON_BOND + 0.4, '#ffffff', 0.3, 0.95); onde(fin.x, u.y, fin.z, RAYON_BOND + 1.3, '#ffc24a', 0.6, 0.8);
-      solFendu(fin.x, u.y, fin.z, RAYON_BOND, true); mottes(fin.x, u.y, fin.z, 14, 1.3); poussiere(fin.x, u.y, fin.z, 18, RAYON_BOND * 1.1); eclatsRoche(fin.x, u.y, fin.z, 14, 1.25);
+      /* l'impact, contenu dans le rayon du saut (25/11/2026, « des enormes traits en pointe qui partent, la portee est beaucoup trop grande, trouve autre chose ; teste aussi
+         en vue du dessus, on joue presque tous comme ca », Mathieu) : l'image se fige, la camera encaisse un peu, une empreinte doree s'allume au sol et s'eteint, un dome
+         de choc, deux ondes au bord de la zone, des etincelles et de la poussiere qui restent dedans, quelques eclats, un cratere craquele */
+      arretImage(0.07); secousse(0.2, 0.3); zoomPunch(1.06, 260); son('impactFleche', undefined, 4, -900 + hasardCents(80));
+      empreinteDoree(fin.x, u.y, fin.z, RAYON_BOND); domeChoc(fin.x, u.y, fin.z, RAYON_BOND, '#ffd27a', 0.3);
+      emettre(FX_VIF, 28, { x: fin.x, y: u.y + 0.2, z: fin.z, r: 0.4, plat: true, dv: 4.5, haut: true, vie: [0.2, 0.4], taille: [0.1, 0.02], c: ['#ffffff', '#ffd27a', '#ff8a2e'], grav: 9, frein: 3, etire: 0.04 });
+      onde(fin.x, u.y, fin.z, RAYON_BOND, '#ffffff', 0.25, 0.95); onde(fin.x, u.y, fin.z, RAYON_BOND + 0.3, '#ffc24a', 0.45, 0.8);
+      mottes(fin.x, u.y, fin.z, 10, 0.9); poussiere(fin.x, u.y, fin.z, 12, RAYON_BOND * 0.8); eclatsRoche(fin.x, u.y, fin.z, 8, 0.8);
       { const cr = sansClic(new T.Mesh(new T.CircleGeometry(RAYON_BOND * 0.85, 40), new T.MeshBasicMaterial({ map: TEX_CRATERE_IOP, transparent: true, opacity: 0, depthWrite: false }))); cr.rotation.x = -Math.PI / 2; cr.rotation.z = fxAlea() * 6; cr.position.set(fin.x, u.y + 0.045, fin.z); cr.renderOrder = 2;
         fxVie(cr, 2.2, (kk) => { cr.material.opacity = Math.min(1, kk * 2.2 / 0.06) * (kk < 0.7 ? 0.9 : 0.9 * (1 - (kk - 0.7) / 0.3)); cr.scale.setScalar(0.7 + 0.3 * Math.min(1, kk * 2.2 / 0.12)); }); } /* (le cratere craquele) */
-      emettre(FX_LUM, 22, { x: fin.x, y: u.y + 0.15, z: fin.z, r: RAYON_BOND * 0.8, plat: true, v: [0, 1.4, 0], dv: 0.4, vie: [0.6, 1.1], taille: [0.12, 0.02], c: ['#ffffff', '#ffc24a'], frein: 0.6 }); /* (des braises qui montent) */
+      emettre(FX_LUM, 16, { x: fin.x, y: u.y + 0.15, z: fin.z, r: RAYON_BOND * 0.6, plat: true, v: [0, 1.4, 0], dv: 0.4, vie: [0.6, 1.1], taille: [0.12, 0.02], c: ['#ffffff', '#ffc24a'], frein: 0.6 }); /* (des braises qui montent) */
       let kk = 0; if (combat) combat.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - fin.x, o.z - fin.z) < RAYON_BOND) { kk++; const q = new T.Vector3(o.x, o.m.position.y + o.haut * 0.5, o.z), d = new T.Vector3(o.x - fin.x, 0, o.z - fin.z); if (d.lengthSq() < 1e-4) d.set(Math.sin(a), 0, Math.cos(a)); d.normalize();
         etoileImpact(q, o === cible ? 1.4 : 1.0, '#ffd27a'); blesserArc(o, Math.round(st.deg * (o === cible ? 3 : 1.5)), true, o !== cible); coupClasse(o, d, { recul: o === cible ? 0.85 : 0.65, saut: o === cible ? 0.6 : 0.45, fort: o === cible, couleur: '#ffc24a', n: 12 }); } }); /* (les degats : a l'identique de bondIop) */
       if (combat && !combat.fin && kk) { const h = Math.round(Math.min(combat.pvMax - combat.pv, st.pvMax * soinBond(kk))); if (h > 0) { combat.pv += h; if (combat.st) combat.st.soins += h; chiffre('+' + h, new T.Vector3(fin.x, u.y + 1.7, fin.z), 'soin'); croixSoin(fin.x, u.y, fin.z, Math.min(4, kk)); } }
