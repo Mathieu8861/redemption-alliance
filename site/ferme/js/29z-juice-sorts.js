@@ -182,21 +182,21 @@ const JS_FATAL = { arret: 0.11, silhouette: 45, negatif: 45, zoom: 1.16, retour:
 const animationsReduites = () => { try { return fxLeger() || matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return fxLeger(); } };
 
 /* les traits d'eclat en pointes, dessines par-dessus le jeu au point d'impact */
-function traitsEclat(p, couleur) {
-  const zone = (combat && $('combat-zone')) || document.body, s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), N = 16, R0 = 55, R1 = 360; /* (moins nombreux et plus courts : 22 traits jusqu'a 430 px couvraient tout l'ecran) */ let d = '';
+function traitsEclat(p, couleur, o) {
+  o = o || {}; const zone = (combat && $('combat-zone')) || document.body, s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), N = o.n || 16, R0 = 55, R1 = o.long || 360, DUREE = o.duree || JS_FATAL.lignes; /* (moins nombreux et plus courts : 22 traits jusqu'a 430 px couvraient tout l'ecran) */ let d = '';
   for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2 + (Math.random() - 0.5) * 0.2, l = R1 * (0.55 + Math.random() * 0.45), w = 0.03 + Math.random() * 0.035, r0 = R0 * (0.8 + Math.random() * 0.6);
     d += 'M' + (Math.cos(a - w) * r0).toFixed(1) + ' ' + (Math.sin(a - w) * r0).toFixed(1) + 'L' + (Math.cos(a) * l).toFixed(1) + ' ' + (Math.sin(a) * l).toFixed(1) + 'L' + (Math.cos(a + w) * r0).toFixed(1) + ' ' + (Math.sin(a + w) * r0).toFixed(1) + 'Z'; }
   s.setAttribute('viewBox', '-450 -450 900 900'); Object.assign(s.style, { position: 'absolute', width: '900px', height: '900px', marginLeft: '-450px', marginTop: '-450px', pointerEvents: 'none', zIndex: '5' });
   s.innerHTML = '<path d="' + d + '" fill="#ffffff" stroke="' + couleur + '" stroke-width="4" stroke-linejoin="round"/>'; zone.appendChild(s); versEcran(p, s);
-  const t0 = performance.now(), pas = () => { const k = (performance.now() - t0) / JS_FATAL.lignes; if (k >= 1 || !s.isConnected) { s.remove(); return; }
+  const t0 = performance.now(), pas = () => { const k = (performance.now() - t0) / DUREE; if (k >= 1 || !s.isConnected) { s.remove(); return; }
     versEcran(p, s); s.style.transform = 'scale(' + (0.65 + 0.65 * (1 - Math.pow(1 - k, 3))).toFixed(3) + ')'; s.style.opacity = String(k < 0.35 ? 1 : (1 - k) / 0.65); requestAnimationFrame(pas); };
   requestAnimationFrame(pas);
 }
 
 /* le temps fort facon anime : image figee, silhouettes, negatif, puis zoom qui revient (en temps reel : l'image figee ralentit le jeu, pas ceci) */
 let FATAL_ANIME = false;
-function tempsFortAnime(p, couleur) {
-  arretImage(JS_FATAL.arret); traitsEclat(p, couleur);
+function tempsFortAnime(p, couleur, o) {
+  arretImage(JS_FATAL.arret); traitsEclat(p, couleur, o);
   if (animationsReduites() || FATAL_ANIME) return; FATAL_ANIME = true;
   const cv = rendu.domElement, f0 = cv.style.filter || '', t0 = performance.now(), fin = () => { camera.zoom = 1; camera.updateProjectionMatrix(); cv.style.filter = f0; FATAL_ANIME = false; };
   const pas = () => { try { const t = performance.now() - t0, tz = t - JS_FATAL.silhouette - JS_FATAL.negatif;
@@ -341,7 +341,7 @@ function flecheFataleJuicy(de0, suivre, impact) {
     emettre(FX_LUM, 1, { x: fl.position.x, y: fl.position.y, z: fl.position.z, vie: [0.06, 0.08], taille: [1.2, 0.4], c: ['#ffffff', '#ff3b2e'], a: 0.95 });
     emettre(FX_VIF, 3, { x: fl.position.x, y: fl.position.y, z: fl.position.z, r: 0.06, v: [-dir.x * 5, 0.6, -dir.z * 5], dv: 2.5, vie: [0.15, 0.3], taille: [0.1, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 4, frein: 2, etire: 0.05 });
     if (!frappe && fait >= L) { frappe = true; impact(); jeter(mire); anneauSouffle(P.clone(), dir, 0.15, 1.6 * k, 0.25, '#ff8a6a', 0.9); son('impactFleche', undefined, 4, -650 + hasardCents(60));
-      emettre(FX_VIF, 26, { x: P.x, y: P.y, z: P.z, r: 0.1, v: [dir.x * 9, 0.5, dir.z * 9], dv: 4, vie: [0.2, 0.45], taille: [0.12, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 5, frein: 2, etire: 0.05 }); } /* (la gerbe part a travers la cible) */
+      emettre(FX_VIF, 12, { x: P.x, y: P.y, z: P.z, r: 0.1, v: [dir.x * 7, 0.5, dir.z * 7], dv: 2.5, vie: [0.2, 0.45], taille: [0.12, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 5, frein: 2, etire: 0.05 }); } /* (la gerbe part a travers la cible) */
     if (fait >= L + 2.5) { fini = Math.min(1, fini + dt / 0.25); fl.visible = false; F.maj(1, 1 - fini, t); if (fini >= 1) { jeter(fl, F.g); if (!frappe) { frappe = true; impact(); jeter(mire); } return true; } }
     return false; });
 }
@@ -355,21 +355,29 @@ function portailDeFeu() {
    s'eleve, plonge sur la cible gueule ouverte, la referme dessus, puis le dragon entier se defait en braises (sans rapetisser). */
 let TETE_DRAGON = null;
 function modeleTeteDragon() {
-  if (!TETE_DRAGON) {
-    const ph = (o) => new T.MeshPhongMaterial(Object.assign({ flatShading: true }, o));
-    const ecaille = ph({ color: '#d8401a', specular: '#ffb070', shininess: 40, emissive: '#7a1a06', emissiveIntensity: 0.55 }), dent = ph({ color: '#fff4dc', emissive: '#6a5a40', emissiveIntensity: 0.45 });
-    const oeil = new T.MeshBasicMaterial({ color: '#fff3a0' }), gueule = new T.MeshBasicMaterial({ color: '#ffb02e' });
-    const profil = (pts, larg) => { const s = new T.Shape(); s.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(([x, y]) => s.lineTo(x, y)); s.closePath();
-      const g = new T.ExtrudeGeometry(s, { depth: larg, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 1, steps: 1 }); g.translate(0, 0, -larg / 2); g.rotateY(-Math.PI / 2); return g; }; /* (dessine de profil : x vers l'avant, y vers le haut ; l'epaisseur devient la largeur) */
-    const tete = new T.Group(), add = (p, geo, mat, x, y, z) => { const m = new T.Mesh(geo, mat); m.position.set(x || 0, y || 0, z || 0); p.add(m); return m; };
-    add(tete, profil([[-0.5, 0], [0.7, 0], [0.8, 0.08], [0.72, 0.2], [0.32, 0.27], [0.06, 0.43], [-0.3, 0.5], [-0.52, 0.34]], 0.5), ecaille); /* (le crane et la machoire du haut) */
-    const bas = new T.Group(); bas.position.z = -0.4; bas.name = 'machoire'; tete.add(bas);
-    add(bas, profil([[-0.05, 0], [1.02, 0], [0.95, -0.1], [0.6, -0.16], [0.1, -0.18], [-0.05, -0.1]], 0.42), ecaille); /* (la machoire du bas, articulee a l'arriere) */
-    add(bas, new T.BoxGeometry(0.34, 0.03, 0.95), gueule, 0, 0.0, 0.5); add(tete, new T.BoxGeometry(0.4, 0.03, 1.0), gueule, 0, -0.01, 0.15); /* (l'interieur de la gueule, braise) */
-    const cr = new T.ConeGeometry(0.04, 0.16, 5);
-    for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) { const z = 0.08 + i * 0.17; add(tete, cr, dent, sx * 0.19, -0.07, z).rotation.x = Math.PI; add(bas, cr, dent, sx * 0.16, 0.07, z + 0.4); } /* (les crocs, en haut et en bas) */
-    for (const sx of [-1, 1]) { add(tete, new T.IcosahedronGeometry(0.065, 0), oeil, sx * 0.2, 0.33, 0.12); const c = add(tete, new T.ConeGeometry(0.07, 0.5, 6), dent, sx * 0.16, 0.48, -0.42); c.rotation.x = -2.1; c.rotation.z = sx * -0.25; }
-    for (let i = 0; i < 3; i++) add(tete, new T.ConeGeometry(0.05, 0.18 - i * 0.03, 5), dent, 0, 0.5 - i * 0.05, -0.15 - i * 0.18).rotation.x = -0.6; /* (la crete) */
+  if (!TETE_DRAGON) { /* (refaite en formes rondes et en rendu du jeu : la premiere, taillee en blocs, faisait « trop cubique », Mathieu, 25/11) */
+    const toon = (c, e, i) => new T.MeshToonMaterial({ color: c, gradientMap: grad, emissive: e || '#000000', emissiveIntensity: i == null ? 0.5 : i });
+    const ecaille = toon('#e04a1c', '#7a1a06', 0.45), sombre = toon('#a8280c', '#4a0e04', 0.45), ventre = toon('#ffb04a', '#8a3a0a', 0.45), dent = toon('#fff4dc', '#6a5a40', 0.35);
+    const oeil = new T.MeshBasicMaterial({ color: '#fff3a0' }), pupille = new T.MeshBasicMaterial({ color: '#2a0a04' }), gueule = new T.MeshBasicMaterial({ color: '#ffb02e' });
+    const boule = (p, mat, x, y, z, sx, sy, sz, n) => { const m = new T.Mesh(new T.SphereGeometry(0.5, n || 18, Math.round((n || 18) * 0.7)), mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); p.add(m); return m; };
+    const cone = (p, mat, r, h, x, y, z, rx, rz) => { const m = new T.Mesh(new T.ConeGeometry(r, h, 8), mat); m.position.set(x, y, z); m.rotation.set(rx || 0, 0, rz || 0); p.add(m); return m; };
+    const tete = new T.Group();
+    boule(tete, ecaille, 0, 0.2, -0.12, 0.62, 0.5, 0.78); /* (le crane) */
+    boule(tete, ecaille, 0, 0.12, 0.34, 0.44, 0.28, 0.78); /* (le museau, long et aplati) */
+    boule(tete, sombre, 0, 0.24, 0.52, 0.2, 0.08, 0.34); /* (l'arete du museau) */
+    for (const sx of [-1, 1]) {
+      boule(tete, sombre, sx * 0.16, 0.36, 0.08, 0.2, 0.08, 0.34); /* (l'arcade au-dessus de l'oeil) */
+      boule(tete, oeil, sx * 0.19, 0.3, 0.12, 0.12, 0.1, 0.14, 12); boule(tete, pupille, sx * 0.205, 0.3, 0.17, 0.03, 0.085, 0.05, 8); /* (l'oeil jaune, la pupille fendue) */
+      boule(tete, pupille, sx * 0.07, 0.2, 0.71, 0.05, 0.035, 0.05, 8); /* (la narine) */
+      const c1 = cone(tete, dent, 0.075, 0.42, sx * 0.17, 0.5, -0.36, -2.0, sx * -0.3), c2 = cone(c1, dent, 0.045, 0.3, 0, 0.3, 0, 0.5, 0); c2.position.y = 0.3; /* (les cornes, courbees vers l'arriere) */
+      for (let i = 0; i < 3; i++) cone(tete, sombre, 0.05, 0.22 - i * 0.03, sx * (0.3 - i * 0.02), 0.12 - i * 0.04, -0.3 - i * 0.12, -1.9, sx * -1.1); /* (les piques des joues) */
+    }
+    for (let i = 0; i < 3; i++) cone(tete, sombre, 0.05, 0.2 - i * 0.04, 0, 0.46 - i * 0.05, -0.28 - i * 0.17, -1.2); /* (la crete) */
+    boule(tete, gueule, 0, 0.02, 0.28, 0.34, 0.06, 0.7); /* (le palais, braise) */
+    for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) cone(tete, dent, 0.035, 0.14, sx * (0.16 - i * 0.012), 0.0, 0.14 + i * 0.15, Math.PI); /* (les crocs du haut) */
+    const bas = new T.Group(); bas.position.set(0, 0.02, -0.25); bas.name = 'machoire'; tete.add(bas);
+    boule(bas, ecaille, 0, -0.07, 0.5, 0.38, 0.14, 0.86); boule(bas, ventre, 0, -0.11, 0.48, 0.3, 0.08, 0.76); boule(bas, gueule, 0, -0.01, 0.5, 0.28, 0.04, 0.66); /* (la machoire du bas, le dessous clair, la langue de braise) */
+    for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) cone(bas, dent, 0.032, 0.12, sx * (0.14 - i * 0.012), 0.04, 0.4 + i * 0.14, 0);
     tete.traverse((o) => { o.raycast = () => {}; }); partager(tete); TETE_DRAGON = tete;
   }
   return TETE_DRAGON.clone();
@@ -382,11 +390,13 @@ function dragoeufSurgit(suivre, impact) {
   const portail = portailDeFeu(), tete = modeleTeteDragon(), bas = tete.getObjectByName('machoire'); tete.scale.setScalar(KT); tete.visible = false; scene.add(tete);
   const coeur = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ vertexColors: true })), halo = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ color: '#ff8a2e', transparent: true, opacity: 0.35, blending: T.AdditiveBlending, depthWrite: false }));
   [coeur, halo].forEach((m) => { m.frustumCulled = false; m.raycast = () => {}; m.visible = false; scene.add(m); });
-  const B = [new T.Vector3(), new T.Vector3(), new T.Vector3(), new T.Vector3()], b = (u, o) => { const v = 1 - u; return o.set(0, 0, 0).addScaledVector(B[0], v * v * v).addScaledVector(B[1], 3 * v * v * u).addScaledVector(B[2], 3 * v * u * u).addScaledVector(B[3], u * u * u); };
+  let chemin = null; const b = (u, o) => chemin.getPointAt(Math.min(1, Math.max(0, u)), o);
   const cJaune = new T.Color('#ffd25a'), cRouge = new T.Color('#b8280a'), cc = new T.Color(), pt = new T.Vector3(), pt2 = new T.Vector3();
-  const trajet = (P) => { const dir = new T.Vector3(P.x - Q.x, 0, P.z - Q.z); const L = Math.max(0.5, dir.length()); dir.normalize();
-    B[0].set(Q.x, Q.y - 0.8 * k, Q.z); B[1].set(Q.x - dir.x * 0.3, Q.y + 3.4 * k, Q.z - dir.z * 0.3); B[2].set(P.x - dir.x * (0.6 + L * 0.2), P.y + 2.6 * k, P.z - dir.z * (0.6 + L * 0.2));
-    const fin = new T.Vector3().subVectors(P, B[2]).normalize(); B[3].copy(P).addScaledVector(fin, -0.42 * k); };
+  const trajet = (P) => { /* un trajet de serpent, bas, qui ondule en S jusqu'a la cible (pas une cloche qui monte tout droit puis retombe, « en cloche », Mathieu, 25/11) */
+    const dir = new T.Vector3(P.x - Q.x, 0, P.z - Q.z), L = Math.max(0.6, dir.length()); dir.normalize(); const cote = new T.Vector3(-dir.z, 0, dir.x);
+    const pt = (f, h, c) => new T.Vector3(Q.x + dir.x * (L + 0.6) * f - dir.x * 0.6 + cote.x * c * k, Q.y + h * k, Q.z + dir.z * (L + 0.6) * f - dir.z * 0.6 + cote.z * c * k);
+    const fin = new T.Vector3(P.x - dir.x * 0.4 * k, P.y + 0.05 * k, P.z - dir.z * 0.4 * k);
+    chemin = new T.CatmullRomCurve3([pt(0.35, -0.9, 0), pt(0.36, 0.5, 0.15), pt(0.18, 1.1, 0.95), pt(0.4, 1.45, -0.85), pt(0.72, 1.15, 0.45), fin], false, 'centripetal'); };
   const corps = (u) => { /* le ruban de feu : le trajet de la tete entre u - CORPS et u, plus fin vers la queue */
     const pts = []; for (let i = 0; i <= 14; i++) { const v = u - CORPS * (1 - i / 14); pts.push(b(Math.max(0, v), new T.Vector3()).add(v < 0 ? pt2.set(0, v * 2 * k, 0) : pt2.set(0, 0, 0))); }
     const courbe = new T.CatmullRomCurve3(pts), N = 28, RS = 8;
@@ -423,7 +433,7 @@ function dragoeufSurgit(suivre, impact) {
   const suivre = suivreCible(pv), de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
   const impact = () => { const p = suivre().clone(), sauf = classe === 'iop' ? 'coupFatal' : classe === 'osa' ? 'morsure' : null, f0 = sauf && window[sauf]; if (sauf) window[sauf] = () => {}; /* (l'ancien effet de la classe ne se rejoue pas : le sort l'a remplace) */
     JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; if (sauf) window[sauf] = f0; }
-    tempsFortAnime(p, coul); cibleFatale(C, de); };
+    tempsFortAnime(p, coul, classe === 'cra' ? { n: 9, long: 220, duree: 170 } : null); cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
   if (classe === 'cra') return flecheFataleJuicy(de, suivre, impact);
   if (classe === 'iop') return epeeDuCiel(suivre, impact);
   return dragoeufSurgit(suivre, impact);
