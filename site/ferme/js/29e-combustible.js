@@ -69,7 +69,7 @@ document.addEventListener('click', (e) => {
    sur un champ plante, elle le fait pousser 50 % plus vite jusqu'a la recolte (06-temps.js ; la recolte et la remise a nu l'effacent, champVide). On la repand
    en touchant un champ qui pousse (la fenetre de la parcelle). */
 const POUDRE_OS = { bonus: 1.5 };
-RECETTES_DEV_ATELIER.push({ id: 'poudre_os', nom: 'Poudre d\'os', donne: 2, stock: 'poudreOs', il: [['os_chafer', 1]], ico: 'os_chafer', minuscule: 'poudres d\'os',
+RECETTES_DEV_ATELIER.push({ id: 'poudre_os', nom: 'Poudre d\'os', donne: 2, stock: 'poudreOs', il: [['os_chafer', 1]], ico: 'poudre-os', /* (son icone, blender/poudre-os.py, icones-poudre-os.html, 25/11/2026) */ minuscule: 'poudres d\'os',
   apres: '. Répands-la sur un champ qui pousse : touche-le.',
   desc: 'De l\'os de Chafer moulu : sur un champ planté, la culture pousse 50 % plus vite jusqu\'à sa récolte. Un Os de Chafer en donne deux.' });
 const blocPoudre = (p) => { const n = S_.poudreOs || 0; if (p.poudre) return '<p class="poudre-os">✓ Poudre d\'os répandue : cette culture pousse 50 % plus vite jusqu\'à sa récolte.</p>';
