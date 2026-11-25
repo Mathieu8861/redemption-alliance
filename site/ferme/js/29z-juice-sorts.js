@@ -171,3 +171,66 @@ function explosionGelJuicy(x, y, z, r) {
   emettre(FX_LUM, 30, { x, y: y + 0.5, z, r, v: [0, 0.6, 0], dv: 1, vie: [0.6, 1.2], taille: [0.1, 0.02], c: ['#ffffff', '#bfe6ff'], a: 1, frein: 1 });
 }
 { const gelJS = explosionGel; explosionGel = function (x, y, z, r) { if (!juiceSort('givre')) return gelJS.apply(this, arguments); return explosionGelJuicy(x, y, z, r); }; }
+
+/* LES COUPS FATALS (25/11/2026, « fais les coups fatals », Mathieu) : Fleche fatale (Cra), Colere de Iop, Morsure du Dragoeuf (Osamodas), d'apres la video
+   des coups facon anime (IDEES-JUICE.md). A l'image du contact : le jeu se fige, une image en silhouettes noires sur fond blanc, une image en negatif,
+   des traits d'eclat en pointes depuis le point d'impact, puis un zoom brutal qui revient avec la couleur. Chaque classe garde son effet (la fleche rouge,
+   la colonne doree, les machoires de feu) ; en plus :
+   - la cible blanchit, s'ecrase et recule fort (a l'image) ; tuee (hors boss et demi-boss), elle eclate en braises et en cendres ;
+   - les chiffres sautent en arc, gros et dores ;
+   - Cra : un sillage rouge traverse la cible et continue derriere elle ;
+   - Osamodas : les degats tombent quand les machoires se referment (0,3 s apres le depart du coup), et non plus au depart.
+   Les images en silhouette et en negatif et le zoom ne se jouent pas en graphismes legers, ni si le systeme demande moins d'animations. */
+const JS_FATAL = { arret: 0.11, silhouette: 45, negatif: 45, zoom: 1.16, retour: 320, lignes: 240, recul: 0.9, morsure: 0.3 };
+const animationsReduites = () => { try { return fxLeger() || matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return fxLeger(); } };
+
+/* les traits d'eclat en pointes, dessines par-dessus le jeu au point d'impact */
+function traitsEclat(p, couleur) {
+  const zone = (combat && $('combat-zone')) || document.body, s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), N = 16, R0 = 55, R1 = 360; /* (moins nombreux et plus courts : 22 traits jusqu'a 430 px couvraient tout l'ecran) */ let d = '';
+  for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2 + (Math.random() - 0.5) * 0.2, l = R1 * (0.55 + Math.random() * 0.45), w = 0.03 + Math.random() * 0.035, r0 = R0 * (0.8 + Math.random() * 0.6);
+    d += 'M' + (Math.cos(a - w) * r0).toFixed(1) + ' ' + (Math.sin(a - w) * r0).toFixed(1) + 'L' + (Math.cos(a) * l).toFixed(1) + ' ' + (Math.sin(a) * l).toFixed(1) + 'L' + (Math.cos(a + w) * r0).toFixed(1) + ' ' + (Math.sin(a + w) * r0).toFixed(1) + 'Z'; }
+  s.setAttribute('viewBox', '-450 -450 900 900'); Object.assign(s.style, { position: 'absolute', width: '900px', height: '900px', marginLeft: '-450px', marginTop: '-450px', pointerEvents: 'none', zIndex: '5' });
+  s.innerHTML = '<path d="' + d + '" fill="#ffffff" stroke="' + couleur + '" stroke-width="4" stroke-linejoin="round"/>'; zone.appendChild(s); versEcran(p, s);
+  const t0 = performance.now(), pas = () => { const k = (performance.now() - t0) / JS_FATAL.lignes; if (k >= 1 || !s.isConnected) { s.remove(); return; }
+    versEcran(p, s); s.style.transform = 'scale(' + (0.65 + 0.65 * (1 - Math.pow(1 - k, 3))).toFixed(3) + ')'; s.style.opacity = String(k < 0.35 ? 1 : (1 - k) / 0.65); requestAnimationFrame(pas); };
+  requestAnimationFrame(pas);
+}
+
+/* le temps fort facon anime : image figee, silhouettes, negatif, puis zoom qui revient (en temps reel : l'image figee ralentit le jeu, pas ceci) */
+let FATAL_ANIME = false;
+function tempsFortAnime(p, couleur) {
+  arretImage(JS_FATAL.arret); traitsEclat(p, couleur);
+  if (animationsReduites() || FATAL_ANIME) return; FATAL_ANIME = true;
+  const cv = rendu.domElement, f0 = cv.style.filter || '', t0 = performance.now(), fin = () => { camera.zoom = 1; camera.updateProjectionMatrix(); cv.style.filter = f0; FATAL_ANIME = false; };
+  const pas = () => { try { const t = performance.now() - t0, tz = t - JS_FATAL.silhouette - JS_FATAL.negatif;
+      cv.style.filter = t < JS_FATAL.silhouette ? 'grayscale(1) contrast(8)' : tz < 0 ? 'invert(1)' : f0;
+      if (tz >= JS_FATAL.retour) { fin(); return; } camera.zoom = tz < 0 ? JS_FATAL.zoom : 1 + (JS_FATAL.zoom - 1) * Math.pow(1 - tz / JS_FATAL.retour, 3); camera.updateProjectionMatrix(); requestAnimationFrame(pas); }
+    catch (e) { fin(); } };
+  pas();
+}
+
+/* la cible : blanche, ecrasee, repoussee fort ; tuee, elle eclate en braises et en cendres */
+function cibleFatale(C, de) {
+  const mo = C.mo; if (!mo) return; const d = new T.Vector3(mo.x - de.x, 0, mo.z - de.z); if (d.lengthSq() < 1e-6) d.set(0, 0, 1); d.normalize();
+  reactionJuicy(mo, true); flashSansSquelette(mo);
+  if (mo.etat === 'actif' && mo.pv > 0) reculVisuel(mo, d, JS_FATAL.recul);
+  else if (mo.etat === 'mort' && mo.d && !mo.d.boss && !mo.d.demi && mo.m && mo.m.visible) desintegrer(mo);
+}
+
+/* le sillage de la Fleche fatale : un trait rouge qui traverse la cible et continue derriere elle */
+function sillageFatal(de, pv) {
+  const dir = pv.clone().sub(de).normalize(), fin = pv.clone().addScaledVector(dir, 3.2), F = faisceau(de, fin, [['#ff6a4a', '#8a0a06', 0.5, false], ['#ffffff', '#ff3b2e', 0.2, true]]); let t = 0;
+  anneauSouffle(pv.clone().addScaledVector(dir, 0.3), dir, 0.1, 1.3, 0.22, '#ff8a6a', 0.9);
+  effets.push((dt) => { t += dt; const k = Math.min(1, t / 0.4); F.maj(1, Math.pow(1 - k, 1.5), t); if (k >= 1) { jeter(F.g); return true; } return false; });
+}
+
+{ const effetFrappeJF = effetFrappe; effetFrappe = function (classe, pv, auImpact, feu) {
+  if (feu !== 'fatal' || !juiceSort('fatal')) return effetFrappeJF.apply(this, arguments);
+  const de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
+  const impact = () => { JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; } tempsFortAnime(pv, coul); cibleFatale(C, de); if (classe === 'cra') sillageFatal(de, pv); };
+  if (classe !== 'osa') return effetFrappeJF.call(this, classe, pv, impact, feu);
+  /* l'Osamodas : les machoires partent tout de suite (le fouet les amene), les degats tombent quand elles se referment */
+  const r = effetFrappeJF.call(this, classe, pv, () => {}, feu); morsure(pv); let t = 0;
+  effets.push((dt) => { t += dt; if (t < JS_FATAL.morsure) return false; const m0 = morsure; morsure = () => {}; try { impact(); } finally { morsure = m0; } return true; }); /* (la morsure est deja la : l'ulti ne la relance pas) */
+  return r;
+}; }
