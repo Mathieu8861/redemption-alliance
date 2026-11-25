@@ -1,6 +1,6 @@
 'use strict';
-/* LA FLECHE DU CRA « JUICY » (25/11/2026, Mathieu : « commence par la fleche du Cra », d'apres les videos de vasilev.yegor, IDEES-JUICE.md). Version dev :
-   seulement dans le mode test tant que Mathieu ne l'a pas validee (JUICE_CRA.force : true / false pour comparer avant et apres dans les essais).
+/* LA FLECHE DU CRA « JUICY » (25/11/2026, Mathieu : « commence par la fleche du Cra », d'apres les videos de vasilev.yegor, IDEES-JUICE.md). Pour tous les joueurs
+   depuis le 25/11/2026 (JUICE_CRA.force : true / false pour comparer avant et apres dans les essais).
    La fleche de base et la fleche de feu (une sur dix) ; les fleches de glace et du coup fatal des ultis gardent leur effet.
    1. la charge : pendant qu'il bande l'arc, des etincelles sont aspirees vers la pointe et une lueur y gonfle ;
    2. le coeur : la pointe brille en vol, la fleche s'etire un peu et suit son arc (elle pique du nez en descendant) ;
@@ -13,7 +13,7 @@
    Les coups qui comptent marquent un temps : la fleche de feu fige le jeu 45 ms avec une petite secousse ; le coup qui abat un boss ou un demi-boss, 70 ms.
    Jamais d'arret sur image sur les coups ordinaires : le Cra tire trop vite, et les hordes seraient illisibles. */
 const JUICE_CRA = { force: null, coup: null };
-const juiceCra = () => (JUICE_CRA.force != null ? JUICE_CRA.force : typeof MODE_TEST !== 'undefined' && !!MODE_TEST);
+const juiceCra = () => (JUICE_CRA.force != null ? JUICE_CRA.force : true); /* (ouverte a tous le 25/11/2026, « Ouvrir aux joueurs », Mathieu au formulaire ; mode test seulement avant) */
 const JC = { charge: 0.32, vol: 0.28, arc: 0.35, etire: 1.3, flash: 0.06, ecrase: 0.17, plantee: 0.7, maxPlantees: 3, arretFeu: 0.045, arretBoss: 0.07 };
 const hasardCents = (a) => Math.round((Math.random() * 2 - 1) * a);
 
