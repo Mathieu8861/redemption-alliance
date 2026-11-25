@@ -811,6 +811,15 @@ function effacerTourReset() { const I = ileWabbits.userData; [I.tour, I.passerel
 const persoATerreDonjon = persoATerre; persoATerre = function () { if (combat && combat.genre === 'donjon') { finDonjon(false); return; } persoATerreDonjon(); };
 /* le bouton du bandeau du mode test, et ceux du bilan */
 const bandeauTestDonjon = bandeauTest; bandeauTest = function () { bandeauTestDonjon(); const b = document.getElementById('bandeau-test'); if (b && !b.querySelector('[data-donjon]')) b.insertAdjacentHTML('beforeend', '<button class="btn mini" data-donjon="prepa">Labo de Wabbenstein</button>'); };
+/* LA VIE INFINIE DU MODE TEST (25/11/2026, « pour que je puisse tester le labo, mets-moi une option vie infinie », Mathieu) : un bouton dans la barre du mode
+   test ; allume, la vie reste pleine (les coups et leurs chiffres s'affichent toujours) et rien ne le fait tomber, dans le labo comme partout en combat. */
+const VIE_INFINIE = { oui: false, immortel0: false };
+const boutonVieInfinie = () => '<button class="btn mini' + (VIE_INFINIE.oui ? ' or' : '') + '" data-vie-infinie="1">Vie infinie : ' + (VIE_INFINIE.oui ? 'oui' : 'non') + '</button>';
+const bandeauTestVie = bandeauTest; bandeauTest = function () { bandeauTestVie(); const b = document.getElementById('bandeau-test'); if (!b) return; const v = b.querySelector('[data-vie-infinie]'); if (v) v.outerHTML = boutonVieInfinie(); else { const pv = b.querySelector('[data-test="pv"]'); if (pv) pv.insertAdjacentHTML('afterend', boutonVieInfinie()); else b.insertAdjacentHTML('beforeend', boutonVieInfinie()); } };
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-vie-infinie]'); if (!b || !MODE_TEST) return; VIE_INFINIE.oui = !VIE_INFINIE.oui;
+  if (VIE_INFINIE.oui) { VIE_INFINIE.immortel0 = ETAT_TEST.immortel; ETAT_TEST.immortel = true; if (combat && !combat.fin) { combat.pv = combat.pvMax; majCombatHud(); } } else ETAT_TEST.immortel = VIE_INFINIE.immortel0;
+  b.outerHTML = boutonVieInfinie(); toast(VIE_INFINIE.oui ? 'Vie infinie : ta vie reste pleine en combat (mode test).' : 'Vie infinie coupée.'); });
+setInterval(() => { if (!VIE_INFINIE.oui || !MODE_TEST || !combat || combat.fin || combat.pv >= combat.pvMax) return; combat.pv = combat.pvMax; try { majCombatHud(); } catch (e) { /* (entre deux combats) */ } }, 100);
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-donjon]'); if (!b || !MODE_TEST || !estAdmin()) return; if (b.dataset.donjon === 'partir') { if (combat && combat.genre === 'donjon') return; partirDonjon(); } else if (b.dataset.donjon === 'prepa') ouvrirPrepaLabo(); });
 /* AVANT LE DEPART (24/11/2026 au soir, « on ne nous demande pas si on peut manger quelque chose avant », Mathieu) : la fenetre « Avant la bataille » des vagues et
    des revanches (manger, boire, la defense), puis « Partir » ; ce qui est pris vaut pour toute la partie du labo (potsDeVague, appliquerRepas, partirDonjon) */
