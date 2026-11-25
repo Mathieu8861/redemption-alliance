@@ -23,7 +23,10 @@ Object.entries(NOMS_P11).forEach(([t, nom]) => { if (MONSTRES[t]) MONSTRES[t].no
 ['croquevase-coiffe', 'crachopaud-coiffe'].forEach((id) => { if (OBJETS[id]) OBJETS[id].rond = true; }); /* (des coiffes rondes, enfoncees sur la tete, jamais ecrasees : 12-perso.js, 21/11/2026) */
 /* les reglages de leurs bonus en combat (les pourcentages viennent des bonus de panoplie, caracs()) */
 const P11_COMBAT = { oeilCases: 4, bondDuree: 2, bondRecharge: 6, mucusDuree: 1.5, mueSous: 0.25, rueeDuree: 3 };
-const p11 = () => { if (!combat) return {}; if (!combat.p11) { const c = caracs(); combat.p11 = { sangFroid: c.sangFroid, ecailles: c.ecailles, mue: c.mue, oeil: c.oeilCrapaud, bond: c.bond, mucus: c.mucus, mele: c.sangMele, degFixe: c.degFixe, ruee: c.ruee }; } return combat.p11; };
+const p11 = () => { if (!combat) return {}; if (!combat.p11) { const c = caracs(); combat.p11 = { sangFroid: c.sangFroid, ecailles: c.ecailles, mue: c.mue, oeil: c.oeilCrapaud, bond: c.bond, mucus: c.mucus, mele: c.sangMele, degFixe: c.degFixe, ruee: c.ruee, vitDep: c.vitDep }; } return combat.p11; };
+/* LA VITESSE DE DEPLACEMENT DES OBJETS (les bottes du Croquevase, 25/11/2026) : en combat, celle du debut du combat (p11) ; hors combat, recalculee quand l'equipement change */
+let vitDepCache = { k: null, v: 0 };
+const vitDepEquip = () => { if (combat) return p11().vitDep || 0; const k = S_ && S_.equip ? Object.values(S_.equip).join('|') : ''; if (k !== vitDepCache.k) vitDepCache = { k, v: caracs().vitDep || 0 }; return vitDepCache.v; };
 const degFixeP11 = () => (combat ? p11().degFixe || 0 : 0); /* (les degats fixes de l'attaque de base, 21-combat.js) */ /* (une fois par combat : l'equipement ne change pas en plein combat) */
 /* tes coups : Oeil de crapaud, Sang-mele, puis le Mucus sur le monstre touche */
 const blesserP11 = blesser; blesser = function (mo, n, gros, src) {

@@ -62,7 +62,8 @@ const CARACS = { vita: ['Vitalité', ' PV', picto('vita')], puissance: ['Puissan
   sangMele: ['Sang-mêlé', ' % de dégâts', picto('rage', '#b8322a')],
   /* (les stats de combat du palier 11, 25/11/2026 : STATS_COMBAT_P11 plus bas ; ce qu'elles font : blesserPerso et l'attaque de base, 21-combat.js, la Ruee, 29l-panos-p11.js) */
   degFixe: ['Dégâts fixes', ' de dégâts sur chaque attaque', picto('degats', '#c0392b')], resFixe: ['Résistance fixe', ' de dégâts en moins sur chaque coup reçu', picto('bouclier', '#8a6a3a')],
-  resPct: ['Résistance', ' % de dégâts en moins (au contact et à distance)', picto('bouclier', '#5a6f8a')], ruee: ['Ruée', ' % de vitesse 3 s après un monstre abattu', picto('vitesse', '#d9762e')] }; /* (les panoplies du palier 10, 08/11/2026) */ /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
+  resPct: ['Résistance', ' % de dégâts en moins (au contact et à distance)', picto('bouclier', '#5a6f8a')], ruee: ['Ruée', ' % de vitesse 3 s après un monstre abattu', picto('vitesse', '#d9762e')],
+  vitDep: ['Vitesse de déplacement', ' % de vitesse de déplacement', picto('vitesse', '#2f9a8a')] }; /* (les bottes du Croquevase, 25/11/2026 ; 24-deplacement.js, vitDepEquip dans 29l-panos-p11.js) */ /* (les panoplies du palier 10, 08/11/2026) */ /* (les resistances, bonus des panoplies Tortue et Kanniboul completes, 06/11/2026) */
 const PANOS = [{ id: 'bouftou', nom: 'Bouftou', de: 'du Bouftou', niv: 1 }, { id: 'chafer', nom: 'Chafer', de: 'du Chafer', niv: 11 }, { id: 'bwork', nom: 'Bwork', de: 'du Bwork', niv: 21 }, { id: 'craqueleur', nom: 'Craqueleur', de: 'du Craqueleur', niv: 31 }, { id: 'dragoeuf', nom: 'Dragoeuf', de: 'du Dragoeuf', niv: 41 }, { id: 'wabbit', nom: 'Wabbit', de: 'du Wabbit', niv: 51 }, { id: 'boufcoul', nom: 'Boufcoul', de: 'du Boufcoul', niv: 61 }, { id: 'dragoncochon', nom: 'Dragon Cochon', de: 'du Dragon Cochon', niv: 71 },
   { id: 'kanniboul', nom: 'Kanniboul', de: 'du Kanniboul', niv: 81 }, /* (l'ile de Moon, 04/11/2026 : « j'aime bien la A, qu'on drop sur les Kannibouls, et la C sur les Tortues », Mathieu ; blender/equipements-kanniboul.py) */
   /* LES DEUX PANOPLIES DU PALIER 10 (08/11/2026, par Discord : « si jamais on fait 2 panoplies on pourrait faire quoi ? », puis la proposition validee : l'Ecorce, des
@@ -117,7 +118,7 @@ PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '
    Crachopaud « tel quel », la Ruee a 6 pieces du Crachopaud a la place du Bond, Mathieu) : sur quatre pieces, une stat de confort (Prospection ou Sagesse) laisse sa
    place a une stat de combat, a petite dose (coups recus du palier : 120 a 350 ; coups du perso a panoplie complete : 600 a 870). Les pieces deja tombees se recalent
    au chargement (jetsDansFourchette, 04-etat.js : la nouvelle stat prend la qualite moyenne de la piece) */
-const STATS_COMBAT_P11 = { 'croquevase-anneau': ['prospection', { resFixe: 15 }], 'croquevase-bottes': ['sagesse', { resPct: 4 }], 'crachopaud-coiffe': ['prospection', { degFixe: 25 }] }; /* (les deux ceintures : CEINTURES_P11, plus bas) */
+const STATS_COMBAT_P11 = { 'croquevase-anneau': ['prospection', { resFixe: 15 }], 'crachopaud-coiffe': ['prospection', { degFixe: 25 }] }; /* (les deux ceintures et les bottes du Croquevase : PIECES_P11, plus bas) */
 Object.entries(STATS_COMBAT_P11).forEach(([id, [sans, avec]]) => { const o = OBJETS[id]; if (!o) return; delete o.stats[sans]; Object.assign(o.stats, avec); });
 OBJETS['arakne-anneau'].stats.puissance = 104; OBJETS['crachopaud-anneau'].stats.puissance = 124; /* (le Crachopaud : 94 a 152, 20/11/2026) */ /* (l'anneau de l'Arakne : 79 a 128 de Puissance, BORNES_JET ; sa valeur de reference, celle d'une piece sans jet, au milieu ; 156 en rare) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
@@ -214,11 +215,12 @@ const CHANCE_RARE = 0.01;
 const PROS_AVANT = {};
 Object.values(OBJETS).forEach((o) => { if (!o.stats || !o.stats.prospection) return; PROS_AVANT[o.id] = o.stats.prospection; o.stats.prospection = o.id === 'leg-joueur' ? 120 : Math.max(1, Math.round(o.stats.prospection / 2)); });
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
-/* LES CEINTURES DU PALIER 11 (25/11/2026, Mathieu : « la ceinture Crachopaud, mets-lui 240 a 420 vita, +4 a 8 dommages, 18 a 34 prospection », puis « et les stats actuelles
+/* LES CEINTURES ET LES BOTTES DU CROQUEVASE (palier 11, 25/11/2026 ; les bottes : « laisse la prospection, retire la resistance et mets +51 a 80 de puissance + 2 % de vitesse
+   de deplacement », Mathieu) ; LES CEINTURES DU PALIER 11 (25/11/2026, Mathieu : « la ceinture Crachopaud, mets-lui 240 a 420 vita, +4 a 8 dommages, 18 a 34 prospection », puis « et les stats actuelles
    de la ceinture Crachopaud, mets-les sur la ceinture du Croquevase ») : apres la creation des rares, la piece et son rare (x1,5) ; la valeur de reference au milieu de la
    fourchette, les fourchettes exactes du Crachopaud dans BORNES_JET ; celle du Croquevase garde la fourchette ordinaire (559 a 931 de Vitalite, 2 a 3 % de Resistance) */
-const CEINTURES_P11 = { 'crachopaud-ceinture': { vita: 330, degFixe: 6, prospection: 26 }, 'croquevase-ceinture': { vita: 745, resPct: 2 } };
-Object.entries(CEINTURES_P11).forEach(([id, st]) => { if (!OBJETS[id]) return; OBJETS[id].stats = Object.assign({}, st); if (OBJETS[id + '-rare']) OBJETS[id + '-rare'].stats = Object.fromEntries(Object.entries(st).map(([c, v]) => [c, Math.ceil(v * 1.5)])); });
+const PIECES_P11 = { 'crachopaud-ceinture': { vita: 330, degFixe: 6, prospection: 26 }, 'croquevase-ceinture': { vita: 745, resPct: 2 }, 'croquevase-bottes': { prospection: 38, puissance: 66, vitDep: 2 } };
+Object.entries(PIECES_P11).forEach(([id, st]) => { if (!OBJETS[id]) return; OBJETS[id].stats = Object.assign({}, st); if (OBJETS[id + '-rare']) OBJETS[id + '-rare'].stats = Object.fromEntries(Object.entries(st).map(([c, v]) => [c, Math.ceil(v * 1.5)])); });
 /* LES PLAFONDS DE LA PROSPECTION (23/11/2026, « mettre une restriction sur le drop des legendes et des items rares, un plafond max », puis au formulaire « x2,5 » et « x3 »,
    Mathieu) : la Prospection (Fraise comprise) multiplie la chance d'un legendaire (et d'une sphere runique) au plus par 2,5, celle d'une piece rare au plus par 3 ;
    le x2 de la revanche difficile s'ajoute ensuite. Les ressources et les pieces normales n'ont pas de plafond */
@@ -265,7 +267,7 @@ const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' +
 const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="pano-aide">Les bonus s\'additionnent : avec 6 pièces, tu as ceux de 2, de 4 et de 6.</div><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '"><b>' + (n >= m ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
   (Object.keys(tot).length ? '<div class="pano-total"><b>Tes bonus de panoplie en ce moment</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
 function caracs() {
-  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0, degFixe: 0, resFixe: 0, resPct: 0, ruee: 0 }; /* (les bonus du palier 11, 20/11/2026) */
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0, degFixe: 0, resFixe: 0, resPct: 0, ruee: 0, vitDep: 0 }; /* (les bonus du palier 11, 20/11/2026) */
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
   { const C = comptePanos(), n = (id) => C[PANOS.findIndex((P) => P.id === id)] || 0; if (n('croquevase') >= 3 && n('crachopaud') >= 3) { t.sangMele += SANG_MELE.deg; t.entrave += SANG_MELE.entrave; } } /* (le Sang-mele : 3 pieces de chaque panoplie du palier 11, 20/11/2026) */
@@ -280,7 +282,8 @@ const JET_MIN = 0.75, JET_MAX = 1.25;
 const baseObjet = (k) => String(k || '').split('~')[0];
 /* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
 const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [94, 152] }, 'crachopaud-anneau-rare': { puissance: [141, 228] },
-  'crachopaud-ceinture': { vita: [240, 420], degFixe: [4, 8], prospection: [18, 34] }, 'crachopaud-ceinture-rare': { vita: [360, 630], degFixe: [6, 12], prospection: [27, 51] } }; /* (la ceinture du Crachopaud, 25/11/2026, CEINTURES_P11) */ /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
+  'crachopaud-ceinture': { vita: [240, 420], degFixe: [4, 8], prospection: [18, 34] }, 'crachopaud-ceinture-rare': { vita: [360, 630], degFixe: [6, 12], prospection: [27, 51] },
+  'croquevase-bottes': { puissance: [51, 80], vitDep: [2, 2] }, 'croquevase-bottes-rare': { puissance: [77, 120], vitDep: [3, 3] } }; /* (la ceinture du Crachopaud et les bottes du Croquevase, 25/11/2026, PIECES_P11) */ /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
 const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
 function objBrut(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; } /* (la piece a son jet, sans l'eveil : pour la forgemagie et la qualite du jet) */
 function obj(k) { const o = objBrut(k), e = o && o.leg && S_ && S_.eveils && S_.eveils[k]; return e && typeof eveillerObjet === 'function' ? eveillerObjet(o, e) : o; } /* (l'eveil d'un legendaire, 27g-eveil-concasseur.js, 18/11/2026) */
@@ -441,7 +444,7 @@ function qualiteJet(k) {
   return L.length ? L.reduce((x, y) => x + y, 0) / L.length : 0.5;
 }
 const nomJet = (q) => q >= 0.85 ? 'excellent' : q >= 0.6 ? 'bon' : q >= 0.35 ? 'moyen' : 'faible';
-const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v, o.id, c); return '<span class="puce">' + CARACS[c][2] + ' +' + a + ' à ' + b + CARACS[c][1] + '</span>'; }).join('') + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
+const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v, o.id, c); return '<span class="puce">' + CARACS[c][2] + ' +' + (a === b ? a : a + ' à ' + b) + CARACS[c][1] + '</span>'; }).join('') + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* UNE PIECE TIREE (refonte du 16/10/2026) : une piece de la panoplie du palier P, de preference une qu'on n'a pas encore, parfois en version rare
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
