@@ -80,7 +80,7 @@ function flechePlantee(mo, p, dir, style) {
 { const chiffreJC = chiffre; chiffre = function (txt, pos, genre) {
   const C = JUICE_CRA.coup; if (!C || !(genre == null || genre === 'gros') || !pos) return chiffreJC.apply(this, arguments);
   if (typeof txt === 'string') txt = txt.replace(/\d+\.\d+/g, (x) => String(Math.round(parseFloat(x))));
-  const gros = genre === 'gros' || C.style === 'feu', e = document.createElement('div'); e.className = 'degat' + (gros ? ' gros' : ''); e.textContent = txt; (combat ? $('combat-zone') : zoneBulles).appendChild(e);
+  const gros = genre === 'gros' || C.style === 'feu' || !!C.gros, e = document.createElement('div'); e.className = 'degat' + (gros ? ' gros' : ''); e.textContent = txt; (combat ? $('combat-zone') : zoneBulles).appendChild(e);
   const droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), cote = (fxAlea() < 0.5 ? -1 : 1) * fxEntre(0.7, 1.3), p = pos.clone(), q = new T.Vector3(), vie = 0.9, base = gros ? 1.35 : 1.1;
   let t = 0; effets.push((dt) => { t += dt; q.copy(p).addScaledVector(droite, cote * t).setY(p.y + 3.8 * t - 4.6 * t * t); versEcran(q, e);
     const pop = t < 0.12 ? 1.9 - 0.9 * (t / 0.12) : t < 0.22 ? 1 - 0.12 * Math.sin((t - 0.12) / 0.1 * Math.PI) : 1;
@@ -88,7 +88,7 @@ function flechePlantee(mo, p, dir, style) {
     if (t >= vie) { e.remove(); return true; } }); }; }
 
 /* ---- le monstre touche : on le reconnait au premier coup porte pendant l'impact ---- */
-{ const blesserJC = blesser; blesser = function (mo) { const C = JUICE_CRA.coup; if (C && !C.mo && mo) { C.mo = mo; C.pv0 = mo.pv; } return blesserJC.apply(this, arguments); }; }
+{ const blesserJC = blesser; blesser = function (mo) { const C = JUICE_CRA.coup; if (C && mo) { if (!C.mo) { C.mo = mo; C.pv0 = mo.pv; } if (C.mos && !C.mos.includes(mo)) C.mos.push(mo); } return blesserJC.apply(this, arguments); }; } /* (C.mos : tous ceux qu'un coup touche, le balayage du Iop) */
 
 /* ---- la fleche entiere ---- */
 { const effetFrappeJC = effetFrappe; effetFrappe = function (classe, pv, auImpact, feu) {
