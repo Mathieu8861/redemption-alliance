@@ -1,6 +1,7 @@
 'use strict';
 /* LES SORTS « JUICY » (25/11/2026, « je voulais surtout ameliorer aussi la qualite de certains sorts », Mathieu ; au formulaire : « Fleches enflammees » d'abord).
-   Version dev : seulement dans le mode test tant que Mathieu ne les a pas valides (JUICE_SORTS.force : true / false pour comparer avant et apres).
+   Chaque sort reste en version dev (seulement dans le mode test) tant que Mathieu ne l'a pas valide ; SORTS_OUVERTS : ceux ouverts a tous
+   (JUICE_SORTS.force : true / false pour comparer avant et apres dans les essais).
    Les recettes viennent des videos (IDEES-JUICE.md) : la boule de feu (charge, coeur chaud, trainee, eclat, reaction, ce qui reste en feu, cendres a la mort),
    les pics de glace (le sol qui se fend), les regles du dessin anime (anticipation, etirement, arcs, temps fort). Rien ne change aux degats ni au moment ou ils tombent.
 
@@ -13,7 +14,8 @@
    - chaque impact : un eclat, des braises qui rebondissent, une petite boule de feu, une brulure, un petit coup sourd ; la fleche reste plantee et brule ;
    - un monstre tue par le sort part en braises et en cendres (pas les boss ni les demi-boss, leur corps reste au sol). */
 const JUICE_SORTS = { force: null };
-const juiceSorts = () => (JUICE_SORTS.force != null ? JUICE_SORTS.force : typeof MODE_TEST !== 'undefined' && !!MODE_TEST);
+const SORTS_OUVERTS = new Set(['flammes']); /* (les Fleches enflammees ouvertes a tous le 25/11/2026, « ouvre-le aux joueurs », Mathieu) */
+const juiceSort = (id) => (JUICE_SORTS.force != null ? JUICE_SORTS.force : SORTS_OUVERTS.has(id) || (typeof MODE_TEST !== 'undefined' && !!MODE_TEST));
 const JS_FEU = { n: 9, depart: 0.14, chute: 0.3, ecart: 0.045, haut: 6, plantee: 1.4, brule: 1.3, arret: 0.07 };
 
 /* des flammes qui courent sur un monstre un instant */
@@ -90,4 +92,4 @@ function pluieFlechesFeuJuicy(x, y, z, r) {
   for (let i = 0; i < JS_FEU.n; i++) { const a = i * 2.39996 + fxAlea() * 0.5, d = r * 0.92 * Math.sqrt((i + 0.5) / JS_FEU.n), X = x + Math.cos(a) * d, Z = z + Math.sin(a) * d, cel = caseIci(X, Z), Y = cel ? posCase(cel).y : solA(X, Z);
     flecheDePluie(X, Y, Z, venue, JS_FEU.depart + i * JS_FEU.ecart, i % 2 === 0); }
 }
-{ const pluieJS = pluieFlechesFeu; pluieFlechesFeu = function (x, y, z, r) { if (!juiceSorts()) return pluieJS.apply(this, arguments); return pluieFlechesFeuJuicy(x, y, z, r); }; }
+{ const pluieJS = pluieFlechesFeu; pluieFlechesFeu = function (x, y, z, r) { if (!juiceSort('flammes')) return pluieJS.apply(this, arguments); return pluieFlechesFeuJuicy(x, y, z, r); }; }
