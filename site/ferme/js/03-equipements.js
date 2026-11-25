@@ -117,7 +117,7 @@ PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '
    Crachopaud « tel quel », la Ruee a 6 pieces du Crachopaud a la place du Bond, Mathieu) : sur quatre pieces, une stat de confort (Prospection ou Sagesse) laisse sa
    place a une stat de combat, a petite dose (coups recus du palier : 120 a 350 ; coups du perso a panoplie complete : 600 a 870). Les pieces deja tombees se recalent
    au chargement (jetsDansFourchette, 04-etat.js : la nouvelle stat prend la qualite moyenne de la piece) */
-const STATS_COMBAT_P11 = { 'croquevase-anneau': ['prospection', { resFixe: 15 }], 'croquevase-bottes': ['sagesse', { resPct: 4 }], 'crachopaud-coiffe': ['prospection', { degFixe: 25 }], 'crachopaud-ceinture': ['sagesse', { resPct: 2 }] };
+const STATS_COMBAT_P11 = { 'croquevase-anneau': ['prospection', { resFixe: 15 }], 'croquevase-bottes': ['sagesse', { resPct: 4 }], 'crachopaud-coiffe': ['prospection', { degFixe: 25 }] }; /* (les deux ceintures : CEINTURES_P11, plus bas) */
 Object.entries(STATS_COMBAT_P11).forEach(([id, [sans, avec]]) => { const o = OBJETS[id]; if (!o) return; delete o.stats[sans]; Object.assign(o.stats, avec); });
 OBJETS['arakne-anneau'].stats.puissance = 104; OBJETS['crachopaud-anneau'].stats.puissance = 124; /* (le Crachopaud : 94 a 152, 20/11/2026) */ /* (l'anneau de l'Arakne : 79 a 128 de Puissance, BORNES_JET ; sa valeur de reference, celle d'une piece sans jet, au milieu ; 156 en rare) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
@@ -214,6 +214,11 @@ const CHANCE_RARE = 0.01;
 const PROS_AVANT = {};
 Object.values(OBJETS).forEach((o) => { if (!o.stats || !o.stats.prospection) return; PROS_AVANT[o.id] = o.stats.prospection; o.stats.prospection = o.id === 'leg-joueur' ? 120 : Math.max(1, Math.round(o.stats.prospection / 2)); });
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
+/* LES CEINTURES DU PALIER 11 (25/11/2026, Mathieu : « la ceinture Crachopaud, mets-lui 240 a 420 vita, +4 a 8 dommages, 18 a 34 prospection », puis « et les stats actuelles
+   de la ceinture Crachopaud, mets-les sur la ceinture du Croquevase ») : apres la creation des rares, la piece et son rare (x1,5) ; la valeur de reference au milieu de la
+   fourchette, les fourchettes exactes du Crachopaud dans BORNES_JET ; celle du Croquevase garde la fourchette ordinaire (559 a 931 de Vitalite, 2 a 3 % de Resistance) */
+const CEINTURES_P11 = { 'crachopaud-ceinture': { vita: 330, degFixe: 6, prospection: 26 }, 'croquevase-ceinture': { vita: 745, resPct: 2 } };
+Object.entries(CEINTURES_P11).forEach(([id, st]) => { if (!OBJETS[id]) return; OBJETS[id].stats = Object.assign({}, st); if (OBJETS[id + '-rare']) OBJETS[id + '-rare'].stats = Object.fromEntries(Object.entries(st).map(([c, v]) => [c, Math.ceil(v * 1.5)])); });
 /* LES PLAFONDS DE LA PROSPECTION (23/11/2026, « mettre une restriction sur le drop des legendes et des items rares, un plafond max », puis au formulaire « x2,5 » et « x3 »,
    Mathieu) : la Prospection (Fraise comprise) multiplie la chance d'un legendaire (et d'une sphere runique) au plus par 2,5, celle d'une piece rare au plus par 3 ;
    le x2 de la revanche difficile s'ajoute ensuite. Les ressources et les pieces normales n'ont pas de plafond */
@@ -274,7 +279,8 @@ const reventeObjet = (id) => kamasGagnes(15 * obj(id).niv * (obj(id).rare ? 3 : 
 const JET_MIN = 0.75, JET_MAX = 1.25;
 const baseObjet = (k) => String(k || '').split('~')[0];
 /* (id, c : une piece dont la fourchette est fixee a la main pour une caracteristique, BORNES_JET ; sinon de 75 a 125 % de la valeur de reference) */
-const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [94, 152] }, 'crachopaud-anneau-rare': { puissance: [141, 228] } }; /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
+const BORNES_JET = { 'arakne-anneau': { puissance: [79, 128] }, 'arakne-anneau-rare': { puissance: [119, 192] }, 'crachopaud-anneau': { puissance: [94, 152] }, 'crachopaud-anneau-rare': { puissance: [141, 228] },
+  'crachopaud-ceinture': { vita: [240, 420], degFixe: [4, 8], prospection: [18, 34] }, 'crachopaud-ceinture-rare': { vita: [360, 630], degFixe: [6, 12], prospection: [27, 51] } }; /* (la ceinture du Crachopaud, 25/11/2026, CEINTURES_P11) */ /* (le Crachopaud, palier 11 : celui de l'Arakne x1,19, 20/11/2026) */ /* (15/11/2026, « l'anneau Arakne, mets-le de 79 a 128 de Puissance, plus l'Agilite », Mathieu ; le rare : une fois et demie) */
 const fourchette = (v, id, c) => { const B = id && BORNES_JET[baseObjet(id)] && BORNES_JET[baseObjet(id)][c]; return B ? B.slice() : [Math.max(1, Math.round(v * JET_MIN)), Math.max(1, Math.round(v * JET_MAX))]; };
 function objBrut(k) { const o = OBJETS[baseObjet(k)]; if (!o) return null; const j = S_ && S_.jets && S_.jets[k]; return j ? Object.assign({}, o, { id: k, stats: j }) : o; } /* (la piece a son jet, sans l'eveil : pour la forgemagie et la qualite du jet) */
 function obj(k) { const o = objBrut(k), e = o && o.leg && S_ && S_.eveils && S_.eveils[k]; return e && typeof eveillerObjet === 'function' ? eveillerObjet(o, e) : o; } /* (l'eveil d'un legendaire, 27g-eveil-concasseur.js, 18/11/2026) */
