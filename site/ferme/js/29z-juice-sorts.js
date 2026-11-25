@@ -14,7 +14,7 @@
    - chaque impact : un eclat, des braises qui rebondissent, une petite boule de feu, une brulure, un petit coup sourd ; la fleche reste plantee et brule ;
    - un monstre tue par le sort part en braises et en cendres (pas les boss ni les demi-boss, leur corps reste au sol). */
 const JUICE_SORTS = { force: null };
-const SORTS_OUVERTS = new Set(['flammes', 'givre']); /* (les Fleches enflammees puis le givre ouverts a tous le 25/11/2026, « ouvre-le aux joueurs », Mathieu) */
+const SORTS_OUVERTS = new Set(['flammes', 'givre', 'fatal']); /* (les Fleches enflammees, le givre puis les coups fatals ouverts a tous le 25/11/2026, « ouvre-le aux joueurs », « ok tres bien », Mathieu) */
 const juiceSort = (id) => (JUICE_SORTS.force != null ? JUICE_SORTS.force : SORTS_OUVERTS.has(id) || (typeof MODE_TEST !== 'undefined' && !!MODE_TEST));
 const JS_FEU = { n: 9, depart: 0.14, chute: 0.3, ecart: 0.045, haut: 6, plantee: 1.4, brule: 1.3, arret: 0.07 };
 
