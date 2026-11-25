@@ -245,10 +245,14 @@ Object.assign(SONS, {
     const g2 = G(0, busSons), o = osc('sine', 150, t, 0.1, g2); o.frequency.exponentialRampToValueAtTime(70, t + 0.08); env(g2, t, 0.002, 0, 0.08, 0.9);
     clic(t + 0.004, 3400, 0.18);
   },
+  glace(t) { /* le givre (25/11/2026) : un souffle froid qui gele, la glace qui craque, des tintements de cristal */
+    swish(t, 0.22, 5200, 2600, 0.35); const g = G(0, busSons), hp = F('highpass', 3200, 0.8, g); bruit(t + 0.05, 0.05, hp); env(g, t + 0.05, 0.001, 0, 0.05, 1.0);
+    craquements(t + 0.06, 0.32, 9, 0.6, 1800, 5200); [[96, 0.08], [101, 0.13], [99, 0.19], [104, 0.26]].forEach(([m, d]) => cloche(t + d, hz(m), 0.1, null, 0.35));
+  },
   sort(t) { /* un sort : un souffle qui monte et des etincelles */ swish(t, 0.35, 800, 4200, 0.5); const g = G(0, busSons), o = osc('sine', 380, t, 0.4, g); o.frequency.exponentialRampToValueAtTime(1250, t + 0.32); env(g, t, 0.02, 0.1, 0.25, 0.22); [96, 100, 103].forEach((m, k) => cloche(t + 0.18 + k * 0.06, hz(m), 0.08, null, 0.5)); }
 });
 /* le niveau de chaque son, mesure hors ligne (mesure-sons.mjs) pour qu'ils sonnent tous a peu pres aussi fort (en dB) */
-const NIVEAU_SON = { fauchage: 3, arrosage: 1, puits: -1.5, planter: 3, arc: 3.5, arbalete: 4, fouet: 1, epee: 2.5, touche: 0, tofu: 3, nourri: -2, tonte: 0.5, bebe: 4, royal: -6, boire: -12, gelee: -9, kamas: 4, niveau: -1, victoire: -6, quete: 0, alerte: -2, plouf: 5, vague: -7, raid: -6, defaite: -3, cueillette: 0, manger: 2.5, sort: -1, impactFleche: -1 };
+const NIVEAU_SON = { fauchage: 3, arrosage: 1, puits: -1.5, planter: 3, arc: 3.5, arbalete: 4, fouet: 1, epee: 2.5, touche: 0, tofu: 3, nourri: -2, tonte: 0.5, bebe: 4, royal: -6, boire: -12, gelee: -9, kamas: 4, niveau: -1, victoire: -6, quete: 0, alerte: -2, plouf: 5, vague: -7, raid: -6, defaite: -3, cueillette: 0, manger: 2.5, sort: -1, impactFleche: -1, glace: -1 };
 function jouer(nom, variante, db, cents) {
   if (!ac || !SONS[nom]) return; const vrai = busSons, trim = G(Math.pow(10, ((NIVEAU_SON[nom] || 0) + (db || 0)) / 20), vrai); busSons = trim; DECALE = cents || 0;
   try { SONS[nom](ac.currentTime + 0.02, variante); } finally { busSons = vrai; DECALE = 0; }

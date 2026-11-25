@@ -93,3 +93,81 @@ function pluieFlechesFeuJuicy(x, y, z, r) {
     flecheDePluie(X, Y, Z, venue, JS_FEU.depart + i * JS_FEU.ecart, i % 2 === 0); }
 }
 { const pluieJS = pluieFlechesFeu; pluieFlechesFeu = function (x, y, z, r) { if (!juiceSort('flammes')) return pluieJS.apply(this, arguments); return pluieFlechesFeuJuicy(x, y, z, r); }; }
+
+/* LE GIVRE (25/11/2026, « fais le givre », Mathieu) : l'ulti de gel des trois classes (Fleche glacee, Epee de givre, Fouet de givre), d'apres la video des
+   pics de glace. « Le givre gele sans trembler » (23/10/2026) : ni secousse ni explosion, seulement un temps fort tres court (l'image qui « gele »).
+   - un eclair froid, l'image qui se fige un instant, un craquement de glace et des tintements de cristal ;
+   - un bouquet de grands pics au centre, penches vers l'exterieur, qui jaillissent en depassant un peu leur taille puis se posent ;
+   - des rangees de pics qui courent du centre jusqu'au bord de la zone, de plus en plus petits et penches, avec de petits pics sur les cotes ;
+   - le sol gele sous la vague (une plaque de givre qui s'etend et un trait de glace le long de chaque rangee) ;
+   - chaque monstre de la zone blanchit, un petit bouquet de glace se referme a ses pieds quand la vague l'atteint, et il reste bleu de givre tant qu'il
+     est ralenti (5 s), en perdant des flocons ;
+   - les pics fondent par le haut puis eclatent en eclats qui rebondissent ; la neige tombe, la brume roule, des paillettes scintillent.
+   Tous les pics sont dessines d'un seul coup (un seul objet a instances) : une centaine de pics ne coute qu'un dessin. */
+const JS_GEL = { rayons: 7, pas: 0.42, vitesse: 11, tenue: 0.8, fonte: 0.35, arret: 0.05 };
+const GEO_GLACE = (() => { const g = new T.ConeGeometry(0.17, 1, 5, 1); g.translate(0, 0.5, 0); partager(g); return g; })();
+let MAT_GLACE = null;
+function matGlace() { if (!MAT_GLACE) { MAT_GLACE = new T.MeshPhongMaterial({ color: '#ffffff', emissive: '#2f74b0', emissiveIntensity: 0.45, specular: '#ffffff', shininess: 90, flatShading: true, transparent: true, opacity: 0.93 }); partager(MAT_GLACE); } return MAT_GLACE; }
+const AXE_Y = new T.Vector3(0, 1, 0);
+
+/* des pics de glace : L = [{ x, y, z, h (hauteur), s (largeur), q (penche), t0 (quand il jaillit) }] */
+function picsDeGlace(L) {
+  if (!L.length) return; const im = new T.InstancedMesh(GEO_GLACE, matGlace(), L.length); im.frustumCulled = false; im.renderOrder = 5; im.raycast = () => {};
+  const c = new T.Color(), M = new T.Matrix4(), S = new T.Vector3(), P = new T.Vector3(), haut = new T.Vector3(); L.forEach((p, i) => { c.set(i % 4 === 0 ? '#ffffff' : i % 2 ? '#9ad2f5' : '#c4e8ff'); im.setColorAt(i, c); }); /* (plus bleus : en blanc pale, ils disparaissaient sur le sable) */
+  const fin = Math.max(...L.map((p) => p.t0)) + JS_GEL.tenue + JS_GEL.fonte + 0.05; scene.add(im); let t = 0;
+  const pose = () => { L.forEach((p, i) => { const u = t - p.t0; let sy = 1e-4, sx = 1e-4;
+      if (u > 0 && !p.eclate) { const pousse = Math.min(1, u / 0.09), dep = pousse < 1 ? pousse * 1.18 : 1.18 - 0.18 * Math.min(1, (u - 0.09) / 0.08), fonte = Math.max(0, (u - JS_GEL.tenue) / JS_GEL.fonte); /* (il jaillit en depassant un peu sa taille, puis se pose ; il fond par le haut) */
+        sy = p.h * dep * (1 - 0.75 * Math.min(1, fonte)); sx = p.s * (0.7 + 0.3 * pousse) * (1 - 0.35 * Math.min(1, fonte));
+        if (fonte >= 1) { p.eclate = true; sy = sx = 1e-4; haut.set(0, p.h * 0.2, 0).applyQuaternion(p.q); /* les eclats */
+          emettre(FX_VIF, 3, { x: p.x + haut.x, y: p.y + haut.y, z: p.z + haut.z, r: 0.06 * p.s, dv: 2.4, haut: true, vie: [0.35, 0.6], taille: [0.08, 0.03], c: ['#ffffff', '#cfeeff', '#8fc8ee'], grav: 9, frein: 1, etire: 0.02, sol: p.y + 0.04, rebond: 0.3 });
+          if (i % 4 === 0) emettre(FX_FUM, 1, { x: p.x, y: p.y + 0.2, z: p.z, vie: [0.5, 0.8], taille: [0.25, 0.7], c: ['#f2fbff', '#d6efff'], a: 0.4, entree: 0.1 }); } }
+      S.set(sx, sy, sx); P.set(p.x, p.y, p.z); M.compose(P, p.q, S); im.setMatrixAt(i, M); }); im.instanceMatrix.needsUpdate = true; };
+  pose(); effets.push((dt) => { t += dt; pose(); if (t >= fin) { jeter(im); return true; } return false; });
+}
+
+/* un monstre pris dans le givre : bleu tant qu'il est ralenti, des flocons qui tombent de lui */
+function monstreGivre(mo) {
+  if (!mo || !mo.m) return; const an = mo.m.userData.anim, h = mo.haut || 1.5, R = Math.max(0.3, Math.min(1.2, h * 0.32)); let t = 0, teinte = false;
+  const fin = () => { if (teinte && an) an.eclat = Math.max(an.eclat || 0, 1e-4); };
+  effets.push((dt) => { t += dt; if (!mo.m || mo.etat !== 'actif' || (t > 0.3 && !(mo.lent > 0))) { fin(); return true; } const f = t < 0.3 ? 1 : Math.min(1, mo.lent / 0.5);
+    if (an && an.peau && t > 0.16 && !(an.eclat > 0) && !(mo.flashB > 0)) { teinte = true; an.peau.forEach((m) => { if (!m.emissive) return; const b0 = m.emissiveMap ? 1 : 0; m.emissive.setRGB(b0 + 0.1 * f, b0 + 0.3 * f, b0 + 0.55 * f); }); }
+    if (fxAlea() < dt * 9) emettre(FX_VIF, 1, { x: mo.x + (fxAlea() - 0.5) * R * 2, y: mo.m.position.y + h * fxEntre(0.3, 0.9), z: mo.z + (fxAlea() - 0.5) * R * 2, v: [0, -0.5, 0], dv: 0.2, vie: [0.6, 1.0], taille: [0.06, 0.04], c: ['#ffffff', '#d6f0ff'], a: 0.95, grav: 0.6, frein: 1 });
+    if (fxAlea() < dt * 5) emettre(FX_LUM, 1, { x: mo.x + (fxAlea() - 0.5) * R * 2, y: mo.m.position.y + h * fxEntre(0.2, 1), z: mo.z + (fxAlea() - 0.5) * R * 2, vie: [0.2, 0.3], taille: [0.25, 0.02], c: ['#ffffff', '#bfe6ff'], a: 0.9 }); /* (une paillette) */
+    return false; });
+}
+
+/* le sol qui gele sous la vague : une plaque de givre qui s'etend, un trait de glace le long de chaque rangee */
+function solGele(x, y, z, r, angles) {
+  const d = r / JS_GEL.vitesse, vie = d + JS_GEL.tenue + JS_GEL.fonte + 0.4, g = new T.Group(), plaque = new T.Mesh(GEO_DISQUE, fxMat('#e8f6ff', 0)), bord = new T.Mesh(new T.RingGeometry(0.9, 1, 48), fxMat('#9fd8ff', 0));
+  plaque.rotation.x = bord.rotation.x = -Math.PI / 2; plaque.renderOrder = 2; bord.renderOrder = 3; g.add(plaque, bord);
+  const traits = angles.map((a) => { const b = new T.Group(), m = new T.Mesh(GEO_TRAIT_SOL, fxMat('#ffffff', 0)); m.renderOrder = 3; b.rotation.y = Math.atan2(Math.cos(a), Math.sin(a)); b.add(m); g.add(b); return m; });
+  g.position.set(x, y + 0.05, z); fxVie(g, vie, (k) => { const t = k * vie, e = Math.min(1, t / d), R = 0.3 + (r - 0.3) * (1 - Math.pow(1 - e, 2)), a = t < vie - 0.5 ? 1 : (vie - t) / 0.5;
+    plaque.scale.setScalar(R); plaque.material.opacity = 0.5 * a; bord.scale.setScalar(R); bord.material.opacity = 0.8 * a * (e < 1 ? 1 : Math.max(0, 1 - (t - d) / 0.4));
+    traits.forEach((m) => { m.scale.set(0.14, 1, R); m.position.z = R / 2; m.material.opacity = 0.75 * a; }); });
+}
+
+function explosionGelJuicy(x, y, z, r) {
+  const L = [], q = (a, th) => new T.Quaternion().setFromAxisAngle(new T.Vector3(Math.sin(a), 0, -Math.cos(a)), th).multiply(new T.Quaternion().setFromAxisAngle(AXE_Y, fxAlea() * 6.28)); /* (penche vers a, tourne sur lui-meme au hasard) */
+  const sol = (px, pz) => { const cel = caseIci(px, pz); return cel ? posCase(cel).y : solA(px, pz); };
+  const pic = (px, pz, h, s, a, th, t0) => L.push({ x: px, y: sol(px, pz) - 0.05, z: pz, h, s, q: q(a, th), t0 });
+  /* le temps fort : un eclair froid, l'image qui se fige, la glace qui craque */
+  arretImage(JS_GEL.arret); flashLumiere(x, y + 1, z, '#9fd8ff', 3, r * 3, 0.5); son('glace');
+  emettre(FX_LUM, 1, { x, y: y + 0.6, z, vie: [0.14, 0.16], taille: [r * 1.1, r * 1.7], c: ['#ffffff', '#bfe6ff'], a: 0.85, entree: 0.01 });
+  /* le bouquet du centre */
+  pic(x, z, 2.6, 2, 0, 0.05, 0); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283 + fxAlea() * 0.4; pic(x + Math.cos(a) * 0.25, z + Math.sin(a) * 0.25, fxEntre(1.6, 2.3), 1.8, a, fxEntre(0.35, 0.6), 0.015 * i); }
+  /* les rangees qui courent jusqu'au bord, de plus en plus petites et penchees, avec de petits pics sur les cotes */
+  const angles = []; for (let k = 0; k < JS_GEL.rayons; k++) { const a = k / JS_GEL.rayons * 6.283 + fxAlea() * 0.5; angles.push(a);
+    for (let d = 0.75, j = 0; d <= r * 0.98; d += JS_GEL.pas * fxEntre(0.85, 1.15), j++) { const f = d / r, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d, t0 = d / JS_GEL.vitesse;
+      pic(px, pz, fxEntre(0.85, 1.15) * (1.7 - 1.0 * f), 1.5 - 0.5 * f, a, 0.25 + 0.35 * f, t0);
+      if (j % 2 === 1) for (const sg of [-1, 1]) { const b = a + sg * Math.PI / 2; pic(px + Math.cos(b) * 0.24, pz + Math.sin(b) * 0.24, 0.45 + 0.25 * (1 - f), 0.8, a + sg * 1.0, 0.8, t0 + 0.02); } } }
+  /* les monstres de la zone : blancs, ecrases, un bouquet de glace a leurs pieds quand la vague arrive, puis bleus de givre tant qu'ils sont ralentis */
+  const zone = combat ? combat.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) <= r) : [];
+  zone.forEach((mo) => { reactionJuicy(mo, true); flashSansSquelette(mo); monstreGivre(mo); const t0 = Math.hypot(mo.x - x, mo.z - z) / JS_GEL.vitesse, R = Math.max(0.35, Math.min(1, (mo.haut || 1.5) * 0.3));
+    for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + fxAlea() * 0.5; pic(mo.x + Math.cos(a) * R, mo.z + Math.sin(a) * R, fxEntre(0.8, 1.2), 1.1, a, fxEntre(0.45, 0.7), t0 + 0.02); } });
+  picsDeGlace(L); solGele(x, y, z, r, angles);
+  /* le givre dans l'air : la brume qui roule, la neige qui tombe, des paillettes */
+  emettre(FX_FUM, 16, { x, y: y + 0.15, z, r: r * 0.4, plat: true, dv: r * 1.2, vie: [1.1, 1.6], taille: [0.6, 1.8], c: ['#f2fbff', '#cfeaff'], a: 0.55, frein: 2.5, vrot: 0.6, entree: 0.15 });
+  emettre(FX_VIF, 40, { x, y: y + 2.6, z, r: r * 0.85, plat: true, v: [0, -0.9, 0], dv: 0.25, vie: [1.2, 1.8], taille: [0.07, 0.05], c: ['#ffffff', '#e2f4ff'], a: 0.95, frein: 0.4 });
+  emettre(FX_LUM, 30, { x, y: y + 0.5, z, r, v: [0, 0.6, 0], dv: 1, vie: [0.6, 1.2], taille: [0.1, 0.02], c: ['#ffffff', '#bfe6ff'], a: 1, frein: 1 });
+}
+{ const gelJS = explosionGel; explosionGel = function (x, y, z, r) { if (!juiceSort('givre')) return gelJS.apply(this, arguments); return explosionGelJuicy(x, y, z, r); }; }
