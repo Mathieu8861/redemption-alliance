@@ -64,3 +64,21 @@ document.addEventListener('click', (e) => {
   else if (k === 'tourbe') { const n = Math.min(S_.grange.tourbe || 0, Math.floor(place / COMBUSTIBLE.tourbe)); S_.grange.tourbe -= n; S_.feuTour = feuTour() + n * COMBUSTIBLE.tourbe; if (n) toast('+' + n * COMBUSTIBLE.tourbe + ' feu : la tour fume.', 'or'); }
   const T0 = tourFiletEssai; if (T0 && T0.fumee) T0.fumee.visible = feuTour() > 0; sauver(); ouvrirFeuTour();
 });
+/* LA POUDRE D'OS (25/11/2026, une idee de l'atelier, IDEES-ATELIER.md ; « 1 os de Chafer ca fait 2 poudres, pas besoin de kamas ; 1 poudre peut etre utilisee
+   sur une parcelle et dure le temps de la culture », Mathieu ; +50 % au formulaire ; version dev d'abord) : a l'atelier, 1 Os de Chafer donne 2 poudres ;
+   sur un champ plante, elle le fait pousser 50 % plus vite jusqu'a la recolte (06-temps.js ; la recolte et la remise a nu l'effacent, champVide). On la repand
+   en touchant un champ qui pousse (la fenetre de la parcelle). */
+const POUDRE_OS = { bonus: 1.5 };
+RECETTES_DEV_ATELIER.push({ id: 'poudre_os', nom: 'Poudre d\'os', donne: 2, stock: 'poudreOs', il: [['os_chafer', 1]], ico: 'os_chafer', minuscule: 'poudres d\'os',
+  apres: '. Répands-la sur un champ qui pousse : touche-le.',
+  desc: 'De l\'os de Chafer moulu : sur un champ planté, la culture pousse 50 % plus vite jusqu\'à sa récolte. Un Os de Chafer en donne deux.' });
+const blocPoudre = (p) => { const n = S_.poudreOs || 0; if (p.poudre) return '<p class="poudre-os">✓ Poudre d\'os répandue : cette culture pousse 50 % plus vite jusqu\'à sa récolte.</p>';
+  if (!n) return ''; return '<div class="act"><button class="btn kamas" data-poudre-os="' + p.id + '">Répandre de la poudre d\'os (tu en as ' + fmt(n) + ')</button></div><p class="hdv-aide">La culture poussera 50 % plus vite jusqu\'à sa récolte.</p>'; };
+{ const mettreANuP = ACTIONS.mettreANu; ACTIONS.mettreANu = function (id, confirme) { const r = mettreANuP.apply(this, arguments); if (confirme) return r;
+  const p = S_.cases.find((c) => c.id === id), m = document.querySelector('#modale .confirme'); if (p && m && modaleOuverte === 'nu') { const h = blocPoudre(p); if (h) m.insertAdjacentHTML('afterbegin', '<div class="poudre-bloc">' + h + '</div>'); } return r; }; }
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-poudre-os]'); if (!b) return; const p = S_.cases.find((c) => c.id === b.dataset.poudreOs);
+  if (!p || p.type !== 'champ' || !p.c || p.poudre || p.pousse >= duree(PAR_ID[p.c]) || !(S_.poudreOs > 0)) return;
+  S_.poudreOs--; p.poudre = 1; fermerModale(); son('planter'); const q = posCase(p);
+  emettre(FX_FUM, 10, { x: q.x, y: q.y + 0.15, z: q.z, r: 0.5, plat: true, v: [0, 0.5, 0], dv: 0.6, vie: [0.6, 1.0], taille: [0.3, 0.8], c: ['#f6f0e2', '#e8dfc8'], a: 0.6, frein: 2, entree: 0.1 });
+  emettre(FX_VIF, 14, { x: q.x, y: q.y + 0.6, z: q.z, r: 0.5, v: [0, -0.5, 0], dv: 0.6, vie: [0.5, 0.8], taille: [0.05, 0.03], c: ['#ffffff', '#efe6d2'], grav: 2, sol: q.y + 0.05 });
+  toast('Poudre d\'os répandue : ' + PAR_ID[p.c].nom + ' pousse 50 % plus vite jusqu\'à sa récolte.'); rendreCase(p.id); sauver(); });

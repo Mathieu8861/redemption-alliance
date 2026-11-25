@@ -12,7 +12,7 @@ function avancer(maintenant, enDirect) {
     const c = PAR_ID[p.c], d = duree(c);
     if (p.pousse < d) {
       const avant = etape(p);
-      p.pousse = Math.min(d, p.pousse + dt * (p.arrose ? 1 : 0.4) * pousseNuit(c, pn, !!uv && uv(p)));
+      p.pousse = Math.min(d, p.pousse + dt * (p.arrose ? 1 : 0.4) * pousseNuit(c, pn, !!uv && uv(p)) * (p.poudre ? (typeof POUDRE_OS !== 'undefined' ? POUDRE_OS.bonus : 1.5) : 1)); /* (la poudre d'os : +50 % tant que la culture pousse, 29e-combustible.js) */
       if (p.pousse >= d) p.pretDepuis = maintenant;
       if (etape(p) !== avant) ch.add(p.id);
     }
