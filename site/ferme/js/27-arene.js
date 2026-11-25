@@ -13,6 +13,14 @@ const PALIERS_TICKET_ARENE = [[90, 70000], [80, 50000], [70, 35000], [60, 20000]
 const ticketArene = () => ticketDeNiveau(niveau(S_.xp)), ticketDeNiveau = (l) => (l >= 100 ? 95000 + 25000 * Math.floor((l - 100) / 10) : PALIERS_TICKET_ARENE.find(([n]) => l >= n)[1]); /* (14/11/2026, « et si quelqu'un fait vague 100 dans 3 mois ? », Mathieu : au-dela du 90 le ticket ne bougeait plus, ni les kamas de l'Arene ; maintenant 95 000 au niveau 100, puis +25 000 tous les 10 niveaux) */
 const PORTES_ARENE = [[0, -1], [-1, 0], [1, 0]].map(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(new T.Vector3(0, 1, 0), ROT_ARENE); return { x: ARENE.x + d.x * 11.9, z: ARENE.z + d.z * 11.9, ox: ARENE.x + d.x * 14.6, oz: ARENE.z + d.z * 14.6 }; }); /* les trois herses : le fond, la gauche, la droite */
 let ileArene = null, areneSuite = false;
+/* LES CROCHETS DES CARTES DE L'ARENE (25/11/2026) : le colisee par defaut (un cercle, sans obstacle) ; le temple de la jungle les reprend quand il est tire
+   (28b-arene-temple.js). dansArene : un point ou l'on peut se tenir (solSort) ; bornerArene : le perso ramene dans l'arene a chaque pas ; cheminArene : le chemin
+   du perso au clic (null : on ne bouge pas) ; pasMonstreArene : le prochain point d'un monstre (null : tout droit) ; bornerMonstresArene : les monstres hors du decor */
+function dansArene(x, z) { return Math.hypot(x - ARENE.x, z - ARENE.z) < R_ARENE - 0.5; }
+function bornerArene(x, z) { return [x, z]; }
+function cheminArene(x, z) { return Math.hypot(x - ARENE.x, z - ARENE.z) < R_ARENE ? [{ c: paysanMesh.userData.cellule, x, z }] : null; }
+function pasMonstreArene() { return null; }
+function bornerMonstresArene() { /* rien au colisee */ }
 const RUNE_COFFRE = 0.02, RUNE_PARFAITE_COFFRE = 0.02, PIECE_COFFRE = 0.3, ITEM_MONSTRE_ARENE = 0.0025, /* (0,5 avant le 19/10/2026) */ JET_ARENE = 0.5; /* (simule sur la ferme de Moon, Osamodas 65, 9 a 12 vagues : environ 6 500 kamas pour un ticket de 10 000, 0,1 niveau, une demi-rune et 0,4 piece par entree) */ /* (14/10/2026, Mathieu : « faut pas donner gratos les recompenses », « sois moins gentil » ; la Prospection augmente runes et pieces, comme tout butin) */
 const runeParMonstre = (k) => k < 3 ? 0 : k < 10 ? 0.001 : k < 15 ? 0.0025 : 0.005; /* plus on va loin, plus les monstres lachent de runes (moitie moins depuis le 19/10/2026 : 0,2, 0,5 et 1 % avant) */
 function etatArene() { S_.arene = S_.arene || { record: 0, semaines: {}, parties: 0 }; if (!S_.arene.semaines) S_.arene.semaines = {}; const j = jourJeu(); if (S_.arene.jour !== j) Object.assign(S_.arene, { jour: j, entrees: 0 }); return S_.arene; }

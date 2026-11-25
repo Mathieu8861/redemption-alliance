@@ -118,7 +118,7 @@ function annulerVisee() { if (marqueMono) marqueMono.style.display = 'none'; vis
    la souris et le Bouftou tombait plus pres ; le cercle de visee utilise maintenant ce meme point */
 /* le sol ou un sort peut tomber (24/10/2026, « en Arene et ile du boss, le Bouftou, peu importe ou tu mets le sort, il spawn sur toi » : seules les cases
    de la ferme comptaient ; l'Arene et l'ile n'en ont pas, le point reculait jusqu'au perso. Le bond du Iop y retombait aussi sur place) */
-const solSort = (a, b) => lieu === 'donjon' && typeof dansDonjon === 'function' ? dansDonjon(a, b) : lieu === 'arene' ? Math.hypot(a - ARENE.x, b - ARENE.z) < R_ARENE - 0.5 : lieu === 'ile' && ileBoss ? dansIle(a, b) : (() => { const c = caseIci(a, b); return !!c && !!praticable(c); })();
+const solSort = (a, b) => lieu === 'donjon' && typeof dansDonjon === 'function' ? dansDonjon(a, b) : lieu === 'arene' ? dansArene(a, b) /* (la carte du jour : 27-arene.js, 28b-arene-temple.js) */ : lieu === 'ile' && ileBoss ? dansIle(a, b) : (() => { const c = caseIci(a, b); return !!c && !!praticable(c); })();
 function pointSort(pt, portee) {
   const pp = paysanMesh.position; let x = pt.x, z = pt.z; const L = Math.hypot(x - pp.x, z - pp.z);
   if (portee && L > portee) { x = pp.x + (x - pp.x) * portee / L; z = pp.z + (z - pp.z) * portee / L; }

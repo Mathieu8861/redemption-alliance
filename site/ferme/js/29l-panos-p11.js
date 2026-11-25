@@ -27,13 +27,19 @@ const p11 = () => { if (!combat) return {}; if (!combat.p11) { const c = caracs(
 /* LA VITESSE DE DEPLACEMENT DES OBJETS (les bottes du Croquevase, 25/11/2026) : en combat, celle du debut du combat (p11) ; hors combat, recalculee quand l'equipement change */
 let vitDepCache = { k: null, v: 0 };
 const vitDepEquip = () => { if (combat) return p11().vitDep || 0; const k = S_ && S_.equip ? Object.values(S_.equip).join('|') : ''; if (k !== vitDepCache.k) vitDepCache = { k, v: caracs().vitDep || 0 }; return vitDepCache.v; };
+/* LES DEGATS FIXES (25/11/2026 au soir, « les degats fixes marchent sur les autos et les sorts, et ne comptent pas comme des degats bonus de stats ou la Puissance agit
+   dessus », Mathieu) : ajoutes a chaque coup que le perso porte lui-meme (attaque de base et son balayage, sort de classe, ulti, sorts legendaires : SRC_DEG, 23-fin-combat.js),
+   une fois par monstre touche ; pas les invocations (Bouftou, Bouture, Dragonnet), ni les brulures, le venin, la fumee ou les defenses */
+const SORTS_CLASSE_P11 = ['Flèche perçante', 'Bond du Iop', 'Invocation du Bouftou'];
+const coupDirectP11 = () => typeof SRC_DEG === 'string' && (SRC_DEG === 'Coups automatiques' || SRC_DEG.indexOf('Ulti : ') === 0 || SRC_DEG.indexOf('Sort légendaire') === 0 || SORTS_CLASSE_P11.includes(SRC_DEG));
 const degFixeP11 = () => (combat ? p11().degFixe || 0 : 0); /* (les degats fixes de l'attaque de base, 21-combat.js) */ /* (une fois par combat : l'equipement ne change pas en plein combat) */
 /* tes coups : Oeil de crapaud, Sang-mele, puis le Mucus sur le monstre touche */
 const blesserP11 = blesser; blesser = function (mo, n, gros, src) {
   if (src == null && combat && !combat.fin && mo && mo.etat === 'actif' && n > 1) { const B = p11();
     if (B.oeil && paysanMesh && Math.hypot(mo.x - paysanMesh.position.x, mo.z - paysanMesh.position.z) > P11_COMBAT.oeilCases * S) n = Math.round(n * (1 + B.oeil / 100));
     if (B.mele) n = Math.round(n * (1 + B.mele / 100));
-    if (B.mucus) { mo.mucus = P11_COMBAT.mucusDuree; mo.mucusV = 1 - B.mucus / 100; } }
+    if (B.mucus) { mo.mucus = P11_COMBAT.mucusDuree; mo.mucusV = 1 - B.mucus / 100; }
+    if (B.degFixe && coupDirectP11()) n += B.degFixe; } /* (les degats fixes, a la fin : apres la Puissance et les pourcentages, avant l'armure du monstre) */
   const vivant = !!combat && !combat.fin && !!mo && mo.etat === 'actif' && mo.pv > 0, r = blesserP11(mo, n, gros, src);
   if (vivant && src !== 'def' && mo.pv <= 0 && combat && !combat.fin) { const B = p11(); if (B.ruee) { const neuf = !(combat.rueeP11T > 0); combat.rueeP11T = P11_COMBAT.rueeDuree; combat.rueeP11V = B.ruee / 100; /* (la Ruee : un monstre abattu, +15 % de vitesse 3 s ; un autre relance les 3 s) */
     if (neuf && paysanMesh) { const pp = paysanMesh.position; chiffre('Ruée !', new T.Vector3(pp.x, pp.y + 2.1, pp.z), 'perso'); } } }

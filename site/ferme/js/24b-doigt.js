@@ -57,6 +57,7 @@ function dgArreter() { if (!dg.marche) return; dg.marche = false; if (combat) { 
 function dgLibre(x0, z0, x, z) { /* le point ou il peut aller, en ligne droite, depuis (x0, z0) vers (x, z) */
   if (lieu === 'donjon' && typeof bornerDonjon === 'function') { const q = bornerDonjon(x, z); return { x: q[0], z: q[1] }; }
   if (lieu === 'ile' && typeof ileBoss !== 'undefined' && ileBoss) { const q = bornerIle(x, z); return { x: q[0], z: q[1] }; }
+  if (combat && combat.arene && typeof templeIci === 'function' && templeIci()) { const q = bornerArene(x, z); return { x: q[0], z: q[1] }; } /* (le temple : le carre, et l'on glisse autour des statues, 28b-arene-temple.js) */
   if (combat && combat.arene && typeof ARENE !== 'undefined') { const f = pointValide(x0, z0, x, z), d = Math.hypot(f.x - ARENE.x, f.z - ARENE.z), r = R_ARENE - 0.4; return d > r ? { x: ARENE.x + (f.x - ARENE.x) * r / d, z: ARENE.z + (f.z - ARENE.z) * r / d } : f; }
   return pointValide(x0, z0, x, z);
 }

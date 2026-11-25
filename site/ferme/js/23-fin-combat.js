@@ -68,6 +68,7 @@ function majCombat(dt, s) {
   /* (16/10/2026, « pour moi sa portee de coup au cac, c'etait le cercle jaune » : pour un monstre au corps a corps, le cercle jaune est maintenant sa portee exacte ; entre dedans, il te frappe) */
   majCombatHud();
   if (c.genre === 'ile' && ileBoss) c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; const q = bornerIle(o.x, o.z, o.d.boss ? 0.9 : 0.3, o.traverseT > 0); o.x = q[0]; o.z = q[1]; }); /* (traverse : un boss qui etait coince passe a travers le decor, il reste sur le sol) */ /* (les monstres aussi restent sur l'ile et butent sur le decor) */
+  if (c.arene && lieu === 'arene') bornerMonstresArene(c); /* (le temple de la jungle : les monstres butent sur les statues, 28b-arene-temple.js) */
   if (c.genre === 'ile' && c.arene.infini) c.monstres.forEach((o) => { if (o.infini && o.etat !== 'mort' && o.pv < o.pvMax) o.pv = o.pvMax; }); /* (sa vie sans fin, meme sous un poison ou un sort qui ne passe pas par les coups, 21/11/2026) */
   if (c.genre === 'ile') { c.arene.t += dt; const pas = Math.floor(c.arene.t / ENRAGE_ILE.periode); if (pas > c.arene.pas) { c.arene.pas = pas; const b = c.monstres.find((o) => o.d.boss && o.etat === 'actif');
       const mR = 1 + ENRAGE_ILE.pas * pas; c.monstres.forEach((o) => { if (o.etat === 'mort') return; o.rageM = mR; if (o.deg0 != null && !o.d.boss) o.deg = Math.max(1, Math.round(o.deg0 * mR)); }); /* (sa troupe enrage avec lui) */

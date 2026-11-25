@@ -50,15 +50,16 @@ function flecheSolBrule(p, dir) {
 }
 
 /* une fleche de la pluie : elle tombe en arc, s'etire, sa pointe brule, et elle s'embrase en touchant le sol */
-function flecheDePluie(X, Y, Z, venue, retard, son_) {
+function flecheDePluie(X, Y, Z, venue, retard, son_, chute) {
+  chute = chute || JS_FEU.chute;
   const vers = new T.Vector3(X, Y + 0.12, Z), de = new T.Vector3(X - venue.x * 2.2, Y + JS_FEU.haut, Z - venue.z * 2.2);
   const fl = new T.Group(), fut = boite(0.07, 0.07, 0.85, '#ff6a12'); fut.position.z = -0.27; fl.add(fut);
   const coeur = new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: '#ffd25a' })); coeur.position.z = 0.18; fl.add(coeur);
   fl.visible = false; fl.traverse((o) => { o.raycast = () => {}; }); scene.add(fl);
   const pos = (k, o) => o.set(de.x + (vers.x - de.x) * k, de.y + (vers.y - de.y) * k * k, de.z + (vers.z - de.z) * k); /* (elle accelere en tombant : un arc, pas un trait droit) */
   const prec = new T.Vector3(), suiv = new T.Vector3(), bout = new T.Vector3(); let t = -retard, cible = false;
-  effets.push((dt) => { t += dt; if (!cible && t > -0.02) { cible = true; cibleSol(X, Y, Z, JS_FEU.chute + 0.02); }
-    if (t < 0) return false; const k = Math.min(1, t / JS_FEU.chute);
+  effets.push((dt) => { t += dt; if (!cible && t > -0.02) { cible = true; cibleSol(X, Y, Z, chute + 0.02); }
+    if (t < 0) return false; const k = Math.min(1, t / chute);
     if (!fl.visible) { fl.visible = true; pos(0, fl.position); }
     prec.copy(fl.position); pos(k, fl.position); pos(Math.min(1, k + 0.05), suiv); if (k < 1) fl.lookAt(suiv);
     fl.scale.set(1, 1, 1 + 0.7 * k); fl.updateMatrixWorld(); bout.set(0, 0, 0.18).applyMatrix4(fl.matrixWorld);
@@ -76,6 +77,20 @@ function flecheDePluie(X, Y, Z, venue, retard, son_) {
     return true; });
 }
 
+/* LA PLUIE AVANT LES DEGATS (25/11/2026, « la fleche enflammee, pourquoi la salve de fleches part apres les degats que recoivent les monstres ? fais l'inverse », Mathieu) :
+   la pluie part des l'appel de l'ulti (FEU_PREP) et tombe pendant le geste et le vol de la fleche de feu : ses fleches touchent le sol de 0,2 a 0,48 s apres l'appel ;
+   l'explosion et les degats viennent a l'arrivee de la fleche de feu, 0,53 s apres l'appel, au meme instant qu'avant (pas de delai en plus) */
+const JS_FEU_AVANT = { premiere: 0.2, derniere: 0.48, chute: 0.2 };
+let FEU_PREP = null;
+function pluieSeule(x, z, r, avant) {
+  const pp = paysanMesh.position, L = Math.hypot(x - pp.x, z - pp.z) || 1, venue = { x: (x - pp.x) / L, z: (z - pp.z) / L }, A = JS_FEU_AVANT; /* (la volee vient du cote du Cra) */
+  for (let i = 0; i < JS_FEU.n; i++) { const a = i * 2.39996 + fxAlea() * 0.5, d = r * 0.92 * Math.sqrt((i + 0.5) / JS_FEU.n), X = x + Math.cos(a) * d, Z = z + Math.sin(a) * d, cel = caseIci(X, Z), Y = cel ? posCase(cel).y : solA(X, Z);
+    if (avant) flecheDePluie(X, Y, Z, venue, Math.max(0, A.premiere - A.chute + i * (A.derniere - A.premiere) / (JS_FEU.n - 1)), i % 2 === 0, A.chute);
+    else flecheDePluie(X, Y, Z, venue, JS_FEU.depart + i * JS_FEU.ecart, i % 2 === 0); }
+}
+{ const executerUltiFF = executerUlti; executerUlti = function (id, c, pt) { const r = executerUltiFF.apply(this, arguments);
+  if (id === 'zone' && combat && classeDe() === 'cra' && juiceSort('flammes') && (c || pt)) { FEU_PREP = { t0: performance.now() }; pluieSeule(c ? c.x : pt.x, c ? c.z : pt.z, 2.8, true); }
+  return r; }; }
 function pluieFlechesFeuJuicy(x, y, z, r) {
   const c = new T.Vector3(x, y + 0.4, z), pp = paysanMesh.position, L = Math.hypot(x - pp.x, z - pp.z) || 1, venue = { x: (x - pp.x) / L, z: (z - pp.z) / L }; /* (la volee vient du cote du Cra) */
   /* l'explosion centrale */
@@ -88,9 +103,8 @@ function pluieFlechesFeuJuicy(x, y, z, r) {
   const zone = combat ? combat.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) <= r) : [];
   zone.forEach((mo) => { reactionJuicy(mo, true); flashSansSquelette(mo); monstreEnFeu(mo, JS_FEU.brule); });
   effets.push(() => { zone.forEach((o) => { if (o.etat === 'mort' && o.d && !o.d.boss && !o.d.demi && o.m && o.m.visible) desintegrer(o); }); return true; });
-  /* la pluie */
-  for (let i = 0; i < JS_FEU.n; i++) { const a = i * 2.39996 + fxAlea() * 0.5, d = r * 0.92 * Math.sqrt((i + 0.5) / JS_FEU.n), X = x + Math.cos(a) * d, Z = z + Math.sin(a) * d, cel = caseIci(X, Z), Y = cel ? posCase(cel).y : solA(X, Z);
-    flecheDePluie(X, Y, Z, venue, JS_FEU.depart + i * JS_FEU.ecart, i % 2 === 0); }
+  /* la pluie : deja tombee si elle est partie a l'appel de l'ulti (FEU_PREP), sinon apres l'explosion, comme avant */
+  const deja = FEU_PREP && performance.now() - FEU_PREP.t0 < 1500; FEU_PREP = null; if (!deja) pluieSeule(x, z, r, false); void venue;
 }
 { const pluieJS = pluieFlechesFeu; pluieFlechesFeu = function (x, y, z, r) { if (!juiceSort('flammes')) return pluieJS.apply(this, arguments); return pluieFlechesFeuJuicy(x, y, z, r); }; }
 

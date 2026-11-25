@@ -535,6 +535,10 @@ function ouvrirBananier(p) {
    palier avec leur total actif, et ou elle tombe. On y entre par « Voir la panoplie » (sur une piece, ou sous une panoplie portee), on en sort par « Retour » ou
    en touchant une piece. */
 let persoPano = null, persoPanoN = 6;
+/* CE QUE FONT LES STATS DE COMBAT, SOUS LEUR LIGNE DANS LA FICHE D'UNE PIECE (25/11/2026, « faudrait expliquer quelque part que les degats fixes marchent sur les autos et
+   les sorts, et que la Puissance n'agit pas dessus », Mathieu) */
+const AIDE_STAT_PIECE = { degFixe: 'Ajoutés à chaque coup de tes attaques et de tes sorts, à la fin : la Puissance ne les augmente pas. Pas sur tes invocations.',
+  resFixe: 'Retirée de chaque coup reçu, jamais plus de la moitié du coup.', resPct: 'S\'ajoute à ta résistance au contact et à distance (50 % au plus).', vitDep: 'En combat et sur ta ferme.' };
 /* LES BONUS D'UNE PANOPLIE, AU CHOIX DU NOMBRE DE PIECES (25/11/2026, « explique comment fonctionnent les bonus de panoplie, deja est-ce qu'ils se cumulent 2 + 4 + 6 ?
    il faudrait que ce soit explique et qu'on puisse voir les bonus totaux d'une pano full equipee en fonction du nombre de pieces selectionne », Mathieu) : dans la fiche
    d'une panoplie, on choisit 2, 4 ou 6 pieces ; les paliers compris s'allument et leur total s'affiche ; a 6, en plus, la panoplie entiere (pieces au jet moyen et bonus) */
@@ -633,7 +637,7 @@ function ouvrirPerso(sel) {
        Deux blocs maintenant : ce que la piece donne, puis ce qui change si elle remplace la piece portee, gains d'abord) */
     const unite = (cc) => (CARACS[cc][1].trim().startsWith('%') ? ' %' : ''), nomC = (cc) => CARACS[cc][2] + ' ' + CARACS[cc][0];
     const ligne = (cc) => { const v = o.stats[cc] || 0, [fa, fb] = B.stats[cc] ? fourchette(B.stats[cc], B.id, cc) : [v, v], u = unite(cc);
-      return '<div class="fp-ligne"><span>' + nomC(cc) + '<small>' + (B.stats[cc] ? (fa === fb ? 'fixe' : 'de ' + fa + ' à ' + fb + u) : '') + '</small></span><span><b>+' + v + u + '</b></span></div>'; };
+      return '<div class="fp-ligne"><span>' + nomC(cc) + '<small>' + (B.stats[cc] ? (fa === fb ? 'fixe' : 'de ' + fa + ' à ' + fb + u) : '') + '</small>' + (AIDE_STAT_PIECE[cc] ? '<small class="fp-aide-stat">' + AIDE_STAT_PIECE[cc] + '</small>' : '') + '</span><span><b>+' + v + u + '</b></span></div>'; };
     const ecarts = q ? [...new Set(Object.keys(o.stats).concat(Object.keys(q.stats)))].map((cc) => [cc, (o.stats[cc] || 0) - (q.stats[cc] || 0)]).filter(([, d]) => d).sort((x, y) => (y[1] > 0) - (x[1] > 0)) : [];
     const table = '<div class="fp-compare seule"><div class="fp-ligne th"><span>' + (porteeIci ? 'Ce qu\'elle te donne' : 'Ce qu\'elle donne') + '</span><span></span></div>' + Object.keys(o.stats).map(ligne).join('') + '</div>' +
       (q ? '<div class="fp-compare seule"><div class="fp-ligne th"><span>À la place de ta pièce : ' + q.nom + '</span><span>Tu gagnes ou tu perds</span></div>' +
