@@ -82,9 +82,9 @@ function flechePlantee(mo, p, dir, style) {
   const C = JUICE_CRA.coup; if (!C || !(genre == null || genre === 'gros') || !pos) return chiffreJC.apply(this, arguments);
   if (typeof txt === 'string') txt = txt.replace(/\d+\.\d+/g, (x) => String(Math.round(parseFloat(x))));
   const gros = genre === 'gros' || C.style === 'feu' || !!C.gros, e = document.createElement('div'); e.className = 'degat' + (gros ? ' gros' : ''); e.textContent = txt; (combat ? $('combat-zone') : zoneBulles).appendChild(e);
-  const droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), cote = (fxAlea() < 0.5 ? -1 : 1) * fxEntre(0.7, 1.3), p = pos.clone(), q = new T.Vector3(), vie = 0.9, base = gros ? 1.35 : 1.1;
+  const droite = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), cote = (fxAlea() < 0.5 ? -1 : 1) * fxEntre(0.7, 1.3), p = pos.clone(), q = new T.Vector3(), vie = 0.9, base = (gros ? 1.35 : 1.1) * (C.taille || 1), P0 = C.pop || 1.9; /* (C.taille, C.pop : plus petits et moins de rebond quand un sort de zone en fait sauter plusieurs, 29zb-juice-leg.js) */
   let t = 0; effets.push((dt) => { t += dt; q.copy(p).addScaledVector(droite, cote * t).setY(p.y + 3.8 * t - 4.6 * t * t); versEcran(q, e);
-    const pop = t < 0.12 ? 1.9 - 0.9 * (t / 0.12) : t < 0.22 ? 1 - 0.12 * Math.sin((t - 0.12) / 0.1 * Math.PI) : 1;
+    const pop = t < 0.12 ? P0 - (P0 - 1) * (t / 0.12) : t < 0.22 ? 1 - 0.12 * Math.sin((t - 0.12) / 0.1 * Math.PI) : 1;
     e.style.transform = 'translate(-50%, -100%) scale(' + (base * pop).toFixed(3) + ')'; e.style.opacity = String(Math.max(0, 1 - Math.max(0, t - (vie - 0.3)) / 0.3));
     if (t >= vie) { e.remove(); return true; } }); }; }
 
