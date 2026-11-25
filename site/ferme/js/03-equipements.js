@@ -216,6 +216,10 @@ PANOS.forEach((P, k) => Object.entries(ARMES).forEach(([cl, [t, nom]]) => { if (
 /* L'ARME DU CROQUEVASE (25/11/2026, « l'arme du Croquevase, mets-lui de la vita, retire l'agilite et donne des degats bonus », Mathieu) : sa Puissance gardee,
    l'Agilite remplacee par la Vitalite d'une case de la panoplie (celle de l'anneau, 752) et des degats fixes (42 a 78, comme la coiffe du Crachopaud, BORNES_JET) ; avant les rares */
 Object.keys(ARMES).forEach((cl) => { const o = OBJETS['arme-' + ARMES[cl][0] + '-croquevase']; if (!o) return; delete o.stats.agilite; o.stats.vita = OBJETS['croquevase-anneau'].stats.vita; o.stats.degBonus = 20; }); /* (des degats bonus et non des degats fixes, 25/11/2026 au soir : 15 a 25, 23 a 38 en rare ; au niveau 105, environ +9 % sur chaque coup, avant la Puissance) */
+/* (L'ARME DU CRACHOPAUD aussi, 25/11/2026 au soir, « mets aussi des degats bonus sur la Crachopaud ; attention a ce que ca ne donne pas trop de degats », Mathieu, puis au
+   formulaire « a la place de l'Agilite » : 15 a 25 de degats bonus a la place de ses 25 d'Agilite, sa Puissance gardee ; degats presque inchanges, Cra +45 % et Iop +29 % de degats
+   par seconde sur l'Arakne du palier 10, contre +43 % et +25 % avant ; traces/chargement/plans-compare-dps.js) */
+Object.keys(ARMES).forEach((cl) => { const o = OBJETS['arme-' + ARMES[cl][0] + '-crachopaud']; if (o) { delete o.stats.agilite; o.stats.degBonus = 20; } });
 /* les pieces rares : une piece sur 100 qui tombe (plus avec la Prospection), stats +50 %, liseré doré ; elles comptent dans leur panoplie */
 const CHANCE_RARE = 0.01;
 /* LA PROSPECTION DES PIECES DIVISEE PAR DEUX (23/11/2026, « est-ce qu'on nerferait pas la prospection que donnent les items plutot ? », puis au formulaire « divisee par
