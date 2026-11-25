@@ -1,6 +1,6 @@
 'use strict';
 /* LES SORTS LEGENDAIRES « JUICY » (25/11/2026, « fais les sorts legendaires », Mathieu) : une recette commune pour la vingtaine de sorts des coiffes et des armes
-   legendaires (executerLeg, 22-sorts.js). Version dev : seulement dans le mode test tant que Mathieu ne l'a pas validee (juiceSort('leg'), 29z-juice-sorts.js ;
+   legendaires (executerLeg, 22-sorts.js). Ouverte a tous le 25/11/2026 (« Ouvrir aux joueurs », Mathieu au formulaire ; juiceSort('leg'), 29z-juice-sorts.js ;
    JUICE_SORTS.force : true / false pour comparer avant et apres dans les essais).
    Les sorts gardent leurs effets, leurs degats et le moment ou ils tombent ; ce qui change, c'est ce qui arrive au monstre touche (IDEES-JUICE.md) :
    - il devient blanc deux ou trois images et s'ecrase un instant (comme sous la fleche du Cra, l'epee du Iop et le fouet de l'Osa), et recule un peu (a l'image) ;
