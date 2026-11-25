@@ -69,14 +69,20 @@ function courirDore(m, depart) {
 /* LA FIN DU TOFU DORE (11/11/2026, annonce Discord de Mathieu : « ils ont jusqu'a ce soir minuit pour trouver et capturer le monstre, apres il sera trop tard » ;
    « oui tu coupes a ce soir, ceux captures restent dans les fermes des gens ») : le 12/11/2026 a 0 h, heure de Paris */
 const FIN_TOFU_DORE = Date.parse('2026-11-12T00:00:00+01:00');
+/* LE RETOUR DU TOFU DORE LE WEEK-END (25/11/2026, au formulaire, pour les Plumes dorees de la Canne doree, 14h-peche.js : « Tofu dore le week-end », Mathieu) :
+   le samedi et le dimanche, heure de Paris, aux memes conditions qu'avant (1 h 20 a 1 h 40 de vrai jeu, attente doublee a chaque capture, filet obligatoire) ;
+   son temps de jeu ne compte que le week-end, et repart de zero a son retour (il avait continue de compter apres la fin du 11/11). */
+const TOFU_WE = { force: null }; /* (true / false pour les essais) */
+const weekEndParis = () => { if (TOFU_WE.force != null) return TOFU_WE.force; const j = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' })).getDay(); return j === 0 || j === 6; };
 const doresPris = () => (S_.stats && S_.stats.tofusDores) || 0;
 const seuilDore = () => (DORE_TOUTES[0] + Math.random() * (DORE_TOUTES[1] - DORE_TOUTES[0])) * 60000 * Math.pow(2, doresPris());
 function majTofuDore() {
   const t = performance.now(), d = Math.min(5000, Math.max(0, t - (majTofuDore.t || t))); majTofuDore.t = t;
   if (S_ && S_.cadeauDoreVu === false && S_.perso && !enAccueil && !modaleOuverte) { S_.cadeauDoreVu = true; appliquerVoliere(); rendreHaut(); son('niveau'); toast('Cadeau : un TOFU DORÉ rejoint ta volière ! Il te donnera des Plumes dorées.', 'or'); sauver(); } /* (le cadeau du 08/11/2026, cadeauDoreMathieu) */
   if (!S_ || !S_.perso || enAccueil || enPause || MODE_TEST || document.hidden || Date.now() - derniereAction > 180000 || niveau(S_.xp) < NIV_TOFU_DORE) return;
+  if (!weekEndParis()) return; /* (11/11/2026 : plus aucun Tofu dore apres minuit ; 25/11/2026 : il revient chaque week-end, et seul le temps du week-end compte) */
+  if (!S_.doreRetour) { S_.doreRetour = 1; S_.doreJeu = 0; S_.doreSeuil = 0; } /* (son temps repart de zero a son retour) */
   if (!(S_.doreSeuil > 0) || S_.doreN !== doresPris()) { S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); } S_.doreJeu = (S_.doreJeu || 0) + d;
-  if (Date.now() >= FIN_TOFU_DORE) return; /* (11/11/2026 : plus aucun Tofu dore ne se pose apres minuit ; celui qui est deja dans l'herbe finit sa minute, ceux des volieres restent) */
   if (S_.doreJeu < S_.doreSeuil || S_.sauvage || combat || lieu !== 'ferme') return;
   const libres = S_.cases.filter((c) => c.type === 'libre'); if (!libres.length) return;
   S_.sauvage = { id: hasard(libres).id, fin: Date.now() + DUREE_SAUVAGE, dore: true }; S_.doreJeu = 0; S_.doreSeuil = seuilDore(); S_.doreN = doresPris(); rendreSauvage(); son('niveau');

@@ -34,7 +34,7 @@ const RECETTES_CANNES = [ /* (25/11/2026, « triple le nombre de ressources nece
   { res: [['kaliptus', 18], ['poil_wabbit', 24], ['plume', 30]], poissons: [['goujon', 3]] }, /* (le bois souple du Kaliptus, la ligne tressee en poil de Wabbit, les bouchons en plume de Tofu) */
   { res: [['ecaille_drag', 18], ['os_chafer', 30], ['laine_fine', 18]], poissons: [['brochet', 3]] }, /* (le vernis d'ecaille de Dragoeuf, les anneaux en os de Chafer, la ligne en laine fine) */
   { res: [['dent_bwork', 24], ['ecaille_tortue', 18], ['plume_kanniboul', 24], ['laine_soyeuse', 18]], poissons: [['raie', 2]] }, /* (les engrenages du moulinet en dents de Bwork, la poignee en ecaille de Tortue, la mouche en plume de Kanniboul, la ligne en laine soyeuse) */
-  { res: [['plume_doree', 12], ['laine_doree', 12], ['brassard_vsa', 6]], poissons: [['lotte', 1]] }]; /* (l'or des plumes et de la laine doree, deux brassards de la VSA) */
+  { res: [['plume_doree', 24], ['laine_doree', 24], ['brassard_vsa', 12]], poissons: [['lotte', 1]] }]; /* (l'or des plumes et de la laine doree, des brassards de la VSA ; « c'est surtout la doree ou faut augmenter le nombre de ressources », Mathieu, 25/11 : x2 de plus, les autres cannes restent a x3) */
 const NOMS_RES_CANNES = { kaliptus: ['Branche de Kaliptus', 'Branches de Kaliptus'], poil_wabbit: ['Poil de Wabbit', 'Poils de Wabbit'], plume: ['Plume de Tofu', 'Plumes de Tofu'], ecaille_drag: ['Écaille de Dragoeuf', 'Écailles de Dragoeuf'], os_chafer: ['Os de Chafer', 'Os de Chafer'], laine_fine: ['Laine fine', 'Laines fines'], dent_bwork: ['Dent de Bwork', 'Dents de Bwork'], ecaille_tortue: ['Écaille de Tortue', 'Écailles de Tortue'], plume_kanniboul: ['Plume de Kanniboul', 'Plumes de Kanniboul'], laine_soyeuse: ['Laine soyeuse', 'Laines soyeuses'], plume_doree: ['Plume dorée', 'Plumes dorées'], laine_doree: ['Laine dorée', 'Laines dorées'], brassard_vsa: ['Brassard VSA', 'Brassards VSA'] };
 const nomResCanne = (id, q) => { const N = NOMS_RES_CANNES[id]; return N ? N[q > 1 ? 1 : 0] : id; };
 const nomPoissonCanne = (id, q) => { const p = POISSONS.find((x) => x.id === id); return p ? (q > 1 ? p.nom.replace(/^(\S+)/, '$1s') : p.nom) : id; }; /* (5 : la Canne doree, la zone verte la plus large) */
@@ -186,6 +186,7 @@ function ouvrirEtabliPecheur() {
     let bas = '';
     if (a) bas = '<span class="puce' + (main ? ' or' : ' bonne') + '">' + (main ? 'dans ta main' : 'sur le râtelier') + '</span>';
     else if (!recetteCanneOuverte(k)) bas = '<span class="puce">Recette à ' + CANNE_ESPECES[k] + ' espèces pêchées</span>';
+    else if (!canneAvantLa(k)) bas = '<span class="puce">Fabrique d\'abord la ' + CANNES[k - 1].nom + '</span>';
     else { const ok = (q, n) => MODE_TEST || n >= q;
       bas = '<div class="pe-legende pe-recette">' + R.res.map(([id, q]) => '<span' + (ok(q, G[id] || 0) ? '' : ' class="manque"') + '>' + q + ' ' + nomResCanne(id, q) + ' (' + fmt(G[id] || 0) + ')</span>').join('') +
         R.poissons.map(([id, q]) => '<span' + (ok(q, P.prises[id] || 0) ? '' : ' class="manque"') + '>' + q + ' ' + nomPoissonCanne(id, q) + ' (' + fmt(P.prises[id] || 0) + ')</span>').join('') + '</div>' +
@@ -194,7 +195,7 @@ function ouvrirEtabliPecheur() {
       '<div class="pe-legende"><span>Zone verte : ' + C.zone + ' %</span><span>' + (RARETE_CANNES[k] ? 'Rareté +' + RARETE_CANNES[k] + ' %' : 'Rareté de base') + '</span></div></div>'; };
   ouvrirModale('pecheur', entete('L\'atelier du pêcheur') + '<p class="hdv-aide">Chaque lancer prend un appât. Choisis celui de ta ligne, puis va pêcher au bout de la terrasse, une canne en main.</p>' +
     '<div class="hdv-section">Les appâts</div><div class="pe-grille">' + Object.entries(APPATS).map(appat).join('') + '</div>' +
-    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">La canne fait les chances (plus de poissons peu communs et rares) ; sa zone verte, c\'est la bande de la jauge où garder le poisson : plus elle est large, plus c\'est facile. L\'appât dit quels poissons mordent. Les cannes se fabriquent ici, chaque recette s\'ouvre à 3, 5, 7 et 9 espèces pêchées. Au râtelier du fond, touche une canne pour la prendre.' + (MODE_TEST ? ' Mode test : toutes les recettes sont ouvertes et se fabriquent sans rien payer.' : '') + '</p><div class="pe-grille cinq">' + [1, 2, 3, 4, 5].map(canne).join('') + '</div>');
+    '<div class="hdv-section">Tes cannes</div><p class="hdv-aide">La canne fait les chances (plus de poissons peu communs et rares) ; sa zone verte, c\'est la bande de la jauge où garder le poisson : plus elle est large, plus c\'est facile. L\'appât dit quels poissons mordent. Les cannes se fabriquent ici, l\'une après l\'autre ; chaque recette s\'ouvre à 3, 5, 7 et 9 espèces pêchées. Au râtelier du fond, touche une canne pour la prendre.' + (MODE_TEST ? ' Mode test : toutes les recettes sont ouvertes et se fabriquent sans rien payer.' : '') + '</p><div class="pe-grille cinq">' + [1, 2, 3, 4, 5].map(canne).join('') + '</div>');
 }
 /* LES SUCCES DE LA PECHE (11/11/2026, par Discord : « et si on peche tous les poissons ca fait un succes ? On gagne une recompense ? », « des kamas c'est bien mais
    bof », « B ? Et un bonus de dps de +5 % sur les monstres de type eau ? », « on fait comme ca », Mathieu). Les neuf especes courantes comptent (le Poisson-Chaton
@@ -214,9 +215,11 @@ function majSuccesPeche() { /* donne ce qui est du (sans risque de doublon) : a 
 }
 const suiteSuccesPeche = () => { const n = especesPechees(), k = [2, 3, 4, 5].find((q) => n < CANNE_ESPECES[q]); return k ? ' À ' + CANNE_ESPECES[k] + ' espèces : la recette de la ' + CANNES[k].nom + '.' : ' Pêcheur accompli : les 9 espèces sont pêchées.'; };
 const recetteCanneOuverte = (k) => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || especesPechees() >= CANNE_ESPECES[k];
-function peutFabriquerCanne(k) { const P = etatPeche(), R = RECETTES_CANNES[k], G = S_.grange || {}; if (!R || P.cannes.includes(k) || !recetteCanneOuverte(k)) return false; if (MODE_TEST) return true;
+const canneAvantLa = (k) => k <= 2 || etatPeche().cannes.includes(k - 1); /* (25/11/2026, « pour debloquer une canne superieure il faut avoir debloque celle d'avant », Mathieu : meme en mode test) */
+function peutFabriquerCanne(k) { const P = etatPeche(), R = RECETTES_CANNES[k], G = S_.grange || {}; if (!R || P.cannes.includes(k) || !recetteCanneOuverte(k) || !canneAvantLa(k)) return false; if (MODE_TEST) return true;
   return R.res.every(([id, q]) => (G[id] || 0) >= q) && R.poissons.every(([id, q]) => (P.prises[id] || 0) >= q); }
 function fabriquerCanne(k) {
+  if (!canneAvantLa(k)) { toast('Fabrique d\'abord la ' + CANNES[k - 1].nom + '.'); return; }
   if (!peutFabriquerCanne(k)) { toast('Il te manque des ressources ou des poissons.'); return; }
   const P = etatPeche(), R = RECETTES_CANNES[k], G = S_.grange || (S_.grange = {});
   if (!MODE_TEST) { R.res.forEach(([id, q]) => { G[id] -= q; }); R.poissons.forEach(([id, q]) => { P.prises[id] -= q; }); }
