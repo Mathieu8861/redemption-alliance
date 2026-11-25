@@ -104,7 +104,7 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
 { const finDonjonLabo = finDonjon; finDonjon = function (gagne) {
     const E = donjonEtat, c = combat, t = E ? E.t : 0, enJeu = !!(c && !c.fin && c.genre === 'donjon');
     retirerWabbitsLibres(); const r = finDonjonLabo.apply(this, arguments);
-    try { const recap0 = document.querySelector('#carte .recap-combat'); if (recap0 && E && enJeu) recap0.insertAdjacentHTML('beforeend', ligneRecap('renfort', 'Wabbits libérés', (E.wabLiberes || 0) + ' des cages' + (gagne ? ', et ceux du labo' : ''))); } catch (e) { /* rien */ }
+    try { const recap0 = document.querySelector('#carte .recap-combat'); if (recap0 && E && enJeu) recap0.insertAdjacentHTML('beforeend', ligneRecap('renfort', 'Wabbits libérés', (E.wabLiberes || 0) + ' des cages' + (gagne ? ', et ceux du labo' : '')).replace('class="rc-l"', 'class="rc-l large"')); /* (sur toute la largeur : la phrase depassait a droite, 25/11/2026) */ } catch (e) { /* rien */ }
     if (!gagne || !enJeu) return r;
     try {
       const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t);

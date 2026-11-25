@@ -1840,3 +1840,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .essai-coffre { display: flex; gap: 8px; align-items: center; margin: 6px 0; padding: 6px 8px; border-radius: 10px; background: rgba(192, 140, 255, .12); border: 1px solid rgba(192, 140, 255, .45); font-weight: 600; cursor: help; } .essai-coffre img { width: 34px; height: 34px; } .essai-coffre b { color: #d7b8ff; } /* (le coffre de la serie, 24/11/2026) */
 .essai-com { display: flex; gap: 6px; align-items: flex-end; margin-top: 6px; } .essai-com span { font-weight: 700; } /* (le commentaire de la serie 101, 23/11/2026) */
 .essai-com textarea { flex: 1; min-height: 38px; resize: vertical; padding: 6px 8px; border-radius: 10px; border: 2px solid rgba(63, 182, 201, .5); background: rgba(0, 0, 0, .25); color: inherit; font: 600 .78rem/1.3 var(--f-texte); }
+/* (25/11/2026, le bilan du labo : « attention aux textes qui depassent a droite : salles nettoyees, degats, Wabbits liberes », Mathieu) : les deux colonnes ne
+   s'elargissent plus au-dela du cadre, le nom de la ligne passe a la ligne plutot que de pousser le chiffre dehors ; une ligne longue prend toute la largeur */
+.recap-combat { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } @media (max-width: 520px) { .recap-combat { grid-template-columns: minmax(0, 1fr); } }
+.rc-l span { min-width: 0; } .rc-l.large { grid-column: 1 / -1; }

@@ -260,19 +260,28 @@ CAPACITES.unshift(capWabHarpon, capWabRafale, capWabSaisie, capWabAutos);
    apparait dans sa main mecanique, il se la plante dans le cou, convulse, grossit, s'illumine de vert et rugit. Ensuite, surpuissant : tous ses coups x1,25,
    25 % plus rapide, la rage du jeu (coups 1,7 fois plus rapides, sorts 1,3 fois plus frequents), une cawotte de tourelle toutes les 1,5 s au lieu de 2.
    Ses creatures sont ses invocations : elles tombent avec lui (« a sa mort, les cages s'ouvrent, les Wabbits sont liberes »). */
+/* (25/11/2026, « plutot que de le voir invoquer des Wabbits garous, j'aimerais qu'il aille courir et appuyer sur un bouton de son tableau de bord, et un monstre
+   qui etait dans la cuve sort, un Wabbit garou geant genetiquement modifie et booste, qui combat en meme temps que le boss, qui lui s'injecte la seringue », Mathieu) :
+   sous 30 %, invulnerable, il court a son pupitre (dans son labo ; a l'Arene dev, un pupitre et une cuve sortent du sol), appuie sur le gros bouton, l'alarme
+   rougit les ecrans, la cuve ou flotte le garou geant eclate et le garou en sort (GEANT_WAB) ; puis il s'injecte sa seringue (injectionWab, la scene d'avant sans
+   ses creatures). Plus de vagues de garous toutes les 20 s. Le garou geant est sa creature : il tombe avec lui (capWabLibere) */
 function capWabPhase(mo, ctx) {
   const K = mo.d.wabKit, P = K && K.phase; if (!P || mo.wabPhase || mo.etat !== 'actif' || mo.wabOccupe || mo.pv >= mo.pvMax * P.seuil) return;
   const an = mo.m.userData.anim, c0 = combat; if (!an || !osWab(mo)) return; mo.wabPhase = 'scene'; mo.wabOccupe = true; mo.wabInvuln = true; mo.rugiRage = true; /* (sa rage arrive avec l'injection, sans le rugissement du jeu) */
-  const nomA = an.F.appel && an.F.appel[0], nomI = an.F.injection && an.F.injection[0], dI = nomI ? an.A[nomI].getClip().duration : 3, dA = 1.6, tot = dA + dI;
+  coursePupitreWab(mo, P, c0);
+}
+function injectionWab(mo, P, c0) {
+  const an = mo.m.userData.anim; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || !an) { mo.wabInvuln = false; mo.wabOccupe = false; return; }
+  const nomA = null, nomI = an.F.injection && an.F.injection[0], dI = nomI ? an.A[nomI].getClip().duration : 3, dA = 0.05, tot = dA + dI;
   mo.bloqueT = Math.max(mo.bloqueT || 0, tot); mo.cd = Math.max(mo.cd || 0, tot); const pp = paysanMesh.position; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z);
   if (nomA) { const a = jouerAnim(an, nomA, 0.15); a.timeScale = a.getClip().duration / dA; } mo.geste = { t: 0, d: tot };
-  toast(leNom(mo.d) + ' libère ses créatures et s\'injecte sa dernière création !', 'alerte'); son('vague');
+  toast(leNom(mo.d) + ' s\'injecte sa dernière création !', 'alerte'); son('vague');
   const e0 = mo.echelle || 1, h0 = mo.haut || 3.6, O = osWab(mo), cou = mo.m.getObjectByName('tete'), W = MODELES.wabbenstein.userData.wab, vert = new T.Color('#1e5a0e');
   let t = 0, sortis = false, ser = null, pique = false, jete = null, aura = false;
   effets.push((dt) => {
     if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabInvuln = false; mo.wabOccupe = false; if (ser) jeter(ser); if (jete) jeter(jete.g); return true; }
     t += dt; const ti = t - dA;
-    if (!sortis && t >= 0.6) { sortis = true; libererCreatures(mo, P, c0); }
+    if (!sortis) sortis = true; /* (plus de creatures sorties de terre : le garou geant de la cuve, coursePupitreWab) */
     if (ti >= 0 && !ser && !pique && nomI) { const a = jouerAnim(an, nomI, 0.12); a.timeScale = 1; ser = seringueWab(); scene.add(ser); }
     if (ser) { /* la seringue dans la main, pointee vers son cou ; le serum se vide apres la piqure */
       O.mG.updateMatrixWorld(true); const bout = W.axeMain.clone().multiplyScalar(0.26).applyMatrix4(O.mG.matrixWorld), c = cou.getWorldPosition(new T.Vector3()), d = c.clone().sub(bout); d.y *= 0.4; d.normalize();
@@ -301,7 +310,7 @@ function libererCreatures(mo, P, c0) { /* ses creatures sortent de terre en arc 
 }
 /* surpuissant : une nouvelle vague de creatures toutes les 20 s ; il les appelle bras ecartes (1,2 s), quand il n'est pas en plein sort */
 function capWabRenforts(mo, ctx) {
-  const P = mo.d.wabKit && mo.d.wabKit.phase; if (!P || mo.wabPhase !== 'surpuissant' || mo.etat !== 'actif') return;
+  const P = mo.d.wabKit && mo.d.wabKit.phase; if (!P || !P.vagues || mo.wabPhase !== 'surpuissant' || mo.etat !== 'actif') return; /* (vagues : plus de garous toutes les 20 s depuis le 25/11/2026, le garou geant de la cuve les remplace) */
   mo.wabRenfortT = (mo.wabRenfortT || 0) + ctx.dt; if (mo.wabRenfortT < P.vague || mo.wabOccupe || mo.geste) return; mo.wabRenfortT = 0;
   const c0 = combat, vivantes = combat.monstres.filter((o) => o.invoqueur === mo.id && o.etat !== 'mort').length; if (vivantes >= P.max + (P.maxParJoueur || 0) * (joueursWab(mo) - 1)) return;
   const an = mo.m.userData.anim, nomA = an && an.F.appel && an.F.appel[0]; if (nomA) { const a = jouerAnim(an, nomA, 0.15); a.timeScale = a.getClip().duration / 1.2; mo.geste = { t: 0, d: 1.2 }; mo.bloqueT = Math.max(mo.bloqueT || 0, 1.2); }
@@ -331,3 +340,79 @@ function capWabLibere(mo) {
 }
 CAPACITES.unshift(capWabPhase, capWabLibere, capWabRenforts);
 
+/* ---------------- le pupitre et la cuve du garou geant (25/11/2026) ---------------- */
+const PUPITRE_WAB = { course: 4.6, maxCourse: 3.4, appui: 0.75, alarme: 0.55 };
+const GEANT_WAB = { pv: 4, deg: 1.6, taille: 1.75, vit: 1.2, nom: 'Garou géant (sa dernière création)' }; /* (vie et coups d'un garou du labo fois 4 et 1,6 : 150 000 PV au niveau 100, 30 % de la vie du Docteur ; 75 % plus grand, 20 % plus rapide) */
+function lieuxPupitreWab(mo) { /* ou sont son pupitre et la cuve du garou : dans son labo, ceux de la salle ; ailleurs (l'Arene dev), a cote de lui */
+  if (typeof lieu !== 'undefined' && lieu === 'donjon' && typeof SALLES_LABO !== 'undefined' && mo.lab && mo.lab.mode === 'salle' && mo.lab.i === 4) {
+    const S = SALLES_LABO[4], cx = DONJON.x + S.x, cz = DONJON.z + S.z, F = ENTREE_SALLE + Math.PI, P2 = (ar, r) => ({ x: cx + Math.cos(F + ar) * r, z: cz + Math.sin(F + ar) * r });
+    const poste = P2(-0.38, S.R - 3.3), bouton = P2(-0.38, S.R - 2.0), cuve = P2(0.78, S.R - 3.6); return { poste, bouton, cuve, y: Y_SALLE, labo: true };
+  }
+  const pp = paysanMesh.position, d = Math.hypot(mo.x - pp.x, mo.z - pp.z) || 1, ux = (mo.x - pp.x) / d, uz = (mo.z - pp.z) / d; /* (a l'oppose du perso) */
+  const poste = pointValide(mo.x, mo.z, mo.x + ux * 5, mo.z + uz * 5), bouton = { x: poste.x + ux * 1.3, z: poste.z + uz * 1.3 }, cuve = pointValide(poste.x, poste.z, poste.x - uz * 4.2, poste.z + ux * 4.2);
+  return { poste, bouton, cuve, y: solA(poste.x, poste.z), labo: false };
+}
+function cuveGeantWab(x, y, z, a) { /* la cuve de verre ou flotte le garou geant, endormi, qui luit vert */
+  const g = new T.Group(); g.position.set(x, y, z);
+  const cuivre = new T.MeshLambertMaterial({ color: '#b8743a' }), verre = new T.MeshLambertMaterial({ color: '#9fffd2', transparent: true, opacity: 0.24, depthWrite: false }), jus = new T.MeshBasicMaterial({ color: '#5dff7a', transparent: true, opacity: 0.18, depthWrite: false });
+  const socle = new T.Mesh(new T.CylinderGeometry(2.0, 2.2, 0.55, 26), cuivre); socle.position.y = 0.27; g.add(socle);
+  const cap = new T.Mesh(new T.CylinderGeometry(1.85, 2.0, 0.5, 26), cuivre); cap.position.y = 5.55; g.add(cap);
+  const tube = new T.Mesh(new T.CylinderGeometry(1.8, 1.8, 4.85, 30, 1, true), verre); tube.position.y = 2.95; tube.renderOrder = 4; g.add(tube);
+  const liq = new T.Mesh(new T.CylinderGeometry(1.72, 1.72, 4.6, 26), jus); liq.position.y = 2.9; liq.renderOrder = 3; g.add(liq);
+  [1.4, 4.4].forEach((yy) => { const r = new T.Mesh(new T.TorusGeometry(1.83, 0.08, 6, 30), cuivre); r.rotation.x = Math.PI / 2; r.position.y = yy; g.add(r); });
+  for (let k = 0; k < 2; k++) { const tu = new T.Mesh(new T.CylinderGeometry(0.14, 0.14, 1.4, 8), cuivre); tu.position.set((k ? 0.6 : -0.6), 6.4, 0); g.add(tu); }
+  try { const m = clonerSquelette('wab-garou'); if (m) { m.scale.multiplyScalar(1.05); m.position.y = 0.75; m.rotation.y = a; m.traverse((q) => { q.raycast = () => {}; if (q.isMesh && q.material) { q.material = q.material.clone(); if (q.material.emissive) { q.material.emissive.set('#2fd12f'); q.material.emissiveIntensity = 0.3; } } }); g.add(m); g.userData.garou = m; } } catch (e) { /* (sans modele : la cuve seule) */ }
+  g.traverse((q) => { q.raycast = q.raycast || (() => {}); }); scene.add(g);
+  g.userData.bulles = setInterval(() => { if (!g.parent) { clearInterval(g.userData.bulles); return; } if (enPause || typeof emettre !== 'function') return; emettre(FX_LUM, 1, { x: x + (Math.random() - 0.5) * 2.6, y: y + 0.8, z: z + (Math.random() - 0.5) * 2.6, r: 0.05, v: [0, 1.4, 0], dv: 0.15, vie: [1.8, 2.6], taille: [0.14, 0.05], c: ['#c8ffd8', '#7dff5a'], a: 0.6, frein: 0 });
+    if (g.userData.garou) g.userData.garou.position.y = 0.75 + 0.1 * Math.sin(performance.now() / 650); }, 120);
+  return g;
+}
+function pupitreArene(x, y, z, a) { /* a l'Arene dev : un pupitre de fer a ecrans et gros bouton rouge, sorti du sol */
+  const g = new T.Group(); g.position.set(x, y, z); g.rotation.y = a; const fer = new T.MeshLambertMaterial({ color: '#4a4c52' }), ecran = new T.MeshBasicMaterial({ color: '#4dff8a' }), rouge = new T.MeshBasicMaterial({ color: '#ff2a2a' });
+  const b = new T.Mesh(new T.BoxGeometry(2.4, 1.1, 0.8), fer); b.position.y = 0.55; g.add(b); const h = new T.Mesh(new T.BoxGeometry(2.4, 1.4, 0.25), fer); h.position.set(0, 1.75, -0.28); g.add(h);
+  for (let k = 0; k < 3; k++) { const e = new T.Mesh(new T.PlaneGeometry(0.62, 0.5), ecran); e.position.set(-0.75 + k * 0.75, 1.85, -0.14); g.add(e); g.userData.ecrans = (g.userData.ecrans || []).concat(e); }
+  const bt = new T.Mesh(new T.CylinderGeometry(0.16, 0.18, 0.12, 14), rouge); bt.position.set(0, 1.16, 0.12); g.add(bt); g.userData.bouton = bt;
+  g.traverse((q) => { q.raycast = () => {}; }); scene.add(g); pouf(x, y, z, 2.2, '#c9c4b8'); return g;
+}
+/* au moment du combat dans son labo, la cuve est deja la (ouvrirSalleLabo) */
+let CUVE_WAB = null;
+window.addEventListener('DOMContentLoaded', () => { if (typeof ouvrirSalleLabo !== 'function') return; const ouvrirSalleLaboW = ouvrirSalleLabo; ouvrirSalleLabo = function (i) { const r = ouvrirSalleLaboW.apply(this, arguments); /* (29c se charge apres ce fichier : on l'enveloppe une fois toute la page lue) */
+  if (i === 4) setTimeout(() => { try { if (CUVE_WAB) { clearInterval(CUVE_WAB.userData.bulles); scene.remove(CUVE_WAB); } const L = lieuxPupitreWab({ lab: { mode: 'salle', i: 4 } }), S = SALLES_LABO[4]; CUVE_WAB = cuveGeantWab(L.cuve.x, L.y, L.cuve.z, Math.atan2(DONJON.x + S.x - L.cuve.x, DONJON.z + S.z - L.cuve.z)); } catch (e) { /* rien */ } }, 450);
+  return r; }; });
+function coursePupitreWab(mo, P, c0) {
+  const an = mo.m.userData.anim, L = lieuxPupitreWab(mo), nomC = (an.F.course && an.F.course[0]) || (an.F.marche && an.F.marche[0]), nomB = an.F.coup && an.F.coup[0];
+  toast(leNom(mo.d) + ' court à son pupitre !', 'alerte'); son('vague');
+  let pupitre = null, cuve = L.labo && CUVE_WAB && CUVE_WAB.parent ? CUVE_WAB : null;
+  if (!L.labo) { const a = Math.atan2(mo.x - L.poste.x, mo.z - L.poste.z); pupitre = pupitreArene(L.bouton.x, L.y, L.bouton.z, a); }
+  const pret = chargerSquelettes(['wab-garou']).catch(() => {}).then(() => { if (!cuve && combat === c0) { cuve = cuveGeantWab(L.cuve.x, solA(L.cuve.x, L.cuve.z), L.cuve.z, Math.atan2(mo.x - L.cuve.x, mo.z - L.cuve.z)); pouf(L.cuve.x, solA(L.cuve.x, L.cuve.z), L.cuve.z, 2.6, '#7dff5a'); } });
+  if (nomC) { const a = jouerAnim(an, nomC, 0.15); a.timeScale = Math.min(3, PUPITRE_WAB.course / ((ALLURES.wabbenstein && ALLURES.wabbenstein.course) || 1.4)); } mo.geste = { t: 0, d: 30 };
+  let t = 0, etape = 'course', te = 0, garou = false;
+  const fin = () => { if (pupitre) { setTimeout(() => { if (pupitre.parent) { pouf(pupitre.position.x, pupitre.position.y, pupitre.position.z, 2.0, '#c9c4b8'); scene.remove(pupitre); } }, 2500); } };
+  effets.push((dt) => {
+    if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabInvuln = false; mo.wabOccupe = false; mo.geste = null; fin(); return true; }
+    t += dt; mo.bloqueT = Math.max(mo.bloqueT || 0, 0.2); mo.cd = Math.max(mo.cd || 0, 0.5);
+    if (etape === 'course') {
+      const dx = L.poste.x - mo.x, dz = L.poste.z - mo.z, d = Math.hypot(dx, dz), pas = Math.min(d, PUPITRE_WAB.course * dt);
+      if (d > 0.15) { mo.x += dx / d * pas; mo.z += dz / d * pas; mo.ry = Math.atan2(dx, dz); if (L.labo && typeof bornerDonjon === 'function') { const q = bornerDonjon(mo.x, mo.z, 0.9, mo.lab); mo.x = q[0]; mo.z = q[1]; } }
+      if (d <= 0.3 || t > PUPITRE_WAB.maxCourse) { etape = 'appui'; te = 0; mo.ry = Math.atan2(L.bouton.x - mo.x, L.bouton.z - mo.z); if (nomB) { const a = jouerAnim(an, nomB, 0.1); a.timeScale = a.getClip().duration / PUPITRE_WAB.appui; } } }
+    else if (etape === 'appui') { te += dt;
+      if (te >= PUPITRE_WAB.appui * 0.55 && !mo.wabClic) { mo.wabClic = true; const y = (L.y || 0) + 1.25; emettre(FX_VIF, 14, { x: L.bouton.x, y, z: L.bouton.z, r: 0.15, dv: 3, haut: true, vie: [0.3, 0.5], taille: [0.1, 0.03], c: ['#ffffff', '#ff6a6a', '#ff2a2a'], grav: 6 }); flashLumiere(L.bouton.x, y + 0.8, L.bouton.z, '#ff3030', 5, 9, 0.5); chiffre('Clic !', new T.Vector3(L.bouton.x, y + 1.2, L.bouton.z), 'vol'); son('impactFleche', undefined, 2, 600);
+        if (pupitre) pupitre.userData.ecrans.forEach((e) => e.material = new T.MeshBasicMaterial({ color: '#ff3030' })); toast('Alarme ! La cuve du fond se met à bouillonner…', 'alerte'); }
+      if (te >= PUPITRE_WAB.appui) { etape = 'cuve'; te = 0; } }
+    else if (etape === 'cuve') { te += dt;
+      if (cuve && te < PUPITRE_WAB.alarme) { cuve.position.x = L.cuve.x + Math.sin(te * 60) * 0.05; } /* (la cuve tremble) */
+      if (te >= PUPITRE_WAB.alarme && !garou) { garou = true; pret.then(() => sortirGeantWab(mo, L, cuve, c0)); etape = 'injection'; mo.geste = null; mo.wabClic = false; fin(); injectionWab(mo, P, c0); return true; } }
+    return false; });
+}
+function sortirGeantWab(mo, L, cuve, c0) { /* la cuve eclate : eclats de verre, flot vert ; le garou geant en sort et se bat */
+  if (combat !== c0 || c0.fin) return; const x = L.cuve.x, z = L.cuve.z, y = cuve ? cuve.position.y : solA(x, z);
+  if (cuve) { clearInterval(cuve.userData.bulles); scene.remove(cuve); if (cuve === CUVE_WAB) CUVE_WAB = null; }
+  emettre(FX_VIF, 46, { x, y: y + 2.6, z, r: 1.4, dv: 7, haut: true, vie: [0.5, 0.9], taille: [0.16, 0.05], c: ['#e8fff4', '#b8ffe0', '#ffffff'], grav: 12, frein: 0.6, sol: y + 0.04, rebond: 0.3 });
+  emettre(FX_LUM, 36, { x, y: y + 0.3, z, r: 1.6, v: [0, 0.7, 0], dv: 3.2, vie: [0.8, 1.4], taille: [0.5, 0.12], c: ['#7dff5a', '#3fd14a'], a: 0.75, frein: 0.4 });
+  flashLumiere(x, y + 2, z, '#7dff5a', 6, 12, 0.6); secousse(0.35, 0.6); onde(x, y + 0.05, z, 5.5, '#7dff5a', 0.5, 0.8); son('vague', null, 2);
+  toast('La cuve éclate : le Garou géant, sa dernière création, en sort !', 'alerte');
+  if (!MONSTRES.wabGarou) return;
+  apparaitre('wabGarou', { x, z, apres: (o) => { if (typeof transmuter === 'function') transmuter(o); if (typeof grandirMutant === 'function') grandirMutant(o, GEANT_WAB, '#7dff5a', GEANT_WAB.nom);
+    o.invoqueur = mo.id; o.invoque = true; o.wabCreature = true; o.aggro = true; o.vitM = (o.vitM || 1) * GEANT_WAB.vit; o.ry = Math.atan2(paysanMesh.position.x - x, paysanMesh.position.z - z);
+    if (L.labo) { o.lab = { mode: 'salle', i: 4 }; o.salle = 4; o.y = Y_SALLE; if (o.dep) { o.dep.x = x; o.dep.z = z; o.dep.y = Y_SALLE; } } } }); combat.total++;
+}

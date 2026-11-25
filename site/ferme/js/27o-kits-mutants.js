@@ -159,9 +159,10 @@ CAPACITES.push(capObusMut, capBombardMut, capCrachatMut, capPinceMut, capGrappin
 /* les renforts ne donnent rien (ni poil, ni cristal) ; la flaque du fluo tombe quand meme */
 { const butinMut2 = butin; butin = function (mo) { if (mo && mo.renfort && combat && combat.genre === 'donjon') { try { if (mo.d && mo.d.flaqueMort) flaqueFluo(mo); } catch (e) { /* rien */ } return; } return butinMut2.apply(this, arguments); }; }
 /* ---------------- le Docteur, plus dur (« le meme delire que les boss de l'ile, voire plus dur vu qu'on est plusieurs ») ---------------- */
-const KIT_WAB_DIFFICILE = { rafale: 8, harpon: 7, saisie: 6.5, vague: 16, vie: 500000, parJoueur: 0.9 }; /* (vie : 500 000 en solo, choisi par Mathieu au formulaire le 24/11/2026 ; vie des mutants et boss x5 gardes) */
+const KIT_WAB_DIFFICILE = { rafale: 6, harpon: 4.5, saisie: 5, /* (25/11/2026, « le boss est beaucoup trop facile : reduis les delais de ses sorts, augmente sa vitesse de deplacement, reduis le delai pour qu'il envoie son grappin », Mathieu : 8, 7 et 6,5 avant ; sa vitesse 3 au lieu de 2, plus bas) */ vague: 16, vie: 500000, parJoueur: 0.9 }; /* (vie : 500 000 en solo, choisi par Mathieu au formulaire le 24/11/2026 ; vie des mutants et boss x5 gardes) */
 if (typeof KIT_WAB !== 'undefined') { KIT_WAB.rafale.periode = KIT_WAB_DIFFICILE.rafale; KIT_WAB.harpon.periode = KIT_WAB_DIFFICILE.harpon; KIT_WAB.saisie.periode = KIT_WAB_DIFFICILE.saisie; KIT_WAB.phase.vague = KIT_WAB_DIFFICILE.vague;
   KIT_WAB.vie.base = KIT_WAB_DIFFICILE.vie; KIT_WAB.vie.parJoueur = KIT_WAB_DIFFICILE.parJoueur; }
+if (MONSTRES.wabbenstein) MONSTRES.wabbenstein.vitesse = 3.0;
 
 /* ILS CONTOURNENT (24/11/2026, « le mini-boss etait bugge dans un mur invisible en bord de map », Mathieu) : sur l'ile, un mutant lance a ta poursuite allait tout
    droit et restait colle contre un rocher, un arbre ou le bord de l'eau. Toutes les 0,7 s, s'il ne te voit pas en ligne droite (la grille des chemins du perso,
