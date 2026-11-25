@@ -30,11 +30,11 @@ const RARETE_CANNES = [0, 0, 10, 20, 35, 50];
 /* LES CANNES SE FABRIQUENT (25/11/2026, « que la canne a peche ce soit un craft, avec plein de ressources differentes, surtout celles qu'on n'utilise pas trop,
    et qui ont du sens », « fabrication debloquee par especes », « poisson et ressources », Mathieu) : la recette s'ouvre a 3, 5, 7 et 9 especes pechees (CANNE_ESPECES),
    a l'atelier du pecheur ; les ressources viennent de la grange, les poissons du tonneau. */
-const RECETTES_CANNES = [null, null,
-  { res: [['kaliptus', 6], ['poil_wabbit', 8], ['plume', 10]], poissons: [['goujon', 3]] }, /* (le bois souple du Kaliptus, la ligne tressee en poil de Wabbit, les bouchons en plume de Tofu) */
-  { res: [['ecaille_drag', 6], ['os_chafer', 10], ['laine_fine', 6]], poissons: [['brochet', 3]] }, /* (le vernis d'ecaille de Dragoeuf, les anneaux en os de Chafer, la ligne en laine fine) */
-  { res: [['dent_bwork', 8], ['ecaille_tortue', 6], ['plume_kanniboul', 8], ['laine_soyeuse', 6]], poissons: [['raie', 2]] }, /* (les engrenages du moulinet en dents de Bwork, la poignee en ecaille de Tortue, la mouche en plume de Kanniboul, la ligne en laine soyeuse) */
-  { res: [['plume_doree', 4], ['laine_doree', 4], ['brassard_vsa', 2]], poissons: [['lotte', 1]] }]; /* (l'or des plumes et de la laine doree, deux brassards de la VSA) */
+const RECETTES_CANNES = [ /* (25/11/2026, « triple le nombre de ressources necessaires », Mathieu : les ressources x3, les poissons inchanges) */null, null,
+  { res: [['kaliptus', 18], ['poil_wabbit', 24], ['plume', 30]], poissons: [['goujon', 3]] }, /* (le bois souple du Kaliptus, la ligne tressee en poil de Wabbit, les bouchons en plume de Tofu) */
+  { res: [['ecaille_drag', 18], ['os_chafer', 30], ['laine_fine', 18]], poissons: [['brochet', 3]] }, /* (le vernis d'ecaille de Dragoeuf, les anneaux en os de Chafer, la ligne en laine fine) */
+  { res: [['dent_bwork', 24], ['ecaille_tortue', 18], ['plume_kanniboul', 24], ['laine_soyeuse', 18]], poissons: [['raie', 2]] }, /* (les engrenages du moulinet en dents de Bwork, la poignee en ecaille de Tortue, la mouche en plume de Kanniboul, la ligne en laine soyeuse) */
+  { res: [['plume_doree', 12], ['laine_doree', 12], ['brassard_vsa', 6]], poissons: [['lotte', 1]] }]; /* (l'or des plumes et de la laine doree, deux brassards de la VSA) */
 const NOMS_RES_CANNES = { kaliptus: ['Branche de Kaliptus', 'Branches de Kaliptus'], poil_wabbit: ['Poil de Wabbit', 'Poils de Wabbit'], plume: ['Plume de Tofu', 'Plumes de Tofu'], ecaille_drag: ['Écaille de Dragoeuf', 'Écailles de Dragoeuf'], os_chafer: ['Os de Chafer', 'Os de Chafer'], laine_fine: ['Laine fine', 'Laines fines'], dent_bwork: ['Dent de Bwork', 'Dents de Bwork'], ecaille_tortue: ['Écaille de Tortue', 'Écailles de Tortue'], plume_kanniboul: ['Plume de Kanniboul', 'Plumes de Kanniboul'], laine_soyeuse: ['Laine soyeuse', 'Laines soyeuses'], plume_doree: ['Plume dorée', 'Plumes dorées'], laine_doree: ['Laine dorée', 'Laines dorées'], brassard_vsa: ['Brassard VSA', 'Brassards VSA'] };
 const nomResCanne = (id, q) => { const N = NOMS_RES_CANNES[id]; return N ? N[q > 1 ? 1 : 0] : id; };
 const nomPoissonCanne = (id, q) => { const p = POISSONS.find((x) => x.id === id); return p ? (q > 1 ? p.nom.replace(/^(\S+)/, '$1s') : p.nom) : id; }; /* (5 : la Canne doree, la zone verte la plus large) */
