@@ -27,6 +27,16 @@ const POTS_HDV = ['petit', 'grand', 'menthe', 'citron'], VIE_APRES_DEFAITE = 0.3
    Hors combat seulement. Sans toi (pause, absence), elle remonte au meme rythme, pas ralentie comme les cultures : attendre reste attendre. */
 const REGEN_PV = 1, REGEN_PAS = 60000;
 function regenVie(dtReel) { if (!S_ || S_.pv == null || combat || !S_.perso || !(dtReel > 0)) return; const max = statsPerso().pvMax; S_.pv = Math.min(max, S_.pv + REGEN_PV * dtReel / REGEN_PAS); if (S_.pv >= max) S_.pv = null; }
+/* LA VIE SUIT SON POURCENTAGE (26/11/2026, Dinomight par Discord : « les hp et les potions ne sont pas indexes en % : j'ai 1000/10000, ma potion 25 % me met a
+   3500/10000, je change de stuff et je passe a 3500 hp max, mes hp sont toujours a 3500 : ma potion 25 % m'a regenere 90 % ») : hors combat, quand la vie max
+   change (equipement, ensemble, forgemagie, eveil, niveau...), la vie garde le meme pourcentage. S_.pvMaxVu : la derniere vie max vue ; controle a chaque
+   sauvegarde (tout changement d'equipement en fait une), a chaque passage du temps (regenVie) et avant de boire un pot */
+function suivreVieMax() { try { if (!S_ || !S_.perso || combat) return; const max = statsPerso().pvMax; if (!(max > 0)) return; const vu = S_.pvMaxVu;
+    if (vu > 0 && vu !== max && S_.pv != null) S_.pv = Math.max(0, Math.min(max, Math.round(S_.pv * max / vu)));
+    S_.pvMaxVu = max; } catch (e) { /* (au chargement, avant 21-combat.js : rien) */ } }
+{ const regenVieP = regenVie; regenVie = function () { suivreVieMax(); return regenVieP.apply(this, arguments); }; }
+{ const sauverP = sauver; sauver = function () { suivreVieMax(); return sauverP.apply(this, arguments); }; }
+{ const boirePotP = boirePot; boirePot = function () { suivreVieMax(); return boirePotP.apply(this, arguments); }; }
 const totalPots = () => Object.keys(POTS).reduce((t, k) => t + ((S_.pots && S_.pots[k]) || 0), 0);
 const citronPret = () => { const r = !!S_.citron; S_.citron = false; return r; };
 const royalePrete = () => { const r = S_.royale || 0; S_.royale = 0; return r; }; /* (la Royale bue avant la vague : +20 % d'Agilite pendant celle-ci, ROYALE_AGI) */ /* (le Citron bu avant la vague : le perso court plus vite pendant celle-ci) */

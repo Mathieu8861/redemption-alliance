@@ -87,7 +87,7 @@ function dgArmer(cle) { /* les memes refus qu'armerSort, sans le message de vise
   const v = Object.assign({ bouton: cle }, B.visee()); if (v.instant) { B.tirer(v, null); return 'instant'; }
   visee = Object.assign(v, { point: paysanMesh.position.clone() }); return visee;
 }
-const dgActifs = () => combat.monstres.filter((o) => o.etat === 'actif');
+const dgActifs = () => { const L = combat.monstres.filter((o) => o.etat === 'actif'), V = L.filter((o) => !o.ancre && !o.faible); return V.length ? V : L; }; /* (26/11/2026 : la visee automatique laisse de cote un boss invulnerable, le Chene Mou enracine, s'il y a autre chose a viser) */
 function dgPointAuto(v) { /* l'appui court : ou le sort part tout seul */
   const pp = paysanMesh.position, L = dgActifs(); if (!L.length) return null; const d = (o) => Math.hypot(o.x - pp.x, o.z - pp.z), poids = (o) => (o.d.boss || o.d.demi ? 1.6 : 1);
   if (v.ligne || v.cone) { const P = v.portee || PORTEE_PERCANTE, larg = (v.largeur || LARGEUR_PERCANTE) + 0.45; let best = null;

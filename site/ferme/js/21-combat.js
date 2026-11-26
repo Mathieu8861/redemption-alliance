@@ -168,9 +168,9 @@ function monstreAViser(p, max) { /* les tours et l'arbalete : d'abord un monstre
   return cas || best;
 }
 function plusProcheMonstre(p, max) {
-  let best = null, bd = max || Infinity;
-  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.fume > 0) return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (d < bd) { bd = d; best = o; } }); /* (un Fumigene dans sa fumee : le perso en cherche un autre) */
-  return best;
+  let best = null, bd = max || Infinity, invu = null, bdI = max || Infinity;
+  if (combat) combat.monstres.forEach((o) => { if (o.etat !== 'actif' || o.fume > 0) return; const d = Math.hypot(o.x - p.x, o.z - p.z); if (o.ancre || o.faible) { if (d < bdI) { bdI = d; invu = o; } return; } if (d < bd) { bd = d; best = o; } }); /* (un Fumigene dans sa fumee : le perso en cherche un autre) */
+  return best || invu; /* (26/11/2026, yannick-jadot : « quand j'invoque mon Bouftou ou mon Tronknyde et qu'il y a plusieurs cibles, ils vont sur le Chene Mou en priorite meme s'il est invulnerable » : un monstre invulnerable (enracine, affaibli) passe apres tous les autres, pour le perso, ses sorts et ses invocations) */
 }
 const tourner = (o, ang, dt) => { let d = ang - o.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); o.ry += d * Math.min(1, dt * 8); };
 const vecC = new T.Vector3();
@@ -3630,7 +3630,7 @@ function majPerso(dt) {
     if (!aPortee.length) { const aide = aideContact(pp0, classe); if (aide) combat.cible = aide; /* (au doigt, le Iop va au contact) */ else { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; } }
     else if (!combat.cible || combat.cible.etat !== 'actif' || Math.hypot(combat.cible.x - pp0.x, combat.cible.z - pp0.z) > porteeSur(combat.cible, st)) combat.cible = aPortee[0];
   }
-  let c = combat.cible; if (!c || c.etat !== 'actif' || c.fume > 0) c = combat.cible = plusProcheMonstre(paysanMesh.position);
+  let c = combat.cible; if (!c || c.etat !== 'actif' || c.fume > 0 || c.ancre || c.faible) c = combat.cible = plusProcheMonstre(paysanMesh.position); /* (une cible devenue invulnerable : une autre s'il y en a, 26/11/2026) */
   if (!c) { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; }
   if (condamne(c)) { /* ce qui est en vol va l'achever : le suivant, sans attendre (en tenant la position, seulement un monstre a portee) */
     const p0 = paysanMesh.position, alt = combat.monstres.filter((o) => o.etat === 'actif' && o !== c && !condamne(o) && (!combat.tenir || Math.hypot(o.x - p0.x, o.z - p0.z) <= porteeSur(o, st))).sort((a, b) => Math.hypot(a.x - p0.x, a.z - p0.z) - Math.hypot(b.x - p0.x, b.z - p0.z))[0];

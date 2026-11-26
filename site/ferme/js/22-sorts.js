@@ -99,7 +99,7 @@ function pointSol(ev) { /* le point du sol sous la souris : la case touchee, sin
   const q = new T.Vector3(); return ray.ray.intersectPlane(solPlan, q) ? q : null;
 }
 function viser(v) {
-  const pp = paysanMesh.position, c = (combat.cible && combat.cible.etat === 'actif') ? combat.cible : plusProcheMonstre(pp);
+  const pp = paysanMesh.position, c = (combat.cible && combat.cible.etat === 'actif' && !combat.cible.ancre && !combat.cible.faible) ? combat.cible : plusProcheMonstre(pp); /* (pas sur un monstre invulnerable s'il y en a un autre, 26/11/2026) */
   visee = Object.assign(v, { point: c ? new T.Vector3(c.x, c.m.position.y, c.z) : pp.clone().add(new T.Vector3(Math.sin(paysanMesh.rotation.y) * 3, 0, Math.cos(paysanMesh.rotation.y) * 3)) });
   toast(v.cone ? 'Vise : le souffle part vers la souris. Clique pour lancer (clic droit pour annuler).' : v.ligne ? (v.cle === 'royal' ? 'Vise : tu fonces en ligne droite vers la souris. Clique pour charger (clic droit pour annuler).' : v.cle === 'chafer' ? 'Vise : la lance part en ligne droite vers la souris. Clique pour la jeter (clic droit pour annuler).' : 'Vise : la flèche part en ligne droite vers la souris. Clique pour tirer (clic droit pour annuler).') : v.rayon < 1 ? 'Vise un monstre et clique (clic droit pour annuler).' : 'Place le cercle avec la souris, clique pour lancer (clic droit pour annuler).', 'or');
 }
