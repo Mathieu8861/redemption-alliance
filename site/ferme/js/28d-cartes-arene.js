@@ -7,7 +7,13 @@
    Les effets se branchent sur les coups recus (blesserPerso), les coups donnes (blesser), la force (boostDegats), les gains (gainsArene), la chute (persoATerre)
    et une petite boucle par partie, lancee a chaque vague (appliquerVagueArene). */
 const CARTES_P11 = { pierre: 0.1, critique: 0.1, course: 10, epines: 0.2, ulti: 0.25, moisson: 0.01, bouclier: 0.15, souffle: 0.3, fureur: 0.25, bourse: 0.25, explosion: 0.15, volP11: 0.01 };
-const LEG_CARTES = { chance: 1 / 7, ombre: { periode: 15, duree: 3 }, ouverture: { attente: 2.2, duree: 4, x: 2 }, temps: { periode: 20, duree: 2, boss: 1 }, aura: { R: 3.2, pas: 0.5, part: 0.1 }, frenesie: { pas: 0.04, max: 0.6 } };
+const LEG_CARTES = { chance: 0.03, /* (3 % par carte tiree : la plus rare ; une sur sept avant les raretes, 26/11/2026) */ ombre: { periode: 15, duree: 3 }, ouverture: { attente: 2.2, duree: 6, x: 2 }, temps: { periode: 20, duree: 2, boss: 1 }, aura: { R: 3.2, pas: 0.5, part: 0.1 }, frenesie: { pas: 0.02, max: 0.4 } }; /* (26/11/2026, « Frenesie trop broken, mets 40 %, 2 % par monstre tue ; et up Entree fracassante, 5 ou 6 secondes », Mathieu : 4 % et 60 % avant ; l'Entree passe de 4 a 6 s) */
+/* LES RARETES (26/11/2026, « il y a des cartes plus fortes, donc il faut que certaines cartes soient plus rares a avoir que d'autres », Mathieu) : au tirage, une carte
+   commune pese 10, une rare 4, une epique 3 ; une legendaire a 3 % de chance par carte tiree (une sur sept avant) : environ 72 % de communes, 20 % de rares,
+   4,5 % d'epiques et 3 % de legendaires. Une pastille sur la carte dit sa rarete. */
+const RARETE_CARTES = { puissance: 'commune', agilite: 'commune', vita: 'commune', foule: 'commune', recharge: 'commune', butin: 'commune', pierre: 'commune', course: 'commune', moisson: 'commune', bourse: 'commune',
+  esquive: 'rare', vol: 'rare', critique: 'rare', epines: 'rare', ulti: 'rare', bouclier: 'rare', fureur: 'rare', souffle: 'epique', explosion: 'epique' };
+const POIDS_RARETE = { commune: 10, rare: 4, epique: 3 }, NOMS_RARETE = { rare: 'Rare', epique: 'Épique' };
 const SVG_C = (s) => '<g ' + TR_CARTE + '>' + s + '</g>';
 Object.assign(BONUS_ARENE, {
   pierre: { p11: true, nom: 'Peau de pierre', c: ['#8a8f99', '#7d838e', '#e2e5ea'], effet: '-10 % de dégâts reçus', txt: 'chaque coup qui te touche fait moins mal',
@@ -35,23 +41,25 @@ Object.assign(BONUS_ARENE, {
   /* les legendaires */
   ombre: { leg: true, p11: true, nom: 'Voile d\'ombre', c: ['#6b3fb8', '#3a1f6e', '#e2d4fb'], effet: 'invisible 3 s toutes les 15 s', txt: 'plus rien ne te touche pendant ce temps',
     svg: SVG_C('<path d="M60 10c-18 0-28 14-28 30v42c6-4 10-4 14 0 4-4 10-4 14 0 4-4 10-4 14 0 4-4 8-4 14 0V40c0-16-10-30-28-30Z" fill="#5a3a9e" fill-opacity=".75"/>') + '<circle cx="50" cy="40" r="5" fill="#e2d4fb"/><circle cx="70" cy="40" r="5" fill="#e2d4fb"/><g fill="#b48cff" opacity=".7"><circle cx="18" cy="30" r="4"/><circle cx="102" cy="60" r="5"/><circle cx="96" cy="22" r="3"/></g>' },
-  ouverture: { leg: true, p11: true, nom: 'Entrée fracassante', c: ['#d9443a', '#7a1f1a', '#ffe0b8'], effet: 'dégâts ×2 en début de vague', txt: 'les 4 premières secondes de chaque vague',
+  ouverture: { leg: true, p11: true, nom: 'Entrée fracassante', c: ['#d9443a', '#7a1f1a', '#ffe0b8'], effet: 'dégâts ×2 en début de vague', txt: 'les 6 premières secondes de chaque vague',
     svg: SVG_C('<path d="M20 70 48 16l8 26 22-20-8 30 30-6-34 38Z" fill="#ffb02e"/>') + '<text x="86" y="36" font-family="Lilita One, sans-serif" font-size="30" fill="#ffd04a" stroke="#3b2a1a" stroke-width="3" paint-order="stroke" text-anchor="middle">×2</text>' },
   temps: { leg: true, p11: true, nom: 'Arrêt du temps', c: ['#3fb0d0', '#1f6a80', '#d8f4fb'], effet: 'monstres figés 2 s toutes les 20 s', txt: 'les boss, 1 s seulement',
     svg: SVG_C('<path d="M36 10h48M36 82h48" fill="none" stroke-width="5"/><path d="M40 12c0 22 20 26 20 34S40 58 40 80h40c0-22-20-26-20-34s20-12 20-34Z" fill="#d8f4fb"/><path d="M48 76h24c-2-10-12-14-12-20-0 6-10 10-12 20Z" fill="#ffd04a"/>') + '<g stroke="#9fe3f5" stroke-width="3" stroke-linecap="round"><path d="M14 40l8 8M22 40l-8 8M98 30l8 8M106 30l-8 8"/></g>' },
   aura: { leg: true, p11: true, nom: 'Aura brûlante', c: ['#e8541c', '#8e2a0c', '#ffd8b8'], effet: 'les monstres proches brûlent', txt: '20 % de tes dégâts par seconde, à moins de 3 cases',
     svg: '<circle cx="60" cy="48" r="34" fill="none" stroke="#ff7a2e" stroke-width="7" stroke-dasharray="10 6"/>' + SVG_C('<path d="M60 70c-10 0-16-8-16-16 0-10 8-14 10-24 6 6 8 12 8 16 4-4 6-10 6-14 6 6 10 14 10 22 0 10-8 16-18 16Z" fill="#ffb02e"/>') },
-  frenesie: { leg: true, p11: true, nom: 'Frénésie', c: ['#b0243a', '#6a1224', '#f7ccd4'], effet: '+4 % de dégâts par monstre tué', txt: 'jusqu\'à la fin de la vague, 60 % au plus',
+  frenesie: { leg: true, p11: true, nom: 'Frénésie', c: ['#b0243a', '#6a1224', '#f7ccd4'], effet: '+2 % de dégâts par monstre tué', txt: 'jusqu\'à la fin de la vague, 40 % au plus',
     svg: SVG_C('<path d="M34 12c10 16 16 26 16 36a16 16 0 0 1-32 0c0-10 6-20 16-36Z" fill="#d0243a"/><path d="M80 80V30M66 44l14-14 14 14M96 66V40M86 50l10-10 10 10" fill="none" stroke-width="5"/>') } });
 Object.assign(BONUS_ARENE.vol, { effetP11: '2 % de vol de vie', txtP11: 'tes coups te soignent de 2 % des dégâts infligés' });
 
 /* le tirage : les cartes du palier 11 seulement avec lui ; une legendaire (pas deja prise) a une chance sur sept par carte */
 { const tirer0 = tirerBonusArene; tirerBonusArene = function () { if (!cartesArenePct()) { const L = tirer0.apply(this, arguments).filter((id) => !BONUS_ARENE[id].p11); return L.length ? L : tirer0.apply(this, arguments); }
   const pris = (bonusA() || {}), norm = Object.keys(BONUS_ARENE).filter((id) => !BONUS_ARENE[id].leg), leg = Object.keys(BONUS_ARENE).filter((id) => BONUS_ARENE[id].leg && !pris[id]), out = [];
-  for (let k = 0; k < 3; k++) { const L = leg.length && Math.random() < LEG_CARTES.chance ? leg : norm; const i = Math.floor(Math.random() * L.length); out.push(L.splice(i, 1)[0]); }
+  const pese = (L) => { const P = L.map((id) => POIDS_RARETE[RARETE_CARTES[id] || 'commune'] || 10), T0 = P.reduce((a, b) => a + b, 0); let x = Math.random() * T0; for (let i = 0; i < L.length; i++) { x -= P[i]; if (x <= 0) return i; } return L.length - 1; };
+  for (let k = 0; k < 3; k++) { if (leg.length && Math.random() < LEG_CARTES.chance) { out.push(leg.splice(Math.floor(Math.random() * leg.length), 1)[0]); continue; } out.push(norm.splice(pese(norm), 1)[0]); }
   return out; }; }
 /* le cadre dore des legendaires */
-{ const carte0 = carteArene; carteArene = function (id) { const h = carte0.apply(this, arguments); return BONUS_ARENE[id] && BONUS_ARENE[id].leg ? h.replace('<button class="bca', '<button class="bca leg').replace('<span class="bca-gemme"></span>', '<span class="bca-gemme"></span><span class="bca-leg">Légendaire</span>') : h; }; }
+{ const carte0 = carteArene; carteArene = function (id) { const h = carte0.apply(this, arguments); if (BONUS_ARENE[id] && BONUS_ARENE[id].leg) return h.replace('<button class="bca', '<button class="bca leg').replace('<span class="bca-gemme"></span>', '<span class="bca-gemme"></span><span class="bca-leg">Légendaire</span>');
+  const r = cartesArenePct() && RARETE_CARTES[id]; return r && NOMS_RARETE[r] ? h.replace('<button class="bca', '<button class="bca ' + r).replace('<span class="bca-gemme"></span>', '<span class="bca-gemme"></span><span class="bca-leg bca-rar ' + r + '">' + NOMS_RARETE[r] + '</span>') : h; }; } /* (et la pastille des rares et des epiques) */
 /* une carte prise : la vitesse (Pas de course) passe par les caracteristiques, on les relit ; les legendaires s'annoncent */
 { const prendre0 = prendreBonusArene; prendreBonusArene = function (id) { const r = prendre0.apply(this, arguments); if (combat) { combat.p11 = null; if (BONUS_ARENE[id] && BONUS_ARENE[id].leg) son('niveau'); } return r; }; }
 

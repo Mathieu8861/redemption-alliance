@@ -1849,3 +1849,7 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .bca.leg .bca-face:first-child::after { border-color: rgba(184,134,42,.55); } .bca.leg .bca-effet { color: #ffd65a; }
 .bca-leg { position: absolute; top: 3.05em; left: 50%; transform: translateX(-50%) rotate(-3deg); z-index: 3; background: linear-gradient(180deg, #ffe27a, #e0a830); border: .16em solid var(--bord); border-radius: .5em; font: 400 .78em/1 var(--f-titre); color: #3b2a1a; padding: .22em .6em; letter-spacing: .04em; white-space: nowrap; box-shadow: 0 .16em 0 var(--bord); }
 @keyframes bcaLueur { from { box-shadow: 0 .36em 0 #6e4a10, 0 0 0 .28em #ffd65a, 0 0 1em .1em rgba(255,200,70,.35); } to { box-shadow: 0 .36em 0 #6e4a10, 0 0 0 .28em #ffe9a0, 0 0 2em .5em rgba(255,200,70,.7); } }
+/* (26/11/2026) les raretes des cartes de l'Arene : rare (bleu), epique (violet) ; la legendaire garde son cadre dore */
+.bca-rar.rare { background: linear-gradient(180deg, #9fd0ff, #4a8ee0); color: #10243f; } .bca-rar.epique { background: linear-gradient(180deg, #e2c2ff, #9b5ad6); color: #2a1040; }
+.bca.rare .bca-face:first-child { box-shadow: 0 .36em 0 var(--bord), 0 0 0 .22em #6fb0f0, 0 .8em 1.4em rgba(59,42,26,.28); }
+.bca.epique .bca-face:first-child { box-shadow: 0 .36em 0 var(--bord), 0 0 0 .24em #b48cff, 0 0 1.2em .2em rgba(180,140,255,.45); }
