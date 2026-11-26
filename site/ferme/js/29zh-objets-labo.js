@@ -4,7 +4,7 @@
    et en rare encore plus dur », Mathieu ; au formulaire : « 3 fois plus dur », niveau 100, un legendaire du Docteur plus tard ; puis, liste revue : le vol de vie
    « reduis-le a 0,6 au max », venin et ecailles a expliquer, la Ruee des pattes a changer). Version dev : le labo n'est pas encore sorti.
    - Un objet par monstre du labo, hors panoplie (aucun bonus de panoplie, o.labo : le monstre qui le lache), niveau 100, rare a x1,5 (sauf la portee et le vol
-     de vie, les memes en rare) ; leur icone : celle de leur monstre, en attendant les leurs.
+     de vie, les memes en rare) ; leurs icones (26/11/2026) : modeles faits a la main, blender/objets-labo.py, photographies par icones-labo-objets.html (obj-labo-*).
    - Le butin : dans le labo (combat.genre 'donjon'), chaque mutant abattu a 7 / 3 % de chance (environ 2,3 %) de lacher l'objet de son type, Prospection comprise ;
      les specimens des cuves et les chefs des camps 7 % ; la version rare deux fois plus rare qu'en vague (CHANCE_RARE x 0,5).
    - Deux stats nouvelles : la portee (+1 case, statsPerso, 21-combat.js) et le vol de vie (en dixiemes de %, DIXIEMES, 03-equipements.js : 4 a 6 = 0,4 a 0,6 %) */
@@ -23,7 +23,7 @@ const OBJETS_LABO = [
 const FIXES_RARE_LABO = new Set(['portee', 'volVie']), LOOT_OBJETS_LABO = { mutant: 0.07 / 3, chef: 0.07, rare: 0.5 }, OBJET_DU_MONSTRE = {};
 OBJETS_LABO.forEach(([id, emp, nom, monstre, icone, bornes]) => {
   const ref = (a, b) => Math.round((a + b) / 2), st = Object.fromEntries(Object.entries(bornes).map(([c, [a, b]]) => [c, ref(a, b)])), rid = id + '-rare';
-  OBJETS[id] = { id, emp, nom, niv: 100, labo: monstre, icone, stats: st }; OBJET_DU_MONSTRE[monstre] = (OBJET_DU_MONSTRE[monstre] || []).concat(id);
+  OBJETS[id] = { id, emp, nom, niv: 100, labo: monstre, icone: 'obj-' + id, stats: st }; /* (icone : obj-labo-..., 26/11/2026 ; avant, celle du monstre) */ OBJET_DU_MONSTRE[monstre] = (OBJET_DU_MONSTRE[monstre] || []).concat(id);
   const bR = Object.fromEntries(Object.entries(bornes).map(([c, [a, b]]) => [c, FIXES_RARE_LABO.has(c) ? [a, b] : [Math.ceil(a * 1.5), Math.ceil(b * 1.5)]]));
   OBJETS[rid] = Object.assign({}, OBJETS[id], { id: rid, base: id, rare: true, nom: nom + ' ★', stats: Object.fromEntries(Object.entries(bR).map(([c, [a, b]]) => [c, ref(a, b)])) });
   BORNES_JET[id] = bornes; BORNES_JET[rid] = bR;
@@ -49,11 +49,11 @@ const volVieLabo = () => { if (!combat) return 0; if (combat.volLabo == null) co
    chanceLeg, 03-equipements.js ; la Prospection l'augmente comme les autres). Son sort (touche 3) : une tourelle a cawottes posee la ou tu vises (5 cases), 8 s, des
    rafales de 3 cawottes toutes les 2 s sur le monstre le plus proche (5 cases autour d'elle), chacune 40 % de tes degats (12 en tout, 4,8 fois tes degats). Recharge 14 s.
    En plus : tes invocations (le Bouftou de l'Osamodas, le Dragonnet, la Bouture, la tourelle) font +15 %. Les tirs de la tourelle sont ceux d'une invocation (SRC_DEG
-   « Tourelle a cawottes ») : ni degats fixes ni vol de vie. Pas encore de lunettes visibles sur le perso ; son icone : celle du Docteur, en attendant la sienne ================= */
+   « Tourelle a cawottes ») : ni degats fixes ni vol de vie. Portees en bandeau au niveau des yeux (plus bas, 26/11/2026) ; icone obj-leg-docteur ================= */
 const TOURELLE_DOC = { duree: 8, periode: 2, rafale: 3, ecart: 0.18, portee: 10, part: 0.4, vitesse: 24, invoc: 0.15 }, SOURCES_INVOC = new Set(['Bouftou invoqué', 'Bouture', 'Dragonnet', 'Tourelle à cawottes']);
 LEGENDAIRES.push({ cle: 'docteur', boss: 'wabbenstein', nom: 'Lunettes du Docteur', rang: PANOS.findIndex((P) => P.id === 'ecorce'), chance: 0.25,
   pouvoir: 'Sort Tourelle à cawottes (touche 3) : tu poses une tourelle là où tu vises (jusqu\'à 5 cases de toi) ; pendant 8 s, elle tire des rafales de 3 cawottes sur le monstre le plus proche (5 cases autour d\'elle), chacune 40 % de tes dégâts. Recharge 14 s. Et tes invocations (le Bouftou de l\'Osamodas, le Dragonnet, la Bouture, la tourelle) font 15 % de dégâts en plus.' });
-{ const L = LEGENDAIRES[LEGENDAIRES.length - 1], k = L.rang; OBJETS['leg-docteur'] = { id: 'leg-docteur', pano: k, leg: 'docteur', emp: 'coiffe', nom: L.nom, niv: 100, icone: 'wabbenstein', pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; }
+{ const L = LEGENDAIRES[LEGENDAIRES.length - 1], k = L.rang; OBJETS['leg-docteur'] = { id: 'leg-docteur', pano: k, leg: 'docteur', emp: 'coiffe', nom: L.nom, niv: 100, icone: 'obj-leg-docteur', pouvoir: L.pouvoir, stats: { vita: 2 * VALEURS.vita[k], sagesse: 2 * VALEURS.sagesse[k], puissance: VALEURS.puissance[k] } }; }
 SORTS_LEG.docteur = { nom: 'Tourelle à cawottes', teinte: '#f08a24', recharge: 14, portee: TOURELLE_DOC.portee, zone: 1.2 };
 const lunettesPortees = () => { if (!combat) return false; if (combat.lunettesDoc == null) combat.lunettesDoc = legDe('coiffe') === 'docteur'; return combat.lunettesDoc; };
 /* +15 % aux invocations */
@@ -95,3 +95,70 @@ function tourelleDocteur(pt) {
     const c = combat; if (!c || c.fin || legDe(emp) !== 'docteur') return executerLegDoc.apply(this, arguments);
     c[cdLeg(emp)] = sortLeg('docteur').recharge; if (compter && c.st) c.st.sorts++; const pp = paysanMesh.position; if (Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05) paysanMesh.userData.angle = Math.atan2(pt.x - pp.x, pt.z - pp.z);
     son('sort'); tourelleDocteur(pt); }; }
+
+/* ================= LES PIECES DU LABO PORTEES (26/11/2026, « faut juste voir comment tu fais porter les lunettes, ca devrait etre un bandeau a lunettes autour
+   de la tete au niveau des yeux, pas un chapeau », puis « la cape vampire, les mobs sont blancs : soit les mobs violets, soit la cape blanche », Mathieu) :
+   les trois pieces qui se voient sur le perso, faites a la main comme leurs icones (blender/objets-labo.py -- assets/modeles/jeu/objets-labo.glb
+   viseur,cape,lunettes ; charge a la demande, quand l'une est portee) :
+   - le Viseur du drone : le casque enfonce sur la tete comme les autres coiffes (rond) ; son hublot vert est a part (Obj_labo_viseur_oeil) et se pose devant
+     un oeil du perso, a sa taille (« la coiffe enfoncee sur leur tete comme a chaque fois, et la lunette de vision au niveau d'un oeil », Mathieu, 26/11/2026) ;
+   - la Cape du vampire : une cape comme les autres, blanche comme les vampires du labo, nervures violettes, doublure rouge ; son col de vampire fait le tour
+     du cou (« collier_ »), la fiole de sang est posee d'un bloc a l'epaule (« epaule_ ») ;
+   - les Lunettes du Docteur : PAS posees comme une coiffe (le calage des coiffes les mettait sur le crane et aplatissait les cheveux) : le bandeau fait le tour
+     de la tete a la hauteur des yeux, les verres devant les yeux ; le chapeau de paille disparait, les cheveux et les cornes de l'Osamodas restent. ================= */
+const FICHIER_LABO = 'objets-labo', NOEUD_LABO = { 'labo-viseur': 'Obj_labo_viseur', 'labo-cape': 'Obj_labo_cape', 'leg-docteur': 'Obj_labo_lunettes' };
+const BANDEAU_LABO = { k: 1.04, yVerres: 0.516, ray: 0.478 }, VISIERE_LABO = { k: 0.62, cerclage: 0.17, devant: 0.03 }; /* (VISIERE_LABO : le cerclage du hublot fait 0,62 fois la hauteur de l'oeil ; devant : son ecart devant l'oeil) */ /* (k : un peu plus large que le crane ; yVerres : la hauteur des verres dans le modele ; ray : le rayon du bandeau dans le modele) */
+VERSIONS_FICHIERS[FICHIER_LABO + '.glb'] = '20261126c'; VISUELS_TARDIFS.add(FICHIER_LABO);
+['labo-viseur', 'labo-viseur-rare'].forEach((id) => { if (OBJETS[id]) OBJETS[id].rond = true; }); /* (le casque enfonce sur la tete) */
+const baseLabo = (id) => { if (!id) return null; const o = OBJETS[baseObjet(id)] || null; return o && o.base ? OBJETS[o.base] : o; }; /* (la piece d'origine : « leg-docteur~1l » -> leg-docteur, la version rare -> sa piece) */
+function noeudLabo(id) { const o = baseLabo(id), n = o && NOEUD_LABO[o.id]; if (!n || !visuelsPrets()) return null; if (!VISUELS[FICHIER_LABO]) { chargerVisuelTardif(FICHIER_LABO); return null; } return VISUELS[FICHIER_LABO].getObjectByName(n) || null; }
+{ const nvLabo = noeudVisuel; noeudVisuel = function (id) { const o = baseLabo(id); if (o && o.id === 'leg-docteur') return null; /* (le bandeau se pose a part, porterBandeauLabo) */
+    return o && NOEUD_LABO[o.id] ? noeudLabo(id) : nvLabo.apply(this, arguments); }; }
+function porterBandeauLabo(g) {
+  const idC = S_ && S_.equip && S_.equip.coiffe, o = baseLabo(idC); if (!o || o.id !== 'leg-docteur') return; const N = noeudLabo(idC); if (!N) return;
+  g.updateMatrixWorld(true); const pieces = []; g.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh)) pieces.push(m); });
+  pieces.filter((m) => P_CHAPEAU.test(nomP(m))).forEach((m) => { m.visible = false; });
+  const teteN = g.getObjectByName('tete'); if (!teteN) return; const sous = []; teteN.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh) && !P_CHAPEAU.test(nomP(m))) sous.push(m); });
+  const crane = sous.filter((m) => /^crane/.test(nomP(m))), yeux = sous.filter((m) => /^oeil/.test(nomP(m))), bt = unionDe(crane.length ? crane : sous), ct = bt.getCenter(new T.Vector3()), st = bt.getSize(new T.Vector3());
+  const by = yeux.length ? unionDe(yeux) : null, ey = by ? by.getCenter(new T.Vector3()).y : bt.min.y + st.y * 0.42;
+  const bouche = g.getObjectByName('bouche'), avant = bouche ? Math.sign(boiteDe(bouche).getCenter(new T.Vector3()).z - ct.z) || 1 : 1, devant = by ? (avant > 0 ? by.max.z - ct.z : ct.z - by.min.z) : st.z / 2;
+  const k = Math.max((devant + 0.02) / BANDEAU_LABO.ray, (st.x / 2) / BANDEAU_LABO.ray) * BANDEAU_LABO.k;
+  const c = N.clone(true); c.rotation.set(0, avant < 0 ? Math.PI : 0, 0); c.scale.setScalar(k); c.position.set(ct.x, ey - BANDEAU_LABO.yVerres * k, ct.z);
+  let eq = g.getObjectByName('equipement_porte'); if (!eq) { eq = new T.Group(); eq.name = 'equipement_porte'; g.add(eq); }
+  const sg = new T.Group(); sg.name = 'bandeau_labo'; sg.add(c); eq.add(sg); fusionner(sg); sg.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+}
+/* le hublot du Viseur, devant un oeil (celui du cote du bras du modele) */
+function porterVisiereLabo(g) {
+  const idC = S_ && S_.equip && S_.equip.coiffe, o = baseLabo(idC); if (!o || o.id !== 'labo-viseur' || !VISUELS[FICHIER_LABO]) return;
+  const N = VISUELS[FICHIER_LABO].getObjectByName('Obj_labo_viseur_oeil'); if (!N) return;
+  g.updateMatrixWorld(true); const teteN = g.getObjectByName('tete'); if (!teteN) return; const sous = []; teteN.traverse((m) => { if (m.isMesh && !(m.parent && m.parent.isMesh)) sous.push(m); });
+  const crane = sous.filter((m) => /^crane/.test(nomP(m))), yeux = sous.filter((m) => /^oeil/.test(nomP(m))); if (!yeux.length) return;
+  const ct = unionDe(crane.length ? crane : sous).getCenter(new T.Vector3()), bouche = g.getObjectByName('bouche'), avant = bouche ? Math.sign(boiteDe(bouche).getCenter(new T.Vector3()).z - ct.z) || 1 : 1;
+  const be = yeux.map((m) => boiteDe(m)).sort((a, b) => (b.getCenter(new T.Vector3()).x - a.getCenter(new T.Vector3()).x) * avant)[0], ce = be.getCenter(new T.Vector3()), eh = be.getSize(new T.Vector3()).y;
+  const c = N.clone(true); c.position.set(0, 0, 0); c.rotation.set(0, avant < 0 ? Math.PI : 0, 0); c.scale.setScalar(eh * VISIERE_LABO.k / VISIERE_LABO.cerclage); c.updateMatrixWorld(true);
+  let lent = null; c.traverse((m) => { if (!lent && m.isMesh && !(m.parent && m.parent.isMesh) && nomP(m) === 'visiere_lentille') lent = m; }); if (!lent) return;
+  const cl = boiteDe(lent).getCenter(new T.Vector3()), zDevant = (avant > 0 ? be.max.z : be.min.z) + avant * VISIERE_LABO.devant;
+  c.position.set(ce.x - cl.x, ce.y - cl.y, zDevant - cl.z);
+  let eq = g.getObjectByName('equipement_porte'); if (!eq) { eq = new T.Group(); eq.name = 'equipement_porte'; g.add(eq); }
+  const sg = new T.Group(); sg.name = 'visiere_labo'; sg.add(c); eq.add(sg); fusionner(sg); sg.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+}
+{ const htLabo = habillerTenue; habillerTenue = function (g) { const r = htLabo.apply(this, arguments); try { porterBandeauLabo(g); } catch (e) { console.warn('bandeau du labo', e); } try { porterVisiereLabo(g); } catch (e) { console.warn('visiere du labo', e); } return r; }; }
+/* le mode test : les 7 objets du labo et les Lunettes, au jet moyen, dans le sac (a cote du bouton des pieces du palier 11) */
+{ const omtLabo = ouvrirModeTest; ouvrirModeTest = function () { const r = omtLabo.apply(this, arguments);
+    try { const b = document.querySelector('[data-test-p11-sac]'); if (b && !document.querySelector('[data-test-labo-sac]')) b.insertAdjacentHTML('afterend', '<button class="btn discret" data-test-labo-sac>Me donner les 7 objets du labo et les Lunettes du Docteur</button>'); } catch (e) { /* rien */ }
+    return r; }; }
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-test-labo-sac]') || !estAdmin() || !MODE_TEST || combat) return;
+  const L = OBJETS_LABO.map(([id]) => id).concat('leg-docteur'); L.forEach((id) => { const k = creerObjet(id); S_.jets[k] = Object.assign({}, OBJETS[id].stats); S_.sac[k] = 1; marquerNeuf(k); });
+  const monte = niveau(S_.xp) < 100; if (monte) S_.xp = seuil(100); vieAuMax(); rendreHaut();
+  toast('Les 7 objets du labo et les Lunettes du Docteur dans ton sac, au jet moyen' + (monte ? ' ; te voilà niveau 100 pour les porter' : '') + '. Bouton Perso pour les voir.', 'or');
+  if (modaleOuverte === 'mode-test') ouvrirModeTest();
+});
+/* les portraits (la fiche du perso, les parties de l'accueil) : le modele des pieces du labo se charge a la demande ; le portrait fait avant son arrivee (avec
+   le chapeau de paille) restait en memoire : il est refait quand le modele arrive, et le portrait d'une partie attend le modele */
+{ const cvtLabo = chargerVisuelTardif; chargerVisuelTardif = function (f) { const pr = cvtLabo.apply(this, arguments);
+    if (f === FICHIER_LABO && pr && !pr.labo) { pr.labo = true; pr.then((ok) => { if (!ok) return; for (const k in portraits) delete portraits[k]; try { if (modaleOuverte === 'perso') ouvrirPerso(); } catch (e) { /* rien */ } }); }
+    return pr; }; }
+const enrobPortraitLabo = () => { if (typeof portraitDePartie !== 'function' || portraitDePartie.labo) return; const pdpLabo = portraitDePartie; portraitDePartie = async function (e) { const eq = (e && e.equip) || {};
+    if ([eq.coiffe, eq.cape].some((id) => { const o = baseLabo(id); return o && NOEUD_LABO[o.id]; })) { try { await assurerVisuels(); if (!VISUELS[FICHIER_LABO]) await chargerVisuelTardif(FICHIER_LABO); } catch (er) { /* rien */ } }
+    return pdpLabo.apply(this, arguments); }; portraitDePartie.labo = true; };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', enrobPortraitLabo); else enrobPortraitLabo(); /* (portraitDePartie est dans 30-boucle.js, charge apres ce fichier) */
