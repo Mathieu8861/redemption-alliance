@@ -34,7 +34,7 @@ const EAU_FS = `varying vec3 vP; uniform float uT;
   float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
   void main() { vec2 p = vec2((vP.x + vP.z) * 1.6, vP.y * 0.9 + uT * 2.2); float a = n(p) * 0.6 + n(p * 2.3 + 7.0) * 0.4;
     vec3 c = mix(vec3(0.52, 0.8, 0.95), vec3(0.93, 0.98, 1.0), smoothstep(0.45, 0.75, a)); gl_FragColor = vec4(c, 0.92); }`;
-carteRelief({ nom: 'ciel', sortie: 'p11', fichier: 'arene-ciel.glb', racine: 'AreneCiel', plan: PLAN_CIEL, H: 1.4, depart: [-1.5, 8.5], chuteCouleurs: ['#ffffff', '#dfeaf6'],
+carteRelief({ nom: 'ciel', sortie: 'p11', fichier: 'arene-ciel.glb', racine: 'AreneCiel', plan: PLAN_CIEL, H: 1.4, depart: [0.5, 2.5], chuteCouleurs: ['#ffffff', '#dfeaf6'],
   garder: /^(drapeau_|grille|eau_chute)/, decor: (g, reperes) => decorCiel(g, reperes) });
 function decorCiel(g, reperes) {
   const chutes = [], rocs = new Map(); g.traverse((o) => { if (!o.isMesh) return; if (/^eau_chute/.test(o.name) || (o.parent && /^eau_chute/.test(o.parent.name))) chutes.push(o);

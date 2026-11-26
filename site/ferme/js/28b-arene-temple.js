@@ -17,10 +17,16 @@ const templeIci = () => !!carteDuJour(); /* (une carte autre que le colisee ; le
 const versLocalArene = (x, z) => { const dx = x - ARENE.x, dz = z - ARENE.z, c = Math.cos(ROT_ARENE), s = Math.sin(ROT_ARENE); return [dx * c - dz * s, dx * s + dz * c]; };
 const versMondeArene = (lx, lz) => { const c = Math.cos(ROT_ARENE), s = Math.sin(ROT_ARENE); return [lx * c + lz * s + ARENE.x, -lx * s + lz * c + ARENE.z]; };
 const M_PERSO_ARENE = 0.8; /* (la marge du perso : il reste a 0,8 du bord) */
+/* LES ENTREES DES MONSTRES (26/11/2026, « il faut que l'entree des monstres puisse toujours se faire des 4 cotes ; la, la Craqueleur, une seule porte, tu te mets
+   derriere un mur en Cra c'est free win », Mathieu) : les nouvelles cartes ont quatre portes, le fond, la gauche, la droite et devant (cote camera) ; le colisee
+   garde ses trois herses. PORTES_ARENE (27-arene.js, ou sortent les monstres) suit la carte du jour. */
+const PORTES_3 = [[0, -1], [-1, 0], [1, 0]], PORTES_4 = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+function portesDeLaCarte() { const C = carteDuJour(), L = (C && C.portes) || PORTES_3, axe = new T.Vector3(0, 1, 0); PORTES_ARENE.length = 0;
+  L.forEach(([dx, dz]) => { const d = new T.Vector3(dx, 0, dz).applyAxisAngle(axe, ROT_ARENE); PORTES_ARENE.push({ x: ARENE.x + d.x * 11.9, z: ARENE.z + d.z * 11.9, ox: ARENE.x + d.x * 14.6, oz: ARENE.z + d.z * 14.6 }); }); }
 
 /* ---------- le temple de la jungle ---------- */
 const TEMPLE = { mur: 11.3, /* la face interieure du muret */ statues: [[-5.5, 5.5], [5.5, 5.5], [-5.5, -5.5], [5.5, -5.5]], rStatue: 1.15, /* (les socles : 1,9 de cote) */
-  portes: [{ axe: 'z', s: -1, l: 1.2 }, { axe: 'x', s: -1, l: 1.0 }, { axe: 'x', s: 1, l: 1.0 }] /* (le fond, la gauche, la droite : demi-largeur du passage) */ };
+  portes: [{ axe: 'z', s: -1, l: 1.2 }, { axe: 'x', s: -1, l: 1.0 }, { axe: 'x', s: 1, l: 1.0 }, { axe: 'z', s: 1, l: 1.0 }] /* (le fond, la gauche, la droite, devant : demi-largeur du passage) */ };
 function dansPorteTemple(lx, lz, m) { /* un monstre dans le passage d'une porte (il en sort), jusqu'a 12,8 du centre */
   const B = TEMPLE.mur - m;
   return TEMPLE.portes.some((p) => { const a = p.axe === 'z' ? lz : lx, t = p.axe === 'z' ? lx : lz; return a * p.s > B && a * p.s < 12.8 && Math.abs(t) < p.l; });
@@ -89,7 +95,7 @@ async function chargerCarteArene(C) {
   g.visible = false; scene.add(g); C.g = g; if (!soleil.target.parent) scene.add(soleil.target);
   return g;
 }
-CARTES_ARENE.temple = { nom: 'temple', sortie: 'p11', fichier: 'arene-temple.glb', racine: 'AreneTemple', libre: libreTemple, borner: bornerLocalTemple };
+CARTES_ARENE.temple = { nom: 'temple', sortie: 'p11', fichier: 'arene-temple.glb', racine: 'AreneTemple', libre: libreTemple, borner: bornerLocalTemple, portes: PORTES_4 };
 Object.defineProperty(window, 'ileTemple', { get: () => CARTES_ARENE.temple.g || null, configurable: true }); /* (le nom d'avant, pour les essais) */
 
 /* ---------- les crochets de 27-arene.js : la carte tiree, le colisee sinon ---------- */
@@ -108,14 +114,14 @@ function tirerCarteArene() {
   const L = ['colisee'].concat(Object.keys(CARTES_ARENE).filter((k) => carteSortie(CARTES_ARENE[k]) || MODE_TEST)), f = ARENE_CARTE.force;
   ARENE_CARTE.ici = f && L.includes(f) ? f : L[Math.floor(Math.random() * L.length)];
 }
-{ const chargerAreneC = chargerArene; chargerArene = async function () { const C = carteDuJour(); if (C) await chargerCarteArene(C); else await chargerAreneC.apply(this, arguments); decorDeLaCarte(); }; }
+{ const chargerAreneC = chargerArene; chargerArene = async function () { const C = carteDuJour(); if (C) await chargerCarteArene(C); else await chargerAreneC.apply(this, arguments); decorDeLaCarte(); portesDeLaCarte(); }; }
 { const montrerIlesC = montrerIles; montrerIles = function () { montrerIlesC.apply(this, arguments); const a = lieu === 'arene', C = carteDuJour(); if (ileArene) ileArene.visible = a && !C;
   Object.values(CARTES_ARENE).forEach((K) => { if (K.g) K.g.visible = a && K === C; }); }; }
 const placerDepartArene = () => { const C = carteDuJour(); if (!C || !C.depart || lieu !== 'arene' || !paysanMesh) return; const [x, z] = versMondeArene(C.depart[0], C.depart[1]), u = paysanMesh.userData;
   paysanMesh.position.set(x, 0, z); u.y = 0; chemin = []; arrivee = null; u.angle = Math.atan2(ARENE.x - x, ARENE.z - z) + (C.departTourne || 0); paysanMesh.rotation.set(0, u.angle, 0); }; /* (une carte sans sol au milieu : le perso part de son point de depart) */
 const avecCarteArene = (f, tirage) => async function () { /* une nouvelle entree : une carte tiree au hasard (pas en plein combat) */
   if (!combat) { const avant = ARENE_CARTE.ici; if (tirage) tirerCarteArene(); else ARENE_CARTE.ici = 'colisee'; if (lieu === 'arene' && ARENE_CARTE.ici !== avant) { await chargerArene(); montrerIles(); } }
-  const r = await f.apply(this, arguments); placerDepartArene(); return r;
+  portesDeLaCarte(); const r = await f.apply(this, arguments); placerDepartArene(); return r;
 };
 partirArene = avecCarteArene(partirArene, true); partirDev = avecCarteArene(partirDev, true); partirEntrainement = avecCarteArene(partirEntrainement, false); /* (l'entrainement au Poutch : au colisee, ses Poutchs sont poses au milieu) */
 

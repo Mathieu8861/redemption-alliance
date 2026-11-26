@@ -188,7 +188,7 @@ function decorIle(g, reperes) {
 /* ---------- LES HERSES VIVANTES DE L'ARENE (17/11/2026, formulaire : « herses vivantes ») : fermees au repos, elles se levent quand un monstre sort, puis
    retombent dans un nuage de poussiere. Pieces grilleA/B/C de blender/arene-ile.py (une par herse), gardees hors fusion ; le haut est coupe au-dessus de l'arc ---------- */
 function herses(g) {
-  const par = {}; g.traverse((m) => { if (m.isMesh && /^grille[ABC]/.test(m.name) && !(m.parent && /^grille/.test(m.parent.name))) (par[m.name[6]] = par[m.name[6]] || []).push(m); });
+  const par = {}; g.traverse((m) => { if (m.isMesh && /^grille[ABCD]/.test(m.name) && !(m.parent && /^grille/.test(m.parent.name))) (par[m.name[6]] = par[m.name[6]] || []).push(m); });
   return Object.values(par).map((L) => {
     const G = new T.Group(); g.add(G); L.forEach((m) => G.attach(m)); G.updateMatrixWorld(true);
     const b = new T.Box3(); L.forEach((m) => b.expandByObject(m)); const haut = b.max.y, h = haut - 0.45 - b.min.y, plan = new T.Plane(new T.Vector3(0, -1, 0), haut + 0.06);

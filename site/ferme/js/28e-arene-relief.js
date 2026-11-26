@@ -15,7 +15,7 @@
    LA CHUTE : le perso tombe dans le vide (0,85 s), revient au dernier endroit sur ou il se tenait, perd 25 % de sa vie (il peut en mourir) et reste invincible 1,2 s.
    La hauteur du sol (hauteurSol) suit le plan : le perso, les monstres, les zones des sorts (solA, 21-combat.js) se posent sur les plateformes et les escaliers. */
 const RELIEF = { pente: 0.8, marche: 0.25, mi: 0.45, chute: { pv: 0.25, duree: 0.85, invincible: 1.2 } };
-const PORTES_RELIEF = [{ axe: 'z', s: -1, l: 1.2 }, { axe: 'x', s: -1, l: 1.0 }, { axe: 'x', s: 1, l: 1.0 }]; /* (le fond, la gauche, la droite : comme le temple) */
+const PORTES_RELIEF = [{ axe: 'z', s: -1, l: 1.2 }, { axe: 'x', s: -1, l: 1.0 }, { axe: 'x', s: 1, l: 1.0 }, { axe: 'z', s: 1, l: 1.0 }]; /* (le fond, la gauche, la droite, devant : comme le temple) */
 const reliefIci = () => { const K = typeof carteDuJour === 'function' ? carteDuJour() : null; return K && K.relief ? K : null; };
 function preparerRelief(K) { /* les volees d'escalier : pour chaque case, ou commence et ou finit la sienne */
   K.G = K.plan.map((l) => l.padEnd(24, '.').slice(0, 24)); K.vol = [];
@@ -54,7 +54,7 @@ function bornerR(K, x, z, m, porte, trous, sansDecor, prec) {
 }
 /* une carte a relief dans le registre de 28b : ses bornes pour l'A* et le chemin au clic (sans le vide) */
 function carteRelief(K) {
-  preparerRelief(K); K.relief = true; K.mur = K.mur || 11.5;
+  preparerRelief(K); K.relief = true; K.mur = K.mur || 11.5; K.portes = K.portes || PORTES_4;
   K.libre = (lx, lz, m, porte) => libreR(K, lx, lz, m, porte, false, false);
   K.borner = (lx, lz, m, monstre, sansDecor) => bornerR(K, lx, lz, m, monstre, false, sansDecor, null);
   CARTES_ARENE[K.nom] = K; return K;
@@ -65,7 +65,7 @@ function carteRelief(K) {
 { const bornerAreneR = bornerArene; bornerArene = function (x, z) { const K = reliefIci(); if (!K) return bornerAreneR.apply(this, arguments); const [lx, lz] = versLocalArene(x, z), pp = paysanMesh.position, prec = versLocalArene(pp.x, pp.z);
   const q = bornerR(K, lx, lz, M_PERSO_ARENE, false, true, false, prec); return versMondeArene(q[0], q[1]); }; } /* (le perso qui marche : il glisse contre les falaises et les obstacles, il peut aller dans le vide) */
 { const bornerMonstresAreneR = bornerMonstresArene; bornerMonstresArene = function (c) { const K = reliefIci(); if (!K) return bornerMonstresAreneR.apply(this, arguments);
-  c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; const m = o.d.boss ? 0.9 : 0.3, [lx, lz] = versLocalArene(o.x, o.z);
+  c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole || (o.hop || 0) > 0.05) return; const m = o.d.boss ? 0.9 : 0.3, [lx, lz] = versLocalArene(o.x, o.z); /* (un monstre qui saute, au-dessus du vide ou d'une falaise : borne a l'atterrissage) */
     const q = bornerR(K, lx, lz, m, true, false, o.traverseT > 0, o.precR || null); o.precR = q; const [wx, wz] = versMondeArene(q[0], q[1]); o.x = wx; o.z = wz; }); }; }
 { const hauteurSolR = hauteurSol; hauteurSol = function (x, z) { if (typeof lieu === 'undefined' || lieu !== 'arene') return hauteurSolR.apply(this, arguments); const K = reliefIci(); if (!K) return hauteurSolR.apply(this, arguments);
   const [lx, lz] = versLocalArene(x, z); return hauteurR(K, lx, lz); }; }
@@ -124,7 +124,7 @@ const PLAN_MINE = [ /* (genere par blender/arenes-relief-plans.py, a garder iden
   '........................',
   '..............#.....#...',
   '........................'];
-carteRelief({ nom: 'mine', sortie: 'p11', fichier: 'arene-mine.glb', racine: 'AreneMine', plan: PLAN_MINE, H: 1.5, depart: [-1.5, 9.5], chuteCouleurs: ['#6a5a4a', '#3a302a'],
+carteRelief({ nom: 'mine', sortie: 'p11', fichier: 'arene-mine.glb', racine: 'AreneMine', plan: PLAN_MINE, H: 1.5, depart: [0.5, 0.5], chuteCouleurs: ['#6a5a4a', '#3a302a'],
   decor: (g, reperes) => decorMine(g, reperes) });
 /* le decor qui vit : de la poussiere qui tombe dans la crevasse (les cristaux et les lanternes brillent seuls, fusionnes avec le reste : lueur, flamme) */
 function decorMine(g, reperes) {

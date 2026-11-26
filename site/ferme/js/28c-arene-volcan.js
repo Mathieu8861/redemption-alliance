@@ -4,7 +4,7 @@
    le seul obstacle (le perso et les monstres le contournent, l'A* de 28b) ; trois portes a herses aux places de PORTES_ARENE ; les falaises du cratere au fond.
    Le perso part devant le lac (depart). Le decor vit : la lave coule (un shader qui fait bouger ses veines, le lac, les coulees et la douve), des bulles crevent
    sur le lac, les fumerolles fument, des braises montent. Version dev (sortie : false), comme le temple. Inscrite dans CARTES_ARENE (28b-arene-temple.js). */
-const VOLCAN = { trou: 4.5, ext: 13.0, portes: [{ a: -Math.PI / 2, l: 1.2 }, { a: Math.PI, l: 1.0 }, { a: 0, l: 1.0 }] }; /* (trou : la bordure du lac ; ext : le bord du terrain ; les portes du fond, de gauche, de droite) */
+const VOLCAN = { trou: 4.5, ext: 13.0, portes: [{ a: -Math.PI / 2, l: 1.2 }, { a: Math.PI, l: 1.0 }, { a: 0, l: 1.0 }, { a: Math.PI / 2, l: 1.0 }] }; /* (trou : la bordure du lac ; ext : le bord du terrain ; les portes du fond, de gauche, de droite, de devant) */
 function dansPorteVolcan(lx, lz, m) { /* un monstre dans le passage d'une porte (il en sort), jusqu'a 15,2 du centre */
   const r = Math.hypot(lx, lz), a = Math.atan2(lz, lx); if (r <= VOLCAN.ext - m || r > 15.2) return false;
   return VOLCAN.portes.some((p) => Math.abs(Math.atan2(Math.sin(a - p.a), Math.cos(a - p.a))) * r < p.l);
@@ -44,5 +44,5 @@ function decorVolcan(g, reperes) {
     for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, rr = 4 + Math.random() * 12; /* des braises qui montent de partout */
       emettre(FX_VIF, 1, { x: O.x + Math.cos(a) * rr, y: O.y + 0.2, z: O.z + Math.sin(a) * rr, v: [0, 1.0, 0], dv: 0.4, vie: [1.4, 2.4], taille: [0.05, 0.02], c: ['#ffb84a', '#ff6a1e'], a: 0.9, grav: -0.3, frein: 0.2 }); } }, 100);
 }
-CARTES_ARENE.volcan = { nom: 'volcan', sortie: 'p11', /* (avec le palier 11, SORTIE_P11) */ fichier: 'arene-volcan.glb', racine: 'AreneVolcan', libre: libreVolcan, borner: bornerLocalVolcan, depart: [0, 8.5],
+CARTES_ARENE.volcan = { nom: 'volcan', sortie: 'p11', /* (avec le palier 11, SORTIE_P11) */ fichier: 'arene-volcan.glb', racine: 'AreneVolcan', libre: libreVolcan, borner: bornerLocalVolcan, portes: PORTES_4, depart: [-6.4, 6.4],
   garder: /^(drapeau_|grille|lave_mer|lave_chute|lave_douve)/, decor: decorVolcan };
