@@ -125,13 +125,16 @@ ajouterBlocLabo(Math.cos(2.6) * 12.05, Math.sin(2.6) * 12.05, 1.5); /* (la pompe
 { const q = versDock(BALLON_LABO.u, 0); ajouterBlocLabo(q.x, q.z, 0.8); } /* (la montgolfiere amarree au bout du ponton) */
 /* repousse un point hors des obstacles, au plus court (24/11/2026 : avant, il tournait de 20 degres autour de l'obstacle a chaque image, soit 30 cases par seconde
    sur un gros rocher : le perso semblait se teleporter). glisse : un monstre, qui fonce droit sur le perso, glisse doucement de cote (au plus 0,05 par image) */
-const repousser = (x, z, L, m, glisse) => { for (let n = 0; n < 3; n++) { let bouge = false; for (const o of L) {
+/* (26/11/2026, « la vitesse de certains monstres est beaucoup trop rapide », Mathieu : la glissade le long d'un obstacle etait comptee par image, 0,05 ; a 60 images
+   par seconde, 3 par seconde, mais a 144 (un ecran de joueur), plus de 7, plus vite que n'importe quel mutant. Elle suit maintenant le temps : k = images de 1/60 s) */
+const GLISSE_LABO = { k: 1 };
+const repousser = (x, z, L, m, glisse) => { const kg = GLISSE_LABO.k; for (let n = 0; n < 3; n++) { let bouge = false; for (const o of L) {
     if (o.b) { const dx = x - o.x, dz = z - o.z, B = o.b; let lx = dx * B.c - dz * B.s, lz = dx * B.s + dz * B.c; const qx = Math.max(-B.hx, Math.min(B.hx, lx)), qz = Math.max(-B.hz, Math.min(B.hz, lz)), ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
       if (d >= m) continue; if (d > 1e-4) { lx = qx + ex / d * m; lz = qz + ez / d * m; } else if (B.hx - Math.abs(lx) < B.hz - Math.abs(lz)) lx = (lx < 0 ? -1 : 1) * (B.hx + m); else lz = (lz < 0 ? -1 : 1) * (B.hz + m);
-      if (glisse) { const t = 0.05; if (d > 1e-4) { const tx = -ez / d, tz = ex / d; lx += tx * t; lz += tz * t; } }
+      if (glisse) { const t = 0.05 * kg; if (d > 1e-4) { const tx = -ez / d, tz = ex / d; lx += tx * t; lz += tz * t; } }
       x = o.x + lx * B.c + lz * B.s; z = o.z - lx * B.s + lz * B.c; bouge = true; continue; }
     const dx = x - o.x, dz = z - o.z, dd = Math.hypot(dx, dz), Rb = o.r + m; if (dd >= Rb) continue; bouge = true; if (dd < 0.001) { x = o.x + Rb; continue; }
-    let ux = dx / dd, uz = dz / dd; if (glisse) { const a = Math.min(0.35, 0.05 / Rb), c = Math.cos(a), s = Math.sin(a); [ux, uz] = [ux * c - uz * s, ux * s + uz * c]; }
+    let ux = dx / dd, uz = dz / dd; if (glisse) { const a = Math.min(0.35, 0.05 / Rb) * kg, c = Math.cos(a), s = Math.sin(a); [ux, uz] = [ux * c - uz * s, ux * s + uz * c]; }
     x = o.x + ux * Rb; z = o.z + uz * Rb; } if (!bouge) break; } return [x, z]; };
 /* LES SALLES INTERIEURES : on passe la porte, on est dans la salle (une piece ronde au niveau du sol, loin de l'ile : x, z locaux) ; ses mutants
    l'attendent ; nettoyee, une sortie verte s'allume contre la porte : elle ramene sur la passerelle et ouvre la grille. La 5e, le labo : le Docteur
@@ -188,9 +191,15 @@ function libreSolLabo(lx, lz, m) { /* (en coordonnees de l'ile) */
   if (r > rIle(a) - 1.0 - m && !surPontonL(lx, lz, m)) return false;
   for (const o of blocsLabo(lx, lz)) if (distObsLabo(o, lx, lz) < m) return false; return true;
 }
+/* LES GROS MUTANTS ONT LEURS CHEMINS (26/11/2026) : leur marge de collision suit la taille de leur corps (margeMut, de 0,3 a 0,75 ; un garde a 0,3 rentrait a moitie
+   dans les rochers) ; un chemin trace pour une marge de 0,45 passait entre deux cages ou ils ne passent plus, ils y couraient sur place. Les gros (marge au-dela de
+   0,45) suivent une seconde grille, tracee a 0,8 */
+const MARGE_GROS = 0.75;
+function margeMut(o) { return o.d.boss ? 0.9 : Math.max(0.3, Math.min(MARGE_GROS, 0.2 * (o.d.ombre || 1))); }
+function cleSolMut(o) { return margeMut(o) > MARGE_CH + 0.02 ? 'solG' : 'sol'; }
 function grilleCh(cle) {
   if (GRILLES_CH[cle]) return GRILLES_CH[cle];
-  let G; if (cle === 'sol') { const n = Math.ceil(124 / PAS_CH); G = { x0: -62, z0: -62, n, libre: (x, z) => libreSolLabo(x, z, MARGE_CH) }; }
+  let G; if (cle === 'sol' || cle === 'solG') { const n = Math.ceil(124 / PAS_CH), mg = cle === 'sol' ? MARGE_CH : MARGE_GROS + 0.05; G = { x0: -62, z0: -62, n, libre: (x, z) => libreSolLabo(x, z, mg) }; }
   else { const S = SALLES_LABO[+cle.slice(1)], n = Math.ceil((2 * S.R + 2) / PAS_CH); G = { x0: S.x - S.R - 1, z0: S.z - S.R - 1, n, libre: (x, z) => Math.hypot(x - S.x, z - S.z) <= S.R - 0.7 - MARGE_CH && !(S.blocs || []).some((o) => distObsLabo(o, x - S.x, z - S.z) < MARGE_CH) }; }
   G.ok = new Uint8Array(G.n * G.n); for (let j = 0; j < G.n; j++) for (let i = 0; i < G.n; i++) G.ok[j * G.n + i] = G.libre(G.x0 + (i + 0.5) * PAS_CH, G.z0 + (j + 0.5) * PAS_CH) ? 1 : 0;
   return (GRILLES_CH[cle] = G);
@@ -218,15 +227,30 @@ const dansDonjon = (x, z, m) => { /* (un point ou l'on peut se tenir : dans la s
   const P = etatPerso(), lx = x - DONJON.x, lz = z - DONJON.z;
   if (P.mode === 'salle') { const S = SALLES_LABO[P.i], q = bornerDonjon(x, z, m, { mode: 'salle', i: P.i }); return Math.hypot(lx - S.x, lz - S.z) < S.R - 0.6 && Math.hypot(q[0] - x, q[1] - z) < 0.05; }
   const r = Math.hypot(lx, lz); if (r >= LABO.R_IN && r <= LABO.R_OUT) return true; const E = { mode: 'sol', theta: LABO.A0 }, q = bornerDonjon(x, z, m, E); return E.mode === 'sol' && Math.hypot(q[0] - x, q[1] - z) < 0.05; };
+/* LE SOL TEL QU'IL EST DESSINE (26/11/2026, « sur une colline, ils passent a moitie a travers, et le cercle autour d'eux est coupe », Mathieu) : le sol de l'ile est
+   une grille de 1 (solLabo), plane entre ses sommets ; hTerrainLabo, lui, est courbe. Ce qui se pose sur le sol suit maintenant la grille, triangle par triangle
+   (memes sommets, meme diagonale que la PlaneGeometry), les hauteurs des sommets calculees une fois */
+const GRILLE_LABO = { N: 132, h: null };
+function hSolVu(lx, lz) { const G = GRILLE_LABO, M = G.N / 2; if (!(Math.abs(lx) < M - 0.001 && Math.abs(lz) < M - 0.001)) return hTerrainLabo(lx, lz);
+  const n = G.N + 1; if (!G.h) { G.h = new Float32Array(n * n); for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) G.h[j * n + i] = hTerrainLabo(i - M, j - M); }
+  const X = lx + M, Z = lz + M, i = Math.floor(X), j = Math.floor(Z), fx = X - i, fz = Z - j, H = G.h, ha = H[j * n + i], hd = H[j * n + i + 1], hb = H[(j + 1) * n + i], hc = H[(j + 1) * n + i + 1];
+  return fx + fz <= 1 ? ha + (hd - ha) * fx + (hb - ha) * fz : hc + (hb - hc) * (1 - fx) + (hd - hc) * (1 - fz); }
+/* un disque pose sur le sol (ombre, cercle de cible) : le plan qui colle le mieux au sol sur son rayon (le centre, 6 points a mi-rayon, 12 au bord), releve de ce
+   qui depasse encore au-dessus de lui ; plus rien ne le coupe, au pire il effleure un creux. a, b : la pente du plan ; c : sa hauteur au centre */
+const PLAN_SOL = { a: 0, b: 0, c: 0, haut: 0 }, PLAN_PTS = (() => { const L = [[0, 0]]; for (let k = 0; k < 6; k++) L.push([0.5 * Math.cos(k * Math.PI / 3), 0.5 * Math.sin(k * Math.PI / 3)]); for (let k = 0; k < 12; k++) L.push([Math.cos(k * Math.PI / 6), Math.sin(k * Math.PI / 6)]); return L; })(), PLAN_H = new Float32Array(19);
+function planSolLabo(lx, lz, R) { let sh = 0, shx = 0, shz = 0, sxx = 0; const P = PLAN_SOL;
+  PLAN_PTS.forEach(([u, v], k) => { const h = hSolVu(lx + u * R, lz + v * R); PLAN_H[k] = h; sh += h; shx += h * u; shz += h * v; sxx += u * u; });
+  P.a = shx / (sxx * R); P.b = shz / (sxx * R); P.c = sh / PLAN_PTS.length; let haut = 0;
+  PLAN_PTS.forEach(([u, v], k) => { haut = Math.max(haut, PLAN_H[k] - (P.c + (P.a * u + P.b * v) * R)); }); P.haut = haut; return P; }
 /* la hauteur du sol : la passerelle pour qui est dessus (le perso, ou le monstre qu'on est en train de bouger), la salle, le ponton, sinon le relief */
 const hauteurSolDonjon0 = hauteurSol;
 hauteurSol = function (x, z) {
   if (lieu !== 'donjon' || !ileWabbits) return hauteurSolDonjon0.apply(this, arguments);
   const E = donjonEntite ? donjonEntite.lab : etatPerso(); if (E && E.mode === 'salle') return Y_SALLE; if (E && E.mode === 'rampe') { const a = Math.atan2(z - DONJON.z, x - DONJON.x); return hautRampe(Math.min(a + TAU_L * Math.round((E.theta - a) / TAU_L), rampeMax())); }
   const lx = x - DONJON.x, lz = z - DONJON.z; if (surPontonL(lx, lz, 0)) return Math.max(-0.06, hTerrainLabo(lx, lz));
-  if (donjonEntite && donjonEntite.d && !donjonEntite.d.vole) { const r = Math.max(0.3, Math.min(1.1, (donjonEntite.d.ombre || 1) * 0.32)); let h = hTerrainLabo(lx, lz);
-    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; h = Math.max(h, hTerrainLabo(lx + Math.cos(a) * r, lz + Math.sin(a) * r) - 0.04); } return h; } /* (26/11/2026 : un monstre se pose sur le plus haut sous ses pieds, il ne s'enfonce plus dans la pente) */
-  return hTerrainLabo(lx, lz);
+  if (donjonEntite && donjonEntite.d && !donjonEntite.d.vole) { const r = Math.max(0.3, Math.min(1.1, (donjonEntite.d.ombre || 1) * 0.32)); let h = hSolVu(lx, lz);
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; h = Math.max(h, hSolVu(lx + Math.cos(a) * r, lz + Math.sin(a) * r) - 0.04, hSolVu(lx + Math.cos(a) * r * 0.5, lz + Math.sin(a) * r * 0.5) - 0.02); } return h; } /* (26/11/2026 : un monstre se pose sur le plus haut sous ses pieds, il ne s'enfonce plus dans la pente) */
+  return hSolVu(lx, lz);
 };
 /* LE LAG (24/11/2026, 62 mutants sur l'ile des le depart) : mesure 2,5 ms par image pour les monstres, dont 1,7 ms pour leurs squelettes (le rendu, 414 appels de
    dessin, est plus leger que la ferme) ; un mutant au repos dans son camp et loin de ce qu'on regarde (plus de 30) n'anime son squelette qu'une image sur quatre,
@@ -244,9 +268,18 @@ hauteurSol = function (x, z) {
 /* L'OMBRE SUR LA PENTE (26/11/2026, « au fond de la map, la colline et la plage, meme les monstres, leur ombrage est coupe, comme si c'etait deux parties d'iles », Mathieu) :
    le rond d'ombre sous un monstre etait a plat ; sur une pente, la moitie s'enfoncait dans la colline. Il se couche maintenant sur le sol, a la hauteur du terrain sous lui */
 const OMBRE_PENTE = { N: new T.Vector3(), Q: new T.Quaternion(), QP: new T.Quaternion(), BASE: new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), -Math.PI / 2), HAUT: new T.Vector3(0, 1, 0) };
-function ombreSurPente(mo) { if (!mo.ombreM || !mo.m || mo.etat !== 'actif' || mo.d.vol || mo.d.vole || !mo.lab || mo.lab.mode !== 'sol') return; const O = OMBRE_PENTE, lx = mo.x - DONJON.x, lz = mo.z - DONJON.z, e = 0.6, h0 = hTerrainLabo(lx, lz);
-  O.N.set(-(hTerrainLabo(lx + e, lz) - hTerrainLabo(lx - e, lz)) / (2 * e), 1, -(hTerrainLabo(lx, lz + e) - hTerrainLabo(lx, lz - e)) / (2 * e)).normalize(); O.Q.setFromUnitVectors(O.HAUT, O.N);
-  O.QP.copy(mo.m.quaternion).invert(); mo.ombreM.quaternion.copy(O.QP).multiply(O.Q).multiply(O.BASE); mo.ombreM.position.y = (h0 + 0.05 - mo.m.position.y) / (mo.m.scale.y || 1); }
+function ombreSurPente(mo) { if (!mo.ombreM || !mo.m || mo.etat !== 'actif' || mo.d.vol || mo.d.vole || !mo.lab || mo.lab.mode !== 'sol') return; const O = OMBRE_PENTE, p = mo.m.position, lx = p.x - DONJON.x, lz = p.z - DONJON.z;
+  /* (26/11/2026 : le plan colle au sol sur tout le rond, releve de ce qui depasse ; on ne le recalcule que s'il a bouge) */
+  const R = 0.5 * Math.abs(mo.ombreM.scale.x) * Math.abs(mo.m.scale.x || 1), q = mo.planO; let a, b, h;
+  if (q && Math.abs(q.lx - lx) + Math.abs(q.lz - lz) < 0.03 && Math.abs(q.R - R) < 0.05) { a = q.a; b = q.b; h = q.h; } else { const P = planSolLabo(lx, lz, R); a = P.a; b = P.b; h = P.c + P.haut; mo.planO = { lx, lz, R, a, b, h }; }
+  O.N.set(-a, 1, -b).normalize(); O.Q.setFromUnitVectors(O.HAUT, O.N);
+  O.QP.copy(mo.m.quaternion).invert(); mo.ombreM.quaternion.copy(O.QP).multiply(O.Q).multiply(O.BASE); mo.ombreM.position.y = (h + 0.04 - p.y) / (mo.m.scale.y || 1); }
+/* LE CERCLE DE CIBLE SUR LA PENTE (26/11/2026, meme photo de Mathieu) : le cercle jaune (ou rouge) autour du monstre vise etait a plat, a la hauteur du monstre ;
+   sur la butte, une moitie disparaissait dans la colline. Il se couche maintenant sur le sol, comme l'ombre, sur tout son rayon (fleches comprises) */
+function anneauSurPente() { const A = ANNEAU, cb = combat && combat.cible;
+  if (lieu !== 'donjon' || !A.visible || !cb || !cb.lab || cb.lab.mode !== 'sol') { if (A.userData.penche) { A.quaternion.identity(); A.userData.penche = false; } return; }
+  const P = planSolLabo(A.position.x - DONJON.x, A.position.z - DONJON.z, A.scale.x * 1.22); A.quaternion.setFromUnitVectors(OMBRE_PENTE.HAUT, OMBRE_PENTE.N.set(-P.a, 1, -P.b).normalize()); A.position.y = P.c + P.haut + 0.05; A.userData.penche = true; }
+{ const majCombatAnneau0 = majCombat; majCombat = function () { const r = majCombatAnneau0.apply(this, arguments); try { anneauSurPente(); } catch (e) { /* rien */ } return r; }; }
 const majMonstreDonjon0 = majMonstre; majMonstre = function (mo) { if (lieu !== 'donjon') return majMonstreDonjon0.apply(this, arguments); donjonEntite = mo; try { return majMonstreDonjon0.apply(this, arguments); } finally { donjonEntite = null; try { ombreSurPente(mo); } catch (e) { /* rien */ } } };
 /* UN CLIC : sur la passerelle, le chemin suit la spirale (en ligne droite, on butait contre la tour) */
 function cheminDonjon(p) {
@@ -481,7 +514,7 @@ async function construireIleWabbits() {
   g.userData.salles.forEach((S) => { if (S.clic) delete S.clic.raycast; (S.cages || []).forEach((C) => [C.grp, C.wab].forEach((o) => o.traverse((q) => { if (q.isMesh) delete q.raycast; }))); }); /* (les cages des salles se touchent : on les ouvre, 29s-fin-labo.js) */ sol.raycast = T.Mesh.prototype.raycast; mer.raycast = T.Mesh.prototype.raycast;
   if (g.userData.passerelle) g.userData.passerelle.traverse((q) => { if (q.isMesh) delete q.raycast; }); /* (la mer, le sol, la passerelle et le sol des salles restent cliquables : on y va) */
   g.traverse((o) => { if (o.isMesh && o.parent && /^flore_/.test(o.parent.name) && o.material && o.material.side !== T.BackSide) o.castShadow = true; });
-  grilleCh('sol'); /* (la grille des chemins de l'ile, calculee pendant le chargement) */
+  grilleCh('sol'); grilleCh('solG'); /* (les grilles des chemins de l'ile, calculees pendant le chargement) */
   scene.add(g); effets.push(vieIleLabo); return g;
 }
 /* ---------- LES SALLES (blender/ile-labo-salles.py) : leurs meubles sont des obstacles (les pieces « bloc » du modele : un cylindre par meuble, lu puis
@@ -636,23 +669,49 @@ function transmuter(o) {
 /* les camps : leurs mutants attendent chez eux, immobiles, jusqu'a ce que le perso entre dans leur perimetre */
 CAMPS_LABO.forEach((K) => { K.x0 = K.x; K.z0 = K.z; });
 function posterCamp(c, k, delai, repop) { /* repop : le camp revient, sans son chef (son coffre ne tombe qu'une fois) */
-  const K = CAMPS_LABO[k], L = []; K.L.forEach(([t, n, ch]) => { if (repop && ch === 'chef') return; for (let i = 0; i < n; i++) L.push(t); });
+  const K = CAMPS_LABO[k], L = []; K.nRang = 0; K.L.forEach(([t, n, ch]) => { if (repop && ch === 'chef') return; for (let i = 0; i < n; i++) L.push(t); });
   if (repop) c.total += L.length;
   const libre = (q) => { if (libreSolLabo(q[0] - DONJON.x, q[1] - DONJON.z, 0.55)) return q; for (let n = 1; n < 40; n++) { const b = n * 2.4, d = n * 0.3, x = q[0] + Math.cos(b) * d, z = q[1] + Math.sin(b) * d; if (libreSolLabo(x - DONJON.x, z - DONJON.z, 0.55)) return [x, z]; } return q; }; /* (24/11/2026 : un enrage du champ naissait dans un obstacle : la place libre la plus proche) */
   L.forEach((t, i) => { const a = i / L.length * TAU_L + k, r = 1.2 + (i % 3) * 1.1, q = libre(bornerDonjon(DONJON.x + K.x + Math.cos(a) * r, DONJON.z + K.z + Math.sin(a) * r, 0.6, { mode: 'sol', theta: LABO.A0 })), chef = !repop && K.L.some(([t2, , ch]) => ch === 'chef' && t2 === t) && L.indexOf(t) === i;
     setTimeout(() => { if (combat === c && !c.fin) apparaitre(t, { x: q[0], z: q[1], apres: (o) => { transmuter(o); o.lab = { mode: 'sol', theta: LABO.A0 }; o.camp = k; o.maison = { x: q[0], z: q[1] };
-      if (K.patrouille != null) o.off = { x: q[0] - DONJON.x - K.x, z: q[1] - DONJON.z - K.z }; /* (une patrouille : sa place dans le groupe, qui avance) */
+      if (K.patrouille != null) o.off = { rang: K.nRang = (K.nRang || 0) + 1 }; /* (une patrouille : sa place dans la file, qui avance ; 26/11/2026 : en file sur le chemin, et non plus en tas autour) */
       if (repop) pouf(o.x, hTerrainLabo(o.x - DONJON.x, o.z - DONJON.z), o.z, 1.0, '#8dff6a');
       if (chef && typeof grandirMutant === 'function') { grandirMutant(o, CHEF_LABO, '#ffb02e', t === 'wabGarou' ? 'Garou alpha' : 'Chef des gardes'); o.chef = true; } } }); }, delai + i * 120); }); /* (chef : le premier de son type dans le camp) */
 }
 function posterCamps(c) { CAMPS_LABO.forEach((K, k) => { K.x = K.x0; K.z = K.z0; K.s = 0; posterCamp(c, k, 200 + k * 6 * 120, false); }); }
 /* les patrouilles avancent sur leur chemin, aller et retour, tant qu'elles n'ont pas vu le perso ; un camp vide se repeuple (REPOP_LABO) */
+/* EN FILE SUR LE CHEMIN (26/11/2026, « il passe a travers des objets parfois », Mathieu ; au banc : les gardes de la ronde rentraient jusqu'a 0,9 dans le decor, des
+   champignons a cote du chemin) : chaque membre d'une patrouille marchait a sa place dans un tas de 3,4 autour du chef, hors du chemin, la ou le decor est pose (a plus
+   de 1,8 du chemin). Ils marchent maintenant l'un derriere l'autre sur le chemin, 2,6 d'ecart, un peu de biais (0,3) a gauche puis a droite */
+const ECART_PATROUILLE = 2.6;
+function pointPatrouille(C, tot, s, rond) { let u; if (rond) u = ((s % tot) + tot) % tot; else { const w = ((s % (2 * tot)) + 2 * tot) % (2 * tot); u = w > tot ? 2 * tot - w : w; }
+  for (let i = 1; i < C.length; i++) { const L = Math.hypot(C[i].x - C[i - 1].x, C[i].z - C[i - 1].z) || 1; if (u <= L || i === C.length - 1) { const f = Math.min(1, u / L), tx = (C[i].x - C[i - 1].x) / L, tz = (C[i].z - C[i - 1].z) / L; return { x: C[i - 1].x + (C[i].x - C[i - 1].x) * f, z: C[i - 1].z + (C[i].z - C[i - 1].z) * f, tx, tz }; } u -= L; }
+  return { x: C[0].x, z: C[0].z, tx: 1, tz: 0 }; }
+/* LE RETOUR AU CAMP SANS COURIR SUR PLACE (26/11/2026, « des monstres courent sur place, surtout les gardes : on dirait qu'ils veulent aller quelque part mais qu'ils
+   sont bloques », Mathieu ; au banc, pres des champs : 800 allers-retours d'une image a l'autre pour les gardes) : un camp endormi ramene ses mutants a leur place en
+   ligne droite (la ronde des gardes : leur place tourne autour de la tour) ; un obstacle entre eux et elle les repoussait a chaque image. Sans progres pendant 0,8 s,
+   ils prennent le chemin de la grille (comme les clics du perso) ; tout pres de leur place mais coinces, ils s'arretent ; sans chemin, leur place devient la ou ils sont */
+function retourMaisonLabo(o, dt, E) {
+  const M = o.maison; if (!M) return; const dm = Math.hypot(M.x - o.x, M.z - o.z); if (dm <= 0.03) { o.retour = null; o.retourBest = null; return; } /* (0,03 et non 0,3 : dans une ronde, sa place avance doucement ; arrete a 0,3, il repartait d'un coup puis s'arretait, il sautillait) */
+  if (o.retourAttente && E.t < o.retourAttente) return;
+  if (o.retourBest == null || dm < o.retourBest - 0.15) { o.retourBest = dm; o.retourT = E.t; }
+  else if (E.t - o.retourT > 0.8) { o.retourT = E.t; o.retourBest = dm;
+    if (dm < 1.6) { o.retourAttente = E.t + 1.2; o.retour = null; return; } /* (sa place est contre un obstacle : il attend a cote) */
+    const L = typeof cheminGrille === 'function' ? cheminGrille(cleSolMut(o), o.x - DONJON.x, o.z - DONJON.z, M.x - DONJON.x, M.z - DONJON.z) : null;
+    if (L && L.length) o.retour = { pts: L.map((q) => ({ x: q.x + DONJON.x, z: q.z + DONJON.z })), fin: E.t + 8 };
+    else { o.maison = { x: o.x, z: o.z }; o.off = null; o.retour = null; return; } }
+  let cx = M.x, cz = M.z;
+  if (o.retour) { const P = o.retour.pts; while (P.length && Math.hypot(P[0].x - o.x, P[0].z - o.z) < 0.35) P.shift(); if (!P.length || E.t > o.retour.fin) o.retour = null; else { cx = P[0].x; cz = P[0].z; } }
+  const dx = cx - o.x, dz = cz - o.z, d = Math.hypot(dx, dz); if (d < 1e-3) return;
+  const v = Math.min(d, 3.2 * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); o.vLabo = v / Math.max(dt, 1e-3);
+  if (o.geste && !o.geste.coup && v > 0.004) o.geste = null; /* (26/11/2026 : un mutant qui rentre au camp en plein cri glissait, pieds figes dans son geste ; il marche) */
+}
 function vieCampsLabo(dt, c, E, p) {
   CAMPS_LABO.forEach((K, k) => { const st = E.camps[k];
     if (K.patrouille != null && !st.actif) { const C = CHEMINS_LABO[K.patrouille]; let tot = 0; for (let i = 1; i < C.length; i++) tot += Math.hypot(C[i].x - C[i - 1].x, C[i].z - C[i - 1].z);
-      K.s = (K.s || 0) + dt * 1.3; let u = K.s % (2 * tot); if (u > tot) u = 2 * tot - u; if (K.patrouille === 4) u = K.s % tot; /* (le chemin autour de la tour : en rond) */
-      for (let i = 1; i < C.length; i++) { const L = Math.hypot(C[i].x - C[i - 1].x, C[i].z - C[i - 1].z); if (u <= L || i === C.length - 1) { const f = Math.min(1, u / (L || 1)); K.x = C[i - 1].x + (C[i].x - C[i - 1].x) * f; K.z = C[i - 1].z + (C[i].z - C[i - 1].z) * f; break; } u -= L; }
-      c.monstres.forEach((o) => { if (o.camp === k && o.off && o.etat === 'actif') o.maison = { x: DONJON.x + K.x + o.off.x, z: DONJON.z + K.z + o.off.z }; }); }
+      K.s = (K.s || 0) + dt * 1.3; const rond = K.patrouille === 4; /* (le chemin autour de la tour : en rond) */ { const q = pointPatrouille(C, tot, K.s, rond); K.x = q.x; K.z = q.z; }
+      let om = 0; c.monstres.forEach((o) => { if (o.camp === k && o.off && o.etat === 'actif') om = Math.max(om, o.d.ombre || 1); }); const ec = Math.max(ECART_PATROUILLE, 0.7 * om + 0.6); /* (assez d'ecart pour qu'ils ne se poussent pas : deux mutants s'ecartent a 0,35 x la somme de leurs ombres ; les gardes, 2,7) */
+      c.monstres.forEach((o) => { if (o.camp === k && o.off && o.etat === 'actif') { const r = (o.off.rang || 1) - 1, q = pointPatrouille(C, tot, K.s - r * ec, rond), l = r % 2 ? 0.3 : -0.3; o.maison = { x: DONJON.x + q.x - q.tz * l, z: DONJON.z + q.z + q.tx * l }; } }); }
     const vivants = c.monstres.some((o) => o.camp === k && o.etat !== 'mort');
     if (vivants) { st.vide = null; return; } if (st.vide == null) { st.vide = E.t; return; }
     if (E.t - st.vide > REPOP_LABO.apres && Math.hypot(p.x - DONJON.x - K.x, p.z - DONJON.z - K.z) > REPOP_LABO.loin && E.gagne == null) { st.vide = null; st.actif = false; posterCamp(c, k, 0, true); } });
@@ -719,7 +778,7 @@ function sortirSalleLabo(i) { const E = donjonEtat; if (!E || E.sortie) return; 
 function ouvrirGrille(i) { const E = donjonEtat; if (!E || E.grilles[i]) return; E.grilles[i] = true; const G = ileWabbits && ileWabbits.userData.grilles[i]; son('quete');
   toast('Tu ressors avec la clé : la grille de la passerelle s\'ouvre. Monte !', 'or');
   if (G) { let t = 0; effets.push((dt) => { t += dt; G.position.y = -Math.min(1, t / 1.1) * 2.8; if (t >= 1.1) { G.visible = false; return true; } return false; }); } }
-const hauteurPerso = (P, p) => (P.mode === 'rampe' ? hautRampe(P.theta) : P.mode === 'salle' ? Y_SALLE : hTerrainLabo(p.x - DONJON.x, p.z - DONJON.z));
+const hauteurPerso = (P, p) => (P.mode === 'rampe' ? hautRampe(P.theta) : P.mode === 'salle' ? Y_SALLE : hSolVu(p.x - DONJON.x, p.z - DONJON.z)); /* (le sol dessine, 26/11/2026) */
 function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps, les portes et les grilles, les monstres sur l'ile, la camera, la tour qui s'efface */
   const E = donjonEtat, c = combat; if (!E || lieu !== 'donjon') return true; if (!c || c.genre !== 'donjon' || c.fin) return false;
   E.t += dt; const p = paysanMesh.position, P = E.perso, hP = hauteurPerso(P, p);
@@ -746,8 +805,7 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
         o.bloqueT = Math.max(o.bloqueT || 0, 0.1); if (d < 1.0) { o.lab = { mode: 'rampe', theta: LABO.A0 + 0.05 }; const rm = (LABO.R_IN + LABO.R_OUT) / 2; o.x = DONJON.x + rm * Math.cos(LABO.A0 + 0.05); o.z = DONJON.z + rm * Math.sin(LABO.A0 + 0.05); }
         else { const v = Math.min(d, vitesseMonstre(o.d) * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); o.vLabo = v / Math.max(dt, 1e-3); } }
       return; }
-    o.bloqueT = Math.max(o.bloqueT || 0, 0.25); const dx = o.maison.x - o.x, dz = o.maison.z - o.z, d = Math.hypot(dx, dz);
-    if (d > 0.3) { const v = Math.min(d, 3.2 * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); o.vLabo = v / Math.max(dt, 1e-3); } }); /* (vLabo : il marche, il ne glisse pas, 24/11/2026) */
+    o.bloqueT = Math.max(o.bloqueT || 0, 0.25); retourMaisonLabo(o, dt, E); }); /* (il marche, il ne glisse pas : vLabo, 24/11/2026 ; il contourne ce qui le bloque, 26/11/2026) */
   /* les portes : on arrive devant, la salle s'ouvre ; une salle nettoyee rend 25 % de vie et ouvre la grille */
   /* (24/11/2026, « les portes, quand on s'approche, ca nous fait rentrer automatiquement ; il fait avancer son personnage contre la porte, et ca lui met un message :
      etes-vous sur de vouloir rentrer ? et il valide », Mathieu) : contre la porte (le tiers de la passerelle cote mur), une question, Oui ou Non (A a la manette,
@@ -774,7 +832,7 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
     if (enBas) o.bloqueT = Math.max(o.bloqueT || 0, 0.1); /* (24/11/2026, « ceux sur la passerelle, quand je suis en bas, freezent sur place comme bloques » : il redescend sans s'arreter jusqu'au pied, puis il sort) */
     o.lab.theta = t; o.x = DONJON.x + rr * Math.cos(t); o.z = DONJON.z + rr * Math.sin(t); o.ry = Math.atan2(-Math.sin(t) * sg, Math.cos(t) * sg); o.vLabo = pas * rr / Math.max(dt, 1e-3);
     if (enBas && t < LABO.A0 - 0.02) { o.lab = { mode: 'sol', theta: LABO.A0 }; } });
-  c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; if (!o.lab) o.lab = { mode: 'sol', theta: LABO.A0 }; const q = bornerDonjon(o.x, o.z, o.d.boss ? 0.9 : 0.3, o.lab); o.x = q[0]; o.z = q[1]; });
+  GLISSE_LABO.k = Math.min(2, Math.max(0.1, dt * 60)); c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.d.vole) return; if (!o.lab) o.lab = { mode: 'sol', theta: LABO.A0 }; const q = bornerDonjon(o.x, o.z, margeMut(o), o.lab); o.x = q[0]; o.z = q[1]; }); /* (26/11/2026 : la marge suit la taille du corps, de 0,3 a 0,75 ; un garde, 0,3 avant, rentrait a moitie dans les rochers) */
   if ((E.lueurT = (E.lueurT || 0) - dt) <= 0) { E.lueurT = 0.14; c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.m) return; const h = o.d.boss ? 2.4 : 1.2; emettre(FX_LUM, 2, { x: o.x + (Math.random() - 0.5) * 0.8, y: o.m.position.y + Math.random() * h, z: o.z + (Math.random() - 0.5) * 0.8, r: 0.1, v: [0, 1.1, 0], dv: 0.3, vie: [0.7, 1.2], taille: [0.2, 0.03], c: ['#d8ffb0', '#7dff5a', '#2fd12f'], a: 0.9, frein: 1 }); }); }
   suivre(); suivreOmbres(); effacerTour(dt, hP);
   return false;

@@ -40,7 +40,7 @@ const attaqueSquelette2 = attaqueSquelette; attaqueSquelette = function (mo, fam
   if (!mo.d || !NOMS_CQ2.has(mo.d.modele)) return attaqueSquelette2(mo, fam, frapper);
   const an = mo.m && mo.m.userData.anim; if (an && !mo.geste) { if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
     if (fam) { const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.06); if (a) { const d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t, k = 1.2 * vitAnim(mo);
-      a.time = Math.max(0, t0 - 0.12 * k); a.timeScale = k; mo.geste = { t: 0, d: Math.min(0.5, (d0 - a.time) / k) }; } } }
+      a.time = Math.max(0, t0 - 0.12 * k); a.timeScale = k; mo.geste = { t: 0, d: Math.min(0.5, (d0 - a.time) / k), coup: true, ti: 0.12 }; } } } /* (coup et ti : l'impact tombe 0,12 s apres le debut ; ensuite, s'il repart, sa course reprend, 22c-squelettes.js, 26/11/2026) */
   frapper(); };
 /* l'île des boss : la semaine du Craqueleur Légendaire, ses modèles (et ceux des Craqueboules qu'il appelle) sont chargés avant l'essai */
 const lancerIleBoss2 = lancerIleBoss; lancerIleBoss = function () {

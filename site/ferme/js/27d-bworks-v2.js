@@ -94,7 +94,7 @@ const attaqueSquelette1 = attaqueSquelette; attaqueSquelette = function (mo, fam
   if (!mo.d || !NOMS_BW2.has(mo.d.modele) || mo.d.coupDuree) return attaqueSquelette1(mo, fam, frapper); /* (coupDuree, la tribu de la mare, 18/11/2026 : leur geste entier, elan compris, le coup a l'impact ; « il ne bouge meme pas ses bras », Mathieu) */
   const an = mo.m && mo.m.userData.anim; if (an && !mo.geste) { if (!an.F[fam]) fam = an.F.coup ? 'coup' : null;
     if (fam) { const nom = piocher(an, fam), a = jouerAnim(an, nom, 0.06); if (a) { const d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t, k = 1.2 * vitAnim(mo);
-      a.time = Math.max(0, t0 - 0.12 * k); a.timeScale = k; mo.geste = { t: 0, d: Math.min(0.5, (d0 - a.time) / k) }; } } }
+      a.time = Math.max(0, t0 - 0.12 * k); a.timeScale = k; mo.geste = { t: 0, d: Math.min(0.5, (d0 - a.time) / k), coup: true, ti: 0.12 }; } } } /* (coup et ti : l'impact tombe 0,12 s apres le debut ; ensuite, s'il repart, sa course reprend, 22c-squelettes.js, 26/11/2026) */
   frapper(); };
 /* L'ILE DES BOSS (16/11/2026) : le boss y sort seul, sans chargement prealable ; un modele a squelette absent arrivait apres coup et le combat, vide, se terminait.
    La semaine du Bworker, ses modeles (et ceux des Bworks qu'il appelle) sont charges avant l'essai, comme avant une vague */

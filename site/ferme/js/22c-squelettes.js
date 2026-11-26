@@ -252,7 +252,7 @@ const GESTE_MAX = { rugir: 1.6, sort: 1.4, coup: 2, tourbillon: 2 };
 function geste(mo, fam, bloque, choisi, tsMax) { /* (choisi : le mouvement deja tire, celui dont on a lu les impacts ; tsMax : pas plus vite, le coup de Moon s'annonce au moins 0,9 s) */
   const an = mo.m.userData.anim, nom = choisi || piocher(an, fam); if (!nom) return 0;
   const a = jouerAnim(an, nom, 0.15), D = a.getClip().duration, ts = Math.min(tsMax || 99, Math.max(vif(mo), GESTE_MAX[fam] ? D / GESTE_MAX[fam] : 0)); a.timeScale = ts; const d = D / ts;
-  mo.geste = { t: 0, d: d - 0.2, ts }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
+  mo.geste = { t: 0, d: d - 0.2, ts, fam }; if (bloque) mo.bloqueT = Math.max(mo.bloqueT || 0, d - 0.25); return d;
 }
 /* chaque image : un geste en cours garde la main ; sinon il marche (ou court) a sa vitesse, ou il attend en changeant de repos de temps en temps.
    Il rugit a son arrivee, puis quand il enrage */
@@ -260,7 +260,7 @@ function majSquelette(mo, v, dt) {
   const an = mo.m.userData.anim; if (!an) return;
   if (mo.faible) { majFaible(mo, an, dt); an.mixer.update(dt); return; } /* (Moon affaibli : a genoux, rien d'autre) */
   if (mo.racine && mo.racine.phase !== 'libre') { majRacine(mo, an, dt); an.mixer.update(dt); return; } /* (le Chene Mou enracine, 08/11/2026) */
-  if (mo.geste) { mo.geste.t += dt; if (mo.geste.t >= mo.geste.d) mo.geste = null; }
+  if (mo.geste) { mo.geste.t += dt; if (mo.geste.t >= mo.geste.d) mo.geste = null; else if (mo.geste.coup && mo.geste.ti != null && !mo.d.coupDuree && mo.geste.t > mo.geste.ti + 0.08 && Math.max(v || 0, mo.vReel || 0) > 0.6) mo.geste = null; else if (mo.geste.fam === 'rugir' && mo.geste.t > 0.3 && (mo.vReel || 0) > 1.0) mo.geste = null; } /* (26/11/2026, « des mobs continuent a slider », Mathieu : apres l'impact, la fin du geste de coup se jouait encore pendant qu'il repartait, il glissait bras tendus ; des qu'il repart, sa course reprend ; le coup, lui, est deja parti) */
   if (mo.reactT > 0) mo.reactT -= dt;
   if (mo.esquive > 0) mo.esquive -= dt; if (mo.recent > 0) mo.recent -= dt;
   const face = () => { const pp = paysanMesh.position; mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); }; /* (il te fait face pour rugir) */
@@ -294,7 +294,7 @@ function attaqueSquelette(mo, fam, frapper) {
   if (!fam || (mo.geste && !enchaine)) { frapper(); return; }
   const nom = piocher(an, fam), a = jouerAnim(an, nom, enchaine ? 0.18 : 0.1), d0 = a.getClip().duration, t0 = (((mo.m.userData.impacts || {})[nom] || [])[0] || { t: d0 * 0.45 }).t;
   const k = mo.d.coupDuree ? Math.max(0.7, d0 / mo.d.coupDuree) : Math.max(1, Math.min(2.4, t0 / (mo.d.elanCoup || (mo.d.distance ? 0.5 : 0.42)))) * vitAnim(mo); /* (elanCoup : le temps de son elan, plus long pour un grand monstre dont on doit voir le bras partir ; coupDuree : chaque coup dure toute sa cadence, plus de retour au repos entre deux, le Croco sauvage, 18/11/2026, « le mot d'ordre c'est fluidite », Mathieu) */ a.timeScale = k; const ti = t0 / k, c0 = combat;
-  mo.geste = { t: 0, d: mo.d.coupDuree ? d0 / k - 0.05 : Math.min(d0 / k - 0.1, ti + 0.4), coup: true }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
+  mo.geste = { t: 0, d: mo.d.coupDuree ? d0 / k - 0.05 : Math.min(d0 / k - 0.1, ti + 0.4), coup: true, ti }; mo.bloqueT = Math.max(mo.bloqueT || 0, ti + 0.08); let t = 0;
   effets.push((dt) => { t += dt; if (t < ti) return false; if (combat === c0 && !c0.fin && mo.etat === 'actif') frapper(); return true; });
 }
 /* la roulade des Tortues (26/10/2026) : elle se tourne dans la direction a, culbute, et avance comme dans l'animation ; pendant la culbute, les coups

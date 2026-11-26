@@ -59,7 +59,7 @@ const butinLabo = { recoltes: [], coffres: [] };
     return r; }; }
 /* ---------- 2. LA POSE : recoltes et coffres, une fois l'ile construite (avant la grille des chemins : les coffres sont des obstacles) ---------- */
 { const construireButin = construireIleWabbits; construireIleWabbits = async function () { const g = await construireButin.apply(this, arguments);
-    try { await poserButinLabo(g); } catch (e) { console.warn('butin du labo', e); } delete GRILLES_CH.sol; grilleCh('sol'); return g; }; }
+    try { await poserButinLabo(g); } catch (e) { console.warn('butin du labo', e); } delete GRILLES_CH.sol; delete GRILLES_CH.solG; grilleCh('sol'); grilleCh('solG'); return g; }; }
 async function poserButinLabo(g) {
   const P0 = g.userData.protos || {};
   /* les Cawottes mures, dans les rangs des champs */

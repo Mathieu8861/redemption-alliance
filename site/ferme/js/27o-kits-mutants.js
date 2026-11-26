@@ -168,17 +168,19 @@ if (MONSTRES.wabbenstein) MONSTRES.wabbenstein.vitesse = 3.0;
    droit et restait colle contre un rocher, un arbre ou le bord de l'eau. Toutes les 0,7 s, s'il ne te voit pas en ligne droite (la grille des chemins du perso,
    29c), il prend le chemin le plus court (cheminGrille) et le suit jusqu'a te revoir. Aussi s'il n'a presque pas bouge depuis 1,5 s */
 const CONTOURNE_MUT = { tous: 0.7, coince: 1.5, bouge: 0.4, ecart: 0.06, dernier: 0 };
-function voitLabo(ax, az, bx, bz) { const G = grilleCh('sol'), n = G.n, L = Math.hypot(bx - ax, bz - az), N = Math.ceil(L / 0.25);
+function voitLabo(ax, az, bx, bz, cle) { const G = grilleCh(cle || 'sol'), n = G.n, L = Math.hypot(bx - ax, bz - az), N = Math.ceil(L / 0.25);
   for (let s2 = 1; s2 < N; s2++) { const x = ax + (bx - ax) * s2 / N, z = az + (bz - az) * s2 / N, i = Math.floor((x - G.x0) / PAS_CH), j = Math.floor((z - G.z0) / PAS_CH); if (i < 0 || j < 0 || i >= n || j >= n || G.ok[j * n + i] !== 1) return false; } return true; }
 { const majMonstreContourne = majMonstre; majMonstre = function (mo, dt) {
     try { if (lieu === 'donjon' && combat && combat.genre === 'donjon' && donjonEtat && mo.etat === 'actif' && mo.lab && mo.lab.mode === 'sol' && !mo.d.vol && !mo.d.boss && (mo.aggro || mo.chasse) && donjonEtat.perso.mode === 'sol' && !(mo.camp != null && donjonEtat.camps[mo.camp] && !donjonEtat.camps[mo.camp].actif)) {
         const now = performance.now() / 1000, p = paysanMesh.position, ax = mo.x - DONJON.x, az = mo.z - DONJON.z, bx = p.x - DONJON.x, bz = p.z - DONJON.z, d = Math.hypot(bx - ax, bz - az);
         const T0 = mo.contourne || (mo.contourne = { t: 0, x: mo.x, z: mo.z, tb: now, ch: null });
         if (now - T0.tb > CONTOURNE_MUT.coince) { const coince = Math.hypot(mo.x - T0.x, mo.z - T0.z) < CONTOURNE_MUT.bouge && d > (mo.d.portee || 1.5) + 1.5; T0.x = mo.x; T0.z = mo.z; T0.tb = now; if (coince) T0.t = 0; }
-        if (now - T0.t > CONTOURNE_MUT.tous && now - (CONTOURNE_MUT.dernier || 0) > CONTOURNE_MUT.ecart) { T0.t = now; const bloque = d > (mo.d.portee || 1.5) + 1.2 && !voitLabo(ax, az, bx, bz); if (bloque) CONTOURNE_MUT.dernier = now; T0.ch = bloque ? cheminGrille('sol', ax, az, bx, bz) : null; } /* (un seul chemin calcule toutes les 0,06 s pour toute l'ile : avec vingt mutants a ta poursuite, les recherches s'empilaient) */
+        if (now - T0.t > CONTOURNE_MUT.tous && now - (CONTOURNE_MUT.dernier || 0) > CONTOURNE_MUT.ecart) { T0.t = now; const cle = typeof cleSolMut === 'function' ? cleSolMut(mo) : 'sol', bloque = d > (mo.d.portee || 1.5) + 1.2 && !voitLabo(ax, az, bx, bz, cle); if (bloque) CONTOURNE_MUT.dernier = now; T0.ch = bloque ? cheminGrille(cle, ax, az, bx, bz) : null; } /* (les gros mutants, leur grille : cleSolMut, 26/11/2026) */ /* (un seul chemin calcule toutes les 0,06 s pour toute l'ile : avec vingt mutants a ta poursuite, les recherches s'empilaient) */
         if (T0.ch && T0.ch.length && !(mo.bloqueT > 0) && !mo.geste) { let w = T0.ch[0]; if (Math.hypot(w.x - ax, w.z - az) < 0.5) { T0.ch.shift(); w = T0.ch[0]; }
-          if (w) { const wx = w.x - ax, wz = w.z - az, L = Math.hypot(wx, wz) || 1, v = Math.min(L, vitesseMonstre(mo.d) * (dt || 0.016)); mo.x += wx / L * v; mo.z += wz / L * v; mo.ry = Math.atan2(wx, wz); mo.vLabo = v / Math.max(dt || 0.016, 1e-3);
-            return majMonstreContourne.call(this, mo, 0, arguments[2]); } } } } catch (e) { /* rien */ }
+          if (w) { const wx = w.x - ax, wz = w.z - az, L = Math.hypot(wx, wz) || 1, v = Math.min(L, vitesseMonstre(mo.d) * (dt || 0.016)); mo.x += wx / L * v; mo.z += wz / L * v; mo.ry = Math.atan2(wx, wz); mo.vLabo = v / Math.max(dt || 0.016, 1e-3);
+            const vv = mo.vLabo, r = majMonstreContourne.call(this, mo, 0, arguments[2]); /* (dt 0 : il ne bouge pas deux fois) */
+            if (mo.etat === 'actif' && mo.m && mo.m.userData.anim) majSquelette(mo, vv, dt || 0.016); /* (26/11/2026, « des monstres restent blancs, slident, freezent », Mathieu : avec dt 0, son squelette ne bougeait plus tant qu'il contournait un obstacle (il glissait jambes figees, son flash blanc ne s'eteignait jamais) ; l'animation et le flash avancent maintenant au vrai temps) */
+            return r; } } } } catch (e) { /* rien */ }
     return majMonstreContourne.apply(this, arguments); }; }
 /* PLUS SOLIDES ET PLUS DE PROJECTILES (24/11/2026 au soir, apres l'essai de Mathieu : « en solo, leurs PV sont vraiment trop faibles ; je mets a peu pres 10-15 000
    en zone avec mes doubles legendaires et mes doubles sorts, si tout le monde fait ca on one-shot les vagues ; les degats ca va, meme si je trouve qu'il n'y a pas

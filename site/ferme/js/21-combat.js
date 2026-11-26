@@ -3527,7 +3527,7 @@ function majMonstre(mo, dt, s) {
     const a0 = Math.atan2(mo.x - pp.x, mo.z - pp.z), L = mo.d.garde + 2.5 - dp;
     for (const da of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) { const f = pointValide(mo.x, mo.z, mo.x + Math.sin(a0 + da) * L, mo.z + Math.cos(a0 + da) * L); if (Math.hypot(f.x - mo.x, f.z - mo.z) > Math.min(1.5, L * 0.6)) { tx = f.x; tz = f.z; recule = true; break; } } } }
   if (recule) { mo.reculT = (mo.reculT || 0) + dt; if (mo.reculT > 1.6) { mo.reculT = 0; mo.tientT = 2.5; recule = false; tx = pp.x; tz = pp.z; } } else if (mo.reculT > 0) mo.reculT = Math.max(0, mo.reculT - dt * 0.5);
-  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = recule ? 0.3 : versPerso ? mo.d.portee * (mo.allonge || 1) : bat ? mo.d.portee : 0.3; /* (allonge : le boss colossal de l'ile frappe plus loin, a sa taille) */
+  const d = Math.hypot(tx - mo.x, tz - mo.z), portee = recule ? 0.3 : versPerso ? Math.max(mo.d.portee * (mo.allonge || 1), mo.d.garde ? mo.d.garde + 0.5 : 0) : bat ? mo.d.portee : 0.3; /* (garde plus loin que sa portee, le Vampire du labo : il s'arretait a sa portee, sous sa distance de garde, reculait, revenait, a chaque image ; il s'arrete maintenant juste au-dela, 26/11/2026) */ /* (allonge : le boss colossal de l'ile frappe plus loin, a sa taille) */
   if (versPerso && !surBo && !surCa && !combat.raid && d > portee + 0.8 && d <= SAUT_PORTEE && mo.sautT >= SAUT_RECHARGE && peutSauter(mo)) sauterSurPerso(mo); /* le bond : a moins de 3 cases, il te saute dessus */
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
