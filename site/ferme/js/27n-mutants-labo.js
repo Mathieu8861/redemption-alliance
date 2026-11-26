@@ -75,7 +75,7 @@ function gagnerLabo(mo, R, titre) {
   if (R.poils) { G.poil_wabbit = (G.poil_wabbit || 0) + R.poils; txt.push(R.poils + ' Poils de Wabbit'); }
   if (R.forge) { runes().forge = (runes().forge || 0) + R.forge; txt.push(R.forge + ' rune de forgemagie'); }
   if (R.parfaite && Math.random() < R.parfaite) { runes().parfaite = (runes().parfaite || 0) + 1; txt.push('une rune parfaite !'); }
-  { const nC = typeof tirerCristaux === 'function' ? tirerCristaux(R.cristal) : 0; if (nC && typeof gagnerCristaux === 'function') { gagnerCristaux(nC); txt.push(nC + (nC > 1 ? ' cristaux runiques' : ' cristal runique')); } }
+  { const nC = typeof tirerCristaux === 'function' ? tirerCristaux(R.cristal, R === LOOT_LABO.specimen && typeof prosLabo === 'function' ? prosLabo() : 1) : 0; /* (la Prospection : le specimen, un monstre ; jamais le coffre d'un chef) */ if (nC && typeof gagnerCristaux === 'function') { gagnerCristaux(nC); txt.push(nC + (nC > 1 ? ' cristaux runiques' : ' cristal runique')); } }
   if (typeof chiffre === 'function') chiffre('✦ ' + titre, new T.Vector3(mo.x, (mo.m ? mo.m.position.y : 0) + (mo.haut || 2) + 0.6, mo.z), 'butin');
   toast('✦ ' + titre + ' : ' + txt.join(', ') + '.', 'or'); rendreHaut(); rendreGrange(); son('quete');
 }

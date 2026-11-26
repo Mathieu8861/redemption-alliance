@@ -59,7 +59,7 @@ function montrerCoffreLabo(teinte, echelle, titre, sousTitre, cartes, fin) {
   if (!ok) montrerCoffre('normal', titre, sousTitre, cartes, fin);
 }
 COFFRES_SAC.labo = { titre: (d) => (COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO.commun).nom, rar: (d) => ({ precieux: 'epique', rare: 'rare' })[d.rang] || 'normal', image: (d) => 'coffre-labo-' + (TEINTES_LABO[d.rang] ? d.rang : 'commun'),
-  ouvrir: (d, fin) => { const T0 = COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO.commun, pros = prosLabo(), G = S_.grange = S_.grange || {}, cartes = [], hasard = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  ouvrir: (d, fin) => { const T0 = COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO.commun, pros = 1 /* (sans la Prospection : LA PROSPECTION N'INFLUE JAMAIS SUR LES COFFRES (26/11/2026, Mathieu : « sur aucun coffre, ceux qu'on a crees jusque-la ou ceux qui arriveront a l'avenir ; jamais »)) */, G = S_.grange = S_.grange || {}, cartes = [], hasard = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
     const kamas = kamasGagnes(hasard(T0.kamas[0], T0.kamas[1])); S_.kamas += kamas; cartes.push({ ico: 'kama', n: kamas, t: 'kamas', son: 'kamas' });
     T0.L.forEach(([p, type, a, b, c]) => { if (Math.random() >= Math.min(1, p * pros)) return;
       if (type === 'pot') { const t = a[Math.floor(Math.random() * a.length)], n = hasard(b, c); S_.pots[t] = (S_.pots[t] || 0) + n; cartes.push({ ico: 'pot-' + t, n, t: (n > 1 ? POTS[t].court : POTS[t].nom).toLowerCase() }); }

@@ -10,17 +10,17 @@
      la prospection ; elles repoussent au bout de 6 min.
    - LES COFFRES : neuf petits coffres poses dans l'ile, plus riches a mesure qu'on s'eloigne du ponton (commun pres des champs, rare a la lisiere et au marais,
      precieux au fond de la foret, sur la butte et pres de la plage du fond) ; on les ouvre en passant contre ou en les touchant ; ce qu'ils donnent est tire au
-     hasard (COFFRES_ILE_LABO), la prospection augmente les chances ; un par partie. Le modele : les coffres du podium de l'ile des boss (29k), en petit. */
+     hasard (COFFRES_ILE_LABO), sans la Prospection (LA PROSPECTION N'INFLUE JAMAIS SUR LES COFFRES (26/11/2026, Mathieu : « sur aucun coffre, ceux qu'on a crees jusque-la ou ceux qui arriveront a l'avenir ; jamais »)) ; un par partie. Le modele : les coffres du podium de l'ile des boss (29k), en petit. */
 /* (24/11/2026 au soir, « faudrait peut-etre une esthetique de coffre adaptee a l'ile ; la rarete du coffre, c'est en fonction de ta chance, on va pas faire des coffres
    differents sur l'ile », Mathieu) : un seul coffre, celui du labo (une caisse de fer cerclee de cuivre, une fenetre de mutagene qui luit, un cadenas vert ;
-   coffreLaboMesh), et son rang se tire a l'ouverture (TIRAGE_COFFRE_LABO : precieux 10 %, rare 30 %, sinon commun, fois la prospection) */
+   coffreLaboMesh), et son rang se tire a l'ouverture (TIRAGE_COFFRE_LABO : precieux 10 %, rare 30 %, sinon commun ; plus « fois la prospection » depuis le 26/11/2026) */
 const RECOLTE_LABO = { parChamp: 4, min: 3, max: 5, repousse: 360, contact: 1.25 };
 const COFFRES_ILE_LABO = {
   commun: { look: 'rare', nom: 'Petit coffre', kamas: [3000, 6000], L: [[0.6, 'pot', ['petit', 'grand'], 1, 2], [0.5, 'res', 'bananagrume', 2, 4], [0.4, 'res', 'poil_wabbit', 1, 3], [0.05, 'forge', 1, 1]] },
   rare: { look: 'epique', nom: 'Coffre rare', kamas: [8000, 14000], L: [[0.7, 'pot', ['menthe', 'fraise', 'citron'], 1, 2], [0.5, 'res', 'bananagrume', 3, 5], [0.6, 'res', 'poil_wabbit', 2, 4], [0.25, 'forge', 1, 1], [0.01, 'cristal', 1, 1]] }, /* (cristal : 5 % avant le 26/11/2026) */
   precieux: { look: 'legendaire', nom: 'Coffre précieux', kamas: [18000, 28000], L: [[1, 'forge', 1, 1], [0.6, 'pot', ['menthe', 'fraise', 'citron'], 2, 2], [0.1, 'pot', ['royale'], 1, 1], [0.03, 'cristal', 1, 1], [0.04, 'parfaite', 1, 1]] } }; /* (cristal : 20 % avant le 26/11/2026) */
 const TIRAGE_COFFRE_LABO = { precieux: 0.10, rare: 0.30 };
-function rangCoffreLabo() { const k = prosLabo(), u = Math.random(); return u < TIRAGE_COFFRE_LABO.precieux * k ? 'precieux' : u < (TIRAGE_COFFRE_LABO.precieux + TIRAGE_COFFRE_LABO.rare) * k ? 'rare' : 'commun'; }
+function rangCoffreLabo() { const k = 1, u = Math.random(); /* (k = 1 : sans la Prospection, 26/11/2026) */ return u < TIRAGE_COFFRE_LABO.precieux * k ? 'precieux' : u < (TIRAGE_COFFRE_LABO.precieux + TIRAGE_COFFRE_LABO.rare) * k ? 'rare' : 'commun'; }
 /* LE COFFRE DU LABO : une caisse de fer sombre cerclee de cuivre, des coins de laiton rivetes, une fenetre de mutagene qui luit devant, un couvercle a charniere
    (ch, il pivote sur l'arete du fond) avec sa poignee et son cadenas vert ; dedans, une lueur verte qu'on voit a l'ouverture */
 function coffreLaboMesh() {
@@ -89,7 +89,7 @@ function recolterLabo(R) {
   let t = 0; effets.push((dt) => { t += dt; const k = Math.min(1, t / 0.35); R.m.position.y = k * 0.9; R.m.scale.setScalar(1 - k); if (k < 1) return false; R.grp.visible = false; R.m.position.y = 0; return true; }); /* (elle saute hors de terre, puis disparait) */
 }
 function tirerCoffreLabo(rang) {
-  const T0 = COFFRES_ILE_LABO[rang], pros = prosLabo(), G = S_.grange = S_.grange || {}, txt = [], hasard = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const T0 = COFFRES_ILE_LABO[rang], pros = 1, G = S_.grange = S_.grange || {}, txt = [], hasard = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const kamas = kamasGagnes(hasard(T0.kamas[0], T0.kamas[1])); S_.kamas += kamas; txt.push(fmt(kamas) + ' kamas');
   T0.L.forEach(([p, type, a, b, c]) => { if (Math.random() >= Math.min(1, p * pros)) return;
     if (type === 'pot') { const t = a[Math.floor(Math.random() * a.length)], n = hasard(b, c); S_.pots[t] = (S_.pots[t] || 0) + n; txt.push(n + ' ' + (n > 1 ? POTS[t].court : POTS[t].nom).toLowerCase()); }

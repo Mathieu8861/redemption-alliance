@@ -13,9 +13,9 @@ const CRISTAL = { min: 1, max: 5, plafond: CRISTAL_PLAFOND, nom: 'Cristal runiqu
 /* PLUS AUCUN CRISTAL GARANTI (26/11/2026, « les cristaux, sur le papier la ressource la plus rare du jeu, on les gagne gratuitement ; il faut des pourcentages de
    chances comme dans les coffres », Mathieu) : avant, 1 sur chaque specimen, 2 dans le coffre des mini-boss, 3 dans le coffre du labo, 3 % par mutant, 5 et 20 %
    dans les petits coffres rares et precieux. Maintenant une chance d'en avoir 1, toujours plus rare que la rune parfaite au meme endroit : 0,3 % par mutant,
-   10 % sur un specimen, 10 % dans le coffre d'un mini-boss, 30 % dans le coffre du labo (« specimen 10 %, coffre du labo 30 % », Mathieu, 26/11/2026), 1 et 3 % dans les petits coffres rares et precieux ; la Prospection
-   l'augmente (prosLabo). tirerCristaux : une valeur sous 1 est une chance d'en avoir 1 */
-const tirerCristaux = (v) => (!(v > 0) ? 0 : v >= 1 ? Math.round(v) : Math.random() < v * (typeof prosLabo === 'function' ? prosLabo() : 1) ? 1 : 0);
+   10 % sur un specimen, 10 % dans le coffre d'un mini-boss, 30 % dans le coffre du labo (« specimen 10 %, coffre du labo 30 % », Mathieu, 26/11/2026), 1 et 3 % dans les petits coffres rares et precieux. La Prospection augmente
+   seulement ce que lachent les monstres (le mutant, le specimen), jamais un coffre (LA PROSPECTION N'INFLUE JAMAIS SUR LES COFFRES (26/11/2026, Mathieu : « sur aucun coffre, ceux qu'on a crees jusque-la ou ceux qui arriveront a l'avenir ; jamais »)). tirerCristaux(v, pros) : une valeur sous 1 est une chance d'en avoir 1 ; pros : 1 par defaut (un coffre) */
+const tirerCristaux = (v, pros) => (!(v > 0) ? 0 : v >= 1 ? Math.round(v) : Math.random() < v * (pros || 1) ? 1 : 0);
 const cristauxDe = (k) => { const c = S_ && S_.cristaux && S_.cristaux[k]; return !c ? { p: 0, n: 0 } : typeof c === 'number' ? { p: c * 5, n: c } : c; }; /* (un nombre : l'ancien format, 5 % par cristal) */
 const cristauxVisibles = () => (typeof MODE_TEST !== 'undefined' && !!MODE_TEST) || (runes().cristal || 0) > 0 || Object.keys((S_ && S_.cristaux) || {}).length > 0;
 const forgeRunique = () => niv('forge') >= 2;
