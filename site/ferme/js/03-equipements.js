@@ -131,7 +131,7 @@ const RES_BOTTES_ECORCE = 2; if (OBJETS['ecorce-bottes']) OBJETS['ecorce-bottes'
 OBJETS['arakne-anneau'].stats.puissance = 104; OBJETS['crachopaud-anneau'].stats.puissance = 124; /* (le Crachopaud : 94 a 152, 20/11/2026) */ /* (l'anneau de l'Arakne : 79 a 128 de Puissance, BORNES_JET ; sa valeur de reference, celle d'une piece sans jet, au milieu ; 156 en rare) */
 /* les coiffes legendaires (11/10/2026, « une coiffe de chaque boss hyper rare avec des bonus de fou ») : une par boss, 2 % de chance quand il tombe
    (plus avec la Prospection), deux fois les stats de la coiffe de sa panoplie, de la Puissance en plus, et un pouvoir. Elles ne comptent dans aucune panoplie. */
-const CHANCE_LEG = 0.02;
+const CHANCE_LEG = 0.02, chanceLeg = (L) => CHANCE_LEG * ((L && L.chance) || 1); /* (chance : un legendaire plus rare que les autres, les Lunettes du Docteur a 0,5 %, 29zh-objets-labo.js, 26/11/2026) */
 const LEGENDAIRES = [
   { cle: 'royal', boss: 'royal', nom: 'Couronne du Bouftou Royal', pouvoir: 'Sort Charge (touche 3) : tu fonces tête baissée en ligne droite vers où tu vises (jusqu\'à 5 cases), 2 fois tes dégâts à chaque monstre sur ton passage, bousculé sur le côté et sonné 1 s (0,5 s pour un boss). Recharge 12 s. Et tes Bouftous donnent 25 % de laine en plus.' },
   { cle: 'chafer', boss: 'cuirasse', nom: 'Heaume du Chafer Cuirassé', pouvoir: 'Sort Lance d\'os (touche 3) : tu jettes une lance d\'os en ligne droite (6 cases) qui transperce tous les monstres sur son passage, plus forte à chaque case parcourue (de 1,5 à 3 fois tes dégâts). Recharge 12 s. Et tu prends 10 % de dégâts en moins, et tu renvoies 10 % des coups reçus au corps à corps.' },
