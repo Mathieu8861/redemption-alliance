@@ -265,6 +265,16 @@ hauteurSol = function (x, z) {
       mo.sqAcc = (mo.sqAcc || 0) + dt; mo.sqN = (mo.sqN || 0) + 1; if (mo.sqN % 4) return; const a = mo.sqAcc; mo.sqAcc = 0; return majSqLabo.call(this, mo, v, a); }
     if (mo.sqAcc) { dt += mo.sqAcc; mo.sqAcc = 0; }
     return majSqLabo.call(this, mo, v, dt); }; }
+/* LA HAUTEUR DES MUTANTS (26/11/2026, « mes auto-attaques de Cra se plantent au-dessus des monstres sur l'ile du Wabbit », Mathieu) : haut (ou vise la fleche, a
+   mi-hauteur, et ou flotte la barre de vie) venait du modele au repos, bras ecartes et dos droit ; anime, l'enrage est voute : 0,93 de haut, la fleche visait 1,61,
+   au-dessus de sa tete (garde : 2,26 et 2,7). Au troisieme pas de son squelette, on mesure son vrai corps (les sommets de sa peau, deformes) ; haut ne fait que baisser */
+const VEC_HAUT = new T.Vector3();
+function mesurerHautMutant(mo) { const m = mo.m; m.updateMatrixWorld(true); let y1 = -1e9;
+  m.traverse((q) => { if (!q.isSkinnedMesh) return; q.skeleton.update(); const n = q.geometry.attributes.position.count, pas = Math.max(1, Math.floor(n / 600)); for (let i = 0; i < n; i += pas) { q.boneTransform(i, VEC_HAUT); VEC_HAUT.applyMatrix4(q.matrixWorld); if (VEC_HAUT.y > y1) y1 = VEC_HAUT.y; } });
+  const h = y1 - m.position.y; if (h > 0.3 && h < 30) mo.haut = Math.min(mo.haut || 99, h + 0.35 + (mo.d.vol || 0)); mo.hautEch = m.scale.y; }
+{ const majSqHaut = majSquelette; majSquelette = function (mo) { const r = majSqHaut.apply(this, arguments);
+    try { if (lieu === 'donjon' && mo.m && mo.etat === 'actif' && !mo.d.boss && mo.m.userData.anim && mo.ecraseT == null && (mo.hautEch == null || Math.abs(mo.m.scale.y - mo.hautEch) > 0.05 * mo.hautEch) && (mo.nSqH = (mo.nSqH || 0) + 1) >= 3) mesurerHautMutant(mo); } catch (e) { /* rien */ }
+    return r; }; }
 /* L'OMBRE SUR LA PENTE (26/11/2026, « au fond de la map, la colline et la plage, meme les monstres, leur ombrage est coupe, comme si c'etait deux parties d'iles », Mathieu) :
    le rond d'ombre sous un monstre etait a plat ; sur une pente, la moitie s'enfoncait dans la colline. Il se couche maintenant sur le sol, a la hauteur du terrain sous lui */
 const OMBRE_PENTE = { N: new T.Vector3(), Q: new T.Quaternion(), QP: new T.Quaternion(), BASE: new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), -Math.PI / 2), HAUT: new T.Vector3(0, 1, 0) };
