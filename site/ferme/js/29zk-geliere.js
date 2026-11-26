@@ -37,3 +37,29 @@ function animerEauGeliere(g) {
 }
 const animerEauxGeliere = () => { for (let n = 1; n <= 6; n++) animerEauGeliere(MODELES['geliere' + n]); };
 { const assurerGeliereE = assurerGeliere; assurerGeliere = function () { const p = assurerGeliereE.apply(this, arguments); if (p && p.then) p.then(() => { try { animerEauxGeliere(); } catch (e) { /* rien */ } }); return p; }; }
+/* LA GELIERE NIVEAU 5, LA GRANDE CONFISERIE (26/11/2026, Mathieu : « l'enclos a gelees, qu'on puisse le faire passer niveau 6 aussi, qu'on gagne 2 emplacements
+   pour faire des gelees supplementaires ; revoir un peu l'esthetique, peut-etre qu'il soit un petit peu plus grand ») : la Geliere s'arretait au niveau 4 (8 Gelees) ;
+   un niveau 5 a 10 Gelees, la maison a un etage, la grande mare et son gue (blender/geliere5.py). Version dev comme l'enclos niveau 6 : dans le mode test, et pour
+   tous a la sortie du palier 11 (SORTIE_P11). Son modele est un fichier a part (geliere5.glb), charge seulement pour une Geliere niveau 5.
+   Chiffres par defaut, a valider par Mathieu : 250 000 kamas au niveau 100 (l'enclos niveau 6 : 300 000). */
+const GELIERE5 = { cout: 250000, niv: 100, places: 10 };
+const REPERES_GELIERE5 = [[-2.3, 0.26, 1.2], [-1.05, 0, 0.35], [-0.05, 0, 0.6], [0.6, 0, 0], [1.45, 0.03, 0.8], [2.45, 0, 0.35], [2.4, 0, -0.45], [-0.95, 0, 1.4], [0.85, 0, 1.5], [-1.75, 0, 0.55]]; /* (blender/geliere5.py, geliere5-reperes.json) */
+VERSIONS_FICHIERS['geliere5.glb'] = VERSIONS_FICHIERS['geliere5.glb'] || '20261126a';
+let geliere5Charge = null;
+function chargerGeliere5() {
+  if (MODELES.geliere5) return Promise.resolve(); if (geliere5Charge) return geliere5Charge;
+  return (geliere5Charge = chargerGlb('assets/modeles/jeu/geliere5.glb?v=' + VERSIONS_FICHIERS['geliere5.glb']).then((G) => {
+    versToon(G, { normales: 0.01, sansContour: SC_BATI }); MODELES.geliere5 = gabaritEchelle(G, 'Geliere5', 1, new T.Vector3(0, 0, 0)); animerEauGeliere(MODELES.geliere5);
+    if (S_ && S_.perso) construireBatiments();
+  }).catch((e) => { console.warn('Gelière niveau 5', e); geliere5Charge = null; }));
+}
+function activerGeliere5() {
+  const a = AMELIOS.find((x) => x.id === 'geliere'); if (!a || a.couts.length >= 5) return;
+  a.couts.push(GELIERE5.cout); a.nivs.push(GELIERE5.niv); NIV_GELIERE_MAX = 5; PLACES_GELIERE[5] = GELIERE5.places;
+  a.desc += ' Niveau 5 : la grande confiserie, ' + GELIERE5.places + ' Gelées.';
+  const G = GAINS.geliere; G.looks[5] = 'la grande confiserie'; G.stats[0][2][5] = GELIERE5.places;
+  REPERES_GELIERE['5'] = REPERES_GELIERE5; PRE_GELIERE['5'] = PRE_GELIERE['4']; PANCARTE_GELIERE[5] = { x: -1.45, z: -0.98, h: 0.33, pied: 0.03 }; /* (sur le faitage, entre les deux cheminees) */
+}
+{ const entrerModeTestG5 = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestG5.apply(this, arguments); if (MODE_TEST) activerGeliere5(); return r; }; }
+if (SORTIE_P11) activerGeliere5(); /* (avant le chargement de la partie, comme l'enclos niveau 6 : sinon une Geliere niveau 5 serait ramenee au 4) */
+{ const construireBatimentsG5 = construireBatiments; construireBatiments = function () { try { if (NIV_GELIERE_MAX >= 5 && niv('geliere') >= 5 && !MODELES.geliere5 && MODELES.geliere1) chargerGeliere5(); } catch (e) { /* rien */ } return construireBatimentsG5.apply(this, arguments); }; }

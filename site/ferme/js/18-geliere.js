@@ -18,6 +18,8 @@ const GELEES_HDV = ['bleue', 'menthe', 'fraise', 'citron'];
 const NOMS_GELEES = ['Bloubi', 'Gloup', 'Tremblotte', 'Gélatine', 'Slurpy', 'Pudding', 'Mochi', 'Gigotte', 'Clafouti', 'Confiote', 'Marmelade', 'Sirop', 'Bonbon', 'Guimauve', 'Nougat', 'Berlingot'];
 const REPERES_GELIERE = {"1": [[-1.95, 0.29, -1.1], [0.4, 0.0, 0.6]], "2": [[-2.05, 0.29, -1.15], [0.05, 0.0, 0.5], [-0.75, 0.0, 1.0], [2.15, 0.0, -0.75]], "3": [[0.25, 0.29, -1.3], [2.2, 0.0, -0.3], [-0.45, 0.0, 0.5], [-2.0, 0.0, 0.7], [0.35, 0.0, 0.75], [2.25, 0.0, 1.2]], "4": [[-2.25, 0.26, 1.15], [-1.05, 0.0, 0.35], [-0.05, 0.0, 0.6], [0.6, 0.0, 0.0], [1.45, 0.03, 0.8], [2.45, 0.0, 0.35], [2.4, 0.0, -0.45], [-0.95, 0.0, 1.4]]}, PRE_GELIERE = {"1": [[-2.2, 0, 0.4], [-1.4, 0, 0.5], [-0.4, 0, 0.2], [0.3, 0, 1.0], [2.3, 0, 1.2], [2.3, 0, -0.6], [0.5, 0, -0.6], [-1.0, 0, 1.3], [1.35, 0, 1.0], [0.5, 0, 0.4]], "2": [[-1.6, 0, 0.6], [-0.6, 0, 0.9], [0.05, 0, 0.6], [0.5, 0, 1.2], [1.6, 0, 1.2], [2.3, 0, -0.9], [0.7, 0, -0.8], [-2.3, 0, 1.2], [0.2, 0, -0.5], [2.4, 0, 0.3]], "3": [[-2.2, 0, 0.0], [-1.4, 0, -0.2], [-2.3, 0, 0.9], [-0.3, 0, 0.9], [0.4, 0, 0.1], [0.9, 0, -0.5], [2.4, 0, -0.4], [2.3, 0, 1.4], [-0.6, 0, 1.3], [1.0, 0, 0.3]], "4": [[-1.6, 0, 0.3], [-0.9, 0, 0.9], [-0.2, 0, 0.0], [0.7, 0, -0.6], [2.5, 0, 0.3], [-1.4, 0, 1.45], [1.0, 0, 0.0], [2.5, 0, 0.95], [0.2, 0, 0.55], [-0.3, 0, 1.45]]}; /* (les places du modele, puis des points libres du pre : ou les Gelees se posent entre deux bonds) */
 const placesGeliere = () => PLACES_GELIERE[niv('geliere')] || 0;
+let NIV_GELIERE_MAX = 4; /* (5 avec la grande confiserie, 29zk-geliere.js, version dev jusqu'a la sortie du palier 11) */
+const nivModeleGeliere = () => { const n = Math.min(NIV_GELIERE_MAX, niv('geliere')); return n >= 5 && !MODELES['geliere' + n] ? 4 : n; }; /* (le niveau dont le modele est pose : le 4 en attendant que celui du 5 arrive) */
 const nomFruit = (id, n) => PAR_ID[id].nom + (n > 1 ? 's' : '');
 const recetteTxt = (r) => Object.entries(r).map(([id, n]) => n + ' ' + nomFruit(id, n)).join(' et ');
 /* CE QUE MANGENT LES GELEES, BIEN EN VUE (07/11/2026, « il faudrait indiquer la consommation de ce que ca mange, genre X fraises, X carottes, tous les combien
@@ -104,7 +106,7 @@ const spotsGeliere = (n) => (REPERES_GELIERE[n] || []).concat(PRE_GELIERE[n] || 
 function rendreGelees() {
   geleesMesh.forEach((m) => scene.remove(m)); geleesMesh = [];
   const o = blocBati('geliere'); if (!o || !niv('geliere') || !MODELES.gelee_bleue) return;
-  const n = Math.min(4, niv('geliere')), a = rotDe('geliere'), pts = spotsGeliere(n);
+  const n = nivModeleGeliere(), a = rotDe('geliere'), pts = spotsGeliere(n);
   (S_.gelees || []).forEach((g, k) => {
     const m = marquer(cloner('gelee_' + g.c), o.c0.id), p = pts[k % pts.length], [dx, dz] = tourne(p[0], p[2], a);
     m.position.set(o.x + dx, o.y + p[1], o.z + dz); m.rotation.y = a + 0.5 + k; m.userData.s0 = m.scale.x;
@@ -114,7 +116,7 @@ function rendreGelees() {
 }
 function animerGelees(dt, s) {
   if (!geleesMesh.length || combat) return; const o = blocBati('geliere'); if (!o) return;
-  const a = rotDe('geliere'), pts = spotsGeliere(Math.min(4, niv('geliere')));
+  const a = rotDe('geliere'), pts = spotsGeliere(nivModeleGeliere());
   geleesMesh.forEach((m) => {
     const u = m.userData.g, s0 = m.userData.s0;
     if (u.saut) { /* en l'air : une parabole, etiree en montant */
@@ -148,7 +150,7 @@ const EFFET_POT_COURT = { petit: '+25 % de vie', menthe: '+25 % de vie, soigne e
 const repasMini = (r) => Object.entries(r).map(([id, n]) => '<span class="gl-fr"><img src="assets/icones/' + id + '.png?v=' + VERSION_MODELES + '" alt="' + nomFruit(id, n) + '"><b>' + n + '</b></span>').join('');
 function ouvrirGeliere() {
   const nv = niv('geliere'); if (!nv) { ouvrirHdv('ameliorer'); return; } S_.gelees = S_.gelees || [];
-  const L = S_.gelees, places = placesGeliere(), prets = potsPretsGeliere(), faim = L.filter((g) => etatGelee(g) === 'faim'), look = GAINS.geliere.looks[Math.min(4, nv)];
+  const L = S_.gelees, places = placesGeliere(), prets = potsPretsGeliere(), faim = L.filter((g) => etatGelee(g) === 'faim'), look = GAINS.geliere.looks[Math.min(NIV_GELIERE_MAX, nv)];
   const ligne = (g, k) => {
     const G = GELEES[g.c], e = etatGelee(g), m = manqueRecette(G.recette), now = Date.now(), rel = peutRelacher(g);
     const prog = e === 'pret' ? 1 : e === 'prod' ? Math.max(0.04, 1 - (g.fin - now) / prodGelee(g)) : 0;

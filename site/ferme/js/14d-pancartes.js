@@ -65,7 +65,7 @@ const PANCARTES = [
   ['forge', () => { const g = batiPose('forge'); return g && [g, 'Forgemagie', g.userData.v2 ? { h: 0.22, avance: 0.72, pied: 0.02 } : { h: 0.27, avance: -0.15, pied: 0.06 }]; }], /* (v2 : la forge a runes, sa pancarte se pose sur le bord de la hotte, du cote de la camera, 11/11/2026) */
   ['atelier', () => { const g = batiPose('atelier'); return g && [g, 'Atelier', { h: 0.27, avance: -0.15, pied: 0.06 }]; }],
   /* (l'eveil et le concasseur n'ont pas de pancarte : « retire les pancartes, colle pas la pancarte directement sur le truc », Mathieu, 18/11/2026) */
-  ['geliere', () => { const g = batiPose('geliere'); if (!g) return null; const P = PANCARTE_GELIERE[Math.min(4, niv('geliere'))]; g.updateMatrixWorld(true); const q = g.localToWorld(new T.Vector3(P.x, 0, P.z));
+  ['geliere', () => { const g = batiPose('geliere'); if (!g) return null; const P = PANCARTE_GELIERE[nivModeleGeliere()]; g.updateMatrixWorld(true); const q = g.localToWorld(new T.Vector3(P.x, 0, P.z));
     return [g, 'Gelière', { h: P.h, x: q.x, z: q.z, cotes: [0, 2], pied: P.pied, sol: P.sol ? q.y : undefined, poteau: !!P.sol }]; }],
   ['niche', () => { const g = batiPose('niche'), G = gardienDe(); return g && G && [g, G.nom, G.espece === 'chat' ? { h: 0.3, origine: true, cotes: [1, 3], pied: 0.1 } : { h: 0.3, avance: 0.2, pied: 0.1 }]; }], /* (Newton : sur son tonneau) */
   /* (le Pépito-tron n'a plus de pancarte : « retire la pancarte », Mathieu, 31/10/2026) */
