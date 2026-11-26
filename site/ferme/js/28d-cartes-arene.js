@@ -53,7 +53,7 @@ Object.assign(BONUS_ARENE.vol, { effetP11: '2 % de vol de vie', txtP11: 'tes cou
 
 /* le tirage : les cartes du palier 11 seulement avec lui ; une legendaire (pas deja prise) a une chance sur sept par carte */
 { const tirer0 = tirerBonusArene; tirerBonusArene = function () { if (!cartesArenePct()) { const L = tirer0.apply(this, arguments).filter((id) => !BONUS_ARENE[id].p11); return L.length ? L : tirer0.apply(this, arguments); }
-  const pris = (bonusA() || {}), norm = Object.keys(BONUS_ARENE).filter((id) => !BONUS_ARENE[id].leg), leg = Object.keys(BONUS_ARENE).filter((id) => BONUS_ARENE[id].leg && !pris[id]), out = [];
+  const pris = (bonusA() || {}), norm = Object.keys(BONUS_ARENE).filter((id) => !BONUS_ARENE[id].leg && okCarte(id)), leg = Object.keys(BONUS_ARENE).filter((id) => BONUS_ARENE[id].leg && !pris[id] && okCarte(id)), out = [];
   const pese = (L) => { const P = L.map((id) => POIDS_RARETE[RARETE_CARTES[id] || 'commune'] || 10), T0 = P.reduce((a, b) => a + b, 0); let x = Math.random() * T0; for (let i = 0; i < L.length; i++) { x -= P[i]; if (x <= 0) return i; } return L.length - 1; };
   for (let k = 0; k < 3; k++) { if (leg.length && Math.random() < LEG_CARTES.chance) { out.push(leg.splice(Math.floor(Math.random() * leg.length), 1)[0]); continue; } out.push(norm.splice(pese(norm), 1)[0]); }
   return out; }; }
@@ -113,4 +113,209 @@ function tickCartes(c, dt) {
   if (nbC('aura')) { const A = LEG_CARTES.aura; c.auraT = (c.auraT || 0) + dt; if (c.auraT >= A.pas) { c.auraT = 0; const dg = Math.max(1, Math.round(statsPerso().deg * A.part));
       c.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - pp.x, o.z - pp.z) < A.R) blesser(o, dg); });
       for (let k = 0; k < 4; k++) { const a = Math.random() * Math.PI * 2, rr = A.R * (0.6 + 0.4 * Math.random()); emettre(FX_VIF, 1, { x: pp.x + Math.cos(a) * rr, y: pp.y + 0.15, z: pp.z + Math.sin(a) * rr, v: [0, 1.6, 0], dv: 0.4, vie: [0.35, 0.6], taille: [0.28, 0.06], c: ['#ffd25a', '#ff6a12', '#b0280e'], a: 0.9, frein: 1 }); } } }
+}
+/* ---------- LE DEUXIEME LOT DE CARTES (26/11/2026, la nuit, Mathieu par Discord : « cree d'autres cartes, trouve des idees originales, des cartes basiques, des
+   fortes et des legendaires ; genre que ca puisse te up certaines choses, sorts, item legendaire, que ca fasse l'effet d'un sort toutes les x secondes,
+   reduction de cooldown, des invocations etc. ») : quinze cartes, avec le palier 11 comme les autres.
+   - communes : Regeneration, Tueur de geants, Coup de grace, Relique polie (les sorts legendaires) ;
+   - rares : Echo (le sort de classe se relance), Meteore, Chaine d'eclairs, Lames tournoyantes, Siphon d'ames (chaque monstre tue recharge les sorts) ;
+   - epiques : Totem de guerre et Bouftou de guerre (des invocations), Deluge de fleches ;
+   - legendaires : Forme de titan, Relique vivante (les sorts legendaires partent seuls), Ultime en echo (l'ulti se relance seul).
+   Une carte qui agit toutes les x secondes fait 50 % de degats de plus par exemplaire en plus ; les cartes des sorts legendaires ne sortent qu'a qui en porte un,
+   l'Ultime en echo qu'a qui a un ulti. */
+const CARTES_P11B = { regen: { pas: 3, part: 0.01 }, geant: 0.15, grace: { seuil: 0.3, x: 0.25 }, relique: 0.25, echo: { chance: 0.25, max: 0.6 },
+  meteore: { periode: 7, portee: 10, R: 1.6, x: 1.5, chute: 0.55 }, eclair: { periode: 5, portee: 8, saut: 4.5, n: 3, x: 0.8 },
+  lames: { n: 2, max: 4, R: 1.7, w: 4.2, touche: 0.75, x: 0.4, cd: 0.45 }, ames: 0.5,
+  totem: { periode: 20, duree: 10, tir: 0.7, portee: 9, x: 0.5 }, bouftou: { periode: 25, duree: 10, x: 0.7, cadence: 0.8, vitesse: 5.5, portee: 1.3 },
+  deluge: { periode: 12, R: 2.6, volees: 3, ecart: 0.4, x: 0.6 }, titan: { periode: 30, duree: 6, x: 1.5, recus: 0.7, taille: 1.35 }, relvive: 0.3, ultecho: { delai: 1.2 } };
+Object.assign(RARETE_CARTES, { regen: 'commune', geant: 'commune', grace: 'commune', relique: 'commune', echo: 'rare', meteore: 'rare', eclair: 'rare', lames: 'rare', ames: 'rare', totem: 'epique', bouftou: 'epique', deluge: 'epique' });
+const okCarte = (id) => { const B = BONUS_ARENE[id]; return !!B && (!B.requiert || B.requiert()); }; /* (une carte qui demande une piece legendaire ou un ulti) */
+const aLegendaire = () => { try { return !!(legDe('coiffe') || legDe('arme')); } catch (e) { return false; } };
+const flecheSvg = (x, y) => { const dx = 0.5, dy = 0.866, L = 30, tx = x + dx * L, ty = y + dy * L, px = -dy, py = dx, f = (v) => v.toFixed(1);
+  return '<path d="M' + x + ' ' + y + 'L' + f(tx) + ' ' + f(ty) + '" stroke-width="4"/><path d="M' + f(tx + dx * 4) + ' ' + f(ty + dy * 4) + 'L' + f(tx - dx * 6 + px * 5) + ' ' + f(ty - dy * 6 + py * 5) + 'L' + f(tx - dx * 6 - px * 5) + ' ' + f(ty - dy * 6 - py * 5) + 'Z" fill="#ffd04a"/>' +
+    '<path d="M' + x + ' ' + y + 'l' + f(px * 5 - dx * 4) + ' ' + f(py * 5 - dy * 4) + 'M' + x + ' ' + y + 'l' + f(-px * 5 - dx * 4) + ' ' + f(-py * 5 - dy * 4) + '" stroke="#e8504a" stroke-width="3.5"/>'; };
+const ETOILE_SVG = '<path d="M52 12l9 22 24 2-18 16 6 24-21-13-21 13 6-24-18-16 24-2Z" fill="#ffd04a"/>';
+Object.assign(BONUS_ARENE, {
+  regen: { p11: true, nom: 'Régénération', c: ['#3fae6a', '#226a3e', '#d2f2dc'], effet: '1 % de vie toutes les 3 s', txt: 'tes blessures se referment seules',
+    svg: SVG_C('<path d="M54 84C26 68 16 54 16 40c0-11 9-19 19-19 8 0 15 5 19 12 4-7 11-12 19-12 10 0 19 8 19 19 0 14-10 28-38 44Z" fill="#5fd08a"/><path d="M54 38v26M41 51h26" stroke="#ffffff" stroke-width="6.5"/><path d="M98 34v14M91 41h14M104 10v10M99 15h10" fill="none" stroke="#3fae6a" stroke-width="4"/>') },
+  geant: { p11: true, nom: 'Tueur de géants', c: ['#d8924e', '#6a4420', '#f2dcc0'], effet: '+15 % de dégâts aux boss', txt: 'et aux demi-boss',
+    svg: SVG_C('<path d="M34 30c-8-12-6-20 0-24 2 9 8 13 14 15M86 30c8-12 6-20 0-24-2 9-8 13-14 15" fill="#e8dcc0"/><path d="M60 18c-20 0-32 14-32 32 0 14 8 24 18 28v10h28V78c10-4 18-14 18-28 0-18-12-32-32-32Z" fill="#a8693a"/><circle cx="48" cy="50" r="6" fill="#ffd04a"/><circle cx="72" cy="50" r="6" fill="#ffd04a"/><path d="M50 70h20" fill="none"/>') +
+      '<path d="M16 88 98 10" stroke="#3b2a1a" stroke-width="9" stroke-linecap="round"/><path d="M18 86 96 12" stroke="#eef2f6" stroke-width="4.5" stroke-linecap="round"/><path d="M12 72l16 16" stroke="#3b2a1a" stroke-width="6" stroke-linecap="round"/>' },
+  grace: { p11: true, nom: 'Coup de grâce', c: ['#ec5a68', '#7a1e2a', '#fbd0d6'], effet: '+25 % de dégâts aux blessés', txt: 'sur les monstres sous 30 % de vie',
+    svg: SVG_C('<rect x="12" y="64" width="96" height="18" rx="7" fill="#3b2a1a"/><rect x="17" y="69" width="22" height="8" rx="3" fill="#e8504a" stroke="none"/><path d="M78 6l10 6-26 42-8-4Z" fill="#dfe6ee"/><path d="M50 46l16 8" fill="none" stroke-width="6"/><path d="M53 52l-7 10" fill="none" stroke-width="5"/>') },
+  relique: { p11: true, requiert: aLegendaire, nom: 'Relique polie', c: ['#d9a632', '#8a6512', '#fff0c0'], effet: 'légendaires 25 % plus vite', txt: 'les sorts de ta coiffe et de ton arme légendaires se rechargent plus vite',
+    svg: SVG_C('<path d="M60 8 86 30 60 84 34 30Z" fill="#b48cff"/><path d="M34 30h52M60 8 50 30l10 54 10-54Z" fill="none"/><path d="M60 8 50 30h20Z" fill="#e2d4fb"/>') + '<g fill="#ffd04a" stroke="#3b2a1a" stroke-width="2"><path d="M18 20l3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/><path d="M100 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></g>' },
+  echo: { p11: true, nom: 'Écho', c: ['#4a9ad6', '#245f86', '#d6ecfb'], effet: '25 % de relancer ton sort', txt: 'ton sort de classe se recharge aussitôt (60 % au plus)',
+    svg: '<g opacity=".45">' + SVG_C('<circle cx="74" cy="44" r="26" fill="#9fd0ff"/>') + '</g>' + SVG_C('<circle cx="48" cy="50" r="26" fill="#4a9ad6"/><path d="M38 52a11 11 0 1 1 11 11" fill="none" stroke="#e8f6ff" stroke-width="5"/>') +
+      '<path d="M94 18c8 7 11 17 9 27M102 9c12 10 16 25 12 40" fill="none" stroke="#4a9ad6" stroke-width="4.5" stroke-linecap="round"/>' },
+  meteore: { p11: true, nom: 'Météore', c: ['#e0602a', '#8a2e0e', '#ffdcc4'], effet: 'une météorite toutes les 7 s', txt: '150 % de tes dégâts sur le monstre le plus proche et autour',
+    svg: '<path d="M104 4 54 52" stroke="#ff9a2e" stroke-width="22" stroke-linecap="round" opacity=".5"/><path d="M100 8 58 48" stroke="#ffd04a" stroke-width="9" stroke-linecap="round"/>' + SVG_C('<circle cx="46" cy="58" r="22" fill="#6a5248"/><circle cx="39" cy="52" r="5" fill="#4a3830"/><circle cx="54" cy="65" r="4" fill="#4a3830"/>') + '<path d="M14 88h62" stroke="#ffb02e" stroke-width="4.5" stroke-linecap="round"/>' },
+  eclair: { p11: true, nom: 'Chaîne d\'éclairs', c: ['#4ab4e8', '#1f6a90', '#d6f0fb'], effet: 'un éclair toutes les 5 s', txt: 'il saute sur 3 monstres : 80 % de tes dégâts chacun',
+    svg: '<path d="M20 70 34 48 28 45 62 28M62 28 78 52 72 55 100 66" fill="none" stroke="#3b2a1a" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/><path d="M20 70 34 48 28 45 62 28M62 28 78 52 72 55 100 66" fill="none" stroke="#bff0ff" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+      SVG_C('<circle cx="20" cy="72" r="10" fill="#a8693a"/><circle cx="62" cy="26" r="10" fill="#a8693a"/><circle cx="100" cy="68" r="10" fill="#a8693a"/>') },
+  lames: { p11: true, nom: 'Lames tournoyantes', c: ['#b4c2d6', '#3e4858', '#e2e8f0'], effet: 'des lames tournent autour de toi', txt: '40 % de tes dégâts à chaque monstre touché (deux lames, une de plus par carte)',
+    svg: '<circle cx="60" cy="48" r="32" fill="none" stroke="#7a8698" stroke-width="4" stroke-dasharray="6 8"/>' + SVG_C('<circle cx="60" cy="48" r="11" fill="#e07c0a"/><path d="M94 46c0-15-7-26-18-30 5 11 5 22 0 30Z" fill="#dfe6ee"/><path d="M26 50c0 15 7 26 18 30-5-11-5-22 0-30Z" fill="#dfe6ee"/>') },
+  ames: { p11: true, nom: 'Siphon d\'âmes', c: ['#3fc0a8', '#1f7a6a', '#d2f6ee'], effet: 'chaque monstre tué recharge tes sorts', txt: '0,5 s de moins sur tous tes sorts, l\'ulti compris',
+    svg: SVG_C('<path d="M30 72c-10-4-14-14-10-22 2 8 8 10 12 8-6-8-4-18 4-22-2 8 2 14 8 14 0 12-4 20-14 22Z" fill="#9ff0dc"/><path d="M90 24c10 4 14 14 10 22-2-8-8-10-12-8 6 8 4 18-4 22 2-8-2-14-8-14 0-12 4-20 14-22Z" fill="#9ff0dc"/><circle cx="60" cy="48" r="15" fill="#3fc0a8"/><path d="M60 39v9l7 5" fill="none" stroke="#ffffff" stroke-width="3.5"/>') },
+  totem: { p11: true, nom: 'Totem de guerre', c: ['#dc9a52', '#6a4426', '#f2dcc0'], effet: 'un totem toutes les 20 s', txt: 'il sort du sable et tire 10 s sur les monstres : 50 % de tes dégâts',
+    svg: SVG_C('<path d="M44 24h32v64H44Z" fill="#c8945a"/><path d="M44 48h32M44 70h32" fill="none"/><circle cx="53" cy="36" r="4.5" fill="#ffd04a"/><circle cx="67" cy="36" r="4.5" fill="#ffd04a"/><path d="M52 60h16" fill="none"/><path d="M44 24c-7-10-5-17 2-21 0 8 6 10 9 14M76 24c7-10 5-17-2-21 0 8-6 10-9 14" fill="#e8504a"/>') + '<path d="M80 34 108 20" stroke="#ffd04a" stroke-width="5" stroke-linecap="round"/><circle cx="108" cy="20" r="6" fill="#fff6b0" stroke="#3b2a1a" stroke-width="2"/>' },
+  bouftou: { p11: true, nom: 'Bouftou de guerre', c: ['#c9b48a', '#7a6440', '#fbf3e2'], effet: 'un Bouftou allié toutes les 25 s', txt: 'il tombe du ciel et se bat 10 s à tes côtés',
+    svg: SVG_C('<circle cx="60" cy="54" r="30" fill="#f4ecdc"/><circle cx="40" cy="38" r="13" fill="#f4ecdc"/><circle cx="80" cy="38" r="13" fill="#f4ecdc"/><circle cx="60" cy="30" r="15" fill="#f4ecdc"/><path d="M46 56c0-8 6-12 14-12s14 4 14 12c0 10-6 18-14 18s-14-8-14-18Z" fill="#8a6a4a"/><circle cx="54" cy="55" r="3" fill="#ffffff"/><circle cx="66" cy="55" r="3" fill="#ffffff"/><path d="M30 46c-10 0-16 8-14 18 4-4 8-6 12-4M90 46c10 0 16 8 14 18-4-4-8-6-12-4" fill="#c9a032"/>') },
+  deluge: { p11: true, nom: 'Déluge de flèches', c: ['#d06a2a', '#7a3a12', '#ffe0c8'], effet: 'une pluie de flèches toutes les 12 s', txt: 'sur le plus gros groupe : trois volées de 60 % de tes dégâts',
+    svg: SVG_C(flecheSvg(18, 6) + flecheSvg(46, 2) + flecheSvg(74, 8) + flecheSvg(30, 44) + flecheSvg(60, 46)) },
+  titan: { leg: true, p11: true, nom: 'Forme de titan', c: ['#c8401e', '#6a1e0e', '#ffd8c8'], effet: 'géant 6 s toutes les 30 s', txt: 'dégâts ×1,5, 30 % de dégâts en moins, rien ne t\'entrave',
+    svg: SVG_C('<circle cx="64" cy="22" r="13" fill="#f6d2b0"/><path d="M38 90c0-30 11-52 26-52s26 22 26 52Z" fill="#e07c0a"/><circle cx="22" cy="64" r="6" fill="#f6d2b0"/><path d="M12 90c0-14 4-21 10-21s10 7 10 21Z" fill="#c8945a"/>') + '<path d="M104 62V20M93 31l11-11 11 11" fill="none" stroke="#ffd04a" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+  relvive: { leg: true, p11: true, requiert: aLegendaire, nom: 'Relique vivante', c: ['#9a4ad6', '#4a1f7a', '#ecd8fb'], effet: 'tes légendaires partent seuls', txt: 'les sorts de ta coiffe et de ton arme, dès qu\'ils sont prêts, et 30 % plus vite',
+    svg: SVG_C('<path d="M60 8 84 28 60 78 36 28Z" fill="#ffd04a"/><path d="M36 28h48M60 8 52 28l8 50 8-50Z" fill="none"/>') + '<path d="M20 58a42 42 0 0 0 80 0" fill="none" stroke="#b48cff" stroke-width="5.5" stroke-linecap="round"/><path d="M92 50l7 8 8-5M28 50l-7 8-8-5" fill="none" stroke="#b48cff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>' },
+  ultecho: { leg: true, p11: true, requiert: () => !!(S_ && S_.ulti), nom: 'Ultime en écho', c: ['#e8b23a', '#8a5a0e', '#fff0c4'], effet: 'ton ulti se relance seul', txt: 'une deuxième fois, gratuitement, juste après le premier',
+    svg: '<g opacity=".42" transform="translate(18 -4)">' + SVG_C(ETOILE_SVG) + '</g>' + SVG_C(ETOILE_SVG) + '<text x="94" y="84" font-family="Lilita One, sans-serif" font-size="28" fill="#ffd04a" stroke="#3b2a1a" stroke-width="3" paint-order="stroke" text-anchor="middle">×2</text>' } });
+
+/* ---------- leurs effets ---------- */
+const degCarte = () => { try { return statsPerso().deg; } catch (e) { return 10; } };
+const yDe = (o) => (o && o.m ? o.m.position.y : 0);
+const multCarte = (id) => 1 + 0.5 * Math.max(0, nbC(id) - 1); /* (toutes les x secondes : +50 % par exemplaire en plus) */
+function plusProcheCarte(c, x, z, portee, sauf) { let b = null, bd = portee; c.monstres.forEach((o) => { if (o.etat !== 'actif' || (sauf && sauf.has(o))) return; const d = Math.hypot(o.x - x, o.z - z); if (d < bd) { bd = d; b = o; } }); return b; }
+function plusGrosGroupe(c, R, portee) { const pp = paysanMesh.position, L = c.monstres.filter((o) => o.etat === 'actif' && Math.hypot(o.x - pp.x, o.z - pp.z) < portee); let best = null, n0 = 0;
+  L.forEach((o) => { let n = 0; L.forEach((q) => { if (Math.hypot(q.x - o.x, q.z - o.z) < R) n++; }); if (n > n0) { n0 = n; best = o; } }); return best; }
+const zoneCarte = (c, x, z, R, dg) => c.monstres.slice().forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - x, o.z - z) < R + (o.d.boss ? 0.6 : 0)) blesser(o, dg, true, 'carte'); });
+/* les coups : Tueur de geants, Coup de grace ; un monstre tue envoie son ame (Siphon d'ames) */
+{ const b1 = blesser; blesser = function (mo, n, gros, src) { const c = combat; if (!c || !c.arene || !cartesArenePct() || !mo || mo.etat !== 'actif' || src === 'def' || !(n > 0)) return b1.apply(this, arguments);
+  let k = 1; const kG = nbC('geant'); if (kG && mo.d.boss) k += CARTES_P11B.geant * kG;
+  const kR = nbC('grace'); if (kR && mo.pv < (mo.pvMax || mo.pv) * CARTES_P11B.grace.seuil) k += CARTES_P11B.grace.x * kR;
+  const pv0 = mo.pv, r = b1.call(this, mo, k === 1 ? n : Math.round(n * k), gros, src);
+  if (mo.etat === 'mort' && pv0 > 0 && nbC('ames')) ameVersPerso(c, mo);
+  return r; }; }
+function ameVersPerso(c, mo) {
+  const g = new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: '#c8fff0', transparent: true, opacity: 0.95, depthWrite: false })); g.raycast = () => {};
+  const de = new T.Vector3(mo.x, yDe(mo) + 1, mo.z), vers = new T.Vector3(); g.position.copy(de); scene.add(g); let t = 0;
+  effets.push((dt) => { if (combat !== c || c.fin) { jeter(g); return true; } t += dt; const pp = paysanMesh.position, k = Math.min(1, t / 0.5); vers.set(pp.x, pp.y + 1.1, pp.z);
+    g.position.lerpVectors(de, vers, k * k); g.position.y += Math.sin(k * Math.PI) * 1.3;
+    emettre(FX_LUM, 1, { x: g.position.x, y: g.position.y, z: g.position.z, vie: [0.16, 0.22], taille: [0.55, 0.2], c: ['#9ff0dc', '#3fc0a8'], a: 0.6 });
+    if (k < 1) return false; jeter(g); const a = CARTES_P11B.ames * nbC('ames'); ['cdSort', 'cdUlti', 'cdLegC', 'cdLegA'].forEach((cd) => { if (c[cd] > 0) c[cd] = Math.max(0, c[cd] - a); });
+    emettre(FX_VIF, 6, { x: pp.x, y: pp.y + 1.1, z: pp.z, r: 0.2, dv: 1.4, vie: [0.25, 0.45], taille: [0.1, 0.03], c: ['#ffffff', '#9ff0dc', '#3fc0a8'], frein: 1 }); return true; });
+}
+/* Forme de titan : 30 % de degats recus en moins, degats x1,5 */
+{ const bp1 = blesserPerso; blesserPerso = function (n, mo) { const c = combat; if (c && c.arene && c.titanT > 0 && n > 0) n = Math.max(1, Math.round(n * CARTES_P11B.titan.recus)); return bp1.call(this, n, mo); }; }
+{ const bd1 = boostDegats; boostDegats = function () { const k = bd1.apply(this, arguments), c = combat; return c && c.arene && c.titanT > 0 ? k * CARTES_P11B.titan.x : k; }; }
+/* Echo : le sort de classe se recharge aussitot */
+{ const t0 = BOUTONS_SORT.sort.tirer; BOUTONS_SORT.sort.tirer = function () { const r = t0.apply(this, arguments), c = combat, k = nbC('echo');
+  if (c && c.arene && k && r !== false && Math.random() < Math.min(CARTES_P11B.echo.max, CARTES_P11B.echo.chance * k)) setTimeout(() => { if (combat !== c || c.fin) return; c.cdSort = 0; auPerso('Écho !'); const pp = paysanMesh.position; onde(pp.x, pp.y + 0.05, pp.z, 1.6, '#9fd0ff', 0.35, 0.8); son('niveau'); }, 300);
+  return r; }; }
+/* Ultime en echo : l'ulti repart seul, gratuitement (la Tempete de lames du Iop, une fois la premiere finie ; le coup fatal, sur le monstre le plus proche si le sien est tombe) */
+let ULTI_EN_ECHO = false;
+{ const eu1 = executerUlti; executerUlti = function (id, cible, pt) { const r = eu1.apply(this, arguments), c = combat;
+  if (!ULTI_EN_ECHO && c && c.arene && !c.fin && nbC('ultecho')) { const iopZone = id === 'zone' && classeDe() === 'iop', delai = iopZone ? (typeof DUREE_TEMPETE !== 'undefined' ? DUREE_TEMPETE : 3) + 0.4 : CARTES_P11B.ultecho.delai, p0 = pt ? { x: pt.x, y: pt.y || 0, z: pt.z } : null;
+    setTimeout(() => { if (combat !== c || c.fin || c.deroute != null) return; let cib = cible, q = p0; const pp = paysanMesh.position;
+      if (id === 'mono') { if (!cib || cib.etat !== 'actif') cib = plusProcheCarte(c, pp.x, pp.z, 12); if (!cib) return; }
+      else if (!iopZone) { const g = plusGrosGroupe(c, 3, 14); if (g) q = { x: g.x, y: 0, z: g.z }; if (!q) return; cib = null; } else q = new T.Vector3(pp.x, pp.y, pp.z);
+      const cd0 = c.cdUlti; ULTI_EN_ECHO = true; try { auPerso('Ultime en écho !'); executerUlti(id, cib, cib ? null : (q.isVector3 ? q : new T.Vector3(q.x, q.y, q.z))); } finally { ULTI_EN_ECHO = false; c.cdUlti = cd0; } }, delai * 1000); }
+  return r; }; }
+/* la boucle de ces cartes : lancee a la premiere vague, comme l'autre */
+function lancerBoucleCartes2(c) { if (!c || c.carteTick2) return; c.carteTick2 = true; effets.push((dt) => { if (combat !== c || c.fin) { finCartes2(c); return true; } tickCartes2(c, dt); return false; }); }
+{ const av1 = appliquerVagueArene; appliquerVagueArene = function (c, p) { const r = av1.apply(this, arguments); if (c && cartesArenePct()) lancerBoucleCartes2(c); return r; }; }
+{ const pb1 = prendreBonusArene; prendreBonusArene = function () { const r = pb1.apply(this, arguments); if (combat && combat.arene && cartesArenePct()) lancerBoucleCartes2(combat); return r; }; } /* (et des qu'une carte est prise) */
+function finCartes2(c) { (c.lames || []).forEach((l) => jeter(l.m)); c.lames = null; if (c.totemC) { jeter(c.totemC.m); c.totemC = null; } if (c.bouftouC) { jeter(c.bouftouC.m); c.bouftouC = null; }
+  if (c.titanT > 0 && paysanMesh) paysanMesh.scale.setScalar(c.titanBase || 1); c.titanT = 0; }
+function tickCartes2(c, dt) {
+  if (enPause || c.entracte) return; const pp = paysanMesh.position;
+  const kR = nbC('regen'); if (kR) { c.regenT = (c.regenT || 0) + dt; if (c.regenT >= CARTES_P11B.regen.pas) { c.regenT = 0; if (c.pv < c.pvMax && c.pv > 0) { c.pv = Math.min(c.pvMax, c.pv + c.pvMax * CARTES_P11B.regen.part * kR); majCombatHud();
+    emettre(FX_VIF, 5, { x: pp.x, y: pp.y + 0.4, z: pp.z, r: 0.45, v: [0, 1.4, 0], dv: 0.3, vie: [0.5, 0.8], taille: [0.12, 0.05], c: ['#d2f2dc', '#5fd08a'], frein: 1 }); } } }
+  const kL = nbC('relique') * CARTES_P11B.relique + (nbC('relvive') ? CARTES_P11B.relvive : 0); if (kL) { if (c.cdLegC > 0) c.cdLegC = Math.max(0, c.cdLegC - dt * kL); if (c.cdLegA > 0) c.cdLegA = Math.max(0, c.cdLegA - dt * kL); }
+  if (nbC('relvive') && c.deroute == null && !(c.chuteT > 0)) ['coiffe', 'arme'].forEach((emp) => { if (legDe(emp) && !((c[cdLeg(emp)] || 0) > 0) && !(visee && visee.bouton === emp)) { const avant = c[cdLeg(emp)] || 0; try { lancerLegAuto(emp); } catch (e) { c[cdLeg(emp)] = 3; } if ((c[cdLeg(emp)] || 0) > avant) auPerso(sortLeg(legDe(emp)).nom + ' !'); } }); /* (un sort qui plante attend 3 s : la boucle des cartes ne s'arrete pas) */
+  if (nbC('meteore')) { const M = CARTES_P11B.meteore; c.meteoreT = (c.meteoreT || 0) + dt; if (c.meteoreT >= M.periode) { const o = plusProcheCarte(c, pp.x, pp.z, M.portee); if (o) { c.meteoreT = 0; meteoreCarte(c, o.x, o.z, Math.round(degCarte() * M.x * multCarte('meteore'))); } } }
+  if (nbC('eclair')) { const E = CARTES_P11B.eclair; c.eclairT = (c.eclairT || 0) + dt; if (c.eclairT >= E.periode) { const o = plusProcheCarte(c, pp.x, pp.z, E.portee); if (o) { c.eclairT = 0; chaineEclairs(c, o, Math.round(degCarte() * E.x * multCarte('eclair')), E.n + Math.max(0, nbC('eclair') - 1)); } } }
+  if (nbC('lames')) majLames(c, dt); else if (c.lames) { c.lames.forEach((l) => jeter(l.m)); c.lames = null; }
+  if (nbC('totem')) { const Tt = CARTES_P11B.totem; c.totemT = (c.totemT || 0) + dt; if (c.totemT >= Tt.periode && !c.totemC) { c.totemT = 0; poserTotemCarte(c); } if (c.totemC) majTotemCarte(c, dt); }
+  if (nbC('bouftou')) { const Bf = CARTES_P11B.bouftou; c.bouftouT = (c.bouftouT || 0) + dt; if (c.bouftouT >= Bf.periode && !c.bouftouC) { c.bouftouT = 0; lacherBouftou(c); } if (c.bouftouC) majBouftouCarte(c, dt); }
+  if (nbC('deluge')) { const D = CARTES_P11B.deluge; c.delugeT = (c.delugeT || 0) + dt; if (c.delugeT >= D.periode) { const o = plusGrosGroupe(c, D.R, 14); if (o) { c.delugeT = 0; delugeCarte(c, o.x, o.z, Math.round(degCarte() * D.x * multCarte('deluge'))); } } }
+  if (nbC('titan')) majTitan(c, dt);
+}
+/* Meteore : une pierre en feu tombe du ciel sur le monstre le plus proche (un cercle orange au sol juste avant) */
+function meteoreCarte(c, x, z, dg) {
+  const M = CARTES_P11B.meteore, y = solA(x, z), de = new T.Vector3(x + 4.5, y + 15, z - 3.5), vers = new T.Vector3(x, y + 0.3, z), roc = sphere(0.5, '#6a5248'); roc.traverse((o) => { o.raycast = () => {}; }); roc.position.copy(de); scene.add(roc);
+  if (typeof cibleSol === 'function') cibleSol(x, y, z, M.chute + 0.02); let t = 0;
+  effets.push((d) => { if (combat !== c) { jeter(roc); return true; } t += d; const k = Math.min(1, t / M.chute); roc.position.lerpVectors(de, vers, k * k); roc.rotation.x += d * 9; roc.rotation.z += d * 6;
+    const p = roc.position; emettre(FX_VIF, 4, { x: p.x, y: p.y, z: p.z, r: 0.25, v: [0, 1, 0], dv: 0.8, vie: [0.25, 0.45], taille: [0.55, 0.1], c: ['#fff1a8', '#ff8a1e', '#b0280e'], a: 0.95, frein: 1 });
+    emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.08, 0.1], taille: [1.6, 0.8], c: ['#ffd38a', '#ff6a1e'], a: 0.6 }); if (Math.random() < 0.5) emettre(FX_FUM, 1, { x: p.x, y: p.y, z: p.z, v: [0, 0.6, 0], vie: [0.5, 0.8], taille: [0.4, 1.0], c: ['#5a4a42', '#8a8078'], a: 0.3 });
+    if (k < 1) return false; jeter(roc); boule(x, y + 0.3, z, 0.8, ['#ffb02e', '#e8541e', '#7a1e0a'], true); onde(x, y + 0.04, z, M.R + 0.3, '#ffb04a', 0.35, 0.85); brulure(x, y, z, M.R * 0.8); flashLumiere(x, y + 1, z, '#ff8a2e', 3.5, 8, 0.4); secousse(0.08, 0.2);
+    emettre(FX_VIF, 16, { x, y: y + 0.2, z, r: 0.1, dv: 5, haut: true, vie: [0.4, 0.8], taille: [0.1, 0.03], c: ['#fff1a8', '#ff8a1e', '#5a4a42'], grav: 9, frein: 1, sol: y + 0.04, rebond: 0.35 }); son('touche');
+    if (!c.fin) zoneCarte(c, x, z, M.R, dg); return true; });
+}
+/* Chaine d'eclairs : du perso au monstre le plus proche, puis de monstre en monstre */
+function chaineEclairs(c, o0, dg, n) {
+  const E = CARTES_P11B.eclair, touches = new Set(), pts = [new T.Vector3(paysanMesh.position.x, paysanMesh.position.y + 1.4, paysanMesh.position.z)]; let o = o0;
+  while (o && touches.size < n) { touches.add(o); pts.push(new T.Vector3(o.x, yDe(o) + (o.haut || 1.4) * 0.6, o.z)); o = plusProcheCarte(c, o.x, o.z, E.saut, touches); }
+  const dessiner = () => { for (let i = 1; i < pts.length; i++) eclairZigzag(pts[i - 1], pts[i], '#7fd8ff'); };
+  dessiner(); setTimeout(dessiner, 45); setTimeout(dessiner, 95); setTimeout(dessiner, 150);
+  pts.slice(1).forEach((p) => { flashLumiere(p.x, p.y, p.z, '#9fe3ff', 3, 6, 0.25); emettre(FX_VIF, 8, { x: p.x, y: p.y, z: p.z, r: 0.15, dv: 3, vie: [0.15, 0.3], taille: [0.08, 0.03], c: ['#ffffff', '#bff0ff', '#4ab4e8'], frein: 2 }); });
+  son('sort'); [...touches].forEach((m) => blesser(m, dg, true, 'carte'));
+}
+/* Lames tournoyantes : elles tournent autour du perso et coupent ce qu'elles touchent (une seule fois par monstre et par lame toutes les 0,45 s) */
+function fabriquerLame() { const g = new T.Group(), lame = boite(0.95, 0.05, 0.2, '#dfe6ee'); lame.position.x = 0.2; g.add(lame); const fil = boite(0.95, 0.06, 0.05, '#ffffff'); fil.position.set(0.2, 0, 0.11); g.add(fil);
+  const garde = boite(0.08, 0.1, 0.38, '#c9a032'); garde.position.x = -0.32; g.add(garde); const manche = cyl(0.05, 0.05, 0.3, '#6a4426'); manche.rotation.z = Math.PI / 2; manche.position.x = -0.5; g.add(manche); g.traverse((o) => { o.raycast = () => {}; o.castShadow = false; }); return g; }
+function majLames(c, dt) {
+  const L = CARTES_P11B.lames, n = Math.min(L.max, L.n + nbC('lames') - 1), pp = paysanMesh.position;
+  if (!c.lames || c.lames.length !== n) { (c.lames || []).forEach((l) => jeter(l.m)); c.lames = []; for (let i = 0; i < n; i++) { const m = fabriquerLame(); scene.add(m); c.lames.push({ m, vus: new Map() }); } }
+  c.lamesA = (c.lamesA || 0) + dt * L.w; const dg = Math.max(1, Math.round(degCarte() * L.x)), now = performance.now();
+  c.lames.forEach((l, i) => { const a = c.lamesA + i * Math.PI * 2 / n, x = pp.x + Math.cos(a) * L.R, z = pp.z + Math.sin(a) * L.R; l.m.position.set(x, pp.y + 0.75, z); l.m.rotation.set(0, -a - Math.PI / 2, 0.25);
+    if (Math.random() < 0.6) emettre(FX_LUM, 1, { x, y: pp.y + 0.75, z, vie: [0.1, 0.14], taille: [0.6, 0.2], c: ['#ffffff', '#bfd4ea'], a: 0.35 });
+    c.monstres.forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > L.touche + (o.d.ombre || 1) * 0.25) return; if ((l.vus.get(o) || 0) > now) return; l.vus.set(o, now + L.cd * 1000);
+      blesser(o, dg, false, 'carte'); emettre(FX_VIF, 4, { x: o.x, y: yDe(o) + 0.8, z: o.z, r: 0.2, dv: 2.4, vie: [0.15, 0.3], taille: [0.08, 0.03], c: ['#ffffff', '#dfe6ee'], frein: 2 }); }); });
+}
+/* Totem de guerre : il sort du sable pres du perso et tire sur le monstre le plus proche */
+function fabriquerTotemCarte() { const g = new T.Group(), corps = cyl(0.34, 0.4, 1.7, '#a8693a', 8); corps.position.y = 0.85; g.add(corps);
+  [0.55, 1.15].forEach((y) => { const b = cyl(0.42, 0.42, 0.1, '#6a4426', 8); b.position.y = y; g.add(b); });
+  const tete = boite(0.62, 0.5, 0.5, '#c8945a'); tete.position.set(0, 1.55, 0.08); g.add(tete); const bouche = boite(0.36, 0.08, 0.06, '#3b2a1a'); bouche.position.set(0, 1.4, 0.34); g.add(bouche);
+  const oeil = new T.MeshBasicMaterial({ color: '#ffe27a' }); [-0.14, 0.14].forEach((x) => { const e = new T.Mesh(new T.IcosahedronGeometry(0.075, 1), oeil); e.position.set(x, 1.62, 0.34); g.add(e); });
+  [-1, 1].forEach((s) => { const p = cone(0.09, 0.6, '#e8504a', 5); p.position.set(s * 0.26, 2.0, -0.05); p.rotation.z = -s * 0.35; g.add(p); }); const p2 = cone(0.08, 0.5, '#ffd04a', 5); p2.position.set(0, 2.05, -0.1); g.add(p2);
+  g.traverse((o) => { o.raycast = () => {}; }); return g; }
+function poserTotemCarte(c) {
+  const pp = paysanMesh.position, a = (paysanMesh.userData.angle || 0) + Math.PI * 0.75; let x = pp.x + Math.sin(a) * 1.6, z = pp.z + Math.cos(a) * 1.6;
+  if (typeof solSort === 'function' && !solSort(x, z)) { x = pp.x; z = pp.z; } const y = solA(x, z), m = fabriquerTotemCarte(); m.position.set(x, y - 2, z); m.rotation.y = Math.atan2(pp.x - x, pp.z - z) + Math.PI; scene.add(m);
+  c.totemC = { m, x, y, z, t: 0, tir: 0.6 }; pouf(x, y, z, 2.4, '#c9b28a'); emettre(FX_FUM, 8, { x, y: y + 0.3, z, r: 0.6, v: [0, 1.2, 0], vie: [0.6, 1.0], taille: [0.5, 1.2], c: ['#c9b28a', '#a8946a'], a: 0.5 }); son('sort');
+}
+function majTotemCarte(c, dt) {
+  const Tt = CARTES_P11B.totem, o = c.totemC; o.t += dt; const sortie = Math.min(1, o.t / 0.35), fin = Math.max(0, (o.t - Tt.duree) / 0.35); o.m.position.y = o.y - 2 * (1 - sortie) * (1 - sortie) - 2 * fin * fin;
+  if (fin >= 1) { pouf(o.x, o.y, o.z, 2, '#c9b28a'); jeter(o.m); c.totemC = null; return; } if (sortie < 1 || o.t > Tt.duree) return;
+  o.tir -= dt; const cib = plusProcheCarte(c, o.x, o.z, Tt.portee); if (cib) o.m.rotation.y += Math.atan2(Math.sin(Math.atan2(cib.x - o.x, cib.z - o.z) - o.m.rotation.y), Math.cos(Math.atan2(cib.x - o.x, cib.z - o.z) - o.m.rotation.y)) * Math.min(1, dt * 8);
+  if (o.tir > 0 || !cib) return; o.tir = Tt.tir; const de = new T.Vector3(o.x, o.y + 1.62, o.z), dg = Math.max(1, Math.round(degCarte() * Tt.x * multCarte('totem')));
+  const bal = new T.Mesh(new T.IcosahedronGeometry(0.13, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); bal.raycast = () => {}; bal.position.copy(de); scene.add(bal); let t = 0; const vise = cib;
+  effets.push((d) => { t += d; const k = Math.min(1, t / 0.2), vers = new T.Vector3(vise.x, yDe(vise) + (vise.haut || 1.2) * 0.55, vise.z); bal.position.lerpVectors(de, vers, k);
+    emettre(FX_LUM, 1, { x: bal.position.x, y: bal.position.y, z: bal.position.z, vie: [0.08, 0.1], taille: [0.5, 0.2], c: ['#fff6b0', '#ffb02e'], a: 0.7 }); if (k < 1) return false;
+    jeter(bal); etoileImpact(vers, 0.45, '#ffd04a'); if (combat === c && !c.fin && vise.etat === 'actif') blesser(vise, dg, false, 'carte'); return true; });
+}
+/* Bouftou de guerre : un Bouftou allie tombe du ciel pres du perso et fonce sur les monstres, 10 s */
+function lacherBouftou(c) {
+  const pp = paysanMesh.position, a = Math.random() * Math.PI * 2; let x = pp.x + Math.cos(a) * 1.4, z = pp.z + Math.sin(a) * 1.4; if (typeof solSort === 'function' && !solSort(x, z)) { x = pp.x; z = pp.z; }
+  const y = solA(x, z), m = modeleBouftouInvoque(); m.scale.setScalar(0.5); m.position.set(x, y + 5, z); m.traverse((o) => { o.raycast = () => {}; }); scene.add(m);
+  c.bouftouC = { m, x, z, ry: a, t: 0, chute: 0.3, cd: 0.5, pas: 0, frappe: 0 }; if (typeof cercleInvocation === 'function') cercleInvocation(x, y, z, ['#e8c25a', '#fff1b0', '#8a6512']);
+  toast('Un Bouftou de guerre se bat à tes côtés pendant ' + CARTES_P11B.bouftou.duree + ' s.', 'or');
+}
+function majBouftouCarte(c, dt) {
+  const Bf = CARTES_P11B.bouftou, b = c.bouftouC, m = b.m; b.t += dt;
+  if (b.t > Bf.duree) { pouf(b.x, solA(b.x, b.z), b.z, 2, '#fff1b0'); jeter(m); c.bouftouC = null; return; }
+  let y = solA(b.x, b.z); if (b.chute > 0) { b.chute -= dt; const h = Math.pow(Math.max(0, b.chute) / 0.3, 2) * 5; m.position.set(b.x, y + h, b.z); if (b.chute <= 0) { pouf(b.x, y, b.z, 2.6, '#fff1b0'); secousse(0.05, 0.12); zoneCarte(c, b.x, b.z, 1.6, Math.round(degCarte() * Bf.x * 1.5 * multCarte('bouftou'))); } return; }
+  const cib = plusProcheCarte(c, b.x, b.z, 30); let v = 0;
+  if (cib) { const dx = cib.x - b.x, dz = cib.z - b.z, d = Math.hypot(dx, dz), porte = Bf.portee + (cib.d.ombre || 1) * 0.3; b.ry = Math.atan2(dx, dz);
+    if (d > porte) { const pas = Math.min(d - porte, Bf.vitesse * dt), nx = b.x + dx / d * pas, nz = b.z + dz / d * pas; if (!(typeof solSort === 'function') || solSort(nx, nz)) { b.x = nx; b.z = nz; v = Bf.vitesse; } }
+    else { b.cd -= dt; if (b.cd <= 0) { b.cd = Bf.cadence; b.frappe = 0.25; blesser(cib, Math.max(1, Math.round(degCarte() * Bf.x * multCarte('bouftou'))), false, 'carte'); etoileImpact(new T.Vector3(cib.x, yDe(cib) + 0.7, cib.z), 0.4, '#fff1b0'); son('touche'); } } }
+  b.pas += v * dt * 5; y = solA(b.x, b.z); let elan = 0; if (b.frappe > 0) { b.frappe -= dt; elan = Math.sin((1 - b.frappe / 0.25) * Math.PI) * 0.35; }
+  m.position.set(b.x + Math.sin(b.ry) * elan, y + Math.abs(Math.sin(b.pas)) * 0.18 * Math.min(1, v), b.z + Math.cos(b.ry) * elan); m.rotation.y = b.ry;
+  if (b.t > Bf.duree - 1) m.scale.setScalar(0.5 * Math.max(0.05, Bf.duree - b.t));
+}
+/* Deluge de fleches : trois volees de la pluie du Cra sur le plus gros groupe */
+function delugeCarte(c, x, z, dg) {
+  const D = CARTES_P11B.deluge;
+  for (let i = 0; i < D.volees; i++) setTimeout(() => { if (combat !== c || c.fin) return; const g = i === 0 ? { x, z } : (plusGrosGroupe(c, D.R, 16) || { x, z }); if (typeof pluieSeule === 'function') pluieSeule(g.x, g.z, D.R, true);
+    setTimeout(() => { if (combat === c && !c.fin) zoneCarte(c, g.x, g.z, D.R, dg); }, 480); }, i * D.ecart * 1000);
+  auPerso('Déluge de flèches !');
+}
+/* Forme de titan : toutes les 30 s, il grandit 6 s ; plus rien ne l'entrave (ni colle, ni assomme, ni agrippe, ni lenteur) */
+function majTitan(c, dt) {
+  const Ti = CARTES_P11B.titan, pp = paysanMesh.position; c.titanCycle = (c.titanCycle || 0) + dt;
+  if (!(c.titanT > 0) && c.titanCycle >= Ti.periode && c.deroute == null) { c.titanCycle = 0; c.titanT = Ti.duree; c.titanBase = paysanMesh.scale.x; auPerso('Forme de titan !'); onde(pp.x, pp.y + 0.05, pp.z, 3.2, '#ff7a2e', 0.4, 0.9); pouf(pp.x, pp.y, pp.z, 3, '#ffd04a'); secousse(0.12, 0.3); flashLumiere(pp.x, pp.y + 2, pp.z, '#ff8a2e', 4, 10, 0.5); son('niveau'); }
+  if (c.titanT > 0) { c.titanT -= dt; const k = c.titanT > Ti.duree - 0.3 ? (Ti.duree - c.titanT) / 0.3 : c.titanT < 0.3 ? Math.max(0, c.titanT) / 0.3 : 1; paysanMesh.scale.setScalar((c.titanBase || 1) * (1 + (Ti.taille - 1) * k)); /* (la taille du perso, 0,5 dans le jeu, grandie d'un tiers) */
+    if (!(c.chuteT > 0)) { c.colle = 0; c.assomme = 0; c.agrippe = 0; c.lenteur = 0; }
+    if (Math.random() < 0.5) emettre(FX_VIF, 1, { x: pp.x + (Math.random() - 0.5) * 1.4, y: pp.y + 0.2, z: pp.z + (Math.random() - 0.5) * 1.4, v: [0, 2.2, 0], dv: 0.4, vie: [0.4, 0.7], taille: [0.22, 0.05], c: ['#ffd25a', '#ff6a12'], a: 0.9, frein: 1 });
+    if (c.titanT <= 0) paysanMesh.scale.setScalar(c.titanBase || 1); }
 }
