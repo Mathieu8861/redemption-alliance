@@ -98,3 +98,12 @@ function majPluie(dt) { /* a chaque image */
       if (codeIle(i, j)) foudrePluie(cx(i), cz(j)); } }
   if (!J.k) { J.mode = null; }
 }
+/* LA PLUIE ARROSE (26/11/2026, « quand il pleut, pas besoin d'arroser tes cultures », Mathieu) : la pluie bien installee (plus de la moitie de son fondu), toutes
+   les cultures de la ferme qui ne sont pas arrosees le deviennent, comme a l'arrosoir mais sans en vider une goutte ; on regarde deux fois par seconde. Ce qui est
+   arrose le reste apres la pluie, jusqu'a la recolte (comme un arrosage) */
+const PLUIE_ARROSE = { t: 0, vu: false };
+{ const majPluieArrose = majPluie; majPluie = function (dt) { const r = majPluieArrose.apply(this, arguments);
+    try { if (pluieLa() && PLUIE_J.k > 0.5 && (PLUIE_ARROSE.t -= dt) <= 0) { PLUIE_ARROSE.t = 0.5; let n = 0;
+        S_.cases.forEach((p) => { if (p.type === 'champ' && p.c && !p.arrose) { p.arrose = true; rendreCase(p.id); n++; } });
+        if (n) { if (typeof rendreCasesBulles === 'function') rendreCasesBulles(); if (!PLUIE_ARROSE.vu) { PLUIE_ARROSE.vu = true; toast('La pluie arrose tes cultures : pas besoin de l\'arrosoir tant qu\'il pleut.', 'or'); } } } } catch (e) { /* rien */ }
+    return r; }; }
