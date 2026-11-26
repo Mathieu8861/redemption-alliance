@@ -110,14 +110,13 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
     try {
       const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t);
       const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = premier || Math.random() < C.parfaite ? 1 : 0;
-      S_.kamas += C.kamas; G.poil_wabbit = (G.poil_wabbit || 0) + C.poils; if (typeof gagnerCristaux === 'function') gagnerCristaux(C.cristal); runes().forge = (runes().forge || 0) + C.forge; if (parfaite) runes().parfaite = (runes().parfaite || 0) + 1;
-      sauver(); rendreHaut(); rendreGrange();
+      sauver(); /* (26/11/2026 : le coffre se range dans le sac, il se donne a son ouverture, 29zg-coffres-sac.js) */
       const duree = (s) => { s = Math.round(s); const m = Math.floor(s / 60); return (m ? m + ' min ' : '') + (s % 60) + ' s'; };
       const recap = document.querySelector('#carte .recap-combat');
       if (recap) recap.insertAdjacentHTML('beforeend', ligneRecap('etoile', 'Record', nouveau ? duree(t) + (ancien ? ' (nouveau record ! avant : ' + duree(ancien) + ')' : ' (ton premier)') : duree(ancien) + ' (cette fois : ' + duree(t) + ')'));
-      const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.textContent = 'Essai (version dev) : les Wabbits sont libres ! Coffre du labo : ' + fmt(C.kamas) + ' kamas, ' + C.poils + ' Poils de Wabbit, ' + C.forge + ' runes de forgemagie, ' + C.cristal + ' cristaux runiques' + (parfaite ? ', 1 rune parfaite' : '') + '. Victoire n° ' + W.fois + '.';
+      const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.textContent = 'Essai (version dev) : les Wabbits sont libres ! Le coffre du labo est rangé dans ton sac (Perso) : ouvre-le quand tu veux. Victoire n° ' + W.fois + '.';
       const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(C.cristal ? [{ ico: 'rune-cristal', n: C.cristal, t: 'cristaux runiques', brille: true }] : []).concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: premier ? 'rune parfaite (première victoire)' : 'rune parfaite', brille: true }] : []);
-      if (typeof ouvertureMobile === 'function') ouvertureMobile({ rar: premier ? 'legendaire' : 'epique', cartes, titre: 'Le coffre du labo', sousTitre: nouveau ? 'Nouveau record : ' + duree(t) : 'Les Wabbits sont libres !' });
+      if (typeof rangerCoffre === 'function') rangerCoffre('finLabo', { premier, parfaite, sous: nouveau ? 'Nouveau record : ' + duree(t) : 'Les Wabbits sont libres !' }); void cartes;
     } catch (e) { console.warn('fin du labo', e); }
     return r; }; }
 /* LES DRONES DE LA PASSERELLE (24/11/2026, « oui carrement », Mathieu) : la passerelle de la tour est coupee en cinq troncons (du pied a la porte 1, puis d'une

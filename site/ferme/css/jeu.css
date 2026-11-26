@@ -1853,3 +1853,10 @@ body.fp-en-glisse, body.fp-en-glisse * { cursor: grabbing !important; user-selec
 .bca-rar.rare { background: linear-gradient(180deg, #9fd0ff, #4a8ee0); color: #10243f; } .bca-rar.epique { background: linear-gradient(180deg, #e2c2ff, #9b5ad6); color: #2a1040; }
 .bca.rare .bca-face:first-child { box-shadow: 0 .36em 0 var(--bord), 0 0 0 .22em #6fb0f0, 0 .8em 1.4em rgba(59,42,26,.28); }
 .bca.epique .bca-face:first-child { box-shadow: 0 .36em 0 var(--bord), 0 0 0 .24em #b48cff, 0 0 1.2em .2em rgba(180,140,255,.45); }
+/* (26/11/2026) les coffres du sac (29zg-coffres-sac.js) : en haut de la colonne du sac, et une pastille sur le bouton Perso */
+.fp-coffres { margin: 0 0 .9em; padding: .6em .7em .7em; border-radius: .8em; background: linear-gradient(180deg, rgba(255,214,90,.16), rgba(255,214,90,.05)); border: 1px solid rgba(255,214,90,.45); }
+.fp-coffres h3 { margin: 0 0 .45em; } .fpc-liste { display: flex; flex-direction: column; gap: .35em; margin-bottom: .5em; }
+.fpc { display: flex; align-items: center; gap: .6em; } .fpc img { width: 2.6em; height: 2.6em; object-fit: contain; filter: drop-shadow(0 .15em .2em rgba(0,0,0,.35)); } .fpc span { flex: 1; min-width: 0; font-weight: 700; }
+.fp-coffres > .btn { width: 100%; }
+#b-perso { position: relative; } .pastille-coffres { position: absolute; top: -.45em; right: -.45em; background: #ffd04a; color: #3b2a1a; border-radius: 1em; padding: .05em .4em; font-size: .72em; font-weight: 800; box-shadow: 0 .1em .3em rgba(0,0,0,.35); pointer-events: none; animation: pastilleCoffre 1.6s ease-in-out infinite; }
+@keyframes pastilleCoffre { 50% { transform: scale(1.12); } }
