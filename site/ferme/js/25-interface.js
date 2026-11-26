@@ -544,7 +544,8 @@ const AIDE_STAT_PIECE = { degFixe: 'Ajoutés à chaque coup de tes attaques et d
   degBonus: 'S\'ajoutent à tes Dégâts de base, et ta Puissance les multiplie ensuite : sur tes attaques et tes sorts. Ce ne sont pas des dégâts fixes.',
   resFixe: 'Retirée de chaque coup reçu, jamais plus de la moitié du coup.',
   venin: 'Chacun de tes coups inflige en plus ce pourcentage de ses dégâts en poison, sur 3 s.', ecailles: 'Ce pourcentage des dégâts de chaque coup reçu au corps à corps est renvoyé à l\'attaquant.',
-  volVie: 'Ce pourcentage des dégâts de tes coups (attaques et sorts) te revient en vie.', portee: 'Tes attaques et tes sorts portent une case plus loin.', /* (les objets du labo, 26/11/2026) */ resPct: 'S\'ajoute à ta résistance au contact et à distance (50 % au plus).', vitDep: 'En combat et sur ta ferme.' };
+  volVie: 'Ce pourcentage des dégâts de tes coups (attaques et sorts) te revient en vie.', portee: 'Tes attaques et tes sorts portent une case plus loin.', /* (les objets du labo, 26/11/2026) */ resPct: 'S\'ajoute à ta résistance au contact et à distance (50 % au plus).', vitDep: 'En combat et sur ta ferme.',
+  entrave: 'Les entraves (enraciné, collé, ralenti, assommé) durent ce pourcentage de moins sur toi.' }; /* (26/11/2026) */
 /* LES BONUS D'UNE PANOPLIE, AU CHOIX DU NOMBRE DE PIECES (25/11/2026, « explique comment fonctionnent les bonus de panoplie, deja est-ce qu'ils se cumulent 2 + 4 + 6 ?
    il faudrait que ce soit explique et qu'on puisse voir les bonus totaux d'une pano full equipee en fonction du nombre de pieces selectionne », Mathieu) : dans la fiche
    d'une panoplie, on choisit 2, 4 ou 6 pieces ; les paliers compris s'allument et leur total s'affiche ; a 6, en plus, la panoplie entiere (pieces au jet moyen et bonus) */

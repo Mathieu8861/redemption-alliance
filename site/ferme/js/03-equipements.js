@@ -296,7 +296,12 @@ const attrAide = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
 const aideQ = (t) => '<i class="aide-q" data-info="' + attrAide(t) + '" tabindex="0" role="button" aria-label="Explication">?</i>';
 const aideNom = (nom, t) => (t ? '<span class="aide-nom" data-info="' + attrAide(t) + '">' + nom + '</span>' + aideQ(t) : nom);
 const AIDE_PANO = 'Les bonus s\'additionnent : avec 4 pièces, tu as ceux de 2 et ceux de 4 ; avec 6 pièces, ceux de 2, de 4 et de 6. Une 3e ou une 5e pièce n\'ajoute pas de bonus (seulement ses stats). L\'arme compte comme une pièce.';
-const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' + CARACS[c][2] + ' ' + (PHRASES_BONUS[c] ? PHRASES_BONUS[c](v) : '+' + v + CARACS[c][1]) + '</i>').join('');
+/* (26/11/2026, « venin, vol de vie, ecailles 10 %... il faut le petit rond avec le point d'interrogation, bien explique, sinon on comprend rien », Mathieu) : dans les
+   bonus de panoplie, les stats speciales s'ecrivent court (« Ecailles +12 % ») et leur phrase passe dans l'infobulle du rond « ? » */
+const BONUS_EN_BULLE = new Set(['venin', 'resPoison', 'sangFroid', 'ecailles', 'mue', 'oeilCrapaud', 'bond', 'mucus', 'sangMele', 'degFixe', 'degBonus', 'resFixe', 'resPct', 'ruee', 'volVie', 'portee', 'vitDep', 'entrave']);
+const uniteBonus = (c) => (CARACS[c][1].trim().startsWith('%') ? ' %' : '');
+const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' + CARACS[c][2] + ' ' + (BONUS_EN_BULLE.has(c) ? CARACS[c][0] + ' +' + vAff(c, v) + uniteBonus(c) + aideQ(PHRASES_BONUS[c] ? PHRASES_BONUS[c](vAff(c, v)) : '+' + vAff(c, v) + CARACS[c][1])
+  : PHRASES_BONUS[c] ? PHRASES_BONUS[c](v) : '+' + v + CARACS[c][1]) + '</i>').join('');
 /* (10/11/2026, « en bas a droite, le total des bonus cumules d'une pano », Mathieu : sous les paliers, la somme de ceux qui sont actifs ; voir : un bouton vers la fiche de la panoplie, dans la fiche du perso) */
 const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces' + aideQ(AIDE_PANO) + '</b><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '"><b>' + (n >= m ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
   (Object.keys(tot).length ? '<div class="pano-total"><b>Tes bonus de panoplie en ce moment</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
