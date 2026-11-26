@@ -37,6 +37,7 @@ const ESSAI101 = { joueurs: true, serie: 'joueurs-2', n: 101, lance: null,
     deferlante: { nom: 'La déferlante', desc: 'beaucoup de monstres, rapides, qui tapent fort : impossible de les semer', horde: 5, pv: 0.85, deg: 3.46, vit: 1.3 }, /* (reglee au bot, lot e9a : 6,9 vies pour une cible de 6,6, soit 1,6 fois la 99 ; les huit : 1,25) */
     assaut: { nom: 'L\'assaut', desc: 'un peu de tout et plus vite : Claquelangues qui attirent, Crachopauds qui tirent, Têtaclaques au contact, sorts plus fréquents', L: [['tetard', 3], ['fouette', 2], ['crapaud', 2]], horde: 4, pv: 1, deg: 3.6, vit: 1.25, cad: 0.85, sorts: 0.7, cl: { iop: 1, cra: 0.88, osa: 1.15 } } } }; /* (lot e9a : Iop 6,4, Cra 9,4, Osamodas 3,9 vies pour 6,6 : les tireurs et les langues pesent sur le Cra, d'ou cl) */
 const COMMENTAIRE101 = 300;
+const es101 = (c) => (c && c.essai101 && !(c.essai101.P && c.essai101.P.cm) ? c.essai101 : null); /* (un combat des vagues 101 a 110, 29zi-vagues-combats.js, passe par la meme voie : la serie le laisse tranquille, 26/11/2026) */
 /* LE COFFRE DE LA SERIE (24/11/2026, « on ferait pas gagner un coffre aux gens qui ont repondu a tout, coffre qui regroupe tous leurs drops des vagues gagnees + un
    bonus ? kamas et runes ? », puis « tres bien », Mathieu, par Discord) : les ressources gagnees dans une version reussie s'empilent dans le coffre (rien ne va dans
    la grange pendant la serie ; une version perdue ou abandonnee perd les siennes) ; les huit versions gagnees ET notees, il s'ouvre (l'animation des coffres de
@@ -110,7 +111,7 @@ const essaiIci101 = () => essaiVisible101() && (S_.vague.num > vaguesOuvertes() 
     return r; }; }
 /* apres la vague : le compte de la serie, la ligne du journal completee, la note et le commentaire dans le bilan ; la version desarmee */
 { const finVagueE = finVague; finVague = function (gagne, fuite) {
-    const c = combat, es = c && !c.fin && c.essai101; let r;
+    const c = combat, es = c && !c.fin && es101(c); let r;
     if (es && gagne && c.coffre101) { try { const C = coffre101(); Object.keys(c.coffre101).forEach((k) => { C[k] = (C[k] || 0) + c.coffre101[k]; }); } catch (e) { /* rien */ } } /* (le coffre de la serie, 24/11/2026) */
     try { r = finVagueE.apply(this, arguments); } finally { if (es) desarmerEssai101(); }
     if (es) { try { es.nbCoffre = c.coffre101 ? Object.values(c.coffre101).reduce((t, n) => t + n, 0) : 0; apresEssai101(es, !!gagne, !!fuite); } catch (e) { /* (le bilan reste comme avant) */ } }
@@ -143,11 +144,11 @@ function rendreBatsEssai101(s, D) {
   return L;
 }
 { const blesserBatE = blesserBat; blesserBat = function () { const r = blesserBatE.apply(this, arguments);
-    try { if (combat && combat.essai101 && !combat.fin && combat.bats) etatEssai101().batsEnCours = Object.assign({}, combat.bats); } catch (e) { /* rien */ } return r; }; }
+    try { if (es101(combat) && !combat.fin && combat.bats) etatEssai101().batsEnCours = Object.assign({}, combat.bats); } catch (e) { /* rien */ } return r; }; }
 { const chargerE = charger; charger = function () { const s = chargerE.apply(this, arguments);
     try { const E = s && s.essai101; if (E && E.batsEnCours) { rendreBatsEssai101(s, E.batsEnCours); delete E.batsEnCours; } } catch (e) { /* (la sauvegarde reste comme elle est) */ } return s; }; }
 { const finVagueE = finVague; finVague = function (gagne, fuite) {
-    const c = combat, es = c && !c.fin && c.essai101, r = finVagueE.apply(this, arguments);
+    const c = combat, es = c && !c.fin && es101(c), r = finVagueE.apply(this, arguments);
     if (es) { try { reparerApresEssai101(c); } catch (e) { /* (le bilan reste comme avant) */ } }
     return r; }; }
 function reparerApresEssai101(c) {
@@ -181,7 +182,7 @@ document.addEventListener('click', (ev) => {
   if (serieFinie101() && serieNotee101() && !etatEssai101().coffreOuvert) setTimeout(ouvrirCoffre101, 600); /* (le coffre de la serie : la huitieme note donnee) */
 });
 /* le butin d'un essai : les ressources seulement, aucune piece (23/11/2026, « donne pas de loot d'item, que des ressources », Mathieu) */
-{ const butinE = butin; butin = function (mo) { const c = combat; if (!(c && c.essai101)) return butinE(mo); c.sansObjets = true; if (etatEssai101().coffreOuvert) return butinE(mo); /* (le coffre deja ouvert : directement dans la grange) */
+{ const butinE = butin; butin = function (mo) { const c = combat; if (!es101(c)) return butinE(mo); c.sansObjets = true; if (etatEssai101().coffreOuvert) return butinE(mo); /* (le coffre deja ouvert : directement dans la grange) */
     const avant = Object.assign({}, S_.grange || {}); let r; try { r = butinE(mo); } finally { /* (le coffre de la serie : ce qui vient d'arriver dans la grange passe dans la reserve du combat) */
       try { const G = S_.grange || {}; c.coffre101 = c.coffre101 || {}; Object.keys(G).forEach((k) => { const d = (G[k] || 0) - (avant[k] || 0); if (d > 0 && PAR_ID[k]) { G[k] -= d; c.coffre101[k] = (c.coffre101[k] || 0) + d; } }); } catch (e) { /* rien */ } }
     return r; }; }
