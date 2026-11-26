@@ -3630,6 +3630,7 @@ function majPerso(dt) {
     if (!aPortee.length) { const aide = aideContact(pp0, classe); if (aide) combat.cible = aide; /* (au doigt, le Iop va au contact) */ else { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; } }
     else if (!combat.cible || combat.cible.etat !== 'actif' || Math.hypot(combat.cible.x - pp0.x, combat.cible.z - pp0.z) > porteeSur(combat.cible, st)) combat.cible = aPortee[0];
   }
+  if ((typeof manetteEnJeu === 'function' && manetteEnJeu()) || (typeof doigtActif === 'function' && doigtActif())) { const pp1 = paysanMesh.position, pr = plusProcheMonstre(pp1); if (pr && (!combat.tenir || Math.hypot(pr.x - pp1.x, pr.z - pp1.z) <= porteeSur(pr, st))) combat.cible = pr; } /* (26/11/2026, « les auto-attaques, en manette ou au telephone, il faut que ca focus la cible la plus proche de toi, pas la plus forte : a chaque fois la plus proche, ca permet de decider un minimum ce qu'on focus », Mathieu : a la manette et au doigt, la cible est toujours la plus proche ; a la souris, celle qu'on a touchee) */
   let c = combat.cible; if (!c || c.etat !== 'actif' || c.fume > 0 || c.ancre || c.faible) c = combat.cible = plusProcheMonstre(paysanMesh.position); /* (une cible devenue invulnerable : une autre s'il y en a, 26/11/2026) */
   if (!c) { if (combat.poursuite) { chemin = []; combat.poursuite = false; } return; }
   if (condamne(c)) { /* ce qui est en vol va l'achever : le suivant, sans attendre (en tenant la position, seulement un monstre a portee) */
