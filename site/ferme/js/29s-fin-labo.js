@@ -7,7 +7,7 @@
    - le coffre du labo s'ouvre (l'ecran des coffres, 29m) : kamas, Poils de Wabbit, runes ; la premiere victoire ajoute une rune parfaite sure ;
    - le bilan garde le record de temps (S_.donjons.wabbits : record en secondes, nombre de victoires).
    Et, plus bas, la scene d'entree du Docteur dans son labo. */
-const FIN_LABO = { duree: 6.2, parCage: 2, coffre: { kamas: kamasGagnes(100000), poils: 12, forge: 2, parfaite: 0.35, cristal: 0.2 } }; /* (cristal : les cristaux runiques, 29t ; une CHANCE d'en avoir un depuis le 26/11/2026, tiree a la victoire comme la rune parfaite) */
+const FIN_LABO = { duree: 6.2, parCage: 2, coffre: { kamas: kamasGagnes(100000), poils: 12, forge: 2, parfaite: 0.35, cristal: 0.3 } }; /* (cristal : les cristaux runiques, 29t ; une CHANCE d'en avoir un depuis le 26/11/2026, tiree a la victoire comme la rune parfaite) */
 const etatDonjons = () => (S_.donjons = S_.donjons || {}), etatDonjonWab = () => (etatDonjons().wabbits = etatDonjons().wabbits || { record: 0, fois: 0 });
 let wabbitsLibres = [], boucleLibres = false;
 /* les cages du labo : les obstacles ronds de rayon 1 contre le mur, a R - 1,2 du centre (ile-labo-salles.py, salle_labo) */

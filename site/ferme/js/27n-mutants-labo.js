@@ -68,7 +68,7 @@ setInterval(() => {
 }, 200);
 /* LES RECOMPENSES DU DONJON (24/11/2026, « du loot a certains, des endroits de mini-boss ou on gagne des recompenses exceptionnelles ») : chaque mutant a
    une chance de lacher un Poil de Wabbit ; un specimen d'une cuve et un mini-boss du dehors donnent plus (kamas, runes, a la fin un coffre). Version dev */
-const LOOT_LABO = { poil: 0.35, specimen: { kamas: kamasGagnes(20000), poils: 4, cristal: 0.05 }, chef: { kamas: kamasGagnes(50000), poils: 8, forge: 1, parfaite: 0.2, cristal: 0.1 } }; /* (cristal : les cristaux runiques, 29t-cristaux.js, 24/11/2026 ; une CHANCE d'en avoir un depuis le 26/11/2026, tirerCristaux) */
+const LOOT_LABO = { poil: 0.35, specimen: { kamas: kamasGagnes(20000), poils: 4, cristal: 0.1 }, chef: { kamas: kamasGagnes(50000), poils: 8, forge: 1, parfaite: 0.2, cristal: 0.1 } }; /* (cristal : les cristaux runiques, 29t-cristaux.js, 24/11/2026 ; une CHANCE d'en avoir un depuis le 26/11/2026, tirerCristaux) */
 function gagnerLabo(mo, R, titre) {
   const G = S_.grange = S_.grange || {}; let txt = [];
   if (R.kamas) { S_.kamas += R.kamas; txt.push(fmt(R.kamas) + ' kamas'); }

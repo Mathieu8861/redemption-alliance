@@ -9,11 +9,11 @@
      (jetsDansFourchette ramene chaque jet dans sa fourchette a chaque chargement) ; ils s'appliquent dans obj(), apres l'eveil d'un legendaire ;
    - ils tombent dans le donjon des Wabbits : 3 % sur un mutant ou un drone, 1 sur un specimen des cuves, 2 sur un mini-boss, 3 dans le coffre du labo.
    Icone : assets/icones/rune-cristal.png (le dessin « cristal 2 » choisi par Mathieu). Le modele de la forge runique : blender/forgemagie2.py niv2 */
-const CRISTAL = { min: 1, max: 5, plafond: CRISTAL_PLAFOND, nom: 'Cristal runique', court: 'Cristaux runiques', mutant: 0.003, specimen: 0.05, chef: 0.1, coffre: 0.2 };
+const CRISTAL = { min: 1, max: 5, plafond: CRISTAL_PLAFOND, nom: 'Cristal runique', court: 'Cristaux runiques', mutant: 0.003, specimen: 0.1, chef: 0.1, coffre: 0.3 };
 /* PLUS AUCUN CRISTAL GARANTI (26/11/2026, « les cristaux, sur le papier la ressource la plus rare du jeu, on les gagne gratuitement ; il faut des pourcentages de
    chances comme dans les coffres », Mathieu) : avant, 1 sur chaque specimen, 2 dans le coffre des mini-boss, 3 dans le coffre du labo, 3 % par mutant, 5 et 20 %
    dans les petits coffres rares et precieux. Maintenant une chance d'en avoir 1, toujours plus rare que la rune parfaite au meme endroit : 0,3 % par mutant,
-   5 % sur un specimen, 10 % dans le coffre d'un mini-boss, 20 % dans le coffre du labo, 1 et 3 % dans les petits coffres rares et precieux ; la Prospection
+   10 % sur un specimen, 10 % dans le coffre d'un mini-boss, 30 % dans le coffre du labo (« specimen 10 %, coffre du labo 30 % », Mathieu, 26/11/2026), 1 et 3 % dans les petits coffres rares et precieux ; la Prospection
    l'augmente (prosLabo). tirerCristaux : une valeur sous 1 est une chance d'en avoir 1 */
 const tirerCristaux = (v) => (!(v > 0) ? 0 : v >= 1 ? Math.round(v) : Math.random() < v * (typeof prosLabo === 'function' ? prosLabo() : 1) ? 1 : 0);
 const cristauxDe = (k) => { const c = S_ && S_.cristaux && S_.cristaux[k]; return !c ? { p: 0, n: 0 } : typeof c === 'number' ? { p: c * 5, n: c } : c; }; /* (un nombre : l'ancien format, 5 % par cristal) */
