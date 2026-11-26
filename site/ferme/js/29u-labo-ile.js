@@ -17,8 +17,8 @@
 const RECOLTE_LABO = { parChamp: 4, min: 3, max: 5, repousse: 360, contact: 1.25 };
 const COFFRES_ILE_LABO = {
   commun: { look: 'rare', nom: 'Petit coffre', kamas: [3000, 6000], L: [[0.6, 'pot', ['petit', 'grand'], 1, 2], [0.5, 'res', 'bananagrume', 2, 4], [0.4, 'res', 'poil_wabbit', 1, 3], [0.05, 'forge', 1, 1]] },
-  rare: { look: 'epique', nom: 'Coffre rare', kamas: [8000, 14000], L: [[0.7, 'pot', ['menthe', 'fraise', 'citron'], 1, 2], [0.5, 'res', 'bananagrume', 3, 5], [0.6, 'res', 'poil_wabbit', 2, 4], [0.25, 'forge', 1, 1], [0.05, 'cristal', 1, 1]] },
-  precieux: { look: 'legendaire', nom: 'Coffre précieux', kamas: [18000, 28000], L: [[1, 'forge', 1, 1], [0.6, 'pot', ['menthe', 'fraise', 'citron'], 2, 2], [0.1, 'pot', ['royale'], 1, 1], [0.2, 'cristal', 1, 1], [0.04, 'parfaite', 1, 1]] } };
+  rare: { look: 'epique', nom: 'Coffre rare', kamas: [8000, 14000], L: [[0.7, 'pot', ['menthe', 'fraise', 'citron'], 1, 2], [0.5, 'res', 'bananagrume', 3, 5], [0.6, 'res', 'poil_wabbit', 2, 4], [0.25, 'forge', 1, 1], [0.01, 'cristal', 1, 1]] }, /* (cristal : 5 % avant le 26/11/2026) */
+  precieux: { look: 'legendaire', nom: 'Coffre précieux', kamas: [18000, 28000], L: [[1, 'forge', 1, 1], [0.6, 'pot', ['menthe', 'fraise', 'citron'], 2, 2], [0.1, 'pot', ['royale'], 1, 1], [0.03, 'cristal', 1, 1], [0.04, 'parfaite', 1, 1]] } }; /* (cristal : 20 % avant le 26/11/2026) */
 const TIRAGE_COFFRE_LABO = { precieux: 0.10, rare: 0.30 };
 function rangCoffreLabo() { const k = prosLabo(), u = Math.random(); return u < TIRAGE_COFFRE_LABO.precieux * k ? 'precieux' : u < (TIRAGE_COFFRE_LABO.precieux + TIRAGE_COFFRE_LABO.rare) * k ? 'rare' : 'commun'; }
 /* LE COFFRE DU LABO : une caisse de fer sombre cerclee de cuivre, des coins de laiton rivetes, une fenetre de mutagene qui luit devant, un couvercle a charniere

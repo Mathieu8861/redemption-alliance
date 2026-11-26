@@ -74,13 +74,14 @@ COFFRES_SAC.chefLabo = { titre: (d) => 'Coffre de ' + (d.nom || 'chef'), rar: ()
     if (R.poils) { G.poil_wabbit = (G.poil_wabbit || 0) + R.poils; cartes.push({ ico: 'poil_wabbit', n: R.poils, t: 'Poils de Wabbit' }); }
     if (R.forge) { runes().forge = (runes().forge || 0) + R.forge; cartes.push({ ico: 'rune-forge', n: R.forge, t: 'rune de forgemagie', son: 'quete' }); }
     if (R.parfaite && Math.random() < R.parfaite) { runes().parfaite = (runes().parfaite || 0) + 1; cartes.push({ ico: 'rune-parfaite', n: 1, t: 'rune parfaite', brille: true }); }
-    if (R.cristal && typeof gagnerCristaux === 'function') { gagnerCristaux(R.cristal); cartes.push({ ico: 'rune-cristal', n: R.cristal, t: R.cristal > 1 ? 'cristaux runiques' : 'cristal runique', brille: true }); }
+    { const nC = d.cristal != null ? d.cristal : typeof tirerCristaux === 'function' ? tirerCristaux(R.cristal) : 0; /* (une chance, tiree a l'ouverture, 26/11/2026) */
+      if (nC && typeof gagnerCristaux === 'function') { gagnerCristaux(nC); cartes.push({ ico: 'rune-cristal', n: nC, t: nC > 1 ? 'cristaux runiques' : 'cristal runique', brille: true }); } }
     sauver(); rendreHaut(); rendreGrange(); montrerCoffreLabo(TEINTES_LABO.chef, 1.15, 'Coffre de ' + (d.nom || 'chef'), 'Un chef de camp du labo', cartes, fin); } };
 COFFRES_SAC.finLabo = { titre: () => 'Le coffre du labo', rar: (d) => (d.premier ? 'legendaire' : 'epique'), image: () => 'coffre-labo-fin',
-  ouvrir: (d, fin) => { const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = d.parfaite ? 1 : 0;
-    S_.kamas += C.kamas; G.poil_wabbit = (G.poil_wabbit || 0) + C.poils; if (typeof gagnerCristaux === 'function') gagnerCristaux(C.cristal); runes().forge = (runes().forge || 0) + C.forge; if (parfaite) runes().parfaite = (runes().parfaite || 0) + 1;
+  ouvrir: (d, fin) => { const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = d.parfaite ? 1 : 0, nC = d.cristal != null ? d.cristal : typeof tirerCristaux === 'function' ? tirerCristaux(C.cristal) : 0; /* (le cristal : une chance tiree a la victoire, 26/11/2026) */
+    S_.kamas += C.kamas; G.poil_wabbit = (G.poil_wabbit || 0) + C.poils; if (nC && typeof gagnerCristaux === 'function') gagnerCristaux(nC); runes().forge = (runes().forge || 0) + C.forge; if (parfaite) runes().parfaite = (runes().parfaite || 0) + 1;
     sauver(); rendreHaut(); rendreGrange();
-    const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(C.cristal ? [{ ico: 'rune-cristal', n: C.cristal, t: 'cristaux runiques', brille: true }] : []).concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: 'rune parfaite', brille: true }] : []);
+    const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(nC ? [{ ico: 'rune-cristal', n: nC, t: nC > 1 ? 'cristaux runiques' : 'cristal runique', brille: true }] : []).concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: 'rune parfaite', brille: true }] : []);
     montrerCoffreLabo(TEINTES_LABO.fin, 1.3, 'Le coffre du labo', d.sous || 'Les Wabbits sont libres !', cartes, fin); } };
 /* le coffre de terre du labo : au contact, il s'ouvre un instant (son couvercle, un eclat) et file dans le sac */
 { const ouvrirCoffreLaboSac = ouvrirCoffreLabo; ouvrirCoffreLabo = function (C) {
