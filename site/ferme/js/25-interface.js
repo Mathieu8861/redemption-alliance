@@ -537,6 +537,9 @@ function ouvrirBananier(p) {
 let persoPano = null, persoPanoN = 6;
 /* CE QUE FONT LES STATS DE COMBAT, SOUS LEUR LIGNE DANS LA FICHE D'UNE PIECE (25/11/2026, « faudrait expliquer quelque part que les degats fixes marchent sur les autos et
    les sorts, et que la Puissance n'agit pas dessus », Mathieu) */
+/* (26/11/2026 : plus sous la ligne, dans l'infobulle du petit rond « ? » a cote du nom : aideNom, 03-equipements.js) ; au doigt, toucher le rond affiche l'infobulle 4 s */
+document.addEventListener('click', (e) => { const q = e.target.closest && e.target.closest('.aide-q'); if (!q || typeof placerInfo !== 'function') return; e.stopPropagation();
+  infoCible = q; placerInfo(q); infobulle.classList.add('vue'); clearTimeout(q.minuteur); q.minuteur = setTimeout(() => { if (infoCible === q) cacherInfo(); }, 4000); });
 const AIDE_STAT_PIECE = { degFixe: 'Ajoutés à chaque coup de tes attaques et de tes sorts, après tout le reste : la Puissance ne les augmente pas. Pas sur tes invocations.',
   degBonus: 'S\'ajoutent à tes Dégâts de base, et ta Puissance les multiplie ensuite : sur tes attaques et tes sorts. Ce ne sont pas des dégâts fixes.',
   resFixe: 'Retirée de chaque coup reçu, jamais plus de la moitié du coup.',
@@ -551,7 +554,7 @@ function blocPanoChoix(k, n) {
   const paliers = L.map(([m, f]) => '<span class="' + (m <= X ? 'actif' : '') + '"><b>' + (m <= X ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('');
   let entiere = ''; if (X === EMPLACEMENTS.length) { const t = {}; EMPLACEMENTS.forEach(([e]) => { const o = OBJETS[P.id + '-' + e]; if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] = (t[c] || 0) + v; }); });
     Object.entries(tot).forEach(([c, v]) => { t[c] = (t[c] || 0) + v; }); entiere = '<div class="pano-total"><b>La panoplie entière : ses 6 pièces au jet moyen et ses bonus</b>' + texteBonus(t) + '</div>'; }
-  return '<div class="pano-bonus"><b>Ses bonus</b><div class="pano-aide">Ils s\'additionnent : avec 4 pièces, tu as ceux de 2 et ceux de 4 ; avec 6 pièces, ceux de 2, de 4 et de 6. Une 3e ou une 5e pièce n\'ajoute pas de bonus (seulement ses stats). L\'arme compte comme une pièce. Tu en portes ' + n + '.</div>' +
+  return '<div class="pano-bonus"><b>Ses bonus' + aideQ(AIDE_PANO) + '</b><div class="pano-aide">Tu en portes ' + n + '.</div>' +
     '<div class="pano-choix"><span>Voir avec</span>' + choix + '</div><div class="paliers">' + paliers + '</div>' +
     '<div class="pano-total"><b>En tout, les bonus de ' + X + ' pièces</b>' + texteBonus(tot) + '</div>' + entiere + '</div>';
 }
@@ -640,11 +643,11 @@ function ouvrirPerso(sel) {
        Deux blocs maintenant : ce que la piece donne, puis ce qui change si elle remplace la piece portee, gains d'abord) */
     const unite = (cc) => (CARACS[cc][1].trim().startsWith('%') ? ' %' : ''), nomC = (cc) => CARACS[cc][2] + ' ' + CARACS[cc][0];
     const ligne = (cc) => { const v = o.stats[cc] || 0, [fa, fb] = B.stats[cc] ? fourchette(B.stats[cc], B.id, cc) : [v, v], u = unite(cc);
-      return '<div class="fp-ligne"><span>' + nomC(cc) + '<small>' + (B.stats[cc] ? (fa === fb ? 'fixe' : 'de ' + vAff(cc, fa) + ' à ' + vAff(cc, fb) + u) : '') + '</small>' + (AIDE_STAT_PIECE[cc] ? '<small class="fp-aide-stat">' + AIDE_STAT_PIECE[cc] + '</small>' : '') + '</span><span><b>+' + vAff(cc, v) + u + '</b></span></div>'; };
+      return '<div class="fp-ligne"><span>' + aideNom(nomC(cc), AIDE_STAT_PIECE[cc]) + '<small>' + (B.stats[cc] ? (fa === fb ? 'fixe' : 'de ' + vAff(cc, fa) + ' à ' + vAff(cc, fb) + u) : '') + '</small></span><span><b>+' + vAff(cc, v) + u + '</b></span></div>'; };
     const ecarts = q ? [...new Set(Object.keys(o.stats).concat(Object.keys(q.stats)))].map((cc) => [cc, (o.stats[cc] || 0) - (q.stats[cc] || 0)]).filter(([, d]) => d).sort((x, y) => (y[1] > 0) - (x[1] > 0)) : [];
     const table = '<div class="fp-compare seule"><div class="fp-ligne th"><span>' + (porteeIci ? 'Ce qu\'elle te donne' : 'Ce qu\'elle donne') + '</span><span></span></div>' + Object.keys(o.stats).map(ligne).join('') + '</div>' +
       (q ? '<div class="fp-compare seule"><div class="fp-ligne th"><span>À la place de ta pièce : ' + q.nom + '</span><span>Tu gagnes ou tu perds</span></div>' +
-        (ecarts.length ? ecarts.map(([cc, d]) => '<div class="fp-ligne"><span>' + nomC(cc) + '</span><span class="' + (d > 0 ? 'fp-gain' : 'fp-perte') + '">' + (d > 0 ? '▲ +' : '▼ ') + vAff(cc, d) + unite(cc) + '</span></div>').join('') : '<div class="fp-ligne"><span>Rien ne change</span><span></span></div>') +
+        (ecarts.length ? ecarts.map(([cc, d]) => '<div class="fp-ligne"><span>' + aideNom(nomC(cc), AIDE_STAT_PIECE[cc]) + '</span><span class="' + (d > 0 ? 'fp-gain' : 'fp-perte') + '">' + (d > 0 ? '▲ +' : '▼ ') + vAff(cc, d) + unite(cc) + '</span></div>').join('') : '<div class="fp-ligne"><span>Rien ne change</span><span></span></div>') +
         (q.pouvoir && !o.pouvoir ? '<div class="fp-ligne"><span>✦ Son pouvoir</span><span class="fp-perte">▼ perdu</span></div>' : '') + '</div>' : '');
     const jet = '<div class="fp-jet"><span>Jet <b>' + nomJet(qj) + '</b></span><div class="barre"><i style="width:' + Math.round(qj * 100) + '%"></i></div><small>' + Math.round(qj * 100) + ' %</small></div>';
     const nr = runes(), maxi = qj >= 0.999, aRunes = nr.forge > 0 || nr.parfaite > 0; /* la forgemagie : elle se fait a l'atelier (le lien est ici) */

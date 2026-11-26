@@ -915,7 +915,11 @@ svg.pc { width: 1.15em; height: 1.15em; vertical-align: -.22em; fill: currentCol
 .fp-compare.seule .fp-ligne { grid-template-columns: 1.6fr .8fr; }
 .fp-ligne.th { border-top: 0; background: #313338; font-size: .64rem; color: #a9adb5; }
 .fp-ligne > span:nth-child(n+2) { text-align: right; } .fp-ligne small { display: block; font-size: .6rem; color: #a9adb5; font-weight: 700; }
-.fp-ligne small.fp-aide-stat { color: #d9b46a; font-weight: 600; line-height: 1.25; margin-top: 1px; } /* (ce que fait une stat de combat, sous sa ligne, 25/11/2026) */
+.fp-ligne small.fp-aide-stat { color: #d9b46a; font-weight: 600; line-height: 1.25; margin-top: 1px; } /* (ce que fait une stat de combat, sous sa ligne, 25/11/2026 ; remplace par le rond « ? » le 26/11) */
+/* le petit rond « ? » d'une explication, et son nom : l'infobulle du jeu au survol (26/11/2026) */
+.aide-q { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: 5px; border-radius: 50%; border: 1.5px solid #8d929b; color: #c9cdd4; font: 800 10px/1 var(--f-texte, sans-serif); font-style: normal; cursor: help; vertical-align: 1px; user-select: none; }
+.aide-q:hover, .aide-q:focus-visible { border-color: #f2c14e; color: #f2c14e; outline: none; } .aide-nom { cursor: help; }
+.pano-bonus > b .aide-q { font-size: 10px; }
 .fp-ligne .fp-gain { color: #92db80; font-weight: 800; } .fp-ligne .fp-perte { color: #e87973; font-weight: 800; } .fp-ligne b { font-size: .86rem; }
 .fp-pouvoir { margin-top: 8px; font-size: .74rem; font-weight: 700; color: #a389d2; background: #362259; border-radius: 10px; padding: 6px 9px; }
 .fp-pano { margin-top: 8px; font-size: .72rem; font-weight: 700; background: #3d5922; border: 2px solid #43464e; color: #92db80; border-radius: 10px; padding: 6px 9px; }
