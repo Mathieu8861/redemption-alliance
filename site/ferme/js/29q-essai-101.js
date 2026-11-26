@@ -53,7 +53,10 @@ const versionCourante101 = () => ESSAI101.ordre[rangEssai101()];
 const VERSIONS_COFFRE101 = ESSAI101.ordre.slice(0, 8); /* (le coffre : les huit premieres ; la 101.9 et la 101.10, ajoutees le 24/11/2026 au soir, sont en plus) */
 const serieFinie101 = () => VERSIONS_COFFRE101.every((v) => etatEssai101().gagnes[v]);
 const toutFini101 = () => ESSAI101.ordre.every((v) => etatEssai101().gagnes[v]);
-const essaiVisible101 = () => { try { return !!S_ && !!S_.perso && (ESSAI101.joueurs || MODE_TEST) && S_.vague.num > VAGUES_TOTAL && niveau(S_.xp) >= ESSAI101.n - 2; } catch (e) { return false; } };
+/* LA SERIE RETIREE (26/11/2026, « la serie 101 des joueurs, je peux deja meme la retirer tout court maintenant, vu que les gens l'ont faite », Mathieu) : plus visible pour personne,
+   mode test compris ; les vagues 101 a 110 en combats (29zi-vagues-combats.js) prennent sa place avec le palier 11 */
+const SERIE101_RETIREE = true;
+const essaiVisible101 = () => { try { return !SERIE101_RETIREE && !!S_ && !!S_.perso && (ESSAI101.joueurs || MODE_TEST) && S_.vague.num > VAGUES_TOTAL && niveau(S_.xp) >= ESSAI101.n - 2; } catch (e) { return false; } };
 /* LES SORTS PLUS FREQUENTS : le temps entre deux sorts des monstres de la version, divise le temps du combat, puis rendu */
 const CLES_SORTS101 = ['bondit', 'seisme', 'charge', 'soigne'];
 let sortsSauves101 = null;

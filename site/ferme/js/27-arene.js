@@ -27,7 +27,7 @@ function etatArene() { S_.arene = S_.arene || { record: 0, semaines: {}, parties
 const semaineJeu = (t) => { const d = new Date(t == null ? tempsReel() : t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const s1 = new Date(d.getFullYear(), 0, 4); return d.getFullYear() + '-S' + String(1 + Math.round(((d - s1) / 864e5 - 3 + (s1.getDay() + 6) % 7) / 7)).padStart(2, '0'); }; /* (la semaine ISO, du lundi au dimanche) */
 const recordSemaine = (sem) => etatArene().semaines[sem || semaineJeu()] || 0;
 const entreesPrises = () => (ENTREES_ARENE > 1 ? 'Tes ' + ENTREES_ARENE + ' entrées du jour sont prises' : 'Ton entrée du jour est prise') + ' : l\'Arène te rouvre demain.';
-const entreesRestantes = () => Math.max(0, ENTREES_ARENE - (etatArene().entrees || 0));
+const entreesRestantes = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST ? 99 : Math.max(0, ENTREES_ARENE - (etatArene().entrees || 0))); /* (26/11/2026, « donne-moi la possibilite d'en jouer plusieurs, j'ai la limite a 1 par jour en mode test, c'est chiant », Mathieu : sans limite dans le mode test) */
 /* (14/11/2026, « au prorata des niveaux », Mathieu : « 1 prix de ticket arrive a la vague 20 ». Le ticket monte avec le niveau (10 000 au 50, 70 000 au 90), les kamas
    de l'Arene, eux, restaient ceux des vagues 51 a 69 : environ 15 000 pour 20 vagues a tous les niveaux. Maintenant chaque vague k rapporte 2,5 % du ticket de ton
    niveau d'entree, +5 % par vague (apres la baisse de 10 %) ; avec les coffres des boss (deux fois la vague, toutes les 5), 20 vagues tenues rendaient le ticket : c'etait trop, voir le reglage ci-dessous) */
