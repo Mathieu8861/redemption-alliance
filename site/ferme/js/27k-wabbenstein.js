@@ -33,7 +33,7 @@ const KIT_WAB = {
    fixes, elles faisaient 55 % des degats recus par l'Osamodas (3 900 PV, 14 % de sa vie par coup) et le bot tombait 10 a 12 fois a distance contre 5 a 7 au Iop */
 const CREATURE_WAB_PART = 0.087;
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
-  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (23 % de tes PV), te ramène contre lui et arme un coup de poing (9,5 % de tes PV) : 0,7 s pour sortir de la zone. Ses coups normaux : 7,5 % de tes PV au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (4 % de tes PV). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
+  desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail en marchant vers toi (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (23 % de tes PV), te ramène contre lui et arme un coup de poing (9,5 % de tes PV) : 0,7 s pour sortir de la zone. Ses coups normaux : 7,5 % de tes PV au contact, et jusqu\'à 14 cases une cawotte de ses tourelles toutes les 1,6 s (5,5 % de tes PV). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins. Seul, il tire aussi en l\'air : 44 cawottes retombent dans la salle (5 % de tes PV chacune), sors des cercles orange',
   pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.75, ombre: 5.0, degSort: 3.2, wabKit: KIT_WAB,
   /* DEUX SORTS DE PLUS (26/11/2026, « il est beaucoup trop facile, meme pas touche une fois ; rajoute-lui des sorts, aussi dur que les boss de l'ile des boss, voire plus :
      on est plusieurs a taper dessus », Mathieu) : la pluie de cawottes (cinq cercles orange, un sur toi, 1,4 s pour en sortir, toutes les 5 s) et la decharge des
@@ -268,7 +268,45 @@ function auraSerum(c0, duree) { /* un anneau vert sous tes pieds tant que le ser
     const q = paysanMesh.position; r.position.set(q.x, solA(q.x, q.z) + 0.09, q.z); r.rotation.z -= dt * 2.5; r.material.opacity = 0.8 * Math.min(1, (duree - t) / 0.4);
     if (Math.random() < dt * 6) emettre(FX_VIF, 1, { x: q.x, y: q.y + 0.4, z: q.z, r: 0.45, v: [0, 1.4, 0], dv: 0.3, vie: [0.5, 0.8], taille: [0.1, 0.02], c: ['#d8ffb0', '#5fe03a'] }); return false; });
 }
-CAPACITES.unshift(capWabHarpon, capWabRafale, capWabSaisie, capWabAutos);
+/* LE BARRAGE EN CLOCHE (26/11/2026, « rajoute-lui une attaque ou ses miniguns tirent en l'air, dans la phase ou il est seul : toutes les cawottes retombent au sol,
+   y'en a vraiment beaucoup a esquiver », Mathieu) : tant qu'aucune de ses creatures n'est en vie (avant le garou geant, ou une fois abattu), toutes les 13 s, il
+   plante ses pieds, ses tourelles se dressent vers le ciel et tirent en l'air pendant 2,4 s ; les cawottes retombent par vagues dans toute la salle : 4 vagues de
+   11, une sur toi a chaque vague, les autres de 2,5 a 13 de lui ; un cercle orange 1,15 s avant chaque chute (1 de rayon), 5 % de tes PV par cawotte */
+const BARRAGE_WAB = { periode: 13, prepa: 0.55, vagues: 4, parVague: 11, ecart: 0.6, rMin: 2.5, rMax: 13, annonce: 1.15, R: 1.0, pct: 0.05, chute: 0.42, leve: 0.75 };
+function capWabBarrage(mo, ctx) {
+  const K = mo.d.wabKit; if (!K || mo.etat !== 'actif' || mo.geste || mo.wabOccupe || mo.wabInvuln) return; const B = BARRAGE_WAB, { pp, sortPret } = ctx;
+  if (combat.monstres.some((o) => o.etat === 'actif' && o.invoqueur === mo.id)) return; /* (seul : pas avec le garou geant ni ses creatures) */
+  if (!sortPret('wabBarrageT', B.periode) || Math.hypot(pp.x - mo.x, pp.z - mo.z) > B.rMax + 2 || !osWab(mo)) return;
+  const c0 = combat, an = mo.m.userData.anim, dS = tourellesWab(mo, 'sortie') || 0.5, dur = B.vagues * B.ecart + B.annonce + 0.3; mo.wabBarrageT = 0; mo.wabOccupe = true; mo.wabRafaleOn = true; mo.bloqueT = Math.max(mo.bloqueT || 0, dS + dur); mo.cd = Math.max(mo.cd || 0, dS + dur);
+  mo.wabLeve = 0; if (!c0.wabBarrageVu) { c0.wabBarrageVu = true; toast(leNom(mo.d) + ' tire en l\'air : des dizaines de cawottes vont retomber, sors des cercles orange !', 'alerte'); }
+  const S = typeof lieu !== 'undefined' && lieu === 'donjon' && mo.lab && mo.lab.mode === 'salle' && typeof SALLES_LABO !== 'undefined' ? SALLES_LABO[mo.lab.i] : null, cx = S ? DONJON.x + S.x : 0, cz = S ? DONJON.z + S.z : 0;
+  const point = (x, z) => { if (S) { const d = Math.hypot(x - cx, z - cz), Rm = S.R - 1.6; if (d > Rm) { x = cx + (x - cx) / d * Rm; z = cz + (z - cz) / d * Rm; } return { x, z }; } return typeof pointValide === 'function' ? pointValide(mo.x, mo.z, x, z) : { x, z }; };
+  const chute = (x, z) => { const y = solA(x, z); zoneDanger({ mo, x, z, r: B.R, duree: B.annonce, couleur: '#f08a24', effet: () => {} }); /* (le cercle orange ; le bot l'esquive comme un joueur) */
+    setTimeout(() => { if (combat !== c0 || c0.fin) return; const g = cawotteTir(); scene.add(g); let t = 0; g.position.set(x, y + 14, z); g.lookAt(x, y, z);
+      effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin) { jeter(g); return true; } const k = Math.min(1, t / B.chute); g.position.set(x, y + 14 * (1 - k * k), z); g.rotateZ(dt * 14);
+        if (k < 1) return false; jeter(g); pouf(x, y + 0.1, z, 1.2, '#ee7a26'); emettre(FX_VIF, 5, { x, y: y + 0.2, z, r: 0.2, dv: 3.5, haut: true, vie: [0.25, 0.4], taille: [0.1, 0.04], c: ['#ee7a26', '#5fae3a'], grav: 9, frein: 1.5 });
+          const p2 = paysanMesh.position; if (c0 === combat && !c0.fin && Math.hypot(p2.x - x, p2.z - z) < B.R) blesserPerso(degWab(mo, c0.pvMax * B.pct), mo); return true; }); }, Math.max(0, (B.annonce - B.chute) * 1000)); };
+  let t = 0, v = 0, tirT = 0, cote = 'G';
+  effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabLeve = null; mo.wabOccupe = false; mo.wabRafaleOn = false; if (combat === c0 && mo.etat !== 'mort') tourellesWab(mo, 'rentree'); return true; }
+    if (t < dS) return false; const u = t - dS; mo.wabLeve = Math.min(1, u / 0.3); /* (les tourelles se dressent vers le ciel, majSquelette plus bas) */
+    if (u < B.vagues * B.ecart) { tirT -= dt; if (tirT <= 0) { tirT = 0.055; cote = cote === 'G' ? 'D' : 'G'; const { p, d } = boucheTourelle(mo, cote), g = cawotteTir(); scene.add(g); g.position.copy(p); let s = 0;
+        emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.06, 0.1], taille: [0.8, 0.3], c: ['#fff1a8', '#ff9a2e'], a: 0.9 });
+        effets.push((d2) => { s += d2; if (combat !== c0 || s > 0.7) { jeter(g); return true; } g.position.set(p.x + d.x * 30 * s, p.y + d.y * 30 * s, p.z + d.z * 30 * s); g.lookAt(g.position.x + d.x, g.position.y + d.y, g.position.z + d.z); return false; }); }
+      while (v < B.vagues && u >= v * B.ecart) { const P2 = paysanMesh.position; chute(point(P2.x, P2.z).x, point(P2.x, P2.z).z); /* (une sur toi) */
+        for (let i = 1; i < B.parVague; i++) { const a = Math.random() * Math.PI * 2, r = B.rMin + Math.sqrt(Math.random()) * (B.rMax - B.rMin), q = point(mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r); chute(q.x, q.z); }
+        v++; } return false; }
+    if (mo.wabLeve != null && u < B.vagues * B.ecart + 0.35) { mo.wabLeve = Math.max(0, 1 - (u - B.vagues * B.ecart) / 0.35); return false; }
+    if (mo.wabLeve != null) { mo.wabLeve = null; tourellesWab(mo, 'rentree'); }
+    if (u >= B.vagues * B.ecart + B.annonce) { mo.wabOccupe = false; mo.wabRafaleOn = false; return true; } return false; });
+}
+/* les tourelles dressees vers le ciel (le barrage) : apres l'animation, chaque tourelle tourne pour que son canon pointe en haut, un peu vers l'avant */
+{ const majSqBarrage = majSquelette; majSquelette = function (mo) { const r = majSqBarrage.apply(this, arguments);
+    try { if (mo && mo.wabLeve > 0 && mo.type === 'wabbenstein' && osWab(mo)) { const O = mo.wabOs, W = MODELES.wabbenstein.userData.wab; mo.m.updateMatrixWorld(true);
+        [['G', O.tG, W.axeG], ['D', O.tD, W.axeD]].forEach(([c, b, ax]) => { if (!b || !b.parent) return; const qb = b.getWorldQuaternion(new T.Quaternion()), d = ax.clone().applyQuaternion(qb).normalize();
+          const vise = new T.Vector3(d.x * 0.3, 1, d.z * 0.3).normalize(), q = new T.Quaternion().setFromUnitVectors(d, vise); q.slerp(new T.Quaternion(), 1 - mo.wabLeve);
+          const qp = b.parent.getWorldQuaternion(new T.Quaternion()).invert(); b.quaternion.copy(qp.multiply(q.multiply(qb))); b.updateMatrixWorld(true); }); } } catch (e) { /* rien */ }
+    return r; }; }
+CAPACITES.unshift(capWabHarpon, capWabRafale, capWabSaisie, capWabAutos, capWabBarrage);
 /* ---------------- sous 30 % : ses creatures, puis sa derniere creation (20/11/2026, « fais la phase sous 30 % maintenant », Mathieu ; le kit : « sous 30 %,
    il libere des creatures mutantes et s'injecte sa derniere creation, qui le rend surpuissant » ; puis « 4 Gwand Wabbits toutes les 20 secondes ») ----------------
    Invulnerable le temps de la scene (4,6 s) : il ecarte les bras et appelle (des Wabbits transmutes sortent de terre autour de lui), puis une seringue verte
