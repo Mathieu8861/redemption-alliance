@@ -58,7 +58,7 @@ const CAMPS_LABO = [
   Object.assign(leLongDuChemin(23, -11.5), { nom: 'les champs du bas', r: 5.5, L: [['wabEnrage', 3], ['wabFluo', 2], ['wabVampire', 1]] }),
   Object.assign(leLongDuChemin(36, 0), { nom: 'une meute de mutants', r: 7, patrouille: 0, L: [['wabEnrage', 3], ['wabVampire', 1]] }),
   Object.assign(polL(1.0, 16.6), { nom: 'la ronde des gardes', r: 7, patrouille: 4, L: [['wabGarde', 3]] })];
-const REPOP_LABO = { apres: 180, loin: 22 }; /* (25/11/2026, « les mobs reapparaissent beaucoup trop vite, mets un temps de reapparition de 3 minutes », Mathieu : 3 min de vrai jeu ;
+const REPOP_LABO = { apres: 300, loin: 22 }; /* (26/11/2026, « plutot 5 minutes », Mathieu ; la passerelle de la tour, ses drones et ses gardes, ne revient jamais : E.drones, E.postes, 29s) */ /* (25/11/2026, « les mobs reapparaissent beaucoup trop vite, mets un temps de reapparition de 3 minutes », Mathieu : 3 min de vrai jeu ;
    ils revenaient plus vite quand on relancait le labo sans quitter l'ile : chaque entree ajoutait une boucle du donjon, qui faisait avancer le temps une fois de plus, partirDonjon) */
 /* (avant : un camp vide revenait au bout de 7 min, si le perso est a plus de 22 de lui ; 75 s avant le 24/11/2026 : « c'est trop rapide, multiplie par 5 ou 6 », Mathieu) */
 /* les chemins (seulement la couleur du sol) */
@@ -829,7 +829,7 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
     if (i < 4 && !s.specimen) { if (c.monstres.filter((o) => o.salle === i && o.etat !== 'mort').length <= Math.ceil((s.n || 1) / 2)) specimenLabo(i); return; } /* (le specimen de la cuve : a mi-chemin, et la salle n'est finie qu'apres lui) */
     if (c.monstres.some((o) => o.salle === i && o.etat !== 'mort')) return; s.fini = true; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * 0.25); majCombatHud();
     if (i === 4) { E.gagne = E.t; toast('Le Docteur Wabbenstein est tombé !', 'or'); if (typeof liberationLabo === 'function') liberationLabo(); return; } /* (la liberation des Wabbits, puis le coffre : 29s-fin-labo.js) */
-    const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Touche les cages pour libérer les Wabbits, puis ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); }); /* (24/11/2026 : les Wabbits ne sortent plus tout seuls du fond de la salle, on ouvre les cages, 29s-fin-labo.js) */
+    const S = ileWabbits.userData.salles[i]; if (S) S.sortie.visible = true; toast('Salle nettoyée : la clé est à toi ! Passe à côté des cages pour libérer les Wabbits, puis ressors par l\'entrée (le cercle vert).', 'or'); son('quete'); }); /* (24/11/2026 : les Wabbits ne sortent plus tout seuls du fond de la salle, on ouvre les cages, 29s-fin-labo.js) */
   if (P.mode === 'salle' && P.i != null && P.i < 4 && E.salles[P.i] && E.salles[P.i].fini) { const S = SALLES_LABO[P.i], sx = DONJON.x + S.x + Math.cos(ENTREE_SALLE) * (S.R - 1.1), sz = DONJON.z + S.z + Math.sin(ENTREE_SALLE) * (S.R - 1.1); if (Math.hypot(p.x - sx, p.z - sz) < 1.1) sortirSalleLabo(P.i);
     const So = ileWabbits.userData.salles[P.i]; if (So && So.sortie.visible) { So.sortie.material.opacity = 0.55 + 0.3 * Math.sin(E.t * 5); So.sortie.scale.setScalar(1 + 0.06 * Math.sin(E.t * 5)); } }
   if (E.gagne != null && E.t - E.gagne > (typeof FIN_LABO !== 'undefined' ? FIN_LABO.duree : 1.6)) { finDonjon(true); return true; }

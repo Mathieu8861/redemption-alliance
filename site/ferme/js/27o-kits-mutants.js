@@ -75,7 +75,7 @@ const RENFORTS_MUT = { periode: 16, n: 2, max: 4 };
    (comme le Docteur, quand le donjon se jouera a plusieurs : joueursWab) */
 SPECIMEN.pv = 5; CHEF_LABO.pv = 5; const BOSS_MUT_PAR_JOUEUR = 0.75;
 { const grandir0 = grandirMutant; grandirMutant = function (o, k, couleur, nom) { grandir0.apply(this, arguments); /* (le meme mutant, plus grand et plus fort : son kit de boss par-dessus, et la rage) */
-    try { const nJ = typeof joueursWab === 'function' ? joueursWab(o) : 1; if (nJ > 1) { o.pvMax = o.pv = Math.round(o.pvMax * (1 + BOSS_MUT_PAR_JOUEUR * (nJ - 1))); } const B = BOSS_MUT[o.type]; if (B) o.d = Object.assign({}, o.d, B, { rage: true, bossMut: true }); else o.d = Object.assign({}, o.d, { rage: true, bossMut: true }); o.renfortMT = RENFORTS_MUT.periode - 6; } catch (e) { /* rien */ } }; }
+    try { const nJ = typeof joueursWab === 'function' ? joueursWab(o) : 1; if (nJ > 1) { o.pvMax = o.pv = Math.round(o.pvMax * coefJoueursLabo(nJ) / coefJoueursLabo((combat && combat.joueurs) || 1)); } /* (26/11/2026 : comme le Docteur ; sa vie de base compte deja les joueurs reels, D.pv plus bas) */ const B = BOSS_MUT[o.type]; if (B) o.d = Object.assign({}, o.d, B, { rage: true, bossMut: true }); else o.d = Object.assign({}, o.d, { rage: true, bossMut: true }); o.renfortMT = RENFORTS_MUT.periode - 6; } catch (e) { /* rien */ } }; }
 /* ---------------- les sorts ---------------- */
 const solMut = () => (paysanMesh ? paysanMesh.position.y : 0); /* (le sol sous le perso : dans une salle comme sur l'ile, le perso est debout dessus) */
 function capObusMut(mo, ctx) { /* l'obus-cawotte du garde : tire en cloche sur toi, cercle rouge */
@@ -159,10 +159,10 @@ CAPACITES.push(capObusMut, capBombardMut, capCrachatMut, capPinceMut, capGrappin
 /* les renforts ne donnent rien (ni poil, ni cristal) ; la flaque du fluo tombe quand meme */
 { const butinMut2 = butin; butin = function (mo) { if (mo && mo.renfort && combat && combat.genre === 'donjon') { try { if (mo.d && mo.d.flaqueMort) flaqueFluo(mo); } catch (e) { /* rien */ } return; } return butinMut2.apply(this, arguments); }; }
 /* ---------------- le Docteur, plus dur (« le meme delire que les boss de l'ile, voire plus dur vu qu'on est plusieurs ») ---------------- */
-const KIT_WAB_DIFFICILE = { rafale: 6, harpon: 4.5, saisie: 5, /* (25/11/2026, « le boss est beaucoup trop facile : reduis les delais de ses sorts, augmente sa vitesse de deplacement, reduis le delai pour qu'il envoie son grappin », Mathieu : 8, 7 et 6,5 avant ; sa vitesse 3 au lieu de 2, plus bas) */ vague: 16, vie: 500000, parJoueur: 0.9 }; /* (vie : 500 000 en solo, choisi par Mathieu au formulaire le 24/11/2026 ; vie des mutants et boss x5 gardes) */
+const KIT_WAB_DIFFICILE = { rafale: 4.5, harpon: 3.5, saisie: 4, /* (26/11/2026, « ses mecaniques sont trop simples a esquiver, il les fait pas assez rapidement », Mathieu : 6, 4,5 et 5 avant) */ /* (vie : 600 000 en solo depuis le 26/11/2026, Mathieu ; selon les joueurs : coefJoueursLabo, 27k) */ /* (25/11/2026, « le boss est beaucoup trop facile : reduis les delais de ses sorts, augmente sa vitesse de deplacement, reduis le delai pour qu'il envoie son grappin », Mathieu : 8, 7 et 6,5 avant ; sa vitesse 3 au lieu de 2, plus bas) */ vague: 16, vie: 600000, parJoueur: 0.9 }; /* (vie : 500 000 en solo, choisi par Mathieu au formulaire le 24/11/2026 ; vie des mutants et boss x5 gardes) */
 if (typeof KIT_WAB !== 'undefined') { KIT_WAB.rafale.periode = KIT_WAB_DIFFICILE.rafale; KIT_WAB.harpon.periode = KIT_WAB_DIFFICILE.harpon; KIT_WAB.saisie.periode = KIT_WAB_DIFFICILE.saisie; KIT_WAB.phase.vague = KIT_WAB_DIFFICILE.vague;
   KIT_WAB.vie.base = KIT_WAB_DIFFICILE.vie; KIT_WAB.vie.parJoueur = KIT_WAB_DIFFICILE.parJoueur; }
-if (MONSTRES.wabbenstein) MONSTRES.wabbenstein.vitesse = 3.0;
+if (MONSTRES.wabbenstein) MONSTRES.wabbenstein.vitesse = 3.6; /* (3 avant le 26/11/2026) */
 
 /* ILS CONTOURNENT (24/11/2026, « le mini-boss etait bugge dans un mur invisible en bord de map », Mathieu) : sur l'ile, un mutant lance a ta poursuite allait tout
    droit et restait colle contre un rocher, un arbre ou le bord de l'eau. Toutes les 0,7 s, s'il ne te voit pas en ligne droite (la grille des chemins du perso,
@@ -189,7 +189,7 @@ function voitLabo(ax, az, bx, bz, cle) { const G = grilleCh(cle || 'sol'), n = G
    Les boss du labo (x5) et le Docteur partent de la. Quand le donjon se jouera a plusieurs, combat.joueurs le dira (joueursWab, 27k) */
 const PV_PEUR = 3, PV_PEUR_PAR_JOUEUR = 0.6;
 ['wabGarde', 'wabEnrage', 'wabFluo', 'wabGreffe', 'wabVampire', 'wabGarou', 'wabDrone'].forEach((t) => { const D = MONSTRES[t]; if (!D) return; const p0 = D.pv;
-  D.pv = (n) => Math.round(p0(n) * PV_PEUR * (1 + PV_PEUR_PAR_JOUEUR * (Math.max(1, (combat && combat.joueurs) || 1) - 1))); });
+  D.pv = (n) => Math.round(p0(n) * PV_PEUR * coefJoueursLabo((combat && combat.joueurs) || 1)); }); /* (selon les joueurs comme le Docteur, 26/11/2026 : x2 a deux, puis +120 % par joueur en plus) */
 if (MONSTRES.wabGarde) MONSTRES.wabGarde.salve = { n: 3, x: 0.5, ecart: 0.14 };
 if (MONSTRES.wabDrone) MONSTRES.wabDrone.salve = { n: 2, x: 0.6, ecart: 0.18 };
 { const tirMut0 = tirMonstre; tirMonstre = function (mo, bat, caw) { const S = mo && mo.d && mo.d.salve; if (!S || bat || caw) return tirMut0.apply(this, arguments);

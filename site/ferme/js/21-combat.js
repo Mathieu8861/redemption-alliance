@@ -758,7 +758,7 @@ function zoneDanger(o) {
     if (combat !== c0 || c0.fin || (o.mo && o.mo.etat === 'mort')) return fin(); /* (09/11/2026 : seulement s'il est mort ; avant, tout etat autre qu'« actif » l'annulait, et l'Ancestral, « enfoui » pendant sa plongee, ne touchait jamais : ni ses racines au depart, ni ses tetes, « il n'a aucune strategie », Mathieu) */
     if (t >= o.duree) { fin(); o.effet(d); return true; }
   });
-  return d;
+  Object.defineProperty(d, 'g', { value: g, enumerable: false }); return d; /* (g : son dessin, pour une zone qui suit son lanceur : la rafale du Docteur Wabbenstein, 26/11/2026) */
 }
 /* LE PALIER DES KOALAKS (14/10/2026) : ce que certains coups font en plus, la fumee du Koulosse, son appel, le Fossoyeur, le bandit */
 function ouvrirEntracte() {
@@ -1974,7 +1974,7 @@ function capPluie(mo, ctx) {
     if (mo.pluieT >= mo.d.pluie) {
       mo.pluieT = 0; mo.frappe = 0.4;
       gesteSort(mo, 'tir'); const fleches = !!mo.d.pluieFleches; /* (Ark : une pluie de flèches, 25/10/2026) */
-      if (!combat[fleches ? 'pluieFVu' : 'pluieVu']) { combat[fleches ? 'pluieFVu' : 'pluieVu'] = true; toast(fleches ? leNom(mo.d) + ' tire une pluie de flèches : sors des cercles rouges !' : 'Le Wa Wabbit fait pleuvoir des cawottes du ciel : sors des cercles orange !', 'alerte'); }
+      if (!combat[fleches ? 'pluieFVu' : 'pluieVu']) { combat[fleches ? 'pluieFVu' : 'pluieVu'] = true; toast(fleches ? leNom(mo.d) + ' tire une pluie de flèches : sors des cercles rouges !' : (mo.d.pluieTexte || 'Le Wa Wabbit fait pleuvoir des cawottes du ciel') + ' : sors des cercles orange !', 'alerte'); }
       const lanceur = !fleches && !m.userData.anim; if (lanceur) sautLancer(mo, 0.35); /* (le Wa Wabbit saute en lancant ses cawottes, 31/10/2026) */
       [[pp.x, pp.z]].concat([0, 1, 2, 3].map(() => [pp.x + (Math.random() - 0.5) * 7, pp.z + (Math.random() - 0.5) * 7])).forEach(([x, z], ic) => {
         const cel = caseIci(x, z), y = cel ? hauteurSol(x, z, cel) : 0, c0 = combat, dz = { x, z, r: 1.3 }; (c0.dangers = c0.dangers || []).push(dz); const oter = () => { const i = c0.dangers.indexOf(dz); if (i >= 0) c0.dangers.splice(i, 1); };

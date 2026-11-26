@@ -214,8 +214,9 @@ function tempsFortAnime(p, couleur, o) {
   if (animationsReduites() || FATAL_ANIME) return; FATAL_ANIME = true;
   const cv = rendu.domElement, f0 = cv.style.filter || '', t0 = performance.now(), fin = () => { camera.zoom = 1; camera.updateProjectionMatrix(); cv.style.filter = f0; FATAL_ANIME = false; };
   const pas = () => { try { const t = performance.now() - t0, tz = t - JS_FATAL.silhouette - JS_FATAL.negatif;
-      cv.style.filter = t < JS_FATAL.silhouette ? 'grayscale(1) contrast(8)' : tz < 0 ? 'invert(1)' : f0;
-      if (tz >= JS_FATAL.retour) { fin(); return; } camera.zoom = tz < 0 ? JS_FATAL.zoom : 1 + (JS_FATAL.zoom - 1) * Math.pow(1 - tz / JS_FATAL.retour, 3); camera.updateProjectionMatrix(); requestAnimationFrame(pas); }
+      const doux = !!(o && o.doux), Z = doux ? 1 + (JS_FATAL.zoom - 1) * 0.5 : JS_FATAL.zoom; /* (doux : la Fleche fatale du Cra, 26/11/2026, « un poil too much, limite on voit plus l'ecran », Mathieu : ni ecran noir et blanc ni negatif, zoom moitie moins fort) */
+      cv.style.filter = doux ? f0 : t < JS_FATAL.silhouette ? 'grayscale(1) contrast(8)' : tz < 0 ? 'invert(1)' : f0;
+      if (tz >= JS_FATAL.retour) { fin(); return; } camera.zoom = tz < 0 ? Z : 1 + (Z - 1) * Math.pow(1 - tz / JS_FATAL.retour, 3); camera.updateProjectionMatrix(); requestAnimationFrame(pas); }
     catch (e) { fin(); } };
   pas();
 }
@@ -351,12 +352,12 @@ function mireFatale(suivre, direct) { /* (25/11/2026, « le delai d'envoi doit e
       return false; }
     if (!fl) { /* le tir */
       jeter(visee.g); de.copy(arc); dir.copy(P).sub(de); L = Math.max(0.5, dir.length()); dir.normalize(); fl = modeleFlecheFatale(); fl.scale.setScalar(1.15); scene.add(fl); fl.position.copy(de); fl.lookAt(P);
-      F = faisceau(de, de.clone().addScaledVector(dir, L + 2.5), [['#ff6a4a', '#8a0a06', 0.42, false], ['#ffffff', '#ff3b2e', 0.16, true]]);
-      anneauSouffle(de.clone().addScaledVector(dir, 0.4), dir, 0.1, 0.9, 0.18, '#ffd0c4', 0.9); flashLumiere(de.x, de.y, de.z, '#ff3b2e', 2.5, 5, 0.2);
+      F = faisceau(de, de.clone().addScaledVector(dir, L + 2.5), [['#ff6a4a', '#8a0a06', 0.26, false], ['#ffffff', '#ff3b2e', 0.1, true]]); /* (26/11/2026 : 0,42 et 0,16 avant, plus fin) */
+      anneauSouffle(de.clone().addScaledVector(dir, 0.4), dir, 0.1, 0.9, 0.18, '#ffd0c4', 0.9); flashLumiere(de.x, de.y, de.z, '#ff3b2e', 1.5, 4, 0.18);
       mire.children.forEach((c) => { (c.isGroup ? c.children : [c]).forEach((m) => m.material.color.set('#ffffff')); }); } /* (la mire se verrouille : elle blanchit) */
     if (!frappe) { versCamera(mire); mire.position.copy(P); mire.scale.setScalar(k * 0.55); }
     tv += dt; fait = Math.min(L + 2.5, frappe ? fait + (L / T_VOL) * dt : L * Math.min(1, tv / T_VOL)); fl.position.copy(de).addScaledVector(dir, fait); F.maj(fait / (L + 2.5), 1 - fini, t); /* (elle touche 0,28 s apres le lacher, comme avant) */
-    emettre(FX_LUM, 1, { x: fl.position.x, y: fl.position.y, z: fl.position.z, vie: [0.06, 0.08], taille: [1.2, 0.4], c: ['#ffffff', '#ff3b2e'], a: 0.95 });
+    emettre(FX_LUM, 1, { x: fl.position.x, y: fl.position.y, z: fl.position.z, vie: [0.06, 0.08], taille: [0.7, 0.25], c: ['#ffffff', '#ff3b2e'], a: 0.85 });
     emettre(FX_VIF, 3, { x: fl.position.x, y: fl.position.y, z: fl.position.z, r: 0.06, v: [-dir.x * 5, 0.6, -dir.z * 5], dv: 2.5, vie: [0.15, 0.3], taille: [0.1, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 4, frein: 2, etire: 0.05 });
     if (!frappe && tv >= T_VOL) { frappe = true; tir(); jeter(mire); anneauSouffle(P.clone(), dir, 0.15, 1.6 * k, 0.25, '#ff8a6a', 0.9); son('impactFleche', undefined, 4, -650 + hasardCents(60));
       emettre(FX_VIF, 12, { x: P.x, y: P.y, z: P.z, r: 0.1, v: [dir.x * 7, 0.5, dir.z * 7], dv: 2.5, vie: [0.2, 0.45], taille: [0.12, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 5, frein: 2, etire: 0.05 }); } /* (la gerbe part a travers la cible) */
@@ -459,7 +460,7 @@ const animFatale = (classe, suivre, direct) => (classe === 'cra' ? mireFatale(su
   const suivre = P ? P.suivre : suivreCible(pv), de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
   const impact = () => { const p = suivre().clone(), sauf = classe === 'iop' ? 'coupFatal' : classe === 'osa' ? 'morsure' : null, f0 = sauf && window[sauf]; if (sauf) window[sauf] = () => {}; /* (l'ancien effet de la classe ne se rejoue pas : le sort l'a remplace) */
     JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; if (sauf) window[sauf] = f0; }
-    tempsFortAnime(p, coul, classe === 'cra' ? { n: 9, long: 220, duree: 170 } : classe === 'osa' ? { sansTraits: true } : null); /* (la Morsure du Dragoeuf sans traits a l'ecran, 25/11/2026 au soir : « ca fait les pics rouges dans tous les sens », Mathieu ; le dragon et son impact restent sur la cible) */ cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
+    tempsFortAnime(p, coul, classe === 'cra' ? { n: 6, long: 160, duree: 150, doux: true } : classe === 'osa' ? { sansTraits: true } : null); /* (la Morsure du Dragoeuf sans traits a l'ecran, 25/11/2026 au soir : « ca fait les pics rouges dans tous les sens », Mathieu ; le dragon et son impact restent sur la cible) */ cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
   (P ? P.anim : animFatale(classe, suivre, true)).declencher(impact); /* (Iop et Osamodas : les degats tout de suite, comme avant ; Cra : a l'arrivee de la fleche, 0,28 s, comme avant) */
 }; }
 

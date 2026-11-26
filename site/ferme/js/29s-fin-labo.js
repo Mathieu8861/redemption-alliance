@@ -39,7 +39,11 @@ function ouvrirCageLabo(i, k) {
 { const tickDonjonCages = tickDonjon; tickDonjon = function () { const r = tickDonjonCages.apply(this, arguments);
     try { const E = donjonEtat, p = paysanMesh.position; if (E && E.cage && E.perso.mode === 'salle' && E.perso.i === E.cage.i) { const S = SALLES_LABO[E.cage.i], C = ileWabbits.userData.salles[E.cage.i].cages[E.cage.k];
         if (C && Math.hypot(p.x - DONJON.x - S.x - C.x, p.z - DONJON.z - S.z - C.z) < 2.2) { if (E.salles[E.cage.i] && E.salles[E.cage.i].fini) ouvrirCageLabo(E.cage.i, E.cage.k); else { const n = combat.monstres.filter((o) => o.etat === 'actif' && o.salle === E.cage.i).length; chiffre('Verrouillée', new T.Vector3(DONJON.x + S.x + C.x, Y_SALLE + 2.2, DONJON.z + S.z + C.z));
-          toast('Cage verrouillée : ' + (n ? 'encore ' + n + ' mutant' + (n > 1 ? 's' : '') + ' dans la salle. ' : '') + 'Abats tous les mutants, la clé de la salle ouvre les cages : touche-les ensuite pour libérer les Wabbits.', 'alerte'); E.cage = null; } } } /* (25/11/2026, au formulaire : « salle nettoyee d'abord », Mathieu ; le message dit combien il en reste) */
+          toast('Cage verrouillée : ' + (n ? 'encore ' + n + ' mutant' + (n > 1 ? 's' : '') + ' dans la salle. ' : '') + 'Abats tous les mutants, la clé de la salle ouvre les cages : passe ensuite à côté de chacune pour libérer les Wabbits.', 'alerte'); E.cage = null; } } } /* (25/11/2026, au formulaire : « salle nettoyee d'abord », Mathieu ; le message dit combien il en reste) */
+      /* (26/11/2026, « je passe a cote, et ca marche pas ; il faut faire clic droit, mais a la manette ? », Mathieu) : la salle nettoyee, une cage s'ouvre des que
+         le perso passe a cote (moins de 2,6 de son centre ; elle fait 1 de rayon) : a la souris, a la manette et au doigt */
+      { const P0 = E && E.perso; if (P0 && P0.mode === 'salle' && P0.i < 4 && E.salles[P0.i] && E.salles[P0.i].fini) { const S = SALLES_LABO[P0.i], I0 = ileWabbits.userData.salles[P0.i];
+          if (I0 && I0.cages) I0.cages.forEach((C, k) => { if (!C.ouverte && Math.hypot(p.x - DONJON.x - S.x - C.x, p.z - DONJON.z - S.z - C.z) < 2.6) ouvrirCageLabo(P0.i, k); }); } }
       /* les prisonniers dans leurs cages : un petit sautillement de temps en temps */
       const P = E && E.perso, I = P && P.mode === 'salle' && ileWabbits.userData.salles[P.i]; if (I && I.cages) { const t = E.t; I.cages.forEach((C) => { if (C.ouverte) return; const h = Math.max(0, Math.sin(t * 2.2 + C.ph)); C.wab.position.y = 0.06 + (h > 0.92 ? (h - 0.92) * 3 : 0); C.wab.rotation.y = C.ry + Math.sin(t * 0.7 + C.ph) * 0.4; }); } } catch (e) { /* rien */ }
     return r; }; }
@@ -140,6 +144,16 @@ function dronesRampe() {
 }
 { const tickDonjonDrones = tickDonjon; tickDonjon = function () { const r = tickDonjonDrones.apply(this, arguments); try { dronesRampe(); } catch (e) { /* rien */ } return r; }; }
 /* le modele du drone, charge au depart pour l'ile (24/11/2026, 27n-mutants-labo.js) */
+/* APRES LE BOSS (26/11/2026, « je viens de finir le boss, ca m'a fait disparaitre » et « quand on finit le boss, on part comment de l'ile ? », Mathieu) :
+   - le labo est une salle loin de l'ile ; le combat fini, le perso n'avait plus d'etat (donjonEtat vide) et se posait sur le relief de l'ile a cet endroit, la mer,
+     sous le plancher de la salle : il disparaissait. Il garde maintenant la salle ou il est (bornerDonjon.libre) ;
+   - le bilan se fermait d'un clic a cote ou d'Echap, sans plus aucun bouton pour partir : le fermer, c'est rentrer a la ferme (comme le bilan de l'Arene et de
+     l'ile des boss) ; « Recommencer » relance le labo */
+const SORTIE_LABO = { relance: false };
+{ const finDonjonSalle = finDonjon; finDonjon = function () { try { const E = donjonEtat; if (E && E.perso) bornerDonjon.libre = Object.assign({}, E.perso); } catch (e) { /* rien */ } return finDonjonSalle.apply(this, arguments); }; }
+{ const partirDonjonSalle = partirDonjon; partirDonjon = async function () { SORTIE_LABO.relance = true; bornerDonjon.libre = null; try { return await partirDonjonSalle.apply(this, arguments); } finally { SORTIE_LABO.relance = false; } }; }
+{ const fermerSortieLabo = fermerModale; fermerModale = function () { const m = modaleOuverte, r = fermerSortieLabo.apply(this, arguments);
+    if (m === 'donjon-fin' && lieu === 'donjon' && !combat && !SORTIE_LABO.relance && !areneSuite) setTimeout(() => { if (lieu === 'donjon' && !combat && !SORTIE_LABO.relance) rentrerFerme(); }, 30); return r; }; }
 { const partirDonjonDrone = partirDonjon; partirDonjon = async function () { try { if (typeof chargerDrone === 'function') chargerDrone(); } catch (e) { /* rien */ } return partirDonjonDrone.apply(this, arguments); }; }
 
 /* LE SUCCES « LIBERER TOUS LES WABBITS » (25/11/2026, Mathieu : « on pourrait avoir un succes "liberer tous les Wabbits" qui donne un bonus de 5 % d'XP pour ton

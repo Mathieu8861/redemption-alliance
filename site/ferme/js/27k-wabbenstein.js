@@ -20,21 +20,25 @@
    5 cases, une cawotte toutes les 2 secondes, 245 points de degats, et au cac coup classique 450 ») : au contact, son coup de poing normal fait 450 ; plus
    loin, jusqu'a 5 cases (10 unites, une case = S = 2), une tourelle (l'une puis l'autre) tire une cawotte toutes les 2 s : elle part le long du canon,
    puis retombe sur toi (245). Montants avant les resistances, comme ses sorts ; il continue d'avancer pendant qu'il tire. */
-SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.glb', 3.6]); ALLURES.wabbenstein = { marche: 0.635, course: 1.39 };
+SQUELETTES_A_CHARGER.push(['wabbenstein', 'assets/modeles/jeu/wabbenstein-anime.glb', 4.5]); /* (26/11/2026, « 20 a 30 % plus grand », Mathieu : 3,6 avant) */ ALLURES.wabbenstein = { marche: 0.635, course: 1.39 };
 const KIT_WAB = {
-  rafale: { periode: 11, prepa: 0.6, R: 9.5, ouv: 0.42, cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
-  autos: { cac: 0.075, tir: 0.041, portee: 5 * S, cadence: 2.0 }, /* (22/11/2026 : en part des PV max, 450 et 245 sur un perso de 6 000 PV ; en montants fixes, ses coups au contact, 3/4 de ses degats, rattrapaient aussi le Cra et l'Osamodas et pesaient 11,5 % de la vie de l'Osa contre 7,5 % du Iop : le bot tombait 12 fois a distance contre 7 au Iop) */ /* (portee : 5 cases) */
+  rafale: { periode: 11, prepa: 0.45, R: 16, ouv: 0.5, avance: 0.5, tourne: 1.1, arret: 3.0, /* (avance, tourne, arret : il marche vers le joueur le plus proche en tirant, a la moitie de sa vitesse, et tourne a 1,1 rad/s, 26/11/2026) */ /* (26/11/2026, « la portee de ses sorts est pas tres grande par rapport a la map ; trop simple a esquiver », Mathieu : 9,5 de long, 0,42 d'ouverture, 0,6 s d'annonce avant) */ cadence: 0.12, vitesse: 15, pct: 0.02, toucher: 0.65 }, /* (pct : 2 % des PV max du perso par cawotte) */
+  autos: { cac: 0.075, tir: 0.055, portee: 14 * S, cadence: 1.6 }, /* (26/11/2026, « trop facile a distance » au banc : 14 cases, presque toute sa salle (5 avant), 5,5 % de tes PV (4,1 avant) toutes les 1,6 s (2 avant)) */ /* (22/11/2026 : en part des PV max, 450 et 245 sur un perso de 6 000 PV ; en montants fixes, ses coups au contact, 3/4 de ses degats, rattrapaient aussi le Cra et l'Osamodas et pesaient 11,5 % de la vie de l'Osa contre 7,5 % du Iop : le bot tombait 12 fois a distance contre 7 au Iop) */ /* (portee : 5 cases) */
   vie: { base: 180000, parJoueur: 0.75 }, /* (20/11/2026, « regle sa vie pour le donjon » : 180 000 en solo, environ 3 min pour un perso de niveau 105 equipe (1 000 de degats par seconde en vrai combat, 1 715 sans bouger) ; +75 % par joueur en plus, x4 a 5 joueurs) */
   phase: { seuil: 0.3, creatures: ['wabGarou', 'wabGarou', 'wabGarou', 'wabGarou'], /* (24/11/2026 : ses Wabbits garous, 27n-mutants-labo.js ; des Gwand Wabbits avant) */ parDeuxJoueurs: 2, vague: 20, max: 12, maxParJoueur: 3, puissance: 1.25, vitesse: 1.25, taille: 1.15, cadenceTir: 1.5 }, /* (sous 30 %, Mathieu, 20/11 : « 4 Gwand Wabbits toutes les 20 secondes », +25 %, la rage et la vitesse ; max : 12 en vie au plus, mon garde-fou) */
-  saisie: { periode: 8, prepa: 0.8, R: 2.2 * S, ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
-  harpon: { periode: 9, prepa: 0.6, min: 2 * S, max: 8 * S, R: 8 * S + 1, /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 0.233, tire: 0.28, poing: 0.095, /* (22/11/2026 : en part des PV max, 1 400 et 570 sur un perso de 6 000 PV ; en montants fixes, le harpon prenait la moitie de la vie de l'Osamodas, 3 900 PV, qu'il vise sans cesse a distance, et le bot tombait 12 fois avec le Cra ou l'Osa contre 7 avec le Iop) */ prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
+  saisie: { periode: 8, prepa: 0.6, R: 2.8 * S, /* (26/11/2026 : 0,8 s et 2,2 cases avant) */ ouv: 0.7, degats: 400, duree: 10, lent: 0.2, jet: 2.0 }, /* (le serum, Mathieu, 20/11 : « 400 degats + un malus de 20 % de vitesse de deplacement, degats pendant 10 s », toutes les 8 s : 400 en 10 s, 40 par seconde, et -20 % de vitesse les memes 10 s) */
+  harpon: { periode: 9, prepa: 0.42, min: 2 * S, max: 12 * S, R: 12 * S + 1, /* (26/11/2026 : jusqu'a 12 cases, 8 avant ; 0,42 s d'annonce, 0,6 avant) */ /* (de 2 a 8 cases, « 2 a 8 cases pour le harpon, vas-y », Mathieu, 20/11 ; R : la ligne, un peu au-dela) */ larg: 1.1, vitesse: 34, retour: 26, impact: 0.233, tire: 0.28, poing: 0.095, /* (22/11/2026 : en part des PV max, 1 400 et 570 sur un perso de 6 000 PV ; en montants fixes, le harpon prenait la moitie de la vie de l'Osamodas, 3 900 PV, qu'il vise sans cesse a distance, et le bot tombait 12 fois avec le Cra ou l'Osa contre 7 avec le Iop) */ prepaPoing: 0.7, rPoing: 3.4, ouvPoing: 0.85, repousse: 2.2, toucher: 0.6 }, /* (toucher : la moitie de la ligne rouge, 0,55, et un peu de corps : hors de la ligne, il te manque) */
 };
 /* LES CREATURES DE LA PHASE SOUS 30 % (22/11/2026, equilibrage) : leurs coups valent 8,7 % de tes PV max (525 sur un Iop de 6 000 PV, comme avant) ; en montants
    fixes, elles faisaient 55 % des degats recus par l'Osamodas (3 900 PV, 14 % de sa vie par coup) et le bot tombait 10 a 12 fois a distance contre 5 a 7 au Iop */
 const CREATURE_WAB_PART = 0.087;
 MONSTRES.wabbenstein = { element: 'terre', nom: 'Docteur Wabbenstein', modele: 'wabbenstein', icone: 'wabbenstein', boss: true, stable: true,
   desc: 'le savant fou du Laboratoire de la Cawotte, dans son armure : ses deux tourelles crachent des rafales de cawottes en éventail (2 % de tes PV par cawotte), et son harpon t\'attrape de loin (23 % de tes PV), te ramène contre lui et arme un coup de poing (9,5 % de tes PV) : 0,7 s pour sortir de la zone. Ses coups normaux : 7,5 % de tes PV au contact, et jusqu\'à 5 cases une cawotte de ses tourelles toutes les 2 s (4 % de tes PV). Sa main mécanique t\'attrape et t\'injecte son sérum : 400 dégâts en 10 s et 20 % de vitesse en moins',
-  pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.0, ombre: 4.0, degSort: 3.2, wabKit: KIT_WAB };
+  pv: () => 60000, deg: () => 112, cadence: 1.6, vitesse: 2.0, portee: 3.75, ombre: 5.0, degSort: 3.2, wabKit: KIT_WAB,
+  /* DEUX SORTS DE PLUS (26/11/2026, « il est beaucoup trop facile, meme pas touche une fois ; rajoute-lui des sorts, aussi dur que les boss de l'ile des boss, voire plus :
+     on est plusieurs a taper dessus », Mathieu) : la pluie de cawottes (cinq cercles orange, un sur toi, 1,4 s pour en sortir, toutes les 5 s) et la decharge des
+     bobines (de pres, un grand cercle bleu autour de lui, 1 s, qui te repousse, toutes les 8 s) */
+  pluie: 5, pluieTexte: 'Le Docteur fait pleuvoir des cawottes du haut de ses tourelles', seisme: 8, seismeR: 6.5, seismeDuree: 1.0, seismeProche: 1.5, repousse: true, seismeNom: 'Décharge des bobines' };
 GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, solo)', liste: { wabbenstein: 1 } };
 /* LE DONJON A PLUSIEURS (20/11/2026, « le DJ doit s'adapter en fonction du nombre de participants, max 5 ») : sa vie x(1 + 0,75 par joueur en plus), 2 Gwand
    Wabbits de plus par vague tous les 2 joueurs en plus, et le plafond de ses creatures monte. Le jeu n'a pas encore de donjon a plusieurs : combat.joueurs le dira ;
@@ -42,6 +46,10 @@ GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, solo)', liste: { 
 MONSTRES.wabbenstein3 = Object.assign({}, MONSTRES.wabbenstein, { joueursSimu: 3 }); MONSTRES.wabbenstein5 = Object.assign({}, MONSTRES.wabbenstein, { joueursSimu: 5 });
 GROUPES_DEV.wabbenstein3 = { nom: 'Docteur Wabbenstein (3 joueurs simulés)', liste: { wabbenstein3: 1 } }; GROUPES_DEV.wabbenstein5 = { nom: 'Docteur Wabbenstein (5 joueurs simulés)', liste: { wabbenstein5: 1 } };
 const joueursWab = (mo) => Math.max(1, Math.min(5, (combat && combat.joueurs) || (mo && mo.d && mo.d.joueursSimu) || 1));
+/* LA VIE SELON LE NOMBRE DE JOUEURS (26/11/2026, Mathieu : « un joueur, 600 000 ; deux joueurs, +100 %, 1,2 million ; puis a chaque joueur en plus, +120 % par rapport
+   a la marche d'avant ; et pour les mutants, tu fais pareil ») : x1, x2, x4,4, x9,68, x21,3 (de 1 a 5 joueurs). Le Docteur, ses mutants et leurs chefs */
+const COEF_JOUEURS_LABO = { deux: 1.0, ensuite: 1.2 };
+const coefJoueursLabo = (n) => { n = Math.max(1, Math.min(5, n || 1)); return n === 1 ? 1 : (1 + COEF_JOUEURS_LABO.deux) * Math.pow(1 + COEF_JOUEURS_LABO.ensuite, n - 2); };
 /* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
 const OS_TOURELLES_WAB = /^(tourelle|barillet|fourreau|tige)[GD]\./, OS_HARPON_WAB = /^(harpon|maillon\d+)\./;
 const b2gWab = (x, y, z) => new T.Vector3(x, z, -y); /* (repere de Blender, il regarde -Y, vers celui du jeu) */
@@ -99,17 +107,22 @@ function capWabRafale(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif' || mo.geste || mo.wabOccupe) return; const R = K.rafale, { pp, sortPret } = ctx;
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (!sortPret('wabRafaleT', R.periode) || dP > R.R - 0.5 || !osWab(mo)) return;
   const an = mo.m.userData.anim, dS = an.A[NOMS_TOURELLES[0]].getClip().duration, dR = 3 * an.A[NOMS_TOURELLES[1]].getClip().duration, dE = an.A[NOMS_TOURELLES[2]].getClip().duration;
-  const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), tot = dS + dR + dE; mo.wabRafaleT = 0; mo.wabOccupe = true; mo.ry = a; mo.bloqueT = Math.max(mo.bloqueT || 0, tot); mo.cd = Math.max(mo.cd || 0, tot);
+  const c0 = combat, a = Math.atan2(pp.x - mo.x, pp.z - mo.z), tot = dS + dR + dE; mo.wabRafaleT = 0; mo.wabOccupe = true; mo.wabRafaleOn = true; mo.ry = a; mo.bloqueT = Math.max(mo.bloqueT || 0, tot); mo.cd = Math.max(mo.cd || 0, tot);
   if (!c0.wabRafaleVu) { c0.wabRafaleVu = true; toast(leNom(mo.d) + ' sort ses tourelles : sors de l\'éventail rouge, une rafale de cawottes arrive !', 'alerte'); }
-  zoneDanger({ mo, x: mo.x, z: mo.z, r: R.R, a, ouv: R.ouv, duree: dS + dR, effet: () => {} });
-  tourellesWab(mo, 'sortie'); let t = 0, phase = 'sortie'; const pret = { G: 0, D: R.cadence / 2 };
+  const Z = zoneDanger({ mo, x: mo.x, z: mo.z, r: R.R, a, ouv: R.ouv, duree: dS + dR, effet: () => {} });
+  tourellesWab(mo, 'sortie'); let t = 0, phase = 'sortie', aC = a; const pret = { G: 0, D: R.cadence / 2 };
+  /* IL AVANCE EN TIRANT (26/11/2026, « son tir de cawottes, il faudrait qu'il bouge ou avance en meme temps qu'il tire, dans la direction du joueur le plus proche »,
+     Mathieu) : pendant la rafale, il marche vers le perso a la moitie de sa vitesse (il s'arrete a 3) et tourne vers lui sans a-coup ; l'eventail rouge le suit */
+  const suivre = (dt) => { const P2 = paysanMesh.position; let e = Math.atan2(P2.x - mo.x, P2.z - mo.z) - aC; e = Math.atan2(Math.sin(e), Math.cos(e)); aC += Math.max(-R.tourne * dt, Math.min(R.tourne * dt, e));
+    if (Math.hypot(P2.x - mo.x, P2.z - mo.z) > (R.arret || 3)) { const v = vitesseMonstre(mo.d) * (R.avance || 0); mo.x += Math.sin(aC) * v * dt; mo.z += Math.cos(aC) * v * dt; mo.vLabo = v; }
+    if (Z) { Z.x = mo.x; Z.z = mo.z; Z.a = aC; if (Z.g) { Z.g.position.x = mo.x; Z.g.position.z = mo.z; Z.g.rotation.y = aC - a; } } };
   effets.push((dt) => {
-    t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { if (combat === c0 && mo.etat !== 'mort') tourellesWab(mo, 'rentree'); else if (an) NOMS_TOURELLES.forEach((n) => { if (an.A[n]) an.A[n].stop(); }); mo.wabOccupe = false; return true; } /* (mort en pleine rafale : les tourelles retombent en V au lieu de tourner sur son corps) */
-    mo.ry = a;
+    t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { if (combat === c0 && mo.etat !== 'mort') tourellesWab(mo, 'rentree'); else if (an) NOMS_TOURELLES.forEach((n) => { if (an.A[n]) an.A[n].stop(); }); mo.wabOccupe = false; mo.wabRafaleOn = false; return true; } /* (mort en pleine rafale : les tourelles retombent en V au lieu de tourner sur son corps) */
+    mo.ry = aC;
     if (phase === 'sortie' && t >= dS) { phase = 'rafale'; t = 0; tourellesWab(mo, 'rafale'); }
-    else if (phase === 'rafale') { for (const c of ['G', 'D']) { pret[c] -= dt; if (pret[c] <= 0) { pret[c] += R.cadence; tirerCawotte(mo, c, R, c0); } }
+    else if (phase === 'rafale') { if (R.avance) suivre(dt); for (const c of ['G', 'D']) { pret[c] -= dt; if (pret[c] <= 0) { pret[c] += R.cadence; tirerCawotte(mo, c, R, c0); } }
       if (t >= dR) { phase = 'rentree'; t = 0; tourellesWab(mo, 'rentree'); } }
-    else if (phase === 'rentree' && t >= dE) { mo.wabOccupe = false; return true; }
+    else if (phase === 'rentree' && t >= dE) { mo.wabOccupe = false; mo.wabRafaleOn = false; return true; }
     return false;
   });
 }
@@ -188,10 +201,12 @@ const degatsFixes = (v) => { const c = combat; if (!c || c.raid) return Math.max
 /* ---------------- ses coups automatiques ---------------- */
 function capWabAutos(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif') return; const A = K.autos, { pp, dt } = ctx;
-  if (!mo.wabVie && K.vie) { mo.wabVie = true; const n = joueursWab(mo), v = Math.round(K.vie.base * (1 + K.vie.parJoueur * (n - 1))); mo.pvMax = mo.pv = v; } /* (sa vie du donjon, selon le nombre de joueurs) */
+  if (!mo.wabVie && K.vie) { mo.wabVie = true; const n = joueursWab(mo), v = Math.round(K.vie.base * coefJoueursLabo(n)); mo.pvMax = mo.pv = v; } /* (sa vie du donjon, selon le nombre de joueurs) */
   mo.deg = degWab(mo, ((combat && combat.pvMax) || 6000) * A.cac) / autoBoss(mo); /* (son coup au contact : mo.deg fois autoBoss, puis le bonus du palier dans blesserPerso ; 450 avant les resistances) */
   const dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), cac = mo.d.portee * (mo.allonge || 1) + 0.6;
-  if (mo.wabOccupe || mo.geste || dP <= cac || dP > A.portee || !osWab(mo)) { mo.wabTirT = Math.min(mo.wabTirT || 0, A.cadence * 0.6); return; } /* (revenu a portee de tir, il ne tire pas dans l'instant) */
+  /* (26/11/2026 : il ne tirait que sans aucun sort en cours, donc presque jamais une fois ses sorts accelerés (au banc, changer sa portee ne changeait rien) ; ses tourelles
+     tirent maintenant pendant ses autres sorts, sauf pendant la rafale qui les occupe) */
+  if (mo.wabRafaleOn || dP <= cac || dP > A.portee || !osWab(mo)) { mo.wabTirT = Math.min(mo.wabTirT || 0, A.cadence * 0.6); return; } /* (revenu a portee de tir, il ne tire pas dans l'instant) */
   mo.wabTirT = (mo.wabTirT || 0) + dt; if (mo.wabTirT < (mo.wabPuissance && K.phase ? K.phase.cadenceTir : A.cadence)) return; mo.wabTirT = 0;
   mo.wabTirC = mo.wabTirC === 'G' ? 'D' : 'G'; tirAutoWab(mo, mo.wabTirC, A, combat);
 }
@@ -342,18 +357,19 @@ CAPACITES.unshift(capWabPhase, capWabLibere, capWabRenforts);
 
 /* ---------------- le pupitre et la cuve du garou geant (25/11/2026) ---------------- */
 const PUPITRE_WAB = { course: 4.6, maxCourse: 3.4, appui: 0.75, alarme: 0.55 };
-const GEANT_WAB = { pv: 4, deg: 1.6, taille: 1.75, vit: 1.2, nom: 'Garou géant (sa dernière création)' }; /* (vie et coups d'un garou du labo fois 4 et 1,6 : 150 000 PV au niveau 100, 30 % de la vie du Docteur ; 75 % plus grand, 20 % plus rapide) */
+const GEANT_WAB = { pv: 3, deg: 1.6, taille: 2.6, /* (pv : « un peu trop de vie », Mathieu, 26/11/2026 : 4 avant) */ /* (26/11/2026, « il est tout petit, faudrait qu'il soit plus grand, et fais grossir le truc dans lequel il est enferme », Mathieu : 1,75 avant ; sa cuve suit, CUVE_ECH) */ vit: 1.2, nom: 'Garou géant (sa dernière création)' }; /* (vie et coups d'un garou du labo fois 4 et 1,6 : 150 000 PV au niveau 100, 30 % de la vie du Docteur ; 75 % plus grand, 20 % plus rapide) */
 function lieuxPupitreWab(mo) { /* ou sont son pupitre et la cuve du garou : dans son labo, ceux de la salle ; ailleurs (l'Arene dev), a cote de lui */
   if (typeof lieu !== 'undefined' && lieu === 'donjon' && typeof SALLES_LABO !== 'undefined' && mo.lab && mo.lab.mode === 'salle' && mo.lab.i === 4) {
     const S = SALLES_LABO[4], cx = DONJON.x + S.x, cz = DONJON.z + S.z, F = ENTREE_SALLE + Math.PI, P2 = (ar, r) => ({ x: cx + Math.cos(F + ar) * r, z: cz + Math.sin(F + ar) * r });
-    const poste = P2(-0.38, S.R - 3.3), bouton = P2(-0.38, S.R - 2.0), cuve = P2(0.78, S.R - 3.6); return { poste, bouton, cuve, y: Y_SALLE, labo: true };
+    const poste = P2(-0.38, S.R - 3.3), bouton = P2(-0.38, S.R - 2.0), cuve = P2(0.78, S.R - 2.0 - 2.2 * CUVE_ECH()); /* (la cuve agrandie reste loin du mur, 26/11/2026) */ return { poste, bouton, cuve, y: Y_SALLE, labo: true };
   }
   const pp = paysanMesh.position, d = Math.hypot(mo.x - pp.x, mo.z - pp.z) || 1, ux = (mo.x - pp.x) / d, uz = (mo.z - pp.z) / d; /* (a l'oppose du perso) */
   const poste = pointValide(mo.x, mo.z, mo.x + ux * 5, mo.z + uz * 5), bouton = { x: poste.x + ux * 1.3, z: poste.z + uz * 1.3 }, cuve = pointValide(poste.x, poste.z, poste.x - uz * 4.2, poste.z + ux * 4.2);
   return { poste, bouton, cuve, y: solA(poste.x, poste.z), labo: false };
 }
+const CUVE_ECH = () => GEANT_WAB.taille / 1.75; /* (la cuve et le garou dedans, a la taille du garou geant : faite pour 1,75) */
 function cuveGeantWab(x, y, z, a) { /* la cuve de verre ou flotte le garou geant, endormi, qui luit vert */
-  const g = new T.Group(); g.position.set(x, y, z);
+  const g = new T.Group(); g.position.set(x, y, z); g.scale.setScalar(CUVE_ECH());
   const cuivre = new T.MeshLambertMaterial({ color: '#b8743a' }), verre = new T.MeshLambertMaterial({ color: '#9fffd2', transparent: true, opacity: 0.24, depthWrite: false }), jus = new T.MeshBasicMaterial({ color: '#5dff7a', transparent: true, opacity: 0.18, depthWrite: false });
   const socle = new T.Mesh(new T.CylinderGeometry(2.0, 2.2, 0.55, 26), cuivre); socle.position.y = 0.27; g.add(socle);
   const cap = new T.Mesh(new T.CylinderGeometry(1.85, 2.0, 0.5, 26), cuivre); cap.position.y = 5.55; g.add(cap);
@@ -368,7 +384,7 @@ function cuveGeantWab(x, y, z, a) { /* la cuve de verre ou flotte le garou geant
       if (cl) { const mx = new T.AnimationMixer(m), ac = mx.clipAction(cl); ac.play(); ac.timeScale = 0.18; mx.update(0.4); g.userData.mixer = mx; }
       const tuyau = new T.MeshLambertMaterial({ color: '#4d7a3a' }); [-0.45, 0.45].forEach((dx) => { const c = new T.CatmullRomCurve3([new T.Vector3(dx * 0.9, 5.3, 0.1), new T.Vector3(dx * 1.3, 4.6, 0.35), new T.Vector3(dx * 0.7, 3.55, 0.42)]), tu = new T.Mesh(new T.TubeGeometry(c, 12, 0.06, 6), tuyau); g.add(tu); }); } } catch (e) { /* (sans modele : la cuve seule) */ }
   g.traverse((q) => { q.raycast = q.raycast || (() => {}); }); scene.add(g);
-  g.userData.bulles = setInterval(() => { if (!g.parent) { clearInterval(g.userData.bulles); return; } if (enPause || typeof emettre !== 'function') return; emettre(FX_LUM, 1, { x: x + (Math.random() - 0.5) * 2.6, y: y + 0.8, z: z + (Math.random() - 0.5) * 2.6, r: 0.05, v: [0, 1.4, 0], dv: 0.15, vie: [1.8, 2.6], taille: [0.14, 0.05], c: ['#c8ffd8', '#7dff5a'], a: 0.6, frein: 0 });
+  g.userData.bulles = setInterval(() => { if (!g.parent) { clearInterval(g.userData.bulles); return; } if (enPause || typeof emettre !== 'function') return; emettre(FX_LUM, 1, { x: x + (Math.random() - 0.5) * 2.6 * CUVE_ECH(), y: y + 0.8, z: z + (Math.random() - 0.5) * 2.6 * CUVE_ECH(), r: 0.05, v: [0, 1.4, 0], dv: 0.15, vie: [1.8, 2.6], taille: [0.14, 0.05], c: ['#c8ffd8', '#7dff5a'], a: 0.6, frein: 0 });
     if (g.userData.garou) g.userData.garou.position.y = 0.85 + 0.1 * Math.sin(performance.now() / 650); if (g.userData.mixer) g.userData.mixer.update(0.12); }, 120);
   return g;
 }
@@ -412,9 +428,9 @@ function coursePupitreWab(mo, P, c0) {
 function sortirGeantWab(mo, L, cuve, c0) { /* la cuve eclate : eclats de verre, flot vert ; le garou geant en sort et se bat */
   if (combat !== c0 || c0.fin) return; const x = L.cuve.x, z = L.cuve.z, y = cuve ? cuve.position.y : solA(x, z);
   if (cuve) { clearInterval(cuve.userData.bulles); scene.remove(cuve); if (cuve === CUVE_WAB) CUVE_WAB = null; }
-  emettre(FX_VIF, 46, { x, y: y + 2.6, z, r: 1.4, dv: 7, haut: true, vie: [0.5, 0.9], taille: [0.16, 0.05], c: ['#e8fff4', '#b8ffe0', '#ffffff'], grav: 12, frein: 0.6, sol: y + 0.04, rebond: 0.3 });
+  const kC = CUVE_ECH(); emettre(FX_VIF, 46, { x, y: y + 2.6 * kC, z, r: 1.4 * kC, dv: 7, haut: true, vie: [0.5, 0.9], taille: [0.16, 0.05], c: ['#e8fff4', '#b8ffe0', '#ffffff'], grav: 12, frein: 0.6, sol: y + 0.04, rebond: 0.3 });
   emettre(FX_LUM, 36, { x, y: y + 0.3, z, r: 1.6, v: [0, 0.7, 0], dv: 3.2, vie: [0.8, 1.4], taille: [0.5, 0.12], c: ['#7dff5a', '#3fd14a'], a: 0.75, frein: 0.4 });
-  flashLumiere(x, y + 2, z, '#7dff5a', 6, 12, 0.6); secousse(0.35, 0.6); onde(x, y + 0.05, z, 5.5, '#7dff5a', 0.5, 0.8); son('vague', null, 2);
+  flashLumiere(x, y + 2 * kC, z, '#7dff5a', 6, 12, 0.6); secousse(0.45, 0.7); onde(x, y + 0.05, z, 5.5 * kC, '#7dff5a', 0.5, 0.8); son('vague', null, 2);
   toast('La cuve éclate : le Garou géant, sa dernière création, en sort !', 'alerte');
   if (!MONSTRES.wabGarou) return;
   apparaitre('wabGarou', { x, z, apres: (o) => { if (typeof transmuter === 'function') transmuter(o); if (typeof grandirMutant === 'function') grandirMutant(o, GEANT_WAB, '#7dff5a', GEANT_WAB.nom);
