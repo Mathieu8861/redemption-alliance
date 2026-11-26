@@ -5,18 +5,19 @@
      cercles plus grands (5 au lieu de 4,2, l'onde du rebond 4,3 au lieu de 3,6), son bond ecrasant toutes les 4,2 s (6), jusqu'a 15 (13), une attaque toutes les 1,5 s (1,9),
      une armure de 45 % (35), un moulinet plus large, ses coups +30 %, et 4,5 de vitesse sur l'ile (comme Scorpal contre le kite).
    - Deux sorts en plus, sur l'ile seulement (MONSTRES.moon.titan) :
-     . le TAMBOUR DE GUERRE : il frappe trois fois le sol de son marteau-caisse ; trois ondes partent de lui l'une apres l'autre (un disque, puis deux anneaux) : il faut entrer
-       dans la zone qui vient d'eclater. Contre celui qui reste colle a lui comme contre celui qui tire de loin ;
+     . le TAMBOUR DE GUERRE : il frappe le sol de son marteau-caisse ; quatre ondes partent du bord de son corps a corps vers l'exterieur, l'une apres l'autre, jusqu'a 22,5 :
+       colle a lui, rien ne te touche ; de loin, il faut entrer dans l'anneau qui vient d'eclater (26/11/2026, « que les cercles aillent plus loin ; l'idee c'est
+       qu'il soit plus avantageux d'aller a son cac pour eviter ses degats que de se tenir loin », Mathieu ; avant : un disque sur lui puis deux anneaux, jusqu'a 13,5) ;
      . la PLUIE DE NOIX DE COCO : il rugit et secoue la jungle ; 6 noix de coco tombent autour de toi, chacune annoncee par un cercle (de loin seulement, comme son marteau).
    Sa vie est sans fin sur l'ile (les paliers de l'alliance) : il ne passe donc jamais sous 30 %, et ne tombe pas a genoux avec ses Gorilles. Duel, sans troupe. */
 const MOON_TITAN = {
-  tambour: { periode: 9, prepa: 1.0, ecart: 0.6, anneaux: [[0, 4.5], [4.5, 9], [9, 13.5]], x: 0.9 },
+  tambour: { periode: 9, prepa: 1.0, ecart: 0.55, n: 4, largeur: 4.5, sur: 4.5, x: 0.9 }, /* (sur : la zone sure autour de lui, au moins son perimetre de corps a corps, cacBoss, 4,2 sur l'ile) */
   noix: { periode: 8, prepa: 1.1, ecart: 0.16, n: 6, R: 1.8, rayon: 5.5, x: 0.7, portee: 18 },
 };
 MONSTRES.moon.titan = MOON_TITAN;
 /* (le titan reste une surprise jusqu'a sa semaine : sa description et ses deux sorts dans la fiche, seulement dans le mode test avant le samedi 28/11/2026 a 0 h) */
 const SORTIE_MOON_TITAN = Date.parse('2026-11-28T00:00:00+01:00'), titanVisible = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || tempsReel() >= SORTIE_MOON_TITAN;
-{ const D0 = MONSTRES.moon.desc, plus = ' ; sur l\'île des boss, en titan, il frappe aussi son tambour de guerre (trois ondes qui partent de lui l\'une après l\'autre) et fait pleuvoir des noix de coco autour de toi';
+{ const D0 = MONSTRES.moon.desc, plus = ' ; sur l\'île des boss, en titan, il frappe aussi son tambour de guerre (quatre ondes qui partent de lui vers l\'extérieur : colle-toi à lui pour les éviter) et fait pleuvoir des noix de coco autour de toi';
   Object.defineProperty(MONSTRES.moon, 'desc', { get: () => D0 + (titanVisible() ? plus : ''), enumerable: true, configurable: true }); }
 RENFORT_ILE.moon = { d: { cadence: 1.5, armure: 0.45, bondit: 4.2, bonditPortee: 15, moulinetR: 1.6, marteauMoon: { periode: 2.5, portee: 18, R: 5.0, x: 1.4, R2: 4.3, xBond: 1.4 } }, deg: 1.3, vit: 1.15 };
 VITESSE_ILE.moon = 4.5 / ((MONSTRES.moon.vitesse + VITESSE_PLUS_MONSTRES) * RENFORT_ILE.moon.vit); /* (4,5 de vitesse sur l'ile) */
@@ -46,16 +47,21 @@ function anneauDanger(o) {
 /* ---------------- le tambour de guerre ---------------- */
 function capMoonTambour(mo, ctx) {
   if (!titanIci(mo) || !mo.d.titan.tambour) return; const K = mo.d.titan.tambour, { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z);
-  if (dP > K.anneaux[K.anneaux.length - 1][1] + 1 || !sortPret('moonTambourT', K.periode)) return;
-  const c0 = combat, cx = mo.x, cz = mo.z, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'], N = K.anneaux.length; mo.moonTambourT = 0;
+  const R0 = Math.max(K.sur, cacBoss(mo) + 0.3), N = K.n, A = Array.from({ length: N }, (_, i) => [R0 + i * K.largeur, R0 + (i + 1) * K.largeur]); /* (la zone sure : son corps a corps) */
+  if (dP <= R0 || dP > A[N - 1][1] + 1 || !sortPret('moonTambourT', K.periode)) return; /* (colle a lui, il ne le lance pas : rien ne te toucherait) */
+  const c0 = combat, cx = mo.x, cz = mo.z, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12']; mo.moonTambourT = 0;
   mo.ry = Math.atan2(pp.x - mo.x, pp.z - mo.z); mo.bloqueT = Math.max(mo.bloqueT || 0, K.prepa + (N - 1) * K.ecart + 0.5); mo.cd = Math.max(mo.cd || 0, K.prepa + (N - 1) * K.ecart + 0.6);
-  if (!c0.tambourVu) { c0.tambourVu = true; toast(leNom(mo.d) + ' frappe son tambour de guerre : trois ondes partent de lui l\'une après l\'autre. Entre dans la zone qui vient d\'éclater !', 'alerte'); }
+  if (!c0.tambourVu) { c0.tambourVu = true; toast(leNom(mo.d) + ' frappe son tambour de guerre : quatre ondes partent de lui vers l\'extérieur. Colle-toi à lui pour les éviter, ou entre dans l\'anneau qui vient d\'éclater !', 'alerte'); }
   frappeMoon(mo, K.prepa);
-  K.anneaux.forEach(([r0, r1], i) => anneauDanger({ mo, x: cx, z: cz, r0, r1, duree: K.prepa + i * K.ecart, effet: () => {
+  /* la zone sure, un lisere clair et un voile a peine visible autour de lui, le temps du sort */
+  { const g = new T.Group(), dur = K.prepa + (N - 1) * K.ecart + 0.1, mk = (geo, op) => { const m = new T.Mesh(geo, new T.MeshBasicMaterial({ color: C[1], transparent: true, opacity: op, depthWrite: false, side: T.DoubleSide })); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; g.add(m); return m; };
+    const bord = mk(new T.RingGeometry(R0 - 0.2, R0, 72), 0.85), voile = mk(new T.CircleGeometry(R0 - 0.2, 48), 0.1); g.position.set(cx, solA(cx, cz) + 0.08, cz); sansClic(g); scene.add(g); let t = 0;
+    effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= dur) { jeter(g); return true; } bord.material.opacity = 0.6 + 0.3 * Math.abs(Math.sin(t * 5)); voile.material.opacity = 0.1 * Math.min(1, t / 0.2); return false; }); }
+  A.forEach(([r0, r1], i) => anneauDanger({ mo, x: cx, z: cz, r0, r1, duree: K.prepa + i * K.ecart, effet: () => {
     const y = solA(cx, cz), rm = (r0 + r1) / 2; onde(cx, y, cz, r1, C[1], 0.45, 0.75); secousse(0.12 + 0.05 * i, 0.2);
     for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2 + i * 0.4; emettre(FX_FUM, 1, { x: cx + Math.cos(a) * rm, y: y + 0.2, z: cz + Math.sin(a) * rm, r: (r1 - r0) * 0.35, vie: [0.4, 0.7], taille: [0.6, 1.2], c: ['#d8c6a0', '#b8a888'], a: 0.5 }); }
     const p = paysanMesh.position, dd = Math.hypot(p.x - cx, p.z - cz); if (combat === c0 && !c0.fin && dd >= r0 && dd < r1) blesserPerso(Math.max(1, Math.round(degSort(mo) * K.x)), mo); } }));
-  /* le deuxieme et le troisieme coup de marteau, cales sur leur onde */
+  /* les coups de marteau suivants, cales sur leur onde */
   let t = 0, n = 1; effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif' || mo.faible) return true;
     if (n < N && t >= K.prepa + (n - 1) * K.ecart + 0.04) { frappeMoon(mo, K.ecart - 0.04); n++; } return n >= N; });
 }
