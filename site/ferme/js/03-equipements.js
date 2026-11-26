@@ -286,12 +286,15 @@ const PHRASES_BONUS = { resCac: (v) => v + ' % de dégâts en moins au corps à 
   degFixe: (v) => '+' + v + ' de dégâts sur chaque coup de tes attaques et de tes sorts (ajoutés à la fin : la Puissance ne les augmente pas)',
   degBonus: (v) => '+' + v + ' de dégâts de base, que ta Puissance augmente (sur tes attaques et tes sorts)', resFixe: (v) => 'chaque coup reçu te fait ' + v + ' de dégâts en moins (jamais plus de la moitié du coup)',
   resPct: (v) => v + ' % de dégâts en moins, au contact et à distance', ruee: (v) => 'Ruée : quand tu abats un monstre, +' + v + ' % de vitesse pendant 3 s' };
+/* LES STATS EN DIXIEMES (26/11/2026, le vol de vie des objets du labo, « 0,6 au max », Mathieu) : la stat reste un entier (jets, fourchettes, runes inchanges),
+   l'affichage la divise : DIXIEMES[c] = 10 pour une stat en dixiemes de % (29zh-objets-labo.js) */
+const DIXIEMES = {}, vAff = (c, v) => (DIXIEMES[c] ? String(Math.round(v) / DIXIEMES[c]).replace('.', ',') : v);
 const texteBonus = (bo) => Object.entries(bo).map(([c, v]) => '<i class="bp">' + CARACS[c][2] + ' ' + (PHRASES_BONUS[c] ? PHRASES_BONUS[c](v) : '+' + v + CARACS[c][1]) + '</i>').join('');
 /* (10/11/2026, « en bas a droite, le total des bonus cumules d'une pano », Mathieu : sous les paliers, la somme de ceux qui sont actifs ; voir : un bouton vers la fiche de la panoplie, dans la fiche du perso) */
 const blocPano = (k, n, voir) => { const tot = bonusPano(k, n); return '<div class="pano-bonus"><b>Panoplie ' + PANOS[k].de + ' : ' + n + '/6 pièces</b><div class="pano-aide">Les bonus s\'additionnent : avec 6 pièces, tu as ceux de 2, de 4 et de 6.</div><div class="paliers">' + paliersDe(k).map(([m, f]) => '<span class="' + (n >= m ? 'actif' : '') + '"><b>' + (n >= m ? '✓ ' : '') + 'Avec ' + m + ' pièces</b>' + texteBonus(bonusPalier(f, k, false, m)) + '</span>').join('') + '</div>' +
   (Object.keys(tot).length ? '<div class="pano-total"><b>Tes bonus de panoplie en ce moment</b>' + texteBonus(tot) + '</div>' : '') + (voir ? '<button class="btn mini discret pano-voir" data-fp-pano="' + k + '">Voir la panoplie</button>' : '') + '</div>'; };
 function caracs() {
-  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0, degFixe: 0, resFixe: 0, resPct: 0, ruee: 0, vitDep: 0, degBonus: 0 }; /* (les bonus du palier 11, 20/11/2026) */
+  const t = { vita: 0, puissance: 0, agilite: 0, sagesse: 0, prospection: 0, resCac: 0, resLoin: 0, entrave: 0, venin: 0, resPoison: 0, sangFroid: 0, ecailles: 0, mue: 0, oeilCrapaud: 0, bond: 0, mucus: 0, sangMele: 0, degFixe: 0, resFixe: 0, resPct: 0, ruee: 0, vitDep: 0, degBonus: 0, portee: 0, volVie: 0 }; /* (portee, volVie : les objets du labo, 29zh-objets-labo.js, 26/11/2026) */ /* (les bonus du palier 11, 20/11/2026) */
   Object.values((S_ && S_.equip) || {}).forEach((id) => { const o = obj(id); if (o) Object.entries(o.stats).forEach(([c, v]) => { t[c] += v; }); });
   Object.entries(comptePanos()).forEach(([k, n]) => Object.entries(bonusPano(+k, n)).forEach(([c, v]) => { t[c] += v; }));
   { const C = comptePanos(), n = (id) => C[PANOS.findIndex((P) => P.id === id)] || 0; if (n('croquevase') >= 3 && n('crachopaud') >= 3) { t.sangMele += SANG_MELE.deg; t.entrave += SANG_MELE.entrave; } } /* (le Sang-mele : 3 pieces de chaque panoplie du palier 11, 20/11/2026) */
@@ -471,7 +474,7 @@ function qualiteJet(k) {
   return L.length ? L.reduce((x, y) => x + y, 0) / L.length : 0.5;
 }
 const nomJet = (q) => q >= 0.85 ? 'excellent' : q >= 0.6 ? 'bon' : q >= 0.35 ? 'moyen' : 'faible';
-const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v, o.id, c); return '<span class="puce">' + CARACS[c][2] + ' +' + (a === b ? a : a + ' à ' + b) + CARACS[c][1] + '</span>'; }).join('') + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
+const statsFourchette = (o) => Object.entries(o.stats).map(([c, v]) => { const [a, b] = fourchette(v, o.id, c); return '<span class="puce">' + CARACS[c][2] + ' +' + (a === b ? vAff(c, a) : vAff(c, a) + ' à ' + vAff(c, b)) + CARACS[c][1] + '</span>'; }).join('') + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* UNE PIECE TIREE (refonte du 16/10/2026) : une piece de la panoplie du palier P, de preference une qu'on n'a pas encore, parfois en version rare
    (pros : la Prospection). Le butin des monstres, le coffre du jour et le coffre de l'Arene. */
 function tirerPiece(P, pros) { const ids = EMPLACEMENTS.map(([e]) => P.id + '-' + e), neufs = ids.filter((id) => !possede(id)); return tirerRare(hasard(neufs.length ? neufs : ids), pros); }
@@ -487,7 +490,7 @@ function comparer(id) {
   if (!q) return { html: '<span class="puce bonne">emplacement vide</span>', mieux: ok, ok };
   const cles = [...new Set([...Object.keys(o.stats), ...Object.keys(q.stats)])], ecarts = cles.map((k) => [k, (o.stats[k] || 0) - (q.stats[k] || 0)]).filter(([, d]) => d);
   const mieux = ok && ecarts.length > 0 && ecarts.every(([, d]) => d > 0) && (!q.pouvoir || o.pouvoir), pareil = !ecarts.length;
-  return { mieux, ok, html: (pareil ? '<span class="puce">comme ta pièce actuelle</span>' : ecarts.map(([k, d]) => '<span class="puce ' + (d > 0 ? 'bonne' : 'mauvaise') + '">' + CARACS[k][2] + ' ' + (d > 0 ? '+' : '') + d + CARACS[k][1] + '</span>').join('')) + (q.pouvoir && !o.pouvoir ? '<span class="puce mauvaise">perd : ' + q.pouvoir + '</span>' : '') };
+  return { mieux, ok, html: (pareil ? '<span class="puce">comme ta pièce actuelle</span>' : ecarts.map(([k, d]) => '<span class="puce ' + (d > 0 ? 'bonne' : 'mauvaise') + '">' + CARACS[k][2] + ' ' + (d > 0 ? '+' : '') + vAff(k, d) + CARACS[k][1] + '</span>').join('')) + (q.pouvoir && !o.pouvoir ? '<span class="puce mauvaise">perd : ' + q.pouvoir + '</span>' : '') };
 }
 const possede = (id) => Object.keys(S_.sac).some((k) => S_.sac[k] > 0 && baseObjet(k) === id) || Object.values(S_.equip).some((k) => baseObjet(k) === id); /* (le modele, quel que soit le jet) */
 /* LE BUTIN DE FIN DE COMBAT (03/11/2026, « qu'on voie directement le pourcentage du jet ; un item avec une etoile beaucoup plus visible, qu'on n'ait pas a
@@ -501,7 +504,7 @@ function lignesButin(cles, voir, vendre) { /* (vendre : un bouton Vendre a cote 
       '<div class="puces"><span class="puce jet ' + nomJet(q) + '">Jet ' + Math.round(q * 100) + ' %</span>' + statsTexte(o.stats) + '</div></div>' + (() => { const v = vendre && r < 2 && (S_.sac[k] || 0) > 0;
       return '<div class="act' + (voir && v ? ' duo' : '') + '">' + (voir ? '<button class="btn kamas" data-perso-sel="' + k + '">Voir</button>' : '') + (v ? '<button class="btn discret" data-vendre-butin="' + k + '">Vendre ' + fmt(reventeObjet(k)) + ' ' + KAMA + '</button>' : '') + '</div>'; })() + '</div>'; }).join('');
 }
-const statsTexte = (st) => Object.entries(st).map(([c, v]) => '<span class="puce">' + CARACS[c][2] + ' +' + v + CARACS[c][1] + '</span>').join('');
+const statsTexte = (st) => Object.entries(st).map(([c, v]) => '<span class="puce">' + CARACS[c][2] + ' +' + vAff(c, v) + CARACS[c][1] + '</span>').join('');
 const CLE = TEST ? 'ferme-amakna-3d-v2-test' : 'ferme-amakna-3d-v2'; /* v2 : le plan a change pour coller a l'ile */
 
 /* La ferme 8 x 5 d'origine : ses cases (i 0 a 7, j 0 a 4) gardent leur place au milieu de l'ile ronde. G grange, V voliere, H HDV, W puits, E epouvantail, B foin,

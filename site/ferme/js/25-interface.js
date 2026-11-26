@@ -539,7 +539,9 @@ let persoPano = null, persoPanoN = 6;
    les sorts, et que la Puissance n'agit pas dessus », Mathieu) */
 const AIDE_STAT_PIECE = { degFixe: 'Ajoutés à chaque coup de tes attaques et de tes sorts, après tout le reste : la Puissance ne les augmente pas. Pas sur tes invocations.',
   degBonus: 'S\'ajoutent à tes Dégâts de base, et ta Puissance les multiplie ensuite : sur tes attaques et tes sorts. Ce ne sont pas des dégâts fixes.',
-  resFixe: 'Retirée de chaque coup reçu, jamais plus de la moitié du coup.', resPct: 'S\'ajoute à ta résistance au contact et à distance (50 % au plus).', vitDep: 'En combat et sur ta ferme.' };
+  resFixe: 'Retirée de chaque coup reçu, jamais plus de la moitié du coup.',
+  venin: 'Chacun de tes coups inflige en plus ce pourcentage de ses dégâts en poison, sur 3 s.', ecailles: 'Ce pourcentage des dégâts de chaque coup reçu au corps à corps est renvoyé à l\'attaquant.',
+  volVie: 'Ce pourcentage des dégâts de tes coups (attaques et sorts) te revient en vie.', portee: 'Tes attaques et tes sorts portent une case plus loin.', /* (les objets du labo, 26/11/2026) */ resPct: 'S\'ajoute à ta résistance au contact et à distance (50 % au plus).', vitDep: 'En combat et sur ta ferme.' };
 /* LES BONUS D'UNE PANOPLIE, AU CHOIX DU NOMBRE DE PIECES (25/11/2026, « explique comment fonctionnent les bonus de panoplie, deja est-ce qu'ils se cumulent 2 + 4 + 6 ?
    il faudrait que ce soit explique et qu'on puisse voir les bonus totaux d'une pano full equipee en fonction du nombre de pieces selectionne », Mathieu) : dans la fiche
    d'une panoplie, on choisit 2, 4 ou 6 pieces ; les paliers compris s'allument et leur total s'affiche ; a 6, en plus, la panoplie entiere (pieces au jet moyen et bonus) */
@@ -631,18 +633,18 @@ function ouvrirPerso(sel) {
   else {
     const k = persoSel, o = obj(k), porte = S_.equip[o.emp], porteeIci = porte === k, q = porte && !porteeIci ? obj(porte) : null, cmp = comparer(k), qj = qualiteJet(k), B = OBJETS[baseObjet(k)];
     const pils = (persoNeufs[k] ? '<span class="fp-pil neuf">nouveau</span>' : '') + (porteeIci ? '<span class="fp-pil porte">portée</span>' : cmp.mieux ? '<span class="fp-pil mieux"><b>Up</b> mieux que la tienne</span>' : '') +
-      '<span class="fp-pil' + (niveau(S_.xp) < o.niv ? ' rouge' : '') + '">niveau ' + o.niv + '</span>' + (o.rare ? '<span class="fp-pil rare">★ rare</span>' : '') + (o.leg ? '<span class="fp-pil leg">✦ légendaire</span>' : '') + (o.arme ? '<span class="fp-pil">arme du ' + nomClasse(o.classe) + '</span>' : !o.leg ? '<span class="fp-pil">panoplie ' + PANOS[o.pano].de + '</span>' : '') +
+      '<span class="fp-pil' + (niveau(S_.xp) < o.niv ? ' rouge' : '') + '">niveau ' + o.niv + '</span>' + (o.rare ? '<span class="fp-pil rare">★ rare</span>' : '') + (o.leg ? '<span class="fp-pil leg">✦ légendaire</span>' : '') + (o.arme ? '<span class="fp-pil">arme du ' + nomClasse(o.classe) + '</span>' : o.labo ? '<span class="fp-pil">hors panoplie</span>' : !o.leg ? '<span class="fp-pil">panoplie ' + PANOS[o.pano].de + '</span>' : '') +
       (S_.sac[k] > 1 ? '<span class="fp-pil">×' + S_.sac[k] + '</span>' : '');
     /* (09/11/2026, « pourquoi il y a 4 lignes de stats ? » puis « pas tres clair hein », Mathieu, devant une ceinture de l'Ecorce comparee a sa ceinture Kanniboul : un seul
        tableau melait les caracteristiques des deux pieces, et celles de la piece portee s'affichaient « +0 » dans la colonne de la nouvelle, comme si elle les donnait.
        Deux blocs maintenant : ce que la piece donne, puis ce qui change si elle remplace la piece portee, gains d'abord) */
     const unite = (cc) => (CARACS[cc][1].trim().startsWith('%') ? ' %' : ''), nomC = (cc) => CARACS[cc][2] + ' ' + CARACS[cc][0];
     const ligne = (cc) => { const v = o.stats[cc] || 0, [fa, fb] = B.stats[cc] ? fourchette(B.stats[cc], B.id, cc) : [v, v], u = unite(cc);
-      return '<div class="fp-ligne"><span>' + nomC(cc) + '<small>' + (B.stats[cc] ? (fa === fb ? 'fixe' : 'de ' + fa + ' à ' + fb + u) : '') + '</small>' + (AIDE_STAT_PIECE[cc] ? '<small class="fp-aide-stat">' + AIDE_STAT_PIECE[cc] + '</small>' : '') + '</span><span><b>+' + v + u + '</b></span></div>'; };
+      return '<div class="fp-ligne"><span>' + nomC(cc) + '<small>' + (B.stats[cc] ? (fa === fb ? 'fixe' : 'de ' + vAff(cc, fa) + ' à ' + vAff(cc, fb) + u) : '') + '</small>' + (AIDE_STAT_PIECE[cc] ? '<small class="fp-aide-stat">' + AIDE_STAT_PIECE[cc] + '</small>' : '') + '</span><span><b>+' + vAff(cc, v) + u + '</b></span></div>'; };
     const ecarts = q ? [...new Set(Object.keys(o.stats).concat(Object.keys(q.stats)))].map((cc) => [cc, (o.stats[cc] || 0) - (q.stats[cc] || 0)]).filter(([, d]) => d).sort((x, y) => (y[1] > 0) - (x[1] > 0)) : [];
     const table = '<div class="fp-compare seule"><div class="fp-ligne th"><span>' + (porteeIci ? 'Ce qu\'elle te donne' : 'Ce qu\'elle donne') + '</span><span></span></div>' + Object.keys(o.stats).map(ligne).join('') + '</div>' +
       (q ? '<div class="fp-compare seule"><div class="fp-ligne th"><span>À la place de ta pièce : ' + q.nom + '</span><span>Tu gagnes ou tu perds</span></div>' +
-        (ecarts.length ? ecarts.map(([cc, d]) => '<div class="fp-ligne"><span>' + nomC(cc) + '</span><span class="' + (d > 0 ? 'fp-gain' : 'fp-perte') + '">' + (d > 0 ? '▲ +' : '▼ ') + d + unite(cc) + '</span></div>').join('') : '<div class="fp-ligne"><span>Rien ne change</span><span></span></div>') +
+        (ecarts.length ? ecarts.map(([cc, d]) => '<div class="fp-ligne"><span>' + nomC(cc) + '</span><span class="' + (d > 0 ? 'fp-gain' : 'fp-perte') + '">' + (d > 0 ? '▲ +' : '▼ ') + vAff(cc, d) + unite(cc) + '</span></div>').join('') : '<div class="fp-ligne"><span>Rien ne change</span><span></span></div>') +
         (q.pouvoir && !o.pouvoir ? '<div class="fp-ligne"><span>✦ Son pouvoir</span><span class="fp-perte">▼ perdu</span></div>' : '') + '</div>' : '');
     const jet = '<div class="fp-jet"><span>Jet <b>' + nomJet(qj) + '</b></span><div class="barre"><i style="width:' + Math.round(qj * 100) + '%"></i></div><small>' + Math.round(qj * 100) + ' %</small></div>';
     const nr = runes(), maxi = qj >= 0.999, aRunes = nr.forge > 0 || nr.parfaite > 0; /* la forgemagie : elle se fait a l'atelier (le lien est ici) */
