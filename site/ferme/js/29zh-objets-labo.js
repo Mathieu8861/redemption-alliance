@@ -108,7 +108,7 @@ function tourelleDocteur(pt) {
      de la tete a la hauteur des yeux, les verres devant les yeux ; le chapeau de paille disparait, les cheveux et les cornes de l'Osamodas restent. ================= */
 const FICHIER_LABO = 'objets-labo', NOEUD_LABO = { 'labo-viseur': 'Obj_labo_viseur', 'labo-cape': 'Obj_labo_cape', 'leg-docteur': 'Obj_labo_lunettes' };
 const BANDEAU_LABO = { k: 1.04, yVerres: 0.516, ray: 0.478 }, VISIERE_LABO = { k: 0.62, cerclage: 0.17, devant: 0.03 }; /* (VISIERE_LABO : le cerclage du hublot fait 0,62 fois la hauteur de l'oeil ; devant : son ecart devant l'oeil) */ /* (k : un peu plus large que le crane ; yVerres : la hauteur des verres dans le modele ; ray : le rayon du bandeau dans le modele) */
-VERSIONS_FICHIERS[FICHIER_LABO + '.glb'] = '20261126c'; VISUELS_TARDIFS.add(FICHIER_LABO);
+VERSIONS_FICHIERS[FICHIER_LABO + '.glb'] = '20261126d'; VISUELS_TARDIFS.add(FICHIER_LABO);
 ['labo-viseur', 'labo-viseur-rare'].forEach((id) => { if (OBJETS[id]) OBJETS[id].rond = true; }); /* (le casque enfonce sur la tete) */
 const baseLabo = (id) => { if (!id) return null; const o = OBJETS[baseObjet(id)] || null; return o && o.base ? OBJETS[o.base] : o; }; /* (la piece d'origine : « leg-docteur~1l » -> leg-docteur, la version rare -> sa piece) */
 function noeudLabo(id) { const o = baseLabo(id), n = o && NOEUD_LABO[o.id]; if (!n || !visuelsPrets()) return null; if (!VISUELS[FICHIER_LABO]) { chargerVisuelTardif(FICHIER_LABO); return null; } return VISUELS[FICHIER_LABO].getObjectByName(n) || null; }
