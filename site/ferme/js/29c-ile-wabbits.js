@@ -45,23 +45,25 @@ const CAMPS_LABO = [
 /* (24/11/2026, « ca manque enormement de monstres ; des groupes un peu plus longs, un peu plus de monstres un peu partout, qui reapparaissent », Mathieu : les camps
    grossissent, quatre camps de plus (index 5 a 8), deux patrouilles qui marchent sur les chemins (patrouille : l'index du chemin, CHEMINS_LABO), et un camp vide
    se repeuple quand le perso s'en est eloigne (REPOP_LABO). L'ordre des 5 premiers compte : placerFloreLabo decore le 3 et le 4) */
-  Object.assign(leLongDuChemin(33, 0), { nom: 'le champ de cawottes', r: 6, L: [['wabEnrage', 5], ['wabGarde', 2]] }),
+  /* (26/11/2026, « les gardes ne sont pas censes se balader avec les mutants : les mutants sont des monstres sauvages, les gardes des robots controles pour garder la
+     tour, autour de la tour, devant les portes », Mathieu : plus de gardes dans les camps de l'ile, la tour est a eux, son pied et la ronde autour) */
+  Object.assign(leLongDuChemin(33, 0), { nom: 'le champ de cawottes', r: 6, L: [['wabEnrage', 4], ['wabGreffe', 2]] }),
   Object.assign(polL(2.2, 27), { nom: 'la lisière de la forêt', r: 6, L: [['wabFluo', 3], ['wabVampire', 3]] }),
   Object.assign(polL(5.35, 22.5), { nom: 'le marais', r: 6, L: [['wabFluo', 4], ['wabEnrage', 2]] }),
-  Object.assign(polL(0.3, 15.4), { nom: 'le pied de la tour', r: 5, L: [['wabGarde', 1, 'chef'], ['wabGarde', 3], ['wabGreffe', 2]] }),
+  Object.assign(polL(0.3, 15.4), { nom: 'le pied de la tour', r: 5, L: [['wabGarde', 1, 'chef'], ['wabGarde', 4]] }),
   Object.assign({ x: BUTTE_LABO.x, z: BUTTE_LABO.z }, { nom: 'le sommet de la butte', r: 5.5, L: [['wabGarou', 1, 'chef'], ['wabEnrage', 3], ['wabGreffe', 1]] }),
   Object.assign(polL(2.9, 38), { nom: 'le cœur de la forêt', r: 6, L: [['wabVampire', 3], ['wabGarou', 1], ['wabFluo', 2]] }),
   Object.assign(polL(6.15, 31), { nom: 'les mares de mutagène', r: 6, L: [['wabFluo', 4], ['wabGreffe', 2]] }),
-  Object.assign(polL(3.55, 45), { nom: 'la plage aux os', r: 6, L: [['wabEnrage', 4], ['wabGarde', 2]] }),
+  Object.assign(polL(3.55, 45), { nom: 'la plage aux os', r: 6, L: [['wabEnrage', 4], ['wabGreffe', 2]] }),
   Object.assign(leLongDuChemin(23, -11.5), { nom: 'les champs du bas', r: 5.5, L: [['wabEnrage', 3], ['wabFluo', 2], ['wabVampire', 1]] }),
-  Object.assign(leLongDuChemin(44, 0), { nom: 'une patrouille de gardes', r: 7, patrouille: 0, L: [['wabGarde', 2], ['wabEnrage', 2]] }),
-  Object.assign(polL(1.0, 16.6), { nom: 'une patrouille autour de la tour', r: 7, patrouille: 4, L: [['wabGarde', 1], ['wabGreffe', 1], ['wabFluo', 2]] })];
+  Object.assign(leLongDuChemin(36, 0), { nom: 'une meute de mutants', r: 7, patrouille: 0, L: [['wabEnrage', 3], ['wabVampire', 1]] }),
+  Object.assign(polL(1.0, 16.6), { nom: 'la ronde des gardes', r: 7, patrouille: 4, L: [['wabGarde', 3]] })];
 const REPOP_LABO = { apres: 180, loin: 22 }; /* (25/11/2026, « les mobs reapparaissent beaucoup trop vite, mets un temps de reapparition de 3 minutes », Mathieu : 3 min de vrai jeu ;
    ils revenaient plus vite quand on relancait le labo sans quitter l'ile : chaque entree ajoutait une boucle du donjon, qui faisait avancer le temps une fois de plus, partirDonjon) */
 /* (avant : un camp vide revenait au bout de 7 min, si le perso est a plus de 22 de lui ; 75 s avant le 24/11/2026 : « c'est trop rapide, multiplie par 5 ou 6 », Mathieu) */
 /* les chemins (seulement la couleur du sol) */
 const CHEMINS_LABO = [
-  [[49, 0], [44, 0.8], [38, -0.5], [31, 0.4], [24, -0.3], [17, 0]].map(([s, l]) => leLongDuChemin(s, l)),
+  [[38, -0.5], [31, 0.4], [24, -0.3], [17, 0]].map(([s, l]) => leLongDuChemin(s, l)), /* (26/11/2026, « que le premier groupe soit plus loin, qu'il ne nous agresse pas a peine arrive », Mathieu : la meute ne descend plus jusqu'au ponton, 49 avant) */
   [[1.75, 17], [1.95, 22], [2.2, 27], [2.3, 31], [2.45, 35.5]].map(([a, r]) => polL(a, r)),
   [[3.65, 17], [3.9, 22], [4.4, 23.5], [4.8, 26], [4.9, 31], [4.7, 36], [4.3, 37.5], [4.1, 34], [4.4, 33]].map(([a, r]) => polL(a, r)),
   [[5.9, 17], [5.6, 20], [5.35, 22.5], [5.33, 27.5], [5.36, 31]].map(([a, r]) => polL(a, r)),
@@ -221,17 +223,31 @@ const hauteurSolDonjon0 = hauteurSol;
 hauteurSol = function (x, z) {
   if (lieu !== 'donjon' || !ileWabbits) return hauteurSolDonjon0.apply(this, arguments);
   const E = donjonEntite ? donjonEntite.lab : etatPerso(); if (E && E.mode === 'salle') return Y_SALLE; if (E && E.mode === 'rampe') { const a = Math.atan2(z - DONJON.z, x - DONJON.x); return hautRampe(Math.min(a + TAU_L * Math.round((E.theta - a) / TAU_L), rampeMax())); }
-  const lx = x - DONJON.x, lz = z - DONJON.z; return surPontonL(lx, lz, 0) ? Math.max(-0.06, hTerrainLabo(lx, lz)) : hTerrainLabo(lx, lz);
+  const lx = x - DONJON.x, lz = z - DONJON.z; if (surPontonL(lx, lz, 0)) return Math.max(-0.06, hTerrainLabo(lx, lz));
+  if (donjonEntite && donjonEntite.d && !donjonEntite.d.vole) { const r = Math.max(0.3, Math.min(1.1, (donjonEntite.d.ombre || 1) * 0.32)); let h = hTerrainLabo(lx, lz);
+    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; h = Math.max(h, hTerrainLabo(lx + Math.cos(a) * r, lz + Math.sin(a) * r) - 0.04); } return h; } /* (26/11/2026 : un monstre se pose sur le plus haut sous ses pieds, il ne s'enfonce plus dans la pente) */
+  return hTerrainLabo(lx, lz);
 };
 /* LE LAG (24/11/2026, 62 mutants sur l'ile des le depart) : mesure 2,5 ms par image pour les monstres, dont 1,7 ms pour leurs squelettes (le rendu, 414 appels de
    dessin, est plus leger que la ferme) ; un mutant au repos dans son camp et loin de ce qu'on regarde (plus de 30) n'anime son squelette qu'une image sur quatre,
    avec le temps cumule : rien ne se voit, il est hors de l'ecran */
 { const majSqLabo = majSquelette; majSquelette = function (mo, v, dt) {
+    if (lieu === 'donjon') { /* (26/11/2026, « les monstres slident un peu partout », Mathieu ; mesure au banc : ceux qu'on deplace (ronde, patrouille, retour au camp, recul, poussee)
+       avancaient les jambes au repos, surtout ceux animes une image sur quatre. Les jambes suivent maintenant le vrai deplacement, image apres image, dans les deux cas) */
+      const now = performance.now(), q = mo.precV; if (q) { const dtr = (now - q.t) / 1000; if (dtr > 0.004 && dtr < 0.35) { const d = Math.hypot(mo.x - q.x, mo.z - q.z) / dtr; mo.vReel = mo.vReel == null ? d : mo.vReel * 0.55 + d * 0.45; } } mo.precV = { x: mo.x, z: mo.z, t: now };
+      if (mo.vLabo > 0) { v = Math.max(v || 0, mo.vLabo); mo.vLabo = 0; } /* (24/11/2026, « quand ils font leur ronde, ils slident, ils marchent pas » : le donjon les deplace lui-meme, vLabo est leur vitesse) */
+      if (mo.vReel > 0.45 && mo.vReel < 16 && !((mo.hop || 0) > 0.3) && !mo.geste) v = Math.max(v || 0, mo.vReel); }
     if (lieu === 'donjon' && donjonEtat && mo.camp != null && donjonEtat.camps[mo.camp] && !donjonEtat.camps[mo.camp].actif && Math.abs(mo.x - VISEE.x) + Math.abs(mo.z - VISEE.z) > 30) {
       mo.sqAcc = (mo.sqAcc || 0) + dt; mo.sqN = (mo.sqN || 0) + 1; if (mo.sqN % 4) return; const a = mo.sqAcc; mo.sqAcc = 0; return majSqLabo.call(this, mo, v, a); }
-    if (mo.sqAcc) { dt += mo.sqAcc; mo.sqAcc = 0; } if (lieu === 'donjon' && mo.vLabo > 0) { v = Math.max(v || 0, mo.vLabo); mo.vLabo = 0; } /* (24/11/2026, « quand ils font leur ronde, ils slident, ils marchent pas » : le donjon les deplace lui-meme, vLabo est leur vitesse) */
+    if (mo.sqAcc) { dt += mo.sqAcc; mo.sqAcc = 0; }
     return majSqLabo.call(this, mo, v, dt); }; }
-const majMonstreDonjon0 = majMonstre; majMonstre = function (mo) { if (lieu !== 'donjon') return majMonstreDonjon0.apply(this, arguments); donjonEntite = mo; try { return majMonstreDonjon0.apply(this, arguments); } finally { donjonEntite = null; } };
+/* L'OMBRE SUR LA PENTE (26/11/2026, « au fond de la map, la colline et la plage, meme les monstres, leur ombrage est coupe, comme si c'etait deux parties d'iles », Mathieu) :
+   le rond d'ombre sous un monstre etait a plat ; sur une pente, la moitie s'enfoncait dans la colline. Il se couche maintenant sur le sol, a la hauteur du terrain sous lui */
+const OMBRE_PENTE = { N: new T.Vector3(), Q: new T.Quaternion(), QP: new T.Quaternion(), BASE: new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), -Math.PI / 2), HAUT: new T.Vector3(0, 1, 0) };
+function ombreSurPente(mo) { if (!mo.ombreM || !mo.m || mo.etat !== 'actif' || mo.d.vol || mo.d.vole || !mo.lab || mo.lab.mode !== 'sol') return; const O = OMBRE_PENTE, lx = mo.x - DONJON.x, lz = mo.z - DONJON.z, e = 0.6, h0 = hTerrainLabo(lx, lz);
+  O.N.set(-(hTerrainLabo(lx + e, lz) - hTerrainLabo(lx - e, lz)) / (2 * e), 1, -(hTerrainLabo(lx, lz + e) - hTerrainLabo(lx, lz - e)) / (2 * e)).normalize(); O.Q.setFromUnitVectors(O.HAUT, O.N);
+  O.QP.copy(mo.m.quaternion).invert(); mo.ombreM.quaternion.copy(O.QP).multiply(O.Q).multiply(O.BASE); mo.ombreM.position.y = (h0 + 0.05 - mo.m.position.y) / (mo.m.scale.y || 1); }
+const majMonstreDonjon0 = majMonstre; majMonstre = function (mo) { if (lieu !== 'donjon') return majMonstreDonjon0.apply(this, arguments); donjonEntite = mo; try { return majMonstreDonjon0.apply(this, arguments); } finally { donjonEntite = null; try { ombreSurPente(mo); } catch (e) { /* rien */ } } };
 /* UN CLIC : sur la passerelle, le chemin suit la spirale (en ligne droite, on butait contre la tour) */
 function cheminDonjon(p) {
   const E = etatPerso(), pp = paysanMesh.position, c0 = paysanMesh.userData.cellule, monde = (L) => L.map((q) => ({ c: c0, x: q.x + DONJON.x, z: q.z + DONJON.z }));
@@ -629,7 +645,7 @@ function posterCamp(c, k, delai, repop) { /* repop : le camp revient, sans son c
       if (repop) pouf(o.x, hTerrainLabo(o.x - DONJON.x, o.z - DONJON.z), o.z, 1.0, '#8dff6a');
       if (chef && typeof grandirMutant === 'function') { grandirMutant(o, CHEF_LABO, '#ffb02e', t === 'wabGarou' ? 'Garou alpha' : 'Chef des gardes'); o.chef = true; } } }); }, delai + i * 120); }); /* (chef : le premier de son type dans le camp) */
 }
-function posterCamps(c) { CAMPS_LABO.forEach((K, k) => { K.x = K.x0; K.z = K.z0; K.s = K.patrouille === 0 ? 14 : 0; posterCamp(c, k, 200 + k * 6 * 120, false); }); }
+function posterCamps(c) { CAMPS_LABO.forEach((K, k) => { K.x = K.x0; K.z = K.z0; K.s = 0; posterCamp(c, k, 200 + k * 6 * 120, false); }); }
 /* les patrouilles avancent sur leur chemin, aller et retour, tant qu'elles n'ont pas vu le perso ; un camp vide se repeuple (REPOP_LABO) */
 function vieCampsLabo(dt, c, E, p) {
   CAMPS_LABO.forEach((K, k) => { const st = E.camps[k];
@@ -709,18 +725,23 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
   E.t += dt; const p = paysanMesh.position, P = E.perso, hP = hauteurPerso(P, p);
   const S0 = P.mode === 'salle' ? SALLES_LABO[P.i] : null, CV = E.cameraVers, vx = CV ? CV.x : S0 ? p.x + (DONJON.x + S0.x - p.x) * 0.35 : p.x, vz = CV ? CV.z : S0 ? p.z + (DONJON.z + S0.z - p.z) * 0.35 : p.z; /* (dans une salle, la camera regarde un peu vers le milieu : on voit la salle, pas le noir derriere la porte ; cameraVers : une scene, l'entree du Docteur, 29s-fin-labo.js) */
   const suivre = () => { if (!(typeof dg !== 'undefined' && dg.zoomJeu != null)) { const k = Math.min(1, dt * 4); VISEE.x += (vx - VISEE.x) * k; VISEE.z += (vz - VISEE.z) * k; VISEE.y += (0.6 + hP - VISEE.y) * Math.min(1, dt * 3); placerCamera(); } };
-  if (E.arrivee) { suivre(); return false; } /* (pendant l arrivee en montgolfiere : rien ne bouge, la camera suit le ballon) */
+  if (E.arrivee) { c.monstres.forEach((o) => { if (o.etat === 'actif' && o.camp != null && E.camps[o.camp] && !E.camps[o.camp].actif) o.bloqueT = Math.max(o.bloqueT || 0, 0.25); }); suivre(); return false; } /* (pendant l arrivee en montgolfiere : rien ne bouge, la camera suit le ballon ; les camps attendent chez eux : 26/11/2026, les Wabbits enrages du champ, qui chassent d'office, fonçaient deja sur le ponton pendant la descente, « qu'il ne nous agresse pas a peine arrive », Mathieu) */
   /* les camps : ils attendent ; le perso entre dans leur perimetre (au sol), ils attaquent. (24/11/2026, « chaque monstre qui a ete agresse ou qui a decide de nous
      attaquer ne retourne pas a sa position initiale, il continue a nous foncer dessus », Mathieu : un camp reveille ne lache plus ; il suit le perso jusque sur la
      passerelle ; pendant que le perso est dans une salle, ses mutants l'attendent sur place) */
   CAMPS_LABO.forEach((K, k) => { const d = Math.hypot(p.x - DONJON.x - K.x, p.z - DONJON.z - K.z), st = E.camps[k];
     const blesse = !st.actif && c.monstres.some((o) => o.camp === k && o.etat === 'actif' && o.pv < o.pvMax); /* (un mutant touche de loin reveille tout son camp) */
-    if (!st.actif && ((P.mode === 'sol' && d < K.r) || blesse)) { st.actif = true; st.force = blesse; toast(K.patrouille != null ? 'Une patrouille du Docteur t\'a repéré : elle t\'attaque !' : 'Des Wabbits mutants gardent ' + K.nom + ' : ils t\'attaquent !', 'alerte'); }
+    if (!st.actif && ((P.mode === 'sol' && d < K.r && !(E.calme > E.t)) || blesse)) { st.actif = true; st.force = blesse; toast(K.patrouille != null ? 'Une patrouille du Docteur t\'a repéré : elle t\'attaque !' : 'Des Wabbits mutants gardent ' + K.nom + ' : ils t\'attaquent !', 'alerte'); }
   });
   vieCampsLabo(dt, c, E, p); /* (les patrouilles et les camps qui se repeuplent, 24/11/2026) */
+  /* (26/11/2026, « quand je sors d'une salle, je me fais agresser par 50 mobs d'un coup ; on n'est pas cense se battre contre autant de monstres dans des petits escaliers »,
+     Mathieu : les camps des mutants sauvages ne suivent plus le perso sur la tour ; 3 s apres qu'il est monte sur la passerelle ou entre dans une salle, le camp se rendort
+     et ses mutants rentrent chez eux ; seuls les gardes, ceux de la tour, le suivent sur la passerelle) */
+  CAMPS_LABO.forEach((K, k) => { const st = E.camps[k]; if (!st.actif) { st.hautT = 0; return; } const gardes = K.L.every(([t]) => t === 'wabGarde');
+    if (P.mode !== 'sol' && !gardes) { st.hautT = (st.hautT || 0) + dt; if (st.hautT > 3) { st.actif = false; st.force = false; st.hautT = 0; c.monstres.forEach((o) => { if (o.camp !== k) return; if (o.lab && o.lab.mode === 'rampe') { o.lab = { mode: 'sol', theta: LABO.A0 }; } if (o.etat === 'actif') o.pv = o.pvMax; }); } /* (il rentre chez lui et se soigne : sinon, blesse, il se reveillait aussitot) */ } else st.hautT = 0; });
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || o.camp == null) return;
     if (E.camps[o.camp].actif) { if (P.mode === 'salle') o.bloqueT = Math.max(o.bloqueT || 0, 0.25); /* (le perso dans une salle : ils l'attendent dehors) */
-      else if (P.mode === 'rampe' && o.lab && o.lab.mode === 'sol' && !o.d.vole) { /* il le suit sur la passerelle : il va a son pied, puis il monte */
+      else if (P.mode === 'rampe' && o.lab && o.lab.mode === 'sol' && !o.d.vole && o.type === 'wabGarde') { /* il le suit sur la passerelle : il va a son pied, puis il monte (les gardes seulement, 26/11/2026) */
         const F = polL(LABO.A0 - 0.3, (LABO.R_IN + LABO.R_OUT) / 2), fx = DONJON.x + F.x, fz = DONJON.z + F.z, dx = fx - o.x, dz = fz - o.z, d = Math.hypot(dx, dz);
         o.bloqueT = Math.max(o.bloqueT || 0, 0.1); if (d < 1.0) { o.lab = { mode: 'rampe', theta: LABO.A0 + 0.05 }; const rm = (LABO.R_IN + LABO.R_OUT) / 2; o.x = DONJON.x + rm * Math.cos(LABO.A0 + 0.05); o.z = DONJON.z + rm * Math.sin(LABO.A0 + 0.05); }
         else { const v = Math.min(d, vitesseMonstre(o.d) * dt); o.x += dx / d * v; o.z += dz / d * v; o.ry = Math.atan2(dx, dz); o.vLabo = v / Math.max(dt, 1e-3); } }
@@ -747,6 +768,7 @@ function tickDonjon(dt) { /* chaque image, tant qu'on est sur l'ile : les camps,
   /* sur la passerelle, un monstre suit la spirale vers le perso (24/11/2026, « les monstres apparaissent en dessous de la passerelle », Mathieu : en ligne droite,
      ceux du tour d'en dessous venaient se planter juste sous le perso) */
   c.monstres.forEach((o) => { if (o.etat !== 'actif' || !o.lab || o.lab.mode !== 'rampe') return; const enBas = P.mode !== 'rampe', vise = enBas ? LABO.A0 - 0.3 : P.theta, d = vise - o.lab.theta; if (!enBas && Math.abs(d) < 0.35) return;
+    if (o.poste && (P.mode !== 'rampe' || Math.abs(d) * (LABO.R_IN + LABO.R_OUT) / 2 > 6)) { o.bloqueT = Math.max(o.bloqueT || 0, 0.25); o.ry = o.posteRy != null ? o.posteRy : o.ry; return; } else if (o.poste) o.poste = false; /* (le garde de la porte, 29s-fin-labo.js) */
     if (P.mode === 'salle') { o.bloqueT = Math.max(o.bloqueT || 0, 0.25); return; } /* (le perso dans une salle : il attend) */
     const rr = Math.max(LABO.R_IN + 0.5, Math.min(LABO.R_OUT - 0.5, Math.hypot(o.x - DONJON.x, o.z - DONJON.z))), sg = Math.sign(d) || -1, pas = Math.min(Math.abs(d), vitesseMonstre(o.d) * dt / rr), t = Math.min(rampeMax(), o.lab.theta + sg * pas);
     if (enBas) o.bloqueT = Math.max(o.bloqueT || 0, 0.1); /* (24/11/2026, « ceux sur la passerelle, quand je suis en bas, freezent sur place comme bloques » : il redescend sans s'arreter jusqu'au pied, puis il sort) */
@@ -794,7 +816,7 @@ function debarquer() {
     b.position.set(B.x, 0, B.z); b.rotation.z = 0;
     if (t < T1 + T2) { if (!E.ballonPose) { E.ballonPose = true; poussiere(DONJON.x + B.x, 0, DONJON.z + B.z, 8, 1.0, '#b9ae92'); } p.set(DONJON.x + B.x, yN, DONJON.z + B.z); u.y = yN; return false; }
     const k = Math.min(1, (t - T1 - T2) / T3); p.set(DONJON.x + B.x + (S.x - B.x) * k, yN * (1 - k) - 0.06 * k + Math.sin(Math.PI * k) * 0.8, DONJON.z + B.z + (S.z - B.z) * k); u.y = p.y;
-    if (k < 1) return false; p.y = -0.06; u.y = -0.06; E.arrivee = false; poussiere(p.x, -0.06, p.z, 5, 0.6, '#b9ae92'); if (combat) { combat.tenir = true; combat.ordre = false; } return true; }); /* (il tient sa position a l'arrivee : sinon il fonçait seul sur le premier camp) */
+    if (k < 1) return false; p.y = -0.06; u.y = -0.06; E.arrivee = false; E.calme = E.t + 8; /* (8 s de calme en debarquant, 26/11/2026) */ poussiere(p.x, -0.06, p.z, 5, 0.6, '#b9ae92'); if (combat) { combat.tenir = true; combat.ordre = false; } return true; }); /* (il tient sa position a l'arrivee : sinon il fonçait seul sur le premier camp) */
 }
 function finDonjon(gagne) {
   try { (donjonEtat && donjonEtat.salles || []).forEach((s, i) => { if (s && s.cuveG) briserCuveLabo(i); }); } catch (e) { /* rien */ } /* (les cuves des specimens, 24/11/2026) */

@@ -125,13 +125,16 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
 /* (24/11/2026, « sur les passerelles, qu'on se batte contre des gardes et des drones un peu plus souvent, sinon c'est trop simple », Mathieu : deux patrouilles par
    troncon, a l'entree et a mi-chemin, des drones, des gardes et des enrages, un de plus de chaque tous les deux etages ; elles marchent vers le perso le long de la
    spirale, 29c-ile-wabbits.js) */
-const DRONES_RAMPE = { points: [0.05, 0.55], drones: 2, gardes: 1, enrages: 1, avance: 1.0, ecart: 0.28 };
+/* (26/11/2026, « il y a un poil trop de monstres, on n'est pas cense se battre contre autant de monstres dans des petits escaliers » et « les gardes t'attendent devant
+   une porte, meme quand tu sors d'une salle ils peuvent t'attaquer », Mathieu : une seule patrouille par troncon, un drone et un garde (un drone de plus tous les deux
+   etages), plus de mutants sauvages sur la tour ; et deux gardes postes devant chaque porte : ils attendent, et ne bougent que si le perso arrive a moins de 6) */
+const DRONES_RAMPE = { points: [0.5], drones: 1, gardes: 1, enrages: 0, avance: 1.0, ecart: 0.28, porte: 2 };
 function dronesRampe() {
   const E = donjonEtat, c = combat; if (!E || !c || c.fin || c.genre !== 'donjon' || E.gagne != null) return; const P = E.perso; if (!P || P.mode !== 'rampe') return;
   E.drones = E.drones || {}; const rm = (LABO.R_IN + LABO.R_OUT) / 2;
   for (let k = 0; k < 5; k++) { const t0 = k === 0 ? LABO.A0 : angleRampe(LABO.PORTES[k - 1]), t1 = angleRampe(LABO.PORTES[k]);
     DRONES_RAMPE.points.forEach((f, j) => { const cle = k + '-' + j, tf = t0 + (t1 - t0) * f; if (E.drones[cle] || P.theta < tf - 0.05 || P.theta > t1 - 0.3) return; E.drones[cle] = true; const plus = Math.floor(k / 2);
-      const L = [].concat(Array(DRONES_RAMPE.drones + plus).fill('wabDrone'), Array(DRONES_RAMPE.gardes + plus).fill('wabGarde'), Array(DRONES_RAMPE.enrages + plus).fill('wabEnrage')); c.total += L.length;
+      const L = [].concat(Array(DRONES_RAMPE.drones + plus).fill('wabDrone'), Array(DRONES_RAMPE.gardes).fill('wabGarde'), Array(DRONES_RAMPE.enrages).fill('wabEnrage')); c.total += L.length;
       L.forEach((t, i) => { const th = Math.min(t1 - 0.25 - i * 0.06, P.theta + DRONES_RAMPE.avance + i * DRONES_RAMPE.ecart), rr = t === 'wabDrone' ? rm : LABO.R_IN + 1.0 + (i % 2) * 1.3, x = DONJON.x + rr * Math.cos(th), z = DONJON.z + rr * Math.sin(th);
         setTimeout(() => { if (combat !== c || c.fin) return; apparaitre(t, { x, z, apres: (o) => { if (t !== 'wabDrone') transmuter(o); o.lab = { mode: 'rampe', theta: th }; o.drone = t === 'wabDrone'; o.aggro = true; pouf(o.x, hautRampe(th) + (t === 'wabDrone' ? 1.6 : 0.4), o.z, 1.1, '#8dff6a'); } }); }, i * 160); }); });
     if (!E.dronesVus && Object.keys(E.drones).length) { E.dronesVus = true; toast('Les gardes et les drones du Docteur patrouillent sur la passerelle !', 'alerte'); } }
@@ -154,3 +157,12 @@ function majSuccesWabbits(E) {
 { const gagnerXpWab = gagnerXp; gagnerXp = function (n, exact, sag) { if (n > 0 && succesWabbits()) n = exact ? Math.round(n * (1 + SUCCES_WAB.bonusXp)) : n * (1 + SUCCES_WAB.bonusXp); return gagnerXpWab.call(this, n, exact, sag); }; } /* (gagnerXp.dernier se pose sur celle-ci : le vrai gain) */
 { const blocSuccesWab = blocSuccesPeche; blocSuccesPeche = function () { const a = blocSuccesWab.apply(this, arguments); if (!S_ || !(succesWabbits() || (S_.donjons && S_.donjons.wabbits))) return a; const ok = succesWabbits();
   return (a || '<h4>Succès</h4>') + '<div class="pano-bonus"><b>' + (ok ? '✓ Libérer tous les Wabbits' : 'Libérer tous les Wabbits : ouvre les cages des 4 salles du labo en une partie') + '</b><div class="paliers"><span class="' + (ok ? 'actif' : '') + '">' + (ok ? '✓ ' : '') + 'Toute ton XP +' + Math.round(SUCCES_WAB.bonusXp * 100) + ' %</span></div></div>'; }; }
+/* LES GARDES DES PORTES (26/11/2026, « les gardes t'attendent devant une porte, meme quand tu sors d'une salle ils peuvent t'attaquer », Mathieu) : quand le perso entre
+   dans une salle, deux gardes viennent se poster devant sa porte, sur la passerelle ; ils attendent, et l'attaquent a sa sortie (ou s'il passe a moins de 6) */
+function postesPortes() {
+  const E = donjonEtat, c = combat; if (!E || !c || c.fin || c.genre !== 'donjon' || E.gagne != null) return; const P = E.perso; if (!P || P.mode !== 'salle' || P.i == null || P.i >= 4) return;
+  E.postes = E.postes || {}; if (E.postes[P.i]) return; E.postes[P.i] = true; const ta = angleRampe(LABO.PORTES[P.i]); c.total += DRONES_RAMPE.porte;
+  for (let i = 0; i < DRONES_RAMPE.porte; i++) { const th = ta + (i % 2 ? 0.3 : -0.3), rr = LABO.R_IN + 1.6, x = DONJON.x + rr * Math.cos(th), z = DONJON.z + rr * Math.sin(th);
+    setTimeout(() => { if (combat !== c || c.fin) return; apparaitre('wabGarde', { x, z, apres: (o) => { transmuter(o); o.lab = { mode: 'rampe', theta: th }; o.aggro = true; o.poste = true; } }); }, 400 + i * 200); }
+}
+{ const tickDonjonPostes = tickDonjon; tickDonjon = function () { const r = tickDonjonPostes.apply(this, arguments); try { postesPortes(); } catch (e) { /* rien */ } return r; }; }

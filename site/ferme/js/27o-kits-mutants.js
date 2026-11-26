@@ -21,7 +21,7 @@ const KITS_MUT = {
   wabEnrage: { cadence: 0.8, elanCoup: 0.28, charge: 3.5, chargePrepa: 0.7, chargeMax: 10, gestes: { charge: 'rugir' }, frenesie: { R: 8, t: 4 } },
   wabFluo: { cadence: 1.3, elanCoup: 0.3, crachatMut: { periode: 5, prepa: 0.85, n: 2, ecart: 2.4, R: 1.3, x: 0.8, flaque: { duree: 3, pct: 0.01 } } },
   wabGreffe: { cadence: 1.5, elanCoup: 0.3, pince: { periode: 5, prepa: 0.7, R: 3.0, ouv: 0.8, x: 1.1, repousse: 1.6, assomme: 0.35 }, grappin: { periode: 6.5, prepa: 0.75, min: 3.5, max: 12, larg: 1.5, x: 0.6 }, appelStun: 0.45 },
-  wabVampire: { cadence: 1.0, elanCoup: 0.28, bondit: 3.5, bonditLoin: true, bonditMax: 9, bondPrepa: 0.75, bonditR: 1.7, bonditH: 1.2, gestes: { bondit: 'bond' }, sortsX: { bond: 0.9 } },
+  wabVampire: { cadence: 1.0, elanCoup: 0.28, garde: 3.2, pique: { periode: 3.2, prepa: 0.85, vol: 0.24, haut: 3.2, R: 1.7, x: 0.9, min: 1.6, max: 11 } }, /* (garde : il tourne a distance et pique souvent, au lieu de rester colle a mordre) */ /* (26/11/2026 : le pique a la place du bond, piqueVampire) */
   wabGarou: { cadence: 1.6, elanCoup: 0.34, bondit: 5, bondPrepa: 0.8, bonditR: 2.4, seisme: 6.5, seismeR: 3.4, seismeDuree: 0.9, seismeProche: 0.6, seismeNom: 'Frappe du garou', gestes: { bondit: 'bond', seisme: 'coup' }, sortsX: { seisme: 1.2 } },
   wabDrone: { cadence: 1.4, bombardement: { periode: 9, prepa: 1.1, n: 3, ecart: 3.2, R: 1.3, x: 0.8 } },
 };
@@ -30,7 +30,7 @@ const DESC_MUT = {
   wabEnrage: 'échappé des cages, l\'œil rouge : il court plus vite que toi, griffe vite et sans s\'arrêter, rugit puis te charge en ligne droite toutes les 3,5 s (bande rouge, 0,7 s pour en sortir) ; quand un enragé tombe, ceux d\'à côté entrent en frénésie 4 s',
   wabFluo: 'gorgé de mutagène qui luit : il te crache du mutagène toutes les 5 s (deux cercles verts, 0,85 s pour en sortir), la flaque reste 3 s et empoisonne (1 % de ta vie par seconde) ; en mourant, il laisse une grande flaque',
   wabGreffe: 'cousu de partout et blindé, armure (-35 %) : coup de pince devant lui toutes les 5 s (éventail rouge, 0,7 s : il repousse et assomme), et de loin son grappin toutes les 6,5 s (une ligne : il te ramène contre lui et t\'assomme)',
-  wabVampire: 'sorti des cuves, les oreilles en ailes : il vole, chaque morsure le soigne de la moitié des dégâts, et toutes les 3,5 s il fond sur toi d\'assez loin (cercle rouge, 0,75 s pour en sortir)',
+  wabVampire: 'sorti des cuves, les oreilles en ailes : il vole, chaque morsure le soigne de la moitié des dégâts, et toutes les 3,6 s il prend de la hauteur et fond sur toi en piqué (cercle rouge, 0,85 s pour en sortir), une flaque de sang à l\'impact',
   wabGarou: 'la créature la plus forte du Docteur, armure (-15 %) : il te bondit dessus toutes les 5 s (cercle rouge, 0,8 s) et abat ses poings toutes les 6,5 s (cercle autour de lui, 0,9 s pour en sortir)',
   wabDrone: 'un petit robot volant du Docteur : il te tire des cawottes de loin, et toutes les 9 s il bombarde (trois cercles orange, des cawottes tombent du ciel, 1,1 s pour en sortir)',
 };
@@ -43,7 +43,7 @@ Object.keys(KITS_MUT).forEach((t) => { if (MONSTRES[t]) Object.assign(MONSTRES[t
    - leurs sorts visent la ou tu vas : ta course des derniers instants, prolongee sur le temps du sort (a 85 %, 5 cases au plus) ; en ligne droite tu es pris,
      il faut changer de direction ;
    - leur coup te rattrape : il touche encore a 1,8 au-dela de sa portee (1 pour un monstre ordinaire), comme le coup engage des boss */
-const PEUR_MUT = { wabEnrage: 5.6, /* (6,4 avant le 25/11/2026, « ils courent beaucoup trop vite, plus vite que moi en Cra, reduis un peu », Mathieu : 5,8 avec le +0,2 de tous, sous le Cra a 6,4) */ wabVampire: 4.5, wabGarou: 3.8, wabFluo: 3.6, wabDrone: 3.8, wabGreffe: 3.6, wabGarde: 3.0 }, /* (puis, le meme soir, « tous un poil trop rapides », Mathieu : vampire 5,2, garou 4,4, fluo 4,2, drone 4,2, greffe 4,2, garde 3,4 avant) */ ENGAGE_MUT = 1.8, VISE_MUT = { avance: 0.85, max: 10 };
+const PEUR_MUT = { wabEnrage: 4.8, /* (26/11/2026, « les Wabbits noirs, les petits, rends-les un peu moins rapides, retire-leur 0,8 de vitesse », Mathieu : 5,6 avant) */ /* (6,4 avant le 25/11/2026, « ils courent beaucoup trop vite, plus vite que moi en Cra, reduis un peu », Mathieu : 5,8 avec le +0,2 de tous, sous le Cra a 6,4) */ wabVampire: 4.0, /* (26/11/2026, « un petit peu moins rapide dans ses deplacements », Mathieu : 4,5 avant) */ wabGarou: 3.8, wabFluo: 3.6, wabDrone: 3.8, wabGreffe: 3.6, wabGarde: 3.0 }, /* (puis, le meme soir, « tous un poil trop rapides », Mathieu : vampire 5,2, garou 4,4, fluo 4,2, drone 4,2, greffe 4,2, garde 3,4 avant) */ ENGAGE_MUT = 1.8, VISE_MUT = { avance: 0.85, max: 10 };
 Object.keys(PEUR_MUT).forEach((t) => { const d = MONSTRES[t]; if (!d) return; d.vitesse = PEUR_MUT[t]; d.viseAvance = true; if (!d.distance) d.engage = ENGAGE_MUT; });
 MONSTRES.wabEnrage.engage = 2.4; /* (l'enrage, la meute qui court : plus vite que tous les persos, 6,6 contre 6,4 au Cra, et son coup te rattrape de plus loin) */
 /* la course du perso : sa vitesse lissee, mesuree d'une image a l'autre */
@@ -67,7 +67,7 @@ const BOSS_MUT = {
   wabEnrage: { charge: 2.4, chargePrepa: 0.65, galvanise: 10, galvaCouleurs: ['#ff5a3a', '#ffb02e'], gestes: { charge: 'rugir', galvanise: 'rugir' }, renfortsMut: ['wabEnrage', 'Wabbits enragés'] },
   wabFluo: { crachatMut: { periode: 3.5, prepa: 0.8, n: 4, ecart: 2.6, R: 1.4, x: 0.9, flaque: { duree: 4, pct: 0.012 } }, flaqueMort: { R: 2.6, duree: 6, pct: 0.015 }, renfortsMut: ['wabFluo', 'Wabbits fluo'] },
   wabGreffe: { pince: { periode: 3.5, prepa: 0.65, R: 3.6, ouv: 0.9, x: 1.2, repousse: 2, assomme: 0.4 }, grappin: { periode: 6, prepa: 0.7, min: 3.5, max: 13, larg: 1.3, x: 0.7 }, seisme: 7, seismeR: 3.6, seismeDuree: 0.85, seismeProche: 0.6, seismeNom: 'Pince au sol', gestes: { seisme: 'coup' }, renfortsMut: ['wabGreffe', 'Wabbits greffés'] },
-  wabVampire: { bondit: 2.5, bondPrepa: 0.7, volVie: 0.8, drain: { periode: 8, prepa: 0.9, R: 3.6, x: 1.0, soin: 3 }, renfortsMut: ['wabVampire', 'Wabbits vampires'] },
+  wabVampire: { pique: { periode: 2.6, prepa: 0.75, vol: 0.22, haut: 3.6, R: 2.0, x: 1.0, min: 2.5, max: 12 }, volVie: 0.8, drain: { periode: 8, prepa: 0.9, R: 3.6, x: 1.0, soin: 3 }, renfortsMut: ['wabVampire', 'Wabbits vampires'] },
 };
 const RENFORTS_MUT = { periode: 16, n: 2, max: 4 };
 /* LEUR VIE (24/11/2026, « le meme delire que les boss de l'ile ») : le specimen tombait en 10 s sous les coups d'un Iop de niveau 100 ; vie x5 (specimen, avant 2,4)
@@ -193,3 +193,33 @@ if (MONSTRES.wabDrone) MONSTRES.wabDrone.salve = { n: 2, x: 0.6, ecart: 0.18 };
 { const tirMut0 = tirMonstre; tirMonstre = function (mo, bat, caw) { const S = mo && mo.d && mo.d.salve; if (!S || bat || caw) return tirMut0.apply(this, arguments);
     const n = S.n + Math.max(0, ((combat && combat.joueurs) || 1) - 1), c0 = combat, un = () => { const dd = mo.deg; mo.deg = Math.max(1, Math.round(dd * S.x)); try { tirMut0.call(this, mo, null, null); } finally { mo.deg = dd; } };
     un(); let t = 0, k = 1; effets.push((dt) => { t += dt; if (combat !== c0 || !c0 || c0.fin || mo.etat !== 'actif') return true; while (k < n && t >= k * S.ecart) { un(); k++; } return k >= n; }); }; }
+/* LE PIQUE DU WABBIT VAMPIRE (26/11/2026, « il faudrait qu'il fasse un vol en pique sur nous : il s'envole un peu plus haut et il nous fonce dessus d'un coup, il faut
+   esquiver ; un petit peu moins rapide dans ses deplacements, mais il charge assez souvent en pique », Mathieu) : un cercle rouge la ou tu es, il monte sur place en
+   battant des ailes (0,6 s), puis il fond sur le cercle en ligne droite (0,24 s) ; si tu y es encore, il te mord. A l'impact, une flaque de sang (« vaut mieux une
+   flaque de sang que la flaque spectrale », Mathieu : son element est le sang, impactSang) */
+function impactSang(x, z, r) {
+  const y = solA(x, z); secousse(0.1, 0.25); onde(x, y + 0.03, z, r * 1.1, '#7a0a14', 0.45, 0.8);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
+  for (let k = 0; k < 14; k++) { const a = Math.random() * Math.PI * 2, d = k ? 18 + Math.random() * 40 : 0, rr = k ? 6 + Math.random() * 14 : 34; g.fillStyle = k % 3 ? 'rgba(120,8,18,0.95)' : 'rgba(84,4,12,0.95)'; g.beginPath(); g.arc(64 + Math.cos(a) * d, 64 + Math.sin(a) * d, rr, 0, Math.PI * 2); g.fill(); }
+  const tex = new T.CanvasTexture(cv), sol = new T.Mesh(new T.CircleGeometry(r, 32), new T.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }));
+  sol.rotation.x = -Math.PI / 2; sol.rotation.z = Math.random() * 6; sol.position.set(x, y + 0.045, z); sol.renderOrder = 2; sol.raycast = () => {}; scene.add(sol); let t = 0;
+  effets.push((dt) => { t += dt; sol.material.opacity = Math.min(0.92, t / 0.08) * (t < 2.6 ? 1 : Math.max(0, 1 - (t - 2.6) / 0.8)); sol.scale.setScalar(0.4 + 0.6 * Math.min(1, t / 0.15)); if (t >= 3.4) { tex.dispose(); jeter(sol); return true; } return false; });
+  emettre(FX_VIF, 18, { x, y: y + 0.2, z, r: 0.2, dv: 4.2, haut: true, vie: [0.35, 0.7], taille: [0.12, 0.04], c: ['#d01828', '#8a0a16', '#4a0408'], grav: 11, frein: 0.8, sol: y + 0.04, rebond: 0.2 });
+}
+{ const impactElementSang = impactElement; impactElement = function (el, x, z, r) { if (el === 'sang') return impactSang(x, z, r); return impactElementSang.apply(this, arguments); }; }
+if (typeof AURAS !== 'undefined') AURAS.sang = { ext: '#8a0a16', int: '#ff6a6a', halo: '#b01020', c: ['#ff8a8a', '#c01828', '#5a0408'], v: 1.6, t: 0.18 };
+function capPiqueVampire(mo, ctx) {
+  const P = mo.d.pique; if (!P || mo.piqueEnCours) return; const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (mo.piqueT == null) mo.piqueT = P.periode - 1.2; /* (le premier pique vient vite) */
+  if (!sortPret('piqueT', P.periode) || dP < P.min || dP > P.max) return;
+  mo.piqueT = 0; mo.piqueEnCours = true; const cx = pp.x, cz = pp.z, x0 = mo.x, z0 = mo.z, EB = P.prepa, monte = EB - P.vol; let t = 0, h0 = mo.hop || 0;
+  mo.bloqueT = Math.max(mo.bloqueT || 0, EB + 0.3); if (typeof gesteSort === 'function') gesteSort(mo, 'bond', EB);
+  if (!combat.piqueVu) { combat.piqueVu = true; toast(leNom(mo.d) + ' prend de la hauteur et fond sur toi : sors du cercle rouge !', 'alerte'); }
+  effets.push((dt) => { t += dt; if (!combat || combat.fin || mo.etat !== 'actif') { mo.hop = 0; mo.ailesVite = 0; mo.piqueEnCours = false; return true; }
+    if (t < monte) { const k = t / monte; mo.hop = h0 + (P.haut - h0) * (1 - Math.pow(1 - k, 2)); mo.ailesVite = 1; mo.ry = Math.atan2(cx - mo.x, cz - mo.z); mo.penche = -0.25 * k; return false; }
+    if (t < EB) { const k = (t - monte) / P.vol; mo.x = x0 + (cx - x0) * k; mo.z = z0 + (cz - z0) * k; mo.hop = P.haut * (1 - k * k); mo.penche = 0.6; mo.ailesVite = 0.3;
+      if (mo.m) emettre(FX_VIF, 2, { x: mo.x, y: mo.m.position.y + 0.8, z: mo.z, r: 0.2, v: [0, 0.4, 0], dv: 0.4, vie: [0.2, 0.35], taille: [0.16, 0.04], c: ['#ff5a6a', '#a01020'], a: 0.9, frein: 1 }); return false; }
+    mo.hop = 0; mo.penche = 0; mo.ailesVite = 0; mo.piqueEnCours = false; return true; });
+  zoneDanger({ mo, x: cx, z: cz, r: P.R, duree: EB, effet: (d) => { mo.frappe = 0.4; impactSang(cx, cz, P.R * 1.05); const p2 = paysanMesh.position;
+    if (dansDanger(d, p2.x, p2.z)) { const n = Math.round(degSort(mo) * P.x); blesserPerso(n, mo); if (mo.d.volVie) { mo.pv = Math.min(mo.pvMax, mo.pv + n * mo.d.volVie); } } } });
+}
+CAPACITES.push(capPiqueVampire);

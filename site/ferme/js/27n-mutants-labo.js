@@ -13,7 +13,8 @@
    - le Wabbit garou (5, le labo, et les appels du Docteur) : enorme, il cogne tres fort.
    Icones rendues depuis leurs modeles (blender/icone-glb.py, recadrees : assets/icones/wab-<nom>.png), a faire valider par Mathieu.
    Leurs forces partent des Wabbits du jeu (meme vague que le donjon, la vague du niveau du joueur, 51 au moins) : a regler avec Mathieu. */
-const MUTANTS_LABO = [['wab-garde', 3.12], ['wab-enrage', 2.4], /* (25/11/2026, « les petits Wabbits noirs, trop pres du sol : 20 % plus grands », puis « agrandis les gardes aussi », Mathieu : 2,6 et 2,0 avant) */ ['wab-fluo', 2.3], ['wab-greffe', 2.4], ['wab-vampire', 2.3], ['wab-garou', 3.1]];
+const TAILLE_MUT = 1.2, TAILLE_GARDE = 1.35; /* (26/11/2026, « agrandis un peu la taille de tous les monstres de 20 %, puis encore les gardes de 30-40 % pour qu'ils soient plus grands », Mathieu) */
+const MUTANTS_LABO = [['wab-garde', 3.12 * TAILLE_MUT * TAILLE_GARDE], ['wab-enrage', 2.4 * TAILLE_MUT], /* (25/11/2026, « les petits Wabbits noirs, trop pres du sol : 20 % plus grands », puis « agrandis les gardes aussi », Mathieu : 2,6 et 2,0 avant) */ ['wab-fluo', 2.3 * TAILLE_MUT], ['wab-greffe', 2.4 * TAILLE_MUT], ['wab-vampire', 2.3 * TAILLE_MUT], ['wab-garou', 3.1 * TAILLE_MUT]];
 MUTANTS_LABO.forEach(([n, h]) => { SQUELETTES_A_CHARGER.push([n, 'assets/modeles/jeu/' + n + '-anime.glb', h]); NOMS_BW2.add(n); VITESSE_FAMILLE[n] = 1.3; ALLURE_MAX_PAR[n] = 3.2; /* (leurs pieds suivent leur vitesse, 22c) */
   RENDU_B_PAR[n] = Object.assign({}, RENDU_B, { ombre: { value: new T.Vector3(0.8, 0.81, 0.84) }, lisse: [-0.12, 0.32], cle: 'wabc', sansContour: true }); }); /* (le dosage C : ombre douce a 80 %, sans la coque du contour) */
 /* (24/11/2026, le Wabbit fluo « baisse la lueur », Mathieu : vert citron d'un bout a l'autre, il ressemblait a une boule de salade sur l'ile et on ne voyait pas
@@ -29,7 +30,7 @@ Object.assign(MONSTRES, {
     pv: fW('wabbitNoir', 'pv', 1.1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.8, vitesse: 3.0, portee: 1.6, ombre: 1.8, flaqueMort: { R: 1.9, duree: 5, pct: 0.012 } },
   wabGreffe: { element: 'terre', nom: 'Wabbit greffé', modele: 'wab-greffe', icone: 'wab-greffe', desc: 'cousu de partout et blindé, armure (-35 %) : sa pince mécanique frappe fort et t\'assomme un instant',
     pv: fW('woWabbit', 'pv', 1), deg: fW('gwandWabbit', 'deg', 0.9), cadence: 2.0, vitesse: 2.6, portee: 1.7, armure: 0.35, ombre: 1.9, assomme: 0.45 }, /* (assomme, 24/11/2026 : sa pince te bloque 0,45 s) */
-  wabVampire: { element: 'esprit', nom: 'Wabbit vampire', modele: 'wab-vampire', icone: 'wab-vampire', desc: 'sorti des cuves, les oreilles en ailes : il vole au-dessus du sol et te vole la vie, chaque morsure le soigne de la moitié des dégâts',
+  wabVampire: { element: 'sang', nom: 'Wabbit vampire', modele: 'wab-vampire', icone: 'wab-vampire', desc: 'sorti des cuves, les oreilles en ailes : il vole au-dessus du sol et te vole la vie, chaque morsure le soigne de la moitié des dégâts',
     pv: fW('wabbitNoir', 'pv', 1), deg: fW('wabbitNoir', 'deg', 1), cadence: 1.3, vitesse: 3.8, portee: 1.4, ombre: 1.6, volVie: 0.5, vol: 1.0 }, /* (vol, 24/11/2026 : « les wabbit vampire faudrait qu'ils volent nan ? plus sympa », Mathieu ; ses ailes battent dans ses mouvements, blender/ailes-os.py) */
   wabGarou: { element: 'terre', nom: 'Wabbit garou', modele: 'wab-garou', icone: 'wab-garou', desc: 'la créature la plus forte du Docteur, armure (-15 %) : énorme, il te bondit dessus et cogne très fort',
     pv: fW('gwandWabbit', 'pv', 1.6), deg: fW('gwandWabbit', 'deg', 1.3), cadence: 2.0, vitesse: 3.2, portee: 2.0, armure: 0.15, ombre: 2.6, bondit: 8, bonditR: 2.4, degSort: 1.6, bonditNom: 'Bond du garou' } }); /* (son bond, 24/11/2026 : un cercle rouge la ou tu es, il saute et ecrase) */
@@ -142,5 +143,7 @@ MONSTRES.wabDrone = { element: 'feu', nom: 'Drone du Docteur', modele: 'wabDrone
    (un Abraknyde de la foret : 5 500) pour 1 077 de degats par coup d'un Iop niveau 100. Leur vie passe a celle d'un monstre de la foret ou un peu plus (fois pv),
    leurs coups montent de 35 % ; les chefs, les specimens et le Docteur gardent leurs multiplicateurs par-dessus (CHEF_LABO, SPECIMEN). A regler avec Mathieu */
 /* (leur marche aussi, 24/11/2026, « leurs deplacements » sont lents, Mathieu : +0,8 a +1 de vitesse chacun, garde 2,6, enrage 4,4, fluo 3, greffe 2,6, vampire 3,8, garou 3,2, drone 3,3) */
+/* (les ombres et les corps suivent la taille, 26/11/2026) */
+['wabGarde', 'wabEnrage', 'wabFluo', 'wabGreffe', 'wabVampire', 'wabGarou'].forEach((t) => { const D = MONSTRES[t]; if (D && D.ombre) D.ombre = +(D.ombre * TAILLE_MUT * (t === 'wabGarde' ? TAILLE_GARDE : 1)).toFixed(2); });
 const DUR_LABO = { wabEnrage: 3.2, wabFluo: 2.8, wabVampire: 3.1, wabGreffe: 2.9, wabGarde: 2.2, wabGarou: 2.7, wabDrone: 2.75 }, DEG_LABO = 1.35;
 Object.keys(DUR_LABO).forEach((t) => { const D = MONSTRES[t]; if (!D) return; const p0 = D.pv, d0 = D.deg; D.pv = (n) => Math.round(p0(n) * DUR_LABO[t]); D.deg = (n) => Math.round(d0(n) * DEG_LABO); });
