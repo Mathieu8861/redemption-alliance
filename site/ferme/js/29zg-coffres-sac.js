@@ -34,7 +34,31 @@ function montrerCoffre(rar, titre, sousTitre, cartes, fin, lignes) {
   if (!ok) { toast('🎁 ' + titre + ' : ' + (lignes || cartes.map((c) => (c.n != null ? fmt(c.n) + ' ' : '') + c.t)).join(', ') + '.', 'or'); if (fin) setTimeout(fin, 600); }
 }
 /* ---------- les coffres du labo ---------- */
-COFFRES_SAC.labo = { titre: (d) => (COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO.commun).nom, rar: (d) => ({ precieux: 'epique', rare: 'rare' })[d.rang] || 'normal',
+/* (26/11/2026, « pour les coffres de l'ile des Wabbits, fais-leur une esthetique, ne reprends pas ceux de l'ile du boss, c'est bof », Mathieu) : la caisse de fer
+   cerclee de cuivre et sa fenetre de mutagene (coffreLaboMesh, 29u-labo-ile.js), sur un fond vert de labo ; sa lueur dit son rang : vert le petit, cyan le rare,
+   violet le precieux, orange celui d'un chef de camp, dore et plus gros celui de la fin du labo. Ses images dans le sac : assets/icones/coffre-labo-*.png */
+const TEINTES_LABO = { commun: '#8dff6a', rare: '#5fd4ff', precieux: '#c27dff', chef: '#ffb02e', fin: '#ffe27a' };
+if (typeof OM_COUL !== 'undefined') OM_COUL.labo = ['#8dff6a', '#0e3a1c', 'Coffre du labo'];
+function coffreLaboOuverture(teinte, echelle) {
+  if (typeof coffreLaboMesh !== 'function') return null; const M = coffreLaboMesh(), g = M.g, e = echelle || 1, k = 0.8 * e; g.scale.setScalar(k);
+  g.traverse((o) => { if (o.isMesh && o.material && o.material.isMeshBasicMaterial) { o.material = o.material.clone(); const c = new T.Color(teinte); if (o.material.color.g < 0.75) c.multiplyScalar(0.72); o.material.color.copy(c); } }); /* (la fenetre et la lueur dedans, a sa couleur) */
+  /* ce qui en fait un coffre du labo : la cawotte du Docteur sur le couvercle, deux tubes de mutagene aux coins de devant, la bande jaune et noire du danger au pied */
+  const ajoute = (geo, c, x, y, z, par, brille) => { const o = new T.Mesh(geo, brille ? new T.MeshBasicMaterial({ color: c }) : mat(c)); o.position.set(x, y, z); (par || g).add(o); o.castShadow = true; return o; };
+  { const cw = new T.Group(); cw.position.set(0.22, 0.24, 0.42); cw.rotation.set(0, 0.55, Math.PI / 2); /* (en travers, a droite de la poignee) */ M.ch.add(cw);
+    ajoute(new T.ConeGeometry(0.075, 0.38, 8), '#ff6a12', 0, -0.05, 0, cw); [[-0.08, 0], [0, 0.05], [0.08, 0]].forEach(([dx, dz], i) => { const f = ajoute(new T.ConeGeometry(0.035, 0.16, 5), i === 1 ? '#5fbf3a' : '#3f9a2a', dx * 0.6, 0.19, dz, cw); f.rotation.z = dx * 3.5; });
+    for (let i = 0; i < 3; i++) ajoute(new T.BoxGeometry(0.11 - i * 0.02, 0.012, 0.08), '#c8621a', 0, -0.12 + i * 0.09, 0.0, cw); } /* (ses stries) */
+  [-1, 1].forEach((sx) => { const x = sx * 0.44, z = 0.37;
+    const verre = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, 0.34, 12), new T.MeshBasicMaterial({ color: '#e8fff0', transparent: true, opacity: 0.28, depthWrite: false })); verre.position.set(x, 0.3, z); g.add(verre);
+    ajoute(new T.CylinderGeometry(0.043, 0.043, 0.24, 10), teinte, x, 0.27, z, g, true); [0.13, 0.47].forEach((y) => ajoute(new T.CylinderGeometry(0.068, 0.068, 0.05, 10), '#b8743a', x, y, z)); });
+  for (let i = 0; i < 9; i++) ajoute(new T.BoxGeometry(0.09, 0.05, 0.02), i % 2 ? '#2b2e33' : '#f2c23a', -0.4 + i * 0.1, 0.085, 0.342); /* (la bande du danger) */
+  const lum = new T.PointLight(teinte, 0.4, 4 * e); lum.position.set(0, 0.5, 0.1); g.add(lum);
+  return { g, ch: M.ch, lum, L: 1.0 * k, P: 0.66 * k, H: 0.56 * k, R: 0.1 * e, couleur: new T.Color(teinte) };
+}
+function montrerCoffreLabo(teinte, echelle, titre, sousTitre, cartes, fin) {
+  const base = coffreLaboOuverture(teinte, echelle), ok = base && typeof ouvertureMobile === 'function' && ouvertureMobile({ rar: 'labo', base, titre, sousTitre, cartes, fin: () => { if (fin) fin(); } });
+  if (!ok) montrerCoffre('normal', titre, sousTitre, cartes, fin);
+}
+COFFRES_SAC.labo = { titre: (d) => (COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO.commun).nom, rar: (d) => ({ precieux: 'epique', rare: 'rare' })[d.rang] || 'normal', image: (d) => 'coffre-labo-' + (TEINTES_LABO[d.rang] ? d.rang : 'commun'),
   ouvrir: (d, fin) => { const T0 = COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO.commun, pros = prosLabo(), G = S_.grange = S_.grange || {}, cartes = [], hasard = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
     const kamas = kamasGagnes(hasard(T0.kamas[0], T0.kamas[1])); S_.kamas += kamas; cartes.push({ ico: 'kama', n: kamas, t: 'kamas', son: 'kamas' });
     T0.L.forEach(([p, type, a, b, c]) => { if (Math.random() >= Math.min(1, p * pros)) return;
@@ -43,21 +67,21 @@ COFFRES_SAC.labo = { titre: (d) => (COFFRES_ILE_LABO[d.rang] || COFFRES_ILE_LABO
       else if (type === 'forge') { runes().forge = (runes().forge || 0) + a; cartes.push({ ico: 'rune-forge', n: a, t: 'rune de forgemagie', son: 'quete' }); }
       else if (type === 'parfaite') { runes().parfaite = (runes().parfaite || 0) + a; cartes.push({ ico: 'rune-parfaite', n: a, t: 'rune parfaite', brille: true }); }
       else if (type === 'cristal' && typeof gagnerCristaux === 'function') { gagnerCristaux(a); cartes.push({ ico: 'rune-cristal', n: a, t: a > 1 ? 'cristaux runiques' : 'cristal runique', brille: true }); } });
-    sauver(); rendreHaut(); rendreGrange(); montrerCoffre(COFFRES_SAC.labo.rar(d), T0.nom, 'Un coffre de l\'île des Wabbits', cartes, fin); } };
-COFFRES_SAC.chefLabo = { titre: (d) => 'Coffre de ' + (d.nom || 'chef'), rar: () => 'epique',
+    sauver(); rendreHaut(); rendreGrange(); montrerCoffreLabo(TEINTES_LABO[d.rang] || TEINTES_LABO.commun, d.rang === 'precieux' ? 1.12 : d.rang === 'rare' ? 1.05 : 1, T0.nom, 'Un coffre de l\'île des Wabbits', cartes, fin); } };
+COFFRES_SAC.chefLabo = { titre: (d) => 'Coffre de ' + (d.nom || 'chef'), rar: () => 'epique', image: () => 'coffre-labo-chef',
   ouvrir: (d, fin) => { const R = LOOT_LABO.chef, G = S_.grange = S_.grange || {}, cartes = [];
     if (R.kamas) { S_.kamas += R.kamas; cartes.push({ ico: 'kama', n: R.kamas, t: 'kamas', son: 'kamas' }); }
     if (R.poils) { G.poil_wabbit = (G.poil_wabbit || 0) + R.poils; cartes.push({ ico: 'poil_wabbit', n: R.poils, t: 'Poils de Wabbit' }); }
     if (R.forge) { runes().forge = (runes().forge || 0) + R.forge; cartes.push({ ico: 'rune-forge', n: R.forge, t: 'rune de forgemagie', son: 'quete' }); }
     if (R.parfaite && Math.random() < R.parfaite) { runes().parfaite = (runes().parfaite || 0) + 1; cartes.push({ ico: 'rune-parfaite', n: 1, t: 'rune parfaite', brille: true }); }
     if (R.cristal && typeof gagnerCristaux === 'function') { gagnerCristaux(R.cristal); cartes.push({ ico: 'rune-cristal', n: R.cristal, t: R.cristal > 1 ? 'cristaux runiques' : 'cristal runique', brille: true }); }
-    sauver(); rendreHaut(); rendreGrange(); montrerCoffre('epique', 'Coffre de ' + (d.nom || 'chef'), 'Un chef de camp du labo', cartes, fin); } };
-COFFRES_SAC.finLabo = { titre: () => 'Le coffre du labo', rar: (d) => (d.premier ? 'legendaire' : 'epique'),
+    sauver(); rendreHaut(); rendreGrange(); montrerCoffreLabo(TEINTES_LABO.chef, 1.15, 'Coffre de ' + (d.nom || 'chef'), 'Un chef de camp du labo', cartes, fin); } };
+COFFRES_SAC.finLabo = { titre: () => 'Le coffre du labo', rar: (d) => (d.premier ? 'legendaire' : 'epique'), image: () => 'coffre-labo-fin',
   ouvrir: (d, fin) => { const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = d.parfaite ? 1 : 0;
     S_.kamas += C.kamas; G.poil_wabbit = (G.poil_wabbit || 0) + C.poils; if (typeof gagnerCristaux === 'function') gagnerCristaux(C.cristal); runes().forge = (runes().forge || 0) + C.forge; if (parfaite) runes().parfaite = (runes().parfaite || 0) + 1;
     sauver(); rendreHaut(); rendreGrange();
     const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(C.cristal ? [{ ico: 'rune-cristal', n: C.cristal, t: 'cristaux runiques', brille: true }] : []).concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: 'rune parfaite', brille: true }] : []);
-    montrerCoffre(COFFRES_SAC.finLabo.rar(d), 'Le coffre du labo', d.sous || 'Les Wabbits sont libres !', cartes, fin); } };
+    montrerCoffreLabo(TEINTES_LABO.fin, 1.3, 'Le coffre du labo', d.sous || 'Les Wabbits sont libres !', cartes, fin); } };
 /* le coffre de terre du labo : au contact, il s'ouvre un instant (son couvercle, un eclat) et file dans le sac */
 { const ouvrirCoffreLaboSac = ouvrirCoffreLabo; ouvrirCoffreLabo = function (C) {
     if (C.ouvert) return; C.ouvert = true; C.rang = rangCoffreLabo(); const T0 = COFFRES_ILE_LABO[C.rang], y = hTerrainLabo(C.x, C.z);
@@ -79,7 +103,7 @@ COFFRES_SAC.ile = { titre: () => 'Le coffre de l\'île des boss', rar: () => 'le
 /* ---------- le sac : les coffres en haut, et une pastille sur le bouton Perso ---------- */
 function blocCoffresSac() {
   const L = listeCoffresSac(); if (!L.length) return '';
-  const img = (C) => { const rar = COFFRES_SAC[C.type].rar(C.d), look = typeof lookCoffre === 'function' && rar !== 'normal' ? lookCoffre(rar) : rar === 'normal' ? 'ferme' : rar; return 'assets/icones/coffre-' + look + '.png?v=' + VERSION_MODELES; };
+  const img = (C) => { if (COFFRES_SAC[C.type].image) return 'assets/icones/' + COFFRES_SAC[C.type].image(C.d) + '.png?v=' + VERSION_MODELES; const rar = COFFRES_SAC[C.type].rar(C.d), look = typeof lookCoffre === 'function' && rar !== 'normal' ? lookCoffre(rar) : rar === 'normal' ? 'ferme' : rar; return 'assets/icones/coffre-' + look + '.png?v=' + VERSION_MODELES; };
   return '<div class="fp-coffres"><h3>Coffres <small>' + L.length + ' à ouvrir</small></h3><div class="fpc-liste">' + L.map((C) => '<div class="fpc"><img src="' + img(C) + '" alt=""><span>' + COFFRES_SAC[C.type].titre(C.d) + '</span><button class="btn kamas mini" data-coffre-sac="' + C.id + '">Ouvrir</button></div>').join('') + '</div>' +
     (L.length > 1 ? '<button class="btn kamas" data-coffres-tout="1">Tout ouvrir (' + L.length + ')</button>' : '') + '</div>';
 }
