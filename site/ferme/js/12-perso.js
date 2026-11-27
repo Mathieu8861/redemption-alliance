@@ -649,12 +649,15 @@ function porteeSous(ev) {
    affichee quand on visait, qu'on faisait glisser la camera ou qu'on quittait la ferme (le survol s'arretait avant de la cacher), et quand la camera bougeait
    sous la souris immobile. Maintenant elle se cache dans tous ces cas, ne s'affiche pas en combat (le cercle de portee, si), et s'efface seule 3 s apres le
    dernier mouvement de la souris. */
+/* (27/11/2026, « les phrases en noir qui s'affichent quand on passe la souris sur un batiment, c'est nul, ca me saoule », Mathieu : plus de texte au survol des tours,
+   de l'arbalete et de l'epouvantail ; le cercle orange de leur portee reste) */
+const INFO_SURVOL_BATIMENTS = false;
 const cacherInfoSurvol = () => { const inf = $('info-survol'); if (inf && !inf.hidden) inf.hidden = true; clearTimeout(cacherInfoSurvol.t); };
 ['pointerdown', 'wheel', 'keydown'].forEach((t) => document.addEventListener(t, cacherInfoSurvol, { capture: true, passive: true }));
 canvas.addEventListener('pointermove', (ev) => {
   if (visee || ev.buttons || lieu !== 'ferme') { cacherInfoSurvol(); if (lieu !== 'ferme' || visee) PORTEE_VUE.visible = false; return; } const t = performance.now(); if (t - (porteeSous.t || 0) < 70) return; porteeSous.t = t; /* (08/11/2026, « micro freeze sur l'ile du casino » : ce rayon traversait tout le decor de l'ile, 32 a 44 ms toutes les 70 ms des que la souris bougeait ; les tours n'existent qu'a la ferme) */
   const p = porteeSous(ev); PORTEE_VUE.visible = !!(p && p.r); if (p && p.r) { PORTEE_VUE.position.set(p.x, p.y + 0.08, p.z); PORTEE_VUE.scale.setScalar(p.r); }
-  const inf = $('info-survol'); if (p && p.txt && ev.pointerType === 'mouse' && !combat) { clearTimeout(cacherInfoSurvol.t); cacherInfoSurvol.t = setTimeout(cacherInfoSurvol, 3000); inf.hidden = false; inf.textContent = p.txt; inf.style.left = Math.min(ev.clientX + 16, innerWidth - inf.offsetWidth - 8) + 'px'; inf.style.top = (ev.clientY + 18) + 'px'; } else inf.hidden = true; /* « voir le stock de fleches de la tour au survol » (testeurs, 12/10/2026) */
+  const inf = $('info-survol'); if (INFO_SURVOL_BATIMENTS && p && p.txt && ev.pointerType === 'mouse' && !combat) { clearTimeout(cacherInfoSurvol.t); cacherInfoSurvol.t = setTimeout(cacherInfoSurvol, 3000); inf.hidden = false; inf.textContent = p.txt; inf.style.left = Math.min(ev.clientX + 16, innerWidth - inf.offsetWidth - 8) + 'px'; inf.style.top = (ev.clientY + 18) + 'px'; } else inf.hidden = true; /* « voir le stock de fleches de la tour au survol » (testeurs, 12/10/2026) */
 });
 canvas.addEventListener('pointerleave', () => { PORTEE_VUE.visible = false; $('info-survol').hidden = true; });
 function majTours(dt, s) {
