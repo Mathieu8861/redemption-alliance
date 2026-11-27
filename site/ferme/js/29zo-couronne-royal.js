@@ -41,12 +41,31 @@ chargeRoyale = function (pt, st) { const cl = classeDe(); if (cl === 'cra') retu
 const solCouronne = (x, z) => { if (!solSort(x, z)) return false;
   try { const K = lieu === 'arene' && typeof reliefIci === 'function' ? reliefIci() : null; if (K) { const q = versLocalArene(x, z); return libreR(K, q[0], q[1], 0.4, false, false, false); } } catch (e) { /* rien */ }
   return true; };
+/* LA BANDE AU SOL (27/11/2026, « on voit pas une petite ligne, comme le Bouftou Royal quand il charge ; pas obligé de la mettre rouge, mais vers où on se déplace »,
+   Mathieu) : comme la bande rouge du Royal, une bande a la couleur du sort du depart a l'arrivee, bordee de deux traits clairs et terminee par une pointe ;
+   elle suit le relief, reste pendant le deplacement puis s'efface en 0,6 s. Iop doree, Cra bleu clair, Bouftou Royal de l'Osa doree */
+const BANDE_COURONNE = { haut: 0.06, bord: 0.09, fond: 0.45, trait: 0.95, efface: 0.6, pas: 0.5 }; /* (couleurs franches, sans eclaircir les bords : sur le sol clair des ruines celestes, une bande pale ne se voyait pas, essai du 27/11/2026) */
+function bandeCharge(x0, z0, x1, z1, larg, couleur, duree) {
+  const B = BANDE_COURONNE, L = Math.hypot(x1 - x0, z1 - z0); if (L < 0.3) return; const dx = (x1 - x0) / L, dz = (z1 - z0) / L, nx = -dz, nz = dx, n = Math.max(2, Math.ceil(L / B.pas));
+  const bandeau = (d0, d1, w0, w1, mat) => { const P = []; for (let i = 0; i <= n; i++) { const t = i / n, x = x0 + dx * L * t, z = z0 + dz * L * t, y = solA(x, z) + B.haut;
+      P.push(x + nx * d0, y, z + nz * d0, x + nx * d1, y, z + nz * d1); } /* (d0, d1 : les deux bords, en travers de la bande) */
+    const I = []; for (let i = 0; i < n; i++) { const k = i * 2; I.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setIndex(I); return new T.Mesh(g, mat); };
+  const mat = (o) => new T.MeshBasicMaterial({ color: couleur, transparent: true, opacity: o, depthWrite: false, side: T.DoubleSide }), mF = mat(B.fond), mT = mat(B.trait);
+  mT.color.multiplyScalar(0.85); const h = larg / 2, gr = new T.Group();
+  gr.add(bandeau(-h, h, 0, 0, mF), bandeau(-h, -h + B.bord, 0, 0, mT), bandeau(h - B.bord, h, 0, 0, mT));
+  { const xe = x1 + dx * 0.15, ze = z1 + dz * 0.15, y = solA(xe, ze) + B.haut + 0.01, P = [xe + nx * h * 1.25, y, ze + nz * h * 1.25, xe - nx * h * 1.25, y, ze - nz * h * 1.25, xe + dx * h * 1.6, y, ze + dz * h * 1.6]; /* (la pointe, au bout) */
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setIndex([0, 1, 2]); gr.add(new T.Mesh(g, mT)); }
+  gr.renderOrder = 3; gr.traverse((o) => { o.raycast = () => {}; o.renderOrder = 3; }); scene.add(gr);
+  const c0 = combat; let t = 0; effets.push((dt) => { t += dt; if (combat !== c0) { jeter(gr); return true; } const k = t < duree ? 1 : Math.max(0, 1 - (t - duree) / B.efface);
+    mF.opacity = B.fond * k; mT.opacity = B.trait * k; if (k <= 0) { jeter(gr); return true; } return false; });
+}
 /* LA CHARGE RAPIDE (Iop) : l'ancienne Charge, plus vive (vit), a travers les monstres, qui restent sur place (plus de bousculade), sonnes 0,5 s, boss compris */
 function chargeRapideIop(pt, st) {
   const C = COURONNE.iop, M = mxc(), pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a);
   let L = 0; while (L < C.portee && solCouronne(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25; /* (jusqu'au premier obstacle) */
   const fin = { x: de.x + dx * L, z: de.z + dz * L }, duree = Math.max(0.1, L / C.vit), touches = new Set(), dir = new T.Vector3(dx, 0, dz);
-  chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true;
+  chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; bandeCharge(de.x, de.z, fin.x, fin.z, 1.0, '#f5a020', duree);
   const fant = fantomes(paysanMesh, 5, '#ffd36a', 1.4); secousse(0.08, 0.18); poussiere(de.x, de.y, de.z, 8, 0.8, '#d8c6a0'); onde(de.x, de.y, de.z, 1.3, '#fff1c0', 0.3, 0.6);
   let t = 0, poudre = 0, choc = 0;
   effets.push((dt) => { t += dt; if (combat !== c0) { fant.fin(); u.charge = false; return true; }
@@ -68,7 +87,7 @@ function dashCra(pt, st) {
   const C = COURONNE.cra, M = mxc(), pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a);
   let L = 0; while (L < C.portee && solCouronne(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25;
   const fin = { x: de.x + dx * L, z: de.z + dz * L }, duree = Math.max(0.1, C.duree * L / C.portee), dir = new T.Vector3(dx, 0, dz);
-  chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; u.enVol = true;
+  chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; u.enVol = true; bandeCharge(de.x, de.z, fin.x, fin.z, 0.8, '#36aef0', duree);
   const fant = fantomes(paysanMesh, 6, '#9fdcff', 1.2); onde(de.x, de.y + 0.05, de.z, 1.2, '#cfeeff', 0.3, 0.7); emettre(FX_VIF, 14, { x: de.x, y: de.y + 0.4, z: de.z, r: 0.4, dv: 2.4, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.03], c: ['#ffffff', '#9fdcff', '#4aa8e0'], grav: 3 });
   let t = 0, trace = 0, fini = false;
   const lacher = () => { u.charge = false; u.enVol = false; };
@@ -124,7 +143,7 @@ function chargeBouftouRoyal(iv) {
   const a = Math.atan2(cib.x - iv.x, cib.z - iv.z), dx = Math.sin(a), dz = Math.cos(a), x0 = iv.x, z0 = iv.z, but = Math.max(0, d(cib) - 0.6 - 0.3 * (cib.d.ombre || 1));
   let L = 0; while (L < but && solSort(x0 + dx * (L + 0.25), z0 + dz * (L + 0.25))) L += 0.25;
   const duree = Math.max(0.12, L / 22), touches = new Set(), dir = new T.Vector3(dx, 0, dz), M = iv.royalM || 1, coup = Math.round(degBouftou(statsPerso().niveau) * iv.royalD * C.mult * M); /* (le coup passe par la source du Bouftou invoque, que les cristaux ne multiplient pas : M ici, comme le dit la fiche) */
-  iv.pose = duree + 0.15; iv.ry = a; let t = 0, poudre = 0, choc = 0;
+  iv.pose = duree + 0.15; iv.ry = a; bandeCharge(x0, z0, x0 + dx * L, z0 + dz * L, 1.1, '#f5a020', duree); let t = 0, poudre = 0, choc = 0;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.invoc !== iv || c0.fin) return true;
     const k = Math.min(1, t / duree), x = x0 + dx * L * k, z = z0 + dz * L * k; iv.x = x; iv.z = z; iv.ry = a; const y = iv.m.position.y;
     if ((poudre += dt) > 0.025) { poudre = 0; emettre(FX_FUM, 1, { x: x - dx * 0.5, y: y + 0.2, z: z - dz * 0.5, v: [-dx * 1.4, fxEntre(0.4, 0.9), -dz * 1.4], vie: [0.4, 0.7], taille: [0.4, 1.0], c: ['#e6d6b2', '#cdb98f'], a: 0.5, frein: 2.5 }); }
