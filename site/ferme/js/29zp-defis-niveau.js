@@ -4,7 +4,7 @@
    au formulaire) :
    - trois defis par jour, un par rang : un defi de FERME (facile), un defi de COMBAT (moyen), un EXPLOIT (difficile, des le niveau 30). Un rang qui n'a rien a
      proposer au joueur (pas encore de vagues, pas de boss battu) prend un defi du rang d'en dessous ;
-   - les kamas : la meme somme pour les trois defis, 30 % d'une vague de son niveau (vagueDeNiveau), comme avant : 2 862 au niveau 100 (d'abord 30 %, 75 % et 200 % selon le rang, retire le soir meme, voir DEFIS_RANGS) ;
+   - les kamas : la meme somme pour les trois defis, 30 % de la vague de reference de son palier (etalonPalier, plus bas) : 2 862 du niveau 91 au niveau 100 (d'abord 30 %, 75 % et 200 % selon le rang, retire le soir meme, voir DEFIS_RANGS) ;
      l'XP comme avant ; pas de bonus en plus sur l'exploit (« rien de plus ») ;
    - le coffre du jour (les trois reussis), dicte par Mathieu : 150 % d'une vague de son niveau, 60 % de chance d'une piece de son palier, 5 % d'une piece rare
      de son palier, et une chance sur deux de 2 ressources au hasard de son palier. La Prospection ne joue pas (jamais sur un coffre).
@@ -29,10 +29,17 @@ const DEFIS_NIVEAU = {
     ['runes', () => 2, 'Pose {n} runes de forgemagie', (L) => L >= NIV_EXPLOIT && niv('forge') > 0 && (runes().forge || 0) >= 2]]
 };
 const defisNiveauOuverts = () => p11Ouvert();
+/* LA VALEUR DE REFERENCE D'UN PALIER (27/11/2026 au soir, Mathieu : « on prend une valeur de reference ; on fait pas evoluer a chaque fois, vague 108, vague 109 ;
+   palier 11, tous les paliers 11, c'est telle valeur qui est donnee de A a Z, et juste ca evolue en fonction des paliers ») : un joueur est dans le palier de son
+   niveau (1 a 10, 11 a 20... 91 a 100, 101 a 110) ; la reference du palier est sa derniere vague normale (la 9e : la 99 pour le palier 10, la 109 pour le 11),
+   et son dernier niveau pour l'XP et le plancher des petits niveaux. Tous les niveaux d'un palier touchent donc la meme somme, qui ne monte qu'au palier suivant.
+   Jamais au-dela du dernier palier ouvert aux joueurs. */
+function etalonPalier(L) { const dernier = Math.floor((VAGUES_TOTAL - 1) / VAGUES_PALIER), p = Math.min(dernier, Math.max(0, Math.floor((Math.max(1, Math.round(L) || 1) - 1) / VAGUES_PALIER)));
+  let v = 0; for (let q = 0; q <= p; q++) v = Math.max(v, gainsVague(q * VAGUES_PALIER + VAGUES_PALIER - 1, false).kamas); return { palier: p, niveau: (p + 1) * VAGUES_PALIER, vague: v }; }
 function fabriquerDefi(d, rang, L) {
-  const [cle, q, txt, , max] = d, b = Math.max(1, Math.min(max || 1e9, typeof q === 'function' ? q(L) : Math.round(q * (1 + L / 25)))), R = DEFIS_RANGS[rang];
+  const [cle, q, txt, , max] = d, b = Math.max(1, Math.min(max || 1e9, typeof q === 'function' ? q(L) : Math.round(q * (1 + L / 25)))), R = DEFIS_RANGS[rang], E = etalonPalier(L);
   return { cle, but: b, txt: txt.replace('{n}', b).replace('{s}', b > 1 ? 's' : ''), fait: 0, reclame: false, rang,
-    kamas: Math.max(kamasGagnes(40 + 15 * L), Math.round(R.part * vagueDeNiveau(L))), xp: Math.round((5 + L / 2) * R.part / DEFIS_RANGS.ferme.part) };
+    kamas: Math.max(kamasGagnes(40 + 15 * E.niveau), Math.round(R.part * E.vague)), xp: Math.round((5 + E.niveau / 2) * R.part / DEFIS_RANGS.ferme.part) };
 }
 function tirerDefisNiveau() {
   const L = niveau(S_.xp), pris = new Set(), ok = (d) => { try { return !pris.has(d[0]) && (!d[3] || !!d[3](L)); } catch (e) { return false; } };
@@ -55,7 +62,7 @@ function tirerDefisNiveau() {
 function ressourcesDuPalier(p) { for (let q = p; q >= 0; q--) { const R = new Set();
     for (let n = q * VAGUES_PALIER + 1; n <= Math.min((q + 1) * VAGUES_PALIER, VAGUES_TOTAL); n++) { try { compoTotale(n).forEach(([t]) => { const r = MONSTRES[t] && MONSTRES[t].res; if (r && PAR_ID[r]) R.add(r); }); } catch (e) { /* rien */ } }
     if (R.size) return [...R]; } return []; }
-const kamasCoffreNiveau = () => Math.max(kamasGagnes(150 + 40 * niveau(S_.xp)), Math.round(COFFRE_JOUR.part * vagueDeNiveau(niveau(S_.xp))));
+const kamasCoffreNiveau = () => { const E = etalonPalier(niveau(S_.xp)); return Math.max(kamasGagnes(150 + 40 * E.niveau), Math.round(COFFRE_JOUR.part * E.vague)); };
 const pcDefi = (x) => Math.round(x * 100) + ' %';
 (() => { const st = document.createElement('style'); st.textContent = '.defi-rang{display:inline-block;margin-left:7px;padding:1px 8px;border-radius:99px;font-size:.62rem;font-weight:800;color:#16181c;vertical-align:middle;text-transform:uppercase;letter-spacing:.03em}'; document.head.appendChild(st); })();
 /* la fenetre : la pastille du rang a cote de chaque defi, et le nouveau coffre */
