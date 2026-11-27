@@ -113,7 +113,7 @@ function armerCM(n, k) {
 /* le lancement : le bouton de la fenetre (data-lancer-vague), la manette ou le banc passent par lancerVague ; une vague de 101 a 110 y devient son combat choisi */
 { const lancerVagueCM = lancerVague; lancerVague = function (pBoss, difficile, charges) {
     const rejoueB = pBoss != null && pBoss >= 0;
-    if (!rejoueB && !combat && !enAccueil && !lancerVague.charge && !ESSAI101.lance && S_.vague.num <= VAGUES_MAX && vagueEnCombats(vagueCourante())) {
+    if (!rejoueB && !combat && !enAccueil && !lancerVague.charge && !ESSAI101.lance && !(typeof REJOUE_VAGUES !== 'undefined' && REJOUE_VAGUES.lance) && S_.vague.num <= VAGUES_MAX && vagueEnCombats(vagueCourante())) { /* (une vague refaite du jour passe a cote, 29zl) */
       const n = vueCM(); if (lieu !== 'ferme') return lancerVagueCM.apply(this, arguments);
       if (!MODE_TEST && Date.now() < S_.vague.repos) { toast('Ton perso se repose encore ' + dureeLisible(S_.vague.repos - Date.now()) + '.'); return; }
       if (!MODE_TEST && niveau(S_.xp) < niveauRequis(n)) { toast('Il faut le niveau ' + niveauRequis(n) + ' pour la vague ' + n + ' : cultive et élève tes bêtes pour gagner de l\'expérience.', 'alerte'); return; }
@@ -140,14 +140,14 @@ let cmXp = 0;
 const partCM = (n, k) => ((etatVagueCM(n).g[k] || 0) > 0 ? COMBATS_MARE.part.rejoue : COMBATS_MARE.part.premiere);
 { const finVagueCM = finVague; finVague = function (gagne, fuite) {
     const c = combat, cm = c && !c.fin && combatCMde(c); if (!cm) return finVagueCM.apply(this, arguments);
-    const f = partCM(cm.n, cm.k), plein = gainsVague(cm.n, false), demi = gainsVague(cm.n, true), deja = (etatVagueCM(cm.n).g[cm.k] || 0) > 0;
+    const f = c.rejoueVague != null ? 0 : partCM(cm.n, cm.k), plein = gainsVague(cm.n, false), /* (f 0 : un combat refait du jour, le butin seul, 29zl) */ demi = gainsVague(cm.n, true), deja = (etatVagueCM(cm.n).g[cm.k] || 0) > 0;
     if (gagne) cmXp = f / 0.5; let r;
     try { r = finVagueCM.apply(this, arguments); } finally { cmXp = 0; desarmerEssai101(); }
     try { apresCM(cm, !!gagne, !!fuite, { f, plein, demi, deja }); } catch (e) { console.error(e); }
     return r; }; }
 function apresCM(cm, gagne, fuite, G) {
   const V = etatVagueCM(cm.n); V.e[cm.k] = (V.e[cm.k] || 0) + 1; const fois = V.e[cm.k], kamas = Math.round(G.plein.kamas * G.f); let ouvre = false;
-  if (gagne) { S_.kamas += kamas - G.demi.kamas; V.g[cm.k] = (V.g[cm.k] || 0) + 1; V.choix = null;
+  if (gagne) { if (G.f) S_.kamas += kamas - G.demi.kamas; V.g[cm.k] = (V.g[cm.k] || 0) + 1; V.choix = null;
     if (S_.vague.num === cm.n && vagueValideeCM(cm.n)) { S_.vague.num = cm.n + 1; ouvre = true; etatCM().vue = null; } }
   const J = S_.journalVagues, e = Array.isArray(J) ? J[J.length - 1] : null; if (e && e.n === cm.n && !e.combat) e.combat = { num: cm.num, style: cm.id, fois };
   sauver(); rendreHaut();
