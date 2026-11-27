@@ -48,8 +48,10 @@ GROUPES_DEV.wabbenstein3 = { nom: 'Docteur Wabbenstein (3 joueurs simulés)', li
 const joueursWab = (mo) => Math.max(1, Math.min(5, (combat && combat.joueurs) || (mo && mo.d && mo.d.joueursSimu) || 1));
 /* LA VIE SELON LE NOMBRE DE JOUEURS (26/11/2026, Mathieu : « un joueur, 600 000 (400 000 depuis le 27/11) ; deux joueurs, +100 %, 1,2 million ; puis a chaque joueur en plus, +120 % par rapport
    a la marche d'avant ; et pour les mutants, tu fais pareil ») : x1, x2, x4,4, x9,68, x21,3 (de 1 a 5 joueurs). Le Docteur, ses mutants et leurs chefs */
-const COEF_JOUEURS_LABO = { deux: 1.0, ensuite: 1.2 };
-const coefJoueursLabo = (n) => { n = Math.max(1, Math.min(5, n || 1)); return n === 1 ? 1 : (1 + COEF_JOUEURS_LABO.deux) * Math.pow(1 + COEF_JOUEURS_LABO.ensuite, n - 2); };
+/* (27/11/2026, Mathieu : « 1 : 400 000 ; 2 : 800 000 ; 3 : 1 400 000 ; 4 : 2 000 000 ; 5 : 2 500 000, mets ca comme vie plutot » : x1, x2, x3,5, x5, x6,25 ;
+   les mutants et leurs chefs suivent les memes multiplicateurs) */
+const VIE_JOUEURS_LABO = [400000, 800000, 1400000, 2000000, 2500000];
+const coefJoueursLabo = (n) => { n = Math.max(1, Math.min(5, n || 1)); return VIE_JOUEURS_LABO[n - 1] / VIE_JOUEURS_LABO[0]; };
 /* ---------------- le modele : les pistes de chaque mouvement, les axes des tourelles et du harpon ---------------- */
 const OS_TOURELLES_WAB = /^(tourelle|barillet|fourreau|tige)[GD]\./, OS_HARPON_WAB = /^(harpon|maillon\d+)\./;
 const b2gWab = (x, y, z) => new T.Vector3(x, z, -y); /* (repere de Blender, il regarde -Y, vers celui du jeu) */
