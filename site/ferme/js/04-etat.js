@@ -196,13 +196,15 @@ const ANCIENNES_P10 = { 'ecorce-coiffe': { vita: 1404 }, 'ecorce-cape': { vita: 
   'leg-ancestral-epee': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-arc': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-fouet': { puissance: 158, agilite: 43, vita: 514 } };
 /* LES PANOPLIES MELANGEES (27/11/2026, MOTIF_PANO et PANOS_MELANGEES, 03-equipements.js) : une piece deja tombee passe a ses nouvelles caracteristiques au meme niveau de
    jet : une caracteristique gardee garde sa place dans sa fourchette (meme doublee), une nouvelle prend la qualite moyenne de la piece. Sans drapeau : seul un jet qui a
-   exactement les caracteristiques d'avant (MOTIF) est converti, une piece tombee apres le melange n'est jamais touchee ; les bottes du Bouftou, inchangees, non plus */
+   exactement les caracteristiques de l'autre format est converti, une piece deja au bon format n'est jamais touchee ; les bottes du Bouftou, inchangees, non plus.
+   Dans les deux sens : melange applique (palier 11, mode test), les pieces d'avant passent au melange ; pas applique (les joueurs, 27/11/2026 : le melange repasse
+   en version dev), une piece deja convertie revient a ses stats d'avant au meme jet */
 function convertirMelanges(e) {
   const meme = (A, B) => A.length === B.length && A.every((c) => B.includes(c));
   [e].concat(Object.values(e.parties || {})).forEach((p) => {
     if (!p || !p.jets) return;
     Object.entries(p.jets).forEach(([k, j]) => { const id = baseObjet(k), O = OBJETS[id]; if (!O || O.leg || O.arme || !j || !PANOS[O.pano] || !PANOS_MELANGEES.includes(PANOS[O.pano].id)) return;
-      const A0 = statsMotif(O.pano, O.emp), A = O.rare ? Object.fromEntries(Object.entries(A0).map(([c, v]) => [c, Math.ceil(v * 1.5)])) : A0;
+      const id0 = PANOS[O.pano].id, M0 = melangeActif ? MOTIF : MOTIF_MELANGE[id0], A0 = statsAvecMotif(O.pano, O.emp, M0), A = O.rare ? rareDe(A0, M0[O.emp]) : A0; /* (l'autre format : celui d'avant le melange s'il est applique, sinon le melange, pour revenir en arriere) */
       if (meme(Object.keys(A), Object.keys(O.stats)) || !meme(Object.keys(j), Object.keys(A))) return; /* (rien n'a change pour cette piece, ou elle a deja ses nouvelles stats) */
       const Q = {}; Object.entries(A).forEach(([c, v]) => { const [a, b] = fourchette(v); Q[c] = j[c] == null ? 0.5 : b > a ? Math.max(0, Math.min(1, (j[c] - a) / (b - a))) : 0.5; });
       const qs = Object.values(Q), moy = qs.length ? qs.reduce((x, y) => x + y, 0) / qs.length : 0.5;

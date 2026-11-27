@@ -103,22 +103,6 @@ const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bott
    piece, propres a la panoplie ; la meme deux fois : le double (full vita). Pour l'instant les deux panoplies du palier 10 (les anciennes : les pieces deja tombees
    garderaient leurs anciens jets, a convertir d'abord) */
 const MOTIF_PANO = {
-  /* LE MELANGE DES PANOPLIES DU NIVEAU 1 A 90 (27/11/2026, « les items du 90 a 100, on les avait mixes pour eviter d'avoir tout le temps les memes ; ce serait bien que
-     tous les items du niveau 0 a 90 suivent cette logique, mais que les stats soient pas plus augmentees : pas plus, pas moins de vita, d'agilite, de degats sur
-     l'ensemble de la panoplie ; tu swaps ce que donnent les items ; on commence par le Bouftou », Mathieu) : la panoplie garde les 12 caracteristiques de MOTIF
-     (3 Vitalite, 3 Puissance, 2 Agilite, 2 Sagesse, 2 Prospection : les memes totaux), reparties autrement. PANOS_MELANGEES : celles qui etaient sur MOTIF ;
-     leurs pieces deja tombees passent aux nouvelles stats au meme niveau de jet (convertirMelanges, 04-etat.js) */
-  bouftou: { coiffe: ['sagesse', 'prospection'], cape: ['vita', 'vita'], amulette: ['puissance', 'agilite'], anneau: ['vita', 'sagesse'], ceinture: ['puissance', 'puissance'], bottes: ['agilite', 'prospection'] },
-  /* (les 9 autres panoplies du niveau 1 a 90, 27/11/2026, « oui, toutes », puis « juste change pas la cape Tortue », Mathieu : la cape de la Tortue reste Vitalite et Agilite) */
-  chafer: { coiffe: ['vita', 'puissance'], cape: ['agilite', 'agilite'], amulette: ['vita', 'prospection'], anneau: ['puissance', 'puissance'], ceinture: ['sagesse', 'sagesse'], bottes: ['vita', 'prospection'] },
-  bwork: { coiffe: ['puissance', 'puissance'], cape: ['vita', 'prospection'], amulette: ['vita', 'vita'], anneau: ['agilite', 'sagesse'], ceinture: ['puissance', 'agilite'], bottes: ['sagesse', 'prospection'] },
-  craqueleur: { coiffe: ['vita', 'vita'], cape: ['puissance', 'sagesse'], amulette: ['agilite', 'prospection'], anneau: ['vita', 'puissance'], ceinture: ['agilite', 'sagesse'], bottes: ['puissance', 'prospection'] },
-  dragoeuf: { coiffe: ['puissance', 'agilite'], cape: ['vita', 'sagesse'], amulette: ['vita', 'prospection'], anneau: ['agilite', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['puissance', 'sagesse'] }, /* (pas de Prospection doublee : divisee par deux sur la piece, elle perdait un point) */
-  wabbit: { coiffe: ['vita', 'prospection'], cape: ['puissance', 'puissance'], amulette: ['vita', 'sagesse'], anneau: ['agilite', 'prospection'], ceinture: ['vita', 'agilite'], bottes: ['puissance', 'sagesse'] },
-  boufcoul: { coiffe: ['agilite', 'sagesse'], cape: ['vita', 'puissance'], amulette: ['vita', 'vita'], anneau: ['puissance', 'prospection'], ceinture: ['sagesse', 'prospection'], bottes: ['puissance', 'agilite'] },
-  dragoncochon: { coiffe: ['puissance', 'prospection'], cape: ['vita', 'agilite'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'vita'], ceinture: ['agilite', 'prospection'], bottes: ['sagesse', 'sagesse'] },
-  kanniboul: { coiffe: ['puissance', 'agilite'], cape: ['puissance', 'prospection'], amulette: ['vita', 'sagesse'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'vita'], bottes: ['sagesse', 'prospection'] },
-  tortue: { coiffe: ['vita', 'vita'], cape: ['vita', 'agilite'], amulette: ['puissance', 'prospection'], anneau: ['puissance', 'sagesse'], ceinture: ['puissance', 'agilite'], bottes: ['sagesse', 'prospection'] },
   ecorce: { coiffe: ['vita', 'vita'], cape: ['vita', 'prospection'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'puissance'], ceinture: ['prospection', 'sagesse'], bottes: ['vita', 'sagesse'] }, /* (les bottes : Vitalite a la place de l'Agilite, 25/11/2026, RES_BOTTES_ECORCE plus bas) */
   arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] },
   /* (le palier 11, 20/11/2026 : la Croquevase 4 Vitalite, 3 Puissance, 2 Prospection, 2 Sagesse, 1 Agilite ; la Crachopaud 3 Puissance, 4 Agilite, 2 Vitalite, 2 Prospection, 1 Sagesse) */
@@ -129,10 +113,33 @@ const MOTIF_PANO = {
 /* LA BAISSE DU PALIER 10 (15/11/2026, « il faudrait reduire un peu la puissance des items du 90 a 100, surtout l'anneau Arakne », Mathieu) : -10 % de Vitalite, de Puissance et
    d'Agilite sur les pieces de l'Ecorce et de l'Arakne, l'arme de l'Ecorce et les armes legendaires du Chene Mou et de l'Ancestral (pas les bonus de panoplie) ; les pieces deja
    tombees gardent leur jet, recalcule sur ces valeurs (convertirP10, 04-etat.js, ANCIENNES_P10) */
+/* LE MELANGE DES PANOPLIES DU NIVEAU 1 A 90 (27/11/2026, « les items du 90 a 100, on les avait mixes pour eviter d'avoir tout le temps les memes ; ce serait bien que
+   tous les items du niveau 0 a 90 suivent cette logique, mais que les stats soient pas plus augmentees : pas plus, pas moins de vita, d'agilite, de degats sur
+   l'ensemble de la panoplie ; tu swaps ce que donnent les items ; on commence par le Bouftou », Mathieu) : la panoplie garde les 12 caracteristiques de MOTIF
+   (3 Vitalite, 3 Puissance, 2 Agilite, 2 Sagesse, 2 Prospection : les memes totaux), reparties autrement. PANOS_MELANGEES : celles qui etaient sur MOTIF ;
+   leurs pieces deja tombees passent aux nouvelles stats au meme niveau de jet (convertirMelanges, 04-etat.js)
+   EN VERSION DEV (27/11/2026, « personne ne jouait, remets comme avant, on met a la maj palier 11 », Mathieu) : pour les joueurs, MOTIF comme avant ;
+   le melange s'applique a l'ouverture du palier 11 (SORTIE_P11, au chargement) ou en entrant dans le mode test (appliquerMelange, entrerModeTest, 27b-arene-dev.js) */
+const MOTIF_MELANGE = {
+  bouftou: { coiffe: ['sagesse', 'prospection'], cape: ['vita', 'vita'], amulette: ['puissance', 'agilite'], anneau: ['vita', 'sagesse'], ceinture: ['puissance', 'puissance'], bottes: ['agilite', 'prospection'] },
+  /* (les 9 autres panoplies du niveau 1 a 90, 27/11/2026, « oui, toutes », puis « juste change pas la cape Tortue », Mathieu : la cape de la Tortue reste Vitalite et Agilite) */
+  chafer: { coiffe: ['vita', 'puissance'], cape: ['agilite', 'agilite'], amulette: ['vita', 'prospection'], anneau: ['puissance', 'puissance'], ceinture: ['sagesse', 'sagesse'], bottes: ['vita', 'prospection'] },
+  bwork: { coiffe: ['puissance', 'puissance'], cape: ['vita', 'prospection'], amulette: ['vita', 'vita'], anneau: ['agilite', 'sagesse'], ceinture: ['puissance', 'agilite'], bottes: ['sagesse', 'prospection'] },
+  craqueleur: { coiffe: ['vita', 'vita'], cape: ['puissance', 'sagesse'], amulette: ['agilite', 'prospection'], anneau: ['vita', 'puissance'], ceinture: ['agilite', 'sagesse'], bottes: ['puissance', 'prospection'] },
+  dragoeuf: { coiffe: ['puissance', 'agilite'], cape: ['vita', 'sagesse'], amulette: ['vita', 'prospection'], anneau: ['agilite', 'prospection'], ceinture: ['vita', 'puissance'], bottes: ['puissance', 'sagesse'] }, /* (pas de Prospection doublee : divisee par deux sur la piece, elle perdait un point) */
+  wabbit: { coiffe: ['vita', 'prospection'], cape: ['puissance', 'puissance'], amulette: ['vita', 'sagesse'], anneau: ['agilite', 'prospection'], ceinture: ['vita', 'agilite'], bottes: ['puissance', 'sagesse'] },
+  boufcoul: { coiffe: ['agilite', 'sagesse'], cape: ['vita', 'puissance'], amulette: ['vita', 'vita'], anneau: ['puissance', 'prospection'], ceinture: ['sagesse', 'prospection'], bottes: ['puissance', 'agilite'] },
+  dragoncochon: { coiffe: ['puissance', 'prospection'], cape: ['vita', 'agilite'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'vita'], ceinture: ['agilite', 'prospection'], bottes: ['sagesse', 'sagesse'] },
+  kanniboul: { coiffe: ['puissance', 'agilite'], cape: ['puissance', 'prospection'], amulette: ['vita', 'sagesse'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'vita'], bottes: ['sagesse', 'prospection'] },
+  tortue: { coiffe: ['vita', 'vita'], cape: ['vita', 'agilite'], amulette: ['puissance', 'prospection'], anneau: ['puissance', 'sagesse'], ceinture: ['puissance', 'agilite'], bottes: ['sagesse', 'prospection'] } };
 const NERF_P10 = 0.9, nerfP10 = (niv, c) => (niv >= 91 && (c === 'vita' || c === 'puissance' || c === 'agilite') ? NERF_P10 : 1);
 const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); return st; };
-const PANOS_MELANGEES = ['bouftou', 'chafer', 'bwork', 'craqueleur', 'dragoeuf', 'wabbit', 'boufcoul', 'dragoncochon', 'kanniboul', 'tortue'];
-const statsMotif = (k, e) => { const st = {}; MOTIF[e].forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); if (st.prospection) st.prospection = Math.max(1, Math.round(st.prospection / 2)); return st; }; /* (les stats d'une piece avant son melange, Prospection divisee par deux comprise (PROS_AVANT, plus bas) : convertirMelanges, 04-etat.js) */
+const PANOS_MELANGEES = Object.keys(MOTIF_MELANGE);
+const statsAvecMotif = (k, e, M) => { const st = {}; M[e].forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); if (st.prospection) st.prospection = Math.max(1, Math.round(st.prospection / 2)); return st; }; /* (les stats d'une piece sur un motif, Prospection divisee par deux comprise (PROS_AVANT, plus bas)) */
+const statsMotif = (k, e) => statsAvecMotif(k, e, MOTIF), statsMelange = (k, e) => statsAvecMotif(k, e, MOTIF_MELANGE[PANOS[k].id]); /* (avant et apres le melange : convertirMelanges, 04-etat.js) */
+/* le rare d'une piece : x1,5 ; une stat doublee (hors Prospection) vaut deux fois le rare d'une case (2 x 8 d'Agilite, et non 15), comme deux pieces d'avant :
+   les memes totaux au point pres (jamais de Prospection doublee dans MOTIF_MELANGE) */
+const rareDe = (st, M) => Object.fromEntries(Object.entries(st).map(([c, v]) => [c, M && M[0] === M[1] && M[0] === c && c !== 'prospection' ? 2 * Math.ceil(v / 2 * 1.5) : Math.ceil(v * 1.5)]));
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: statsPiece(k, e) }; })); /* (le profil de la panoplie, 06/11/2026) */
 /* LES STATS DE COMBAT DU PALIER 11 (25/11/2026, « des items qui pourraient donner des degats d'attaque, de la resistance fixe ou en %, des bonus de vitesse ; faut pas
@@ -254,9 +261,13 @@ const CHANCE_RARE = 0.01;
 const PROS_AVANT = {};
 Object.values(OBJETS).forEach((o) => { if (!o.stats || !o.stats.prospection) return; PROS_AVANT[o.id] = o.stats.prospection; o.stats.prospection = o.id === 'leg-joueur' ? 120 : Math.max(1, Math.round(o.stats.prospection / 2)); });
 Object.values(OBJETS).filter((o) => !o.leg).forEach((o) => { const id = o.id + '-rare'; OBJETS[id] = Object.assign({}, o, { id, base: o.id, rare: true, nom: o.nom + ' ★', stats: Object.fromEntries(Object.entries(o.stats).map(([c, v]) => [c, Math.ceil(v * 1.5)])) }); });
-/* (les rares des panoplies melangees, 27/11/2026 : une stat doublee sur une piece vaut deux fois le rare d'une case (2 x 8 d'Agilite, et non 15), comme deux pieces d'avant :
-   les memes totaux au point pres. Jamais de Prospection doublee dans MOTIF_PANO de ces panoplies) */
-PANOS_MELANGEES.forEach((id) => EMPLACEMENTS.forEach(([e]) => { const M = MOTIF_PANO[id] && MOTIF_PANO[id][e], R = OBJETS[id + '-' + e + '-rare']; if (!M || !R || M[0] !== M[1] || M[0] === 'prospection') return; R.stats[M[0]] = 2 * Math.ceil(OBJETS[id + '-' + e].stats[M[0]] / 2 * 1.5); }));
+/* le melange applique : les 6 pieces de chaque panoplie melangee et leurs rares (au chargement si le palier 11 est sorti, sinon en entrant dans le mode test ;
+   quitter le mode test recharge la page, tout revient comme avant) */
+let melangeActif = false;
+function appliquerMelange() { if (melangeActif) return; melangeActif = true;
+  PANOS_MELANGEES.forEach((id) => { const k = PANOS.findIndex((P) => P.id === id); EMPLACEMENTS.forEach(([e]) => { const O = OBJETS[id + '-' + e], Rr = OBJETS[id + '-' + e + '-rare']; if (!O) return;
+    O.stats = statsMelange(k, e); if (Rr) Rr.stats = rareDe(O.stats, MOTIF_MELANGE[id][e]); }); }); }
+if (SORTIE_P11) appliquerMelange();
 /* LES CEINTURES ET LES BOTTES DU CROQUEVASE (palier 11, 25/11/2026 ; les bottes : « laisse la prospection, retire la resistance et mets +51 a 80 de puissance + 2 % de vitesse
    de deplacement », Mathieu) ; LES CEINTURES DU PALIER 11 (25/11/2026, Mathieu : « la ceinture Crachopaud, mets-lui 240 a 420 vita, +4 a 8 dommages, 18 a 34 prospection », puis « et les stats actuelles
    de la ceinture Crachopaud, mets-les sur la ceinture du Croquevase ») : apres la creation des rares, la piece et son rare (x1,5) ; la valeur de reference au milieu de la
