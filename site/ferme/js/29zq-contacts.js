@@ -11,8 +11,9 @@
 const CONTACTS = { onglet: 'amis', data: null, charge: null, recues: 0, msg: '', msgOk: false, retirer: null, tPoll: 0 };
 /* (27/11/2026, « Mirabelle c'est ma copine, ça irait pour test ? », Mathieu : les Contacts s'ouvrent aussi, hors mode test, aux comptes de ferme d'essai :
    celui de Mathieu et celui de Mirabelle ; les autres joueurs ne voient rien) */
-const CONTACTS_TESTEURS = TESTEURS_ULTI.concat(['0e4a38df-c77a-4785-a60d-cea6ccd0914f']); /* (Mirabelle) */
-const contactsVisibles = () => (typeof MODE_TEST !== 'undefined' && !!MODE_TEST) || !!(typeof enLigneSv !== 'undefined' && enLigneSv.compte && CONTACTS_TESTEURS.includes(enLigneSv.compte));
+const CONTACTS_TESTEURS = TESTEURS_ULTI.concat(['0e4a38df-c77a-4785-a60d-cea6ccd0914f', '0bcec130-844c-4a2f-b9f0-1dc63d358e3c']); /* (Mirabelle ; Madazezette, « ajoute le bouton a Mada aussi », Mathieu, 27/11/2026) */
+/* (« au palier 11 », Mathieu, 27/11/2026 : les Contacts sortent pour tous avec le palier 11, au meme interrupteur, SORTIE_P11, 02-donnees.js ; p11Ouvert = sortie ou mode test) */
+const contactsVisibles = () => (typeof p11Ouvert === 'function' ? p11Ouvert() : typeof MODE_TEST !== 'undefined' && !!MODE_TEST) || !!(typeof enLigneSv !== 'undefined' && enLigneSv.compte && CONTACTS_TESTEURS.includes(enLigneSv.compte));
 const CLASSES_CONTACT = { iop: 'Iop', cra: 'Cra', osa: 'Osamodas' };
 async function appelContacts(nom, args) { /* (comme rpc(), 05-nuage.js, mais permis en mode test) */
   if (!ENLIGNE) throw new Error('hors ligne');
