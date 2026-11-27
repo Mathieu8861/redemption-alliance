@@ -117,7 +117,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, convertirProspection, convertirMelanges, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada, renommerFermiers]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, convertirProspection, convertirMelanges, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, cadeauPotsMathieu, rendreRevancheDragon, cadeauRuneMada, renommerFermiers]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -174,6 +174,16 @@ function cadeauDoreMathieu(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso || p.perso.classe !== 'cra' || !/^Rorschach/.test(p.perso.nom || '')) return;
     p.cadeaux = p.cadeaux || {}; if (p.cadeaux.tofuDore0811) return; p.cadeaux.tofuDore0811 = true;
     const cap = 2 + 2 * ((p.amelio || {}).voliere || 0); if ((p.tofus || 0) < cap) p.tofus = (p.tofus || 0) + 1; p.tofusDores = Math.min(p.tofus || 0, (p.tofusDores || 0) + 1); p.cadeauDoreVu = false; });
+}
+/* (27/11/2026, « rajoute à la session de Rorschach 50 gelées de chaque, royale comprise, et 50 Bananagrumes aussi », Mathieu) : une fois, dans la partie de son
+   Cra (Rorschach) : 50 pots de chaque gelée (petit et grand pot de Bleue, Menthe, Fraise, Citron, Royale) et 50 Bananagrumes dans la grange ; marque dans la
+   partie pour ne jamais se rejouer, annonce au chargement */
+function cadeauPotsMathieu(e) {
+  [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.perso || p.perso.classe !== 'cra' || !/^Rorschach/.test(p.perso.nom || '')) return;
+    p.cadeaux = p.cadeaux || {}; if (p.cadeaux.potsBanane2711) return; p.cadeaux.potsBanane2711 = true;
+    p.pots = p.pots || {}; Object.keys(POTS).forEach((t) => { p.pots[t] = (p.pots[t] || 0) + 50; });
+    p.grange = p.grange || {}; p.grange.bananagrume = (p.grange.bananagrume || 0) + 50;
+    if (p === e) setTimeout(() => { if (typeof toast === 'function') toast('Cadeau : 50 pots de chaque gelée (Royale comprise) et 50 Bananagrumes sont dans ta grange.', 'or'); }, 9000); });
 }
 function plafonnerArbres(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => { if (!p || !p.graines || !Array.isArray(p.cases)) return;
