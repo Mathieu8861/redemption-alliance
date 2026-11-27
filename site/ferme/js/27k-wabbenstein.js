@@ -46,7 +46,7 @@ GROUPES_DEV.wabbenstein = { nom: 'Docteur Wabbenstein (donjon, solo)', liste: { 
 MONSTRES.wabbenstein3 = Object.assign({}, MONSTRES.wabbenstein, { joueursSimu: 3 }); MONSTRES.wabbenstein5 = Object.assign({}, MONSTRES.wabbenstein, { joueursSimu: 5 });
 GROUPES_DEV.wabbenstein3 = { nom: 'Docteur Wabbenstein (3 joueurs simulés)', liste: { wabbenstein3: 1 } }; GROUPES_DEV.wabbenstein5 = { nom: 'Docteur Wabbenstein (5 joueurs simulés)', liste: { wabbenstein5: 1 } };
 const joueursWab = (mo) => Math.max(1, Math.min(5, (combat && combat.joueurs) || (mo && mo.d && mo.d.joueursSimu) || 1));
-/* LA VIE SELON LE NOMBRE DE JOUEURS (26/11/2026, Mathieu : « un joueur, 600 000 ; deux joueurs, +100 %, 1,2 million ; puis a chaque joueur en plus, +120 % par rapport
+/* LA VIE SELON LE NOMBRE DE JOUEURS (26/11/2026, Mathieu : « un joueur, 600 000 (400 000 depuis le 27/11) ; deux joueurs, +100 %, 1,2 million ; puis a chaque joueur en plus, +120 % par rapport
    a la marche d'avant ; et pour les mutants, tu fais pareil ») : x1, x2, x4,4, x9,68, x21,3 (de 1 a 5 joueurs). Le Docteur, ses mutants et leurs chefs */
 const COEF_JOUEURS_LABO = { deux: 1.0, ensuite: 1.2 };
 const coefJoueursLabo = (n) => { n = Math.max(1, Math.min(5, n || 1)); return n === 1 ? 1 : (1 + COEF_JOUEURS_LABO.deux) * Math.pow(1 + COEF_JOUEURS_LABO.ensuite, n - 2); };
@@ -272,12 +272,12 @@ function auraSerum(c0, duree) { /* un anneau vert sous tes pieds tant que le ser
    y'en a vraiment beaucoup a esquiver », Mathieu) : tant qu'aucune de ses creatures n'est en vie (avant le garou geant, ou une fois abattu), toutes les 13 s, il
    plante ses pieds, ses tourelles se dressent vers le ciel et tirent en l'air pendant 2,4 s ; les cawottes retombent par vagues dans toute la salle : 4 vagues de
    11, une sur toi a chaque vague, les autres de 2,5 a 13 de lui ; un cercle orange 1,15 s avant chaque chute (1 de rayon), 5 % de tes PV par cawotte */
-const BARRAGE_WAB = { periode: 13, prepa: 0.55, vagues: 4, parVague: 11, ecart: 0.6, rMin: 2.5, rMax: 13, annonce: 1.15, R: 1.0, pct: 0.05, chute: 0.42, leve: 0.75 };
+const BARRAGE_WAB = { periode: 13, prepa: 0.55, leveT: 0.3, montee: 0.45, /* (27/11/2026, « les sorts commencent a apparaitre sur la map avant que l'animation des miniguns tire », Mathieu : les canons se dressent (0,3 s), tirent, et chaque vague de cercles n'apparait que 0,45 s apres les tirs qui l'envoient) */ vagues: 4, parVague: 11, ecart: 0.6, rMin: 2.5, rMax: 13, annonce: 1.15, R: 1.0, pct: 0.05, chute: 0.42, leve: 0.75 };
 function capWabBarrage(mo, ctx) {
   const K = mo.d.wabKit; if (!K || mo.etat !== 'actif' || mo.geste || mo.wabOccupe || mo.wabInvuln) return; const B = BARRAGE_WAB, { pp, sortPret } = ctx;
   if (combat.monstres.some((o) => o.etat === 'actif' && o.invoqueur === mo.id)) return; /* (seul : pas avec le garou geant ni ses creatures) */
   if (!sortPret('wabBarrageT', B.periode) || Math.hypot(pp.x - mo.x, pp.z - mo.z) > B.rMax + 2 || !osWab(mo)) return;
-  const c0 = combat, an = mo.m.userData.anim, dS = tourellesWab(mo, 'sortie') || 0.5, dur = B.vagues * B.ecart + B.annonce + 0.3; mo.wabBarrageT = 0; mo.wabOccupe = true; mo.wabRafaleOn = true; mo.bloqueT = Math.max(mo.bloqueT || 0, dS + dur); mo.cd = Math.max(mo.cd || 0, dS + dur);
+  const c0 = combat, an = mo.m.userData.anim, dS = tourellesWab(mo, 'sortie') || 0.5, dur = B.leveT + Math.max(B.vagues * B.ecart + 0.35, B.montee + (B.vagues - 1) * B.ecart + B.annonce) + 0.3; mo.wabBarrageT = 0; mo.wabOccupe = true; mo.wabRafaleOn = true; mo.bloqueT = Math.max(mo.bloqueT || 0, dS + dur); mo.cd = Math.max(mo.cd || 0, dS + dur);
   mo.wabLeve = 0; if (!c0.wabBarrageVu) { c0.wabBarrageVu = true; toast(leNom(mo.d) + ' tire en l\'air : des dizaines de cawottes vont retomber, sors des cercles orange !', 'alerte'); }
   const S = typeof lieu !== 'undefined' && lieu === 'donjon' && mo.lab && mo.lab.mode === 'salle' && typeof SALLES_LABO !== 'undefined' ? SALLES_LABO[mo.lab.i] : null, cx = S ? DONJON.x + S.x : 0, cz = S ? DONJON.z + S.z : 0;
   const point = (x, z) => { if (S) { const d = Math.hypot(x - cx, z - cz), Rm = S.R - 1.6; if (d > Rm) { x = cx + (x - cx) / d * Rm; z = cz + (z - cz) / d * Rm; } return { x, z }; } return typeof pointValide === 'function' ? pointValide(mo.x, mo.z, x, z) : { x, z }; };
@@ -288,16 +288,17 @@ function capWabBarrage(mo, ctx) {
           const p2 = paysanMesh.position; if (c0 === combat && !c0.fin && Math.hypot(p2.x - x, p2.z - z) < B.R) blesserPerso(degWab(mo, c0.pvMax * B.pct), mo); return true; }); }, Math.max(0, (B.annonce - B.chute) * 1000)); };
   let t = 0, v = 0, tirT = 0, cote = 'G';
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || mo.etat !== 'actif') { mo.wabLeve = null; mo.wabOccupe = false; mo.wabRafaleOn = false; if (combat === c0 && mo.etat !== 'mort') tourellesWab(mo, 'rentree'); return true; }
-    if (t < dS) return false; const u = t - dS; mo.wabLeve = Math.min(1, u / 0.3); /* (les tourelles se dressent vers le ciel, majSquelette plus bas) */
-    if (u < B.vagues * B.ecart) { tirT -= dt; if (tirT <= 0) { tirT = 0.055; cote = cote === 'G' ? 'D' : 'G'; const { p, d } = boucheTourelle(mo, cote), g = cawotteTir(); scene.add(g); g.position.copy(p); let s = 0;
+    if (t < dS) return false; const u0 = t - dS, u = u0 - B.leveT, tirFin = B.vagues * B.ecart, vagueFin = B.montee + (B.vagues - 1) * B.ecart; /* (u : depuis que les canons sont dresses) */
+    if (u < 0) { mo.wabLeve = Math.min(1, u0 / B.leveT); return false; } if (u < tirFin) mo.wabLeve = 1; /* (les tourelles se dressent vers le ciel, majSquelette plus bas) */
+    if (u < tirFin) { tirT -= dt; if (tirT <= 0) { tirT = 0.055; cote = cote === 'G' ? 'D' : 'G'; const { p, d } = boucheTourelle(mo, cote), g = cawotteTir(); scene.add(g); g.position.copy(p); let s = 0;
         emettre(FX_LUM, 1, { x: p.x, y: p.y, z: p.z, vie: [0.06, 0.1], taille: [0.8, 0.3], c: ['#fff1a8', '#ff9a2e'], a: 0.9 });
         effets.push((d2) => { s += d2; if (combat !== c0 || s > 0.7) { jeter(g); return true; } g.position.set(p.x + d.x * 30 * s, p.y + d.y * 30 * s, p.z + d.z * 30 * s); g.lookAt(g.position.x + d.x, g.position.y + d.y, g.position.z + d.z); return false; }); }
-      while (v < B.vagues && u >= v * B.ecart) { const P2 = paysanMesh.position; chute(point(P2.x, P2.z).x, point(P2.x, P2.z).z); /* (une sur toi) */
+      while (v < B.vagues && u >= B.montee + v * B.ecart) { const P2 = paysanMesh.position; chute(point(P2.x, P2.z).x, point(P2.x, P2.z).z); /* (une sur toi) */
         for (let i = 1; i < B.parVague; i++) { const a = Math.random() * Math.PI * 2, r = B.rMin + Math.sqrt(Math.random()) * (B.rMax - B.rMin), q = point(mo.x + Math.sin(a) * r, mo.z + Math.cos(a) * r); chute(q.x, q.z); }
         v++; } return false; }
-    if (mo.wabLeve != null && u < B.vagues * B.ecart + 0.35) { mo.wabLeve = Math.max(0, 1 - (u - B.vagues * B.ecart) / 0.35); return false; }
+    if (mo.wabLeve != null && u < tirFin + 0.35) { mo.wabLeve = Math.max(0, 1 - (u - tirFin) / 0.35); return false; }
     if (mo.wabLeve != null) { mo.wabLeve = null; tourellesWab(mo, 'rentree'); }
-    if (u >= B.vagues * B.ecart + B.annonce) { mo.wabOccupe = false; mo.wabRafaleOn = false; return true; } return false; });
+    if (v >= B.vagues && u >= vagueFin + B.annonce + 0.1) { mo.wabOccupe = false; mo.wabRafaleOn = false; return true; } return false; });
 }
 /* les tourelles dressees vers le ciel (le barrage) : apres l'animation, chaque tourelle tourne pour que son canon pointe en haut, un peu vers l'avant */
 { const majSqBarrage = majSquelette; majSquelette = function (mo) { const r = majSqBarrage.apply(this, arguments);
