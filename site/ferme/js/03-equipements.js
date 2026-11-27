@@ -103,6 +103,12 @@ const DECALAGE = { coiffe: 2, cape: 4, amulette: 6, anneau: 3, ceinture: 5, bott
    piece, propres a la panoplie ; la meme deux fois : le double (full vita). Pour l'instant les deux panoplies du palier 10 (les anciennes : les pieces deja tombees
    garderaient leurs anciens jets, a convertir d'abord) */
 const MOTIF_PANO = {
+  /* LE MELANGE DES PANOPLIES DU NIVEAU 1 A 90 (27/11/2026, « les items du 90 a 100, on les avait mixes pour eviter d'avoir tout le temps les memes ; ce serait bien que
+     tous les items du niveau 0 a 90 suivent cette logique, mais que les stats soient pas plus augmentees : pas plus, pas moins de vita, d'agilite, de degats sur
+     l'ensemble de la panoplie ; tu swaps ce que donnent les items ; on commence par le Bouftou », Mathieu) : la panoplie garde les 12 caracteristiques de MOTIF
+     (3 Vitalite, 3 Puissance, 2 Agilite, 2 Sagesse, 2 Prospection : les memes totaux), reparties autrement. PANOS_MELANGEES : celles qui etaient sur MOTIF ;
+     leurs pieces deja tombees passent aux nouvelles stats au meme niveau de jet (convertirMelanges, 04-etat.js) */
+  bouftou: { coiffe: ['sagesse', 'prospection'], cape: ['vita', 'vita'], amulette: ['puissance', 'agilite'], anneau: ['vita', 'sagesse'], ceinture: ['puissance', 'puissance'], bottes: ['agilite', 'prospection'] },
   ecorce: { coiffe: ['vita', 'vita'], cape: ['vita', 'prospection'], amulette: ['puissance', 'puissance'], anneau: ['vita', 'puissance'], ceinture: ['prospection', 'sagesse'], bottes: ['vita', 'sagesse'] }, /* (les bottes : Vitalite a la place de l'Agilite, 25/11/2026, RES_BOTTES_ECORCE plus bas) */
   arakne: { coiffe: ['puissance', 'agilite'], cape: ['agilite', 'prospection'], amulette: ['vita', 'puissance'], anneau: ['puissance', 'agilite'], ceinture: ['vita', 'prospection'], bottes: ['agilite', 'sagesse'] },
   /* (le palier 11, 20/11/2026 : la Croquevase 4 Vitalite, 3 Puissance, 2 Prospection, 2 Sagesse, 1 Agilite ; la Crachopaud 3 Puissance, 4 Agilite, 2 Vitalite, 2 Prospection, 1 Sagesse) */
@@ -115,6 +121,8 @@ const MOTIF_PANO = {
    tombees gardent leur jet, recalcule sur ces valeurs (convertirP10, 04-etat.js, ANCIENNES_P10) */
 const NERF_P10 = 0.9, nerfP10 = (niv, c) => (niv >= 91 && (c === 'vita' || c === 'puissance' || c === 'agilite') ? NERF_P10 : 1);
 const statsPiece = (k, e) => { const st = {}; ((MOTIF_PANO[(PANOS[k] || {}).id] || MOTIF)[e]).forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); return st; };
+const PANOS_MELANGEES = ['bouftou'];
+const statsMotif = (k, e) => { const st = {}; MOTIF[e].forEach((c) => { st[c] = (st[c] || 0) + Math.round(VALEURS[c][rangPano(k)] * multPano(k, c) * nerfP10((PANOS[k] || {}).niv, c)); }); if (st.prospection) st.prospection = Math.max(1, Math.round(st.prospection / 2)); return st; }; /* (les stats d'une piece avant son melange, Prospection divisee par deux comprise (PROS_AVANT, plus bas) : convertirMelanges, 04-etat.js) */
 const OBJETS = {};
 PANOS.forEach((P, k) => EMPLACEMENTS.forEach(([e, nom]) => { const id = P.id + '-' + e; OBJETS[id] = { id, pano: k, emp: e, nom: nom + ' ' + P.de, niv: P.niv + DECALAGE[e], stats: statsPiece(k, e) }; })); /* (le profil de la panoplie, 06/11/2026) */
 /* LES STATS DE COMBAT DU PALIER 11 (25/11/2026, « des items qui pourraient donner des degats d'attaque, de la resistance fixe ou en %, des bonus de vitesse ; faut pas

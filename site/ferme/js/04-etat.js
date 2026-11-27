@@ -117,7 +117,7 @@ function completerSauvegarde(e) {
   if (!e.pots) e.pots = { petit: POTS_DEPART }; /* (13/10/2026 : les pots de gelee, 3 petits pour commencer) */
   if (!Array.isArray(e.gelees)) e.gelees = [];
 }
-const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, convertirProspection, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada, renommerFermiers]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
+const MIGRATIONS = [convertirNiveaux, convertirRythme, convertirXp, convertirCultures, convertirPanos, convertirP10, convertirProspection, convertirMelanges, jetsDansFourchette, plafonnerArbres, cadeauRevancheMada, cadeauDoreMathieu, rendreRevancheDragon, cadeauRuneMada, renommerFermiers]; /* (les niveaux des batiments le 11/10, le rythme fixe le 13/10, la courbe d'XP le 13/10 puis le 16/10, les temps de pousse le 16/10) */
 function charger() {
   try { const e = JSON.parse(localStorage.getItem(CLE)); if (e && Array.isArray(e.cases) && typeof e.kamas === 'number') { completerSauvegarde(e); MIGRATIONS.forEach((f) => f(e)); return e; } } catch (err) { /* rien */ }
   return null;
@@ -194,6 +194,21 @@ const ANCIENNES_P10 = { 'ecorce-coiffe': { vita: 1404 }, 'ecorce-cape': { vita: 
   'arme-epee-ecorce': { puissance: 133, agilite: 34 }, 'arme-arc-ecorce': { puissance: 133, agilite: 34 }, 'arme-fouet-ecorce': { puissance: 133, agilite: 34 },
   'leg-chene-epee': { puissance: 186, agilite: 51, vita: 605 }, 'leg-chene-arc': { puissance: 186, agilite: 51, vita: 605 }, 'leg-chene-fouet': { puissance: 186, agilite: 51, vita: 605 },
   'leg-ancestral-epee': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-arc': { puissance: 158, agilite: 43, vita: 514 }, 'leg-ancestral-fouet': { puissance: 158, agilite: 43, vita: 514 } };
+/* LES PANOPLIES MELANGEES (27/11/2026, MOTIF_PANO et PANOS_MELANGEES, 03-equipements.js) : une piece deja tombee passe a ses nouvelles caracteristiques au meme niveau de
+   jet : une caracteristique gardee garde sa place dans sa fourchette (meme doublee), une nouvelle prend la qualite moyenne de la piece. Sans drapeau : seul un jet qui a
+   exactement les caracteristiques d'avant (MOTIF) est converti, une piece tombee apres le melange n'est jamais touchee ; les bottes du Bouftou, inchangees, non plus */
+function convertirMelanges(e) {
+  const meme = (A, B) => A.length === B.length && A.every((c) => B.includes(c));
+  [e].concat(Object.values(e.parties || {})).forEach((p) => {
+    if (!p || !p.jets) return;
+    Object.entries(p.jets).forEach(([k, j]) => { const id = baseObjet(k), O = OBJETS[id]; if (!O || O.leg || O.arme || !j || !PANOS[O.pano] || !PANOS_MELANGEES.includes(PANOS[O.pano].id)) return;
+      const A0 = statsMotif(O.pano, O.emp), A = O.rare ? Object.fromEntries(Object.entries(A0).map(([c, v]) => [c, Math.ceil(v * 1.5)])) : A0;
+      if (meme(Object.keys(A), Object.keys(O.stats)) || !meme(Object.keys(j), Object.keys(A))) return; /* (rien n'a change pour cette piece, ou elle a deja ses nouvelles stats) */
+      const Q = {}; Object.entries(A).forEach(([c, v]) => { const [a, b] = fourchette(v); Q[c] = j[c] == null ? 0.5 : b > a ? Math.max(0, Math.min(1, (j[c] - a) / (b - a))) : 0.5; });
+      const qs = Object.values(Q), moy = qs.length ? qs.reduce((x, y) => x + y, 0) / qs.length : 0.5;
+      p.jets[k] = Object.fromEntries(Object.entries(O.stats).map(([c, v]) => { const [a, b] = fourchette(v, O.id, c), q = Q[c] != null ? Q[c] : moy; return [c, Math.round(a + q * (b - a))]; })); });
+  });
+}
 function convertirP10(e) {
   [e].concat(Object.values(e.parties || {})).forEach((p) => {
     if (!p || p.p10Dose >= 2) return;
