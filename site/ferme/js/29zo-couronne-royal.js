@@ -118,7 +118,7 @@ function chargeBouftouRoyal(iv) {
   const cib = ok(c0.cible) ? c0.cible : c0.monstres.filter(ok).sort((p, q) => d(p) - d(q))[0]; if (!cib) return;
   const a = Math.atan2(cib.x - iv.x, cib.z - iv.z), dx = Math.sin(a), dz = Math.cos(a), x0 = iv.x, z0 = iv.z, but = Math.max(0, d(cib) - 0.6 - 0.3 * (cib.d.ombre || 1));
   let L = 0; while (L < but && solSort(x0 + dx * (L + 0.25), z0 + dz * (L + 0.25))) L += 0.25;
-  const duree = Math.max(0.12, L / 22), touches = new Set(), dir = new T.Vector3(dx, 0, dz), coup = Math.round(degBouftou(statsPerso().niveau) * iv.royalD * C.mult), M = iv.royalM || 1;
+  const duree = Math.max(0.12, L / 22), touches = new Set(), dir = new T.Vector3(dx, 0, dz), M = iv.royalM || 1, coup = Math.round(degBouftou(statsPerso().niveau) * iv.royalD * C.mult * M); /* (le coup passe par la source du Bouftou invoque, que les cristaux ne multiplient pas : M ici, comme le dit la fiche) */
   iv.pose = duree + 0.15; iv.ry = a; let t = 0, poudre = 0, choc = 0;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.invoc !== iv || c0.fin) return true;
     const k = Math.min(1, t / duree), x = x0 + dx * L * k, z = z0 + dz * L * k; iv.x = x; iv.z = z; iv.ry = a; const y = iv.m.position.y;
