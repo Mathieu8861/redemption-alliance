@@ -105,5 +105,5 @@ const PLUIE_ARROSE = { t: 0, vu: false };
 { const majPluieArrose = majPluie; majPluie = function (dt) { const r = majPluieArrose.apply(this, arguments);
     try { if (pluieLa() && PLUIE_J.k > 0.5 && (PLUIE_ARROSE.t -= dt) <= 0) { PLUIE_ARROSE.t = 0.5; let n = 0;
         S_.cases.forEach((p) => { if (p.type === 'champ' && p.c && !p.arrose) { p.arrose = true; rendreCase(p.id); n++; } });
-        if (n) { if (typeof rendreCasesBulles === 'function') rendreCasesBulles(); if (!PLUIE_ARROSE.vu) { PLUIE_ARROSE.vu = true; toast('La pluie arrose tes cultures : pas besoin de l\'arrosoir tant qu\'il pleut.', 'or'); } } } } catch (e) { /* rien */ }
+        if (n) { compter('arrosages', n); /* (le defi d'arrosage compte la pluie, 27/11/2026) */ if (typeof rendreCasesBulles === 'function') rendreCasesBulles(); if (!PLUIE_ARROSE.vu) { PLUIE_ARROSE.vu = true; toast('La pluie arrose tes cultures : pas besoin de l\'arrosoir tant qu\'il pleut.', 'or'); } } } } catch (e) { /* rien */ }
     return r; }; }

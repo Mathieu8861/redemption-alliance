@@ -94,3 +94,26 @@ function libererFriches() { if (!S_ || !S_.terrains || !MODELES.ileTerrains) ret
 { const majTerrainsMem = majTerrains; majTerrains = function () { const r = majTerrainsMem.apply(this, arguments);
     try { TERRAINS.forEach((t) => { const G = MODELES.ileTerrains[t.id]; if (G && !G.friche && G.herbe && !S_.terrains[t.id]) G.herbe.visible = true; }); } catch (e) { /* rien */ }
     clearTimeout(MEMOIRE.tFri); MEMOIRE.tFri = setTimeout(() => { try { libererFriches(); } catch (e) { console.warn('friches', e); } }, 3000); return r; }; }
+/* LES PERSONNAGES DE LA SIMU VSA, CHARGES AU BESOIN (27/11/2026, la memoire) : Omeho, le voleur, le voleur monte, le Parachutiste et le Demenageur (plus le
+   Fumigene et le Saboteur en version dev) restaient charges du demarrage a la fin, pour une simu toutes les 30 min : 11 Mo. Maintenant :
+   - au demarrage, seul le marchand (chargerPersonnagesVsa(['marchand']), 09-modeles.js) ;
+   - l'annonce d'une simu charge ses personnages puis s'affiche (une a trois secondes plus tard, ses 30 s commencent a l'affichage) ; un modele rate : l'annonce
+     part quand meme, comme avant (sans Demenageur, ou la simu s'annule faute de voleurs) ;
+   - le voleur de la ferme (toutes les 7 min 30 environ) charge le sien a sa premiere visite et le garde ;
+   - 4 s apres le depart d'Omeho, les personnages de la simu sont rendus (pas le voleur, qui revient souvent).
+   Les bancs d'essai (window.__banc) gardent tout charge et l'ancien deroulement, pour rester comparables. */
+const VSA_SIMU = ['omeho', 'voleur', 'voleurMonte', 'parachutiste', 'demenageur'], VSA_RENDUS = ['omeho', 'voleurMonte', 'parachutiste', 'demenageur', 'fumigene', 'saboteur'];
+const vsaComplet = () => VSA_SIMU.every((k) => MODELES[k]) && !(typeof vsaDev === 'function' && vsaDev() && !(MODELES.fumigene && MODELES.saboteur));
+{ const annoncerRaidMem = annoncerRaid; annoncerRaid = function (muet) {
+    if (window.__banc || MEMOIRE.vsaEssaye || vsaComplet()) return annoncerRaidMem.apply(this, arguments);
+    if (raidAnnonce || combat || enAccueil || MEMOIRE.vsaAttendu) return; MEMOIRE.vsaAttendu = true;
+    chargerPersonnagesVsa().catch(() => {}).then(() => { MEMOIRE.vsaAttendu = false; MEMOIRE.vsaEssaye = true; try { annoncerRaid(muet); } finally { MEMOIRE.vsaEssaye = false; } }); }; }
+{ const lancerVoleurMem = lancerVoleur; lancerVoleur = function () {
+    if (window.__banc || MEMOIRE.voleurEssaye || MODELES.voleur) return lancerVoleurMem.apply(this, arguments);
+    if (MEMOIRE.voleurAttendu) return; MEMOIRE.voleurAttendu = true;
+    chargerPersonnagesVsa(['voleur']).catch(() => {}).then(() => { MEMOIRE.voleurAttendu = false; MEMOIRE.voleurEssaye = true; try { lancerVoleur(); } finally { MEMOIRE.voleurEssaye = false; } }); }; }
+function libererVsa() { if (window.__banc || raidAnnonce || omeho || MEMOIRE.vsaAttendu || (combat && combat.raid) || lieu !== 'ferme') return 0; const L = [];
+  VSA_RENDUS.forEach((k) => { if (MODELES[k]) { L.push(MODELES[k]); delete MODELES[k]; } }); if (!L.length) return 0;
+  const G = ressourcesGardees([]); L.forEach((M) => jeterTout(M, G)); MEMOIRE.vsa = (MEMOIRE.vsa || 0) + 1; return L.length; }
+{ const partirOmehoMem = partirOmeho; partirOmeho = function () { const r = partirOmehoMem.apply(this, arguments); clearTimeout(MEMOIRE.tVsa); MEMOIRE.tVsa = setTimeout(() => { try { libererVsa(); } catch (e) { console.warn('personnages VSA', e); } }, 12000); return r; }; } /* (la fin d'une simu : Omeho s'en va, sa caleche met quelques secondes a sortir) */
+{ const retirerOmehoMem = retirerOmeho; retirerOmeho = function () { const r = retirerOmehoMem.apply(this, arguments); clearTimeout(MEMOIRE.tVsa); MEMOIRE.tVsa = setTimeout(() => { try { libererVsa(); } catch (e) { console.warn('personnages VSA', e); } }, 4000); return r; }; }

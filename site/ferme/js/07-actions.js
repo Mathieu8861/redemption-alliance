@@ -98,7 +98,7 @@ const ACTIONS = {
     }
     const c = PAR_ID[id]; if (!c || !debloquee(c) || !(S_.graines[c.id] > 0) || p.c) return;
     if (c.max && S_.cases.filter((x) => x.type === 'champ' && x.c === c.id).length >= c.max) { toast('Pas plus de ' + c.max + ' ' + (c.arbre ? 'bananiers' : c.nom) + ' sur ta ferme : arrache-en un pour en replanter un autre.', 'alerte'); return; } /* (le Bananagrume, rare : 2 au plus, 04/11/2026) */
-    S_.graines[c.id]--; S_.graine = c.id; compter('plantes'); son('planter'); const auto = niv('arrosoir') && (S_.citerne || 0) > 0; if (auto) { S_.citerne--; if (!S_.citerne) toast('La citerne est vide : passe au puits pour la remplir.', 'alerte'); }
+    S_.graines[c.id]--; S_.graine = c.id; compter('plantes'); son('planter'); const auto = niv('arrosoir') && (S_.citerne || 0) > 0; if (auto) { S_.citerne--; compter('arrosages'); /* (27/11/2026, « ca prend pas en compte quand la citerne arrose seule les semis », Mathieu : le defi « Arrose N semis » compte aussi la citerne, le puits qui irrigue et la pluie) */ if (!S_.citerne) toast('La citerne est vide : passe au puits pour la remplir.', 'alerte'); }
     Object.assign(p, champVide(), { c: c.id, arrose: !!auto });
     rendreCase(p.id); rendreHaut();
   },

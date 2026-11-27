@@ -34,10 +34,10 @@ if (SORTIE_P11) activerPuits6(); /* (la sortie du palier 11 : avant le chargemen
 const irrigue = (p) => nivBat('nivPuits') >= 6 && !enRuine('puits') && S_.cases.some((c) => c.type === 'puits' && Math.max(Math.abs(c.i - p.i), Math.abs(c.j - p.j)) <= PUITS6.portee);
 function irriguer() { /* les champs plantes et pas arroses, autour du puits : arroses (a chaque semis, et toutes les 2 s pour ceux d'avant l'achat) */
   if (!S_ || nivBat('nivPuits') < 6) return;
-  S_.cases.forEach((p) => { if (p.type === 'champ' && p.c && !p.arrose && irrigue(p)) { p.arrose = true; rendreCase(p.id); } });
+  let n = 0; S_.cases.forEach((p) => { if (p.type === 'champ' && p.c && !p.arrose && irrigue(p)) { p.arrose = true; rendreCase(p.id); n++; } }); if (n) compter('arrosages', n); /* (le defi d'arrosage compte l'irrigation, 27/11/2026) */
 }
 setInterval(() => { try { irriguer(); } catch (e) { /* (avant le chargement de la ferme) */ } }, 2000);
-const planterPuits6 = ACTIONS.planter; ACTIONS.planter = function (p) { const r = planterPuits6.apply(this, arguments); if (p && p.c && !p.arrose && irrigue(p)) { p.arrose = true; rendreCase(p.id); } return r; };
+const planterPuits6 = ACTIONS.planter; ACTIONS.planter = function (p) { const r = planterPuits6.apply(this, arguments); if (p && p.c && !p.arrose && irrigue(p)) { p.arrose = true; compter('arrosages'); rendreCase(p.id); } return r; };
 const amelioPuits6 = ACTIONS.amelio; ACTIONS.amelio = function (id) {
   const avant = id === 'nivPuits' ? nivBat('nivPuits') : 0, r = amelioPuits6.apply(this, arguments);
   if (id === 'nivPuits' && avant === 5 && nivBat('nivPuits') === 6) { irriguer(); setTimeout(() => toast('Le récupérateur d\'eau de pluie est en place : sa rigole arrose toujours les champs qui touchent le puits.', 'or'), 1600); }
