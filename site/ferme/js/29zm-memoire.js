@@ -117,3 +117,22 @@ function libererVsa() { if (window.__banc || raidAnnonce || omeho || MEMOIRE.vsa
   const G = ressourcesGardees([]); L.forEach((M) => jeterTout(M, G)); MEMOIRE.vsa = (MEMOIRE.vsa || 0) + 1; return L.length; }
 { const partirOmehoMem = partirOmeho; partirOmeho = function () { const r = partirOmehoMem.apply(this, arguments); clearTimeout(MEMOIRE.tVsa); MEMOIRE.tVsa = setTimeout(() => { try { libererVsa(); } catch (e) { console.warn('personnages VSA', e); } }, 12000); return r; }; } /* (la fin d'une simu : Omeho s'en va, sa caleche met quelques secondes a sortir) */
 { const retirerOmehoMem = retirerOmeho; retirerOmeho = function () { const r = retirerOmehoMem.apply(this, arguments); clearTimeout(MEMOIRE.tVsa); MEMOIRE.tVsa = setTimeout(() => { try { libererVsa(); } catch (e) { console.warn('personnages VSA', e); } }, 4000); return r; }; }
+/* LE BOUTON « LIBERER LA MEMOIRE » DES OPTIONS (27/11/2026, « on n'a pas un moyen de vider le cache ou reset la memoire ? », puis « ok why not, rajoute dans les
+   options », Mathieu) : il lance d'un coup tous les nettoyages que le jeu fait deja tout seul (les lieux quittes, les familles de monstres, les personnages de la
+   simu VSA, les niveaux depasses des batiments, les friches des terrains achetes), sur la ferme et hors combat, puis dit ce qu'il a rendu a la carte graphique.
+   Le vrai remise a zero reste le rechargement de la page : la ligne le dit. La ligne se glisse dans la fenetre des Options, sous « Graphismes ». */
+function libererMemoire() {
+  if (lieu !== 'ferme' || combat) { toast('Rentre à la ferme, hors combat, pour libérer la mémoire.'); return null; }
+  const R = { lieux: 0, familles: 0, vsa: 0, niveaux: 0, friches: 0 }, essai = (f) => { try { return f() || 0; } catch (e) { console.warn('liberer la memoire', e); return 0; } };
+  const RL = essai(viderLieux) || {}; R.lieux = ['labo', 'arene', 'ile', 'casino'].filter((k) => RL[k] === true).length; /* (viderLieux rend aussi les familles : RL.familles) */
+  R.familles = (+RL.familles || 0) + essai(libererFamilles); R.vsa = essai(libererVsa); R.niveaux = essai(libererNiveauxPasses); R.friches = essai(libererFriches);
+  try { rendu.renderLists.dispose(); } catch (e) { /* rien */ }
+  const pl = (n, un, des) => n + ' ' + (n > 1 ? des : un), L = [R.lieux && pl(R.lieux, 'lieu quitté', 'lieux quittés'), R.familles && pl(R.familles, 'famille de monstres', 'familles de monstres'), R.vsa && 'les personnages de la simu VSA', R.niveaux && pl(R.niveaux, 'ancien niveau de bâtiment', 'anciens niveaux de bâtiments'), R.friches && pl(R.friches, 'friche de terrain acheté', 'friches de terrains achetés')].filter(Boolean);
+  MEMOIRE.manuel = (MEMOIRE.manuel || 0) + 1; toast(L.length ? 'Mémoire libérée : ' + L.join(', ') + '.' : 'Tout était déjà propre : rien à libérer.', 'or');
+  return R;
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target && ev.target.closest ? ev.target.closest('#b-memoire') : null; if (b) { libererMemoire(); return; }
+  try { if (modaleOuverte !== 'options' || document.querySelector('#carte #b-memoire')) return; const g = document.querySelector('#carte #b-graphismes'), art = g && g.closest('.art'); if (!art) return;
+    art.insertAdjacentHTML('afterend', '<div class="art">' + ico('opt-graphismes') + '<div><b>Mémoire</b><div class="desc">Le jeu libère tout seul ce qui ne sert plus. Ce bouton le fait tout de suite. Pour repartir de zéro, recharge la page : ta partie est sauvegardée.</div></div><div class="act"><button class="btn discret" id="b-memoire">Libérer</button></div></div>'); } catch (e) { /* rien */ }
+});
