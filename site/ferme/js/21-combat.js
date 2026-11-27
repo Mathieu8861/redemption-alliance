@@ -1601,7 +1601,11 @@ function eclaircirMonstres(N, k, rendre) {
    graphismes legers, et le calque n'est refait qu'au plus 20 fois par seconde quand il a plus de 6 trous, et seulement s'il a bouge d'au moins 2 pixels */
 const YEUX_NUIT_MAX = 8;
 function trousNuit(N) {
-  const maintenant = performance.now(); if ((N.nTrous || 0) > 6 && N.masqueT && maintenant - N.masqueT < 50) return; N.masqueT = maintenant; /* (peu de trous, quelques lanternes : a chaque image, comme avant ; au-dela de 6, 20 fois par seconde) */
+  camera.updateMatrixWorld(); const ce = camera.matrixWorld.elements, camSig = [ce[0], ce[2], ce[8], ce[9], ce[12], ce[13], ce[14], camera.right, camera.top].map((v) => v.toFixed(3)).join(','), camBouge = camSig !== N.camSig; N.camSig = camSig;
+  const maintenant = performance.now(); if (!camBouge && (N.nTrous || 0) > 6 && N.masqueT && maintenant - N.masqueT < 50) return; N.masqueT = maintenant; /* (peu de trous, quelques lanternes : a chaque image, comme avant ; au-dela de 6, 20 fois par seconde) */
+  /* (27/11/2026, video de Mathieu : « quand on bouge la cam, les lumieres sautent dans tous les sens, ca eclate les yeux » : au-dela de 6 trous, le voile n'etait
+     recalcule que 20 fois par seconde, et avec la camera de l'image d'avant ; l'image, elle, bouge a chaque image : les ronds de lumiere glissaient en retard puis
+     sautaient. Maintenant, des que la camera a bouge, les trous sont refaits a chaque image, avec la camera de cette image ; immobile, le frein reste) */
   const L = (typeof lanternesAnim !== 'undefined' ? lanternesAnim : []).filter((A) => A.a > 0.05 && A.sol && A.sol.parent);
   const Y = (N.trousYeux || []).concat(typeof trousBatiments === 'function' ? trousBatiments(N) : []); /* (les yeux des monstres, yeuxNuit ; et les lumieres d'appoint des batiments, 14i-nuit.js) */
   if (!L.length && !Y.length) { if (N.masque) { N.v.style.webkitMaskImage = N.v.style.maskImage = ''; N.masque = false; N.masqueTxt = ''; } return; }
