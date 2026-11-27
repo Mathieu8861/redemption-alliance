@@ -71,16 +71,27 @@ function versToon(g, o) {
 /* ---------- fusion : les milliers de petits morceaux immobiles d'un modele deviennent quelques gros objets, un par materiau
    (l'ile seule faisait pres de 8 000 appels de dessin). Le vent garde le rythme de chaque morceau (attribut aOrigine),
    les touffes d'une case de jeu restent a part (on les cache quand on laboure), et parNom garde les noms (terre des parcelles). ---------- */
+/* LES NORMALES EN 8 BITS (27/11/2026, la memoire : « on peut continuer a alleger », Mathieu) : les normales (la direction de chaque sommet, pour la lumiere et le
+   contour) pesaient autant que les positions, 47 Mo sur 134 de geometries, en nombres a virgule de 32 bits ; une direction tient dans 3 octets (-127 a 127,
+   « normalized » : la carte graphique les relit entre -1 et 1). Tout ce qui sort d'une fusion (l'ile, les batiments, les cultures, les decors, le perso soude)
+   les range ainsi : 4 fois moins de place, en memoire et sur la carte graphique. Les fusions relisent les normales en les renormalisant (peu importe leur
+   longueur) ; les deux fonctions de Three qui ECRIVENT dans les normales (computeVertexNormals, applyMatrix4 : translate, rotate, scale) les remettent d'abord
+   en nombres a virgule (sinon elles y ecriraient des 0 et des 1). */
+const NORMALES_8 = true;
+const tableauNormales = (n) => (NORMALES_8 ? new Int8Array(n) : new Float32Array(n)), KN = NORMALES_8 ? 127 : 1, attributNormales = (nor) => new T.BufferAttribute(nor, 3, NORMALES_8);
+{ const enFlottant = (g) => { const N = g.attributes && g.attributes.normal; if (!N || !N.array || N.array instanceof Float32Array) return; const a = new Float32Array(N.count * 3), k = N.normalized ? 1 / 127 : 1; for (let i = 0; i < a.length; i++) a[i] = N.array[i] * k; g.setAttribute('normal', new T.BufferAttribute(a, 3)); };
+  const cvn = T.BufferGeometry.prototype.computeVertexNormals; T.BufferGeometry.prototype.computeVertexNormals = function () { enFlottant(this); return cvn.apply(this, arguments); };
+  const am4 = T.BufferGeometry.prototype.applyMatrix4; T.BufferGeometry.prototype.applyMatrix4 = function () { enFlottant(this); return am4.apply(this, arguments); }; }
 function fusionGeo(liste, inv, avecOrigine) {
   let nv = 0, ni = 0; liste.forEach(({ m }) => { const g = m.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; });
-  const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), org = avecOrigine ? new Float32Array(nv * 3) : null, idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+  const pos = new Float32Array(nv * 3), nor = tableauNormales(nv * 3), org = avecOrigine ? new Float32Array(nv * 3) : null, idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   let ov = 0, oi = 0; const v = new T.Vector3(), mt = new T.Matrix4(), nm = new T.Matrix3(), o = new T.Vector3();
   liste.forEach(({ m, porteur }) => {
     mt.multiplyMatrices(inv, m.matrixWorld); nm.getNormalMatrix(mt); const g = m.geometry, P = g.attributes.position, N = g.attributes.normal;
     if (org) o.setFromMatrixPosition(porteur.matrixWorld).applyMatrix4(inv);
     for (let i = 0; i < P.count; i++) {
       v.fromBufferAttribute(P, i).applyMatrix4(mt); const q = (ov + i) * 3; pos[q] = v.x; pos[q + 1] = v.y; pos[q + 2] = v.z;
-      if (N) { v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[q] = v.x; nor[q + 1] = v.y; nor[q + 2] = v.z; }
+      if (N) { v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[q] = Math.round(v.x * KN); nor[q + 1] = Math.round(v.y * KN); nor[q + 2] = Math.round(v.z * KN); }
       if (org) { org[q] = o.x; org[q + 1] = o.y; org[q + 2] = o.z; }
     }
     /* « pourquoi une partie de la tete du Bouftou est toute noire ? » (Mathieu, 12/10/2026) : une piece faite en miroir (echelle negative, l'oreille
@@ -90,7 +101,7 @@ function fusionGeo(liste, inv, avecOrigine) {
     for (let i = 0; i < nb; i += 3) { idx[oi + i] = id(i); idx[oi + i + 1] = id(miroir ? i + 2 : i + 1); idx[oi + i + 2] = id(miroir ? i + 1 : i + 2); }
     ov += P.count; oi += g.index ? g.index.count : P.count;
   });
-  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', attributNormales(nor));
   if (org) geo.setAttribute('aOrigine', new T.BufferAttribute(org, 3)); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.computeBoundingSphere(); geo.computeBoundingBox(); return geo;
 }
 /* un Bouftou fusionne, pattes comprises : ses 4 pattes deviennent un seul maillage anime par 8 os (une hanche et un genou chacune), une couleur
@@ -123,15 +134,15 @@ function souderPattes(g) {
   g.updateMatrixWorld(true); const squelette = new T.Skeleton(os), mt = new T.Matrix4(), nm = new T.Matrix3(), v = new T.Vector3();
   paquets.forEach(({ M, pieces }) => {
     let nv = 0, ni = 0; pieces.forEach(({ m }) => { const G = m.geometry; nv += G.attributes.position.count; ni += G.index ? G.index.count : G.attributes.position.count; });
-    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4), idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    const pos = new Float32Array(nv * 3), nor = tableauNormales(nv * 3), si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4), idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
     let ov = 0, oi = 0;
     pieces.forEach(({ m, b }) => {
       mt.multiplyMatrices(inv, m.matrixWorld); nm.getNormalMatrix(mt); const G = m.geometry, Pp = G.attributes.position, N = G.attributes.normal;
-      for (let i = 0; i < Pp.count; i++) { const q = (ov + i) * 3; v.fromBufferAttribute(Pp, i).applyMatrix4(mt); pos[q] = v.x; pos[q + 1] = v.y; pos[q + 2] = v.z; v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[q] = v.x; nor[q + 1] = v.y; nor[q + 2] = v.z; si[(ov + i) * 4] = b; sw[(ov + i) * 4] = 1; }
+      for (let i = 0; i < Pp.count; i++) { const q = (ov + i) * 3; v.fromBufferAttribute(Pp, i).applyMatrix4(mt); pos[q] = v.x; pos[q + 1] = v.y; pos[q + 2] = v.z; v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[q] = Math.round(v.x * KN); nor[q + 1] = Math.round(v.y * KN); nor[q + 2] = Math.round(v.z * KN); si[(ov + i) * 4] = b; sw[(ov + i) * 4] = 1; }
       const nb = G.index ? G.index.count : Pp.count; for (let i = 0; i < nb; i++) idx[oi + i] = (G.index ? G.index.getX(i) : i) + ov;
       ov += Pp.count; oi += nb;
     });
-    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3));
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', attributNormales(nor));
     geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4)); geo.setIndex(new T.BufferAttribute(idx, 1));
     const M2 = M.clone(); M2.skinning = true; const sm = new T.SkinnedMesh(geo, M2); sm.name = 'patte'; sm.castShadow = M !== CONTOUR; sm.receiveShadow = M !== CONTOUR; boite.add(sm);
     sm.updateMatrixWorld(true); sm.bind(squelette, sm.matrixWorld);
@@ -180,7 +191,7 @@ const MODELES = {};
 const VERSION_MODELES = '20261119f'; /* la version commune des modeles et des icones. NE PLUS LA CHANGER pour un seul modele (19/11/2026, « le jeu lag de malade,
    meme le chargement », Mathieu) : chaque changement faisait retelecharger tous les modeles (27,6 Mo au demarrage, plus ceux charges a la demande). Un modele
    qui change recoit sa propre version dans VERSIONS_FICHIERS, les autres restent dans le cache du navigateur */
-const VERSIONS_FICHIERS = { 'koalaks.glb': '20261127a', /* (le Chevaucheur a pied, 27/11/2026) */ 'arene-temple.glb': '20261126c', 'arene-volcan.glb': '20261126c', /* (le cratere volcanique, troisieme carte de l'Arene) */ 'arene-mine.glb': '20261126d', /* (la mine des Craqueleurs, carte a relief) */ 'arene-ciel.glb': '20261126d', /* (les ruines celestes, carte a relief) */ 'wab-greffe-anime.glb': '20261125a', /* (son oeil bionique ne se deforme plus quand il frappe, 25/11/2026) */ /* (le temple de la jungle, deuxieme carte de l'Arene, 25/11/2026) */ 'puits6.glb': '20261125a', /* (le canal courbe et l'eau qui coule du puits niveau 6, 25/11/2026) */ 'enclos6.glb': '20261124d', 'wab-fluo-anime.glb': '20261124b', 'wab-vampire-anime.glb': '20261124e', 'wab-drone.glb': '20261124a', /* (le fluo et le vampire relies, 24/11/2026 : mains d'un bloc, blouse sur le bassin) */ 'gardien-chat-r1.glb': '20261123a', 'gardien-chat-r2.glb': '20261123a', 'gardien-chat-r3.glb': '20261123a', 'gardien-chien-r1.glb': '20261123a', 'gardien-chien-r2.glb': '20261123a', 'gardien-chien-r3.glb': '20261123a', /* (l'armure sur la forme de tous les jours, 23/11/2026) */ 'libeclair-c.glb': '20261122a', 'sphere-marees-b.glb': '20261122a', 'sphere-marees-c.glb': '20261122a', 'grenouille-couvee-c.glb': '20261122a', 'sphere-couvee-eclose-c.glb': '20261122a', 'grenouille-couvee-b.glb': '20261122a', 'sphere-couvee-eclose-b.glb': '20261122a', 'sphere-couvee-eclose.glb': '20261122a', 'grenouille-couvee.glb': '20261122a', 'sphere-marees.glb': '20261121a', 'sphere-couvee.glb': '20261121a', 'coffre-podium-legendaire.glb': '20261121a', 'coffre-podium-epique.glb': '20261121a', 'coffre-podium-rare.glb': '20261121a', 'tour-filet-pistes.glb': '20261119h', 'scorpion-anime.glb': '20261120b', 'wabbenstein-anime.glb': '20261120c', 'boss-ile-desert.glb': '20261120a', 'equipements-mare.glb': '20261122b', 'ile-labo.glb': '20261124a', 'ile-labo-flore.glb': '20261124a', 'ile-labo-salles.glb': '20261124l' }; /* (scorpion-anime : les pinces de Scorpal refaites d'apres le dessin, 20/11/2026) */
+const VERSIONS_FICHIERS = { 'ile-ronde-jeu.glb': '20261127a', /* (l'ile creuse : 333 dalles de pierre jamais visibles retirees du dessous, outils/ile-creuse.js, 27/11/2026) */ 'koalaks.glb': '20261127a', /* (le Chevaucheur a pied, 27/11/2026) */ 'arene-temple.glb': '20261126c', 'arene-volcan.glb': '20261126c', /* (le cratere volcanique, troisieme carte de l'Arene) */ 'arene-mine.glb': '20261126d', /* (la mine des Craqueleurs, carte a relief) */ 'arene-ciel.glb': '20261126d', /* (les ruines celestes, carte a relief) */ 'wab-greffe-anime.glb': '20261125a', /* (son oeil bionique ne se deforme plus quand il frappe, 25/11/2026) */ /* (le temple de la jungle, deuxieme carte de l'Arene, 25/11/2026) */ 'puits6.glb': '20261125a', /* (le canal courbe et l'eau qui coule du puits niveau 6, 25/11/2026) */ 'enclos6.glb': '20261124d', 'wab-fluo-anime.glb': '20261124b', 'wab-vampire-anime.glb': '20261124e', 'wab-drone.glb': '20261124a', /* (le fluo et le vampire relies, 24/11/2026 : mains d'un bloc, blouse sur le bassin) */ 'gardien-chat-r1.glb': '20261123a', 'gardien-chat-r2.glb': '20261123a', 'gardien-chat-r3.glb': '20261123a', 'gardien-chien-r1.glb': '20261123a', 'gardien-chien-r2.glb': '20261123a', 'gardien-chien-r3.glb': '20261123a', /* (l'armure sur la forme de tous les jours, 23/11/2026) */ 'libeclair-c.glb': '20261122a', 'sphere-marees-b.glb': '20261122a', 'sphere-marees-c.glb': '20261122a', 'grenouille-couvee-c.glb': '20261122a', 'sphere-couvee-eclose-c.glb': '20261122a', 'grenouille-couvee-b.glb': '20261122a', 'sphere-couvee-eclose-b.glb': '20261122a', 'sphere-couvee-eclose.glb': '20261122a', 'grenouille-couvee.glb': '20261122a', 'sphere-marees.glb': '20261121a', 'sphere-couvee.glb': '20261121a', 'coffre-podium-legendaire.glb': '20261121a', 'coffre-podium-epique.glb': '20261121a', 'coffre-podium-rare.glb': '20261121a', 'tour-filet-pistes.glb': '20261119h', 'scorpion-anime.glb': '20261120b', 'wabbenstein-anime.glb': '20261120c', 'boss-ile-desert.glb': '20261120a', 'equipements-mare.glb': '20261122b', 'ile-labo.glb': '20261124a', 'ile-labo-flore.glb': '20261124a', 'ile-labo-salles.glb': '20261124l' }; /* (scorpion-anime : les pinces de Scorpal refaites d'apres le dessin, 20/11/2026) */
 { const charge0 = chargeur.load.bind(chargeur), re = new RegExp('([^/?]+\\.glb)\\?v=' + VERSION_MODELES + '(?![0-9a-z])'); /* (seulement les chargements normaux : un essai en ?v=Date.now() reste tel quel) */
   chargeur.load = (url, ...r) => charge0(String(url).replace(re, (m, f) => f + '?v=' + (VERSIONS_FICHIERS[f] || VERSION_MODELES)), ...r); }
 /* un modele tire d'une planche : on le recentre, on le remet droit, on l'ajuste a la taille voulue (pied au sol, centre en 0) */

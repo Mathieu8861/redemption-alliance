@@ -118,20 +118,20 @@ function piecePersoOk(m) { /* une piece qu'on peut souder sans rien changer a so
 }
 function geoFusionPerso(L, inv) { /* les pieces dans le repere de leur partie ; un contour pousse de son epaisseur le long de la normale, dans le repere de sa piece, comme le faisait le dessin */
   let nv = 0, ni = 0; L.forEach(({ m }) => { const g = m.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; });
-  const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+  const pos = new Float32Array(nv * 3), nor = tableauNormales(nv * 3), idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   let ov = 0, oi = 0; const v = new T.Vector3(), n = new T.Vector3(), mt = new T.Matrix4(), nm = new T.Matrix3();
   L.forEach(({ m, ep }) => {
     mt.multiplyMatrices(inv, m.matrixWorld); nm.getNormalMatrix(mt); const g = m.geometry, P = g.attributes.position, N = g.attributes.normal;
     for (let i = 0; i < P.count; i++) {
       v.fromBufferAttribute(P, i); const q = (ov + i) * 3;
-      if (N) { n.fromBufferAttribute(N, i); if (ep) { const l = n.length(); if (l > 0) v.addScaledVector(n, ep / l); } n.applyMatrix3(nm).normalize(); nor[q] = n.x; nor[q + 1] = n.y; nor[q + 2] = n.z; }
+      if (N) { n.fromBufferAttribute(N, i); if (ep) { const l = n.length(); if (l > 0) v.addScaledVector(n, ep / l); } n.applyMatrix3(nm).normalize(); nor[q] = Math.round(n.x * KN); nor[q + 1] = Math.round(n.y * KN); nor[q + 2] = Math.round(n.z * KN); }
       v.applyMatrix4(mt); pos[q] = v.x; pos[q + 1] = v.y; pos[q + 2] = v.z;
     }
     const miroir = mt.determinant() < 0, nb = g.index ? g.index.count : P.count, id = (i) => (g.index ? g.index.getX(i) : i) + ov; /* (une piece en miroir : ses triangles retournes, comme dans fusionGeo) */
     for (let i = 0; i < nb; i += 3) { idx[oi + i] = id(i); idx[oi + i + 1] = id(miroir ? i + 2 : i + 1); idx[oi + i + 2] = id(miroir ? i + 1 : i + 2); }
     ov += P.count; oi += nb;
   });
-  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3)); geo.setIndex(new T.BufferAttribute(idx, 1));
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', attributNormales(nor)); geo.setIndex(new T.BufferAttribute(idx, 1));
   geo.computeBoundingSphere(); geo.computeBoundingBox(); return geo;
 }
 function fusionnerPerso(g) {

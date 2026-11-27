@@ -84,3 +84,13 @@ function libererFamilles() { if (combat || lieu !== 'ferme') return 0; const gar
   const G = ressourcesGardees([]); L.forEach((k) => libererFamille(k, G)); MEMOIRE.familles = (MEMOIRE.familles || 0) + L.length; return L.length; }
 { const viderLieuxMem = viderLieux; viderLieux = function () { const R = viderLieuxMem.apply(this, arguments); try { R.familles = libererFamilles(); } catch (e) { console.warn('familles', e); } return R; }; }
 { const finVagueMem = finVague; finVague = function () { const r = finVagueMem.apply(this, arguments); clearTimeout(MEMOIRE.tFam); MEMOIRE.tFam = setTimeout(() => { try { libererFamilles(); } catch (e) { /* rien */ } }, 2500); return r; }; }
+/* LES FRICHES DES TERRAINS ACHETES (27/11/2026, la memoire) : chaque terrain de l'ile existe en herbe et en friche (ronces, buissons, rochers : 120 000 triangles
+   en tout) ; une fois le terrain achete, sa friche ne se montre plus jamais : elle est rendue 3 s apres (sortie de la scene, sa geometrie rendue a la carte
+   graphique). Un terrain pas encore achete garde les deux (son herbe sert au moment de l'achat). Si une ferme chargee ensuite n'a pas ce terrain (les bancs
+   d'essai qui enchainent des fermes dans la meme page), il se montre en herbe plutot que vide. */
+function libererFriches() { if (!S_ || !S_.terrains || !MODELES.ileTerrains) return 0; const L = [];
+  TERRAINS.forEach((t) => { const G = MODELES.ileTerrains[t.id]; if (G && G.friche && G.herbe && S_.terrains[t.id]) { L.push(G.friche); scene.remove(G.friche); G.friche = null; } });
+  if (!L.length) return 0; const Gd = ressourcesGardees([]); L.forEach((M) => jeterTout(M, Gd)); MEMOIRE.friches = (MEMOIRE.friches || 0) + L.length; return L.length; }
+{ const majTerrainsMem = majTerrains; majTerrains = function () { const r = majTerrainsMem.apply(this, arguments);
+    try { TERRAINS.forEach((t) => { const G = MODELES.ileTerrains[t.id]; if (G && !G.friche && G.herbe && !S_.terrains[t.id]) G.herbe.visible = true; }); } catch (e) { /* rien */ }
+    clearTimeout(MEMOIRE.tFri); MEMOIRE.tFri = setTimeout(() => { try { libererFriches(); } catch (e) { console.warn('friches', e); } }, 3000); return r; }; }
