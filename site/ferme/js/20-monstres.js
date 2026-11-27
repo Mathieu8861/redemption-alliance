@@ -369,8 +369,8 @@ MONSTRES.mamaKoalak.soigne = 3; MONSTRES.maitreKoalak.galvanise = 3.75; MONSTRES
 /* LE WA WABBIT PLUS VIF (27/11/2026, « le boss Wabbit, a up un peu : les degats ca va, mais il est tres lent, il faudrait qu'il fasse des attaques a distance aussi
    en auto-attaques, et la pluie de cawottes peut-etre un peu plus souvent », Mathieu) : il marche a 3,2 au lieu de 2,2, sa pluie de cawottes revient toutes les 5 s
    au lieu de 7, et quand tu n'es pas au contact il te lance une cawotte toutes les 1,6 s, jusqu'a 7 cases (capTirLoin, 21-combat.js : son coup normal, de loin) */
-Object.assign(MONSTRES.waWabbit, { vitesse: 3.0, pluie: 5, projectile: 'cawotte', tirLoin: { portee: 14, cadence: 1.6 } });
-MONSTRES.waWabbit.desc = MONSTRES.waWabbit.desc.replace(', enragé sous', ', de loin il te lance des cawottes, enragé sous');
+Object.assign(MONSTRES.waWabbit, { vitesse: 3.0, pluie: 4.5, cawotteRoyale: 9, rappel: 13, projectile: 'cawotte', tirLoin: { portee: 14, cadence: 1.3 } }); /* (puis « augmente encore un poil la difficulte », Mathieu, 27/11/2026 : cawottes de loin toutes les 1,3 s (1,6), pluie toutes les 4,5 s (5), Cawotte royale toutes les 9 s (11), appel de Wabbits toutes les 13 s (16, d.rappel)) */
+/* (mise en ligne du 27/11/2026, apres une copie partie sans ce fichier : nouvelle adresse pour les navigateurs) */ MONSTRES.waWabbit.desc = MONSTRES.waWabbit.desc.replace(', enragé sous', ', de loin il te lance des cawottes, enragé sous').replace('Wabbits toutes les 16 s', 'Wabbits toutes les 13 s');
 ['drakoalak', 'chevaucheurKoalak'].forEach((t) => { MONSTRES[t].ombre = Math.round(MONSTRES[t].ombre * 1.2 * 100) / 100; });
 const renfort = (n) => { if (n in RENFORTS) return RENFORTS[n]; const h = (n - 1) % VAGUES_PALIER + 1; let f = 1;
   if (n > VAGUES_PALIER && n <= VAGUES_MAX && h < VAGUES_PALIER - 1) { const a = forceBrute(n - h - 1), b = forceBrute(n - h + VAGUES_PALIER - 1), cible = a * Math.pow(b / a, h / (VAGUES_PALIER - 1)); f = Math.min(1.8, Math.max(1, Math.sqrt(cible / forceBrute(n)))); } /* (plafonne : au-dela, des coups trop gros) */
