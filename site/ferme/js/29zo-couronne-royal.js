@@ -2,7 +2,7 @@
 /* LA COURONNE DU BOUFTOU ROYAL, UN SORT PAR CLASSE (27/11/2026, « la coiffe bouftou royal on la refait en fonction des classes ? », Mathieu) :
    - Iop, Charge rapide : il fonce en ligne droite vers ou tu vises (5 cases) et passe a travers les monstres ; chacun sur sa route prend 2 fois ses degats et
      reste sonne 0,5 s (« tu charges, tous les monstres sur ta route sont touches, tu passes a travers, et eux prennent des degats et un petit stun de 0,5 s ») ;
-   - Cra, Dash : un long bond en ligne droite (7 cases), intouchable pendant le dash (« permet d'esquiver des sorts ») ; a la sortie, 4 s a +10 % de vitesse
+   - Cra, Dash : un long bond en ligne droite (6 cases), intouchable pendant le dash (« permet d'esquiver des sorts ») ; a la sortie, 4 s a +10 % de vitesse
      de deplacement et +30 d'Agilite ;
    - Osamodas, Bouftou Royal : sans viser (« il lance son sort en instantane, pas de chargement »), son Bouftou devient un Bouftou Royal 6 s : +30 % de degats,
      +20 % de vitesse de deplacement, et il charge un monstre en arrivant.
@@ -10,7 +10,7 @@
    Les cristaux (29zn-cristaux-barres.js) montent les durees et les bonus (mxc), les degats par la source du sort. */
 const COURONNE = {
   iop: { portee: 10, vit: 40, mult: 2, sonne: 0.5 }, /* (vit : 40 de vitesse de charge, 26 pour l'ancienne Charge) */
-  cra: { portee: 14, duree: 0.3, buff: 4, vit: 0.10, agi: 30, grace: 0.12 }, /* (duree : le dash entier, 7 cases en 0,3 s ; grace : encore intouchable un instant a l'arrivee) */
+  cra: { portee: 12, duree: 0.3, /* (6 cases : « 6 cases », Mathieu au formulaire, 27/11/2026 ; 7 avant) */ buff: 4, vit: 0.10, agi: 30, grace: 0.12 }, /* (duree : le dash entier en 0,3 s ; grace : encore intouchable un instant a l'arrivee) */
   osa: { duree: 6, deg: 0.30, vit: 0.20, charge: 12, mult: 2, sonne: 1, sonneBoss: 0.5, taille: 1.7 } /* (charge : jusqu'a 6 cases du Bouftou ; taille : le Royal 1,7 fois plus haut que le Bouftou) */
 };
 SORTS_LEG.royal.parClasse = { /* (recharges : 10 s pour le Iop et le Cra, « met a 10s pour iop et cra », Mathieu, 27/11/2026 ; 12 s avant) */
@@ -22,7 +22,7 @@ SORTS_LEG.royal.parClasse = { /* (recharges : 10 s pour le Iop et le Cra, « met
 { const L = LEGENDAIRES.find((l) => l.cle === 'royal'), laine = ' Et tes Bouftous donnent 25 % de laine en plus.';
   L.pouvoirs = {
     epee: 'Sort Charge rapide (touche 3) : tu fonces en ligne droite vers où tu vises (jusqu\'à 5 cases) et tu passes à travers les monstres : chacun sur ta route prend 2 fois tes dégâts et reste sonné 0,5 s. Recharge 10 s.' + laine,
-    arc: 'Sort Dash (touche 3) : tu bondis loin en ligne droite vers où tu vises (jusqu\'à 7 cases), intouchable pendant le dash : tu esquives les coups et les sorts. À la sortie, pendant 4 s, tu cours 10 % plus vite et tu as 30 d\'Agilité en plus. Recharge 10 s.' + laine,
+    arc: 'Sort Dash (touche 3) : tu bondis loin en ligne droite vers où tu vises (jusqu\'à 6 cases), intouchable pendant le dash : tu esquives les coups et les sorts. À la sortie, pendant 4 s, tu cours 10 % plus vite et tu as 30 d\'Agilité en plus. Recharge 10 s.' + laine,
     fouet: 'Sort Bouftou Royal (touche 3) : sans viser, ton Bouftou invoqué devient un Bouftou Royal pendant 6 s : il frappe 30 % plus fort, court 20 % plus vite et charge un monstre en arrivant (2 fois son coup, sonné 1 s, 0,5 s pour un boss). Recharge 15 s.' + laine };
   Object.defineProperty(OBJETS['leg-royal'], 'pouvoir', { get: () => (typeof S_ !== 'undefined' && S_ && S_.perso && L.pouvoirs[ARMES[classeDe()][0]]) || L.pouvoir, enumerable: true, configurable: true }); }
 /* la fiche des cristaux : les effets du sort, classe par classe */
@@ -62,7 +62,7 @@ function chargeRapideIop(pt, st) {
     secousse(0.12, 0.2); onde(fin.x, u.y, fin.z, 1.6, '#ffffff', 0.3, 0.8); onde(fin.x, u.y, fin.z, 2.2, '#f0c96a', 0.45, 0.6); poussiere(fin.x, u.y, fin.z, 10, 1.2, '#d8c6a0'); return true; });
 }
 
-/* LE DASH (Cra) : il file en ligne droite vers ou il vise (7 cases, jusqu'au premier obstacle), en rase-motte, dans une trainee bleu clair ; intouchable (enVol,
+/* LE DASH (Cra) : il file en ligne droite vers ou il vise (6 cases, jusqu'au premier obstacle), en rase-motte, dans une trainee bleu clair ; intouchable (enVol,
    comme en l'air pendant un bond : blesserPerso n'y fait rien) du depart a un instant apres l'arrivee ; a la sortie, son bonus : vitesse et Agilite pendant 4 s */
 function dashCra(pt, st) {
   const C = COURONNE.cra, M = mxc(), pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a);
