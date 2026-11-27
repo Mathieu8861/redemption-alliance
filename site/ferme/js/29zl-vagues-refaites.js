@@ -10,7 +10,7 @@
 const REJOUE_VAGUES = { parJour: 3, sorti: false, lance: null, vue: false };
 const etatRejoue = () => { const j = jourJeu(); let E = S_.vaguesRefaites; if (!E || E.jour !== j) E = S_.vaguesRefaites = { jour: j, n: 0, L: [] }; return E; };
 const refaitesRestantes = () => Math.max(0, REJOUE_VAGUES.parJour - etatRejoue().n);
-const refaireVisible = () => REJOUE_VAGUES.sorti || (typeof MODE_TEST !== 'undefined' && MODE_TEST);
+const refaireVisible = () => REJOUE_VAGUES.sorti || (typeof p11Ouvert === 'function' ? p11Ouvert() : typeof MODE_TEST !== 'undefined' && MODE_TEST); /* (« avec le palier 11 », Mathieu, 27/11/2026 : s'ouvre a tous avec l'interrupteur SORTIE_P11, 02-donnees.js ; en attendant, le mode test) */
 const avecChefRV = (L) => (L || []).some(([t]) => MONSTRES[t] && MONSTRES[t].boss); /* (boss et demi-boss : les deux ont boss, le demi-boss a aussi demi) */
 function vagueRefaisable(n) {
   if (!(n >= 1 && n < S_.vague.num && n <= vaguesOuvertes())) return false; if (typeof vagueEnCombats === 'function' && vagueEnCombats(n)) return false;
