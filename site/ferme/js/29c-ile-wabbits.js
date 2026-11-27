@@ -337,6 +337,7 @@ function solLabo() {
   const m = new T.Mesh(geo, new T.MeshToonMaterial({ color: '#ffffff', vertexColors: true, gradientMap: grad })); m.receiveShadow = true; m.name = 'sol_labo'; return m;
 }
 /* LES PIECES DU DEHORS : la liste (nom de la piece, x, z, rotation, echelle) tiree une fois pour toutes (toujours la meme ile) ; les obstacles notes au passage */
+const OBST_FLORE_LABO = { faits: false };
 function placerFloreLabo() {
   const L = []; let gr = 20261122; const rnd = () => (gr = (gr * 16807) % 2147483647) / 2147483647;
   const occupe = []; /* (les gros objets : on ne pose rien dessus) */
@@ -434,7 +435,7 @@ function placerFloreLabo() {
   const solides = L.filter((P) => COLL_LABO[P.p] && P.p !== 'cloture'), retires = new Set();
   L.forEach((P) => { if (P.p === 'ponton' || !COLL_LABO[P.p]) return; if (Math.hypot(P.x, P.z) - rayonP(P) < LABO.R_OUT + 0.9) retires.add(P); });
   L.forEach((P) => { if (P.p !== 'cloture') return; if (solides.some((Q) => !retires.has(Q) && Math.hypot(Q.x - P.x, Q.z - P.z) < rayonP(P) * 0.9 + rayonP(Q) * 0.7)) retires.add(P); });
-  const garde = L.filter((P) => !retires.has(P)); garde.forEach((P) => obstacleLabo(P));
+  const garde = L.filter((P) => !retires.has(P)); if (!OBST_FLORE_LABO.faits) garde.forEach((P) => obstacleLabo(P)); OBST_FLORE_LABO.faits = true; /* (une seule fois : l'ile videe puis reconstruite, 29zm-memoire.js, garde ses obstacles, toujours les memes) */
   return { L: garde, yeux: yeux.filter((P) => !retires.has(P)), machines: { poteaux: poteaux.filter((P) => !retires.has(P)), generateurs: generateurs.filter((P) => !retires.has(P)), autres: garde.filter((P) => P.p === 'cuve_brisee' || P.p === 'ferraille') }, retires: [...retires].map((P) => P.p) };
 }
 /* VOIR A TRAVERS LES ARBRES : les pieces du dehors (cimes, rochers, champignons geants...) s'ouvrent autour du perso, entre lui et la camera, au-dessus de

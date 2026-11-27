@@ -1,0 +1,74 @@
+'use strict';
+/* LA MEMOIRE DU JEU (27/11/2026, « le jeu consomme entre 1,3 et 1,6 Go de memoire, c'est normal ? » puis « il faut que l'on n'ait pas besoin de tout garder :
+   la ferme quand t'es a la ferme, l'ile quand t'es sur l'ile, l'arene quand t'es sur l'arene, et quand tu bouges, ca garde pas la ou tu etais ; les gens qui ont
+   des petits PC, et sur telephone... », Mathieu). Mesure du 27/11 (traces/chargement/plans-memoire*.js) : la ferme garde 194 Mo de modeles ; une visite du labo
+   en laissait 33 Mo de plus (son ile, cachee mais gardee) et 236 Mo de textures (11 textures de 2048 x 2048 pour ses mutants), meme rentre a la ferme.
+   1. LES TEXTURES des modeles a squelette (les monstres faits par IA) ramenees a 1024 au chargement : quatre fois moins de memoire, la meme image a la
+      distance ou l'on joue ;
+   2. LE LABO DES WABBITS VIDE en rentrant a la ferme : son ile, ses salles, ses coffres, ses mutants et leurs textures ; tout se recharge a la visite suivante
+      (comme au premier voyage). Ses obstacles fixes (le decor, toujours le meme) restent : ils ne pesent rien et ne se dedoublent pas a la reconstruction */
+const MEMOIRE = { texMax: 1024, vides: 0 };
+function plafonnerTextures(root, max) { /* chaque texture plus grande que max (en largeur ou en hauteur) redessinee a max, dans la meme texture */
+  const faits = new Set(); let n = 0;
+  root.traverse((o) => { (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach((m) => {
+    const T0 = []; Object.values(m).forEach((v) => { if (v && v.isTexture) T0.push(v); }); if (m.uniforms) Object.values(m.uniforms).forEach((u) => { if (u && u.value && u.value.isTexture) T0.push(u.value); });
+    T0.forEach((t) => { if (faits.has(t)) return; faits.add(t); const im = t.image, w = im && im.width, h = im && im.height; if (!(w > max || h > max)) return;
+      const s = max / Math.max(w, h), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(w * s)); cv.height = Math.max(1, Math.round(h * s));
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); t.image = cv; t.needsUpdate = true; n++; if (im.close) try { im.close(); } catch (e) { /* rien */ } }); }); });
+  return n;
+}
+{ const preparerSqMem = preparerSquelette; preparerSquelette = function (sc) { try { plafonnerTextures(sc, MEMOIRE.texMax); } catch (e) { console.warn('textures', e); } return preparerSqMem.apply(this, arguments); }; }
+if (typeof chargerDrone === 'function') { const droneMem = chargerDrone; chargerDrone = function () { const p = droneMem.apply(this, arguments);
+    if (p && !p.plafond) { p.plafond = true; p.then(() => { if (DRONE_GLB) plafonnerTextures(DRONE_GLB, MEMOIRE.texMax); }).catch(() => {}); } return p; }; }
+/* tout ce que dessine un groupe, rendu a la carte graphique (geometries, matieres, textures), sauf ce que la ferme ou un modele garde utilise aussi
+   (la montgolfiere, les monstres du public de l'Arene, les matieres partagees) : ressourcesGardees */
+function ressourcesGardees(sauf) { const G = new Set(), ajouter = (r) => r && r.traverse && r.traverse((o) => { if (o.geometry) G.add(o.geometry);
+    (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach((m) => { G.add(m); Object.values(m).forEach((v) => { if (v && v.isTexture) G.add(v); }); if (m.uniforms) Object.values(m.uniforms).forEach((u) => { if (u && u.value && u.value.isTexture) G.add(u.value); }); }); });
+  scene.children.forEach((o) => { if (!sauf.includes(o)) ajouter(o); });
+  Object.values(MODELES).forEach((r) => { if (sauf.includes(r)) return; if (Array.isArray(r)) r.forEach(ajouter); else if (r && r.isObject3D) ajouter(r); else if (r && typeof r === 'object') Object.values(r).forEach((x) => { if (x && x.isObject3D) ajouter(x); else if (x && typeof x === 'object') Object.values(x).forEach(ajouter); }); });
+  return G; }
+function jeterTout(root, garder) { const vus = new Set(), g = garder || new Set();
+  root.traverse((o) => { if (o.geometry && !vus.has(o.geometry)) { vus.add(o.geometry); if (!g.has(o.geometry)) o.geometry.dispose(); }
+    (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach((m) => { if (vus.has(m)) return; vus.add(m);
+      Object.values(m).forEach((v) => { if (v && v.isTexture && !vus.has(v)) { vus.add(v); if (!g.has(v)) v.dispose(); } });
+      if (m.uniforms) Object.values(m.uniforms).forEach((u) => { const v = u && u.value; if (v && v.isTexture && !vus.has(v)) { vus.add(v); if (!g.has(v)) v.dispose(); } }); if (!g.has(m)) m.dispose(); }); });
+}
+/* vide un lieu : ses groupes sortis de la scene et rendus a la carte graphique */
+function viderGroupes(L) { L = L.filter(Boolean); if (!L.length) return; L.forEach((x) => scene.remove(x)); const G = ressourcesGardees(L); L.forEach((x) => jeterTout(x, G)); }
+function retirerBlocLabo(o) { BLOCS_LABO.forEach((L) => { const i = L.indexOf(o); if (i >= 0) L.splice(i, 1); }); }
+function viderLabo() {
+  if (typeof ileWabbits === 'undefined' || !ileWabbits || lieu === 'donjon' || (combat && combat.genre === 'donjon')) return false;
+  const g = ileWabbits; ileWabbits = null; ileWabbitsPromesse = null; viderGroupes([g]);
+  try { butinLabo.coffres.forEach((C) => { if (C.ob) retirerBlocLabo(C.ob); }); butinLabo.coffres.length = 0; butinLabo.recoltes.length = 0; } catch (e) { /* rien */ }
+  try { contoursTrou.clear(); } catch (e) { /* rien */ }
+  try { if (CUVE_WAB) { clearInterval(CUVE_WAB.userData.bulles); scene.remove(CUVE_WAB); jeterTout(CUVE_WAB); CUVE_WAB = null; } } catch (e) { /* rien */ }
+  { const N = MUTANTS_LABO.map(([n]) => n).concat(['wabbenstein']).filter((n) => MODELES[n] && !SQ_EN_COURS[n]), M = N.map((n) => MODELES[n]); N.forEach((n) => { delete MODELES[n]; }); const G = ressourcesGardees([]); M.forEach((x) => jeterTout(x, G)); } /* (ils se rechargent au depart vers l'ile, ou a l'arrivee du Docteur) */
+  try { if (DRONE_GLB) { jeterTout(DRONE_GLB); DRONE_GLB = null; chargerDrone.p = null; } } catch (e) { /* rien */ }
+  MEMOIRE.vides++; return true;
+}
+/* L'ARENE (son colisee et ses cartes : temple, volcan, mine, ciel), L'ILE DES BOSS ET LE CASINO (l'ile, la salle du palais, le bureau du patron) : vides en
+   rentrant a la ferme, recharges a la visite suivante (leurs chargeurs ne construisent que ce qui manque) */
+function viderArene() { if (lieu === 'arene' || (combat && combat.arene)) return false; const L = [ileArene]; Object.values(CARTES_ARENE).forEach((C) => { if (C.g) L.push(C.g); });
+  if (!L.some(Boolean)) return false; viderGroupes(L); ileArene = null; Object.values(CARTES_ARENE).forEach((C) => { C.g = null; }); if (typeof DV !== 'undefined') DV.arene = null; MEMOIRE.vides++; return true; }
+function viderIleBoss() { if (!ileBoss || lieu === 'ile' || (combat && combat.genre === 'ile')) return false; viderGroupes([ileBoss]); ileBoss = null; if (typeof DV !== 'undefined') DV.ile = null; MEMOIRE.vides++; return true; }
+function viderCasino() { if (lieu === 'casino' || course || !(ileCasino || salleCasino || bureauCasino)) return false;
+  viderGroupes([ileCasino, salleCasino, bureauCasino]); ileCasino = null; casinoAnim = null; salleCasino = null; barman = null; gardesSalle = []; bureauCasino = null; patronB = null; feuB = null; poissonsB = null; porteFondateur = null;
+  try { porteAnim = null; } catch (e) { /* rien */ } try { fumeeB.length = 0; } catch (e) { /* rien */ }
+  try { Object.assign(ROUE3D, { g: null, disque: null, clapet: null, lampes: [], anim: null, ouvert: false }); } catch (e) { /* rien */ } /* (la roue du hall : reconstruite avec la salle, 29o-roue-3d.js) */ MEMOIRE.vides++; return true; }
+function viderLieux() { const R = {}; [['labo', viderLabo], ['arene', viderArene], ['ile', viderIleBoss], ['casino', viderCasino]].forEach(([k, f]) => { try { R[k] = f(); } catch (e) { R[k] = 'erreur'; console.warn('vider ' + k, e); } }); return R; }
+/* en rentrant a la ferme : on vide ce qu'on quitte (une seconde apres, le voile leve) */
+{ const rentrerMem = rentrerFerme; rentrerFerme = async function () { const r = await rentrerMem.apply(this, arguments);
+    setTimeout(() => { if (lieu === 'ferme' && !combat) viderLieux(); }, 1200); return r; }; }
+/* LES NIVEAUX DEPASSES DES BATIMENTS (27/11/2026) : tous les niveaux de la grange, de l'HDV, du puits et de la geliere etaient gardes (52 Mo de batiments sur
+   la ferme) ; seul le niveau actuel s'affiche, et un batiment ne redescend jamais : les niveaux en dessous sont rendus. Gardes : le niveau actuel et ceux au-dessus
+   (les ameliorations), la geliere 1 (le jeu s'en sert pour savoir que les gelieres sont chargees), les granges 5 et 6 avec le chateau. Si un niveau rendu est
+   quand meme demande (une autre partie chargee dans le mode test), le plus proche le remplace au lieu de planter */
+const NIVEAUX_PASSES = { grange: () => (nivBat('qg') >= 6 ? 4 : nivBat('qg') - 1), hdv: () => nivBat('nivEtal') - 1, puits: () => nivBat('nivPuits') - 1, geliere: () => (niv('geliere') ? nivModeleGeliere() - 1 : 0) };
+function libererNiveauxPasses() { if (!S_ || !S_.amelio) return 0; const L = [];
+  Object.entries(NIVEAUX_PASSES).forEach(([f, k]) => { let max = 0; try { max = k(); } catch (e) { return; }
+    for (let n = f === 'geliere' ? 2 : 1; n <= max; n++) { const M = MODELES[f + n]; if (M && (MODELES[f + (max + 1)] || f === 'grange')) { L.push(M); delete MODELES[f + n]; } } });
+  if (!L.length) return 0; const G = ressourcesGardees([]); L.forEach((M) => jeterTout(M, G)); MEMOIRE.niveaux = (MEMOIRE.niveaux || 0) + L.length; return L.length; }
+{ const clonerMem = cloner; cloner = function (nom) { if (!MODELES[nom]) { const m = /^(grange|hdv|puits|geliere)(\d+)$/.exec(nom); if (m) { const f = m[1], n = +m[2]; let r = null;
+      for (let d = 1; d < 8 && !r; d++) { if (MODELES[f + (n + d)]) r = f + (n + d); else if (n - d >= 1 && MODELES[f + (n - d)]) r = f + (n - d); } if (r) nom = r; } }
+    return clonerMem.call(this, nom); }; }
+{ const construireMem = construireBatiments; construireBatiments = function () { const r = construireMem.apply(this, arguments); clearTimeout(MEMOIRE.tNiv); MEMOIRE.tNiv = setTimeout(() => { try { libererNiveauxPasses(); } catch (e) { console.warn('niveaux passes', e); } }, 3000); return r; }; }

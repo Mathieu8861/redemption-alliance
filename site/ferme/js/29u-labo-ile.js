@@ -74,7 +74,7 @@ async function poserButinLabo(g) {
     for (let i = 0; i < 40 && !ok; i++) { const a = i * 2.4, d = i * 0.35, x = q.x + Math.cos(a) * d, z = q.z + Math.sin(a) * d; if (libreSolLabo(x, z, 1.1) && hTerrainLabo(x, z) > -0.2) ok = { x, z }; }
     if (!ok) return; const C = coffreLaboMesh(); void rang;
     const grp = C.g; grp.scale.setScalar(1.05); grp.position.set(ok.x, hTerrainLabo(ok.x, ok.z), ok.z); grp.rotation.y = Math.atan2(-ok.x, -ok.z); g.add(grp);
-    ajouterBlocLabo(ok.x, ok.z, 0.55); butinLabo.coffres.push({ rang: null, x: ok.x, z: ok.z, grp, ch: C.ch, ouvert: false }); }); /* (rang : tire a l'ouverture) */
+    const ob = ajouterBlocLabo(ok.x, ok.z, 0.55); butinLabo.coffres.push({ rang: null, x: ok.x, z: ok.z, grp, ch: C.ch, ouvert: false, ob }); }); /* (ob : son obstacle, retire quand l'ile est videe, 29zm-memoire.js) */ /* (rang : tire a l'ouverture) */
 }
 /* une nouvelle partie : tout repousse, les coffres se referment */
 { const partirButin = partirDonjon; partirDonjon = async function () { butinLabo.recoltes.forEach((R) => { R.pret = 0; R.grp.visible = true; R.m.scale.setScalar(1); });
