@@ -192,7 +192,12 @@ function explosionGelJuicy(x, y, z, r) {
    - la cible blanchit, s'ecrase et recule fort (a l'image) ; tuee (hors boss et demi-boss), elle eclate en braises et en cendres ;
    - les chiffres sautent en arc, gros et dores ;
    Les images en silhouette et en negatif et le zoom ne se jouent pas en graphismes legers, ni si le systeme demande moins d'animations. */
-const JS_FATAL = { arret: 0.11, silhouette: 45, negatif: 45, zoom: 1.16, retour: 320, lignes: 240, recul: 0.9 };
+const JS_FATAL = { arret: 0.08, silhouette: 45, negatif: 45, zoom: 1.16, retour: 320, lignes: 240, recul: 0.9 }; /* (arret 0,11 avant le 27/11/2026 au soir) */
+/* MOINS D'EFFETS AUTOUR, PLUS DE SORT (27/11/2026 au soir, « faut reduire un peu le flash blanc et l'animation autour avec les pics, au moins sur les ultimate, surtout les
+   mono cible (morsure, fleche fatale) ; qu'on voie un peu plus le sort (la morsure, l'epee qui tombe, la cible), qu'il marque plus longtemps, et les autres effets
+   autour les reduire un peu », Mathieu) : le temps fort est doux pour les trois classes (ni ecran noir et blanc ni negatif, zoom moitie moins fort, comme la Fleche
+   fatale depuis le 26/11) ; moins de pointes et plus courtes ; les eclats d'impact plus petits. Les sorts restent a l'ecran plus longtemps apres le coup (l'epee
+   plantee, la mire verrouillee, la morsure tenue), plus grands, sans rien changer au moment ou les degats tombent */
 const animationsReduites = () => { try { return fxLeger() || matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return fxLeger(); } };
 
 /* les traits d'eclat en pointes, dessines par-dessus le jeu au point d'impact */
@@ -278,37 +283,37 @@ function sceauDore() { /* le sceau dore au sol : deux cercles, huit rayons */
 }
 function epeeDuCiel(suivre, direct) { /* (25/11/2026, « il met 8 ans a se lancer », un joueur, puis « le delai d'envoi doit etre comme avant », Mathieu : l'epee tombe pendant le geste du Iop,
      0,18 s, et elle est plantee quand les degats tombent, au meme instant qu'avant ; direct : sans geste, elle s'abat tout de suite) */
-  const k = Math.min(2.2, Math.max(1, suivre.haut / 1.6)), T_APPEL = direct ? 0 : 0.06, T_CHUTE = direct ? 0.05 : 0.12, T_TENUE = 0.55, T_FIN = 0.25, pp = paysanMesh.position;
+  const k = Math.min(2.2, Math.max(1, suivre.haut / 1.6)), kE = 1.25 * k, T_APPEL = direct ? 0 : 0.06, T_CHUTE = direct ? 0.05 : 0.12, T_TENUE = 1.05, T_FIN = 0.35, pp = paysanMesh.position; /* (27/11/2026 au soir : l'epee 1,25 fois plus grande (kE ; les anneaux et le sceau gardent k), tenue 1,05 s au lieu de 0,55, effacement 0,35 s au lieu de 0,25) */
   /* l'appel : une colonne de lumiere monte de l'epee du Iop */
   emettre(FX_LUM, 26, { x: pp.x, y: pp.y + 1.2, z: pp.z, r: 0.15, v: [0, 16, 0], dv: 1, vie: [0.25, 0.4], taille: [0.25, 0.05], c: ['#ffffff', '#ffd36a'], a: 0.9, etire: 0.02 });
   emettre(FX_VIF, 12, { x: pp.x, y: pp.y + 1.2, z: pp.z, r: 0.1, v: [0, 12, 0], dv: 1.5, vie: [0.2, 0.35], taille: [0.08, 0.02], c: ['#ffffff', '#ffd36a'], frein: 1, etire: 0.03 }); flashLumiere(pp.x, pp.y + 1.5, pp.z, '#ffd36a', 2.5, 6, 0.3);
-  const sceau = sceauDore(), epee = modeleEpeeCiel(), yaw = new T.Quaternion(), pench = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), 0.12), retourne = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI), vib = new T.Quaternion(), AX = new T.Vector3(1, 0, 0);
+  const sceau = sceauDore(), epee = modeleEpeeCiel(), yaw = new T.Quaternion(), pench = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), 0.34), retourne = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), Math.PI), vib = new T.Quaternion(), AX = new T.Vector3(1, 0, 0);
   epee.visible = false; scene.add(epee); let t = 0, frappe = false, force = false, P = suivre().clone(), y0 = solSous(P);
   const rai = faisceau(new T.Vector3(P.x, y0 + 12, P.z), new T.Vector3(P.x, y0, P.z), [['#ffd36a', '#ff9a1e', 0.55 * k, false], ['#ffffff', '#ffd36a', 0.18 * k, true]]); /* (un rai de lumiere tombe du ciel la ou l'epee va tomber) */
   effets.push((dt) => { t += dt; if (force && !frappe) t = Math.max(t, T_APPEL + T_CHUTE); /* (les degats sont tombes : elle se plante maintenant) */
     if (!frappe) { P.copy(suivre()); y0 = solSous(P); }
     /* le sceau : il s'ouvre en tournant, eclate a l'impact, puis s'efface */
-    const ks = t < T_APPEL + T_CHUTE ? Math.min(1, t / (T_APPEL + T_CHUTE)) : 1, fs = t < T_APPEL + T_CHUTE ? 1 : Math.max(0, 1 - (t - T_APPEL - T_CHUTE) / 0.45);
+    const ks = t < T_APPEL + T_CHUTE ? Math.min(1, t / (T_APPEL + T_CHUTE)) : 1, fs = t < T_APPEL + T_CHUTE ? 1 : Math.max(0, 1 - (t - T_APPEL - T_CHUTE) / 1.0); /* (le sceau reste 1 s, 0,45 avant) */
     sceau.position.set(P.x, y0 + 0.06, P.z); sceau.rotation.y = t * 2.2; sceau.scale.setScalar(k * (0.35 + 0.95 * (1 - Math.pow(1 - ks, 3)) + (frappe ? 0.6 * (1 - fs) : 0)));
     sceau.traverse((o) => { if (o.material) o.material.opacity = (o.userData.o0 != null ? o.userData.o0 : (o.userData.o0 = o.material.opacity)) * fs * Math.min(1, t / 0.08); });
     if (rai) { if (t < T_APPEL + T_CHUTE) { rai.g.position.set(P.x, y0 + 12, P.z); rai.g.lookAt(P.x, y0, P.z); rai.maj(Math.min(1, t / 0.12), 0.75 * Math.min(1, t / 0.1) * (t > T_APPEL ? Math.max(0, 1 - (t - T_APPEL) / T_CHUTE) : 1), t); } else if (rai.g.parent) jeter(rai.g); }
     /* l'epee : elle tombe en accelerant, etiree par la vitesse, se plante et vibre */
-    yaw.setFromAxisAngle(AXE_Y, versCameraY(P)); const yImpact = y0 + 2.2 * k;
+    yaw.setFromAxisAngle(AXE_Y, versCameraY(P)); const yImpact = y0 + 2.2 * kE;
     if (t >= T_APPEL) { epee.visible = true; const u = Math.min(1, (t - T_APPEL) / T_CHUTE), ap = t - T_APPEL - T_CHUTE;
-      let y = yImpact + 11 * (1 - u * u), sy = k * (1 + 0.35 * u * (u < 1 ? 1 : 0)), a = 0;
-      if (ap > 0) { y = yImpact - 0.18 * k * Math.exp(-ap * 18); sy = k * (1 - 0.12 * Math.exp(-ap * 14) * Math.cos(ap * 40)); a = 0.07 * Math.exp(-ap * 7) * Math.sin(ap * 46); } /* (elle s'enfonce d'un coup, rebondit et vibre) */
-      epee.scale.set(k, sy, k);
+      let y = yImpact + 11 * (1 - u * u), sy = kE * (1 + 0.35 * u * (u < 1 ? 1 : 0)), a = 0;
+      if (ap > 0) { y = yImpact - 0.18 * kE * Math.exp(-ap * 18); sy = kE * (1 - 0.12 * Math.exp(-ap * 14) * Math.cos(ap * 40)); a = 0.07 * Math.exp(-ap * 7) * Math.sin(ap * 46); } /* (elle s'enfonce d'un coup, rebondit et vibre) */
+      epee.scale.set(kE, sy, kE);
       if (ap > T_TENUE) { const f = Math.min(1, (ap - T_TENUE) / T_FIN); /* elle s'efface sur place en paillettes d'or (« fais-la disparaitre, pas rapetisser dans les airs », Mathieu) */
         if (!epee.userData.fond) { epee.userData.fond = true; epee.traverse((o) => { if (!o.material) return; o.material = o.material.clone(); o.material.userData.o0 = o.material.opacity; o.material.transparent = true; o.material.depthWrite = false; });
-          for (let i = 0; i < 18; i++) emettre(FX_LUM, 1, { x: P.x, y: yImpact - fxAlea() * 2.75 * k + 0.2, z: P.z, r: 0.18 * k, v: [0, 1.2, 0], dv: 1, vie: [0.4, 0.7], taille: [0.16, 0.02], c: ['#ffffff', '#ffd36a'], a: 1, frein: 1 });
+          for (let i = 0; i < 18; i++) emettre(FX_LUM, 1, { x: P.x, y: yImpact - fxAlea() * 2.75 * kE + 0.2, z: P.z, r: 0.18 * k, v: [0, 1.2, 0], dv: 1, vie: [0.4, 0.7], taille: [0.16, 0.02], c: ['#ffffff', '#ffd36a'], a: 1, frein: 1 });
           emettre(FX_LUM, 1, { x: P.x, y: yImpact, z: P.z, vie: [0.12, 0.14], taille: [1.2 * k, 1.8 * k], c: ['#ffffff', '#ffd36a'], a: 0.7, entree: 0.01 }); }
         epee.traverse((o) => { if (o.material) o.material.opacity = o.material.userData.o0 * (1 - f); });
-        if (fxAlea() < 0.9) emettre(FX_LUM, 2, { x: P.x, y: yImpact - fxAlea() * 2.75 * k, z: P.z, r: 0.15 * k, v: [0, 1.4, 0], dv: 0.6, vie: [0.4, 0.7], taille: [0.12, 0.02], c: ['#ffffff', '#ffd36a'], a: 1, frein: 1 }); }
+        if (fxAlea() < 0.9) emettre(FX_LUM, 2, { x: P.x, y: yImpact - fxAlea() * 2.75 * kE, z: P.z, r: 0.15 * k, v: [0, 1.4, 0], dv: 0.6, vie: [0.4, 0.7], taille: [0.12, 0.02], c: ['#ffffff', '#ffd36a'], a: 1, frein: 1 }); }
       vib.setFromAxisAngle(AX, a); epee.quaternion.copy(yaw).multiply(pench).multiply(vib).multiply(retourne); epee.position.set(P.x, y, P.z);
-      if (u < 1) for (let i = 0; i < 4; i++) { const h = fxAlea() * 2.75 * k; emettre(FX_LUM, 1, { x: P.x + (fxAlea() - 0.5) * 0.3 * k, y: y - h, z: P.z + (fxAlea() - 0.5) * 0.3 * k, v: [0, 22, 0], vie: [0.08, 0.14], taille: [0.3, 0.1], c: ['#ffffff', '#ffd36a'], a: 0.8, etire: 0.012 }); } /* (les traits de vitesse le long de la lame) */
+      if (u < 1) for (let i = 0; i < 4; i++) { const h = fxAlea() * 2.75 * kE; emettre(FX_LUM, 1, { x: P.x + (fxAlea() - 0.5) * 0.3 * k, y: y - h, z: P.z + (fxAlea() - 0.5) * 0.3 * k, v: [0, 22, 0], vie: [0.08, 0.14], taille: [0.3, 0.1], c: ['#ffffff', '#ffd36a'], a: 0.8, etire: 0.012 }); } /* (les traits de vitesse le long de la lame) */
       if (u >= 1 && !frappe) { frappe = true; const ys = y0;
-        onde(P.x, ys, P.z, 2.6 * k, '#fff3c4', 0.3, 0.95); onde(P.x, ys, P.z, 1.8 * k, '#ffc23a', 0.5, 0.85); solFendu(P.x, ys, P.z, 1.8 * k, true); mottes(P.x, ys, P.z, 12, 1.2); poussiere(P.x, ys, P.z, 14, 1.6 * k, '#e8d8b8');
-        secousse(0.3, 0.4); flashLumiere(P.x, ys + 1, P.z, '#ffd36a', 4.5, 9, 0.5); etoileImpact(new T.Vector3(P.x, ys + 0.3, P.z), 1.6 * k, '#ffd36a');
+        onde(P.x, ys, P.z, 2.0 * k, '#fff3c4', 0.3, 0.55); /* (l'anneau blanc plus petit et plus pale : 2,6 et 0,95 avant le 27/11/2026 au soir) */ onde(P.x, ys, P.z, 1.8 * k, '#ffc23a', 0.5, 0.85); solFendu(P.x, ys, P.z, 1.8 * k, true); mottes(P.x, ys, P.z, 12, 1.2); poussiere(P.x, ys, P.z, 14, 1.6 * k, '#e8d8b8');
+        secousse(0.22, 0.35); flashLumiere(P.x, ys + 1, P.z, '#ffd36a', 2.5, 7, 0.4); etoileImpact(new T.Vector3(P.x, ys + 0.3, P.z), 0.9 * k, '#ffd36a');
         emettre(FX_VIF, 30, { x: P.x, y: ys + 0.2, z: P.z, r: 0.3, v: [0, 2, 0], dv: 7, haut: true, vie: [0.3, 0.6], taille: [0.1, 0.02], c: ['#ffffff', '#ffd36a', '#e8a21e'], grav: 9, frein: 1.4, etire: 0.04, sol: ys + 0.04, rebond: 0.3 });
         son('impactFleche', undefined, 6, -1150 + hasardCents(60)); } }
     if (t >= T_APPEL + T_CHUTE + T_TENUE + T_FIN) { jeter(epee, sceau, rai.g); return true; } return false; });
@@ -340,7 +345,7 @@ function mireRouge() { /* la mire qui se resserre sur la cible : un cercle et qu
 function mireFatale(suivre, direct) { /* (25/11/2026, « le delai d'envoi doit etre comme avant », Mathieu) : la mire se resserre pendant que le Cra bande l'arc (0,25 s,
      le geste d'avant) ; au lacher, la fleche vole 0,28 s, comme la fleche fatale d'avant, et les degats tombent a son arrivee ; direct : sans geste, elle part tout de suite */
   const T_VISE = direct ? 0.01 : 0.25, T_VOL = 0.28, mire = mireRouge(), visee = faisceau(pointeArc(paysanMesh), suivre(), [['#ff6a4a', '#ff3b2e', 0.05, true]]), k = Math.min(1.8, Math.max(1, suivre.haut / 1.6));
-  let t = 0, fl = null, F = null, de = new T.Vector3(), dir = new T.Vector3(), L = 1, fait = 0, frappe = false, fini = 0, tir = null, tv = 0;
+  let t = 0, fl = null, F = null, de = new T.Vector3(), dir = new T.Vector3(), L = 1, fait = 0, frappe = false, fini = 0, tir = null, tv = 0, apres = 0;
   effets.push((dt) => { t += dt; const P = suivre(), arc = pointeArc(paysanMesh);
     if (!tir) { /* la visee : la mire se resserre en tournant, un fin trait rouge relie l'arc a la cible, la fleche se charge */
       if (t > 2.5) { jeter(mire, visee.g); return true; } /* (le tir n'est jamais parti : rien ne reste) */
@@ -351,17 +356,19 @@ function mireFatale(suivre, direct) { /* (25/11/2026, « le delai d'envoi doit e
       emettre(FX_LUM, 1, { x: arc.x, y: arc.y, z: arc.z, vie: [0.05, 0.06], taille: [0.3 + 0.9 * u, 0.3 + 0.9 * u], c: ['#ffffff', '#ff6a4a'], a: 0.9 });
       return false; }
     if (!fl) { /* le tir */
-      jeter(visee.g); de.copy(arc); dir.copy(P).sub(de); L = Math.max(0.5, dir.length()); dir.normalize(); fl = modeleFlecheFatale(); fl.scale.setScalar(1.15); scene.add(fl); fl.position.copy(de); fl.lookAt(P);
+      jeter(visee.g); de.copy(arc); dir.copy(P).sub(de); L = Math.max(0.5, dir.length()); dir.normalize(); fl = modeleFlecheFatale(); fl.scale.setScalar(1.45); scene.add(fl); fl.position.copy(de); fl.lookAt(P);
       F = faisceau(de, de.clone().addScaledVector(dir, L + 2.5), [['#ff6a4a', '#8a0a06', 0.26, false], ['#ffffff', '#ff3b2e', 0.1, true]]); /* (26/11/2026 : 0,42 et 0,16 avant, plus fin) */
       anneauSouffle(de.clone().addScaledVector(dir, 0.4), dir, 0.1, 0.9, 0.18, '#ffd0c4', 0.9); flashLumiere(de.x, de.y, de.z, '#ff3b2e', 1.5, 4, 0.18);
       mire.children.forEach((c) => { (c.isGroup ? c.children : [c]).forEach((m) => m.material.color.set('#ffffff')); }); } /* (la mire se verrouille : elle blanchit) */
     if (!frappe) { versCamera(mire); mire.position.copy(P); mire.scale.setScalar(k * 0.55); }
+    else if (mire.parent) { apres += dt; const f = Math.min(1, apres / 0.7); versCamera(mire); mire.position.copy(P); mire.scale.setScalar(k * (0.55 + 0.12 * Math.sin(Math.min(1, apres / 0.15) * Math.PI)));
+      mire.traverse((m) => { if (m.material) m.material.opacity = 0.95 * (1 - f * f); }); if (f >= 1) jeter(mire); } /* (la mire reste verrouillee, blanche, sur la cible touchee, puis s'efface) */
     tv += dt; fait = Math.min(L + 2.5, frappe ? fait + (L / T_VOL) * dt : L * Math.min(1, tv / T_VOL)); fl.position.copy(de).addScaledVector(dir, fait); F.maj(fait / (L + 2.5), 1 - fini, t); /* (elle touche 0,28 s apres le lacher, comme avant) */
     emettre(FX_LUM, 1, { x: fl.position.x, y: fl.position.y, z: fl.position.z, vie: [0.06, 0.08], taille: [0.7, 0.25], c: ['#ffffff', '#ff3b2e'], a: 0.85 });
     emettre(FX_VIF, 3, { x: fl.position.x, y: fl.position.y, z: fl.position.z, r: 0.06, v: [-dir.x * 5, 0.6, -dir.z * 5], dv: 2.5, vie: [0.15, 0.3], taille: [0.1, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 4, frein: 2, etire: 0.05 });
-    if (!frappe && tv >= T_VOL) { frappe = true; tir(); jeter(mire); anneauSouffle(P.clone(), dir, 0.15, 1.6 * k, 0.25, '#ff8a6a', 0.9); son('impactFleche', undefined, 4, -650 + hasardCents(60));
+    if (!frappe && tv >= T_VOL) { frappe = true; tir(); anneauSouffle(P.clone(), dir, 0.15, 1.6 * k, 0.25, '#ff8a6a', 0.9); son('impactFleche', undefined, 4, -650 + hasardCents(60));
       emettre(FX_VIF, 12, { x: P.x, y: P.y, z: P.z, r: 0.1, v: [dir.x * 7, 0.5, dir.z * 7], dv: 2.5, vie: [0.2, 0.45], taille: [0.12, 0.02], c: ['#ffffff', '#ff6a4a', '#8a0a06'], grav: 5, frein: 2, etire: 0.05 }); } /* (la gerbe part a travers la cible) */
-    if (fait >= L + 2.5) { fini = Math.min(1, fini + dt / 0.25); fl.visible = false; F.maj(1, 1 - fini, t); if (fini >= 1) { jeter(fl, F.g); return true; } }
+    if (fait >= L + 2.5) { fini = Math.min(1, fini + dt / 0.55); fl.visible = false; F.maj(1, 1 - fini, t); if (fini >= 1 && !mire.parent) { jeter(fl, F.g); return true; } } /* (le trait s'efface en 0,55 s, 0,25 avant ; on attend la mire) */
     return false; });
   return { declencher(fn) { tir = fn; } }; /* (le lacher : la fleche part, les degats a son arrivee) */
 }
@@ -405,7 +412,7 @@ function modeleTeteDragon() {
 function dragoeufSurgit(suivre, direct) { /* (25/11/2026, « le delai d'envoi doit etre comme avant », Mathieu : il sort et mord pendant le geste, 0,18 s, au meme instant qu'avant) */
   const P0 = suivre().clone(), pp = paysanMesh.position, d0 = new T.Vector3(pp.x - P0.x, 0, pp.z - P0.z); if (d0.lengthSq() < 1e-6) d0.set(-1, 0, 0); d0.normalize();
   const recul = Math.min(1.8, Math.max(1.1, Math.hypot(pp.x - P0.x, pp.z - P0.z) * 0.6)), Q = P0.clone().addScaledVector(d0, recul); Q.y = solSous(Q);
-  const k = Math.min(1.6, Math.max(1, suivre.haut / 1.8)), T_OUVRE = direct ? 0 : 0.03, T_VOL = direct ? 0.06 : 0.15, T_TIENT = 0.16, T_FIN = 0.3, CORPS = 0.42, R = 0.16 * k, KT = 0.72 * k; /* (corps fin, couvert de flammes, et tete plus petite : en tuyau plein et grosse tete, il faisait jouet, 25/11) */
+  const k = Math.min(1.6, Math.max(1, suivre.haut / 1.8)), T_OUVRE = direct ? 0 : 0.03, T_VOL = direct ? 0.06 : 0.15, T_TIENT = 0.5, T_FIN = 0.4, CORPS = 0.42, R = 0.2 * k, KT = 0.95 * k; /* (27/11/2026 au soir : morsure tenue 0,5 s au lieu de 0,16, tete et corps plus grands) */ /* (corps fin, couvert de flammes, et tete plus petite : en tuyau plein et grosse tete, il faisait jouet, 25/11) */
   coupDeFouet(mainDe(paysanMesh), Q.clone().setY(Q.y + 0.1), paysanMesh, 'fatal'); /* (le fouet claque au sol : il ouvre le portail) */
   const portail = portailDeFeu(), tete = modeleTeteDragon(), bas = tete.getObjectByName('machoire'); tete.scale.setScalar(KT); tete.visible = false; scene.add(tete);
   const coeur = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ vertexColors: true })), halo = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ color: '#ff8a2e', transparent: true, opacity: 0.35, blending: T.AdditiveBlending, depthWrite: false }));
@@ -436,10 +443,10 @@ function dragoeufSurgit(suivre, direct) { /* (25/11/2026, « le delai d'envoi do
     const s = t - T_OUVRE; if (s < 0) return false;
     if (!fini) { const u = Math.min(1, Math.pow(Math.min(1, s / T_VOL), 1.35)); tete.visible = true; b(u, tete.position); b(Math.min(1, u + 0.02), pt); if (u < 1 && pt.distanceToSquared(tete.position) > 1e-8) tete.lookAt(pt);
       /* la gueule s'ouvre en plongeant, claque sur la cible */
-      const ap = s - T_VOL; bas.rotation.x = ap < 0 ? 0.95 * Math.min(1, Math.max(0, (u - 0.45) / 0.45)) : Math.max(0, 0.95 * (1 - ap / 0.04)) + 0.05 * Math.exp(-ap * 20) * Math.sin(ap * 60);
+      const ap = s - T_VOL; bas.rotation.x = ap < 0 ? 0.95 * Math.min(1, Math.max(0, (u - 0.45) / 0.45)) : Math.max(0, 0.95 * (1 - ap / 0.04)) + 0.05 * Math.exp(-ap * 20) * Math.sin(ap * 60) + (ap > 0.12 ? 0.35 * Math.max(0, Math.sin((ap - 0.12) * 16)) * Math.max(0, 1 - (ap - 0.12) / 0.38) : 0); /* (pendant la tenue, la machoire claque encore deux fois) */
       derniere = corps(u); emettre(FX_LUM, 1, { x: tete.position.x, y: tete.position.y, z: tete.position.z, vie: [0.06, 0.08], taille: [1.1 * k, 0.7 * k], c: ['#ffd25a', '#ff6a1e'], a: 0.5 }); /* (la lueur autour de la tete) */
       tete.updateMatrixWorld(); for (let i = 0; i < 4; i++) { pt.set((fxAlea() - 0.5) * 0.4, 0.3 + fxAlea() * 0.25, -0.3 - fxAlea() * 0.35).applyMatrix4(tete.matrixWorld); emettre(FX_VIF, 1, { x: pt.x, y: pt.y, z: pt.z, v: [0, 1.6, 0], dv: 0.5, vie: [0.14, 0.26], taille: [0.36 * k, 0.05], c: ['#ffe08a', '#ff7a12', '#c8300a'], a: 1, frein: 1.2 }); } /* (la criniere de flammes) */
-      if (ap >= 0 && !frappe) { frappe = true; boule(P.x, P.y, P.z, 0.7, ['#ffb02e', '#e8541e', '#7a1e0a'], false); etoileImpact(P, 1.3, '#ff6a1e'); secousse(0.14, 0.25); son('impactFleche', undefined, 4, -900 + hasardCents(80)); }
+      if (ap >= 0 && !frappe) { frappe = true; boule(P.x, P.y, P.z, 0.45, ['#ffb02e', '#e8541e', '#7a1e0a'], false); etoileImpact(P, 0.85, '#ff6a1e'); secousse(0.12, 0.22); son('impactFleche', undefined, 4, -900 + hasardCents(80)); }
       if (ap >= T_TIENT) { fini = true; /* il se defait en braises, d'un coup */
         tete.visible = false; coeur.visible = halo.visible = false; const c = derniere;
         for (let i = 0; i < 24; i++) { c.getPointAt(i / 23, pt); emettre(FX_VIF, 2, { x: pt.x, y: pt.y, z: pt.z, r: R, v: [0, 1.6, 0], dv: 2.2, vie: [0.35, 0.7], taille: [0.3 * k, 0.04], c: ['#ffd25a', '#ff6a12', '#c8300a'], a: 1, frein: 1.4 }); emettre(FX_VIF, 1, { x: pt.x, y: pt.y, z: pt.z, r: R, dv: 3, vie: [0.4, 0.8], taille: [0.07, 0.02], c: ['#fff1a8', '#ff8a1e'], grav: 3, frein: 1, etire: 0.03 }); }
@@ -460,7 +467,7 @@ const animFatale = (classe, suivre, direct) => (classe === 'cra' ? mireFatale(su
   const suivre = P ? P.suivre : suivreCible(pv), de = classe === 'cra' ? pointeArc(paysanMesh) : paysanMesh.position.clone(), C = { style: 'fatal', gros: true, mos: [] }, coul = { cra: '#d9443a', iop: '#e8a21e', osa: '#ff6a1e' }[classe] || '#d9443a';
   const impact = () => { const p = suivre().clone(), sauf = classe === 'iop' ? 'coupFatal' : classe === 'osa' ? 'morsure' : null, f0 = sauf && window[sauf]; if (sauf) window[sauf] = () => {}; /* (l'ancien effet de la classe ne se rejoue pas : le sort l'a remplace) */
     JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; if (sauf) window[sauf] = f0; }
-    tempsFortAnime(p, coul, classe === 'cra' ? { n: 6, long: 160, duree: 150, doux: true } : classe === 'osa' ? { sansTraits: true } : null); /* (la Morsure du Dragoeuf sans traits a l'ecran, 25/11/2026 au soir : « ca fait les pics rouges dans tous les sens », Mathieu ; le dragon et son impact restent sur la cible) */ cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
+    tempsFortAnime(p, coul, classe === 'cra' ? { n: 5, long: 120, duree: 140, doux: true } : classe === 'osa' ? { sansTraits: true, doux: true } : { n: 6, long: 150, duree: 150, doux: true }); /* (la Morsure du Dragoeuf sans traits a l'ecran, 25/11/2026 au soir : « ca fait les pics rouges dans tous les sens », Mathieu ; le dragon et son impact restent sur la cible) */ cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
   const srcF = SRC_DEG, impactS = () => { const p0 = SRC_DEG; SRC_DEG = srcF || p0; try { impact(); } finally { SRC_DEG = p0; } }; /* (27/11/2026, « c'est quoi les 186k Autres dans mon screen ? », Mathieu : la fleche du Cra touche depuis la boucle de son animation, creee hors du sort ; ses degats tombaient dans « Autres » du bilan. Ils gardent le nom de l'ulti) */
   (P ? P.anim : animFatale(classe, suivre, true)).declencher(impactS); /* (Iop et Osamodas : les degats tout de suite, comme avant ; Cra : a l'arrivee de la fleche, 0,28 s, comme avant) */
 }; }
