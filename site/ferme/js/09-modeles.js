@@ -9,7 +9,7 @@ function contourMat(ep, sp, origine) {
   const m = new T.MeshBasicMaterial({ color: '#3a2b1f', side: T.BackSide });
   const pousser = (sh) => { if (ep) sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(normal) * ' + ep.toFixed(4) + ';'); };
   if (sp != null) { vent.materiau(m, sp, origine); const f = m.onBeforeCompile; m.onBeforeCompile = (sh) => { f(sh); pousser(sh); }; } else m.onBeforeCompile = pousser;
-  m.customProgramCacheKey = () => 'contour' + k; m.visible = typeof graphismes !== 'function' || graphismes() !== 'leger'; return (contours[k] = m);
+  m.customProgramCacheKey = () => 'contour' + k; m.visible = typeof graphismes !== 'function' || graphismes() !== 'leger'; m.userData.contour = { ep, sp, origine: !!origine }; return (contours[k] = m);
 }
 /* l'eau de l'ile : des bandes claires descendent la cascade, des rides s'ecartent sur la mare (periodique sur 6 s) */
 const MARE = [9.1, 6.1];
@@ -82,7 +82,15 @@ const tableauNormales = (n) => (NORMALES_8 ? new Int8Array(n) : new Float32Array
 { const enFlottant = (g) => { const N = g.attributes && g.attributes.normal; if (!N || !N.array || N.array instanceof Float32Array) return; const a = new Float32Array(N.count * 3), k = N.normalized ? 1 / 127 : 1; for (let i = 0; i < a.length; i++) a[i] = N.array[i] * k; g.setAttribute('normal', new T.BufferAttribute(a, 3)); };
   const cvn = T.BufferGeometry.prototype.computeVertexNormals; T.BufferGeometry.prototype.computeVertexNormals = function () { enFlottant(this); return cvn.apply(this, arguments); };
   const am4 = T.BufferGeometry.prototype.applyMatrix4; T.BufferGeometry.prototype.applyMatrix4 = function () { enFlottant(this); return am4.apply(this, arguments); }; }
-function fusionGeo(liste, inv, avecOrigine) {
+/* LES POSITIONS EN 16 BITS (27/11/2026, « la 47 Mo, plus delicat : vas-y, fais-le, on verra ce que ca donne », Mathieu) : apres les normales, les positions
+   des modeles fusionnes (37 Mo sur 40) : des nombres a virgule de 32 bits, 12 octets par sommet. Une fusion les range en entiers de 16 bits, 6 octets, au pas
+   de 1/512 (2 mm pour une case de 2 de cote, jusqu'a 64 de chaque cote ; la plus grande piece du jeu fait 31,6), et le maillage fusionne porte l'echelle 1/512 :
+   tout ce qui passe par sa matrice (le dessin, les clics, les boites, les ombres, le vent, calcule dans le repere du monde, les autres fusions) voit les memes
+   positions qu'avant. Seul le contour pousse ses sommets dans le repere de la piece : sa matiere prend une epaisseur multipliee d'autant (contourMat). Ne sont
+   PAS ranges ainsi : les pieces a peau (pattes), les matieres a effet propre (l'eau, qui lit les positions dans son shader), une piece trop grande pour le pas.
+   POSITIONS_16 = false : tout redevient comme avant. */
+const POSITIONS_16 = true, PAS_POS = 1 / 512;
+function fusionGeo(liste, inv, avecOrigine, pas) {
   let nv = 0, ni = 0; liste.forEach(({ m }) => { const g = m.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; });
   const pos = new Float32Array(nv * 3), nor = tableauNormales(nv * 3), org = avecOrigine ? new Float32Array(nv * 3) : null, idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   let ov = 0, oi = 0; const v = new T.Vector3(), mt = new T.Matrix4(), nm = new T.Matrix3(), o = new T.Vector3();
@@ -101,7 +109,9 @@ function fusionGeo(liste, inv, avecOrigine) {
     for (let i = 0; i < nb; i += 3) { idx[oi + i] = id(i); idx[oi + i + 1] = id(miroir ? i + 2 : i + 1); idx[oi + i + 2] = id(miroir ? i + 1 : i + 2); }
     ov += P.count; oi += g.index ? g.index.count : P.count;
   });
-  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', attributNormales(nor));
+  const geo = new T.BufferGeometry(); let pos16 = null;
+  if (pas) { let mx = 0; for (let i = 0; i < pos.length; i++) { const a = pos[i] < 0 ? -pos[i] : pos[i]; if (a > mx) mx = a; } if (mx / pas < 32760) { pos16 = new Int16Array(pos.length); for (let i = 0; i < pos.length; i++) pos16[i] = Math.round(pos[i] / pas); geo.userData.pas = pas; } }
+  geo.setAttribute('position', new T.BufferAttribute(pos16 || pos, 3)); geo.setAttribute('normal', attributNormales(nor));
   if (org) geo.setAttribute('aOrigine', new T.BufferAttribute(org, 3)); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.computeBoundingSphere(); geo.computeBoundingBox(); return geo;
 }
 /* un Bouftou fusionne, pattes comprises : ses 4 pattes deviennent un seul maillage anime par 8 os (une hanche et un genou chacune), une couleur
@@ -171,7 +181,11 @@ function fusionner(racine, o) {
     let materiau = pq.ex.material;
     if (pq.contour && souple) materiau = contourMat(pq.ex.userData.ep || 0, sp, true);
     else if (!pq.contour && souple) materiau = vent.materiau(new T.MeshToonMaterial({ color: pq.ex.material.color, gradientMap: grad }), sp, true);
-    const f = new T.Mesh(fusionGeo(pq.liste, inv, souple), materiau);
+    const Cq = pq.contour ? pq.ex.material.userData && pq.ex.material.userData.contour : null; /* (un contour de contourMat : ses reglages ; un autre contour reste en nombres a virgule) */
+    const quant = POSITIONS_16 && !o.sansQuant && (pq.contour ? !!Cq : souple || (pq.ex.material.onBeforeCompile === T.Material.prototype.onBeforeCompile && !pq.ex.material.map));
+    const geoF = fusionGeo(pq.liste, inv, souple, quant ? PAS_POS : 0), pasF = geoF.userData.pas || 0;
+    if (pasF && pq.contour) materiau = contourMat((souple ? pq.ex.userData.ep || 0 : Cq.ep) / pasF, souple ? sp : Cq.sp, souple ? true : Cq.origine); /* (l'epaisseur dans le repere de la piece, qui est 512 fois plus grand) */
+    const f = new T.Mesh(geoF, materiau); if (pasF) f.scale.setScalar(pasF);
     f.name = o.parNom ? base(pq.porteur) : ''; f.castShadow = !pq.contour && pq.porteur.castShadow; f.receiveShadow = !pq.contour;
     if (!pq.contour && souple) f.customDepthMaterial = vent.ombre(sp, true);
     if (pq.cas) f.userData.case = pq.cas;

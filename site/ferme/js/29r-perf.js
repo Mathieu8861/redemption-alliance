@@ -60,7 +60,7 @@ function poolInst(m) {
   P = { im, libres: [], r0: m.geometry.boundingSphere.radius }; INST_CHAMPS.pools.set(cle, P); return P;
 }
 function bornesInst(P) { /* la sphere de la pile : les centres de ses champs (les places libres, a l'echelle zero, ne comptent pas), elargie du rayon de la piece */
-  const im = P.im, e = im.instanceMatrix.array, b = new T.Box3(), v = new T.Vector3(); let n = 0, sc = 1;
+  const im = P.im, e = im.instanceMatrix.array, b = new T.Box3(), v = new T.Vector3(); let n = 0, sc = 0; /* (0 et non 1, 27/11/2026 : une piece aux positions en 16 bits porte l'echelle 1/512, son rayon est en entiers) */
   for (let i = 0; i < im.count; i++) { const o = i * 16; if (!e[o] && !e[o + 5] && !e[o + 10]) continue; v.set(e[o + 12], e[o + 13], e[o + 14]); b.expandByPoint(v); n++; sc = Math.max(sc, Math.hypot(e[o], e[o + 1], e[o + 2])); }
   const S = im.geometry.boundingSphere; if (!n) { S.center.set(0, -1e4, 0); S.radius = 0; return; } b.getCenter(S.center); S.radius = b.getSize(v).length() / 2 + P.r0 * sc * 1.2;
 }
