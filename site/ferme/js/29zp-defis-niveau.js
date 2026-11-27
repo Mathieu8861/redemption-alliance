@@ -58,10 +58,10 @@ function tirerDefisNiveau() {
 { const finAreneDefis = finArene; finArene = function () { const c = combat, t = c && c.arene && !c.defiCompte ? c.arene.tenues || 0 : 0; if (c && c.arene) c.defiCompte = true;
     const r = finAreneDefis.apply(this, arguments); if (t > 0) { try { compter('areneVagues', t); } catch (e) { /* rien */ } } return r; }; }
 { const butinVoleurDefis = butinVoleur; butinVoleur = function () { try { compter('voleurs'); } catch (e) { /* rien */ } return butinVoleurDefis.apply(this, arguments); }; }
-/* les ressources que lachent les monstres d'un palier (leur champ res), pour le coffre ; un palier dont les monstres ne lachent rien (le palier 11 n'a pas encore sa ressource, 27/11/2026) donne celles du dernier palier qui en a */
-function ressourcesDuPalier(p) { for (let q = p; q >= 0; q--) { const R = new Set();
-    for (let n = q * VAGUES_PALIER + 1; n <= Math.min((q + 1) * VAGUES_PALIER, VAGUES_TOTAL); n++) { try { compoTotale(n).forEach(([t]) => { const r = MONSTRES[t] && MONSTRES[t].res; if (r && PAR_ID[r]) R.add(r); }); } catch (e) { /* rien */ } }
-    if (R.size) return [...R]; } return []; }
+/* les ressources d'un palier, pour le coffre : la liste du jeu (RES_PALIER, 21-combat.js : la laine au palier 1... la Tourbe des marais au palier 11), celle dont
+   se servent deja les voleurs de VSA. (27/11/2026 au soir : j'avais d'abord lu le champ res des monstres, que ceux du palier 11 n'ont pas, et cru a tort qu'ils
+   ne lachaient rien : « ils font tomber de la tourbe, non ? », Mathieu, avait raison.) Un palier sans ressource connue du jeu : celles du palier d'avant */
+function ressourcesDuPalier(p) { for (let q = Math.min(p, RES_PALIER.length - 1); q >= 0; q--) { const R = (RES_PALIER[q] || []).filter((id) => PAR_ID[id]); if (R.length) return R; } return []; }
 const kamasCoffreNiveau = () => { const E = etalonPalier(niveau(S_.xp)); return Math.max(kamasGagnes(150 + 40 * E.niveau), Math.round(COFFRE_JOUR.part * E.vague)); };
 const pcDefi = (x) => Math.round(x * 100) + ' %';
 (() => { const st = document.createElement('style'); st.textContent = '.defi-rang{display:inline-block;margin-left:7px;padding:1px 8px;border-radius:99px;font-size:.62rem;font-weight:800;color:#16181c;vertical-align:middle;text-transform:uppercase;letter-spacing:.03em}'; document.head.appendChild(st); })();

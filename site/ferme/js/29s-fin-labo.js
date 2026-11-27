@@ -112,12 +112,13 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
     try { const recap0 = document.querySelector('#carte .recap-combat'); if (recap0 && E && enJeu) recap0.insertAdjacentHTML('beforeend', ligneRecap('renfort', 'Wabbits libérés', (E.wabLiberes || 0) + ' des cages' + (gagne ? ', et ceux du labo' : '')).replace('class="rc-l"', 'class="rc-l large"')); /* (sur toute la largeur : la phrase depassait a droite, 25/11/2026) */ } catch (e) { /* rien */ }
     if (!gagne || !enJeu) return r;
     try {
-      const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t);
+      const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t); const Sm = reussitesDonjon(W); Sm.n++; /* (une reussite de plus cette semaine, 5 au plus : plus bas) */
       const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = premier || Math.random() < C.parfaite ? 1 : 0, cristal = typeof tirerCristaux === 'function' ? tirerCristaux(C.cristal) : 0;
       sauver(); /* (26/11/2026 : le coffre se range dans le sac, il se donne a son ouverture, 29zg-coffres-sac.js) */
       const duree = (s) => { s = Math.round(s); const m = Math.floor(s / 60); return (m ? m + ' min ' : '') + (s % 60) + ' s'; };
       const recap = document.querySelector('#carte .recap-combat');
       if (recap) recap.insertAdjacentHTML('beforeend', ligneRecap('etoile', 'Record', nouveau ? duree(t) + (ancien ? ' (nouveau record ! avant : ' + duree(ancien) + ')' : ' (ton premier)') : duree(ancien) + ' (cette fois : ' + duree(t) + ')'));
+      if (recap) recap.insertAdjacentHTML('beforeend', ligneRecap('etoile', 'Cette semaine', Sm.n + ' réussite' + (Sm.n > 1 ? 's' : '') + ' sur ' + DONJON_SEMAINE.max + (Sm.n >= DONJON_SEMAINE.max ? ' : le donjon rouvre samedi' : '')));
       const aide = document.querySelector('#carte .hdv-aide'); if (aide) aide.textContent = 'Essai (version dev) : les Wabbits sont libres ! Le coffre du labo est rangé dans ton sac (Perso) : ouvre-le quand tu veux. Victoire n° ' + W.fois + '.';
       const cartes = [{ ico: 'kama', n: C.kamas, t: 'kamas', son: 'kamas' }, { ico: 'poil_wabbit', n: C.poils, t: 'Poils de Wabbit' }, { ico: 'rune-forge', n: C.forge, t: 'runes de forgemagie', son: 'quete' }].concat(C.cristal ? [{ ico: 'rune-cristal', n: C.cristal, t: 'cristaux runiques', brille: true }] : []).concat(parfaite ? [{ ico: 'rune-parfaite', n: 1, t: premier ? 'rune parfaite (première victoire)' : 'rune parfaite', brille: true }] : []);
       if (typeof rangerCoffre === 'function') rangerCoffre('finLabo', { premier, parfaite, cristal, sous: nouveau ? 'Nouveau record : ' + duree(t) : 'Les Wabbits sont libres !' }); void cartes;
@@ -179,3 +180,15 @@ function postesPortes() {
     setTimeout(() => { if (combat !== c || c.fin) return; apparaitre('wabGarde', { x, z, apres: (o) => { transmuter(o); o.lab = { mode: 'rampe', theta: th }; o.aggro = true; o.poste = true; } }); }, 400 + i * 200); }
 }
 { const tickDonjonPostes = tickDonjon; tickDonjon = function () { const r = tickDonjonPostes.apply(this, arguments); try { postesPortes(); } catch (e) { /* rien */ } return r; }; }
+/* LA LIMITE DES DONJONS (27/11/2026, Mathieu : « on va laisser la possibilite de le faire que 5 fois par semaine ; et quand je dis 5 fois, c'est le reussir 5
+   fois : tant que tu perds, tu as le droit de reessayer autant de fois que tu veux ») : 5 victoires par semaine et par donjon ; la semaine est celle de l'ile des
+   boss (du samedi au vendredi). Une defaite ou une fuite ne compte pas. Dans le mode test, la limite s'affiche mais ne bloque pas. Les cristaux runiques ne
+   tombent qu'en donjon (celui-ci pour l'instant, d'autres plus tard : « l'idee, c'est que les cristaux, ce soit que en donjon », Mathieu, le meme soir). */
+const DONJON_SEMAINE = { max: 5 };
+const semaineDonjon = (t) => { const d = new Date((t == null ? tempsReel() : t) - DECALAGE_ILE_J * 864e5); /* (comme l'ile des boss : la semaine va du samedi 0 h au vendredi soir, sa cle est le vendredi d'avant) */ d.setDate(d.getDate() - ((d.getDay() - JOUR_ILE_BOSS + 7) % 7)); return cleJour(d.getTime()); };
+function reussitesDonjon(W) { W = W || etatDonjonWab(); const k = semaineDonjon(); if (!W.sem || W.sem.cle !== k) W.sem = { cle: k, n: 0 }; return W.sem; }
+{ const partirDonjonSem = partirDonjon; partirDonjon = function () { let S = { n: 0 }; try { S = reussitesDonjon(); } catch (e) { /* rien */ }
+    if (S.n >= DONJON_SEMAINE.max) { if (!MODE_TEST) { toast('Tu as déjà réussi ce donjon ' + DONJON_SEMAINE.max + ' fois cette semaine. Il rouvre samedi.', 'alerte'); return Promise.resolve(); }
+      toast('Donjon réussi ' + S.n + ' fois cette semaine : la limite de ' + DONJON_SEMAINE.max + ' est atteinte (le mode test te laisse entrer).', 'or'); }
+    else if (lieu !== 'donjon' && MODE_TEST) toast('Laboratoire : ' + S.n + ' réussite' + (S.n > 1 ? 's' : '') + ' sur ' + DONJON_SEMAINE.max + ' cette semaine.');
+    return partirDonjonSem.apply(this, arguments); }; }

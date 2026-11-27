@@ -5,7 +5,7 @@
      (22/11/2026, Mathieu ; 15 et 10 s avant) ;
    - Sphere de la Couvee (la Mere Crapustule, vague 105) : une petite grenouille crache a distance (portee du Cra), 20 % des degats de son porteur, a sa vitesse
      d'attaque (22/11/2026, Mathieu ; 15 % et un coup par seconde avant).
-   ICI, POUR L'INSTANT, SEULEMENT LEUR RENDU (version dev). La sphere SUIT le perso (22/11/2026, « la sphere nous suit, mais elle ne tourne pas autour de nous »,
+   (Leur rendu d'abord, le 21/11 ; puis, le 22/11, leurs effets, la case Relique et leur chute sur les boss : plus bas. Tout est fait, en version dev.) La sphere SUIT le perso (22/11/2026, « la sphere nous suit, mais elle ne tourne pas autour de nous »,
    Mathieu) : elle flotte a cote de son epaule (celle qui ne tient pas l'arc du Cra), un peu en arriere, le rattrape en douceur quand il bouge et se balance ; son
    halo a sa couleur, des gouttes (Marees) ou des bulles (Couvee) qui s'en echappent. Modeles : Rodin d'apres les dessins 1 (maquettes/spheres-runiques/),
    blender/sphere-ia-preparer.py. Mode test : « Sphere runique (apercu) » dans le panneau. */
