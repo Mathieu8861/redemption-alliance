@@ -5,21 +5,23 @@
      cercles plus grands (5 au lieu de 4,2, l'onde du rebond 4,3 au lieu de 3,6), son bond ecrasant toutes les 4,2 s (6), jusqu'a 15 (13), une attaque toutes les 1,5 s (1,9),
      une armure de 45 % (35), un moulinet plus large, ses coups +30 %, et 4,5 de vitesse sur l'ile (comme Scorpal contre le kite).
    - Deux sorts en plus, sur l'ile seulement (MONSTRES.moon.titan) :
-     . le TAMBOUR DE GUERRE : il frappe le sol de son marteau-caisse ; quatre ondes partent du bord de son corps a corps vers l'exterieur, l'une apres l'autre, jusqu'a 22,5 :
+     . le TAMBOUR DE GUERRE : il frappe le sol de son marteau-caisse ; quatre ondes partent du bord de son corps a corps vers l'exterieur, l'une apres l'autre, jusqu'a 19,5 (22,5 avant le 28/11/2026) :
        colle a lui, rien ne te touche ; de loin, il faut entrer dans l'anneau qui vient d'eclater (26/11/2026, « que les cercles aillent plus loin ; l'idee c'est
        qu'il soit plus avantageux d'aller a son cac pour eviter ses degats que de se tenir loin », Mathieu ; avant : un disque sur lui puis deux anneaux, jusqu'a 13,5) ;
      . la PLUIE DE NOIX DE COCO : il rugit et secoue la jungle ; 6 noix de coco tombent autour de toi, chacune annoncee par un cercle (de loin seulement, comme son marteau).
    Sa vie est sans fin sur l'ile (les paliers de l'alliance) : il ne passe donc jamais sous 30 %, et ne tombe pas a genoux avec ses Gorilles. Duel, sans troupe. */
 const MOON_TITAN = {
-  tambour: { periode: 9, prepa: 1.0, ecart: 0.55, n: 4, largeur: 4.5, sur: 4.5, x: 0.9 }, /* (sur : la zone sure autour de lui, au moins son perimetre de corps a corps, cacBoss, 4,2 sur l'ile) */
-  noix: { periode: 8, prepa: 1.1, ecart: 0.16, n: 6, R: 1.8, rayon: 5.5, x: 0.7, portee: 18 },
+  tambour: { periode: 9, prepa: 0.8 /* (1,0 avant le 28/11/2026 : « reduis de 0,2 s le delai d'execution de ses spells », Mathieu) */, ecart: 0.55, n: 4, largeur: 3.75, sur: 4.5, x: 0.9 }, /* (largeur 4,5 avant le 28/11/2026 : « reduis un peu la portee du cercle geant ou il tape sous 4 couches differentes », Mathieu ; les ondes vont jusqu'a 19,5 au lieu de 22,5) */ /* (sur : la zone sure autour de lui, au moins son perimetre de corps a corps, cacBoss, 4,2 sur l'ile) */
+  noix: { periode: 8, prepa: 0.9 /* (1,1 avant le 28/11/2026) */, ecart: 0.16, n: 6, R: 1.8, rayon: 5.5, x: 0.7, portee: 18 },
 };
 MONSTRES.moon.titan = MOON_TITAN;
 /* (le titan reste une surprise jusqu'a sa semaine : sa description et ses deux sorts dans la fiche, seulement dans le mode test avant le samedi 28/11/2026 a 0 h) */
 const SORTIE_MOON_TITAN = Date.parse('2026-11-28T00:00:00+01:00'), titanVisible = () => (typeof MODE_TEST !== 'undefined' && MODE_TEST) || tempsReel() >= SORTIE_MOON_TITAN;
 { const D0 = MONSTRES.moon.desc, plus = ' ; sur l\'île des boss, en titan, il frappe aussi son tambour de guerre (quatre ondes qui partent de lui vers l\'extérieur : colle-toi à lui pour les éviter) et fait pleuvoir des noix de coco autour de toi';
   Object.defineProperty(MONSTRES.moon, 'desc', { get: () => D0 + (titanVisible() ? plus : ''), enumerable: true, configurable: true }); }
-RENFORT_ILE.moon = { d: { cadence: 1.5, armure: 0.45, bondit: 4.2, bonditPortee: 15, moulinetR: 1.6, marteauMoon: { periode: 2.5, portee: 18, R: 5.0, x: 1.4, R2: 4.3, xBond: 1.4 } }, deg: 1.3, vit: 1.15 };
+/* moinsDelai (28/11/2026, « et reduis de 0,2 s le delai d'execution de ses spells », Mathieu) : 0,2 s de moins entre l'annonce et le coup pour son marteau, son balayage,
+   son moulinet, son bond et son Marteau de Moon (22c-squelettes.js, 21-combat.js), sur l'ile seulement ; tambour et noix de coco plus haut */
+RENFORT_ILE.moon = { d: { moinsDelai: 0.2, cadence: 1.5, armure: 0.45, bondit: 4.2, bonditPortee: 15, moulinetR: 1.6, marteauMoon: { periode: 2.5, portee: 18, R: 5.0, x: 1.4, R2: 4.3, xBond: 1.4 } }, deg: 1.3, vit: 1.15 };
 VITESSE_ILE.moon = 4.5 / ((MONSTRES.moon.vitesse + VITESSE_PLUS_MONSTRES) * RENFORT_ILE.moon.vit); /* (4,5 de vitesse sur l'ile) */
 SORTS_LOIN.moonNoix = 'moonNoixT'; LOIN_T.add('moonNoixT'); /* (la pluie de noix de coco : de loin seulement, comme son marteau) */
 /* sa semaine sur l'ile, et dans le choix du boss de l'ile du mode test */
