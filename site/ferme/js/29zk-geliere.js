@@ -41,7 +41,7 @@ const animerEauxGeliere = () => { for (let n = 1; n <= 6; n++) animerEauGeliere(
    pour faire des gelees supplementaires ; revoir un peu l'esthetique, peut-etre qu'il soit un petit peu plus grand ») : la Geliere s'arretait au niveau 4 (8 Gelees) ;
    un niveau 5 a 10 Gelees, la maison a un etage, la grande mare et son gue (blender/geliere5.py). Version dev comme l'enclos niveau 6 : dans le mode test, et pour
    tous a la sortie du palier 11 (SORTIE_P11). Son modele est un fichier a part (geliere5.glb), charge seulement pour une Geliere niveau 5.
-   Chiffres par defaut, a valider par Mathieu : 250 000 kamas au niveau 100 (l'enclos niveau 6 : 300 000). */
+   250 000 kamas au niveau 100 (l'enclos niveau 6 : 300 000), valides par Mathieu au formulaire le 27/11/2026. */
 const GELIERE5 = { cout: 250000, niv: 100, places: 10 };
 const REPERES_GELIERE5 = [[-2.3, 0.26, 1.2], [-1.05, 0, 0.35], [-0.05, 0, 0.6], [0.6, 0, 0], [1.45, 0.03, 0.8], [2.45, 0, 0.35], [2.4, 0, -0.45], [-0.95, 0, 1.4], [0.85, 0, 1.5], [-1.75, 0, 0.55]]; /* (blender/geliere5.py, geliere5-reperes.json) */
 VERSIONS_FICHIERS['geliere5.glb'] = VERSIONS_FICHIERS['geliere5.glb'] || '20261126a';
