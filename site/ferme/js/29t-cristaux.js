@@ -28,7 +28,7 @@ const gainsCristal = (k) => { const reste = Math.max(0, CRISTAL.plafond - crista
 /* dans l'atelier de forgemagie : la ligne d'une piece au jet maximum (03-equipements.js, ouvrirForge) */
 function ligneCristal(k) {
   if (!cristauxVisibles()) return ''; const C = cristauxDe(k), stock = runes().cristal || 0, deja = C.p ? ' · +' + C.p + ' %' : '';
-  if (C.p >= CRISTAL.plafond) return '<span class="cadenas">✓ jet max · +' + C.p + ' %, le plafond</span>';
+  if (C.p >= CRISTAL.plafond) return '<span class="cadenas">✓ ' + (100 + C.p) + ' % de jet, le maximum</span>';
   if (!forgeRunique()) return '<span class="cadenas">✓ jet max' + deja + '</span><button class="btn mini discret" data-cristal="' + k + '" data-info="Il faut la forge runique : l\'atelier de forgemagie au niveau 2">' + imgCristal() + '🔒 Forge niv. 2</button>';
   const G = gainsCristal(k);
   return '<span class="cadenas">✓ jet max' + deja + '</span><button class="btn mini ' + (stock ? 'kamas' : 'discret') + '" data-cristal="' + k + '"' + (stock ? '' : ' disabled') +
@@ -44,7 +44,7 @@ function confirmerCristal(k) {
   if (!forgeRunique()) { toast('Il te faut la forge runique : l\'atelier de forgemagie au niveau 2 (Améliorer, onglet Ferme).'); return; }
   if (!(stock > 0)) { toast('Il te faut un cristal runique : il y en a dans le laboratoire du Docteur Wabbenstein.'); return; }
   if (qualiteJet(k) < 0.999) { toast('Un cristal ne se pose que sur une pièce au jet maximum (100 %).'); return; }
-  if (C.p >= CRISTAL.plafond) { toast('Cette pièce est déjà à +' + CRISTAL.plafond + ' %, le plafond.'); return; }
+  if (C.p >= CRISTAL.plafond) { toast('Cette pièce est déjà à ' + (100 + CRISTAL.plafond) + ' % de jet, le maximum.'); return; }
   const G = gainsCristal(k), avec = (p) => { S_.cristaux = S_.cristaux || {}; const avant = S_.cristaux[k]; S_.cristaux[k] = { p, n: C.n + 1 }; const r = obj(k); if (avant === undefined) delete S_.cristaux[k]; else S_.cristaux[k] = avant; return r; };
   const bas = avec(C.p + G.min), haut = avec(C.p + G.max);
   const L = Object.keys(o.stats).map((c) => { const X = CARACS[c] || [c, '', ''], a = bas.stats[c], b = haut.stats[c]; return '<div class="fg-val">' + (X[2] || '') + ' ' + X[0] + ' : <span>' + fmt(o.stats[c]) + '</span> → <b>' + fmt(a) + (b !== a ? ' à ' + fmt(b) : '') + '</b>' + X[1] + '</div>'; }).join('');
@@ -58,7 +58,7 @@ function poserCristal(k) {
   const C = cristauxDe(k), R = runes(); if (!forgeRunique() || !(R.cristal > 0) || qualiteJet(k) < 0.999 || C.p >= CRISTAL.plafond || !obj(k)) return;
   const g = Math.min(CRISTAL.min + Math.floor(Math.random() * (CRISTAL.max - CRISTAL.min + 1)), CRISTAL.plafond - C.p), p = C.p + g; /* (de 1 a 5 au hasard, rogne au plafond) */
   S_.cristaux = S_.cristaux || {}; S_.cristaux[k] = { p, n: C.n + 1 }; R.cristal--; son('niveau'); confettis(g >= 4 ? 45 : 25);
-  toast('Cristal runique : +' + g + ' % ! ' + obj(k).nom + ' passe à +' + p + ' %' + (p >= CRISTAL.plafond ? ', le plafond.' : ' (plafond ' + CRISTAL.plafond + ' %).'), 'or'); rendreHaut(); sauver(); ouvrirForge();
+  { const bA = Math.floor(C.p / 10), bN = Math.min(10, Math.floor(p / 10)); toast('Cristal runique : +' + g + ' % ! ' + obj(k).nom + ' passe à ' + (100 + p) + ' % de jet' + (bN > bA ? ', barre ' + bN + ' : ses effets ×' + String(1 + bN / 10).replace('.', ',') : '') + (p >= CRISTAL.plafond ? ', le maximum.' : '.'), 'or'); } /* (les barres : 29zn-cristaux-barres.js) */ rendreHaut(); sauver(); ouvrirForge();
 }
 document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-cristal], [data-cristal-oui], [data-cristal-non]'); if (!b || b.disabled) return;
   if (b.dataset.cristal) confirmerCristal(b.dataset.cristal); else if (b.dataset.cristalOui) poserCristal(b.dataset.cristalOui); else ouvrirForge(); });

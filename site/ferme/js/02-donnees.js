@@ -98,7 +98,7 @@ const BOTTES = 0.2; /* les Bottes de cuir de Bouftou (des le niveau 2) : +20 % d
 const BOTTES_PRIX = 2000, BOTTES_HAUSSE = 1000, BOTTES_PALIER = 10;
 const prixBottes = () => { let nv = 1; try { if (S_) nv = niveau(S_.xp); } catch (e) {} return BOTTES_PRIX + BOTTES_HAUSSE * Math.max(0, nv - BOTTES_PALIER); }; /* (S_ est declare plus loin, 04-etat.js) */
 /* LA FORGEMAGIE NIVEAU 2 (24/11/2026, version dev : seulement dans le mode test tant que le donjon des Wabbits n'est pas sorti ; prix : 500 000, choisi par Mathieu le 24/11) */
-const PRIX_FORGE2 = 500000, NIV_FORGE2 = 100, CRISTAL_PLAFOND = 20;
+const PRIX_FORGE2 = 500000, NIV_FORGE2 = 100, CRISTAL_PLAFOND = 100; /* (100 % au-dela du maximum, soit 200 % de jet, depuis le 27/11/2026 : CRISTAUX.md, 29zn-cristaux-barres.js ; 20 avant) */
 const forge2Ouverte = () => typeof MODE_TEST !== 'undefined' && !!MODE_TEST;
 const AMELIOS = [
   /* les batiments, du niveau 1 au niveau 5 (decision de Mathieu du 11/10/2026) : chaque niveau monte toutes les stats et change l'apparence.

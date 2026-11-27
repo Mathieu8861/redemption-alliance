@@ -42,7 +42,7 @@ function avancer(maintenant, enDirect) {
     }
     if (b.laine < laineMax() && adulte(b)) {
       const nourri = Math.max(0, Math.min(maintenant, b.rassasie) - (maintenant - dt));
-      if (nourri > 0) { b.accu += nourri * (legPorte('royal') ? 1.25 : 1); /* Couronne du Bouftou Royal : 25 % de laine en plus */ while (b.accu >= CADENCE_LAINE && b.laine < laineMax()) { b.laine++; b.accu -= CADENCE_LAINE; encl = true; } if (b.laine >= laineMax()) b.accu = 0; }
+      if (nourri > 0) { b.accu += nourri * (legPorte('royal') ? 1 + 0.25 * mxLegPorte('royal') : 1); /* Couronne du Bouftou Royal : 25 % de laine en plus */ while (b.accu >= CADENCE_LAINE && b.laine < laineMax()) { b.laine++; b.accu -= CADENCE_LAINE; encl = true; } if (b.laine >= laineMax()) b.accu = 0; }
     }
     const affame = maintenant >= b.rassasie;
     if (affame !== !!b.affame) { b.affame = affame; encl = true; }

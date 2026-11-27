@@ -252,6 +252,7 @@ const icoObjet = (k) => { const h = ico(iconeObjet(k)), o = obj(k); /* (17/11/20
   if (o && o.leg) return /class="pic img leg/.test(h) ? h : h.replace('class="pic img', 'class="pic img leg'); return o && o.rare ? h.replace('class="pic img', 'class="pic img rare') : h; };
 const nomClasse = (id) => (CLASSES.find((c) => c.id === id) || {}).nom || id;
 const legPorte = (cle) => !!(S_ && S_.equip && [S_.equip.coiffe, S_.equip.arme].some((k) => { const o = k && obj(k); return !!o && o.leg === cle; })); /* (la coiffe ou l'arme legendaire) */
+const mxLegPorte = (cle) => { if (typeof multEffets !== 'function' || !S_ || !S_.equip) return 1; const k = [S_.equip.coiffe, S_.equip.arme].find((k) => { const o = k && obj(k); return !!o && o.leg === cle; }); return k ? multEffets(k) : 1; }; /* (les cristaux de la piece : +10 % par barre au-dela de 100 %, 29zn-cristaux-barres.js ; 1 sans cristal) */
 const statsObjet = (o) => statsTexte(o.stats) + (o.pouvoir ? '<span class="puce leg">✦ ' + o.pouvoir + '</span>' : '');
 /* les bonus de panoplie, renforces et par paliers : 2, 4 puis 6 pieces (avant : 3 et 6), chaque palier s'ajoute au precedent */
 const PALIERS_PANO = [[2, (k) => ({ vita: VALEURS.vita[k] })], [4, (k) => ({ puissance: VALEURS.puissance[k], agilite: VALEURS.agilite[k] })], [6, (k) => ({ puissance: VALEURS.puissance[k], prospection: 15, sagesse: 10 })]];

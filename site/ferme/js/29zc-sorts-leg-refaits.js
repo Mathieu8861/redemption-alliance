@@ -43,7 +43,7 @@ function boueJuicy(x, z, r, st) {
   emettre(FX_FUM, 8, { x, y: y + 0.3, z, r: r * 0.5, v: [0, 0.6, 0], vie: [0.6, 1.0], taille: [0.6, 1.4], c: ['#9a7650', '#7a5a3a'], a: 0.45 });
   mottes(x, y, z, 12, 1.1); onde(x, y, z, r + 0.6, '#6a4524', 0.4, 0.9); onde(x, y, z, r * 0.7, '#a07850', 0.3, 0.8);
   /* les degats et la colle : a l'identique de boueLeg (21-combat.js) */
-  c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > r) return; blesser(o, Math.round(st.deg * 2), true); if (o.etat === 'actif') { o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 1 : 2); colleBoue(o, o.d.boss ? 1 : 2); } });
+  c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > r) return; blesser(o, Math.round(st.deg * 2), true); if (o.etat === 'actif') { const cb = (o.d.boss ? 1 : 2) * mxc(); o.bloqueT = Math.max(o.bloqueT || 0, cb); colleBoue(o, cb); } });
   let t = 0, bulle = 0;
   effets.push((dt) => { t += dt; if (combat !== c0 || c0.fin || t >= JS_BOUE.duree) { jeter(f); return true; }
     const e = Math.min(1, t / 0.18), s = e < 1 ? 0.35 + 0.8 * (1 - (1 - e) * (1 - e)) : 1.15 - 0.15 * Math.min(1, (t - 0.18) / 0.25), seche = Math.max(0, (t - 1.2) / 0.8); /* (elle s'etale en debordant un peu, puis seche) */

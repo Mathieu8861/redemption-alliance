@@ -10,7 +10,7 @@ function carapaceActive() { try { return !!(combat && combat.carapace > 0); } ca
    formulaire), et chaque point d'Agilité vaut 0,5 % de coups en plus au lieu de 1 % (« suffisamment pour que ça revienne un peu comme avant en gros »,
    Mathieu) : les persos d'aujourd'hui retrouvent à peu près leur rythme, la Rafale du Cra compte de moitié */
 const AGI_VITESSE = 0.5, pcAgi = (a) => Math.round(AGI_VITESSE * a);
-const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = NIV_ESSAI || niveau(S_.xp), c = caracs(); /* (NIV_ESSAI : le niveau d'essai de l'Arene dev, 09/11/2026) */ const mt = meuteActive() ? 1 + MEUTE : 1; return { pvMax: Math.round((st.pv(l) + c.vita) * mt), deg: Math.round((st.deg(l) + (c.degBonus || 0)) /* (les degats bonus des objets, avant la Puissance, 25/11/2026) */ * (1 + c.puissance / 100) * boostDegats() * mt * (carapaceActive() ? CORAIL_LEG.donnes : 1)), /* (la Carapace de corail du Iop : +30 %, 05/11/2026) */ cadence: +(st.cadence / (1 + AGI_VITESSE * c.agilite / 100) / mt).toFixed(2), /* (AGI_VITESSE, 18/11/2026) */ /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: (st.portee + (c.portee || 0) * S) * mt, /* (+ la portee des objets, en cases : le Viseur du drone, 29zh-objets-labo.js, 26/11/2026) */ niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
+const statsPerso = () => { const st = STATS_CLASSE[classeDe()], l = NIV_ESSAI || niveau(S_.xp), c = caracs(); /* (NIV_ESSAI : le niveau d'essai de l'Arene dev, 09/11/2026) */ const mt = meuteActive() ? 1 + MEUTE : 1; return { pvMax: Math.round((st.pv(l) + c.vita) * mt), deg: Math.round((st.deg(l) + (c.degBonus || 0)) /* (les degats bonus des objets, avant la Puissance, 25/11/2026) */ * (1 + c.puissance / 100) * boostDegats() * mt * (carapaceActive() ? 1 + (CORAIL_LEG.donnes - 1) * (combat.carapaceM || 1) : 1)), /* (la Carapace de corail du Iop : +30 %, 05/11/2026) */ cadence: +(st.cadence / (1 + AGI_VITESSE * c.agilite / 100) / mt).toFixed(2), /* (AGI_VITESSE, 18/11/2026) */ /* L'AGILITE (13/10/2026) : X % de coups en plus, et non plus X % de temps en moins entre deux coups (60 d'agilite : 1,6 fois plus de coups, et non 2,5 ; a 100, 2 fois et non infini). Pas de plafond, les objets gardent leurs chiffres */ portee: (st.portee + (c.portee || 0) * S) * mt, /* (+ la portee des objets, en cases : le Viseur du drone, 29zh-objets-labo.js, 26/11/2026) */ niveau: l, base: { pv: st.pv(l), deg: st.deg(l), cadence: st.cadence }, c }; };
 let combat = null;
 /* LES CLASSES EN CHIFFRES (22/10/2026) : la fenetre du passage de niveau, la page Perso et le choix du personnage lisent tout ici, d'apres STATS_CLASSE
    (rien n'est recopie a la main : une classe reequilibree s'affiche juste partout) */
@@ -682,7 +682,7 @@ function blesser(mo, n, gros, src) { /* src 'def' : un coup de tes defenses (tou
   if (mo.d.boss && mo.protege > 0 && !poison) n = Math.max(1, Math.round(n * (1 - mo.protege))); /* sa troupe le protege */
   if (mo.carapace > 0 && !poison) n = Math.max(1, Math.round(n * 0.2)); /* la carapace d'epines du Chafer Cuirasse (ses epines renvoient les coups du perso : voir majPerso) */
   if (mo.pierre > 0 && !poison) n = Math.max(1, Math.round(n * 0.5)); /* la peau de pierre de la Gorgouille (20/10/2026) */
-  if (mo.maudit > 0 && !poison) n = Math.round(n * 1.25); /* (maudit par la Fleche maudite du Cra : +25 %, 09/11/2026) */
+  if (mo.maudit > 0 && !poison) n = Math.round(n * (1 + 0.25 * (mo.mauditM || 1))); /* (maudit par la Fleche maudite du Cra : +25 %, 09/11/2026) */
   if (paysanMesh && Math.hypot(paysanMesh.position.x - mo.x, paysanMesh.position.z - mo.z) < 8) mo.aggro = true; /* le perso le frappe : il se retourne contre lui */
   if (combat.genre === 'ile' && mo.d.boss) combat.arene.deg += Math.min(n, Math.max(0, mo.pv)); /* (l'ile des boss : tes degats sur le boss) */
   { const v = 0.01 * nbBonus('vol'); if (v) { const a0 = combat.pv; combat.pv = Math.min(combat.pvMax, combat.pv + Math.min(n, Math.max(0, mo.pv)) * v); if (combat.st) combat.st.soins += combat.pv - a0; } } /* (le bonus Vol de vie de l'Arene) */
@@ -941,22 +941,22 @@ function nuageLeg(x, z) { /* l'arme du Koulosse : un nuage de fumee verte sur ta
   const matS = new T.MeshBasicMaterial({ color: '#6fbf3e', transparent: true, opacity: 0.3, depthWrite: false }), sol = new T.Mesh(new T.CircleGeometry(r, 40), matS); /* la flaque verte : la zone du poison */
   sol.rotation.x = -Math.PI / 2; sol.position.set(x, y0 + 0.05, z); sol.renderOrder = 2; scene.add(sol);
   g.position.set(x, y0, z); scene.add(g); let t = 0, tic = 0, bulle = 0; onde(x, y0, z, r + 0.4, '#7cc34a', 0.45, 0.8); pouf(x, y0, z, r * 0.9, '#7cc34a'); /* (23/10/2026 : des bulles vertes montent du nuage, 22b-effets.js) */
-  const D = FUMEE_LEG.duree, finir = () => { jeter(g); jeter(sol); };
+  const fm = mxc(), D = FUMEE_LEG.duree * fm, finir = () => { jeter(g); jeter(sol); }; /* (fm : les cristaux de l'arme, la duree du nuage et du poison et ses degats) */
   effets.push((dt) => { t += dt; tic += dt; bulle += dt; if (combat !== c0 || c0.fin) { finir(); return true; } const o = Math.min(1, t / 0.3, Math.max(0, (D - t) / 0.5)); mats.forEach((m) => { m.opacity = 0.6 * o; }); matS.opacity = 0.3 * o; g.rotation.y += dt * 0.4;
     g.children.forEach((m, i) => { m.position.y += Math.sin(t * m.userData.v * 2 + i) * dt * 0.12; m.scale.setScalar(Math.min(1, t / 0.35) * (1 + 0.06 * Math.sin(t * 3 + i))); }); /* (les volutes gonflent a l'arrivee et ondulent) */
     if (bulle >= 0.1 && t < D - 0.4) { bulle = 0; lueur(new T.Vector3(x + (fxAlea() - 0.5) * r * 1.5, y0 + 0.3 + fxAlea() * 0.9, z + (fxAlea() - 0.5) * r * 1.5), fxAlea() < 0.5 ? '#7fd04a' : '#b8ec7a', 1.3, 0.7); }
-    if (tic >= 0.2) { tic = 0; c0.monstres.forEach((m) => { if (m.etat !== 'actif' || Math.hypot(m.x - x, m.z - z) >= r) return; if (m.fumee) m.fumee.t = FUMEE_LEG.duree; else empoisonnerFumee(m); }); } /* (14/11/2026, « ca force a essayer de les laisser dedans le plus longtemps possible », Mathieu : rester dans le nuage recharge le poison, 4 s pleines en sortant ; un monstre reste tout du long : 8 s, 24 %, 4 400 au plus) */
+    if (tic >= 0.2) { tic = 0; c0.monstres.forEach((m) => { if (m.etat !== 'actif' || Math.hypot(m.x - x, m.z - z) >= r) return; if (m.fumee) { m.fumee.t = FUMEE_LEG.duree * fm; m.fumee.m = Math.max(m.fumee.m || 1, fm); } else empoisonnerFumee(m, fm); }); } /* (14/11/2026, « ca force a essayer de les laisser dedans le plus longtemps possible », Mathieu : rester dans le nuage recharge le poison, 4 s pleines en sortant ; un monstre reste tout du long : 8 s, 24 %, 4 400 au plus) */
     if (t >= D) { finir(); return true; } });
 }
-function empoisonnerFumee(mo) { /* le poison de la Fumee : 4 s a compter du contact, tick toutes les 0,5 s dans majMonstre */
-  mo.fumee = { t: FUMEE_LEG.duree, tic: 1 }; /* (tic a 1 : le premier coup au contact, puis un par seconde, 4 en tout) */
+function empoisonnerFumee(mo, M) { /* le poison de la Fumee : 4 s a compter du contact, tick toutes les 0,5 s dans majMonstre */
+  mo.fumee = { t: FUMEE_LEG.duree * (M || 1), tic: 1, m: M || 1 }; /* (tic a 1 : le premier coup au contact, puis un par seconde, 4 en tout) */
   const p = mo.m.position.clone(); p.y += (mo.haut || 2) + 0.2; chiffre('Empoisonné', p, 'vol');
 }
 function boueLeg(x, z, r, st) { /* le Heaume du Dragon Cochon (20/10/2026) : une flaque de boue la ou tu vises, 2 fois tes degats, les monstres dedans collent 2 s (1 s un boss) */
   const c0 = combat, y = solA(x, z), mat = new T.MeshBasicMaterial({ color: '#6a4524', transparent: true, opacity: 0.75, depthWrite: false }), f = new T.Mesh(new T.CircleGeometry(r, 28), mat);
   f.rotation.x = -Math.PI / 2; f.position.set(x, y + 0.06, z); f.renderOrder = 2; scene.add(f); pouf(x, y, z, r * 1.6, '#6a4524'); pouf(x, y, z, r, '#8e6640');
   secousse(0.14, 0.25); onde(x, y, z, r + 0.6, '#8e6640', 0.4, 0.9); mottes(x, y, z, 12, 1.1); poussiere(x, y, z, 8, r, '#9a7650'); /* (23/10/2026 : la boue gicle, des bulles crevent a la surface, 22b-effets.js) */
-  c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > r) return; blesser(o, Math.round(st.deg * 2), true); if (o.etat === 'actif') o.bloqueT = Math.max(o.bloqueT || 0, o.d.boss ? 1 : 2); });
+  c0.monstres.slice().forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > r) return; blesser(o, Math.round(st.deg * 2), true); if (o.etat === 'actif') o.bloqueT = Math.max(o.bloqueT || 0, (o.d.boss ? 1 : 2) * mxc()); });
   let t = 0, bulle = 0; effets.push((dt) => { t += dt; bulle += dt; if (combat !== c0 || c0.fin || t >= 2) { jeter(f); return true; } mat.opacity = 0.75 * Math.min(1, (2 - t) / 0.5);
     if (bulle >= 0.15 && t < 1.6) { bulle = 0; const a = fxAlea() * Math.PI * 2, d = fxAlea() * r * 0.85; lueur(new T.Vector3(x + Math.cos(a) * d, y + 0.12, z + Math.sin(a) * d), '#4a2f18', 1.6, 0.4); } });
 }
@@ -1008,8 +1008,8 @@ function blesserPerso(n, mo) {
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n) * multHautes(combat.n, combat.genre)));
   if (combat.mauditJusque && performance.now() < combat.mauditJusque) n = Math.round(n * (combat.mauditX || 1.25)); /* (maudit par l'Ancestral Maudit, 09/11/2026) */
   if (meuteActive()) n = Math.max(1, Math.round(n / (1 + MEUTE))); /* (la Meute : l'Osamodas encaisse mieux tant que son Bouftou est la, 09/11/2026) */
-  if (legPorte('chafer')) { n = Math.max(1, Math.round(n * 0.9)); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
-  if (combat.carapace > 0) n = Math.max(1, Math.round(n * CORAIL_LEG.recus)); /* (la Carapace de corail : -30 %, -40 % avant le 24/11/2026) */
+  if (legPorte('chafer')) { const M = mxLegPorte('chafer'); n = Math.max(1, Math.round(n * Math.max(0.5, 1 - 0.1 * M))); if (mo && mo.etat === 'actif') { const r = Math.max(1, Math.round(n * 0.1 * M)); blesser(mo, r); } } /* Heaume du Chafer Cuirasse : -10 %, et 10 % renvoyes au corps a corps */
+  if (combat.carapace > 0) n = Math.max(1, Math.round(n * Math.max(0.2, 1 - (1 - CORAIL_LEG.recus) * (combat.carapaceM || 1)))); /* (la Carapace de corail : -30 %, -40 % avant le 24/11/2026) */
   { const ca = caracs(), r = Math.min(50, (coupDeLoin(mo) ? ca.resLoin : ca.resCac) + (ca.resPct || 0)); if (r > 0) n = Math.max(1, Math.round(n * (1 - r / 100)));
     if (ca.resFixe > 0) n = Math.max(Math.ceil(n / 2), n - ca.resFixe); } /* (la resistance en % et la resistance fixe du palier 11, 25/11/2026 : le % s'ajoute a celle du contact ou de la distance, sous le meme plafond de 50 % ; la fixe ne retire jamais plus de la moitie d'un coup) */ /* les resistances des panoplies completes : Tortue au corps a corps, Kanniboul a distance (06/11/2026) */
   if (classeDe() === 'iop' && coupDeLoin(mo)) { n = Math.max(1, Math.round(n * (1 - PEAU_IOP))); peauDeIop(); } /* Peau de Iop : 15 % de degats en moins sur les coups recus de loin (06/11/2026 ; avant, tous les coups), et un bouclier dore qui s'eclaire (22b-effets.js) */
@@ -3470,7 +3470,7 @@ function majMonstre(mo, dt, s) {
   const m = mo.m;
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.parachute) { majParachute(mo, dt, s); return; } /* (le Parachutiste de VSA descend, 06/11/2026) */
   if (mo.venin && mo.etat === 'actif') { const V = mo.venin; V.tic += dt; if (V.tic >= 0.5) { const p = V.tic; V.tic = 0; let d = 0; V.L.forEach((x) => { d += x[0] * Math.min(p, x[1]); x[1] -= p; }); V.L = V.L.filter((x) => x[1] > 0.001); if (d > 0) blesser(mo, Math.max(1, Math.round(d)), false, 'venin'); } if (!V.L.length) mo.venin = null; } /* (le venin, toutes les 0,5 s) */
-  if (mo.fumee && mo.etat === 'actif') { const F = mo.fumee; F.t -= dt; F.tic += dt; if (F.tic >= 1 && F.t > -0.05) { F.tic = 0; blesser(mo, Math.round(Math.max(FUMEE_LEG.min, Math.min(mo.pvMax * FUMEE_LEG.part, FUMEE_LEG.max))), false, 'fumee'); if (mo.etat === 'actif') lueur(new T.Vector3(mo.x + (fxAlea() - 0.5) * 0.6, mo.m.position.y + (mo.haut || 2) * (0.5 + fxAlea() * 0.4), mo.z + (fxAlea() - 0.5) * 0.6), '#8fd84e', 1.2, 0.6); } if (F.t <= 0) mo.fumee = null; } /* (le poison de la Fumee du Koulosse, nuageLeg : toutes les 0,5 s, une bulle verte sur lui) */
+  if (mo.fumee && mo.etat === 'actif') { const F = mo.fumee; F.t -= dt; F.tic += dt; if (F.tic >= 1 && F.t > -0.05) { F.tic = 0; blesser(mo, Math.round(Math.max(FUMEE_LEG.min, Math.min(mo.pvMax * FUMEE_LEG.part, FUMEE_LEG.max)) * (F.m || 1)), false, 'fumee'); if (mo.etat === 'actif') lueur(new T.Vector3(mo.x + (fxAlea() - 0.5) * 0.6, mo.m.position.y + (mo.haut || 2) * (0.5 + fxAlea() * 0.4), mo.z + (fxAlea() - 0.5) * 0.6), '#8fd84e', 1.2, 0.6); } if (F.t <= 0) mo.fumee = null; } /* (le poison de la Fumee du Koulosse, nuageLeg : toutes les 0,5 s, une bulle verte sur lui) */
   if (mo.etat === 'enfoui') { mo.barre.hidden = true; return; } /* (sous terre : son effet le deplace, capEnfouit) */
   if (mo.etat === 'grimpe' && mo.dep && mo.dep.loin && mo.dep.loin.k < 1) { /* il traverse la friche jusqu'au bord, en marchant (departFriche) */
     const dp = mo.dep, L = dp.loin, vx = dp.x - L.x, vz = dp.z - L.z, D = Math.max(0.1, Math.hypot(vx, vz)), v = Math.max(2, mo.d.vitesse || 2) * 0.9;
@@ -3533,7 +3533,7 @@ function majMonstre(mo, dt, s) {
   else if (d > (mo.d.fluide && mo.arrete ? portee + 1 : portee)) { /* (fluide : arretee a sa portee, elle ne repart qu'une case plus loin ; sans ca elle repartait et s'arretait a chaque image) */
     mo.arrete = false;
     const w = mo.traverseT > 0 ? { x: tx, z: tz } : prochainPas(mo, tx, tz, dt), dx = w.x - mo.x, dz = w.z - mo.z, L = Math.hypot(dx, dz) || 1; /* (traverse : un boss qui etait coince va droit sur sa cible) */
-    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.rampeV || 1) * (mo.ventT > 0 ? 0.7 : 1) * (mo.mucus > 0 ? mo.mucusV || 0.8 : 1); /* (mucus : le Mucus de la panoplie du Crachopaud, 29l-panos-p11.js, 20/11/2026) */ /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; mo.voulu = pas; mo.envie = true; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
+    v = vitesseMonstre(mo.d) * (lent ? 0.4 : 1) * (mo.galva > 0 ? 1.3 : 1) * (mo.rageM || 1) * (mo.boueV || 1) * (mo.danseV || 1) * (mo.vitM || 1) * (mo.rampeV || 1) * (mo.ventT > 0 ? Math.max(0.2, 1 - 0.3 * (mo.ventM || 1)) : 1) * (mo.mucus > 0 ? mo.mucusV || 0.8 : 1); /* (mucus : le Mucus de la panoplie du Crachopaud, 29l-panos-p11.js, 20/11/2026) */ /* (vitM : un boss de l'ile plus rapide, VITESSE_ILE) */ const pas = Math.min(L, v * dt); mo.x += dx / L * pas; mo.z += dz / L * pas; mo.voulu = pas; mo.envie = true; tourner(mo, Math.atan2(dx, dz), dt); mo.picore = 0;
   } else if (versPerso || bat) {
     mo.arrete = true; tourner(mo, Math.atan2(tx - mo.x, tz - mo.z), dt);
     if (mo.cd <= 0 && !(versPerso && !bat && tropPresDuTireur(mo))) { /* (un tireur colle par le perso ne tire pas) */
@@ -3646,7 +3646,7 @@ function majPerso(dt) {
   u.angle = Math.atan2(c.x - pp.x, c.z - pp.z);
   if (combat.cdAttaque <= 0 && !u.attaque) {
     const rage = legPorte('bworker') && combat.pv < combat.pvMax * 0.3; if (rage && !combat.rage) { combat.rage = true; toast('Casque du Bworker : tu entres en rage !', 'alerte'); pouf(pp.x, pp.y, pp.z, 2.5, '#e2413a'); }
-    combat.cdAttaque = st.cadence * (rage ? 0.7 : 1); let cible = c; son(classe === 'cra' ? 'arc' : classe === 'osa' ? 'fouet' : 'epee'); /* (l'arme de la classe : l'arc du Cra, le fouet de l'Osamodas, l'epee du Iop) */
+    combat.cdAttaque = st.cadence * (rage ? Math.max(0.4, 1 - 0.3 * mxLegPorte('bworker')) : 1); let cible = c; son(classe === 'cra' ? 'arc' : classe === 'osa' ? 'fouet' : 'epee'); /* (l'arme de la classe : l'arc du Cra, le fouet de l'Osamodas, l'epee du Iop) */
     combat.tirs = (combat.tirs || 0) + 1; const feu = classe === 'cra' && combat.tirs % TIR_FEU === 0; /* une fleche de feu toutes les 10 */
     if (classe === 'cra') { combat.rafale = Math.min(RAFALE_CRA.max, (combat.rafale || 0) + RAFALE_CRA.pas); combat.rafaleT = 0; } /* la Rafale : +1 Agilite par fleche */
     const DF = degFixeP11(), prevu = { n: degatsPrevus(cible, (feu ? st.deg * 2 : st.deg) + DF), fin: performance.now() + 2500 }; /* (DF : les degats fixes du palier 11, sur l'attaque de base seulement, 25/11/2026) */ (cible.prevus = cible.prevus || []).push(prevu); /* (le coup en route, 09/11/2026) */

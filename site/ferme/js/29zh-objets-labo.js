@@ -57,7 +57,7 @@ LEGENDAIRES.push({ cle: 'docteur', boss: 'wabbenstein', nom: 'Lunettes du Docteu
 SORTS_LEG.docteur = { nom: 'Tourelle à cawottes', teinte: '#f08a24', recharge: 14, portee: TOURELLE_DOC.portee, zone: 1.2 };
 const lunettesPortees = () => { if (!combat) return false; if (combat.lunettesDoc == null) combat.lunettesDoc = legDe('coiffe') === 'docteur'; return combat.lunettesDoc; };
 /* +15 % aux invocations */
-{ const blesserInvocDoc = blesser; blesser = function (mo, n, gros, src) { if (src == null && typeof SRC_DEG === 'string' && SOURCES_INVOC.has(SRC_DEG) && lunettesPortees()) n = Math.round(n * (1 + TOURELLE_DOC.invoc)); return blesserInvocDoc.call(this, mo, n, gros, src); }; }
+{ const blesserInvocDoc = blesser; blesser = function (mo, n, gros, src) { if (src == null && typeof SRC_DEG === 'string' && SOURCES_INVOC.has(SRC_DEG) && lunettesPortees()) n = Math.round(n * (1 + TOURELLE_DOC.invoc * mxLegPorte('docteur'))); return blesserInvocDoc.call(this, mo, n, gros, src); }; }
 /* la tourelle : un socle de cuivre, un pied, une tete d'acier qui pivote, un canon, une cawotte chargee et un voyant vert */
 function maillageTourelleDoc() {
   const g = new T.Group(), tete = new T.Group(), mk = (geo, c, p, r) => { const m = new T.Mesh(geo, mat(c)); if (p) m.position.set(p[0], p[1], p[2]); if (r) m.rotation.set(r[0], r[1], r[2]); m.castShadow = true; return m; };
@@ -80,7 +80,7 @@ function tirTourelleDoc(t, cib, c0) {
 function tourelleDocteur(pt) {
   const c0 = combat; finTourelleDoc(c0); const q = pointSort(pt, TOURELLE_DOC.portee), x = q.x, z = q.z, y = solA(x, z), pp = paysanMesh.position, M = maillageTourelleDoc();
   poser(M.g, x, y, z, Math.atan2(pp.x - x, pp.z - z)); M.g.scale.setScalar(0.05);
-  const t = c0.tourelleDoc = { x, z, vie: TOURELLE_DOC.duree, cd: 0.45, n: 0, nait: 0, recul: 0, M };
+  const t = c0.tourelleDoc = { x, z, vie: TOURELLE_DOC.duree * mxc(), cd: 0.45, n: 0, nait: 0, recul: 0, M };
   pouf(x, y + 0.2, z, 1.8, '#b87333'); onde(x, y + 0.05, z, 1.4, '#f08a24', 0.4, 0.8); emettre(FX_VIF, 10, { x, y: y + 0.3, z, r: 0.3, dv: 3, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.04], c: ['#e0b070', '#b87333', '#fff1a8'], grav: 9, frein: 1.4 });
   chiffre('Tourelle à cawottes', new T.Vector3(x, y + 2.2, z), 'gros');
   effets.push((dt) => { if (combat !== c0 || c0.fin || c0.tourelleDoc !== t) { finTourelleDoc(c0, t); return true; } t.vie -= dt; if (t.vie <= 0) { finTourelleDoc(c0, t); return true; }
