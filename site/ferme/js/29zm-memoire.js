@@ -28,7 +28,7 @@ function ressourcesGardees(sauf) { const G = new Set(), ajouter = (r) => r && r.
   Object.values(MODELES).forEach((r) => { if (sauf.includes(r)) return; if (Array.isArray(r)) r.forEach(ajouter); else if (r && r.isObject3D) ajouter(r); else if (r && typeof r === 'object') Object.values(r).forEach((x) => { if (x && x.isObject3D) ajouter(x); else if (x && typeof x === 'object') Object.values(x).forEach(ajouter); }); });
   return G; }
 function jeterTout(root, garder) { const vus = new Set(), g = garder || new Set();
-  root.traverse((o) => { if (o.geometry && !vus.has(o.geometry)) { vus.add(o.geometry); if (!g.has(o.geometry)) o.geometry.dispose(); }
+  root.traverse((o) => { if (o.geometry && !vus.has(o.geometry)) { vus.add(o.geometry); if (!g.has(o.geometry)) o.geometry.dispose(); } if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose(); /* (la texture d'os de son squelette, 27/11/2026) */
     (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach((m) => { if (vus.has(m)) return; vus.add(m);
       Object.values(m).forEach((v) => { if (v && v.isTexture && !vus.has(v)) { vus.add(v); if (!g.has(v)) v.dispose(); } });
       if (m.uniforms) Object.values(m.uniforms).forEach((u) => { const v = u && u.value; if (v && v.isTexture && !vus.has(v)) { vus.add(v); if (!g.has(v)) v.dispose(); } }); if (!g.has(m)) m.dispose(); }); });

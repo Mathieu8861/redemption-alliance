@@ -24,7 +24,9 @@ function tournerCameraVers(a) { if (vueFixe()) return; angleVise = a; garderAngl
 /* L'INCLINAISON (09/11/2026, « on peut pas faire glisser de haut en bas aussi ? », Mathieu ; puis Ctrl + clic droit, le clic droit seul servant aux actions, et Z / S au clavier) : le glisser de haut en bas incline la camera, de presque
    a plat (ELEV_MIN) a presque vue du dessus (ELEV_MAX) ; la distance ne change pas. Elle est gardee comme l'angle ; R remet aussi l'inclinaison de depart.
    Le hall du casino garde sa vue fixe */
-const DIST_CAM = Math.hypot(27, 42.4), ELEV_DEPART = Math.atan2(27, 42.4), ELEV_MIN = 0.3, ELEV_MAX = 1.2;
+/* (27/11/2026, « la camera on peut plus la mettre en vue du haut ? vue aerienne, elle est pas pile au centre », Mathieu : 1,2 laissait la camera penchee, a 69 degres ;
+   1,55, a 89 degres, la met pile au-dessus. Le depart et le reste ne changent pas) */
+const DIST_CAM = Math.hypot(27, 42.4), ELEV_DEPART = Math.atan2(27, 42.4), ELEV_MIN = 0.3, ELEV_MAX = 1.55;
 let elevCam = (() => { try { const a = parseFloat(localStorage.getItem('ferme-elev-camera')); return isFinite(a) ? Math.min(ELEV_MAX, Math.max(ELEV_MIN, a)) : ELEV_DEPART; } catch (e) { return ELEV_DEPART; } })(), elevVise = null;
 function garderElev() { try { localStorage.setItem('ferme-elev-camera', String(elevVise != null ? elevVise : elevCam)); } catch (e) { /* rien */ } }
 function inclinerCamera(d) { if (vueFixe()) return; elevVise = null; elevCam = Math.min(ELEV_MAX, Math.max(ELEV_MIN, elevCam + d)); placerCamera(); garderElev(); }
@@ -84,7 +86,10 @@ function partager(...L) { L.forEach((x) => { if (!x) return; if (Array.isArray(x
 function jeter(...L) {
   const n = Object.keys(MODELES).length; if (n !== modelesPartages) { modelesPartages = n; partager(...Object.values(MODELES)); } /* (les modeles charges depuis la derniere fois, ceux des iles compris) */
   L.forEach((x) => { if (!x) return; if (x.parent) x.parent.remove(x);
-    x.traverse((o) => { if (o.geometry && !PARTAGES.has(o.geometry)) o.geometry.dispose(); [].concat(o.material || []).forEach((m) => { if (m && !PARTAGES.has(m)) m.dispose(); }); }); });
+    x.traverse((o) => { if (o.geometry && !PARTAGES.has(o.geometry)) o.geometry.dispose(); [].concat(o.material || []).forEach((m) => { if (m && !PARTAGES.has(m)) m.dispose(); });
+      if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose(); }); }); /* (27/11/2026, « Mada avait des pertes de FPS / memoire sur le boss de l'ile », Mathieu : chaque squelette a sa petite texture d'os sur la carte
+         graphique ; un monstre a squelette tue, un Bouftou invoque remplace n'etaient jamais rendus : une texture de plus a chaque fois, 18 par minute pour un Osamodas.
+         Si l'objet resert, three.js refait la texture, rien ne casse) */
 }
 partager(CONTOUR, grad);
 
