@@ -461,7 +461,8 @@ const animFatale = (classe, suivre, direct) => (classe === 'cra' ? mireFatale(su
   const impact = () => { const p = suivre().clone(), sauf = classe === 'iop' ? 'coupFatal' : classe === 'osa' ? 'morsure' : null, f0 = sauf && window[sauf]; if (sauf) window[sauf] = () => {}; /* (l'ancien effet de la classe ne se rejoue pas : le sort l'a remplace) */
     JUICE_CRA.coup = C; try { auImpact(); } finally { JUICE_CRA.coup = null; if (sauf) window[sauf] = f0; }
     tempsFortAnime(p, coul, classe === 'cra' ? { n: 6, long: 160, duree: 150, doux: true } : classe === 'osa' ? { sansTraits: true } : null); /* (la Morsure du Dragoeuf sans traits a l'ecran, 25/11/2026 au soir : « ca fait les pics rouges dans tous les sens », Mathieu ; le dragon et son impact restent sur la cible) */ cibleFatale(C, de); }; /* (le tir du Cra : moins de traits rouges, plus courts, « limite un peu les traits rouges qui partent partout », Mathieu, 25/11) */
-  (P ? P.anim : animFatale(classe, suivre, true)).declencher(impact); /* (Iop et Osamodas : les degats tout de suite, comme avant ; Cra : a l'arrivee de la fleche, 0,28 s, comme avant) */
+  const srcF = SRC_DEG, impactS = () => { const p0 = SRC_DEG; SRC_DEG = srcF || p0; try { impact(); } finally { SRC_DEG = p0; } }; /* (27/11/2026, « c'est quoi les 186k Autres dans mon screen ? », Mathieu : la fleche du Cra touche depuis la boucle de son animation, creee hors du sort ; ses degats tombaient dans « Autres » du bilan. Ils gardent le nom de l'ulti) */
+  (P ? P.anim : animFatale(classe, suivre, true)).declencher(impactS); /* (Iop et Osamodas : les degats tout de suite, comme avant ; Cra : a l'arrivee de la fleche, 0,28 s, comme avant) */
 }; }
 
 /* LA TEMPETE DE LAMES (25/11/2026, « fais la tempete de lames », Mathieu) : l'ulti de zone du Iop. Le jeu ne change pas (meme elan, 2 s de tournoiement,
