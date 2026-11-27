@@ -13,16 +13,16 @@ const COURONNE = {
   cra: { portee: 14, duree: 0.3, buff: 4, vit: 0.10, agi: 30, grace: 0.12 }, /* (duree : le dash entier, 7 cases en 0,3 s ; grace : encore intouchable un instant a l'arrivee) */
   osa: { duree: 6, deg: 0.30, vit: 0.20, charge: 12, mult: 2, sonne: 1, sonneBoss: 0.5, taille: 1.7 } /* (charge : jusqu'a 6 cases du Bouftou ; taille : le Royal 1,7 fois plus haut que le Bouftou) */
 };
-SORTS_LEG.royal.parClasse = {
-  iop: { nom: 'Charge rapide', recharge: 12, portee: COURONNE.iop.portee, ligne: true, largeur: 1.0 },
-  cra: { nom: 'Dash', teinte: '#8fd8ff', recharge: 12, portee: COURONNE.cra.portee, ligne: true, largeur: 0.8 },
+SORTS_LEG.royal.parClasse = { /* (recharges : 10 s pour le Iop et le Cra, « met a 10s pour iop et cra », Mathieu, 27/11/2026 ; 12 s avant) */
+  iop: { nom: 'Charge rapide', recharge: 10, portee: COURONNE.iop.portee, ligne: true, largeur: 1.0 },
+  cra: { nom: 'Dash', teinte: '#8fd8ff', recharge: 10, portee: COURONNE.cra.portee, ligne: true, largeur: 0.8 },
   osa: { nom: 'Bouftou Royal', recharge: 15, portee: COURONNE.osa.charge, instant: true, ligne: false }
 };
 /* le texte de la Couronne suit la classe du perso (comme le Heaume de Crocabulia, 03-equipements.js) */
 { const L = LEGENDAIRES.find((l) => l.cle === 'royal'), laine = ' Et tes Bouftous donnent 25 % de laine en plus.';
   L.pouvoirs = {
-    epee: 'Sort Charge rapide (touche 3) : tu fonces en ligne droite vers où tu vises (jusqu\'à 5 cases) et tu passes à travers les monstres : chacun sur ta route prend 2 fois tes dégâts et reste sonné 0,5 s. Recharge 12 s.' + laine,
-    arc: 'Sort Dash (touche 3) : tu bondis loin en ligne droite vers où tu vises (jusqu\'à 7 cases), intouchable pendant le dash : tu esquives les coups et les sorts. À la sortie, pendant 4 s, tu cours 10 % plus vite et tu as 30 d\'Agilité en plus. Recharge 12 s.' + laine,
+    epee: 'Sort Charge rapide (touche 3) : tu fonces en ligne droite vers où tu vises (jusqu\'à 5 cases) et tu passes à travers les monstres : chacun sur ta route prend 2 fois tes dégâts et reste sonné 0,5 s. Recharge 10 s.' + laine,
+    arc: 'Sort Dash (touche 3) : tu bondis loin en ligne droite vers où tu vises (jusqu\'à 7 cases), intouchable pendant le dash : tu esquives les coups et les sorts. À la sortie, pendant 4 s, tu cours 10 % plus vite et tu as 30 d\'Agilité en plus. Recharge 10 s.' + laine,
     fouet: 'Sort Bouftou Royal (touche 3) : sans viser, ton Bouftou invoqué devient un Bouftou Royal pendant 6 s : il frappe 30 % plus fort, court 20 % plus vite et charge un monstre en arrivant (2 fois son coup, sonné 1 s, 0,5 s pour un boss). Recharge 15 s.' + laine };
   Object.defineProperty(OBJETS['leg-royal'], 'pouvoir', { get: () => (typeof S_ !== 'undefined' && S_ && S_.perso && L.pouvoirs[ARMES[classeDe()][0]]) || L.pouvoir, enumerable: true, configurable: true }); }
 /* la fiche des cristaux : les effets du sort, classe par classe */
@@ -36,10 +36,15 @@ chargeRoyale = function (pt, st) { const cl = classeDe(); if (cl === 'cra') retu
 /* sans Bouftou, le sort ne part pas (et sa recharge ne court pas) */
 { const B = BOUTONS_SORT.coiffe, refus0 = B.refus; B.refus = () => (refus0 && refus0()) || (legDe('coiffe') === 'royal' && classeDe() === 'osa' && !(combat && combat.invoc) ? 'Invoque d\'abord ton Bouftou : la Couronne en fait un Bouftou Royal.' : ''); }
 
+/* le sol ou la charge et le dash peuvent passer : celui des sorts (solSort), sans le vide des ruines celestes (28e-arene-relief.js : pour un sort, le vide compte comme
+   du sol, on peut y etre pousse ; le dash d'un Cra y tombait, « Chute ! », a l'essai du 27/11/2026). Ils s'arretent au bord, comme devant un mur */
+const solCouronne = (x, z) => { if (!solSort(x, z)) return false;
+  try { const K = lieu === 'arene' && typeof reliefIci === 'function' ? reliefIci() : null; if (K) { const q = versLocalArene(x, z); return libreR(K, q[0], q[1], 0.4, false, false, false); } } catch (e) { /* rien */ }
+  return true; };
 /* LA CHARGE RAPIDE (Iop) : l'ancienne Charge, plus vive (vit), a travers les monstres, qui restent sur place (plus de bousculade), sonnes 0,5 s, boss compris */
 function chargeRapideIop(pt, st) {
   const C = COURONNE.iop, M = mxc(), pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a);
-  let L = 0; while (L < C.portee && solSort(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25; /* (jusqu'au premier obstacle) */
+  let L = 0; while (L < C.portee && solCouronne(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25; /* (jusqu'au premier obstacle) */
   const fin = { x: de.x + dx * L, z: de.z + dz * L }, duree = Math.max(0.1, L / C.vit), touches = new Set(), dir = new T.Vector3(dx, 0, dz);
   chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true;
   const fant = fantomes(paysanMesh, 5, '#ffd36a', 1.4); secousse(0.08, 0.18); poussiere(de.x, de.y, de.z, 8, 0.8, '#d8c6a0'); onde(de.x, de.y, de.z, 1.3, '#fff1c0', 0.3, 0.6);
@@ -61,7 +66,7 @@ function chargeRapideIop(pt, st) {
    comme en l'air pendant un bond : blesserPerso n'y fait rien) du depart a un instant apres l'arrivee ; a la sortie, son bonus : vitesse et Agilite pendant 4 s */
 function dashCra(pt, st) {
   const C = COURONNE.cra, M = mxc(), pp = paysanMesh.position, u = paysanMesh.userData, de = pp.clone(), c0 = combat, a = Math.hypot(pt.x - pp.x, pt.z - pp.z) > 0.05 ? Math.atan2(pt.x - pp.x, pt.z - pp.z) : paysanMesh.rotation.y, dx = Math.sin(a), dz = Math.cos(a);
-  let L = 0; while (L < C.portee && solSort(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25;
+  let L = 0; while (L < C.portee && solCouronne(de.x + dx * (L + 0.25), de.z + dz * (L + 0.25))) L += 0.25;
   const fin = { x: de.x + dx * L, z: de.z + dz * L }, duree = Math.max(0.1, C.duree * L / C.portee), dir = new T.Vector3(dx, 0, dz);
   chemin = []; arrivee = null; c0.ordre = false; u.angle = a; paysanMesh.rotation.y = a; u.charge = true; u.enVol = true;
   const fant = fantomes(paysanMesh, 6, '#9fdcff', 1.2); onde(de.x, de.y + 0.05, de.z, 1.2, '#cfeeff', 0.3, 0.7); emettre(FX_VIF, 14, { x: de.x, y: de.y + 0.4, z: de.z, r: 0.4, dv: 2.4, haut: true, vie: [0.3, 0.5], taille: [0.12, 0.03], c: ['#ffffff', '#9fdcff', '#4aa8e0'], grav: 3 });
