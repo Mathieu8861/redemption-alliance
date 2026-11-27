@@ -9,7 +9,10 @@
    VERSION DEV : le bouton n'apparait que dans le mode test. Les Contacts parlent au serveur meme en mode test (ce ne sont pas des donnees de la ferme,
    que le mode test n'enregistre pas). */
 const CONTACTS = { onglet: 'amis', data: null, charge: null, recues: 0, msg: '', msgOk: false, retirer: null, tPoll: 0 };
-const contactsVisibles = () => typeof MODE_TEST !== 'undefined' && !!MODE_TEST;
+/* (27/11/2026, « Mirabelle c'est ma copine, ça irait pour test ? », Mathieu : les Contacts s'ouvrent aussi, hors mode test, aux comptes de ferme d'essai :
+   celui de Mathieu et celui de Mirabelle ; les autres joueurs ne voient rien) */
+const CONTACTS_TESTEURS = TESTEURS_ULTI.concat(['0e4a38df-c77a-4785-a60d-cea6ccd0914f']); /* (Mirabelle) */
+const contactsVisibles = () => (typeof MODE_TEST !== 'undefined' && !!MODE_TEST) || !!(typeof enLigneSv !== 'undefined' && enLigneSv.compte && CONTACTS_TESTEURS.includes(enLigneSv.compte));
 const CLASSES_CONTACT = { iop: 'Iop', cra: 'Cra', osa: 'Osamodas' };
 async function appelContacts(nom, args) { /* (comme rpc(), 05-nuage.js, mais permis en mode test) */
   if (!ENLIGNE) throw new Error('hors ligne');
@@ -89,4 +92,4 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && modaleOuv
 /* le bouton suit le mode test ; les demandes recues sont relues toutes les 60 s quand le bouton est visible (et a l'ouverture de la fenetre) */
 { const entrerModeTestCt = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestCt.apply(this, arguments); try { majPastilleContacts(); if (contactsVisibles()) chargerContacts(); } catch (e) { /* rien */ } return r; }; }
 setInterval(() => { try { majPastilleContacts(); if (contactsVisibles() && ENLIGNE && !document.hidden && !combat) chargerContacts(); } catch (e) { /* (avant le chargement de la ferme) */ } }, 60000);
-setTimeout(() => { try { majPastilleContacts(); } catch (e) { /* rien */ } }, 0);
+[0, 4000, 10000, 20000].forEach((ms) => setTimeout(() => { try { majPastilleContacts(); if (ms && contactsVisibles() && ENLIGNE && !CONTACTS.data) chargerContacts().then(majPastilleContacts); } catch (e) { /* rien */ } }, ms)); /* (le compte est connu quelques secondes apres le chargement) */
