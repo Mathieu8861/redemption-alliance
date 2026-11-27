@@ -108,6 +108,10 @@ const vsaComplet = () => VSA_SIMU.every((k) => MODELES[k]) && !(typeof vsaDev ==
     if (window.__banc || MEMOIRE.vsaEssaye || vsaComplet()) return annoncerRaidMem.apply(this, arguments);
     if (raidAnnonce || combat || enAccueil || MEMOIRE.vsaAttendu) return; MEMOIRE.vsaAttendu = true;
     chargerPersonnagesVsa().catch(() => {}).then(() => { MEMOIRE.vsaAttendu = false; MEMOIRE.vsaEssaye = true; try { annoncerRaid(muet); } finally { MEMOIRE.vsaEssaye = false; } }); }; }
+/* (27/11/2026, « c'est normal que quand la simu VSA pop on a 2 fois le message a valider pour la lancer ? », Mathieu) : pendant que ses personnages se chargent,
+   apres « Defendre la ferme », il n'y a encore ni fenetre ni annonce ; la boucle (S_.simuDue, 30-boucle.js) reproposait alors la simu, 34 ms apres le clic.
+   Tant que l'annonce attend ses personnages, rien n'est repropose */
+{ const proposerSimuMem = proposerSimu; proposerSimu = function () { if (MEMOIRE.vsaAttendu) return; return proposerSimuMem.apply(this, arguments); }; }
 { const lancerVoleurMem = lancerVoleur; lancerVoleur = function () {
     if (window.__banc || MEMOIRE.voleurEssaye || MODELES.voleur) return lancerVoleurMem.apply(this, arguments);
     if (MEMOIRE.voleurAttendu) return; MEMOIRE.voleurAttendu = true;
