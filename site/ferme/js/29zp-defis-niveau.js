@@ -4,14 +4,15 @@
    au formulaire) :
    - trois defis par jour, un par rang : un defi de FERME (facile), un defi de COMBAT (moyen), un EXPLOIT (difficile, des le niveau 30). Un rang qui n'a rien a
      proposer au joueur (pas encore de vagues, pas de boss battu) prend un defi du rang d'en dessous ;
-   - les kamas en part d'une vague de son niveau (vagueDeNiveau) : ferme 30 % (comme avant), combat 75 %, exploit 200 % ; au niveau 100 : 2 862, 7 155, 19 080 ;
-     l'XP dans les memes proportions ; pas de bonus en plus sur l'exploit (« rien de plus ») ;
+   - les kamas : la meme somme pour les trois defis, 30 % d'une vague de son niveau (vagueDeNiveau), comme avant : 2 862 au niveau 100 (d'abord 30 %, 75 % et 200 % selon le rang, retire le soir meme, voir DEFIS_RANGS) ;
+     l'XP comme avant ; pas de bonus en plus sur l'exploit (« rien de plus ») ;
    - le coffre du jour (les trois reussis), dicte par Mathieu : 150 % d'une vague de son niveau, 60 % de chance d'une piece de son palier, 5 % d'une piece rare
      de son palier, et une chance sur deux de 2 ressources au hasard de son palier. La Prospection ne joue pas (jamais sur un coffre).
    VERSION DEV (« MAJ au palier 11 ca, l'applique pas de suite, on le sortira en meme temps que tout le reste », Mathieu) : dans le mode test, et pour tous a la
    sortie du palier 11 (p11Ouvert). Les compteurs des nouveaux defis (revanches, vagues tenues a l'Arene, voleurs abattus) tournent deja pour tous, sans rien
    afficher. Les defis d'avant restent dans 16-progression.js, intacts. */
-const DEFIS_RANGS = { ferme: { nom: 'Ferme', part: 0.3, teinte: '#5fae3a' }, combat: { nom: 'Combat', part: 0.75, teinte: '#f08a24' }, exploit: { nom: 'Exploit', part: 2, teinte: '#a64dff' } };
+/* (27/11/2026 au soir, Mathieu, en apprenant que chaque defi se reclame seul : « chaque defi reussi, peu importe sa difficulte, donne la meme somme, plutot ce que t'as mis pour le defi de la ferme facile, mais pour tous ; sauf pour le coffre, qu'on laisse pareil » : 30 % d'une vague pour les trois, 75 % et 200 % avant) */
+const DEFIS_RANGS = { ferme: { nom: 'Ferme', part: 0.3, teinte: '#5fae3a' }, combat: { nom: 'Combat', part: 0.3, teinte: '#f08a24' }, exploit: { nom: 'Exploit', part: 0.3, teinte: '#a64dff' } };
 const COFFRE_JOUR = { part: 1.5, piece: 0.6, rare: 0.05, res: 0.5, nRes: 2 };
 const NIV_EXPLOIT = 30, NIV_REVANCHE_DURE = 60;
 /* un defi : [compteur, quantite, texte, condition, plafond] ; quantite : un nombre (multiplie par 1 + niveau / 25, comme avant) ou une fonction (le nombre exact) */
@@ -60,7 +61,7 @@ const pcDefi = (x) => Math.round(x * 100) + ' %';
 /* la fenetre : la pastille du rang a cote de chaque defi, et le nouveau coffre */
 { const ouvrirDefisNiv = ouvrirDefis; ouvrirDefis = function () { const J = jourCourant(); if (!J || !J.v2 || !defisNiveauOuverts() || !J.defis.some((d) => d.rang)) return ouvrirDefisNiv.apply(this, arguments);
     const tous = J.defis.every((d) => d.reclame), C = COFFRE_JOUR;
-    ouvrirModale('defis', entete('Défis du jour') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Trois défis par jour : un de ferme, un de combat et un exploit. Plus un défi est dur, mieux il paie. Les trois réussis ouvrent le coffre du jour.</p>' +
+    ouvrirModale('defis', entete('Défis du jour') + '<p style="font-size:.8rem;font-weight:600;margin:0 0 4px">Trois défis par jour : un de ferme, un de combat et un exploit. Chacun se réclame une fois réussi. Les trois réussis ouvrent le coffre du jour.</p>' +
       J.defis.map((d, k) => { const R = DEFIS_RANGS[d.rang]; return '<div class="defi"><div><b>' + d.txt + '</b>' + (R ? '<span class="defi-rang" style="background:' + R.teinte + '">' + R.nom + '</span>' : '') + '<div class="pv-grand"><i style="width:' + (100 * Math.min(1, d.fait / d.but)).toFixed(0) + '%;background:var(--vert)"></i></div><small style="font-size:.7rem;font-weight:700;color:#a9adb5">' + Math.min(d.fait, d.but) + ' / ' + d.but + ' : +' + fmt(d.kamas) + ' kamas, +' + xpReel(d.xp) + ' XP</small></div><div class="act">' + (d.reclame ? '<span class="cadenas">✓ Réclamé</span>' : '<button class="btn kamas" data-reclamer-defi="' + k + '"' + (d.fait >= d.but ? '' : ' disabled') + '>Réclamer</button>') + '</div></div>'; }).join('') +
       '<div class="art">' + ico('coffre') + '<div><b>Le coffre du jour</b><div class="desc">' + (J.coffre ? 'Ouvert ! Reviens demain pour de nouveaux défis.' : 'Réussis les trois défis : ' + fmt(kamasCoffreNiveau()) + ' kamas, ' + pcDefi(C.piece) + ' de chance d\'une pièce de ton palier, ' + pcDefi(C.rare) + ' d\'une pièce rare ★, et une chance sur deux de ' + C.nRes + ' ressources de ton palier.') + '</div></div><div class="act">' + (J.coffre ? '<span class="cadenas">✓ Ouvert</span>' : '<button class="btn kamas" data-coffre' + (tous ? '' : ' disabled') + '>Ouvrir</button>') + '</div></div>'); }; }
 { const ouvrirCoffreNiv = ouvrirCoffre; ouvrirCoffre = function () { const J = jourCourant(); if (!J || !J.v2 || !defisNiveauOuverts() || !J.defis.some((d) => d.rang)) return ouvrirCoffreNiv.apply(this, arguments);
