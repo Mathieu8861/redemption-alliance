@@ -72,3 +72,15 @@ function libererNiveauxPasses() { if (!S_ || !S_.amelio) return 0; const L = [];
       for (let d = 1; d < 8 && !r; d++) { if (MODELES[f + (n + d)]) r = f + (n + d); else if (n - d >= 1 && MODELES[f + (n - d)]) r = f + (n - d); } if (r) nom = r; } }
     return clonerMem.call(this, nom); }; }
 { const construireMem = construireBatiments; construireBatiments = function () { const r = construireMem.apply(this, arguments); clearTimeout(MEMOIRE.tNiv); MEMOIRE.tNiv = setTimeout(() => { try { libererNiveauxPasses(); } catch (e) { console.warn('niveaux passes', e); } }, 3000); return r; }; }
+/* LES FAMILLES DE MONSTRES CHARGEES AU BESOIN (27/11/2026, FAMILLES_MONSTRES, 09-modeles.js) : tout monstre demande passe par chargerSquelettes (le lancement d'une
+   vague, une revanche, un monstre qui arrive sans son modele, l'Arene dev) : sa famille se charge d'abord. L'Arene charge toutes les familles avant son public
+   (des monstres de tous les paliers sur les gradins). Apres un combat et en rentrant a la ferme, les familles qui ne servent pas a la prochaine vague sont rendues */
+{ const chargerSqMem = chargerSquelettes; chargerSquelettes = async function (noms) { try { await chargerModelesMonstres(noms); } catch (e) { console.warn('familles de monstres', e); } return chargerSqMem.apply(this, arguments); }; }
+{ const chargerAreneMem = chargerArene; chargerArene = async function () { try { await Promise.all(Object.keys(FAMILLES_MONSTRES).map(chargerFamille)); } catch (e) { console.warn('familles pour l\'Arene', e); } return chargerAreneMem.apply(this, arguments); }; }
+function famillesDeLaVague(n) { const F = new Set(); try { const T = [].concat(compoTotale(n).map(([t]) => t), (PHASES_BOSS[n] || []).flatMap((p) => p.L.map(([t]) => t)));
+    T.forEach((t) => { const d = MONSTRES[t]; if (!d) return; [d.modele].concat(d.renforts ? [MONSTRES[d.renforts[0]] && MONSTRES[d.renforts[0]].modele] : [], d.invoque && d.invoque.types ? d.invoque.types.map((x) => MONSTRES[x] && MONSTRES[x].modele) : []).forEach((m) => { const f = m && familleDuModele(m); if (f) F.add(f); }); }); } catch (e) { /* rien */ }
+  return F; }
+function libererFamilles() { if (combat || lieu !== 'ferme') return 0; const garder = famillesDeLaVague(vagueCourante()), L = Object.keys(FAMILLES_MONSTRES).filter((k) => FAMILLES_MONSTRES[k].pret && !garder.has(k)); if (!L.length) return 0;
+  const G = ressourcesGardees([]); L.forEach((k) => libererFamille(k, G)); MEMOIRE.familles = (MEMOIRE.familles || 0) + L.length; return L.length; }
+{ const viderLieuxMem = viderLieux; viderLieux = function () { const R = viderLieuxMem.apply(this, arguments); try { R.familles = libererFamilles(); } catch (e) { console.warn('familles', e); } return R; }; }
+{ const finVagueMem = finVague; finVague = function () { const r = finVagueMem.apply(this, arguments); clearTimeout(MEMOIRE.tFam); MEMOIRE.tFam = setTimeout(() => { try { libererFamilles(); } catch (e) { /* rien */ } }, 2500); return r; }; }

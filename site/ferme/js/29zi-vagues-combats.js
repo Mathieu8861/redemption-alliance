@@ -122,7 +122,7 @@ function armerCM(n, k) {
     const L = ESSAI101.lance, cm = L && L.P && L.P.cm;
     const tempsL = cm ? (cm.boss ? (PHASES_BOSS[cm.n] || []).map((p) => p.L) : (L.P.tempsCM || []).map((T) => T.L)) : [];
     if (cm && tempsL.length && !charges) { /* (les monstres des temps suivants charges avant, sinon l'image se fige a leur arrivee : le Machefange, la maree montante, le relais) */
-      const T0 = [...new Set([].concat(...tempsL.map((l) => l.map(([t]) => t))))], sq = [...new Set(T0.map((t) => MONSTRES[t].modele))].filter((x) => !MODELES[x] && SQUELETTES_A_CHARGER.some(([s]) => s === x));
+      const T0 = [...new Set([].concat(...tempsL.map((l) => l.map(([t]) => t))))], sq = [...new Set(T0.map((t) => MONSTRES[t].modele))].filter((x) => !MODELES[x] && (SQUELETTES_A_CHARGER.some(([s]) => s === x) || (typeof familleDuModele === 'function' && !!familleDuModele(x))));
       if (sq.length) { lancerVague.charge = true; chargerSquelettes(sq).then(() => { prechaufferSquelettes(sq); }).catch(() => {}).finally(() => { lancerVague.charge = false; lancerVague(pBoss, difficile, charges); }); return; } }
     const ph = cm && !cm.boss ? PHASES_BOSS[cm.n] : null; if (ph) delete PHASES_BOSS[cm.n]; /* (un combat ordinaire de la 110 : la horde seule, sans les temps du boss) */
     let r; try { r = lancerVagueCM.apply(this, arguments); } finally { if (ph) PHASES_BOSS[cm.n] = ph; }

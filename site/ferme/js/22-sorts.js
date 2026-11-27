@@ -584,7 +584,7 @@ function brulerCroc(o, st, t, tic) { if (o.etat !== 'actif') return; o.brule = M
 const coupDragonnet = () => Math.round(degInvoc(niveau(S_.xp)) * (1 + DRAGONNET.part * caracs().puissance / 100) * (1 + MEUTE)), cadenceDragonnet = () => DRAGONNET.cadence / (1 + DRAGONNET.part * caracs().agilite / 100);
 function finDragonnet(c) { const dr = c && c.dragonnet; if (!dr) return; c.dragonnet = null; if (dr.m) { const p = dr.m.position; pouf(p.x, solA(p.x, p.z), p.z, 1.6, '#ff8a2e'); emettre(FX_FUM, 8, { x: p.x, y: p.y, z: p.z, r: 0.4, v: [0, 0.8, 0], vie: [0.7, 1.1], taille: [0.4, 1.4], c: ['#5a4a42', '#9a8a80'], a: 0.5, frein: 1.2, entree: 0.1 }); jeter(dr.m); } }
 function dragonnet(pt, st) {
-  const c0 = combat; finDragonnet(c0); if (!MODELES.crocabulia) return;
+  const c0 = combat; finDragonnet(c0); if (!MODELES.crocabulia) { if (typeof chargerFamille === 'function') chargerFamille('dragoeufs').then(() => { if (combat === c0 && !c0.fin && MODELES.crocabulia) dragonnet(pt, st); }).catch(() => {}); return; } /* (Crocabulia se charge au besoin, 27/11/2026) */
   const q = pointSort(pt, PORTEE_BOUTURE), x = q.x, z = q.z, y = solA(x, z), pp = paysanMesh.position;
   const m = cloner('crocabulia'); m.traverse((o) => { o.raycast = () => {}; }); const echelle = m.scale.x * DRAGONNET.echelle; m.scale.setScalar(echelle * 0.2);
   const ry = Math.atan2(pp.x - x, pp.z - z); poser(m, x, y + DRAGONNET.haut, z, ry); m.rotation.order = 'YXZ';

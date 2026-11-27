@@ -328,7 +328,7 @@ const personnagesVsaPrets = () => !!(MODELES.voleur && MODELES.voleurMonte);
 const ETAPES_CHARGEMENT = ['On réveille les Bouftous...', 'On arrose les cultures...', 'On cire les tours de défense...', 'On allume les lanternes...', 'On ouvre la grange...']; /* (les etapes du chargement, 15/11/2026) */
 async function chargerModeles() {
   const texte = document.getElementById('chargement-texte');
-  const fichiers = ['ile-ronde-jeu', 'koalaks', 'koulosse', 'palier8', 'dragon-cochon', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'cultures5', 'montgolfiere', /* ('casino-jeu' retire le 27/11/2026 : l'ancien Casino, charge au demarrage pour sa seule montgolfiere, qui a son propre fichier ; son decor ne servait plus, 29zm-memoire.js) */ 'wabbits', 'monstres', 'chafers', 'bworks', 'craqueleurs', 'dragoeufs', 'monture', 'iop3', 'osa', 'cra', 'forgemagie2', 'atelier'];
+  const fichiers = ['ile-ronde-jeu', 'batiments', 'tours', 'granges-niveaux', 'puits-niveaux', 'voliere-niveaux', 'etal-niveaux', 'arbaletes', 'enclos-modules', 'objets', 'ble-planche', 'cultures', 'cultures2', 'cultures3', 'cultures4', 'cultures5', 'montgolfiere', /* ('casino-jeu' retire le 27/11/2026 : l'ancien Casino, charge au demarrage pour sa seule montgolfiere, qui a son propre fichier ; son decor ne servait plus, 29zm-memoire.js) */ 'wabbits', 'monstres', 'monture', /* (les familles de monstres de combat : chargees au besoin, FAMILLES_MONSTRES, 27/11/2026) */ 'iop3', 'osa', 'cra', 'forgemagie2', 'atelier'];
   let faits = 0;
   const scenes = await Promise.all(fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES).then((sc) => { faits++; const pc = Math.round(100 * faits / fichiers.length), pct = document.getElementById('chargement-pct'); texte.textContent = ETAPES_CHARGEMENT[Math.min(ETAPES_CHARGEMENT.length - 1, Math.floor(pc / 100 * ETAPES_CHARGEMENT.length))]; if (pct) pct.textContent = pc + ' %'; else texte.textContent += ' ' + pc + ' %'; document.getElementById('chargement-barre').style.width = pc + '%'; return sc; })));
   const G = Object.fromEntries(fichiers.map((f, k) => [f, scenes[k]]));
@@ -371,33 +371,60 @@ async function chargerModeles() {
   versToon(G.monstres, { normales: 0.01, sansContour: SC_MONSTRES });
   MODELES.tofu = gabarit(G.monstres, 'Tofu', 0.75, 'y'); /* (0,75 et non plus 0,85 depuis ses pattes et sa petite houppe, 22/10/2026 : le corps garde la meme taille) */
   MODELES.chafer = gabarit(G.monstres, 'Chafer', 1.5, 'y'); MODELES.royal = gabarit(G.monstres, 'BouftouRoyal', 2.7, 'y'); /* les vagues */
-  versToon(G.chafers, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 2 (blender/chafers.py) */
   versToon(G.monture, { normales: 0.01, sansContour: SC_MONSTRES }); MODELES.monture = gabarit(G.monture, 'Monture', 2.0, 'y'); /* la Dragodinde des raids (blender/monture.py) */
-  MODELES.fantassin = gabarit(G.chafers, 'ChaferFantassin', 1.75, 'y'); MODELES.gardien = gabarit(G.chafers, 'ChaferGardien', 2.1, 'y'); MODELES.archer = gabarit(G.chafers, 'ChaferArcher', 1.75, 'y'); G.chafers.traverse((o) => { if (/^bras_lance/.test(o.name)) o.userData.articule = true; }); MODELES.cuirasse = gabarit(G.chafers, 'ChaferCuirasse', 3.0, 'y'); fusionnerPivots(MODELES.cuirasse); /* (son bras libre lance la lance d'os, 31/10/2026) */
-  versToon(G.bworks, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 3 : la Horde des Bworks (blender/bworks.py) */
-  MODELES.bwork = gabarit(G.bworks, 'Bwork', 1.9, 'y'); MODELES.bworkArcher = gabarit(G.bworks, 'BworkArcher', 2.0, 'y'); MODELES.bworkMage = gabarit(G.bworks, 'BworkMage', 2.0, 'y'); MODELES.bworkette = gabarit(G.bworks, 'Bworkette', 1.65, 'y'); MODELES.bworker = gabarit(G.bworks, 'Bworker', 3.3, 'y');
-  versToon(G.craqueleurs, { normales: 0.01, sansContour: SC_MONSTRES }); versToon(G.dragoeufs, { normales: 0.01, sansContour: SC_MONSTRES }); /* paliers 4 et 5 (blender/craqueleurs.py, dragoeufs.py) */
-  [['craqueleur', 'Craqueleur', 2.1], ['craqueboule', 'Craqueboule', 1.25], ['craqLanceur', 'CraqLanceur', 2.5], ['craqCristal', 'CraqCristal', 2.2], ['craqLegendaire', 'CraqLegendaire', 3.7]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.craqueleurs, n, h, 'y'); });
   versToon(G.wabbits, { normales: 0.01, sansContour: SC_MONSTRES }); /* Phase 2, palier 1 (blender/wabbits.py) */
   [['wabbit', 'Wabbit', 1.35], ['wabbitNoir', 'WabbitNoir', 1.45], ['wabbitSquelette', 'WabbitSquelette', 1.45], ['woWabbit', 'WoWabbit', 1.8], ['wabbitSorciere', 'WabbitSorciere', 1.75], ['gwandWabbit', 'GwandWabbit', 2.3], ['waWabbit', 'WaWabbit', 2.7]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.wabbits, n, h, 'y'); });
-  versToon(G.koalaks, { normales: 0.01, sansContour: SC_MONSTRES }); versToon(G.koulosse, { normales: 0.01, sansContour: SC_MONSTRES }); /* Phase 2, palier 2 (blender/koalaks.py, koulosse.py) */
-  [['koalakImmature', 'KoalakImmature', 1.25], ['koalakForestier', 'KoalakForestier', 1.7], ['koalakFossoyeur', 'KoalakFossoyeur', 1.6], ['guerrierKoalak', 'GuerrierKoalak', 2.0], ['koalakFarouche', 'KoalakFarouche', 1.6],
-    ['mamaKoalak', 'MamaKoalak', 1.75], ['maitreKoalak', 'MaitreKoalak', 1.7], ['dokAlako', 'DokAlako', 1.75], ['momieKoalak', 'MomieKoalak', 1.65], ['koalakGriotte', 'KoalakGriotte', 1.6], ['koalakReinette', 'KoalakReinette', 1.6],
-    ['koalakIndigo', 'KoalakIndigo', 1.6], ['koalakCoco', 'KoalakCoco', 1.6], ['drakoalak', 'Drakoalak', 3.1], ['chevaucheurKoalak', 'ChevaucheurKoalak', 3.1], /* (27/11/2026, « ceux a monture devraient etre un peu plus grands », Mathieu : 2,6 avant) */ ['chevaucheurKoalakPied', 'ChevaucheurKoalakPied', 2.0]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.koalaks, n, h, 'y'); });
-  MODELES.koulosse = gabarit(G.koulosse, 'Koulosse', 4.2, 'y');
-  /* LE PALIER 8, le Repaire du Dragon Cochon (20/10/2026, blender/palier8.py et dragon-cochon.py) : des modeles a pivots (hanches, genoux, epaules, ailes,
-     queue, anneaux de la larve) qui ne se soudent pas au corps ; cloner les relie sur chaque copie, le combat les anime (animerPattes) */
-  [G.palier8, G['dragon-cochon']].forEach((sc) => { sc.traverse((o) => { if (PIVOT_P8.test(o.name)) o.userData.articule = true; }); versToon(sc, { normales: 0.01, sansContour: SC_P8 }); });
-  [['cochonFarle', 'CochonFarle', 1.1], ['sanglier', 'Sanglier', 1.7], ['sanglierFouisseur', 'SanglierFouisseur', 1.7], ['donDorgan', 'DonDorgan', 2.3], ['donDussAng', 'DonDussAng', 2.3], ['gorgouille', 'Gorgouille', 2.8], ['porsalu', 'Porsalu', 2.0]].forEach(([k, n, ht]) => { MODELES[k] = gabarit(G.palier8, n, ht, 'y'); MODELES[k].userData.pivots = true; });
-  MODELES.dragonCochon = gabarit(G['dragon-cochon'], 'DragonCochon', 4.0, 'y'); MODELES.dragonCochon.userData.pivots = true;
-  G.dragoeufs.traverse((o) => { if (/^aile_pivot/.test(o.name)) o.userData.articule = true; }); /* (les grandes ailes de Crocabulia battent : pas soudees au corps, blender/dragoeufs.py, 31/10/2026) */
-  [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
-  fusionnerPivots(MODELES.crocabulia); /* (chaque aile d'un seul tenant) */
   try { const sc = await chargerGlb('assets/modeles/jeu/sortie-vsa.glb?v=' + VERSION_MODELES); versToon(sc, { normales: 0.012, sansContour: SC_BATI }); MODELES.caleche = sc.getObjectByName('SortieCaleche'); } catch (err) { /* pas encore de modele */ }
   await chargerPersonnagesVsa();
   ['iop3', 'osa', 'cra'].forEach((f) => { MODELES[f] = versToon(G[f], { echelle: 0.025, sansContour: SC_PERSO }); articuler(MODELES[f]); MODELES[f].scale.setScalar(0.5); });
   /* (les monstres a squelette du palier 9 et Moon ne se chargent plus au demarrage : seulement a l'Arene dev, chargerSquelettes, 26/10/2026) */
 }
+/* LES MONSTRES CHARGES AU BESOIN (27/11/2026, « on charge les choses au fur et a mesure, quand on lance quelque chose », Mathieu ; la memoire, 29zm-memoire.js) :
+   les familles de monstres qui ne servent qu'en combat (Chafers, Bworks, Craqueleurs, Dragoeufs, Koalaks et Koulosse, le palier du Dragon Cochon) ne se chargent
+   plus au demarrage : chargerFamille les charge quand une vague, une revanche, l'Arene ou l'ile des boss en a besoin (chargerSquelettes les demande, 22c), avec
+   exactement les memes reglages qu'avant ; libererFamille les rend. Restent au demarrage : les Tofus, les Chafers de base et le Bouftou Royal (fichier monstres),
+   les Wabbits (ils grignotent les champs) et la Dragodinde des raids */
+const FAMILLES_MONSTRES = {
+  chafers: { fichiers: ['chafers'], modeles: ['fantassin', 'gardien', 'archer', 'cuirasse'], faire: (G) => {
+    versToon(G.chafers, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 2 (blender/chafers.py) */
+    MODELES.fantassin = gabarit(G.chafers, 'ChaferFantassin', 1.75, 'y'); MODELES.gardien = gabarit(G.chafers, 'ChaferGardien', 2.1, 'y'); MODELES.archer = gabarit(G.chafers, 'ChaferArcher', 1.75, 'y'); G.chafers.traverse((o) => { if (/^bras_lance/.test(o.name)) o.userData.articule = true; }); MODELES.cuirasse = gabarit(G.chafers, 'ChaferCuirasse', 3.0, 'y'); fusionnerPivots(MODELES.cuirasse); /* (son bras libre lance la lance d'os, 31/10/2026) */
+  } },
+  bworks: { fichiers: ['bworks'], modeles: ['bwork', 'bworkArcher', 'bworkMage', 'bworkette', 'bworker'], faire: (G) => {
+    versToon(G.bworks, { normales: 0.01, sansContour: SC_MONSTRES }); /* palier 3 : la Horde des Bworks (blender/bworks.py) */
+    MODELES.bwork = gabarit(G.bworks, 'Bwork', 1.9, 'y'); MODELES.bworkArcher = gabarit(G.bworks, 'BworkArcher', 2.0, 'y'); MODELES.bworkMage = gabarit(G.bworks, 'BworkMage', 2.0, 'y'); MODELES.bworkette = gabarit(G.bworks, 'Bworkette', 1.65, 'y'); MODELES.bworker = gabarit(G.bworks, 'Bworker', 3.3, 'y');
+  } },
+  craqueleurs: { fichiers: ['craqueleurs'], modeles: ['craqueleur', 'craqueboule', 'craqLanceur', 'craqCristal', 'craqLegendaire'], faire: (G) => {
+    versToon(G.craqueleurs, { normales: 0.01, sansContour: SC_MONSTRES });
+    [['craqueleur', 'Craqueleur', 2.1], ['craqueboule', 'Craqueboule', 1.25], ['craqLanceur', 'CraqLanceur', 2.5], ['craqCristal', 'CraqCristal', 2.2], ['craqLegendaire', 'CraqLegendaire', 3.7]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.craqueleurs, n, h, 'y'); });
+  } },
+  dragoeufs: { fichiers: ['dragoeufs'], modeles: ['dragBlanc', 'dragNoir', 'dragArdoise', 'dragDore', 'crocabulia'], faire: (G) => {
+    versToon(G.dragoeufs, { normales: 0.01, sansContour: SC_MONSTRES });
+    G.dragoeufs.traverse((o) => { if (/^aile_pivot/.test(o.name)) o.userData.articule = true; }); /* (les grandes ailes de Crocabulia battent : pas soudees au corps, blender/dragoeufs.py, 31/10/2026) */
+    [['dragBlanc', 'DragBlanc', 1.6], ['dragNoir', 'DragNoir', 2.0], ['dragArdoise', 'DragArdoise', 1.8], ['dragDore', 'DragDore', 1.9], ['crocabulia', 'Crocabulia', 4.2]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.dragoeufs, n, h, 'y'); });
+    fusionnerPivots(MODELES.crocabulia); /* (chaque aile d'un seul tenant) */
+  } },
+  koalaks: { fichiers: ['koalaks', 'koulosse'], modeles: ['koalakImmature', 'koalakForestier', 'koalakFossoyeur', 'guerrierKoalak', 'koalakFarouche', 'mamaKoalak', 'maitreKoalak', 'dokAlako', 'momieKoalak', 'koalakGriotte', 'koalakReinette', 'koalakIndigo', 'koalakCoco', 'drakoalak', 'chevaucheurKoalak', 'chevaucheurKoalakPied', 'koulosse'], faire: (G) => {
+    versToon(G.koalaks, { normales: 0.01, sansContour: SC_MONSTRES }); versToon(G.koulosse, { normales: 0.01, sansContour: SC_MONSTRES }); /* Phase 2, palier 2 (blender/koalaks.py, koulosse.py) */
+    [['koalakImmature', 'KoalakImmature', 1.25], ['koalakForestier', 'KoalakForestier', 1.7], ['koalakFossoyeur', 'KoalakFossoyeur', 1.6], ['guerrierKoalak', 'GuerrierKoalak', 2.0], ['koalakFarouche', 'KoalakFarouche', 1.6],
+    ['mamaKoalak', 'MamaKoalak', 1.75], ['maitreKoalak', 'MaitreKoalak', 1.7], ['dokAlako', 'DokAlako', 1.75], ['momieKoalak', 'MomieKoalak', 1.65], ['koalakGriotte', 'KoalakGriotte', 1.6], ['koalakReinette', 'KoalakReinette', 1.6],
+    ['koalakIndigo', 'KoalakIndigo', 1.6], ['koalakCoco', 'KoalakCoco', 1.6], ['drakoalak', 'Drakoalak', 3.1], ['chevaucheurKoalak', 'ChevaucheurKoalak', 3.1], /* (27/11/2026, « ceux a monture devraient etre un peu plus grands », Mathieu : 2,6 avant) */ ['chevaucheurKoalakPied', 'ChevaucheurKoalakPied', 2.0]].forEach(([k, n, h]) => { MODELES[k] = gabarit(G.koalaks, n, h, 'y'); });
+    MODELES.koulosse = gabarit(G.koulosse, 'Koulosse', 4.2, 'y');
+  } },
+  palier8: { fichiers: ['palier8', 'dragon-cochon'], modeles: ['cochonFarle', 'sanglier', 'sanglierFouisseur', 'donDorgan', 'donDussAng', 'gorgouille', 'porsalu', 'dragonCochon'], faire: (G) => {
+    /* LE PALIER 8, le Repaire du Dragon Cochon (20/10/2026, blender/palier8.py et dragon-cochon.py) : des modeles a pivots (hanches, genoux, epaules, ailes,
+    queue, anneaux de la larve) qui ne se soudent pas au corps ; cloner les relie sur chaque copie, le combat les anime (animerPattes) */
+    [G.palier8, G['dragon-cochon']].forEach((sc) => { sc.traverse((o) => { if (PIVOT_P8.test(o.name)) o.userData.articule = true; }); versToon(sc, { normales: 0.01, sansContour: SC_P8 }); });
+    [['cochonFarle', 'CochonFarle', 1.1], ['sanglier', 'Sanglier', 1.7], ['sanglierFouisseur', 'SanglierFouisseur', 1.7], ['donDorgan', 'DonDorgan', 2.3], ['donDussAng', 'DonDussAng', 2.3], ['gorgouille', 'Gorgouille', 2.8], ['porsalu', 'Porsalu', 2.0]].forEach(([k, n, ht]) => { MODELES[k] = gabarit(G.palier8, n, ht, 'y'); MODELES[k].userData.pivots = true; });
+    MODELES.dragonCochon = gabarit(G['dragon-cochon'], 'DragonCochon', 4.0, 'y'); MODELES.dragonCochon.userData.pivots = true;
+  } } };
+const familleDuModele = (m) => { for (const k in FAMILLES_MONSTRES) if (FAMILLES_MONSTRES[k].modeles.includes(m) || (FAMILLES_MONSTRES[k].cles || []).includes(m)) return k; return null; };
+function chargerFamille(nom) { const F = FAMILLES_MONSTRES[nom]; if (!F || F.pret) return Promise.resolve(); if (F.p) return F.p;
+  F.p = Promise.all(F.fichiers.map((f) => chargerGlb('assets/modeles/jeu/' + f + '.glb?v=' + VERSION_MODELES))).then((S) => { const G = Object.fromEntries(F.fichiers.map((f, k) => [f, S[k]])), avant = new Set(Object.keys(MODELES));
+    F.faire(G); F.cles = Object.keys(MODELES).filter((k) => !avant.has(k)); F.pret = true; }).finally(() => { F.p = null; });
+  return F.p; }
+function chargerModelesMonstres(noms) { const fs = [...new Set((noms || []).map(familleDuModele).filter(Boolean))].filter((k) => !FAMILLES_MONSTRES[k].pret); return Promise.all(fs.map(chargerFamille)); }
+function libererFamille(nom, garder) { const F = FAMILLES_MONSTRES[nom]; if (!F || !F.pret || F.p) return false; const cles = F.cles || F.modeles, M = cles.map((k) => MODELES[k]).filter(Boolean);
+  cles.forEach((k) => { delete MODELES[k]; }); F.pret = false; if (typeof jeterTout === 'function') { const G = garder || ressourcesGardees([]); M.forEach((x) => jeterTout(x, G)); } return true; }
 /* terre plus sombre quand le champ est arrose */
 const MOUILLE = new Map();
 function terreMouillee(m) { if (!MOUILLE.has(m.uuid)) { const n = m.clone(); n.color.multiplyScalar(0.62); MOUILLE.set(m.uuid, n); } return MOUILLE.get(m.uuid); }
