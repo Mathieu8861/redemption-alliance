@@ -63,17 +63,41 @@ function ongletRefaire() {
     (repos > 0 ? '<p class="vg-repos">Ton perso se repose encore ' + dureeLisible(repos) + '.</p>' : '');
   if (!L.length) return h + '<p class="vg-aide">Aucune vague à refaire pour l\'instant : gagne d\'abord des vagues sans boss.</p>';
   let pal = -1; L.forEach(({ n, k }) => { const P = palierDe(n); if (P !== pal) { h += (pal >= 0 ? '</div>' : '') + '<div class="vg-rv-pal">' + PALIERS_TOUS[P].nom.charAt(0).toUpperCase() + PALIERS_TOUS[P].nom.slice(1) + '</div><div class="vg-rv-grille">'; pal = P; }
-    h += '<button class="btn ' + (bloque ? 'discret' : 'kamas') + '" data-refaire-vague="' + n + '" data-refaire-k="' + (k == null ? '' : k) + '"' + (bloque ? ' disabled' : '') + ' data-info="' + (k != null ? 'Combat ' + n + '.' + (k + 1) : 'Vague ' + n) + ' : ' + quoi(n, k).replace(/"/g, '') + '">' + (k != null ? n + '.' + (k + 1) : n) + '</button>'; });
+    h += '<button class="btn ' + (bloque ? 'discret' : 'kamas') + '" data-refaire-vague="' + n + '" data-refaire-k="' + (k == null ? '' : k) + '" data-info="' + (k != null ? 'Combat ' + n + '.' + (k + 1) : 'Vague ' + n) + ' : ' + quoi(n, k).replace(/"/g, '') + '">' + (k != null ? n + '.' + (k + 1) : n) + '</button>'; });
   return h + '</div>';
 }
+/* L'APERCU D'UNE VAGUE A REFAIRE (27/11/2026, « quand on clique sur une des cases, il faudrait que ca affiche la meme chose que la vague 101 : ce qu'on va combattre
+   comme monstres, les potions, etc., comme une vague normale », Mathieu) : la fiche de la vague en cours de la fenetre, dessinee pour la vague choisie (la vague
+   en cours est prise un instant pour celle-ci, puis remise), sa piste, ses monstres, « Avant la bataille » (manger, boire, la defense) ; en bas, le butin seul et
+   le bouton « Refaire la vague N ». Les combats de 101 a 110 : la fiche du combat choisi. L'onglet « Refaire une vague » ramene a la liste */
+function apercuRefaire(orig, A) {
+  const num0 = S_.vague.num, cm = A.k != null && typeof etatVagueCM === 'function', E = cm ? etatCM() : null, V = cm ? etatVagueCM(A.n) : null, vue0 = E ? E.vue : null;
+  if (cm && A.chReel !== undefined && V.choix !== A.chReel && V.choix != null && combatRefaisable(A.n, V.choix)) A.k = V.choix; /* (un autre combat de la vague touche dans la fiche) */
+  const ch0 = cm ? (A.chReel !== undefined ? A.chReel : V.choix) : null;
+  try { S_.vague.num = A.n; if (cm) { E.vue = A.n; V.choix = A.k; } orig.call(this, 'vague'); }
+  finally { S_.vague.num = num0; if (cm) { E.vue = vue0; V.choix = ch0; A.chReel = ch0; } }
+  const carte = $('carte'); if (!carte) return; const test = typeof MODE_TEST !== 'undefined' && MODE_TEST, reste = refaitesRestantes(), repos = !test && Date.now() < S_.vague.repos ? S_.vague.repos - Date.now() : 0;
+  const nom = A.k != null ? 'combat ' + A.n + '.' + (A.k + 1) : 'vague ' + A.n, Nom = nom.charAt(0).toUpperCase() + nom.slice(1);
+  const h = carte.querySelector('h2'); if (h && h.firstChild && h.firstChild.nodeType === 3) h.firstChild.nodeValue = 'Refaire : ' + nom;
+  { const t = carte.querySelector('[data-vg-onglet="vague"]'), n0 = vagueCourante(), fini = num0 > vaguesOuvertes(); if (t) t.innerHTML = (fini ? 'Les vagues' : 'Vague ' + n0) + '<small>' + PALIERS_TOUS[palierDe(n0)].nom + '</small>'; } /* (l'onglet de la vague en cours garde son numero) */
+  { const t = carte.querySelector('[data-vg-onglet="boss"]'), nb = PALIERS.filter((x, k) => num0 > (k + 1) * VAGUES_PALIER).length; if (t && nb) { t.disabled = false; t.innerHTML = 'Refaire un boss<small>' + nb + ' boss battu' + (nb > 1 ? 's' : '') + '</small>'; } } /* (la vague prise un instant pour la 87 comptait 8 boss battus au lieu de 10) */
+  { const i = carte.querySelector('.vg-pied img'); if (i) i.src = i.src.replace(/kama\.png/, 'grange.png'); } /* (le butin, pas des kamas) */
+  const g = carte.querySelector('.vg-gain'); if (g) g.innerHTML = 'Le butin des monstres seulement<small>' + Nom + ' refaite' + (A.k != null ? '' : '') + ' : ni kamas ni XP de fin de vague, ta progression ne bouge pas. ' + (test ? 'Mode test : sans limite.' : reste ? 'Il t\'en reste ' + reste + ' sur ' + REJOUE_VAGUES.parJour + ' aujourd\'hui.' : 'Plus aucune aujourd\'hui.') + '</small>';
+  const b = carte.querySelector('.vg-lancer'); if (b) b.outerHTML = repos > 0 ? '<button class="btn vg-lancer" disabled>Ton perso se repose encore ' + dureeLisible(repos) + '</button>' : !test && !reste ? '<button class="btn vg-lancer" disabled>Plus aucune aujourd\'hui : reviens demain</button>' : '<button class="btn kamas vg-lancer" data-refaire-lancer>Refaire ' + (A.k != null ? 'le ' : 'la ') + nom + '</button>';
+  carte.querySelectorAll('p').forEach((p) => { if (/se prépare|t'attend|reste à faire|pour ouvrir la/.test(p.textContent)) p.remove(); });
+}
 { const ouvrirVaguesRV = ouvrirVagues; ouvrirVagues = function (onglet) {
-    if (typeof onglet === 'string') REJOUE_VAGUES.vue = onglet === 'refaire'; else if (modaleOuverte !== 'vagues') REJOUE_VAGUES.vue = false;
-    const nous = REJOUE_VAGUES.vue && refaireVisible(), r = ouvrirVaguesRV.apply(this, nous ? ['vague'] : arguments);
+    if (typeof onglet === 'string') { REJOUE_VAGUES.vue = onglet === 'refaire'; REJOUE_VAGUES.apercu = null; } else if (modaleOuverte !== 'vagues') { REJOUE_VAGUES.vue = false; REJOUE_VAGUES.apercu = null; }
+    const nous = REJOUE_VAGUES.vue && refaireVisible(), A = nous ? REJOUE_VAGUES.apercu : null; let r;
+    if (A) { try { apercuRefaire.call(this, ouvrirVaguesRV, A); } catch (e) { console.warn('apercu a refaire', e); REJOUE_VAGUES.apercu = null; return ouvrirVagues('refaire'); } }
+    else r = ouvrirVaguesRV.apply(this, nous ? ['vague'] : arguments);
     try { const carte = $('carte'), O = carte && carte.querySelector('.vg-onglets'); if (!O || !refaireVisible() || modaleOuverte !== 'vagues') return r;
       if (!O.querySelector('[data-vg-onglet="refaire"]')) { const b = document.createElement('button'); b.dataset.vgOnglet = 'refaire'; const nL = listeRefaisables().length;
         b.innerHTML = 'Refaire une vague<small>' + (MODE_TEST ? 'sans limite (test)' : refaitesRestantes() + ' sur ' + REJOUE_VAGUES.parJour + ' aujourd\'hui') + '</small>'; if (!nL) b.disabled = true;
         const bestiaire = O.querySelector('[data-vg-onglet="bestiaire"]'); O.insertBefore(b, bestiaire || null); }
       if (nous) { O.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.vgOnglet === 'refaire'));
-        let x = O.nextSibling; while (x) { const s = x.nextSibling; x.remove(); x = s; } O.insertAdjacentHTML('afterend', '<div class="vg-rv">' + ongletRefaire() + '</div>'); } } catch (e) { console.warn('refaire une vague', e); }
+        if (!A) { let x = O.nextSibling; while (x) { const s = x.nextSibling; x.remove(); x = s; } O.insertAdjacentHTML('afterend', '<div class="vg-rv">' + ongletRefaire() + '</div>'); } } } catch (e) { console.warn('refaire une vague', e); }
     return r; }; }
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-refaire-vague]'); if (!b || b.disabled) return; e.stopPropagation(); refaireVague(+b.dataset.refaireVague, b.dataset.refaireK); });
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-refaire-vague], [data-refaire-lancer]'); if (!b || b.disabled) return; e.stopPropagation();
+  if (b.hasAttribute('data-refaire-lancer')) { const A = REJOUE_VAGUES.apercu; if (A) { REJOUE_VAGUES.apercu = null; refaireVague(A.n, A.k); } return; }
+  const k = b.dataset.refaireK; REJOUE_VAGUES.apercu = { n: +b.dataset.refaireVague, k: k == null || k === '' ? null : +k }; ouvrirVagues(); });
