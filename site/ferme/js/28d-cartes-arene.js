@@ -306,9 +306,16 @@ function majBouftouCarte(c, dt) {
   const Bf = CARTES_P11B.bouftou, b = c.bouftouC, m = b.m; b.t += dt; if (m.userData.gemme) m.userData.gemme.rotation.y += dt * 3;
   if (b.t > Bf.duree) { pouf(b.x, solA(b.x, b.z), b.z, 2, '#fff1b0'); jeter(m); c.bouftouC = null; return; }
   let y = solA(b.x, b.z); if (b.chute > 0) { b.chute -= dt; const h = Math.pow(Math.max(0, b.chute) / 0.3, 2) * 5; m.position.set(b.x, y + h, b.z); if (b.chute <= 0) { pouf(b.x, y, b.z, 2.6, '#fff1b0'); secousse(0.05, 0.12); zoneCarte(c, b.x, b.z, 1.6, Math.round(degCarte() * Bf.x * 1.5 * multCarte('bouftou'))); } return; }
+  /* LE BOND PAR-DESSUS LE VIDE (28/11/2026, « dans la mine et les ruines celestes, le Bouftou de guerre peut rester bloque par un trou : fais en sorte que non », Mathieu) :
+     bloque 0,4 s au bord d'un trou, il bondit en cloche (0,5 s) et retombe sur un sol ferme a cote de sa cible, comme les monstres qui sautent le vide */
+  if (b.saut) { const S = b.saut; S.t += dt; const k = Math.min(1, S.t / S.d); b.x = S.x0 + (S.x1 - S.x0) * k; b.z = S.z0 + (S.z1 - S.z0) * k; b.ry = Math.atan2(S.x1 - S.x0, S.z1 - S.z0);
+    m.position.set(b.x, S.y0 + (S.y1 - S.y0) * k + Math.sin(k * Math.PI) * S.h, b.z); m.rotation.y = b.ry; if (k >= 1) { b.saut = null; b.bloque = 0; pouf(b.x, S.y1, b.z, 1.6, '#fff1b0'); } return; }
   const cib = plusProcheCarte(c, b.x, b.z, 30); let v = 0;
   if (cib) { const dx = cib.x - b.x, dz = cib.z - b.z, d = Math.hypot(dx, dz), porte = Bf.portee + (cib.d.ombre || 1) * 0.3; b.ry = Math.atan2(dx, dz);
-    if (d > porte) { const pas = Math.min(d - porte, Bf.vitesse * dt), nx = b.x + dx / d * pas, nz = b.z + dz / d * pas; if (!(typeof solSort === 'function') || solSort(nx, nz)) { b.x = nx; b.z = nz; v = Bf.vitesse; } }
+    if (d > porte) { const pas = Math.min(d - porte, Bf.vitesse * dt), nx = b.x + dx / d * pas, nz = b.z + dz / d * pas; if (!(typeof solSort === 'function') || solSort(nx, nz)) { b.x = nx; b.z = nz; v = Bf.vitesse; b.bloque = 0; }
+      else if ((b.bloque = (b.bloque || 0) + dt) > 0.4) { const a0 = Math.atan2(b.x - cib.x, b.z - cib.z), r = Math.max(0.6, porte * 0.85); let q = null;
+        for (let i = 0; i < 12 && !q; i++) { const a = a0 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * Math.PI / 6, x = cib.x + Math.sin(a) * r, z = cib.z + Math.cos(a) * r; if (solSort(x, z)) q = { x, z }; }
+        if (!q) q = { x: cib.x, z: cib.z }; const L = Math.hypot(q.x - b.x, q.z - b.z); b.saut = { x0: b.x, z0: b.z, x1: q.x, z1: q.z, y0: solA(b.x, b.z), y1: solA(q.x, q.z), t: 0, d: Math.min(0.8, 0.35 + L * 0.04), h: 1.2 + L * 0.08 }; b.bloque = 0; } }
     else { b.cd -= dt; if (b.cd <= 0) { b.cd = Bf.cadence; b.frappe = 0.25; blesser(cib, Math.max(1, Math.round(degCarte() * Bf.x * multCarte('bouftou'))), false, 'carte'); etoileImpact(new T.Vector3(cib.x, yDe(cib) + 0.7, cib.z), 0.4, '#fff1b0'); son('touche'); } } }
   b.pas += v * dt * 5; y = solA(b.x, b.z); let elan = 0; if (b.frappe > 0) { b.frappe -= dt; elan = Math.sin((1 - b.frappe / 0.25) * Math.PI) * 0.35; }
   m.position.set(b.x + Math.sin(b.ry) * elan, y + Math.abs(Math.sin(b.pas)) * 0.18 * Math.min(1, v), b.z + Math.cos(b.ry) * elan); m.rotation.y = b.ry;
