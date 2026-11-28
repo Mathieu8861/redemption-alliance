@@ -12,7 +12,7 @@ const LEG_CARTES = { chance: 0.03, /* (3 % par carte tiree : la plus rare ; une 
    commune pese 10, une rare 4, une epique 3 ; une legendaire a 3 % de chance par carte tiree (une sur sept avant) : environ 72 % de communes, 20 % de rares,
    4,5 % d'epiques et 3 % de legendaires. Une pastille sur la carte dit sa rarete. */
 const RARETE_CARTES = { puissance: 'commune', agilite: 'commune', vita: 'commune', foule: 'commune', recharge: 'commune', butin: 'commune', pierre: 'commune', course: 'commune', moisson: 'rare' /* (commune avant le 28/11/2026 : « Moisson c'est plutot une carte rare », Mathieu) */, bourse: 'commune',
-  esquive: 'rare', vol: 'rare', critique: 'rare', epines: 'rare', ulti: 'rare', bouclier: 'rare', fureur: 'rare', souffle: 'epique', explosion: 'epique' };
+  esquive: 'rare', vol: 'rare', critique: 'rare', epines: 'rare', ulti: 'commune' /* (rare avant le 28/11/2026 : « 19 commune », Mathieu) */, bouclier: 'rare', fureur: 'rare', souffle: 'epique', explosion: 'epique' };
 const POIDS_RARETE = { commune: 10, rare: 4, epique: 3 }, NOMS_RARETE = { rare: 'Rare', epique: 'Épique' };
 const SVG_C = (s) => '<g ' + TR_CARTE + '>' + s + '</g>';
 Object.assign(BONUS_ARENE, {
@@ -70,8 +70,8 @@ const auPerso = (txt) => { if (!paysanMesh) return; const p = paysanMesh.positio
 { const bp0 = blesserPerso; blesserPerso = function (n, mo) { const c = combat; if (!c || !c.arene || c.fin || !cartesArenePct()) return bp0.apply(this, arguments);
   if (c.ombreT > 0) { if ((c.ombreTxt || 0) < performance.now()) { c.ombreTxt = performance.now() + 500; auPerso('Invisible'); } return; } /* (Voile d'ombre) */
   const kP = nbC('pierre'); if (kP) n = Math.max(1, Math.round(n * Math.max(0.5, 1 - CARTES_P11.pierre * kP)));
-  const kE = nbC('epines'); if (kE && mo && mo.etat === 'actif' && !coupDeLoin(mo)) blesser(mo, Math.max(1, Math.round(n * CARTES_P11.epines * kE)));
-  if (c.bouclierCarte > 0 && n > 0) { const a = Math.min(c.bouclierCarte, n); c.bouclierCarte -= a; n -= a; if (a > 0 && (c.bouclierTxt || 0) < performance.now()) { c.bouclierTxt = performance.now() + 350; auPerso('Bouclier -' + fmt(a)); } if (n <= 0) return true; }
+  const kE = nbC('epines'); if (kE && mo && mo.etat === 'actif' && !coupDeLoin(mo)) { blesser(mo, Math.max(1, Math.round(n * CARTES_P11.epines * kE))); epinesVisibles(c, mo); }
+  if (c.bouclierCarte > 0 && n > 0) { const a = Math.min(c.bouclierCarte, n); c.bouclierCarte -= a; n -= a; if (a > 0 && (c.bouclierTxt || 0) < performance.now()) { c.bouclierTxt = performance.now() + 350; auPerso('Bouclier -' + fmt(a)); const q = paysanMesh.position; onde(q.x, q.y + 0.05, q.z, 1.5, '#1e8be0', 0.3, 0.8, true); c.bouclierFlash = 0.25; } if (n <= 0) return true; }
   return bp0.call(this, n, mo); }; }
 let EXPLOSION_EN_COURS = false;
 { const b0 = blesser; blesser = function (mo, n, gros, src) { const c = combat; if (!c || !c.arene || !cartesArenePct() || !mo || mo.etat !== 'actif') return b0.apply(this, arguments);
@@ -79,9 +79,10 @@ let EXPLOSION_EN_COURS = false;
   const pv0 = mo.pv, r = b0.call(this, mo, n, gros, src), fait = Math.max(0, pv0 - Math.max(0, mo.pv));
   if (fait > 0 && src !== 'def') { const kV = nbC('vol'); if (kV) c.pv = Math.min(c.pvMax, c.pv + fait * CARTES_P11.volP11 * kV); } /* (le Vol de vie a 1,5 % : 0,5 % de plus, ici) */
   if (mo.etat === 'mort' && pv0 > 0) {
-    const kM = nbC('moisson'); if (kM) c.pv = Math.min(c.pvMax, c.pv + c.pvMax * CARTES_P11.moisson * kM);
-    if (nbC('frenesie')) c.frenesie = Math.min(LEG_CARTES.frenesie.max, (c.frenesie || 0) + LEG_CARTES.frenesie.pas);
+    const kM = nbC('moisson'); if (kM) { const s0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * CARTES_P11.moisson * kM); soinVisible(c.pv - s0); }
+    if (nbC('frenesie')) { const f0 = c.frenesie || 0; c.frenesie = Math.min(LEG_CARTES.frenesie.max, f0 + LEG_CARTES.frenesie.pas); if (c.frenesie > f0) { auPerso('Frénésie +' + Math.round(c.frenesie * 100) + ' %'); const q = paysanMesh.position; onde(q.x, q.y + 0.05, q.z, 1.6, '#d81e1e', 0.35, 0.8, true); } }
     const kX = nbC('explosion'); if (kX && !EXPLOSION_EN_COURS) { EXPLOSION_EN_COURS = true; try { const y = mo.m ? mo.m.position.y : 0; pouf(mo.x, y + 0.4, mo.z, 2.2, '#ff9a2e'); onde(mo.x, y + 0.05, mo.z, 2.6, '#ffb04a', 0.35, 0.8);
+        boule(mo.x, y + 0.5, mo.z, 1.0, ['#ffb02e', '#e8541e', '#7a1e0a'], true); onde(mo.x, y + 0.05, mo.z, 2.6, '#d8420e', 0.45, 0.8, true); flashLumiere(mo.x, y + 1, mo.z, '#ff8a2e', 3.5, 7, 0.35); secousse(0.06, 0.15); /* (28/11/2026 : on ne voyait qu'un petit nuage) */
         emettre(FX_VIF, 14, { x: mo.x, y: y + 0.6, z: mo.z, r: 0.3, dv: 5, haut: true, vie: [0.35, 0.6], taille: [0.12, 0.04], c: ['#fff1a8', '#ff9a2e', '#c8401e'], grav: 8, frein: 1 });
         const dg = Math.max(1, Math.round((mo.pvMax || 0) * CARTES_P11.explosion * kX)); c.monstres.forEach((o) => { if (o !== mo && o.etat === 'actif' && Math.hypot(o.x - mo.x, o.z - mo.z) < 2.6) blesser(o, dg); }); } finally { EXPLOSION_EN_COURS = false; } } }
   return r; }; }
@@ -91,26 +92,29 @@ let EXPLOSION_EN_COURS = false;
   if (c.frenesie) k *= 1 + c.frenesie; return k; }; }
 { const g0 = gainsArene; gainsArene = function () { const g = g0.apply(this, arguments); const k = nbC('bourse'); if (k && g) g.kamas = Math.round(g.kamas * (1 + CARTES_P11.bourse * k)); return g; }; }
 { const at0 = persoATerre; persoATerre = function () { const c = combat; if (c && c.arene && c.genre === 'arene' && nbC('souffle') && !c.souffleFait) { c.souffleFait = true; c.pv = Math.round(c.pvMax * CARTES_P11.souffle); c.invincible = Math.max(c.invincible || 0, 1.5);
-    const p = paysanMesh.position; pouf(p.x, p.y + 0.6, p.z, 2.4, '#ffd04a'); flashLumiere(p.x, p.y + 1.5, p.z, '#ffd04a', 4, 8, 0.5); auPerso('Dernier souffle !'); toast('Dernier souffle : tu te relèves avec ' + Math.round(CARTES_P11.souffle * 100) + ' % de ta vie !', 'or'); majCombatHud(); return; }
+    const p = paysanMesh.position; pouf(p.x, p.y + 0.6, p.z, 2.4, '#ffd04a'); flashLumiere(p.x, p.y + 1.5, p.z, '#ffd04a', 4, 8, 0.5); auPerso('Dernier souffle !'); souffleVisible(p); toast('Dernier souffle : tu te relèves avec ' + Math.round(CARTES_P11.souffle * 100) + ' % de ta vie !', 'or'); majCombatHud(); return; }
   return at0.apply(this, arguments); }; }
 /* la boucle de la partie : lancee a chaque vague (une seule par partie) ; le bouclier se remplit a chaque vague, la Frenesie repart de zero, l'Entree fracassante s'arme */
-function bouclierVisuel(c) { if (c.bouclierM || !paysanMesh) return; const m = new T.Mesh(new T.SphereGeometry(1.05, 20, 14), new T.MeshBasicMaterial({ color: '#7fc0f0', transparent: true, opacity: 0.22, depthWrite: false })); m.position.y = 0.95; m.raycast = () => {}; paysanMesh.add(m); c.bouclierM = m; }
+function bouclierVisuel(c) { if (c.bouclierM || !paysanMesh) return; const m = new T.Mesh(new T.SphereGeometry(1.05, 20, 14), new T.MeshBasicMaterial({ color: '#7fc0f0', transparent: true, opacity: 0.22, depthWrite: false })); m.position.y = 0.95; m.raycast = () => {}; paysanMesh.add(m); c.bouclierM = m;
+  const fil = new T.Mesh(new T.IcosahedronGeometry(1.09, 1), new T.MeshBasicMaterial({ color: '#1e8be0', wireframe: true, transparent: true, opacity: 0.55, depthWrite: false })); fil.raycast = () => {}; m.add(fil); m.userData.fil = fil; } /* (28/11/2026 : la bulle bleu pale se perdait sur le sable ; un maillage bleu franc par-dessus) */
 { const av0 = appliquerVagueArene; appliquerVagueArene = function (c, p) { const r = av0.apply(this, arguments); if (!c || !cartesArenePct()) return r;
   const kB = nbC('bouclier'); if (kB) { c.bouclierCarte = Math.round(c.pvMax * CARTES_P11.bouclier * kB); bouclierVisuel(c); }
   c.frenesie = 0; if (nbC('ouverture')) { const O = LEG_CARTES.ouverture; c.ouvertureDebut = performance.now() + O.attente * 1000; c.ouvertureJusque = c.ouvertureDebut + O.duree * 1000; setTimeout(() => { if (combat === c && !c.fin) { auPerso('Dégâts ×2 !'); flashLumiere(paysanMesh.position.x, 1.5, paysanMesh.position.z, '#ff7a2e', 3, 7, 0.4); } }, O.attente * 1000); }
-  if (!c.carteTick) { c.carteTick = true; effets.push((dt) => { if (combat !== c || c.fin) { if (c.bouclierM) { c.bouclierM.parent && c.bouclierM.parent.remove(c.bouclierM); c.bouclierM = null; } return true; } tickCartes(c, dt); return false; }); }
+  if (!c.carteTick) { c.carteTick = true; effets.push((dt) => { if (combat !== c || c.fin) { if (c.bouclierM) { c.bouclierM.parent && c.bouclierM.parent.remove(c.bouclierM); c.bouclierM = null; } nettoyerAnimCartes(c); return true; } tickCartes(c, dt); return false; }); }
   return r; }; }
 function tickCartes(c, dt) {
   if (enPause || c.entracte) return;
   const kU = nbC('ulti'); if (kU && c.cdUlti > 0) c.cdUlti = Math.max(0, c.cdUlti - dt * CARTES_P11.ulti * kU); /* (Ulti charge : en plus de la recharge normale) */
-  if (c.bouclierM) { c.bouclierM.visible = c.bouclierCarte > 0; c.bouclierM.material.opacity = 0.14 + 0.08 * Math.sin(performance.now() / 300); }
+  if (c.bouclierM) { c.bouclierM.visible = c.bouclierCarte > 0; c.bouclierFlash = Math.max(0, (c.bouclierFlash || 0) - dt); const fl = c.bouclierFlash / 0.25; c.bouclierM.material.opacity = 0.2 + 0.08 * Math.sin(performance.now() / 300) + 0.3 * fl; const fil = c.bouclierM.userData.fil; if (fil) { fil.material.opacity = 0.5 + 0.15 * Math.sin(performance.now() / 220) + 0.4 * fl; fil.rotation.y += dt * 0.6; } }
   const pp = paysanMesh.position;
   if (nbC('ombre')) { const O = LEG_CARTES.ombre; c.ombreCycle = (c.ombreCycle || 0) + dt; if (c.ombreCycle >= O.periode) { c.ombreCycle = 0; c.ombreT = O.duree; auPerso('Voile d\'ombre'); pouf(pp.x, pp.y + 0.8, pp.z, 1.8, '#5a3a9e'); }
     if (c.ombreT > 0) { c.ombreT -= dt; paysanMesh.visible = Math.floor(performance.now() / 90) % 3 !== 0; if (Math.random() < 0.5) emettre(FX_FUM, 1, { x: pp.x, y: pp.y + 0.6, z: pp.z, r: 0.5, v: [0, 0.6, 0], vie: [0.5, 0.8], taille: [0.4, 1.0], c: ['#3a1f6e', '#6b3fb8'], a: 0.35, frein: 1 }); if (c.ombreT <= 0) paysanMesh.visible = true; } }
+  majAnneauxCartes(c, dt);
   if (nbC('temps')) { const Tm = LEG_CARTES.temps; c.tempsCycle = (c.tempsCycle || 0) + dt; if (c.tempsCycle >= Tm.periode) { c.tempsCycle = 0; let n = 0;
-      c.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = o.d.boss ? Tm.boss : Tm.duree; o.bloqueT = Math.max(o.bloqueT || 0, d); o.cd = Math.max(o.cd || 0, d); n++;
+      c.monstres.forEach((o) => { if (o.etat !== 'actif') return; const d = o.d.boss ? Tm.boss : Tm.duree; o.bloqueT = Math.max(o.bloqueT || 0, d); o.cd = Math.max(o.cd || 0, d); n++; glaceCarte(o, d);
         emettre(FX_VIF, 6, { x: o.x, y: (o.m ? o.m.position.y : 0) + 0.8, z: o.z, r: 0.5, dv: 1.2, vie: [0.6, 1.0], taille: [0.1, 0.05], c: ['#ffffff', '#bfefff', '#7fd8f0'], grav: 1, frein: 1 }); });
-      if (n) { auPerso('Arrêt du temps !'); flashLumiere(pp.x, 2, pp.z, '#9fe3f5', 4, 14, 0.5); } } }
+      if (n) { auPerso('Arrêt du temps !'); flashLumiere(pp.x, 2, pp.z, '#9fe3f5', 4, 14, 0.5); onde(pp.x, pp.y + 0.05, pp.z, 9, '#5fc8f0', 0.7, 0.85, true); onde(pp.x, pp.y + 0.05, pp.z, 5, '#e8fbff', 0.5, 0.9, true); } } }
+  if (nbC('aura')) majAuraVisible(c, dt); else if (c.auraM) { jeter(c.auraM); c.auraM = null; }
   if (nbC('aura')) { const A = LEG_CARTES.aura; c.auraT = (c.auraT || 0) + dt; if (c.auraT >= A.pas) { c.auraT = 0; const dg = Math.max(1, Math.round(statsPerso().deg * A.part));
       c.monstres.forEach((o) => { if (o.etat === 'actif' && Math.hypot(o.x - pp.x, o.z - pp.z) < A.R) blesser(o, dg); });
       for (let k = 0; k < 4; k++) { const a = Math.random() * Math.PI * 2, rr = A.R * (0.6 + 0.4 * Math.random()); emettre(FX_VIF, 1, { x: pp.x + Math.cos(a) * rr, y: pp.y + 0.15, z: pp.z + Math.sin(a) * rr, v: [0, 1.6, 0], dv: 0.4, vie: [0.35, 0.6], taille: [0.28, 0.06], c: ['#ffd25a', '#ff6a12', '#b0280e'], a: 0.9, frein: 1 }); } } }
@@ -125,7 +129,7 @@ function tickCartes(c, dt) {
    Une carte qui agit toutes les x secondes fait 50 % de degats de plus par exemplaire en plus ; les cartes des sorts legendaires ne sortent qu'a qui en porte un,
    l'Ultime en echo qu'a qui a un ulti. */
 const CARTES_P11B = { regen: { pas: 5 /* (3 avant le 28/11/2026 : « Regeneration toutes les 5 secondes », Mathieu) */, part: 0.01 }, geant: 0.15, grace: { seuil: 0.3, x: 0.25 }, relique: 0.25, echo: { chance: 0.25, max: 0.6 },
-  meteore: { periode: 7, portee: 10, R: 1.6, x: 1.5, chute: 0.55 }, eclair: { periode: 5, portee: 8, saut: 4.5, n: 3, x: 0.8 },
+  meteore: { periode: 7, portee: 10, R: 1.6, x: 1.5, chute: 0.55 }, eclair: { coups: 5 /* (toutes les 5 s avant le 28/11/2026 : « faudrait que ca fasse le meme effet mais toutes les 5 auto attaques », Mathieu) */, portee: 8, saut: 4.5, n: 3, x: 0.8 },
   lames: { n: 2, max: 4, R: 1.7, w: 4.2, touche: 0.75, x: 0.4, cd: 0.45 }, ames: 0.5,
   totem: { periode: 20, duree: 10, tir: 0.7, portee: 9, x: 0.5 }, bouftou: { periode: 25, duree: 10, x: 0.7, cadence: 0.8, vitesse: 5.5, portee: 1.3 },
   deluge: { periode: 12, R: 2.6, volees: 3, ecart: 0.4, x: 0.6 }, titan: { periode: 30, duree: 6, x: 1.5, recus: 0.7, taille: 1.35 }, relvive: 0.3, ultecho: { delai: 1.2 } };
@@ -146,12 +150,12 @@ Object.assign(BONUS_ARENE, {
     svg: SVG_C('<rect x="12" y="64" width="96" height="18" rx="7" fill="#3b2a1a"/><rect x="17" y="69" width="22" height="8" rx="3" fill="#e8504a" stroke="none"/><path d="M78 6l10 6-26 42-8-4Z" fill="#dfe6ee"/><path d="M50 46l16 8" fill="none" stroke-width="6"/><path d="M53 52l-7 10" fill="none" stroke-width="5"/>') },
   relique: { p11: true, requiert: aLegendaire, nom: 'Relique polie', c: ['#d9a632', '#c89a2a', '#fff0c0'], effet: 'légendaires 25 % plus vite', txt: 'les sorts de ta coiffe et de ton arme légendaires se rechargent plus vite',
     svg: SVG_C('<path d="M60 8 86 30 60 84 34 30Z" fill="#b48cff"/><path d="M34 30h52M60 8 50 30l10 54 10-54Z" fill="none"/><path d="M60 8 50 30h20Z" fill="#e2d4fb"/>') + '<g fill="#ffd04a" stroke="#3b2a1a" stroke-width="2"><path d="M18 20l3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/><path d="M100 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></g>' },
-  echo: { p11: true, nom: 'Écho', c: ['#4a9ad6', '#3f8ac6', '#d6ecfb'], effet: '25 % de relancer ton sort', txt: 'ton sort de classe se recharge aussitôt (60 % au plus)',
+  echo: { p11: true, nom: 'Écho', c: ['#4a9ad6', '#3f8ac6', '#d6ecfb'], effet: '25 % de chances de relancer ton sort', txt: 'ton sort de classe est aussitôt prêt à repartir (60 % au plus)', /* (texte refait le 28/11/2026 : « la 22 est pas tres claire », puis « ouais met cette explication », Mathieu) */
     svg: '<g opacity=".45">' + SVG_C('<circle cx="74" cy="44" r="26" fill="#9fd0ff"/>') + '</g>' + SVG_C('<circle cx="48" cy="50" r="26" fill="#4a9ad6"/><path d="M38 52a11 11 0 1 1 11 11" fill="none" stroke="#e8f6ff" stroke-width="5"/>') +
       '<path d="M94 18c8 7 11 17 9 27M102 9c12 10 16 25 12 40" fill="none" stroke="#4a9ad6" stroke-width="4.5" stroke-linecap="round"/>' },
   meteore: { p11: true, nom: 'Météore', c: ['#e0602a', '#d0602a', '#ffdcc4'], effet: 'une météorite toutes les 7 s', txt: '150 % de tes dégâts sur le monstre le plus proche et autour',
     svg: '<path d="M104 4 54 52" stroke="#ff9a2e" stroke-width="22" stroke-linecap="round" opacity=".5"/><path d="M100 8 58 48" stroke="#ffd04a" stroke-width="9" stroke-linecap="round"/>' + SVG_C('<circle cx="46" cy="58" r="22" fill="#6a5248"/><circle cx="39" cy="52" r="5" fill="#4a3830"/><circle cx="54" cy="65" r="4" fill="#4a3830"/>') + '<path d="M14 88h62" stroke="#ffb02e" stroke-width="4.5" stroke-linecap="round"/>' },
-  eclair: { p11: true, nom: 'Chaîne d\'éclairs', c: ['#4ab4e8', '#3a9ac6', '#d6f0fb'], effet: 'un éclair toutes les 5 s', txt: 'il saute sur 3 monstres : 80 % de tes dégâts chacun',
+  eclair: { p11: true, nom: 'Chaîne d\'éclairs', c: ['#4ab4e8', '#3a9ac6', '#d6f0fb'], effet: 'un éclair toutes les 5 attaques', txt: 'à ta 5e attaque, il saute sur 3 monstres : 80 % de tes dégâts chacun',
     svg: '<path d="M20 70 34 48 28 45 62 28M62 28 78 52 72 55 100 66" fill="none" stroke="#3b2a1a" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/><path d="M20 70 34 48 28 45 62 28M62 28 78 52 72 55 100 66" fill="none" stroke="#bff0ff" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>' +
       SVG_C('<circle cx="20" cy="72" r="10" fill="#a8693a"/><circle cx="62" cy="26" r="10" fill="#a8693a"/><circle cx="100" cy="68" r="10" fill="#a8693a"/>') },
   lames: { p11: true, nom: 'Lames tournoyantes', c: ['#b4c2d6', '#8a9ab0', '#e2e8f0'], effet: 'des lames tournent autour de toi', txt: '40 % de tes dégâts à chaque monstre touché (deux lames, une de plus par carte)',
@@ -187,20 +191,20 @@ const zoneCarte = (c, x, z, R, dg) => c.monstres.slice().forEach((o) => { if (o.
   if (mo.etat === 'mort' && pv0 > 0 && nbC('ames')) ameVersPerso(c, mo);
   return r; }; }
 function ameVersPerso(c, mo) {
-  const g = new T.Mesh(new T.IcosahedronGeometry(0.15, 1), new T.MeshBasicMaterial({ color: '#c8fff0', transparent: true, opacity: 0.95, depthWrite: false })); g.raycast = () => {};
+  const g = new T.Mesh(new T.IcosahedronGeometry(0.24, 1), new T.MeshBasicMaterial({ color: '#4fe0c0' })), bord = new T.Mesh(new T.IcosahedronGeometry(0.3, 1), new T.MeshBasicMaterial({ color: '#0e5a4e', side: T.BackSide })); g.add(bord); bord.raycast = () => {}; g.raycast = () => {}; /* (28/11/2026 : l'ame blanche et transparente ne se voyait pas sur le sable) */
   const de = new T.Vector3(mo.x, yDe(mo) + 1, mo.z), vers = new T.Vector3(); g.position.copy(de); scene.add(g); let t = 0;
   effets.push((dt) => { if (combat !== c || c.fin) { jeter(g); return true; } t += dt; const pp = paysanMesh.position, k = Math.min(1, t / 0.5); vers.set(pp.x, pp.y + 1.1, pp.z);
     g.position.lerpVectors(de, vers, k * k); g.position.y += Math.sin(k * Math.PI) * 1.3;
-    emettre(FX_LUM, 1, { x: g.position.x, y: g.position.y, z: g.position.z, vie: [0.16, 0.22], taille: [0.55, 0.2], c: ['#9ff0dc', '#3fc0a8'], a: 0.6 });
+    emettre(FX_LUM, 1, { x: g.position.x, y: g.position.y, z: g.position.z, vie: [0.16, 0.22], taille: [0.55, 0.2], c: ['#9ff0dc', '#3fc0a8'], a: 0.6 }); emettre(FX_VIF, 2, { x: g.position.x, y: g.position.y, z: g.position.z, r: 0.08, vie: [0.2, 0.35], taille: [0.18, 0.04], c: ['#c8fff0', '#2fb89a', '#0e5a4e'], a: 0.95, frein: 2 });
     if (k < 1) return false; jeter(g); const a = CARTES_P11B.ames * nbC('ames'); ['cdSort', 'cdUlti', 'cdLegC', 'cdLegA'].forEach((cd) => { if (c[cd] > 0) c[cd] = Math.max(0, c[cd] - a); });
-    emettre(FX_VIF, 6, { x: pp.x, y: pp.y + 1.1, z: pp.z, r: 0.2, dv: 1.4, vie: [0.25, 0.45], taille: [0.1, 0.03], c: ['#ffffff', '#9ff0dc', '#3fc0a8'], frein: 1 }); return true; });
+    emettre(FX_VIF, 6, { x: pp.x, y: pp.y + 1.1, z: pp.z, r: 0.2, dv: 1.4, vie: [0.25, 0.45], taille: [0.1, 0.03], c: ['#ffffff', '#9ff0dc', '#3fc0a8'], frein: 1 }); onde(pp.x, pp.y + 0.05, pp.z, 1.4, '#1e9a84', 0.35, 0.85, true); return true; });
 }
 /* Forme de titan : 30 % de degats recus en moins, degats x1,5 */
 { const bp1 = blesserPerso; blesserPerso = function (n, mo) { const c = combat; if (c && c.arene && c.titanT > 0 && n > 0) n = Math.max(1, Math.round(n * CARTES_P11B.titan.recus)); return bp1.call(this, n, mo); }; }
 { const bd1 = boostDegats; boostDegats = function () { const k = bd1.apply(this, arguments), c = combat; return c && c.arene && c.titanT > 0 ? k * CARTES_P11B.titan.x : k; }; }
 /* Echo : le sort de classe se recharge aussitot */
 { const t0 = BOUTONS_SORT.sort.tirer; BOUTONS_SORT.sort.tirer = function () { const r = t0.apply(this, arguments), c = combat, k = nbC('echo');
-  if (c && c.arene && k && r !== false && Math.random() < Math.min(CARTES_P11B.echo.max, CARTES_P11B.echo.chance * k)) setTimeout(() => { if (combat !== c || c.fin) return; c.cdSort = 0; auPerso('Écho !'); const pp = paysanMesh.position; onde(pp.x, pp.y + 0.05, pp.z, 1.6, '#9fd0ff', 0.35, 0.8); son('niveau'); }, 300);
+  if (c && c.arene && k && r !== false && Math.random() < Math.min(CARTES_P11B.echo.max, CARTES_P11B.echo.chance * k)) setTimeout(() => { if (combat !== c || c.fin) return; c.cdSort = 0; auPerso('Écho !'); const pp = paysanMesh.position; onde(pp.x, pp.y + 0.05, pp.z, 1.6, '#9fd0ff', 0.35, 0.8); onde(pp.x, pp.y + 0.05, pp.z, 2.2, '#2f7bd6', 0.45, 0.85, true); emettre(FX_VIF, 12, { x: pp.x, y: pp.y + 1, z: pp.z, r: 0.3, dv: 2.2, vie: [0.3, 0.5], taille: [0.12, 0.04], c: ['#ffffff', '#9fd0ff', '#2f7bd6'], a: 1, frein: 2 }); son('niveau'); }, 300);
   return r; }; }
 /* Ultime en echo : l'ulti repart seul, gratuitement (la Tempete de lames du Iop, une fois la premiere finie ; le coup fatal, sur le monstre le plus proche si le sien est tombe) */
 let ULTI_EN_ECHO = false;
@@ -215,17 +219,17 @@ let ULTI_EN_ECHO = false;
 function lancerBoucleCartes2(c) { if (!c || c.carteTick2) return; c.carteTick2 = true; effets.push((dt) => { if (combat !== c || c.fin) { finCartes2(c); return true; } tickCartes2(c, dt); return false; }); }
 { const av1 = appliquerVagueArene; appliquerVagueArene = function (c, p) { const r = av1.apply(this, arguments); if (c && cartesArenePct()) lancerBoucleCartes2(c); return r; }; }
 { const pb1 = prendreBonusArene; prendreBonusArene = function () { const r = pb1.apply(this, arguments); if (combat && combat.arene && cartesArenePct()) lancerBoucleCartes2(combat); return r; }; } /* (et des qu'une carte est prise) */
-function finCartes2(c) { (c.lames || []).forEach((l) => jeter(l.m)); c.lames = null; if (c.totemC) { jeter(c.totemC.m); c.totemC = null; } if (c.bouftouC) { jeter(c.bouftouC.m); c.bouftouC = null; }
+function finCartes2(c) { (c.lames || []).forEach((l) => jeter(l.m)); c.lames = null; nettoyerAnimCartes(c); if (c.totemC) { jeter(c.totemC.m); c.totemC = null; } if (c.bouftouC) { jeter(c.bouftouC.m); c.bouftouC = null; }
   if (c.titanT > 0 && paysanMesh) paysanMesh.scale.setScalar(c.titanBase || 1); c.titanT = 0; }
 function tickCartes2(c, dt) {
   if (enPause || c.entracte) return; const pp = paysanMesh.position;
-  const kR = nbC('regen'); if (kR) { c.regenT = (c.regenT || 0) + dt; if (c.regenT >= CARTES_P11B.regen.pas) { c.regenT = 0; if (c.pv < c.pvMax && c.pv > 0) { c.pv = Math.min(c.pvMax, c.pv + c.pvMax * CARTES_P11B.regen.part * kR); majCombatHud();
+  const kR = nbC('regen'); if (kR) { c.regenT = (c.regenT || 0) + dt; if (c.regenT >= CARTES_P11B.regen.pas) { c.regenT = 0; if (c.pv < c.pvMax && c.pv > 0) { const s0 = c.pv; c.pv = Math.min(c.pvMax, c.pv + c.pvMax * CARTES_P11B.regen.part * kR); majCombatHud(); soinVisible(c.pv - s0);
     emettre(FX_VIF, 5, { x: pp.x, y: pp.y + 0.4, z: pp.z, r: 0.45, v: [0, 1.4, 0], dv: 0.3, vie: [0.5, 0.8], taille: [0.12, 0.05], c: ['#d2f2dc', '#5fd08a'], frein: 1 }); } } }
   const kL = nbC('relique') * CARTES_P11B.relique + (nbC('relvive') ? CARTES_P11B.relvive : 0); if (kL) { if (c.cdLegC > 0) c.cdLegC = Math.max(0, c.cdLegC - dt * kL); if (c.cdLegA > 0) c.cdLegA = Math.max(0, c.cdLegA - dt * kL); }
   if (nbC('relvive') && c.deroute == null && !(c.chuteT > 0)) ['coiffe', 'arme'].forEach((emp) => { if (legDe(emp) && !((c[cdLeg(emp)] || 0) > 0) && !(visee && visee.bouton === emp)) { const avant = c[cdLeg(emp)] || 0; try { lancerLegAuto(emp); } catch (e) { c[cdLeg(emp)] = 3; } if ((c[cdLeg(emp)] || 0) > avant) auPerso(sortLeg(legDe(emp)).nom + ' !'); } }); /* (un sort qui plante attend 3 s : la boucle des cartes ne s'arrete pas) */
   if (nbC('meteore')) { const M = CARTES_P11B.meteore; c.meteoreT = (c.meteoreT || 0) + dt; if (c.meteoreT >= M.periode) { const o = plusProcheCarte(c, pp.x, pp.z, M.portee); if (o) { c.meteoreT = 0; meteoreCarte(c, o.x, o.z, Math.round(degCarte() * M.x * multCarte('meteore'))); } } }
-  if (nbC('eclair')) { const E = CARTES_P11B.eclair; c.eclairT = (c.eclairT || 0) + dt; if (c.eclairT >= E.periode) { const o = plusProcheCarte(c, pp.x, pp.z, E.portee); if (o) { c.eclairT = 0; chaineEclairs(c, o, Math.round(degCarte() * E.x * multCarte('eclair')), E.n + Math.max(0, nbC('eclair') - 1)); } } }
-  if (nbC('lames')) majLames(c, dt); else if (c.lames) { c.lames.forEach((l) => jeter(l.m)); c.lames = null; }
+  if (nbC('eclair')) { const E = CARTES_P11B.eclair, n = c.tirs || 0; if (c.eclairBase == null) c.eclairBase = n; if (n - c.eclairBase >= E.coups) { const o = plusProcheCarte(c, pp.x, pp.z, E.portee); if (o) { c.eclairBase = n; chaineEclairs(c, o, Math.round(degCarte() * E.x * multCarte('eclair')), E.n + Math.max(0, nbC('eclair') - 1)); } } }
+  if (nbC('lames')) majLames(c, dt); else if (c.lames) { c.lames.forEach((l) => jeter(l.m)); c.lames = null; if (c.lamesO) { jeter(c.lamesO); c.lamesO = null; } }
   if (nbC('totem')) { const Tt = CARTES_P11B.totem; c.totemT = (c.totemT || 0) + dt; if (c.totemT >= Tt.periode && !c.totemC) { c.totemT = 0; poserTotemCarte(c); } if (c.totemC) majTotemCarte(c, dt); }
   if (nbC('bouftou')) { const Bf = CARTES_P11B.bouftou; c.bouftouT = (c.bouftouT || 0) + dt; if (c.bouftouT >= Bf.periode && !c.bouftouC) { c.bouftouT = 0; lacherBouftou(c); } if (c.bouftouC) majBouftouCarte(c, dt); }
   if (nbC('deluge')) { const D = CARTES_P11B.deluge; c.delugeT = (c.delugeT || 0) + dt; if (c.delugeT >= D.periode) { const o = plusGrosGroupe(c, D.R, 14); if (o) { c.delugeT = 0; delugeCarte(c, o.x, o.z, Math.round(degCarte() * D.x * multCarte('deluge'))); } } }
@@ -246,9 +250,10 @@ function meteoreCarte(c, x, z, dg) {
 function chaineEclairs(c, o0, dg, n) {
   const E = CARTES_P11B.eclair, touches = new Set(), pts = [new T.Vector3(paysanMesh.position.x, paysanMesh.position.y + 1.4, paysanMesh.position.z)]; let o = o0;
   while (o && touches.size < n) { touches.add(o); pts.push(new T.Vector3(o.x, yDe(o) + (o.haut || 1.4) * 0.6, o.z)); o = plusProcheCarte(c, o.x, o.z, E.saut, touches); }
-  const dessiner = () => { for (let i = 1; i < pts.length; i++) eclairZigzag(pts[i - 1], pts[i], '#7fd8ff'); };
-  dessiner(); setTimeout(dessiner, 45); setTimeout(dessiner, 95); setTimeout(dessiner, 150);
-  pts.slice(1).forEach((p) => { flashLumiere(p.x, p.y, p.z, '#9fe3ff', 3, 6, 0.25); emettre(FX_VIF, 8, { x: p.x, y: p.y, z: p.z, r: 0.15, dv: 3, vie: [0.15, 0.3], taille: [0.08, 0.03], c: ['#ffffff', '#bff0ff', '#4ab4e8'], frein: 2 }); });
+  eclairVisible(pts, 0.42); /* (28/11/2026 : l'ancien trait de particules ne se voyait pas a l'image, « bien visible », Mathieu) */
+  pts.slice(1).forEach((p, i) => { flashLumiere(p.x, p.y, p.z, '#9fe3ff', 3, 6, 0.3); emettre(FX_VIF, 10, { x: p.x, y: p.y, z: p.z, r: 0.15, dv: 3.4, vie: [0.2, 0.35], taille: [0.1, 0.03], c: ['#ffffff', '#7fd0ff', '#1e6fd6'], frein: 2 });
+    etoileImpact(p, 0.75, '#5fb8ff'); onde(p.x, p.y - 0.75, p.z, 1.3, '#1e7bff', 0.4, 0.8, true); if (typeof eclairsEtoile === 'function') eclairsEtoile(p, 4, 0.9, 0.3);
+    const m = [...touches][i], de = pts[i]; if (m && typeof reculVisuel === 'function') { const dx = p.x - de.x, dz = p.z - de.z, d = Math.hypot(dx, dz) || 1; reculVisuel(m, { x: dx / d, z: dz / d }, 0.35); } });
   son('sort'); [...touches].forEach((m) => blesser(m, dg, true, 'carte'));
 }
 /* Lames tournoyantes : elles tournent autour du perso et coupent ce qu'elles touchent (une seule fois par monstre et par lame toutes les 0,45 s) */
@@ -256,10 +261,11 @@ function fabriquerLame() { const g = new T.Group(), lame = boite(0.95, 0.05, 0.2
   const garde = boite(0.08, 0.1, 0.38, '#c9a032'); garde.position.x = -0.32; g.add(garde); const manche = cyl(0.05, 0.05, 0.3, '#6a4426'); manche.rotation.z = Math.PI / 2; manche.position.x = -0.5; g.add(manche); g.traverse((o) => { o.raycast = () => {}; o.castShadow = false; }); return g; }
 function majLames(c, dt) {
   const L = CARTES_P11B.lames, n = Math.min(L.max, L.n + nbC('lames') - 1), pp = paysanMesh.position;
-  if (!c.lames || c.lames.length !== n) { (c.lames || []).forEach((l) => jeter(l.m)); c.lames = []; for (let i = 0; i < n; i++) { const m = fabriquerLame(); scene.add(m); c.lames.push({ m, vus: new Map() }); } }
+  if (!c.lames || c.lames.length !== n) { (c.lames || []).forEach((l) => jeter(l.m)); c.lames = []; for (let i = 0; i < n; i++) { const m = fabriquerLame(); m.scale.setScalar(1.3); scene.add(m); c.lames.push({ m, vus: new Map() }); } orbiteLames(c); }
+  if (c.lamesO) { c.lamesO.position.set(pp.x, pp.y + 0.06, pp.z); c.lamesO.material.opacity = 0.32 + 0.08 * Math.sin(performance.now() / 160); }
   c.lamesA = (c.lamesA || 0) + dt * L.w; const dg = Math.max(1, Math.round(degCarte() * L.x)), now = performance.now();
   c.lames.forEach((l, i) => { const a = c.lamesA + i * Math.PI * 2 / n, x = pp.x + Math.cos(a) * L.R, z = pp.z + Math.sin(a) * L.R; l.m.position.set(x, pp.y + 0.75, z); l.m.rotation.set(0, -a - Math.PI / 2, 0.25);
-    if (Math.random() < 0.6) emettre(FX_LUM, 1, { x, y: pp.y + 0.75, z, vie: [0.1, 0.14], taille: [0.6, 0.2], c: ['#ffffff', '#bfd4ea'], a: 0.35 });
+    if (Math.random() < 0.6) emettre(FX_LUM, 1, { x, y: pp.y + 0.75, z, vie: [0.1, 0.14], taille: [0.6, 0.2], c: ['#ffffff', '#bfd4ea'], a: 0.35 }); emettre(FX_VIF, 1, { x, y: pp.y + 0.75, z, vie: [0.12, 0.2], taille: [0.16, 0.05], c: ['#e8f2ff', '#3f6a9e'], a: 0.9, frein: 3 });
     c.monstres.forEach((o) => { if (o.etat !== 'actif' || Math.hypot(o.x - x, o.z - z) > L.touche + (o.d.ombre || 1) * 0.25) return; if ((l.vus.get(o) || 0) > now) return; l.vus.set(o, now + L.cd * 1000);
       blesser(o, dg, false, 'carte'); emettre(FX_VIF, 4, { x: o.x, y: yDe(o) + 0.8, z: o.z, r: 0.2, dv: 2.4, vie: [0.15, 0.3], taille: [0.08, 0.03], c: ['#ffffff', '#dfe6ee'], frein: 2 }); }); });
 }
@@ -273,27 +279,29 @@ function fabriquerTotemCarte() { const g = new T.Group(), corps = cyl(0.34, 0.4,
 function poserTotemCarte(c) {
   const pp = paysanMesh.position, a = (paysanMesh.userData.angle || 0) + Math.PI * 0.75; let x = pp.x + Math.sin(a) * 1.6, z = pp.z + Math.cos(a) * 1.6;
   if (typeof solSort === 'function' && !solSort(x, z)) { x = pp.x; z = pp.z; } const y = solA(x, z), m = fabriquerTotemCarte(); m.position.set(x, y - 2, z); m.rotation.y = Math.atan2(pp.x - x, pp.z - z) + Math.PI; scene.add(m);
-  c.totemC = { m, x, y, z, t: 0, tir: 0.6 }; pouf(x, y, z, 2.4, '#c9b28a'); emettre(FX_FUM, 8, { x, y: y + 0.3, z, r: 0.6, v: [0, 1.2, 0], vie: [0.6, 1.0], taille: [0.5, 1.2], c: ['#c9b28a', '#a8946a'], a: 0.5 }); son('sort');
+  m.scale.setScalar(1.2); const socle = new T.Mesh(new T.RingGeometry(0.5, 0.78, 32), fxMat('#e8b43a', 0.7)); socle.rotation.x = -Math.PI / 2; socle.raycast = () => {}; socle.renderOrder = 3; m.add(socle); m.userData.socle = socle; /* (28/11/2026 : le socle dore, il est a nous) */
+  c.totemC = { m, x, y, z, t: 0, tir: 0.6 }; pouf(x, y, z, 2.4, '#c9b28a'); onde(x, y + 0.05, z, 2, '#c98a1e', 0.45, 0.8, true); emettre(FX_FUM, 8, { x, y: y + 0.3, z, r: 0.6, v: [0, 1.2, 0], vie: [0.6, 1.0], taille: [0.5, 1.2], c: ['#c9b28a', '#a8946a'], a: 0.5 }); son('sort');
 }
 function majTotemCarte(c, dt) {
   const Tt = CARTES_P11B.totem, o = c.totemC; o.t += dt; const sortie = Math.min(1, o.t / 0.35), fin = Math.max(0, (o.t - Tt.duree) / 0.35); o.m.position.y = o.y - 2 * (1 - sortie) * (1 - sortie) - 2 * fin * fin;
+  if (o.m.userData.socle) { o.m.userData.socle.position.y = (o.y + 0.06 - o.m.position.y) / 1.2; o.m.userData.socle.material.opacity = 0.55 + 0.15 * Math.sin(o.t * 6); }
   if (fin >= 1) { pouf(o.x, o.y, o.z, 2, '#c9b28a'); jeter(o.m); c.totemC = null; return; } if (sortie < 1 || o.t > Tt.duree) return;
   o.tir -= dt; const cib = plusProcheCarte(c, o.x, o.z, Tt.portee); if (cib) o.m.rotation.y += Math.atan2(Math.sin(Math.atan2(cib.x - o.x, cib.z - o.z) - o.m.rotation.y), Math.cos(Math.atan2(cib.x - o.x, cib.z - o.z) - o.m.rotation.y)) * Math.min(1, dt * 8);
   if (o.tir > 0 || !cib) return; o.tir = Tt.tir; const de = new T.Vector3(o.x, o.y + 1.62, o.z), dg = Math.max(1, Math.round(degCarte() * Tt.x * multCarte('totem')));
-  const bal = new T.Mesh(new T.IcosahedronGeometry(0.13, 1), new T.MeshBasicMaterial({ color: '#ffe27a' })); bal.raycast = () => {}; bal.position.copy(de); scene.add(bal); let t = 0; const vise = cib;
+  const bal = new T.Mesh(new T.IcosahedronGeometry(0.2, 1), new T.MeshBasicMaterial({ color: '#ff8a1e' })); bal.raycast = () => {}; bal.position.copy(de); scene.add(bal); let t = 0; const vise = cib;
   effets.push((d) => { t += d; const k = Math.min(1, t / 0.2), vers = new T.Vector3(vise.x, yDe(vise) + (vise.haut || 1.2) * 0.55, vise.z); bal.position.lerpVectors(de, vers, k);
-    emettre(FX_LUM, 1, { x: bal.position.x, y: bal.position.y, z: bal.position.z, vie: [0.08, 0.1], taille: [0.5, 0.2], c: ['#fff6b0', '#ffb02e'], a: 0.7 }); if (k < 1) return false;
+    emettre(FX_LUM, 1, { x: bal.position.x, y: bal.position.y, z: bal.position.z, vie: [0.08, 0.1], taille: [0.5, 0.2], c: ['#fff6b0', '#ffb02e'], a: 0.7 }); emettre(FX_VIF, 2, { x: bal.position.x, y: bal.position.y, z: bal.position.z, r: 0.05, vie: [0.15, 0.25], taille: [0.2, 0.05], c: ['#ffd25a', '#e8541e', '#7a1e0a'], a: 0.95, frein: 3 }); if (k < 1) return false;
     jeter(bal); etoileImpact(vers, 0.45, '#ffd04a'); if (combat === c && !c.fin && vise.etat === 'actif') blesser(vise, dg, false, 'carte'); return true; });
 }
 /* Bouftou de guerre : un Bouftou allie tombe du ciel pres du perso et fonce sur les monstres, 10 s */
 function lacherBouftou(c) {
   const pp = paysanMesh.position, a = Math.random() * Math.PI * 2; let x = pp.x + Math.cos(a) * 1.4, z = pp.z + Math.sin(a) * 1.4; if (typeof solSort === 'function' && !solSort(x, z)) { x = pp.x; z = pp.z; }
   const y = solA(x, z), m = modeleBouftouInvoque(); m.scale.setScalar(0.5); m.position.set(x, y + 5, z); m.traverse((o) => { o.raycast = () => {}; }); scene.add(m);
-  c.bouftouC = { m, x, z, ry: a, t: 0, chute: 0.3, cd: 0.5, pas: 0, frappe: 0 }; if (typeof cercleInvocation === 'function') cercleInvocation(x, y, z, ['#e8c25a', '#fff1b0', '#8a6512']);
+  marqueAllie(m); c.bouftouC = { m, x, z, ry: a, t: 0, chute: 0.3, cd: 0.5, pas: 0, frappe: 0 }; if (typeof cercleInvocation === 'function') cercleInvocation(x, y, z, ['#e8c25a', '#fff1b0', '#8a6512']);
   toast('Un Bouftou de guerre se bat à tes côtés pendant ' + CARTES_P11B.bouftou.duree + ' s.', 'or');
 }
 function majBouftouCarte(c, dt) {
-  const Bf = CARTES_P11B.bouftou, b = c.bouftouC, m = b.m; b.t += dt;
+  const Bf = CARTES_P11B.bouftou, b = c.bouftouC, m = b.m; b.t += dt; if (m.userData.gemme) m.userData.gemme.rotation.y += dt * 3;
   if (b.t > Bf.duree) { pouf(b.x, solA(b.x, b.z), b.z, 2, '#fff1b0'); jeter(m); c.bouftouC = null; return; }
   let y = solA(b.x, b.z); if (b.chute > 0) { b.chute -= dt; const h = Math.pow(Math.max(0, b.chute) / 0.3, 2) * 5; m.position.set(b.x, y + h, b.z); if (b.chute <= 0) { pouf(b.x, y, b.z, 2.6, '#fff1b0'); secousse(0.05, 0.12); zoneCarte(c, b.x, b.z, 1.6, Math.round(degCarte() * Bf.x * 1.5 * multCarte('bouftou'))); } return; }
   const cib = plusProcheCarte(c, b.x, b.z, 30); let v = 0;
@@ -319,4 +327,84 @@ function majTitan(c, dt) {
     if (!(c.chuteT > 0)) { c.colle = 0; c.assomme = 0; c.agrippe = 0; c.lenteur = 0; }
     if (Math.random() < 0.5) emettre(FX_VIF, 1, { x: pp.x + (Math.random() - 0.5) * 1.4, y: pp.y + 0.2, z: pp.z + (Math.random() - 0.5) * 1.4, v: [0, 2.2, 0], dv: 0.4, vie: [0.4, 0.7], taille: [0.22, 0.05], c: ['#ffd25a', '#ff6a12'], a: 0.9, frein: 1 });
     if (c.titanT <= 0) paysanMesh.scale.setScalar(c.titanBase || 1); }
+}
+/* ---------- LES ANIMATIONS DES CARTES (28/11/2026, Mathieu : « je sais pas si t'as code les choses qui font des sorts / animations en jeu via les cartes, mais faut
+   le faire ») : chaque effet se voit, camera du dessus au zoom normal, sur le sable clair du colisee comme sur le volcan sombre. Des couleurs franches en melange
+   normal (la lumiere additive disparait sur le sable), un trait fonce sous les traits clairs, une duree lisible. Rien ne change aux chiffres ni aux regles.
+   Filmees au banc : outils/banc/gabarit-cartes-anim.js (plan) et outils/banc/cartes-anim.py, planches avec outils/banc/montage-film.py */
+const GEO_TRAIT_C = (() => { const g = new T.CylinderGeometry(1, 1, 1, 6, 1, true); g.translate(0, 0.5, 0); g.rotateX(Math.PI / 2); partager(g); return g; })(); /* (un tube de longueur 1 le long de +z) */
+function traitCarte(g, a, b, ep, mat) { const m = new T.Mesh(GEO_TRAIT_C, mat); m.position.copy(a); m.lookAt(b); m.scale.set(ep, ep, Math.max(0.01, a.distanceTo(b))); m.renderOrder = 8; m.frustumCulled = false; m.raycast = () => {}; g.add(m); return m; }
+function zigzagCarte(a, b, n, ampl) { const d = b.clone().sub(a), L = d.length(), u = d.clone().normalize(), p = new T.Vector3(-u.z, 0, u.x), P = [a.clone()];
+  for (let i = 1; i < n; i++) { const q = a.clone().addScaledVector(d, i / n); q.addScaledVector(p, (Math.random() - 0.5) * L * ampl); q.y += (Math.random() - 0.5) * L * ampl * 0.6; P.push(q); }
+  P.push(b.clone()); return P; }
+/* Chaine d'eclairs : un trait bleu vif borde de bleu nuit, un coeur blanc ; il se redessine en zigzag toutes les 70 ms, tient puis s'efface (« bien visible », Mathieu) */
+function eclairVisible(pts, duree) {
+  const g = new T.Group(), mF = fxMat('#0b3fa8', 0.6), mB = fxMat('#2f9bff', 0.95), mC = fxMat('#f2fbff', 1); scene.add(g); let t = 0, prochain = 0;
+  const trait = (Z, e) => { for (let k = 1; k < Z.length; k++) { traitCarte(g, Z[k - 1], Z[k], 0.14 * e, mF); traitCarte(g, Z[k - 1], Z[k], 0.085 * e, mB); traitCarte(g, Z[k - 1], Z[k], 0.035 * e, mC); } };
+  const refaire = () => { while (g.children.length) g.remove(g.children[0]); for (let i = 1; i < pts.length; i++) { const Z = zigzagCarte(pts[i - 1], pts[i], 9, 0.3); trait(Z, 1);
+    for (let f = 0; f < 2; f++) { const q = Z[2 + Math.floor(Math.random() * (Z.length - 4))], dir = pts[i].clone().sub(pts[i - 1]).normalize(), cote = new T.Vector3(-dir.z, 0, dir.x).multiplyScalar((Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5)), bout = q.clone().addScaledVector(dir, 0.5 + Math.random() * 0.4).add(cote); bout.y -= 0.3 * Math.random(); trait(zigzagCarte(q, bout, 3, 0.35), 0.6); } } }; /* (des fourches : un eclair, pas un tuyau) */
+  effets.push((dt) => { t += dt; if (t >= prochain && t < duree * 0.8) { prochain += 0.07; refaire(); }
+    const a = t < duree * 0.6 ? 1 : Math.max(0, 1 - (t - duree * 0.6) / (duree * 0.4)); mF.opacity = 0.6 * a; mB.opacity = 0.95 * a; mC.opacity = a;
+    if (t >= duree) { while (g.children.length) g.remove(g.children[0]); scene.remove(g); mF.dispose(); mB.dispose(); mC.dispose(); return true; } return false; });
+}
+/* un cercle au sol, garde dans la partie (c[cle]) tant que l'effet dure */
+function anneauSolCarte(c, cle, r0, r1, couleur) { if (!c[cle]) { const m = new T.Mesh(new T.RingGeometry(r0, r1, 56), fxMat(couleur, 0.5)); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; m.raycast = () => {}; scene.add(m); c[cle] = m; } return c[cle]; }
+function lacherAnneau(c, cle) { if (c[cle]) { jeter(c[cle]); c[cle] = null; } }
+function nettoyerAnimCartes(c) { ['auraM', 'ouvM', 'titanM', 'frenM', 'lamesO'].forEach((k) => lacherAnneau(c, k)); }
+/* Aura brulante : un cercle de feu au sol a sa portee (3,2), un voile orange dedans, des flammes qui montent tout autour */
+function majAuraVisible(c, dt) {
+  const A = LEG_CARTES.aura, pp = paysanMesh.position, t = performance.now() / 1000;
+  if (!c.auraM) { const g = new T.Group(), bord = new T.Mesh(new T.RingGeometry(A.R * 0.94, A.R, 72), fxMat('#c8320c', 0.7)), voile = new T.Mesh(new T.CircleGeometry(A.R * 0.94, 72), fxMat('#ff6a1e', 0.1));
+    [bord, voile].forEach((m) => { m.rotation.x = -Math.PI / 2; m.renderOrder = 3; m.raycast = () => {}; g.add(m); }); g.userData.bord = bord; g.userData.voile = voile; scene.add(g); c.auraM = g; }
+  const g = c.auraM; g.position.set(pp.x, pp.y + 0.06, pp.z); g.userData.bord.material.opacity = 0.6 + 0.15 * Math.sin(t * 9); g.userData.voile.material.opacity = 0.09 + 0.04 * Math.sin(t * 5);
+  for (let k = 0; k < 2; k++) { const a = Math.random() * Math.PI * 2, rr = A.R * (0.82 + 0.18 * Math.random());
+    emettre(FX_VIF, 1, { x: pp.x + Math.cos(a) * rr, y: pp.y + 0.1, z: pp.z + Math.sin(a) * rr, v: [0, 1.8, 0], dv: 0.3, vie: [0.3, 0.55], taille: [0.34, 0.06], c: ['#ffd25a', '#ff5a12', '#7a1408'], a: 0.95, frein: 1 }); }
+}
+/* Arret du temps : chaque monstre fige est pris dans un bloc de glace le temps de son arret */
+function glaceCarte(o, d) {
+  if (!o || !o.m) return; const h = o.haut || 1.4, r = Math.max(0.55, h * 0.5) * Math.min(2.5, o.d.ombre || 1);
+  const m = new T.Mesh(new T.IcosahedronGeometry(1, 1), fxMat('#9fe3f5', 0.35)), fil = new T.Mesh(new T.IcosahedronGeometry(1.02, 1), new T.MeshBasicMaterial({ color: '#2f9bd6', wireframe: true, transparent: true, opacity: 0.6, depthWrite: false }));
+  m.add(fil); m.scale.set(r, h * 0.62, r); m.renderOrder = 6; onde(o.x, yDe(o) + 0.05, o.z, r * 1.7, '#3fa8e0', 0.5, 0.85, true);
+  emettre(FX_VIF, 10, { x: o.x, y: yDe(o) + h * 0.5, z: o.z, r: r * 0.8, dv: 1.4, vie: [0.4, 0.8], taille: [0.12, 0.04], c: ['#ffffff', '#bfefff', '#3fa8e0'], grav: 1, frein: 1 });
+  const D = d + 0.3; fxVie(m, D, (k, mm) => { const tt = k * D, a = tt < 0.15 ? tt / 0.15 : tt > d ? Math.max(0, 1 - (tt - d) / 0.3) : 1; mm.material.opacity = 0.35 * a; fil.material.opacity = 0.6 * a; mm.position.set(o.x, yDe(o) + h * 0.5, o.z); });
+}
+/* Entree fracassante (pendant ses 6 s), Forme de titan (pendant ses 6 s), Frenesie (selon le bonus) : leurs cercles au sol et leurs flammes, chaque image */
+function majAnneauxCartes(c, dt) {
+  if (!paysanMesh) return; const pp = paysanMesh.position, now = performance.now(), t = now / 1000;
+  const ouv = nbC('ouverture') && c.ouvertureJusque && now < c.ouvertureJusque && now > c.ouvertureDebut;
+  if (ouv) { const m = anneauSolCarte(c, 'ouvM', 1.5, 1.95, '#e0301e'); m.position.set(pp.x, pp.y + 0.06, pp.z); m.material.opacity = 0.55 + 0.2 * Math.sin(t * 12);
+    if (!c.ouvVu) { c.ouvVu = true; onde(pp.x, pp.y + 0.05, pp.z, 3.2, '#e0301e', 0.45, 0.85, true); pouf(pp.x, pp.y, pp.z, 2.4, '#ff7a2e'); }
+    if (Math.random() < 0.85) emettre(FX_VIF, 1, { x: pp.x + (Math.random() - 0.5) * 1.6, y: pp.y + 0.2, z: pp.z + (Math.random() - 0.5) * 1.6, v: [0, 2.6, 0], dv: 0.4, vie: [0.35, 0.6], taille: [0.3, 0.06], c: ['#ffd25a', '#ff4a1e', '#8a1208'], a: 0.95, frein: 1 }); }
+  else { lacherAnneau(c, 'ouvM'); if (!(c.ouvertureJusque && now < c.ouvertureJusque)) c.ouvVu = false; }
+  if (c.titanT > 0) { const m = anneauSolCarte(c, 'titanM', 2.05, 2.5, '#ff7a2e'); m.position.set(pp.x, pp.y + 0.06, pp.z); m.material.opacity = 0.5 + 0.15 * Math.sin(t * 8); } else lacherAnneau(c, 'titanM');
+  if (nbC('frenesie') && c.frenesie > 0) { const k = c.frenesie / LEG_CARTES.frenesie.max, m = anneauSolCarte(c, 'frenM', 1.4, 1.7, '#c81414'); m.position.set(pp.x, pp.y + 0.05, pp.z); m.scale.setScalar(1 + 0.25 * k);
+    m.material.opacity = Math.min(0.95, 0.3 + 0.5 * k + 0.12 * Math.sin(t * (6 + 10 * k)));
+    if (Math.random() < 0.15 + 0.6 * k) emettre(FX_VIF, 1, { x: pp.x + (Math.random() - 0.5) * 1.2, y: pp.y + 0.3, z: pp.z + (Math.random() - 0.5) * 1.2, v: [0, 2, 0], dv: 0.3, vie: [0.3, 0.5], taille: [0.24, 0.05], c: ['#ff6a5a', '#c81414', '#5a0606'], a: 0.95, frein: 1 }); }
+  else lacherAnneau(c, 'frenM');
+}
+/* Moisson et Regeneration : le soin s'ecrit en vert au-dessus du perso, des lueurs vertes montent */
+function soinVisible(n) {
+  if (!(n > 0) || !paysanMesh) return; const q = paysanMesh.position, p = q.clone(); p.y += 1.6; chiffre('+' + fmt(Math.round(n)), p, 'soin');
+  emettre(FX_VIF, 8, { x: q.x, y: q.y + 0.4, z: q.z, r: 0.5, v: [0, 1.6, 0], dv: 0.4, vie: [0.5, 0.8], taille: [0.16, 0.05], c: ['#eaffe8', '#5fd08a', '#1e7a3a'], a: 0.95, frein: 1 }); onde(q.x, q.y + 0.05, q.z, 1.2, '#2e9a4a', 0.4, 0.7, true);
+}
+/* Epines : des epines partent du perso vers celui qui l'a frappe de pres, et l'ecorchent */
+function epinesVisibles(c, mo) {
+  const now = performance.now(); if ((c.epinesT || 0) > now || !paysanMesh || !mo) return; c.epinesT = now + 250; const pp = paysanMesh.position, dx = mo.x - pp.x, dz = mo.z - pp.z, d = Math.hypot(dx, dz) || 1;
+  emettre(FX_VIF, 10, { x: pp.x, y: pp.y + 0.8, z: pp.z, r: 0.25, v: [dx / d * 7, 0.6, dz / d * 7], dv: 2, vie: [0.15, 0.25], taille: [0.12, 0.03], c: ['#e8f0c0', '#7a9a3a', '#2e3a12'], a: 1, frein: 3, etire: 0.06 });
+  etoileImpact(new T.Vector3(mo.x, yDe(mo) + (mo.haut || 1.2) * 0.55, mo.z), 0.55, '#8fc04a'); onde(pp.x, pp.y + 0.05, pp.z, 1.5, '#5a7a1e', 0.3, 0.8, true);
+}
+/* Dernier souffle : une colonne de lumiere doree, deux ondes au sol, des eclats qui montent */
+function souffleVisible(p) {
+  if (typeof faisceau === 'function') { const f = faisceau(new T.Vector3(p.x, p.y, p.z), new T.Vector3(p.x, p.y + 7, p.z), [['#fff6c8', '#e8a21e', 1.4, false], ['#ffffff', '#ffe27a', 0.5, false]]); let t = 0;
+    effets.push((dt) => { t += dt; const k = Math.min(1, t / 1.1); f.maj(Math.min(1, t / 0.18), k < 0.5 ? 1 : 1 - (k - 0.5) / 0.5, t); if (k >= 1) { jeter(f.g); return true; } return false; }); }
+  onde(p.x, p.y + 0.05, p.z, 3.4, '#e8a21e', 0.6, 0.9, true); onde(p.x, p.y + 0.05, p.z, 2, '#fff1b0', 0.45, 0.9, true);
+  emettre(FX_VIF, 30, { x: p.x, y: p.y + 0.3, z: p.z, r: 0.6, v: [0, 3.5, 0], dv: 1.2, vie: [0.6, 1.0], taille: [0.16, 0.05], c: ['#ffffff', '#ffe27a', '#c8841e'], a: 1, frein: 0.6 });
+}
+/* Lames tournoyantes : leur orbite, un cercle acier au sol qui suit le perso */
+function orbiteLames(c) { if (c.lamesO) return; const L = CARTES_P11B.lames, m = new T.Mesh(new T.RingGeometry(L.R - 0.07, L.R + 0.07, 64), fxMat('#3f6a9e', 0.35)); m.rotation.x = -Math.PI / 2; m.renderOrder = 3; m.raycast = () => {}; scene.add(m); c.lamesO = m; }
+/* Bouftou de guerre : un cercle dore sous lui et une gemme doree au-dessus, pour ne pas le confondre avec les Bouftous des vagues */
+function marqueAllie(m) {
+  const s = m.scale.x || 1, R = 1.15 / s, ring = new T.Mesh(new T.RingGeometry(R * 0.76, R, 40), fxMat('#e8b43a', 0.85)); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / s; ring.renderOrder = 3; ring.raycast = () => {}; m.add(ring);
+  const gem = new T.Mesh(new T.OctahedronGeometry(0.17 / s, 0), new T.MeshBasicMaterial({ color: '#ffc61e' })), contour = new T.Mesh(new T.OctahedronGeometry(0.21 / s, 0), new T.MeshBasicMaterial({ color: '#7a4a06', side: T.BackSide }));
+  gem.add(contour); gem.position.y = 1.7 / s; gem.raycast = () => {}; contour.raycast = () => {}; m.add(gem); m.userData.gemme = gem;
 }
