@@ -165,6 +165,7 @@ function batLePlusProche(mo) {
 /* casseur ou pas, tire une fois pour toutes a son premier pas ; casseUnSurDeux (les Tronknydes, 12/11/2026) : un sur deux dans l'ordre d'arrivee, pas au hasard */
 const estCasseur = (mo) => { if (mo.casseur === undefined) mo.casseur = !mo.d.boss && (mo.d.casseUnSurDeux && combat ? (combat.unSurDeux = (combat.unSurDeux || 0) + 1) % 2 === 1 : Math.random() < (mo.d.casse || 0)); return mo.casseur; };
 function cibleBatiment(mo, dt) {
+  if (mo.breche) { if (enRuine(mo.breche)) { mo.breche = null; mo.casseur = undefined; mo.bat = null; } else { mo.bat = mo.breche; mo.batT = 1.5; } } /* (entre par un bord ferme : il casse ce batiment, puis redevient un monstre comme les autres, 28/11/2026) */
   estCasseur(mo);
   if (!mo.casseur || mo.aggro) return null;
   const pp = paysanMesh.position; if (combat.deroute == null && Math.hypot(pp.x - mo.x, pp.z - mo.z) < (mo.d.aggroR || 2.2)) { mo.aggro = true; return null; } /* le perso est sur lui : il se defend (pas quand il est a terre) ; aggroR : les Koalaks se retournent contre toi de plus loin (05/11/2026) */

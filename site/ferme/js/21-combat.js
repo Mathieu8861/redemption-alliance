@@ -559,8 +559,16 @@ function departFriche(dep, b) {
 }
 /* les bords de la ferme : une case praticable dont un cote ne donne sur aucune de tes cases. L'ILE RONDE : sur la friche (un terrain pas encore achete),
    les monstres sortent des broussailles ; sur le vide, ils grimpent comme avant ; jamais par l'eau ni par la berge */
+/* LES BORDS FERMES (28/11/2026, « des joueurs utilisent les batiments pour bloquer l'arrivee des monstres par certains endroits et savoir d'ou ils vont venir », puis
+   « seuls les batiments a PV » au formulaire, Mathieu ; chez Yannick, le nord, le nord-est et l'est n'avaient plus aucune entree) : un bord occupe reste une entree.
+   Derriere un batiment a PV encore debout (grange, voliere, puits, epouvantail, tour), le monstre le casse, puis entre par la ruine ; derriere un enclos, la geliere,
+   la forge, une deco..., il grimpe et bondit par-dessus jusqu'a la premiere case libre (dans : trouvee une fois par vague, a 6 cases au plus) */
+function caseLibreDerriere(c0) { const vus = new Set([c0.id]); let f = [c0]; for (let n = 0; n < 6 && f.length; n++) { const g = []; for (const c of f) for (const v of voisins(c)) { if (vus.has(v.id)) continue; vus.add(v.id); if (praticable(v)) return v; g.push(v); } f = g; } return null; }
 function bordsFerme() {
-  const L = []; S_.cases.forEach((c) => { if (!PASSABLE[c.type]) return; COTES.forEach(([di, dj]) => { if (caseAt(c.i + di, c.j + dj)) return; const code = codeIle(c.i + di, c.j + dj); if (code === '~' || code === ',' || code === '=') return; L.push({ c, di, dj, friche: !!code }); }); }); return L;
+  const L = []; S_.cases.forEach((c) => { const libre = !!PASSABLE[c.type]; COTES.forEach(([di, dj]) => { if (caseAt(c.i + di, c.j + dj)) return; const code = codeIle(c.i + di, c.j + dj); if (code === '~' || code === ',' || code === '=') return;
+    if (libre || praticable(c)) { L.push({ c, di, dj, friche: !!code }); return; }
+    const cle = cleDeCase(c), debout = !!cle && !enRuine(cle), dans = caseLibreDerriere(c); if (!debout && !dans) return;
+    L.push({ c, di, dj, friche: !!code, bloque: true, cle: debout ? cle : null, dans }); }); }); return L;
 }
 /* « les mobs qui attaquent de par la (la terrasse du fond, derriere la grange), surtout quand ils doivent nous attaquer nous et pas un batiment, ils galerent
    trop a nous rejoindre, le boss a pop de par la, il a meme pas eu le temps de me toucher » (Mathieu, 15/10/2026) : la terrasse ne descend que par l'escalier.
@@ -569,7 +577,7 @@ function bordsDirects(L) {
   const pc = paysanMesh && caseIci(paysanMesh.position.x, paysanMesh.position.z); if (!pc) return L;
   const dist = new Map([[pc.id, 0]]), file = [pc];
   while (file.length) { const c = file.shift(); voisins(c).forEach((v) => { if (!dist.has(v.id) && praticable(v)) { dist.set(v.id, dist.get(c.id) + 1); file.push(v); } }); }
-  const q0 = posCase(pc), ok = L.filter((b) => { const d = dist.get(b.c.id), q = posCase(b.c); return d != null && d <= Math.hypot(q.x - q0.x, q.z - q0.z) / S * 1.25 + 1; });
+  const q0 = posCase(pc), ok = L.filter((b) => { const cb = (b.bloque && b.dans) || b.c, d = dist.get(cb.id), q = posCase(cb); /* (un bord ferme : le chemin compte depuis la case libre derriere) */ return d != null && d <= Math.hypot(q.x - q0.x, q.z - q0.z) / S * 1.25 + 1; });
   return ok.length >= 3 ? ok : L;
 }
 const bestiaire = () => (S_.bestiaire = S_.bestiaire || {}); /* { type: { vus, tues } } : le bestiaire se remplit des monstres affrontes (15/10/2026) */
@@ -611,11 +619,14 @@ function apparaitre(type, pres) {
   if (!pres && d.parachute && combat.raid) pres = pointParachute(); /* (le Parachutiste de VSA se pose pres de la grange, 06/11/2026) */
   if (!pres && d.fouisseur && !combat.raid && !combat.arene) { pres = pointPresBat(); if (pres && !combat.fouisseurVu) { combat.fouisseurVu = true; toast('Un ' + d.nom + ' surgit de terre au pied de tes bâtiments, derrière tes défenses !', 'alerte'); } }
   const L0 = pres ? [] : (combat.bords || (combat.bords = bordsFerme())), L = L0.length && !combat.raid ? bordsDirects(L0) : L0, b = !pres && combat.raid && combat.entrees && combat.entrees.length ? combat.entrees.shift() : L.length ? hasard(L) : null; /* (la simu VSA : chaque voleur par sa case rouge) */
-  const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? b.c : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
+  const c = pres ? (caseIci(pres.x, pres.z) || S_.cases.find((x) => PASSABLE[x.type])) : b ? (b.bloque && !b.cle ? b.dans : b.c) : hasard(S_.cases.filter((x) => PASSABLE[x.type])), q = posCase(c);
   const m = d.fabrique ? d.fabrique() : cloner(d.modele), ombreM = ombrePieds(m, d.ombre); if (d.teinte) teinterMonstre(m, d); const id = ++combat.id; m.traverse((o) => { o.userData.monstre = id; });
   const zone = new T.Mesh(new T.SphereGeometry(Math.max(0.6, d.ombre * 0.5), 8, 6), CIBLE); zone.position.y = d.ombre * 0.4; zone.userData.monstre = id; m.add(zone); /* plus facile a toucher */
   let x, z, ry, dep;
-  if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case ; ou il sort de la friche (les hautes herbes du terrain voisin), d'un bond */
+  if (b && b.bloque && !b.cle) { /* (un bord ferme par un enclos, la geliere, une deco... : il grimpe sous le bord, puis bondit par-dessus jusqu'a la case libre derriere) */
+    const qb = posCase(b.c); x = q.x + (Math.random() - 0.5) * 0.6; z = q.z + (Math.random() - 0.5) * 0.6; ry = Math.atan2(-b.di, -b.dj);
+    dep = { x: qb.x + b.di * 1.1, y: b.friche ? qb.y : qb.y - 2.4, z: qb.z + b.dj * 1.1, friche: b.friche, haut: 2.6 };
+  } else if (b) { /* il grimpe depuis le vide, sous le bord, et se hisse sur la case ; ou il sort de la friche (les hautes herbes du terrain voisin), d'un bond */
     const le = (Math.random() - 0.5) * 1.2; x = q.x + b.di * 0.55 + (b.dj ? le : 0); z = q.z + b.dj * 0.55 + (b.di ? le : 0); ry = Math.atan2(-b.di, -b.dj);
     dep = b.friche ? { x: x + b.di * 1.9, y: q.y, z: z + b.dj * 1.9, friche: true } : { x: x + b.di * 1.1, y: q.y - 2.4, z: z + b.dj * 1.1 };
     if (b.friche && typeof VERSIONS_P10 !== 'undefined' && VERSIONS_P10.has(d.modele) && !combat.arene && !combat.raid) dep.loin = departFriche(dep, b); /* (la Foret des Abraknydes arrive du fond des terrains pas encore achetes, 08/11/2026) */
@@ -632,6 +643,7 @@ function apparaitre(type, pres) {
      dans un autre repere (12 sur 12 pour le Golem lunaire) : il frappait a 6 cases et te touchait de la, le Gorille roi a 5, Ebil a 3,9 */
   { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.m.userData.portee) o.allonge = Math.max(0.6, (o.m.userData.portee + 0.6) / o.d.portee); } /* (un monstre a squelette : sa portee est celle de ses coups, mesuree sur ses animations) */
   { const o = combat.monstres[combat.monstres.length - 1]; if (o && o.dep && o.dep.parachute) equiperParachute(o); }
+  { const o = combat.monstres[combat.monstres.length - 1]; if (o && b && b.bloque && b.cle && !o.d.boss) { o.casseur = true; o.bat = b.cle; o.batT = 1.5; o.breche = b.cle; } } /* (un bord ferme par un batiment a PV : il le casse pour entrer) */
   if (pres && pres.apres) pres.apres(combat.monstres[combat.monstres.length - 1]); /* (une invocation : marquee par son invocateur, meme chargee apres coup) */
   /* (16/10/2026, « quand on passe dans la zone d'un boss, il doit nous attaquer » : sa portee ne depassait guere son corps ; il frappe maintenant jusqu'a environ 1 au-dela, mesure sur son modele, colosse de l'ile compris) */
 }
@@ -3518,7 +3530,7 @@ function majMonstre(mo, dt, s) {
   }
   if (mo.etat === 'grimpe') { /* il se hisse : remonte de sous le bord, puis un petit saut pour passer la falaise */
     mo.t += dt / 0.9; const k = Math.max(0, Math.min(1, mo.t)), e = k * k * (3 - 2 * k), dp = mo.dep;
-    m.position.set(dp.x + (mo.x - dp.x) * Math.max(0, (k - 0.55) / 0.45), dp.y + (mo.y - dp.y) * Math.min(1, e * 1.25) + Math.sin(Math.max(0, (k - 0.55) / 0.45) * Math.PI) * 0.45, dp.z + (mo.z - dp.z) * Math.max(0, (k - 0.55) / 0.45));
+    m.position.set(dp.x + (mo.x - dp.x) * Math.max(0, (k - 0.55) / 0.45), dp.y + (mo.y - dp.y) * Math.min(1, e * 1.25) + Math.sin(Math.max(0, (k - 0.55) / 0.45) * Math.PI) * (dp.haut || 0.45), dp.z + (mo.z - dp.z) * Math.max(0, (k - 0.55) / 0.45));
     m.rotation.x = dp.friche ? 0 : -0.5 * (1 - Math.min(1, k * 1.6)); m.visible = mo.t > 0;
     if (k >= 1) { mo.etat = 'actif'; m.rotation.x = 0; pouf(mo.x, mo.y, mo.z, 1.2); } return;
   }
