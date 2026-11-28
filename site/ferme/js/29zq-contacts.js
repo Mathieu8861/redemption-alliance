@@ -24,7 +24,7 @@ async function appelContacts(nom, args) { /* (comme rpc(), 05-nuage.js, mais per
 async function chargerContacts() {
   if (CONTACTS.charge) return CONTACTS.charge;
   return (CONTACTS.charge = Promise.all([appelContacts('ferme_amis', {}), appelContacts('ferme_groupe_moi', {}).catch(() => null)]).then(([r, g]) => { CONTACTS.data = r; CONTACTS.gr = g && g.ok ? g : null; CONTACTS.recues = r && r.ok ? (r.recues || []).length : 0;
-      const nG = CONTACTS.gr ? (CONTACTS.gr.recues || []).length : 0; if (nG > CONTACTS.invitesGr && CONTACTS.gr.recues[0]) toast(echapper(CONTACTS.gr.recues[0].chef) + ' t\'invite dans son groupe : ouvre Contacts, onglet Groupe.', 'or'); CONTACTS.invitesGr = nG; majPastilleContacts(); return r; })
+      const nG = CONTACTS.gr ? (CONTACTS.gr.recues || []).length : 0; CONTACTS.invitesGr = nG; try { apresLectureGroupe(); } catch (e) { /* rien */ } majPastilleContacts(); return r; })
     .catch((e) => { CONTACTS.data = { ok: false, erreur: String(e.message) === 'hors ligne' ? 'hors ligne' : 'reseau' }; return CONTACTS.data; }).finally(() => { CONTACTS.charge = null; }));
 }
 const ERREURS_CONTACTS = { inconnu: 'Aucun joueur ne porte ce pseudo.', plusieurs: 'Deux joueurs portent ce pseudo : préviens Mathieu.', toi: 'C’est toi !',
@@ -127,5 +127,66 @@ document.addEventListener('click', (ev) => {
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && modaleOuverte === 'contacts' && e.target && e.target.id === 'ct-qui') { const b = document.querySelector('#carte [data-contacts-demander]'); if (b) b.click(); } });
 /* le bouton suit le mode test ; les demandes recues sont relues toutes les 60 s quand le bouton est visible (et a l'ouverture de la fenetre) */
 { const entrerModeTestCt = entrerModeTest; entrerModeTest = function () { const r = entrerModeTestCt.apply(this, arguments); try { majPastilleContacts(); if (contactsVisibles()) chargerContacts(); } catch (e) { /* rien */ } return r; }; }
-setInterval(() => { try { majPastilleContacts(); const maint = Date.now(), pas = monGroupe() ? 20000 : 60000; if (contactsVisibles() && ENLIGNE && !document.hidden && !combat && maint - (CONTACTS.tPoll || 0) >= pas - 500) { CONTACTS.tPoll = maint; chargerContacts().then(redessinerContacts); } } catch (e) { /* (avant le chargement de la ferme) */ } }, 20000); /* (20 s dans un groupe, pour voir qui est pret ; 60 s sinon) */
+setInterval(() => { try { majPastilleContacts(); const maint = Date.now(), pas = monGroupe() || CONTACTS.invitesGr > 0 ? 10000 : 20000; if (contactsVisibles() && ENLIGNE && !document.hidden && !combat && maint - (CONTACTS.tPoll || 0) >= pas - 500) { CONTACTS.tPoll = maint; chargerContacts().then(redessinerContacts); } } catch (e) { /* (avant le chargement de la ferme) */ } }, 5000); /* (10 s dans un groupe ou avec une invitation en attente, pour que la carte et le cadre suivent ; 20 s sinon, pour qu'une invitation arrive vite : 60 s avant le 28/11/2026 ; deux appels au serveur a chaque fois) */
 [0, 4000, 10000, 20000].forEach((ms) => setTimeout(() => { try { majPastilleContacts(); if (ms && contactsVisibles() && ENLIGNE && !CONTACTS.data) chargerContacts().then(majPastilleContacts); } catch (e) { /* rien */ } }, ms)); /* (le compte est connu quelques secondes apres le chargement) */
+/* L'INVITATION BIEN VISIBLE ET LE CADRE DU GROUPE (28/11/2026, « quand on envoie une invitation de groupe a quelqu'un, il faudrait une petite notif sur l'ecran
+   que ce soit visible, et quand la personne accepte, qu'on voie sur l'ecran, sur la gauche, colle au bord, les personnes du groupe », puis « au format mobile et PC
+   je sais pas a quoi ca pourrait ressembler, peut-etre laisser dans la partie Contacts ? mais avec une petite notif quand meme », Mathieu) :
+   - une invitation recue : une carte en haut au milieu (le chef, sa classe et son niveau lus dans la liste d'amis, Rejoindre / Refuser), un son, 30 s ; jamais en
+     combat (la relecture du groupe s'arrete pendant un combat : la carte vient a la fin) ; ensuite l'invitation reste dans l'onglet Groupe et la pastille ;
+   - dans le groupe, un message quand quelqu'un rejoint ou quitte ;
+   - le cadre du groupe colle a gauche : en attente de la decision de Mathieu (CADRE_GROUPE, captures dans traces/groupe-cadre/) */
+const CADRE_GROUPE = false;
+const cadreGroupeActif = () => CADRE_GROUPE || window.__cadreGroupeEssai === true;
+const INVIT_G = { vues: new Set(), el: null, groupe: null, fin: 0, membres: null, gid: null };
+(() => { const st = document.createElement('style'); st.textContent = '.invit-groupe{position:fixed;left:50%;top:calc(72px + env(safe-area-inset-top, 0px));transform:translateX(-50%);z-index:6;width:min(380px, calc(100% - 24px));background:var(--papier);border:3px solid var(--bord);border-radius:16px;box-shadow:0 5px 0 var(--bord);padding:10px 12px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;pointer-events:auto;animation:invitG .35s ease-out}'
+  + '@keyframes invitG{from{transform:translate(-50%,-30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}.invit-groupe .pic{width:46px;height:46px;flex:0 0 46px;margin:0}.invit-groupe .pic img{width:100%;height:100%;object-fit:contain}'
+  + '.invit-groupe .ig-txt{flex:1;min-width:0;font:700 .86rem/1.25 var(--f-texte)}.invit-groupe .ig-txt b{font:400 1.02rem/1.1 var(--f-titre)}.invit-groupe .ig-txt small{display:block;font-size:.72rem;font-weight:800;opacity:.75;margin-top:2px}'
+  + '.invit-groupe .ct-act{display:flex;gap:6px;margin-left:auto}.invit-groupe .ig-temps{flex:1 0 100%;height:4px;border-radius:2px;background:rgba(0,0,0,.18);overflow:hidden}.invit-groupe .ig-temps i{display:block;height:100%;background:#f2b630;width:100%}'
+  + '.cadre-groupe{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:3;display:grid;gap:4px;pointer-events:auto;cursor:pointer;background:rgba(20,16,12,.62);border:2px solid var(--bord);border-left:0;border-radius:0 12px 12px 0;padding:6px 8px 6px 6px;max-width:172px}'
+  + '.cadre-groupe .cg-l{display:grid;grid-template-columns:26px 1fr;gap:0 6px;align-items:center}.cadre-groupe .cg-l .pic{width:26px;height:26px;margin:0;grid-row:span 2}.cadre-groupe .cg-l .pic img{width:100%;height:100%;object-fit:contain}'
+  + '.cadre-groupe .cg-n{font:800 .74rem/1.1 var(--f-texte);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px}.cadre-groupe .cg-n span.nom{overflow:hidden;text-overflow:ellipsis}'
+  + '.cadre-groupe .cg-s{font:800 .62rem/1.1 var(--f-texte);color:#c9ccd2;display:flex;align-items:center;gap:4px;white-space:nowrap}.cadre-groupe .cg-v{grid-column:2;height:5px;border-radius:3px;background:rgba(0,0,0,.5);overflow:hidden;margin-top:2px}.cadre-groupe .cg-v i{display:block;height:100%}'
+  + '.cadre-groupe .cg-chef{color:#f2b630;font-size:.7rem}.cadre-groupe .cg-pret{color:#8fe08a}.cadre-groupe .cg-terre{color:#ff9b8a}.cadre-groupe .ct-point{margin:0}'
+  + '@media (max-width: 700px){.cadre-groupe{max-width:118px;padding:4px 6px 4px 4px;gap:3px}.cadre-groupe .cg-l{grid-template-columns:22px 1fr}.cadre-groupe .cg-l .pic{width:22px;height:22px}.cadre-groupe .cg-n{font-size:.66rem}.cadre-groupe .cg-s{font-size:.56rem}}';
+  document.head.appendChild(st); })();
+function chefDansAmis(r) { const A = (CONTACTS.data && CONTACTS.data.amis) || []; return A.find((j) => j.pseudo === r.chef) || A.find((j) => j.pseudo === r.de) || null; }
+function montrerInvitation(r) {
+  cacherInvitation(); const j = chefDansAmis(r) || {}, info = [CLASSES_CONTACT[j.classe], j.niveau ? 'niveau ' + j.niveau : ''].filter(Boolean).join(', ');
+  const el = document.createElement('div'); el.className = 'invit-groupe'; el.id = 'invit-groupe';
+  el.innerHTML = icoClasseContact(j.classe) + '<div class="ig-txt"><b>' + echapper(r.chef) + '</b> t’invite dans son groupe<small>' + (info ? info + ' · ' : '') + r.membres + '/5 joueurs</small></div>'
+    + '<div class="ct-act"><button class="btn discret" data-invit-repondre="0">Refuser</button><button class="btn kamas" data-invit-repondre="1">Rejoindre</button></div><div class="ig-temps"><i></i></div>';
+  document.body.appendChild(el); INVIT_G.el = el; INVIT_G.groupe = r.groupe; INVIT_G.fin = performance.now() + 30000; try { son('quete'); } catch (e) { /* (sans le son) */ }
+  const barre = el.querySelector('.ig-temps i'); const f = () => { if (INVIT_G.el !== el) return; const k = (INVIT_G.fin - performance.now()) / 30000; if (k <= 0 || (typeof combat !== 'undefined' && combat)) { cacherInvitation(); return; } barre.style.width = (k * 100).toFixed(1) + '%'; requestAnimationFrame(f); }; requestAnimationFrame(f);
+}
+function cacherInvitation() { if (INVIT_G.el) { INVIT_G.el.remove(); INVIT_G.el = null; INVIT_G.groupe = null; } }
+document.addEventListener('click', (ev) => { const b = ev.target && ev.target.closest ? ev.target.closest('[data-invit-repondre]') : null; if (!b || !INVIT_G.groupe) return; const ok = b.dataset.invitRepondre === '1', g = INVIT_G.groupe; cacherInvitation();
+  actionContacts('ferme_groupe_repondre', { p_groupe: g, p_ok: ok }, ok ? 'Tu as rejoint le groupe.' : ''); });
+function apresLectureGroupe() {
+  const G = CONTACTS.gr, R = (G && G.recues) || [];
+  if (INVIT_G.el && !R.some((r) => r.groupe === INVIT_G.groupe)) cacherInvitation(); /* (annulee par le chef, ou deja repondue ailleurs) */
+  const neuve = R.find((r) => !INVIT_G.vues.has(r.groupe)); INVIT_G.vues = new Set(R.map((r) => r.groupe)); /* (une invitation refusee ou expiree puis renvoyee reapparait) */
+  if (neuve && !monGroupe() && !(typeof combat !== 'undefined' && combat)) montrerInvitation(neuve); else if (neuve) toast(echapper(neuve.chef) + ' t’invite dans son groupe : ouvre Contacts, onglet Groupe.', 'or');
+  const g = monGroupe(), M = g ? new Map((g.membres || []).map((m) => [m.id, m.pseudo])) : null; /* qui rejoint, qui part (pas soi) */
+  if (g && INVIT_G.membres && INVIT_G.gid === g.id) { M.forEach((ps, id) => { if (!INVIT_G.membres.has(id) && id !== G.moi) toast(echapper(ps) + ' a rejoint ton groupe.', 'or'); }); INVIT_G.membres.forEach((ps, id) => { if (!M.has(id) && id !== G.moi) toast(echapper(ps) + ' a quitté le groupe.'); }); }
+  INVIT_G.membres = M; INVIT_G.gid = g ? g.id : null; majCadreGroupe();
+}
+/* le cadre du groupe, colle a gauche (CADRE_GROUPE) : un membre par ligne, soi en premier puis le chef puis les autres ; sur la ferme : en ligne, pret ; dans le labo
+   a plusieurs : la barre de vie et « A terre » ; un clic ouvre l'onglet Groupe */
+let cadreSig = '';
+function majCadreGroupe() {
+  const g = typeof monGroupe === 'function' ? monGroupe() : null, voir = cadreGroupeActif() && contactsVisibles() && !!g && !!(g.membres || []).length;
+  let el = document.getElementById('cadre-groupe'); if (!voir) { if (el) el.remove(); cadreSig = ''; return; }
+  if (!el) { el = document.createElement('div'); el.className = 'cadre-groupe'; el.id = 'cadre-groupe'; el.title = 'Ton groupe'; document.body.appendChild(el); el.addEventListener('click', () => { CONTACTS.msg = ''; ouvrirContacts('groupe'); }); }
+  const moi = CONTACTS.gr.moi, labo = typeof lieu !== 'undefined' && lieu === 'donjon' && typeof MULTI !== 'undefined' && !!MULTI.role;
+  const L = (g.membres || []).map((j) => (j.id === moi && S_ && S_.perso ? Object.assign({}, j, { classe: S_.perso.classe || j.classe, niveau: niveau(S_.xp) || j.niveau }) : j)).sort((a, b) => (b.id === moi) - (a.id === moi) || (b.chef ? 1 : 0) - (a.chef ? 1 : 0)); /* (soi : sa classe et son niveau du moment) */
+  const vie = (j) => { if (j.id === moi) return { v: typeof combat !== 'undefined' && combat && combat.pvMax ? Math.round(100 * combat.pv / combat.pvMax) : 100, tr: typeof MULTI_C !== 'undefined' && !!MULTI_C.terre[moi] };
+    const A = MULTI.avatars && MULTI.avatars.get(j.id); return { v: A && A.v != null ? A.v : 100, tr: !!(A && A.tr) }; };
+  const enLigne = (j) => j.id === moi || !!(typeof MULTI !== 'undefined' && MULTI.presents && MULTI.presents[j.id]) || !!j.en_ligne;
+  const html = L.map((j) => { const V = labo ? vie(j) : null, coul = V ? (V.tr ? '#8a8a8a' : V.v > 50 ? '#5fd04a' : V.v > 25 ? '#f2b630' : '#e2413a') : '';
+    return '<div class="cg-l">' + icoClasseContact(j.classe) + '<div class="cg-n">' + (j.chef ? '<span class="cg-chef" title="Chef">♛</span>' : '') + '<span class="nom">' + echapper(j.id === moi ? 'Toi' : j.pseudo) + '</span></div>'
+      + '<div class="cg-s"><span class="ct-point' + (enLigne(j) ? ' on' : '') + '"></span>' + (j.niveau ? 'niv. ' + j.niveau : '') + (V && V.tr ? ' <span class="cg-terre">À terre</span>' : !labo && j.pret ? ' <span class="cg-pret">prêt ✓</span>' : '') + '</div>'
+      + (V ? '<div class="cg-v"><i style="width:' + Math.max(0, Math.min(100, V.v)) + '%;background:' + coul + '"></i></div>' : '') + '</div>'; }).join('');
+  if (html !== cadreSig) { cadreSig = html; el.innerHTML = html; }
+}
+setInterval(() => { try { if (cadreGroupeActif()) majCadreGroupe(); } catch (e) { /* rien */ } }, 400); /* (la vie dans le labo, la presence en direct) */
