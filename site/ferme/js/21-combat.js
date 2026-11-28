@@ -3149,7 +3149,7 @@ function capMarteauMoon(mo, ctx) {
   const MM = mo.d.marteauMoon, an = mo.m && mo.m.userData.anim; if (!MM || !an || mo.faible || combat.deroute != null) return;
   const { pp, sortPret } = ctx, dP = Math.hypot(pp.x - mo.x, pp.z - mo.z); if (dP < 3.5 || dP > (MM.portee || 14) || !sortPret('marteauMoonT', MM.periode)) return; /* (MM.portee : 16 pour Moon depuis le 25/11/2026) */
   const mart = mo.m.getObjectByName('marteau'); if (!mart) return;
-  mo.marteauMoonT = 0; const c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'], TA = Math.max(0.2, 1.0 / (mo.d.vivacite || 1) - (mo.d.moinsDelai || 0)), TV = 0.55, TJ = 0.85; /* (moinsDelai : Moon le Titan sur l'ile, 28/11/2026) */
+  mo.marteauMoonT = 0; const c0 = combat, C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'], TA = Math.max(0.2, 1.0 / (mo.d.vivacite || 1) + (mo.d.delaiPlus || 0)), TV = 0.55, TJ = 0.85; /* (delaiPlus : Moon le Titan sur l'ile, 28/11/2026) */
   const c = pointValide(mo.x, mo.z, pp.x, pp.z), ry = Math.atan2(c.x - mo.x, c.z - mo.z); recaler(mo, mo.x, mo.z, ry, 0.15);
   mo.bloqueT = Math.max(mo.bloqueT || 0, TA + TV + TJ + 1.2);
   const nom = an.A.coup_1 ? 'coup_1' : piocher(an, 'coup'), imp = ((mo.m.userData.impacts || {})[nom] || [{ t: 0.9 }])[0].t, a = jouerAnim(an, nom, 0.12); a.timeScale = imp / TA; mo.geste = { t: 0, d: TA + 0.25, ts: a.timeScale }; /* (il l'abat au-dessus de sa tete : il le lache au moment ou il tomberait) */

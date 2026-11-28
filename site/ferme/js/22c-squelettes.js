@@ -343,7 +343,7 @@ function coupMarteau(mo) {
   const an = mo.m.userData.anim; if (an.F.tourbillon && Math.random() < 0.2) { moulinet(mo); return; }
   const nom = piocher(an, 'coup'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), X = mo.d.sortsX || {};
   const brut = (mo.m.userData.impacts || {})[nom] || [{ t: 1, sol: true, x: 0, z: 2.6 }];
-  const d = geste(mo, 'coup', true, nom, brut[0].t / Math.max(0.2, ALERTE_MARTEAU / (mo.d.vivacite || 1) - (mo.d.moinsDelai || 0))), /* (moinsDelai : Moon le Titan, 0,2 s de moins sur l'ile, 28/11/2026) */ ts = (mo.geste && mo.geste.ts) || vif(mo), L = brut.map((x) => Object.assign({}, x, { t: x.t / ts }));
+  const d = geste(mo, 'coup', true, nom, brut[0].t / Math.max(0.2, ALERTE_MARTEAU / (mo.d.vivacite || 1) + (mo.d.delaiPlus || 0))), /* (delaiPlus : Moon le Titan, 0,2 s de plus pour esquiver sur l'ile, 28/11/2026) */ ts = (mo.geste && mo.geste.ts) || vif(mo), L = brut.map((x) => Object.assign({}, x, { t: x.t / ts }));
   mo.cd = Math.max(mo.cd, d + 0.7); /* (un souffle entre deux coups : un enchainement long ne repart pas aussitot) */
   const aP = Math.atan2(pp.x - mo.x, pp.z - mo.z), dP = Math.hypot(pp.x - mo.x, pp.z - mo.z), sol = L.find((x) => x.sol && x.x != null);
   let ry = aP, x1 = mo.x, z1 = mo.z;
@@ -379,7 +379,7 @@ function balayage(mo, x, y, z, ry, r) {
 const TOURS_MOULINET = 3, VITESSE_MOULINET = 2.6; /* (tours par seconde, fois sa vivacite ; 2,2 avant le 30/10/2026 au soir, « le tour qu'il fait sur lui-meme faudrait que ce soit plus rapide », Mathieu) */
 function moulinet(mo) {
   const an = mo.m.userData.anim, nom = piocher(an, 'tourbillon'), c0 = combat, pp = paysanMesh.position, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
-  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e * (mo.d.moulinetR || 1), viv = mo.d.vivacite || 1, /* (moulinetR : le cercle de Moon, +35 %, 07/11/2026) */ Ds = TOURS_MOULINET / (VITESSE_MOULINET * viv), alerte = Math.max(0.2, ALERTE_MARTEAU / viv - (mo.d.moinsDelai || 0));
+  const bras = ((mo.m.userData.bras || {})[nom]) || { t: 1.1, d: 2.6, y: 1.3 }, R = (bras.d + 0.9) * e * (mo.d.moulinetR || 1), viv = mo.d.vivacite || 1, /* (moulinetR : le cercle de Moon, +35 %, 07/11/2026) */ Ds = TOURS_MOULINET / (VITESSE_MOULINET * viv), alerte = Math.max(0.2, ALERTE_MARTEAU / viv + (mo.d.delaiPlus || 0));
   const dg = Math.max(1, Math.round(degSort(mo) * ((mo.d.sortsX || {}).moulinet || 0.35)));
   const a = jouerAnim(an, nom, 0.12); a.timeScale = bras.t / alerte; mo.geste = { t: 0, d: alerte + Ds + 0.15, ts: a.timeScale };
   mo.bloqueT = Math.max(mo.bloqueT || 0, alerte + Ds + 0.25); mo.cd = Math.max(mo.cd, alerte + Ds + 1.1);
@@ -414,7 +414,7 @@ function moulinet(mo) {
    le marteau), et il ne quitte le sol qu'entre le moment ou ses hanches decollent et celui ou elles retombent (lus sur l'animation). Il atterrit a la
    longueur de son marteau du centre, plus au centre ; son ombre grandit sur le cercle pendant qu'il est en l'air */
 function bondMarteau(mo, cx, cz, o) { /* (o : le bond du Marteau de Moon, son onde : R, et ses degats x, plus forts au centre, 01/11/2026) */
-  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = Math.max(0.2, ESQUIVE.bond / ((mo.d.vivacite || 1) * (mo.d.bondVif || 1)) - (mo.d.moinsDelai || 0)), c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
+  const an = mo.m.userData.anim, U = mo.m.userData, nom = piocher(an, 'bond'), E = Math.max(0.2, ESQUIVE.bond / ((mo.d.vivacite || 1) * (mo.d.bondVif || 1)) + (mo.d.delaiPlus || 0)), c0 = combat, e = echelleSq(mo), C = mo.d.couleurSorts || ['#e2413a', '#ffd0c0', '#8a1a12'];
   if (!nom) return;
   const S = ((U.impacts || {})[nom] || []).filter((x) => x.sol && x.x != null), imp = S[S.length - 1] || { t: 1.75, x: 0, z: 1.8 }, vol = (U.vols || {})[nom] || [imp.t * 0.35, imp.t * 0.9];
   const a = jouerAnim(an, nom, 0.1), D = a.getClip().duration, ts = imp.t / E; a.timeScale = ts; mo.geste = { t: 0, d: Math.min(D / ts - 0.15, E + 0.7), ts }; mo.bloqueT = Math.max(mo.bloqueT || 0, E + 0.6); /* (il se releve en marchant : la fin du bond, 1,6 s debout sur place, est coupee) */
