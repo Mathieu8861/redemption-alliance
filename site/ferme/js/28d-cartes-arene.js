@@ -6,12 +6,12 @@
    - cinq cartes LEGENDAIRES, a cadre dore : une chance sur sept par carte tiree d'en voir une (s'il en reste a prendre), une seule fois chacune par partie.
    Les effets se branchent sur les coups recus (blesserPerso), les coups donnes (blesser), la force (boostDegats), les gains (gainsArene), la chute (persoATerre)
    et une petite boucle par partie, lancee a chaque vague (appliquerVagueArene). */
-const CARTES_P11 = { pierre: 0.1, critique: 0.1, course: 10, epines: 0.2, ulti: 0.25, moisson: 0.01, bouclier: 0.15, souffle: 0.3, fureur: 0.25, bourse: 0.25, explosion: 0.15, volP11: 0.005 }; /* (volP11 : 0,01 avant le 28/11/2026, « Vol de vie 1,5 », Mathieu : 1,5 % au palier 11) */
+const CARTES_P11 = { pierre: 0.1, critique: 0.1, course: 10, epines: 0.2, ulti: 0.25, moisson: 0.01, bouclier: 0.15, souffle: 0.3, fureur: 0.25, bourse: 0.5 /* (0,25 avant le 28/11/2026 : « met +50 % bonus kamas », Mathieu) */, explosion: 0.15, volP11: 0.005 }; /* (volP11 : 0,01 avant le 28/11/2026, « Vol de vie 1,5 », Mathieu : 1,5 % au palier 11) */
 const LEG_CARTES = { chance: 0.03, /* (3 % par carte tiree : la plus rare ; une sur sept avant les raretes, 26/11/2026) */ ombre: { periode: 15, duree: 3 }, ouverture: { attente: 2.2, duree: 6, x: 2 }, temps: { periode: 20, duree: 2, boss: 1 }, aura: { R: 3.2, pas: 0.5, part: 0.1 }, frenesie: { pas: 0.02, max: 0.4 } }; /* (26/11/2026, « Frenesie trop broken, mets 40 %, 2 % par monstre tue ; et up Entree fracassante, 5 ou 6 secondes », Mathieu : 4 % et 60 % avant ; l'Entree passe de 4 a 6 s) */
 /* LES RARETES (26/11/2026, « il y a des cartes plus fortes, donc il faut que certaines cartes soient plus rares a avoir que d'autres », Mathieu) : au tirage, une carte
    commune pese 10, une rare 4, une epique 3 ; une legendaire a 3 % de chance par carte tiree (une sur sept avant) : environ 72 % de communes, 20 % de rares,
    4,5 % d'epiques et 3 % de legendaires. Une pastille sur la carte dit sa rarete. */
-const RARETE_CARTES = { puissance: 'commune', agilite: 'commune', vita: 'commune', foule: 'commune', recharge: 'commune', butin: 'commune', pierre: 'commune', course: 'commune', moisson: 'commune', bourse: 'commune',
+const RARETE_CARTES = { puissance: 'commune', agilite: 'commune', vita: 'commune', foule: 'commune', recharge: 'commune', butin: 'commune', pierre: 'commune', course: 'commune', moisson: 'rare' /* (commune avant le 28/11/2026 : « Moisson c'est plutot une carte rare », Mathieu) */, bourse: 'commune',
   esquive: 'rare', vol: 'rare', critique: 'rare', epines: 'rare', ulti: 'rare', bouclier: 'rare', fureur: 'rare', souffle: 'epique', explosion: 'epique' };
 const POIDS_RARETE = { commune: 10, rare: 4, epique: 3 }, NOMS_RARETE = { rare: 'Rare', epique: 'Épique' };
 const SVG_C = (s) => '<g ' + TR_CARTE + '>' + s + '</g>';
@@ -34,7 +34,7 @@ Object.assign(BONUS_ARENE, {
     svg: SVG_C('<path d="M60 80C30 62 18 46 18 31c0-12 10-21 21-21 9 0 17 6 21 14 4-8 12-14 21-14 11 0 21 9 21 21 0 15-12 31-42 49Z" fill="#ffd04a"/><path d="M14 52c-8-10-6-22 2-28 0 10 6 16 14 20M106 52c8-10 6-22-2-28 0 10-6 16-14 20" fill="#fff6d8"/><path d="M60 30v26M48 42h24" stroke="#fffaf0" stroke-width="6"/>') },
   fureur: { p11: true, nom: 'Fureur', c: ['#c8401e', '#7a2410', '#ffd3c2'], effet: '+25 % de dégâts sous 30 % de vie', txt: 'blessé, tu frappes plus fort',
     svg: SVG_C('<path d="M60 86c-20 0-30-14-30-28 0-16 12-22 14-38 8 8 10 16 10 22 4-6 6-14 4-26 14 10 24 26 24 42 0 16-10 28-22 28Z" fill="#ff7a2e"/><path d="M60 86c-10 0-14-8-14-14 0-8 6-12 8-20 6 6 8 12 8 16 2-2 4-6 4-10 6 6 8 12 8 16 0 6-6 12-14 12Z" fill="#ffd04a"/>') },
-  bourse: { p11: true, nom: 'Bourse', c: ['#c9a032', '#8a6a16', '#fbefc4'], effet: '+25 % de kamas de l\'Arène', txt: 'chaque vague tenue rapporte plus',
+  bourse: { p11: true, nom: 'Bourse', c: ['#c9a032', '#8a6a16', '#fbefc4'], effet: '+50 % de kamas de l\'Arène', txt: 'chaque vague tenue rapporte plus',
     svg: SVG_C('<path d="M44 26h32l-6 10c16 6 24 20 22 34-2 12-14 18-32 18S30 82 28 70c-2-14 6-28 22-34Z" fill="#c8945a"/><path d="M44 26c4-8 28-8 32 0" fill="#a8693a"/><circle cx="86" cy="70" r="12" fill="#ffd04a"/><circle cx="22" cy="74" r="10" fill="#ffd04a"/>') + '<path d="M86 64v12M80 70h12" stroke="#a0711a" stroke-width="3"/>' },
   explosion: { p11: true, nom: 'Explosion', c: ['#e07c0a', '#9a4f06', '#ffe2b8'], effet: 'les monstres tués explosent', txt: '15 % de leur vie max aux monstres autour',
     svg: SVG_C('<path d="M60 6 70 28 94 14 84 38 112 42 88 54 104 76 78 66 72 88 58 68 40 86 40 62 12 66 30 48 8 32 34 32 30 8 50 24Z" fill="#ff9a2e"/><path d="M60 26 66 38 80 32 74 46 88 50 74 56 80 70 66 62 60 74 54 62 40 70 46 56 32 50 46 46 40 32 54 38Z" fill="#ffe27a"/>') },
@@ -124,7 +124,7 @@ function tickCartes(c, dt) {
    - legendaires : Forme de titan, Relique vivante (les sorts legendaires partent seuls), Ultime en echo (l'ulti se relance seul).
    Une carte qui agit toutes les x secondes fait 50 % de degats de plus par exemplaire en plus ; les cartes des sorts legendaires ne sortent qu'a qui en porte un,
    l'Ultime en echo qu'a qui a un ulti. */
-const CARTES_P11B = { regen: { pas: 3, part: 0.01 }, geant: 0.15, grace: { seuil: 0.3, x: 0.25 }, relique: 0.25, echo: { chance: 0.25, max: 0.6 },
+const CARTES_P11B = { regen: { pas: 5 /* (3 avant le 28/11/2026 : « Regeneration toutes les 5 secondes », Mathieu) */, part: 0.01 }, geant: 0.15, grace: { seuil: 0.3, x: 0.25 }, relique: 0.25, echo: { chance: 0.25, max: 0.6 },
   meteore: { periode: 7, portee: 10, R: 1.6, x: 1.5, chute: 0.55 }, eclair: { periode: 5, portee: 8, saut: 4.5, n: 3, x: 0.8 },
   lames: { n: 2, max: 4, R: 1.7, w: 4.2, touche: 0.75, x: 0.4, cd: 0.45 }, ames: 0.5,
   totem: { periode: 20, duree: 10, tir: 0.7, portee: 9, x: 0.5 }, bouftou: { periode: 25, duree: 10, x: 0.7, cadence: 0.8, vitesse: 5.5, portee: 1.3 },
@@ -137,7 +137,7 @@ const flecheSvg = (x, y) => { const dx = 0.5, dy = 0.866, L = 30, tx = x + dx * 
     '<path d="M' + x + ' ' + y + 'l' + f(px * 5 - dx * 4) + ' ' + f(py * 5 - dy * 4) + 'M' + x + ' ' + y + 'l' + f(-px * 5 - dx * 4) + ' ' + f(-py * 5 - dy * 4) + '" stroke="#e8504a" stroke-width="3.5"/>'; };
 const ETOILE_SVG = '<path d="M52 12l9 22 24 2-18 16 6 24-21-13-21 13 6-24-18-16 24-2Z" fill="#ffd04a"/>';
 Object.assign(BONUS_ARENE, {
-  regen: { p11: true, nom: 'Régénération', c: ['#3fae6a', '#3a9a5e', '#d2f2dc'], effet: '1 % de vie toutes les 3 s', txt: 'tes blessures se referment seules',
+  regen: { p11: true, nom: 'Régénération', c: ['#3fae6a', '#3a9a5e', '#d2f2dc'], effet: '1 % de vie toutes les 5 s', txt: 'tes blessures se referment seules',
     svg: SVG_C('<path d="M54 84C26 68 16 54 16 40c0-11 9-19 19-19 8 0 15 5 19 12 4-7 11-12 19-12 10 0 19 8 19 19 0 14-10 28-38 44Z" fill="#5fd08a"/><path d="M54 38v26M41 51h26" stroke="#ffffff" stroke-width="6.5"/><path d="M98 34v14M91 41h14M104 10v10M99 15h10" fill="none" stroke="#3fae6a" stroke-width="4"/>') },
   geant: { p11: true, nom: 'Tueur de géants', c: ['#d8924e', '#b8783a', '#f2dcc0'], effet: '+15 % de dégâts aux boss', txt: 'et aux demi-boss',
     svg: SVG_C('<path d="M34 30c-8-12-6-20 0-24 2 9 8 13 14 15M86 30c8-12 6-20 0-24-2 9-8 13-14 15" fill="#e8dcc0"/><path d="M60 18c-20 0-32 14-32 32 0 14 8 24 18 28v10h28V78c10-4 18-14 18-28 0-18-12-32-32-32Z" fill="#a8693a"/><circle cx="48" cy="50" r="6" fill="#ffd04a"/><circle cx="72" cy="50" r="6" fill="#ffd04a"/><path d="M50 70h20" fill="none"/>') +
