@@ -24,7 +24,7 @@ async function appelContacts(nom, args) { /* (comme rpc(), 05-nuage.js, mais per
 async function chargerContacts() {
   if (CONTACTS.charge) return CONTACTS.charge;
   return (CONTACTS.charge = Promise.all([appelContacts('ferme_amis', {}), appelContacts('ferme_groupe_moi', {}).catch(() => null)]).then(([r, g]) => { CONTACTS.data = r; CONTACTS.gr = g && g.ok ? g : null; CONTACTS.recues = r && r.ok ? (r.recues || []).length : 0;
-      const nG = CONTACTS.gr ? (CONTACTS.gr.recues || []).length : 0; CONTACTS.invitesGr = nG; try { apresLectureGroupe(); } catch (e) { /* rien */ } majPastilleContacts(); return r; })
+      const nG = CONTACTS.gr ? (CONTACTS.gr.recues || []).length : 0; CONTACTS.invitesGr = nG; try { apresLectureGroupe(); } catch (e) { /* rien */ } try { majTenues(); } catch (e) { /* rien */ } majPastilleContacts(); return r; })
     .catch((e) => { CONTACTS.data = { ok: false, erreur: String(e.message) === 'hors ligne' ? 'hors ligne' : 'reseau' }; return CONTACTS.data; }).finally(() => { CONTACTS.charge = null; }));
 }
 const ERREURS_CONTACTS = { inconnu: 'Aucun joueur ne porte ce pseudo.', plusieurs: 'Deux joueurs portent ce pseudo : préviens Mathieu.', toi: 'C’est toi !',
@@ -35,12 +35,56 @@ const ERREURS_CONTACTS = { inconnu: 'Aucun joueur ne porte ce pseudo.', plusieur
 const errContacts = (e) => ERREURS_CONTACTS[e] || 'Ça n’a pas marché, réessaie.';
 const vuIlYa = (t) => { if (!t) return 'pas encore venu'; const m = Math.max(0, Math.round((Date.now() - new Date(t).getTime()) / 60000)); return m < 60 ? 'vu il y a ' + Math.max(1, m) + ' min' : m < 1440 ? 'vu il y a ' + Math.round(m / 60) + ' h' : 'vu il y a ' + Math.round(m / 1440) + ' j'; };
 const icoClasseContact = (c) => (CLASSES_CONTACT[c] ? ico(c === 'osa' ? 'osa' : c) : ico('opt-compte'));
+/* LA TETE DES JOUEURS (28/11/2026, « au lieu des coiffes de base qu'on voit dans le groupe [...] l'image qu'on a quand on se connecte et qu'on choisit un
+   personnage, même principe », Mathieu) : la tenue des amis et du groupe (classe, version, apparence, coiffe, cape, arme) est lue en ligne (DAMOCLES/sql/091,
+   ferme_tenues, toutes les 3 min au plus), puis le perso est dessine ici comme sur l'ecran des parties (portraitDePartie, 30-boucle.js), recadre sur la tete,
+   sur un rond aux couleurs de sa classe ; l'icone de la classe reste le temps du dessin, et si rien ne vient. Un dessin a la fois, jamais en combat ;
+   garde tant que la tenue ne change pas (la sienne : lue dans la partie en cours) */
+const TENUES = { de: {}, lu: 0, ids: '', charge: false, coupe: false, img: {}, file: [], enCours: false };
+const cleTenue = (t) => [t.classe, t.sexe === 'f' ? 'f' : 'm', t.look || '', t.coiffe || '', t.cape || '', t.arme || ''].join('|');
+const moiContacts = () => (CONTACTS.gr && CONTACTS.gr.moi) || (CONTACTS.data && CONTACTS.data.moi && CONTACTS.data.moi.id) || null;
+function tenueDe(id) {
+  if (id && id === moiContacts() && typeof S_ !== 'undefined' && S_ && S_.perso) { const q = S_.equip || {}; return { classe: S_.perso.classe, sexe: S_.perso.sexe, look: S_.perso.look, coiffe: q.coiffe, cape: q.cape, arme: q.arme }; }
+  return TENUES.de[id] || null;
+}
+function picJoueur(j) { /* l'icone d'un joueur de la liste (j.id, j.classe) : sa tete habillee des qu'elle est dessinee */
+  const t = j && j.id ? tenueDe(j.id) : null, k = t && CLASSES_CONTACT[t.classe] ? cleTenue(t) : '', src = k ? TENUES.img[k] : null, c = (t && t.classe) || (j && j.classe), C = COUL_CLASSE[c] || ['#5a4a3a', '#a08a6a'];
+  if (k && TENUES.img[k] === undefined) demanderTete(k, t);
+  return '<span class="pic img' + (src ? ' tete-j' : '') + '" data-tete="' + echapper(k) + '" style="--c1:' + C[0] + ';--c2:' + C[1] + '"><img src="' + (src || 'assets/icones/' + (CLASSES_CONTACT[c] ? c : 'opt-compte') + '.png?v=' + VERSION_MODELES) + '" alt=""></span>';
+}
+function demanderTete(k, t) { if (TENUES.file.some((x) => x.k === k)) return; TENUES.file.push({ k, t }); dessinerTetes(); }
+async function dessinerTetes() {
+  if (TENUES.enCours || !TENUES.file.length) return;
+  if ((typeof combat !== 'undefined' && combat) || (typeof enAccueil !== 'undefined' && enAccueil)) { setTimeout(dessinerTetes, 2000); return; } /* (pas d'a-coup en combat) */
+  TENUES.enCours = true; const { k, t } = TENUES.file.shift();
+  try {
+    const e = { perso: { classe: t.classe, sexe: t.sexe === 'f' ? 'f' : 'm', look: t.look || '' }, equip: {} }; ['coiffe', 'cape', 'arme'].forEach((s) => { if (t[s] && objBrut(t[s])) e.equip[s] = t[s]; });
+    const src = await teteDuPortrait(await portraitDePartie(e)); TENUES.img[k] = src || null;
+    if (src) document.querySelectorAll('[data-tete]').forEach((sp) => { if (sp.dataset.tete !== k) return; sp.classList.add('tete-j'); const im = sp.querySelector('img'); if (im) im.src = src; });
+  } catch (err) { TENUES.img[k] = null; console.warn('tete', err); }
+  finally { TENUES.enCours = false; if (TENUES.file.length) setTimeout(dessinerTetes, 60); }
+}
+function teteDuPortrait(src) { /* le portrait des parties a ses semelles en bas et un corps de PORTRAIT_HEROS.corps x h : un carre sur la tete (avec le haut de la coiffe), en 96 px */
+  return new Promise((ok) => { if (!src) { ok(null); return; } const im = new Image(); im.onerror = () => ok(null); im.onload = () => {
+    const corps = PORTRAIT_HEROS.h * PORTRAIT_HEROS.corps, cote = Math.min(im.width, corps * 0.62), y0 = Math.max(0, im.height - corps - corps * 0.1), x0 = Math.max(0, (im.width - cote) / 2);
+    const c = document.createElement('canvas'); c.width = c.height = 96; c.getContext('2d').drawImage(im, x0, y0, cote, cote, 0, 0, 96, 96); ok(c.toDataURL('image/png')); }; im.src = src; });
+}
+function majTenues() { /* la tenue des amis et des membres du groupe, relue toutes les 3 min au plus, ou quand la liste change */
+  if (TENUES.coupe || TENUES.charge) return; const moi = moiContacts(), g = monGroupe();
+  const ids = [...new Set((g ? (g.membres || []).map((m) => m.id) : []).concat(((CONTACTS.data && CONTACTS.data.amis) || []).map((j) => j.id)))].filter((id) => id && id !== moi).slice(0, 30), sig = ids.join(',');
+  if (!ids.length || (sig === TENUES.ids && Date.now() - TENUES.lu < 180000)) return;
+  TENUES.charge = true;
+  appelContacts('ferme_tenues', { p_ids: ids }).then((r) => { if (!r || !r.ok) return; const avant = JSON.stringify(TENUES.de); (r.tenues || []).forEach((t) => { TENUES.de[t.id] = t; }); TENUES.ids = sig; TENUES.lu = Date.now();
+      if (JSON.stringify(TENUES.de) !== avant) { cadreSig = ''; try { majCadreGroupe(); } catch (e) { /* rien */ } redessinerContacts(); } })
+    .catch((e) => { if (/HTTP 404/.test(String(e))) TENUES.coupe = true; }).finally(() => { TENUES.charge = false; }); /* (la base n'a pas encore la fonction : l'icone de la classe reste) */
+}
 (() => { const st = document.createElement('style'); st.textContent = '.ct-ligne{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:2px solid rgba(255,255,255,.06)}.ct-ligne:last-child{border-bottom:0}'
   + '.ct-ligne .pic{width:42px;height:42px;flex:0 0 42px;margin:0}.ct-ligne .pic img{width:100%;height:100%;object-fit:contain}.ct-ligne .ct-nom{flex:1;min-width:0}.ct-ligne .ct-nom b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ct-ligne small{font-size:.7rem;font-weight:700;color:#a9adb5}'
   + '.ct-point{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b6f78;margin-right:5px;vertical-align:middle}.ct-point.on{background:#5fd35f;box-shadow:0 0 6px #5fd35f}'
   + '.ct-vide{font-size:.82rem;font-weight:600;color:#a9adb5;padding:10px 4px}.ct-moi{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}'
   + '.ct-ajout{display:flex;gap:8px}.ct-ajout input{flex:1;min-width:0;background:#1d1e22;color:#fff;border:3px solid var(--bord);border-radius:10px;padding:8px 10px;font:700 .9rem var(--f-texte)}'
   + '#b-contacts .tuile{--t1:#17707a;--t2:#62d0d6}.ct-msg{font-size:.8rem;font-weight:700;margin-top:8px;color:#ff9b8a}.ct-msg.ok{color:#8fe08a}.ct-act{display:flex;gap:6px;align-items:center}.ct-etiq{font-size:.72rem;font-weight:800;color:#8fe08a}.ct-chef{font-size:.66rem;font-weight:800;background:#f2b630;color:#2a1d05;border-radius:99px;padding:1px 7px;vertical-align:middle}'
+  + '.pic.tete-j{border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 32%,var(--c2),var(--c1) 78%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.28)}.pic.tete-j img{object-fit:cover!important}'
   + '.ct-pret{font-size:.66rem;font-weight:800;background:#3d8f3d;color:#fff;border-radius:99px;padding:1px 7px;vertical-align:middle}.ct-boutons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}';
   document.head.appendChild(st); })();
 /* le bouton de la barre du bas, apres le Bestiaire */
@@ -58,12 +102,12 @@ function vueContacts() {
   if (!D.ok) return tete + '<p class="ct-vide">' + errContacts(D.erreur) + '</p>' + (D.erreur === 'deconnecte' || D.erreur === 'hors ligne' ? '' : '<button class="btn" data-contacts-onglet="' + o + '">Réessayer</button>');
   const nom = (j) => '<b>' + echapper(j.pseudo) + '</b>', info = (j) => [CLASSES_CONTACT[j.classe], j.niveau ? 'niveau ' + j.niveau : ''].filter(Boolean).join(', ');
   let corps = '';
-  if (o === 'amis') corps = (D.amis || []).length ? (D.amis || []).map((j) => '<div class="ct-ligne">' + icoClasseContact(j.classe) + '<div class="ct-nom">' + nom(j) + '<small><span class="ct-point' + (j.en_ligne ? ' on' : '') + '"></span>' + (j.en_ligne ? 'en ligne' : vuIlYa(j.vu)) + (info(j) ? ' · ' + info(j) : '') + '</small></div>'
+  if (o === 'amis') corps = (D.amis || []).length ? (D.amis || []).map((j) => '<div class="ct-ligne">' + picJoueur(j) + '<div class="ct-nom">' + nom(j) + '<small><span class="ct-point' + (j.en_ligne ? ' on' : '') + '"></span>' + (j.en_ligne ? 'en ligne' : vuIlYa(j.vu)) + (info(j) ? ' · ' + info(j) : '') + '</small></div>'
       + '<div class="ct-act">' + boutonInviter(j) + (CONTACTS.retirer === j.id ? '<button class="btn discret" data-contacts-retirer-non>Non</button><button class="btn" data-contacts-retirer="' + j.id + '" data-sur="1">Retirer ?</button>' : '<button class="btn discret" data-contacts-retirer="' + j.id + '">Retirer</button>') + '</div></div>').join('')
     : '<p class="ct-vide">Pas encore d’ami. Ajoute quelqu’un dans l’onglet « Ajouter » avec son pseudo.</p>';
   else if (o === 'demandes') {
     const R = D.recues || [], E = D.envoyees || [];
-    corps = '<div class="hdv-section">Reçues</div>' + (R.length ? R.map((j) => '<div class="ct-ligne">' + icoClasseContact(j.classe) + '<div class="ct-nom">' + nom(j) + '<small>' + (info(j) || 'veut être ton ami') + '</small></div><div class="ct-act"><button class="btn discret" data-contacts-repondre="' + j.id + '" data-ok="0">Refuser</button><button class="btn kamas" data-contacts-repondre="' + j.id + '" data-ok="1">Accepter</button></div></div>').join('') : '<p class="ct-vide">Aucune demande reçue.</p>')
+    corps = '<div class="hdv-section">Reçues</div>' + (R.length ? R.map((j) => '<div class="ct-ligne">' + picJoueur(j) + '<div class="ct-nom">' + nom(j) + '<small>' + (info(j) || 'veut être ton ami') + '</small></div><div class="ct-act"><button class="btn discret" data-contacts-repondre="' + j.id + '" data-ok="0">Refuser</button><button class="btn kamas" data-contacts-repondre="' + j.id + '" data-ok="1">Accepter</button></div></div>').join('') : '<p class="ct-vide">Aucune demande reçue.</p>')
       + '<div class="hdv-section">Envoyées</div>' + (E.length ? E.map((j) => '<div class="ct-ligne">' + ico('opt-compte') + '<div class="ct-nom">' + nom(j) + '<small>en attente de sa réponse</small></div><div class="ct-act"><button class="btn discret" data-contacts-retirer="' + j.id + '" data-sur="1">Annuler</button></div></div>').join('') : '<p class="ct-vide">Aucune demande en attente.</p>');
   } else if (o === 'groupe') corps = vueGroupe();
   else {
@@ -90,7 +134,7 @@ function vueGroupe() {
       + '<div class="hdv-section">Invitations reçues</div>' + (R.length ? R.map((r) => '<div class="ct-ligne">' + ico('barre-contacts') + '<div class="ct-nom"><b>Groupe de ' + echapper(r.chef) + '</b><small>' + r.membres + '/5 joueurs' + (r.de !== r.chef ? ' · invité par ' + echapper(r.de) : '') + '</small></div>'
         + '<div class="ct-act"><button class="btn discret" data-groupe-repondre="' + r.groupe + '" data-ok="0">Refuser</button><button class="btn kamas" data-groupe-repondre="' + r.groupe + '" data-ok="1">Rejoindre</button></div></div>').join('') : '<p class="ct-vide">Aucune invitation.</p>') + msg; }
   const M = g.membres || [], I = g.invites || [], chef = suisChef(), moi = M.find((m) => m.id === G.moi) || {};
-  return '<div class="hdv-section">Ton groupe (' + M.length + '/5)</div>' + M.map((j) => '<div class="ct-ligne">' + icoClasseContact(j.classe) + '<div class="ct-nom"><b>' + echapper(j.pseudo) + (j.chef ? ' <span class="ct-chef">chef</span>' : '') + (j.pret ? ' <span class="ct-pret">prêt ✓</span>' : '') + '</b>'
+  return '<div class="hdv-section">Ton groupe (' + M.length + '/5)</div>' + M.map((j) => '<div class="ct-ligne">' + picJoueur(j) + '<div class="ct-nom"><b>' + echapper(j.pseudo) + (j.chef ? ' <span class="ct-chef">chef</span>' : '') + (j.pret ? ' <span class="ct-pret">prêt ✓</span>' : '') + '</b>'
       + '<small><span class="ct-point' + (j.en_ligne || j.id === G.moi ? ' on' : '') + '"></span>' + (j.id === G.moi ? 'toi' : j.en_ligne ? 'en ligne' : vuIlYa(j.vu)) + (info(j) ? ' · ' + info(j) : '') + '</small></div>'
       + '<div class="ct-act">' + (chef && j.id !== G.moi ? (CONTACTS.retirer === 'g' + j.id ? '<button class="btn discret" data-contacts-retirer-non>Non</button><button class="btn" data-groupe-exclure="' + j.id + '" data-sur="1">Exclure ?</button>' : '<button class="btn discret" data-groupe-exclure="' + j.id + '">Exclure</button>') : '') + '</div></div>').join('')
     + (I.length ? '<div class="hdv-section">Invités, en attente</div>' + I.map((j) => '<div class="ct-ligne">' + ico('opt-compte') + '<div class="ct-nom"><b>' + echapper(j.pseudo) + '</b><small>doit répondre à ton invitation</small></div><div class="ct-act">' + (chef ? '<button class="btn discret" data-groupe-exclure="' + j.id + '" data-sur="1">Annuler</button>' : '') + '</div></div>').join('') : '')
@@ -144,17 +188,17 @@ const INVIT_G = { vues: new Set(), el: null, groupe: null, fin: 0, membres: null
   + '.invit-groupe .ig-txt{flex:1;min-width:0;font:700 .86rem/1.25 var(--f-texte)}.invit-groupe .ig-txt b{font:400 1.02rem/1.1 var(--f-titre)}.invit-groupe .ig-txt small{display:block;font-size:.72rem;font-weight:800;opacity:.75;margin-top:2px}'
   + '.invit-groupe .ct-act{display:flex;gap:6px;margin-left:auto}.invit-groupe .ig-temps{flex:1 0 100%;height:4px;border-radius:2px;background:rgba(0,0,0,.18);overflow:hidden}.invit-groupe .ig-temps i{display:block;height:100%;background:#f2b630;width:100%}'
   + '.cadre-groupe{position:fixed;left:0;top:38%;transform:translateY(-50%);z-index:3;display:grid;gap:4px;pointer-events:auto;cursor:pointer;background:rgba(20,16,12,.62);border:2px solid var(--bord);border-left:0;border-radius:0 12px 12px 0;padding:6px 8px 6px 6px;max-width:172px}'
-  + '.cadre-groupe .cg-l{display:grid;grid-template-columns:26px 1fr;gap:0 6px;align-items:center}.cadre-groupe .cg-l .pic{width:26px;height:26px;margin:0;grid-row:span 2}.cadre-groupe .cg-l .pic img{width:100%;height:100%;object-fit:contain}'
+  + '.cadre-groupe .cg-l{display:grid;grid-template-columns:26px 1fr;gap:0 6px;align-items:center}.cadre-groupe .cg-l .pic{width:26px;height:26px;margin:0;grid-row:span 2}.cadre-groupe .cg-l .pic img{width:100%;height:100%;object-fit:contain}.cadre-groupe .cg-l.terre .pic img{filter:grayscale(1) brightness(.75)}'
   + '.cadre-groupe .cg-n{font:800 .74rem/1.1 var(--f-texte);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px}.cadre-groupe .cg-n span.nom{overflow:hidden;text-overflow:ellipsis}'
   + '.cadre-groupe .cg-s{font:800 .62rem/1.1 var(--f-texte);color:#c9ccd2;display:flex;align-items:center;gap:4px;white-space:nowrap}.cadre-groupe .cg-v{grid-column:2;height:5px;border-radius:3px;background:rgba(0,0,0,.5);overflow:hidden;margin-top:2px}.cadre-groupe .cg-v i{display:block;height:100%}'
   + '.cadre-groupe .cg-chef{color:#f2b630;font-size:.7rem}.cadre-groupe .cg-pret{color:#8fe08a}.cadre-groupe .cg-terre{color:#ff9b8a}.cadre-groupe .ct-point{margin:0}'
-  + '@media (max-width: 700px), (max-height: 500px){.cadre-groupe:not(.deplie){padding:4px;gap:4px}.cadre-groupe:not(.deplie) .cg-l{grid-template-columns:26px}.cadre-groupe:not(.deplie) .cg-l > :not(.pic){display:none}.cadre-groupe:not(.deplie) .cg-l .pic{width:26px!important;height:26px!important}.cadre-groupe{top:50%;max-width:118px;padding:4px 6px 4px 4px;gap:3px}.cadre-groupe .cg-l{grid-template-columns:22px 1fr}.cadre-groupe .cg-l .pic{width:22px;height:22px}.cadre-groupe .cg-n{font-size:.66rem}.cadre-groupe .cg-s{font-size:.56rem}}' + '@media (max-height: 500px){.cadre-groupe{top:145px;transform:none;grid-auto-flow:column;max-width:none}.cadre-groupe.deplie .cg-l{min-width:96px}}'; /* (telephone couche : juste sous les defis du jour, au-dessus des messages, 28/11/2026) */
+  + '@media (max-width: 700px), (max-height: 500px){.cadre-groupe:not(.deplie){padding:4px;gap:4px}.cadre-groupe.deplie{background:rgba(20,16,12,.9)}.cadre-groupe:not(.deplie) .cg-l{grid-template-columns:26px}.cadre-groupe:not(.deplie) .cg-l > :not(.pic){display:none}.cadre-groupe:not(.deplie) .cg-l .pic{width:26px!important;height:26px!important}.cadre-groupe{top:50%;max-width:118px;padding:4px 6px 4px 4px;gap:3px}.cadre-groupe .cg-l{grid-template-columns:22px 1fr}.cadre-groupe .cg-l .pic{width:22px;height:22px}.cadre-groupe .cg-n{font-size:.66rem}.cadre-groupe .cg-s{font-size:.56rem}}' + '@media (max-height: 500px){.cadre-groupe{top:145px;transform:none;grid-auto-flow:column;max-width:none}.cadre-groupe.deplie .cg-l{min-width:96px}}'; /* (telephone couche : juste sous les defis du jour, au-dessus des messages, 28/11/2026) */
   document.head.appendChild(st); })();
 function chefDansAmis(r) { const A = (CONTACTS.data && CONTACTS.data.amis) || []; return A.find((j) => j.pseudo === r.chef) || A.find((j) => j.pseudo === r.de) || null; }
 function montrerInvitation(r) {
   cacherInvitation(); const j = chefDansAmis(r) || {}, info = [CLASSES_CONTACT[j.classe], j.niveau ? 'niveau ' + j.niveau : ''].filter(Boolean).join(', ');
   const el = document.createElement('div'); el.className = 'invit-groupe'; el.id = 'invit-groupe';
-  el.innerHTML = icoClasseContact(j.classe) + '<div class="ig-txt"><b>' + echapper(r.chef) + '</b> t’invite dans son groupe<small>' + (info ? info + ' · ' : '') + r.membres + '/5 joueurs</small></div>'
+  el.innerHTML = picJoueur(j) + '<div class="ig-txt"><b>' + echapper(r.chef) + '</b> t’invite dans son groupe<small>' + (info ? info + ' · ' : '') + r.membres + '/5 joueurs</small></div>'
     + '<div class="ct-act"><button class="btn discret" data-invit-repondre="0">Refuser</button><button class="btn kamas" data-invit-repondre="1">Rejoindre</button></div><div class="ig-temps"><i></i></div>';
   document.body.appendChild(el); INVIT_G.el = el; INVIT_G.groupe = r.groupe; INVIT_G.fin = performance.now() + 30000; try { son('quete'); } catch (e) { /* (sans le son) */ }
   const barre = el.querySelector('.ig-temps i'); const f = () => { if (INVIT_G.el !== el) return; const k = (INVIT_G.fin - performance.now()) / 30000; if (k <= 0 || (typeof combat !== 'undefined' && combat)) { cacherInvitation(); return; } barre.style.width = (k * 100).toFixed(1) + '%'; requestAnimationFrame(f); }; requestAnimationFrame(f);
@@ -184,7 +228,7 @@ function majCadreGroupe() {
     const A = MULTI.avatars && MULTI.avatars.get(j.id); return { v: A && A.v != null ? A.v : 100, tr: !!(A && A.tr) }; };
   const enLigne = (j) => j.id === moi || !!(typeof MULTI !== 'undefined' && MULTI.presents && MULTI.presents[j.id]) || !!j.en_ligne;
   const html = L.map((j) => { const V = labo ? vie(j) : null, coul = V ? (V.tr ? '#8a8a8a' : V.v > 50 ? '#5fd04a' : V.v > 25 ? '#f2b630' : '#e2413a') : '';
-    return '<div class="cg-l">' + icoClasseContact(j.classe) + '<div class="cg-n">' + (j.chef ? '<span class="cg-chef" title="Chef">♛</span>' : '') + '<span class="nom">' + echapper(j.id === moi ? 'Toi' : j.pseudo) + '</span></div>'
+    return '<div class="cg-l' + (V && V.tr ? ' terre' : '') + '">' + picJoueur(j) + '<div class="cg-n">' + (j.chef ? '<span class="cg-chef" title="Chef">♛</span>' : '') + '<span class="nom">' + echapper(j.id === moi ? 'Toi' : j.pseudo) + '</span></div>'
       + '<div class="cg-s"><span class="ct-point' + (enLigne(j) ? ' on' : '') + '"></span>' + (j.niveau ? 'niv. ' + j.niveau : '') + (V && V.tr ? ' <span class="cg-terre">À terre</span>' : !labo && j.pret ? ' <span class="cg-pret">prêt ✓</span>' : '') + '</div>'
       + (V ? '<div class="cg-v"><i style="width:' + Math.max(0, Math.min(100, V.v)) + '%;background:' + coul + '"></i></div>' : '') + '</div>'; }).join('');
   if (html !== cadreSig) { cadreSig = html; el.innerHTML = html; }
