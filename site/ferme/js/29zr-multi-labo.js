@@ -32,6 +32,7 @@ function majCanalGroupe() {
   ch.on('broadcast', { event: 'pos' }, ({ payload }) => recevoirPos(payload));
   ch.on('broadcast', { event: 'depart' }, ({ payload }) => recevoirDepart(payload));
   ch.on('broadcast', { event: 'quitte' }, ({ payload }) => { if (payload && payload.id) retirerAvatar(payload.id); });
+  if (typeof brancherCombatMulti === 'function') brancherCombatMulti(ch); /* (le combat partage, deuxieme temps : 29zs-multi-combat.js) */
   ch.subscribe((s) => { if (s === 'SUBSCRIBED') { MULTI.pret = true; suivrePresence(true); } });
   MULTI.canal = ch;
 }
@@ -69,19 +70,25 @@ function lancerLaboMulti() {
 { const am0 = actionMontgolfiere; actionMontgolfiere = function (a) { if (MULTI.essai && a === 'rentrer') { fermerCanalMulti(); toast('Retour à la ferme…', 'or'); setTimeout(() => location.reload(), 300); return; } return am0.apply(this, arguments); }; }
 { const rf0 = rentrerFerme; rentrerFerme = function () { if (MULTI.essai) { fermerCanalMulti(); setTimeout(() => location.reload(), 300); return Promise.resolve(false); } return rf0.apply(this, arguments); }; }
 /* ---- les positions ---- */
+/* (sa position a envoyer, ou null si rien n'a change ; en combat partage, elle part dans le message du combat, 29zs : un seul message par joueur et par dixieme de seconde) */
+function posMulti() {
+  if (!MULTI.canal || !MULTI.pret || lieu !== 'donjon' || !paysanMesh) return null;
+  const p = paysanMesh.position, a = paysanMesh.userData.angle != null ? paysanMesh.userData.angle : paysanMesh.rotation.y, d = MULTI.dernier, now = performance.now();
+  const bouge = !d || Math.hypot(p.x - d.x, p.z - d.z) > 0.02 || Math.abs(p.y - d.y) > 0.05, tourne = !d || Math.abs(a - d.a) > 0.05, m = bouge ? 1 : 0;
+  const v = combat && combat.pvMax ? Math.round(100 * combat.pv / combat.pvMax) : 100, tr = typeof MULTI_C !== 'undefined' && MULTI_C.terre[MULTI.moi] ? 1 : 0; /* (sa vie en %, et a terre : la barre au-dessus de sa tete chez les autres, deuxieme temps) */
+  if (!(bouge || tourne || !d || m !== d.m || v !== d.v || tr !== d.tr || now - MULTI.tEnvoi > MULTI_PAS.battement)) return null;
+  MULTI.dernier = { x: p.x, y: p.y, z: p.z, a, m, v, tr }; MULTI.tEnvoi = now; MULTI.nEnvoi++;
+  return { id: MULTI.moi, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), a: +a.toFixed(2), m, c: (S_ && S_.perso && S_.perso.classe) || 'iop', n: pseudoMulti(), v, tr };
+}
 setInterval(() => {
-  try { if (!MULTI.canal || !MULTI.pret) return; suivrePresence(); if (lieu !== 'donjon' || !paysanMesh) return;
-    const p = paysanMesh.position, a = paysanMesh.userData.angle != null ? paysanMesh.userData.angle : paysanMesh.rotation.y, d = MULTI.dernier, now = performance.now();
-    const bouge = !d || Math.hypot(p.x - d.x, p.z - d.z) > 0.02 || Math.abs(p.y - d.y) > 0.05, tourne = !d || Math.abs(a - d.a) > 0.05, m = bouge ? 1 : 0;
-    if (!(bouge || tourne || !d || m !== d.m || now - MULTI.tEnvoi > MULTI_PAS.battement)) return;
-    const P = { id: MULTI.moi, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), a: +a.toFixed(2), m, c: (S_ && S_.perso && S_.perso.classe) || 'iop', n: pseudoMulti() };
-    MULTI.canal.send({ type: 'broadcast', event: 'pos', payload: P }).catch(() => {}); MULTI.dernier = { x: p.x, y: p.y, z: p.z, a, m }; MULTI.tEnvoi = now; MULTI.nEnvoi++;
+  try { if (!MULTI.canal || !MULTI.pret) return; suivrePresence(); if (typeof posDansCombat === 'function' && posDansCombat()) return;
+    const P = posMulti(); if (P) MULTI.canal.send({ type: 'broadcast', event: 'pos', payload: P }).catch(() => {});
   } catch (e) { /* rien */ }
 }, MULTI_PAS.envoi);
 function recevoirPos(P) {
   if (!P || !P.id || P.id === MULTI.moi) return; MULTI.nRecu++;
   if (lieu !== 'donjon') return; let A = MULTI.avatars.get(P.id); if (!A) { A = creerAvatar(P); if (!A) return; MULTI.avatars.set(P.id, A); }
-  A.cible = P; A.vu = performance.now(); if (!MULTI.boucle) { MULTI.boucle = true; requestAnimationFrame(boucleAvatars); }
+  A.cible = P; A.vu = performance.now(); try { dessinerEtiquette(A, P.v, P.tr); } catch (e) { /* rien */ } if (!MULTI.boucle) { MULTI.boucle = true; requestAnimationFrame(boucleAvatars); }
 }
 /* l'apparence de base de sa classe (sans son equipement) et son nom au-dessus de la tete */
 function creerAvatar(P) {
@@ -90,12 +97,18 @@ function creerAvatar(P) {
   g.rotation.order = 'YXZ'; g.traverse((o) => { o.raycast = () => {}; });
   const u = { membres: ['pivot_jambeG', 'pivot_jambeD', 'pivot_brasG', 'pivot_brasD'].map((n) => g.getObjectByName(n)), genoux: ['pivot_genouG', 'pivot_genouD'].map((n) => g.getObjectByName(n)), haut: g.getObjectByName('haut'), pas: 0, ampl: 0 };
   const W = new T.Group(); W.add(g); try { ombrePieds(g, 1.4); } catch (e) { /* rien */ }
-  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const cx = cv.getContext('2d'); cx.font = 'bold 30px Lilita One, Quicksand, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
-  cx.lineWidth = 7; cx.strokeStyle = 'rgba(20,16,12,0.9)'; const nom = String(P.n || (MULTI.presents[P.id] || {}).pseudo || 'Joueur').slice(0, 18); cx.strokeText(nom, 128, 34); cx.fillStyle = '#ffe7a6'; cx.fillText(nom, 128, 34);
-  const tex = new T.CanvasTexture(cv), mat = new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }), sp = new T.Sprite(mat); sp.scale.set(2.4, 0.6, 1); sp.position.y = 2.55; sp.renderOrder = 8; W.add(sp);
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 96; const nom = String(P.n || (MULTI.presents[P.id] || {}).pseudo || 'Joueur').slice(0, 18);
+  const tex = new T.CanvasTexture(cv), mat = new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }), sp = new T.Sprite(mat); sp.scale.set(2.4, 0.9, 1); sp.position.y = 2.7; sp.renderOrder = 8; W.add(sp);
   W.position.set(P.x, P.y, P.z); g.rotation.y = P.a; scene.add(W);
-  return { W, g, u, tex, sp, cible: P, vu: performance.now(), classe: cl };
+  const A = { W, g, u, tex, sp, cv, nom, cible: P, vu: performance.now(), classe: cl, v: null, tr: null }; dessinerEtiquette(A, P.v, P.tr); return A;
 }
+/* son nom, et sous le nom sa barre de vie (deuxieme temps : la vie des autres au-dessus de leur tete ; grise s'il est a terre) */
+function dessinerEtiquette(A, v, tr) { v = v == null ? 100 : Math.max(0, Math.min(100, v)); tr = tr ? 1 : 0; if (A.v === v && A.tr === tr) return; A.v = v; A.tr = tr;
+  const cx = A.cv.getContext('2d'); cx.clearRect(0, 0, 256, 96); cx.font = 'bold 30px Lilita One, Quicksand, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.lineWidth = 7; cx.strokeStyle = 'rgba(20,16,12,0.9)'; cx.strokeText(A.nom, 128, 30); cx.fillStyle = '#ffe7a6'; cx.fillText(A.nom, 128, 30);
+  if (typeof MULTI !== 'undefined' && MULTI.role) { cx.fillStyle = 'rgba(20,16,12,0.85)'; cx.fillRect(48, 58, 160, 18); cx.fillStyle = tr ? '#8a8a8a' : v > 50 ? '#5fd04a' : v > 25 ? '#f2b630' : '#e2413a'; cx.fillRect(51, 61, Math.round(154 * v / 100), 12);
+    if (tr) { cx.font = 'bold 20px Quicksand, sans-serif'; cx.fillStyle = '#ffffff'; cx.fillText('À terre', 128, 68); } }
+  A.tex.needsUpdate = true; }
 function retirerAvatar(id) { const A = MULTI.avatars.get(id); if (!A) return; MULTI.avatars.delete(id); try { A.tex.dispose(); A.sp.material.dispose(); } catch (e) { /* rien */ } jeter(A.W); }
 function viderAvatars() { [...MULTI.avatars.keys()].forEach(retirerAvatar); }
 let tAvatars = 0;
@@ -113,6 +126,7 @@ function boucleAvatars(t) {
     if (m[0]) m[0].rotation.x = Math.sin(ph) * 0.62 * a; if (m[1]) m[1].rotation.x = -Math.sin(ph) * 0.62 * a; if (m[2]) m[2].rotation.x = -Math.sin(ph - 0.3) * 0.48 * a; if (m[3]) m[3].rotation.x = Math.sin(ph - 0.3) * 0.48 * a;
     const gn = u.genoux; if (gn[0]) gn[0].rotation.x = Math.pow(Math.max(0, -Math.cos(ph)), 1.3) * 0.95 * a; if (gn[1]) gn[1].rotation.x = Math.pow(Math.max(0, Math.cos(ph)), 1.3) * 0.95 * a;
     if (u.haut) u.haut.rotation.y = -Math.sin(ph) * 0.1 * a; A.g.rotation.z = Math.sin(ph) * 0.03 * a; A.g.rotation.x = 0.08 * a; A.g.position.y = Math.abs(Math.sin(ph)) * 0.05 * a;
+    if (P.tr) { A.g.rotation.z = 1.35; A.g.position.y = 0.25; } /* (a terre, couche sur le cote) */
   });
   if (MULTI.avatars.size) requestAnimationFrame(boucleAvatars); else { MULTI.boucle = false; tAvatars = 0; }
 }

@@ -111,6 +111,7 @@ function retirerWabbitsLibres() { wabbitsLibres.forEach((W) => scene.remove(W.m)
     retirerWabbitsLibres(); const r = finDonjonLabo.apply(this, arguments);
     try { const recap0 = document.querySelector('#carte .recap-combat'); if (recap0 && E && enJeu) recap0.insertAdjacentHTML('beforeend', ligneRecap('renfort', 'Wabbits libérés', (E.wabLiberes || 0) + ' des cages' + (gagne ? ', et ceux du labo' : '')).replace('class="rc-l"', 'class="rc-l large"')); /* (sur toute la largeur : la phrase depassait a droite, 25/11/2026) */ } catch (e) { /* rien */ }
     if (!gagne || !enJeu) return r;
+    if (typeof MULTI !== 'undefined' && MULTI.sansRecompense) { MULTI.sansRecompense = false; try { const recap = document.querySelector('#carte .recap-combat'); if (recap) recap.insertAdjacentHTML('beforeend', ligneRecap('etoile', 'Cette semaine', 'tu avais déjà tes ' + DONJON_SEMAINE.max + ' réussites : tu as aidé ton groupe, sans coffre ni réussite de plus')); } catch (e) { /* rien */ } return r; } /* (le labo a plusieurs : un joueur a 5 reussites aide sans recompense, 28/11/2026) */
     try {
       const W = etatDonjonWab(), ancien = W.record, premier = !W.fois, nouveau = !ancien || t < ancien; W.fois++; if (nouveau) W.record = Math.round(t); const Sm = reussitesDonjon(W); Sm.n++; /* (une reussite de plus cette semaine, 5 au plus : plus bas) */
       const C = FIN_LABO.coffre, G = S_.grange = S_.grange || {}, parfaite = premier || Math.random() < C.parfaite ? 1 : 0, cristal = typeof tirerCristaux === 'function' ? tirerCristaux(C.cristal) : 0;
