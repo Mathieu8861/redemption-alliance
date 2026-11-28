@@ -1006,7 +1006,7 @@ function blesserPerso(n, mo) {
   if (!combat || combat.fin || combat.deroute != null) return; /* (a terre, plus rien ne l'atteint) */
   if (paysanMesh && paysanMesh.userData.enVol) return; /* (en l'air pendant un bond, rien ne l'atteint : « qu'on prenne des degats quand on reatterrit, oui, mais dans les airs qu'on ne puisse pas se faire tuer », Mathieu, 07/11/2026) */
   if (combat.invincible > 0) { if ((blesserPerso.inv || 0) < performance.now()) { blesserPerso.inv = performance.now() + 400; const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Invincible', p, 'perso'); } return; } /* l'ulti du Iop (18-geliere.js) */
-  { const e = Math.min(0.5, 0.1 * nbBonus('esquive')); if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
+  { const p11 = typeof cartesArenePct === 'function' && cartesArenePct(), e = Math.min(p11 ? 0.6 : 0.5, (p11 ? 0.15 : 0.1) * nbBonus('esquive')); /* (au palier 11 : 15 % par carte, 60 % au plus ; « mets Esquive a 15 %, max 60 », Mathieu, 28/11/2026) */ if (e && Math.random() < e) { const p = paysanMesh.position.clone(); p.y += 1.7; chiffre('Esquive !', p, 'perso'); return; } } /* (le bonus Esquive de l'Arene) */
   if (!combat.raid) n = Math.max(1, Math.round(n * multDegats(combat.n) * multHautes(combat.n, combat.genre)));
   if (combat.mauditJusque && performance.now() < combat.mauditJusque) n = Math.round(n * (combat.mauditX || 1.25)); /* (maudit par l'Ancestral Maudit, 09/11/2026) */
   if (meuteActive()) n = Math.max(1, Math.round(n / (1 + MEUTE))); /* (la Meute : l'Osamodas encaisse mieux tant que son Bouftou est la, 09/11/2026) */

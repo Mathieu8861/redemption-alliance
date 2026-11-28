@@ -6,7 +6,7 @@
    - cinq cartes LEGENDAIRES, a cadre dore : une chance sur sept par carte tiree d'en voir une (s'il en reste a prendre), une seule fois chacune par partie.
    Les effets se branchent sur les coups recus (blesserPerso), les coups donnes (blesser), la force (boostDegats), les gains (gainsArene), la chute (persoATerre)
    et une petite boucle par partie, lancee a chaque vague (appliquerVagueArene). */
-const CARTES_P11 = { pierre: 0.1, critique: 0.1, course: 10, epines: 0.2, ulti: 0.25, moisson: 0.01, bouclier: 0.15, souffle: 0.3, fureur: 0.25, bourse: 0.25, explosion: 0.15, volP11: 0.01 };
+const CARTES_P11 = { pierre: 0.1, critique: 0.1, course: 10, epines: 0.2, ulti: 0.25, moisson: 0.01, bouclier: 0.15, souffle: 0.3, fureur: 0.25, bourse: 0.25, explosion: 0.15, volP11: 0.005 }; /* (volP11 : 0,01 avant le 28/11/2026, « Vol de vie 1,5 », Mathieu : 1,5 % au palier 11) */
 const LEG_CARTES = { chance: 0.03, /* (3 % par carte tiree : la plus rare ; une sur sept avant les raretes, 26/11/2026) */ ombre: { periode: 15, duree: 3 }, ouverture: { attente: 2.2, duree: 6, x: 2 }, temps: { periode: 20, duree: 2, boss: 1 }, aura: { R: 3.2, pas: 0.5, part: 0.1 }, frenesie: { pas: 0.02, max: 0.4 } }; /* (26/11/2026, « Frenesie trop broken, mets 40 %, 2 % par monstre tue ; et up Entree fracassante, 5 ou 6 secondes », Mathieu : 4 % et 60 % avant ; l'Entree passe de 4 a 6 s) */
 /* LES RARETES (26/11/2026, « il y a des cartes plus fortes, donc il faut que certaines cartes soient plus rares a avoir que d'autres », Mathieu) : au tirage, une carte
    commune pese 10, une rare 4, une epique 3 ; une legendaire a 3 % de chance par carte tiree (une sur sept avant) : environ 72 % de communes, 20 % de rares,
@@ -49,7 +49,8 @@ Object.assign(BONUS_ARENE, {
     svg: '<circle cx="60" cy="48" r="34" fill="none" stroke="#ff7a2e" stroke-width="7" stroke-dasharray="10 6"/>' + SVG_C('<path d="M60 70c-10 0-16-8-16-16 0-10 8-14 10-24 6 6 8 12 8 16 4-4 6-10 6-14 6 6 10 14 10 22 0 10-8 16-18 16Z" fill="#ffb02e"/>') },
   frenesie: { leg: true, p11: true, nom: 'Frénésie', c: ['#b0243a', '#6a1224', '#f7ccd4'], effet: '+2 % de dégâts par monstre tué', txt: 'jusqu\'à la fin de la vague, 40 % au plus',
     svg: SVG_C('<path d="M34 12c10 16 16 26 16 36a16 16 0 0 1-32 0c0-10 6-20 16-36Z" fill="#d0243a"/><path d="M80 80V30M66 44l14-14 14 14M96 66V40M86 50l10-10 10 10" fill="none" stroke-width="5"/>') } });
-Object.assign(BONUS_ARENE.vol, { effetP11: '2 % de vol de vie', txtP11: 'tes coups te soignent de 2 % des dégâts infligés' });
+Object.assign(BONUS_ARENE.vol, { effetP11: '1,5 % de vol de vie', txtP11: 'tes coups te soignent de 1,5 % des dégâts infligés' });
+Object.assign(BONUS_ARENE.esquive, { effetP11: '15 % d\'esquive', txtP11: 'une chance d\'éviter chaque coup (60 % au plus)' }); /* (28/11/2026, Mathieu ; le calcul dans 21-combat.js) */
 
 /* le tirage : les cartes du palier 11 seulement avec lui ; une legendaire (pas deja prise) a une chance sur sept par carte */
 { const tirer0 = tirerBonusArene; tirerBonusArene = function () { if (!cartesArenePct()) { const L = Object.keys(BONUS_ARENE).filter((id) => !BONUS_ARENE[id].p11); for (let i = L.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [L[i], L[j]] = [L[j], L[i]]; } return L.slice(0, 3); } /* (26/11/2026 : les joueurs tirent seulement parmi les anciennes cartes ; avant, trois cartes du palier 11 tirees d'un coup relancaient un tirage SANS filtre, et elles sortaient chez les joueurs sans effet, « j'ai eu Entree fracassante et pas de difference de degats », Dinomight) */
@@ -76,7 +77,7 @@ let EXPLOSION_EN_COURS = false;
 { const b0 = blesser; blesser = function (mo, n, gros, src) { const c = combat; if (!c || !c.arene || !cartesArenePct() || !mo || mo.etat !== 'actif') return b0.apply(this, arguments);
   const kC = nbC('critique'); if (kC && src !== 'def' && n > 0 && Math.random() < Math.min(0.5, CARTES_P11.critique * kC)) { n *= 2; const p = new T.Vector3(mo.x, mo.m.position.y + (mo.haut || 1.6) + 0.6, mo.z); chiffre('Critique !', p, 'gros'); }
   const pv0 = mo.pv, r = b0.call(this, mo, n, gros, src), fait = Math.max(0, pv0 - Math.max(0, mo.pv));
-  if (fait > 0 && src !== 'def') { const kV = nbC('vol'); if (kV) c.pv = Math.min(c.pvMax, c.pv + fait * CARTES_P11.volP11 * kV); } /* (le Vol de vie a 2 % : 1 % de plus, ici) */
+  if (fait > 0 && src !== 'def') { const kV = nbC('vol'); if (kV) c.pv = Math.min(c.pvMax, c.pv + fait * CARTES_P11.volP11 * kV); } /* (le Vol de vie a 1,5 % : 0,5 % de plus, ici) */
   if (mo.etat === 'mort' && pv0 > 0) {
     const kM = nbC('moisson'); if (kM) c.pv = Math.min(c.pvMax, c.pv + c.pvMax * CARTES_P11.moisson * kM);
     if (nbC('frenesie')) c.frenesie = Math.min(LEG_CARTES.frenesie.max, (c.frenesie || 0) + LEG_CARTES.frenesie.pas);
